@@ -61,9 +61,9 @@ It owns public GET routes for:
 - `/console-offline`;
 - versioned icon assets, unless icons are embedded or supplied by configuration.
 
-`@brains/webserver` remains a route host and does not silently install a service worker.
-This avoids affecting public sites served from the same Brain. Models/presets opt into the
-PWA interface only when they intentionally expose an installable operator console.
+The runtime-owned HTTP host does not silently install a service worker. This avoids
+affecting public sites served from the same Brain. Capability composition opts into the PWA
+interface only when it intentionally exposes an installable operator console.
 
 ### Scope decision
 
@@ -223,7 +223,7 @@ and icons; non-PWA brains are byte-equivalent.
    (Dashboard, then Chat, then Studio).
 3. Ensure climate switching updates document theme color where supported without changing
    manifest identity.
-4. Add the interface to the intended Rover/Relay presets.
+4. Add the interface to the explicitly selected personal/professional/team recipes.
 
 Gate: manifest is discoverable from all three surfaces with identical metadata when
 enabled and none when disabled; startup registers no duplicate paths.

@@ -6,7 +6,11 @@ import {
 } from "./setup-state-store";
 import { absoluteUrl } from "./issuer";
 import { htmlResponse } from "./http-responses";
-import { renderSetupPage, renderSetupSessionConflictPage } from "./pages";
+import {
+  renderInactiveSetupPage,
+  renderSetupPage,
+  renderSetupSessionConflictPage,
+} from "./pages";
 
 export const DEFAULT_SETUP_TOKEN_TTL_SECONDS: number = 24 * 60 * 60;
 
@@ -201,7 +205,7 @@ export class SetupFlow {
       (await this.passkeyService.hasCredentials()) &&
       setup?.targetUserId == null
     ) {
-      return new Response("Setup already completed", { status: 404 });
+      return htmlResponse(renderInactiveSetupPage(), 404);
     }
     if (!setup) {
       return new Response("Not Found", { status: 404 });

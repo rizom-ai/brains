@@ -1,39 +1,11 @@
 import type { RouteDefinitionInput } from "@rizom/site";
 
 /**
- * The consolidated Rizom site routes. The home page composes the rev-5 section
- * set from the "home" content namespace; the layout owns navigation (the
+ * The consolidated Rizom site routes. The home page composes the living-memory
+ * content namespace; the layout owns navigation (the
  * two-tier faces strip), so routes stay out of the entity nav.
  */
 export const aiRoutes: RouteDefinitionInput[] = [
-  {
-    id: "home",
-    path: "/",
-    title: "Rizom",
-    description: "Build the agent that represents you",
-    layout: "default",
-    navigation: { show: false },
-    sections: [
-      // The hero is the live agent proximity map, rendered from this brain's
-      // own registry. dataQuery routes it through the datasource (live map
-      // data); its hero copy is authored at site-content/home/network.md and
-      // merged over via the content overlay. Then the rev-11 story: the pain
-      // (problem), how the parts come together (growth carries the system),
-      // the mission, and the ask carried by proof — the knowledge map ("this
-      // site is a brain; this is what it knows, live") with the alive-line's
-      // proof links folded into its foot — and the faces to close.
-      {
-        id: "network",
-        template: "@brains/agent-discovery:agent:proximity-map",
-        dataQuery: {},
-      },
-      { id: "problem", template: "home:problem" },
-      { id: "growth", template: "home:growth" },
-      { id: "mission", template: "home:mission" },
-      { id: "knowledge", template: "@brains/knowledge-map:map", dataQuery: {} },
-      { id: "faces", template: "home:faces" },
-    ],
-  },
   {
     // The Living Memory position, told with the site's own chrome and its two
     // live maps. The hero is the proximity map — the network as it actually
@@ -41,10 +13,11 @@ export const aiRoutes: RouteDefinitionInput[] = [
     // content overlay. After the system and its brain → practice → network
     // sequence, the knowledge map provides working proof from this brain's
     // live memory. Copy for every section belongs to the separate content repo
-    // under site-content/living-memory/. Other routes keep their own rendering.
+    // under site-content/living-memory/. Keep that content identity stable;
+    // this is the homepage, with no duplicate route or redirect.
     id: "living-memory",
-    path: "/living-memory",
-    title: "Living memory",
+    path: "/",
+    title: "Rizom",
     description:
       "Living memory for hybrid human–AI teams — memory that works, from one team to an economy",
     layout: "default",
@@ -52,7 +25,7 @@ export const aiRoutes: RouteDefinitionInput[] = [
     sections: [
       {
         id: "hero",
-        template: "agent-discovery:proximity-map",
+        template: "@brains/agent-discovery:agent:proximity-map",
         dataQuery: {},
       },
       { id: "problem", template: "living-memory:problem" },
@@ -60,15 +33,14 @@ export const aiRoutes: RouteDefinitionInput[] = [
       { id: "turn", template: "living-memory:turn" },
       { id: "system", template: "living-memory:system" },
       { id: "growth", template: "living-memory:growth" },
-      { id: "proof", template: "topics:knowledge-map", dataQuery: {} },
+      { id: "proof", template: "@brains/knowledge-map:map", dataQuery: {} },
       { id: "arc", template: "living-memory:arc" },
       { id: "doors", template: "living-memory:doors" },
     ],
   },
   {
-    // The product's own room: the brain's life with its owner in four
-    // chapters — capture, ask, see it run, connect — each illustrated by a
-    // real interface screen, then the data principles and the quickstart.
+    // Product landing page. Preserve durable section IDs while changing the
+    // composition; /ask integration is separate and the hero is a placeholder.
     id: "brain",
     path: "/brain",
     title: "Rizom Brain",
@@ -79,11 +51,22 @@ export const aiRoutes: RouteDefinitionInput[] = [
       { id: "hero", template: "brain:hero" },
       { id: "capture", template: "brain:capture" },
       { id: "ask", template: "brain:ask" },
+      { id: "connect", template: "brain-network:connect", dataQuery: {} },
       { id: "run", template: "brain:run" },
-      { id: "connect", template: "brain:connect" },
       { id: "your-data", template: "brain:your-data" },
       { id: "quickstart", template: "brain:quickstart" },
-      { id: "close", template: "brain:close" },
+    ],
+  },
+  {
+    id: "public-ask",
+    path: "/ask",
+    title: "Ask Rizom AI",
+    description: "Ask a question of Rizom's public Brain knowledge",
+    layout: "default",
+    navigation: { show: false },
+    // The runtime mount has no authored copy or generated answer content.
+    sections: [
+      { id: "conversation", template: "public-ask:conversation", content: {} },
     ],
   },
   {

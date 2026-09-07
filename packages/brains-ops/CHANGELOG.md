@@ -1,5 +1,73 @@
 # @brains/ops
 
+## 0.2.0-alpha.388
+
+## 0.2.0-alpha.387
+
+## 0.2.0-alpha.386
+
+## 0.2.0-alpha.385
+
+## 0.2.0-alpha.384
+
+## 0.2.0-alpha.383
+
+## 0.2.0-alpha.382
+
+## 0.2.0-alpha.381
+
+## 0.2.0-alpha.380
+
+## 0.2.0-alpha.379
+
+## 0.2.0-alpha.378
+
+## 0.2.0-alpha.377
+
+## 0.2.0-alpha.376
+
+## 0.2.0-alpha.375
+
+## 0.2.0-alpha.374
+
+## 0.2.0-alpha.373
+
+## 0.2.0-alpha.372
+
+### Patch Changes
+
+- [#243](https://github.com/rizom-ai/brains/pull/243) [`c9ff2d0`](https://github.com/rizom-ai/brains/commit/c9ff2d07802df5c68de827123997c977dd4fd851) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Build each new shared Brain image with the full fleet's exact site/theme package union, including explicit builds, so smoke-to-fleet promotion reuses the same immutable image. Verify actual installed package versions before image reuse and in the scaffolded Deploy workflow before provisioning or container replacement. Fail closed on missing or mismatched packages without overwriting deployed tags.
+
+## 0.2.0-alpha.371
+
+## 0.2.0-alpha.370
+
+## 0.2.0-alpha.369
+
+## 0.2.0-alpha.368
+
+## 0.2.0-alpha.367
+
+## 0.2.0-alpha.366
+
+## 0.2.0-alpha.365
+
+## 0.2.0-alpha.364
+
+## 0.2.0-alpha.363
+
+## 0.2.0-alpha.362
+
+## 0.2.0-alpha.361
+
+## 0.2.0-alpha.360
+
+## 0.2.0-alpha.359
+
+## 0.2.0-alpha.358
+
+## 0.2.0-alpha.357
+
 ## 0.2.0-alpha.356
 
 ## 0.2.0-alpha.355

@@ -1,4 +1,5 @@
 import { Shell } from "@brains/core";
+import { CLI_OPERATOR_PRINCIPAL } from "./cli-operator";
 import { type AppConfig, type AppConfigInput, appConfigSchema } from "./types";
 import { ConsoleLogger, LogLevel } from "@brains/utils/logger";
 import { MigrationManager } from "./migration-manager";
@@ -161,9 +162,18 @@ function applyPermissionConfig(
   config: AppConfig,
   shellConfig: ShellConfig,
 ): void {
-  if (config.permissions) {
-    shellConfig.permissions = config.permissions;
-  }
+  // The command line is the brain's own interface, granted here rather than
+  // in each brain's config so that authority admitted from the CLI is
+  // re-resolvable when a queued job reaches its write. A rule, not an admin
+  // seed: seeds are written to auth.db once and replaced by its state on
+  // every later start, so a seed would never reach an existing brain.
+  const rules = config.permissions?.rules ?? [];
+  shellConfig.permissions = {
+    ...config.permissions,
+    rules: rules.some((rule) => rule.pattern === CLI_OPERATOR_PRINCIPAL)
+      ? rules
+      : [{ pattern: CLI_OPERATOR_PRINCIPAL, level: "admin" }, ...rules],
+  };
 }
 
 function applySpacesConfig(config: AppConfig, shellConfig: ShellConfig): void {

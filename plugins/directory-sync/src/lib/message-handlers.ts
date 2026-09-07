@@ -1,8 +1,14 @@
-import { DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
+import {
+  DIRECTORY_SYNC_CHANNELS,
+  directorySyncPathRequestSchema,
+  directorySyncPathResponseSchema,
+} from "@brains/contracts";
 import {
   defineSubscription,
   type AnySubscriptionDefinition,
 } from "@brains/sdk/services";
+import { resolveEntityPlacement, getEntityFileExtension } from "./entity-paths";
+import { decodeEntityIdPath } from "@brains/entity-service";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type {
@@ -87,6 +93,24 @@ export function directorySyncSubscriptions(
           await ds.removeOrphanedEntities();
         }
         return result;
+      },
+    }),
+    defineSubscription({
+      topic: DIRECTORY_SYNC_CHANNELS.pathRequest,
+      payload: directorySyncPathRequestSchema,
+      response: directorySyncPathResponseSchema,
+      handle: ({ payload }) => {
+        const extension = getEntityFileExtension(payload);
+        const { relativePath, owner, writable } = resolveEntityPlacement(
+          ".", payload.entityType, payload.entityId, extension,
+        );
+        const [first, ...rest] = decodeEntityIdPath(payload.entityId);
+        const segment = rest.at(-1) ?? first;
+        const end = relativePath.length - extension.length;
+        const leaf = segment && relativePath.endsWith(`${segment}${extension}`)
+          ? { start: end - segment.length, end }
+          : null;
+        return { relativePath, leaf, owner, writable };
       },
     }),
     defineSubscription({

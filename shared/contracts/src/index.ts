@@ -1,4 +1,9 @@
 export {
+  entityReadBudgetSchema,
+  type EntityReadBudget,
+  type QueryEmbedding,
+} from "./entity-read";
+export {
   AGENT_ACTION_REQUEST_CHANNEL,
   agentActionRequestSchema,
   agentEventActionSchema,
@@ -133,6 +138,11 @@ export {
   SITE_CHANNELS,
   SOCIAL_CHANNELS,
 } from "./message-channels";
+export {
+  directorySyncPathRequestSchema,
+  directorySyncPathResponseSchema,
+  type DirectorySyncPathRequest,
+} from "./directory-sync-path";
 export { PROGRESS_STEPS, type ProgressStep } from "./progress-steps";
 export {
   ProjectionWaveReadySchema,

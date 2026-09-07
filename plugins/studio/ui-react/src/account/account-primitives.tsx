@@ -1,6 +1,12 @@
 /** @jsxImportSource react */
 import { Button } from "@brains/app-ui-react";
+import { typographyStyles } from "../studio-typography.styles";
+import { OperatorRecordCopy } from "@brains/operator-view-react";
 import type { ReactElement, ReactNode } from "react";
+import {
+  accountClass as cx,
+  accountStyles as s,
+} from "../studio-account.styles";
 
 export function AccountButton(props: {
   children: ReactNode;
@@ -29,15 +35,18 @@ export function AccountButton(props: {
 
 export function AccountAccessItem(props: {
   kind: string;
-  value: string;
+  description?: string;
+  metadata?: readonly string[];
   action?: ReactNode;
 }): ReactElement {
   return (
-    <div className="people-access-item">
-      <div>
-        <div className="people-access-kind">{props.kind}</div>
-        <div className="people-access-value">{props.value}</div>
-      </div>
+    <div className={cx("account-access-item", s.access)}>
+      <OperatorRecordCopy
+        density="comfortable"
+        title={props.kind}
+        description={props.description}
+        metadata={props.metadata ?? []}
+      />
       {props.action}
     </div>
   );
@@ -45,16 +54,20 @@ export function AccountAccessItem(props: {
 
 export function AccountDetailSection(props: {
   title: string;
-  description: string;
+  description?: string;
   children: ReactNode;
 }): ReactElement {
   return (
-    <section className="people-detail-section">
-      <div className="people-section-label">
-        <h3>{props.title}</h3>
-        <p>{props.description}</p>
+    <section className={cx("account-detail-section", s.section)}>
+      <div className="account-section-label">
+        <h3 className={cx("", s.heading, typographyStyles.section)}>
+          {props.title}
+        </h3>
+        {props.description ? (
+          <p className={cx("", s.description)}>{props.description}</p>
+        ) : null}
       </div>
-      <div className="people-stack">{props.children}</div>
+      <div className={cx("people-stack", s.stack)}>{props.children}</div>
     </section>
   );
 }

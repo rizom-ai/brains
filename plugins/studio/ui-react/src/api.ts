@@ -1,8 +1,14 @@
 import type {
   RuntimeStudioWorkspaceData,
   UserPermissionLevel,
+  EntityIdPath,
+  EntityIdPathInput,
 } from "@brains/plugins";
 import type { FetchLike } from "@brains/utils/fetch-like";
+import {
+  studioCollectionQuerySchema,
+  type StudioCollectionQuery,
+} from "../../src/collection-query";
 
 /**
  * Typed client for the Studio editor API served by plugins/studio.
@@ -112,10 +118,42 @@ export interface TypeSchema {
 }
 
 export interface EntitySummary {
+  /** Adapter-owned metadata title; read-only and never inserted into frontmatter. */
+  displayTitle?: string | undefined;
   id: string;
   entityType: string;
   frontmatter: Record<string, unknown>;
   updated: string;
+  path?: EntityIdPath;
+}
+
+export interface EntityFolder {
+  path: EntityIdPath;
+  name: string;
+  descendantCount: number;
+}
+
+export interface DestinationInput {
+  entityType: string;
+  idPath: EntityIdPathInput;
+  frontmatter: Record<string, unknown>;
+  body?: string;
+}
+
+export interface DestinationPreview {
+  idPath: EntityIdPath;
+  entityId: string;
+  entityLeaf: { start: number; end: number };
+  filePath: string | null;
+  fileLeaf: { start: number; end: number } | null;
+}
+
+export interface EntityPage {
+  prefix?: EntityIdPath | null;
+  folders?: EntityFolder[];
+  entities: EntitySummary[];
+  /** Count after applying the same filters and visibility scope as the page. */
+  total: number;
 }
 
 export interface EntityDetail extends EntitySummary {
@@ -298,11 +336,25 @@ export class StudioApi {
     );
   }
 
-  async fetchEntities(entityType: string): Promise<EntitySummary[]> {
-    const { entities } = await this.requestJson<{ entities: EntitySummary[] }>(
-      this.path(`entities?type=${encodeURIComponent(entityType)}`),
+  async fetchEntities(
+    entityType: string,
+    query: StudioCollectionQuery = studioCollectionQuerySchema.parse({}),
+  ): Promise<EntityPage> {
+    const page = studioCollectionQuerySchema.parse(query);
+    const params = new URLSearchParams({
+      type: entityType,
+      offset: String(page.offset),
+      limit: String(page.limit),
+    });
+    if (page.prefix) params.set("prefix", JSON.stringify(page.prefix));
+    if (page.scope !== "folder") params.set("scope", page.scope);
+    if (page.q) params.set("q", page.q);
+    if (page.visibility !== "all") params.set("visibility", page.visibility);
+    if (page.status) params.set("status", page.status);
+    if (page.sort !== "updated-desc") params.set("sort", page.sort);
+    return this.requestJson<EntityPage>(
+      this.path(`hierarchy?${params.toString()}`),
     );
-    return entities;
   }
 
   async fetchEntity(entityType: string, id: string): Promise<EntityDetail> {
@@ -332,8 +384,21 @@ export class StudioApi {
     });
   }
 
+  async previewDestination(
+    input: DestinationInput,
+    signal?: AbortSignal,
+  ): Promise<DestinationPreview> {
+    return this.requestJson<DestinationPreview>(this.path("destination"), {
+      ...(signal && { signal }),
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+  }
+
   async createEntity(input: {
     entityType: string;
+    idPath?: EntityIdPathInput;
     frontmatter: Record<string, unknown>;
     body?: string;
   }): Promise<{ entityId: string; jobId: string }> {

@@ -1,7 +1,10 @@
 import { z } from "@brains/utils/zod";
 import type { AppConfig } from "./types";
 import type { App as AppClass, AppRuntimeOptions } from "./app";
-import type { ActorRef } from "@brains/contracts";
+import {
+  createCliOperatorContext,
+  type CliOperatorContext,
+} from "./cli-operator";
 import type { ToolResponse } from "@brains/mcp-service";
 import { getErrorMessage } from "@brains/utils/error";
 
@@ -140,7 +143,7 @@ async function invokeCliTool(
   io: CliIo,
   handler: (
     input: unknown,
-    context: { interfaceType: string; actor: ActorRef },
+    context: CliOperatorContext,
   ) => Promise<ToolResponse>,
   input: unknown,
   failureLabel: string,
@@ -150,10 +153,7 @@ async function invokeCliTool(
   // tool failing, and labelling it as one hides where it went wrong.
   let result: ToolResponse;
   try {
-    result = await handler(input, {
-      interfaceType: "cli",
-      actor: { kind: "service", serviceId: "shell-cli" },
-    });
+    result = await handler(input, createCliOperatorContext());
   } catch (error) {
     io.error(`❌ ${failureLabel} failed:`, getErrorMessage(error));
     io.exit(1);
@@ -292,7 +292,9 @@ async function runCliCommand(io: CliIo, config: AppConfig): Promise<void> {
   const cliArgs = parseJsonFlag(io.argv, "--cli-args", [], cliArgsSchema);
   const cliFlags = parseJsonFlag(io.argv, "--cli-flags", {}, cliFlagsSchema);
 
-  const app = await initializeHeadlessApp(config, io);
+  const app = await initializeHeadlessApp(config, io, {
+    mode: "register-only",
+  });
   const cliTools = app.getShell().getMCPService().getCliTools();
   const match = cliTools.find((t) => t.tool.cli?.name === commandName);
 
@@ -319,11 +321,17 @@ async function runCliCommand(io: CliIo, config: AppConfig): Promise<void> {
 }
 
 /**
- * Headless mode: boot brain without daemons, invoke a tool, print result, exit.
+ * Headless mode: boot brain register-only, invoke a tool, print result, exit.
  *
  * Used by `brain list`, `brain get`, `brain sync`, etc.
  * Skips all interface plugins (MCP, Discord) — only loads
  * entity plugins and service plugins.
+ *
+ * Register-only, never a full boot: a one-shot process owns no runtime work.
+ * A full boot starts a job worker on the queue's stable slot, which
+ * supersedes the running app's worker session; that worker then stops
+ * claiming jobs until the app restarts. The bundled runtime boots its tool
+ * invocations register-only for the same reason.
  */
 async function runTool(io: CliIo, config: AppConfig): Promise<void> {
   const toolName = requireArgValue(
@@ -340,7 +348,9 @@ async function runTool(io: CliIo, config: AppConfig): Promise<void> {
     io.exit(1);
   }
 
-  const app = await initializeHeadlessApp(config, io);
+  const app = await initializeHeadlessApp(config, io, {
+    mode: "register-only",
+  });
   const tools = app.getShell().getMCPService().listTools();
   const match = tools.find((t) => t.tool.name === toolName);
 

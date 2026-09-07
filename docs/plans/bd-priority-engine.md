@@ -28,7 +28,7 @@ focus and stale-item alerts. It is **not** a task manager, **not** a CRM, and
 ## What exists today (fact-check)
 
 - **`project` is already a taken entity type.** `entities/portfolio`
-  (`@brains/portfolio`, Rover `full` preset) defines a durable `project` entity,
+  (`@brains/portfolio`, canonical professional posture) defines a durable `project` entity,
   but it is a **publishing showcase** with a publish lifecycle only — no state,
   score, owner, or deadline. This feature uses the distinct `opportunity` entity
   and must not overload portfolio's `project`.
@@ -56,7 +56,7 @@ focus and stale-item alerts. It is **not** a task manager, **not** a CRM, and
   `getInstructions()`. Owned here; consumed by both services.
 - `plugins/business-development` (`@brains/business-development`) — this plan's
   service: capture ergonomics, scoring suggestion, ranking `DataSource`, focus,
-  heartbeat, dashboard widgets. Kept out of Rover's public reference preset.
+  heartbeat, dashboard widgets. Kept out of the default professional bundle composition.
 - `plugins/lead-management` (`@brains/lead-management`) — intake and consolidation of
   `lead`-state records; specified in [lead-management.md](./lead-management.md). This
   package never references it.
@@ -241,8 +241,8 @@ Each phase ships an end-to-end usable increment; write the tests first.
 Resolved with Jan Hein:
 
 1. **Packaging.** One shared entity package plus one service package (see Packaging
-   above), composed into whichever brain Rizom chooses — kept out of Rover's public
-   reference preset. Which brain composes it is deferred to composition time and does
+   above), composed into whichever brain Rizom chooses — kept out of the default
+   professional recipe. Which brain composes it is deferred to composition time and does
    not block the build.
 2. **Integrity semantics.** `0` = hard disqualify (never Active, regardless of
    value); `1–5` contribute `integrity × 1.5`.

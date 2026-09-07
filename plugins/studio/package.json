@@ -1,12 +1,13 @@
 {
   "name": "@brains/studio",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.356",
+  "version": "0.2.0-alpha.388",
   "description": "Studio plugin for config and browser authoring routes",
   "dependencies": {
     "@brains/app-ui-react": "workspace:*",
     "@brains/console-theme": "workspace:*",
     "@brains/contracts": "workspace:*",
+    "@brains/entity-service": "workspace:*",
     "@brains/operator-view-react": "workspace:*",
     "@brains/sdk": "workspace:*",
     "@brains/utils": "workspace:*",
@@ -14,7 +15,12 @@
     "@codemirror/language": "^6.12.4",
     "@codemirror/state": "^6.7.1",
     "@codemirror/view": "^6.43.6",
+    "@lezer/css": "^1.3.4",
     "@lezer/highlight": "^1.2.3",
+    "@lezer/html": "^1.3.13",
+    "@lezer/javascript": "^1.5.4",
+    "@lezer/json": "^1.0.3",
+    "@stylexjs/stylex": "^0.19.0",
     "@tanstack/react-query": "^5.0.0",
     "@tanstack/react-router": "^1.0.0",
     "radix-ui": "^1.6.0",
@@ -47,7 +53,7 @@
     "build:ui": "bun scripts/build-ui.ts",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
-    "test": "bun test --preload @brains/build-tools/stylex-test-preload",
+    "test": "bun test",
     "typecheck": "tsc --noEmit"
   },
   "type": "module"

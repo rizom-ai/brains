@@ -50,6 +50,12 @@ import type {
   MessageResponse,
 } from "@brains/messaging-service";
 import { validateMessage } from "@brains/messaging-service";
+import {
+  authorizeGenerationWrite,
+  planContentGeneration,
+  submitContentGeneration,
+  GenerationAuthorizer,
+} from "@brains/content-service";
 import type { IContentService, ContentTemplate } from "@brains/content-service";
 import type { Logger } from "@brains/utils/logger";
 import type { DefaultQueryResponse } from "@brains/contracts";
@@ -90,6 +96,7 @@ import type {
 } from "@brains/runtime-state";
 import type { ViewTemplateRegistry } from "@brains/templates";
 import type { IConversationService } from "@brains/conversation-service";
+import { z } from "@brains/utils/zod";
 import {
   AnchorProfileAdapter,
   BrainCharacterAdapter,
@@ -202,20 +209,44 @@ export function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
           records.set(key, { value: parsed, createdAt: now, updatedAt: now });
           return true;
         },
+        compareAndSet: async (key, expected, value): Promise<boolean> => {
+          const parsedExpected = options.schema.parse(expected);
+          const parsedValue = options.schema.parse(value);
+          const existing = records.get(key);
+          if (
+            !existing ||
+            JSON.stringify(existing.value) !== JSON.stringify(parsedExpected)
+          )
+            return false;
+          records.set(key, {
+            ...existing,
+            value: parsedValue,
+            updatedAt: new Date(),
+          });
+          return true;
+        },
         delete: async (key): Promise<boolean> => records.delete(key),
-        list: async ({ keyPrefix } = {}): Promise<
+        list: async ({ keyPrefix, afterKey, limit } = {}): Promise<
           RuntimeStateRecordValue<T>[]
-        > =>
-          Array.from(records.entries())
+        > => {
+          if (limit !== undefined)
+            z.number().int().min(1).max(1000).parse(limit);
+          return Array.from(records.entries())
             .filter(
-              ([key]) => keyPrefix === undefined || key.startsWith(keyPrefix),
+              ([key]) =>
+                (keyPrefix === undefined || key.startsWith(keyPrefix)) &&
+                (afterKey === undefined ||
+                  Buffer.compare(Buffer.from(key), Buffer.from(afterKey)) > 0),
             )
+            .sort(([a], [b]) => Buffer.compare(Buffer.from(a), Buffer.from(b)))
+            .slice(0, limit)
             .map(([key, record]): RuntimeStateRecordValue<T> => ({
               key,
               value: options.schema.parse(record.value),
               createdAt: record.createdAt,
               updatedAt: record.updatedAt,
-            })),
+            }));
+        },
         clear: async ({ keyPrefix } = {}): Promise<number> => {
           const keys = Array.from(records.keys()).filter(
             (key) => keyPrefix === undefined || key.startsWith(keyPrefix),
@@ -242,6 +273,7 @@ function createDefaultMockConversationService(): IConversationService {
     searchConversations: async () => [],
     updateConversationMetadata: async () => false,
     deleteConversation: async () => false,
+    deleteExpiredGuestConversations: async () => 0,
     close: (): void => {},
   };
 }
@@ -495,6 +527,18 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         e.entityType === request.entityType &&
         (visible === null || visible.has(e.visibility)),
     );
+    const exactVisibility = request.options?.filter?.visibility;
+    if (exactVisibility)
+      results = results.filter(
+        (entity) => entity.visibility === exactVisibility,
+      );
+    const contentContains = request.options?.filter?.contentContains
+      ?.trim()
+      .toLowerCase();
+    if (contentContains)
+      results = results.filter((entity) =>
+        entity.content.toLowerCase().includes(contentContains),
+      );
     if (request.options?.publishedOnly) {
       results = results.filter((e) => e.metadata["status"] === "published");
     }
@@ -747,6 +791,12 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     // The fake stores serialized entities directly, so there is no separate
     // unresolved form to return.
     getEntityRaw: getEntityFake,
+    getEntityWriteSnapshot: async (
+      request,
+    ): ReturnType<IEntityService["getEntityWriteSnapshot"]> => {
+      const entity = await getEntityFake(request);
+      return entity ? { entity, revision: "mock-revision" } : null;
+    },
 
     // Embeddings and projections are not modelled: the fake has no vectors, so
     // it reports an empty, ready index rather than pretending to search one.
@@ -796,6 +846,12 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       fencedCallbacks: 0,
       releasedDurableRoots: 0,
     }),
+    // Hierarchy grouping is tested against SQLite, not duplicated in this fake.
+    queryEntityHierarchy: async (): Promise<never> => {
+      throw new Error(
+        "createMockShell: inject an entity service for hierarchy queries",
+      );
+    },
     // Projection storage is database-backed and cannot be faked usefully. Fail
     // loudly rather than hand back an empty stand-in, which would make a test
     // asserting projection behaviour silently meaningless.
@@ -958,7 +1014,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       source: request.options?.source ?? null,
       priority: 0,
       retryCount: 0,
-      maxRetries: 3,
+      maxRetries: request.options?.maxRetries ?? 3,
       lastError: null,
       createdAt: now,
       scheduledFor: now,
@@ -971,7 +1027,6 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       attemptHeartbeatAt: null,
       runtimeUpdatedAt: now,
       metadata: {
-        rootJobId: id,
         operationType: "data_processing",
         ...(dedupeKey !== undefined ? { deduplicationKey: dedupeKey } : {}),
         // The real queue keeps the metadata the enqueue arrived with — which
@@ -979,6 +1034,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         // who it works for. A fake that dropped it would let a handler pass
         // here and refuse against a real brain.
         ...(request.options?.metadata ?? {}),
+        rootJobId: request.options?.rootJobId ?? request.options?.metadata?.["rootJobId"] ?? id,
       },
       progress: null,
       result: null,
@@ -994,24 +1050,14 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
 
   // --- Jobs namespace ---
   const jobs: IJobsNamespace = {
-    // A batch is its operations filed under one root, as the real queue
-    // files them; the plugin-side helper has already scoped their types.
-    enqueueBatch: async (operations, options) => {
-      const batchId = options.rootJobId ?? `batch-${++enqueuedBatchCount}`;
+    // A batch is its operations filed under one root, as the real queue files them.
+    enqueueBatch: async (operations, options, requestedBatchId) => {
+      const batchId = requestedBatchId ?? options.rootJobId ?? `batch-${++enqueuedBatchCount}`;
       for (const operation of operations) {
         recordEnqueuedJob({
           type: operation.type,
           data: operation.data,
-          options: {
-            source: options.source,
-            ...(options.priority !== undefined
-              ? { priority: options.priority }
-              : {}),
-            metadata: {
-              ...options.metadata,
-              rootJobId: batchId,
-            },
-          },
+          options: { ...options, rootJobId: batchId },
         });
       }
       return batchId;
@@ -1073,7 +1119,32 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     return contentTemplate;
   };
 
+  const generationAuthorizer = (): GenerationAuthorizer =>
+    new GenerationAuthorizer(shell.getPermissionService(), async () => null);
   const contentService: IContentService = {
+    submitGeneration: (request, binding, signal) =>
+      submitContentGeneration(contentService, request, binding, signal),
+    // Delegate to the runtime routine so the fake enforces production policy.
+    authorizeGenerationWrite: (data, persisted) =>
+      authorizeGenerationWrite(
+        {
+          authorizer: generationAuthorizer(),
+          templateRegistry: { get: (name) => templates.get(name) },
+          entityService,
+        },
+        data,
+        persisted,
+      ),
+    planGeneration: (request, signal) =>
+      planContentGeneration(
+        {
+          entityService,
+          authorizer: generationAuthorizer(),
+          templateRegistry: { get: (name) => templates.get(name) },
+        },
+        request,
+        signal,
+      ),
     generateContent: async (
       templateName: string,
       context?: Record<string, unknown>,
@@ -1241,6 +1312,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
           method: definition.method ?? "GET",
           match: definition.match ?? "exact",
           sharedHostAdmission: definition.public ? "admit" : "deny",
+          ...(definition.preview === true ? { preview: true } : {}),
           handler: definition.handler,
         });
       }
@@ -1267,7 +1339,8 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     fail: async () => true,
     update: async () => true,
     getStatus: async (jobId) => enqueuedJobs.get(jobId) ?? null,
-    getJobsByRootJobId: async () => [],
+    getJobsByRootJobId: async (rootJobId) =>
+      listQueuedJobs().filter((job) => job.metadata.rootJobId === rootJobId),
     getStats: async () => ({
       pending: 0,
       processing: 0,

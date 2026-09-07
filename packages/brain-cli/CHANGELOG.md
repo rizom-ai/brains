@@ -1,5 +1,265 @@
 # @rizom/brain
 
+## 0.2.0-alpha.388
+
+## 0.2.0-alpha.387
+
+### Patch Changes
+
+- [#266](https://github.com/rizom-ai/brains/pull/266) [`ceebad4`](https://github.com/rizom-ai/brains/commit/ceebad44bc43dc5672453681a70d40bb0e22149d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Cap first-line note title fallbacks at 80 characters including an ellipsis, preferring word boundaries and avoiding split Unicode surrogate pairs. Preserve authored titles, H1 headings, meaningful stored metadata titles, and exact note content. Stored Untitled placeholders use the same capped adapter projection without read-side writes.
+
+## 0.2.0-alpha.386
+
+### Patch Changes
+
+- [#265](https://github.com/rizom-ai/brains/pull/265) [`217ad1b`](https://github.com/rizom-ai/brains/commit/217ad1b24c96f6eee715281ec9455da1ba50a065) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix the console climate toggle when Studio mounts or remounts its React chrome after document readiness. Keep theme tokens, accessible labels, and the shared preference synchronized.
+
+  Restore note title fallbacks to the first nonblank body line when no frontmatter title or body H1 exists. Studio requests adapter metadata projections for list and detail labels, so stored Untitled placeholders also display useful titles without a database backfill or read-side writes. Preserve authored titles and source content.
+
+## 0.2.0-alpha.385
+
+### Patch Changes
+
+- [#264](https://github.com/rizom-ai/brains/pull/264) [`b290b28`](https://github.com/rizom-ai/brains/commit/b290b2832c5246e7294bc326c4b08f416e28a28b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Complete Studio's presentation follow-through: widen Properties without clipping native date/time values or upload guidance; neutralize disabled primary buttons; add distinct collapsed navigation marks; give grouped site links shared outlined controls; place published totals in the page head; use clear protection language and consistent connected-channel counts in People; share collection search, filters, ranges, and pagination while preserving separate query contracts; and retain exact timestamps with truthful relative/absolute presentation. Filter panels fit their containers and dismiss safely with the keyboard. Chat detail guidance uses accessible text colors. Permissions, source content, draft safety, and configured typography remain unchanged.
+
+  Preserve agent-reported failures through Web Chat's stream protocol so their error messages cannot disappear during Studio's history handoff. Explicit failure metadata produces sanitized stream errors instead of successful completion, while retry review and approval handling preserve no-replay guarantees.
+
+## 0.2.0-alpha.384
+
+### Patch Changes
+
+- [#263](https://github.com/rizom-ai/brains/pull/263) [`3ec2b73`](https://github.com/rizom-ai/brains/commit/3ec2b73902389be86ff5e1fe358841ce05504a90) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Put every single destination above the toggles in phone Browse. Overview, Chat and Admin share one block at the top, separated by a rule from the Library, Work and System groups below. A lone destination placed between two group headers reads as the tail of the group above it whichever slot it holds, so position alone cannot carry that distinction.
+
+## 0.2.0-alpha.383
+
+### Patch Changes
+
+- [#262](https://github.com/rizom-ai/brains/pull/262) [`6376bb3`](https://github.com/rizom-ai/brains/commit/6376bb31e305c9591e0f499035013088231823fe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Apply the public Ask design with editable suggestions, a scrollable transcript and a compact conversation menu. Let admitted public-page handlers use the installed site's generated presentation, retaining a headerless fallback when no site page exists. Keep provider and retention information in the existing Privacy and limits disclosure, and preserve guest admission, ownership controls and the embedded Brain-page box.
+
+## 0.2.0-alpha.382
+
+### Patch Changes
+
+- [#260](https://github.com/rizom-ai/brains/pull/260) [`3fde4a0`](https://github.com/rizom-ai/brains/commit/3fde4a0421c787fe7c58fc7902bfc81ab7f85a04) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep the rail's Overview/Chat/Library/Work/Admin/System order in phone Browse. Admin is area 04 and now stays between Work and System instead of being hoisted into the top block, so the phone and the desktop rail agree on where a destination lives. A direct destination is marked by its treatment rather than its position: group children indent under their header while a direct destination sits flush and rule-separated, so Admin cannot read as the last row of the group above it.
+
+- [#260](https://github.com/rizom-ai/brains/pull/260) [`28793f1`](https://github.com/rizom-ai/brains/commit/28793f1407de682c65503b149d04bdd0c0a09a86) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A Brain whose instance directory is too deep for a unix socket address can start again. The Git broker socket normally lives in the instance's `.brain-runtime`; when that path exceeds the kernel's limit, the socket now lives in the OS temp dir under a name derived from the instance, so it stays one socket per instance and never inside a checkout. Before, such a Brain refused to boot with "Git broker socket path is too long for a unix socket".
+
+## 0.2.0-alpha.381
+
+### Patch Changes
+
+- [#259](https://github.com/rizom-ai/brains/pull/259) [`d3ca552`](https://github.com/rizom-ai/brains/commit/d3ca552547af0c87f9ce6ad80997395b9dafc868) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A Brain whose instance directory is too deep for a unix socket address can start again. The Git broker socket normally lives in the instance's `.brain-runtime`; when that path exceeds the kernel's limit, the socket now lives in the OS temp dir under a name derived from the instance, so it stays one socket per instance and never inside a checkout. Before, such a Brain refused to boot with "Git broker socket path is too long for a unix socket".
+
+- [#256](https://github.com/rizom-ai/brains/pull/256) [`fbc1b6e`](https://github.com/rizom-ai/brains/commit/fbc1b6e54607e72c91bd31b7fb385e6a627293b9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Align System editors with the reviewed form and document presentation: schema-derived field groups, responsive grids, explicit Story and Guidance sections, contextual collections, and readable permission-aware profiles. Preserve nested draft values and supported Markdown bodies through validation and Save. Existing read-only complex lists display structured content rather than disabled JSON. Keep empty documents' Properties visible, distinguish relationship states from publication, and make Markdown source headings and URLs readable in both climates.
+
+## 0.2.0-alpha.380
+
+### Patch Changes
+
+- [#257](https://github.com/rizom-ai/brains/pull/257) [`13ed6d3`](https://github.com/rizom-ai/brains/commit/13ed6d32d46175250464243036d7615cb3f4df9e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `brain tool` and `brain <command>` in the monorepo runner now boot register-only, as the bundled runtime already did. A full boot started a job worker on the queue's stable slot, which superseded a running app's worker session; that app then stopped claiming jobs until it was restarted. A one-shot CLI process owns no runtime work: it registers plugins, invokes the tool, and exits, leaving queued jobs to the running app.
+
+- [#254](https://github.com/rizom-ai/brains/pull/254) [`9fbd8ad`](https://github.com/rizom-ai/brains/commit/9fbd8ad73d1d2f5fca58a4dcc73b92ad6daa97ee) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Rebuild the phone Browse sheet around its hierarchy. Overview, Chat and Admin gather into one block above the groups instead of sitting between them, group headers become section-heading rows with the chevron leading rather than muted captions with a `+` at the far edge, and groups rest open so the sheet fills with destinations. A filter over every destination replaces the display line that named the sheet, the way out becomes a quiet round control, and a count that needs the operator is set in the accent while an item tally stays quiet. A folded group still names the destination you are in.
+
+## 0.2.0-alpha.379
+
+### Patch Changes
+
+- [#252](https://github.com/rizom-ai/brains/pull/252) [`6ff0d0b`](https://github.com/rizom-ai/brains/commit/6ff0d0b18388509dc907519d46dd26ca06e0256e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Move multi-target content generation out of the site plugin and into the shell, so sites, books, courses, and other sectioned compositions share one schema-first pipeline. `shell/content-service` now validates structured destinations, checks template capability and existing output, applies force and dry-run semantics, and enqueues admitted work. Generated entities receive domain-owned metadata instead of mandatory route and section fields, and a generation-only template with no React layout can generate and persist non-web content.
+
+  Destinations use structured `idPath` segments with a shared entity-path codec that serializes to the stored entity ID only at the persistence boundary, so callers never concatenate separators. `plugins/site-content` becomes a site adapter that keeps route discovery and filtering while delegating planning, admission, and persistence.
+
+  Entity-service gains atomic absent/revision preconditions, so a stale or retried job conflicts instead of overwriting a later edit; no table or migration is added. Durable jobs carry the trusted caller, resolved account, and an admission-time permission ceiling; authority is resolved when the job starts and again at the entity write boundary, where revocation blocks persistence. Scoped retrieval fixes knowledge and identity reads to the authorized output visibility, so public output uses public retrieval even for an admin caller.
+
+  Admitted children share one root job ID, which is the returned batch ID, so the queue's existing durable root index recovers them after a restart. Generation jobs run at most once: they are enqueued without retries and never fail after their commit, so an interrupted worker leaves a failed job to re-run rather than regenerating or resurrecting output. The job queue itself is unchanged.
+
+  External authors reach the capability declaratively through `@rizom/brain/services`: generation definitions on service templates, `content.target()` handles bound to public entity definitions with inferred metadata, `content.generate()` for heterogeneous targets, and `contentGenerationResultSchema` for tool output. Completion is observed by reading the destination entity through existing typed readers.
+
+  The brain's own command line now has one identity, `service:brain-cli`, shared by the bundled runtime and the monorepo runner, and every brain grants it admin by permission rule at the app layer. Admission takes the lower of that rule and the level the CLI asserts, so `--permission` still lowers a call, and a job admitted from the CLI re-resolves the same authority at its write. Before this the monorepo runner asserted no level at all, and no brain granted the CLI anything, so any tool that enforces entity-action policy refused it.
+
+## 0.2.0-alpha.378
+
+### Patch Changes
+
+- [#251](https://github.com/rizom-ai/brains/pull/251) [`053304f`](https://github.com/rizom-ai/brains/commit/053304fba16abb9ab7db2e6d76dcd9889d2d157b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add default-off, admin-authorized guest access on the deployment's preview origin, using shared execution bounds and durable lifetime accounting. Repeated activation, cleanup and restarts cannot replenish the two-message/$4 total allowance.
+
+  Serve explicitly declared guest routes and their presentation assets on preview without granting admission or exposing other APIs. Keep management on the authenticated primary origin and deny primary-host guest execution. Preserve owned history and deletion after allowance exhaustion.
+
+## 0.2.0-alpha.377
+
+## 0.2.0-alpha.376
+
+## 0.2.0-alpha.375
+
+## 0.2.0-alpha.374
+
+### Patch Changes
+
+- [#245](https://github.com/rizom-ai/brains/pull/245) [`1469e09`](https://github.com/rizom-ai/brains/commit/1469e09de8c3f63fe91b5c534bd3b86e19e427fe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Empty the Chat composer when the message enters the transcript rather than when the server answers, and restore the draft if the send is refused. Give the library collection and the Chat session index one search field: live, debounced, with its own glyph and clear control instead of a label line and a submit button. Filters move into a panel that does not push the collection down, a filtered collection says how many entries matched, and the session index drops its duplicate labels and its always-present pager.
+
+## 0.2.0-alpha.373
+
+## 0.2.0-alpha.372
+
+## 0.2.0-alpha.371
+
+### Patch Changes
+
+- [#242](https://github.com/rizom-ai/brains/pull/242) [`b00ff46`](https://github.com/rizom-ai/brains/commit/b00ff46c99f42f5bafbec870db28cd1d4624cfc1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Clarify stopped, disconnected, and failed Studio Chat responses while retaining partial output and staging retries for review instead of automatically resending. Restore collection page position through URLs and editor navigation, derive readable document labels from Markdown headings without changing stored content, support content-first mobile entry and Save keyboard shortcuts, and retain successful Chat uploads when other files fail with per-file retry and supported-file guidance. Add server-backed conversation search across titles and messages, paginated active/archived session access, and explicit session rename with recoverable failures while preserving conversation ownership boundaries. Add server-side collection search, visibility/status filters, stable created/updated sorting, and filtered counts; preserve the complete query across refresh, paging, and editor return, with distinct feedback for empty filtered results. Associate save validation errors with their fields and reveal/focus invalid Properties on phones without changing drafts. Add explicit image-upload retry/dismiss, filename and completion feedback, and guards against late saves or uploads affecting another record. Improve Markdown with local syntax highlighting, clearer tables, and keyboard-scrollable overflow regions while preserving copied code. Distinguish empty collections, unavailable destinations, expired sessions, and permission/read failures with explicit, draft-preserving recovery guidance. Improve keyboard navigation with a skip-to-content control, correctly linked main/tab landmarks, focusable conversation and preview regions, and clearer focus treatments. Improve muted-text contrast across Studio and its portaled controls, and avoid referencing missing navigation panels or dialog descriptions. Unify primary page-action emphasis while keeping clean Save available with a quieter outline; retain confirmation styling and subordinate row actions. Remove the redundant Sessions trigger beside the desktop rail without losing access when the rail is absent, and size tag inputs to fit their placeholder at desktop and phone font sizes. Move narrow-screen Working set content into a shared dialog without shrinking the conversation, preserving composer drafts and restoring focus after dismissal or resizing. Unify page-heading insets, level-one title scale, divider, and action placement across Studio while retaining pinned Save and independent editor scrolling. Remove conflicting shared-input padding so tag placeholders remain fully visible. Unify Studio secondary titles, section headings, and uppercase labels through shared compiled type roles, including navigation, editor/publication labels, and hosted card/table headings while retaining other renderer hosts' defaults. Remove Overview's duplicate navigation leaf so its content uses the direct-destination layout.
+
+## 0.2.0-alpha.370
+
+### Patch Changes
+
+- [`cd1def4`](https://github.com/rizom-ai/brains/commit/cd1def4434c2fb9d56fbb7dcfad39eeffd8b0c3a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Report guest execution reservations that are still active past their deadline. `GuestAdmission.cleanup()` returns the removed and uncertain counts, and guest maintenance raises the same operator alert for uncertain execution work that it already raises for uncertain credential writes, after committing its pruning pass. The reservation itself is never released: only the verified recovery procedure may do that, so abandoned turns no longer wedge concurrency or budget silently.
+
+## 0.2.0-alpha.369
+
+### Patch Changes
+
+- [`71104c6`](https://github.com/rizom-ai/brains/commit/71104c6a81203861b0d684c62b1e40980bed8777) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add default-off anonymous Ask using the shared Chat runtime, with visitor-owned conversations, atomic admission, bounded public retrieval, source cards and receipt-based history recovery. Reuse the existing hero chat box with retained drafts and explicit recovery controls.
+
+  Account guest query embeddings inside the turn cap without disabling semantic indexing. Enforce trusted loopback transport and ready-index checks for the local-test preset. Production guest admission remains closed; this release does not authorize live spending or include the paused clock changes.
+
+## 0.2.0-alpha.368
+
+### Patch Changes
+
+- Increase Studio collection pages to 25 entries and keep pagination controls above the records. Add reader-aware Chat scrolling with Jump to latest, retryable read errors that preserve drafts, clearer save status with expandable sync diagnostics, and conflict comparison with rescue copying and explicit draft replacement confirmation.
+
+## 0.2.0-alpha.367
+
+### Patch Changes
+
+- [#241](https://github.com/rizom-ai/brains/pull/241) [`5e04477`](https://github.com/rizom-ai/brains/commit/5e04477d22f5d63d0f0e05c935e1ad3cfcf2cfcb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Release Studio entity pagination and refined editor rendering, including independently scrolling editor panes and improved Markdown presentation. Align the affected visual baselines with the reviewed CI captures and updated pagination fixtures.
+
+## 0.2.0-alpha.366
+
+### Patch Changes
+
+- [#240](https://github.com/rizom-ai/brains/pull/240) [`c1662af`](https://github.com/rizom-ai/brains/commit/c1662af0aface6d4f3b976f7eae90ea706da410a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Issue a packaging-only runtime version for a shared immutable image containing the existing Smoke, Docs, and Rizom site/theme package pins. This preserves the Studio implementation from alpha.365 and enables a smoke-first rollout of the same image to Docs and Rizom. No runtime implementation changes are included.
+
+## 0.2.0-alpha.365
+
+### Patch Changes
+
+- [#239](https://github.com/rizom-ai/brains/pull/239) [`4dba750`](https://github.com/rizom-ai/brains/commit/4dba750e83322faa22aa608c32504c115ea15907) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Reduce Studio chrome noise: remove repeated access pills, page eyebrows, area explanations, singleton markers, and duplicated workspace totals. Simplify Chat and Account introductory copy. Library rows keep publication state as plain text rather than pills, show sync backlog once instead of repeating routine commit status, and leave internal identifiers in hover details. Preserve permissions, warnings, actions, and explicit navigation collapse behavior.
+
+- [#239](https://github.com/rizom-ai/brains/pull/239) [`4dba750`](https://github.com/rizom-ai/brains/commit/4dba750e83322faa22aa608c32504c115ea15907) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Refine Studio workspaces using existing theme fonts and public block contracts. Use provider-owned compositions with shared StyleX cards, columns, record typography, facts, and notices. Add validated record presentation roles and collapsible supporting sections instead of workspace-specific rendering branches. Place Overview activity alongside attention, prioritize publishing failures and sync issues, remove redundant pipeline diagrams, and separate Site preview and production into explicit tabs while retaining permission checks and production confirmation.
+
+  Compose Overview as an attention list and compact activity feed, with technical and system details available on demand. Separate the publishing queue from failures, give Account independent profile and security columns, and place Chat's session list and conversation beneath a consistent workspace heading. Preserve passkey protections, session actions, and browser navigation preferences. On phones, open Chat sessions in a shared dialog with focus restoration rather than a second navigation dock. Match the mockup's authored-message typography, wrapped session titles, bounded workspace measure, and human-readable activity timestamps without introducing typefaces.
+
+  Remove Account's two handwritten stylesheets and its local style injection in favor of compiled StyleX. Group Content sync diagnostics by operation, preserving every recorded message, path, and timestamp; app hosts disclose long warnings on demand. Flatten repository facts without repeated totals or meters, retain commit debounce and exact commit identifiers, and show readable working-tree statuses with their original codes. Explicitly disclose partial changed-file lists and disable Sync now during active runs. Use the production provider for Content sync visual fixtures.
+
+  Begin the shared renderer and Dashboard StyleX migration with reusable fact rows, notices, cards, columns, record copy, and text links. Keep host density independent of schema-declared editorial, attention, activity, and standard roles. Compile the shared runtime entry and static stylesheet before consumption, deliver its CSS through Studio assets and Dashboard's stylesheet, and remove the migrated fact and notice selectors. SSR uses precompiled classes without a DOM or runtime compiler.
+
+  Replace native Chat's handwritten layout sheet with compiled StyleX. Preserve per-session drafts and attachments in mounted Studio memory, guard departures, and retain received text when stopping a stream. Adopt new conversation routes only after acceptance so rejected first messages remain reachable. Keep the composer inside its working room when the Working set disclosure opens. Align Account profile and security records with the shared typography, timestamps, and supporting disclosures.
+
+  Give Site publication a shared featured card, separate current build failures from the published generation, and fold render history and bounded route references beneath it. Pair the current environment's open link with its build control in a shared card footer. Keep preview and production actions distinct, disable duplicate UI requests during active builds, and retain production confirmation and permissions. Disclose Publishing failure diagnostics and retries behind an attention summary; show destinations as descriptions and queue position/schedule as metadata. Use production Site and Publishing providers over seeded source records in visual fixtures, rather than handwritten view payloads.
+
+  Replace Administration's People, Invitations, and Audit tables with shared record lists and query-backed inspection. Keep Account, person management, protection, and review links in the trailing record controls; fold external brains, access reference, and delivery capabilities. Preserve filtered/deep-linked records, pagination, invitation lifecycle controls, protected Anchor actions, and exact audit identifiers. Resolve audit subjects from recorded user references without exposing arbitrary event metadata. Use actual providers over disposable auth data in browser fixtures instead of hand-composed Administration payloads. Give comfortable supporting disclosures separated, touch-sized triggers while retaining compact Dashboard density.
+
+  Refine Overview and Inbox against the separate screen studies. Group attention metadata and source links beneath the copy, keep supporting disclosures contiguous, and avoid repeating current failure diagnostics in the activity feed. Give Inbox a concise totals line with source availability, inline priority/time metadata, and source-owned text actions beside flexible record copy. Move its pagination below the collection, omit redundant single-page controls, and retain navigation out of emptied later pages. Compile shared filters and pagination with StyleX, remove their old renderer/Studio responsive CSS, and use production providers over seeded source inputs for visual fixtures.
+
+  Migrate Dashboard's public header, masthead, and section navigation to shared compiled StyleX components and delete their handwritten CSS. Preserve guest/sign-in destinations, climate control, no-JavaScript anchors, keyboard/hash navigation, and count badges. Style selected tabs from ARIA state and provide 44px phone entry-link targets. Keep long identities bounded and verify production SSR without a DOM or StyleX loader. Move page framing, section panels/headings, and the colophon into shared compiled components, deleting their old CSS. Preserve no-JavaScript section headings and host-owned documentation/operator destinations; give footer links 44px phone targets. Compile StyleX only once, then embed its collected stylesheet into the compiled JavaScript instead of recompiling source in the embedding pass.
+
+  Move Dashboard's public summary, map, system, and widget card frames and headings to shared compiled panels. Preserve standard, tight-phone, and edge-aligned insets, direct status accessories, source copy, and native content/navigation. Compile the responsive public card grid, delete replaced global card/header/grid CSS and map/system padding overrides, and remove the unused class-based `CardHeader` export from the private UI library. Preserve the registered proximity visualization's responsive query using the shared `operator-panel` container. Require the CSS embedding pass to emit the public `dist/index.js` entry so builds cannot silently leave stale executable code behind.
+
+  Compile Dashboard overview paragraphs, status copy, empty states, and linked/unlinked summaries through shared panel-body components. Reuse shared totals with a responsive ledger presentation and remove the entire legacy overview stylesheet. Preserve source ordering, positive-count filtering, URL safety, cross-source deduplication, limits, and native destinations. Give public contact links 44px phone targets and visible keyboard/hover feedback; bound long labels and badges without dropping their text.
+
+  Move System's primary/supporting panel layout, reference facts, and public availability rows to shared compiled columns, facts, and status components. Delete their replaced layout/row/status selectors. Retain native exact timestamps, zero counts, public-only metadata, availability tones, ordering, deduplication, and the five-row bound; health and totals still consider all advertised surfaces. Keep reference presentation independent of density and bound long metadata values.
+
+  Finish System's StyleX migration with shared snapshot summaries, binary readiness indicators, ordered stages, semantic checks, and status pills; reuse shared totals for the edge-aligned band and panel paragraphs for supporting notes. Delete the entire System stylesheet. Keep update metadata visible on phones, retain full operation identifiers/diagnostics and host-owned health interpretation, and verify degraded/waiting states through the production Dashboard renderer. Isolate the pinned Bun 1.4.0 media-tokenizer JIT workaround to the compiler subprocess so larger style collections compile reliably without changing application runtime settings.
+
+  Move Dashboard map frames, atlas summaries, canvases, responsive SVG roots, decorative coordinates, and empty states into shared compiled components. Delete their replaced map selectors. Preserve source totals, independent territory/index/label limits, exact SVG descriptions and geometry, source-owned focus behavior, both Network rendering paths, and separate phone crops. Keep registered provider visualizations authoritative and verify full-width empty maps without fabricating readiness or data.
+
+  Compile map legends and territory indexes through shared components with explicit marker/tone props and native ARIA selection. Keep legend category interpretation and precedence in Dashboard, preserve full source labels, ranking and counts, and remove replaced legend/index CSS plus the mirrored active button class. Give phone territory controls 44px targets and keep dense-list guidance in flow beneath remainder copy. Validate the dense fixture through the public runtime schema while retaining its point/zone/relationship references.
+
+  Move the remaining Dashboard SVG paint, typography, and animations into shared native SVG components and remove the entire map stylesheet. Keep category/status interpretation, sighting precedence, archived dimming, geometry, and full source values in Dashboard. Contours follow explicit group state rather than a styling class; reduced-motion marks stay visible and drawn. Bound and separate crowded territory labels using grapheme-safe visible abbreviation, retaining exact source titles, accessibility names, counts, IDs, and index records without moving nodes or contours.
+
+  Move line-tab strips, triggers, and counts into shared compiled components, composed by both static operator tabs and UI-library widget tabs. Preserve native IDs, panels, source labels/counts, and host keyboard routing; selection paint follows ARIA even on hover. Bound overflow in narrow desktop panels, provide 44px phone targets and unclipped focus rings, respect reduced motion, and delete the 59 replaced Dashboard tab CSS lines. UI-library consumes the compiled shared runtime rather than adding another StyleX build pipeline.
+
+  Compile pill tabs and filter controls through shared native choice components, removing another 108 Dashboard CSS lines. Keep filtering, search text, the twelve-option initial limit, selected overflow options, and empty-state interpretation in UI-library. Style selection from native ARIA rather than active classes and supply attention counts explicitly. Preserve native hiding, bound long labels, provide 44px phone controls and visible focus, and check both tab variants plus search/overflow/row restoration in Chromium.
+
+  Compose widget action links through shared compiled navigation/link components. Preserve exact destinations, external target/rel behavior, full labels, and decorative indicators; provide bounded wrapping, 44px phone targets, visible focus, and reduced-motion-aware hover. Delete the replaced widget action rules and exercise native keyboard focus, external-link attributes, long labels, and actual ancestor hover in Chromium.
+
+  Finish widget list and status-label migration through shared compiled components and delete the remaining 126-line widget stylesheet. Align record titles/descriptions/metadata with the standard 16/12/11 hierarchy, preserve exact source segments and full tags, keep zero description/trailing values in semantic slots, and bound long trailing statuses. Retain native list/filter attributes and hiding; UI-library keeps ordering, serialization, and status-tone interpretation. Add explicit label presentation to the existing shared status pill rather than another status renderer.
+
+  Compile Dashboard body typography and climate-aware decorative layers through a shared native document-body component. Preserve the Paper/Instrument grain, vignette, layering, and pointer behavior. Remove the unused compatibility tab stylesheet, obsolete column entrance animation, and old theme-button overrides. Keep only the document reset; browser-check computed pseudo-element treatment in both climates. Move registered-widget invalid-data, empty, and pending messages to shared compiled paragraph presentation without changing wording or source conditions. Supply the immutable stylesheet to the standalone proximity site section and remove the final `.muted` rule. Give the shared renderer CSS an asset-specific declaration so downstream consumers do not need ambient CSS shims.
+
+  Migrate CSS-renderer segmented tabs to shared compiled controls. Preserve native selection, count text (including zero), callbacks, and active-panel rendering; bound long labels and provide 44px phone targets and inset keyboard focus. Remove the replaced tab selectors. Migrate list filters to the same shared controls, preserving custom all-values, unclassified rows, counts, and empty states. Correct the leftover filter-container selector from tab migration and remove all replaced filter CSS. Explicitly map the contract’s `gap` emphasis to attention presentation; the former stylesheet incorrectly expected an `attention` source value.
+
+  Compile action-form input, select, and checkbox-label presentation through shared StyleX, removing their legacy selectors. Use the configured console UI font rather than the undefined console-sans token. Preserve host control adapters, query-select styling, native validation, typed defaults, conditional labels, secret-field handling, and submission behavior; provide bounded fields, visible keyboard focus, and 44px phone targets without stretching native checkboxes.
+
+  Compile action disclosure presentation through a shared native details/summary component, replacing the legacy disclosure stylesheet rules. Preserve native state and form edits, use immediate-parent open-state selectors to isolate nested disclosures, and provide bounded labels, visible keyboard focus, and 44px phone targets. App hosts retain their dialog adapter; presentation is explicit rather than inferred from class names.
+
+  Compile action-result frames and definition-list facts through shared StyleX. Preserve declared-field projection, zero/false/null values, sensitive markers, polite announcements, and exact copy behavior. Bound long titles and values, expose complete values in native titles, and keep copy controls available at phone widths. Replace the old result selectors and browser-test the real mounted renderer rather than parallel result markup.
+
+  Compile action-form grids and submit alignment through shared StyleX. Preserve two-column primary forms and single-column phone/sidebar forms, with bounded tracks for narrow regions. A named operator-aside container replaces legacy-class coupling while preserving physical portal boundaries and existing column markup; remove the replaced form layout CSS.
+
+  Replace CSS-host action and confirmation button class generation with the existing shared compiled button vocabulary. Preserve native callbacks, disabled states, consequential-action confirmation, and row text actions. Bound long labels and honor reduced motion in shared buttons, including primary hover translation; verify real disabled and confirmation paths in the browser fixture.
+
+  Compile table framing, cell hierarchy, alignment, native current-row paint, and compact-row visibility through shared StyleX. Preserve source-owned rows, values, links, actions, and compact eligibility. Keep unannotated rows in bounded scrolling tables at phone widths and align row controls explicitly. Remove replaced shared and Dashboard table rules; browser-test real mixed, fully annotated, and ordinary tables with exact row-action inputs.
+
+  Remove audited obsolete Dashboard stats, filter-summary, alignment-class, group, and notice-modifier rules. Keep still-active renderer presentation instead of deleting by class-name resemblance. Move the remaining grouped-action alignment into its compiled style definition and remove the legacy action-group selector; guard retired selectors and production markup with regression assertions.
+
+  Compile meter/progress layouts, typography, tone text, and native progress tracks/fills through shared StyleX. Preserve exact values, maximums, units, states, diagnostics, timestamps, zero, and absent-bar behavior; name native bars from authored labels. Retain bounded two-column card meters through a shared structural attribute. Remove replaced shared/Dashboard rules and Dashboard-only meter overrides. Test native data and all tones, plus production browser fixtures across widths and climates.
+
+  Compile flow stations, connecting lines, captions, and details through shared StyleX. Preserve source order, statuses, direction metadata, full text, host caption slots, and card caption suppression. Bound station widths and keep active halos inside the scrolling desktop track; preserve vertical phone tracks. Remove replaced shared/Dashboard flow selectors; verify relational state paint and mutation, final-station line suppression, card scope, and overflow in Chromium.
+
+  Finish shared notice framing: remove Dashboard-only box/paragraph overrides and the legacy notice class, explicitly own the left rule and zero other borders/radius in StyleX, and make compact gutters consistently override the base frame. Export the shared notice primitive. Preserve full text, line breaks, tones, links, and diagnostic disclosures; test both densities, untitled notices, all tones, and production browser composition.
+
+  Compile spatial framing, canvas/overlay layout, SVG boundaries and relationship presentation, and radial center labels through shared StyleX. Preserve source geometry, viewBox/scaling, radii, relationship admission/tone precedence, and full labels. Remove replaced shared/Dashboard framing selectors while retaining point controls and caption/detail rules for their own migration. Verify both coordinate layouts and unchanged selection, related highlighting, focus, and Escape behavior in real browser fixtures.
+
+  Finish the renderer/Dashboard presentation consolidation: compile spatial controls/captions/details, heads and standing status, action feedback, link placement, matrix cells, and empty states. Replace spatial state classes with native/explicit state attributes without changing relationship interpretation. Remove both legacy operator stylesheets and the old renderer stylesheet export; hosts consume the compiled asset only. Preserve source matrix column counts with working responsive stacking. Reuse the app UI confirmation modal with viewport portals and explicit caller-owned outside dismissal, retaining pending protections and custom confirmation classes.
+
+  Complete Studio-owned StyleX presentation: library/records, editor fields and uploads/tags, source/preview/assist controls, Streamdown prose slots, publication controls, save/conflict/pipeline feedback, document/page-head placement, and responsive editor layout. Remove the remaining legacy Studio sheets and React style tags; retain only host document viewport rules and a scoped static CodeMirror vendor boundary. Keep safe-link and code-block controls, editing/selection behavior, permissions, full values, and the single phone header Save action. Compose control overrides explicitly through shared `xstyle` props, preserving native classes and dynamic variables without atomic-class order conflicts. Check desktop/tablet/phone presentation, disabled structured values, tag targets, and real upload/delete/invalid/conflict workflows; keep PNG approval separate.
+
+  Add validated provider-authored `actionsLabel` for grouped list/matrix actions and `disclosureLabel` for disclosure cards. Publishing supplies “Queue options” and “Review failure”; failure headings/metadata remain visible independently of the trigger. Preserve full diagnostics and retry/removal/reorder controls through host disclosure adapters. Remove menu labels when permissions remove all actions, reject invalid/misplaced labels, and retain existing generic presentation when labels are omitted.
+
+  Use explicit lightweight link triggers for subordinate grouped row actions in both app sheets and native disclosures. Preserve available/disabled choices, source labels, action execution, native open state, and dialog behavior; keep phone targets at least 44px high. No workspace-specific styling or inferred provider labels are introduced.
+
+  The joint workspace review also removes inherited responsive padding and scrolling from embedded renderer frames, with desktop/tablet/phone regression coverage, and presents Site publication status as a flat section rather than a feature card without changing its facts or actions.
+
+  Include React UI sources in the lint task's cache inputs so UI-only edits cannot reuse stale lint results.
+
+  Keep the Overview activity section visible with an honest empty state when attention exists but the in-memory activity feed is empty after restart. Retain the combined quiet state when both are empty. Cover this mixed state separately instead of relying only on populated synthetic activity.
+
+  Check empty, streaming, outage, build-failure, and dense source states through disposable production-provider fixtures. Combine Overview's empty attention/activity explanation; show Chat's retained-draft guidance despite its disabled history query, without an empty Working set. Avoid claiming an Inbox all-clear when sources are unavailable. Admit complete diagnostic records using the existing 100,000-character source-text bound rather than the 4,000-character prose bound, preserving long build failures and their final identifiers. Give shared phone dialog close controls 44px targets and matching heading clearance. Remove empty Chat session rails and Publishing queue tabs, and give an empty Inbox actionable guidance without a redundant pager while retaining selected source content across filters. Place Site failures and active builds above the supporting columns, with shared spacing between successive tab blocks in both hosts. Preserve default visual cases and keep scenario captures separate from unapproved PNG baselines.
+
+  Apply the reviewed Overview / Chat / Library / Work / Admin / System navigation. Keep Account profile-only, preserve admitted attention counts and collapse preferences, and remove empty leaves on direct destinations. Route Account through the existing draft guard; same-page profile and primary navigation retain edits and session/tab queries. Keep mobile Browse groups independently collapsible without a duplicate dock. Compile the complete shell header and profile menu styling with StyleX, delete its handwritten sheet, and let workspace headings use the available canvas instead of retaining the old two-rail width cap.
+
+## 0.2.0-alpha.364
+
+## 0.2.0-alpha.363
+
+## 0.2.0-alpha.362
+
+## 0.2.0-alpha.361
+
+## 0.2.0-alpha.360
+
+### Patch Changes
+
+- [#234](https://github.com/rizom-ai/brains/pull/234) [`38386e9`](https://github.com/rizom-ai/brains/commit/38386e9cb20ba080f599f4e920ccb8044f727cff) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Issue a packaging-only runtime version for a fresh immutable image containing the Rizom homepage rail restoration. No runtime implementation changes are included.
+
+## 0.2.0-alpha.359
+
+### Patch Changes
+
+- [#233](https://github.com/rizom-ai/brains/pull/233) [`b0d505a`](https://github.com/rizom-ai/brains/commit/b0d505ae95a878826f2f17fa61196e2b7b4541f9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Issue a packaging-only runtime version for a fresh immutable fleet image containing the Rizom homepage promotion. No runtime implementation changes are included.
+
+## 0.2.0-alpha.358
+
+### Patch Changes
+
+- [#232](https://github.com/rizom-ai/brains/pull/232) [`89ae051`](https://github.com/rizom-ai/brains/commit/89ae05168ccc679a179051f177f29dd24d6b5bcd) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Issue a packaging-only runtime version for a fresh immutable fleet image containing the Rizom topbar background correction. No runtime implementation changes are included.
+
+## 0.2.0-alpha.357
+
+### Patch Changes
+
+- [#230](https://github.com/rizom-ai/brains/pull/230) [`08746a1`](https://github.com/rizom-ai/brains/commit/08746a13a5544edb308013aaa52e1a5cb25c7c64) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Issue a packaging-only runtime version so the immutable, runtime-version-keyed fleet image can include the updated Rizom site background fix. No runtime implementation changes are included.
+
 ## 0.2.0-alpha.356
 
 ### Patch Changes

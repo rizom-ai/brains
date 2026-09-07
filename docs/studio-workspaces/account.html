@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en" data-climate="paper" data-theme="light" data-type="expressive">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Studio · Account mockup</title>
+    <link rel="stylesheet" href="study.css" />
+  </head>
+  <body data-workspace="account">
+    <div class="presentation">
+      <header class="review-head">
+        <div>
+          <p>STUDIO / NAVIGATION REVISION · FOR REVIEW</p>
+          <h1>Account</h1>
+        </div>
+        <div class="controls">
+          <a class="button" href="index.html">All workspaces</a>
+
+          <div class="control" data-control="viewport" aria-label="Viewport">
+            <button data-value="desktop" aria-pressed="true">Desktop</button
+            ><button data-value="phone" aria-pressed="false">Phone</button>
+          </div>
+
+          <div class="control" data-control="climate" aria-label="Climate">
+            <button data-value="paper" aria-pressed="true">Paper</button
+            ><button data-value="instrument" aria-pressed="false">
+              Instrument
+            </button>
+          </div>
+          <label class="scenario-control"
+            >Sample state<select id="scenario">
+              <option value="sample">Populated</option>
+              <option value="empty">Anchor / final passkey</option>
+            </select></label
+          >
+        </div>
+      </header>
+      <div class="browser" id="browser">
+        <div class="app" id="app">
+          <header class="chrome">
+            <div class="brand"><b>R</b>ROVER COLLECTIVE / STUDIO</div>
+            <button class="browse" id="browseButton">≡ Browse</button>
+            <div class="location" id="location">Overview</div>
+            <button
+              class="avatar"
+              aria-label="Profile menu"
+              id="profileButton"
+              popovertarget="profileMenu"
+              aria-expanded="false"
+              aria-controls="profileMenu"
+            >
+              MR
+            </button>
+          </header>
+          <div class="shell">
+            <nav class="area" aria-label="Studio areas">
+              <div class="area-head">
+                <span>Studio</span
+                ><button
+                  class="collapse"
+                  id="collapse"
+                  aria-expanded="true"
+                  aria-label="Collapse navigation"
+                >
+                  ⇤
+                </button>
+              </div>
+              <button
+                class="area-link"
+                data-area="overview"
+                aria-label="Overview"
+                aria-pressed="true"
+              >
+                <b aria-hidden="true">00</b><span>Overview</span></button
+              ><button
+                class="area-link"
+                aria-label="Chat"
+                data-area="chat"
+                data-screen="chat"
+                aria-pressed="false"
+              >
+                <b aria-hidden="true">01</b><span>Chat</span></button
+              ><button
+                class="area-link"
+                aria-label="Library"
+                title="Library — outside this study"
+                disabled=""
+              >
+                <b>02</b><span>Library</span></button
+              ><button
+                class="area-link"
+                data-area="work"
+                aria-label="Work"
+                aria-pressed="false"
+              >
+                <b aria-hidden="true">03</b><span>Work</span></button
+              ><button
+                class="area-link"
+                aria-label="Administration"
+                data-area="administration"
+                data-screen="administration"
+                aria-pressed="false"
+              >
+                <b aria-hidden="true">04</b><span>Admin</span></button
+              ><button
+                class="area-link"
+                aria-label="System"
+                data-area="system"
+                aria-pressed="false"
+              >
+                <b>05</b><span>System</span></button
+              ><button
+                class="area-link commands"
+                aria-label="Commands preview"
+                data-preview="Commands"
+              >
+                <b>⌘</b><span>Commands</span>
+              </button>
+            </nav>
+            <aside class="leaf" aria-label="Workspace destinations">
+              <h2 id="leafTitle">Overview</h2>
+              <div class="leaf-links" id="homeLeaf">
+                <button data-screen="overview" aria-current="page">
+                  Overview
+                </button>
+              </div>
+              <div class="leaf-links" id="workLeaf" hidden="">
+                <button data-screen="inbox">Inbox <small>3</small></button
+                ><button data-screen="publishing">Publishing</button
+                ><button data-screen="site">Site</button
+                ><button data-screen="sync">Content sync</button>
+              </div>
+              <div class="leaf-links" id="systemLeaf" hidden="">
+                <p class="minor">
+                  System settings are outside this workspace study.
+                </p>
+              </div>
+            </aside>
+            <main class="workspace" id="workspace">
+              <section id="account">
+                <header class="page-head"><h1>Account</h1></header>
+                <div data-scenario="sample">
+                  <div class="workspace-grid">
+                    <section>
+                      <header class="section-head"><h2>Profile</h2></header>
+                      <div class="identity-line">
+                        <b class="avatar">MR</b>
+                        <div>
+                          <h2>Mira Reyes</h2>
+                          <p>Admin</p>
+                        </div>
+                      </div>
+                      <form id="profileForm">
+                        <label for="displayName">Display name</label
+                        ><input
+                          id="displayName"
+                          value="Mira Reyes"
+                          required=""
+                          maxlength="200"
+                        /><button class="button" type="submit">
+                          Save name
+                        </button>
+                        <p id="profileFeedback" role="status"></p>
+                      </form>
+                      <div class="workspace-section">
+                        <header class="section-head">
+                          <h2>Connected channels</h2>
+                        </header>
+                        <article class="record">
+                          <div>
+                            <h3>Email</h3>
+                            <p>mira@example.com</p>
+                            <small>Verified 3 Sept, 08:00 UTC</small>
+                          </div>
+                        </article>
+                      </div>
+                      <details class="supporting">
+                        <summary>Plugin settings</summary>
+                        <p class="minor">
+                          No editable plugin settings are supplied in this
+                          sample. When present, fields follow the provider
+                          schema; secrets are not echoed.
+                        </p>
+                      </details>
+                    </section>
+                    <aside>
+                      <header class="section-head"><h2>Sign-in</h2></header>
+                      <article class="record">
+                        <div>
+                          <h3>Synced passkey</h3>
+                          <p>Added 3 Sept, 08:00 UTC</p>
+                        </div>
+                        <button
+                          class="text-action"
+                          data-action="revoke-passkey"
+                        >
+                          Revoke
+                        </button>
+                      </article>
+                      <article class="record">
+                        <div>
+                          <h3>Device passkey</h3>
+                          <p>Added 4 Sept, 09:00 UTC</p>
+                        </div>
+                        <button
+                          class="text-action"
+                          data-action="revoke-passkey"
+                        >
+                          Revoke
+                        </button>
+                      </article>
+                      <div class="action-line">
+                        <button class="button" data-action="passkey">
+                          Add passkey
+                        </button>
+                      </div>
+                      <div class="workspace-section">
+                        <header class="section-head">
+                          <h2>Signed-in sessions</h2>
+                        </header>
+                        <article class="record">
+                          <div>
+                            <h3>This session</h3>
+                            <p>Started 5 Sept, 08:45 UTC</p>
+                            <small>Current browser</small>
+                          </div>
+                        </article>
+                        <article class="record">
+                          <div>
+                            <h3>Browser session</h3>
+                            <p>Started 4 Sept, 18:10 UTC</p>
+                          </div>
+                          <button class="text-action" data-action="end-session">
+                            End session
+                          </button>
+                        </article>
+                        <div class="action-line">
+                          <button class="button" data-action="end-others">
+                            End other sessions</button
+                          ><button class="button" data-action="sign-out">
+                            Sign out everywhere
+                          </button>
+                        </div>
+                      </div>
+                    </aside>
+                  </div>
+                </div>
+                <div data-scenario="empty" hidden="">
+                  <div class="workspace-grid">
+                    <section>
+                      <header class="section-head"><h2>Profile</h2></header>
+                      <h2>Mira Reyes</h2>
+                      <p class="minor">Admin · Anchor profile</p>
+                      <p class="minor">
+                        Your account name follows the published Anchor profile.
+                        It cannot be changed here.
+                      </p>
+                      <button class="button" data-action="anchor-profile">
+                        Open Anchor profile
+                      </button>
+                    </section>
+                    <aside>
+                      <header class="section-head"><h2>Sign-in</h2></header>
+                      <article class="record">
+                        <div>
+                          <h3>Synced passkey</h3>
+                          <p>Added 3 Sept, 08:00 UTC</p>
+                          <small
+                            >Final passkey — protected from revocation</small
+                          >
+                        </div>
+                      </article>
+                      <div class="action-line">
+                        <button class="button" data-action="passkey">
+                          Add passkey
+                        </button>
+                      </div>
+                      <header class="section-head">
+                        <h2>Signed-in sessions</h2>
+                      </header>
+                      <article class="record">
+                        <div>
+                          <h3>This session</h3>
+                          <p>Current browser</p>
+                        </div>
+                      </article>
+                      <button class="button" disabled="">
+                        End other sessions</button
+                      ><button class="button" data-action="sign-out">
+                        Sign out everywhere
+                      </button>
+                    </aside>
+                  </div>
+                </div>
+              </section>
+            </main>
+          </div>
+        </div>
+      </div>
+      <footer class="notes">
+        <p>
+          <strong>Implementation contract.</strong> Signed-in account. This
+          sample is a non-Anchor Admin. Anchor names are profile-managed rather
+          than editable here. Connected channels are read-only here; settings
+          are schema-driven and sensitive values remain hidden. The last passkey
+          cannot be revoked. Session actions confirm their exact scope.
+        </p>
+        <p>
+          <strong>Source:</strong>
+          <code>plugins/studio/ui-react/src/account/account-view.tsx</code>
+        </p>
+        <p>
+          Illustrative snapshot · 5 September 2026 · Times shown in UTC ·
+          Non-Anchor Admin unless stated · No live actions ·
+          <a href="capabilities.md">Capabilities and state coverage</a>
+        </p>
+      </footer>
+    </div>
+    <dialog id="review">
+      <header>
+        <h2 id="reviewTitle">Action</h2>
+        <button class="text-action" data-close="">Close</button>
+      </header>
+      <p id="reviewDescription"></p>
+      <div id="reviewBody"></div>
+      <form id="actionForm">
+        <div id="reviewFields"></div>
+        <p id="reviewConfirmation" class="minor"></p>
+        <div class="action-line">
+          <button class="button" type="button" data-close="">Cancel</button
+          ><button class="button primary" id="reviewAction" type="submit">
+            Preview action
+          </button>
+        </div>
+      </form>
+      <p id="feedback" role="status"></p>
+    </dialog>
+    <dialog id="sessionDialog">
+      <header>
+        <h2>Sessions</h2>
+        <button class="text-action" data-close="">Close</button>
+      </header>
+      <button data-session="review">
+        The weekly review<small>5 Sept, 09:00 UTC</small></button
+      ><button data-session="voice">
+        Finding our voice<small>4 Sept, 16:00 UTC</small>
+      </button>
+    </dialog>
+    <dialog id="browseDialog">
+      <header>
+        <h2>Browse Studio</h2>
+        <button data-close="">Close</button>
+      </header>
+      <button data-screen="overview">Overview</button>
+      <button data-screen="chat">Chat</button>
+      <details open="">
+        <summary>Work</summary>
+        <button data-screen="inbox">Inbox</button
+        ><button data-screen="publishing">Publishing</button
+        ><button data-screen="site">Site</button
+        ><button data-screen="sync">Content sync</button>
+      </details>
+      <button data-screen="administration">Admin</button>
+      <details open="">
+        <summary>System</summary>
+        <p class="minor">System settings are outside this workspace study.</p>
+      </details>
+    </dialog>
+    <script src="study.js"></script>
+  </body>
+</html>

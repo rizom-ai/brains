@@ -1,11 +1,26 @@
 import type { EntityDB } from "./db";
+import { entityReadBudgetSchema } from "@brains/contracts";
+import { entityRowBudgetCondition } from "./bounded-reads";
+import type {
+  EntityReadOptions,
+  EntityHierarchyPage,
+  QueryEntityHierarchyRequest,
+} from "./types";
+import {
+  decodeEntityIdPath,
+  entityIdHierarchyExpressions,
+  storedEntityIdPathSchema,
+} from "./entity-id-path";
 import type { EmbeddingDB } from "./db/embedding-db";
 import {
   getVisibleContentVisibilities,
   type BaseEntity,
   type ContentVisibility,
+  type EntityWriteSnapshot,
+  type GetEntityRequest,
 } from "./types";
 import { entities } from "./schema/entities";
+import { entityRevision } from "./entity-revision";
 import { embeddings } from "./schema/embeddings";
 import {
   eq,
@@ -15,6 +30,8 @@ import {
   sql,
   isNotNull,
   inArray,
+  not,
+  getTableColumns,
   type SQL,
 } from "drizzle-orm";
 import { type Logger } from "@brains/utils/logger";
@@ -52,6 +69,14 @@ const listOptionsSchema: z.ZodObject<{
       metadataAnyOf: z.ZodOptional<
         z.ZodRecord<z.ZodString, z.ZodArray<typeof metadataFilterScalarSchema>>
       >;
+      contentContains: z.ZodOptional<z.ZodString>;
+      visibility: z.ZodOptional<
+        z.ZodEnum<{
+          public: "public";
+          shared: "shared";
+          restricted: "restricted";
+        }>
+      >;
       visibilityScope: z.ZodOptional<
         z.ZodEnum<{
           public: "public";
@@ -62,6 +87,8 @@ const listOptionsSchema: z.ZodObject<{
     }>
   >;
   publishedOnly: z.ZodOptional<z.ZodBoolean>;
+  readBudget: z.ZodOptional<typeof entityReadBudgetSchema>;
+  signal: z.ZodOptional<z.ZodCustom<AbortSignal>>;
 }> = z.object({
   limit: z.number().int().positive().optional(),
   offset: z.number().int().min(0).optional().default(0),
@@ -72,14 +99,35 @@ const listOptionsSchema: z.ZodObject<{
       metadataAnyOf: z
         .record(z.string(), z.array(metadataFilterScalarSchema))
         .optional(),
+      contentContains: z.string().max(200).optional(),
+      visibility: z.enum(["public", "shared", "restricted"]).optional(),
       visibilityScope: z.enum(["public", "shared", "restricted"]).optional(),
     })
     .optional(),
   /** Filter to only entities with metadata.status = "published" */
   publishedOnly: z.boolean().optional(),
+  readBudget: entityReadBudgetSchema.optional(),
+  signal: z.instanceof(AbortSignal).optional(),
 });
 
 type ListOptions = z.input<typeof listOptionsSchema>;
+
+const hierarchyRequestSchema = z.object({
+  entityType: z.string().min(1),
+  prefix: storedEntityIdPathSchema.nullable().optional(),
+  includeDescendants: z.boolean().default(false),
+  visibilityScope: z.enum(["public", "shared", "restricted"]).optional(),
+  limit: z.number().int().min(1).max(100).default(50),
+  offset: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).default(0),
+  sortFields: listOptionsSchema.shape.sortFields,
+  filter: listOptionsSchema.shape.filter
+    .unwrap()
+    .omit({ visibilityScope: true })
+    .optional(),
+  signal: z.instanceof(AbortSignal).optional(),
+});
+
+const MAX_HIERARCHY_FOLDERS = 1000;
 
 /**
  * EntityQueries handles database query operations for entities
@@ -114,8 +162,21 @@ export class EntityQueries {
     entityType: string,
     id: string,
     visibilityScope?: ContentVisibility,
+    options: EntityReadOptions = {},
   ): Promise<EntityData | null> {
-    this.logger.debug(`Getting entity of type ${entityType} with ID ${id}`);
+    options.signal?.throwIfAborted();
+    const readBudget =
+      options.readBudget === undefined
+        ? undefined
+        : entityReadBudgetSchema.parse(options.readBudget);
+    if (
+      readBudget &&
+      (id.length > readBudget.queryCharacters ||
+        entityType.length > readBudget.queryCharacters)
+    )
+      throw new Error("Entity lookup input limit exceeded");
+    if (!readBudget)
+      this.logger.debug(`Getting entity of type ${entityType} with ID ${id}`);
 
     const scope: ContentVisibility = visibilityScope ?? "public";
     const conditions: SQL[] = [
@@ -128,14 +189,22 @@ export class EntityQueries {
       );
     }
 
+    if (readBudget) conditions.push(entityRowBudgetCondition(readBudget));
     const result = await this.db
-      .select()
+      .select({
+        ...getTableColumns(entities),
+        id: sql<ArrayBuffer>`CAST(${entities.id} AS BLOB)`,
+      })
       .from(entities)
       .where(and(...conditions))
       .limit(1);
+    options.signal?.throwIfAborted();
 
     if (result.length === 0) {
-      this.logger.debug(`Entity of type ${entityType} with ID ${id} not found`);
+      if (!readBudget)
+        this.logger.debug(
+          `Entity of type ${entityType} with ID ${id} not found`,
+        );
       return null;
     }
 
@@ -144,7 +213,26 @@ export class EntityQueries {
       return null;
     }
 
-    return normalizeEntityRow(row);
+    // As in hierarchy reads, bypass the driver's NUL-truncating text decoding.
+    // Preserve a leading BOM too: the stored ID is opaque identity, not a text file.
+    const idDecoder = new TextDecoder("utf-8", { ignoreBOM: true });
+    return normalizeEntityRow({ ...row, id: idDecoder.decode(row.id) });
+  }
+
+  /** The stored row and the revision derived from it, from one scoped read. */
+  public async getEntityWriteSnapshot(
+    request: GetEntityRequest,
+  ): Promise<EntityWriteSnapshot | null> {
+    const data = await this.getEntityData(
+      request.entityType,
+      request.id,
+      request.visibilityScope,
+      request,
+    );
+    if (!data) return null;
+    const entity = await this.serializer.convertToEntity(data);
+    if (!entity) throw new Error("Cannot deserialize entity write snapshot");
+    return { entity, revision: entityRevision(data) };
   }
 
   public async getEntityDataMany(
@@ -185,12 +273,16 @@ export class EntityQueries {
     publishedStatuses?: string[],
   ): Promise<BaseEntity[]> {
     const validatedOptions = listOptionsSchema.parse(options);
-    const { limit, offset, sortFields, filter, publishedOnly } =
+    const { offset, sortFields, filter, publishedOnly, readBudget, signal } =
       validatedOptions;
-
-    this.logger.debug(
-      `Listing entities of type ${entityType} (limit: ${limit}, offset: ${offset}, filter: ${JSON.stringify(filter)}, publishedOnly: ${publishedOnly})`,
-    );
+    const limit = readBudget
+      ? Math.min(validatedOptions.limit ?? readBudget.rows, readBudget.rows)
+      : validatedOptions.limit;
+    signal?.throwIfAborted();
+    if (!readBudget)
+      this.logger.debug(
+        `Listing entities of type ${entityType} (limit: ${limit}, offset: ${offset}, filter: ${JSON.stringify(filter)}, publishedOnly: ${publishedOnly})`,
+      );
 
     const whereConditions = this.buildWhereConditions(
       entityType,
@@ -199,7 +291,10 @@ export class EntityQueries {
       filter?.metadataAnyOf,
       filter?.visibilityScope,
       publishedStatuses,
+      filter?.contentContains,
+      filter?.visibility,
     );
+    if (readBudget) whereConditions.push(entityRowBudgetCondition(readBudget));
     const orderByClauses = this.buildOrderByClauses(sortFields);
 
     const query = this.db
@@ -211,22 +306,119 @@ export class EntityQueries {
 
     const result = limit !== undefined ? await query.limit(limit) : await query;
 
+    signal?.throwIfAborted();
     // Convert from database format to entities
     const entityList = await this.serializer.convertToEntities(
       result.map(normalizeEntityRow),
       entityType,
+      readBudget === undefined,
     );
 
-    this.logger.debug(
-      `Listed ${entityList.length} entities of type ${entityType}`,
-    );
+    signal?.throwIfAborted();
+    if (!readBudget)
+      this.logger.debug(
+        `Listed ${entityList.length} entities of type ${entityType}`,
+      );
 
     return entityList;
   }
 
+  /** Immediate folders are grouped in SQLite; only direct entries are paginated. */
+  public async queryEntityHierarchy(
+    request: QueryEntityHierarchyRequest,
+  ): Promise<EntityHierarchyPage> {
+    const input = hierarchyRequestSchema.parse(request);
+    const { entityType, filter, limit, offset, signal, sortFields } = input;
+    const prefix = input.prefix ?? null;
+    signal?.throwIfAborted();
+    const path = entityIdHierarchyExpressions(entities.id, prefix);
+    const conditions = this.buildWhereConditions(
+      entityType,
+      undefined,
+      filter?.metadata,
+      input.visibilityScope,
+      undefined,
+      filter?.contentContains,
+      filter?.visibility,
+    );
+    conditions.push(path.withinPrefix);
+
+    const folders = input.includeDescendants
+      ? []
+      : await this.db
+          .select({
+            name: path.childName,
+            count: sql<number>`COUNT(*)`,
+          })
+          .from(entities)
+          .where(and(...conditions, not(path.directChild)))
+          .groupBy(path.childName)
+          .orderBy(asc(path.childName))
+          .limit(MAX_HIERARCHY_FOLDERS + 1);
+    signal?.throwIfAborted();
+    if (folders.length > MAX_HIERARCHY_FOLDERS) {
+      throw new Error(
+        `Entity hierarchy exceeds ${MAX_HIERARCHY_FOLDERS} immediate folders`,
+      );
+    }
+
+    const direct = and(
+      ...conditions,
+      ...(input.includeDescendants ? [] : [path.directChild]),
+    );
+    const counts = await this.db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(entities)
+      .where(direct);
+    signal?.throwIfAborted();
+    // The driver truncates NUL-containing text results. Identity fields travel
+    // as bytes and are decoded here; this does not modify stored rows.
+    const rows = await this.db
+      .select({
+        ...getTableColumns(entities),
+        id: sql<ArrayBuffer>`CAST(${entities.id} AS BLOB)`,
+      })
+      .from(entities)
+      .where(direct)
+      .orderBy(
+        ...this.buildOrderByClauses(
+          sortFields ?? [{ field: "id", direction: "asc" }],
+        ),
+        asc(entities.id),
+      )
+      .limit(limit)
+      .offset(offset);
+    signal?.throwIfAborted();
+    const decoder = new TextDecoder("utf-8", { ignoreBOM: true });
+    const page = await this.serializer.convertToEntities(
+      rows.map((row) =>
+        normalizeEntityRow({ ...row, id: decoder.decode(row.id) }),
+      ),
+      entityType,
+    );
+    signal?.throwIfAborted();
+    return {
+      prefix,
+      folders: folders.map((folder) => {
+        const name = decoder.decode(folder.name);
+        return {
+          path: prefix ? [prefix[0], ...prefix.slice(1), name] : [name],
+          name,
+          descendantCount: Number(folder.count),
+        };
+      }),
+      entities: page.map((entity) => ({
+        entity,
+        path: decodeEntityIdPath(entity.id),
+      })),
+      offset,
+      totalEntities: Number(counts[0]?.count ?? 0),
+    };
+  }
+
   /**
    * Build WHERE conditions for entity queries.
-   * Shared by listEntities and countEntities.
+   * Shared by listEntities, countEntities and hierarchy queries.
    */
   private buildWhereConditions(
     entityType: string,
@@ -235,6 +427,8 @@ export class EntityQueries {
     metadataAnyOf?: Record<string, Array<string | number | boolean>>,
     visibilityScope?: ContentVisibility,
     publishedStatuses?: string[],
+    contentContains?: string,
+    visibility?: ContentVisibility,
   ): SQL[] {
     const conditions: SQL[] = [eq(entities.entityType, entityType)];
 
@@ -262,6 +456,13 @@ export class EntityQueries {
     if (scope !== "restricted") {
       conditions.push(
         inArray(entities.visibility, getVisibleContentVisibilities(scope)),
+      );
+    }
+
+    if (visibility) conditions.push(eq(entities.visibility, visibility));
+    if (contentContains?.trim()) {
+      conditions.push(
+        sql`instr(lower(${entities.content}), lower(${contentContains.trim()})) > 0`,
       );
     }
 
@@ -360,19 +561,24 @@ export class EntityQueries {
             metadata?: Record<string, unknown> | undefined;
             metadataAnyOf?:
               Record<string, Array<string | number | boolean>> | undefined;
+            contentContains?: string | undefined;
+            visibility?: ContentVisibility | undefined;
             visibilityScope?: ContentVisibility | undefined;
           }
         | undefined;
     } = {},
     publishedStatuses?: string[],
   ): Promise<number> {
+    const validatedOptions = listOptionsSchema.parse(options);
     const whereConditions = this.buildWhereConditions(
       entityType,
-      options.publishedOnly,
-      options.filter?.metadata,
-      options.filter?.metadataAnyOf,
-      options.filter?.visibilityScope,
+      validatedOptions.publishedOnly,
+      validatedOptions.filter?.metadata,
+      validatedOptions.filter?.metadataAnyOf,
+      validatedOptions.filter?.visibilityScope,
       publishedStatuses,
+      validatedOptions.filter?.contentContains,
+      validatedOptions.filter?.visibility,
     );
 
     const result = await this.db

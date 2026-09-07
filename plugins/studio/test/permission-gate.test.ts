@@ -99,6 +99,20 @@ function apiRouteRequests(): RouteRequest[] {
       request: (cookie) => request("/studio/api/schema", { cookie }),
     },
     {
+      routePath: "/studio/api/destination",
+      method: "POST",
+      request: (cookie) =>
+        request("/studio/api/destination", {
+          cookie,
+          method: "POST",
+          body: {},
+        }),
+    },
+    {
+      routePath: "/studio/api/hierarchy",
+      request: (cookie) => request("/studio/api/hierarchy", { cookie }),
+    },
+    {
       routePath: "/studio/api/entities",
       request: (cookie) => request("/studio/api/entities", { cookie }),
     },

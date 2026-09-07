@@ -1,6 +1,11 @@
 import { createMockShell } from "../src/test/mock-shell";
 import { describe, expect, expectTypeOf, it, mock } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
+import { PermissionService } from "@brains/templates";
+import {
+  MAX_GENERATION_REQUEST_BYTES,
+  MAX_GENERATION_TARGETS,
+} from "@brains/content-service";
 import { z } from "@brains/utils/zod";
 import { PluginManager } from "../src/manager/pluginManager";
 import { PluginStatus } from "../src/manager/types";
@@ -8,6 +13,8 @@ import { createPluginHarness } from "../src/test/harness";
 import {
   defineAccountSettings,
   defineDashboardWidget,
+  defineEntity,
+  defineEntityPackage,
   defineJob,
   defineServicePlugin,
   defineTool,
@@ -26,6 +33,214 @@ const digestJob = defineJob({
 });
 
 describe("declarative service definitions", () => {
+  it("bounds target construction, admission and metadata transforms", async () => {
+    let validations = 0;
+    const section = defineEntity({
+      type: "bounded-section",
+      purpose: "Bounded generation test",
+      metadata: z.object({
+        title: z.string().transform((value) => {
+          validations++;
+          return value.repeat(3);
+        }),
+      }),
+    });
+    const definition = defineServicePlugin({
+      id: "bounded-content",
+      config: z.object({}),
+      templates: {
+        chapter: {
+          schema: z.string(),
+          generation: { prompt: "Write" },
+          format: ({ value }) => value,
+        },
+      },
+      tools: ({ content }) => [
+        defineTool({
+          name: "generate",
+          description: "Generate bounded sections",
+          sideEffects: "writes",
+          input: z.object({
+            count: z.number(),
+            text: z.string(),
+            dryRun: z.boolean(),
+          }),
+          output: z.object({ queuedTargets: z.number() }),
+          async execute({ input }) {
+            const target = content.target({
+              template: "chapter",
+              destination: {
+                entity: section,
+                idPath: ["section"],
+                metadata: { title: input.text },
+              },
+            });
+            const result = await content.generate({
+              dryRun: input.dryRun,
+              targets: Array.from({ length: input.count }, () => target),
+            });
+            return { queuedTargets: result.queuedTargets };
+          },
+        }),
+      ],
+    });
+    const [plugin] = instantiatePluginPackageDefinition(
+      definition,
+      {},
+      { name: "@fixture/bounded-content", version: "0.1.0" },
+    );
+    if (!plugin) throw new Error("Missing service");
+    const harness = createPluginHarness({ logger: createSilentLogger() });
+    const capabilities = await harness.installPlugin(plugin);
+    for (const dryRun of [false, true]) {
+      // Each target's metadata is validated once at construction; the single
+      // admission check then measures the transformed request as submitted.
+      for (const [count, text, expectedValidations] of [
+        [MAX_GENERATION_TARGETS + 1, "small", 1],
+        [1, "x".repeat(MAX_GENERATION_REQUEST_BYTES), 1],
+        [1, "x".repeat(MAX_GENERATION_REQUEST_BYTES / 2), 1],
+        [4, "x".repeat(100_000), 1],
+      ] as const) {
+        validations = 0;
+        const outcome = await capabilities.tools[0]?.handler(
+          { count, text, dryRun },
+          {
+            interfaceType: "test",
+            actor: { kind: "service", serviceId: "test" },
+            userPermissionLevel: "admin",
+          },
+        );
+        expect(outcome).toMatchObject({
+          success: false,
+          error: expect.stringContaining("exceeds"),
+        });
+        expect(validations).toBe(expectedValidations);
+      }
+    }
+    expect(
+      await harness.getMockShell().getJobQueueService().getRecentJobs(),
+    ).toHaveLength(0);
+  });
+  it("generates structured entity paths through a no-layout template", async () => {
+    const bookSection = defineEntity({
+      type: "book-section",
+      purpose: "A generated section of a book.",
+      metadata: z.object({
+        bookId: z.string(),
+        sectionId: z.string(),
+        order: z.number().int().nonnegative(),
+      }),
+    });
+    const definition = defineServicePlugin({
+      id: "book-content",
+      config: z.object({}),
+      templates: {
+        chapter: {
+          schema: z.object({ title: z.string(), body: z.string() }),
+          generation: {
+            prompt: "Write the requested chapter.",
+            useKnowledgeContext: true,
+          },
+          format: ({ value }) => `# ${value.title}\n\n${value.body}`,
+        },
+      },
+      tools: ({ content }) => [
+        defineTool({
+          name: "generate-chapter",
+          description: "Generate one chapter.",
+          input: z.object({}),
+          output: z.object({
+            batchId: z.string(),
+            queuedTargets: z.number(),
+          }),
+          sideEffects: "writes",
+          async execute() {
+            const result = await content.generate({
+              targets: [
+                content.target({
+                  template: "chapter",
+                  context: { data: { chapterTitle: "Arrival" } },
+                  destination: {
+                    entity: bookSection,
+                    idPath: ["book-1", "part-1", "chapter-2"],
+                    metadata: {
+                      bookId: "book-1",
+                      sectionId: "chapter-2",
+                      order: 2,
+                    },
+                  },
+                }),
+              ],
+            });
+            if (!result.batchId) throw new Error("Generation was not queued");
+            return {
+              batchId: result.batchId,
+              queuedTargets: result.queuedTargets,
+            };
+          },
+        }),
+      ],
+    });
+    const [plugin] = instantiatePluginPackageDefinition(
+      definition,
+      {},
+      { name: "@fixture/book-content", version: "0.1.0" },
+    );
+    if (!plugin) throw new Error("Service plugin was not created");
+
+    const harness = createPluginHarness({ logger: createSilentLogger() });
+    harness.setPermissionService(
+      new PermissionService({ admins: ["service:test"] }),
+    );
+    const entityPlugins = instantiatePluginPackageDefinition(
+      defineEntityPackage({ id: "book-entities", entities: [bookSection] }),
+      {},
+      { name: "@fixture/book-entities", version: "0.1.0" },
+    );
+    for (const entityPlugin of entityPlugins)
+      await harness.installPlugin(entityPlugin);
+    const capabilities = await harness.installPlugin(plugin);
+    const result = await capabilities.tools[0]?.handler(
+      {},
+      {
+        interfaceType: "test",
+        actor: { kind: "service", serviceId: "test" },
+        userPermissionLevel: "admin",
+      },
+    );
+
+    const admission = z
+      .object({ data: z.object({ batchId: z.string() }) })
+      .parse(result);
+    expect(result).toMatchObject({
+      success: true,
+      data: {
+        batchId: admission.data.batchId,
+        queuedTargets: 1,
+      },
+    });
+    // The shared root job ID is the durable handle for the admitted children.
+    expect(
+      await harness
+        .getMockShell()
+        .getJobQueueService()
+        .getJobsByRootJobId(admission.data.batchId),
+    ).toHaveLength(1);
+    const cancelled = await capabilities.tools[0]?.handler(
+      {},
+      {
+        interfaceType: "test",
+        actor: { kind: "service", serviceId: "test" },
+        userPermissionLevel: "admin",
+        signal: AbortSignal.abort(new Error("Cancelled before generation")),
+      },
+    );
+    expect(cancelled).toMatchObject({ success: false });
+    expect(
+      await harness.getMockShell().getJobQueueService().getRecentJobs(),
+    ).toHaveLength(1);
+  });
+
   it("infers config, state, jobs, templates, and plain tool output", async () => {
     let cleaned = false;
     const definition = defineServicePlugin({

@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-rizom-ai",
-  "version": "0.2.0-alpha.245",
+  "version": "0.2.0-alpha.252",
   "description": "Consolidated Rizom brand site, runtime, layouts, and chrome",
   "type": "module",
   "exports": {
@@ -42,9 +42,12 @@
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
+    "@brains/agent-discovery": "workspace:*",
     "@brains/atproto-contracts": "workspace:*",
     "@brains/build-tools": "workspace:*",
+    "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
+    "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/site-composition": "workspace:*",

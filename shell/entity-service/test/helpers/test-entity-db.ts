@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import type { EntityDbConfig } from "../../src/types";
+import type { EntityDbConfig, ContentVisibility } from "../../src/types";
 import { migrateEntities } from "../../src/migrate";
 import {
   migrateEmbeddingDatabase,
@@ -57,6 +57,7 @@ export interface TestEntityData {
   entityType: string;
   content: string;
   metadata: Record<string, unknown>;
+  visibility?: ContentVisibility;
   created: number;
   updated: number;
   embedding: Float32Array;
@@ -80,6 +81,7 @@ export async function insertTestEntity(
     content: data.content,
     contentHash,
     metadata: data.metadata,
+    visibility: data.visibility,
     created: data.created,
     updated: data.updated,
   });

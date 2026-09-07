@@ -1,11 +1,27 @@
 import { describe, it, expect } from "bun:test";
 import {
   parseMarkdown,
+  firstMarkdownHeading,
   generateMarkdown,
   updateFrontmatterField,
 } from "../src/markdown";
 
 describe("Markdown Utilities", () => {
+  it("derives a plain title from ATX and Setext headings, not code or HTML", () => {
+    expect(
+      firstMarkdownHeading(
+        "```md\n# Not a title\n```\n\n## My **real** [title](https://example.com)",
+      ),
+    ).toBe("My real title");
+    expect(
+      firstMarkdownHeading(
+        "<!-- # Hidden -->\n\nA document title\n================",
+      ),
+    ).toBe("A document title");
+    expect(firstMarkdownHeading("A paragraph with no heading")).toBeUndefined();
+    expect(firstMarkdownHeading("# First\n\n# Second")).toBe("First");
+  });
+
   describe("parseMarkdown", () => {
     it("should parse markdown with frontmatter", () => {
       const markdown = `---

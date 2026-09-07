@@ -2,6 +2,7 @@ import { describe, it, expect } from "bun:test";
 import { directorySyncSubscriptions } from "../src/lib/message-handlers";
 import { createSilentLogger } from "@brains/test-utils";
 import { installSubscriptions } from "./helpers/install";
+import { directorySyncPathResponseSchema } from "@brains/contracts";
 import type {
   GitStatusSource,
   SyncHandlerSource,
@@ -75,6 +76,101 @@ async function setup(options: {
   );
   return harness;
 }
+
+describe("sync:path:request placement preview", () => {
+  it("accepts an older placement response without an admission verdict", () => {
+    expect(
+      directorySyncPathResponseSchema.parse({
+        relativePath: "intro.md",
+        leaf: null,
+      }),
+    ).toEqual({ relativePath: "intro.md", leaf: null });
+  });
+  it.each([
+    ["note", "book:intro", { entityType: "book", id: "intro" }, false],
+    ["note", "intro", { entityType: "note", id: "intro" }, true],
+    [
+      "site-content",
+      "site-content:home:hero",
+      { entityType: "site-content", id: "site-content:home:hero" },
+      true,
+    ],
+    [
+      "section",
+      "home::hero",
+      { entityType: "section", id: "home:hero" },
+      false,
+    ],
+  ])(
+    "returns a pure verdict for %s/%s without registered types",
+    async (entityType, entityId, owner, writable) => {
+      const harness = setup({ directorySync: fakeDirectorySync() });
+      try {
+        expect(
+          await harness.sendMessage("sync:path:request", {
+            entityType,
+            entityId,
+            metadata: {},
+            content: "",
+          }),
+        ).toMatchObject({ owner, writable });
+      } finally {
+        await harness.reset();
+      }
+    },
+  );
+  it("identifies the new filename segment without confusing it with the extension", async () => {
+    const harness = setup({ directorySync: fakeDirectorySync() });
+    try {
+      const result = await harness.sendMessage("sync:path:request", {
+        entityType: "note",
+        entityId: "book:.md",
+        metadata: {},
+        content: "",
+      });
+      expect(result).toEqual({
+        relativePath: "book/.md.md",
+        leaf: { start: 5, end: 8 },
+        owner: { entityType: "book", id: ".md" },
+        writable: false,
+      });
+    } finally {
+      await harness.reset();
+    }
+  });
+  it.each([
+    ["note", "intro", {}, "intro.md"],
+    ["note", "book:intro", {}, "book/intro.md"],
+    [
+      "book-section",
+      "book-1:part-1:chapter-2",
+      {},
+      "book-section/book-1/part-1/chapter-2.md",
+    ],
+    [
+      "book-section",
+      "book-section:intro",
+      {},
+      "book-section/book-section/intro.md",
+    ],
+    ["document", "book:chapter", {}, "document/book/chapter.pdf"],
+    ["image", "book:cover", { format: "png" }, "image/book/cover.png"],
+  ])(
+    "previews %s/%s through directory-sync's existing placement rules",
+    async (entityType, entityId, metadata, relativePath) => {
+      const harness = setup({ directorySync: fakeDirectorySync() });
+      try {
+        const result = await harness.sendMessage<
+          unknown,
+          { relativePath: string }
+        >("sync:path:request", { entityType, entityId, metadata, content: "" });
+        expect(result).toMatchObject({ relativePath });
+      } finally {
+        await harness.reset();
+      }
+    },
+  );
+});
 
 describe("sync:status:request message handler", () => {
   it("reports lastSync and the git state when git sync is enabled", async () => {

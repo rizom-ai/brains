@@ -70,6 +70,7 @@ const entityPayloadSchema = z.object({
   }),
 });
 const entityListPayloadSchema = z.object({
+  total: z.number().int().nonnegative(),
   entities: z.array(
     z.object({
       id: z.string(),
@@ -494,11 +495,24 @@ describe("studio editor shell", () => {
     );
     expect(response.status).toBe(200);
 
-    const accountChunk = [
-      ...new Bun.Glob("studio-chunks/account-view-*.js").scanSync({
-        cwd: join(import.meta.dir, "..", "dist", "ui"),
-      }),
-    ][0];
+    // Rebuilds/cache restores can retain older chunks. Test a published asset,
+    // not an arbitrary obsolete file that the manifest correctly refuses.
+    const manifest = z
+      .object({ assets: z.record(z.string(), z.string()) })
+      .parse(
+        await Bun.file(
+          join(
+            import.meta.dir,
+            "..",
+            "dist",
+            "ui",
+            "studio-asset-manifest.json",
+          ),
+        ).json(),
+      );
+    const accountChunk = Object.keys(manifest.assets).find((asset) =>
+      /^studio-chunks\/account-view-.*\.js$/.test(asset),
+    );
     if (!accountChunk) throw new Error("Missing built Account chunk");
     const chunkResponse = await assetRoute.handler(
       apiRequest(`/studio/assets/${accountChunk}`),
@@ -1044,6 +1058,196 @@ describe("studio editor api", () => {
     expect(payload.fields).toEqual([adminVisibilityField]);
   });
 
+  it("exposes adapter-owned raw-note titles without adding an editable title property", async () => {
+    const shell = createEditorTestShell();
+    const cookie = await createSessionCookie(shell);
+    const content = "# A readable heading\n\nBody";
+    await shell.getEntityService().createEntity({
+      entity: {
+        id: "opaque-note-id",
+        entityType: "note",
+        content,
+        metadata: { title: "A readable heading" },
+        visibility: "public",
+        created: "2026-07-01T00:00:00.000Z",
+        updated: "2026-07-01T00:00:00.000Z",
+      },
+    });
+    const plugin = await registerPlugin(shell);
+    const route = findRoute(plugin, "/studio/api/entities");
+    const detail = await route.handler(
+      apiRequest("/studio/api/entities?type=note&id=opaque-note-id", {
+        cookie,
+      }),
+    );
+    const labelSchema = z.object({
+      id: z.string(),
+      displayTitle: z.string(),
+      frontmatter: z.record(z.string(), z.unknown()),
+    });
+    const decoded = z
+      .object({ entity: labelSchema.extend({ body: z.string() }) })
+      .parse(await detail.json());
+    expect(decoded.entity.displayTitle).toBe("A readable heading");
+    expect(decoded.entity.frontmatter).toEqual({ visibility: "public" });
+    expect(decoded.entity.body).toBe(content);
+    const list = await route.handler(
+      apiRequest("/studio/api/entities?type=note", { cookie }),
+    );
+    expect(
+      z.object({ entities: z.array(labelSchema) }).parse(await list.json())
+        .entities[0]?.displayTitle,
+    ).toBe("A readable heading");
+  });
+
+  it("uses current adapter title projections on list and detail without writing stored notes", async () => {
+    const shell = createEditorTestShell();
+    const cookie = await createSessionCookie(shell);
+    const service = shell.getEntityService();
+    await service.createEntity({
+      entity: {
+        id: "stored-placeholder",
+        entityType: "note",
+        content: "First body line\nSecond line",
+        metadata: { title: "Untitled" },
+        visibility: "public",
+        created: "2026-07-01T00:00:00.000Z",
+        updated: "2026-07-01T00:00:00.000Z",
+      },
+    });
+    const before = await service.getEntity({
+      entityType: "note",
+      id: "stored-placeholder",
+    });
+    shell.getEntityRegistry().getAdapter("note").extractMetadata = (
+      entity,
+    ): Record<string, unknown> => ({
+      ...entity.metadata,
+      title: "Adapter-projected fallback",
+    });
+    const plugin = await registerPlugin(shell);
+    const route = findRoute(plugin, "/studio/api/entities");
+    const label = z.object({ displayTitle: z.string() });
+    const list = await route.handler(
+      apiRequest("/studio/api/entities?type=note", { cookie }),
+    );
+    expect(
+      z.object({ entities: z.array(label) }).parse(await list.json())
+        .entities[0]?.displayTitle,
+    ).toBe("Adapter-projected fallback");
+    const detail = await route.handler(
+      apiRequest("/studio/api/entities?type=note&id=stored-placeholder", {
+        cookie,
+      }),
+    );
+    expect(
+      z.object({ entity: label }).parse(await detail.json()).entity
+        .displayTitle,
+    ).toBe("Adapter-projected fallback");
+    expect(
+      await service.getEntity({ entityType: "note", id: "stored-placeholder" }),
+    ).toEqual(before);
+  });
+
+  for (const entityType of ["note", "post", "brief"]) {
+    for (const example of [
+      {
+        name: "authored frontmatter title",
+        content:
+          "---\ntitle: Actual title\ntags: [example]\n---\n\n# Body heading",
+        metadata: { title: "Actual title" },
+        expected: "Actual title",
+      },
+      {
+        name: "projected title without an authored title",
+        content: "---\nstatus: draft\n---\n\n# Body heading",
+        metadata: { title: "Projected title" },
+        expected: "Projected title",
+      },
+      {
+        name: "adapter title independent of frontmatter and body",
+        content:
+          "---\ntitle: Different source title\n---\n\n# Different heading",
+        metadata: { title: "Adapter-owned title" },
+        expected: "Adapter-owned title",
+      },
+      {
+        name: "malformed frontmatter",
+        content: "---\ntitle: [broken\nstatus: draft\n---\n\n# Actual heading",
+        metadata: { title: "Adapter-owned title" },
+        expected: "Adapter-owned title",
+      },
+      {
+        name: "missing projected title",
+        content: "---\nstatus: draft\n---\n\n# Not an adapter title",
+        metadata: {},
+        expected: undefined,
+      },
+      {
+        name: "invalid projected title",
+        content: "---\nstatus: draft\n---\n\n# Not an adapter title",
+        metadata: { title: 42 },
+        expected: undefined,
+      },
+      {
+        name: "blank projected title",
+        content: "---\nstatus: draft\n---\n\n# Not an adapter title",
+        metadata: { title: "   " },
+        expected: undefined,
+      },
+    ]) {
+      it(`keeps ${entityType} ${example.name} out of YAML-derived list labels`, async () => {
+        const shell = createEditorTestShell();
+        const cookie = await createSessionCookie(shell);
+        await shell.getEntityService().createEntity({
+          entity: {
+            id: "label-regression",
+            entityType,
+            content: example.content,
+            metadata: example.metadata,
+            visibility: "public",
+            created: "2026-07-01T00:00:00.000Z",
+            updated: "2026-07-01T00:00:00.000Z",
+          },
+        });
+        const plugin = await registerPlugin(shell);
+        const route = findRoute(plugin, "/studio/api/entities");
+        const labelSchema = z.object({ displayTitle: z.string().optional() });
+        const list = await route.handler(
+          apiRequest(`/studio/api/entities?type=${entityType}`, { cookie }),
+        );
+        const decodedList = z
+          .object({ entities: z.array(labelSchema) })
+          .parse(await list.json());
+        expect(decodedList.entities).toHaveLength(1);
+        expect(decodedList.entities[0]?.displayTitle).toBe(example.expected);
+        const detail = await route.handler(
+          apiRequest(
+            `/studio/api/entities?type=${entityType}&id=label-regression`,
+            { cookie },
+          ),
+        );
+        const decoded = z
+          .object({
+            entity: labelSchema.extend({
+              body: z.string(),
+              frontmatter: z.record(z.string(), z.unknown()),
+            }),
+          })
+          .parse(await detail.json());
+        expect(decoded.entity.displayTitle).toBe(example.expected);
+        if (entityType === "note") {
+          expect(decoded.entity.body).toBe(example.content);
+          expect(decoded.entity.frontmatter).toEqual({ visibility: "public" });
+        }
+        const stored = await shell
+          .getEntityService()
+          .getEntity({ entityType, id: "label-regression" });
+        expect(stored?.content).toBe(example.content);
+      });
+    }
+  }
+
   it("round-trips a raw note verbatim, even when it opens with a horizontal rule", async () => {
     const shell = createEditorTestShell();
     const cookie = await createSessionCookie(shell);
@@ -1213,6 +1417,65 @@ describe("studio editor api", () => {
     expect(response.status).toBe(404);
   });
 
+  it("returns filtered totals and stable sorted pages for collection searches", async () => {
+    const shell = createEditorTestShell();
+    const cookie = await createSessionCookie(shell);
+    for (const [id, title, visibility, status, month] of [
+      ["a", "Alpha notes", "public", "draft", "01"],
+      ["b", "Beta notes", "restricted", "draft", "02"],
+      ["c", "Gamma notes", "restricted", "published", "03"],
+      ["d", "Unrelated", "restricted", "draft", "04"],
+    ] as const) {
+      await shell.getEntityService().createEntity({
+        entity: {
+          id,
+          entityType: "post",
+          content: `---\ntitle: ${title}\n---\n\nBody`,
+          metadata: { status },
+          visibility,
+          created: `2026-${month}-01T00:00:00Z`,
+          updated: `2026-${month}-01T00:00:00Z`,
+        },
+      });
+    }
+    const plugin = await registerPlugin(shell);
+    const route = findRoute(plugin, "/studio/api/entities");
+    const search = async (
+      query: string,
+    ): Promise<z.infer<typeof entityListPayloadSchema>> => {
+      const response = await route.handler(
+        apiRequest(`/studio/api/entities?type=post&${query}`, { cookie }),
+      );
+      expect(response.status).toBe(200);
+      return entityListPayloadSchema.parse(await response.json());
+    };
+    const filtered = await search(
+      "q=notes&visibility=restricted&status=draft&limit=1",
+    );
+    expect(filtered.total).toBe(1);
+    expect(filtered.entities.map((entity) => entity.id)).toEqual(["b"]);
+    const ascending = await search("q=notes&sort=created-asc&offset=1&limit=1");
+    expect(ascending.total).toBe(3);
+    expect(ascending.entities.map((entity) => entity.id)).toEqual(["b"]);
+    expect(
+      (await search("q=notes&sort=created-desc&limit=1")).entities[0]?.id,
+    ).toBe("c");
+    expect((await search("q=no-match")).total).toBe(0);
+    for (const query of [
+      "visibility=admin",
+      "sort=content",
+      `q=${"x".repeat(201)}`,
+    ]) {
+      expect(
+        (
+          await route.handler(
+            apiRequest(`/studio/api/entities?type=post&${query}`, { cookie }),
+          )
+        ).status,
+      ).toBe(400);
+    }
+  });
+
   it("lists entities of a type with their frontmatter", async () => {
     const shell = createEditorTestShell();
     const cookie = await createSessionCookie(shell);
@@ -1229,6 +1492,34 @@ describe("studio editor api", () => {
     expect(payload.entities[0]?.id).toBe("first-post");
     expect(payload.entities[0]?.entityType).toBe("post");
     expect(payload.entities[0]?.frontmatter["title"]).toBe("First Post");
+  });
+
+  it("returns bounded entity pages", async () => {
+    const shell = createEditorTestShell();
+    const cookie = await createSessionCookie(shell);
+    for (let index = 1; index <= 12; index += 1) {
+      await seedPost(shell, {
+        id: `post-${index}`,
+        title: `Post ${index}`,
+      });
+    }
+    const plugin = await registerPlugin(shell);
+    const route = findRoute(plugin, "/studio/api/entities");
+
+    const response = await route.handler(
+      apiRequest("/studio/api/entities?type=post&offset=10&limit=10", {
+        cookie,
+      }),
+    );
+    const payload = entityListPayloadSchema.parse(await response.json());
+
+    expect(response.status).toBe(200);
+    expect(payload.entities).toHaveLength(2);
+
+    const invalid = await route.handler(
+      apiRequest("/studio/api/entities?type=post&limit=0", { cookie }),
+    );
+    expect(invalid.status).toBe(400);
   });
 
   it("returns the content hash so edits can carry a precondition", async () => {

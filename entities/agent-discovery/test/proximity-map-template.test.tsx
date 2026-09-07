@@ -3,7 +3,32 @@ import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup as render } from "react-dom/server";
 import { getTemplates } from "../src/lib/register-templates";
 import type { ProximityMapData } from "../src/lib/proximity-map-schema";
+import { operatorViewStylexCSS } from "@brains/ui-library";
 import { AgentProximityMapTemplate } from "../src/templates/proximity-map-template";
+import { proximityMapSiteStyles } from "../src/proximity-map";
+
+test("the homepage uses the same site-map styles exported for other site compositions", () => {
+  expect(render(AgentProximityMapTemplate(data))).toContain(
+    `<style>${proximityMapSiteStyles}</style>`,
+  );
+});
+
+test("standalone site sections include compiled empty-state styling", () => {
+  const html = render(
+    AgentProximityMapTemplate({
+      ...data,
+      nodes: [],
+      sightings: [],
+      clusters: [],
+      center: { kind: "centroid" },
+      pendingCount: 17,
+    }),
+  );
+  expect(html).toContain(operatorViewStylexCSS);
+  expect(html).toContain("No indexed agents yet.");
+  expect(html).toContain("Identity not indexed yet — waiting for embeddings.");
+  expect(html).toContain("17 pending indexing");
+});
 
 const data: ProximityMapData = {
   headingLevel: null,

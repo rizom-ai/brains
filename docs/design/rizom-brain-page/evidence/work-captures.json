@@ -1,0 +1,144 @@
+{
+  "capturedAt": "2026-09-09T08:06:03.066Z",
+  "sourceRevision": "2b7ecfe6041918eae54233b5a4d9afb933bd2eea",
+  "build": "cd plugins/studio && bun run build",
+  "interface": "Studio; Instrument and Paper climates",
+  "viewports": [
+    {
+      "width": 520,
+      "height": 1300,
+      "deviceScaleFactor": 2
+    },
+    {
+      "width": 390,
+      "height": 1300,
+      "deviceScaleFactor": 2
+    }
+  ],
+  "sourceSchemas": [
+    "entities/note/src/schemas/note.ts",
+    "entities/doc/src/schemas/doc.ts"
+  ],
+  "method": "Unmodified UI rendered through a loopback-only in-memory visual-regression harness. Two independently cropped views, not a native combined layout.",
+  "limitations": [
+    "Illustrative conversation and document. No real agent run, retrieval or tool execution.",
+    "No app data saved or published. No model called.",
+    "Source/editor tabs and chat content inside the captures are pixels, not live controls."
+  ],
+  "fixtures": {
+    "entities": [
+      {
+        "id": "pilot-decision",
+        "entityType": "note",
+        "frontmatter": {
+          "title": "Start with one team"
+        },
+        "body": "Run the first pilot with the research team. Use their existing project notes. Review what changed after four weeks.",
+        "updated": "2026-07-11T12:04:00.000Z",
+        "created": "2026-07-01T09:00:00.000Z",
+        "contentHash": "illustrative-work-0"
+      },
+      {
+        "id": "pilot-conversations",
+        "entityType": "note",
+        "frontmatter": {
+          "title": "Pilot conversations"
+        },
+        "body": "The same project decisions keep being explained again. People can find the documents, but not always the conversations behind them.",
+        "updated": "2026-07-11T12:04:00.000Z",
+        "created": "2026-07-01T09:00:00.000Z",
+        "contentHash": "illustrative-work-1"
+      },
+      {
+        "id": "useful-pilot",
+        "entityType": "note",
+        "frontmatter": {
+          "title": "What would make this useful?"
+        },
+        "body": "Test whether shared memory reduces repetition within one team before involving more people.",
+        "updated": "2026-07-11T12:04:00.000Z",
+        "created": "2026-07-01T09:00:00.000Z",
+        "contentHash": "illustrative-work-2"
+      },
+      {
+        "id": "pilot-brief",
+        "entityType": "doc",
+        "frontmatter": {
+          "title": "Pilot decision brief",
+          "section": "Team decisions",
+          "order": 1,
+          "sourcePath": "decisions/pilot-brief.md",
+          "description": "A decision to act on. Questions still to resolve.",
+          "slug": "pilot-decision-brief"
+        },
+        "body": "# Pilot decision brief\n\n## The decision\n\nStart with the research team, using existing project notes. Review after four weeks.\n\n## Why this approach\n\nThe problem is repeated explanations, not missing documents. Start small enough to learn what changes.\n\n## Still open\n\n- Who will lead the review?\n- How will we recognise less repetition?",
+        "updated": "2026-07-11T12:04:00.000Z",
+        "created": "2026-07-01T09:00:00.000Z",
+        "contentHash": "illustrative-work-3"
+      }
+    ],
+    "messages": [
+      {
+        "id": "work-q",
+        "role": "user",
+        "content": "Turn those notes into a decision brief. Keep unresolved questions open."
+      },
+      {
+        "id": "work-a",
+        "role": "assistant",
+        "content": "I’ve drafted the brief. The decision is recorded; two questions still need the team’s input.",
+        "cards": [
+          {
+            "kind": "attachment",
+            "id": "brief-artifact",
+            "title": "Pilot decision brief",
+            "attachment": {
+              "mediaType": "text/markdown",
+              "url": "/studio/entities/doc/pilot-brief",
+              "previewUrl": "/studio/entities/doc/pilot-brief",
+              "filename": "pilot-brief.md",
+              "source": {
+                "entityType": "doc",
+                "entityId": "pilot-brief"
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "images": [
+    {
+      "file": "images/work-action-desktop-dark.png",
+      "sha256": "458ed184dbc35a198ee570dcbc53f07a2d1487769a6f2bfd8112bee0b47f247a"
+    },
+    {
+      "file": "images/work-action-mobile-light.png",
+      "sha256": "675bb3a725ba536aafebc29a2d78cd7842c8173ffa0af1a2be439089445355a8"
+    },
+    {
+      "file": "images/work-result-desktop-light.png",
+      "sha256": "a8a004896139f9703db57463876a1f1756e4f45cc9644ba6ce69a9b4d02f09a4"
+    },
+    {
+      "file": "images/work-action-desktop-light.png",
+      "sha256": "2064c65cbf66ea9e4bf76f021717de33300a60d266becfd945d45e1d56bcc991"
+    },
+    {
+      "file": "images/work-action-mobile-dark.png",
+      "sha256": "059e63bfc8348c997eddb45d67b2f9b76ce15699d812457eea78e3eda9e3d917"
+    },
+    {
+      "file": "images/work-result-mobile-dark.png",
+      "sha256": "ed2aa26ddf68ca063c7dba1114696834c9900fde1846cd4754fece23477b08aa"
+    },
+    {
+      "file": "images/work-result-mobile-light.png",
+      "sha256": "9904c455ba68215ca7ba6c725ea10521d1fdcae68822dd8ecf4553194b25421e"
+    },
+    {
+      "file": "images/work-result-desktop-dark.png",
+      "sha256": "3918a631f852b60b12fb1b84b6939ec1cc4743321896a918022a4ce6867e0595"
+    }
+  ]
+}

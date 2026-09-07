@@ -12,6 +12,7 @@ import type {
   ServiceDefinitionInput,
   ServiceSchemaMap,
   ServiceViewSchemaMap,
+  ServiceTemplateShapeMap,
 } from "../service/service-definition-contract";
 
 export { defineAccountSettings } from "../operator/account-settings-definition-contract";
@@ -66,6 +67,7 @@ export type {
   WorkspaceActionResultFieldMap,
 } from "../operator/operator-view-contract";
 export { defineJob, defineTool } from "../service/service-definition-contract";
+export { contentGenerationResultSchema } from "@brains/content-service";
 // A tool that *is* the conversation reaches the brain and may answer with
 // what the brain asked back. Named consumer: @brains/mcp.
 export type {
@@ -85,6 +87,14 @@ export type {
   ServiceEntityExtension,
   ServiceInteractionDeclaration,
   ServiceEvalHandler,
+  ServiceContentGeneration,
+  ServiceContentGenerationContext,
+  ServiceContentGenerationItem,
+  ServiceContentGenerationResult,
+  ServiceContentGenerationSkipReason,
+  ServiceContentGenerationTarget,
+  ServiceContentGenerationTargetInput,
+  ServiceEntityIdPath,
   ServiceInputSchema,
   ServiceJobBinding,
   ServiceJobDefinition,
@@ -127,6 +137,7 @@ export type {
   ServiceTemplateDefinition,
   ServiceTemplateFormatter,
   ServiceTemplateReads,
+  ServiceTemplateGenerationDefinition,
   ServiceToolDefinition,
   ServiceViewDefinition,
 } from "../service/service-definition-contract";
@@ -166,6 +177,7 @@ function createServicePackage<
   TTemplateSchemas extends ServiceSchemaMap,
   TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TTemplateDefinitions extends ServiceTemplateShapeMap,
 >(
   definition: NormalizedServiceDefinitionInput<
     TConfigSchema,
@@ -173,7 +185,8 @@ function createServicePackage<
     TPromptSchemas,
     TTemplateSchemas,
     TViewSchemas,
-    TAccountSettings
+    TAccountSettings,
+    TTemplateDefinitions
   >,
 ): ServicePackageDefinition<TConfigSchema> {
   return createPluginPackageDefinition({
@@ -218,6 +231,7 @@ export function defineServicePlugin<
   TViewSchemas extends ServiceViewSchemaMap = Record<never, never>,
   TAccountSettings extends AnyAccountSettingsDefinition =
     AnyAccountSettingsDefinition,
+  TTemplateDefinitions extends ServiceTemplateShapeMap = Record<never, never>,
 >(
   definition: ServiceDefinitionInput<
     TConfigSchema,
@@ -225,7 +239,8 @@ export function defineServicePlugin<
     TPromptSchemas,
     TTemplateSchemas,
     TViewSchemas,
-    TAccountSettings
+    TAccountSettings,
+    TTemplateDefinitions
   >,
 ): ServicePackageDefinition<TConfigSchema>;
 export function defineServicePlugin<
@@ -235,6 +250,7 @@ export function defineServicePlugin<
   TTemplateSchemas extends ServiceSchemaMap = Record<never, never>,
   TViewSchemas extends ServiceViewSchemaMap = Record<never, never>,
   TAccountSettings extends undefined = undefined,
+  TTemplateDefinitions extends ServiceTemplateShapeMap = Record<never, never>,
 >(
   definition: ServiceDefinitionInput<
     TConfigSchema,
@@ -242,7 +258,8 @@ export function defineServicePlugin<
     TPromptSchemas,
     TTemplateSchemas,
     TViewSchemas,
-    TAccountSettings
+    TAccountSettings,
+    TTemplateDefinitions
   >,
 ): ServicePackageDefinition<TConfigSchema>;
 export function defineServicePlugin<
@@ -251,6 +268,7 @@ export function defineServicePlugin<
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
   TViewSchemas extends ServiceViewSchemaMap,
+  TTemplateDefinitions extends ServiceTemplateShapeMap,
 >(
   definition:
     | ServiceDefinitionInput<
@@ -259,7 +277,8 @@ export function defineServicePlugin<
         TPromptSchemas,
         TTemplateSchemas,
         TViewSchemas,
-        AnyAccountSettingsDefinition
+        AnyAccountSettingsDefinition,
+        TTemplateDefinitions
       >
     | ServiceDefinitionInput<
         TConfigSchema,
@@ -267,7 +286,8 @@ export function defineServicePlugin<
         TPromptSchemas,
         TTemplateSchemas,
         TViewSchemas,
-        undefined
+        undefined,
+        TTemplateDefinitions
       >,
 ): ServicePackageDefinition<TConfigSchema> {
   // Both plugins scope to `${packageName}:${id}`, so a service sharing an
@@ -288,7 +308,8 @@ export function defineServicePlugin<
       TPromptSchemas,
       TTemplateSchemas,
       TViewSchemas,
-      AnyAccountSettingsDefinition
+      AnyAccountSettingsDefinition,
+      TTemplateDefinitions
     > = { ...definition, accountSettings: definition.accountSettings };
     return createServicePackage(normalized);
   }
@@ -298,7 +319,8 @@ export function defineServicePlugin<
     TPromptSchemas,
     TTemplateSchemas,
     TViewSchemas,
-    undefined
+    undefined,
+    TTemplateDefinitions
   > = { ...definition, accountSettings: undefined };
   return createServicePackage(normalized);
 }

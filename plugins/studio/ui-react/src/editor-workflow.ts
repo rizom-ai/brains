@@ -1,4 +1,5 @@
-import type { EntityDetail, FieldDescriptor } from "./api";
+import type { EntityIdPath } from "@brains/plugins";
+import type { EntityDetail, FieldDescriptor, ValidationIssue } from "./api";
 import type { EditorDocument } from "./editor-document";
 
 export type SaveState =
@@ -7,12 +8,20 @@ export type SaveState =
   /** noop: the entity service skipped a byte-identical write. */
   | { kind: "saved"; noop?: boolean }
   | { kind: "conflict"; message: string }
-  | { kind: "error"; message: string };
+  | { kind: "error"; message: string; issues?: ValidationIssue[] };
 
 export type EditorMode =
   | { kind: "browse" }
   | { kind: "edit"; entity: EntityDetail }
-  | { kind: "create" };
+  | { kind: "create"; prefix?: EntityIdPath | null; segment?: string };
+
+/** Studio submits segments; only the server encodes stored identity. */
+export function creationIdPath(mode: EditorMode): EntityIdPath | null {
+  if (mode.kind !== "create" || mode.segment === undefined) return null;
+  return mode.prefix
+    ? [mode.prefix[0], ...mode.prefix.slice(1), mode.segment]
+    : [mode.segment];
+}
 
 export interface EditorWorkflowState {
   mode: EditorMode;
@@ -29,7 +38,9 @@ export type EditorWorkflowAction =
       type: "creationStarted";
       draft: Record<string, unknown>;
       body?: string | undefined;
+      prefix?: EntityIdPath | null;
     }
+  | { type: "segmentChanged"; segment: string }
   | { type: "browseRequested" }
   | { type: "fieldChanged"; descriptor: FieldDescriptor; raw: unknown }
   | { type: "fieldAssistApplied"; field: string; suggestion: string | string[] }
@@ -104,12 +115,26 @@ export function editorWorkflowReducer(
     case "creationStarted":
       if (state.mode.kind !== "browse") return state;
       return {
-        mode: { kind: "create" },
+        mode: {
+          kind: "create",
+          ...(action.prefix !== undefined && {
+            prefix: action.prefix,
+            segment: "",
+          }),
+        },
         draft: action.draft,
         body: action.body ?? "",
         save: { kind: "idle" },
         deleteOpen: false,
       };
+    case "segmentChanged":
+      return state.mode.kind === "create"
+        ? {
+            ...state,
+            mode: { ...state.mode, segment: action.segment },
+            save: { kind: "idle" },
+          }
+        : state;
     case "browseRequested":
       return initialEditorWorkflowState;
     case "fieldChanged":

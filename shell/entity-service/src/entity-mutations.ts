@@ -40,43 +40,15 @@ import { entities } from "./schema/entities";
 import { embeddings } from "./schema/embeddings";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
 import { and, eq, sql } from "drizzle-orm";
-
-const jsonObjectSchema = z.custom<object>(
-  (value) =>
-    typeof value === "object" && value !== null && !Array.isArray(value),
-);
-
-function toStableJsonValue(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) =>
-      item === undefined ? null : toStableJsonValue(item),
-    );
-  }
-
-  const parsedObject = jsonObjectSchema.safeParse(value);
-  if (parsedObject.success) {
-    return Object.fromEntries(
-      Object.entries(parsedObject.data)
-        .filter(([, item]) => item !== undefined)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, item]) => [key, toStableJsonValue(item)]),
-    );
-  }
-
-  return value;
-}
-
-function stableJson(value: unknown): string {
-  return JSON.stringify(toStableJsonValue(value));
-}
-
-function entityRevision(input: {
-  contentHash: string;
-  metadata: unknown;
-  visibility: string;
-}): string {
-  return computeContentHash(stableJson(input));
-}
+import {
+  entityWriteConditionSchema,
+  EntityWriteConflictError,
+} from "./entity-write-contracts";
+import {
+  assertEntityWriteCondition,
+  type EntityWritePrecondition,
+} from "./entity-write-state";
+import { entityRevision, stableJson } from "./entity-revision";
 
 const failedEmbeddingJobDataSchema = z.object({
   id: z.string().min(1),
@@ -209,6 +181,27 @@ export class EntityMutations {
     request: CreateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
     const { entity, options, preparedAsset } = request;
+    options?.signal?.throwIfAborted();
+    const condition =
+      options?.conditionalWrite &&
+      entityWriteConditionSchema.parse(options.conditionalWrite);
+    if (
+      condition &&
+      (condition.expectedRevision !== null ||
+        options.deduplicateId ||
+        !entity.id)
+    ) {
+      throw new Error(
+        "Conditional creation requires an explicit ID, an absent precondition, and no deduplication",
+      );
+    }
+    const precondition: EntityWritePrecondition | undefined = condition
+      ? {
+          ...condition,
+          entityType: entity.entityType,
+          entityId: entity.id ?? "",
+        }
+      : undefined;
     this.logger.debug(
       `Creating entity asynchronously of type: ${entity["entityType"]}`,
     );
@@ -235,6 +228,7 @@ export class EntityMutations {
     if (persistValidator) {
       await persistValidator(validatedEntity, { operation: "create" });
     }
+    options?.signal?.throwIfAborted();
 
     // Prepare entity for storage
     const { markdown, metadata } =
@@ -281,12 +275,27 @@ export class EntityMutations {
         markedAt: this.projectionNow(),
       },
       async (transaction) => {
+        if (precondition)
+          await assertEntityWriteCondition(
+            transaction,
+            precondition,
+            validatedEntity,
+          );
         await this.bindAssetContent(
           transaction,
           validatedEntity.entityType,
           markdown,
           stagedAsset,
         );
+        await options?.beforeWrite?.({
+          ...validatedEntity,
+          id: finalId,
+          content: markdown,
+          contentHash,
+          metadata,
+        });
+        options?.signal?.throwIfAborted();
+        // Once the entity write starts, settle the complete atomic mutation.
         await transaction.insert(entities).values({
           id: finalId,
           entityType: validatedEntity.entityType,
@@ -352,6 +361,22 @@ export class EntityMutations {
     request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
     const { entity, options, preparedAsset } = request;
+    options?.signal?.throwIfAborted();
+    const condition =
+      options?.conditionalWrite &&
+      entityWriteConditionSchema.parse(options.conditionalWrite);
+    if (
+      condition &&
+      (condition.expectedRevision === null ||
+        options.expectedContentHash !== undefined)
+    ) {
+      throw new Error(
+        "Conditional replacement requires a revision and cannot combine preconditions",
+      );
+    }
+    const precondition: EntityWritePrecondition | undefined = condition
+      ? { ...condition, entityType: entity.entityType, entityId: entity.id }
+      : undefined;
     this.logger.debug(
       `Updating entity asynchronously: ${entity.entityType} with ID ${entity.id}`,
     );
@@ -374,6 +399,7 @@ export class EntityMutations {
     if (persistValidator) {
       await persistValidator(validatedEntity, { operation: "update" });
     }
+    options?.signal?.throwIfAborted();
 
     const { markdown, metadata } =
       this.entitySerializer.prepareEntityForStorage(
@@ -405,6 +431,11 @@ export class EntityMutations {
     const existingEntity = existing.at(0);
 
     if (!existingEntity) {
+      if (precondition)
+        throw new EntityWriteConflictError(
+          precondition.entityType,
+          precondition.entityId,
+        );
       throw new Error(
         `Entity not found: ${validatedEntity.entityType}:${validatedEntity.id}`,
       );
@@ -433,6 +464,7 @@ export class EntityMutations {
     );
 
     if (
+      !precondition &&
       existingEntity.contentHash === contentHash &&
       existingEntity.visibility === validatedEntity.visibility &&
       stableJson(existingEntity.metadata) === stableJson(metadata)
@@ -443,12 +475,14 @@ export class EntityMutations {
           id: validatedEntity.id,
         },
         async (transaction) => {
+          options?.signal?.throwIfAborted();
           await this.bindAssetContent(
             transaction,
             validatedEntity.entityType,
             markdown,
             stagedAsset,
           );
+          options?.signal?.throwIfAborted();
           await this.pruneFtsIndexIfExcluded(
             transaction,
             validatedEntity.id,
@@ -501,12 +535,26 @@ export class EntityMutations {
           markedAt: this.projectionNow(),
         },
         async (transaction) => {
+          if (precondition)
+            await assertEntityWriteCondition(
+              transaction,
+              precondition,
+              validatedEntity,
+            );
           await this.bindAssetContent(
             transaction,
             validatedEntity.entityType,
             markdown,
             stagedAsset,
           );
+          await options?.beforeWrite?.({
+            ...validatedEntity,
+            content: markdown,
+            contentHash,
+            metadata,
+          });
+          options?.signal?.throwIfAborted();
+          // Cancellation after this boundary must not split the entity from its journals.
           const updateResult = await transaction
             .update(entities)
             .set({
@@ -526,9 +574,14 @@ export class EntityMutations {
               ),
             );
           if (
-            options?.expectedContentHash !== undefined &&
+            (condition || options?.expectedContentHash !== undefined) &&
             Number(updateResult.rowsAffected) === 0
           ) {
+            if (precondition)
+              throw new EntityWriteConflictError(
+                precondition.entityType,
+                precondition.entityId,
+              );
             throw new StaleEntityUpdateError();
           }
           await this.syncFtsIndex(

@@ -62,7 +62,6 @@ export const administrationQuerySchema: z.ZodType<{
 interface AdministrationData {
   readonly tab: "people" | "invitations" | "audit";
   readonly attention: number;
-  readonly headBlocks: readonly AdminTabBlock[];
   readonly peopleBlocks: readonly AdminTabBlock[];
   readonly invitationBlocks: readonly AdminTabBlock[];
   readonly auditBlocks: readonly AdminTabBlock[];
@@ -117,7 +116,6 @@ export const administrationWorkspace: StudioWorkspaceDefinition<
       "Manage local people, invitation delivery, external provenance, and security history.",
     ...(data.primaryAction ? { primaryAction: data.primaryAction } : {}),
     blocks: [
-      ...data.headBlocks,
       {
         type: "tabs",
         id: "administration-tabs",

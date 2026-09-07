@@ -1,0 +1,1924 @@
+<!doctype html>
+<html lang="en" data-climate="instrument">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studio Hierarchical Entity Navigation — Design Pass</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Palette sampled from the committed console captures so the mockup
+         reads as the product rather than as an approximation of it. */
+      :root {
+        --display: "Fraunces", Georgia, "Times New Roman", serif;
+        --ui: "IBM Plex Sans", -apple-system, system-ui, sans-serif;
+        --mono: "JetBrains Mono", ui-monospace, monospace;
+        --deck: #24201b;
+        --deck-deep: #151310;
+        --deck-ink: #f6efe3;
+        --deck-dim: rgba(246, 239, 227, 0.58);
+        --deck-rule: rgba(246, 239, 227, 0.15);
+        --touch: 44px;
+      }
+
+      [data-climate="instrument"] {
+        --bg: #15122c;
+        --frame: #15122c;
+        --card: #181433;
+        --card-soft: #1c1739;
+        --rail: #1c1739;
+        --leaf: #181433;
+        --ink: #ffffff;
+        --dim: rgba(255, 255, 255, 0.66);
+        --muted: rgba(255, 255, 255, 0.45);
+        --faint: rgba(255, 255, 255, 0.24);
+        --rule: rgba(255, 255, 255, 0.09);
+        --rule-strong: rgba(255, 255, 255, 0.16);
+        --accent: #fe8b3e;
+        --accent-soft: rgba(254, 139, 62, 0.14);
+        --accent-line: rgba(254, 139, 62, 0.48);
+        --on-accent: #1a1024;
+        --ok: #4ade80;
+        --err: #ff7a6b;
+        color-scheme: dark;
+      }
+
+      [data-climate="paper"] {
+        --bg: #faf4e6;
+        --frame: #faf4e6;
+        --card: #f6efdd;
+        --card-soft: #f0e8d4;
+        --rail: #ebe2cb;
+        --leaf: #f0e8d4;
+        --ink: #393446;
+        --dim: rgba(57, 52, 70, 0.72);
+        --muted: rgba(57, 52, 70, 0.5);
+        --faint: rgba(57, 52, 70, 0.26);
+        --rule: rgba(57, 52, 70, 0.12);
+        --rule-strong: rgba(57, 52, 70, 0.2);
+        --accent: #b8420d;
+        --accent-soft: rgba(184, 66, 13, 0.1);
+        --accent-line: rgba(184, 66, 13, 0.42);
+        --on-accent: #f9f3e5;
+        --ok: #2f7351;
+        --err: #a8321f;
+        color-scheme: light;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      /* Author display rules below would otherwise beat the UA [hidden] rule. */
+      [hidden] {
+        display: none !important;
+      }
+
+      html {
+        min-width: 320px;
+        min-height: 100%;
+        background: var(--deck-deep);
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        color: var(--deck-ink);
+        font-family: var(--ui);
+        background:
+          radial-gradient(
+            circle at 17% 0%,
+            rgba(232, 93, 41, 0.13),
+            transparent 32rem
+          ),
+          linear-gradient(145deg, var(--deck), var(--deck-deep) 68%);
+      }
+
+      button {
+        color: inherit;
+        font: inherit;
+      }
+
+      /* ---- page scaffolding ------------------------------------------- */
+
+      .presentation {
+        width: min(1512px, 100%);
+        margin: 0 auto;
+        padding: 54px 32px 96px;
+      }
+
+      .presentation-head {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 28px;
+        padding-bottom: 26px;
+        border-bottom: 1px solid var(--deck-rule);
+      }
+
+      .presentation-head > div:first-child {
+        max-width: 62ch;
+      }
+
+      .eyebrow {
+        margin: 0 0 12px;
+        color: rgba(255, 168, 112, 0.9);
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+      }
+
+      .presentation-head h1 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: clamp(30px, 3.4vw, 44px);
+        font-weight: 500;
+        letter-spacing: -0.02em;
+        line-height: 1.08;
+      }
+
+      .lede {
+        margin: 16px 0 0;
+        max-width: 60ch;
+        color: var(--deck-dim);
+        font-size: 15px;
+        line-height: 1.6;
+      }
+
+      .controls {
+        display: grid;
+        gap: 10px;
+        justify-items: end;
+      }
+
+      .control-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 5px;
+        border: 1px solid var(--deck-rule);
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.22);
+      }
+
+      .control-group button {
+        min-height: 32px;
+        padding: 0 13px;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--deck-dim);
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        cursor: pointer;
+      }
+
+      .control-group button[aria-pressed="true"] {
+        background: rgba(246, 239, 227, 0.1);
+        color: var(--deck-ink);
+      }
+
+      .stage-wrap {
+        margin-top: 34px;
+      }
+
+      .stage-label {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 12px;
+        margin: 0 0 14px;
+        color: var(--deck-dim);
+        font-family: var(--mono);
+        font-size: 11px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .stage-label b {
+        color: var(--deck-ink);
+        font-weight: 500;
+      }
+
+      .stage {
+        display: flex;
+        justify-content: center;
+        padding: 26px;
+        border: 1px solid var(--deck-rule);
+        border-radius: 18px;
+        background: rgba(0, 0, 0, 0.26);
+      }
+
+      /* ---- the studio frame ------------------------------------------- */
+
+      .app {
+        width: 1440px;
+        max-width: 100%;
+        height: 916px;
+        display: grid;
+        grid-template-rows: 56px minmax(0, 1fr);
+        overflow: hidden;
+        border: 1px solid var(--rule-strong);
+        border-radius: 10px;
+        background: var(--bg);
+        color: var(--ink);
+        box-shadow: 0 40px 110px rgba(0, 0, 0, 0.5);
+      }
+
+      [data-viewport="phone"] .app {
+        width: 390px;
+        height: 844px;
+        grid-template-rows: 56px minmax(0, 1fr) auto;
+        border-radius: 26px;
+      }
+
+      /* chrome */
+
+      .chrome {
+        display: grid;
+        grid-template-columns: auto auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 18px;
+        padding: 0 18px;
+        border-bottom: 1px solid var(--rule);
+        background: var(--frame);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: inherit;
+        text-decoration: none;
+        font-family: var(--mono);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      .mark {
+        display: grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        border: 1px solid var(--accent-line);
+        border-radius: 50%;
+        color: var(--accent);
+        font-size: 10px;
+      }
+
+      .brand .slash {
+        color: var(--faint);
+      }
+
+      .location {
+        padding-left: 18px;
+        border-left: 1px solid var(--rule);
+        color: var(--dim);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .chrome-tools {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        justify-self: end;
+      }
+
+      .command-chip {
+        display: flex;
+        align-items: center;
+        gap: 40px;
+        min-height: 32px;
+        padding: 0 9px 0 12px;
+        border: 1px solid var(--rule-strong);
+        border-radius: 7px;
+        background: var(--card);
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .command-chip kbd {
+        padding: 1px 5px;
+        border: 1px solid var(--rule);
+        border-radius: 4px;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 9px;
+      }
+
+      .chip-round {
+        display: grid;
+        place-items: center;
+        width: 32px;
+        height: 32px;
+        border: 1px solid var(--rule-strong);
+        border-radius: 50%;
+        background: transparent;
+        color: var(--dim);
+        font-family: var(--mono);
+        font-size: 11px;
+        cursor: pointer;
+      }
+
+      /* body + rails */
+
+      .body {
+        display: grid;
+        grid-template-columns: 124px 219px minmax(0, 1fr);
+        min-height: 0;
+      }
+
+      .area-rail {
+        display: flex;
+        flex-direction: column;
+        padding: 14px 11px;
+        border-right: 1px solid var(--rule);
+        background: var(--rail);
+      }
+
+      .area-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 9px;
+        font-weight: 600;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+      }
+
+      .area-title button {
+        display: grid;
+        place-items: center;
+        width: 26px;
+        height: 26px;
+        border: 1px solid var(--rule-strong);
+        border-radius: 7px;
+        background: transparent;
+        color: var(--muted);
+        font-size: 11px;
+        cursor: pointer;
+      }
+
+      .area-link {
+        display: grid;
+        grid-template-columns: 22px minmax(0, 1fr);
+        align-items: center;
+        gap: 9px;
+        width: 100%;
+        min-height: 34px;
+        padding: 0 8px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--dim);
+        font-size: 12.5px;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .area-link .ord {
+        color: var(--faint);
+        font-family: var(--mono);
+        font-size: 9px;
+        letter-spacing: 0.06em;
+      }
+
+      .area-link[aria-current="true"] {
+        border-color: var(--rule-strong);
+        background: var(--card);
+        color: var(--ink);
+      }
+
+      .area-link[aria-current="true"] .ord {
+        color: var(--accent);
+      }
+
+      .area-link .count {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 10px;
+      }
+
+      .area-foot {
+        margin-top: auto;
+      }
+
+      .leaf-rail {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        border-right: 1px solid var(--rule);
+        background: var(--leaf);
+      }
+
+      .leaf-head {
+        padding: 26px 20px 18px;
+      }
+
+      .leaf-head h2 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: 25px;
+        font-weight: 500;
+        letter-spacing: -0.01em;
+      }
+
+      .leaf-group {
+        padding: 0 0 14px;
+      }
+
+      .leaf-label {
+        padding: 0 20px 8px;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 8px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .leaf-link {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        width: 100%;
+        min-height: 37px;
+        padding: 0 20px;
+        border: 0;
+        border-left: 2px solid transparent;
+        background: transparent;
+        color: var(--dim);
+        font-size: 13px;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .leaf-link[aria-current="page"] {
+        border-left-color: var(--accent);
+        background: var(--card-soft);
+        color: var(--ink);
+        font-weight: 500;
+      }
+
+      .leaf-link .count {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 11px;
+      }
+
+      /* ---- collection pane -------------------------------------------- */
+
+      .pane {
+        min-width: 0;
+        min-height: 0;
+        padding: 26px 30px 34px;
+        overflow-y: auto;
+        background: var(--bg);
+      }
+
+      .page-head {
+        display: grid;
+        gap: 8px;
+        padding-bottom: 18px;
+        border-bottom: 2px solid var(--ink);
+      }
+
+      .page-head-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 12px;
+      }
+
+      .page-head h1 {
+        margin: 0;
+        font-family: var(--display);
+        font-size: 36px;
+        font-weight: 600;
+        letter-spacing: -0.025em;
+        line-height: 1.1;
+      }
+
+      .page-meta {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        color: var(--muted);
+        font-size: 11.5px;
+      }
+
+      .page-head-action {
+        margin-left: auto;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 36px;
+        padding: 8px 14px;
+        border: 1px solid var(--accent);
+        border-radius: 7px;
+        background: var(--accent);
+        color: var(--on-accent);
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .btn-quiet {
+        border-color: var(--rule-strong);
+        background: var(--card-soft);
+        color: var(--ink);
+      }
+
+      .btn-ghost {
+        border-color: transparent;
+        background: transparent;
+        color: var(--dim);
+      }
+
+      .btn[disabled] {
+        border-color: var(--rule-strong);
+        background: var(--card);
+        color: var(--muted);
+        cursor: not-allowed;
+      }
+
+      /* breadcrumb — the folder trail, directly below the head rule */
+
+      .trail {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin: 16px 0 0;
+        padding: 0;
+        list-style: none;
+        overflow-x: auto;
+        scrollbar-width: none;
+        font-family: var(--mono);
+        font-size: 11.5px;
+      }
+
+      .trail::-webkit-scrollbar {
+        display: none;
+      }
+
+      .trail li {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+      }
+
+      .trail li + li::before {
+        color: var(--faint);
+        content: "/";
+      }
+
+      .trail button {
+        min-height: 26px;
+        padding: 0 6px;
+        border: 0;
+        border-radius: 5px;
+        background: transparent;
+        color: var(--accent);
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .trail button:hover {
+        background: var(--accent-soft);
+      }
+
+      .trail [aria-current="page"] {
+        padding: 0 6px;
+        color: var(--dim);
+      }
+
+      /* collection query controls — the shipped library grammar */
+
+      .query {
+        margin: 20px 0 0;
+      }
+
+      .query label {
+        display: block;
+        margin-bottom: 7px;
+        color: var(--dim);
+        font-size: 12px;
+      }
+
+      .query-row {
+        display: flex;
+        gap: 10px;
+        align-items: stretch;
+      }
+
+      .query input {
+        flex: 1;
+        min-width: 0;
+        min-height: 40px;
+        padding: 8px 11px;
+        border: 1px solid var(--rule-strong);
+        border-radius: 7px;
+        background: var(--card);
+        color: var(--ink);
+        font-family: var(--ui);
+        font-size: 13px;
+      }
+
+      .query input::placeholder {
+        color: var(--muted);
+      }
+
+      .scope {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-top: 12px;
+        color: var(--dim);
+        font-size: 12px;
+      }
+
+      .scope span {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .scope i {
+        display: grid;
+        place-items: center;
+        width: 13px;
+        height: 13px;
+        border: 1px solid var(--rule-strong);
+        border-radius: 50%;
+        font-style: normal;
+      }
+
+      .scope span[data-on="true"] i {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      .scope span[data-on="true"] i::before {
+        content: "●";
+        font-size: 7px;
+      }
+
+      .disclosure {
+        margin-top: 12px;
+        color: var(--dim);
+        font-family: var(--ui);
+        font-size: 12px;
+      }
+
+      .disclosure::before {
+        margin-right: 6px;
+        color: var(--muted);
+        content: "▸";
+      }
+
+      /* list sections: folders complete, entries paginated */
+
+      .list-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 28px 0 0;
+        padding-bottom: 9px;
+        border-bottom: 1px solid var(--rule);
+      }
+
+      .list-head h2 {
+        margin: 0;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 9px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .list-head .state {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 11px;
+      }
+
+      .pager {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+
+      .pager .range {
+        margin-right: 8px;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 11px;
+        white-space: nowrap;
+      }
+
+      .pager button {
+        min-height: 30px;
+        padding: 0 10px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--ink);
+        font-size: 12.5px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .pager button[disabled] {
+        color: var(--faint);
+        cursor: not-allowed;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 36px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 14px;
+        width: 100%;
+        padding: 15px 0;
+        border: 0;
+        border-bottom: 1px solid var(--rule);
+        background: transparent;
+        color: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .row:hover {
+        background: var(--card);
+      }
+
+      .row .ord {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 11px;
+      }
+
+      .row .title {
+        min-width: 0;
+        font-family: var(--display);
+        font-size: 17.5px;
+        font-weight: 520;
+        letter-spacing: -0.005em;
+      }
+
+      .row .sub {
+        display: block;
+        margin-top: 2px;
+        color: var(--muted);
+        font-family: var(--ui);
+        font-size: 12.5px;
+        font-weight: 400;
+        letter-spacing: 0;
+      }
+
+      .row .meta {
+        color: var(--dim);
+        font-family: var(--ui);
+        font-size: 12.5px;
+        white-space: nowrap;
+      }
+
+      /* a folder row: same grid, different marker and right-hand meta */
+
+      .row[data-kind="folder"] .ord {
+        color: var(--accent);
+        font-size: 13px;
+      }
+
+      .row[data-kind="folder"] .title {
+        font-family: var(--ui);
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: 0;
+      }
+
+      .row[data-kind="folder"] .meta {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 11px;
+      }
+
+      .row[data-kind="folder"] .meta::after {
+        color: var(--faint);
+        content: "›";
+        font-family: var(--ui);
+        font-size: 15px;
+      }
+
+      .empty {
+        margin: 26px 0 0;
+        padding: 30px 0;
+        color: var(--dim);
+        font-size: 13px;
+        line-height: 1.6;
+      }
+
+      .empty b {
+        display: block;
+        margin-bottom: 6px;
+        color: var(--ink);
+        font-size: 14px;
+      }
+
+      .empty .actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      /* ---- create-in-folder document ---------------------------------- */
+
+      .doc {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        min-height: 0;
+        background: var(--bg);
+      }
+
+      .doc-head {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+        gap: 22px;
+        padding: 25px 28px 17px;
+        border-bottom: 1px solid var(--rule-strong);
+        background: var(--frame);
+      }
+
+      .doc-head .kicker {
+        color: var(--accent);
+        font-family: var(--mono);
+        font-size: 8px;
+        font-weight: 600;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+      }
+
+      .doc-head h1 {
+        margin: 5px 0 0;
+        font-family: var(--display);
+        font-size: 38px;
+        font-weight: 500;
+        letter-spacing: -0.025em;
+        line-height: 1;
+      }
+
+      .doc-body {
+        display: grid;
+        grid-template-columns: 316px minmax(0, 1fr);
+        min-height: 0;
+      }
+
+      .colophon {
+        min-height: 0;
+        padding: 26px 26px 60px;
+        border-right: 1px solid var(--rule-strong);
+        background: var(--card-soft);
+        overflow-y: auto;
+      }
+
+      .properties-label {
+        margin: 0 0 18px;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 9px;
+        font-weight: 500;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .field {
+        padding: 14px 0 16px;
+        border-top: 1px solid var(--rule-strong);
+      }
+
+      .field-label {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        margin-bottom: 7px;
+        color: var(--dim);
+        font-size: 12px;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+      }
+
+      .field-label em {
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 10px;
+        font-style: normal;
+      }
+
+      .field input {
+        width: 100%;
+        min-height: 40px;
+        padding: 8px 11px;
+        border: 1px solid var(--rule-strong);
+        border-radius: 7px;
+        background: var(--card);
+        color: var(--ink);
+        font-family: var(--ui);
+        font-size: 16px;
+      }
+
+      .field input[data-mono="true"] {
+        font-family: var(--mono);
+        font-size: 13px;
+      }
+
+      .field input[data-invalid="true"] {
+        border-color: var(--err);
+        box-shadow: 0 0 0 3px rgba(255, 122, 107, 0.14);
+      }
+
+      .field .hint {
+        margin: 7px 0 0;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 10px;
+        line-height: 1.5;
+      }
+
+      .field .error {
+        display: flex;
+        gap: 6px;
+        margin: 7px 0 0;
+        color: var(--err);
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .destination {
+        margin: 0 0 18px;
+        padding: 13px 14px;
+        border: 1px solid var(--rule-strong);
+        border-radius: 8px;
+        background: var(--card);
+      }
+
+      .destination h3 {
+        margin: 0 0 9px;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 8px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .destination dl {
+        display: grid;
+        gap: 7px;
+        margin: 0;
+        font-family: var(--mono);
+        font-size: 11px;
+      }
+
+      .destination dl > div {
+        display: grid;
+        grid-template-columns: 58px minmax(0, 1fr);
+        gap: 10px;
+      }
+
+      .destination dt {
+        color: var(--muted);
+      }
+
+      .destination dd {
+        margin: 0;
+        color: var(--dim);
+        overflow-wrap: anywhere;
+      }
+
+      .destination dd b {
+        color: var(--ink);
+        font-weight: 600;
+      }
+
+      .manuscript {
+        display: grid;
+        align-content: start;
+        gap: 14px;
+        padding: 30px 34px;
+        background: var(--card);
+      }
+
+      .manuscript .tabs {
+        display: flex;
+        gap: 22px;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .manuscript .tabs b {
+        color: var(--ink);
+        font-weight: 600;
+        border-bottom: 2px solid var(--accent);
+        padding-bottom: 5px;
+      }
+
+      .manuscript p {
+        margin: 0;
+        max-width: 62ch;
+        color: var(--muted);
+        font-family: var(--display);
+        font-size: 17px;
+        line-height: 1.6;
+      }
+
+      /* ---- phone ------------------------------------------------------- */
+
+      .phone-browse {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        color: var(--dim);
+        font-family: var(--mono);
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      [data-viewport="desktop"] .phone-only {
+        display: none !important;
+      }
+
+      [data-viewport="phone"] .desktop-only {
+        display: none !important;
+      }
+
+      [data-viewport="phone"] .body {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      /* One compact header: Browse, location, identity. The brand steps out. */
+      [data-viewport="phone"] .chrome {
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 12px;
+        padding: 0 16px;
+      }
+
+      [data-viewport="phone"] .brand {
+        display: none;
+      }
+
+      [data-viewport="phone"] .location {
+        padding-left: 12px;
+        font-size: 12px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      [data-viewport="phone"] .pane {
+        padding: 12px 16px 20px;
+      }
+
+      [data-viewport="phone"] .page-head h1 {
+        font-size: 29px;
+        letter-spacing: 0.015em;
+      }
+
+      [data-viewport="phone"] .row {
+        grid-template-columns: 24px minmax(0, 1fr) auto;
+        gap: 10px;
+        padding: 13px 0;
+      }
+
+      [data-viewport="phone"] .row .title {
+        font-size: 17px;
+      }
+
+      [data-viewport="phone"] .row .meta {
+        font-size: 11.5px;
+      }
+
+      [data-viewport="phone"] .query-row {
+        flex-direction: column;
+      }
+
+      [data-viewport="phone"] .doc-body {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      [data-viewport="phone"] .colophon {
+        border-right: 0;
+        padding: 18px 18px 88px;
+      }
+
+      [data-viewport="phone"] .manuscript {
+        display: none;
+      }
+
+      [data-viewport="phone"] .doc-head {
+        padding: 17px 16px 13px;
+      }
+
+      [data-viewport="phone"] .doc-head h1 {
+        font-size: 27px;
+      }
+
+      /* A shell row, not part of the scrolling pane, so it cannot scroll away. */
+      .action-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 16px calc(8px + env(safe-area-inset-bottom));
+        border-top: 1px solid var(--rule-strong);
+        background: var(--card-soft);
+      }
+
+      .action-bar .where {
+        min-width: 0;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 10px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .action-bar .btn {
+        min-height: var(--touch);
+      }
+
+      /* ---- notes ------------------------------------------------------- */
+
+      .notes {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+        gap: 18px;
+        margin-top: 44px;
+      }
+
+      .note-card {
+        padding: 22px 24px 24px;
+        border: 1px solid var(--deck-rule);
+        border-radius: 14px;
+        background: rgba(0, 0, 0, 0.24);
+      }
+
+      .note-card h3 {
+        margin: 0 0 10px;
+        font-family: var(--display);
+        font-size: 19px;
+        font-weight: 500;
+      }
+
+      .note-card p {
+        margin: 0 0 10px;
+        color: var(--deck-dim);
+        font-size: 13.5px;
+        line-height: 1.62;
+      }
+
+      .note-card p:last-child {
+        margin-bottom: 0;
+      }
+
+      .note-card code {
+        padding: 1px 5px;
+        border-radius: 4px;
+        background: rgba(246, 239, 227, 0.09);
+        font-family: var(--mono);
+        font-size: 12px;
+      }
+
+      .note-card ul {
+        margin: 0;
+        padding-left: 18px;
+        color: var(--deck-dim);
+        font-size: 13.5px;
+        line-height: 1.62;
+      }
+
+      @media (max-width: 900px) {
+        .presentation {
+          padding: 34px 16px 64px;
+        }
+
+        .stage {
+          padding: 12px;
+          border-radius: 12px;
+        }
+
+        .controls {
+          justify-items: start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="presentation">
+      <header class="presentation-head">
+        <div>
+          <p class="eyebrow">Studio · hierarchical entity navigation</p>
+          <h1>Folders are a reading of the identity, not a second model.</h1>
+          <p class="lede">
+            A structured entity ID path renders as a trail the operator can walk
+            and create into. Nothing new is stored: the folder list is derived
+            per request, entity doors keep their opaque stored ID, and a
+            collection without nested paths looks exactly as it does today.
+          </p>
+        </div>
+        <div class="controls" aria-label="Mockup controls">
+          <div class="control-group" data-control="state">
+            <button data-value="root" aria-pressed="true">Root</button>
+            <button data-value="nested" aria-pressed="false">Nested</button>
+            <button data-value="search" aria-pressed="false">Search</button>
+            <button data-value="empty" aria-pressed="false">Filtered</button>
+            <button data-value="create" aria-pressed="false">Create</button>
+            <button data-value="flat" aria-pressed="false">Flat type</button>
+          </div>
+          <div class="control-group" data-control="viewport">
+            <button data-value="desktop" aria-pressed="true">Desktop</button>
+            <button data-value="phone" aria-pressed="false">Phone</button>
+          </div>
+          <div class="control-group" data-control="climate">
+            <button data-value="instrument" aria-pressed="true">
+              Instrument
+            </button>
+            <button data-value="paper" aria-pressed="false">Paper</button>
+          </div>
+        </div>
+      </header>
+
+      <section class="stage-wrap">
+        <p class="stage-label" id="stageLabel">
+          <b>Collection root</b>
+          <span id="stageNote"></span>
+        </p>
+        <div class="stage" data-viewport="desktop" id="stage">
+          <div class="app" id="app">
+            <!-- ── chrome ─────────────────────────────────────────────── -->
+            <header class="chrome">
+              <a class="brand" href="#" aria-label="Studio home">
+                <span class="mark" aria-hidden="true">R</span>
+                <span>Rover Collective</span>
+                <span class="slash" aria-hidden="true">/</span>
+                <strong>Studio</strong>
+              </a>
+              <span class="phone-browse phone-only">
+                <span aria-hidden="true">≡</span> Browse
+              </span>
+              <span class="location desktop-only" id="chromeLocation">
+                Library · Book sections
+              </span>
+              <span class="location phone-only" id="chromeLocationPhone">
+                Book sections
+              </span>
+              <div class="chrome-tools">
+                <span class="command-chip desktop-only">
+                  Search or run a command…
+                  <kbd>⌘K</kbd>
+                </span>
+                <button class="chip-round desktop-only" type="button">◐</button>
+                <button class="chip-round" type="button">MR</button>
+              </div>
+            </header>
+
+            <!-- ── body ───────────────────────────────────────────────── -->
+            <div class="body">
+              <aside class="area-rail desktop-only">
+                <div class="area-title">
+                  <span>Studio</span>
+                  <button type="button" aria-label="Collapse navigation">
+                    ⇤
+                  </button>
+                </div>
+                <button class="area-link" type="button">
+                  <b class="ord">00</b><span>Overview</span>
+                </button>
+                <button class="area-link" type="button">
+                  <b class="ord">01</b><span>Chat</span>
+                </button>
+                <button class="area-link" type="button" aria-current="true">
+                  <b class="ord">02</b><span>Library</span>
+                </button>
+                <button class="area-link" type="button">
+                  <b class="ord">03</b><span>Work</span>
+                </button>
+                <button class="area-link" type="button">
+                  <b class="ord">04</b><span>Admin</span>
+                </button>
+                <button class="area-link" type="button">
+                  <b class="ord">05</b><span>System</span>
+                </button>
+                <div class="area-foot">
+                  <button class="area-link" type="button">
+                    <b class="ord">⌘</b><span>Commands</span>
+                  </button>
+                </div>
+              </aside>
+
+              <aside class="leaf-rail desktop-only">
+                <div class="leaf-head"><h2>Library</h2></div>
+                <div class="leaf-group">
+                  <div class="leaf-label">Content</div>
+                  <div id="leafList"></div>
+                </div>
+              </aside>
+
+              <!-- collection pane -->
+              <main class="pane" id="pane" hidden>
+                <div class="page-head">
+                  <div class="page-head-row">
+                    <h1 id="collectionTitle">Book sections</h1>
+                    <span class="page-meta" id="collectionMeta"></span>
+                    <span class="page-head-action desktop-only">
+                      <button class="btn" type="button" id="newAction">
+                        New book section
+                      </button>
+                    </span>
+                  </div>
+                </div>
+
+                <ol class="trail" id="trail" aria-label="Folder trail"></ol>
+
+                <div class="query">
+                  <label for="collectionSearch" id="searchLabel">
+                    Search title or content
+                  </label>
+                  <div class="query-row">
+                    <input
+                      id="collectionSearch"
+                      type="search"
+                      placeholder="Titles or content"
+                    />
+                    <button class="btn btn-quiet" type="button">Search</button>
+                  </div>
+                  <div class="scope" id="searchScope" hidden>
+                    <span data-on="true"
+                      ><i aria-hidden="true"></i> This folder</span
+                    >
+                    <span data-on="false"
+                      ><i aria-hidden="true"></i> Whole collection</span
+                    >
+                  </div>
+                  <p class="disclosure">Filter and sort</p>
+                </div>
+
+                <section id="foldersSection">
+                  <div class="list-head">
+                    <h2 id="foldersHeading">Folders</h2>
+                    <span class="state" id="foldersState">
+                      complete · not paged
+                    </span>
+                  </div>
+                  <div id="folderRows"></div>
+                </section>
+
+                <section id="entriesSection">
+                  <div class="list-head">
+                    <h2 id="entriesHeading">Entries here</h2>
+                    <span class="pager">
+                      <span class="range" id="entriesRange">1–9 of 9</span>
+                      <button type="button" disabled>Previous</button>
+                      <button type="button" id="nextPage">Next</button>
+                    </span>
+                  </div>
+                  <div id="entryRows"></div>
+                </section>
+
+                <div class="empty" id="emptyState" hidden></div>
+              </main>
+
+              <!-- create-in-folder document -->
+              <main class="doc" id="doc" hidden>
+                <div class="doc-head">
+                  <div>
+                    <p class="kicker">Book sections</p>
+                    <h1>New section</h1>
+                  </div>
+                  <button class="btn" type="button" disabled id="createSave">
+                    Save changes
+                  </button>
+                </div>
+                <div class="doc-body">
+                  <aside class="colophon">
+                    <p class="properties-label">Properties · new</p>
+
+                    <div class="destination">
+                      <h3>Destination</h3>
+                      <dl>
+                        <div>
+                          <dt>Folder</dt>
+                          <dd>Book sections / Book 1 / Part 1</dd>
+                        </div>
+                        <div>
+                          <dt>Path</dt>
+                          <dd id="previewPath">
+                            ["book-1", "part-1", <b>"chapter-3"</b>]
+                          </dd>
+                        </div>
+                        <div>
+                          <dt>Entity ID</dt>
+                          <dd id="previewId">book-1:part-1:<b>chapter-3</b></dd>
+                        </div>
+                        <div>
+                          <dt>File</dt>
+                          <dd id="previewFile">
+                            book-section/book-1/part-1/<b>chapter-3</b>.md
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
+
+                    <div class="field">
+                      <span class="field-label">
+                        Segment <em>one path segment</em>
+                      </span>
+                      <input
+                        data-mono="true"
+                        id="segmentInput"
+                        type="text"
+                        value="chapter-3"
+                        data-invalid="false"
+                      />
+                      <p class="hint" id="segmentHint">
+                        Lowercase letters, digits and dashes. The folder trail
+                        above is fixed by where you pressed New.
+                      </p>
+                      <p class="error" id="segmentError" hidden>
+                        <span aria-hidden="true">×</span>
+                        <span
+                          >A segment cannot contain <code>/</code>. Create the
+                          nested folder from inside Part 1 instead.</span
+                        >
+                      </p>
+                    </div>
+
+                    <div class="field">
+                      <span class="field-label"> Title <em>required</em> </span>
+                      <input type="text" value="Working in the open" />
+                    </div>
+
+                    <div class="field">
+                      <span class="field-label"> Order <em>number</em> </span>
+                      <input data-mono="true" type="text" value="3" />
+                    </div>
+                  </aside>
+                  <section class="manuscript">
+                    <div class="tabs">
+                      <b>Source</b><span>Split</span><span>Preview</span>
+                    </div>
+                    <p>
+                      The body opens empty. Saving creates the entity at the
+                      encoded ID and directory-sync exports it to the matching
+                      nested file — the same write path as a flat entity.
+                    </p>
+                  </section>
+                </div>
+              </main>
+            </div>
+
+            <div class="action-bar phone-only" id="phoneActionBar">
+              <span class="where" id="phoneWhere">Book sections</span>
+              <button class="btn" type="button" id="phoneAction">
+                New section
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="notes" aria-label="Design notes">
+        <article class="note-card">
+          <h3>One list, two kinds of row</h3>
+          <p>
+            Folders and entries share the library's
+            <code>36px / 1fr / auto</code> row grid, so a collection still reads
+            as one column. A folder is marked by <code>/</code> in the ordinal
+            slot, set in the interface face rather than the display face, and
+            carries its descendant count plus a chevron where an entry carries
+            its date.
+          </p>
+          <p>
+            Folders sort above entries and are labelled
+            <b>complete · not paged</b>. Entries keep the existing pager. That
+            split is deliberate and visible: the plan derives the full folder
+            list server-side per prefix, while direct children stay a page.
+          </p>
+        </article>
+        <article class="note-card">
+          <h3>The trail sits below the head rule</h3>
+          <p>
+            The page title stays the entity type so wayfinding does not move
+            when you descend, matching the rule that breadcrumbs never invent a
+            parent area. The trail is mono, its leading segments are links, and
+            the current folder is plain text. At the root it is absent: one
+            unclickable crumb would only repeat the title.
+          </p>
+          <p>
+            Segment names are a presentation of the path —
+            <code>book-1</code> reads as <b>Book 1</b>. No folder record exists
+            to hold a title, and the mockup never implies one.
+          </p>
+        </article>
+        <article class="note-card">
+          <h3>Search says which scope it searched</h3>
+          <p>
+            Inside a folder the search control gains one explicit scope choice —
+            <b>This folder</b> or <b>Whole collection</b> — because a query that
+            silently changed scope on descent would be unreadable. Filter and
+            sort stay in their existing disclosure.
+          </p>
+          <p>
+            An empty result distinguishes an empty folder from a filtered one
+            and offers the escape that fits: clear the query, or search the
+            whole collection.
+          </p>
+        </article>
+        <article class="note-card">
+          <h3>Creation shows the destination before saving</h3>
+          <p>
+            <b>New</b> inherits the selected prefix, so the document head opens
+            with the trail fixed and a single <b>Segment</b> field for the leaf.
+            A destination block renders the structured path, the stored ID and
+            the exported file together, with the new segment emphasised in each.
+          </p>
+          <p>
+            Typing <code>/</code> is rejected against the segment, not the ID —
+            the operator never joins or splits a separator.
+          </p>
+        </article>
+        <article class="note-card">
+          <h3>Phone drills, it does not nest</h3>
+          <p>
+            At phone width the trail becomes a scrollable chip row and rows keep
+            the compact grammar, count beneath the name. Tapping a folder
+            replaces the list rather than indenting it, so depth costs no
+            horizontal space.
+          </p>
+          <p>
+            The fixed action bar keeps <b>New</b> reachable and names the folder
+            it will create into, inside the safe area.
+          </p>
+        </article>
+        <article class="note-card">
+          <h3>What this mockup deliberately does not show</h3>
+          <ul>
+            <li>No folder entity, and no hierarchy duplicated in metadata.</li>
+            <li>
+              No move or rename: that changes many entity IDs and waits for its
+              own bulk-mutation design.
+            </li>
+            <li>
+              No tree sidebar. The leaf rail keeps listing entity types, not
+              folders, so the shell stays stable.
+            </li>
+            <li>
+              Entity links keep the opaque encoded stored ID; only the folder
+              prefix is addressable folder state.
+            </li>
+            <li>
+              A type without nested paths — <b>Flat type</b> above — renders
+              with no trail and no folder section at all.
+            </li>
+          </ul>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const stage = document.getElementById("stage");
+      const app = document.getElementById("app");
+      const pane = document.getElementById("pane");
+      const doc = document.getElementById("doc");
+
+      const LEAF_TYPES = [
+        { label: "Book sections", count: 37 },
+        { label: "Field notes", count: 54 },
+        { label: "Documentation", count: 7 },
+      ];
+
+      const FOLDER = (name, count, segment) => ({ name, count, segment });
+      const ENTRY = (title, sub, meta) => ({ title, sub, meta });
+
+      const STATES = {
+        root: {
+          label: "Collection root",
+          note: "nested paths exist → folders appear",
+          title: "Book sections",
+          location: "Library · Book sections",
+          meta: ["2 folders", "2 entries here", "37 in total"],
+          // No trail at the root: a single unclickable crumb would only repeat
+          // the title. The trail earns its space from the first descent.
+          trail: [],
+          folders: [
+            FOLDER("Book 1", "24 entries"),
+            FOLDER("Book 2", "11 entries"),
+          ],
+          entries: [
+            ENTRY("Front matter", "Published", "yesterday"),
+            ENTRY("Colophon", "Draft", "4 days ago"),
+          ],
+          range: "1–2 of 2",
+          scope: false,
+        },
+        nested: {
+          label: "Inside Book 1 / Part 1",
+          note: "leaf folder — entries only, trail is walkable",
+          title: "Book sections",
+          location: "Library · Book sections / Book 1 / Part 1",
+          meta: ["9 entries here"],
+          trail: [
+            { name: "Book sections" },
+            { name: "Book 1" },
+            { name: "Part 1", current: true },
+          ],
+          folders: [],
+          entries: [
+            ENTRY("Chapter 1 · Arriving", "Published", "2 days ago"),
+            ENTRY("Chapter 2 · The shared floor", "Published", "2 days ago"),
+            ENTRY("Chapter 3 · Working in the open", "Draft", "8 days ago"),
+            ENTRY("Chapter 4 · Quiet instruments", "Draft", "13 days ago"),
+            ENTRY("Chapter 5 · Leaving a trace", "Draft", "1 Jun 2026"),
+          ],
+          range: "1–5 of 9",
+          scope: true,
+        },
+        search: {
+          label: "Search scoped to a folder",
+          note: "scope is explicit; counts describe the searched set",
+          title: "Book sections",
+          location: "Library · Book sections / Book 1 / Part 1",
+          meta: ["3 matches in this folder"],
+          trail: [
+            { name: "Book sections" },
+            { name: "Book 1" },
+            { name: "Part 1", current: true },
+          ],
+          folders: [],
+          entries: [
+            ENTRY("Chapter 2 · The shared floor", "Published", "2 days ago"),
+            ENTRY("Chapter 3 · Working in the open", "Draft", "8 days ago"),
+            ENTRY("Chapter 7 · Shared tools", "Draft", "1 Jun 2026"),
+          ],
+          range: "1–3 of 3",
+          scope: true,
+          query: "shared",
+          entriesHeading: "Matches",
+        },
+        empty: {
+          label: "Filtered to nothing",
+          note: "an empty folder and a filtered folder read differently",
+          title: "Book sections",
+          location: "Library · Book sections / Book 1 / Part 2",
+          meta: ["No matches in this folder"],
+          trail: [
+            { name: "Book sections" },
+            { name: "Book 1" },
+            { name: "Part 2", current: true },
+          ],
+          folders: [],
+          entries: [],
+          scope: true,
+          query: "rhizome",
+          empty: {
+            title: "No entries in Part 2 match “rhizome”.",
+            body: "Part 2 holds 8 entries. The query matched none of them.",
+            actions: ["Clear search", "Search whole collection"],
+          },
+        },
+        create: {
+          label: "Creating into the selected folder",
+          note: "trail fixed · one segment · destination shown before saving",
+          location: "Library · Book sections / Book 1 / Part 1",
+          document: true,
+        },
+        flat: {
+          label: "A type with no nested paths",
+          note: "no trail, no folder section — today's collection, unchanged",
+          title: "Field notes",
+          location: "Library · Field notes",
+          meta: ["54 entities"],
+          trail: [],
+          folders: [],
+          entries: [
+            ENTRY("A console that travels well", "Published", "yesterday"),
+            ENTRY("Notes from the rhizome", "Draft", "2 days ago"),
+            ENTRY("Alpha release log", "Draft", "8 days ago"),
+            ENTRY("Quiet infrastructure", "Draft", "13 days ago"),
+            ENTRY("Archive note 1", "Draft", "1 Jun 2026"),
+          ],
+          range: "1–25 of 54",
+          scope: false,
+          leaf: "Field notes",
+          newLabel: "New field note",
+          entriesHeading: "Entries",
+        },
+      };
+
+      function renderTrail(trail) {
+        const list = document.getElementById("trail");
+        list.hidden = trail.length === 0;
+        list.innerHTML = trail
+          .map((segment) =>
+            segment.current
+              ? `<li><span aria-current="page">${segment.name}</span></li>`
+              : `<li><button type="button">${segment.name}</button></li>`,
+          )
+          .join("");
+      }
+
+      function renderRows(target, rows, kind) {
+        document.getElementById(target).innerHTML = rows
+          .map((row, index) =>
+            kind === "folder"
+              ? `<button class="row" type="button" data-kind="folder">
+                   <span class="ord" aria-hidden="true">/</span>
+                   <span class="title">${row.name}</span>
+                   <span class="meta">${row.count}</span>
+                 </button>`
+              : `<button class="row" type="button" data-kind="entry">
+                   <span class="ord">${String(index + 1).padStart(2, "0")}</span>
+                   <span class="title">${row.title}<span class="sub">${row.sub}</span></span>
+                   <span class="meta">${row.meta}</span>
+                 </button>`,
+          )
+          .join("");
+      }
+
+      function setState(name) {
+        const state = STATES[name];
+        document.getElementById("stageLabel").firstElementChild.textContent =
+          state.label;
+        document.getElementById("stageNote").textContent = state.note;
+        document.getElementById("chromeLocation").textContent = state.location;
+
+        pane.hidden = Boolean(state.document);
+        doc.hidden = !state.document;
+        // The document keeps its own Save in the head at every width, so the
+        // collection's action bar steps out rather than competing with it.
+        document.getElementById("phoneActionBar").hidden = Boolean(
+          state.document,
+        );
+        if (state.document) return;
+
+        document.getElementById("collectionTitle").textContent = state.title;
+        document.getElementById("collectionMeta").innerHTML = state.meta
+          .map((item) => `<span>${item}</span>`)
+          .join('<span aria-hidden="true">·</span>');
+        document.getElementById("newAction").textContent =
+          state.newLabel ?? "New book section";
+        document.getElementById("phoneAction").textContent =
+          state.newLabel ?? "New section";
+        // The leaf rail keeps listing entity types, never folders, so the
+        // shell stays put while the trail moves.
+        const active = state.leaf ?? "Book sections";
+        document.getElementById("leafList").innerHTML = LEAF_TYPES.map(
+          (type) =>
+            `<button class="leaf-link" type="button"${
+              type.label === active ? ' aria-current="page"' : ""
+            }>
+               <span>${type.label}</span>
+               <span class="count">${type.count}</span>
+             </button>`,
+        ).join("");
+
+        const last = state.trail[state.trail.length - 1];
+        document.getElementById("chromeLocationPhone").textContent =
+          last?.name ?? state.title;
+        document.getElementById("phoneWhere").textContent = state.trail.length
+          ? state.trail.map((segment) => segment.name).join(" / ")
+          : state.title;
+
+        renderTrail(state.trail);
+        document.getElementById("collectionSearch").value = state.query ?? "";
+        document.getElementById("searchScope").hidden = !state.scope;
+
+        const folders = document.getElementById("foldersSection");
+        folders.hidden = state.folders.length === 0;
+        renderRows("folderRows", state.folders, "folder");
+
+        const entries = document.getElementById("entriesSection");
+        entries.hidden = state.entries.length === 0;
+        document.getElementById("entriesHeading").textContent =
+          state.entriesHeading ?? "Entries here";
+        document.getElementById("entriesRange").textContent = state.range ?? "";
+        document.getElementById("nextPage").disabled =
+          (state.range ?? "").startsWith("1–2 of 2") ||
+          (state.range ?? "").endsWith("of 3");
+        renderRows("entryRows", state.entries, "entry");
+
+        const empty = document.getElementById("emptyState");
+        empty.hidden = !state.empty;
+        if (state.empty) {
+          empty.innerHTML = `<b>${state.empty.title}</b>${state.empty.body}
+            <div class="actions">${state.empty.actions
+              .map(
+                (action, index) =>
+                  `<button class="btn ${index === 0 ? "btn-quiet" : "btn-ghost"}" type="button">${action}</button>`,
+              )
+              .join("")}</div>`;
+        }
+      }
+
+      document.querySelectorAll(".control-group").forEach((group) => {
+        group.addEventListener("click", (event) => {
+          const button = event.target.closest("button[data-value]");
+          if (!button) return;
+          group
+            .querySelectorAll("button")
+            .forEach((candidate) =>
+              candidate.setAttribute(
+                "aria-pressed",
+                String(candidate === button),
+              ),
+            );
+          const control = group.dataset.control;
+          const value = button.dataset.value;
+          if (control === "state") setState(value);
+          if (control === "viewport") stage.dataset.viewport = value;
+          if (control === "climate")
+            document.documentElement.dataset.climate = value;
+        });
+      });
+
+      // Segment validation mirrors the server rule: one path segment, no separator.
+      const segment = document.getElementById("segmentInput");
+      const segmentError = document.getElementById("segmentError");
+      const save = document.getElementById("createSave");
+      const escapeText = (value) =>
+        value.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+
+      function validateSegment() {
+        const value = segment.value.trim();
+        const valid = value.length > 0 && /^[a-z0-9][a-z0-9-]*$/.test(value);
+        segment.dataset.invalid = String(!valid);
+        segmentError.hidden = valid;
+        save.disabled = !valid;
+        const shown = escapeText(value || "…");
+        document.getElementById("previewPath").innerHTML =
+          `["book-1", "part-1", <b>"${shown}"</b>]`;
+        document.getElementById("previewId").innerHTML =
+          `book-1:part-1:<b>${shown}</b>`;
+        document.getElementById("previewFile").innerHTML =
+          `book-section/book-1/part-1/<b>${shown}</b>.md`;
+      }
+
+      segment.addEventListener("input", validateSegment);
+      validateSegment();
+
+      // Deep-linkable as #state/viewport/climate, e.g. #nested/phone/paper,
+      // so a review can point at one exact frame.
+      function applyHash() {
+        const parts = location.hash.replace("#", "").split("/").filter(Boolean);
+        const name =
+          parts.find((part) => Object.hasOwn(STATES, part)) ?? "root";
+        const viewport = parts.includes("phone") ? "phone" : "desktop";
+        const climate = parts.includes("paper") ? "paper" : "instrument";
+        stage.dataset.viewport = viewport;
+        document.documentElement.dataset.climate = climate;
+        const select = (control, value) =>
+          document
+            .querySelectorAll(`[data-control="${control}"] button`)
+            .forEach((button) =>
+              button.setAttribute(
+                "aria-pressed",
+                String(button.dataset.value === value),
+              ),
+            );
+        select("state", name);
+        select("viewport", viewport);
+        select("climate", climate);
+        setState(name);
+      }
+
+      window.addEventListener("hashchange", applyHash);
+      applyHash();
+    </script>
+  </body>
+</html>

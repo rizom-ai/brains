@@ -311,11 +311,42 @@ describe("the site builder", () => {
       await registration.dataProvider(adminWorkspaceActor);
     expect(initialWorkspace).toMatchObject({
       view: {
-        title: "Site control",
-        kicker: "Website operations",
-        status: { label: "Test Site" },
+        title: "Site",
+        blocks: [
+          {
+            type: "tabs",
+            tabs: ["preview", "production"].map((id) => ({
+              id,
+              blocks: [
+                {
+                  type: "columns",
+                  primary: [
+                    { id: `site-${id}-card`, presentation: "section" },
+                    { id: `${id}-render-details`, presentation: "disclosure" },
+                    {
+                      id: "site-routes",
+                      label: "Configured routes",
+                      presentation: "disclosure",
+                    },
+                    { id: "site-recent-builds", label: "Recent builds" },
+                  ],
+                  aside: [
+                    { id: "site-automation-card" },
+                    { id: "site-automation-links", presentation: "disclosure" },
+                  ],
+                },
+              ],
+            })),
+          },
+        ],
       },
     });
+    expect(JSON.stringify(initialWorkspace)).toContain(
+      '"type":"tabs","id":"site-environments"',
+    );
+    expect(JSON.stringify(initialWorkspace)).toContain(
+      '"defaultTab":"preview"',
+    );
     expect(initialWorkspace).not.toHaveProperty("view.primaryAction");
     expect(findTableById(initialWorkspace, "routes")).toMatchObject({
       rows: [
@@ -338,8 +369,28 @@ describe("the site builder", () => {
       "preview-build",
       "the preview build to appear in the workspace",
     );
+    expect(previewWorkspace).toMatchObject({
+      view: {
+        blocks: [
+          {
+            type: "tabs",
+            tabs: [
+              {
+                id: "preview",
+                blocks: [
+                  { type: "progress", id: "preview-build" },
+                  { type: "columns", id: "site-body" },
+                ],
+              },
+              { id: "production" },
+            ],
+          },
+        ],
+      },
+    });
     expect(JSON.stringify(previewWorkspace)).toContain('"id":"preview-build"');
     expect(JSON.stringify(previewWorkspace)).toContain('"state":"queued"');
+    expect(JSON.stringify(previewWorkspace)).toContain('"disabled":true');
     expect(
       actionHandler(
         { actionId: "missing-action", input: {} },
@@ -466,7 +517,7 @@ describe("the site builder", () => {
       trustedWorkspaceActor,
     );
     expect(trustedWorkspace).toMatchObject({
-      view: { title: "Site control", status: { label: "Test Site" } },
+      view: { title: "Site" },
     });
     expect(JSON.stringify(trustedWorkspace)).toContain(
       '"actionId":"build-preview"',

@@ -117,6 +117,17 @@ export interface ServiceChannelReader {
    */
   listDescriptors(): ChannelDescriptor[];
 }
+import type { ServiceContentGeneration } from "./content-generation-contract";
+export type {
+  ServiceContentGeneration,
+  ServiceContentGenerationContext,
+  ServiceContentGenerationItem,
+  ServiceContentGenerationResult,
+  ServiceContentGenerationSkipReason,
+  ServiceContentGenerationTarget,
+  ServiceContentGenerationTargetInput,
+  ServiceEntityIdPath,
+} from "./content-generation-contract";
 import type { z } from "@brains/utils/zod";
 import { parseWithSchema } from "@brains/utils/parse-schema";
 import type {
@@ -770,6 +781,30 @@ export interface ServicePromptDefinition<TSchema extends ServiceSchema> {
   render(context: { readonly input: z.output<TSchema> }): string;
 }
 
+export interface ServiceTemplateGenerationDefinition {
+  readonly prompt: string;
+  readonly useKnowledgeContext?: boolean | undefined;
+}
+
+export type ServiceTemplateShapeMap = Record<
+  string,
+  {
+    readonly schema: ServiceSchema;
+    readonly generation?: ServiceTemplateGenerationDefinition | undefined;
+  }
+>;
+type GenerationTemplateNames<TTemplates extends ServiceTemplateShapeMap> =
+  Extract<
+    {
+      [K in keyof TTemplates]: TTemplates[K] extends {
+        readonly generation: ServiceTemplateGenerationDefinition;
+      }
+        ? K
+        : never;
+    }[keyof TTemplates],
+    string
+  >;
+
 export interface ServiceTemplateDefinition<TSchema extends ServiceSchema> {
   readonly schema: TSchema;
   /**
@@ -789,6 +824,7 @@ export interface ServiceTemplateDefinition<TSchema extends ServiceSchema> {
    * Named consumer: @brains/site-content.
    */
   readonly permission?: UserPermissionLevel | undefined;
+  readonly generation?: ServiceTemplateGenerationDefinition | undefined;
   format(context: { readonly value: z.output<TSchema> }): string;
   /**
    * The value this template's markdown came from.
@@ -840,6 +876,7 @@ interface ServiceDefinitionCore<
   TTemplateSchemas extends ServiceSchemaMap,
   TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TTemplateDefinitions extends ServiceTemplateShapeMap,
 > {
   readonly id: string;
   readonly config: TConfigSchema;
@@ -1331,11 +1368,11 @@ interface ServiceDefinitionCore<
    * instead. Named consumer: @brains/site-content.
    */
   readonly templates?:
-    | {
+    | (TTemplateDefinitions & {
         readonly [K in keyof TTemplateSchemas]: ServiceTemplateDefinition<
           TTemplateSchemas[K]
         >;
-      }
+      })
     | ((context: {
         readonly config: z.output<TConfigSchema>;
       }) => Record<string, ServiceTemplateDefinition<ServiceSchema>>)
@@ -1420,6 +1457,9 @@ interface ServiceDefinitionCore<
         readonly state: TState;
         readonly jobs: ServiceJobs;
         readonly templates: ServiceTemplateFormatter;
+        readonly content: ServiceContentGeneration<
+          GenerationTemplateNames<NoInfer<TTemplateDefinitions>>
+        >;
       }) => readonly AnyServiceToolDefinition[])
     | undefined;
   /**
@@ -1488,13 +1528,15 @@ export type NormalizedServiceDefinitionInput<
   TTemplateSchemas extends ServiceSchemaMap,
   TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TTemplateDefinitions extends ServiceTemplateShapeMap,
 > = ServiceDefinitionCore<
   TConfigSchema,
   TState,
   TPromptSchemas,
   TTemplateSchemas,
   TViewSchemas,
-  TAccountSettings
+  TAccountSettings,
+  TTemplateDefinitions
 > & { readonly accountSettings: TAccountSettings };
 
 export type ServiceDefinitionInput<
@@ -1504,13 +1546,15 @@ export type ServiceDefinitionInput<
   TTemplateSchemas extends ServiceSchemaMap,
   TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TTemplateDefinitions extends ServiceTemplateShapeMap,
 > = ServiceDefinitionCore<
   TConfigSchema,
   TState,
   TPromptSchemas,
   TTemplateSchemas,
   TViewSchemas,
-  TAccountSettings
+  TAccountSettings,
+  TTemplateDefinitions
 > &
   (TAccountSettings extends AnyAccountSettingsDefinition
     ? { readonly accountSettings: TAccountSettings }

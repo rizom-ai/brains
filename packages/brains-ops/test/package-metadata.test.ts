@@ -130,6 +130,11 @@ describe("@rizom/ops package metadata", () => {
     expect(filePaths.has("dist/deploy.d.ts")).toBeTrue();
     expect(
       filePaths.has(
+        "templates/rover-pilot/deploy/scripts/verify-runtime-image.ts",
+      ),
+    ).toBeTrue();
+    expect(
+      filePaths.has(
         "templates/rover-pilot/.github/actions/varlock-env/action.yml",
       ),
     ).toBeTrue();
@@ -191,6 +196,16 @@ describe("@rizom/ops package metadata", () => {
         cwd: projectDir,
       });
       expect(install.exitCode).toBe(0);
+
+      const inventoryExport = await runProcess(
+        [
+          "bun",
+          "-e",
+          'import { verifyRuntimeImage } from "@rizom/ops/deploy"; if (typeof verifyRuntimeImage !== "function") throw new Error("Missing image gate");',
+        ],
+        { cwd: projectDir },
+      );
+      expect(inventoryExport.exitCode).toBe(0);
 
       const version = await runProcess(
         ["./node_modules/.bin/brains-ops", "version"],

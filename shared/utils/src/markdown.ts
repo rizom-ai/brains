@@ -38,6 +38,15 @@ export function stripMarkdown(text: string): string {
   return toString(tree);
 }
 
+/** First top-level Markdown heading as plain text, excluding code and HTML. */
+export function firstMarkdownHeading(markdown: string): string | undefined {
+  const heading = remarkProcessor
+    .parse(markdown)
+    .children.find((node) => node.type === "heading");
+  const title = heading ? toString(heading).trim() : "";
+  return title || undefined;
+}
+
 /**
  * Update a single field in frontmatter, preserving all other fields
  */

@@ -6,6 +6,7 @@ import {
 } from "../src/lib/content-resolver";
 import { createSilentLogger } from "@brains/test-utils";
 import type { BaseEntity, ICoreEntityService } from "../src/types";
+import { createMockEntityService } from "../src/test/mock-entity-service";
 
 /**
  * A whole image entity, not `{ content }` asserted into one.
@@ -135,6 +136,7 @@ Some text
         getEntities: mock(() => Promise.resolve([])),
         getEntityRaw: mock(() => Promise.resolve(null)),
         listEntities: mock(() => Promise.resolve([])),
+        queryEntityHierarchy: createMockEntityService().queryEntityHierarchy,
         search: mock(() => Promise.resolve([])),
         searchWithDistances: mock(() => Promise.resolve([])),
         projectSemanticSpace: mock(() =>

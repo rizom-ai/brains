@@ -1,7 +1,11 @@
+import { resolvePrincipalViaBus } from "./principal-resolution";
 import {
   AgentService,
   createBrainAgentId,
   createBrainAgentFactory,
+  createOpenAiGuestProfile,
+  openAiGuestEmbeddingModel,
+  openAiGuestEmbeddingDimensions,
   type ChatAttachment,
   type ChatAttachmentSource,
   type IAgentService,
@@ -9,14 +13,16 @@ import {
 } from "@brains/ai-service";
 import {
   AGENT_CONTEXT_REQUEST_CHANNEL,
-  AUTH_PRINCIPAL_RESOLVE_CHANNEL,
   ENTITY_CHANNELS,
-  authPrincipalResolveResponseSchema,
   parseAgentContextItems,
   type AgentContextRequest,
 } from "@brains/contracts";
 import type { IConversationService } from "@brains/conversation-service";
-import type { IEntityRegistry, IEntityService } from "@brains/entity-service";
+import type {
+  IEntityRegistry,
+  IEntityService,
+  IEmbeddingService,
+} from "@brains/entity-service";
 import {
   AnchorProfileService,
   BrainCharacterService,
@@ -43,6 +49,7 @@ export interface IdentityAndAgentServices {
 export interface IdentityAndAgentServiceOptions {
   config: ShellConfig;
   entityService: IEntityService;
+  embeddingService: IEmbeddingService;
   entityRegistry: IEntityRegistry;
   logger: Logger;
   messageBus: MessageBus;
@@ -195,25 +202,38 @@ export function initializeIdentityAndAgentServices(
   const canonicalIdentityService = CanonicalIdentityService.createFresh(
     logger,
     async (actor) => {
-      const response = await messageBus.send({
-        type: AUTH_PRINCIPAL_RESOLVE_CHANNEL,
-        sender: "shell:canonical-identity-service",
-        payload: { actor },
-      });
-      if ("noop" in response || !response.success) return null;
-      const parsed = authPrincipalResolveResponseSchema.safeParse(
-        response.data,
-      );
-      if (!parsed.success || !parsed.data.principal?.canonicalId) return null;
+      // Identity display degrades to anonymous on any resolution failure.
+      const principal = await resolvePrincipalViaBus(
+        messageBus,
+        "shell:canonical-identity-service",
+        actor,
+      ).catch(() => null);
+      if (!principal?.canonicalId) return null;
       return {
-        userId: parsed.data.principal.userId,
-        canonicalId: parsed.data.principal.canonicalId,
-        displayName: parsed.data.principal.displayName,
+        userId: principal.userId,
+        canonicalId: principal.canonicalId,
+        displayName: principal.displayName,
       };
     },
   );
 
+  const aiConfig = aiService.getConfig();
+  // Query embeddings are prepaid by guest search tools; indexing remains separate.
+  // Only the reviewed model/dimension pair can query this index safely.
+  const guestProfile =
+    config.embedding.enabled &&
+    "model" in options.embeddingService &&
+    options.embeddingService.model === openAiGuestEmbeddingModel &&
+    options.embeddingService.dimensions === openAiGuestEmbeddingDimensions &&
+    aiConfig.model === "gpt-5.6-luna" &&
+    aiConfig.apiKey?.trim()
+      ? createOpenAiGuestProfile({
+          apiKey: aiConfig.apiKey,
+          embeddingsEnabled: true,
+        })
+      : undefined;
   const agentFactory = createBrainAgentFactory({
+    ...(guestProfile ? { guestProfile } : {}),
     model: aiService.getModel(),
     modelId: aiService.getConfig().model,
     webSearch: aiService.getConfig().webSearch,
@@ -233,7 +253,8 @@ export function initializeIdentityAndAgentServices(
     {
       agentFactory,
       canonicalIdentityResolver: canonicalIdentityService,
-      indexReadiness: entityService,
+      // Lexical retrieval does not need a semantic index to be built.
+      ...(config.embedding.enabled ? { indexReadiness: entityService } : {}),
       uploadAttachmentResolver: (source) =>
         resolveRuntimeUploadAttachment(source, runtimeUploadRegistry, logger),
       agentContextProvider: async (request: AgentContextRequest) => {

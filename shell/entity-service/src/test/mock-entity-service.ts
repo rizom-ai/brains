@@ -1,7 +1,11 @@
 import { mock } from "bun:test";
+import { createTestEntity } from "./fixtures";
 import type {
   BaseEntity,
   EntityMutationResult,
+  EntityWriteSnapshot,
+  EntityHierarchyPage,
+  QueryEntityHierarchyRequest,
   SearchResult,
   ListOptions,
   IEntityService,
@@ -14,10 +18,12 @@ import { genericSpy } from "@brains/test-utils";
 export interface MockEntityServiceReturns {
   getEntity?: BaseEntity | null;
   getEntities?: BaseEntity[];
+  getEntityWriteSnapshot?: EntityWriteSnapshot | null;
   createEntity?: EntityMutationResult;
   updateEntity?: EntityMutationResult;
   deleteEntity?: boolean;
   listEntities?: BaseEntity[];
+  queryEntityHierarchy?: EntityHierarchyPage;
   search?: SearchResult[];
   countEntities?: number;
 }
@@ -30,6 +36,22 @@ const mutationResult = (
     jobId: "mock-job-id",
     skipped: false,
   };
+
+/** The fields a write guard inspects, filled in the way persistence would. */
+function writtenEntity(entity: {
+  entityType: string;
+  id?: string | undefined;
+  content?: string | undefined;
+  metadata?: Record<string, unknown> | undefined;
+  visibility?: BaseEntity["visibility"] | undefined;
+}): BaseEntity {
+  return createTestEntity(entity.entityType, {
+    id: entity.id ?? "mock-entity-id",
+    ...(entity.content !== undefined && { content: entity.content }),
+    ...(entity.metadata && { metadata: entity.metadata }),
+    ...(entity.visibility && { visibility: entity.visibility }),
+  });
+}
 
 /**
  * Options for creating a mock entity service
@@ -152,28 +174,44 @@ export function createMockEntityService(
   );
 
   return {
+    getEntityWriteSnapshot: mock(
+      async () => returns.getEntityWriteSnapshot ?? null,
+    ),
     getEntity: genericSpy<IEntityService["getEntity"]>(getEntityMock),
     getEntities: getEntitiesMock,
     getEntityRaw: genericSpy<IEntityService["getEntityRaw"]>(getEntityRawMock),
     listEntities: genericSpy<IEntityService["listEntities"]>(listEntitiesMock),
+    queryEntityHierarchy: mock(
+      async (
+        request: QueryEntityHierarchyRequest,
+      ): Promise<EntityHierarchyPage> =>
+        returns.queryEntityHierarchy ?? {
+          prefix: request.prefix ? [...request.prefix] : null,
+          folders: [],
+          entities: [],
+          offset: request.offset ?? 0,
+          totalEntities: 0,
+        },
+    ),
     search: genericSpy<IEntityService["search"]>(searchMock),
 
+    // Guards must run before a configured write records its side effects.
     createEntity: genericSpy<IEntityService["createEntity"]>(
-      mock(
-        (request: { entity: BaseEntity }) =>
-          createEntityImpl?.(request) ??
-          Promise.resolve(mutationResult(returns.createEntity)),
-      ),
+      mock(async (request: Parameters<IEntityService["createEntity"]>[0]) => {
+        const entity = writtenEntity(request.entity);
+        await request.options?.beforeWrite?.(entity);
+        return createEntityImpl?.({ entity }) ?? mutationResult(returns.createEntity);
+      }),
     ),
     createEntityFromMarkdown: mock(() =>
       Promise.resolve(mutationResult(undefined)),
     ),
     updateEntity: genericSpy<IEntityService["updateEntity"]>(
-      mock(
-        (request: { entity: BaseEntity }) =>
-          updateEntityImpl?.(request) ??
-          Promise.resolve(mutationResult(returns.updateEntity)),
-      ),
+      mock(async (request: Parameters<IEntityService["updateEntity"]>[0]) => {
+        const entity = writtenEntity(request.entity);
+        await request.options?.beforeWrite?.(entity);
+        return updateEntityImpl?.({ entity }) ?? mutationResult(returns.updateEntity);
+      }),
     ),
     deleteEntity: mock(() => Promise.resolve(returns.deleteEntity ?? true)),
     upsertEntity: mock(() =>

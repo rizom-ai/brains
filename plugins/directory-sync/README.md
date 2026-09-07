@@ -27,7 +27,13 @@ brain-data/
   image/cover.png               # entityType: image
 ```
 
-Root markdown files become `note` note entities. Files under `brain-data/<entity-type>/` use the first path segment as the entity type. Nested paths below that directory become colon-separated ids.
+Root markdown files become `note` entities. Exportable notes have exactly one ID segment and write `<id>.md` at the root; directories represent entity types. Directory-sync delegates stored-ID encoding and decoding to `@brains/entity-service` and owns filesystem placement. Every type-prefixed segment is retained: site-content ID `site-content:home:hero` exports to `site-content/site-content/home/hero.md`, separately from `home:hero` at `site-content/home/hero.md`.
+
+The read-only `sync:path:request` message previews placement from an entity type, stored ID, metadata and serialized content. It returns a relative path, filename-leaf display offsets, the read-back identity (`owner`), and a pure `writable` verdict. The latter two fields are optional for older responders. Previewing neither writes files nor creates folders; it does not look up existing entities or reserve destinations.
+
+Before writes or deletion, a pure guard checks strict ID segments, flat-only notes, and identity round-trip. Historical invalid IDs raise `EntityPlacementError`; manual export reports failure and orphan cleanup keeps their database rows. Durable refusals are recorded as standing `placement` issues before acknowledgement. These issues clear when the entity exports or its delete intent is processed, not on unrelated successful exports.
+
+No IDs are rewritten and no files are moved or migrated. Old-layout files require operator review; discovery and import interpretation are unchanged. The [golden inventory](test/entity-placement-golden.test.ts) records the seven changed path expectations. Its IDs are synthetic regression inputs, not an inventory of production notes.
 
 ## Typical brain.yaml config
 

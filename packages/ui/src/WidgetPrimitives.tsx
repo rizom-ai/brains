@@ -1,5 +1,27 @@
 /** @jsxImportSource react */
 import type { HTMLAttributes, ReactNode, JSX } from "react";
+import {
+  OperatorPanelParagraph,
+  OperatorSummaryList,
+  OperatorSummaryItem,
+  OperatorSummaryMetadata,
+  OperatorSummarySeparator,
+  OperatorSummaryTags,
+  OperatorSummaryTag,
+  OperatorStatusPill,
+  OperatorActionLinks,
+  OperatorActionLink,
+  OperatorTabStrip,
+  OperatorTabButton,
+  OperatorTabCount,
+  OperatorChoiceGroup,
+  OperatorChoiceButton,
+  OperatorChoiceCount,
+  OperatorChoiceLabel,
+  OperatorChoiceTools,
+  OperatorChoiceSearch,
+  OperatorChoiceToggle,
+} from "@brains/operator-view-react";
 
 function classes(...values: Array<string | false | null | undefined>): string {
   return values.filter(Boolean).join(" ");
@@ -21,33 +43,6 @@ export function createWidgetInstanceId(
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   return `widget-${slug || "custom"}`;
-}
-
-export function CardHeader({
-  title,
-  source,
-  subtitle,
-  children,
-}: {
-  title: ReactNode;
-  source?: ReactNode;
-  subtitle?: ReactNode;
-  children?: ReactNode;
-}): JSX.Element {
-  const detail = source ? (
-    <span className="card-from">{source}</span>
-  ) : subtitle ? (
-    <span className="card-subtitle">{subtitle}</span>
-  ) : (
-    children
-  );
-
-  return (
-    <div className="card-head">
-      <span className="card-title">{title}</span>
-      {detail}
-    </div>
-  );
 }
 
 export interface KeyValueItem {
@@ -79,7 +74,11 @@ export function WidgetEmptyState({
   children?: ReactNode;
   className?: string;
 }): JSX.Element {
-  return <p className={classes("muted", className)}>{children}</p>;
+  return (
+    <OperatorPanelParagraph presentation="muted" className={className}>
+      {children}
+    </OperatorPanelParagraph>
+  );
 }
 
 export const EmptyState: typeof WidgetEmptyState = WidgetEmptyState;
@@ -94,9 +93,12 @@ export function WidgetActions({
   className?: string;
 }): JSX.Element {
   return (
-    <nav className={classes("widget-actions", className)} aria-label={label}>
+    <OperatorActionLinks
+      className={classes("widget-actions", className)}
+      aria-label={label}
+    >
       {children}
-    </nav>
+    </OperatorActionLinks>
   );
 }
 
@@ -112,16 +114,15 @@ export function WidgetActionLink({
   emphasis?: "primary" | "secondary";
 }): JSX.Element {
   return (
-    <a
-      className={classes("widget-action", `widget-action--${emphasis}`)}
+    <OperatorActionLink
+      className="widget-action"
+      emphasis={emphasis}
+      indicator={external ? "↗" : "→"}
       href={href}
       {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
     >
-      <span>{children}</span>
-      <span className="widget-action-arrow" aria-hidden="true">
-        {external ? "↗" : "→"}
-      </span>
-    </a>
+      {children}
+    </OperatorActionLink>
   );
 }
 
@@ -163,7 +164,9 @@ export function WidgetTabs({
   const triggerClass = variant === "line" ? "widget-tab" : "widget-filter-tab";
   const countClass =
     variant === "line" ? "widget-tab-count" : "widget-filter-count";
-  const labelClass = variant === "pill" ? "widget-filter-label" : undefined;
+  const TabList = variant === "line" ? OperatorTabStrip : OperatorChoiceGroup;
+  const TabButton =
+    variant === "line" ? OperatorTabButton : OperatorChoiceButton;
 
   return (
     <div
@@ -175,17 +178,23 @@ export function WidgetTabs({
         ? { "data-ui-tabs-state-attribute": stateAttribute }
         : {})}
     >
-      <div className={listClass} role="tablist" aria-label={label}>
+      <TabList
+        {...(variant === "pill" ? { compact } : {})}
+        className={listClass}
+        role="tablist"
+        aria-label={label}
+      >
         {tabs.map((tab) => {
           const active = tab.value === defaultValue;
           const triggerId = `${id}-tab-${tab.value}`;
           const panelId = `${id}-panel-${tab.value}`;
           return (
-            <button
+            <TabButton
               key={tab.value}
               {...tab.triggerProps}
               id={triggerId}
-              className={classes(triggerClass, active && "is-active")}
+              className={triggerClass}
+              {...(variant === "pill" ? { compact } : {})}
               type="button"
               role="tab"
               data-ui-tab={tab.value}
@@ -195,22 +204,28 @@ export function WidgetTabs({
               {variant === "pill" ? (
                 <>
                   {tab.count !== undefined && (
-                    <span className={countClass}>{tab.count}</span>
+                    <OperatorChoiceCount className={countClass}>
+                      {tab.count}
+                    </OperatorChoiceCount>
                   )}
-                  <span className={labelClass}>{tab.label}</span>
+                  <OperatorChoiceLabel className="widget-filter-label">
+                    {tab.label}
+                  </OperatorChoiceLabel>
                 </>
               ) : (
                 <>
                   {tab.label}
                   {tab.count !== undefined && (
-                    <span className={countClass}>{tab.count}</span>
+                    <OperatorTabCount className={countClass}>
+                      {tab.count}
+                    </OperatorTabCount>
                   )}
                 </>
               )}
-            </button>
+            </TabButton>
           );
         })}
-      </div>
+      </TabList>
       {tabs.map((tab) => {
         const active = tab.value === defaultValue;
         return (
@@ -283,8 +298,12 @@ export function WidgetFilter({
         : {})}
     >
       {hasOverflow && (
-        <div className="widget-filter-tools" data-ui-filter-tools hidden>
-          <input
+        <OperatorChoiceTools
+          className="widget-filter-tools"
+          data-ui-filter-tools
+          hidden
+        >
+          <OperatorChoiceSearch
             className="widget-filter-search"
             type="search"
             autoComplete="off"
@@ -292,44 +311,49 @@ export function WidgetFilter({
             aria-label={`Search ${label}`}
             data-ui-filter-search
           />
-          <button
+          <OperatorChoiceToggle
             className="widget-filter-toggle"
             type="button"
             aria-expanded="false"
             data-ui-filter-toggle
           >
             <span data-ui-filter-toggle-label>Show all</span>
-          </button>
-        </div>
+          </OperatorChoiceToggle>
+        </OperatorChoiceTools>
       )}
-      <div
+      <OperatorChoiceGroup
+        compact
         className="widget-filter-tabs widget-filter-tabs--compact"
         aria-label={label}
       >
         {options.map((option) => {
           const active = option.value === defaultValue;
           return (
-            <button
+            <OperatorChoiceButton
+              compact
               {...option.triggerProps}
               key={option.value}
-              className={classes(
-                "widget-filter-tab",
-                active && "is-active",
-                option.tone === "gap" && "is-gap",
-              )}
+              className="widget-filter-tab"
               type="button"
               data-ui-filter-value={option.value}
               data-ui-filter-option-label={filterOptionSearchText(option)}
               aria-pressed={active ? "true" : "false"}
             >
               {option.count !== undefined && (
-                <span className="widget-filter-count">{option.count}</span>
+                <OperatorChoiceCount
+                  className="widget-filter-count"
+                  attention={option.tone === "gap"}
+                >
+                  {option.count}
+                </OperatorChoiceCount>
               )}
-              <span className="widget-filter-label">{option.label}</span>
-            </button>
+              <OperatorChoiceLabel className="widget-filter-label">
+                {option.label}
+              </OperatorChoiceLabel>
+            </OperatorChoiceButton>
           );
         })}
-      </div>
+      </OperatorChoiceGroup>
       {children}
       {emptyState !== undefined && (
         <div data-ui-filter-empty hidden>
@@ -347,7 +371,9 @@ export function WidgetList({
   children: ReactNode;
   className?: string;
 }): JSX.Element {
-  return <ul className={classes("list", className)}>{children}</ul>;
+  return (
+    <OperatorSummaryList className={className}>{children}</OperatorSummaryList>
+  );
 }
 
 export function WidgetMetaLine({
@@ -358,14 +384,14 @@ export function WidgetMetaLine({
   if (segments.length === 0) return null;
 
   return (
-    <span className="list-meta-text">
+    <OperatorSummaryMetadata>
       {segments.map((segment, index) => (
         <span key={`${segment}:${index}`}>
-          {index > 0 && <span className="sep">·</span>}
+          {index > 0 && <OperatorSummarySeparator>·</OperatorSummarySeparator>}
           {segment}
         </span>
       ))}
-    </span>
+    </OperatorSummaryMetadata>
   );
 }
 
@@ -373,13 +399,11 @@ export function WidgetTags({ tags }: { tags: string[] }): JSX.Element | null {
   if (tags.length === 0) return null;
 
   return (
-    <div className="list-tags">
+    <OperatorSummaryTags>
       {tags.map((tag, index) => (
-        <span key={`${tag}:${index}`} className="tag">
-          {tag}
-        </span>
+        <OperatorSummaryTag key={`${tag}:${index}`}>{tag}</OperatorSummaryTag>
       ))}
-    </div>
+    </OperatorSummaryTags>
   );
 }
 
@@ -390,15 +414,20 @@ export function WidgetStatusPill({
   children: ReactNode;
   tone?: "plain" | "warn" | "error" | "ok" | "muted";
 }): JSX.Element {
-  const toneClass = {
-    plain: "",
-    warn: "pill--warn",
-    error: "pill--err",
-    ok: "pill--ok",
-    muted: "pill--mute",
-  }[tone];
-
-  return <span className={classes("pill", toneClass)}>{children}</span>;
+  const statusTone = (
+    {
+      plain: "neutral",
+      warn: "warn",
+      error: "error",
+      ok: "good",
+      muted: "muted",
+    } as const
+  )[tone];
+  return (
+    <OperatorStatusPill presentation="label" tone={statusTone}>
+      {children}
+    </OperatorStatusPill>
+  );
 }
 
 export function WidgetListItem({
@@ -421,20 +450,17 @@ export function WidgetListItem({
   itemProps?: WidgetElementProps<HTMLLIElement> | undefined;
 }): JSX.Element {
   return (
-    <li
+    <OperatorSummaryItem
       {...itemProps}
-      className={classes("list-item", className)}
+      className={className}
+      heading={title}
+      description={description}
+      metadata={<WidgetMetaLine segments={meta} />}
+      tags={<WidgetTags tags={tags} />}
+      trailing={trailing}
       {...(filterValues
         ? { "data-ui-filter-values": JSON.stringify(filterValues) }
         : {})}
-    >
-      <div className="list-main">
-        <span className="list-name">{title}</span>
-        {description && <span className="list-desc">{description}</span>}
-        <WidgetMetaLine segments={meta} />
-        <WidgetTags tags={tags} />
-      </div>
-      {trailing && <div className="list-meta">{trailing}</div>}
-    </li>
+    />
   );
 }

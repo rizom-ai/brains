@@ -2,7 +2,7 @@
 
 ## Status
 
-**Proposed — revalidated on 2026-08-07; Phases 0 and 1 complete.** The normalized registry, startup conflict detection, immutable dispatch snapshot, internal manifest, and fail-closed shared-host admission are implemented. The documented handler-backed getter remains the canonical stable `0.2` authoring contract; there is no secondary route path. Remaining security, matcher, advertising, and cleanup phases require separate approval and do not gate stable `v0.2.0`.
+**Partially implemented — revalidated on 2026-08-07; Phases 0 and 1 complete.** The normalized registry, startup conflict detection, immutable dispatch snapshot, internal manifest, and fail-closed shared-host admission are implemented. The documented handler-backed getter remains the canonical stable `0.2` authoring contract; there is no secondary route path. Remaining security, matcher, advertising, and cleanup phases require separate approval and do not gate stable `v0.2.0`.
 
 The [public-authoring release gate](./public-authoring-api-0.2.md) deliberately freezes only the existing handler-backed web-route contract. It excludes tool-backed API routes, non-public shared-host admission, centralized operator authentication, and `context.http.register()` from the `0.2` stable ledger. This plan must not widen that ledger accidentally.
 

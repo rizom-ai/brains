@@ -403,6 +403,12 @@ cpSync(onboardingContentSourceDir, bundledOnboardingContentDir, {
 mkdirSync(bundledWebChatUiDir, { recursive: true });
 cpSync(webChatUiAssetPath, join(bundledWebChatUiDir, "app.js"));
 cpSync(webChatUiStylesheetPath, join(bundledWebChatUiDir, "app.css"));
+for (const asset of ["guest.js", "guest.css"]) {
+  cpSync(
+    join(webChatPackageDir, "dist", "ui", asset),
+    join(bundledWebChatUiDir, asset),
+  );
+}
 const webChatSourceMapPath = `${webChatUiAssetPath}.map`;
 if (existsSync(webChatSourceMapPath)) {
   cpSync(webChatSourceMapPath, join(bundledWebChatUiDir, "app.js.map"));

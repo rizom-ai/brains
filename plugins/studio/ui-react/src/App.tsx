@@ -1,7 +1,15 @@
 /** @jsxImportSource react */
+import { StudioStatus } from "./studio-status";
+import { ConfirmDialog } from "@brains/app-ui-react";
+import {
+  StudioChatDraftStore,
+  shouldBlockChatNavigation,
+  type StudioChatNavigationState,
+} from "./studio-chat-drafts";
 import type {
   RuntimeOperatorActionControl,
   RuntimeOperatorLaunchIntent,
+  EntityIdPath,
 } from "@brains/plugins";
 import type { AuthAccountRole } from "@brains/auth-service/account-contracts";
 import { isPlainRecord } from "@brains/utils/predicates";
@@ -16,6 +24,7 @@ import {
   useReducer,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactElement,
 } from "react";
 import {
@@ -26,6 +35,7 @@ import {
   parseStudioPath,
 } from "../../src/studio-paths";
 import { createStudioCreatePrefillState } from "../../src/create-prefill-contract";
+import type { StudioCollectionQuery } from "../../src/collection-query";
 import {
   STUDIO_ACCOUNT_WORKSPACE_ID,
   STUDIO_ACCOUNT_WORKSPACE_RENDERER,
@@ -41,6 +51,7 @@ import {
   StudioAppStatus,
   StudioAppView,
   type MobileEditorPane,
+  mobileEditorEntry,
 } from "./app-view";
 import {
   ApiError,
@@ -69,6 +80,7 @@ import {
 } from "./entity-fields";
 import {
   editorWorkflowReducer,
+  creationIdPath,
   hasUnsavedEditorChanges,
   initialEditorWorkflowState,
   type SaveState,
@@ -94,6 +106,7 @@ import {
 } from "./publication-actions";
 import {
   agentTargetsQueryOptions,
+  destinationQueryOptions,
   studioKeys,
   entityDetailQueryOptions,
   entityListQueryOptions,
@@ -105,12 +118,15 @@ import {
   type StudioWorkspaceQuery,
 } from "./queries";
 import { emptyDraft, errorMessage } from "./ui-utils";
+import { readErrorMessage } from "./read-error";
 import {
   initialWorkspaceUrlQuery,
   replaceWorkspaceUrlQuery,
   workspaceUrlHref,
   workspaceUrlSearch,
 } from "./workspace-url-query";
+
+import { collectionQuery, collectionSearch } from "./collection-url-query";
 
 const LazyAccountApp = lazy(async () => {
   const module = await import("./account/account-view");
@@ -199,6 +215,7 @@ export function App(): ReactElement {
     null,
   );
   const [entityType, setEntityType] = useState<string | null>(null);
+
   // Renderer-agnostic per-workspace query params (filters, paging). Renderers
   // own their query semantics; the container only stores and forwards them.
   const [workspaceQueries, setWorkspaceQueries] = useState<
@@ -210,17 +227,38 @@ export function App(): ReactElement {
   );
   const { mode, draft, body, save: saveState } = editor;
   const hasUnsavedChanges = hasUnsavedEditorChanges(editor);
+  const [chatDraftStore] = useState(() => new StudioChatDraftStore());
+  const hasChatDrafts = useSyncExternalStore(
+    chatDraftStore.subscribe,
+    chatDraftStore.hasDrafts,
+    chatDraftStore.hasDrafts,
+  );
+  const [chatNavigation, setChatNavigation] =
+    useState<StudioChatNavigationState>({ hasDraft: false, busy: false });
   const navigationBlocker = useBlocker({
-    shouldBlockFn: () => hasUnsavedChanges,
-    enableBeforeUnload: hasUnsavedChanges,
+    shouldBlockFn: ({ next }) =>
+      hasUnsavedChanges ||
+      (routePathname === STUDIO_CHAT_ROUTE_PATH &&
+        shouldBlockChatNavigation(
+          { ...chatNavigation, hasDraft: hasChatDrafts },
+          next.pathname,
+        )),
+    enableBeforeUnload:
+      hasUnsavedChanges || hasChatDrafts || chatNavigation.busy,
     withResolver: true,
   });
   const [fieldAssistState, setFieldAssistState] = useState<FieldAssistState>({
     kind: "idle",
   });
-  const [bodyMode, setBodyMode] = useState<BodyMode>("split");
+  const [bodyMode, setBodyMode] = useState<BodyMode>("preview");
   const [mobilePane, setMobilePane] = useState<MobileEditorPane>("details");
+  const preferredMobilePane = useRef<MobileEditorPane | null>(null);
+  const selectMobilePane = useCallback((pane: MobileEditorPane): void => {
+    preferredMobilePane.current = pane;
+    setMobilePane(pane);
+  }, []);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [baselineCommit, setBaselineCommit] = useState<string | null>(null);
   const saveStartedAt = useRef(0);
   const pendingOpenState = useRef<{
@@ -236,6 +274,14 @@ export function App(): ReactElement {
   const types = navigationQuery.data?.types ?? null;
   const activeType = types?.find((info) => info.entityType === entityType);
   const activeCapabilities = activeType?.capabilities;
+  const entityCollectionQuery = useMemo(
+    () =>
+      activeType?.isSingleton
+        ? collectionQuery("?scope=collection")
+        : collectionQuery(routeSearch),
+    [activeType?.isSingleton, routeSearch],
+  );
+  const entityListOffset = entityCollectionQuery.offset;
   const workspaces = navigationQuery.data?.workspaces ?? EMPTY_WORKSPACES;
   const activeWorkspace = workspaces.find(
     (workspace) => workspace.id === activeWorkspaceId,
@@ -272,7 +318,7 @@ export function App(): ReactElement {
   const workspaceResponse = workspaceQuery.data ?? null;
   const workspaceData = workspaceResponse?.data ?? null;
   const workspaceError = workspaceQuery.error
-    ? errorMessage(workspaceQuery.error)
+    ? readErrorMessage(workspaceQuery.error)
     : null;
   const activeEntityId = mode.kind === "edit" ? mode.entity.id : null;
   const agentTargetsQuery = useQuery({
@@ -290,15 +336,30 @@ export function App(): ReactElement {
   });
   const syncStatus = syncStatusQuery.data ?? null;
   const entityListQuery = useQuery({
-    ...entityListQueryOptions(api, entityType ?? ""),
+    ...entityListQueryOptions(api, entityType ?? "", entityCollectionQuery),
     enabled: entityType !== null,
   });
-  const entities = entityType ? (entityListQuery.data ?? null) : null;
+  const entities = entityType ? (entityListQuery.data?.entities ?? null) : null;
+  const entityListTotal = entityListQuery.data?.total;
   const entitySchemaQuery = useQuery({
     ...entitySchemaQueryOptions(api, entityType ?? ""),
     enabled: entityType !== null,
   });
   const schema = entityType ? (entitySchemaQuery.data ?? null) : null;
+  const createPath = creationIdPath(mode);
+  const destinationQuery = useQuery(
+    destinationQueryOptions(
+      api,
+      entityType && createPath && mode.kind === "create" && mode.segment
+        ? {
+            entityType,
+            idPath: createPath,
+            frontmatter: visibleFieldValues(schema?.fields ?? [], draft),
+            ...(schema?.hasBody && { body }),
+          }
+        : null,
+    ),
+  );
   useQuery({
     ...entityDetailQueryOptions(api, entityType ?? "", activeEntityId ?? ""),
     enabled: entityType !== null && activeEntityId !== null,
@@ -320,6 +381,38 @@ export function App(): ReactElement {
     activeDeclarativeWorkspace && workspaceResponse
       ? workspaceResponse.data
       : null;
+
+  useEffect(() => {
+    if (
+      !entityType ||
+      !activeType ||
+      activeWorkspaceId ||
+      (routeTarget.kind !== "collection" && routeTarget.kind !== "entity") ||
+      routeTarget.entityType !== entityType
+    )
+      return;
+    if (entityListTotal === undefined) return;
+    const lastOffset =
+      Math.floor(
+        Math.max(0, entityListTotal - 1) / entityCollectionQuery.limit,
+      ) * entityCollectionQuery.limit;
+    if (entityListOffset > lastOffset) {
+      router.history.replace(
+        `${routePathname}${collectionSearch({ ...entityCollectionQuery, offset: lastOffset })}`,
+        router.history.location.state,
+      );
+    }
+  }, [
+    activeType,
+    activeWorkspaceId,
+    entityListOffset,
+    entityListTotal,
+    entityCollectionQuery,
+    entityType,
+    routePathname,
+    routeTarget,
+    router.history,
+  ]);
 
   useEffect(() => {
     if (!activeWorkspaceId || !declarativeWorkspaceData?.refreshAfterMs) {
@@ -386,7 +479,9 @@ export function App(): ReactElement {
           return;
         }
         openRequestId.current += 1;
-        setLoadError(`Unknown Studio workspace: ${routeTarget.workspaceId}`);
+        setLoadError(
+          `Workspace unavailable for this account: ${routeTarget.workspaceId}`,
+        );
         return;
       }
       setActiveWorkspaceId(workspace.id);
@@ -412,7 +507,7 @@ export function App(): ReactElement {
       !types.some((info) => info.entityType === requestedType)
     ) {
       openRequestId.current += 1;
-      setLoadError(`Unknown Studio entity type: ${requestedType}`);
+      setLoadError(`Collection unavailable for this account: ${requestedType}`);
       return;
     }
 
@@ -464,19 +559,28 @@ export function App(): ReactElement {
     setMobilePane("details");
     setFieldAssistState({ kind: "idle" });
     let active = true;
-    Promise.all([
-      queryClient.fetchQuery({
+    const isCurrentRequest = (): boolean =>
+      active && requestId === openRequestId.current;
+    queryClient
+      .fetchQuery({
         ...entitySchemaQueryOptions(api, entityType),
         staleTime: 0,
-      }),
-      queryClient.ensureQueryData(entityListQueryOptions(api, entityType)),
-    ])
-      .then(([loadedSchema, loadedEntities]) => {
+      })
+      .then(async (loadedSchema) => {
         if (!active || requestId !== openRequestId.current) return undefined;
+        const nextPane = mobileEditorEntry(
+          loadedSchema,
+          preferredMobilePane.current,
+        );
+        setMobilePane(nextPane);
+        if (
+          window.matchMedia("(max-width: 640px)").matches &&
+          nextPane !== "details"
+        ) {
+          setBodyMode(nextPane === "write" ? "source" : "preview");
+        }
         if (createMode && routeEntityId === null) {
-          const canCreateRequestedType =
-            types?.find((info) => info.entityType === entityType)?.capabilities
-              .canCreate === true;
+          const canCreateRequestedType = activeCapabilities?.canCreate === true;
           if (!canCreateRequestedType) {
             setLoadError(`Creating ${entityType} is not allowed.`);
             return undefined;
@@ -496,6 +600,12 @@ export function App(): ReactElement {
             type: "creationStarted",
             draft: next.draft,
             body: next.body,
+            ...(!prefill && {
+              prefix:
+                entityType === "note"
+                  ? null
+                  : collectionQuery(routeSearch).prefix,
+            }),
           });
           return undefined;
         }
@@ -525,7 +635,15 @@ export function App(): ReactElement {
         }
         // Singletons skip the list: open the record, or start creating it.
         if (loadedSchema.isSingleton) {
-          const record = loadedEntities[0];
+          const loadedPage = await queryClient.ensureQueryData(
+            entityListQueryOptions(
+              api,
+              entityType,
+              collectionQuery("?scope=collection"),
+            ),
+          );
+          if (!isCurrentRequest()) return undefined;
+          const record = loadedPage.entities[0];
           if (record) {
             return queryClient
               .fetchQuery({
@@ -547,7 +665,7 @@ export function App(): ReactElement {
       })
       .catch((error: unknown) => {
         if (active && requestId === openRequestId.current) {
-          setLoadError(errorMessage(error));
+          setLoadError(readErrorMessage(error));
         }
       });
     return (): void => {
@@ -557,10 +675,12 @@ export function App(): ReactElement {
     createMode,
     currentStudioPathname,
     entityType,
+    loadAttempt,
     queryClient,
     routePathname,
+    routeSearch,
     routeTarget,
-    types,
+    activeCapabilities?.canCreate,
   ]);
 
   const openEntity = useCallback(
@@ -569,14 +689,16 @@ export function App(): ReactElement {
       const pathname = studioEntityPath(studioBasePath, entityType, id);
       if (pathname !== currentStudioPathname) {
         pendingOpenState.current = { pathname, save: nextState };
-        router.history.push(
-          pathname,
-          {
-            studioCollectionPath: studioCollectionPath(
-              studioBasePath,
-              entityType,
-            ),
-          },
+        const collectionPath = `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`;
+        const replaceCreation = createMode && nextState.kind === "saved";
+        const historyState: unknown = router.history.location.state;
+        const fromCollection =
+          !replaceCreation ||
+          (isPlainRecord(historyState) &&
+            historyState["studioCollectionPath"] === collectionPath);
+        router.history[replaceCreation ? "replace" : "push"](
+          `${pathname}${collectionSearch(entityCollectionQuery)}`,
+          fromCollection ? { studioCollectionPath: collectionPath } : undefined,
           nextState.kind === "saved" ? { ignoreBlocker: true } : undefined,
         );
         return;
@@ -605,14 +727,16 @@ export function App(): ReactElement {
         })
         .catch((error: unknown) => {
           if (requestId === openRequestId.current) {
-            setLoadError(errorMessage(error));
+            setLoadError(readErrorMessage(error));
           }
         });
     },
     [
       studioBasePath,
       currentStudioPathname,
+      createMode,
       entityType,
+      entityCollectionQuery,
       queryClient,
       router.history,
     ],
@@ -765,6 +889,17 @@ export function App(): ReactElement {
     [studioBasePath, router.history],
   );
 
+  const changeEntityPage = useCallback(
+    (offset: number): void => {
+      if (!entityType) return;
+      router.history.push(
+        `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch({ ...entityCollectionQuery, offset })}`,
+      );
+      window.scrollTo({ top: 0, left: 0 });
+    },
+    [entityType, entityCollectionQuery, studioBasePath, router.history],
+  );
+
   const selectWorkspace = useCallback(
     (workspaceId: string): void => {
       router.history.push(
@@ -777,18 +912,41 @@ export function App(): ReactElement {
     [studioBasePath, router.history],
   );
 
+  const selectFolder = useCallback(
+    (prefix: EntityIdPath | null): void => {
+      if (!entityType) return;
+      router.history.push(
+        `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch({ ...entityCollectionQuery, prefix, offset: 0 })}`,
+      );
+      window.scrollTo({ top: 0, left: 0 });
+    },
+    [entityType, studioBasePath, entityCollectionQuery, router.history],
+  );
+
   const startCreate = useCallback((): void => {
-    if (!schema || activeCapabilities?.canCreate !== true) return;
-    dispatchEditor({
-      type: "creationStarted",
-      draft: emptyDraft(schema.fields),
-    });
+    if (!schema || !entityType || activeCapabilities?.canCreate !== true)
+      return;
+    const params = new URLSearchParams(collectionSearch(entityCollectionQuery));
+    params.set("mode", "create");
+    router.history.push(
+      `${studioCollectionPath(studioBasePath, entityType)}?${params.toString()}`,
+      {
+        studioCollectionPath: `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`,
+      },
+    );
     setFieldAssistState({ kind: "idle" });
-  }, [activeCapabilities, schema]);
+  }, [
+    activeCapabilities,
+    schema,
+    entityType,
+    entityCollectionQuery,
+    studioBasePath,
+    router.history,
+  ]);
 
   const backToList = useCallback((): void => {
     if (!entityType) return;
-    const collectionPath = studioCollectionPath(studioBasePath, entityType);
+    const collectionPath = `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`;
     const historyState: unknown = router.history.location.state;
     if (
       typeof historyState === "object" &&
@@ -801,7 +959,7 @@ export function App(): ReactElement {
       return;
     }
     router.history.replace(collectionPath);
-  }, [studioBasePath, entityType, router.history]);
+  }, [studioBasePath, entityType, entityCollectionQuery, router.history]);
 
   const runFieldAssist = useCallback(
     (variant: FieldAssistVariant, field: string): void => {
@@ -871,6 +1029,7 @@ export function App(): ReactElement {
         ? {
             kind: "create",
             entityType,
+            ...(createPath && { idPath: createPath }),
             frontmatter,
             ...bodyPayload,
           }
@@ -882,6 +1041,7 @@ export function App(): ReactElement {
             baseContentHash: mode.entity.contentHash,
             ...bodyPayload,
           };
+    const requestId = openRequestId.current;
     saveEntityMutation.mutate(input, {
       onSuccess: async (result) => {
         await Promise.all([
@@ -891,19 +1051,41 @@ export function App(): ReactElement {
           queryClient.invalidateQueries({
             queryKey: studioKeys.syncStatus(),
           }),
+          ...(mode.kind === "create"
+            ? [
+                queryClient.invalidateQueries({
+                  queryKey: studioKeys.navigation(),
+                }),
+              ]
+            : []),
         ]);
+        if (requestId !== openRequestId.current) return;
         const noop = "skipped" in result && result.skipped === true;
         // Re-fetch after every save so the next edit carries a fresh
         // contentHash precondition.
         openEntity(result.entityId, { kind: "saved", noop });
       },
       onError: (error: Error) => {
+        if (requestId !== openRequestId.current) return;
+        if (error instanceof ApiError && error.issues.length > 0)
+          setMobilePane("details");
         dispatchEditor({
           type: "saveFailed",
           save:
-            error instanceof ApiError && error.status === 409
+            error instanceof ApiError &&
+            error.status === 409 &&
+            mode.kind === "edit"
               ? { kind: "conflict", message: errorMessage(error) }
-              : { kind: "error", message: errorMessage(error) },
+              : {
+                  kind: "error",
+                  message:
+                    error instanceof ApiError && error.issues.length > 0
+                      ? error.message || "Validation failed"
+                      : errorMessage(error),
+                  ...(error instanceof ApiError
+                    ? { issues: error.issues }
+                    : {}),
+                },
         });
       },
     });
@@ -911,6 +1093,7 @@ export function App(): ReactElement {
     activeCapabilities,
     entityType,
     mode,
+    createPath,
     draft,
     body,
     schema,
@@ -946,9 +1129,12 @@ export function App(): ReactElement {
             queryClient.invalidateQueries({
               queryKey: studioKeys.syncStatus(),
             }),
+            queryClient.invalidateQueries({
+              queryKey: studioKeys.navigation(),
+            }),
           ]);
           router.history.replace(
-            studioCollectionPath(studioBasePath, entityType),
+            `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`,
             undefined,
             { ignoreBlocker: true },
           );
@@ -1125,10 +1311,24 @@ export function App(): ReactElement {
 
   const visibleLoadError =
     loadError ??
-    (navigationQuery.error ? errorMessage(navigationQuery.error) : null);
+    (navigationQuery.error
+      ? readErrorMessage(navigationQuery.error)
+      : entityListQuery.error
+        ? readErrorMessage(entityListQuery.error)
+        : null);
 
-  if (visibleLoadError) {
-    return <StudioAppStatus message={visibleLoadError} error />;
+  const retryRead = (): void => {
+    setLoadError(null);
+    if (navigationQuery.error) void navigationQuery.refetch();
+    if (entityListQuery.error) void entityListQuery.refetch();
+    if (workspaceQuery.error) void workspaceQuery.refetch();
+    // Re-run an unsuccessful open, but never replace an already-open draft.
+    if (mode.kind === "browse") setLoadAttempt((attempt) => attempt + 1);
+  };
+  if (visibleLoadError && !types) {
+    return (
+      <StudioAppStatus message={visibleLoadError} error onRetry={retryRead} />
+    );
   }
   if (!types) {
     return <StudioAppStatus message="Loading…" />;
@@ -1146,7 +1346,7 @@ export function App(): ReactElement {
         selectEntityType={selectEntityType}
         selectWorkspace={selectWorkspace}
       >
-        <Suspense fallback={<p className="status">Opening Account…</p>}>
+        <Suspense fallback={<StudioStatus>Opening Account…</StudioStatus>}>
           <LazyAccountApp
             bootstrap={accountBootstrap(accountPath, studioBasePath)}
           />
@@ -1156,31 +1356,65 @@ export function App(): ReactElement {
   }
   if (activeChat) {
     return (
-      <Suspense fallback={<StudioAppStatus message="Opening Chat…" />}>
-        <LazyStudioChatWorkspace
-          apiPath={activeWorkspace.chatApiPath}
-          studioBasePath={studioBasePath}
-          sessionId={studioChatSessionId(routeSearch)}
-          types={types}
-          workspaces={workspaces}
-          handoff={readStudioChatHandoffState(routeState)}
-          navigate={(href) => router.history.push(href)}
-          selectEntityType={selectEntityType}
-          selectWorkspace={selectWorkspace}
-        />
-      </Suspense>
+      <>
+        <Suspense fallback={<StudioAppStatus message="Opening Chat…" />}>
+          <LazyStudioChatWorkspace
+            apiPath={activeWorkspace.chatApiPath}
+            draftStore={chatDraftStore}
+            onNavigationStateChange={setChatNavigation}
+            studioBasePath={studioBasePath}
+            sessionId={studioChatSessionId(routeSearch)}
+            types={types}
+            workspaces={workspaces}
+            handoff={readStudioChatHandoffState(routeState)}
+            navigate={(href, options) => {
+              // Acknowledged internal transitions keep drafts intact; work is not abandoned.
+              router.history.push(href, undefined, {
+                ignoreBlocker: options?.preserveWork === true,
+              });
+            }}
+            selectEntityType={selectEntityType}
+            selectWorkspace={selectWorkspace}
+          />
+        </Suspense>
+        {navigationBlocker.status === "blocked" && (
+          <ConfirmDialog
+            mark="↩"
+            title="Leave this conversation?"
+            titleId="chat-navigation-title"
+            cancelLabel="Stay"
+            confirmLabel="Leave"
+            onCancel={() => navigationBlocker.reset()}
+            onConfirm={() => navigationBlocker.proceed()}
+          >
+            <p>
+              Your draft stays in this tab. Leaving stops receiving the
+              response, but does not undo completed actions or background jobs.
+            </p>
+          </ConfirmDialog>
+        )}
+      </>
     );
   }
   if (
     activeWorkspaceId
       ? !workspaceData && !workspaceError
-      : entityType && (!schema || !entities)
+      : entityType && !schema && !visibleLoadError
   ) {
     return <StudioAppStatus message="Loading…" />;
   }
-  if (!activeWorkspaceId && (!entityType || !schema)) {
+  if (!activeWorkspaceId && (!entityType || (!schema && !visibleLoadError))) {
     return (
-      <StudioAppStatus message="No editable entity types are registered." />
+      <StudioAppStatus
+        message={
+          visibleLoadError ??
+          "No readable collections are available for this account."
+        }
+        error={Boolean(visibleLoadError)}
+        {...(visibleLoadError
+          ? { onHome: () => router.history.push(studioBasePath) }
+          : {})}
+      />
     );
   }
 
@@ -1190,10 +1424,36 @@ export function App(): ReactElement {
       types={types}
       workspaces={workspaces}
       workspaceError={workspaceError}
+      readError={visibleLoadError}
+      onRetryRead={retryRead}
       declarativeWorkspaceData={declarativeWorkspaceData}
       workspaceQuery={workspaceRequestQuery}
       entityType={entityType}
       entities={entities}
+      folders={entityListQuery.data?.folders ?? []}
+      collectionPath={
+        entityType
+          ? studioCollectionPath(studioBasePath, entityType)
+          : studioBasePath
+      }
+      selectFolder={selectFolder}
+      creationDestination={{
+        data: destinationQuery.data ?? null,
+        pending: destinationQuery.isPending,
+        error: destinationQuery.error,
+      }}
+      entityOffset={entityListOffset}
+      entityLimit={entityCollectionQuery.limit}
+      entityTotal={entityListTotal ?? 0}
+      collectionQuery={entityCollectionQuery}
+      onCollectionQueryChange={(query: StudioCollectionQuery): void => {
+        if (!entityType) return;
+        router.history.push(
+          `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch({ ...query, offset: 0 })}`,
+        );
+        window.scrollTo({ top: 0, left: 0 });
+      }}
+      entityListLoading={entityListQuery.isPending}
       schema={schema}
       editor={editor}
       fieldAssistState={fieldAssistState}
@@ -1208,10 +1468,11 @@ export function App(): ReactElement {
       dispatchEditor={dispatchEditor}
       setFieldAssistState={setFieldAssistState}
       setBodyMode={setBodyMode}
-      setMobilePane={setMobilePane}
+      setMobilePane={selectMobilePane}
       backToList={backToList}
       selectEntityType={selectEntityType}
       selectWorkspace={selectWorkspace}
+      changeEntityPage={changeEntityPage}
       openWorkspaceEntity={openWorkspaceEntity}
       openWorkspaceLaunch={openWorkspaceLaunch}
       performPublishingAction={performPublishingAction}

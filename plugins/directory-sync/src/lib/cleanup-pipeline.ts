@@ -4,6 +4,7 @@ import {
   type ContentVisibility,
 } from "@brains/sdk/entities";
 import type { CleanupResult } from "../types";
+import { EntityPlacementError } from "./entity-placement-error";
 import {
   createCleanupResult,
   recordCleanupDeleted,
@@ -35,6 +36,7 @@ export interface CleanupPipelineDeps {
     error(message: string, meta?: Record<string, unknown>): void;
   };
   fileOperations: {
+    assertEntityPlacement(entity: BaseEntity): void;
     getEntityFilePath(entity: BaseEntity): string;
     fileExists(filePath: string): Promise<boolean>;
   };
@@ -74,6 +76,16 @@ export async function removeOrphanedEntities(
     });
 
     for (const entity of entities) {
+      try {
+        deps.fileOperations.assertEntityPlacement(entity);
+      } catch (error) {
+        if (!(error instanceof EntityPlacementError)) throw error;
+        deps.logger.info("Keeping entity with refused placement", {
+          entityType,
+          entityId: entity.id,
+        });
+        continue;
+      }
       const filePath = deps.fileOperations.getEntityFilePath(entity);
       if (!(await deps.fileOperations.fileExists(filePath))) {
         // A quarantined file (renamed to .invalid) is not a user deletion;

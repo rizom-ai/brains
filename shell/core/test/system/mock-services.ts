@@ -453,6 +453,9 @@ export function createMockSystemServices(
     countMessages: unreached("countMessages"),
     updateConversationMetadata: unreached("updateConversationMetadata"),
     deleteConversation: unreached("deleteConversation"),
+    deleteExpiredGuestConversations: unreached(
+      "deleteExpiredGuestConversations",
+    ),
     close: unreached("close"),
   };
 

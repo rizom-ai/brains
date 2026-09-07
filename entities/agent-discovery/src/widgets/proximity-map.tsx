@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import type { CSSProperties, JSX } from "react";
+import { WidgetEmptyState } from "@brains/ui-library";
 import proximityMapWidgetStyles from "./proximity-map-widget.css" with { type: "text" };
 import {
   proximityCenterLabel,
@@ -306,14 +307,16 @@ function Bulb({
 function EmptyProximityMap({ data }: { data: ProximityMapData }): JSX.Element {
   return (
     <div className="proximity-empty" data-proximity-map-empty>
-      <p className="muted">No indexed agents yet.</p>
+      <WidgetEmptyState>No indexed agents yet.</WidgetEmptyState>
       {data.center.kind === "centroid" && (
-        <p className="muted">
+        <WidgetEmptyState>
           Identity not indexed yet — waiting for embeddings.
-        </p>
+        </WidgetEmptyState>
       )}
       {data.pendingCount > 0 && (
-        <p className="muted">{data.pendingCount} pending indexing</p>
+        <WidgetEmptyState>
+          {data.pendingCount} pending indexing
+        </WidgetEmptyState>
       )}
     </div>
   );
@@ -849,6 +852,7 @@ export function ProximityMap({
 /** The dashboard face of the map — parses widget data, falls back quietly. */
 export function AgentProximityWidget({ data }: { data: unknown }): JSX.Element {
   const parsed = proximityMapDataSchema.safeParse(data);
-  if (!parsed.success) return <p className="muted">Nothing to show yet.</p>;
+  if (!parsed.success)
+    return <WidgetEmptyState>Nothing to show yet.</WidgetEmptyState>;
   return <ProximityMap data={parsed.data} />;
 }

@@ -2,7 +2,7 @@
 
 ## Status
 
-**Proposed.** The standalone interface-grant panel has been removed; raw no-account allowlists remain config-seeded and CLI-managed. This plan adds the person-centered browser flow for connecting a channel identity and makes channel types extensible instead of hardcoded.
+**Partially implemented.** Extensible channel descriptors/providers, email interface ownership, and registry-driven Admin presentation have shipped. The remaining work is the person-centered attach/detach control and end-to-end Slack proof. The standalone interface-grant panel is removed; raw no-account allowlists remain config-seeded and CLI-managed.
 
 ## Goal
 

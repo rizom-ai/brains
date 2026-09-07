@@ -1,7 +1,10 @@
 import { describe, expect, it, mock, spyOn } from "bun:test";
 import { handleCLI, type CliIo } from "../src/cli";
+import { CLI_OPERATOR_ACTOR } from "../src/cli-operator";
+import { createMockShell } from "./helpers/mock-shell";
 import { App } from "../src/app";
 import { defineConfig } from "../src/config";
+import type { ToolResponse } from "@brains/mcp-service";
 
 /**
  * handleCLI takes everything it touches outside its arguments — argv, output,
@@ -167,6 +170,72 @@ describe("handleCLI", () => {
     expect(create).not.toHaveBeenCalled();
     const exported: unknown = JSON.parse(io.logged.join("\n"));
     expect(exported).toMatchObject({ name: "deployable", version: "3.0.0" });
+  });
+
+  it("invokes --tool as the CLI operator with admin authority", async () => {
+    // The command line is the brain's own interface. Whoever runs it owns
+    // the data directory, so the runner must say so: a tool invoked with no
+    // level runs as an anonymous caller and is refused by any entity-action
+    // policy, while the bundled runtime already asserts admin.
+    const handler = mock(
+      async (_input: unknown, _context: unknown): Promise<ToolResponse> => ({
+        success: true,
+        message: "ok",
+      }),
+    );
+    const app = App.create(
+      testConfig,
+      createMockShell([{ name: "probe", handler }]),
+    );
+    const initialize = spyOn(app, "initialize").mockResolvedValue(undefined);
+    const io = fakeIo(["--tool", "probe", "--tool-input", '{"dryRun":true}'], {
+      create: mock(() => app),
+    });
+
+    const code = await exitCodeOf(handleCLI(testConfig, undefined, io));
+
+    expect(code).toBe(0);
+    // A one-shot process owns no runtime work. A full boot would start a job
+    // worker on the queue's stable slot and supersede the running app's
+    // worker session, which then stops claiming jobs until it is restarted.
+    // The bundled runtime already boots tools register-only; so must this path.
+    expect(initialize).toHaveBeenCalledWith({ mode: "register-only" });
+    expect(handler).toHaveBeenCalledWith(
+      { dryRun: true },
+      {
+        interfaceType: "cli",
+        actor: { kind: "service", serviceId: "brain-cli" },
+        userPermissionLevel: "admin",
+      },
+    );
+    expect(CLI_OPERATOR_ACTOR).toEqual({
+      kind: "service",
+      serviceId: "brain-cli",
+    });
+    expect(io.logged).toEqual(["ok"]);
+  });
+
+  it("invokes --cli-command through the same register-only boot", async () => {
+    const handler = mock(
+      async (_input: unknown, _context: unknown): Promise<ToolResponse> => ({
+        success: true,
+        message: "listed",
+      }),
+    );
+    const app = App.create(
+      testConfig,
+      createMockShell([
+        { name: "probe", handler, cli: { name: "probe" }, inputSchema: {} },
+      ]),
+    );
+    const initialize = spyOn(app, "initialize").mockResolvedValue(undefined);
+    const io = fakeIo(["--cli-command", "probe"], { create: mock(() => app) });
+
+    const code = await exitCodeOf(handleCLI(testConfig, undefined, io));
+
+    expect(code).toBe(0);
+    expect(initialize).toHaveBeenCalledWith({ mode: "register-only" });
+    expect(io.logged).toEqual(["listed"]);
   });
 
   it("rejects --tool-input that is not JSON with exit 1", async () => {

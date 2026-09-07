@@ -9,6 +9,10 @@ import { InboxRegistry, PluginManager } from "@brains/plugins";
 import { Shell, type ShellDependencies } from "../src/shell";
 import type { ShellConfigInput } from "../src/config";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
+import { BunSchedulerBackend } from "@brains/scheduler";
+import { TestSchedulerBackend } from "@brains/scheduler/test";
+import { deferred } from "@brains/utils/deferred";
+import { DaemonRegistry } from "../src/daemon-registry";
 
 function createTestConfig(dir: string): ShellConfigInput {
   return {
@@ -26,6 +30,139 @@ function createTestConfig(dir: string): ShellConfigInput {
 }
 
 describe("Shell service construction", () => {
+  it.each([
+    { model: "gpt-5.6-luna", embeddings: false, available: false },
+    { model: "gpt-5.6-luna", embeddings: true, available: true },
+    { model: "claude-haiku-4-5", embeddings: false, available: false },
+  ])(
+    "installs guest accounting for the reviewed semantic/model combination: %j",
+    async ({ model, embeddings, available }) => {
+      const testDir = await createTestDirectory();
+      const network = spyOn(globalThis, "fetch").mockImplementation(
+        Object.assign(
+          async (): Promise<never> => {
+            throw new Error("Construction must not call a provider");
+          },
+          { preconnect: (): void => {} },
+        ),
+      );
+      try {
+        const shell = Shell.createFresh(
+          {
+            ...createTestConfig(testDir.dir),
+            ai: { model, apiKey: "test-key" },
+            embedding: { enabled: embeddings },
+          },
+          { logger: createSilentLogger() },
+        );
+        try {
+          const readiness = spyOn(shell.getEntityService(), "isIndexReady");
+          readiness.mockReturnValue(true);
+          expect(shell.getAgentService().guestProfileAvailable).toBe(available);
+          readiness.mockReturnValue(false);
+          expect(shell.getAgentService().guestProfileAvailable).toBe(false);
+          readiness.mockRestore();
+          const request = shell
+            .getAgentService()
+            .chat("Check readiness", "not-started", {
+              interfaceType: "web-chat-guest",
+              userPermissionLevel: "public",
+            });
+          if (embeddings) {
+            expect((await request).text).toContain("knowledge base ready");
+          } else {
+            // Lexical mode must reach normal request validation, not wait for
+            // a semantic index that is intentionally never built. No policy
+            // is supplied, so this probe cannot reach provider execution.
+            expect(request).rejects.toThrow("Guest execution limits required");
+          }
+          expect(network).not.toHaveBeenCalled();
+        } finally {
+          await shell.shutdown();
+        }
+      } finally {
+        network.mockRestore();
+        await testDir.cleanup();
+      }
+    },
+  );
+
+  it("registers dormant guest retention maintenance and drains it before closing conversation storage", async () => {
+    const testDir = await createTestDirectory();
+    const scheduler = new TestSchedulerBackend();
+    const scheduled = spyOn(
+      BunSchedulerBackend.prototype,
+      "scheduleInterval",
+    ).mockImplementation((interval, callback) =>
+      scheduler.scheduleInterval(interval, callback),
+    );
+    const logger = createSilentLogger();
+    const registry = DaemonRegistry.createFresh(logger);
+    const conversations = createMockShell().getConversationService();
+    const entered = deferred();
+    const release = deferred();
+    const clean = spyOn(
+      conversations,
+      "deleteExpiredGuestConversations",
+    ).mockImplementation(async (limit) => {
+      expect(limit).toBe(100);
+      entered.resolve();
+      await release.promise;
+      return 0;
+    });
+    const closed = spyOn(conversations, "close");
+    const shell = Shell.createFresh(createTestConfig(testDir.dir), {
+      logger,
+      daemonRegistry: registry,
+      conversationService: conversations,
+    });
+    try {
+      const info = registry.get("shell:guest-retention");
+      if (!info) throw new Error("Expected retention daemon");
+      expect(info.status).toBe("stopped");
+      await scheduler.tickIntervals();
+      expect(clean).not.toHaveBeenCalled();
+      await registry.start("shell:guest-retention");
+      const tick = scheduler.tickIntervals();
+      await entered.promise;
+      const stopEntered = deferred();
+      const stop = info.daemon.stop;
+      spyOn(info.daemon, "stop").mockImplementation(() => {
+        stopEntered.resolve();
+        return stop();
+      });
+      const shutdown = shell.shutdown();
+      await stopEntered.promise;
+      expect(closed).not.toHaveBeenCalled();
+      release.resolve();
+      await Promise.all([tick, shutdown]);
+      expect(closed).toHaveBeenCalledTimes(1);
+      await scheduler.tickIntervals();
+      expect(clean).toHaveBeenCalledTimes(1);
+    } finally {
+      release.resolve();
+      await shell.shutdown();
+      scheduled.mockRestore();
+      await testDir.cleanup();
+    }
+  });
+
+  it("does not register the host retention daemon in an execution-only worker", async () => {
+    const testDir = await createTestDirectory();
+    const logger = createSilentLogger();
+    const registry = DaemonRegistry.createFresh(logger);
+    const shell = Shell.createFresh(
+      createTestConfig(testDir.dir),
+      { logger, daemonRegistry: registry },
+      { processRole: "worker" },
+    );
+    try {
+      expect(registry.has("shell:guest-retention")).toBe(false);
+    } finally {
+      await shell.shutdown();
+      await testDir.cleanup();
+    }
+  });
   it("closes acquired services when later construction fails", async () => {
     const testDir = await createTestDirectory();
     const constructionError = new Error("shell wiring failed");
@@ -66,6 +203,11 @@ describe("Shell service construction", () => {
           has: async (): Promise<boolean> => false,
           set: async (): Promise<void> => {},
           setIfNotExists: async (): Promise<boolean> => true,
+          compareAndSet: async (): Promise<boolean> => {
+            throw new Error(
+              "Unexpected compare-and-set in construction fixture",
+            );
+          },
           delete: async (): Promise<boolean> => false,
           list: async (): Promise<RuntimeStateRecordValue<T>[]> => [],
           clear: async (): Promise<number> => 0,

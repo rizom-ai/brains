@@ -230,6 +230,7 @@ The brain's house style is a singleton entity. Packages that generate prose or i
 
 Definitions and schema vocabulary:
 
+- `contentGenerationResultSchema`
 - `defineAccountSettings`
 - `defineStudioWorkspace`
 - `defineDashboardWidget`
@@ -334,11 +335,20 @@ Types:
 - `OperatorView`
 - `OperatorViewBlock`
 - `OperatorViewStatus`
+- `ServiceContentGeneration`
+- `ServiceContentGenerationContext`
+- `ServiceContentGenerationItem`
+- `ServiceContentGenerationResult`
+- `ServiceContentGenerationSkipReason`
+- `ServiceContentGenerationTarget`
+- `ServiceContentGenerationTargetInput`
+- `ServiceEntityIdPath`
 - `ServiceJobDefinition`
 - `ServiceJobReference`
 - `ServiceJobStatus`
 - `ServicePackageDefinition`
 - `ServiceToolDefinition`
+- `ServiceTemplateGenerationDefinition`
 - `WorkspaceActionConfirmation`
 - `WorkspaceActionDefinition`
 - `WorkspaceActionFormControl`
@@ -376,6 +386,47 @@ Types:
 - `AnyDataSourceDeclaration`
 
 These operator schemas and executor bindings are the accepted public contract. The account-settings runtime provides encrypted auth-DB persistence, redacted Account forms, principal isolation, and runtime-owned account-daemon reconciliation. Dashboard widgets and Studio workspaces register through host-owned semantic renderers; callbacks receive the canonical caller, secret-redacted current-principal settings, visibility-scoped entities, typed jobs, and cancellation. Studio adds schema-validated query state, bounded host-rendered plain text, typed dynamic catalogs and launch intents, caller/input/revision/expiry/single-use prepared confirmations, schema-driven action forms, bounded ephemeral result presentation, bounded `card` and primary/aside `columns` composition, collection-owned query controls, source-declared compact table rows, and one explicit top-level primary action. Studio keeps unannotated tables in a bounded scrolling fallback and positions the single declared action in the desktop head or phone action bar without hoisting in-flow controls. Form fields must cover every non-pre-bound object input field, select controls have explicit options, secret inputs use password controls, and result declarations cover only scalar object outputs. Forms may opt into collapsed disclosure presentation, and a field label may declaratively follow every option of another select field. Sensitive results are held only in renderer-local state and are cleared on workspace refresh or navigation. Missing optional hosts leave declarations inert, and execution-only workers never bind or register operator callbacks. The packed operator fixture compiles Account settings, Dashboard, and Studio authoring together without browser UI code.
+
+### Content generation (implementation in progress)
+
+Generation-only templates declare `schema`, `generation: { prompt }`, and `format`;
+they do not require a React layout. Construct each target with `content.target()` using
+a local generation-template key, an entity definition, `idPath` segments, and that entity's
+schema input metadata. Each target is independently inferred, so `content.generate({ targets })`
+can accept heterogeneous entities without widening their metadata types. Format-only or
+unknown template keys are rejected.
+
+A target is the frozen, validated JSON that `content.target()` returns. Its entity
+definition is not on it, and its metadata has already been transformed by that definition
+once; `generate` re-validates targets on submission, so a target may be reused across
+calls. Normal entity persistence validation still applies. The active caller is bound when
+submitting, not when constructing a target.
+
+Use `contentGenerationResultSchema` as a generating tool's output schema. Results contain
+admission decisions, not prose or completion evidence. Counts and references are checked;
+`plannedTargets` includes both planned and queued items. Dry runs return planned/skipped
+items, zero queued targets, and no batch or job references. All-skipped submissions also
+have no batch reference. Submission items report local template declaration keys.
+
+Generation is asynchronous, and its result is an admission record. Each item's destination
+carries the stored `entityId` alongside its `idPath`, so observe completion by reading that
+entity through a typed entity reader; never rebuild an identifier from path segments. The
+returned `batchId` is the shared root job ID of the admitted children, for use with the
+runtime's existing job diagnostics.
+
+Targets are independent and may partially succeed. Re-submitting the same request is safe:
+targets whose output already exists are skipped, and a job that planned against an older
+revision conflicts rather than overwriting. A job runs at most once, so a failed job wrote
+nothing and re-submitting generates only what is missing. Caller identity, permission levels, queue internals, and
+authorization callbacks are not author inputs.
+
+The packed service fixture compiles mixed targets and negative type tests, submits both
+entity types through the CLI, and reads the committed outputs through typed entity readers.
+Preview and repeat-submission skips are also covered. It uses an explicit CLI service grant
+and a mocked provider, with real runtime and persistence. This is feature-level evidence,
+not a transport-wide audit or full process-crash proof. Publishing preparation remains
+separate; this surface is not yet release-accepted. Release nomination must update the
+fixture's peer floor to the first published version providing it.
 
 ## `@rizom/brain/interfaces`
 

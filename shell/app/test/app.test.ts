@@ -7,8 +7,9 @@ import {
 } from "../src/app";
 import { MigrationManager } from "../src/migration-manager";
 import { appConfigSchema } from "../src/types";
-import { Shell, type Shell as ShellInstance } from "@brains/core";
+import { Shell } from "@brains/core";
 import { ProcessExited } from "@brains/test-utils";
+import { createMockShell } from "./helpers/mock-shell";
 
 const originalNodeEnv = process.env["NODE_ENV"];
 
@@ -21,28 +22,6 @@ afterEach(() => {
 });
 
 // Create a mock Shell
-/**
- * A stand-in Shell for tests about App's orchestration.
- *
- * Shell is a class with a large surface, and App exposes getShell(): Shell as
- * public API, so narrowing the injection parameter would change that return
- * type for every consumer. Constructing a real Shell needs a full config and a
- * database, which these tests — about initialize/shutdown ordering — have no
- * use for. The widening is unavoidable; it lives in this one factory so it is
- * named once rather than at each call site.
- */
-const createMockShell = (): ShellInstance => {
-  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- deliberate; the comment above explains why
-  return {
-    initialize: mock(() => Promise.resolve()),
-    shutdown: mock(() => Promise.resolve()),
-    getPluginManager: mock(() => ({
-      registerPlugin: mock(() => {}),
-    })),
-    // eslint-disable-next-line no-restricted-syntax -- deliberate; the comment above explains why
-  } as unknown as ShellInstance;
-};
-
 function deferred(): { promise: Promise<void>; resolve: () => void } {
   let resolve: () => void = () => {};
   const promise = new Promise<void>((complete) => {
@@ -231,6 +210,34 @@ describe("buildShellConfig", () => {
   // Shell.createFresh to capture what App passed it — six spies, each with a
   // MigrationManager spy beside it and a try/finally to restore both — when
   // the thing under test was a value that could simply be returned.
+
+  it("grants the CLI operator admin by rule ahead of the configured rules", () => {
+    // Durable, so the write-time re-check of a queued job resolves the same
+    // authority the CLI asserted at admission. A rule rather than an admin
+    // seed: seeds only reach auth.db on a brain's first start.
+    const shellConfig = buildShellConfig(
+      toAppConfig({
+        permissions: {
+          admins: ["discord:owner"],
+          rules: [{ pattern: "mcp:http", level: "admin" }],
+        },
+      }),
+    );
+
+    expect(shellConfig.permissions).toEqual({
+      admins: ["discord:owner"],
+      rules: [
+        { pattern: "service:brain-cli", level: "admin" },
+        { pattern: "mcp:http", level: "admin" },
+      ],
+    });
+  });
+
+  it("grants the CLI operator admin when nothing configures permissions", () => {
+    expect(buildShellConfig(toAppConfig({})).permissions).toEqual({
+      rules: [{ pattern: "service:brain-cli", level: "admin" }],
+    });
+  });
 
   it("injects the startup-check API key placeholder when no key is configured", () => {
     const shellConfig = buildShellConfig(toAppConfig({}), {

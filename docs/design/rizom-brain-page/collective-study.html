@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Collective work — visual study</title>
+<link rel="stylesheet" href="../rizom-living-memory-page/styles/main.css">
+<style>
+*{box-sizing:border-box}body{margin:0;padding:0;background-color:var(--color-bg);background-image:var(--bg-noise);color:var(--color-text);font-family:var(--font-body)}h1,p,figure{margin:0}.canvas-study{width:min(1200px,100%);margin:auto;padding:24px 36px 30px}.bar{display:flex;justify-content:space-between;align-items:center;gap:20px;padding-bottom:18px;border-bottom:1px solid var(--color-border)}.eyebrow{font:10px/1.8 var(--font-label);letter-spacing:.09em;text-transform:uppercase;color:var(--color-text-muted)}button{font:12px var(--font-body);padding:11px 16px;min-height:44px;border:1px solid var(--color-border);border-radius:3px;background:none;color:var(--color-text);cursor:pointer}button:focus-visible{outline:2px solid var(--color-accent);outline-offset:4px}h1{font:450 clamp(35px,4.2vw,52px)/1.15 var(--font-display);letter-spacing:-.025em;padding-top:33px}h1 em{font-weight:400;color:var(--color-accent)}.art{display:block;width:100%;height:auto;margin:6px auto 0;overflow:visible}.paper{fill:var(--palette-cream);stroke:var(--palette-ink);stroke-opacity:.18;stroke-width:1}.paper-edge{fill:var(--palette-cream);stroke:var(--palette-ink);stroke-opacity:.25;stroke-width:1}.ink{fill:var(--palette-ink)}.rule{fill:none;stroke:var(--palette-ink);stroke-opacity:.3;stroke-width:1;stroke-linecap:round}.hand{fill:none;stroke:var(--palette-ink);stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}.surface-type{fill:var(--palette-ink);font-family:var(--font-display);font-weight:450}.tiny{font-family:var(--font-label);font-size:10px;letter-spacing:1px}.folio-caption{fill:var(--color-text);font:450 23px var(--font-display);letter-spacing:-.4px}.folio-subtitle{fill:var(--color-text-muted);font:10px var(--font-label);letter-spacing:.3px}.cover{fill:var(--folio-color);stroke:var(--palette-ink);stroke-opacity:.25;stroke-width:1}.spine{fill:var(--palette-ink);opacity:.16}.page-lines{stroke:var(--palette-ink);stroke-opacity:.2;stroke-width:1;fill:none}.note-heading{font:450 23px var(--font-display);fill:var(--palette-ink);letter-spacing:-.4px}.note-label{font:9px var(--font-label);fill:var(--palette-ink);letter-spacing:1px}.contribution-color{fill:var(--folio-color)}.self{--folio-color:var(--palette-brass)}.research{--folio-color:var(--palette-moss)}.team{--folio-color:var(--palette-ruby-soft)}.practice{--folio-color:var(--palette-night)}.brain-self{transform:translate(33px,88px) rotate(-6deg)}.brain-research{transform:translate(817px,67px) rotate(7deg)}.brain-team{transform:translate(40px,490px) rotate(-5deg)}.brain-practice{transform:translate(824px,471px) rotate(6deg)}.common-work{transform:translate(332px,151px) rotate(-1deg)}.caption{display:flex;justify-content:space-between;gap:35px;border-top:1px solid var(--color-border);padding-top:22px}.caption p:first-child{font:400 23px/1.5 var(--font-display);max-width:38ch}.caption .eyebrow{max-width:38ch;text-transform:none;letter-spacing:0;font-size:11px}.study-note{font-size:11px;line-height:1.8;color:var(--color-text-muted);margin-top:20px}.mobile-label{display:none}
+@media(max-width:650px){.canvas-study{padding:20px}h1{font-size:36px;max-width:16ch;padding-top:27px}.bar .eyebrow{font-size:9px}.bar button{font-size:11px;padding-inline:12px}.art{margin-top:28px}.brain-self{transform:translate(30px,24px) rotate(-5deg)}.brain-research{transform:translate(343px,15px) rotate(5deg)}.common-work{transform:translate(91px,330px) rotate(-1deg)}.brain-team{transform:translate(28px,921px) rotate(-4deg)}.brain-practice{transform:translate(342px,909px) rotate(5deg)}.folio-caption{font-size:27px}.folio-subtitle{font-size:14px}.caption{flex-direction:column;gap:18px;padding-top:22px}.caption p:first-child{font-size:23px}.caption .eyebrow{max-width:48ch}.study-note{margin-top:18px}}
+</style>
+</head>
+<body>
+<main class="canvas-study">
+<header class="bar"><p class="eyebrow">Rizom Brain · Collective visual study</p><button id="theme" type="button" aria-label="Switch to light theme">☀ Light</button></header>
+<h1>Your brain. <em>Not on its own.</em></h1>
+<figure>
+<svg class="art" id="art" viewBox="0 0 1100 790" role="img" aria-labelledby="art-title art-description">
+<title id="art-title">Four independently owned brains contribute to one shared project plan.</title>
+<desc id="art-description">Four separate folios represent your brain, a research brain, a team's brain, and a practitioner's brain. Their own notes remain in the folios. Four loose working papers, marked with matching colors, assemble into a shared project plan: purpose, evidence, approach, and open questions. This is a conceptual illustration, not a captured result.</desc>
+<defs>
+  <filter id="paper-shadow" x="-30%" y="-30%" width="170%" height="180%"><feDropShadow dx="2" dy="7" stdDeviation="7" flood-color="var(--palette-night)" flood-opacity=".19"/></filter>
+  <filter id="small-shadow" x="-25%" y="-25%" width="160%" height="170%"><feDropShadow dx="1" dy="3" stdDeviation="3" flood-color="var(--palette-night)" flood-opacity=".16"/></filter>
+  <pattern id="paper-fibres" width="80" height="80" patternUnits="userSpaceOnUse"><path d="M3 8h12m18 9h8m-20 18h15m18-25h9M6 62h10m19 7h17m5-21h13M2 43h4m44-13h10" stroke="var(--palette-ink)" stroke-width=".5" opacity=".07"/></pattern>
+  <g id="folio">
+    <path class="cover" d="M4 9Q58-2 114 10Q170-2 227 9L232 181Q171 171 117 185Q56 173 1 184Z"/>
+    <path class="paper-edge" d="M12 18Q61 10 110 21L111 179Q57 165 10 176ZM118 21Q169 10 219 18L222 176Q171 164 119 179Z"/>
+    <path class="page-lines" d="M14 169Q58 161 108 174M14 172Q58 164 108 177M121 174Q170 161 218 169M121 177Q170 164 218 172"/>
+    <path class="paper" d="M10 10Q60 1 111 14L111 169Q59 154 8 166ZM117 14Q170 0 220 10L220 166Q168 153 117 169Z"/>
+    <path class="spine" d="M106 13Q113 17 122 13L123 166L114 173L106 166Z"/>
+    <path d="M114 19V167" class="rule"/>
+    <path d="M10 10Q60 1 111 14L111 169Q59 154 8 166ZM117 14Q170 0 220 10L220 166Q168 153 117 169Z" fill="url(#paper-fibres)"/>
+    <path class="contribution-color" d="M172 9L188 7V53L180 47L172 54Z"/>
+  </g>
+  <g id="ruled-note"><path class="rule" d="M0 0h68M0 12h73M0 24h49M0 44h72M0 56h59"/></g>
+</defs>
+<!-- Independently held knowledge. These objects are not app windows. -->
+<g class="brain-self self">
+  <g filter="url(#paper-shadow)"><use href="#folio"/>
+    <text x="22" y="42" class="surface-type" font-size="22">Notes</text><use href="#ruled-note" x="22" y="64"/>
+    <text x="137" y="52" class="surface-type" font-size="38">r.</text><path class="rule" d="M137 77h63M137 89h55M137 101h66M137 113h40"/>
+    <path d="M22 137Q45 131 69 137" fill="none" stroke="var(--folio-color)" stroke-width="5" opacity=".6"/>
+    <path class="hand" d="M193 138l5 4 11-14"/>
+  </g>
+  <text x="112" y="220" text-anchor="middle" class="folio-caption">Your brain</text>
+  <text x="112" y="242" text-anchor="middle" class="folio-subtitle">Your knowledge &amp; intentions</text>
+</g>
+<g class="brain-research research">
+  <g filter="url(#paper-shadow)"><use href="#folio"/>
+    <text x="22" y="41" class="surface-type" font-size="21">Research</text><path class="rule" d="M23 58h70M23 70h61M23 82h70"/>
+    <path class="hand" d="M25 135V101M25 135h66M31 122l13-7 11 3 16-18 14 8"/><path d="M31 130v-8m13 8v-15m11 15v-12m16 12v-30m14 30v-22" stroke="var(--folio-color)" stroke-width="5"/>
+    <path class="paper-edge" d="M131 50L207 46L211 126L133 131Z"/><use href="#ruled-note" transform="translate(141 66) scale(.78)"/>
+    <path class="hand" d="M184 27q-5-12-8 0l1 39q3 6 6 0l-1-31q-2-4-3 0v24"/>
+  </g>
+  <text x="112" y="220" text-anchor="middle" class="folio-caption">A research brain</text>
+  <text x="112" y="242" text-anchor="middle" class="folio-subtitle">A different body of evidence</text>
+</g>
+<g class="brain-team team">
+  <g filter="url(#paper-shadow)"><use href="#folio"/>
+    <text x="21" y="43" class="surface-type" font-size="20">Decisions</text><path class="rule" d="M22 65h70M22 80h70M22 95h70M22 110h70M22 125h70"/>
+    <path d="M24 58h31M24 88h48M24 118h39" stroke="var(--folio-color)" stroke-width="4" opacity=".7"/>
+    <path class="paper-edge" d="M132 45L207 49L200 128L128 123Z"/><text x="143" y="74" class="surface-type" font-size="18">Next</text><path class="rule" d="M141 88h47M139 100h43M138 112h50"/>
+    <path d="M128 119l72 5-11 15-64-7Z" fill="var(--folio-color)" opacity=".35"/>
+  </g>
+  <text x="112" y="220" text-anchor="middle" class="folio-caption">A team’s brain</text>
+  <text x="112" y="242" text-anchor="middle" class="folio-subtitle">Shared history &amp; commitments</text>
+</g>
+<g class="brain-practice practice">
+  <g filter="url(#paper-shadow)"><use href="#folio"/>
+    <text x="23" y="41" class="surface-type" font-size="21">Practice</text><use href="#ruled-note" x="23" y="63"/>
+    <path class="hand" d="M137 59l27-13 30 17-6 29-27 14-28-15ZM137 59l24 15 33-11M161 74v32M140 122h58"/>
+    <path class="rule" d="M137 136h60M137 148h43"/><path d="M41 142q20-16 41-4" fill="none" stroke="var(--folio-color)" stroke-width="1.4"/>
+  </g>
+  <text x="112" y="220" text-anchor="middle" class="folio-caption">A practitioner’s brain</text>
+  <text x="112" y="242" text-anchor="middle" class="folio-subtitle">Experience from another practice</text>
+</g>
+<!-- One common workpiece; only selected contributions leave each folio. -->
+<g class="common-work">
+  <g filter="url(#paper-shadow)">
+    <path class="paper-edge" d="M9 8L419 3L427 466L8 472Z"/>
+    <path class="paper" d="M0 0H420V458H0Z"/>
+    <path d="M0 0H420V458H0Z" fill="url(#paper-fibres)"/>
+    <path class="rule" d="M27 82H393"/>
+    <text x="27" y="29" class="ink tiny">SHARED WORK</text>
+    <text x="26" y="65" class="surface-type" font-size="37">A project plan</text>
+    <text x="27" y="438" class="ink tiny">SEVERAL CONTRIBUTIONS. ONE PIECE OF WORK.</text>
+  </g>
+  <g class="self" transform="translate(-11 111) rotate(-3)" filter="url(#small-shadow)">
+    <path class="paper" d="M0 0H192V135H0Z"/><path class="contribution-color" d="M0 0H192V8H0Z"/>
+    <text x="17" y="41" class="note-heading">Purpose</text><use href="#ruled-note" transform="translate(18 60) scale(1.85 .8)"/>
+    <text x="17" y="122" class="note-label">YOUR CONTRIBUTION</text>
+  </g>
+  <g class="research" transform="translate(215 112) rotate(3)" filter="url(#small-shadow)">
+    <path class="paper" d="M0 0H190V140H0Z"/><path class="contribution-color" d="M0 0H190V8H0Z"/>
+    <text x="17" y="41" class="note-heading">Evidence</text>
+    <path class="rule" d="M18 64h144M18 76h127"/>
+    <path d="M21 111v-19m20 19v-24m20 24V81m20 30V91" stroke="var(--folio-color)" stroke-width="9"/><path class="rule" d="M101 92h59M101 104h48"/>
+    <text x="17" y="128" class="note-label">RESEARCH CONTRIBUTION</text>
+  </g>
+  <g class="team" transform="translate(15 274) rotate(2)" filter="url(#small-shadow)">
+    <path class="paper" d="M0 0H189V137H0Z"/><path class="contribution-color" d="M0 0H189V8H0Z"/>
+    <text x="17" y="40" class="note-heading">Approach</text>
+    <path class="rule" d="M18 68h150M18 91h150"/>
+    <path d="M20 60h49M20 83h73M20 106h104" stroke="var(--folio-color)" stroke-width="5" opacity=".7"/>
+    <text x="17" y="125" class="note-label">TEAM CONTRIBUTION</text>
+  </g>
+  <g class="practice" transform="translate(219 280) rotate(-3)" filter="url(#small-shadow)">
+    <path class="paper" d="M0 0H191V130H0Z"/><path class="contribution-color" d="M0 0H191V8H0Z"/>
+    <text x="17" y="40" class="note-heading">Open questions</text><text x="18" y="78" class="surface-type" font-size="27">?</text><path class="rule" d="M42 64h130M42 77h100M18 98h145"/>
+    <text x="17" y="119" class="note-label">PRACTITIONER CONTRIBUTION</text>
+  </g>
+</g>
+</svg>
+<figcaption class="caption"><p>Their knowledge stays distinct.<br>The work becomes collective.</p><p class="eyebrow">Four independently owned agents, represented as folios. Selected contributions meet in shared work—not in one merged private library.</p></figcaption>
+</figure>
+<p class="study-note">Conceptual illustration, not a recorded collaboration or an application screen. It does not imply automatic team formation or access to private knowledge.</p>
+</main>
+<script>
+const art=document.getElementById('art'),mobile=matchMedia('(max-width:650px)');
+function fit(){art.setAttribute('viewBox',mobile.matches?'0 0 600 1240':'0 0 1100 790')}
+mobile.addEventListener('change',fit);fit();
+const theme=document.getElementById('theme');theme.addEventListener('click',()=>{const light=document.documentElement.dataset.theme!=='light';document.documentElement.dataset.theme=light?'light':'dark';theme.textContent=light?'☾ Dark':'☀ Light';theme.setAttribute('aria-label',`Switch to ${light?'dark':'light'} theme`)});
+</script>
+</body>
+</html>

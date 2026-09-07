@@ -9,6 +9,7 @@
     "lint": {
       "inputs": [
         "src/**",
+        "ui-react/**",
         "test/**",
         "scripts/**",
         "*.ts",

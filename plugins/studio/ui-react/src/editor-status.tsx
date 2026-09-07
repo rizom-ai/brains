@@ -1,41 +1,105 @@
 /** @jsxImportSource react */
-import type { ReactElement } from "react";
+import { useEffect, useRef, type ReactElement, type ReactNode } from "react";
+import * as stylex from "@stylexjs/stylex";
+import { saveStyles as s } from "./studio-save.styles";
+import { StudioStatus } from "./studio-status";
 import type { GitSyncState } from "./api";
-import { Button, ConfirmDialog } from "@brains/app-ui-react";
+import { ConfirmDialog } from "@brains/app-ui-react";
 import type { SaveState } from "./editor-workflow";
 
 export function SaveStateNotice(props: {
   state: SaveState;
-  onReload: () => void;
+  conflictActions?: ReactNode;
 }): ReactElement | null {
-  const { state, onReload } = props;
+  const { state } = props;
+  const summary = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (
+      state.kind === "error" &&
+      state.issues?.length &&
+      !summary.current
+        ?.closest("form")
+        ?.querySelector("[data-studio-invalid-field]")
+    ) {
+      const details = summary.current?.querySelector("details");
+      if (details) details.open = true;
+      summary.current?.focus();
+    }
+  }, [state]);
   if (state.kind === "saved") {
     return state.noop ? (
-      <p className="status status-ok">No changes — already saved.</p>
+      <StudioStatus tone="good" save>
+        No changes — already saved.
+      </StudioStatus>
     ) : (
-      <p className="status status-ok">Saved through the entity service.</p>
+      <StudioStatus tone="good" save>
+        Saved through the entity service.
+      </StudioStatus>
     );
   }
   if (state.kind === "conflict") {
     return (
-      <section className="conflict" role="alert">
-        <h4>The manuscript changed elsewhere</h4>
-        <p>{state.message}</p>
-        <Button
-          type="button"
-          variant="ghost"
-          className="reload"
-          onClick={onReload}
-        >
-          Reload latest
-        </Button>
+      <section
+        {...stylex.props(s.conflict)}
+        role="alert"
+        data-studio-conflict=""
+      >
+        <h4 {...stylex.props(s.conflictTitle)}>
+          The manuscript changed elsewhere
+        </h4>
+        <p {...stylex.props(s.conflictCopy)}>{state.message}</p>
+        {props.conflictActions}
       </section>
     );
   }
   if (state.kind === "error") {
-    return <p className="status status-error">{state.message}</p>;
+    return (
+      <div
+        {...stylex.props(s.validationSummary)}
+        ref={summary}
+        tabIndex={-1}
+        role="group"
+        aria-label="Save failed"
+      >
+        <StudioStatus tone="error" save>
+          {state.message}
+          {state.issues?.length ? " Your draft is unchanged." : ""}
+        </StudioStatus>
+        {state.issues && state.issues.length > 0 && (
+          <details>
+            <summary>Review last save errors ({state.issues.length})</summary>
+            <div
+              {...stylex.props(s.validationDetails)}
+              tabIndex={0}
+              role="region"
+              aria-label="Save validation errors"
+            >
+              <p>
+                Correct the affected fields, then save again. Fields that are
+                read-only here must be corrected through their owning tool.
+              </p>
+              <ul>
+                {state.issues.map((issue, index) => (
+                  <li key={index}>
+                    {issue.path.length ? `${issue.path.join(".")}: ` : ""}
+                    {issue.message}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </details>
+        )}
+      </div>
+    );
   }
   return null;
+}
+
+export function editorSaveLabel(state: SaveState, dirty: boolean): string {
+  if (state.kind === "saving") return "Saving…";
+  if (state.kind === "conflict") return "Conflict — your changes are not saved";
+  if (state.kind === "error") return "Save failed — your changes are not saved";
+  return dirty ? "Unsaved changes" : "Saved";
 }
 
 export type StationState = "pending" | "active" | "done";
@@ -89,11 +153,22 @@ export function derivePipeline(args: {
 }
 
 function Station(props: { state: StationState; label: string }): ReactElement {
-  const className =
-    props.state === "pending" ? "station" : `station ${props.state}`;
   return (
-    <span className={className}>
-      <span className="dot" />
+    <span
+      {...stylex.props(
+        s.station,
+        props.state === "done" && s.done,
+        props.state === "active" && s.active,
+      )}
+      data-studio-station={props.state}
+    >
+      <span
+        {...stylex.props(
+          s.dot,
+          props.state === "done" && s.doneDot,
+          props.state === "active" && s.activeDot,
+        )}
+      />
       {props.label}
     </span>
   );
@@ -101,8 +176,12 @@ function Station(props: { state: StationState; label: string }): ReactElement {
 
 function Track(props: { flowing: boolean }): ReactElement {
   return (
-    <span className={props.flowing ? "track flowing" : "track"}>
-      <span className="flow" />
+    <span
+      {...stylex.props(s.track)}
+      data-studio-flowing={props.flowing ? "" : undefined}
+      aria-hidden="true"
+    >
+      <span {...stylex.props(s.flow, props.flowing && s.flowing)} />
     </span>
   );
 }
@@ -114,8 +193,8 @@ export function PipelineStations(props: {
 }): ReactElement {
   const { view, gitConfigured } = props;
   return (
-    <span className="stations-wrap">
-      <span className="stations">
+    <span {...stylex.props(s.wrap)}>
+      <span {...stylex.props(s.stations)}>
         <Station state={view.db} label="entity db" />
         <Track flowing={view.db === "done" && view.exported === "active"} />
         <Station state={view.exported} label="exported to file" />
@@ -127,12 +206,12 @@ export function PipelineStations(props: {
             <Station state={view.committed} label="committed" />
           </>
         ) : (
-          <span className="station no-git">no git remote</span>
+          <span {...stylex.props(s.station, s.noGit)}>no git remote</span>
         )}
       </span>
       {view.commitRef && (
-        <span className="commit-ref">
-          last write <b>{view.commitRef}</b>
+        <span {...stylex.props(s.ref)}>
+          last write <b {...stylex.props(s.refValue)}>{view.commitRef}</b>
         </span>
       )}
     </span>

@@ -1,5 +1,10 @@
 import type { PreparedAsset } from "@brains/assets";
-import type { ActorRef } from "@brains/contracts";
+import type { EntityIdPath, EntityIdPathInput } from "./entity-id-path";
+import type {
+  ActorRef,
+  EntityReadBudget,
+  QueryEmbedding,
+} from "@brains/contracts";
 import type { ProjectionStore } from "./projection-store";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
 import type {
@@ -56,6 +61,13 @@ export type {
   EntityMutationAdmissionTarget,
 } from "./mutation-admission";
 
+import type { EntityWriteCondition } from "./entity-write-contracts";
+
+export interface EntityWriteSnapshot {
+  entity: BaseEntity;
+  revision: string;
+}
+
 export type EntityPersistenceOrigin = "ordinary" | "directory-sync";
 
 export interface EntityJobOptions {
@@ -84,13 +96,25 @@ export type { ContentVisibility, RawContentVisibility } from "./visibility";
  * Options for entity creation (extends EntityJobOptions with deduplication)
  */
 export interface CreateEntityOptions extends EntityJobOptions {
+  /** Cancel before the atomic write boundary, not after a mutation commits. */
+  signal?: AbortSignal;
+  /** Runtime-only guard over the final persisted fields, immediately before writing. */
+  beforeWrite?: (entity: Readonly<BaseEntity>) => Promise<void>;
   deduplicateId?: boolean;
+  /** Atomic create-if-absent. Cannot deduplicate. */
+  conditionalWrite?: EntityWriteCondition;
 }
 
 /** Options for updating an existing entity. */
 export interface UpdateEntityOptions extends EntityJobOptions {
+  /** Cancel before the atomic write boundary, not after a mutation commits. */
+  signal?: AbortSignal;
+  /** Runtime-only guard over the final persisted fields, immediately before writing. */
+  beforeWrite?: (entity: Readonly<BaseEntity>) => Promise<void>;
   /** Apply only while the stored entity still has this content hash. */
   expectedContentHash?: string | undefined;
+  /** Atomic full-revision replace. */
+  conditionalWrite?: EntityWriteCondition;
 }
 
 /**
@@ -505,7 +529,20 @@ export interface SortField {
  */
 export type MetadataFilterScalar = string | number | boolean;
 
-export interface ListOptions<TMetadata = Record<string, unknown>> {
+export interface EntityReadOptions {
+  /** Bounds SQL result transfer, suppresses raw diagnostics, and leaves entity
+   * image references unexpanded. Not a bound on database or adapter execution.
+   */
+  readBudget?: EntityReadBudget;
+  /** Request-owned embedding capability, e.g. a prepaid guest search. */
+  queryEmbedding?: QueryEmbedding;
+  /** Cooperative boundary checks, not proof of remote SQL cancellation. */
+  signal?: AbortSignal;
+}
+
+export interface ListOptions<
+  TMetadata = Record<string, unknown>,
+> extends EntityReadOptions {
   limit?: number;
   offset?: number;
   /** Multi-field sorting - supports system fields (created, updated) and metadata fields */
@@ -515,6 +552,10 @@ export interface ListOptions<TMetadata = Record<string, unknown>> {
     metadata?: Partial<TMetadata>;
     /** Match any listed scalar for each metadata key. */
     metadataAnyOf?: Record<string, MetadataFilterScalar[]>;
+    /** Literal substring search through serialized content, including frontmatter. */
+    contentContains?: string | undefined;
+    /** Exact visibility, intersected with visibilityScope rather than widening it. */
+    visibility?: ContentVisibility | undefined;
     visibilityScope?: ContentVisibility | undefined;
   };
   /** Filter to only entities with metadata.status = "published" */
@@ -524,7 +565,7 @@ export interface ListOptions<TMetadata = Record<string, unknown>> {
 /**
  * Search options
  */
-export interface SearchOptions {
+export interface SearchOptions extends EntityReadOptions {
   limit?: number;
   offset?: number;
   types?: string[];
@@ -575,7 +616,7 @@ export interface EntityTypeConfig {
  * Core entity service interface for read-only operations
  * Used by core plugins that need entity access but shouldn't modify entities
  */
-export interface GetEntityRequest {
+export interface GetEntityRequest extends EntityReadOptions {
   entityType: string;
   id: string;
   /**
@@ -611,6 +652,40 @@ export interface ProjectionOwnedEntityRequest {
 export interface ListEntitiesRequest {
   entityType: string;
   options?: ListOptions | undefined;
+}
+
+export interface QueryEntityHierarchyRequest {
+  entityType: string;
+  /** Null/omitted means the collection root; segments identify stored identity. */
+  prefix?: EntityIdPathInput | null | undefined;
+  /** Search matching entries throughout the prefix; no folder rows in this mode. */
+  includeDescendants?: boolean | undefined;
+  /** Omitted fails closed to public, including folder names and counts. */
+  visibilityScope?: ContentVisibility | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
+  sortFields?: SortField[] | undefined;
+  filter?:
+    | {
+        metadata?: Record<string, unknown> | undefined;
+        contentContains?: string | undefined;
+        visibility?: ContentVisibility | undefined;
+      }
+    | undefined;
+  signal?: AbortSignal | undefined;
+}
+
+export interface EntityHierarchyPage {
+  prefix: EntityIdPath | null;
+  folders: Array<{
+    path: EntityIdPath;
+    name: string;
+    descendantCount: number;
+  }>;
+  /** Only direct children, with derived paths kept outside durable entity data. */
+  entities: Array<{ entity: BaseEntity; path: EntityIdPath }>;
+  offset: number;
+  totalEntities: number;
 }
 
 export interface CountEntitiesRequest {
@@ -733,6 +808,17 @@ export type DataSourceSchema<T> = z.ZodType<T, unknown>;
  * DataSources are registered in the DataSourceRegistry and referenced by templates
  * via their dataSourceId property.
  */
+/** Runtime-only, read-only access for caller-bound generation. */
+export interface DataSourceGenerationContext {
+  readonly visibilityScope: ContentVisibility;
+  readonly signal?: AbortSignal;
+  getEntity(entityType: string, id: string): Promise<BaseEntity | null>;
+  search(
+    query: string,
+    options?: Pick<SearchOptions, "limit" | "weight">,
+  ): Promise<SearchResult[]>;
+}
+
 export interface DataSource {
   /**
    * Unique identifier for this data source
@@ -767,7 +853,21 @@ export interface DataSource {
    * Optional: Generate new content
    * Used by data sources that create content (e.g., AI-generated content, reports)
    */
-  generate?: <T>(request: unknown, schema: z.ZodSchema<T>) => Promise<T>;
+  generate?: <T>(
+    request: unknown,
+    schema: z.ZodSchema<T>,
+    signal?: AbortSignal,
+  ) => Promise<T>;
+
+  /**
+   * Opt-in scoped generation. All content reads must use this runtime context,
+   * not ambient entity services/caches. Never fall back to generate().
+   */
+  generateScoped?: <T>(
+    request: unknown,
+    schema: z.ZodSchema<T>,
+    context: DataSourceGenerationContext,
+  ) => Promise<T>;
 
   /**
    * Optional: Transform content between formats
@@ -815,6 +915,11 @@ export interface ICoreEntityService {
     request: ListEntitiesRequest,
     schema: EntitySchema<T>,
   ): Promise<T[]>;
+
+  /** Immediate folders and paginated direct children; no filesystem interpretation. */
+  queryEntityHierarchy(
+    request: QueryEntityHierarchyRequest,
+  ): Promise<EntityHierarchyPage>;
 
   search(request: EntitySearchRequest): Promise<SearchResult<BaseEntity>[]>;
   search<T extends BaseEntity>(
@@ -1090,6 +1195,10 @@ export type DurableBulkMutationCoordinator = Pick<
 >;
 
 export interface EntityService extends EntityServiceClient {
+  /** Visibility-scoped entity and the revision derived from its stored row. */
+  getEntityWriteSnapshot(
+    request: GetEntityRequest,
+  ): Promise<EntityWriteSnapshot | null>;
   // Scheduler-owned projection coordination
   getProjectionStore(): ProjectionStore;
   setProjectionWakeup(wakeup: () => Promise<void>): () => void;

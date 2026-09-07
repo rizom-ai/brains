@@ -19,6 +19,10 @@ export function registerShellRuntimeFinalizers(
 
   lifecycle.addFinalizer(() => services.agentService.shutdown?.());
 
+  lifecycle.addFinalizer(() =>
+    services.daemonRegistry.unregister("shell:guest-retention"),
+  );
+
   // Abort cancellation-aware checks before active turns and the worker drain.
   // Their durable jobs remain retryable instead of holding remote I/O open.
   lifecycle.addFinalizer(() =>
