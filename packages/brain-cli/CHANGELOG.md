@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.360
+
+### Patch Changes
+
+- [#234](https://github.com/rizom-ai/brains/pull/234) [`38386e9`](https://github.com/rizom-ai/brains/commit/38386e9cb20ba080f599f4e920ccb8044f727cff) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Issue a packaging-only runtime version for a fresh immutable image containing the Rizom homepage rail restoration. No runtime implementation changes are included.
+
 ## 0.2.0-alpha.359
 
 ### Patch Changes
