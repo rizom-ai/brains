@@ -65,10 +65,12 @@ describe("AiLayout chrome", () => {
     expect(strip).not.toContain('href="/network"');
   });
 
-  test("living memory keeps both umbrella navigation levels", () => {
-    const html = renderChrome("/living-memory");
+  test("the homepage keeps both umbrella navigation levels and the approved styles", () => {
+    const html = renderChrome("/");
     expect(html).toContain('href="/styles/living-memory.css"');
-    expect(renderChrome("/")).not.toContain('href="/styles/living-memory.css"');
+    expect(renderChrome("/living-memory")).not.toContain(
+      'href="/styles/living-memory.css"',
+    );
     expect(renderChrome("/brain")).not.toContain(
       'href="/styles/living-memory.css"',
     );

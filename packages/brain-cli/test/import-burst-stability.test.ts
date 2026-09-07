@@ -311,6 +311,18 @@ async function run(command: string[], cwd: string): Promise<string> {
   return stdout;
 }
 
+function isCompetingWriterPush(message: string): boolean {
+  return (
+    /\[rejected\].*\((?:fetch first|non-fast-forward)\)/.test(message) ||
+    (/\[remote rejected\].*\((?:failed to update ref|incorrect old value provided)\)/.test(
+      message,
+    ) &&
+      /cannot lock ref 'refs\/heads\/main': is at [0-9a-f]+ but expected [0-9a-f]+/.test(
+        message,
+      ))
+  );
+}
+
 /** The running Brain also pushes startup exports and normalized entities. */
 async function pushWriterChanges(checkoutDir: string): Promise<void> {
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -323,17 +335,7 @@ async function pushWriterChanges(checkoutDir: string): Promise<void> {
       if (
         attempt === 2 ||
         !(error instanceof Error) ||
-        (!/\[rejected\].*\((?:fetch first|non-fast-forward)\)/.test(
-          error.message,
-        ) &&
-          !(
-            /\[remote rejected\].*\(failed to update ref\)/.test(
-              error.message,
-            ) &&
-            /cannot lock ref 'refs\/heads\/main': is at [0-9a-f]+ but expected [0-9a-f]+/.test(
-              error.message,
-            )
-          ))
+        !isCompetingWriterPush(error.message)
       ) {
         throw error;
       }
@@ -1449,6 +1451,30 @@ plugins:
   },
   360_000,
 );
+
+it("recognizes competing-writer diagnostics without retrying other push failures", () => {
+  const detail =
+    "remote: error: cannot lock ref 'refs/heads/main': is at abcd but expected 1234";
+  for (const reason of [
+    "failed to update ref",
+    "incorrect old value provided",
+  ]) {
+    const rejected = `! [remote rejected] main -> main (${reason})`;
+    expect(isCompetingWriterPush(`${detail}\n${rejected}`)).toBe(true);
+    expect(isCompetingWriterPush(rejected)).toBe(false);
+  }
+  for (const reason of ["fetch first", "non-fast-forward"]) {
+    expect(isCompetingWriterPush(`! [rejected] main -> main (${reason})`)).toBe(
+      true,
+    );
+  }
+  expect(
+    isCompetingWriterPush(
+      `${detail}\n! [remote rejected] main -> main (pre-receive hook declined)`,
+    ),
+  ).toBe(false);
+  expect(isCompetingWriterPush("fatal: Authentication failed")).toBe(false);
+});
 
 it("rebases simultaneous soak writers without discarding either push", async () => {
   const root = await mkdtemp(join(tmpdir(), "soak-writer-race-"));
