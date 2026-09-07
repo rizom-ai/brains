@@ -152,10 +152,6 @@ function entityBacklink(entityType: string, entityId: string): string {
 export function studioService(
   deps: StudioDeps = {},
 ): ServicePackageDefinition<typeof studioConfigSchema> {
-  // Routes are declared from config alone, so the editor reaches what setup
-  // built through this rather than through an argument it is not given.
-  let held: StudioState | undefined;
-
   return defineServicePlugin(
     {
       id: "studio",
@@ -259,14 +255,13 @@ export function studioService(
               : undefined,
         });
 
-        held = {
+        return {
           runtime,
           workspaces,
           overview,
           entityDisplay:
             config.entityDisplay ?? parseEntityDisplay(entityDisplay),
         };
-        return held;
       },
     },
     {
@@ -355,16 +350,10 @@ export function studioService(
         }),
       ],
 
-      // Declared from configuration alone, so a brain can say what it serves
-      // before setup ran; a handler reaches what setup built when asked.
-      routes: ({ config }) => [
+      routes: ({ config, state }) => [
         ...legacySurfaceRedirects(config.routePath),
         ...createEditorRoutes(
           (): EditorRouteState => {
-            const state = held;
-            if (!state) {
-              throw new Error("Studio was asked to serve before it was set up");
-            }
             return {
               runtime: state.runtime,
               entityDisplay: state.entityDisplay,

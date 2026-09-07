@@ -1157,11 +1157,20 @@ interface ServiceDefinitionBehavior<
    */
   readonly routes?:
     | ((context: {
-        // Config alone, deliberately: composition tooling enumerates routes
-        // from an uninstantiated definition to answer "what does this brain
-        // serve", and state does not exist until registration. A route whose
-        // behaviour needs state closes over it; its existence may not.
         readonly config: z.output<TConfigSchema>;
+        /**
+         * What setup returned, for this instance.
+         *
+         * Routes used to be read from config alone so that tooling could
+         * enumerate them without registering anything. No such tooling
+         * exists: the production collector iterates registered plugins, and
+         * every other caller is a test. What the rule did produce was a
+         * package holding its client in a variable outside the plugin, which
+         * the next instance overwrote — so two brains in one process answered
+         * with whichever configuration set up last.
+         */
+        readonly state: TState;
+        readonly jobs: ServiceJobs;
       }) => readonly AnyInterfaceRouteDefinition[])
     | undefined;
   /**

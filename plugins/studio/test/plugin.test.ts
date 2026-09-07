@@ -88,10 +88,18 @@ describe("studio plugin", () => {
     );
   });
 
-  it("declares its routes from configuration alone", () => {
-    // A brain lists what it serves before anything is set up; a handler
-    // reaches what setup built only when a request arrives.
-    const paths = routesOf(instantiate()).map((route) => route.path);
+  it("refuses to say what it serves before it is registered", () => {
+    // Routes are built from what setup returned, so an unregistered plugin
+    // has no state to answer from and says so rather than handing back
+    // routes that would fail at the first request.
+    expect(() => routesOf(instantiate())).toThrow("has not completed setup");
+  });
+
+  it("declares its routes once it is registered", async () => {
+    const plugin = instantiate();
+    await plugin.register(createStudioTestShell());
+
+    const paths = routesOf(plugin).map((route) => route.path);
 
     expect(paths).toContain("/studio");
     expect(paths).toContain("/studio/api/entities");

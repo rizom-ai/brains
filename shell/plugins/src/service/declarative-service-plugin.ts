@@ -355,13 +355,16 @@ class DeclarativeServicePlugin<
   }
 
   public override getWebRoutes(): WebRouteDefinition[] {
-    // Routes are a function of config alone, so composition tooling can
-    // enumerate them from an uninstantiated definition. A protocol route's
-    // permission lookup resolves at request time, when registration has
-    // supplied it — an unregistered plugin can say what it serves, but not
-    // yet serve it.
+    // Built from what this instance set up, so a route answers with its own
+    // plugin's state rather than whatever the definition happened to hold
+    // last. Registration has run by the time anything asks: the production
+    // collector iterates registered plugins.
     const routeDefinitions =
-      this.definition.routes?.({ config: this.config }) ?? [];
+      this.definition.routes?.({
+        config: this.config,
+        state: this.requireState(),
+        jobs: this.jobs(),
+      }) ?? [];
     return routeDefinitions.map((route) =>
       createRuntimeRoute(route, {
         declarationId: this.definition.id,

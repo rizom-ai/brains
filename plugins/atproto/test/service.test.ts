@@ -119,12 +119,11 @@ describe("atproto service", () => {
     expect(() => instantiate({ pdsEndpoint: "not-a-url" })).toThrowError();
   });
 
-  it("exposes conventional did:web routes when enabled", () => {
-    expect(
-      routesFor()
-        .map((route) => route.path)
-        .sort(),
-    ).toEqual(["/.well-known/did.json", "/anchor/did.json"]);
+  it("exposes conventional did:web routes when enabled", async () => {
+    expect((await routesFor()).map((route) => route.path).sort()).toEqual([
+      "/.well-known/did.json",
+      "/anchor/did.json",
+    ]);
   });
 
   it("serves the handle-verification DID when an account DID is configured", async () => {
@@ -132,9 +131,9 @@ describe("atproto service", () => {
     // atproto-integration.md): the brain self-verifies its owner atproto
     // handle by serving the account DID at /.well-known/atproto-did — the
     // HTTP verification method, no per-user DNS records.
-    const route = routesFor({
-      accountDid: "did:plc:oehciuqunzskplljt3qnnncw",
-    }).find((entry) => entry.path === "/.well-known/atproto-did");
+    const route = (
+      await routesFor({ accountDid: "did:plc:oehciuqunzskplljt3qnnncw" })
+    ).find((entry) => entry.path === "/.well-known/atproto-did");
     expect(route?.method).toBe("GET");
     expect(route?.public).toBe(true);
 
@@ -146,14 +145,16 @@ describe("atproto service", () => {
     expect(await response?.text()).toBe("did:plc:oehciuqunzskplljt3qnnncw");
   });
 
-  it("does not serve atproto-did without an account DID", () => {
+  it("does not serve atproto-did without an account DID", async () => {
     expect(
-      routesFor().some((entry) => entry.path === "/.well-known/atproto-did"),
+      (await routesFor()).some(
+        (entry) => entry.path === "/.well-known/atproto-did",
+      ),
     ).toBe(false);
   });
 
   it("serves conventional did:web document routes when DIDs are omitted", async () => {
-    const routes = routesFor({
+    const routes = await routesFor({
       pdsEndpoint: "https://pds.example.com",
       identifier: "brain.example.com",
     });
@@ -193,7 +194,7 @@ describe("atproto service", () => {
   });
 
   it("serves did:web document routes when configured", async () => {
-    const routes = routesFor({
+    const routes = await routesFor({
       pdsEndpoint: "https://pds.example.com",
       identifier: "brain.example.com",
       brainDid: "did:web:brain.example.com",
@@ -238,9 +239,12 @@ describe("atproto service", () => {
     });
   });
 
-  it("hides routes when disabled", () => {
+  it("hides routes when disabled", async () => {
     expect(
-      routesFor({ enabled: false, brainDid: "did:web:brain.example.com" }),
+      await routesFor({
+        enabled: false,
+        brainDid: "did:web:brain.example.com",
+      }),
     ).toEqual([]);
   });
 
