@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.244
+
+### Patch Changes
+
+- [#228](https://github.com/rizom-ai/brains/pull/228) [`2942793`](https://github.com/rizom-ai/brains/commit/294279346c136b884af281392e4743b91464517f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Publish the living-memory route with schema-driven sections, the accessible lantern, vertical organism, datasource-backed maps, and inline yellow italic heading emphasis. Authoritative section copy remains in rizom-content.
+
 ## 0.2.0-alpha.243
 
 ### Patch Changes

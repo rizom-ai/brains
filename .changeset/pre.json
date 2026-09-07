@@ -619,6 +619,7 @@
     "site--first-party-preact-peer",
     "site--fold-rizom-ui-into-site",
     "site--json-native-section-content",
+    "site--living-memory-page",
     "site--production-react-bundle-contract",
     "site--react-authoring-runtime",
     "site--relicense-agpl-apache-split",
