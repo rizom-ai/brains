@@ -3,14 +3,35 @@ import { z } from "@brains/utils/zod";
 /**
  * Simple response schema for message handlers
  */
+/**
+ * Why a request failed, in a word a caller can branch on.
+ *
+ * `message` is for people and may be reworded at any time; this is the part
+ * a package checks. Kept deliberately small: a code earns its place when a
+ * caller has to do something different, not to name every way things go
+ * wrong.
+ *
+ * - `no_handler`: nothing is listening on that channel, so the capability is
+ *   not present in this brain rather than broken.
+ * - `handler_failed`: something answered and threw.
+ */
+export const messageErrorCodeSchema: z.ZodEnum<{
+  no_handler: "no_handler";
+  handler_failed: "handler_failed";
+}> = z.enum(["no_handler", "handler_failed"]);
+
+export type MessageErrorCode = z.output<typeof messageErrorCodeSchema>;
+
 export const messageResponseSchema: z.ZodObject<{
   success: z.ZodBoolean;
   data: z.ZodOptional<z.ZodUnknown>;
   error: z.ZodOptional<z.ZodString>;
+  code: z.ZodOptional<typeof messageErrorCodeSchema>;
 }> = z.object({
   success: z.boolean(),
   data: z.unknown().optional(),
   error: z.string().optional(),
+  code: messageErrorCodeSchema.optional(),
 });
 
 /** A handler's reply: the parsed response with its data narrowed to T, or a no-op. */
