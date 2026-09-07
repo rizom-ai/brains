@@ -11,6 +11,8 @@ export {
   defineSubscription,
   defineTool,
   defineWorkspaceAction,
+  jsonResponse,
+  jsonError,
   // A route whose answer is the response itself. A service taking a form
   // submission redirects the browser, and a redirect does not survive a JSON
   // envelope. Named consumer: @brains/newsletter.
@@ -34,6 +36,10 @@ export type {
   OperatorQueryReader,
   OperatorView,
   OperatorRegionBlock,
+  OperatorColumnsBlock,
+  OperatorPanelBlock,
+  BoundWorkspaceAction,
+  OperatorBindingContext,
   OperatorViewBlock,
   EntityEvalContext,
   ServiceEvalHandler,
@@ -229,6 +235,7 @@ export type { StaticSiteOutput } from "@brains/plugins";
 export type {
   EntityAction,
   IInboxNamespace,
+  IInboxFollowUpsNamespace,
   IPluginsNamespace,
   InterfaceCaller,
   OperatorEntityWrites,

@@ -153,6 +153,23 @@ Definitions and schema vocabulary:
 - `durableBulkMutationChildRefSchema`
 - `internalFullScope`
 - `isEntityValidationError`
+- `InboxFacets`
+- `InboxSource`
+- `InboxSourceMetadata`
+- `ListToolOutputSchema`
+- `BaseDataSourceContext`
+- `DataSourceSchema`
+- `inboxContactSchema`
+- `inboxFacetsSchema`
+- `inboxIdSchema`
+- `inboxItemDetailSchema`
+- `inboxItemSchema`
+- `inboxSourceDescriptorSchema`
+- `inboxSourceMetadataSchema`
+- `inboxUrgencySchema`
+- `resolvedInboxFollowUpSchema`
+- `createListToolOutputSchema`
+- `DataSource`
 
 Types:
 
@@ -286,6 +303,13 @@ Definitions and schema vocabulary:
 - `RuntimeHealthCheck`
 - `OperationalHealthProvider`
 - `ServiceLifecycle`
+- `OperatorColumnsBlock`
+- `OperatorPanelBlock`
+- `BoundWorkspaceAction`
+- `OperatorBindingContext`
+- `jsonResponse`
+- `jsonError`
+- `IInboxFollowUpsNamespace`
 
 Types:
 

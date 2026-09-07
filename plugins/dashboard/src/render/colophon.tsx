@@ -1,5 +1,5 @@
+import type { AppInfo } from "@brains/sdk/services";
 /** @jsxImportSource react */
-import type { AppInfo } from "@brains/plugins";
 import { resolveUrl } from "@brains/utils/string-utils";
 import type { JSX } from "react";
 

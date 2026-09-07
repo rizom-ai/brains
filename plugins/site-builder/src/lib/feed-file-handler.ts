@@ -1,16 +1,16 @@
-import type { IEntityService } from "@brains/plugins";
 import {
   FeedRegistry,
   renderRssFeed,
   type FeedItem,
 } from "@brains/site-composition";
 import type { Logger } from "@brains/utils/logger";
+import type { SiteEntityReads } from "./site-builder-services";
 import { promises as fs } from "fs";
 import { resolveSafeOutputFile } from "./output-path";
 
 export interface WriteSiteBuildFeedsOptions {
   outputDir: string;
-  entityService: Pick<IEntityService, "listEntities">;
+  entityService: Pick<SiteEntityReads, "listEntities">;
   environment: string;
   siteTitle: string | undefined;
   siteDescription: string | undefined;

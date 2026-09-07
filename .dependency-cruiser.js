@@ -69,6 +69,18 @@ module.exports = {
       },
     },
     {
+      name: "declared-packages-import-only-the-sdk",
+      severity: "error",
+      comment:
+        "A package under plugins/ or interfaces/ is declared against the public authoring surface (packages/brain-sdk) and the shared libraries; its source never reaches into the plugin runtime (shell/plugins) for a symbol. The plugin-interface-boundaries plan converted every package to that shape, and this keeps it so: a symbol a package needs is admitted on the SDK, with a named consumer, rather than imported from the runtime.",
+      from: {
+        path: "^(plugins|interfaces)/[^/]+/src/",
+      },
+      to: {
+        path: "^shell/plugins/",
+      },
+    },
+    {
       name: "plugins-can-only-import-shell-and-shared",
       severity: "error",
       comment:

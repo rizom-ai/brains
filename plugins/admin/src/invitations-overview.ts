@@ -1,11 +1,11 @@
+import {
+  defineDashboardWidget,
+  type DashboardWidgetDefinition,
+} from "@brains/sdk/services";
 import type {
   AuthAdministration,
   AuthAdminUserSummary,
 } from "@brains/auth-service";
-import {
-  defineDashboardWidget,
-  type DashboardWidgetDefinition,
-} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { formatWorkspaceDate } from "./workspace-format";
 

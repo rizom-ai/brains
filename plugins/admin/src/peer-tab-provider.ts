@@ -1,8 +1,3 @@
-import type {
-  AnyWorkspaceActionDefinition,
-  StudioWorkspaceView,
-  AuthAdministration,
-} from "@brains/sdk/services";
 import {
   defineStudioWorkspace,
   defineWorkspaceAction,
@@ -10,7 +5,12 @@ import {
   type OperatorRegionBlock,
   type OperatorViewBlock,
   type StudioWorkspaceViewBlock,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
+import type {
+  AnyWorkspaceActionDefinition,
+  StudioWorkspaceView,
+  AuthAdministration,
+} from "@brains/sdk/services";
 import { z } from "@brains/utils/zod";
 
 type ViewBlock = StudioWorkspaceViewBlock<AnyWorkspaceActionDefinition>;

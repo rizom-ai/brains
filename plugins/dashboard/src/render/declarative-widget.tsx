@@ -1,11 +1,11 @@
-/** @jsxImportSource react */
 import {
   safeParseRuntimeDashboardWidgetData,
-  type RuntimeStudioWorkspaceData,
   type RuntimeOperatorActionControl,
   type RuntimeOperatorLaunchIntent,
   type RuntimeOperatorLinkTarget,
-} from "@brains/plugins";
+  type RuntimeStudioWorkspaceData,
+} from "@brains/sdk/services";
+/** @jsxImportSource react */
 import { OperatorViewRenderer } from "@brains/operator-view-react";
 import type { JSX } from "react";
 import type { RenderableWidgetData } from "./types";

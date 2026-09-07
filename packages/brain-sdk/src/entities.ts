@@ -210,6 +210,16 @@ export type {
 export {
   inboxActorSchema,
   inboxItemIdSchema,
+  inboxContactSchema,
+  inboxFacetsSchema,
+  inboxIdSchema,
+  inboxItemDetailSchema,
+  inboxItemSchema,
+  inboxSourceDescriptorSchema,
+  inboxSourceMetadataSchema,
+  inboxUrgencySchema,
+  resolvedInboxFollowUpSchema,
+  createListToolOutputSchema,
   inboxItemListSchema,
 } from "@brains/plugins";
 export type {
@@ -217,6 +227,13 @@ export type {
   InboxActor,
   InboxFacetDefinition,
   InboxItem,
+  InboxFacets,
+  InboxSource,
+  InboxSourceMetadata,
+  ListToolOutputSchema,
+  BaseDataSourceContext,
+  DataSourceSchema,
+  DataSource,
   InboxItemDetail,
 } from "@brains/plugins";
 

@@ -8,4 +8,3 @@ export {
   formatApprovalResultText,
 } from "./render";
 export { ProgressBar } from "./components/ProgressBar";
-export { BatchProgress } from "./components/BatchProgress";

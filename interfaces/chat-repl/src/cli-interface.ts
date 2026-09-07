@@ -1,10 +1,12 @@
-import { defineMessageInterface } from "@brains/plugins";
+import {
+  defineMessageInterface,
+  type JobProgressEvent,
+} from "@brains/sdk/interfaces";
 import { z } from "@brains/utils/zod";
 import { addProcessSignalListeners } from "@brains/utils/process-signals";
 import type { Instance } from "ink";
 import { cliConfigSchema, type CLIConfig } from "./config";
 import { renderTerminalAnswer, resolveApprovalIndexSugar } from "./render";
-import type { JobProgressEvent } from "@brains/plugins";
 
 /**
  * What the terminal UI is wired to while it runs.

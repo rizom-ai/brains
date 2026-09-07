@@ -1,11 +1,11 @@
 import type {
+  AnyWorkspaceActionDefinition,
   BoundWorkspaceAction,
   OperatorBindingContext,
   OperatorCaller,
   StudioWorkspaceView,
   StudioWorkspaceViewBlock,
-  AnyWorkspaceActionDefinition,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
 import type {
   AuthAdminUserSummary,
   AuthAdministration,

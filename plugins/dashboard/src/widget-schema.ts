@@ -1,5 +1,7 @@
-import { DECLARATIVE_DASHBOARD_WIDGET_RENDERER } from "@brains/plugins";
-import type { DashboardDigestLine } from "@brains/plugins";
+import {
+  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+  type DashboardDigestLine,
+} from "@brains/sdk/services";
 import {
   dashboardDigestLineSchema,
   dashboardWidgetSectionSchema,

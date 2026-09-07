@@ -1,10 +1,9 @@
-import { createHash } from "node:crypto";
+import type { InboxActor, InboxSource } from "@brains/sdk/entities";
 import type {
-  IInboxFollowUpRegistry,
-  IInboxRegistry,
-  InboxActor,
-  InboxSource,
-} from "@brains/plugins";
+  IInboxFollowUpsNamespace,
+  IInboxNamespace,
+} from "@brains/sdk/services";
+import { createHash } from "node:crypto";
 import { sourceMetadata, type InboxDataSource } from "./inbox-datasource";
 import {
   normalizeInboxListFilter,
@@ -23,8 +22,8 @@ import {
   type InboxWorkspaceSnapshot,
 } from "./schemas";
 
-type InboxSourceRegistry = Pick<IInboxRegistry, "getSource" | "listSources">;
-type InboxFollowUpCatalog = Pick<IInboxFollowUpRegistry, "resolve">;
+type InboxSourceRegistry = Pick<IInboxNamespace, "getSource" | "listSources">;
+type InboxFollowUpCatalog = Pick<IInboxFollowUpsNamespace, "resolve">;
 type InboxProjectionReader = Pick<InboxDataSource, "getInboxData">;
 
 interface SourceCounts {

@@ -16,9 +16,14 @@ Phases 1 through 6 done; **27 of 27 packages converted**
 `@brains/site-content`,
 `@brains/studio`, `@brains/directory-sync`).
 
-No package extends a base class any more. Three that are converted —
-`admin`, `unified-inbox`, `chat-repl` — still reach `@brains/plugins`
-for a symbol or two, which is a loose end rather than a class.
+No package extends a base class any more, and none reaches `@brains/plugins`
+for a symbol: the eight that still did after their conversion — `admin`,
+`dashboard`, `email-workflows`, `site-builder`, `site-content`, `studio`,
+`unified-inbox`, `chat-repl` — had each symbol admitted on the SDK with the
+package as its named consumer, or replaced by what the declared surface
+already offered. A dependency-cruiser rule
+(`declared-packages-import-only-the-sdk`) now refuses any source under
+`plugins/` or `interfaces/` that imports from `shell/plugins`.
 
 The count has been wrong three times, each time because it was taken from
 directories on disk. It is now **27 tracked `package.json` files** under
@@ -33,8 +38,9 @@ The entity tranche is finished: 18 of 18 entity packages import only
 `entities/` and said so. It left the other two families untouched, and they
 are the larger half.
 
-**28 packages under `plugins/` and `interfaces/`; 5 are clean.** The other
-23 still import `@brains/plugins` in `src`.
+**27 packages under `plugins/` and `interfaces/`; all 27 are clean.** None
+imports `@brains/plugins` in `src`; the table below is the count the tranche
+started from.
 
 | reaches for                                                          | packages |
 | -------------------------------------------------------------------- | -------- |
@@ -1227,6 +1233,9 @@ full reconciliation, and the operation history starts empty.
   the class of defect directory-sync had cannot return silently.
 - Per-package: `src` imports only `@brains/sdk`, `@brains/utils`,
   `@brains/contracts` and whatever the phase-5 decision admits.
+  Enforced: the `declared-packages-import-only-the-sdk` dependency-cruiser
+  rule refuses a `shell/plugins` import from any `plugins/` or `interfaces/`
+  source.
 - The export ledger and authoring doc stay consistent with every capability
   added, enforced by `public-authoring-golden.test.ts` — which runs under
   `surface:check` with the other published-surface checks, against a fresh

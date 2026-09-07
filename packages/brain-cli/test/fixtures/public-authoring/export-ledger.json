@@ -278,7 +278,24 @@
         "DurableBulkMutationChildRef",
         "durableBulkMutationChildRefSchema",
         "internalFullScope",
-        "isEntityValidationError"
+        "isEntityValidationError",
+        "InboxFacets",
+        "InboxSource",
+        "InboxSourceMetadata",
+        "ListToolOutputSchema",
+        "BaseDataSourceContext",
+        "DataSourceSchema",
+        "inboxContactSchema",
+        "inboxFacetsSchema",
+        "inboxIdSchema",
+        "inboxItemDetailSchema",
+        "inboxItemSchema",
+        "inboxSourceDescriptorSchema",
+        "inboxSourceMetadataSchema",
+        "inboxUrgencySchema",
+        "resolvedInboxFollowUpSchema",
+        "createListToolOutputSchema",
+        "DataSource"
       ],
       "advanced-with-consumer": [
         "ActorRef",
@@ -594,7 +611,13 @@
         "IRuntimeStateNamespace",
         "RuntimeHealthCheck",
         "OperationalHealthProvider",
-        "ServiceLifecycle"
+        "ServiceLifecycle",
+        "OperatorPanelBlock",
+        "BoundWorkspaceAction",
+        "OperatorBindingContext",
+        "jsonResponse",
+        "jsonError",
+        "IInboxFollowUpsNamespace"
       ],
       "advanced-with-consumer": [
         "AnchorProfile",

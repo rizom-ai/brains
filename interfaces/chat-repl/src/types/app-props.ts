@@ -1,4 +1,4 @@
-import type { JobProgressEvent } from "@brains/plugins";
+import type { JobProgressEvent } from "@brains/sdk/interfaces";
 
 /**
  * Props for the EnhancedApp component

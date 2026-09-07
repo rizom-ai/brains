@@ -1,8 +1,3 @@
-import type {
-  AnyWorkspaceActionDefinition,
-  StudioWorkspaceView,
-} from "@brains/sdk/services";
-import type { AuthAdministration } from "@brains/auth-service";
 import {
   defineStudioWorkspace,
   defineWorkspaceAction,
@@ -13,7 +8,12 @@ import {
   type OperatorView,
   type OperatorViewBlock,
   type StudioWorkspaceViewBlock,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
+import type {
+  AnyWorkspaceActionDefinition,
+  StudioWorkspaceView,
+} from "@brains/sdk/services";
+import type { AuthAdministration } from "@brains/auth-service";
 import { queryInteger } from "@brains/utils/query";
 import { z } from "@brains/utils/zod";
 

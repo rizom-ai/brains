@@ -1,10 +1,13 @@
+import {
+  defineStudioWorkspace,
+  type OperatorViewBlock,
+} from "@brains/sdk/services";
 import type {
   AnyWorkspaceActionDefinition,
   StudioWorkspaceView,
   AuthAdministration,
 } from "@brains/sdk/services";
 import type { AuthAuditEvent } from "@brains/auth-service";
-import { defineStudioWorkspace, type OperatorViewBlock } from "@brains/plugins";
 import { queryInteger } from "@brains/utils/query";
 import { z } from "@brains/utils/zod";
 import {

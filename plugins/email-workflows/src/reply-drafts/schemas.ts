@@ -1,4 +1,4 @@
-import { inboxItemIdSchema } from "@brains/plugins";
+import { inboxItemIdSchema } from "@brains/sdk/entities";
 import { z } from "@brains/utils/zod";
 
 type UnsentDraftViewSchema = z.ZodObject<
