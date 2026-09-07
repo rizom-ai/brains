@@ -546,6 +546,28 @@ describe("public authoring 0.2 export ledger", () => {
     }
   });
 
+  it("promises no symbol its entry point does not export", () => {
+    const ledger = readLedger();
+
+    // The forward check above proves every export is classified. This is the
+    // other direction: a name the ledger promises as stable or advanced must
+    // actually be importable. Without it the ledger can name a symbol nobody
+    // can import, and the failure lands on whoever tries.
+    // Collected across every entry before asserting, so one run names all of
+    // them rather than stopping at whichever specifier comes first.
+    const absent = Object.entries(ledger.entries).flatMap(
+      ([specifier, entry]) => {
+        const current = exportedNames(join(repositoryRoot, entry.source));
+        return (["stable", "advanced-with-consumer"] as const)
+          .flatMap((category) => entry[category])
+          .filter((name) => !current.includes(name))
+          .map((name) => `${specifier}: ${name}`);
+      },
+    );
+
+    expect(absent, "the ledger promises symbols nobody can import").toEqual([]);
+  });
+
   it("classifies every golden public import as stable", () => {
     const ledger = readLedger();
 

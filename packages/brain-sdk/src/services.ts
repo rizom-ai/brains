@@ -36,8 +36,21 @@ export type {
   OperatorQueryReader,
   OperatorView,
   OperatorRegionBlock,
+  OperatorCardBlock,
   OperatorColumnsBlock,
   OperatorPanelBlock,
+  OperatorViewStatus,
+  // What a workspace action's form and result declare. An author who builds
+  // a form field map or a result declaration outside the action call needs
+  // these names; the action helper takes them either way.
+  WorkspaceActionFormControl,
+  WorkspaceActionFormDefinition,
+  WorkspaceActionFormFieldDefinition,
+  WorkspaceActionFormFieldMap,
+  WorkspaceActionFormOption,
+  WorkspaceActionResultDefinition,
+  WorkspaceActionResultFieldDefinition,
+  WorkspaceActionResultFieldMap,
   BoundWorkspaceAction,
   OperatorBindingContext,
   OperatorViewBlock,
