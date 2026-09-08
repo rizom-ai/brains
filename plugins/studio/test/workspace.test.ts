@@ -722,6 +722,7 @@ describe("optional Studio workspaces", () => {
 
     expect(duplicate).toEqual({
       success: false,
+      code: "handler_failed",
       error: "Studio workspace already registered: site",
     });
   });

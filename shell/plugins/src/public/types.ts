@@ -419,7 +419,6 @@ export interface IMessageInterfaceChannelsNamespace extends IChannelsNamespace {
 }
 
 export interface IInboxNamespace {
-  registerSource(source: InboxSource): void;
   listSources(): InboxSource[];
   getSource(sourceId: string): InboxSource | undefined;
 }
@@ -464,7 +463,10 @@ export interface BasePluginContext {
   readonly semantic: ISemanticNamespace;
   readonly identity: IIdentityNamespace;
   readonly channels: IChannelsNamespace;
-  readonly inbox: IInboxNamespace;
+  /** Runtime context: declarations, not author callbacks, register sources. */
+  readonly inbox: IInboxNamespace & {
+    registerSource(source: InboxSource): void;
+  };
   readonly inboxFollowUps: IInboxFollowUpsNamespace;
   readonly operationalHealth: IOperationalHealthNamespace;
   readonly messaging: IMessagingNamespace;

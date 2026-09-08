@@ -2,7 +2,66 @@
 
 ## Status and scope
 
-**Complete. Seven slices implemented, two dispositions withdrawn.**
+**Review corrections implemented. Built and packed authoring evidence now exercises
+live paths; stable release nomination remains separate.**
+
+### Review corrections (26dcad377e)
+
+The existing gates passed, but an external compile/runtime probe found gaps:
+
+- [x] Narrow auth, inbox-source and attachment access in ordinary callbacks;
+      registration stays runtime-owned. Check reachable callback members in a
+      built-declaration consumer, not only directly exported names. Apply the
+      same boundary to entity, service and interface callbacks.
+- [x] Finalize every installed plugin in the public harness, in installation
+      order; reset must discard every installed route. Add multi-package,
+      compound-package and reset regression tests.
+- [x] Reuse the schema-bearing public request contract in the testing harness;
+      remove unchecked response generics and preserve coded failures.
+- [x] Typecheck the SDK tests and compile the sign-off examples against built
+      public declarations. Exercise entity reads/presentation, job handlers,
+      stateful routes and conversational callbacks rather than only installation.
+- [x] Remove the obsolete separate template/view rule and document the exact
+      testing request semantics.
+
+The built consumer found an additional transitive leak: `reconcileEntities`
+accepted `EntityPluginContext`, reaching `EntityService`, `ProjectionStore` and
+Drizzle declarations. The named authoring consumer no longer used it. Its SDK
+export is removed, and ordinary authoring declaration checks now reject those
+runtime/storage dependencies in addition to testing callback reachability.
+
+Running the full packed matrix also found previously untested drift: a typed
+job's `oncePending` function property made the erased job-reference constraint
+contravariant, the health route's literal answer needed a domain return type,
+the conversational golden package still used the one-object definition, and
+the site CLI assertion expected an obsolete human-readable response. These are
+corrected; the operator consumer explicitly loads its Node runtime types.
+The job operation uses method variance, like `handle`, while runtime enqueue
+continues to parse input before calling it.
+
+Validation evidence for these corrections:
+
+- SDK tests are included in workspace typechecking. Eight public-harness tests
+  execute tools, jobs, typed reads/formatting, authenticated routes, conversational
+  callbacks, multi-package/compound finalization, reset and typed request failures.
+- The same tests compile and run through built public exports and an isolated
+  packed consumer, including negative capability/input assertions. Their compiler
+  uses the existing probes' `skipLibCheck` setting for Bun/Node test globals;
+  the separate packed operator consumer still checks declarations with it off.
+- Full packed compatibility: **7/7 passed**, covering restart persistence,
+  durable execution, interfaces, operator surfaces and a preview rebuild requested
+  through the running app.
+- Final integration gates **passed**: forced typecheck (103 tasks), forced lint
+  (96 tasks), repository tests (101 tasks), script typecheck, public surface
+  checks and boot smoke. Static boundary/architecture/assertion gates, docs,
+  core formatting, changesets, workspace/dependency and legacy checks also passed.
+
+No legacy alpha signatures or compatibility shims were added. Earlier claims
+that installation alone proved the three sign-off shapes are superseded by this
+evidence. These corrections do not authorize merging, publishing, or replacing
+the stable-nomination plan's exact-version and credentialed release checks.
+
+### Earlier implementation record
 
 On `work/plugin-api-boundaries`, each slice gated and committed on its own:
 

@@ -1,4 +1,5 @@
 import { describe, expect, it as bunIt } from "bun:test";
+import { writeAuthoringTestConsumer } from "./helpers/authoring-test-consumer";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -81,6 +82,16 @@ describe("public authoring Phase 6 packed operator contracts", () => {
         await runCommand(["bun", "run", "smoke"], consumerDirectory),
       );
 
+      await writeAuthoringTestConsumer(consumerDirectory);
+      await runCommand(
+        ["bun", "x", "tsc", "-p", "tsconfig.authoring.json"],
+        consumerDirectory,
+      );
+      const authorTests = await runCommand(
+        ["bun", "test", "authoring.test.ts"],
+        consumerDirectory,
+      );
+      expect(combinedOutput(authorTests)).toContain("0 fail");
       expect(smoke).not.toContain("did not compose");
       expect(tarballs.size).toBe(5);
     } finally {
