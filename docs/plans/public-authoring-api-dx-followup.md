@@ -547,29 +547,38 @@ and `packages/brain-cli/test/fixtures/public-authoring/README.md`.
 
 ### H. Identifiers an author sees — one name per declaration
 
-**Disposition: simplify the derived ids; no data migration.**
+**Disposition: keep the package-scoped id. Withdrawn on the evidence.**
 
 `shell/plugins/src/package-definition.ts` composes a plugin id as
 `${packageName}:${declarationId}`, so directory-sync reads
-`@brains/directory-sync:directory-sync` in logs,
-`@brains/directory-sync:directory-sync:import` as a job type, and
-`@brains/directory-sync:directory-sync:sync` as a workspace id, while its tool
-is `directory-sync_sync`. Authors never type these, but they read them in
-logs, MCP tool listings, and job status, and the prefix is redundant whenever
-package and declaration coincide, which is every single-definition package.
+`@brains/directory-sync:directory-sync` in logs and
+`@brains/directory-sync:directory-sync:import` as a job type. This was
+scheduled for removal because an author reads those ids and the prefix stutters
+whenever package and declaration coincide.
 
-**Decided:** the plugin id is the declaration id. The package name stays on the
-definition as metadata for diagnostics. Registration refuses two definitions
-with the same declaration id and names both packages in the diagnostic. Tool
-names stay `${declarationId}_${tool}`; jobs, health checks, templates, and
-workspaces become `${declarationId}:${name}`. Persisted impact: job rows carry
-`pluginId` only in the local, unreplicated job queue and are transient; runtime
-state is keyed by the package name through `stateNamespaceFor` and does not
-change; no entity row stores a plugin id. Account settings keep their own
-`${packageName}:${definitionId}` key in the auth database: that key is
-persisted user data, not a plugin id, and is out of scope. The changeset lists
-the renamed job types and workspace ids; eval cases, brain-cli tests, and
-brains-ops job names migrate in the same slice.
+Two facts, checked before the 265 references were touched, sink it.
+
+The benefit is smaller than claimed. Tool names are already
+`${declarationId}_${tool}` — `directory-sync_sync`, no package prefix — so
+the MCP listing, the surface an author reads most, is short today. What the
+prefix costs is log lines and job types.
+
+The cost is larger than claimed. A package-scoped id cannot collide, because
+package names are unique. A bare declaration id can: two independently authored
+packages that both declare `status` compose fine now and would refuse to boot
+after. The plan's own answer was a duplicate-id diagnostic, which turns a name
+clash from impossible into fatal — a bad trade for a brain that composes
+packages from more than one author, and the composability the single-brain
+model depends on. No collisions exist in this repository today, which is what
+made the change look free.
+
+Trimming only the stutter — a bare id when the declaration is the package's
+namesake — has the same failure in a narrower form, since two scopes may
+publish the same short name.
+
+**Decided:** the id keeps its package. What would make the change safe is a
+registry that resolves collisions rather than refusing them, and nothing needs
+one.
 
 Sources: `shell/plugins/src/package-definition.ts`,
 `shell/plugins/src/internal/state-namespace.ts`,
@@ -691,9 +700,7 @@ needs are small.
    the resulting API.
 8. Publish `@rizom/brain/testing` (G) with its ledger source and packed-consumer
    check, and give the three sign-off extensions their unit tests.
-9. Make the plugin id the declaration id (H), with the duplicate-id diagnostic,
-   the renamed job types and workspace ids, and the migrated eval cases, tests,
-   and ops job names.
+9. ~~Make the plugin id the declaration id (H).~~ Withdrawn: see H.
 
 No abstractions from this investigation require a new general public framework.
 No design decision remains open: third-party host support is not a product
@@ -712,8 +719,7 @@ repository gate, not a subset of it: forced typecheck, forced lint through
 `docs:check`, `surface:check`, `changeset:check`), and the full suite that
 the pre-commit hook runs. The slices are ordered by
 dependency, not preference: 1 has no dependencies, 2 gates everything after it,
-and 3–5 may land in any order once 2 has landed. Slice 8 depends only on 1;
-slice 9 has no dependencies. Do not accumulate slices into
+and 3–5 may land in any order once 2 has landed. Slice 8 depends only on 1. Do not accumulate slices into
 one long-lived branch; a slice that is not landable on its own is too large and
 should be split at a contract boundary. The whole-surface table entries that are
 not covered by a numbered slice are folded into slice 6.
@@ -842,9 +848,6 @@ posture script and rebuild preview through the running app before inspecting
 - [ ] Any advanced-contract additions are explicit.
 - [ ] `@rizom/brain/testing` is in the ledger and the packed-consumer check, and
       the three sign-off extensions run their own unit tests through it.
-- [ ] Plugin ids, job types, and workspace ids carry no package prefix, and a
-      duplicate declaration id is refused at registration with both packages
-      named.
 - [ ] Public documentation allows breaking cleanup before stable `0.2.0` and
       states that the `0.2.x` patch promise and later-minor breaking-change policy
       apply only after the stable freeze.
