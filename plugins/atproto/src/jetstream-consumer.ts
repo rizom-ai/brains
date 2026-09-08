@@ -91,7 +91,7 @@ export interface JetstreamConsumerCallbacks {
  */
 export interface JetstreamRuntime {
   readonly logger: LoggerContract;
-  state<TValue>(
+  runtimeState<TValue>(
     options: RuntimeStateScopeOptions<TValue>,
   ): IRuntimeStateStore<TValue>;
 }
@@ -212,7 +212,7 @@ export class JetstreamConsumer {
     this.createSocket = options.createSocket ?? createDefaultSocket;
     this.now = options.now ?? Date.now;
     this.random = options.random ?? Math.random;
-    this.store = options.runtime.state({
+    this.store = options.runtime.runtimeState({
       namespace: "atproto.jetstream",
       schema: jetstreamStateSchema,
     });

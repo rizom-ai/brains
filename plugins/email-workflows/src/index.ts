@@ -42,14 +42,14 @@ const emailWorkflowsPackage: ServicePackageDefinition<
     config: emailWorkflowsConfigSchema,
     entities: [mailItem],
 
-    setup: ({ state, logger }): EmailWorkflowsState => ({
+    setup: ({ runtimeState, logger }): EmailWorkflowsState => ({
       logger,
-      attempts: state({
+      attempts: runtimeState({
         namespace: "classification-attempts",
         schema: z.number().int().min(1).max(3),
       }),
       threadOrdinals: new MailThreadOrdinalCoordinator({
-        state: state({
+        state: runtimeState({
           namespace: "thread-ordinals",
           schema: threadOrdinalStateSchema,
         }),

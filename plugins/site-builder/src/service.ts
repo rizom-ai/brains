@@ -109,7 +109,7 @@ export function siteBuilderService(
         jobs,
         views,
         templates,
-        state,
+        runtimeState,
         logger,
         domain,
         siteUrl,
@@ -127,7 +127,10 @@ export function siteBuilderService(
           registerConfigRoutes(config.routes, "site-builder", routes);
         }
 
-        const status = new SiteBuildStatusService({ scoped: state }, jobs);
+        const status = new SiteBuildStatusService(
+          { scoped: runtimeState },
+          jobs,
+        );
         await status.initialize();
 
         const builder = SiteBuilder.createFresh(

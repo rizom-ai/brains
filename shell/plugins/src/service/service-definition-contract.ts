@@ -988,15 +988,22 @@ interface ServiceDefinitionHeader<
          */
         readonly entities: JobEntityAccess;
         /**
-         * Bookkeeping that is not an entity, for the same kind of state.
+         * Bookkeeping that is not an entity, kept between runs.
          *
          * A run in progress is not content, nobody browses it, and it should
          * not survive a rebuild of what it is about. The reaction context
          * offers this per call; it is here because the thing that writes
          * runs is built once, at registration.
-         * Named consumer: @brains/playbooks.
+         *
+         * Named `runtimeState` because `state` is what `setup` returned,
+         * which every slot below reads under that name. One word for two
+         * different things, in the same declaration, is how a package ends up
+         * writing durable notes into a value that vanishes with the process.
+         * Interfaces have always called it this. Named consumers:
+         * @brains/playbooks, @brains/email-workflows, @brains/atproto,
+         * @brains/content-pipeline.
          */
-        readonly state: <TValue>(
+        readonly runtimeState: <TValue>(
           options: RuntimeStateScopeOptions<TValue>,
         ) => IRuntimeStateStore<TValue>;
         /**

@@ -63,7 +63,7 @@ export interface PipelineRuntime {
   readonly attachments: IAttachmentsNamespace;
   readonly messaging: ServicePublisher;
   readonly jobs: ServiceJobs;
-  readonly state: <TValue>(
+  readonly runtimeState: <TValue>(
     options: RuntimeStateScopeOptions<TValue>,
   ) => IRuntimeStateStore<TValue>;
   readonly logger: LoggerContract;

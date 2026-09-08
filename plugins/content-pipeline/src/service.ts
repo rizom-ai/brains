@@ -103,7 +103,7 @@ export function contentPipelineService(
         attachments,
         messaging,
         jobs,
-        state,
+        runtimeState,
         logger,
       }): ContentPipelineState => {
         const runtime: PipelineRuntime = {
@@ -113,7 +113,7 @@ export function contentPipelineService(
           attachments,
           messaging,
           jobs,
-          state,
+          runtimeState,
           logger,
         };
         const queueManager = deps.queueManager ?? QueueManager.createFresh();
