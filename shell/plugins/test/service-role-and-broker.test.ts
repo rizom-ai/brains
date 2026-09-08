@@ -3,6 +3,7 @@ import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import {
   defineServicePlugin,
+  infrastructure,
   instantiatePluginPackageDefinition,
   type Plugin,
   type ServiceGitBroker,
@@ -24,8 +25,9 @@ function instantiate(): { plugin: Plugin; seen: () => Seen } {
     defineServicePlugin({
       id: "directory-sync",
       config: z.object({}),
-      setup: ({ role, gitBroker, dataDir }) => {
-        seen = { role, gitBroker, dataDir };
+      infrastructure,
+      setup: ({ infrastructure: facts, dataDir }) => {
+        seen = { role: facts.role, gitBroker: facts.gitBroker, dataDir };
         return {};
       },
     }),

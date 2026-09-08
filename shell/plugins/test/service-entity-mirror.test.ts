@@ -4,6 +4,7 @@ import { z } from "@brains/utils/zod";
 import { baseEntitySchema, type BaseEntity } from "@brains/entity-service";
 import {
   defineServicePlugin,
+  infrastructure,
   instantiatePluginPackageDefinition,
   type EntityAdapter,
   type EntityMirror,
@@ -51,8 +52,9 @@ describe("the records as a mirror keeps them", () => {
       defineServicePlugin({
         id: "directory-sync",
         config: z.object({}),
-        setup: ({ entityMirror }) => {
-          captured = entityMirror;
+        infrastructure,
+        setup: ({ infrastructure: facts }) => {
+          captured = facts.entityMirror;
           return {};
         },
       }),

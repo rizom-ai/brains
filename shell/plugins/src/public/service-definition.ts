@@ -8,6 +8,7 @@ import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin"
 import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import type {
+  InfrastructureAccess,
   NormalizedServiceDefinitionInput,
   ServiceDefinitionBehavior,
   ServiceDefinitionHeaderInput,
@@ -67,8 +68,15 @@ export type {
   WorkspaceActionResultFieldDefinition,
   WorkspaceActionResultFieldMap,
 } from "../operator/operator-view-contract";
-export { defineJob, defineTool } from "../service/service-definition-contract";
 export { contentGenerationResultSchema } from "@brains/content-service";
+export {
+  defineJob,
+  defineTool,
+  // The token a package that *is* infrastructure names to be given the
+  // process role, the git broker and the entity mirror. Ordinary authoring
+  // never writes it. Named consumer: @brains/directory-sync.
+  infrastructure,
+} from "../service/service-definition-contract";
 // A tool that *is* the conversation reaches the brain and may answer with
 // what the brain asked back. Named consumer: @brains/mcp.
 export type {
@@ -113,7 +121,9 @@ export type {
   ServiceBatchOptions,
   ServiceBatchReference,
   ServiceBatchStatus,
+  InfrastructureAccess,
   ServiceGitBroker,
+  ServiceInfrastructureContext,
   ServiceRole,
 } from "../service/service-definition-contract";
 export type {
@@ -175,6 +185,7 @@ function createServicePackage<
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TInfrastructure extends InfrastructureAccess | undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap,
 >(
   definition: NormalizedServiceDefinitionInput<
@@ -183,6 +194,7 @@ function createServicePackage<
     TPromptSchemas,
     TTemplateSchemas,
     TAccountSettings,
+    TInfrastructure,
     TTemplateDefinitions
   >,
 ): ServicePackageDefinition<TConfigSchema> {
@@ -227,9 +239,15 @@ export function defineServicePlugin<
   TTemplateSchemas extends ServiceSchemaMap = Record<never, never>,
   TAccountSettings extends AnyAccountSettingsDefinition =
     AnyAccountSettingsDefinition,
+  TInfrastructure extends InfrastructureAccess | undefined = undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap = Record<never, never>,
 >(
-  header: ServiceDefinitionHeaderInput<TConfigSchema, TState, TAccountSettings>,
+  header: ServiceDefinitionHeaderInput<
+    TConfigSchema,
+    TState,
+    TAccountSettings,
+    TInfrastructure
+  >,
   behavior?: ServiceDefinitionBehavior<
     TConfigSchema,
     TState,
@@ -245,9 +263,15 @@ export function defineServicePlugin<
   TPromptSchemas extends ServiceSchemaMap = Record<never, never>,
   TTemplateSchemas extends ServiceSchemaMap = Record<never, never>,
   TAccountSettings extends undefined = undefined,
+  TInfrastructure extends InfrastructureAccess | undefined = undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap = Record<never, never>,
 >(
-  header: ServiceDefinitionHeaderInput<TConfigSchema, TState, TAccountSettings>,
+  header: ServiceDefinitionHeaderInput<
+    TConfigSchema,
+    TState,
+    TAccountSettings,
+    TInfrastructure
+  >,
   behavior?: ServiceDefinitionBehavior<
     TConfigSchema,
     TState,
@@ -263,9 +287,15 @@ export function defineServicePlugin<
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TInfrastructure extends InfrastructureAccess | undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap,
 >(
-  header: ServiceDefinitionHeaderInput<TConfigSchema, TState, TAccountSettings>,
+  header: ServiceDefinitionHeaderInput<
+    TConfigSchema,
+    TState,
+    TAccountSettings,
+    TInfrastructure
+  >,
   behavior?: ServiceDefinitionBehavior<
     TConfigSchema,
     TState,
@@ -284,6 +314,7 @@ export function defineServicePlugin<
     TPromptSchemas,
     TTemplateSchemas,
     TAccountSettings,
+    TInfrastructure,
     TTemplateDefinitions
   > = { ...header, ...behavior };
   // Both plugins scope to `${packageName}:${id}`, so a service sharing an
@@ -306,6 +337,7 @@ export function defineServicePlugin<
     TPromptSchemas,
     TTemplateSchemas,
     TAccountSettings,
+    TInfrastructure,
     TTemplateDefinitions
   > = {
     ...definition,
