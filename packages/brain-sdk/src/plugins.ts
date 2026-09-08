@@ -107,3 +107,19 @@ export type {
   StudioWorkspaceRegistration,
   StudioWorkspaceRegistrationResult,
 } from "@brains/plugins";
+
+/**
+ * Implementing a data source by hand, rather than declaring one.
+ *
+ * `defineDataSource` is how a package declares one, and it is what ordinary
+ * authoring uses. A package that implements the interface directly needs the
+ * context that comes with it, and that context carries a scoped entity
+ * service — so these live here, on the advanced entry, rather than putting
+ * the entity service in the declarations of the entity authoring surface.
+ * Named consumer: @brains/unified-inbox.
+ */
+export type {
+  BaseDataSourceContext,
+  DataSource,
+  DataSourceSchema,
+} from "@brains/plugins";

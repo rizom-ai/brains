@@ -1,10 +1,9 @@
 import type {
   BaseDataSourceContext,
-  DataSourceSchema,
-  InboxSource,
-  InboxSourceMetadata,
   DataSource,
-} from "@brains/sdk/entities";
+  DataSourceSchema,
+} from "@brains/sdk/plugins";
+import type { InboxSource, InboxSourceMetadata } from "@brains/sdk/entities";
 import type { IInboxNamespace } from "@brains/sdk/services";
 import {
   inboxProjectionSchema,

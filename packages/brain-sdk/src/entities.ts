@@ -235,9 +235,6 @@ export type {
   InboxSource,
   InboxSourceMetadata,
   ListToolOutputSchema,
-  BaseDataSourceContext,
-  DataSourceSchema,
-  DataSource,
   InboxItemDetail,
 } from "@brains/plugins";
 

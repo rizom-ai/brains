@@ -167,6 +167,34 @@ describe("@rizom/brain public plugin API surface", () => {
       join(pkgDir, "dist", "testing.d.ts"),
       "utf-8",
     );
+    // Entities were the one authoring entry this never read, which is how
+    // the entity service reached its declarations unnoticed.
+    const entitiesTypes = readFileSync(
+      join(pkgDir, "dist", "entities.d.ts"),
+      "utf-8",
+    );
+    /**
+     * What an author can actually import from a declaration file.
+     *
+     * The bundler carries whole modules rather than only what is reachable,
+     * so a private interface can sit in the file while being unreachable —
+     * the entity service is in the entity declarations for that reason and
+     * cannot be named. What matters is the export list, which is the surface.
+     */
+    const exportedNamesOf = (source: string): Set<string> => {
+      const names = new Set<string>();
+      for (const block of source.matchAll(/export \{([\s\S]*?)\};/gu)) {
+        for (const part of (block[1] ?? "").split(",")) {
+          const name = part
+            .trim()
+            .replace(/^type\s+/u, "")
+            .split(/\s+as\s+/u)
+            .pop();
+          if (name) names.add(name.trim());
+        }
+      }
+      return names;
+    };
 
     for (const privateType of [
       "IShell",
@@ -176,8 +204,13 @@ describe("@rizom/brain public plugin API surface", () => {
       "DashboardWidgetRegistration",
       "StudioWorkspaceRegistration",
     ]) {
-      expect(servicesTypes).not.toContain(privateType);
-      expect(interfacesTypes).not.toContain(privateType);
+      for (const declarations of [
+        servicesTypes,
+        interfacesTypes,
+        entitiesTypes,
+      ]) {
+        expect([...exportedNamesOf(declarations)]).not.toContain(privateType);
+      }
       // The testing entry wraps the runtime’s own harness, which hands out
       // the mock shell and the plugin contexts. Narrowing it is the whole
       // point, so the same rule applies here.
