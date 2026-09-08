@@ -127,7 +127,7 @@ export function runtimeFor(
     permissions: context.permissions,
     attachments: context.attachments,
     messaging: {
-      send: (message) =>
+      request: (message) =>
         context.messaging.send({
           type: message.type,
           payload: message.payload,
@@ -303,7 +303,7 @@ export function mockRuntimeFor(
       permissions: context.permissions,
       attachments: context.attachments,
       messaging: {
-        send: (message) =>
+        request: (message) =>
           context.messaging.send({
             type: message.type,
             payload: message.payload,

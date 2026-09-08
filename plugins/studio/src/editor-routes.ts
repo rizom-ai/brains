@@ -444,7 +444,7 @@ export function createEditorRoutes(
 async function handleSyncStatus(runtime: StudioRuntime): Promise<Response> {
   const unavailable = { directorySync: null, git: null };
   const answer = syncStatusAnswerSchema.safeParse(
-    await runtime.messaging.send({
+    await runtime.messaging.request({
       type: DIRECTORY_SYNC_CHANNELS.statusRequest,
       payload: {},
     }),

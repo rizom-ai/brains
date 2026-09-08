@@ -513,7 +513,8 @@ export type {
 
 /** The narrow publish surface an interface gets, not the whole bus. */
 export interface MessageInterfacePublisher {
-  send(message: {
+  /** Ask, and read the answer — the same word every other surface uses. */
+  request(message: {
     readonly type: string;
     readonly payload: unknown;
   }): Promise<unknown>;

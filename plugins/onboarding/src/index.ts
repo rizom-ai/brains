@@ -98,7 +98,7 @@ const onboardingPackage: ServicePackageDefinition<
       if (!config.enabled) return;
       for (const playbook of bundledPlaybooks) {
         if (!playbook.starter) continue;
-        await messaging.send({
+        await messaging.request({
           type: PLAYBOOKS_REGISTER_LIFECYCLE_STARTER,
           payload: playbook.starter,
         });

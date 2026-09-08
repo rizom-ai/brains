@@ -105,7 +105,8 @@ export interface SubscriptionDefinition<
      * Named consumer: @brains/site-info.
      */
     readonly messaging: {
-      send(message: {
+      /** Ask, and read the answer. The same word the rest of the surface uses. */
+      request(message: {
         readonly type: string;
         readonly payload: unknown;
       }): Promise<unknown>;

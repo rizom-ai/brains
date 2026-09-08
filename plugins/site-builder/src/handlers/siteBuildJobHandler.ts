@@ -107,7 +107,7 @@ export function handleSiteBuild(
       )?.createSub({ scale: { start: 10, end: 90 } });
 
       const siteConfig = await resolveSiteMetadata(
-        cfg.messaging.send,
+        cfg.messaging.request,
         input.siteConfig ?? cfg.defaultSiteConfig,
       );
       const configuredSiteUrl =

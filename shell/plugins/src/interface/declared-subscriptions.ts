@@ -46,7 +46,7 @@ export function registerDeclaredSubscriptions(input: {
             entities: context.entityService,
             identity: context.identity,
             messaging: {
-              send: (outbound) =>
+              request: (outbound) =>
                 context.messaging.send({
                   type: outbound.type,
                   payload: outbound.payload,

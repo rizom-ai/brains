@@ -157,7 +157,7 @@ const siteInfoPackage: ServicePackageDefinition<
           const body = entity
             ? siteInfoBodySchema.parse(entity.metadata)
             : { represents: "anchor" as const };
-          await messaging.send({
+          await messaging.request({
             type: SITE_METADATA_UPDATED_CHANNEL,
             payload: resolveIdentityFallbacks(body, identity),
           });

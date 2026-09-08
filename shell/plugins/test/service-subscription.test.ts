@@ -208,7 +208,7 @@ describe("a subscription that announces rather than answers", () => {
             payload: z.object({ entityType: z.string() }),
             handle: async ({ payload, messaging }) => {
               if (payload.entityType !== "site-info") return;
-              await messaging.send({
+              await messaging.request({
                 type: "site:metadata:updated",
                 payload: { title: "Rebuilt" },
               });

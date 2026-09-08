@@ -65,7 +65,7 @@ export function analyticsService(
         const siteTag = config.cloudflare?.siteTag;
         if (!siteTag) return;
 
-        await messaging.send({
+        await messaging.request({
           type: SITE_BUILDER_CHANNELS.headScriptRegister,
           payload: {
             pluginId: "analytics",

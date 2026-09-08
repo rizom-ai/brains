@@ -269,7 +269,7 @@ export async function handleListAgents(
   if (entityContext instanceof Response) return entityContext;
 
   const answer = busAnswerSchema.safeParse(
-    await runtime.messaging.send({
+    await runtime.messaging.request({
       type: A2A_CHANNELS.callAgents,
       payload: {
         entityType,
@@ -318,7 +318,7 @@ export async function handleAskAgent(
   if (selectionError) return selectionError;
 
   const answer = busAnswerSchema.safeParse(
-    await runtime.messaging.send({
+    await runtime.messaging.request({
       type: A2A_CHANNELS.callRequest,
       payload: {
         agent: payload.agent,

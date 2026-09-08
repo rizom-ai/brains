@@ -43,7 +43,7 @@ export interface AgentRouteDeps {
   access: BrowserAccessReader;
   agent: AgentNamespace;
   messaging: {
-    send(message: { type: string; payload: unknown }): Promise<unknown>;
+    request(message: { type: string; payload: unknown }): Promise<unknown>;
   };
   interfaceType: string;
 }
@@ -198,7 +198,7 @@ export async function handleActionRequest(
   );
   if (accessError) return accessError;
 
-  const response = await deps.messaging.send({
+  const response = await deps.messaging.request({
     type: AGENT_ACTION_REQUEST_CHANNEL,
     payload: {
       conversationId: parsed.data.conversationId,
