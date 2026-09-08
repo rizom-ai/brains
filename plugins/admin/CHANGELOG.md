@@ -1,5 +1,16 @@
 # @brains/admin
 
+## 0.2.0-alpha.361
+
+### Patch Changes
+
+- [#235](https://github.com/rizom-ai/brains/pull/235) [`070ff27`](https://github.com/rizom-ai/brains/commit/070ff27217d9565073a2aaea60be1f9530dfbcad) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Allow Admin operators to resend expired invitations from invitation history instead of forcing a duplicate destination through the create form.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.361
+  - @brains/auth-service@0.2.0-alpha.361
+  - @brains/plugins@0.2.0-alpha.361
+
 ## 0.2.0-alpha.360
 
 ### Patch Changes

@@ -223,6 +223,7 @@
     "conversation-service-effect-layer",
     "core--account-settings-runtime",
     "core--admin-people-peers-workspaces",
+    "core--admin-resend-expired-invitations",
     "core--administration-invitations-redesign",
     "core--administration-people-layout-and-map-center",
     "core--administration-workspace",
