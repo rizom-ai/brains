@@ -39,9 +39,9 @@ import {
   createRuntimeUploadsNamespace,
   ProjectionJsonObjectSchema,
   resolvePrompt,
-  type IAttachmentsNamespace,
+  type AttachmentRegistrationNamespace,
   type IChannelRegistry,
-  type IAuthRegistry,
+  type AuthRegistryHost,
   type IInboxFollowUpRegistry,
   type IInboxRegistry,
   type IOperationalHealthRegistry,
@@ -501,7 +501,7 @@ export class Shell implements IShell {
     return this.services.renderService;
   }
 
-  public getAttachmentRegistry(): IAttachmentsNamespace {
+  public getAttachmentRegistry(): AttachmentRegistrationNamespace {
     return createAttachmentsNamespace(this.services.attachmentRegistry);
   }
 
@@ -719,7 +719,7 @@ export class Shell implements IShell {
     return this.services.profileKindRegistry;
   }
 
-  public getAuthRegistry(): IAuthRegistry {
+  public getAuthRegistry(): AuthRegistryHost {
     return this.services.authRegistry;
   }
 

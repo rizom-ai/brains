@@ -15,6 +15,7 @@
     "@rizom/brain": "0.2.0-alpha.295"
   },
   "devDependencies": {
+    "@types/bun": "^1.4.0",
     "typescript": "^7.0.2"
   }
 }

@@ -25,7 +25,7 @@ export default defineInterface(
         path: "/reading-digest/health",
         security: { kind: "public" },
         response: z.object({ status: z.literal("ok") }),
-        handle: () => ({ status: "ok" }),
+        handle: (): { status: "ok" } => ({ status: "ok" }),
       }),
       defineRoute({
         method: "POST",

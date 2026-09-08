@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { writeAuthoringTestConsumer } from "./helpers/authoring-test-consumer";
 import { runProcess } from "@brains/utils/run-process";
 import {
   existsSync,
@@ -179,7 +180,8 @@ describe("@rizom/brain public plugin API surface", () => {
      * The bundler carries whole modules rather than only what is reachable,
      * so a private interface can sit in the file while being unreachable —
      * the entity service is in the entity declarations for that reason and
-     * cannot be named. What matters is the export list, which is the surface.
+     * cannot be named. This checks directly exported names only; the authoring
+     * test consumer below also checks capabilities reachable through callbacks.
      */
     const exportedNamesOf = (source: string): Set<string> => {
       const names = new Set<string>();
@@ -421,6 +423,26 @@ describe("@rizom/brain public plugin API surface", () => {
     }
   });
 
+  it("compiles and runs the SDK author tests through the built public entries", async () => {
+    const tempDir = mkdtempSync(join(pkgDir, ".tmp-authoring-tests-"));
+    try {
+      await writeAuthoringTestConsumer(tempDir);
+      const compiled = await runProcess(
+        ["bun", "x", "tsc", "-p", "tsconfig.authoring.json"],
+        { cwd: tempDir },
+      );
+      expect(compiled.exitCode, `${compiled.stdout}\n${compiled.stderr}`).toBe(
+        0,
+      );
+      const ran = await runProcess(["bun", "test", "authoring.test.ts"], {
+        cwd: tempDir,
+      });
+      expect(ran.exitCode, `${ran.stdout}\n${ran.stderr}`).toBe(0);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it("keeps published declarations free of internal @brains/* imports", async () => {
     for (const publicExport of listTypedPublicExports()) {
       const types = readFileSync(join(pkgDir, publicExport.types), "utf-8");
@@ -432,6 +454,19 @@ describe("@rizom/brain public plugin API surface", () => {
           internalPrefixes: ["@brains/"],
         }),
       ).toEqual([]);
+    }
+  });
+
+  it("keeps storage dependencies out of ordinary authoring declarations", () => {
+    for (const entry of ["entities", "services", "interfaces", "testing"]) {
+      const source = stripDeclarationComments(
+        readFileSync(join(pkgDir, "dist", `${entry}.d.ts`), "utf8"),
+      );
+      expect(source).not.toContain("drizzle-orm");
+      expect(source).not.toContain("@libsql/");
+      expect(source).not.toMatch(
+        /\b(?:class|interface) (?:EntityService|EntityPluginContext|ProjectionStore)\b/u,
+      );
     }
   });
 

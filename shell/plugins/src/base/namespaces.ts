@@ -44,6 +44,7 @@ import type {
   IIdentityNamespace,
   IInboxFollowUpsNamespace,
   IInboxNamespace,
+  InboxRegistrationNamespace,
   IInsightsNamespace,
   IInteractionsNamespace,
   IMessageInterfaceChannelsNamespace,
@@ -110,7 +111,7 @@ export function createOperationalHealthNamespace(
 export function createInboxNamespace(
   shell: IShell,
   pluginId: string,
-): IInboxNamespace {
+): InboxRegistrationNamespace {
   const registry = shell.getInboxRegistry();
   return {
     registerSource: (source): void => {
@@ -118,6 +119,14 @@ export function createInboxNamespace(
     },
     listSources: () => registry.listSources(),
     getSource: (sourceId) => registry.getSource(sourceId),
+  };
+}
+
+/** Extension callbacks read sources; only declarations register them. */
+export function createInboxReader(inbox: IInboxNamespace): IInboxNamespace {
+  return {
+    listSources: () => inbox.listSources(),
+    getSource: (id) => inbox.getSource(id),
   };
 }
 
