@@ -93,8 +93,15 @@ export interface ServiceEntityShapes {
 
 /** The narrow publish surface a service gets, not the whole bus. */
 export interface ServicePublisher {
-  /** Ask, and read the answer: the first subscriber that answers does. */
-  send(message: {
+  /**
+   * Ask, and read the answer: the first subscriber that answers does.
+   *
+   * Called `request` because that is what it is, and because the reaction
+   * context has always called it that. Two names for one operation is how a
+   * package ends up believing `send` is fire-and-forget and dropping the
+   * answer on the floor. Broadcasting to everyone listening is `publish`.
+   */
+  request(message: {
     readonly type: string;
     readonly payload: unknown;
   }): Promise<unknown>;

@@ -147,7 +147,7 @@ export function newsletterService(
       // registered so the site builder is listening for slots.
       ready: async ({ config, messaging }) => {
         if (!config.apiKey) return;
-        await messaging.send({
+        await messaging.request({
           type: SITE_BUILDER_CHANNELS.slotRegister,
           payload: {
             pluginId: "buttondown",

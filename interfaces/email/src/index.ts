@@ -170,11 +170,11 @@ interface EmailState {
 
 async function resolveInboundSender(
   messaging: {
-    send(message: { type: string; payload: unknown }): Promise<unknown>;
+    request(message: { type: string; payload: unknown }): Promise<unknown>;
   },
   address: string,
 ): Promise<InboundEmailSender | undefined> {
-  const response = await messaging.send({
+  const response = await messaging.request({
     type: AUTH_PRINCIPAL_RESOLVE_CHANNEL,
     payload: {
       actor: {
@@ -351,7 +351,7 @@ export function emailInterface(
           }),
         );
         const publish: InboundEmailPublisher = (message) =>
-          messaging.send(message);
+          messaging.request(message);
 
         const supervisor = new InboundEmailSupervisor({
           config: config.imap,
