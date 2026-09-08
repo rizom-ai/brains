@@ -48,6 +48,10 @@
     "./templates": {
       "types": "./src/templates.ts",
       "default": "./src/templates.ts"
+    },
+    "./testing": {
+      "types": "./src/testing.ts",
+      "default": "./src/testing.ts"
     }
   },
   "main": "src/index.ts",
@@ -55,7 +59,8 @@
   "scripts": {
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "bun test"
   },
   "types": "src/index.ts"
 }
