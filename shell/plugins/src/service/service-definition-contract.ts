@@ -190,6 +190,56 @@ import type { OperatorEntityWrites } from "./operator-entities";
 import type { RuntimeReadiness } from "../contracts/runtime-health";
 import type { EntityDisplayEntry } from "@brains/site-composition";
 
+const infrastructureAccess: unique symbol = Symbol(
+  "rizom.infrastructure-access",
+);
+
+/**
+ * What a package that *is* infrastructure asks for, and ordinary authoring
+ * does not get.
+ *
+ * Which process this is, where the git broker lives, and a mirror of every
+ * entity type are facts about running a brain rather than about extending
+ * one. On every setup context they teach an ordinary author that process
+ * roles are part of the model; asked for by name, they stay where they
+ * belong. Import the token from the advanced entry point.
+ *
+ * Named consumer: @brains/directory-sync, which reconciles a checkout only
+ * where the scheduler runs and mirrors every type to files.
+ */
+export interface InfrastructureAccess {
+  readonly [infrastructureAccess]: true;
+}
+
+/** The token a declaration names to ask for the above. */
+export const infrastructure: InfrastructureAccess = Object.freeze({
+  [infrastructureAccess]: true as const,
+});
+
+/** The facts an infrastructure package's setup is given, and no other's. */
+export interface ServiceInfrastructureContext {
+  /**
+   * Which process this is. The runtime already withholds operator bindings
+   * from a worker; a package whose own duties differ by role — one that
+   * reconciles a checkout only where the scheduler runs, and must never open
+   * admission from a worker — reads which one it is in.
+   */
+  readonly role: ServiceRole;
+  /**
+   * The git broker's whereabouts, when the brain has one. Facts about the
+   * process the runtime already holds; the package that talks to the broker
+   * reads them here.
+   */
+  readonly gitBroker: ServiceGitBroker;
+  /**
+   * The brain's records as a mirror keeps them: every type, read and written
+   * as the file says, with the export ledger and the bulk coordination a
+   * sweep runs under. The third admitted cross-type write path, after
+   * `createRouted` and `operatorEntities`; here the file is the record.
+   */
+  readonly entityMirror: EntityMirror;
+}
+
 export type ServiceSchema = z.ZodType<unknown, unknown>;
 export type ServiceInputSchema = z.ZodObject<z.ZodRawShape>;
 export type ServiceSchemaMap = Record<string, ServiceSchema>;
@@ -879,7 +929,17 @@ export interface ServicePublishDeclaration extends EntityPublishDeclaration {
 interface ServiceDefinitionHeader<
   TConfigSchema extends z.ZodType<object, object>,
   TState extends object,
+  TInfrastructure extends InfrastructureAccess | undefined = undefined,
 > {
+  /**
+   * Ask for the facts about running a brain, rather than extending one.
+   *
+   * Name the `infrastructure` token from the advanced entry point and this
+   * package's `setup` is given the process role, the git broker and the
+   * entity mirror. Leave it out — which every ordinary package does — and
+   * they are not there to read.
+   */
+  readonly infrastructure?: TInfrastructure;
   readonly id: string;
   readonly config: TConfigSchema;
   /**
@@ -925,33 +985,11 @@ interface ServiceDefinitionHeader<
         readonly config: z.output<TConfigSchema>;
         readonly lifecycle: ServiceLifecycle;
         /**
-         * Which process this is. The runtime already withholds operator
-         * bindings from a worker; a package whose own duties differ by
-         * role — one that reconciles a checkout only where the scheduler
-         * runs, and must never open admission from a worker — reads which
-         * one it is in. Named consumer: @brains/directory-sync.
-         */
-        readonly role: ServiceRole;
-        /**
-         * The git broker's whereabouts, when the brain has one. Facts about
-         * the process the runtime already holds; the package that talks to
-         * the broker reads them here. Named consumer: @brains/directory-sync.
-         */
-        readonly gitBroker: ServiceGitBroker;
-        /**
-         * Where this brain keeps its data on disk. A package that mirrors
-         * the records to files defaults to a directory under it.
-         * Named consumer: @brains/directory-sync.
+         * Where this brain keeps its data on disk. A package that writes
+         * files defaults to a directory under it.
+         * Named consumers: @brains/directory-sync, @brains/studio.
          */
         readonly dataDir: string;
-        /**
-         * The brain's records as a mirror keeps them: every type, read and
-         * written as the file says, with the export ledger and the bulk
-         * coordination a sweep runs under. The third admitted cross-type
-         * write path, after `createRouted` and `operatorEntities`; here
-         * the file is the record. Named consumer: @brains/directory-sync.
-         */
-        readonly entityMirror: EntityMirror;
         /**
          * Finding the transport that serves a channel type.
          *
@@ -1139,6 +1177,16 @@ interface ServiceDefinitionHeader<
          */
         readonly publishing: ServicePublishingAccess;
         readonly logger: LoggerContract;
+        /**
+         * The facts about running a brain, for a package that asked.
+         *
+         * `undefined` for every package that did not name the
+         * `infrastructure` token, which is all ordinary authoring — the
+         * type says so, rather than the fields sitting there undocumented.
+         */
+        readonly infrastructure: TInfrastructure extends InfrastructureAccess
+          ? ServiceInfrastructureContext
+          : undefined;
       }) => TState | Promise<TState>)
     | undefined;
 }
@@ -1547,7 +1595,8 @@ type ServiceDefinitionCore<
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
-> = ServiceDefinitionHeader<TConfigSchema, TState> &
+  TInfrastructure extends InfrastructureAccess | undefined = undefined,
+> = ServiceDefinitionHeader<TConfigSchema, TState, TInfrastructure> &
   ServiceDefinitionBehavior<
     TConfigSchema,
     TState,
@@ -1562,12 +1611,14 @@ export type NormalizedServiceDefinitionInput<
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TInfrastructure extends InfrastructureAccess | undefined = undefined,
 > = ServiceDefinitionCore<
   TConfigSchema,
   TState,
   TPromptSchemas,
   TTemplateSchemas,
-  TAccountSettings
+  TAccountSettings,
+  TInfrastructure
 > & { readonly accountSettings: TAccountSettings };
 
 export type ServiceDefinitionInput<
@@ -1576,12 +1627,14 @@ export type ServiceDefinitionInput<
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TInfrastructure extends InfrastructureAccess | undefined = undefined,
 > = ServiceDefinitionCore<
   TConfigSchema,
   TState,
   TPromptSchemas,
   TTemplateSchemas,
-  TAccountSettings
+  TAccountSettings,
+  TInfrastructure
 > &
   (TAccountSettings extends AnyAccountSettingsDefinition
     ? { readonly accountSettings: TAccountSettings }
@@ -1598,7 +1651,8 @@ export type ServiceDefinitionHeaderInput<
   TConfigSchema extends z.ZodType<object, object>,
   TState extends object,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
-> = ServiceDefinitionHeader<TConfigSchema, TState> &
+  TInfrastructure extends InfrastructureAccess | undefined = undefined,
+> = ServiceDefinitionHeader<TConfigSchema, TState, TInfrastructure> &
   (TAccountSettings extends AnyAccountSettingsDefinition
     ? { readonly accountSettings: TAccountSettings }
     : { readonly accountSettings?: undefined });

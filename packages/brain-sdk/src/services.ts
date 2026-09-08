@@ -11,6 +11,11 @@ export {
   defineSubscription,
   defineTool,
   defineWorkspaceAction,
+  // A package that *is* infrastructure — it runs a checkout, talks to the
+  // git broker, mirrors every type to files — names this token and its setup
+  // is given those facts. Ordinary authoring never writes it, and never sees
+  // them. Named consumer: @brains/directory-sync.
+  infrastructure,
   jsonResponse,
   jsonError,
   // A route whose answer is the response itself. A service taking a form
@@ -222,7 +227,9 @@ export type {
   ServiceBatchOptions,
   ServiceBatchReference,
   ServiceBatchStatus,
+  InfrastructureAccess,
   ServiceGitBroker,
+  ServiceInfrastructureContext,
   ServiceRole,
   IRuntimeStateNamespace,
   RuntimeHealthCheck,

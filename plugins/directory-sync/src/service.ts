@@ -1,5 +1,6 @@
 import {
   defineServicePlugin,
+  infrastructure,
   type AnySubscriptionDefinition,
   type ServiceLifecycle,
   type ServicePackageDefinition,
@@ -699,17 +700,19 @@ export function directorySyncService(
     {
       id: "directory-sync",
       config: directorySyncConfigSchema,
+      // This package is infrastructure: it reconciles a checkout only where
+      // the scheduler runs, talks to the git broker, and mirrors every
+      // entity type to files. Saying so is what gives its setup those facts.
+      infrastructure,
 
       setup: async ({
         config,
-        entityMirror,
+        infrastructure: { role, gitBroker, entityMirror },
         jobs,
         messaging,
         runtimeState,
         logger,
         dataDir,
-        role,
-        gitBroker,
         lifecycle,
       }): Promise<DirectorySyncState> => {
         const host: DirectorySyncHost = {
