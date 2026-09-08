@@ -54,15 +54,27 @@ export interface InstalledTool {
    *
    * Like a schema-bearing bus request, this discriminates on `ok`. Tools
    * report a human-readable `error`; requests report a stable failure `code`.
+   * Pending approvals return `ok: false` with `confirmation`, not `error`.
+   * Replay the confirmation args with the named tool to approve it.
    * A bare-topic bus request remains an untyped envelope.
    */
   call(input: unknown, caller?: TestCaller): Promise<ToolCallResult>;
 }
 
-/** What a tool answered: its data, or why it refused. */
+/** What a tool answered: completed data, a refusal, or a pending approval. */
 export type ToolCallResult =
   | { readonly ok: true; readonly data: unknown }
-  | { readonly ok: false; readonly error: string };
+  | { readonly ok: false; readonly error: string }
+  | { readonly ok: false; readonly confirmation: TestToolConfirmation };
+
+/** An approval, not a refusal. Replay its args with the named tool to confirm. */
+export interface TestToolConfirmation {
+  readonly toolName: string;
+  readonly summary: string;
+  readonly args: unknown;
+  readonly completionSummary?: string | undefined;
+  readonly preview?: string | undefined;
+}
 
 /** What a package declared, once it is installed. */
 export interface InstalledPackage {
@@ -82,6 +94,7 @@ export interface BrainTestHarness {
    *
    * Takes the definition rather than a built plugin: instantiating one is
    * the runtime's job, and an author should not import the runtime to do it.
+   * Failure rolls back all children from this installation, not earlier packages.
    */
   installPackage(
     definition: unknown,
@@ -163,8 +176,8 @@ export function createBrainTestHarness(
       let instructions: string | undefined;
       const tools: InstalledTool[] = [];
       const jobs: InstalledPackage["jobs"][number][] = [];
-      for (const plugin of plugins) {
-        const capabilities = await harness.installPlugin(plugin);
+      const installed = await harness.installPlugins(plugins);
+      for (const { plugin, capabilities } of installed) {
         installedRoutes.push(...(plugin.getWebRoutes?.() ?? []));
         for (const type of harness
           .getMockShell()
@@ -183,12 +196,16 @@ export function createBrainTestHarness(
             name: tool.name,
             description: tool.description,
             call: async (input, caller) => {
-              const answer = await tool.handler(input, {
+              const answer = await harness.callTool(tool, input, {
                 interfaceType: caller?.interfaceType ?? "test",
                 actor: { kind: "service", serviceId: "test" },
                 userPermissionLevel: caller?.permission ?? "admin",
               });
-              if (!("success" in answer) || !answer.success) {
+              if ("needsConfirmation" in answer) {
+                const { needsConfirmation: _, ...confirmation } = answer;
+                return { ok: false, confirmation };
+              }
+              if (!answer.success) {
                 return {
                   ok: false,
                   error:

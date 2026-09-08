@@ -24,9 +24,9 @@ export interface DirectorySyncHost {
   readonly mirror: EntityMirror;
   readonly jobs: ServiceJobs;
   readonly messaging: ServicePublisher;
-  readonly state: <TValue>(
-    options: RuntimeStateScopeOptions<TValue>,
-  ) => IRuntimeStateStore<TValue>;
+  readonly state: <TValue, TInput = TValue>(
+    options: RuntimeStateScopeOptions<TValue, TInput>,
+  ) => IRuntimeStateStore<TValue, TInput>;
   readonly logger: Logger;
   readonly dataDir: string;
   readonly role: ServiceRole;

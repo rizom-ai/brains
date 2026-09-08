@@ -59,7 +59,9 @@ export class RuntimeStateService implements IRuntimeStateService {
     }
   }
 
-  scoped<T>(options: RuntimeStateScopeOptions<T>): IRuntimeStateStore<T> {
+  scoped<T, TInput = T>(
+    options: RuntimeStateScopeOptions<T, TInput>,
+  ): IRuntimeStateStore<T, TInput> {
     return new RuntimeStateStore(this.db, options.namespace, options.schema);
   }
 
