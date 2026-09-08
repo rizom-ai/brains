@@ -16,6 +16,7 @@
  * coming back.
  */
 
+import { matchHttpRoute } from "@brains/utils/http-utils";
 import { createPluginHarness } from "@brains/plugins/test";
 import {
   instantiatePluginPackageDefinition,
@@ -239,15 +240,19 @@ export function createBrainTestHarness(
       return entity ? { ...entity } : null;
     },
     fetch: async (method, path, init): Promise<unknown> => {
-      const route = installedRoutes.find(
-        (candidate) =>
-          candidate.path === path && (candidate.method ?? "GET") === method,
+      const url = new URL(path, "https://test.brain");
+      const route = matchHttpRoute(
+        installedRoutes.filter(
+          (candidate) => (candidate.method ?? "GET") === method.toUpperCase(),
+        ),
+        url.pathname,
+        (candidate) => candidate,
       );
       if (!route) {
         throw new Error(`Nothing serves ${method} ${path}`);
       }
       const response = await route.handler(
-        new Request(`https://test.brain${path}`, {
+        new Request(url, {
           method,
           headers: {
             ...(init?.body === undefined

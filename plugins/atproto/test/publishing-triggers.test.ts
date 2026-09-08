@@ -669,7 +669,7 @@ describe("AT Protocol ambient publishing triggers", () => {
     });
     await plugin.shutdown?.();
 
-    expect(response).toEqual({ success: true });
+    expect(response).toEqual({ noop: true });
     expect(failures).toEqual([
       {
         operation: "upsert-record",

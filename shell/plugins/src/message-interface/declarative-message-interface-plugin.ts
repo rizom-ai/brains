@@ -1,6 +1,8 @@
 import { createExternalActorId, type ActorRef } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { uploadNamespaceFor } from "../internal/state-namespace";
+import { runCleanups } from "../internal/cleanup";
+import { createRequester } from "../internal/requester";
 import { emptyPluginState } from "../base/empty-state";
 import { createInboxReader } from "../base/namespaces";
 import { createAuthReader } from "../contracts/auth-registry";
@@ -18,7 +20,7 @@ import { registerDeclaredSubscriptions } from "../interface/declared-subscriptio
 import { createInterfaceEntityAccess } from "../interface/interface-entity-access";
 import { deriveConsoleSurfaces } from "../console-surfaces";
 import { createRuntimeRoute } from "../interface/route-runtime";
-import { getServiceJobRuntimeType } from "../service/job-definition-runtime";
+import { createServiceJobRequest } from "../service/job-definition-runtime";
 import type { AnyServiceJobDefinition } from "../service/service-definition-contract";
 import type { WebRouteDefinition } from "../types/web-routes";
 import {
@@ -203,6 +205,7 @@ class DeclarativeMessageInterfacePlugin<
   private hasRequiredDaemon = false;
   private routes: WebRouteDefinition[] = [];
   private state: TState | undefined;
+  private readonly cleanups: Array<() => void | Promise<void>> = [];
   private approvalTracker: PendingApprovalTracker | undefined;
 
   constructor(
@@ -235,6 +238,11 @@ class DeclarativeMessageInterfacePlugin<
     this.state = this.definition.setup
       ? await this.definition.setup({
           config: this.config,
+          lifecycle: {
+            onCleanup: (cleanup): void => {
+              this.cleanups.push(cleanup);
+            },
+          },
           // Namespaced under the interface's own id, which is what the
           // stored keys already carry: a class wrote "email.inbound.cursor"
           // by hand. Changing the prefix here would orphan a live cursor, and
@@ -288,11 +296,9 @@ class DeclarativeMessageInterfacePlugin<
           displayBaseUrl: effectiveDisplayBaseUrl(context),
           themeCSS: context.themeCSS,
           messaging: {
-            request: (message) =>
-              context.messaging.send({
-                type: message.type,
-                payload: message.payload,
-              }),
+            request: createRequester((message) =>
+              context.messaging.send(message),
+            ),
           },
           logger: this.logger,
         })
@@ -348,10 +354,9 @@ class DeclarativeMessageInterfacePlugin<
             input: z.input<TDefinition["input"]>,
           ): Promise<{ readonly id: string }> =>
             Object.freeze({
-              id: await context.jobs.enqueue({
-                type: getServiceJobRuntimeType(definition),
-                data: definition.input.parse(input),
-              }),
+              id: await context.jobs.enqueue(
+                createServiceJobRequest(definition, input, this.id),
+              ),
             }),
           getStatus: async (jobId): Promise<InterfaceJobStatus | null> => {
             const job = await context.jobs.getStatus(jobId);
@@ -586,7 +591,11 @@ class DeclarativeMessageInterfacePlugin<
     this.accountSettingsRegistration = undefined;
     this.hasRequiredDaemon = false;
     this.state = undefined;
-    await super.onShutdown();
+    this.routes = [];
+    await runCleanups([
+      ...this.cleanups.splice(0),
+      (): Promise<void> => super.onShutdown(),
+    ]);
   }
 
   private requireState(): TState {

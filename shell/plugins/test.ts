@@ -2,6 +2,7 @@
  * Test utilities for plugin development
  * Import from "@brains/plugins/test" instead of deep paths
  */
+export { createRequester } from "./src/internal/requester";
 export { createTestEntityAdapter } from "@brains/entity-service/test";
 export {
   createMemoryRuntimeStateNamespace,

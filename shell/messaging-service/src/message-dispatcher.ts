@@ -1,3 +1,6 @@
+import { InvalidHandlerResponseError } from "./handler-response";
+import { toInternalResponse } from "./message-factory";
+import type { MessageErrorCode } from "./base-types";
 import type { Logger } from "@brains/utils/logger";
 import type { InternalMessageResponse, MessageWithPayload } from "./types";
 import type { HandlerEntry } from "./handler-registry";
@@ -21,14 +24,24 @@ export async function publishRequest(
   handlers: HandlerEntry[],
   logger: Logger,
 ): Promise<InternalMessageResponse | null> {
-  // For regular messages, call handlers until one returns a response
+  // Preserve fallback order, but distinguish failed handlers from no answer.
+  const failures: MessageErrorCode[] = [];
   for (const entry of handlers) {
-    const response = await invokeHandler(entry, message, logger);
+    const response = await invokeHandler(entry, message, logger, (code) => {
+      failures.push(code);
+    });
     if (response) {
       return response;
     }
   }
-  return null;
+  const code = failures[0];
+  return code
+    ? toInternalResponse(message.id, {
+        success: false,
+        code,
+        error: `Message request failed: ${code}`,
+      })
+    : null;
 }
 
 /** Invoke every matching request handler and preserve registration order. */
@@ -49,11 +62,19 @@ async function invokeHandler(
   entry: HandlerEntry,
   message: MessageWithPayload<unknown>,
   logger: Logger,
+  onFailure?: (code: MessageErrorCode) => void,
 ): Promise<InternalMessageResponse | null> {
   try {
     return await entry.handler(message);
   } catch (error) {
-    logger.error(`Error in message handler for ${message.type}`, error);
+    const code =
+      error instanceof InvalidHandlerResponseError
+        ? "invalid_response"
+        : "handler_failed";
+    // A generic dispatcher cannot know whether an exception embeds credentials
+    // or private request data. Handlers may log their own sanitized diagnostics.
+    logger.error(`Error in message handler for ${message.type}`, { code });
+    onFailure?.(code);
     return null;
   }
 }

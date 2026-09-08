@@ -241,7 +241,11 @@ export class BatchJobManager {
         throw new Error(`No job type declared: ${operation.type}`);
       }
 
-      if (validator.validateAndParse(operation.data) === null) {
+      if (
+        validator.validateAndParse(
+          JSON.parse(JSON.stringify(operation.data)),
+        ) === null
+      ) {
         throw new Error(`Invalid job data for type: ${operation.type}`);
       }
     }
@@ -286,6 +290,9 @@ export class BatchJobManager {
         // Set rootJobId to batchId so CLI progress tracking works through inheritance
         const jobOptions: JobOptions = {
           ...options,
+          ...(operation.maxRetries !== undefined
+            ? { maxRetries: operation.maxRetries }
+            : {}),
           rootJobId: batchId, // Individual jobs inherit from batch
           metadata: {
             ...options.metadata,

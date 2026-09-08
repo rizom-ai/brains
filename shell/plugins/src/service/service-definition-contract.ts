@@ -7,7 +7,10 @@ import type { ContentFormatter } from "@brains/content-formatters";
 import type { JsonObject } from "@brains/contracts";
 import type { ToolContext } from "../interfaces";
 import type { LoggerContract } from "@brains/utils/logger";
-import type { AnySubscriptionDefinition } from "../contracts/subscription";
+import type {
+  AnySubscriptionDefinition,
+  SubscriptionRequester,
+} from "../contracts/subscription";
 import type { IAuthRegistry } from "../contracts/auth-registry";
 import type {
   IInboxFollowUpsNamespace,
@@ -101,10 +104,7 @@ export interface ServicePublisher {
    * package ends up believing `send` is fire-and-forget and dropping the
    * answer on the floor. Broadcasting to everyone listening is `publish`.
    */
-  request(message: {
-    readonly type: string;
-    readonly payload: unknown;
-  }): Promise<unknown>;
+  readonly request: SubscriptionRequester;
   /**
    * Announce, to everyone listening. A discovery or a failure is not a
    * question for one subscriber; every package that cares hears it.
@@ -345,6 +345,24 @@ export interface ServiceJobBinding<
   readonly definition: TDefinition;
 }
 
+// Prepared tokens stay inside the worker. Each binding owns its typed cache,
+// so erasure never requires a cast and parsed outputs cannot be mistaken for
+// fresh schema inputs (including null/undefined inputs).
+const jobInputPreparers = new WeakMap<
+  ServiceJobBinding,
+  (input: unknown) => object
+>();
+
+export function prepareServiceJobInput(
+  binding: ServiceJobBinding,
+  input: unknown,
+): object {
+  const prepare = jobInputPreparers.get(binding);
+  if (!prepare)
+    throw new Error(`Job "${binding.definition.name}" has no handler binding`);
+  return prepare(input);
+}
+
 const jobHandlers = new WeakMap<
   ServiceJobBinding,
   ServiceJobHandler<unknown, unknown>
@@ -443,13 +461,29 @@ export function defineJob<
         kind: "rizom-service-job-binding",
         definition: job,
       });
+      const preparedInputs = new WeakMap<
+        object,
+        { input: z.output<TInputSchema> }
+      >();
+      jobInputPreparers.set(binding, (raw) => {
+        const input = parseWithSchema<TInputSchema>(job.input, raw);
+        const token = Object.freeze({});
+        preparedInputs.set(token, { input });
+        return token;
+      });
+      const parseInput = (raw: unknown): z.output<TInputSchema> => {
+        const prepared =
+          typeof raw === "object" && raw !== null
+            ? preparedInputs.get(raw)
+            : undefined;
+        return prepared
+          ? prepared.input
+          : parseWithSchema<TInputSchema>(job.input, raw);
+      };
       const settled = hooks?.settled;
       if (settled) {
         jobSettledHandlers.set(binding, async (context) =>
-          settled({
-            ...context,
-            input: parseWithSchema<TInputSchema>(job.input, context.input),
-          }),
+          settled({ ...context, input: parseInput(context.input) }),
         );
       }
       // Erase here, where TInputSchema is known. A handler taking
@@ -458,10 +492,7 @@ export function defineJob<
       // input reach the handler. Parsing through the job's own input schema is
       // what makes the erased signature true.
       jobHandlers.set(binding, async (context) =>
-        handler({
-          ...context,
-          input: parseWithSchema<TInputSchema>(job.input, context.input),
-        }),
+        handler({ ...context, input: parseInput(context.input) }),
       );
       return binding;
     },
@@ -618,7 +649,9 @@ export interface ServiceJobs {
   /**
    * Several jobs enqueued as one batch, so a sweep reports as one piece of
    * work rather than as each file. Every operation names a job this package
-   * declared. Named consumer: @brains/directory-sync.
+   * declared. Each child retains its declared retry policy. Jobs declaring
+   * oncePending are refused: sharing a child with another root cannot preserve
+   * batch completion/progress ownership. Named consumer: @brains/directory-sync.
    */
   enqueueBatch(
     operations: readonly ServiceBatchOperation[],
