@@ -224,7 +224,7 @@ export function createSiteBuilderServices(
 ): SiteBuilderServices {
   return {
     entityService: context.entityService,
-    sendMessage: context.messaging.send,
+    sendMessage: (message) => context.messaging.send(message),
     publishMessage: async (message): Promise<void> => {
       await context.messaging.send({
         type: message.topic,

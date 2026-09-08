@@ -6,7 +6,7 @@ import {
 import { z } from "@brains/utils/zod";
 
 /** Asking the bus a question, which is all this needs of messaging. */
-export type SiteMetadataSender = ServicePublisher["send"];
+export type SiteMetadataSender = ServicePublisher["request"];
 
 const siteMetadataCTASchema = z.object({
   heading: z.string(),

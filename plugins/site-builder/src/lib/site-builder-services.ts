@@ -24,7 +24,7 @@ export interface SiteEntityReads {
 
 export interface SiteBuilderServices {
   entityService: SiteEntityReads;
-  sendMessage: ServicePublisher["send"];
+  sendMessage: ServicePublisher["request"];
   /** Announcing, for the staging hand-off every listener may act on. */
   publishMessage: ServicePublisher["publish"];
   /** Resolved against the template's own schema; callers narrow what they read. */

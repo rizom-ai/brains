@@ -284,7 +284,7 @@ describe("declarative message interface: reaching the bus from setup", () => {
         // to hand it on, and to say so in the log; nothing else can.
         setup: async ({ messaging, logger }) => {
           logger.debug("publisher ready");
-          await messaging.send({
+          await messaging.request({
             type: "publisher:arrived",
             payload: { id: "letter-1" },
           });

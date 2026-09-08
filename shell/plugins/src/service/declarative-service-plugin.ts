@@ -466,7 +466,7 @@ class DeclarativeServicePlugin<
           this.publicId,
         ),
         messaging: {
-          send: (message) =>
+          request: (message) =>
             context.messaging.send({
               type: message.type,
               payload: message.payload,
@@ -632,7 +632,7 @@ class DeclarativeServicePlugin<
                 : {}),
             }),
           messaging: {
-            send: (message) =>
+            request: (message) =>
               context.messaging.send({
                 type: message.type,
                 payload: message.payload,
@@ -702,7 +702,7 @@ class DeclarativeServicePlugin<
               entities: context.entityService,
               identity: context.identity,
               messaging: {
-                send: (message) =>
+                request: (message) =>
                   context.messaging.send({
                     type: message.type,
                     payload: message.payload,
