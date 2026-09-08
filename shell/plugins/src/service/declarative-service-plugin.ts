@@ -68,9 +68,11 @@ import type { ServicePluginContext } from "./context";
 import type {
   AnyServiceJobDefinition,
   AnyServiceToolDefinition,
+  InfrastructureAccess,
   NormalizedServiceDefinitionInput,
   ServiceContentGeneration,
   ServiceContentGenerationResult,
+  ServiceInfrastructureContext,
   ServiceJobBinding,
   ServiceJobReference,
   ServiceJobStatus,
@@ -129,6 +131,30 @@ function renderableSchema(
 ): TemplateDataSchema<JsonObject> {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the erasure point described above; the runtime parse is the check
   return schema as TemplateDataSchema<JsonObject>;
+}
+
+/**
+ * The infrastructure facts, for the declaration that asked for them.
+ *
+ * The field's type is a conditional on whether the package named the token,
+ * and both arms are satisfied here: the facts are built when it did and
+ * `undefined` when it did not. The compiler cannot resolve a conditional
+ * over a type parameter it has not fixed, which is all this narrows.
+ */
+function infrastructureFor<
+  TInfrastructure extends InfrastructureAccess | undefined,
+>(
+  asked: InfrastructureAccess | undefined,
+  build: () => ServiceInfrastructureContext,
+): TInfrastructure extends InfrastructureAccess
+  ? ServiceInfrastructureContext
+  : undefined {
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see above: the arm built is the arm the declaration asked for
+  return (
+    asked ? build() : undefined
+  ) as TInfrastructure extends InfrastructureAccess
+    ? ServiceInfrastructureContext
+    : undefined;
 }
 
 function promptInput(value: string | undefined): unknown {
@@ -282,6 +308,7 @@ class DeclarativeServicePlugin<
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TInfrastructure extends InfrastructureAccess | undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap,
 > extends ServicePlugin<z.output<TConfigSchema>, z.output<TConfigSchema>> {
   private readonly definition: NormalizedServiceDefinitionInput<
@@ -290,6 +317,7 @@ class DeclarativeServicePlugin<
     TPromptSchemas,
     TTemplateSchemas,
     TAccountSettings,
+    TInfrastructure,
     TTemplateDefinitions
   >;
   private readonly publicId: string;
@@ -329,6 +357,7 @@ class DeclarativeServicePlugin<
       TPromptSchemas,
       TTemplateSchemas,
       TAccountSettings,
+      TInfrastructure,
       TTemplateDefinitions
     >,
     config: z.output<TConfigSchema>,
@@ -608,15 +637,24 @@ class DeclarativeServicePlugin<
           }),
           entityShapes: entityShapesOf(context),
           themeCSS: context.themeCSS,
-          role: context.executionOnly ? "worker" : "scheduler",
           dataDir: context.dataDir,
-          gitBroker: {
-            socket: context.gitBrokerSocket,
-            checkout: context.gitBrokerCheckout,
-          },
-          entityMirror: createEntityMirror(this.requireShell(), {
-            pluginId: this.id,
-          }),
+          // Which process this is, where the broker lives, and a mirror of
+          // every type: built for a package that declared itself
+          // infrastructure, and `undefined` for every other, which is what
+          // its setup context's type says it is.
+          infrastructure: infrastructureFor<TInfrastructure>(
+            this.definition.infrastructure,
+            () => ({
+              role: context.executionOnly ? "worker" : "scheduler",
+              gitBroker: {
+                socket: context.gitBrokerSocket,
+                checkout: context.gitBrokerCheckout,
+              },
+              entityMirror: createEntityMirror(this.requireShell(), {
+                pluginId: this.id,
+              }),
+            }),
+          ),
           readiness: () => context.readiness(),
           entityDisplay: context.entityDisplay,
           surfaces: (options) =>
@@ -1762,6 +1800,7 @@ export function createDeclarativeServicePlugin<
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TInfrastructure extends InfrastructureAccess | undefined,
   TTemplateDefinitions extends ServiceTemplateShapeMap,
 >(
   definition: NormalizedServiceDefinitionInput<
@@ -1770,6 +1809,7 @@ export function createDeclarativeServicePlugin<
     TPromptSchemas,
     TTemplateSchemas,
     TAccountSettings,
+    TInfrastructure,
     TTemplateDefinitions
   >,
   config: z.output<TConfigSchema>,
@@ -1782,6 +1822,7 @@ export function createDeclarativeServicePlugin<
   TPromptSchemas,
   TTemplateSchemas,
   TAccountSettings,
+  TInfrastructure,
   TTemplateDefinitions
 > {
   return new DeclarativeServicePlugin(definition, config, metadata, id, scope);

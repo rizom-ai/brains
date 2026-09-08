@@ -1,6 +1,7 @@
 import {
   bindPluginPackageMetadata,
   defineServicePlugin,
+  infrastructure,
   instantiatePluginPackageDefinition,
   type Plugin,
   type PluginRegistrationContext,
@@ -98,15 +99,14 @@ export async function hostFor(
     {
       id: "directory-sync",
       config: z.object({}),
+      infrastructure,
       setup: ({
-        entityMirror,
+        infrastructure: { role, gitBroker, entityMirror },
         jobs,
         messaging,
         runtimeState,
         logger,
         dataDir,
-        role,
-        gitBroker,
       }) => {
         captured = {
           mirror: entityMirror,
