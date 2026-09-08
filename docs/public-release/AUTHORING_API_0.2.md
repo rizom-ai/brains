@@ -447,6 +447,7 @@ contexts stay internal.
 - `InstalledTool`
 - `SeededEntity`
 - `TestCaller`
+- `ToolCallResult`
 - `createTempDataDir`
 - `createTempDataDirSync`
 
