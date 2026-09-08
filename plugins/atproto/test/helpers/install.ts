@@ -137,6 +137,6 @@ export function jetstreamRuntimeFor(shell: MockShell): JetstreamRuntime {
   const context = createServicePluginContext(shell, "atproto");
   return {
     logger: context.logger,
-    state: (options) => context.runtimeState.scoped(options),
+    runtimeState: (options) => context.runtimeState.scoped(options),
   };
 }

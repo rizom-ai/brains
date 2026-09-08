@@ -78,7 +78,7 @@ export class PublicationQueueService {
   constructor(context: PipelineRuntime, queueManager: QueueManager) {
     this.context = context;
     this.queueManager = queueManager;
-    this.store = context.state({
+    this.store = context.runtimeState({
       namespace: QUEUE_STATE_NAMESPACE,
       schema: publicationQueueRecordSchema,
     });

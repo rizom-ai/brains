@@ -705,7 +705,7 @@ export function directorySyncService(
         entityMirror,
         jobs,
         messaging,
-        state: runtimeState,
+        runtimeState,
         logger,
         dataDir,
         role,

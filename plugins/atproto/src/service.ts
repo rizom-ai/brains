@@ -125,7 +125,7 @@ export function atprotoService(
         config,
         lifecycle,
         entities,
-        state,
+        runtimeState,
         identity,
         profileKinds,
         publicSkills,
@@ -153,7 +153,7 @@ export function atprotoService(
           publisher,
           tasks,
           boot: { fullBootObserved: false },
-          runtime: { logger, state },
+          runtime: { logger, runtimeState },
           jetstream,
           logger,
         };
