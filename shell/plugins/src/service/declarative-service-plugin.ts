@@ -648,7 +648,7 @@ class DeclarativeServicePlugin<
           ),
           // Namespaced under the declaring package, exactly as the reaction
           // context does it, so what setup writes is what a handler reads.
-          state: <TValue>(options: RuntimeStateScopeOptions<TValue>) =>
+          runtimeState: <TValue>(options: RuntimeStateScopeOptions<TValue>) =>
             context.runtimeState.scoped({
               ...options,
               namespace: stateNamespaceFor(this.packageName, options.namespace),

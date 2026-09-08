@@ -1093,12 +1093,12 @@ const playbooksPackage: ServicePackageDefinition<typeof playbooksConfigSchema> =
       // The goal check is the reason this package needs the corpus and the
       // model: deciding whether a run's stated outcome holds means looking for
       // evidence of it and putting that evidence to a judge.
-      setup: ({ config, logger, entities, state, corpus, judge }) =>
+      setup: ({ config, logger, entities, runtimeState, corpus, judge }) =>
         new PlaybookOperations({
           config,
           logger,
           entities,
-          runs: new PlaybookRunStore(state),
+          runs: new PlaybookRunStore(runtimeState),
           goalCheck: createJudgeGoalCheck({ corpus, judge }),
         }),
     },

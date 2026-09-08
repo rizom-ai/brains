@@ -167,7 +167,7 @@ export function runtimeFor(
     },
     // The runtime files a scope under the declaring package, so a reader
     // built here has to look in the same place.
-    state: (scope) =>
+    runtimeState: (scope) =>
       context.runtimeState.scoped({
         ...scope,
         namespace: `${STATE_PREFIX}.${scope.namespace}`,
@@ -329,7 +329,7 @@ export function mockRuntimeFor(
         },
         batchStatus: async (): Promise<null> => null,
       },
-      state: (scope) => context.runtimeState.scoped(scope),
+      runtimeState: (scope) => context.runtimeState.scoped(scope),
       logger: context.logger,
     },
   };
