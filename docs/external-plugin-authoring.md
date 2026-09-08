@@ -157,6 +157,13 @@ export default defineServicePlugin(
 
 Important details:
 
+- a definition is two objects: what the package **is** — its id, its config,
+  what `setup` builds — and what it **does** with that. The split is the
+  same one a brain makes when it boots: a package is configured and set up
+  before anything asks it for a tool or a route. It is also what lets every
+  behavior slot read `state` as the type `setup` returned, in any order; in
+  one object, a slot written above `setup` would see an empty state and say
+  nothing;
 - import the blessed `z` from the family entry point—do not add direct `zod`;
 - `config` is authored once and inferred in every callback;
 - the callback returns plain schema-valid data, not a framework wrapper;
@@ -368,15 +375,19 @@ export async function greetsInTheConfiguredZone(
   });
   const answer = await installed.tools[0]?.call({});
   await harness.reset();
-  return typeof answer === "object" && answer !== null && "timezone" in answer
-    ? String(answer.timezone)
+  return answer?.ok &&
+    typeof answer.data === "object" &&
+    answer.data !== null &&
+    "timezone" in answer.data
+    ? String(answer.data.timezone)
     : undefined;
 }
 ```
 
-A tool that refuses throws, so the happy path needs no unwrapping and a
-refusal is asserted with `rejects`. The harness hands back names and answers
-rather than runtime objects, which is why nothing here imports `@brains/*`.
+A tool answers the way a bus request does — `ok` with the data, or `ok:
+false` with why — so a test asks a tool and asks over the bus with one shape.
+The harness hands back names and answers rather than runtime objects, which is
+why nothing here imports `@brains/*`.
 
 ### Services and durable jobs
 

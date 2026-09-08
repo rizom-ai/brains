@@ -996,13 +996,14 @@
       "stable": [
         "BrainTestHarness",
         "BrainTestHarnessOptions",
+        "createBrainTestHarness",
+        "createTempDataDir",
+        "createTempDataDirSync",
         "InstalledPackage",
         "InstalledTool",
         "SeededEntity",
         "TestCaller",
-        "createBrainTestHarness",
-        "createTempDataDir",
-        "createTempDataDirSync"
+        "ToolCallResult"
       ],
       "advanced-with-consumer": [],
       "internal/removable": []

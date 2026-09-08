@@ -39,7 +39,7 @@ describe("the public testing harness", () => {
 
   const install = async (): Promise<{
     harness: ReturnType<typeof createBrainTestHarness>;
-    greet: { call(input: unknown): Promise<unknown> };
+    greet: { call(input: unknown): Promise<{ ok: boolean }> };
   }> => {
     const harness = createBrainTestHarness();
     const installed = await harness.installPackage(
@@ -56,7 +56,8 @@ describe("the public testing harness", () => {
     const { harness, greet } = await install();
 
     expect(await greet.call({ name: "world" })).toEqual({
-      message: "Hello, world",
+      ok: true,
+      data: { message: "Hello, world" },
     });
 
     await harness.reset();
@@ -65,7 +66,7 @@ describe("the public testing harness", () => {
   it("refuses input the tool did not declare", async () => {
     const { harness, greet } = await install();
 
-    expect(greet.call({ nome: "world" })).rejects.toThrow("refused");
+    expect(await greet.call({ nome: "world" })).toMatchObject({ ok: false });
 
     await harness.reset();
   });
