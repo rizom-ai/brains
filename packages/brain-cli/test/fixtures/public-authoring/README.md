@@ -77,8 +77,9 @@ checked built-in equivalence boundary.
 
 ## Entity-to-template flow
 
-Entity packages do not declare presentation templates. The service fixture
-shows the stable composition path:
+An entity package declares the presentation that belongs to its own type. What
+crosses types, or what a brain configures, belongs to a service — and the
+service fixture shows that path:
 
 1. export the `bookmark` entity definition from the entity package;
 2. import it into the service package;
