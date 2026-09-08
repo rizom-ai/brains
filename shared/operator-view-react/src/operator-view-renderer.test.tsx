@@ -735,6 +735,40 @@ describe("OperatorViewRenderer confirmations", () => {
     expect(disclosure.textContent).toContain("Discord user ID");
   });
 
+  it("keeps disclosure action failures visible inside the open disclosure", async () => {
+    const action: RuntimeOperatorActionControl = {
+      actionId: "invite",
+      label: "Add a person",
+      input: { idempotencyKey: "request-1" },
+      form: {
+        presentation: "disclosure",
+        submitLabel: "Create invitation",
+        fields: [],
+      },
+    };
+    await act(async () => {
+      root.render(
+        createElement(OperatorViewRenderer, {
+          data: { view: { blocks: [{ type: "action", ...action }] } },
+          onAction: async () => {
+            throw new Error("Delivery identity is already connected");
+          },
+          onOpenEntity: () => {},
+        }),
+      );
+    });
+
+    await clickButton("Create invitation");
+
+    const disclosure = container.querySelector(
+      ".declarative-action-disclosure",
+    );
+    const error = disclosure?.querySelector(".status-error");
+    expect(error?.textContent).toContain(
+      "Action failed: Delivery identity is already connected",
+    );
+  });
+
   it("submits typed form input and presents bounded action results", async () => {
     const invocations: RuntimeOperatorActionControl[] = [];
     let copied = "";
