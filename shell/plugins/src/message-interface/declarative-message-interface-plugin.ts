@@ -286,7 +286,7 @@ class DeclarativeMessageInterfacePlugin<
           displayBaseUrl: effectiveDisplayBaseUrl(context),
           themeCSS: context.themeCSS,
           messaging: {
-            send: (message) =>
+            request: (message) =>
               context.messaging.send({
                 type: message.type,
                 payload: message.payload,

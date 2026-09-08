@@ -36,12 +36,12 @@ interface Announcement {
 }
 
 function recordingMessaging(announced: Announcement[]): {
-  send: SiteBuildJobHandlerConfig["messaging"]["send"];
+  request: SiteBuildJobHandlerConfig["messaging"]["request"];
   publish: SiteBuildJobHandlerConfig["messaging"]["publish"];
 } {
   return {
     // Nothing owns the site's metadata in these tests, so the fallback stands.
-    send: async () => ({ success: false, error: "no provider" }),
+    request: async () => ({ success: false, error: "no provider" }),
     publish: async (message): Promise<void> => {
       announced.push({ topic: message.topic, data: message.data });
     },

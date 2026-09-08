@@ -84,7 +84,7 @@ function createMessageBusAdapter(
   context: PipelineRuntime,
 ): SchedulerMessagePublisher {
   const send: SchedulerMessagePublisher["send"] = async (request) => {
-    return context.messaging.send({
+    return context.messaging.request({
       type: request.type,
       payload: request.payload,
       ...(request.broadcast !== undefined

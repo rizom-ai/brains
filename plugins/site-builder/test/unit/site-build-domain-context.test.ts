@@ -56,7 +56,7 @@ describe("the addresses a site build renders against", () => {
     const binding = handleSiteBuild({
       siteBuilder,
       messaging: {
-        send: async () => ({ success: false, error: "no provider" }),
+        request: async () => ({ success: false, error: "no provider" }),
         publish: async (message) => {
           announced.push({ topic: message.topic, data: message.data });
         },

@@ -137,7 +137,7 @@ export function siteBuilderService(
           logger.child("SiteBuilder"),
           {
             entityService: entities,
-            sendMessage: messaging.send,
+            sendMessage: messaging.request,
             publishMessage: messaging.publish,
             resolveTemplateContent: (name, options) =>
               templates.resolve(name, options),
@@ -157,7 +157,7 @@ export function siteBuilderService(
           config,
           routes,
           status,
-          send: messaging.send,
+          send: messaging.request,
           views: () =>
             views.list().map((template) => ({
               name: template.name,

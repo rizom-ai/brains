@@ -55,7 +55,7 @@ describe("declarative service ready", () => {
             visibilityScope: "restricted",
           });
           expect(existing).toBeNull();
-          await messaging.send({
+          await messaging.request({
             type: "seeder:announce",
             payload: { seeded: true },
           });

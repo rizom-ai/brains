@@ -332,7 +332,7 @@ async function handleQueue(
       authContext,
     );
 
-    await context.messaging.send({
+    await context.messaging.request({
       type: PUBLISH_MESSAGES.QUEUED,
       payload: {
         entityType,
@@ -448,7 +448,7 @@ async function handleList(
   try {
     const queue = await deps.queueManager.list(entityType);
 
-    await context.messaging.send({
+    await context.messaging.request({
       type: PUBLISH_MESSAGES.LIST_RESPONSE,
       payload: {
         entityType,
