@@ -2,7 +2,6 @@ import {
   defineEntity,
   fetchStyleGuide,
   formatVisualGuidance,
-  getErrorMessage,
   sourceAttachmentKey,
   z,
   type EntityCreateAllocation,
@@ -12,6 +11,7 @@ import {
   type EntityGenerationJobDeclaration,
   type EntityGenerationResult,
 } from "@brains/sdk/entities";
+import { getErrorMessage } from "@brains/utils/error";
 import {
   createDataUrl,
   imageDataUrl,

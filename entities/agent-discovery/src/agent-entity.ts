@@ -1,10 +1,10 @@
 import {
   defineEntity,
-  slugifyUrl,
   z,
   type EntityDefinition,
   type EntityGenerationResult,
 } from "@brains/sdk/entities";
+import { slugifyUrl } from "@brains/utils/string-utils";
 import { directoryMarkdown } from "./lib/directory-markdown";
 import {
   agentFrontmatterSchema,

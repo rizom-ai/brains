@@ -5,7 +5,7 @@ import {
   type EntityQueryReader,
   type PaginationInfo,
 } from "@brains/sdk/entities";
-import { slugify } from "@brains/sdk/entities";
+import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/sdk/entities";
 import type { BlogPost, BlogPostWithData } from "../schemas/blog-post";
 import { blogPostSchema } from "../schemas/blog-post";

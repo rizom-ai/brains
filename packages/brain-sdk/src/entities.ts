@@ -262,7 +262,6 @@ export type { ConversationMessageActor } from "@brains/plugins";
 // Bounded concurrency. Deriving memory from many conversations at once is
 // the kind of fan-out that needs a ceiling, and every package inventing its
 // own gets it subtly wrong.
-export { pLimit } from "@brains/utils/p-limit";
 
 // AT Protocol projection, for entities that publish records. The runtime
 // owns registration, so the registry itself stays internal — an author
@@ -308,15 +307,11 @@ export type {
 export {
   calculateReadingTime,
   firstSentence,
-  slugify,
-  slugifyUrl,
-  truncateText,
 } from "@brains/utils/string-utils";
 export { computeContentHash } from "@brains/utils/hash";
 // The repo's one way to turn a caught error into a message — a lint rule
 // enforces it over an inline instanceof ternary, so a package that cannot
 // reach it cannot pass lint. Named consumer: @brains/image-plugin.
-export { getErrorMessage } from "@brains/utils/error";
 
 // The conversation a job was started from, and what was said in it. A
 // package that summarises conversations has to name what it read. Named

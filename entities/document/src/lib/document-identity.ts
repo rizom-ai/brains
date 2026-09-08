@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { slugify } from "@brains/sdk/entities";
+import { slugify } from "@brains/utils/string-utils";
 
 const DOCUMENT_ID_MAX_LENGTH = 80;
 const DOCUMENT_ID_HASH_LENGTH = 10;

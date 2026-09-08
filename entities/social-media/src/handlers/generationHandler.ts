@@ -1,6 +1,6 @@
 import { ensureUniqueTitle } from "@brains/sdk/entities";
 import type { EntityGenerationDeclaration } from "@brains/sdk/entities";
-import { slugify } from "@brains/sdk/entities";
+import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/sdk/entities";
 import { fetchStyleGuide, formatVoiceGuidance } from "@brains/sdk/entities";
 import type { SocialPostFrontmatter } from "../schemas/social-post";

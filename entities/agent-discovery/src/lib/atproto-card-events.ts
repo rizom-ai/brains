@@ -7,12 +7,12 @@ import {
   type AtprotoBrainDiscoveryEventPayload,
 } from "@brains/atproto-contracts";
 import {
-  getErrorMessage,
-  slugifyUrl,
   z,
   type EntityAtprotoDiscovery,
   type EntityReactionContext,
 } from "@brains/sdk/entities";
+import { getErrorMessage } from "@brains/utils/error";
+import { slugifyUrl } from "@brains/utils/string-utils";
 import { createAgentContent, parseAgentEntity } from "./agent-content";
 import {
   createSafePublicFetch,

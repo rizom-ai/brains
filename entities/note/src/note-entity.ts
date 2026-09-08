@@ -1,12 +1,12 @@
 import {
   defineEntity,
   ensureUniqueTitle,
-  slugify,
   z,
   type EntityDefinition,
   type EntityGenerationJobDeclaration,
   type EntityGenerationResult,
 } from "@brains/sdk/entities";
+import { slugify } from "@brains/utils/string-utils";
 import { createNoteAtprotoProjection } from "./atproto-projection";
 import {
   createNoteContent,
