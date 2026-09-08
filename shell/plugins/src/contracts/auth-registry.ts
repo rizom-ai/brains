@@ -22,9 +22,8 @@ export type AuthImplementation = AuthCaller &
   AuthIdentities &
   AuthAdministration;
 
+/** Read access for extensions. Installing auth is a runtime responsibility. */
 export interface IAuthRegistry {
-  register(implementation: AuthImplementation): void;
-  unregister(implementation: AuthImplementation): void;
   getCaller(): AuthCaller | undefined;
   getAudit(): AuthAudit | undefined;
   getFederation(): AuthFederation | undefined;
@@ -33,7 +32,24 @@ export interface IAuthRegistry {
   getAdministration(): AuthAdministration | undefined;
 }
 
-export class AuthRegistry implements IAuthRegistry {
+/** Runtime-only registration authority. */
+export interface AuthRegistryHost extends IAuthRegistry {
+  register(implementation: AuthImplementation): void;
+  unregister(implementation: AuthImplementation): void;
+}
+
+/** Do not hand the host object itself to an author callback. */
+export function createAuthReader(registry: IAuthRegistry): IAuthRegistry {
+  return {
+    getCaller: () => registry.getCaller(),
+    getAudit: () => registry.getAudit(),
+    getFederation: () => registry.getFederation(),
+    getIdentities: () => registry.getIdentities(),
+    getAdministration: () => registry.getAdministration(),
+  };
+}
+
+export class AuthRegistry implements AuthRegistryHost {
   private implementation: AuthImplementation | undefined;
 
   public static createFresh(): AuthRegistry {

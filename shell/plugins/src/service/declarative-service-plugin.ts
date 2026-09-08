@@ -3,6 +3,9 @@ import type { ContentFormatter } from "@brains/content-formatters";
 import { PUBLISH_CHANNELS, type JsonObject } from "@brains/contracts";
 import { SYSTEM_CHANNELS } from "../system-channels";
 import type { JobHandler, JobInfo } from "@brains/job-queue";
+import { createInboxReader } from "../base/namespaces";
+import { createAttachmentReader } from "./attachment-registry";
+import { createAuthReader } from "../contracts/auth-registry";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type { Prompt, Resource, Tool, ToolContext } from "@brains/mcp-service";
 import {
@@ -502,7 +505,7 @@ class DeclarativeServicePlugin<
         logger: this.logger,
         dataDir: context.dataDir,
         jobs: this.jobs(),
-        auth: this.requireShell().getAuthRegistry(),
+        auth: createAuthReader(this.requireShell().getAuthRegistry()),
         entityShapes: entityShapesOf(context),
       });
     }
@@ -574,8 +577,8 @@ class DeclarativeServicePlugin<
               context.channels.getDeliveryProvider(channelType),
             listDescriptors: () => context.channels.listDescriptors(),
           },
-          auth: context.auth,
-          inbox: context.inbox,
+          auth: createAuthReader(context.auth),
+          inbox: createInboxReader(context.inbox),
           inboxFollowUps: context.inboxFollowUps,
           corpus: {
             search: async (request) => {
@@ -675,7 +678,7 @@ class DeclarativeServicePlugin<
             },
           },
           permissions: context.permissions,
-          attachments: context.attachments,
+          attachments: createAttachmentReader(context.attachments),
           jobs: this.jobs(),
           publishing: this.publishingAccess(context),
           // Stewarded types are read just above, so the owned set is already
@@ -755,7 +758,11 @@ class DeclarativeServicePlugin<
         } catch (error) {
           // A handler that cannot answer says so by throwing; the caller sees
           // a failed response rather than a successful one wrapping a refusal.
-          return { success: false, error: getErrorMessage(error) };
+          return {
+            success: false,
+            code: "handler_failed",
+            error: getErrorMessage(error),
+          };
         }
       });
     }

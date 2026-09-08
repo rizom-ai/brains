@@ -50,6 +50,7 @@ import { stateNamespaceFor } from "../internal/state-namespace";
 import { saveProcessedEntity } from "./pending-ingestion";
 import type { ScopedRuntimeUploadStore } from "../service/upload-registry";
 import { createEvalFixtures } from "./eval-fixtures";
+import { createAuthReader } from "../contracts/auth-registry";
 import { entitySchema, parseDefinitionEntity } from "./entity-schema";
 import type { EntityDefinitionShape } from "./entity-shape";
 export { definitionEntitySchema, parseDefinitionEntity } from "./entity-schema";
@@ -1764,7 +1765,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private reactionContext(context: EntityPluginContext): EntityReactionContext {
     return {
       entities: this.entityAccess(context),
-      auth: context.auth,
+      auth: createAuthReader(context.auth),
       messaging: {
         publish: async (message): Promise<void> => {
           await context.messaging.send({

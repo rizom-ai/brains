@@ -1,5 +1,7 @@
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import { createAccountDaemon } from "../operator/account-daemon-supervisor";
+import { createInboxReader } from "../base/namespaces";
+import { createAuthReader } from "../contracts/auth-registry";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
 import type { z } from "@brains/utils/zod";
 import {
@@ -98,12 +100,12 @@ class DeclarativeInterfacePlugin<
           plugins: context.plugins,
           endpoints: context.endpoints,
           interactions: context.interactions,
-          auth: context.auth,
+          auth: createAuthReader(context.auth),
           mcpTransport: context.mcpTransport,
           permissions: context.permissions,
           agent: context.agent,
           conversations: context.conversations,
-          inbox: context.inbox,
+          inbox: createInboxReader(context.inbox),
           inboxFollowUps: context.inboxFollowUps,
           surfaces: (options) =>
             deriveConsoleSurfaces(context.webRoutes.getRoutes(), {

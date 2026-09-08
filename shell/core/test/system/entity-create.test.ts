@@ -2109,7 +2109,7 @@ A saved research link.`;
   });
 
   it("should reject attachment generation when the source entity does not exist before confirmation", async () => {
-    services.attachments.register("deck", "carousel", {
+    services.registerAttachment("deck", "carousel", {
       metadata: { outputEntityType: "document" },
       resolve: () => undefined,
     });
@@ -2175,7 +2175,7 @@ A saved research link.`;
         contentHash: "hash-deck",
       },
     ]);
-    services.attachments.register("deck", "carousel", {
+    services.registerAttachment("deck", "carousel", {
       resolve: () => undefined,
     });
 
@@ -2230,7 +2230,7 @@ A saved research link.`;
         contentHash: "hash-resilience-post",
       },
     ]);
-    services.attachments.register("post", "printable", {
+    services.registerAttachment("post", "printable", {
       metadata: { outputEntityType: "document" },
       resolve: () => undefined,
     });
@@ -2313,7 +2313,7 @@ A saved research link.`;
         contentHash: "hash-deck",
       },
     ]);
-    services.attachments.register("deck", "carousel", {
+    services.registerAttachment("deck", "carousel", {
       metadata: { outputEntityType: "document" },
       resolve: () => undefined,
     });

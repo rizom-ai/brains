@@ -61,7 +61,11 @@ export function registerDeclaredSubscriptions(input: {
           }),
         };
       } catch (error) {
-        return { success: false, error: getErrorMessage(error) };
+        return {
+          success: false,
+          code: "handler_failed",
+          error: getErrorMessage(error),
+        };
       }
     });
   }

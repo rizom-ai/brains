@@ -102,6 +102,7 @@ export type { OperatorBindingContext } from "./operator/operator-context-contrac
 export { AuthRegistry } from "./contracts/auth-registry";
 export type {
   AuthImplementation,
+  AuthRegistryHost,
   IAuthRegistry,
 } from "./contracts/auth-registry";
 export type * from "./contracts/auth-admin";
@@ -198,6 +199,7 @@ export {
   type AttachmentProviderMetadata,
   type AttachmentResolveRequest,
   type IAttachmentsNamespace,
+  type AttachmentRegistrationNamespace,
 } from "./service/attachment-registry";
 export {
   RuntimeUploadRegistry,
@@ -1136,6 +1138,7 @@ export type {
   AnySubscriptionDefinition,
   SubscriptionDefinition,
   SubscriptionEntityReader,
+  SubscriptionRequester,
 } from "./contracts/subscription";
 
 // What a package delegated when it declared `publish`, and the access a

@@ -337,9 +337,9 @@ Rules that are easy to miss:
 - the formatter is available to this service's tool callbacks and job handlers;
 - transform an `EntityOf` value into the intended render model instead of
   coupling presentation to every persisted field;
-- a `template` produces text, while a `view` supplies a web renderer;
-- a template and view with the same key form one capability and must reference
-  the exact same schema object;
+- one `templates` entry declares its schema and optional `format` and `render`
+  behavior; text and web presentation share that declaration, not separate
+  template/view maps;
 - configuration-dependent text should be represented in the render value before
   formatting because template definitions are static.
 
@@ -370,22 +370,40 @@ export async function greetsInTheConfiguredZone(
   calendar: unknown,
 ): Promise<string | undefined> {
   const harness = createBrainTestHarness();
-  const installed = await harness.installPackage(calendar, {
-    timezone: "UTC",
-  });
-  const answer = await installed.tools[0]?.call({});
-  await harness.reset();
-  return answer?.ok &&
-    typeof answer.data === "object" &&
-    answer.data !== null &&
-    "timezone" in answer.data
-    ? String(answer.data.timezone)
-    : undefined;
+  try {
+    const installed = await harness.installPackage(calendar, {
+      timezone: "UTC",
+    });
+    const answer = await installed.tools[0]?.call({});
+    return answer?.ok &&
+      typeof answer.data === "object" &&
+      answer.data !== null &&
+      "timezone" in answer.data
+      ? String(answer.data.timezone)
+      : undefined;
+  } finally {
+    await harness.reset();
+  }
 }
 ```
 
-A tool answers the way a bus request does — `ok` with the data, or `ok:
-false` with why — so a test asks a tool and asks over the bus with one shape.
+Tools return `{ ok: true, data }` or `{ ok: false, error }`. For a typed bus
+request, pass the shared `{ topic, payload, response }` schema contract to
+`harness.request(contract, input)`. It returns parsed `{ ok: true, data }` or
+`{ ok: false, code }`, where the code is `no_handler`, `handler_failed`, or
+`invalid_response`. Bare `request({ type, payload })` returns an untyped bus
+envelope; it does not promise a result schema.
+
+Install dependencies before calling `finalizeRegistration()`; it runs every
+installed package's registration-complete hooks in installation order. Use
+`try/finally` to `await harness.reset()` even when an assertion fails. Reset
+shuts down installed packages in reverse order and removes their routes.
+
+`installed.jobs` lists registered jobs with a `run(input)` method. It validates
+and runs one handler attempt in-process; it does not simulate durable queue
+retries, deadlines, or terminal hooks. `harness.formatTemplate(name, value)`
+validates and formats a registered text template, while `harness.fetch()`
+exercises declared routes with their authentication and schema validation.
 The harness hands back names and answers rather than runtime objects, which is
 why nothing here imports `@brains/*`.
 

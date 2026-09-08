@@ -132,11 +132,15 @@ export interface IMessageInterfaceChannelsNamespace extends IChannelsNamespace {
   registerDeliveryProvider(provider: ChannelDeliveryProvider): void;
 }
 
-/** App-scoped inbox source registration and finalized read access. */
+/** Finalized inbox sources an extension may read. */
 export interface IInboxNamespace {
-  registerSource(source: InboxSource): void;
   listSources(): InboxSource[];
   getSource(sourceId: string): InboxSource | undefined;
+}
+
+/** Runtime-owned registration for declared inbox sources. */
+export interface InboxRegistrationNamespace extends IInboxNamespace {
+  registerSource(source: InboxSource): void;
 }
 
 /** Request-driven plugin contributions to operational (not routing) health. */

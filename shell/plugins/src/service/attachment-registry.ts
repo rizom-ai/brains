@@ -23,13 +23,6 @@ export interface AttachmentProvider {
  * Source plugins register providers; publishers resolve by semantic attachment type.
  */
 export interface IAttachmentsNamespace {
-  /** Register an attachment provider for a source entity type and semantic attachment type. */
-  register: (
-    sourceEntityType: string,
-    attachmentType: string,
-    provider: AttachmentProvider,
-  ) => () => void;
-
   /** Resolve a source-derived attachment if a provider is available. */
   resolve: (
     request: AttachmentResolveRequest,
@@ -45,9 +38,29 @@ export interface IAttachmentsNamespace {
   ) => AttachmentProviderMetadata | undefined;
 }
 
+/** Runtime-owned registration for declared attachment providers. */
+export interface AttachmentRegistrationNamespace extends IAttachmentsNamespace {
+  register(
+    sourceEntityType: string,
+    attachmentType: string,
+    provider: AttachmentProvider,
+  ): () => void;
+}
+
+export function createAttachmentReader(
+  attachments: IAttachmentsNamespace,
+): IAttachmentsNamespace {
+  return {
+    resolve: (request) => attachments.resolve(request),
+    hasProvider: (source, type) => attachments.hasProvider(source, type),
+    getProviderMetadata: (source, type) =>
+      attachments.getProviderMetadata(source, type),
+  };
+}
+
 export function createAttachmentsNamespace(
   registry: AttachmentRegistry,
-): IAttachmentsNamespace {
+): AttachmentRegistrationNamespace {
   return {
     register: (
       sourceEntityType: string,

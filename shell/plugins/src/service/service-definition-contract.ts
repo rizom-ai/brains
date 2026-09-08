@@ -376,8 +376,11 @@ export interface ServiceJobDefinition<
    * request, because that one will not see what changed since it started.
    * Named consumer: @brains/site-builder.
    */
-  readonly oncePending?:
-    ((input: z.output<TInputSchema>) => string) | undefined;
+  // Like handle(), this is a schema-bound operation. Method variance lets
+  // heterogeneous job definitions cross enqueue/reference boundaries without
+  // pretending their callbacks accept unknown input; the runtime parses input
+  // before invoking the operation.
+  oncePending?(input: z.output<TInputSchema>): string;
   handle(
     handler: ServiceJobHandler<z.output<TInputSchema>, z.input<TOutputSchema>>,
     hooks?: ServiceJobHooks<z.output<TInputSchema>>,
@@ -428,9 +431,11 @@ export function defineJob<
   }
   if (definition.deadline) parseServiceDeadline(definition.deadline);
 
+  const { oncePending, ...contract } = definition;
   const job: ServiceJobDefinition<TName, TInputSchema, TOutputSchema> = {
     kind: "rizom-service-job",
-    ...definition,
+    ...contract,
+    ...(oncePending ? { oncePending } : {}),
     handle(handler, hooks) {
       const binding: ServiceJobBinding<
         ServiceJobDefinition<TName, TInputSchema, TOutputSchema>

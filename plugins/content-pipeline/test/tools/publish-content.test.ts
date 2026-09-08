@@ -161,7 +161,7 @@ Post with PDF carousel.`;
   });
 
   it("should resolve source-derived carousel attachments when no explicit documents are set", async () => {
-    context.attachments.register("deck", "carousel", {
+    mockShell.getAttachmentRegistry().register("deck", "carousel", {
       resolve: (request: { sourceEntityId: string }) => {
         expect(request.sourceEntityId).toBe("deck-1");
         return {
@@ -194,7 +194,7 @@ Post with generated carousel.`;
 
   it("should prefer explicit document attachments over source-derived attachments", async () => {
     let sourceAttachmentResolved = false;
-    context.attachments.register("deck", "carousel", {
+    mockShell.getAttachmentRegistry().register("deck", "carousel", {
       resolve: () => {
         sourceAttachmentResolved = true;
         return {
@@ -251,7 +251,7 @@ Post without usable documents.`;
   });
 
   it("should fall through to source-derived attachment when documents is an empty array", async () => {
-    context.attachments.register("deck", "carousel", {
+    mockShell.getAttachmentRegistry().register("deck", "carousel", {
       resolve: () => ({
         type: "document",
         data: Buffer.from("%PDF-carousel"),
@@ -277,7 +277,7 @@ Post with empty documents array.`;
   });
 
   it("should fall through to source-derived attachment when all explicit document refs fail to fetch", async () => {
-    context.attachments.register("deck", "carousel", {
+    mockShell.getAttachmentRegistry().register("deck", "carousel", {
       resolve: () => ({
         type: "document",
         data: Buffer.from("%PDF-carousel"),

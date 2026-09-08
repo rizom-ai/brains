@@ -58,14 +58,14 @@ import type { IInboxRegistry } from "./inbox-registry";
 import type { IInboxFollowUpRegistry } from "./inbox-follow-up-registry";
 import type { IOperationalHealthRegistry } from "./operational-health-registry";
 import type { AccountSettingsRegistry } from "./operator/account-settings-registry";
-import type { IAuthRegistry } from "./contracts/auth-registry";
+import type { AuthRegistryHost } from "./contracts/auth-registry";
 import type {
   AnchorProfile,
   BrainCharacter,
   IProfileKindRegistry,
 } from "@brains/identity-service";
 import type { IAgentService } from "@brains/ai-service";
-import type { IAttachmentsNamespace } from "./service/attachment-registry";
+import type { AttachmentRegistrationNamespace } from "./service/attachment-registry";
 import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { IRuntimeUploadsNamespace } from "./service/upload-registry";
@@ -239,7 +239,7 @@ export interface IShell {
   getPermissionService(): PermissionService;
   getDataSourceRegistry(): DataSourceRegistry;
   getAgentService(): IAgentService;
-  getAttachmentRegistry(): IAttachmentsNamespace;
+  getAttachmentRegistry(): AttachmentRegistrationNamespace;
   getRuntimeUploadRegistry(): IRuntimeUploadsNamespace;
   getRuntimeState(): IRuntimeStateNamespace;
   getRecurringChecks(pluginId: string): IRecurringChecksNamespace;
@@ -249,7 +249,7 @@ export interface IShell {
   getProfile(): AnchorProfile;
   getProfileKindRegistry(): IProfileKindRegistry;
   /** Where the running auth implementation is published; see contracts/auth. */
-  getAuthRegistry(): IAuthRegistry;
+  getAuthRegistry(): AuthRegistryHost;
   getChannelRegistry(): IChannelRegistry;
   getInboxRegistry(): IInboxRegistry;
   getInboxFollowUpRegistry(): IInboxFollowUpRegistry;

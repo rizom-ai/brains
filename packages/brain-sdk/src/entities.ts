@@ -183,14 +183,10 @@ export type {
   SemanticSpaceProjection,
 } from "@brains/entity-service";
 
-// Projection plumbing: what a derived entity was derived from, and
-// reconciling a derived set against what exists. Named consumer:
-// @brains/agent-discovery, whose skills are derived from topic and agent
-// evidence.
-export {
-  computeProjectionInputFingerprint,
-  reconcileEntities,
-} from "@brains/plugins";
+// Fingerprinting a projection's evidence. Reconciliation itself is owned by
+// the runtime: its old helper took an EntityPluginContext and has no authoring
+// consumer, so exporting it exposed the entity service and projection database.
+export { computeProjectionInputFingerprint } from "@brains/plugins";
 
 // Grounding a package offers the agent before it answers. The runtime owns
 // the channel, the parse, the envelope, and scoping the reads to what the

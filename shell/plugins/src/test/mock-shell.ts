@@ -81,6 +81,7 @@ import type {
   IJobsNamespace,
   JobInfo,
   JobQueueEnqueueRequest,
+  JobHandler,
 } from "@brains/job-queue";
 import type {
   IRuntimeStateNamespace,
@@ -1268,6 +1269,10 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     return routes;
   };
 
+  const jobHandlers = new Map<
+    string,
+    { handler: JobHandler; pluginId: string | undefined }
+  >();
   const jobQueueService: IJobQueueService = {
     enqueue: async (request) => recordEnqueuedJob(request),
     // The real service reports whether the job was still claimable; the fake
@@ -1286,14 +1291,24 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     }),
     cleanup: async () => 0,
     getRuntimeUpdates: async () => [],
-    registerHandler: () => {},
-    unregisterHandler: () => {},
-    unregisterPluginHandlers: () => {},
-    getRegisteredTypes: () => [],
-    getHandler: () => undefined,
-    getValidator: () => undefined,
-    finalizeHandlerRegistrations: () => [],
-    getExecutionRegistrations: () => [],
+    registerHandler: (type, handler, pluginId) => {
+      jobHandlers.set(type, { handler, pluginId });
+    },
+    unregisterHandler: (type) => {
+      jobHandlers.delete(type);
+    },
+    unregisterPluginHandlers: (pluginId) => {
+      for (const [type, registration] of jobHandlers) {
+        if (registration.pluginId === pluginId) jobHandlers.delete(type);
+      }
+    },
+    getRegisteredTypes: () => [...jobHandlers.keys()],
+    getHandler: (type) => jobHandlers.get(type)?.handler,
+    getValidator: (type) => jobHandlers.get(type)?.handler,
+    finalizeHandlerRegistrations: () =>
+      [...jobHandlers].map(([type, { pluginId }]) => ({ type, pluginId })),
+    getExecutionRegistrations: () =>
+      [...jobHandlers].map(([type, { pluginId }]) => ({ type, pluginId })),
     getActiveJobs: async (types) =>
       listQueuedJobs(types).filter(
         (job) => job.status === "pending" || job.status === "processing",

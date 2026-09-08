@@ -20,6 +20,7 @@ import { createPluginHarness } from "@brains/plugins/test";
 import {
   instantiatePluginPackageDefinition,
   type WebRouteDefinition,
+  type SubscriptionRequester,
 } from "@brains/plugins";
 
 export { createTempDataDir, createTempDataDirSync } from "@brains/plugins/test";
@@ -50,9 +51,9 @@ export interface InstalledTool {
   /**
    * Call it, and read what it answered.
    *
-   * The same shape a bus `request` answers with: `ok` and the data, or `ok:
-   * false` and why. One model for asking anything in a test, rather than a
-   * thrown error for tools and a result for requests.
+   * Like a schema-bearing bus request, this discriminates on `ok`. Tools
+   * report a human-readable `error`; requests report a stable failure `code`.
+   * A bare-topic bus request remains an untyped envelope.
    */
   call(input: unknown, caller?: TestCaller): Promise<ToolCallResult>;
 }
@@ -65,6 +66,11 @@ export type ToolCallResult =
 /** What a package declared, once it is installed. */
 export interface InstalledPackage {
   readonly tools: readonly InstalledTool[];
+  /** Registered jobs; run validates and executes one attempt, not queue retries. */
+  readonly jobs: readonly {
+    readonly name: string;
+    run(input: unknown): Promise<unknown>;
+  }[];
   readonly instructions: string | undefined;
 }
 
@@ -88,11 +94,8 @@ export interface BrainTestHarness {
    * does nothing until this runs.
    */
   finalizeRegistration(): Promise<void>;
-  /** Ask over the bus, as another package would. */
-  request<TResponse = unknown>(
-    topic: string,
-    payload: unknown,
-  ): Promise<TResponse | undefined>;
+  /** Ask with a schema-bearing contract for parsed data or a coded failure. */
+  readonly request: SubscriptionRequester;
   /** Announce over the bus, as the runtime would. */
   publish(topic: string, payload: unknown): Promise<void>;
   /** Put records in the brain for the package under test to read. */
@@ -118,6 +121,8 @@ export interface BrainTestHarness {
       readonly headers?: Record<string, string> | undefined;
     },
   ): Promise<unknown>;
+  /** Validate a value and format it with a registered text template. */
+  formatTemplate(name: string, value: unknown): string;
   /** The scoped names of every template registered so far. */
   templateNames(): readonly string[];
   /** Tear down what the test installed. */
@@ -156,9 +161,21 @@ export function createBrainTestHarness(
       );
       let instructions: string | undefined;
       const tools: InstalledTool[] = [];
+      const jobs: InstalledPackage["jobs"][number][] = [];
       for (const plugin of plugins) {
         const capabilities = await harness.installPlugin(plugin);
         installedRoutes.push(...(plugin.getWebRoutes?.() ?? []));
+        for (const type of harness
+          .getMockShell()
+          .getJobQueueService()
+          .getRegisteredTypes()) {
+          if (type.startsWith(`${plugin.id}:`)) {
+            jobs.push({
+              name: type,
+              run: (input) => harness.runJob(type, input),
+            });
+          }
+        }
         instructions ??= capabilities.instructions;
         for (const tool of capabilities.tools) {
           tools.push({
@@ -184,14 +201,10 @@ export function createBrainTestHarness(
           });
         }
       }
-      return { tools, instructions };
+      return { tools, jobs, instructions };
     },
     finalizeRegistration: () => harness.finalizeRegistration(),
-    request: async <TResponse = unknown>(
-      topic: string,
-      payload: unknown,
-    ): Promise<TResponse | undefined> =>
-      harness.sendMessage<unknown, TResponse>(topic, payload),
+    request: harness.request,
     publish: async (topic, payload): Promise<void> => {
       await harness.sendMessage(topic, payload, "test", true);
     },
@@ -226,17 +239,10 @@ export function createBrainTestHarness(
       return entity ? { ...entity } : null;
     },
     fetch: async (method, path, init): Promise<unknown> => {
-      const routes =
-        harness
-          .getPlugin()
-          .getWebRoutes?.()
-          .filter((route) => route.path === path) ?? [];
-      const route =
-        routes.find(({ method: served }) => (served ?? "GET") === method) ??
-        installedRoutes.find(
-          (candidate) =>
-            candidate.path === path && (candidate.method ?? "GET") === method,
-        );
+      const route = installedRoutes.find(
+        (candidate) =>
+          candidate.path === path && (candidate.method ?? "GET") === method,
+      );
       if (!route) {
         throw new Error(`Nothing serves ${method} ${path}`);
       }
@@ -258,7 +264,16 @@ export function createBrainTestHarness(
       if (!contentType.includes("application/json")) return response;
       return response.json();
     },
+    formatTemplate: (name, value): string => {
+      const template = harness.getTemplates().get(name);
+      if (!template?.formatter)
+        throw new Error(`No text formatter for "${name}"`);
+      return template.formatter.format(template.schema.parse(value));
+    },
     templateNames: () => [...harness.getTemplates().keys()],
-    reset: () => harness.reset(),
+    reset: async (): Promise<void> => {
+      installedRoutes.length = 0;
+      await harness.reset();
+    },
   };
 }

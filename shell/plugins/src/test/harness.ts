@@ -12,7 +12,12 @@ import type { toolSuccessSchema, toolErrorSchema } from "@brains/mcp-service";
 type ToolSuccess = z.output<typeof toolSuccessSchema>;
 type ToolError = z.output<typeof toolErrorSchema>;
 import type { Logger } from "@brains/utils/logger";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createMockProgressReporter,
+} from "@brains/test-utils";
+import { createRequester } from "../internal/requester";
+import type { SubscriptionRequester } from "../contracts/subscription";
 import type { Template } from "@brains/templates";
 import type { MessageHandler } from "@brains/messaging-service";
 import type {
@@ -20,7 +25,7 @@ import type {
   IEntityService,
   IEntityRegistry,
 } from "@brains/entity-service";
-import type { IAttachmentsNamespace } from "../service/attachment-registry";
+import type { AttachmentRegistrationNamespace } from "../service/attachment-registry";
 import { createMockShell, type MockShell } from "./mock-shell";
 import { createReactionContext } from "../service/reaction-context";
 import { createJobEntityAccess } from "../job/job-entity-access";
@@ -173,7 +178,9 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     this.mockShell.getChannelRegistry().finalize();
     this.mockShell.getInboxRegistry().finalize();
     this.mockShell.getInboxFollowUpRegistry().finalize();
-    await this.plugin.finalizeRegistration?.();
+    for (const plugin of this.installedPlugins) {
+      await plugin.finalizeRegistration?.();
+    }
   }
 
   /**
@@ -328,7 +335,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
   /**
    * Get the attachment registry
    */
-  getAttachments(): IAttachmentsNamespace {
+  getAttachments(): AttachmentRegistrationNamespace {
     return this.mockShell.getAttachmentRegistry();
   }
 
@@ -377,6 +384,25 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       return response.data;
     }
     return undefined;
+  }
+
+  /** The same schema-bearing request path an author callback receives. */
+  readonly request: SubscriptionRequester = createRequester((message) =>
+    this.mockShell.getMessageBus().send({ ...message, sender: "test" }),
+  );
+
+  /** Execute one registered job attempt, without a worker or retry loop. */
+  async runJob(type: string, input: unknown): Promise<unknown> {
+    const handler = this.mockShell.getJobQueueService().getHandler(type);
+    if (!handler) throw new Error(`No job handler registered for "${type}"`);
+    const parsed = handler.validateAndParse(input);
+    if (parsed === null) throw new Error(`Invalid input for job "${type}"`);
+    return handler.process(
+      parsed,
+      "test-job",
+      createMockProgressReporter(),
+      new AbortController().signal,
+    );
   }
 
   /**
@@ -468,6 +494,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     this.capabilities = undefined;
     // Create a fresh MockShell
     this.mockShell = createMockShell({
+      ...this.options,
       logger: this.mockShell.getLogger(),
     });
     for (const plugin of plugins) {

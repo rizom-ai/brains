@@ -14,7 +14,7 @@ import type { EntityDisplayEntry } from "@brains/site-composition";
 import type { JobsNamespace } from "@brains/job-queue";
 import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
-import type { IAttachmentsNamespace } from "../service/attachment-registry";
+import type { AttachmentRegistrationNamespace } from "../service/attachment-registry";
 import type { AccountSettingsRegistry } from "../operator/account-settings-registry";
 import type { IRuntimeUploadsNamespace } from "../service/upload-registry";
 import {
@@ -49,13 +49,14 @@ import type {
   IConversationsNamespace,
   IEndpointsNamespace,
   IInboxFollowUpsNamespace,
+  InboxRegistrationNamespace,
   IInsightsNamespace,
   IInteractionsNamespace,
   IMessagingNamespace,
   IPluginsNamespace,
   IProfileKindsNamespace,
 } from "./context-types";
-import type { IAuthRegistry } from "../contracts/auth-registry";
+import type { AuthRegistryHost } from "../contracts/auth-registry";
 
 export interface ISemanticNamespace {
   project(
@@ -143,10 +144,13 @@ export interface BasePluginContext extends PublicBasePluginContext {
   /** App-scoped semantic profile-kind catalog and selected resolution. */
   readonly profileKinds: IProfileKindsNamespace;
   /** Where the running auth implementation is published; see contracts/auth. */
-  readonly auth: IAuthRegistry;
+  readonly auth: AuthRegistryHost;
 
   /** Public card skills shared by every publication channel. */
   readonly publicSkills: IPublicSkillsNamespace;
+
+  /** Runtime registration for declared inbox sources. */
+  readonly inbox: InboxRegistrationNamespace;
 
   /** Destination-owned non-mutating Inbox follow-up catalog. */
   readonly inboxFollowUps: IInboxFollowUpsNamespace;
@@ -180,7 +184,7 @@ export interface BasePluginContext extends PublicBasePluginContext {
   // ============================================================================
 
   /** Source-derived publish attachment resolution namespace */
-  readonly attachments: IAttachmentsNamespace;
+  readonly attachments: AttachmentRegistrationNamespace;
 
   // ============================================================================
   // Runtime Uploads

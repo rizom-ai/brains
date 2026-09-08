@@ -22,6 +22,7 @@ import {
 } from "@brains/entity-service";
 import type {
   AttachmentProvider,
+  AttachmentRegistrationNamespace,
   AttachmentResolveRequest,
 } from "@brains/plugins";
 import type { PublishMediaData } from "@brains/contracts";
@@ -52,6 +53,8 @@ export function createMockSystemServices(
     conversationService?: Partial<SystemServices["conversationService"]>;
   } = {},
 ): SystemServices & {
+  /** Seed a provider without granting system tools registration authority. */
+  registerAttachment: AttachmentRegistrationNamespace["register"];
   /** Access the in-memory entity store */
   getEntities: () => Map<string, BaseEntity>;
   /** Seed entities for testing */
@@ -506,7 +509,7 @@ export function createMockSystemServices(
     getProviderMetadata: (sourceEntityType: string, attachmentType: string) =>
       attachmentProviders.get(attachmentKey(sourceEntityType, attachmentType))
         ?.metadata,
-  } satisfies SystemServices["attachments"];
+  } satisfies AttachmentRegistrationNamespace;
 
   return {
     entityService,
@@ -564,6 +567,7 @@ export function createMockSystemServices(
       ...overrides.conversationService,
     },
     // Test helpers
+    registerAttachment: attachments.register,
     getEntities: () => entities,
     addEntities,
     registerEntityTypes,

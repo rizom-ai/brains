@@ -194,7 +194,7 @@ describe("public authoring Phase 4 packed site contract", () => {
           { cause: error },
         );
       }
-      expect(request).toContain("Site build requested for preview");
+      expect(request).toContain('"requested": "preview"');
       await waitForAdditionalBuildSettlement(runtime, settledBuilds);
 
       const outputDirectory = join(consumerDirectory, "dist", "site-preview");
