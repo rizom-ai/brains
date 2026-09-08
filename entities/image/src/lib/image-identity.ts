@@ -1,4 +1,4 @@
-import { slugify } from "@brains/sdk/entities";
+import { slugify } from "@brains/utils/string-utils";
 
 /**
  * The id a source-rendered image lands on.

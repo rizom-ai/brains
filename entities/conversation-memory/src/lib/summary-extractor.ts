@@ -1,9 +1,9 @@
 import {
-  getErrorMessage,
   type IEntityAINamespace,
   type LoggerContract,
   type Message,
 } from "@brains/sdk/entities";
+import { getErrorMessage } from "@brains/utils/error";
 import { SUMMARY_AI_TEMPLATE_NAME } from "./constants";
 import { buildSummaryExtractionPrompt } from "./summary-prompt";
 import type { SummaryEntry, SummaryTimeRange } from "../schemas/summary";

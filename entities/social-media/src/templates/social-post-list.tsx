@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { truncateText } from "@brains/sdk/entities";
+import { truncateText } from "@brains/utils/string-utils";
 import type { PaginationInfo } from "@brains/sdk/entities";
 import {
   Head,
