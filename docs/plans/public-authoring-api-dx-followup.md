@@ -2,7 +2,7 @@
 
 ## Status and scope
 
-**Slices 1–6 landed; 7–9 open.**
+**Complete. Seven slices implemented, two dispositions withdrawn.**
 
 On `work/plugin-api-boundaries`, each slice gated and committed on its own:
 
@@ -33,8 +33,35 @@ unheard request as a success where the real one answers a coded failure; and
 knowledge-map was reaching past the templates slot with a raw template object
 that the slot then registered without its renderer.
 
-Withdrawn after reading the code: the contributor `bind` removal (disposition
-I), whose premise was false.
+7. The external guide's rule on entity presentation matched neither the
+   contract nor the shipped packages, and says what an entity may declare now.
+   The guide gained the testing entry, with an example the docs test compiles.
+8. `@rizom/brain/testing` runs a package without a brain, narrowed so the
+   runtime stays out of the entry whose purpose is keeping authors out of it.
+
+Then the sign-off the plan stops on: the three shapes — an entity carrying its
+own presentation with typed reads, a configured service with a durable job and
+a stateful route, and a conversational interface sharing one setup resource —
+are written through the public package alone, with no casts, duplicated
+schemas, private imports, property-order rules, or outer state bridging setup
+to a handler. Writing the second found the one gap left: the harness could
+install a package that serves routes but not ask it anything, which
+`harness.fetch` fixes. The two corrections the shapes forced were to the
+fixtures, not to the API.
+
+Slice 1's last step closed with them: a consumer generated from the ledger
+imports every promised name from the built declarations and runs to confirm
+each value exists, which the entry-source check could not see.
+
+Withdrawn after reading the code, both dispositions written from the review
+rather than the runtime:
+
+- The contributor `bind` removal (I). `bind` seals the executor behind a
+  private symbol the runtime checks, and is where the config and state types
+  come from.
+- The prefix-free plugin id (H). Tool listings are already prefix-free, so the
+  benefit was log lines; the cost was turning a name clash between two
+  authors' packages from impossible into fatal.
 
 This plan refines the contract before the stable nomination owned by
 [Public authoring API compatibility](./public-authoring-api-0.2.md). It does
