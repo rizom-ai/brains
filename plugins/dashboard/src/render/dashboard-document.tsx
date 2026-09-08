@@ -6,6 +6,12 @@ import {
   resolveConsoleThemeCSS,
 } from "@brains/console-theme";
 import type { JSX } from "react";
+import {
+  OperatorPage,
+  OperatorFrame,
+  OperatorCanvas,
+  OperatorSections,
+} from "@brains/operator-view-react";
 import { Colophon } from "./colophon";
 import { TabBar } from "./dashboard-tabs";
 import { KnowledgeMapPanel } from "./knowledge-map";
@@ -100,8 +106,8 @@ export function DashboardDocument({
           askHref={input.askHref}
           loginHref={input.authAccess?.loginUrl ?? "/login"}
         />
-        <main className="console" data-component="dashboard:dashboard">
-          <div
+        <OperatorPage className="console" data-component="dashboard:dashboard">
+          <OperatorFrame
             className="frame"
             data-ui-tabs
             data-ui-tabs-default="overview"
@@ -113,8 +119,8 @@ export function DashboardDocument({
               networkCount={networkCount}
             />
 
-            <div className="canvas">
-              <div className="dashboard-tab-panels">
+            <OperatorCanvas className="canvas">
+              <OperatorSections className="dashboard-tab-panels">
                 <OverviewPanel input={input} />
                 <KnowledgeMapPanel
                   block={knowledgeMap}
@@ -133,15 +139,15 @@ export function DashboardDocument({
                   hasNetworkMap={proximityMap !== undefined}
                   networkCount={networkCount}
                 />
-              </div>
+              </OperatorSections>
               <Colophon
                 title={input.title}
                 appInfo={input.appInfo}
                 baseUrl={input.baseUrl}
               />
-            </div>
-          </div>
-        </main>
+            </OperatorCanvas>
+          </OperatorFrame>
+        </OperatorPage>
 
         {input.assetUrls ? (
           <script data-dashboard-script src={input.assetUrls.dashboardScript} />

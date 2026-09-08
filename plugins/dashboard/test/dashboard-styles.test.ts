@@ -34,9 +34,43 @@ describe("DASHBOARD_STYLES", () => {
   });
 
   it("carries public chrome without the retired console strip", () => {
-    expect(DASHBOARD_STYLES).toContain(".public-header");
+    expect(DASHBOARD_STYLES).not.toContain(".public-header");
+    expect(DASHBOARD_STYLES).not.toMatch(
+      /\.(masthead|brand|tagline|tab-badge)[\s.{:-]/,
+    );
+    expect(DASHBOARD_STYLES).not.toMatch(/\.dashboard-tabs?[\s.{:]/);
+    expect(operatorViewStylexCSS).toContain("aria-selected");
     expect(DASHBOARD_STYLES).not.toContain(".console-strip");
     expect(DASHBOARD_STYLES).not.toContain(".session-chip");
+  });
+
+  it("uses compiled overview copy, summaries, and totals without a legacy stylesheet", () => {
+    expect(DASHBOARD_STYLES).not.toMatch(
+      /\.public-(identity-card|card-rows|card-pulse|card-empty|holdings)[\s.{:>]/,
+    );
+    expect(operatorViewStylexCSS).toContain(
+      "grid-template-columns:repeat(4,minmax(0,1fr))",
+    );
+  });
+
+  it("has no remaining System-specific stylesheet selectors", () => {
+    expect(DASHBOARD_STYLES).not.toMatch(/\.system-[a-z-]+[\s.{:,>]/);
+  });
+
+  it("uses shared compiled panel columns, reference facts, and availability rows", () => {
+    expect(DASHBOARD_STYLES).not.toMatch(
+      /\.system-(layout|main|side|kv)[\s.{:,>]/,
+    );
+    expect(DASHBOARD_STYLES).not.toMatch(/\.system-surfaces-card\s+(ul|li)/);
+    expect(operatorViewStylexCSS).toContain("grid-column:1 / -1");
+  });
+
+  it("uses compiled panel framing and headings instead of global card selectors", () => {
+    expect(DASHBOARD_STYLES).not.toMatch(
+      /\.(card|card-head|card-title|card-from|card-subtitle)[\s.{:,]/,
+    );
+    expect(operatorViewStylexCSS).toContain("container-name:operator-panel");
+    expect(operatorViewStylexCSS).toContain("container-type:inline-size");
   });
 
   it("provides generic widget action, tab, and filter primitives", () => {
@@ -66,17 +100,21 @@ describe("DASHBOARD_STYLES", () => {
     expect(DASHBOARD_STYLES).not.toContain("data-agent-network");
   });
 
-  it("keeps the public card frame and colophon aligned with the mockup", () => {
-    expect(DASHBOARD_STYLES).toContain("width: min(1280px, 96vw)");
-    expect(DASHBOARD_STYLES).toMatch(/\.colophon\s*{[^}]*margin-top:\s*32px/s);
+  it("uses shared compiled framing, sections, and footer without legacy selectors", () => {
+    const localStyles = DASHBOARD_STYLES.replace(CONSOLE_THEME_CSS, "");
+    expect(localStyles).not.toMatch(
+      /\.(console|frame|canvas|colophon|colophon-mark|colophon-actions|dashboard-tab-panels|dashboard-tab-panel|tab-section-head)[\s.{:[,]/,
+    );
+    expect(operatorViewStylexCSS).toContain("width:min(1280px,96vw)");
+    expect(operatorViewStylexCSS).toContain("data-ui-tabs-active");
     expect(DASHBOARD_STYLES).not.toContain(".public-contributions");
     expect(DASHBOARD_STYLES).not.toContain(".public-values");
   });
 
   it("ships phone compositions for tabs, card rows, and maps", () => {
     expect(DASHBOARD_STYLES).toContain("@media (max-width: 640px)");
-    expect(DASHBOARD_STYLES).toContain("overscroll-behavior-inline: contain");
-    expect(DASHBOARD_STYLES).toContain(".public-card-grid");
+    expect(DASHBOARD_STYLES).toMatch(/overscroll-behavior-inline:\s*contain/);
+    expect(DASHBOARD_STYLES).not.toContain(".public-card-grid");
     expect(DASHBOARD_STYLES).toContain(".map-field svg");
   });
 });

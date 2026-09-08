@@ -8,6 +8,10 @@ export const factStyles: Record<
   | "value"
   | "compactValue"
   | "caption"
+  | "referenceRoot"
+  | "referenceRow"
+  | "referenceLabel"
+  | "referenceValue"
   | "good"
   | "warn"
   | "error",
@@ -65,6 +69,36 @@ export const factStyles: Record<
     fontSize: 12,
     lineHeight: 1.6,
     overflowWrap: "anywhere",
+  },
+  referenceRoot: {
+    display: "flex",
+    flexDirection: "column",
+    borderTopWidth: 0,
+  },
+  referenceRow: {
+    display: "grid",
+    gridTemplateColumns: "minmax(0,1fr) minmax(0,auto)",
+    gap: 12,
+    paddingBlock: 8,
+    paddingInline: 0,
+    borderBottomWidth: 0,
+    borderTopWidth: { default: 1, ":first-child": 0 },
+    borderTopStyle: "solid",
+    borderTopColor: "var(--console-rule)",
+  },
+  referenceLabel: {
+    fontFamily: "var(--console-mono)",
+    fontSize: 9.5,
+    lineHeight: 1.5,
+    letterSpacing: "0.07em",
+    textTransform: "uppercase",
+  },
+  referenceValue: {
+    fontSize: 10.5,
+    lineHeight: 1.5,
+    fontVariantNumeric: "normal",
+    textAlign: "right",
+    color: "var(--console-text-dim)",
   },
   good: { color: "var(--console-ok)" },
   warn: { color: "var(--console-warn)" },

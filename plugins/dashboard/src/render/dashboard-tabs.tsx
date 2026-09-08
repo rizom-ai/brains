@@ -1,5 +1,9 @@
 /** @jsxImportSource react */
 import type { JSX } from "react";
+import {
+  OperatorSectionTabs,
+  OperatorSectionTab,
+} from "@brains/operator-view-react";
 
 export function TabBar({
   knowledgeCount,
@@ -15,28 +19,22 @@ export function TabBar({
     { id: "system", label: "System", count: 0 },
   ];
   return (
-    <nav
-      className="dashboard-tabs"
-      aria-label="Dashboard sections"
-      role="tablist"
-    >
+    <OperatorSectionTabs className="dashboard-tabs" label="Dashboard sections">
       {tabs.map((tab, index) => (
-        <a
+        <OperatorSectionTab
           id={`dashboard-tab-${tab.id}`}
-          className={`dashboard-tab${index === 0 ? " is-active" : ""}`}
+          className="dashboard-tab"
           href={`#${tab.id}`}
-          role="tab"
-          aria-selected={index === 0 ? "true" : "false"}
+          aria-controls={tab.id}
+          selected={index === 0}
+          count={tab.count}
           data-dashboard-tab-link={tab.id}
           data-ui-tab={tab.id}
           key={tab.id}
         >
-          <span>{tab.label}</span>
-          {tab.count > 0 && (
-            <span className="tab-badge tab-badge--muted">{tab.count}</span>
-          )}
-        </a>
+          {tab.label}
+        </OperatorSectionTab>
       ))}
-    </nav>
+    </OperatorSectionTabs>
   );
 }

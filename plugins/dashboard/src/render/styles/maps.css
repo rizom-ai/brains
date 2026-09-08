@@ -1,6 +1,3 @@
-.card-map-panel .map-card {
-  padding: 14px 18px 16px;
-}
 .map-field {
   position: relative;
   min-height: 360px;
@@ -536,9 +533,6 @@
 }
 
 @media (max-width: 700px) {
-  .card-map-panel .map-card {
-    padding: 12px;
-  }
   .map-field,
   .map-field svg,
   .map-empty {

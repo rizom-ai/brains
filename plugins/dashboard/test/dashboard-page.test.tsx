@@ -400,7 +400,7 @@ describe("renderDashboardPageHtml", () => {
     expect(html).toContain("Agent One");
   });
 
-  it("places the public masthead outside the dashboard content frame", () => {
+  it("keeps the public entry header outside the framed Dashboard", () => {
     const input: DashboardRenderInput = {
       title: "Test Owner",
       baseUrl: "https://brain.test",
@@ -412,21 +412,21 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
 
-    expect(html).toContain('class="frame"');
-    expect(html).toContain('class="canvas"');
-    // Public identity and entry actions sit outside the content card; the
-    // obsolete cross-product console switcher is absent.
-    const frameIndex = html.indexOf('class="frame"');
+    expect(html).toContain('class="frame ');
+    expect(html).toContain('class="canvas ');
+    // Public entry actions sit outside the frame; identity and sections remain
+    // inside it. The obsolete cross-product console switcher is absent.
+    const frameIndex = html.indexOf('class="frame ');
     expect(frameIndex).toBeGreaterThan(-1);
-    expect(html.indexOf('class="public-header"')).toBeLessThan(frameIndex);
+    expect(html.indexOf('class="public-header ')).toBeLessThan(frameIndex);
     expect(html).not.toContain('class="console-strip"');
-    expect(frameIndex).toBeLessThan(html.indexOf('class="masthead"'));
-    expect(frameIndex).toBeLessThan(html.indexOf('class="dashboard-tabs"'));
+    expect(frameIndex).toBeLessThan(html.indexOf('class="masthead '));
+    expect(frameIndex).toBeLessThan(html.indexOf('class="dashboard-tabs '));
     expect(frameIndex).toBeLessThan(
-      html.indexOf('class="dashboard-tab-panels"'),
+      html.indexOf('class="dashboard-tab-panels '),
     );
     expect(html).toMatch(
-      /<div class="canvas">.*<footer class="colophon">.*<\/footer><\/div><\/div><\/main>/s,
+      /<div class="canvas [^"]+">.*<footer class="colophon [^"]+">.*<\/footer><\/div><\/div><\/main>/s,
     );
   });
 
@@ -551,7 +551,7 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
 
-    expect(html).toContain('class="public-header"');
+    expect(html).toContain('class="public-header ');
     expect(html).toContain('href="/console"');
     expect(html).toContain('href="/ask"');
     expect(html).toContain('href="/login?return_to=%2Fstudio"');
@@ -576,7 +576,7 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
 
-    expect(html).toContain('class="public-header-sign-in"');
+    expect(html).toContain('class="public-header-sign-in ');
     expect(html).toContain('href="/login?return_to=%2F"');
     expect(html).not.toContain('class="session-chip');
   });
@@ -593,7 +593,7 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
 
-    expect(html).not.toContain('class="public-header-ask"');
+    expect(html).not.toContain('class="public-header-ask ');
     expect(html).not.toContain('href="/ask"');
   });
 
@@ -651,14 +651,14 @@ describe("renderDashboardPageHtml", () => {
     expect(html).not.toContain('class="scoreboard"');
     expect(html).not.toContain('class="masthead-action"');
     const publicHeader = html.slice(
-      html.indexOf('class="public-header"'),
+      html.indexOf('class="public-header '),
       html.indexOf("</header>"),
     );
     expect(publicHeader).toContain('id="climateToggle"');
-    expect(publicHeader).toContain('class="public-header-climate"');
+    expect(publicHeader).toContain('class="public-header-climate ');
     const masthead = html.slice(
-      html.indexOf('class="masthead"'),
-      html.indexOf('class="dashboard-tabs"'),
+      html.indexOf('class="masthead '),
+      html.indexOf('class="dashboard-tabs '),
     );
     expect(masthead).not.toContain('id="climateToggle"');
     expect(html).toContain('href="/login?return_to=%2Fdashboard"');
@@ -699,7 +699,7 @@ describe("renderDashboardPageHtml", () => {
 
     const html = renderDashboardPageHtml(input);
 
-    expect(html).toContain('class="card public-identity-card"');
+    expect(html).toContain('class="card public-identity-card ');
     expect(html).toContain("Research brain");
     expect(html).not.toContain('class="public-values"');
     expect(html).not.toContain(">clarity</span>");

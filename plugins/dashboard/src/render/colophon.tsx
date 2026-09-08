@@ -2,6 +2,10 @@
 import type { AppInfo } from "@brains/plugins";
 import { resolveUrl } from "@brains/utils/string-utils";
 import type { JSX } from "react";
+import {
+  OperatorFooter,
+  OperatorFooterLink,
+} from "@brains/operator-view-react";
 
 function findDocsUrl(
   appInfo: AppInfo,
@@ -28,17 +32,22 @@ export function Colophon(props: {
   const docsUrl = findDocsUrl(appInfo, baseUrl);
 
   return (
-    <footer className="colophon">
-      <span className="colophon-mark">{title} · dashboard</span>
-      <span className="colophon-actions">
-        <span>Runs on Brains {appInfo.version}</span>
-        {docsUrl && (
-          <a href={docsUrl} target="_blank" rel="noopener noreferrer">
-            Open source ↗
-          </a>
-        )}
-        {operatorHref && <a href={operatorHref}>Operators → Studio</a>}
-      </span>
-    </footer>
+    <OperatorFooter className="colophon" mark={<>{title} · dashboard</>}>
+      <span>Runs on Brains {appInfo.version}</span>
+      {docsUrl && (
+        <OperatorFooterLink
+          href={docsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Open source ↗
+        </OperatorFooterLink>
+      )}
+      {operatorHref && (
+        <OperatorFooterLink href={operatorHref}>
+          Operators → Studio
+        </OperatorFooterLink>
+      )}
+    </OperatorFooter>
   );
 }

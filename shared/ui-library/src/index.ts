@@ -171,7 +171,6 @@ export type { NewsletterSignupProps } from "./NewsletterSignup";
 // Shared SSR primitives for dashboard widgets
 export {
   createWidgetInstanceId,
-  CardHeader,
   EmptyState as WidgetPrimitiveEmptyState,
   KeyValueList,
   WidgetActionLink,

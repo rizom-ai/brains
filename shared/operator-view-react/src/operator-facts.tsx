@@ -8,34 +8,55 @@ import { OperatorMetadata } from "./operator-metadata";
 export function OperatorFacts(props: {
   items: readonly {
     label: string;
-    value?: string | undefined;
+    value?: string | number | ReactElement | undefined;
     caption?: string | undefined;
     tone?: "neutral" | "good" | "warn" | "error" | undefined;
   }[];
   density: "compact" | "comfortable";
+  presentation?: "reference";
 }): ReactElement {
   const compact = props.density === "compact";
-  const root = stylex.props(s.root, compact && s.compactRoot);
+  const reference = props.presentation === "reference";
+  const root = stylex.props(
+    s.root,
+    compact && s.compactRoot,
+    reference && s.referenceRoot,
+  );
   return (
-    <dl {...root} className={`operator-key-values ${root.className ?? ""}`}>
+    <dl
+      {...root}
+      className={`operator-key-values ${root.className ?? ""}`}
+      data-facts-presentation={props.presentation}
+    >
       {props.items.map((item, index) => (
         <div
-          {...stylex.props(s.row, compact && s.compactRow)}
           key={`${item.label}:${index}`}
+          {...stylex.props(
+            s.row,
+            compact && s.compactRow,
+            reference && s.referenceRow,
+          )}
           data-tone={item.tone ?? "neutral"}
         >
-          <dt {...stylex.props(s.label)}>{item.label}</dt>
+          <dt {...stylex.props(s.label, reference && s.referenceLabel)}>
+            {item.label}
+          </dt>
           {item.value !== undefined && (
             <dd
               {...stylex.props(
                 s.value,
                 compact && s.compactValue,
+                reference && s.referenceValue,
                 item.tone === "good" && s.good,
                 item.tone === "warn" && s.warn,
                 item.tone === "error" && s.error,
               )}
             >
-              <OperatorMetadata values={[item.value]} />
+              {typeof item.value === "string" ? (
+                <OperatorMetadata values={[item.value]} />
+              ) : (
+                item.value
+              )}
             </dd>
           )}
           {item.caption && <dd {...stylex.props(s.caption)}>{item.caption}</dd>}

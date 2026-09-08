@@ -23,33 +23,6 @@ export function createWidgetInstanceId(
   return `widget-${slug || "custom"}`;
 }
 
-export function CardHeader({
-  title,
-  source,
-  subtitle,
-  children,
-}: {
-  title: ReactNode;
-  source?: ReactNode;
-  subtitle?: ReactNode;
-  children?: ReactNode;
-}): JSX.Element {
-  const detail = source ? (
-    <span className="card-from">{source}</span>
-  ) : subtitle ? (
-    <span className="card-subtitle">{subtitle}</span>
-  ) : (
-    children
-  );
-
-  return (
-    <div className="card-head">
-      <span className="card-title">{title}</span>
-      {detail}
-    </div>
-  );
-}
-
 export interface KeyValueItem {
   label: ReactNode;
   value: ReactNode;

@@ -2,6 +2,7 @@
 import * as stylex from "@stylexjs/stylex";
 import type { ReactElement, ReactNode } from "react";
 import { layoutStyles as s } from "./operator-layout.styles";
+import { panelColumnsStyles as panels } from "./operator-panel-columns.styles";
 
 export function OperatorColumns(props: {
   primary: ReactNode;
@@ -9,29 +10,44 @@ export function OperatorColumns(props: {
   density: "compact" | "comfortable";
   /** Children supply their own section spacing and supporting separators. */
   joined?: boolean;
+  presentation?: "panels";
 }): ReactElement {
   const compact = props.density === "compact";
-  const root = stylex.props(s.columns, compact && s.compactColumns);
-  const primary = stylex.props(s.region, props.joined && s.joinedRegion);
+  const panelLayout = props.presentation === "panels";
+  const Aside = panelLayout ? "aside" : "div";
+  const root = stylex.props(
+    panelLayout ? panels.root : s.columns,
+    !panelLayout && compact && s.compactColumns,
+  );
+  const primary = stylex.props(
+    s.region,
+    props.joined && s.joinedRegion,
+    panelLayout && panels.primary,
+  );
   const aside = stylex.props(
     s.region,
     compact && s.compactAside,
     props.joined && s.joinedRegion,
+    panelLayout && panels.aside,
   );
   return (
-    <div {...root} className={`declarative-columns ${root.className ?? ""}`}>
+    <div
+      {...root}
+      className={`declarative-columns ${root.className ?? ""}`}
+      data-columns-presentation={props.presentation}
+    >
       <div
         {...primary}
         className={`declarative-column ${primary.className ?? ""}`}
       >
         {props.primary}
       </div>
-      <div
+      <Aside
         {...aside}
         className={`declarative-column declarative-aside ${aside.className ?? ""}`}
       >
         {props.aside}
-      </div>
+      </Aside>
     </div>
   );
 }

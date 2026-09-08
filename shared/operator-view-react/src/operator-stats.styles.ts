@@ -12,6 +12,10 @@ export const statsStyles: Record<
   | "head"
   | "headItem"
   | "headValue"
+  | "ledger"
+  | "ledgerItem"
+  | "ledgerLabel"
+  | "ledgerValue"
   | "good"
   | "warn"
   | "error",
@@ -86,6 +90,51 @@ export const statsStyles: Record<
   },
   headItem: { padding: 0, backgroundColor: "transparent" },
   headValue: { fontSize: 27 },
+  ledger: {
+    display: "grid",
+    gridTemplateColumns: {
+      default: "repeat(4,minmax(0,1fr))",
+      "@media (max-width: 640px)": "repeat(2,minmax(0,1fr))",
+    },
+    gap: 0,
+    alignItems: "stretch",
+    backgroundColor: "transparent",
+    borderTopWidth: 1,
+    borderTopStyle: "solid",
+    borderTopColor: "var(--console-rule)",
+    borderLeftWidth: 1,
+    borderLeftStyle: "solid",
+    borderLeftColor: "var(--console-rule)",
+  },
+  ledgerItem: {
+    display: "block",
+    padding: "13px 12px",
+    backgroundColor: "transparent",
+    borderRightWidth: 1,
+    borderRightStyle: "solid",
+    borderRightColor: "var(--console-rule)",
+    borderBottomWidth: 1,
+    borderBottomStyle: "solid",
+    borderBottomColor: "var(--console-rule)",
+  },
+  ledgerLabel: {
+    overflow: "hidden",
+    color: "var(--console-text-muted)",
+    fontFamily: "var(--console-mono)",
+    fontSize: 8.5,
+    letterSpacing: "0.1em",
+    textOverflow: "ellipsis",
+    textTransform: "uppercase",
+    whiteSpace: "nowrap",
+  },
+  ledgerValue: {
+    marginTop: 5,
+    fontFamily: "var(--console-display)",
+    fontSize: { default: 28, "@media (max-width: 640px)": 25 },
+    fontVariationSettings: '"SOFT" 35, "opsz" 58',
+    fontWeight: 470,
+    lineHeight: 1,
+  },
   good: { color: "var(--console-ok)" },
   warn: { color: "var(--console-warn)" },
   error: { color: "var(--console-err)" },

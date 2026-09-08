@@ -306,7 +306,7 @@
     filter: none;
   }
 }
-@container dashboard-card (max-width: 700px) {
+@container operator-panel (max-width: 700px) {
   .proximity-field > svg {
     width: 126%;
     transform: translateX(-13%);

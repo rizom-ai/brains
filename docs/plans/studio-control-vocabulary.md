@@ -4,6 +4,8 @@
 
 **Implemented 2026-09-02 after review of the accepted direction and spike.** The review corrected three integration assumptions before implementation: the shared operator renderer also serves Dashboard, Web Chat had no asset manifest, and StyleX does not give every generated rule elevated specificity. The phases below record the delivered build order. Reading surfaces continue to own the phone document scroll, and the operator-view renderer contains author-supplied text within its column.
 
+Subsequent workspace refinement brought Dashboard chrome and panels into shared build-time StyleX components. The historical Dashboard/Tailwind separation and `CardHeader` reference below no longer describe its current implementation.
+
 ## Question
 
 [`studio-ux-research.md`](./studio-ux-research.md) settled Studio's _layout_

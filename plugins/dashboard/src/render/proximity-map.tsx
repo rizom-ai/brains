@@ -1,5 +1,10 @@
 /** @jsxImportSource react */
 import type { JSX } from "react";
+import {
+  OperatorSection,
+  OperatorSectionHeading,
+  OperatorPanel,
+} from "@brains/operator-view-react";
 import { type RadialMapBlock, widgetSourceData } from "./public-card-data";
 import type { RenderableWidgetData } from "./types";
 
@@ -44,7 +49,7 @@ export function ProximityMapPanel({
   const RegisteredVisualization = widget.component;
 
   return (
-    <section
+    <OperatorSection
       id="network"
       className="dashboard-tab-panel card-map-panel"
       data-dashboard-tab-panel
@@ -53,19 +58,16 @@ export function ProximityMapPanel({
       role="tabpanel"
       aria-labelledby="dashboard-tab-network"
     >
-      <header className="tab-section-head">
-        <h2>Network</h2>
-      </header>
-      <article className="card map-card">
-        <div className="card-head">
-          <span className="card-title">Agent proximity</span>
-          <span className="card-from">
-            public directory · semantic distance
-          </span>
-        </div>
+      <OperatorSectionHeading>Network</OperatorSectionHeading>
+      <OperatorPanel
+        className="card map-card"
+        heading="Agent proximity"
+        source="public directory · semantic distance"
+        inset="tight"
+      >
         <RegisteredVisualization data={widgetSourceData(widget.data)} />
-      </article>
-    </section>
+      </OperatorPanel>
+    </OperatorSection>
   );
 }
 
@@ -82,7 +84,7 @@ function DeclarativeProximityMapPanel({
     block?.points.filter((point) => point.status !== "archived").length ?? 0;
 
   return (
-    <section
+    <OperatorSection
       id="network"
       className="dashboard-tab-panel card-map-panel"
       data-dashboard-tab-panel
@@ -91,16 +93,13 @@ function DeclarativeProximityMapPanel({
       role="tabpanel"
       aria-labelledby="dashboard-tab-network"
     >
-      <header className="tab-section-head">
-        <h2>Network</h2>
-      </header>
-      <article className="card map-card">
-        <div className="card-head">
-          <span className="card-title">Agent proximity</span>
-          <span className="card-from">
-            public directory · semantic distance
-          </span>
-        </div>
+      <OperatorSectionHeading>Network</OperatorSectionHeading>
+      <OperatorPanel
+        className="card map-card"
+        heading="Agent proximity"
+        source="public directory · semantic distance"
+        inset="tight"
+      >
         <div className="proximity-map-field map-field">
           {block ? (
             <svg
@@ -298,7 +297,7 @@ function DeclarativeProximityMapPanel({
             {" discovered · federation open"}
           </span>
         </div>
-      </article>
-    </section>
+      </OperatorPanel>
+    </OperatorSection>
   );
 }

@@ -11,6 +11,10 @@ import type { ProximityMapData } from "../src/lib/proximity-map-schema";
 test("proximity map owns its site styles", () => {
   expect(proximityMapWidgetStyles).toContain(".proximity-field");
   expect(proximityMapWidgetStyles).toContain("prefers-reduced-motion");
+  expect(proximityMapWidgetStyles).toContain(
+    "@container operator-panel (max-width: 700px)",
+  );
+  expect(proximityMapWidgetStyles).not.toContain("dashboard-card");
 });
 
 const data: ProximityMapData = {

@@ -1,5 +1,10 @@
 /** @jsxImportSource react */
 import type { JSX } from "react";
+import {
+  OperatorSection,
+  OperatorSectionHeading,
+  OperatorPanel,
+} from "@brains/operator-view-react";
 import type { CartesianMapBlock } from "./public-card-data";
 
 const WIDTH = 820;
@@ -339,7 +344,7 @@ export function KnowledgeMapPanel({
   const layout = block ? buildAtlasLayout(block) : undefined;
 
   return (
-    <section
+    <OperatorSection
       id="knowledge"
       className="dashboard-tab-panel card-map-panel"
       data-dashboard-tab-panel
@@ -348,14 +353,13 @@ export function KnowledgeMapPanel({
       role="tabpanel"
       aria-labelledby="dashboard-tab-knowledge"
     >
-      <header className="tab-section-head">
-        <h2>Knowledge</h2>
-      </header>
-      <article className="card map-card">
-        <div className="card-head">
-          <span className="card-title">Knowledge map</span>
-          <span className="card-from">public topics · semantic atlas</span>
-        </div>
+      <OperatorSectionHeading>Knowledge</OperatorSectionHeading>
+      <OperatorPanel
+        className="card map-card"
+        heading="Knowledge map"
+        source="public topics · semantic atlas"
+        inset="tight"
+      >
         <AtlasSummary
           entityTotal={entityTotal}
           sourceCount={block?.points.length ?? 0}
@@ -536,7 +540,7 @@ export function KnowledgeMapPanel({
             territories · public scope
           </span>
         </div>
-      </article>
-    </section>
+      </OperatorPanel>
+    </OperatorSection>
   );
 }
