@@ -347,6 +347,7 @@
     "core--oauth-client-metadata-claude-clients",
     "core--operational-health-semantics",
     "core--operator-contract-secret-boundary",
+    "core--operator-disclosure-feedback",
     "core--operator-master-detail",
     "core--operator-workspace-composition",
     "core--operator-workspace-design",

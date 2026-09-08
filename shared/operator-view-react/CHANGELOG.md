@@ -1,5 +1,14 @@
 # @brains/operator-view-react
 
+## 0.2.0-alpha.362
+
+### Patch Changes
+
+- [#236](https://github.com/rizom-ai/brains/pull/236) [`8ea29b9`](https://github.com/rizom-ai/brains/commit/8ea29b909f57a74d7f21a3d9494b2ed8cc82c1c8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep form-action errors and presented results inside disclosure content so modal actions show their outcome instead of rendering feedback behind the overlay.
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.362
+
 ## 0.2.0-alpha.361
 
 ### Patch Changes
