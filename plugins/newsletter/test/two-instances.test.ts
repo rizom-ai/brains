@@ -5,7 +5,10 @@ import {
   type Plugin,
   type WebRouteDefinition,
 } from "@brains/plugins";
-import { createPluginHarness } from "@brains/plugins/test";
+import {
+  createPluginHarness,
+  type PluginTestHarness,
+} from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
 import { newsletterService } from "../src";
 import type { ButtondownFetch } from "../src/lib/buttondown-client";
@@ -23,12 +26,16 @@ const SUBSCRIBE_PATH = "/api/newsletter/subscribe";
  * installs it twice, the way a second brain in the same process would.
  */
 describe("two instances of one newsletter definition", () => {
-  const harness = createPluginHarness({
-    logger: createSilentLogger("newsletter-two-instances"),
+  const firstHarness = createPluginHarness({
+    logger: createSilentLogger("newsletter-first"),
+  });
+  const secondHarness = createPluginHarness({
+    logger: createSilentLogger("newsletter-second"),
   });
 
   afterEach(async () => {
-    await harness.reset();
+    await firstHarness.reset();
+    await secondHarness.reset();
   });
 
   it("answers with the key its own instance was configured with", async () => {
@@ -49,7 +56,10 @@ describe("two instances of one newsletter definition", () => {
     const definition = newsletterService({ fetch: recordingFetch });
     bindPluginPackageMetadata(definition, PACKAGE_METADATA);
 
-    const install = async (apiKey: string): Promise<Plugin> => {
+    const install = async (
+      harness: PluginTestHarness,
+      apiKey: string,
+    ): Promise<Plugin> => {
       const plugins = instantiatePluginPackageDefinition(
         definition,
         { apiKey },
@@ -65,8 +75,8 @@ describe("two instances of one newsletter definition", () => {
       return service;
     };
 
-    const first = await install("key-A");
-    const second = await install("key-B");
+    const first = await install(firstHarness, "key-A");
+    const second = await install(secondHarness, "key-B");
 
     const post = async (service: Plugin): Promise<void> => {
       const route: WebRouteDefinition | undefined = service

@@ -1,10 +1,16 @@
 # External Package Authoring
 
-> **Alpha preview for collaborators.** This candidate is under final API review
-> and is not yet stable `0.2.0`. The last exact registry-tested combination was
-> `@rizom/brain@0.2.0-alpha.313` with `@rizom/site@0.2.0-alpha.233`; the final
-> candidate may advance after review. Do not widen peer ranges to stable `0.2.x`
-> until the stable release is published.
+> **Current-tree preview for collaborators, not a registry release guide.**
+> These examples target a tarball built from this reviewed checkout. The local
+> Brain package version is `0.2.0-alpha.357`; that version string alone is not
+> evidence for a registry artifact. The historical registry baseline
+> (`alpha.313` with Site `alpha.233`) predates these breaking APIs and has no
+> testing entry. Do not install it for the examples below. Stable `0.2.0` and
+> verified first-containing-release peer ranges remain separate nomination gates.
+
+Breaking alpha cleanup is allowed before stable `0.2.0`. Only after that release
+does the `0.2.x` patch-compatibility promise apply; breaking the frozen contract
+then requires a later minor release.
 
 Rizom extensions are declarative packages. You describe domain schemas and
 behavior, default-export the resulting definition, and compose it into a Brain
@@ -62,6 +68,17 @@ default export, build, and Brain composition.
 
 ### 1. Create the standalone package
 
+First obtain a tarball built from this checkout. From the repository root:
+
+```bash
+mkdir -p /tmp/rizom-authoring
+(cd packages/brain-cli && bun run build && bun pm pack --destination /tmp/rizom-authoring --quiet)
+```
+
+Copy the resulting Brain `.tgz` next to your standalone package directory as
+`rizom-brain.tgz`. The development dependency below uses that file, not npm.
+If reviewing another checkout, use its package version for the exact peer pin.
+
 ```text
 calendar-plugin/
 ├── package.json
@@ -89,18 +106,20 @@ calendar-plugin/
     "build": "tsc -p tsconfig.json"
   },
   "peerDependencies": {
-    "@rizom/brain": ">=0.2.0-alpha.313 <0.3.0"
+    "@rizom/brain": "0.2.0-alpha.357"
   },
   "devDependencies": {
-    "@rizom/brain": "0.2.0-alpha.313",
+    "@rizom/brain": "file:../rizom-brain.tgz",
     "typescript": "^7.0.2"
   }
 }
 ```
 
-The peer range states host compatibility. The exact development dependency
-makes local typechecking reproducible. When stable `0.2.0` exists, new packages
-use `>=0.2.0 <0.3.0` for the stable patch line.
+The peer pin here describes the local candidate only. Keep the tarball and
+revision together for reproducibility; it is not a claim about an identically
+versioned npm artifact. Before publishing your package, test against the actual
+published candidate and set its verified peer range. Do not reuse historical
+alpha floors or claim stable `0.2.x` support before nomination.
 
 `tsconfig.json`:
 
@@ -390,14 +409,19 @@ export async function greetsInTheConfiguredZone(
 Tools return `{ ok: true, data }` or `{ ok: false, error }`. For a typed bus
 request, pass the shared `{ topic, payload, response }` schema contract to
 `harness.request(contract, input)`. It returns parsed `{ ok: true, data }` or
-`{ ok: false, code }`, where the code is `no_handler`, `handler_failed`, or
-`invalid_response`. Bare `request({ type, payload })` returns an untyped bus
+`{ ok: false, code }`, where the code is `no_handler`, `handler_failed`,
+`invalid_input`, or `invalid_response`. Author contexts exposing
+`messaging.request` accept the same contract. Providers validate wire responses;
+typed callers parse those wire values, so transforms are not applied to already
+transformed data. Bare `request({ type, payload })` returns an untyped bus
 envelope; it does not promise a result schema.
 
 Install dependencies before calling `finalizeRegistration()`; it runs every
 installed package's registration-complete hooks in installation order. Use
 `try/finally` to `await harness.reset()` even when an assertion fails. Reset
-shuts down installed packages in reverse order and removes their routes.
+shuts down installed packages in reverse order and removes their routes. Failed
+registration rolls back acquired resources immediately. Cleanup errors are
+reported only after all registered cleanup callbacks have been attempted.
 
 `installed.jobs` lists registered jobs with a `run(input)` method. It validates
 and runs one handler attempt in-process; it does not simulate durable queue
@@ -413,7 +437,17 @@ why nothing here imports `@brains/*`.
 owning service with `.handle()`, then import the definition from an interface or
 tool and call `jobs.enqueue(job, input)`. The runtime owns retries, deadlines,
 worker execution, cancellation, progress storage, restart recovery, and result
-validation.
+validation. Inputs and outputs must be JSON wire values accepted by their
+schemas; the queue retains those wire values and parses them at execution/read
+boundaries. An input transform is not a new enqueue payload. Retry and
+`oncePending` policies come from the registered job regardless of which family
+enqueues it. Batch children retain their retry policy, but a batch refuses jobs
+with `oncePending`: sharing a child across roots cannot preserve batch
+completion/progress ownership. Validation finishes before any child is queued.
+
+Service, generic-interface and message-interface setup may be async. Return the
+shared client/state and register its release with `lifecycle.onCleanup()`.
+Declaration callbacks receive the resolved state, independently per instance.
 
 ### Account settings and operator surfaces
 
@@ -448,8 +482,9 @@ optional host is a true no-op, and execution-only workers do not bind operator
 callbacks. See the checked [operator fixture](../packages/brain-cli/test/fixtures/public-authoring/operator-surface/src/index.ts)
 for a complete cast-free package and its [capability inventory](../packages/brain-cli/test/fixtures/public-authoring/operator-surface/CAPABILITY_INVENTORY.md)
 for the built-in equivalence evidence. The local packed operator consumer also
-checks the additive card/columns type exports; exact registry evidence covers
-their first published release in `@rizom/brain@0.2.0-alpha.313`.
+checks the additive card/columns type exports. Earlier registry evidence for
+those exports does not establish compatibility for the current definition APIs;
+these fixtures now target the current-tree tarball.
 
 ### Generic interfaces
 

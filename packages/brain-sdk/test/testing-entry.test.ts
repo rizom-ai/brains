@@ -14,6 +14,18 @@ import {
 } from "@brains/sdk/interfaces";
 import { createBrainTestHarness } from "@brains/sdk/testing";
 
+async function expectRejection(
+  promise: Promise<unknown>,
+  message: string,
+): Promise<void> {
+  const error = await promise.then(
+    () => null,
+    (failure: unknown) => failure,
+  );
+  expect(error).toBeInstanceOf(Error);
+  expect(error).toMatchObject({ message: expect.stringContaining(message) });
+}
+
 // Also compiled against the built public entries by public-plugin-api.test.ts.
 // No runtime imports, casts, or fixture-only access to plugin callbacks.
 describe("the public testing harness", () => {
@@ -128,6 +140,10 @@ describe("the public testing harness", () => {
       expect(await first.fetch("GET", "/api/counter")).not.toHaveProperty(
         "total",
       );
+      await first.reset();
+      expect(
+        await second.fetch("POST", "/api/counter", { body: { n: 2 } }),
+      ).toMatchObject({ jobId: expect.any(String) });
     } finally {
       await first.reset();
       await second.reset();
@@ -510,6 +526,432 @@ describe("the public testing harness", () => {
         await harness.request(count, { fail: "yes" });
       }
       void invalidRequests;
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("rejects duplicate plugin IDs without replacing the running instance", async () => {
+    const harness = createBrainTestHarness();
+    try {
+      const installed = await harness.installPackage(greeter, {
+        greeting: "First",
+      });
+      await expectRejection(
+        harness.installPackage(greeter, { greeting: "Second" }),
+        "already installed",
+      );
+      expect(await installed.tools[0]?.call({ name: "reader" })).toEqual({
+        ok: true,
+        data: { message: "First, reader" },
+      });
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("executes transformed and nullable job inputs without reparsing parsed values", async () => {
+    let parses = 0;
+    const transformed = defineJob({
+      name: "transform",
+      input: z.object({
+        n: z.string().transform((value) => {
+          parses++;
+          return Number(value);
+        }),
+      }),
+      output: z.object({ n: z.string().transform(Number) }),
+    });
+    const nonWire = defineJob({
+      name: "non-wire",
+      input: z.object({}),
+      output: z.date(),
+    });
+    const nullable = defineJob({
+      name: "nullable",
+      input: z.null(),
+      output: z.boolean(),
+    });
+    const harness = createBrainTestHarness();
+    try {
+      const installed = await harness.installPackage(
+        defineServicePlugin(
+          { id: "transforms", config: z.object({}) },
+          {
+            jobs: () => [
+              transformed.handle(async ({ input }) => ({
+                n: String(input.n + 1),
+              })),
+              nullable.handle(async ({ input }) => {
+                expect(input).toBeNull();
+                return true;
+              }),
+              nonWire.handle(async () => new Date()),
+            ],
+          },
+        ),
+      );
+      expect(
+        await installed.jobs
+          .find((job) => job.name.endsWith(":transform"))
+          ?.run({ n: "7" }),
+      ).toEqual({ n: 8 });
+      expect(parses).toBe(1);
+      const nonWireJob = installed.jobs.find((job) =>
+        job.name.endsWith(":non-wire"),
+      );
+      if (!nonWireJob) throw new Error("Job was not installed");
+      await expectRejection(nonWireJob.run({}), "expected date");
+      expect(
+        await installed.jobs
+          .find((job) => job.name.endsWith(":nullable"))
+          ?.run(null),
+      ).toBe(true);
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("validates the same wire responses and preserves codes in every subscription family", async () => {
+    const contract = {
+      topic: "audit:response",
+      payload: z.object({ mode: z.enum(["good", "bad", "throw"]) }),
+      response: z.object({ n: z.string().transform(Number) }),
+    };
+    for (const family of ["service", "interface", "message"]) {
+      const harness = createBrainTestHarness();
+      const behavior = {
+        subscriptions: (): ReturnType<typeof defineSubscription>[] => [
+          defineSubscription({
+            ...contract,
+            handle: ({ payload }) => {
+              if (payload.mode === "throw") throw new Error("Offline");
+              return { n: payload.mode === "bad" ? 7 : "7" };
+            },
+          }),
+        ],
+      };
+      const header = { id: "answers", config: z.object({}) };
+      const definition =
+        family === "service"
+          ? defineServicePlugin(header, behavior)
+          : family === "interface"
+            ? defineInterface(header, behavior)
+            : defineMessageInterface(
+                {
+                  ...header,
+                  channel: {
+                    type: "audit",
+                    displayName: "Audit",
+                    subjectLabel: "Room",
+                    recipient: z.string(),
+                  },
+                },
+                { ...behavior, send: () => "unused" },
+              );
+      try {
+        await harness.installPackage(definition);
+        expect(await harness.request(contract, { mode: "good" })).toEqual({
+          ok: true,
+          data: { n: 7 },
+        });
+        expect(await harness.request(contract, { mode: "bad" })).toEqual({
+          ok: false,
+          code: "invalid_response",
+        });
+        expect(await harness.request(contract, { mode: "throw" })).toEqual({
+          ok: false,
+          code: "handler_failed",
+        });
+        expect(
+          await harness.request({
+            type: contract.topic,
+            payload: { mode: "bad" },
+          }),
+        ).toMatchObject({ success: false, code: "invalid_response" });
+        expect(
+          await harness.request({ type: contract.topic, payload: {} }),
+        ).toMatchObject({ success: false, code: "invalid_input" });
+        // A typed setup request uses the same contract, not an envelope cast.
+        await harness.installPackage(
+          defineServicePlugin(
+            {
+              id: "asker",
+              config: z.object({}),
+              setup: async ({ messaging }) => ({
+                answer: await messaging.request(contract, { mode: "good" }),
+                ask: messaging.request,
+              }),
+            },
+            {
+              routes: ({ state }) => [
+                defineRoute({
+                  method: "GET",
+                  path: "/ask",
+                  security: { kind: "public" },
+                  response: z.object({ n: z.number() }),
+                  handle: async () => {
+                    if (!state.answer.ok) throw new Error(state.answer.code);
+                    const answer = await state.ask(contract, { mode: "good" });
+                    if (!answer.ok) throw new Error(answer.code);
+                    const n: number = answer.data.n + state.answer.data.n;
+                    return { n };
+                  },
+                }),
+              ],
+            },
+          ),
+        );
+        expect(await harness.fetch("GET", "/ask")).toEqual({ n: 14 });
+      } finally {
+        await harness.reset();
+      }
+    }
+  });
+
+  it("awaits async setup and isolates resource state in each family", async () => {
+    for (const family of ["service", "interface", "message"]) {
+      let created = 0;
+      const cleaned: number[] = [];
+      const acquire = async (
+        onCleanup: (cleanup: () => void) => void,
+      ): Promise<{ value: number }> => {
+        const value = ++created;
+        onCleanup(() => {
+          cleaned.push(value);
+        });
+        await Promise.resolve();
+        return { value };
+      };
+      const route = (value: number): ReturnType<typeof defineRoute> =>
+        defineRoute({
+          method: "GET",
+          path: "/state",
+          security: { kind: "public" },
+          response: z.object({ value: z.number() }),
+          handle: () => ({ value }),
+        });
+      const definition =
+        family === "service"
+          ? defineServicePlugin(
+              {
+                id: "async",
+                config: z.object({}),
+                setup: ({ lifecycle }) => acquire(lifecycle.onCleanup),
+              },
+              { routes: ({ state }) => [route(state.value)] },
+            )
+          : family === "interface"
+            ? defineInterface(
+                {
+                  id: "async",
+                  config: z.object({}),
+                  setup: ({ lifecycle }) => acquire(lifecycle.onCleanup),
+                },
+                { routes: ({ state }) => [route(state.value)] },
+              )
+            : defineMessageInterface(
+                {
+                  id: "async",
+                  config: z.object({}),
+                  channel: {
+                    type: "audit",
+                    displayName: "Audit",
+                    subjectLabel: "Room",
+                    recipient: z.string(),
+                  },
+                  setup: ({ lifecycle }) => acquire(lifecycle.onCleanup),
+                },
+                {
+                  routes: ({ state }) => [route(state.value)],
+                  send: () => "unused",
+                },
+              );
+      const first = createBrainTestHarness();
+      const second = createBrainTestHarness();
+      try {
+        await first.installPackage(definition);
+        await second.installPackage(definition);
+        expect(await first.fetch("GET", "/state")).toEqual({ value: 1 });
+        expect(await second.fetch("GET", "/state")).toEqual({ value: 2 });
+      } finally {
+        await first.reset();
+        await second.reset();
+      }
+      expect(cleaned).toEqual([1, 2]);
+    }
+  });
+
+  it("rolls back failed async setup immediately in every family", async () => {
+    const cleaned: string[] = [];
+    const fail = async (
+      onCleanup: (cleanup: () => void) => void,
+    ): Promise<never> => {
+      onCleanup(() => {
+        cleaned.push("first");
+      });
+      onCleanup(() => {
+        cleaned.push("second");
+      });
+      await Promise.resolve();
+      throw new Error("Setup refused");
+    };
+    const definitions = [
+      defineServicePlugin({
+        id: "fail",
+        config: z.object({}),
+        setup: ({ lifecycle }) => fail(lifecycle.onCleanup),
+      }),
+      defineInterface({
+        id: "fail",
+        config: z.object({}),
+        setup: ({ lifecycle }) => fail(lifecycle.onCleanup),
+      }),
+      defineMessageInterface(
+        {
+          id: "fail",
+          config: z.object({}),
+          channel: {
+            type: "audit",
+            displayName: "Audit",
+            subjectLabel: "Room",
+            recipient: z.string(),
+          },
+          setup: ({ lifecycle }) => fail(lifecycle.onCleanup),
+        },
+        { send: () => "unused" },
+      ),
+    ];
+    for (const definition of definitions) {
+      cleaned.length = 0;
+      const harness = createBrainTestHarness();
+      await expectRejection(
+        harness.installPackage(definition),
+        "Setup refused",
+      );
+      expect(cleaned).toEqual(["second", "first"]);
+      await harness.reset();
+      expect(cleaned).toEqual(["second", "first"]);
+    }
+  });
+
+  it("runs every resource and plugin cleanup even if one throws", async () => {
+    const cleaned: string[] = [];
+    const harness = createBrainTestHarness();
+    await harness.installPackage(
+      defineServicePlugin({
+        id: "first",
+        config: z.object({}),
+        setup: ({ lifecycle }) => {
+          lifecycle.onCleanup(() => {
+            cleaned.push("first-a");
+          });
+          lifecycle.onCleanup(() => {
+            cleaned.push("first-b");
+            throw new Error("First cleanup refused");
+          });
+          return {};
+        },
+      }),
+    );
+    await harness.installPackage(
+      defineInterface({
+        id: "second",
+        config: z.object({}),
+        setup: ({ lifecycle }) => {
+          lifecycle.onCleanup(() => {
+            cleaned.push("second-a");
+          });
+          lifecycle.onCleanup(() => {
+            cleaned.push("second-b");
+            throw new Error("Cleanup refused");
+          });
+          return {};
+        },
+      }),
+    );
+    await expectRejection(harness.reset(), "Plugin cleanup failed");
+    expect(cleaned).toEqual(["second-b", "second-a", "first-b", "first-a"]);
+    await harness.reset();
+    expect(cleaned).toHaveLength(4);
+    await harness.installPackage(greeter, { greeting: "Again" });
+    await harness.reset();
+  });
+
+  it("removes partially registered subscriptions when registration fails", async () => {
+    const harness = createBrainTestHarness();
+    const subscription = defineSubscription({
+      topic: "partial:read",
+      payload: z.object({}),
+      response: z.boolean(),
+      handle: () => true,
+    });
+    await expectRejection(
+      harness.installPackage(
+        defineServicePlugin(
+          { id: "partial", config: z.object({}) },
+          { subscriptions: () => [subscription, subscription] },
+        ),
+      ),
+      "more than once",
+    );
+    expect(
+      await harness.request({ type: "partial:read", payload: {} }),
+    ).toMatchObject({ success: false, code: "no_handler" });
+    await harness.reset();
+  });
+
+  it("matches URL pathnames, exact routes and longest segment prefixes like the host", async () => {
+    const route = (
+      path: string,
+      match: "exact" | "prefix",
+    ): ReturnType<typeof defineRoute> =>
+      defineRoute({
+        method: "GET",
+        path,
+        match,
+        security: { kind: "public" },
+        response: z.object({ path: z.string(), query: z.string().nullable() }),
+        handle: ({ request }) => ({
+          path,
+          query: new URL(request.url).searchParams.get("q"),
+        }),
+      });
+    const harness = createBrainTestHarness();
+    try {
+      await harness.installPackage(
+        defineInterface(
+          { id: "paths", config: z.object({}) },
+          {
+            routes: () => [
+              route("/pages", "prefix"),
+              route("/pages/deep/", "prefix"),
+              route("/pages/deep/exact", "exact"),
+            ],
+          },
+        ),
+      );
+      expect(await harness.fetch("GET", "/pages?q=hello")).toEqual({
+        path: "/pages",
+        query: "hello",
+      });
+      expect(await harness.fetch("GET", "/pages/one")).toEqual({
+        path: "/pages",
+        query: null,
+      });
+      expect(await harness.fetch("GET", "/pages/deep/child")).toEqual({
+        path: "/pages/deep/",
+        query: null,
+      });
+      expect(await harness.fetch("GET", "/pages/deep/exact?q=one")).toEqual({
+        path: "/pages/deep/exact",
+        query: "one",
+      });
+      await expectRejection(
+        harness.fetch("GET", "/pages-other"),
+        "Nothing serves",
+      );
+      await expectRejection(harness.fetch("POST", "/pages"), "Nothing serves");
     } finally {
       await harness.reset();
     }

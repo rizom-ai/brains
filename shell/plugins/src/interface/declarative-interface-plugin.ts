@@ -1,4 +1,5 @@
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
+import { runCleanups } from "../internal/cleanup";
 import { createAccountDaemon } from "../operator/account-daemon-supervisor";
 import { createInboxReader } from "../base/namespaces";
 import { createAuthReader } from "../contracts/auth-registry";
@@ -15,7 +16,7 @@ import type {
   InterfaceJobStatus,
 } from "./interface-definition-contract";
 import type { AnyServiceJobDefinition } from "../service/service-definition-contract";
-import { getServiceJobRuntimeType } from "../service/job-definition-runtime";
+import { createServiceJobRequest } from "../service/job-definition-runtime";
 import type { WebRouteDefinition } from "../types/web-routes";
 import type { Tool } from "@brains/mcp-service";
 import type { EntityReactionContext } from "../entity/entity-definition-contract";
@@ -49,6 +50,7 @@ class DeclarativeInterfacePlugin<
   private routes: WebRouteDefinition[] = [];
   private hasRequiredDaemon = false;
   private state: TState | undefined;
+  private readonly cleanups: Array<() => void | Promise<void>> = [];
   private reactionSource: ReactionContextSource | undefined;
 
   constructor(
@@ -95,8 +97,13 @@ class DeclarativeInterfacePlugin<
     // to start, and a refusal after half its surfaces are mounted is worse
     // than one before any of them.
     this.state = this.definition.setup
-      ? this.definition.setup({
+      ? await this.definition.setup({
           config: this.config,
+          lifecycle: {
+            onCleanup: (cleanup): void => {
+              this.cleanups.push(cleanup);
+            },
+          },
           plugins: context.plugins,
           endpoints: context.endpoints,
           interactions: context.interactions,
@@ -287,7 +294,11 @@ class DeclarativeInterfacePlugin<
     this.accountSettingsRegistration = undefined;
     this.routes = [];
     this.hasRequiredDaemon = false;
-    await super.onShutdown();
+    this.state = undefined;
+    await runCleanups([
+      ...this.cleanups.splice(0),
+      (): Promise<void> => super.onShutdown(),
+    ]);
   }
 
   private jobs(context: InterfacePluginContext): InterfaceJobs {
@@ -296,11 +307,9 @@ class DeclarativeInterfacePlugin<
         definition: TDefinition,
         input: z.input<TDefinition["input"]>,
       ): Promise<{ readonly id: string }> => {
-        const data = definition.input.parse(input);
-        const id = await context.jobs.enqueue({
-          type: getServiceJobRuntimeType(definition),
-          data,
-        });
+        const id = await context.jobs.enqueue(
+          createServiceJobRequest(definition, input, this.id),
+        );
         return Object.freeze({ id });
       },
       getStatus: async (jobId): Promise<InterfaceJobStatus | null> => {

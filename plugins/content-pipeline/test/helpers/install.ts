@@ -9,6 +9,7 @@ import {
 } from "@brains/plugins";
 import {
   createMockServicePluginContext,
+  createRequester,
   type MockServicePluginContext,
   type MockShell,
   type PluginTestHarness,
@@ -127,11 +128,7 @@ export function runtimeFor(
     permissions: context.permissions,
     attachments: context.attachments,
     messaging: {
-      request: (message) =>
-        context.messaging.send({
-          type: message.type,
-          payload: message.payload,
-        }),
+      request: createRequester((message) => context.messaging.send(message)),
       publish: async ({ topic, data }): Promise<void> => {
         await context.messaging.send({
           type: topic,
@@ -303,11 +300,7 @@ export function mockRuntimeFor(
       permissions: context.permissions,
       attachments: context.attachments,
       messaging: {
-        request: (message) =>
-          context.messaging.send({
-            type: message.type,
-            payload: message.payload,
-          }),
+        request: createRequester((message) => context.messaging.send(message)),
         publish: async ({ topic, data }): Promise<void> => {
           await context.messaging.send({
             type: topic,

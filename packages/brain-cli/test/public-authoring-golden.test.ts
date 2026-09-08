@@ -10,6 +10,8 @@ import {
 } from "node:fs";
 import { join, relative } from "node:path";
 
+import brainPackage from "../package.json";
+
 const fixtureRoot = join(import.meta.dir, "fixtures", "public-authoring");
 const repositoryRoot = join(import.meta.dir, "../../..");
 const ledgerPath = join(fixtureRoot, "export-ledger.json");
@@ -18,11 +20,9 @@ const stableLedgerDocumentPath = join(
   "docs/public-release/AUTHORING_API_0.2.md",
 );
 
-// Each package retains the first published release containing the contract it
-// exercises. All floors remain pre-stable until coordinated stable nomination.
-const nominatedBrainPeerRange = ">=0.2.0-alpha.272 <0.3.0";
-const accountSettingsBrainPeerRange = ">=0.2.0-alpha.304 <0.3.0";
-const operatorCompositionBrainPeerRange = ">=0.2.0-alpha.339 <0.3.0";
+// These private fixtures target the current-tree tarball, not old registry
+// releases that predate their breaking API changes. Publication is separate.
+const candidateBrainVersion = brainPackage.version;
 const nominatedSiteVersion = "0.2.0-alpha.233";
 
 const categories = [
@@ -202,7 +202,7 @@ describe("public authoring 0.2 golden packages", () => {
     expect(manifest.type).toBe("module");
     expect(manifestSource).not.toContain("workspace:");
     expect(manifest.peerDependencies?.["@rizom/brain"]).toBe(
-      operatorCompositionBrainPeerRange,
+      candidateBrainVersion,
     );
     expect(tsconfig.extends).toBeUndefined();
     expect([...publicNamedImports(source).keys()]).toEqual([
@@ -337,7 +337,7 @@ describe("public authoring 0.2 golden packages", () => {
     expect(manifest.type).toBe("module");
     expect(manifestSource).not.toContain("workspace:");
     expect(manifest.peerDependencies?.["@rizom/brain"]).toBe(
-      accountSettingsBrainPeerRange,
+      candidateBrainVersion,
     );
     expect(tsconfig.extends).toBeUndefined();
     expect([...publicNamedImports(source).keys()]).toEqual([
@@ -389,7 +389,7 @@ describe("public authoring 0.2 golden packages", () => {
       });
       expect(manifestSource).not.toContain("workspace:");
       expect(manifest.peerDependencies?.["@rizom/brain"]).toBe(
-        nominatedBrainPeerRange,
+        candidateBrainVersion,
       );
       if (fixture.directory === "site") {
         expect(manifest.dependencies?.["@rizom/site"]).toBe(

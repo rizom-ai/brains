@@ -230,7 +230,13 @@ export class JobQueueService implements IJobQueueService {
       throw new Error(`No job type declared: ${type}`);
     }
 
-    const parsedData = validator.validateAndParse(data);
+    // Persist the wire input, not a validator's transformed/in-memory value.
+    // Validate the JSON round-trip that a worker will actually receive.
+    const serializedData = JSON.stringify(data);
+    if (!serializedData) {
+      throw new Error(`Job data must be JSON-serializable for type: ${type}`);
+    }
+    const parsedData = validator.validateAndParse(JSON.parse(serializedData));
     if (parsedData === null) {
       throw new Error(`Invalid job data for type: ${type}`);
     }
@@ -251,7 +257,7 @@ export class JobQueueService implements IJobQueueService {
     const jobData: AtomicJobData = {
       id,
       type,
-      data: JSON.stringify(parsedData),
+      data: serializedData,
       status: JOB_STATUS.PENDING,
       priority: options?.priority ?? 0,
       maxRetries: options?.maxRetries ?? 3,

@@ -1,3 +1,4 @@
+import { messageErrorCodeSchema } from "@brains/messaging-service";
 import type { z } from "@brains/utils/zod";
 import type {
   RequestContract,
@@ -50,7 +51,10 @@ export function createRequester(
       return {
         ok: false,
         code:
-          answer.code === "handler_failed" ? "handler_failed" : "no_handler",
+          answer.noop === true
+            ? "no_handler"
+            : (messageErrorCodeSchema.safeParse(answer.code).data ??
+              "handler_failed"),
       };
     }
     const parsed = first.response.safeParse(answer.data);

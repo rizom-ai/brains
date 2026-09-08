@@ -7,6 +7,7 @@ import type { JobOptions } from "../src/schema/types";
 import { JOB_STATUS } from "../src/schemas";
 import { createTestJobQueueDatabase } from "./helpers/test-job-queue-db";
 import { createSilentLogger } from "@brains/test-utils";
+import { z } from "@brains/utils/zod";
 import { createId } from "@brains/utils/id";
 import { Effect } from "@brains/utils/effect";
 import { TestClock, TestContext } from "@brains/utils/effect/test";
@@ -97,6 +98,36 @@ describe("BatchJobManager", () => {
       expect(status).toBeDefined();
       expect(status?.totalOperations).toBe(2);
       expect(status?.status).toBe(JOB_STATUS.PROCESSING);
+    });
+
+    it("retains per-child retry limits rather than replacing them with batch defaults", async () => {
+      await enqueueBatch(
+        [
+          { type: "embedding", data: {}, maxRetries: 1 },
+          { type: "embedding", data: {}, maxRetries: 4 },
+        ],
+        batchOpts({ maxRetries: 2 }),
+      );
+      const children = await jobQueueService.getActiveJobs();
+      expect(children.map((job) => job.maxRetries).sort()).toEqual([1, 4]);
+    });
+
+    it("validates every child's JSON wire input before enqueueing any children", async () => {
+      const schema = z.object({ date: z.date() });
+      jobQueueService.registerHandler("date", {
+        validateAndParse: (data) => {
+          const parsed = schema.safeParse(data);
+          return parsed.success ? parsed.data : null;
+        },
+        process: async () => undefined,
+      });
+      expect(
+        enqueueBatch([
+          { type: "embedding", data: {} },
+          { type: "date", data: { date: new Date() } },
+        ]),
+      ).rejects.toThrow("Invalid job data");
+      expect(await jobQueueService.getActiveJobs()).toEqual([]);
     });
 
     it("should enqueue batch with options", async () => {

@@ -1,3 +1,4 @@
+import { createRequester } from "../internal/requester";
 import {
   ProjectionJsonObjectSchema,
   applyVisibilityToMarkdown,
@@ -1774,11 +1775,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
             broadcast: true,
           });
         },
-        request: (message): Promise<unknown> =>
-          context.messaging.send({
-            type: message.type,
-            payload: message.payload,
-          }),
+        request: createRequester((message) => context.messaging.send(message)),
       },
       // Namespaced under the declaring package, so two packages cannot read
       // or corrupt each other's notes — and so one package's plugins can.

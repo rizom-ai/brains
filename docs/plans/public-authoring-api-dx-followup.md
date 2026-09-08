@@ -2,8 +2,9 @@
 
 ## Status and scope
 
-**Review corrections implemented. Built and packed authoring evidence now exercises
-live paths; stable release nomination remains separate.**
+**Both review correction passes implemented and validated. The six reproduced
+acceptance gaps below are fixed; broader unchecked criteria are not implicitly
+signed off. Exact-registry evidence and stable nomination remain separate.**
 
 ### Review corrections (26dcad377e)
 
@@ -60,6 +61,166 @@ No legacy alpha signatures or compatibility shims were added. Earlier claims
 that installation alone proved the three sign-off shapes are superseded by this
 evidence. These corrections do not authorize merging, publishing, or replacing
 the stable-nomination plan's exact-version and credentialed release checks.
+
+### Corrections following the remaining acceptance audit
+
+Implementation was authorized after the audit below. The six reproduced gaps
+are now covered by regressions, not just the original happy-path tests:
+
+- [x] Preserve validated JSON wire inputs/results across queue persistence and
+      request-response boundaries. Worker bindings hold schema-validated input
+      in a binding-local weak cache, without casts or output-as-input reparsing.
+      Cover transforms, defaults, nullable inputs and non-JSON output contracts.
+- [x] Reuse one registered-definition enqueue policy across services, both
+      interface families and operators. Retain retry policy for batch children;
+      refuse `oncePending` children before enqueueing because cross-root sharing
+      cannot preserve batch ownership. Validate all batch wire inputs up front.
+      Keep definition bindings alive until the last independent instance closes.
+- [x] Share subscription validation and preserve `invalid_input` and
+      `invalid_response` through the real bus. Every author context that already
+      offered `messaging.request` now accepts the typed contract. Preserve raw
+      handler fallback order, but return a failure code when all attempts fail;
+      no-op replies are not answers, and broadcasts return no-op rather than
+      claiming a missing handler. Do not log raw handler exception text. Email's
+      sender lookup now consumes typed failures and logs only its derived key.
+- [x] Await generic-interface setup and give both interface families cleanup
+      registration. Drain all cleanup callbacks and installed plugins even when
+      a release throws. The harness uses production resource scopes, rolls failed
+      registration back immediately, removes partial subscriptions, and rejects
+      duplicate plugin IDs without replacing a live instance. Correct tests that
+      represented two brains by installing duplicate IDs into one shell.
+- [x] Make the guide and all eight private golden manifests target the reviewed
+      local tarball, not historical registry floors. The exact local version pin
+      is not registry compatibility evidence. Registry nomination must update
+      fixture pins and verify the actual published artifact. Clarify that the
+      stable patch/later-minor policy starts only after stable publication.
+- [x] Share exact/longest-segment-prefix HTTP matching between the running host
+      and public harness. Cover query strings, trailing slashes, method mismatch,
+      exact precedence, nested prefixes and segment boundaries.
+
+Validation of this correction pass:
+
+- **16 public SDK tests** compile and execute through source, built public
+  declarations and an isolated packed consumer, including all three sign-off
+  extensions and the new failure/instance/routing cases.
+- **101/101 repository test tasks**, forced; **103/103 typecheck tasks**, forced;
+  **96/96 lint tasks**, forced, with no failures.
+- **7/7 packed compatibility scenarios** against one freshly built Brain
+  tarball, including durable worker execution/restart, both interface families,
+  operator composition and a preview rebuild on the running app.
+- Script typecheck, surface/boot checks, documentation links/manifest, workspace
+  and dependency checks, boundary-cast/legacy/assertion/catch guards, and
+  changeset lane validation also pass.
+- Targeted queue/adapter regressions additionally verify wire storage, parsed
+  terminal callbacks and status reads, per-family policy, per-child retries and
+  all-or-nothing batch input preflight. The public harness remains a
+  single-attempt executor, not a retry/deadline/terminal-worker simulator.
+
+This closes the six concrete audit findings. The unchecked whole-surface items
+below still require their own evidence; this pass does not certify a universal
+SDK error taxonomy, removal of every advanced capability or obsolete path, or
+any registry release. No merge or publication is part of these corrections.
+
+### Remaining acceptance audit (c1f2028e9d; historical findings)
+
+This pass is an audit, not authorization for another implementation sweep,
+merge or publication. The first review fixes remain in place. Eight SDK tests
+and the built-surface, ledger and documentation suites still pass: **49 tests
+across four files**. The preceding **7/7 packed matrix** is valid evidence for
+its exercised paths, but does not cover the counterexamples below.
+
+Reproductions used the current built public entries, strict external compile
+probes, and focused runtime-adapter probes. The registry check downloaded the
+published `alpha.313` tarball with scripts disabled; nothing was published or
+credentialed. No application/runtime code changed in this audit.
+
+#### Open findings, in implementation order
+
+1. **Parse schema inputs once per boundary, not once per adapter.** A declared
+   job accepting `{ n: z.string().transform(Number) }` rejects the valid input
+   `{ n: "7" }` before its handler runs: `validateAndParse` produces a number,
+   then the binding parses it again as a string. Enqueue also persists parsed
+   input, which the worker validates again. Service subscription responses have
+   the same problem: the provider parses the response and the typed requester
+   parses its output a second time. A valid string-to-number response returns
+   `invalid_response`; the equivalent generic-interface subscription succeeds.
+   Sources: `shell/plugins/src/service/service-definition-contract.ts`
+   (`defineJob().handle`), `service/declarative-service-plugin.ts`
+   (`runtimeJobHandler`, subscriptions and enqueue),
+   `shell/job-queue/src/job-queue-worker.ts`, and
+   `shell/plugins/src/internal/requester.ts`.
+
+2. **Keep declared job policies independent of the enqueueing family.** For
+   the same job declaring five attempts and `oncePending`, the service enqueue
+   supplies `maxRetries: 4` and its deduplication key. Generic and message
+   interfaces enqueue that same job without either option. Operator enqueue
+   has the same omission in source. Registration carries the deadline, but
+   does not recover these missing enqueue policies. Centralize the existing
+   enqueue implementation rather than making authors repeat job policy in
+   every caller. Sources: `service/declarative-service-plugin.ts`,
+   `interface/declarative-interface-plugin.ts`,
+   `message-interface/declarative-message-interface-plugin.ts`, and
+   `operator/operator-context-runtime.ts` under `shell/plugins/src/`.
+
+3. **Unify response validation, failure codes and typed request availability.**
+   A service handler returning a malformed declared response produces
+   `no_handler` through the public harness, but `handler_failed` through the
+   real bus. The equivalent interface produces `invalid_response` for a typed
+   caller and unchecked success for a bare caller. Service setup and reaction
+   contexts still expose only the one-argument untyped request method; the
+   shared typed contract works in subscription callbacks but fails to compile
+   in service setup. Fix this together with finding 1, using the existing
+   request contract rather than another RPC API. Sources:
+   `shell/plugins/src/internal/requester.ts`,
+   `interface/declared-subscriptions.ts`,
+   `service/service-definition-contract.ts` (`ServicePublisher`), and
+   `entity/entity-definition-contract.ts` (`ReactionMessaging`).
+
+4. **Finish setup and cleanup failure semantics.** Generic-interface async
+   setup infers `Promise<State>` rather than resolved state and is not awaited
+   by registration. Its setup context also has no `lifecycle.onCleanup`, despite
+   the accepted shared-resource recommendation. Separately, when one service
+   cleanup throws, the remaining cleanup callbacks are discarded without being
+   run. This is the production declarative-service shutdown loop, not merely a
+   fake. The public harness also delays rollback after failed setup until an
+   explicit reset, unlike production manager rollback. Sources:
+   `shell/plugins/src/interface/interface-definition-contract.ts`,
+   `interface/declarative-interface-plugin.ts`,
+   `service/declarative-service-plugin.ts` (`onShutdown`), and
+   `shell/plugins/src/test/harness.ts` (`installPlugin`, `reset`).
+
+5. **Make the documented install match the code being taught.** The external
+   guide pins development to `@rizom/brain@0.2.0-alpha.313`, whose actual
+   tarball has one-argument `defineServicePlugin` overloads and no testing
+   subpath. The guide now teaches two arguments and `@rizom/brain/testing`.
+   Golden package peer floors also predate their exercised breaking changes.
+   Do not silently nominate an unpublished version: distinguish current-tree
+   tarball instructions from historical registry evidence, then set verified
+   first-containing-release floors during nomination. Sources:
+   `docs/external-plugin-authoring.md` and manifests under
+   `packages/brain-cli/test/fixtures/public-authoring/`.
+
+6. **Exercise the route semantics the harness claims to model.** Public
+   `harness.fetch` matches its complete path argument by exact equality.
+   `/pages` works, but `/pages?q=hello` and `/pages/one` both report that nothing
+   serves them even when `/pages` declares `match: "prefix"`. Reuse the
+   runtime's URL/match rules and cover query strings and prefix precedence.
+   Source: `packages/brain-sdk/src/testing.ts` (`fetch`).
+
+#### Acceptance disposition
+
+- Verified for the local candidate: exported-symbol inventory, the previously
+  corrected registration readers, presentation ownership, synchronous setup
+  inference and per-instance route state, the public testing entry, and the
+  existing golden/packed happy paths.
+- Still blocked: consistent schema transforms, typed/coded requests across
+  contexts, family-independent durable-job policy, generic async resource
+  setup, and failure-path cleanup. Keep the corresponding implementation
+  acceptance boxes below open.
+- Not claimed by this audit: complete removal of every advanced host capability,
+  exact-registry compatibility of the current definitions, live provider/eval
+  evidence, or stable release nomination. The historical registry version is
+  explicitly not proof for this API.
 
 ### Earlier implementation record
 
@@ -921,23 +1082,23 @@ posture script and rebuild preview through the running app before inspecting
 
 **Implementation acceptance:**
 
-- [ ] Promised exports and packed declarations agree in both directions, with
+- [x] Promised exports and packed declarations agree in both directions, with
       no exception list.
 - [ ] Normal authoring avoids host registries, broker details, and process roles.
-- [ ] Setup inference and route instance state are predictable and tested.
-- [ ] Presentation ownership has one documented rule used by real consumers.
-- [ ] Golden examples compile unchanged outside the monorepo and exercise live paths.
+- [x] Setup inference and route instance state are predictable and tested.
+- [x] Presentation ownership has one documented rule used by real consumers.
+- [x] Golden examples compile unchanged outside the monorepo and exercise live paths.
 - [ ] Public SDK failures have stable codes; consumers do not match message text,
       and supported cross-boundary mappings preserve codes without leaking internals.
 - [ ] Superseded alpha APIs are removed, consumers are migrated, and no legacy
       aliases, compatibility shims, or dual authoring paths remain from this cleanup.
-- [ ] Any advanced-contract additions are explicit.
-- [ ] `@rizom/brain/testing` is in the ledger and the packed-consumer check, and
+- [x] Any advanced-contract additions are explicit.
+- [x] `@rizom/brain/testing` is in the ledger and the packed-consumer check, and
       the three sign-off extensions run their own unit tests through it.
-- [ ] Public documentation allows breaking cleanup before stable `0.2.0` and
+- [x] Public documentation allows breaking cleanup before stable `0.2.0` and
       states that the `0.2.x` patch promise and later-minor breaking-change policy
       apply only after the stable freeze.
-- [ ] The API is reviewed from the external examples, not signed off solely because
+- [x] The API is reviewed from the external examples, not signed off solely because
       built-in conversions and repository tests pass.
 
 ### DX sign-off and stopping rule

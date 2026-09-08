@@ -20,9 +20,6 @@ const consumerFixture = join(
 );
 const runRegistryEvidence = registryEvidenceEnabled();
 const exactVersionPattern = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/u;
-const originalAuthoringBrainPeerRange = ">=0.2.0-alpha.272 <0.3.0";
-const accountSettingsBrainPeerRange = ">=0.2.0-alpha.304 <0.3.0";
-const operatorCompositionBrainPeerRange = ">=0.2.0-alpha.339 <0.3.0";
 
 function requiredVersion(variable: string, pattern: RegExp): string {
   const value = process.env[variable];
@@ -103,12 +100,9 @@ it.skipIf(!runRegistryEvidence)(
               await readFile(join(fixtureDirectory, "package.json"), "utf8"),
             ),
           );
-        const expectedBrainPeer =
-          fixtureName === "operator-surface"
-            ? operatorCompositionBrainPeerRange
-            : fixtureName === "account-settings-interface"
-              ? accountSettingsBrainPeerRange
-              : originalAuthoringBrainPeerRange;
+        // Nomination must update fixture pins along with the verified release.
+        // A historical lower bound cannot certify today's breaking API.
+        const expectedBrainPeer = brainVersion;
         expect(fixtureManifest.peerDependencies?.["@rizom/brain"]).toBe(
           expectedBrainPeer,
         );

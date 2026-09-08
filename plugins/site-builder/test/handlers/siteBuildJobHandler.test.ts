@@ -3,6 +3,7 @@ import { expectDefined } from "@brains/utils/expect-defined";
 import { createSilentLogger } from "@brains/test-utils";
 import {
   createMockShell,
+  createRequester,
   createServicePluginContext,
   createTestEntityAccess,
   createTestJobContext,
@@ -41,7 +42,10 @@ function recordingMessaging(announced: Announcement[]): {
 } {
   return {
     // Nothing owns the site's metadata in these tests, so the fallback stands.
-    request: async () => ({ success: false, error: "no provider" }),
+    request: createRequester(async () => ({
+      success: false,
+      code: "no_handler",
+    })),
     publish: async (message): Promise<void> => {
       announced.push({ topic: message.topic, data: message.data });
     },
