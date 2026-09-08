@@ -5,12 +5,14 @@ import {
   defineServicePlugin,
   defineSubscription,
   defineTool,
+  type AnySubscriptionDefinition,
   z,
 } from "@brains/sdk/services";
 import { createTemplate, defineEntity } from "@brains/sdk/entities";
 import {
   defineInterface,
   defineMessageInterface,
+  defineMessageInterfacePackage,
 } from "@brains/sdk/interfaces";
 import { createBrainTestHarness } from "@brains/sdk/testing";
 
@@ -621,7 +623,8 @@ describe("the public testing harness", () => {
     for (const family of ["service", "interface", "message"]) {
       const harness = createBrainTestHarness();
       const behavior = {
-        subscriptions: (): ReturnType<typeof defineSubscription>[] => [
+        subscriptions: (): AnySubscriptionDefinition[] => [
+          // @ts-expect-error Deliberately malformed provider output must also be refused statically.
           defineSubscription({
             ...contract,
             handle: ({ payload }) => {
@@ -899,6 +902,380 @@ describe("the public testing harness", () => {
       await harness.request({ type: "partial:read", payload: {} }),
     ).toMatchObject({ success: false, code: "no_handler" });
     await harness.reset();
+  });
+
+  it("preserves approvals and executes prepared input once in both tool families", async () => {
+    for (const family of ["service", "interface"]) {
+      const harness = createBrainTestHarness();
+      let parses = 0;
+      let executions = 0;
+      const behavior = {
+        tools: (): ReturnType<typeof defineTool>[] => [
+          defineTool({
+            name: "approve",
+            description: "Approve a transformed input",
+            input: z.strictObject({
+              n: z.string().transform(Number),
+              increment: z.number().transform((n) => n + 1),
+              generated: z.number().default(() => ++parses),
+            }),
+            output: z.object({
+              n: z.number(),
+              increment: z.number(),
+              generated: z.number(),
+            }),
+            confirmation: ({ n, increment, generated }) =>
+              `Use ${n}, ${increment}, ${generated}?`,
+            execute: ({ input }) => {
+              executions++;
+              return input;
+            },
+          }),
+        ],
+      };
+      const header = { id: "approval", config: z.object({}) };
+      try {
+        const installed = await harness.installPackage(
+          family === "service"
+            ? defineServicePlugin(header, behavior)
+            : defineInterface(header, behavior),
+        );
+        const tool = installed.tools[0];
+        if (!tool) throw new Error("Missing approval tool");
+        const proposed = await tool.call({ n: "7", increment: 1 });
+        if (!("confirmation" in proposed)) throw new Error("Missing approval");
+        expect(proposed.confirmation.summary).toBe("Use 7, 2, 1?");
+        expect(proposed.confirmation.toolName).toBe(tool.name);
+        expect(executions).toBe(0);
+        // Model a transport replay, not shared object identity.
+        const replay: unknown = JSON.parse(
+          JSON.stringify(proposed.confirmation.args),
+        );
+        expect(await tool.call(replay)).toEqual({
+          ok: true,
+          data: { n: 7, increment: 2, generated: 1 },
+        });
+        expect(parses).toBe(1);
+        expect(executions).toBe(1);
+        expect(await tool.call(replay)).toMatchObject({
+          ok: false,
+          error: expect.any(String),
+        });
+        expect(executions).toBe(1);
+
+        const second = await tool.call({ n: "8", increment: 1 });
+        if (!("confirmation" in second))
+          throw new Error("Missing second approval");
+        const args = z
+          .record(z.string(), z.unknown())
+          .parse(second.confirmation.args);
+        expect(await tool.call({ ...args, n: "9" })).toMatchObject({
+          ok: false,
+          error: expect.any(String),
+        });
+        expect(await tool.call(args)).toMatchObject({
+          ok: false,
+          error: expect.any(String),
+        });
+        expect(
+          await tool.call({
+            n: "7",
+            increment: 1,
+            _rizomConfirmationToken: "fabricated",
+          }),
+        ).toMatchObject({ ok: false, error: expect.any(String) });
+        expect(executions).toBe(1);
+      } finally {
+        await harness.reset();
+      }
+    }
+  });
+
+  it("enforces the production tool permission hierarchy before side effects", async () => {
+    const harness = createBrainTestHarness();
+    let executed = 0;
+    try {
+      const installed = await harness.installPackage(
+        defineServicePlugin(
+          { id: "permissions", config: z.object({}) },
+          {
+            tools: () =>
+              ([undefined, "public", "trusted", "admin"] as const).map(
+                (permission) =>
+                  defineTool({
+                    name: permission ?? "default",
+                    description: "Permission probe",
+                    input: z.object({}),
+                    output: z.number(),
+                    permission,
+                    execute: () => ++executed,
+                  }),
+              ),
+          },
+        ),
+      );
+      const ranks = { public: 0, trusted: 1, admin: 2 };
+      for (const permission of ["public", "trusted", "admin"] as const) {
+        for (const [index, tool] of installed.tools.entries()) {
+          const required = [2, 0, 1, 2][index];
+          if (required === undefined)
+            throw new Error("Missing permission rank");
+          const before = executed;
+          const answer = await tool.call({}, { permission });
+          if (ranks[permission] >= required) {
+            expect(answer).toEqual({ ok: true, data: before + 1 });
+          } else {
+            expect(answer).toMatchObject({
+              ok: false,
+              error: expect.stringContaining("Permission denied"),
+            });
+            expect(executed).toBe(before);
+          }
+        }
+      }
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("rolls back compound installs without losing prior packages, even when cleanup fails", async () => {
+    for (const failCleanup of [false, true]) {
+      const harness = createBrainTestHarness();
+      const cleaned: string[] = [];
+      let fail = true;
+      const config = z.object({});
+      const route = (id: string): ReturnType<typeof defineRoute> =>
+        defineRoute({
+          method: "GET",
+          path: `/${id}`,
+          security: { kind: "public" },
+          response: z.string(),
+          handle: () => id,
+        });
+      const child = (
+        id: string,
+        last: boolean,
+      ): ReturnType<typeof defineMessageInterface<typeof config>> =>
+        defineMessageInterface(
+          {
+            id,
+            config,
+            channel: {
+              type: id,
+              displayName: id,
+              subjectLabel: "Recipient",
+              recipient: z.string(),
+            },
+            setup: ({ lifecycle }) => {
+              lifecycle.onCleanup(() => {
+                cleaned.push(id);
+                if (fail && failCleanup && !last)
+                  throw new Error("cleanup failed");
+              });
+              if (fail && last) throw new Error("child failed");
+              return {};
+            },
+          },
+          { routes: () => [route(id)] },
+        );
+      const compound = defineMessageInterfacePackage({
+        id: "compound",
+        config,
+        interfaces: () => [
+          child("first-child", false),
+          child("last-child", true),
+        ],
+      });
+      try {
+        await harness.installPackage(
+          defineServicePlugin(
+            { id: "prior", config },
+            {
+              routes: () => [route("prior")],
+              subscriptions: () => [
+                defineSubscription({
+                  topic: "prior:read",
+                  payload: z.object({}),
+                  response: z.string(),
+                  handle: () => "prior",
+                }),
+              ],
+            },
+          ),
+        );
+        const failure = await harness.installPackage(compound).then(
+          () => null,
+          (error: unknown) => error,
+        );
+        expect(failure).toBeInstanceOf(Error);
+        expect(cleaned).toEqual(["last-child", "first-child"]);
+        await expectRejection(
+          harness.fetch("GET", "/first-child"),
+          "Nothing serves",
+        );
+        expect(await harness.fetch("GET", "/prior")).toBe("prior");
+        expect(
+          await harness.request(
+            {
+              topic: "prior:read",
+              payload: z.object({}),
+              response: z.string(),
+            },
+            {},
+          ),
+        ).toEqual({ ok: true, data: "prior" });
+        fail = false;
+        await harness.installPackage(compound);
+        await harness.finalizeRegistration();
+        expect(await harness.fetch("GET", "/first-child")).toBe("first-child");
+        expect(await harness.fetch("GET", "/last-child")).toBe("last-child");
+      } finally {
+        fail = false;
+        await harness.reset();
+      }
+      expect(cleaned).toEqual([
+        "last-child",
+        "first-child",
+        "last-child",
+        "first-child",
+      ]);
+    }
+  });
+
+  it("keeps subscription response types and reuses the definition as a request contract", async () => {
+    const subscription = defineSubscription({
+      topic: "typed:read",
+      payload: z.object({ n: z.string().transform(Number) }),
+      response: z.object({
+        next: z.string().transform(Number),
+        status: z.literal("ok"),
+      }),
+      handle: ({ payload }): { next: string; status: "ok" } => ({
+        next: String(payload.n + 1),
+        status: "ok",
+      }),
+    });
+    const harness = createBrainTestHarness();
+    try {
+      await harness.installPackage(
+        defineServicePlugin(
+          { id: "typed", config: z.object({}) },
+          {
+            subscriptions: () => [subscription],
+          },
+        ),
+      );
+      const answer = await harness.request(subscription, { n: "7" });
+      if (!answer.ok) throw new Error(answer.code);
+      expect(answer.data.next.toFixed(0)).toBe("8");
+      const status: "ok" = answer.data.status;
+      expect(status).toBe("ok");
+      // @ts-expect-error Request callers provide schema input, not parsed output.
+      expect(await harness.request(subscription, { n: 7 })).toEqual({
+        ok: false,
+        code: "invalid_input",
+      });
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("writes durable wire inputs and reads parsed outputs through public contexts", async () => {
+    for (const family of ["service", "interface"]) {
+      const harness = createBrainTestHarness();
+      const schema = z.object({
+        n: z.string().transform(Number),
+        label: z.string().default("ready"),
+      });
+      const header = { id: "state", config: z.object({}) };
+      // Both context families must retain independently inferred input/output types.
+      const service = defineServicePlugin(
+        {
+          ...header,
+          setup: async ({ runtimeState }) => {
+            const store = runtimeState({ namespace: "state", schema });
+            await store.set("one", { n: "7" });
+            await expectRejection(
+              // @ts-expect-error State setters take wire input, not transformed output.
+              store.set("bad", { n: 7 }),
+              "expected string",
+            );
+            return { store };
+          },
+        },
+        {
+          tools: ({ state }) => [
+            defineTool({
+              name: "read",
+              description: "Read durable state",
+              input: z.object({}),
+              output: z.number(),
+              execute: async ({ state: runtimeState }) => {
+                const counter = runtimeState({
+                  namespace: "counter",
+                  schema: z.number().transform((n) => n + 1),
+                });
+                await counter.set("one", 1);
+                expect(await counter.get("one")).toBe(2);
+                expect(await counter.get("one")).toBe(2);
+                expect(await counter.setIfNotExists("one", 10)).toBe(false);
+                expect(await counter.setIfNotExists("two", 2)).toBe(true);
+                expect(
+                  (await counter.list()).map((record) => record.value),
+                ).toEqual([2, 3]);
+                const value = await state.store.get("one");
+                if (!value) throw new Error("Missing state");
+                expect(value.label).toBe("ready");
+                return value.n;
+              },
+            }),
+          ],
+        },
+      );
+      const generic = defineInterface(
+        {
+          ...header,
+          setup: async ({ runtimeState }) => {
+            const store = runtimeState({ namespace: "state", schema });
+            await store.set("one", { n: "8" });
+            await expectRejection(
+              // @ts-expect-error Interface state setters also retain schema input types.
+              store.set("bad", { n: 8 }),
+              "expected string",
+            );
+            return { store };
+          },
+        },
+        {
+          routes: ({ state }) => [
+            defineRoute({
+              method: "GET",
+              path: "/state",
+              security: { kind: "public" },
+              response: z.number(),
+              handle: async () => {
+                const value = await state.store.get("one");
+                if (!value) throw new Error("Missing state");
+                return value.n;
+              },
+            }),
+          ],
+        },
+      );
+      try {
+        const installed = await harness.installPackage(
+          family === "service" ? service : generic,
+        );
+        if (family === "service")
+          expect(await installed.tools[0]?.call({})).toEqual({
+            ok: true,
+            data: 7,
+          });
+        else expect(await harness.fetch("GET", "/state")).toBe(8);
+      } finally {
+        await harness.reset();
+      }
+    }
   });
 
   it("matches URL pathnames, exact routes and longest segment prefixes like the host", async () => {

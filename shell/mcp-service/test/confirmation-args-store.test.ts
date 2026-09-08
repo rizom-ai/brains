@@ -18,6 +18,47 @@ describe("ConfirmationArgsStore", () => {
     });
   });
 
+  it("holds prepared values privately and releases them only for a valid single-use replay", () => {
+    let now = 0;
+    const store = new ConfirmationArgsStore({
+      maxPending: 1,
+      ttlMs: 10,
+      now: (): number => now,
+    });
+    const prepared = { date: new Date("2026-01-01"), value: 2 };
+    const build = (
+      confirmationToken: string,
+    ): { value: number; confirmationToken: string } => ({
+      value: 1,
+      confirmationToken,
+    });
+    const first = store.create(build, prepared);
+    expect(first).not.toHaveProperty("prepared");
+    expect(store.validate(first.confirmationToken, first)).toEqual({
+      status: "ok",
+      prepared,
+    });
+    expect(store.validate(first.confirmationToken, first)).toEqual({
+      status: "missing",
+    });
+    const changed = store.create(build, prepared);
+    expect(
+      store.validate(changed.confirmationToken, { ...changed, value: 3 }),
+    ).toEqual({ status: "mismatch" });
+    expect(store.validate(changed.confirmationToken, changed)).toEqual({
+      status: "missing",
+    });
+    const evicted = store.create(build, prepared);
+    const expiring = store.create(build, prepared);
+    expect(store.validate(evicted.confirmationToken, evicted)).toEqual({
+      status: "missing",
+    });
+    now = 11;
+    expect(store.validate(expiring.confirmationToken, expiring)).toEqual({
+      status: "missing",
+    });
+  });
+
   it("compares args stably and ignores undefined object fields", () => {
     const store = new ConfirmationArgsStore();
     const args = store.create((confirmationToken) => ({

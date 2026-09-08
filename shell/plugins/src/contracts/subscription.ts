@@ -129,6 +129,7 @@ export type RequestResult<TResponseSchema extends SubscriptionPayloadSchema> =
  */
 export interface SubscriptionDefinition<
   TPayloadSchema extends SubscriptionPayloadSchema = SubscriptionPayloadSchema,
+  TResponseSchema extends SubscriptionPayloadSchema = SubscriptionPayloadSchema,
 > {
   readonly topic: string;
   readonly payload: TPayloadSchema;
@@ -138,7 +139,7 @@ export interface SubscriptionDefinition<
    * typed askers parse that wire value at their boundary. Transformed values
    * are never fed back into the schema as though they were fresh inputs.
    */
-  readonly response?: SubscriptionPayloadSchema | undefined;
+  readonly response?: TResponseSchema | undefined;
   handle(context: {
     readonly payload: z.output<TPayloadSchema>;
     /**
@@ -188,7 +189,7 @@ export interface SubscriptionDefinition<
      * Named consumer: @brains/playbooks.
      */
     readonly source: string;
-  }): unknown | Promise<unknown>;
+  }): z.input<TResponseSchema> | Promise<z.input<TResponseSchema>>;
 }
 
 export type AnySubscriptionDefinition =

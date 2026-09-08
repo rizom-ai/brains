@@ -1013,6 +1013,7 @@
         "InstalledTool",
         "SeededEntity",
         "TestCaller",
+        "TestToolConfirmation",
         "ToolCallResult"
       ],
       "advanced-with-consumer": [],

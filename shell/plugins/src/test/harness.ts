@@ -13,7 +13,12 @@ import type {
   ToolContext,
 } from "../interfaces";
 import { z } from "@brains/utils/zod";
-import type { toolSuccessSchema, toolErrorSchema } from "@brains/mcp-service";
+import {
+  canExposeTool,
+  type Tool,
+  type toolSuccessSchema,
+  type toolErrorSchema,
+} from "@brains/mcp-service";
 
 type ToolSuccess = z.output<typeof toolSuccessSchema>;
 type ToolError = z.output<typeof toolErrorSchema>;
@@ -195,6 +200,46 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
           `Plugin "${plugin.id}" registration and rollback failed`,
           { cause: cleanupError },
         );
+      }
+      throw error;
+    }
+  }
+
+  /** Install one package atomically without disturbing previously installed packages. */
+  async installPlugins(
+    plugins: readonly TPlugin[],
+  ): Promise<readonly { plugin: TPlugin; capabilities: PluginCapabilities }[]> {
+    const previousPlugin = this.plugin;
+    const previousCapabilities = this.capabilities;
+    const installed: { plugin: TPlugin; capabilities: PluginCapabilities }[] =
+      [];
+    try {
+      for (const plugin of plugins) {
+        installed.push({
+          plugin,
+          capabilities: await this.installPlugin(plugin),
+        });
+      }
+      return installed;
+    } catch (error) {
+      try {
+        await runCleanups(
+          installed.map(({ plugin }) => async (): Promise<void> => {
+            const index = this.installedPlugins.indexOf(plugin);
+            if (index >= 0) this.installedPlugins.splice(index, 1);
+            this.mockShell.removePlugin(plugin.id);
+            await this.releasePlugin(plugin);
+          }),
+        );
+      } catch (cleanupError) {
+        throw new AggregateError(
+          [error, cleanupError],
+          "Package installation and rollback failed",
+          { cause: cleanupError },
+        );
+      } finally {
+        this.plugin = previousPlugin;
+        this.capabilities = previousCapabilities;
       }
       throw error;
     }
@@ -505,7 +550,22 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       toolContext.channelId = context.channelId;
     }
 
-    return tool.handler(input, toolContext);
+    return this.callTool(tool, input, toolContext);
+  }
+
+  /** Apply the production tool permission rule before entering its handler. */
+  async callTool(
+    tool: Tool,
+    input: unknown,
+    context: ToolContext,
+  ): Promise<ToolResponse> {
+    if (!canExposeTool(context.userPermissionLevel ?? "public", tool)) {
+      return {
+        success: false,
+        error: `Permission denied for tool "${tool.name}"`,
+      };
+    }
+    return tool.handler(input, context);
   }
 
   /**

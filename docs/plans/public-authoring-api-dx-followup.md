@@ -2,9 +2,56 @@
 
 ## Status and scope
 
-**Both review correction passes implemented and validated. The six reproduced
-acceptance gaps below are fixed; broader unchecked criteria are not implicitly
-signed off. Exact-registry evidence and stable nomination remain separate.**
+**Three review correction passes implemented and validated. The reproduced
+acceptance and DX gaps below are fixed; broader unchecked criteria are not
+implicitly signed off. Exact-registry evidence and stable nomination remain
+separate.**
+
+### DX guarantee corrections following review of 212ccbd541
+
+The next external-author review reproduced six additional issues. All six are
+implemented with regression coverage:
+
+- [x] Bind tool confirmation replay to prepared input rather than parsing the
+      proposal's transformed output. Keep prepared values server-side in the
+      same bounded, expiring, single-use confirmation store. Cover string-to-number
+      transforms, non-idempotent transforms, generated defaults, tampering,
+      fabricated tokens, replay, eviction, and expiry.
+- [x] Separate durable-state input/output types throughout author contexts and
+      consumer wrappers. Persist validated JSON wire values and parse them at
+      read boundaries. Cover defaults, transformed values, insert-if-absent,
+      list/clear, invalid writes, JSON round trips, and real SQLite restart.
+      Preserve JSON null rather than binding SQL NULL. Test stores use the same
+      wire preparation as production; status writes no longer pre-parse values.
+- [x] Preserve public harness approvals as `{ ok: false, confirmation }`,
+      including the summary and replay arguments, rather than reporting refusal.
+      Both service and interface tool paths execute the value actually approved.
+- [x] Apply the production tool permission rule before harness handler execution.
+      Cover the public/trusted/admin hierarchy, the admin default, and absence
+      of side effects on denial.
+- [x] Roll back all newly installed children when a compound package fails,
+      including when a cleanup throws. Keep earlier packages and their bus
+      subscriptions/routes usable; allow retry without resetting the harness.
+- [x] Typecheck subscription handlers against response-schema input and preserve
+      concrete response schemas for `request(subscription, input)`. Keep
+      notifications without a response schema distinct. Negative compile tests
+      still exercise runtime validation of deliberately malformed providers.
+
+Validation for this pass:
+
+- **21 public SDK tests** run through source, built exports, and an isolated
+  packed consumer, with strict declaration checks including the negative tests.
+- Forced repository checks: **101/101 test tasks**, **103/103 typecheck tasks**,
+  and **96/96 lint tasks** passed.
+- Freshly built packed compatibility: **7/7 scenarios** passed, including
+  restart persistence, durable execution, and a site rebuild through the
+  running app. Public surface/declaration checks and built boot smoke passed.
+- Script typecheck, docs, workspace/dependencies, boundary casts, legacy inventory,
+  test assertions, catches, changeset lanes, formatting, and diff checks passed.
+
+These fixes address concrete inconsistencies, not a universal SDK error taxonomy.
+No registry compatibility floor, stable nomination, merge, or publication is
+implied by this evidence.
 
 ### Review corrections (26dcad377e)
 

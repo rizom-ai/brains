@@ -1,4 +1,5 @@
 export { MCPService } from "./mcp-service";
+export { canExposeTool } from "./mcp-registration";
 export type { IMCPService, IMCPTransport, ToolInfo } from "./types";
 export type {
   ToolVisibility,
