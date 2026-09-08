@@ -85,16 +85,16 @@ export function createRuntimeTool(input: {
     handler: async (rawInput, toolContext): Promise<ToolResponse> => {
       try {
         const token = toolConfirmationToken(rawInput);
+        let parsed: Record<string, unknown>;
         if (token !== undefined) {
-          const gateError = confirmations.validateConfirmed(token, rawInput);
-          if (gateError) return gateError;
-          const record = {
-            ...z.record(z.string(), z.unknown()).parse(rawInput),
-          };
-          delete record[confirmationTokenField];
-          rawInput = record;
+          const confirmed = confirmations.consumeConfirmed(token, rawInput);
+          if (!confirmed.ok) return confirmed.error;
+          // Execute exactly the input the summary described, even when parsing
+          // transforms, generates defaults, or produces non-JSON values.
+          parsed = z.record(z.string(), z.unknown()).parse(confirmed.prepared);
+        } else {
+          parsed = definition.input.parse(rawInput);
         }
-        const parsed = definition.input.parse(rawInput);
         if (token === undefined && definition.confirmation) {
           return {
             needsConfirmation: true,
@@ -103,10 +103,13 @@ export function createRuntimeTool(input: {
               typeof definition.confirmation === "function"
                 ? definition.confirmation(parsed)
                 : definition.confirmation,
-            args: confirmations.buildArgs((confirmationToken) => ({
-              ...z.record(z.string(), z.unknown()).parse(parsed),
-              [confirmationTokenField]: confirmationToken,
-            })),
+            args: confirmations.buildArgs(
+              (confirmationToken) => ({
+                ...z.record(z.string(), z.unknown()).parse(rawInput),
+                [confirmationTokenField]: confirmationToken,
+              }),
+              parsed,
+            ),
           };
         }
 

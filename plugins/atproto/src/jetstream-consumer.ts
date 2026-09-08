@@ -91,9 +91,9 @@ export interface JetstreamConsumerCallbacks {
  */
 export interface JetstreamRuntime {
   readonly logger: LoggerContract;
-  runtimeState<TValue>(
-    options: RuntimeStateScopeOptions<TValue>,
-  ): IRuntimeStateStore<TValue>;
+  runtimeState<TValue, TInput = TValue>(
+    options: RuntimeStateScopeOptions<TValue, TInput>,
+  ): IRuntimeStateStore<TValue, TInput>;
 }
 
 export interface JetstreamConsumerOptions {

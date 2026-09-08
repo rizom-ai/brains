@@ -1086,9 +1086,9 @@ interface ServiceDefinitionHeader<
          * @brains/playbooks, @brains/email-workflows, @brains/atproto,
          * @brains/content-pipeline.
          */
-        readonly runtimeState: <TValue>(
-          options: RuntimeStateScopeOptions<TValue>,
-        ) => IRuntimeStateStore<TValue>;
+        readonly runtimeState: <TValue, TInput = TValue>(
+          options: RuntimeStateScopeOptions<TValue, TInput>,
+        ) => IRuntimeStateStore<TValue, TInput>;
         /**
          * Put evidence to the model and get a verdict back in a shape you
          * named. Bounded on purpose — an instruction, the material, and a
