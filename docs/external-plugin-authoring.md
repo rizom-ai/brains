@@ -258,12 +258,17 @@ them. Projections reference source/target definitions and write through the
 typed target helper. Persistence, markdown/frontmatter validation, visibility,
 search indexing, scheduling, and loop prevention stay runtime-owned.
 
-### Entity data, templates, and views
+### Entity data and presentation
 
-A declarative entity definition does **not** have a `templates` field. Entities
-own storage schemas, optional Markdown encoding, and projections. Put formatting
-or presentation in a separately composed service and read the entity from a job
-handler:
+Presentation that belongs to a type lives with the type. A declarative entity
+definition takes a `templates` field, and the shipped `blog` and `doc`
+packages use it: how a post reads as a page is a fact about posts, and putting
+it elsewhere means two packages have to agree about one thing.
+
+Presentation that spans types, or that a brain configures rather than a package
+fixing, belongs to a service. A digest of several bookmarks is not a fact about
+any one bookmark; a site's section list is the brain's, not a package's. Read
+the entity from a job handler and format it there:
 
 <!-- public-authoring-example: external-template-service -->
 
@@ -343,6 +348,35 @@ Several unrelated concepts also use the word “template”:
 Normal external packages should use the family fields above. Pin an exact Brain
 version before deliberately using the advanced `@rizom/brain/templates`
 subpath.
+
+### Testing a package
+
+`@rizom/brain/testing` runs a package without a brain. Install what the
+package exports, seed the records it reads, and call the tools it declared:
+
+<!-- public-authoring-example: external-package-test -->
+
+```ts
+import { createBrainTestHarness } from "@rizom/brain/testing";
+
+export async function greetsInTheConfiguredZone(
+  calendar: unknown,
+): Promise<string | undefined> {
+  const harness = createBrainTestHarness();
+  const installed = await harness.installPackage(calendar, {
+    timezone: "UTC",
+  });
+  const answer = await installed.tools[0]?.call({});
+  await harness.reset();
+  return typeof answer === "object" && answer !== null && "timezone" in answer
+    ? String(answer.timezone)
+    : undefined;
+}
+```
+
+A tool that refuses throws, so the happy path needs no unwrapping and a
+refusal is asserted with `rejects`. The harness hands back names and answers
+rather than runtime objects, which is why nothing here imports `@brains/*`.
 
 ### Services and durable jobs
 
