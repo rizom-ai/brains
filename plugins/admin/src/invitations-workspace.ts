@@ -23,6 +23,7 @@ import {
 } from "./workspace-format";
 
 const TERMINAL_INVITATION_STATES = new Set(["claimed", "expired", "cancelled"]);
+const CLOSED_INVITATION_STATES = new Set(["claimed", "cancelled"]);
 
 function titleCase(value: string): string {
   return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
@@ -397,7 +398,7 @@ const studioInvitationsWorkspace = defineStudioWorkspace({
           ],
           tone: invitationTone(invitation.state),
         },
-        actions: TERMINAL_INVITATION_STATES.has(invitation.state)
+        actions: CLOSED_INVITATION_STATES.has(invitation.state)
           ? []
           : [
               ...(invitation.deliveryAttemptId
@@ -428,10 +429,14 @@ const studioInvitationsWorkspace = defineStudioWorkspace({
                     },
                   ]
                 : []),
-              {
-                action: cancelInvitation,
-                input: { invitationId: invitation.id },
-              },
+              ...(invitation.state !== "expired"
+                ? [
+                    {
+                      action: cancelInvitation,
+                      input: { invitationId: invitation.id },
+                    },
+                  ]
+                : []),
             ],
       })),
     });
