@@ -2,27 +2,39 @@
 
 ## Status and scope
 
-**Investigation complete; decisions made; slice 1 landed except the packed
-consumer.**
+**Slices 1–6 landed; 7–9 open.**
 
-Landed on `work/plugin-api-boundaries`: `RouteOutput` types a handler's answer
-from the response schema (7d5c88334a); the services entry stopped publishing
-the console registration shapes and the entity-service client the mirror was
-picked from, which was failing `surface:check` (2c569219d5); the ledger gained
-its reverse check, the 13 input types are exported, and 13 further names the
-ledger promised but no entry point ever exported are delisted.
+On `work/plugin-api-boundaries`, each slice gated and committed on its own:
 
-Two findings from that work, both worth carrying: the branch was failing
-`surface:check` before any of this, because the pre-commit hook does not run
-it; and removing an export did not hide the mirror, because setup returns it,
-so `EntityMirrorClient` is now written out instead of picked from the internal
-service. Taking the mirror off every setup context is still E's work.
-Follow-up to the public API/DX review
-of `work/plugin-api-boundaries` at
-[`ad97dc8e3`](https://github.com/rizom-ai/brains/tree/ad97dc8e352cc0fd41685f6248f6d15e6e6197cc).
-Implementation targets that branch or its integrated successor, not the older
-API currently on `main`. Recheck the findings against the implementation tip
-before changing code.
+1. `RouteOutput` types a handler's answer from its response schema; the export
+   ledger promises only what an entry point exports, and the 13 input types are
+   exported. The packed external consumer is still open.
+2. The three family helpers take a header and a behavior, so state is fixed
+   before the behavior is checked and slot order stops mattering. 109 call
+   sites migrated.
+3. Service routes are built per instance after setup. Newsletter, Dashboard and
+   Studio dropped the outer holders that made two instances share one client.
+4. Templates and views became one declaration carrying formatter and renderer;
+   `defineDataSource` took both forms and `defineEntityDataSource` is gone.
+5. A failed request carries a code, so Studio stopped matching an error's
+   wording. A subscription may declare its response, and a caller naming that
+   contract gets a parsed answer or a named reason there is none. Entity reads
+   narrow only with the schema that narrows them. The durable store is
+   `runtimeState` and asking is `request`, one word per thing.
+6. The entity entry stopped re-exporting general-purpose helpers, and the
+   process role, git broker and entity mirror left every setup context for a
+   declaration-level opt-in that directory-sync alone names.
+
+Findings from doing the work, each recorded in its commit: the branch was
+failing `surface:check` before any of this began; the ledger promised 26
+unimportable names rather than the 13 the review found; a batch-generation test
+had been failing three runs in ten on wall-clock ties; the fake bus answered an
+unheard request as a success where the real one answers a coded failure; and
+knowledge-map was reaching past the templates slot with a raw template object
+that the slot then registered without its renderer.
+
+Withdrawn after reading the code: the contributor `bind` removal (disposition
+I), whose premise was false.
 
 This plan refines the contract before the stable nomination owned by
 [Public authoring API compatibility](./public-authoring-api-0.2.md). It does
@@ -664,21 +676,17 @@ needs are small.
 1. ~~Land the ledger check machinery: reverse built-declaration checks and
    the 13 missing re-exports. Fix `RouteOutput` as a standalone commit in this
    slice.~~ Done, except the packed-consumer fixture (step 3 above).
-2. Implement the two-stage setup pattern across families, with compile
-   fixtures covering both property orders for services, generic interfaces,
-   and message interfaces. Every later slice expresses its contracts in that
-   shape. Do not begin step 3 until this has landed.
-3. Unify service routes with the existing instance-bound lifecycle; add the
-   Newsletter two-instance regression. Delete the config-only rationale comment.
-4. Combine service templates/views and the two data-source helper names, one
-   contract change at a time. Migrate consumers and remove superseded alpha forms;
-   do not retain compatibility aliases or parallel APIs.
-5. Consolidate entity readers, request responses, and resource/state vocabulary
-   through their existing machinery. Establish the shared coded-error contract
-   alongside request-failure semantics. No new top-level helper by default.
-6. Curate the boundary (Phase 3): remove host/infrastructure and unrelated
-   utility exposure from normal authoring, keep advanced integration only where
-   external support is intended.
+2. ~~Implement the two-stage setup pattern across families.~~ Done.
+3. ~~Unify service routes with the existing instance-bound lifecycle.~~ Done,
+   with the Newsletter two-instance regression and the stale rationale deleted.
+4. ~~Combine service templates/views and the two data-source helper names.~~
+   Done, one contract change at a time, with no aliases left behind.
+5. ~~Consolidate entity readers, request responses, and resource/state
+   vocabulary; establish the coded-error contract.~~ Done. Two codes exist,
+   because two are what a caller has to tell apart today.
+6. Curate the boundary (Phase 3). Done for the utility exposure and for the
+   infrastructure facts; the `@rizom/brain/templates` builder and registry
+   exports still need their consumer audit.
 7. Reconcile the external guide, golden examples, and presentation rule with
    the resulting API.
 8. Publish `@rizom/brain/testing` (G) with its ledger source and packed-consumer
