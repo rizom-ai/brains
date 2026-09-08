@@ -109,6 +109,19 @@ describe("content-pipeline Studio workspace registration", () => {
     });
     const queue = QueueManager.createFresh();
     await queue.add("social-post", "queued-post");
+    await context.entityService.createEntity({
+      entity: {
+        id: "failed-post",
+        entityType: "social-post",
+        content: "Failed post",
+        visibility: "public",
+        metadata: {
+          status: "failed",
+          title: "Failed post",
+          error: "Provider refused delivery.\nRequest: delivery-123",
+        },
+      },
+    });
     let registration: StudioWorkspaceRegistration | undefined;
     context.messaging.subscribe<
       StudioWorkspaceRegistration,
@@ -155,6 +168,61 @@ describe("content-pipeline Studio workspace registration", () => {
     });
     expect(JSON.stringify(workspace)).toContain('"title":"Queued post"');
     expect(JSON.stringify(workspace)).toContain('"entityType":"social-post"');
+    expect(workspace).toMatchObject({
+      view: {
+        blocks: [
+          {
+            id: "publishing-attention",
+            presentation: "disclosure",
+            tone: "warn",
+            metadata: ["Failed post · Retries: 0"],
+            blocks: [
+              {
+                items: [
+                  {
+                    description:
+                      "Provider refused delivery.\nRequest: delivery-123",
+                    actions: [
+                      {
+                        actionId: "retry",
+                        input: {
+                          entityType: "social-post",
+                          entityId: "failed-post",
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: "tabs",
+            tabs: [
+              {
+                id: "queued",
+                blocks: [
+                  {
+                    items: [
+                      {
+                        description: "linkedin",
+                        metadata: ["Position 1", "Next dispatch"],
+                        actions: [
+                          { label: "Move up", disabled: true },
+                          { label: "Move down", disabled: true },
+                          { actionId: "remove" },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          { id: "publishing-summary" },
+        ],
+      },
+    });
   });
 
   it("owns validated queue, reorder, remove, and retry actions", async () => {

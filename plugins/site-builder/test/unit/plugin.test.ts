@@ -319,12 +319,17 @@ describe("SiteBuilderPlugin", () => {
                   type: "columns",
                   primary: [
                     { id: `site-${id}-card`, presentation: "feature" },
+                    { id: `${id}-render-details`, presentation: "disclosure" },
+                    {
+                      id: "site-routes",
+                      label: "Configured routes",
+                      presentation: "disclosure",
+                    },
                     { id: "site-recent-builds", label: "Recent builds" },
                   ],
                   aside: [
-                    { id: "site-routes", label: "Configured routes" },
                     { id: "site-automation-card" },
-                    { id: "site-automation-links" },
+                    { id: "site-automation-links", presentation: "disclosure" },
                   ],
                 },
               ],

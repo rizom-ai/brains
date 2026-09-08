@@ -2,6 +2,7 @@
 import * as stylex from "@stylexjs/stylex";
 import type { ReactElement, ReactNode } from "react";
 import { layoutStyles as s } from "./operator-layout.styles";
+import { actionLayoutStyles } from "./operator-action-layout.styles";
 import { OperatorMetadata } from "./operator-metadata";
 
 export function OperatorCard(props: {
@@ -12,10 +13,18 @@ export function OperatorCard(props: {
   density: "compact" | "comfortable";
   framed?: boolean | undefined;
   children: ReactNode;
+  footer?: ReactNode;
 }): ReactElement {
   const compact = props.density === "compact";
+  const attention =
+    !compact && (props.tone === "warn" || props.tone === "error");
   const metadata = props.metadata?.length ? (
-    <small {...stylex.props(s.headingMetadata)}>
+    <small
+      {...stylex.props(
+        s.headingMetadata,
+        attention && props.presentation === "disclosure" && s.attentionMetadata,
+      )}
+    >
       <OperatorMetadata values={props.metadata} />
     </small>
   ) : null;
@@ -38,6 +47,11 @@ export function OperatorCard(props: {
       )}
     >
       {props.children}
+      {props.footer && (
+        <div {...stylex.props(actionLayoutStyles.group)} data-card-controls="">
+          {props.footer}
+        </div>
+      )}
     </div>
   );
   return props.presentation === "disclosure" ? (
@@ -46,7 +60,13 @@ export function OperatorCard(props: {
       className={className}
       data-tone={props.tone ?? "neutral"}
     >
-      <summary {...stylex.props(s.summary, !compact && s.comfortableSummary)}>
+      <summary
+        {...stylex.props(
+          s.summary,
+          !compact && s.comfortableSummary,
+          attention && s.attentionSummary,
+        )}
+      >
         {props.label}
         {metadata && <> {metadata}</>}
       </summary>

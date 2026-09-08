@@ -551,6 +551,89 @@ function confirmingWorkspace(
 }
 
 describe("OperatorViewRenderer conformance", () => {
+  it("groups only adjacent trailing card controls without changing their order or targets", async () => {
+    const window = new Window();
+    try {
+      window.document.head.innerHTML = `<style>${operatorViewStylexCSS}</style>`;
+      window.document.body.innerHTML = renderToStaticMarkup(
+        <OperatorViewRenderer
+          data={{
+            view: {
+              blocks: [
+                {
+                  type: "card",
+                  id: "publication",
+                  label: "Publication",
+                  blocks: [
+                    {
+                      type: "links",
+                      items: [
+                        {
+                          label: "Earlier link",
+                          target: {
+                            kind: "external",
+                            href: "https://example.com/earlier",
+                          },
+                        },
+                      ],
+                    },
+                    {
+                      type: "key-values",
+                      items: [{ label: "Generation", value: "published-1" }],
+                    },
+                    {
+                      type: "links",
+                      items: [
+                        {
+                          label: "Open preview",
+                          target: {
+                            kind: "external",
+                            href: "https://preview.example.com",
+                          },
+                        },
+                      ],
+                    },
+                    {
+                      type: "actions",
+                      items: [
+                        {
+                          actionId: "build-preview",
+                          label: "Build preview",
+                          input: {},
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          }}
+          onAction={async () => undefined}
+          onOpenEntity={() => {}}
+        />,
+      );
+      const footer = window.document.querySelector("[data-card-controls]");
+      if (!footer) throw new Error("Missing card control group");
+      expect(window.getComputedStyle(footer).display).toBe("flex");
+      expect(
+        [...footer.children].map((element) =>
+          element.getAttribute("data-block"),
+        ),
+      ).toEqual(["links", "actions"]);
+      expect(footer.querySelector("a")?.getAttribute("href")).toBe(
+        "https://preview.example.com",
+      );
+      expect(footer.querySelector("button")?.textContent).toBe("Build preview");
+      expect(footer.textContent).not.toContain("Earlier link");
+      expect(footer.textContent).not.toContain("published-1");
+      expect(
+        window.document.querySelectorAll(".declarative-card [data-block]")
+          .length,
+      ).toBe(4);
+    } finally {
+      await window.happyDOM.abort();
+    }
+  });
   it("renders every container and remaining panel shape through the shared host", () => {
     const conformance: RuntimeStudioWorkspaceData = {
       view: {

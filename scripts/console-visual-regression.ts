@@ -4,6 +4,7 @@ import path from "node:path";
 import { PNG } from "pngjs";
 import { createAdministrationFixture } from "./fixtures/studio-administration";
 import { createWorkViewFixtures } from "./fixtures/studio-work-views";
+import { createDeliveryViewFixtures } from "./fixtures/studio-delivery-views";
 import { createElement, type ReactElement } from "react";
 import { renderChatPage } from "@brains/web-chat";
 import { renderEditorShellHtml } from "@brains/studio";
@@ -222,271 +223,6 @@ const contentSyncWorkspaceData = {
             ],
           },
         ],
-      },
-    ],
-  },
-};
-
-const siteWorkspaceData = {
-  view: {
-    title: "Site",
-    blocks: [
-      {
-        type: "tabs",
-        id: "site-environments",
-        label: "Environment",
-        defaultTab: "preview",
-        tabs: (["preview", "production"] as const).map((environment) => ({
-          id: environment,
-          label: environment === "preview" ? "Preview" : "Production",
-          blocks: [
-            {
-              type: "columns",
-              id: `site-${environment}`,
-              primary: [
-                {
-                  type: "card",
-                  id: `${environment}-card`,
-                  label: "Published",
-                  presentation: "feature",
-                  metadata: [
-                    environment === "preview" ? "Preview" : "Production",
-                  ],
-                  blocks: [
-                    {
-                      type: "key-values",
-                      items: [
-                        {
-                          label: "Published generation",
-                          value: `build-20260711163352-${environment}`,
-                        },
-                        {
-                          label: "Published at",
-                          value: "2026-07-11T16:33:52.000Z",
-                        },
-                        { label: "Published result", value: "31 routes" },
-                        {
-                          label: "Last successful render",
-                          value: "2026-07-11T16:33:52.000Z",
-                        },
-                        {
-                          label: "Rendered result",
-                          value: `31 routes · build-20260711163352-${environment}`,
-                        },
-                      ],
-                    },
-                    {
-                      type: "actions",
-                      items: [
-                        {
-                          actionId: `build-${environment}`,
-                          label: `Build ${environment}`,
-                          input: {},
-                          ...(environment === "production"
-                            ? {
-                                confirmation: {
-                                  kind: "static",
-                                  message:
-                                    "Build and publish the production site now?",
-                                },
-                              }
-                            : {}),
-                        },
-                      ],
-                    },
-                  ],
-                },
-                {
-                  type: "card",
-                  id: "site-recent-builds",
-                  label: "Recent builds",
-                  blocks: [
-                    {
-                      type: "list",
-                      id: "recent-builds",
-                      presentation: "activity",
-                      empty: "No site builds have completed yet.",
-                      items: [
-                        {
-                          id: `build-${environment}`,
-                          title: `${environment} · succeeded`,
-                          metadata: [
-                            "Completed: 2026-07-11T16:33:52.000Z",
-                            "Routes: 31",
-                          ],
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-              aside: [
-                {
-                  type: "card",
-                  id: "site-routes",
-                  label: "Configured routes",
-                  metadata: ["31 configured"],
-                  blocks: [
-                    {
-                      type: "table",
-                      id: "routes",
-                      empty: "No site routes are configured.",
-                      columns: [
-                        { key: "title", label: "Route" },
-                        { key: "path", label: "Path" },
-                      ],
-                      rows: [
-                        { title: "Home", path: "/" },
-                        { title: "Notes", path: "/notes/" },
-                        { title: "About", path: "/about/" },
-                        { title: "Newsletter", path: "/newsletter/" },
-                        { title: "Essays", path: "/essays/" },
-                        { title: "Topics", path: "/topics/" },
-                        { title: "Now", path: "/now/" },
-                        { title: "Archive", path: "/archive/" },
-                      ].map((route, index) => ({
-                        id: `route-${index}`,
-                        cells: route,
-                        compact: { title: route.title, metadata: [route.path] },
-                      })),
-                    },
-                    {
-                      type: "notice",
-                      id: "routes-remainder",
-                      text: "23 further routes are configured.",
-                    },
-                  ],
-                },
-                {
-                  type: "card",
-                  id: "site-automation-card",
-                  label: "Automation",
-                  blocks: [
-                    {
-                      type: "key-values",
-                      id: "automation",
-                      items: [
-                        { label: "Automatic rebuild", value: true },
-                        { label: "Debounce", value: "2000 ms" },
-                        { label: "Default environment", value: "preview" },
-                      ],
-                    },
-                  ],
-                },
-                {
-                  type: "card",
-                  id: "site-automation-links",
-                  label: "Site links",
-                  blocks: [
-                    {
-                      type: "links",
-                      id: "site-links",
-                      items: [
-                        {
-                          label: "Open preview",
-                          target: {
-                            kind: "external",
-                            href: "https://preview.example.com",
-                          },
-                        },
-                        {
-                          label: "Open live site",
-                          target: {
-                            kind: "external",
-                            href: "https://example.com",
-                          },
-                        },
-                        {
-                          label: "Edit site settings",
-                          target: {
-                            kind: "entity",
-                            entityType: "site-info",
-                            id: "site-info",
-                          },
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        })),
-      },
-    ],
-  },
-};
-
-const publishingWorkspaceData = {
-  view: {
-    title: "Publishing",
-    blocks: [
-      {
-        type: "card",
-        id: "publishing-attention",
-        label: "One delivery needs attention",
-        blocks: [
-          {
-            type: "list",
-            id: "publication-failures",
-            items: [
-              {
-                id: "post:field-notes",
-                title: "Notes from the rhizome",
-                description: "Provider rejected the last delivery attempt.",
-                metadata: ["Newsletter", "2 retries left"],
-                actions: [
-                  {
-                    actionId: "retry",
-                    label: "Retry",
-                    input: { entityType: "posts", entityId: "field-notes" },
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-      {
-        type: "tabs",
-        id: "publishing-queue",
-        label: "Publishing queue",
-        defaultTab: "queued",
-        tabs: [
-          {
-            id: "queued",
-            label: "Queued",
-            count: 1,
-            blocks: [
-              {
-                type: "list",
-                id: "dispatch-queue",
-                empty: "The publishing queue is empty.",
-                items: [
-                  {
-                    id: "post:quiet-infrastructure",
-                    title: "Quiet infrastructure",
-                    description: "Queued for the newsletter provider.",
-                    metadata: ["Post", "Newsletter", "position 1"],
-                    badges: [{ label: "queued" }],
-                    actions: [
-                      {
-                        actionId: "remove",
-                        label: "Remove",
-                        input: { id: "quiet-infrastructure" },
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-      {
-        type: "key-values",
-        id: "publishing-summary",
-        items: [{ label: "Published", value: 18 }],
       },
     ],
   },
@@ -2186,6 +1922,7 @@ const fixtureImage = new Uint8Array(PNG.sync.write(fixturePng));
 const pendingUploadResponses = new Set<() => void>();
 const administrationFixture = await createAdministrationFixture(FIXED_NOW);
 const workViewFixtures = await createWorkViewFixtures();
+const deliveryViewFixtures = await createDeliveryViewFixtures();
 const server = Bun.serve({
   port: 0,
   async fetch(request) {
@@ -2414,7 +2151,7 @@ const server = Bun.serve({
         workspace: {
           id: "site-builder:site",
           rendererName: "DeclarativeOperatorWorkspace",
-          data: siteWorkspaceData,
+          data: await deliveryViewFixtures.site(),
         },
       });
     if (
@@ -2425,7 +2162,7 @@ const server = Bun.serve({
         workspace: {
           id: "content-pipeline:publishing",
           rendererName: "DeclarativeOperatorWorkspace",
-          data: publishingWorkspaceData,
+          data: await deliveryViewFixtures.publishing(),
         },
       });
     if (
@@ -2983,6 +2720,47 @@ try {
         }
         if (surface === "studio-site") {
           await waitForText(page, "Build preview");
+          await evaluatePage(page, () => {
+            const controls = document.querySelector("[data-card-controls]");
+            const link = controls?.querySelector("a");
+            if (link?.getAttribute("href") !== "https://preview.example.com")
+              throw new Error("Published state lost its preview link");
+            if (
+              window.innerWidth <= 640 &&
+              link.getBoundingClientRect().height < 44
+            )
+              throw new Error("Preview link lost its phone touch target");
+            for (const details of document.querySelectorAll(
+              ".declarative-card:is(details)",
+            ))
+              if (details.hasAttribute("open"))
+                throw new Error("Supporting Site details should start folded");
+          });
+          await clickText(page, "summary", "Render details");
+          await waitForPage("retained render details", () =>
+            evaluatePage(page, () =>
+              [...document.querySelectorAll("details[open]")].some(
+                (node) =>
+                  node.textContent.includes("Last successful render") &&
+                  node.textContent.includes("build-20260711163352-preview"),
+              ),
+            ),
+          );
+          await clickText(page, "summary", "Render details");
+          await clickText(page, "summary", "Configured routes");
+          await evaluatePage(page, () => {
+            const routes = [...document.querySelectorAll("details[open]")].find(
+              (node) => node.textContent.includes("Configured routes"),
+            );
+            if (
+              routes?.querySelectorAll("tbody tr").length !== 8 ||
+              !routes.textContent.includes("23 further routes")
+            )
+              throw new Error(
+                "Configured routes lost their bounded preview or remainder",
+              );
+          });
+          await clickText(page, "summary", "Configured routes");
           await activateWorkspaceTab(page, "Production");
           await waitForText(page, "Build production");
           await clickText(page, "button", "Build production");
@@ -2998,6 +2776,80 @@ try {
         }
         if (surface === "studio-publishing") {
           await waitForText(page, "Notes from the rhizome");
+          await evaluatePage(page, () => {
+            const attention = document.querySelector(
+              'details[data-tone="warn"]',
+            );
+            if (
+              !attention ||
+              attention.hasAttribute("open") ||
+              !attention
+                .querySelector("summary")
+                ?.textContent.includes("Retries: 1")
+            )
+              throw new Error(
+                "Publishing attention is missing or exposes its controls at rest",
+              );
+          });
+          await clickText(page, "summary", "One delivery needs attention");
+          await evaluatePage(page, () => {
+            const attention = document.querySelector(
+              'details[open][data-tone="warn"]',
+            );
+            const retry = [
+              ...(attention?.querySelectorAll("button") ?? []),
+            ].find((button) =>
+              button.textContent.includes("Retry publication"),
+            );
+            if (
+              !attention?.textContent.includes(
+                "Provider rejected the last delivery attempt.",
+              ) ||
+              !retry ||
+              retry.disabled
+            )
+              throw new Error(
+                "Publication review lost diagnostics or its retry action",
+              );
+          });
+          await clickText(page, "summary", "One delivery needs attention");
+          await clickText(page, "button", "Options");
+          await waitForSelector(page, '[role="dialog"]');
+          await evaluatePage(page, () => {
+            const buttons = [
+              ...document.querySelectorAll<HTMLButtonElement>(
+                '[role="dialog"] button',
+              ),
+            ];
+            for (const label of ["Move up", "Move down"]) {
+              const button = buttons.find((node) =>
+                node.textContent.includes(label),
+              );
+              if (!button?.disabled)
+                throw new Error(
+                  "Single-item destination must retain disabled reorder boundaries",
+                );
+            }
+            if (
+              !buttons.some(
+                (button) =>
+                  button.textContent.includes("Remove from queue") &&
+                  !button.disabled,
+              )
+            )
+              throw new Error("Queue options lost removal");
+          });
+          await clickSelector(page, '[role="dialog"] [aria-label="Close"]');
+          await waitForPage("queue options closed", () =>
+            evaluatePage(
+              page,
+              () => !document.querySelector('[role="dialog"]'),
+            ),
+          );
+          await activateWorkspaceTab(page, "Generating (1)");
+          await waitForText(page, "og-image");
+          await activateWorkspaceTab(page, "Queued (3)");
+          await waitForText(page, "Quiet infrastructure");
         }
         if (
           surface === "studio-content-sync" ||

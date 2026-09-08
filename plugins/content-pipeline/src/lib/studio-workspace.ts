@@ -389,11 +389,13 @@ const publishingWorkspace = defineStudioWorkspace({
               return {
                 id: `queue-${item.entityType}-${item.position}`,
                 title: item.title,
+                description: item.destination,
                 metadata: [
-                  item.destination,
-                  item.scheduledFor ?? "Next dispatch",
+                  `Position ${item.position}`,
+                  item.scheduledFor
+                    ? `Scheduled: ${item.scheduledFor}`
+                    : "Next dispatch",
                 ],
-                count: item.position,
                 link: targetLink(item.entityType, item.entityId),
                 actions: [
                   {
@@ -437,7 +439,6 @@ const publishingWorkspace = defineStudioWorkspace({
                 id: `generating-${index + 1}`,
                 title: job.label,
                 metadata: [job.target, job.status],
-                badges: [{ label: job.status }],
                 ...(entityType && entityId.length > 0
                   ? { link: targetLink(entityType, entityId.join("/")) }
                   : {}),
@@ -477,6 +478,15 @@ const publishingWorkspace = defineStudioWorkspace({
       ...failures.map((block): PublishingBlock => ({
         type: "card",
         id: "publishing-attention",
+        presentation: "disclosure",
+        tone: "warn",
+        metadata:
+          data.failures.length === 1
+            ? data.failures.map(
+                (failure) =>
+                  `${failure.title} · Retries: ${failure.retryCount}`,
+              )
+            : [],
         label:
           data.failures.length === 1
             ? "One delivery needs attention"

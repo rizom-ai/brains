@@ -1890,6 +1890,30 @@ function CardBlock(props: {
   onQueryChange: (query: OperatorViewQuery) => void;
 }): ReactElement {
   const { components } = useContext(OperatorRendererHostContext);
+  const panels = props.block.blocks;
+  // Adjacent trailing navigation and mutation controls share one action line.
+  const footerStart =
+    panels.reduce(
+      (last, panel, index) =>
+        panel.type === "links" || panel.type === "actions" ? last : index,
+      -1,
+    ) + 1;
+  const groupedFooter = panels.length - footerStart > 1;
+  const renderPanel = (
+    panel: RuntimeStudioOperatorPanelBlock,
+    index: number,
+  ): ReactElement => (
+    <div key={panel.id ?? `${panel.type}:${index}`} data-block={panel.type}>
+      <PanelBlock
+        block={panel}
+        onAction={props.onAction}
+        onOpenEntity={props.onOpenEntity}
+        onLaunch={props.onLaunch}
+        query={props.query}
+        onQueryChange={props.onQueryChange}
+      />
+    </div>
+  );
   return (
     <OperatorCard
       label={props.block.label}
@@ -1898,19 +1922,17 @@ function CardBlock(props: {
       tone={props.block.tone}
       presentation={props.block.presentation}
       density={components.density}
+      footer={
+        groupedFooter
+          ? panels
+              .slice(footerStart)
+              .map((panel, index) => renderPanel(panel, footerStart + index))
+          : undefined
+      }
     >
-      {props.block.blocks.map((panel, index) => (
-        <div key={panel.id ?? `${panel.type}:${index}`} data-block={panel.type}>
-          <PanelBlock
-            block={panel}
-            onAction={props.onAction}
-            onOpenEntity={props.onOpenEntity}
-            onLaunch={props.onLaunch}
-            query={props.query}
-            onQueryChange={props.onQueryChange}
-          />
-        </div>
-      ))}
+      {panels
+        .slice(0, groupedFooter ? footerStart : panels.length)
+        .map(renderPanel)}
     </OperatorCard>
   );
 }

@@ -11,6 +11,8 @@ export const layoutStyles: Record<
   | "summary"
   | "disclosure"
   | "comfortableSummary"
+  | "attentionSummary"
+  | "attentionMetadata"
   | "body"
   | "disclosedBody"
   | "warn"
@@ -123,6 +125,13 @@ export const layoutStyles: Record<
     fontSize: 12,
     color: "var(--console-text-muted)",
   },
+  attentionSummary: {
+    fontSize: 18,
+    fontWeight: 500,
+    lineHeight: 1.35,
+    color: "var(--console-text)",
+  },
+  attentionMetadata: { display: "block", marginTop: 8 },
   body: { display: "grid", gap: 16, minWidth: 0 },
   disclosedBody: { paddingTop: 16 },
   warn: {

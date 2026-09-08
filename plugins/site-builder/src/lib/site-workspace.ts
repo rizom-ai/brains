@@ -171,6 +171,7 @@ function buildFailureNotice(
 
 function environmentCard(
   environment: SiteWorkspaceSnapshot["environments"][number],
+  href: string | undefined,
 ): SiteCardBlock {
   const isPreview = environment.environment === "preview";
   const publication = environment.publication;
@@ -209,28 +210,22 @@ function environmentCard(
       {
         type: "key-values",
         id: `${environment.environment}-facts`,
-        items: [
-          ...publicationFacts,
-          {
-            label: "Last successful render",
-            value: environment.lastSuccess?.completedAt ?? "—",
-          },
-          {
-            label: "Rendered result",
-            value: environment.lastSuccess
-              ? `${environment.lastSuccess.routesBuilt} routes · ${environment.lastSuccess.jobId}`
-              : "no successful render",
-          },
-          ...(environment.lastFailure
-            ? [
-                {
-                  label: "Last failed attempt",
-                  value: `${environment.lastFailure.completedAt} · ${environment.lastFailure.jobId}`,
-                },
-              ]
-            : []),
-        ],
+        items: [...publicationFacts],
       },
+      ...(href
+        ? [
+            {
+              type: "links" as const,
+              id: `${environment.environment}-open`,
+              items: [
+                {
+                  label: isPreview ? "Open preview" : "Open live site",
+                  target: { external: href },
+                },
+              ],
+            },
+          ]
+        : []),
       {
         type: "actions",
         id: `${environment.environment}-actions`,
@@ -246,6 +241,43 @@ function environmentCard(
                 input: {},
                 disabled: Boolean(environment.active),
               },
+        ],
+      },
+    ],
+  };
+}
+
+function renderDetailsCard(
+  environment: SiteWorkspaceSnapshot["environments"][number],
+): SiteCardBlock {
+  return {
+    type: "card",
+    id: `${environment.environment}-render-details`,
+    label: "Render details",
+    presentation: "disclosure",
+    blocks: [
+      {
+        type: "key-values",
+        items: [
+          {
+            label: "Last successful render",
+            value: environment.lastSuccess?.completedAt ?? "—",
+          },
+          {
+            label: "Rendered result",
+            value: environment.lastSuccess
+              ? `${environment.lastSuccess.routesBuilt} routes · ${environment.lastSuccess.jobId}`
+              : "no successful render",
+          },
+          ...(environment.lastFailure
+            ? [
+                {
+                  label: "Last failed attempt",
+                  value: environment.lastFailure.completedAt,
+                },
+                { label: "Failed job", value: environment.lastFailure.jobId },
+              ]
+            : []),
         ],
       },
     ],
@@ -299,6 +331,7 @@ const siteWorkspace = defineStudioWorkspace({
       type: "card",
       id: "site-routes",
       label: "Configured routes",
+      presentation: "disclosure",
       metadata: [`${data.routes.length} configured`],
       blocks: [
         {
@@ -339,7 +372,14 @@ const siteWorkspace = defineStudioWorkspace({
                   ...(environment.active
                     ? [activeBuildProgress(environment)]
                     : []),
-                  environmentCard(environment),
+                  environmentCard(
+                    environment,
+                    environment.environment === "preview"
+                      ? data.site.previewUrl
+                      : data.site.liveUrl,
+                  ),
+                  renderDetailsCard(environment),
+                  routesCard,
                   {
                     type: "card",
                     id: "site-recent-builds",
@@ -380,7 +420,6 @@ const siteWorkspace = defineStudioWorkspace({
                   },
                 ],
                 aside: [
-                  routesCard,
                   {
                     type: "card",
                     id: "site-automation-card",
@@ -410,6 +449,7 @@ const siteWorkspace = defineStudioWorkspace({
                     type: "card",
                     id: "site-automation-links",
                     label: "Site links",
+                    presentation: "disclosure",
                     blocks: [{ type: "links", id: "site-links", items: links }],
                   },
                 ],

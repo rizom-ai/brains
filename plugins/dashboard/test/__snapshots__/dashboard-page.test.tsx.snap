@@ -3694,9 +3694,11 @@ body::after {
 .xd8d5gp:hover:not(#\\#):not(#\\#){background-color:var(--console-card)}
 .xz2iokx:hover:not(#\\#):not(#\\#){color:var(--console-accent-dim)}
 .x1sur9pj:hover:not(#\\#):not(#\\#){text-decoration-line:underline}
+@media (max-width: 640px){.xp7j7s0.xp7j7s0:not(#\\#):not(#\\#){align-items:center}}
 @media (max-width: 640px){.x1fpodaz.x1fpodaz:not(#\\#):not(#\\#){align-items:start}}
 @media (max-width: 720px){.x1943nhg.x1943nhg:not(#\\#):not(#\\#){align-items:stretch}}
 @media (max-width: 640px){.x10acg2q.x10acg2q:not(#\\#):not(#\\#){display:grid}}
+@media (max-width: 640px){.x13v5x0x.x13v5x0x:not(#\\#):not(#\\#){display:inline-flex}}
 @media (max-width: 860px){.x19y3i14.x19y3i14:not(#\\#):not(#\\#){display:inline-flex}}
 @media (max-width: 860px){.xubcuz8.xubcuz8:not(#\\#):not(#\\#){display:none}}
 @media (max-width: 720px){.x1g3ag0e.x1g3ag0e:not(#\\#):not(#\\#){flex-direction:column}}
@@ -3757,6 +3759,7 @@ body::after {
 .x15m6qhz:is([open]):not(#\\#):not(#\\#):not(#\\#){padding-bottom:16px}
 @media (max-width: 640px){.x703316.x703316:not(#\\#):not(#\\#):not(#\\#){margin-left:0}}
 @media (max-width: 720px){.xjjsibu.xjjsibu:not(#\\#):not(#\\#):not(#\\#){max-width:100%}}
+@media (max-width: 640px){.x1c4ya5t.x1c4ya5t:not(#\\#):not(#\\#):not(#\\#){min-height:44px}}
 @media (max-width: 640px){.x126n28w.x126n28w:not(#\\#):not(#\\#):not(#\\#){min-height:var(--console-touch)}}
 @media (max-width: 640px){.x1tkp2ng.x1tkp2ng:not(#\\#):not(#\\#):not(#\\#){padding-left:14px}}
 @media (max-width: 640px){.xvl5zoi.xvl5zoi:not(#\\#):not(#\\#):not(#\\#){padding-top:24px}}

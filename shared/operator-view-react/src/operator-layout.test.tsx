@@ -8,6 +8,42 @@ import { OperatorColumns } from "./operator-columns";
 import { OperatorRecordCopy, OperatorTextLink } from "./operator-record";
 
 for (const density of ["compact", "comfortable"] as const) {
+  test(`shared ${density} attention disclosure retains diagnostics without exposing controls at rest`, async () => {
+    const window = new Window();
+    try {
+      window.document.head.innerHTML = `<style>${operatorViewStylexCSS}</style>`;
+      window.document.body.innerHTML = renderToStaticMarkup(
+        <OperatorCard
+          density={density}
+          presentation="disclosure"
+          tone="warn"
+          label="One delivery needs attention"
+          metadata={["Field notes · Retries: 1"]}
+          footer={<button>Retry publication</button>}
+        >
+          <p>Retained diagnostic &lt;script&gt;unsafe&lt;/script&gt;</p>
+        </OperatorCard>,
+      );
+      const details = window.document.querySelector("details");
+      const summary = details?.querySelector("summary");
+      if (!details || !summary) throw new Error("Missing attention disclosure");
+      expect(details.open).toBe(false);
+      expect(summary.textContent).toContain("Field notes · Retries: 1");
+      expect(window.getComputedStyle(summary).fontSize).toBe(
+        density === "comfortable" ? "18px" : "13px",
+      );
+      expect(summary.querySelector("button")).toBeNull();
+      expect(
+        details.querySelector("[data-card-controls] button")?.textContent,
+      ).toBe("Retry publication");
+      expect(details.textContent).toContain(
+        "Retained diagnostic <script>unsafe</script>",
+      );
+      expect(details.querySelector("script")).toBeNull();
+    } finally {
+      await window.happyDOM.abort();
+    }
+  });
   test(`shared ${density} feature gives the primary state a clear heading without runtime CSS`, async () => {
     const window = new Window();
     try {

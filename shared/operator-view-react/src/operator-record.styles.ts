@@ -121,5 +121,10 @@ export const recordStyles: Record<
       default: "var(--console-text-dim)",
       ":hover": "var(--console-accent-dim)",
     },
+    "@media (max-width: 640px)": {
+      display: "inline-flex",
+      alignItems: "center",
+      minHeight: 44,
+    },
   },
 });
