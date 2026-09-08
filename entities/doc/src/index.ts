@@ -13,11 +13,11 @@
 import {
   defineEntity,
   defineEntityPackage,
-  slugify,
   type EntityDefinition,
   type EntityOf,
   type EntityPackageDefinition,
 } from "@brains/sdk/entities";
+import { slugify } from "@brains/utils/string-utils";
 import {
   docFrontmatterSchema,
   docMetadataSchema,

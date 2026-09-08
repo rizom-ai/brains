@@ -3,10 +3,10 @@ import {
   defineEntityDashboardWidget,
   generateMarkdownWithFrontmatter,
   parseMarkdown,
-  slugify,
   type EntityCreateRoute,
   type EntityDefinition,
 } from "@brains/sdk/entities";
+import { slugify } from "@brains/utils/string-utils";
 import {
   wishFrontmatterSchema,
   wishMetadataSchema,

@@ -3,7 +3,7 @@ import {
   frontmatterInContent,
   type EntityDefinition,
 } from "@brains/sdk/entities";
-import { slugify } from "@brains/sdk/entities";
+import { slugify } from "@brains/utils/string-utils";
 import {
   blogPostFrontmatterSchema,
   blogPostMetadataSchema,
