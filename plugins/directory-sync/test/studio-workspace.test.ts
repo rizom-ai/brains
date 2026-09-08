@@ -166,14 +166,24 @@ describe("directory-sync Studio workspace", () => {
     expect(JSON.stringify(rendered)).toContain('"presentation":"disclosure"');
     expect(JSON.stringify(rendered)).toContain('"presentation":"editorial"');
     expect(JSON.stringify(rendered)).toContain('"details":[');
-    expect(JSON.stringify(rendered)).toContain('"id":"sync-summary"');
+    expect(JSON.stringify(rendered)).toContain('"id":"sync-repository-facts"');
+    expect(
+      JSON.stringify(rendered).match(/"label":"Content files"/g),
+    ).toHaveLength(1);
+    expect(JSON.stringify(rendered).match(/"label":"Issues"/g)).toHaveLength(1);
+    expect(JSON.stringify(rendered)).toContain(
+      `"label":"Commit debounce","value":"${config.commitDebounce} ms"`,
+    );
+    expect(JSON.stringify(rendered)).toContain('"description":"Modified"');
+    expect(JSON.stringify(rendered)).toContain("Git status: M · working tree");
     expect(JSON.stringify(rendered)).toContain(
       '"label":"Branch","value":"main"',
     );
     expect(
       JSON.stringify(rendered).indexOf('"id":"sync-issues-import"'),
     ).toBeLessThan(JSON.stringify(rendered).indexOf('"id":"recent-runs"'));
-    expect(JSON.stringify(rendered)).toContain('"type":"meters"');
+    expect(JSON.stringify(rendered)).not.toContain('"type":"meters"');
+    expect(JSON.stringify(rendered)).not.toContain('"type":"stats"');
     const issue = snapshot.issues[0];
     if (!issue) throw new Error("Expected a rendered sync issue");
     expect(JSON.stringify(rendered)).toContain(`Path: ${issue.path}`);
@@ -186,7 +196,103 @@ describe("directory-sync Studio workspace", () => {
     expect(JSON.stringify(rendered)).toContain("Required title is missing");
     expect(JSON.stringify(snapshot)).not.toContain("secret");
     expect(JSON.stringify(snapshot)).not.toContain("/private/runtime");
+
+    const runId = await operationStatus.startRun("manual", "pulling");
+    if (!runId) throw new Error("Run did not start");
+    expect(await registration.dataProvider(adminActor)).toMatchObject({
+      view: { primaryAction: { actionId: "sync-now", disabled: true } },
+    });
+    await operationStatus.clearRun(runId);
+    expect(await registration.dataProvider(adminActor)).not.toHaveProperty(
+      "view.primaryAction.disabled",
+    );
   });
+
+  for (const count of [0, 20, 21]) {
+    it(`reports ${count} working-tree files without implying a partial list is complete`, async () => {
+      const { context, getRegistration } = createProviderContext();
+      const operationStatus = new DirectorySyncOperationStatusService(
+        context.runtimeState,
+        context.jobs,
+        context.logger,
+        "/tmp/brain-data",
+      );
+      await operationStatus.initialize();
+      const git = createMockGitSync({
+        getStatus: async () => ({
+          isRepo: true,
+          hasChanges: count > 0,
+          branch: "main",
+          ahead: 0,
+          behind: 0,
+          files: Array.from({ length: count }, (_, index) => ({
+            path: `note/${index}.md`,
+            status: index === 0 ? "??" : "AM",
+          })),
+        }),
+      });
+      const provider = new DirectorySyncWorkspaceProvider({
+        context,
+        config: directorySyncConfigSchema.parse({ initialSync: false }),
+        operationStatus,
+        getDirectorySync: (): IDirectorySync => createMockDirectorySync(),
+        getGitSync: (): IGitSync => git,
+      });
+      await provider.registerStudioWorkspace();
+      const registration = getRegistration();
+      if (!registration) throw new Error("Missing sync workspace");
+      const rendered = await registration.dataProvider(adminActor);
+      const serialized = JSON.stringify(rendered);
+      expect(rendered).toMatchObject({
+        view: {
+          blocks: [
+            {
+              type: "columns",
+              primary: [
+                { id: "recent-runs-section" },
+                {
+                  id: "changed-files-section",
+                  metadata: [
+                    `${Math.min(count, 20)} ${count > 20 ? "shown" : "in working tree"}`,
+                  ],
+                  blocks: [
+                    {
+                      id: "changed-files",
+                      empty: "No changed files.",
+                      items: Array.from(
+                        { length: Math.min(count, 20) },
+                        (_, index) => ({
+                          title: `note/${index}.md`,
+                          description:
+                            index === 0 ? "Untracked" : "Working-tree change",
+                          metadata: [
+                            `Git status: ${index === 0 ? "??" : "AM"} · working tree`,
+                          ],
+                        }),
+                      ),
+                    },
+                    ...(count > 20
+                      ? [
+                          {
+                            id: "changed-files-remainder",
+                            text: "Showing the first 20 changed files. Additional working-tree changes are not shown.",
+                          },
+                        ]
+                      : []),
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      });
+      expect(serialized).toContain('"label":"Remote","value":"Not supplied"');
+      expect(serialized.includes('"id":"changed-files-remainder"')).toBe(
+        count > 20,
+      );
+      expect(serialized).not.toContain('"title":"note/20.md"');
+    });
+  }
 
   it("routes Sync now through the shared queued request and enforces admin permission", async () => {
     const { context, getRegistration, enqueue } = createProviderContext();

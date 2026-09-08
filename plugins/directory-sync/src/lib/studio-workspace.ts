@@ -121,6 +121,16 @@ const syncNowAction = defineWorkspaceAction({
   }),
 });
 
+const workingTreeStatusLabels: ReadonlyMap<string, string> = new Map([
+  ["M", "Modified"],
+  ["A", "Added"],
+  ["D", "Deleted"],
+  ["R", "Renamed"],
+  ["C", "Copied"],
+  ["U", "Unmerged"],
+  ["??", "Untracked"],
+]);
+
 function activeProgress(
   run: ActiveDirectorySyncRun,
 ): Extract<OperatorViewBlock, { type: "progress" }> {
@@ -156,7 +166,7 @@ const directorySyncWorkspace = defineStudioWorkspace({
     const activeBlocks: SyncRegionBlock[] = data.activeRun
       ? [activeProgress(data.activeRun)]
       : [];
-    const changedFileBlocks: SyncRegionBlock[] = data.git?.changedFiles.length
+    const changedFileBlocks: SyncRegionBlock[] = data.git
       ? [
           {
             type: "list",
@@ -166,50 +176,45 @@ const directorySyncWorkspace = defineStudioWorkspace({
             items: data.git.changedFiles.map((file, index) => ({
               id: `changed-${index + 1}`,
               title: file.path,
-              badges: [{ label: file.status }],
+              description:
+                workingTreeStatusLabels.get(file.status) ??
+                "Working-tree change",
+              metadata: [`Git status: ${file.status} · working tree`],
             })),
           },
         ]
       : [];
-    const totals: SyncViewBlock = {
-      type: "stats",
-      id: "sync-summary",
+    const repository: SyncRegionBlock = {
+      type: "key-values",
+      id: "sync-repository-facts",
       items: [
-        {
-          label: "Files",
-          value: data.directory.totalFiles,
-          caption: "markdown + images",
-        },
+        { label: "Health", value: data.health },
+        ...(data.git
+          ? [
+              { label: "Branch", value: data.git.branch },
+              {
+                label: "Remote",
+                value: data.git.remoteLabel ?? "Not supplied",
+              },
+              ...(data.git.lastCommit
+                ? [{ label: "Last commit", value: data.git.lastCommit }]
+                : []),
+              { label: "Commits ahead", value: data.git.ahead },
+              { label: "Commits behind", value: data.git.behind },
+            ]
+          : [{ label: "Remote", value: "files only" }]),
+        { label: "Content files", value: data.directory.totalFiles },
         {
           label: "Entity types",
           value: Object.keys(data.directory.byEntityType).length,
-          caption: "within sync scope",
         },
+        { label: "Issues", value: data.issues.length },
+        { label: "Automatic sync", value: data.automation.autoSync },
         {
-          label: "Issues",
-          value: data.issues.length,
-          caption: data.issues.length > 0 ? "needs attention" : "all clear",
-          tone: data.issues.length > 0 ? "warn" : "good",
-        },
-      ],
-    };
-    const automation: SyncRegionBlock = {
-      type: "group",
-      id: "sync-automation",
-      label: "Automation",
-      items: [
-        {
-          id: "automatic",
-          label: "Automatic sync",
-          value: data.automation.autoSync,
-        },
-        {
-          id: "watch",
           label: "Watch interval",
           value: `${data.automation.watchIntervalMs} ms`,
         },
         {
-          id: "delete",
           label: "Delete removed files",
           value: data.automation.deleteOnFileRemoval,
         },
@@ -217,38 +222,18 @@ const directorySyncWorkspace = defineStudioWorkspace({
           ? []
           : [
               {
-                id: "remote",
                 label: "Remote interval",
                 value: `${data.automation.remoteIntervalMinutes} min`,
               },
             ]),
-      ],
-    };
-    const repository: SyncRegionBlock = {
-      type: "meters",
-      id: "sync-meters",
-      items: [
-        {
-          id: "files",
-          label: "Content files",
-          value: data.directory.totalFiles,
-        },
-        {
-          id: "issues",
-          label: "Issues",
-          value: data.issues.length,
-          tone: data.issues.length > 0 ? "warn" : "good",
-        },
-        ...(data.git
-          ? [
-              { id: "ahead", label: "Commits ahead", value: data.git.ahead },
+        ...(data.automation.commitDebounceMs === undefined
+          ? []
+          : [
               {
-                id: "behind",
-                label: "Commits behind",
-                value: data.git.behind,
+                label: "Commit debounce",
+                value: `${data.automation.commitDebounceMs} ms`,
               },
-            ]
-          : []),
+            ]),
       ],
     };
     const work: SyncRegionBlock[] = [
@@ -335,9 +320,21 @@ const directorySyncWorkspace = defineStudioWorkspace({
                 metadata: [
                   block.id === "recent-runs"
                     ? `${block.items.length} retained`
-                    : `${block.items.length} in working tree`,
+                    : `${block.items.length} ${data.git?.changedFilesTruncated ? "shown" : "in working tree"}`,
                 ],
-                blocks: [block],
+                blocks: [
+                  block,
+                  ...(block.id === "changed-files" &&
+                  data.git?.changedFilesTruncated
+                    ? [
+                        {
+                          type: "notice" as const,
+                          id: "changed-files-remainder",
+                          text: `Showing the first ${block.items.length} changed files. Additional working-tree changes are not shown.`,
+                        },
+                      ]
+                    : []),
+                ],
               }
             : block,
         ),
@@ -374,32 +371,7 @@ const directorySyncWorkspace = defineStudioWorkspace({
             id: "sync-repository-card",
             label: "Repository details",
             presentation: "disclosure",
-            blocks: [
-              {
-                type: "key-values",
-                id: "sync-health",
-                items: [{ label: "Health", value: data.health }],
-              },
-              {
-                type: "key-values",
-                id: "sync-git-source",
-                items: data.git
-                  ? [
-                      { label: "Branch", value: data.git.branch },
-                      {
-                        label: "Remote",
-                        value: data.git.remoteLabel ?? data.git.branch,
-                      },
-                      ...(data.git.lastCommit
-                        ? [{ label: "Last commit", value: data.git.lastCommit }]
-                        : []),
-                    ]
-                  : [{ label: "Remote", value: "files only" }],
-              },
-              totals,
-              automation,
-              repository,
-            ],
+            blocks: [repository],
           },
         ],
       },
@@ -407,7 +379,11 @@ const directorySyncWorkspace = defineStudioWorkspace({
     return {
       kicker: "Durability operations",
       title: "Content sync",
-      primaryAction: { action: syncNowAction, input: {} },
+      primaryAction: {
+        action: syncNowAction,
+        input: {},
+        disabled: Boolean(data.activeRun),
+      },
       blocks,
     };
   },

@@ -5,6 +5,7 @@ import { PNG } from "pngjs";
 import { createAdministrationFixture } from "./fixtures/studio-administration";
 import { createWorkViewFixtures } from "./fixtures/studio-work-views";
 import { createDeliveryViewFixtures } from "./fixtures/studio-delivery-views";
+import { createSyncViewFixture } from "./fixtures/studio-sync-view";
 import { createElement, type ReactElement } from "react";
 import { renderChatPage } from "@brains/web-chat";
 import { renderEditorShellHtml } from "@brains/studio";
@@ -101,133 +102,6 @@ types.push(
     { entityType: "agent", label: "Agents", isSingleton: false, count: 15 },
   ].map((info) => ({ ...info, hasBody: true, capabilities: editCapabilities })),
 );
-const contentSyncWorkspaceData = {
-  view: {
-    title: "Content sync",
-    primaryAction: { actionId: "sync-now", label: "Sync now", input: {} },
-    blocks: [
-      {
-        type: "notice",
-        id: "sync-issues-git",
-        title: "Repository sync needs attention",
-        text: "1 recorded issue · brain-data",
-        tone: "warn",
-        details: [
-          "Occurred: 2026-09-05T09:15:00.000Z\nPath: brain-data\nThe remote rejected the push because it contains newer commits. The local export is retained. Review the repository before retrying the sync.",
-        ],
-      },
-      {
-        type: "columns",
-        id: "sync-body",
-        primary: [
-          {
-            type: "card",
-            id: "recent-runs-section",
-            label: "Recent runs",
-            metadata: ["2 retained"],
-            blocks: [
-              {
-                type: "list",
-                id: "recent-runs",
-                presentation: "editorial",
-                empty: "No directory sync runs have completed yet.",
-                items: [
-                  {
-                    id: "run-1",
-                    title: "Manual sync · failed",
-                    description: "The remote rejected the push.",
-                    tone: "error",
-                    metadata: [
-                      "Imported: 12",
-                      "Exported: 4",
-                      "Completed: 2026-09-05T09:15:00.000Z",
-                    ],
-                  },
-                  {
-                    id: "run-2",
-                    title: "Watch sync · succeeded",
-                    description: "The content directory is up to date.",
-                    metadata: [
-                      "Imported: 2",
-                      "Exported: 0",
-                      "Completed: 2026-09-05T09:14:00.000Z",
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: "card",
-            id: "changed-files-section",
-            label: "Changed files",
-            metadata: ["1 in working tree"],
-            blocks: [
-              {
-                type: "list",
-                id: "changed-files",
-                presentation: "editorial",
-                empty: "No changed files.",
-                items: [
-                  {
-                    id: "changed-1",
-                    title: "notes/shared-tools.md",
-                    badges: [{ label: "modified" }],
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-        aside: [
-          {
-            type: "card",
-            id: "sync-source-card",
-            label: "Connection",
-            blocks: [
-              {
-                type: "key-values",
-                id: "sync-source",
-                items: [
-                  { label: "Folder", value: "brain-data" },
-                  { label: "Available", value: true },
-                  { label: "Watcher", value: "Watching" },
-                  { label: "Last settled", value: "2026-09-05T09:15:00.000Z" },
-                ],
-              },
-            ],
-          },
-          {
-            type: "card",
-            id: "sync-repository-card",
-            label: "Repository details",
-            presentation: "disclosure",
-            blocks: [
-              {
-                type: "key-values",
-                id: "sync-git-source",
-                items: [
-                  { label: "Branch", value: "main" },
-                  { label: "Remote", value: "origin" },
-                ],
-              },
-              {
-                type: "stats",
-                id: "sync-summary",
-                items: [
-                  { label: "Files", value: 84 },
-                  { label: "Entity types", value: 12 },
-                  { label: "Issues", value: 1, tone: "warn" },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-};
-
 const entities = [
   {
     id: "responsive-console",
@@ -1923,6 +1797,7 @@ const pendingUploadResponses = new Set<() => void>();
 const administrationFixture = await createAdministrationFixture(FIXED_NOW);
 const workViewFixtures = await createWorkViewFixtures();
 const deliveryViewFixtures = await createDeliveryViewFixtures();
+const syncViewFixture = await createSyncViewFixture();
 const server = Bun.serve({
   port: 0,
   async fetch(request) {
@@ -2140,7 +2015,7 @@ const server = Bun.serve({
         workspace: {
           id: "directory-sync:sync",
           rendererName: "DeclarativeOperatorWorkspace",
-          data: contentSyncWorkspaceData,
+          data: await syncViewFixture(),
         },
       });
     if (
@@ -2717,6 +2592,82 @@ try {
           await waitForText(page, "Recent runs");
           await waitForText(page, "Connection");
           await waitForText(page, "Repository sync needs attention");
+          await clickText(page, "button", "View diagnostics");
+          await waitForSelector(page, '[role="dialog"]');
+          await evaluatePage(page, () => {
+            const dialog = document.querySelector('[role="dialog"]');
+            for (const record of [
+              "git push origin main exited with 1",
+              "git pull origin main exited with 1",
+              "Occurred: 2026-07-11T09:15:00.000Z",
+              "Occurred: 2026-07-11T09:14:30.000Z",
+            ]) {
+              if (!dialog?.textContent.includes(record))
+                throw new Error(
+                  "Sync diagnostics lost a recorded operation or timestamp",
+                );
+            }
+          });
+          await clickSelector(page, '[role="dialog"] [aria-label="Close"]');
+          await waitForPage("sync diagnostics closed", () =>
+            evaluatePage(
+              page,
+              () => !document.querySelector('[role="dialog"]'),
+            ),
+          );
+          await clickText(page, "summary", "Repository details");
+          await evaluatePage(page, () => {
+            const repository = [
+              ...document.querySelectorAll("details[open]"),
+            ].find((node) =>
+              node
+                .querySelector("summary")
+                ?.textContent.includes("Repository details"),
+            );
+            if (!repository)
+              throw new Error("Missing expanded repository facts");
+            const labels = [...repository.querySelectorAll("dt")].map(
+              (node) => node.textContent,
+            );
+            for (const label of [
+              "Content files",
+              "Issues",
+              "Commits ahead",
+              "Commits behind",
+              "Commit debounce",
+            ])
+              if (labels.filter((value) => value === label).length !== 1)
+                throw new Error(
+                  `Repository fact missing or repeated: ${label}`,
+                );
+            if (!repository.textContent.includes("abcdef123456"))
+              throw new Error(
+                "Repository details lost the exact commit identifier",
+              );
+            repository.scrollIntoView({ block: "start" });
+            window.scrollBy(0, -64);
+          });
+          await evaluatePage(page, async () => {
+            await document.fonts.ready;
+          });
+          await writeFile(
+            path.join(
+              ARTIFACT_DIR,
+              `studio-content-sync-repository-${viewport.width}x${viewport.height}-${climate}.png`,
+            ),
+            await page.screenshot({ encoding: "buffer", format: "png" }),
+          );
+          await clickText(page, "summary", "Repository details");
+          await evaluatePage(page, () => {
+            let node: HTMLElement | null =
+              [...document.querySelectorAll<HTMLElement>("summary")].find(
+                (item) => item.textContent.includes("Repository details"),
+              ) ?? null;
+            while (node) {
+              node.scrollTop = 0;
+              node = node.parentElement;
+            }
+          });
         }
         if (surface === "studio-site") {
           await waitForText(page, "Build preview");
