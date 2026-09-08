@@ -10,9 +10,9 @@ import { z } from "@brains/utils/zod";
  * Where this projection is filed: the scoped store the runtime hands out.
  */
 export interface SiteStateNamespace {
-  scoped<TValue>(
-    options: RuntimeStateScopeOptions<TValue>,
-  ): IRuntimeStateStore<TValue>;
+  scoped<TValue, TInput = TValue>(
+    options: RuntimeStateScopeOptions<TValue, TInput>,
+  ): IRuntimeStateStore<TValue, TInput>;
 }
 
 /**

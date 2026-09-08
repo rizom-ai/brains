@@ -61,7 +61,7 @@ describe("Shell service construction", () => {
       },
       runtimeStateService: {
         initialize: async (): Promise<void> => {},
-        scoped: <T>(): IRuntimeStateStore<T> => ({
+        scoped: <T, TInput = T>(): IRuntimeStateStore<T, TInput> => ({
           get: async (): Promise<T | null> => null,
           has: async (): Promise<boolean> => false,
           set: async (): Promise<void> => {},

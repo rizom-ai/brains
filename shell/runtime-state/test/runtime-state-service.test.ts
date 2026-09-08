@@ -139,6 +139,86 @@ describe("RuntimeStateService", () => {
     service.close();
   });
 
+  it("persists wire values across restart and parses transforms only at each read boundary", async () => {
+    const options = {
+      namespace: "transformed",
+      schema: z.object({
+        n: z.string().transform(Number),
+        increment: z.number().transform((n) => n + 1),
+        label: z.string().default("ready"),
+      }),
+    };
+    const service = RuntimeStateService.createFresh({ url: dbUrl });
+    try {
+      const store = service.scoped(options);
+      await store.set("one", { n: "7", increment: 1 });
+      expect(await store.setIfNotExists("one", { n: "9", increment: 9 })).toBe(
+        false,
+      );
+      expect(await store.setIfNotExists("two", { n: "8", increment: 2 })).toBe(
+        true,
+      );
+      expect(await store.get("one")).toEqual({
+        n: 7,
+        increment: 2,
+        label: "ready",
+      });
+      expect(await store.get("one")).toEqual({
+        n: 7,
+        increment: 2,
+        label: "ready",
+      });
+      // @ts-expect-error Writes require schema input, not the transformed result.
+      await expectPromiseToReject(store.set("bad", { n: 7, increment: 1 }));
+      expect(await store.has("bad")).toBe(false);
+    } finally {
+      service.close();
+    }
+    const restarted = RuntimeStateService.createFresh({ url: dbUrl });
+    try {
+      const store = restarted.scoped(options);
+      expect((await store.list()).map((record) => record.value)).toEqual([
+        { n: 7, increment: 2, label: "ready" },
+        { n: 8, increment: 3, label: "ready" },
+      ]);
+      expect(await store.clear({ keyPrefix: "one" })).toBe(1);
+      expect(await store.get("one")).toBeNull();
+      expect(await store.get("two")).toEqual({
+        n: 8,
+        increment: 3,
+        label: "ready",
+      });
+    } finally {
+      restarted.close();
+    }
+  });
+
+  it("validates JSON round trips before writing, including insert-if-absent", async () => {
+    const service = RuntimeStateService.createFresh({ url: dbUrl });
+    try {
+      const store = service.scoped({ namespace: "wire", schema: z.unknown() });
+      await expectPromiseToReject(store.set("bad", undefined));
+      await expectPromiseToReject(store.setIfNotExists("bad", 1n));
+      expect(await store.has("bad")).toBe(false);
+      await store.set("null", 1);
+      await store.set("null", null);
+      expect(await store.has("null")).toBe(true);
+      expect(await store.get("null")).toBeNull();
+      expect(await store.setIfNotExists("insert-null", null)).toBe(true);
+      expect(await store.has("insert-null")).toBe(true);
+      expect(await store.get("insert-null")).toBeNull();
+      const date = service.scoped({ namespace: "dates", schema: z.date() });
+      // A Date is accepted by the schema before serialization, but cannot be
+      // read back through that schema from JSON. Refuse it before persisting.
+      await expectPromiseToReject(date.set("bad", new Date()));
+      expect(await date.has("bad")).toBe(false);
+      await expectPromiseToReject(date.setIfNotExists("bad", new Date()));
+      expect(await date.has("bad")).toBe(false);
+    } finally {
+      service.close();
+    }
+  });
+
   it("deletes individual records", async () => {
     const service = RuntimeStateService.createFresh({ url: dbUrl });
     const store = service.scoped({ namespace: "delete", schema: stringSchema });

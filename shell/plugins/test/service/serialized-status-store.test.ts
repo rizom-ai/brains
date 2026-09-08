@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { waitUntil } from "@brains/test-utils";
 import { deferred } from "@brains/utils/deferred";
 import { z } from "@brains/utils/zod";
+import { prepareRuntimeStateValue } from "@brains/runtime-state";
 import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
@@ -42,9 +43,9 @@ function createMemoryNamespace(): MemoryNamespace {
   let writes = 0;
 
   const runtimeState: IRuntimeStateNamespace = {
-    scoped: <T>(
-      options: RuntimeStateScopeOptions<T>,
-    ): IRuntimeStateStore<T> => ({
+    scoped: <T, TInput = T>(
+      options: RuntimeStateScopeOptions<T, TInput>,
+    ): IRuntimeStateStore<T, TInput> => ({
       get: async (key): Promise<T | null> => {
         reads += 1;
         const record = records.get(`${options.namespace}:${key}`);
@@ -54,7 +55,10 @@ function createMemoryNamespace(): MemoryNamespace {
         records.has(`${options.namespace}:${key}`),
       set: async (key, value): Promise<void> => {
         writes += 1;
-        records.set(`${options.namespace}:${key}`, options.schema.parse(value));
+        records.set(
+          `${options.namespace}:${key}`,
+          prepareRuntimeStateValue(options.schema, value),
+        );
       },
       setIfNotExists: async (): Promise<boolean> => false,
       delete: async (key): Promise<boolean> =>

@@ -78,7 +78,9 @@ export function createReactionContext(input: {
     },
     // Namespaced under the declaring package, so two packages cannot read
     // or corrupt each other's notes — and so one package's plugins can.
-    state: <TValue>(options: RuntimeStateScopeOptions<TValue>) =>
+    state: <TValue, TInput = TValue>(
+      options: RuntimeStateScopeOptions<TValue, TInput>,
+    ) =>
       context.runtimeState.scoped({
         ...options,
         namespace: stateNamespaceFor(input.packageName, options.namespace),

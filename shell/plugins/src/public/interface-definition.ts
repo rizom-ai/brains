@@ -26,6 +26,7 @@ import type {
 } from "../interface/interface-definition-contract";
 import { createDeclarativeMessageInterfacePlugin } from "../message-interface/declarative-message-interface-plugin";
 import type {
+  AnySubscriptionDefinition,
   SubscriptionDefinition,
   SubscriptionPayloadSchema,
 } from "../contracts/subscription";
@@ -109,9 +110,24 @@ export function protocol(
  */
 export function defineSubscription<
   TPayloadSchema extends SubscriptionPayloadSchema,
+  TResponseSchema extends SubscriptionPayloadSchema,
 >(
-  definition: SubscriptionDefinition<TPayloadSchema>,
-): SubscriptionDefinition<TPayloadSchema> {
+  definition: SubscriptionDefinition<TPayloadSchema, TResponseSchema> & {
+    readonly response: TResponseSchema;
+  },
+): SubscriptionDefinition<TPayloadSchema, TResponseSchema> & {
+  readonly response: TResponseSchema;
+};
+export function defineSubscription<
+  TPayloadSchema extends SubscriptionPayloadSchema,
+>(
+  definition: SubscriptionDefinition<TPayloadSchema> & {
+    readonly response?: undefined;
+  },
+): SubscriptionDefinition<TPayloadSchema> & { readonly response?: undefined };
+export function defineSubscription(
+  definition: AnySubscriptionDefinition,
+): AnySubscriptionDefinition {
   assertIdentifier(definition.topic.split(":")[0] ?? "", "Subscription topic");
   return definition;
 }

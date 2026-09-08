@@ -406,22 +406,38 @@ export async function greetsInTheConfiguredZone(
 }
 ```
 
-Tools return `{ ok: true, data }` or `{ ok: false, error }`. For a typed bus
-request, pass the shared `{ topic, payload, response }` schema contract to
+Tools return `{ ok: true, data }`, `{ ok: false, error }`, or
+`{ ok: false, confirmation }` when approval is pending. Check
+`"confirmation" in answer` before treating an incomplete call as an error.
+The confirmation includes `toolName`, `summary`, and `args`; replay those args
+with the named tool to approve. The runtime executes the prepared input described
+by the summary without rerunning its transforms or generated defaults. Tokens
+are bounded, expire, and are consumed even by a tampered replay. The harness
+applies the same tool permission rule as production: callers default to admin,
+and `call(input, { permission: "public" })` cannot execute an admin-only tool.
+
+For a typed bus request, pass the shared `{ topic, payload, response }` schema contract to
 `harness.request(contract, input)`. It returns parsed `{ ok: true, data }` or
 `{ ok: false, code }`, where the code is `no_handler`, `handler_failed`,
 `invalid_input`, or `invalid_response`. Author contexts exposing
 `messaging.request` accept the same contract. Providers validate wire responses;
 typed callers parse those wire values, so transforms are not applied to already
 transformed data. Bare `request({ type, payload })` returns an untyped bus
-envelope; it does not promise a result schema.
+envelope; it does not promise a result schema. A `defineSubscription()` with a
+response schema checks the handler's return against that schema's **input**
+type and retains the response schema, so its result can also be passed directly
+to `request(subscription, input)`. Notifications without a response schema do
+not promise a typed answer.
 
 Install dependencies before calling `finalizeRegistration()`; it runs every
 installed package's registration-complete hooks in installation order. Use
 `try/finally` to `await harness.reset()` even when an assertion fails. Reset
 shuts down installed packages in reverse order and removes their routes. Failed
-registration rolls back acquired resources immediately. Cleanup errors are
-reported only after all registered cleanup callbacks have been attempted.
+registration rolls back acquired resources immediately, including earlier
+children of a failed compound-package install. Previously installed packages
+remain usable, and the failed package can be retried without resetting the
+brain. Cleanup errors are reported only after all registered cleanup callbacks
+have been attempted.
 
 `installed.jobs` lists registered jobs with a `run(input)` method. It validates
 and runs one handler attempt in-process; it does not simulate durable queue
@@ -448,6 +464,14 @@ completion/progress ownership. Validation finishes before any child is queued.
 Service, generic-interface and message-interface setup may be async. Return the
 shared client/state and register its release with `lifecycle.onCleanup()`.
 Declaration callbacks receive the resolved state, independently per instance.
+
+Durable `runtimeState({ namespace, schema })` stores are separate from setup's
+in-memory return value. `set()` and `setIfNotExists()` accept the schema's input
+type; `get()` and `list()` return its parsed output. Storage retains validated
+JSON wire inputs, not transformed values. For `z.string().transform(Number)`,
+write `"7"` and read `7`. Validation checks the JSON round trip before writing;
+values that cannot be read through the schema after serialization are refused.
+The same rule applies to reaction/tool `state()` stores.
 
 ### Account settings and operator surfaces
 

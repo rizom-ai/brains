@@ -1,4 +1,5 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
+import { prepareRuntimeStateValue } from "./wire-value";
 import {
   runtimeStateRecords,
   type RuntimeStateRecord,
@@ -13,16 +14,19 @@ import type {
 const namespacePattern = /^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,127}$/;
 const maxKeyLength = 512;
 
-export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
+export class RuntimeStateStore<T, TInput = T> implements IRuntimeStateStore<
+  T,
+  TInput
+> {
   private readonly db: RuntimeStateDB;
   private readonly namespace: string;
-  private readonly schema: RuntimeStateValueSchema<T>;
+  private readonly schema: RuntimeStateValueSchema<T, TInput>;
   private readonly now: () => Date;
 
   constructor(
     db: RuntimeStateDB,
     namespace: string,
-    schema: RuntimeStateValueSchema<T>,
+    schema: RuntimeStateValueSchema<T, TInput>,
     now: () => Date = () => new Date(),
   ) {
     assertValidNamespace(namespace);
@@ -65,9 +69,11 @@ export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
     return rows.length > 0;
   }
 
-  async set(key: string, value: T): Promise<void> {
+  async set(key: string, value: TInput): Promise<void> {
     const normalizedKey = normalizeKey(key);
-    const parsedValue = this.schema.parse(value);
+    const wireValue = prepareRuntimeStateValue(this.schema, value);
+    // Drizzle binds a JS null as SQL NULL before its JSON encoder runs.
+    const storedValue = wireValue === null ? sql`'null'` : wireValue;
     const timestamp = this.now().getTime();
 
     await this.db
@@ -75,22 +81,23 @@ export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
       .values({
         namespace: this.namespace,
         key: normalizedKey,
-        value: parsedValue,
+        value: storedValue,
         createdAt: timestamp,
         updatedAt: timestamp,
       })
       .onConflictDoUpdate({
         target: [runtimeStateRecords.namespace, runtimeStateRecords.key],
         set: {
-          value: parsedValue,
+          value: storedValue,
           updatedAt: timestamp,
         },
       });
   }
 
-  async setIfNotExists(key: string, value: T): Promise<boolean> {
+  async setIfNotExists(key: string, value: TInput): Promise<boolean> {
     const normalizedKey = normalizeKey(key);
-    const parsedValue = this.schema.parse(value);
+    const wireValue = prepareRuntimeStateValue(this.schema, value);
+    const storedValue = wireValue === null ? sql`'null'` : wireValue;
     const timestamp = this.now().getTime();
 
     const result = await this.db
@@ -98,7 +105,7 @@ export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
       .values({
         namespace: this.namespace,
         key: normalizedKey,
-        value: parsedValue,
+        value: storedValue,
         createdAt: timestamp,
         updatedAt: timestamp,
       })

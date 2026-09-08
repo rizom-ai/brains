@@ -246,9 +246,9 @@ export interface InterfaceSetupContext<
    * interface's id and validated by a schema. Named `runtimeState` rather than
    * `state` because `state` already means what setup returns.
    */
-  readonly runtimeState: <TValue>(
-    options: RuntimeStateScopeOptions<TValue>,
-  ) => IRuntimeStateStore<TValue>;
+  readonly runtimeState: <TValue, TInput = TValue>(
+    options: RuntimeStateScopeOptions<TValue, TInput>,
+  ) => IRuntimeStateStore<TValue, TInput>;
   readonly uploads: InterfaceUploads;
   /**
    * The conversations this interface hosts.

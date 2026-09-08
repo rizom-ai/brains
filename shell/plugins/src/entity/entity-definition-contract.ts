@@ -705,9 +705,9 @@ export interface EntityReactionContext {
    * Scoped by namespace and validated by a schema, so one package's notes
    * cannot be read or corrupted by another's.
    */
-  readonly state: <TValue>(
-    options: RuntimeStateScopeOptions<TValue>,
-  ) => IRuntimeStateStore<TValue>;
+  readonly state: <TValue, TInput = TValue>(
+    options: RuntimeStateScopeOptions<TValue, TInput>,
+  ) => IRuntimeStateStore<TValue, TInput>;
   /**
    * Whether this actor may do a thing to a type.
    *

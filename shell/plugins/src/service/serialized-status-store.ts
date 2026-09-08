@@ -30,18 +30,16 @@ export interface SerializedStatusStoreOptions<T> {
  */
 export class SerializedStatusStore<T> {
   private readonly store: IRuntimeStateStore<T>;
-  private readonly schema: RuntimeStateValueSchema<T>;
   private readonly createEmpty: () => T;
   private readonly key: string;
   private readonly queue = new SerialQueue();
   private statePromise: Promise<T> | undefined;
 
   constructor(options: SerializedStatusStoreOptions<T>) {
-    this.store = options.runtimeState.scoped<T>({
+    this.store = options.runtimeState.scoped<T, unknown>({
       namespace: options.namespace,
       schema: options.schema,
     });
-    this.schema = options.schema;
     this.createEmpty = options.createEmpty;
     this.key = options.key ?? DEFAULT_KEY;
   }
@@ -80,6 +78,6 @@ export class SerializedStatusStore<T> {
   }
 
   private async persist(state: T): Promise<void> {
-    await this.store.set(this.key, this.schema.parse(state));
+    await this.store.set(this.key, state);
   }
 }

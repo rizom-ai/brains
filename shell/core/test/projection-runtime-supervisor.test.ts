@@ -4,6 +4,7 @@ import { OperationContext } from "@brains/operation-context";
 import type { ProjectionGraph } from "@brains/plugins";
 import { ProjectionRuntimeSupervisor } from "../src/projection-runtime-supervisor";
 import { z } from "@brains/utils/zod";
+import { prepareRuntimeStateValue } from "@brains/runtime-state";
 import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
@@ -32,9 +33,9 @@ function createMemoryRuntimeState(): IRuntimeStateNamespace {
     { value: unknown; createdAt: Date; updatedAt: Date }
   >();
   return {
-    scoped: <T>(
-      options: RuntimeStateScopeOptions<T>,
-    ): IRuntimeStateStore<T> => ({
+    scoped: <T, TInput = T>(
+      options: RuntimeStateScopeOptions<T, TInput>,
+    ): IRuntimeStateStore<T, TInput> => ({
       get: async (key): Promise<T | null> => {
         const record = values.get(key);
         return record ? options.schema.parse(record.value) : null;
@@ -43,16 +44,17 @@ function createMemoryRuntimeState(): IRuntimeStateNamespace {
       set: async (key, value): Promise<void> => {
         const now = new Date();
         values.set(key, {
-          value: options.schema.parse(value),
+          value: prepareRuntimeStateValue(options.schema, value),
           createdAt: values.get(key)?.createdAt ?? now,
           updatedAt: now,
         });
       },
       setIfNotExists: async (key, value): Promise<boolean> => {
+        const wireValue = prepareRuntimeStateValue(options.schema, value);
         if (values.has(key)) return false;
         const now = new Date();
         values.set(key, {
-          value: options.schema.parse(value),
+          value: wireValue,
           createdAt: now,
           updatedAt: now,
         });

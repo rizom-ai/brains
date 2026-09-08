@@ -11,8 +11,16 @@ export interface ConfirmationGate {
     confirmationToken: string | undefined,
     args: unknown,
   ): ToolResponse | undefined;
-  /** Mint a token and build the args the interface replays on approval. */
-  buildArgs<TArgs>(build: (confirmationToken: string) => TArgs): TArgs;
+  /** Strict, single-use replay validation that also releases the prepared input. */
+  consumeConfirmed(
+    confirmationToken: string | undefined,
+    args: unknown,
+  ): { ok: true; prepared: unknown } | { ok: false; error: ToolResponse };
+  /** Mint a token; prepared input stays server-side for the same bounded lifetime. */
+  buildArgs<TArgs>(
+    build: (confirmationToken: string) => TArgs,
+    prepared?: unknown,
+  ): TArgs;
   /**
    * Consume the pending approval behind a token and return its stored
    * args, tolerating a mangled replay. Callers must verify the stored
@@ -35,28 +43,42 @@ export function createConfirmationGate(options: {
 }): ConfirmationGate {
   const store = new ConfirmationArgsStore();
   const retry = `Please request ${options.requestNoun} again and confirm the new approval.`;
-  return {
+  const gate: ConfirmationGate = {
     validateConfirmed(confirmationToken, args): ToolResponse | undefined {
+      const result = gate.consumeConfirmed(confirmationToken, args);
+      return result.ok ? undefined : result.error;
+    },
+    consumeConfirmed(confirmationToken, args) {
       const validation = store.validate(confirmationToken, args);
       if (validation.status === "missing") {
         return {
-          success: false,
-          error: `No pending ${options.label} confirmation found. ${retry}`,
+          ok: false,
+          error: {
+            success: false,
+            error: `No pending ${options.label} confirmation found. ${retry}`,
+          },
         };
       }
       if (validation.status === "mismatch") {
         return {
-          success: false,
-          error: `Confirmed ${options.label} arguments do not match the pending approval. ${retry}`,
+          ok: false,
+          error: {
+            success: false,
+            error: `Confirmed ${options.label} arguments do not match the pending approval. ${retry}`,
+          },
         };
       }
-      return undefined;
+      return { ok: true, prepared: validation.prepared };
     },
-    buildArgs<TArgs>(build: (confirmationToken: string) => TArgs): TArgs {
-      return store.create(build);
+    buildArgs<TArgs>(
+      build: (confirmationToken: string) => TArgs,
+      prepared?: unknown,
+    ): TArgs {
+      return store.create(build, prepared);
     },
     takePending(confirmationToken): unknown {
       return store.take(confirmationToken);
     },
   };
+  return gate;
 }

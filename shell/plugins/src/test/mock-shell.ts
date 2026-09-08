@@ -77,6 +77,7 @@ import type {
   JobQueueEnqueueRequest,
   JobHandler,
 } from "@brains/job-queue";
+import { prepareRuntimeStateValue } from "@brains/runtime-state";
 import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
@@ -111,6 +112,7 @@ export interface MockShell extends IShell {
   clearEntities(): void;
   registerPlugin(plugin: Plugin): void;
   addPlugin(plugin: Plugin): void;
+  removePlugin(pluginId: string): void;
   getPlugin(pluginId: string): Plugin | undefined;
   getTemplates(): Map<string, Template>;
   setAgentService(agentService: IAgentService): void;
@@ -165,9 +167,9 @@ export function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
   >();
 
   return {
-    scoped: <T>(
-      options: RuntimeStateScopeOptions<T>,
-    ): IRuntimeStateStore<T> => {
+    scoped: <T, TInput = T>(
+      options: RuntimeStateScopeOptions<T, TInput>,
+    ): IRuntimeStateStore<T, TInput> => {
       if (!namespaces.has(options.namespace)) {
         namespaces.set(options.namespace, new Map());
       }
@@ -181,7 +183,7 @@ export function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
         },
         has: async (key): Promise<boolean> => records.has(key),
         set: async (key, value): Promise<void> => {
-          const parsed = options.schema.parse(value);
+          const parsed = prepareRuntimeStateValue(options.schema, value);
           const existing = records.get(key);
           const now = new Date();
           records.set(key, {
@@ -191,8 +193,8 @@ export function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
           });
         },
         setIfNotExists: async (key, value): Promise<boolean> => {
+          const parsed = prepareRuntimeStateValue(options.schema, value);
           if (records.has(key)) return false;
-          const parsed = options.schema.parse(value);
           const now = new Date();
           records.set(key, { value: parsed, createdAt: now, updatedAt: now });
           return true;
@@ -1655,6 +1657,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     },
     addPlugin: (plugin: Plugin) => {
       plugins.set(plugin.id, plugin);
+    },
+    removePlugin: (pluginId: string) => {
+      plugins.delete(pluginId);
     },
     getPlugin: (pluginId: string) => plugins.get(pluginId),
     getTemplates: () => new Map(templates),

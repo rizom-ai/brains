@@ -7,6 +7,7 @@ import { Effect } from "@brains/utils/effect";
 import type { Clock } from "@brains/utils/effect";
 import { TestClock, TestContext } from "@brains/utils/effect/test";
 import type { JobHandler, JobQueueEnqueueRequest } from "@brains/job-queue";
+import { prepareRuntimeStateValue } from "@brains/runtime-state";
 import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
@@ -33,7 +34,9 @@ class MemoryRuntimeState implements IRuntimeStateNamespace {
     return [...this.values.values()];
   }
 
-  scoped<T>(options: RuntimeStateScopeOptions<T>): IRuntimeStateStore<T> {
+  scoped<T, TInput = T>(
+    options: RuntimeStateScopeOptions<T, TInput>,
+  ): IRuntimeStateStore<T, TInput> {
     const prefix = `${options.namespace}:`;
     return {
       get: async (key): Promise<T | null> => {
@@ -42,12 +45,16 @@ class MemoryRuntimeState implements IRuntimeStateNamespace {
       },
       has: async (key): Promise<boolean> => this.values.has(`${prefix}${key}`),
       set: async (key, value): Promise<void> => {
-        this.values.set(`${prefix}${key}`, options.schema.parse(value));
+        this.values.set(
+          `${prefix}${key}`,
+          prepareRuntimeStateValue(options.schema, value),
+        );
       },
       setIfNotExists: async (key, value): Promise<boolean> => {
         const fullKey = `${prefix}${key}`;
+        const wireValue = prepareRuntimeStateValue(options.schema, value);
         if (this.values.has(fullKey)) return false;
-        this.values.set(fullKey, options.schema.parse(value));
+        this.values.set(fullKey, wireValue);
         return true;
       },
       delete: async (key): Promise<boolean> =>

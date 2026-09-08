@@ -405,9 +405,15 @@ contexts stay internal.
 - `InstalledTool`
 - `SeededEntity`
 - `TestCaller`
+- `TestToolConfirmation`
 - `ToolCallResult`
 - `createTempDataDir`
 - `createTempDataDirSync`
+
+Tool calls enforce declared permissions and return success, error, or
+`{ ok: false, confirmation }` when approval is pending. Confirmation includes the
+summary and replay arguments; it is not a failure. Package installation rolls
+back all newly installed children on failure, without resetting earlier packages.
 
 ## `@rizom/site`
 
