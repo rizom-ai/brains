@@ -333,13 +333,12 @@ Rules that are easy to miss:
 
 Several unrelated concepts also use the word “template”:
 
-| Concept                         | Meaning                                                                    |
-| ------------------------------- | -------------------------------------------------------------------------- |
-| Entity `markdown` codec         | Converts persisted content/metadata to and from Markdown; not presentation |
-| Service `templates`             | Schema-validated text formatting available to that service                 |
-| Service `views`                 | Schema-validated web rendering; may share a key/schema with a template     |
-| Site route `template`           | A `namespace.section` reference created by `sectionGroup()`                |
-| `@rizom/brain/templates` import | Advanced rich-rendering API outside the patch-stable `0.2` contract        |
+| Concept                         | Meaning                                                                                |
+| ------------------------------- | -------------------------------------------------------------------------------------- |
+| Entity `markdown` codec         | Converts persisted content/metadata to and from Markdown; not presentation             |
+| Service `templates`             | One declaration per template: schema-validated text formatting, web rendering, or both |
+| Site route `template`           | A `namespace.section` reference created by `sectionGroup()`                            |
+| `@rizom/brain/templates` import | Advanced rich-rendering API outside the patch-stable `0.2` contract                    |
 
 Normal external packages should use the family fields above. Pin an exact Brain
 version before deliberately using the advanced `@rizom/brain/templates`
