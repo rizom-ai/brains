@@ -145,31 +145,13 @@ Definitions and schema vocabulary:
 - `defineProjection`
 - `frontmatterInContent`
 - `z`
-- `inboxActorSchema`
-- `inboxItemIdSchema`
 - `canWriteVisibility`
 - `permissionToVisibilityScope`
 - `DurableBulkMutationChildRef`
 - `durableBulkMutationChildRefSchema`
-- `internalFullScope`
 - `isEntityValidationError`
-- `InboxFacets`
-- `InboxSource`
-- `InboxSourceMetadata`
 - `ListToolOutputSchema`
-- `BaseDataSourceContext`
-- `DataSourceSchema`
-- `inboxContactSchema`
-- `inboxFacetsSchema`
-- `inboxIdSchema`
-- `inboxItemDetailSchema`
-- `inboxItemSchema`
-- `inboxSourceDescriptorSchema`
-- `inboxSourceMetadataSchema`
-- `inboxUrgencySchema`
-- `resolvedInboxFollowUpSchema`
 - `createListToolOutputSchema`
-- `DataSource`
 
 Types:
 
@@ -183,8 +165,6 @@ Types:
 - `EntitySeedDefinition`
 - `EntitySeedTrigger`
 - `ProjectionDefinition`
-- `InboxAction`
-- `InboxFacetDefinition`
 
 The runtime owns base entity fields, persistence, markdown validation, search indexing, projection scheduling, and worker execution.
 
@@ -245,10 +225,7 @@ Definitions and schema vocabulary:
 - `z`
 - `verbatim`
 - `permissionToVisibilityScope`
-- `DECLARATIVE_DASHBOARD_WIDGET_RENDERER`
-- `PermissionService`
 - `UserPermissionLevelSchema`
-- `safeParseRuntimeDashboardWidgetData`
 - `defineDataSource`
 - `ServiceRecentJob`
 - `SerializedStatusStore`
@@ -260,24 +237,6 @@ Definitions and schema vocabulary:
 - `ServiceRenderSchema`
 - `requireSameOriginJson`
 - `requireSameOriginRequest`
-- `DECLARATIVE_STUDIO_WORKSPACE_RENDERER`
-- `STUDIO_OVERVIEW_REGISTER_MESSAGE`
-- `STUDIO_OVERVIEW_UNREGISTER_MESSAGE`
-- `STUDIO_WORKSPACE_REGISTER_MESSAGE`
-- `STUDIO_WORKSPACE_UNREGISTER_MESSAGE`
-- `DashboardWidgetRegistration`
-- `RuntimeDashboardOperatorView`
-- `RuntimeDashboardWidgetData`
-- `RuntimeStudioOperatorCardBlock`
-- `RuntimeStudioOperatorPanelBlock`
-- `RuntimeStudioOperatorView`
-- `StudioOverviewContributionRegistration`
-- `StudioOverviewContributionUnregistration`
-- `StudioWorkspaceActor`
-- `StudioWorkspaceDescriptor`
-- `StudioWorkspaceRegistration`
-- `StudioWorkspaceRegistrationResult`
-- `StudioWorkspaceUnregistration`
 - `EntityAction`
 - `IInboxNamespace`
 - `IPluginsNamespace`
@@ -293,10 +252,6 @@ Definitions and schema vocabulary:
 - `ServiceBatchOptions`
 - `ServiceBatchReference`
 - `ServiceBatchStatus`
-- `ServiceGitBroker`
-- `ServiceRole`
-- `EntityMirror`
-- `EntityMirrorClient`
 - `ServiceJobHooks`
 - `ServiceJobSettledContext`
 - `ServiceJobSettledHandler`
@@ -367,11 +322,9 @@ Types:
 - `DashboardWidgetProviderContext`
 - `EntityCount`
 - `InteractionInfo`
-- `RuntimeDashboardOperatorPanelBlock`
 - `RuntimeOperatorActionControl`
 - `RuntimeOperatorLaunchIntent`
 - `RuntimeOperatorLinkTarget`
-- `RuntimeStudioWorkspaceData`
 - `SurfacePermissionLevel`
 - `AppInfo`
 - `AnyDataSourceDeclaration`
@@ -604,8 +557,6 @@ Types:
 - `SubjectsListProps`
 - `TagsListProps`
 - `ThemeToggleProps`
-- `WidgetComponent`
-- `WidgetComponentProps`
 - `WidgetDataAttributes`
 - `WidgetElementProps`
 - `WidgetFilterOption`
