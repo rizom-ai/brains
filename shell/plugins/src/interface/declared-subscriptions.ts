@@ -1,4 +1,5 @@
 import { getErrorMessage } from "@brains/utils/error";
+import { createRequester } from "../internal/requester";
 import type { AnySubscriptionDefinition } from "../contracts/subscription";
 import type { InterfacePluginContext } from "./context";
 
@@ -46,11 +47,9 @@ export function registerDeclaredSubscriptions(input: {
             entities: context.entityService,
             identity: context.identity,
             messaging: {
-              request: (outbound) =>
-                context.messaging.send({
-                  type: outbound.type,
-                  payload: outbound.payload,
-                }),
+              request: createRequester((outbound) =>
+                context.messaging.send(outbound),
+              ),
               publish: async (outbound): Promise<void> => {
                 await context.messaging.send({
                   type: outbound.topic,
