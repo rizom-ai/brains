@@ -50,12 +50,17 @@ export interface InstalledTool {
   /**
    * Call it, and read what it answered.
    *
-   * A tool that refuses throws, so a test asserting the happy path does not
-   * unwrap an envelope first, and one asserting a refusal says so with
-   * `expect(...).rejects`.
+   * The same shape a bus `request` answers with: `ok` and the data, or `ok:
+   * false` and why. One model for asking anything in a test, rather than a
+   * thrown error for tools and a result for requests.
    */
-  call(input: unknown, caller?: TestCaller): Promise<unknown>;
+  call(input: unknown, caller?: TestCaller): Promise<ToolCallResult>;
 }
+
+/** What a tool answered: its data, or why it refused. */
+export type ToolCallResult =
+  | { readonly ok: true; readonly data: unknown }
+  | { readonly ok: false; readonly error: string };
 
 /** What a package declared, once it is installed. */
 export interface InstalledPackage {
@@ -166,11 +171,15 @@ export function createBrainTestHarness(
                 userPermissionLevel: caller?.permission ?? "admin",
               });
               if (!("success" in answer) || !answer.success) {
-                throw new Error(
-                  `Tool "${tool.name}" refused: ${JSON.stringify(answer)}`,
-                );
+                return {
+                  ok: false,
+                  error:
+                    "error" in answer && typeof answer.error === "string"
+                      ? answer.error
+                      : `Tool "${tool.name}" refused`,
+                };
               }
-              return answer.data;
+              return { ok: true, data: answer.data };
             },
           });
         }
