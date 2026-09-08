@@ -3,6 +3,7 @@ import type {
   BaseEntity,
   ContentVisibility,
   ListOptions,
+  EntitySchema,
 } from "@brains/entity-service";
 import type { AnchorProfile, BrainCharacter } from "./identity";
 
@@ -14,21 +15,45 @@ import type { AnchorProfile, BrainCharacter } from "./identity";
  * anyway. A handler that must change something enqueues a job.
  */
 export interface SubscriptionEntityReader {
-  getEntity<T extends BaseEntity>(request: {
+  /**
+   * One record, as the brain stores it.
+   *
+   * Narrowing takes the schema that narrows it. The shape used to come from
+   * the caller alone — ask for a type and you were handed it, with nothing
+   * checking the records matched — so a handler could name a field no entity
+   * has, compile, and read `undefined` from it at runtime. This is the same
+   * evidence jobs and data sources have always required.
+   */
+  getEntity(request: {
     entityType: string;
     id: string;
     visibilityScope?: ContentVisibility | undefined;
-  }): Promise<T | null>;
+  }): Promise<BaseEntity | null>;
+  getEntity<T extends BaseEntity>(
+    request: {
+      entityType: string;
+      id: string;
+      visibilityScope?: ContentVisibility | undefined;
+    },
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
   /**
    * A page, narrowed by what the request asked for. The filter is the
    * store's own vocabulary, including how wide to read: a directory of
    * approved peers has to see the ones an operator saved as restricted.
-   * Named consumer: @brains/a2a.
+   * Narrowed the same way as a single read. Named consumer: @brains/a2a.
    */
-  listEntities<T extends BaseEntity>(request: {
+  listEntities(request: {
     entityType: string;
     options?: Pick<ListOptions, "limit" | "filter"> | undefined;
-  }): Promise<T[]>;
+  }): Promise<BaseEntity[]>;
+  listEntities<T extends BaseEntity>(
+    request: {
+      entityType: string;
+      options?: Pick<ListOptions, "limit" | "filter"> | undefined;
+    },
+    schema: EntitySchema<T>,
+  ): Promise<T[]>;
   /**
    * Which types exist, so a handler can answer "none" for a type nobody
    * registered instead of asking for it. Named consumer: @brains/a2a.
