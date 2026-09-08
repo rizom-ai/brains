@@ -197,9 +197,9 @@ describe("auto-send on publish", () => {
           sender: "test",
         });
 
-      // Nobody answered: the bus reports the broadcast went out and no email
-      // was attempted.
-      expect(response).toEqual({ success: true });
+      // Nobody answered, which the bus says in the answer itself, and no
+      // email was attempted.
+      expect(response).toMatchObject({ success: false, code: "no_handler" });
       expect(sends).toBe(0);
     });
   });

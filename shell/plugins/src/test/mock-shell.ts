@@ -350,7 +350,16 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     ): Promise<MessageResponse<R>> => {
       const { type, payload, sender, broadcast } = request;
       const handlers = messageHandlers.get(type) ?? new Set();
-      let result: MessageResponse<unknown> = { success: true };
+      // What the real bus answers when nothing is listening: a failure that
+      // says which kind. A fake that answered success here would let a
+      // package pass its tests and then read an empty answer in production.
+      let result: MessageResponse<unknown> = broadcast
+        ? { success: true }
+        : {
+            success: false,
+            code: "no_handler",
+            error: `No handler found for message type: ${type}`,
+          };
       for (const handler of handlers) {
         const response = await handler({
           type,

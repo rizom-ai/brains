@@ -64,6 +64,56 @@ export interface SubscriptionEntityReader {
 export type SubscriptionPayloadSchema = z.ZodType<unknown, unknown>;
 
 /**
+ * A question and the shape of its answer, declared once.
+ *
+ * Both sides of a request already share the topic and the schemas; naming
+ * them together is what lets the answerer bind a handler to it and the asker
+ * read a parsed answer back, instead of each parsing an envelope by hand and
+ * mapping every failure to the same shrug.
+ *
+ * Structural on purpose: the package that owns a question can declare one
+ * without importing the authoring runtime, which is how the shared contracts
+ * package holds the ones two packages both use.
+ */
+export interface RequestContract<
+  TPayloadSchema extends SubscriptionPayloadSchema = SubscriptionPayloadSchema,
+  TResponseSchema extends SubscriptionPayloadSchema = SubscriptionPayloadSchema,
+> {
+  readonly topic: string;
+  readonly payload: TPayloadSchema;
+  readonly response: TResponseSchema;
+}
+
+/** Asking over the bus: by topic for anything, by contract for an answer. */
+export interface SubscriptionRequester {
+  (message: {
+    readonly type: string;
+    readonly payload: unknown;
+  }): Promise<unknown>;
+  <
+    TPayloadSchema extends SubscriptionPayloadSchema,
+    TResponseSchema extends SubscriptionPayloadSchema,
+  >(
+    contract: RequestContract<TPayloadSchema, TResponseSchema>,
+    payload: z.input<TPayloadSchema>,
+  ): Promise<RequestResult<TResponseSchema>>;
+}
+
+/**
+ * What an ask answers with: the parsed response, or why there is none.
+ *
+ * A refusal the answering package meant to give is a successful answer whose
+ * data says so. This is the other kind: nobody listening, the handler threw,
+ * or what came back was not what the contract declared.
+ */
+export type RequestResult<TResponseSchema extends SubscriptionPayloadSchema> =
+  | { readonly ok: true; readonly data: z.output<TResponseSchema> }
+  | {
+      readonly ok: false;
+      readonly code: "no_handler" | "handler_failed" | "invalid_response";
+    };
+
+/**
  * A request a package answers on the message bus.
  *
  * Neither family owns this. An interface that delivered a message is the only
@@ -81,6 +131,13 @@ export interface SubscriptionDefinition<
 > {
   readonly topic: string;
   readonly payload: TPayloadSchema;
+  /**
+   * What this answers with, when it answers a request rather than reacting
+   * to news. The runtime parses the handler’s return through it, so an asker
+   * naming the same contract is handed an answer that matched — and hears
+   * about it when one does not.
+   */
+  readonly response?: SubscriptionPayloadSchema | undefined;
   handle(context: {
     readonly payload: z.output<TPayloadSchema>;
     /**
@@ -105,11 +162,12 @@ export interface SubscriptionDefinition<
      * Named consumer: @brains/site-info.
      */
     readonly messaging: {
-      /** Ask, and read the answer. The same word the rest of the surface uses. */
-      request(message: {
-        readonly type: string;
-        readonly payload: unknown;
-      }): Promise<unknown>;
+      /**
+       * Ask, and read the answer. By topic for anything; by contract when the
+       * answer has a declared shape, in which case it comes back parsed and
+       * the ways it can fail are named.
+       */
+      readonly request: SubscriptionRequester;
       /**
        * Announce to everyone listening, for a handler whose answer is also
        * news — a discovered peer, a failed publish. Named consumer:
