@@ -135,9 +135,19 @@ export type RouteResponse = InterfaceSchema | VerbatimResponse;
  * something of the author: this type stays unresolved while the schema is
  * still being inferred, so an object literal in the handler widens `"ok"` to
  * `string` and the check fails. Write `{ status: "ok" as const }`, or annotate
- * the handler's return. The alternatives that avoid it — a bare type parameter
- * for the answer, or overloads on the schema's input — both accept a wrong
- * shape, which is the defect this type exists to catch.
+ * the handler's return.
+ *
+ * Six shapes were tried before settling on this, and the result is the same
+ * for every one that stays sound: a bare type parameter for the answer with
+ * a default is overridden by inference from the handler and accepts anything;
+ * overloads on the schema's input infer the answer from the handler and
+ * accept a wrong shape; `NoInfer` on the return still widens the literal; a
+ * type parameter for the answer constrained by the schema still widens it;
+ * and widening literals in the type on purpose would let an enum accept any
+ * string statically, which is the defect this type exists to catch. The
+ * conditional over the schema is what makes the check sound, and it is also
+ * what defers the contextual type past the literal. One `as const` at the one
+ * site in this repository that has a literal response is the cost.
  */
 export type RouteOutput<TResponse extends RouteResponse> =
   TResponse extends VerbatimResponse
