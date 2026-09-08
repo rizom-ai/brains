@@ -8,6 +8,7 @@ import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin"
 import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import type {
+  InfrastructureAccess,
   NormalizedServiceDefinitionInput,
   ServiceDefinitionBehavior,
   ServiceDefinitionHeaderInput,
@@ -66,7 +67,14 @@ export type {
   WorkspaceActionResultFieldDefinition,
   WorkspaceActionResultFieldMap,
 } from "../operator/operator-view-contract";
-export { defineJob, defineTool } from "../service/service-definition-contract";
+export {
+  defineJob,
+  defineTool,
+  // The token a package that *is* infrastructure names to be given the
+  // process role, the git broker and the entity mirror. Ordinary authoring
+  // never writes it. Named consumer: @brains/directory-sync.
+  infrastructure,
+} from "../service/service-definition-contract";
 // A tool that *is* the conversation reaches the brain and may answer with
 // what the brain asked back. Named consumer: @brains/mcp.
 export type {
@@ -103,7 +111,9 @@ export type {
   ServiceBatchOptions,
   ServiceBatchReference,
   ServiceBatchStatus,
+  InfrastructureAccess,
   ServiceGitBroker,
+  ServiceInfrastructureContext,
   ServiceRole,
 } from "../service/service-definition-contract";
 export type {
@@ -164,13 +174,15 @@ function createServicePackage<
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TInfrastructure extends InfrastructureAccess | undefined,
 >(
   definition: NormalizedServiceDefinitionInput<
     TConfigSchema,
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TAccountSettings
+    TAccountSettings,
+    TInfrastructure
   >,
 ): ServicePackageDefinition<TConfigSchema> {
   return createPluginPackageDefinition({
@@ -214,8 +226,14 @@ export function defineServicePlugin<
   TTemplateSchemas extends ServiceSchemaMap = Record<never, never>,
   TAccountSettings extends AnyAccountSettingsDefinition =
     AnyAccountSettingsDefinition,
+  TInfrastructure extends InfrastructureAccess | undefined = undefined,
 >(
-  header: ServiceDefinitionHeaderInput<TConfigSchema, TState, TAccountSettings>,
+  header: ServiceDefinitionHeaderInput<
+    TConfigSchema,
+    TState,
+    TAccountSettings,
+    TInfrastructure
+  >,
   behavior?: ServiceDefinitionBehavior<
     TConfigSchema,
     TState,
@@ -230,8 +248,14 @@ export function defineServicePlugin<
   TPromptSchemas extends ServiceSchemaMap = Record<never, never>,
   TTemplateSchemas extends ServiceSchemaMap = Record<never, never>,
   TAccountSettings extends undefined = undefined,
+  TInfrastructure extends InfrastructureAccess | undefined = undefined,
 >(
-  header: ServiceDefinitionHeaderInput<TConfigSchema, TState, TAccountSettings>,
+  header: ServiceDefinitionHeaderInput<
+    TConfigSchema,
+    TState,
+    TAccountSettings,
+    TInfrastructure
+  >,
   behavior?: ServiceDefinitionBehavior<
     TConfigSchema,
     TState,
@@ -246,8 +270,14 @@ export function defineServicePlugin<
   TPromptSchemas extends ServiceSchemaMap,
   TTemplateSchemas extends ServiceSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TInfrastructure extends InfrastructureAccess | undefined,
 >(
-  header: ServiceDefinitionHeaderInput<TConfigSchema, TState, TAccountSettings>,
+  header: ServiceDefinitionHeaderInput<
+    TConfigSchema,
+    TState,
+    TAccountSettings,
+    TInfrastructure
+  >,
   behavior?: ServiceDefinitionBehavior<
     TConfigSchema,
     TState,
@@ -264,7 +294,8 @@ export function defineServicePlugin<
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TAccountSettings
+    TAccountSettings,
+    TInfrastructure
   > = { ...header, ...behavior };
   // Both plugins scope to `${packageName}:${id}`, so a service sharing an
   // id with a type it declares collides — and the collision surfaces at
@@ -285,7 +316,8 @@ export function defineServicePlugin<
     TState,
     TPromptSchemas,
     TTemplateSchemas,
-    TAccountSettings
+    TAccountSettings,
+    TInfrastructure
   > = {
     ...definition,
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the header type is a conditional on TAccountSettings: the declaration in one arm, undefined in the other, which is what TAccountSettings is in each. The compiler cannot resolve a conditional over a parameter it has not fixed, and an implementation signature that names the property outright is rejected as incompatible with the overloads.

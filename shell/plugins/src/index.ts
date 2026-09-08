@@ -376,6 +376,7 @@ export {
   defineServicePlugin,
   defineTool,
   defineWorkspaceAction,
+  infrastructure,
   type AccountSettingsDefinition,
   type AccountSettingsFieldDefinition,
   type AccountSettingsValue,
@@ -432,6 +433,8 @@ export {
   type ServiceBatchReference,
   type ServiceBatchStatus,
   type ServiceGitBroker,
+  type InfrastructureAccess,
+  type ServiceInfrastructureContext,
   type ServiceRole,
 } from "./public/service-definition";
 export {
