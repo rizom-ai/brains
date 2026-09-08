@@ -11,6 +11,7 @@ import {
   type Template,
   type TemplateDataSchema,
 } from "@brains/templates";
+import { createRequester } from "../internal/requester";
 import type { EntityReactionContext } from "../entity/entity-definition-contract";
 import type { InboxItemDetail } from "../inbox-registry";
 import { getErrorMessage } from "@brains/utils/error";
@@ -684,29 +685,35 @@ class DeclarativeServicePlugin<
           };
         }
         try {
-          return {
-            success: true,
-            data: await subscription.handle({
-              payload: payload.data,
-              source: message.source,
-              entities: context.entityService,
-              identity: context.identity,
-              messaging: {
-                request: (message) =>
-                  context.messaging.send({
-                    type: message.type,
-                    payload: message.payload,
-                  }),
-                publish: async (message): Promise<void> => {
-                  await context.messaging.send({
-                    type: message.topic,
-                    payload: message.data,
-                    broadcast: true,
-                  });
-                },
+          const answered = await subscription.handle({
+            payload: payload.data,
+            source: message.source,
+            entities: context.entityService,
+            identity: context.identity,
+            messaging: {
+              request: createRequester((outbound) =>
+                context.messaging.send(outbound),
+              ),
+              publish: async (message): Promise<void> => {
+                await context.messaging.send({
+                  type: message.topic,
+                  payload: message.data,
+                  broadcast: true,
+                });
               },
-            }),
-          };
+            },
+          });
+          // A declared response is checked here rather than trusted: the
+          // asker is promised what the contract says, and the package that
+          // answered is where a mismatch can still be fixed.
+          const response = subscription.response?.safeParse(answered);
+          if (response && !response.success) {
+            return {
+              success: false,
+              error: `Service "${this.definition.id}" answered "${subscription.topic}" with something its contract does not describe`,
+            };
+          }
+          return { success: true, data: response ? response.data : answered };
         } catch (error) {
           // A handler that cannot answer says so by throwing; the caller sees
           // a failed response rather than a successful one wrapping a refusal.
