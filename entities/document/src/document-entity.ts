@@ -1,6 +1,5 @@
 import {
   defineEntity,
-  slugify,
   z,
   type EntityCreateAllocation,
   type EntityCreateContext,
@@ -11,6 +10,7 @@ import {
   sourceAttachmentKey,
   definitionEntitySchema,
 } from "@brains/sdk/entities";
+import { slugify } from "@brains/utils/string-utils";
 import {
   countPdfPages,
   createPdfDataUrl,

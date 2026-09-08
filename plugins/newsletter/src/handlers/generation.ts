@@ -3,11 +3,11 @@ import {
   ensureUniqueTitle,
   fetchVoiceGuidance,
   generateMarkdownWithFrontmatter,
-  slugify,
   z,
   type EntityGenerationDeclaration,
   type EntityGenerationResult,
 } from "@brains/sdk/entities";
+import { slugify } from "@brains/utils/string-utils";
 import type { NewsletterMetadata } from "../schemas/newsletter";
 
 /** The fields of a post that an issue is written from. */

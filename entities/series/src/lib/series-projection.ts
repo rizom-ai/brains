@@ -9,7 +9,7 @@ import {
   type ProjectionAbstention,
   type ProjectionWriteIntent,
 } from "@brains/sdk/entities";
-import { slugify } from "@brains/sdk/entities";
+import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/sdk/entities";
 import { createSeriesBodyFormatter } from "../schemas/series";
 import { getSeriesName } from "./series-metadata";

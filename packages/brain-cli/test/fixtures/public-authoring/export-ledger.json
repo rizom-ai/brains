@@ -395,7 +395,6 @@
         "firstSentence",
         "FrontmatterConfig",
         "generateMarkdownWithFrontmatter",
-        "getErrorMessage",
         "IEntityAINamespace",
         "InboxActor",
         "InboxItem",
@@ -421,7 +420,6 @@
         "parseDefinitionEntity",
         "parseMarkdown",
         "parseMarkdownWithFrontmatter",
-        "pLimit",
         "ProfileCategory",
         "PROJECTION_ABSTAINED",
         "ProjectionAbstention",
@@ -453,13 +451,10 @@
         "SemanticSpaceProjection",
         "SkillData",
         "skillDataSchema",
-        "slugify",
-        "slugifyUrl",
         "SortField",
         "sourceAttachmentKey",
         "StructuredContentFormatter",
-        "Template",
-        "truncateText"
+        "Template"
       ],
       "internal/removable": [
         "BaseEntityAdapter",

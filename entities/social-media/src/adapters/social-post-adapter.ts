@@ -2,8 +2,8 @@ import {
   generateMarkdownWithFrontmatter,
   parseMarkdown,
   parseMarkdownWithFrontmatter,
-  slugify,
 } from "@brains/sdk/entities";
+import { slugify } from "@brains/utils/string-utils";
 import {
   socialPostCreateFrontmatterSchema,
   socialPostFrontmatterSchema,

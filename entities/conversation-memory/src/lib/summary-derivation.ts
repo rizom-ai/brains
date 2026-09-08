@@ -2,8 +2,6 @@ import {
   actorRefKey,
   computeContentHash,
   conversationMessageMetadataSchema,
-  pLimit,
-  truncateText,
   type ConversationMessageActor,
   type EntityConversationReader,
   type IEntityAINamespace,
@@ -11,6 +9,8 @@ import {
   type LoggerContract,
   type Message,
 } from "@brains/sdk/entities";
+import { pLimit } from "@brains/utils/p-limit";
+import { truncateText } from "@brains/utils/string-utils";
 import {
   ACTION_ITEM_ENTITY_TYPE,
   DECISION_ENTITY_TYPE,

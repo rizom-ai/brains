@@ -1,10 +1,10 @@
 import {
   defineDataSource,
   parseMarkdownWithFrontmatter,
-  truncateText,
   type EntityDataSourceDefinition,
   type EntityQueryReader,
 } from "@brains/sdk/entities";
+import { truncateText } from "@brains/utils/string-utils";
 import { readString } from "@brains/utils/record-fields";
 import {
   newsletterFrontmatterSchema,
