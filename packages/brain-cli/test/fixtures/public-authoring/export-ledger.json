@@ -990,6 +990,22 @@
       ],
       "advanced-with-consumer": [],
       "internal/removable": []
+    },
+    "@rizom/brain/testing": {
+      "source": "packages/brain-sdk/src/testing.ts",
+      "stable": [
+        "BrainTestHarness",
+        "BrainTestHarnessOptions",
+        "InstalledPackage",
+        "InstalledTool",
+        "SeededEntity",
+        "TestCaller",
+        "createBrainTestHarness",
+        "createTempDataDir",
+        "createTempDataDirSync"
+      ],
+      "advanced-with-consumer": [],
+      "internal/removable": []
     }
   }
 }

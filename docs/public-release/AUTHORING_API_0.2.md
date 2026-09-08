@@ -433,6 +433,23 @@ Permission contract:
 
 The runtime owns HTTP hosting, caller permission and Anchor resolution, daemon supervision, worker exclusion, channel/provider registration, recipient validation, conversations, normalized progress, and shutdown. Account-settings declarations require auth-service plus the deployment-owned `ACCOUNT_SETTINGS_ENCRYPTION_KEY`; secret values are encrypted at rest and never echoed by Account APIs.
 
+## `@rizom/brain/testing`
+
+Testing a package without booting a brain. The same harness every package in
+this repository uses, narrowed to what an author needs and typed without
+reaching into the runtime — the mock shell, the entity registry and the plugin
+contexts stay internal.
+
+- `createBrainTestHarness`
+- `BrainTestHarness`
+- `BrainTestHarnessOptions`
+- `InstalledPackage`
+- `InstalledTool`
+- `SeededEntity`
+- `TestCaller`
+- `createTempDataDir`
+- `createTempDataDirSync`
+
 ## `@rizom/site`
 
 Definitions and schema vocabulary:

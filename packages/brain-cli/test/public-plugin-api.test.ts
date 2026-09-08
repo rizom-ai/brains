@@ -163,6 +163,11 @@ describe("@rizom/brain public plugin API surface", () => {
     expect(servicesTypes).not.toContain("getDashboardWidgetLoader");
     expect(servicesTypes).not.toContain("getStudioWorkspaceExecutor");
     expect(servicesTypes).not.toContain("getWorkspaceActionExecutor");
+    const testingTypes = readFileSync(
+      join(pkgDir, "dist", "testing.d.ts"),
+      "utf-8",
+    );
+
     for (const privateType of [
       "IShell",
       "PluginManager",
@@ -173,7 +178,13 @@ describe("@rizom/brain public plugin API surface", () => {
     ]) {
       expect(servicesTypes).not.toContain(privateType);
       expect(interfacesTypes).not.toContain(privateType);
+      // The testing entry wraps the runtime’s own harness, which hands out
+      // the mock shell and the plugin contexts. Narrowing it is the whole
+      // point, so the same rule applies here.
+      expect(testingTypes).not.toContain(privateType);
     }
+    expect(testingTypes).not.toContain("MockShell");
+    expect(testingTypes).toContain("createBrainTestHarness");
   });
 
   it("compiles the Phase 1 fixtures against generated declarations", async () => {
