@@ -681,6 +681,15 @@ export function OperatorActionButton(props: {
           ? "Working…"
           : (props.action.form.submitLabel ?? props.action.label)}
       </Button>
+      {message && (
+        <small
+          className={failed ? "status status-error" : "status"}
+          aria-live="polite"
+        >
+          {message}
+        </small>
+      )}
+      {result && <ActionResult result={result} />}
     </form>
   ) : null;
   return (
@@ -712,7 +721,7 @@ export function OperatorActionButton(props: {
             {pending ? "Working…" : props.action.label}
           </Button>
         )}
-        {message && (
+        {!props.action.form && message && (
           <small
             className={failed ? "status status-error" : "status"}
             aria-live="polite"
@@ -720,7 +729,7 @@ export function OperatorActionButton(props: {
             {message}
           </small>
         )}
-        {result && <ActionResult result={result} />}
+        {!props.action.form && result && <ActionResult result={result} />}
       </ActionControl>
       {awaiting && (
         <ConfirmDialog
