@@ -1,3 +1,4 @@
+import { createRequester } from "../internal/requester";
 import type { ServicePluginContext } from "./context";
 import type { LoggerContract } from "@brains/utils/logger";
 import type { EntityReactionContext } from "../entity/entity-definition-contract";
@@ -73,14 +74,7 @@ export function createReactionContext(input: {
           broadcast: true,
         });
       },
-      request: (message: {
-        readonly type: string;
-        readonly payload: unknown;
-      }): Promise<unknown> =>
-        context.messaging.send({
-          type: message.type,
-          payload: message.payload,
-        }),
+      request: createRequester((message) => context.messaging.send(message)),
     },
     // Namespaced under the declaring package, so two packages cannot read
     // or corrupt each other's notes — and so one package's plugins can.

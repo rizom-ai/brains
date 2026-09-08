@@ -207,6 +207,58 @@ describe("JobQueueService", () => {
     });
   });
   describe("Job enqueueing", () => {
+    it("stores wire input so a fresh worker can parse transforms and defaults", async () => {
+      const schema = z.object({
+        n: z.string().transform(Number),
+        label: z.string().default("default"),
+      });
+      const validator = {
+        validateAndParse: (raw: unknown): z.output<typeof schema> | null => {
+          const result = schema.safeParse(raw);
+          return result.success ? result.data : null;
+        },
+        process: async (input: z.output<typeof schema>): Promise<number> =>
+          input.n + 1,
+      };
+      service.registerHandler("transform", validator);
+      const id = await service.enqueue({
+        type: "transform",
+        data: { n: "7" },
+        options: enqueueOpts(),
+      });
+      const stored = await service.getStatus(id);
+      expect(JSON.parse(stored?.data ?? "null")).toEqual({ n: "7" });
+      const parsed = validator.validateAndParse(
+        JSON.parse(stored?.data ?? "null"),
+      );
+      expect(parsed).toEqual({ n: 7, label: "default" });
+      if (!parsed) throw new Error("Persisted input did not validate");
+      expect(await validator.process(parsed)).toBe(8);
+    });
+
+    it("rejects data whose JSON round-trip does not match its input contract", async () => {
+      service.registerHandler("date", {
+        validateAndParse: (raw) => {
+          const result = z.date().safeParse(raw);
+          return result.success ? result.data : null;
+        },
+        process: async () => undefined,
+      });
+      expect(
+        service.enqueue({
+          type: "date",
+          data: new Date(),
+          options: enqueueOpts(),
+        }),
+      ).rejects.toThrow("Invalid job data");
+      expect(
+        service.enqueue({
+          type: "date",
+          data: undefined,
+          options: enqueueOpts(),
+        }),
+      ).rejects.toThrow("JSON-serializable");
+    });
     beforeEach(() => {
       service.registerHandler("shell:embedding", testHandler);
     });

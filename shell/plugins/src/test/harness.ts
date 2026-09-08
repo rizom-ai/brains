@@ -1,3 +1,9 @@
+import { runCleanups } from "../internal/cleanup";
+import { readServiceJobResult } from "../service/job-definition-runtime";
+import {
+  PluginResourceScope,
+  createPluginScopedShell,
+} from "../manager/plugin-resource-scope";
 import type {
   Plugin,
   PluginCapabilities,
@@ -69,6 +75,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
   private capabilities: PluginCapabilities | undefined;
   /** Every plugin installed since the last reset, so reset can shut them down. */
   private installedPlugins: Plugin[] = [];
+  private readonly resourceScopes = new Map<Plugin, PluginResourceScope>();
   private readonly options: HarnessOptions;
   private readonly logger: Logger;
 
@@ -120,9 +127,9 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
    * The plugin will create its own typed context from the mock shell
    */
   async installPlugin(plugin: TPlugin): Promise<PluginCapabilities> {
-    this.plugin = plugin;
-    this.installedPlugins.push(plugin);
-
+    if (this.installedPlugins.some((installed) => installed.id === plugin.id)) {
+      throw new Error(`Plugin "${plugin.id}" is already installed`);
+    }
     // Update logger context based on plugin type if not explicitly set
     // If no custom logger was provided in options, create one with the plugin type context
     if (!this.options.logger && !this.options.logContext) {
@@ -164,9 +171,33 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       this.mockShell = createMockShell(mockShellOptions);
     }
 
-    this.capabilities = await plugin.register(this.mockShell);
-    this.mockShell.addPlugin(plugin);
-    return this.capabilities;
+    const shell = this.mockShell;
+    const resources = new PluginResourceScope();
+    resources.addFinalizer(() =>
+      shell.getJobQueueService().unregisterPluginHandlers(plugin.id),
+    );
+    this.resourceScopes.set(plugin, resources);
+    try {
+      const capabilities = await plugin.register(
+        createPluginScopedShell(shell, resources),
+      );
+      shell.addPlugin(plugin);
+      this.plugin = plugin;
+      this.capabilities = capabilities;
+      this.installedPlugins.push(plugin);
+      return capabilities;
+    } catch (error) {
+      try {
+        await this.releasePlugin(plugin);
+      } catch (cleanupError) {
+        throw new AggregateError(
+          [error, cleanupError],
+          `Plugin "${plugin.id}" registration and rollback failed`,
+          { cause: cleanupError },
+        );
+      }
+      throw error;
+    }
   }
 
   /** Finalize app-scoped registries and the installed plugin before sync. */
@@ -397,12 +428,13 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     if (!handler) throw new Error(`No job handler registered for "${type}"`);
     const parsed = handler.validateAndParse(input);
     if (parsed === null) throw new Error(`Invalid input for job "${type}"`);
-    return handler.process(
+    const result = await handler.process(
       parsed,
       "test-job",
       createMockProgressReporter(),
       new AbortController().signal,
     );
+    return readServiceJobResult(handler, result);
   }
 
   /**
@@ -483,13 +515,11 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
    * A plugin's shutdown is what clears module-level state it registered —
    * the auth-service plugin's active-service singleton, for one — and bun
    * runs every test file in one process, so a plugin left running leaks
-   * into the next file. The shutdown hooks run synchronously up to their
-   * first await, so even an un-awaited reset() leaves no such state behind;
-   * await it when a plugin's shutdown does async work the next test relies
-   * on.
+   * into the next file. Always await reset: admission is stopped and in-flight
+   * callbacks drained before plugin resources are torn down, as in production.
    */
   async reset(): Promise<void> {
-    const plugins = this.installedPlugins.splice(0).reverse();
+    const plugins = this.installedPlugins.splice(0);
     this.plugin = undefined;
     this.capabilities = undefined;
     // Create a fresh MockShell
@@ -497,9 +527,26 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       ...this.options,
       logger: this.mockShell.getLogger(),
     });
-    for (const plugin of plugins) {
-      await plugin.shutdown?.();
-    }
+    await runCleanups(
+      plugins.map(
+        (plugin): (() => Promise<void>) =>
+          (): Promise<void> =>
+            this.releasePlugin(plugin),
+      ),
+    );
+  }
+
+  private async releasePlugin(plugin: Plugin): Promise<void> {
+    const resources = this.resourceScopes.get(plugin);
+    this.resourceScopes.delete(plugin);
+    await runCleanups([
+      async (): Promise<void> => {
+        await plugin.shutdown?.();
+      },
+      async (): Promise<void> => {
+        await resources?.close();
+      },
+    ]);
   }
 
   /**
