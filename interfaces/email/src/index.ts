@@ -1,6 +1,7 @@
 import {
   AUTH_PRINCIPAL_RESOLVE_CHANNEL,
   EMAIL_SOURCE_READ,
+  authPrincipalResolveRequestSchema,
   authPrincipalResolveResponseSchema,
   createExternalActorId,
   emailSourceReadRequestSchema,
@@ -168,48 +169,6 @@ interface EmailState {
   readonly supervisor: InboundEmailSupervisor | undefined;
 }
 
-async function resolveInboundSender(
-  messaging: {
-    request(message: { type: string; payload: unknown }): Promise<unknown>;
-  },
-  address: string,
-): Promise<InboundEmailSender | undefined> {
-  const response = await messaging.request({
-    type: AUTH_PRINCIPAL_RESOLVE_CHANNEL,
-    payload: {
-      actor: {
-        kind: "external",
-        externalActorId: createExternalActorId(
-          "email",
-          address.trim().toLowerCase(),
-        ),
-      },
-    },
-  });
-  if (
-    typeof response !== "object" ||
-    response === null ||
-    "noop" in response ||
-    !("success" in response) ||
-    response.success !== true ||
-    !("data" in response)
-  ) {
-    return undefined;
-  }
-
-  const resolution = authPrincipalResolveResponseSchema.safeParse(
-    response.data,
-  );
-  const principal = resolution.success ? resolution.data.principal : undefined;
-  return principal
-    ? {
-        personId: principal.personId,
-        displayName: principal.displayName,
-        permissionLevel: principal.permissionLevel,
-      }
-    : undefined;
-}
-
 async function sendWithResend(
   state: EmailState,
   config: EmailConfig,
@@ -360,8 +319,40 @@ export function emailInterface(
             intakeInboundEmail(client, selection, {
               cursor,
               publish,
-              resolveSender: async (address) =>
-                resolveInboundSender(messaging, address),
+              resolveSender: async (
+                address,
+              ): Promise<InboundEmailSender | undefined> => {
+                const response = await messaging.request(
+                  {
+                    topic: AUTH_PRINCIPAL_RESOLVE_CHANNEL,
+                    payload: authPrincipalResolveRequestSchema,
+                    response: authPrincipalResolveResponseSchema,
+                  },
+                  {
+                    actor: {
+                      kind: "external",
+                      externalActorId: createExternalActorId(
+                        "email",
+                        address.trim().toLowerCase(),
+                      ),
+                    },
+                  },
+                );
+                if (!response.ok) {
+                  if (response.code === "no_handler") return undefined;
+                  // Intake logs only the derived message key, never provider
+                  // exception text or the address being resolved.
+                  throw new Error("Inbound email sender resolution failed");
+                }
+                const { principal } = response.data;
+                return principal
+                  ? {
+                      personId: principal.personId,
+                      displayName: principal.displayName,
+                      permissionLevel: principal.permissionLevel,
+                    }
+                  : undefined;
+              },
               recordSourceLocator: async (sourceRef, sel, uid) =>
                 sourceLocators.record(sourceRef, sel, uid),
               pruneSourceLocators: async () => sourceLocators.prune(),

@@ -9,6 +9,7 @@ import type {
   SiteBuildOutputLifecycle,
   SiteBuildOutputTarget,
 } from "../src/lib/site-build-output-lifecycle";
+import { createRequester } from "@brains/plugins/test";
 import type { ServicePluginContext } from "@brains/plugins";
 import type {
   RouteDefinition,
@@ -224,7 +225,7 @@ export function createSiteBuilderServices(
 ): SiteBuilderServices {
   return {
     entityService: context.entityService,
-    sendMessage: (message) => context.messaging.send(message),
+    sendMessage: createRequester((message) => context.messaging.send(message)),
     publishMessage: async (message): Promise<void> => {
       await context.messaging.send({
         type: message.topic,

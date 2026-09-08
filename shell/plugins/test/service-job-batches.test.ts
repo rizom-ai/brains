@@ -12,6 +12,7 @@ import { createPluginHarness } from "../src/test/harness";
 
 const importJob = defineJob({
   name: "directory-import",
+  retry: { attempts: 2 },
   input: z.object({ file: z.string() }),
   output: z.object({}),
 });
@@ -19,6 +20,17 @@ const cleanupJob = defineJob({
   name: "directory-cleanup",
   input: z.object({}),
   output: z.object({}),
+});
+const transformedJob = defineJob({
+  name: "transformed",
+  input: z.object({ n: z.string().transform(Number) }),
+  output: z.object({}),
+});
+const pendingJob = defineJob({
+  name: "pending",
+  input: z.object({}),
+  output: z.object({}),
+  oncePending: () => "shared",
 });
 /** Declared by nobody installed here. */
 const strayJob = defineJob({
@@ -59,6 +71,11 @@ describe("batches a declared service enqueues", () => {
           jobs: () => [
             importJob.handle(async () => ({})),
             cleanupJob.handle(async () => ({})),
+            transformedJob.handle(async ({ input }) => {
+              expect(input.n).toBe(7);
+              return {};
+            }),
+            pendingJob.handle(async () => ({})),
           ],
         },
       ),
@@ -92,10 +109,33 @@ describe("batches a declared service enqueues", () => {
       [`${plugin.id}:directory-import`, plugin.id, "sweep-1"],
       [`${plugin.id}:directory-cleanup`, plugin.id, "sweep-1"],
     ]);
+    expect(queued.map((job) => job.maxRetries)).toEqual([1, 1, 3]);
     expect(queued[0]?.metadata).toMatchObject({
       operationTarget: "/srv/brain",
       operationType: "batch_processing",
     });
+  });
+
+  it("preserves transformed batch inputs for worker execution", async () => {
+    const { jobs, plugin } = await install();
+    await jobs.enqueueBatch([
+      { definition: transformedJob, input: { n: "7" } },
+    ]);
+    const [queued] = await harness.getMockShell().jobs.getRecentJobs();
+    const raw: unknown = JSON.parse(queued?.data ?? "null");
+    expect(raw).toEqual({ n: "7" });
+    expect(await harness.runJob(`${plugin.id}:transformed`, raw)).toEqual({});
+  });
+
+  it("rejects oncePending children before enqueueing any part of a batch", async () => {
+    const { jobs } = await install();
+    expect(
+      jobs.enqueueBatch([
+        { definition: cleanupJob, input: {} },
+        { definition: pendingJob, input: {} },
+      ]),
+    ).rejects.toThrow("oncePending");
+    expect(await harness.getMockShell().jobs.getRecentJobs()).toEqual([]);
   });
 
   it("reports the batch as one piece of work", async () => {

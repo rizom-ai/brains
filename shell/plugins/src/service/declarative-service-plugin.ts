@@ -14,12 +14,14 @@ import {
   type Template,
   type TemplateDataSchema,
 } from "@brains/templates";
+import { registerDeclaredSubscriptions } from "../interface/declared-subscriptions";
 import { createRequester } from "../internal/requester";
 import type { EntityReactionContext } from "../entity/entity-definition-contract";
 import type { InboxItemDetail } from "../inbox-registry";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
 import { parseWithSchema } from "@brains/utils/parse-schema";
+import { runCleanups } from "../internal/cleanup";
 import { emptyPluginState } from "../base/empty-state";
 import type {
   PluginCapabilities,
@@ -90,10 +92,14 @@ import {
   getServiceJobHandler,
   getServiceJobSettledHandler,
   parseServiceDeadline,
+  prepareServiceJobInput,
 } from "./service-definition-contract";
 import {
   bindServiceJobRuntimeType,
   unbindServiceJobRuntimeType,
+  getServiceJobRuntimeType,
+  createServiceJobRequest,
+  registerServiceJobResultReader,
 } from "./job-definition-runtime";
 import { normalizeSameOriginPath } from "../internal/same-origin-path";
 import { createRuntimeTool } from "./tool-runtime";
@@ -190,7 +196,7 @@ function runtimeJobHandler(
   const definition = binding.definition;
   const handler = getServiceJobHandler(binding);
   const settled = getServiceJobSettledHandler(binding);
-  return {
+  const runtime: JobHandler<string, unknown, unknown> = {
     ...(definition.deadline
       ? { executionTimeoutMs: parseServiceDeadline(definition.deadline) }
       : {}),
@@ -208,8 +214,12 @@ function runtimeJobHandler(
         }
       : {}),
     validateAndParse(data): unknown | null {
-      const parsed = definition.input.safeParse(data);
-      return parsed.success ? parsed.data : null;
+      try {
+        return prepareServiceJobInput(binding, data);
+      } catch (error) {
+        if (error instanceof z.ZodError) return null;
+        throw error;
+      }
     },
     async process(
       input: unknown,
@@ -290,9 +300,20 @@ function runtimeJobHandler(
           },
         },
       });
-      return definition.output.parse(output);
+      // Store the validated wire result, not a schema transform's output.
+      // status() parses the stored value for its typed reader.
+      const serialized = JSON.stringify(output);
+      if (!serialized)
+        throw new Error(
+          `Job "${definition.name}" output must be JSON-serializable`,
+        );
+      const wireOutput: unknown = JSON.parse(serialized);
+      definition.output.parse(wireOutput);
+      return wireOutput;
     },
   };
+  registerServiceJobResultReader(runtime, definition);
+  return runtime;
 }
 
 /** What the queue files for one operation in a batch. */
@@ -489,11 +510,9 @@ class DeclarativeServicePlugin<
           this.publicId,
         ),
         messaging: {
-          request: (message) =>
-            context.messaging.send({
-              type: message.type,
-              payload: message.payload,
-            }),
+          request: createRequester((message) =>
+            context.messaging.send(message),
+          ),
           publish: async (message): Promise<void> => {
             await context.messaging.send({
               type: message.topic,
@@ -664,11 +683,9 @@ class DeclarativeServicePlugin<
                 : {}),
             }),
           messaging: {
-            request: (message) =>
-              context.messaging.send({
-                type: message.type,
-                payload: message.payload,
-              }),
+            request: createRequester((message) =>
+              context.messaging.send(message),
+            ),
             publish: async (message): Promise<void> => {
               await context.messaging.send({
                 type: message.topic,
@@ -709,63 +726,11 @@ class DeclarativeServicePlugin<
         state: this.state,
         jobs: this.jobs(),
       }) ?? [];
-    const topics = new Set<string>();
-    for (const subscription of subscriptions) {
-      if (topics.has(subscription.topic)) {
-        throw new Error(
-          `Service "${this.definition.id}" subscribes to "${subscription.topic}" more than once`,
-        );
-      }
-      topics.add(subscription.topic);
-      context.messaging.subscribe(subscription.topic, async (message) => {
-        const payload = subscription.payload.safeParse(message.payload);
-        if (!payload.success) {
-          return {
-            success: false,
-            error: `Service "${this.definition.id}" rejected a malformed "${subscription.topic}" request`,
-          };
-        }
-        try {
-          const answered = await subscription.handle({
-            payload: payload.data,
-            source: message.source,
-            entities: context.entityService,
-            identity: context.identity,
-            messaging: {
-              request: createRequester((outbound) =>
-                context.messaging.send(outbound),
-              ),
-              publish: async (message): Promise<void> => {
-                await context.messaging.send({
-                  type: message.topic,
-                  payload: message.data,
-                  broadcast: true,
-                });
-              },
-            },
-          });
-          // A declared response is checked here rather than trusted: the
-          // asker is promised what the contract says, and the package that
-          // answered is where a mismatch can still be fixed.
-          const response = subscription.response?.safeParse(answered);
-          if (response && !response.success) {
-            return {
-              success: false,
-              error: `Service "${this.definition.id}" answered "${subscription.topic}" with something its contract does not describe`,
-            };
-          }
-          return { success: true, data: response ? response.data : answered };
-        } catch (error) {
-          // A handler that cannot answer says so by throwing; the caller sees
-          // a failed response rather than a successful one wrapping a refusal.
-          return {
-            success: false,
-            code: "handler_failed",
-            error: getErrorMessage(error),
-          };
-        }
-      });
-    }
+    registerDeclaredSubscriptions({
+      label: `Service "${this.definition.id}"`,
+      subscriptions,
+      context,
+    });
 
     const templates = this.templateFormatter(context);
     // Scoped like the entity-side slot, so two packages can each declare a
@@ -1196,9 +1161,7 @@ class DeclarativeServicePlugin<
       unbindServiceJobRuntimeType(job, `${this.id}:${job.name}`);
     }
     this.registeredJobs.clear();
-    for (const cleanup of this.cleanups.splice(0).reverse()) {
-      await cleanup();
-    }
+    await runCleanups(this.cleanups);
   }
 
   private bindOperatorDefinitions(context: ServicePluginContext): void {
@@ -1371,36 +1334,18 @@ class DeclarativeServicePlugin<
             `Service "${this.publicId}" cannot enqueue unregistered job "${definition.name}"`,
           );
         }
-        const data = definition.input.parse(input);
         const toolContext = this.toolContext.getStore();
-        const maxRetries = definition.retry
-          ? definition.retry.attempts - 1
-          : undefined;
-        const pendingKey = definition.oncePending?.(data);
         const id = await context.jobs.enqueue({
-          type: definition.name,
-          data,
+          ...createServiceJobRequest(definition, input, this.id),
           ...(toolContext ? { toolContext } : {}),
-          options: {
-            source: this.id,
-            metadata: {
-              operationType: "data_processing",
-              pluginId: this.id,
-            },
-            ...(maxRetries !== undefined ? { maxRetries } : {}),
-            ...(pendingKey !== undefined
-              ? {
-                  deduplication: "skip" as const,
-                  deduplicationKey: pendingKey,
-                }
-              : {}),
-          },
         });
         return Object.freeze({
           id,
           status: async () => {
             const job = await context.jobs.getStatus(id);
-            return job ? statusFor(definition, job) : null;
+            return job?.type === getServiceJobRuntimeType(definition)
+              ? statusFor(definition, job)
+              : null;
           },
         });
       },
@@ -1409,7 +1354,9 @@ class DeclarativeServicePlugin<
         id: string,
       ): Promise<ServiceJobStatus<z.output<TDefinition["output"]>> | null> {
         const job = await context.jobs.getStatus(id);
-        return job ? statusFor(definition, job) : null;
+        return job?.type === getServiceJobRuntimeType(definition)
+          ? statusFor(definition, job)
+          : null;
       },
       enqueueBatch: async (
         operations,
@@ -1423,13 +1370,27 @@ class DeclarativeServicePlugin<
           }
         }
         const id = await context.jobs.enqueueBatch(
-          operations.map((operation) => ({
-            type: operation.definition.name,
-            // The queue files a record, and a declared input is one.
-            data: batchOperationData.parse(
-              operation.definition.input.parse(operation.input),
-            ),
-          })),
+          operations.map((operation) => {
+            // A batch must own each child's completion/progress. Sharing a
+            // pending job with another root cannot honor that ownership.
+            if (operation.definition.oncePending) {
+              throw new Error(
+                `Job "${operation.definition.name}" uses oncePending and cannot be enqueued as a batch child`,
+              );
+            }
+            const request = createServiceJobRequest(
+              operation.definition,
+              operation.input,
+              this.id,
+            );
+            return {
+              type: request.type,
+              data: batchOperationData.parse(request.data),
+              ...(request.options?.maxRetries !== undefined
+                ? { maxRetries: request.options.maxRetries }
+                : {}),
+            };
+          }),
           {
             source: this.id,
             ...(options?.priority !== undefined

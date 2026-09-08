@@ -1,8 +1,13 @@
 # Public API `0.2`
 
-This is the patch-stable public API ledger for the `0.2.x` line, covering
-external authoring and headless browser contracts. A symbol is stable only when
-it appears below. The machine-readable source is
+> **Candidate contract; stable nomination is pending.** Breaking alpha cleanup
+> is allowed before the stable freeze. The patch-compatibility promise and
+> later-minor requirement for breaking changes begin only when stable `0.2.0`
+> is published; historical alpha releases do not establish those guarantees.
+
+This is the proposed patch-stable public API ledger for the `0.2.x` line,
+covering external authoring and headless browser contracts. Only symbols listed
+below are nominated for the stable contract. The machine-readable source is
 [`export-ledger.json`](../../packages/brain-cli/test/fixtures/public-authoring/export-ledger.json).
 Authoring packages beside that ledger and the separate packed headless Chat
 consumer are the compatibility fixtures.
@@ -574,4 +579,4 @@ Internal `@brains/*` packages, runtime classes, contexts, registries, queue type
 
 ## Compatibility rule
 
-A `0.2.x` candidate must compile and run the frozen entity, service, account-settings-interface, operator-surface, generic-interface, message-interface, site, and brain-definition fixtures without source changes. Additive stable exports require an updated ledger and compatibility fixture; breaking these names or behaviors requires a later minor release.
+After stable `0.2.0` is published, a `0.2.x` patch candidate must compile and run the frozen entity, service, account-settings-interface, operator-surface, generic-interface, message-interface, site, and brain-definition fixtures without source changes. Additive stable exports require an updated ledger and compatibility fixture; breaking these names or behaviors requires a later minor release. Before that freeze, breaking alpha cleanup must update the examples and evidence rather than preserve obsolete authoring paths.

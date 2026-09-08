@@ -1,4 +1,5 @@
 import { SITE_BUILD_MANIFEST_PATH } from "@brains/contracts";
+import { matchHttpRoute } from "@brains/utils/http-utils";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type { AppInfo, RuntimeReadiness, IMessageBus } from "@brains/plugins";
@@ -445,18 +446,11 @@ export class ServerManager {
       (route): route is RegisteredHandlerHttpRoute =>
         route.kind === "handler" && route.method === requestMethod,
     );
-    const handlerRoute =
-      handlerRoutes.find(
-        (route) => route.match === "exact" && route.fullPath === requestPath,
-      ) ??
-      handlerRoutes
-        .filter(
-          (route) =>
-            route.match === "prefix" &&
-            (requestPath === route.fullPath ||
-              requestPath.startsWith(`${route.fullPath.replace(/\/$/, "")}/`)),
-        )
-        .sort((left, right) => right.fullPath.length - left.fullPath.length)[0];
+    const handlerRoute = matchHttpRoute(
+      handlerRoutes,
+      requestPath,
+      (route) => ({ path: route.fullPath, match: route.match }),
+    );
     if (handlerRoute) {
       if (handlerRoute.sharedHostAdmission === "deny") {
         return c.text("Unauthorized", 401);

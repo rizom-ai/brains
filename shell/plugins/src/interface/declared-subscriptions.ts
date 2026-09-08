@@ -35,31 +35,43 @@ export function registerDeclaredSubscriptions(input: {
       if (!payload.success) {
         return {
           success: false,
+          code: "invalid_input",
           error: `${label} rejected a malformed "${subscription.topic}" request`,
         };
       }
       try {
-        return {
-          success: true,
-          data: await subscription.handle({
-            payload: payload.data,
-            source: message.source,
-            entities: context.entityService,
-            identity: context.identity,
-            messaging: {
-              request: createRequester((outbound) =>
-                context.messaging.send(outbound),
-              ),
-              publish: async (outbound): Promise<void> => {
-                await context.messaging.send({
-                  type: outbound.topic,
-                  payload: outbound.data,
-                  broadcast: true,
-                });
-              },
+        const answered = await subscription.handle({
+          payload: payload.data,
+          source: message.source,
+          entities: context.entityService,
+          identity: context.identity,
+          messaging: {
+            request: createRequester((outbound) =>
+              context.messaging.send(outbound),
+            ),
+            publish: async (outbound): Promise<void> => {
+              await context.messaging.send({
+                type: outbound.topic,
+                payload: outbound.data,
+                broadcast: true,
+              });
             },
-          }),
-        };
+          },
+        });
+        // Validate the wire value here; typed requesters parse that same value
+        // at their boundary. Sending the transformed output would apply a
+        // response transform to its own output instead of its declared input.
+        if (
+          subscription.response &&
+          !subscription.response.safeParse(answered).success
+        ) {
+          return {
+            success: false,
+            code: "invalid_response",
+            error: `${label} answered "${subscription.topic}" with something its contract does not describe`,
+          };
+        }
+        return { success: true, data: answered };
       } catch (error) {
         return {
           success: false,

@@ -1,3 +1,4 @@
+import type { SubscriptionRequester } from "../contracts/subscription";
 import type { ProjectionSourceRole } from "@brains/entity-service";
 import type { EntityActionPolicyRule, Template } from "@brains/templates";
 import type { AnchorProfile } from "../contracts/identity";
@@ -683,10 +684,7 @@ export interface EntityInboxDeclaration {
  * licence to reach the whole runtime.
  */
 export interface ReactionMessaging extends JobMessagePublisher {
-  request(message: {
-    readonly type: string;
-    readonly payload: unknown;
-  }): Promise<unknown>;
+  readonly request: SubscriptionRequester;
 }
 
 export interface EntityReactionContext {

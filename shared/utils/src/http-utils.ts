@@ -2,6 +2,32 @@
  * HTTP utility functions
  */
 
+/** Exact paths win; otherwise choose the longest segment-boundary prefix. */
+export function matchHttpRoute<T>(
+  routes: readonly T[],
+  pathname: string,
+  describe: (route: T) => {
+    readonly path: string;
+    readonly match?: "exact" | "prefix" | undefined;
+  },
+): T | undefined {
+  let prefix: T | undefined;
+  let prefixLength = -1;
+  for (const route of routes) {
+    const { path, match = "exact" } = describe(route);
+    if (match === "exact") {
+      if (path === pathname) return route;
+    } else if (
+      path.length > prefixLength &&
+      (pathname === path || pathname.startsWith(`${path.replace(/\/$/, "")}/`))
+    ) {
+      prefix = route;
+      prefixLength = path.length;
+    }
+  }
+  return prefix;
+}
+
 /**
  * Check if string is an HTTP(S) URL
  */

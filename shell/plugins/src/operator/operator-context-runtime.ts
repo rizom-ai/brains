@@ -8,7 +8,10 @@ import type { z } from "@brains/utils/zod";
 import { parseDefinitionEntity } from "../entity/entity-schema";
 import type { EntityDefinitionShape, EntityOf } from "../entity/entity-shape";
 import type { BasePluginContext } from "../base/context";
-import { getServiceJobRuntimeType } from "../service/job-definition-runtime";
+import {
+  createServiceJobRequest,
+  getServiceJobRuntimeType,
+} from "../service/job-definition-runtime";
 import type {
   AccountSettingsValue,
   AnyAccountSettingsDefinition,
@@ -73,17 +76,9 @@ function createOperatorJobs(context: BasePluginContext): OperatorJobs {
       input: z.input<TDefinition["input"]>,
     ): Promise<OperatorJobReference<TDefinition>> {
       const runtimeType = getServiceJobRuntimeType(definition);
-      const id = await context.jobs.enqueue({
-        type: runtimeType,
-        data: definition.input.parse(input),
-        options: {
-          source: context.pluginId,
-          metadata: {
-            operationType: "data_processing",
-            pluginId: context.pluginId,
-          },
-        },
-      });
+      const id = await context.jobs.enqueue(
+        createServiceJobRequest(definition, input, context.pluginId),
+      );
       return Object.freeze({
         id,
         status: async (): Promise<OperatorJobStatus<

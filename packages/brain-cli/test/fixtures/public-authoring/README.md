@@ -5,11 +5,12 @@ are the executable reference for the external `0.2.x` authoring API. They are de
 six unrelated snippets: a Brain that saves bookmarks, derives reading digests,
 accepts webhook and Campfire events, and renders a reading-library site.
 
-> **Last exact eight-package registry baseline:** `@rizom/brain@0.2.0-alpha.313`
-> and `@rizom/site@0.2.0-alpha.233`. These are review candidates, not stable release
-> recommendations. The original six fixtures retain their proven
-> `>=0.2.0-alpha.272` compatibility floor; account settings retains
-> `>=0.2.0-alpha.304`, and operator composition requires `>=0.2.0-alpha.313`.
+> **Current-tree tarball evidence, not a registry nomination.** These private
+> fixtures pin the local Brain package version, `0.2.0-alpha.357`, and the local
+> packed runner supplies that checkout's artifact. Historical registry evidence
+> (`alpha.313` with Site `alpha.233`) predates the breaking definitions now used
+> here. It does not prove these fixtures, nor does a matching version string on
+> npm prove the current-tree artifact. Verified release floors remain pending.
 
 Start with the practical guide at `docs/external-plugin-authoring.md`. Use this
 directory when you want complete source, manifests, and TypeScript
@@ -68,10 +69,9 @@ the stable ledger, and the Phase 6 packed consumer installs both with the
 entity/service dependencies from one immutable Brain tarball. The operator
 fixture compiles typed Dashboard and Studio profiles, host-owned query state,
 dynamic entity catalogs, prepared confirmation, and bounded view composition
-without UI code. The account-settings fixture retains its
-`>=0.2.0-alpha.304` floor; the operator fixture requires
-`>=0.2.0-alpha.313`, the first release containing its complete card/columns
-contract. The operator fixture's
+without UI code. Both fixtures target the current-tree Brain tarball, like the
+other six; historical export-only evidence is not a compatibility floor for
+their current definitions. The operator fixture's
 [capability inventory](./operator-surface/CAPABILITY_INVENTORY.md) records the
 checked built-in equivalence boundary.
 
@@ -136,20 +136,20 @@ Every reference package has:
 - one default definition export;
 - generated JavaScript/declaration export paths;
 - a self-contained strict `tsconfig.json` with no monorepo `extends`;
-- the applicable proven Brain peer lower bound: alpha.272 for the original six,
-  alpha.304 for account settings, and alpha.313 for operator composition;
+- an exact Brain peer pin matching the local candidate package version;
 - only public family imports in author source.
 
-The test harness injects exact SDK development dependencies while building the
-fixtures. A real external package should declare both:
+The test harness injects the built SDK tarball while building the fixtures.
+For a standalone review package, obtain `rizom-brain.tgz` using the practical
+guide's build/pack instructions and declare:
 
 ```json
 {
   "peerDependencies": {
-    "@rizom/brain": ">=0.2.0-alpha.313 <0.3.0"
+    "@rizom/brain": "0.2.0-alpha.357"
   },
   "devDependencies": {
-    "@rizom/brain": "0.2.0-alpha.313"
+    "@rizom/brain": "file:../rizom-brain.tgz"
   }
 }
 ```
@@ -197,15 +197,16 @@ The npm registry matrix is opt-in and exact-version only:
 
 ```bash
 RIZOM_PUBLIC_API_REGISTRY_EVIDENCE=1 \
-RIZOM_PUBLIC_API_BRAIN_VERSION=0.2.0-alpha.313 \
-RIZOM_PUBLIC_API_SITE_VERSION=0.2.0-alpha.233 \
+RIZOM_PUBLIC_API_BRAIN_VERSION=<published-candidate-matching-fixture-pins> \
+RIZOM_PUBLIC_API_SITE_VERSION=<published-compatible-site> \
 bun test packages/brain-cli/test/public-authoring-registry-packed.test.ts
 ```
 
 It verifies installed versions, licenses, declarations, export maps, removed
 entry points, all eight fixture builds, and standalone startup. It refuses
-ranges and preserves each fixture's first-containing-release floor while
-requiring the nominated alpha to satisfy every peer range.
+ranges and requires the nominated alpha to match the fixtures' exact peer pins.
+Update those pins and rerun the evidence against the actual published candidate
+before claiming registry compatibility or choosing a wider release range.
 
 The provider-backed nomination harness is separately opt-in and requires an
 explicitly supplied provider key. It installs the same exact registry versions

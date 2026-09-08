@@ -1,3 +1,4 @@
+import type { MessageErrorCode } from "@brains/messaging-service";
 import type { z } from "@brains/utils/zod";
 import type {
   BaseEntity,
@@ -103,14 +104,14 @@ export interface SubscriptionRequester {
  * What an ask answers with: the parsed response, or why there is none.
  *
  * A refusal the answering package meant to give is a successful answer whose
- * data says so. This is the other kind: nobody listening, the handler threw,
- * or what came back was not what the contract declared.
+ * data says so. This is the other kind: nobody listening, invalid input, a
+ * handler failure, or an answer that did not match the declared response.
  */
 export type RequestResult<TResponseSchema extends SubscriptionPayloadSchema> =
   | { readonly ok: true; readonly data: z.output<TResponseSchema> }
   | {
       readonly ok: false;
-      readonly code: "no_handler" | "handler_failed" | "invalid_response";
+      readonly code: MessageErrorCode;
     };
 
 /**
@@ -133,9 +134,9 @@ export interface SubscriptionDefinition<
   readonly payload: TPayloadSchema;
   /**
    * What this answers with, when it answers a request rather than reacting
-   * to news. The runtime parses the handler’s return through it, so an asker
-   * naming the same contract is handed an answer that matched — and hears
-   * about it when one does not.
+   * to news. The runtime validates the handler's wire return through it;
+   * typed askers parse that wire value at their boundary. Transformed values
+   * are never fed back into the schema as though they were fresh inputs.
    */
   readonly response?: SubscriptionPayloadSchema | undefined;
   handle(context: {

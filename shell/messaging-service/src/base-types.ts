@@ -14,11 +14,20 @@ import { z } from "@brains/utils/zod";
  * - `no_handler`: nothing is listening on that channel, so the capability is
  *   not present in this brain rather than broken.
  * - `handler_failed`: something answered and threw.
+ * - `invalid_input`: the request did not match the declared payload.
+ * - `invalid_response`: the answer did not match the declared response.
  */
 export const messageErrorCodeSchema: z.ZodEnum<{
   no_handler: "no_handler";
   handler_failed: "handler_failed";
-}> = z.enum(["no_handler", "handler_failed"]);
+  invalid_input: "invalid_input";
+  invalid_response: "invalid_response";
+}> = z.enum([
+  "no_handler",
+  "handler_failed",
+  "invalid_input",
+  "invalid_response",
+]);
 
 export type MessageErrorCode = z.output<typeof messageErrorCodeSchema>;
 

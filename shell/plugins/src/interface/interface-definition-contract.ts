@@ -7,7 +7,9 @@ import type {
 import type {
   AnyServiceJobDefinition,
   AnyServiceToolDefinition,
+  ServiceLifecycle,
 } from "../service/service-definition-contract";
+import type { SubscriptionRequester } from "../contracts/subscription";
 import type { IAuthRegistry } from "../contracts/auth-registry";
 import type { IMCPTransport } from "../interfaces";
 import type { AgentNamespace } from "../contracts/agent";
@@ -234,6 +236,8 @@ export interface InterfaceSetupContext<
    * brain asked back. Named consumer: @brains/mcp.
    */
   readonly agent: AgentNamespace;
+  /** Release resources after shutdown or failed registration, in reverse order. */
+  readonly lifecycle: Pick<ServiceLifecycle, "onCleanup">;
   /**
    * Bookkeeping that has to survive a restart.
    *
@@ -380,7 +384,7 @@ export interface InterfaceDefinitionHeader<
            */
           readonly mcpTransport: IMCPTransport;
         },
-      ) => TState)
+      ) => TState | Promise<TState>)
     | undefined;
 }
 
@@ -514,10 +518,7 @@ export type {
 /** The narrow publish surface an interface gets, not the whole bus. */
 export interface MessageInterfacePublisher {
   /** Ask, and read the answer — the same word every other surface uses. */
-  request(message: {
-    readonly type: string;
-    readonly payload: unknown;
-  }): Promise<unknown>;
+  readonly request: SubscriptionRequester;
 }
 
 export interface MessageOutput {

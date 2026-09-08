@@ -3,6 +3,7 @@ import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import {
   createMockShell,
+  createRequester,
   createServicePluginContext,
   createTestEntityAccess,
   createTestJobContext,
@@ -56,7 +57,10 @@ describe("the addresses a site build renders against", () => {
     const binding = handleSiteBuild({
       siteBuilder,
       messaging: {
-        request: async () => ({ success: false, error: "no provider" }),
+        request: createRequester(async () => ({
+          success: false,
+          code: "no_handler",
+        })),
         publish: async (message) => {
           announced.push({ topic: message.topic, data: message.data });
         },

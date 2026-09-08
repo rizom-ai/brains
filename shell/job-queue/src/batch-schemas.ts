@@ -8,6 +8,7 @@ import { JobContextSchema } from "./schema/types";
 type BatchOperationSchema = z.ZodObject<{
   type: z.ZodString;
   data: z.ZodDefault<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+  maxRetries: z.ZodOptional<z.ZodNumber>;
 }>;
 
 /**
@@ -16,6 +17,7 @@ type BatchOperationSchema = z.ZodObject<{
 export const BatchOperationSchema: BatchOperationSchema = z.object({
   type: z.string(),
   data: z.record(z.string(), z.unknown()).default({}),
+  maxRetries: z.number().int().nonnegative().optional(),
 });
 
 export type BatchOperation = z.output<typeof BatchOperationSchema>;

@@ -132,6 +132,7 @@ describe("dashboard service", () => {
 
     it("should declare configured theme assets before the route snapshot", async () => {
       const themeCSS = ":root { --dashboard-accent: lime; }";
+      await harness.reset();
       const themed = await installDashboard(harness, { themeCSS });
 
       const routes = themed.routes();
@@ -909,6 +910,7 @@ describe("dashboard service", () => {
 
       expect(response).toEqual({
         success: false,
+        code: "invalid_input",
         error:
           'Service "dashboard" rejected a malformed "dashboard:unregister-widget" request',
       });
