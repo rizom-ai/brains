@@ -117,6 +117,7 @@ type JobQueueTable = SQLiteTableWithColumns<{
     retryCount: JobQueueIntegerColumn<"retryCount", true, true>;
     maxRetries: JobQueueIntegerColumn<"maxRetries", true, true>;
     lastError: JobQueueTextColumn<"lastError", false>;
+    lastErrorCode: JobQueueTextColumn<"lastErrorCode", false>;
     createdAt: JobQueueIntegerColumn<"createdAt", true, true, true>;
     scheduledFor: JobQueueIntegerColumn<"scheduledFor", true, true, true>;
     startedAt: JobQueueIntegerColumn<"startedAt", false>;
@@ -173,6 +174,7 @@ export const jobQueue: JobQueueTable = sqliteTable(
     retryCount: integer("retryCount").notNull().default(0),
     maxRetries: integer("maxRetries").notNull().default(3),
     lastError: text("lastError"),
+    lastErrorCode: text("lastErrorCode"),
 
     // Timestamps
     createdAt: integer("createdAt")

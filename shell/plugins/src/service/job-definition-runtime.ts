@@ -1,4 +1,6 @@
-import type { EnqueueJobRequest } from "@brains/job-queue";
+import type { EnqueueJobRequest, JobInfo } from "@brains/job-queue";
+import { SdkError, toSdkError, type SdkErrorCode } from "@brains/contracts";
+import type { z } from "@brains/utils/zod";
 import type { AnyServiceJobDefinition } from "./service-definition-contract";
 
 interface RuntimeJobDefinition {
@@ -21,11 +23,16 @@ export function createServiceJobRequest(
   const registered = definitions.get(definition);
   if (!registered)
     throw new Error(`Job "${definition.name}" has no registered definition`);
-  const serialized = JSON.stringify(input);
-  if (!serialized)
-    throw new Error(`Job "${definition.name}" input must be JSON-serializable`);
-  const wireInput: unknown = JSON.parse(serialized);
-  const parsed = registered.input.parse(wireInput);
+  let wireInput: unknown;
+  let parsed: unknown;
+  try {
+    const serialized = JSON.stringify(input);
+    if (!serialized) throw new Error("Input must be JSON-serializable");
+    wireInput = JSON.parse(serialized);
+    parsed = registered.input.parse(wireInput);
+  } catch (error) {
+    throw new SdkError("invalid_input", { cause: error });
+  }
   const pendingKey = registered.oncePending?.(parsed);
   return {
     type,
@@ -48,7 +55,30 @@ export function registerServiceJobResultReader(
   handler: object,
   definition: AnyServiceJobDefinition,
 ): void {
-  resultReaders.set(handler, (result) => definition.output.parse(result));
+  resultReaders.set(handler, (result) =>
+    readServiceJobOutput(definition.output, result),
+  );
+}
+
+/** One output validator for worker results and every public status reader. */
+export function readServiceJobOutput<
+  TSchema extends z.ZodType<unknown, unknown>,
+>(schema: TSchema, value: unknown): z.output<TSchema> {
+  try {
+    return schema.parse(value);
+  } catch (error) {
+    throw new SdkError("invalid_response", { cause: error });
+  }
+}
+
+/** Old/unknown stored codes fall back safely; stored diagnostic text is never public. */
+export function readServiceJobFailure(
+  job: Pick<JobInfo, "status" | "lastError" | "lastErrorCode">,
+): { readonly error: string; readonly code: SdkErrorCode } | undefined {
+  if (job.status !== "failed" && !job.lastError && !job.lastErrorCode)
+    return undefined;
+  const failure = toSdkError({ code: job.lastErrorCode });
+  return { error: failure.message, code: failure.code };
 }
 
 /** A single-attempt harness reads results just as jobs.status reads storage. */
@@ -96,9 +126,9 @@ export function getServiceJobRuntimeType(
 ): string {
   const runtimeType = runtimeTypes.get(definition);
   if (!runtimeType) {
-    throw new Error(
-      `Job "${definition.name}" is not registered by an active declarative service`,
-    );
+    throw new SdkError("no_handler", {
+      message: `Job "${definition.name}" is not registered by an active declarative service`,
+    });
   }
   return runtimeType;
 }

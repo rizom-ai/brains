@@ -208,13 +208,18 @@ class MemoryCoordinator implements ProjectionWaveCoordinator {
 
 describe("ProjectionRuleJobHandler", () => {
   it("selects one immutable input and derives once for an arbitrary dirty set", async () => {
-    const derive = mock(async (): Promise<ProjectionWriteIntent[]> => [
-      {
-        operation: "delete",
-        entityType: "topic",
-        id: "stale-topic",
+    let callbackContext: ProjectionExecutionContext | undefined;
+    const derive = mock(
+      async (
+        _input: { sourceCount: number },
+        context: ProjectionExecutionContext,
+      ): Promise<ProjectionWriteIntent[]> => {
+        callbackContext = context;
+        return [
+          { operation: "delete", entityType: "topic", id: "stale-topic" },
+        ];
       },
-    ]);
+    );
     const rule = defineProjectionRule({
       id: "topics",
       version: "1",
@@ -250,9 +255,12 @@ describe("ProjectionRuleJobHandler", () => {
     );
 
     expect(derive).toHaveBeenCalledTimes(1);
+    expect(callbackContext).not.toBe(executionContext);
+    expect(Object.isFrozen(callbackContext)).toBe(true);
+    expect(Object.keys(callbackContext ?? {}).sort()).toEqual(["ai", "logger"]);
     expect(derive).toHaveBeenCalledWith(
       { sourceCount: 100 },
-      executionContext,
+      callbackContext,
       expect.any(AbortSignal),
     );
     expect(store.applied).toEqual(

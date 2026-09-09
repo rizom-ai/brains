@@ -1,4 +1,5 @@
 import type { z } from "@brains/utils/zod";
+import type { SdkErrorCode } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import type {
   AccountSettingsValue,
@@ -133,6 +134,7 @@ export interface InterfaceJobStatus {
   readonly id: string;
   readonly status: string;
   readonly lastError: string | null;
+  readonly code?: SdkErrorCode | undefined;
 }
 
 export interface InterfaceJobs {

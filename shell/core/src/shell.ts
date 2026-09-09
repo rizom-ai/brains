@@ -35,6 +35,8 @@ import { bindHttpRouteSnapshot } from "@brains/plugins/internal/http-route-snaps
 // Plugin manager
 import {
   createAINamespace,
+  createProjectionInputReader,
+  createProjectionExecutionReader,
   createAttachmentsNamespace,
   createRuntimeUploadsNamespace,
   ProjectionJsonObjectSchema,
@@ -785,7 +787,7 @@ export class Shell implements IShell {
 
   private createProjectionInputContext(): ProjectionInputContext {
     const conversationService = this.services.conversationService;
-    return {
+    return createProjectionInputReader({
       entities: this.services.entityService,
       spaces: this.config.spaces,
       conversations: {
@@ -831,14 +833,14 @@ export class Shell implements IShell {
             : {}),
         });
       },
-    };
+    });
   }
 
   private createProjectionExecutionContext(): ProjectionExecutionContext {
-    return {
+    return createProjectionExecutionReader({
       ai: createAINamespace(this),
       logger: this.services.logger.child("ProjectionRuntime"),
-    };
+    });
   }
 
   /**

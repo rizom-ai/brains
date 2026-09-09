@@ -1,7 +1,13 @@
 import type { MessageResponse } from "@brains/messaging-service";
+import { SdkError, toSdkError, type SdkErrorCode } from "@brains/contracts";
 import { type Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import { toolResponseSchema, type Tool, type ToolResponse } from "./types";
+import {
+  toolResponseSchema,
+  type Tool,
+  type ToolResponse,
+  type ToolErrorResponse,
+} from "./types";
 
 interface ToolResponseValidationContext {
   pluginId: string;
@@ -9,20 +15,9 @@ interface ToolResponseValidationContext {
   logger: Logger;
 }
 
-function invalidToolResponse(toolName: string): ToolResponse {
-  return {
-    success: false,
-    error: `Tool ${toolName} returned an invalid response shape`,
-  };
-}
-
-function invalidEnvelopeResponse(
-  toolName: string,
-): MessageResponse<ToolResponse> {
-  return {
-    success: false,
-    error: `Tool ${toolName} returned an invalid message response envelope`,
-  };
+function invalidToolResponse(): ToolErrorResponse & { code: SdkErrorCode } {
+  const failure = new SdkError("invalid_response");
+  return { success: false, error: failure.message, code: failure.code };
 }
 
 /**
@@ -33,7 +28,11 @@ function invalidEnvelopeResponse(
  */
 const toolExecutionEnvelopeSchema = z.union([
   z.looseObject({ success: z.literal(true) }),
-  z.object({ success: z.literal(false), error: z.string() }),
+  z.object({
+    success: z.literal(false),
+    error: z.string(),
+    code: z.string().optional(),
+  }),
 ]);
 
 function hasEnvelopeData(value: {
@@ -59,20 +58,22 @@ export function normalizeToolResponse(
       toolName: context.toolName,
       issues: [{ path: ["data"], message: "Required" }],
     });
-    return invalidToolResponse(context.toolName);
+    return invalidToolResponse();
   }
 
   if (parsed.success) {
+    // Explicit native/protocol responses own their domain refusal messages.
+    // Runtime-generated failures are sanitized where the exception is caught.
     return parsed.data;
   }
 
   context.logger.error("Tool returned non-compliant response", {
     pluginId: context.pluginId,
     toolName: context.toolName,
-    issues: parsed.error.issues,
+    issueCodes: parsed.error.issues.map((issue) => issue.code),
   });
 
-  return invalidToolResponse(context.toolName);
+  return invalidToolResponse();
 }
 
 export function normalizeToolExecutionMessageResponse(
@@ -85,22 +86,21 @@ export function normalizeToolExecutionMessageResponse(
     context.logger.error("Tool returned non-compliant message response", {
       pluginId: context.pluginId,
       toolName: context.toolName,
-      response,
     });
-    return invalidEnvelopeResponse(context.toolName);
+    return invalidToolResponse();
   }
 
   if (!parsed.data.success) {
-    return { success: false, error: parsed.data.error };
+    const failure = toSdkError(parsed.data);
+    return { success: false, error: failure.message, code: failure.code };
   }
 
   if (!hasEnvelopeData(parsed.data)) {
     context.logger.error("Tool returned non-compliant message response", {
       pluginId: context.pluginId,
       toolName: context.toolName,
-      response,
     });
-    return invalidEnvelopeResponse(context.toolName);
+    return invalidToolResponse();
   }
 
   return {
@@ -117,12 +117,19 @@ export function wrapToolWithResponseValidation(
   return {
     ...tool,
     handler: async (input, context): Promise<ToolResponse> => {
-      const raw = await tool.handler(input, context);
-      return normalizeToolResponse(raw, {
-        pluginId,
-        toolName: tool.name,
-        logger,
-      });
+      let fallback: SdkErrorCode = "handler_failed";
+      try {
+        const raw = await tool.handler(input, context);
+        fallback = "invalid_response";
+        return normalizeToolResponse(raw, {
+          pluginId,
+          toolName: tool.name,
+          logger,
+        });
+      } catch (error) {
+        const failure = toSdkError(error, fallback);
+        return { success: false, error: failure.message, code: failure.code };
+      }
     },
   };
 }

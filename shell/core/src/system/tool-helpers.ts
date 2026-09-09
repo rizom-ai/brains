@@ -11,7 +11,7 @@ import type {
   PermissionService,
   UserPermissionLevel,
 } from "@brains/templates";
-import { getErrorMessage } from "@brains/utils/error";
+import { toSdkError, type SdkErrorCode } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
@@ -84,17 +84,14 @@ export function createSystemTool<TSchema extends z.ZodObject<z.ZodRawShape>>(
     description,
     inputSchema: inputSchema.shape,
     handler: async (input, context): Promise<ToolResponse> => {
-      const parseResult = inputSchema.safeParse(input);
-      if (!parseResult.success) {
-        return {
-          success: false,
-          error: `Invalid input: ${parseResult.error.issues.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`,
-        };
-      }
+      let fallback: SdkErrorCode = "invalid_input";
       try {
-        return await handler(parseResult.data, context);
+        const parsed = inputSchema.parse(input);
+        fallback = "handler_failed";
+        return await handler(parsed, context);
       } catch (error) {
-        return { success: false, error: getErrorMessage(error) };
+        const failure = toSdkError(error, fallback);
+        return { success: false, error: failure.message, code: failure.code };
       }
     },
     visibility,

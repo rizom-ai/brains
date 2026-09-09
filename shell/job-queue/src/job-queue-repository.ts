@@ -16,6 +16,7 @@ import {
 import { jobQueue, jobWorkerSessions } from "./schema/job-queue";
 import type { InsertJobQueue, JobQueue } from "./schema/job-queue";
 import { getErrorMessage } from "@brains/utils/error";
+import { toSdkError } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import { KeyedSerialQueue } from "@brains/utils/serial-queue";
 import { JOB_STATUS } from "./schemas";
@@ -524,6 +525,7 @@ export class JobQueueRepository {
         status: JOB_STATUS.COMPLETED,
         result,
         lastError: null,
+        lastErrorCode: null,
         completedAt: now,
         runtimeUpdatedAt: this.nextRuntimeUpdatedAt(now),
       })
@@ -616,6 +618,7 @@ export class JobQueueRepository {
     const job = current[0];
     if (!job) return false;
 
+    const failure = toSdkError(error);
     const canRetry = job.retryCount < job.maxRetries;
     const nextRetryCount = canRetry ? job.retryCount + 1 : job.retryCount;
     const backoffMs = Math.min(1000 * 2 ** job.retryCount, 60_000);
@@ -625,7 +628,8 @@ export class JobQueueRepository {
       .set({
         status: canRetry ? JOB_STATUS.PENDING : JOB_STATUS.FAILED,
         retryCount: nextRetryCount,
-        lastError: error.message,
+        lastError: failure.message,
+        lastErrorCode: failure.code,
         scheduledFor,
         completedAt: canRetry ? null : now,
         runtimeUpdatedAt: canRetry
@@ -683,6 +687,7 @@ export class JobQueueRepository {
       .set({
         status: JOB_STATUS.FAILED,
         lastError: reason,
+        lastErrorCode: "no_handler",
         completedAt: request.now,
         runtimeUpdatedAt: this.nextRuntimeUpdatedAt(request.now),
       })
@@ -1013,6 +1018,7 @@ export class JobQueueRepository {
         status: sql`CASE WHEN ${terminalReclaim} THEN ${JOB_STATUS.FAILED} ELSE ${JOB_STATUS.PROCESSING} END`,
         retryCount: sql`CASE WHEN ${jobQueue.status} = ${JOB_STATUS.PROCESSING} THEN ${jobQueue.retryCount} + 1 ELSE ${jobQueue.retryCount} END`,
         lastError: sql`CASE WHEN ${jobQueue.status} = ${JOB_STATUS.PROCESSING} THEN 'Attempt lease expired' ELSE ${jobQueue.lastError} END`,
+        lastErrorCode: sql`CASE WHEN ${jobQueue.status} = ${JOB_STATUS.PROCESSING} THEN 'deadline_exceeded' ELSE ${jobQueue.lastErrorCode} END`,
         startedAt: sql`CASE WHEN ${terminalReclaim} THEN ${jobQueue.startedAt} ELSE ${now} END`,
         completedAt: sql`CASE WHEN ${terminalReclaim} THEN ${now} ELSE NULL END`,
         attemptId: sql`CASE WHEN ${terminalReclaim} THEN ${jobQueue.attemptId} ELSE ${attemptId} END`,

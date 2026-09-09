@@ -34,6 +34,49 @@ describe("ProfileKindRegistry", () => {
     expect(Object.isFrozen(selectedDefinition?.labels)).toBe(true);
   });
 
+  test("publishes only validated metadata and the declared schema", () => {
+    const registry = new ProfileKindRegistry("artist");
+    const definition = {
+      ...artistDefinition,
+      privateRuntime: { replaceSelection: (): void => {} },
+    };
+    registry.register("artist-plugin", definition);
+    registry.finalize();
+    const selected = registry.getSelectedDefinition();
+    expect(Object.keys(selected ?? {}).sort()).toEqual([
+      "category",
+      "fields",
+      "kind",
+      "labels",
+    ]);
+    expect(selected).not.toHaveProperty("privateRuntime");
+    expect(selected?.fields).toBe(definition.fields);
+  });
+
+  test("does not evaluate undeclared getters and reads the fields schema once", () => {
+    const registry = new ProfileKindRegistry("artist");
+    let reads = 0;
+    const definition = {
+      ...artistDefinition,
+      get fields(): typeof artistDefinition.fields {
+        reads++;
+        return artistDefinition.fields;
+      },
+      get privateRuntime(): never {
+        throw new Error("Undeclared getter must not run");
+      },
+    };
+    registry.register("artist-plugin", definition);
+    registry.finalize();
+    expect(reads).toBe(1);
+    expect(registry.getSelectedDefinition()?.fields).toBe(
+      artistDefinition.fields,
+    );
+    expect(registry.getSelectedDefinition()).not.toHaveProperty(
+      "privateRuntime",
+    );
+  });
+
   test("rejects an unknown selected kind", () => {
     const registry = new ProfileKindRegistry("artist");
 

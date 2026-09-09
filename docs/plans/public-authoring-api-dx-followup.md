@@ -7,6 +7,610 @@ acceptance and DX gaps below are fixed; broader unchecked criteria are not
 implicitly signed off. Exact-registry evidence and stable nomination remain
 separate.**
 
+### Validated continuation checkpoint
+
+This commit collects the completed continuation work after `6b1efb3f88`: response
+inference, shared errors and job/batch follow-through, runtime capability and
+metadata projections, state/upload owner isolation, and UI build-race fixes.
+Validation passes with **33 public SDK tests**, **103/103 typecheck**, **101/101
+test**, **96/96 lint** tasks, **7/7 fresh packed scenarios**, and the complete
+surface/static/documentation gate set.
+
+The historical **uncommitted** labels and no-commit statements below describe
+each slice when recorded; their completed changes are included in this checkpoint.
+The whole-surface callback and obsolete-path inventory remains open. This is not
+final DX sign-off, exact-registry evidence, publication, or stable nomination.
+
+### Internal DX continuation after 6b1efb3f88
+
+Known defects are addressed and verified internally; external feedback is not a
+gate or a substitute for resolving reproduced defects.
+
+- [x] Replace the inline literal-response workaround with sound const return
+      inference for routes, tools, and subscriptions. Preserve schema input
+      constraints while accepting immutable record/array/tuple answers. Positive
+      and negative probes cover sync/async handlers, unions, tuple positions,
+      transformed outputs, and nominal objects. Remove the golden health route
+      annotation and the subscription test's literal-return annotation.
+- [x] Narrow the runtime subscription entity object, not just its declared type.
+      A public-harness probe found `createEntity`, `updateEntity`, and
+      `deleteEntity` reachable from a nominal reader. Every subscription family
+      now receives only frozen `getEntity`, `listEntities`, and `getEntityTypes`
+      methods, with positive read and negative capability tests.
+- [x] Complete the accepted shared-error disposition (F), including its named
+      boundary consumers and job/batch follow-through. This is a bounded shared
+      contract, not an exhaustive taxonomy of arbitrary third-party exceptions.
+      One shared `SdkErrorCode` schema and `SdkError` now replace the message-only
+      and upload-specific families. Declared tools, typed requests, HTTP failures,
+      MCP runtime envelopes, and durable job readers preserve codes and sanitize
+      unclassified exceptions. SQLite stores `lastErrorCode` alongside safe text;
+      completion clears both. Server-side status readers sanitize old/unknown codes.
+      Regressions cover independently bundled copies, changed diagnostic wording,
+      JSON serialization, real HTTP, worker validation/deadlines, terminal hooks,
+      and reopened SQLite. Terminal hooks require successfully parsed input.
+      Known application refusals opt into a bounded `publicMessage`, separate
+      from diagnostic `message`/`cause`; raw provider errors remain private.
+      Migrate stale playbook and duplicate-workspace refusals to `conflict`,
+      and classify known invalid inputs, missing resources, and denied host
+      registrations without matching message text. Mid-flight cancellation
+      uses the authoritative signal even when its reason is a plain `Error`.
+      Packed testing caught over-broad MCP normalization hiding an intentional
+      duplicate-entity refusal: explicit native/protocol responses must remain
+      intact, with sanitization at the actual exception-catching boundary instead.
+      Batch status/progress now carry shared `{ code, message }` records rather
+      than raw stored strings. Missing children, unknown codes, and failed rows
+      with no diagnostic get safe coded failures. Schema-valid declared job
+      refusals complete as domain data; native handlers keep their active
+      controlled-failure protocol. Malformed durable JSON reports `invalid_input`.
+      Error and terminal callbacks reuse the attempt's prepared input instead of
+      reparsing defaults/transforms. Remove the unused internal `BatchJobData`
+      schema; this does not add durable batch coordination or compatibility shims.
+- [ ] Finish the whole-surface runtime-capability audit. The export ledger's
+      removed names are not proof that narrowed callbacks receive narrowed
+      objects. Check ordinary callback objects and named advanced consumers;
+      keep actual obsolete-path removal distinct from legitimate protocol and
+      host-specific capabilities. Classify `inboxFollowUps.registerKind` as an
+      intentional setup capability: Studio and web-chat own destinations and
+      register them there. Its plugin-bound namespace and registry finalization
+      guard are supported by the existing registry and consumer tests; it is not
+      a nominal-reader leak. The rest of the callback inventory remains open.
+
+#### Runtime-reader continuation (uncommitted)
+
+The next probes reproduced additional differences between callback types and actual
+objects. Shared internal projections now bind the allowed methods to their original
+receivers instead of forwarding larger runtime objects:
+
+| Callback boundary                                              | Actual correction                                                                                                                                                                          |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Ordinary service setup and reactions                           | Permission checks no longer expose principal replacement or deployment principal seeds.                                                                                                    |
+| Service/interface/message-interface setup                      | Profile selection exposes `getResolved`, not kind registration or the selected definition.                                                                                                 |
+| Service/entity jobs                                            | Uploads expose `read`; attachments expose `resolve`; identity exposes `getProfile`.                                                                                                        |
+| Job, check, agent-context, and evaluation conversation readers | Expose the declared three read methods instead of the larger conversation namespace.                                                                                                       |
+| Interface and subscription identity readers                    | Expose `get`/`getProfile`, not deployment metadata; service setup retains its declared `getAppInfo`.                                                                                       |
+| Entity create resolvers                                        | Preserve their declared `readRecord` and `read`, without upload mutation.                                                                                                                  |
+| Scoped upload writers                                          | Keep their declared writer methods, but hide mutable implementation options and reject path traversal in declaration namespaces.                                                           |
+| Scoped durable state                                           | Hide the database, schema, and mutable namespace behind a frozen bound facade. A real SQLite probe previously redirected writes into another scope by changing the hidden namespace field. |
+
+The in-memory harness now freezes state handles as production does. Host APIs and
+intentional interface writer capabilities remain available to their legitimate
+owners. This does not claim to sandbox arbitrary plugin JavaScript.
+
+A separate mapping probe confirmed that `@scope/pkg` and `scope.pkg` both mapped to
+`scope.pkg.cache`. The package-owner continuation below resolves that collision
+without changing the keys used by current workspace packages. The upload traversal
+probe is fixed without renaming valid namespaces. Reproduction evidence is under
+`/tmp/plugin-dx-next/*capability*`, `namespace-mapping-audit.log`, and
+`upload-namespace-repro.log`.
+
+**Validation:** **26 public SDK tests** pass through source, built exports, and
+an isolated packed consumer. Fresh forced gates pass: **101/101 test tasks**,
+**103/103 typecheck tasks**, **96/96 lint tasks**, and **7/7 freshly built packed
+compatibility scenarios**. Surface/declaration, checked examples, boot, and the
+full static/format/diff gate set also pass. Evidence is in
+`/tmp/plugin-dx-next/capability-*`. No commit or push has been made. The confirmed
+remaining whole-surface inventory stays open; package-owner collision follow-through
+is recorded below.
+
+#### Package-owner namespace continuation (uncommitted)
+
+An inventory of all **99 workspace package names** found only ordinary
+`@scope/name` forms with no dots in either component. A byte-for-byte comparison
+of their old and new physical namespace keys found **zero changes**. No `runtime-state.db` was
+found in the checked main-worktree and review-worktree data directories. This is
+local evidence only, not a claim about deployed installations.
+
+Preserve the existing canonical keys for those ordinary scoped names. Encode other
+owners as `package:<base64url-owner>:<namespace>`, with a distinct delimiter that
+cannot collide with the ordinary scoped form. This separates unscoped names,
+dotted scoped components, and owner/namespace suffix ambiguities. Reject malformed
+Unicode rather than letting UTF-8 replacement collapse distinct owner strings.
+
+No existing rows are moved or copied, and there is no fallback to old shared keys.
+An old collapsed row cannot identify its original owner. Installations using the
+affected names require ownership review before any migration; current workspace
+packages do not need a key migration for this correction. Real SQLite tests seed
+pre-change keys, reopen the database, prove ordinary keys are still read, and prove
+ambiguous rows remain untouched rather than being adopted by encoded owners.
+
+This closes the demonstrated **package-versus-package** mapping collision only.
+The interface/package overlap is addressed in the cross-family continuation below;
+the remaining callback/return-object inventory stays open. Evidence:
+`/tmp/plugin-dx-next/namespace-owner-inventory.json`, `namespace-package-repro.log`,
+`namespace-existing-key-check.json`, and `namespace-*` check logs.
+
+**Validation:** **27 public SDK tests** pass through source, built exports, and
+an isolated packed consumer. Fresh forced gates pass: **101/101 test tasks**,
+**103/103 typecheck tasks**, **96/96 lint tasks**, **7/7 freshly built packed
+scenarios**, plus surface/declaration, checked examples, boot, and the full
+static/format/diff gate set. The full tests were rerun with `--concurrency=1`
+after reproducing a separate build/read race: the CLI build rewrote the web-chat
+bundle while its test read it, yielding an empty response. Serial execution kept
+the same tasks and assertions; it did not fix that scheduling race. No assertions
+were relaxed. No commit, push, migration, or publication was performed.
+
+#### Logger and build-race continuation (uncommitted)
+
+A public setup probe exposed logger fields (`fileHandle`, `logFile`, and mutable
+configuration), private prototype methods, and the constructor's singleton
+controls. The base context now projects loggers once for all plugin families;
+pre-registration fallback loggers and recursively created children use the same
+frozen bound projection. The declared `setUseStderr` command remains intentional.
+Host logger factories are unchanged. SDK regressions exercise setup, reactions,
+and service/entity jobs; a direct real-logger test checks receiver binding and
+child projection. The named mock entity-context factory records logger calls by
+wrapping the projected methods in spies, preserving its audit-assertion behavior
+without restoring the backing class. Evidence: `logger-reachable-authority.log`,
+`logger-capability-repro.log`, and `logger-*` check logs.
+
+The previous parallel test failure was also reproduced independently: Bun's direct
+build output changed an already-open file reader to the next bundle. Web-chat now
+builds in a private sibling directory (preserving source-map relative paths), then
+publishes each completed asset through an internal atomic file writer. Compilation
+failure leaves the old served assets intact. Tests cover an already-open reader,
+real Bun output, failed compilation, source maps, and staging cleanup. This is
+per-file replacement, not a multi-file release transaction or a claim that all
+Studio/CLI artifact publication paths are atomic. Evidence: `asset-inode-repro.log`
+and `asset-*` check logs.
+
+The next concurrent run exposed the equivalent Studio deletion race. The CLI now
+builds both UIs into its own private destinations instead of rewriting dependency
+outputs. The staging directories sit outside published `dist`, preserve the final
+source-map depth, and are removed on process exit. Both UI scripts accept a custom
+output directory without deleting caller-owned files. New process-level tests
+verify generated files and unchanged dependency file identities/timestamps. A real
+CLI build separately verified unchanged source UI assets and no remaining staging
+directories (`asset-cli-isolation-check.json`). Argument parsing stays in the
+shared build-tools package; no architecture allowlist was widened.
+
+The concurrent run also exposed a batch test assuming all enqueue timestamps tied.
+Its exact job/owner/root/retry assertions now compare by job type rather than
+assuming `getRecentJobs()` is enqueue-ordered. Production ordering is unchanged.
+
+**Validation:** **27 public SDK tests** pass through source, built exports, and an
+isolated packed consumer. Fresh forced repository gates pass with **normal test
+concurrency**: **101/101 test**, **103/103 typecheck**, and **96/96 lint** tasks.
+All **7/7 fresh packed scenarios**, surface/declaration, checked examples, boot,
+and static/format/diff gates pass. Evidence is in
+`/tmp/plugin-dx-next/continuation-{types,tests,lint,packed,surface,static}.log`.
+Changes remain uncommitted; no migration, push, merge, or publication was performed.
+
+#### Cross-family namespace correction (uncommitted)
+
+Historical policy: the preserved undotted-key exception described here is
+superseded by the interface owner isolation completion below.
+
+A public harness probe
+reproduced `email` with namespace `inbound.uid-cursor` sharing
+`email.inbound.uid-cursor` with package `@email/inbound` and namespace `uid-cursor`.
+The simulated cursor changed from UID 1 to UID 999 after the package wrote it.
+The email namespace is used by the real email interface; its
+`inbound.source-locators` namespace has the same structural issue. The conflicting
+package is only a probe: the 99 workspace packages use `@brains` and `@rizom`,
+not `@email`. This is not evidence of existing corrupted email data.
+
+The owner confirmed that the email interface has **not been used in production**
+and authorized direct isolation with **no migration or user upgrade step**. The
+earlier proposed migration is withdrawn; neither automatic nor opt-in migration,
+nor a legacy-key fallback, is needed for this correction.
+
+Both ordinary and message-interface setup now share `interfaceStateNamespaceFor`.
+Flat interface owners with undotted local namespaces retain their one-dot keys
+(for example `chat.subscriptions`). Ambiguous forms use
+`interface:<base64url-package>:<base64url-declaration>:<namespace>`, separate from
+both ordinary scoped package keys and tagged package keys. New tagged keys also
+distinguish two packages using the same declaration ID. Existing workspace package state is not
+renamed. Public declaration ID validation is unchanged.
+
+The SDK regression first reproduced a package overwriting interface state, then
+proved both interface families retain independent cursor and source-locator
+stores. SQLite tests cover mixed owner forms across restart, unchanged chat state,
+and old ambiguous development rows left untouched and never read by the new
+interface handles. Email integration fixtures now seed the new physical locator
+key; their Admin, cancellation, and mailbox-generation assertions remain intact.
+A longer valid package name exposed the old 128-character physical-key limit, so
+the runtime now permits 512 characters while retaining the existing character
+rules. SQLite tests cover the longer qualified owner and the 512/513 boundary.
+No database schema migration or existing-key rewrite is needed for that limit
+change. No migration code or user-data operation was added.
+
+Evidence: `cross-family-namespace-repro.log`, `cross-family-owner-inventory.json`,
+`interface-state-repro.log`, and `interface-state-*` check logs under
+`/tmp/plugin-dx-next/`.
+
+**Validation:** **28 public SDK tests** pass through source, built exports, and an
+isolated packed consumer. Fresh forced gates pass with normal concurrency:
+**101/101 test**, **103/103 typecheck**, and **96/96 lint** tasks. All **7/7 fresh
+packed scenarios**, surface/declaration, checked examples, boot, and the full
+static/format/diff set pass. Logs: `interface-state-{types,tests,lint}-final.log`,
+`interface-state-packed.log`, `interface-state-surface.log`, and
+`interface-state-static.log`. Changes remain uncommitted; no migration, user-data
+operation, commit, push, merge, or publication was performed.
+
+A separate owner-identity probe remains open for the preserved **undotted** form:
+two packages declaring the same interface ID still use that same declaration-owned
+namespace. Installing
+`@fixture/first` and `@fixture/second` with ID `state-owner` and local namespace
+`cache` returned the second package's value through both handles. This is an
+interface-versus-interface issue, not the package-versus-interface overlap closed
+above; the new tagged form does not inherit this limitation. Evidence:
+`interface-definition-owner-probe.log`. Do not treat the email
+production-use clarification as permission to rename unrelated interface state.
+
+#### Progress and returned-profile capability continuation (uncommitted)
+
+A public job probe exposed `createSub`, `toCallback`, and heartbeat controls on
+objects typed only as `ProgressContract`. Service/entity job callbacks and the
+direct job-context test helper now share a frozen, bound `report` projection.
+Real reporter tests preserve scaling, detached invocation, and callback rejection;
+runtime owners keep the original control surface. The distinction between the
+minimal `ProgressContract` and full `ProgressReporter` is intentional, not an
+obsolete alias; their stale class-era documentation is corrected.
+
+The returned-object inventory also found `ProfileKindRegistry.register()` spreading
+the original definition after validating metadata. That leaked undeclared fields
+through `getSelectedDefinition()` and evaluated undeclared getters. Registration
+now constructs the selected definition from validated metadata and a once-read,
+validated fields schema. Tests preserve schema identity, frozen metadata, and the
+actual job callback path while rejecting the extra-field leak.
+
+The public harness could not select a profile kind, preventing an external author
+from exercising that path. Its new optional `profileKind` setting is explicitly
+forwarded to the existing runtime harness. Selection still happens at finalization;
+missing registered kinds fail rather than silently falling back. Public SDK tests
+exercise selection, job access, extra-field omission, and invalid selection.
+
+Additional inventory disposition:
+
+- Identity results already pass through explicit Zod DTO schemas. Added tests
+  verify extra runtime fields are omitted and nested returned data is detached;
+  no production change is needed at that boundary.
+- Resolved profile metadata and labels are already frozen. Jobs intentionally
+  receive the declared Zod fields schema when requesting the selected definition;
+  it is not a registry-management capability.
+- Conversation readers use fresh database queries and explicit public row/message
+  mapping. Their metadata is domain data, not a returned service instance.
+- Entity/service AI namespaces already construct the five declared operations;
+  structured generation returns an explicit `{ object }` from the shell rather
+  than the provider result object. No additional capability projection is needed
+  for that object path.
+
+Evidence: `/tmp/plugin-dx-next/progress-capability-repro.log`,
+`profile-kind-capability-repro.log`, `profile-harness-repro.log`, and
+`progress-profile-*` check logs.
+
+**Validation:** **29 public SDK tests** pass through source, built exports, and an
+isolated packed consumer. Fresh forced gates pass with normal concurrency:
+**101/101 test**, **103/103 typecheck**, and **96/96 lint** tasks, plus all **7/7
+fresh packed scenarios**, surface/declaration, checked examples, boot, and the
+full static/format/diff gate set. Evidence: `progress-profile-{types,tests}.log`,
+`progress-profile-lint-final.log`, and `progress-profile-{packed,surface,static}.log`.
+Changes remain uncommitted. The broader inventory and preserved undotted
+interface-owner issue remain open; no state keys or migration policy change in
+this continuation. No commit, push, merge, or publication was performed.
+
+#### Returned auth capability continuation (uncommitted)
+
+The interface lookup inventory reproduced another reachable implementation:
+`createAuthReader()` narrowed the registry but forwarded each lookup result.
+The registered `AuthService` instance exposed its `runtime`, request router,
+lifecycle methods, and all other capability families through even `getCaller()`.
+
+The shared author adapter now projects all five lookup results into frozen,
+bound method-only views. Lookups still consult the live registry, so late
+registration, withdrawal, and re-registration are observed. The internal host
+registry and auth-service lifecycle are unchanged. This is not authorization
+hardening: the API intentionally still permits explicit administration and
+federation lookup, including their declared mutation/signing operations.
+
+A real initialized auth-service test exercises an installed declarative consumer,
+checks every view's exact method set, and invokes detached session, user-list,
+audit, issuer, and identity methods. The administration list is compile-time
+exhaustive. Public SDK negative compile checks reject cross-family methods and
+runtime internals through source, built, and packed declarations.
+
+The auth test stub also proved structurally incomplete: spreading its empty
+Proxy did not copy any administration operations. Replace that cast-backed path
+with explicit throwing methods, so constructing a view works and invoking an
+unsupported stub operation fails deliberately.
+
+Other lookup disposition: channel registration already validates and freezes
+metadata (including nested subject patterns) and projects delivery providers
+into bound `isAvailable`/`send` methods plus channel type. Endpoint and interaction
+setup namespaces expose plugin-bound registration commands, not registry lookup
+objects. No change is needed for those inspected paths.
+
+Evidence: `/tmp/plugin-dx-next/auth-view-repro.log`, `auth-stub-repro.log`, and
+`auth-view-*` checks.
+
+**Validation:** fresh forced **103/103 typecheck**, **101/101 test** (normal
+concurrency), and **96/96 lint** tasks pass. All **7/7 fresh packed scenarios**,
+surface/declarations, **29 SDK tests** through source/built/packed consumers,
+checked examples, boot, and static/format/diff gates pass. Logs:
+`auth-view-{types,tests,lint,packed,surface,static}.log`.
+The broader inventory and preserved interface state ownership issue remain open.
+No state namespace or migration policy changed. Changes remain uncommitted; no
+commit, push, merge, or publication was performed.
+
+#### Protocol and projection capability continuation (uncommitted)
+
+Interface context construction forwarded the full MCP service as `IMCPTransport`.
+The shared context factory now exposes a frozen, bound transport view, preserving
+the optional anchor operation only when supplied. A real MCP-service regression
+checks the exact method set, detached setters and server creation, hidden backing
+fields/registration methods, and original host authority. Returning the protocol
+SDK server is intentional; this is not a sandbox or removal of protocol-host
+powers.
+
+The same inventory found base plugin `spaces` aliased the deployment array.
+Base contexts now receive frozen copies and declare them read-only, protecting
+both interface families and entity creation callbacks that consume that context.
+A regression retains the original configured array and verifies isolation.
+
+Following the space reference uncovered an independent projection path: core
+passed its full entity service, configuration array, logger implementation, and
+five-operation AI namespace into narrower callbacks. Shared input/execution
+adapters now provide the seven declared entity read methods, conversation readers,
+a frozen space snapshot, the four declared AI methods, and projected loggers.
+Core uses them even for directly supplied executable rules; the declaration
+helper also applies them when invoked directly. The adapters are private-package
+runtime exports, not new public SDK symbols. Execution dependency getters remain
+lazy so pure derivations do not acquire unused AI/logging dependencies.
+The architecture gate caught a context-type cycle when reusing the existing
+reader module. Logger/conversation projections now live in the lower-level
+`internal/callback-readers.ts`, with all consumers updated and no forwarding
+aliases or architecture exceptions.
+
+Tests cover real core context construction, helper calls, detached readers,
+original runtime authority, and source/built/packed public positive/negative
+contracts. The worker test now asserts a distinct frozen callback context rather
+than requiring the original runtime object's identity; its input, signal,
+single-derivation, and reconciliation assertions remain intact.
+
+Additional return-object disposition: Inbox sources validate and project their
+methods and item/detail results; follow-up registrations and resolved targets
+pass through explicit schemas. Agent chat/confirmation results use the canonical
+agent response parser. Interface tool listings explicitly map name, description,
+and plugin ID rather than returning registered handlers. No production change is
+needed for those inspected paths.
+
+Evidence: `/tmp/plugin-dx-next/transport-view-repro.log`,
+`interface-spaces-repro.log`, `projection-capability-probe.log`,
+`projection-reader-repro.log`, and `projection-direct-repro.log`.
+`projection-capability-fixed.log` confirms the narrowed helper path; focused
+checks pass in `projection-runtime-targeted.log`.
+
+**Validation:** **31 public SDK tests** pass through source, built exports, and
+an isolated packed consumer. Fresh forced **103/103 typecheck**, **101/101 test**
+(normal concurrency), and **96/96 lint** tasks pass, together with all **7/7 fresh
+packed scenarios**, surface/declarations, checked examples, boot, and the complete
+static/format/diff gate set. Final logs:
+`protocol-projection-{types,tests,lint,packed,surface,static}-final.log`.
+The wider audit and preserved same-ID interface state ownership issue remain
+open. No namespace migration or persisted-data operation was performed. Changes
+remain uncommitted; no commit, push, merge, or publication was performed.
+
+#### Registration metadata continuation (uncommitted)
+
+Reader return values exposed two mutable registration records. Entity-type
+configuration was stored and returned by reference, including nested publication
+statuses; clearing a returned list changed publish-boundary classification.
+Attachment metadata similarly aliased its provider's declaration and retained
+undeclared fields.
+
+Entity configuration now passes through one private-package validated-copy
+operation at declaration/registration and read boundaries. All declared fields
+are retained, nested policy data is detached, and undeclared getters are not
+read. Validation precedes all registry map writes, so invalid configuration
+cannot leave a partially registered type. Runtime-harness configuration uses
+the same operation. Returned metadata remains locally editable, consistent with
+its existing type; it is not a mutation API for the registry.
+
+Attachment registrations now capture validated metadata and a bound resolver.
+Metadata reads return copies. Registration validates before replacing the active
+provider, and cleanup removes only the registration that created that handle.
+This fixes reproduced stale cleanup deleting a newer provider without changing
+the registry's existing replacement policy.
+
+The harness policy regression also exposed its direct executable-rule path
+bypassing the projection adapters added in the previous continuation and ignoring
+configured spaces. It now uses the same readers and configured space snapshots
+as production. Tests install the complete compound package before inspecting
+entity policy. The public metadata test waits for registration completion before
+looking up an entity's attachment provider; boot order is unchanged.
+
+A forced concurrent test run also caught the directory-sync visibility test
+reading an empty file immediately after creation, before its asynchronous write
+finished. Its waits now require the expected body, matching the existing later-edit
+case. Content assertions and timeouts are unchanged; this does not add or claim
+atomic filesystem publication.
+
+Additional disposition: public skills are already parsed from skill metadata
+and explicitly mapped into public records, with a permission-filtered tool
+fallback. No extra runtime object is forwarded on that inspected path.
+
+Evidence: `/tmp/plugin-dx-next/metadata-boundaries-repro.log` and
+`metadata-projection-harness-repro.log`. Focused registry/plugin/SDK checks and
+architecture pass (`metadata-boundaries-targeted4.log`,
+`metadata-boundaries-arch.log`). Full gates subsequently pass with the interface
+owner isolation completion below; its validation covers this continuation too.
+The broader audit remains open. No migration or persisted-data operation was
+performed in this metadata continuation.
+
+#### Interface owner isolation completion (uncommitted)
+
+The operator clarified that Discord/Slack is barely used in production and no
+one relies on its saved thread-following state. Apply the remaining state-owner
+correction directly: all interface state now uses
+`interface:<base64url-package>:<base64url-declaration>:<local-namespace>`.
+Remove the undotted exception rather than adding a migration or legacy fallback.
+This supersedes the earlier preservation decision and closes the confirmed
+same-ID interface **state** collision.
+
+Inventory correction: the chat package declares separate `discord` and `slack`
+interfaces. Its actual old state keys are `discord.subscriptions` and
+`slack.subscriptions`; `chat.subscriptions` in earlier examples was illustrative.
+Only thread-following/mention-routing settings start fresh. Old rows remain
+untouched; chat history, uploaded files, and package-owned workspace keys do not
+move. Email's previously encoded keys are unchanged.
+
+Public SDK tests now install two packages sharing an interface ID, covering both
+ordinary/ordinary and message/ordinary combinations with dotted and undotted
+namespaces, and finalize registration before verifying independent reads.
+SQLite tests cover distinct package and declaration owners across restart and
+prove old Discord/Slack state is neither adopted nor deleted. Chat adapter tests
+assert the local namespace separately from framework-owned global key encoding;
+the old fixture-only declaration-key assumption is removed.
+
+Evidence: `/tmp/plugin-dx-next/interface-owner-final-repro.log` reproduced both
+public and persisted collisions. Focused plugin/SDK/chat checks pass in
+`interface-owner-targeted-final.log`.
+
+**Validation:** **32 public SDK tests** pass through source, built exports, and
+an isolated packed consumer. Fresh forced gates pass: **103/103 typecheck**,
+**101/101 test** (normal concurrency), and **96/96 lint** tasks, plus all **7/7
+fresh packed scenarios**, surface/declarations, checked examples, boot, and the
+complete static/format/diff set. This also validates the registration-metadata
+continuation already present in the worktree; its fixture received explicit
+provider return annotations required by lint. Logs:
+`interface-owner-{types,tests,packed,surface,static}.log`,
+`interface-owner-lint-final.log`, and `interface-owner-sdk-final.log`.
+
+The wider audit remains open. In particular, upload directory names still use
+declaration-ID scoping; state isolation must not be represented as upload-owner
+isolation or used to silently rename stored files. No upload ownership change,
+namespace migration, commit, push, merge, or publication was performed.
+
+#### Upload owner investigation (decision resolved below)
+
+A filesystem-backed probe installed two packages with the same interface ID and
+local upload namespace, finalized registration, and saved a file through the
+first. The second package could read it and both handles resolved the same
+directory. Evidence: `/tmp/plugin-dx-next/upload-owner-probe.ts` and
+`upload-owner-probe.log`. The probe used and removed only a fresh temporary
+directory; no application uploads were touched.
+
+Current built-in upload scopes are `web-chat.upload`, `discord.upload`,
+`discord.discord-chat`, `slack.upload`, and `slack.slack-chat`, each below the
+runtime data directory with an `uploads` child. These stores have a default
+24-hour retention window and 200-file cap, applied during pruning on save.
+Their metadata/ref contains kind and ID, not package ownership. A different
+physical owner encoding without migration would make existing temporary upload
+references unavailable, including web-chat attachments; users might need to
+upload those files again. Image entities already created from uploads embed the
+bytes as data URLs and do not depend on these temporary files.
+
+The operator's acceptance of resetting Discord/Slack thread-following state does
+not authorize invalidating web-chat uploads. Confirm whether losing access to
+existing temporary uploads on upgrade is acceptable before changing ownership.
+No migration, fallback, file relocation, or upload implementation change has
+been made in this investigation.
+
+#### Upload owner isolation completion (uncommitted)
+
+The operator explicitly accepted existing temporary uploads becoming unavailable
+on upgrade, including web-chat attachments. Apply the correction directly, with
+no migration or legacy fallback. `uploadNamespaceFor()` now validates the owner
+and existing flat-path input rules, then prefixes the 64-character SHA-256 hex
+digest of the JSON owner tuple with `interface-upload-`.
+The fixed-length, dot-free segment stays below filesystem limits for long owners
+and does not overlap the old declaration.local directories.
+
+Both interface families pass package identity to the shared mapper. Reference
+kind/ID shapes, route URLs, retention settings, and persisted state keys are
+unchanged. New stores neither adopt nor prune old directories. Saved image
+entities remain independent because they embed the upload bytes. No old files
+were moved or deleted by this implementation.
+
+Filesystem tests cover ordinary/ordinary, ordinary/message, message/ordinary,
+and message/message owner combinations, using distinct channels where required.
+They deliberately reuse an upload ID across owners and verify save/read/remove,
+zero-cap pruning, legacy-file non-adoption, and restart isolation. A public SDK
+test checks all four owner handles, and existing web-chat and chat integration
+fixtures now use the expected owner-qualified storage directories without
+changing their routing, restoration, metadata-failure, or retention assertions.
+Unit checks cover every tuple component, flat-path rejection, malformed owners,
+long names, and deterministic bounded output.
+
+Evidence: `/tmp/plugin-dx-next/upload-owner-repro-tests.log` and the earlier
+`upload-owner-probe.log`. Focused plugin/SDK/web-chat/chat typechecks and tests
+pass in `upload-owner-targeted-final2.log`.
+
+**Validation:** **33 public SDK tests** pass through source, built exports, and
+an isolated packed consumer. Fresh forced **103/103 typecheck**, **101/101 test**
+(normal concurrency), and **96/96 lint** tasks pass, together with **7/7 fresh
+packed scenarios**, surface/declarations, checked examples, boot, and the complete
+static/format/diff set. Logs: `upload-owner-{types,tests,lint,packed,surface,static}.log`.
+
+This closes the known upload-directory ownership gap, following the state-owner
+correction above. The remaining callback/obsolete-path inventory is still open.
+No migration, publication, merge, commit, or push was performed.
+
+Before the error tranche, validation of the two completed changes covered
+**23 public SDK tests** through source, built exports, and an isolated packed
+consumer. Forced repository gates
+passed: **101/101 test tasks**, **103/103 typecheck tasks**, **96/96 lint tasks**,
+and **7/7 freshly built packed compatibility scenarios**. Public surface and
+boot checks, script typecheck, architecture, docs, workspace/dependencies,
+casts, legacy inventory, test assertions, catches, changeset lanes, formatting,
+and diff checks also passed.
+
+**Initial error-mapping tranche validation (uncommitted):** the expanded **24 public SDK
+tests** pass through source, built exports, and an isolated packed consumer.
+Forced repository gates pass: **101/101 test tasks**, **103/103 typecheck tasks**,
+**96/96 lint tasks**, and **7/7 freshly built packed compatibility scenarios**.
+Surface/declaration, boot, checked documentation examples, and all script,
+architecture, documentation, dependency, cast, legacy, assertion, catch,
+changeset, formatting, and diff gates pass. Evidence is retained under
+`/tmp/plugin-dx-next/error-*`. One initial full run timed out in the existing
+agent-card expiry test; its targeted rerun and the subsequent forced full run
+passed without changing that test or increasing its timeout. The SQLite test
+uses the production libSQL driver rather than mixing SQLite implementations.
+The dependency install also synchronized pre-existing workspace-version entries
+in `bun.lock`; it did not upgrade third-party package versions.
+
+**Job/batch continuation validation (uncommitted):** five reproduced defects are
+closed: domain refusals misclassified as worker failures, unsafe/incomplete batch
+errors, uncoded failed job rows with no diagnostic, malformed JSON reported as a
+handler failure, and callback input reparsing. **25 public SDK tests** pass through
+source, built exports, and an isolated packed consumer. Real-worker/reopened-SQLite
+coverage includes declared refusal completion, batch aggregation over durable child
+rows, legacy/unknown/absent errors, and prepared defaults. Native worker regressions
+prove prepared-input reuse for success, thrown failure, and controlled failure.
+Batch progress and directory-sync consume the shared records without losing messages.
+Fresh gates pass again: **101/101 forced test tasks**, **103/103 forced typecheck
+tasks**, **96/96 forced lint tasks**, **7/7 fresh packed scenarios**, surface/boot,
+and the full static/format/diff gate set. Evidence is retained in
+`/tmp/plugin-dx-next/job-*` and `batch-errors-repro.log`.
+
+These changes have not been committed or pushed. They do not close the remaining
+whole-surface capability audit and make no registry-publication or stable-nomination
+claim.
+
+The older statement below that inline literal responses require an annotation
+is historical and superseded by the const-return regression tests. Whole-surface
+acceptance remains unchecked until its own evidence is complete.
+
 ### DX guarantee corrections following review of 212ccbd541
 
 The next external-author review reproduced six additional issues. All six are

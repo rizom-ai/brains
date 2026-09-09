@@ -31,6 +31,7 @@ import type {
   UserPermissionLevel,
 } from "@brains/templates";
 import { z } from "@brains/utils/zod";
+import type { SdkErrorData } from "@brains/contracts";
 import type { AgentNamespace } from "../contracts/agent";
 import type { AppInfo } from "../contracts/app-info";
 import type { RuntimeHealthCheck } from "../contracts/runtime-health";
@@ -200,7 +201,7 @@ export interface JobProgressEvent {
         completedOperations: number;
         failedOperations: number;
         currentOperation?: string | undefined;
-        errors?: string[] | undefined;
+        errors?: SdkErrorData[] | undefined;
       }
     | undefined;
   jobDetails?:

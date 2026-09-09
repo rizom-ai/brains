@@ -1,5 +1,9 @@
 import { z, type EntityReactionContext } from "@brains/sdk/entities";
-import { defineTool, type ServiceToolDefinition } from "@brains/sdk/services";
+import {
+  defineTool,
+  SdkError,
+  type ServiceToolDefinition,
+} from "@brains/sdk/services";
 import { parseAgentEntity } from "../lib/agent-content";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
 import {
@@ -162,9 +166,9 @@ export function agentConnectTool(
 
       const card = await fetchAgentCard(normalized.fetchTarget, fetchFn);
       if (!card) {
-        throw new Error(
-          `Could not verify an A2A Agent Card for ${normalized.domain}.`,
-        );
+        throw new SdkError("invalid_response", {
+          publicMessage: `Could not verify an A2A Agent Card for ${normalized.domain}.`,
+        });
       }
 
       const { entity, created } = await upsertConnectedAgent({

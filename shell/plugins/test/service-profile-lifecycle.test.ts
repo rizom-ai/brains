@@ -263,6 +263,13 @@ describe("a boot-gated seeding job", () => {
       output: seedOutput,
     });
     const seen: { domain?: string | undefined; kind?: string | undefined } = {};
+    const declaredKind = {
+      kind: "professional",
+      category: "person" as const,
+      fields: z.object({}),
+      labels: { singular: "Professional", plural: "Professionals" },
+      privateRuntime: { replaceSelection: (): void => {} },
+    };
     const definition = defineServicePlugin(
       {
         id: "identity-seeder",
@@ -270,18 +277,22 @@ describe("a boot-gated seeding job", () => {
         setup: () => ({}),
       },
       {
-        profileKinds: () => [
-          {
-            kind: "professional",
-            category: "person",
-            fields: z.object({}),
-            labels: { singular: "Professional", plural: "Professionals" },
-          },
-        ],
+        profileKinds: () => [declaredKind],
         jobs: () => [
           seedJob.handle(async ({ domain, profileKinds }) => {
             seen.domain = domain;
             seen.kind = profileKinds.getResolved()?.kind;
+            const selected = profileKinds.getSelectedDefinition();
+            expect(Object.keys(selected ?? {}).sort()).toEqual([
+              "category",
+              "fields",
+              "kind",
+              "labels",
+            ]);
+            expect(selected?.fields).toBe(declaredKind.fields);
+            expect(selected).not.toHaveProperty("privateRuntime");
+            // @ts-expect-error Jobs receive the declared profile shape, not registration internals.
+            void selected?.privateRuntime;
             return { seeded: true };
           }),
         ],

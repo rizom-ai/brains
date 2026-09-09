@@ -406,7 +406,7 @@ export async function greetsInTheConfiguredZone(
 }
 ```
 
-Tools return `{ ok: true, data }`, `{ ok: false, error }`, or
+Tools return `{ ok: true, data }`, `{ ok: false, error, code }`, or
 `{ ok: false, confirmation }` when approval is pending. Check
 `"confirmation" in answer` before treating an incomplete call as an error.
 The confirmation includes `toolName`, `summary`, and `args`; replay those args
@@ -418,8 +418,8 @@ and `call(input, { permission: "public" })` cannot execute an admin-only tool.
 
 For a typed bus request, pass the shared `{ topic, payload, response }` schema contract to
 `harness.request(contract, input)`. It returns parsed `{ ok: true, data }` or
-`{ ok: false, code }`, where the code is `no_handler`, `handler_failed`,
-`invalid_input`, or `invalid_response`. Author contexts exposing
+`{ ok: false, code }`, using the shared `SdkErrorCode` vocabulary below.
+Author contexts exposing
 `messaging.request` accept the same contract. Providers validate wire responses;
 typed callers parse those wire values, so transforms are not applied to already
 transformed data. Bare `request({ type, payload })` returns an untyped bus
@@ -427,7 +427,15 @@ envelope; it does not promise a result schema. A `defineSubscription()` with a
 response schema checks the handler's return against that schema's **input**
 type and retains the response schema, so its result can also be passed directly
 to `request(subscription, input)`. Notifications without a response schema do
-not promise a typed answer.
+not promise a typed answer. Subscription entity access is read-only in both the
+public type and the object handed to the handler.
+
+Inline route, tool, and subscription handlers infer literal/enum and
+discriminated-union answers without `as const` or return annotations. Immutable
+arrays and tuples are accepted as schema inputs; wrong literals, missing fields,
+and transformed outputs supplied in place of inputs are still rejected. An
+already-extracted function keeps its own declared/inferred return type—the
+helper does not narrow a `string` that the function previously widened.
 
 Install dependencies before calling `finalizeRegistration()`; it runs every
 installed package's registration-complete hooks in installation order. Use
@@ -439,6 +447,12 @@ remain usable, and the failed package can be retried without resetting the
 brain. Cleanup errors are reported only after all registered cleanup callbacks
 have been attempted.
 
+For a profile-aware package, use
+`createBrainTestHarness({ profileKind: "professional" })` and install the package
+that declares that kind before finalization. An unregistered selection fails at
+`finalizeRegistration()`, as it does during boot. Omitting the option keeps the
+base profile with no selected kind.
+
 `installed.jobs` lists registered jobs with a `run(input)` method. It validates
 and runs one handler attempt in-process; it does not simulate durable queue
 retries, deadlines, or terminal hooks. `harness.formatTemplate(name, value)`
@@ -446,6 +460,123 @@ validates and formats a registered text template, while `harness.fetch()`
 exercises declared routes with their authentication and schema validation.
 The harness hands back names and answers rather than runtime objects, which is
 why nothing here imports `@brains/*`.
+
+### Reader capabilities
+
+Author callback readers expose their declared methods, not the underlying runtime
+services. Job uploads support `read`; attachment readers support `resolve`.
+Ordinary permission checks do not expose principal replacement, and profile
+selection readers do not register kinds. Interface-owned upload writers keep their
+explicit save/remove API. Their namespace must remain one flat path segment.
+
+Scoped state and upload handles hide implementation fields behind bound facades.
+This prevents changing a handle's scope through hidden options and allows detached
+method calls without losing the receiver. It is API capability hygiene, not a
+sandbox for plugin JavaScript. Callback loggers and their child loggers likewise
+expose only the declared logging methods, not file handles or singleton controls.
+Job progress exposes only `report`; heartbeat timers and reporter construction
+remain runtime responsibilities. Jobs that read a selected profile definition get
+its validated metadata and declared fields schema, not extra registration fields.
+Auth lookups likewise return only the requested caller, audit, federation, identity,
+or administration methods—not the underlying service or its shutdown controls.
+These are bound views, not a new permission policy: explicitly declared
+administration and federation commands remain available.
+
+Protocol interfaces receive the declared MCP transport operations, not the runtime
+registration service. The returned MCP SDK server is intentionally available for
+connecting and managing transports. Configured `spaces` are frozen snapshots.
+Projection selection likewise receives entity/conversation readers and a space
+snapshot; derivation receives only its declared AI operations and logger, not the
+underlying runtime services.
+
+Entity-type policy and attachment-provider metadata are validated snapshots.
+Metadata reads return detached, locally editable copies: changing a returned
+publish-status list, search weight, or attachment target does not alter registry
+policy. Undeclared implementation fields are not included.
+
+Package-owned state keeps the existing keys for ordinary `@scope/name` packages.
+Unscoped names and scoped names containing dots now use separate owner encodings,
+so names such as `@scope/pkg` and `scope.pkg` no longer share state. If an older
+installation used those ambiguous names, review ownership before migrating its
+stored rows; the runtime does not guess ownership or fall back to shared keys.
+
+Every interface state namespace includes package and declaration identity, so
+two packages using the same interface ID stay separate, including for undotted
+local names. Interface keys also cannot overlap package-owned state.
+This alpha correction does not migrate, read, or delete old declaration-only
+rows. Existing Discord/Slack thread-following and mention-routing settings start
+fresh; chat history is unchanged.
+
+Temporary upload directories likewise include package, interface ID, and local
+namespace identity, using a fixed-length digest to stay within filesystem limits.
+Reference shapes and route URLs are unchanged, but this alpha upgrade intentionally
+stops resolving uploads stored under the old declaration-only directories.
+Re-upload a temporary attachment if needed. There is no migration or fallback;
+old directories remain untouched and are not pruned by the new scopes. Images
+already preserved as entities retain their embedded bytes.
+
+### Coded failures
+
+`SdkError`, `sdkErrorCodeSchema`, `sdkErrorSchema`, `SdkErrorCode`, and
+`SdkErrorData` are available from the services, interfaces, entities, and testing
+entries. The shared codes are `no_handler`, `handler_failed`, `invalid_input`,
+`invalid_response`, `unauthenticated`, `permission_denied`, `not_found`,
+`conflict`, `cancelled`, and `deadline_exceeded`.
+
+Branch on `code`, not message text or `instanceof`: separate package copies and
+serialized failures need not share a prototype. `sdkErrorSchema` validates the
+canonical `{ code, message }` data. Existing tool/request/HTTP envelopes retain
+their own shape while carrying the same code.
+
+<!-- public-authoring-example: external-coded-failure -->
+
+```ts
+import { SdkError } from "@rizom/brain/services";
+
+throw new SdkError("not_found");
+```
+
+An optional `{ message, cause }` constructor argument is for **local diagnostics**.
+Runtime mappings and `JSON.stringify(error)` emit only a safe public message
+and the code, never arbitrary diagnostic text, stacks, causes, or private request
+data. For a known application refusal, explicitly opt into a bounded (maximum
+1024 characters) `publicMessage`, for example
+`new SdkError("conflict", { publicMessage: "Refresh your selection" })`.
+Do not populate it from raw provider errors; `message` and `cause` stay local. Unclassified handler failures and unknown handler codes fall back
+to `handler_failed`; validation boundaries identify invalid input or output.
+
+Runtime-generated declared-route failures return `{ error, code }`: invalid
+input is HTTP 400, missing authentication 401, denied permission 403, missing
+resources 404, cancellation 408, state conflicts 409, unavailable handlers 503,
+and deadlines 504.
+Handler/output failures use 500. Explicit protocol `Response` values keep their
+own bodies, status codes, and headers. Typed tools can return a schema-valid
+business refusal as successful `data`; this is distinct from throwing a failure.
+Declared jobs likewise complete with any schema-valid output, including
+`{ success: false, error: "Inventory is empty" }`. Throw `SdkError` to fail an
+attempt. Native worker handlers retain their explicit controlled-failure protocol;
+the declarative adapter selects data semantics without adding an authoring option.
+Explicit native/protocol tool refusals retain their deliberate messages too;
+runtime exception handlers must sanitize before producing their envelopes.
+
+Durable service/operator job status exposes `error` and `code`; interface status
+uses `lastError` and `code`. Codes survive queue restarts. The runtime sanitizes
+old rows without codes and unknown stored codes when serving these public
+readers. Failed rows with no stored error information still report `handler_failed`.
+Batch status and batch progress `errors` are arrays of shared `{ code, message }`
+records, not diagnostic strings. Missing children report `not_found`; old or
+unknown child codes fall back safely. Batch coordination itself remains in memory;
+this does not promise that batch metadata survives a runtime restart.
+Terminal hooks receive coded errors only after input has been parsed, and reuse
+the attempt's prepared input rather than rerunning transforms or defaults.
+Corrupt stored inputs cannot be handed to a callback promising valid typed input.
+The public single-attempt job runner throws coded failures but does not simulate
+worker retries, deadlines, or terminal hooks.
+
+The former message-only code names and `RuntimeUploadStoreError` family have
+been consolidated, not retained as compatibility aliases. Invalid upload refs
+use `invalid_input`, unreadable/invalid upload data uses `invalid_response`, and
+missing uploads use `not_found`.
 
 ### Services and durable jobs
 

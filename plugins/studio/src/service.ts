@@ -1,6 +1,7 @@
 import {
   defineRoute,
   defineServicePlugin,
+  SdkError,
   defineSubscription,
   verbatim,
   type AnyInterfaceRouteDefinition,
@@ -291,9 +292,9 @@ export function studioService(
               payload.id === STUDIO_CHAT_WORKSPACE_ID ||
               payload.id === STUDIO_OVERVIEW_WORKSPACE_ID
             ) {
-              throw new Error(
-                `Studio workspace id is reserved by the host: ${payload.id}`,
-              );
+              throw new SdkError("permission_denied", {
+                publicMessage: `Studio workspace id is reserved by the host: ${payload.id}`,
+              });
             }
             const workspace = state.workspaces.register(payload);
             return {

@@ -1,6 +1,7 @@
 import { A2A_CHANNELS } from "@brains/contracts";
 import {
   defineSubscription,
+  SdkError,
   z,
   type AnySubscriptionDefinition,
 } from "@brains/sdk/interfaces";
@@ -47,7 +48,18 @@ export function a2aSubscriptions(
           deps,
           { requireSaved: true },
         );
-        if (!result.success) throw new Error(result.error);
+        if (!result.success) {
+          if (result.code === "agent_not_saved")
+            throw new SdkError("not_found", { publicMessage: result.error });
+          if (
+            result.code === "agent_archived" ||
+            result.code === "agent_not_approved"
+          )
+            throw new SdkError("permission_denied", {
+              publicMessage: result.error,
+            });
+          throw new Error(result.error);
+        }
         return result.data;
       },
     }),

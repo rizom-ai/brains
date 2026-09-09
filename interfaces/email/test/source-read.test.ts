@@ -16,6 +16,9 @@ import { emailSourceLocatorSchema } from "../src/source-locator-store";
 import { readEmailSource } from "../src/source-reader";
 
 const recordedAt = new Date().toISOString();
+// Physical key for declaration email / local namespace inbound.source-locators.
+const sourceLocatorNamespace =
+  "interface:QGJyYWlucy9lbWFpbA:ZW1haWw:inbound.source-locators";
 
 const imapConfig: EmailImapConfig = {
   host: "imap.example.com",
@@ -116,7 +119,7 @@ describe("email source read", () => {
       .getMockShell()
       .getRuntimeState()
       .scoped({
-        namespace: "email.inbound.source-locators",
+        namespace: sourceLocatorNamespace,
         schema: emailSourceLocatorSchema,
       })
       .set(sourceRef, {
@@ -233,7 +236,7 @@ describe("email source read", () => {
       .getMockShell()
       .getRuntimeState()
       .scoped({
-        namespace: "email.inbound.source-locators",
+        namespace: sourceLocatorNamespace,
         schema: emailSourceLocatorSchema,
       })
       .set(sourceRef, {
@@ -276,7 +279,7 @@ describe("email source read", () => {
       .getMockShell()
       .getRuntimeState()
       .scoped({
-        namespace: "email.inbound.source-locators",
+        namespace: sourceLocatorNamespace,
         schema: emailSourceLocatorSchema,
       })
       .set(sourceRef, {

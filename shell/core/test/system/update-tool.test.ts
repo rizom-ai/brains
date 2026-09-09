@@ -851,6 +851,7 @@ describe("system_update tool", () => {
       success: false,
       error:
         "Updating `agent` requires Admin permission; your current permission is Trusted.",
+      code: "permission_denied",
     });
   });
 
@@ -877,6 +878,7 @@ describe("system_update tool", () => {
       success: false,
       error:
         "Updating `agent` requires Admin permission; your current permission is Trusted.",
+      code: "permission_denied",
     });
 
     const unchanged = expectDefined(
@@ -907,6 +909,7 @@ describe("system_update tool", () => {
       success: false,
       error:
         "Publishing `social-post` requires Admin permission; your current permission is Trusted.",
+      code: "permission_denied",
     });
   });
 
@@ -937,6 +940,7 @@ describe("system_update tool", () => {
       success: false,
       error:
         "Publishing `social-post` requires Admin permission; your current permission is Trusted.",
+      code: "permission_denied",
     });
   });
 
@@ -967,6 +971,7 @@ describe("system_update tool", () => {
       success: false,
       error:
         "Publishing `social-post` requires Admin permission; your current permission is Trusted.",
+      code: "permission_denied",
     });
   });
 
@@ -1013,6 +1018,7 @@ describe("system_update tool", () => {
       success: false,
       error:
         "Publishing `social-post` requires Admin permission; your current permission is Trusted.",
+      code: "permission_denied",
     });
   });
 
@@ -1036,6 +1042,7 @@ describe("system_update tool", () => {
       success: false,
       error:
         "Deleting `newsletter` requires Admin permission; your current permission is Trusted.",
+      code: "permission_denied",
     });
   });
 
@@ -1057,7 +1064,8 @@ describe("system_update tool", () => {
 
     expect(result).toEqual({
       success: false,
-      error: "Deleting `newsletter` is not allowed through system tools.",
+      error: "Permission denied",
+      code: "permission_denied",
     });
     expect(services.getEntities().has("newsletter-1")).toBe(true);
   });

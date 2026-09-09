@@ -1,5 +1,6 @@
 import {
   defineTool,
+  SdkError,
   z,
   type AnyServiceToolDefinition,
 } from "@brains/sdk/services";
@@ -121,7 +122,9 @@ export function subscribersTool(
       switch (input.action) {
         case "subscribe": {
           if (!input.email) {
-            throw new Error("email is required for subscribe action");
+            throw new SdkError("invalid_input", {
+              publicMessage: "email is required for subscribe action",
+            });
           }
           return subscribe(client, {
             email: input.email,
@@ -131,7 +134,9 @@ export function subscribersTool(
         }
         case "unsubscribe": {
           if (!input.email) {
-            throw new Error("email is required for unsubscribe action");
+            throw new SdkError("invalid_input", {
+              publicMessage: "email is required for unsubscribe action",
+            });
           }
           await client.unsubscribe(input.email);
           return { email: input.email };

@@ -18,6 +18,10 @@ import type { RuntimeAppInfo } from "../contracts/runtime-app-info";
 import type { IEntityAINamespace } from "./ai-types";
 import { computeProjectionInputFingerprint } from "./projection-input-fingerprint";
 import type { EntityConversationReader } from "../job/job-context-contract";
+import {
+  createConversationReader,
+  createPluginLogger,
+} from "../internal/callback-readers";
 
 export {
   ProjectionJsonObjectSchema,
@@ -249,6 +253,48 @@ const ProjectionRuleMetadataSchema = z.strictObject({
   sourceChangeBatchDelayMs: z.number().int().nonnegative().default(0),
 });
 
+export function createProjectionInputReader(
+  source: ProjectionInputContext,
+): ProjectionInputContext {
+  const entities = source.entities;
+  return Object.freeze({
+    entities: Object.freeze({
+      getEntity: entities.getEntity.bind(entities),
+      getEntities: entities.getEntities.bind(entities),
+      listEntities: entities.listEntities.bind(entities),
+      getEntityTypes: entities.getEntityTypes.bind(entities),
+      hasEntityType: entities.hasEntityType.bind(entities),
+      getEntityTypeConfig: entities.getEntityTypeConfig.bind(entities),
+      isProjectionOwnedEntity: entities.isProjectionOwnedEntity.bind(entities),
+    }),
+    spaces: Object.freeze([...source.spaces]),
+    conversations: createConversationReader(source.conversations),
+    resolvePrompt: source.resolvePrompt.bind(source),
+    appInfo: source.appInfo.bind(source),
+    identityInput: source.identityInput.bind(source),
+  });
+}
+
+export function createProjectionExecutionReader(
+  source: ProjectionExecutionContext,
+): ProjectionExecutionContext {
+  // Pure derivations need not acquire lazy AI or logging dependencies.
+  return Object.freeze({
+    get ai(): ProjectionExecutionContext["ai"] {
+      const ai = source.ai;
+      return Object.freeze({
+        query: ai.query.bind(ai),
+        generate: ai.generate.bind(ai),
+        generateObject: ai.generateObject.bind(ai),
+        generateImage: ai.generateImage.bind(ai),
+      });
+    },
+    get logger(): LoggerContract {
+      return createPluginLogger(source.logger);
+    },
+  });
+}
+
 export function defineProjectionRule<TInput extends ProjectionJsonObject>(
   input: ProjectionRuleDefinition<TInput>,
 ): Readonly<ProjectionRule> {
@@ -294,7 +340,11 @@ export function defineProjectionRule<TInput extends ProjectionJsonObject>(
       context: ProjectionInputContext,
       signal: AbortSignal,
     ): Promise<ProjectionJsonObject> => {
-      const selected = await input.selectInput(trigger, context, signal);
+      const selected = await input.selectInput(
+        trigger,
+        createProjectionInputReader(context),
+        signal,
+      );
       const jsonInput = ProjectionJsonObjectSchema.parse(selected);
       return deepFreeze(input.inputSchema.parse(jsonInput));
     },
@@ -305,7 +355,11 @@ export function defineProjectionRule<TInput extends ProjectionJsonObject>(
       signal: AbortSignal,
     ): Promise<readonly ProjectionWriteIntent[] | ProjectionAbstention> => {
       const parsedInput = input.inputSchema.parse(selected);
-      const derived = await input.derive(parsedInput, context, signal);
+      const derived = await input.derive(
+        parsedInput,
+        createProjectionExecutionReader(context),
+        signal,
+      );
       if (derived === PROJECTION_ABSTAINED) return PROJECTION_ABSTAINED;
       const intents = z.array(ProjectionWriteIntentSchema).parse(derived);
       for (const intent of intents) {

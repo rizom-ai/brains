@@ -3,6 +3,10 @@ import { runCleanups } from "../internal/cleanup";
 import { createAccountDaemon } from "../operator/account-daemon-supervisor";
 import { createInboxReader } from "../base/namespaces";
 import { createAuthReader } from "../contracts/auth-registry";
+import {
+  createIdentityReader,
+  createProfileSelectionReader,
+} from "../internal/authoring-readers";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
 import type { z } from "@brains/utils/zod";
 import {
@@ -16,7 +20,10 @@ import type {
   InterfaceJobStatus,
 } from "./interface-definition-contract";
 import type { AnyServiceJobDefinition } from "../service/service-definition-contract";
-import { createServiceJobRequest } from "../service/job-definition-runtime";
+import {
+  createServiceJobRequest,
+  readServiceJobFailure,
+} from "../service/job-definition-runtime";
 import type { WebRouteDefinition } from "../types/web-routes";
 import type { Tool } from "@brains/mcp-service";
 import type { EntityReactionContext } from "../entity/entity-definition-contract";
@@ -27,7 +34,10 @@ import {
 import { createRuntimeTool } from "../service/tool-runtime";
 import { createInterfaceEntityAccess } from "./interface-entity-access";
 import { deriveConsoleSurfaces } from "../console-surfaces";
-import { uploadNamespaceFor } from "../internal/state-namespace";
+import {
+  interfaceStateNamespaceFor,
+  uploadNamespaceFor,
+} from "../internal/state-namespace";
 import { createDeclarativeDaemon } from "./declarative-daemon";
 import { createRuntimeRoute } from "./route-runtime";
 import type { InterfacePluginContext } from "./context";
@@ -131,20 +141,25 @@ class DeclarativeInterfacePlugin<
             context.entityService,
             this.definition.id,
           ),
-          identity: context.identity,
-          profileKinds: context.profileKinds,
+          identity: createIdentityReader(context.identity),
+          profileKinds: createProfileSelectionReader(context.profileKinds),
           tools: context.tools,
           publicSkills: context.publicSkills,
           spaces: context.spaces,
           runtimeState: (options) =>
             context.runtimeState.scoped({
               ...options,
-              namespace: `${this.definition.id}.${options.namespace}`,
+              namespace: interfaceStateNamespaceFor(
+                this.packageName,
+                this.definition.id,
+                options.namespace,
+              ),
             }),
           uploads: (options) =>
             context.uploads.scoped({
               ...options,
               namespace: uploadNamespaceFor(
+                this.packageName,
                 this.definition.id,
                 options.namespace,
               ),
@@ -314,11 +329,13 @@ class DeclarativeInterfacePlugin<
       },
       getStatus: async (jobId): Promise<InterfaceJobStatus | null> => {
         const job = await context.jobs.getStatus(jobId);
+        const failure = job ? readServiceJobFailure(job) : undefined;
         return job
           ? Object.freeze({
               id: job.id,
               status: job.status,
-              lastError: job.lastError ?? null,
+              lastError: failure?.error ?? null,
+              ...(failure ? { code: failure.code } : {}),
             })
           : null;
       },

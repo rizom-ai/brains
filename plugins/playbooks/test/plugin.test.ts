@@ -853,6 +853,7 @@ describe("PlaybooksPlugin", () => {
 
     expectError(stale);
     expect(stale.error).toContain("Playbook definition changed");
+    expect(stale.code).toBe("conflict");
   });
 
   it("projects only operator choice events as structured action cards", async () => {
@@ -1665,6 +1666,7 @@ describe("PlaybooksPlugin", () => {
 
     expectError(stale);
     expect(stale.error).toContain("Stale playbook event");
+    expect(stale.code).toBe("conflict");
     expect(stale.error).toContain("seed");
 
     const status = await harness.executeTool("playbooks_manage", {
@@ -1787,6 +1789,7 @@ describe("PlaybooksPlugin", () => {
 
     expectError(skip);
     expect(skip.error).toContain("Stale playbook event");
+    expect(skip.code).toBe("conflict");
 
     const status = await harness.executeTool("playbooks_manage", {
       action: "status",

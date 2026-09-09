@@ -6,11 +6,12 @@ import { join } from "path";
 import { createServicePluginContext } from "../../src/service/context";
 import {
   RuntimeUploadRegistry,
-  RuntimeUploadStoreError,
+  createRuntimeUploadsNamespace,
   normalizeRuntimeUploadDataDir,
 } from "../../src/service/upload-registry";
 
 import { getErrorMessage } from "@brains/utils/error";
+import { SdkError, type SdkErrorCode } from "@brains/contracts";
 
 let dataDir: string;
 
@@ -32,16 +33,14 @@ function fixedNow(): Date {
 
 async function expectStoreError(
   promise: Promise<unknown>,
-  code: RuntimeUploadStoreError["code"],
+  code: SdkErrorCode,
 ): Promise<void> {
   try {
     await promise;
     throw new Error("Expected upload store error");
   } catch (error) {
-    expect(error).toBeInstanceOf(RuntimeUploadStoreError);
-    expect(error instanceof RuntimeUploadStoreError ? error.code : null).toBe(
-      code,
-    );
+    expect(error).toBeInstanceOf(SdkError);
+    expect(error).toMatchObject({ code });
   }
 }
 
@@ -54,6 +53,39 @@ describe("RuntimeUploadRegistry", () => {
       now: fixedNow,
     });
   }
+
+  it("exposes a bound scoped facade without mutable store options", async () => {
+    const namespace = createRuntimeUploadsNamespace(
+      RuntimeUploadRegistry.createFresh({ dataDir }),
+    );
+    const store = namespace.scoped({
+      namespace: "first",
+      refKind: "upload",
+      routePath: "/uploads",
+    });
+    expect(Object.keys(store).sort()).toEqual([
+      "getUploadDir",
+      "prune",
+      "read",
+      "readRecord",
+      "remove",
+      "save",
+      "toResponseBody",
+    ]);
+    expect(store).not.toHaveProperty("options");
+    expect(store).not.toHaveProperty("logger");
+    expect(Reflect.set(store, "options", { namespace: "other" })).toBe(false);
+    const { save, read, readRecord, remove } = store;
+    const record = await save({
+      filename: "hello.txt",
+      mediaType: "text/plain",
+      content: Buffer.from("Hello"),
+    });
+    expect((await read(record.id)).content.toString()).toBe("Hello");
+    expect(await readRecord(record.id)).toEqual(record);
+    await remove(record.id);
+    await expectStoreError(read(record.id), "not_found");
+  });
 
   it("prunes quietly before the uploads directory exists", async () => {
     // Created lazily on first save, so "not there yet" is not a fault.
@@ -154,7 +186,7 @@ describe("RuntimeUploadRegistry", () => {
       }),
     );
 
-    await expectStoreError(store.read(uploadId), "invalid_metadata");
+    await expectStoreError(store.read(uploadId), "invalid_response");
   });
 
   it("exposes scoped stores through plugin context", async () => {

@@ -11,6 +11,8 @@ import type { BasePluginContext } from "../base/context";
 import {
   createServiceJobRequest,
   getServiceJobRuntimeType,
+  readServiceJobOutput,
+  readServiceJobFailure,
 } from "../service/job-definition-runtime";
 import type {
   AccountSettingsValue,
@@ -47,7 +49,7 @@ function parseOperatorJobOutput<TSchema extends z.ZodType<unknown, unknown>>(
   schema: TSchema,
   input: unknown,
 ): z.output<TSchema> {
-  return schema.parse(input);
+  return readServiceJobOutput(schema, input);
 }
 
 function operatorJobStatus<TDefinition extends OperatorJobDefinition>(
@@ -65,7 +67,7 @@ function operatorJobStatus<TDefinition extends OperatorJobDefinition>(
     id: job.id,
     status: job.status,
     ...(result !== undefined ? { result } : {}),
-    ...(job.lastError ? { error: job.lastError } : {}),
+    ...readServiceJobFailure(job),
   });
 }
 

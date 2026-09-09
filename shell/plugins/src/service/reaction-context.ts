@@ -8,6 +8,7 @@ import type { ICoreEntityService } from "@brains/entity-service";
 import type { RuntimeStateScopeOptions } from "@brains/runtime-state";
 import { stateNamespaceFor } from "../internal/state-namespace";
 import { createAuthReader } from "../contracts/auth-registry";
+import { createPermissionChecker } from "../internal/authoring-readers";
 
 /**
  * What building a reaction context actually reads.
@@ -85,7 +86,7 @@ export function createReactionContext(input: {
         ...options,
         namespace: stateNamespaceFor(input.packageName, options.namespace),
       }),
-    permissions: context.permissions,
+    permissions: createPermissionChecker(context.permissions),
     auth: createAuthReader(context.auth),
     domain: context.domain,
     siteUrl: context.siteUrl,

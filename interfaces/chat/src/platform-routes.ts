@@ -1,7 +1,7 @@
 import {
   defineRoute,
   formatContentDispositionHeader,
-  RuntimeUploadStoreError,
+  sdkErrorSchema,
   verbatim,
   type AnyInterfaceRouteDefinition,
 } from "@brains/sdk/interfaces";
@@ -87,10 +87,8 @@ export async function serveUpload(
       },
     });
   } catch (error) {
-    if (
-      error instanceof RuntimeUploadStoreError &&
-      error.code !== "invalid_metadata"
-    ) {
+    const code = sdkErrorSchema.safeParse(error).data?.code;
+    if (code === "not_found" || code === "invalid_input") {
       return new Response("Upload not found", { status: 404 });
     }
     return new Response("Upload could not be read", { status: 500 });

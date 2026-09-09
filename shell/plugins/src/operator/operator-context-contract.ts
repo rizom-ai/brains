@@ -1,5 +1,6 @@
 import type { UserPermissionLevel } from "@brains/templates";
 import type { z } from "@brains/utils/zod";
+import type { SdkErrorCode } from "@brains/contracts";
 import type {
   BaseEntity,
   ProjectSemanticSpaceRequest,
@@ -85,6 +86,7 @@ export interface OperatorJobDefinition<
 }
 
 export interface OperatorJobStatus<TOutput> {
+  readonly code?: SdkErrorCode | undefined;
   readonly id: string;
   readonly status: "pending" | "processing" | "completed" | "failed";
   readonly result?: TOutput | undefined;

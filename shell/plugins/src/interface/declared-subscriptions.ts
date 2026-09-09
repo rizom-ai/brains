@@ -1,6 +1,10 @@
-import { getErrorMessage } from "@brains/utils/error";
+import { toSdkError, type SdkErrorCode } from "@brains/contracts";
 import { createRequester } from "../internal/requester";
-import type { AnySubscriptionDefinition } from "../contracts/subscription";
+import { createIdentityReader } from "../internal/authoring-readers";
+import type {
+  AnySubscriptionDefinition,
+  SubscriptionEntityReader,
+} from "../contracts/subscription";
 import type { InterfacePluginContext } from "./context";
 
 /**
@@ -22,6 +26,17 @@ export function registerDeclaredSubscriptions(input: {
   >;
 }): void {
   const { label, subscriptions, context } = input;
+  // A reader must be a reader at runtime too, not a narrowed annotation over
+  // the full entity service with mutation and host capabilities still attached.
+  const entities: SubscriptionEntityReader = Object.freeze({
+    getEntity: context.entityService.getEntity.bind(context.entityService),
+    listEntities: context.entityService.listEntities.bind(
+      context.entityService,
+    ),
+    getEntityTypes: context.entityService.getEntityTypes.bind(
+      context.entityService,
+    ),
+  });
   const topics = new Set<string>();
   for (const subscription of subscriptions) {
     if (topics.has(subscription.topic)) {
@@ -31,20 +46,15 @@ export function registerDeclaredSubscriptions(input: {
     }
     topics.add(subscription.topic);
     context.messaging.subscribe(subscription.topic, async (message) => {
-      const payload = subscription.payload.safeParse(message.payload);
-      if (!payload.success) {
-        return {
-          success: false,
-          code: "invalid_input",
-          error: `${label} rejected a malformed "${subscription.topic}" request`,
-        };
-      }
+      let fallback: SdkErrorCode = "invalid_input";
       try {
+        const payload = subscription.payload.parse(message.payload);
+        fallback = "handler_failed";
         const answered = await subscription.handle({
-          payload: payload.data,
+          payload,
           source: message.source,
-          entities: context.entityService,
-          identity: context.identity,
+          entities,
+          identity: createIdentityReader(context.identity),
           messaging: {
             request: createRequester((outbound) =>
               context.messaging.send(outbound),
@@ -61,23 +71,12 @@ export function registerDeclaredSubscriptions(input: {
         // Validate the wire value here; typed requesters parse that same value
         // at their boundary. Sending the transformed output would apply a
         // response transform to its own output instead of its declared input.
-        if (
-          subscription.response &&
-          !subscription.response.safeParse(answered).success
-        ) {
-          return {
-            success: false,
-            code: "invalid_response",
-            error: `${label} answered "${subscription.topic}" with something its contract does not describe`,
-          };
-        }
+        fallback = "invalid_response";
+        subscription.response?.parse(answered);
         return { success: true, data: answered };
       } catch (error) {
-        return {
-          success: false,
-          code: "handler_failed",
-          error: getErrorMessage(error),
-        };
+        const failure = toSdkError(error, fallback);
+        return { success: false, code: failure.code, error: failure.message };
       }
     });
   }

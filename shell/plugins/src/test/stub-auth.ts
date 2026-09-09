@@ -14,9 +14,8 @@ import type {
  * test — bypasses the path production takes, so a package that stopped calling
  * auth correctly would still pass.
  *
- * The administration half is nineteen operations such a test never calls. A
- * brain that has auth has all of them, so the stub says so rather than
- * spelling each one out.
+ * Administration operations exist on the stub but fail explicitly when called.
+ * Keep their shape real so capability projections exercise the production path.
  */
 
 const defaultAuditEvent: AuthAuditEvent = {
@@ -25,15 +24,9 @@ const defaultAuditEvent: AuthAuditEvent = {
   createdAt: 0,
 };
 
-// eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- a Proxy over an interface has no structural shape to satisfy: `new Proxy` types its result from its target, and that target cannot be written without spelling out every operation these tests never call
-const unusedAdministration = new Proxy(
-  {},
-  {
-    get: () => (): never => {
-      throw new Error("Administration is not exercised here");
-    },
-  },
-) as AuthImplementation;
+function unusedAdministration(): never {
+  throw new Error("Administration is not exercised here");
+}
 
 export interface StubAuthOptions {
   /**
@@ -55,7 +48,25 @@ export function createStubAuth(
   options: StubAuthOptions = {},
 ): AuthImplementation {
   return {
-    ...unusedAdministration,
+    listUsers: unusedAdministration,
+    listAdminUsers: unusedAdministration,
+    getBrainAnchor: unusedAdministration,
+    updateUserRole: unusedAdministration,
+    updateUserStatus: unusedAdministration,
+    deleteSuspendedUser: unusedAdministration,
+    revokeUserSessionsAndRefreshTokens: unusedAdministration,
+    createInvitation: unusedAdministration,
+    cancelInvitation: unusedAdministration,
+    resendInvitation: unusedAdministration,
+    confirmManualInvitationDelivery: unusedAdministration,
+    listInvitationChannels: unusedAdministration,
+    inviteExternalPeerPerson: unusedAdministration,
+    linkExternalPeer: unusedAdministration,
+    unlinkExternalPeer: unusedAdministration,
+    attachIdentity: unusedAdministration,
+    detachIdentity: unusedAdministration,
+    revokePasskey: unusedAdministration,
+    startPasskeyRegistrationForUser: unusedAdministration,
     resolveSession: async () => options.principal,
     resolveBearerGrant: async () => undefined,
     createAuthLoginResponse: () =>

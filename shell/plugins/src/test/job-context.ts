@@ -11,6 +11,7 @@ import { getServiceJobHandler } from "../index";
 import type { LoggerContract } from "@brains/utils/logger";
 import type { ProgressContract } from "@brains/utils/progress";
 import { createMockProgressReporter } from "@brains/test-utils";
+import { createJobProgress } from "../internal/authoring-readers";
 
 /**
  * Run a declared job's handler, the way the runtime would.
@@ -78,7 +79,9 @@ export function createTestJobContext<TInput>(options: {
     prompts: options.prompts ?? {
       resolve: async (_target, fallback): Promise<string> => fallback,
     },
-    progress: options.progress ?? createMockProgressReporter(),
+    progress: createJobProgress(
+      options.progress ?? createMockProgressReporter(),
+    ),
     templates: options.templates ?? {
       format: (name): string => {
         throw new Error(`This test declared no template "${name}"`);

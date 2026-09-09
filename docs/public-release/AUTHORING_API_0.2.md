@@ -215,8 +215,11 @@ The brain's house style is a singleton entity. Packages that generate prose or i
 
 Definitions and schema vocabulary:
 
-- `messageErrorCodeSchema`
-- `MessageErrorCode`
+- `SdkError`
+- `SdkErrorCode`
+- `SdkErrorData`
+- `sdkErrorCodeSchema`
+- `sdkErrorSchema`
 - `defineAccountSettings`
 - `defineStudioWorkspace`
 - `defineDashboardWidget`

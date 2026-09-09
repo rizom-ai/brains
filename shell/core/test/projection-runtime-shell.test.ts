@@ -200,6 +200,57 @@ describe("Shell projection runtime lifecycle", () => {
     );
   }
 
+  it("projects runtime contexts even for directly supplied executable rules", async () => {
+    const config = createTestShellConfig(testDir.dir, {
+      plugins: [new ProjectionTargetPlugin()],
+      embedding: { enabled: false },
+      spaces: ["chat"],
+    });
+    const shell = Shell.createFresh(
+      config,
+      { logger: createSilentLogger(), embeddingService },
+      { processRole: "web" },
+    );
+    shells.push(shell);
+    await shell.initialize();
+    let selected = false;
+    let derived = false;
+    const rule: ProjectionRule = {
+      id: "direct-rule",
+      version: "1",
+      sources: [{ kind: "conversation", types: ["conversation"] }],
+      targetType: "projection-target",
+      targets: { authority: "managed" },
+      sourceChangeBatchDelayMs: 0,
+      inputSchema: z.object({}),
+      fingerprint: () => "unused",
+      selectInput: async (_trigger, context) => {
+        expect(Object.isFrozen(context)).toBe(true);
+        expect(Object.isFrozen(context.entities)).toBe(true);
+        expect(context.entities).not.toHaveProperty("deleteEntity");
+        expect(context.entities).not.toHaveProperty("db");
+        const { getEntityTypes } = context.entities;
+        expect(getEntityTypes()).toContain("note");
+        expect(context.spaces).not.toBe(config.spaces);
+        expect(Object.isFrozen(context.spaces)).toBe(true);
+        expect(Reflect.set(context.spaces, "0", "changed")).toBe(false);
+        selected = true;
+        return {};
+      },
+      derive: async (_input, context) => {
+        expect(Object.isFrozen(context)).toBe(true);
+        expect(context.logger).not.toHaveProperty("fileHandle");
+        expect(context.logger.constructor).not.toHaveProperty("createFresh");
+        expect(context.ai).not.toHaveProperty("canGenerateImages");
+        derived = true;
+        return [];
+      },
+    };
+    expect(await shell.runProjectionRule(rule)).toEqual([]);
+    expect({ selected, derived }).toEqual({ selected: true, derived: true });
+    expect(config.spaces).toEqual(["chat"]);
+  });
+
   it("wakes the scheduler from a committed entity mutation", async () => {
     const requests: JobQueueEnqueueRequest[] = [];
     const queue = createMockJobQueueService();

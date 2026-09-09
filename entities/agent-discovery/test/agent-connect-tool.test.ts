@@ -93,7 +93,7 @@ describe("the connect tool", () => {
     await harness.reset();
   });
 
-  it("returns not_an_agent when agents_connect cannot verify an Agent Card", async () => {
+  it("reports invalid_response when agents_connect cannot verify an Agent Card", async () => {
     const harness = createPluginHarness<Plugin>({});
     const fetchMock = createMockAgentCardFetch({});
 
@@ -111,11 +111,11 @@ describe("the connect tool", () => {
       expectConfirmationArgs(confirmation),
     );
 
-    // The runtime shapes a thrown failure; a declared tool carries no code
-    // of its own.
+    // The declaration classifies this known refusal and opts into a safe message.
     expect(result).toEqual({
       success: false,
       error: "Could not verify an A2A Agent Card for missing.example.",
+      code: "invalid_response",
     });
     expect(
       await harness.getEntityService().getEntity({

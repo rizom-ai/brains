@@ -56,6 +56,7 @@ export function createConfirmationGate(options: {
           error: {
             success: false,
             error: `No pending ${options.label} confirmation found. ${retry}`,
+            code: "invalid_input",
           },
         };
       }
@@ -65,6 +66,7 @@ export function createConfirmationGate(options: {
           error: {
             success: false,
             error: `Confirmed ${options.label} arguments do not match the pending approval. ${retry}`,
+            code: "invalid_input",
           },
         };
       }

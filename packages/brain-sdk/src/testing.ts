@@ -17,6 +17,13 @@
  */
 
 import { matchHttpRoute } from "@brains/utils/http-utils";
+import {
+  sdkErrorSchema,
+  toSdkError,
+  type SdkErrorCode,
+} from "@brains/contracts";
+export { SdkError, sdkErrorCodeSchema, sdkErrorSchema } from "@brains/plugins";
+export type { SdkErrorCode, SdkErrorData } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import {
   instantiatePluginPackageDefinition,
@@ -64,7 +71,7 @@ export interface InstalledTool {
 /** What a tool answered: completed data, a refusal, or a pending approval. */
 export type ToolCallResult =
   | { readonly ok: true; readonly data: unknown }
-  | { readonly ok: false; readonly error: string }
+  | { readonly ok: false; readonly error: string; readonly code: SdkErrorCode }
   | { readonly ok: false; readonly confirmation: TestToolConfirmation };
 
 /** An approval, not a refusal. Replay its args with the named tool to confirm. */
@@ -147,14 +154,19 @@ export interface BrainTestHarness {
 export interface BrainTestHarnessOptions {
   /** The brain's domain, for a package whose routes or links depend on it. */
   readonly domain?: string | undefined;
+  /** The declared profile kind selected by the brain; resolved at finalization. */
+  readonly profileKind?: string | undefined;
 }
 
 export function createBrainTestHarness(
   options: BrainTestHarnessOptions = {},
 ): BrainTestHarness {
-  const harness = createPluginHarness(
-    options.domain === undefined ? {} : { domain: options.domain },
-  );
+  const harness = createPluginHarness({
+    ...(options.domain !== undefined ? { domain: options.domain } : {}),
+    ...(options.profileKind !== undefined
+      ? { profileKind: options.profileKind }
+      : {}),
+  });
   // A brain serves what every installed package declared, not only the last
   // one, so what each installs is kept as it is installed.
   const installedRoutes: WebRouteDefinition[] = [];
@@ -186,7 +198,13 @@ export function createBrainTestHarness(
           if (type.startsWith(`${plugin.id}:`)) {
             jobs.push({
               name: type,
-              run: (input) => harness.runJob(type, input),
+              run: async (input) => {
+                try {
+                  return await harness.runJob(type, input);
+                } catch (error) {
+                  throw toSdkError(error);
+                }
+              },
             });
           }
         }
@@ -206,12 +224,19 @@ export function createBrainTestHarness(
                 return { ok: false, confirmation };
               }
               if (!answer.success) {
+                // This is an already-shaped tool response, not a thrown error.
+                // Retain deliberate bounded messages; unknown codes still degrade safely.
+                const parsed = sdkErrorSchema.safeParse({
+                  code: answer.code,
+                  message: answer.error,
+                });
+                const failure = parsed.success
+                  ? parsed.data
+                  : toSdkError(answer);
                 return {
                   ok: false,
-                  error:
-                    "error" in answer && typeof answer.error === "string"
-                      ? answer.error
-                      : `Tool "${tool.name}" refused`,
+                  error: failure.message,
+                  code: failure.code,
                 };
               }
               return { ok: true, data: answer.data };

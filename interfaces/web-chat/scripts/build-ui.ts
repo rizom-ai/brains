@@ -1,14 +1,19 @@
 import { existsSync } from "fs";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, mkdtemp, rm } from "fs/promises";
 import { createRequire } from "module";
-import { createStylexBunTransform } from "@brains/build-tools";
-import { dirname, join } from "path";
+import {
+  createStylexBunTransform,
+  parseUiBuildArgs,
+  writeBuildFileAtomically,
+} from "@brains/build-tools";
+import { dirname, join, relative, resolve } from "path";
 
 const require = createRequire(import.meta.url);
 const packageRoot = join(import.meta.dir, "..");
 const entrypoint = join(packageRoot, "ui-react", "src", "main.tsx");
 const aliasRoot = packageRoot;
-const outdir = join(packageRoot, "dist", "ui");
+const values = parseUiBuildArgs();
+const outdir = resolve(values.outdir ?? join(packageRoot, "dist", "ui"));
 const reactRoot = dirname(require.resolve("react/package.json"));
 const reactDomRoot = dirname(require.resolve("react-dom/package.json"));
 const reactAliases: Record<string, string> = {
@@ -19,56 +24,67 @@ const reactAliases: Record<string, string> = {
   "react-dom/client": join(reactDomRoot, "client.js"),
 };
 
-await mkdir(outdir, { recursive: true });
-
-const stylex = createStylexBunTransform();
-const result = await Bun.build({
-  entrypoints: [entrypoint],
-  outdir,
-  target: "browser",
-  format: "esm",
-  minify: true,
-  sourcemap: "external",
-  naming: "app.js",
-  plugins: [
-    stylex.plugin,
-    {
-      name: "web-chat-aliases",
-      setup(build): void {
-        build.onResolve({ filter: /^@\// }, (args) => {
-          const resolved = join(aliasRoot, args.path.slice(2));
-          for (const candidate of [
-            resolved,
-            `${resolved}.tsx`,
-            `${resolved}.ts`,
-          ]) {
-            if (existsSync(candidate)) return { path: candidate };
-          }
-          return { path: resolved };
-        });
+await mkdir(dirname(outdir), { recursive: true });
+// A sibling staging directory keeps source-map relative paths unchanged.
+const staging = await mkdtemp(join(dirname(outdir), ".web-chat-ui-"));
+try {
+  const stylex = createStylexBunTransform();
+  const result = await Bun.build({
+    entrypoints: [entrypoint],
+    outdir: staging,
+    target: "browser",
+    format: "esm",
+    minify: true,
+    sourcemap: "external",
+    naming: "app.js",
+    plugins: [
+      stylex.plugin,
+      {
+        name: "web-chat-aliases",
+        setup(build): void {
+          build.onResolve({ filter: /^@\// }, (args) => {
+            const resolved = join(aliasRoot, args.path.slice(2));
+            for (const candidate of [
+              resolved,
+              `${resolved}.tsx`,
+              `${resolved}.ts`,
+            ]) {
+              if (existsSync(candidate)) return { path: candidate };
+            }
+            return { path: resolved };
+          });
+        },
       },
-    },
-    {
-      name: "dedupe-react",
-      setup(build): void {
-        build.onResolve(
-          {
-            filter:
-              /^(react|react\/jsx-runtime|react\/jsx-dev-runtime|react-dom|react-dom\/client)$/,
-          },
-          (args) => ({ path: reactAliases[args.path] }),
-        );
+      {
+        name: "dedupe-react",
+        setup(build): void {
+          build.onResolve(
+            {
+              filter:
+                /^(react|react\/jsx-runtime|react\/jsx-dev-runtime|react-dom|react-dom\/client)$/,
+            },
+            (args) => ({ path: reactAliases[args.path] }),
+          );
+        },
       },
-    },
-  ],
-});
+    ],
+  });
 
-if (!result.success) {
-  for (const log of result.logs) {
-    console.error(log);
+  if (!result.success) {
+    for (const log of result.logs) {
+      console.error(log);
+    }
+    throw new Error("Web chat UI build failed");
   }
-  process.exit(1);
-}
 
-await writeFile(join(outdir, "app.css"), `${stylex.css()}\n`);
-console.log(`Built ${join(dirname(outdir), "ui", "app.js")} and app.css`);
+  for (const output of result.outputs) {
+    await writeBuildFileAtomically(
+      join(outdir, relative(staging, output.path)),
+      new Uint8Array(await output.arrayBuffer()),
+    );
+  }
+  await writeBuildFileAtomically(join(outdir, "app.css"), `${stylex.css()}\n`);
+  console.log(`Built ${join(dirname(outdir), "ui", "app.js")} and app.css`);
+} finally {
+  await rm(staging, { recursive: true, force: true });
+}

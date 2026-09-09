@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdir, mkdtemp, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { RuntimeUploadStore, RuntimeUploadStoreError } from "../src";
+import { RuntimeUploadStore, SdkError, type SdkErrorCode } from "../src";
 
 /**
  * The store a declaration gets from `uploads`.
@@ -52,16 +52,14 @@ function storeAt(
 
 async function expectStoreError(
   promise: Promise<unknown>,
-  code: RuntimeUploadStoreError["code"],
+  code: SdkErrorCode,
 ): Promise<void> {
   try {
     await promise;
     throw new Error("Expected upload store error");
   } catch (error) {
-    expect(error).toBeInstanceOf(RuntimeUploadStoreError);
-    expect(error instanceof RuntimeUploadStoreError ? error.code : null).toBe(
-      code,
-    );
+    expect(error).toBeInstanceOf(SdkError);
+    expect(error).toMatchObject({ code });
   }
 }
 
@@ -141,7 +139,7 @@ describe("the store behind a declared upload scope", () => {
   });
 
   it("refuses an id that is not one it issued, before touching storage", async () => {
-    await expectStoreError(storeAt().read("../bad"), "invalid_ref");
+    await expectStoreError(storeAt().read("../bad"), "invalid_input");
   });
 
   it("refuses metadata it cannot read", async () => {
@@ -155,7 +153,7 @@ describe("the store behind a declared upload scope", () => {
       JSON.stringify({ id: uploadId }),
     );
 
-    await expectStoreError(store.read(uploadId), "invalid_metadata");
+    await expectStoreError(store.read(uploadId), "invalid_response");
   });
 
   it("drops uploads past their retention window when a new one arrives", async () => {

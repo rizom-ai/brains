@@ -49,6 +49,7 @@ type JobInfoSchema = z.ZodObject<{
   retryCount: z.ZodNumber;
   maxRetries: z.ZodNumber;
   lastError: z.ZodNullable<z.ZodString>;
+  lastErrorCode: z.ZodOptional<z.ZodNullable<z.ZodString>>;
   createdAt: z.ZodNumber;
   scheduledFor: z.ZodNumber;
   startedAt: z.ZodNullable<z.ZodNumber>;
@@ -80,6 +81,7 @@ export const JobInfoSchema: JobInfoSchema = z.object({
   retryCount: z.number(),
   maxRetries: z.number(),
   lastError: z.string().nullable(),
+  lastErrorCode: z.string().nullable().optional(),
   createdAt: z.number(),
   scheduledFor: z.number(),
   startedAt: z.number().nullable(),
@@ -131,6 +133,13 @@ export interface JobHandler<
   TInput = unknown,
   TOutput = unknown,
 > extends JobValidator<TInput> {
+  /**
+   * Native handlers use controlled failure envelopes by default. Schema-backed
+   * declarations use data mode: every validated return is a successful execution,
+   * even when the domain payload happens to contain `success: false`.
+   */
+  readonly resultMode?: "failure-envelope" | "data";
+
   /** Per-type execution deadline; falls back to the worker default. */
   readonly executionTimeoutMs?: number | undefined;
 

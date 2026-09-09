@@ -1,4 +1,5 @@
 import { getErrorMessage, toError } from "@brains/utils/error";
+import { SdkError, toSdkError } from "@brains/contracts";
 import { createId } from "@brains/utils/id";
 import type { Logger } from "@brains/utils/logger";
 import type { IJobProgressMonitor } from "@brains/utils/progress";
@@ -30,15 +31,13 @@ export interface JobQueueWorkerRuntimeOptions {
   operationContext?: OperationContext;
 }
 
-class JobDeadlineExceededError extends Error {
-  constructor(jobType: string, timeoutMs: number) {
-    super(`Job ${jobType} exceeded its ${timeoutMs}ms execution deadline`);
-    this.name = "JobDeadlineExceededError";
-  }
-}
-
 type OperationOutcome<T> =
   { kind: "success"; value: T } | { kind: "failure"; error: unknown };
+
+/** Presence distinguishes a prepared undefined value from invalid wire input. */
+interface PreparedJobInput {
+  readonly value: unknown;
+}
 
 type WorkerTransitionKind = "start" | "stop";
 
@@ -664,7 +663,9 @@ export class JobQueueWorker {
       return first.value;
     }
 
-    const deadlineError = new JobDeadlineExceededError(jobType, timeoutMs);
+    const deadlineError = new SdkError("deadline_exceeded", {
+      message: `Job ${jobType} exceeded its ${timeoutMs}ms execution deadline`,
+    });
     controller.abort(deadlineError);
 
     const afterCancellation = await this.raceOutcome(
@@ -715,15 +716,14 @@ export class JobQueueWorker {
 
     const handler = this.jobQueueService.getHandler(job.type);
     if (!handler) {
-      const error = new Error(
-        `No handler registered for job type: ${job.type}`,
-      );
+      const error = new SdkError("no_handler");
       await this.jobQueueService.fail(job.id, error, attemptId);
       return {
         jobId: job.id,
         type: job.type,
         status: JOB_STATUS.FAILED,
         error: error.message,
+        code: error.code,
       };
     }
 
@@ -736,6 +736,7 @@ export class JobQueueWorker {
       await stopAttemptHeartbeat();
     };
 
+    let preparedInput: PreparedJobInput | undefined;
     try {
       this.logger.debug("Processing job", {
         jobId: job.id,
@@ -743,11 +744,14 @@ export class JobQueueWorker {
         attemptId,
       });
 
-      const rawData = JSON.parse(job.data);
-      const parsedData = handler.validateAndParse(rawData);
-      if (parsedData === null) {
-        throw new Error(`Invalid job data for type: ${job.type}`);
+      let parsedData: unknown;
+      try {
+        parsedData = handler.validateAndParse(JSON.parse(job.data));
+        if (parsedData === null) throw new SdkError("invalid_input");
+      } catch (error) {
+        throw toSdkError(error, "invalid_input");
       }
+      preparedInput = { value: parsedData };
 
       const progressReporter = this.progressMonitor.createProgressReporter(
         job.id,
@@ -769,23 +773,32 @@ export class JobQueueWorker {
       );
 
       await stopHeartbeat();
-      const failure = HandlerFailureSchema.safeParse(result);
-      if (failure.success) {
-        const errorMessage = failure.data.error ?? "Handler returned failure";
-        const processError = new Error(errorMessage);
+      const failure =
+        handler.resultMode === "data"
+          ? undefined
+          : HandlerFailureSchema.safeParse(result);
+      if (failure?.success) {
+        const processError = toSdkError(failure.data);
         const applied = await this.jobQueueService.fail(
           job.id,
           processError,
           attemptId,
         );
         if (applied) {
-          await this.emitTerminalFailure(job, processError, handler, attemptId);
+          await this.emitTerminalFailure(
+            job,
+            processError,
+            handler,
+            attemptId,
+            preparedInput,
+          );
         }
         return {
           jobId: job.id,
           type: job.type,
           status: JOB_STATUS.FAILED,
-          error: errorMessage,
+          error: processError.message,
+          code: processError.code,
         };
       }
 
@@ -803,7 +816,12 @@ export class JobQueueWorker {
         };
       }
 
-      await this.runHandlerSuccessCallback(handler, job, attemptId);
+      await this.runHandlerSuccessCallback(
+        handler,
+        job,
+        attemptId,
+        preparedInput,
+      );
       await this.progressMonitor.handleJobStatusChange(
         job.id,
         "completed",
@@ -816,7 +834,7 @@ export class JobQueueWorker {
         result,
       };
     } catch (error) {
-      const processError = toError(error);
+      const processError = toSdkError(error);
       await stopHeartbeat();
 
       await this.runHandlerErrorCallback(
@@ -825,6 +843,7 @@ export class JobQueueWorker {
         job,
         processError,
         attemptId,
+        preparedInput,
       );
 
       const applied = await this.jobQueueService.fail(
@@ -833,7 +852,13 @@ export class JobQueueWorker {
         attemptId,
       );
       if (applied) {
-        await this.emitTerminalFailure(job, processError, handler, attemptId);
+        await this.emitTerminalFailure(
+          job,
+          processError,
+          handler,
+          attemptId,
+          preparedInput,
+        );
       }
 
       return {
@@ -841,6 +866,7 @@ export class JobQueueWorker {
         type: job.type,
         status: JOB_STATUS.FAILED,
         error: processError.message,
+        code: processError.code,
       };
     }
   }
@@ -849,12 +875,11 @@ export class JobQueueWorker {
     handler: JobHandler,
     job: JobInfo,
     attemptId: string,
+    input: PreparedJobInput,
   ): Promise<void> {
     const callback = handler.onTerminalSuccess;
     if (!callback) return;
     try {
-      const parsedData = handler.validateAndParse(JSON.parse(job.data));
-      if (parsedData === null) return;
       const progressReporter = this.progressMonitor.createProgressReporter(
         job.id,
         attemptId,
@@ -867,7 +892,7 @@ export class JobQueueWorker {
         () =>
           callback.call(
             handler,
-            parsedData,
+            input.value,
             job.id,
             progressReporter,
             controller.signal,
@@ -887,6 +912,7 @@ export class JobQueueWorker {
     error: Error,
     handler: JobHandler,
     attemptId: string,
+    input: PreparedJobInput | undefined,
   ): Promise<void> {
     const status = await this.jobQueueService.getStatus(job.id);
     if (status?.status !== JOB_STATUS.FAILED) return;
@@ -897,6 +923,7 @@ export class JobQueueWorker {
       job,
       error,
       attemptId,
+      input,
     );
 
     await this.progressMonitor.handleJobStatusChange(
@@ -913,13 +940,12 @@ export class JobQueueWorker {
     job: JobInfo,
     error: Error,
     attemptId: string,
+    input: PreparedJobInput | undefined,
   ): Promise<void> {
     const callback = handler[kind];
-    if (!callback) return;
+    if (!callback || !input) return;
 
     try {
-      const parsedData = handler.validateAndParse(JSON.parse(job.data));
-      if (parsedData === null) return;
       const progressReporter = this.progressMonitor.createProgressReporter(
         job.id,
         attemptId,
@@ -933,7 +959,7 @@ export class JobQueueWorker {
           callback.call(
             handler,
             error,
-            parsedData,
+            input.value,
             job.id,
             progressReporter,
             controller.signal,

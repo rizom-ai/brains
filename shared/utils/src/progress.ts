@@ -17,25 +17,23 @@ export type ProgressCallback = (
 ) => Promise<void>;
 
 /**
- * Progress reporting, as a structural contract.
+ * The minimal progress capability handed to job authors.
  *
- * `ProgressReporter` itself cannot cross a public package boundary: it has
- * private fields and a private constructor, so the copy inlined into the
- * published declarations is nominally distinct from this one. Anything
- * handed to plugin authors is typed as this interface, which inlines
- * cleanly. `ProgressReporter` satisfies it.
+ * Runtime reporters also own sub-reporters and heartbeat lifecycles. Those
+ * controls belong to `ProgressReporter`, not this callback contract. Both are
+ * structural interfaces; the distinction is capability, not class identity.
  */
 export interface ProgressContract {
   report(notification: ProgressNotification): Promise<void>;
 }
 
 /**
- * A simple utility class for managing progress reporting in nested operations
+ * Runtime progress reporting with scaling and managed heartbeat controls.
  *
  * @example
  * ```typescript
  * // Create from a callback
- * const progress = ProgressReporter.from(sendProgress);
+ * const progress = CallbackProgressReporter.from(sendProgress);
  *
  * // Report progress
  * await progress?.report({
@@ -50,14 +48,8 @@ export interface ProgressContract {
  * // Use with APIs that expect a callback
  * await someApi(subProgress?.toCallback());
  * ```
- */
-/**
- * What a progress reporter provides to callers.
  *
- * Consumers depend on this rather than on `CallbackProgressReporter`. The class
- * carries a private callback and a private constructor, so nothing else can be
- * assignable to it — which is why every test double had to be asserted into
- * place, a cast that also erased the check on the members it did define.
+ * Consumers use this structural interface rather than the concrete class.
  */
 export interface ProgressReporter {
   createSub(options?: {

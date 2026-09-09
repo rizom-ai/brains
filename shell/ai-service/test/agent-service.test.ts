@@ -3677,13 +3677,11 @@ describe("AgentService", () => {
       );
 
       expect(response.text).not.toContain('"success": false');
-      expect(response.text).toContain(
-        "Tool delete_note returned an invalid response shape",
-      );
+      expect(response.text).toContain("Invalid response");
       expect(response.cards?.[0]).toEqual(
         expect.objectContaining({
           state: "output-error",
-          error: "Tool delete_note returned an invalid response shape",
+          error: "Invalid response",
         }),
       );
     });

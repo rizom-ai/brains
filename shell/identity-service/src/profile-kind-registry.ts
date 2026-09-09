@@ -83,11 +83,11 @@ export class ProfileKindRegistry implements IProfileKindRegistry {
     }
 
     const metadata = profileKindMetadataSchema.parse(definition);
-    validateFields(definition.fields);
+    const fields = definition.fields;
+    validateFields(fields);
     const normalizedDefinition: ProfileKindDefinition = Object.freeze({
-      ...definition,
-      kind: metadata.kind,
-      category: metadata.category,
+      ...metadata,
+      fields,
       labels: Object.freeze({ ...metadata.labels }),
     });
     const registrations = this.registrations.get(metadata.kind) ?? [];

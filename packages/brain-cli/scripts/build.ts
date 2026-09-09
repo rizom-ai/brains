@@ -59,17 +59,19 @@ function findMonorepoRoot(): string {
 }
 
 const monorepoRoot = findMonorepoRoot();
-const webChatPackageDir = join(monorepoRoot, "interfaces", "web-chat");
-const webChatUiAssetPath = join(webChatPackageDir, "dist", "ui", "app.js");
-const webChatUiStylesheetPath = join(
-  webChatPackageDir,
-  "dist",
-  "ui",
-  "app.css",
+// Never rebuild dependency-owned assets in place: their tests may be reading
+// them. Keep staging outside published dist, at the same depth for source maps.
+const uiBuildDirectory = mkdtempSync(join(packageDir, ".ui-build-"));
+process.once("exit", () =>
+  rmSync(uiBuildDirectory, { recursive: true, force: true }),
 );
+const webChatPackageDir = join(monorepoRoot, "interfaces", "web-chat");
+const webChatUiDirectory = join(uiBuildDirectory, "web-chat");
+const webChatUiAssetPath = join(webChatUiDirectory, "app.js");
+const webChatUiStylesheetPath = join(webChatUiDirectory, "app.css");
 const bundledWebChatUiDir = join(outdir, "ui");
 const studioPackageDir = join(monorepoRoot, "plugins", "studio");
-const studioUiDirectory = join(studioPackageDir, "dist", "ui");
+const studioUiDirectory = join(uiBuildDirectory, "studio");
 const studioUiAssetPath = join(studioUiDirectory, "studio-app.js");
 const studioUiManifestPath = join(
   studioUiDirectory,
@@ -93,11 +95,14 @@ const sharedInstanceTsConfigPath = join(
 cpSync(sharedInstanceTsConfigPath, packageInstanceTsConfigPath);
 
 console.log("Building bundled web chat UI...");
-const webChatBuildResult = await Bun.spawn(["bun", "run", "build"], {
-  cwd: webChatPackageDir,
-  stdout: "inherit",
-  stderr: "inherit",
-}).exited;
+const webChatBuildResult = await Bun.spawn(
+  ["bun", "run", "build", "--outdir", webChatUiDirectory],
+  {
+    cwd: webChatPackageDir,
+    stdout: "inherit",
+    stderr: "inherit",
+  },
+).exited;
 if (webChatBuildResult !== 0) {
   console.error("Web chat UI build failed");
   process.exit(1);
@@ -114,11 +119,14 @@ if (!existsSync(webChatUiStylesheetPath)) {
 }
 
 console.log("Building bundled Studio editor UI...");
-const studioBuildResult = await Bun.spawn(["bun", "run", "build"], {
-  cwd: studioPackageDir,
-  stdout: "inherit",
-  stderr: "inherit",
-}).exited;
+const studioBuildResult = await Bun.spawn(
+  ["bun", "run", "build", "--outdir", studioUiDirectory],
+  {
+    cwd: studioPackageDir,
+    stdout: "inherit",
+    stderr: "inherit",
+  },
+).exited;
 if (studioBuildResult !== 0) {
   console.error("Studio editor UI build failed");
   process.exit(1);

@@ -1,6 +1,7 @@
 import { createRequester } from "../internal/requester";
 import {
   ProjectionJsonObjectSchema,
+  copyEntityTypeConfig,
   applyVisibilityToMarkdown,
   generateFrontmatter,
   generateMarkdownWithFrontmatter,
@@ -49,9 +50,16 @@ import type {
 import { createJobEntityAccess } from "../job/job-entity-access";
 import { stateNamespaceFor } from "../internal/state-namespace";
 import { saveProcessedEntity } from "./pending-ingestion";
-import type { ScopedRuntimeUploadStore } from "../service/upload-registry";
 import { createEvalFixtures } from "./eval-fixtures";
 import { createAuthReader } from "../contracts/auth-registry";
+import { createConversationReader } from "../internal/callback-readers";
+import {
+  createJobAttachmentReader,
+  createJobIdentityReader,
+  createJobProgress,
+  createJobUploadReader,
+  createPermissionChecker,
+} from "../internal/authoring-readers";
 import { entitySchema, parseDefinitionEntity } from "./entity-schema";
 import type { EntityDefinitionShape } from "./entity-shape";
 export { definitionEntitySchema, parseDefinitionEntity } from "./entity-schema";
@@ -82,6 +90,7 @@ import type {
   EntityGenerationLink,
   EntityCreateRoute,
   EntityCreateRouting,
+  EntityCreateUploadReader,
   EntityGenerationResult,
   EntityOf,
   EntityReactionContext,
@@ -489,9 +498,11 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     this.adapter = entityAdapter(definition);
     // Undefined when undeclared, so the runtime keeps its own defaults
     // rather than this surface pinning them.
-    this.entityTypeConfig = definition.config
-      ? { ...definition.config }
-      : undefined;
+    const entityConfig = definition.config;
+    this.entityTypeConfig =
+      entityConfig === undefined
+        ? undefined
+        : copyEntityTypeConfig(entityConfig);
     this.seed = definition.seed;
     this.templates = definition.templates;
     this.dataSources = definition.dataSources;
@@ -904,7 +915,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           ai: context.ai,
           logger: this.logger,
           entities: this.entityAccess(context),
-          conversations: context.conversations,
+          conversations: createConversationReader(context.conversations),
           runProjectionRule: (rule) => context.eval.runProjectionRule(rule),
           fixtures: createEvalFixtures(context.entityService, [
             this.entityType,
@@ -1139,7 +1150,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           run: ({ signal }) =>
             check.run({
               ...this.reactionContext(context),
-              conversations: context.conversations,
+              conversations: createConversationReader(context.conversations),
               signal,
             }),
         }),
@@ -1165,7 +1176,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
                 context,
                 permissionToVisibilityScope(request.userPermissionLevel),
               ),
-              conversations: context.conversations,
+              conversations: createConversationReader(context.conversations),
               logger: this.logger,
             });
             return { success: true, data: { items: [...items] } };
@@ -1692,7 +1703,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     return {
       input,
       jobId,
-      progress,
+      progress: createJobProgress(progress),
       signal,
       ai: context.ai,
       prompts: context.prompts,
@@ -1733,8 +1744,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           });
         },
       },
-      conversations: context.conversations,
-      identity: context.identity,
+      conversations: createConversationReader(context.conversations),
+      identity: createJobIdentityReader(context.identity),
       domain: context.domain,
       profileKinds: {
         getResolved: () => context.profileKinds.getResolved(),
@@ -1744,8 +1755,8 @@ class DeclarativeEntityPlugin extends EntityPlugin<
       // Templates declared on this entity register under this plugin's id.
       template: (localName) =>
         scopedTemplateName(this.templates, this.entityType, this.id, localName),
-      uploads: this.uploadReader(context),
-      attachments: context.attachments,
+      uploads: createJobUploadReader(this.uploadReader(context)),
+      attachments: createJobAttachmentReader(context.attachments),
     };
   }
 
@@ -1754,11 +1765,15 @@ class DeclarativeEntityPlugin extends EntityPlugin<
    * namespace decides which bytes come back, and every interface that
    * accepts a file writes into the same one.
    */
-  private uploadReader(context: EntityPluginContext): ScopedRuntimeUploadStore {
-    return context.uploads.scoped({
+  private uploadReader(context: EntityPluginContext): EntityCreateUploadReader {
+    const store = context.uploads.scoped({
       namespace: "upload",
       refKind: "upload",
       routePath: "/api/uploads",
+    });
+    return Object.freeze({
+      read: store.read.bind(store),
+      readRecord: store.readRecord.bind(store),
     });
   }
 
@@ -1785,7 +1800,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           ...options,
           namespace: stateNamespaceFor(this.packageName, options.namespace),
         }),
-      permissions: context.permissions,
+      permissions: createPermissionChecker(context.permissions),
       domain: context.domain,
       siteUrl: context.siteUrl,
       logger: this.logger,

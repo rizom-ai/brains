@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { BatchJobManager } from "../src/batch-job-manager";
 import { JobQueueService } from "../src/job-queue-service";
 import type { JobHandler, JobQueueDbConfig } from "../src/types";
@@ -358,6 +358,43 @@ describe("BatchJobManager", () => {
       expect(status?.batchId).toBe(batchId);
     });
 
+    it("returns coded failures without forwarding legacy or unknown stored diagnostics", async () => {
+      const batchId = await enqueueBatch([{ type: "embedding", data: {} }]);
+      const [job] = await jobQueueService.getActiveJobs();
+      if (!job) throw new Error("Child was not enqueued");
+      const read = spyOn(jobQueueService, "getStatus");
+      try {
+        for (const code of [null, "future_code", "permission_denied"]) {
+          for (const message of [null, "private-provider-token"]) {
+            read.mockResolvedValue({
+              ...job,
+              status: "failed",
+              lastError: message,
+              lastErrorCode: code,
+            });
+            const status = await batchManager.getBatchStatus(batchId);
+            expect(status).toMatchObject({
+              failedOperations: 1,
+              errors: [
+                {
+                  code: code === "permission_denied" ? code : "handler_failed",
+                  message:
+                    code === "permission_denied"
+                      ? "Permission denied"
+                      : "The operation failed",
+                },
+              ],
+            });
+            expect(JSON.stringify(status)).not.toContain(
+              "private-provider-token",
+            );
+          }
+        }
+      } finally {
+        read.mockRestore();
+      }
+    });
+
     it("should treat missing child jobs as failed operations", async () => {
       const batchId = createId();
       batchManager.registerBatch(
@@ -372,9 +409,9 @@ describe("BatchJobManager", () => {
 
       expect(status?.status).toBe(JOB_STATUS.FAILED);
       expect(status?.failedOperations).toBe(1);
-      expect(status?.errors).toContain(
-        "Missing job missing-job-id for embedding",
-      );
+      expect(status?.errors).toEqual([
+        { code: "not_found", message: "Not found" },
+      ]);
     });
   });
 

@@ -1,4 +1,5 @@
-import type { MessageErrorCode } from "@brains/messaging-service";
+import type { SchemaReturn } from "../internal/schema-return";
+import type { SdkErrorCode } from "@brains/contracts";
 import type { z } from "@brains/utils/zod";
 import type {
   BaseEntity,
@@ -111,7 +112,7 @@ export type RequestResult<TResponseSchema extends SubscriptionPayloadSchema> =
   | { readonly ok: true; readonly data: z.output<TResponseSchema> }
   | {
       readonly ok: false;
-      readonly code: MessageErrorCode;
+      readonly code: SdkErrorCode;
     };
 
 /**
@@ -130,6 +131,9 @@ export type RequestResult<TResponseSchema extends SubscriptionPayloadSchema> =
 export interface SubscriptionDefinition<
   TPayloadSchema extends SubscriptionPayloadSchema = SubscriptionPayloadSchema,
   TResponseSchema extends SubscriptionPayloadSchema = SubscriptionPayloadSchema,
+  TOutput extends SchemaReturn<z.input<TResponseSchema>> = SchemaReturn<
+    z.input<TResponseSchema>
+  >,
 > {
   readonly topic: string;
   readonly payload: TPayloadSchema;
@@ -189,7 +193,7 @@ export interface SubscriptionDefinition<
      * Named consumer: @brains/playbooks.
      */
     readonly source: string;
-  }): z.input<TResponseSchema> | Promise<z.input<TResponseSchema>>;
+  }): TOutput | Promise<TOutput>;
 }
 
 export type AnySubscriptionDefinition =

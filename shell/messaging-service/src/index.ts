@@ -1,7 +1,7 @@
 export { MessageBus } from "./messageBus";
 export type {
   BaseMessage,
-  MessageErrorCode,
+  SdkErrorCode,
   MessageResponse,
   MessageHandler,
   MessageSender,
@@ -16,7 +16,7 @@ export type {
 export {
   baseMessageSchema,
   messageWithPayloadSchema,
-  messageErrorCodeSchema,
+  sdkErrorCodeSchema,
   messageResponseSchema,
   internalMessageResponseSchema,
   hasPayload,

@@ -1,6 +1,7 @@
 import {
   defineServicePlugin,
   defineTool,
+  SdkError,
   z,
   type ServicePackageDefinition,
 } from "@brains/sdk/services";
@@ -83,7 +84,9 @@ export function siteContentService(): ServicePackageDefinition<
           sideEffects: "writes",
           execute: async ({ input, entities, messaging, logger }) => {
             if (input.sectionId && !input.routeId) {
-              throw new Error("sectionId requires routeId to be specified");
+              throw new SdkError("invalid_input", {
+                publicMessage: "sectionId requires routeId to be specified",
+              });
             }
 
             const answer = routesAnswerSchema.safeParse(
@@ -93,16 +96,19 @@ export function siteContentService(): ServicePackageDefinition<
               }),
             );
             if (!answer.success) {
-              throw new Error(
-                "The site builder did not answer with its routes; is it running?",
-              );
+              throw new SdkError("no_handler", {
+                publicMessage:
+                  "The site builder did not answer with its routes; is it running?",
+              });
             }
 
             const routes = input.routeId
               ? answer.data.data.filter((route) => route.id === input.routeId)
               : answer.data.data;
             if (input.routeId && routes.length === 0) {
-              throw new Error(`Route not found: ${input.routeId}`);
+              throw new SdkError("not_found", {
+                publicMessage: `Route not found: ${input.routeId}`,
+              });
             }
 
             const fillable: Array<{

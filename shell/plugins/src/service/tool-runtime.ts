@@ -4,7 +4,7 @@ import {
   type ToolContext,
   type ToolResponse,
 } from "@brains/mcp-service";
-import { getErrorMessage } from "@brains/utils/error";
+import { SdkError, toSdkError, type SdkErrorCode } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type { EntityReactionContext } from "../entity/entity-definition-contract";
 import type { AnyServiceToolDefinition } from "./service-definition-contract";
@@ -83,7 +83,9 @@ export function createRuntimeTool(input: {
       ? {}
       : { directMcpExposure: definition.directMcpExposure }),
     handler: async (rawInput, toolContext): Promise<ToolResponse> => {
+      let fallback: SdkErrorCode = "invalid_input";
       try {
+        if (toolContext.signal?.aborted) throw new SdkError("cancelled");
         const token = toolConfirmationToken(rawInput);
         let parsed: Record<string, unknown>;
         if (token !== undefined) {
@@ -95,6 +97,7 @@ export function createRuntimeTool(input: {
         } else {
           parsed = definition.input.parse(rawInput);
         }
+        fallback = "handler_failed";
         if (token === undefined && definition.confirmation) {
           return {
             needsConfirmation: true,
@@ -151,12 +154,17 @@ export function createRuntimeTool(input: {
             },
           };
         }
+        fallback = "invalid_response";
         return {
           success: true,
           data: definition.output.parse(output),
         };
       } catch (error) {
-        return { success: false, error: getErrorMessage(error) };
+        const failure = toSdkError(
+          error,
+          toolContext.signal?.aborted ? "cancelled" : fallback,
+        );
+        return { success: false, error: failure.message, code: failure.code };
       }
     },
   };

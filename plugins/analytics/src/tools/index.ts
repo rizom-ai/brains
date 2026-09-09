@@ -1,5 +1,6 @@
 import {
   defineTool,
+  SdkError,
   type ServiceToolDefinition,
   z,
 } from "@brains/sdk/services";
@@ -128,7 +129,9 @@ Returns pageviews, visitors, top pages, referrers, devices, and countries.`,
       execute: async ({ input }) => {
         const validationError = validateParams(input);
         if (validationError) {
-          throw new Error(validationError);
+          throw new SdkError("invalid_input", {
+            publicMessage: validationError,
+          });
         }
 
         const { startDate, endDate } = resolveRange(input);

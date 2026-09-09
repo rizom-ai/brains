@@ -1,12 +1,16 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { createStylexBunTransform } from "@brains/build-tools";
-import { dirname, join, relative } from "node:path";
+import {
+  createStylexBunTransform,
+  parseUiBuildArgs,
+} from "@brains/build-tools";
+import { dirname, join, relative, resolve } from "node:path";
 
 const require = createRequire(import.meta.url);
 const packageRoot = join(import.meta.dir, "..");
 const entrypoint = join(packageRoot, "ui-react", "src", "main.tsx");
-const outdir = join(packageRoot, "dist", "ui");
+const values = parseUiBuildArgs();
+const outdir = resolve(values.outdir ?? join(packageRoot, "dist", "ui"));
 const reactRoot = dirname(require.resolve("react/package.json"));
 const reactDomRoot = dirname(require.resolve("react-dom/package.json"));
 const reactAliases: Record<string, string> = {
@@ -17,7 +21,10 @@ const reactAliases: Record<string, string> = {
   "react-dom/client": join(reactDomRoot, "client.js"),
 };
 
-await rm(outdir, { recursive: true, force: true });
+// Only the default package output is cleaned; callers own custom destinations.
+if (values.outdir === undefined) {
+  await rm(outdir, { recursive: true, force: true });
+}
 await mkdir(outdir, { recursive: true });
 
 const stylex = createStylexBunTransform();

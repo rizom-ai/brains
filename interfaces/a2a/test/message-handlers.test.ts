@@ -140,6 +140,7 @@ describe("A2A call message handlers", () => {
 
     expect("success" in response && response.success).toBe(false);
     expect(response).toHaveProperty("error", expect.stringContaining("saved"));
+    expect(response).toHaveProperty("code", "not_found");
     expect(fetchFn).not.toHaveBeenCalled();
   });
 });

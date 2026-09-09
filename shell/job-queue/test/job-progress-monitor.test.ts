@@ -35,6 +35,7 @@ function createMockJob(overrides: Partial<JobQueue> = {}): JobQueue {
     createdAt: Date.now(),
     maxRetries: 3,
     lastError: null,
+    lastErrorCode: null,
     result: null,
     progress: null,
     completedAt: null,
@@ -320,8 +321,8 @@ describe("JobProgressMonitor", () => {
         batchId: "batch-456",
         totalOperations: 10,
         completedOperations: 3,
-        failedOperations: 0,
-        errors: [],
+        failedOperations: 1,
+        errors: [{ code: "permission_denied", message: "Permission denied" }],
         status: "processing",
         currentOperation: "Processing operation 4",
       };
@@ -343,9 +344,11 @@ describe("JobProgressMonitor", () => {
           batchDetails: {
             totalOperations: 10,
             completedOperations: 3,
-            failedOperations: 0,
+            failedOperations: 1,
             currentOperation: "Processing operation 4",
-            errors: [],
+            errors: [
+              { code: "permission_denied", message: "Permission denied" },
+            ],
           },
           progress: {
             current: 3,

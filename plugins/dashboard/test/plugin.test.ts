@@ -911,8 +911,7 @@ describe("dashboard service", () => {
       expect(response).toEqual({
         success: false,
         code: "invalid_input",
-        error:
-          'Service "dashboard" rejected a malformed "dashboard:unregister-widget" request',
+        error: "Invalid input",
       });
     });
 

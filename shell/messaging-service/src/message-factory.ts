@@ -1,4 +1,4 @@
-import { messageErrorCodeSchema, type MessageErrorCode } from "./base-types";
+import { sdkErrorCodeSchema, type SdkErrorCode } from "./base-types";
 import { parseHandlerResponse } from "./handler-response";
 import type {
   InternalMessageResponse,
@@ -68,7 +68,7 @@ export function toMessageResponse<R>(
     // the first says the capability is absent from this brain, the second
     // that it broke. A caller that has to tell them apart reads the code.
     code: response
-      ? (messageErrorCodeSchema.safeParse(response.error?.code).data ??
+      ? (sdkErrorCodeSchema.safeParse(response.error?.code).data ??
         "handler_failed")
       : "no_handler",
     error:
@@ -84,7 +84,7 @@ function createInternalResponse(
   success: boolean,
   data?: unknown,
   error?: string,
-  code?: MessageErrorCode,
+  code?: SdkErrorCode,
 ): InternalMessageResponse {
   return {
     id: createId("resp"),

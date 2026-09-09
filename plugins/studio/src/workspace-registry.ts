@@ -5,6 +5,7 @@ import type {
 } from "@brains/sdk/services";
 import type { StudioWorkspaceRegistration } from "@brains/sdk/plugins";
 import { z } from "@brains/utils/zod";
+import { SdkError } from "@brains/sdk/services";
 
 const workspaceRegistrationSchema = z.object({
   id: z.string().trim().min(1),
@@ -91,7 +92,9 @@ function assertFloor(
   floor: UserPermissionLevel,
 ): void {
   if (!meetsFloor(actor, floor)) {
-    throw new Error(`Studio workspace "${id}" requires ${floor} permission`);
+    throw new SdkError("permission_denied", {
+      publicMessage: `Studio workspace "${id}" requires ${floor} permission`,
+    });
   }
 }
 
@@ -101,7 +104,9 @@ export class StudioWorkspaceRegistry {
   register(input: StudioWorkspaceRegistration): StoredStudioWorkspace {
     const parsed = workspaceRegistrationSchema.parse(input);
     if (this.workspaces.has(parsed.id)) {
-      throw new Error(`Studio workspace already registered: ${parsed.id}`);
+      throw new SdkError("conflict", {
+        publicMessage: `Studio workspace already registered: ${parsed.id}`,
+      });
     }
     const occupiedIds = new Set(
       Array.from(this.workspaces.values()).flatMap((workspace) => [
@@ -117,9 +122,9 @@ export class StudioWorkspaceRegistry {
       (id, index) => requestedIds.indexOf(id) !== index,
     );
     if (duplicateRequested || requestedIds.some((id) => occupiedIds.has(id))) {
-      throw new Error(
-        `Studio workspace id or alias already registered: ${duplicateRequested ?? requestedIds.find((id) => occupiedIds.has(id)) ?? parsed.id}`,
-      );
+      throw new SdkError("conflict", {
+        publicMessage: `Studio workspace id or alias already registered: ${duplicateRequested ?? requestedIds.find((id) => occupiedIds.has(id)) ?? parsed.id}`,
+      });
     }
     const sourceEntityTypes = parsed.entityTypes;
     const entityTypes =

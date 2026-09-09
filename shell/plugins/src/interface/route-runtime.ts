@@ -1,4 +1,10 @@
 import type { UserPermissionLevel } from "@brains/templates";
+import {
+  SdkError,
+  toSdkError,
+  sdkErrorHttpStatus,
+  type SdkErrorCode,
+} from "@brains/contracts";
 import type { IAuthRegistry } from "../contracts/auth-registry";
 import {
   isVerbatimResponse,
@@ -8,11 +14,7 @@ import {
 } from "./route-contract";
 
 export type { RoutePermissions };
-import {
-  jsonError,
-  jsonResponse,
-  type WebRouteDefinition,
-} from "../types/web-routes";
+import { jsonResponse, type WebRouteDefinition } from "../types/web-routes";
 
 /**
  * Turn a declared route into the runtime's web-route shape.
@@ -43,45 +45,42 @@ export function createRuntimeRoute(
     ...(definition.match ? { match: definition.match } : {}),
     public: true,
     handler: async (request): Promise<Response> => {
-      const caller = await resolveCaller(definition, request, options);
-      if (definition.security.kind !== "public" && !caller) {
-        // A person is asked to sign in; a peer is told its credential failed.
-        return jsonError(
-          definition.security.kind === "session"
-            ? "Authentication required"
-            : "Unauthorized",
-          401,
+      let fallback: SdkErrorCode = "handler_failed";
+      try {
+        if (request.signal.aborted) throw new SdkError("cancelled");
+        const caller = await resolveCaller(definition, request, options);
+        if (definition.security.kind !== "public" && !caller) {
+          throw new SdkError("unauthenticated");
+        }
+
+        fallback = "invalid_input";
+        const body: unknown = definition.body
+          ? definition.body.parse(await request.json())
+          : undefined;
+        fallback = "handler_failed";
+        const output = await definition.handle({ request, body, caller });
+        fallback = "invalid_response";
+        // Protocol responses retain their own mandated body, status and headers.
+        if (isVerbatimResponse(definition.response)) {
+          if (!(output instanceof Response))
+            throw new SdkError("invalid_response");
+          return output;
+        }
+        return jsonResponse(definition.response.parse(output));
+      } catch (error) {
+        // Runtime failures are coded and sanitized; arbitrary handler/validator
+        // exceptions must never become public response bodies.
+        const failure = toSdkError(
+          error,
+          request.signal.aborted ? "cancelled" : fallback,
+        );
+        return jsonResponse(
+          { error: failure.message, code: failure.code },
+          {
+            status: sdkErrorHttpStatus(failure.code),
+          },
         );
       }
-
-      let body: unknown;
-      if (definition.body) {
-        let payload: unknown;
-        try {
-          payload = await request.json();
-        } catch {
-          return jsonError("Request body must be valid JSON", 400);
-        }
-        const parsed = definition.body.safeParse(payload);
-        if (!parsed.success) {
-          return jsonError("Request body is invalid", 400);
-        }
-        body = parsed.data;
-      }
-
-      const output = await definition.handle({
-        request,
-        body,
-        caller,
-      });
-      // A route hosting somebody else's protocol answers for itself; there is
-      // nothing here to validate and nothing to encode.
-      if (isVerbatimResponse(definition.response)) {
-        return output instanceof Response
-          ? output
-          : jsonError("Route did not answer with a response", 500);
-      }
-      return jsonResponse(definition.response.parse(output));
     },
   };
 }

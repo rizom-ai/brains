@@ -132,8 +132,8 @@ export type { AppInfo } from "@brains/plugins/contracts/app-info";
 // the message beside it may be reworded at any time.
 // Named consumer: @brains/studio, whose assist path reports 503 rather than
 // 400 when nothing is listening.
-export { messageErrorCodeSchema } from "@brains/plugins";
-export type { MessageErrorCode } from "@brains/plugins";
+export { SdkError, sdkErrorCodeSchema, sdkErrorSchema } from "@brains/plugins";
+export type { SdkErrorCode, SdkErrorData } from "@brains/plugins";
 
 export { SYSTEM_CHANNELS } from "@brains/plugins";
 export type { SystemChannelName } from "@brains/plugins";

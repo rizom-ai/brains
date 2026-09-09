@@ -7,11 +7,11 @@ import {
   type AuthPrincipal,
 } from "../src";
 import { createStubAuth } from "@brains/plugins/test";
+import { AuthRegistry, createAuthReader } from "../src/contracts/auth-registry";
 
 /**
- * What `@brains/admin`, `@brains/studio` and `@brains/dashboard` do today by
- * calling `getActiveAuthService()`, a module-level global in auth-service.
- * A declarative package has no such reach — and should not need one.
+ * Declarative consumers reach auth through the app-scoped registry, without
+ * importing the implementation or relying on a module-level active service.
  */
 
 const principal: AuthPrincipal = {
@@ -25,7 +25,21 @@ const principal: AuthPrincipal = {
 };
 
 describe("reaching auth through the runtime", () => {
-  it("hands a service the registered implementation", async () => {
+  it("provides complete stub capabilities and reports unsupported administration on invocation", () => {
+    const registry = AuthRegistry.createFresh();
+    registry.register(createStubAuth());
+    const reader = createAuthReader(registry);
+    const admin = reader.getAdministration();
+    expect(admin).toBeDefined();
+    expect(Object.isFrozen(admin)).toBe(true);
+    expect(() => admin?.listUsers()).toThrow(
+      "Administration is not exercised here",
+    );
+    expect(reader.getCaller()).not.toHaveProperty("listUsers");
+    expect(reader.getIdentities()).not.toHaveProperty("getA2ASigningKey");
+  });
+
+  it("hands a service the registered caller capability", async () => {
     let seen: AuthPrincipal | undefined;
     const definition = defineServicePlugin(
       {

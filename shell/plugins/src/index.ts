@@ -22,6 +22,9 @@ export {
   ProjectionJsonValueSchema,
   ProjectionWriteIntentSchema,
   defineProjectionRule,
+  // Runtime adapters shared with core; not part of the public SDK exports.
+  createProjectionInputReader,
+  createProjectionExecutionReader,
   type ProjectionEntityReader,
   type ProjectionEntityWrite,
   type ProjectionExecutionContext,
@@ -204,7 +207,6 @@ export {
 export {
   RuntimeUploadRegistry,
   RuntimeUploadStore,
-  RuntimeUploadStoreError,
   createRuntimeUploadsNamespace,
   normalizeRuntimeUploadDataDir,
   runtimeUploadIdPattern,
@@ -217,7 +219,6 @@ export {
   type RuntimeUploadRef,
   type RuntimeUploadResponseBody,
   type RuntimeUploadScopeOptions,
-  type RuntimeUploadStoreErrorCode,
   type RuntimeUploadStoreOptions,
   type SaveRuntimeUploadInput,
 } from "./service/upload-registry";
@@ -790,9 +791,12 @@ export type { IAgentService } from "@brains/ai-service";
 export type { IMessageBus } from "@brains/messaging-service";
 
 export {
-  messageErrorCodeSchema,
-  type MessageErrorCode,
-} from "@brains/messaging-service";
+  SdkError,
+  sdkErrorCodeSchema,
+  sdkErrorSchema,
+  type SdkErrorCode,
+  type SdkErrorData,
+} from "@brains/contracts";
 export type { ContentFormatter } from "@brains/content-formatters";
 export type { ProgressCallback } from "@brains/utils/progress";
 

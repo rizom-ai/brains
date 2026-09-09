@@ -275,7 +275,8 @@ describe("a tool that is the conversation", () => {
       await harness.executeTool("looping_chat", { message: "hi" }),
     ).toMatchObject({
       success: false,
-      error: expect.stringContaining("agentTool: false"),
+      code: "handler_failed",
+      error: "The operation failed",
     });
   });
 

@@ -25,6 +25,7 @@
     "@brains/eslint-config": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@libsql/client": "^0.17.4",
     "@types/bun": "^1.4.0",
     "eslint": "^10.5.0",
     "ts-pattern": "^5.0.0",

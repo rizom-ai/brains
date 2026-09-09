@@ -68,6 +68,31 @@ describe("RuntimeStateService", () => {
     restarted.close();
   });
 
+  it("allows bounded qualified owner namespaces without relaxing the character rules", async () => {
+    const service = RuntimeStateService.createFresh({ url: dbUrl });
+    try {
+      await service.initialize();
+      const store = service.scoped({
+        namespace: "n".repeat(512),
+        schema: stringSchema,
+      });
+      await store.set("key", "value");
+      expect(await store.get("key")).toBe("value");
+      for (const namespace of [
+        "n".repeat(513),
+        "",
+        "invalid/path",
+        "invalid space",
+      ]) {
+        expect(() =>
+          service.scoped({ namespace, schema: stringSchema }),
+        ).toThrow("Invalid runtime state namespace");
+      }
+    } finally {
+      service.close();
+    }
+  });
+
   it("isolates records by namespace", async () => {
     const service = RuntimeStateService.createFresh({ url: dbUrl });
     const chat = service.scoped({
@@ -85,6 +110,43 @@ describe("RuntimeStateService", () => {
     expect(await chat.get("same-key")).toBe("chat-value");
     expect(await playbooks.get("same-key")).toBe("playbook-value");
     service.close();
+  });
+
+  it("does not expose storage internals or let a scoped handle change its namespace", async () => {
+    const service = RuntimeStateService.createFresh({ url: dbUrl });
+    try {
+      await service.initialize();
+      const first = service.scoped({
+        namespace: "first",
+        schema: stringSchema,
+      });
+      const second = service.scoped({
+        namespace: "second",
+        schema: stringSchema,
+      });
+      await second.set("key", "second-value");
+      const changed = Reflect.set(first, "namespace", "second");
+      await first.set("key", "first-value");
+      expect(await second.get("key")).toBe("second-value");
+      expect(await first.get("key")).toBe("first-value");
+      expect(changed).toBe(false);
+      expect(Object.keys(first).sort()).toEqual([
+        "clear",
+        "delete",
+        "get",
+        "has",
+        "list",
+        "set",
+        "setIfNotExists",
+      ]);
+      expect(first).not.toHaveProperty("db");
+      expect(first).not.toHaveProperty("schema");
+      expect(first).not.toHaveProperty("listRows");
+      const { get } = first;
+      expect(await get("key")).toBe("first-value");
+    } finally {
+      service.close();
+    }
   });
 
   it("supports atomic insert-if-absent semantics", async () => {

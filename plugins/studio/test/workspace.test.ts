@@ -722,7 +722,7 @@ describe("optional Studio workspaces", () => {
 
     expect(duplicate).toEqual({
       success: false,
-      code: "handler_failed",
+      code: "conflict",
       error: "Studio workspace already registered: site",
     });
   });

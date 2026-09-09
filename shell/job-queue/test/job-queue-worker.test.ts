@@ -908,6 +908,62 @@ describe("JobQueueWorker", () => {
   });
 
   describe("Handler failure propagation", () => {
+    it.each(["success", "throw", "controlled"] as const)(
+      "reuses the attempt's prepared input for %s callbacks",
+      async (outcome) => {
+        const handler = createMockHandler();
+        let parses = 0;
+        handler.validateAndParse.mockImplementation(() => ({
+          value: ++parses,
+        }));
+        handler.process.mockImplementation(async () => {
+          if (outcome === "throw") throw new Error("private diagnostic");
+          return {
+            success: outcome === "success",
+            error: "private diagnostic",
+          };
+        });
+        const result = createWorkerWithSingleJob(handler);
+        worker = result.worker;
+        spyOn(result.mockService, "getStatus").mockResolvedValue({
+          ...testJob,
+          status: outcome === "success" ? "completed" : "failed",
+        });
+        await worker.start();
+        await waitUntil(
+          () =>
+            worker.getStats().processedJobs + worker.getStats().failedJobs > 0,
+          "the attempt and its callbacks to settle",
+        );
+        expect(handler.validateAndParse).toHaveBeenCalledTimes(1);
+        if (outcome === "success") {
+          expect(handler.onTerminalSuccess).toHaveBeenCalledWith(
+            { value: 1 },
+            testJob.id,
+            expect.any(Object),
+            expect.any(AbortSignal),
+          );
+        } else {
+          expect(handler.onTerminalError).toHaveBeenCalledWith(
+            expect.any(Error),
+            { value: 1 },
+            testJob.id,
+            expect.any(Object),
+            expect.any(AbortSignal),
+          );
+        }
+        if (outcome === "throw") {
+          expect(handler.onError).toHaveBeenCalledWith(
+            expect.any(Error),
+            { value: 1 },
+            testJob.id,
+            expect.any(Object),
+            expect.any(AbortSignal),
+          );
+        }
+      },
+    );
+
     it("should call fail() when handler returns { success: false }", async () => {
       const handler = createMockHandler();
       handler.process.mockImplementation(() =>

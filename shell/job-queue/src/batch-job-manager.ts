@@ -1,6 +1,7 @@
 import type { IJobQueueService, JobContext, JobOptions } from "./types";
 import type { BatchOperation, BatchJobStatus, Batch } from "./batch-schemas";
 import { JOB_STATUS } from "./schemas";
+import { SdkError, toSdkError, type SdkErrorData } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import {
   Effect,
@@ -348,16 +349,12 @@ export class BatchJobManager {
       let completedOperations = 0;
       let failedOperations = 0;
       let activeOperations = 0;
-      const errors: string[] = [];
+      const errors: SdkErrorData[] = [];
 
-      for (const [index, job] of jobStatuses.entries()) {
+      for (const job of jobStatuses) {
         if (!job) {
           failedOperations++;
-          const operation = batch.operations[index];
-          const jobId = batch.jobIds[index] ?? "unknown";
-          errors.push(
-            `Missing job ${jobId}${operation ? ` for ${operation.type}` : ""}`,
-          );
+          errors.push(new SdkError("not_found").toJSON());
           continue;
         }
 
@@ -367,9 +364,9 @@ export class BatchJobManager {
             break;
           case "failed":
             failedOperations++;
-            if (job.lastError) {
-              errors.push(job.lastError);
-            }
+            // Codes are durable, but stored text may predate safe error mapping.
+            // Even a failed child with no stored diagnostic gets a coded entry.
+            errors.push(toSdkError({ code: job.lastErrorCode }).toJSON());
             break;
           case "processing":
           case "pending":

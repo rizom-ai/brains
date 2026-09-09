@@ -3,6 +3,7 @@
  * Separated to avoid pulling in all job queue schemas for external consumers
  */
 import { z } from "@brains/utils/zod";
+import { sdkErrorSchema } from "@brains/contracts";
 import { JobContextSchema } from "./schema/types";
 
 type BatchOperationSchema = z.ZodObject<{
@@ -28,7 +29,7 @@ type BatchJobStatusSchema = z.ZodObject<{
   completedOperations: z.ZodNumber;
   failedOperations: z.ZodNumber;
   currentOperation: z.ZodOptional<z.ZodString>;
-  errors: z.ZodArray<z.ZodString>;
+  errors: z.ZodArray<typeof sdkErrorSchema>;
   status: z.ZodEnum<{
     pending: "pending";
     processing: "processing";
@@ -47,7 +48,7 @@ export const BatchJobStatusSchema: BatchJobStatusSchema = z.object({
   completedOperations: z.number(),
   failedOperations: z.number(),
   currentOperation: z.string().optional(),
-  errors: z.array(z.string()),
+  errors: z.array(sdkErrorSchema),
   status: z.enum(["pending", "processing", "completed", "failed"]),
   // Original batch metadata for routing context
   metadata: JobContextSchema.optional(),
@@ -81,29 +82,3 @@ export const BatchSchema: BatchSchema = z.object({
 });
 
 export type Batch = z.output<typeof BatchSchema>;
-
-type BatchJobDataSchema = z.ZodObject<{
-  operations: z.ZodArray<BatchOperationSchema>;
-  userId: z.ZodOptional<z.ZodString>;
-  startedAt: z.ZodString;
-  completedOperations: z.ZodDefault<z.ZodNumber>;
-  failedOperations: z.ZodDefault<z.ZodNumber>;
-  currentOperation: z.ZodOptional<z.ZodString>;
-  errors: z.ZodDefault<z.ZodArray<z.ZodString>>;
-}>;
-
-/**
- * Schema for batch job data
- */
-export const BatchJobDataSchema: BatchJobDataSchema = z.object({
-  operations: z.array(BatchOperationSchema),
-  userId: z.string().optional(),
-  startedAt: z.string(),
-  // Progress tracking fields
-  completedOperations: z.number().default(0),
-  failedOperations: z.number().default(0),
-  currentOperation: z.string().optional(),
-  errors: z.array(z.string()).default([]),
-});
-
-export type BatchJobData = z.output<typeof BatchJobDataSchema>;
