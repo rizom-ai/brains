@@ -13,7 +13,7 @@ The architecture remains appropriate: reuse Web Chat and the existing agent runt
 Initial review identified these implementation prerequisites:
 
 - Permission-filtered tools are not a reviewed guest allowlist. Guest restrictions must also cover context providers and tool dispatch before anonymous generation is admitted.
-- Runtime state offers atomic `setIfNotExists`, but no atomic multi-counter/budget reservation contract. Quotas need a shared, restart-safe reservation design; process-local counters are insufficient.
+- Runtime state originally offered only atomic `setIfNotExists`. Quotas need a shared, restart-safe reservation design; process-local counters are insufficient. The quota stage now adds compare-and-set for an atomic reservation ledger.
 - Conversation ownership was authenticated-only at the start. Guest scope must bind every operation, exclude memory/ingestion hooks, and prevent late writes after deletion or expiry.
 - Existing same-origin helpers derive origin through forwarded headers. Guest policy now requires an explicit canonical deployment origin; trusted HTTP-host integration must account for TLS termination without trusting arbitrary forwarding headers.
 
@@ -36,7 +36,18 @@ Completed runtime/storage isolation stage (still no guest HTTP admission):
 
 Validation: targeted AI Service, Conversation Service, shared contracts and Web Chat checks pass, including the real AI SDK with a mocked provider and real SQLite deletion-race tests. No live-provider guest conversation or site integration has been verified.
 
-**Next:** implement shared quota reservations, per-turn model/tool/context limits, retention cleanup and duplicate-submission handling; then wire issuance, history, streaming, retries and deletion into the existing chat implementation. Configuration alone currently grants no guest access. The first reviewable product milestone below is **not yet complete**.
+Completed quota-accounting stage (not connected to HTTP or generation yet):
+
+- Shared runtime-state `compareAndSet` atomically replaces a schema-serialized value; the ledger uses monotonically increasing revisions. Independent database connections cannot both spend the same remaining capacity.
+- One admission transaction reserves per-visitor/global rolling minute/day quotas, conversation turn limits, one active turn per visitor, deployment concurrency and the configured worst-case turn spend. All replicas must use the **same transactional backing database**; independent local/embedded replicas are not deployment-wide coordination.
+- Spend uses integer microdollars with conservative rounding. Active work remains funded across day boundaries; terminal work remains charged for 24 hours after settlement, without failure refunds. **This accounting does not yet prove actual provider cost fits `maxTurnUsd`**: bounded runtime execution and provider/tool pricing verification remain admission gates.
+- Duplicate submissions never yield a second execution lease. Reusing an ID with changed text is rejected; terminal outcomes remain discoverable without keeping response text in the quota ledger.
+- The shared operator kill switch and policy fingerprint survive restart. Explicit policy changes retain existing usage; replicas with mismatched policies fail closed. Applying policy is an operator-only action, not a startup reset or guest endpoint.
+- Storage failures, ambiguous commits, bounded CAS contention and clock rollback fail closed. Timeout/disconnection is not settlement: uncertain active reservations keep their concurrency and budget until genuine termination is established. Recovery needs verified reconciliation, not timer-based refunds.
+- Quota records contain hashes rather than raw visitor/conversation/submission IDs or transcripts. Terminal references expire after both conversation deduplication and 24-hour accounting windows. Uncertain active references remain until reconciliation; these limits need inclusion in operator-approved retention disclosures. The cleanup method still needs lifecycle scheduling.
+- Tests cover competing real SQLite connections, restart, duplicate retries, new-cookie bypass attempts, rolling-window boundaries, monetary rounding, policy mismatch, shared disablement, failures and terminal-reference cleanup.
+
+**Next:** enforce per-turn model/tool/context limits and establish their worst-case provider/tool cost; complete conversation/credential retention and issuance abuse controls; then connect admission, history, streaming, retries and deletion through the existing Chat API. Configuration alone currently grants no guest access. The first reviewable product milestone below is **not yet complete**.
 
 ## Approved product scope
 

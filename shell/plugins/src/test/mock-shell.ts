@@ -194,6 +194,22 @@ export function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
           records.set(key, { value: parsed, createdAt: now, updatedAt: now });
           return true;
         },
+        compareAndSet: async (key, expected, value): Promise<boolean> => {
+          const parsedExpected = options.schema.parse(expected);
+          const parsedValue = options.schema.parse(value);
+          const existing = records.get(key);
+          if (
+            !existing ||
+            JSON.stringify(existing.value) !== JSON.stringify(parsedExpected)
+          )
+            return false;
+          records.set(key, {
+            ...existing,
+            value: parsedValue,
+            updatedAt: new Date(),
+          });
+          return true;
+        },
         delete: async (key): Promise<boolean> => records.delete(key),
         list: async ({ keyPrefix } = {}): Promise<
           RuntimeStateRecordValue<T>[]

@@ -28,6 +28,11 @@ export interface IRuntimeStateStore<T> {
   has(key: string): Promise<boolean>;
   set(key: string, value: T): Promise<void>;
   setIfNotExists(key: string, value: T): Promise<boolean>;
+  /** Atomically replace an existing value only if its schema-serialized value matches.
+   * Use a revision field when the consumer must distinguish an ABA change.
+   * Independent processes must use the same backing database to coordinate.
+   */
+  compareAndSet(key: string, expected: T, value: T): Promise<boolean>;
   delete(key: string): Promise<boolean>;
   list(options?: {
     keyPrefix?: string | undefined;

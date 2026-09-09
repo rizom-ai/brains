@@ -109,6 +109,23 @@ export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
     return Number(result.rowsAffected) > 0;
   }
 
+  async compareAndSet(key: string, expected: T, value: T): Promise<boolean> {
+    const normalizedKey = normalizeKey(key);
+    const parsedExpected = this.schema.parse(expected);
+    const parsedValue = this.schema.parse(value);
+    const result = await this.db
+      .update(runtimeStateRecords)
+      .set({ value: parsedValue, updatedAt: this.now().getTime() })
+      .where(
+        and(
+          eq(runtimeStateRecords.namespace, this.namespace),
+          eq(runtimeStateRecords.key, normalizedKey),
+          eq(runtimeStateRecords.value, parsedExpected),
+        ),
+      );
+    return Number(result.rowsAffected) === 1;
+  }
+
   async delete(key: string): Promise<boolean> {
     const normalizedKey = normalizeKey(key);
     const result = await this.db

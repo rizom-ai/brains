@@ -66,6 +66,11 @@ describe("Shell service construction", () => {
           has: async (): Promise<boolean> => false,
           set: async (): Promise<void> => {},
           setIfNotExists: async (): Promise<boolean> => true,
+          compareAndSet: async (): Promise<boolean> => {
+            throw new Error(
+              "Unexpected compare-and-set in construction fixture",
+            );
+          },
           delete: async (): Promise<boolean> => false,
           list: async (): Promise<RuntimeStateRecordValue<T>[]> => [],
           clear: async (): Promise<number> => 0,
