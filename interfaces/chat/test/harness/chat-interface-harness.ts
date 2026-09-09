@@ -835,10 +835,23 @@ export function setupChatInterfaceTest(): ChatInterfaceTestContext {
   return context;
 }
 
-/**
- * The upload store a platform's interface reads, as the runtime files it:
- * under the declaration's own id, so two interfaces cannot read each other's.
- */
+// Expected runtime directories for ["@brains/chat", platform, local namespace].
+const UPLOAD_NAMESPACES = {
+  discord: {
+    canonical:
+      "interface-upload-17c36029963d5c1c760d0d786b9574f48267b07e8daece448a28e4bff4215333",
+    platform:
+      "interface-upload-672532975b348b519396ff681695f321db24c823a8cfe95d90693b885ef41cd6",
+  },
+  slack: {
+    canonical:
+      "interface-upload-d26338a434a91e4dad54fa12743765f1f5527450a7c2d2ffe6d61c43ccef934f",
+    platform:
+      "interface-upload-d272790e838cf0054184d9e485f91ee9ab70b29ebae7ee460fff0b5268440afa",
+  },
+};
+
+/** The store addressed by the platform-specific upload route. */
 export function platformUploadStore(
   harness: PluginTestHarness,
   platform: ChatPlatform,
@@ -850,10 +863,10 @@ export function platformUploadStore(
   return harness
     .getMockShell()
     .getRuntimeUploadRegistry()
-    .scoped({ ...scope, namespace: `${platform}.${scope.namespace}` });
+    .scoped({ ...scope, namespace: UPLOAD_NAMESPACES[platform].platform });
 }
 
-/** The canonical store, where every platform's uploads are kept. */
+/** The canonical store, scoped to this platform and package. */
 export function canonicalUploadStore(
   harness: PluginTestHarness,
   platform: ChatPlatform,
@@ -862,7 +875,7 @@ export function canonicalUploadStore(
   return harness
     .getMockShell()
     .getRuntimeUploadRegistry()
-    .scoped({ ...scope, namespace: `${platform}.${scope.namespace}` });
+    .scoped({ ...scope, namespace: UPLOAD_NAMESPACES[platform].canonical });
 }
 
 /** A tool's activity, as the runtime publishes it for the interface to draw. */

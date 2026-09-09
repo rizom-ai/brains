@@ -128,7 +128,18 @@ describe("@rizom/brain package metadata", () => {
     expect(buildScript).toContain(
       'join(monorepoRoot, "interfaces", "web-chat")',
     );
-    expect(buildScript).toContain('await Bun.spawn(["bun", "run", "build"]');
+    expect(buildScript).toContain("await Bun.spawn(");
+    expect(buildScript).toContain(
+      'mkdtempSync(join(packageDir, ".ui-build-"))',
+    );
+    expect(buildScript).toContain('join(uiBuildDirectory, "web-chat")');
+    expect(buildScript).toContain('join(uiBuildDirectory, "studio")');
+    expect(buildScript).toContain(
+      '["bun", "run", "build", "--outdir", webChatUiDirectory]',
+    );
+    expect(buildScript).toContain(
+      '["bun", "run", "build", "--outdir", studioUiDirectory]',
+    );
     expect(buildScript).toContain('join(outdir, "ui")');
     expect(buildScript).toContain(
       'cpSync(webChatUiAssetPath, join(bundledWebChatUiDir, "app.js"))',

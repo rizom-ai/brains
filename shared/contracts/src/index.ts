@@ -103,6 +103,15 @@ export {
 } from "./generation-result";
 export { JobResult } from "./job-result";
 export {
+  SdkError,
+  sdkErrorCodeSchema,
+  sdkErrorSchema,
+  toSdkError,
+  sdkErrorHttpStatus,
+  type SdkErrorCode,
+  type SdkErrorData,
+} from "./sdk-error";
+export {
   jsonObjectSchema,
   jsonValueSchema,
   type IsJsonValue,

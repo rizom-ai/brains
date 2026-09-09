@@ -1,6 +1,7 @@
 import { chatUploadResponseSchema } from "@brains/contracts/chat";
 import {
-  RuntimeUploadStoreError,
+  sdkErrorSchema,
+  type SdkErrorCode,
   formatContentDispositionHeader,
   type ChatAttachment,
   type ResolvedRuntimeUpload,
@@ -169,9 +170,8 @@ async function readStoredUpload(
   try {
     return await uploadStore.read(uploadId);
   } catch (error) {
-    if (error instanceof RuntimeUploadStoreError) {
-      return uploadStoreErrorToResponse(error);
-    }
+    const failure = sdkErrorSchema.safeParse(error);
+    if (failure.success) return uploadStoreErrorToResponse(failure.data.code);
     throw error;
   }
 }
@@ -217,14 +217,16 @@ function toChatAttachment(
   };
 }
 
-function uploadStoreErrorToResponse(error: RuntimeUploadStoreError): Response {
-  switch (error.code) {
-    case "invalid_ref":
+function uploadStoreErrorToResponse(code: SdkErrorCode): Response {
+  switch (code) {
+    case "invalid_input":
       return new Response("Invalid upload ref", { status: 400 });
-    case "invalid_metadata":
+    case "invalid_response":
       return new Response("Invalid upload metadata", { status: 500 });
     case "not_found":
       return new Response("Upload not found", { status: 404 });
+    default:
+      return new Response("Upload could not be read", { status: 500 });
   }
 }
 

@@ -916,6 +916,7 @@ status: draft
       success: false,
       error:
         "No pending create confirmation found. Please request creation again and confirm the new approval.",
+      code: "invalid_input",
     });
   });
 
@@ -943,6 +944,7 @@ status: draft
       success: false,
       error:
         "Confirmed create arguments do not match the pending approval. Please request creation again and confirm the new approval.",
+      code: "invalid_input",
     });
   });
 
@@ -1164,7 +1166,7 @@ status: draft
     });
 
     expect(result).toMatchObject({ success: false });
-    expect(expectToolError(result).error).toContain("Unrecognized key");
+    expect(expectToolError(result).code).toBe("invalid_input");
   });
 
   it("should reject extract-markdown transform for raw document upload promotion", async () => {
@@ -1571,9 +1573,7 @@ status: draft
     });
 
     expect(result).toHaveProperty("success", false);
-    expect(expectToolError(result).error).toContain(
-      "Invalid input: source: Invalid input",
-    );
+    expect(expectToolError(result).code).toBe("invalid_input");
   });
 
   it("should reject url-only create for unsupported entity types", async () => {
@@ -2086,7 +2086,7 @@ A saved research link.`;
     });
 
     expect(result).toMatchObject({ success: false });
-    expect(expectToolError(result).error).toContain("Unrecognized key");
+    expect(expectToolError(result).code).toBe("invalid_input");
   });
 
   it("should reject image prompts combined with stale upload refs", async () => {
@@ -2106,7 +2106,7 @@ A saved research link.`;
     });
 
     expect(result).toMatchObject({ success: false });
-    expect(expectToolError(result).error).toContain("Unrecognized key");
+    expect(expectToolError(result).code).toBe("invalid_input");
   });
 
   it("should reject attachment generation when the source entity does not exist before confirmation", async () => {
@@ -2382,7 +2382,7 @@ A saved research link.`;
     });
 
     expect(result).toHaveProperty("success", false);
-    expect(expectToolError(result).error).toContain("Unrecognized key");
+    expect(expectToolError(result).code).toBe("invalid_input");
     expect(services.getEntities().size).toBe(0);
     expect(services.getLastEnqueuedJob()).toBeUndefined();
   });
@@ -2428,7 +2428,7 @@ A saved research link.`;
     });
 
     expect(result).toHaveProperty("success", false);
-    expect(expectToolError(result).error).toContain("Unrecognized key");
+    expect(expectToolError(result).code).toBe("invalid_input");
     expect(services.getEntities().size).toBe(0);
     expect(services.getLastEnqueuedJob()).toBeUndefined();
   });

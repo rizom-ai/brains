@@ -5,6 +5,7 @@ export type HandlerResponse = MessageResponse;
 
 /** Distinguish an invalid envelope from an exception thrown by its handler. */
 export class InvalidHandlerResponseError extends Error {
+  readonly code = "invalid_response";
   constructor() {
     super("Invalid message response format");
   }

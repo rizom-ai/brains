@@ -1,8 +1,11 @@
 import { mkdir, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { createStylexBunTransform } from "@brains/build-tools";
+import {
+  createStylexBunTransform,
+  parseUiBuildArgs,
+} from "@brains/build-tools";
 import { runProcessOrThrow } from "@brains/utils/run-process";
-import { dirname, join, relative } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 
 const require = createRequire(import.meta.url);
 const packageRoot = join(import.meta.dir, "..");
@@ -11,9 +14,10 @@ await runProcessOrThrow([process.execPath, "run", "build"], {
   cwd: operatorRoot,
 });
 const entrypoint = join(packageRoot, "ui-react", "src", "main.tsx");
-const destination = join(packageRoot, "dist", "ui");
+const values = parseUiBuildArgs();
+const destination = resolve(values.outdir ?? join(packageRoot, "dist", "ui"));
 await mkdir(destination, { recursive: true });
-const outdir = await mkdtemp(join(packageRoot, "dist", ".studio-ui-"));
+const outdir = await mkdtemp(join(dirname(destination), ".studio-ui-"));
 const reactRoot = dirname(require.resolve("react/package.json"));
 const reactDomRoot = dirname(require.resolve("react-dom/package.json"));
 const reactAliases: Record<string, string> = {

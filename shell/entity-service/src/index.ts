@@ -21,6 +21,7 @@ export {
 } from "@brains/assets";
 export { EntityService } from "./entityService";
 export { EntityRegistry } from "./entityRegistry";
+export { copyEntityTypeConfig } from "./entity-type-config";
 export {
   createEntityBulkCoordination,
   durableBulkMutationChildRefSchema,

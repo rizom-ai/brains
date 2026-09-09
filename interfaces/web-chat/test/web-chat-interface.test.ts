@@ -261,6 +261,9 @@ const PACKAGE_METADATA = {
   name: packageJson.name,
   version: packageJson.version,
 };
+// Runtime scope for ["@brains/web-chat", "web-chat", "upload"].
+const UPLOAD_NAMESPACE =
+  "interface-upload-befb685c096230870aabfedd9b17a092f7b96930bf4e1619c3542e2a962a6ca6";
 
 /**
  * The interface as the composer builds it.
@@ -2629,7 +2632,7 @@ describe("the web chat interface", () => {
 
     const uploadDir = join(
       "/tmp/mock-shell-test-data",
-      "web-chat.upload",
+      UPLOAD_NAMESPACE,
       "uploads",
       body.id,
     );
@@ -2672,7 +2675,7 @@ describe("the web chat interface", () => {
     expect(response?.status).toBe(201);
     expect(
       await Bun.file(
-        join(root, "data", "web-chat.upload", "uploads", body.id, "content"),
+        join(root, "data", UPLOAD_NAMESPACE, "uploads", body.id, "content"),
       ).text(),
     ).toBe("# Runtime");
     expect(
@@ -2680,7 +2683,7 @@ describe("the web chat interface", () => {
         join(
           root,
           "brain-data",
-          "web-chat.upload",
+          UPLOAD_NAMESPACE,
           "uploads",
           body.id,
           "content",
@@ -2886,7 +2889,7 @@ describe("the web chat interface", () => {
 
     const uploadsRoot = join(
       "/tmp/mock-shell-test-data",
-      "web-chat.upload",
+      UPLOAD_NAMESPACE,
       "uploads",
     );
     // Seed a stale upload dir (>24h old) that should be swept.

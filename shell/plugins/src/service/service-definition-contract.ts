@@ -1,3 +1,5 @@
+import type { SchemaReturn } from "../internal/schema-return";
+import type { SdkError, SdkErrorCode, SdkErrorData } from "@brains/contracts";
 import type {
   ComponentType,
   TemplateDataSchema,
@@ -318,7 +320,7 @@ export interface ServiceJobSettledContext<TInput> {
   readonly jobId: string;
   readonly outcome: "completed" | "failed";
   /** The failure the queue recorded; absent when the job completed. */
-  readonly error?: Error | undefined;
+  readonly error?: SdkError | undefined;
 }
 
 export type ServiceJobSettledHandler<TInput> = (
@@ -531,6 +533,7 @@ export function parseServiceDeadline(deadline: ServiceDeadline): number {
 }
 
 export interface ServiceJobStatus<TOutput> {
+  readonly code?: SdkErrorCode | undefined;
   readonly id: string;
   readonly status: "pending" | "processing" | "completed" | "failed";
   readonly progress: ServiceJobProgress | null;
@@ -556,6 +559,7 @@ export interface ServiceActiveJob {
 
 /** One piece of work this package queued, whatever became of it. */
 export interface ServiceRecentJob extends Omit<ServiceActiveJob, "status"> {
+  readonly code?: SdkErrorCode | undefined;
   readonly status: "pending" | "processing" | "completed" | "failed";
   /** When it was queued. */
   readonly createdAt: number;
@@ -597,7 +601,7 @@ export interface ServiceBatchStatus {
   readonly total: number;
   readonly completed: number;
   readonly failed: number;
-  readonly errors: readonly string[];
+  readonly errors: readonly SdkErrorData[];
   readonly currentOperation?: string | undefined;
 }
 
@@ -665,6 +669,8 @@ export interface ServiceToolDefinition<
   TName extends string = string,
   TInputSchema extends ServiceInputSchema = ServiceInputSchema,
   TOutputSchema extends ServiceSchema = ServiceSchema,
+  TOutput extends SchemaReturn<z.input<TOutputSchema>> | ToolAsk =
+    SchemaReturn<z.input<TOutputSchema>> | ToolAsk,
 > {
   readonly kind: "rizom-service-tool";
   readonly name: TName;
@@ -725,10 +731,7 @@ export interface ServiceToolDefinition<
        */
       readonly createRouted: RoutedCreate;
     },
-  ):
-    | z.input<TOutputSchema>
-    | ToolAsk
-    | Promise<z.input<TOutputSchema> | ToolAsk>;
+  ): TOutput | Promise<TOutput>;
 }
 
 export type AnyServiceToolDefinition = ServiceToolDefinition<
@@ -741,9 +744,11 @@ export function defineTool<
   const TName extends string,
   TInputSchema extends ServiceInputSchema,
   TOutputSchema extends ServiceSchema,
+  const TOutput extends SchemaReturn<z.input<TOutputSchema>> | ToolAsk =
+    SchemaReturn<z.input<TOutputSchema>> | ToolAsk,
 >(
   definition: Omit<
-    ServiceToolDefinition<TName, TInputSchema, TOutputSchema>,
+    ServiceToolDefinition<TName, TInputSchema, TOutputSchema, TOutput>,
     "kind"
   >,
 ): ServiceToolDefinition<TName, TInputSchema, TOutputSchema> {

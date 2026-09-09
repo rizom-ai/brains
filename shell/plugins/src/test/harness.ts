@@ -1,4 +1,5 @@
 import { runCleanups } from "../internal/cleanup";
+import { SdkError } from "@brains/contracts";
 import { readServiceJobResult } from "../service/job-definition-runtime";
 import {
   PluginResourceScope,
@@ -472,7 +473,10 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     const handler = this.mockShell.getJobQueueService().getHandler(type);
     if (!handler) throw new Error(`No job handler registered for "${type}"`);
     const parsed = handler.validateAndParse(input);
-    if (parsed === null) throw new Error(`Invalid input for job "${type}"`);
+    if (parsed === null)
+      throw new SdkError("invalid_input", {
+        message: `Invalid input for job "${type}"`,
+      });
     const result = await handler.process(
       parsed,
       "test-job",
@@ -563,6 +567,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       return {
         success: false,
         error: `Permission denied for tool "${tool.name}"`,
+        code: "permission_denied",
       };
     }
     return tool.handler(input, context);

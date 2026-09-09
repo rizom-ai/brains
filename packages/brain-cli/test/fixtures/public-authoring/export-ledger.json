@@ -244,6 +244,11 @@
     "@rizom/brain/entities": {
       "source": "packages/brain-sdk/src/entities.ts",
       "stable": [
+        "SdkError",
+        "SdkErrorCode",
+        "SdkErrorData",
+        "sdkErrorCodeSchema",
+        "sdkErrorSchema",
         "canWriteVisibility",
         "createListToolOutputSchema",
         "DEFAULT_STYLE_GUIDE",
@@ -515,8 +520,11 @@
         "IRuntimeStateStore",
         "jsonError",
         "jsonResponse",
-        "MessageErrorCode",
-        "messageErrorCodeSchema",
+        "SdkError",
+        "SdkErrorCode",
+        "SdkErrorData",
+        "sdkErrorCodeSchema",
+        "sdkErrorSchema",
         "OperationalHealthProvider",
         "OperatorBindingContext",
         "OperatorCaller",
@@ -662,6 +670,8 @@
         "ToolResponse"
       ],
       "internal/removable": [
+        "MessageErrorCode",
+        "messageErrorCodeSchema",
         "BaseEntityDataSource",
         "BaseQuery",
         "EntityDataSourceConfig",
@@ -674,6 +684,11 @@
     "@rizom/brain/interfaces": {
       "source": "packages/brain-sdk/src/interfaces.ts",
       "stable": [
+        "SdkError",
+        "SdkErrorCode",
+        "SdkErrorData",
+        "sdkErrorCodeSchema",
+        "sdkErrorSchema",
         "AccountSettingsDefinition",
         "AccountSettingsFieldDefinition",
         "AccountSettingsValue",
@@ -776,8 +791,6 @@
         "RuntimeUploadRecord",
         "RuntimeUploadResponseBody",
         "RuntimeUploadScopeOptions",
-        "RuntimeUploadStoreError",
-        "RuntimeUploadStoreErrorCode",
         "SaveRuntimeUploadInput",
         "ScopedRuntimeUploadStore",
         "ServiceToolDefinition",
@@ -792,6 +805,8 @@
         "VerbatimResponse"
       ],
       "internal/removable": [
+        "RuntimeUploadStoreError",
+        "RuntimeUploadStoreErrorCode",
         "ApiRouteDefinition",
         "Daemon",
         "DaemonHealth",
@@ -994,6 +1009,11 @@
     "@rizom/brain/testing": {
       "source": "packages/brain-sdk/src/testing.ts",
       "stable": [
+        "SdkError",
+        "SdkErrorCode",
+        "SdkErrorData",
+        "sdkErrorCodeSchema",
+        "sdkErrorSchema",
         "BrainTestHarness",
         "BrainTestHarnessOptions",
         "createBrainTestHarness",

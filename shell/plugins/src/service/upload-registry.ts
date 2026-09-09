@@ -1,6 +1,7 @@
 import { mkdir, readdir, readFile, rm, stat, writeFile } from "fs/promises";
 import { basename, dirname, join } from "path";
 import { z } from "@brains/utils/zod";
+import { SdkError, toSdkError } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 
@@ -70,18 +71,6 @@ export interface ResolvedRuntimeUpload {
   content: Buffer;
 }
 
-export type RuntimeUploadStoreErrorCode =
-  "invalid_ref" | "not_found" | "invalid_metadata";
-
-export class RuntimeUploadStoreError extends Error {
-  public readonly code: RuntimeUploadStoreErrorCode;
-  constructor(code: RuntimeUploadStoreErrorCode, message: string) {
-    super(message);
-    this.code = code;
-    this.name = "RuntimeUploadStoreError";
-  }
-}
-
 const runtimeUploadRecordSchema = z.object({
   id: z.string().regex(runtimeUploadIdPattern),
   ref: z.object({
@@ -122,8 +111,18 @@ export function createRuntimeUploadsNamespace(
   registry: RuntimeUploadRegistry,
 ): IRuntimeUploadsNamespace {
   return {
-    scoped: (options: RuntimeUploadScopeOptions): RuntimeUploadStore =>
-      registry.scoped(options),
+    scoped: (options: RuntimeUploadScopeOptions): ScopedRuntimeUploadStore => {
+      const store = registry.scoped(options);
+      return Object.freeze({
+        save: store.save.bind(store),
+        read: store.read.bind(store),
+        readRecord: store.readRecord.bind(store),
+        toResponseBody: store.toResponseBody.bind(store),
+        prune: store.prune.bind(store),
+        getUploadDir: store.getUploadDir.bind(store),
+        remove: store.remove.bind(store),
+      });
+    },
   };
 }
 
@@ -229,12 +228,9 @@ export class RuntimeUploadStore {
       // The metadata resolved, so the upload exists. A content file we cannot
       // read is a damaged upload, not an absent one.
       if (isNoEntryError(error)) {
-        throw new RuntimeUploadStoreError("not_found", "Upload not found");
+        throw new SdkError("not_found");
       }
-      throw new RuntimeUploadStoreError(
-        "invalid_metadata",
-        "Upload content could not be read",
-      );
+      throw toSdkError(error, "invalid_response");
     }
   }
 
@@ -253,24 +249,17 @@ export class RuntimeUploadStore {
         parsed.data.ref.id !== uploadId ||
         parsed.data.ref.kind !== this.options.refKind
       ) {
-        throw new RuntimeUploadStoreError(
-          "invalid_metadata",
-          "Invalid upload metadata",
-        );
+        throw new SdkError("invalid_response");
       }
       return parsed.data;
     } catch (error) {
-      if (error instanceof RuntimeUploadStoreError) throw error;
       // No metadata file means no upload. A file that is present but will not
       // read or parse means a damaged one, and calling that "not found" sends
       // the caller looking for a problem they do not have.
       if (isNoEntryError(error)) {
-        throw new RuntimeUploadStoreError("not_found", "Upload not found");
+        throw new SdkError("not_found");
       }
-      throw new RuntimeUploadStoreError(
-        "invalid_metadata",
-        "Upload metadata could not be read",
-      );
+      throw toSdkError(error, "invalid_response");
     }
   }
 
@@ -346,7 +335,7 @@ export class RuntimeUploadStore {
 
   private assertValidUploadId(uploadId: string): void {
     if (!runtimeUploadIdPattern.test(uploadId)) {
-      throw new RuntimeUploadStoreError("invalid_ref", "Invalid upload ref");
+      throw new SdkError("invalid_input");
     }
   }
 }

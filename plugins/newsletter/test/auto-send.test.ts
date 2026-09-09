@@ -96,6 +96,7 @@ describe("auto-send on publish", () => {
       expect(result).toEqual({
         success: false,
         error: "Post non-existent not found",
+        code: "not_found",
       });
     });
 

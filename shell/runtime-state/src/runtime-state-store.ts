@@ -14,7 +14,8 @@ import type {
   RuntimeStateListOptions,
 } from "./types";
 
-const namespacePattern = /^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,127}$/;
+// Qualified SDK owners include encoded package and declaration identifiers.
+const namespacePattern = /^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,511}$/;
 const maxKeyLength = 512;
 
 export class RuntimeStateStore<T, TInput = T> implements IRuntimeStateStore<
@@ -225,7 +226,7 @@ export class RuntimeStateStore<T, TInput = T> implements IRuntimeStateStore<
 function assertValidNamespace(namespace: string): void {
   if (!namespacePattern.test(namespace)) {
     throw new Error(
-      `Invalid runtime state namespace: ${namespace}. Use 1-128 alphanumeric, _, ., :, or - characters.`,
+      `Invalid runtime state namespace: ${namespace}. Use 1-512 alphanumeric, _, ., :, or - characters.`,
     );
   }
 }

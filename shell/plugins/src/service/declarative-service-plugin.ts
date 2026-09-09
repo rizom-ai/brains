@@ -6,6 +6,15 @@ import type { JobHandler, JobInfo } from "@brains/job-queue";
 import { createInboxReader } from "../base/namespaces";
 import { createAttachmentReader } from "./attachment-registry";
 import { createAuthReader } from "../contracts/auth-registry";
+import { createConversationReader } from "../internal/callback-readers";
+import {
+  createJobAttachmentReader,
+  createJobIdentityReader,
+  createJobProgress,
+  createJobUploadReader,
+  createPermissionChecker,
+  createProfileSelectionReader,
+} from "../internal/authoring-readers";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type { Prompt, Resource, Tool, ToolContext } from "@brains/mcp-service";
 import {
@@ -20,7 +29,7 @@ import type { EntityReactionContext } from "../entity/entity-definition-contract
 import type { InboxItemDetail } from "../inbox-registry";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
-import { parseWithSchema } from "@brains/utils/parse-schema";
+import { toSdkError } from "@brains/contracts";
 import { runCleanups } from "../internal/cleanup";
 import { emptyPluginState } from "../base/empty-state";
 import type {
@@ -100,6 +109,8 @@ import {
   getServiceJobRuntimeType,
   createServiceJobRequest,
   registerServiceJobResultReader,
+  readServiceJobOutput,
+  readServiceJobFailure,
 } from "./job-definition-runtime";
 import { normalizeSameOriginPath } from "../internal/same-origin-path";
 import { createRuntimeTool } from "./tool-runtime";
@@ -174,14 +185,17 @@ function statusFor<TDefinition extends AnyServiceJobDefinition>(
 ): ServiceJobStatus<z.output<TDefinition["output"]>> {
   const result: z.output<TDefinition["output"]> | undefined =
     job.status === "completed" && job.result !== undefined
-      ? parseWithSchema<TDefinition["output"]>(definition.output, job.result)
+      ? readServiceJobOutput<TDefinition["output"]>(
+          definition.output,
+          job.result,
+        )
       : undefined;
   return {
     id: job.id,
     status: job.status,
     progress: job.progress,
     ...(result !== undefined ? { result } : {}),
-    ...(job.lastError ? { error: job.lastError } : {}),
+    ...readServiceJobFailure(job),
   };
 }
 
@@ -197,6 +211,7 @@ function runtimeJobHandler(
   const handler = getServiceJobHandler(binding);
   const settled = getServiceJobSettledHandler(binding);
   const runtime: JobHandler<string, unknown, unknown> = {
+    resultMode: "data",
     ...(definition.deadline
       ? { executionTimeoutMs: parseServiceDeadline(definition.deadline) }
       : {}),
@@ -209,7 +224,12 @@ function runtimeJobHandler(
             await settled({ input, jobId, outcome: "completed" });
           },
           onTerminalError: async (error, input, jobId): Promise<void> => {
-            await settled({ input, jobId, outcome: "failed", error });
+            await settled({
+              input,
+              jobId,
+              outcome: "failed",
+              error: toSdkError(error),
+            });
           },
         }
       : {}),
@@ -218,7 +238,7 @@ function runtimeJobHandler(
         return prepareServiceJobInput(binding, data);
       } catch (error) {
         if (error instanceof z.ZodError) return null;
-        throw error;
+        throw toSdkError(error, "invalid_input");
       }
     },
     async process(
@@ -231,7 +251,7 @@ function runtimeJobHandler(
         input,
         jobId,
         signal,
-        progress,
+        progress: createJobProgress(progress),
         templates,
         entities: createJobEntityAccess(
           context.entityService,
@@ -272,8 +292,8 @@ function runtimeJobHandler(
         ai: context.ai,
         prompts: context.prompts,
         logger: context.logger,
-        conversations: context.conversations,
-        identity: context.identity,
+        conversations: createConversationReader(context.conversations),
+        identity: createJobIdentityReader(context.identity),
         domain: context.domain,
         profileKinds: {
           getResolved: () => context.profileKinds.getResolved(),
@@ -281,15 +301,15 @@ function runtimeJobHandler(
             context.profileKinds.getSelectedDefinition(),
         },
         template: templateName,
-        uploads: context.uploads.scoped({
-          // The runtime's own namespace, not the interface that happened to
-          // receive the file: only the namespace decides which bytes a read
-          // returns, and a job reads what it was handed.
-          namespace: "upload",
-          refKind: "upload",
-          routePath: "/api/uploads",
-        }),
-        attachments: context.attachments,
+        uploads: createJobUploadReader(
+          context.uploads.scoped({
+            // The runtime owns the namespace; jobs only read what they were handed.
+            namespace: "upload",
+            refKind: "upload",
+            routePath: "/api/uploads",
+          }),
+        ),
+        attachments: createJobAttachmentReader(context.attachments),
         messaging: {
           async publish(message): Promise<void> {
             await context.messaging.send({
@@ -302,14 +322,15 @@ function runtimeJobHandler(
       });
       // Store the validated wire result, not a schema transform's output.
       // status() parses the stored value for its typed reader.
-      const serialized = JSON.stringify(output);
-      if (!serialized)
-        throw new Error(
-          `Job "${definition.name}" output must be JSON-serializable`,
-        );
-      const wireOutput: unknown = JSON.parse(serialized);
-      definition.output.parse(wireOutput);
-      return wireOutput;
+      try {
+        const serialized = JSON.stringify(output);
+        if (!serialized) throw new Error("Output must be JSON-serializable");
+        const wireOutput: unknown = JSON.parse(serialized);
+        readServiceJobOutput(definition.output, wireOutput);
+        return wireOutput;
+      } catch (error) {
+        throw toSdkError(error, "invalid_response");
+      }
     },
   };
   registerServiceJobResultReader(runtime, definition);
@@ -630,7 +651,7 @@ class DeclarativeServicePlugin<
             verdict: (await context.judge(input)).verdict,
           }),
           identity: context.identity,
-          profileKinds: context.profileKinds,
+          profileKinds: createProfileSelectionReader(context.profileKinds),
           publicSkills: context.publicSkills,
           plugins: context.plugins,
           http: context.http,
@@ -694,7 +715,7 @@ class DeclarativeServicePlugin<
               });
             },
           },
-          permissions: context.permissions,
+          permissions: createPermissionChecker(context.permissions),
           attachments: createAttachmentReader(context.attachments),
           jobs: this.jobs(),
           publishing: this.publishingAccess(context),
@@ -845,7 +866,7 @@ class DeclarativeServicePlugin<
             new Set(ownedTypes),
             this.publicId,
           ),
-          conversations: context.conversations,
+          conversations: createConversationReader(context.conversations),
           runProjectionRule: (rule, options) =>
             context.eval.runProjectionRule(rule, options),
           fixtures: createEvalFixtures(context.entityService, ownedTypes),
@@ -1770,6 +1791,7 @@ function toRecentJob(
     data: string;
     result?: unknown;
     lastError: string | null;
+    lastErrorCode?: string | null | undefined;
   },
   declaredType: (type: string) => string,
 ): ServiceRecentJob {
@@ -1784,6 +1806,6 @@ function toRecentJob(
     result: job.result,
     ...(job.startedAt !== null ? { startedAt: job.startedAt } : {}),
     ...(job.completedAt !== null ? { completedAt: job.completedAt } : {}),
-    ...(job.lastError !== null ? { error: job.lastError } : {}),
+    ...readServiceJobFailure(job),
   };
 }

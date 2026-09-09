@@ -1,4 +1,6 @@
 /** Declarative public interface authoring contract. */
+export { SdkError, sdkErrorCodeSchema, sdkErrorSchema } from "@brains/plugins";
+export type { SdkErrorCode, SdkErrorData } from "@brains/plugins";
 
 export {
   defineAccountSettings,
@@ -90,8 +92,6 @@ export type {
 // What the store refuses, and why. An interface serving upload endpoints has
 // to tell a missing file from a malformed ref to answer with the right status,
 // and the alternative is matching on message text.
-export { RuntimeUploadStoreError } from "@brains/plugins";
-export type { RuntimeUploadStoreErrorCode } from "@brains/plugins";
 
 // A file on its way to or from the agent. An interface that accepts an
 // attachment builds one of these, and one that serves a download names the

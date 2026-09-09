@@ -8,6 +8,7 @@ import type {
 } from "../src/types";
 import { z } from "@brains/utils/zod";
 import { EntityRegistry } from "../src/entityRegistry";
+import { getPublishBoundaryState } from "../src/publish-policy";
 import { baseEntitySchema } from "../src/types";
 import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";
 import { createSilentLogger } from "@brains/test-utils";
@@ -370,6 +371,67 @@ This note has frontmatter metadata.`;
   });
 
   describe("entity type config", () => {
+    test("isolates registered policy from both source and returned metadata mutations", () => {
+      const fresh = EntityRegistry.createFresh(logger);
+      const source = {
+        weight: 2,
+        publish: { publishStatuses: ["published"] },
+        privateRuntime: { replace: (): void => {} },
+      };
+      fresh.registerEntityType("note", noteSchema, adapter, source);
+      const read = fresh.getEntityTypeConfig("note");
+      expect(read).not.toBe(source);
+      expect(read).not.toHaveProperty("privateRuntime");
+      expect(read.publish).not.toBe(source.publish);
+      source.weight = 9;
+      source.publish.publishStatuses.length = 0;
+      read.weight = 20;
+      read.publish?.publishStatuses.splice(0);
+      expect(fresh.getEntityTypeConfig("note")).toEqual({
+        weight: 2,
+        publish: { publishStatuses: ["published"] },
+      });
+      expect(fresh.getWeightMap()).toEqual({ note: 2 });
+      expect(getPublishBoundaryState("note", "draft", "published", fresh)).toBe(
+        "boundary",
+      );
+    });
+
+    test("validates configuration before publishing any registration and ignores undeclared getters", () => {
+      const fresh = EntityRegistry.createFresh(logger);
+      expect(() =>
+        fresh.registerEntityType("note", noteSchema, adapter, { weight: NaN }),
+      ).toThrow();
+      expect(fresh.hasEntityType("note")).toBe(false);
+      expect(fresh.getAllEntityTypes()).toEqual([]);
+      const source = {
+        weight: 2,
+        get privateRuntime(): never {
+          throw new Error("Undeclared getter was read");
+        },
+      };
+      fresh.registerEntityType("note", noteSchema, adapter, source);
+      expect(fresh.getEntityTypeConfig("note")).toEqual({ weight: 2 });
+    });
+
+    test("preserves every declared configuration field in detached reads", () => {
+      const fresh = EntityRegistry.createFresh(logger);
+      const config = {
+        weight: 0,
+        embeddable: false,
+        fullTextSearchable: false,
+        binaryStorage: "asset" as const,
+        projectionSource: false,
+        projectionSourceRole: "excluded" as const,
+        publish: { publishStatuses: [] },
+      };
+      fresh.registerEntityType("note", noteSchema, adapter, config);
+      expect(fresh.getEntityTypeConfig("note")).toEqual(config);
+      expect(fresh.getEntityTypeConfig("note").publish).not.toBe(
+        config.publish,
+      );
+    });
+
     test("registerEntityType with config stores weight", (): void => {
       const freshRegistry = EntityRegistry.createFresh(logger);
       freshRegistry.registerEntityType("note", noteSchema, adapter, {

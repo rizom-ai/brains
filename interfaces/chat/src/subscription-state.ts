@@ -33,9 +33,9 @@ export type ChatThreadSubscriptionStore =
   IRuntimeStateStore<ChatThreadSubscriptionState>;
 
 /**
- * The runtime files an interface's state under the interface's own id, so
- * Discord's subscriptions and Slack's never share a store; the namespace
- * names only what it holds.
+ * The runtime qualifies state by package and interface ID, keeping Discord,
+ * Slack, and other packages separate. This local namespace only names what
+ * the store holds.
  */
 export const threadSubscriptionNamespace = "subscriptions";
 

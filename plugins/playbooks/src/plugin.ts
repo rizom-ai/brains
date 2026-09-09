@@ -23,6 +23,8 @@ import {
   defineServicePlugin,
   defineSubscription,
   defineTool,
+  SdkError,
+  type SdkErrorCode,
   z,
   type AnyServiceToolDefinition,
   type ServiceCorpusHit,
@@ -272,7 +274,7 @@ const goalCheckInputSchema = z
  */
 export type ManageResult =
   | { success: true; data: PlaybookStatusResponse }
-  | { success: false; error: string };
+  | { success: false; error: string; code?: SdkErrorCode };
 
 /** The two reads the package makes of its own type. */
 export type PlaybookEntityReader = EntityReads;
@@ -430,9 +432,7 @@ export class PlaybookOperations {
       context: input.context,
       fromState: input.fromState,
     });
-    return result.success
-      ? { success: true, data: result.data }
-      : { success: false, error: result.error };
+    return result;
   }
 
   private async withStartLock(
@@ -527,10 +527,7 @@ export class PlaybookOperations {
       context?: Record<string, unknown> | undefined;
       fromState?: string | undefined;
     } = {},
-  ): Promise<
-    | { success: true; data: PlaybookStatusResponse }
-    | { success: false; error: string }
-  > {
+  ): Promise<ManageResult> {
     return this.withRunLock(runId, () =>
       this.sendEventForRunLocked(runId, event, options),
     );
@@ -543,10 +540,7 @@ export class PlaybookOperations {
       context?: Record<string, unknown> | undefined;
       fromState?: string | undefined;
     },
-  ): Promise<
-    | { success: true; data: PlaybookStatusResponse }
-    | { success: false; error: string }
-  > {
+  ): Promise<ManageResult> {
     const run = await this.store.findById(runId);
     if (!run) {
       return { success: false, error: `Playbook run not found: ${runId}` };
@@ -554,6 +548,7 @@ export class PlaybookOperations {
     if (options.fromState && options.fromState !== run.currentState) {
       return {
         success: false,
+        code: "conflict",
         error: `Stale playbook event '${event}': it was issued from state '${options.fromState}' but the run has advanced to state '${run.currentState}'. Call playbooks_manage with action=status and act on the current state.`,
       };
     }
@@ -561,6 +556,7 @@ export class PlaybookOperations {
     if (run.playbookVersion !== playbook.version) {
       return {
         success: false,
+        code: "conflict",
         error: `Playbook definition changed for '${run.playbookId}'. Run version ${run.playbookVersion} does not match current version ${playbook.version}.`,
       };
     }
@@ -1070,7 +1066,11 @@ export const playbookManageTool = (
       // about the caller — so an unattributed call has nothing to manage.
       if (!caller) throw new Error("Playbook management requires a caller");
       const answer = await operations.manage(input, caller);
-      if (!answer.success) throw new Error(answer.error);
+      if (!answer.success) {
+        if (answer.code)
+          throw new SdkError(answer.code, { publicMessage: answer.error });
+        throw new Error(answer.error);
+      }
       return answer.data;
     },
   });

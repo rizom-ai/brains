@@ -556,7 +556,8 @@ export class DirectorySyncOperationStatusService {
         if (batch.status === "failed") {
           await this.failRun(
             active.id,
-            batch.errors.join("; ") || "Directory import batch failed",
+            batch.errors.map((error) => error.message).join("; ") ||
+              "Directory import batch failed",
             "import",
           );
           return;
