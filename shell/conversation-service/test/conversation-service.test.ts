@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
+import { guestInterfaceType } from "@brains/contracts/chat";
 import { ConversationService } from "../src/conversation-service";
 import { createSilentLogger } from "@brains/test-utils";
 import type { Logger } from "@brains/utils/logger";
@@ -6,6 +7,7 @@ import type { ConversationDB } from "../src/database";
 import type {
   ConversationServiceConfig,
   ConversationMetadata,
+  StartConversationRequest,
 } from "../src/types";
 import { createTestConversationDatabase } from "./helpers/test-conversation-db";
 import type { Client } from "@libsql/client";
@@ -53,6 +55,185 @@ describe("ConversationService", () => {
   afterEach(async () => {
     // Clean up
     await cleanup();
+  });
+
+  describe("guest transcript isolation", () => {
+    const guestRequest: StartConversationRequest = {
+      sessionId: "visitor-secret-id",
+      interfaceType: guestInterfaceType,
+      channelId: "visitor-secret-id",
+      metadata: {
+        ...testMetadata,
+        interfaceType: guestInterfaceType,
+        guest: { visitorId: "10c15c16-919e-4481-8fd4-07f11555a994" },
+      },
+    };
+
+    it("keeps guest transcripts out of broadcasts, summaries and routine logs", async () => {
+      const send = spyOn(messageBus, "send");
+      const debug = spyOn(logger, "debug");
+      await service.startConversation(guestRequest);
+      for (let index = 0; index < 6; index++) {
+        await service.addMessage({
+          conversationId: guestRequest.sessionId,
+          role: "user",
+          content: "visitor private text",
+        });
+      }
+      expect(await service.countMessages(guestRequest.sessionId)).toBe(6);
+      expect(send).not.toHaveBeenCalled();
+      const tracking = await client.execute("SELECT * FROM summary_tracking");
+      expect(tracking.rows).toHaveLength(0);
+      await service.updateConversationMetadata({
+        conversationId: guestRequest.sessionId,
+        metadata: { title: "visitor private title" },
+      });
+      await service.deleteConversation(guestRequest.sessionId);
+      expect(JSON.stringify(debug.mock.calls)).not.toContain("visitor");
+    });
+
+    it("excludes guests from general search and enumeration even when explicitly filtered", async () => {
+      await service.startConversation(guestRequest);
+      await service.addMessage({
+        conversationId: guestRequest.sessionId,
+        role: "user",
+        content: "shared search term",
+      });
+      await service.startConversation({
+        ...guestRequest,
+        sessionId: "operator",
+        interfaceType: "web-chat",
+      });
+      await service.addMessage({
+        conversationId: "operator",
+        role: "user",
+        content: "shared search term",
+      });
+      expect(
+        (await service.listConversations()).map((entry) => entry.id),
+      ).toEqual(["operator"]);
+      expect(
+        await service.listConversations({ interfaceType: guestInterfaceType }),
+      ).toEqual([]);
+      expect(
+        (await service.searchConversations("shared search term")).map(
+          (entry) => entry.id,
+        ),
+      ).toEqual(["operator"]);
+      expect(
+        await service.searchConversations(
+          "shared search term",
+          guestRequest.sessionId,
+        ),
+      ).toEqual([]);
+      expect(await service.getMessages(guestRequest.sessionId)).toHaveLength(1);
+    });
+
+    it("rejects scope changes and authenticated ownership on guest creation", async () => {
+      await service.startConversation(guestRequest);
+      expect(
+        service.startConversation({
+          ...guestRequest,
+          interfaceType: "web-chat",
+          personId: "owner",
+        }),
+      ).rejects.toThrow("Conversation scope mismatch");
+      expect(
+        service.startConversation({
+          ...guestRequest,
+          sessionId: "other",
+          personId: "owner",
+        }),
+      ).rejects.toThrow(
+        "Guest conversation cannot have an authenticated owner",
+      );
+      await service.startConversation({
+        ...guestRequest,
+        sessionId: "operator",
+        interfaceType: "web-chat",
+      });
+      expect(
+        service.startConversation({ ...guestRequest, sessionId: "operator" }),
+      ).rejects.toThrow("Conversation scope mismatch");
+    });
+
+    it("rejects missing ownership and prevents metadata updates from changing owners", async () => {
+      expect(
+        service.startConversation({ ...guestRequest, metadata: testMetadata }),
+      ).rejects.toThrow("Guest ownership required");
+      await service.startConversation(guestRequest);
+      expect(
+        service.updateConversationMetadata({
+          conversationId: guestRequest.sessionId,
+          metadata: {
+            guest: { visitorId: "c92c7734-1d75-408f-8b4a-fc40e7d58679" },
+          },
+        }),
+      ).rejects.toThrow("Guest ownership cannot be changed");
+    });
+
+    it("prevents a late insert when deletion wins after the existence check", async () => {
+      await service.startConversation(guestRequest);
+      const other = ConversationService.createFreshFromConfig(
+        logger,
+        messageBus,
+        { url: `file:${dbPath}` },
+      );
+      await other.initialize();
+      const getConversation = service.getConversation.bind(service);
+      const lookup = spyOn(service, "getConversation").mockImplementation(
+        async (id) => {
+          const stale = await getConversation(id);
+          await other.deleteConversation(id);
+          return stale;
+        },
+      );
+      try {
+        expect(
+          service.addMessage({
+            conversationId: guestRequest.sessionId,
+            role: "assistant",
+            content: "late private result",
+          }),
+        ).rejects.toThrow("Guest conversation write unavailable");
+        expect(await service.getMessages(guestRequest.sessionId)).toEqual([]);
+        expect(await getConversation(guestRequest.sessionId)).toBeNull();
+      } finally {
+        lookup.mockRestore();
+        other.close();
+      }
+    });
+
+    it("does not recreate messages after deletion, including from another connection", async () => {
+      await service.startConversation(guestRequest);
+      await service.addMessage({
+        conversationId: guestRequest.sessionId,
+        role: "user",
+        content: "private text",
+      });
+      const other = ConversationService.createFreshFromConfig(
+        logger,
+        messageBus,
+        { url: `file:${dbPath}` },
+      );
+      try {
+        await other.initialize();
+        await other.deleteConversation(guestRequest.sessionId);
+        expect(
+          service.addMessage({
+            conversationId: guestRequest.sessionId,
+            role: "assistant",
+            content: "late result",
+          }),
+        ).rejects.toThrow("Conversation unavailable");
+        expect(
+          await service.getConversation(guestRequest.sessionId),
+        ).toBeNull();
+        expect(await service.getMessages(guestRequest.sessionId)).toEqual([]);
+      } finally {
+        other.close();
+      }
+    });
   });
 
   describe("person ownership migration", () => {

@@ -14,7 +14,7 @@ Initial review identified these implementation prerequisites:
 
 - Permission-filtered tools are not a reviewed guest allowlist. Guest restrictions must also cover context providers and tool dispatch before anonymous generation is admitted.
 - Runtime state offers atomic `setIfNotExists`, but no atomic multi-counter/budget reservation contract. Quotas need a shared, restart-safe reservation design; process-local counters are insufficient.
-- Conversation ownership is currently authenticated-only. Guest scope must bind every operation, exclude memory/ingestion hooks, and prevent late writes after deletion or expiry.
+- Conversation ownership was authenticated-only at the start. Guest scope must bind every operation, exclude memory/ingestion hooks, and prevent late writes after deletion or expiry.
 - Existing same-origin helpers derive origin through forwarded headers. Guest policy now requires an explicit canonical deployment origin; trusted HTTP-host integration must account for TLS termination without trusting arbitrary forwarding headers.
 
 Completed foundation (not yet wired into guest HTTP routes):
@@ -24,9 +24,19 @@ Completed foundation (not yet wired into guest HTTP routes):
 - Guest conversation ownership/expiry checks and an explicit exclusion from authenticated browser conversation admission, including admin admission.
 - Adversarial foundation tests covering fixation, forged/ambiguous credentials, cross-origin mutations, environment isolation, persistence failure, foreign ownership and expiry.
 
-Validation: Web Chat typecheck, scoped lint and all 242 tests passed after building its UI assets. No real guest conversation or site integration has been verified.
+Completed runtime/storage isolation stage (still no guest HTTP admission):
 
-**Next:** implement shared quota reservations, guest-only runtime/context/tool enforcement, memory exclusion and deletion-safe writes; then wire issuance, history, streaming, retries and deletion into the existing chat implementation. Configuration alone currently grants no guest access. The first reviewable product milestone below is **not yet complete**.
+- Shared guest scope and schema-validated visitor ownership. Guest creation rejects authenticated ownership; generic metadata updates cannot reassign a guest owner.
+- Guest execution rejects privilege/Anchor escalation, actor/source injection, approvals and uploads. It requires a pre-existing guest conversation and does not recreate one. Authenticated runtime calls cannot access that scope.
+- Separate guest agent cache, public-only tool context, and a fixed allowlist of `system_search`, `system_get` and `system_list`. Tools must remain explicitly public, read-only and agent-enabled; SDK conversion and dispatch enforce the restrictions as well.
+- Guest model requests exclude character/profile entities, brain/plugin instructions, context providers, history metadata and upload continuity. Unreviewed identity configuration is not assumed public. Only server-owned text history is admitted; injected system/tool messages and files are rejected before provider processing. Provider web search/options are disabled for guest calls.
+- Guest tool events are not broadcast to general subscribers, and retrieval failures are normalized without exposing raw storage/provider errors to the model.
+- Guest transcripts are excluded from conversation lifecycle/message/digest broadcasts, summary tracking, general list/search APIs and routine conversation logs. Other conversations retain their existing behavior.
+- Guest message insertion checks existence and scope in the insertion statement; deletion either wins before insertion or cascades the inserted row. Two-connection tests cover late writes and deletion between lookup and insert. Full expiry/retention enforcement and cleanup are still outstanding.
+
+Validation: targeted AI Service, Conversation Service, shared contracts and Web Chat checks pass, including the real AI SDK with a mocked provider and real SQLite deletion-race tests. No live-provider guest conversation or site integration has been verified.
+
+**Next:** implement shared quota reservations, per-turn model/tool/context limits, retention cleanup and duplicate-submission handling; then wire issuance, history, streaming, retries and deletion into the existing chat implementation. Configuration alone currently grants no guest access. The first reviewable product milestone below is **not yet complete**.
 
 ## Approved product scope
 

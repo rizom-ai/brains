@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import type { GuestConversationOwnership } from "@brains/contracts/chat";
 import {
   actorRefFromLegacy,
   actorRefSchema,
@@ -30,6 +31,7 @@ export interface ConversationServiceConfig {
  * Metadata for a conversation
  */
 export interface ConversationMetadata {
+  guest?: GuestConversationOwnership;
   channelName: string; // Human-readable name for the channel/room
   interfaceType: string; // Interface that created the conversation (e.g., 'matrix', 'cli')
   channelId: string; // Original channel/room identifier

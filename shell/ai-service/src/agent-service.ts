@@ -1,4 +1,11 @@
 import { type Logger } from "@brains/utils/logger";
+import { isRecord } from "@brains/utils/is-record";
+import { guestInterfaceType } from "@brains/contracts/chat";
+import {
+  assertGuestPermission,
+  guestBrainIdentity,
+  isGuestToolAllowed,
+} from "./guest-execution";
 import type { AgentConversationStore } from "./turn-processor";
 import { parseConfirmationResponse } from "@brains/utils/confirmation-response";
 import type { IMCPService } from "@brains/mcp-service";
@@ -60,6 +67,7 @@ export class AgentService implements IAgentService {
   private agentFactory: AgentConfig["agentFactory"];
   private agentInstructions: AgentConfig["agentInstructions"];
   private indexReadiness: AgentConfig["indexReadiness"];
+  private readonly conversationService: AgentConversationStore;
 
   private readonly activeTurns = new ActiveTurnSupervisor();
   private shutdownPromise: Promise<void> | null = null;
@@ -94,6 +102,7 @@ export class AgentService implements IAgentService {
 
   // Lazy-initialized agent
   private agent: BrainAgent | null = null;
+  private guestAgent: BrainAgent | null = null;
 
   public static createFresh(
     mcpService: IMCPService,
@@ -125,6 +134,7 @@ export class AgentService implements IAgentService {
     config: AgentConfig,
   ) {
     this.mcpService = mcpService;
+    this.conversationService = conversationService;
     this.identityService = identityService;
     this.profileService = profileService;
     this.logger = logger.child("AgentService");
@@ -137,7 +147,7 @@ export class AgentService implements IAgentService {
       conversationService,
       mcpService,
       identityService,
-      getAgent: (): BrainAgent => this.getAgent(),
+      getAgent: (interfaceType): BrainAgent => this.getAgent(interfaceType),
       assistantAgentId: config.assistantAgentId,
       canonicalIdentityResolver: config.canonicalIdentityResolver,
       agentContextProvider: config.agentContextProvider,
@@ -177,7 +187,23 @@ export class AgentService implements IAgentService {
    * Get or create the BrainAgent instance
    * Lazy initialization allows tools to be registered after service creation
    */
-  private getAgent(): BrainAgent {
+  private getAgent(interfaceType: string): BrainAgent {
+    if (interfaceType === guestInterfaceType) {
+      this.guestAgent ??= this.agentFactory({
+        identity: guestBrainIdentity,
+        tools: this.mcpService
+          .listAgentToolsForPermissionLevel("public")
+          .map(({ tool }) => tool)
+          .filter(isGuestToolAllowed),
+        stepLimit: this.stepLimit,
+        getToolsForPermission: () =>
+          this.mcpService
+            .listAgentToolsForPermissionLevel("public")
+            .map(({ tool }) => tool)
+            .filter(isGuestToolAllowed),
+      });
+      return this.guestAgent;
+    }
     this.agent ??= this.agentFactory({
       identity: this.identityService.getCharacter(),
       profile: this.profileService.getProfile(),
@@ -203,6 +229,7 @@ export class AgentService implements IAgentService {
    */
   public invalidateAgent(): void {
     this.agent = null;
+    this.guestAgent = null;
     this.logger.debug("Agent invalidated, will be recreated on next chat");
   }
 
@@ -227,12 +254,35 @@ export class AgentService implements IAgentService {
     const interfaceType = context?.interfaceType ?? "agent";
     const channelId = context?.channelId;
     const channelName = context?.channelName ?? channelId ?? conversationId;
-
-    this.logger.debug("Processing chat message", {
-      conversationId,
-      messageLength: message.length,
+    const guest = interfaceType === guestInterfaceType;
+    assertGuestPermission({
+      interfaceType,
       userPermissionLevel,
+      isAnchor: context?.isAnchor ?? false,
     });
+    if (
+      guest &&
+      (context?.actor || context?.source || context?.attachments?.length)
+    ) {
+      throw new Error("Guest execution denied");
+    }
+    const conversation =
+      await this.conversationService.getConversation(conversationId);
+    if (
+      (guest &&
+        (conversation?.interfaceType !== guestInterfaceType ||
+          conversation.personId)) ||
+      (!guest && conversation?.interfaceType === guestInterfaceType)
+    ) {
+      throw new Error("Guest conversation unavailable");
+    }
+
+    if (!guest)
+      this.logger.debug("Processing chat message", {
+        conversationId,
+        messageLength: message.length,
+        userPermissionLevel,
+      });
 
     return this.conversationActors.enqueue(
       conversationId,
@@ -242,6 +292,7 @@ export class AgentService implements IAgentService {
         const currentSnapshot = actor.getSnapshot();
 
         if (currentSnapshot.matches("awaitingConfirmation")) {
+          if (guest) throw new Error("Guest execution denied");
           const confirmationContext = {
             interfaceType,
             channelId,
@@ -349,6 +400,13 @@ export class AgentService implements IAgentService {
     signal?: AbortSignal,
   ): Promise<AgentResponse> {
     signal?.throwIfAborted();
+    if (
+      (isRecord(context) && context["interfaceType"] === guestInterfaceType) ||
+      (await this.conversationService.getConversation(conversationId))
+        ?.interfaceType === guestInterfaceType
+    ) {
+      throw new Error("Guest execution denied");
+    }
     // Route through the serialized queue so confirmations cannot race an
     // in-flight chat() operation on the same conversation actor.
     return this.conversationActors.enqueue(

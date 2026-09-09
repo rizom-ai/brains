@@ -3,9 +3,18 @@ import { agentEventActionSchema, type AgentEventAction } from "./agent-action";
 
 export const CHAT_API_VERSION = 1 as const;
 export const DEFAULT_CHAT_API_PATH = "/api/chat" as const;
+/** Server-owned conversation scope; never derive it from browser role claims. */
+export const guestInterfaceType = "web-chat-guest";
 
 type Loose<Shape extends z.ZodRawShape> = z.ZodObject<Shape, z.core.$loose>;
 type Strict<Shape extends z.ZodRawShape> = z.ZodObject<Shape, z.core.$strict>;
+
+export const guestConversationOwnershipSchema: Strict<{
+  visitorId: z.ZodString;
+}> = z.strictObject({ visitorId: z.string().uuid() });
+export type GuestConversationOwnership = z.output<
+  typeof guestConversationOwnershipSchema
+>;
 
 const chatIdSchema: z.ZodString = z.string().trim().min(1).max(256);
 const chatUploadIdSchema: z.ZodString = z

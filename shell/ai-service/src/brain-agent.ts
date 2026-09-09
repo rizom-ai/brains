@@ -7,6 +7,13 @@
  * - activeTools for permission-based tool filtering
  */
 import { ToolLoopAgent, stepCountIs, type LanguageModel } from "ai";
+import { guestInterfaceType } from "@brains/contracts/chat";
+import {
+  assertGuestPermission,
+  guestInstructions,
+  guestModelMessages,
+  isGuestToolAllowed,
+} from "./guest-execution";
 import { toolConfirmationSchema, type Tool } from "@brains/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import {
@@ -26,9 +33,14 @@ export type { BrainAgentConfig, BrainCallOptions } from "./agent-types";
 
 export function filterToolsForCallOptions(
   tools: Tool[],
-  _callOptions: Pick<BrainCallOptions, "hasPriorResponseCandidate">,
+  callOptions: Pick<
+    BrainCallOptions,
+    "interfaceType" | "hasPriorResponseCandidate"
+  >,
 ): Tool[] {
-  return tools;
+  return callOptions.interfaceType === guestInterfaceType
+    ? tools.filter(isGuestToolAllowed)
+    : tools;
 }
 
 function isPlaybookStartInput(input: unknown): boolean {
@@ -120,6 +132,17 @@ export function createBrainAgentFactory(
 
       // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
       prepareCall: ({ options: callOptions, ...settings }) => {
+        assertGuestPermission(callOptions);
+        const guest = callOptions.interfaceType === guestInterfaceType;
+        if (
+          guest &&
+          (callOptions.actor ||
+            callOptions.agentContextInstructions ||
+            callOptions.enableCreateUpload ||
+            callOptions.enableCreateTransform)
+        ) {
+          throw new Error("Guest execution denied");
+        }
         // Get tools available for this permission level, unless this bounded
         // model turn is intentionally text-only (for example, after executing
         // an already-confirmed action).
@@ -151,15 +174,22 @@ export function createBrainAgentFactory(
 
         return {
           ...settings,
-          instructions: buildInstructions(
-            config.identity,
-            callOptions.userPermissionLevel,
-            config.pluginInstructions,
-            config.profile,
-            config.agentInstructions,
-            callOptions.agentContextInstructions,
-            callOptions.isAnchor,
-          ),
+          ...(guest && {
+            messages: guestModelMessages(settings.messages),
+            allowSystemInMessages: false,
+            providerOptions: {},
+          }),
+          instructions: guest
+            ? guestInstructions
+            : buildInstructions(
+                config.identity,
+                callOptions.userPermissionLevel,
+                config.pluginInstructions,
+                config.profile,
+                config.agentInstructions,
+                callOptions.agentContextInstructions,
+                callOptions.isAnchor,
+              ),
           tools: toolsWithContext,
           activeTools: allowedToolNames,
           // Provider options
@@ -169,17 +199,18 @@ export function createBrainAgentFactory(
           ...((capabilities.provider === "openai" &&
           reasoningEffort !== undefined
             ? true
-            : webSearch) && {
-            providerOptions: {
-              ...(capabilities.provider === "openai" &&
-                reasoningEffort && {
-                  openai: { reasoningEffort },
+            : webSearch) &&
+            !guest && {
+              providerOptions: {
+                ...(capabilities.provider === "openai" &&
+                  reasoningEffort && {
+                    openai: { reasoningEffort },
+                  }),
+                ...(webSearch && {
+                  anthropic: { webSearch: true },
                 }),
-              ...(webSearch && {
-                anthropic: { webSearch: true },
-              }),
-            },
-          }),
+              },
+            }),
         };
       },
 

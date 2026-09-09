@@ -8,8 +8,8 @@ import type {
 import {
   GuestVisitorStore,
   canAccessGuestConversation,
-  guestInterfaceType,
 } from "../src/guest-access";
+import { guestInterfaceType } from "@brains/contracts/chat";
 import {
   canAccessBrowserConversation,
   type WebChatConversation,

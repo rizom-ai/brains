@@ -1,4 +1,6 @@
 import { dynamicTool, type ToolSet } from "ai";
+import { guestInterfaceType } from "@brains/contracts/chat";
+import { assertGuestPermission, isGuestToolAllowed } from "./guest-execution";
 import {
   jsonValueSchema,
   type ActorRef,
@@ -152,10 +154,22 @@ export function convertToSDKTools(
   contextInfo: ToolContextInfo,
   emitter: ToolEventEmitter,
 ): ToolSet {
+  assertGuestPermission(contextInfo);
+  const guest = contextInfo.interfaceType === guestInterfaceType;
+  if (
+    guest &&
+    (contextInfo.actor ||
+      contextInfo.displayName ||
+      contextInfo.enableCreateUpload ||
+      contextInfo.enableCreateTransform)
+  ) {
+    throw new Error("Guest execution denied");
+  }
   const sdkTools: ToolSet = {};
   const readCache = new Map<string, unknown>();
 
   for (const t of pluginTools) {
+    if (guest && !isGuestToolAllowed(t)) continue;
     const wrappedExecute = createToolExecuteWrapper(
       t.name,
       async (
@@ -165,6 +179,8 @@ export function convertToSDKTools(
           abortSignal?: AbortSignal | undefined;
         },
       ) => {
+        if (guest && !isGuestToolAllowed(t))
+          throw new Error("Guest execution denied");
         const context: ToolContext = {
           interfaceType: contextInfo.interfaceType,
           actor: contextInfo.actor ?? {
@@ -187,6 +203,7 @@ export function convertToSDKTools(
           ...(contextInfo.isAnchor !== undefined && {
             isAnchor: contextInfo.isAnchor,
           }),
+          ...(guest && { userPermissionLevel: "public", isAnchor: false }),
         };
         if (t.sideEffects !== "none") {
           if (t.sideEffects === "writes" || t.sideEffects === "external") {
@@ -199,12 +216,24 @@ export function convertToSDKTools(
         if (readCache.has(cacheKey)) {
           return markCachedToolResult(readCache.get(cacheKey));
         }
-        const result = await t.handler(args, context);
+        let result: unknown;
+        try {
+          result = await t.handler(args, context);
+        } catch (error) {
+          if (!guest) throw error;
+          // Storage/provider exceptions may contain private internals or SQL parameters.
+          // Normalize below without retaining a potentially transcript-bearing cause.
+          result = undefined;
+        }
+        if (guest && (!isPlainRecord(result) || result["success"] !== true)) {
+          result = { success: false, error: "Public retrieval unavailable" };
+        }
         readCache.set(cacheKey, result);
         return result;
       },
       contextInfo,
-      emitter,
+      // Guest queries and identifiers must not enter general plugin broadcasts.
+      guest ? undefined : emitter,
     );
 
     sdkTools[t.name] = dynamicTool({

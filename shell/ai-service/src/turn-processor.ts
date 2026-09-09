@@ -9,6 +9,8 @@
  */
 
 import type { AgentContextItem } from "@brains/contracts";
+import { guestInterfaceType } from "@brains/contracts/chat";
+import { assertGuestPermission, isGuestToolAllowed } from "./guest-execution";
 import { getErrorMessage } from "@brains/utils/error";
 import { type Logger } from "@brains/utils/logger";
 import type { IMCPService, ToolContext } from "@brains/mcp-service";
@@ -69,7 +71,7 @@ import { toTokenUsage } from "./generation-options";
  */
 export type AgentConversationStore = Pick<
   IConversationService,
-  "startConversation" | "addMessage" | "getMessages"
+  "startConversation" | "addMessage" | "getMessages" | "getConversation"
 >;
 
 export interface TurnProcessorDeps {
@@ -78,7 +80,7 @@ export interface TurnProcessorDeps {
   mcpService: IMCPService;
   identityService: IBrainCharacterService;
   /** Lazy agent access so invalidation stays with AgentService. */
-  getAgent: () => BrainAgent;
+  getAgent: (interfaceType: string) => BrainAgent;
   assistantAgentId: string | undefined;
   canonicalIdentityResolver: AgentConfig["canonicalIdentityResolver"];
   agentContextProvider: AgentConfig["agentContextProvider"];
@@ -109,22 +111,35 @@ export class TurnProcessor {
       source,
       attachments,
     } = input;
-    const attributedActor = await this.enrichActor(actor);
+    const guest = interfaceType === guestInterfaceType;
+    assertGuestPermission(input);
+    if (guest) {
+      if (actor || source || attachments.length)
+        throw new Error("Guest execution denied");
+      const stored =
+        await this.deps.conversationService.getConversation(conversationId);
+      if (stored?.interfaceType !== guestInterfaceType || stored.personId) {
+        throw new Error("Guest conversation unavailable");
+      }
+    }
+    const attributedActor = guest ? null : await this.enrichActor(actor);
 
     // Ensure conversation exists. Conversation-service currently requires a
     // channelId for storage compatibility; do not reuse this fallback for tool
     // provenance, where absent channelId must remain absent.
     const storageChannelId = channelId ?? conversationId;
-    await this.deps.conversationService.startConversation({
-      sessionId: conversationId,
-      interfaceType,
-      channelId: storageChannelId,
-      metadata: {
-        channelName,
+    // Guest admission must pre-create ownership. Never recreate a deleted guest.
+    if (!guest)
+      await this.deps.conversationService.startConversation({
+        sessionId: conversationId,
         interfaceType,
         channelId: storageChannelId,
-      },
-    });
+        metadata: {
+          channelName,
+          interfaceType,
+          channelId: storageChannelId,
+        },
+      });
 
     if (message.trim().length === 0 && attachments.length > 0) {
       await this.deps.conversationService.addMessage({
@@ -171,7 +186,7 @@ export class TurnProcessor {
     const historyMessages = filterConversationHistoryForPermission(
       storedHistoryMessages,
       userPermissionLevel,
-    );
+    ).map((entry) => (guest ? { ...entry, metadata: null } : entry));
 
     const uploadContinuity = resolveConversationUploadContinuity({
       message,
@@ -219,6 +234,7 @@ export class TurnProcessor {
     // Log available tools
     const tools = this.deps.mcpService
       .listAgentToolsForPermissionLevel(userPermissionLevel)
+      .filter(({ tool }) => !guest || isGuestToolAllowed(tool))
       .map((t) => t.tool.name);
     this.deps.logger.debug("Available tools for this call", {
       toolCount: tools.length,
@@ -236,6 +252,7 @@ export class TurnProcessor {
         userPermissionLevel,
         attachments: effectiveAttachments,
         actorAlreadyEnriched: true,
+        guest,
       })),
     });
 
@@ -259,7 +276,7 @@ export class TurnProcessor {
       ...(agentContextInstructions ? { agentContextInstructions } : {}),
     });
 
-    const result = await this.deps.getAgent().generate({
+    const result = await this.deps.getAgent(interfaceType).generate({
       messages,
       options: callOptions,
       ...(signal ? { abortSignal: signal } : {}),
@@ -268,6 +285,8 @@ export class TurnProcessor {
 
     const { toolResults, pendingConfirmations, cards, totalToolCalls } =
       extractToolResults(result.steps);
+    if (guest && pendingConfirmations.length > 0)
+      throw new Error("Guest execution denied");
     const sourcesCard = buildSourcesCardFromContextItems(contextItems);
     const responseCards = sourcesCard ? [...cards, sourcesCard] : cards;
 
@@ -278,9 +297,11 @@ export class TurnProcessor {
           ? result.text
           : (buildToolResultPromptFallback(toolResults) ?? result.text);
     const entityMemoryRefs =
-      pendingConfirmations.length > 0 ? [] : buildEntityMemoryRefs(toolResults);
+      guest || pendingConfirmations.length > 0
+        ? []
+        : buildEntityMemoryRefs(toolResults);
     const agentContactCandidates =
-      pendingConfirmations.length > 0
+      guest || pendingConfirmations.length > 0
         ? []
         : buildAgentContactCandidates(toolResults);
 
@@ -297,23 +318,25 @@ export class TurnProcessor {
         role: "assistant",
         content: responseText,
         ...(await this.messageMetadata({
-          actor: this.getAssistantActor(),
+          actor: guest ? null : this.getAssistantActor(),
           source: this.buildAssistantSource(channelId, channelName),
           userPermissionLevel,
           cards: responseCards,
           entityMemoryRefs,
           agentContactCandidates,
+          guest,
         })),
       });
     }
 
-    this.deps.logger.debug("Chat completed", {
-      conversationId,
-      responseLength: responseText.length,
-      toolCalls: totalToolCalls,
-      stepCount: result.steps.length,
-      usage: result.usage,
-    });
+    if (!guest)
+      this.deps.logger.debug("Chat completed", {
+        conversationId,
+        responseLength: responseText.length,
+        toolCalls: totalToolCalls,
+        stepCount: result.steps.length,
+        usage: result.usage,
+      });
 
     const response: AgentResponse = {
       text: responseText,
@@ -358,6 +381,8 @@ export class TurnProcessor {
     signal?: AbortSignal,
   ): Promise<AgentResponse> {
     signal?.throwIfAborted();
+    if (input.interfaceType === guestInterfaceType)
+      throw new Error("Guest execution denied");
     const {
       conversationId,
       pendingConfirmation,
@@ -475,7 +500,11 @@ export class TurnProcessor {
     channelName: string;
     userPermissionLevel: ChatContext["userPermissionLevel"];
   }): Promise<AgentContextItem[] | undefined> {
-    if (!this.deps.agentContextProvider) return undefined;
+    if (
+      params.interfaceType === guestInterfaceType ||
+      !this.deps.agentContextProvider
+    )
+      return undefined;
 
     try {
       return await this.deps.agentContextProvider({
@@ -533,7 +562,7 @@ export class TurnProcessor {
     const messages = buildModelMessages(historyMessages, followUpPrompt);
     const agentContextInstructions =
       buildAgentContextInstructions(contextItems);
-    const result = await this.deps.getAgent().generate({
+    const result = await this.deps.getAgent(params.interfaceType).generate({
       messages,
       options: {
         userPermissionLevel: params.userPermissionLevel,
@@ -573,8 +602,14 @@ export class TurnProcessor {
     entityMemoryRefs?: EntityMemoryRef[];
     agentContactCandidates?: AgentContactCandidate[];
     actorAlreadyEnriched?: boolean;
+    guest?: boolean;
   }): Promise<{ metadata: Record<string, unknown> } | Record<string, never>> {
-    const { actorAlreadyEnriched = false, ...metadataParams } = params;
+    if (params.guest) return { metadata: { userPermissionLevel: "public" } };
+    const {
+      actorAlreadyEnriched = false,
+      guest: _guest,
+      ...metadataParams
+    } = params;
     return withMessageMetadata(
       await buildMessageMetadata({
         ...metadataParams,

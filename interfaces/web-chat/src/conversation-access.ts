@@ -3,7 +3,7 @@ import type {
   UserPermissionLevel,
 } from "@brains/plugins";
 
-import { guestInterfaceType } from "./guest-access";
+import { guestInterfaceType } from "@brains/contracts/chat";
 
 type ConversationService = InterfacePluginContext["conversations"];
 export type WebChatConversation = NonNullable<

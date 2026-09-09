@@ -8,7 +8,10 @@ import { z } from "@brains/utils/zod";
 import type { WebChatConversation } from "./conversation-access";
 import type { EnabledGuestPolicy, GuestPolicy } from "./guest-policy";
 
-export const guestInterfaceType = "web-chat-guest";
+import {
+  guestInterfaceType,
+  guestConversationOwnershipSchema,
+} from "@brains/contracts/chat";
 
 const visitorSchema: z.ZodObject<
   {
@@ -25,8 +28,6 @@ const visitorSchema: z.ZodObject<
   expiresAt: z.number().int().positive(),
 });
 export type GuestVisitor = z.output<typeof visitorSchema>;
-
-const ownershipSchema = z.strictObject({ visitorId: z.string().uuid() });
 
 /**
  * Credential/ownership foundation only. It grants no agent execution authority.
@@ -155,7 +156,7 @@ export function canAccessGuestConversation(
   )
     return false;
   if (visitor.createdAt > now || now >= visitor.expiresAt) return false;
-  const ownership = ownershipSchema.safeParse(
+  const ownership = guestConversationOwnershipSchema.safeParse(
     coerceConversationMetadata(conversation.metadata)["guest"],
   );
   if (!ownership.success || ownership.data.visitorId !== visitor.id)

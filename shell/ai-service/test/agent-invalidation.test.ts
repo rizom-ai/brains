@@ -34,6 +34,7 @@ describe("AgentService invalidation", () => {
         startConversation: mock(() => Promise.resolve("conv-1")),
         addMessage: mock(() => Promise.resolve()),
         getMessages: mock(() => Promise.resolve([])),
+        getConversation: mock(() => Promise.resolve(null)),
       } satisfies AgentConversationStore,
       {
         getCharacter: () => ({
@@ -102,6 +103,7 @@ describe("AgentService invalidation", () => {
         startConversation: mock(() => Promise.resolve("conv-1")),
         addMessage: mock(() => Promise.resolve()),
         getMessages: mock(() => Promise.resolve([])),
+        getConversation: mock(() => Promise.resolve(null)),
       } satisfies AgentConversationStore,
       {
         getCharacter: () => ({
