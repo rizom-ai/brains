@@ -28,30 +28,28 @@ describe("@rizom/site-rizom-ai", () => {
     ]);
   });
 
-  test("exposes the /brain room — the product's four-chapter page", () => {
+  test("exposes the Brain landing page with stable content IDs", () => {
     const brain = site.routes.find((route) => route.id === "brain");
     expect(brain?.path).toBe("/brain");
-    // The brain's life with its owner: capture → ask → see it run → connect,
-    // then the data principles, the quickstart, and the closing band.
+    // Answers, capabilities, collective work, ownership and starting points.
+    // The closing CTA is folded into Quickstart; old closing content is retained unrouted.
     expect(brain?.sections?.map((s) => s.id)).toEqual([
       "hero",
       "capture",
       "ask",
-      "run",
       "connect",
+      "run",
       "your-data",
       "quickstart",
-      "close",
     ]);
     expect(brain?.sections?.map((s) => s.template)).toEqual([
       "brain:hero",
       "brain:capture",
       "brain:ask",
-      "brain:run",
       "brain:connect",
+      "brain:run",
       "brain:your-data",
       "brain:quickstart",
-      "brain:close",
     ]);
   });
 

@@ -2,6 +2,7 @@
 import type { JSX, ReactNode } from "react";
 import { RizomFrame, type RizomLayoutProps } from "./rizom";
 import { LivingMemoryStyles } from "./living-memory";
+import { BrainStyles } from "./brain";
 
 /**
  * The consolidated rizom.ai chrome (rev-5): a quiet org-level faces strip
@@ -380,10 +381,13 @@ function RizomAiChrome({
         className={
           livingMemory
             ? "living-memory-page relative xl:pl-[68px]"
-            : "relative xl:pl-[68px]"
+            : path === "/brain"
+              ? "brain-page relative xl:pl-[68px]"
+              : "relative xl:pl-[68px]"
         }
       >
         {livingMemory && <LivingMemoryStyles />}
+        {path === "/brain" && <BrainStyles />}
         <MyceliumRail />
         <header className="site-header sticky top-0 z-[100] border-b border-theme-light bg-nav-fade backdrop-blur-[12px]">
           <FacesStrip path={path} />

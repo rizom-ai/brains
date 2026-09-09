@@ -7,6 +7,8 @@ import type {
   RizomSiteShell,
 } from "../contracts";
 import bootScript from "./boot/boot.boot.js" with { type: "text" };
+import brainStyles from "../../brain.css" with { type: "text" };
+import { brainCaptureAssets } from "../../brain-assets";
 import livingMemoryStyles from "../../living-memory.css" with { type: "text" };
 import livingMemoryMapStyles from "../../living-memory-maps.css" with { type: "text" };
 
@@ -48,7 +50,9 @@ export const rizomAtprotoLexiconStaticAssets: Record<string, string> =
 
 export const rizomRuntimeStaticAssets: Record<string, string> = {
   ...rizomAtprotoLexiconStaticAssets,
+  ...brainCaptureAssets,
   "/boot.js": bootScript,
+  "/styles/brain.css": brainStyles,
   // An emitted asset makes CSS edits part of the site build fingerprint.
   // Only /living-memory links this route-scoped stylesheet.
   "/styles/living-memory.css": livingMemoryStyles + livingMemoryMapStyles,
