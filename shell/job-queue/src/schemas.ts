@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { sdkErrorCodeSchema, sdkErrorSchema } from "@brains/contracts";
 // Import JobContextSchema from types file (no Drizzle dependencies)
 import { JobContextSchema } from "./schema/types";
 
@@ -78,6 +79,7 @@ type JobResultSchema = z.ZodObject<{
   status: typeof JobResultStatusEnum;
   result: z.ZodOptional<z.ZodUnknown>;
   error: z.ZodOptional<z.ZodString>;
+  code: z.ZodOptional<typeof sdkErrorCodeSchema>;
 }>;
 
 /**
@@ -89,6 +91,7 @@ export const JobResultSchema: JobResultSchema = z.object({
   status: JobResultStatusEnum,
   result: z.unknown().optional(),
   error: z.string().optional(),
+  code: sdkErrorCodeSchema.optional(),
 });
 
 export type JobResult = z.output<typeof JobResultSchema>;
@@ -96,6 +99,7 @@ export type JobResult = z.output<typeof JobResultSchema>;
 type HandlerFailureSchema = z.ZodObject<{
   success: z.ZodLiteral<false>;
   error: z.ZodOptional<z.ZodString>;
+  code: z.ZodOptional<z.ZodString>;
 }>;
 
 /**
@@ -105,6 +109,7 @@ type HandlerFailureSchema = z.ZodObject<{
 export const HandlerFailureSchema: HandlerFailureSchema = z.object({
   success: z.literal(false),
   error: z.string().optional(),
+  code: z.string().optional(),
 });
 
 export type HandlerFailure = z.output<typeof HandlerFailureSchema>;
@@ -128,7 +133,7 @@ type JobProgressEventSchema = z.ZodObject<{
       completedOperations: z.ZodNumber;
       failedOperations: z.ZodNumber;
       currentOperation: z.ZodOptional<z.ZodString>;
-      errors: z.ZodOptional<z.ZodArray<z.ZodString>>;
+      errors: z.ZodOptional<z.ZodArray<typeof sdkErrorSchema>>;
     }>
   >;
   jobDetails: z.ZodOptional<
@@ -170,7 +175,7 @@ export const JobProgressEventSchema: JobProgressEventSchema = z.object({
       completedOperations: z.number(),
       failedOperations: z.number(),
       currentOperation: z.string().optional(),
-      errors: z.array(z.string()).optional(),
+      errors: z.array(sdkErrorSchema).optional(),
     })
     .optional(),
 

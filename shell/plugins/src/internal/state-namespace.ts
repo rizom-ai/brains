@@ -1,38 +1,75 @@
+import { z } from "@brains/utils/zod";
+import { sha256Hex } from "@brains/utils/hash";
+
+const uploadNamespaceSchema = z
+  .string()
+  .regex(
+    /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/u,
+    "Upload namespace must be a flat path segment",
+  );
+
+const stateOwnerSchema = z
+  .string()
+  .min(1)
+  .refine(
+    (name) => Buffer.from(name).toString("utf8") === name,
+    "State owner must be well-formed Unicode",
+  );
+const simpleScopedPackage = /^@[a-zA-Z0-9][a-zA-Z0-9_-]*\/[a-zA-Z0-9_-]+$/u;
+
 /**
- * The namespace a package's runtime state is filed under.
+ * Keep the existing, unambiguous two-component encoding for ordinary scoped
+ * packages. Every workspace package uses this form, so their state does not move.
  *
- * Package names are npm-scoped and runtime-state namespaces are not: `@` and
- * `/` are both rejected there, so `@brains/playbooks` was never a namespace a
- * package could actually use. Three call sites built one this way and none had
- * a consumer until now, so the store refused the first package that tried.
+ * Other names need a distinct encoding: replacing @ and / with dots aliases
+ * @scope/pkg with scope.pkg, and loses component boundaries in dotted names.
+ * Base64url contains no colon or dot; the tagged owner and local namespace have
+ * unambiguous boundaries and cannot alias the ordinary scoped form.
  *
- * The mapping keeps the scope rather than dropping it, because two scopes may
- * publish the same short name and their notes must not collide.
+ * Do not fall back to old collapsed keys for encoded owners. Such a row cannot
+ * identify its original owner, and a fallback would reintroduce shared state.
  */
 export function stateNamespaceFor(
   packageName: string,
   namespace: string,
 ): string {
-  return `${packageName.replace(/^@/u, "").replaceAll("/", ".")}.${namespace}`;
+  const owner = stateOwnerSchema.parse(packageName);
+  if (simpleScopedPackage.test(owner)) {
+    return `${owner.slice(1).replace("/", ".")}.${namespace}`;
+  }
+  return `package:${Buffer.from(owner).toString("base64url")}:${namespace}`;
 }
 
 /**
- * The directory a declaration's uploads are filed under.
- *
- * The same reasoning as runtime state, for a different reason to care: an
- * upload namespace is a filesystem path, and a declaration naming its own
- * scope has no way to know another one did not choose the same word. Two
- * interfaces both accepting attachments would then share a directory, and a
- * ref issued by one would resolve in the other — isolation by convention,
- * which is no isolation at all.
- *
- * Kept flat rather than nested so a scope stays one path segment, and
- * separated by `.` because declaration ids are identifiers and cannot
- * contain one.
+ * Every interface scope includes both package and declaration identity. Even
+ * an undotted local name can collide when two packages choose the same ID.
+ * The tagged encoding also separates interface state from package-owned state.
+ * Never read or migrate the old declaration-only keys.
  */
-export function uploadNamespaceFor(
+export function interfaceStateNamespaceFor(
+  packageName: string,
   declarationId: string,
   namespace: string,
 ): string {
-  return `${declarationId}.${namespace}`;
+  const packageOwner = stateOwnerSchema.parse(packageName);
+  const owner = stateOwnerSchema.parse(declarationId);
+  return `interface:${Buffer.from(packageOwner).toString("base64url")}:${Buffer.from(owner).toString("base64url")}:${namespace}`;
+}
+
+/**
+ * Scope temporary uploads by package, declaration, and local namespace.
+ * Hash an unambiguous tuple to keep even long owners within a flat filesystem
+ * segment. The dot-free prefix cannot overlap old declaration.local directories.
+ * Do not migrate, read, or prune those old directories through the new scopes.
+ */
+export function uploadNamespaceFor(
+  packageName: string,
+  declarationId: string,
+  namespace: string,
+): string {
+  const packageOwner = stateOwnerSchema.parse(packageName);
+  const owner = stateOwnerSchema.parse(declarationId);
+  const local = z.string().parse(namespace);
+  uploadNamespaceSchema.parse(`${owner}.${local}`);
+  return `interface-upload-${sha256Hex(JSON.stringify([packageOwner, owner, local]))}`;
 }

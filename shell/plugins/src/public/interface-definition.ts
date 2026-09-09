@@ -1,3 +1,4 @@
+import type { SchemaReturn } from "../internal/schema-return";
 import { createDeclarativeInterfacePlugin } from "../interface/declarative-interface-plugin";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import {
@@ -21,6 +22,7 @@ import type {
   MessageRecipientSchema,
   ProtocolSecurityDefinition,
   RouteMethod,
+  RouteOutput,
   RouteResponse,
   RouteSecurity,
 } from "../interface/interface-definition-contract";
@@ -111,8 +113,15 @@ export function protocol(
 export function defineSubscription<
   TPayloadSchema extends SubscriptionPayloadSchema,
   TResponseSchema extends SubscriptionPayloadSchema,
+  const TOutput extends SchemaReturn<z.input<TResponseSchema>> = SchemaReturn<
+    z.input<TResponseSchema>
+  >,
 >(
-  definition: SubscriptionDefinition<TPayloadSchema, TResponseSchema> & {
+  definition: SubscriptionDefinition<
+    TPayloadSchema,
+    TResponseSchema,
+    TOutput
+  > & {
     readonly response: TResponseSchema;
   },
 ): SubscriptionDefinition<TPayloadSchema, TResponseSchema> & {
@@ -137,12 +146,15 @@ export function defineRoute<
   TBodySchema extends InterfaceSchema | undefined,
   TResponseSchema extends RouteResponse,
   const TSecurity extends RouteSecurity,
+  const TOutput extends RouteOutput<TResponseSchema> =
+    RouteOutput<TResponseSchema>,
 >(
   definition: InterfaceRouteInput<
     TMethod,
     TBodySchema,
     TResponseSchema,
-    TSecurity
+    TSecurity,
+    TOutput
   >,
 ): InterfaceRouteDefinition<TMethod, TBodySchema, TResponseSchema, TSecurity> {
   if (!routeMethods.includes(definition.method)) {

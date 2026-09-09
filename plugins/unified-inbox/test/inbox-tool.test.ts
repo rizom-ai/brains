@@ -210,6 +210,7 @@ describe("inbox_list tool", () => {
     ).toEqual({
       success: false,
       error: "Invalid unified inbox filters",
+      code: "invalid_input",
     });
   });
 

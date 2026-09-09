@@ -41,6 +41,10 @@ import type {
   ProjectionWriteIntent,
 } from "../index";
 import type { RegisteredHttpRoute } from "../types/http-routes";
+import {
+  createProjectionInputReader,
+  createProjectionExecutionReader,
+} from "../entity/projection-rule";
 import type { Template } from "@brains/templates";
 import { PermissionService } from "@brains/templates";
 import { MessageBus } from "@brains/messaging-service";
@@ -53,10 +57,11 @@ import {
 import type { IContentService, ContentTemplate } from "@brains/content-service";
 import type { Logger } from "@brains/utils/logger";
 import type { DefaultQueryResponse } from "@brains/contracts";
-import { defaultQueryResponseSchema } from "@brains/contracts";
+import { defaultQueryResponseSchema, toSdkError } from "@brains/contracts";
 import {
   getVisibleContentVisibilities,
   normalizeContentVisibility,
+  copyEntityTypeConfig,
   type IEntityService,
   type IEntityRegistry,
   type BaseEntity,
@@ -183,7 +188,7 @@ export function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
       const records = namespaces.get(options.namespace);
       if (!records) throw new Error("Runtime state namespace missing");
 
-      return {
+      return Object.freeze<IRuntimeStateStore<T, TInput>>({
         get: async (key): Promise<T | null> => {
           const record = records.get(key);
           return record ? options.schema.parse(record.value) : null;
@@ -251,7 +256,7 @@ export function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
           for (const key of keys) records.delete(key);
           return keys.length;
         },
-      };
+      });
     },
   };
 }
@@ -335,7 +340,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   const getEntityTypeConfig = (
     type: string,
   ): NonNullable<Parameters<IEntityRegistry["registerEntityType"]>[3]> =>
-    entityTypeConfigs.get(type) ?? {};
+    copyEntityTypeConfig(entityTypeConfigs.get(type) ?? {});
 
   // Serialize an entity the way the real EntityService would: adapter
   // rebuilds markdown from entity fields, adapter extracts canonical
@@ -798,9 +803,10 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
 
   const entityRegistry: IEntityRegistry = {
     registerEntityType: (type, _schema, adapter, config) => {
+      const registeredConfig = copyEntityTypeConfig(config ?? {});
       entityTypes.add(type);
       entityAdapters.set(type, adapter);
-      entityTypeConfigs.set(type, config ?? {});
+      entityTypeConfigs.set(type, registeredConfig);
     },
     unregisterEntityType: (type): void => {
       stewardshipClaims.delete(type);
@@ -1009,7 +1015,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         completedOperations: completed,
         failedOperations: failed,
         errors: children.flatMap((job) =>
-          job.lastError ? [job.lastError] : [],
+          job.status === "failed"
+            ? [toSdkError({ code: job.lastErrorCode }).toJSON()]
+            : [],
         ),
         status: settled
           ? failed > 0
@@ -1627,9 +1635,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     ): Promise<readonly ProjectionWriteIntent[]> => {
       const input = await rule.selectInput(
         { waveId: "eval", inputs: options.inputs ?? [] },
-        {
+        createProjectionInputReader({
           entities: entityService,
-          spaces: [],
+          spaces: shell.getSpaces(),
           conversations: {
             get: async () => null,
             getMessages: async () => [],
@@ -1641,12 +1649,12 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
           ): Promise<string> => fallback,
           appInfo: (): Promise<RuntimeAppInfo> => shell.getAppInfo(),
           identityInput: () => ({}),
-        },
+        }),
         signal,
       );
       const derived = await rule.derive(
         input,
-        {
+        createProjectionExecutionReader({
           ai: {
             query: (prompt, context) => shell.query(prompt, context),
             generate: async <T>(
@@ -1666,7 +1674,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
               shell.generateImage(prompt, options),
           },
           logger,
-        },
+        }),
         signal,
       );
       // An eval measures what a rule would write. Abstaining writes nothing,

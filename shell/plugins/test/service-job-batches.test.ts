@@ -101,7 +101,10 @@ describe("batches a declared service enqueues", () => {
     );
 
     expect(batch.id).toBe("sweep-1");
-    const queued = await harness.getMockShell().jobs.getRecentJobs();
+    // Recent jobs are newest-first; enqueue timestamps need not fall in one ms.
+    const queued = (await harness.getMockShell().jobs.getRecentJobs()).sort(
+      (a, b) => b.type.localeCompare(a.type),
+    );
     expect(
       queued.map((job) => [job.type, job.source, job.metadata["rootJobId"]]),
     ).toEqual([

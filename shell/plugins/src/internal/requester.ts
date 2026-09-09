@@ -1,4 +1,8 @@
-import { messageErrorCodeSchema } from "@brains/messaging-service";
+import {
+  sdkErrorCodeSchema,
+  toSdkError,
+  type SdkErrorCode,
+} from "@brains/contracts";
 import type { z } from "@brains/utils/zod";
 import type {
   RequestContract,
@@ -45,22 +49,25 @@ export function createRequester(
     if (!("topic" in first)) {
       return send({ type: first.type, payload: first.payload });
     }
-    const answer = await send({ type: first.topic, payload: second });
-    // A no-op is nobody answering, which is the same fact as no handler.
-    if (answer.noop === true || answer.success !== true) {
-      return {
-        ok: false,
-        code:
-          answer.noop === true
-            ? "no_handler"
-            : (messageErrorCodeSchema.safeParse(answer.code).data ??
-              "handler_failed"),
-      };
+    let fallback: SdkErrorCode = "handler_failed";
+    try {
+      const answer = await send({ type: first.topic, payload: second });
+      // A no-op is nobody answering, which is the same fact as no handler.
+      if (answer.noop === true || answer.success !== true) {
+        return {
+          ok: false,
+          code:
+            answer.noop === true
+              ? "no_handler"
+              : (sdkErrorCodeSchema.safeParse(answer.code).data ??
+                "handler_failed"),
+        };
+      }
+      fallback = "invalid_response";
+      return { ok: true, data: first.response.parse(answer.data) };
+    } catch (error) {
+      return { ok: false, code: toSdkError(error, fallback).code };
     }
-    const parsed = first.response.safeParse(answer.data);
-    return parsed.success
-      ? { ok: true, data: parsed.data }
-      : { ok: false, code: "invalid_response" };
   }
   return request;
 }

@@ -1,5 +1,6 @@
 import type { Logger } from "@brains/utils/logger";
 import { baseEntitySchema, contentVisibilitySchema } from "./types";
+import { copyEntityTypeConfig } from "./entity-type-config";
 import type {
   BaseEntity,
   CreateInterceptor,
@@ -57,11 +58,13 @@ export class EntityRegistry implements IEntityRegistry {
 
     // Schema validation handled by Zod - works correctly with extended schemas
 
-    // Register schema, adapter, and config
+    // Validate before publishing any part of the registration.
+    const registeredConfig =
+      config === undefined ? undefined : copyEntityTypeConfig(config);
     this.entitySchemas.set(type, schema);
     this.entityAdapters.set(type, adapter);
-    if (config) {
-      this.entityConfigs.set(type, config);
+    if (registeredConfig) {
+      this.entityConfigs.set(type, registeredConfig);
     }
 
     this.logger.debug(`Registered entity type: ${type}`);
@@ -202,7 +205,7 @@ export class EntityRegistry implements IEntityRegistry {
    * Get configuration for a specific entity type
    */
   getEntityTypeConfig(type: string): EntityTypeConfig {
-    return this.entityConfigs.get(type) ?? {};
+    return copyEntityTypeConfig(this.entityConfigs.get(type) ?? {});
   }
 
   /**

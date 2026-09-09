@@ -277,7 +277,8 @@ describe("stock-photo_search", () => {
 
     const result = await search({ query: "test" });
 
-    expect(expectToolError(result).error).toContain("Rate limited");
+    expect(expectToolError(result).code).toBe("handler_failed");
+    expect(expectToolError(result).error).not.toContain("Rate limited");
     await harness.reset();
   });
 
@@ -286,7 +287,7 @@ describe("stock-photo_search", () => {
 
     const result = await search({ query: "test", perPage: 50 });
 
-    expect(expectToolError(result).error).toContain("perPage");
+    expect(expectToolError(result).code).toBe("invalid_input");
     expect(recorded.searches).toEqual([]);
     await harness.reset();
   });
@@ -316,7 +317,7 @@ describe("stock-photo_select", () => {
 
     const result = await select({ photoId: "abc" });
 
-    expect(expectToolError(result).error).toContain("downloadLocation");
+    expect(expectToolError(result).code).toBe("invalid_input");
     await harness.reset();
   });
 });

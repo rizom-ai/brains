@@ -1,5 +1,5 @@
 import { baseEntityParserSchema, z } from "@brains/sdk/entities";
-import type { LoggerContract } from "@brains/sdk/services";
+import type { LoggerContract, SdkErrorCode } from "@brains/sdk/services";
 import { getErrorMessage } from "@brains/utils/error";
 import type { ButtondownClient } from "./buttondown-client";
 
@@ -40,7 +40,7 @@ export interface PublishedEntityReader {
 export type PublishHandlerResult =
   | { success: true; emailId: string }
   | { success: true; skipped: true; reason: string }
-  | { success: false; error: string };
+  | { success: false; error: string; code?: SdkErrorCode };
 
 /**
  * A published post becomes an email to every subscriber.
@@ -68,7 +68,11 @@ export async function handlePublishCompleted(
       ? null
       : blogPostSourceSchema.safeParse(stored);
   if (!post?.success) {
-    return { success: false, error: `Post ${payload.entityId} not found` };
+    return {
+      success: false,
+      code: "not_found",
+      error: `Post ${payload.entityId} not found`,
+    };
   }
 
   logger.info("Auto-sending newsletter for published post", {

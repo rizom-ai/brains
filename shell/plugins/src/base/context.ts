@@ -1,4 +1,5 @@
 import type { HttpServingInfo } from "../contracts/http-host";
+import { createPluginLogger } from "../internal/callback-readers";
 import type { IShell } from "../interfaces";
 import type { BasePluginContext as PublicBasePluginContext } from "../public/types";
 import { type Logger } from "@brains/utils/logger";
@@ -124,7 +125,7 @@ export interface BasePluginContext extends PublicBasePluginContext {
   readonly entityDisplay: Record<string, EntityDisplayEntry> | undefined;
 
   /** Shared conversation spaces for this brain/team */
-  readonly spaces: string[];
+  readonly spaces: readonly string[];
 
   /** Runtime dependency readiness and bounded resource signals. */
   readonly readiness: () => Promise<RuntimeReadiness>;
@@ -259,7 +260,7 @@ export function createBasePluginContext(
   registrationContext?: PluginRegistrationContext,
 ): BasePluginContext {
   const entityService = shell.getEntityService();
-  const logger = shell.getLogger().child(pluginId);
+  const logger = createPluginLogger(shell.getLogger().child(pluginId));
   const domain = shell.getDomain();
   const localSiteUrl = shell.getLocalSiteUrl();
   const preferLocalUrls = shell.shouldPreferLocalUrls();
@@ -308,7 +309,7 @@ export function createBasePluginContext(
     preferLocalUrls,
     themeCSS,
     entityDisplay: registrationContext?.entityDisplay,
-    spaces: shell.getSpaces(),
+    spaces: Object.freeze([...shell.getSpaces()]),
 
     permissions: createPermissionsNamespace(shell),
 

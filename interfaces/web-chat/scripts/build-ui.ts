@@ -1,13 +1,18 @@
 import { existsSync } from "fs";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, mkdtemp, rm } from "fs/promises";
 import { createRequire } from "module";
-import { createStylexBunTransform } from "@brains/build-tools";
-import { dirname, join } from "path";
+import {
+  createStylexBunTransform,
+  parseUiBuildArgs,
+  writeBuildFileAtomically,
+} from "@brains/build-tools";
+import { dirname, join, relative, resolve } from "path";
 
 const require = createRequire(import.meta.url);
 const packageRoot = join(import.meta.dir, "..");
 const aliasRoot = packageRoot;
-const outdir = join(packageRoot, "dist", "ui");
+const values = parseUiBuildArgs();
+const outdir = resolve(values.outdir ?? join(packageRoot, "dist", "ui"));
 const reactRoot = dirname(require.resolve("react/package.json"));
 const reactDomRoot = dirname(require.resolve("react-dom/package.json"));
 const reactAliases: Record<string, string> = {
@@ -18,18 +23,20 @@ const reactAliases: Record<string, string> = {
   "react-dom/client": join(reactDomRoot, "client.js"),
 };
 
-await mkdir(outdir, { recursive: true });
-
-for (const [entryName, assetName] of [
-  ["main", "app"],
-  ["guest-box", "guest"],
-  ["guest-dashboard", "dashboard"],
-] as const) {
+await mkdir(dirname(outdir), { recursive: true });
+// A sibling staging directory keeps source-map relative paths unchanged.
+const staging = await mkdtemp(join(dirname(outdir), ".web-chat-ui-"));
+try {
+  for (const [entryName, assetName] of [
+    ["main", "app"],
+    ["guest-box", "guest"],
+    ["guest-dashboard", "dashboard"],
+  ] as const) {
   const entrypoint = join(packageRoot, "ui-react", "src", `${entryName}.tsx`);
   const stylex = createStylexBunTransform();
   const result = await Bun.build({
     entrypoints: [entrypoint],
-    outdir,
+    outdir: staging,
     target: "browser",
     format: "esm",
     minify: true,
@@ -72,15 +79,25 @@ for (const [entryName, assetName] of [
     for (const log of result.logs) {
       console.error(log);
     }
-    process.exit(1);
+    throw new Error("Web chat UI build failed");
   }
 
   const bundledStyles = result.outputs.find((output) =>
     output.path.endsWith(`/${assetName}.css`),
   );
-  await writeFile(
+  for (const output of result.outputs) {
+    if (output === bundledStyles) continue;
+    await writeBuildFileAtomically(
+      join(outdir, relative(staging, output.path)),
+      new Uint8Array(await output.arrayBuffer()),
+    );
+  }
+  await writeBuildFileAtomically(
     join(outdir, `${assetName}.css`),
     `${stylex.css()}\n${(await bundledStyles?.text()) ?? ""}`,
   );
   console.log(`Built ${join(outdir, `${assetName}.js`)} and ${assetName}.css`);
+  }
+} finally {
+  await rm(staging, { recursive: true, force: true });
 }

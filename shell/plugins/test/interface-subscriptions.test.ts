@@ -104,7 +104,8 @@ describe("interface subscriptions", () => {
 
     expect(response).toMatchObject({
       success: false,
-      error: expect.stringContaining("malformed"),
+      code: "invalid_input",
+      error: "Invalid input",
     });
   });
 });

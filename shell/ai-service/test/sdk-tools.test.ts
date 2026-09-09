@@ -454,7 +454,8 @@ describe("convertToSDKTools", () => {
     );
     expect(result).toEqual({
       success: false,
-      error: "Tool invalid_tool returned an invalid response shape",
+      error: "Invalid response",
+      code: "invalid_response",
     });
     expect(invalidHandler).toHaveBeenCalledWith(
       { value: "x" },

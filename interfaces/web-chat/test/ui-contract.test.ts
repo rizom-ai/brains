@@ -143,10 +143,11 @@ describe("Web chat UI contract", () => {
 
     expect(buildScript).toContain("createStylexBunTransform");
     expect(buildScript).toMatch(
-      /writeFile\(\s*join\(outdir, `\$\{assetName\}\.css`\)/,
+      /writeBuildFileAtomically\(\s*join\(outdir, `\$\{assetName\}\.css`\)/,
     );
     expect(buildScript).toContain('["main", "app"]');
     expect(buildScript).toContain('["guest-box", "guest"]');
+    expect(buildScript).toContain("outdir: staging");
     expect(css).toContain("var(--console-accent)");
     expect(css).not.toContain("insertRule");
   });

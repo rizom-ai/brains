@@ -631,6 +631,7 @@ describe("studio editor api", () => {
       expect(response.status).toBe(401);
       expect(await response.json()).toEqual({
         error: "Authentication required",
+        code: "unauthenticated",
       });
     }
   });

@@ -17,9 +17,9 @@ import {
  * and it arrives the same way: a scope the declaration names, a store the
  * runtime owns.
  *
- * Scoped rather than shared: two interfaces accepting attachments must not be
- * able to read each other's, and a ref handed to a client says which scope
- * issued it.
+ * Scoped rather than shared: two interface owners must not read each other's
+ * files. A ref is resolved through its owner's store/route; kind and ID alone
+ * do not encode package ownership.
  */
 
 function instantiate(
@@ -180,7 +180,8 @@ describe("an interface that holds a file", () => {
     await other.installPlugin(instantiate(uploader("second"), {}));
     expect(await other.executeTool("second_recall", { id })).toMatchObject({
       success: false,
-      error: "Upload not found",
+      code: "not_found",
+      error: "Not found",
     });
   });
 });

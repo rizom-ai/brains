@@ -1,11 +1,18 @@
 import { createExternalActorId, type ActorRef } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
-import { uploadNamespaceFor } from "../internal/state-namespace";
+import {
+  interfaceStateNamespaceFor,
+  uploadNamespaceFor,
+} from "../internal/state-namespace";
 import { runCleanups } from "../internal/cleanup";
 import { createRequester } from "../internal/requester";
 import { emptyPluginState } from "../base/empty-state";
 import { createInboxReader } from "../base/namespaces";
 import { createAuthReader } from "../contracts/auth-registry";
+import {
+  createIdentityReader,
+  createProfileSelectionReader,
+} from "../internal/authoring-readers";
 import type { ChatAttachment } from "../contracts/agent";
 import type {
   ChannelDeliveryInput,
@@ -20,7 +27,10 @@ import { registerDeclaredSubscriptions } from "../interface/declared-subscriptio
 import { createInterfaceEntityAccess } from "../interface/interface-entity-access";
 import { deriveConsoleSurfaces } from "../console-surfaces";
 import { createRuntimeRoute } from "../interface/route-runtime";
-import { createServiceJobRequest } from "../service/job-definition-runtime";
+import {
+  createServiceJobRequest,
+  readServiceJobFailure,
+} from "../service/job-definition-runtime";
 import type { AnyServiceJobDefinition } from "../service/service-definition-contract";
 import type { WebRouteDefinition } from "../types/web-routes";
 import {
@@ -251,12 +261,17 @@ class DeclarativeMessageInterfacePlugin<
           runtimeState: (options) =>
             context.runtimeState.scoped({
               ...options,
-              namespace: `${this.definition.id}.${options.namespace}`,
+              namespace: interfaceStateNamespaceFor(
+                this.packageName,
+                this.definition.id,
+                options.namespace,
+              ),
             }),
           uploads: (options) =>
             context.uploads.scoped({
               ...options,
               namespace: uploadNamespaceFor(
+                this.packageName,
                 this.definition.id,
                 options.namespace,
               ),
@@ -287,8 +302,8 @@ class DeclarativeMessageInterfacePlugin<
             context.entityService,
             this.definition.id,
           ),
-          identity: context.identity,
-          profileKinds: context.profileKinds,
+          identity: createIdentityReader(context.identity),
+          profileKinds: createProfileSelectionReader(context.profileKinds),
           tools: context.tools,
           publicSkills: context.publicSkills,
           spaces: context.spaces,
@@ -360,11 +375,13 @@ class DeclarativeMessageInterfacePlugin<
             }),
           getStatus: async (jobId): Promise<InterfaceJobStatus | null> => {
             const job = await context.jobs.getStatus(jobId);
+            const failure = job ? readServiceJobFailure(job) : undefined;
             return job
               ? Object.freeze({
                   id: job.id,
                   status: job.status,
-                  lastError: job.lastError ?? null,
+                  lastError: failure?.error ?? null,
+                  ...(failure ? { code: failure.code } : {}),
                 })
               : null;
           },

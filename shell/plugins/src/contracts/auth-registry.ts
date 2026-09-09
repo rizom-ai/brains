@@ -38,15 +38,87 @@ export interface AuthRegistryHost extends IAuthRegistry {
   unregister(implementation: AuthImplementation): void;
 }
 
-/** Do not hand the host object itself to an author callback. */
+function createAuditView(source: AuthAudit): AuthAudit {
+  return Object.freeze({
+    recordAuditEvent: source.recordAuditEvent.bind(source),
+    queryAuditEvents: source.queryAuditEvents.bind(source),
+  });
+}
+
+/** Project both the registry and its returned capabilities, not the service. */
 export function createAuthReader(registry: IAuthRegistry): IAuthRegistry {
-  return {
-    getCaller: () => registry.getCaller(),
-    getAudit: () => registry.getAudit(),
-    getFederation: () => registry.getFederation(),
-    getIdentities: () => registry.getIdentities(),
-    getAdministration: () => registry.getAdministration(),
-  };
+  return Object.freeze({
+    getCaller: (): AuthCaller | undefined => {
+      const source = registry.getCaller();
+      return (
+        source &&
+        Object.freeze({
+          resolveSession: source.resolveSession.bind(source),
+          resolveBearerGrant: source.resolveBearerGrant.bind(source),
+          createAuthLoginResponse: source.createAuthLoginResponse.bind(source),
+        })
+      );
+    },
+    getAudit: (): AuthAudit | undefined => {
+      const source = registry.getAudit();
+      return source && createAuditView(source);
+    },
+    getFederation: (): AuthFederation | undefined => {
+      const source = registry.getFederation();
+      return (
+        source &&
+        Object.freeze({
+          getIssuer: source.getIssuer.bind(source),
+          getA2APeerTrust: source.getA2APeerTrust.bind(source),
+          getA2ASigningKey: source.getA2ASigningKey.bind(source),
+          grantA2APeerTrust: source.grantA2APeerTrust.bind(source),
+          revokeA2APeerTrust: source.revokeA2APeerTrust.bind(source),
+        })
+      );
+    },
+    getIdentities: (): AuthIdentities | undefined => {
+      const source = registry.getIdentities();
+      return (
+        source &&
+        Object.freeze({
+          resolveIdentityAccess: source.resolveIdentityAccess.bind(source),
+        })
+      );
+    },
+    getAdministration: (): AuthAdministration | undefined => {
+      const source = registry.getAdministration();
+      return (
+        source &&
+        Object.freeze({
+          ...createAuditView(source),
+          resolveSession: source.resolveSession.bind(source),
+          listUsers: source.listUsers.bind(source),
+          listAdminUsers: source.listAdminUsers.bind(source),
+          getBrainAnchor: source.getBrainAnchor.bind(source),
+          updateUserRole: source.updateUserRole.bind(source),
+          updateUserStatus: source.updateUserStatus.bind(source),
+          deleteSuspendedUser: source.deleteSuspendedUser.bind(source),
+          revokeUserSessionsAndRefreshTokens:
+            source.revokeUserSessionsAndRefreshTokens.bind(source),
+          createInvitation: source.createInvitation.bind(source),
+          cancelInvitation: source.cancelInvitation.bind(source),
+          resendInvitation: source.resendInvitation.bind(source),
+          confirmManualInvitationDelivery:
+            source.confirmManualInvitationDelivery.bind(source),
+          listInvitationChannels: source.listInvitationChannels.bind(source),
+          inviteExternalPeerPerson:
+            source.inviteExternalPeerPerson.bind(source),
+          linkExternalPeer: source.linkExternalPeer.bind(source),
+          unlinkExternalPeer: source.unlinkExternalPeer.bind(source),
+          attachIdentity: source.attachIdentity.bind(source),
+          detachIdentity: source.detachIdentity.bind(source),
+          revokePasskey: source.revokePasskey.bind(source),
+          startPasskeyRegistrationForUser:
+            source.startPasskeyRegistrationForUser.bind(source),
+        })
+      );
+    },
+  });
 }
 
 export class AuthRegistry implements AuthRegistryHost {
