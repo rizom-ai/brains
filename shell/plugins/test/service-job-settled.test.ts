@@ -118,7 +118,10 @@ describe("what a declared job is told once the queue has settled it", () => {
         input: { path: "notes/a.md" },
         jobId: "job-2",
         outcome: "failed",
-        error: failure,
+        error: expect.objectContaining({
+          code: "handler_failed",
+          cause: failure,
+        }),
       },
     ]);
   });

@@ -100,8 +100,10 @@ describe("auto-export visibility scope", () => {
 
       const filePath = join(syncPath, `${id}.md`);
       await waitUntil(
-        () => existsSync(filePath),
-        `the subscriber to export the updated ${visibility} entity`,
+        () =>
+          existsSync(filePath) &&
+          readFileSync(filePath, "utf-8").includes("The new body."),
+        `the subscriber to finish exporting the updated ${visibility} entity`,
       );
 
       expect(readFileSync(filePath, "utf-8")).toContain("The new body.");
@@ -125,8 +127,10 @@ describe("auto-export visibility scope", () => {
 
     const filePath = join(syncPath, `${id}.md`);
     await waitUntil(
-      () => existsSync(filePath),
-      "the subscriber to export the created restricted entity",
+      () =>
+        existsSync(filePath) &&
+        readFileSync(filePath, "utf-8").includes("First version."),
+      "the subscriber to finish exporting the created restricted entity",
     );
 
     const edited: BaseEntity = {

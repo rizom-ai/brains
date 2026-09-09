@@ -295,11 +295,12 @@ describe("agents_scan-directories", () => {
 
     controller.abort(abortReason);
 
-    // The reason survives: a declared tool reports failure rather than
-    // throwing, and the runtime carries the message through.
+    // Cancellation is identified by the signal, even for a plain Error reason.
+    // The arbitrary abort diagnostic stays private.
     expect(await run).toMatchObject({
       success: false,
-      error: abortReason.message,
+      code: "cancelled",
+      error: "The operation was cancelled",
     });
     await harness.reset();
   });

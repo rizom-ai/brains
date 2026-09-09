@@ -109,52 +109,61 @@ describe("DirectorySyncOperationStatusService", () => {
     });
   });
 
-  it("reconciles a completed Git request through its terminal import batch", async () => {
-    const base = await createContext();
-    const find = mock(async (): Promise<ServiceRecentJob> => ({
-      id: "job-1",
-      type: "sync-request",
-      data: {},
-      status: "completed",
-      createdAt: Date.now(),
-      startedAt: Date.now(),
-      completedAt: Date.now(),
-      result: {
-        gitPulled: true,
-        batchQueued: true,
-        batchId: "batch-1",
-        importOperations: 2,
-        totalFiles: 5,
-      },
-    }));
-    const batchStatus = mock(async (): Promise<ServiceBatchStatus> => ({
-      id: "batch-1",
-      status: "completed",
-      total: 2,
-      completed: 2,
-      failed: 0,
-      errors: [],
-    }));
-    const context = {
-      ...base,
-      jobs: { ...base.jobs, find, batchStatus },
-    };
-    const service = createService(context);
-    await service.initialize();
-    const runId = await service.startRun("manual", "pulling");
-    if (!runId) throw new Error("Expected a tracked run");
-    await service.attachJob(runId, "job-1");
+  it.each(["succeeded", "failed"] as const)(
+    "reconciles a completed Git request through its %s import batch",
+    async (outcome) => {
+      const base = await createContext();
+      const find = mock(async (): Promise<ServiceRecentJob> => ({
+        id: "job-1",
+        type: "sync-request",
+        data: {},
+        status: "completed",
+        createdAt: Date.now(),
+        startedAt: Date.now(),
+        completedAt: Date.now(),
+        result: {
+          gitPulled: true,
+          batchQueued: true,
+          batchId: "batch-1",
+          importOperations: 2,
+          totalFiles: 5,
+        },
+      }));
+      const batchStatus = mock(async (): Promise<ServiceBatchStatus> => ({
+        id: "batch-1",
+        status: outcome === "failed" ? "failed" : "completed",
+        total: 2,
+        completed: outcome === "failed" ? 1 : 2,
+        failed: outcome === "failed" ? 1 : 0,
+        errors:
+          outcome === "failed"
+            ? [{ code: "permission_denied", message: "Permission denied" }]
+            : [],
+      }));
+      const context = {
+        ...base,
+        jobs: { ...base.jobs, find, batchStatus },
+      };
+      const service = createService(context);
+      await service.initialize();
+      const runId = await service.startRun("manual", "pulling");
+      if (!runId) throw new Error("Expected a tracked run");
+      await service.attachJob(runId, "job-1");
 
-    const snapshot = await service.getSnapshot();
-    expect(find).toHaveBeenCalledWith("job-1");
-    expect(batchStatus).toHaveBeenCalledWith("batch-1");
-    expect(snapshot.activeRun).toBeUndefined();
-    expect(snapshot.recentRuns[0]).toMatchObject({
-      id: runId,
-      outcome: "succeeded",
-      summary: "2 sync operations completed",
-    });
-  });
+      const snapshot = await service.getSnapshot();
+      expect(find).toHaveBeenCalledWith("job-1");
+      expect(batchStatus).toHaveBeenCalledWith("batch-1");
+      expect(snapshot.activeRun).toBeUndefined();
+      expect(snapshot.recentRuns[0]).toMatchObject({
+        id: runId,
+        outcome,
+        summary:
+          outcome === "failed"
+            ? "Permission denied"
+            : "2 sync operations completed",
+      });
+    },
+  );
 
   it("migrates an active run from before durable progress tracking", async () => {
     const context = await createContext();

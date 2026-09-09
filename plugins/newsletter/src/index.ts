@@ -2,6 +2,7 @@ import { PUBLISH_CHANNELS, SITE_BUILDER_CHANNELS } from "@brains/contracts";
 import {
   defineRoute,
   defineServicePlugin,
+  SdkError,
   defineSubscription,
   verbatim,
   type LoggerContract,
@@ -123,6 +124,10 @@ export function newsletterService(
                       entityId: payload.entityId,
                       error: result.error,
                     });
+                    if (result.code)
+                      throw new SdkError(result.code, {
+                        publicMessage: result.error,
+                      });
                     throw new Error(result.error);
                   }
                   return result;

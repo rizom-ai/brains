@@ -28,6 +28,7 @@ export {
   type EntityIdPathInput,
 } from "./entity-id-path";
 export { EntityRegistry } from "./entityRegistry";
+export { copyEntityTypeConfig } from "./entity-type-config";
 export {
   createEntityBulkCoordination,
   durableBulkMutationChildRefSchema,

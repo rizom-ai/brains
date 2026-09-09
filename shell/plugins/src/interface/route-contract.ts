@@ -1,3 +1,4 @@
+import type { SchemaReturn } from "../internal/schema-return";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { z } from "@brains/utils/zod";
 
@@ -131,29 +132,14 @@ export type RouteResponse = InterfaceSchema | VerbatimResponse;
  * the static type is the schema's input side — a schema that transforms takes
  * what goes in, not what comes out.
  *
- * A response declaring a literal or an enum is the one case that asks
- * something of the author: this type stays unresolved while the schema is
- * still being inferred, so an object literal in the handler widens `"ok"` to
- * `string` and the check fails. Write `{ status: "ok" as const }`, or annotate
- * the handler's return.
- *
- * Six shapes were tried before settling on this, and the result is the same
- * for every one that stays sound: a bare type parameter for the answer with
- * a default is overridden by inference from the handler and accepts anything;
- * overloads on the schema's input infer the answer from the handler and
- * accept a wrong shape; `NoInfer` on the return still widens the literal; a
- * type parameter for the answer constrained by the schema still widens it;
- * and widening literals in the type on purpose would let an enum accept any
- * string statically, which is the defect this type exists to catch. The
- * conditional over the schema is what makes the check sound, and it is also
- * what defers the contextual type past the literal. One `as const` at the one
- * site in this repository that has a literal response is the cost.
+ * The helper infers a const return type constrained by this schema input.
+ * Literal and enum answers stay narrow without accepting arbitrary strings.
  */
 export type RouteOutput<TResponse extends RouteResponse> =
   TResponse extends VerbatimResponse
     ? Response
     : TResponse extends InterfaceSchema
-      ? z.input<TResponse>
+      ? SchemaReturn<z.input<TResponse>>
       : never;
 
 export interface InterfaceRouteInput<
@@ -161,6 +147,7 @@ export interface InterfaceRouteInput<
   TBodySchema extends InterfaceSchema | undefined = InterfaceSchema | undefined,
   TResponseSchema extends RouteResponse = RouteResponse,
   TSecurity extends RouteSecurity = RouteSecurity,
+  TOutput extends RouteOutput<TResponseSchema> = RouteOutput<TResponseSchema>,
 > {
   readonly method: TMethod;
   readonly path: string;
@@ -178,7 +165,7 @@ export interface InterfaceRouteInput<
     readonly request: Request;
     readonly body: RouteBody<TBodySchema>;
     readonly caller: RouteCaller<TSecurity>;
-  }): RouteOutput<TResponseSchema> | Promise<RouteOutput<TResponseSchema>>;
+  }): TOutput | Promise<TOutput>;
 }
 
 export interface InterfaceRouteDefinition<

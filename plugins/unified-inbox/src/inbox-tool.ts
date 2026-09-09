@@ -1,5 +1,6 @@
 import {
   defineTool,
+  SdkError,
   z,
   type AnyServiceToolDefinition,
 } from "@brains/sdk/services";
@@ -36,7 +37,9 @@ export function inboxListTool(
     execute: async ({ input }): Promise<InboxListResult> => {
       const filter = inboxListFilterSchema.safeParse(input);
       if (!filter.success) {
-        throw new Error("Invalid unified inbox filters");
+        throw new SdkError("invalid_input", {
+          publicMessage: "Invalid unified inbox filters",
+        });
       }
       return operator.list(filter.data);
     },

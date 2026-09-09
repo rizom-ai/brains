@@ -1,6 +1,6 @@
 import type { BaseEntity } from "@brains/sdk/entities";
 import { A2A_CHANNELS } from "@brains/contracts";
-import { messageErrorCodeSchema } from "@brains/sdk/services";
+import { sdkErrorCodeSchema } from "@brains/sdk/services";
 import { z } from "@brains/utils/zod";
 import type { StudioRequestAccess } from "./editor-contracts";
 import { requireEntityAction } from "./editor-access";
@@ -56,7 +56,7 @@ const busAnswerSchema = z.union([
   z.looseObject({
     success: z.literal(false),
     error: z.string().optional(),
-    code: messageErrorCodeSchema.optional(),
+    code: sdkErrorCodeSchema.optional(),
   }),
 ]);
 

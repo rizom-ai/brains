@@ -281,7 +281,8 @@ describe("AnalyticsPlugin Integration", () => {
       });
 
       expectError(result);
-      expect(result.error).toContain("401");
+      expect(result.code).toBe("handler_failed");
+      expect(result.error).not.toContain("401");
     });
 
     it("should query website metrics for a date range using days parameter", async () => {
@@ -451,6 +452,7 @@ describe("AnalyticsPlugin Integration", () => {
 
       expectError(result);
       expect(result.error).toContain("Cannot combine");
+      expect(result.code).toBe("invalid_input");
     });
 
     it("should reject incomplete custom range", async () => {
@@ -461,6 +463,7 @@ describe("AnalyticsPlugin Integration", () => {
 
       expectError(result);
       expect(result.error).toContain("startDate");
+      expect(result.code).toBe("invalid_input");
     });
   });
 

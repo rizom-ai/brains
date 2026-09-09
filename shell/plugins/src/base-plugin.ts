@@ -9,7 +9,7 @@ import type {
 } from "./interfaces";
 import type { MessageHandler, MessageSender } from "@brains/messaging-service";
 import type { IShell } from "./interfaces";
-import { getErrorMessage } from "@brains/utils/error";
+import { toSdkError } from "@brains/contracts";
 import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import {
   CallbackProgressReporter,
@@ -20,6 +20,7 @@ import type { UserPermissionLevel } from "@brains/templates";
 import { actorRefSchema } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { type PluginConfigSchema, PluginConfigValidationError } from "./config";
+import { createPluginLogger } from "./internal/callback-readers";
 
 // Message schemas for validation
 const toolExecuteRequestSchema = z.object({
@@ -80,7 +81,8 @@ export abstract class BasePlugin<
    */
   protected get logger(): Logger {
     return (
-      this.context?.logger ?? ConsoleLogger.createFresh({ context: this.id })
+      this.context?.logger ??
+      createPluginLogger(ConsoleLogger.createFresh({ context: this.id }))
     );
   }
 
@@ -133,6 +135,7 @@ export abstract class BasePlugin<
             return {
               success: false,
               error: "Invalid tool execution request format",
+              code: "invalid_input",
             };
           }
 
@@ -161,6 +164,7 @@ export abstract class BasePlugin<
             return {
               success: false,
               error: `Tool not found: ${toolName}`,
+              code: "not_found",
             };
           }
 
@@ -203,11 +207,9 @@ export abstract class BasePlugin<
             data: result,
           };
         } catch (error) {
-          this.logger.error("Tool execution error", error);
-          return {
-            success: false,
-            error: getErrorMessage(error),
-          };
+          const failure = toSdkError(error);
+          this.logger.error("Tool execution error", { code: failure.code });
+          return { success: false, error: failure.message, code: failure.code };
         }
       },
     );
@@ -225,6 +227,7 @@ export abstract class BasePlugin<
             return {
               success: false,
               error: "Invalid resource get request format",
+              code: "invalid_input",
             };
           }
           const { resourceUri } = parsedRequest.data;
@@ -236,6 +239,7 @@ export abstract class BasePlugin<
             return {
               success: false,
               error: `Resource not found: ${resourceUri}`,
+              code: "not_found",
             };
           }
 
@@ -246,11 +250,9 @@ export abstract class BasePlugin<
             data: result,
           };
         } catch (error) {
-          this.logger.error("Resource fetch error", error);
-          return {
-            success: false,
-            error: getErrorMessage(error),
-          };
+          const failure = toSdkError(error);
+          this.logger.error("Resource fetch error", { code: failure.code });
+          return { success: false, error: failure.message, code: failure.code };
         }
       },
     );

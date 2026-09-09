@@ -94,7 +94,7 @@ describe("buttondown_subscribers", () => {
       expect(capturedBody).toContain("Test User");
     });
 
-    it("surfaces the API's error detail", async () => {
+    it("sanitizes the API's unclassified error detail", async () => {
       network.stub(() =>
         jsonResponse({ detail: "This email address is blocked" }, 400),
       );
@@ -106,7 +106,8 @@ describe("buttondown_subscribers", () => {
       });
 
       expectError(result);
-      expect(result.error).toContain("This email address is blocked");
+      expect(result.code).toBe("handler_failed");
+      expect(result.error).not.toContain("This email address is blocked");
     });
 
     it("reports an address that is already subscribed", async () => {

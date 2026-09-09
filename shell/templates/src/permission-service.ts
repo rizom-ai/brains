@@ -1,4 +1,5 @@
 import {
+  SdkError,
   hashInterfacePrincipal,
   parseConfiguredInterfacePrincipal,
   type RuntimeInterfacePrincipalState,
@@ -133,6 +134,7 @@ export interface PermissionConfig {
 }
 
 export class EntityActionPermissionError extends Error {
+  readonly code = "permission_denied";
   public readonly entityType: string;
   public readonly action: EntityAction;
   public readonly callerLevel: UserPermissionLevel;
@@ -346,9 +348,9 @@ export class PermissionService {
     const requiredLevel = this.getEntityActionRequiredLevel(entityType, action);
     if (!requiredLevel) return;
     if (requiredLevel === "never") {
-      throw new Error(
-        `${ACTION_LABELS[action]} \`${entityType}\` is not allowed through system tools.`,
-      );
+      throw new SdkError("permission_denied", {
+        message: `${ACTION_LABELS[action]} \`${entityType}\` is not allowed through system tools.`,
+      });
     }
 
     const callerLevel = userLevel ?? "public";

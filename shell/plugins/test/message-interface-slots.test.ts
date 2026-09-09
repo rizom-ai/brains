@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { z } from "@brains/utils/zod";
 import { createPluginHarness } from "../src/test/harness";
+import { interfaceStateNamespaceFor } from "../src/internal/state-namespace";
 import {
   defineMessageInterface,
   defineSubscription,
@@ -126,7 +127,7 @@ describe("declarative message interface: delivery availability", () => {
 });
 
 describe("declarative message interface: durable state in setup", () => {
-  it("hands setup a namespaced store whose writes outlive the instance", async () => {
+  it("persists setup writes in package-qualified interface state", async () => {
     const cursorSchema = z.strictObject({ lastUid: z.number().int() });
     const seen: number[] = [];
 
@@ -164,13 +165,19 @@ describe("declarative message interface: durable state in setup", () => {
     // setup saw an empty cursor and advanced it.
     expect(seen).toEqual([0]);
 
-    // The write is readable through the shell under the interface's own
-    // namespace, so it outlives the instance and a stored cursor survives a
-    // conversion from a class that wrote the same key by hand.
+    // The shell can read the write under the package-and-declaration owner.
+    // Declaration-only legacy keys are not adopted by the interface.
     const stored = await harness
       .getMockShell()
       .getRuntimeState()
-      .scoped({ namespace: "cursored.cursor", schema: cursorSchema })
+      .scoped({
+        namespace: interfaceStateNamespaceFor(
+          "@fixture/cursored",
+          "cursored",
+          "cursor",
+        ),
+        schema: cursorSchema,
+      })
       .get("inbox");
     expect(stored).toEqual({ lastUid: 1 });
   });

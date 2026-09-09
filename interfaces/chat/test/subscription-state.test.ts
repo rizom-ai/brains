@@ -90,8 +90,8 @@ class FakeMemoryStateAdapter implements StateAdapter {
 }
 
 /**
- * The store one interface is handed: the runtime files it under the
- * declaration's id, which is what keeps two interfaces' state apart.
+ * Supply isolated stores to the adapter unit tests. Production package/ID
+ * ownership encoding is exercised by the framework's SDK and SQLite tests.
  */
 function runtimeStateFor(
   shell: ReturnType<typeof createMockShell>,
@@ -101,7 +101,7 @@ function runtimeStateFor(
   return (options) =>
     raw.scoped({
       ...options,
-      namespace: `${declarationId}.${options.namespace}`,
+      namespace: `fixture.${declarationId}.${options.namespace}`,
     });
 }
 
@@ -221,10 +221,15 @@ describe("chat subscription state", () => {
     );
   });
 
-  it("uses the documented runtime-state namespace", async () => {
+  it("uses the documented local runtime-state namespace", async () => {
     const shell = createMockShell();
+    const namespaces: string[] = [];
+    const scoped = runtimeStateFor(shell, "discord");
     const state = createChatSubscriptionStateAdapter(
-      runtimeStateFor(shell, "discord"),
+      (options) => {
+        namespaces.push(options.namespace);
+        return scoped(options);
+      },
       "discord",
       new FakeMemoryStateAdapter(),
     );
@@ -232,8 +237,9 @@ describe("chat subscription state", () => {
 
     await state.subscribe("discord:guild:channel:thread");
 
+    expect(namespaces).toEqual([threadSubscriptionNamespace]);
     const rawStore = shell.getRuntimeState().scoped({
-      namespace: `discord.${threadSubscriptionNamespace}`,
+      namespace: `fixture.discord.${threadSubscriptionNamespace}`,
       schema: z.object({ subscribedAt: z.iso.datetime() }),
     });
     expect(await rawStore.has("discord:guild:channel:thread")).toBe(true);
