@@ -155,6 +155,11 @@ describe("auth capability contracts", () => {
             expect(
               await resolveSession(new Request("https://brain.example.com/")),
             ).toBeUndefined();
+            const missingAnchor = await admin.getBrainAnchor().then(
+              () => undefined,
+              (error: unknown) => error,
+            );
+            expect(missingAnchor).toMatchObject({ code: "not_found" });
             const { listUsers } = admin;
             expect(await listUsers()).toContainEqual(
               expect.objectContaining({ userId: user.userId }),

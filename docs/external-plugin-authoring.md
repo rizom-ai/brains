@@ -492,7 +492,16 @@ underlying runtime services.
 Entity-type policy and attachment-provider metadata are validated snapshots.
 Metadata reads return detached, locally editable copies: changing a returned
 publish-status list, search weight, or attachment target does not alter registry
-policy. Undeclared implementation fields are not included.
+policy. Undeclared implementation fields are not included. View reads likewise
+copy script and static-asset metadata; editing the result does not change other
+readers or later renders. Declared Zod schemas and renderer functions retain their
+identity.
+
+Attachment-provider factories receive only `domain`, `themeCSS`,
+`identity.getProfile`, and `entityService.getEntity`/`listEntities`. These bound,
+frozen readers do not expose the entity plugin's registration, messaging, or
+mutation capabilities. The public harness uses the same view registry and media
+factory boundary as the runtime.
 
 Package-owned state keeps the existing keys for ordinary `@scope/name` packages.
 Unscoped names and scoped names containing dots now use separate owner encodings,
