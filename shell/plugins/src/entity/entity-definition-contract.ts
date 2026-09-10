@@ -1,4 +1,5 @@
 import type { SubscriptionRequester } from "../contracts/subscription";
+import type { EntityAccess } from "./entity-access-contract";
 import type { ProjectionSourceRole } from "@brains/entity-service";
 import type { EntityActionPolicyRule, Template } from "@brains/templates";
 import type { AnchorProfile } from "../contracts/identity";
@@ -688,7 +689,7 @@ export interface ReactionMessaging extends JobMessagePublisher {
 }
 
 export interface EntityReactionContext {
-  readonly entities: JobEntityAccess;
+  readonly entities: EntityAccess;
   /**
    * Announce with `publish`; ask with `request`. Most reactions only tell
    * the brain what happened, but an inbox item whose body lives in the

@@ -10,7 +10,7 @@ import {
 } from "node:fs";
 import { join, relative } from "node:path";
 
-import brainPackage from "../package.json";
+import brainFixturePackage from "./fixtures/public-authoring/brain-definition/package.json";
 
 const fixtureRoot = join(import.meta.dir, "fixtures", "public-authoring");
 const repositoryRoot = join(import.meta.dir, "../../..");
@@ -20,10 +20,10 @@ const stableLedgerDocumentPath = join(
   "docs/public-release/AUTHORING_API_0.2.md",
 );
 
-// These private fixtures target the current-tree tarball, not old registry
-// releases that predate their breaking API changes. Publication is separate.
-const candidateBrainVersion = brainPackage.version;
-const nominatedSiteVersion = "0.2.0-alpha.233";
+// Source pins are consistent templates, not published compatibility floors.
+// The fixture builder binds packed metadata to the exact SDK being tested.
+const fixtureBrainPeer = brainFixturePackage.peerDependencies["@rizom/brain"];
+const nominatedSiteVersion = "0.2.0-alpha.235";
 
 const categories = [
   "stable",
@@ -46,7 +46,7 @@ interface ExportLedger {
 interface GoldenPackageExpectation {
   directory: string;
   packageName: string;
-  publicEntryPoint: string;
+  publicEntryPoints: string[];
   requiredVocabulary: string[];
 }
 
@@ -57,9 +57,27 @@ const phase0ProposalDirectories = [
 
 const goldenPackages: GoldenPackageExpectation[] = [
   {
+    directory: "reminders",
+    packageName: "@example/reminders",
+    publicEntryPoints: [
+      "@rizom/brain/entities",
+      "@rizom/brain/services",
+      "@rizom/brain/testing",
+    ],
+    requiredVocabulary: [
+      "defineEntity",
+      "defineJob",
+      "defineSubscription",
+      "defineServicePlugin",
+      "defineTool",
+      "runtimeState",
+      "entities: [reminder]",
+    ],
+  },
+  {
     directory: "entity",
     packageName: "@fixture/reading-entities",
-    publicEntryPoint: "@rizom/brain/entities",
+    publicEntryPoints: ["@rizom/brain/entities"],
     requiredVocabulary: [
       "defineEntity",
       "defineEntityPackage",
@@ -71,19 +89,26 @@ const goldenPackages: GoldenPackageExpectation[] = [
   {
     directory: "service",
     packageName: "@fixture/reading-insights",
-    publicEntryPoint: "@rizom/brain/services",
-    requiredVocabulary: ["defineJob", "defineServicePlugin", "defineTool", "z"],
+    publicEntryPoints: ["@rizom/brain/entities", "@rizom/brain/services"],
+    requiredVocabulary: [
+      "defineEntity",
+      "defineJob",
+      "defineServicePlugin",
+      "defineTool",
+      "entities: [readingRequest]",
+      "z",
+    ],
   },
   {
     directory: "site",
     packageName: "@fixture/reading-site",
-    publicEntryPoint: "@rizom/site",
+    publicEntryPoints: ["@rizom/site"],
     requiredVocabulary: ["defineSection", "defineSite", "sectionGroup", "z"],
   },
   {
     directory: "interface",
     packageName: "@fixture/reading-webhook",
-    publicEntryPoint: "@rizom/brain/interfaces",
+    publicEntryPoints: ["@rizom/brain/interfaces"],
     requiredVocabulary: [
       "defineDaemon",
       "defineInterface",
@@ -95,13 +120,13 @@ const goldenPackages: GoldenPackageExpectation[] = [
   {
     directory: "message-interface",
     packageName: "@fixture/campfire-interface",
-    publicEntryPoint: "@rizom/brain/interfaces",
+    publicEntryPoints: ["@rizom/brain/interfaces"],
     requiredVocabulary: ["defineMessageInterface", "z"],
   },
   {
     directory: "brain-definition",
     packageName: "@fixture/reader-brain",
-    publicEntryPoint: "@rizom/brain",
+    publicEntryPoints: ["@rizom/brain"],
     requiredVocabulary: ["defineBrain", "defineBundle", "use"],
   },
 ];
@@ -201,9 +226,7 @@ describe("public authoring 0.2 golden packages", () => {
     expect(manifest.name).toBe("@fixture/reading-operator");
     expect(manifest.type).toBe("module");
     expect(manifestSource).not.toContain("workspace:");
-    expect(manifest.peerDependencies?.["@rizom/brain"]).toBe(
-      candidateBrainVersion,
-    );
+    expect(manifest.peerDependencies?.["@rizom/brain"]).toBe(fixtureBrainPeer);
     expect(tsconfig.extends).toBeUndefined();
     expect([...publicNamedImports(source).keys()]).toEqual([
       "@rizom/brain/services",
@@ -336,9 +359,7 @@ describe("public authoring 0.2 golden packages", () => {
     expect(manifest.name).toBe("@fixture/mailbox-connection");
     expect(manifest.type).toBe("module");
     expect(manifestSource).not.toContain("workspace:");
-    expect(manifest.peerDependencies?.["@rizom/brain"]).toBe(
-      candidateBrainVersion,
-    );
+    expect(manifest.peerDependencies?.["@rizom/brain"]).toBe(fixtureBrainPeer);
     expect(tsconfig.extends).toBeUndefined();
     expect([...publicNamedImports(source).keys()]).toEqual([
       "@rizom/brain/interfaces",
@@ -389,7 +410,7 @@ describe("public authoring 0.2 golden packages", () => {
       });
       expect(manifestSource).not.toContain("workspace:");
       expect(manifest.peerDependencies?.["@rizom/brain"]).toBe(
-        candidateBrainVersion,
+        fixtureBrainPeer,
       );
       if (fixture.directory === "site") {
         expect(manifest.dependencies?.["@rizom/site"]).toBe(
@@ -403,7 +424,7 @@ describe("public authoring 0.2 golden packages", () => {
       expect(manifest.dependencies?.zod).toBeUndefined();
       expect(manifest.devDependencies?.zod).toBeUndefined();
       expect(manifest.peerDependencies?.zod).toBeUndefined();
-      expect(publicImports).toEqual([fixture.publicEntryPoint]);
+      expect(publicImports).toEqual(fixture.publicEntryPoints);
 
       for (const symbol of fixture.requiredVocabulary) {
         expect(source).toContain(symbol);

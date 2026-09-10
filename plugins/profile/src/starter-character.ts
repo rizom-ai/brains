@@ -12,19 +12,19 @@ import { z } from "@brains/utils/zod";
  * pure function of what it read.
  */
 export interface StarterCharacterReader {
-  listEntities<T extends BaseEntity>(request: {
+  listEntities(request: {
     entityType: string;
     options?: {
       limit?: number;
       sortFields?: Array<{ field: string; direction: "asc" | "desc" }>;
       filter?: { visibilityScope?: ContentVisibility };
     };
-  }): Promise<T[]>;
-  getEntity<T extends BaseEntity>(request: {
+  }): Promise<BaseEntity[]>;
+  getEntity(request: {
     entityType: string;
     id: string;
     visibilityScope?: ContentVisibility;
-  }): Promise<T | null>;
+  }): Promise<BaseEntity | null>;
   getEntityTypes(): string[];
   getEntityCounts(
     visibilityScope?: ContentVisibility,

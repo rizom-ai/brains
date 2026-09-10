@@ -60,6 +60,7 @@ import {
   createJobUploadReader,
   createPermissionChecker,
 } from "../internal/authoring-readers";
+import { createAuthoringEntityAccess } from "../internal/authoring-entity-access";
 import { entitySchema, parseDefinitionEntity } from "./entity-schema";
 import type { EntityDefinitionShape } from "./entity-shape";
 export { definitionEntitySchema, parseDefinitionEntity } from "./entity-schema";
@@ -1796,7 +1797,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   /** Entity access, a publisher, and a logger — what a reaction is given. */
   private reactionContext(context: EntityPluginContext): EntityReactionContext {
     return {
-      entities: this.entityAccess(context),
+      entities: createAuthoringEntityAccess(this.entityAccess(context)),
       auth: createAuthReader(context.auth),
       messaging: {
         publish: async (message): Promise<void> => {

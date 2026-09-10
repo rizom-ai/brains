@@ -2,7 +2,7 @@ import { isPluginConfigValidationError, type Plugin } from "@brains/plugins";
 import { ensureArray } from "@brains/utils/array";
 import { type Logger } from "@brains/utils/logger";
 import type { BrainDefinition, BrainEnvironment } from "./brain-definition";
-import type { BrainDefinition as DeclarativeBrainDefinition } from "./contracts/brain-definition";
+import type { BrainDefinition as DeclarativeBrainDefinition } from "@brains/sdk";
 import {
   isDeclarativeBrainDefinition,
   normalizeDeclarativeBrainDefinition,

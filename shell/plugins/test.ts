@@ -75,6 +75,7 @@ export {
   type StubAuthOptions,
 } from "./src/test/stub-auth";
 export { createTestJobContext, runServiceJob } from "./src/test/job-context";
+export { declaredToolLocalName } from "./src/service/tool-runtime";
 export {
   fetchable,
   type FetchableDataSource,

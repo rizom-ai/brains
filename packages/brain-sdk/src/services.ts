@@ -286,8 +286,17 @@ export type { SerializedStatusStoreOptions } from "@brains/plugins";
 export type {
   AnyInterfaceRouteDefinition,
   AnySubscriptionDefinition,
+  RequestContract,
+  SubscriptionDefinition,
 } from "@brains/plugins";
 export type { FetchLike } from "@brains/utils/fetch-like";
+export type {
+  EntityAccess,
+  EntityReader,
+  EntityWriteInput,
+  ServiceToolContext,
+  ServiceJobHandlerContext,
+} from "@brains/plugins";
 
 // Administering this brain's users: the People, Invitations, Audit and
 // Administration workspaces run over this surface. Type-only — the instance

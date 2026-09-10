@@ -49,6 +49,7 @@ import {
   defineDashboardWidget,
   defineProjection,
   defineProjectionRule,
+  frontmatterInContent,
   instantiatePluginPackageDefinition,
   type EntityOf,
 } from "../src";
@@ -1821,6 +1822,9 @@ describe("entity package definitions", () => {
       type: "post",
       purpose: "Something a picture is drawn for.",
       metadata: z.object({}),
+      // This test reads cover fields in content: explicitly retain the whole
+      // file, rather than relying on the harness leaking storage frontmatter.
+      markdown: frontmatterInContent(() => ({})),
       coverImage: true,
     });
     const definition = defineEntityPackage({
@@ -2438,9 +2442,8 @@ describe("entity package definitions", () => {
       atprotoDiscovery: {
         onCardDiscovered: async ({ entities }, card) => {
           discovered.push(card.repoDid);
-          await entities.create({
+          await entities.create(peer, {
             id: card.repoDid.replace(/[^a-z0-9]+/gi, "-"),
-            entityType: "peer",
             content: String(card.record["siteUrl"]),
             metadata: { repoDid: card.repoDid },
           });

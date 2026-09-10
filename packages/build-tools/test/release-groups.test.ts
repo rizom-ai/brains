@@ -301,10 +301,10 @@ test("stable prerelease exit is versioned globally by the core lane", () => {
   expect(resolveReleaseVersionStrategy("core", "pre")).toBe("lane");
   expect(resolveReleaseVersionStrategy("site", undefined)).toBe("lane");
 
-  expect(resolveReleaseWorkflowMode("exit", "pre")).toBe("stable-exit");
-  expect(resolveReleaseWorkflowMode(undefined, "exit")).toBe("stable-version");
-  expect(resolveReleaseWorkflowMode("pre", "pre")).toBe("standard");
-  expect(resolveReleaseWorkflowMode(undefined, undefined)).toBe("standard");
+  expect(resolveReleaseWorkflowMode("exit", false)).toBe("stable-exit");
+  expect(resolveReleaseWorkflowMode(undefined, true)).toBe("stable-version");
+  expect(resolveReleaseWorkflowMode("pre", false)).toBe("standard");
+  expect(resolveReleaseWorkflowMode(undefined, false)).toBe("standard");
 });
 
 test("coordinated stable plan accepts both lanes but only stable versions", () => {

@@ -1,10 +1,10 @@
 import { toSdkError, type SdkErrorCode } from "@brains/contracts";
 import { createRequester } from "../internal/requester";
 import { createIdentityReader } from "../internal/authoring-readers";
-import type {
-  AnySubscriptionDefinition,
-  SubscriptionEntityReader,
-} from "../contracts/subscription";
+import type { AnySubscriptionDefinition } from "../contracts/subscription";
+import type { EntityAccess } from "../entity/entity-access-contract";
+import { createAuthoringEntityAccess } from "../internal/authoring-entity-access";
+import { createInterfaceEntityAccess } from "./interface-entity-access";
 import type { InterfacePluginContext } from "./context";
 
 /**
@@ -20,23 +20,19 @@ export function registerDeclaredSubscriptions(input: {
   /** How the declaration names itself in errors, e.g. `Interface "a2a"`. */
   readonly label: string;
   readonly subscriptions: readonly AnySubscriptionDefinition[];
+  /** A service supplies its owned access; interfaces default to write refusals. */
+  readonly entities?: EntityAccess;
   readonly context: Pick<
     InterfacePluginContext,
     "messaging" | "entityService" | "identity"
   >;
 }): void {
   const { label, subscriptions, context } = input;
-  // A reader must be a reader at runtime too, not a narrowed annotation over
-  // the full entity service with mutation and host capabilities still attached.
-  const entities: SubscriptionEntityReader = Object.freeze({
-    getEntity: context.entityService.getEntity.bind(context.entityService),
-    listEntities: context.entityService.listEntities.bind(
-      context.entityService,
-    ),
-    getEntityTypes: context.entityService.getEntityTypes.bind(
-      context.entityService,
-    ),
-  });
+  const entities =
+    input.entities ??
+    createAuthoringEntityAccess(
+      createInterfaceEntityAccess(context.entityService, label),
+    );
   const topics = new Set<string>();
   for (const subscription of subscriptions) {
     if (topics.has(subscription.topic)) {

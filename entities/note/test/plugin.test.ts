@@ -163,9 +163,7 @@ describe("note package", () => {
         id: "research-notes",
         visibilityScope: "shared",
       });
-      expect(entity?.content).toBe(
-        `---\ntitle: research-notes\n---\n\n${rawMarkdown}\n`,
-      );
+      expect(entity?.content).toBe(rawMarkdown);
       expect(entity?.metadata).toEqual({ title: "research-notes" });
       expect(entity?.visibility).toBe("shared");
     });

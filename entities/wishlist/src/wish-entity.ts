@@ -95,7 +95,9 @@ export const wish: EntityDefinition<"wish", typeof wishMetadataSchema> =
       decode: ({ content, frontmatter }) => {
         const parsed = wishFrontmatterSchema.parse(frontmatter);
         return {
-          content,
+          // Wish consumers read the complete demand record, including fields
+          // outside the metadata index, rather than a body-only document.
+          content: generateMarkdownWithFrontmatter(content, { ...frontmatter }),
           metadata: {
             title: parsed.title,
             status: parsed.status,

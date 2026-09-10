@@ -224,8 +224,7 @@ describe("service package declaring entities", () => {
       {
         jobs: ({ state }) => [
           captureJob().handle(async ({ input, entities }) => {
-            await entities.create({
-              entityType: "bookmark",
+            await entities.create(bookmark, {
               content: `fetched ${input.url} with ${state.apiKey}`,
               metadata: { url: input.url },
             });
@@ -255,9 +254,16 @@ describe("service package declaring entities", () => {
       {
         jobs: () => [
           captureJob().handle(async ({ entities }) => {
-            await entities.delete("bookmark", "stale");
+            await entities.delete(bookmark, "stale");
             deleted.push("bookmark");
-            await entities.delete("note", "not-mine");
+            await entities.delete(
+              defineEntity({
+                type: "note",
+                purpose: "Not owned",
+                metadata: z.object({}),
+              }),
+              "not-mine",
+            );
             return { fetchedWith: "none" };
           }),
         ],
@@ -280,8 +286,7 @@ describe("service package declaring entities", () => {
       {
         jobs: () => [
           captureJob().handle(async ({ entities }) => {
-            await entities.create({
-              entityType: "bookmark",
+            await entities.create(bookmark, {
               content: "not mine",
               metadata: { url: "https://example.com" },
             });
@@ -434,15 +439,13 @@ describe("service package declaring entities", () => {
       {
         jobs: () => [
           captureJob().handle(async ({ input, entities }) => {
-            const pending = await entities.createPending({
+            const pending = await entities.createPending(bookmark, {
               id: "bookmark-1",
-              entityType: "bookmark",
               content: "pending",
               metadata: { url: input.url },
             });
-            await entities.saveProcessed({
-              id: pending.entityId,
-              entityType: "bookmark",
+            await entities.saveProcessed(bookmark, {
+              id: pending.id,
               content: "captured",
               metadata: { url: input.url },
             });
@@ -467,9 +470,8 @@ describe("service package declaring entities", () => {
       {
         jobs: () => [
           captureJob().handle(async ({ entities }) => {
-            await entities.createPending({
+            await entities.createPending(bookmark, {
               id: "bookmark-1",
-              entityType: "bookmark",
               content: "not mine",
               metadata: { url: "https://example.com" },
             });

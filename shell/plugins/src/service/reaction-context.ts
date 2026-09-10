@@ -9,6 +9,7 @@ import type { RuntimeStateScopeOptions } from "@brains/runtime-state";
 import { stateNamespaceFor } from "../internal/state-namespace";
 import { createAuthReader } from "../contracts/auth-registry";
 import { createPermissionChecker } from "../internal/authoring-readers";
+import { createAuthoringEntityAccess } from "../internal/authoring-entity-access";
 
 /**
  * What building a reaction context actually reads.
@@ -61,7 +62,7 @@ export function createReactionContext(input: {
 }): EntityReactionContext {
   const { context } = input;
   return {
-    entities: input.entities,
+    entities: createAuthoringEntityAccess(input.entities),
     messaging: {
       publish: async (message: {
         readonly topic: string;

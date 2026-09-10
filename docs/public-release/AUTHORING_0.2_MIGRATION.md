@@ -82,6 +82,85 @@ Replace `@rizom/brain/site` and `@rizom/site-sections` imports with the one SDK,
 
 Rename conventional local site source from `src/site.ts` to `src/site.tsx` when it contains JSX. Import brand-specific `Rizom*` layout and chrome types from `@rizom/site-rizom-ai`; they are not part of the generic `@rizom/site` SDK.
 
+## Pre-stable `0.2` runtime and testing corrections
+
+These corrections belong to the current-tree alpha API. A local package version
+is not evidence that an identically numbered registry artifact contains them.
+Breaking alpha cleanup is allowed before stable `0.2.0`; the `0.2.x`
+patch-compatibility promise starts only after that release.
+
+### Callback capability boundaries
+
+Scoped state and upload handles now hide implementation fields behind bound
+facades. This prevents changing scope through hidden options and supports
+detached calls. It is API capability hygiene, not a JavaScript sandbox. Loggers
+and child loggers expose logging methods, not file handles or singleton controls;
+job progress exposes `report`, not heartbeat timers or reporter construction.
+Profile readers return validated metadata and their declared fields schema, not
+registration controls. Auth views expose the requested caller, audit, federation,
+identity, or administration operations, not service shutdown. Explicit
+administration and federation commands remain available: this is not a new
+permission policy.
+
+Protocol interfaces receive declared MCP transport operations rather than the
+registration service; the MCP SDK server remains available for transport
+management. Configured spaces are frozen snapshots. Projection selection gets
+entity/conversation readers and spaces; derivation gets its declared AI and logger.
+
+Entity policy, attachment-provider metadata, and view script/static-asset metadata
+are detached snapshots. Editing returned metadata no longer changes registry
+policy, other readers, or later renders. Declared Zod schemas and renderer
+functions retain their identity. Attachment factories receive only `domain`,
+`themeCSS`, `identity.getProfile`, and entity `getEntity`/`listEntities`; registration,
+messaging, and mutation are not exposed. The public harness uses these same
+boundaries.
+
+### Existing state and temporary uploads
+
+Ordinary `@scope/name` packages keep their existing state keys. Unscoped names and
+scoped names containing dots now use distinct owner encodings: `@scope/pkg` and
+`scope.pkg` no longer share state. Review ownership before migrating ambiguous
+old rows; the runtime neither guesses ownership nor falls back to shared keys.
+
+Interface state includes package and declaration identity, even for undotted local
+names, and cannot overlap package-owned state. Old declaration-only rows are not
+migrated, read, or deleted. Discord/Slack thread-following and mention-routing
+settings start fresh; chat history is unchanged.
+
+Temporary upload directories include package, interface ID, and local namespace
+identity using a fixed-length digest. Reference shapes and route URLs are
+unchanged, but old declaration-only directories no longer resolve. Re-upload
+temporary attachments when needed. There is no migration, fallback, or pruning;
+old directories remain untouched. Images preserved as entities retain their bytes.
+
+### Entity access, errors, and harness names
+
+Tool, service-job, and subscription callbacks share definition-typed reads and
+`create(definition, input)`/`update(definition, entity)` returning `{ id }`, not
+native `{ entityId }` mutation records. Native job/setup helpers remain separate.
+Service routes now receive a reader directly in their slot context.
+
+Replace message-only error names and `RuntimeUploadStoreError` with the shared
+`SdkError` codes; compatibility aliases are not retained. Native workers keep their
+controlled-failure protocol, while declared jobs treat schema-valid output as
+completed data. Explicit native/protocol refusals retain deliberate messages;
+exception boundaries sanitize diagnostics.
+
+Public status readers sanitize old rows without codes and unknown stored codes;
+failed rows without error information report `handler_failed`. Batch errors are
+`{ code, message }` records rather than strings. Missing children report
+`not_found`, unknown codes fall back safely, and batch coordination remains in
+memory. Terminal hooks reuse prepared, validated input rather than rerunning
+transforms/defaults; corrupt stored inputs cannot reach typed callbacks.
+
+Tool failures in the public harness expose the original exception as `cause`;
+production wire responses do not. Replace suffix searches over installed tools
+with `installed.tool(localName)` and indexed job selection with
+`installed.job(localName)`. Tools retain their scoped `name` for explicit runtime
+inspection and add `localName`. `templateNames()` and `formatTemplate()` use local
+names; give templates distinct names in a multi-package harness. Missing or
+ambiguous lookups throw with available names instead of choosing a match.
+
 ## Validation
 
 Before publishing:

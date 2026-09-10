@@ -141,7 +141,14 @@ export type {
 
 // What the `subscriptions` slot returns, for a helper that builds several.
 // Named consumer: @brains/a2a.
-export type { AnySubscriptionDefinition } from "@brains/plugins";
+export type {
+  AnySubscriptionDefinition,
+  RequestContract,
+  SubscriptionDefinition,
+  EntityAccess,
+  EntityReader,
+  EntityWriteInput,
+} from "@brains/plugins";
 export type {
   AuthBearerGrant,
   AuthCaller,

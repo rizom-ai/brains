@@ -313,13 +313,17 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   ): NonNullable<Parameters<IEntityRegistry["registerEntityType"]>[3]> =>
     copyEntityTypeConfig(entityTypeConfigs.get(type) ?? {});
 
-  // Serialize an entity the way the real EntityService would: adapter
-  // rebuilds markdown from entity fields, adapter extracts canonical
-  // metadata. Falls back to verbatim content when no adapter is registered
-  // (tests that register entity types by name only).
-  const serializeViaAdapter = (
+  // Keep the same materialized view real EntityService reads reconstruct:
+  // encode for the storage hash, then decode the body through its adapter.
+  // The encoded envelope is not the content an author reads. Metadata remains
+  // authoritative separately, just as in EntitySerializer.reconstructEntity.
+  const materializeViaAdapter = (
     entity: BaseEntity,
-  ): { content: string; metadata: Record<string, unknown> } => {
+  ): {
+    content: string;
+    metadata: Record<string, unknown>;
+    contentHash: string;
+  } => {
     const adapter = entityAdapters.get(entity.entityType);
     // Fall back to verbatim when no real adapter is registered.
     // Some tests register entity types with a stub (`{} as never`) to
@@ -328,11 +332,18 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       return {
         content: entity.content,
         metadata: entity.metadata,
+        contentHash: computeContentHash(entity.content),
       };
     }
+    const markdown = adapter.toMarkdown(entity);
+    const decoded =
+      typeof adapter.fromMarkdown === "function"
+        ? adapter.fromMarkdown(markdown)
+        : {};
     return {
-      content: adapter.toMarkdown(entity),
+      content: decoded.content ?? markdown,
       metadata: adapter.extractMetadata(entity),
+      contentHash: computeContentHash(markdown),
     };
   };
   const templates = InMemoryTemplateRegistry.createFresh();
@@ -482,13 +493,8 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         contentHash: "",
       };
       entityTypes.add(entity.entityType);
-      const { content, metadata } = serializeViaAdapter(entity);
-      entities.set(id, {
-        ...entity,
-        content,
-        metadata,
-        contentHash: computeContentHash(content),
-      });
+      const materialized = materializeViaAdapter(entity);
+      entities.set(id, { ...entity, ...materialized });
       updateEntityExportIntent(
         entity.entityType,
         id,
@@ -527,8 +533,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     ): Promise<EntityMutationResult> => {
       const entity = request.entity;
       if (!entity.id) throw new Error("Entity must have an id");
-      const { content, metadata } = serializeViaAdapter(entity);
-      const contentHash = computeContentHash(content);
+      const { content, metadata, contentHash } = materializeViaAdapter(entity);
       // Mirror the real entity service: a byte-identical write is skipped —
       // no store, no event, no job.
       const existing = entities.get(entity.id);
@@ -616,15 +621,8 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       entityTypes.add(entity.entityType);
       const id = entity.id || `entity-${Date.now()}`;
       const exists = entities.has(id);
-      const { content, metadata } = serializeViaAdapter({ ...entity, id });
-      entities.set(id, {
-        ...entity,
-        id,
-        content,
-        metadata,
-        visibility: entity.visibility,
-        contentHash: computeContentHash(content),
-      });
+      const materialized = materializeViaAdapter({ ...entity, id });
+      entities.set(id, { ...entity, id, ...materialized });
       updateEntityExportIntent(
         entity.entityType,
         id,
@@ -675,8 +673,8 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       }));
     },
 
-    // The fake stores serialized entities directly, so there is no separate
-    // unresolved form to return.
+    // The fake has no unresolved asset references; raw and resolved reads
+    // share the materialized entity view.
     getEntityRaw: getEntityFake,
 
     // Embeddings and projections are not modelled: the fake has no vectors, so

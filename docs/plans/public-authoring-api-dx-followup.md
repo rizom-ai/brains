@@ -1830,6 +1830,12 @@ exact-version, credentialed runtime, evaluation, or release-authorization gates.
 
 ## Phase 6 — Outside-author audit
 
+**Implementation complete; local acceptance gates pass.** All eight reproduced
+findings and the ninth reminders fixture are closed below. This closes the
+bounded outside-author correction pass, not stable nomination or registry
+acceptance. Further SDK work requires a new demonstrated authoring failure or
+supported consumer need.
+
 ### How the evidence was produced
 
 A package nobody in this repository had written before, built as the guide
@@ -1855,6 +1861,68 @@ minimum for each and is what the slice's test encodes.
 
 Each slice is one finding, test first, gated by the usual set plus
 `bun run surface:check`. Order is by how much each one hides the others.
+
+Implementation tracking (following `75c952b11a`):
+
+- [x] 6.1 — Original test exceptions. Tool failures carry the exact thrown
+      `cause`, associated by response identity outside the production wire object.
+      Concurrent-call, job-cause and native-wire regressions pass.
+- [x] 6.2 — Ownership guidance and actionable refusal. The golden service
+      declares/writes its own type through the public packed harness; a refused
+      foreign write names `entities: [...]`. The guide distinguishes ownership
+      from stewardship of eligible shell types.
+- [x] 6.3 — Body-only content round trips through create/update. The reproduced
+      defect was in the in-memory harness: unlike production reads, it did not
+      decode serialized content. It now uses the adapter's decoder while retaining
+      storage-byte hashes. Cover test doubles explicitly opt into whole-file
+      content; the Note assertion checks its body. This exposed real Deck/Wish
+      decoder mismatches with their whole-file consumers, now corrected without
+      changing stored data or encoding formats.
+- [x] 6.4 — Exportable typed subscriptions and request contracts. Both types
+      are in services/interfaces and both ledgers. A real packed TS4023 failure
+      is fixed; the golden service exports a response-bearing subscription and
+      a separately packed consumer requests it without an annotation workaround.
+
+The 6.1–6.4 checkpoint passes forced 103/103 typecheck, 101/101 test,
+96/96 lint tasks, 7/7 fresh packed scenarios, 5/5 forced surface tasks (including
+boot), and the script/static/docs/format checks. The public SDK has 38 tests,
+reused against the built and packed entries. This is local evidence only.
+
+- [x] 6.5 — Consistent typed entity access in authoring callbacks. Tools, service
+      jobs, subscriptions, and entity reactions share definition-typed CRUD;
+      native setup/job helpers remain separate. Built-in consumers migrated
+      without compatibility overloads. The checkpoint passed 103 typecheck,
+      101 test, 96 lint, 7 packed scenarios, 5 surface tasks, and static gates.
+      Evidence: `/tmp/plugin-dx-next/phase6-5-*` (local, not registry evidence).
+- [x] 6.6 — Entity access in service routes. Route slots receive the frozen,
+      definition-typed reader without write methods. The golden service route
+      is exercised through packed `harness.fetch`; the durable-service app uses
+      an OS-assigned HTTP port now that its fixture declares routes. Full gates
+      pass: 103 typecheck, 101 test, 96 lint, 90 script tests, 7 packed scenarios,
+      5 surface tasks, and static/docs/format checks.
+      Evidence: `/tmp/plugin-dx-next/phase6-6-*` (local, not registry evidence).
+- [x] 6.7 — Local-name harness lookup. Installed packages expose `tool(name)` and
+      `job(name)`; tools/jobs retain scoped names and expose local names. Text
+      templates use local names. Missing and ambiguous names fail with available
+      choices; reset clears template lookup state. Runtime tool metadata supplies
+      original names without suffix matching or production wire changes.
+- [x] 6.8 — Author guide versus migration prose. The guide leads with the model
+      and actionable API usage. Upgrade rationale, owner encodings, old state and
+      upload invalidation, and old error handling moved to the migration document.
+- [x] Ninth reminders fixture: owned entity, three tools, durable job, exported
+      typed subscription, route, text template, and runtime state. Four tests
+      compile with declaration emit and run against packed public entries, without
+      private imports, casts, metadata reparsing, suffix lookup, or wrapper APIs.
+      The test source is staged as `reminders.test.ts` in the installed consumer;
+      it is not run against an unbuilt workspace self-import.
+
+Final local gates: forced **103/103 typecheck**, **101/101 test**, **96/96 lint**,
+**90 script tests**, **7/7 fresh packed scenarios** (including all four reminders
+tests), **5/5 surface tasks** including built boot, and all static/docs/format
+checks. The public SDK's 41 tests also run through the packed testing entry.
+Evidence: `/tmp/plugin-dx-next/phase6-final-*`; focused local-name red/green evidence
+is in `phase6-7-*`. Exact-registry coverage now inventories all nine fixtures, but
+no new registry candidate was tested, published, merged, or nominated here.
 
 #### 6.1 — The harness surfaces the author's exception
 

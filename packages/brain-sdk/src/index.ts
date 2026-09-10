@@ -1,10 +1,7 @@
 /** Public root authoring surface for brain definitions and typed composition. */
 
-export {
-  defineBrain,
-  defineBundle,
-} from "@brains/app/contracts/brain-definition";
-export { use } from "@brains/app";
+export { defineBrain, defineBundle } from "./brain-definition";
+export { use } from "./configured-plugin";
 export type {
   BrainAnchorConfigKind,
   BrainDefinition,
@@ -18,4 +15,4 @@ export type {
   PermissionConfig,
   PluginPackageDefinition,
   ReasoningEffort,
-} from "@brains/app/contracts/brain-definition";
+} from "./brain-definition";

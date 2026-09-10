@@ -9,7 +9,7 @@ import {
   type FetchFn,
 } from "../lib/fetch-agent-card";
 
-import { agentEntitySchema } from "../schemas/agent";
+import { agentEntitySchema, agentEntityReference } from "../schemas/agent";
 
 const agentScanDirectoriesInputSchema: z.ZodObject<Record<string, never>> =
   z.object({});
@@ -114,7 +114,7 @@ export async function scanAgentDirectories(
       ];
       if (merged.length === prior.length) continue;
 
-      await context.entities.update({
+      await context.entities.update(agentEntityReference, {
         ...existing,
         content: createAgentContent({
           ...frontmatter,
@@ -142,9 +142,8 @@ export async function scanAgentDirectories(
       provenance: { introducedBy: [...introducers], hops: 2 },
     });
     const parsedContent = parseAgentEntity({ content: built.content });
-    await context.entities.create({
+    await context.entities.create(agentEntityReference, {
       id: domain,
-      entityType: AGENT_ENTITY_TYPE,
       content: built.content,
       metadata: { ...parsedContent.frontmatter, ...built.metadata },
       visibility: "public",

@@ -1,17 +1,5 @@
 # External Package Authoring
 
-> **Current-tree preview for collaborators, not a registry release guide.**
-> These examples target a tarball built from this reviewed checkout. The local
-> Brain package version is `0.2.0-alpha.357`; that version string alone is not
-> evidence for a registry artifact. The historical registry baseline
-> (`alpha.313` with Site `alpha.233`) predates these breaking APIs and has no
-> testing entry. Do not install it for the examples below. Stable `0.2.0` and
-> verified first-containing-release peer ranges remain separate nomination gates.
-
-Breaking alpha cleanup is allowed before stable `0.2.0`. Only after that release
-does the `0.2.x` patch-compatibility promise apply; breaking the frozen contract
-then requires a later minor release.
-
 Rizom extensions are declarative packages. You describe domain schemas and
 behavior, default-export the resulting definition, and compose it into a Brain
 with `use()`. You do not subclass a runtime plugin or work with registries,
@@ -45,21 +33,61 @@ The runtime owns:
 - entity persistence/search, durable job execution, HTTP hosting, caller
   permissions, conversations, attachments, and progress delivery.
 
+## Which version to use
+
+These examples target a tarball built from this reviewed checkout, not a
+published registry release. A matching version string alone does not prove a
+registry artifact contains this API. The historical `alpha.313`/Site `alpha.233`
+baseline predates these APIs and has no testing entry: do not install it for
+these examples. Stable `0.2.0` and verified peer ranges remain separate release
+gates. For an existing package, read the
+[alpha migration guide](./public-release/AUTHORING_0.2_MIGRATION.md).
+
 ## Choose the narrowest package family
 
-| You want to…                                 | Import                    | Start with                                                                                                        |
-| -------------------------------------------- | ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| Store typed content or derive another type   | `@rizom/brain/entities`   | [`defineEntity()`](../packages/brain-cli/test/fixtures/public-authoring/entity/src/index.ts)                      |
-| Add tools, resources, or durable work        | `@rizom/brain/services`   | [`defineServicePlugin()`](../packages/brain-cli/test/fixtures/public-authoring/service/src/index.tsx)             |
-| Add Account settings, Dashboard, or Studio   | `@rizom/brain/services`   | [`operator-surface`](../packages/brain-cli/test/fixtures/public-authoring/operator-surface/src/index.ts)          |
-| Add HTTP routes or a supervised event feed   | `@rizom/brain/interfaces` | [`defineInterface()`](../packages/brain-cli/test/fixtures/public-authoring/interface/src/index.ts)                |
-| Connect a conversational/outbound transport  | `@rizom/brain/interfaces` | [`defineMessageInterface()`](../packages/brain-cli/test/fixtures/public-authoring/message-interface/src/index.ts) |
-| Define layouts, routes, sections, and assets | `@rizom/site`             | [`defineSite()`](../packages/brain-cli/test/fixtures/public-authoring/site/src/index.tsx)                         |
-| Compose packages into one Brain              | `@rizom/brain`            | [`defineBrain()`](../packages/brain-cli/test/fixtures/public-authoring/brain-definition/src/index.ts)             |
+| You want to…                                   | Import                                            | Start with                                                                                                        |
+| ---------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| Store typed content or derive another type     | `@rizom/brain/entities`                           | [`defineEntity()`](../packages/brain-cli/test/fixtures/public-authoring/entity/src/index.ts)                      |
+| Store a type and write it from your tools/jobs | `@rizom/brain/entities` + `@rizom/brain/services` | `defineEntity()`, then `entities: [definition]` on the `defineServicePlugin()` header                             |
+| Add tools, resources, or durable work          | `@rizom/brain/services`                           | [`defineServicePlugin()`](../packages/brain-cli/test/fixtures/public-authoring/service/src/index.tsx)             |
+| Add Account settings, Dashboard, or Studio     | `@rizom/brain/services`                           | [`operator-surface`](../packages/brain-cli/test/fixtures/public-authoring/operator-surface/src/index.ts)          |
+| Add HTTP routes or a supervised event feed     | `@rizom/brain/interfaces`                         | [`defineInterface()`](../packages/brain-cli/test/fixtures/public-authoring/interface/src/index.ts)                |
+| Connect a conversational/outbound transport    | `@rizom/brain/interfaces`                         | [`defineMessageInterface()`](../packages/brain-cli/test/fixtures/public-authoring/message-interface/src/index.ts) |
+| Define layouts, routes, sections, and assets   | `@rizom/site`                                     | [`defineSite()`](../packages/brain-cli/test/fixtures/public-authoring/site/src/index.tsx)                         |
+| Compose packages into one Brain                | `@rizom/brain`                                    | [`defineBrain()`](../packages/brain-cli/test/fixtures/public-authoring/brain-definition/src/index.ts)             |
 
 Use one family for one concern. A transport that needs durable work imports a
 service job definition and enqueues it; it does not become a service/queue
 hybrid. Backend behavior for a site is a separately composed plugin package.
+
+If your package both stores and writes a type, declare that type in the service's
+**first argument**: `defineServicePlugin({ id, config, entities: [reminder] }, { tools, jobs })`.
+That header establishes write ownership; installing a separate entity package
+alongside a service does not grant the service permission to write it. Use
+`defineEntityPackage()` for content other packages read or derive by projection.
+The [reading service fixture](../packages/brain-cli/test/fixtures/public-authoring/service/src/index.tsx)
+records its own `readingRequest` type this way while reading bookmarks owned by
+another package.
+
+`stewards: ["entity-type"]` is a separate service-header claim for an existing,
+eligible **shell-owned** type, such as profile singletons. It does not register a
+type or grant permission to write another plugin's type. Only one service may
+claim stewardship; unsupported or conflicting claims fail registration.
+
+Tools, service jobs, and subscriptions use the same `entities` API:
+
+- `get(reminder, id)`, `list(reminder, options)`, and `search(reminder, query, options)` infer metadata from the definition. `get` returns `null` when absent.
+- `create(reminder, { content, metadata })` and `update(reminder, entity)` return `{ id }`. Update a retrieved entity, preserving its other fields.
+- Writes require the service to own or steward the type. Interfaces can read entities but cannot write them.
+
+Import `EntityAccess` for an extracted helper shared by these handlers, or
+`EntityReader` for a helper that only reads. Handler contexts are inferred;
+`ServiceToolContext` and `ServiceJobHandlerContext` are available when needed.
+Native `JobEntityAccess` is not the tool, service-job, or subscription API.
+
+A service's `routes: ({ entities }) => [...]` slot receives the same typed
+reader. A route can call `entities.list(reminder)` directly; it need not pass
+setup's entity access through `state`. The routes reader has no write methods.
 
 ## Ten-minute service package
 
@@ -231,7 +259,11 @@ configuration/environment interpolation, not in package defaults.
 
 ## How the complete reference fits together
 
-The eight golden packages form one reading-library example:
+Eight golden packages form one reading-library example. The ninth,
+[`reminders`](../packages/brain-cli/test/fixtures/public-authoring/reminders/src/index.ts),
+is a standalone example with [four packed public-harness tests](../packages/brain-cli/test/fixtures/public-authoring/reminders/test/consumer.ts).
+
+The reading-library packages fit together as follows:
 
 ```text
 bookmark entity ──projection──▶ reading-digest entity
@@ -283,6 +315,12 @@ Export entity definitions when another package needs typed reads or writes.
 them. Projections reference source/target definitions and write through the
 typed target helper. Persistence, markdown/frontmatter validation, visibility,
 search indexing, scheduling, and loop prevention stay runtime-owned.
+
+With the default markdown codec, `content` is the body and `metadata` contains
+its declared fields. Creating or updating a record does not fold stored YAML
+frontmatter into the body returned by reads. A custom `markdown` codec can
+intentionally retain a complete file instead; use `frontmatterInContent()` when
+your type's consumers require unindexed frontmatter as part of `content`.
 
 ### Entity data and presentation
 
@@ -393,8 +431,12 @@ export async function greetsInTheConfiguredZone(
     const installed = await harness.installPackage(calendar, {
       timezone: "UTC",
     });
-    const answer = await installed.tools[0]?.call({});
-    return answer?.ok &&
+    const answer = await installed.tool("calendar-timezone").call({});
+    if (!answer.ok && "error" in answer) {
+      // A failed test shows the author's original exception as the cause.
+      throw new Error(answer.error, { cause: answer.cause });
+    }
+    return answer.ok &&
       typeof answer.data === "object" &&
       answer.data !== null &&
       "timezone" in answer.data
@@ -406,8 +448,13 @@ export async function greetsInTheConfiguredZone(
 }
 ```
 
-Tools return `{ ok: true, data }`, `{ ok: false, error, code }`, or
-`{ ok: false, confirmation }` when approval is pending. Check
+Tools return `{ ok: true, data }`, `{ ok: false, error, code, cause }`, or
+`{ ok: false, confirmation }` when approval is pending. `cause` is the original
+thrown value, available for test diagnostics; it is `undefined` for refusals
+without an exception. Assert on `error` and `code` for the sanitized production
+response, and inspect `cause` to learn why your handler failed. Job `run()`
+rejections likewise preserve the thrown value as their coded error's `cause`.
+Production tool responses do not include diagnostic causes. Check
 `"confirmation" in answer` before treating an incomplete call as an error.
 The confirmation includes `toolName`, `summary`, and `args`; replay those args
 with the named tool to approve. The runtime executes the prepared input described
@@ -426,7 +473,10 @@ transformed data. Bare `request({ type, payload })` returns an untyped bus
 envelope; it does not promise a result schema. A `defineSubscription()` with a
 response schema checks the handler's return against that schema's **input**
 type and retains the response schema, so its result can also be passed directly
-to `request(subscription, input)`. Notifications without a response schema do
+to `request(subscription, input)`, including from another package after declaration
+emit. `SubscriptionDefinition` and `RequestContract` are exported types from both
+services and interfaces when a shared helper needs to name those contracts.
+Notifications without a response schema do
 not promise a typed answer. Subscription entity access is read-only in both the
 public type and the object handed to the handler.
 
@@ -453,76 +503,41 @@ that declares that kind before finalization. An unregistered selection fails at
 `finalizeRegistration()`, as it does during boot. Omitting the option keeps the
 base profile with no selected kind.
 
-`installed.jobs` lists registered jobs with a `run(input)` method. It validates
+Use `installed.tool("remind")` and `installed.job("fire")` with the names in
+your declarations. Tools expose `localName` alongside the runtime-scoped `name`;
+`installed.tools` and `installed.jobs` remain available for inspection. Unknown
+or ambiguous lookups throw with available local names.
+
+`installed.job("fire").run(input)` validates
 and runs one handler attempt in-process; it does not simulate durable queue
-retries, deadlines, or terminal hooks. `harness.formatTemplate(name, value)`
-validates and formats a registered text template, while `harness.fetch()`
-exercises declared routes with their authentication and schema validation.
+retries, deadlines, or terminal hooks. `harness.templateNames()` lists local
+names; `harness.formatTemplate("due-list", value)` validates and formats the
+unique matching text template. Give templates distinct local names when testing
+multiple packages in one harness. Missing or ambiguous names throw rather than
+selecting an arbitrary template. Meanwhile, `harness.fetch()` exercises declared routes with their authentication and schema validation.
 The harness hands back names and answers rather than runtime objects, which is
 why nothing here imports `@brains/*`.
 
 ### Reader capabilities
 
-Author callback readers expose their declared methods, not the underlying runtime
-services. Job uploads support `read`; attachment readers support `resolve`.
-Ordinary permission checks do not expose principal replacement, and profile
-selection readers do not register kinds. Interface-owned upload writers keep their
-explicit save/remove API. Their namespace must remain one flat path segment.
+Use the capability handed to your callback:
 
-Scoped state and upload handles hide implementation fields behind bound facades.
-This prevents changing a handle's scope through hidden options and allows detached
-method calls without losing the receiver. It is API capability hygiene, not a
-sandbox for plugin JavaScript. Callback loggers and their child loggers likewise
-expose only the declared logging methods, not file handles or singleton controls.
-Job progress exposes only `report`; heartbeat timers and reporter construction
-remain runtime responsibilities. Jobs that read a selected profile definition get
-its validated metadata and declared fields schema, not extra registration fields.
-Auth lookups likewise return only the requested caller, audit, federation, identity,
-or administration methods—not the underlying service or its shutdown controls.
-These are bound views, not a new permission policy: explicitly declared
-administration and federation commands remain available.
+- Entity reads use `get(definition, id)`, `list(definition, options)`, and
+  `search(definition, query, options)`; metadata is inferred from the definition.
+- Job uploads provide `read`, attachments provide `resolve`, and progress provides
+  `report`. Interface upload writers provide `save`/`remove`; choose a namespace
+  that is one flat path segment.
+- Use the supplied logger (or its child), permission checker, profile reader, and
+  auth operations. Do not reach through them to runtime services or lifecycle
+  controls. Detached method calls are supported.
+- Treat configured spaces and policy metadata as snapshots. Editing returned
+  metadata does not change registry policy or other readers.
+- Attachment-provider factories receive `domain`, `themeCSS`,
+  `identity.getProfile`, and `entityService.getEntity`/`listEntities`.
 
-Protocol interfaces receive the declared MCP transport operations, not the runtime
-registration service. The returned MCP SDK server is intentionally available for
-connecting and managing transports. Configured `spaces` are frozen snapshots.
-Projection selection likewise receives entity/conversation readers and a space
-snapshot; derivation receives only its declared AI operations and logger, not the
-underlying runtime services.
-
-Entity-type policy and attachment-provider metadata are validated snapshots.
-Metadata reads return detached, locally editable copies: changing a returned
-publish-status list, search weight, or attachment target does not alter registry
-policy. Undeclared implementation fields are not included. View reads likewise
-copy script and static-asset metadata; editing the result does not change other
-readers or later renders. Declared Zod schemas and renderer functions retain their
-identity.
-
-Attachment-provider factories receive only `domain`, `themeCSS`,
-`identity.getProfile`, and `entityService.getEntity`/`listEntities`. These bound,
-frozen readers do not expose the entity plugin's registration, messaging, or
-mutation capabilities. The public harness uses the same view registry and media
-factory boundary as the runtime.
-
-Package-owned state keeps the existing keys for ordinary `@scope/name` packages.
-Unscoped names and scoped names containing dots now use separate owner encodings,
-so names such as `@scope/pkg` and `scope.pkg` no longer share state. If an older
-installation used those ambiguous names, review ownership before migrating its
-stored rows; the runtime does not guess ownership or fall back to shared keys.
-
-Every interface state namespace includes package and declaration identity, so
-two packages using the same interface ID stay separate, including for undotted
-local names. Interface keys also cannot overlap package-owned state.
-This alpha correction does not migrate, read, or delete old declaration-only
-rows. Existing Discord/Slack thread-following and mention-routing settings start
-fresh; chat history is unchanged.
-
-Temporary upload directories likewise include package, interface ID, and local
-namespace identity, using a fixed-length digest to stay within filesystem limits.
-Reference shapes and route URLs are unchanged, but this alpha upgrade intentionally
-stops resolving uploads stored under the old declaration-only directories.
-Re-upload a temporary attachment if needed. There is no migration or fallback;
-old directories remain untouched and are not pruned by the new scopes. Images
-already preserved as entities retain their embedded bytes.
+State and upload namespaces are scoped by the runtime. Supply local names, not
+package encodings or filesystem paths. Upgrade effects on existing state and
+uploads are covered in the [migration guide](./public-release/AUTHORING_0.2_MIGRATION.md).
 
 ### Coded failures
 
@@ -563,29 +578,20 @@ own bodies, status codes, and headers. Typed tools can return a schema-valid
 business refusal as successful `data`; this is distinct from throwing a failure.
 Declared jobs likewise complete with any schema-valid output, including
 `{ success: false, error: "Inventory is empty" }`. Throw `SdkError` to fail an
-attempt. Native worker handlers retain their explicit controlled-failure protocol;
-the declarative adapter selects data semantics without adding an authoring option.
-Explicit native/protocol tool refusals retain their deliberate messages too;
-runtime exception handlers must sanitize before producing their envelopes.
+attempt. In tests, inspect the failed tool result's `cause` for the original
+exception; it is not part of the production response.
 
 Durable service/operator job status exposes `error` and `code`; interface status
-uses `lastError` and `code`. Codes survive queue restarts. The runtime sanitizes
-old rows without codes and unknown stored codes when serving these public
-readers. Failed rows with no stored error information still report `handler_failed`.
-Batch status and batch progress `errors` are arrays of shared `{ code, message }`
-records, not diagnostic strings. Missing children report `not_found`; old or
-unknown child codes fall back safely. Batch coordination itself remains in memory;
-this does not promise that batch metadata survives a runtime restart.
-Terminal hooks receive coded errors only after input has been parsed, and reuse
-the attempt's prepared input rather than rerunning transforms or defaults.
-Corrupt stored inputs cannot be handed to a callback promising valid typed input.
+uses `lastError` and `code`. Codes survive queue restarts.
+Batch status and progress expose `{ code, message }` error records; missing
+children report `not_found`. Batch coordination remains in memory, so do not
+rely on batch metadata surviving a runtime restart. Terminal hooks receive
+validated input and coded failures.
 The public single-attempt job runner throws coded failures but does not simulate
 worker retries, deadlines, or terminal hooks.
 
-The former message-only code names and `RuntimeUploadStoreError` family have
-been consolidated, not retained as compatibility aliases. Invalid upload refs
-use `invalid_input`, unreadable/invalid upload data uses `invalid_response`, and
-missing uploads use `not_found`.
+For uploads, branch on `invalid_input` for an invalid reference,
+`invalid_response` for unreadable/invalid data, or `not_found` for a missing upload.
 
 ### Services and durable jobs
 

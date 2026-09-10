@@ -186,6 +186,12 @@ export const agentMetadataSchema: AgentMetadataSchema = z.object({
 
 export type AgentMetadata = z.infer<typeof agentMetadataSchema>;
 
+/** A schema reference for callbacks, without importing their declaring module. */
+export const agentEntityReference: Readonly<{
+  type: typeof AGENT_ENTITY_TYPE;
+  metadata: AgentMetadataSchema;
+}> = Object.freeze({ type: AGENT_ENTITY_TYPE, metadata: agentMetadataSchema });
+
 /**
  * Agent entity schema
  */

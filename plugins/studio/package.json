@@ -26,6 +26,7 @@
     "@brains/auth-service": "workspace:*",
     "@brains/build-tools": "workspace:*",
     "@brains/eslint-config": "workspace:*",
+    "@brains/messaging-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/test-utils": "workspace:*",

@@ -1,7 +1,7 @@
 import {
   isConfiguredPluginDefinition,
   type ConfiguredPluginDefinition,
-} from "../configured-plugin";
+} from "./configured-plugin";
 import { assertIdentifier as assertId } from "@brains/plugins";
 import type {
   PluginPackageConfigInput,
@@ -9,17 +9,21 @@ import type {
 } from "@brains/plugins/public/plugin-api";
 import type { PermissionConfig } from "@brains/templates";
 import type { SiteDefinition } from "@rizom/site";
-import type { DeploymentConfigInput, ReasoningEffort } from "../types";
-import type { BrainAnchorConfigKind, BrainIdentity } from "../brain-definition";
+import type {
+  DeploymentConfigInput,
+  ReasoningEffort,
+  BrainAnchorConfigKind,
+  BrainIdentity,
+} from "./brain-config";
 
 export type { PluginPackageDefinition };
-export type { ConfiguredPluginDefinition } from "../configured-plugin";
+export type { ConfiguredPluginDefinition } from "./configured-plugin";
 export type {
   BrainAnchorConfigKind,
   BrainIdentity,
   BrainMode,
-} from "../brain-definition";
-export type { DeploymentConfigInput, ReasoningEffort } from "../types";
+} from "./brain-config";
+export type { DeploymentConfigInput, ReasoningEffort } from "./brain-config";
 export type { PermissionConfig } from "@brains/templates";
 export type { SiteDefinition } from "@rizom/site";
 

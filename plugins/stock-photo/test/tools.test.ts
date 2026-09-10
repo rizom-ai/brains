@@ -5,6 +5,7 @@ import type { Tool, ToolContext } from "@brains/plugins";
 import {
   defineEntity,
   defineEntityPackage,
+  frontmatterInContent,
   instantiatePluginPackageDefinition,
 } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
@@ -79,10 +80,15 @@ const image = defineEntity({
   },
 });
 
+const titleMetadata = z.object({ title: z.string() });
 const post = defineEntity({
   type: "post",
   purpose: "Something a photo can be the cover of.",
-  metadata: z.object({ title: z.string() }),
+  metadata: titleMetadata,
+  // Match the real post codec: cover fields live in its retained frontmatter.
+  markdown: frontmatterInContent((frontmatter) =>
+    titleMetadata.parse(frontmatter),
+  ),
   coverImage: true,
 });
 

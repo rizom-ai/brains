@@ -1,67 +1,8 @@
 import type { SchemaReturn } from "../internal/schema-return";
 import type { SdkErrorCode } from "@brains/contracts";
 import type { z } from "@brains/utils/zod";
-import type {
-  BaseEntity,
-  ContentVisibility,
-  ListOptions,
-  EntitySchema,
-} from "@brains/entity-service";
+import type { EntityAccess } from "../entity/entity-access-contract";
 import type { AnchorProfile, BrainCharacter } from "./identity";
-
-/**
- * The reads a subscription handler gets.
- *
- * Reads only: answering a request is not a licence to write, and an
- * interface — which declares no entity types — could not be given writes
- * anyway. A handler that must change something enqueues a job.
- */
-export interface SubscriptionEntityReader {
-  /**
-   * One record, as the brain stores it.
-   *
-   * Narrowing takes the schema that narrows it. The shape used to come from
-   * the caller alone — ask for a type and you were handed it, with nothing
-   * checking the records matched — so a handler could name a field no entity
-   * has, compile, and read `undefined` from it at runtime. This is the same
-   * evidence jobs and data sources have always required.
-   */
-  getEntity(request: {
-    entityType: string;
-    id: string;
-    visibilityScope?: ContentVisibility | undefined;
-  }): Promise<BaseEntity | null>;
-  getEntity<T extends BaseEntity>(
-    request: {
-      entityType: string;
-      id: string;
-      visibilityScope?: ContentVisibility | undefined;
-    },
-    schema: EntitySchema<T>,
-  ): Promise<T | null>;
-  /**
-   * A page, narrowed by what the request asked for. The filter is the
-   * store's own vocabulary, including how wide to read: a directory of
-   * approved peers has to see the ones an operator saved as restricted.
-   * Narrowed the same way as a single read. Named consumer: @brains/a2a.
-   */
-  listEntities(request: {
-    entityType: string;
-    options?: Pick<ListOptions, "limit" | "filter"> | undefined;
-  }): Promise<BaseEntity[]>;
-  listEntities<T extends BaseEntity>(
-    request: {
-      entityType: string;
-      options?: Pick<ListOptions, "limit" | "filter"> | undefined;
-    },
-    schema: EntitySchema<T>,
-  ): Promise<T[]>;
-  /**
-   * Which types exist, so a handler can answer "none" for a type nobody
-   * registered instead of asking for it. Named consumer: @brains/a2a.
-   */
-  getEntityTypes(): string[];
-}
 
 export type SubscriptionPayloadSchema = z.ZodType<unknown, unknown>;
 
@@ -147,11 +88,11 @@ export interface SubscriptionDefinition<
   handle(context: {
     readonly payload: z.output<TPayloadSchema>;
     /**
-     * Reads, because most requests are answered from the brain's own
-     * records rather than from the payload alone. Named consumers:
-     * @brains/site-info, @brains/newsletter.
+     * Definition-typed reads and ownership-scoped writes, shared with tools
+     * and jobs. Services may write their declared/stewarded types; interfaces
+     * own none and every write is refused.
      */
-    readonly entities: SubscriptionEntityReader;
+    readonly entities: EntityAccess;
     /**
      * Who the brain is, for a request whose answer falls back to it — a
      * site with no title of its own is titled after its anchor.

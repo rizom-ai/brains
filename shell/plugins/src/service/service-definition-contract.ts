@@ -26,6 +26,10 @@ import type {
 import type { OperationalHealthProvider } from "../operational-health-registry";
 import type { EntityMirror } from "./entity-mirror";
 import type { ToolAgent, ToolAsk } from "./tool-agent";
+import type {
+  EntityAccess,
+  EntityReader,
+} from "../entity/entity-access-contract";
 
 /**
  * Looking up a transport, not the registry that holds them.
@@ -303,7 +307,11 @@ export interface ServiceTemplateReads extends Pick<
  * run in a context without them. Saying so here keeps `templates?.format()`
  * out of every service job that renders anything.
  */
-export type ServiceJobHandlerContext<TInput> = JobHandlerContext<TInput> & {
+export type ServiceJobHandlerContext<TInput> = Omit<
+  JobHandlerContext<TInput>,
+  "entities"
+> & {
+  readonly entities: EntityAccess;
   readonly templates: JobTemplateFormatter;
 };
 
@@ -665,6 +673,22 @@ export interface ServiceJobs {
   batchStatus(batchId: string): Promise<ServiceBatchStatus | null>;
 }
 
+/** The context a declared tool executes with, not an entity reaction. */
+export interface ServiceToolContext<TInput> extends Omit<
+  EntityReactionContext,
+  "entities"
+> {
+  readonly entities: EntityAccess;
+  readonly input: TInput;
+  readonly signal: AbortSignal;
+  /** Attribution and permission belong to this caller, not the tool. */
+  readonly caller: ToolContext | undefined;
+  /** Available only to a conversational tool declaring agentTool: false. */
+  readonly agent: ToolAgent;
+  /** Create a foreign type through its owner's route, as this caller. */
+  readonly createRouted: RoutedCreate;
+}
+
 export interface ServiceToolDefinition<
   TName extends string = string,
   TInputSchema extends ServiceInputSchema = ServiceInputSchema,
@@ -710,27 +734,7 @@ export interface ServiceToolDefinition<
    * when they call.
    */
   execute(
-    context: EntityReactionContext & {
-      readonly input: z.output<TInputSchema>;
-      readonly signal: AbortSignal;
-      /**
-       * Who is asking. A tool that grants trust or edits a record has to
-       * attribute the act to someone, and permission is a fact about the
-       * caller rather than about the tool.
-       */
-      readonly caller: ToolContext | undefined;
-      /**
-       * The brain, for a tool that *is* the conversation rather than a
-       * capability within one. Only a tool declaring `agentTool: false`
-       * may reach it — see `createToolAgent`. Named consumer: @brains/mcp.
-       */
-      readonly agent: ToolAgent;
-      /**
-       * Create a type this package does not own, through the owner's route,
-       * as the caller. See `RoutedCreate`.
-       */
-      readonly createRouted: RoutedCreate;
-    },
+    context: ServiceToolContext<z.output<TInputSchema>>,
   ): TOutput | Promise<TOutput>;
 }
 
@@ -1303,6 +1307,7 @@ interface ServiceDefinitionBehavior<
          */
         readonly state: TState;
         readonly jobs: ServiceJobs;
+        readonly entities: EntityReader;
       }) => readonly AnyInterfaceRouteDefinition[])
     | undefined;
   /**

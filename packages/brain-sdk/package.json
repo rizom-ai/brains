@@ -4,7 +4,6 @@
   "version": "0.2.0-alpha.289",
   "description": "Layer 1 authoring surface: the curated plugin/entity/interface contract that @rizom/brain re-exports and in-repo packages import directly",
   "dependencies": {
-    "@brains/app": "workspace:*",
     "@brains/atproto-contracts": "workspace:*",
     "@brains/auth-service": "workspace:*",
     "@brains/content-formatters": "workspace:*",
@@ -20,6 +19,7 @@
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@rizom/site": "workspace:*",
     "bun-types": "^1.4.0",
     "eslint": "^10.5.0",
     "typescript": "^7.0.2"
@@ -29,6 +29,8 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./internal/brain-config": "./src/brain-config.ts",
+    "./internal/configured-plugin": "./src/configured-plugin.ts",
     "./plugins": {
       "types": "./src/plugins.ts",
       "default": "./src/plugins.ts"

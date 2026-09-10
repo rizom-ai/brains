@@ -39,9 +39,8 @@ describe("the context a declared reaction runs in", () => {
 
     const context = harness.getReactionContext("notekeeper");
 
-    await context.entities.create({
+    await context.entities.create(note, {
       id: "first",
-      entityType: "harness-note",
       content: "Hello",
       metadata: { title: "First" },
     });

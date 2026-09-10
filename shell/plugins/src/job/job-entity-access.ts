@@ -41,7 +41,7 @@ export function createJobEntityAccess(
   const assertOwned = (entityType: string): void => {
     if (!ownedTypes.has(entityType)) {
       throw new Error(
-        `"${ownerLabel}" may only write entity types it declares, and "${entityType}" is not one of them`,
+        `"${ownerLabel}" may only write entity types it declares or stewards, and "${entityType}" is not one of them. Declare owned types in entities: [...] on the service header; stewards is only for eligible shell-owned types.`,
       );
     }
   };

@@ -1,6 +1,11 @@
 /** Declarative public entity authoring surface. */
 export { SdkError, sdkErrorCodeSchema, sdkErrorSchema } from "@brains/plugins";
 export type { SdkErrorCode, SdkErrorData } from "@brains/plugins";
+export type {
+  EntityAccess,
+  EntityReader,
+  EntityWriteInput,
+} from "@brains/plugins";
 
 export { z } from "@brains/utils/zod";
 export {

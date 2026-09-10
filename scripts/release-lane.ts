@@ -6,7 +6,6 @@ import {
   inferReleaseLane,
   packageMatchesReleaseLane,
   resolveReleaseVersionStrategy,
-  resolveReleaseWorkflowMode,
   type ReleaseLane,
 } from "@brains/build-tools";
 import assembleReleasePlan from "@changesets/assemble-release-plan";
@@ -16,6 +15,8 @@ import { getPackages } from "@manypkg/get-packages";
 import { z } from "@brains/utils/zod";
 import { mkdtemp, readFile, readdir, rename, rm } from "node:fs/promises";
 import { join } from "node:path";
+
+import { readReleaseContext } from "./lib/release-context";
 
 const repositoryRoot = process.cwd();
 const changesetDir = join(repositoryRoot, ".changeset");
@@ -51,15 +52,11 @@ if (command === "add") {
   }
 } else if (command === "version") {
   await versionLane(parseLane(requestedLane));
-} else if (command === "mode") {
-  const currentPreState = await readPreState();
-  const previousPreState = await readPreviousPreState();
-  console.log(
-    resolveReleaseWorkflowMode(currentPreState?.mode, previousPreState?.mode),
-  );
+} else if (command === "context") {
+  console.log(JSON.stringify(await readReleaseContext(repositoryRoot)));
 } else {
   throw new Error(
-    "Usage: bun scripts/release-lane.ts <add|check|version|mode> [core|site]",
+    "Usage: bun scripts/release-lane.ts <add|check|version|context> [core|site]",
   );
 }
 
@@ -418,21 +415,6 @@ async function readPreState(): Promise<
     },
   );
   return parsePreState(text);
-}
-
-async function readPreviousPreState(): Promise<
-  Parameters<typeof assembleReleasePlan>[3]
-> {
-  const child = Bun.spawn(["git", "show", "HEAD^:.changeset/pre.json"], {
-    cwd: repositoryRoot,
-    stdout: "pipe",
-    stderr: "ignore",
-  });
-  const [exitCode, text] = await Promise.all([
-    child.exited,
-    new Response(child.stdout).text(),
-  ]);
-  return exitCode === 0 ? parsePreState(text) : undefined;
 }
 
 function parsePreState(
