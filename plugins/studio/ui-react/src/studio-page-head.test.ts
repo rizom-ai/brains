@@ -3,7 +3,6 @@ import type { RuntimeStudioOperatorView } from "@brains/plugins";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { StudioWorkspaceInfo } from "./api";
-import { createStylexBunTransform } from "@brains/build-tools";
 import { Window } from "happy-dom";
 import {
   declarativeStudioPageHead,
@@ -132,24 +131,17 @@ describe("Studio page-head normalization", () => {
   });
 
   it("compiles the approved heading hierarchy and keeps primary actions in the head at both widths", async () => {
-    const transform = createStylexBunTransform();
-    const build = await Bun.build({
-      entrypoints: [
-        new URL("./studio-page-head.styles.ts", import.meta.url).pathname,
-      ],
-      plugins: [transform.plugin],
-      external: ["@stylexjs/stylex"],
-      target: "browser",
-    });
-    expect(build.success).toBe(true);
-    expect(transform.css()).toContain("-webkit-line-clamp:2");
+    const css = await Bun.file(
+      new URL("../../dist/ui/studio-app.css", import.meta.url),
+    ).text();
+    expect(css).toContain("-webkit-line-clamp:2");
     for (const [width, size] of [
       [1440, "36px"],
       [390, "29px"],
     ] as const) {
       const window = new Window({ width });
       try {
-        window.document.head.innerHTML = `<style>:root{--console-display:Georgia;--console-text:#222}${transform.css()}</style>`;
+        window.document.head.innerHTML = `<style>:root{--console-display:Georgia;--console-text:#222}${css}</style>`;
         window.document.body.innerHTML = renderToStaticMarkup(
           createElement(StudioPageHead, {
             model: {
