@@ -2,10 +2,12 @@
 
 ## Status and scope
 
-**DX acceptance is complete for the local candidate following `d3ed1895a9`.
-All five bounded checks and implementation-acceptance criteria are closed with
-source, built, packed, and repository-gate evidence. Stop abstraction cleanup.
-This close-out does not imply merge, exact-registry evidence, publication,
+**Reopened by [Phase 6](#phase-6--outside-author-audit). The five bounded
+checks after `d3ed1895a9` are closed, and the stopping rule they set — a
+concrete authoring failure reopens the work — was met: an outside-author
+package built from the guide against the packed tarball produced eight
+demonstrated failures, three of them blocking. Phase 6 lists them as slices,
+tests first. This does not imply merge, exact-registry evidence, publication,
 or stable nomination.**
 
 ### Validated continuation checkpoint
@@ -1825,3 +1827,193 @@ will never evolve.
 
 Completion feeds the existing stable-nomination plan; it does not replace its
 exact-version, credentialed runtime, evaluation, or release-authorization gates.
+
+## Phase 6 — Outside-author audit
+
+### How the evidence was produced
+
+A package nobody in this repository had written before, built as the guide
+instructs and nothing else: the tarball from `bun run build && bun pm pack`
+in `packages/brain-cli`, the guide's `package.json` and `tsconfig.json`
+verbatim (`declaration: true`, `skipLibCheck` added for bun's type package
+against TS7), imports from `@rizom/brain/entities`, `@rizom/brain/services`
+and `@rizom/brain/testing` only.
+
+The package is `@example/reminders`: one entity type, and a service with
+three tools (add, list due, fire), one durable job, one subscription with a
+declared response, one text template and one `runtimeState` store. Four
+tests through the testing entry: add-then-list, format, typed bus request,
+durable fire-then-read.
+
+Its first compile produced the errors in slices 6.2, 6.4, 6.5 and 6.6 below.
+Once rewritten to what compiles today, its first run produced 6.1, 6.2 and 6.3.
+Two of four tests passed before any of the findings were addressed; all four
+pass with the workarounds each finding names. The reproduction below is the
+minimum for each and is what the slice's test encodes.
+
+### Slices
+
+Each slice is one finding, test first, gated by the usual set plus
+`bun run surface:check`. Order is by how much each one hides the others.
+
+#### 6.1 — The harness surfaces the author's exception
+
+Blocking. A tool that threw answered
+`{ ok: false, error: "The operation failed", code: "handler_failed" }`. The
+sentence that explained it — see 6.2 — was reachable only by wrapping the
+tool body in a try/catch and logging. The production sanitizer is applied
+inside the testing entry, which exists so that sentence is readable.
+
+Test: install a package whose tool throws `new Error("the real reason")`,
+call it, assert the result carries the reason.
+
+Fix: `ToolCallResult`'s failure arm gains `cause: unknown` — the thrown
+value as thrown — alongside `error` and `code`. The same for
+`installed.jobs[].run`, which throws a coded error today: it rethrows with
+`cause` set. `error` and `code` keep their sanitized production values so
+a test that asserts on them asserts what a caller would see. The guide's
+testing section shows a failing assertion reading `cause`.
+
+#### 6.2 — One family owns a type that is both stored and written
+
+Blocking. Following the family table — `defineEntityPackage` to store a type,
+`defineServicePlugin` for a tool that writes it — the tool is refused:
+
+```text
+"reminders" may only write entity types it declares, and "reminder" is not one of them
+```
+
+The path that works is `entities: [reminder]` on the service header. The
+guide does not mention it; the operator fixture does it without comment.
+
+Test: the golden service fixture's own type, declared in its header, written
+from its tool through the public harness; and the refusal above, asserted to
+name `entities: [...]` on the service as the fix.
+
+Fix: the family table gains a row — a type that one package both stores and
+writes belongs on that package's service header, and `defineEntityPackage`
+is for a type read by others or derived by projection. The refusal names the
+header slot. `stewards` is documented in the same place, since it is the
+other half of the same question.
+
+#### 6.3 — A record written through `create` reads back with its frontmatter in `content`
+
+Blocking. A tool wrote `{ content: "Call Sam", metadata: { due, done: false } }`
+through `entities.create`. Every later read — the typed `entities.get` in a
+job, the untyped `listEntities` in a tool, `harness.getEntity` — returned:
+
+```text
+content: "---\ndue: '2026-09-10T05:39:19.277Z'\ndone: false\n---\nCall Sam\n"
+metadata: { due: "2026-09-10T05:39:19.277Z", done: false }
+```
+
+A record seeded through `harness.addEntities` with the same fields reads back
+with `content: "Call Sam"`. The write path serializes the frontmatter into
+the stored content and every reader hands it back as the body.
+
+Test: create through a tool, read through a job, assert `content` is the body
+that was written. The same for `update`, which the fire job used and which
+preserved the folded content.
+
+Fix: a runtime defect in the declarative write path, found by the test. The
+entity fixture's projection computes `wordCount` from `source.content`; its
+golden assertion is re-derived once the body is the body.
+
+#### 6.4 — A typed subscription can be exported
+
+Blocking for the feature. With the guide's `declaration: true`:
+
+```text
+src/index.ts:32:14 - error TS4023: Exported variable 'dueCount' has or is using
+name 'SubscriptionDefinition' from external module ... but cannot be named.
+```
+
+The guide says a `defineSubscription()` result with a response "can also be
+passed directly to `request(subscription, input)`". It cannot leave the file
+that declares it. `AnySubscriptionDefinition` is exported; the generic type is
+not.
+
+Test: the packed consumer exports a subscription with a response from one
+fixture and calls `harness.request` with it from another.
+
+Fix: `SubscriptionDefinition` and `RequestContract` join the services and
+interfaces entries and the ledger as stable.
+
+#### 6.5 — One entity reader for tool, job and subscription
+
+In one service the job handler sees `entities.get(reminder, id)` with typed
+metadata; the tool and the subscription see
+`entities.listEntities({ entityType: "reminder" })` returning `BaseEntity`
+with `metadata: unknown`, and `create(...)` returning `entityId` rather than
+`id`. The tool's context type is named `EntityReactionContext`. An author
+writes `reminder.metadata.parse(item.metadata)` in two of the three places.
+
+Test: the same read and the same write written identically in a tool, a job
+and a subscription handler of one fixture service, compiling and passing.
+
+Fix: the typed reader the job already has — `get`, `list`, `search` by
+definition — is what a tool and a subscription receive too, plus typed
+`create(definition, input)` and `update(definition, entity)` returning
+`{ id }`. `JobEntityAccess` stays where native jobs need it, off the
+authoring contexts. The tool's context is named for what it is.
+
+#### 6.6 — A service route reads entities
+
+A route handler receives `{ request, body, caller }` and its slot
+`{ config, state, jobs }`; `GET /reminders/due` cannot be written except by
+closing over the setup context's `entities` through `state`, which nothing
+documents.
+
+Test: a fixture service route that lists its own type through the public
+harness's `fetch`.
+
+Fix: the routes slot receives the reader from 6.5, the same as tools. Setup
+keeps its access for state that needs it.
+
+#### 6.7 — The harness speaks local names
+
+`installed.tools[].name` came back as `reminders_remind`; `templateNames()`
+as `@fixture/package:reminders:due-list` — two scoping schemes — and
+`harness.formatTemplate` needs the second. The guide says the runtime scopes
+names and the author never sees that. The author ends up on
+`tools.find((t) => t.name.endsWith("remind"))`.
+
+Test: `installed.tool("remind")` and `harness.formatTemplate("due-list", …)`
+by local name; both throw with the local names that exist when asked for one
+that does not.
+
+Fix: `InstalledPackage.tool(name)` and `job(name)` by local name;
+`formatTemplate` takes the local name; `name` on `InstalledTool` stays the
+scoped one for a test that needs it, and `localName` is added beside it.
+
+#### 6.8 — The guide is for the author, the migration document for the upgrade
+
+"Reader capabilities" and most of "Coded failures" describe what changed and
+why — bound facades, owner encodings, fixed-length digests, which Discord and
+Slack settings start fresh. An outside author reading the guide for the first
+time cannot act on any of it.
+
+Test: the docs check already exists; this slice moves prose, not code.
+
+Fix: the change-and-why paragraphs move to `AUTHORING_0.2_MIGRATION.md`
+under the release they describe. What stays in the guide is what an author
+does: the reader an author gets, the codes an author branches on, how a
+failure reaches a test. The guide's intro leads with the model and moves the
+version caveats after it.
+
+### What held up
+
+The two-object definition, `runtimeState`, `defineJob().handle()`, the typed
+`harness.request(dueCount, …)` answering `{ ok: true, data: { count: 1 } }`,
+`installed.jobs[].run` marking a record done, and the inline literal-response
+inference — `handle: () => ({ status: "ok" })` with no assertion — all worked
+first time from the guide alone.
+
+### Stopping rule for Phase 6
+
+The package above is added as the ninth golden fixture,
+`packages/brain-cli/test/fixtures/public-authoring/reminders`, with its four
+tests running through the public testing entry in the packed consumer. Phase 6
+is done when they pass with none of the workarounds this section names. The
+rule from Phase 5 then applies again: a further change needs a further
+demonstrated failure.
