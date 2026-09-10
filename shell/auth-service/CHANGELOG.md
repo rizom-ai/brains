@@ -1,5 +1,18 @@
 # @brains/auth-service
 
+## 0.2.0-alpha.363
+
+### Patch Changes
+
+- [#237](https://github.com/rizom-ai/brains/pull/237) [`6e17546`](https://github.com/rizom-ai/brains/commit/6e17546fd41c2d52ee602c2ac2cb2dc08fc9a5a9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Explain that brain sign-in uses passkeys rather than passwords, and replace the bare completed-setup error with clear sign-in and administrator-assisted recovery guidance.
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.363
+  - @brains/contracts@0.2.0-alpha.363
+  - @brains/db@0.2.0-alpha.363
+  - @brains/utils@0.2.0-alpha.363
+  - @brains/plugins@0.2.0-alpha.363
+
 ## 0.2.0-alpha.362
 
 ### Patch Changes

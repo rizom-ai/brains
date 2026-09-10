@@ -231,6 +231,7 @@
     "core--agent-sightings-inbox-source",
     "core--atomic-job-deduplication",
     "core--atproto-lexicon-derived-strictness",
+    "core--auth-passkey-recovery-guidance",
     "core--auth-session-store-single-revoke",
     "core--authoring-nomination-evidence",
     "core--authoritative-site-build-status",
