@@ -1,5 +1,12 @@
 # @brains/operation-context
 
+## 0.2.0-alpha.364
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.364
+
 ## 0.2.0-alpha.363
 
 ### Patch Changes

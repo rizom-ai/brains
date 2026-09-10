@@ -1,5 +1,14 @@
 # @brains/operator-view-react
 
+## 0.2.0-alpha.364
+
+### Patch Changes
+
+- [#238](https://github.com/rizom-ai/brains/pull/238) [`1a86a8b`](https://github.com/rizom-ai/brains/commit/1a86a8bdc21febdc1e8315a77fe7861f58535b0b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep a dismissible action receipt in the workspace when refreshed data removes the control that produced it, so sensitive invitation setup links remain available to copy after resend.
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.364
+
 ## 0.2.0-alpha.363
 
 ### Patch Changes
