@@ -2,14 +2,15 @@
 
 ## Status and scope
 
-**Three review correction passes implemented and validated. The reproduced
-acceptance and DX gaps below are fixed; broader unchecked criteria are not
-implicitly signed off. Exact-registry evidence and stable nomination remain
-separate.**
+**DX acceptance is complete for the local candidate following `d3ed1895a9`.
+All five bounded checks and implementation-acceptance criteria are closed with
+source, built, packed, and repository-gate evidence. Stop abstraction cleanup.
+This close-out does not imply merge, exact-registry evidence, publication,
+or stable nomination.**
 
 ### Validated continuation checkpoint
 
-This commit collects the completed continuation work after `6b1efb3f88`: response
+Commit `d3ed1895a9` collects the completed continuation work after `6b1efb3f88`: response
 inference, shared errors and job/batch follow-through, runtime capability and
 metadata projections, state/upload owner isolation, and UI build-race fixes.
 Validation passes with **33 public SDK tests**, **103/103 typecheck**, **101/101
@@ -18,8 +19,51 @@ surface/static/documentation gate set.
 
 The historical **uncommitted** labels and no-commit statements below describe
 each slice when recorded; their completed changes are included in this checkpoint.
-The whole-surface callback and obsolete-path inventory remains open. This is not
-final DX sign-off, exact-registry evidence, publication, or stable nomination.
+At that checkpoint the callback and obsolete-path inventory remained open;
+the bounded close-out below records its subsequent disposition. The checkpoint
+alone was not final DX sign-off, exact-registry evidence, publication, or stable
+nomination.
+
+### Bounded close-out checklist after d3ed1895a9
+
+Do not reopen the validated inference, state/upload ownership, job/batch,
+auth/MCP, projection, logger, or metadata corrections without a new reproduction.
+The acceptance work was bounded to the following five checks, not an open-ended
+search for nicer abstractions. Each is now closed by a contract-to-runtime comparison
+and existing or new regression evidence; only demonstrated gaps required code.
+
+| Check | Remaining paths                                                                                                                              | Status / exit evidence                                                                                                                                                                                                                                                                                                                                  |
+| ----- | -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| C1    | Supplementary service setup/reaction namespaces: views/templates, entity shapes, publishing, health/readiness, and returned descriptors.     | Closed, corrected. View script/asset metadata was shared with the registry: detach it and use the real renderer registry in the harness. Public SDK and `templates/test/renderService.test.ts` regressions pass. Entity shapes, template capabilities, publishing and readiness return their declared operations/data.                                  |
+| C2    | Specialized entity callbacks: attachment factories, insights, dashboard surveys/semantic reads, creation/publication hooks.                  | Closed, corrected. Attachment factories now receive four declared media members with frozen bound readers; the public SDK regression proves reads and rejects host/mutation authority. Insights, dashboard surveys/semantic reads and creation/publication callbacks construct their declared capabilities explicitly.                                  |
+| C3    | Remaining interface/message callbacks: daemons and health, account iteration, receiver/listen, send/edit/progress/presentation/delivery.     | Closed without changes. `declarative-daemon.ts`, `account-daemon-supervisor.ts`, and both interface implementations construct explicit arguments; health exposes ready/warning, not controllers. Existing interface/message, account, route and packed Phase 5 regressions cover execution and lifecycle.                                               |
+| C4    | Operator/contribution/advanced paths: account-settings redaction, workspace/widget handlers, infrastructure opt-in, and rich template entry. | Closed without changes. `operator-context-runtime.ts` redacts secret settings; workspace/widget runtimes bind scoped operations. Infrastructure facts/mirrors require explicit opt-in. Operator/workspace tests and standalone account-settings/operator consumers cover these paths. Rich templates retain rendering definitions, not host registries. |
+| C5    | Acceptance reconciliation: removed APIs/aliases, coded-error consumers, public export audience, and final checklist.                         | Closed, corrected; final gates pass. Remove the unused internal `reconcileEntities` implementation/export. Auth reports absent anchors as `not_found`; Admin no longer matches error text. Real auth/Admin regressions cover changed wording and rejection of message-only lookalikes.                                                                  |
+
+The remaining `runtimeTemplates()` is the current single-template compiler, not
+the removed templates/views merge path. Scoped package IDs and contributor
+`.bind` are intentional retained decisions (H and I were withdrawn), as are the
+simple/advanced projection families and internal runtime classes. Native network
+and Git CLI error-text checks are not SDK error-code consumers. Searches found
+no remaining production consumers or implementation of the removed reconciler.
+
+All five rows and the implementation-acceptance boxes below are closed. Final
+evidence: **35 public SDK tests** through source, built exports, and an isolated
+packed consumer; forced **103/103 typecheck**, **101/101 test**, **96/96 lint**
+tasks; **7/7 fresh packed scenarios** (including the running-app site rebuild);
+and the complete surface, boot, static, docs, formatting, and diff gates.
+
+Reproductions and gate logs are recorded under `/tmp/plugin-dx-next/closeout-*`.
+Durable regressions are in `packages/brain-sdk/test/testing-entry.test.ts`,
+`shell/templates/test/renderService.test.ts`,
+`shell/auth-service/test/administration-contract.test.ts`, and
+`plugins/admin/test/people-workspace.test.ts`. The changeset and external guide
+record the observable corrections. No state keys, upload paths, saved content,
+or migration policy changed.
+
+There is no remaining implementation acceptance work in this plan. New cleanup
+requires a reproduced authoring failure or a supported consumer need. Exact-registry
+evidence, publication, and stable nomination remain outside this close-out.
 
 ### Internal DX continuation after 6b1efb3f88
 
@@ -65,7 +109,7 @@ gate or a substitute for resolving reproduced defects.
       Error and terminal callbacks reuse the attempt's prepared input instead of
       reparsing defaults/transforms. Remove the unused internal `BatchJobData`
       schema; this does not add durable batch coordination or compatibility shims.
-- [ ] Finish the whole-surface runtime-capability audit. The export ledger's
+- [x] Finish the whole-surface runtime-capability audit. The export ledger's
       removed names are not proof that narrowed callbacks receive narrowed
       objects. Check ordinary callback objects and named advanced consumers;
       keep actual obsolete-path removal distinct from legitimate protocol and
@@ -73,7 +117,8 @@ gate or a substitute for resolving reproduced defects.
       intentional setup capability: Studio and web-chat own destinations and
       register them there. Its plugin-bound namespace and registry finalization
       guard are supported by the existing registry and consumer tests; it is not
-      a nominal-reader leak. The rest of the callback inventory remains open.
+      a nominal-reader leak. The bounded C1–C5 table above supersedes this
+      historical open inventory.
 
 #### Runtime-reader continuation (uncommitted)
 
@@ -1519,7 +1564,11 @@ Sources: `shell/plugins/src/service/service-definition-contract.ts`
 `shell/plugins/src/operator/{studio-workspace,dashboard-widget}-runtime.ts`,
 and `plugins/directory-sync/src/{service,lib/studio-workspace}.ts`.
 
-## Whole-surface simplification recommendations
+## Whole-surface simplification recommendations (historical)
+
+These are investigation recommendations, not remaining work. Subsequent
+implementation and the dispositions above supersede them, including the withdrawn
+H (unscoped IDs) and I (removing contributor binding) proposals.
 
 This includes pre-existing APIs, not only the six candidates. The existing
 `main` service/template entry points were also checked so inherited surface is
@@ -1735,13 +1784,13 @@ posture script and rebuild preview through the running app before inspecting
 
 - [x] Promised exports and packed declarations agree in both directions, with
       no exception list.
-- [ ] Normal authoring avoids host registries, broker details, and process roles.
+- [x] Normal authoring avoids host registries, broker details, and process roles.
 - [x] Setup inference and route instance state are predictable and tested.
 - [x] Presentation ownership has one documented rule used by real consumers.
 - [x] Golden examples compile unchanged outside the monorepo and exercise live paths.
-- [ ] Public SDK failures have stable codes; consumers do not match message text,
+- [x] Public SDK failures have stable codes; consumers do not match message text,
       and supported cross-boundary mappings preserve codes without leaking internals.
-- [ ] Superseded alpha APIs are removed, consumers are migrated, and no legacy
+- [x] Superseded alpha APIs are removed, consumers are migrated, and no legacy
       aliases, compatibility shims, or dual authoring paths remain from this cleanup.
 - [x] Any advanced-contract additions are explicit.
 - [x] `@rizom/brain/testing` is in the ledger and the packed-consumer check, and

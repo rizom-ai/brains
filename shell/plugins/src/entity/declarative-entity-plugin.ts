@@ -1061,7 +1061,23 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         context.attachments.register(
           this.entityType,
           attachment.type,
-          attachment.provider(context),
+          attachment.provider(
+            Object.freeze({
+              domain: context.domain,
+              themeCSS: context.themeCSS,
+              identity: Object.freeze({
+                getProfile: context.identity.getProfile.bind(context.identity),
+              }),
+              entityService: Object.freeze({
+                getEntity: context.entityService.getEntity.bind(
+                  context.entityService,
+                ),
+                listEntities: context.entityService.listEntities.bind(
+                  context.entityService,
+                ),
+              }),
+            }),
+          ),
         ),
       );
     }

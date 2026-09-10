@@ -764,8 +764,10 @@ async function loadBrainAnchor(
     return await authService.getBrainAnchor();
   } catch (error) {
     if (
-      error instanceof Error &&
-      error.message === "Brain anchor is not configured"
+      error !== null &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "not_found"
     ) {
       return undefined;
     }

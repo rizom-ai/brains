@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import type { StudioWorkspaceActor } from "@brains/plugins";
 import { createMockShell, createTempDataDir } from "@brains/plugins/test";
@@ -41,6 +41,51 @@ function findById(value: unknown, id: string): unknown {
 }
 
 describe("Administration People tab", () => {
+  it("recognizes anchor absence by code, not error wording", async () => {
+    const shell = createMockShell({ domain: "brain.test" });
+    shell.getChannelRegistry().finalize();
+    const auth = new AuthServicePlugin({
+      storageDir: await createTempDataDir("brains-admin-anchor-code-"),
+    });
+    authPlugins.push(auth);
+    await auth.register(shell);
+    const service = auth.getService();
+    await service.initialize();
+    const admin = await service.createUser({
+      displayName: "Admin",
+      role: "admin",
+    });
+    const anchor = spyOn(service, "getBrainAnchor").mockRejectedValue(
+      Object.assign(
+        new Error(
+          "Different diagnostic wording from another package copy".repeat(100),
+        ),
+        { code: "not_found" },
+      ),
+    );
+    try {
+      const workspace = administrationTab(
+        await captureAdminWorkspaces(shell),
+        "people",
+      );
+      const actor = actorFor(adminActor, admin);
+      expect(await workspace.dataProvider(actor, {})).toMatchObject({
+        view: { title: "Administration" },
+      });
+      anchor.mockRejectedValue(new Error("Brain anchor is not configured"));
+      const failure = await workspace.dataProvider(actor, {}).then(
+        () => undefined,
+        (error: unknown) => error,
+      );
+      expect(failure).toBeInstanceOf(Error);
+      expect(failure).toMatchObject({
+        message: expect.stringContaining("data loader failed"),
+      });
+    } finally {
+      anchor.mockRestore();
+    }
+  });
+
   it("owns roster detail and attributed access administration through the shared registration contract", async () => {
     const shell = createMockShell({ domain: "brain.test" });
     shell.getChannelRegistry().registerDescriptor("test", {

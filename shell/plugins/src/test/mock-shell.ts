@@ -45,7 +45,11 @@ import {
   createProjectionInputReader,
   createProjectionExecutionReader,
 } from "../entity/projection-rule";
-import type { Template } from "@brains/templates";
+import {
+  InMemoryTemplateRegistry,
+  RenderService,
+  type Template,
+} from "@brains/templates";
 import { PermissionService } from "@brains/templates";
 import { MessageBus } from "@brains/messaging-service";
 import type { IContentService, ContentTemplate } from "@brains/content-service";
@@ -89,7 +93,6 @@ import type {
   RuntimeStateRecordValue,
   RuntimeStateScopeOptions,
 } from "@brains/runtime-state";
-import type { ViewTemplateRegistry } from "@brains/templates";
 import type { IConversationService } from "@brains/conversation-service";
 import {
   AnchorProfileAdapter,
@@ -332,7 +335,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       metadata: adapter.extractMetadata(entity),
     };
   };
-  const templates = new Map<string, Template>();
+  const templates = InMemoryTemplateRegistry.createFresh();
   const dataSources = new Map<string, DataSource>();
   const plugins = new Map<string, Plugin>();
 
@@ -1031,7 +1034,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       return template ? toContentTemplate(template) : null;
     },
     listTemplates: (): ContentTemplate<unknown>[] =>
-      Array.from(templates.values()).map(toContentTemplate),
+      templates.list().map(toContentTemplate),
     // No data sources are wired into the fake, so nothing resolves.
     resolveContent: async <T = unknown>(): Promise<T | null> => null,
   } satisfies IContentService;
@@ -1274,15 +1277,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     close: () => {},
   };
 
-  const renderService: ViewTemplateRegistry = {
-    get: () => undefined,
-    list: () => [],
-    validate: () => true,
-    findViewTemplate: () => undefined,
-    getRenderer: () => undefined,
-    hasRenderer: () => false,
-    listFormats: () => [],
-  };
+  const renderService = RenderService.createFresh(templates);
 
   const mcpTransport: IMCPTransport = {
     getMcpServer: (): never => {
@@ -1492,7 +1487,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     registerTemplates: (tmpls: Record<string, Template>, pluginId?: string) => {
       for (const [name, template] of Object.entries(tmpls)) {
         const scopedName = pluginId ? `${pluginId}:${name}` : `shell:${name}`;
-        templates.set(scopedName, template);
+        templates.register(scopedName, template);
       }
     },
     getTemplate: (name: string) => templates.get(name),
@@ -1670,7 +1665,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       plugins.delete(pluginId);
     },
     getPlugin: (pluginId: string) => plugins.get(pluginId),
-    getTemplates: () => new Map(templates),
+    getTemplates: () => templates.getAll(),
     setAgentService: (svc: IAgentService) => {
       agentService = svc;
     },

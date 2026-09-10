@@ -1,4 +1,5 @@
 import type { ChannelDescriptor } from "@brains/plugins";
+import { SdkError } from "@brains/contracts";
 import type {
   AuthAdminUserSummary,
   AuthBrainAnchorConfigKind,
@@ -316,7 +317,10 @@ export class AuthAdministrationService {
       this.users.getBrainAnchor(),
       this.users.listUsers(),
     ]);
-    if (!anchor) throw new Error("Brain anchor is not configured");
+    if (!anchor)
+      throw new SdkError("not_found", {
+        publicMessage: "Brain anchor is not configured",
+      });
     return brainAnchorSummary(
       anchor,
       users,

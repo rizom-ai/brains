@@ -18,6 +18,7 @@ import {
   defineEntity,
   defineProjectionRule,
   type AttachmentProvider,
+  type MediaAttachmentContext,
   type JobHandlerContext,
 } from "@brains/sdk/entities";
 import {
@@ -599,6 +600,136 @@ describe("the public testing harness", () => {
       for (const [index, read] of reads.entries()) {
         expect(await read()).toEqual({ ok: true, data: cases[index]?.name });
       }
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("keeps returned view metadata local to its reader", async () => {
+    const entity = defineEntity({
+      type: "view-record",
+      purpose: "View metadata boundary",
+      metadata: z.object({}),
+      templates: {
+        card: createTemplate({
+          name: "card",
+          description: "A scripted view",
+          requiredPermission: "public",
+          schema: z.object({}),
+          layout: {
+            component: (): never => {
+              throw new Error("Rendering is not exercised here");
+            },
+          },
+          runtimeScripts: [{ src: "/scripts/card.js", defer: true }],
+          staticAssets: { "/scripts/card.js": "original" },
+        }),
+      },
+    });
+    let check: (() => void) | undefined;
+    const definition = defineServicePlugin(
+      {
+        id: "view-reader",
+        config: z.object({}),
+        entities: [entity],
+        setup: ({ views }) => {
+          check = (): void => {
+            const name = "@fixture/views:view-record:card";
+            for (const view of [views.get(name), ...views.list()]) {
+              if (!view?.runtimeScripts?.[0] || !view.staticAssets)
+                throw new Error("Expected view metadata");
+              view.runtimeScripts[0].src = "/changed.js";
+              view.runtimeScripts.push({ src: "/added.js" });
+              view.staticAssets["/scripts/card.js"] = "changed";
+            }
+            expect(views.get(name)?.runtimeScripts).toEqual([
+              { src: "/scripts/card.js", defer: true },
+            ]);
+            expect(
+              views.list().find((view) => view.name === name)?.staticAssets,
+            ).toEqual({ "/scripts/card.js": "original" });
+            expect(views.getRenderer(name)).toBe(
+              views.get(name)?.renderers.web,
+            );
+          };
+          return {};
+        },
+      },
+      {},
+    );
+    const harness = createBrainTestHarness();
+    try {
+      await harness.installPackage(
+        definition,
+        {},
+        { name: "@fixture/views", version: "0.1.0" },
+      );
+      await harness.finalizeRegistration();
+      if (!check) throw new Error("View reader was not initialized");
+      check();
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("gives attachment factories only their declared media context", async () => {
+    const harness = createBrainTestHarness({ domain: "media.test" });
+    let media: MediaAttachmentContext | undefined;
+    const entity = defineEntity({
+      type: "media-boundary",
+      purpose: "Media factory boundary",
+      metadata: z.object({}),
+      attachments: [
+        {
+          type: "preview",
+          provider: (context): AttachmentProvider => {
+            media = context;
+            expect(Object.keys(context).sort()).toEqual([
+              "domain",
+              "entityService",
+              "identity",
+              "themeCSS",
+            ]);
+            expect(Object.isFrozen(context)).toBe(true);
+            expect(Object.keys(context.identity)).toEqual(["getProfile"]);
+            expect(Object.isFrozen(context.identity)).toBe(true);
+            expect(Object.keys(context.entityService).sort()).toEqual([
+              "getEntity",
+              "listEntities",
+            ]);
+            expect(Object.isFrozen(context.entityService)).toBe(true);
+            expect(context).not.toHaveProperty("messaging");
+            expect(context).not.toHaveProperty("jobs");
+            expect(context.entityService).not.toHaveProperty("deleteEntity");
+            // @ts-expect-error Media factories do not receive the plugin's message bus.
+            void context.messaging;
+            // @ts-expect-error Media factories cannot replace identity configuration.
+            void context.identity.updateProfile;
+            // @ts-expect-error The media entity reader does not expose mutations.
+            void context.entityService.deleteEntity;
+            return { resolve: (): undefined => undefined };
+          },
+        },
+      ],
+    });
+    try {
+      await harness.installPackage(
+        defineServicePlugin(
+          { id: "media-package", config: z.object({}), entities: [entity] },
+          {},
+        ),
+      );
+      await harness.finalizeRegistration();
+      if (!media) throw new Error("Media factory was not invoked");
+      expect(media.domain).toBe("media.test");
+      expect(typeof media.themeCSS).toBe("string");
+      const { getProfile } = media.identity;
+      expect(getProfile()).toHaveProperty("name");
+      const { getEntity, listEntities } = media.entityService;
+      expect(
+        await getEntity({ entityType: entity.type, id: "missing" }),
+      ).toBeNull();
+      expect(await listEntities({ entityType: entity.type })).toEqual([]);
     } finally {
       await harness.reset();
     }
