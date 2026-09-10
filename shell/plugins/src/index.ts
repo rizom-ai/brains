@@ -10,11 +10,6 @@ export {
 } from "./entity/entity-plugin";
 export { computeProjectionInputFingerprint } from "./entity/projection-input-fingerprint";
 export {
-  reconcileEntities,
-  type ReconcileEntitiesOptions,
-  type ReconcileEntitiesResult,
-} from "./entity/entity-reconciler";
-export {
   CONVERSATION_SOURCE_TYPE,
   PROJECTION_ABSTAINED,
   type ProjectionAbstention,
