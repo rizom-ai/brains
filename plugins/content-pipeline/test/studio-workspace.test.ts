@@ -62,6 +62,49 @@ const preparedConfirmationSchema = z.object({
 const successResultSchema = z.object({ success: z.literal(true) });
 
 describe("content-pipeline Studio workspace registration", () => {
+  it("shows one rest notice without an empty queue tab", async () => {
+    const context = createServicePluginContext(
+      createMockShell(),
+      "content-pipeline",
+    );
+    context.entities.register(
+      "social-post",
+      baseEntitySchema,
+      new FixtureAdapter(),
+    );
+    const providers = ProviderRegistry.createFresh();
+    providers.register("social-post", {
+      name: "linkedin",
+      publish: async () => ({ id: "remote" }),
+    });
+    const queue = QueueManager.createFresh();
+    let registration: StudioWorkspaceRegistration | undefined;
+    context.messaging.subscribe<
+      StudioWorkspaceRegistration,
+      { workspaceUrl: string }
+    >("studio:register-workspace", async (message) => {
+      registration = message.payload;
+      return {
+        success: true,
+        data: { workspaceUrl: "/studio/workspaces/publishing" },
+      };
+    });
+    await registerStudioWorkspace(context, {
+      providerRegistry: providers,
+      queueManager: queue,
+      publicationQueueService: new PublicationQueueService(context, queue),
+      retryTracker: RetryTracker.createFresh(),
+      publishExecutor: new PublishExecutor({
+        context,
+        providerRegistry: providers,
+      }),
+    });
+    if (!registration) throw Error("Workspace was not registered");
+    const result = JSON.stringify(await registration.dataProvider(adminActor));
+    expect(result).toContain('"id":"publishing-at-rest"');
+    expect(result).not.toContain('"id":"publishing-queue"');
+    expect(result).toContain('"label":"Published"');
+  });
   it("is a no-op when the Studio is absent", async () => {
     const context = createServicePluginContext(
       createMockShell(),
@@ -174,6 +217,7 @@ describe("content-pipeline Studio workspace registration", () => {
           {
             id: "publishing-attention",
             presentation: "disclosure",
+            disclosureLabel: "Review failure",
             tone: "warn",
             metadata: ["Failed post · Retries: 0"],
             blocks: [
@@ -206,6 +250,7 @@ describe("content-pipeline Studio workspace registration", () => {
                     items: [
                       {
                         description: "linkedin",
+                        actionsLabel: "Queue options",
                         metadata: ["Position 1", "Next dispatch"],
                         actions: [
                           { label: "Move up", disabled: true },

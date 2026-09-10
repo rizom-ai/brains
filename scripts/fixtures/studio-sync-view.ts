@@ -11,8 +11,12 @@ import {
   type DirectorySyncWorkspaceSnapshot,
 } from "../../plugins/directory-sync/src/lib/studio-workspace";
 
+import type { StudioStudyState } from "./studio-study-state";
+
 /** Seed status records, never a parallel implementation of the workspace view. */
-export async function createSyncViewFixture(): Promise<() => Promise<unknown>> {
+export async function createSyncViewFixture(
+  state?: StudioStudyState,
+): Promise<() => Promise<unknown>> {
   const context = createServicePluginContext(
     createMockShell(),
     "directory-sync",
@@ -38,7 +42,7 @@ export async function createSyncViewFixture(): Promise<() => Promise<unknown>> {
   });
   class FixtureSyncProvider extends DirectorySyncWorkspaceProvider {
     override async getSnapshot(): Promise<DirectorySyncWorkspaceSnapshot> {
-      return {
+      const snapshot: DirectorySyncWorkspaceSnapshot = {
         health: "attention",
         directory: {
           displayPath: "brain-data",
@@ -110,6 +114,50 @@ export async function createSyncViewFixture(): Promise<() => Promise<unknown>> {
           },
         ],
       };
+      if (state === "empty")
+        return {
+          ...snapshot,
+          health: "healthy",
+          directory: { ...snapshot.directory, lastSettledAt: undefined },
+          recentRuns: [],
+          issues: [],
+          git: snapshot.git
+            ? {
+                ...snapshot.git,
+                hasChanges: false,
+                ahead: 0,
+                behind: 0,
+                changedFiles: [],
+              }
+            : null,
+        };
+      if (state === "dense")
+        return {
+          ...snapshot,
+          issues: [
+            ...snapshot.issues,
+            {
+              id: "dense-path",
+              kind: "git",
+              occurredAt: "2026-07-11T09:15:01.000Z",
+              message:
+                "Exact retained diagnostic: " +
+                "nested-path/".repeat(28) +
+                "document.md",
+            },
+          ],
+          git: snapshot.git
+            ? {
+                ...snapshot.git,
+                changedFiles: Array.from({ length: 36 }, (_, index) => ({
+                  path: `notes/${"nested-directory/".repeat(8)}record-${index}.md`,
+                  status: index === 35 ? "unexpected-native-status" : "M",
+                })),
+                changedFilesTruncated: true,
+              }
+            : null,
+        };
+      return snapshot;
     }
   }
   await new FixtureSyncProvider({

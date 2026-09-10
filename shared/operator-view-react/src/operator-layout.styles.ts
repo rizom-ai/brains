@@ -1,6 +1,8 @@
 import * as stylex from "@stylexjs/stylex";
 export const layoutStyles: Record<
   | "card"
+  | "labeledDisclosure"
+  | "disclosureHeading"
   | "compactCard"
   | "feature"
   | "featureHeading"
@@ -22,10 +24,29 @@ export const layoutStyles: Record<
   | "compactColumns"
   | "region"
   | "joinedRegion"
-  | "compactAside",
+  | "compactAside"
+  | "asideRegion",
   stylex.StyleXStyles
 > = stylex.create({
   card: { minWidth: 0 },
+  labeledDisclosure: {
+    display: "grid",
+    gridTemplateColumns: {
+      default: "minmax(0,1fr) auto",
+      ":has(> details[open])": "minmax(0,1fr)",
+      "@media (max-width: 640px)": "minmax(0,1fr)",
+    },
+    alignItems: "center",
+    gap: 16,
+  },
+  disclosureHeading: {
+    display: "block",
+    borderBottomWidth: 0,
+    paddingBottom: 0,
+    marginBottom: 0,
+    letterSpacing: 0,
+    textTransform: "none",
+  },
   compactCard: {
     padding: "15px 16px 16px",
     borderWidth: 1,
@@ -171,4 +192,8 @@ export const layoutStyles: Record<
   region: { display: "grid", alignContent: "start", gap: 26, minWidth: 0 },
   joinedRegion: { gap: 0 },
   compactAside: { gap: 15 },
+  asideRegion: {
+    containerName: "operator-aside",
+    containerType: "inline-size",
+  },
 });

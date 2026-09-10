@@ -312,8 +312,7 @@ function sourceCard(
 
 function activityCard(
   activity: readonly OverviewActivity[],
-): RuntimeStudioOperatorCardBlock | undefined {
-  if (activity.length === 0) return undefined;
+): RuntimeStudioOperatorCardBlock {
   return {
     type: "card",
     id: "overview-activity",
@@ -615,7 +614,8 @@ function overviewView(
       },
     ],
   };
-  const recentActivity = activityCard(activity);
+  const recentActivity =
+    attention > 0 || activity.length > 0 ? activityCard(activity) : undefined;
   const primarySources = loaded
     .filter((source) => source.contribution.section !== "sidebar")
     .map(sourceCard);
@@ -626,10 +626,23 @@ function overviewView(
     kicker: "Operator home",
     title: "Overview",
     blocks: [
+      ...(attention === 0 && activity.length === 0
+        ? [
+            {
+              type: "notice" as const,
+              id: "overview-at-rest",
+              title: "Nothing needs your attention.",
+              text: "No recent activity is available.",
+            },
+          ]
+        : []),
       {
         type: "columns",
         id: "overview-columns",
-        primary: [attentionCard, ...primarySources],
+        primary: [
+          ...(attention === 0 && activity.length === 0 ? [] : [attentionCard]),
+          ...primarySources,
+        ],
         aside: [
           ...(recentActivity ? [recentActivity] : []),
           ...runtime.map((card) => ({

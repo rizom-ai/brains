@@ -22,6 +22,8 @@ import { PublicationQueueService } from "../../plugins/content-pipeline/src/publ
 import { PublishExecutor } from "../../plugins/content-pipeline/src/publish-executor";
 import { registerStudioWorkspace } from "../../plugins/content-pipeline/src/lib/studio-workspace";
 
+import type { StudioStudyState } from "./studio-study-state";
+
 class FixtureAdapter extends BaseEntityAdapter<BaseEntity> {
   constructor(entityType: string) {
     super({
@@ -37,7 +39,9 @@ class FixtureAdapter extends BaseEntityAdapter<BaseEntity> {
 }
 
 /** Only source records are seeded; production providers compile the views. */
-export async function createDeliveryViewFixtures(): Promise<{
+export async function createDeliveryViewFixtures(
+  state?: StudioStudyState,
+): Promise<{
   site: () => Promise<unknown>;
   publishing: () => Promise<unknown>;
 }> {
@@ -71,7 +75,7 @@ export async function createDeliveryViewFixtures(): Promise<{
   );
   class FixtureSiteProvider extends SiteWorkspaceProvider {
     override async getSnapshot(): Promise<SiteWorkspaceSnapshot> {
-      return {
+      const snapshot: SiteWorkspaceSnapshot = {
         site: {
           title: "Rover collective",
           previewUrl: "https://preview.example.com",
@@ -125,6 +129,54 @@ export async function createDeliveryViewFixtures(): Promise<{
           path: index === 0 ? "/" : `/notes/${index}/`,
         })),
       };
+      if (state === "empty")
+        return {
+          ...snapshot,
+          site: { title: snapshot.site.title },
+          recentBuilds: [],
+          routes: [],
+          environments: snapshot.environments.map(({ environment }) => ({
+            environment,
+            publication: { state: "not-published" },
+          })),
+        };
+      if (state === "busy")
+        return {
+          ...snapshot,
+          environments: snapshot.environments.map((environment) =>
+            environment.environment === "preview"
+              ? {
+                  ...environment,
+                  active: {
+                    state: "building",
+                    jobId: "fixture-preview-active",
+                    requestedAt: "2026-07-11T16:39:00.000Z",
+                    startedAt: "2026-07-11T16:39:10.000Z",
+                  },
+                }
+              : environment,
+          ),
+        };
+      if (state === "failure")
+        return {
+          ...snapshot,
+          environments: snapshot.environments.map((environment) =>
+            environment.environment === "preview"
+              ? {
+                  ...environment,
+                  lastFailure: {
+                    jobId: "fixture-preview-failed",
+                    completedAt: "2026-07-11T16:39:00.000Z",
+                    message:
+                      "Preview rendering failed.\n" +
+                      "Retained renderer diagnostic.\n".repeat(180) +
+                      "Exact diagnostic reference: fixture-preview-failed",
+                  },
+                }
+              : environment,
+          ),
+        };
+      return snapshot;
     }
   }
   await new FixtureSiteProvider({
@@ -189,7 +241,7 @@ export async function createDeliveryViewFixtures(): Promise<{
     })),
   ];
   const queue = QueueManager.createFresh();
-  for (const record of records) {
+  for (const record of state === "empty" ? [] : records) {
     await context.entityService.createEntity({
       entity: {
         id: record.id,
@@ -204,43 +256,47 @@ export async function createDeliveryViewFixtures(): Promise<{
   }
   context.jobs.getActiveJobs = async (): Promise<
     Awaited<ReturnType<typeof context.jobs.getActiveJobs>>
-  > => [
-    {
-      id: "generation-1",
-      type: "image:image-render-source",
-      source: "content-pipeline",
-      status: "processing",
-      data: JSON.stringify({
-        sourceEntityType: "post",
-        sourceEntityId: "travelling-console",
-        attachmentType: "og-image",
-      }),
-      priority: 0,
-      retryCount: 0,
-      maxRetries: 3,
-      lastError: null,
-      createdAt: 0,
-      scheduledFor: 0,
-      startedAt: null,
-      completedAt: null,
-      attemptId: "generation-attempt",
-      workerSlotId: "fixture-worker",
-      workerSessionId: "fixture-session",
-      leaseExpiresAt: 30000,
-      attemptHeartbeatAt: 0,
-      runtimeUpdatedAt: 0,
-      progress: null,
-      metadata: {
-        operationType: "content_operations",
-        rootJobId: "generation-1",
-      },
-    },
-  ];
+  > =>
+    state === "empty"
+      ? []
+      : [
+          {
+            id: "generation-1",
+            type: "image:image-render-source",
+            source: "content-pipeline",
+            status: "processing",
+            data: JSON.stringify({
+              sourceEntityType: "post",
+              sourceEntityId: "travelling-console",
+              attachmentType: "og-image",
+            }),
+            priority: 0,
+            retryCount: 0,
+            maxRetries: 3,
+            lastError: null,
+            createdAt: 0,
+            scheduledFor: 0,
+            startedAt: null,
+            completedAt: null,
+            attemptId: "generation-attempt",
+            workerSlotId: "fixture-worker",
+            workerSessionId: "fixture-session",
+            leaseExpiresAt: 30000,
+            attemptHeartbeatAt: 0,
+            runtimeUpdatedAt: 0,
+            progress: null,
+            metadata: {
+              operationType: "content_operations",
+              rootJobId: "generation-1",
+            },
+          },
+        ];
   const retries = RetryTracker.createFresh();
-  retries.recordFailure(
-    "field-notes",
-    "Provider rejected the last delivery attempt.",
-  );
+  if (state !== "empty")
+    retries.recordFailure(
+      "field-notes",
+      "Provider rejected the last delivery attempt.",
+    );
   await registerStudioWorkspace(context, {
     providerRegistry: providers,
     queueManager: queue,

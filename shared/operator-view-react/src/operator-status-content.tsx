@@ -7,14 +7,19 @@ type Tone = "neutral" | "good" | "warn" | "error";
 
 export function OperatorStatusPill(
   props: ComponentProps<"span"> & {
-    tone: Tone;
-    presentation?: "outline" | "soft";
+    tone: Tone | "muted";
+    presentation?: "outline" | "soft" | "label";
   },
 ): ReactElement {
   const { tone, presentation, ...attributes } = props;
   const css = stylex.props(
     s.pill,
-    s[tone],
+    s[tone === "muted" ? "neutral" : tone],
+    presentation === "label" && s.labelPill,
+    presentation === "label" && tone === "neutral" && s.labelNeutral,
+    presentation === "label" && tone === "good" && s.labelGood,
+    presentation === "label" && tone === "warn" && s.labelWarn,
+    presentation === "label" && tone === "error" && s.labelError,
     presentation === "soft" && s.softPill,
     presentation === "soft" && tone === "good" && s.goodSoft,
   );

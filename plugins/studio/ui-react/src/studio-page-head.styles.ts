@@ -96,5 +96,31 @@ export const headStyles: Record<
     marginLeft: "auto",
     maxWidth: "100%",
     flexShrink: 0,
+    "@media (max-width: 640px)": {
+      maxHeight: {
+        default: null,
+        ":has([data-operator-action-result])": "calc(100dvh - 124px)",
+      },
+      overflowY: {
+        default: null,
+        ":has([data-operator-action-result])": "auto",
+      },
+      padding: { default: null, ":has([data-operator-action-result])": 12 },
+      border: {
+        default: null,
+        ":has([data-operator-action-result])":
+          "1px solid var(--console-rule-strong)",
+      },
+      backgroundColor: {
+        default: null,
+        ":has([data-operator-action-result])":
+          "color-mix(in srgb, var(--console-card) 96%, transparent)",
+      },
+      boxShadow: {
+        default: null,
+        ":has([data-operator-action-result])":
+          "0 18px 48px -18px color-mix(in srgb, var(--console-text) 55%, transparent)",
+      },
+    },
   },
 });

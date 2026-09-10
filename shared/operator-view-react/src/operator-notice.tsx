@@ -18,11 +18,7 @@ export function OperatorNotice(props: {
     compact ? s.compact : s.comfortable,
   );
   return (
-    <aside
-      {...root}
-      className={`operator-notice ${root.className ?? ""}`}
-      data-tone={props.tone}
-    >
+    <aside {...root} data-tone={props.tone}>
       <div {...stylex.props(s.copy)}>
         {props.title && (
           <strong {...stylex.props(s.title, compact && s.compactTitle)}>

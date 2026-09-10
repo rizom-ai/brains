@@ -19,7 +19,7 @@ exports[`widget UI primitives renders validated declarative views with host-owne
           "attributes": [
             [
               "class",
-              "declarative-head",
+              "x78zum5 x1a02dak x1cy8zhl x1qughib x1lblyuz x1l90r2v xlxy82 x1q0q8m5 x1594w68 xeuugli",
             ],
           ],
           "children": [
@@ -27,7 +27,7 @@ exports[`widget UI primitives renders validated declarative views with host-owne
               "attributes": [
                 [
                   "class",
-                  "declarative-head-copy",
+                  "x148vls7 xeuugli",
                 ],
               ],
               "children": [
@@ -35,7 +35,7 @@ exports[`widget UI primitives renders validated declarative views with host-owne
                   "attributes": [
                     [
                       "class",
-                      "operator-view-title",
+                      "x1ghz6dp xqvuw85 xssy22x x1m6oxru x1mg0i68 x17owtcr xseu7c4 x5sy3j4 x1f41ap9 xj0a0fe",
                     ],
                   ],
                   "children": [
@@ -57,7 +57,7 @@ exports[`widget UI primitives renders validated declarative views with host-owne
               "attributes": [
                 [
                   "class",
-                  "declarative-head-state",
+                  "xrvj5dj x4xo5sw x1v2ro7d xeuugli x193iq5w",
                 ],
               ],
               "children": [],
@@ -74,7 +74,11 @@ exports[`widget UI primitives renders validated declarative views with host-owne
           "attributes": [
             [
               "class",
-              "declarative-blocks xrvj5dj x1jsv65m x7a106z x14i4cvt x1p5oq8j x4jmfmw",
+              "declarative-blocks xrvj5dj x1jsv65m x7a106z x14i4cvt x1p5oq8j x4jmfmw x62c7l xugsc6q",
+            ],
+            [
+              "data-operator-blocks",
+              "",
             ],
           ],
           "children": [
@@ -98,7 +102,7 @@ exports[`widget UI primitives renders validated declarative views with host-owne
                   "attributes": [
                     [
                       "class",
-                      "declarative-table-scroll operator-table-scroll",
+                      "declarative-table-scroll operator-table-scroll x193iq5w xeuugli xw2csxc x1lliihq xfsj286 x1a92eo6 x18d9i69 x1yy75ev x1yieemc xsjhqdm x3y8eqj xqwvrdo xosa0jh x1668a04 x1defwea",
                     ],
                   ],
                   "children": [
@@ -106,7 +110,7 @@ exports[`widget UI primitives renders validated declarative views with host-owne
                       "attributes": [
                         [
                           "class",
-                          "declarative-table operator-table",
+                          "declarative-table operator-table x14atkfc x1j9oiuk x193iq5w x1mwwwfo xgi1xjn xfifm61",
                         ],
                       ],
                       "children": [
@@ -118,6 +122,10 @@ exports[`widget UI primitives renders validated declarative views with host-owne
                               "children": [
                                 {
                                   "attributes": [
+                                    [
+                                      "class",
+                                      "xexx8yu xdvlbce x1xpa7k x1s4zo15 x1uhho1l xxakyfl xso031l x1q0q8m5 x1594w68 x1ar3pfp xa9opjo xfmn3hh xk50ysn x1labic3 xtvhhri xuxw1ft x16dsc37 xdpxx8g x1ffr0y8 xpebyx1",
+                                    ],
                                     [
                                       "data-align",
                                       "start",
@@ -135,6 +143,10 @@ exports[`widget UI primitives renders validated declarative views with host-owne
                                 },
                                 {
                                   "attributes": [
+                                    [
+                                      "class",
+                                      "xexx8yu xdvlbce x1xpa7k x1s4zo15 x1uhho1l xxakyfl xso031l x1q0q8m5 x1594w68 x1ar3pfp xa9opjo xfmn3hh xk50ysn x1labic3 xtvhhri xuxw1ft x16dsc37 xdpxx8g x1ffr0y8 xpebyx1",
+                                    ],
                                     [
                                       "data-align",
                                       "start",
@@ -164,10 +176,19 @@ exports[`widget UI primitives renders validated declarative views with host-owne
                           "attributes": [],
                           "children": [
                             {
-                              "attributes": [],
+                              "attributes": [
+                                [
+                                  "class",
+                                  "xf5m44m x1fdxwjo x1kvcy9f xjbqb8w xd8d5gp x1b32d6n x1gnnqk1 x1v17x4h",
+                                ],
+                              ],
                               "children": [
                                 {
                                   "attributes": [
+                                    [
+                                      "class",
+                                      "xz9dl7a xsag5q8 x1xpa7k x1s4zo15 x1uhho1l xxakyfl xso031l x1q0q8m5 xpqg30t xgi1xjn xbd3v37 x4z9k3i xq648tx xo1l8bm xsnqk1y xxymvpz xdpxx8g x1ffr0y8 xpebyx1",
+                                    ],
                                     [
                                       "data-align",
                                       "start",
@@ -178,7 +199,7 @@ exports[`widget UI primitives renders validated declarative views with host-owne
                                       "attributes": [
                                         [
                                           "class",
-                                          "declarative-inline-link operator-inline-link x1717udv xc342km xjbqb8w x1myn341 xjb2p0i x1qlqyl8 x1pd3egz x4gjf66 x16tdsg8 xkrqix3 x1sur9pj xda060z x1ypdohk xj0a0fe x2wh2y9 x1t137rt x9v5kkp x1de99jn x1itw484",
+                                          "declarative-inline-link operator-inline-link x1717udv xc342km xjbqb8w x1myn341 xjb2p0i x1qlqyl8 x1pd3egz x4gjf66 x16tdsg8 xkrqix3 x1sur9pj xda060z x1ua538i x1ypdohk xj0a0fe x2wh2y9 x1t137rt x9v5kkp x1de99jn x1itw484",
                                         ],
                                         [
                                           "href",
@@ -202,6 +223,10 @@ exports[`widget UI primitives renders validated declarative views with host-owne
                                 },
                                 {
                                   "attributes": [
+                                    [
+                                      "class",
+                                      "xz9dl7a xsag5q8 x1xpa7k x1s4zo15 x1uhho1l xxakyfl xso031l x1q0q8m5 xpqg30t xgi1xjn xbd3v37 x4z9k3i xq648tx xo1l8bm xsnqk1y xxymvpz xdpxx8g x1ffr0y8 xpebyx1",
+                                    ],
                                     [
                                       "data-align",
                                       "start",

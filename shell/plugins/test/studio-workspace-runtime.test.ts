@@ -15,6 +15,38 @@ import {
   type StudioWorkspaceUnregistration,
 } from "../src";
 
+it("retains full diagnostic source text beyond the prose limit while enforcing the source-text bound", () => {
+  const detail = "retained diagnostic\n".repeat(5000);
+  const view = {
+    blocks: [
+      {
+        type: "notice",
+        title: "Build failed",
+        text: "Review the diagnostics.",
+        details: [detail],
+      },
+    ],
+  };
+  expect(
+    safeParseRuntimeStudioOperatorView(view, {
+      actions: [],
+      permission: "trusted",
+    }),
+  ).toMatchObject({ success: true, data: view });
+  expect(
+    safeParseRuntimeStudioOperatorView(
+      { blocks: [{ ...view.blocks[0], details: [detail + "!"] }] },
+      { actions: [], permission: "trusted" },
+    ).success,
+  ).toBe(false);
+  expect(
+    safeParseRuntimeStudioOperatorView(
+      { blocks: [{ ...view.blocks[0], text: "x".repeat(4001) }] },
+      { actions: [], permission: "trusted" },
+    ).success,
+  ).toBe(false);
+});
+
 function instantiate(
   definition: Parameters<typeof instantiatePluginPackageDefinition>[0],
 ): NonNullable<ReturnType<typeof instantiatePluginPackageDefinition>[number]> {
@@ -777,7 +809,7 @@ describe("Studio interface semantics", () => {
     });
     expect(
       safeParseRuntimeStudioOperatorView(
-        { blocks: [{ ...notice, details: ["x".repeat(4001)] }] },
+        { blocks: [{ ...notice, details: ["x".repeat(100_001)] }] },
         { actions: [], permission: "trusted" },
       ),
     ).toMatchObject({ success: false });
@@ -1481,6 +1513,116 @@ describe("operator detail composition", () => {
         },
       ],
     });
+  });
+});
+
+describe("provider-authored trigger labels", () => {
+  const row = (actionsLabel: unknown): Record<string, unknown> => ({
+    id: "row",
+    title: "Exact row",
+    actionsLabel,
+    actions: [
+      { action: refresh, input: { id: "one" } },
+      { action: refresh, input: { id: "two" }, disabled: true },
+    ],
+  });
+  const source = (
+    actionsLabel: unknown = "Exact options α",
+    disclosureLabel: unknown = "Review failure α",
+    presentation = "disclosure",
+  ): Record<string, unknown> => ({
+    blocks: [
+      {
+        type: "card",
+        id: "warning",
+        label: "Keep this heading",
+        presentation,
+        disclosureLabel,
+        blocks: [
+          {
+            type: "list",
+            id: "list",
+            empty: "Empty",
+            items: [row(actionsLabel)],
+          },
+          {
+            type: "matrix",
+            id: "matrix",
+            cells: [
+              {
+                id: "cell",
+                label: "Cell",
+                empty: "Empty cell",
+                items: [row(actionsLabel)],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+  it("preserves exact labels, action inputs and disabled state through cards, lists and matrix cells", () => {
+    const result = safeParseRuntimeStudioOperatorView(source(), {
+      actions: [refresh],
+      permission: "trusted",
+    });
+    expect(result).toMatchObject({
+      success: true,
+      data: {
+        blocks: [
+          {
+            label: "Keep this heading",
+            disclosureLabel: "Review failure α",
+            blocks: [
+              {
+                items: [
+                  {
+                    actionsLabel: "Exact options α",
+                    actions: [
+                      { input: { id: "one" } },
+                      { input: { id: "two" }, disabled: true },
+                    ],
+                  },
+                ],
+              },
+              { cells: [{ items: [{ actionsLabel: "Exact options α" }] }] },
+            ],
+          },
+        ],
+      },
+    });
+  });
+  it("does not retain action-menu labels when permission removes every action", () => {
+    const result = safeParseRuntimeStudioOperatorView(source(), {
+      actions: [refresh],
+      permission: "public",
+    });
+    expect(result.success).toBe(true);
+    if (!result.success) throw Error("Expected admitted readout");
+    expect(JSON.stringify(result.data)).not.toContain("Exact options α");
+    expect(JSON.stringify(result.data)).toContain("Review failure α");
+  });
+  it("rejects empty, oversized and non-string labels and non-disclosure trigger metadata", () => {
+    for (const label of ["", "x".repeat(10000), false, null]) {
+      expect(
+        safeParseRuntimeStudioOperatorView(source(label), {
+          actions: [refresh],
+          permission: "trusted",
+        }).success,
+      ).toBe(false);
+      expect(
+        safeParseRuntimeStudioOperatorView(source("Options", label), {
+          actions: [refresh],
+          permission: "trusted",
+        }).success,
+      ).toBe(false);
+    }
+    expect(
+      safeParseRuntimeStudioOperatorView(
+        source("Options", "Review", "section"),
+        { actions: [refresh], permission: "trusted" },
+      ).success,
+    ).toBe(false);
   });
 });
 

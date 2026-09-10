@@ -184,6 +184,8 @@ export {
   WidgetTabs,
   WidgetTags,
 } from "./WidgetPrimitives";
+// Standalone hosts must include the immutable stylesheet for compiled widgets.
+export { operatorViewStylexCSS } from "@brains/operator-view-react";
 export type {
   KeyValueItem,
   WidgetDataAttributes,

@@ -354,59 +354,83 @@ const inboxWorkspace = defineStudioWorkspace({
         id: "inbox-query",
         controls: queryControls,
       },
-      {
-        type: "detail",
-        id: "inbox-detail",
-        queryKey: "selected",
-        empty: "Select an item to read its source content.",
-        ...(query.selected && paneBlocks.length > 0
-          ? {
-              open: {
-                forId: query.selected,
-                title: selectedTitle ?? "Original content",
-                blocks: paneBlocks,
-              },
-            }
-          : {}),
-        master: {
-          type: "list",
-          id: "inbox-items",
-          presentation: "editorial",
-          empty: "Nothing needs attention for these filters.",
-          // A row carries what you scan and the verbs that clear it. Follow-ups
-          // — go elsewhere and do something — are decisions made after reading,
-          // so they live in the pane where the reading happens.
-          items: snapshot.entries.map((entry) => ({
-            id: inboxRowId(entry.source.sourceId, entry.item.id),
-            title: entry.item.title,
-            link: {
-              detail: {
-                itemId: inboxRowId(entry.source.sourceId, entry.item.id),
+      ...(snapshot.total === 0 && !query.selected
+        ? [
+            {
+              type: "notice" as const,
+              id: "inbox-empty",
+              ...(snapshot.errors.length > 0
+                ? {
+                    text: "No matching items from available sources. Unavailable sources are not an all-clear.",
+                  }
+                : {
+                    title: "Nothing needs attention for these filters.",
+                    text: "Change Source or Urgency to inspect other incoming work.",
+                  }),
+            },
+          ]
+        : [
+            {
+              type: "detail" as const,
+              id: "inbox-detail",
+              queryKey: "selected",
+              empty: "Select an item to read its source content.",
+              ...(query.selected && paneBlocks.length > 0
+                ? {
+                    open: {
+                      forId: query.selected,
+                      title: selectedTitle ?? "Original content",
+                      blocks: paneBlocks,
+                    },
+                  }
+                : {}),
+              master: {
+                type: "list" as const,
+                id: "inbox-items",
+                presentation: "editorial" as const,
+                empty:
+                  snapshot.errors.length > 0
+                    ? "No matching items from available sources. Unavailable sources are not an all-clear."
+                    : "Nothing needs attention for these filters.",
+                // A row carries what you scan and the verbs that clear it. Follow-ups
+                // — go elsewhere and do something — are decisions made after reading,
+                // so they live in the pane where the reading happens.
+                items: snapshot.entries.map((entry) => ({
+                  id: inboxRowId(entry.source.sourceId, entry.item.id),
+                  title: entry.item.title,
+                  link: {
+                    detail: {
+                      itemId: inboxRowId(entry.source.sourceId, entry.item.id),
+                    },
+                  },
+                  description: entry.item.summary,
+                  metadata: [
+                    entry.source.displayName,
+                    formatReceivedAt(entry.item.receivedAt),
+                    `${entry.item.urgency} priority`,
+                    ...(entry.item.threadOrdinal === undefined
+                      ? []
+                      : [`Message ${entry.item.threadOrdinal} in thread`]),
+                  ],
+                  actions: entryActions(entry),
+                })),
               },
             },
-            description: entry.item.summary,
-            metadata: [
-              entry.source.displayName,
-              formatReceivedAt(entry.item.receivedAt),
-              `${entry.item.urgency} priority`,
-              ...(entry.item.threadOrdinal === undefined
-                ? []
-                : [`Message ${entry.item.threadOrdinal} in thread`]),
-            ],
-            actions: entryActions(entry),
-          })),
-        },
-      },
-      {
-        type: "query",
-        id: "inbox-pagination",
-        controls: [],
-        pagination: {
-          offset: snapshot.offset,
-          limit: snapshot.limit,
-          total: snapshot.total,
-        },
-      },
+          ]),
+      ...(snapshot.total > 0
+        ? [
+            {
+              type: "query" as const,
+              id: "inbox-pagination",
+              controls: [],
+              pagination: {
+                offset: snapshot.offset,
+                limit: snapshot.limit,
+                total: snapshot.total,
+              },
+            },
+          ]
+        : []),
     ];
     return {
       kicker: "Live source-owned attention",

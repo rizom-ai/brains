@@ -74,12 +74,59 @@ describe("DASHBOARD_STYLES", () => {
   });
 
   it("provides generic widget action, tab, and filter primitives", () => {
-    expect(DASHBOARD_STYLES).toMatch(/\.widget-tabs[,\s{]/);
-    expect(DASHBOARD_STYLES).toMatch(/\.widget-tab[,\s{]/);
-    expect(DASHBOARD_STYLES).toMatch(/\.widget-filter-tabs[,\s{]/);
-    expect(DASHBOARD_STYLES).toMatch(/\.widget-filter-tab[,\s{]/);
-    expect(DASHBOARD_STYLES).toMatch(/\.widget-actions[,\s{]/);
-    expect(DASHBOARD_STYLES).toMatch(/\.widget-action[,\s{]/);
+    expect(DASHBOARD_STYLES).not.toMatch(
+      /\.widget-(tabs|tab|tab-count)[,\s.{:]/,
+    );
+    expect(DASHBOARD_STYLES).not.toMatch(
+      /\.widget-filter-(tabs|tab|count|label|tools|search|toggle)[,\s.{:>-]/,
+    );
+    expect(DASHBOARD_STYLES).not.toMatch(/\.widget-actions?[,\s.{:>-]/);
+  });
+
+  it("uses compiled summary lists and status labels without widget selectors", () => {
+    expect(DASHBOARD_STYLES).not.toMatch(
+      /\.(list|list-item|list-main|list-name|list-desc|list-tags|list-meta|list-meta-text|list-count|tag|pill)[,\s.{:>-]/,
+    );
+  });
+
+  it("removes unused compatibility tabs and obsolete foundation animations", () => {
+    expect(DASHBOARD_STYLES).not.toMatch(
+      /\.(view-tabs|view-tab|view-tab-count|main-column|sidebar-column|theme-btn)[,\s.{:>-]/,
+    );
+    expect(DASHBOARD_STYLES).not.toContain("@keyframes rise");
+    expect(DASHBOARD_STYLES).not.toMatch(/\.muted[,\s.{:]/);
+  });
+
+  it("uses compiled presentation without legacy operator selectors", () => {
+    for (const selector of [
+      ".operator-empty",
+      ".operator-spatial-point",
+      ".operator-spatial-legend",
+      ".operator-matrix",
+      ".declarative-head",
+      ".operator-spatial-canvas",
+      ".operator-spatial-lines",
+      ".operator-spatial-points",
+      ".operator-spatial-center",
+      ".operator-spatial-zone",
+      ".declarative-spatial {",
+      ".operator-flow",
+      ".declarative-flow",
+      ".operator-meters",
+      ".operator-progress",
+      ".declarative-meters",
+      ".declarative-progress",
+      ".operator-stats",
+      ".operator-stat ",
+      ".operator-stat:",
+      ".operator-filter-summary",
+      ".operator-align--",
+      ".operator-group ",
+      ".operator-notice",
+      ".declarative-actions",
+    ])
+      expect(DASHBOARD_STYLES).not.toContain(selector);
+    expect(DASHBOARD_STYLES).toContain(operatorViewStylexCSS);
   });
 
   it("contains no styles for the removed identity card", () => {
@@ -89,14 +136,20 @@ describe("DASHBOARD_STYLES", () => {
   });
 
   it("hosts the public knowledge and proximity map language", () => {
-    expect(DASHBOARD_STYLES).toContain(".knowledge-map-field");
-    expect(DASHBOARD_STYLES).toContain(".proximity-map-field");
-    expect(DASHBOARD_STYLES).toContain(".knowledge-zone");
-    expect(DASHBOARD_STYLES).toContain(".knowledge-atlas-summary");
-    expect(DASHBOARD_STYLES).toContain(".knowledge-territory-index");
+    expect(DASHBOARD_STYLES).not.toMatch(
+      /\.(map-field|map-empty|knowledge-map-field|proximity-map-field|knowledge-atlas-summary|knowledge-map-canvas|knowledge-map-coordinates)[\s.{:,>]/,
+    );
+    expect(DASHBOARD_STYLES).not.toMatch(
+      /\.(knowledge-(weave|zone|point|map-axis)|proximity-(stratum|spore|thread|cluster|center|node))[\s.{:,>-]/,
+    );
+    expect(DASHBOARD_STYLES).not.toMatch(
+      /\.(knowledge-territory-index|knowledge-index-more|knowledge-index-note|map-legend|map-legend-item|map-live)[\s.{:,>]/,
+    );
     expect(DASHBOARD_STYLES).not.toContain(".knowledge-point-glow");
     expect(DASHBOARD_STYLES).not.toContain(".map-count");
-    expect(DASHBOARD_STYLES).toContain(".proximity-node");
+    expect(DASHBOARD_STYLES).not.toMatch(
+      /@keyframes map-(draw|bloom|breathe|flicker|spore)/,
+    );
     expect(DASHBOARD_STYLES).not.toContain("data-agent-network");
   });
 
@@ -115,6 +168,7 @@ describe("DASHBOARD_STYLES", () => {
     expect(DASHBOARD_STYLES).toContain("@media (max-width: 640px)");
     expect(DASHBOARD_STYLES).toMatch(/overscroll-behavior-inline:\s*contain/);
     expect(DASHBOARD_STYLES).not.toContain(".public-card-grid");
-    expect(DASHBOARD_STYLES).toContain(".map-field svg");
+    expect(operatorViewStylexCSS).toContain("translateX(-15%)");
+    expect(operatorViewStylexCSS).toContain("translateX(-18%)");
   });
 });

@@ -506,6 +506,7 @@ export interface RuntimeOperatorActionControl {
 }
 
 export interface RuntimeStudioOperatorListItem extends RuntimeOperatorListItem {
+  readonly actionsLabel?: string | undefined;
   readonly actions?: readonly RuntimeOperatorActionControl[] | undefined;
 }
 
@@ -594,6 +595,7 @@ export interface RuntimeStudioOperatorDetailBlock {
 }
 
 export interface RuntimeStudioOperatorCardBlock {
+  readonly disclosureLabel?: string | undefined;
   readonly type: "card";
   readonly id: string;
   readonly label: string;
@@ -899,7 +901,8 @@ const noticeBlockSchema = z
     id: identifierSchema.optional(),
     title: labelSchema.optional(),
     text: textSchema,
-    details: z.array(textSchema).max(50).optional(),
+    // Diagnostics use the same bounded, complete source text as text blocks.
+    details: z.array(longTextSchema).max(50).optional(),
     tone: toneSchema.optional(),
   })
   .strict();
@@ -1726,6 +1729,7 @@ const sourceActionControlSchema = z
   .strict();
 
 const studioListItemSchema = listItemSchema.extend({
+  actionsLabel: labelSchema.optional(),
   actions: z.array(sourceActionControlSchema).max(20).optional(),
 });
 const studioListBlockSchema = z
@@ -1966,6 +1970,7 @@ const studioTabsBlockSchema = z
    as one thing rather than as loose blocks. */
 const studioCardBlockSchema = z
   .object({
+    disclosureLabel: labelSchema.optional(),
     type: z.literal("card"),
     id: identifierSchema,
     label: labelSchema,
@@ -1974,7 +1979,16 @@ const studioCardBlockSchema = z
     tone: toneSchema.optional(),
     blocks: z.array(studioPanelBlockSchema).max(12),
   })
-  .strict();
+  .strict()
+  .refine(
+    (block) =>
+      block.disclosureLabel === undefined ||
+      block.presentation === "disclosure",
+    {
+      message: "disclosureLabel requires disclosure presentation",
+      path: ["disclosureLabel"],
+    },
+  );
 
 const studioDetailBlockSchema = z
   .object({
@@ -2520,7 +2534,12 @@ function normalizeStudioBlock(
           ...(item.links ? { links: item.links } : {}),
           ...(item.tone ? { tone: item.tone } : {}),
           ...(item.link ? { link: item.link } : {}),
-          ...(actions.controls.length > 0 ? { actions: actions.controls } : {}),
+          ...(actions.controls.length > 0
+            ? {
+                actions: actions.controls,
+                ...definedFields({ actionsLabel: item.actionsLabel }),
+              }
+            : {}),
         };
       });
       return {
@@ -2603,7 +2622,10 @@ function normalizeStudioBlock(
             ...(item.tone ? { tone: item.tone } : {}),
             ...(item.link ? { link: item.link } : {}),
             ...(actions.controls.length > 0
-              ? { actions: actions.controls }
+              ? {
+                  actions: actions.controls,
+                  ...definedFields({ actionsLabel: item.actionsLabel }),
+                }
               : {}),
           };
         }),
@@ -2679,6 +2701,7 @@ function normalizeStudioBlock(
           id: block.id,
           label: block.label,
           ...(block.presentation ? { presentation: block.presentation } : {}),
+          ...definedFields({ disclosureLabel: block.disclosureLabel }),
           ...(block.metadata ? { metadata: block.metadata } : {}),
           ...(block.tone ? { tone: block.tone } : {}),
           blocks: panels,

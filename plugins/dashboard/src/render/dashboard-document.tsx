@@ -7,6 +7,7 @@ import {
 } from "@brains/console-theme";
 import type { JSX } from "react";
 import {
+  OperatorDocumentBody,
   OperatorPage,
   OperatorFrame,
   OperatorCanvas,
@@ -99,7 +100,7 @@ export function DashboardDocument({
           />
         )}
       </head>
-      <body>
+      <OperatorDocumentBody>
         <PublicHeader
           title={input.title}
           homeHref={dashboardPath}
@@ -166,7 +167,7 @@ export function DashboardDocument({
             dangerouslySetInnerHTML={{ __html: script }}
           />
         ))}
-      </body>
+      </OperatorDocumentBody>
     </html>
   );
 }

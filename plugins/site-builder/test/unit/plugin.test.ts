@@ -318,7 +318,7 @@ describe("SiteBuilderPlugin", () => {
                 {
                   type: "columns",
                   primary: [
-                    { id: `site-${id}-card`, presentation: "feature" },
+                    { id: `site-${id}-card`, presentation: "section" },
                     { id: `${id}-render-details`, presentation: "disclosure" },
                     {
                       id: "site-routes",
@@ -363,6 +363,25 @@ describe("SiteBuilderPlugin", () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
     const previewWorkspace =
       await registration.dataProvider(adminWorkspaceActor);
+    expect(previewWorkspace).toMatchObject({
+      view: {
+        blocks: [
+          {
+            type: "tabs",
+            tabs: [
+              {
+                id: "preview",
+                blocks: [
+                  { type: "progress", id: "preview-build" },
+                  { type: "columns", id: "site-body" },
+                ],
+              },
+              { id: "production" },
+            ],
+          },
+        ],
+      },
+    });
     expect(JSON.stringify(previewWorkspace)).toContain('"id":"preview-build"');
     expect(JSON.stringify(previewWorkspace)).toContain('"state":"queued"');
     expect(JSON.stringify(previewWorkspace)).toContain('"disabled":true');

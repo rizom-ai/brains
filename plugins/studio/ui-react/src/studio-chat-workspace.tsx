@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { libraryStyles as library } from "./studio-library.styles";
 import {
   Button,
   Dialog,
@@ -41,7 +42,6 @@ import {
 } from "../../src/chat-workspace";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
 import type { StudioChatHandoff } from "./operator-launch";
-import { styles } from "./app-styles";
 import {
   approvalResponseMessage,
   createStudioChatStreamState,
@@ -50,7 +50,6 @@ import {
   type StudioChatApproval,
   type StudioChatStreamState,
 } from "./chat-workspace-model";
-import responsiveStyles from "./responsive.css" with { type: "text" };
 import { TypeSwitcher } from "./entity-fields";
 import { useStudioNavigationCollapsed } from "./studio-navigation-state";
 import { StudioChrome } from "./studio-chrome";
@@ -58,8 +57,6 @@ import {
   navigationClassName as navClass,
   navigationStyles as nav,
 } from "./studio-navigation.styles";
-import pageHeadStyles from "./studio-page-head.css" with { type: "text" };
-import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
 
 const studioChatKeys = {
   sessions: ["studio", "chat", "sessions"] as const,
@@ -173,6 +170,7 @@ export function StudioChatWorkspace(
     enabled: props.sessionId !== null,
   });
   const sessions = sessionsQuery.data ?? [];
+  const showSessionRail = sessionsQuery.isPending || sessions.length > 0;
   const storedMessages = messagesQuery.data ?? [];
   const currentSession = sessions.find(
     (session) => session.id === props.sessionId,
@@ -516,8 +514,11 @@ export function StudioChatWorkspace(
   );
 
   return (
-    <div className={chatClass("studio", chatLayout.root)} data-view="chat">
-      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${pageHeadStyles}`}</style>
+    <div
+      className={chatClass("studio", library.frame, chatLayout.root)}
+      data-view="chat"
+      data-studio-shell=""
+    >
       <StudioChrome
         contextLabel="Chat"
         navigation={{
@@ -612,14 +613,22 @@ export function StudioChatWorkspace(
               />
             </DialogContent>
           </Dialog>
-          <div className={chatClass("studio-chat-room", chatLayout.room)}>
-            <SessionRail
-              activeSessionId={props.sessionId}
-              loading={sessionsQuery.isPending}
-              sessions={sessions}
-              onNew={() => navigateToSession()}
-              onSelect={navigateToSession}
-            />
+          <div
+            className={chatClass(
+              "studio-chat-room",
+              chatLayout.room,
+              !showSessionRail && chatLayout.roomWithoutSessions,
+            )}
+          >
+            {showSessionRail && (
+              <SessionRail
+                activeSessionId={props.sessionId}
+                loading={sessionsQuery.isPending}
+                sessions={sessions}
+                onNew={() => navigateToSession()}
+                onSelect={navigateToSession}
+              />
+            )}
             <section
               className={chatClass("studio-chat-thread", chatLayout.thread)}
               aria-label="Conversation"
@@ -628,6 +637,9 @@ export function StudioChatWorkspace(
                 className={chatClass(
                   "studio-chat-thread-head",
                   chatLayout.threadHead,
+                  !props.sessionId &&
+                    visibleMessages.length === 0 &&
+                    chatLayout.emptyThreadHead,
                 )}
               >
                 <div
@@ -667,29 +679,31 @@ export function StudioChatWorkspace(
                   </Button>
                 ) : null}
               </header>
-              <details
-                className={chatClass(
-                  "studio-chat-working-set",
-                  chatLayout.context,
-                )}
-                open={contextOpen}
-                onToggle={(event) => setContextOpen(event.currentTarget.open)}
-              >
-                <summary
+              {(props.sessionId !== null || visibleMessages.length > 0) && (
+                <details
                   className={chatClass(
-                    "studio-chat-working-set-summary",
-                    chatLayout.summary,
+                    "studio-chat-working-set",
+                    chatLayout.context,
                   )}
+                  open={contextOpen}
+                  onToggle={(event) => setContextOpen(event.currentTarget.open)}
                 >
-                  Working set
-                </summary>
-                <WorkingSet
-                  cards={contextCards}
-                  messages={visibleMessages}
-                  progress={stream?.progress ?? []}
-                  session={currentSession}
-                />
-              </details>
+                  <summary
+                    className={chatClass(
+                      "studio-chat-working-set-summary",
+                      chatLayout.summary,
+                    )}
+                  >
+                    Working set
+                  </summary>
+                  <WorkingSet
+                    cards={contextCards}
+                    messages={visibleMessages}
+                    progress={stream?.progress ?? []}
+                    session={currentSession}
+                  />
+                </details>
+              )}
               <div
                 className={chatClass(
                   "studio-chat-thread-scroll",
@@ -712,7 +726,8 @@ export function StudioChatWorkspace(
                       Opening conversation…
                     </p>
                   ) : null}
-                  {!messagesQuery.isPending && visibleMessages.length === 0 ? (
+                  {(!props.sessionId || !messagesQuery.isPending) &&
+                  visibleMessages.length === 0 ? (
                     <ChatEmptyState />
                   ) : null}
                   {visibleMessages.map((message) => (
@@ -889,12 +904,16 @@ function SessionRail(props: {
 function ChatEmptyState(): ReactElement {
   return (
     <section
-      className={chatClass("studio-chat-empty", chatLayout.empty)}
+      className={chatClass(
+        "studio-chat-empty",
+        chatLayout.empty,
+        chatLayout.emptyConversation,
+      )}
       aria-label="New conversation"
     >
-      <h2 className={chatClass("studio-chat-empty-title", chatLayout.title)}>
-        What would you like to work on?
-      </h2>
+      <p className={chatClass("", chatLayout.cardText)}>
+        No messages yet. Your draft stays in the composer until you send it.
+      </p>
     </section>
   );
 }

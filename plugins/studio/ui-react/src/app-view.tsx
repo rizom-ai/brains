@@ -16,11 +16,12 @@ import {
 import {
   OperatorActionButton,
   OperatorViewRenderer,
-  operatorViewRendererStyles,
 } from "@brains/operator-view-react";
 import type { Dispatch, ReactElement, ReactNode, SetStateAction } from "react";
-import { styles } from "./app-styles";
 import { workspaceClassName } from "./studio-workspace.styles";
+import { libraryStyles as library } from "./studio-library.styles";
+import { StudioStatus } from "./studio-status";
+import { editorLayoutStyles as layout } from "./studio-editor-layout.styles";
 import {
   accountClass,
   accountStyles as accountLayout,
@@ -64,13 +65,11 @@ import {
   SaveStateNotice,
 } from "./editor-status";
 import { PublicationActions } from "./publication-actions";
-import responsiveStyles from "./responsive.css" with { type: "text" };
 import { StudioChrome } from "./studio-chrome";
 import {
   navigationClassName as navClass,
   navigationStyles as nav,
 } from "./studio-navigation.styles";
-import pageHeadStyles from "./studio-page-head.css" with { type: "text" };
 import {
   declarativeStudioPageHead,
   StudioPageHead,
@@ -83,7 +82,6 @@ import {
   formatUpdated,
   singularLabel,
 } from "./ui-utils";
-import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
 
 export type MobileEditorPane = "details" | "write" | "preview";
 
@@ -165,16 +163,14 @@ export function StudioAppStatus(props: {
   error?: boolean;
 }): ReactElement {
   return (
-    <div className="studio">
-      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${pageHeadStyles}\n${operatorViewRendererStyles}`}</style>
+    <div className={editorClass("studio", library.frame)} data-studio-shell="">
       <StudioChrome contextLabel="Studio" />
-      <p
-        className={
-          props.error ? "status status-error boot-status" : "status boot-status"
-        }
+      <StudioStatus
+        tone={props.error ? "error" : undefined}
+        className={editorClass("", library.boot)}
       >
         {props.message}
-      </p>
+      </StudioStatus>
     </div>
   );
 }
@@ -189,8 +185,11 @@ export function StudioAccountWorkspaceView(props: {
 }): ReactElement {
   const navigationCollapsed = useStudioNavigationCollapsed();
   return (
-    <div className="studio" data-view="account">
-      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${pageHeadStyles}\n${operatorViewRendererStyles}`}</style>
+    <div
+      className={editorClass("studio", library.frame)}
+      data-view="account"
+      data-studio-shell=""
+    >
       <StudioChrome
         contextLabel="Account"
         navigation={{
@@ -205,10 +204,12 @@ export function StudioAccountWorkspaceView(props: {
       />
       <div
         className={navClass(
-          "studio-body",
+          "",
+          layout.body,
           nav.shell,
           navigationCollapsed && nav.shellCollapsed,
         )}
+        data-studio-body=""
       >
         <aside className={navClass("rail", nav.rail)}>
           <TypeSwitcher
@@ -354,12 +355,12 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
       : null;
   return (
     <div
-      className="studio"
+      className={editorClass("studio", library.frame)}
+      data-studio-shell=""
       data-view={
         activeWorkspaceId ? "workspace" : editing ? "editor" : "listing"
       }
     >
-      <style>{`${styles}\n${visualRefreshStyles}\n${responsiveStyles}\n${pageHeadStyles}\n${operatorViewRendererStyles}`}</style>
       <StudioChrome
         contextLabel={collectionLabel}
         onContextClick={
@@ -377,10 +378,12 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
       />
       <div
         className={navClass(
-          "studio-body",
+          "",
+          layout.body,
           nav.shell,
           navigationCollapsed && nav.shellCollapsed,
         )}
+        data-studio-body=""
       >
         <aside className={navClass("rail", nav.rail)}>
           <TypeSwitcher
@@ -396,8 +399,8 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
         </aside>
         {activeWorkspaceId ? (
           workspaceError ? (
-            <main className="declarative-workspace">
-              <p className="status status-error">{workspaceError}</p>
+            <main className={workspaceClassName("")}>
+              <StudioStatus tone="error">{workspaceError}</StudioStatus>
             </main>
           ) : declarativeWorkspaceData && declarativeHead ? (
             <div className={workspaceClassName("studio-workspace-frame")}>
@@ -433,7 +436,10 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
             </div>
           ) : null
         ) : !editing ? (
-          <main className="listing">
+          <main
+            className={editorClass("", library.listing)}
+            data-studio-library=""
+          >
             <StudioPageHead
               model={listingHead}
               action={
@@ -450,13 +456,21 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
               <button
                 type="button"
                 key={entity.id}
-                className={editorClass("row", editorStyles.listingRow)}
+                className={editorClass(
+                  "",
+                  library.row,
+                  editorStyles.listingRow,
+                )}
+                data-studio-record=""
                 onClick={() => openEntity(entity.id)}
               >
-                <span className="idx">
+                <span className={editorClass("", library.index)}>
                   {String(index + 1).padStart(2, "0")}
                 </span>
-                <span className="title" title={entity.id}>
+                <span
+                  className={editorClass("", library.title)}
+                  title={entity.id}
+                >
                   {entityTitle(entity)}
                   {typeHasPublicationField(entitySchema.fields) && (
                     <span
@@ -469,18 +483,21 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                     </span>
                   )}
                 </span>
-                <span className="updated">{formatUpdated(entity.updated)}</span>
+                <span className={editorClass("", library.updated)}>
+                  {formatUpdated(entity.updated)}
+                </span>
               </button>
             ))}
             {entities?.length === 0 && (
-              <p className="status listing-empty">
+              <StudioStatus className={editorClass("", library.empty)}>
                 Nothing here yet — start the first entry.
-              </p>
+              </StudioStatus>
             )}
           </main>
         ) : (
           <form
-            className="editor"
+            className={editorClass("", layout.editor)}
+            data-studio-editor=""
             data-mobile-pane={mobilePane}
             onSubmit={(event) => {
               event.preventDefault();
@@ -542,16 +559,10 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-            <aside className="colophon">
-              <div
-                className={editorClass(
-                  "form-title",
-                  editorStyles.propertiesHead,
-                )}
-              >
+            <aside className={editorClass("", layout.colophon)}>
+              <div className={editorClass("", editorStyles.propertiesHead)}>
                 <h2 className={editorClass("", editorStyles.propertiesLabel)}>
-                  <span className="studio-form-desktop-label">Properties</span>
-                  <span className="studio-form-mobile-label">Properties</span>
+                  Properties
                 </h2>
                 {mode.kind === "create" || publicationState ? (
                   <span
@@ -561,11 +572,14 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                   </span>
                 ) : null}
               </div>
-              <fieldset className="capability-fields" disabled={!canEdit}>
+              <fieldset
+                className={editorClass("", layout.fields)}
+                disabled={!canEdit}
+              >
                 {entitySchema.fields
                   .filter((descriptor) => isFieldVisible(descriptor, draft))
                   .map((descriptor) => (
-                    <div key={descriptor.name} className="field-with-assist">
+                    <div key={descriptor.name} data-studio-field-assist="">
                       <Field
                         descriptor={descriptor}
                         value={draft[descriptor.name]}
@@ -593,9 +607,9 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                     </div>
                   ))}
                 {entitySchema.format === "raw" && (
-                  <p className="status">
+                  <StudioStatus>
                     This type is raw markdown — the whole document is the body.
-                  </p>
+                  </StudioStatus>
                 )}
               </fieldset>
               {publicationWorkspace && mode.kind === "edit" && canPublish && (
@@ -613,7 +627,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                 />
               )}
             </aside>
-            <section className="manuscript">
+            <section className={editorClass("", layout.manuscript)}>
               {entitySchema.hasBody ? (
                 <BodyEditor
                   value={body}
@@ -634,12 +648,19 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                     : {})}
                 />
               ) : (
-                <p className="status manuscript-empty">
+                <StudioStatus className={editorClass("", layout.empty)}>
                   This type has no body — its fields are the whole record.
-                </p>
+                </StudioStatus>
               )}
             </section>
-            <footer className={editorClass("pipeline", editorStyles.pipeline)}>
+            <footer
+              className={editorClass(
+                "",
+                editorStyles.pipeline,
+                layout.pipeline,
+              )}
+              data-studio-save-bar=""
+            >
               {syncStatus?.directorySync && (
                 <PipelineStations
                   view={derivePipeline({
@@ -665,8 +686,11 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                   if (mode.kind === "edit") openEntity(mode.entity.id);
                 }}
               />
-              <span className="studio-mobile-save-status">
-                <b>
+              <span
+                className={editorClass("", layout.compactStatus)}
+                data-studio-compact-save=""
+              >
+                <b className={editorClass("", layout.compactValue)}>
                   {saveState.kind === "saving"
                     ? "Saving changes"
                     : saveState.kind === "saved"
@@ -677,15 +701,16 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                   ? `db → file → ${syncStatus.git.lastCommit.slice(0, 7)}`
                   : "entity db"}
               </span>
-              <span className="spacer" />
+              <span className={editorClass("", layout.spacer)} />
               {mode.kind === "edit" &&
                 !entitySchema.isSingleton &&
                 canDelete && (
                   <>
-                    <span className="studio-desktop-delete">
+                    <span className={editorClass("", layout.desktop)}>
                       <Button
                         type="button"
                         variant="danger"
+                        xstyle={layout.danger}
                         onClick={() =>
                           dispatchEditor({ type: "deleteRequested" })
                         }
@@ -693,7 +718,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                         Delete
                       </Button>
                     </span>
-                    <span className="studio-mobile-more">
+                    <span className={editorClass("", layout.more)}>
                       <DropdownMenu>
                         <DropdownMenuTrigger
                           className={buttonClassName("ghost", "icon")}

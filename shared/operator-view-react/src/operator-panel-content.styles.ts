@@ -3,6 +3,7 @@ import * as stylex from "@stylexjs/stylex";
 export const panelContentStyles: Record<
   | "paragraph"
   | "note"
+  | "muted"
   | "lead"
   | "status"
   | "good"
@@ -21,6 +22,12 @@ export const panelContentStyles: Record<
   | "marker",
   stylex.StyleXStyles
 > = stylex.create({
+  muted: {
+    margin: 0,
+    color: "var(--console-text-muted)",
+    fontSize: 13,
+    overflowWrap: "anywhere",
+  },
   note: {
     margin: 0,
     color: "var(--console-text-muted)",

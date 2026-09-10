@@ -2,6 +2,7 @@ import { AuthServicePlugin } from "@brains/auth-service";
 import { ENTITY_CHANNELS, JOB_CHANNELS } from "@brains/contracts";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
+  createServicePluginContext,
   STUDIO_OVERVIEW_REGISTER_MESSAGE,
   STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
@@ -9,13 +10,79 @@ import {
   type DashboardWidgetProviderContext,
   type StudioOverviewContributionRegistration,
   type StudioWorkspaceRegistration,
+  type StudioWorkspaceActor,
   type WebRouteDefinition,
 } from "@brains/plugins";
 import { createTempDataDir } from "@brains/plugins/test";
 import { createMockShell, type MockShell } from "@brains/test-utils";
 import { afterEach, describe, expect, it } from "bun:test";
 import { studioPlugin, type StudioPlugin } from "../src";
-import { STUDIO_OVERVIEW_WORKSPACE_ID } from "../src/overview-workspace";
+import {
+  STUDIO_OVERVIEW_WORKSPACE_ID,
+  StudioOverviewRegistry,
+  createStudioOverviewWorkspace,
+} from "../src/overview-workspace";
+
+it("combines an empty attention/activity state without hiding standing runtime information", async () => {
+  const registry = new StudioOverviewRegistry();
+  const workspace = createStudioOverviewWorkspace({
+    context: createServicePluginContext(createMockShell(), "studio"),
+    registry,
+  });
+  const actor: StudioWorkspaceActor = {
+    interfaceType: "studio",
+    userId: "fixture",
+    actor: { kind: "user", userId: "fixture" },
+    userPermissionLevel: "admin",
+    visibilityScope: "restricted",
+    isAnchor: false,
+  };
+  const empty = await workspace.dataProvider(actor, {});
+  expect(empty).toMatchObject({
+    view: {
+      blocks: [
+        {
+          id: "overview-at-rest",
+          title: "Nothing needs your attention.",
+          text: "No recent activity is available.",
+        },
+        { type: "columns" },
+      ],
+    },
+  });
+  expect(JSON.stringify(empty)).not.toContain('"id":"overview-attention"');
+  expect(JSON.stringify(empty)).not.toContain('"id":"overview-activity"');
+  registry.register(contribution());
+  const attentionWithoutActivity = await workspace.dataProvider(actor, {});
+  expect(attentionWithoutActivity).toMatchObject({
+    view: {
+      blocks: [
+        {
+          type: "columns",
+          aside: [
+            {
+              id: "overview-activity",
+              label: "Recent activity",
+              blocks: [
+                {
+                  type: "list",
+                  items: [],
+                  empty: "No recent autonomous activity.",
+                },
+              ],
+            },
+            { id: "overview-system" },
+            { id: "overview-network" },
+          ],
+        },
+      ],
+    },
+  });
+  registry.recordEntity("updated", { entityType: "note", entityId: "source" });
+  const active = await workspace.dataProvider(actor, {});
+  expect(JSON.stringify(active)).not.toContain('"id":"overview-at-rest"');
+  expect(JSON.stringify(active)).toContain('"id":"overview-activity"');
+});
 
 const authPlugins: AuthServicePlugin[] = [];
 
@@ -205,6 +272,11 @@ describe("Studio Overview workspace", () => {
                   },
                 ],
                 aside: [
+                  {
+                    type: "card",
+                    label: "Recent activity",
+                    blocks: [{ type: "list", items: [] }],
+                  },
                   { type: "card", label: "System" },
                   { type: "card", label: "Network" },
                 ],

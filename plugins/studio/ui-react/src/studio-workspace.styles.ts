@@ -23,6 +23,8 @@ export const workspaceStyles: Record<
     "@media (max-width: 640px)": {
       padding: "24px 20px calc(38px + env(safe-area-inset-bottom))",
       overflowY: "visible",
+      "--operator-sections-gap": "22px",
+      "--operator-sections-padding-top": "18px",
     },
     "--operator-section-family": "var(--console-ui)",
     "--operator-section-size": "14px",

@@ -14,6 +14,7 @@ export function OperatorCard(props: {
   framed?: boolean | undefined;
   children: ReactNode;
   footer?: ReactNode;
+  renderDisclosure?: ((content: ReactNode) => ReactNode) | undefined;
 }): ReactElement {
   const compact = props.density === "compact";
   const attention =
@@ -22,7 +23,9 @@ export function OperatorCard(props: {
     <small
       {...stylex.props(
         s.headingMetadata,
-        attention && props.presentation === "disclosure" && s.attentionMetadata,
+        (attention || props.renderDisclosure) &&
+          props.presentation === "disclosure" &&
+          s.attentionMetadata,
       )}
     >
       <OperatorMetadata values={props.metadata} />
@@ -31,7 +34,11 @@ export function OperatorCard(props: {
   const root = stylex.props(
     s.card,
     compact && props.framed !== false && s.compactCard,
-    !compact && props.presentation === "disclosure" && s.disclosure,
+    !compact &&
+      props.presentation === "disclosure" &&
+      !props.renderDisclosure &&
+      s.disclosure,
+    props.renderDisclosure && s.labeledDisclosure,
     props.presentation === "feature" && props.framed !== false && s.feature,
     props.tone === "warn" && s.warn,
     props.tone === "error" && s.error,
@@ -41,6 +48,7 @@ export function OperatorCard(props: {
   const className = `declarative-card ${root.className ?? ""}`;
   const body = (
     <div
+      data-operator-card-body=""
       {...stylex.props(
         s.body,
         compact && props.presentation === "disclosure" && s.disclosedBody,
@@ -54,7 +62,7 @@ export function OperatorCard(props: {
       )}
     </div>
   );
-  return props.presentation === "disclosure" ? (
+  return props.presentation === "disclosure" && !props.renderDisclosure ? (
     <details
       {...root}
       className={className}
@@ -83,12 +91,14 @@ export function OperatorCard(props: {
           s.heading,
           compact && s.compactHeading,
           props.presentation === "feature" && s.featureHeading,
+          props.renderDisclosure && s.disclosureHeading,
+          props.renderDisclosure && attention && s.attentionSummary,
         )}
       >
         <h2 {...stylex.props(s.headingLabel)}>{props.label}</h2>
         {metadata}
       </header>
-      {body}
+      {props.renderDisclosure ? props.renderDisclosure(body) : body}
     </section>
   );
 }

@@ -3,17 +3,31 @@ import * as stylex from "@stylexjs/stylex";
 import type { ComponentProps, ReactElement, ReactNode } from "react";
 import { panelContentStyles as s } from "./operator-panel-content.styles";
 
-export function OperatorPanelParagraph(props: {
-  lead?: ReactNode;
-  children: ReactNode;
-  presentation?: "note";
-}): ReactElement {
+export function OperatorPanelParagraph(
+  props: ComponentProps<"p"> & {
+    lead?: ReactNode;
+    children: ReactNode;
+    presentation?: "note" | "muted";
+  },
+): ReactElement {
+  const { lead, children, presentation, ...attributes } = props;
+  const css = stylex.props(
+    presentation === "note"
+      ? s.note
+      : presentation === "muted"
+        ? s.muted
+        : s.paragraph,
+  );
   return (
-    <p {...stylex.props(props.presentation === "note" ? s.note : s.paragraph)}>
-      {props.lead !== undefined && (
-        <b {...stylex.props(s.lead)}>{props.lead}</b>
-      )}
-      {props.children}
+    <p
+      {...attributes}
+      {...css}
+      className={[attributes.className, css.className]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      {lead !== undefined && <b {...stylex.props(s.lead)}>{lead}</b>}
+      {children}
     </p>
   );
 }

@@ -1,4 +1,7 @@
 /** @jsxImportSource react */
+import * as stylex from "@stylexjs/stylex";
+import { fieldStyles as f } from "./studio-fields.styles";
+import { StudioStatus } from "./studio-status";
 import {
   Button,
   Dialog,
@@ -799,31 +802,35 @@ function ImageField(props: {
   const current = typeof value === "string" && value.length > 0 ? value : null;
 
   return (
-    <div className="field field-image">
-      <span className="field-label">
+    <div {...stylex.props(f.field)} data-studio-field="image">
+      <span {...stylex.props(f.label)}>
         {descriptor.label}
-        <em className="kind">image entity</em>
+        <em {...stylex.props(f.kind)}>image entity</em>
       </span>
       {current && (
-        <p className="image-ref">
-          <code>{current}</code>
+        <p {...stylex.props(f.imageRef)}>
+          <code {...stylex.props(f.imageCode)}>{current}</code>
           <Button
             type="button"
             variant="link"
             size="xs"
+            xstyle={f.clear}
             onClick={() => onChange("")}
           >
             Clear
           </Button>
         </p>
       )}
-      <label className="upload-zone">
-        <span className="upload-glyph" aria-hidden="true">
+      <label {...stylex.props(f.upload)}>
+        <span {...stylex.props(f.glyph)} aria-hidden="true">
           ↑
         </span>
-        <strong>Choose an image</strong>
-        <small>PNG, JPEG, GIF, WebP, AVIF, or SVG</small>
+        <strong {...stylex.props(f.uploadTitle)}>Choose an image</strong>
+        <small {...stylex.props(f.uploadNote)}>
+          PNG, JPEG, GIF, WebP, AVIF, or SVG
+        </small>
         <input
+          {...stylex.props(f.file)}
           type="file"
           accept="image/*"
           onChange={(event) => {
@@ -838,11 +845,11 @@ function ImageField(props: {
           }}
         />
       </label>
-      {uploadMutation.isPending && <p className="status">Uploading…</p>}
+      {uploadMutation.isPending && <StudioStatus>Uploading…</StudioStatus>}
       {uploadMutation.error && (
-        <p className="status status-error">
+        <StudioStatus tone="error">
           {errorMessage(uploadMutation.error)}
-        </p>
+        </StudioStatus>
       )}
     </div>
   );
@@ -864,19 +871,20 @@ function StringListField(props: {
   };
 
   return (
-    <div className="field field-tags">
-      <span className="field-label">
+    <div {...stylex.props(f.field)} data-studio-field="tags">
+      <span {...stylex.props(f.label)}>
         {props.descriptor.label}
-        <em className="kind">tags</em>
+        <em {...stylex.props(f.kind)}>tags</em>
       </span>
-      <div className="tags">
+      <div {...stylex.props(f.tags)}>
         {values.map((value) => (
-          <span className="tag" key={value}>
+          <span {...stylex.props(f.tag)} key={value}>
             {value}
             <Button
               type="button"
               variant="ghost"
               size="icon-xs"
+              xstyle={f.tagButton}
               aria-label={`Remove ${value}`}
               onClick={() =>
                 props.onChange(values.filter((item) => item !== value))
@@ -886,8 +894,9 @@ function StringListField(props: {
             </Button>
           </span>
         ))}
-        <span className="tag tag-add">
+        <span {...stylex.props(f.tag, f.tagAdd)}>
           <Input
+            xstyle={f.tagInput}
             type="text"
             value={pending}
             aria-label={`Add ${props.descriptor.label.toLowerCase()} tag`}
@@ -904,6 +913,7 @@ function StringListField(props: {
             type="button"
             variant="ghost"
             size="icon-xs"
+            xstyle={f.tagButton}
             aria-label="Add tag"
             onClick={add}
           >
@@ -960,15 +970,17 @@ export function FieldAssistControls(props: {
 
   if (active && state.kind === "suggested") {
     return (
-      <div className="field-assist-suggestion">
+      <div {...stylex.props(f.suggestion)}>
         {Array.isArray(state.suggestion) ? (
-          <span className="field-assist-tags">
+          <span {...stylex.props(f.suggestionTags)}>
             {state.suggestion.map((tag) => (
-              <code key={tag}>{tag}</code>
+              <code {...stylex.props(f.suggestionToken)} key={tag}>
+                {tag}
+              </code>
             ))}
           </span>
         ) : (
-          <span className="field-assist-copy">{state.suggestion}</span>
+          <span {...stylex.props(f.suggestionCopy)}>{state.suggestion}</span>
         )}
         <Button
           type="button"
@@ -985,7 +997,7 @@ export function FieldAssistControls(props: {
   }
 
   return (
-    <div className="field-assist-controls">
+    <div {...stylex.props(f.assist)}>
       <Button
         type="button"
         variant="outline"
@@ -1000,7 +1012,9 @@ export function FieldAssistControls(props: {
             : `Suggest ${descriptor.label.toLowerCase()}`}
       </Button>
       {active && state.kind === "error" && (
-        <span className="status status-error">{state.message}</span>
+        <StudioStatus inline tone="error">
+          {state.message}
+        </StudioStatus>
       )}
     </div>
   );
@@ -1016,9 +1030,9 @@ export function Field(props: {
   const text =
     typeof value === "string" || typeof value === "number" ? String(value) : "";
   const label = (
-    <span className="field-label">
+    <span {...stylex.props(f.label)}>
       {descriptor.label}
-      {required ? <em className="req">required</em> : null}
+      {required ? <em {...stylex.props(f.required)}>required</em> : null}
     </span>
   );
 
@@ -1030,8 +1044,10 @@ export function Field(props: {
 
   if (descriptor.widget === "boolean") {
     return (
-      <label className="field field-inline">
-        <span className="field-label">{descriptor.label}</span>
+      <label {...stylex.props(f.field, f.inline)} data-studio-field="boolean">
+        <span {...stylex.props(f.label, f.inlineLabel)}>
+          {descriptor.label}
+        </span>
         <Switch
           checked={value === true}
           onCheckedChange={(checked) => onChange(checked)}
@@ -1042,9 +1058,10 @@ export function Field(props: {
 
   if (descriptor.widget === "select") {
     return (
-      <label className="field">
+      <label {...stylex.props(f.field)} data-studio-field="select">
         {label}
         <NativeSelect
+          xstyle={f.control}
           value={text}
           required={required}
           onChange={(event) => onChange(event.currentTarget.value)}
@@ -1062,9 +1079,10 @@ export function Field(props: {
 
   if (descriptor.widget === "text") {
     return (
-      <label className="field">
+      <label {...stylex.props(f.field)} data-studio-field="text">
         {label}
         <Textarea
+          xstyle={f.control}
           value={text}
           required={required}
           rows={4}
@@ -1088,12 +1106,13 @@ export function Field(props: {
     // Nested structured widgets remain read-only; the value round-trips
     // untouched because saves only send changed draft keys.
     return (
-      <label className="field">
-        <span className="field-label">
+      <label {...stylex.props(f.field)} data-studio-field="structured">
+        <span {...stylex.props(f.label)}>
           {descriptor.label}
-          <em className="kind">read-only</em>
+          <em {...stylex.props(f.kind)}>read-only</em>
         </span>
         <Textarea
+          xstyle={[f.control, f.readOnly]}
           value={JSON.stringify(value ?? null, null, 2)}
           disabled
           rows={4}
@@ -1103,9 +1122,10 @@ export function Field(props: {
   }
 
   return (
-    <label className="field">
+    <label {...stylex.props(f.field)} data-studio-field={descriptor.widget}>
       {label}
       <Input
+        xstyle={[f.control, descriptor.widget === "datetime" && f.date]}
         type={
           descriptor.widget === "number"
             ? "number"

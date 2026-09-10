@@ -97,6 +97,7 @@ export const recordStyles: Record<
     textAlign: "inherit",
     textDecorationLine: { default: "none", ":hover": "underline" },
     textUnderlineOffset: 3,
+    textDecorationColor: "var(--console-rule-accent)",
     cursor: "pointer",
     overflowWrap: "anywhere",
     outlineOffset: 4,

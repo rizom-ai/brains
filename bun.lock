@@ -1507,6 +1507,7 @@
       "version": "0.2.0-alpha.354",
       "dependencies": {
         "@brains/contracts": "workspace:*",
+        "@brains/operator-view-react": "workspace:*",
         "@brains/utils": "workspace:*",
         "class-variance-authority": "^0.7.0",
         "clsx": "^2.1.0",

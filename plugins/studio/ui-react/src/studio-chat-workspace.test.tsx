@@ -164,6 +164,34 @@ describe("native Studio Chat workspace", () => {
     );
   });
 
+  it("shows the new-conversation prompt while the disabled history query is pending", async () => {
+    await mountChat(new StudioChatDraftStore(), null);
+    expect(
+      document.querySelector('section[aria-label="New conversation"]')
+        ?.textContent,
+    ).toContain(
+      "No messages yet. Your draft stays in the composer until you send it.",
+    );
+    expect(document.body.textContent).not.toContain("Opening conversation…");
+    expect(document.body.textContent).not.toContain("Working set");
+  });
+
+  it("does not reserve an empty desktop conversation rail", async () => {
+    const previous = globalThis.fetch;
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) =>
+        String(input) === "/api/chat/sessions"
+          ? Response.json({ sessions: [] })
+          : previous(input, init),
+      { preconnect: previous.preconnect },
+    );
+    await mountChat(new StudioChatDraftStore(), null);
+    expect(document.querySelector(".studio-chat-sessions")).toBeNull();
+    expect(
+      document.querySelector('section[aria-label="New conversation"]'),
+    ).not.toBeNull();
+  });
+
   for (const sessionId of ["conversation-1", null]) {
     it(`keeps a rejected send in ${sessionId ?? "a new conversation"} for correction or retry`, async () => {
       const store = new StudioChatDraftStore(),

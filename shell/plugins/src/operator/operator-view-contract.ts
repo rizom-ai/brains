@@ -368,6 +368,8 @@ export interface OperatorListItem<
   readonly tone?: OperatorTone | undefined;
   readonly link?: OperatorLinkTarget | undefined;
   readonly actions?: readonly OperatorActionControl<TAction>[] | undefined;
+  /** Trigger copy for a grouped row-action menu. */
+  readonly actionsLabel?: string | undefined;
 }
 
 export interface OperatorListFilterOption {
@@ -639,6 +641,8 @@ export interface OperatorCardBlock<
   readonly metadata?: readonly string[] | undefined;
   /** Supporting information may start closed without removing its content. */
   readonly presentation?: "section" | "disclosure" | "feature" | undefined;
+  /** Separate disclosure trigger; keeps the card heading visible when closed. */
+  readonly disclosureLabel?: string | undefined;
   readonly tone?: OperatorTone | undefined;
   readonly blocks: readonly OperatorPanelBlock<TAction>[];
 }
@@ -726,7 +730,7 @@ export interface DashboardOperatorLinksBlock extends Omit<
 
 export interface DashboardOperatorListItem extends Omit<
   OperatorListItem<never>,
-  "actions" | "link" | "links"
+  "actions" | "actionsLabel" | "link" | "links"
 > {
   readonly link?: DashboardOperatorLinkTarget | undefined;
   readonly links?: readonly DashboardOperatorLinkItem[] | undefined;

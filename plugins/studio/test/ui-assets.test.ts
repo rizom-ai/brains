@@ -57,6 +57,10 @@ describe("Studio split UI assets", () => {
     expect(stylesheet).toContain(operatorCSS);
     expect(stylesheet).toContain("var(--console-accent)");
     expect(stylesheet).not.toContain("insertRule");
+    expect(stylesheet).toContain('[data-editor="codemirror6"] .cm-scroller');
+    expect(stylesheet).toContain('[data-editor="codemirror6"] .cm-content');
+    expect(stylesheet).not.toContain(".body-source .cm-");
+    expect(stylesheet).not.toContain(".body-panes.split");
     // The area/leaf composition and Browse breakpoint must ship as CSS,
     // including styles used by lazy native Chat and Account.
     expect(stylesheet).toContain("grid-template-columns:124px minmax(0,220px)");
@@ -78,6 +82,9 @@ describe("Studio split UI assets", () => {
       const source = readFileSync(join(uiDirectory, filePath), "utf8");
       expect(source).not.toContain("stylex.create(");
       expect(source).not.toContain("@stylexjs/babel-plugin");
+      expect(source).not.toContain(".pipeline .conflict");
+      expect(source).not.toContain(".body-preview pre");
+      expect(source).not.toContain(".body-source .cm-");
     }
 
     const entrySource = readFileSync(
@@ -104,7 +111,9 @@ describe("Studio split UI assets", () => {
     expect(entrySource).toContain(chatEntry[0]);
     expect(entrySource).not.toContain("/api/chat");
     expect(chatSource).toContain("/api/chat");
-    expect(chatSource).toContain("What would you like to work on?");
+    expect(chatSource).toContain(
+      "No messages yet. Your draft stays in the composer until you send it.",
+    );
     expect(chatSource).not.toContain("Working room");
     expect(chatSource).not.toContain("data-web-chat-root");
     expect(chatSource).not.toContain("<iframe");

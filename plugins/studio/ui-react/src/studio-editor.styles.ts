@@ -148,11 +148,6 @@ export const editorStyles: Record<EditorStyle, stylex.StyleXStyles> =
       borderTopStyle: "solid",
       borderTopColor: "var(--console-rule)",
       minHeight: "44px",
-      "@media (max-width: 900px)": {
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-      },
     },
   });
 export function editorClassName(

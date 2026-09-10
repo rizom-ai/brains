@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import type { JSX } from "react";
+import { operatorViewStylexCSS } from "@brains/ui-library";
 import type { ProximityMapData } from "../lib/proximity-map-schema";
 import { ProximityMap } from "../widgets/proximity-map";
 
@@ -320,7 +321,7 @@ export function AgentProximityMapTemplate(data: ProximityMapData): JSX.Element {
 
   return (
     <section className="agent-proximity-site" aria-label="Agent proximity map">
-      <style>{SITE_STYLES}</style>
+      <style>{SITE_STYLES + operatorViewStylexCSS}</style>
       <div className="agent-proximity-site__grid">
         <div className="agent-proximity-site__copy">
           <p className="agent-proximity-site__kicker">{kicker}</p>

@@ -16,8 +16,12 @@ import {
   registerUnifiedInboxStudioWorkspace,
 } from "../../plugins/unified-inbox/src";
 
+import type { StudioStudyState } from "./studio-study-state";
+
 /** Seed source inputs; the production providers own all view composition. */
-export async function createWorkViewFixtures(): Promise<{
+export async function createWorkViewFixtures(
+  state?: StudioStudyState,
+): Promise<{
   overview: () => Promise<unknown>;
   overviewBadge: () => Promise<number>;
   inbox: (query: Record<string, string>) => Promise<unknown>;
@@ -44,7 +48,10 @@ export async function createWorkViewFixtures(): Promise<{
     dataProvider: async () => ({
       view: {
         blocks: [
-          { type: "stats", items: [{ label: "Queued", value: 1 }] },
+          {
+            type: "stats",
+            items: [{ label: "Queued", value: state === "empty" ? 0 : 1 }],
+          },
           {
             type: "links",
             items: [
@@ -57,29 +64,34 @@ export async function createWorkViewFixtures(): Promise<{
         ],
       },
       digest: {
-        attention: 1,
-        items: [
-          {
-            label: "Awaiting review",
-            value: "One draft needs review.",
-            tone: "warn",
-          },
-        ],
+        attention: state === "empty" ? 0 : 1,
+        items:
+          state === "empty"
+            ? []
+            : [
+                {
+                  label: "Awaiting review",
+                  value: "One draft needs review.",
+                  tone: "warn",
+                },
+              ],
       },
     }),
   });
-  registry.recordEntity("updated", {
-    entityType: "note",
-    entityId: "quiet-infrastructure",
-  });
-  registry.recordJob({
-    id: "preview-build",
-    type: "job",
-    status: "failed",
-    message:
-      "Preview render failed. Inspect the retained build diagnostics before retrying.",
-    jobDetails: { jobType: "site-build", priority: 0, retryCount: 0 },
-  });
+  if (state !== "empty" && state !== "restart") {
+    registry.recordEntity("updated", {
+      entityType: "note",
+      entityId: "quiet-infrastructure",
+    });
+    registry.recordJob({
+      id: "preview-build",
+      type: "job",
+      status: "failed",
+      message:
+        "Preview render failed. Inspect the retained build diagnostics before retrying.",
+      jobDetails: { jobType: "site-build", priority: 0, retryCount: 0 },
+    });
+  }
   const overview = createStudioOverviewWorkspace({
     context: createServicePluginContext(shell, "studio"),
     registry,
@@ -89,8 +101,11 @@ export async function createWorkViewFixtures(): Promise<{
   inboxSources.registerSource("email", {
     sourceId: "email",
     displayName: "Email",
-    list: async () =>
-      [
+    list: async () => {
+      if (state === "outage")
+        throw new Error("Fixture email source unavailable");
+      if (state === "empty") return [];
+      return [
         {
           id: "field-notes",
           title: "Could we share your field notes?",
@@ -115,7 +130,8 @@ export async function createWorkViewFixtures(): Promise<{
           urgency: "normal" as const,
           actions: [{ id: "done", label: "Done" }],
         },
-      ].filter((item) => !closed.has(item.id)),
+      ].filter((item) => !closed.has(item.id));
+    },
     resolveDetail: async () => ({
       kind: "plain",
       text: "Original source text\n\nRetained for reading before deciding what to do next.",

@@ -1,6 +1,6 @@
 import * as stylex from "@stylexjs/stylex";
 export const actionLayoutStyles: Record<
-  "group" | "menu" | "link",
+  "group" | "menu" | "link" | "end",
   stylex.StyleXStyles
 > = stylex.create({
   group: {
@@ -10,11 +10,12 @@ export const actionLayoutStyles: Record<
     gap: 10,
     minWidth: 0,
   },
-  menu: { display: "grid", gap: 12, minWidth: 0 },
+  end: { justifyContent: "flex-end" },
+  menu: { display: "grid", alignItems: "center", gap: 12, minWidth: 0 },
   link: {
     borderWidth: 0,
     padding: 0,
-    minHeight: 32,
+    minHeight: { default: 32, "@media (max-width: 640px)": 44 },
     backgroundColor: "transparent",
     color: "var(--console-accent)",
     fontFamily: "var(--console-ui)",

@@ -9,7 +9,6 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
-import operatorViewRendererStyles from "./operator-view-renderer.css" with { type: "text" };
 import {
   OperatorViewRenderer,
   actionFailureMessage,
@@ -244,6 +243,9 @@ describe("OperatorViewRenderer", () => {
       }),
     );
 
+    expect(html).not.toMatch(
+      /class="[^"]*\b(?:operator-stats|operator-stat|operator-filter-summary|operator-align--(?:start|center|end)|operator-group|operator-notice--(?:good|warn|error))(?:\s|")/,
+    );
     expect(html).toContain("Reading library");
     expect(html).toContain("Saved item");
     expect(html).toContain("one, two");
@@ -255,7 +257,9 @@ describe("OperatorViewRenderer", () => {
     expect(html).toContain("Automation");
     expect(html).toContain('data-direction="bidirectional"');
     expect(html).toContain('data-status="active"');
-    expect(html).toContain('<progress value="4" max="10">');
+    expect(html).toMatch(
+      /<progress\b[^>]*aria-label="[^"]+"[^>]*value="4" max="10">/,
+    );
     expect(html).toContain("Preview build");
     expect(html).toContain("All sources");
     expect(html).toContain("Mail (1)");
@@ -277,7 +281,7 @@ describe("OperatorViewRenderer", () => {
     );
 
     const head = html.slice(
-      html.indexOf('class="declarative-head"'),
+      html.indexOf("<header"),
       html.indexOf('class="declarative-blocks"'),
     );
     expect(head).toContain("Reading library");
@@ -382,7 +386,7 @@ describe("OperatorViewRenderer", () => {
       }),
     );
 
-    expect(html).toContain('class="declarative-compact-rows"');
+    expect(html).toContain('class="declarative-compact-rows ');
     expect(html).toContain('data-compact-row="true"');
     expect(html).toContain('data-has-unannotated="true"');
     expect(html).toContain("Owns this brain");
@@ -390,12 +394,8 @@ describe("OperatorViewRenderer", () => {
     expect(html).toContain('data-tone="good" data-record-badge="true"');
     expect(html).toContain("Legacy row");
     expect(html.match(/Review/g)).toHaveLength(2);
-    expect(operatorViewRendererStyles).toMatch(
-      /@media \(max-width: 640px\)[\s\S]*\.declarative-compact-rows/,
-    );
-    expect(operatorViewRendererStyles).toContain(
-      '.declarative-table-scroll[data-has-unannotated="false"]',
-    );
+    expect(operatorViewStylexCSS).not.toContain(".declarative-compact-rows");
+    expect(operatorViewStylexCSS).not.toContain(".declarative-table");
     expect(html).toContain('data-record-trailing="true"');
   });
 
@@ -439,7 +439,7 @@ describe("OperatorViewRenderer", () => {
       }),
     );
 
-    expect(delegated).not.toContain("declarative-head");
+    expect(delegated).not.toMatch(/<main[^>]*>\s*<header/);
     expect(delegated).toContain("Saved");
     expect(delegated).toContain(">1</");
     expect(delegated).toContain("Ready.");
@@ -504,15 +504,25 @@ describe("OperatorViewRenderer", () => {
       }),
     );
 
-    // Routine work stays quiet; confirmation-gated consequences remain marked.
-    expect(html).toMatch(/class="btn ghost"[^>]*>Run sync now/);
-    // Needing confirmation is the signal that an action is consequential.
-    expect(html).toMatch(/class="btn danger"[^>]*>Purge exports/);
+    expect(html).not.toMatch(/class="btn(?:\s|")/);
     // A routine row verb uses the compiled text-action vocabulary, not a box.
     const window = new Window();
     try {
-      window.document.head.innerHTML = `<style>${operatorViewStylexCSS}</style>`;
+      window.document.head.innerHTML = `<style>:root{--console-card-soft:rgb(30,30,30);--console-text:rgb(230,230,230);--console-err:rgb(200,30,30)}${operatorViewStylexCSS}</style>`;
       window.document.body.innerHTML = html;
+      const buttons = Array.from(window.document.querySelectorAll("button"));
+      const routine = buttons.find(
+          (button) => button.textContent === "Run sync now",
+        ),
+        danger = buttons.find(
+          (button) => button.textContent === "Purge exports",
+        );
+      if (!routine || !danger) throw Error("Missing action buttons");
+      expect(window.getComputedStyle(routine).backgroundColor).toBe(
+        "rgb(30, 30, 30)",
+      );
+      expect(window.getComputedStyle(danger).color).toBe("rgb(200, 30, 30)");
+      expect(window.getComputedStyle(routine).minHeight).toBe("36px");
       const open = Array.from(window.document.querySelectorAll("button")).find(
         (button) => button.textContent === "Open",
       );
@@ -726,7 +736,7 @@ describe("OperatorViewRenderer conformance", () => {
 
     for (const marker of [
       "operator-key-values",
-      "declarative-matrix",
+      'data-block="matrix"',
       "data-ui-spatial",
       "declarative-tabs",
       "declarative-columns",
@@ -810,6 +820,15 @@ describe("OperatorViewRenderer confirmations", () => {
       Node: windowInstance.Node,
       Event: windowInstance.Event,
       FormData: windowInstance.FormData,
+      MutationObserver: windowInstance.MutationObserver,
+      NodeFilter: windowInstance.NodeFilter,
+      CustomEvent: windowInstance.CustomEvent,
+      HTMLInputElement: windowInstance.HTMLInputElement,
+      getComputedStyle: windowInstance.getComputedStyle.bind(windowInstance),
+      requestAnimationFrame:
+        windowInstance.requestAnimationFrame.bind(windowInstance),
+      cancelAnimationFrame:
+        windowInstance.cancelAnimationFrame.bind(windowInstance),
       IS_REACT_ACT_ENVIRONMENT: true,
     });
     // globalThis.document is the happy-dom document assigned above, but typed
@@ -827,11 +846,91 @@ describe("OperatorViewRenderer confirmations", () => {
 
   const clickButton = async (label: string): Promise<void> => {
     const button = Array.from(
-      container.querySelectorAll<HTMLButtonElement>("button"),
+      document.querySelectorAll<HTMLButtonElement>("button"),
     ).find((candidate) => String(candidate.textContent).trim() === label);
     if (!button) throw new Error(`Expected a "${label}" button`);
     await act(async () => button.click());
   };
+
+  it("keeps authored headings visible while separate triggers expose exact row actions", async () => {
+    const invocations: RuntimeOperatorActionControl[] = [];
+    await act(async () =>
+      root.render(
+        <OperatorViewRenderer
+          data={{
+            view: {
+              blocks: [
+                {
+                  type: "card",
+                  id: "warning",
+                  label: "One delivery needs attention",
+                  metadata: ["Retries: 0"],
+                  tone: "warn",
+                  presentation: "disclosure",
+                  disclosureLabel: "Review failure α",
+                  blocks: [
+                    {
+                      type: "list",
+                      id: "failures",
+                      empty: "Empty",
+                      items: [
+                        {
+                          id: "failure",
+                          title: "Full source title",
+                          description: "Exact diagnostics\nrequest:123",
+                          actionsLabel: "Queue options α",
+                          actions: [
+                            {
+                              actionId: "retry",
+                              label: "Retry publication",
+                              input: { id: "exact:123" },
+                            },
+                            {
+                              actionId: "remove",
+                              label: "Remove",
+                              input: { id: "exact:123" },
+                              disabled: true,
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          }}
+          onAction={async (action) => {
+            invocations.push(action);
+            return {};
+          }}
+          onOpenEntity={() => {}}
+        />,
+      ),
+    );
+    const heading = container.querySelector("section > header h2");
+    expect(heading?.textContent).toBe("One delivery needs attention");
+    expect(heading?.closest("details")).toBeNull();
+    const summaries = Array.from(container.querySelectorAll("summary")),
+      review = summaries.find((s) => s.textContent === "Review failure α"),
+      options = summaries.find((s) => s.textContent === "Queue options α");
+    if (!review || !options) throw Error("Missing authored triggers");
+    expect(review.closest("details")?.open).toBe(false);
+    expect(invocations).toHaveLength(0);
+    await act(async () => review.click());
+    await act(async () => options.click());
+    expect(review.closest("details")?.open).toBe(true);
+    expect(options.closest("details")?.open).toBe(true);
+    expect(container.textContent).toContain("Exact diagnostics\nrequest:123");
+    const disabled = Array.from(container.querySelectorAll("button")).find(
+      (b) => b.textContent === "Remove",
+    );
+    expect(disabled?.disabled).toBe(true);
+    await clickButton("Retry publication");
+    expect(invocations).toMatchObject([
+      { actionId: "retry", input: { id: "exact:123" } },
+    ]);
+  });
 
   it("confirms static actions in the Studio dialog rather than a browser prompt", async () => {
     const invocations: RuntimeOperatorActionControl[] = [];
@@ -853,13 +952,13 @@ describe("OperatorViewRenderer confirmations", () => {
 
     await clickButton("Purge exports");
 
-    const dialog = container.querySelector('[role="alertdialog"]');
+    const dialog = document.querySelector('[role="alertdialog"]');
     expect(dialog).not.toBeNull();
     expect(dialog?.textContent).toContain("Purge every exported file?");
     expect(invocations).toHaveLength(0);
 
     await clickButton("Cancel");
-    expect(container.querySelector('[role="alertdialog"]')).toBeNull();
+    expect(document.querySelector('[role="alertdialog"]')).toBeNull();
     expect(invocations).toHaveLength(0);
 
     await clickButton("Purge exports");
@@ -1044,6 +1143,9 @@ describe("OperatorViewRenderer confirmations", () => {
     );
     expect(result?.textContent).not.toContain("not declared");
     expect(result?.querySelector("[data-sensitive]")).not.toBeNull();
+    expect(
+      result?.querySelector("[data-sensitive] code")?.getAttribute("title"),
+    ).toBe("https://brain.test/auth/setup/token-1");
     await clickButton("Copy");
     expect(copied).toBe("https://brain.test/auth/setup/token-1");
 
@@ -1095,7 +1197,7 @@ describe("OperatorViewRenderer confirmations", () => {
 
     expect(invocations).toHaveLength(1);
     expect(invocations[0]?.invocation?.mode).toBe("prepare");
-    const dialog = container.querySelector('[role="alertdialog"]');
+    const dialog = document.querySelector('[role="alertdialog"]');
     expect(dialog?.textContent).toContain("Removes 12 exported files.");
 
     await clickButton("Confirm action");
@@ -1483,7 +1585,7 @@ describe("OperatorViewRenderer pagination", () => {
     expect(stale).toContain("No items on this page · 3 total");
     expect(stale).toContain("Previous");
     expect(stale).not.toContain("21–3");
-    expect(operatorViewRendererStyles).not.toContain(".declarative-query");
+    expect(operatorViewStylexCSS).not.toContain(".declarative-query");
   });
 
   it("disables the direction it cannot go", () => {
@@ -1514,7 +1616,7 @@ describe("sidebar card readouts", () => {
     // The shared fact component tests apply these compiled styles to both densities.
     expect(operatorViewStylexCSS).toContain("overflow-wrap:anywhere");
     expect(operatorViewStylexCSS).toContain("flex-wrap:wrap");
-    expect(operatorViewRendererStyles).not.toContain(".declarative-group");
+    expect(operatorViewStylexCSS).not.toContain(".declarative-group");
   });
 
   it("sizes stats to the card rather than breaking a state mid-word", () => {
@@ -1568,36 +1670,13 @@ describe("author-supplied text cannot break the page", () => {
   // Badge measure and wrapping are covered against compiled CSS in operator-list.test.tsx.
 });
 
-describe("every author-text surface has a break guard", () => {
-  // Kept as one list so a new text-bearing block cannot quietly ship without
-  // deciding what happens to a string that has nowhere to break.
-  const guarded = [
-    ".declarative-spatial li strong",
-    ".declarative-spatial li span",
-    ".declarative-flow strong",
-    ".declarative-progress strong",
-    ".declarative-progress p",
-    ".declarative-meters dd",
-    ".declarative-links a",
+it("does not depend on legacy renderer selectors", () => {
+  for (const selector of [
+    ".declarative-spatial",
+    ".declarative-links",
     ".declarative-inline-link",
-  ];
-
-  // Read the one rule that owns this contract rather than searching the whole
-  // sheet: a lazy match across blocks would happily find some other
-  // overflow-wrap and pass without the selector being guarded at all.
-  const contract =
-    /---- author text[\s\S]*?\n([^{]*)\{([^}]*)\}/.exec(
-      operatorViewRendererStyles,
-    ) ?? undefined;
-
-  it("declares the contract as a single rule", () => {
-    expect(contract).toBeDefined();
-    expect(contract?.[2]).toContain("overflow-wrap: anywhere");
-  });
-
-  for (const selector of guarded) {
-    it(`breaks unbroken tokens in ${selector}`, () => {
-      expect(contract?.[1]).toContain(selector);
-    });
-  }
+    ".declarative-head",
+    ".declarative-matrix",
+  ])
+    expect(operatorViewStylexCSS).not.toContain(selector);
 });

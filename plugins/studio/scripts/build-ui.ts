@@ -72,7 +72,16 @@ const stylexFile = "studio-app.css";
 const operatorCSS = await Bun.file(
   join(operatorRoot, "dist/stylex.css"),
 ).text();
-await writeFile(join(outdir, stylexFile), `${stylex.css()}\n${operatorCSS}\n`);
+const vendorCSS = await Bun.file(
+  join(packageRoot, "ui-react/src/codemirror-vendor.css"),
+).text();
+const documentCSS = await Bun.file(
+  join(packageRoot, "ui-react/src/studio-document.css"),
+).text();
+await writeFile(
+  join(outdir, stylexFile),
+  `${vendorCSS}\n${stylex.css()}\n${operatorCSS}\n${documentCSS}\n`,
+);
 const outputFiles = [
   ...result.outputs.map((output) =>
     relative(outdir, output.path).replaceAll("\\", "/"),

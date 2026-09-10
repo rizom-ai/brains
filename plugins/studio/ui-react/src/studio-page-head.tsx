@@ -1,6 +1,7 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
 import { headStyles as s } from "./studio-page-head.styles";
+import { editorLayoutStyles as layout } from "./studio-editor-layout.styles";
 import type {
   RuntimeOperatorActionControl,
   RuntimeStudioOperatorView,
@@ -61,7 +62,11 @@ export function StudioPageHead(props: {
   if (props.appearance === "document") {
     return (
       <header
-        className={editorClass("studio-page-head", editorStyles.head)}
+        className={editorClass(
+          "studio-page-head",
+          editorStyles.head,
+          layout.head,
+        )}
         data-studio-page-head="true"
         data-has-status="false"
         data-has-totals="false"
@@ -160,6 +165,7 @@ export function StudioPageHead(props: {
           <div
             className={editorClass("studio-page-head-action", s.action)}
             data-studio-primary-action="true"
+            data-operator-action-popover=""
           >
             {props.action}
           </div>

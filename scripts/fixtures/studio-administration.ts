@@ -15,8 +15,13 @@ import {
   actionRequest,
 } from "../../plugins/admin/test/studio-workspace-test-helpers";
 
+import type { StudioStudyState } from "./studio-study-state";
+
 /** Real provider compositions over disposable auth data, never the preview's databases. */
-export async function createAdministrationFixture(now: number): Promise<{
+export async function createAdministrationFixture(
+  now: number,
+  state?: StudioStudyState,
+): Promise<{
   read: (query: Record<string, string>) => Promise<unknown>;
   badge: () => Promise<number>;
   dispose: () => Promise<void>;
@@ -98,28 +103,35 @@ export async function createAdministrationFixture(now: number): Promise<{
       await captureAdminWorkspaces(shell),
       "Administration",
     );
-    const invitationView = await workspace.dataProvider(actor, {
-      tab: "invitations",
-    });
-    const create = findAction(invitationView, "Add a person");
-    await workspace.actionHandler?.(
-      actionRequest(create, {
-        idempotencyKey: "visual-grace",
-        displayName: "Grace Hopper",
-        role: "trusted",
-        deliveryType: "email",
-        deliverySubject: "grace@example.test",
-        deliveryLabel: "grace@example.test",
-        deliveryMode: "manual",
-      }),
-      actor,
-    );
-    await service.recordAuditEvent({
-      actorUserId: mira.userId,
-      action: "auth.user.role_updated",
-      targetType: "user",
-      targetId: alex.userId,
-    });
+    if (state !== "empty") {
+      const invitationView = await workspace.dataProvider(actor, {
+        tab: "invitations",
+      });
+      const create = findAction(invitationView, "Add a person");
+      await workspace.actionHandler?.(
+        actionRequest(create, {
+          idempotencyKey: "visual-grace",
+          displayName: "Grace Hopper",
+          role: "trusted",
+          deliveryType: "email",
+          deliverySubject: "grace@example.test",
+          deliveryLabel: "grace@example.test",
+          deliveryMode: "manual",
+        }),
+        actor,
+      );
+      await service.recordAuditEvent({
+        actorUserId: mira.userId,
+        action: "auth.user.role_updated",
+        targetType: "user",
+        targetId: alex.userId,
+      });
+    } else {
+      // Empty source history without mutating even the disposable auth database.
+      service.queryAuditEvents = async (): Promise<
+        Awaited<ReturnType<typeof service.queryAuditEvents>>
+      > => ({ events: [], actions: [], total: 0 });
+    }
     return {
       read: (query) => workspace.dataProvider(actor, query),
       badge: async () => (await workspace.badgeProvider?.(actor)) ?? 0,

@@ -6,6 +6,10 @@ import { createAdministrationFixture } from "./fixtures/studio-administration";
 import { createWorkViewFixtures } from "./fixtures/studio-work-views";
 import { createDeliveryViewFixtures } from "./fixtures/studio-delivery-views";
 import { createSyncViewFixture } from "./fixtures/studio-sync-view";
+import {
+  studioStudyStateSchema,
+  supportsStudioStudyState,
+} from "./fixtures/studio-study-state";
 import { createElement, type ReactElement } from "react";
 import { renderChatPage } from "@brains/web-chat";
 import { renderEditorShellHtml } from "@brains/studio";
@@ -14,6 +18,8 @@ import {
   type DashboardRenderInput,
 } from "@brains/dashboard";
 import { createMockAppInfo } from "@brains/test-utils";
+import { safeParseRuntimeDashboardWidgetData } from "@brains/plugins";
+import { findCartesianMap } from "../plugins/dashboard/src/render/public-card-data";
 import {
   ProximityMap,
   proximityMapScript,
@@ -25,9 +31,22 @@ const ROOT = path.resolve(import.meta.dir, "..");
 const BASELINE_DIR = path.join(ROOT, "test/visual/console/baselines");
 const ARTIFACT_DIR = path.join(ROOT, "test/visual/console/artifacts");
 const UPDATE = process.argv.includes("--update");
+const STUDY_STATE = studioStudyStateSchema
+  .optional()
+  .parse(
+    process.argv
+      .find((arg) => arg.startsWith("--study-state="))
+      ?.slice("--study-state=".length),
+  );
 const SURFACE_FILTER = process.argv
   .find((argument) => argument.startsWith("--surface="))
   ?.slice("--surface=".length);
+if (
+  STUDY_STATE &&
+  SURFACE_FILTER &&
+  !supportsStudioStudyState(SURFACE_FILTER, STUDY_STATE)
+)
+  throw Error(`Study state ${STUDY_STATE} does not apply to ${SURFACE_FILTER}`);
 const VIEWPORT_FILTER = process.argv
   .find((argument) => argument.startsWith("--viewport="))
   ?.slice("--viewport=".length);
@@ -909,6 +928,50 @@ async function verifyAdministrationRecords(
   );
 }
 
+async function verifyMapMotion(page: Bun.WebView): Promise<void> {
+  await page.cdp("Emulation.setEmulatedMedia", {
+    features: [{ name: "prefers-reduced-motion", value: "no-preference" }],
+  });
+  try {
+    await evaluatePage(page, () => {
+      const marks = document.querySelectorAll(
+        ".knowledge-weave,.knowledge-zone-contour,.knowledge-point,.proximity-spore,.proximity-center-halo,.proximity-node-glow",
+      );
+      if (marks.length < 5) throw Error("Missing animated map marks");
+      for (const mark of marks)
+        if (getComputedStyle(mark).animationName === "none")
+          throw Error("Map lost its compiled animation");
+    });
+    await page.cdp("Emulation.setEmulatedMedia", {
+      features: [{ name: "prefers-reduced-motion", value: "reduce" }],
+    });
+    await evaluatePage(page, () => {
+      if (!matchMedia("(prefers-reduced-motion: reduce)").matches)
+        throw Error("Reduced-motion emulation failed");
+      const marks = document.querySelectorAll(
+        ".knowledge-weave,.knowledge-zone-contour,.knowledge-point,.proximity-spore,.proximity-center-halo,.proximity-node-glow",
+      );
+      for (const mark of marks) {
+        const style = getComputedStyle(mark);
+        if (
+          style.animationName !== "none" ||
+          Number.parseFloat(style.opacity) !== 1 ||
+          style.transform !== "none"
+        )
+          throw Error("Reduced-motion map marks are animated or hidden");
+      }
+      for (const path of document.querySelectorAll(
+        ".knowledge-weave,.knowledge-zone-contour",
+      ))
+        if (Number.parseFloat(getComputedStyle(path).strokeDashoffset) !== 0)
+          throw Error("Reduced-motion contours did not finish drawing");
+    });
+  } finally {
+    await page.cdp("Emulation.setEmulatedMedia", { features: [] });
+  }
+  await Bun.sleep(1200);
+}
+
 async function verifyDashboardChrome(page: Bun.WebView): Promise<void> {
   await waitForPage("Dashboard tabs initialized", () =>
     evaluatePage(page, () =>
@@ -916,6 +979,31 @@ async function verifyDashboardChrome(page: Bun.WebView): Promise<void> {
     ),
   );
   await evaluatePage(page, () => {
+    const paper = document.documentElement.dataset["climate"] === "paper";
+    const bodyStyle = getComputedStyle(document.body),
+      grain = getComputedStyle(document.body, "::before"),
+      vignette = getComputedStyle(document.body, "::after");
+    if (
+      bodyStyle.fontSize !== "14px" ||
+      bodyStyle.lineHeight !== "21px" ||
+      bodyStyle.overflowX !== "clip" ||
+      grain.opacity !== (paper ? "0.06" : "0.035") ||
+      grain.mixBlendMode !== (paper ? "multiply" : "overlay") ||
+      vignette.opacity !== (paper ? "0.7" : "0.55") ||
+      !grain.backgroundImage.includes("feTurbulence") ||
+      !vignette.backgroundImage.includes("radial-gradient") ||
+      (paper && !vignette.backgroundImage.includes("-10%"))
+    )
+      throw Error("Compiled document foundation lost its climate treatment");
+    for (const overlay of [grain, vignette])
+      if (
+        overlay.position !== "fixed" ||
+        overlay.pointerEvents !== "none" ||
+        overlay.zIndex !== "0"
+      )
+        throw Error(
+          "Document ambience intercepts or overlays content incorrectly",
+        );
     const header = document.querySelector(".public-header");
     if (
       !header ||
@@ -1060,6 +1148,146 @@ async function verifyDashboardChrome(page: Bun.WebView): Promise<void> {
       throw new Error(
         `Compiled tabs did not reflect selected ARIA state: ${selected.borderBottomWidth}, ${selected.borderBottomColor} / ${other.borderBottomColor}`,
       );
+    const atlas = document.querySelector<HTMLElement>(".knowledge-map-field");
+    const atlasCanvas = atlas?.querySelector<HTMLElement>(
+      ".knowledge-map-canvas",
+    );
+    const atlasGraphic = atlasCanvas?.querySelector("svg");
+    const atlasSummary = document.querySelector<HTMLElement>(
+      ".knowledge-atlas-summary",
+    );
+    if (!atlas || !atlasCanvas || !atlasGraphic || !atlasSummary)
+      throw new Error("Missing shared map framing");
+    const phoneMap = window.innerWidth <= 700;
+    if (
+      getComputedStyle(atlas).gridTemplateColumns.split(" ").length !==
+        (phoneMap ? 1 : 2) ||
+      getComputedStyle(atlasGraphic).minHeight !==
+        (phoneMap ? "320px" : "480px") ||
+      Math.abs(
+        atlasGraphic.getBoundingClientRect().width / atlasCanvas.clientWidth -
+          (phoneMap ? 1.4 : 1),
+      ) > 0.01
+    )
+      throw new Error("Map framing lost its responsive projection geometry");
+    const paperMap =
+      document.documentElement.getAttribute("data-climate") === "paper";
+    if (
+      !getComputedStyle(atlas).boxShadow.includes(
+        paperMap ? "90, 60, 20" : "0, 0, 0",
+      )
+    )
+      throw new Error("Map inset shadow lost its climate");
+    const values = atlasSummary.querySelectorAll("dd strong");
+    const labels = atlasSummary.querySelectorAll("dt");
+    if (
+      values.length !== 3 ||
+      labels.length !== 3 ||
+      !values[0] ||
+      !labels[0] ||
+      getComputedStyle(values[0]).fontSize !== (phoneMap ? "20px" : "23px") ||
+      getComputedStyle(labels[0]).fontSize !== (phoneMap ? "6.5px" : "8px")
+    )
+      throw new Error("Map summary lost its numeric hierarchy");
+    const mapStatus = atlasSummary.querySelector("p");
+    if (!mapStatus) throw new Error("Missing map summary status");
+    const originalStatusChildren = Array.from(mapStatus.childNodes);
+    const originalValue = values[0].textContent;
+    try {
+      mapStatus.textContent = "long-source-status".repeat(20);
+      values[0].textContent = "1234567890".repeat(30);
+      if (atlasSummary.scrollWidth > atlasSummary.clientWidth + 1)
+        throw new Error("Long map summary data escaped its frame");
+    } finally {
+      mapStatus.replaceChildren(...originalStatusChildren);
+      values[0].textContent = originalValue;
+    }
+    const territoryControls = atlas.querySelectorAll<HTMLButtonElement>(
+      "[data-knowledge-zone-ref]",
+    );
+    const firstTerritory = territoryControls[0],
+      secondTerritory = territoryControls[1];
+    if (!firstTerritory || !secondTerritory)
+      throw new Error("Missing source territory controls");
+    for (const control of territoryControls) {
+      if (
+        control.classList.contains("is-active") ||
+        (phoneMap && control.getBoundingClientRect().height < 44)
+      )
+        throw new Error(
+          "Territory controls lost native-state styling or phone targets",
+        );
+    }
+    const selectedTerritoryBackground =
+      getComputedStyle(firstTerritory).backgroundColor;
+    secondTerritory.focus();
+    if (
+      getComputedStyle(secondTerritory).backgroundColor !==
+        selectedTerritoryBackground ||
+      getComputedStyle(firstTerritory).backgroundColor ===
+        selectedTerritoryBackground
+    )
+      throw new Error("Territory selection did not follow ARIA state");
+    const activeZone = atlas.querySelector(
+      '.knowledge-zone[data-map-active="true"]',
+    );
+    if (!activeZone) throw new Error("Missing selected region");
+    if (
+      secondTerritory.getAttribute("aria-pressed") !== "true" ||
+      activeZone.getAttribute("data-knowledge-zone") !==
+        secondTerritory.getAttribute("data-knowledge-zone-ref")
+    )
+      throw new Error("Map focus no longer traces its source territory");
+    const activeContours = activeZone.querySelectorAll(
+      ".knowledge-zone-contour",
+    );
+    const inactiveContours = atlas.querySelectorAll(
+      '.knowledge-zone[data-map-active="false"] .knowledge-zone-contour',
+    );
+    if (
+      activeContours.length !== 3 ||
+      inactiveContours.length < 3 ||
+      Array.from(activeContours).some(
+        (path) =>
+          Number.parseFloat(getComputedStyle(path).strokeOpacity) !== 0.58,
+      ) ||
+      Array.from(inactiveContours).some(
+        (path, index) =>
+          getComputedStyle(path).strokeOpacity !==
+          ["0.23", "0.34", "0.22"][index % 3],
+      )
+    )
+      throw new Error("Region paint no longer follows explicit map selection");
+    knowledge.focus();
+    const indexNote = atlas.querySelector("[data-map-index-note]");
+    const indexList = atlas.querySelector("ol");
+    if (
+      !indexNote ||
+      !indexList ||
+      (!phoneMap &&
+        (getComputedStyle(indexNote).position === "absolute" ||
+          indexNote.getBoundingClientRect().top <
+            indexList.getBoundingClientRect().bottom - 1))
+    )
+      throw new Error("Territory guidance overlaps its source records");
+    const markers = document.querySelectorAll("#knowledge [data-map-marker]");
+    if (markers.length === 0) throw new Error("Missing compiled map legend");
+    for (const marker of markers) {
+      const dot = marker.querySelector("i");
+      if (!dot) throw new Error("Missing legend marker");
+      if (
+        dot.getAttribute("aria-hidden") !== "true" ||
+        getComputedStyle(dot).width !== "8px"
+      )
+        throw new Error("Legend marker lost its compiled shape");
+      if (
+        marker.getAttribute("data-map-marker") === "dashed-ring" &&
+        getComputedStyle(dot).borderTopStyle !== "dashed"
+      )
+        throw new Error("Legend lost its explicit grouping marker");
+    }
+    if (firstTerritory.getAttribute("aria-pressed") !== "true")
+      throw new Error("Map focus exit did not restore the leading territory");
     const networkTab = document.querySelector<HTMLElement>(
       '[data-ui-tab="network"]',
     );
@@ -1657,7 +1885,9 @@ async function verifyDirectStudioNavigation(
     leaf: document.querySelector(".studio-leaf-rail") !== null,
     mainWidth: Math.round(
       document
-        .querySelector(".studio-body > :not(aside), .studio-chat-workspace")
+        .querySelector(
+          "[data-studio-body] > :not(aside), .studio-chat-workspace",
+        )
         ?.getBoundingClientRect().width ?? 0,
     ),
     viewportWidth: document.documentElement.clientWidth,
@@ -1957,7 +2187,7 @@ async function addVisualInitScript(
         "console.climate",
         new URL(location.href).searchParams.get("climate") ?? "instrument",
       );
-      localStorage.setItem(
+      if (${JSON.stringify(STUDY_STATE !== "empty")}) localStorage.setItem(
         "brain:web-chat:conversation-id",
         ${JSON.stringify(conversation)},
       );
@@ -2045,7 +2275,7 @@ async function checkLayout(
   ) {
     const railDisplay = await elementDisplay(
       page,
-      ".studio > .studio-body > .rail",
+      "[data-studio-shell] > [data-studio-body] > .rail",
     );
     if (railDisplay !== "none") {
       throw new Error(`Studio rendered a duplicate phone navigation rail`);
@@ -2104,9 +2334,9 @@ async function checkLayout(
           ".console-strip",
           ".rail",
           ".studio-mobile-switcher",
-          ".studio-body",
+          "[data-studio-body]",
           ".studio-workspace-frame",
-          ".listing",
+          "[data-studio-library]",
           ".account-studio-pane",
         ].map((selector) => {
           const element = document.querySelector(selector);
@@ -2181,7 +2411,9 @@ async function checkLayout(
     if (surface.startsWith("studio-administration")) {
       const records = await elementBounds(
         page,
-        ".declarative-detail-master .operator-record-list",
+        STUDY_STATE === "empty"
+          ? ".declarative-detail-master"
+          : ".declarative-detail-master .operator-record-list",
       );
       if (!records || records.width > width)
         throw new Error(
@@ -2195,11 +2427,23 @@ async function checkLayout(
       ".studio-chat-mobile-sessions",
     );
     const sessions = await elementDisplay(page, ".studio-chat-sessions");
-    if (destinations === "none" || width <= 860 !== (sessions === "none")) {
+    if (
+      destinations === "none" ||
+      destinations === "missing" ||
+      sessions !==
+        (STUDY_STATE === "empty" ? "missing" : width <= 860 ? "none" : "block")
+    ) {
       throw new Error(`Studio Chat responsive mode mismatch at ${width}px`);
     }
     const workspace = await elementBounds(page, ".studio-chat-room");
     const composer = await elementBounds(page, ".studio-chat-composer");
+    if (
+      STUDY_STATE === "empty" &&
+      workspace &&
+      composer &&
+      Math.abs(workspace.width - composer.width) > 1
+    )
+      throw Error("Empty Chat must not reserve a phantom conversation rail");
     if (!workspace || !composer) {
       throw new Error(`Studio Chat workspace did not render at ${width}px`);
     }
@@ -2219,9 +2463,27 @@ async function checkLayout(
     if (width <= 640 !== (modes !== "none"))
       throw new Error(`Studio responsive mode mismatch at ${width}px`);
     if (width <= 900) {
-      const pipeline = await elementBounds(page, ".pipeline");
+      const pipeline = await elementBounds(page, "[data-studio-save-bar]");
       if (!pipeline || pipeline.y + pipeline.height > viewportHeight + 1)
         throw new Error(`Studio save bar escaped the viewport at ${width}px`);
+      if (width <= 640) {
+        const more = await elementBounds(
+            page,
+            'button[aria-label="More document actions"]',
+          ),
+          save = await elementBounds(page, ".studio-editor-head-save");
+        if (!save || save.width < 44 || save.height < 44 || save.y > 220)
+          throw Error("Phone Save must remain visible in the document head");
+        if (
+          more &&
+          (pipeline.x + pipeline.width - (more.x + more.width) > 24 ||
+            more.width < 44 ||
+            more.height < 44)
+        )
+          throw Error(
+            `Phone document actions must stay at the end of the save bar: ${JSON.stringify({ pipeline, more })}`,
+          );
+      }
     }
   }
 }
@@ -2285,10 +2547,13 @@ for (let offset = 0; offset < fixturePng.data.length; offset += 4) {
 const fixtureImage = new Uint8Array(PNG.sync.write(fixturePng));
 
 const pendingUploadResponses = new Set<() => void>();
-const administrationFixture = await createAdministrationFixture(FIXED_NOW);
-const workViewFixtures = await createWorkViewFixtures();
-const deliveryViewFixtures = await createDeliveryViewFixtures();
-const syncViewFixture = await createSyncViewFixture();
+const administrationFixture = await createAdministrationFixture(
+  FIXED_NOW,
+  STUDY_STATE,
+);
+const workViewFixtures = await createWorkViewFixtures(STUDY_STATE);
+const deliveryViewFixtures = await createDeliveryViewFixtures(STUDY_STATE);
+const syncViewFixture = await createSyncViewFixture(STUDY_STATE);
 const server = Bun.serve({
   port: 0,
   async fetch(request) {
@@ -2299,6 +2564,44 @@ const server = Bun.serve({
       });
     if (url.pathname === "/dashboard") {
       const input = dashboardInput();
+      if (url.searchParams.get("fixture-state") === "dense-map") {
+        const block = findCartesianMap(input.widgets);
+        const widget = input.widgets["topics:topics-knowledge-map"];
+        if (!block || !widget || block.zones.length === 0)
+          throw new Error("Missing source atlas fixture");
+        widget.data = {
+          view: {
+            blocks: [
+              {
+                ...block,
+                zones: Array.from({ length: 20 }, (_, index) => {
+                  const source = block.zones[index % block.zones.length];
+                  if (!source) throw new Error("Missing source territory");
+                  return {
+                    ...source,
+                    id:
+                      index < block.zones.length
+                        ? source.id
+                        : `${source.id}:dense-${index}`,
+                    label: `${source.label} — complete public territory ${index + 1}`,
+                    x: (index % 5) / 4,
+                    y: Math.floor(index / 5) / 3,
+                  };
+                }),
+              },
+            ],
+          },
+        };
+        const parsed = safeParseRuntimeDashboardWidgetData(widget.data);
+        if (!parsed.success)
+          throw new Error(
+            `Invalid dense fixture: ${JSON.stringify(parsed.issues)}`,
+          );
+      }
+      if (url.searchParams.get("fixture-state") === "declarative-network") {
+        const network = input.widgets["agent-discovery:agent-proximity"];
+        if (network) delete network.component;
+      }
       if (url.searchParams.get("fixture-state") === "waiting") {
         input.widgets = {};
         input.appInfo.interactions = input.appInfo.interactions.map(
@@ -2335,7 +2638,37 @@ const server = Bun.serve({
       return new Response(await readFile(chatStyles), {
         headers: { "content-type": "text/css" },
       });
-    if (url.pathname === "/api/chat/sessions") return json({ sessions });
+    if (url.pathname === "/api/chat/sessions")
+      return json({ sessions: STUDY_STATE === "empty" ? [] : sessions });
+    if (
+      url.pathname === "/api/chat" &&
+      request.method === "POST" &&
+      STUDY_STATE === "busy"
+    )
+      return new Response(
+        new ReadableStream({
+          start(controller): void {
+            for (const event of [
+              { type: "start", messageId: "fixture-busy" },
+              { type: "text-start", id: "text" },
+              {
+                type: "text-delta",
+                id: "text",
+                delta: "Fixture response remains in progress.",
+              },
+            ])
+              controller.enqueue(
+                new TextEncoder().encode(`data: ${JSON.stringify(event)}\n\n`),
+              );
+          },
+        }),
+        {
+          headers: {
+            "content-type": "text/event-stream",
+            "x-vercel-ai-ui-message-stream": "v1",
+          },
+        },
+      );
     if (url.pathname === "/api/chat/uploads")
       return new Response("# Verdigris field notes\n", {
         headers: { "content-type": "text/markdown" },
@@ -2344,7 +2677,13 @@ const server = Bun.serve({
       const id = url.searchParams.get("id");
       return json({
         messages:
-          id === "cards" ? cardMessages : id === "empty" ? [] : messages,
+          STUDY_STATE === "empty"
+            ? []
+            : id === "cards"
+              ? cardMessages
+              : id === "empty"
+                ? []
+                : messages,
       });
     }
     if (
@@ -2562,15 +2901,21 @@ const server = Bun.serve({
     if (url.pathname === "/auth/account")
       return json({
         account: {
+          ...(STUDY_STATE === "empty"
+            ? { profileEntityId: "anchor-profile/anchor-profile" }
+            : {}),
           displayName: "Mira Reyes",
           role: "admin",
-          connectedChannels: [
-            {
-              type: "email",
-              label: "mira@example.com",
-              verifiedAt: 1_735_689_600_000,
-            },
-          ],
+          connectedChannels:
+            STUDY_STATE === "empty"
+              ? []
+              : [
+                  {
+                    type: "email",
+                    label: "mira@example.com",
+                    verifiedAt: 1_735_689_600_000,
+                  },
+                ],
           pluginSettings: [],
           passkeys: [
             {
@@ -2593,7 +2938,7 @@ const server = Bun.serve({
               createdAt: 1_735_776_000,
               expiresAt: 1_738_368_000,
             },
-          ],
+          ].slice(0, STUDY_STATE === "empty" ? 1 : undefined),
         },
       });
     if (
@@ -2748,6 +3093,36 @@ const browserBackend: Bun.WebView.Backend = {
   ...(browserArgs.length > 0 ? { argv: browserArgs } : {}),
 };
 const failures: string[] = [];
+async function settleVisualCapture(page: Bun.WebView): Promise<void> {
+  await evaluatePage(page, async () => {
+    await document.fonts.ready;
+    const style = document.createElement("style");
+    style.textContent =
+      "*,*::before,*::after{animation-duration:0s!important;animation-delay:0s!important;transition-duration:0s!important;caret-color:transparent!important}";
+    document.head.append(style);
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+  });
+}
+async function recordVisualCapture(name: string, image: Buffer): Promise<void> {
+  const baselinePath = path.join(BASELINE_DIR, name);
+  if (UPDATE) {
+    const ratio = await comparePng(image, baselinePath).catch(() => 1);
+    if (ratio > 0.002) await writeFile(baselinePath, image);
+  } else {
+    try {
+      const ratio = await comparePng(image, baselinePath);
+      if (ratio > 0.002) {
+        await writeFile(path.join(ARTIFACT_DIR, name), image);
+        failures.push(`${name}: ${(ratio * 100).toFixed(2)}% pixels changed`);
+      }
+    } catch (error) {
+      await writeFile(path.join(ARTIFACT_DIR, name), image);
+      failures.push(`${name}: ${getErrorMessage(error)}`);
+    }
+  }
+}
 try {
   for (const climate of CLIMATES) {
     if (CLIMATE_FILTER && climate !== CLIMATE_FILTER) continue;
@@ -2789,6 +3164,8 @@ try {
         "studio-upload",
       ] as const) {
         if (SURFACE_FILTER && surface !== SURFACE_FILTER) continue;
+        if (STUDY_STATE && !supportsStudioStudyState(surface, STUDY_STATE))
+          continue;
         // Session and context destinations only exist at phone widths.
         if (surface === "chat-drawer" && viewport.width > 760) continue;
         if (
@@ -2869,13 +3246,236 @@ try {
           ? `&tab=invitations`
           : surface === "studio-administration-audit"
             ? `&tab=audit`
-            : surface.startsWith("studio-chat")
+            : surface.startsWith("studio-chat") && STUDY_STATE !== "empty"
               ? `&session=responsive`
               : "";
         await navigateToNetworkIdle(
           page,
           `http://127.0.0.1:${server.port}${route}?climate=${climate}${workspaceQuery}${hash}`,
         );
+        if (STUDY_STATE) {
+          await settleVisualCapture(page);
+          const emptyCopy: Record<string, string> = {
+            "studio-overview": "Nothing needs your attention.",
+            "studio-chat":
+              "No messages yet. Your draft stays in the composer until you send it.",
+            "studio-inbox": "Nothing needs attention for these filters.",
+            "studio-publishing": "Nothing is in flight",
+            "studio-site": "Not published yet",
+            "studio-content-sync": "No directory sync runs have completed yet.",
+            "studio-administration-invitations": "No pending invitations.",
+            "studio-administration-audit":
+              "No audit events match these filters.",
+            "studio-account": "Managed by the Anchor profile",
+          };
+          if (STUDY_STATE === "empty") {
+            const expected = emptyCopy[surface];
+            if (!expected)
+              throw Error(`No empty-state assertion for ${surface}`);
+            await waitForText(page, expected);
+            if (surface === "studio-overview")
+              await waitForText(page, "No recent activity is available.");
+            if (surface === "studio-inbox")
+              await waitForText(
+                page,
+                "Change Source or Urgency to inspect other incoming work.",
+              );
+            if (surface === "studio-site")
+              await evaluatePage(page, () => {
+                if (
+                  Array.from(document.querySelectorAll("a")).some(
+                    (a) => a.textContent.trim() === "Open preview",
+                  )
+                )
+                  throw Error(
+                    "An absent configured URL must not produce an open link",
+                  );
+              });
+            if (surface === "studio-publishing")
+              await evaluatePage(page, () => {
+                if (document.querySelector('[role="tablist"]'))
+                  throw Error("Rest state must not retain an empty queue tab");
+              });
+            if (surface === "studio-account")
+              await evaluatePage(page, () => {
+                const buttons = Array.from(document.querySelectorAll("button"));
+                if (
+                  buttons.some(
+                    (b) =>
+                      b.textContent.trim() === "Save name" ||
+                      b.textContent.trim() === "Revoke",
+                  )
+                )
+                  throw Error("Anchor/final-passkey protections lost");
+                const endOthers = buttons.find(
+                  (b) => b.textContent.trim() === "End other sessions",
+                );
+                if (!endOthers?.disabled)
+                  throw Error(
+                    "End other sessions must be disabled with only the current session",
+                  );
+              });
+          } else if (STUDY_STATE === "busy" && surface === "studio-chat") {
+            await waitForText(page, "Message");
+            await fillLabel(page, "Message", "Continue the current review");
+            await clickText(page, "button", "Send");
+            await waitForText(page, "Fixture response remains in progress.");
+            await waitForText(page, "Stop");
+          } else if (STUDY_STATE === "busy") {
+            await waitForText(page, "Build preview");
+            await waitForText(page, "Published generation");
+            await evaluatePage(page, () => {
+              const build = Array.from(
+                document.querySelectorAll("button"),
+              ).find((b) => b.textContent.trim() === "Build preview");
+              if (!build?.disabled)
+                throw Error(
+                  "Active build must disable a duplicate preview request",
+                );
+            });
+          } else if (STUDY_STATE === "outage")
+            await waitForText(
+              page,
+              "Unavailable sources are not an all-clear.",
+            );
+          else if (STUDY_STATE === "failure") {
+            await waitForText(page, "The latest completed build failed");
+            await waitForText(page, "Published generation");
+            await evaluatePage(page, () => {
+              const panel = document.querySelector('[role="tabpanel"]');
+              const notice = panel?.querySelector('aside[data-tone="warn"]');
+              if (
+                !panel ||
+                !notice ||
+                Math.abs(
+                  panel.getBoundingClientRect().width -
+                    notice.getBoundingClientRect().width,
+                ) > 2
+              )
+                throw Error(
+                  "Build failure must span the environment before its supporting columns",
+                );
+              const next = notice.closest("section")?.nextElementSibling;
+              if (
+                !next ||
+                next.getBoundingClientRect().top -
+                  notice.getBoundingClientRect().bottom <
+                  24
+              )
+                throw Error("Adjacent tab blocks need shared section spacing");
+            });
+          } else if (STUDY_STATE === "restart") {
+            await waitForText(page, "Needs you");
+            await waitForText(page, "Recent activity");
+            await waitForText(page, "No recent autonomous activity.");
+          } else await waitForText(page, "unexpected-native-status");
+          await checkLayout(page, surface, viewport.width, viewport.height);
+          await recordVisualCapture(
+            `${surface}-${STUDY_STATE}-${viewport.width}x${viewport.height}-${climate}.png`,
+            await page.screenshot({ encoding: "buffer", format: "png" }),
+          );
+          if (STUDY_STATE === "failure" || STUDY_STATE === "dense") {
+            await clickText(page, "button", "View diagnostics");
+            await waitForSelector(page, '[role="dialog"]');
+            await waitForText(
+              page,
+              STUDY_STATE === "failure"
+                ? "Exact diagnostic reference: fixture-preview-failed"
+                : "Exact retained diagnostic:",
+            );
+            await evaluatePage(page, () => {
+              const dialog = document.querySelector('[role="dialog"]');
+              if (!dialog || dialog.scrollWidth > dialog.clientWidth + 1)
+                throw Error("Expanded diagnostics overflow");
+              const close = dialog
+                .querySelector('[data-slot="dialog-close"]')
+                ?.getBoundingClientRect();
+              if (
+                innerWidth <= 640 &&
+                (!close || close.width < 44 || close.height < 44)
+              )
+                throw Error(
+                  "Phone disclosure close target must be at least 44px",
+                );
+            });
+            await recordVisualCapture(
+              `${surface}-${STUDY_STATE}-expanded-${viewport.width}x${viewport.height}-${climate}.png`,
+              await page.screenshot({ encoding: "buffer", format: "png" }),
+            );
+            if (STUDY_STATE === "failure") {
+              await evaluatePage(page, () => {
+                const source = document.querySelector('[role="dialog"] pre');
+                if (
+                  !(source instanceof HTMLElement) ||
+                  !source.textContent.includes(
+                    "Retained renderer diagnostic.\n".repeat(180),
+                  ) ||
+                  !source.textContent.endsWith(
+                    "Exact diagnostic reference: fixture-preview-failed",
+                  )
+                )
+                  throw Error("Build diagnostics were truncated");
+                source.scrollTop = source.scrollHeight;
+              });
+              await recordVisualCapture(
+                `${surface}-${STUDY_STATE}-expanded-end-${viewport.width}x${viewport.height}-${climate}.png`,
+                await page.screenshot({ encoding: "buffer", format: "png" }),
+              );
+            }
+            await clickSelector(page, '[role="dialog"] [aria-label="Close"]');
+          }
+          if (STUDY_STATE === "dense") {
+            await clickText(page, "summary", "Repository details");
+            await evaluatePage(page, () => {
+              const repository = Array.from(
+                document.querySelectorAll("details[open]"),
+              ).find((n) =>
+                n
+                  .querySelector("summary")
+                  ?.textContent.includes("Repository details"),
+              );
+              if (
+                !repository ||
+                !repository.textContent.includes("abcdef123456") ||
+                !document.body.textContent.includes(
+                  `notes/${"nested-directory/".repeat(8)}record-35.md`,
+                ) ||
+                !document.body.textContent.includes("unexpected-native-status")
+              )
+                throw Error("Dense repository source records were lost");
+              if (repository.scrollWidth > repository.clientWidth + 1)
+                throw Error("Dense repository overflows");
+              repository.scrollIntoView({ block: "start" });
+              window.scrollBy(0, -64);
+            });
+            await recordVisualCapture(
+              `${surface}-${STUDY_STATE}-repository-${viewport.width}x${viewport.height}-${climate}.png`,
+              await page.screenshot({ encoding: "buffer", format: "png" }),
+            );
+            await evaluatePage(page, () => {
+              const row = Array.from(document.querySelectorAll("main li")).find(
+                (n) => n.textContent.includes("unexpected-native-status"),
+              );
+              if (!row || row.scrollWidth > row.clientWidth + 1)
+                throw Error("Dense source record missing or overflowing");
+              row.scrollIntoView({ block: "center" });
+            });
+            await recordVisualCapture(
+              `${surface}-${STUDY_STATE}-records-${viewport.width}x${viewport.height}-${climate}.png`,
+              await page.screenshot({ encoding: "buffer", format: "png" }),
+            );
+          }
+          if (STUDY_STATE === "busy" && surface === "studio-chat") {
+            await clickText(page, "button", "Stop");
+            await waitForText(page, "Send");
+            await waitForText(page, "Fixture response remains in progress.");
+          }
+          console.log(
+            `✓ ${surface} ${STUDY_STATE} ${viewport.width}px ${climate}: source state, layout and protections pass`,
+          );
+          page.close();
+          continue;
+        }
         if (
           surface === "studio-system" &&
           viewport.width <= 640 &&
@@ -2889,7 +3489,10 @@ try {
             await pointerDownSelector(page, ".studio-mobile-tabs button");
             await waitForSelector(page, '[role="menuitem"]');
             await clickText(page, '[role="menuitem"]', label);
-            await waitForSelector(page, `.editor[data-mobile-pane="${pane}"]`);
+            await waitForSelector(
+              page,
+              `[data-studio-editor][data-mobile-pane="${pane}"]`,
+            );
           }
         }
         if (surface.startsWith("studio-navigation")) {
@@ -3294,24 +3897,26 @@ try {
           await waitForText(page, "Notes from the rhizome");
           await evaluatePage(page, () => {
             const attention = document.querySelector(
-              'details[data-tone="warn"]',
+              'section[data-tone="warn"]',
             );
             if (
               !attention ||
-              attention.hasAttribute("open") ||
+              document.querySelector('[role="dialog"]') ||
               !attention
-                .querySelector("summary")
-                ?.textContent.includes("Retries: 1")
+                .querySelector("header")
+                ?.textContent.includes("Retries: 1") ||
+              !attention
+                .querySelector("h2")
+                ?.textContent.includes("One delivery needs attention")
             )
               throw new Error(
                 "Publishing attention is missing or exposes its controls at rest",
               );
           });
-          await clickText(page, "summary", "One delivery needs attention");
+          await clickText(page, "button", "Review failure");
+          await waitForSelector(page, '[role="dialog"]');
           await evaluatePage(page, () => {
-            const attention = document.querySelector(
-              'details[open][data-tone="warn"]',
-            );
+            const attention = document.querySelector('[role="dialog"]');
             const retry = [
               ...(attention?.querySelectorAll("button") ?? []),
             ].find((button) =>
@@ -3328,8 +3933,14 @@ try {
                 "Publication review lost diagnostics or its retry action",
               );
           });
-          await clickText(page, "summary", "One delivery needs attention");
-          await clickText(page, "button", "Options");
+          await clickSelector(page, '[role="dialog"] [aria-label="Close"]');
+          await waitForPage("failure review closed", () =>
+            evaluatePage(
+              page,
+              () => !document.querySelector('[role="dialog"]'),
+            ),
+          );
+          await clickText(page, "button", "Queue options");
           await waitForSelector(page, '[role="dialog"]');
           await evaluatePage(page, () => {
             const buttons = [
@@ -3383,12 +3994,15 @@ try {
           // Open the delete confirmation. Phone tucks the control behind
           // the ••• disclosure; wider widths show it in the pipeline bar.
           if (viewport.width <= 640) {
-            await pointerDownSelector(page, ".studio-mobile-more button");
+            await pointerDownSelector(
+              page,
+              'button[aria-label="More document actions"]',
+            );
             await clickSelector(page, '[role="menuitem"]');
           } else {
             await clickSelector(
               page,
-              '.pipeline [data-slot="button"][data-variant="danger"]',
+              '[data-studio-save-bar] [data-slot="button"][data-variant="danger"]',
             );
           }
           await waitForSelector(page, ".delete-modal");
@@ -3397,7 +4011,7 @@ try {
           // Save with an unchanged title: the fixture answers 409, raising
           // the reconcile card above the save bar.
           await clickSelector(page, studioSaveSelector);
-          await waitForSelector(page, ".conflict");
+          await waitForSelector(page, "[data-studio-conflict]");
         }
         if (surface === "studio-invalid") {
           // Two validation aspects in one frame: a server-rejected save
@@ -3405,12 +4019,12 @@ try {
           // an emptied required title pins the :user-invalid outline.
           await fillLabel(page, "Title", "Notes from the rhizome!!");
           await clickSelector(page, studioSaveSelector);
-          await waitForSelector(page, ".status-error");
+          await waitForSelector(page, '[data-studio-status="error"]');
           await fillLabel(page, "Title", "");
           await blurLabel(page, "Title");
           await waitForPage("invalid title field", () =>
             page.evaluate<boolean>(
-              'document.querySelector(".field input:user-invalid") !== null',
+              'document.querySelector("[data-studio-field] input:user-invalid") !== null',
             ),
           );
         }
@@ -3434,7 +4048,7 @@ try {
               return true;
             },
             {
-              selector: '.upload-zone input[type="file"]',
+              selector: '[data-studio-field="image"] input[type="file"]',
               url: "/fixture/verdigris.png",
               name: "verdigris-board.png",
               mediaType: "image/png",
@@ -3467,15 +4081,7 @@ try {
         await evaluatePage(page, () => document.fonts.ready);
         await waitForVisualStability(page);
         await checkLayout(page, surface, viewport.width, viewport.height);
-        await evaluatePage(page, () => {
-          const style = document.createElement("style");
-          style.textContent =
-            "*,*::before,*::after{animation-duration:0s!important;animation-delay:0s!important;transition-duration:0s!important;caret-color:transparent!important}";
-          document.head.append(style);
-          return new Promise<void>((resolve) =>
-            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-          );
-        });
+        await settleVisualCapture(page);
         const image = await page.screenshot({
           encoding: "buffer",
           format: "png",
@@ -3514,27 +4120,184 @@ try {
             await page.screenshot({ encoding: "buffer", format: "png" }),
           );
         }
-        const name = `${surface}-${viewport.width}x${viewport.height}-${climate}.png`;
-        const baselinePath = path.join(BASELINE_DIR, name);
-        if (UPDATE) {
-          // Only rewrite baselines that actually changed — wholesale
-          // rewrites churn every pinned file with re-encode noise.
-          const ratio = await comparePng(image, baselinePath).catch(() => 1);
-          if (ratio > 0.002) await writeFile(baselinePath, image);
-        } else {
-          try {
-            const ratio = await comparePng(image, baselinePath);
-            if (ratio > 0.002) {
-              await writeFile(path.join(ARTIFACT_DIR, name), image);
-              failures.push(
-                `${name}: ${(ratio * 100).toFixed(2)}% pixels changed`,
-              );
-            }
-          } catch (error) {
-            await writeFile(path.join(ARTIFACT_DIR, name), image);
-            failures.push(`${name}: ${getErrorMessage(error)}`);
+        if (surface === "dashboard") {
+          for (const tab of ["knowledge", "network"] as const) {
+            await clickSelector(page, `[data-dashboard-tab-link="${tab}"]`);
+            await evaluatePageWith(
+              page,
+              (section) => {
+                const panel = document.getElementById(section);
+                const frame = panel?.querySelector<HTMLElement>(".map-field");
+                const empty = frame?.querySelector(".map-empty");
+                if (
+                  !panel ||
+                  panel.hidden ||
+                  !frame ||
+                  !empty ||
+                  panel.querySelector("svg") ||
+                  Math.abs(
+                    empty.getBoundingClientRect().width - frame.clientWidth,
+                  ) > 1 ||
+                  getComputedStyle(empty).minHeight !==
+                    (window.innerWidth <= 700 ? "260px" : "360px")
+                )
+                  throw new Error(
+                    "Empty map lost its full-width reading state",
+                  );
+                window.scrollTo(0, 0);
+              },
+              tab,
+            );
+            await writeFile(
+              path.join(
+                ARTIFACT_DIR,
+                `dashboard-${tab}-empty-${viewport.width}x${viewport.height}-${climate}.png`,
+              ),
+              await page.screenshot({ encoding: "buffer", format: "png" }),
+            );
           }
+          await navigateToNetworkIdle(
+            page,
+            `http://127.0.0.1:${server.port}/dashboard?climate=${climate}&fixture-state=declarative-network#network`,
+          );
+          await evaluatePage(page, async () => {
+            await document.fonts.ready;
+            const frame = document.querySelector<HTMLElement>(
+              ".proximity-map-field",
+            );
+            const graphic = frame?.querySelector("svg");
+            if (!frame || !graphic)
+              throw new Error("Missing declarative network frame");
+            if (
+              graphic.getAttribute("viewBox") !== "0 0 980 560" ||
+              Math.abs(
+                graphic.getBoundingClientRect().width / frame.clientWidth -
+                  (window.innerWidth <= 700 ? 1.55 : 1),
+              ) > 0.01 ||
+              getComputedStyle(graphic).minHeight !==
+                (window.innerWidth <= 700 ? "260px" : "360px") ||
+              !getComputedStyle(frame).backgroundImage.includes(
+                "radial-gradient",
+              )
+            )
+              throw new Error(
+                "Declarative network lost its compiled projection frame",
+              );
+            window.scrollTo(0, 0);
+          });
+          await verifyMapMotion(page);
+          await writeFile(
+            path.join(
+              ARTIFACT_DIR,
+              `dashboard-network-declarative-${viewport.width}x${viewport.height}-${climate}.png`,
+            ),
+            await page.screenshot({ encoding: "buffer", format: "png" }),
+          );
         }
+        if (surface === "dashboard") {
+          await navigateToNetworkIdle(
+            page,
+            `http://127.0.0.1:${server.port}/dashboard?climate=${climate}&fixture-state=dense-map#knowledge`,
+          );
+          await evaluatePage(page, async () => {
+            await document.fonts.ready;
+            const index =
+              document.querySelector<HTMLElement>("[data-map-index]");
+            const remainder = index?.querySelector(
+              "[data-map-index-remainder]",
+            );
+            const note = index?.querySelector("[data-map-index-note]");
+            const controls = index?.querySelectorAll("button");
+            if (!index || !remainder || !note || controls?.length !== 8)
+              throw new Error(
+                "Dense atlas lost its bounded index and remainder",
+              );
+            if (
+              !remainder.textContent.includes("12 smaller territories") ||
+              index.scrollWidth > index.clientWidth + 1
+            )
+              throw new Error("Dense atlas lost source detail or bounds");
+            if (
+              window.innerWidth > 700 &&
+              note.getBoundingClientRect().top <
+                remainder.getBoundingClientRect().bottom - 1
+            )
+              throw new Error("Dense atlas guidance overlaps its remainder");
+            if (
+              remainder.getBoundingClientRect().top <
+                Math.max(
+                  ...Array.from(
+                    controls,
+                    (control) => control.getBoundingClientRect().bottom,
+                  ),
+                ) -
+                  1 ||
+              (window.innerWidth > 700 &&
+                note.getBoundingClientRect().bottom >
+                  index.getBoundingClientRect().bottom + 1)
+            )
+              throw new Error(
+                "Dense atlas clips or overlaps its full record list",
+              );
+            for (const control of controls) {
+              if (
+                control.title !==
+                  control.querySelector("strong")?.textContent ||
+                (window.innerWidth <= 700 &&
+                  control.getBoundingClientRect().height < 44)
+              )
+                throw new Error(
+                  "Dense atlas lost full labels or usable controls",
+                );
+            }
+            const labels = Array.from(
+              document.querySelectorAll<SVGTextElement>(
+                "[data-knowledge-label]",
+              ),
+            );
+            if (labels.length !== 7)
+              throw Error("Dense atlas lost its seven source labels");
+            for (const label of labels) {
+              if (
+                label.querySelector("title")?.textContent !==
+                  label.getAttribute("aria-label") ||
+                label.getAttribute("data-label-truncated") !== "true"
+              )
+                throw Error(
+                  "Crowded label lost its full source title or explicit truncation",
+                );
+              const box = label.getBBox();
+              if (
+                box.x < 4 ||
+                box.x + box.width > 816 ||
+                box.y < 0 ||
+                box.y + box.height > 480
+              )
+                throw Error("Territory label is outside its SVG bounds");
+              for (const other of labels) {
+                if (other === label) continue;
+                const target = other.getBBox();
+                if (
+                  box.x < target.x + target.width + 2 &&
+                  box.x + box.width + 2 > target.x &&
+                  box.y < target.y + target.height + 2 &&
+                  box.y + box.height + 2 > target.y
+                )
+                  throw Error("Dense territory labels overlap");
+              }
+            }
+            index.scrollIntoView({ block: "start" });
+          });
+          await writeFile(
+            path.join(
+              ARTIFACT_DIR,
+              `dashboard-knowledge-index-dense-${viewport.width}x${viewport.height}-${climate}.png`,
+            ),
+            await page.screenshot({ encoding: "buffer", format: "png" }),
+          );
+        }
+        const name = `${surface}-${viewport.width}x${viewport.height}-${climate}.png`;
+        await recordVisualCapture(name, image);
         if (surface === "studio-chat" || surface === "studio-account")
           await verifyStudioProfileNavigation(page, surface);
         page.close();

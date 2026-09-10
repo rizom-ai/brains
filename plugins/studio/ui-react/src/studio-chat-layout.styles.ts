@@ -4,6 +4,9 @@ export const chatLayout: Record<
   | "shell"
   | "frame"
   | "room"
+  | "roomWithoutSessions"
+  | "emptyThreadHead"
+  | "emptyConversation"
   | "sessions"
   | "picker"
   | "thread"
@@ -88,6 +91,9 @@ export const chatLayout: Record<
     minWidth: 0,
     overflow: "hidden",
   },
+  roomWithoutSessions: { gridTemplateColumns: "minmax(0,1fr)" },
+  emptyThreadHead: { marginBottom: 12 },
+  emptyConversation: { margin: 0 },
   sessions: {
     display: { default: "block", "@media (max-width: 860px)": "none" },
     minWidth: 0,

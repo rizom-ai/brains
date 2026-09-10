@@ -31,13 +31,22 @@ export const noticeStyles: Record<
       gap: 12,
       paddingLeft: 14,
     },
+    // Notice framing belongs here, not to a host's retired box rules.
+    borderWidth: 0,
+    borderRadius: 0,
+    color: "var(--console-text-dim)",
     borderLeftWidth: 2,
     borderLeftStyle: "solid",
   },
   copy: { minWidth: 0 },
   actions: { flexShrink: 0, maxWidth: "100%" },
   comfortable: { backgroundColor: "transparent" },
-  compact: { display: "block", paddingBlock: 11, paddingInline: 14 },
+  compact: {
+    display: "block",
+    paddingBlock: 11,
+    paddingLeft: 14,
+    paddingRight: 14,
+  },
   neutral: {
     borderLeftColor: "var(--console-text-muted)",
     backgroundColor: "color-mix(in srgb,var(--console-text) 4%,transparent)",

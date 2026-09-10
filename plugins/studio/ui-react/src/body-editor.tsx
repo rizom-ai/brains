@@ -1,4 +1,8 @@
 /** @jsxImportSource react */
+import * as stylex from "@stylexjs/stylex";
+import { bodyStyles as s } from "./studio-body.styles";
+import { editorClassName } from "./studio-editor.styles";
+import { StudioStatus } from "./studio-status";
 import {
   Button,
   Input,
@@ -24,7 +28,7 @@ import {
   useState,
   type ReactElement,
 } from "react";
-import { Streamdown } from "streamdown";
+import { StudioMarkdown } from "./studio-markdown";
 import type { AgentTarget } from "./api";
 import { useStudioApi } from "./studio-api-context";
 import { errorMessage } from "./ui-utils";
@@ -191,7 +195,7 @@ function CodeMirrorBodySource(props: {
   return (
     <div
       ref={hostRef}
-      className="body-source body-source-cm"
+      {...stylex.props(s.source)}
       aria-label="Markdown source"
       data-editor="codemirror6"
     />
@@ -251,12 +255,17 @@ export function AgentAnswerPanel(props: {
   onDismiss: () => void;
 }): ReactElement {
   return (
-    <section className="assist-agent-answer" aria-label="Agent answer">
-      <div className="assist-answer-copy">
-        <strong>Answer from {props.agentId}</strong>
-        <Streamdown>{props.response}</Streamdown>
+    <section
+      {...stylex.props(s.suggestion, s.answer)}
+      aria-label="Agent answer"
+    >
+      <div {...stylex.props(s.copy)}>
+        <strong {...stylex.props(s.answerTitle)}>
+          Answer from {props.agentId}
+        </strong>
+        <StudioMarkdown>{props.response}</StudioMarkdown>
       </div>
-      <span className="spacer" />
+      <span {...stylex.props(s.spacer)} />
       {props.onReplace && (
         <Button type="button" onClick={props.onReplace}>
           Replace selection
@@ -395,35 +404,36 @@ export function BodyEditor(props: {
   }, [assistState, onChange, value]);
 
   return (
-    <div className="body-editor">
-      <header className="body-toolbar">
+    <div {...stylex.props(s.root)}>
+      <header {...stylex.props(s.toolbar)}>
         <Tabs
           value={mode}
           onValueChange={(value) => {
             if (isBodyMode(value)) onModeChange(value);
           }}
         >
-          <TabsList className="seg body-modes" aria-label="Editor body view">
+          <TabsList {...stylex.props(s.modes)} aria-label="Editor body view">
             {BODY_MODES.map((candidate) => (
-              <TabsTrigger key={candidate} className="mode" value={candidate}>
+              <TabsTrigger key={candidate} value={candidate}>
                 {BODY_MODE_LABELS[candidate]}
               </TabsTrigger>
             ))}
           </TabsList>
         </Tabs>
-        <span className="doc-meta">
+        <span {...stylex.props(s.metadata)}>
           {value.trim() ? value.trim().split(/\s+/).length.toLocaleString() : 0}{" "}
           words
         </span>
       </header>
       {assist && showSource && (
         <section
-          className="assist-bar"
+          {...stylex.props(s.assist)}
           data-has-selection={selection ? "true" : "false"}
           aria-label="AI selection rewrite"
         >
           {agents.length > 0 && (
             <NativeSelect
+              xstyle={s.select}
               aria-label="Assist target"
               value={assistTarget}
               onChange={(event) => {
@@ -441,6 +451,7 @@ export function BodyEditor(props: {
             </NativeSelect>
           )}
           <Input
+            xstyle={s.input}
             type="text"
             value={instruction}
             placeholder={
@@ -454,7 +465,7 @@ export function BodyEditor(props: {
           />
           <Button
             type="button"
-            className="assist-run"
+            xstyle={s.run}
             disabled={
               !selection ||
               instruction.trim().length === 0 ||
@@ -469,10 +480,11 @@ export function BodyEditor(props: {
                 : "Ask"}
           </Button>
           {assistTarget !== MODEL_ASSIST_TARGET && (
-            <span className="assist-presets">
+            <span {...stylex.props(s.presets)}>
               {AGENT_INSTRUCTION_PRESETS.map((preset) => (
                 <Button
                   key={preset.label}
+                  xstyle={s.preset}
                   type="button"
                   size="xs"
                   variant={
@@ -494,18 +506,18 @@ export function BodyEditor(props: {
             </span>
           )}
           {selection && (
-            <span className="assist-meta">
+            <span {...stylex.props(s.assistMeta)}>
               {selectedText.length} selected chars
             </span>
           )}
         </section>
       )}
       {assistState.kind === "suggested" && (
-        <section className="assist-suggestion">
-          <div className="assist-preview">
-            <Streamdown>{assistState.suggestion}</Streamdown>
+        <section {...stylex.props(s.suggestion)}>
+          <div {...stylex.props(s.copy)}>
+            <StudioMarkdown>{assistState.suggestion}</StudioMarkdown>
           </div>
-          <span className="spacer" />
+          <span {...stylex.props(s.spacer)} />
           <Button type="button" onClick={acceptSuggestion}>
             Accept
           </Button>
@@ -529,14 +541,13 @@ export function BodyEditor(props: {
         />
       )}
       {assistState.kind === "error" && (
-        <p className="status status-error assist-status">
+        <StudioStatus tone="error" className={editorClassName("", s.status)}>
           {assistState.message}
-        </p>
+        </StudioStatus>
       )}
       <div
-        className={
-          showSource && showPreview ? "body-panes split" : "body-panes"
-        }
+        {...stylex.props(s.panes, showSource && showPreview && s.split)}
+        data-studio-split={showSource && showPreview ? "" : undefined}
       >
         {showSource && (
           <CodeMirrorBodySource
@@ -547,8 +558,8 @@ export function BodyEditor(props: {
           />
         )}
         {showPreview && (
-          <div className="body-preview">
-            <Streamdown>{value}</Streamdown>
+          <div {...stylex.props(s.preview)} data-studio-preview="">
+            <StudioMarkdown presentation="document">{value}</StudioMarkdown>
           </div>
         )}
       </div>

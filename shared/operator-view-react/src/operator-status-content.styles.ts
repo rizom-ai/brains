@@ -6,6 +6,11 @@ export const statusContentStyles: Record<
   | "error"
   | "neutral"
   | "pill"
+  | "labelPill"
+  | "labelNeutral"
+  | "labelGood"
+  | "labelWarn"
+  | "labelError"
   | "softPill"
   | "goodSoft"
   | "lead"
@@ -61,6 +66,24 @@ export const statusContentStyles: Record<
     textTransform: "uppercase",
     maxWidth: "100%",
     overflowWrap: "anywhere",
+  },
+  labelPill: {
+    padding: "3px 8px",
+    borderRadius: 2,
+    fontSize: 9.5,
+    letterSpacing: ".18em",
+    borderColor: "var(--console-rule-strong)",
+    boxSizing: "border-box",
+  },
+  labelNeutral: { color: "var(--console-text-muted)" },
+  labelGood: {
+    borderColor: "color-mix(in srgb, var(--console-ok) 35%, transparent)",
+  },
+  labelWarn: {
+    borderColor: "color-mix(in srgb, var(--console-warn) 35%, transparent)",
+  },
+  labelError: {
+    borderColor: "color-mix(in srgb, var(--console-err) 40%, transparent)",
   },
   softPill: {
     padding: "2px 8px",

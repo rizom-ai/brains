@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { StudioStatus } from "./studio-status";
 import { ConfirmDialog } from "@brains/app-ui-react";
 import {
   StudioChatDraftStore,
@@ -1168,7 +1169,7 @@ export function App(): ReactElement {
         selectEntityType={selectEntityType}
         selectWorkspace={selectWorkspace}
       >
-        <Suspense fallback={<p className="status">Opening Account…</p>}>
+        <Suspense fallback={<StudioStatus>Opening Account…</StudioStatus>}>
           <LazyAccountApp
             bootstrap={accountBootstrap(accountPath, studioBasePath)}
           />

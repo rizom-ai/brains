@@ -203,7 +203,7 @@ function environmentCard(
         : publication.state === "unreadable"
           ? "Publication unavailable"
           : "Not published yet",
-    presentation: "feature",
+    presentation: "section",
     metadata: [isPreview ? "Preview" : "Production"],
     tone: publication.state === "unreadable" ? "warn" : "neutral",
     blocks: [
@@ -364,14 +364,12 @@ const siteWorkspace = defineStudioWorkspace({
             label:
               environment.environment === "preview" ? "Preview" : "Production",
             blocks: [
+              ...buildFailureNotice(environment),
+              ...(environment.active ? [activeBuildProgress(environment)] : []),
               {
                 type: "columns",
                 id: "site-body",
                 primary: [
-                  ...buildFailureNotice(environment),
-                  ...(environment.active
-                    ? [activeBuildProgress(environment)]
-                    : []),
                   environmentCard(
                     environment,
                     environment.environment === "preview"

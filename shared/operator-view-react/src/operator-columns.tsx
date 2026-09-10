@@ -25,6 +25,7 @@ export function OperatorColumns(props: {
     panelLayout && panels.primary,
   );
   const aside = stylex.props(
+    s.asideRegion,
     s.region,
     compact && s.compactAside,
     props.joined && s.joinedRegion,

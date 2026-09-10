@@ -397,6 +397,7 @@ const publishingWorkspace = defineStudioWorkspace({
                     : "Next dispatch",
                 ],
                 link: targetLink(item.entityType, item.entityId),
+                actionsLabel: "Queue options",
                 actions: [
                   {
                     action: reorderAction,
@@ -479,6 +480,7 @@ const publishingWorkspace = defineStudioWorkspace({
         type: "card",
         id: "publishing-attention",
         presentation: "disclosure",
+        disclosureLabel: "Review failure",
         tone: "warn",
         metadata:
           data.failures.length === 1
@@ -493,32 +495,39 @@ const publishingWorkspace = defineStudioWorkspace({
             : `${data.failures.length} deliveries need attention`,
         blocks: [block],
       })),
-      {
-        type: "tabs",
-        id: "publishing-queue",
-        label: "Publishing queue",
-        defaultTab: "queued",
-        tabs: [
-          {
-            id: "queued",
-            label: "Queued",
-            count: data.queue.length,
-            blocks: work.filter(
-              (block) => block.type !== "list" || block.id === "dispatch-queue",
-            ),
-          },
-          ...(data.generating.length > 0
-            ? [
+      ...(atRest
+        ? work
+        : [
+            {
+              type: "tabs" as const,
+              id: "publishing-queue",
+              label: "Publishing queue",
+              defaultTab: "queued",
+              tabs: [
                 {
-                  id: "generating",
-                  label: "Generating",
-                  count: data.generating.length,
-                  blocks: work.filter((block) => block.id === "generating"),
+                  id: "queued",
+                  label: "Queued",
+                  count: data.queue.length,
+                  blocks: work.filter(
+                    (block) =>
+                      block.type !== "list" || block.id === "dispatch-queue",
+                  ),
                 },
-              ]
-            : []),
-        ],
-      },
+                ...(data.generating.length > 0
+                  ? [
+                      {
+                        id: "generating",
+                        label: "Generating",
+                        count: data.generating.length,
+                        blocks: work.filter(
+                          (block) => block.id === "generating",
+                        ),
+                      },
+                    ]
+                  : []),
+              ],
+            },
+          ]),
       totals,
     ];
     return {
