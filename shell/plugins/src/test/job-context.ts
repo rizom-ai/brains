@@ -5,13 +5,13 @@ import type {
   JobHandlerContext,
   JobTemplateFormatter,
   ServiceJobBinding,
-  ServiceJobHandlerContext,
 } from "../index";
 import { getServiceJobHandler } from "../index";
 import type { LoggerContract } from "@brains/utils/logger";
 import type { ProgressContract } from "@brains/utils/progress";
 import { createMockProgressReporter } from "@brains/test-utils";
 import { createJobProgress } from "../internal/authoring-readers";
+import { createAuthoringEntityAccess } from "../internal/authoring-entity-access";
 
 /**
  * Run a declared job's handler, the way the runtime would.
@@ -21,9 +21,14 @@ import { createJobProgress } from "../internal/authoring-readers";
  */
 export function runServiceJob<TInput>(
   binding: ServiceJobBinding,
-  context: ServiceJobHandlerContext<TInput>,
+  context: JobHandlerContext<TInput> & {
+    readonly templates: JobTemplateFormatter;
+  },
 ): Promise<unknown> {
-  return getServiceJobHandler(binding)(context);
+  return getServiceJobHandler(binding)({
+    ...context,
+    entities: createAuthoringEntityAccess(context.entities),
+  });
 }
 
 /**
@@ -55,7 +60,7 @@ export function createTestJobContext<TInput>(options: {
   readonly createRouted?: JobHandlerContext<TInput>["createRouted"] | undefined;
   /** Operator-editable prompts; the fallback answers unless the test supplies one. */
   readonly prompts?: JobHandlerContext<TInput>["prompts"] | undefined;
-}): ServiceJobHandlerContext<TInput> {
+}): JobHandlerContext<TInput> & { readonly templates: JobTemplateFormatter } {
   return {
     input: options.input,
     jobId: options.jobId ?? "test-job",

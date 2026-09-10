@@ -305,11 +305,12 @@ function createIdentityStore(seed: Record<string, string> = {}): {
             contentHash: `hash-${id}`,
           };
     },
-    create: async (entity): Promise<void> => {
-      creates.push(entity.entityType);
+    create: async (definition, entity): Promise<void> => {
+      if (!entity.id) throw new Error("Identity singletons require an id");
+      creates.push(definition.type);
       contents.set(entity.id, entity.content);
     },
-    update: async (entity): Promise<void> => {
+    update: async (_definition, entity): Promise<void> => {
       contents.set(entity.id, entity.content);
     },
   };

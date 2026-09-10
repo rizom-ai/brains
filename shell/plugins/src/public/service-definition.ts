@@ -109,6 +109,7 @@ export type {
   ServiceJobDefinition,
   ServiceJobHandler,
   ServiceJobHandlerContext,
+  ServiceToolContext,
   ServiceJobProgress,
   ServiceJobReference,
   ServiceActiveJob,

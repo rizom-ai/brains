@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { use } from "../src/configured-plugin";
+import { use } from "@brains/sdk";
 import {
   getBrainPackageMetadata,
   getPackageMetadata,

@@ -46,7 +46,9 @@ export const deck: EntityDefinition<"deck", typeof deckMetadataSchema> =
         const parsed = deckFrontmatterSchema.parse(frontmatter);
         assertPublishedDeckHasPublishedAt(parsed);
         return {
-          content,
+          // Renderers consume the complete deck file, including unindexed
+          // fields such as event. Preserve it on reads as well as writes.
+          content: generateMarkdownWithFrontmatter(content, { ...frontmatter }),
           metadata: {
             slug: parsed.slug ?? slugify(parsed.title),
             title: parsed.title,

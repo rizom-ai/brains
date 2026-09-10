@@ -4,6 +4,52 @@
 
 **Implementation complete; stable nomination pending.** Core implementation phases 0–5, the local Phase 6 export/documentation freeze, alpha publication, exact-version registry evidence, and npm retirement are complete. This plan now owns only the remaining stable-nomination and release gates; the implementation sections below are retained as the accepted architecture record.
 
+### Release-readiness corrections after the DX close-out
+
+The release machinery now validates the exact checked-out source SHA through its
+own Core/Site CI workflow before versioning. An older successful trigger cannot
+approve newer source. Missing CI (including a serialized version-only advance)
+is dispatched and awaited with a deadline; failed/cancelled runs, malformed
+responses, and an unvalidated moving `main` fail closed. These orchestration
+regressions run in both CI lanes.
+
+Stable graduation derives its final-alpha identity from the committed removal of
+prerelease state, not the immediate parent. Follow-up commits keep Site-first and
+exact-registry gates active until the stable Brain version is published. Missing
+history or unavailable registry evidence fails closed. Once graduation is complete,
+normal lane versioning resumes. Site Release also rechecks classification after
+waiting for its concurrency lock.
+
+Private fixture builds bind SDK dependency/peer metadata to the exact installed
+candidate before packing, leaving source manifests untouched. This prevents alpha
+version bumps and stable versioning from invalidating placeholder peers; it does
+not assert compatibility with historical alphas. Registry evidence checks the
+installed packages' exact metadata. The source Site fixture now declares the
+React-compatible Site `alpha.235`, and the registry tier compiles that declared
+dependency without a Site override before testing the nominated pair.
+
+The full script suite also exposed missing Document/Image utility dependencies,
+Studio's messaging-service test dependency, and the SDK → app → Chat REPL → SDK
+cycle. Pure brain composition/configuration contracts now live in the SDK rather
+than importing app startup; Chat REPL keeps using the SDK and can declare it.
+Existing public names, schema defaults and boot order are preserved, without an
+architecture exception or private app composition-subpath fallback.
+
+The release/dependency checkpoint passes forced 103/103 typecheck, 101/101 test,
+96/96 lint tasks, 90 script tests, 7/7 fresh packed scenarios, 5/5 forced surface
+tasks (including boot), and the static/docs/format gates. This is local evidence,
+not registry evidence.
+
+These are release-tooling corrections, not nomination evidence or authorization.
+The newly reproduced [outside-author Phase 6](public-authoring-api-dx-followup.md#phase-6--outside-author-audit)
+reopened DX acceptance separately. Its eight slices and ninth reminders fixture
+now pass local acceptance: 103 typecheck, 101 test, 96 lint, 90 script tests,
+7 packed scenarios (including four declaration-emitting reminders tests), 5
+surface tasks, and static/docs/format checks. This closes that bounded correction
+pass; it is not newly published candidate or exact-registry evidence.
+Current-main integration, exact candidate publication, live/eval evidence, and all
+explicit stable approvals below remain separate.
+
 ### Completed alpha evidence
 
 | Area                        | Result                                                                                                                                                                                                                                 |
@@ -19,12 +65,12 @@
 
 ### Remaining stable nomination gates
 
-1. **Nominate the final alpha.** Merge the intended stable source, publish its Brain alpha, preserve each fixture's first-containing-release peer floor unless its exercised contract changed, and rerun all eight exact-version registry packages with the compatible published site SDK. The `alpha.313`/`alpha.233` result remains historical evidence, not proof for a newer candidate.
+1. **Nominate the final alpha.** Merge the intended stable source, publish its Brain alpha, preserve each fixture's first-containing-release peer floor unless its exercised contract changed, and rerun all nine exact-version registry packages with the compatible published site SDK. The `alpha.313`/`alpha.233` result remains historical evidence, not proof for a newer candidate.
 2. **Run and record the final evidence protocol.** Execute the complete repository, packed, credentialed live harness, and zero-failure personal/team eval sweep against the same final alpha. Record versions, models, durations, and CI artifacts in `docs/public-release/evidence/AUTHORING_0.2.md` without secrets or private content.
 3. **Obtain explicit release authorization.** A green plan, CI run, or evidence matrix does not authorize `changeset pre exit`, stable npm publication, workflow dispatch, or dist-tag mutation. Each stable release action requires a separate explicit yes/no approval.
-4. **Publish and freeze the stable baseline.** Run the tested site-first coordinated release, publish stable Brain only after its automated exact registry gate passes, then freeze all eight current fixtures as the immutable `0.2.0` compatibility baseline and retire phase-oriented suite names.
+4. **Publish and freeze the stable baseline.** Run the tested site-first coordinated release, publish stable Brain only after its automated exact registry gate passes, then freeze all nine current fixtures as the immutable `0.2.0` compatibility baseline and retire phase-oriented suite names.
 
-The five core extension packages and brain-definition canary remain the primary general authoring documentation. The two additive operator packages are independent compatibility fixtures for account settings and Dashboard/Studio authoring. This plan is narrower than general plugin-system cleanup: it freezes only those accepted public paths.
+The five core extension packages and brain-definition canary remain the primary general authoring documentation. The two additive operator packages are independent compatibility fixtures for account settings and Dashboard/Studio authoring. The ninth reminders fixture covers the complete outside-author workflow. This plan is narrower than general plugin-system cleanup: it freezes only those accepted public paths.
 
 ## Goal
 

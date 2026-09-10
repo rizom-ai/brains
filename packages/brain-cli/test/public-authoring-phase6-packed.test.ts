@@ -1,6 +1,6 @@
 import { describe, expect, it as bunIt } from "bun:test";
 import { writeAuthoringTestConsumer } from "./helpers/authoring-test-consumer";
-import { mkdtemp, rm } from "node:fs/promises";
+import { copyFile, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -30,7 +30,7 @@ const consumerFixture = join(
 const it = bunIt.skipIf(!packedCompatibilityEvidenceEnabled());
 
 describe("public authoring Phase 6 packed operator contracts", () => {
-  it("installs Account, Dashboard, and Studio authoring together", async () => {
+  it("installs operator packages and runs four reminders harness tests", async () => {
     const root = await mkdtemp(join(tmpdir(), "operator-packed-"));
     const packageTarballs = join(root, "packages");
     const fixtureStaging = join(root, "fixtures");
@@ -74,7 +74,20 @@ describe("public authoring Phase 6 packed operator contracts", () => {
         )),
       );
 
+      const remindersFixture = join(publicFixtureRoot, "reminders");
+      tarballs.set(
+        ...(await buildAndPackFixturePackage(
+          remindersFixture,
+          fixtureStaging,
+          fixtureTarballs,
+          tarballs,
+        )),
+      );
       await installPackedConsumer(consumerFixture, consumerDirectory, tarballs);
+      await copyFile(
+        join(remindersFixture, "test/consumer.ts"),
+        join(consumerDirectory, "reminders.test.ts"),
+      );
       await runCommand(["bun", "run", "typecheck"], consumerDirectory, {
         timeoutMs: 120_000,
       });
@@ -92,8 +105,31 @@ describe("public authoring Phase 6 packed operator contracts", () => {
         consumerDirectory,
       );
       expect(combinedOutput(authorTests)).toContain("0 fail");
+      await writeFile(
+        join(consumerDirectory, "tsconfig.reminders.json"),
+        JSON.stringify({
+          extends: "./tsconfig.authoring.json",
+          compilerOptions: {
+            noEmit: false,
+            declaration: true,
+            emitDeclarationOnly: true,
+            outDir: "reminders-types",
+          },
+          include: ["reminders.test.ts"],
+        }),
+      );
+      await runCommand(
+        ["bun", "x", "tsc", "-p", "tsconfig.reminders.json"],
+        consumerDirectory,
+      );
+      const reminderTests = await runCommand(
+        ["bun", "test", "reminders.test.ts"],
+        consumerDirectory,
+      );
+      expect(combinedOutput(reminderTests)).toContain("4 pass");
+      expect(combinedOutput(reminderTests)).toContain("0 fail");
       expect(smoke).not.toContain("did not compose");
-      expect(tarballs.size).toBe(5);
+      expect(tarballs.size).toBe(6);
     } finally {
       await rm(root, { recursive: true, force: true });
     }

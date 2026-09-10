@@ -1,7 +1,10 @@
 import { bookmark } from "@fixture/reading-entities";
+import { defineEntity } from "@rizom/brain/entities";
 import {
   defineJob,
+  defineRoute,
   defineServicePlugin,
+  defineSubscription,
   defineTool,
   z,
 } from "@rizom/brain/services";
@@ -30,6 +33,24 @@ const digestStatus = z.object({
   error: z.string().optional(),
 });
 
+// A type this service both stores and writes belongs on its own header.
+export const readingRequest = defineEntity({
+  type: "reading-request",
+  purpose: "A request recorded by the reading service",
+  metadata: digestRequest,
+});
+
+// Export a response-bearing subscription for another package to request.
+export const readingRequestCount = defineSubscription({
+  topic: "reading:request-count",
+  payload: z.object({}),
+  response: z.object({ count: z.number() }),
+  handle: async ({ entities }) => ({
+    count: (await entities.listEntities({ entityType: readingRequest.type }))
+      .length,
+  }),
+});
+
 // Export the reusable job contract; execution is bound by the owning service.
 export const compileReadingDigest = defineJob({
   name: "compile-reading-digest",
@@ -42,6 +63,7 @@ export const compileReadingDigest = defineJob({
 export default defineServicePlugin(
   {
     id: "reading-insights",
+    entities: [readingRequest],
     config: z.object({
       summaryPrefix: z.string().default("Reading digest"),
     }),
@@ -65,6 +87,18 @@ export default defineServicePlugin(
     },
   },
   {
+    subscriptions: () => [readingRequestCount],
+    routes: ({ entities }) => [
+      defineRoute({
+        method: "GET",
+        path: "/reading-requests",
+        security: { kind: "public" },
+        response: z.object({ ids: z.array(z.string()) }),
+        handle: async () => ({
+          ids: (await entities.list(readingRequest)).map(({ id }) => id),
+        }),
+      }),
+    ],
     instructions: ({ config }) =>
       `Offer to compile a digest when a reader saves a long page. Prefix digests with "${config.summaryPrefix}".`,
 
@@ -145,6 +179,17 @@ export default defineServicePlugin(
 
     // Tools return plain schema-valid data; durable mechanics stay framework-owned.
     tools: ({ jobs }) => [
+      defineTool({
+        name: "record-reading-request",
+        description: "Record a request in the service's own type",
+        input: digestRequest,
+        output: z.object({ id: z.string() }),
+        execute: ({ input, entities }) =>
+          entities.create(readingRequest, {
+            content: "Read this bookmark",
+            metadata: input,
+          }),
+      }),
       defineTool({
         name: "compile-reading-digest",
         description: "Compile a durable digest for a saved bookmark.",

@@ -7,7 +7,11 @@ import {
 } from "@brains/sdk/entities";
 import { createAgentContent, parseAgentEntity } from "./lib/agent-content";
 import { AGENT_ENTITY_TYPE } from "./lib/constants";
-import { agentEntitySchema, type AgentEntity } from "./schemas/agent";
+import {
+  agentEntitySchema,
+  agentEntityReference,
+  type AgentEntity,
+} from "./schemas/agent";
 
 const SIGHTING_LIMIT = 100;
 const DETAIL_LIMIT = 50_000;
@@ -76,7 +80,7 @@ export const agentSightingsInbox: EntityInboxDeclaration = {
     if (!parsed) throw new Error("Agent sighting not found");
 
     const status = actionId === CONNECT_ACTION_ID ? "approved" : "archived";
-    await context.entities.update({
+    await context.entities.update(agentEntityReference, {
       ...entity,
       content: createAgentContent({
         ...parsed.frontmatter,

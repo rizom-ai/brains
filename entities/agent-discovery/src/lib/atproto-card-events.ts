@@ -20,7 +20,7 @@ import {
 } from "@brains/utils/safe-public-fetch";
 import type { FetchFn } from "./fetch-agent-card";
 import type { AgentEntity, AgentSkill, AgentStatus } from "../schemas/agent";
-import { agentEntitySchema } from "../schemas/agent";
+import { agentEntitySchema, agentEntityReference } from "../schemas/agent";
 import {
   recordConflict,
   recordDiscoveryCandidate,
@@ -214,7 +214,7 @@ export async function upsertAgentFromCard(
       metadata,
       updated: now,
     };
-    await context.entities.update(updated);
+    await context.entities.update(agentEntityReference, updated);
     return { agent: updated, created: false };
   }
 
@@ -228,7 +228,7 @@ export async function upsertAgentFromCard(
     created: now,
     updated: now,
   };
-  await context.entities.create(agent);
+  await context.entities.create(agentEntityReference, agent);
   return { agent, created: true };
 }
 
@@ -298,7 +298,7 @@ async function markAgentCardUnavailable(
     notes: parsed.body.notes,
   });
 
-  await context.entities.update({
+  await context.entities.update(agentEntityReference, {
     ...agent,
     metadata,
     content,
@@ -468,7 +468,7 @@ async function markAgentCardRefreshFailure(
     notes: parsed.body.notes,
   });
 
-  await context.entities.update({
+  await context.entities.update(agentEntityReference, {
     ...agent,
     metadata,
     content,
@@ -533,7 +533,7 @@ async function archiveExpiredStaleCandidate(
     skills: parsed.body.skills,
     notes: parsed.body.notes,
   });
-  await context.entities.update({
+  await context.entities.update(agentEntityReference, {
     ...agent,
     content,
     metadata: { ...agent.metadata, status: "archived" },

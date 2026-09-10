@@ -101,7 +101,10 @@ export function reaction(harness: PluginTestHarness): EntityReactionContext {
 export function mailEntities(
   harness: PluginTestHarness,
 ): MailThreadEntityAccess {
-  return reaction(harness).entities;
+  return harness.getJobEntityAccess(SERVICE_PLUGIN_ID, [
+    "mail-item",
+    "email-reply-draft",
+  ]);
 }
 
 export function operatorFor(
@@ -178,7 +181,10 @@ export async function installReplyDraftEntities(
 export function draftContext(harness: PluginTestHarness): DraftOperatorContext {
   const context = reaction(harness);
   return {
-    entities: context.entities,
+    entities: harness.getJobEntityAccess(SERVICE_PLUGIN_ID, [
+      "mail-item",
+      "email-reply-draft",
+    ]),
     permissions: context.permissions,
     channels: harness.getServiceContext(SERVICE_PLUGIN_ID).channels,
   };

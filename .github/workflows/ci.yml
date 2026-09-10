@@ -199,6 +199,9 @@ jobs:
       - name: Test core packages
         run: bunx turbo run test --concurrency="$(nproc)" --filter='!@rizom/site*' --filter='!@rizom/theme*'
 
+      - name: Test release orchestration
+        run: bun test scripts/release-workflow.test.ts scripts/lib/release-ci.test.ts scripts/lib/release-context.test.ts
+
   build:
     name: Build
     timeout-minutes: 20

@@ -1,11 +1,9 @@
-import type {
-  EntityReactionContext,
-  JobEntityAccess,
-} from "@brains/sdk/entities";
+import type { EntityReactionContext, EntityAccess } from "@brains/sdk/entities";
 import { definedFields } from "@brains/utils/strip-undefined";
 import { mailItemAdapter } from "./entity/adapters/mail-item-adapter";
 import {
   mailItemSchema,
+  mailItemReference,
   type MailItemEntity,
   type MailStatus,
 } from "./entity/schemas/mail-item";
@@ -25,7 +23,7 @@ const INBOX_ITEM_LIMIT = 100;
 /** What the operator reads and changes: mail items, as this package may. */
 export interface MailTriageOperatorContext {
   readonly entities: Pick<
-    JobEntityAccess,
+    EntityAccess,
     "listEntities" | "getEntity" | "update" | "count"
   >;
   readonly permissions: EntityReactionContext["permissions"];
@@ -134,7 +132,7 @@ export class MailTriageOperatorService {
       { ...frontmatter, status },
       summary,
     );
-    await this.context.entities.update({
+    await this.context.entities.update(mailItemReference, {
       ...entity,
       content,
       metadata: { ...entity.metadata, status },

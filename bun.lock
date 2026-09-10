@@ -198,6 +198,7 @@
       "dependencies": {
         "@brains/document": "workspace:*",
         "@brains/sdk": "workspace:*",
+        "@brains/utils": "workspace:*",
       },
       "devDependencies": {
         "@brains/contracts": "workspace:*",
@@ -217,6 +218,7 @@
       "dependencies": {
         "@brains/image": "workspace:*",
         "@brains/sdk": "workspace:*",
+        "@brains/utils": "workspace:*",
       },
       "devDependencies": {
         "@brains/contracts": "workspace:*",
@@ -460,6 +462,7 @@
       "dependencies": {
         "@brains/job-queue": "workspace:*",
         "@brains/plugins": "workspace:*",
+        "@brains/sdk": "workspace:*",
         "@brains/utils": "workspace:*",
         "chalk": "^5.4.1",
         "ink": "^7.0.6",
@@ -671,7 +674,6 @@
       "name": "@brains/sdk",
       "version": "0.2.0-alpha.289",
       "dependencies": {
-        "@brains/app": "workspace:*",
         "@brains/atproto-contracts": "workspace:*",
         "@brains/auth-service": "workspace:*",
         "@brains/content-formatters": "workspace:*",
@@ -687,6 +689,7 @@
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
+        "@rizom/site": "workspace:*",
         "bun-types": "^1.4.0",
         "eslint": "^10.5.0",
         "typescript": "^7.0.2",
@@ -1237,6 +1240,7 @@
         "@brains/auth-service": "workspace:*",
         "@brains/build-tools": "workspace:*",
         "@brains/eslint-config": "workspace:*",
+        "@brains/messaging-service": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/test-utils": "workspace:*",
@@ -1747,6 +1751,7 @@
         "@brains/mcp-service": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/runtime-state": "workspace:*",
+        "@brains/sdk": "workspace:*",
         "@brains/site-composition": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/theme-base": "workspace:*",

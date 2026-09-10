@@ -12,6 +12,14 @@ import { createToolAgent, isToolAsk } from "./tool-agent";
 import type { AgentNamespace } from "../contracts/agent";
 import type { RoutedCreate } from "../job/job-context-contract";
 import { noRoutedCreate } from "../entity/routed-create";
+import { recordToolFailureCause } from "../internal/tool-diagnostics";
+
+const localToolNames = new WeakMap<Tool["handler"], string>();
+
+/** Test metadata follows the handler when registration copies its descriptor. */
+export function declaredToolLocalName(tool: Tool): string {
+  return localToolNames.get(tool.handler) ?? tool.name;
+}
 
 export const confirmationTokenField = "_rizomConfirmationToken";
 
@@ -68,7 +76,7 @@ export function createRuntimeTool(input: {
     label: definition.name,
     requestNoun: "the operation",
   });
-  return {
+  const tool: Tool = {
     name,
     description: definition.description,
     inputSchema: definition.input.shape,
@@ -116,9 +124,10 @@ export function createRuntimeTool(input: {
           };
         }
 
-        const output = await run(toolContext, () =>
-          definition.execute({
-            ...reaction(),
+        const output = await run(toolContext, () => {
+          const base = reaction();
+          return definition.execute({
+            ...base,
             input: parsed,
             signal: toolContext.signal ?? new AbortController().signal,
             caller: toolContext,
@@ -133,8 +142,8 @@ export function createRuntimeTool(input: {
               agent: input.agent ?? ((): undefined => undefined),
               caller: () => toolContext,
             }),
-          }),
-        );
+          });
+        });
         // An ask is not an answer: it does not go through the output schema,
         // and it does not arrive as `{success: true}`.
         if (isToolAsk(output)) {
@@ -164,8 +173,16 @@ export function createRuntimeTool(input: {
           error,
           toolContext.signal?.aborted ? "cancelled" : fallback,
         );
-        return { success: false, error: failure.message, code: failure.code };
+        const response: ToolResponse = {
+          success: false,
+          error: failure.message,
+          code: failure.code,
+        };
+        recordToolFailureCause(response, error);
+        return response;
       }
     },
   };
+  localToolNames.set(tool.handler, definition.name);
+  return tool;
 }

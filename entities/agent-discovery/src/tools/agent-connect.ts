@@ -13,7 +13,7 @@ import {
 } from "../lib/fetch-agent-card";
 import { buildAgentFromCard } from "../lib/build-agent-content";
 import type { AgentEntity } from "../schemas/agent";
-import { agentEntitySchema } from "../schemas/agent";
+import { agentEntitySchema, agentEntityReference } from "../schemas/agent";
 
 const agentConnectInputSchema: z.ZodObject<{
   source: z.ZodObject<{ kind: z.ZodLiteral<"url">; url: z.ZodString }>;
@@ -79,7 +79,7 @@ async function upsertConnectedAgent(params: {
       metadata,
       updated: now,
     };
-    await context.entities.update(updated);
+    await context.entities.update(agentEntityReference, updated);
     return { entity: updated, created: false };
   }
 
@@ -93,7 +93,7 @@ async function upsertConnectedAgent(params: {
     created: now,
     updated: now,
   };
-  await context.entities.create(entity);
+  await context.entities.create(agentEntityReference, entity);
   return { entity, created: true };
 }
 

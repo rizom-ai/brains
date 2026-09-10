@@ -6,6 +6,7 @@ import {
   defineSubscription,
   defineTool,
   type AnySubscriptionDefinition,
+  type EntityAccess,
   type LoggerContract,
   type SdkErrorCode,
   type ServiceBatchStatus,
@@ -57,6 +58,305 @@ async function expectCodedRejection(
 // Also compiled against the built public entries by public-plugin-api.test.ts.
 // No runtime imports, casts, or fixture-only access to plugin callbacks.
 describe("the public testing harness", () => {
+  it("retains each author's original exception for tools and jobs in tests", async () => {
+    const reasons = [
+      new Error("the real reason", { cause: new Error("an inner reason") }),
+      new SdkError("conflict", {
+        message: "another private reason",
+        publicMessage: "Refresh your selection",
+      }),
+    ];
+    const fail = async ({ index }: { index: number }): Promise<never> => {
+      await Promise.resolve();
+      throw reasons[index] ?? new Error("Unknown reason");
+    };
+    const input = z.object({ index: z.number() });
+    const harness = createBrainTestHarness();
+    try {
+      const installed = await harness.installPackage(
+        defineServicePlugin(
+          { id: "diagnostics", config: z.object({}) },
+          {
+            tools: () => [
+              defineTool({
+                name: "fail",
+                description: "Explain an author failure in a test",
+                input,
+                output: z.string(),
+                execute: ({ input }) => fail(input),
+              }),
+            ],
+            jobs: () => [
+              defineJob({ name: "fail", input, output: z.string() }).handle(
+                ({ input }) => fail(input),
+              ),
+            ],
+          },
+        ),
+      );
+      const tool = installed.tools[0];
+      const job = installed.jobs[0];
+      expect(tool).toBeDefined();
+      expect(job).toBeDefined();
+      if (!tool || !job) throw new Error("Missing declarations");
+      const results = await Promise.all([
+        tool.call({ index: 0 }),
+        tool.call({ index: 1 }),
+      ]);
+      for (const [index, result] of results.entries()) {
+        expect(result).toMatchObject({
+          ok: false,
+          code: index === 0 ? "handler_failed" : "conflict",
+          error:
+            index === 0 ? "The operation failed" : "Refresh your selection",
+          cause: reasons[index],
+        });
+        // This is diagnostic access for the author, not a change to wire errors.
+        if (result.ok || "confirmation" in result)
+          throw new Error("Expected failure");
+        expect(result.cause).toBe(reasons[index]);
+        const rejected = await job.run({ index }).then(
+          () => undefined,
+          (error: unknown) => error,
+        );
+        expect(rejected).toMatchObject({ cause: reasons[index] });
+        if (!(rejected instanceof Error))
+          throw new Error("Expected coded job error");
+        expect(rejected.cause).toBe(reasons[index]);
+      }
+    } finally {
+      await harness.reset();
+    }
+  });
+  it("writes a service's declared type and explains the header slot when ownership is missing", async () => {
+    const reminder = defineEntity({
+      type: "reminder",
+      purpose: "An owned reminder",
+      metadata: z.object({ done: z.boolean() }),
+    });
+    const tools = [
+      defineTool({
+        name: "add",
+        description: "Add a reminder",
+        input: z.object({}),
+        output: z.object({ id: z.string() }),
+        execute: ({ entities }) =>
+          entities.create(reminder, {
+            content: "Call Sam",
+            metadata: { done: false },
+          }),
+      }),
+    ];
+    const harness = createBrainTestHarness();
+    try {
+      const owner = await harness.installPackage(
+        defineServicePlugin(
+          { id: "reminders", config: z.object({}), entities: [reminder] },
+          { tools: () => tools },
+        ),
+      );
+      const other = await harness.installPackage(
+        defineServicePlugin(
+          { id: "reminder-reader", config: z.object({}) },
+          { tools: () => tools },
+        ),
+      );
+      await harness.finalizeRegistration();
+      const created = await owner.tools[0]?.call({});
+      expect(created).toMatchObject({
+        ok: true,
+        data: { id: expect.any(String) },
+      });
+      const denied = await other.tools[0]?.call({});
+      expect(denied).toMatchObject({
+        ok: false,
+        code: "handler_failed",
+        cause: { message: expect.stringContaining("entities: [...]") },
+      });
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("round-trips an entity body through tool create, job update, and all harness reads", async () => {
+    const reminder = defineEntity({
+      type: "reminder-body",
+      purpose: "Content remains the body, not the storage envelope",
+      metadata: z.object({ done: z.boolean() }),
+    });
+    const harness = createBrainTestHarness();
+    try {
+      const installed = await harness.installPackage(
+        defineServicePlugin(
+          { id: "reminder-bodies", config: z.object({}), entities: [reminder] },
+          {
+            tools: () => [
+              defineTool({
+                name: "add",
+                description: "Create a reminder body",
+                input: z.object({}),
+                output: z.object({ id: z.string() }),
+                execute: ({ entities }) =>
+                  entities.create(reminder, {
+                    id: "written-reminder",
+                    content: "Call Sam",
+                    metadata: { done: false },
+                  }),
+              }),
+              defineTool({
+                name: "list",
+                description: "Read reminder bodies",
+                input: z.object({}),
+                output: z.array(z.string()),
+                execute: async ({ entities }) =>
+                  (await entities.listEntities({ entityType: reminder.type }))
+                    .map((entity) => entity.content)
+                    .sort(),
+              }),
+            ],
+            jobs: () => [
+              defineJob({
+                name: "fire",
+                input: z.object({ id: z.string() }),
+                output: z.object({ before: z.string(), after: z.string() }),
+              }).handle(async ({ input, entities }) => {
+                const before = await entities.get(reminder, input.id);
+                if (!before) throw new Error("Missing reminder");
+                await entities.update(reminder, {
+                  ...before,
+                  content: "Email Sam",
+                  metadata: { done: true },
+                });
+                const after = await entities.get(reminder, input.id);
+                if (!after) throw new Error("Missing updated reminder");
+                return { before: before.content, after: after.content };
+              }),
+            ],
+          },
+        ),
+      );
+      await harness.finalizeRegistration();
+      harness.addEntities([
+        {
+          id: "seeded-reminder",
+          entityType: reminder.type,
+          content: "Call Sam",
+          metadata: { done: false },
+        },
+      ]);
+      expect(await installed.tools[0]?.call({})).toMatchObject({ ok: true });
+      expect(await installed.tools[1]?.call({})).toEqual({
+        ok: true,
+        data: ["Call Sam", "Call Sam"],
+      });
+      expect(
+        await harness.getEntity(reminder.type, "written-reminder"),
+      ).toMatchObject({ content: "Call Sam", metadata: { done: false } });
+      expect(await installed.jobs[0]?.run({ id: "written-reminder" })).toEqual({
+        before: "Call Sam",
+        after: "Email Sam",
+      });
+      expect(
+        await harness.getEntity(reminder.type, "written-reminder"),
+      ).toMatchObject({ content: "Email Sam", metadata: { done: true } });
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("uses identical definition-typed CRUD in tools, jobs, and subscriptions", async () => {
+    const reminder = defineEntity({
+      type: "typed-reminder",
+      purpose: "One entity API for all service callbacks",
+      metadata: z.object({ done: z.boolean() }),
+    });
+    async function exercise(
+      entities: EntityAccess,
+      id: string,
+    ): Promise<boolean> {
+      const created = await entities.create(reminder, {
+        id,
+        content: "Call Sam",
+        metadata: { done: false },
+      });
+      expect(created).toEqual({ id });
+      const saved = await entities.get(reminder, created.id);
+      if (!saved) throw new Error("Missing typed reminder");
+      const done: boolean = saved.metadata.done;
+      expect(done).toBe(false);
+      expect(
+        await entities.update(reminder, { ...saved, metadata: { done: true } }),
+      ).toEqual({ id });
+      const listed = await entities.list(reminder, {
+        filter: { metadata: { done: true } },
+      });
+      const matched: boolean | undefined = listed.find((item) => item.id === id)
+        ?.metadata.done;
+      const searched = await entities.search(reminder, "Sam");
+      const searchedDone: boolean | undefined =
+        searched[0]?.entity.metadata.done;
+      void searchedDone;
+      return matched === true;
+    }
+    const input = z.object({ id: z.string() });
+    const subscription = defineSubscription({
+      topic: "typed-reminder:cycle",
+      payload: input,
+      response: z.boolean(),
+      handle: ({ payload, entities }) => exercise(entities, payload.id),
+    });
+    const harness = createBrainTestHarness();
+    try {
+      const installed = await harness.installPackage(
+        defineServicePlugin(
+          { id: "typed-reminders", config: z.object({}), entities: [reminder] },
+          {
+            tools: () => [
+              defineTool({
+                name: "cycle",
+                description: "Exercise typed CRUD",
+                input,
+                output: z.boolean(),
+                execute: ({ input, entities }) => exercise(entities, input.id),
+              }),
+            ],
+            jobs: () => [
+              defineJob({ name: "cycle", input, output: z.boolean() }).handle(
+                ({ input, entities }) => exercise(entities, input.id),
+              ),
+            ],
+            subscriptions: () => [subscription],
+          },
+        ),
+      );
+      await harness.finalizeRegistration();
+      expect(await installed.tools[0]?.call({ id: "tool-reminder" })).toEqual({
+        ok: true,
+        data: true,
+      });
+      expect(await installed.jobs[0]?.run({ id: "job-reminder" })).toBe(true);
+      expect(
+        await harness.request(subscription, { id: "subscription-reminder" }),
+      ).toEqual({ ok: true, data: true });
+    } finally {
+      await harness.reset();
+    }
+    function rejectedInputs(entities: EntityAccess): void {
+      // @ts-expect-error Writes require the definition, not the former native input shape.
+      void entities.create({
+        entityType: "typed-reminder",
+        content: "",
+        metadata: { done: false },
+      });
+      void entities.create(reminder, {
+        content: "",
+        // @ts-expect-error Metadata is inferred from the definition.
+        metadata: { done: "yes" },
+      });
+    }
+    void rejectedInputs;
+  });
+
   it("uses the shared error records for batch failures, not diagnostic strings", () => {
     const failure: ServiceBatchStatus["errors"][number] = {
       code: "not_found",
@@ -225,6 +525,61 @@ describe("the public testing harness", () => {
     }
   });
 
+  it("gives a service route a definition-typed entity reader", async () => {
+    const reminder = defineEntity({
+      type: "route-reminder",
+      purpose: "Route read probe",
+      metadata: z.object({ done: z.boolean() }),
+    });
+    const harness = createBrainTestHarness();
+    try {
+      await harness.installPackage(
+        defineServicePlugin(
+          { id: "reminder-routes", config: z.object({}), entities: [reminder] },
+          {
+            routes: ({ entities }) => [
+              defineRoute({
+                method: "GET",
+                path: "/reminders/due",
+                security: { kind: "public" },
+                response: z.object({ ids: z.array(z.string()) }),
+                handle: async () => {
+                  expect(Object.isFrozen(entities)).toBe(true);
+                  expect(entities).not.toHaveProperty("create");
+                  // @ts-expect-error A route slot receives a reader, not a writer.
+                  void entities.create;
+                  const { list } = entities;
+                  const items = await list(reminder);
+                  return {
+                    ids: items
+                      .filter((item) => {
+                        const done: boolean = item.metadata.done;
+                        return !done;
+                      })
+                      .map((item) => item.id),
+                  };
+                },
+              }),
+            ],
+          },
+        ),
+      );
+      harness.addEntities([
+        {
+          id: "due",
+          entityType: reminder.type,
+          content: "Call Sam",
+          metadata: { done: false },
+        },
+      ]);
+      expect(await harness.fetch("GET", "/reminders/due")).toEqual({
+        ids: ["due"],
+      });
+    } finally {
+      await harness.reset();
+    }
+  });
+
   it("runs a job and serves authenticated routes from each instance's setup state", async () => {
     const tally = defineJob({
       name: "tally",
@@ -311,6 +666,81 @@ describe("the public testing harness", () => {
     }
   });
 
+  it("looks up tools, jobs, and templates by exact local name with useful failures", async () => {
+    const harness = createBrainTestHarness();
+    const definition = defineServicePlugin(
+      { id: "local-reader", config: z.object({}) },
+      {
+        tools: () => [
+          defineTool({
+            name: "remind-later",
+            description: "Remind",
+            input: z.object({}),
+            output: z.object({ done: z.boolean() }),
+            execute: () => ({ done: true }),
+          }),
+        ],
+        jobs: () => [
+          defineJob({
+            name: "fire",
+            input: z.object({}),
+            output: z.boolean(),
+          }).handle(async () => true),
+        ],
+        templates: {
+          "due-list": {
+            schema: z.object({ text: z.string() }),
+            format: ({ value }) => value.text,
+          },
+        },
+      },
+    );
+    try {
+      const installed = await harness.installPackage(definition);
+      expect(installed.tool("remind-later").localName).toBe("remind-later");
+      expect(installed.tool("remind-later").name).toBe(
+        "local-reader_remind-later",
+      );
+      expect(await installed.tool("remind-later").call({})).toEqual({
+        ok: true,
+        data: { done: true },
+      });
+      expect(await installed.job("fire").run({})).toBe(true);
+      expect(harness.templateNames()).toEqual(["due-list"]);
+      expect(harness.formatTemplate("due-list", { text: "Call Sam" })).toBe(
+        "Call Sam",
+      );
+      expect(() => installed.tool("later")).toThrow("remind-later");
+      expect(() => installed.job("missing")).toThrow("fire");
+      expect(() => harness.formatTemplate("missing", {})).toThrow("due-list");
+      await harness.installPackage(
+        defineServicePlugin(
+          { id: "other-reader", config: z.object({}) },
+          {
+            templates: {
+              "due-list": {
+                schema: z.object({ text: z.string() }),
+                format: ({ value }) => value.text,
+              },
+            },
+          },
+        ),
+        {},
+        { name: "@fixture/other", version: "0.0.0" },
+      );
+      expect(() =>
+        harness.formatTemplate("due-list", { text: "Ambiguous" }),
+      ).toThrow("Ambiguous");
+      await harness.reset();
+      expect(harness.templateNames()).toEqual([]);
+      expect(() => harness.formatTemplate("due-list", {})).toThrow(
+        "No template",
+      );
+    } finally {
+      await harness.reset();
+    }
+  });
+
   it("reads a declared entity in a job and formats its own presentation", async () => {
     const bookmark = defineEntity({
       type: "bookmark",
@@ -378,12 +808,8 @@ describe("the public testing harness", () => {
       await harness.finalizeRegistration();
       const value = await installed.jobs[0]?.run({ id: "one" });
       expect(value).toEqual({ title: "Boundaries" });
-      expect(
-        harness.formatTemplate("@fixture/reader:bookmark:card", value),
-      ).toBe("# Boundaries");
-      expect(() =>
-        harness.formatTemplate("@fixture/reader:bookmark:card", { title: 7 }),
-      ).toThrow();
+      expect(harness.formatTemplate("card", value)).toBe("# Boundaries");
+      expect(() => harness.formatTemplate("card", { title: 7 })).toThrow();
       expect(await harness.getEntity("bookmark", "one")).toMatchObject({
         id: "one",
       });
@@ -1083,7 +1509,15 @@ describe("the public testing harness", () => {
       identity,
       logger,
       progress,
-    }: JobHandlerContext<unknown>): Promise<Record<string, string[]>> => {
+    }: Pick<
+      JobHandlerContext<unknown>,
+      | "uploads"
+      | "attachments"
+      | "conversations"
+      | "identity"
+      | "logger"
+      | "progress"
+    >): Promise<Record<string, string[]>> => {
       expect(Object.keys(progress)).toEqual(["report"]);
       expect(Object.isFrozen(progress)).toBe(true);
       expect(progress).not.toHaveProperty("callback");
@@ -2557,7 +2991,12 @@ describe("the public testing harness", () => {
     }
   });
 
-  it("hands every subscription family a real reader rather than the full entity service", async () => {
+  it("hands every subscription family scoped entity access rather than the full entity service", async () => {
+    const note = defineEntity({
+      type: "note",
+      purpose: "A reader probe",
+      metadata: z.object({}),
+    });
     for (const family of ["service", "interface", "message"]) {
       const subscription = defineSubscription({
         topic: "reader:probe",
@@ -2578,19 +3017,28 @@ describe("the public testing harness", () => {
           expect(entities).not.toHaveProperty("deleteEntity");
           expect(entities).not.toHaveProperty("registerEntityType");
           expect(Object.isFrozen(entities)).toBe(true);
-          // @ts-expect-error Reading entities grants no mutation capability.
+          // @ts-expect-error Scoped mutations do not expose the host's unrestricted writer.
           void entities.createEntity;
           // @ts-expect-error Host registration is not part of a subscription reader.
           void entities.registerEntityType;
-          const entity = await entities.getEntity({
-            entityType: "note",
-            id: "one",
+          const refusal = await entities
+            .create(note, { content: "Denied", metadata: {} })
+            .then(
+              () => null,
+              (cause: unknown): unknown => cause,
+            );
+          expect(refusal).toBeInstanceOf(Error);
+          expect(refusal).toMatchObject({
+            message: expect.stringContaining(
+              family === "service" ? "may only write" : "cannot write one",
+            ),
           });
+          const entity = await entities.get(note, "one");
           return {
             keys: Object.keys(entities).sort(),
             identityKeys: Object.keys(identity).sort(),
             content: entity?.content ?? "missing",
-            count: (await entities.listEntities({ entityType: "note" })).length,
+            count: (await entities.list(note)).length,
             known: entities.getEntityTypes().includes("note"),
           };
         },
@@ -2625,7 +3073,21 @@ describe("the public testing harness", () => {
         expect(await harness.request(subscription, {})).toEqual({
           ok: true,
           data: {
-            keys: ["getEntity", "getEntityTypes", "listEntities"],
+            keys: [
+              "count",
+              "create",
+              "createPending",
+              "delete",
+              "get",
+              "getEntity",
+              "getEntityCounts",
+              "getEntityTypes",
+              "list",
+              "listEntities",
+              "saveProcessed",
+              "search",
+              "update",
+            ],
             identityKeys: ["get", "getProfile"],
             content: "Read me",
             count: 1,
