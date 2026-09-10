@@ -6,7 +6,12 @@ import {
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { WebChatConversation } from "./conversation-access";
-import type { EnabledGuestPolicy, GuestPolicy } from "./guest-policy";
+import {
+  guestPolicySchema,
+  type EnabledGuestPolicy,
+  type GuestPolicy,
+} from "./guest-policy";
+import { GuestIssuance, type GuestIssuanceTicket } from "./guest-issuance";
 
 import {
   guestInterfaceType,
@@ -33,6 +38,13 @@ const visitorSchema: z.ZodObject<
     "Guest credential expiry must follow issuance",
   );
 export type GuestVisitor = z.output<typeof visitorSchema>;
+const storedVisitorSchema = z
+  .strictObject({ ...visitorSchema.shape, issuanceId: z.string().uuid() })
+  .refine(
+    (visitor) => visitor.expiresAt > visitor.createdAt,
+    "Invalid credential lifetime",
+  );
+type StoredVisitor = z.output<typeof storedVisitorSchema>;
 
 /**
  * Credential/ownership foundation only. It grants no agent execution authority.
@@ -40,7 +52,8 @@ export type GuestVisitor = z.output<typeof visitorSchema>;
  * Leases are fixed and bounded by idle expiry; reads never extend them.
  */
 export class GuestVisitorStore {
-  private readonly store: IRuntimeStateStore<GuestVisitor>;
+  private readonly store: IRuntimeStateStore<StoredVisitor>;
+  private readonly issuance: GuestIssuance;
   private readonly policy: GuestPolicy;
   private readonly now: () => number;
 
@@ -49,11 +62,12 @@ export class GuestVisitorStore {
     policy: GuestPolicy,
     now: () => number = Date.now,
   ) {
-    this.policy = policy;
+    this.policy = guestPolicySchema.parse(policy);
     this.now = now;
+    this.issuance = new GuestIssuance(runtimeState, now);
     this.store = runtimeState.scoped({
       namespace: "web-chat.guest-visitors",
-      schema: visitorSchema,
+      schema: storedVisitorSchema,
     });
   }
 
@@ -74,7 +88,36 @@ export class GuestVisitorStore {
     };
     // Never reuse a browser-provided token; only its digest reaches persistence.
     const token = randomBytes(32).toString("base64url");
-    if (!(await this.store.setIfNotExists(this.key(token, policy), visitor))) {
+    const key = this.key(token, policy);
+    try {
+      visitorSchema.parse(visitor);
+      const ticket = await this.issuance.reserve(
+        key,
+        visitor,
+        policy.issuance,
+        async (): Promise<boolean> =>
+          (await this.store.list({ limit: 1 })).length === 0,
+      );
+      if (!ticket) throw new Error("Guest access unavailable");
+      // Exactly one materialization attempt. Neither errors nor expiry release
+      // pending capacity: a remote statement may still commit after a timeout.
+      if (
+        !(await this.store.setIfNotExists(key, {
+          ...visitor,
+          issuanceId: ticket.id,
+        }))
+      )
+        throw new Error("Guest access unavailable");
+      if (!(await this.issuance.confirm(ticket)))
+        throw new Error("Guest access unavailable");
+      const now = this.now();
+      if (
+        !Number.isSafeInteger(now) ||
+        now < createdAt ||
+        now >= visitor.expiresAt
+      )
+        throw new Error("Guest access unavailable");
+    } catch {
       throw new Error("Guest access unavailable");
     }
     return {
@@ -87,17 +130,36 @@ export class GuestVisitorStore {
     if (!this.policy.enabled) return null;
     const token = this.token(request, this.policy);
     if (!token) return null;
-    const visitor = await this.store.get(this.key(token, this.policy));
-    const now = this.now();
-    return visitor && visitor.createdAt <= now && now < visitor.expiresAt
-      ? visitor
-      : null;
+    try {
+      const key = this.key(token, this.policy);
+      const record = await this.store.get(key);
+      const now = this.now();
+      if (
+        !record ||
+        !Number.isSafeInteger(now) ||
+        record.createdAt > now ||
+        now >= record.expiresAt ||
+        !(await this.issuance.isIssued(this.ticket(key, record)))
+      )
+        return null;
+      const { issuanceId: _, ...visitor } = record;
+      return visitor;
+    } catch {
+      throw new Error("Guest access unavailable");
+    }
   }
 
   async revoke(request: Request): Promise<void> {
     const policy = this.requireMutation(request);
     const token = this.token(request, policy);
-    if (token) await this.store.delete(this.key(token, policy));
+    if (!token) return;
+    try {
+      const key = this.key(token, policy);
+      const visitor = await this.store.get(key);
+      if (visitor) await this.deleteCredential(this.ticket(key, visitor));
+    } catch {
+      throw new Error("Guest access unavailable");
+    }
   }
 
   /** Trusted maintenance, including while admission is off. Leases are immutable:
@@ -107,23 +169,35 @@ export class GuestVisitorStore {
   async cleanup(
     afterKey?: string,
     limit: number = 100,
-  ): Promise<{ removed: number; nextCursor: string | null }> {
+  ): Promise<{
+    removed: number;
+    nextCursor: string | null;
+    uncertain: number;
+  }> {
     try {
       const now = this.now();
       if (!Number.isSafeInteger(now) || now < 0)
         throw new Error("Invalid clock");
       z.number().int().min(1).max(1000).parse(limit);
-      const records = await this.store.list({ afterKey, limit });
+      const { records, uncertain } = await this.issuance.page(afterKey, limit);
+      if (
+        afterKey === undefined &&
+        records.length === 0 &&
+        (await this.store.list({ limit: 1 })).length > 0
+      )
+        throw new Error("Unaccounted credentials require reconciliation");
       let removed = 0;
       for (const record of records) {
         if (
-          record.value.expiresAt <= now &&
-          (await this.store.delete(record.key))
-        )
-          removed++;
+          record.state !== "pending" &&
+          (record.state === "deleting" || record.expiresAt <= now)
+        ) {
+          if (await this.deleteCredential(record)) removed++;
+        }
       }
       return {
         removed,
+        uncertain,
         nextCursor:
           records.length === limit ? (records.at(-1)?.key ?? null) : null,
       };
@@ -131,6 +205,41 @@ export class GuestVisitorStore {
       // Storage exceptions may contain credential/accounting references.
       throw new Error("Guest access unavailable");
     }
+  }
+
+  private async deleteCredential(
+    ticket: GuestIssuanceTicket,
+  ): Promise<boolean> {
+    if (!(await this.issuance.beginDeletion(ticket))) {
+      if (
+        (await this.issuance.isGone(ticket)) &&
+        !(await this.store.has(ticket.key))
+      )
+        return false;
+      throw new Error("Guest access unavailable");
+    }
+    const record = await this.store.get(ticket.key);
+    if (
+      record &&
+      (record.issuanceId !== ticket.id ||
+        record.createdAt !== ticket.createdAt ||
+        record.expiresAt !== ticket.expiresAt)
+    )
+      throw new Error("Guest access unavailable");
+    const removed = await this.store.delete(ticket.key);
+    // A missing row is an acknowledged absence. Pending writers never reach here.
+    if (!(await this.issuance.finishDeletion(ticket)))
+      throw new Error("Guest access unavailable");
+    return removed;
+  }
+
+  private ticket(key: string, visitor: StoredVisitor): GuestIssuanceTicket {
+    return {
+      key,
+      id: visitor.issuanceId,
+      createdAt: visitor.createdAt,
+      expiresAt: visitor.expiresAt,
+    };
   }
 
   private requireMutation(request: Request): EnabledGuestPolicy {

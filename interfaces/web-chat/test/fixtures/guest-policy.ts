@@ -4,6 +4,11 @@ import type { EnabledGuestPolicy } from "../../src/guest-policy";
 export const testGuestPolicy: EnabledGuestPolicy = {
   enabled: true,
   origin: "https://brain.test",
+  issuance: {
+    requestsPerMinute: 30,
+    requestsPerDay: 100,
+    maxStoredCredentials: 100,
+  },
   limits: {
     messageCharacters: 4000,
     outputTokens: 1200,

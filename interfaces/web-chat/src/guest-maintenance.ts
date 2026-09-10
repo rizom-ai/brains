@@ -49,6 +49,8 @@ export class GuestStateMaintenance {
   private async cleanVisitors(): Promise<void> {
     const result = await this.visitors.cleanup(this.visitorCursor, 100);
     this.visitorCursor = result.nextCursor ?? undefined;
+    if (result.uncertain > 0)
+      throw new Error("Guest credential writes need reconciliation");
   }
 
   private async cleanLedgerPage(): Promise<void> {

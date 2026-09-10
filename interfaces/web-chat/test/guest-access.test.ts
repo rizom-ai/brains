@@ -189,6 +189,7 @@ describe("guest visitor ownership foundation", () => {
     expect(await maintenance.cleanup()).toEqual({
       removed: 0,
       nextCursor: null,
+      uncertain: 0,
     });
   });
 
@@ -345,10 +346,12 @@ describe("guest visitor ownership foundation", () => {
       testGuestPolicy,
       () => now,
     );
-    expect(visitors.issue(request())).rejects.toThrow("Storage unavailable");
+    expect(visitors.issue(request())).rejects.toThrow(
+      "Guest access unavailable",
+    );
     expect(
       visitors.resolve(request(`__Host-brain-visitor=${"a".repeat(43)}`)),
-    ).rejects.toThrow("Storage unavailable");
+    ).rejects.toThrow("Guest access unavailable");
   });
 
   it("uses a separate non-Secure cookie only for explicitly configured loopback development", async () => {

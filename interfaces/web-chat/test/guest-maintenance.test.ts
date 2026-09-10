@@ -14,6 +14,8 @@ import type {
   RuntimeStateScopeOptions,
 } from "@brains/plugins";
 import { GuestStateMaintenance } from "../src/guest-maintenance";
+import { GuestVisitorStore } from "../src/guest-access";
+import { testGuestPolicy } from "./fixtures/guest-policy";
 import {
   guestAdmissionNamespace,
   guestAdmissionStateSchema,
@@ -70,12 +72,19 @@ describe("guest state maintenance", () => {
     const visitors = shell
       .getRuntimeState()
       .scoped({ namespace: "web-chat.guest-visitors", schema: z.unknown() });
-    await visitors.set("expired-digest", {
-      kind: "guest",
-      id: randomUUID(),
-      createdAt: 0,
-      expiresAt: 1,
-    });
+    await new GuestVisitorStore(
+      shell.getRuntimeState(),
+      testGuestPolicy,
+      () => 0,
+    ).issue(
+      new Request(`${testGuestPolicy.origin}/api/chat/guest/session`, {
+        method: "POST",
+        headers: {
+          Origin: testGuestPolicy.origin,
+          "Content-Type": "application/json",
+        },
+      }),
+    );
     const plugin = new WebChatInterface(
       {},
       { resolveAuthPrincipal: async (): Promise<undefined> => undefined },
@@ -231,12 +240,15 @@ describe("guest state maintenance", () => {
       namespace: "web-chat.guest-visitors",
       schema: z.unknown(),
     });
-    await visitors.set("expired-digest", {
-      kind: "guest",
-      id: randomUUID(),
-      createdAt: 1,
-      expiresAt: now,
-    });
+    await new GuestVisitorStore(state, testGuestPolicy, () => 0).issue(
+      new Request(`${testGuestPolicy.origin}/api/chat/guest/session`, {
+        method: "POST",
+        headers: {
+          Origin: testGuestPolicy.origin,
+          "Content-Type": "application/json",
+        },
+      }),
+    );
     expect(new GuestStateMaintenance(state, () => now).run()).rejects.toThrow(
       "Guest maintenance unavailable",
     );

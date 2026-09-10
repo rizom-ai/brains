@@ -9,6 +9,22 @@ const positiveAmount = z.number().positive();
 
 type Strict<Shape extends z.ZodRawShape> = z.ZodObject<Shape, z.core.$strict>;
 
+export const guestIssuanceLimitsSchema: Strict<{
+  requestsPerMinute: z.ZodNumber;
+  requestsPerDay: z.ZodNumber;
+  maxStoredCredentials: z.ZodNumber;
+}> = z
+  .strictObject({
+    requestsPerMinute: positiveInteger,
+    requestsPerDay: positiveInteger,
+    maxStoredCredentials: positiveInteger,
+  })
+  .refine(
+    (limits) => limits.requestsPerMinute <= limits.requestsPerDay,
+    "Guest issuance minute limit must fit the daily limit",
+  );
+export type GuestIssuanceLimits = z.output<typeof guestIssuanceLimitsSchema>;
+
 const limitsSchema: Strict<
   typeof guestExecutionLimitsSchema.shape & {
     userTurns: z.ZodNumber;
@@ -73,6 +89,7 @@ const disabledPolicySchema: Strict<{ enabled: z.ZodLiteral<false> }> =
 const enabledPolicySchema: Strict<{
   enabled: z.ZodLiteral<true>;
   origin: z.ZodString;
+  issuance: typeof guestIssuanceLimitsSchema;
   limits: typeof limitsSchema;
   retention: typeof guestRetentionSchema;
   budget: typeof budgetSchema;
@@ -89,6 +106,7 @@ const enabledPolicySchema: Strict<{
       isGuestOrigin,
       "Guest origin must be canonical HTTPS (or loopback HTTP)",
     ),
+  issuance: guestIssuanceLimitsSchema,
   limits: limitsSchema,
   retention: guestRetentionSchema,
   budget: budgetSchema,
