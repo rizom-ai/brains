@@ -24,6 +24,7 @@ import {
   OperationalHealthRegistry,
   PluginManager,
   RuntimeUploadRegistry,
+  createScheduledMaintenanceDaemon,
 } from "@brains/plugins";
 import { RecurringCheckService } from "@brains/recurring-checks";
 import {
@@ -241,6 +242,23 @@ export function createShellServices(options: {
     conversationContext,
     ConversationServiceTag,
   );
+  if (processRole !== "worker") {
+    const name = "shell:guest-retention";
+    daemonRegistry.register(
+      name,
+      createScheduledMaintenanceDaemon({
+        intervalMs: 60_000,
+        logger,
+        run: async (): Promise<void> => {
+          await conversationService.deleteExpiredGuestConversations(100);
+        },
+      }),
+      "shell",
+    );
+    // Construction is synchronous and has not started the daemon. Runtime
+    // finalizers separately drain it before the conversation database closes.
+    lifecycle.addSyncFinalizer(() => daemonRegistry.abandon(name));
+  }
 
   lifecycle.addSyncFinalizer(() => {
     for (const dispose of disposables.splice(0)) {

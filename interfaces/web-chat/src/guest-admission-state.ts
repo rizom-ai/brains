@@ -63,6 +63,19 @@ export const guestAdmissionStateSchema: Strict<{
   receipts: z.record(digest, receiptSchema),
 });
 export type GuestAdmissionState = z.output<typeof guestAdmissionStateSchema>;
+export const guestAdmissionNamespace = "web-chat.guest-admission";
+
+/** Timeout, credential expiry and disconnection never prove remote completion. */
+export function retainedGuestReceipts(
+  state: GuestAdmissionState,
+  now: number,
+): GuestAdmissionState["receipts"] {
+  return Object.fromEntries(
+    Object.entries(state.receipts).filter(
+      ([, receipt]) => receipt.state === "active" || now < receipt.retainUntil,
+    ),
+  );
+}
 
 export interface GuestExecutionLease {
   key: string;

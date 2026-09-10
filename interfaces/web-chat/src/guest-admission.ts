@@ -9,6 +9,8 @@ import type { WebChatConversation } from "./conversation-access";
 import { guestPolicySchema, type EnabledGuestPolicy } from "./guest-policy";
 import {
   guestAdmissionStateSchema,
+  guestAdmissionNamespace,
+  retainedGuestReceipts,
   type GuestAdmissionState,
   type GuestAdmissionReceipt,
   type GuestAdmissionResult,
@@ -63,7 +65,7 @@ export class GuestAdmission {
     if (!parsed.enabled) throw new Error("Guest admission unavailable");
     this.policy = parsed;
     this.store = runtimeState.scoped({
-      namespace: "web-chat.guest-admission",
+      namespace: guestAdmissionNamespace,
       schema: guestAdmissionStateSchema,
     });
     this.key = digest(parsed.origin);
@@ -222,7 +224,7 @@ export class GuestAdmission {
         },
         next: {
           ...state,
-          receipts: { ...this.retained(state, now), [key]: receipt },
+          receipts: { ...retainedGuestReceipts(state, now), [key]: receipt },
         },
       };
     }, denied("unavailable"));
@@ -256,7 +258,7 @@ export class GuestAdmission {
         next: {
           ...state,
           receipts: {
-            ...this.retained(state, now),
+            ...retainedGuestReceipts(state, now),
             [lease.key]: {
               ...receipt,
               state: outcome,
@@ -272,7 +274,7 @@ export class GuestAdmission {
   /** Bounded references outlive content only as required for quotas/deduplication. */
   async cleanup(): Promise<number | null> {
     return this.transact<number | null>((state, now) => {
-      const receipts = this.retained(state, now);
+      const receipts = retainedGuestReceipts(state, now);
       const removed =
         Object.keys(state.receipts).length - Object.keys(receipts).length;
       return {
@@ -280,19 +282,6 @@ export class GuestAdmission {
         ...(removed > 0 ? { next: { ...state, receipts } } : {}),
       };
     }, null);
-  }
-
-  private retained(
-    state: GuestAdmissionState,
-    now: number,
-  ): GuestAdmissionState["receipts"] {
-    // Expiring a timeout is NOT evidence that provider execution stopped.
-    return Object.fromEntries(
-      Object.entries(state.receipts).filter(
-        ([, receipt]) =>
-          receipt.state === "active" || now < receipt.retainUntil,
-      ),
-    );
   }
 
   private async transact<T>(

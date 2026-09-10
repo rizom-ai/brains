@@ -31,6 +31,7 @@ function createConversationService(): IConversationService {
     searchConversations: mock(async () => []),
     updateConversationMetadata: mock(async () => false),
     deleteConversation: mock(async () => false),
+    deleteExpiredGuestConversations: mock(async () => 0),
     close: mock(() => undefined),
   };
 }

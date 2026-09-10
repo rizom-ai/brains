@@ -14,6 +14,7 @@ import {
 } from "@brains/auth-service";
 import {
   MessageInterfacePlugin,
+  createScheduledMaintenanceDaemon,
   type AgentResponse,
   type EditMessageRequest,
   type MessageInterfacePluginContext,
@@ -80,6 +81,8 @@ import {
   handleUploadDownloadRequest as handleUploadDownloadRouteRequest,
   handleUploadRequest as handleUploadRouteRequest,
 } from "./upload-handlers";
+
+import { GuestStateMaintenance } from "./guest-maintenance";
 
 const webChatInterfaceType = "web-chat";
 const remoteAgentInterfaceType = "remote-agent";
@@ -153,6 +156,15 @@ export class WebChatInterface extends MessageInterfacePlugin<
     context: MessageInterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
+    const maintenance = new GuestStateMaintenance(context.runtimeState);
+    context.daemons.register(
+      "guest-maintenance",
+      createScheduledMaintenanceDaemon({
+        intervalMs: 60_000,
+        logger: context.logger,
+        run: (): Promise<void> => maintenance.run(),
+      }),
+    );
 
     context.endpoints.register({
       label: "Chat",

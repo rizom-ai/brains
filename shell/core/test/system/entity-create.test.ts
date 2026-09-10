@@ -790,6 +790,7 @@ describe("system_create tool", () => {
       listConversations: async () => [],
       updateConversationMetadata: async () => false,
       deleteConversation: async () => false,
+      deleteExpiredGuestConversations: async () => 0,
       searchConversations: async () => [],
       close: () => undefined,
     };

@@ -16,6 +16,7 @@
     "@brains/messaging-service": "workspace:*",
     "@brains/recurring-checks": "workspace:*",
     "@brains/runtime-state": "workspace:*",
+    "@brains/scheduler": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*"

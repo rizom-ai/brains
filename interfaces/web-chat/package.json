@@ -33,6 +33,7 @@
     "@brains/build-tools": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/runtime-state": "workspace:*",
+    "@brains/scheduler": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",

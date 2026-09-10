@@ -210,6 +210,7 @@ function makeFixedConversationService(input: {
       input.updateConversationMetadata ?? (async (): Promise<boolean> => true),
     deleteConversation:
       input.deleteConversation ?? (async (): Promise<boolean> => true),
+    deleteExpiredGuestConversations: async (): Promise<number> => 0,
     close: (): void => {},
   };
 }

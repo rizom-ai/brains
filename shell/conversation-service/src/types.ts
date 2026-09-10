@@ -232,6 +232,8 @@ export interface IConversationService {
     request: UpdateConversationMetadataRequest,
   ): Promise<boolean>;
   deleteConversation(conversationId: string): Promise<boolean>;
+  /** Trusted host maintenance; never an anonymous conversation action. */
+  deleteExpiredGuestConversations(limit?: number): Promise<number>;
 
   // Search operations
   searchConversations(
