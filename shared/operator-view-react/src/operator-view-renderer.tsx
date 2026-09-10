@@ -197,6 +197,8 @@ const CSS_COMPONENTS: OperatorViewComponents = {
 interface OperatorRendererHost {
   readonly resolveLink?:
     ((target: RuntimeOperatorLinkTarget) => string | undefined) | undefined;
+  readonly onDetachedActionResult?:
+    ((result: PresentedActionResult) => void) | undefined;
   readonly renderAllTabs: boolean;
   readonly components: OperatorViewComponents;
 }
@@ -440,7 +442,10 @@ function presentedActionResult(
   return { title: action.result.title, fields };
 }
 
-function ActionResult(props: { result: PresentedActionResult }): ReactElement {
+function ActionResult(props: {
+  result: PresentedActionResult;
+  onDismiss?: (() => void) | undefined;
+}): ReactElement {
   const { Button } = useContext(OperatorRendererHostContext).components;
   return (
     <section className="declarative-action-result" aria-live="polite">
@@ -466,6 +471,11 @@ function ActionResult(props: { result: PresentedActionResult }): ReactElement {
           </div>
         ))}
       </dl>
+      {props.onDismiss && (
+        <Button type="button" variant="ghost" onClick={props.onDismiss}>
+          Dismiss
+        </Button>
+      )}
     </section>
   );
 }
@@ -584,6 +594,8 @@ export function OperatorActionButton(props: {
   const components = props.components ?? host.components;
   const { Button, ConfirmDialog, Disclosure } = components;
   const titleId = useId();
+  const actionKey = `${props.action.actionId}:${JSON.stringify(props.action.input)}`;
+  const mounted = useRef(true);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
   const [failed, setFailed] = useState(false);
@@ -591,8 +603,15 @@ export function OperatorActionButton(props: {
   const [result, setResult] = useState<PresentedActionResult | null>(null);
 
   useEffect(() => {
+    mounted.current = true;
+    return (): void => {
+      mounted.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
     setResult(null);
-  }, [props.action]);
+  }, [actionKey]);
 
   const run = async (
     invocation: RuntimeOperatorActionControl,
@@ -603,14 +622,23 @@ export function OperatorActionButton(props: {
     setResult(null);
     try {
       const output = await props.onAction(invocation);
-      setResult(presentedActionResult(invocation, output));
-      setMessage("Completed.");
+      const presented = presentedActionResult(invocation, output);
+      if (mounted.current) {
+        setResult(presented);
+        setMessage("Completed.");
+      } else if (presented) {
+        host.onDetachedActionResult?.(presented);
+      }
     } catch (error) {
-      setMessage(actionFailureMessage(error));
-      setFailed(true);
+      if (mounted.current) {
+        setMessage(actionFailureMessage(error));
+        setFailed(true);
+      }
     } finally {
-      setPending(false);
-      setAwaiting(null);
+      if (mounted.current) {
+        setPending(false);
+        setAwaiting(null);
+      }
     }
   };
 
@@ -656,7 +684,6 @@ export function OperatorActionButton(props: {
   };
 
   const ActionControl = props.action.form ? "div" : "span";
-  const actionKey = `${props.action.actionId}:${JSON.stringify(props.action.input)}`;
   const actionForm = props.action.form ? (
     <form
       key={actionKey}
@@ -1979,6 +2006,8 @@ export interface OperatorViewRendererProps {
 export function OperatorViewRenderer(
   props: OperatorViewRendererProps,
 ): ReactElement {
+  const [actionReceipt, setActionReceipt] =
+    useState<PresentedActionResult | null>(null);
   const { title, blocks } = props.data.view;
   // Leading stats are the workspace's totals, so they belong beside the title
   // rather than in the body as one more card.
@@ -1999,6 +2028,7 @@ export function OperatorViewRenderer(
     <OperatorRendererHostContext.Provider
       value={{
         resolveLink: props.resolveLink,
+        onDetachedActionResult: setActionReceipt,
         renderAllTabs: props.renderAllTabs === true,
         components: props.components ?? CSS_COMPONENTS,
       }}
@@ -2037,6 +2067,18 @@ export function OperatorViewRenderer(
           </header>
         )}
         <div className="declarative-blocks">
+          {actionReceipt && (
+            <section
+              className="operator-block operator-block--action declarative-action-receipt"
+              data-block="action"
+              data-span="wide"
+            >
+              <ActionResult
+                result={actionReceipt}
+                onDismiss={() => setActionReceipt(null)}
+              />
+            </section>
+          )}
           {bodyBlocks.map((block, index) => (
             <section
               className={`operator-block operator-block--${block.type}`}

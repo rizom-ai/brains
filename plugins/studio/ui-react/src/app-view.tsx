@@ -380,6 +380,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                   : {})}
               />
               <OperatorViewRenderer
+                key={activeWorkspaceId}
                 data={declarativeWorkspaceData}
                 components={STUDIO_OPERATOR_COMPONENTS}
                 renderHead={false}
