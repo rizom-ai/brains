@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-content",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.354",
+  "version": "0.2.0-alpha.364",
   "description": "Site content entity and generation orchestration",
   "dependencies": {
     "@brains/content-formatters": "workspace:*",
@@ -11,6 +11,7 @@
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
+    "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",

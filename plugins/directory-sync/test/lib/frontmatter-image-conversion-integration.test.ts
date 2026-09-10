@@ -1,11 +1,9 @@
+import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, test, expect, mock, beforeEach, afterEach } from "bun:test";
 import { createTempDataDirSync } from "@brains/plugins/test";
 import { DirectorySync } from "../../src/lib/directory-sync";
 import type { IEntityService } from "@brains/plugins";
-import {
-  createSilentLogger,
-  createMockEntityService,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { writeFileSync, readFileSync, rmSync, mkdirSync } from "fs";
 import { join } from "path";
 import type { JobRequest } from "../../src/types";

@@ -134,6 +134,19 @@ export default [
       "plugins/directory-sync/test/**/*.ts",
       "shell/job-queue/test/**/*.ts",
       "shell/ai-service/test/**/*.ts",
+      "shell/messaging-service/test/**/*.ts",
+      "shell/core/test/**/*.ts",
+      "shell/plugins/test/**/*.ts",
+      "shared/media-renderer/test/**/*.ts",
+      "plugins/site-builder/test/**/*.ts",
+      "plugins/atproto/test/**/*.ts",
+      "plugins/content-pipeline/test/**/*.ts",
+      "entities/agent-discovery/test/**/*.ts",
+      "shell/ai-evaluation/test/**/*.ts",
+      "shared/site-engine/test/**/*.ts",
+      "shared/console-theme/test/**/*.ts",
+      "packages/brain-cli/test/**/*.ts",
+      "interfaces/email/test/**/*.ts",
       "interfaces/a2a/test/**/*.ts",
       "interfaces/chat/test/**/*.ts",
     ],
@@ -213,6 +226,44 @@ export default [
       "eslint-comments/require-description": [
         "error",
         { ignore: ["eslint-enable"] },
+      ],
+      // A synchronous spawn has to collect its child's exit itself. Under
+      // `bun test --parallel` that was seen failing: a worker spun at 100% CPU
+      // for twelve minutes with its `git` child left `<defunct>`, and no
+      // per-test timeout could interrupt it because the loop never yielded.
+      // It surfaced as the whole suite hanging, since a child inheriting stdio
+      // holds the pipe the runner waits on for EOF.
+      //
+      // Spawn and await instead — `runProcess`/`runProcessOrThrow` from
+      // `@brains/utils/run-process`, which await `child.exited`.
+      //
+      // All three are banned, not just `execSync`: a worker was later found
+      // spinning the same way with a `[.bun-wrapped]` child rather than a
+      // `git` one, so the fault is the synchronous spawn and not the command
+      // it happened to run.
+      // `Bun.spawnSync` is the same hazard reached through a different API,
+      // and it is a member call rather than an import so the ban below cannot
+      // see it. It is restricted repo-wide from the shared config instead of
+      // here: composing it into this block would have replaced the sleep ban
+      // for every file this block covers but that one does not.
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "child_process",
+              importNames: ["execSync", "execFileSync", "spawnSync"],
+              message:
+                "Spawn and await the child instead (Bun.spawn + await child.exited): a synchronous spawn can leave a <defunct> child and spin the test worker.",
+            },
+            {
+              name: "node:child_process",
+              importNames: ["execSync", "execFileSync", "spawnSync"],
+              message:
+                "Spawn and await the child instead (Bun.spawn + await child.exited): a synchronous spawn can leave a <defunct> child and spin the test worker.",
+            },
+          ],
+        },
       ],
     },
   },

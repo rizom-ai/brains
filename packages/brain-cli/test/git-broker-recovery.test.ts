@@ -164,7 +164,19 @@ function isolatedProcess(options: { groupAlwaysPresent?: boolean } = {}): {
 
 /** A Brain with Git configured, supervised exactly as production is. */
 async function runtime(
-  options: { groupAlwaysPresent?: boolean } = {},
+  options: {
+    groupAlwaysPresent?: boolean;
+    /**
+     * How long the supervisor may spend proving the old group is gone.
+     *
+     * The default is sized for a group that really does exit, where the probe
+     * stops at the first clear answer. A test that forces the probe to never
+     * succeed spends the whole budget, so it passes a small one — the budget
+     * being exhausted is the behaviour under test, not its size.
+     */
+    probeAttempts?: number;
+    probeIntervalMs?: number;
+  } = {},
 ): Promise<Harness> {
   scratch = await mkdtemp(join(tmpdir(), "broker-recovery-"));
   const root = scratch;
@@ -204,8 +216,8 @@ async function runtime(
     // The heartbeat cadence is one shared constant; overriding only the
     // supervisor half would starve a healthy child of the beats it expects.
     brokerProgressTimeoutMs: 1_500,
-    brokerGroupProbeIntervalMs: 100,
-    brokerGroupProbeAttempts: 40,
+    brokerGroupProbeIntervalMs: options.probeIntervalMs ?? 100,
+    brokerGroupProbeAttempts: options.probeAttempts ?? 40,
     reportIncident: (incident) => {
       // An unproven group is the one failure whose cause is gone by the
       // time the assertion runs, so it is recorded where it happens.
@@ -473,7 +485,14 @@ describe.skipIf(!LINUX)("a broker that stops completing work", () => {
     // under test is what the supervisor does when absence cannot be
     // established. Everything else here is real — real children, a real
     // broker, a real mutation left incomplete.
-    const harness = await runtime({ groupAlwaysPresent: true });
+    // A small probe budget: the probe here can never succeed, so the full
+    // budget is spent every run. Forty attempts at 100ms bought four seconds
+    // of sleeping and proved nothing the tenth attempt had not already.
+    const harness = await runtime({
+      groupAlwaysPresent: true,
+      probeAttempts: 10,
+      probeIntervalMs: 20,
+    });
     shutdownRuntime = harness.shutdown;
     const webPid = await readPid(join(harness.root, "web.pid"));
     const firstBroker = await readPid(join(harness.root, "broker.pid"));

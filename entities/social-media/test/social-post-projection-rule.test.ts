@@ -1,3 +1,5 @@
+import { createMockEntityService } from "@brains/entity-service/test";
+import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import type {
   BaseEntity,
@@ -5,11 +7,7 @@ import type {
   ProjectionInputContext,
   ProjectionJsonObject,
 } from "@brains/plugins";
-import {
-  createMockEntityPluginContext,
-  createMockEntityService,
-  createSilentLogger,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { createSocialPostProjectionRule } from "../src/lib/social-post-projection";
 
 function entity(input: {

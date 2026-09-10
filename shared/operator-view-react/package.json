@@ -1,7 +1,7 @@
 {
   "name": "@brains/operator-view-react",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.354",
+  "version": "0.2.0-alpha.364",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
@@ -28,6 +28,7 @@
     "@brains/build-tools": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@brains/utils": "workspace:*",
     "@types/bun": "^1.4.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.0.3",

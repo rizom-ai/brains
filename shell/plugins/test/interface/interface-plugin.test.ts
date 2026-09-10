@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, setSystemTime } from "bun:test";
 import { InterfacePlugin } from "../../src/interface/interface-plugin";
 import type { JobProgressEvent, JobContext } from "@brains/job-queue";
 import type { BaseJobTrackingInfo } from "../../src/interfaces";
@@ -209,21 +209,26 @@ describe("InterfacePlugin", () => {
     });
 
     it("should automatically clean up entries older than TTL", () => {
+      // Elapsed time is the behaviour under test, so the clock moves rather
+      // than the test waiting. Sleeping 150ms for a 100ms TTL was both slower
+      // and vaguer: it proved expiry happened somewhere in a 50ms window,
+      // where moving the clock proves it happened at the TTL.
       plugin.setJobTrackingTtl(100);
+      const start = Date.now();
 
-      plugin.testSetJobTracking("old-job", { rootJobId: "old-job" });
-      expect(plugin.getJobMessagesSize()).toBe(1);
+      try {
+        plugin.testSetJobTracking("old-job", { rootJobId: "old-job" });
+        expect(plugin.getJobMessagesSize()).toBe(1);
 
-      return new Promise<void>((resolve) => {
-        setTimeout(() => {
-          plugin.testSetJobTracking("new-job", { rootJobId: "new-job" });
+        setSystemTime(new Date(start + 101));
+        plugin.testSetJobTracking("new-job", { rootJobId: "new-job" });
 
-          expect(plugin.testOwnsJob("old-job")).toBe(false);
-          expect(plugin.testOwnsJob("new-job")).toBe(true);
-          expect(plugin.getJobMessagesSize()).toBe(1);
-          resolve();
-        }, 150);
-      });
+        expect(plugin.testOwnsJob("old-job")).toBe(false);
+        expect(plugin.testOwnsJob("new-job")).toBe(true);
+        expect(plugin.getJobMessagesSize()).toBe(1);
+      } finally {
+        setSystemTime();
+      }
     });
 
     it("should not clean up entries within TTL", () => {

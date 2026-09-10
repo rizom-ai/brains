@@ -1,7 +1,7 @@
 {
   "name": "@brains/content-pipeline",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.354",
+  "version": "0.2.0-alpha.364",
   "description": "Content pipeline plugin for managing entity publishing queues, scheduling, and generation",
   "dependencies": {
     "@brains/contracts": "workspace:*",
@@ -11,6 +11,8 @@
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/job-queue": "workspace:*",
+    "@brains/templates": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",

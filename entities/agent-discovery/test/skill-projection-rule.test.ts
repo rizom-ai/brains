@@ -1,14 +1,12 @@
+import { createMockEntityService } from "@brains/entity-service/test";
+import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import type {
   BaseEntity,
   ProjectionExecutionContext,
   ProjectionInputContext,
 } from "@brains/plugins";
-import {
-  createMockEntityPluginContext,
-  createMockEntityService,
-  createSilentLogger,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { SkillAdapter } from "../src/adapters/skill-adapter";
 import { createSkillProjectionRule } from "../src/lib/skill-projection";
 import type { SkillFrontmatter } from "../src/schemas/skill";

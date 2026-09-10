@@ -9,8 +9,8 @@ import {
   generateOriginKeyPair,
   issueCloudflareOriginCertificate,
   setCloudflareZoneSslStrict,
-  type FetchLike,
 } from "@brains/deploy-support/origin-ca";
+import type { FetchLike } from "@brains/utils/fetch-like";
 import { loadPilotRegistry, type PilotRegistry } from "./load-registry";
 import { pushSecretsToBackend, normalizePushTarget } from "./push-secrets";
 import { runSubprocess, type RunCommand } from "./run-subprocess";

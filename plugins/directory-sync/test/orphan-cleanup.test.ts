@@ -1,10 +1,10 @@
+import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, mock, spyOn } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
 import {
   removeOrphanedEntities,
   type CleanupPipelineDeps,
 } from "../src/lib/cleanup-pipeline";
-import { createTestEntity } from "@brains/test-utils";
 import type { BaseEntity } from "@brains/plugins";
 
 function createMockDeps(

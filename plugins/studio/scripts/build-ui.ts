@@ -1,18 +1,15 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { createStylexBunTransform } from "@brains/build-tools";
+import { runProcessOrThrow } from "@brains/utils/run-process";
 import { dirname, join, relative } from "node:path";
 
 const require = createRequire(import.meta.url);
 const packageRoot = join(import.meta.dir, "..");
 const operatorRoot = join(packageRoot, "../../shared/operator-view-react");
-const operatorBuild = Bun.spawnSync(["bun", "run", "build"], {
+await runProcessOrThrow([process.execPath, "run", "build"], {
   cwd: operatorRoot,
-  stdout: "inherit",
-  stderr: "inherit",
 });
-if (operatorBuild.exitCode !== 0)
-  throw new Error("Shared operator component build failed");
 const entrypoint = join(packageRoot, "ui-react", "src", "main.tsx");
 const outdir = join(packageRoot, "dist", "ui");
 const reactRoot = dirname(require.resolve("react/package.json"));

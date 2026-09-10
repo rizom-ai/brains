@@ -136,8 +136,31 @@ jobs:
         with:
           script: |
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
-            await github.rest.issues.create({
+            const title = "Directory sync nightly soak failed";
+            const body = `The nightly directory-sync import soak failed.\n\nRun: ${runUrl}`;
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
               ...context.repo,
-              title: `Directory sync nightly soak failed (${context.runId})`,
-              body: `The nightly directory-sync import soak failed.\n\nRun: ${runUrl}`,
+              state: "open",
+              creator: "github-actions[bot]",
+              sort: "created",
+              direction: "asc",
+              per_page: 100,
             });
+            const existing = issues.find(issue =>
+              !issue.pull_request &&
+              (issue.title === title || /^Directory sync nightly soak failed \(\d+\)$/.test(issue.title))
+            );
+            if (existing) {
+              await github.rest.issues.update({
+                ...context.repo,
+                issue_number: existing.number,
+                title,
+              });
+              await github.rest.issues.createComment({
+                ...context.repo,
+                issue_number: existing.number,
+                body,
+              });
+            } else {
+              await github.rest.issues.create({ ...context.repo, title, body });
+            }

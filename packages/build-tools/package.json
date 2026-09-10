@@ -2,7 +2,7 @@
   "name": "@brains/build-tools",
   "license": "AGPL-3.0-only",
   "private": true,
-  "version": "0.2.0-alpha.354",
+  "version": "0.2.0-alpha.364",
   "description": "Internal build and publish tooling: publishable-manifest transforms and declaration leak checks",
   "type": "module",
   "exports": {
@@ -30,6 +30,7 @@
     "@brains/eslint-config": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@brains/utils": "workspace:*",
     "@changesets/assemble-release-plan": "^6.0.10",
     "@changesets/config": "^3.1.1",
     "@manypkg/get-packages": "^1.1.3",

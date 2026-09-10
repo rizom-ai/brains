@@ -2,7 +2,7 @@
 import { expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
-import { createMockAppInfo } from "@brains/test-utils";
+import { createMockAppInfo } from "@brains/plugins/test";
 import { OverviewPanel } from "../src/render/overview-panel";
 import type { DashboardRenderInput } from "../src/render/types";
 

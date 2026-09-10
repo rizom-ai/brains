@@ -1,6 +1,6 @@
+import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach } from "bun:test";
 import { EntityDataSource } from "../src/datasources/entity-datasource";
-import { createMockEntityService } from "@brains/test-utils";
 import type {
   BaseDataSourceContext,
   IEntityService,

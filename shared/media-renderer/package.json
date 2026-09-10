@@ -1,11 +1,12 @@
 {
   "name": "@brains/media-renderer",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.354",
+  "version": "0.2.0-alpha.364",
   "dependencies": {
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/node": "^24.13.3",
     "bun-types": "^1.4.0",

@@ -1,5 +1,6 @@
+import { createMockJobQueueService } from "@brains/job-queue/test";
 import { afterEach, describe, expect, it } from "bun:test";
-import { execFileSync } from "node:child_process";
+import { runProcessOrThrow } from "@brains/utils/run-process";
 import type { IEmbeddingService } from "@brains/entity-service";
 import { EntityRegistry, EntityService } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
@@ -20,14 +21,10 @@ import {
 import { BunSchedulerBackend } from "@brains/scheduler";
 import { RuntimeStateService } from "@brains/runtime-state";
 import { migrateRuntimeState } from "@brains/runtime-state/migrate";
-import {
-  createMockJobQueueService,
-  createSilentLogger,
-} from "@brains/test-utils";
+import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import type { ShellConfigInput } from "../src/config";
 import { DaemonRegistry } from "../src/daemon-registry";
 import { Shell, type ShellDependencies } from "../src/shell";
-import { createTestDirectory } from "@brains/test-utils";
 
 interface TestDirectory {
   dir: string;
@@ -178,7 +175,7 @@ describe("Shell service ownership", () => {
     return shell;
   }
 
-  it("declares no service singletons anywhere in the workspace", () => {
+  it("declares no service singletons anywhere in the workspace", async () => {
     // Services are owned by the shell's layer graph and handed to their
     // consumers. A `static getInstance` reintroduces process-global state that
     // outlives shutdown and leaks between tests, so the ban is repo-wide
@@ -193,10 +190,11 @@ describe("Shell service ownership", () => {
       "shared/site-composition/src/entity-url-generator.ts",
       "shell/ai-evaluation/src/eval-handler-registry.ts",
     ]);
-    const declaring = execFileSync(
-      "git",
-      ["grep", "-l", "static getInstance", "--", "*/src/*.ts"],
-      { cwd: new URL("../../../", import.meta.url).pathname, encoding: "utf8" },
+    const declaring = (
+      await runProcessOrThrow(
+        ["git", "grep", "-l", "static getInstance", "--", "*/src/*.ts"],
+        { cwd: new URL("../../../", import.meta.url).pathname },
+      )
     )
       .split("\n")
       .filter(Boolean);

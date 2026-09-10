@@ -1,7 +1,7 @@
 {
   "name": "@brains/dashboard",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.354",
+  "version": "0.2.0-alpha.364",
   "description": "Public brain card with declarative contributions and semantic maps",
   "dependencies": {
     "@brains/auth-service": "workspace:*",
@@ -15,6 +15,7 @@
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
+    "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",

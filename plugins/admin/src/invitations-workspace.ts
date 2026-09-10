@@ -22,6 +22,7 @@ import {
 } from "./workspace-format";
 
 const TERMINAL_INVITATION_STATES = new Set(["claimed", "expired", "cancelled"]);
+const CLOSED_INVITATION_STATES = new Set(["claimed", "cancelled"]);
 
 function titleCase(value: string): string {
   return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
@@ -236,7 +237,7 @@ const setupResultPresentation = {
 function invitationActions(
   invitation: z.output<typeof invitationRowSchema>,
 ): Extract<InvitationBlock, { type: "actions" }>["items"] {
-  if (TERMINAL_INVITATION_STATES.has(invitation.state)) return [];
+  if (CLOSED_INVITATION_STATES.has(invitation.state)) return [];
   return [
     ...(invitation.deliveryAttemptId
       ? [
@@ -265,7 +266,9 @@ function invitationActions(
           },
         ]
       : []),
-    { action: cancelInvitation, input: { invitationId: invitation.id } },
+    ...(invitation.state !== "expired"
+      ? [{ action: cancelInvitation, input: { invitationId: invitation.id } }]
+      : []),
   ];
 }
 

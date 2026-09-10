@@ -4,7 +4,7 @@ export {
   issueCloudflareOriginCertificate,
   setCloudflareZoneSslStrict,
   type CloudflareOriginCaResult,
-  type FetchLike,
   type OriginCertificateRequest,
   type OriginKeyPair,
 } from "@brains/deploy-support/origin-ca";
+export type { FetchLike } from "@brains/utils/fetch-like";

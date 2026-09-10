@@ -1,5 +1,125 @@
 # @brains/media-page-composer
 
+## 0.2.0-alpha.364
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.364
+  - @brains/media-renderer@0.2.0-alpha.364
+  - @brains/site-engine@0.2.0-alpha.364
+  - @brains/ui-library@0.2.0-alpha.364
+  - @brains/utils@0.2.0-alpha.364
+  - @brains/plugins@0.2.0-alpha.364
+
+## 0.2.0-alpha.363
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.363
+  - @brains/media-renderer@0.2.0-alpha.363
+  - @brains/site-engine@0.2.0-alpha.363
+  - @brains/ui-library@0.2.0-alpha.363
+  - @brains/utils@0.2.0-alpha.363
+  - @brains/plugins@0.2.0-alpha.363
+
+## 0.2.0-alpha.362
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.362
+  - @brains/media-renderer@0.2.0-alpha.362
+  - @brains/site-engine@0.2.0-alpha.362
+  - @brains/ui-library@0.2.0-alpha.362
+  - @brains/utils@0.2.0-alpha.362
+  - @brains/plugins@0.2.0-alpha.362
+
+## 0.2.0-alpha.361
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.361
+  - @brains/media-renderer@0.2.0-alpha.361
+  - @brains/site-engine@0.2.0-alpha.361
+  - @brains/ui-library@0.2.0-alpha.361
+  - @brains/utils@0.2.0-alpha.361
+  - @brains/plugins@0.2.0-alpha.361
+
+## 0.2.0-alpha.360
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.360
+  - @brains/media-renderer@0.2.0-alpha.360
+  - @brains/site-engine@0.2.0-alpha.360
+  - @brains/ui-library@0.2.0-alpha.360
+  - @brains/utils@0.2.0-alpha.360
+  - @brains/plugins@0.2.0-alpha.360
+
+## 0.2.0-alpha.359
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.359
+  - @brains/media-renderer@0.2.0-alpha.359
+  - @brains/site-engine@0.2.0-alpha.359
+  - @brains/ui-library@0.2.0-alpha.359
+  - @brains/utils@0.2.0-alpha.359
+  - @brains/plugins@0.2.0-alpha.359
+
+## 0.2.0-alpha.358
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.358
+  - @brains/media-renderer@0.2.0-alpha.358
+  - @brains/site-engine@0.2.0-alpha.358
+  - @brains/ui-library@0.2.0-alpha.358
+  - @brains/utils@0.2.0-alpha.358
+  - @brains/plugins@0.2.0-alpha.358
+
+## 0.2.0-alpha.357
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.357
+  - @brains/media-renderer@0.2.0-alpha.357
+  - @brains/site-engine@0.2.0-alpha.357
+  - @brains/ui-library@0.2.0-alpha.357
+  - @brains/utils@0.2.0-alpha.357
+  - @brains/plugins@0.2.0-alpha.357
+
+## 0.2.0-alpha.356
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.356
+  - @brains/media-renderer@0.2.0-alpha.356
+  - @brains/site-engine@0.2.0-alpha.356
+  - @brains/ui-library@0.2.0-alpha.356
+  - @brains/utils@0.2.0-alpha.356
+  - @brains/plugins@0.2.0-alpha.356
+
+## 0.2.0-alpha.355
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.355
+  - @brains/media-renderer@0.2.0-alpha.355
+  - @brains/site-engine@0.2.0-alpha.355
+  - @brains/ui-library@0.2.0-alpha.355
+  - @brains/utils@0.2.0-alpha.355
+  - @brains/plugins@0.2.0-alpha.355
+
 ## 0.2.0-alpha.354
 
 ### Patch Changes

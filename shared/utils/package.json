@@ -1,7 +1,7 @@
 {
   "name": "@brains/utils",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.354",
+  "version": "0.2.0-alpha.364",
   "dependencies": {
     "effect": "^3.21.4",
     "gray-matter": "^4.0.3",
@@ -26,6 +26,7 @@
     "./chunk-message": "./src/chunk-message.ts",
     "./clone": "./src/clone.ts",
     "./date": "./src/date.ts",
+    "./deferred": "./src/deferred.ts",
     "./debounce": "./src/debounce.ts",
     "./effect": "./src/effect.ts",
     "./effect/test": "./src/effect-test.ts",
@@ -45,6 +46,7 @@
     "./predicates": "./src/predicates.ts",
     "./progress": "./src/progress.ts",
     "./record-fields": "./src/record-fields.ts",
+    "./run-process": "./src/run-process.ts",
     "./process-signals": "./src/process-signals.ts",
     "./query": "./src/query.ts",
     "./safe-public-fetch": "./src/safe-public-fetch.ts",

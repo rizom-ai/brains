@@ -255,6 +255,7 @@ export function startCommand(
             );
           }
         };
+        // eslint-disable-next-line no-restricted-syntax -- a cancellable deadline, not a wait: this settles the promise only when the output never arrives, and `finish` clears it on every other path. Bun.sleep cannot be cancelled, so it would hold the loop open past the result it is guarding.
         const timeout = setTimeout(
           () =>
             finish(

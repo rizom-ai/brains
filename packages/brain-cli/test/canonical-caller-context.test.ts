@@ -1,3 +1,4 @@
+import { createMockMCPService } from "@brains/mcp-service/test";
 import { afterEach, describe, expect, it } from "bun:test";
 import {
   AgentService,
@@ -9,7 +10,7 @@ import {
 import { AuthService, type AuthPrincipal } from "@brains/auth-service";
 import type { IConversationService } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
-import { createMockMCPService, createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { WebChatInterface } from "@brains/web-chat";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";

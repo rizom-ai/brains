@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { createMockShell } from "@brains/test-utils";
+
 import type { LinkPlugin } from "../src/index";
 import { createLinkPlugin } from "../src/index";
 import { LinkAdapter } from "../src/adapters/link-adapter";
-import { createPluginHarness } from "@brains/plugins/test";
+import { createMockShell, createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import packageJson from "../package.json";
 import {

@@ -3,13 +3,13 @@ import { createTempDataDirSync } from "@brains/plugins/test";
 import { caughtError } from "@brains/test-utils";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { spawnSync } from "node:child_process";
+import { runProcess } from "@brains/utils/run-process";
 import { createSilentLogger } from "@brains/test-utils";
 import { bootstrapContentRemoteFromSeed } from "../../src/lib/content-remote-bootstrap";
 
-function git(cwd: string, args: string[]): string {
-  const result = spawnSync("git", args, { cwd, encoding: "utf8" });
-  if (result.status !== 0) {
+async function git(cwd: string, args: string[]): Promise<string> {
+  const result = await runProcess(["git", ...args], { cwd });
+  if (result.exitCode !== 0) {
     throw new Error(
       result.stderr || result.stdout || `git ${args.join(" ")} failed`,
     );
@@ -29,15 +29,20 @@ function createSeed(
   return seedPath;
 }
 
-function listRemoteFiles(remotePath: string, branch = "main"): string[] {
-  return git(process.cwd(), [
-    "--git-dir",
-    remotePath,
-    "ls-tree",
-    "-r",
-    "--name-only",
-    branch,
-  ])
+async function listRemoteFiles(
+  remotePath: string,
+  branch = "main",
+): Promise<string[]> {
+  return (
+    await git(process.cwd(), [
+      "--git-dir",
+      remotePath,
+      "ls-tree",
+      "-r",
+      "--name-only",
+      branch,
+    ])
+  )
     .trim()
     .split("\n")
     .filter(Boolean);
@@ -57,12 +62,14 @@ describe("bootstrapContentRemoteFromSeed", () => {
         logger: createSilentLogger(),
       });
 
-      const isBare = git(process.cwd(), [
-        "--git-dir",
-        remotePath,
-        "rev-parse",
-        "--is-bare-repository",
-      ]).trim();
+      const isBare = (
+        await git(process.cwd(), [
+          "--git-dir",
+          remotePath,
+          "rev-parse",
+          "--is-bare-repository",
+        ])
+      ).trim();
       expect(isBare).toBe("true");
     } finally {
       rmSync(root, { recursive: true, force: true });
@@ -74,7 +81,7 @@ describe("bootstrapContentRemoteFromSeed", () => {
     try {
       const seedPath = createSeed(root, "doc/getting-started.md");
       const remotePath = join(root, "content.git");
-      git(process.cwd(), [
+      await git(process.cwd(), [
         "init",
         "--bare",
         "--initial-branch=main",
@@ -88,7 +95,9 @@ describe("bootstrapContentRemoteFromSeed", () => {
         logger: createSilentLogger(),
       });
 
-      expect(listRemoteFiles(remotePath)).toContain("doc/getting-started.md");
+      expect(await listRemoteFiles(remotePath)).toContain(
+        "doc/getting-started.md",
+      );
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -117,7 +126,7 @@ describe("bootstrapContentRemoteFromSeed", () => {
         logger: createSilentLogger(),
       });
 
-      expect(listRemoteFiles(remotePath)).toEqual(["doc/original.md"]);
+      expect(await listRemoteFiles(remotePath)).toEqual(["doc/original.md"]);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -151,8 +160,13 @@ describe("bootstrapContentRemoteFromSeed", () => {
       const seedPath = createSeed(root, "doc/getting-started.md");
       // Make the seed dir a git clone with its own origin, like a local
       // checkout of a content repo — its .git must not leak into the seed.
-      git(seedPath, ["init", "--initial-branch=main"]);
-      git(seedPath, ["remote", "add", "origin", "https://example.com/x.git"]);
+      await git(seedPath, ["init", "--initial-branch=main"]);
+      await git(seedPath, [
+        "remote",
+        "add",
+        "origin",
+        "https://example.com/x.git",
+      ]);
       const remotePath = join(root, "content.git");
 
       await bootstrapContentRemoteFromSeed({
@@ -162,7 +176,7 @@ describe("bootstrapContentRemoteFromSeed", () => {
         logger: createSilentLogger(),
       });
 
-      const files = listRemoteFiles(remotePath);
+      const files = await listRemoteFiles(remotePath);
       expect(files).toContain("doc/getting-started.md");
       expect(files.some((file) => file.startsWith(".git/"))).toBe(false);
     } finally {

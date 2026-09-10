@@ -1,7 +1,7 @@
 {
   "name": "@brains/image",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.354",
+  "version": "0.2.0-alpha.364",
   "description": "Image entity support with base64 storage - schemas, adapter, and utilities",
   "dependencies": {
     "@brains/entity-service": "workspace:*",
@@ -11,6 +11,8 @@
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",
     "bun-types": "^1.4.0",

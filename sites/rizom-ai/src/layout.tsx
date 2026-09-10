@@ -1,6 +1,7 @@
 /** @jsxImportSource react */
 import type { JSX, ReactNode } from "react";
 import { RizomFrame, type RizomLayoutProps } from "./rizom";
+import { LivingMemoryStyles } from "./living-memory";
 
 /**
  * The consolidated rizom.ai chrome (rev-5): a quiet org-level faces strip
@@ -79,8 +80,13 @@ const HOME_CHROME: FaceChrome = {
   cta: { label: "Get Started", href: "/brain" },
 };
 
-function isHome(path: string): boolean {
-  return path === "/";
+/* The umbrella pages: the ones that speak for the whole practice rather than
+   from inside one room. They wear the home chrome — the full faces nav, no
+   room-specific product bar. */
+const UMBRELLA_PATHS = new Set(["/"]);
+
+function isUmbrella(path: string): boolean {
+  return UMBRELLA_PATHS.has(path);
 }
 
 // The active face drives the room accent (data-room). Home and /brain both
@@ -113,9 +119,9 @@ function orgIndexActive(path: string): string | null {
 function FacesStrip({ path }: { path: string }): JSX.Element {
   const face = activeFace(path);
   const activeIndex = orgIndexActive(path);
-  const home = isHome(path);
+  const umbrella = isUmbrella(path);
   return (
-    <div className="relative z-[2] flex flex-wrap items-baseline gap-x-4 gap-y-1.5 border-b border-theme-light px-4 py-3 font-label text-label-xs uppercase tracking-[0.12em] sm:gap-x-6 sm:px-6 sm:tracking-[0.14em] md:px-10 xl:px-20">
+    <div className="faces-strip shell relative z-[2] flex flex-wrap items-baseline gap-x-4 gap-y-1.5 border-b border-theme-light px-4 py-3 font-label text-label-xs uppercase tracking-[0.12em] sm:gap-x-6 sm:px-6 sm:tracking-[0.14em] md:px-10 xl:px-20">
       <a
         href="/"
         className="-my-2 inline-block py-2 text-theme-muted transition-colors hover:text-theme"
@@ -124,7 +130,7 @@ function FacesStrip({ path }: { path: string }): JSX.Element {
       </a>
       {FACES.map((item) =>
         // No face is current on the umbrella home, nor on a cross-room index.
-        item.key === face && !activeIndex && !home ? (
+        item.key === face && !activeIndex && !umbrella ? (
           <a
             key={item.key}
             href={item.href}
@@ -163,7 +169,7 @@ function Wordmark({ nameplate }: { nameplate: string | null }): JSX.Element {
   return (
     <a
       href="/"
-      className="font-display text-[clamp(22px,5.5vw,26px)] font-semibold tracking-[-0.01em] [font-variation-settings:'SOFT'_100]"
+      className="wordmark font-display text-[clamp(22px,5.5vw,26px)] font-semibold tracking-[-0.01em] [font-variation-settings:'SOFT'_100]"
       aria-label="Rizom home"
     >
       <span className="text-theme">rizom</span>
@@ -193,11 +199,11 @@ function FaceNav({
   const links: FaceLink[] = chrome.links;
 
   return (
-    <nav className="relative z-[2] flex items-baseline gap-4 px-4 py-5 sm:gap-8 sm:px-6 md:px-10 xl:px-20">
+    <nav className="masthead shell relative z-[2] flex items-baseline gap-4 px-4 py-5 sm:gap-8 sm:px-6 md:px-10 xl:px-20">
       <Wordmark nameplate={chrome.nameplate} />
       {/* Below sm the footer carries every chrome link; the row keeps
           just the wordmark and the CTA so nothing overflows. */}
-      <div className="hidden items-baseline gap-7 sm:flex">
+      <div className="main-nav hidden items-baseline gap-7 sm:flex">
         {links.map((link) => (
           <a
             key={`${link.href}-${link.label}`}
@@ -211,7 +217,7 @@ function FaceNav({
       <div className="flex-1" />
       <a
         href={chrome.cta.href}
-        className="self-center whitespace-nowrap rounded-[3px] bg-accent px-3.5 py-2 font-body text-[15px] font-medium text-theme-inverse transition-[filter,transform] hover:brightness-110 hover:-translate-y-px sm:px-[18px] sm:py-[9px] sm:text-[16px]"
+        className="button self-center whitespace-nowrap rounded-[3px] bg-accent px-3.5 py-2 font-body text-[15px] font-medium text-theme-inverse transition-[filter,transform] hover:brightness-110 hover:-translate-y-px sm:px-[18px] sm:py-[9px] sm:text-[16px]"
       >
         {chrome.cta.label}
       </a>
@@ -271,11 +277,11 @@ function SiteFooter({
   siteInfo: RizomLayoutProps["siteInfo"];
 }): JSX.Element {
   return (
-    <footer className="relative z-[1] grid gap-10 border-t border-theme px-4 pt-11 pb-[38px] sm:grid-cols-2 sm:px-6 md:px-10 lg:grid-cols-[1.3fr_1fr_1fr_1fr] xl:px-20">
-      <div>
+    <footer className="site-footer footer-grid relative z-[1] grid gap-10 border-t border-theme px-4 pt-11 pb-[38px] sm:grid-cols-2 sm:px-6 md:px-10 lg:grid-cols-[1.3fr_1fr_1fr_1fr] xl:px-20">
+      <div className="footer-brand">
         <a
           href="/"
-          className="font-display text-[30px] font-semibold tracking-[-0.01em] [font-variation-settings:'SOFT'_100]"
+          className="wordmark font-display text-[30px] font-semibold tracking-[-0.01em] [font-variation-settings:'SOFT'_100]"
         >
           <span className="text-theme">rizom</span>
           <span className="text-accent">.</span>
@@ -285,8 +291,8 @@ function SiteFooter({
         </p>
       </div>
       {FOOTER_COLUMNS.map((column) => (
-        <div key={column.heading}>
-          <div className="mb-3 font-label text-[11px] uppercase tracking-[0.18em] text-theme-light">
+        <div className="footer-col" key={column.heading}>
+          <div className="small-label mb-3 font-label text-[11px] uppercase tracking-[0.18em] text-theme-light">
             {column.heading}
           </div>
           {column.links.map((link) => (
@@ -300,7 +306,7 @@ function SiteFooter({
           ))}
         </div>
       ))}
-      <div className="col-span-full mt-2 flex flex-wrap items-center gap-x-[22px] gap-y-2 border-t border-theme-light pt-4 font-label text-[11.5px] text-theme-light">
+      <div className="footer-base col-span-full mt-2 flex flex-wrap items-center gap-x-[22px] gap-y-2 border-t border-theme-light pt-4 font-label text-[11.5px] text-theme-light">
         {signature(siteInfo) && <span>{signature(siteInfo)}</span>}
       </div>
     </footer>
@@ -314,7 +320,7 @@ function MyceliumRail(): JSX.Element {
   return (
     <svg
       aria-hidden="true"
-      className="pointer-events-none absolute top-0 -left-[18px] hidden h-full w-[210px] xl:block"
+      className="mycelium-rail pointer-events-none absolute top-0 -left-[18px] hidden h-full w-[210px] xl:block"
       viewBox="0 0 210 2400"
       preserveAspectRatio="xMidYMin slice"
     >
@@ -363,14 +369,23 @@ function RizomAiChrome({
   children: ReactNode;
 }): JSX.Element {
   const face = activeFace(path);
-  const umbrella = isHome(path) || orgIndexActive(path) !== null;
+  const umbrella = isUmbrella(path) || orgIndexActive(path) !== null;
+  const livingMemory = path === "/";
   return (
     <RizomFrame>
       {/* xl:pl matches the mockup's 148px left rail (68 + the 80px
           section gutter) so the mycelium has real room to seep. */}
-      <div data-room={face} className="relative xl:pl-[68px]">
+      <div
+        data-room={face}
+        className={
+          livingMemory
+            ? "living-memory-page relative xl:pl-[68px]"
+            : "relative xl:pl-[68px]"
+        }
+      >
+        {livingMemory && <LivingMemoryStyles />}
         <MyceliumRail />
-        <header className="sticky top-0 z-[100] border-b border-theme-light bg-nav-fade backdrop-blur-[12px]">
+        <header className="site-header sticky top-0 z-[100] border-b border-theme-light bg-nav-fade backdrop-blur-[12px]">
           <FacesStrip path={path} />
           <FaceNav face={face} umbrella={umbrella} />
         </header>

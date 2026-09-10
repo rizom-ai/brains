@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
+import { runProcess } from "@brains/utils/run-process";
 import { Database } from "bun:sqlite";
-import { Buffer } from "node:buffer";
 import {
   chmod,
   lstat,
@@ -31,12 +31,12 @@ afterEach(async () => {
   );
 });
 
-function git(cwd: string, args: string[]): string {
-  const result = Bun.spawnSync(["git", ...args], { cwd, stderr: "pipe" });
+async function git(cwd: string, args: string[]): Promise<string> {
+  const result = await runProcess(["git", ...args], { cwd });
   if (result.exitCode !== 0) {
     throw new Error(`git ${args[0]} failed`);
   }
-  return result.stdout.toString().trim();
+  return result.stdout.trim();
 }
 
 describe("predeploy backup output", () => {
@@ -71,7 +71,7 @@ VERIFICATION=passed
     ).toThrow("Incomplete predeploy backup result");
   });
 
-  it("renders a secret-safe fail-closed remote program", () => {
+  it("renders a secret-safe fail-closed remote program", async () => {
     const script = renderPredeployBackupRemoteScript();
 
     expect(script).toContain("set -euo pipefail");
@@ -89,11 +89,7 @@ VERIFICATION=passed
     expect(script).not.toContain("skip_predeploy_backup");
     expect(script).not.toContain(".Config.Env");
     expect(script).not.toMatch(/cp\s+[^\n]*\.db/);
-    const syntax = Bun.spawnSync(["bash", "-n"], {
-      stdin: Buffer.from(script),
-      stdout: "pipe",
-      stderr: "pipe",
-    });
+    const syntax = await runProcess(["bash", "-n"], { stdin: script });
     expect(syntax.exitCode).toBe(0);
   });
 });
@@ -166,19 +162,19 @@ describe("predeploy backup capture program", () => {
     }
     database.close(false);
 
-    git(contentDir, ["init", "-b", "main"]);
-    git(contentDir, ["config", "user.name", "Backup Test"]);
-    git(contentDir, ["config", "user.email", "backup@example.com"]);
+    await git(contentDir, ["init", "-b", "main"]);
+    await git(contentDir, ["config", "user.name", "Backup Test"]);
+    await git(contentDir, ["config", "user.email", "backup@example.com"]);
     await writeFile(join(contentDir, ".gitignore"), "ignored.bin\n");
     await writeFile(join(contentDir, "tracked.txt"), "base\n");
-    git(contentDir, ["add", ".gitignore", "tracked.txt"]);
-    git(contentDir, ["commit", "-m", "base"]);
-    git(root, ["init", "--bare", remoteDir]);
-    git(contentDir, ["remote", "add", "origin", remoteDir]);
-    git(contentDir, ["push", "--set-upstream", "origin", "main"]);
+    await git(contentDir, ["add", ".gitignore", "tracked.txt"]);
+    await git(contentDir, ["commit", "-m", "base"]);
+    await git(root, ["init", "--bare", remoteDir]);
+    await git(contentDir, ["remote", "add", "origin", remoteDir]);
+    await git(contentDir, ["push", "--set-upstream", "origin", "main"]);
 
     await writeFile(join(contentDir, "tracked.txt"), "staged\n");
-    git(contentDir, ["add", "tracked.txt"]);
+    await git(contentDir, ["add", "tracked.txt"]);
     await writeFile(join(contentDir, "tracked.txt"), "unstaged\n");
     await writeFile(
       join(contentDir, "untracked.bin"),
@@ -189,8 +185,8 @@ describe("predeploy backup capture program", () => {
     await chmod(join(contentDir, "executable.sh"), 0o755);
     await Bun.$`ln -s tracked.txt ${join(contentDir, "tracked-link")}`.quiet();
 
-    const originalHead = git(contentDir, ["rev-parse", "HEAD"]);
-    const originalStatus = git(contentDir, [
+    const originalHead = await git(contentDir, ["rev-parse", "HEAD"]);
+    const originalStatus = await git(contentDir, [
       "status",
       "--porcelain=v1",
       "--untracked-files=all",
@@ -266,9 +262,13 @@ db.close(false);
       throw new Error(await new Response(writer.stderr).text());
     }
 
-    expect(git(contentDir, ["rev-parse", "HEAD"])).toBe(originalHead);
+    expect(await git(contentDir, ["rev-parse", "HEAD"])).toBe(originalHead);
     expect(
-      git(contentDir, ["status", "--porcelain=v1", "--untracked-files=all"]),
+      await git(contentDir, [
+        "status",
+        "--porcelain=v1",
+        "--untracked-files=all",
+      ]),
     ).toBe(originalStatus);
 
     const manifestSchema = z.looseObject({
@@ -302,26 +302,26 @@ db.close(false);
     );
     expect(JSON.stringify(manifest)).not.toContain("process.env");
 
-    git(root, ["clone", join(backupDir, "content.bundle"), restoredDir]);
-    git(restoredDir, [
+    await git(root, ["clone", join(backupDir, "content.bundle"), restoredDir]);
+    await git(restoredDir, [
       "apply",
       "--binary",
       "--index",
       join(backupDir, "content-staged.patch"),
     ]);
-    git(restoredDir, [
+    await git(restoredDir, [
       "apply",
       "--binary",
       join(backupDir, "content-unstaged.patch"),
     ]);
-    Bun.spawnSync([
+    await runProcess([
       "tar",
       "-C",
       restoredDir,
       "-xf",
       join(backupDir, "content-untracked.tar"),
     ]);
-    Bun.spawnSync([
+    await runProcess([
       "tar",
       "-C",
       restoredDir,
@@ -330,10 +330,14 @@ db.close(false);
     ]);
 
     expect(
-      git(restoredDir, ["status", "--porcelain=v1", "--untracked-files=all"]),
+      await git(restoredDir, [
+        "status",
+        "--porcelain=v1",
+        "--untracked-files=all",
+      ]),
     ).toBe(originalStatus);
     expect(
-      git(restoredDir, [
+      await git(restoredDir, [
         "ls-files",
         "--others",
         "--ignored",

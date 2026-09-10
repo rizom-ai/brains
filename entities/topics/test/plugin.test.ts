@@ -1,6 +1,6 @@
+import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach } from "bun:test";
 import { TopicsPlugin } from "../src";
-import { createTestEntity } from "@brains/test-utils";
 import { createPluginHarness } from "@brains/plugins/test";
 
 describe("TopicsPlugin", () => {

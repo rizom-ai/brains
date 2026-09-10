@@ -1,7 +1,7 @@
 {
   "name": "@brains/note",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.354",
+  "version": "0.2.0-alpha.364",
   "description": "Personal knowledge capture with markdown-first workflow",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",
@@ -12,6 +12,7 @@
   },
   "devDependencies": {
     "@brains/app": "workspace:*",
+    "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",

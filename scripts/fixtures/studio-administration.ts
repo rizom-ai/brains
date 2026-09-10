@@ -6,7 +6,7 @@ import {
   AuthRuntimeDatabase,
   AuthUserStore,
 } from "@brains/auth-service";
-import { createMockShell } from "@brains/test-utils";
+import { createMockShell } from "@brains/plugins/test";
 import type { StudioWorkspaceActor } from "@brains/plugins";
 import {
   captureAdminWorkspaces,

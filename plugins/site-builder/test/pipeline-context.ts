@@ -1,7 +1,5 @@
-import {
-  createMockServicePluginContext,
-  createSilentLogger,
-} from "@brains/test-utils";
+import { createMockServicePluginContext } from "@brains/plugins/test";
+import { createSilentLogger } from "@brains/test-utils";
 import { RouteRegistry } from "@brains/site-engine";
 import type {
   RouteDefinitionInput,

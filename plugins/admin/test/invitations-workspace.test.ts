@@ -1,8 +1,8 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, setSystemTime } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import type { StudioWorkspaceActor } from "@brains/plugins";
-import { createTempDataDir } from "@brains/plugins/test";
-import { createMockShell } from "@brains/test-utils";
+import { createMockShell, createTempDataDir } from "@brains/plugins/test";
+
 import {
   actionRequest,
   administrationTab,
@@ -16,6 +16,7 @@ import {
 const authPlugins: AuthServicePlugin[] = [];
 
 afterEach(async () => {
+  setSystemTime();
   for (const plugin of authPlugins.splice(0)) await plugin.shutdown?.();
 });
 
@@ -217,6 +218,22 @@ describe("Administration Invitations tab", () => {
     if (typeof setupUrl !== "string") throw new Error("Expected setup URL");
     expect(setupUrl).toContain("token=");
     expect(resultField(created, "status")).toContain("Manual delivery");
+
+    const expiresAt = resultField(created, "expiresAt");
+    if (typeof expiresAt !== "string") {
+      throw new Error("Expected invitation expiry");
+    }
+    setSystemTime(new Date(expiresAt));
+    await service.listAdminUsers();
+    setSystemTime();
+    const expired = await reviewPerson("Grace Hopper", "history");
+    expect(findRowForPerson(expired, "Grace Hopper")).toMatchObject({
+      description: "Trusted · Expired",
+    });
+    const expiredResend = findAction(expired, "Resend");
+    expect(expiredResend).toBeDefined();
+    expect(findAction(expired, "Cancel")).toBeUndefined();
+    await workspace.actionHandler?.(actionRequest(expiredResend), actor);
 
     const afterCreate = await workspace.dataProvider(actor);
     const failingCreate = findAction(afterCreate, "Add a person");

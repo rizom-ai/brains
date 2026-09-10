@@ -1,7 +1,7 @@
+import { createMockServicePluginContext } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
 import {
   createMockProgressReporter,
-  createMockServicePluginContext,
   createSilentLogger,
 } from "@brains/test-utils";
 import { DirectorySyncRequestJobHandler } from "../../src/handlers/directorySyncRequestJobHandler";

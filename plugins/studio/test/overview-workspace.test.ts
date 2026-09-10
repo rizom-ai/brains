@@ -13,8 +13,12 @@ import {
   type StudioWorkspaceActor,
   type WebRouteDefinition,
 } from "@brains/plugins";
-import { createTempDataDir } from "@brains/plugins/test";
-import { createMockShell, type MockShell } from "@brains/test-utils";
+import {
+  createMockShell,
+  createTempDataDir,
+  type MockShell,
+} from "@brains/plugins/test";
+
 import { afterEach, describe, expect, it } from "bun:test";
 import { studioPlugin, type StudioPlugin } from "../src";
 import {

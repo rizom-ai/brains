@@ -1,18 +1,20 @@
 {
   "name": "@brains/blog",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.354",
+  "version": "0.2.0-alpha.364",
   "description": "AI-powered blog post generation from existing brain content",
   "dependencies": {
     "@brains/atproto-contracts": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/media-page-composer": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/templates": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@brains/app": "workspace:*",
+    "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",

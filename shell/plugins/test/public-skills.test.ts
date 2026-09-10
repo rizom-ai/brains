@@ -1,5 +1,6 @@
+import { createMockShell } from "../src/test/mock-shell";
 import { describe, expect, it } from "bun:test";
-import { createMockShell } from "@brains/test-utils";
+
 import { createBasePluginContext } from "../src/base/context";
 
 const publicTools = [

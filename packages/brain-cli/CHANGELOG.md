@@ -1,5 +1,49 @@
 # @rizom/brain
 
+## 0.2.0-alpha.364
+
+## 0.2.0-alpha.363
+
+## 0.2.0-alpha.362
+
+## 0.2.0-alpha.361
+
+## 0.2.0-alpha.360
+
+### Patch Changes
+
+- [#234](https://github.com/rizom-ai/brains/pull/234) [`38386e9`](https://github.com/rizom-ai/brains/commit/38386e9cb20ba080f599f4e920ccb8044f727cff) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Issue a packaging-only runtime version for a fresh immutable image containing the Rizom homepage rail restoration. No runtime implementation changes are included.
+
+## 0.2.0-alpha.359
+
+### Patch Changes
+
+- [#233](https://github.com/rizom-ai/brains/pull/233) [`b0d505a`](https://github.com/rizom-ai/brains/commit/b0d505ae95a878826f2f17fa61196e2b7b4541f9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Issue a packaging-only runtime version for a fresh immutable fleet image containing the Rizom homepage promotion. No runtime implementation changes are included.
+
+## 0.2.0-alpha.358
+
+### Patch Changes
+
+- [#232](https://github.com/rizom-ai/brains/pull/232) [`89ae051`](https://github.com/rizom-ai/brains/commit/89ae05168ccc679a179051f177f29dd24d6b5bcd) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Issue a packaging-only runtime version for a fresh immutable fleet image containing the Rizom topbar background correction. No runtime implementation changes are included.
+
+## 0.2.0-alpha.357
+
+### Patch Changes
+
+- [#230](https://github.com/rizom-ai/brains/pull/230) [`08746a1`](https://github.com/rizom-ai/brains/commit/08746a13a5544edb308013aaa52e1a5cb25c7c64) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Issue a packaging-only runtime version so the immutable, runtime-version-keyed fleet image can include the updated Rizom site background fix. No runtime implementation changes are included.
+
+## 0.2.0-alpha.356
+
+### Patch Changes
+
+- [#228](https://github.com/rizom-ai/brains/pull/228) [`2942793`](https://github.com/rizom-ai/brains/commit/294279346c136b884af281392e4743b91464517f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Support a content-authored h1 or h2 in proximity-map headings so the living-memory hero can provide the page heading. Existing section maps retain their default h2 heading.
+
+## 0.2.0-alpha.355
+
+### Patch Changes
+
+- [`06ff050`](https://github.com/rizom-ai/brains/commit/06ff050e26b0db643d59323096ac81b82a02367e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep Studio's system navigation coherent by grouping the Style Guide with other brain machinery, preserving the desktop rail while editing, and resetting the document offset when selecting rail destinations.
+
 ## 0.2.0-alpha.354
 
 ## 0.2.0-alpha.353

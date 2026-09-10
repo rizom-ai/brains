@@ -1,11 +1,9 @@
+import { createMockEntityService } from "@brains/entity-service/test";
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
-import {
-  createSilentLogger,
-  createMockEntityService,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { DirectorySync } from "../src/lib/directory-sync";
 import { FileOperations } from "../src/lib/file-operations";
 import { OversizedFileError } from "../src/lib/oversized-file-error";

@@ -1,7 +1,7 @@
+import { createTestEntity } from "../src/test/index";
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { createClient, type Client } from "@libsql/client";
 import { prepareAsset, type PreparedAsset } from "@brains/assets";
-import { createTestEntity } from "@brains/test-utils";
 import { fileURLToPath } from "node:url";
 import {
   setupEntityService,

@@ -1,6 +1,6 @@
 {
   "name": "@rizom/site-rizom-ai",
-  "version": "0.2.0-alpha.243",
+  "version": "0.2.0-alpha.248",
   "description": "Consolidated Rizom brand site, runtime, layouts, and chrome",
   "type": "module",
   "exports": {

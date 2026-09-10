@@ -313,6 +313,7 @@ export function AgentProximityMapTemplate(data: ProximityMapData): JSX.Element {
   ).length;
 
   const kicker = data.kicker ?? DEFAULT_COPY.kicker;
+  const Heading = data.headingLevel ?? "h2";
   const headingLead = data.headingLead ?? DEFAULT_COPY.headingLead;
   const headingAccent = data.headingAccent ?? DEFAULT_COPY.headingAccent;
   const lede = data.lede ?? DEFAULT_COPY.lede;
@@ -325,9 +326,9 @@ export function AgentProximityMapTemplate(data: ProximityMapData): JSX.Element {
       <div className="agent-proximity-site__grid">
         <div className="agent-proximity-site__copy">
           <p className="agent-proximity-site__kicker">{kicker}</p>
-          <h2 className="agent-proximity-site__heading">
+          <Heading className="agent-proximity-site__heading">
             {headingLead} <em>{headingAccent}</em>
-          </h2>
+          </Heading>
           <p className="agent-proximity-site__lede">{renderLede(lede)}</p>
 
           <a className="agent-proximity-site__cta" href={ctaHref}>

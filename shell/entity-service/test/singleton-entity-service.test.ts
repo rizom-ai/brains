@@ -1,13 +1,13 @@
+import {
+  createMockEntityService,
+  createTestEntity,
+  spyOnEntityCreate,
+  spyOnEntityGet,
+} from "../src/test/index";
 import { describe, it, expect, beforeEach } from "bun:test";
 import { SingletonEntityService } from "../src/singleton-entity-service";
 import type { EntityService, BaseEntity } from "../src/types";
-import {
-  createMockEntityService,
-  spyOnEntityGet,
-  spyOnEntityCreate,
-  createSilentLogger,
-  createTestEntity,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 
 interface TestBody {
   title: string;

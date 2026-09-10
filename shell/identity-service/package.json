@@ -1,15 +1,17 @@
 {
   "name": "@brains/identity-service",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.354",
+  "version": "0.2.0-alpha.364",
   "description": "Identity service for managing brain character and anchor profile",
   "dependencies": {
+    "@brains/contracts": "workspace:*",
     "@brains/conversation-service": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",
     "typescript": "^7.0.2"

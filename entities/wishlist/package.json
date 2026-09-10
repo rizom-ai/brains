@@ -1,7 +1,7 @@
 {
   "name": "@brains/wishlist",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.354",
+  "version": "0.2.0-alpha.364",
   "description": "Wishlist plugin for tracking unfulfilled user requests",
   "dependencies": {
     "@brains/plugins": "workspace:*",
@@ -9,6 +9,7 @@
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",
     "bun-types": "^1.4.0",

@@ -1,6 +1,6 @@
 import { createTempDir } from "@brains/test-utils";
 import { describe, expect, it } from "bun:test";
-import { execFileSync } from "node:child_process";
+import { runProcessOrThrow } from "@brains/utils/run-process";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
@@ -18,17 +18,16 @@ async function createPilotRepo(files: Record<string, string>): Promise<string> {
   return root;
 }
 
-function runGit(args: string[], cwd?: string): string {
-  return execFileSync("git", args, {
-    ...(cwd ? { cwd } : {}),
-    encoding: "utf8",
-  }).trim();
+async function runGit(args: string[], cwd?: string): Promise<string> {
+  return (
+    await runProcessOrThrow(["git", ...args], cwd === undefined ? {} : { cwd })
+  ).trim();
 }
 
 async function createBareRemote(): Promise<string> {
   const root = await createTempDir("brains-ops-content-remote-");
   const remotePath = join(root, "remote.git");
-  runGit(["init", "--bare", remotePath]);
+  await runGit(["init", "--bare", remotePath]);
   return remotePath;
 }
 
@@ -37,9 +36,9 @@ async function populateRemote(
   files: Record<string, string>,
 ): Promise<void> {
   const worktree = await createTempDir("brains-ops-content-worktree-");
-  runGit(["clone", remotePath, worktree]);
-  runGit(["config", "user.name", "Test User"], worktree);
-  runGit(["config", "user.email", "test@example.com"], worktree);
+  await runGit(["clone", remotePath, worktree]);
+  await runGit(["config", "user.name", "Test User"], worktree);
+  await runGit(["config", "user.email", "test@example.com"], worktree);
 
   for (const [relativePath, content] of Object.entries(files)) {
     const filePath = join(worktree, relativePath);
@@ -47,17 +46,22 @@ async function populateRemote(
     await writeFile(filePath, content);
   }
 
-  runGit(["add", "."], worktree);
-  runGit(["commit", "-m", "seed"], worktree);
-  runGit(["push", "origin", "HEAD:main"], worktree);
+  await runGit(["add", "."], worktree);
+  await runGit(["commit", "-m", "seed"], worktree);
+  await runGit(["push", "origin", "HEAD:main"], worktree);
 }
 
-function readRemoteFile(remotePath: string, filePath: string): string {
-  return execFileSync(
+async function readRemoteFile(
+  remotePath: string,
+  filePath: string,
+): Promise<string> {
+  return runProcessOrThrow([
     "git",
-    ["--git-dir", remotePath, "show", `main:${filePath}`],
-    { encoding: "utf8" },
-  );
+    "--git-dir",
+    remotePath,
+    "show",
+    `main:${filePath}`,
+  ]);
 }
 
 function getAuthorization(headers: RequestInit["headers"]): string | undefined {
@@ -299,7 +303,7 @@ anchorProfile:
       contentRepoRemoteResolver: () => remotePath,
     });
 
-    const content = readRemoteFile(
+    const content = await readRemoteFile(
       remotePath,
       "anchor-profile/anchor-profile.md",
     );
@@ -329,7 +333,7 @@ anchorProfile:
       contentRepoRemoteResolver: () => remotePath,
     });
 
-    const content = readRemoteFile(
+    const content = await readRemoteFile(
       remotePath,
       "anchor-profile/anchor-profile.md",
     );
@@ -360,7 +364,7 @@ Human-edited story stays.
       contentRepoRemoteResolver: () => remotePath,
     });
 
-    const content = readRemoteFile(
+    const content = await readRemoteFile(
       remotePath,
       "anchor-profile/anchor-profile.md",
     );

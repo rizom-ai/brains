@@ -1,3 +1,4 @@
+import { createMockShell } from "../../src/test/mock-shell";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { mkdir, mkdtemp, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
@@ -8,7 +9,7 @@ import {
   RuntimeUploadStoreError,
   normalizeRuntimeUploadDataDir,
 } from "../../src/service/upload-registry";
-import { createMockShell } from "@brains/test-utils";
+
 import { getErrorMessage } from "@brains/utils/error";
 
 let dataDir: string;

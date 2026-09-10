@@ -1,14 +1,16 @@
 {
   "name": "@brains/profile",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.354",
+  "version": "0.2.0-alpha.364",
   "description": "Anchor-profile extensions and context-generated starter identity lifecycle",
   "dependencies": {
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
+    "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",
     "bun-types": "^1.4.0",

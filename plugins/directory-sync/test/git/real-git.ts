@@ -12,11 +12,24 @@ import { pathExists } from "../../src/lib/fs-utils";
  * `git-lock.test.ts` uses it within one (fixed by serializing operations).
  */
 
-export async function runGit(args: string[], cwd: string): Promise<string> {
+/**
+ * Run git and wait for it.
+ *
+ * Always awaited, never `execSync`: a synchronous spawn has to collect the
+ * child's exit itself, and under `--parallel` that was seen leaving a
+ * `<defunct>` git child while the worker spun at 100% CPU — which no
+ * per-test timeout can interrupt, because the loop never yields.
+ */
+export async function runGit(
+  args: string[],
+  cwd: string,
+  stdin?: string,
+): Promise<string> {
   const child = Bun.spawn(["git", ...args], {
     cwd,
     stdout: "pipe",
     stderr: "pipe",
+    ...(stdin === undefined ? {} : { stdin: Buffer.from(stdin) }),
   });
   const [out, err, code] = await Promise.all([
     new Response(child.stdout).text(),

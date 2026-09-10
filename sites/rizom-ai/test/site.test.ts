@@ -5,7 +5,7 @@ describe("@rizom/site-rizom-ai", () => {
   test("exports a Rizom site definition for the AI site", () => {
     expect(site.layouts["default"]).toBeDefined();
     expect(site.routes.map((route) => route.id)).toEqual([
-      "home",
+      "living-memory",
       "brain",
       "writing",
       "network",
@@ -21,6 +21,7 @@ describe("@rizom/site-rizom-ai", () => {
         : [];
     expect(sections.map((group) => group.namespace)).toEqual([
       "home",
+      "living-memory",
       "brain",
       "work",
       "foundation",
@@ -113,17 +114,17 @@ describe("@rizom/site-rizom-ai", () => {
     const route = site.routes[0];
     const sectionIds = route?.sections?.map((section) => section.id);
 
-    // The map is the hero; the text hero is gone. Rev-11 order: the system
-    // before the pitch — map → the pain (problem) → how it comes together
-    // (growth) → mission → the ask carried by proof (the knowledge map,
-    // which folds the alive-line in) → faces.
+    // Keep the approved composition and its existing content identities.
     expect(sectionIds).toEqual([
-      "network",
+      "hero",
       "problem",
+      "science",
+      "turn",
+      "system",
       "growth",
-      "mission",
-      "knowledge",
-      "faces",
+      "proof",
+      "arc",
+      "doors",
     ]);
 
     // The opener is the agent-discovery datasource section; a dataQuery routes
@@ -134,7 +135,7 @@ describe("@rizom/site-rizom-ai", () => {
     expect(network?.template).toBe("agent-discovery:proximity-map");
     expect(network?.dataQuery).toBeDefined();
     const knowledge = route?.sections?.find(
-      (section) => section.id === "knowledge",
+      (section) => section.id === "proof",
     );
     expect(knowledge?.template).toBe("topics:knowledge-map");
     expect(knowledge?.dataQuery).toBeDefined();
@@ -147,11 +148,14 @@ describe("@rizom/site-rizom-ai", () => {
 
     expect(templates).toEqual([
       "agent-discovery:proximity-map",
-      "home:problem",
-      "home:growth",
-      "home:mission",
+      "living-memory:problem",
+      "living-memory:science",
+      "living-memory:turn",
+      "living-memory:system",
+      "living-memory:growth",
       "topics:knowledge-map",
-      "home:faces",
+      "living-memory:arc",
+      "living-memory:doors",
     ]);
   });
 });

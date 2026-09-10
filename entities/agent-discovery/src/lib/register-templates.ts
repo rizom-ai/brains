@@ -51,6 +51,7 @@ const proximityCopyFormatter = new StructuredContentFormatter(
   {
     title: "Network",
     mappings: [
+      { key: "headingLevel", label: "Heading Level", type: "string" },
       { key: "kicker", label: "Kicker", type: "string" },
       { key: "headingLead", label: "Heading Lead", type: "string" },
       { key: "headingAccent", label: "Heading Accent", type: "string" },

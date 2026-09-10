@@ -1,14 +1,14 @@
+import {
+  createMockEntityService,
+  createTestEntity,
+} from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { DirectorySync } from "../src/lib/directory-sync";
 import { rmSync, writeFileSync, unlinkSync, existsSync, mkdtempSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import type { BaseEntity } from "@brains/plugins";
-import {
-  createSilentLogger,
-  createMockEntityService,
-  createTestEntity,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 
 /**
  * Regression test: entity:import:request should clean up orphaned entities.

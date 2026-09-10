@@ -1,3 +1,4 @@
+import { createMockServicePluginContext } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
 import {
   describe,
@@ -10,10 +11,7 @@ import {
 } from "bun:test";
 import * as fsp from "fs/promises";
 import { InlineImageConversionJobHandler } from "../../src/handlers/inline-image-conversion-handler";
-import {
-  createSilentLogger,
-  createMockServicePluginContext,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import {

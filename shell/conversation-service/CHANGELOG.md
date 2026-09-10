@@ -1,5 +1,105 @@
 # @brains/conversation-service
 
+## 0.2.0-alpha.364
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.364
+  - @brains/db@0.2.0-alpha.364
+  - @brains/utils@0.2.0-alpha.364
+  - @brains/messaging-service@0.2.0-alpha.364
+
+## 0.2.0-alpha.363
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.363
+  - @brains/db@0.2.0-alpha.363
+  - @brains/utils@0.2.0-alpha.363
+  - @brains/messaging-service@0.2.0-alpha.363
+
+## 0.2.0-alpha.362
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.362
+  - @brains/db@0.2.0-alpha.362
+  - @brains/utils@0.2.0-alpha.362
+  - @brains/messaging-service@0.2.0-alpha.362
+
+## 0.2.0-alpha.361
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.361
+  - @brains/db@0.2.0-alpha.361
+  - @brains/utils@0.2.0-alpha.361
+  - @brains/messaging-service@0.2.0-alpha.361
+
+## 0.2.0-alpha.360
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.360
+  - @brains/db@0.2.0-alpha.360
+  - @brains/utils@0.2.0-alpha.360
+  - @brains/messaging-service@0.2.0-alpha.360
+
+## 0.2.0-alpha.359
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.359
+  - @brains/db@0.2.0-alpha.359
+  - @brains/utils@0.2.0-alpha.359
+  - @brains/messaging-service@0.2.0-alpha.359
+
+## 0.2.0-alpha.358
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.358
+  - @brains/db@0.2.0-alpha.358
+  - @brains/utils@0.2.0-alpha.358
+  - @brains/messaging-service@0.2.0-alpha.358
+
+## 0.2.0-alpha.357
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.357
+  - @brains/db@0.2.0-alpha.357
+  - @brains/utils@0.2.0-alpha.357
+  - @brains/messaging-service@0.2.0-alpha.357
+
+## 0.2.0-alpha.356
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.356
+  - @brains/db@0.2.0-alpha.356
+  - @brains/utils@0.2.0-alpha.356
+  - @brains/messaging-service@0.2.0-alpha.356
+
+## 0.2.0-alpha.355
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.355
+  - @brains/db@0.2.0-alpha.355
+  - @brains/utils@0.2.0-alpha.355
+  - @brains/messaging-service@0.2.0-alpha.355
+
 ## 0.2.0-alpha.354
 
 ### Patch Changes

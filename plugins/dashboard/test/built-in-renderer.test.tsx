@@ -1,6 +1,7 @@
+import { createMockAppInfo } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import { renderToStaticMarkup as render } from "react-dom/server";
-import { createMockAppInfo, createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import {
   renderDashboardPageHtml,
   type DashboardRenderInput,

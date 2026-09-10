@@ -1,4 +1,4 @@
-import { createMockShell } from "@brains/test-utils";
+import { createMockShell } from "@brains/plugins/test";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   createServicePluginContext,

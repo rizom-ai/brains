@@ -1,3 +1,4 @@
+import { createMockShell, type MockShell } from "@brains/plugins/test";
 import { describe, it, expect } from "bun:test";
 import { z } from "@brains/utils/zod";
 import {
@@ -5,8 +6,7 @@ import {
   type TopicDistributionEntry,
 } from "../../src/insights/topic-distribution";
 import type { BaseEntity, ContentVisibility } from "@brains/plugins";
-import { createMockShell } from "@brains/test-utils";
-import type { MockShell } from "@brains/test-utils";
+
 import { TopicAdapter } from "../../src/lib/topic-adapter";
 
 const topicDistributionSchema = z.array(

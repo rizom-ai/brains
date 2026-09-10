@@ -1,7 +1,8 @@
+import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
 import { createServicePluginContext } from "@brains/plugins";
 import type { ServicePluginContext } from "@brains/plugins";
-import { createMockShell } from "@brains/test-utils";
+
 import { z } from "@brains/utils/zod";
 import {
   AtprotoPlugin,

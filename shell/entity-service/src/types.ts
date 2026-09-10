@@ -1146,3 +1146,28 @@ export interface EntityRegistry {
  * Database configuration for entity service
  */
 export type { DbConfig as EntityDbConfig } from "@brains/contracts";
+
+/**
+ * The read-only projection of the entity service.
+ *
+ * What a plugin is handed when it has no business writing: insight handlers
+ * compute over entities and return a summary. A projection of
+ * `ICoreEntityService` rather than a hand-written parallel interface, so a
+ * method that changes shape fails to compile here instead of drifting.
+ *
+ * `@brains/plugins` restates this as `IEntityService` on its published
+ * authoring surface; `public-surface-soundness.test.ts` holds the two
+ * together.
+ */
+export type ReadOnlyEntityService = Pick<
+  ICoreEntityService,
+  | "getEntity"
+  | "listEntities"
+  | "search"
+  | "searchWithDistances"
+  | "getEntityTypes"
+  | "hasEntityType"
+  | "countEntities"
+  | "getEntityCounts"
+  | "getEntityTypeConfig"
+>;

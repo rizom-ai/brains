@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { waitUntil } from "@brains/test-utils";
 import {
   MediaRenderError,
   renderPdf,
@@ -11,6 +12,34 @@ import {
 
 const pngBuffer = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const pdfBuffer = Buffer.from("%PDF-1.7\n%test");
+
+/**
+ * A mocked operation that outlasts the render timeout under test.
+ *
+ * The duration is the point here — the tests set `timeoutMs` well below it and
+ * assert the timeout fires — so this is a real sleep rather than a wait for a
+ * condition. Named so the call site says why it takes time.
+ */
+const RENDER_TIMEOUT_OVERRUN_MS = 100;
+async function longerThanRenderTimeout(): Promise<void> {
+  await Bun.sleep(RENDER_TIMEOUT_OVERRUN_MS);
+}
+
+/**
+ * Whether `work` is still unsettled after a window.
+ *
+ * Asserting that something has *not* happened needs a duration: there is no
+ * condition to wait for, only time in which it did not occur.
+ */
+async function stillPendingAfter(
+  work: Promise<unknown>,
+  windowMs: number,
+): Promise<"settled" | "pending"> {
+  return Promise.race([
+    work.then(() => "settled" as const),
+    Bun.sleep(windowMs).then(() => "pending" as const),
+  ]);
+}
 
 function deferred(): { promise: Promise<void>; resolve(): void } {
   let settle: (() => void) | undefined;
@@ -138,7 +167,7 @@ describe("media renderer", () => {
   it("closes the browser only once when a timeout fires", async () => {
     class SlowPage extends FakePage {
       override async goto(): Promise<void> {
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await longerThanRenderTimeout();
       }
     }
     const page = new SlowPage();
@@ -154,8 +183,10 @@ describe("media renderer", () => {
       expect(error).toMatchObject({ code: "render-timeout" });
     }
 
-    // Allow any straggling microtasks scheduled by Promise.race to settle.
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    // Promise.race leaves the close to a straggling microtask, so wait for it
+    // to happen rather than for a duration to pass. The count is still
+    // asserted exactly: the point is that the timeout closes once, not twice.
+    await waitUntil(() => browser.closeCalls > 0, "the browser to close");
     expect(browser.closeCalls).toBe(1);
   });
 
@@ -190,12 +221,7 @@ describe("media renderer", () => {
     });
 
     await closeWasStarted;
-    const state = await Promise.race([
-      rendering.then(() => "settled" as const),
-      new Promise<"pending">((resolve) =>
-        setTimeout(() => resolve("pending"), 25),
-      ),
-    ]);
+    const state = await stillPendingAfter(rendering, 25);
 
     expect(state).toBe("pending");
     expect(renderError).toBeUndefined();
@@ -240,7 +266,7 @@ describe("media renderer", () => {
     const slowFactory: BrowserFactory = {
       async launch(): Promise<MediaBrowser> {
         launchCalled = true;
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        await longerThanRenderTimeout();
         return new FakeBrowser(new FakePage());
       },
     };
@@ -262,7 +288,7 @@ describe("media renderer", () => {
     let createdBrowser: FakeBrowser | undefined;
     const slowFactory: BrowserFactory = {
       async launch(): Promise<MediaBrowser> {
-        await new Promise((resolve) => setTimeout(resolve, 50));
+        await longerThanRenderTimeout();
         createdBrowser = new FakeBrowser(new FakePage());
         return createdBrowser;
       },
@@ -278,9 +304,13 @@ describe("media renderer", () => {
       expect(error).toMatchObject({ code: "render-timeout" });
     }
 
-    // Wait long enough for the late launch to resolve and the cleanup .then() to run.
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    expect(createdBrowser).toBeDefined();
+    // The late launch resolves after the timeout has already rejected, and
+    // cleanup runs in its `.then()`. Wait for that to have happened rather
+    // than for long enough that it probably has.
+    await waitUntil(
+      () => (createdBrowser?.closeCalls ?? 0) > 0,
+      "the late browser to be killed",
+    );
     expect(createdBrowser?.closeCalls).toBe(1);
   });
 

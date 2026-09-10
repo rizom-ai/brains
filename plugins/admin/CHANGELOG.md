@@ -1,5 +1,97 @@
 # @brains/admin
 
+## 0.2.0-alpha.364
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.364
+  - @brains/auth-service@0.2.0-alpha.364
+  - @brains/plugins@0.2.0-alpha.364
+
+## 0.2.0-alpha.363
+
+### Patch Changes
+
+- Updated dependencies [[`6e17546`](https://github.com/rizom-ai/brains/commit/6e17546fd41c2d52ee602c2ac2cb2dc08fc9a5a9)]:
+  - @brains/auth-service@0.2.0-alpha.363
+  - @brains/utils@0.2.0-alpha.363
+  - @brains/plugins@0.2.0-alpha.363
+
+## 0.2.0-alpha.362
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.362
+  - @brains/auth-service@0.2.0-alpha.362
+  - @brains/plugins@0.2.0-alpha.362
+
+## 0.2.0-alpha.361
+
+### Patch Changes
+
+- [#235](https://github.com/rizom-ai/brains/pull/235) [`070ff27`](https://github.com/rizom-ai/brains/commit/070ff27217d9565073a2aaea60be1f9530dfbcad) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Allow Admin operators to resend expired invitations from invitation history instead of forcing a duplicate destination through the create form.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.361
+  - @brains/auth-service@0.2.0-alpha.361
+  - @brains/plugins@0.2.0-alpha.361
+
+## 0.2.0-alpha.360
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.360
+  - @brains/auth-service@0.2.0-alpha.360
+  - @brains/plugins@0.2.0-alpha.360
+
+## 0.2.0-alpha.359
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.359
+  - @brains/auth-service@0.2.0-alpha.359
+  - @brains/plugins@0.2.0-alpha.359
+
+## 0.2.0-alpha.358
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.358
+  - @brains/auth-service@0.2.0-alpha.358
+  - @brains/plugins@0.2.0-alpha.358
+
+## 0.2.0-alpha.357
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.357
+  - @brains/auth-service@0.2.0-alpha.357
+  - @brains/plugins@0.2.0-alpha.357
+
+## 0.2.0-alpha.356
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.356
+  - @brains/auth-service@0.2.0-alpha.356
+  - @brains/plugins@0.2.0-alpha.356
+
+## 0.2.0-alpha.355
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.355
+  - @brains/auth-service@0.2.0-alpha.355
+  - @brains/plugins@0.2.0-alpha.355
+
 ## 0.2.0-alpha.354
 
 ### Patch Changes

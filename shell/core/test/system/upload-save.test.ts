@@ -1,10 +1,10 @@
-import { describe, expect, it } from "bun:test";
-import type { IConversationService } from "@brains/conversation-service";
 import {
   expectConfirmationArgs,
   expectToolConfirmation,
   expectToolError,
-} from "@brains/test-utils";
+} from "@brains/mcp-service/test";
+import { describe, expect, it } from "bun:test";
+import type { IConversationService } from "@brains/conversation-service";
 import type { Tool, ToolContext } from "@brains/mcp-service";
 import type { UploadSaveHandler } from "@brains/entity-service";
 import type {

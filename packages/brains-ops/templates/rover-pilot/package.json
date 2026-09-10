@@ -7,6 +7,7 @@
     "age-encryption": "^0.3.0"
   },
   "devDependencies": {
+    "@brains/utils": "workspace:*",
     "@rizom/ops": "__BRAINS_OPS_VERSION__"
   }
 }

@@ -126,7 +126,6 @@ setBootFn(async (cwd, definition, flags) => {
 
 // ─── Run CLI ──────────────────────────────────────────────────────
 
-import { execSync } from "child_process";
 import { parseArgs } from "../src/parse-args";
 import { runCommand } from "../src/run-command";
 import { findLocalBrain } from "../src/lib/local-reexec";
@@ -142,20 +141,19 @@ const cwd = getInvocationCwd();
 if (!process.env["BRAIN_SKIP_LOCAL_REEXEC"]) {
   const localBrain = findLocalBrain(cwd);
   if (localBrain && localBrain !== __filename) {
-    try {
-      execSync(`bun ${localBrain} ${process.argv.slice(2).join(" ")}`, {
-        cwd,
-        stdio: "inherit",
-        env: { ...process.env, BRAIN_SKIP_LOCAL_REEXEC: "1" },
-      });
-      process.exit(0);
-    } catch (err) {
-      const code =
-        err && typeof err === "object" && "status" in err
-          ? (err.status as number)
-          : 1;
-      process.exit(code);
-    }
+    // Arguments are passed as a list, not joined into a shell string: the
+    // joined form re-split anything containing a space or a quote, so
+    // `brain … "two words"` reached the local install as two arguments.
+    //
+    // Awaited rather than synchronous, like every other spawn in the
+    // repository — the exit code is read from the child instead of decoded
+    // out of a thrown error.
+    const child = Bun.spawn(["bun", localBrain, ...process.argv.slice(2)], {
+      cwd,
+      stdio: ["inherit", "inherit", "inherit"],
+      env: { ...process.env, BRAIN_SKIP_LOCAL_REEXEC: "1" },
+    });
+    process.exit(await child.exited);
   }
 }
 

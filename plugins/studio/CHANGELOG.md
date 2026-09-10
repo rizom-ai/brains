@@ -1,5 +1,139 @@
 # @brains/studio
 
+## 0.2.0-alpha.364
+
+### Patch Changes
+
+- [#238](https://github.com/rizom-ai/brains/pull/238) [`1a86a8b`](https://github.com/rizom-ai/brains/commit/1a86a8bdc21febdc1e8315a77fe7861f58535b0b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep a dismissible action receipt in the workspace when refreshed data removes the control that produced it, so sensitive invitation setup links remain available to copy after resend.
+
+- Updated dependencies [[`1a86a8b`](https://github.com/rizom-ai/brains/commit/1a86a8bdc21febdc1e8315a77fe7861f58535b0b)]:
+  - @brains/operator-view-react@0.2.0-alpha.364
+  - @brains/app-ui-react@0.2.0-alpha.364
+  - @brains/console-theme@0.2.0-alpha.364
+  - @brains/contracts@0.2.0-alpha.364
+  - @brains/utils@0.2.0-alpha.364
+  - @brains/auth-service@0.2.0-alpha.364
+  - @brains/plugins@0.2.0-alpha.364
+
+## 0.2.0-alpha.363
+
+### Patch Changes
+
+- Updated dependencies [[`6e17546`](https://github.com/rizom-ai/brains/commit/6e17546fd41c2d52ee602c2ac2cb2dc08fc9a5a9)]:
+  - @brains/auth-service@0.2.0-alpha.363
+  - @brains/app-ui-react@0.2.0-alpha.363
+  - @brains/console-theme@0.2.0-alpha.363
+  - @brains/contracts@0.2.0-alpha.363
+  - @brains/operator-view-react@0.2.0-alpha.363
+  - @brains/utils@0.2.0-alpha.363
+  - @brains/plugins@0.2.0-alpha.363
+
+## 0.2.0-alpha.362
+
+### Patch Changes
+
+- Updated dependencies [[`8ea29b9`](https://github.com/rizom-ai/brains/commit/8ea29b909f57a74d7f21a3d9494b2ed8cc82c1c8)]:
+  - @brains/operator-view-react@0.2.0-alpha.362
+  - @brains/app-ui-react@0.2.0-alpha.362
+  - @brains/console-theme@0.2.0-alpha.362
+  - @brains/contracts@0.2.0-alpha.362
+  - @brains/utils@0.2.0-alpha.362
+  - @brains/auth-service@0.2.0-alpha.362
+  - @brains/plugins@0.2.0-alpha.362
+
+## 0.2.0-alpha.361
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.361
+  - @brains/console-theme@0.2.0-alpha.361
+  - @brains/contracts@0.2.0-alpha.361
+  - @brains/operator-view-react@0.2.0-alpha.361
+  - @brains/utils@0.2.0-alpha.361
+  - @brains/auth-service@0.2.0-alpha.361
+  - @brains/plugins@0.2.0-alpha.361
+
+## 0.2.0-alpha.360
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.360
+  - @brains/console-theme@0.2.0-alpha.360
+  - @brains/contracts@0.2.0-alpha.360
+  - @brains/operator-view-react@0.2.0-alpha.360
+  - @brains/utils@0.2.0-alpha.360
+  - @brains/auth-service@0.2.0-alpha.360
+  - @brains/plugins@0.2.0-alpha.360
+
+## 0.2.0-alpha.359
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.359
+  - @brains/console-theme@0.2.0-alpha.359
+  - @brains/contracts@0.2.0-alpha.359
+  - @brains/operator-view-react@0.2.0-alpha.359
+  - @brains/utils@0.2.0-alpha.359
+  - @brains/auth-service@0.2.0-alpha.359
+  - @brains/plugins@0.2.0-alpha.359
+
+## 0.2.0-alpha.358
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.358
+  - @brains/console-theme@0.2.0-alpha.358
+  - @brains/contracts@0.2.0-alpha.358
+  - @brains/operator-view-react@0.2.0-alpha.358
+  - @brains/utils@0.2.0-alpha.358
+  - @brains/auth-service@0.2.0-alpha.358
+  - @brains/plugins@0.2.0-alpha.358
+
+## 0.2.0-alpha.357
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.357
+  - @brains/console-theme@0.2.0-alpha.357
+  - @brains/contracts@0.2.0-alpha.357
+  - @brains/operator-view-react@0.2.0-alpha.357
+  - @brains/utils@0.2.0-alpha.357
+  - @brains/auth-service@0.2.0-alpha.357
+  - @brains/plugins@0.2.0-alpha.357
+
+## 0.2.0-alpha.356
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.356
+  - @brains/console-theme@0.2.0-alpha.356
+  - @brains/contracts@0.2.0-alpha.356
+  - @brains/operator-view-react@0.2.0-alpha.356
+  - @brains/utils@0.2.0-alpha.356
+  - @brains/auth-service@0.2.0-alpha.356
+  - @brains/plugins@0.2.0-alpha.356
+
+## 0.2.0-alpha.355
+
+### Patch Changes
+
+- [`06ff050`](https://github.com/rizom-ai/brains/commit/06ff050e26b0db643d59323096ac81b82a02367e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep Studio's system navigation coherent by grouping the Style Guide with other brain machinery, preserving the desktop rail while editing, and resetting the document offset when selecting rail destinations.
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.355
+  - @brains/console-theme@0.2.0-alpha.355
+  - @brains/contracts@0.2.0-alpha.355
+  - @brains/operator-view-react@0.2.0-alpha.355
+  - @brains/utils@0.2.0-alpha.355
+  - @brains/auth-service@0.2.0-alpha.355
+  - @brains/plugins@0.2.0-alpha.355
+
 ## 0.2.0-alpha.354
 
 ### Patch Changes
