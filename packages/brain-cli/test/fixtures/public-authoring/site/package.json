@@ -10,7 +10,7 @@
     }
   },
   "dependencies": {
-    "@rizom/site": "0.2.0-alpha.233"
+    "@rizom/site": "0.2.0-alpha.235"
   },
   "peerDependencies": {
     "@rizom/brain": "0.2.0-alpha.357",

@@ -71,6 +71,10 @@ import { createRoutedCreate } from "../entity/routed-create";
 import type { RoutedCreate } from "../job/job-context-contract";
 import { createJobEntityAccess } from "../job/job-entity-access";
 import {
+  createAuthoringEntityAccess,
+  createAuthoringEntityReader,
+} from "../internal/authoring-entity-access";
+import {
   createRuntimeRoute,
   type RoutePermissions,
 } from "../interface/route-runtime";
@@ -253,10 +257,8 @@ function runtimeJobHandler(
         signal,
         progress: createJobProgress(progress),
         templates,
-        entities: createJobEntityAccess(
-          context.entityService,
-          owned,
-          serviceId,
+        entities: createAuthoringEntityAccess(
+          createJobEntityAccess(context.entityService, owned, serviceId),
         ),
         createRouted: createRoutedCreate({
           requester: serviceId,
@@ -428,8 +430,8 @@ class DeclarativeServicePlugin<
   /**
    * Where this package's build writes, when it declared one.
    *
-   * Config alone, so the host can ask before the plugin is installed — the
-   * same reason `getWebRoutes` reads only config.
+   * Config alone, so the host can ask before the plugin is installed.
+   * Routes, unlike static output, are collected after registration.
    */
   public getStaticSiteOutput(): StaticSiteOutput | undefined {
     return this.definition.staticSite?.({ config: this.config });
@@ -445,6 +447,13 @@ class DeclarativeServicePlugin<
         config: this.config,
         state: this.requireState(),
         jobs: this.jobs(),
+        entities: createAuthoringEntityReader(
+          createJobEntityAccess(
+            this.getContext().entityService,
+            this.ownedTypeNames(),
+            this.id,
+          ),
+        ),
       }) ?? [];
     return routeDefinitions.map((route) =>
       createRuntimeRoute(route, {
@@ -753,6 +762,13 @@ class DeclarativeServicePlugin<
       label: `Service "${this.definition.id}"`,
       subscriptions,
       context,
+      entities: createAuthoringEntityAccess(
+        createJobEntityAccess(
+          context.entityService,
+          this.ownedTypeNames(),
+          this.publicId,
+        ),
+      ),
     });
 
     const templates = this.templateFormatter(context);

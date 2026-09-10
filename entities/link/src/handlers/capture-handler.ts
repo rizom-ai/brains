@@ -2,12 +2,12 @@ import type { LoggerContract } from "@brains/utils/logger";
 import type { ProgressContract } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { PROGRESS_STEPS, JobResult } from "@brains/sdk/services";
-import type { IEntityAINamespace, JobEntityAccess } from "@brains/sdk/entities";
+import type { IEntityAINamespace, EntityAccess } from "@brains/sdk/entities";
 import { createLinkContent, parseLinkContent } from "../lib/link-content";
 import { UrlFetcher } from "../lib/url-fetcher";
 import { UrlUtils } from "../lib/url-utils";
 import type { LinkSource, LinkStatus } from "../schemas/link";
-import { linkStatusSchema } from "../schemas/link";
+import { linkStatusSchema, linkEntityReference } from "../schemas/link";
 
 import { linkExtractionSchema } from "../templates/extraction-template";
 
@@ -70,7 +70,7 @@ export interface LinkCaptureJobHandlerOptions {
  */
 export class LinkCaptureJobHandler {
   private readonly logger: LoggerContract;
-  private readonly entities: JobEntityAccess;
+  private readonly entities: Pick<EntityAccess, "getEntity" | "saveProcessed">;
   private readonly ai: IEntityAINamespace;
   private readonly extractionTemplate: string;
   private urlFetcher: UrlFetcher;
@@ -78,7 +78,7 @@ export class LinkCaptureJobHandler {
   constructor(
     logger: LoggerContract,
     deps: {
-      entities: JobEntityAccess;
+      entities: Pick<EntityAccess, "getEntity" | "saveProcessed">;
       ai: IEntityAINamespace;
       // Resolved by the runtime: only it knows the scope templates register
       // under, and a name written here silently stops resolving if it moves.
@@ -186,11 +186,10 @@ export class LinkCaptureJobHandler {
             capturedAt,
             source,
           });
-          await this.entities.saveProcessed({
+          await this.entities.saveProcessed(linkEntityReference, {
             id: entityId,
-            entityType: "link",
             content,
-            metadata: { status: "pending", title },
+            metadata: { status: "pending", title, capturedAt },
           });
           return {
             success: false,
@@ -261,11 +260,10 @@ export class LinkCaptureJobHandler {
           source,
         });
 
-        const entity = await this.entities.saveProcessed({
+        const entity = await this.entities.saveProcessed(linkEntityReference, {
           id: entityId,
-          entityType: "link",
           content,
-          metadata: { status: "pending", title },
+          metadata: { status: "pending", title, capturedAt },
         });
 
         await progressReporter.report({
@@ -276,7 +274,7 @@ export class LinkCaptureJobHandler {
 
         return {
           success: true,
-          entityId: entity.entityId,
+          entityId: entity.id,
           title,
           url,
           status: "pending",
@@ -301,11 +299,14 @@ export class LinkCaptureJobHandler {
         source,
       });
 
-      const entity = await this.entities.saveProcessed({
+      const entity = await this.entities.saveProcessed(linkEntityReference, {
         id: entityId,
-        entityType: "link",
         content,
-        metadata: { status: "draft", title: extractionResult.title },
+        metadata: {
+          status: "draft",
+          title: extractionResult.title,
+          capturedAt,
+        },
       });
 
       await progressReporter.report({
@@ -316,7 +317,7 @@ export class LinkCaptureJobHandler {
 
       return {
         success: true,
-        entityId: entity.entityId,
+        entityId: entity.id,
         title: extractionResult.title,
         url,
         status: "draft",

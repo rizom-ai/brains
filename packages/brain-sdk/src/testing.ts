@@ -24,10 +24,14 @@ import {
 } from "@brains/contracts";
 export { SdkError, sdkErrorCodeSchema, sdkErrorSchema } from "@brains/plugins";
 export type { SdkErrorCode, SdkErrorData } from "@brains/plugins";
-import { createPluginHarness } from "@brains/plugins/test";
+import {
+  createPluginHarness,
+  declaredToolLocalName,
+} from "@brains/plugins/test";
 import {
   instantiatePluginPackageDefinition,
   type WebRouteDefinition,
+  type Template,
   type SubscriptionRequester,
 } from "@brains/plugins";
 
@@ -53,6 +57,8 @@ export interface TestCaller {
 
 /** One tool a package declared, as a test calls it. */
 export interface InstalledTool {
+  /** The exact name in the author's declaration. */
+  readonly localName: string;
   /** The name the runtime scoped it to. */
   readonly name: string;
   readonly description: string;
@@ -71,7 +77,13 @@ export interface InstalledTool {
 /** What a tool answered: completed data, a refusal, or a pending approval. */
 export type ToolCallResult =
   | { readonly ok: true; readonly data: unknown }
-  | { readonly ok: false; readonly error: string; readonly code: SdkErrorCode }
+  | {
+      readonly ok: false;
+      readonly error: string;
+      readonly code: SdkErrorCode;
+      /** Original thrown value for diagnostics; undefined for a non-thrown refusal. */
+      readonly cause: unknown;
+    }
   | { readonly ok: false; readonly confirmation: TestToolConfirmation };
 
 /** An approval, not a refusal. Replay its args with the named tool to confirm. */
@@ -86,9 +98,12 @@ export interface TestToolConfirmation {
 /** What a package declared, once it is installed. */
 export interface InstalledPackage {
   readonly tools: readonly InstalledTool[];
+  tool(localName: string): InstalledTool;
+  job(localName: string): InstalledPackage["jobs"][number];
   /** Registered jobs; run validates and executes one attempt, not queue retries. */
   readonly jobs: readonly {
     readonly name: string;
+    readonly localName: string;
     run(input: unknown): Promise<unknown>;
   }[];
   readonly instructions: string | undefined;
@@ -158,6 +173,23 @@ export interface BrainTestHarnessOptions {
   readonly profileKind?: string | undefined;
 }
 
+function byLocalName<T extends { readonly localName: string }>(
+  items: readonly T[],
+  name: string,
+  kind: string,
+): T {
+  const matches = items.filter((item) => item.localName === name);
+  const item = matches[0];
+  if (item && matches.length === 1) return item;
+  const available =
+    [...new Set(items.map((candidate) => candidate.localName))]
+      .sort()
+      .join(", ") || "(none)";
+  throw new Error(
+    `${matches.length ? "Ambiguous" : "No"} ${kind} "${name}". Available local names: ${available}`,
+  );
+}
+
 export function createBrainTestHarness(
   options: BrainTestHarnessOptions = {},
 ): BrainTestHarness {
@@ -170,6 +202,17 @@ export function createBrainTestHarness(
   // A brain serves what every installed package declared, not only the last
   // one, so what each installs is kept as it is installed.
   const installedRoutes: WebRouteDefinition[] = [];
+  const installedPluginIds = new Set<string>();
+  const localTemplates = (): Array<{ localName: string; template: Template }> =>
+    [...harness.getTemplates()].map(([name, template]) => {
+      const owner = [...installedPluginIds].find((id) =>
+        name.startsWith(`${id}:`),
+      );
+      return {
+        localName: owner ? name.slice(owner.length + 1) : name,
+        template,
+      };
+    });
 
   return {
     installPackage: async (
@@ -190,6 +233,7 @@ export function createBrainTestHarness(
       const jobs: InstalledPackage["jobs"][number][] = [];
       const installed = await harness.installPlugins(plugins);
       for (const { plugin, capabilities } of installed) {
+        installedPluginIds.add(plugin.id);
         installedRoutes.push(...(plugin.getWebRoutes?.() ?? []));
         for (const type of harness
           .getMockShell()
@@ -198,6 +242,7 @@ export function createBrainTestHarness(
           if (type.startsWith(`${plugin.id}:`)) {
             jobs.push({
               name: type,
+              localName: type.slice(plugin.id.length + 1),
               run: async (input) => {
                 try {
                   return await harness.runJob(type, input);
@@ -212,6 +257,7 @@ export function createBrainTestHarness(
         for (const tool of capabilities.tools) {
           tools.push({
             name: tool.name,
+            localName: declaredToolLocalName(tool),
             description: tool.description,
             call: async (input, caller) => {
               const answer = await harness.callTool(tool, input, {
@@ -237,6 +283,7 @@ export function createBrainTestHarness(
                   ok: false,
                   error: failure.message,
                   code: failure.code,
+                  cause: harness.getToolFailureCause(answer),
                 };
               }
               return { ok: true, data: answer.data };
@@ -244,7 +291,13 @@ export function createBrainTestHarness(
           });
         }
       }
-      return { tools, jobs, instructions };
+      return {
+        tools,
+        jobs,
+        instructions,
+        tool: (name) => byLocalName(tools, name, "tool"),
+        job: (name) => byLocalName(jobs, name, "job"),
+      };
     },
     finalizeRegistration: () => harness.finalizeRegistration(),
     request: harness.request,
@@ -312,14 +365,15 @@ export function createBrainTestHarness(
       return response.json();
     },
     formatTemplate: (name, value): string => {
-      const template = harness.getTemplates().get(name);
-      if (!template?.formatter)
+      const { template } = byLocalName(localTemplates(), name, "template");
+      if (!template.formatter)
         throw new Error(`No text formatter for "${name}"`);
       return template.formatter.format(template.schema.parse(value));
     },
-    templateNames: () => [...harness.getTemplates().keys()],
+    templateNames: () => localTemplates().map(({ localName }) => localName),
     reset: async (): Promise<void> => {
       installedRoutes.length = 0;
+      installedPluginIds.clear();
       await harness.reset();
     },
   };

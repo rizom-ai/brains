@@ -8,6 +8,7 @@
     "smoke": "bun import-smoke.ts"
   },
   "dependencies": {
+    "@example/reminders": "0.1.0",
     "@fixture/mailbox-connection": "0.1.0",
     "@fixture/reading-entities": "0.1.0",
     "@fixture/reading-insights": "0.1.0",

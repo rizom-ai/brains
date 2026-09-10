@@ -1,4 +1,5 @@
 import { defineJob, z } from "@brains/sdk/services";
+import { siteContentEntity } from "./entity";
 import type { ServiceJobDefinition } from "@brains/sdk/services";
 
 export const fillSectionInputSchema: z.ZodObject<{
@@ -79,9 +80,8 @@ export function handleFillSection(): ReturnType<typeof fillSectionJob.handle> {
       },
     });
 
-    await entities.saveProcessed({
+    await entities.saveProcessed(siteContentEntity, {
       id: entityId,
-      entityType: "site-content",
       content: templates.format(input.templateName, value),
       metadata: { routeId: input.routeId, sectionId: input.sectionId },
     });

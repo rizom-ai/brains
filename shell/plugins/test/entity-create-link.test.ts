@@ -10,6 +10,7 @@ import type {
 import {
   defineEntity,
   defineEntityPackage,
+  frontmatterInContent,
   instantiatePluginPackageDefinition,
 } from "../src";
 
@@ -68,10 +69,15 @@ const poster = defineEntity({
   },
 });
 
+const titleMetadata = z.object({ title: z.string() });
 const notice = defineEntity({
   type: "notice",
   purpose: "Something a poster can be the cover of.",
-  metadata: z.object({ title: z.string() }),
+  metadata: titleMetadata,
+  // Cover assertions read the whole file, not a default body-only entity.
+  markdown: frontmatterInContent((frontmatter) =>
+    titleMetadata.parse(frontmatter),
+  ),
   coverImage: true,
 });
 

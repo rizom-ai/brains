@@ -6,8 +6,10 @@ six unrelated snippets: a Brain that saves bookmarks, derives reading digests,
 accepts webhook and Campfire events, and renders a reading-library site.
 
 > **Current-tree tarball evidence, not a registry nomination.** These private
-> fixtures pin the local Brain package version, `0.2.0-alpha.357`, and the local
-> packed runner supplies that checkout's artifact. Historical registry evidence
+> fixtures keep a source-template Brain pin, `0.2.0-alpha.357`. Their builder
+> binds SDK dependencies and peers in the staged package to the exact installed
+> candidate artifact before compiling and packing; source manifests are unchanged.
+> This also works after alpha version bumps and during stable graduation. Historical registry evidence
 > (`alpha.313` with Site `alpha.233`) predates the breaking definitions now used
 > here. It does not prove these fixtures, nor does a matching version string on
 > npm prove the current-tree artifact. Verified release floors remain pending.
@@ -52,6 +54,15 @@ configuration that have actually passed the package boundary.
 | 6    | [`brain-definition`](./brain-definition/src/index.ts)                     | Typed `use()`, configured definitions, bundle membership, identity, and site selection                        |
 | 7    | [`operator-surface`](./operator-surface/src/index.ts)                     | Account settings, Dashboard semantics, Studio query state/catalogs/actions, and prepared confirmation         |
 | 8    | [`account-settings-interface`](./account-settings-interface/src/index.ts) | Interface-family account settings and runtime-owned account daemon lifecycle                                  |
+| 9    | [`reminders`](./reminders/src/index.ts)                                   | Owned entities, tools, jobs, subscriptions, routes, templates, runtime state, and four public-harness tests   |
+
+The ninth fixture, [`reminders`](./reminders/src/index.ts), exercises the outside-author
+workflow: owned content, three tools, a durable job, a typed exported subscription,
+a route, text presentation, and runtime state. Its [four tests](./reminders/test/consumer.ts)
+compile and run against packed packages using only the public testing entry and
+local names. `test/consumer.ts` is staged as `reminders.test.ts` in the installed
+consumer: it must not run against an unbuilt workspace self-import. No source-path
+aliases, conditional skips, or private harness APIs are used.
 
 The message transport keeps its ordinary protocol client in
 [`campfire-client.ts`](./message-interface/src/campfire-client.ts). That split
@@ -136,10 +147,15 @@ Every reference package has:
 - one default definition export;
 - generated JavaScript/declaration export paths;
 - a self-contained strict `tsconfig.json` with no monorepo `extends`;
-- an exact Brain peer pin matching the local candidate package version;
+- a source-template Brain peer pin, rebound to the exact SDK under test in staged packages;
 - only public family imports in author source.
 
-The test harness injects the built SDK tarball while building the fixtures.
+The test harness injects the built SDK tarball while building the fixtures and
+records its resolved version in the packed fixture's SDK dependencies/peers.
+Registry evidence does the same with the explicitly selected published versions
+and checks the installed fixture metadata. It does not widen compatibility ranges
+or certify the source-template pin. The site fixture's declared React-compatible
+Site dependency is also compiled without a Site override in the registry tier.
 For a standalone review package, obtain `rizom-brain.tgz` using the practical
 guide's build/pack instructions and declare:
 

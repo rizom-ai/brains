@@ -80,6 +80,15 @@ it.skipIf(!runRegistryEvidence)(
       const tarballDirectory = join(temporaryDirectory, "tarballs");
       const stagingDirectory = join(temporaryDirectory, "build");
       const tarballs = new Map<string, string>();
+      // Prove the source site's declared dependency too. A candidate override
+      // must not conceal a manifest that still belongs to another renderer era.
+      await buildAndPackFixturePackage(
+        join(publicFixtureRoot, "site"),
+        join(temporaryDirectory, "declared-site-build"),
+        join(temporaryDirectory, "declared-site-tarballs"),
+        new Map(),
+        { "@rizom/brain": brainVersion },
+      );
       for (const fixtureName of [
         "entity",
         "service",
@@ -89,26 +98,9 @@ it.skipIf(!runRegistryEvidence)(
         "brain-definition",
         "operator-surface",
         "account-settings-interface",
+        "reminders",
       ]) {
         const fixtureDirectory = join(publicFixtureRoot, fixtureName);
-        const fixtureManifest = z
-          .looseObject({
-            peerDependencies: z.record(z.string(), z.string()).optional(),
-          })
-          .parse(
-            JSON.parse(
-              await readFile(join(fixtureDirectory, "package.json"), "utf8"),
-            ),
-          );
-        // Nomination must update fixture pins along with the verified release.
-        // A historical lower bound cannot certify today's breaking API.
-        const expectedBrainPeer = brainVersion;
-        expect(fixtureManifest.peerDependencies?.["@rizom/brain"]).toBe(
-          expectedBrainPeer,
-        );
-        expect(Bun.semver.satisfies(brainVersion, expectedBrainPeer)).toBe(
-          true,
-        );
         const packed = await buildAndPackFixturePackage(
           fixtureDirectory,
           stagingDirectory,
@@ -118,7 +110,7 @@ it.skipIf(!runRegistryEvidence)(
         );
         tarballs.set(...packed);
       }
-      expect(tarballs.size).toBe(8);
+      expect(tarballs.size).toBe(9);
 
       const consumerDirectory = join(temporaryDirectory, "consumer");
       await installPackedConsumer(
@@ -127,6 +119,22 @@ it.skipIf(!runRegistryEvidence)(
         tarballs,
         registryVersions,
       );
+
+      // Inspect the actual installed fixture metadata, not source placeholders
+      // or permissive peer ranges. Artifact selection remains exact.
+      for (const name of tarballs.keys()) {
+        const fixture = await packageManifest(consumerDirectory, name);
+        expect(fixture["peerDependencies"]).toMatchObject({
+          "@rizom/brain": brainVersion,
+        });
+      }
+      const installedSiteFixture = await packageManifest(
+        consumerDirectory,
+        "@fixture/reading-site",
+      );
+      expect(installedSiteFixture["dependencies"]).toMatchObject({
+        "@rizom/site": siteVersion,
+      });
 
       const brainManifest = await packageManifest(
         consumerDirectory,

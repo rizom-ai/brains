@@ -166,6 +166,9 @@ Types:
 - `EntityMarkdownCodec`
 - `EntityMarkdownDocument`
 - `EntityOf`
+- `EntityAccess`
+- `EntityReader`
+- `EntityWriteInput`
 - `EntityPackageDefinition`
 - `EntitySeedDefinition`
 - `EntitySeedTrigger`
@@ -318,6 +321,13 @@ Types:
 - `RuntimeStateScopeOptions`
 - `AnyInterfaceRouteDefinition`
 - `AnySubscriptionDefinition`
+- `RequestContract`
+- `SubscriptionDefinition`
+- `EntityAccess`
+- `EntityReader`
+- `EntityWriteInput`
+- `ServiceToolContext`
+- `ServiceJobHandlerContext`
 - `PublicSkill`
 - `IAttachmentsNamespace`
 - `IPermissionsNamespace`
@@ -392,6 +402,18 @@ Permission contract:
 - `UserPermissionLevel`
 - `UserPermissionLevelSchema`
 
+Subscription and entity contracts:
+
+- `AnySubscriptionDefinition`
+- `RequestContract`
+- `SubscriptionDefinition`
+- `EntityAccess`
+- `EntityReader`
+- `EntityWriteInput`
+- `PublicSkill`
+- `ResolvedProfileKind`
+- `ToolInfo`
+
 The runtime owns HTTP hosting, caller permission and Anchor resolution, daemon supervision, worker exclusion, channel/provider registration, recipient validation, conversations, normalized progress, and shutdown. Account-settings declarations require auth-service plus the deployment-owned `ACCOUNT_SETTINGS_ENCRYPTION_KEY`; secret values are encrypted at rest and never echoed by Account APIs.
 
 ## `@rizom/brain/testing`
@@ -412,6 +434,11 @@ contexts stay internal.
 - `ToolCallResult`
 - `createTempDataDir`
 - `createTempDataDirSync`
+
+`InstalledPackage.tool(name)` and `job(name)` resolve exact local declaration
+names. Tools and jobs expose `localName`; their `name` remains runtime-scoped.
+`templateNames()` and `formatTemplate(name, value)` use local names. Unknown or
+ambiguous lookups throw with available names.
 
 Tool calls enforce declared permissions and return success, error, or
 `{ ok: false, confirmation }` when approval is pending. Confirmation includes the
@@ -575,10 +602,6 @@ Types:
 - `WidgetElementProps`
 - `WidgetFilterOption`
 - `WidgetTabDefinition`
-- `PublicSkill`
-- `ResolvedProfileKind`
-- `ToolInfo`
-- `AnySubscriptionDefinition`
 
 ## Exported but not stable
 
@@ -588,4 +611,4 @@ Internal `@brains/*` packages, runtime classes, contexts, registries, queue type
 
 ## Compatibility rule
 
-After stable `0.2.0` is published, a `0.2.x` patch candidate must compile and run the frozen entity, service, account-settings-interface, operator-surface, generic-interface, message-interface, site, and brain-definition fixtures without source changes. Additive stable exports require an updated ledger and compatibility fixture; breaking these names or behaviors requires a later minor release. Before that freeze, breaking alpha cleanup must update the examples and evidence rather than preserve obsolete authoring paths.
+After stable `0.2.0` is published, a `0.2.x` patch candidate must compile and run the frozen entity, service, account-settings-interface, operator-surface, generic-interface, message-interface, site, brain-definition, and reminders fixtures without source changes. Additive stable exports require an updated ledger and compatibility fixture; breaking these names or behaviors requires a later minor release. Before that freeze, breaking alpha cleanup must update the examples and evidence rather than preserve obsolete authoring paths.

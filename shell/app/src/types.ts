@@ -45,108 +45,20 @@ export const logLevelSchema: z.ZodEnum<{
   error: "error";
 }> = z.enum(["debug", "info", "warn", "error"]);
 
-export const reasoningEffortSchema: z.ZodEnum<{
-  none: "none";
-  low: "low";
-  medium: "medium";
-  high: "high";
-  xhigh: "xhigh";
-  max: "max";
-}> = z.enum(["none", "low", "medium", "high", "xhigh", "max"]);
-export type ReasoningEffort = z.output<typeof reasoningEffortSchema>;
+import {
+  deploymentConfigSchema,
+  reasoningEffortSchema,
+  type DeploymentConfig,
+  type DeploymentConfigInput,
+} from "@brains/sdk/internal/brain-config";
+export {
+  deploymentConfigSchema,
+  reasoningEffortSchema,
+  type DeploymentConfig,
+  type DeploymentConfigInput,
+  type ReasoningEffort,
+} from "@brains/sdk/internal/brain-config";
 export type LogLevel = z.output<typeof logLevelSchema>;
-
-type ProviderToggleSchema = z.ZodPrefault<
-  z.ZodObject<{
-    enabled: z.ZodDefault<z.ZodBoolean>;
-    provider: z.ZodDefault<z.ZodEnum<{ bunny: "bunny"; none: "none" }>>;
-  }>
->;
-
-type DeploymentConfigSchema = z.ZodObject<{
-  provider: z.ZodDefault<z.ZodEnum<{ hetzner: "hetzner"; docker: "docker" }>>;
-  serverSize: z.ZodDefault<z.ZodString>;
-  location: z.ZodDefault<z.ZodString>;
-  domain: z.ZodOptional<z.ZodString>;
-  docker: z.ZodPrefault<
-    z.ZodObject<{
-      enabled: z.ZodDefault<z.ZodBoolean>;
-      image: z.ZodOptional<z.ZodString>;
-    }>
-  >;
-  ports: z.ZodPrefault<
-    z.ZodObject<
-      {
-        default: z.ZodDefault<z.ZodNumber>;
-        production: z.ZodDefault<z.ZodNumber>;
-      },
-      z.core.$strict
-    >
-  >;
-  cdn: ProviderToggleSchema;
-  dns: ProviderToggleSchema;
-  paths: z.ZodPrefault<
-    z.ZodObject<{
-      install: z.ZodOptional<z.ZodString>;
-      data: z.ZodOptional<z.ZodString>;
-    }>
-  >;
-}>;
-
-// Deployment configuration schema
-// This consolidates all deployment settings that were previously in deploy.config.json
-export const deploymentConfigSchema: DeploymentConfigSchema = z.object({
-  // Server configuration
-  provider: z.enum(["hetzner", "docker"]).default("hetzner"),
-  serverSize: z.string().default("cx33"),
-  location: z.string().default("fsn1"),
-
-  // Domain
-  domain: z.string().optional(),
-
-  // Docker configuration
-  docker: z
-    .object({
-      enabled: z.boolean().default(true),
-      image: z.string().optional(), // defaults to app name
-    })
-    .prefault({}),
-
-  // Runtime production listener and deployment metadata
-  ports: z
-    .strictObject({
-      default: z.number().default(3333),
-      production: z.number().int().min(0).max(65535).default(8080),
-    })
-    .prefault({}),
-
-  // CDN configuration
-  cdn: z
-    .object({
-      enabled: z.boolean().default(false),
-      provider: z.enum(["bunny", "none"]).default("none"),
-    })
-    .prefault({}),
-
-  // DNS configuration
-  dns: z
-    .object({
-      enabled: z.boolean().default(false),
-      provider: z.enum(["bunny", "none"]).default("none"),
-    })
-    .prefault({}),
-
-  // Paths (with sensible defaults based on app name)
-  paths: z
-    .object({
-      install: z.string().optional(), // defaults to /opt/{app-name}
-      data: z.string().optional(), // defaults to /opt/{app-name}/data
-    })
-    .prefault({}),
-});
-
-export type DeploymentConfig = z.output<typeof deploymentConfigSchema>;
-export type DeploymentConfigInput = z.input<typeof deploymentConfigSchema>;
 
 import { httpConfigSchema } from "@brains/plugins/contracts/http-host";
 
