@@ -130,6 +130,7 @@ export type {
   ListOptions,
   SearchOptions,
   GetEntityRequest,
+  EntityReadOptions,
   GetEntityRawRequest,
   ProjectionOwnedEntityRequest,
   CreateEntityRequest,

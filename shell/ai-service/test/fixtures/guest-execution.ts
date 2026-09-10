@@ -11,6 +11,7 @@ export const testGuestExecution: GuestExecutionPolicy = {
     toolSteps: 3,
     toolCalls: 3,
     toolResultCharacters: 12000,
+    retrieval: { rows: 5, rowBytes: 12000, queryCharacters: 4000 },
     requestTimeoutSeconds: 90,
   },
   maxCostMicroUsd: 100000,

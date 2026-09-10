@@ -2,10 +2,12 @@ import type {
   BaseEntity,
   ContentVisibility,
   GetEntityRequest,
+  EntityReadOptions,
   ListEntitiesRequest,
 } from "./types";
 import { type Logger } from "@brains/utils/logger";
 import { slugify } from "@brains/utils/string-utils";
+import { entityReadBudgetSchema } from "@brains/contracts";
 
 export type ResolvedEntity =
   { ok: true; entity: BaseEntity } | { ok: false; error: string };
@@ -37,13 +39,29 @@ export async function findEntityByIdentifier(
   identifier: string,
   logger?: Logger,
   visibilityScope: ContentVisibility = "public",
+  options: EntityReadOptions = {},
 ): Promise<BaseEntity | null> {
+  const readOptions: EntityReadOptions = {
+    ...(options.readBudget !== undefined && {
+      readBudget: entityReadBudgetSchema.parse(options.readBudget),
+    }),
+    ...(options.signal && { signal: options.signal }),
+  };
   try {
+    readOptions.signal?.throwIfAborted();
+    if (
+      readOptions.readBudget &&
+      (identifier.length > readOptions.readBudget.queryCharacters ||
+        entityType.length > readOptions.readBudget.queryCharacters)
+    )
+      throw new Error("Entity lookup input limit exceeded");
     const byId = await entityService.getEntity({
       entityType,
       id: identifier,
       visibilityScope,
+      ...readOptions,
     });
+    readOptions.signal?.throwIfAborted();
     if (byId) return byId;
 
     const bySlug = await entityService.listEntities({
@@ -51,8 +69,10 @@ export async function findEntityByIdentifier(
       options: {
         limit: 1,
         filter: { metadata: { slug: identifier }, visibilityScope },
+        ...readOptions,
       },
     });
+    readOptions.signal?.throwIfAborted();
     if (bySlug[0]) return bySlug[0];
 
     const byTitle = await entityService.listEntities({
@@ -60,8 +80,10 @@ export async function findEntityByIdentifier(
       options: {
         limit: 1,
         filter: { metadata: { title: identifier }, visibilityScope },
+        ...readOptions,
       },
     });
+    readOptions.signal?.throwIfAborted();
     if (byTitle[0]) return byTitle[0];
 
     const bySlugifiedTitle = await entityService.listEntities({
@@ -69,14 +91,19 @@ export async function findEntityByIdentifier(
       options: {
         limit: 1,
         filter: { metadata: { title: slugify(identifier) }, visibilityScope },
+        ...readOptions,
       },
     });
+    readOptions.signal?.throwIfAborted();
     if (bySlugifiedTitle[0]) return bySlugifiedTitle[0];
 
+    // Bounded reads use exact identifiers only, not a 200-row fuzzy scan.
+    if (readOptions.readBudget) return null;
     const entities = await entityService.listEntities({
       entityType,
-      options: { limit: 200, filter: { visibilityScope } },
+      options: { limit: 200, filter: { visibilityScope }, ...readOptions },
     });
+    readOptions.signal?.throwIfAborted();
     const normalizedIdentifier = slugify(identifier);
     return (
       entities.find(
@@ -86,7 +113,7 @@ export async function findEntityByIdentifier(
       ) ?? null
     );
   } catch (error) {
-    if (logger) {
+    if (logger && !readOptions.readBudget) {
       logger.error(`Failed to find entity ${entityType}:${identifier}`, {
         error,
       });
@@ -112,6 +139,7 @@ export async function resolveEntityOrError(
   logger?: Logger,
   label = "Entity",
   visibilityScope: ContentVisibility = "public",
+  readOptions: EntityReadOptions = {},
 ): Promise<ResolvedEntity> {
   const entity = await findEntityByIdentifier(
     entityService,
@@ -119,6 +147,7 @@ export async function resolveEntityOrError(
     identifier,
     logger,
     visibilityScope,
+    readOptions,
   );
   if (!entity) {
     return {

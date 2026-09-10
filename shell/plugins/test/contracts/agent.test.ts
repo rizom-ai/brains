@@ -166,6 +166,7 @@ describe("public agent contracts", () => {
           toolSteps: 1,
           toolCalls: 1,
           toolResultCharacters: 100,
+          retrieval: { rows: 1, rowBytes: 100, queryCharacters: 100 },
           requestTimeoutSeconds: 1,
         },
       },

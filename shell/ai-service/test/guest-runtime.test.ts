@@ -396,9 +396,39 @@ describe("guest tool dispatch", () => {
       expect.objectContaining({
         userPermissionLevel: "public",
         isAnchor: false,
+        guestExecution: testGuestExecution,
+        signal: expect.any(AbortSignal),
       }),
     );
     expect(emit).not.toHaveBeenCalled();
+  });
+
+  it("does not lend handlers a mutable reference to the turn policy", async () => {
+    const budget = toolBudget();
+    const read = tool("system_get", {
+      handler: async (_input, context) => {
+        if (!context.guestExecution)
+          throw new Error("Expected execution policy");
+        expect(context.guestExecution).not.toBe(budget.policy);
+        context.guestExecution.limits.retrieval.rows = 100000;
+        context.guestExecution.limits.toolCalls = 100000;
+        return { success: true };
+      },
+    });
+    const tools = convertToSDKTools(
+      [read],
+      {
+        conversationId: conversation.id,
+        interfaceType: guestInterfaceType,
+        userPermissionLevel: "public",
+      },
+      { emit: mock(() => {}) },
+      budget,
+    );
+    const execute = tools["system_get"]?.execute;
+    if (!execute) throw new Error("Expected getter");
+    await execute({}, { toolCallId: "read", messages: [] });
+    expect(budget.policy).toEqual(testGuestExecution);
   });
 
   it("rechecks tool declarations at dispatch rather than relying only on initial filtering", () => {

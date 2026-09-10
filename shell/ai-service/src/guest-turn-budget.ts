@@ -55,6 +55,7 @@ export class GuestTurnBudget {
   readonly signal: AbortSignal;
   private readonly accounting: GuestExecutionAccounting;
   private readonly timer: ReturnType<typeof setTimeout>;
+  private readonly cancellation: AbortController;
   private remainingCost: number;
   private remainingOutput: number;
   private modelCalls = 0;
@@ -75,6 +76,7 @@ export class GuestTurnBudget {
     this.remainingCost = this.policy.maxCostMicroUsd;
     this.remainingOutput = this.policy.limits.outputTokens;
     const deadline = new AbortController();
+    this.cancellation = deadline;
     this.signal = signal
       ? AbortSignal.any([signal, deadline.signal])
       : deadline.signal;
@@ -87,6 +89,9 @@ export class GuestTurnBudget {
 
   dispose(): void {
     this.closed = true;
+    // Notify admitted work even when a sibling call ends the turn early.
+    // Abort is a request, never evidence that remote work has stopped.
+    this.cancellation.abort(new Error("Guest budget closed"));
     clearTimeout(this.timer);
   }
 

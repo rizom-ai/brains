@@ -369,6 +369,30 @@ describe("guest turn budget", () => {
     }
   });
 
+  it("requests cancellation on disposal without claiming that an active tool has stopped", async () => {
+    const budget = new GuestTurnBudget(testGuestExecution, testGuestAccounting);
+    const entered = deferred<void>();
+    const release = deferred<void>();
+    let settled = false;
+    const pending = budget
+      .executeTool("system_get", {}, async () => {
+        entered.resolve();
+        await release.promise;
+        return { success: true };
+      })
+      .catch(() => null)
+      .finally(() => {
+        settled = true;
+      });
+    await entered.promise;
+    budget.dispose();
+    expect(budget.signal.aborted).toBe(true);
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    release.resolve();
+    expect(await pending).toBeNull();
+  });
+
   it("does not permit new work after its budget is disposed", () => {
     const budget = new GuestTurnBudget(testGuestExecution, testGuestAccounting);
     budget.dispose();

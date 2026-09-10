@@ -18,6 +18,7 @@ export const testGuestPolicy: EnabledGuestPolicy = {
     userTurns: 20,
     toolSteps: 3,
     toolResultCharacters: 12000,
+    retrieval: { rows: 5, rowBytes: 12000, queryCharacters: 4000 },
     requestsPerMinute: 5,
     requestsPerDay: 20,
     globalRequestsPerMinute: 30,

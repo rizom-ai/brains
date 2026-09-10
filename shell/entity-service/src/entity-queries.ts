@@ -1,4 +1,7 @@
 import type { EntityDB } from "./db";
+import { entityReadBudgetSchema } from "@brains/contracts";
+import { entityRowBudgetCondition } from "./bounded-reads";
+import type { EntityReadOptions } from "./types";
 import type { EmbeddingDB } from "./db/embedding-db";
 import {
   getVisibleContentVisibilities,
@@ -55,6 +58,8 @@ const listOptionsSchema: z.ZodObject<{
     }>
   >;
   publishedOnly: z.ZodOptional<z.ZodBoolean>;
+  readBudget: z.ZodOptional<typeof entityReadBudgetSchema>;
+  signal: z.ZodOptional<z.ZodCustom<AbortSignal>>;
 }> = z.object({
   limit: z.number().int().positive().optional(),
   offset: z.number().int().min(0).optional().default(0),
@@ -67,6 +72,8 @@ const listOptionsSchema: z.ZodObject<{
     .optional(),
   /** Filter to only entities with metadata.status = "published" */
   publishedOnly: z.boolean().optional(),
+  readBudget: entityReadBudgetSchema.optional(),
+  signal: z.instanceof(AbortSignal).optional(),
 });
 
 type ListOptions = z.input<typeof listOptionsSchema>;
@@ -104,8 +111,21 @@ export class EntityQueries {
     entityType: string,
     id: string,
     visibilityScope?: ContentVisibility,
+    options: EntityReadOptions = {},
   ): Promise<EntityData | null> {
-    this.logger.debug(`Getting entity of type ${entityType} with ID ${id}`);
+    options.signal?.throwIfAborted();
+    const readBudget =
+      options.readBudget === undefined
+        ? undefined
+        : entityReadBudgetSchema.parse(options.readBudget);
+    if (
+      readBudget &&
+      (id.length > readBudget.queryCharacters ||
+        entityType.length > readBudget.queryCharacters)
+    )
+      throw new Error("Entity lookup input limit exceeded");
+    if (!readBudget)
+      this.logger.debug(`Getting entity of type ${entityType} with ID ${id}`);
 
     const scope: ContentVisibility = visibilityScope ?? "public";
     const conditions: SQL[] = [
@@ -118,14 +138,19 @@ export class EntityQueries {
       );
     }
 
+    if (readBudget) conditions.push(entityRowBudgetCondition(readBudget));
     const result = await this.db
       .select()
       .from(entities)
       .where(and(...conditions))
       .limit(1);
+    options.signal?.throwIfAborted();
 
     if (result.length === 0) {
-      this.logger.debug(`Entity of type ${entityType} with ID ${id} not found`);
+      if (!readBudget)
+        this.logger.debug(
+          `Entity of type ${entityType} with ID ${id} not found`,
+        );
       return null;
     }
 
@@ -146,12 +171,16 @@ export class EntityQueries {
     publishedStatuses?: string[],
   ): Promise<BaseEntity[]> {
     const validatedOptions = listOptionsSchema.parse(options);
-    const { limit, offset, sortFields, filter, publishedOnly } =
+    const { offset, sortFields, filter, publishedOnly, readBudget, signal } =
       validatedOptions;
-
-    this.logger.debug(
-      `Listing entities of type ${entityType} (limit: ${limit}, offset: ${offset}, filter: ${JSON.stringify(filter)}, publishedOnly: ${publishedOnly})`,
-    );
+    const limit = readBudget
+      ? Math.min(validatedOptions.limit ?? readBudget.rows, readBudget.rows)
+      : validatedOptions.limit;
+    signal?.throwIfAborted();
+    if (!readBudget)
+      this.logger.debug(
+        `Listing entities of type ${entityType} (limit: ${limit}, offset: ${offset}, filter: ${JSON.stringify(filter)}, publishedOnly: ${publishedOnly})`,
+      );
 
     const whereConditions = this.buildWhereConditions(
       entityType,
@@ -160,6 +189,7 @@ export class EntityQueries {
       filter?.visibilityScope,
       publishedStatuses,
     );
+    if (readBudget) whereConditions.push(entityRowBudgetCondition(readBudget));
     const orderByClauses = this.buildOrderByClauses(sortFields);
 
     const query = this.db
@@ -171,15 +201,19 @@ export class EntityQueries {
 
     const result = limit !== undefined ? await query.limit(limit) : await query;
 
+    signal?.throwIfAborted();
     // Convert from database format to entities
     const entityList = await this.serializer.convertToEntities(
       result.map(normalizeEntityRow),
       entityType,
+      readBudget === undefined,
     );
 
-    this.logger.debug(
-      `Listed ${entityList.length} entities of type ${entityType}`,
-    );
+    signal?.throwIfAborted();
+    if (!readBudget)
+      this.logger.debug(
+        `Listed ${entityList.length} entities of type ${entityType}`,
+      );
 
     return entityList;
   }

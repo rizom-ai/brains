@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { entityReadBudgetSchema } from "./entity-read";
 
 type Strict<Shape extends z.ZodRawShape> = z.ZodObject<Shape, z.core.$strict>;
 
@@ -11,6 +12,7 @@ export const guestExecutionLimitsSchema: Strict<{
   toolSteps: z.ZodNumber;
   toolCalls: z.ZodNumber;
   toolResultCharacters: z.ZodNumber;
+  retrieval: typeof entityReadBudgetSchema;
   requestTimeoutSeconds: z.ZodNumber;
 }> = z.strictObject({
   messageCharacters: z.number().int().positive(),
@@ -20,6 +22,7 @@ export const guestExecutionLimitsSchema: Strict<{
   toolSteps: z.number().int().positive(),
   toolCalls: z.number().int().positive(),
   toolResultCharacters: z.number().int().positive(),
+  retrieval: entityReadBudgetSchema,
   requestTimeoutSeconds: z.number().int().positive().max(2_147_483),
 });
 

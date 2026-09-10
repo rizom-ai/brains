@@ -623,22 +623,19 @@ export class EntityService implements IEntityService {
     request: GetEntityRequest,
     schema?: EntitySchema<BaseEntity>,
   ): Promise<BaseEntity | null> {
+    request.signal?.throwIfAborted();
     await this.initialize();
-    const { entityType, id, visibilityScope } = request;
-    const entity = await this.getEntityRaw({
-      entityType,
-      id,
-      visibilityScope,
-    });
+    const { entityType, visibilityScope } = request;
+    const entity = await this.getEntityRaw(request);
     if (!entity) {
       return null;
     }
 
-    const resolved = await this.resolveEntityContent(
-      entityType,
-      entity,
-      visibilityScope,
-    );
+    // Bounded evidence reads never expand entity image references into extra reads.
+    const resolved = request.readBudget
+      ? entity
+      : await this.resolveEntityContent(entityType, entity, visibilityScope);
+    request.signal?.throwIfAborted();
     return schema ? schema.parse(resolved) : resolved;
   }
 
@@ -671,18 +668,24 @@ export class EntityService implements IEntityService {
     request: GetEntityRawRequest,
     schema?: EntitySchema<BaseEntity>,
   ): Promise<BaseEntity | null> {
+    request.signal?.throwIfAborted();
     await this.initialize();
     const { entityType, id, visibilityScope } = request;
     const entityData = await this.entityQueries.getEntityData(
       entityType,
       id,
       visibilityScope,
+      request,
     );
     if (!entityData) {
       return null;
     }
 
-    const entity = await this.entitySerializer.convertToEntity(entityData);
+    const entity = await this.entitySerializer.convertToEntity(
+      entityData,
+      request.readBudget === undefined,
+    );
+    request.signal?.throwIfAborted();
     return entity && schema ? schema.parse(entity) : entity;
   }
 
@@ -697,6 +700,7 @@ export class EntityService implements IEntityService {
     request: ListEntitiesRequest,
     schema?: EntitySchema<BaseEntity>,
   ): Promise<BaseEntity[]> {
+    request.options?.signal?.throwIfAborted();
     await this.initialize();
     const { entityType, options } = request;
     const entities = await this.entityQueries.listEntities(
@@ -749,11 +753,13 @@ export class EntityService implements IEntityService {
     request: EntitySearchRequest,
     schema?: EntitySchema<BaseEntity>,
   ): Promise<SearchResult<BaseEntity>[]> {
+    request.options?.signal?.throwIfAborted();
     await this.initialize();
     const results = await this.entitySearch.search(
       request.query,
       request.options,
     );
+    request.options?.signal?.throwIfAborted();
     return schema
       ? results.map((result) => ({
           ...result,

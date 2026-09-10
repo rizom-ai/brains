@@ -209,6 +209,10 @@ export function convertToSDKTools(
             isAnchor: contextInfo.isAnchor,
           }),
           ...(guest && { userPermissionLevel: "public", isAnchor: false }),
+          ...(guest &&
+            guestBudget && {
+              guestExecution: structuredClone(guestBudget.policy),
+            }),
         };
         if (t.sideEffects !== "none") {
           if (t.sideEffects === "writes" || t.sideEffects === "external") {
