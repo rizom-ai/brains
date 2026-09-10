@@ -4,6 +4,7 @@ import type { AnyDashboardWidgetDefinition } from "../operator/operator-definiti
 import type { ProjectionRule } from "../entity/projection-rule";
 import type { AnyDataSourceDeclaration } from "./entity-data-source";
 import { z } from "@brains/utils/zod";
+import { assertCanonicalEntityMetadata } from "../entity/entity-schema";
 import { generateMarkdownWithFrontmatter } from "@brains/entity-service";
 import { parseMarkdown } from "@brains/utils/markdown";
 import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin";
@@ -110,6 +111,7 @@ export function defineEntity<
   if (!definition.purpose.trim()) {
     throw new Error(`Entity "${definition.type}" purpose must not be empty`);
   }
+  assertCanonicalEntityMetadata(definition);
   return Object.freeze({
     kind: "rizom-entity",
     ...definition,

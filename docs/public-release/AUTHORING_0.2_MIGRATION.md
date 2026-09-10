@@ -13,6 +13,18 @@ The stable `0.2` contract intentionally replaces the earlier alpha authoring sha
 | `PLUGIN_API_VERSION`                       | Use an explicit compatible peer dependency range                     |
 | `brain.yaml` `plugins.<id>.package`        | Import the definition in a brain package and compose it with `use()` |
 
+## Canonical entity metadata
+
+Metadata now rejects explicit value-rewriting schemas recursively, rather than
+accepting conversions that can fail or change values again on a later read.
+Move `.transform()`, `.preprocess()`, `.pipe()`, codecs, and overwrite checks
+(including string trim/case conversion) to tool/job/request input schemas or
+import decoders. Metadata validates the resulting stored shape. For example,
+convert a string priority in the tool input and declare `z.number()` in metadata;
+`z.coerce.number()` is also safe because it accepts its numeric output unchanged.
+Defaults must satisfy the canonical schema. Existing `metadataFrom` migrations
+remain explicit and must leave already-current records unchanged.
+
 ## Brain composition
 
 Replace string catalogs, constructors, tuples, and environment mappers with configured definition references:

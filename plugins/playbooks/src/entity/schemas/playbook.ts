@@ -148,15 +148,19 @@ type PlaybookMetadataSchema = z.ZodObject<{
   completionMode: z.ZodType<PlaybookCompletionMode, PlaybookCompletionMode>;
 }>;
 
+// Frontmatter/import parsing above removes blank optional text. Stored metadata
+// validates that canonical result without running the input preprocessor again.
+const canonicalOptionalTextSchema = z.string().regex(/\S/u).optional();
+
 export const playbookMetadataSchema: PlaybookMetadataSchema = z.object({
   title: z.string(),
   status: playbookStatusSchema,
   audience: playbookAudienceSchema,
-  trigger: optionalTextSchema.optional(),
-  lifecycle: optionalTextSchema.optional(),
+  trigger: canonicalOptionalTextSchema,
+  lifecycle: canonicalOptionalTextSchema,
   once: z.boolean().optional(),
-  starterText: optionalTextSchema.optional(),
-  description: optionalTextSchema.optional(),
-  starterPrompt: optionalTextSchema.optional(),
+  starterText: canonicalOptionalTextSchema,
+  description: canonicalOptionalTextSchema,
+  starterPrompt: canonicalOptionalTextSchema,
   completionMode: playbookCompletionModeSchema,
 });

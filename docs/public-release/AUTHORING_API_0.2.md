@@ -143,6 +143,14 @@ Every other export from this subpath remains an advanced consumer-backed alpha c
 
 ## `@rizom/brain/entities`
 
+Entity metadata schemas describe canonical stored values. Defaults and safe
+coercions are supported; refinements must be pure, and defaults must satisfy
+the canonical schema. Explicit rewriting pipelines, preprocessors, codecs,
+overwrite checks (including trim/case conversion), and success wrappers are
+rejected recursively at definition/registration. Normalize external input in
+tool/job/request schemas or import decoders instead. `metadataFrom` migrations
+must leave current metadata unchanged.
+
 Definitions and schema vocabulary:
 
 - `defineEntity`
@@ -439,6 +447,11 @@ contexts stay internal.
 names. Tools and jobs expose `localName`; their `name` remains runtime-scoped.
 `templateNames()` and `formatTemplate(name, value)` use local names. Unknown or
 ambiguous lookups throw with available names.
+
+`fetchResponse(method, path, init)` returns the full, unconsumed `Response`,
+including status and headers, after route authentication and schema validation.
+`fetch` runs the same pipeline but decodes JSON responses to data; use
+`fetchResponse` for protocol assertions, including explicit JSON responses.
 
 Tool calls enforce declared permissions and return success, error, or
 `{ ok: false, confirmation }` when approval is pending. Confirmation includes the
