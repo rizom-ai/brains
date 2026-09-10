@@ -430,6 +430,7 @@ export {
   type ServiceEntityIdPath,
   type ServiceJobDefinition,
   type ServiceJobHandlerContext,
+  type ServiceToolContext,
   type ServiceJobReference,
   type ServiceJobs,
   type ServiceLifecycle,
@@ -1156,10 +1157,14 @@ export {
 // builds several. Named consumer: @brains/a2a.
 export type {
   AnySubscriptionDefinition,
+  RequestContract,
   SubscriptionDefinition,
-  SubscriptionEntityReader,
   SubscriptionRequester,
 } from "./contracts/subscription";
+export type {
+  EntityAccess,
+  EntityReader,
+} from "./entity/entity-access-contract";
 
 // What a package delegated when it declared `publish`, and the access a
 // service that publishes on its behalf is given. See the registry's own docs.

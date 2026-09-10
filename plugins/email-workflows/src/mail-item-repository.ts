@@ -1,13 +1,13 @@
-import type { JobEntityAccess } from "@brains/sdk/entities";
-import { mailItemSchema } from "./entity/schemas/mail-item";
+import type { EntityAccess } from "@brains/sdk/entities";
+import { mailItemSchema, mailItemReference } from "./entity/schemas/mail-item";
 import type { MailItemProjection } from "./lib/mail-item-projection";
 import type { MailItemRepository } from "./triage-processor";
 
 /** Mail items as the triage job may touch them: read one, write one. */
 export class EntityMailItemRepository implements MailItemRepository {
-  private readonly entities: Pick<JobEntityAccess, "getEntity" | "create">;
+  private readonly entities: Pick<EntityAccess, "getEntity" | "create">;
 
-  constructor(entities: Pick<JobEntityAccess, "getEntity" | "create">) {
+  constructor(entities: Pick<EntityAccess, "getEntity" | "create">) {
     this.entities = entities;
   }
 
@@ -20,6 +20,6 @@ export class EntityMailItemRepository implements MailItemRepository {
   }
 
   async create(projection: MailItemProjection): Promise<void> {
-    await this.entities.create(projection);
+    await this.entities.create(mailItemReference, projection);
   }
 }

@@ -33,15 +33,15 @@ export function packageMatchesReleaseLane(
   return isSiteReleasePackage(name) === (lane === "site");
 }
 
-/** Classify the checked-out release revision from current and parent pre state. */
+/** Classify using durable graduation provenance for the current package version. */
 export function resolveReleaseWorkflowMode(
   currentPreMode: string | undefined,
-  previousPreMode: string | undefined,
+  matchesStableVersionCommit: boolean,
 ): ReleaseWorkflowMode {
   if (currentPreMode === "exit") {
     return "stable-exit";
   }
-  if (currentPreMode === undefined && previousPreMode === "exit") {
+  if (currentPreMode === undefined && matchesStableVersionCommit) {
     return "stable-version";
   }
   return "standard";

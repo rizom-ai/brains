@@ -8,6 +8,8 @@ import {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
   type BaseEntity,
+  type EntityAccess,
+  baseEntityParserSchema,
   type ContentVisibility,
 } from "@brains/sdk/entities";
 import type { LoggerContract } from "@brains/utils/logger";
@@ -26,13 +28,8 @@ export interface StarterIdentityStore {
     id: string;
     visibilityScope?: ContentVisibility;
   }): Promise<BaseEntity | null>;
-  create(entity: {
-    id: string;
-    entityType: string;
-    content: string;
-    metadata: Record<string, unknown>;
-  }): Promise<unknown>;
-  update(entity: BaseEntity): Promise<unknown>;
+  create(...args: Parameters<EntityAccess["create"]>): Promise<unknown>;
+  update(...args: Parameters<EntityAccess["update"]>): Promise<unknown>;
 }
 
 const rawFrontmatterSchema = z.record(z.string(), z.unknown());
@@ -324,16 +321,21 @@ async function persistIdentityEntity(
   content: string,
 ): Promise<"created" | "migrated"> {
   if (existing) {
-    await entityService.update({ ...existing, content });
+    await entityService.update(
+      { type: entityType, metadata: baseEntityParserSchema.shape.metadata },
+      { ...existing, content },
+    );
     return "migrated";
   }
 
-  await entityService.create({
-    id: entityType,
-    entityType,
-    content,
-    metadata: {},
-  });
+  await entityService.create(
+    { type: entityType, metadata: baseEntityParserSchema.shape.metadata },
+    {
+      id: entityType,
+      content,
+      metadata: {},
+    },
+  );
   return "created";
 }
 

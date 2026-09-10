@@ -1,4 +1,5 @@
 import { runCleanups } from "../internal/cleanup";
+import { readToolFailureCause } from "../internal/tool-diagnostics";
 import { SdkError } from "@brains/contracts";
 import { readServiceJobResult } from "../service/job-definition-runtime";
 import {
@@ -41,6 +42,7 @@ import type { AttachmentRegistrationNamespace } from "../service/attachment-regi
 import { createMockShell, type MockShell } from "./mock-shell";
 import { createReactionContext } from "../service/reaction-context";
 import { createJobEntityAccess } from "../job/job-entity-access";
+import type { JobEntityAccess } from "../job/job-context-contract";
 import type { EntityReactionContext } from "../entity/entity-definition-contract";
 import {
   createServicePluginContext,
@@ -308,6 +310,18 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     return createServicePluginContext(this.mockShell, pluginId);
   }
 
+  /** Native entity access for tests of setup helpers and native job handlers. */
+  getJobEntityAccess(
+    pluginId: string,
+    entityTypes?: Iterable<string>,
+  ): JobEntityAccess {
+    return createJobEntityAccess(
+      this.getEntityService(),
+      new Set(entityTypes ?? this.getEntityService().getEntityTypes()),
+      pluginId,
+    );
+  }
+
   /**
    * The context a declared check, inbox action or tool runs in.
    *
@@ -326,11 +340,7 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       packageName: pluginId.includes(":")
         ? pluginId.slice(0, pluginId.lastIndexOf(":"))
         : pluginId,
-      entities: createJobEntityAccess(
-        this.getEntityService(),
-        new Set(entityTypes ?? this.getEntityService().getEntityTypes()),
-        pluginId,
-      ),
+      entities: this.getJobEntityAccess(pluginId, entityTypes),
       logger: this.logger,
     });
   }
@@ -555,6 +565,11 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     }
 
     return this.callTool(tool, input, toolContext);
+  }
+
+  /** Original thrown value for this exact response, available only to tests. */
+  getToolFailureCause(response: ToolResponse): unknown {
+    return readToolFailureCause(response);
   }
 
   /** Apply the production tool permission rule before entering its handler. */

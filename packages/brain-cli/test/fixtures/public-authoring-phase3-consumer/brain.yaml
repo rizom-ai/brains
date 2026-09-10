@@ -1,5 +1,7 @@
 brain: "@rizom/service-brain-definition-fixture"
 bundles: [core]
 database: "file:./brain.db"
+# The service declares HTTP routes; let the OS choose an isolated test port.
+port: 0
 embedding:
   enabled: false

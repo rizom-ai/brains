@@ -5,7 +5,8 @@
   "description": "Plugin for AI-powered image generation and management",
   "dependencies": {
     "@brains/image": "workspace:*",
-    "@brains/sdk": "workspace:*"
+    "@brains/sdk": "workspace:*",
+    "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@brains/contracts": "workspace:*",

@@ -12,7 +12,10 @@ import type { z } from "@brains/utils/zod";
  */
 export interface EntityDefinitionShape {
   readonly type: string;
-  readonly metadata: z.ZodObject<z.ZodRawShape>;
+  readonly metadata: z.ZodType<
+    Record<string, unknown>,
+    Record<string, unknown>
+  >;
   /** Migrates stored metadata into the shape above, when one is declared. */
   readonly metadataFrom?: ((stored: unknown) => unknown) | undefined;
 }

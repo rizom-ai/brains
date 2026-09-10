@@ -15,6 +15,7 @@ import {
   defineJob,
   defineServicePlugin,
   defineTool,
+  frontmatterInContent,
   instantiatePluginPackageDefinition,
 } from "../src";
 
@@ -64,10 +65,14 @@ const poster = defineEntity({
   },
 });
 
+const titleMetadata = z.object({ title: z.string() });
 const notice = defineEntity({
   type: "notice",
   purpose: "Something a poster can be the cover of.",
-  metadata: z.object({ title: z.string() }),
+  metadata: titleMetadata,
+  markdown: frontmatterInContent((frontmatter) =>
+    titleMetadata.parse(frontmatter),
+  ),
   coverImage: true,
 });
 

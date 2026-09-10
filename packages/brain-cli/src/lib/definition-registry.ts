@@ -4,7 +4,7 @@ import {
   registerBrainDefinitionPackages,
   type BrainDefinition,
 } from "@brains/app";
-import type { BrainDefinition as DeclarativeBrainDefinition } from "@brains/app/contracts/brain-definition";
+import type { BrainDefinition as DeclarativeBrainDefinition } from "@brains/sdk";
 
 type LoadableBrainDefinition = BrainDefinition | DeclarativeBrainDefinition;
 

@@ -78,6 +78,11 @@ export const linkMetadataSchema: LinkMetadataSchema =
 
 export type LinkMetadata = z.output<typeof linkMetadataSchema>;
 
+export const linkEntityReference: Readonly<{
+  type: "link";
+  metadata: LinkMetadataSchema;
+}> = Object.freeze({ type: "link", metadata: linkMetadataSchema });
+
 /**
  * Link entity schema
  */
