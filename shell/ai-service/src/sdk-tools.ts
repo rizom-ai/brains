@@ -1,6 +1,7 @@
 import { dynamicTool, type ToolSet } from "ai";
 import { guestInterfaceType } from "@brains/contracts/chat";
 import { assertGuestPermission, isGuestToolAllowed } from "./guest-execution";
+import type { GuestTurnBudget } from "./guest-turn-budget";
 import {
   jsonValueSchema,
   type ActorRef,
@@ -153,6 +154,7 @@ export function convertToSDKTools(
   pluginTools: Tool[],
   contextInfo: ToolContextInfo,
   emitter: ToolEventEmitter,
+  guestBudget?: GuestTurnBudget,
 ): ToolSet {
   assertGuestPermission(contextInfo);
   const guest = contextInfo.interfaceType === guestInterfaceType;
@@ -181,6 +183,9 @@ export function convertToSDKTools(
       ) => {
         if (guest && !isGuestToolAllowed(t))
           throw new Error("Guest execution denied");
+        if (guest && !guestBudget)
+          throw new Error("Guest execution limits required");
+        const signal = guestBudget?.signal ?? options?.abortSignal;
         const context: ToolContext = {
           interfaceType: contextInfo.interfaceType,
           actor: contextInfo.actor ?? {
@@ -193,7 +198,7 @@ export function convertToSDKTools(
           conversationId: contextInfo.conversationId,
           ...(contextInfo.channelId && { channelId: contextInfo.channelId }),
           ...(options?.toolCallId && { toolCallId: options.toolCallId }),
-          ...(options?.abortSignal && { signal: options.abortSignal }),
+          ...(signal && { signal }),
           ...(contextInfo.channelName && {
             channelName: contextInfo.channelName,
           }),
@@ -213,12 +218,17 @@ export function convertToSDKTools(
         }
 
         const cacheKey = `${t.name}:${JSON.stringify(args)}`;
-        if (readCache.has(cacheKey)) {
+        if (!guest && readCache.has(cacheKey)) {
           return markCachedToolResult(readCache.get(cacheKey));
         }
         let result: unknown;
         try {
-          result = await t.handler(args, context);
+          result =
+            guest && guestBudget
+              ? await guestBudget.executeTool(t.name, args, () =>
+                  t.handler(args, context),
+                )
+              : await t.handler(args, context);
         } catch (error) {
           if (!guest) throw error;
           // Storage/provider exceptions may contain private internals or SQL parameters.
@@ -228,7 +238,7 @@ export function convertToSDKTools(
         if (guest && (!isPlainRecord(result) || result["success"] !== true)) {
           result = { success: false, error: "Public retrieval unavailable" };
         }
-        readCache.set(cacheKey, result);
+        if (!guest) readCache.set(cacheKey, result);
         return result;
       },
       contextInfo,

@@ -29,6 +29,7 @@ function toRuntimeChatContext(
     ...(context.actor && { actor: context.actor }),
     ...(context.source && { source: context.source }),
     ...(context.attachments && { attachments: context.attachments }),
+    ...(context.guestExecution && { guestExecution: context.guestExecution }),
   };
 }
 

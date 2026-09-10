@@ -153,6 +153,32 @@ describe("public agent contracts", () => {
       },
     ]);
     expect(signals).toEqual([controller.signal]);
+    const guestContext = ChatContextSchema.parse({
+      interfaceType: "web-chat-guest",
+      userPermissionLevel: "public",
+      guestExecution: {
+        maxCostMicroUsd: 100,
+        limits: {
+          messageCharacters: 100,
+          outputTokens: 10,
+          contextTokens: 100,
+          contextBytes: 1024,
+          toolSteps: 1,
+          toolCalls: 1,
+          toolResultCharacters: 100,
+          requestTimeoutSeconds: 1,
+        },
+      },
+    });
+    expect(guestContext.guestExecution?.maxCostMicroUsd).toBe(100);
+    await agent.chat(
+      "Public question",
+      "guest-conversation",
+      guestContext,
+      controller.signal,
+    );
+    expect(calls[1]).toEqual(guestContext);
+    expect(signals[1]).toBe(controller.signal);
   });
 
   it("maps runtime agent responses to the stable public contract", () => {

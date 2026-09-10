@@ -13,7 +13,12 @@ import {
   guestInstructions,
   guestModelMessages,
   isGuestToolAllowed,
+  requireGuestExecutionPolicy,
 } from "./guest-execution";
+import {
+  GuestTurnBudget,
+  type GuestExecutionAccounting,
+} from "./guest-turn-budget";
 import { toolConfirmationSchema, type Tool } from "@brains/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import {
@@ -21,6 +26,7 @@ import {
   type BrainAgent,
   type BrainAgentConfig,
   type BrainAgentFactory,
+  type BrainAgentResult,
   type BrainCallOptions,
 } from "./agent-types";
 import { resolveTextModelCapabilities } from "./provider-selection";
@@ -89,6 +95,8 @@ export interface BrainAgentFactoryOptions {
   reasoningEffort?: ReasoningEffort | undefined;
   /** Message bus for emitting tool invocation events */
   messageBus: IMessageBus;
+  /** Required for guests: verified model token/cost and retrieval cost accounting. */
+  guestAccounting?: GuestExecutionAccounting;
 }
 
 /**
@@ -126,96 +134,138 @@ export function createBrainAgentFactory(
       emitter,
     );
 
-    return new ToolLoopAgent({
-      model,
-      callOptionsSchema: brainCallOptionsSchema,
+    const createSDKAgent = (budget?: GuestTurnBudget): BrainAgent =>
+      new ToolLoopAgent({
+        model: budget ? budget.wrapModel(model) : model,
+        callOptionsSchema: brainCallOptionsSchema,
 
-      // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
-      prepareCall: ({ options: callOptions, ...settings }) => {
-        assertGuestPermission(callOptions);
-        const guest = callOptions.interfaceType === guestInterfaceType;
-        if (
-          guest &&
-          (callOptions.actor ||
-            callOptions.agentContextInstructions ||
-            callOptions.enableCreateUpload ||
-            callOptions.enableCreateTransform)
-        ) {
-          throw new Error("Guest execution denied");
-        }
-        // Get tools available for this permission level, unless this bounded
-        // model turn is intentionally text-only (for example, after executing
-        // an already-confirmed action).
-        const allowedTools = callOptions.disableTools
-          ? []
-          : filterToolsForCallOptions(
-              config.getToolsForPermission(callOptions.userPermissionLevel),
-              callOptions,
-            );
-        const allowedToolNames = allowedTools.map((t) => t.name);
+        // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
+        prepareCall: ({ options: callOptions, ...settings }) => {
+          assertGuestPermission(callOptions);
+          const guest = callOptions.interfaceType === guestInterfaceType;
+          if (
+            guest &&
+            (callOptions.actor ||
+              callOptions.agentContextInstructions ||
+              callOptions.enableCreateUpload ||
+              callOptions.enableCreateTransform)
+          ) {
+            throw new Error("Guest execution denied");
+          }
+          // Get tools available for this permission level, unless this bounded
+          // model turn is intentionally text-only (for example, after executing
+          // an already-confirmed action).
+          const allowedTools = callOptions.disableTools
+            ? []
+            : filterToolsForCallOptions(
+                config.getToolsForPermission(callOptions.userPermissionLevel),
+                callOptions,
+              );
+          const allowedToolNames = allowedTools.map((t) => t.name);
 
-        // Convert tools with proper context from call options
-        const toolsWithContext = convertToSDKTools(
-          allowedTools,
-          {
-            conversationId: callOptions.conversationId,
-            channelId: callOptions.channelId,
-            channelName: callOptions.channelName,
-            interfaceType: callOptions.interfaceType,
-            actor: callOptions.actor,
-            displayName: callOptions.displayName,
-            userPermissionLevel: callOptions.userPermissionLevel,
-            isAnchor: callOptions.isAnchor,
-            enableCreateUpload: callOptions.enableCreateUpload,
-            enableCreateTransform: callOptions.enableCreateTransform,
-          },
-          emitter,
-        );
+          // Convert tools with proper context from call options
+          const toolsWithContext = convertToSDKTools(
+            allowedTools,
+            {
+              conversationId: callOptions.conversationId,
+              channelId: callOptions.channelId,
+              channelName: callOptions.channelName,
+              interfaceType: callOptions.interfaceType,
+              actor: callOptions.actor,
+              displayName: callOptions.displayName,
+              userPermissionLevel: callOptions.userPermissionLevel,
+              isAnchor: callOptions.isAnchor,
+              enableCreateUpload: callOptions.enableCreateUpload,
+              enableCreateTransform: callOptions.enableCreateTransform,
+            },
+            emitter,
+            budget,
+          );
 
-        return {
-          ...settings,
-          ...(guest && {
-            messages: guestModelMessages(settings.messages),
-            allowSystemInMessages: false,
-            providerOptions: {},
-          }),
-          instructions: guest
-            ? guestInstructions
-            : buildInstructions(
-                config.identity,
-                callOptions.userPermissionLevel,
-                config.pluginInstructions,
-                config.profile,
-                config.agentInstructions,
-                callOptions.agentContextInstructions,
-                callOptions.isAnchor,
-              ),
-          tools: toolsWithContext,
-          activeTools: allowedToolNames,
-          // Provider options
-          ...(temperature !== undefined &&
-            capabilities.supportsTemperature && { temperature }),
-          ...(maxTokens !== undefined && { maxTokens }),
-          ...((capabilities.provider === "openai" &&
-          reasoningEffort !== undefined
-            ? true
-            : webSearch) &&
-            !guest && {
-              providerOptions: {
-                ...(capabilities.provider === "openai" &&
-                  reasoningEffort && {
-                    openai: { reasoningEffort },
-                  }),
-                ...(webSearch && {
-                  anthropic: { webSearch: true },
-                }),
-              },
+          return {
+            ...settings,
+            ...(guest && {
+              messages: guestModelMessages(settings.messages),
+              allowSystemInMessages: false,
+              providerOptions: {},
+              maxRetries: 0,
+              ...(budget
+                ? { maxOutputTokens: budget.policy.limits.outputTokens }
+                : {}),
             }),
-        };
-      },
+            instructions: guest
+              ? guestInstructions
+              : buildInstructions(
+                  config.identity,
+                  callOptions.userPermissionLevel,
+                  config.pluginInstructions,
+                  config.profile,
+                  config.agentInstructions,
+                  callOptions.agentContextInstructions,
+                  callOptions.isAnchor,
+                ),
+            tools: toolsWithContext,
+            activeTools: allowedToolNames,
+            // Provider options
+            ...(temperature !== undefined &&
+              capabilities.supportsTemperature && { temperature }),
+            ...(maxTokens !== undefined && { maxTokens }),
+            ...((capabilities.provider === "openai" &&
+            reasoningEffort !== undefined
+              ? true
+              : webSearch) &&
+              !guest && {
+                providerOptions: {
+                  ...(capabilities.provider === "openai" &&
+                    reasoningEffort && {
+                      openai: { reasoningEffort },
+                    }),
+                  ...(webSearch && {
+                    anthropic: { webSearch: true },
+                  }),
+                },
+              }),
+          };
+        },
 
-      tools: allTools,
-      stopWhen: [shouldStopToolLoop, stepCountIs(config.stepLimit ?? 10)],
-    });
+        tools: allTools,
+        stopWhen: [
+          shouldStopToolLoop,
+          stepCountIs(
+            budget?.policy.limits.toolSteps ?? config.stepLimit ?? 10,
+          ),
+          ...(budget ? [(): boolean => budget.exhausted()] : []),
+        ],
+      });
+    const authenticated = createSDKAgent();
+    return {
+      generate: async (params): Promise<BrainAgentResult> => {
+        assertGuestPermission(params.options);
+        const policy = requireGuestExecutionPolicy(params.options);
+        if (!policy) return authenticated.generate(params);
+        const last = guestModelMessages(params.messages).at(-1);
+        if (
+          last?.role !== "user" ||
+          typeof last.content !== "string" ||
+          !last.content.trim() ||
+          last.content.length > policy.limits.messageCharacters
+        )
+          throw new Error("Guest input limit exceeded");
+        const budget = new GuestTurnBudget(
+          policy,
+          options.guestAccounting,
+          params.abortSignal,
+        );
+        try {
+          return await createSDKAgent(budget).generate({
+            ...params,
+            abortSignal: budget.signal,
+          });
+        } finally {
+          // Completion, not SSE disconnection, ends the accounting lifetime.
+          budget.dispose();
+        }
+      },
+    };
   };
 }

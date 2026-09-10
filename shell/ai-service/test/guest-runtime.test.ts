@@ -4,6 +4,11 @@ import type {
   IAnchorProfileService,
 } from "@brains/identity-service";
 import { guestInterfaceType } from "@brains/contracts/chat";
+import {
+  testGuestExecution,
+  testGuestAccounting,
+} from "./fixtures/guest-execution";
+import { GuestTurnBudget } from "../src/guest-turn-budget";
 import { createMockMCPService } from "@brains/mcp-service/test";
 import type { Tool, IMCPService } from "@brains/mcp-service";
 import type {
@@ -25,6 +30,7 @@ import type {
 } from "../src/agent-types";
 
 const guestContext: ChatContext = {
+  guestExecution: testGuestExecution,
   interfaceType: guestInterfaceType,
   userPermissionLevel: "public",
   isAnchor: false,
@@ -58,7 +64,14 @@ function tool(name: string, overrides: Partial<Tool> = {}): Tool {
 }
 
 const services: AgentService[] = [];
+const budgets: GuestTurnBudget[] = [];
+function toolBudget(): GuestTurnBudget {
+  const budget = new GuestTurnBudget(testGuestExecution, testGuestAccounting);
+  budgets.push(budget);
+  return budget;
+}
 afterEach(async () => {
+  for (const budget of budgets.splice(0)) budget.dispose();
   await Promise.all(services.splice(0).map((service) => service.shutdown()));
 });
 
@@ -188,6 +201,36 @@ describe("guest runtime boundary", () => {
     expect(h.conversations.addMessage).not.toHaveBeenCalled();
   });
 
+  it("requires reserved runtime limits and rejects oversized input before storage writes", async () => {
+    const h = harness();
+    expect(
+      h.service.chat("hello", conversation.id, {
+        interfaceType: guestInterfaceType,
+        userPermissionLevel: "public",
+      }),
+    ).rejects.toThrow("Guest execution limits required");
+    expect(
+      h.service.chat(
+        "x".repeat(testGuestExecution.limits.messageCharacters + 1),
+        conversation.id,
+        guestContext,
+      ),
+    ).rejects.toThrow("Guest input limit exceeded");
+    expect(h.conversations.getMessages).not.toHaveBeenCalled();
+    expect(h.conversations.addMessage).not.toHaveBeenCalled();
+    expect(h.generate).not.toHaveBeenCalled();
+  });
+
+  it("surfaces failed guest execution as a failure rather than a successful error-text response", () => {
+    const h = harness();
+    h.generate.mockImplementationOnce(async () => {
+      throw new Error("PRIVATE execution details");
+    });
+    expect(
+      h.service.chat("Question", conversation.id, guestContext),
+    ).rejects.toThrow("Guest execution unavailable");
+  });
+
   it("never creates a missing guest conversation or reads an operator conversation", async () => {
     for (const stored of [
       null,
@@ -254,6 +297,9 @@ describe("guest runtime boundary", () => {
     const result = await h.service.chat("hello", conversation.id, guestContext);
     expect(result.text).toBe("Public answer");
     expect(h.generate).toHaveBeenCalledTimes(1);
+    expect(h.generate.mock.calls[0]?.[0].options.guestExecution).toEqual(
+      testGuestExecution,
+    );
     expect(h.conversations.startConversation).not.toHaveBeenCalled();
     expect(h.getCharacter).not.toHaveBeenCalled();
     expect(h.getProfile).not.toHaveBeenCalled();
@@ -339,6 +385,7 @@ describe("guest tool dispatch", () => {
         isAnchor: false,
       },
       { emit },
+      toolBudget(),
     );
     expect(Object.keys(tools)).toEqual(["system_search"]);
     const execute = tools["system_search"]?.execute;

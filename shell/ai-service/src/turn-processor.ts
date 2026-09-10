@@ -10,7 +10,11 @@
 
 import type { AgentContextItem } from "@brains/contracts";
 import { guestInterfaceType } from "@brains/contracts/chat";
-import { assertGuestPermission, isGuestToolAllowed } from "./guest-execution";
+import {
+  assertGuestPermission,
+  isGuestToolAllowed,
+  requireGuestExecutionPolicy,
+} from "./guest-execution";
 import { getErrorMessage } from "@brains/utils/error";
 import { type Logger } from "@brains/utils/logger";
 import type { IMCPService, ToolContext } from "@brains/mcp-service";
@@ -113,6 +117,13 @@ export class TurnProcessor {
     } = input;
     const guest = interfaceType === guestInterfaceType;
     assertGuestPermission(input);
+    const guestExecution = requireGuestExecutionPolicy(input);
+    if (
+      guestExecution &&
+      (!message.trim() ||
+        message.length > guestExecution.limits.messageCharacters)
+    )
+      throw new Error("Guest input limit exceeded");
     if (guest) {
       if (actor || source || attachments.length)
         throw new Error("Guest execution denied");
@@ -264,6 +275,7 @@ export class TurnProcessor {
       hasCurrentUploadAttachments || modelUploadRefs.length > 0;
     const callOptions = buildBrainCallOptions({
       hasAccessibleUploads,
+      guestExecution,
       userPermissionLevel,
       isAnchor,
       conversationId,

@@ -34,6 +34,10 @@ import type {
 import type { Tool } from "@brains/mcp-service";
 import type { ModelMessage } from "ai";
 import { z } from "@brains/utils/zod";
+import {
+  guestExecutionPolicySchema,
+  type GuestExecutionPolicy,
+} from "@brains/contracts/chat";
 
 /**
  * Schema for runtime call options
@@ -57,6 +61,7 @@ export const brainCallOptionsSchema: z.ZodObject<{
   enableCreateUpload: z.ZodOptional<z.ZodBoolean>;
   enableCreateTransform: z.ZodOptional<z.ZodBoolean>;
   hasPriorResponseCandidate: z.ZodOptional<z.ZodBoolean>;
+  guestExecution: z.ZodOptional<typeof guestExecutionPolicySchema>;
 }> = z.object({
   userPermissionLevel: z.enum(["admin", "trusted", "public"]),
   isAnchor: z.boolean().optional(),
@@ -71,6 +76,7 @@ export const brainCallOptionsSchema: z.ZodObject<{
   enableCreateUpload: z.boolean().optional(),
   enableCreateTransform: z.boolean().optional(),
   hasPriorResponseCandidate: z.boolean().optional(),
+  guestExecution: guestExecutionPolicySchema.optional(),
 });
 
 export type BrainCallOptions = z.infer<typeof brainCallOptionsSchema>;
@@ -202,6 +208,8 @@ export interface FileChatAttachment {
 export type ChatAttachment = TextChatAttachment | FileChatAttachment;
 
 export interface ChatContext {
+  /** Server-owned limits bound to the already-reserved guest execution. */
+  guestExecution?: GuestExecutionPolicy;
   userPermissionLevel?: UserPermissionLevel; // Defaults to "public" for safety
   /** Whether the authenticated caller is the brain's configured Anchor. */
   isAnchor?: boolean;

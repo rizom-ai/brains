@@ -8,6 +8,8 @@ export const testGuestPolicy: EnabledGuestPolicy = {
     messageCharacters: 4000,
     outputTokens: 1200,
     contextTokens: 8000,
+    contextBytes: 32000,
+    toolCalls: 3,
     userTurns: 20,
     toolSteps: 3,
     toolResultCharacters: 12000,

@@ -1,38 +1,30 @@
 import { z } from "@brains/utils/zod";
+import { guestExecutionLimitsSchema } from "@brains/contracts/chat";
 
 const positiveInteger = z.number().int().positive();
 const positiveAmount = z.number().positive();
 
 type Strict<Shape extends z.ZodRawShape> = z.ZodObject<Shape, z.core.$strict>;
 
-const limitsSchema: Strict<{
-  messageCharacters: z.ZodNumber;
-  outputTokens: z.ZodNumber;
-  contextTokens: z.ZodNumber;
-  userTurns: z.ZodNumber;
-  toolSteps: z.ZodNumber;
-  toolResultCharacters: z.ZodNumber;
-  requestsPerMinute: z.ZodNumber;
-  requestsPerDay: z.ZodNumber;
-  globalRequestsPerMinute: z.ZodNumber;
-  globalRequestsPerDay: z.ZodNumber;
-  globalConcurrency: z.ZodNumber;
-  requestTimeoutSeconds: z.ZodNumber;
-  streamIdleTimeoutSeconds: z.ZodNumber;
-}> = z
+const limitsSchema: Strict<
+  typeof guestExecutionLimitsSchema.shape & {
+    userTurns: z.ZodNumber;
+    requestsPerMinute: z.ZodNumber;
+    requestsPerDay: z.ZodNumber;
+    globalRequestsPerMinute: z.ZodNumber;
+    globalRequestsPerDay: z.ZodNumber;
+    globalConcurrency: z.ZodNumber;
+    streamIdleTimeoutSeconds: z.ZodNumber;
+  }
+> = z
   .strictObject({
-    messageCharacters: positiveInteger,
-    outputTokens: positiveInteger,
-    contextTokens: positiveInteger,
+    ...guestExecutionLimitsSchema.shape,
     userTurns: positiveInteger,
-    toolSteps: positiveInteger,
-    toolResultCharacters: positiveInteger,
     requestsPerMinute: positiveInteger,
     requestsPerDay: positiveInteger,
     globalRequestsPerMinute: positiveInteger,
     globalRequestsPerDay: positiveInteger,
     globalConcurrency: positiveInteger,
-    requestTimeoutSeconds: positiveInteger,
     streamIdleTimeoutSeconds: positiveInteger,
   })
   .refine(

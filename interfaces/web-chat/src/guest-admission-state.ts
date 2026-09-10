@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import type { GuestExecutionPolicy } from "@brains/contracts/chat";
 
 type Strict<Shape extends z.ZodRawShape> = z.ZodObject<Shape, z.core.$strict>;
 const integer = z.number().int().nonnegative();
@@ -66,6 +67,7 @@ export type GuestAdmissionState = z.output<typeof guestAdmissionStateSchema>;
 export interface GuestExecutionLease {
   key: string;
   id: string;
+  execution: GuestExecutionPolicy;
 }
 
 export type GuestAdmissionDenial =

@@ -1,4 +1,8 @@
-import { guestInterfaceType } from "@brains/contracts/chat";
+import {
+  guestInterfaceType,
+  guestExecutionPolicySchema,
+  type GuestExecutionPolicy,
+} from "@brains/contracts/chat";
 import type { BrainCharacter } from "@brains/identity-service";
 import type { ModelMessage } from "ai";
 import type { Tool } from "@brains/mcp-service";
@@ -27,6 +31,19 @@ export function assertGuestPermission(
   ) {
     throw new Error("Guest execution denied");
   }
+}
+
+export function requireGuestExecutionPolicy(
+  context: Pick<BrainCallOptions, "interfaceType" | "guestExecution">,
+): GuestExecutionPolicy | undefined {
+  if (context.interfaceType !== guestInterfaceType) {
+    if (context.guestExecution !== undefined)
+      throw new Error("Guest execution scope mismatch");
+    return undefined;
+  }
+  const parsed = guestExecutionPolicySchema.safeParse(context.guestExecution);
+  if (!parsed.success) throw new Error("Guest execution limits required");
+  return parsed.data;
 }
 
 /** Guest history is server-owned text, never system/tool instructions or remote files. */

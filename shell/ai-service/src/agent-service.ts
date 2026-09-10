@@ -5,6 +5,7 @@ import {
   assertGuestPermission,
   guestBrainIdentity,
   isGuestToolAllowed,
+  requireGuestExecutionPolicy,
 } from "./guest-execution";
 import type { AgentConversationStore } from "./turn-processor";
 import { parseConfirmationResponse } from "@brains/utils/confirmation-response";
@@ -266,6 +267,21 @@ export class AgentService implements IAgentService {
     ) {
       throw new Error("Guest execution denied");
     }
+    const guestExecution = requireGuestExecutionPolicy({
+      interfaceType,
+      guestExecution: context?.guestExecution,
+    });
+    if (guestExecution) {
+      if (
+        !message.trim() ||
+        message.length > guestExecution.limits.messageCharacters
+      )
+        throw new Error("Guest input limit exceeded");
+      const deadline = AbortSignal.timeout(
+        guestExecution.limits.requestTimeoutSeconds * 1000,
+      );
+      signal = signal ? AbortSignal.any([signal, deadline]) : deadline;
+    }
     const conversation =
       await this.conversationService.getConversation(conversationId);
     if (
@@ -369,6 +385,7 @@ export class AgentService implements IAgentService {
           actor: context?.actor ?? null,
           source: context?.source ?? null,
           attachments: context?.attachments ?? [],
+          ...(guestExecution ? { guestExecution } : {}),
           signal: operationSignal,
         });
 
@@ -377,6 +394,8 @@ export class AgentService implements IAgentService {
           (s) => s.matches("idle") || s.matches("awaitingConfirmation"),
         );
         operationSignal.throwIfAborted();
+        if (guestExecution && snapshot.context.error)
+          throw new Error("Guest execution unavailable");
 
         return (
           snapshot.context.response ?? {

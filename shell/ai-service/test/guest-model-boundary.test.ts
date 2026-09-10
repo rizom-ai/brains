@@ -1,6 +1,12 @@
 import { describe, expect, it, mock } from "bun:test";
 import { MockLanguageModelV3 } from "ai/test";
+import { APICallError } from "ai";
+import type { GuestExecutionAccounting } from "../src/guest-turn-budget";
 import { guestInterfaceType } from "@brains/contracts/chat";
+import {
+  testGuestExecution,
+  testGuestAccounting,
+} from "./fixtures/guest-execution";
 import { createMockMessageBus } from "@brains/messaging-service/test";
 import type { Tool } from "@brains/mcp-service";
 import { createBrainAgentFactory } from "../src/brain-agent";
@@ -18,11 +24,16 @@ function readTool(overrides: Partial<Tool> = {}): Tool {
   };
 }
 
-function createAgent(model: MockLanguageModelV3, tools: Tool[]): BrainAgent {
+function createAgent(
+  model: MockLanguageModelV3,
+  tools: Tool[],
+  accounting: GuestExecutionAccounting | null = testGuestAccounting,
+): BrainAgent {
   return createBrainAgentFactory({
     model,
     modelId: "claude-sonnet-4-6",
     webSearch: true,
+    ...(accounting ? { guestAccounting: accounting } : {}),
     messageBus: createMockMessageBus(),
   })({
     identity: {
@@ -41,6 +52,7 @@ function createAgent(model: MockLanguageModelV3, tools: Tool[]): BrainAgent {
 }
 
 const options: BrainCallOptions = {
+  guestExecution: testGuestExecution,
   interfaceType: guestInterfaceType,
   userPermissionLevel: "public",
   isAnchor: false,
@@ -67,6 +79,51 @@ function usage(): ModelResponse["usage"] {
 }
 
 describe("guest provider boundary (real SDK, mocked provider)", () => {
+  it("denies missing accounting and oversized visitor input before any provider request", () => {
+    const model = new MockLanguageModelV3();
+    expect(
+      createAgent(model, [], null).generate({
+        messages: [{ role: "user", content: "Question" }],
+        options,
+      }),
+    ).rejects.toThrow("Guest accounting unavailable");
+    expect(
+      createAgent(model, []).generate({
+        messages: [
+          {
+            role: "user",
+            content: "x".repeat(
+              testGuestExecution.limits.messageCharacters + 1,
+            ),
+          },
+        ],
+        options,
+      }),
+    ).rejects.toThrow("Guest input limit exceeded");
+    expect(model.doGenerateCalls).toHaveLength(0);
+  });
+
+  it("does not retry provider failures or expose their private details", () => {
+    const model = new MockLanguageModelV3({
+      doGenerate: async (): Promise<never> => {
+        throw new APICallError({
+          message: "PRIVATE provider details",
+          url: "https://provider.test",
+          requestBodyValues: {},
+          statusCode: 503,
+          isRetryable: true,
+        });
+      },
+    });
+    expect(
+      createAgent(model, []).generate({
+        messages: [{ role: "user", content: "Question" }],
+        options,
+      }),
+    ).rejects.toThrow("Guest provider unavailable");
+    expect(model.doGenerateCalls).toHaveLength(1);
+  });
+
   it("excludes private instructions and provider web search from the actual model request", async () => {
     const model = new MockLanguageModelV3({
       doGenerate: {

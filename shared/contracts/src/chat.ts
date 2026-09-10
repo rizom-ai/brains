@@ -1,6 +1,12 @@
 import { z } from "@brains/utils/zod";
 import { agentEventActionSchema, type AgentEventAction } from "./agent-action";
 
+export {
+  guestExecutionLimitsSchema,
+  guestExecutionPolicySchema,
+  type GuestExecutionPolicy,
+} from "./guest-execution";
+
 export const CHAT_API_VERSION = 1 as const;
 export const DEFAULT_CHAT_API_PATH = "/api/chat" as const;
 /** Server-owned conversation scope; never derive it from browser role claims. */

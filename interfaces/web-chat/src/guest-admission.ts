@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from "node:crypto";
+import { guestExecutionLimitsSchema } from "@brains/contracts/chat";
 import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
@@ -206,7 +207,19 @@ export class GuestAdmission {
         state: "active",
       };
       return {
-        result: { kind: "reserved", lease: { key, id } },
+        result: {
+          kind: "reserved",
+          lease: {
+            key,
+            id,
+            execution: {
+              limits: guestExecutionLimitsSchema
+                .strip()
+                .parse(this.policy.limits),
+              maxCostMicroUsd: this.turnCost,
+            },
+          },
+        },
         next: {
           ...state,
           receipts: { ...this.retained(state, now), [key]: receipt },

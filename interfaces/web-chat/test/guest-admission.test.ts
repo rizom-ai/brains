@@ -85,6 +85,13 @@ describe("guest admission", () => {
     const admitted = results.find((entry) => entry.kind === "reserved");
     const first = admissions[0];
     if (!admitted || !first) throw new Error("Expected an execution lease");
+    expect(admitted.lease.execution).toMatchObject({
+      maxCostMicroUsd: 100000,
+      limits: { contextBytes: 32000, toolCalls: 3 },
+    });
+    expect(admitted.lease.execution.limits).not.toHaveProperty(
+      "globalConcurrency",
+    );
     expect(await first.settle(admitted.lease, "completed")).toBe(true);
     expect(
       await first.reserve(owner, chat, "same-submission", "hello"),
@@ -327,6 +334,7 @@ describe("guest admission", () => {
           budget: { dailyUsd: 1e20, maxTurnUsd: 1 },
         }),
     ).toThrow("Guest budget is not representable safely");
+    expect(first.lease.execution.maxCostMicroUsd).toBe(1);
   });
 
   it("enforces conversation turn limits independently of request windows", async () => {
