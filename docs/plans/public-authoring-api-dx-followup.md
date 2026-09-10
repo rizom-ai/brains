@@ -2085,3 +2085,34 @@ tests running through the public testing entry in the packed consumer. Phase 6
 is done when they pass with none of the workarounds this section names. The
 rule from Phase 5 then applies again: a further change needs a further
 demonstrated failure.
+
+### Post-acceptance DX corrections
+
+A fresh independent packed consumer demonstrated three further failures after
+that acceptance: the literal guide package lacked enabled Node ambient types,
+metadata conversions could be reapplied to stored output, and the HTTP test
+facade discarded JSON response status/headers. The chosen correction keeps
+metadata canonical rather than introducing a second storage/output contract.
+
+- [x] Check and declaration-build the guide's actual package/compiler settings
+      outside the workspace, changing only the local tarball path. Supply and enable
+      Node ambient types explicitly for TypeScript 7.
+- [x] Reject explicit metadata rewriting recursively at definition/registration,
+      including nested pipelines, preprocessors, codecs, and overwrite checks.
+      Defaults and safe coercions remain supported; input normalization stays at
+      tool/job/request or import boundaries. Skill, Playbook, and Email Reply Draft
+      schemas now separate those responsibilities without compatibility shims.
+- [x] Validate metadata once per definition-typed parse. Exercise real SQLite
+      create, reopen, read, and update using the production adapter and migrations.
+- [x] Make the public harness validate before storage, matching production's
+      materialization of defaults and coercions. A generated default remains stable
+      across repeated reads. Correct two generation fixtures to declare the metadata
+      fields their assertions depend on instead of relying on invalid writes.
+- [x] Expose `fetchResponse()` for full, unconsumed HTTP responses through the
+      same authentication and schema-validation pipeline. Keep `fetch()` as the
+      distinct JSON-data convenience, and correct its and `templateNames()`'s docs.
+- [x] Strict typechecks, repository tests, and all seven packed scenarios pass;
+      the packed suite includes the isolated guide and all 44 public harness tests.
+
+These are local corrections, not new registry or credentialed release evidence.
+The stopping rule still applies; no further abstraction cleanup is implied.

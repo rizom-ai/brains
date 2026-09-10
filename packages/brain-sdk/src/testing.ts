@@ -144,9 +144,10 @@ export interface BrainTestHarness {
   /**
    * Make a request against what the installed packages serve.
    *
-   * The route answers as it would in a running brain: its own security is
-   * applied, its body and response are validated, and what comes back is the
-   * parsed answer — or a `Response`, for a route that writes one itself.
+   * Security and body/response validation run as in a running brain. JSON
+   * responses are decoded to data, including explicit protocol responses;
+   * other content types return a `Response`. Use `fetchResponse` to inspect
+   * status, headers, and the unconsumed body regardless of content type.
    * A path nothing serves throws, rather than looking like an empty answer.
    */
   fetch(
@@ -157,9 +158,15 @@ export interface BrainTestHarness {
       readonly headers?: Record<string, string> | undefined;
     },
   ): Promise<unknown>;
+  /** Run the same route pipeline and return its full, unconsumed HTTP response. */
+  fetchResponse(
+    method: string,
+    path: string,
+    init?: Parameters<BrainTestHarness["fetch"]>[2],
+  ): Promise<Response>;
   /** Validate a value and format it with a registered text template. */
   formatTemplate(name: string, value: unknown): string;
-  /** The scoped names of every template registered so far. */
+  /** The local names of every template registered so far. */
   templateNames(): readonly string[];
   /** Tear down what the test installed. */
   reset(): Promise<void>;
@@ -203,6 +210,35 @@ export function createBrainTestHarness(
   // one, so what each installs is kept as it is installed.
   const installedRoutes: WebRouteDefinition[] = [];
   const installedPluginIds = new Set<string>();
+  const fetchResponse: BrainTestHarness["fetchResponse"] = async (
+    method,
+    path,
+    init,
+  ) => {
+    const url = new URL(path, "https://test.brain");
+    const route = matchHttpRoute(
+      installedRoutes.filter(
+        (candidate) => (candidate.method ?? "GET") === method.toUpperCase(),
+      ),
+      url.pathname,
+      (candidate) => candidate,
+    );
+    if (!route) throw new Error(`Nothing serves ${method} ${path}`);
+    return route.handler(
+      new Request(url, {
+        method,
+        headers: {
+          ...(init?.body === undefined
+            ? {}
+            : { "content-type": "application/json" }),
+          ...(init?.headers ?? {}),
+        },
+        ...(init?.body === undefined
+          ? {}
+          : { body: JSON.stringify(init.body) }),
+      }),
+    );
+  };
   const localTemplates = (): Array<{ localName: string; template: Template }> =>
     [...harness.getTemplates()].map(([name, template]) => {
       const owner = [...installedPluginIds].find((id) =>
@@ -334,32 +370,9 @@ export function createBrainTestHarness(
         .getEntity({ entityType, id });
       return entity ? { ...entity } : null;
     },
+    fetchResponse,
     fetch: async (method, path, init): Promise<unknown> => {
-      const url = new URL(path, "https://test.brain");
-      const route = matchHttpRoute(
-        installedRoutes.filter(
-          (candidate) => (candidate.method ?? "GET") === method.toUpperCase(),
-        ),
-        url.pathname,
-        (candidate) => candidate,
-      );
-      if (!route) {
-        throw new Error(`Nothing serves ${method} ${path}`);
-      }
-      const response = await route.handler(
-        new Request(url, {
-          method,
-          headers: {
-            ...(init?.body === undefined
-              ? {}
-              : { "content-type": "application/json" }),
-            ...(init?.headers ?? {}),
-          },
-          ...(init?.body === undefined
-            ? {}
-            : { body: JSON.stringify(init.body) }),
-        }),
-      );
+      const response = await fetchResponse(method, path, init);
       const contentType = response.headers.get("content-type") ?? "";
       if (!contentType.includes("application/json")) return response;
       return response.json();

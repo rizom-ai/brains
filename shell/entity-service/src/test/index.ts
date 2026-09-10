@@ -6,6 +6,8 @@
  * tests importing it back would close a loop turbo cannot schedule.
  */
 export { createTestEntity, createTestEntities } from "./fixtures";
+// Integration consumers use the same persisted schema as the runtime.
+export { migrateEntities } from "../migrate";
 export {
   createMockDataSourceRegistry,
   type MockDataSourceRegistryOptions,
