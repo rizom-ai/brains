@@ -335,14 +335,17 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         contentHash: computeContentHash(entity.content),
       };
     }
-    const markdown = adapter.toMarkdown(entity);
+    // Production validates before serialization. Persist defaults/coercions
+    // now rather than regenerating or applying them only on author reads.
+    const normalized = adapter.schema.parse(entity);
+    const markdown = adapter.toMarkdown(normalized);
     const decoded =
       typeof adapter.fromMarkdown === "function"
         ? adapter.fromMarkdown(markdown)
         : {};
     return {
       content: decoded.content ?? markdown,
-      metadata: adapter.extractMetadata(entity),
+      metadata: adapter.extractMetadata(normalized),
       contentHash: computeContentHash(markdown),
     };
   };

@@ -12,6 +12,7 @@ import {
   type ServiceBatchStatus,
   sdkErrorCodeSchema,
   sdkErrorSchema,
+  verbatim,
   z,
 } from "@brains/sdk/services";
 import {
@@ -577,6 +578,158 @@ describe("the public testing harness", () => {
       });
     } finally {
       await harness.reset();
+    }
+  });
+
+  it("exposes full HTTP responses without consuming JSON status, headers, or bodies", async () => {
+    const harness = createBrainTestHarness();
+    try {
+      await harness.installPackage(
+        defineServicePlugin(
+          { id: "http-probe", config: z.object({}) },
+          {
+            routes: () => [
+              ...[201, 202].map((status) =>
+                defineRoute({
+                  method: "POST",
+                  path: `/status/${status}`,
+                  security: { kind: "public" },
+                  body: z.object({ id: z.string() }),
+                  response: verbatim,
+                  handle: ({ body, request }) =>
+                    Response.json(body, {
+                      status,
+                      headers: {
+                        "X-Probe": request.headers.get("X-Probe") ?? "missing",
+                      },
+                    }),
+                }),
+              ),
+              defineRoute({
+                method: "GET",
+                path: "/private",
+                response: z.object({ ok: z.boolean() }),
+                security: { kind: "protocol", authenticate: () => null },
+                handle: () => ({ ok: true }),
+              }),
+            ],
+          },
+        ),
+      );
+      for (const status of [201, 202]) {
+        const response = await harness.fetchResponse(
+          "POST",
+          `/status/${status}`,
+          {
+            body: { id: "same" },
+            headers: { "X-Probe": String(status) },
+          },
+        );
+        expect(response).toBeInstanceOf(Response);
+        expect(response.status).toBe(status);
+        expect(response.headers.get("X-Probe")).toBe(String(status));
+        expect(response.bodyUsed).toBe(false);
+        expect(await response.json()).toEqual({ id: "same" });
+      }
+      expect(
+        await harness.fetch("POST", "/status/201", { body: { id: "same" } }),
+      ).toEqual({ id: "same" });
+      expect(
+        (await harness.fetchResponse("POST", "/status/201", { body: {} }))
+          .status,
+      ).toBe(400);
+      expect((await harness.fetchResponse("GET", "/private")).status).toBe(401);
+      await expectRejection(
+        harness.fetchResponse("GET", "/missing"),
+        "Nothing serves",
+      );
+    } finally {
+      await harness.reset();
+    }
+    await expectRejection(
+      harness.fetchResponse("POST", "/status/201"),
+      "Nothing serves",
+    );
+  });
+
+  it("stores canonical metadata and materializes defaults once before author reads", async () => {
+    let defaults = 0;
+    const entity = defineEntity({
+      type: "canonical",
+      purpose: "Canonical storage",
+      metadata: z.object({
+        priority: z.coerce.number(),
+        token: z.string().default(() => `token-${++defaults}`),
+      }),
+    });
+    const harness = createBrainTestHarness();
+    try {
+      const installed = await harness.installPackage(
+        defineServicePlugin(
+          { id: "canonical-service", config: z.object({}), entities: [entity] },
+          {
+            tools: () => [
+              defineTool({
+                name: "write",
+                description: "Store canonical metadata",
+                input: z.object({}),
+                output: z.object({ id: z.string() }),
+                execute: ({ entities }) =>
+                  entities.create(entity, {
+                    id: "one",
+                    content: "Body",
+                    metadata: { priority: "3" },
+                  }),
+              }),
+              defineTool({
+                name: "read",
+                description: "Read canonical metadata",
+                input: z.object({}),
+                output: z.object({ priority: z.number(), token: z.string() }),
+                execute: async ({ entities }) => {
+                  const found = await entities.get(entity, "one");
+                  if (!found) throw new Error("Missing canonical entity");
+                  return found.metadata;
+                },
+              }),
+            ],
+          },
+        ),
+      );
+      expect(await installed.tool("write").call({})).toEqual({
+        ok: true,
+        data: { id: "one" },
+      });
+      expect(await harness.getEntity(entity.type, "one")).toMatchObject({
+        metadata: { priority: 3, token: "token-1" },
+      });
+      for (let attempt = 0; attempt < 2; attempt++) {
+        expect(await installed.tool("read").call({})).toEqual({
+          ok: true,
+          data: { priority: 3, token: "token-1" },
+        });
+      }
+      expect(defaults).toBe(1);
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("rejects metadata conversion pipelines at declaration, not on a later read", () => {
+    for (const value of [
+      z.string().transform(Number),
+      z.string().pipe(z.coerce.number()),
+      z.preprocess(Number, z.number()),
+      z.string().overwrite((text) => `prefix:${text}`),
+      z.array(z.string().transform((text) => `prefix:${text}`)).optional(),
+    ]) {
+      expect(() =>
+        defineEntity({
+          type: "bad",
+          purpose: "Invalid metadata",
+          metadata: z.object({ value }),
+        }),
+      ).toThrow('Entity "bad" metadata.value');
     }
   });
 

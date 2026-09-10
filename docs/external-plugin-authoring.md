@@ -74,6 +74,20 @@ eligible **shell-owned** type, such as profile singletons. It does not register 
 type or grant permission to write another plugin's type. Only one service may
 claim stewardship; unsupported or conflicting claims fail registration.
 
+Entity `metadata` describes canonical **stored values**, not an input conversion
+pipeline. For example, a tool input may convert a priority string to a number;
+the entity metadata then declares `priority: z.number()`. Defaults and safe
+coercions such as `z.coerce.number()` are supported: their output can be read and
+validated again without changing meaning. Default values must satisfy the
+canonical schema, and refinements must be pure validation.
+
+`defineEntity()` rejects transformations nested anywhere in metadata, including
+`.transform()`, `.preprocess()`, `.pipe()`, codecs, `.overwrite()`, and string
+trim/case-conversion checks. Move these to tool/job/request input schemas or an
+explicit import decoder. This conservative rule does not try to guess whether
+an arbitrary callback is idempotent. Declared `metadataFrom` migrations remain
+separate and must leave already-current metadata unchanged.
+
 Tools, service jobs, and subscriptions use the same `entities` API:
 
 - `get(reminder, id)`, `list(reminder, options)`, and `search(reminder, query, options)` infer metadata from the definition. `get` returns `null` when absent.
@@ -138,6 +152,7 @@ calendar-plugin/
   },
   "devDependencies": {
     "@rizom/brain": "file:../rizom-brain.tgz",
+    "@types/node": "^24.13.3",
     "typescript": "^7.0.2"
   }
 }
@@ -163,6 +178,7 @@ alpha floors or claim stable `0.2.x` support before nomination.
     "moduleResolution": "bundler",
     "target": "ES2022",
     "lib": ["ES2022", "DOM"],
+    "types": ["node"],
     "declaration": true,
     "rootDir": "src",
     "outDir": "dist"
@@ -514,7 +530,12 @@ retries, deadlines, or terminal hooks. `harness.templateNames()` lists local
 names; `harness.formatTemplate("due-list", value)` validates and formats the
 unique matching text template. Give templates distinct local names when testing
 multiple packages in one harness. Missing or ambiguous names throw rather than
-selecting an arbitrary template. Meanwhile, `harness.fetch()` exercises declared routes with their authentication and schema validation.
+selecting an arbitrary template. Both `harness.fetch()` and
+`harness.fetchResponse()` exercise declared routes with their authentication and
+schema validation. `fetch()` decodes JSON responses to data (including JSON
+returned explicitly by a protocol route). Use `fetchResponse()` for an
+unconsumed standard `Response` so you can assert status codes, headers, cookies,
+and bodies regardless of content type.
 The harness hands back names and answers rather than runtime objects, which is
 why nothing here imports `@brains/*`.
 

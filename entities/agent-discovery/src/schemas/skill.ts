@@ -41,7 +41,21 @@ export type SkillFrontmatter = z.infer<typeof skillFrontmatterSchema>;
  * Same shape as SkillData so the A2A interface can read it directly.
  */
 export const skillMetadataSchema: SkillFrontmatterSchema =
-  skillFrontmatterSchema;
+  skillFrontmatterSchema.extend({
+    // Import/tool input trims tags; persisted metadata only validates them.
+    tags: z
+      .array(
+        z
+          .string()
+          .min(1)
+          .max(MAX_SKILL_TAG_LENGTH)
+          .refine(
+            (tag) => tag === tag.trim(),
+            "Skill tags must already be trimmed",
+          ),
+      )
+      .max(MAX_SKILL_TAGS),
+  });
 
 export type SkillMetadata = z.infer<typeof skillMetadataSchema>;
 

@@ -3374,6 +3374,7 @@ describe("declarative entity seeding", () => {
         metadata: z.object({
           title: z.string(),
           status: z.string().optional(),
+          error: z.string().optional(),
         }),
         generation: {
           input: z.object({
@@ -3566,7 +3567,11 @@ describe("declarative entity seeding", () => {
       return defineEntity({
         type: "guide",
         purpose: "A guide written from published notes.",
-        metadata: z.object({ title: z.string() }),
+        metadata: z.object({
+          title: z.string(),
+          sourceEntityType: z.string().optional(),
+          sourceEntityId: z.string().optional(),
+        }),
         generation: {
           input: z.object({
             sourceEntityType: z.string().optional(),
