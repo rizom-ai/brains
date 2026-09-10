@@ -1,7 +1,25 @@
 import { baseEntitySchema } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 import { parseWithSchema } from "@brains/utils/parse-schema";
+import { findSchemaTransformation } from "@brains/utils/zod-introspect";
+import { SdkError } from "@brains/contracts";
 import type { EntityDefinitionShape, EntityOf } from "./entity-shape";
+
+export function assertCanonicalEntityMetadata(
+  definition: EntityDefinitionShape,
+): void {
+  const transformation = findSchemaTransformation(
+    definition.metadata,
+    "metadata",
+  );
+  if (transformation) {
+    throw new SdkError("invalid_input", {
+      message: `Entity "${definition.type}" ${transformation.path} uses ${transformation.kind}; metadata must describe canonical stored values. Normalize values in tool, job, or request input schemas instead. Defaults and safe coercions are supported.`,
+    });
+  }
+}
+
+const entityFieldsSchema = baseEntitySchema.extend({ metadata: z.unknown() });
 
 const entitySchemaCache = new WeakMap<
   EntityDefinitionShape,
@@ -11,19 +29,17 @@ const entitySchemaCache = new WeakMap<
 /**
  * The parse schema for one entity definition.
  *
- * Erased in the metadata: `.extend()` cannot carry a generic metadata
- * schema's output through, so this returns the widened form and
- * `parseDefinitionEntity` narrows it for a caller that knows the definition.
+ * Keep the adapter schema structural for schema introspection. Typed readers
+ * validate the same fields separately to prove their metadata output type.
  */
 export function entitySchema(
   definition: EntityDefinitionShape,
 ): z.ZodType<EntityOf<EntityDefinitionShape>, unknown> {
+  assertCanonicalEntityMetadata(definition);
   let schema = entitySchemaCache.get(definition);
   if (!schema) {
     schema = baseEntitySchema.extend({
       entityType: z.literal(definition.type),
-      // A declared migration runs before the schema, so a record written
-      // under an older shape parses rather than being rejected on read.
       metadata: definition.metadataFrom
         ? z.preprocess(definition.metadataFrom, definition.metadata)
         : definition.metadata,
@@ -53,15 +69,20 @@ export function definitionEntitySchema<
 export function parseDefinitionEntity<
   TDefinition extends EntityDefinitionShape,
 >(definition: TDefinition, input: unknown): EntityOf<TDefinition> {
-  // The erased schema proves the base shape; the definition's own pieces
-  // prove the two definition-typed fields, so no assertion is needed.
-  const parsed = entitySchema(definition).parse(input);
+  assertCanonicalEntityMetadata(definition);
+  // Validate the envelope separately so metadata is not parsed a second
+  // time merely to prove its definition-specific output type.
+  const parsed = entityFieldsSchema.parse(input);
+  z.object({ entityType: z.literal(definition.type) }).parse(parsed);
+  const metadata = definition.metadataFrom
+    ? definition.metadataFrom(parsed.metadata)
+    : parsed.metadata;
   return {
     ...parsed,
     entityType: definition.type,
     metadata: parseWithSchema<TDefinition["metadata"]>(
       definition.metadata,
-      parsed.metadata,
+      metadata,
     ),
   };
 }
