@@ -41,7 +41,9 @@ function conversation(owner: GuestVisitor, now = start): WebChatConversation {
     lastActiveAt: timestamp,
     createdAt: timestamp,
     updatedAt: timestamp,
-    metadata: { guest: { visitorId: owner.id } },
+    metadata: {
+      guest: { visitorId: owner.id, retention: testGuestPolicy.retention },
+    },
   };
 }
 

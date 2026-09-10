@@ -23,6 +23,14 @@ export interface RuntimeStateRecordValue<T> {
   updatedAt: Date;
 }
 
+export interface RuntimeStateListOptions {
+  keyPrefix?: string | undefined;
+  /** Exclusive key cursor, ordered using SQLite's binary key order. */
+  afterKey?: string | undefined;
+  /** Optional bounded page size (1–1000); applied before value parsing. */
+  limit?: number | undefined;
+}
+
 export interface IRuntimeStateStore<T> {
   get(key: string): Promise<T | null>;
   has(key: string): Promise<boolean>;
@@ -34,9 +42,9 @@ export interface IRuntimeStateStore<T> {
    */
   compareAndSet(key: string, expected: T, value: T): Promise<boolean>;
   delete(key: string): Promise<boolean>;
-  list(options?: {
-    keyPrefix?: string | undefined;
-  }): Promise<RuntimeStateRecordValue<T>[]>;
+  list(
+    options?: RuntimeStateListOptions,
+  ): Promise<RuntimeStateRecordValue<T>[]>;
   clear(options?: { keyPrefix?: string | undefined }): Promise<number>;
 }
 

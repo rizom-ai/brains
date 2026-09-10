@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
   guestExecutionPolicySchema,
+  guestConversationOwnershipSchema,
   type GuestExecutionPolicy,
 } from "../src/chat";
 
@@ -20,6 +21,29 @@ const policy: GuestExecutionPolicy = {
 };
 
 describe("server-owned guest execution policy", () => {
+  it("requires immutable, bounded retention alongside guest ownership", () => {
+    const owner = { visitorId: "10c15c16-919e-4481-8fd4-07f11555a994" };
+    expect(guestConversationOwnershipSchema.safeParse(owner).success).toBe(
+      false,
+    );
+    expect(
+      guestConversationOwnershipSchema.safeParse({
+        ...owner,
+        retention: { idleSeconds: 60, maxAgeSeconds: 120 },
+      }).success,
+    ).toBe(true);
+    for (const retention of [
+      { idleSeconds: 0, maxAgeSeconds: 120 },
+      { idleSeconds: 121, maxAgeSeconds: 120 },
+      { idleSeconds: 60, maxAgeSeconds: Infinity },
+      { idleSeconds: 60, maxAgeSeconds: Number.MAX_SAFE_INTEGER },
+    ]) {
+      expect(
+        guestConversationOwnershipSchema.safeParse({ ...owner, retention })
+          .success,
+      ).toBe(false);
+    }
+  });
   it("requires every execution bound and rejects extra privileges or settings", () => {
     expect(guestExecutionPolicySchema.parse(policy)).toEqual(policy);
     for (const key of Object.keys(policy.limits)) {

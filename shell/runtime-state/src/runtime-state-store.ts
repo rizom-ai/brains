@@ -1,4 +1,5 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, gt, asc, sql, getTableColumns } from "drizzle-orm";
+import { z } from "@brains/utils/zod";
 import {
   runtimeStateRecords,
   type RuntimeStateRecord,
@@ -8,6 +9,7 @@ import type {
   IRuntimeStateStore,
   RuntimeStateRecordValue,
   RuntimeStateValueSchema,
+  RuntimeStateListOptions,
 } from "./types";
 
 const namespacePattern = /^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,127}$/;
@@ -140,20 +142,15 @@ export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
   }
 
   async list(
-    options: { keyPrefix?: string | undefined } = {},
+    options: RuntimeStateListOptions = {},
   ): Promise<RuntimeStateRecordValue<T>[]> {
-    const rows = await this.listRows();
-    const keyPrefix = options.keyPrefix;
-    if (keyPrefix !== undefined) normalizeKeyPrefix(keyPrefix);
-
-    return rows
-      .filter((row) => keyPrefix === undefined || row.key.startsWith(keyPrefix))
-      .map((row) => ({
-        key: row.key,
-        value: this.schema.parse(row.value),
-        createdAt: new Date(row.createdAt),
-        updatedAt: new Date(row.updatedAt),
-      }));
+    const rows = await this.listRows(options);
+    return rows.map((row) => ({
+      key: row.key,
+      value: this.schema.parse(row.value),
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+    }));
   }
 
   async clear(
@@ -173,11 +170,38 @@ export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
     return records.length;
   }
 
-  private async listRows(): Promise<RuntimeStateRecord[]> {
-    return this.db
-      .select()
+  private async listRows(
+    options: RuntimeStateListOptions,
+  ): Promise<RuntimeStateRecord[]> {
+    const { keyPrefix, afterKey, limit } = options;
+    if (keyPrefix !== undefined) normalizeKeyPrefix(keyPrefix);
+    if (afterKey !== undefined) normalizeKey(afterKey);
+    if (limit !== undefined) z.number().int().min(1).max(1000).parse(limit);
+    const query = this.db
+      .select({
+        ...getTableColumns(runtimeStateRecords),
+        // libsql's text decoder can truncate embedded NULs. Preserve the full
+        // key so a page cursor cannot repeat or delete a different record.
+        key: sql`CAST(${runtimeStateRecords.key} AS BLOB)`.mapWith(
+          (bytes: Uint8Array | ArrayBuffer): string =>
+            new TextDecoder("utf-8", { fatal: true }).decode(bytes),
+        ),
+      })
       .from(runtimeStateRecords)
-      .where(eq(runtimeStateRecords.namespace, this.namespace));
+      .where(
+        and(
+          eq(runtimeStateRecords.namespace, this.namespace),
+          keyPrefix !== undefined
+            ? sql`substr(CAST(${runtimeStateRecords.key} AS BLOB), 1, length(CAST(${keyPrefix} AS BLOB))) = CAST(${keyPrefix} AS BLOB)`
+            : undefined,
+          afterKey !== undefined
+            ? gt(runtimeStateRecords.key, afterKey)
+            : undefined,
+        ),
+      )
+      .orderBy(asc(runtimeStateRecords.key))
+      .$dynamic();
+    return limit === undefined ? query : query.limit(limit);
   }
 }
 

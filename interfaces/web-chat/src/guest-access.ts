@@ -21,12 +21,17 @@ const visitorSchema: z.ZodObject<
     expiresAt: z.ZodNumber;
   },
   z.core.$strict
-> = z.strictObject({
-  kind: z.literal("guest"),
-  id: z.string().uuid(),
-  createdAt: z.number().int().nonnegative(),
-  expiresAt: z.number().int().positive(),
-});
+> = z
+  .strictObject({
+    kind: z.literal("guest"),
+    id: z.string().uuid(),
+    createdAt: z.number().int().nonnegative(),
+    expiresAt: z.number().int().positive(),
+  })
+  .refine(
+    (visitor) => visitor.expiresAt > visitor.createdAt,
+    "Guest credential expiry must follow issuance",
+  );
 export type GuestVisitor = z.output<typeof visitorSchema>;
 
 /**
@@ -93,6 +98,39 @@ export class GuestVisitorStore {
     const policy = this.requireMutation(request);
     const token = this.token(request, policy);
     if (token) await this.store.delete(this.key(token, policy));
+  }
+
+  /** Trusted maintenance, including while admission is off. Leases are immutable:
+   * an expired key is never renewed or reused. Cleanup spans the shared namespace,
+   * using each credential's stored expiry, not the current deployment policy.
+   */
+  async cleanup(
+    afterKey?: string,
+    limit: number = 100,
+  ): Promise<{ removed: number; nextCursor: string | null }> {
+    try {
+      const now = this.now();
+      if (!Number.isSafeInteger(now) || now < 0)
+        throw new Error("Invalid clock");
+      z.number().int().min(1).max(1000).parse(limit);
+      const records = await this.store.list({ afterKey, limit });
+      let removed = 0;
+      for (const record of records) {
+        if (
+          record.value.expiresAt <= now &&
+          (await this.store.delete(record.key))
+        )
+          removed++;
+      }
+      return {
+        removed,
+        nextCursor:
+          records.length === limit ? (records.at(-1)?.key ?? null) : null,
+      };
+    } catch {
+      // Storage exceptions may contain credential/accounting references.
+      throw new Error("Guest access unavailable");
+    }
   }
 
   private requireMutation(request: Request): EnabledGuestPolicy {
@@ -168,7 +206,19 @@ export function canAccessGuestConversation(
     Number.isFinite(lastActive) &&
     started <= lastActive &&
     lastActive <= now &&
-    now < started + policy.retention.maxAgeSeconds * 1000 &&
-    now < lastActive + policy.retention.idleSeconds * 1000
+    now <
+      started +
+        Math.min(
+          policy.retention.maxAgeSeconds,
+          ownership.data.retention.maxAgeSeconds,
+        ) *
+          1000 &&
+    now <
+      lastActive +
+        Math.min(
+          policy.retention.idleSeconds,
+          ownership.data.retention.idleSeconds,
+        ) *
+          1000
   );
 }

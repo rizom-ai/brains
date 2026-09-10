@@ -15,9 +15,35 @@ export const guestInterfaceType = "web-chat-guest";
 type Loose<Shape extends z.ZodRawShape> = z.ZodObject<Shape, z.core.$loose>;
 type Strict<Shape extends z.ZodRawShape> = z.ZodObject<Shape, z.core.$strict>;
 
+/** Pinned when a guest conversation is created; reads cannot renew retention. */
+export const guestRetentionSchema: Strict<{
+  idleSeconds: z.ZodNumber;
+  maxAgeSeconds: z.ZodNumber;
+}> = z
+  .strictObject({
+    idleSeconds: z
+      .number()
+      .int()
+      .positive()
+      .max(Math.floor(Number.MAX_SAFE_INTEGER / 1000)),
+    maxAgeSeconds: z
+      .number()
+      .int()
+      .positive()
+      .max(Math.floor(Number.MAX_SAFE_INTEGER / 1000)),
+  })
+  .refine(
+    (retention) => retention.idleSeconds <= retention.maxAgeSeconds,
+    "Guest idle expiry must not exceed maximum age",
+  );
+
 export const guestConversationOwnershipSchema: Strict<{
   visitorId: z.ZodString;
-}> = z.strictObject({ visitorId: z.string().uuid() });
+  retention: typeof guestRetentionSchema;
+}> = z.strictObject({
+  visitorId: z.string().uuid(),
+  retention: guestRetentionSchema,
+});
 export type GuestConversationOwnership = z.output<
   typeof guestConversationOwnershipSchema
 >;

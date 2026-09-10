@@ -202,6 +202,7 @@ export type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
   RuntimeStateRecordValue,
+  RuntimeStateListOptions,
   RuntimeStateScopeOptions,
 } from "@brains/runtime-state";
 export type {

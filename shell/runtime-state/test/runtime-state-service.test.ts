@@ -68,6 +68,61 @@ describe("RuntimeStateService", () => {
     restarted.close();
   });
 
+  it("pages in key order before schema parsing and treats prefixes literally", async () => {
+    const service = RuntimeStateService.createFresh({ url: dbUrl });
+    const raw = service.scoped({ namespace: "pages", schema: z.unknown() });
+    const strings = service.scoped({
+      namespace: "pages",
+      schema: stringSchema,
+    });
+    try {
+      await raw.set("literal%/a", "a");
+      await raw.set("literal%/b", "b");
+      await raw.set("literalX/a", "not a prefix match");
+      await raw.set("z-invalid", 123);
+      await raw.set("nul\u0000/a", "nul");
+      await raw.set("nul\u0000/b", "next nul key");
+      expect(
+        (await strings.list({ keyPrefix: "nul\u0000/", limit: 1 })).map(
+          (record) => record.key,
+        ),
+      ).toEqual(["nul\u0000/a"]);
+      expect(
+        (
+          await strings.list({
+            keyPrefix: "nul\u0000/",
+            afterKey: "nul\u0000/a",
+            limit: 1,
+          })
+        ).map((record) => record.key),
+      ).toEqual(["nul\u0000/b"]);
+      const first = await strings.list({ keyPrefix: "literal%/", limit: 1 });
+      expect(first.map((record) => record.key)).toEqual(["literal%/a"]);
+      const second = await strings.list({
+        keyPrefix: "literal%/",
+        limit: 1,
+        afterKey: "literal%/a",
+      });
+      expect(second.map((record) => record.key)).toEqual(["literal%/b"]);
+      expect(
+        await strings.list({
+          keyPrefix: "literal%/",
+          limit: 1,
+          afterKey: "literal%/b",
+        }),
+      ).toEqual([]);
+      expect(await strings.list({ limit: 1 })).toHaveLength(1);
+      expect(
+        strings.list({ limit: 0, keyPrefix: "literal%/" }),
+      ).rejects.toThrow();
+      expect(
+        strings.list({ limit: 1001, keyPrefix: "literal%/" }),
+      ).rejects.toThrow();
+    } finally {
+      service.close();
+    }
+  });
+
   it("isolates records by namespace", async () => {
     const service = RuntimeStateService.createFresh({ url: dbUrl });
     const chat = service.scoped({

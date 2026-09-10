@@ -1,5 +1,8 @@
 import { z } from "@brains/utils/zod";
-import { guestExecutionLimitsSchema } from "@brains/contracts/chat";
+import {
+  guestExecutionLimitsSchema,
+  guestRetentionSchema,
+} from "@brains/contracts/chat";
 
 const positiveInteger = z.number().int().positive();
 const positiveAmount = z.number().positive();
@@ -34,19 +37,6 @@ const limitsSchema: Strict<
       limits.globalRequestsPerMinute <= limits.globalRequestsPerDay &&
       limits.streamIdleTimeoutSeconds <= limits.requestTimeoutSeconds,
     "Guest limits must have consistent token, rate and timeout bounds",
-  );
-
-const retentionSchema: Strict<{
-  idleSeconds: z.ZodNumber;
-  maxAgeSeconds: z.ZodNumber;
-}> = z
-  .strictObject({
-    idleSeconds: positiveInteger,
-    maxAgeSeconds: positiveInteger,
-  })
-  .refine(
-    (retention) => retention.idleSeconds <= retention.maxAgeSeconds,
-    "Guest idle expiry must not exceed maximum age",
   );
 
 const budgetSchema: Strict<{
@@ -84,7 +74,7 @@ const enabledPolicySchema: Strict<{
   enabled: z.ZodLiteral<true>;
   origin: z.ZodString;
   limits: typeof limitsSchema;
-  retention: typeof retentionSchema;
+  retention: typeof guestRetentionSchema;
   budget: typeof budgetSchema;
   disclosure: Strict<{
     provider: z.ZodString;
@@ -100,7 +90,7 @@ const enabledPolicySchema: Strict<{
       "Guest origin must be canonical HTTPS (or loopback HTTP)",
     ),
   limits: limitsSchema,
-  retention: retentionSchema,
+  retention: guestRetentionSchema,
   budget: budgetSchema,
   disclosure: z.strictObject({
     provider: z.string().trim().min(1),

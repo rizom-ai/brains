@@ -40,7 +40,7 @@ function conversation(visitorId: string): WebChatConversation {
     lastActiveAt: new Date(now).toISOString(),
     createdAt: new Date(now).toISOString(),
     updatedAt: new Date(now).toISOString(),
-    metadata: { guest: { visitorId } },
+    metadata: { guest: { visitorId, retention: testGuestPolicy.retention } },
   };
 }
 
@@ -158,6 +158,62 @@ describe("guest visitor ownership foundation", () => {
       () => clock,
     );
     expect(await restarted.resolve(request(fresh.cookie))).toBeNull();
+  });
+
+  it("cleans fixed expired credential leases in bounded pages even when admission is disabled", async () => {
+    const state = createMemoryRuntimeStateNamespace();
+    let clock = now;
+    const visitors = new GuestVisitorStore(state, testGuestPolicy, () => clock);
+    const expired = await visitors.issue(request());
+    await visitors.issue(request());
+    clock += testGuestPolicy.retention.idleSeconds * 1000;
+    const live = await visitors.issue(request());
+    const maintenance = new GuestVisitorStore(
+      state,
+      { enabled: false },
+      () => clock,
+    );
+    let cursor: string | undefined;
+    let removed = 0;
+    for (let page = 0; page < 4; page++) {
+      const result = await maintenance.cleanup(cursor, 1);
+      expect(result.removed).toBeLessThanOrEqual(1);
+      removed += result.removed;
+      cursor = result.nextCursor ?? undefined;
+      if (!cursor) break;
+    }
+    expect(cursor).toBeUndefined();
+    expect(removed).toBe(2);
+    expect(await visitors.resolve(request(expired.cookie))).toBeNull();
+    expect(await visitors.resolve(request(live.cookie))).toEqual(live.visitor);
+    expect(await maintenance.cleanup()).toEqual({
+      removed: 0,
+      nextCursor: null,
+    });
+  });
+
+  it("does not extend a conversation's pinned retention when current policy permits longer storage", async () => {
+    const visitors = new GuestVisitorStore(
+      createMemoryRuntimeStateNamespace(),
+      testGuestPolicy,
+      () => now,
+    );
+    const { visitor } = await visitors.issue(request());
+    const chat = {
+      ...conversation(visitor.id),
+      metadata: {
+        guest: {
+          visitorId: visitor.id,
+          retention: { idleSeconds: 1, maxAgeSeconds: 1 },
+        },
+      },
+    };
+    expect(
+      canAccessGuestConversation(chat, visitor, testGuestPolicy, now),
+    ).toBe(true);
+    expect(
+      canAccessGuestConversation(chat, visitor, testGuestPolicy, now + 1000),
+    ).toBe(false);
   });
 
   it("restricts guest conversations to their live owner and rejects authenticated admission", async () => {
