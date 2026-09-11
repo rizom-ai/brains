@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.366
+
+### Patch Changes
+
+- [#240](https://github.com/rizom-ai/brains/pull/240) [`c1662af`](https://github.com/rizom-ai/brains/commit/c1662af0aface6d4f3b976f7eae90ea706da410a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Issue a packaging-only runtime version for a shared immutable image containing the existing Smoke, Docs, and Rizom site/theme package pins. This preserves the Studio implementation from alpha.365 and enables a smoke-first rollout of the same image to Docs and Rizom. No runtime implementation changes are included.
+
 ## 0.2.0-alpha.365
 
 ### Patch Changes
