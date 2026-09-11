@@ -1,5 +1,12 @@
 # @brains/assets
 
+## 0.2.0-alpha.365
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.365
+
 ## 0.2.0-alpha.364
 
 ### Patch Changes
