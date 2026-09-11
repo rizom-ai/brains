@@ -423,6 +423,7 @@
     "core--studio-interface-semantics",
     "core--studio-invitations-workspace",
     "core--studio-overview-workspace",
+    "core--studio-pagination-editor-release",
     "core--studio-quiet-screens",
     "core--studio-system-navigation",
     "core--studio-three-site-image",
