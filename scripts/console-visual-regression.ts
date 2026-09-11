@@ -76,7 +76,7 @@ const types = [
     label: "Field notes",
     isSingleton: false,
     hasBody: true,
-    count: 24,
+    count: 54,
     capabilities: editCapabilities,
   },
   {
@@ -149,7 +149,7 @@ const entities = [
   },
 ];
 entities.push(
-  ...Array.from({ length: 20 }, (_, index) => ({
+  ...Array.from({ length: 50 }, (_, index) => ({
     id: `archive-${index + 1}`,
     entityType: "posts",
     frontmatter: { title: `Archive note ${index + 1}` },
@@ -3766,12 +3766,13 @@ try {
           }
         }
         if (surface === "studio-library") {
-          await waitForText(page, "1–10 of 24");
+          await waitForText(page, "1–25 of 54");
           await clickText(page, ".listing-pagination button", "Next");
-          await waitForText(page, "Archive note 7");
+          await waitForText(page, "26–50 of 54");
+          await waitForText(page, "Archive note 22");
           await clickText(page, ".listing-pagination button", "Previous");
           await waitForText(page, "A console that travels well");
-          await waitForText(page, "1–10 of 24");
+          await waitForText(page, "1–25 of 54");
         }
         if (surface === "studio-overview") {
           await waitForText(page, "Recent activity");
@@ -4027,11 +4028,65 @@ try {
           }
           await waitForSelector(page, ".delete-modal");
         }
+        if (surface === "studio-editor") {
+          await clickText(page, "summary", "Sync details");
+          await evaluatePage(page, () => {
+            const stations = [
+              ...document.querySelectorAll<HTMLElement>(
+                "[data-studio-station]",
+              ),
+            ];
+            if (
+              stations.length === 0 ||
+              stations.some(
+                (station) => station.getBoundingClientRect().height === 0,
+              )
+            )
+              throw new Error(
+                "Sync diagnostics must remain visible on every viewport",
+              );
+          });
+          await clickText(page, "summary", "Sync details");
+        }
         if (surface === "studio-conflict") {
           // Save with an unchanged title: the fixture answers 409, raising
           // the reconcile card above the save bar.
           await clickSelector(page, studioSaveSelector);
           await waitForSelector(page, "[data-studio-conflict]");
+          await clickText(page, "button", "Compare changes");
+          await waitForSelector(page, '[role="dialog"]');
+          await waitForPage("latest conflict version loaded", () =>
+            evaluatePage(page, () => {
+              const fields = document.querySelectorAll<HTMLTextAreaElement>(
+                '[role="dialog"] textarea',
+              );
+              return (
+                fields.length === 2 &&
+                fields[1]?.value.includes("Notes from the rhizome") === true
+              );
+            }),
+          );
+          await clickText(page, '[role="dialog"] button', "Use latest version");
+          await waitForText(page, "Replace your local draft?");
+          await clickText(page, "button", "Keep my draft");
+          await clickSelector(page, '[role="dialog"] [aria-label="Close"]');
+          await waitForPage("comparison closed without replacing draft", () =>
+            evaluatePage(
+              page,
+              () =>
+                !document.querySelector('[role="dialog"]') &&
+                !!document.querySelector("[data-studio-conflict]"),
+            ),
+          );
+          await evaluatePage(page, () => {
+            const active = document.activeElement;
+            if (
+              !(active instanceof HTMLElement) ||
+              active.textContent !== "Compare changes"
+            )
+              throw new Error("Comparison did not restore trigger focus");
+            active.blur();
+          });
         }
         if (surface === "studio-invalid") {
           // Two validation aspects in one frame: a server-rejected save

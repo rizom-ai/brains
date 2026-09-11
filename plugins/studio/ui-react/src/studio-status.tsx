@@ -13,6 +13,7 @@ export function StudioStatus(props: {
   return (
     <Element
       data-studio-status={props.tone ?? "neutral"}
+      role={props.tone === "error" ? "alert" : undefined}
       className={editorClassName(
         props.className ?? "",
         s.status,

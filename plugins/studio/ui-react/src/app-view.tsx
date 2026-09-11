@@ -61,10 +61,13 @@ import type {
 import {
   DeleteDialog,
   derivePipeline,
+  editorSaveLabel,
   PipelineStations,
   SaveStateNotice,
 } from "./editor-status";
 import { PublicationActions } from "./publication-actions";
+import { StudioConflictRecovery } from "./studio-conflict-recovery";
+import { createEditorDocument } from "./editor-document";
 import { StudioChrome } from "./studio-chrome";
 import {
   navigationClassName as navClass,
@@ -103,6 +106,8 @@ export interface StudioAppViewProps {
   types: EntityTypeInfo[];
   workspaces: StudioWorkspaceInfo[];
   workspaceError: string | null;
+  readError?: string | null;
+  onRetryRead?: () => void;
   declarativeWorkspaceData: RuntimeStudioWorkspaceData | null;
   workspaceQuery: StudioWorkspaceQuery;
   entityType: string | null;
@@ -166,6 +171,7 @@ function workspaceRailBadges(
 export function StudioAppStatus(props: {
   message: string;
   error?: boolean;
+  onRetry?: () => void;
 }): ReactElement {
   return (
     <div className={editorClass("studio", library.frame)} data-studio-shell="">
@@ -175,6 +181,11 @@ export function StudioAppStatus(props: {
         className={editorClass("", library.boot)}
       >
         {props.message}
+        {props.onRetry && (
+          <Button type="button" variant="ghost" onClick={props.onRetry}>
+            Retry
+          </Button>
+        )}
       </StudioStatus>
     </div>
   );
@@ -412,12 +423,33 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
           />
         </aside>
         {activeWorkspaceId ? (
-          workspaceError ? (
+          workspaceError && !declarativeWorkspaceData ? (
             <main className={workspaceClassName("")}>
-              <StudioStatus tone="error">{workspaceError}</StudioStatus>
+              <StudioStatus tone="error">
+                {workspaceError}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={props.onRetryRead}
+                >
+                  Retry
+                </Button>
+              </StudioStatus>
             </main>
           ) : declarativeWorkspaceData && declarativeHead ? (
             <div className={workspaceClassName("studio-workspace-frame")}>
+              {workspaceError && (
+                <StudioStatus tone="error">
+                  Showing previously loaded content. {workspaceError}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={props.onRetryRead}
+                  >
+                    Retry
+                  </Button>
+                </StudioStatus>
+              )}
               <StudioPageHead
                 model={declarativeHead}
                 {...(declarativeHead.primaryAction
@@ -456,18 +488,70 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
             data-studio-library=""
             aria-busy={entityListLoading}
           >
+            {props.readError && (
+              <StudioStatus tone="error">
+                {entities?.length ? "Showing previously loaded entries. " : ""}
+                {props.readError}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={props.onRetryRead}
+                >
+                  Retry
+                </Button>
+              </StudioStatus>
+            )}
             <StudioPageHead
               model={listingHead}
               action={
                 <Button
                   type="button"
-                  disabled={!canCreate}
+                  disabled={!canCreate || !schema}
                   onClick={startCreate}
                 >
                   New {entryLabel.toLowerCase()}
                 </Button>
               }
             />
+            {!entitySchema.isSingleton && entityTotal > 0 && (
+              <nav
+                className={editorClass(
+                  "listing-pagination",
+                  library.pagination,
+                )}
+                aria-label={`${activeType?.label ?? "Entity"} pagination`}
+              >
+                <span
+                  className={editorClass("", library.range)}
+                  aria-live="polite"
+                >
+                  {entityOffset + 1}–{pageEnd} of {entityTotal}
+                </span>
+                <span className={editorClass("", library.pager)}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={entityListLoading || entityOffset === 0}
+                    onClick={() =>
+                      changeEntityPage(Math.max(0, entityOffset - entityLimit))
+                    }
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={
+                      entityListLoading ||
+                      entityOffset + entityLimit >= entityTotal
+                    }
+                    onClick={() => changeEntityPage(entityOffset + entityLimit)}
+                  >
+                    Next
+                  </Button>
+                </span>
+              </nav>
+            )}
             {entityListLoading && (
               <StudioStatus className={editorClass("", library.empty)}>
                 Loading entries…
@@ -510,50 +594,13 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                   </span>
                 </button>
               ))}
-            {!entityListLoading && entities?.length === 0 && (
-              <StudioStatus className={editorClass("", library.empty)}>
-                Nothing here yet — start the first entry.
-              </StudioStatus>
-            )}
-            {entityTotal > entityLimit && (
-              <nav
-                className={editorClass(
-                  "listing-pagination",
-                  library.pagination,
-                )}
-                aria-label={`${activeType?.label ?? "Entity"} pagination`}
-              >
-                <span
-                  className={editorClass("", library.range)}
-                  aria-live="polite"
-                >
-                  {entityOffset + 1}–{pageEnd} of {entityTotal}
-                </span>
-                <span className={editorClass("", library.pager)}>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    disabled={entityListLoading || entityOffset === 0}
-                    onClick={() =>
-                      changeEntityPage(Math.max(0, entityOffset - entityLimit))
-                    }
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    disabled={
-                      entityListLoading ||
-                      entityOffset + entityLimit >= entityTotal
-                    }
-                    onClick={() => changeEntityPage(entityOffset + entityLimit)}
-                  >
-                    Next
-                  </Button>
-                </span>
-              </nav>
-            )}
+            {!props.readError &&
+              !entityListLoading &&
+              entities?.length === 0 && (
+                <StudioStatus className={editorClass("", library.empty)}>
+                  Nothing here yet — start the first entry.
+                </StudioStatus>
+              )}
           </main>
         ) : (
           <form
@@ -722,46 +769,68 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
               )}
               data-studio-save-bar=""
             >
-              {syncStatus?.directorySync && (
-                <PipelineStations
-                  view={derivePipeline({
-                    save: saveState,
-                    git: syncStatus.git,
-                    baselineCommit,
-                  })}
-                  gitConfigured={syncStatus.git !== null}
+              <div>
+                <span
+                  role="status"
+                  aria-live="polite"
+                  title="Saved means stored in this Brain. File export and Git synchronization are separate."
+                >
+                  {editorSaveLabel(saveState, hasUnsavedChanges)}
+                </span>
+                {props.readError && (
+                  <StudioStatus tone="error">
+                    Your draft is unchanged. {props.readError}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={props.onRetryRead}
+                    >
+                      Retry
+                    </Button>
+                  </StudioStatus>
+                )}
+                {syncStatus?.directorySync && (
+                  <details>
+                    <summary>Sync details</summary>
+                    <PipelineStations
+                      view={derivePipeline({
+                        save: saveState,
+                        git: syncStatus.git,
+                        baselineCommit,
+                      })}
+                      gitConfigured={syncStatus.git !== null}
+                    />
+                  </details>
+                )}
+                <SaveStateNotice
+                  // The strip already narrates a successful save; the text
+                  // notice stays for conflicts, errors, and no-op saves
+                  // (which the strip cannot distinguish from a real write).
+                  state={
+                    syncStatus?.directorySync &&
+                    saveState.kind === "saved" &&
+                    !saveState.noop
+                      ? { kind: "idle" }
+                      : saveState
+                  }
+                  conflictActions={
+                    mode.kind === "edit" ? (
+                      <StudioConflictRecovery
+                        key={`${mode.entity.entityType}:${mode.entity.id}`}
+                        entity={mode.entity}
+                        draft={draft}
+                        body={body}
+                        onUseLatest={(entity) =>
+                          dispatchEditor({
+                            type: "documentOpened",
+                            document: createEditorDocument(entity),
+                          })
+                        }
+                      />
+                    ) : undefined
+                  }
                 />
-              )}
-              <SaveStateNotice
-                // The strip already narrates a successful save; the text
-                // notice stays for conflicts, errors, and no-op saves
-                // (which the strip cannot distinguish from a real write).
-                state={
-                  syncStatus?.directorySync &&
-                  saveState.kind === "saved" &&
-                  !saveState.noop
-                    ? { kind: "idle" }
-                    : saveState
-                }
-                onReload={() => {
-                  if (mode.kind === "edit") openEntity(mode.entity.id);
-                }}
-              />
-              <span
-                className={editorClass("", layout.compactStatus)}
-                data-studio-compact-save=""
-              >
-                <b className={editorClass("", layout.compactValue)}>
-                  {saveState.kind === "saving"
-                    ? "Saving changes"
-                    : saveState.kind === "saved"
-                      ? "All changes saved"
-                      : "Entity pipeline"}
-                </b>
-                {syncStatus?.git?.lastCommit
-                  ? `db → file → ${syncStatus.git.lastCommit.slice(0, 7)}`
-                  : "entity db"}
-              </span>
+              </div>
               <span className={editorClass("", layout.spacer)} />
               {mode.kind === "edit" &&
                 !entitySchema.isSingleton &&

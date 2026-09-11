@@ -110,7 +110,7 @@ describe("Studio App transport", () => {
     // App asks for the "post" collection only because the types the provided
     // client answered with named it, so this follow-up shows the round trip.
     await waitFor(() =>
-      requests.includes("/studio/api/entities?type=post&offset=0&limit=10"),
+      requests.includes("/studio/api/entities?type=post&offset=0&limit=25"),
     );
 
     expect(requests[0]).toBe("/studio/api/types");

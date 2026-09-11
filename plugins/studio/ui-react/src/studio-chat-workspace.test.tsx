@@ -142,6 +142,85 @@ async function mountChat(
 }
 
 describe("native Studio Chat workspace", () => {
+  it("preserves a reader's scroll position until Jump to latest is selected", async () => {
+    await mountChat(new StudioChatDraftStore());
+    const scroll = document.querySelector<HTMLElement>(
+      ".studio-chat-thread-scroll",
+    );
+    if (!scroll) throw new Error("Missing conversation scroller");
+    Object.defineProperties(scroll, {
+      scrollHeight: { configurable: true, value: 1200 },
+      clientHeight: { configurable: true, value: 400 },
+    });
+    const historyKey = ["studio", "chat", "messages", "conversation-1"];
+    const first = { id: "a", role: "assistant", content: "First answer" };
+    await act(async () => queryClient.setQueryData(historyKey, [first]));
+    await settle();
+    expect(scroll.scrollTop).toBe(1200);
+    scroll.scrollTop = 100;
+    await act(async () => scroll.dispatchEvent(new Event("scroll")));
+    await act(async () =>
+      queryClient.setQueryData(historyKey, [
+        first,
+        { ...first, id: "b", content: "New answer" },
+      ]),
+    );
+    await settle();
+    expect(scroll.scrollTop).toBe(100);
+    click(
+      [...document.querySelectorAll("button")].find((button) =>
+        button.textContent.includes("Jump to latest"),
+      ),
+      "Jump to latest",
+    );
+    await settle();
+    expect(scroll.scrollTop).toBe(1200);
+    expect(document.body.textContent).not.toContain("Jump to latest");
+  });
+
+  it("retries a failed history read without sending a message or hiding the composer", async () => {
+    const previous = globalThis.fetch;
+    let reads = 0;
+    let sends = 0;
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.method === "POST") sends += 1;
+        if (String(input).startsWith("/api/chat/messages?id=")) {
+          reads += 1;
+          return reads === 1
+            ? new Response("Unavailable", { status: 503 })
+            : Response.json({
+                messages: [
+                  {
+                    id: "recovered",
+                    role: "assistant",
+                    content: "Recovered history",
+                  },
+                ],
+              });
+        }
+        return previous(input, init);
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+    await mountChat(new StudioChatDraftStore());
+    expect(document.querySelector("textarea")).not.toBeNull();
+    expect(document.body.textContent).toContain(
+      "Conversation could not be loaded",
+    );
+    expect(document.body.textContent).not.toContain("No messages yet");
+    click(
+      [...document.querySelectorAll("button")].find(
+        (button) => button.textContent === "Retry conversation",
+      ),
+      "Retry conversation",
+    );
+    await settle();
+    expect(document.body.textContent).toContain("Recovered history");
+    expect(reads).toBe(2);
+    expect(sends).toBe(0);
+  });
+
   it("restores each session's draft without persisting it outside the mounted Studio", async () => {
     const store = new StudioChatDraftStore();
     store.update(studioChatDraftKey("/api/chat", "conversation-1"), {

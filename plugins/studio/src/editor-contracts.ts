@@ -7,7 +7,7 @@ import type { ContentVisibility, ServicePluginContext } from "@brains/plugins";
 import type { StudioEntityDisplayMap } from "./config";
 import type { StudioWorkspaceRegistry } from "./workspace-registry";
 
-export const STUDIO_ENTITY_PAGE_LIMIT = 10;
+export const STUDIO_ENTITY_PAGE_LIMIT = 25;
 
 export interface StudioRequestAccess {
   principal: AuthPrincipal;

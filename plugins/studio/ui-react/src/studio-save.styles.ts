@@ -100,9 +100,16 @@ export const saveStyles: Record<SaveStyle, stylex.StyleXStyles> = stylex.create(
       display: "flex",
       alignItems: "center",
       minWidth: 0,
-      "@media (max-width: 900px)": { display: "none" },
+      flexWrap: "wrap",
+      gap: 8,
+      marginBlock: 8,
     },
-    stations: { display: "flex", alignItems: "center", marginLeft: 14 },
+    stations: {
+      display: "flex",
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: 8,
+    },
     station: {
       display: "inline-flex",
       alignItems: "center",
@@ -111,20 +118,20 @@ export const saveStyles: Record<SaveStyle, stylex.StyleXStyles> = stylex.create(
       fontSize: 11,
       letterSpacing: ".06em",
       color: {
-        default: "color-mix(in srgb, var(--console-bg) 45%, transparent)",
+        default: "var(--console-text-muted)",
         ":is([data-climate='instrument'] *)": "var(--console-text-muted)",
       },
       whiteSpace: "nowrap",
     },
     done: {
       color: {
-        default: "color-mix(in srgb, var(--console-bg) 95%, transparent)",
+        default: "var(--console-text)",
         ":is([data-climate='instrument'] *)": "var(--console-text)",
       },
     },
     active: {
       color: {
-        default: "var(--console-frame)",
+        default: "var(--console-text)",
         ":is([data-climate='instrument'] *)": "var(--console-text)",
       },
     },
@@ -135,7 +142,7 @@ export const saveStyles: Record<SaveStyle, stylex.StyleXStyles> = stylex.create(
       borderWidth: 1.5,
       borderStyle: "solid",
       borderColor: {
-        default: "color-mix(in srgb, var(--console-bg) 35%, transparent)",
+        default: "var(--console-text-muted)",
         ":is([data-climate='instrument'] *)": "var(--console-text-muted)",
       },
       transitionProperty: {
@@ -168,7 +175,7 @@ export const saveStyles: Record<SaveStyle, stylex.StyleXStyles> = stylex.create(
       animationTimingFunction: "ease-in-out",
       animationIterationCount: "infinite",
     },
-    noGit: { fontStyle: "italic", marginLeft: 28 },
+    noGit: { fontStyle: "italic" },
     track: {
       height: 1,
       width: {
@@ -176,13 +183,13 @@ export const saveStyles: Record<SaveStyle, stylex.StyleXStyles> = stylex.create(
         "@media (min-width: 901px)": "clamp(16px, 3vw, 40px)",
       },
       backgroundColor: {
-        default: "color-mix(in srgb, var(--console-bg) 22%, transparent)",
+        default: "var(--console-rule-strong)",
         ":is([data-climate='instrument'] *)": "var(--console-rule-strong)",
       },
       margin: "0 8px",
       position: "relative",
       overflow: "hidden",
-      display: "inline-block",
+      display: { default: "inline-block", "@media (max-width: 640px)": "none" },
     },
     flow: {
       position: "absolute",
@@ -204,16 +211,14 @@ export const saveStyles: Record<SaveStyle, stylex.StyleXStyles> = stylex.create(
       fontFamily: "var(--console-mono)",
       fontSize: 11,
       color: {
-        default: "color-mix(in srgb, var(--console-bg) 55%, transparent)",
+        default: "var(--console-text-muted)",
         ":is([data-climate='instrument'] *)": "var(--console-text-muted)",
       },
-      marginLeft: "auto",
       whiteSpace: "nowrap",
-      "@media (max-width: 900px)": { display: "none" },
     },
     refValue: {
       color: {
-        default: "var(--console-frame)",
+        default: "var(--console-text)",
         ":is([data-climate='instrument'] *)": "var(--console-text)",
       },
       fontWeight: 500,

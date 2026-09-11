@@ -633,7 +633,12 @@ describe("TypeSwitcher", () => {
 function renderCapabilityView(
   capabilities: EntityTypeInfo["capabilities"],
   mode: "browse" | "edit",
-  page: { offset?: number; limit?: number; total?: number } = {},
+  page: {
+    offset?: number;
+    limit?: number;
+    total?: number;
+    readError?: string;
+  } = {},
 ): string {
   const entity: EntityDetail = {
     id: "post-1",
@@ -661,6 +666,8 @@ function renderCapabilityView(
   };
   const props: StudioAppViewProps = {
     activeWorkspaceId: null,
+    readError: page.readError ?? null,
+    onRetryRead: () => {},
     types: [type],
     workspaces: [
       {
@@ -789,6 +796,18 @@ describe("capability-aware Studio controls", () => {
     expect(edit).toContain("Add to queue");
   });
 
+  it("retains collection navigation and the open document when a read fails", () => {
+    for (const mode of ["browse", "edit"] as const) {
+      const html = renderCapabilityView(allowedCapabilities, mode, {
+        readError: "Collection unavailable",
+      });
+      expect(html).toContain("Collection unavailable");
+      expect(html).toContain(">Retry</button>");
+      expect(html).toContain("Post one");
+      expect(html).toContain("Library");
+    }
+  });
+
   it("paginates entity collections with the shared previous/next grammar", () => {
     const first = renderCapabilityView(allowedCapabilities, "browse", {
       limit: 1,
@@ -801,11 +820,31 @@ describe("capability-aware Studio controls", () => {
     });
 
     expect(first).toContain('aria-label="Posts pagination"');
+    expect(first.indexOf('aria-label="Posts pagination"')).toBeLessThan(
+      first.indexOf('data-studio-record=""'),
+    );
     expect(first).toContain("1–1 of 2");
     expect(first).toContain(">Previous</button>");
     expect(first).toContain(">Next</button>");
     expect(second).toContain("2–2 of 2");
     expect(second).toContain(">02</span>");
+  });
+
+  it("keeps the pager visible on a single-page collection and supports 25-item offsets", () => {
+    const single = renderCapabilityView(allowedCapabilities, "browse", {
+      limit: 25,
+      total: 1,
+    });
+    expect(single).toContain('aria-label="Posts pagination"');
+    expect(single).toMatch(/disabled=""[^>]*>Previous<\/button>/);
+    expect(single).toMatch(/disabled=""[^>]*>Next<\/button>/);
+    const last = renderCapabilityView(allowedCapabilities, "browse", {
+      limit: 25,
+      total: 26,
+      offset: 25,
+    });
+    expect(last).toContain("26–26 of 26");
+    expect(last).toContain(">26</span>");
   });
 });
 
@@ -1074,7 +1113,6 @@ describe("SaveStateNotice", () => {
         renderToStaticMarkup(
           createElement(SaveStateNotice, {
             state,
-            onReload: () => {},
           }),
         ),
       ).toBe("");
@@ -1085,7 +1123,6 @@ describe("SaveStateNotice", () => {
     const html = renderToStaticMarkup(
       createElement(SaveStateNotice, {
         state: { kind: "saved" },
-        onReload: () => {},
       }),
     );
     expect(html).toContain("entity service");
@@ -1095,25 +1132,25 @@ describe("SaveStateNotice", () => {
     const html = renderToStaticMarkup(
       createElement(SaveStateNotice, {
         state: { kind: "saved", noop: true },
-        onReload: () => {},
       }),
     );
     expect(html).toContain("No changes");
   });
 
-  it("offers a reload action on write conflicts", () => {
+  it("offers rescue actions rather than an immediate reload on conflicts", () => {
     const html = renderToStaticMarkup(
       createElement(SaveStateNotice, {
         state: {
           kind: "conflict",
           message: "This entry changed since it was opened",
         },
-        onReload: () => {},
+        conflictActions: createElement("button", {}, "Compare changes"),
       }),
     );
     expect(html).toContain("changed since it was opened");
     expect(html).toContain("The manuscript changed elsewhere");
-    expect(html).toContain(">Reload latest<");
+    expect(html).toContain(">Compare changes<");
+    expect(html).not.toContain(">Reload latest<");
   });
 
   it("shows stale capability denials without offering a conflict reload", () => {
@@ -1123,7 +1160,6 @@ describe("SaveStateNotice", () => {
           kind: "error",
           message: "update post requires admin permission",
         },
-        onReload: () => {},
       }),
     );
     expect(html).toContain("update post requires admin permission");

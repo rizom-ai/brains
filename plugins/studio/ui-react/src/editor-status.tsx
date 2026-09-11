@@ -1,17 +1,17 @@
 /** @jsxImportSource react */
-import type { ReactElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import * as stylex from "@stylexjs/stylex";
 import { saveStyles as s } from "./studio-save.styles";
 import { StudioStatus } from "./studio-status";
 import type { GitSyncState } from "./api";
-import { Button, ConfirmDialog } from "@brains/app-ui-react";
+import { ConfirmDialog } from "@brains/app-ui-react";
 import type { SaveState } from "./editor-workflow";
 
 export function SaveStateNotice(props: {
   state: SaveState;
-  onReload: () => void;
+  conflictActions?: ReactNode;
 }): ReactElement | null {
-  const { state, onReload } = props;
+  const { state } = props;
   if (state.kind === "saved") {
     return state.noop ? (
       <StudioStatus tone="good" save>
@@ -34,14 +34,7 @@ export function SaveStateNotice(props: {
           The manuscript changed elsewhere
         </h4>
         <p {...stylex.props(s.conflictCopy)}>{state.message}</p>
-        <Button
-          type="button"
-          variant="ghost"
-          xstyle={s.reload}
-          onClick={onReload}
-        >
-          Reload latest
-        </Button>
+        {props.conflictActions}
       </section>
     );
   }
@@ -53,6 +46,13 @@ export function SaveStateNotice(props: {
     );
   }
   return null;
+}
+
+export function editorSaveLabel(state: SaveState, dirty: boolean): string {
+  if (state.kind === "saving") return "Saving…";
+  if (state.kind === "conflict") return "Conflict — your changes are not saved";
+  if (state.kind === "error") return "Save failed — your changes are not saved";
+  return dirty ? "Unsaved changes" : "Saved";
 }
 
 export type StationState = "pending" | "active" | "done";

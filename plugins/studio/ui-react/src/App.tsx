@@ -249,6 +249,7 @@ export function App(): ReactElement {
   const [bodyMode, setBodyMode] = useState<BodyMode>("preview");
   const [mobilePane, setMobilePane] = useState<MobileEditorPane>("details");
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [baselineCommit, setBaselineCommit] = useState<string | null>(null);
   const saveStartedAt = useRef(0);
   const pendingOpenState = useRef<{
@@ -610,6 +611,7 @@ export function App(): ReactElement {
     createMode,
     currentStudioPathname,
     entityType,
+    loadAttempt,
     queryClient,
     routePathname,
     routeTarget,
@@ -1204,8 +1206,18 @@ export function App(): ReactElement {
         ? errorMessage(entityListQuery.error)
         : null);
 
-  if (visibleLoadError) {
-    return <StudioAppStatus message={visibleLoadError} error />;
+  const retryRead = (): void => {
+    setLoadError(null);
+    if (navigationQuery.error) void navigationQuery.refetch();
+    if (entityListQuery.error) void entityListQuery.refetch();
+    if (workspaceQuery.error) void workspaceQuery.refetch();
+    // Re-run an unsuccessful open, but never replace an already-open draft.
+    if (mode.kind === "browse") setLoadAttempt((attempt) => attempt + 1);
+  };
+  if (visibleLoadError && !types) {
+    return (
+      <StudioAppStatus message={visibleLoadError} error onRetry={retryRead} />
+    );
   }
   if (!types) {
     return <StudioAppStatus message="Loading…" />;
@@ -1276,11 +1288,11 @@ export function App(): ReactElement {
   if (
     activeWorkspaceId
       ? !workspaceData && !workspaceError
-      : entityType && !schema
+      : entityType && !schema && !visibleLoadError
   ) {
     return <StudioAppStatus message="Loading…" />;
   }
-  if (!activeWorkspaceId && (!entityType || !schema)) {
+  if (!activeWorkspaceId && (!entityType || (!schema && !visibleLoadError))) {
     return (
       <StudioAppStatus message="No editable entity types are registered." />
     );
@@ -1292,6 +1304,8 @@ export function App(): ReactElement {
       types={types}
       workspaces={workspaces}
       workspaceError={workspaceError}
+      readError={visibleLoadError}
+      onRetryRead={retryRead}
       declarativeWorkspaceData={declarativeWorkspaceData}
       workspaceQuery={workspaceRequestQuery}
       entityType={entityType}

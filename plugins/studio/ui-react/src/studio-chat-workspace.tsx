@@ -146,6 +146,9 @@ export function StudioChatWorkspace(
   const [sessionPickerOpen, setSessionPickerOpen] = useState(false);
   const sessionPickerTrigger = useRef<HTMLSpanElement>(null);
   const threadEndRef = useRef<HTMLDivElement | null>(null);
+  const threadScrollRef = useRef<HTMLDivElement | null>(null);
+  const followLatestRef = useRef(true);
+  const [showJumpToLatest, setShowJumpToLatest] = useState(false);
   const activeStreamRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(false);
   useEffect(() => {
@@ -212,8 +215,29 @@ export function StudioChatWorkspace(
   }, [props.sessionId]);
 
   useEffect(() => {
-    threadEndRef.current?.scrollIntoView({ block: "end" });
-  }, [stream?.text, visibleMessages.length]);
+    followLatestRef.current = true;
+    setShowJumpToLatest(false);
+  }, [props.sessionId]);
+
+  useEffect(() => {
+    const scroll = threadScrollRef.current;
+    const manuscript = scroll?.firstElementChild;
+    if (!scroll || !manuscript) return;
+    const follow = (): void => {
+      if (followLatestRef.current) scroll.scrollTop = scroll.scrollHeight;
+    };
+    follow();
+    const observer = new ResizeObserver(follow);
+    observer.observe(manuscript);
+    return (): void => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (followLatestRef.current) {
+      const scroll = threadScrollRef.current;
+      if (scroll) scroll.scrollTop = scroll.scrollHeight;
+    }
+  }, [stream, visibleMessages.length]);
 
   const navigateToSession = useCallback(
     (conversationId?: string, preserveWork = false): void => {
@@ -568,43 +592,61 @@ export function StudioChatWorkspace(
           />
         </aside>
         <main className={chatClass("studio-chat-workspace", chatLayout.frame)}>
-          <StudioPageHead
-            model={{
-              title: "Chat",
-              totals: [],
-              access: studioAccessRequirement("trusted"),
-            }}
-            action={
-              <div
-                className={chatClass(
-                  "studio-chat-head-actions",
-                  chatLayout.actions,
-                )}
-              >
-                <span
-                  ref={sessionPickerTrigger}
-                  className="studio-chat-mobile-sessions"
+          <div>
+            {sessionsQuery.error && (
+              <section role="alert">
+                <p>
+                  Sessions could not be refreshed. Your conversation and draft
+                  are still available.
+                </p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={sessionsQuery.isFetching}
+                  onClick={() => void sessionsQuery.refetch()}
                 >
+                  Retry sessions
+                </Button>
+              </section>
+            )}
+            <StudioPageHead
+              model={{
+                title: "Chat",
+                totals: [],
+                access: studioAccessRequirement("trusted"),
+              }}
+              action={
+                <div
+                  className={chatClass(
+                    "studio-chat-head-actions",
+                    chatLayout.actions,
+                  )}
+                >
+                  <span
+                    ref={sessionPickerTrigger}
+                    className="studio-chat-mobile-sessions"
+                  >
+                    <Button
+                      aria-expanded={sessionPickerOpen}
+                      aria-haspopup="dialog"
+                      variant="outline"
+                      type="button"
+                      onClick={() => setSessionPickerOpen(true)}
+                    >
+                      Sessions
+                    </Button>
+                  </span>
                   <Button
-                    aria-expanded={sessionPickerOpen}
-                    aria-haspopup="dialog"
                     variant="outline"
                     type="button"
-                    onClick={() => setSessionPickerOpen(true)}
+                    onClick={() => navigateToSession()}
                   >
-                    Sessions
+                    New conversation
                   </Button>
-                </span>
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => navigateToSession()}
-                >
-                  New conversation
-                </Button>
-              </div>
-            }
-          />
+                </div>
+              }
+            />
+          </div>
           <Dialog
             open={sessionPickerOpen}
             onOpenChange={(open) => {
@@ -721,6 +763,17 @@ export function StudioChatWorkspace(
                 </details>
               )}
               <div
+                ref={threadScrollRef}
+                onScroll={(event) => {
+                  const scroll = event.currentTarget;
+                  const nearBottom =
+                    scroll.scrollHeight -
+                      scroll.clientHeight -
+                      scroll.scrollTop <=
+                    48;
+                  followLatestRef.current = nearBottom;
+                  setShowJumpToLatest(!nearBottom);
+                }}
                 className={chatClass(
                   "studio-chat-thread-scroll",
                   chatLayout.threadScroll,
@@ -732,6 +785,24 @@ export function StudioChatWorkspace(
                     chatLayout.manuscript,
                   )}
                 >
+                  {messagesQuery.error && (
+                    <section role="alert">
+                      <p>
+                        {storedMessages.length > 0
+                          ? "Showing previously loaded messages. "
+                          : ""}
+                        Conversation could not be loaded.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        disabled={messagesQuery.isFetching}
+                        onClick={() => void messagesQuery.refetch()}
+                      >
+                        Retry conversation
+                      </Button>
+                    </section>
+                  )}
                   {messagesQuery.isPending &&
                   props.sessionId &&
                   visibleMessages.length === 0 ? (
@@ -744,7 +815,8 @@ export function StudioChatWorkspace(
                       Opening conversation…
                     </p>
                   ) : null}
-                  {(!props.sessionId || !messagesQuery.isPending) &&
+                  {!messagesQuery.error &&
+                  (!props.sessionId || !messagesQuery.isPending) &&
                   visibleMessages.length === 0 ? (
                     <ChatEmptyState />
                   ) : null}
@@ -791,6 +863,16 @@ export function StudioChatWorkspace(
                 </div>
               </div>
               <Composer
+                onJumpToLatest={
+                  showJumpToLatest
+                    ? (): void => {
+                        followLatestRef.current = true;
+                        setShowJumpToLatest(false);
+                        const scroll = threadScrollRef.current;
+                        if (scroll) scroll.scrollTop = scroll.scrollHeight;
+                      }
+                    : undefined
+                }
                 draft={draft}
                 sending={sending}
                 uploading={uploading}
@@ -1217,6 +1299,7 @@ function Composer(props: {
   onFiles: (event: ChangeEvent<HTMLInputElement>) => Promise<void>;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   onStop?: (() => void) | undefined;
+  onJumpToLatest?: (() => void) | undefined;
 }): ReactElement {
   const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>): void => {
     if (
@@ -1230,6 +1313,11 @@ function Composer(props: {
   };
   return (
     <footer className={chatClass("studio-chat-composer", chatLayout.composer)}>
+      {props.onJumpToLatest && (
+        <Button type="button" variant="ghost" onClick={props.onJumpToLatest}>
+          Jump to latest ↓
+        </Button>
+      )}
       {props.uploads.length > 0 ? (
         <div
           className={chatClass(

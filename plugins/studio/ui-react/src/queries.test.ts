@@ -515,7 +515,7 @@ describe("Studio entity-list query", () => {
     expect(statuses).toContain("pending");
     expect(observer.getCurrentResult().status).toBe("success");
     expect(requestedUrls).toEqual([
-      "/studio/api/entities?type=post&offset=0&limit=10",
+      "/studio/api/entities?type=post&offset=0&limit=25",
     ]);
     unsubscribe();
     client.clear();
