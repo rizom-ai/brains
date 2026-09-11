@@ -62,6 +62,49 @@ const preparedConfirmationSchema = z.object({
 const successResultSchema = z.object({ success: z.literal(true) });
 
 describe("content-pipeline Studio workspace registration", () => {
+  it("shows one rest notice without an empty queue tab", async () => {
+    const context = createServicePluginContext(
+      createMockShell(),
+      "content-pipeline",
+    );
+    context.entities.register(
+      "social-post",
+      baseEntitySchema,
+      new FixtureAdapter(),
+    );
+    const providers = ProviderRegistry.createFresh();
+    providers.register("social-post", {
+      name: "linkedin",
+      publish: async () => ({ id: "remote" }),
+    });
+    const queue = QueueManager.createFresh();
+    let registration: StudioWorkspaceRegistration | undefined;
+    context.messaging.subscribe<
+      StudioWorkspaceRegistration,
+      { workspaceUrl: string }
+    >("studio:register-workspace", async (message) => {
+      registration = message.payload;
+      return {
+        success: true,
+        data: { workspaceUrl: "/studio/workspaces/publishing" },
+      };
+    });
+    await registerStudioWorkspace(context, {
+      providerRegistry: providers,
+      queueManager: queue,
+      publicationQueueService: new PublicationQueueService(context, queue),
+      retryTracker: RetryTracker.createFresh(),
+      publishExecutor: new PublishExecutor({
+        context,
+        providerRegistry: providers,
+      }),
+    });
+    if (!registration) throw Error("Workspace was not registered");
+    const result = JSON.stringify(await registration.dataProvider(adminActor));
+    expect(result).toContain('"id":"publishing-at-rest"');
+    expect(result).not.toContain('"id":"publishing-queue"');
+    expect(result).toContain('"label":"Published"');
+  });
   it("is a no-op when the Studio is absent", async () => {
     const context = createServicePluginContext(
       createMockShell(),
@@ -109,6 +152,19 @@ describe("content-pipeline Studio workspace registration", () => {
     });
     const queue = QueueManager.createFresh();
     await queue.add("social-post", "queued-post");
+    await context.entityService.createEntity({
+      entity: {
+        id: "failed-post",
+        entityType: "social-post",
+        content: "Failed post",
+        visibility: "public",
+        metadata: {
+          status: "failed",
+          title: "Failed post",
+          error: "Provider refused delivery.\nRequest: delivery-123",
+        },
+      },
+    });
     let registration: StudioWorkspaceRegistration | undefined;
     context.messaging.subscribe<
       StudioWorkspaceRegistration,
@@ -151,10 +207,67 @@ describe("content-pipeline Studio workspace registration", () => {
     expect(await registration.accessHandler(adminActor)).toBe(true);
     const workspace = await registration.dataProvider(adminActor);
     expect(workspace).toMatchObject({
-      view: { title: "Publishing desk" },
+      view: { title: "Publishing" },
     });
     expect(JSON.stringify(workspace)).toContain('"title":"Queued post"');
     expect(JSON.stringify(workspace)).toContain('"entityType":"social-post"');
+    expect(workspace).toMatchObject({
+      view: {
+        blocks: [
+          {
+            id: "publishing-attention",
+            presentation: "disclosure",
+            disclosureLabel: "Review failure",
+            tone: "warn",
+            metadata: ["Failed post · Retries: 0"],
+            blocks: [
+              {
+                items: [
+                  {
+                    description:
+                      "Provider refused delivery.\nRequest: delivery-123",
+                    actions: [
+                      {
+                        actionId: "retry",
+                        input: {
+                          entityType: "social-post",
+                          entityId: "failed-post",
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            type: "tabs",
+            tabs: [
+              {
+                id: "queued",
+                blocks: [
+                  {
+                    items: [
+                      {
+                        description: "linkedin",
+                        actionsLabel: "Queue options",
+                        metadata: ["Position 1", "Next dispatch"],
+                        actions: [
+                          { label: "Move up", disabled: true },
+                          { label: "Move down", disabled: true },
+                          { actionId: "remove" },
+                        ],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+          { id: "publishing-summary" },
+        ],
+      },
+    });
   });
 
   it("owns validated queue, reorder, remove, and retry actions", async () => {
@@ -404,7 +517,7 @@ describe("content-pipeline Studio workspace registration", () => {
     ).toBe(true);
     const trustedWorkspace = await registration.dataProvider(trustedActor);
     expect(trustedWorkspace).toMatchObject({
-      view: { title: "Publishing desk" },
+      view: { title: "Publishing" },
     });
     const trustedSerialized = JSON.stringify(trustedWorkspace);
     expect(trustedSerialized).toContain("shared-queued");

@@ -3,6 +3,14 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { getErrorMessage } from "@brains/utils/error";
 import path from "node:path";
 import { PNG } from "pngjs";
+import { createAdministrationFixture } from "./fixtures/studio-administration";
+import { createWorkViewFixtures } from "./fixtures/studio-work-views";
+import { createDeliveryViewFixtures } from "./fixtures/studio-delivery-views";
+import { createSyncViewFixture } from "./fixtures/studio-sync-view";
+import {
+  studioStudyStateSchema,
+  supportsStudioStudyState,
+} from "./fixtures/studio-study-state";
 import { createElement, type ReactElement } from "react";
 import { renderChatPage } from "@brains/web-chat";
 import { renderEditorShellHtml } from "@brains/studio";
@@ -10,6 +18,8 @@ import {
   renderDashboardPageHtml,
   type DashboardRenderInput,
 } from "@brains/dashboard";
+import { safeParseRuntimeDashboardWidgetData } from "@brains/plugins";
+import { findCartesianMap } from "../plugins/dashboard/src/render/public-card-data";
 import {
   ProximityMap,
   proximityMapScript,
@@ -21,9 +31,22 @@ const ROOT = path.resolve(import.meta.dir, "..");
 const BASELINE_DIR = path.join(ROOT, "test/visual/console/baselines");
 const ARTIFACT_DIR = path.join(ROOT, "test/visual/console/artifacts");
 const UPDATE = process.argv.includes("--update");
+const STUDY_STATE = studioStudyStateSchema
+  .optional()
+  .parse(
+    process.argv
+      .find((arg) => arg.startsWith("--study-state="))
+      ?.slice("--study-state=".length),
+  );
 const SURFACE_FILTER = process.argv
   .find((argument) => argument.startsWith("--surface="))
   ?.slice("--surface=".length);
+if (
+  STUDY_STATE &&
+  SURFACE_FILTER &&
+  !supportsStudioStudyState(SURFACE_FILTER, STUDY_STATE)
+)
+  throw Error(`Study state ${STUDY_STATE} does not apply to ${SURFACE_FILTER}`);
 const VIEWPORT_FILTER = process.argv
   .find((argument) => argument.startsWith("--viewport="))
   ?.slice("--viewport=".length);
@@ -73,1169 +96,31 @@ const types = [
     capabilities: editCapabilities,
   },
 ];
-const overviewWorkspaceData = {
-  refreshAfterMs: 15_000,
-  view: {
-    kicker: "Operator home",
-    title: "Overview",
-    description:
-      "What needs you, and what the brain did on its own. Glance here, act in the workspace that owns it.",
-    status: {
-      label: "3 need you",
-      detail: "live operational snapshot",
-      tone: "warn",
+types.push(
+  ...[
+    {
+      entityType: "anchor-profile",
+      label: "Anchor Profiles",
+      isSingleton: true,
+      count: 1,
     },
-    blocks: [
-      {
-        type: "columns",
-        id: "overview-columns",
-        primary: [
-          {
-            type: "card",
-            id: "overview-attention",
-            label: "Needs attention",
-            tone: "warn",
-            blocks: [
-              {
-                type: "list",
-                id: "overview-attention-list",
-                empty: "Nothing needs your attention.",
-                items: [
-                  {
-                    id: "dispatch-failed",
-                    title: "Newsletter dispatch failed",
-                    description:
-                      "Urban sensor platforms — transport rejected the payload.",
-                    metadata: ["Publishing", "2 retries left", "18:20"],
-                    tone: "error",
-                    link: {
-                      kind: "launch",
-                      launch: { target: "publishing" },
-                    },
-                  },
-                  {
-                    id: "site-preview-failed",
-                    title: "Site preview needs review",
-                    description:
-                      "One route failed during the latest preview build.",
-                    metadata: ["Site", "preview environment"],
-                    tone: "warn",
-                    link: {
-                      kind: "launch",
-                      launch: { target: "site" },
-                    },
-                  },
-                  {
-                    id: "invitation-expiring",
-                    title: "Grace Hopper's setup link expires soon",
-                    description:
-                      "The single-use invitation link expires tomorrow.",
-                    metadata: ["Access", "Invitations"],
-                    tone: "warn",
-                    link: {
-                      kind: "launch",
-                      launch: { target: "invitations" },
-                    },
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: "card",
-            id: "overview-activity",
-            label: "While you were away",
-            blocks: [
-              {
-                type: "list",
-                id: "overview-activity-list",
-                empty: "No recent autonomous activity.",
-                items: [
-                  // A row at the protocol's edges. Sources may legally send a
-                  // 500-character title, 20 metadata entries, and 160-character
-                  // tags and badges; the renderer decides width from the
-                  // block's meaning, so none of that may reach the page edge.
-                  {
-                    id: "unbroken-tokens",
-                    title:
-                      "Rebuilt https://preview.example.com/notes/quiet-infrastructure?build=20260711163352a7f3&environment=preview",
-                    description:
-                      "Reconciled against operator+publishing.pipeline.20260711163352@notifications.example.com after the render retry.",
-                    metadata: [
-                      "Site",
-                      "build-20260711163352a7f3-preview-reconciliation",
-                    ],
-                    tags: ["reconciliation/publishing-pipeline-preview-build"],
-                    badges: [
-                      {
-                        label: "awaiting-operator-acknowledgement",
-                        tone: "warn",
-                      },
-                    ],
-                    tone: "warn",
-                  },
-                  {
-                    id: "mail-triage",
-                    title: "9 mail items triaged",
-                    description: "2 flagged high priority, 1 needs a reply.",
-                    metadata: ["Inbox", "overnight"],
-                    tone: "good",
-                    link: {
-                      kind: "launch",
-                      launch: { target: "inbox" },
-                    },
-                  },
-                  {
-                    id: "preview-built",
-                    title: "Site preview built",
-                    description: "31 routes completed without warnings.",
-                    metadata: ["Site", "16:04"],
-                    tone: "good",
-                  },
-                  {
-                    id: "notes-captured",
-                    title: "3 notes captured",
-                    description:
-                      "From inbox follow-ups on the workshop thread.",
-                    metadata: ["Notes", "14:31"],
-                    tone: "neutral",
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-        aside: [
-          {
-            type: "card",
-            id: "overview-system",
-            label: "System",
-            tone: "neutral",
-            blocks: [
-              {
-                type: "key-values",
-                items: [
-                  { label: "Runtime", value: "operational" },
-                  { label: "Jobs", value: "idle" },
-                  { label: "Queue", value: "0 waiting" },
-                  { label: "Version", value: "0.2.0-alpha.306" },
-                ],
-              },
-            ],
-          },
-          {
-            type: "card",
-            id: "overview-network",
-            label: "Network",
-            tone: "neutral",
-            blocks: [
-              {
-                type: "key-values",
-                items: [
-                  { label: "Interactions", value: 4 },
-                  { label: "Channels", value: 3 },
-                  { label: "Inbox sources", value: 2 },
-                  { label: "Operational sources", value: 3 },
-                ],
-              },
-            ],
-          },
-          // The site-builder Site health widget, shaped exactly as
-          // plugins/site-builder emits it through sourcePanelBlocks: a stats
-          // pair, key-values carrying free-form build detail, a joined
-          // multi-failure notice, and its links. Sidebar cards elsewhere in
-          // this fixture only ever hold one-word values, which is why nothing
-          // here caught long detail strings escaping the aside column.
-          {
-            type: "card",
-            id: "source-site-builder-site-health",
-            label: "Site health",
-            tone: "warn",
-            blocks: [
-              {
-                type: "stats",
-                items: [
-                  { label: "Preview", value: "published", tone: "good" },
-                  { label: "Live", value: "failed", tone: "warn" },
-                ],
-              },
-              {
-                type: "key-values",
-                items: [
-                  {
-                    label: "Preview detail",
-                    value:
-                      "14 published routes · build-20260711-163352-a7f3 · 2026-07-11T16:33:52.458Z",
-                  },
-                  {
-                    label: "Live detail",
-                    value:
-                      "Route /notes/quiet-infrastructure failed to render: missing template binding for hero.image.",
-                  },
-                ],
-              },
-              {
-                type: "notice",
-                id: "build-failures",
-                title: "Previous build failures",
-                tone: "error",
-                text: "production · job-7f21c · 2026-07-11T16:31:02.220Z: Route /notes/quiet-infrastructure failed to render.\npreview · job-7f20a · 2026-07-11T16:22:10.004Z: Timed out after 120s.",
-              },
-              {
-                type: "links",
-                items: [
-                  {
-                    label: "Open preview",
-                    target: { external: "https://preview.example.com" },
-                  },
-                  {
-                    label: "Open in Studio",
-                    target: { launch: { target: "site" } },
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: "card",
-            id: "overview-sources",
-            label: "All sources connected",
-            tone: "good",
-            blocks: [
-              {
-                type: "notice",
-                tone: "good",
-                text: "Email, directory sync, and the site pipeline are reporting normally.",
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-};
-
-const administrationWorkspaceData = {
-  view: {
-    kicker: "Access administration",
-    title: "Administration",
-    description:
-      "Manage local people, invitation delivery, external provenance, and security history.",
-    blocks: [
-      {
-        type: "stats",
-        id: "people-summary",
-        items: [
-          { label: "Active members", value: 2 },
-          { label: "Active Admins", value: 1 },
-          { label: "Suspended", value: 1, tone: "warn" },
-        ],
-      },
-      {
-        type: "tabs",
-        id: "administration-tabs",
-        label: "Administration sections",
-        defaultTab: "people",
-        queryKey: "tab",
-        tabs: [
-          {
-            id: "people",
-            label: "People",
-            blocks: [
-              {
-                type: "detail",
-                id: "people",
-                queryKey: "selected",
-                empty: "Select a person to inspect their access.",
-                master: {
-                  type: "table",
-                  id: "people-roster",
-                  empty: "No people are available.",
-                  columns: [
-                    { key: "person", label: "Person" },
-                    { key: "role", label: "Role" },
-                    { key: "status", label: "Status" },
-                    { key: "brain", label: "Arrived via" },
-                  ],
-                  rows: [
-                    {
-                      id: "mira",
-                      cells: {
-                        person: "Mira Reyes",
-                        role: "Admin",
-                        status: "Active",
-                        brain: "This brain",
-                      },
-                      compact: {
-                        title: "Mira Reyes",
-                        metadata: [
-                          "Admin",
-                          "This brain",
-                          "2 passkeys · 1 channel",
-                        ],
-                        badges: [{ label: "Active", tone: "good" }],
-                      },
-                      link: { kind: "detail", itemId: "mira" },
-                    },
-                    {
-                      id: "grace",
-                      cells: {
-                        person: "Grace Hopper",
-                        role: "Trusted",
-                        status: "Active",
-                        brain: "grace.example",
-                      },
-                      compact: {
-                        title: "Grace Hopper",
-                        metadata: [
-                          "Trusted",
-                          "grace.example",
-                          "1 passkey · 2 channels",
-                        ],
-                        badges: [{ label: "Active", tone: "good" }],
-                      },
-                      link: { kind: "detail", itemId: "grace" },
-                    },
-                    {
-                      id: "sam",
-                      cells: {
-                        person: "Sam Lee",
-                        role: "Public",
-                        status: "Suspended",
-                        brain: "This brain",
-                      },
-                      compact: {
-                        title: "Sam Lee",
-                        metadata: [
-                          "Public",
-                          "This brain",
-                          "0 passkeys · 1 channel",
-                        ],
-                        badges: [{ label: "Suspended", tone: "warn" }],
-                        tone: "warn",
-                      },
-                      link: { kind: "detail", itemId: "sam" },
-                    },
-                  ],
-                  open: undefined,
-                },
-              },
-              {
-                type: "columns",
-                id: "people-standing",
-                primary: [
-                  {
-                    type: "card",
-                    id: "people-peers",
-                    label: "External brains",
-                    blocks: [
-                      {
-                        type: "table",
-                        id: "peers",
-                        empty: "No external brains are linked.",
-                        columns: [
-                          { key: "peer", label: "Brain" },
-                          { key: "person", label: "Person" },
-                          { key: "verification", label: "Verification" },
-                          { key: "linked", label: "Linked" },
-                        ],
-                        rows: [
-                          {
-                            id: "grace.example",
-                            cells: {
-                              peer: "grace.example",
-                              person: "Grace Hopper",
-                              verification: "Verified",
-                              linked: "Aug 12, 2026",
-                            },
-                            compact: {
-                              title: "grace.example",
-                              metadata: [
-                                "Grace Hopper",
-                                "Trusted",
-                                "Aug 12, 2026",
-                              ],
-                              badges: [{ label: "Verified", tone: "good" }],
-                            },
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-                aside: [
-                  {
-                    type: "card",
-                    id: "brain-anchor",
-                    label: "Brain Anchor",
-                    blocks: [
-                      {
-                        type: "key-values",
-                        items: [
-                          { label: "Name", value: "Mira Reyes" },
-                          { label: "Kind", value: "Person" },
-                          { label: "Ownership", value: "Personal" },
-                        ],
-                      },
-                    ],
-                  },
-                  {
-                    type: "notice",
-                    id: "people-peer-note",
-                    tone: "neutral",
-                    title: "External brain relationships",
-                    text: "A peer link records how a locally administered person relates to another brain. It does not grant or change local access.",
-                  },
-                  {
-                    type: "card",
-                    id: "link-peer",
-                    label: "Link an existing person",
-                    blocks: [
-                      {
-                        type: "text",
-                        text: "Associate an external peer identity with a locally administered person.",
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            id: "invitations",
-            label: "Invitations",
-            count: 1,
-            blocks: [
-              {
-                type: "text",
-                text: "Invitations load when this tab is opened.",
-              },
-            ],
-          },
-          {
-            id: "audit",
-            label: "Audit",
-            blocks: [
-              { type: "text", text: "Audit loads when this tab is opened." },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-};
-
-const administrationInvitationsWorkspaceData = {
-  view: {
-    kicker: "Access administration",
-    title: "Administration",
-    description:
-      "Manage local people, invitation delivery, external provenance, and security history.",
-    primaryAction: {
-      actionId: "create-invitation",
-      label: "Add a person",
-      input: { idempotencyKey: "visual-request" },
-      form: {
-        presentation: "disclosure",
-        submitLabel: "Create invitation",
-        fields: [
-          {
-            name: "displayName",
-            label: "Display name",
-            control: "text",
-            required: true,
-          },
-          {
-            name: "deliveryType",
-            label: "Delivery channel",
-            control: "select",
-            required: true,
-            options: [{ value: "email", label: "Private email" }],
-          },
-          {
-            name: "deliverySubject",
-            label: "Email address",
-            control: "text",
-            required: true,
-          },
-        ],
-      },
-      result: {
-        title: "Invitation setup",
-        fields: [
-          { name: "status", label: "Status" },
-          {
-            name: "setupUrl",
-            label: "Single-use setup URL",
-            copyable: true,
-            sensitive: true,
-          },
-          { name: "expiresAt", label: "Expires" },
-        ],
-      },
+    {
+      entityType: "brain-character",
+      label: "Brain Characters",
+      isSingleton: true,
+      count: 1,
     },
-    blocks: [
-      {
-        type: "stats",
-        id: "invitation-totals",
-        items: [
-          { label: "Pending", value: 1 },
-          { label: "History", value: 4 },
-          { label: "Delivery failures", value: 0, tone: "neutral" },
-        ],
-      },
-      {
-        type: "tabs",
-        id: "administration-tabs",
-        label: "Administration sections",
-        defaultTab: "invitations",
-        queryKey: "tab",
-        tabs: [
-          {
-            id: "people",
-            label: "People",
-            blocks: [{ type: "text", text: "People load on selection." }],
-          },
-          {
-            id: "invitations",
-            label: "Invitations",
-            count: 1,
-            blocks: [
-              {
-                type: "columns",
-                id: "invitation-layout",
-                primary: [
-                  {
-                    type: "table",
-                    id: "invitations",
-                    empty: "No pending invitations.",
-                    query: {
-                      controls: [
-                        {
-                          key: "state",
-                          label: "View",
-                          value: "pending",
-                          options: [
-                            { value: "pending", label: "Pending", count: 1 },
-                            { value: "history", label: "History", count: 4 },
-                          ],
-                        },
-                      ],
-                      pagination: { offset: 0, limit: 25, total: 1 },
-                    },
-                    columns: [
-                      { key: "person", label: "Person" },
-                      { key: "role", label: "Role" },
-                      { key: "state", label: "State" },
-                      { key: "destination", label: "Destination" },
-                      { key: "updated", label: "Updated" },
-                    ],
-                    rows: [
-                      {
-                        id: "jordan",
-                        cells: {
-                          person: "Jordan Rivera",
-                          role: "Trusted",
-                          state: "Pending",
-                          destination: "jordan@example.com",
-                          updated: "Aug 26, 2026",
-                        },
-                        compact: {
-                          title: "Jordan Rivera",
-                          metadata: [
-                            "Trusted",
-                            "jordan@example.com",
-                            "Aug 26, 2026",
-                          ],
-                          badges: [{ label: "Pending", tone: "neutral" }],
-                        },
-                        actions: [
-                          {
-                            actionId: "resend-invitation",
-                            label: "Resend",
-                            input: { invitationId: "jordan" },
-                          },
-                          {
-                            actionId: "cancel-invitation",
-                            label: "Cancel",
-                            input: { invitationId: "jordan" },
-                            confirmation: { kind: "prepared" },
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                ],
-                aside: [
-                  {
-                    type: "card",
-                    id: "invite-peer",
-                    label: "Peer-first invitation",
-                    blocks: [
-                      {
-                        type: "text",
-                        text: "Create local access for a person known first through another brain.",
-                      },
-                      {
-                        type: "action",
-                        actionId: "invite-external-peer-person",
-                        label: "Invite peer person",
-                        input: {},
-                        form: {
-                          presentation: "disclosure",
-                          submitLabel: "Invite peer person",
-                          fields: [
-                            {
-                              name: "peerId",
-                              label: "External peer ID",
-                              control: "text",
-                              required: true,
-                            },
-                            {
-                              name: "displayName",
-                              label: "Display name",
-                              control: "text",
-                              required: true,
-                            },
-                          ],
-                        },
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            id: "audit",
-            label: "Audit",
-            blocks: [{ type: "text", text: "Audit loads on selection." }],
-          },
-        ],
-      },
-    ],
-  },
-};
-
-const administrationAuditWorkspaceData = {
-  view: {
-    kicker: "Security history",
-    title: "Administration",
-    description:
-      "Manage local people, invitation delivery, external provenance, and security history.",
-    blocks: [
-      {
-        type: "stats",
-        id: "audit-totals",
-        items: [
-          { label: "Matching", value: 212 },
-          { label: "Actors", value: 4 },
-        ],
-      },
-      {
-        type: "tabs",
-        id: "administration-tabs",
-        label: "Administration sections",
-        defaultTab: "audit",
-        queryKey: "tab",
-        tabs: [
-          {
-            id: "people",
-            label: "People",
-            blocks: [{ type: "text", text: "People load on selection." }],
-          },
-          {
-            id: "invitations",
-            label: "Invitations",
-            count: 1,
-            blocks: [{ type: "text", text: "Invitations load on selection." }],
-          },
-          {
-            id: "audit",
-            label: "Audit",
-            blocks: [
-              {
-                type: "detail",
-                id: "audit-detail",
-                queryKey: "selected",
-                empty: "Select an event to inspect its audit record.",
-                master: {
-                  type: "table",
-                  id: "audit-events",
-                  empty: "No audit events match these filters.",
-                  query: {
-                    controls: [
-                      {
-                        key: "actorUserId",
-                        label: "Actor",
-                        allLabel: "All actors",
-                        options: [
-                          { value: "mira", label: "Mira Reyes" },
-                          { value: "system", label: "System" },
-                        ],
-                      },
-                      {
-                        key: "action",
-                        label: "Action",
-                        allLabel: "All actions",
-                        options: [
-                          { value: "role", label: "Changed an account role" },
-                          { value: "setup", label: "Created a setup link" },
-                        ],
-                      },
-                    ],
-                    pagination: {
-                      offset: 0,
-                      limit: 25,
-                      total: 212,
-                    },
-                  },
-                  columns: [
-                    { key: "when", label: "When" },
-                    { key: "actor", label: "Actor" },
-                    { key: "action", label: "Action" },
-                    { key: "target", label: "Target" },
-                  ],
-                  rows: [
-                    {
-                      id: "audit-1",
-                      cells: {
-                        when: "Aug 30, 2026",
-                        actor: "Mira Reyes",
-                        action: "Changed an account role",
-                        target: "Grace Hopper",
-                      },
-                      compact: {
-                        title: "Changed an account role",
-                        metadata: ["Mira Reyes", "Grace Hopper"],
-                        badges: [{ label: "Aug 30, 2026" }],
-                      },
-                      link: { kind: "detail", itemId: "audit-1" },
-                    },
-                    {
-                      id: "audit-2",
-                      cells: {
-                        when: "Aug 29, 2026",
-                        actor: "System",
-                        action: "Created a setup link",
-                        target: "Jordan Rivera",
-                      },
-                      compact: {
-                        title: "Created a setup link",
-                        metadata: ["System", "Jordan Rivera"],
-                        badges: [{ label: "Aug 29, 2026" }],
-                      },
-                      link: { kind: "detail", itemId: "audit-2" },
-                    },
-                    {
-                      id: "audit-3",
-                      cells: {
-                        when: "Aug 28, 2026",
-                        actor: "Mira Reyes",
-                        action: "Revoked account grants",
-                        target: "Sam Lee",
-                      },
-                      compact: {
-                        title: "Revoked account grants",
-                        metadata: ["Mira Reyes", "Sam Lee"],
-                        badges: [{ label: "Aug 28, 2026" }],
-                      },
-                      link: { kind: "detail", itemId: "audit-3" },
-                    },
-                  ],
-                },
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-};
-
-// The unified-inbox workspace, shaped as plugins/unified-inbox emits it: a
-// three-stat summary, query controls with a pager, and a master/detail split
-// whose rows carry an urgency badge, source metadata, and the verbs that clear
-// them. It is the widest block set any workspace uses and the only surface
-// where `detail` opens a reading pane, which is why it needs its own capture
-// rather than being assumed to behave like Administration.
-const inboxWorkspaceData = {
-  refreshAfterMs: 20_000,
-  view: {
-    kicker: "Live source-owned attention",
-    title: "Inbox",
-    description:
-      "Triage incoming work without creating a second copy of source state.",
-    status: {
-      label: "2 of 3 sources online",
-      detail: "some sources unavailable",
-      tone: "warn",
+    {
+      entityType: "style-guide",
+      label: "Style Guides",
+      isSingleton: true,
+      count: 1,
     },
-    blocks: [
-      {
-        type: "stats",
-        id: "inbox-summary",
-        items: [
-          { label: "Open", value: 3, caption: "across sources" },
-          {
-            label: "High priority",
-            value: 1,
-            caption: "needs attention",
-            tone: "warn",
-          },
-          { label: "Matching", value: 3, caption: "current filter" },
-        ],
-      },
-      {
-        type: "notice",
-        id: "inbox-source-errors",
-        title: "Ledger archive",
-        tone: "error",
-        text: "Source unavailable: the archive host refused the connection at 09:02.",
-      },
-      {
-        type: "query",
-        id: "inbox-query",
-        controls: [
-          {
-            kind: "select",
-            key: "source",
-            label: "Source",
-            value: "all",
-            options: [
-              { value: "all", label: "All sources" },
-              { value: "smoke-mailbox", label: "Smoke mailbox" },
-              { value: "agent-sightings", label: "Agent sightings" },
-            ],
-          },
-          {
-            kind: "select",
-            key: "urgency",
-            label: "Urgency",
-            value: "all",
-            options: [
-              { value: "all", label: "Any urgency" },
-              { value: "high", label: "High only" },
-            ],
-          },
-        ],
-        pagination: { offset: 0, limit: 10, total: 3 },
-      },
-      {
-        type: "detail",
-        id: "inbox-detail",
-        queryKey: "selected",
-        empty: "Select an item to read its source content.",
-        master: {
-          type: "list",
-          id: "inbox-items",
-          empty: "Nothing needs attention for these filters.",
-          items: [
-            {
-              id: "smoke-mailbox::msg-4180",
-              title: "Verdigris pigment supplier cannot meet the July run",
-              description:
-                "They can cover half the order and asked whether a substitute binder is acceptable.",
-              metadata: [
-                "Smoke mailbox",
-                "2026-07-11 09:14 UTC",
-                "Message 3 in thread",
-              ],
-              badges: [{ label: "high priority", tone: "warn" }],
-              link: { detail: { itemId: "smoke-mailbox::msg-4180" } },
-            },
-            {
-              id: "agent-sightings::natalie-0912",
-              title: "Natalie reported a stale profile on natalie.rizom.ai",
-              description: "The published bio predates the June role change.",
-              metadata: ["Agent sightings", "2026-07-11 08:02 UTC"],
-              badges: [{ label: "normal priority" }],
-              link: { detail: { itemId: "agent-sightings::natalie-0912" } },
-            },
-            {
-              id: "smoke-mailbox::msg-4166",
-              title: "Invoice 2026-118 acknowledged",
-              description: "No reply needed; filed against the trust series.",
-              metadata: ["Smoke mailbox", "2026-07-10 16:40 UTC"],
-              badges: [{ label: "normal priority" }],
-              link: { detail: { itemId: "smoke-mailbox::msg-4166" } },
-            },
-          ],
-        },
-      },
-    ],
-  },
-};
-
-const contentSyncWorkspaceData = {
-  view: {
-    kicker: "Content operations",
-    title: "Content sync",
-    description:
-      "Keep durable entities, the content directory, and its Git remote converged.",
-    status: { label: "Watching", detail: "main · clean", tone: "good" },
-    primaryAction: {
-      actionId: "sync-now",
-      label: "Sync now",
-      input: {},
-    },
-    blocks: [
-      {
-        type: "stats",
-        id: "sync-summary",
-        items: [
-          { label: "Files", value: 84, caption: "markdown + images" },
-          { label: "Entity types", value: 12, caption: "within scope" },
-          { label: "Issues", value: 0, caption: "all clear", tone: "good" },
-        ],
-      },
-      {
-        type: "flow",
-        id: "sync-flow",
-        label: "Convergence path",
-        steps: [
-          { id: "database", label: "Entity database", status: "complete" },
-          { id: "directory", label: "Content directory", status: "complete" },
-          {
-            id: "git",
-            label: "origin/main",
-            status: "complete",
-            detail: "0 ahead · 0 behind",
-          },
-        ],
-      },
-      {
-        type: "columns",
-        id: "sync-body",
-        primary: [
-          {
-            type: "card",
-            id: "sync-source-card",
-            label: "Source directory",
-            blocks: [
-              {
-                type: "key-values",
-                items: [
-                  { label: "Path", value: "brain-data" },
-                  { label: "Last import", value: "11 Jul 2026, 16:32" },
-                  { label: "Watch", value: "enabled" },
-                ],
-              },
-            ],
-          },
-        ],
-        aside: [
-          {
-            type: "card",
-            id: "sync-automation-card",
-            label: "Automation",
-            blocks: [
-              {
-                type: "notice",
-                tone: "good",
-                text: "Exports are current and the remote has no pending changes.",
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-};
-
-const siteWorkspaceData = {
-  view: {
-    kicker: "Website operations",
-    title: "Site control",
-    description:
-      "Build a proof with public drafts, then update the live site from published content.",
-    status: {
-      label: "Rizom field notes",
-      detail: "2 environments",
-      tone: "good",
-    },
-    blocks: [
-      {
-        type: "stats",
-        id: "site-summary",
-        items: [
-          { label: "Routes", value: 31, caption: "configured" },
-          { label: "Active builds", value: 0, caption: "none running" },
-          {
-            label: "Warnings",
-            value: 1,
-            caption: "latest builds",
-            tone: "warn",
-          },
-        ],
-      },
-      {
-        type: "columns",
-        id: "site-body",
-        primary: [
-          {
-            type: "card",
-            id: "preview-card",
-            label: "Preview",
-            tone: "good",
-            blocks: [
-              {
-                type: "key-values",
-                items: [
-                  { label: "State", value: "published" },
-                  { label: "Built", value: "11 Jul 2026, 16:33" },
-                  { label: "Routes", value: 31 },
-                ],
-              },
-              {
-                type: "actions",
-                items: [
-                  {
-                    actionId: "build-preview",
-                    label: "Build preview",
-                    input: {},
-                  },
-                ],
-              },
-            ],
-          },
-          {
-            type: "card",
-            id: "production-card",
-            label: "Production",
-            tone: "warn",
-            blocks: [
-              {
-                type: "notice",
-                tone: "warn",
-                title: "One warning",
-                text: "The notes index contains one draft-only link.",
-              },
-              {
-                type: "actions",
-                items: [
-                  {
-                    actionId: "build-production",
-                    label: "Build production",
-                    input: {},
-                    confirmation: {
-                      kind: "static",
-                      message:
-                        "Replace the live site with the latest published build?",
-                    },
-                  },
-                ],
-              },
-            ],
-          },
-        ],
-        aside: [
-          {
-            type: "card",
-            id: "site-routes",
-            label: "Route sample",
-            blocks: [
-              {
-                type: "list",
-                empty: "No routes.",
-                items: [
-                  { id: "home", title: "/", description: "Home" },
-                  { id: "notes", title: "/notes/", description: "Notes" },
-                  { id: "about", title: "/about/", description: "About" },
-                ],
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-};
-
-const publishingWorkspaceData = {
-  view: {
-    kicker: "External delivery",
-    title: "Publishing",
-    description:
-      "Review the queue, recover failures, and send saved entities to registered providers.",
-    status: {
-      label: "1 needs attention",
-      detail: "no active run",
-      tone: "warn",
-    },
-    blocks: [
-      {
-        type: "stats",
-        id: "publishing-summary",
-        items: [
-          { label: "Queued", value: 3, caption: "awaiting dispatch" },
-          { label: "Generating", value: 0, caption: "in progress" },
-          {
-            label: "Needs attention",
-            value: 1,
-            caption: "failed",
-            tone: "warn",
-          },
-          { label: "Published", value: 18, caption: "all time" },
-        ],
-      },
-      {
-        type: "query",
-        id: "publishing-query",
-        controls: [
-          {
-            kind: "select",
-            key: "state",
-            label: "Queue state",
-            value: "all",
-            options: [
-              { value: "all", label: "All" },
-              { value: "queued", label: "Queued", count: 3 },
-              { value: "failed", label: "Failed", count: 1 },
-            ],
-          },
-        ],
-        pagination: { offset: 0, limit: 10, total: 4 },
-      },
-      {
-        type: "list",
-        id: "publishing-items",
-        empty: "The publishing queue is empty.",
-        items: [
-          {
-            id: "post:quiet-infrastructure",
-            title: "Quiet infrastructure",
-            description: "Queued for the newsletter provider.",
-            metadata: ["Post", "Newsletter", "position 1"],
-            badges: [{ label: "queued" }],
-            actions: [
-              {
-                actionId: "remove",
-                label: "Remove",
-                input: { id: "quiet-infrastructure" },
-              },
-            ],
-          },
-          {
-            id: "post:field-notes",
-            title: "Notes from the rhizome",
-            description: "Provider rejected the last delivery attempt.",
-            metadata: ["Post", "Newsletter", "2 retries left"],
-            badges: [{ label: "failed", tone: "warn" }],
-            actions: [
-              {
-                actionId: "retry",
-                label: "Retry",
-                input: { id: "field-notes" },
-              },
-            ],
-          },
-        ],
-      },
-    ],
-  },
-};
-
+    { entityType: "prompt", label: "Prompts", isSingleton: false, count: 18 },
+    { entityType: "skill", label: "Skills", isSingleton: false, count: 3 },
+    { entityType: "agent", label: "Agents", isSingleton: false, count: 15 },
+  ].map((info) => ({ ...info, hasBody: true, capabilities: editCapabilities })),
+);
 const entities = [
   {
     id: "responsive-console",
@@ -1280,6 +165,17 @@ const entity = {
   body: "# Notes from the rhizome\n\nA good console should make dense systems feel calm. Its structure needs to remain legible while the viewport changes around it.\n\n> The interface is not a dashboard pasted onto every screen. It is a continuous instrument with distinct working climates.\n\n## Responsive field rules\n\n- Keep shared wayfinding stable.\n- Let local tools adapt to the task.\n- Preserve touch targets and safe areas.\n\nThe result should feel authored at every width.",
   contentHash: "fixture-hash",
   created: "2026-06-18T09:00:00.000Z",
+};
+const styleGuideEntity = {
+  ...entity,
+  id: "style-guide",
+  entityType: "style-guide",
+  frontmatter: {
+    title: "Rover Collective voice",
+    tone: "Warm, precise and candid. Prefer useful language over performance.",
+    accent: "verdigris + vermilion",
+  },
+  body: "# A working voice\n\nWrite as a capable collaborator: direct enough to act on, generous enough to understand.\n\n> The interface should feel authored, but it should never compete with the work.\n\nUse structure to make complex systems legible. Names should describe stable concepts rather than implementation details.",
 };
 const sessions = [
   {
@@ -1945,6 +841,835 @@ async function waitForSelector(
   );
 }
 
+async function verifyAdministrationRecords(
+  page: Bun.WebView,
+  surface: string,
+): Promise<void> {
+  const label =
+    surface === "studio-administration"
+      ? "View protection"
+      : surface === "studio-administration-invitations"
+        ? "Review"
+        : "Details";
+  await waitForSelector(
+    page,
+    '.declarative-detail-master [data-record-trailing="true"]',
+  );
+  await clickText(
+    page,
+    '.declarative-detail-master [data-record-trailing="true"] button',
+    label,
+  );
+  await waitForSelector(page, ".declarative-detail-pane h2");
+  const inspection = await evaluatePage(page, () => {
+    const pane = document.querySelector(".declarative-detail-pane");
+    return {
+      selected: new URL(location.href).searchParams.has("selected"),
+      text: pane?.textContent ?? "",
+      unsafeAnchorControl: Array.from(
+        pane?.querySelectorAll("button") ?? [],
+      ).some(
+        (button) =>
+          /^(Change role|Suspend person)$/.test(button.textContent.trim()) &&
+          !button.disabled,
+      ),
+    };
+  });
+  if (!inspection.selected)
+    throw new Error(
+      "Administration selection did not enter canonical query state",
+    );
+  if (
+    surface === "studio-administration" &&
+    (!inspection.text.includes("must remain an active Admin") ||
+      !inspection.text.includes("cannot be suspended") ||
+      inspection.unsafeAnchorControl)
+  )
+    throw new Error("Anchor inspection lost its protection");
+  if (
+    surface === "studio-administration-invitations" &&
+    !inspection.text.includes("Confirm delivered")
+  )
+    throw new Error("Invitation review lost its manual delivery control");
+  if ((await elementDisplay(page, ".declarative-detail-back")) !== "none") {
+    await clickText(page, ".declarative-detail-back", "Back");
+  } else {
+    // Query edits replace the current URL; desktop inspection returns through
+    // the local tabs rather than pretending browser Back closes the pane.
+    const next = surface === "studio-administration" ? "Invitations" : "People";
+    await activateWorkspaceTab(page, next);
+    await waitForPage("Administration local tab transition", () =>
+      evaluatePageWith(
+        page,
+        (label) =>
+          document
+            .querySelector('[role="tab"][aria-selected="true"]')
+            ?.textContent.trim() === label &&
+          !document.querySelector(".declarative-detail-pane"),
+        next,
+      ),
+    );
+    await activateWorkspaceTab(
+      page,
+      surface === "studio-administration"
+        ? "People"
+        : surface === "studio-administration-invitations"
+          ? "Invitations"
+          : "Audit",
+    );
+  }
+  await waitForPage("Administration collection after closing inspection", () =>
+    evaluatePage(
+      page,
+      () =>
+        !!document.querySelector(".declarative-detail-master") &&
+        !document.querySelector(".declarative-detail-pane"),
+    ),
+  );
+}
+
+async function verifyMapMotion(page: Bun.WebView): Promise<void> {
+  await page.cdp("Emulation.setEmulatedMedia", {
+    features: [{ name: "prefers-reduced-motion", value: "no-preference" }],
+  });
+  try {
+    await evaluatePage(page, () => {
+      const marks = document.querySelectorAll(
+        ".knowledge-weave,.knowledge-zone-contour,.knowledge-point,.proximity-spore,.proximity-center-halo,.proximity-node-glow",
+      );
+      if (marks.length < 5) throw Error("Missing animated map marks");
+      for (const mark of marks)
+        if (getComputedStyle(mark).animationName === "none")
+          throw Error("Map lost its compiled animation");
+    });
+    await page.cdp("Emulation.setEmulatedMedia", {
+      features: [{ name: "prefers-reduced-motion", value: "reduce" }],
+    });
+    await evaluatePage(page, () => {
+      if (!matchMedia("(prefers-reduced-motion: reduce)").matches)
+        throw Error("Reduced-motion emulation failed");
+      const marks = document.querySelectorAll(
+        ".knowledge-weave,.knowledge-zone-contour,.knowledge-point,.proximity-spore,.proximity-center-halo,.proximity-node-glow",
+      );
+      for (const mark of marks) {
+        const style = getComputedStyle(mark);
+        if (
+          style.animationName !== "none" ||
+          Number.parseFloat(style.opacity) !== 1 ||
+          style.transform !== "none"
+        )
+          throw Error("Reduced-motion map marks are animated or hidden");
+      }
+      for (const path of document.querySelectorAll(
+        ".knowledge-weave,.knowledge-zone-contour",
+      ))
+        if (Number.parseFloat(getComputedStyle(path).strokeDashoffset) !== 0)
+          throw Error("Reduced-motion contours did not finish drawing");
+    });
+  } finally {
+    await page.cdp("Emulation.setEmulatedMedia", { features: [] });
+  }
+  await Bun.sleep(1200);
+}
+
+async function verifyDashboardChrome(page: Bun.WebView): Promise<void> {
+  await waitForPage("Dashboard tabs initialized", () =>
+    evaluatePage(page, () =>
+      document.documentElement.classList.contains("dashboard-tabs-ready"),
+    ),
+  );
+  await evaluatePage(page, () => {
+    const paper = document.documentElement.dataset["climate"] === "paper";
+    const bodyStyle = getComputedStyle(document.body),
+      grain = getComputedStyle(document.body, "::before"),
+      vignette = getComputedStyle(document.body, "::after");
+    if (
+      bodyStyle.fontSize !== "14px" ||
+      bodyStyle.lineHeight !== "21px" ||
+      bodyStyle.overflowX !== "clip" ||
+      grain.opacity !== (paper ? "0.06" : "0.035") ||
+      grain.mixBlendMode !== (paper ? "multiply" : "overlay") ||
+      vignette.opacity !== (paper ? "0.7" : "0.55") ||
+      !grain.backgroundImage.includes("feTurbulence") ||
+      !vignette.backgroundImage.includes("radial-gradient") ||
+      (paper && !vignette.backgroundImage.includes("-10%"))
+    )
+      throw Error("Compiled document foundation lost its climate treatment");
+    for (const overlay of [grain, vignette])
+      if (
+        overlay.position !== "fixed" ||
+        overlay.pointerEvents !== "none" ||
+        overlay.zIndex !== "0"
+      )
+        throw Error(
+          "Document ambience intercepts or overlays content incorrectly",
+        );
+    const header = document.querySelector(".public-header");
+    if (
+      !header ||
+      header.querySelector("a")?.getAttribute("href") !== "/dashboard"
+    )
+      throw new Error("Dashboard lost its home link");
+    if (
+      header.querySelector(".public-header-ask")?.getAttribute("href") !==
+        "/ask" ||
+      header.querySelector(".public-header-sign-in")?.getAttribute("href") !==
+        "/login"
+    )
+      throw new Error("Dashboard changed its guest or sign-in destinations");
+    if (window.innerWidth <= 640) {
+      for (const link of header.querySelectorAll("a"))
+        if (link.getBoundingClientRect().height < 44)
+          throw new Error("Public header lost a phone touch target");
+      const description = document.querySelector(".masthead p");
+      if (!description || getComputedStyle(description).paddingBottom !== "0px")
+        throw new Error("Phone masthead retained desktop description spacing");
+    }
+    const frame = document.querySelector<HTMLElement>(".frame");
+    const canvas = document.querySelector(".canvas");
+    const sections = document.querySelector(".dashboard-tab-panels");
+    const footer = document.querySelector(".colophon");
+    if (!frame || !canvas || !sections || !footer)
+      throw new Error("Missing shared Dashboard framing");
+    const phone = window.innerWidth <= 640;
+    const frameStyle = getComputedStyle(frame);
+    if (
+      Math.abs(
+        frame.getBoundingClientRect().width -
+          Math.min(1280, window.innerWidth * 0.96),
+      ) > 1 ||
+      frameStyle.borderLeftWidth !== (phone ? "0px" : "1px") ||
+      getComputedStyle(canvas).paddingLeft !== (phone ? "14px" : "26px") ||
+      getComputedStyle(sections).gap !== (phone ? "24px" : "42px") ||
+      getComputedStyle(footer).marginTop !== "32px"
+    )
+      throw new Error("Compiled frame changed its responsive geometry");
+    if (phone) {
+      if (frameStyle.boxShadow !== "none")
+        throw new Error("Phone frame retained a desktop shadow");
+      for (const link of footer.querySelectorAll("a"))
+        if (link.getBoundingClientRect().height < 44)
+          throw new Error("Footer lost a phone touch target");
+    }
+    if (!phone) {
+      const expectedShadowOffset =
+        document.documentElement.getAttribute("data-climate") === "paper"
+          ? "22px"
+          : "30px";
+      if (!frameStyle.boxShadow.includes(expectedShadowOffset))
+        throw new Error("Frame lost its climate shadow");
+    }
+    const cards = [...document.querySelectorAll<HTMLElement>(".card")];
+    if (cards.length < 13) throw new Error("Missing public Dashboard panels");
+    for (const card of cards) {
+      const style = getComputedStyle(card);
+      const edgeAligned = card.classList.contains("system-health-card");
+      const tight = card.classList.contains("map-card");
+      const bottom = edgeAligned
+        ? "0px"
+        : phone
+          ? tight
+            ? "12px"
+            : "14px"
+          : "16px";
+      const left = edgeAligned || !phone ? "18px" : tight ? "12px" : "14px";
+      const heading = card.querySelector(":scope > header");
+      if (
+        style.borderTopWidth !== "1px" ||
+        style.paddingBottom !== bottom ||
+        style.paddingLeft !== left ||
+        style.containerType !== "inline-size" ||
+        style.containerName !== "operator-panel" ||
+        !heading ||
+        getComputedStyle(heading).marginBottom !== (phone ? "10px" : "12px") ||
+        card.scrollWidth > card.clientWidth + 1
+      )
+        throw new Error(
+          "Compiled panel changed its inset, heading, containment, or bounds",
+        );
+    }
+    const sectionHead = document.querySelector("#knowledge > header");
+    const activeSection = frame.getAttribute("data-ui-tabs-active");
+    if (
+      !sectionHead ||
+      activeSection === null ||
+      getComputedStyle(sectionHead).display !== "none"
+    )
+      throw new Error("Enhanced sections retained duplicate headings");
+    frame.removeAttribute("data-ui-tabs-active");
+    try {
+      if (getComputedStyle(sectionHead).display === "none")
+        throw new Error("Unenhanced sections lost their native headings");
+    } finally {
+      frame.setAttribute("data-ui-tabs-active", activeSection);
+    }
+    const climate = header.querySelector<HTMLButtonElement>("#climateToggle");
+    if (!climate) throw new Error("Missing climate control");
+    if (getComputedStyle(climate).display !== "none") {
+      const before = document.documentElement.getAttribute("data-climate");
+      climate.click();
+      if (document.documentElement.getAttribute("data-climate") === before)
+        throw new Error("Climate control no longer toggles");
+      climate.click();
+      if (document.documentElement.getAttribute("data-climate") !== before)
+        throw new Error("Climate control did not restore the selected climate");
+    }
+    const overview = document.querySelector<HTMLElement>(
+      '[data-dashboard-tab-link="overview"]',
+    );
+    const knowledge = document.querySelector<HTMLElement>(
+      '[data-dashboard-tab-link="knowledge"]',
+    );
+    if (!overview || !knowledge)
+      throw new Error("Missing Dashboard section links");
+    const previousHash = window.location.hash;
+    overview.focus();
+    overview.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }),
+    );
+    const overviewPanel = document.getElementById("overview");
+    if (
+      document.activeElement !== knowledge ||
+      knowledge.getAttribute("aria-selected") !== "true" ||
+      window.location.hash !== "#knowledge" ||
+      document.getElementById("knowledge")?.hasAttribute("hidden") ||
+      !overviewPanel ||
+      getComputedStyle(overviewPanel).display !== "none"
+    )
+      throw new Error(
+        "Dashboard keyboard tabs lost state, focus, or hash navigation",
+      );
+    const selected = getComputedStyle(knowledge),
+      other = getComputedStyle(overview);
+    if (
+      selected.borderBottomWidth !== "2px" ||
+      selected.borderBottomColor === other.borderBottomColor
+    )
+      throw new Error(
+        `Compiled tabs did not reflect selected ARIA state: ${selected.borderBottomWidth}, ${selected.borderBottomColor} / ${other.borderBottomColor}`,
+      );
+    const atlas = document.querySelector<HTMLElement>(".knowledge-map-field");
+    const atlasCanvas = atlas?.querySelector<HTMLElement>(
+      ".knowledge-map-canvas",
+    );
+    const atlasGraphic = atlasCanvas?.querySelector("svg");
+    const atlasSummary = document.querySelector<HTMLElement>(
+      ".knowledge-atlas-summary",
+    );
+    if (!atlas || !atlasCanvas || !atlasGraphic || !atlasSummary)
+      throw new Error("Missing shared map framing");
+    const phoneMap = window.innerWidth <= 700;
+    if (
+      getComputedStyle(atlas).gridTemplateColumns.split(" ").length !==
+        (phoneMap ? 1 : 2) ||
+      getComputedStyle(atlasGraphic).minHeight !==
+        (phoneMap ? "320px" : "480px") ||
+      Math.abs(
+        atlasGraphic.getBoundingClientRect().width / atlasCanvas.clientWidth -
+          (phoneMap ? 1.4 : 1),
+      ) > 0.01
+    )
+      throw new Error("Map framing lost its responsive projection geometry");
+    const paperMap =
+      document.documentElement.getAttribute("data-climate") === "paper";
+    if (
+      !getComputedStyle(atlas).boxShadow.includes(
+        paperMap ? "90, 60, 20" : "0, 0, 0",
+      )
+    )
+      throw new Error("Map inset shadow lost its climate");
+    const values = atlasSummary.querySelectorAll("dd strong");
+    const labels = atlasSummary.querySelectorAll("dt");
+    if (
+      values.length !== 3 ||
+      labels.length !== 3 ||
+      !values[0] ||
+      !labels[0] ||
+      getComputedStyle(values[0]).fontSize !== (phoneMap ? "20px" : "23px") ||
+      getComputedStyle(labels[0]).fontSize !== (phoneMap ? "6.5px" : "8px")
+    )
+      throw new Error("Map summary lost its numeric hierarchy");
+    const mapStatus = atlasSummary.querySelector("p");
+    if (!mapStatus) throw new Error("Missing map summary status");
+    const originalStatusChildren = Array.from(mapStatus.childNodes);
+    const originalValue = values[0].textContent;
+    try {
+      mapStatus.textContent = "long-source-status".repeat(20);
+      values[0].textContent = "1234567890".repeat(30);
+      if (atlasSummary.scrollWidth > atlasSummary.clientWidth + 1)
+        throw new Error("Long map summary data escaped its frame");
+    } finally {
+      mapStatus.replaceChildren(...originalStatusChildren);
+      values[0].textContent = originalValue;
+    }
+    const territoryControls = atlas.querySelectorAll<HTMLButtonElement>(
+      "[data-knowledge-zone-ref]",
+    );
+    const firstTerritory = territoryControls[0],
+      secondTerritory = territoryControls[1];
+    if (!firstTerritory || !secondTerritory)
+      throw new Error("Missing source territory controls");
+    for (const control of territoryControls) {
+      if (
+        control.classList.contains("is-active") ||
+        (phoneMap && control.getBoundingClientRect().height < 44)
+      )
+        throw new Error(
+          "Territory controls lost native-state styling or phone targets",
+        );
+    }
+    const selectedTerritoryBackground =
+      getComputedStyle(firstTerritory).backgroundColor;
+    secondTerritory.focus();
+    if (
+      getComputedStyle(secondTerritory).backgroundColor !==
+        selectedTerritoryBackground ||
+      getComputedStyle(firstTerritory).backgroundColor ===
+        selectedTerritoryBackground
+    )
+      throw new Error("Territory selection did not follow ARIA state");
+    const activeZone = atlas.querySelector(
+      '.knowledge-zone[data-map-active="true"]',
+    );
+    if (!activeZone) throw new Error("Missing selected region");
+    if (
+      secondTerritory.getAttribute("aria-pressed") !== "true" ||
+      activeZone.getAttribute("data-knowledge-zone") !==
+        secondTerritory.getAttribute("data-knowledge-zone-ref")
+    )
+      throw new Error("Map focus no longer traces its source territory");
+    const activeContours = activeZone.querySelectorAll(
+      ".knowledge-zone-contour",
+    );
+    const inactiveContours = atlas.querySelectorAll(
+      '.knowledge-zone[data-map-active="false"] .knowledge-zone-contour',
+    );
+    if (
+      activeContours.length !== 3 ||
+      inactiveContours.length < 3 ||
+      Array.from(activeContours).some(
+        (path) =>
+          Number.parseFloat(getComputedStyle(path).strokeOpacity) !== 0.58,
+      ) ||
+      Array.from(inactiveContours).some(
+        (path, index) =>
+          getComputedStyle(path).strokeOpacity !==
+          ["0.23", "0.34", "0.22"][index % 3],
+      )
+    )
+      throw new Error("Region paint no longer follows explicit map selection");
+    knowledge.focus();
+    const indexNote = atlas.querySelector("[data-map-index-note]");
+    const indexList = atlas.querySelector("ol");
+    if (
+      !indexNote ||
+      !indexList ||
+      (!phoneMap &&
+        (getComputedStyle(indexNote).position === "absolute" ||
+          indexNote.getBoundingClientRect().top <
+            indexList.getBoundingClientRect().bottom - 1))
+    )
+      throw new Error("Territory guidance overlaps its source records");
+    const markers = document.querySelectorAll("#knowledge [data-map-marker]");
+    if (markers.length === 0) throw new Error("Missing compiled map legend");
+    for (const marker of markers) {
+      const dot = marker.querySelector("i");
+      if (!dot) throw new Error("Missing legend marker");
+      if (
+        dot.getAttribute("aria-hidden") !== "true" ||
+        getComputedStyle(dot).width !== "8px"
+      )
+        throw new Error("Legend marker lost its compiled shape");
+      if (
+        marker.getAttribute("data-map-marker") === "dashed-ring" &&
+        getComputedStyle(dot).borderTopStyle !== "dashed"
+      )
+        throw new Error("Legend lost its explicit grouping marker");
+    }
+    if (firstTerritory.getAttribute("aria-pressed") !== "true")
+      throw new Error("Map focus exit did not restore the leading territory");
+    const networkTab = document.querySelector<HTMLElement>(
+      '[data-ui-tab="network"]',
+    );
+    if (!networkTab) throw new Error("Missing Network section");
+    networkTab.click();
+    const field = document.querySelector(".proximity-field");
+    const plot = field?.querySelector(":scope > svg");
+    if (!field || !plot)
+      throw new Error("Missing registered proximity visualization");
+    const fieldWidth = field.getBoundingClientRect().width;
+    const expectedPlotWidth = fieldWidth * (fieldWidth <= 700 ? 1.26 : 1);
+    if (Math.abs(plot.getBoundingClientRect().width - expectedPlotWidth) > 1)
+      throw new Error(
+        "Registered visualization lost its shared panel container query",
+      );
+    const systemTab = document.querySelector<HTMLElement>(
+      '[data-ui-tab="system"]',
+    );
+    const systemPanel = document.getElementById("system");
+    if (!systemTab || !systemPanel) throw new Error("Missing System section");
+    systemTab.click();
+    if (
+      systemPanel.hasAttribute("hidden") ||
+      systemTab.getAttribute("aria-selected") !== "true"
+    )
+      throw new Error("System section did not activate");
+    for (const card of systemPanel.querySelectorAll<HTMLElement>(".card")) {
+      if (
+        card.getBoundingClientRect().height <= 0 ||
+        card.scrollWidth > card.clientWidth + 1
+      )
+        throw new Error("System panel content is hidden or overflowing");
+    }
+    const columns = systemPanel.querySelector(
+      '[data-columns-presentation="panels"]',
+    );
+    const primaryColumns = columns?.firstElementChild;
+    const supporting = columns?.querySelector(":scope > aside");
+    if (
+      !columns ||
+      !primaryColumns ||
+      !supporting ||
+      getComputedStyle(columns).gap !== "14px" ||
+      getComputedStyle(columns).gridTemplateColumns.split(" ").length !==
+        (window.innerWidth <= 960 ? 1 : 2) ||
+      getComputedStyle(primaryColumns).gridTemplateColumns.split(" ").length !==
+        (window.innerWidth <= 700 ? 1 : 2) ||
+      getComputedStyle(supporting).display !==
+        (window.innerWidth <= 960 ? "grid" : "flex")
+    )
+      throw new Error(
+        "System lost its responsive primary/supporting panel layout",
+      );
+    if (
+      window.innerWidth <= 960 &&
+      getComputedStyle(supporting).gridTemplateColumns.split(" ").length !==
+        (window.innerWidth <= 700 ? 1 : 3)
+    )
+      throw new Error("Supporting panels lost their tablet/phone columns");
+    for (const card of systemPanel.querySelectorAll(
+      ".system-health-card,.system-checks-card",
+    ))
+      if (
+        Math.abs(
+          card.getBoundingClientRect().width -
+            primaryColumns.getBoundingClientRect().width,
+        ) > 1
+      )
+        throw new Error("A spanning System panel lost the full primary width");
+    const summary = systemPanel.querySelector("[data-status-summary]");
+    const band = systemPanel.querySelector('[data-stats-presentation="band"]');
+    const readiness = systemPanel.querySelector(
+      '[data-readiness-tone] [role="img"]',
+    );
+    const checks = systemPanel.querySelector("table");
+    if (!summary || !band || !readiness || !checks)
+      throw new Error("Missing compiled System content");
+    const firstMetric = band.firstElementChild;
+    if (!firstMetric) throw new Error("Missing snapshot metrics");
+    if (
+      getComputedStyle(band).gridTemplateColumns.split(" ").length !==
+        (window.innerWidth <= 700 ? 1 : 3) ||
+      getComputedStyle(firstMetric).borderTopWidth !== "0px" ||
+      getComputedStyle(readiness).width !==
+        (window.innerWidth <= 420 ? "68px" : "78px")
+    )
+      throw new Error(
+        "Snapshot band or readiness indicator lost its responsive geometry",
+      );
+    if (
+      checks.querySelectorAll('thead th[scope="col"]').length !== 3 ||
+      checks.querySelectorAll('tbody th[scope="row"]').length !== 3
+    )
+      throw new Error("System checks lost their semantic headers");
+    for (const updated of checks.querySelectorAll("tbody td:first-of-type"))
+      if (
+        getComputedStyle(updated).display === "none" ||
+        updated.getBoundingClientRect().height < 1
+      )
+        throw new Error(
+          "System check update metadata became unavailable on phones",
+        );
+    const operation = checks.querySelector("tbody strong"),
+      diagnostic = checks.querySelector("tbody small"),
+      status = checks.querySelector("tbody td:last-child span");
+    const checkPanel = systemPanel.querySelector<HTMLElement>(
+      ".system-checks-card",
+    );
+    if (!operation || !diagnostic || !status || !checkPanel)
+      throw new Error("Missing check records");
+    const copy = [
+      operation.textContent,
+      diagnostic.textContent,
+      status.textContent,
+    ];
+    try {
+      operation.textContent = "exact-operation-identifier".repeat(24);
+      diagnostic.textContent = "Full diagnostic without truncation. ".repeat(
+        24,
+      );
+      status.textContent = "long-status-token".repeat(24);
+      if (checkPanel.scrollWidth > checkPanel.clientWidth + 1)
+        throw new Error("Long check metadata escaped its panel");
+    } finally {
+      operation.textContent = copy[0] ?? "";
+      diagnostic.textContent = copy[1] ?? "";
+      status.textContent = copy[2] ?? "";
+    }
+    const facts = systemPanel.querySelectorAll(
+      '[data-facts-presentation="reference"]',
+    );
+    if (facts.length !== 2) throw new Error("Missing public reference facts");
+    for (const row of systemPanel.querySelectorAll(
+      '[data-facts-presentation="reference"] > div',
+    )) {
+      const label = row.querySelector("dt"),
+        value = row.querySelector("dd");
+      if (
+        !label ||
+        !value ||
+        getComputedStyle(row).paddingTop !== "8px" ||
+        getComputedStyle(label).fontSize !== "9.5px" ||
+        getComputedStyle(value).fontSize !== "10.5px"
+      )
+        throw new Error("Reference facts lost their compiled row hierarchy");
+    }
+    const version = systemPanel.querySelector(".system-runtime-card dd");
+    const runtime = systemPanel.querySelector<HTMLElement>(
+      ".system-runtime-card",
+    );
+    if (!version || !runtime)
+      throw new Error("Missing public runtime metadata");
+    const versionText = version.textContent;
+    try {
+      version.textContent = "long-version-token".repeat(40);
+      if (runtime.scrollWidth > runtime.clientWidth + 1)
+        throw new Error("Long public metadata escaped its panel");
+    } finally {
+      version.textContent = versionText;
+    }
+    if (
+      !systemPanel.querySelector("time[datetime]") ||
+      !systemPanel.querySelector("header > .system-scope-mark")
+    )
+      throw new Error(
+        "System lost its exact timestamp or direct public-scope accessory",
+      );
+    systemTab.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Home", bubbles: true }),
+    );
+    if (
+      document.activeElement !== overview ||
+      overview.getAttribute("aria-selected") !== "true"
+    )
+      throw new Error("Dashboard Home key did not restore Overview");
+    overview.blur();
+    for (
+      let node: HTMLElement | null = overview;
+      node;
+      node = node.parentElement
+    ) {
+      node.scrollTop = 0;
+      node.scrollLeft = 0;
+    }
+    window.history.replaceState(
+      null,
+      "",
+      window.location.pathname + window.location.search + previousHash,
+    );
+  });
+}
+
+async function verifyDashboardSummary(page: Bun.WebView): Promise<void> {
+  const target = await evaluatePage(page, () => {
+    const phone = window.innerWidth <= 640;
+    const paragraph = document.querySelector(".public-identity-card p");
+    const ledger = document.querySelector(
+      '.public-holdings-card [data-stats-presentation="ledger"]',
+    );
+    const links = [
+      ...document.querySelectorAll<HTMLAnchorElement>(
+        ".public-contact-card li > a",
+      ),
+    ];
+    const link = links[0];
+    if (!paragraph || !ledger || !link || links.length !== 3)
+      throw new Error(
+        "Overview lost its public copy, totals, or contact sources",
+      );
+    if (
+      getComputedStyle(paragraph).fontSize !== (phone ? "13px" : "14px") ||
+      getComputedStyle(ledger).gridTemplateColumns.split(" ").length !==
+        (phone ? 2 : 4)
+    )
+      throw new Error(
+        "Compiled overview copy or totals changed their responsive hierarchy",
+      );
+    const values = [...ledger.querySelectorAll("dd")];
+    if (
+      values.length !== 4 ||
+      values.some(
+        (value) =>
+          getComputedStyle(value).fontSize !== (phone ? "25px" : "28px"),
+      )
+    )
+      throw new Error("Overview lost its four source-supplied totals");
+    for (const item of links) {
+      if (phone && item.getBoundingClientRect().height < 44)
+        throw new Error("A public contact link lost its phone touch target");
+    }
+    const skills = document.querySelectorAll(
+      '.public-skills-card li[data-tone="good"]',
+    );
+    if (
+      skills.length !== 3 ||
+      [...skills].some(
+        (row) =>
+          row.querySelector("a") !== null ||
+          row.querySelector('[aria-hidden="true"]') === null,
+      )
+    )
+      throw new Error(
+        "Skill summaries changed into links or lost their positive marker",
+      );
+    const longLabel = link.querySelector("strong");
+    const longBadge = link.querySelector("small");
+    if (!longLabel || !longBadge)
+      throw new Error("Missing summary copy or badge");
+    const labelText = longLabel.textContent,
+      badgeText = longBadge.textContent;
+    try {
+      longLabel.textContent = "unbroken-summary-label".repeat(40);
+      longBadge.textContent = "unbroken-badge".repeat(40);
+      if (link.scrollWidth > link.clientWidth + 1)
+        throw new Error("Long authored summary copy overflowed its link");
+    } finally {
+      longLabel.textContent = labelText;
+      longBadge.textContent = badgeText;
+    }
+    link.scrollIntoView({ block: "center" });
+    link.focus();
+    if (
+      !link.matches(":focus-visible") ||
+      getComputedStyle(link).outlineWidth !== "2px"
+    )
+      throw new Error("Public contact keyboard focus is not visible");
+    link.blur();
+    const rect = link.getBoundingClientRect();
+    return {
+      x: rect.x + rect.width / 2,
+      y: rect.y + rect.height / 2,
+      href: link.getAttribute("href"),
+    };
+  });
+  await page.cdp("Input.dispatchMouseEvent", {
+    type: "mouseMoved",
+    x: target.x,
+    y: target.y,
+  });
+  try {
+    await waitForPage("Summary link hover transition", () =>
+      evaluatePage(page, () => {
+        const label = document.querySelector(
+          ".public-contact-card li > a strong",
+        );
+        const primary = document.querySelector(".public-header-ask");
+        return (
+          !!label &&
+          !!primary &&
+          getComputedStyle(label).color ===
+            getComputedStyle(primary).backgroundColor
+        );
+      }),
+    );
+    await evaluatePageWith(
+      page,
+      (href) => {
+        const link = document.querySelector(".public-contact-card li > a");
+        const label = link?.querySelector("strong");
+        const primary = document.querySelector(".public-header-ask");
+        if (
+          !link ||
+          !label ||
+          !primary ||
+          !link.matches(":hover") ||
+          getComputedStyle(label).color !==
+            getComputedStyle(primary).backgroundColor ||
+          link.getAttribute("href") !== href
+        )
+          throw new Error(
+            `Compiled summary hover: hovered=${link?.matches(":hover")}, color=${label ? getComputedStyle(label).color : "missing"}, accent=${primary ? getComputedStyle(primary).backgroundColor : "missing"}, destination=${link?.getAttribute("href") === href}`,
+          );
+      },
+      target.href,
+    );
+  } finally {
+    await page.cdp("Input.dispatchMouseEvent", {
+      type: "mouseMoved",
+      x: 0,
+      y: 0,
+    });
+    await evaluatePage(page, () => {
+      window.scrollTo(0, 0);
+    });
+    await waitForPage("Summary hover cleared", () =>
+      evaluatePage(page, () => {
+        const label = document.querySelector(
+          ".public-contact-card li > a strong",
+        );
+        const unlinked = document.querySelector(".public-skills-card strong");
+        return (
+          !!label &&
+          !!unlinked &&
+          getComputedStyle(label).color === getComputedStyle(unlinked).color
+        );
+      }),
+    );
+  }
+}
+
+async function verifyRecordTypography(page: Bun.WebView): Promise<void> {
+  const failures = await evaluatePage(page, () => {
+    const errors: string[] = [];
+    const root = getComputedStyle(document.documentElement);
+    const normalize = (value: string): string => value.replace(/["'\s]/g, "");
+    for (const list of document.querySelectorAll<HTMLElement>(
+      ".operator-list[data-presentation]",
+    )) {
+      const role = list.dataset["presentation"];
+      const size =
+        role === "editorial"
+          ? 20
+          : role === "attention"
+            ? 18
+            : role === "activity"
+              ? 14
+              : 16;
+      const family = normalize(
+        root.getPropertyValue(
+          role === "editorial" ? "--console-display" : "--console-ui",
+        ),
+      );
+      for (const title of list.querySelectorAll<HTMLElement>(
+        ":scope > li > div:first-child > strong",
+      )) {
+        const style = getComputedStyle(title);
+        if (
+          style.fontSize !== `${size}px` ||
+          normalize(style.fontFamily) !== family
+        )
+          errors.push(`${role}: ${style.fontSize} ${style.fontFamily}`);
+        const link = title.querySelector("a,button");
+        if (link && getComputedStyle(link).fontSize !== style.fontSize)
+          errors.push(`${role}: linked title lost its typography`);
+      }
+    }
+    return errors;
+  });
+  if (failures.length)
+    throw new Error(`Record hierarchy mismatch: ${failures.join("; ")}`);
+}
+
 async function waitForText(page: Bun.WebView, text: string): Promise<void> {
   await waitForPage(`text ${JSON.stringify(text)}`, () =>
     page.evaluate<boolean>(
@@ -2015,16 +1740,115 @@ async function clickText(
     throw new Error(`Could not find ${selector} containing ${text}`);
 }
 
+async function activateWorkspaceTab(
+  page: Bun.WebView,
+  label: string,
+): Promise<void> {
+  const position = await evaluatePageWith(
+    page,
+    (text) => {
+      const tab = Array.from(
+        document.querySelectorAll<HTMLElement>('[role="tab"]'),
+      ).find((node) => node.textContent.trim() === text);
+      if (!tab) return null;
+      const rect = tab.getBoundingClientRect();
+      return { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+    },
+    label,
+  );
+  if (!position) throw new Error(`Missing workspace tab: ${label}`);
+  await page.cdp("Input.dispatchMouseEvent", {
+    type: "mousePressed",
+    ...position,
+    button: "left",
+    clickCount: 1,
+  });
+  await page.cdp("Input.dispatchMouseEvent", {
+    type: "mouseReleased",
+    ...position,
+    button: "left",
+    clickCount: 1,
+  });
+}
+
 async function verifyStudioMobileSwitcher(page: Bun.WebView): Promise<void> {
   const originalPath = await page.evaluate<string>("location.pathname");
   await clickSelector(page, ".studio-mobile-switcher");
-  await waitForSelector(page, ".studio-mobile-switcher-content");
+  await waitForSelector(page, ".studio-mobile-navigation-sheet");
   const expanded = await page.evaluate<boolean>(
     'document.querySelector(".studio-mobile-switcher")?.getAttribute("aria-expanded") === "true"',
   );
   if (!expanded) throw new Error("Studio phone context picker did not open");
-
-  await clickText(page, '[role="option"]', "Field notes");
+  const browseLayout = await evaluatePage(page, () => {
+    const sheet = document.querySelector(".studio-mobile-navigation-sheet");
+    const header = document.querySelector(".studio-chrome");
+    if (!(sheet instanceof HTMLElement) || !(header instanceof HTMLElement))
+      return false;
+    const bounds = sheet.getBoundingClientRect();
+    return (
+      Math.abs(bounds.top - header.getBoundingClientRect().bottom) <= 1 &&
+      Math.abs(bounds.bottom - window.innerHeight) <= 1 &&
+      sheet.querySelectorAll("details").length === 3 &&
+      !sheet.querySelector(".studio-mobile-navigation-dock") &&
+      ["Overview", "Chat", "Administration"].every((label) =>
+        Array.from(sheet.querySelectorAll("section button")).some(
+          (button) => button.getAttribute("aria-label") === label,
+        ),
+      ) &&
+      !Array.from(sheet.querySelectorAll("button")).some(
+        (button) => button.textContent.trim() === "Account",
+      )
+    );
+  });
+  if (!browseLayout)
+    throw new Error(
+      "Browse no longer matches the approved direct destinations and independently collapsible groups",
+    );
+  await page.cdp("Input.dispatchKeyEvent", {
+    type: "keyDown",
+    key: "Escape",
+    code: "Escape",
+    windowsVirtualKeyCode: 27,
+  });
+  await page.cdp("Input.dispatchKeyEvent", {
+    type: "keyUp",
+    key: "Escape",
+    code: "Escape",
+    windowsVirtualKeyCode: 27,
+  });
+  await waitForPage("Browse focus restoration", () =>
+    page.evaluate<boolean>(
+      'document.activeElement?.classList.contains("studio-mobile-switcher") === true',
+    ),
+  );
+  await clickSelector(page, ".studio-mobile-switcher");
+  await waitForSelector(page, ".studio-mobile-navigation-sheet");
+  const libraryOpen = await page.evaluate<boolean>(
+    'Array.from(document.querySelectorAll(".studio-mobile-navigation-group")).some(group => group.open && group.querySelector("summary")?.textContent.includes("Library"))',
+  );
+  if (!libraryOpen)
+    await clickText(page, ".studio-mobile-navigation-group summary", "Library");
+  await waitForPage("Library group expands", () =>
+    page.evaluate<boolean>(
+      'Array.from(document.querySelectorAll("details")).some(group => group.open && group.querySelector("summary")?.textContent.includes("Library"))',
+    ),
+  );
+  await clickText(page, ".studio-mobile-navigation-group summary", "Work");
+  await waitForPage("independent Browse groups", () =>
+    page.evaluate<boolean>(
+      'document.querySelectorAll("details[open]").length >= 2',
+    ),
+  );
+  await clickText(page, ".studio-mobile-navigation-group summary", "Library");
+  await waitForPage("explicit group folding", () =>
+    page.evaluate<boolean>(
+      'Array.from(document.querySelectorAll("details")).some(group => !group.open && group.querySelector("summary")?.textContent.includes("Library"))',
+    ),
+  );
+  await clickText(page, ".studio-mobile-navigation-group summary", "Library");
+  if ((await page.evaluate<string>("location.pathname")) !== originalPath)
+    throw new Error("Browse groups changed the working destination");
+  await clickText(page, ".studio-mobile-navigation-link", "Field notes");
   await waitForPage("Studio phone context navigation", () =>
     page.evaluate<boolean>('location.pathname === "/studio/entities/posts"'),
   );
@@ -2034,6 +1858,154 @@ async function verifyStudioMobileSwitcher(page: Bun.WebView): Promise<void> {
       `location.pathname === ${JSON.stringify(originalPath)}`,
     ),
   );
+}
+
+async function verifyDirectStudioNavigation(
+  page: Bun.WebView,
+  surface: string,
+  width: number,
+): Promise<void> {
+  const expected =
+    surface === "studio-chat"
+      ? "Chat"
+      : surface === "studio-administration"
+        ? "Administration"
+        : "Account";
+  const state = await evaluatePage(page, () => ({
+    labels: Array.from(
+      document.querySelectorAll(".studio-area-link [data-area-label]"),
+    ).map((node) => node.getAttribute("data-area-label")),
+    current:
+      document
+        .querySelector('.studio-area-link[aria-pressed="true"]')
+        ?.getAttribute("aria-label") ?? null,
+    location: document
+      .querySelector(".studio-chrome-location")
+      ?.textContent.trim(),
+    leaf: document.querySelector(".studio-leaf-rail") !== null,
+    mainWidth: Math.round(
+      document
+        .querySelector(
+          "[data-studio-body] > :not(aside), .studio-chat-workspace",
+        )
+        ?.getBoundingClientRect().width ?? 0,
+    ),
+    viewportWidth: document.documentElement.clientWidth,
+    width: Math.round(
+      document.querySelector(".rail")?.getBoundingClientRect().width ?? 0,
+    ),
+  }));
+  if (
+    state.labels.join("/") !== "Overview/Chat/Library/Work/Admin/System" ||
+    state.current !== (expected === "Account" ? null : expected) ||
+    state.location !== expected ||
+    state.leaf ||
+    (width > 900 && state.width !== 124) ||
+    (width <= 900 && Math.abs(state.mainWidth - state.viewportWidth) > 1)
+  )
+    throw new Error(`Direct destination layout: ${JSON.stringify(state)}`);
+  if (width > 900) {
+    await clickSelector(page, ".studio-navigation-collapse");
+    await waitForPage("direct collapsed width", () =>
+      page.evaluate<boolean>(
+        'Math.round(document.querySelector(".rail").getBoundingClientRect().width) === 68',
+      ),
+    );
+    await clickSelector(page, ".studio-navigation-collapse");
+    await waitForPage("direct expanded width", () =>
+      page.evaluate<boolean>(
+        'Math.round(document.querySelector(".rail").getBoundingClientRect().width) === 124',
+      ),
+    );
+  }
+}
+
+async function verifyStudioProfileNavigation(
+  page: Bun.WebView,
+  surface: string,
+): Promise<void> {
+  const originalUrl = await page.evaluate<string>("location.href");
+  await evaluatePage(page, () => {
+    document.body.dataset["navigationProbe"] = "same-document";
+  });
+  if (surface === "studio-account") {
+    await fillLabel(page, "Display name", "Unsaved profile name");
+    await pointerDownSelector(page, ".studio-chrome-identity");
+    await waitForSelector(page, '[role="menuitem"]');
+    await clickText(page, '[role="menuitem"]', "Account");
+    const preserved = await evaluatePage(
+      page,
+      () =>
+        document.body.dataset["navigationProbe"] === "same-document" &&
+        Array.from(document.querySelectorAll("input")).some(
+          (input) => input.value === "Unsaved profile name",
+        ),
+    );
+    if (
+      !preserved ||
+      (await page.evaluate<string>("location.href")) !== originalUrl
+    )
+      throw new Error("Same-page Account navigation reset profile edits");
+    return;
+  }
+  await evaluatePage(page, () => {
+    const input = document.querySelector('textarea[aria-label="Message"]');
+    if (!(input instanceof HTMLTextAreaElement))
+      throw new Error("Missing composer");
+    Object.getOwnPropertyDescriptor(
+      HTMLTextAreaElement.prototype,
+      "value",
+    )?.set?.call(input, "Keep this navigation draft");
+    input.dispatchEvent(new InputEvent("input", { bubbles: true }));
+  });
+  await pointerDownSelector(page, ".studio-chrome-identity");
+  await waitForSelector(page, '[role="menuitem"]');
+  await clickText(page, '[role="menuitem"]', "Account");
+  await waitForText(page, "Leave this conversation?");
+  await clickText(
+    page,
+    '[role="dialog"] button, [role="alertdialog"] button',
+    "Stay",
+  );
+  if ((await page.evaluate<string>("location.href")) !== originalUrl)
+    throw new Error("Profile navigation ignored the Chat guard");
+  await pointerDownSelector(page, ".studio-chrome-identity");
+  await waitForSelector(page, '[role="menuitem"]');
+  await clickText(page, '[role="menuitem"]', "Account");
+  await waitForText(page, "Leave this conversation?");
+  await clickText(
+    page,
+    '[role="dialog"] button, [role="alertdialog"] button',
+    "Leave",
+  );
+  await waitForText(page, "Signed-in sessions");
+  if (
+    !(await page.evaluate<boolean>(
+      'document.body.dataset.navigationProbe === "same-document"',
+    ))
+  )
+    throw new Error(
+      "Profile navigation reloaded the document instead of using the guarded router",
+    );
+  await evaluatePage(page, () => history.back());
+  await waitForSelector(page, 'textarea[aria-label="Message"]');
+  if (
+    !(await page.evaluate<boolean>(
+      'document.querySelector("textarea").value === "Keep this navigation draft"',
+    )) ||
+    (await page.evaluate<string>("location.href")) !== originalUrl
+  )
+    throw new Error("Profile navigation lost the session route or Chat draft");
+  await evaluatePage(page, () => {
+    const input = document.querySelector('textarea[aria-label="Message"]');
+    if (!(input instanceof HTMLTextAreaElement))
+      throw new Error("Missing composer");
+    Object.getOwnPropertyDescriptor(
+      HTMLTextAreaElement.prototype,
+      "value",
+    )?.set?.call(input, "");
+    input.dispatchEvent(new InputEvent("input", { bubbles: true }));
+  });
 }
 
 async function fillLabel(
@@ -2215,7 +2187,7 @@ async function addVisualInitScript(
         "console.climate",
         new URL(location.href).searchParams.get("climate") ?? "instrument",
       );
-      localStorage.setItem(
+      if (${JSON.stringify(STUDY_STATE !== "empty")}) localStorage.setItem(
         "brain:web-chat:conversation-id",
         ${JSON.stringify(conversation)},
       );
@@ -2231,6 +2203,7 @@ async function addVisualInitScript(
 function isStudioAppShellSurface(surface: string): boolean {
   return (
     surface === "studio-editor" ||
+    surface === "studio-system" ||
     surface === "studio-delete" ||
     surface === "studio-conflict" ||
     surface === "studio-invalid" ||
@@ -2274,6 +2247,26 @@ async function checkLayout(
     if (!chrome || chrome.height > 64) {
       throw new Error(`Studio header exceeded the phone chrome budget`);
     }
+    const smallActions = await evaluatePage(page, () =>
+      Array.from(
+        document.querySelectorAll<HTMLElement>(
+          '[data-record-trailing="true"] button[data-variant="link"]',
+        ),
+      )
+        .filter((button) => {
+          const bounds = button.getBoundingClientRect();
+          const minimum =
+            parseFloat(
+              getComputedStyle(button).getPropertyValue("--console-touch"),
+            ) || 40;
+          return bounds.height > 0 && bounds.height < minimum;
+        })
+        .map((button) => button.textContent.trim()),
+    );
+    if (smallActions.length)
+      throw new Error(
+        `Text actions lost their phone touch targets: ${smallActions.join(", ")}`,
+      );
   }
   if (
     surface.startsWith("studio-") &&
@@ -2282,7 +2275,7 @@ async function checkLayout(
   ) {
     const railDisplay = await elementDisplay(
       page,
-      ".studio > .studio-body > .rail",
+      "[data-studio-shell] > [data-studio-body] > .rail",
     );
     if (railDisplay !== "none") {
       throw new Error(`Studio rendered a duplicate phone navigation rail`);
@@ -2305,7 +2298,8 @@ async function checkLayout(
         .map((element) => element.className.toString().slice(0, 60)),
     );
     const hasOpenActionSheet =
-      surface === "studio-administration-invitations-form";
+      surface === "studio-administration-invitations-form" ||
+      surface.startsWith("studio-navigation");
     if (hasOpenActionSheet) {
       const dialog = await elementBounds(page, '[role="dialog"]');
       if (!dialog || dialog.y + dialog.height > viewportHeight + 1) {
@@ -2340,9 +2334,9 @@ async function checkLayout(
           ".console-strip",
           ".rail",
           ".studio-mobile-switcher",
-          ".studio-body",
+          "[data-studio-body]",
           ".studio-workspace-frame",
-          ".listing",
+          "[data-studio-library]",
           ".account-studio-pane",
         ].map((selector) => {
           const element = document.querySelector(selector);
@@ -2360,19 +2354,15 @@ async function checkLayout(
       surface.startsWith("studio-administration-invitations");
     if (expectsPrimaryAction) {
       const action = await elementBounds(page, ".studio-page-head-action");
-      const bottomInset = action
-        ? dimensions.clientHeight - (action.y + action.height)
-        : -1;
       if (
         !action ||
-        action.y < -1 ||
+        action.y < head.y - 1 ||
+        action.y + action.height > head.y + head.height + 1 ||
         action.x < 11 ||
-        action.x + action.width > dimensions.clientWidth - 11 ||
-        bottomInset < 11 ||
-        bottomInset > 14
+        action.x + action.width > dimensions.clientWidth - 11
       ) {
         throw new Error(
-          `Studio primary action did not float inside the phone viewport: ${JSON.stringify(action)}`,
+          `Studio primary action escaped the phone page head: ${JSON.stringify(action)}`,
         );
       }
     }
@@ -2419,52 +2409,53 @@ async function checkLayout(
       throw new Error(`Studio phone context picker was not keyboard reachable`);
     }
     if (surface.startsWith("studio-administration")) {
-      const compactDisplay = await elementDisplay(
+      const records = await elementBounds(
         page,
-        ".declarative-compact-rows",
+        STUDY_STATE === "empty"
+          ? ".declarative-detail-master"
+          : ".declarative-detail-master .operator-record-list",
       );
-      const annotatedTableDisplay = await elementDisplay(
-        page,
-        '.declarative-table-scroll[data-has-unannotated="false"]',
-      );
-      if (compactDisplay === "none" || annotatedTableDisplay !== "none") {
+      if (!records || records.width > width)
         throw new Error(
-          `Studio administration did not reflow its annotated phone rows`,
+          "Administration must use bounded record lists, not reflowed tables",
         );
-      }
     }
   }
   if (surface.startsWith("studio-chat")) {
     const destinations = await elementDisplay(
       page,
-      ".studio-chat-mobile-destinations",
+      ".studio-chat-mobile-sessions",
     );
-    if (width <= 700 !== (destinations !== "none")) {
+    const sessions = await elementDisplay(page, ".studio-chat-sessions");
+    if (
+      destinations === "none" ||
+      destinations === "missing" ||
+      sessions !==
+        (STUDY_STATE === "empty" ? "missing" : width <= 860 ? "none" : "block")
+    ) {
       throw new Error(`Studio Chat responsive mode mismatch at ${width}px`);
     }
     const workspace = await elementBounds(page, ".studio-chat-room");
     const composer = await elementBounds(page, ".studio-chat-composer");
+    if (
+      STUDY_STATE === "empty" &&
+      workspace &&
+      composer &&
+      Math.abs(workspace.width - composer.width) > 1
+    )
+      throw Error("Empty Chat must not reserve a phantom conversation rail");
     if (!workspace || !composer) {
       throw new Error(`Studio Chat workspace did not render at ${width}px`);
     }
     if (composer.y + composer.height > viewportHeight + 1) {
       throw new Error(
-        `Studio Chat composer escaped the viewport at ${width}px`,
+        `Studio Chat composer escaped the viewport at ${width}px: ${JSON.stringify({ composer, workspace, viewportHeight, root: await elementBounds(page, ".studio"), frame: await elementBounds(page, ".studio-chat-workspace") })}`,
       );
     }
-    if (width <= 700) {
-      const destinationBar = await elementBounds(
-        page,
-        ".studio-chat-mobile-destinations",
+    if (composer.y + composer.height > workspace.y + workspace.height + 1) {
+      throw new Error(
+        `Studio Chat composer escaped its working room at ${width}px`,
       );
-      if (
-        !destinationBar ||
-        composer.y + composer.height > destinationBar.y + 1
-      ) {
-        throw new Error(
-          `Studio Chat composer overlapped mobile destinations at ${width}px`,
-        );
-      }
     }
   }
   if (isStudioAppShellSurface(surface)) {
@@ -2472,9 +2463,27 @@ async function checkLayout(
     if (width <= 640 !== (modes !== "none"))
       throw new Error(`Studio responsive mode mismatch at ${width}px`);
     if (width <= 900) {
-      const pipeline = await elementBounds(page, ".pipeline");
+      const pipeline = await elementBounds(page, "[data-studio-save-bar]");
       if (!pipeline || pipeline.y + pipeline.height > viewportHeight + 1)
         throw new Error(`Studio save bar escaped the viewport at ${width}px`);
+      if (width <= 640) {
+        const more = await elementBounds(
+            page,
+            'button[aria-label="More document actions"]',
+          ),
+          save = await elementBounds(page, ".studio-editor-head-save");
+        if (!save || save.width < 44 || save.height < 44 || save.y > 220)
+          throw Error("Phone Save must remain visible in the document head");
+        if (
+          more &&
+          (pipeline.x + pipeline.width - (more.x + more.width) > 24 ||
+            more.width < 44 ||
+            more.height < 44)
+        )
+          throw Error(
+            `Phone document actions must stay at the end of the save bar: ${JSON.stringify({ pipeline, more })}`,
+          );
+      }
     }
   }
 }
@@ -2538,6 +2547,13 @@ for (let offset = 0; offset < fixturePng.data.length; offset += 4) {
 const fixtureImage = new Uint8Array(PNG.sync.write(fixturePng));
 
 const pendingUploadResponses = new Set<() => void>();
+const administrationFixture = await createAdministrationFixture(
+  FIXED_NOW,
+  STUDY_STATE,
+);
+const workViewFixtures = await createWorkViewFixtures(STUDY_STATE);
+const deliveryViewFixtures = await createDeliveryViewFixtures(STUDY_STATE);
+const syncViewFixture = await createSyncViewFixture(STUDY_STATE);
 const server = Bun.serve({
   port: 0,
   async fetch(request) {
@@ -2546,11 +2562,60 @@ const server = Bun.serve({
       return new Response(fixtureImage, {
         headers: { "content-type": "image/png" },
       });
-    if (url.pathname === "/dashboard")
+    if (url.pathname === "/dashboard") {
+      const input = dashboardInput();
+      if (url.searchParams.get("fixture-state") === "dense-map") {
+        const block = findCartesianMap(input.widgets);
+        const widget = input.widgets["topics:topics-knowledge-map"];
+        if (!block || !widget || block.zones.length === 0)
+          throw new Error("Missing source atlas fixture");
+        widget.data = {
+          view: {
+            blocks: [
+              {
+                ...block,
+                zones: Array.from({ length: 20 }, (_, index) => {
+                  const source = block.zones[index % block.zones.length];
+                  if (!source) throw new Error("Missing source territory");
+                  return {
+                    ...source,
+                    id:
+                      index < block.zones.length
+                        ? source.id
+                        : `${source.id}:dense-${index}`,
+                    label: `${source.label} — complete public territory ${index + 1}`,
+                    x: (index % 5) / 4,
+                    y: Math.floor(index / 5) / 3,
+                  };
+                }),
+              },
+            ],
+          },
+        };
+        const parsed = safeParseRuntimeDashboardWidgetData(widget.data);
+        if (!parsed.success)
+          throw new Error(
+            `Invalid dense fixture: ${JSON.stringify(parsed.issues)}`,
+          );
+      }
+      if (url.searchParams.get("fixture-state") === "declarative-network") {
+        const network = input.widgets["agent-discovery:agent-proximity"];
+        if (network) delete network.component;
+      }
+      if (url.searchParams.get("fixture-state") === "waiting") {
+        input.widgets = {};
+        input.appInfo.interactions = input.appInfo.interactions.map(
+          (interaction) =>
+            interaction.id === "chat"
+              ? { ...interaction, status: "disabled" }
+              : interaction,
+        );
+      }
       return new Response(
-        climateHtml(renderDashboardPageHtml(dashboardInput()), request),
+        climateHtml(renderDashboardPageHtml(input), request),
         { headers: { "content-type": "text/html" } },
       );
+    }
     if (url.pathname === "/ask")
       return new Response(
         climateHtml(
@@ -2573,7 +2638,37 @@ const server = Bun.serve({
       return new Response(await readFile(chatStyles), {
         headers: { "content-type": "text/css" },
       });
-    if (url.pathname === "/api/chat/sessions") return json({ sessions });
+    if (url.pathname === "/api/chat/sessions")
+      return json({ sessions: STUDY_STATE === "empty" ? [] : sessions });
+    if (
+      url.pathname === "/api/chat" &&
+      request.method === "POST" &&
+      STUDY_STATE === "busy"
+    )
+      return new Response(
+        new ReadableStream({
+          start(controller): void {
+            for (const event of [
+              { type: "start", messageId: "fixture-busy" },
+              { type: "text-start", id: "text" },
+              {
+                type: "text-delta",
+                id: "text",
+                delta: "Fixture response remains in progress.",
+              },
+            ])
+              controller.enqueue(
+                new TextEncoder().encode(`data: ${JSON.stringify(event)}\n\n`),
+              );
+          },
+        }),
+        {
+          headers: {
+            "content-type": "text/event-stream",
+            "x-vercel-ai-ui-message-stream": "v1",
+          },
+        },
+      );
     if (url.pathname === "/api/chat/uploads")
       return new Response("# Verdigris field notes\n", {
         headers: { "content-type": "text/markdown" },
@@ -2582,7 +2677,13 @@ const server = Bun.serve({
       const id = url.searchParams.get("id");
       return json({
         messages:
-          id === "cards" ? cardMessages : id === "empty" ? [] : messages,
+          STUDY_STATE === "empty"
+            ? []
+            : id === "cards"
+              ? cardMessages
+              : id === "empty"
+                ? []
+                : messages,
       });
     }
     if (
@@ -2646,7 +2747,7 @@ const server = Bun.serve({
             priority: -100,
             permission: "trusted",
             entityTypes: [],
-            badge: 3,
+            badge: await workViewFixtures.overviewBadge(),
           },
           {
             id: "web-chat:chat",
@@ -2706,7 +2807,7 @@ const server = Bun.serve({
             permission: "admin",
             urlQuery: true,
             entityTypes: [],
-            badge: 2,
+            badge: await administrationFixture.badge(),
           },
           {
             id: "studio:account",
@@ -2727,7 +2828,7 @@ const server = Bun.serve({
         workspace: {
           id: "studio:overview",
           rendererName: "DeclarativeOperatorWorkspace",
-          data: overviewWorkspaceData,
+          data: await workViewFixtures.overview(),
         },
       });
     if (
@@ -2738,7 +2839,13 @@ const server = Bun.serve({
         workspace: {
           id: "unified-inbox:inbox",
           rendererName: "DeclarativeOperatorWorkspace",
-          data: inboxWorkspaceData,
+          data: await workViewFixtures.inbox(
+            Object.fromEntries(
+              [...url.searchParams].filter(
+                ([key]) => key !== "id" && key !== "climate",
+              ),
+            ),
+          ),
         },
       });
     if (
@@ -2749,7 +2856,7 @@ const server = Bun.serve({
         workspace: {
           id: "directory-sync:sync",
           rendererName: "DeclarativeOperatorWorkspace",
-          data: contentSyncWorkspaceData,
+          data: await syncViewFixture(),
         },
       });
     if (
@@ -2760,7 +2867,7 @@ const server = Bun.serve({
         workspace: {
           id: "site-builder:site",
           rendererName: "DeclarativeOperatorWorkspace",
-          data: siteWorkspaceData,
+          data: await deliveryViewFixtures.site(),
         },
       });
     if (
@@ -2771,7 +2878,7 @@ const server = Bun.serve({
         workspace: {
           id: "content-pipeline:publishing",
           rendererName: "DeclarativeOperatorWorkspace",
-          data: publishingWorkspaceData,
+          data: await deliveryViewFixtures.publishing(),
         },
       });
     if (
@@ -2782,26 +2889,33 @@ const server = Bun.serve({
         workspace: {
           id: "admin:administration",
           rendererName: "DeclarativeOperatorWorkspace",
-          data:
-            url.searchParams.get("tab") === "invitations"
-              ? administrationInvitationsWorkspaceData
-              : url.searchParams.get("tab") === "audit"
-                ? administrationAuditWorkspaceData
-                : administrationWorkspaceData,
+          data: await administrationFixture.read(
+            Object.fromEntries(
+              [...url.searchParams].filter(
+                ([key]) => key !== "id" && key !== "climate",
+              ),
+            ),
+          ),
         },
       });
     if (url.pathname === "/auth/account")
       return json({
         account: {
+          ...(STUDY_STATE === "empty"
+            ? { profileEntityId: "anchor-profile/anchor-profile" }
+            : {}),
           displayName: "Mira Reyes",
           role: "admin",
-          connectedChannels: [
-            {
-              type: "email",
-              label: "mira@example.com",
-              verifiedAt: 1_735_689_600_000,
-            },
-          ],
+          connectedChannels:
+            STUDY_STATE === "empty"
+              ? []
+              : [
+                  {
+                    type: "email",
+                    label: "mira@example.com",
+                    verifiedAt: 1_735_689_600_000,
+                  },
+                ],
           pluginSettings: [],
           passkeys: [
             {
@@ -2824,8 +2938,28 @@ const server = Bun.serve({
               createdAt: 1_735_776_000,
               expiresAt: 1_738_368_000,
             },
-          ],
+          ].slice(0, STUDY_STATE === "empty" ? 1 : undefined),
         },
+      });
+    if (
+      url.pathname === "/studio/api/schema" &&
+      url.searchParams.get("type") === "style-guide"
+    )
+      return json({
+        entityType: "style-guide",
+        format: "frontmatter",
+        isSingleton: true,
+        hasBody: true,
+        fields: [
+          { name: "title", label: "Title", widget: "string", required: true },
+          { name: "tone", label: "Tone", widget: "text", required: false },
+          {
+            name: "accent",
+            label: "Accent",
+            widget: "string",
+            required: false,
+          },
+        ],
       });
     if (url.pathname === "/studio/api/schema")
       return json({
@@ -2913,6 +3047,15 @@ const server = Bun.serve({
         request.signal.addEventListener("abort", release, { once: true });
       });
     }
+    if (
+      url.pathname === "/studio/api/entities" &&
+      url.searchParams.get("type") === "style-guide"
+    )
+      return json(
+        url.searchParams.has("id")
+          ? { entity: styleGuideEntity }
+          : { entities: [styleGuideEntity] },
+      );
     if (url.pathname === "/studio/api/entities" && url.searchParams.has("id"))
       return json({ entity });
     if (url.pathname === "/studio/api/entities") return json({ entities });
@@ -2936,6 +3079,7 @@ const server = Bun.serve({
 const executablePath = process.env["CONSOLE_CHROMIUM_PATH"];
 if (!executablePath) {
   await server.stop(true);
+  await administrationFixture.dispose();
   throw new Error("Set CONSOLE_CHROMIUM_PATH to a Chromium executable.");
 }
 const browserArgs =
@@ -2949,6 +3093,36 @@ const browserBackend: Bun.WebView.Backend = {
   ...(browserArgs.length > 0 ? { argv: browserArgs } : {}),
 };
 const failures: string[] = [];
+async function settleVisualCapture(page: Bun.WebView): Promise<void> {
+  await evaluatePage(page, async () => {
+    await document.fonts.ready;
+    const style = document.createElement("style");
+    style.textContent =
+      "*,*::before,*::after{animation-duration:0s!important;animation-delay:0s!important;transition-duration:0s!important;caret-color:transparent!important}";
+    document.head.append(style);
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    );
+  });
+}
+async function recordVisualCapture(name: string, image: Buffer): Promise<void> {
+  const baselinePath = path.join(BASELINE_DIR, name);
+  if (UPDATE) {
+    const ratio = await comparePng(image, baselinePath).catch(() => 1);
+    if (ratio > 0.002) await writeFile(baselinePath, image);
+  } else {
+    try {
+      const ratio = await comparePng(image, baselinePath);
+      if (ratio > 0.002) {
+        await writeFile(path.join(ARTIFACT_DIR, name), image);
+        failures.push(`${name}: ${(ratio * 100).toFixed(2)}% pixels changed`);
+      }
+    } catch (error) {
+      await writeFile(path.join(ARTIFACT_DIR, name), image);
+      failures.push(`${name}: ${getErrorMessage(error)}`);
+    }
+  }
+}
 try {
   for (const climate of CLIMATES) {
     if (CLIMATE_FILTER && climate !== CLIMATE_FILTER) continue;
@@ -2967,6 +3141,8 @@ try {
         "chat-empty",
         "chat-drawer",
         "studio-library",
+        "studio-navigation",
+        "studio-navigation-collapsed",
         "studio-overview",
         "studio-chat",
         "studio-chat-sessions",
@@ -2981,12 +3157,15 @@ try {
         "studio-administration-audit",
         "studio-account",
         "studio-editor",
+        "studio-system",
         "studio-delete",
         "studio-conflict",
         "studio-invalid",
         "studio-upload",
       ] as const) {
         if (SURFACE_FILTER && surface !== SURFACE_FILTER) continue;
+        if (STUDY_STATE && !supportsStudioStudyState(surface, STUDY_STATE))
+          continue;
         // Session and context destinations only exist at phone widths.
         if (surface === "chat-drawer" && viewport.width > 760) continue;
         if (
@@ -3021,14 +3200,20 @@ try {
           backend: browserBackend,
         });
         await page.navigate("about:blank");
+        // Each capture starts from a fresh fixture preference. The browser backend
+        // can reuse storage across WebViews; collapsed captures must not seed the next case.
+        await page.cdp("Storage.clearDataForOrigin", {
+          origin: `http://127.0.0.1:${server.port}`,
+          storageTypes: "local_storage",
+        });
         await page.cdp("Emulation.setLocaleOverride", { locale: "en-GB" });
         await page.cdp("Emulation.setTimezoneOverride", { timezoneId: "UTC" });
         await addVisualInitScript(page, conversationId);
-        const isStudioEditor = surface === "studio-editor" || isStudioSecondary;
-        const studioSaveSelector =
-          viewport.width <= 900
-            ? ".studio-editor-phone-save"
-            : ".studio-editor-head-save";
+        const isStudioEditor =
+          surface === "studio-editor" ||
+          surface === "studio-system" ||
+          isStudioSecondary;
+        const studioSaveSelector = ".studio-editor-head-save";
         const route = isDashboard
           ? "/dashboard"
           : isChat
@@ -3049,9 +3234,11 @@ try {
                           ? "/studio/workspaces/content-pipeline%3Apublishing"
                           : surface.startsWith("studio-administration")
                             ? "/studio/workspaces/admin%3Aadministration"
-                            : isStudioEditor
-                              ? "/studio/entities/posts/field-notes"
-                              : "/studio/entities/posts";
+                            : surface === "studio-system"
+                              ? "/studio/entities/style-guide/style-guide"
+                              : isStudioEditor
+                                ? "/studio/entities/posts/field-notes"
+                                : "/studio/entities/posts";
         const hash = isChat ? `#s/${conversationId}` : "";
         const workspaceQuery = surface.startsWith(
           "studio-administration-invitations",
@@ -3059,13 +3246,295 @@ try {
           ? `&tab=invitations`
           : surface === "studio-administration-audit"
             ? `&tab=audit`
-            : surface.startsWith("studio-chat")
+            : surface.startsWith("studio-chat") && STUDY_STATE !== "empty"
               ? `&session=responsive`
               : "";
         await navigateToNetworkIdle(
           page,
           `http://127.0.0.1:${server.port}${route}?climate=${climate}${workspaceQuery}${hash}`,
         );
+        if (STUDY_STATE) {
+          await settleVisualCapture(page);
+          const emptyCopy: Record<string, string> = {
+            "studio-overview": "Nothing needs your attention.",
+            "studio-chat":
+              "No messages yet. Your draft stays in the composer until you send it.",
+            "studio-inbox": "Nothing needs attention for these filters.",
+            "studio-publishing": "Nothing is in flight",
+            "studio-site": "Not published yet",
+            "studio-content-sync": "No directory sync runs have completed yet.",
+            "studio-administration-invitations": "No pending invitations.",
+            "studio-administration-audit":
+              "No audit events match these filters.",
+            "studio-account": "Managed by the Anchor profile",
+          };
+          if (STUDY_STATE === "empty") {
+            const expected = emptyCopy[surface];
+            if (!expected)
+              throw Error(`No empty-state assertion for ${surface}`);
+            await waitForText(page, expected);
+            if (surface === "studio-overview")
+              await waitForText(page, "No recent activity is available.");
+            if (surface === "studio-inbox")
+              await waitForText(
+                page,
+                "Change Source or Urgency to inspect other incoming work.",
+              );
+            if (surface === "studio-site")
+              await evaluatePage(page, () => {
+                if (
+                  Array.from(document.querySelectorAll("a")).some(
+                    (a) => a.textContent.trim() === "Open preview",
+                  )
+                )
+                  throw Error(
+                    "An absent configured URL must not produce an open link",
+                  );
+              });
+            if (surface === "studio-publishing")
+              await evaluatePage(page, () => {
+                if (document.querySelector('[role="tablist"]'))
+                  throw Error("Rest state must not retain an empty queue tab");
+              });
+            if (surface === "studio-account")
+              await evaluatePage(page, () => {
+                const buttons = Array.from(document.querySelectorAll("button"));
+                if (
+                  buttons.some(
+                    (b) =>
+                      b.textContent.trim() === "Save name" ||
+                      b.textContent.trim() === "Revoke",
+                  )
+                )
+                  throw Error("Anchor/final-passkey protections lost");
+                const endOthers = buttons.find(
+                  (b) => b.textContent.trim() === "End other sessions",
+                );
+                if (!endOthers?.disabled)
+                  throw Error(
+                    "End other sessions must be disabled with only the current session",
+                  );
+              });
+          } else if (STUDY_STATE === "busy" && surface === "studio-chat") {
+            await waitForText(page, "Message");
+            await fillLabel(page, "Message", "Continue the current review");
+            await clickText(page, "button", "Send");
+            await waitForText(page, "Fixture response remains in progress.");
+            await waitForText(page, "Stop");
+          } else if (STUDY_STATE === "busy") {
+            await waitForText(page, "Build preview");
+            await waitForText(page, "Published generation");
+            await evaluatePage(page, () => {
+              const build = Array.from(
+                document.querySelectorAll("button"),
+              ).find((b) => b.textContent.trim() === "Build preview");
+              if (!build?.disabled)
+                throw Error(
+                  "Active build must disable a duplicate preview request",
+                );
+            });
+          } else if (STUDY_STATE === "outage")
+            await waitForText(
+              page,
+              "Unavailable sources are not an all-clear.",
+            );
+          else if (STUDY_STATE === "failure") {
+            await waitForText(page, "The latest completed build failed");
+            await waitForText(page, "Published generation");
+            await evaluatePage(page, () => {
+              const panel = document.querySelector('[role="tabpanel"]');
+              const notice = panel?.querySelector('aside[data-tone="warn"]');
+              if (
+                !panel ||
+                !notice ||
+                Math.abs(
+                  panel.getBoundingClientRect().width -
+                    notice.getBoundingClientRect().width,
+                ) > 2
+              )
+                throw Error(
+                  "Build failure must span the environment before its supporting columns",
+                );
+              const next = notice.closest("section")?.nextElementSibling;
+              if (
+                !next ||
+                next.getBoundingClientRect().top -
+                  notice.getBoundingClientRect().bottom <
+                  24
+              )
+                throw Error("Adjacent tab blocks need shared section spacing");
+            });
+          } else if (STUDY_STATE === "restart") {
+            await waitForText(page, "Needs you");
+            await waitForText(page, "Recent activity");
+            await waitForText(page, "No recent autonomous activity.");
+          } else await waitForText(page, "unexpected-native-status");
+          await checkLayout(page, surface, viewport.width, viewport.height);
+          await recordVisualCapture(
+            `${surface}-${STUDY_STATE}-${viewport.width}x${viewport.height}-${climate}.png`,
+            await page.screenshot({ encoding: "buffer", format: "png" }),
+          );
+          if (STUDY_STATE === "failure" || STUDY_STATE === "dense") {
+            await clickText(page, "button", "View diagnostics");
+            await waitForSelector(page, '[role="dialog"]');
+            await waitForText(
+              page,
+              STUDY_STATE === "failure"
+                ? "Exact diagnostic reference: fixture-preview-failed"
+                : "Exact retained diagnostic:",
+            );
+            await evaluatePage(page, () => {
+              const dialog = document.querySelector('[role="dialog"]');
+              if (!dialog || dialog.scrollWidth > dialog.clientWidth + 1)
+                throw Error("Expanded diagnostics overflow");
+              const close = dialog
+                .querySelector('[data-slot="dialog-close"]')
+                ?.getBoundingClientRect();
+              if (
+                innerWidth <= 640 &&
+                (!close || close.width < 44 || close.height < 44)
+              )
+                throw Error(
+                  "Phone disclosure close target must be at least 44px",
+                );
+            });
+            await recordVisualCapture(
+              `${surface}-${STUDY_STATE}-expanded-${viewport.width}x${viewport.height}-${climate}.png`,
+              await page.screenshot({ encoding: "buffer", format: "png" }),
+            );
+            if (STUDY_STATE === "failure") {
+              await evaluatePage(page, () => {
+                const source = document.querySelector('[role="dialog"] pre');
+                if (
+                  !(source instanceof HTMLElement) ||
+                  !source.textContent.includes(
+                    "Retained renderer diagnostic.\n".repeat(180),
+                  ) ||
+                  !source.textContent.endsWith(
+                    "Exact diagnostic reference: fixture-preview-failed",
+                  )
+                )
+                  throw Error("Build diagnostics were truncated");
+                source.scrollTop = source.scrollHeight;
+              });
+              await recordVisualCapture(
+                `${surface}-${STUDY_STATE}-expanded-end-${viewport.width}x${viewport.height}-${climate}.png`,
+                await page.screenshot({ encoding: "buffer", format: "png" }),
+              );
+            }
+            await clickSelector(page, '[role="dialog"] [aria-label="Close"]');
+          }
+          if (STUDY_STATE === "dense") {
+            await clickText(page, "summary", "Repository details");
+            await evaluatePage(page, () => {
+              const repository = Array.from(
+                document.querySelectorAll("details[open]"),
+              ).find((n) =>
+                n
+                  .querySelector("summary")
+                  ?.textContent.includes("Repository details"),
+              );
+              if (
+                !repository ||
+                !repository.textContent.includes("abcdef123456") ||
+                !document.body.textContent.includes(
+                  `notes/${"nested-directory/".repeat(8)}record-35.md`,
+                ) ||
+                !document.body.textContent.includes("unexpected-native-status")
+              )
+                throw Error("Dense repository source records were lost");
+              if (repository.scrollWidth > repository.clientWidth + 1)
+                throw Error("Dense repository overflows");
+              repository.scrollIntoView({ block: "start" });
+              window.scrollBy(0, -64);
+            });
+            await recordVisualCapture(
+              `${surface}-${STUDY_STATE}-repository-${viewport.width}x${viewport.height}-${climate}.png`,
+              await page.screenshot({ encoding: "buffer", format: "png" }),
+            );
+            await evaluatePage(page, () => {
+              const row = Array.from(document.querySelectorAll("main li")).find(
+                (n) => n.textContent.includes("unexpected-native-status"),
+              );
+              if (!row || row.scrollWidth > row.clientWidth + 1)
+                throw Error("Dense source record missing or overflowing");
+              row.scrollIntoView({ block: "center" });
+            });
+            await recordVisualCapture(
+              `${surface}-${STUDY_STATE}-records-${viewport.width}x${viewport.height}-${climate}.png`,
+              await page.screenshot({ encoding: "buffer", format: "png" }),
+            );
+          }
+          if (STUDY_STATE === "busy" && surface === "studio-chat") {
+            await clickText(page, "button", "Stop");
+            await waitForText(page, "Send");
+            await waitForText(page, "Fixture response remains in progress.");
+          }
+          console.log(
+            `✓ ${surface} ${STUDY_STATE} ${viewport.width}px ${climate}: source state, layout and protections pass`,
+          );
+          page.close();
+          continue;
+        }
+        if (
+          surface === "studio-system" &&
+          viewport.width <= 640 &&
+          climate === "instrument"
+        ) {
+          for (const [label, pane] of [
+            ["Source", "write"],
+            ["Preview", "preview"],
+            ["Properties", "details"],
+          ] as const) {
+            await pointerDownSelector(page, ".studio-mobile-tabs button");
+            await waitForSelector(page, '[role="menuitem"]');
+            await clickText(page, '[role="menuitem"]', label);
+            await waitForSelector(
+              page,
+              `[data-studio-editor][data-mobile-pane="${pane}"]`,
+            );
+          }
+        }
+        if (surface.startsWith("studio-navigation")) {
+          if (viewport.width > 900) {
+            await clickSelector(page, ".studio-navigation-collapse");
+            await waitForPage("collapsed shell width", () =>
+              page.evaluate<boolean>(
+                'Math.round(document.querySelector(".rail").getBoundingClientRect().width) === 68 && getComputedStyle(document.querySelector(".studio-leaf-rail")).display === "none"',
+              ),
+            );
+            const currentPath =
+              await page.evaluate<string>("location.pathname");
+            await clickText(page, ".studio-area-link", "Work");
+            if (
+              (await page.evaluate<string>("location.pathname")) !== currentPath
+            ) {
+              throw new Error(
+                "Browsing Work navigated away from the current document",
+              );
+            }
+            await waitForSelector(
+              page,
+              '.studio-leaf-rail[aria-label="Work destinations"]',
+            );
+            await waitForPage("area click expands shell", () =>
+              page.evaluate<boolean>(
+                'Math.round(document.querySelector(".rail").getBoundingClientRect().width) === 344',
+              ),
+            );
+            if (surface.endsWith("-collapsed"))
+              await clickSelector(page, ".studio-navigation-collapse");
+          } else {
+            await clickSelector(page, ".studio-mobile-switcher");
+            await waitForSelector(page, ".studio-mobile-navigation-sheet");
+            if (surface.endsWith("-collapsed"))
+              await clickText(
+                page,
+                ".studio-mobile-navigation-group summary",
+                "Library",
+              );
+          }
+        }
         if (
           surface === "studio-overview" &&
           viewport.width <= 640 &&
@@ -3076,15 +3545,107 @@ try {
         if (surface.startsWith("studio-chat")) {
           await waitForText(page, "And the Studio?");
           await waitForSelector(page, ".studio-chat-upload");
+          if (surface === "studio-chat" && viewport.width <= 700) {
+            await clickSelector(page, ".studio-chat-mobile-sessions button");
+            await waitForSelector(
+              page,
+              '[role="dialog"] .studio-chat-session-picker',
+            );
+            await clickText(
+              page,
+              ".studio-chat-session-picker .studio-chat-session",
+              "Responsive console audit",
+            );
+            let restored = false;
+            for (let attempt = 0; attempt < 30; attempt++) {
+              restored = await evaluatePage(
+                page,
+                () =>
+                  !document.querySelector('[role="dialog"]') &&
+                  document.activeElement?.matches(
+                    ".studio-chat-mobile-sessions button",
+                  ) === true,
+              );
+              if (restored) break;
+              await Bun.sleep(25);
+            }
+            if (!restored)
+              throw new Error(
+                "Session selection did not close the dialog and restore focus",
+              );
+          }
           if (surface === "studio-chat-sessions") {
             await clickText(
               page,
-              ".studio-chat-mobile-destination",
-              "sessions",
+              ".studio-chat-mobile-sessions button",
+              "Sessions",
             );
           }
           if (surface === "studio-chat-context") {
-            await clickText(page, ".studio-chat-mobile-destination", "context");
+            await clickSelector(page, ".studio-chat-working-set summary");
+          }
+        }
+        if (isDashboard) {
+          await verifyDashboardChrome(page);
+          await verifyDashboardSummary(page);
+          if (surface === "dashboard") {
+            const previousHash = await evaluatePage(
+              page,
+              () => window.location.hash,
+            );
+            await clickSelector(page, '[data-dashboard-tab-link="system"]');
+            await evaluatePage(page, async () => {
+              await document.fonts.ready;
+              window.scrollTo(0, 0);
+            });
+            await writeFile(
+              path.join(
+                ARTIFACT_DIR,
+                `dashboard-system-${viewport.width}x${viewport.height}-${climate}.png`,
+              ),
+              await page.screenshot({ encoding: "buffer", format: "png" }),
+            );
+            if (viewport.width <= 700) {
+              await evaluatePage(page, () =>
+                document
+                  .querySelector(".system-checks-card")
+                  ?.scrollIntoView({ block: "start" }),
+              );
+              await writeFile(
+                path.join(
+                  ARTIFACT_DIR,
+                  `dashboard-system-checks-${viewport.width}x${viewport.height}-${climate}.png`,
+                ),
+                await page.screenshot({ encoding: "buffer", format: "png" }),
+              );
+            }
+            if (viewport.width <= 960) {
+              await evaluatePage(page, () =>
+                document
+                  .querySelector(".system-runtime-card")
+                  ?.scrollIntoView({ block: "start" }),
+              );
+              await writeFile(
+                path.join(
+                  ARTIFACT_DIR,
+                  `dashboard-system-reference-${viewport.width}x${viewport.height}-${climate}.png`,
+                ),
+                await page.screenshot({ encoding: "buffer", format: "png" }),
+              );
+            }
+            await clickSelector(page, '[data-dashboard-tab-link="overview"]');
+            await evaluatePageWith(
+              page,
+              (hash) => {
+                window.history.replaceState(
+                  null,
+                  "",
+                  window.location.pathname + window.location.search + hash,
+                );
+                window.scrollTo(0, 0);
+              },
+              previousHash,
+            );
           }
         }
         if (
@@ -3193,17 +3754,236 @@ try {
           }
         }
         if (surface === "studio-overview") {
-          await waitForText(page, "While you were away");
+          await waitForText(page, "Recent activity");
         }
         if (surface === "studio-content-sync") {
-          await waitForText(page, "Convergence path");
+          await waitForText(page, "Recent runs");
+          await waitForText(page, "Connection");
+          await waitForText(page, "Repository sync needs attention");
+          await clickText(page, "button", "View diagnostics");
+          await waitForSelector(page, '[role="dialog"]');
+          await evaluatePage(page, () => {
+            const dialog = document.querySelector('[role="dialog"]');
+            for (const record of [
+              "git push origin main exited with 1",
+              "git pull origin main exited with 1",
+              "Occurred: 2026-07-11T09:15:00.000Z",
+              "Occurred: 2026-07-11T09:14:30.000Z",
+            ]) {
+              if (!dialog?.textContent.includes(record))
+                throw new Error(
+                  "Sync diagnostics lost a recorded operation or timestamp",
+                );
+            }
+          });
+          await clickSelector(page, '[role="dialog"] [aria-label="Close"]');
+          await waitForPage("sync diagnostics closed", () =>
+            evaluatePage(
+              page,
+              () => !document.querySelector('[role="dialog"]'),
+            ),
+          );
+          await clickText(page, "summary", "Repository details");
+          await evaluatePage(page, () => {
+            const repository = [
+              ...document.querySelectorAll("details[open]"),
+            ].find((node) =>
+              node
+                .querySelector("summary")
+                ?.textContent.includes("Repository details"),
+            );
+            if (!repository)
+              throw new Error("Missing expanded repository facts");
+            const labels = [...repository.querySelectorAll("dt")].map(
+              (node) => node.textContent,
+            );
+            for (const label of [
+              "Content files",
+              "Issues",
+              "Commits ahead",
+              "Commits behind",
+              "Commit debounce",
+            ])
+              if (labels.filter((value) => value === label).length !== 1)
+                throw new Error(
+                  `Repository fact missing or repeated: ${label}`,
+                );
+            if (!repository.textContent.includes("abcdef123456"))
+              throw new Error(
+                "Repository details lost the exact commit identifier",
+              );
+            repository.scrollIntoView({ block: "start" });
+            window.scrollBy(0, -64);
+          });
+          await evaluatePage(page, async () => {
+            await document.fonts.ready;
+          });
+          await writeFile(
+            path.join(
+              ARTIFACT_DIR,
+              `studio-content-sync-repository-${viewport.width}x${viewport.height}-${climate}.png`,
+            ),
+            await page.screenshot({ encoding: "buffer", format: "png" }),
+          );
+          await clickText(page, "summary", "Repository details");
+          await evaluatePage(page, () => {
+            let node: HTMLElement | null =
+              [...document.querySelectorAll<HTMLElement>("summary")].find(
+                (item) => item.textContent.includes("Repository details"),
+              ) ?? null;
+            while (node) {
+              node.scrollTop = 0;
+              node = node.parentElement;
+            }
+          });
         }
         if (surface === "studio-site") {
+          await waitForText(page, "Build preview");
+          await evaluatePage(page, () => {
+            const controls = document.querySelector("[data-card-controls]");
+            const link = controls?.querySelector("a");
+            if (link?.getAttribute("href") !== "https://preview.example.com")
+              throw new Error("Published state lost its preview link");
+            if (
+              window.innerWidth <= 640 &&
+              link.getBoundingClientRect().height < 44
+            )
+              throw new Error("Preview link lost its phone touch target");
+            for (const details of document.querySelectorAll(
+              ".declarative-card:is(details)",
+            ))
+              if (details.hasAttribute("open"))
+                throw new Error("Supporting Site details should start folded");
+          });
+          await clickText(page, "summary", "Render details");
+          await waitForPage("retained render details", () =>
+            evaluatePage(page, () =>
+              [...document.querySelectorAll("details[open]")].some(
+                (node) =>
+                  node.textContent.includes("Last successful render") &&
+                  node.textContent.includes("build-20260711163352-preview"),
+              ),
+            ),
+          );
+          await clickText(page, "summary", "Render details");
+          await clickText(page, "summary", "Configured routes");
+          await evaluatePage(page, () => {
+            const routes = [...document.querySelectorAll("details[open]")].find(
+              (node) => node.textContent.includes("Configured routes"),
+            );
+            if (
+              routes?.querySelectorAll("tbody tr").length !== 8 ||
+              !routes.textContent.includes("23 further routes")
+            )
+              throw new Error(
+                "Configured routes lost their bounded preview or remainder",
+              );
+          });
+          await clickText(page, "summary", "Configured routes");
+          await activateWorkspaceTab(page, "Production");
           await waitForText(page, "Build production");
+          await clickText(page, "button", "Build production");
+          await waitForText(page, "Build and publish the production site now?");
+          await clickText(
+            page,
+            '[role="dialog"] button, [role="alertdialog"] button',
+            "Cancel",
+          );
+          await waitForText(page, "Published generation");
+          await activateWorkspaceTab(page, "Preview");
+          await waitForText(page, "Build preview");
         }
         if (surface === "studio-publishing") {
           await waitForText(page, "Notes from the rhizome");
+          await evaluatePage(page, () => {
+            const attention = document.querySelector(
+              'section[data-tone="warn"]',
+            );
+            if (
+              !attention ||
+              document.querySelector('[role="dialog"]') ||
+              !attention
+                .querySelector("header")
+                ?.textContent.includes("Retries: 1") ||
+              !attention
+                .querySelector("h2")
+                ?.textContent.includes("One delivery needs attention")
+            )
+              throw new Error(
+                "Publishing attention is missing or exposes its controls at rest",
+              );
+          });
+          await clickText(page, "button", "Review failure");
+          await waitForSelector(page, '[role="dialog"]');
+          await evaluatePage(page, () => {
+            const attention = document.querySelector('[role="dialog"]');
+            const retry = [
+              ...(attention?.querySelectorAll("button") ?? []),
+            ].find((button) =>
+              button.textContent.includes("Retry publication"),
+            );
+            if (
+              !attention?.textContent.includes(
+                "Provider rejected the last delivery attempt.",
+              ) ||
+              !retry ||
+              retry.disabled
+            )
+              throw new Error(
+                "Publication review lost diagnostics or its retry action",
+              );
+          });
+          await clickSelector(page, '[role="dialog"] [aria-label="Close"]');
+          await waitForPage("failure review closed", () =>
+            evaluatePage(
+              page,
+              () => !document.querySelector('[role="dialog"]'),
+            ),
+          );
+          await clickText(page, "button", "Queue options");
+          await waitForSelector(page, '[role="dialog"]');
+          await evaluatePage(page, () => {
+            const buttons = [
+              ...document.querySelectorAll<HTMLButtonElement>(
+                '[role="dialog"] button',
+              ),
+            ];
+            for (const label of ["Move up", "Move down"]) {
+              const button = buttons.find((node) =>
+                node.textContent.includes(label),
+              );
+              if (!button?.disabled)
+                throw new Error(
+                  "Single-item destination must retain disabled reorder boundaries",
+                );
+            }
+            if (
+              !buttons.some(
+                (button) =>
+                  button.textContent.includes("Remove from queue") &&
+                  !button.disabled,
+              )
+            )
+              throw new Error("Queue options lost removal");
+          });
+          await clickSelector(page, '[role="dialog"] [aria-label="Close"]');
+          await waitForPage("queue options closed", () =>
+            evaluatePage(
+              page,
+              () => !document.querySelector('[role="dialog"]'),
+            ),
+          );
+          await activateWorkspaceTab(page, "Generating (1)");
+          await waitForText(page, "og-image");
+          await activateWorkspaceTab(page, "Queued (3)");
+          await waitForText(page, "Quiet infrastructure");
         }
+        if (
+          surface === "studio-content-sync" ||
+          surface === "studio-inbox" ||
+          surface === "studio-overview"
+        )
+          await verifyRecordTypography(page);
         if (surface === "studio-account") {
           await waitForText(page, "Signed-in sessions");
         }
@@ -3214,12 +3994,15 @@ try {
           // Open the delete confirmation. Phone tucks the control behind
           // the ••• disclosure; wider widths show it in the pipeline bar.
           if (viewport.width <= 640) {
-            await pointerDownSelector(page, ".studio-mobile-more button");
+            await pointerDownSelector(
+              page,
+              'button[aria-label="More document actions"]',
+            );
             await clickSelector(page, '[role="menuitem"]');
           } else {
             await clickSelector(
               page,
-              '.pipeline [data-slot="button"][data-variant="danger"]',
+              '[data-studio-save-bar] [data-slot="button"][data-variant="danger"]',
             );
           }
           await waitForSelector(page, ".delete-modal");
@@ -3228,7 +4011,7 @@ try {
           // Save with an unchanged title: the fixture answers 409, raising
           // the reconcile card above the save bar.
           await clickSelector(page, studioSaveSelector);
-          await waitForSelector(page, ".conflict");
+          await waitForSelector(page, "[data-studio-conflict]");
         }
         if (surface === "studio-invalid") {
           // Two validation aspects in one frame: a server-rejected save
@@ -3236,12 +4019,12 @@ try {
           // an emptied required title pins the :user-invalid outline.
           await fillLabel(page, "Title", "Notes from the rhizome!!");
           await clickSelector(page, studioSaveSelector);
-          await waitForSelector(page, ".status-error");
+          await waitForSelector(page, '[data-studio-status="error"]');
           await fillLabel(page, "Title", "");
           await blurLabel(page, "Title");
           await waitForPage("invalid title field", () =>
             page.evaluate<boolean>(
-              'document.querySelector(".field input:user-invalid") !== null',
+              'document.querySelector("[data-studio-field] input:user-invalid") !== null',
             ),
           );
         }
@@ -3265,7 +4048,7 @@ try {
               return true;
             },
             {
-              selector: '.upload-zone input[type="file"]',
+              selector: '[data-studio-field="image"] input[type="file"]',
               url: "/fixture/verdigris.png",
               name: "verdigris-board.png",
               mediaType: "image/png",
@@ -3281,43 +4064,242 @@ try {
             text?.scrollIntoView({ block: "nearest" });
           });
         }
+        if (
+          ["studio-chat", "studio-administration", "studio-account"].includes(
+            surface,
+          )
+        )
+          await verifyDirectStudioNavigation(page, surface, viewport.width);
+        if (
+          [
+            "studio-administration",
+            "studio-administration-invitations",
+            "studio-administration-audit",
+          ].includes(surface)
+        )
+          await verifyAdministrationRecords(page, surface);
         await evaluatePage(page, () => document.fonts.ready);
         await waitForVisualStability(page);
         await checkLayout(page, surface, viewport.width, viewport.height);
-        await evaluatePage(page, () => {
-          const style = document.createElement("style");
-          style.textContent =
-            "*,*::before,*::after{animation-duration:0s!important;animation-delay:0s!important;transition-duration:0s!important;caret-color:transparent!important}";
-          document.head.append(style);
-          return new Promise<void>((resolve) =>
-            requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
-          );
-        });
+        await settleVisualCapture(page);
         const image = await page.screenshot({
           encoding: "buffer",
           format: "png",
         });
-        const name = `${surface}-${viewport.width}x${viewport.height}-${climate}.png`;
-        const baselinePath = path.join(BASELINE_DIR, name);
-        if (UPDATE) {
-          // Only rewrite baselines that actually changed — wholesale
-          // rewrites churn every pinned file with re-encode noise.
-          const ratio = await comparePng(image, baselinePath).catch(() => 1);
-          if (ratio > 0.002) await writeFile(baselinePath, image);
-        } else {
-          try {
-            const ratio = await comparePng(image, baselinePath);
-            if (ratio > 0.002) {
-              await writeFile(path.join(ARTIFACT_DIR, name), image);
-              failures.push(
-                `${name}: ${(ratio * 100).toFixed(2)}% pixels changed`,
+        if (surface === "dashboard") {
+          await navigateToNetworkIdle(
+            page,
+            `http://127.0.0.1:${server.port}/dashboard?climate=${climate}&fixture-state=waiting#system`,
+          );
+          await evaluatePage(page, async () => {
+            await document.fonts.ready;
+            const panel = document.getElementById("system");
+            if (
+              !panel ||
+              panel.hidden ||
+              !panel.querySelector('[data-status-summary="warn"]') ||
+              !panel.querySelector('[data-readiness-tone="neutral"]') ||
+              panel.querySelectorAll('tbody tr[data-tone="warn"]').length !== 2
+            )
+              throw new Error(
+                "Production System rendering lost degraded/waiting states",
               );
-            }
-          } catch (error) {
-            await writeFile(path.join(ARTIFACT_DIR, name), image);
-            failures.push(`${name}: ${getErrorMessage(error)}`);
-          }
+            if (
+              !panel.textContent.includes(
+                "One or more advertised public surfaces are unavailable.",
+              )
+            )
+              throw new Error("Missing public outage diagnostic");
+            window.scrollTo(0, 0);
+          });
+          await writeFile(
+            path.join(
+              ARTIFACT_DIR,
+              `dashboard-system-waiting-${viewport.width}x${viewport.height}-${climate}.png`,
+            ),
+            await page.screenshot({ encoding: "buffer", format: "png" }),
+          );
         }
+        if (surface === "dashboard") {
+          for (const tab of ["knowledge", "network"] as const) {
+            await clickSelector(page, `[data-dashboard-tab-link="${tab}"]`);
+            await evaluatePageWith(
+              page,
+              (section) => {
+                const panel = document.getElementById(section);
+                const frame = panel?.querySelector<HTMLElement>(".map-field");
+                const empty = frame?.querySelector(".map-empty");
+                if (
+                  !panel ||
+                  panel.hidden ||
+                  !frame ||
+                  !empty ||
+                  panel.querySelector("svg") ||
+                  Math.abs(
+                    empty.getBoundingClientRect().width - frame.clientWidth,
+                  ) > 1 ||
+                  getComputedStyle(empty).minHeight !==
+                    (window.innerWidth <= 700 ? "260px" : "360px")
+                )
+                  throw new Error(
+                    "Empty map lost its full-width reading state",
+                  );
+                window.scrollTo(0, 0);
+              },
+              tab,
+            );
+            await writeFile(
+              path.join(
+                ARTIFACT_DIR,
+                `dashboard-${tab}-empty-${viewport.width}x${viewport.height}-${climate}.png`,
+              ),
+              await page.screenshot({ encoding: "buffer", format: "png" }),
+            );
+          }
+          await navigateToNetworkIdle(
+            page,
+            `http://127.0.0.1:${server.port}/dashboard?climate=${climate}&fixture-state=declarative-network#network`,
+          );
+          await evaluatePage(page, async () => {
+            await document.fonts.ready;
+            const frame = document.querySelector<HTMLElement>(
+              ".proximity-map-field",
+            );
+            const graphic = frame?.querySelector("svg");
+            if (!frame || !graphic)
+              throw new Error("Missing declarative network frame");
+            if (
+              graphic.getAttribute("viewBox") !== "0 0 980 560" ||
+              Math.abs(
+                graphic.getBoundingClientRect().width / frame.clientWidth -
+                  (window.innerWidth <= 700 ? 1.55 : 1),
+              ) > 0.01 ||
+              getComputedStyle(graphic).minHeight !==
+                (window.innerWidth <= 700 ? "260px" : "360px") ||
+              !getComputedStyle(frame).backgroundImage.includes(
+                "radial-gradient",
+              )
+            )
+              throw new Error(
+                "Declarative network lost its compiled projection frame",
+              );
+            window.scrollTo(0, 0);
+          });
+          await verifyMapMotion(page);
+          await writeFile(
+            path.join(
+              ARTIFACT_DIR,
+              `dashboard-network-declarative-${viewport.width}x${viewport.height}-${climate}.png`,
+            ),
+            await page.screenshot({ encoding: "buffer", format: "png" }),
+          );
+        }
+        if (surface === "dashboard") {
+          await navigateToNetworkIdle(
+            page,
+            `http://127.0.0.1:${server.port}/dashboard?climate=${climate}&fixture-state=dense-map#knowledge`,
+          );
+          await evaluatePage(page, async () => {
+            await document.fonts.ready;
+            const index =
+              document.querySelector<HTMLElement>("[data-map-index]");
+            const remainder = index?.querySelector(
+              "[data-map-index-remainder]",
+            );
+            const note = index?.querySelector("[data-map-index-note]");
+            const controls = index?.querySelectorAll("button");
+            if (!index || !remainder || !note || controls?.length !== 8)
+              throw new Error(
+                "Dense atlas lost its bounded index and remainder",
+              );
+            if (
+              !remainder.textContent.includes("12 smaller territories") ||
+              index.scrollWidth > index.clientWidth + 1
+            )
+              throw new Error("Dense atlas lost source detail or bounds");
+            if (
+              window.innerWidth > 700 &&
+              note.getBoundingClientRect().top <
+                remainder.getBoundingClientRect().bottom - 1
+            )
+              throw new Error("Dense atlas guidance overlaps its remainder");
+            if (
+              remainder.getBoundingClientRect().top <
+                Math.max(
+                  ...Array.from(
+                    controls,
+                    (control) => control.getBoundingClientRect().bottom,
+                  ),
+                ) -
+                  1 ||
+              (window.innerWidth > 700 &&
+                note.getBoundingClientRect().bottom >
+                  index.getBoundingClientRect().bottom + 1)
+            )
+              throw new Error(
+                "Dense atlas clips or overlaps its full record list",
+              );
+            for (const control of controls) {
+              if (
+                control.title !==
+                  control.querySelector("strong")?.textContent ||
+                (window.innerWidth <= 700 &&
+                  control.getBoundingClientRect().height < 44)
+              )
+                throw new Error(
+                  "Dense atlas lost full labels or usable controls",
+                );
+            }
+            const labels = Array.from(
+              document.querySelectorAll<SVGTextElement>(
+                "[data-knowledge-label]",
+              ),
+            );
+            if (labels.length !== 7)
+              throw Error("Dense atlas lost its seven source labels");
+            for (const label of labels) {
+              if (
+                label.querySelector("title")?.textContent !==
+                  label.getAttribute("aria-label") ||
+                label.getAttribute("data-label-truncated") !== "true"
+              )
+                throw Error(
+                  "Crowded label lost its full source title or explicit truncation",
+                );
+              const box = label.getBBox();
+              if (
+                box.x < 4 ||
+                box.x + box.width > 816 ||
+                box.y < 0 ||
+                box.y + box.height > 480
+              )
+                throw Error("Territory label is outside its SVG bounds");
+              for (const other of labels) {
+                if (other === label) continue;
+                const target = other.getBBox();
+                if (
+                  box.x < target.x + target.width + 2 &&
+                  box.x + box.width + 2 > target.x &&
+                  box.y < target.y + target.height + 2 &&
+                  box.y + box.height + 2 > target.y
+                )
+                  throw Error("Dense territory labels overlap");
+              }
+            }
+            index.scrollIntoView({ block: "start" });
+          });
+          await writeFile(
+            path.join(
+              ARTIFACT_DIR,
+              `dashboard-knowledge-index-dense-${viewport.width}x${viewport.height}-${climate}.png`,
+            ),
+            await page.screenshot({ encoding: "buffer", format: "png" }),
+          );
+        }
+        const name = `${surface}-${viewport.width}x${viewport.height}-${climate}.png`;
+        await recordVisualCapture(name, image);
+        if (surface === "studio-chat" || surface === "studio-account")
+          await verifyStudioProfileNavigation(page, surface);
         page.close();
       }
     }
@@ -3326,6 +4308,7 @@ try {
   Bun.WebView.closeAll();
   for (const release of pendingUploadResponses) release();
   await server.stop(true);
+  await administrationFixture.dispose();
 }
 
 if (failures.length > 0) {

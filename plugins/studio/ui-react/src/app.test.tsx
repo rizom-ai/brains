@@ -3,11 +3,10 @@ import { describe, expect, it } from "bun:test";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import responsiveStyles from "./responsive.css" with { type: "text" };
-import chatStyles from "./studio-chat-workspace.css" with { type: "text" };
-import chromeStyles from "./studio-chrome.css" with { type: "text" };
-import visualRefreshStyles from "./visual-refresh.css" with { type: "text" };
-import { styles } from "./app-styles";
+import documentStyles from "./studio-document.css" with { type: "text" };
+const compiledStyles = await Bun.file(
+  new URL("../../dist/ui/studio-app.css", import.meta.url),
+).text();
 import { StudioAppView, type StudioAppViewProps } from "./app-view";
 import { StudioChrome } from "./studio-chrome";
 import {
@@ -87,11 +86,9 @@ const selectField: FieldDescriptor = {
 
 describe("Studio shell chrome", () => {
   it("renders one contextual header without cross-product navigation", () => {
-    const html = renderToStaticMarkup(
-      <StudioChrome contextLabel="Overview" contextBadge={3} />,
-    );
+    const html = renderToStaticMarkup(<StudioChrome contextLabel="Overview" />);
 
-    expect(html).toContain('class="studio-chrome"');
+    expect(html).toMatch(/class="studio-chrome x[^"]+"/);
     expect(html).toContain("Overview");
     expect(html).toContain("Search or run a command");
     expect(html).toContain("Your account account menu");
@@ -100,176 +97,83 @@ describe("Studio shell chrome", () => {
   });
 });
 
-describe("editor surface styles", () => {
-  it("defines the editorial library and manuscript treatment", () => {
-    expect(visualRefreshStyles).toContain("232px minmax(0, 1fr)");
-    expect(visualRefreshStyles).toContain(".body-preview h1");
-    expect(visualRefreshStyles).toContain('"IBM Plex Mono"');
-    expect(visualRefreshStyles).toContain(".chip.published");
-  });
-
-  it("defines tablet collection switching and phone editing panes", () => {
-    expect(responsiveStyles).toContain("@media (max-width: 900px)");
-    expect(responsiveStyles).toContain("@media (max-width: 640px)");
-    expect(responsiveStyles).toContain('.editor[data-mobile-pane="details"]');
-    expect(responsiveStyles).toContain('.studio[data-view="editor"]');
-    expect(responsiveStyles).toContain(".studio-mobile-save-status");
-    expect(responsiveStyles).toContain("env(safe-area-inset-bottom)");
-  });
-
-  it("defines the native Chat working room and sequential mobile destinations", () => {
-    expect(chatStyles).toContain(
-      "grid-template-columns: 260px minmax(420px, 1fr) 298px",
-    );
-    expect(chatStyles).toContain(".studio-chat-thread-scroll");
-    expect(chatStyles).toContain("overflow: auto");
-    expect(chatStyles).toContain("env(safe-area-inset-bottom)");
-    expect(chatStyles).toContain(
-      '.studio-chat-room[data-mobile-destination="sessions"]',
-    );
-    expect(chatStyles).toContain(
-      '.studio-chat-room[data-mobile-destination="thread"]',
-    );
-    expect(chatStyles).toContain(
-      '.studio-chat-room[data-mobile-destination="context"]',
-    );
-    expect(chatStyles).toContain("min-height: var(--console-touch, 44px)");
-    expect(chatStyles).toContain(
-      '.studio[data-view="chat"] {\n  display: grid;',
-    );
-    expect(chatStyles).toContain("grid-template-rows: auto minmax(0, 1fr);");
-    expect(chatStyles).not.toContain("iframe");
-    expect(chatStyles).not.toContain("data-web-chat-root");
-  });
-
-  it("removes the retired mail desk styles", () => {
-    expect(visualRefreshStyles).not.toContain(".mail-triage-");
-    expect(responsiveStyles).not.toContain(".mail-triage-");
-  });
-
-  it("contains no specialized workspace styles", () => {
-    for (const legacyClass of [
+describe("compiled editor surface contracts", () => {
+  it("removes retired presentation selectors without changing console tokens", () => {
+    for (const selector of [
+      ".body-preview",
+      ".row .title",
+      ".field-label",
+      ".pipeline .reload",
+      ".status-error",
+      ".chip.published",
+      ".studio-chrome{",
+      ".mail-triage-",
       ".publishing-workspace",
       ".site-workspace",
       ".directory-sync-workspace",
       ".unified-inbox-workspace",
-    ]) {
-      expect(visualRefreshStyles).not.toContain(legacyClass);
-      expect(responsiveStyles).not.toContain(legacyClass);
-    }
+    ])
+      expect(compiledStyles).not.toContain(selector);
+    expect(compiledStyles).not.toContain("--console-mono:");
   });
-
-  it("replaces the crumbbar with one contextual Studio header", () => {
-    expect(styles).not.toContain("crumbbar");
-    expect(visualRefreshStyles).not.toContain("crumbbar");
-    expect(responsiveStyles).not.toContain("console-strip");
-    expect(chromeStyles).toContain(".studio-chrome");
-    expect(chromeStyles).toContain(".studio-chrome-location");
+  it("ships native pane state and safe-area rules", () => {
+    expect(compiledStyles).toMatch(/@media\s*\(max-width:\s*900px\)/);
+    expect(compiledStyles).toMatch(/@media\s*\(max-width:\s*640px\)/);
+    expect(compiledStyles).toContain("[data-mobile-pane=details]");
+    expect(compiledStyles).toContain("[data-mobile-pane=write]");
+    expect(compiledStyles).toContain("[data-mobile-pane=preview]");
+    expect(compiledStyles).toContain("env(safe-area-inset-bottom)");
   });
-
-  it("keeps the Studio rail present while editing on desktop", () => {
-    expect(visualRefreshStyles).not.toMatch(
-      /\.studio\[data-view="editor"\] \.rail \{[^}]*display: none/,
+  it("keeps native Chat bounded without a second dock", () => {
+    expect(compiledStyles).toContain(
+      "grid-template-columns:180px minmax(0,1fr)",
     );
-    expect(visualRefreshStyles).not.toMatch(
-      /\.studio\[data-view="editor"\] \.studio-body \{[^}]*grid-template-columns: 1fr/,
-    );
+    expect(compiledStyles).toContain("height:100dvh");
+    expect(compiledStyles).not.toContain("--studio-chat-columns");
+    expect(compiledStyles).not.toContain(".studio-chat-mobile-destinations");
   });
-
-  it("separates the save bar's status line from the pipeline readout", () => {
-    // Without a margin the error line butts against the commit ref:
-    // "last write 3bfa1e6× title: …".
-    expect(visualRefreshStyles).toMatch(
-      /\.pipeline > \.status \{[^}]*margin-left/,
+  it("retains Direction B chrome and all three rail widths", () => {
+    for (const columns of [
+      "344px minmax(0,1fr)",
+      "124px minmax(0,1fr)",
+      "68px minmax(0,1fr)",
+      "auto minmax(140px,1fr) auto",
+    ])
+      expect(compiledStyles).toContain(`grid-template-columns:${columns}`);
+    expect(compiledStyles).toContain(
+      "min-height:calc(56px + env(safe-area-inset-top))",
     );
+    expect(compiledStyles).not.toContain("crumbbar");
   });
-
-  it("lets the conflict card's reload button keep its ghost treatment", () => {
-    // `.pipeline .reload` once styled the button for the dark pipeline
-    // bar (frame-on-frame). The button now lives in the floating conflict
-    // card, where that rule made it invisible in paper climate — it must
-    // fall through to `.btn.ghost`.
-    expect(styles).not.toContain(".pipeline .reload");
-  });
-
-  it("keeps phone Studio to one compact chrome bar with one context picker", () => {
-    expect(responsiveStyles).toContain('body[data-console-host="studio"]');
-    expect(responsiveStyles).not.toContain("console-strip");
-    expect(chromeStyles).toMatch(
-      /\.studio-chrome \{[^}]*grid-template-columns: auto minmax\(0, 1fr\) auto/,
+  it("keeps document locking restricted to phone editors", () => {
+    const selectors = documentStyles
+      .replace(/\s+/g, " ")
+      .replace(/\(\s+/g, "(")
+      .replace(/\s+\)/g, ")");
+    expect(selectors).toContain(
+      'html:has(body[data-console-host="studio"] [data-studio-shell][data-view="editor"])',
     );
-    expect(chromeStyles).toMatch(
-      /\.studio-chrome-mobile-navigation \.studio-mobile-switcher \{[^}]*display: grid/,
+    expect(selectors).toContain(
+      'body[data-console-host="studio"]:has([data-studio-shell][data-view="editor"])',
     );
-    expect(responsiveStyles).toMatch(
-      /\.studio-mobile-switcher \{[^}]*display: grid/,
+    expect(selectors).toContain(
+      'body[data-console-host="studio"]:not(:has([data-studio-shell][data-view="editor"]))',
     );
-    expect(responsiveStyles).toMatch(/\.types \{[^}]*display: none/);
-    expect(responsiveStyles).toMatch(
-      /\.studio-mobile-switcher \{[^}]*width: 100%[^}]*min-height: var\(--console-touch\)/,
-    );
-    expect(responsiveStyles).toMatch(
-      /\.studio-mobile-switcher-label,[\s\S]*\.studio-mobile-switcher-chevron \{[^}]*pointer-events: none/,
-    );
-    expect(responsiveStyles).toContain(
-      ".studio-mobile-switcher-item[data-highlighted]",
-    );
-    expect(responsiveStyles).not.toContain("mask-image: linear-gradient");
-    expect(chromeStyles).toContain("env(safe-area-inset-top)");
-  });
-
-  it("locks the phone document only for the editor's app shell", () => {
-    // The editor holds its pane switcher and save bar still while the panes
-    // scroll, so it owns the viewport. Reading surfaces must not: locking them
-    // pins the mobile browser's collapsible URL bar open.
-    expect(responsiveStyles).toMatch(
-      /html:has\(body\[data-console-host="studio"\] \.studio\[data-view="editor"\]\) \{[^}]*overflow: hidden/,
-    );
-    expect(responsiveStyles).toMatch(
-      /body\[data-console-host="studio"\]:has\(\.studio\[data-view="editor"\]\) \{[^}]*overflow: hidden/,
-    );
-    expect(responsiveStyles).toMatch(
-      /body\[data-console-host="studio"\]:not\(:has\(\.studio\[data-view="editor"\]\)\) \{[^}]*min-height: 100%/,
-    );
-    // No blanket lock may survive alongside those two scoped ones.
-    expect(responsiveStyles).not.toMatch(
+    expect(documentStyles).toContain("min-height: 100%");
+    expect(documentStyles).not.toMatch(
       /body\[data-console-host="studio"\] \{[^}]*overflow: hidden/,
     );
   });
-
-  it("hands the phone scroll to the document on reading surfaces", () => {
-    expect(responsiveStyles).toMatch(
-      /\.studio:not\(\[data-view="editor"\]\) \.studio-body \{[^}]*align-content: start/,
+  it("keeps reading surfaces document-scrolling and save diagnostics bounded", () => {
+    expect(compiledStyles).toContain("align-content:start");
+    expect(compiledStyles).toContain("overflow:visible");
+    expect(compiledStyles).toContain("position:sticky");
+    expect(compiledStyles).toContain("overflow-wrap:anywhere");
+    expect(compiledStyles).toContain("margin-left:14px");
+    expect(compiledStyles).toContain(
+      "[data-studio-save-bar]:has(> [data-studio-status])",
     );
-    expect(responsiveStyles).toMatch(
-      /\.studio:not\(\[data-view="editor"\]\) \.studio-body \{[^}]*overflow: visible/,
-    );
-    expect(responsiveStyles).toMatch(/\.listing \{[^}]*overflow: visible/);
-    // The consolidated header keeps the context picker reachable while the
-    // document scrolls; the duplicate phone rail is removed.
-    expect(chromeStyles).toMatch(/\.studio-chrome \{[^}]*position: sticky/);
-    expect(responsiveStyles).toMatch(/\.rail \{[^}]*display: none/);
-  });
-
-  it("keeps phone library rows readable without adding another scroll region", () => {
-    expect(responsiveStyles).toMatch(
-      /\.row \{[^}]*grid-template-columns: 24px minmax\(0, 1fr\) auto/,
-    );
-    expect(responsiveStyles).toMatch(
-      /\.row \.title small \{[^}]*white-space: normal/,
-    );
-    expect(responsiveStyles).toMatch(
-      /\.studio\[data-view="editor"\] \.studio-body \{[^}]*overflow: hidden/,
-    );
-  });
-
-  it("keeps editor errors inside the single-row phone save dock", () => {
-    expect(responsiveStyles).toMatch(
-      /\.pipeline:has\(> \.status\) \.studio-mobile-save-status \{[^}]*display: none/,
-    );
-    expect(responsiveStyles).toMatch(
-      /\.pipeline > \.status \{[^}]*-webkit-line-clamp: 2/,
-    );
+    expect(compiledStyles).toContain("-webkit-line-clamp:2");
   });
 });
 
@@ -517,12 +421,12 @@ describe("TypeSwitcher", () => {
         onSelect: () => {},
       }),
     );
+    expect(html).toContain("Library");
     expect(html).toContain("Content");
     expect(html).toContain("Posts");
-    expect(html).toContain("Site");
-    expect(html).toContain("Site Info");
-    // Active styling lands on the button for the active type only.
-    expect(html.match(/class="[^"]*active/g)).toHaveLength(1);
+    expect(html).toContain("System");
+    // The area and its active destination both carry location state.
+    expect(html.match(/class="[^"]*active/g)).toHaveLength(2);
   });
 
   it("validates phone context-picker values before navigation", () => {
@@ -560,14 +464,15 @@ describe("TypeSwitcher", () => {
       }),
     );
 
-    expect(html).toContain('class="studio-mobile-switcher"');
-    expect(html).toContain('aria-label="Studio view"');
-    expect(html).toContain('role="combobox"');
-    expect(html).toContain("Administration · 2");
-    expect(html).toContain('<select aria-hidden="true"');
+    expect(html).toMatch(/class="studio-mobile-switcher x[^"]+"/);
+    expect(html).toContain('aria-label="Browse Studio"');
+    expect(html).toContain('aria-haspopup="dialog"');
+    expect(html).toContain("Administration");
+    expect(html).not.toContain("Administration · 2");
+    expect(html).not.toContain('<select aria-hidden="true"');
   });
 
-  it("renders Account as an active Studio workspace", () => {
+  it("keeps Account out of the rail even while its workspace is active", () => {
     const accountWorkspace: StudioWorkspaceInfo = {
       id: "studio:account",
       pluginId: "studio",
@@ -588,12 +493,14 @@ describe("TypeSwitcher", () => {
       }),
     );
 
-    expect(html).toContain("Operations");
-    expect(html).toContain("Account");
-    expect(html.match(/class="[^"]*active/g)).toHaveLength(1);
+    expect(html).not.toContain("Account");
+    expect(html).not.toContain("Access");
+    expect(html).toContain('data-leaf-open="false"');
+    expect(html).not.toContain('aria-pressed="true"');
+    expect(html).not.toContain("studio-leaf-rail");
   });
 
-  it("pins Overview above the workspace list", () => {
+  it("keeps Overview in the stable area map", () => {
     const overview: StudioWorkspaceInfo = {
       id: "studio:overview",
       pluginId: "studio",
@@ -623,13 +530,15 @@ describe("TypeSwitcher", () => {
       }),
     );
 
-    expect(html.indexOf("Overview")).toBeLessThan(html.indexOf("Operations"));
-    expect(html.indexOf("Administration")).toBeGreaterThan(
-      html.indexOf("Operations"),
-    );
+    expect(html).toContain('aria-label="Overview destinations"');
+    expect(html).not.toContain("00 / operator home");
+    expect(html).not.toContain("Attention, activity and operational health.");
+    expect(html.indexOf("Overview")).toBeLessThan(html.indexOf("Work"));
+    expect(html).toContain('aria-label="Administration"');
+    expect(html).not.toContain('aria-label="Administration destinations"');
   });
 
-  it("shows registered workspaces beside Account operations", () => {
+  it("shows registered workflow destinations and their attention badges", () => {
     const workspace: StudioWorkspaceInfo = {
       id: "publishing",
       pluginId: "content-pipeline",
@@ -658,10 +567,11 @@ describe("TypeSwitcher", () => {
       }),
     );
 
-    expect(withWorkspace).toContain("Operations");
+    expect(withWorkspace).toContain("Work");
+    expect(withWorkspace).toContain("Workspaces");
     expect(withWorkspace).toContain("Publishing");
     expect(withWorkspace).toContain(">2<");
-    expect(withoutWorkspace).not.toContain("Operations");
+    expect(withoutWorkspace).not.toContain("Workspaces");
     expect(withoutWorkspace).not.toContain("Account");
     expect(withoutWorkspace).not.toContain("Publishing");
   });
@@ -704,17 +614,19 @@ describe("TypeSwitcher", () => {
     const html = renderToStaticMarkup(
       createElement(TypeSwitcher, {
         types: [...types, ...machinery],
-        active: "post",
+        active: "prompt",
         onSelect: () => {},
       }),
     );
 
     expect(html).toContain("System");
-    // System renders last, after the authored-content groups.
-    expect(html.indexOf("System")).toBeGreaterThan(html.indexOf("Site Info"));
-    expect(html.indexOf("Prompts")).toBeGreaterThan(html.indexOf("System"));
-    expect(html.indexOf("Agents")).toBeGreaterThan(html.indexOf("System"));
-    expect(html.indexOf("Style Guide")).toBeGreaterThan(html.indexOf("System"));
+    expect(html).toContain('aria-label="System destinations"');
+    expect(html).not.toContain("03 / machinery");
+    for (const label of ["Site Info", "Prompts", "Agents", "Style Guide"]) {
+      expect(html.lastIndexOf(label)).toBeGreaterThan(
+        html.indexOf('aria-label="System destinations"'),
+      );
+    }
   });
 });
 
@@ -835,31 +747,26 @@ describe("capability-aware Studio controls", () => {
     expect(edit).toContain('data-studio-page-head="true"');
     expect(edit).toContain("Post one");
     expect(browse).toContain('disabled="">New post</button>');
-    expect(edit).toContain('class="capability-fields" disabled=""');
+    expect(edit).toMatch(/<fieldset[^>]*disabled=""/);
     expect(edit).toMatch(
       /<button[^>]*(?:studio-editor-head-save[^>]*disabled|disabled[^>]*studio-editor-head-save)/,
     );
-    expect(edit).toMatch(
-      /<button[^>]*(?:studio-editor-phone-save[^>]*disabled|disabled[^>]*studio-editor-phone-save)/,
-    );
+    expect(edit).not.toContain("studio-editor-phone-save");
     expect(edit).not.toContain(">Delete<");
     expect(edit).not.toContain("AI selection rewrite");
     expect(edit).not.toContain("Add to queue");
   });
 
-  it("places editor save in the desktop head and the existing phone pipeline", () => {
+  it("keeps B's single Save action in the document head at every width", () => {
     const edit = renderCapabilityView(allowedCapabilities, "edit");
-    const head = edit.slice(
-      edit.indexOf('class="studio-page-head"'),
-      edit.indexOf('class="studio-mobile-modes"'),
-    );
-
-    expect(head).toContain("studio-editor-head-save");
-    expect(head).toContain("Save changes");
-    expect(edit).toContain("studio-editor-phone-save");
-    expect(responsiveStyles).toMatch(
+    expect(edit).toContain("studio-editor-head-save");
+    expect(edit).toContain("Save changes");
+    expect(edit).not.toContain("studio-editor-phone-save");
+    expect(compiledStyles).not.toMatch(
       /\.studio-editor-head-save \{[^}]*display: none/,
     );
+    expect(edit).toContain('aria-label="Editor view"');
+    expect(edit).not.toContain('class="studio-mobile-mode"');
   });
 
   it("renders controls granted by the active type capabilities", () => {
@@ -984,21 +891,21 @@ describe("BodyEditor", () => {
     expect(html).toContain('data-editor="codemirror6"');
     expect(html).toContain('aria-label="Markdown source"');
     expect(html).not.toContain("<textarea");
-    expect(html).not.toContain("body-preview");
+    expect(html).not.toContain("data-studio-preview");
   });
 
   it("renders the markdown preview in preview mode", () => {
     const html = renderBody("preview");
     expect(html).not.toContain("<textarea");
-    expect(html).toContain("body-preview");
+    expect(html).toContain("data-studio-preview");
     expect(html).toContain("<h1");
-    expect(html).toContain("<em>prose</em>");
+    expect(html).toMatch(/<em[^>]*>prose<\/em>/);
   });
 
   it("renders both panes in split mode", () => {
     const html = renderBody("split");
     expect(html).toContain('data-editor="codemirror6"');
-    expect(html).toContain("body-preview");
+    expect(html).toContain("data-studio-preview");
   });
 
   it("keeps body content byte-identical in the CM6 state", () => {
@@ -1334,8 +1241,8 @@ describe("PipelineStations", () => {
     expect(html).toContain("entity db");
     expect(html).toContain("exported to file");
     expect(html).toContain("committed");
-    expect(html.match(/station done/g)).toHaveLength(2);
-    expect(html.match(/station active/g)).toHaveLength(1);
+    expect(html.match(/data-studio-station="done"/g)).toHaveLength(2);
+    expect(html.match(/data-studio-station="active"/g)).toHaveLength(1);
   });
 
   it("animates the track between a done and an active station", () => {
@@ -1350,7 +1257,7 @@ describe("PipelineStations", () => {
         gitConfigured: true,
       }),
     );
-    expect(html.match(/track flowing/g)).toHaveLength(1);
+    expect(html.match(/data-studio-flowing=""/g)).toHaveLength(1);
   });
 
   it("shows the last write ref", () => {

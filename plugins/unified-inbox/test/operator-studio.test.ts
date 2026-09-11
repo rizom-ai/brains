@@ -26,6 +26,36 @@ const admin: StudioWorkspaceActor = {
   isAnchor: true,
 };
 
+it("does not mistake an unavailable source for an all-clear", async () => {
+  const { workspace } = await setup({ sourceUnavailable: true });
+  const result = JSON.stringify(await workspace.dataProvider(admin, {}));
+  expect(result).toContain("This inbox source is temporarily unavailable.");
+  expect(result).toContain("Unavailable sources are not an all-clear.");
+  expect(result).not.toContain("Nothing needs attention for these filters.");
+});
+
+it("gives an empty collection actionable guidance without a redundant pager", async () => {
+  const { workspace } = await setup({ empty: true });
+  const result = JSON.stringify(await workspace.dataProvider(admin, {}));
+  expect(result).toContain('"id":"inbox-empty"');
+  expect(result).toContain(
+    "Change Source or Urgency to inspect other incoming work.",
+  );
+  expect(result).not.toContain('"id":"inbox-pagination"');
+});
+it("keeps selected source content when filtering leaves no matching rows", async () => {
+  const { workspace } = await setup();
+  const result = JSON.stringify(
+    await workspace.dataProvider(admin, {
+      urgency: "normal",
+      selected: "mail-items:mail-1",
+    }),
+  );
+  expect(result).toContain('"id":"inbox-detail"');
+  expect(result).toContain("Original request");
+  expect(result).not.toContain('"id":"inbox-empty"');
+});
+
 const preparedConfirmationSchema = z.object({
   kind: z.literal("prepared-confirmation"),
   token: z.string().uuid(),
@@ -46,6 +76,8 @@ const item: InboxItem = {
 
 async function setup(options?: {
   failAction?: boolean;
+  sourceUnavailable?: boolean;
+  empty?: boolean;
   adminHref?: string | false;
 }): Promise<{
   workspace: StudioWorkspaceRegistration;
@@ -86,7 +118,11 @@ async function setup(options?: {
   registry.registerSource("mail-plugin", {
     sourceId: "mail-items",
     displayName: "Email Triage",
-    list: async () => (open ? [item] : []),
+    list: async () => {
+      if (options?.sourceUnavailable)
+        throw new Error("private mailbox failure");
+      return open && !options?.empty ? [item] : [];
+    },
     resolveDetail: async (_itemId, actor) => {
       detailActors.push(actor);
       return {
@@ -180,9 +216,44 @@ describe("unified inbox Studio registration", () => {
       offset: "0",
       limit: "1",
     });
-    expect(workspace).toMatchObject({ view: { title: "Inbox" } });
+    expect(workspace).toMatchObject({
+      view: {
+        title: "Inbox",
+        blocks: [
+          {
+            type: "stats",
+            items: [
+              { label: "Open", value: 1 },
+              { label: "High priority", value: 1 },
+              { label: "Matching", value: 1 },
+              { label: "Sources online", value: "1 of 1" },
+            ],
+          },
+          { type: "query", id: "inbox-query" },
+          {
+            type: "detail",
+            master: {
+              type: "list",
+              items: [
+                {
+                  metadata: ["Email Triage", item.receivedAt, "high priority"],
+                },
+              ],
+            },
+          },
+          {
+            type: "query",
+            id: "inbox-pagination",
+            controls: [],
+            pagination: { offset: 0, limit: 1, total: 1 },
+          },
+        ],
+      },
+    });
+    expect(workspace).not.toHaveProperty("view.status");
     const serialized = JSON.stringify(workspace);
     expect(serialized).toContain('"type":"query"');
+    expect(serialized).toContain('"presentation":"editorial"');
     expect(serialized).toContain('"title":"Time-sensitive request"');
     expect(serialized).toContain('"entityType":"person"');
     expect(serialized).toContain('"capabilityId":"archive"');

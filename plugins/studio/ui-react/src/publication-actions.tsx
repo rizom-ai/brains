@@ -1,4 +1,7 @@
 import { useCallback, useState, type ReactElement } from "react";
+import * as stylex from "@stylexjs/stylex";
+import { publicationStyles as s } from "./studio-publication.styles";
+import { StudioStatus } from "./studio-status";
 import type {
   PublishingAction,
   PublishingActionResult,
@@ -34,13 +37,12 @@ export function PublishConfirmationDialog(props: {
       cancelLabel="Review again"
       confirmLabel={props.confirming ? "Publishing…" : "Confirm publication"}
       pending={props.confirming}
-      sectionClassName="publication-modal"
       confirmVariant="primary"
       onCancel={props.onCancel}
       onConfirm={props.onConfirm}
     >
       <p>{props.preview}</p>
-      <p className="publication-confirm-warning">
+      <p {...stylex.props(s.confirmation)}>
         This sends the current saved version to an external public provider.
       </p>
     </ConfirmDialog>
@@ -107,27 +109,35 @@ export function PublicationActions(props: {
         : "Add to queue";
 
   return (
-    <section className="publication-actions" aria-label="Publication actions">
-      <header>
+    <section {...stylex.props(s.root)} aria-label="Publication actions">
+      <header {...stylex.props(s.head)}>
         <span>Publication</span>
-        <b className={`publication-state publication-state--${props.status}`}>
+        <b
+          {...stylex.props(
+            s.state,
+            props.status === "queued" && s.warning,
+            props.status === "failed" && s.error,
+            props.status === "published" && s.good,
+          )}
+        >
           {props.status}
         </b>
       </header>
-      <p>
+      <p {...stylex.props(s.copy)}>
         Operates on the saved entity. Publication state is separate from the
         save pipeline below.
       </p>
       {props.unsaved && (
-        <p className="publication-action-note">
+        <p {...stylex.props(s.copy, s.warning)}>
           Save changes before changing publication state.
         </p>
       )}
       {props.status !== "published" && (
-        <div className="publication-action-buttons">
+        <div {...stylex.props(s.actions)}>
           <Button
             type="button"
             variant="ghost"
+            xstyle={s.button}
             disabled={disabled}
             onClick={() => void execute(lifecycleAction, "lifecycle")}
           >
@@ -135,7 +145,7 @@ export function PublicationActions(props: {
           </Button>
           <Button
             type="button"
-            className="publication-publish-now"
+            xstyle={[s.button, s.publish]}
             disabled={disabled}
             onClick={() =>
               void execute({ type: "publish", ...target }, "publish")
@@ -146,9 +156,9 @@ export function PublicationActions(props: {
         </div>
       )}
       {props.status === "published" && (
-        <p className="publication-action-complete">Published externally.</p>
+        <p {...stylex.props(s.copy, s.complete)}>Published externally.</p>
       )}
-      {error && <p className="status status-error">{error}</p>}
+      {error && <StudioStatus tone="error">{error}</StudioStatus>}
       {confirmation && (
         <PublishConfirmationDialog
           title={props.title}

@@ -22,6 +22,10 @@ const actionLabels: Readonly<Record<string, string>> = {
   "auth.external_peer.invited": "Invited a person from an external peer",
   "auth.external_peer.linked": "Linked an external peer",
   "auth.external_peer.unlinked": "Unlinked an external peer",
+  "auth.invitation.created": "Person invited",
+  "auth.invitation.cancelled": "Invitation cancelled",
+  "auth.invitation.manual_delivery_confirmed": "Manual delivery confirmed",
+  "auth.invitation.resent": "Invitation resent",
   "auth.identity.attached": "Connected an identity",
   "auth.identity.detached": "Disconnected an identity",
   "auth.identity.delivery_bound": "Bound a verified delivery channel",
@@ -35,7 +39,7 @@ const actionLabels: Readonly<Record<string, string>> = {
   "auth.user.created": "Created an account",
   "auth.user.deleted": "Deleted a suspended account",
   "auth.user.grants_revoked": "Revoked account grants",
-  "auth.user.role_updated": "Changed an account role",
+  "auth.user.role_updated": "Role changed",
   "auth.user.status_updated": "Changed account status",
 };
 
@@ -66,6 +70,7 @@ const auditEventSchema = z.strictObject({
   action: z.string().min(1),
   targetType: z.string().min(1).optional(),
   targetId: z.string().min(1).optional(),
+  targetUserId: z.string().min(1).optional(),
   createdAt: z.number().int().nonnegative(),
 });
 
@@ -93,7 +98,11 @@ type AuditEvent = z.output<typeof auditEventSchema>;
 type AuditViewBlock = OperatorViewBlock<never>;
 
 function eventRecord(event: AuthAuditEvent): AuditEvent {
+  const targetUserId = event.metadata?.["userId"];
   return {
+    ...(typeof targetUserId === "string" && targetUserId
+      ? { targetUserId }
+      : {}),
     id: event.id,
     ...(event.actorUserId ? { actorUserId: event.actorUserId } : {}),
     action: event.action,
@@ -115,7 +124,12 @@ function targetName(
   namesById: ReadonlyMap<string, string>,
 ): string {
   if (event.targetId) {
-    return namesById.get(event.targetId) ?? event.targetType ?? event.targetId;
+    return (
+      namesById.get(event.targetId) ??
+      (event.targetUserId ? namesById.get(event.targetUserId) : undefined) ??
+      event.targetType ??
+      event.targetId
+    );
   }
   return event.targetType ?? "Access";
 }
@@ -153,13 +167,18 @@ const studioAuditWorkspace = defineStudioWorkspace({
           options: data.actions,
         },
       ],
-      pagination: {
-        offset: data.query.offset,
-        limit: data.query.limit,
-        total: data.total,
-      },
+      ...(data.total > data.query.limit || data.query.offset > 0
+        ? {
+            pagination: {
+              offset: data.query.offset,
+              limit: data.query.limit,
+              total: data.total,
+            },
+          }
+        : {}),
     };
     const blocks: AuditViewBlock[] = [
+      { type: "query", id: "audit-filters", ...collectionQuery },
       {
         type: "detail",
         id: "audit-detail",
@@ -189,6 +208,13 @@ const studioAuditWorkspace = defineStudioWorkspace({
                         value: formatWorkspaceDate(selected.createdAt),
                       },
                       { label: "Event ID", value: selected.id },
+                      { label: "Action ID", value: selected.action },
+                      ...(selected.targetId
+                        ? [{ label: "Target ID", value: selected.targetId }]
+                        : []),
+                      ...(selected.actorUserId
+                        ? [{ label: "Actor ID", value: selected.actorUserId }]
+                        : []),
                     ],
                   },
                 ],
@@ -196,33 +222,18 @@ const studioAuditWorkspace = defineStudioWorkspace({
             }
           : {}),
         master: {
-          type: "table",
+          type: "list",
           id: "audit-events",
+          presentation: "standard",
           empty: "No audit events match these filters.",
-          query: collectionQuery,
-          columns: [
-            { key: "when", label: "When" },
-            { key: "actor", label: "Actor" },
-            { key: "action", label: "Action" },
-            { key: "target", label: "Target" },
-          ],
-          rows: data.events.map((event) => ({
+          items: data.events.map((event) => ({
             id: event.id,
-            cells: {
-              when: formatWorkspaceDate(event.createdAt),
-              actor: actorName(event.actorUserId, namesById),
-              action: actionLabel(event.action),
-              target: targetName(event, namesById),
-            },
-            compact: {
-              title: actionLabel(event.action),
-              metadata: [
-                actorName(event.actorUserId, namesById),
-                targetName(event, namesById),
-              ],
-              badges: [{ label: formatWorkspaceDate(event.createdAt) }],
-            },
-            link: { detail: { itemId: event.id } },
+            title: actionLabel(event.action),
+            description: `${actorName(event.actorUserId, namesById)} → ${targetName(event, namesById)}`,
+            metadata: [new Date(event.createdAt).toISOString()],
+            links: [
+              { label: "Details", target: { detail: { itemId: event.id } } },
+            ],
           })),
         },
       },

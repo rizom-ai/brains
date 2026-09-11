@@ -97,29 +97,40 @@ describe("Administration People tab", () => {
     expect(initial).toMatchObject({
       view: {
         title: "Administration",
-        blocks: [
-          { type: "stats", id: "people-summary" },
-          { type: "tabs", defaultTab: "people" },
-        ],
+        blocks: [{ type: "tabs", defaultTab: "people" }],
       },
     });
     expect(findById(initial, "people-roster")).toMatchObject({
-      rows: [
+      type: "list",
+      presentation: "standard",
+      items: [
         {
           id: admin.userId,
-          compact: {
-            title: "Ada Admin",
-            metadata: ["Admin", "This brain", "0 passkeys · 0 channels"],
-            badges: [{ label: "Active", tone: "good" }],
-          },
+          title: "Ada Admin",
+          description: "Admin · Active · You",
+          metadata: ["Not the Anchor"],
+          link: { kind: "detail", itemId: admin.userId },
+          links: [
+            {
+              label: "Account →",
+              target: {
+                kind: "launch",
+                launch: { target: "account-settings" },
+              },
+            },
+          ],
         },
         {
           id: member.userId,
-          compact: {
-            title: "Tess Trusted",
-            metadata: ["Trusted", "This brain", "0 passkeys · 1 channel"],
-            badges: [{ label: "Active", tone: "good" }],
-          },
+          title: "Tess Trusted",
+          description: "Trusted · Active",
+          metadata: ["One connected channel"],
+          links: [
+            {
+              label: "Manage person",
+              target: { kind: "detail", itemId: member.userId },
+            },
+          ],
         },
       ],
     });
@@ -137,7 +148,10 @@ describe("Administration People tab", () => {
     });
     expect(initial).not.toHaveProperty("view.primaryAction");
     expect(JSON.stringify(initial)).toContain("Tess Trusted");
-    expect(JSON.stringify(initial)).toContain("Brain Anchor");
+    expect(findById(initial, "brain-anchor")).toMatchObject({
+      presentation: "disclosure",
+      label: "Access reference",
+    });
     expect(JSON.stringify(initial)).toContain("Tess private address");
     expect(findAction(initial, "Revoke all sessions")).toBeDefined();
     const self = await workspace.dataProvider(actor, {

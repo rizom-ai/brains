@@ -1,0 +1,17 @@
+/* Document sizing is a host concern. React-owned presentation is StyleX. */
+@media (max-width: 640px) {
+  html:has(
+    body[data-console-host="studio"] [data-studio-shell][data-view="editor"]
+  ),
+  body[data-console-host="studio"]:has(
+      [data-studio-shell][data-view="editor"]
+    ) {
+    overflow: hidden;
+  }
+  body[data-console-host="studio"]:not(
+      :has([data-studio-shell][data-view="editor"])
+    ) {
+    height: auto;
+    min-height: 100%;
+  }
+}

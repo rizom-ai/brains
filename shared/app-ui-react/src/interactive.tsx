@@ -7,7 +7,13 @@ import {
   Select as SelectPrimitive,
   Tabs as TabsPrimitive,
 } from "radix-ui";
-import type { ComponentProps, ReactElement, ReactNode } from "react";
+import {
+  Fragment,
+  useSyncExternalStore,
+  type ComponentProps,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import { Button } from "./controls";
 
 function classes(...values: Array<string | undefined>): string | undefined {
@@ -33,6 +39,7 @@ const styles = stylex.create({
     boxShadow:
       "0 32px 80px -28px color-mix(in srgb, var(--console-bg-deep) 72%, transparent)",
     color: "var(--console-text)",
+    overflowWrap: "anywhere",
     display: "grid",
     gap: "16px",
     left: "50%",
@@ -75,7 +82,12 @@ const styles = stylex.create({
     lineHeight: 1.55,
     margin: 0,
   },
-  dialogHeader: { display: "grid", gap: "7px", paddingInlineEnd: "32px" },
+  dialogHeader: {
+    display: "grid",
+    gap: "7px",
+    paddingInlineEnd: "32px",
+    "@media (max-width: 640px)": { paddingInlineEnd: "44px" },
+  },
   dialogFooter: {
     display: "flex",
     gap: "10px",
@@ -105,6 +117,7 @@ const styles = stylex.create({
     right: "14px",
     top: "14px",
     width: "32px",
+    "@media (max-width: 640px)": { width: "44px", height: "44px" },
     ":hover": {
       backgroundColor: "var(--console-rule)",
       color: "var(--console-text)",
@@ -429,12 +442,32 @@ export interface ConfirmDialogProps {
   pending?: boolean | undefined;
   sectionClassName?: string | undefined;
   confirmVariant?: "primary" | "danger" | undefined;
+  confirmClassName?: string | undefined;
+  /** The caller owns outside-dismiss policy; pending confirmations cannot dismiss. */
+  dismissOnOutside?: boolean | undefined;
   onCancel: () => void;
   onConfirm: () => void;
 }
 
+function subscribeToClient(): () => void {
+  return (): void => {};
+}
+function clientSnapshot(): boolean {
+  return true;
+}
+function serverSnapshot(): boolean {
+  return false;
+}
+
 export function ConfirmDialog(props: ConfirmDialogProps): ReactElement {
   const pending = props.pending === true;
+  // Keep useful SSR markup, then move the live modal outside containing blocks.
+  const client = useSyncExternalStore(
+    subscribeToClient,
+    clientSnapshot,
+    serverSnapshot,
+  );
+  const Surface = client ? AlertDialogPrimitive.Portal : Fragment;
   return (
     <AlertDialogPrimitive.Root
       open
@@ -442,45 +475,51 @@ export function ConfirmDialog(props: ConfirmDialogProps): ReactElement {
         if (!open && !pending) props.onCancel();
       }}
     >
-      <AlertDialogPrimitive.Overlay
-        className={stylex.props(styles.overlay).className}
-      />
-      <AlertDialogPrimitive.Content
-        className={classes(
-          stylex.props(styles.dialog).className,
-          "delete-modal",
-          props.sectionClassName,
-        )}
-        aria-labelledby={props.titleId}
-      >
-        <span className={stylex.props(styles.mark).className} aria-hidden>
-          {props.mark}
-        </span>
-        <AlertDialogPrimitive.Title
-          id={props.titleId}
-          className={stylex.props(styles.dialogTitle).className}
+      <Surface {...(client ? { container: document.body } : {})}>
+        <AlertDialogPrimitive.Overlay
+          className={stylex.props(styles.overlay).className}
+          onPointerDown={
+            props.dismissOnOutside && !pending ? props.onCancel : undefined
+          }
+        />
+        <AlertDialogPrimitive.Content
+          className={classes(
+            stylex.props(styles.dialog).className,
+            "delete-modal",
+            props.sectionClassName,
+          )}
+          aria-labelledby={props.titleId}
         >
-          {props.title}
-        </AlertDialogPrimitive.Title>
-        <AlertDialogPrimitive.Description asChild>
-          <div>{props.children}</div>
-        </AlertDialogPrimitive.Description>
-        <div className={stylex.props(styles.dialogFooter).className}>
-          <AlertDialogPrimitive.Cancel asChild>
-            <Button type="button" variant="outline" disabled={pending}>
-              {props.cancelLabel}
-            </Button>
-          </AlertDialogPrimitive.Cancel>
-          <Button
-            type="button"
-            variant={props.confirmVariant ?? "primary"}
-            disabled={pending}
-            onClick={props.onConfirm}
+          <span className={stylex.props(styles.mark).className} aria-hidden>
+            {props.mark}
+          </span>
+          <AlertDialogPrimitive.Title
+            id={props.titleId}
+            className={stylex.props(styles.dialogTitle).className}
           >
-            {props.confirmLabel}
-          </Button>
-        </div>
-      </AlertDialogPrimitive.Content>
+            {props.title}
+          </AlertDialogPrimitive.Title>
+          <AlertDialogPrimitive.Description asChild>
+            <div>{props.children}</div>
+          </AlertDialogPrimitive.Description>
+          <div className={stylex.props(styles.dialogFooter).className}>
+            <AlertDialogPrimitive.Cancel asChild>
+              <Button type="button" variant="outline" disabled={pending}>
+                {props.cancelLabel}
+              </Button>
+            </AlertDialogPrimitive.Cancel>
+            <Button
+              type="button"
+              variant={props.confirmVariant ?? "primary"}
+              className={props.confirmClassName}
+              disabled={pending}
+              onClick={props.onConfirm}
+            >
+              {props.confirmLabel}
+            </Button>
+          </div>
+        </AlertDialogPrimitive.Content>
+      </Surface>
     </AlertDialogPrimitive.Root>
   );
 }
@@ -488,6 +527,7 @@ export function ConfirmDialog(props: ConfirmDialogProps): ReactElement {
 export function DisclosureSheet(props: {
   title: string;
   triggerLabel: ReactNode;
+  triggerVariant?: "outline" | "link";
   children: ReactNode;
   className?: string | undefined;
 }): ReactElement {
@@ -496,11 +536,9 @@ export function DisclosureSheet(props: {
       <DialogTrigger asChild>
         <Button
           type="button"
-          variant="outline"
-          className={classes(
-            stylex.props(styles.disclosureTrigger).className,
-            props.className,
-          )}
+          variant={props.triggerVariant ?? "outline"}
+          xstyle={styles.disclosureTrigger}
+          className={props.className}
         >
           {props.triggerLabel}
         </Button>

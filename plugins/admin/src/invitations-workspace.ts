@@ -7,7 +7,6 @@ import {
   type OperatorView,
   type OperatorViewBlock,
   type RuntimeStudioOperatorBlock,
-  type RuntimeStudioOperatorColumnsBlock,
   type RuntimeStudioOperatorPanelBlock,
   type RuntimeStudioOperatorRegionBlock,
   type ServicePluginContext,
@@ -29,23 +28,9 @@ function titleCase(value: string): string {
   return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
 }
 
-function invitationTone(state: string): "good" | "warn" | "neutral" | "error" {
-  switch (state) {
-    case "claimed":
-    case "sent":
-      return "good";
-    case "failed":
-      return "error";
-    case "expired":
-    case "cancelled":
-      return "warn";
-    default:
-      return "neutral";
-  }
-}
-
 const invitationQuerySchema = z.strictObject({
   state: z.enum(["pending", "history"]).optional().default("pending"),
+  selected: z.string().trim().min(1).max(200).optional(),
   offset: z
     .preprocess(queryInteger, z.number().int().min(0))
     .optional()
@@ -146,6 +131,7 @@ const invitationsDataSchema = z.strictObject({
   idempotencyKey: z.string(),
   channels: z.array(invitationChannelSchema),
   invitations: z.array(invitationRowSchema),
+  selectedInvitation: invitationRowSchema.optional(),
   selectedTotal: z.number().int().nonnegative(),
   pendingCount: z.number().int().nonnegative(),
   historyCount: z.number().int().nonnegative(),
@@ -160,10 +146,6 @@ type InvitationAction =
 type InvitationBlock = OperatorViewBlock<InvitationAction>;
 type InvitationPrimaryAction = NonNullable<
   OperatorView<typeof createInvitation>["primaryAction"]
->;
-type InvitationTotalsBlock = Extract<
-  RuntimeStudioOperatorPanelBlock,
-  { type: "stats" }
 >;
 
 function requiredInvitationBlock(
@@ -200,8 +182,10 @@ export function composeInvitationTabSections(
   blocks: readonly RuntimeStudioOperatorBlock[],
   peerAside: readonly RuntimeStudioOperatorRegionBlock[],
 ): {
-  readonly totals: InvitationTotalsBlock;
-  readonly blocks: readonly RuntimeStudioOperatorColumnsBlock[];
+  readonly blocks: readonly Exclude<
+    RuntimeStudioOperatorBlock,
+    { type: "tabs" }
+  >[];
 } {
   const totals = requiredInvitationBlock(blocks, "invitation-totals");
   if (totals.type !== "stats") {
@@ -214,14 +198,24 @@ export function composeInvitationTabSections(
   )
     ? [requiredInvitationRegion(blocks, "create-invitation-unavailable")]
     : [];
+  const collection = requiredInvitationBlock(blocks, "invitations");
+  if (collection.type !== "detail")
+    throw new Error("Invitations composition requires a detail collection");
+  const delivery = requiredInvitationRegion(blocks, "invitation-delivery");
+  if (delivery.type !== "card")
+    throw new Error("Invitations composition requires delivery capabilities");
+  const peerPanels = peerAside.flatMap<RuntimeStudioOperatorPanelBlock>(
+    (block) => (block.type === "card" ? [...block.blocks] : [block]),
+  );
   return {
-    totals,
     blocks: [
+      ...unavailable,
+      requiredInvitationRegion(blocks, "invitation-filters"),
+      collection,
       {
-        type: "columns",
-        id: "invitation-layout",
-        primary: [requiredInvitationRegion(blocks, "invitations")],
-        aside: [...unavailable, ...peerAside],
+        ...delivery,
+        presentation: "disclosure",
+        blocks: [...delivery.blocks, totals, ...peerPanels],
       },
     ],
   };
@@ -239,6 +233,53 @@ const setupResultPresentation = {
     expiresAt: { label: "Expires" },
   },
 };
+
+function invitationActions(
+  invitation: z.output<typeof invitationRowSchema>,
+): Extract<InvitationBlock, { type: "actions" }>["items"] {
+  if (CLOSED_INVITATION_STATES.has(invitation.state)) return [];
+  return [
+    ...(invitation.deliveryAttemptId
+      ? [
+          {
+            action: confirmManualDelivery,
+            input: {
+              invitationId: invitation.id,
+              deliveryAttemptId: invitation.deliveryAttemptId,
+            },
+          },
+        ]
+      : []),
+    ...(invitation.state !== "sending"
+      ? [
+          {
+            action: resendInvitation,
+            input: { invitationId: invitation.id },
+            capability: {
+              id:
+                invitation.state === "failed"
+                  ? "retry-invitation"
+                  : "resend-invitation",
+              label: invitation.state === "failed" ? "Retry" : "Resend",
+            },
+            result: setupResultPresentation,
+          },
+        ]
+      : []),
+    ...(invitation.state !== "expired"
+      ? [{ action: cancelInvitation, input: { invitationId: invitation.id } }]
+      : []),
+  ];
+}
+
+function invitationStateLabel(
+  invitation: z.output<typeof invitationRowSchema>,
+): string {
+  if (invitation.state === "pending" && invitation.deliveryAttemptId)
+    return "Manual delivery pending";
+  if (invitation.state === "failed") return "Delivery failed";
+  return titleCase(invitation.state);
+}
 
 const studioInvitationsWorkspace = defineStudioWorkspace({
   id: "invitations",
@@ -334,112 +375,122 @@ const studioInvitationsWorkspace = defineStudioWorkspace({
         text: "No invitation delivery channel is currently available.",
       });
     }
-    blocks.push({
-      type: "table",
-      id: "invitations",
-      empty:
-        data.query.state === "pending"
-          ? "No pending invitations."
-          : "No invitation history yet.",
-      query: {
+    const selected = data.selectedInvitation;
+    blocks.push(
+      {
+        type: "query",
+        id: "invitation-filters",
         controls: [
           {
             key: "state",
             label: "View",
             value: data.query.state,
             options: [
-              {
-                value: "pending",
-                label: "Pending",
-                count: data.pendingCount,
-              },
-              {
-                value: "history",
-                label: "History",
-                count: data.historyCount,
-              },
+              { value: "pending", label: "Pending", count: data.pendingCount },
+              { value: "history", label: "History", count: data.historyCount },
             ],
           },
         ],
-        pagination: {
-          offset: data.query.offset,
-          limit: data.query.limit,
-          total: data.selectedTotal,
-        },
+        ...(data.selectedTotal > data.query.limit || data.query.offset > 0
+          ? {
+              pagination: {
+                offset: data.query.offset,
+                limit: data.query.limit,
+                total: data.selectedTotal,
+              },
+            }
+          : {}),
       },
-      columns: [
-        { key: "person", label: "Person" },
-        { key: "role", label: "Role" },
-        { key: "state", label: "State" },
-        { key: "destination", label: "Destination" },
-        { key: "updated", label: "Updated" },
-      ],
-      rows: data.invitations.map((invitation) => ({
-        id: invitation.id,
-        cells: {
-          person: invitation.displayName,
-          role: invitation.role,
-          state: invitation.state,
-          destination: invitation.destination,
-          updated: formatWorkspaceDate(invitation.updatedAt),
-        },
-        compact: {
-          title: invitation.displayName,
-          metadata: [
-            titleCase(invitation.role),
-            invitation.destination,
-            formatWorkspaceDate(invitation.updatedAt),
-          ],
-          badges: [
-            {
-              label: titleCase(invitation.state),
-              tone: invitationTone(invitation.state),
-            },
-          ],
-          tone: invitationTone(invitation.state),
-        },
-        actions: CLOSED_INVITATION_STATES.has(invitation.state)
-          ? []
-          : [
-              ...(invitation.deliveryAttemptId
-                ? [
-                    {
-                      action: confirmManualDelivery,
-                      input: {
-                        invitationId: invitation.id,
-                        deliveryAttemptId: invitation.deliveryAttemptId,
-                      },
-                    },
-                  ]
-                : []),
-              ...(invitation.state !== "sending"
-                ? [
-                    {
-                      action: resendInvitation,
-                      input: { invitationId: invitation.id },
-                      capability: {
-                        id:
-                          invitation.state === "failed"
-                            ? "retry-invitation"
-                            : "resend-invitation",
-                        label:
-                          invitation.state === "failed" ? "Retry" : "Resend",
-                      },
-                      result: setupResultPresentation,
-                    },
-                  ]
-                : []),
-              ...(invitation.state !== "expired"
-                ? [
-                    {
-                      action: cancelInvitation,
-                      input: { invitationId: invitation.id },
-                    },
-                  ]
-                : []),
+      {
+        type: "detail",
+        id: "invitations",
+        queryKey: "selected",
+        empty: "Select an invitation to review its delivery.",
+        master: {
+          type: "list",
+          id: "invitation-records",
+          presentation: "standard",
+          empty:
+            data.query.state === "pending"
+              ? "No pending invitations."
+              : "No invitation history yet.",
+          items: data.invitations.map((invitation) => ({
+            id: invitation.id,
+            title: invitation.displayName,
+            description: `${titleCase(invitation.role)} · ${invitationStateLabel(invitation)}`,
+            metadata: [
+              invitation.destination,
+              `Updated ${new Date(invitation.updatedAt).toISOString()}`,
             ],
-      })),
-    });
+            links: [
+              {
+                label: "Review",
+                target: { detail: { itemId: invitation.id } },
+              },
+            ],
+          })),
+        },
+        ...(selected
+          ? {
+              open: {
+                forId: selected.id,
+                title: selected.displayName,
+                blocks: [
+                  {
+                    type: "key-values",
+                    id: "invitation-fields",
+                    items: [
+                      { label: "Role", value: titleCase(selected.role) },
+                      {
+                        label: "Delivery",
+                        value: invitationStateLabel(selected),
+                      },
+                      { label: "Destination", value: selected.destination },
+                      {
+                        label: "Updated",
+                        value: formatWorkspaceDate(selected.updatedAt),
+                      },
+                    ],
+                  },
+                  {
+                    type: "actions",
+                    id: "invitation-actions",
+                    items: invitationActions(selected),
+                  },
+                ],
+              },
+            }
+          : data.query.selected
+            ? {
+                open: {
+                  forId: data.query.selected,
+                  title: "Invitation unavailable",
+                  blocks: [
+                    {
+                      type: "notice",
+                      tone: "neutral",
+                      text: "This invitation is no longer available. Return to the list to choose another.",
+                    },
+                  ],
+                },
+              }
+            : {}),
+      },
+      {
+        type: "card",
+        id: "invitation-delivery",
+        label: "Delivery capabilities",
+        blocks: [
+          {
+            type: "key-values",
+            items: data.channels.map((channel) => ({
+              label: channel.displayName,
+              value: channel.deliveryModes.map(titleCase).join(" · "),
+            })),
+          },
+        ],
+      },
+    );
     return {
       kicker: "Access administration",
       title: "Invitations",
@@ -588,6 +639,38 @@ export function createInvitationsTabSource(
               TERMINAL_INVITATION_STATES.has(user.invitation.state),
           );
           const selected = normalized.state === "pending" ? pending : history;
+          const invitationRows = invitations.flatMap((user) => {
+            const invitation = user.invitation;
+            if (!invitation) return [];
+            const destination =
+              user.identities.find((identity) => identity.type !== "passkey")
+                ?.label ??
+              user.externalPeers[0]?.peerId ??
+              "Not recorded";
+            const deliveryAttemptId = pendingManualDeliveries.get(
+              invitation.id,
+            );
+            return [
+              {
+                id: invitation.id,
+                displayName: user.displayName,
+                role: user.role,
+                state: invitation.state,
+                destination,
+                updatedAt:
+                  invitation.claimedAt ??
+                  invitation.cancelledAt ??
+                  invitation.expiredAt ??
+                  invitation.sentAt ??
+                  invitation.updatedAt,
+                ...(deliveryAttemptId ? { deliveryAttemptId } : {}),
+              },
+            ];
+          });
+          const rowsById = new Map(invitationRows.map((row) => [row.id, row]));
+          const selectedInvitation = normalized.selected
+            ? rowsById.get(normalized.selected)
+            : undefined;
           return {
             query: normalized,
             idempotencyKey: randomUUID(),
@@ -600,34 +683,12 @@ export function createInvitationsTabSource(
             invitations: selected
               .slice(normalized.offset, normalized.offset + normalized.limit)
               .flatMap((user) => {
-                const invitation = user.invitation;
-                if (!invitation) return [];
-                const destination =
-                  user.identities.find(
-                    (identity) => identity.type !== "passkey",
-                  )?.label ??
-                  user.externalPeers[0]?.peerId ??
-                  "Not recorded";
-                const deliveryAttemptId = pendingManualDeliveries.get(
-                  invitation.id,
-                );
-                return [
-                  {
-                    id: invitation.id,
-                    displayName: user.displayName,
-                    role: user.role,
-                    state: invitation.state,
-                    destination,
-                    updatedAt:
-                      invitation.claimedAt ??
-                      invitation.cancelledAt ??
-                      invitation.expiredAt ??
-                      invitation.sentAt ??
-                      invitation.updatedAt,
-                    ...(deliveryAttemptId ? { deliveryAttemptId } : {}),
-                  },
-                ];
+                const row = user.invitation
+                  ? rowsById.get(user.invitation.id)
+                  : undefined;
+                return row ? [row] : [];
               }),
+            ...(selectedInvitation ? { selectedInvitation } : {}),
             selectedTotal: selected.length,
             pendingCount: pending.length,
             historyCount: history.length,

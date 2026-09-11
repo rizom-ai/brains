@@ -1,6 +1,29 @@
 /** @jsxImportSource react */
 import type { JSX } from "react";
+import {
+  OperatorSection,
+  OperatorSectionHeading,
+  OperatorPanel,
+  OperatorMapFrame,
+  OperatorMapCanvas,
+  OperatorMapCoordinates,
+  OperatorMapGraphic,
+  OperatorMapEmpty,
+  OperatorMapSummary,
+  OperatorMapIndex,
+  OperatorMapIndexItem,
+  OperatorMapLegend,
+  OperatorMapLegendItem,
+  OperatorMapLegendNote,
+  OperatorMapGroup,
+  OperatorMapPath,
+  OperatorMapCircle,
+  OperatorMapText,
+  OperatorMapCount,
+} from "@brains/operator-view-react";
 import type { CartesianMapBlock } from "./public-card-data";
+import { mapLegendPresentation } from "./map-legend";
+import { layoutMapLabels } from "./map-label-layout";
 
 const WIDTH = 820;
 const HEIGHT = 480;
@@ -85,11 +108,17 @@ function territoryPath(
   return `${path} Z`;
 }
 
-function pointClass(category: string): string {
-  if (category === "published") return "is-published";
-  if (category === "skill") return "is-skill";
-  if (category === "high-signal") return "is-signal";
-  return "is-source";
+function pointPresentation(category: string): {
+  tone: "neutral" | "good" | "warn";
+  hollow: boolean;
+  radius: number;
+} {
+  if (category === "published")
+    return { tone: "warn", hollow: false, radius: 3.1 };
+  if (category === "skill") return { tone: "good", hollow: false, radius: 2.7 };
+  if (category === "high-signal")
+    return { tone: "neutral", hollow: true, radius: 2.2 };
+  return { tone: "neutral", hollow: false, radius: 1.7 };
 }
 
 function territoryRadius(memberCount: number): number {
@@ -291,39 +320,6 @@ function buildAtlasLayout(block: CartesianMapBlock): AtlasLayout {
   };
 }
 
-function AtlasSummary({
-  entityTotal,
-  sourceCount,
-  territoryCount,
-  current,
-}: {
-  entityTotal: number;
-  sourceCount: number;
-  territoryCount: number;
-  current: boolean;
-}): JSX.Element {
-  return (
-    <div className="knowledge-atlas-summary" aria-label="Knowledge map summary">
-      <div>
-        <strong>{entityTotal}</strong>
-        <span>public entities held</span>
-      </div>
-      <div>
-        <strong>{sourceCount}</strong>
-        <span>mapped sources</span>
-      </div>
-      <div>
-        <strong>{territoryCount}</strong>
-        <span>territories</span>
-      </div>
-      <p className={current ? "is-current" : "is-waiting"}>
-        <i></i>
-        {current ? "Current" : "Waiting"}
-      </p>
-    </div>
-  );
-}
-
 export function KnowledgeMapPanel({
   block,
   entityTotal,
@@ -337,9 +333,22 @@ export function KnowledgeMapPanel({
     sortedZones.slice(0, LABELED_TERRITORIES).map((zone) => zone.id),
   );
   const layout = block ? buildAtlasLayout(block) : undefined;
+  const labels = layoutMapLabels(
+    (layout?.territories ?? [])
+      .filter((territory) => labeledZoneIds.has(territory.zone.id))
+      .map(({ zone, center, radius }) => ({
+        id: zone.id,
+        label: zone.label,
+        count: zone.memberIds.length,
+        x: center.x,
+        y: center.y - radius * 0.72 - 8,
+      })),
+    WIDTH,
+    HEIGHT,
+  );
 
   return (
-    <section
+    <OperatorSection
       id="knowledge"
       className="dashboard-tab-panel card-map-panel"
       data-dashboard-tab-panel
@@ -348,29 +357,36 @@ export function KnowledgeMapPanel({
       role="tabpanel"
       aria-labelledby="dashboard-tab-knowledge"
     >
-      <header className="tab-section-head">
-        <h2>Knowledge</h2>
-      </header>
-      <article className="card map-card">
-        <div className="card-head">
-          <span className="card-title">Knowledge map</span>
-          <span className="card-from">public topics · semantic atlas</span>
-        </div>
-        <AtlasSummary
-          entityTotal={entityTotal}
-          sourceCount={block?.points.length ?? 0}
-          territoryCount={block?.zones.length ?? 0}
-          current={block !== undefined}
+      <OperatorSectionHeading>Knowledge</OperatorSectionHeading>
+      <OperatorPanel
+        className="card map-card"
+        heading="Knowledge map"
+        source="public topics · semantic atlas"
+        inset="tight"
+      >
+        <OperatorMapSummary
+          className="knowledge-atlas-summary"
+          aria-label="Knowledge map summary"
+          metrics={[
+            { label: "public entities held", value: entityTotal },
+            { label: "mapped sources", value: block?.points.length ?? 0 },
+            { label: "territories", value: block?.zones.length ?? 0 },
+          ]}
+          status={block !== undefined ? "Current" : "Waiting"}
+          tone={block !== undefined ? "good" : "warn"}
         />
-        <div className="knowledge-map-field map-field" data-knowledge-atlas>
+        <OperatorMapFrame
+          className="knowledge-map-field map-field"
+          layout="split"
+          joined
+          data-knowledge-atlas
+        >
           {block && layout ? (
             <>
-              <div className="knowledge-map-canvas">
-                <div className="knowledge-map-coordinates" aria-hidden="true">
-                  <span>Context ←</span>
-                  <span>→ Practice</span>
-                </div>
-                <svg
+              <OperatorMapCanvas className="knowledge-map-canvas">
+                <OperatorMapCoordinates start="Context ←" end="→ Practice" />
+                <OperatorMapGraphic
+                  presentation="tall"
                   viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
                   role="img"
                   aria-labelledby="knowledge-map-title knowledge-map-description"
@@ -380,8 +396,10 @@ export function KnowledgeMapPanel({
                     {block.description}
                   </desc>
                   {layout.threads.map((thread, index) => (
-                    <path
-                      className={`knowledge-weave${index < 3 ? " is-major" : ""}`}
+                    <OperatorMapPath
+                      presentation="trace"
+                      emphasis={index < 3 ? "major" : undefined}
+                      className="knowledge-weave"
                       key={thread.id}
                       d={`M ${thread.source.x} ${thread.source.y} Q ${(thread.source.x + thread.target.x) / 2 + thread.bend} ${(thread.source.y + thread.target.y) / 2 - thread.bend}, ${thread.target.x} ${thread.target.y}`}
                       pathLength={1}
@@ -390,131 +408,142 @@ export function KnowledgeMapPanel({
                   {layout.territories.map((territory) => {
                     const { center, radius, rank, zone } = territory;
                     const isLeading = rank === 0;
+                    const label = labels.get(zone.id);
                     return (
-                      <g
-                        className={`knowledge-zone${isLeading ? " is-active" : ""}`}
+                      <OperatorMapGroup
+                        className="knowledge-zone"
+                        data-map-active={isLeading}
                         data-knowledge-zone={zone.id}
                         key={zone.id}
                       >
-                        <path
+                        <OperatorMapPath
+                          presentation="contour"
                           className="knowledge-zone-contour"
                           d={territoryPath(zone.id, center, radius)}
                         />
-                        <path
-                          className="knowledge-zone-contour is-middle"
+                        <OperatorMapPath
+                          presentation="contour"
+                          emphasis="middle"
+                          className="knowledge-zone-contour"
                           d={territoryPath(
                             `${zone.id}:middle`,
                             center,
                             radius * 0.74,
                           )}
                         />
-                        <path
-                          className="knowledge-zone-contour is-inner"
+                        <OperatorMapPath
+                          presentation="contour"
+                          emphasis="inner"
+                          className="knowledge-zone-contour"
                           d={territoryPath(
                             `${zone.id}:inner`,
                             center,
                             radius * 0.46,
                           )}
                         />
-                        <circle
+                        <OperatorMapCircle
+                          presentation="anchor"
                           className="knowledge-zone-anchor"
                           cx={center.x}
                           cy={center.y}
                           r="3"
                         />
-                        {labeledZoneIds.has(zone.id) && (
-                          <>
-                            <text
-                              className="knowledge-zone-label"
-                              x={center.x}
-                              y={center.y - radius * 0.72 - 8}
-                              textAnchor="middle"
+                        {label && (
+                          <OperatorMapText
+                            presentation="region"
+                            className="knowledge-zone-label"
+                            data-knowledge-label={zone.id}
+                            data-label-truncated={label.text !== label.fullText}
+                            aria-label={label.fullText}
+                            x={label.x}
+                            y={label.y}
+                            textAnchor="middle"
+                          >
+                            <title>{label.fullText}</title>
+                            {label.text}
+                            <OperatorMapCount
+                              className="knowledge-zone-count"
+                              dx="6"
                             >
-                              {zone.label}
-                              <tspan className="knowledge-zone-count" dx="6">
-                                {zone.memberIds.length}
-                              </tspan>
-                            </text>
-                          </>
+                              {zone.memberIds.length}
+                            </OperatorMapCount>
+                          </OperatorMapText>
                         )}
-                      </g>
+                      </OperatorMapGroup>
                     );
                   })}
                   {block.points.map((point) => {
                     const center = layout.pointPositions.get(point.id);
                     if (!center) return null;
-                    const kind = pointClass(point.category);
+                    const appearance = pointPresentation(point.category);
                     return (
-                      <g className={`knowledge-point ${kind}`} key={point.id}>
+                      <OperatorMapGroup
+                        bloom
+                        className="knowledge-point"
+                        key={point.id}
+                      >
                         <title>{`${point.label} · ${point.category}`}</title>
-                        <circle
+                        <OperatorMapCircle
+                          presentation="point"
+                          tone={appearance.tone}
+                          hollow={appearance.hollow}
                           className="knowledge-point-mark"
                           cx={center.x}
                           cy={center.y}
-                          r={
-                            kind === "is-published"
-                              ? 3.1
-                              : kind === "is-skill"
-                                ? 2.7
-                                : kind === "is-signal"
-                                  ? 2.2
-                                  : 1.7
-                          }
+                          r={appearance.radius}
                         />
-                      </g>
+                      </OperatorMapGroup>
                     );
                   })}
                   <g className="knowledge-map-axis" aria-hidden="true">
-                    <text x="20" y={HEIGHT - 18}>
+                    <OperatorMapText presentation="axis" x="20" y={HEIGHT - 18}>
                       Emergent
-                    </text>
-                    <text x={WIDTH - 20} y={HEIGHT - 18} textAnchor="end">
+                    </OperatorMapText>
+                    <OperatorMapText
+                      presentation="axis"
+                      x={WIDTH - 20}
+                      y={HEIGHT - 18}
+                      textAnchor="end"
+                    >
                       Explicit
-                    </text>
+                    </OperatorMapText>
                   </g>
-                </svg>
-              </div>
-              <aside className="knowledge-territory-index">
-                <header>
-                  <h3>Territories</h3>
-                  <p>Largest public clusters, by source count.</p>
-                </header>
-                <ol>
-                  {indexedZones.map((zone, index) => (
-                    <li key={zone.id}>
-                      <button
-                        type="button"
-                        className={index === 0 ? "is-active" : undefined}
-                        data-knowledge-zone-ref={zone.id}
-                        aria-pressed={index === 0 ? "true" : "false"}
-                        title={zone.label}
-                      >
-                        <span>{String(index + 1).padStart(2, "0")}</span>
-                        <strong>{zone.label}</strong>
-                        <b>{zone.memberIds.length}</b>
-                      </button>
-                    </li>
-                  ))}
-                </ol>
-                {sortedZones.length > indexedZones.length && (
-                  <p className="knowledge-index-more">
-                    + {sortedZones.length - indexedZones.length} smaller
-                    territories
-                  </p>
-                )}
-                <p className="knowledge-index-note">
-                  Hover or focus a territory to trace its contour. The map stays
-                  quiet until you ask for detail.
-                </p>
-              </aside>
+                </OperatorMapGraphic>
+              </OperatorMapCanvas>
+              <OperatorMapIndex
+                className="knowledge-territory-index"
+                heading="Territories"
+                description="Largest public clusters, by source count."
+                remainder={
+                  sortedZones.length > indexedZones.length
+                    ? `+ ${sortedZones.length - indexedZones.length} smaller territories`
+                    : undefined
+                }
+                note="Hover or focus a territory to trace its contour. The map stays quiet until you ask for detail."
+              >
+                {indexedZones.map((zone, index) => (
+                  <OperatorMapIndexItem
+                    key={zone.id}
+                    data-knowledge-zone-ref={zone.id}
+                    aria-pressed={index === 0 ? "true" : "false"}
+                    title={zone.label}
+                    rank={String(index + 1).padStart(2, "0")}
+                    label={zone.label}
+                    count={zone.memberIds.length}
+                  />
+                ))}
+              </OperatorMapIndex>
             </>
           ) : (
-            <div className="map-empty">
+            <OperatorMapEmpty className="map-empty">
               The public knowledge map will grow as topics are indexed.
-            </div>
+            </OperatorMapEmpty>
           )}
-        </div>
-        <div className="map-legend" aria-label="Knowledge map legend">
+        </OperatorMapFrame>
+        <OperatorMapLegend
+          className="map-legend"
+          aria-label="Knowledge map legend"
+        >
           {(
             block?.legend ?? [
               { label: "Topic zones" },
@@ -523,20 +552,18 @@ export function KnowledgeMapPanel({
               { label: "Sources" },
             ]
           ).map((item) => (
-            <span className="map-legend-item" key={item.label}>
-              <i
-                data-kind={item.label.toLowerCase().replace(/\s+/g, "-")}
-                data-tone={item.tone ?? "neutral"}
-              ></i>
-              {item.label}
-            </span>
+            <OperatorMapLegendItem
+              key={item.label}
+              label={item.label}
+              {...mapLegendPresentation(item)}
+            />
           ))}
-          <span className="map-live">
+          <OperatorMapLegendNote className="map-live">
             {block?.points.length ?? 0} sources · {block?.zones.length ?? 0}{" "}
             territories · public scope
-          </span>
-        </div>
-      </article>
-    </section>
+          </OperatorMapLegendNote>
+        </OperatorMapLegend>
+      </OperatorPanel>
+    </OperatorSection>
   );
 }

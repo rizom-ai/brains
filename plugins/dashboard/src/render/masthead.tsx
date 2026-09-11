@@ -1,33 +1,16 @@
 /** @jsxImportSource react */
+import { OperatorMasthead } from "@brains/operator-view-react";
 import type { JSX } from "react";
-
-function BrandTitle({ title }: { title: string }): JSX.Element {
-  const trimmed = title.trim();
-  const lastSpace = trimmed.lastIndexOf(" ");
-
-  if (lastSpace <= 0) {
-    return <>{trimmed}</>;
-  }
-
-  return (
-    <>
-      {trimmed.slice(0, lastSpace)} <em>{trimmed.slice(lastSpace + 1)}</em>
-    </>
-  );
-}
 
 export function Masthead(props: {
   title: string;
   tagline: string | undefined;
 }): JSX.Element {
-  const { title, tagline } = props;
-
   return (
-    <header className="masthead">
-      <h1 className="brand">
-        <BrandTitle title={title} />
-      </h1>
-      {tagline && <p className="tagline">{tagline}</p>}
-    </header>
+    <OperatorMasthead
+      className="masthead"
+      title={props.title}
+      description={props.tagline}
+    />
   );
 }

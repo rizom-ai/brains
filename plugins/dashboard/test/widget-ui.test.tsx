@@ -49,8 +49,11 @@ describe("widget UI primitives", () => {
       </WidgetActions>,
     );
 
-    expect(html).toContain('class="widget-actions"');
-    expect(html).toContain('class="widget-action widget-action--primary"');
+    expect(html).toMatch(/class="widget-actions\s/);
+    expect(html).toMatch(/class="widget-action\s/);
+    expect(html).not.toContain("widget-action--primary");
+    expect(html).toContain('aria-label="Publishing actions"');
+    expect(html).toContain('data-action-indicator="true" aria-hidden="true"');
     expect(html).toContain('href="/studio"');
     expect(html).toContain('target="_blank"');
     expect(html).toContain('rel="noreferrer"');
@@ -311,7 +314,9 @@ describe("widget UI primitives", () => {
     expect(html).toContain("Automation");
     expect(html).toContain('data-direction="bidirectional"');
     expect(html).toContain('data-status="active"');
-    expect(html).toContain('<progress value="4" max="10">');
+    expect(html).toMatch(
+      /<progress\b[^>]*aria-label="Routes" value="4" max="10">/,
+    );
     expect(html).toContain("Preview build");
     expect(html).toContain('value="0.5"');
   });

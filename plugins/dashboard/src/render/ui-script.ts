@@ -222,8 +222,7 @@ export const DASHBOARD_UI_SCRIPT = `(function () {
         var pointRelated = spatialRelated(point);
         var isSelected = pointId === id;
         var isRelated = related.indexOf(pointId) !== -1 || pointRelated.indexOf(id) !== -1;
-        point.classList.toggle("is-selected", isSelected);
-        point.classList.toggle("is-related", isRelated);
+        point.toggleAttribute("data-ui-spatial-related-active", isRelated);
         point.setAttribute("aria-pressed", isSelected ? "true" : "false");
       });
       details.forEach(function (detail) {
@@ -237,7 +236,7 @@ export const DASHBOARD_UI_SCRIPT = `(function () {
     function clear() {
       root.removeAttribute("data-ui-spatial-active");
       points.forEach(function (point) {
-        point.classList.remove("is-selected", "is-related");
+        point.removeAttribute("data-ui-spatial-related-active");
         point.setAttribute("aria-pressed", "false");
       });
       details.forEach(function (detail) {
@@ -281,13 +280,12 @@ export const DASHBOARD_UI_SCRIPT = `(function () {
     function activate(id) {
       controls.forEach(function (control) {
         var active = control.getAttribute("data-knowledge-zone-ref") === id;
-        control.classList.toggle("is-active", active);
         control.setAttribute("aria-pressed", active ? "true" : "false");
       });
       zones.forEach(function (zone) {
-        zone.classList.toggle(
-          "is-active",
-          zone.getAttribute("data-knowledge-zone") === id,
+        zone.setAttribute(
+          "data-map-active",
+          zone.getAttribute("data-knowledge-zone") === id ? "true" : "false",
         );
       });
     }

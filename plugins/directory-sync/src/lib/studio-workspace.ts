@@ -121,6 +121,16 @@ const syncNowAction = defineWorkspaceAction({
   }),
 });
 
+const workingTreeStatusLabels: ReadonlyMap<string, string> = new Map([
+  ["M", "Modified"],
+  ["A", "Added"],
+  ["D", "Deleted"],
+  ["R", "Renamed"],
+  ["C", "Copied"],
+  ["U", "Unmerged"],
+  ["??", "Untracked"],
+]);
+
 function activeProgress(
   run: ActiveDirectorySyncRun,
 ): Extract<OperatorViewBlock, { type: "progress" }> {
@@ -147,113 +157,64 @@ const directorySyncWorkspace = defineStudioWorkspace({
   view: ({ data }) => {
     type SyncViewBlock = OperatorViewBlock<typeof syncNowAction>;
     type SyncRegionBlock = OperatorRegionBlock<typeof syncNowAction>;
-    type SyncFlowStep = Extract<
-      SyncViewBlock,
-      { type: "flow" }
-    >["steps"][number];
-    const gitFlowSteps: SyncFlowStep[] = [];
-    if (data.git) {
-      gitFlowSteps.push({
-        id: "git",
-        label: data.git.remoteLabel ?? data.git.branch,
-        status: data.issues.some((issue) => issue.kind === "git")
-          ? "failed"
-          : data.git.hasChanges || data.git.ahead > 0 || data.git.behind > 0
-            ? "active"
-            : "complete",
-        detail: `${data.git.ahead} ahead · ${data.git.behind} behind`,
-      });
+    const issueGroups = new Map<string, (typeof data.issues)[number][]>();
+    for (const issue of data.issues) {
+      const group = issueGroups.get(issue.kind);
+      if (group) group.push(issue);
+      else issueGroups.set(issue.kind, [issue]);
     }
     const activeBlocks: SyncRegionBlock[] = data.activeRun
       ? [activeProgress(data.activeRun)]
       : [];
-    const changedFileBlocks: SyncRegionBlock[] = data.git?.changedFiles.length
+    const changedFileBlocks: SyncRegionBlock[] = data.git
       ? [
           {
             type: "list",
             id: "changed-files",
+            presentation: "editorial",
             empty: "No changed files.",
             items: data.git.changedFiles.map((file, index) => ({
               id: `changed-${index + 1}`,
               title: file.path,
-              badges: [{ label: file.status }],
+              description:
+                workingTreeStatusLabels.get(file.status) ??
+                "Working-tree change",
+              metadata: [`Git status: ${file.status} · working tree`],
             })),
           },
         ]
       : [];
-    const totals: SyncViewBlock = {
-      type: "stats",
-      id: "sync-summary",
+    const repository: SyncRegionBlock = {
+      type: "key-values",
+      id: "sync-repository-facts",
       items: [
-        {
-          label: "Files",
-          value: data.directory.totalFiles,
-          caption: "markdown + images",
-        },
+        { label: "Health", value: data.health },
+        ...(data.git
+          ? [
+              { label: "Branch", value: data.git.branch },
+              {
+                label: "Remote",
+                value: data.git.remoteLabel ?? "Not supplied",
+              },
+              ...(data.git.lastCommit
+                ? [{ label: "Last commit", value: data.git.lastCommit }]
+                : []),
+              { label: "Commits ahead", value: data.git.ahead },
+              { label: "Commits behind", value: data.git.behind },
+            ]
+          : [{ label: "Remote", value: "files only" }]),
+        { label: "Content files", value: data.directory.totalFiles },
         {
           label: "Entity types",
           value: Object.keys(data.directory.byEntityType).length,
-          caption: "within sync scope",
         },
+        { label: "Issues", value: data.issues.length },
+        { label: "Automatic sync", value: data.automation.autoSync },
         {
-          label: "Issues",
-          value: data.issues.length,
-          caption: data.issues.length > 0 ? "needs attention" : "all clear",
-          tone: data.issues.length > 0 ? "warn" : "good",
-        },
-      ],
-    };
-    const primary: SyncRegionBlock[] = [
-      {
-        type: "flow",
-        id: "sync-flow",
-        label: "Content flow",
-        direction: data.git ? "bidirectional" : "forward",
-        steps: [
-          {
-            id: "directory",
-            label: data.directory.displayPath,
-            status: data.directory.exists ? "complete" : "failed",
-            detail: data.directory.watching
-              ? "Watching for changes"
-              : "Watcher stopped",
-          },
-          {
-            id: "scanner",
-            label: "Scanner",
-            status: data.activeRun ? "active" : "idle",
-            detail: data.activeRun?.state,
-          },
-          {
-            id: "entities",
-            label: "Entity store",
-            status: data.issues.some((issue) => issue.kind === "import")
-              ? "failed"
-              : data.directory.totalFiles > 0
-                ? "complete"
-                : "idle",
-          },
-          ...gitFlowSteps,
-        ],
-      },
-    ];
-    const automation: SyncRegionBlock = {
-      type: "group",
-      id: "sync-automation",
-      label: "Automation",
-      items: [
-        {
-          id: "automatic",
-          label: "Automatic sync",
-          value: data.automation.autoSync,
-        },
-        {
-          id: "watch",
           label: "Watch interval",
           value: `${data.automation.watchIntervalMs} ms`,
         },
         {
-          id: "delete",
           label: "Delete removed files",
           value: data.automation.deleteOnFileRemoval,
         },
@@ -261,38 +222,18 @@ const directorySyncWorkspace = defineStudioWorkspace({
           ? []
           : [
               {
-                id: "remote",
                 label: "Remote interval",
                 value: `${data.automation.remoteIntervalMinutes} min`,
               },
             ]),
-      ],
-    };
-    const repository: SyncRegionBlock = {
-      type: "meters",
-      id: "sync-meters",
-      items: [
-        {
-          id: "files",
-          label: "Content files",
-          value: data.directory.totalFiles,
-        },
-        {
-          id: "issues",
-          label: "Issues",
-          value: data.issues.length,
-          tone: data.issues.length > 0 ? "warn" : "good",
-        },
-        ...(data.git
-          ? [
-              { id: "ahead", label: "Commits ahead", value: data.git.ahead },
+        ...(data.automation.commitDebounceMs === undefined
+          ? []
+          : [
               {
-                id: "behind",
-                label: "Commits behind",
-                value: data.git.behind,
+                label: "Commit debounce",
+                value: `${data.automation.commitDebounceMs} ms`,
               },
-            ]
-          : []),
+            ]),
       ],
     };
     const work: SyncRegionBlock[] = [
@@ -300,12 +241,12 @@ const directorySyncWorkspace = defineStudioWorkspace({
       {
         type: "list",
         id: "recent-runs",
+        presentation: "editorial",
         empty: "No directory sync runs have completed yet.",
         items: data.recentRuns.map((run) => ({
           id: run.id,
-          title: `${run.source} · ${run.outcome}`,
+          title: `${{ manual: "Manual sync", periodic: "Periodic sync", watcher: "Watch sync", save: "Save sync" }[run.source]} · ${run.outcome}`,
           description: run.summary,
-          badges: [{ label: run.outcome }],
           tone:
             run.outcome === "succeeded"
               ? "good"
@@ -321,80 +262,106 @@ const directorySyncWorkspace = defineStudioWorkspace({
       },
       ...changedFileBlocks,
     ];
-    // Blockers belong beside the work, stated either way: an all-clear is a
-    // result worth showing, not an absent block.
-    const blockers: SyncRegionBlock =
-      data.issues.length === 0
-        ? {
-            type: "card",
-            id: "sync-blockers-card",
-            label: "No blockers",
-            tone: "good",
-            blocks: [
-              {
-                type: "notice",
-                id: "sync-clear",
-                text: "Directory exists, configured automation is available, and no unresolved operation failures are recorded.",
-                tone: "good",
-              },
-            ],
-          }
-        : {
-            type: "card",
-            id: "sync-blockers-card",
-            label: "Needs attention",
-            tone: "warn",
-            blocks: [
-              {
-                type: "list",
-                id: "sync-issues",
-                empty: "No sync issues need attention.",
-                items: data.issues.map((issue) => ({
-                  id: issue.id,
-                  title: issue.kind,
-                  description: issue.message,
-                  tone: "warn",
-                  metadata: [
-                    ...(issue.path ? [`Path: ${issue.path}`] : []),
-                    `Occurred: ${issue.occurredAt}`,
-                  ],
-                })),
-              },
-            ],
-          };
+    // One visible exception per operation; every recorded diagnostic remains available.
+    const blockers: SyncRegionBlock[] = [...issueGroups.entries()].flatMap(
+      ([kind, issues]) => {
+        const ordered = [...issues].sort(
+          (a, b) => Date.parse(b.occurredAt) - Date.parse(a.occurredAt),
+        );
+        const latest = ordered[0];
+        if (!latest) return [];
+        const operation =
+          kind === "git"
+            ? "Repository sync"
+            : kind === "export"
+              ? "Content export"
+              : kind === "import"
+                ? "Content import"
+                : kind === "source"
+                  ? "Content folder"
+                  : kind;
+        return [
+          {
+            type: "notice" as const,
+            id: `sync-issues-${kind}`,
+            title: `${operation} needs attention`,
+            text: [
+              `${ordered.length} recorded ${ordered.length === 1 ? "issue" : "issues"}`,
+              latest.path,
+            ]
+              .filter(Boolean)
+              .join(" · "),
+            tone: "warn" as const,
+            details: ordered.map((issue) =>
+              [
+                `Occurred: ${issue.occurredAt}`,
+                issue.path ? `Path: ${issue.path}` : undefined,
+                issue.message,
+              ]
+                .filter(Boolean)
+                .join("\n"),
+            ),
+          },
+        ];
+      },
+    );
     const blocks: SyncViewBlock[] = [
-      totals,
+      ...blockers,
       {
         type: "columns",
         id: "sync-body",
-        primary: [...primary, ...work],
+        primary: work.map((block) =>
+          block.type === "list"
+            ? {
+                type: "card" as const,
+                id: `${block.id}-section`,
+                label:
+                  block.id === "recent-runs" ? "Recent runs" : "Changed files",
+                metadata: [
+                  block.id === "recent-runs"
+                    ? `${block.items.length} retained`
+                    : `${block.items.length} ${data.git?.changedFilesTruncated ? "shown" : "in working tree"}`,
+                ],
+                blocks: [
+                  block,
+                  ...(block.id === "changed-files" &&
+                  data.git?.changedFilesTruncated
+                    ? [
+                        {
+                          type: "notice" as const,
+                          id: "changed-files-remainder",
+                          text: `Showing the first ${block.items.length} changed files. Additional working-tree changes are not shown.`,
+                        },
+                      ]
+                    : []),
+                ],
+              }
+            : block,
+        ),
         aside: [
-          blockers,
-          {
-            type: "card",
-            id: "sync-automation-card",
-            label: "Automation",
-            blocks: [automation],
-          },
           {
             type: "card",
             id: "sync-source-card",
-            label: "Source",
+            label: "Connection",
             blocks: [
               {
                 type: "key-values",
                 id: "sync-source",
                 items: [
-                  { label: "Directory", value: data.directory.displayPath },
-                  ...(data.git
+                  { label: "Folder", value: data.directory.displayPath },
+                  { label: "Available", value: data.directory.exists },
+                  {
+                    label: "Watcher",
+                    value: data.directory.watching ? "Watching" : "Stopped",
+                  },
+                  ...(data.directory.lastSettledAt
                     ? [
-                        { label: "Branch", value: data.git.branch },
                         {
-                          label: "Remote",
-                          value: data.git.remoteLabel ?? data.git.branch,
+                          label: "Last settled",
+                          value: data.directory.lastSettledAt,
                         },
                       ]
-                    : [{ label: "Remote", value: "files only" }]),
+                    : []),
                 ],
               },
             ],
@@ -402,7 +369,8 @@ const directorySyncWorkspace = defineStudioWorkspace({
           {
             type: "card",
             id: "sync-repository-card",
-            label: "Repository",
+            label: "Repository details",
+            presentation: "disclosure",
             blocks: [repository],
           },
         ],
@@ -411,16 +379,11 @@ const directorySyncWorkspace = defineStudioWorkspace({
     return {
       kicker: "Durability operations",
       title: "Content sync",
-      description:
-        "Keep the entity database, its files, and the configured Git remote converged.",
-      status: {
-        label: data.health,
-        ...(data.directory.lastSettledAt
-          ? { detail: `last settled ${data.directory.lastSettledAt}` }
-          : {}),
-        tone: data.health === "healthy" ? "good" : "warn",
+      primaryAction: {
+        action: syncNowAction,
+        input: {},
+        disabled: Boolean(data.activeRun),
       },
-      primaryAction: { action: syncNowAction, input: {} },
       blocks,
     };
   },

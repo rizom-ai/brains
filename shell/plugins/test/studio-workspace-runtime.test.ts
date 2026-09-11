@@ -16,6 +16,38 @@ import {
   type StudioWorkspaceUnregistration,
 } from "../src";
 
+it("retains full diagnostic source text beyond the prose limit while enforcing the source-text bound", () => {
+  const detail = "retained diagnostic\n".repeat(5000);
+  const view = {
+    blocks: [
+      {
+        type: "notice",
+        title: "Build failed",
+        text: "Review the diagnostics.",
+        details: [detail],
+      },
+    ],
+  };
+  expect(
+    safeParseRuntimeStudioOperatorView(view, {
+      actions: [],
+      permission: "trusted",
+    }),
+  ).toMatchObject({ success: true, data: view });
+  expect(
+    safeParseRuntimeStudioOperatorView(
+      { blocks: [{ ...view.blocks[0], details: [detail + "!"] }] },
+      { actions: [], permission: "trusted" },
+    ).success,
+  ).toBe(false);
+  expect(
+    safeParseRuntimeStudioOperatorView(
+      { blocks: [{ ...view.blocks[0], text: "x".repeat(4001) }] },
+      { actions: [], permission: "trusted" },
+    ).success,
+  ).toBe(false);
+});
+
 function instantiate(
   definition: Parameters<typeof instantiatePluginPackageDefinition>[0],
 ): NonNullable<ReturnType<typeof instantiatePluginPackageDefinition>[number]> {
@@ -261,6 +293,7 @@ describe("declarative Studio workspace runtime", () => {
                   type: "card",
                   id: "forged-card",
                   label: "Forged card",
+                  presentation: "disclosure",
                   blocks: [
                     {
                       type: "links",
@@ -692,6 +725,170 @@ describe("declarative Studio workspace runtime", () => {
 });
 
 describe("Studio interface semantics", () => {
+  it("normalizes section metadata and display labels without changing action identity or admission", () => {
+    const view = {
+      blocks: [
+        {
+          type: "card",
+          id: "work",
+          label: "Work",
+          presentation: "feature",
+          metadata: ["2 items"],
+          blocks: [
+            {
+              type: "actions",
+              items: [
+                {
+                  action: refresh,
+                  label: "Refresh selected item",
+                  input: { id: "selected" },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    expect(
+      safeParseRuntimeStudioOperatorView(view, {
+        actions: [refresh],
+        permission: "trusted",
+      }),
+    ).toMatchObject({
+      success: true,
+      data: {
+        blocks: [
+          {
+            metadata: ["2 items"],
+            presentation: "feature",
+            blocks: [
+              {
+                items: [
+                  {
+                    actionId: "refresh",
+                    label: "Refresh selected item",
+                    input: { id: "selected" },
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(
+      safeParseRuntimeStudioOperatorView(view, {
+        actions: [refresh],
+        permission: "public",
+      }),
+    ).toMatchObject({
+      success: true,
+      data: { blocks: [{ blocks: [{ items: [] }] }] },
+    });
+    expect(
+      safeParseRuntimeStudioOperatorView(view, {
+        actions: [],
+        permission: "admin",
+      }),
+    ).toMatchObject({ success: false });
+  });
+  it("validates supporting notice records individually without truncating their combined text", () => {
+    const details = ["a".repeat(4000), "b".repeat(4000)];
+    const notice = {
+      type: "notice",
+      title: "Needs attention",
+      text: "Two recorded issues",
+      details,
+    };
+    const parsed = safeParseRuntimeStudioOperatorView(
+      { blocks: [notice] },
+      { actions: [], permission: "trusted" },
+    );
+    expect(parsed).toMatchObject({
+      success: true,
+      data: { blocks: [{ details }] },
+    });
+    expect(
+      safeParseRuntimeStudioOperatorView(
+        { blocks: [{ ...notice, details: ["x".repeat(100_001)] }] },
+        { actions: [], permission: "trusted" },
+      ),
+    ).toMatchObject({ success: false });
+  });
+  it("normalizes record roles without workspace-specific rendering instructions", () => {
+    for (const presentation of [
+      "standard",
+      "editorial",
+      "attention",
+      "activity",
+    ]) {
+      const result = safeParseRuntimeStudioOperatorView(
+        {
+          blocks: [
+            {
+              type: "list",
+              id: "records",
+              empty: "Empty",
+              presentation,
+              items: [],
+            },
+          ],
+        },
+        { actions: [], permission: "trusted" },
+      );
+      expect(result).toMatchObject({
+        success: true,
+        data: { blocks: [{ presentation }] },
+      });
+    }
+    expect(
+      safeParseRuntimeStudioOperatorView(
+        {
+          blocks: [
+            {
+              type: "list",
+              id: "records",
+              empty: "Empty",
+              presentation: "directory-sync",
+              items: [],
+            },
+          ],
+        },
+        { actions: [], permission: "trusted" },
+      ),
+    ).toMatchObject({ success: false });
+  });
+  it("preserves provider-owned disclosures through validation and normalization", () => {
+    const card = {
+      type: "card",
+      id: "details",
+      label: "Repository details",
+      presentation: "disclosure",
+      blocks: [{ type: "notice", text: "Full diagnostics" }],
+    };
+    expect(
+      safeParseRuntimeStudioOperatorView(
+        { blocks: [card] },
+        { actions: [], permission: "trusted" },
+      ),
+    ).toMatchObject({
+      success: true,
+      data: {
+        blocks: [
+          {
+            presentation: "disclosure",
+            blocks: [{ text: "Full diagnostics" }],
+          },
+        ],
+      },
+    });
+    expect(
+      safeParseRuntimeStudioOperatorView(
+        { blocks: [{ ...card, presentation: "plugin-specific" }] },
+        { actions: [], permission: "trusted" },
+      ),
+    ).toMatchObject({ success: false });
+  });
   it("normalizes one primary action and collection-owned compact table data", () => {
     const result = safeParseRuntimeStudioOperatorView(
       {
@@ -1317,6 +1514,116 @@ describe("operator detail composition", () => {
         },
       ],
     });
+  });
+});
+
+describe("provider-authored trigger labels", () => {
+  const row = (actionsLabel: unknown): Record<string, unknown> => ({
+    id: "row",
+    title: "Exact row",
+    actionsLabel,
+    actions: [
+      { action: refresh, input: { id: "one" } },
+      { action: refresh, input: { id: "two" }, disabled: true },
+    ],
+  });
+  const source = (
+    actionsLabel: unknown = "Exact options α",
+    disclosureLabel: unknown = "Review failure α",
+    presentation = "disclosure",
+  ): Record<string, unknown> => ({
+    blocks: [
+      {
+        type: "card",
+        id: "warning",
+        label: "Keep this heading",
+        presentation,
+        disclosureLabel,
+        blocks: [
+          {
+            type: "list",
+            id: "list",
+            empty: "Empty",
+            items: [row(actionsLabel)],
+          },
+          {
+            type: "matrix",
+            id: "matrix",
+            cells: [
+              {
+                id: "cell",
+                label: "Cell",
+                empty: "Empty cell",
+                items: [row(actionsLabel)],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  });
+  it("preserves exact labels, action inputs and disabled state through cards, lists and matrix cells", () => {
+    const result = safeParseRuntimeStudioOperatorView(source(), {
+      actions: [refresh],
+      permission: "trusted",
+    });
+    expect(result).toMatchObject({
+      success: true,
+      data: {
+        blocks: [
+          {
+            label: "Keep this heading",
+            disclosureLabel: "Review failure α",
+            blocks: [
+              {
+                items: [
+                  {
+                    actionsLabel: "Exact options α",
+                    actions: [
+                      { input: { id: "one" } },
+                      { input: { id: "two" }, disabled: true },
+                    ],
+                  },
+                ],
+              },
+              { cells: [{ items: [{ actionsLabel: "Exact options α" }] }] },
+            ],
+          },
+        ],
+      },
+    });
+  });
+  it("does not retain action-menu labels when permission removes every action", () => {
+    const result = safeParseRuntimeStudioOperatorView(source(), {
+      actions: [refresh],
+      permission: "public",
+    });
+    expect(result.success).toBe(true);
+    if (!result.success) throw Error("Expected admitted readout");
+    expect(JSON.stringify(result.data)).not.toContain("Exact options α");
+    expect(JSON.stringify(result.data)).toContain("Review failure α");
+  });
+  it("rejects empty, oversized and non-string labels and non-disclosure trigger metadata", () => {
+    for (const label of ["", "x".repeat(10000), false, null]) {
+      expect(
+        safeParseRuntimeStudioOperatorView(source(label), {
+          actions: [refresh],
+          permission: "trusted",
+        }).success,
+      ).toBe(false);
+      expect(
+        safeParseRuntimeStudioOperatorView(source("Options", label), {
+          actions: [refresh],
+          permission: "trusted",
+        }).success,
+      ).toBe(false);
+    }
+    expect(
+      safeParseRuntimeStudioOperatorView(
+        source("Options", "Review", "section"),
+        { actions: [refresh], permission: "trusted" },
+      ).success,
+    ).toBe(false);
   });
 });
 

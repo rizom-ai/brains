@@ -51,7 +51,7 @@ describe("renderEditorShellHtml", () => {
 
     expect(html).not.toContain('class="console-strip"');
     expect(html).not.toContain('class="surface-nav"');
-    expect(html).toContain('<body data-console-host="studio">');
+    expect(html).toMatch(/<body data-console-host="studio" class="x[^"]+">/);
     expect(html).toContain('data-studio-base-path="/studio"');
     expect(html).toContain('data-studio-dashboard-href="/dashboard"');
     expect(html).toContain('data-studio-brand-name="Rover Collective"');

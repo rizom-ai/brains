@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup as render } from "react-dom/server";
 import {
   ProximityMap,
+  AgentProximityWidget,
   proximityMapWidgetStyles,
 } from "../src/widgets/proximity-map";
 import { proximityMapScript } from "../src/widgets/proximity-map-script";
@@ -11,6 +12,10 @@ import type { ProximityMapData } from "../src/lib/proximity-map-schema";
 test("proximity map owns its site styles", () => {
   expect(proximityMapWidgetStyles).toContain(".proximity-field");
   expect(proximityMapWidgetStyles).toContain("prefers-reduced-motion");
+  expect(proximityMapWidgetStyles).toContain(
+    "@container operator-panel (max-width: 700px)",
+  );
+  expect(proximityMapWidgetStyles).not.toContain("dashboard-card");
 });
 
 const data: ProximityMapData = {
@@ -82,6 +87,33 @@ const data: ProximityMapData = {
 };
 
 describe("ProximityMap", () => {
+  test("keeps exact invalid-data and empty/pending conditions with compiled paragraphs", () => {
+    const invalid = render(<AgentProximityWidget data={{ invalid: true }} />);
+    expect(invalid).toContain("Nothing to show yet.");
+    expect(invalid).not.toContain('class="muted"');
+    for (const kind of ["identity", "centroid"] as const)
+      for (const pendingCount of [0, 17]) {
+        const html = render(
+          <ProximityMap
+            data={{
+              ...data,
+              nodes: [],
+              sightings: [],
+              clusters: [],
+              center: { kind },
+              pendingCount,
+            }}
+          />,
+        );
+        expect(html).toContain("No indexed agents yet.");
+        expect(
+          html.includes("Identity not indexed yet — waiting for embeddings."),
+        ).toBe(kind === "centroid");
+        expect(html.includes("17 pending indexing")).toBe(pendingCount === 17);
+        expect(html).not.toContain("0 pending indexing");
+        expect(html).not.toContain('class="muted"');
+      }
+  });
   test("renders rings, center, nodes, clusters, and indexing state", () => {
     const html = render(<ProximityMap data={data} />);
 
