@@ -2,7 +2,7 @@
    Studio-owned elements use compiled StyleX, not imperative DOM restyling. */
 [data-editor="codemirror6"] .cm-editor {
   height: 100%;
-  min-height: 420px;
+  min-height: 0;
   background: transparent;
   color: var(--console-text);
 }
@@ -31,9 +31,6 @@
   }
 }
 @media (max-width: 640px) {
-  [data-editor="codemirror6"] .cm-editor {
-    min-height: 0;
-  }
   [data-editor="codemirror6"] .cm-content {
     padding: 22px 18px 88px;
   }

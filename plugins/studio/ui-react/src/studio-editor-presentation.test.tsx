@@ -19,7 +19,7 @@ for (const width of [1440, 768, 390])
     const window = new Window({ width });
     try {
       const doc = window.document;
-      doc.head.innerHTML = `<style>:root{--console-display:Georgia;--console-ui:Arial;--console-mono:monospace}${css}</style>`;
+      doc.head.innerHTML = `<style>:root{--console-display:Georgia;--console-ui:Arial;--console-mono:monospace;--console-touch:44px}${css}</style>`;
       doc.body.innerHTML = renderToStaticMarkup(
         <>
           <StudioAppStatus message="Exact boot message" />
@@ -62,7 +62,9 @@ for (const width of [1440, 768, 390])
             />
           </fieldset>
           <BodyEditor
-            value={"# Exact heading\n\nLiteral *emphasis* and `code`."}
+            value={
+              "# Exact heading\n\nLiteral *emphasis* and `code`.\n\n```ts\nconst first = 1;\nconst second = 2;\n```"
+            }
             mode="preview"
             onChange={() => {}}
             onModeChange={() => {}}
@@ -102,8 +104,13 @@ for (const width of [1440, 768, 390])
       );
       expect(window.getComputedStyle(title).overflowWrap).toBe("anywhere");
       const heading = preview.querySelector("h1"),
-        code = preview.querySelector("code");
-      if (!heading || !code) throw Error("Missing prose slots");
+        code = preview.querySelector('[data-streamdown="inline-code"]'),
+        codeBlock = preview.querySelector('[data-streamdown="code-block"]'),
+        copy = preview.querySelector(
+          '[data-streamdown="code-block-copy-button"]',
+        );
+      if (!heading || !code || !codeBlock || !copy)
+        throw Error("Missing prose slots");
       expect(heading.textContent).toBe("Exact heading");
       expect(window.getComputedStyle(heading).fontSize).toBe(
         width <= 640 ? "27px" : "30px",
@@ -113,6 +120,10 @@ for (const width of [1440, 768, 390])
       );
       expect(code.textContent).toBe("code");
       expect(window.getComputedStyle(code).fontSize).toBe("12.5px");
+      expect(window.getComputedStyle(codeBlock).display).toBe("flex");
+      expect(window.getComputedStyle(copy).width).toBe(
+        width <= 640 ? "44px" : "28px",
+      );
     } finally {
       await window.happyDOM.close();
     }
@@ -129,6 +140,8 @@ test("compiled prose retains safe links, fenced-code controls and ordered-list s
   expect(html).toContain('data-streamdown="link"');
   expect(html).toContain('type="button">Exact link</button>');
   expect(html).toContain('data-streamdown="code-block-actions"');
+  expect(html).toContain('data-streamdown="code-block-copy-button"');
+  expect(html).not.toContain('data-streamdown="code-block-download-button"');
   expect(html).toContain('data-language="ts"');
   expect(html).toContain("const zero = 0;");
   expect(html).not.toContain('node="');

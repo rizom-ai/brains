@@ -35,7 +35,6 @@ import {
   type KeyboardEvent,
   type ReactElement,
 } from "react";
-import { Streamdown } from "streamdown";
 import {
   STUDIO_CHAT_WORKSPACE_ID,
   studioChatWorkspacePath,
@@ -53,6 +52,7 @@ import {
 import { TypeSwitcher } from "./entity-fields";
 import { useStudioNavigationCollapsed } from "./studio-navigation-state";
 import { StudioChrome } from "./studio-chrome";
+import { StudioMarkdown } from "./studio-markdown";
 import {
   navigationClassName as navClass,
   navigationStyles as nav,
@@ -167,7 +167,10 @@ export function StudioChatWorkspace(
   const messagesQuery = useQuery({
     queryKey: studioChatKeys.messages(props.sessionId ?? ""),
     queryFn: () => chatClient.getMessages(props.sessionId ?? ""),
-    enabled: props.sessionId !== null,
+    // A newly accepted session already has an optimistic copy of its first
+    // turn. Wait for the completed stream to replace that copy atomically.
+    enabled:
+      props.sessionId !== null && !sending && pendingMessages.length === 0,
   });
   const sessions = sessionsQuery.data ?? [];
   const showSessionRail = sessionsQuery.isPending || sessions.length > 0;
@@ -311,6 +314,19 @@ export function StudioChatWorkspace(
         }
         if (activeStreamRef.current !== controller) return accepted;
         retainResponse();
+        try {
+          const authoritativeMessages =
+            await chatClient.getMessages(conversationId);
+          if (activeStreamRef.current !== controller) return accepted;
+          queryClient.setQueryData(
+            studioChatKeys.messages(conversationId),
+            authoritativeMessages,
+          );
+          setPendingMessages([]);
+        } catch {
+          // The completed response remains visible from the optimistic state;
+          // a later session visit can retry the authoritative history read.
+        }
         await queryClient.invalidateQueries({
           queryKey: studioChatKeys.sessions,
         });
@@ -716,7 +732,9 @@ export function StudioChatWorkspace(
                     chatLayout.manuscript,
                   )}
                 >
-                  {messagesQuery.isPending && props.sessionId ? (
+                  {messagesQuery.isPending &&
+                  props.sessionId &&
+                  visibleMessages.length === 0 ? (
                     <p
                       className={chatClass(
                         "studio-chat-empty",
@@ -943,11 +961,12 @@ function ChatTurn(props: {
       >
         {props.message.content ? (
           props.message.role === "assistant" ? (
-            <Streamdown
+            <StudioMarkdown
               className={chatClass("studio-chat-prose", chatLayout.cards)}
+              presentation="chat"
             >
               {props.message.content}
-            </Streamdown>
+            </StudioMarkdown>
           ) : (
             <p className={chatClass("studio-chat-text", chatLayout.paragraph)}>
               {props.message.content}

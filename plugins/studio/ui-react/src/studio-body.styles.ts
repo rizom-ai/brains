@@ -132,8 +132,9 @@ export const bodyStyles: Record<BodyStyle, stylex.StyleXStyles> = stylex.create(
     panes: {
       display: "grid",
       flex: 1,
-      minHeight: 420,
-      "@media (max-width: 640px)": { minHeight: 0, height: "100%" },
+      minHeight: 0,
+      overflow: "hidden",
+      "@media (max-width: 640px)": { height: "100%" },
     },
     split: {
       gridTemplateColumns: {
@@ -143,16 +144,15 @@ export const bodyStyles: Record<BodyStyle, stylex.StyleXStyles> = stylex.create(
       },
       gridTemplateRows: {
         default: null,
-        "@container (max-width: 720px)":
-          "minmax(240px, 1fr) minmax(240px, 1fr)",
+        "@container (max-width: 720px)": "minmax(0, 1fr) minmax(0, 1fr)",
         "@media (max-width: 640px)": "minmax(0, 1fr)",
       },
-      overflowY: { default: null, "@container (max-width: 720px)": "auto" },
+      overflowY: "hidden",
     },
     source: {
       color: "var(--console-text)",
       backgroundColor: "transparent",
-      minHeight: 420,
+      minHeight: 0,
       minWidth: 0,
       borderRightStyle: "solid",
       borderRightColor: "var(--console-rule-strong)",
@@ -176,8 +176,14 @@ export const bodyStyles: Record<BodyStyle, stylex.StyleXStyles> = stylex.create(
       "@media (max-width: 640px)": { minHeight: 0, height: "100%" },
     },
     preview: {
+      minWidth: 0,
+      minHeight: 0,
       padding: "30px 34px",
+      overflowY: "auto",
       overflowWrap: "anywhere",
+      overscrollBehavior: "contain",
+      scrollbarColor: "var(--console-rule-strong) transparent",
+      scrollbarWidth: "thin",
       "@media (min-width: 641px) and (max-width: 900px)": {
         paddingLeft: 24,
         paddingRight: 24,

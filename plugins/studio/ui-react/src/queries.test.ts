@@ -483,15 +483,22 @@ describe("Studio entity-detail query", () => {
 });
 
 describe("Studio entity-list query", () => {
-  it("uses a stable key scoped by entity type", () => {
+  it("uses a stable type scope with independent page keys", () => {
     expect(studioKeys.entities("post")).toEqual(["studio", "entities", "post"]);
     expect(studioKeys.entities("note")).toEqual(["studio", "entities", "note"]);
+    expect(studioKeys.entityPage("post", 10, 10)).toEqual([
+      "studio",
+      "entities",
+      "post",
+      10,
+      10,
+    ]);
   });
 
   it("deduplicates the mounted query and initialization read", async () => {
-    let requests = 0;
-    stubFetch(async () => {
-      requests += 1;
+    const requestedUrls: string[] = [];
+    stubFetch(async (url) => {
+      requestedUrls.push(url);
       return entitiesResponse([entity("Notes from the rhizome")]);
     });
     const client = createStudioQueryClient();
@@ -507,7 +514,9 @@ describe("Studio entity-list query", () => {
     expect(initialized).toHaveLength(1);
     expect(statuses).toContain("pending");
     expect(observer.getCurrentResult().status).toBe("success");
-    expect(requests).toBe(1);
+    expect(requestedUrls).toEqual([
+      "/studio/api/entities?type=post&offset=0&limit=10",
+    ]);
     unsubscribe();
     client.clear();
   });

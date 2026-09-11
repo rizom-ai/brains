@@ -1,17 +1,16 @@
-/* Document sizing is a host concern. React-owned presentation is StyleX. */
-@media (max-width: 640px) {
-  html:has(
-    body[data-console-host="studio"] [data-studio-shell][data-view="editor"]
-  ),
-  body[data-console-host="studio"]:has(
-      [data-studio-shell][data-view="editor"]
-    ) {
-    overflow: hidden;
-  }
-  body[data-console-host="studio"]:not(
-      :has([data-studio-shell][data-view="editor"])
-    ) {
-    height: auto;
-    min-height: 100%;
-  }
+/* Document sizing is a host concern. React-owned presentation is StyleX.
+   Editor routes pin the app frame while each working pane owns its scroll;
+   reading surfaces retain normal document scrolling for mobile browser chrome. */
+html:has(
+  body[data-console-host="studio"] [data-studio-shell][data-view="editor"]
+),
+body[data-console-host="studio"]:has([data-studio-shell][data-view="editor"]) {
+  height: 100%;
+  overflow: hidden;
+}
+body[data-console-host="studio"]:not(
+    :has([data-studio-shell][data-view="editor"])
+  ) {
+  height: auto;
+  min-height: 100%;
 }

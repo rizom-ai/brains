@@ -336,6 +336,79 @@ describe("native Studio Chat workspace", () => {
     );
   });
 
+  it("reconciles the first persisted turn without duplicating its optimistic messages", async () => {
+    const store = new StudioChatDraftStore();
+    store.update(studioChatDraftKey("/api/chat", null), {
+      text: "First message",
+    });
+    const previous = globalThis.fetch;
+    let conversationId = "";
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "/api/chat" && init?.method === "POST") {
+          const body: unknown = JSON.parse(String(init.body));
+          if (
+            typeof body !== "object" ||
+            body === null ||
+            !("id" in body) ||
+            typeof body.id !== "string"
+          )
+            throw new Error("Missing streamed conversation id");
+          conversationId = body.id;
+          return new Response(
+            'data: {"type":"text-delta","id":"reply","delta":"Accepted"}\n\n',
+            { headers: { "Content-Type": "text/event-stream" } },
+          );
+        }
+        if (
+          conversationId &&
+          url === `/api/chat/messages?id=${encodeURIComponent(conversationId)}`
+        ) {
+          return Response.json({
+            messages: [
+              {
+                id: "stored-user",
+                role: "user",
+                content: "First message",
+              },
+              {
+                id: "stored-assistant",
+                role: "assistant",
+                content: "Accepted",
+              },
+            ],
+          });
+        }
+        return previous(input, init);
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+
+    await mountChat(store, null);
+    click(document.querySelector('[aria-label="Send message"]'), "Send");
+    for (
+      let attempt = 0;
+      attempt < 20 && navigations.length === 0;
+      attempt += 1
+    )
+      await settle();
+    const href = navigations[0];
+    if (!href) throw new Error("Missing adopted conversation route");
+    const adoptedId = new URL(href, "http://brain.test").searchParams.get(
+      "session",
+    );
+    if (!adoptedId) throw new Error("Missing adopted conversation id");
+
+    await mountChat(store, adoptedId);
+    expect(
+      document.querySelectorAll('.studio-chat-turn[data-role="user"]'),
+    ).toHaveLength(1);
+    expect(
+      document.querySelectorAll('.studio-chat-turn[data-role="assistant"]'),
+    ).toHaveLength(1);
+  });
+
   it("stops the active stream, retains received text, and does not erase the next draft", async () => {
     const store = new StudioChatDraftStore(),
       key = studioChatDraftKey("/api/chat", "conversation-1");

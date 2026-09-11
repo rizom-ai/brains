@@ -107,6 +107,10 @@ export interface StudioAppViewProps {
   workspaceQuery: StudioWorkspaceQuery;
   entityType: string | null;
   entities: EntitySummary[] | null;
+  entityOffset: number;
+  entityLimit: number;
+  entityTotal: number;
+  entityListLoading: boolean;
   schema: TypeSchema | null;
   editor: EditorWorkflowState;
   fieldAssistState: FieldAssistState;
@@ -125,6 +129,7 @@ export interface StudioAppViewProps {
   backToList: () => void;
   selectEntityType: (entityType: string) => void;
   selectWorkspace: (workspaceId: string) => void;
+  changeEntityPage: (offset: number) => void;
   openWorkspaceEntity: (entityType: string, entityId: string) => void;
   openWorkspaceLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
   performPublishingAction: (
@@ -244,6 +249,10 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
     workspaceQuery,
     entityType,
     entities,
+    entityOffset,
+    entityLimit,
+    entityTotal,
+    entityListLoading,
     schema,
     editor,
     fieldAssistState,
@@ -262,6 +271,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
     backToList,
     selectEntityType,
     selectWorkspace,
+    changeEntityPage,
     openWorkspaceEntity,
     openWorkspaceLaunch,
     performPublishingAction,
@@ -316,7 +326,11 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
       workspace.pluginId === "content-pipeline" &&
       workspace.entityTypes.includes(selectedEntityType),
   );
-  const entityCount = entities?.length ?? 0;
+  const entityCount = entityTotal;
+  const pageEnd = Math.min(
+    entityOffset + (entities?.length ?? entityLimit),
+    entityTotal,
+  );
   const workspaceBadges = workspaceRailBadges(workspaces);
   const listingHead: StudioPageHeadModel = {
     kicker: "Content library",
@@ -440,6 +454,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
           <main
             className={editorClass("", library.listing)}
             data-studio-library=""
+            aria-busy={entityListLoading}
           >
             <StudioPageHead
               model={listingHead}
@@ -453,46 +468,91 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                 </Button>
               }
             />
-            {(entities ?? []).map((entity, index) => (
-              <button
-                type="button"
-                key={entity.id}
-                className={editorClass(
-                  "",
-                  library.row,
-                  editorStyles.listingRow,
-                )}
-                data-studio-record=""
-                onClick={() => openEntity(entity.id)}
-              >
-                <span className={editorClass("", library.index)}>
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <span
-                  className={editorClass("", library.title)}
-                  title={entity.id}
-                >
-                  {entityTitle(entity)}
-                  {typeHasPublicationField(entitySchema.fields) && (
-                    <span
-                      className={editorClass(
-                        "studio-publication-state",
-                        editorStyles.publication,
-                      )}
-                    >
-                      {entityPublicationState(entity)}
-                    </span>
+            {entityListLoading && (
+              <StudioStatus className={editorClass("", library.empty)}>
+                Loading entries…
+              </StudioStatus>
+            )}
+            {!entityListLoading &&
+              (entities ?? []).map((entity, index) => (
+                <button
+                  type="button"
+                  key={entity.id}
+                  className={editorClass(
+                    "",
+                    library.row,
+                    editorStyles.listingRow,
                   )}
-                </span>
-                <span className={editorClass("", library.updated)}>
-                  {formatUpdated(entity.updated)}
-                </span>
-              </button>
-            ))}
-            {entities?.length === 0 && (
+                  data-studio-record=""
+                  onClick={() => openEntity(entity.id)}
+                >
+                  <span className={editorClass("", library.index)}>
+                    {String(entityOffset + index + 1).padStart(2, "0")}
+                  </span>
+                  <span
+                    className={editorClass("", library.title)}
+                    title={entity.id}
+                  >
+                    {entityTitle(entity)}
+                    {typeHasPublicationField(entitySchema.fields) && (
+                      <span
+                        className={editorClass(
+                          "studio-publication-state",
+                          editorStyles.publication,
+                        )}
+                      >
+                        {entityPublicationState(entity)}
+                      </span>
+                    )}
+                  </span>
+                  <span className={editorClass("", library.updated)}>
+                    {formatUpdated(entity.updated)}
+                  </span>
+                </button>
+              ))}
+            {!entityListLoading && entities?.length === 0 && (
               <StudioStatus className={editorClass("", library.empty)}>
                 Nothing here yet — start the first entry.
               </StudioStatus>
+            )}
+            {entityTotal > entityLimit && (
+              <nav
+                className={editorClass(
+                  "listing-pagination",
+                  library.pagination,
+                )}
+                aria-label={`${activeType?.label ?? "Entity"} pagination`}
+              >
+                <span
+                  className={editorClass("", library.range)}
+                  aria-live="polite"
+                >
+                  {entityOffset + 1}–{pageEnd} of {entityTotal}
+                </span>
+                <span className={editorClass("", library.pager)}>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={entityListLoading || entityOffset === 0}
+                    onClick={() =>
+                      changeEntityPage(Math.max(0, entityOffset - entityLimit))
+                    }
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={
+                      entityListLoading ||
+                      entityOffset + entityLimit >= entityTotal
+                    }
+                    onClick={() => changeEntityPage(entityOffset + entityLimit)}
+                  >
+                    Next
+                  </Button>
+                </span>
+              </nav>
             )}
           </main>
         ) : (

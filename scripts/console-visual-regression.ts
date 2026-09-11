@@ -76,7 +76,7 @@ const types = [
     label: "Field notes",
     isSingleton: false,
     hasBody: true,
-    count: 4,
+    count: 24,
     capabilities: editCapabilities,
   },
   {
@@ -148,6 +148,14 @@ const entities = [
     updated: "2026-06-28T15:24:00.000Z",
   },
 ];
+entities.push(
+  ...Array.from({ length: 20 }, (_, index) => ({
+    id: `archive-${index + 1}`,
+    entityType: "posts",
+    frontmatter: { title: `Archive note ${index + 1}` },
+    updated: "2026-06-01T12:00:00.000Z",
+  })),
+);
 const entity = {
   ...entities[1],
   // The full colophon the mockups author: slug, select, tags, toggle,
@@ -162,7 +170,7 @@ const entity = {
     publishedAt: "2026-07-14T09:00:00.000Z",
     coverImageId: "image/verdigris-board",
   },
-  body: "# Notes from the rhizome\n\nA good console should make dense systems feel calm. Its structure needs to remain legible while the viewport changes around it.\n\n> The interface is not a dashboard pasted onto every screen. It is a continuous instrument with distinct working climates.\n\n## Responsive field rules\n\n- Keep shared wayfinding stable.\n- Let local tools adapt to the task.\n- Preserve touch targets and safe areas.\n\nThe result should feel authored at every width.",
+  body: '# Notes from the rhizome\n\nA good console should make dense systems feel calm. Its structure needs to remain legible while the viewport changes around it.\n\n```ts\nconst manuscript = { source: "literal", preview: "rendered" };\nconst scrolling = "independent";\n```\n\n> The interface is not a dashboard pasted onto every screen. It is a continuous instrument with distinct working climates.\n\n## Responsive field rules\n\n- Keep shared wayfinding stable.\n- Let local tools adapt to the task.\n- Preserve touch targets and safe areas.\n\nThe result should feel authored at every width.',
   contentHash: "fixture-hash",
   created: "2026-06-18T09:00:00.000Z",
 };
@@ -3058,7 +3066,11 @@ const server = Bun.serve({
       );
     if (url.pathname === "/studio/api/entities" && url.searchParams.has("id"))
       return json({ entity });
-    if (url.pathname === "/studio/api/entities") return json({ entities });
+    if (url.pathname === "/studio/api/entities") {
+      const offset = Number(url.searchParams.get("offset") ?? 0);
+      const limit = Number(url.searchParams.get("limit") ?? 10);
+      return json({ entities: entities.slice(offset, offset + limit) });
+    }
     if (url.pathname === "/studio/api/sync-status")
       return json({
         directorySync: { lastSync: "2026-07-11T16:32:00.000Z", watching: true },
@@ -3752,6 +3764,14 @@ try {
             if (settled === tops && settled === previousTops) break;
             previousTops = settled;
           }
+        }
+        if (surface === "studio-library") {
+          await waitForText(page, "1–10 of 24");
+          await clickText(page, ".listing-pagination button", "Next");
+          await waitForText(page, "Archive note 7");
+          await clickText(page, ".listing-pagination button", "Previous");
+          await waitForText(page, "A console that travels well");
+          await waitForText(page, "1–10 of 24");
         }
         if (surface === "studio-overview") {
           await waitForText(page, "Recent activity");

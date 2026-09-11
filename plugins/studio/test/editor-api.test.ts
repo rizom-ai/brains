@@ -1232,6 +1232,34 @@ describe("studio editor api", () => {
     expect(payload.entities[0]?.frontmatter["title"]).toBe("First Post");
   });
 
+  it("returns bounded entity pages", async () => {
+    const shell = createEditorTestShell();
+    const cookie = await createSessionCookie(shell);
+    for (let index = 1; index <= 12; index += 1) {
+      await seedPost(shell, {
+        id: `post-${index}`,
+        title: `Post ${index}`,
+      });
+    }
+    const plugin = await registerPlugin(shell);
+    const route = findRoute(plugin, "/studio/api/entities");
+
+    const response = await route.handler(
+      apiRequest("/studio/api/entities?type=post&offset=10&limit=10", {
+        cookie,
+      }),
+    );
+    const payload = entityListPayloadSchema.parse(await response.json());
+
+    expect(response.status).toBe(200);
+    expect(payload.entities).toHaveLength(2);
+
+    const invalid = await route.handler(
+      apiRequest("/studio/api/entities?type=post&limit=0", { cookie }),
+    );
+    expect(invalid.status).toBe(400);
+  });
+
   it("returns the content hash so edits can carry a precondition", async () => {
     const shell = createEditorTestShell();
     const cookie = await createSessionCookie(shell);

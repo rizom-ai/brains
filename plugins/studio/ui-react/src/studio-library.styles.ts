@@ -7,7 +7,10 @@ export const libraryStyles: Record<
   | "index"
   | "title"
   | "updated"
-  | "empty",
+  | "empty"
+  | "pagination"
+  | "pager"
+  | "range",
   stylex.StyleXStyles
 > = stylex.create({
   frame: {
@@ -91,4 +94,21 @@ export const libraryStyles: Record<
     },
   },
   empty: { padding: "22px 4px" },
+  pagination: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 14,
+    padding: "14px 4px 0",
+    color: "var(--console-text-muted)",
+    fontFamily: "var(--console-mono)",
+    fontSize: 11,
+    "@media (max-width: 640px)": {
+      justifyContent: "space-between",
+      gap: 8,
+      paddingTop: 12,
+    },
+  },
+  pager: { display: "inline-flex", gap: 6 },
+  range: { whiteSpace: "nowrap" },
 });

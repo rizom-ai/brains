@@ -3,6 +3,7 @@ import {
   type QueryClient,
   type UseQueryOptions,
 } from "@tanstack/react-query";
+import { STUDIO_ENTITY_PAGE_LIMIT } from "../../src/editor-contracts";
 import type {
   StudioApi,
   AgentTarget,
@@ -32,7 +33,14 @@ export type AgentTargetsQueryKey = readonly [
 ];
 export type SyncStatusQueryKey = readonly ["studio", "sync-status"];
 export type EntitySchemaQueryKey = readonly ["studio", "schema", string];
-export type EntityListQueryKey = readonly ["studio", "entities", string];
+export type EntityListScopeKey = readonly ["studio", "entities", string];
+export type EntityListQueryKey = readonly [
+  "studio",
+  "entities",
+  string,
+  number,
+  number,
+];
 export type EntityDetailQueryKey = readonly [
   "studio",
   "entity",
@@ -64,11 +72,16 @@ export const studioKeys = {
     "schema",
     entityType,
   ],
-  entities: (entityType: string): EntityListQueryKey => [
+  entities: (entityType: string): EntityListScopeKey => [
     "studio",
     "entities",
     entityType,
   ],
+  entityPage: (
+    entityType: string,
+    offset: number,
+    limit: number,
+  ): EntityListQueryKey => ["studio", "entities", entityType, offset, limit],
   entity: (entityType: string, entityId: string): EntityDetailQueryKey => [
     "studio",
     "entity",
@@ -173,6 +186,8 @@ export function entitySchemaQueryOptions(
 export function entityListQueryOptions(
   api: StudioApi,
   entityType: string,
+  offset: number = 0,
+  limit: number = STUDIO_ENTITY_PAGE_LIMIT,
 ): UseQueryOptions<
   EntitySummary[],
   Error,
@@ -180,8 +195,8 @@ export function entityListQueryOptions(
   EntityListQueryKey
 > {
   return {
-    queryKey: studioKeys.entities(entityType),
-    queryFn: () => api.fetchEntities(entityType),
+    queryKey: studioKeys.entityPage(entityType, offset, limit),
+    queryFn: () => api.fetchEntities(entityType, offset, limit),
   };
 }
 

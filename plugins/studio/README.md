@@ -26,8 +26,8 @@ studioKeys.agentTargets();
 
 Transport calls belong in `api.ts`; query and mutation wrappers belong in `queries.ts` and `mutations.ts`. Invalidation must be targeted:
 
-- saves refresh the affected list and sync status, then explicitly reopen the saved detail with its fresh content hash;
-- deletes remove the affected detail and refresh its list and sync status;
+- saves refresh the affected list and sync status, creation also refreshes navigation counts, then the saved detail reopens with its fresh content hash;
+- deletes remove the affected detail and refresh its list, navigation counts, and sync status;
 - image uploads refresh only image-list, navigation-count, and sync-status data;
 - declarative workspace actions refresh only their workspace snapshot and any badge-bearing navigation;
 - sync polling invalidates only `studioKeys.syncStatus()`.

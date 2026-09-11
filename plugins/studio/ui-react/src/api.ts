@@ -3,6 +3,7 @@ import type {
   UserPermissionLevel,
 } from "@brains/plugins";
 import type { FetchLike } from "@brains/utils/fetch-like";
+import { STUDIO_ENTITY_PAGE_LIMIT } from "../../src/editor-contracts";
 
 /**
  * Typed client for the Studio editor API served by plugins/studio.
@@ -298,9 +299,15 @@ export class StudioApi {
     );
   }
 
-  async fetchEntities(entityType: string): Promise<EntitySummary[]> {
+  async fetchEntities(
+    entityType: string,
+    offset: number = 0,
+    limit: number = STUDIO_ENTITY_PAGE_LIMIT,
+  ): Promise<EntitySummary[]> {
     const { entities } = await this.requestJson<{ entities: EntitySummary[] }>(
-      this.path(`entities?type=${encodeURIComponent(entityType)}`),
+      this.path(
+        `entities?type=${encodeURIComponent(entityType)}&offset=${offset}&limit=${limit}`,
+      ),
     );
     return entities;
   }

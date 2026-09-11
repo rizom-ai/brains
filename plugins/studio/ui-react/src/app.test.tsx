@@ -145,7 +145,7 @@ describe("compiled editor surface contracts", () => {
     );
     expect(compiledStyles).not.toContain("crumbbar");
   });
-  it("keeps document locking restricted to phone editors", () => {
+  it("locks editor routes while reading surfaces retain document scrolling", () => {
     const selectors = documentStyles
       .replace(/\s+/g, " ")
       .replace(/\(\s+/g, "(")
@@ -156,13 +156,13 @@ describe("compiled editor surface contracts", () => {
     expect(selectors).toContain(
       'body[data-console-host="studio"]:has([data-studio-shell][data-view="editor"])',
     );
+    expect(selectors).toMatch(
+      /\[data-view="editor"\]\) \{ height: 100%; overflow: hidden;/,
+    );
     expect(selectors).toContain(
       'body[data-console-host="studio"]:not(:has([data-studio-shell][data-view="editor"]))',
     );
     expect(documentStyles).toContain("min-height: 100%");
-    expect(documentStyles).not.toMatch(
-      /body\[data-console-host="studio"\] \{[^}]*overflow: hidden/,
-    );
   });
   it("keeps reading surfaces document-scrolling and save diagnostics bounded", () => {
     expect(compiledStyles).toContain("align-content:start");
@@ -633,6 +633,7 @@ describe("TypeSwitcher", () => {
 function renderCapabilityView(
   capabilities: EntityTypeInfo["capabilities"],
   mode: "browse" | "edit",
+  page: { offset?: number; limit?: number; total?: number } = {},
 ): string {
   const entity: EntityDetail = {
     id: "post-1",
@@ -655,7 +656,7 @@ function renderCapabilityView(
     label: "Posts",
     isSingleton: false,
     hasBody: true,
-    count: 1,
+    count: page.total ?? 1,
     capabilities,
   };
   const props: StudioAppViewProps = {
@@ -677,6 +678,10 @@ function renderCapabilityView(
     workspaceQuery: { offset: 0, limit: 50 },
     entityType: "post",
     entities: [entity],
+    entityOffset: page.offset ?? 0,
+    entityLimit: page.limit ?? 10,
+    entityTotal: page.total ?? 1,
+    entityListLoading: false,
     schema,
     editor: {
       mode: mode === "edit" ? { kind: "edit", entity } : { kind: "browse" },
@@ -701,6 +706,7 @@ function renderCapabilityView(
     backToList: () => {},
     selectEntityType: () => {},
     selectWorkspace: () => {},
+    changeEntityPage: () => {},
     openWorkspaceEntity: () => {},
     openWorkspaceLaunch: () => {},
     performPublishingAction: successfulPublishingAction,
@@ -781,6 +787,25 @@ describe("capability-aware Studio controls", () => {
     expect(edit).toContain(">Delete<");
     expect(edit).toContain("AI selection rewrite");
     expect(edit).toContain("Add to queue");
+  });
+
+  it("paginates entity collections with the shared previous/next grammar", () => {
+    const first = renderCapabilityView(allowedCapabilities, "browse", {
+      limit: 1,
+      total: 2,
+    });
+    const second = renderCapabilityView(allowedCapabilities, "browse", {
+      offset: 1,
+      limit: 1,
+      total: 2,
+    });
+
+    expect(first).toContain('aria-label="Posts pagination"');
+    expect(first).toContain("1–1 of 2");
+    expect(first).toContain(">Previous</button>");
+    expect(first).toContain(">Next</button>");
+    expect(second).toContain("2–2 of 2");
+    expect(second).toContain(">02</span>");
   });
 });
 
@@ -906,6 +931,23 @@ describe("BodyEditor", () => {
     const html = renderBody("split");
     expect(html).toContain('data-editor="codemirror6"');
     expect(html).toContain("data-studio-preview");
+  });
+
+  it("keeps one styled copy action on fenced code blocks", () => {
+    const html = renderToStaticMarkup(
+      createElement(BodyEditor, {
+        value: "```ts\nconst first = 1;\nconst second = 2;\n```",
+        mode: "preview",
+        onChange: () => {},
+        onModeChange: () => {},
+      }),
+    );
+
+    expect(html).toContain('data-streamdown="code-block-copy-button"');
+    expect(html).toContain('data-streamdown="code-block-actions"');
+    expect(html).not.toContain('data-streamdown="code-block-download-button"');
+    expect(html).toContain("const first = 1;");
+    expect(html).toContain("const second = 2;");
   });
 
   it("keeps body content byte-identical in the CM6 state", () => {
