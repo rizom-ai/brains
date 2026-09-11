@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.367
+
+### Patch Changes
+
+- [#241](https://github.com/rizom-ai/brains/pull/241) [`5e04477`](https://github.com/rizom-ai/brains/commit/5e04477d22f5d63d0f0e05c935e1ad3cfcf2cfcb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Release Studio entity pagination and refined editor rendering, including independently scrolling editor panes and improved Markdown presentation. Align the affected visual baselines with the reviewed CI captures and updated pagination fixtures.
+
 ## 0.2.0-alpha.366
 
 ### Patch Changes
