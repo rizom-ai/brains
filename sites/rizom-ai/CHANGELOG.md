@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.250
+
+### Patch Changes
+
+- [`7b85eb4`](https://github.com/rizom-ai/brains/commit/7b85eb49878e502b54d65f983cccdf38e92e5479) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Resolve the hero chat enhancement module against the browser origin at runtime. Keep the Brain-served `/ask/assets/guest.js` out of the site's filesystem dependency graph while preserving same-origin lazy loading.
+
 ## 0.2.0-alpha.249
 
 ### Patch Changes
