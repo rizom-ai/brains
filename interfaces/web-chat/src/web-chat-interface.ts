@@ -65,7 +65,12 @@ import {
   type WebChatConversationAccess,
 } from "./conversation-access";
 import { handleContextSessionRequest as handleContextSessionRouteRequest } from "./context-session-handler";
-import { renderChatPage, uiAssetFile, uiStylesheetFile } from "./chat-page";
+import {
+  renderChatPage,
+  renderGuestChatPage,
+  uiAssetFile,
+  uiStylesheetFile,
+} from "./chat-page";
 import { handleJobStatusRequest as handleJobStatusRouteRequest } from "./job-handlers";
 import { handleMessagesRequest as handleMessagesRouteRequest } from "./message-handlers";
 import { createWebChatUploadStoreScope } from "./upload-store";
@@ -83,6 +88,10 @@ import {
 } from "./upload-handlers";
 
 import { GuestStateMaintenance } from "./guest-maintenance";
+import { createChatApiPaths } from "@brains/contracts/chat";
+import { GuestHttpHandlers, type GuestHttpOptions } from "./guest-http";
+import { guestPolicySchema, type GuestPolicy } from "./guest-policy";
+import { resolveGuestPreset } from "./guest-preset";
 
 const webChatInterfaceType = "web-chat";
 const remoteAgentInterfaceType = "remote-agent";
@@ -123,6 +132,9 @@ export interface WebChatDeps {
   resolveAuthPrincipal?: BrowserPrincipalResolver;
   /** Override the resolved caller permission level (used in tests). */
   resolvePermissionLevel?: PermissionLevelResolver;
+  guestHttp?: GuestHttpOptions;
+  /** Internal policy injection for boundary tests, not author-facing configuration. */
+  guestPolicy?: GuestPolicy;
 }
 
 const defaultResolveAuthPrincipal: BrowserPrincipalResolver = async (request) =>
@@ -134,6 +146,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
 > {
   declare protected config: WebChatConfig;
   private readonly activeStreams = new Map<string, ActiveStream>();
+  private readonly guestHttpOptions: GuestHttpOptions;
+  private readonly guestPolicy: GuestPolicy;
+  private guestHttp: GuestHttpHandlers | undefined;
   private readonly resolveAuthSession: AuthSessionResolver;
   private readonly resolveAuthSessionOverride: AuthSessionResolver | undefined;
   private readonly resolveAuthPrincipal: BrowserPrincipalResolver;
@@ -142,6 +157,10 @@ export class WebChatInterface extends MessageInterfacePlugin<
 
   constructor(config: WebChatConfigInput = {}, deps: WebChatDeps = {}) {
     super("web-chat", packageJson, config, webChatConfigSchema);
+    this.guestPolicy =
+      deps.guestPolicy === undefined
+        ? resolveGuestPreset(this.config.guest)
+        : guestPolicySchema.parse(deps.guestPolicy);
     this.resolveAuthPrincipal =
       deps.resolveAuthPrincipal ?? defaultResolveAuthPrincipal;
     this.resolveAuthSessionOverride = deps.resolveAuthSession;
@@ -150,12 +169,25 @@ export class WebChatInterface extends MessageInterfacePlugin<
       (async (request): Promise<boolean> =>
         (await this.resolveBrowserAccess(request)).hasChatAccess);
     this.resolveCallerPermissionLevel = deps.resolvePermissionLevel;
+    this.guestHttpOptions = deps.guestHttp ?? {};
   }
 
   protected override async onRegister(
     context: MessageInterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
+    // The supported automatic activation is the controlled loopback slice only.
+    // guestPolicySchema permits HTTP origins only on loopback. Enabling policy
+    // still follows operator verification of the actual bind address and corpus.
+    const loopback =
+      this.guestPolicy.enabled && this.guestPolicy.origin.startsWith("http://");
+    this.guestHttp = new GuestHttpHandlers(context, this.guestPolicy, {
+      ...this.guestHttpOptions,
+      ready:
+        this.guestHttpOptions.ready ??
+        ((): boolean =>
+          loopback && context.agent.guestProfileAvailable === true),
+    });
     const maintenance = new GuestStateMaintenance(context.runtimeState);
     context.daemons.register(
       "guest-maintenance",
@@ -168,7 +200,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
 
     context.endpoints.register({
       label: "Chat",
-      url: this.config.routePath,
+      url: this.authenticatedRoutePath,
       priority: 15,
       visibility: "trusted",
       requiresActiveSession: true,
@@ -177,7 +209,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
       id: "web-chat",
       label: "Chat",
       description: "Chat with this brain in the browser.",
-      href: this.config.routePath,
+      href: this.authenticatedRoutePath,
       kind: "human",
       priority: 15,
       visibility: "trusted",
@@ -193,7 +225,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
       resolve: ({ sourceId, item }) => {
         if (!context.inbox.getSource(sourceId)?.resolveDetail) return undefined;
         return {
-          href: this.config.routePath,
+          href: this.authenticatedRoutePath,
           state: createWebChatInboxPrefillState(
             "Help me understand this Inbox item and decide what to do next.",
             {
@@ -208,7 +240,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
   }
 
   override getWebRoutes(): WebRouteDefinition[] {
-    return createWebChatRoutes({
+    const routes = createWebChatRoutes({
       routePath: this.config.routePath,
       apiPath: this.config.apiPath,
       handlers: {
@@ -250,6 +282,37 @@ export class WebChatInterface extends MessageInterfacePlugin<
           this.handleUploadDownloadRequest(request),
       },
     });
+    if (this.guestPolicy.enabled)
+      routes.push({
+        path: this.authenticatedRoutePath,
+        method: "GET",
+        public: true,
+        handler: (request): Promise<Response> =>
+          this.handleAuthenticatedChatPage(request),
+      });
+    if (this.guestPolicy.enabled) {
+      routes.push({
+        path: "/ask/assets/guest.js",
+        method: "GET",
+        public: true,
+        handler: (): Promise<Response> =>
+          this.handleBuiltUiFile(
+            uiAssetFile.replace(/app\.js$/, "guest.js"),
+            "text/javascript; charset=utf-8",
+          ),
+      });
+      routes.push({
+        path: "/ask/assets/guest.css",
+        method: "GET",
+        public: true,
+        handler: (): Promise<Response> =>
+          this.handleBuiltUiFile(
+            uiStylesheetFile.replace(/app\.css$/, "guest.css"),
+            "text/css; charset=utf-8",
+          ),
+      });
+    }
+    return [...routes, ...(this.guestHttp?.routes(this.config.apiPath) ?? [])];
   }
 
   protected override sendMessageToChannel(
@@ -341,7 +404,38 @@ export class WebChatInterface extends MessageInterfacePlugin<
     });
   }
 
+  private get authenticatedRoutePath(): string {
+    return this.guestPolicy.enabled
+      ? `${this.config.routePath.replace(/\/+$/, "")}/authenticated`
+      : this.config.routePath;
+  }
+
   private async handleChatPage(request: Request): Promise<Response> {
+    if (this.guestPolicy.enabled) {
+      if (new URL(request.url).origin !== this.guestPolicy.origin)
+        return new Response("Guest access unavailable", {
+          status: 503,
+          headers: { "Cache-Control": "no-store" },
+        });
+      return new Response(
+        renderGuestChatPage({
+          apiPath: `${createChatApiPaths(this.config.apiPath).stream}/guest`,
+          themeCSS: this.getContext().themeCSS,
+        }),
+        {
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "no-store",
+          },
+        },
+      );
+    }
+    return this.handleAuthenticatedChatPage(request);
+  }
+
+  private async handleAuthenticatedChatPage(
+    request: Request,
+  ): Promise<Response> {
     const { principal, hasChatAccess } =
       await this.resolveBrowserAccess(request);
     if (!hasChatAccess) {

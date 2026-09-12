@@ -9,11 +9,11 @@ describe("guest policy", () => {
     expect(webChatConfigSchema.parse({})).toEqual({
       routePath: "/ask",
       apiPath: "/api/chat",
-      guest: { enabled: false },
+      guest: false,
     });
   });
 
-  it("requires an explicit complete policy rather than adopting launch proposals", () => {
+  it("requires a complete internal policy after preset resolution", () => {
     expect(guestPolicySchema.safeParse({ enabled: true }).success).toBe(false);
     expect(guestPolicySchema.safeParse(testGuestPolicy).success).toBe(true);
     for (const key of [

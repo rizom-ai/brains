@@ -85,7 +85,32 @@ export class GuestAdmission {
     }
   }
 
-  /** visitor and conversation must come from server-owned credential/history reads. */
+  /** Never creates, refreshes, cleans up or settles a receipt. Caller must own the conversation. */
+  async status(
+    visitor: GuestVisitor,
+    conversation: WebChatConversation,
+    submissionId: string,
+  ): Promise<GuestAdmissionReceipt["state"] | undefined> {
+    if (!submissionId.trim() || submissionId.length > 256) return undefined;
+    const now = this.now();
+    if (
+      !Number.isSafeInteger(now) ||
+      !canAccessGuestConversation(conversation, visitor, this.policy, now)
+    )
+      return undefined;
+    const state = await this.store.get(this.key);
+    if (!state || now < state.lastSeenAt) return undefined;
+    return state.receipts[
+      digest(this.policy.origin, visitor.id, conversation.id, submissionId)
+    ]?.state;
+  }
+
+  /**
+   * Visitor must come from a server-owned credential read. Conversation must be
+   * an owned history read or a server-minted, unpublished creation candidate.
+   * Persist a candidate only after a fresh reservation; never execute against an
+   * unpersisted candidate or use a duplicate receipt to recreate deleted history.
+   */
   async reserve(
     visitor: GuestVisitor,
     conversation: WebChatConversation,

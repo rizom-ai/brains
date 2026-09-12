@@ -443,7 +443,13 @@ function getSourceScore(
 
 const actionsCardSchema = ActionsCardSchema;
 
-export function SourcesPart({ data }: { data: unknown }): React.ReactElement {
+export function SourcesPart({
+  data,
+  openInNewTab = false,
+}: {
+  data: unknown;
+  openInNewTab?: boolean;
+}): React.ReactElement {
   const parsed = sourcesCardSchema.safeParse(data);
   if (!parsed.success) {
     return <GenericDataPart type="data-sources" data={data} />;
@@ -469,7 +475,13 @@ export function SourcesPart({ data }: { data: unknown }): React.ReactElement {
             const label = getSourceLabel(source);
             const score = getSourceScore(source);
             const title = source.url ? (
-              <a href={source.url}>{label}</a>
+              <a
+                href={source.url}
+                target={openInNewTab ? "_blank" : undefined}
+                rel={openInNewTab ? "noopener noreferrer" : undefined}
+              >
+                {label}
+              </a>
             ) : (
               <span>{label}</span>
             );
