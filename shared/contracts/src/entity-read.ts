@@ -16,3 +16,9 @@ export const entityReadBudgetSchema: z.ZodObject<
   queryCharacters: z.number().int().positive(),
 });
 export type EntityReadBudget = z.output<typeof entityReadBudgetSchema>;
+
+/** Server-owned query embedding capability; never accepted from JSON tool input. */
+export type QueryEmbedding = (
+  query: string,
+  signal: AbortSignal,
+) => Promise<Float32Array>;

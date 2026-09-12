@@ -1,7 +1,11 @@
 import type { McpServer, ToolAnnotations } from "@modelcontextprotocol/server";
 import { type ProgressNotification } from "@brains/utils/progress";
 import { z, type ZodRawShape } from "@brains/utils/zod";
-import { actorRefSchema, type ActorRef } from "@brains/contracts";
+import {
+  actorRefSchema,
+  type ActorRef,
+  type QueryEmbedding,
+} from "@brains/contracts";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { GuestExecutionPolicy } from "@brains/contracts/chat";
 // Re-exported beside ToolVisibility so consumers can validate an untrusted
@@ -26,6 +30,8 @@ export interface ToolContext {
   signal?: AbortSignal;
   /** Server-owned execution policy; deliberately absent from routing schemas. */
   guestExecution?: GuestExecutionPolicy;
+  /** One prepaid query embedding for the active guest search tool only. */
+  guestQueryEmbedding?: QueryEmbedding;
 
   // Routing metadata for job creation (required for proper context propagation)
   interfaceType: string; // Which interface called the tool (e.g., "mcp", "cli", "matrix")

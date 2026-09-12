@@ -2,6 +2,7 @@ import type { EntitySearchDB } from "./db";
 import {
   entityReadBudgetSchema,
   type EntityReadBudget,
+  type QueryEmbedding,
 } from "@brains/contracts";
 import { entityRowBudgetCondition } from "./bounded-reads";
 import {
@@ -68,6 +69,9 @@ const searchOptionsSchema = z.object({
   includeUngenerated: z.boolean().optional().default(false),
   minScore: z.number().min(0).optional(),
   readBudget: entityReadBudgetSchema.optional(),
+  queryEmbedding: z
+    .custom<QueryEmbedding>((value) => typeof value === "function")
+    .optional(),
   signal: z.instanceof(AbortSignal).optional(),
 });
 
@@ -121,6 +125,7 @@ export class EntitySearch {
       includeUngenerated,
       minScore,
       readBudget,
+      queryEmbedding,
       signal,
     } = validatedOptions;
     const limit = readBudget
@@ -157,13 +162,20 @@ export class EntitySearch {
     }
 
     // Generate embedding for the query
-    const { embedding: queryEmbedding } = await (signal
-      ? this.embeddingService.generateEmbedding(preparedQuery, signal)
-      : this.embeddingService.generateEmbedding(preparedQuery));
+    if (queryEmbedding && !signal)
+      throw new Error("Query embedding signal required");
+    const vector =
+      queryEmbedding && signal
+        ? await queryEmbedding(preparedQuery, signal)
+        : (
+            await (signal
+              ? this.embeddingService.generateEmbedding(preparedQuery, signal)
+              : this.embeddingService.generateEmbedding(preparedQuery))
+          ).embedding;
     signal?.throwIfAborted();
 
     // Convert Float32Array to JSON array for SQL
-    const embeddingArray = JSON.stringify(Array.from(queryEmbedding));
+    const embeddingArray = JSON.stringify(Array.from(vector));
 
     const weightMultiplier = this.buildWeightMultiplier(
       hasWeights ? weight : undefined,

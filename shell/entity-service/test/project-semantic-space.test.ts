@@ -1,10 +1,10 @@
 import { createTestEntity } from "../src/test/index";
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test, spyOn } from "bun:test";
 import {
   setupEntityService,
   type EntityServiceTestContext,
 } from "./helpers/setup-entity-service";
-import { MOCK_DIMENSIONS } from "./helpers/mock-services";
+import { MOCK_DIMENSIONS, mockEmbeddingService } from "./helpers/mock-services";
 import {
   imageAdapter,
   imageSchema,
@@ -82,6 +82,69 @@ describe("projectSemanticSpace", () => {
         ?.distanceToOrigin,
     ).toBeCloseTo(1);
     expect(result.distanceRange).toEqual({ min: 0, max: 1 });
+  });
+
+  test("prepaid public search and map projection share an enabled index without changing its provider", async () => {
+    await seedEmbedding({ id: "origin", values: [1, 0] });
+    await seedEmbedding({ id: "near", values: [1, 0] });
+    await seedEmbedding({
+      id: "private",
+      visibility: "restricted",
+      values: [1, 0],
+    });
+    const provider = spyOn(mockEmbeddingService, "generateEmbedding");
+    let queries = 0;
+    const signal = new AbortController().signal;
+    try {
+      const results = await ctx.entityService.search({
+        query: "Content",
+        options: {
+          visibilityScope: "public",
+          readBudget: { rows: 5, rowBytes: 1000, queryCharacters: 40 },
+          signal,
+          queryEmbedding: async (_query, suppliedSignal) => {
+            expect(suppliedSignal).toBe(signal);
+            queries++;
+            const vector = new Float32Array(MOCK_DIMENSIONS);
+            vector[0] = 1;
+            return vector;
+          },
+        },
+      });
+      expect(results.map(({ entity }) => entity.id).sort()).toEqual([
+        "near",
+        "origin",
+      ]);
+      const map = await ctx.entityService.projectSemanticSpace({
+        types: ["test"],
+        visibilityScope: "public",
+        origin: { entityId: "origin", entityType: "test" },
+      });
+      expect(map.points.map(({ entityId }) => entityId)).toEqual(["near"]);
+      expect(queries).toBe(1);
+      expect(provider).not.toHaveBeenCalled();
+      const denied = await ctx.entityService
+        .search({
+          query: "Content",
+          options: {
+            signal,
+            queryEmbedding: async () => {
+              throw new Error("Guest query embedding unavailable");
+            },
+          },
+        })
+        .catch((error: unknown) => error);
+      expect(denied).toBeInstanceOf(Error);
+      expect(denied).toMatchObject({
+        message: "Guest query embedding unavailable",
+      });
+      expect(provider).not.toHaveBeenCalled();
+      await ctx.entityService.search({ query: "Content" });
+      expect(provider).toHaveBeenCalledTimes(1);
+      expect(queries).toBe(1);
+    } finally {
+      provider.mockRestore();
+    }
   });
 
   test("filters projected points by entity type", async () => {

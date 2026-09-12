@@ -60,6 +60,13 @@ function combineAbortSignals(
 type ConversationActor = ReturnType<typeof createActor<typeof agentMachine>>;
 
 export class AgentService implements IAgentService {
+  get guestProfileAvailable(): boolean {
+    return (
+      this.agentFactory.guestProfileAvailable === true &&
+      (!this.indexReadiness || this.indexReadiness.isIndexReady())
+    );
+  }
+
   private mcpService: IMCPService;
   private identityService: IBrainCharacterService;
   private profileService: IAnchorProfileService;

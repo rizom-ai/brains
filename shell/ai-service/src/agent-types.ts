@@ -135,7 +135,10 @@ export interface BrainAgent {
 /**
  * Factory function type for creating brain agents
  */
-export type BrainAgentFactory = (config: BrainAgentConfig) => BrainAgent;
+export type BrainAgentFactory = ((config: BrainAgentConfig) => BrainAgent) & {
+  /** A paired guest model/accounting profile is installed; not transport admission. */
+  readonly guestProfileAvailable?: boolean;
+};
 
 /**
  * The part of the canonical identity service that fills in an actor.
@@ -225,6 +228,7 @@ export interface ChatContext {
  * Agent service interface
  */
 export interface IAgentService {
+  readonly guestProfileAvailable?: boolean;
   /**
    * Send a message to the agent and get a response
    * @param message - The user's message

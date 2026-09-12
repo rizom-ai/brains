@@ -8,6 +8,7 @@
  */
 import { ToolLoopAgent, stepCountIs, type LanguageModel } from "ai";
 import { guestInterfaceType } from "@brains/contracts/chat";
+import type { GuestModelProfile } from "./openai-guest-profile";
 import {
   assertGuestPermission,
   guestInstructions,
@@ -97,6 +98,8 @@ export interface BrainAgentFactoryOptions {
   messageBus: IMessageBus;
   /** Required for guests: verified model token/cost and retrieval cost accounting. */
   guestAccounting?: GuestExecutionAccounting;
+  /** Coupled, reviewed guest model/accounting profile; authenticated model is unchanged. */
+  guestProfile?: GuestModelProfile;
 }
 
 /**
@@ -117,12 +120,16 @@ export function createBrainAgentFactory(
     reasoningEffort,
     messageBus,
   } = options;
+  if (options.guestProfile && options.guestAccounting)
+    throw new Error("Ambiguous guest accounting configuration");
   const capabilities = resolveTextModelCapabilities(modelId);
 
   // Create event emitter backed by message bus
   const emitter = createMessageBusEmitter(messageBus);
 
-  return function createBrainAgent(config: BrainAgentConfig): BrainAgent {
+  const factory: BrainAgentFactory = function createBrainAgent(
+    config: BrainAgentConfig,
+  ): BrainAgent {
     // SDK requires `tools` at construction; prepareCall replaces them per-call
     // with the right context, and activeTools filters by permission.
     const allTools = convertToSDKTools(
@@ -136,7 +143,9 @@ export function createBrainAgentFactory(
 
     const createSDKAgent = (budget?: GuestTurnBudget): BrainAgent =>
       new ToolLoopAgent({
-        model: budget ? budget.wrapModel(model) : model,
+        model: budget
+          ? budget.wrapModel(options.guestProfile?.model ?? model)
+          : model,
         callOptionsSchema: brainCallOptionsSchema,
 
         // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
@@ -180,6 +189,7 @@ export function createBrainAgentFactory(
             },
             emitter,
             budget,
+            options.guestProfile?.queryEmbedding,
           );
 
           return {
@@ -253,7 +263,7 @@ export function createBrainAgentFactory(
           throw new Error("Guest input limit exceeded");
         const budget = new GuestTurnBudget(
           policy,
-          options.guestAccounting,
+          options.guestProfile?.accounting ?? options.guestAccounting,
           params.abortSignal,
         );
         try {
@@ -268,4 +278,7 @@ export function createBrainAgentFactory(
       },
     };
   };
+  return Object.assign(factory, {
+    guestProfileAvailable: options.guestProfile !== undefined,
+  });
 }

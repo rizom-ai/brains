@@ -9,7 +9,10 @@
  */
 
 import type { AgentContextItem } from "@brains/contracts";
-import { guestInterfaceType } from "@brains/contracts/chat";
+import {
+  guestInterfaceType,
+  getGuestSourceCards,
+} from "@brains/contracts/chat";
 import {
   assertGuestPermission,
   isGuestToolAllowed,
@@ -616,7 +619,15 @@ export class TurnProcessor {
     actorAlreadyEnriched?: boolean;
     guest?: boolean;
   }): Promise<{ metadata: Record<string, unknown> } | Record<string, never>> {
-    if (params.guest) return { metadata: { userPermissionLevel: "public" } };
+    if (params.guest) {
+      const cards = getGuestSourceCards(params.cards);
+      return {
+        metadata: {
+          userPermissionLevel: "public",
+          ...(cards.length ? { cards } : {}),
+        },
+      };
+    }
     const {
       actorAlreadyEnriched = false,
       guest: _guest,

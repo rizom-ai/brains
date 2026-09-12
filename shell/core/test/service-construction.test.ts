@@ -30,6 +30,63 @@ function createTestConfig(dir: string): ShellConfigInput {
 }
 
 describe("Shell service construction", () => {
+  it.each([
+    { model: "gpt-5.6-luna", embeddings: false, available: false },
+    { model: "gpt-5.6-luna", embeddings: true, available: true },
+    { model: "claude-haiku-4-5", embeddings: false, available: false },
+  ])(
+    "installs guest accounting for the reviewed semantic/model combination: %j",
+    async ({ model, embeddings, available }) => {
+      const testDir = await createTestDirectory();
+      const network = spyOn(globalThis, "fetch").mockImplementation(
+        Object.assign(
+          async (): Promise<never> => {
+            throw new Error("Construction must not call a provider");
+          },
+          { preconnect: (): void => {} },
+        ),
+      );
+      try {
+        const shell = Shell.createFresh(
+          {
+            ...createTestConfig(testDir.dir),
+            ai: { model, apiKey: "test-key" },
+            embedding: { enabled: embeddings },
+          },
+          { logger: createSilentLogger() },
+        );
+        try {
+          const readiness = spyOn(shell.getEntityService(), "isIndexReady");
+          readiness.mockReturnValue(true);
+          expect(shell.getAgentService().guestProfileAvailable).toBe(available);
+          readiness.mockReturnValue(false);
+          expect(shell.getAgentService().guestProfileAvailable).toBe(false);
+          readiness.mockRestore();
+          const request = shell
+            .getAgentService()
+            .chat("Check readiness", "not-started", {
+              interfaceType: "web-chat-guest",
+              userPermissionLevel: "public",
+            });
+          if (embeddings) {
+            expect((await request).text).toContain("knowledge base ready");
+          } else {
+            // Lexical mode must reach normal request validation, not wait for
+            // a semantic index that is intentionally never built. No policy
+            // is supplied, so this probe cannot reach provider execution.
+            expect(request).rejects.toThrow("Guest execution limits required");
+          }
+          expect(network).not.toHaveBeenCalled();
+        } finally {
+          await shell.shutdown();
+        }
+      } finally {
+        network.mockRestore();
+        await testDir.cleanup();
+      }
+    },
+  );
+
   it("registers dormant guest retention maintenance and drains it before closing conversation storage", async () => {
     const testDir = await createTestDirectory();
     const scheduler = new TestSchedulerBackend();

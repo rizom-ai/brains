@@ -37,6 +37,9 @@ export function createPublicAgentNamespace(
   agentService: RuntimeAgentService,
 ): AgentNamespace {
   return {
+    get guestProfileAvailable(): boolean {
+      return agentService.guestProfileAvailable === true;
+    },
     chat: async (
       message,
       conversationId,

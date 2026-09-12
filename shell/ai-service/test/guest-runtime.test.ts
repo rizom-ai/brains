@@ -315,6 +315,52 @@ describe("guest runtime boundary", () => {
     expect(h.conversations.addMessage).toHaveBeenCalledTimes(2);
   });
 
+  it("persists only projected source cards in guest history", async () => {
+    const h = harness();
+    h.generate.mockResolvedValue({
+      text: "Public answer",
+      usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2 },
+      steps: [
+        {
+          toolCalls: [
+            {
+              toolName: "system_get",
+              toolCallId: "read",
+              input: { entityType: "note", id: "public-note" },
+            },
+          ],
+          toolResults: [
+            {
+              toolName: "system_get",
+              toolCallId: "read",
+              output: {
+                success: true,
+                data: {
+                  entity: {
+                    id: "public-note",
+                    entityType: "note",
+                    content: "Public evidence",
+                    metadata: {
+                      title: "Public note",
+                      url: "https://example.org/source",
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+    });
+    await h.service.chat("What is public?", conversation.id, guestContext);
+    const stored = JSON.stringify(h.conversations.addMessage.mock.calls);
+    expect(stored).toContain("sources:tool-results");
+    expect(stored).toContain("note:public-note");
+    expect(stored).not.toContain("provenance");
+    expect(stored).not.toContain("system_get");
+    expect(stored).not.toContain("PRIVATE");
+  });
+
   it("keeps operator and guest agent caches separate and invalidates both", async () => {
     const h = harness();
     h.conversations.getConversation.mockImplementation(async (id) =>

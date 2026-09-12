@@ -6,6 +6,7 @@ import {
   jsonValueSchema,
   type ActorRef,
   type JsonValue,
+  type QueryEmbedding,
 } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { isPlainRecord } from "@brains/utils/predicates";
@@ -155,6 +156,7 @@ export function convertToSDKTools(
   contextInfo: ToolContextInfo,
   emitter: ToolEventEmitter,
   guestBudget?: GuestTurnBudget,
+  queryEmbedding?: QueryEmbedding,
 ): ToolSet {
   assertGuestPermission(contextInfo);
   const guest = contextInfo.interfaceType === guestInterfaceType;
@@ -186,6 +188,7 @@ export function convertToSDKTools(
         if (guest && !guestBudget)
           throw new Error("Guest execution limits required");
         const signal = guestBudget?.signal ?? options?.abortSignal;
+        let embeddingUsed = false;
         const context: ToolContext = {
           interfaceType: contextInfo.interfaceType,
           actor: contextInfo.actor ?? {
@@ -212,6 +215,21 @@ export function convertToSDKTools(
           ...(guest &&
             guestBudget && {
               guestExecution: structuredClone(guestBudget.policy),
+              guestQueryEmbedding: async (
+                query,
+                embeddingSignal,
+              ): Promise<Float32Array> => {
+                if (
+                  t.name !== "system_search" ||
+                  !queryEmbedding ||
+                  embeddingUsed ||
+                  embeddingSignal !== signal
+                )
+                  throw new Error("Guest query embedding denied");
+                embeddingSignal.throwIfAborted();
+                embeddingUsed = true;
+                return queryEmbedding(query, embeddingSignal);
+              },
             }),
         };
         if (t.sideEffects !== "none") {

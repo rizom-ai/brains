@@ -38,6 +38,16 @@ export type {
 export { AgentService } from "./agent-service";
 export { buildAssistantActor, createBrainAgentId } from "./assistant-actor";
 export { createBrainAgentFactory } from "./brain-agent";
+export {
+  createOpenAiGuestProfile,
+  openAiGuestContextTokens,
+  openAiGuestEmbeddingModel,
+  openAiGuestEmbeddingDimensions,
+} from "./openai-guest-profile";
+export type {
+  GuestModelProfile,
+  OpenAiGuestProfileOptions,
+} from "./openai-guest-profile";
 export type {
   GuestExecutionAccounting,
   GuestModelCall,

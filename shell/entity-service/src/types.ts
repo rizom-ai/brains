@@ -1,5 +1,9 @@
 import type { PreparedAsset } from "@brains/assets";
-import type { ActorRef, EntityReadBudget } from "@brains/contracts";
+import type {
+  ActorRef,
+  EntityReadBudget,
+  QueryEmbedding,
+} from "@brains/contracts";
 import type { ProjectionStore } from "./projection-store";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
 import type {
@@ -508,6 +512,8 @@ export interface EntityReadOptions {
    * image references unexpanded. Not a bound on database or adapter execution.
    */
   readBudget?: EntityReadBudget;
+  /** Request-owned embedding capability, e.g. a prepaid guest search. */
+  queryEmbedding?: QueryEmbedding;
   /** Cooperative boundary checks, not proof of remote SQL cancellation. */
   signal?: AbortSignal;
 }

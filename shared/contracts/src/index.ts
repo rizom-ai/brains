@@ -1,4 +1,8 @@
-export { entityReadBudgetSchema, type EntityReadBudget } from "./entity-read";
+export {
+  entityReadBudgetSchema,
+  type EntityReadBudget,
+  type QueryEmbedding,
+} from "./entity-read";
 export {
   AGENT_ACTION_REQUEST_CHANNEL,
   agentActionRequestSchema,

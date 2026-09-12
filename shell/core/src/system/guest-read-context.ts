@@ -26,5 +26,10 @@ export function guestReadOptions(context: ToolContext): EntityReadOptions {
   return {
     readBudget: execution.data.limits.retrieval,
     signal: context.signal,
+    queryEmbedding:
+      context.guestQueryEmbedding ??
+      (async (): Promise<never> => {
+        throw new Error("Guest query embedding unavailable");
+      }),
   };
 }
