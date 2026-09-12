@@ -776,6 +776,7 @@ export type {
   RegisteredWebRoute,
   WebRouteMethod,
   WebRouteHandler,
+  WebRouteTransportContext,
   WebRouteMatch,
   JsonResponseInit,
 } from "./types/web-routes";

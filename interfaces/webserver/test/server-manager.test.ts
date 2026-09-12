@@ -146,6 +146,70 @@ describe("ServerManager (in-process)", () => {
     return manager;
   }
 
+  it("passes only Bun socket metadata to routes, never forwarded or Host headers", async () => {
+    testDir = mkdtempSync(join(tmpdir(), "peer-routing-"));
+    let dispatch: Parameters<ServeFn>[0]["fetch"] | undefined;
+    manager = new ServerManager({
+      logger: createSilentLogger("test"),
+      productionDistDir: testDir,
+      sharedImagesDir: testDir,
+      productionPort: 0,
+      getRoutes: (): RegisteredHttpRoute[] => [
+        handlerRoute("test", "/peer", (_request, transport) =>
+          Response.json({ remoteAddress: transport?.remoteAddress ?? null }),
+        ),
+      ],
+      serve: (options): ReturnType<ServeFn> => {
+        dispatch = options.fetch;
+        return { port: 0, stop(): void {} };
+      },
+    });
+    await manager.start();
+    if (!dispatch) throw new Error("Fetch handler missing");
+    const request = (): Request =>
+      new Request("http://127.0.0.1/peer", {
+        headers: {
+          Host: "localhost",
+          Forwarded: "for=127.0.0.1",
+          "X-Forwarded-For": "127.0.0.1",
+          "X-Real-IP": "127.0.0.1",
+        },
+      });
+    const remote = await dispatch(request(), {
+      requestIP: () => ({ address: "192.0.2.1" }),
+    });
+    expect(await remote.json()).toEqual({ remoteAddress: "192.0.2.1" });
+    const unknown = await dispatch(request());
+    expect(await unknown.json()).toEqual({ remoteAddress: null });
+    const absent = await dispatch(request(), { requestIP: () => null });
+    expect(await absent.json()).toEqual({ remoteAddress: null });
+  });
+
+  it("passes the actual Bun socket peer through a running listener", async () => {
+    testDir = mkdtempSync(join(tmpdir(), "peer-listener-"));
+    manager = new ServerManager({
+      logger: createSilentLogger("test"),
+      hostname: "127.0.0.1",
+      productionDistDir: testDir,
+      sharedImagesDir: testDir,
+      productionPort: 0,
+      getRoutes: (): RegisteredHttpRoute[] => [
+        handlerRoute("test", "/peer", (_request, transport) =>
+          Response.json({ remoteAddress: transport?.remoteAddress ?? null }),
+        ),
+      ],
+    });
+    await manager.start();
+    const url = manager.getStatus().productionUrl;
+    if (!url) throw new Error("Listener missing");
+    const response = await fetch(`${url}/peer`, {
+      headers: { "X-Forwarded-For": "192.0.2.1" },
+    });
+    expect(await response.text()).toMatch(
+      /"remoteAddress":"(?:::ffff:)?127\.0\.0\.1"/,
+    );
+  });
+
   it("should start and serve production site", async () => {
     const m = setup();
     await m.start();
@@ -1054,10 +1118,10 @@ describe("ServerManager (in-process)", () => {
   // capturing the exact options ServerManager passes to Bun.serve.
   describe("Bun.serve idle timeout", () => {
     function captureServeOptions(): {
-      options: () => { idleTimeout?: number } | undefined;
+      options: () => { idleTimeout?: number; hostname?: string } | undefined;
       serve: ServeFn;
     } {
-      let captured: { idleTimeout?: number } | undefined;
+      let captured: { idleTimeout?: number; hostname?: string } | undefined;
       // port and stop are the whole surface ServerManager uses, so the fake
       // server can be exactly that and still be checked.
       const serve: ServeFn = (opts) => {
@@ -1070,6 +1134,7 @@ describe("ServerManager (in-process)", () => {
     function setupWithServe(
       serve: ServeFn,
       idleTimeout?: number,
+      hostname?: string,
     ): ServerManager {
       testDir = mkdtempSync(join(tmpdir(), "webserver-idle-"));
       const prodDir = join(testDir, "dist", "production");
@@ -1085,6 +1150,7 @@ describe("ServerManager (in-process)", () => {
         productionPort: 0,
         serve,
         ...(idleTimeout !== undefined ? { idleTimeout } : {}),
+        ...(hostname ? { hostname } : {}),
       });
       manager = m;
       return m;
@@ -1097,6 +1163,12 @@ describe("ServerManager (in-process)", () => {
       // Without this, Bun falls back to its 10s default and closes a slow
       // first-turn /api/chat stream mid-flight.
       expect(options()?.idleTimeout).toBe(WEBSERVER_IDLE_TIMEOUT_SECONDS);
+    });
+
+    it("passes an explicit loopback binding to Bun.serve", async () => {
+      const { options, serve } = captureServeOptions();
+      await setupWithServe(serve, undefined, "127.0.0.1").start();
+      expect(options()?.hostname).toBe("127.0.0.1");
     });
 
     it("lets callers override the idle timeout", async () => {
