@@ -9,7 +9,8 @@ import {
   CHAT_CONVERSATION_ID_HEADER,
   type GuestChatSessionResponse,
 } from "@brains/contracts/chat";
-import { GuestApp, type GuestBoxCopy } from "./GuestApp";
+import { GuestApp } from "./GuestApp";
+import type { GuestBoxCopy } from "./GuestBox";
 const boxCopy: GuestBoxCopy = {
   title: "Ask this brain",
   notice: "Public chat",

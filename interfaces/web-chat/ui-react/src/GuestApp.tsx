@@ -12,7 +12,7 @@ import {
   type GuestChatSessionResponse,
 } from "@brains/contracts/chat";
 import { GuestTranscript } from "./GuestTranscript";
-import { GuestBox, type GuestBoxState } from "./GuestBox";
+import { GuestBox, type GuestBoxCopy, type GuestBoxState } from "./GuestBox";
 import { createWebChatClient } from "./web-chat-client";
 import { openGuestBrowserSession } from "./guest-session";
 
@@ -51,14 +51,6 @@ function savedLocator(value?: string): string | undefined {
     // Storage can be disabled. Never fall back to persisting transcript text.
     return undefined;
   }
-}
-
-export interface GuestBoxCopy {
-  title: string;
-  notice: string;
-  inputHint: string;
-  topicsLabel: string;
-  topics: string[];
 }
 
 export function GuestApp({

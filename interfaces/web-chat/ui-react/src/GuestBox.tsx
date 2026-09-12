@@ -11,8 +11,15 @@ import type {
   ChatHistoryMessage,
   GuestChatSessionResponse,
 } from "@brains/contracts/chat";
-import type { GuestBoxCopy } from "./GuestApp";
 import { GuestTranscript } from "./GuestTranscript";
+
+export interface GuestBoxCopy {
+  title: string;
+  notice: string;
+  inputHint: string;
+  topicsLabel: string;
+  topics: string[];
+}
 
 export type GuestBoxState =
   | "connecting"

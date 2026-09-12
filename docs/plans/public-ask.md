@@ -4,11 +4,11 @@
 
 **The user reported the manual localhost `/ask` test working.** The standalone guest UI and HTTP flow are wired and tested with mocks: establish a session, ask, follow up, reload history, deliberately retry and delete an owned conversation. Independent provider/billing verification and complete live follow-up/history/deletion verification remain.
 
-- The feature is merged into local `main`; nothing has been pushed, released or deployed.
+- Code was pushed through `71104c6a81` with release approval. Site Release published `0.2.0-alpha.249`; Core Release was skipped after Core CI failed, and Architecture CI also failed. The corrective changes below are pending CI confirmation. Content remains unpushed and production pins are unchanged.
 - **Use the existing `#brain-chat` hero box from `feat/rizom-brain-landing` (`9a8329cca4`). The separate panel was rejected.** Its site-design diff has been applied to this integration worktree, without merging branches or changing the original site worktree. Rejected panel work is archived in `/tmp/public-ask-rejected-panel`; it is no longer the active implementation.
 - Guest access is **default-off**. The opt-in localhost test requires trusted loopback transport, a supported profile, index readiness and admission; production HTTPS admission remains default-closed.
-- Implementation of the product scope is approved. Production limits, provider/spending policy, disclosures, release and deployment are **not approved**.
-- Latest code commit: `1a8f8df4a3` (Brain landing/local network). Incremental snapshots were checked independently of the remaining working-tree changes, and normal commit hooks passed. The canonical same-brain browser check used synthetic providers, not paid calls.
+- Implementation and code/package releases are approved. Production limits, provider/spending policy, disclosures, content rollout and deployment are **not approved**.
+- Incremental snapshots and normal commit hooks passed, but the pre-push checks missed dependency architecture and SDK mock leakage across test files. These were validation gaps, not proof of CI readiness. The canonical same-brain browser checks use synthetic providers, not paid calls.
 - Committed integration uses `/api/chat/guest`, the existing Chat client/protocol, Markdown presentation and agent/conversation namespaces. New conversations require fresh admission; retries retain submission identity and pin the server locator once known. Delivery includes text and bounded search/get source cards, never action or attachment cards. The existing sources component is reused; projected citations persist in owned history and survive refresh. Raw provenance, context cards and unsafe navigation are dropped. This projection is not an authorization mechanism: public visibility still comes from the guest-scoped read tools.
 - When guest policy is enabled, the configured page (default `/ask`) renders the guest presentation even for signed-in operators. Standalone authenticated Chat remains at `/ask/authenticated` (relative to the configured page); operator discovery and Inbox links point there. With guest policy off, the existing authenticated page is unchanged. Studio `/chat` is not modified.
 - The UI shows provider/retention/deletion disclosures before first send, preserves visible partial replies on failure, distinguishes new conversation from confirmed deletion, and stores only conversation locators in tab-scoped session storage. Markdown images, executable HTML and unsafe links are blocked. No generation occurs on mount.
@@ -21,12 +21,13 @@ This plan covers the visitor posture anticipated in Phase 5 of [Studio Chat inte
 
 Read-only checks confirmed the running core is `0.2.0-alpha.368`, deployment state pins `@rizom/site-rizom-ai` to `0.2.0-alpha.248`, and both versions are already published. Directory sync defaults to pulling content `main` every two minutes; imports can cause billable indexing and automatic preview rebuilds. The live server reports preview and production enabled. The published capture schema requires `intro` and `checks`, while the new schema requires `body`, `aside` and `capture`: neither direction is a safe schema-only/content-only cutover.
 
-Two separate lane entries are prepared:
+Release entries remain lane-scoped:
 
-- `.changeset/core--public-ask-semantic-guest.md`: the bundled Brain runtime and guest HTTP/UI.
-- `.changeset/site--brain-landing-local-network.md`: the landing page, section schemas and local network.
+- `.changeset/core--public-ask-semantic-guest.md`: the bundled Brain runtime and guest HTTP/UI, still pending.
+- `.changeset/site--brain-landing-local-network.md`: consumed by the independent site `0.2.0-alpha.249` release.
+- `.changeset/site--brain-chat-runtime-module-url.md`: the corrective browser-runtime import, pending.
 
-The read-only release-plan preview currently projects core `0.2.0-alpha.369` and site `0.2.0-alpha.249`. These are forecasts, not reservations or deployed versions; recheck before publication. The existing fixed core group also advances `@rizom/ops` and the other core members. This does not itself change fleet pins. Patch entries follow the existing alpha-release convention and do **not** imply that the old content schemas remain compatible. No compatibility shim is being introduced.
+The initial read-only preview projected core `0.2.0-alpha.369` and site `0.2.0-alpha.249`. Site published independently despite the other CI failures; the corrective site entry requires another release. Forecasts are not reservations or deployed versions; recheck before publication. The existing fixed core group also advances `@rizom/ops` and the other core members. This does not itself change fleet pins. Patch entries follow the existing alpha-release convention and do **not** imply that the old content schemas remain compatible. No compatibility shim is being introduced.
 
 ### 1. Publish artifacts without activating the content
 
@@ -52,7 +53,17 @@ Do not execute this phase until the concrete quiesce/import/build procedure and 
 
 Re-quiesce consumers and restore a matched code/site/content set, not just one half of the schema change. Revert only the relevant Brain sections through a reviewed forward commit; preserve unrelated content history and any post-cutover writes. Use database restoration only when its consistency and write-loss implications have been checked. Never restore older spending-ledger state to regain an allowance. Keep production serving a verified last-good output or an explicitly approved maintenance response until the matched state passes preview validation.
 
-Release preparation has not pushed, published, deployed, changed live sync or authorized new spend. Read-only impact evidence is in `/tmp/public-ask-push-impact/`; the published-artifact and controlled-cutover gates remain outstanding.
+The subsequently approved code push and independent site publication did not change live sync, production pins or spending allowances. Impact evidence is in `/tmp/public-ask-push-impact/`; the published-artifact and controlled-cutover gates remain outstanding.
+
+### CI correction
+
+The UI copy type now lives in the presentation component instead of creating a `GuestApp`/`GuestBox` dependency cycle. The hero boot script constructs an explicit same-origin runtime module URL: the Brain serves this asset, so it is not a site filesystem dependency. Architecture rules and exemptions were not relaxed.
+
+Running `aiService.test.ts` before `guest-model-boundary.test.ts` reproduced all four CI failures locally: the former replaces SDK exports process-wide. The seven real-SDK checks are preserved unchanged in `guest-model-boundary.check.ts`, run by the normal suite in a fresh subprocess, following the existing OpenAI profile test pattern. The previously failing order and a randomized AI-service suite pass. No assertions were removed or softened.
+
+The clean correction snapshot passed 100 uncached test tasks, 102 uncached typecheck tasks, 94 uncached lint tasks, all eight build tasks, 80 repository-script tests, package-surface checks, release-queue/docs/format checks and architecture with zero errors. Console visuals passed with process-local RGB font rendering; the host's default grayscale rendering differed from the committed baselines. No baseline, threshold or repository font setting was changed.
+
+Correction evidence is in `/tmp/public-ask-ci-fix/` and the fresh canonical same-brain browser fixture `/tmp/public-ask-ci-site/`. The browser test uses synthetic providers with no upstream transport, a running-app MCP preview rebuild, one query embedding and the native empty network state. All required CI results and exact published artifacts still need verification before any rollout.
 
 ## Next milestone: a real conversation at `/ask`
 

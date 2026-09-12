@@ -25,7 +25,12 @@
         sheet.onerror = reject;
       });
       document.head.append(sheet);
-      var loaded = await Promise.all([import("/ask/assets/guest.js"), styled]);
+      // This module is served by the Brain, not bundled inside the site package.
+      var guestModuleUrl = new URL(
+        "/ask/assets/guest.js",
+        window.location.origin,
+      ).href;
+      var loaded = await Promise.all([import(guestModuleUrl), styled]);
       loaded[0].mountGuestBox(body, sendRequested);
       mounted = true;
     } catch {
