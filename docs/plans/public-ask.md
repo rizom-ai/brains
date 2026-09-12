@@ -17,6 +17,43 @@
 
 This plan covers the visitor posture anticipated in Phase 5 of [Studio Chat integration](studio-chat-integration.md). The current sign-in restriction is temporary, not the intended visitor experience.
 
+## Release preparation and coordinated rollout — not activation approval
+
+Read-only checks confirmed the running core is `0.2.0-alpha.368`, deployment state pins `@rizom/site-rizom-ai` to `0.2.0-alpha.248`, and both versions are already published. Directory sync defaults to pulling content `main` every two minutes; imports can cause billable indexing and automatic preview rebuilds. The live server reports preview and production enabled. The published capture schema requires `intro` and `checks`, while the new schema requires `body`, `aside` and `capture`: neither direction is a safe schema-only/content-only cutover.
+
+Two separate lane entries are prepared:
+
+- `.changeset/core--public-ask-semantic-guest.md`: the bundled Brain runtime and guest HTTP/UI.
+- `.changeset/site--brain-landing-local-network.md`: the landing page, section schemas and local network.
+
+The read-only release-plan preview currently projects core `0.2.0-alpha.369` and site `0.2.0-alpha.249`. These are forecasts, not reservations or deployed versions; recheck before publication. The existing fixed core group also advances `@rizom/ops` and the other core members. This does not itself change fleet pins. Patch entries follow the existing alpha-release convention and do **not** imply that the old content schemas remain compatible. No compatibility shim is being introduced.
+
+### 1. Publish artifacts without activating the content
+
+After separate commit/push/release approval, let Core CI/Release and Site CI/Release process their respective queues. Do not run version/publish commands merely to preview their results. Wait for both workflows and verify the exact registry artifacts, their paired versions and the built guest assets. Do not push the content branch to remote `main` or change operator pins during this phase. Do not rely on `latest`, predict version numbers in deploy config, or assume the two release lanes complete atomically.
+
+### 2. Prove the packaged pair and establish the maintenance gate
+
+Test the exact published pair against all seven new Brain sections in a separate canary with isolated storage and synthetic providers. The source-level canonical publishing/browser check already passed; it is not proof of newly published artifacts. Verify the native local map, default-closed guest access and that retired network captures are absent. Do not point the canary at production storage or allow it to push to the live content repository.
+
+Before any production activation, obtain approval for the maintenance window, the affected consumer set and bounded provider work. Inventory every consumer of `rizom-content`; verify an operator-supported way to quiesce its sync and writes. Setting `autoSync: false` alone is not a proven gate: initial sync is separately controlled. Keep embeddings enabled. Do not reuse the closed local indexing allowance, reset guest reservations or mistake the guest turn cap for a background budget. Automatic site builds enable content generation, so the spending review must cover possible generation as well as embeddings; unapproved provider traffic must fail closed.
+
+Capture verified backups of content/Git state, entity and embedding stores, operational state, current pins and the last-good production output. Prove restoration before proceeding. Do not push deploy-repo configuration while still investigating: its Reconcile/Deploy workflows can activate changes automatically.
+
+### 3. Coordinated production cutover, only after the gate is satisfied
+
+With consumers and writes quiesced, reconcile fresh remote content history without force-pushing, and retain unrelated content changes. Align the new seven-section content with the exact new site/core pair before allowing the upgraded runtime to import or build. The checked desired-state locations are `cohorts/sites-primary.yaml` for the core override and `users/rizom-ai.yaml` for `siteOverride.version`; recheck membership before changing the cohort, and do not bump the global fleet version for this one-site rollout. Generated user environment files remain CI-owned.
+
+Use the documented operator deployment/reconciliation path with the verified import/build gate. Wait for content import and indexing readiness, then explicitly rebuild **preview** through the running app's command surface and inspect the actual output. Inspect schema errors, sources, network behavior and provider accounting before an explicitly approved production build/promotion. Production guest admission stays closed; no synthetic or live question should silently consume a paid allowance. Resume normal sync/writes only after acceptance.
+
+Do not execute this phase until the concrete quiesce/import/build procedure and provider-spend enforcement are verified. The plan is not a claim that an atomic code/database/content swap already exists.
+
+### Rollback
+
+Re-quiesce consumers and restore a matched code/site/content set, not just one half of the schema change. Revert only the relevant Brain sections through a reviewed forward commit; preserve unrelated content history and any post-cutover writes. Use database restoration only when its consistency and write-loss implications have been checked. Never restore older spending-ledger state to regain an allowance. Keep production serving a verified last-good output or an explicitly approved maintenance response until the matched state passes preview validation.
+
+Release preparation has not pushed, published, deployed, changed live sync or authorized new spend. Read-only impact evidence is in `/tmp/public-ask-push-impact/`; the published-artifact and controlled-cutover gates remain outstanding.
+
 ## Next milestone: a real conversation at `/ask`
 
 **A visitor can open `/ask` without an account, send a real question, receive an answer grounded in public sources, and ask a follow-up in the same conversation in an isolated test app.**
