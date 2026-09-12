@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
+import { guestInterfaceType } from "@brains/contracts/chat";
 import { ConversationService } from "../src/conversation-service";
 import { createSilentLogger } from "@brains/test-utils";
 import type { Logger } from "@brains/utils/logger";
@@ -6,11 +7,19 @@ import type { ConversationDB } from "../src/database";
 import type {
   ConversationServiceConfig,
   ConversationMetadata,
+  StartConversationRequest,
 } from "../src/types";
 import { createTestConversationDatabase } from "./helpers/test-conversation-db";
 import type { Client } from "@libsql/client";
 import { MessageBus } from "@brains/messaging-service";
 import { coerceConversationMetadata } from "../src/metadata";
+import { sql, eq } from "drizzle-orm";
+import { conversations } from "../src/schema";
+import {
+  liveGuestConversation,
+  expiredGuestConversation,
+  conversationSqlNow,
+} from "../src/guest-retention";
 
 describe("ConversationService", () => {
   let service: ConversationService;
@@ -53,6 +62,447 @@ describe("ConversationService", () => {
   afterEach(async () => {
     // Clean up
     await cleanup();
+  });
+
+  describe("guest transcript isolation", () => {
+    const guestRequest: StartConversationRequest = {
+      sessionId: "visitor-secret-id",
+      interfaceType: guestInterfaceType,
+      channelId: "visitor-secret-id",
+      metadata: {
+        ...testMetadata,
+        interfaceType: guestInterfaceType,
+        guest: {
+          visitorId: "10c15c16-919e-4481-8fd4-07f11555a994",
+          retention: { idleSeconds: 86400, maxAgeSeconds: 604800 },
+        },
+      },
+    };
+
+    it("keeps guest transcripts out of broadcasts, summaries and routine logs", async () => {
+      const send = spyOn(messageBus, "send");
+      const debug = spyOn(logger, "debug");
+      await service.startConversation(guestRequest);
+      for (let index = 0; index < 6; index++) {
+        await service.addMessage({
+          conversationId: guestRequest.sessionId,
+          role: "user",
+          content: "visitor private text",
+        });
+      }
+      expect(await service.countMessages(guestRequest.sessionId)).toBe(6);
+      expect(send).not.toHaveBeenCalled();
+      const tracking = await client.execute("SELECT * FROM summary_tracking");
+      expect(tracking.rows).toHaveLength(0);
+      await service.updateConversationMetadata({
+        conversationId: guestRequest.sessionId,
+        metadata: { title: "visitor private title" },
+      });
+      await service.deleteConversation(guestRequest.sessionId);
+      expect(JSON.stringify(debug.mock.calls)).not.toContain("visitor");
+    });
+
+    it("excludes guests from general search and enumeration even when explicitly filtered", async () => {
+      await service.startConversation(guestRequest);
+      await service.addMessage({
+        conversationId: guestRequest.sessionId,
+        role: "user",
+        content: "shared search term",
+      });
+      await service.startConversation({
+        ...guestRequest,
+        sessionId: "operator",
+        interfaceType: "web-chat",
+      });
+      await service.addMessage({
+        conversationId: "operator",
+        role: "user",
+        content: "shared search term",
+      });
+      expect(
+        (await service.listConversations()).map((entry) => entry.id),
+      ).toEqual(["operator"]);
+      expect(
+        await service.listConversations({ interfaceType: guestInterfaceType }),
+      ).toEqual([]);
+      expect(
+        (await service.searchConversations("shared search term")).map(
+          (entry) => entry.id,
+        ),
+      ).toEqual(["operator"]);
+      expect(
+        await service.searchConversations(
+          "shared search term",
+          guestRequest.sessionId,
+        ),
+      ).toEqual([]);
+      expect(await service.getMessages(guestRequest.sessionId)).toHaveLength(1);
+    });
+
+    it("rejects scope changes and authenticated ownership on guest creation", async () => {
+      await service.startConversation(guestRequest);
+      expect(
+        service.startConversation({
+          ...guestRequest,
+          interfaceType: "web-chat",
+          personId: "owner",
+        }),
+      ).rejects.toThrow("Conversation scope mismatch");
+      expect(
+        service.startConversation({
+          ...guestRequest,
+          sessionId: "other",
+          personId: "owner",
+        }),
+      ).rejects.toThrow(
+        "Guest conversation cannot have an authenticated owner",
+      );
+      await service.startConversation({
+        ...guestRequest,
+        sessionId: "operator",
+        interfaceType: "web-chat",
+      });
+      expect(
+        service.startConversation({ ...guestRequest, sessionId: "operator" }),
+      ).rejects.toThrow("Conversation scope mismatch");
+    });
+
+    it("rejects missing ownership and prevents metadata updates from changing owners", async () => {
+      expect(
+        service.startConversation({ ...guestRequest, metadata: testMetadata }),
+      ).rejects.toThrow("Guest ownership required");
+      await service.startConversation(guestRequest);
+      expect(
+        service.updateConversationMetadata({
+          conversationId: guestRequest.sessionId,
+          metadata: {
+            guest: { visitorId: "c92c7734-1d75-408f-8b4a-fc40e7d58679" },
+          },
+        }),
+      ).rejects.toThrow("Guest ownership cannot be changed");
+    });
+
+    it("hides expired transcripts, rejects late writes and metadata updates, and still permits deletion", async () => {
+      await service.startConversation(guestRequest);
+      await service.addMessage({
+        conversationId: guestRequest.sessionId,
+        role: "user",
+        content: "private expired text",
+      });
+      await client.execute({
+        sql: "UPDATE conversations SET started = ?, last_active = ? WHERE id = ?",
+        args: [
+          "2000-01-01T00:00:00.000Z",
+          "2000-01-01T00:00:00.000Z",
+          guestRequest.sessionId,
+        ],
+      });
+      expect(await service.getConversation(guestRequest.sessionId)).toBeNull();
+      expect(await service.getMessages(guestRequest.sessionId)).toEqual([]);
+      expect(
+        await service.getMessages(guestRequest.sessionId, {
+          range: { start: 1, end: 10 },
+        }),
+      ).toEqual([]);
+      expect(await service.countMessages(guestRequest.sessionId)).toBe(0);
+      expect(
+        service.addMessage({
+          conversationId: guestRequest.sessionId,
+          role: "assistant",
+          content: "late private answer",
+        }),
+      ).rejects.toThrow("Conversation unavailable");
+      expect(
+        await service.updateConversationMetadata({
+          conversationId: guestRequest.sessionId,
+          metadata: { title: "late title" },
+        }),
+      ).toBe(false);
+      expect(service.startConversation(guestRequest)).rejects.toThrow(
+        "Guest conversation unavailable",
+      );
+      expect(await service.deleteConversation(guestRequest.sessionId)).toBe(
+        true,
+      );
+      expect(
+        (await client.execute("SELECT * FROM messages")).rows,
+      ).toHaveLength(0);
+    });
+
+    it("enforces hard expiry despite recent activity, and rejects future-dated activity", async () => {
+      await service.startConversation(guestRequest);
+      await client.execute({
+        sql: "UPDATE conversations SET started = ? WHERE id = ?",
+        args: ["2000-01-01T00:00:00.000Z", guestRequest.sessionId],
+      });
+      expect(await service.getConversation(guestRequest.sessionId)).toBeNull();
+      await client.execute({
+        sql: "UPDATE conversations SET started = ?, last_active = ? WHERE id = ?",
+        args: [
+          "2099-01-01T00:00:00.000Z",
+          "2099-01-01T00:00:00.000Z",
+          guestRequest.sessionId,
+        ],
+      });
+      expect(await service.getConversation(guestRequest.sessionId)).toBeNull();
+    });
+
+    it("uses exact idle and hard expiry boundaries within a single SQLite statement", async () => {
+      await service.startConversation(guestRequest);
+      for (const hard of [false, true]) {
+        const past = hard
+          ? sql<string>`strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-604800 seconds')`
+          : sql<string>`strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-86400 seconds')`;
+        const [result] = await db
+          .update(conversations)
+          .set({ started: past, lastActive: hard ? conversationSqlNow : past })
+          .where(eq(conversations.id, guestRequest.sessionId))
+          .returning({
+            live: liveGuestConversation(),
+            expired: expiredGuestConversation(),
+          });
+        expect(result).toEqual({ live: 0, expired: 1 });
+      }
+    });
+
+    it("renews activity only with a committed message and never extends the pinned hard lifetime", async () => {
+      await service.startConversation(guestRequest);
+      await client.execute({
+        sql: "UPDATE conversations SET started = strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-90000 seconds'), last_active = strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-82800 seconds') WHERE id = ?",
+        args: [guestRequest.sessionId],
+      });
+      const before = await service.getConversation(guestRequest.sessionId);
+      expect(before).not.toBeNull();
+      await service.startConversation(guestRequest);
+      expect(
+        (await service.getConversation(guestRequest.sessionId))?.lastActive,
+      ).toBe(before?.lastActive);
+      await service.addMessage({
+        conversationId: guestRequest.sessionId,
+        role: "user",
+        content: "new activity",
+      });
+      const after = await service.getConversation(guestRequest.sessionId);
+      expect(after?.started).toBe(before?.started);
+      expect(after?.lastActive).not.toBe(before?.lastActive);
+      const guest = guestRequest.metadata.guest;
+      if (!guest) throw new Error("Expected guest metadata");
+      expect(
+        service.startConversation({
+          ...guestRequest,
+          metadata: {
+            ...guestRequest.metadata,
+            guest: {
+              ...guest,
+              retention: { ...guest.retention, maxAgeSeconds: 1209600 },
+            },
+          },
+        }),
+      ).rejects.toThrow("Guest ownership cannot be changed");
+    });
+
+    it("rolls back message insertion if activity renewal fails and sanitizes SQL failures", async () => {
+      await service.startConversation(guestRequest);
+      await client.execute(
+        "CREATE TRIGGER reject_guest_activity BEFORE UPDATE OF last_active ON conversations BEGIN SELECT RAISE(ABORT, 'PRIVATE storage details'); END",
+      );
+      expect(
+        service.addMessage({
+          conversationId: guestRequest.sessionId,
+          role: "assistant",
+          content: "PRIVATE answer",
+        }),
+      ).rejects.toThrow("Guest conversation write unavailable");
+      expect(
+        (await client.execute("SELECT * FROM messages")).rows,
+      ).toHaveLength(0);
+    });
+
+    it("does not confuse malformed retention or clock rollback with proven expiry", async () => {
+      await service.startConversation(guestRequest);
+      await client.execute({
+        sql: "UPDATE conversations SET started = ?, last_active = ? WHERE id = ?",
+        args: [
+          "2099-01-01T00:00:00.000Z",
+          "2099-01-01T00:00:00.000Z",
+          guestRequest.sessionId,
+        ],
+      });
+      expect(await service.getConversation(guestRequest.sessionId)).toBeNull();
+      expect(await service.deleteExpiredGuestConversations()).toBe(0);
+      await client.execute({
+        sql: "UPDATE conversations SET metadata = ? WHERE id = ?",
+        args: ["invalid JSON", guestRequest.sessionId],
+      });
+      expect(await service.getConversation(guestRequest.sessionId)).toBeNull();
+      expect(await service.deleteExpiredGuestConversations()).toBe(0);
+      expect(
+        (await client.execute("SELECT * FROM conversations")).rows,
+      ).toHaveLength(1);
+    });
+
+    it("checks expiry in the read/write statement when another connection expires a looked-up conversation", async () => {
+      const other = ConversationService.createFreshFromConfig(
+        logger,
+        messageBus,
+        { url: `file:${dbPath}` },
+      );
+      await other.initialize();
+      const original = service.getConversation.bind(service);
+      try {
+        for (const operation of [
+          "write",
+          "read",
+          "count",
+          "metadata",
+        ] as const) {
+          const id = `expiry-race-${operation}`;
+          await service.startConversation({ ...guestRequest, sessionId: id });
+          await service.addMessage({
+            conversationId: id,
+            role: "user",
+            content: "private text",
+          });
+          const lookup = spyOn(service, "getConversation").mockImplementation(
+            async (key) => {
+              const snapshot = await original(key);
+              await other.getDatabaseClient().execute({
+                sql: "UPDATE conversations SET started = ?, last_active = ? WHERE id = ?",
+                args: [
+                  "2000-01-01T00:00:00.000Z",
+                  "2000-01-01T00:00:00.000Z",
+                  key,
+                ],
+              });
+              return snapshot;
+            },
+          );
+          try {
+            if (operation === "write")
+              expect(
+                service.addMessage({
+                  conversationId: id,
+                  role: "assistant",
+                  content: "late text",
+                }),
+              ).rejects.toThrow("Guest conversation write unavailable");
+            if (operation === "read")
+              expect(await service.getMessages(id)).toEqual([]);
+            if (operation === "count")
+              expect(await service.countMessages(id)).toBe(0);
+            if (operation === "metadata")
+              expect(
+                await service.updateConversationMetadata({
+                  conversationId: id,
+                  metadata: { title: "late" },
+                }),
+              ).toBe(false);
+            expect(
+              (
+                await client.execute({
+                  sql: "SELECT * FROM messages WHERE conversation_id = ?",
+                  args: [id],
+                })
+              ).rows,
+            ).toHaveLength(1);
+          } finally {
+            lookup.mockRestore();
+          }
+        }
+      } finally {
+        other.close();
+      }
+    });
+
+    it("cleans expired guest rows in bounded batches with cascading transcript deletion, not operator or live guest data", async () => {
+      for (const id of ["expired-a", "expired-b", "live"]) {
+        await service.startConversation({ ...guestRequest, sessionId: id });
+        await service.addMessage({
+          conversationId: id,
+          role: "user",
+          content: "private text",
+        });
+      }
+      await service.startConversation({
+        ...guestRequest,
+        sessionId: "operator",
+        interfaceType: "web-chat",
+      });
+      await client.execute(
+        "UPDATE conversations SET started = '2000-01-01T00:00:00.000Z', last_active = '2000-01-01T00:00:00.000Z' WHERE id != 'live'",
+      );
+      expect(await service.deleteExpiredGuestConversations(1)).toBe(1);
+      expect(await service.deleteExpiredGuestConversations(1)).toBe(1);
+      expect(await service.deleteExpiredGuestConversations(1)).toBe(0);
+      expect(await service.getConversation("live")).not.toBeNull();
+      expect(await service.getConversation("operator")).not.toBeNull();
+      expect(
+        (await client.execute("SELECT * FROM messages")).rows,
+      ).toHaveLength(1);
+    });
+
+    it("prevents a late insert when deletion wins after the existence check", async () => {
+      await service.startConversation(guestRequest);
+      const other = ConversationService.createFreshFromConfig(
+        logger,
+        messageBus,
+        { url: `file:${dbPath}` },
+      );
+      await other.initialize();
+      const getConversation = service.getConversation.bind(service);
+      const lookup = spyOn(service, "getConversation").mockImplementation(
+        async (id) => {
+          const stale = await getConversation(id);
+          await other.deleteConversation(id);
+          return stale;
+        },
+      );
+      try {
+        expect(
+          service.addMessage({
+            conversationId: guestRequest.sessionId,
+            role: "assistant",
+            content: "late private result",
+          }),
+        ).rejects.toThrow("Guest conversation write unavailable");
+        expect(await service.getMessages(guestRequest.sessionId)).toEqual([]);
+        expect(await getConversation(guestRequest.sessionId)).toBeNull();
+      } finally {
+        lookup.mockRestore();
+        other.close();
+      }
+    });
+
+    it("does not recreate messages after deletion, including from another connection", async () => {
+      await service.startConversation(guestRequest);
+      await service.addMessage({
+        conversationId: guestRequest.sessionId,
+        role: "user",
+        content: "private text",
+      });
+      const other = ConversationService.createFreshFromConfig(
+        logger,
+        messageBus,
+        { url: `file:${dbPath}` },
+      );
+      try {
+        await other.initialize();
+        await other.deleteConversation(guestRequest.sessionId);
+        expect(
+          service.addMessage({
+            conversationId: guestRequest.sessionId,
+            role: "assistant",
+            content: "late result",
+          }),
+        ).rejects.toThrow("Conversation unavailable");
+        expect(
+          await service.getConversation(guestRequest.sessionId),
+        ).toBeNull();
+        expect(await service.getMessages(guestRequest.sessionId)).toEqual([]);
+      } finally {
+        other.close();
+      }
+    });
   });
 
   describe("person ownership migration", () => {

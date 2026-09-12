@@ -1,5 +1,9 @@
 import type { PreparedAsset } from "@brains/assets";
-import type { ActorRef } from "@brains/contracts";
+import type {
+  ActorRef,
+  EntityReadBudget,
+  QueryEmbedding,
+} from "@brains/contracts";
 import type { ProjectionStore } from "./projection-store";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
 import type {
@@ -503,7 +507,20 @@ export interface SortField {
  * List entities options
  * Generic over metadata type for type-safe filtering
  */
-export interface ListOptions<TMetadata = Record<string, unknown>> {
+export interface EntityReadOptions {
+  /** Bounds SQL result transfer, suppresses raw diagnostics, and leaves entity
+   * image references unexpanded. Not a bound on database or adapter execution.
+   */
+  readBudget?: EntityReadBudget;
+  /** Request-owned embedding capability, e.g. a prepaid guest search. */
+  queryEmbedding?: QueryEmbedding;
+  /** Cooperative boundary checks, not proof of remote SQL cancellation. */
+  signal?: AbortSignal;
+}
+
+export interface ListOptions<
+  TMetadata = Record<string, unknown>,
+> extends EntityReadOptions {
   limit?: number;
   offset?: number;
   /** Multi-field sorting - supports system fields (created, updated) and metadata fields */
@@ -520,7 +537,7 @@ export interface ListOptions<TMetadata = Record<string, unknown>> {
 /**
  * Search options
  */
-export interface SearchOptions {
+export interface SearchOptions extends EntityReadOptions {
   limit?: number;
   offset?: number;
   types?: string[];
@@ -571,7 +588,7 @@ export interface EntityTypeConfig {
  * Core entity service interface for read-only operations
  * Used by core plugins that need entity access but shouldn't modify entities
  */
-export interface GetEntityRequest {
+export interface GetEntityRequest extends EntityReadOptions {
   entityType: string;
   id: string;
   /**

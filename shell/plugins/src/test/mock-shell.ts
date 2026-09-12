@@ -85,6 +85,7 @@ import type {
 } from "@brains/runtime-state";
 import type { ViewTemplateRegistry } from "@brains/templates";
 import type { IConversationService } from "@brains/conversation-service";
+import { z } from "@brains/utils/zod";
 import {
   ProfileKindRegistry,
   type BrainCharacter,
@@ -194,20 +195,44 @@ export function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
           records.set(key, { value: parsed, createdAt: now, updatedAt: now });
           return true;
         },
+        compareAndSet: async (key, expected, value): Promise<boolean> => {
+          const parsedExpected = options.schema.parse(expected);
+          const parsedValue = options.schema.parse(value);
+          const existing = records.get(key);
+          if (
+            !existing ||
+            JSON.stringify(existing.value) !== JSON.stringify(parsedExpected)
+          )
+            return false;
+          records.set(key, {
+            ...existing,
+            value: parsedValue,
+            updatedAt: new Date(),
+          });
+          return true;
+        },
         delete: async (key): Promise<boolean> => records.delete(key),
-        list: async ({ keyPrefix } = {}): Promise<
+        list: async ({ keyPrefix, afterKey, limit } = {}): Promise<
           RuntimeStateRecordValue<T>[]
-        > =>
-          Array.from(records.entries())
+        > => {
+          if (limit !== undefined)
+            z.number().int().min(1).max(1000).parse(limit);
+          return Array.from(records.entries())
             .filter(
-              ([key]) => keyPrefix === undefined || key.startsWith(keyPrefix),
+              ([key]) =>
+                (keyPrefix === undefined || key.startsWith(keyPrefix)) &&
+                (afterKey === undefined ||
+                  Buffer.compare(Buffer.from(key), Buffer.from(afterKey)) > 0),
             )
+            .sort(([a], [b]) => Buffer.compare(Buffer.from(a), Buffer.from(b)))
+            .slice(0, limit)
             .map(([key, record]): RuntimeStateRecordValue<T> => ({
               key,
               value: options.schema.parse(record.value),
               createdAt: record.createdAt,
               updatedAt: record.updatedAt,
-            })),
+            }));
+        },
         clear: async ({ keyPrefix } = {}): Promise<number> => {
           const keys = Array.from(records.keys()).filter(
             (key) => keyPrefix === undefined || key.startsWith(keyPrefix),
@@ -231,6 +256,7 @@ function createDefaultMockConversationService(): IConversationService {
     searchConversations: async () => [],
     updateConversationMetadata: async () => false,
     deleteConversation: async () => false,
+    deleteExpiredGuestConversations: async () => 0,
     close: (): void => {},
   };
 }

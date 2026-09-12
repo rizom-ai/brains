@@ -39,9 +39,8 @@ export const aiRoutes: RouteDefinitionInput[] = [
     ],
   },
   {
-    // The product's own room: the brain's life with its owner in four
-    // chapters — capture, ask, see it run, connect — each illustrated by a
-    // real interface screen, then the data principles and the quickstart.
+    // Product landing page. Preserve durable section IDs while changing the
+    // composition; /ask integration is separate and the hero is a placeholder.
     id: "brain",
     path: "/brain",
     title: "Rizom Brain",
@@ -52,11 +51,10 @@ export const aiRoutes: RouteDefinitionInput[] = [
       { id: "hero", template: "brain:hero" },
       { id: "capture", template: "brain:capture" },
       { id: "ask", template: "brain:ask" },
+      { id: "connect", template: "brain-network:connect", dataQuery: {} },
       { id: "run", template: "brain:run" },
-      { id: "connect", template: "brain:connect" },
       { id: "your-data", template: "brain:your-data" },
       { id: "quickstart", template: "brain:quickstart" },
-      { id: "close", template: "brain:close" },
     ],
   },
   {

@@ -10,6 +10,7 @@ import type {
   StateSchema,
 } from "xstate";
 import { actorRefKey } from "@brains/contracts";
+import type { GuestExecutionPolicy } from "@brains/contracts/chat";
 import { z } from "@brains/utils/zod";
 import type { UserPermissionLevel } from "@brains/templates";
 import type {
@@ -37,6 +38,7 @@ export type RuntimePendingConfirmation = PendingConfirmation & {
  * All fields are required (no optionals) to avoid exactOptionalPropertyTypes issues.
  */
 export interface AgentMachineContext {
+  guestExecution: GuestExecutionPolicy | undefined;
   conversationId: string;
   message: string;
   interfaceType: string;
@@ -60,6 +62,7 @@ export interface AgentMachineContext {
 export type AgentMachineEvent =
   | {
       type: "RECEIVE_MESSAGE";
+      guestExecution?: GuestExecutionPolicy;
       message: string;
       conversationId: string;
       interfaceType: string;
@@ -101,6 +104,7 @@ export type AgentMachineEvent =
  * Input for the processMessage actor
  */
 export interface ProcessMessageInput {
+  guestExecution?: GuestExecutionPolicy | undefined;
   conversationId: string;
   message: string;
   interfaceType: string;
@@ -269,6 +273,7 @@ export const agentMachine: AgentMachine = setup({
   id: "agent",
   initial: "idle",
   context: {
+    guestExecution: undefined,
     conversationId: "",
     message: "",
     interfaceType: "agent",
@@ -301,6 +306,7 @@ export const agentMachine: AgentMachine = setup({
             actor: event.actor,
             source: event.source,
             attachments: event.attachments,
+            guestExecution: event.guestExecution,
             signal: event.signal,
             response: null,
             pendingConfirmations: [],
@@ -325,6 +331,7 @@ export const agentMachine: AgentMachine = setup({
           actor: context.actor,
           source: context.source,
           attachments: context.attachments,
+          guestExecution: context.guestExecution,
           signal: context.signal,
         }),
         onDone: [

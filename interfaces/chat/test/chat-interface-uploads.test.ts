@@ -800,6 +800,7 @@ describe("ChatInterface uploads", () => {
         countMessages: mock(() => Promise.resolve(1)),
         updateConversationMetadata: mock(() => Promise.resolve(false)),
         deleteConversation: mock(() => Promise.resolve(false)),
+        deleteExpiredGuestConversations: mock(() => Promise.resolve(0)),
         close: mock(() => {}),
       });
     const plugin = createPlugin();

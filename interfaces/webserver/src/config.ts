@@ -1,6 +1,7 @@
 import { z } from "@brains/utils/zod";
 
 type WebserverConfigSchema = z.ZodObject<{
+  hostname: z.ZodOptional<z.ZodString>;
   enablePreview: z.ZodDefault<z.ZodBoolean>;
   previewDistDir: z.ZodDefault<z.ZodString>;
   productionDistDir: z.ZodDefault<z.ZodString>;
@@ -14,6 +15,12 @@ type WebserverConfigSchema = z.ZodObject<{
  * Webserver configuration schema
  */
 export const webserverConfigSchema: WebserverConfigSchema = z.object({
+  hostname: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe("Bind address; use 127.0.0.1 for isolated local tests"),
   enablePreview: z
     .boolean()
     .default(true)

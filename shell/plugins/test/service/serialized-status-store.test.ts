@@ -57,6 +57,9 @@ function createMemoryNamespace(): MemoryNamespace {
         records.set(`${options.namespace}:${key}`, options.schema.parse(value));
       },
       setIfNotExists: async (): Promise<boolean> => false,
+      compareAndSet: async (): Promise<boolean> => {
+        throw new Error("Unexpected compare-and-set in status fixture");
+      },
       delete: async (key): Promise<boolean> =>
         records.delete(`${options.namespace}:${key}`),
       list: async (): Promise<RuntimeStateRecordValue<T>[]> => [],

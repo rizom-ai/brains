@@ -19,6 +19,7 @@ describe("filterToolsForCallOptions", () => {
 
     expect(
       filterToolsForCallOptions(tools, {
+        interfaceType: "agent",
         hasPriorResponseCandidate: false,
       }).map((t) => t.name),
     ).toEqual(["system_create", "system_search"]);
@@ -29,6 +30,7 @@ describe("filterToolsForCallOptions", () => {
 
     expect(
       filterToolsForCallOptions(tools, {
+        interfaceType: "agent",
         hasPriorResponseCandidate: true,
       }).map((t) => t.name),
     ).toEqual(["system_create", "system_search"]);

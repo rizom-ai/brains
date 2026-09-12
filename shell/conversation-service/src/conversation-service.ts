@@ -1,4 +1,8 @@
 import { CONVERSATION_CHANNELS } from "./conversation-channels";
+import {
+  guestInterfaceType,
+  guestConversationOwnershipSchema,
+} from "@brains/contracts/chat";
 import { applySqlitePragmas } from "@brains/db";
 import { createConversationDatabase } from "./database";
 import type { ConversationDB } from "./database";
@@ -30,7 +34,26 @@ import { conversations, messages, summaryTracking } from "./schema";
 import type { Logger } from "@brains/utils/logger";
 import { createId } from "@brains/utils/id";
 import type { MessageBus } from "@brains/messaging-service";
-import { and, eq, desc, asc, sql, count, gt } from "drizzle-orm";
+import {
+  and,
+  eq,
+  ne,
+  desc,
+  asc,
+  sql,
+  count,
+  gt,
+  or,
+  exists,
+  inArray,
+  type SQL,
+} from "drizzle-orm";
+import { z } from "@brains/utils/zod";
+import {
+  liveGuestConversation,
+  expiredGuestConversation,
+  conversationSqlNow,
+} from "./guest-retention";
 
 /**
  * Conversation Service - Core infrastructure for storing and retrieving conversations
@@ -130,12 +153,40 @@ export class ConversationService implements IConversationService {
    */
   async startConversation(request: StartConversationRequest): Promise<string> {
     const { sessionId, interfaceType, channelId, personId, metadata } = request;
+    const guest = interfaceType === guestInterfaceType;
+    if (guest && personId)
+      throw new Error("Guest conversation cannot have an authenticated owner");
+    const requestedOwnership = guestConversationOwnershipSchema.safeParse(
+      metadata.guest,
+    );
+    if (guest && !requestedOwnership.success) {
+      throw new Error("Guest ownership required");
+    }
     const now = new Date().toISOString();
 
     // Check if conversation already exists for this sessionId
-    const existing = await this.getConversation(sessionId);
+    const existing = await this.findConversation(sessionId);
 
     if (existing) {
+      if (guest || existing.interfaceType === guestInterfaceType) {
+        if (existing.interfaceType !== interfaceType)
+          throw new Error("Conversation scope mismatch");
+        const ownership = guestConversationOwnershipSchema.safeParse(
+          coerceConversationMetadata(existing.metadata)["guest"],
+        );
+        if (
+          !ownership.success ||
+          !requestedOwnership.success ||
+          JSON.stringify(ownership.data) !==
+            JSON.stringify(requestedOwnership.data)
+        ) {
+          throw new Error("Guest ownership cannot be changed");
+        }
+        // Resolving a guest locator is not activity and must not renew retention.
+        if (!(await this.getConversation(sessionId)))
+          throw new Error("Guest conversation unavailable");
+        return sessionId;
+      }
       // Update last active time and return existing sessionId
       await this.db
         .update(conversations)
@@ -164,7 +215,20 @@ export class ConversationService implements IConversationService {
       metadata: JSON.stringify(metadata),
     };
 
-    await this.db.insert(conversations).values(newConversation);
+    await this.db.insert(conversations).values({
+      ...newConversation,
+      ...(guest
+        ? {
+            started: conversationSqlNow,
+            lastActive: conversationSqlNow,
+            created: conversationSqlNow,
+            updated: conversationSqlNow,
+          }
+        : {}),
+    });
+
+    // Guest transcripts never enter general lifecycle hooks or memory tracking.
+    if (guest) return sessionId;
 
     // Initialize summary tracking
     const tracking: NewSummaryTracking = {
@@ -201,6 +265,9 @@ export class ConversationService implements IConversationService {
    */
   async addMessage(request: AddConversationMessageRequest): Promise<void> {
     const { conversationId, role, content, metadata } = request;
+    const conversation = await this.getConversation(conversationId);
+    if (!conversation) throw new Error("Conversation unavailable");
+    const guest = conversation.interfaceType === guestInterfaceType;
     const now = new Date().toISOString();
     const messageId = createId(12);
 
@@ -213,7 +280,40 @@ export class ConversationService implements IConversationService {
       metadata: metadata ? JSON.stringify(metadata) : null,
     };
 
-    await this.db.insert(messages).values(newMessage);
+    if (guest) {
+      // Existence/scope and insertion are one SQL operation, not a read/write race.
+      // A concurrent deletion either prevents this insert or cascades the row.
+      try {
+        await this.db.transaction(async (tx) => {
+          const inserted = await tx
+            .insert(messages)
+            .select(
+              sql`
+            SELECT ${messageId}, ${conversationId}, ${role}, ${content}, ${conversationSqlNow}, ${newMessage.metadata ?? null}
+            FROM ${conversations} WHERE ${this.accessCondition(conversation)}
+          `,
+            )
+            .returning({ id: messages.id });
+          if (inserted.length !== 1)
+            throw new Error("Conversation unavailable");
+          const updated = await tx
+            .update(conversations)
+            .set({
+              lastActive: conversationSqlNow,
+              updated: conversationSqlNow,
+            })
+            .where(this.accessCondition(conversation))
+            .returning({ id: conversations.id });
+          if (updated.length !== 1) throw new Error("Conversation unavailable");
+        });
+      } catch {
+        // SQL errors can contain bound transcript text. Never expose or log them.
+        throw new Error("Guest conversation write unavailable");
+      }
+      return;
+    } else {
+      await this.db.insert(messages).values(newMessage);
+    }
 
     // Update conversation last active time
     await this.db
@@ -264,6 +364,17 @@ export class ConversationService implements IConversationService {
     options: GetMessagesOptions = {},
   ): Promise<Message[]> {
     const { limit = 20, range } = options;
+    const conversation = await this.getConversation(conversationId);
+    if (!conversation) return [];
+    const condition = and(
+      eq(messages.conversationId, conversationId),
+      exists(
+        this.db
+          .select({ id: conversations.id })
+          .from(conversations)
+          .where(this.accessCondition(conversation)),
+      ),
+    );
 
     if (range) {
       // Get specific range (1-based indexing)
@@ -273,7 +384,7 @@ export class ConversationService implements IConversationService {
       const result = await this.db
         .select()
         .from(messages)
-        .where(eq(messages.conversationId, conversationId))
+        .where(condition)
         .orderBy(asc(messages.timestamp))
         .limit(messageLimit)
         .offset(offset);
@@ -284,7 +395,7 @@ export class ConversationService implements IConversationService {
       const result = await this.db
         .select()
         .from(messages)
-        .where(eq(messages.conversationId, conversationId))
+        .where(condition)
         .orderBy(desc(messages.timestamp))
         .limit(limit);
 
@@ -297,6 +408,41 @@ export class ConversationService implements IConversationService {
    * Get conversation details
    */
   async getConversation(conversationId: string): Promise<Conversation | null> {
+    const [conversation] = await this.db
+      .select()
+      .from(conversations)
+      .where(
+        and(
+          eq(conversations.id, conversationId),
+          or(
+            ne(conversations.interfaceType, guestInterfaceType),
+            liveGuestConversation(),
+          ),
+        ),
+      )
+      .limit(1);
+    if (
+      conversation?.interfaceType === guestInterfaceType &&
+      !guestConversationOwnershipSchema.safeParse(
+        coerceConversationMetadata(conversation.metadata)["guest"],
+      ).success
+    )
+      return null;
+    return conversation ?? null;
+  }
+
+  private accessCondition(conversation: Conversation): SQL {
+    return sql`${conversations.id} = ${conversation.id} AND ${conversations.interfaceType} = ${conversation.interfaceType}
+      ${
+        conversation.interfaceType === guestInterfaceType
+          ? sql`AND ${conversations.metadata} = ${conversation.metadata} AND ${liveGuestConversation()}`
+          : sql``
+      }`;
+  }
+
+  private async findConversation(
+    conversationId: string,
+  ): Promise<Conversation | null> {
     const result = await this.db
       .select()
       .from(conversations)
@@ -321,6 +467,7 @@ export class ConversationService implements IConversationService {
       personId,
     } = options;
     const filters = [
+      ne(conversations.interfaceType, guestInterfaceType),
       updatedAfter ? gt(conversations.updated, updatedAfter) : undefined,
       interfaceType
         ? eq(conversations.interfaceType, interfaceType)
@@ -355,9 +502,12 @@ export class ConversationService implements IConversationService {
       .from(conversations)
       .leftJoin(messages, eq(messages.conversationId, conversations.id))
       .where(
-        sessionId
-          ? sql`lower(${messages.content}) LIKE ${queryLower} AND ${conversations.sessionId} = ${sessionId}`
-          : sql`lower(${messages.content}) LIKE ${queryLower}`,
+        and(
+          ne(conversations.interfaceType, guestInterfaceType),
+          sessionId
+            ? sql`lower(${messages.content}) LIKE ${queryLower} AND ${conversations.sessionId} = ${sessionId}`
+            : sql`lower(${messages.content}) LIKE ${queryLower}`,
+        ),
       )
       .orderBy(desc(conversations.lastActive));
 
@@ -365,10 +515,22 @@ export class ConversationService implements IConversationService {
   }
 
   async countMessages(conversationId: string): Promise<number> {
+    const conversation = await this.getConversation(conversationId);
+    if (!conversation) return 0;
     const [result] = await this.db
       .select({ count: count() })
       .from(messages)
-      .where(eq(messages.conversationId, conversationId));
+      .where(
+        and(
+          eq(messages.conversationId, conversationId),
+          exists(
+            this.db
+              .select({ id: conversations.id })
+              .from(conversations)
+              .where(this.accessCondition(conversation)),
+          ),
+        ),
+      );
     return Number(result?.count ?? 0);
   }
 
@@ -377,6 +539,12 @@ export class ConversationService implements IConversationService {
   ): Promise<boolean> {
     const existing = await this.getConversation(request.conversationId);
     if (!existing) return false;
+    if (
+      existing.interfaceType === guestInterfaceType &&
+      "guest" in request.metadata
+    ) {
+      throw new Error("Guest ownership cannot be changed");
+    }
 
     const now = new Date().toISOString();
     const metadata = {
@@ -384,26 +552,60 @@ export class ConversationService implements IConversationService {
       ...request.metadata,
     };
 
-    await this.db
-      .update(conversations)
-      .set({ metadata: JSON.stringify(metadata), updated: now })
-      .where(eq(conversations.id, request.conversationId));
+    const write = Promise.resolve().then(() =>
+      this.db
+        .update(conversations)
+        .set({ metadata: JSON.stringify(metadata), updated: now })
+        .where(this.accessCondition(existing))
+        .returning({ id: conversations.id }),
+    );
+    // Guest metadata can contain private text. Convert failures to a safe error,
+    // without retaining the original SQL exception or its bound parameters.
+    const changed =
+      existing.interfaceType === guestInterfaceType
+        ? await write.catch(() => null)
+        : await write;
+    if (!changed) throw new Error("Guest conversation write unavailable");
+    if (changed.length !== 1) return false;
 
-    this.logger.debug("Updated conversation metadata", {
-      conversationId: request.conversationId,
-    });
+    if (existing.interfaceType !== guestInterfaceType)
+      this.logger.debug("Updated conversation metadata", {
+        conversationId: request.conversationId,
+      });
     return true;
   }
 
+  /** Trusted maintenance only; no transcript enumeration, events or raw-ID logging. */
+  async deleteExpiredGuestConversations(limit: number = 100): Promise<number> {
+    z.number().int().min(1).max(1000).parse(limit);
+    const expired = this.db
+      .select({ id: conversations.id })
+      .from(conversations)
+      .where(
+        and(
+          eq(conversations.interfaceType, guestInterfaceType),
+          expiredGuestConversation(),
+        ),
+      )
+      .orderBy(asc(conversations.lastActive))
+      .limit(limit);
+    const removed = await this.db
+      .delete(conversations)
+      .where(inArray(conversations.id, expired))
+      .returning({ id: conversations.id });
+    return removed.length;
+  }
+
   async deleteConversation(conversationId: string): Promise<boolean> {
-    const existing = await this.getConversation(conversationId);
+    const existing = await this.findConversation(conversationId);
     if (!existing) return false;
 
     await this.db
       .delete(conversations)
       .where(eq(conversations.id, conversationId));
 
-    this.logger.debug("Deleted conversation", { conversationId });
+    if (existing.interfaceType !== guestInterfaceType)
+      this.logger.debug("Deleted conversation", { conversationId });
     return true;
   }
 

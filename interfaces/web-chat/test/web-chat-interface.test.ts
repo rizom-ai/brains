@@ -210,6 +210,7 @@ function makeFixedConversationService(input: {
       input.updateConversationMetadata ?? (async (): Promise<boolean> => true),
     deleteConversation:
       input.deleteConversation ?? (async (): Promise<boolean> => true),
+    deleteExpiredGuestConversations: async (): Promise<number> => 0,
     close: (): void => {},
   };
 }
@@ -735,7 +736,7 @@ describe("WebChatInterface", () => {
 
     const routes = plugin.getWebRoutes();
 
-    expect(routes).toHaveLength(18);
+    expect(routes).toHaveLength(22);
     expect(routes[0]).toMatchObject({
       path: "/ask",
       method: "GET",

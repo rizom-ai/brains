@@ -389,7 +389,11 @@ export function App(): React.ReactElement {
   // doesn't know this operator's conversations, so they append locally.
   useEffect(() => {
     window.__consoleJumpLocal = (query): JumpLocalGroup[] => {
-      const group = buildConversationJumpGroup(sessions, query);
+      const group = buildConversationJumpGroup(
+        sessions,
+        query,
+        window.location.pathname,
+      );
       return group ? [group] : [];
     };
     return (): void => {

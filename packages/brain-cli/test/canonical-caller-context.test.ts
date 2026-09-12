@@ -85,6 +85,7 @@ function createMemoryConversationService(): IConversationService {
     updateConversationMetadata: async (): Promise<boolean> => true,
     deleteConversation: async (conversationId): Promise<boolean> =>
       conversations.delete(conversationId),
+    deleteExpiredGuestConversations: async (): Promise<number> => 0,
     close: (): void => {},
   };
 }

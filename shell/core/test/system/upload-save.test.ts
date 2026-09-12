@@ -46,6 +46,7 @@ function conversationWithUpload(): IConversationService {
     listConversations: async () => [],
     updateConversationMetadata: async () => false,
     deleteConversation: async () => false,
+    deleteExpiredGuestConversations: async () => 0,
     searchConversations: async () => [],
     close: () => undefined,
   };

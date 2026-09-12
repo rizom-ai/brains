@@ -315,9 +315,10 @@ export class ShellBootloader {
   }
 
   private async startRuntimeServices(): Promise<void> {
-    const recurringDaemonName = "shell:recurring-checks";
-    if (this.services.daemonRegistry.has(recurringDaemonName)) {
-      await this.services.daemonRegistry.start(recurringDaemonName);
+    for (const name of ["shell:recurring-checks", "shell:guest-retention"]) {
+      if (this.services.daemonRegistry.has(name)) {
+        await this.services.daemonRegistry.start(name);
+      }
     }
     await this.services.pluginManager.startPluginDaemons();
     if (this.processRole !== "web") {
