@@ -1,5 +1,13 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.249
+
+### Patch Changes
+
+- [`71104c6`](https://github.com/rizom-ai/brains/commit/71104c6a81203861b0d684c62b1e40980bed8777) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Publish the redesigned Brain landing page with the shared fixed-height Ask box, updated section schemas and the interactive local agent proximity map. Remove the retired network snapshots from site assets while retaining the illustrative Studio captures.
+
+  Coordinate this release with the seven Brain sections authored in rizom-content commits 358ece0 and 1625268. Old and new section schemas are incompatible: neither a content-only push nor an uncoordinated site upgrade is a safe rollout. The matching core release is required for the guest HTTP/UI assets; production guest admission remains disabled.
+
 ## 0.2.0-alpha.248
 
 ### Patch Changes
