@@ -1,418 +1,442 @@
 /** @jsxImportSource react */
-import type { JSX } from "react";
-import type { SiteSectionGroup } from "@rizom/site";
+import type { JSX, ReactNode } from "react";
 import { defineSection, sectionGroup, z } from "@rizom/site";
-import { Section, renderHighlightedText } from "./rizom";
-import {
-  Band,
-  CtaRow,
-  SectCap,
-  Trio,
-  trioSchema,
-  ctaSchema,
-  ROOM_HIGHLIGHT_CLS,
-} from "./shared";
-import {
-  BrainScreenStyles,
-  StudioScreen,
-  ChatScreen,
-  IntegrationsScreen,
-  DashboardScreen,
-} from "./brain-screens";
+import type { SiteSectionGroup } from "@rizom/site";
+import { renderHighlightedText } from "./rizom";
+import { ctaSchema } from "./shared";
 
-/**
- * The /brain room — the product's own page. The consolidated homepage grew
- * two pages long because it told the umbrella story and the product story at
- * once; the product story lives here, told as the brain's life with its owner
- * in four chapters — capture, ask, see it run, connect — each illustrated by a
- * real interface screen, then the data principles and the quickstart.
- *
- * The namespace ("brain") matches the route id, so each section stores as
- * site-content/brain/<section>.md and resolves as "brain:<section>".
- */
-
-/* ============ chapter heading ============ */
-
-/* The shared chapter head: a numbered cap, a display headline with an accent
-   em, and a standfirst. Used by every chapter so the copy stays authored. */
-function ChapterHead({
-  cap,
-  capNote,
-  headline,
-  intro,
-}: {
-  cap: string;
-  capNote: string | null;
-  headline: string;
-  intro: string;
-}): JSX.Element {
+/** Authored copy lives in rizom-content/site-content/brain. */
+export function BrainStyles(): JSX.Element {
+  return <link rel="stylesheet" href="/styles/brain.css" precedence="page" />;
+}
+const lead = {
+  cap: z.string(),
+  headline: z.string(),
+  body: z.array(z.string()).min(1),
+};
+const asideSchema = z.object({
+  text: z.string(),
+  links: z.array(ctaSchema).max(1),
+});
+const captureSchema = z.object({
+  kind: z.enum(["chat"]),
+  alt: z.string(),
+  caption: z.string().default(""),
+  openLabel: z.string(),
+});
+const chapterSchema = z.object({
+  ...lead,
+  aside: asideSchema,
+  capture: captureSchema,
+});
+const codeSchema = z.object({
+  title: z.string(),
+  note: z.string(),
+  lines: z
+    .array(
+      z.object({
+        text: z.string(),
+        indent: z.number().int().min(0).max(8),
+        kind: z.enum(["code", "comment", "optional"]),
+      }),
+    )
+    .min(1),
+});
+const capabilitiesSchema = z.object({
+  ...lead,
+  aside: asideSchema,
+  code: codeSchema,
+});
+const heroSchema = z.object({
+  ...lead,
+  provenance: z.string(),
+  primaryCta: ctaSchema,
+  secondaryCta: ctaSchema,
+  chat: z.object({
+    title: z.string(),
+    inputHint: z.string(),
+    notice: z.string(),
+    topicsLabel: z.string(),
+    topics: z.array(z.string()).min(1),
+  }),
+  navigation: z.array(ctaSchema).length(4),
+});
+const layersSchema = z.object({
+  label: z.string(),
+  items: z
+    .array(z.object({ title: z.string(), tag: z.string(), text: z.string() }))
+    .length(3),
+});
+const ownershipSchema = z.object({
+  ...lead,
+  items: z.array(z.object({ title: z.string(), text: z.string() })).length(3),
+});
+const quickstartSchema = z.object({
+  ...lead,
+  code: codeSchema,
+  options: z
+    .array(
+      z.object({
+        cap: z.string(),
+        title: z.string(),
+        text: z.string(),
+        cta: ctaSchema,
+      }),
+    )
+    .length(2),
+});
+function Copy({ paragraphs }: { paragraphs: string[] }): JSX.Element {
   return (
     <>
-      <SectCap lead={cap} trail={capNote} />
-      <h2 className="reveal reveal-delay-1 mt-3.5 max-w-[20em] font-display text-[clamp(28px,3vw,40px)] font-[465] leading-[1.1] tracking-[-0.014em] text-theme [font-variation-settings:'SOFT'_78,'opsz'_84]">
-        {renderHighlightedText(headline, ROOM_HIGHLIGHT_CLS)}
-      </h2>
-      <p className="reveal reveal-delay-2 mt-4 max-w-[62ch] font-body text-[17px] leading-[1.7] text-theme-muted">
-        {intro}
-      </p>
+      {paragraphs.map((text) => (
+        <p key={text} className="copy">
+          {renderHighlightedText(text, "heading-emphasis")}
+        </p>
+      ))}
     </>
   );
 }
-
-/* ============ hero ============ */
-
-const heroSchema = z.object({
-  eyebrow: z.string(),
-  provenance: z.string(),
-  headline: z.string(),
-  standfirst: z.string(),
-  primaryCta: ctaSchema,
-  secondaryCta: ctaSchema,
-  chips: z.array(z.string()),
-});
-
-function BrainHeroSection({
-  eyebrow,
-  provenance,
-  headline,
-  standfirst,
-  primaryCta,
-  secondaryCta,
-  chips,
-}: z.infer<typeof heroSchema>): JSX.Element {
+function Aside({ text, links }: z.infer<typeof asideSchema>): JSX.Element {
   return (
-    <Section
-      id="brain-hero"
-      className="relative overflow-hidden pt-16 pb-8 md:pt-20"
-    >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -inset-x-[10%] -inset-y-[30%] bg-[radial-gradient(680px_360px_at_14%_8%,rgb(from_var(--color-accent)_r_g_b_/_0.14),transparent_66%)]"
-      />
-      <div className="relative">
-        <SectCap lead={eyebrow} trail={provenance} />
-        <h1 className="mt-[18px] max-w-[15.5em] font-display text-[clamp(36px,4.8vw,64px)] font-[448] leading-[1.04] tracking-[-0.02em] text-theme [font-variation-settings:'SOFT'_88,'opsz'_110]">
-          {renderHighlightedText(headline, ROOM_HIGHLIGHT_CLS)}
-        </h1>
-        <p className="mt-4 max-w-[52ch] font-body text-[20px] leading-[1.7] text-theme-muted">
-          {standfirst}
-        </p>
-        <CtaRow
-          primaryCta={primaryCta}
-          secondaryCta={secondaryCta}
-          className="mt-[26px]"
-        />
-        <div className="mt-9 flex flex-wrap gap-2.5">
-          {chips.map((chip) => (
-            <span
-              key={chip}
-              className="rounded-full border border-theme px-[13px] py-1.5 font-label text-[10.5px] tracking-[0.06em] text-theme-light"
-            >
-              {chip}
+    <p className="aside">
+      {text}
+      {links.map((link) => (
+        <a key={link.href} href={link.href}>
+          {" "}
+          {link.label}
+        </a>
+      ))}
+    </p>
+  );
+}
+function Code({ title, note, lines }: z.infer<typeof codeSchema>): JSX.Element {
+  return (
+    <div className="term" role="figure" aria-label={title}>
+      <div className="term-bar">
+        <span>{title}</span>
+        <span>{note}</span>
+      </div>
+      <pre>
+        <code>
+          {lines.map((line, index) => (
+            <span key={index} className={`code-line code-${line.kind}`}>
+              {" ".repeat(line.indent)}
+              {line.text}
+              {"\n"}
             </span>
           ))}
-        </div>
-      </div>
-    </Section>
+        </code>
+      </pre>
+    </div>
   );
 }
-
-/* ============ shared authored checklist ============ */
-
-function Checks({ items }: { items: string[] }): JSX.Element {
-  return (
-    <ul className="mt-[18px] max-w-[40ch] font-body text-[15.5px] text-theme-light">
-      {items.map((item) => (
-        <li
-          key={item}
-          className="flex gap-2.5 border-b border-theme-light py-[7px]"
-        >
-          <span aria-hidden="true" className="font-label text-secondary">
-            ✓
-          </span>
-          {item}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-/* ============ 01 · capture — the studio ============ */
-
-const captureSchema = z.object({
-  cap: z.string(),
-  capNote: z.string().nullable().default(null),
-  headline: z.string(),
-  intro: z.string(),
-  checks: z.array(z.string()),
-});
-
-function BrainCaptureSection({
-  cap,
-  capNote,
-  headline,
-  intro,
-  checks,
+function Capture({
+  alt,
+  caption,
+  openLabel,
 }: z.infer<typeof captureSchema>): JSX.Element {
   return (
-    <Section id="capture" className="py-14">
-      {/* Screen styles are global; emitted once here, the first screen chapter. */}
-      <BrainScreenStyles />
-      <SectCap lead={cap} trail={capNote} />
-      <div className="mt-4 grid items-center gap-11 lg:grid-cols-[4fr_8fr]">
-        <div>
-          <h2 className="reveal reveal-delay-1 font-display text-[clamp(26px,2.6vw,34px)] font-[465] leading-[1.12] tracking-[-0.012em] text-theme [font-variation-settings:'SOFT'_78,'opsz'_84]">
-            {renderHighlightedText(headline, ROOM_HIGHLIGHT_CLS)}
+    <figure>
+      <div className="interface">
+        {["dark", "light"].map((theme) =>
+          ["desktop", "mobile"].map((size) => {
+            const name = `chat-${size}-${theme}`;
+            const width = size === "mobile" ? 780 : 2244;
+            const height = size === "mobile" ? 1302 : 1058;
+            return (
+              <a
+                key={name}
+                className={`capture-link capture-${theme} capture-${size}`}
+                href={`/images/brain/${name}.svg`}
+                target="_blank"
+                rel="noopener"
+                aria-label={openLabel}
+              >
+                <img
+                  src={`/images/brain/${name}.svg`}
+                  width={width}
+                  height={height}
+                  loading="lazy"
+                  alt={alt}
+                />
+              </a>
+            );
+          }),
+        )}
+      </div>
+      {caption && <figcaption className="caption">{caption}</figcaption>}
+    </figure>
+  );
+}
+function Hero(data: z.infer<typeof heroSchema>): JSX.Element {
+  return (
+    <>
+      <section
+        className="hero shell"
+        id="brain-hero"
+        aria-labelledby="brain-heading"
+      >
+        <div className="hero-grid">
+          <div>
+            <p className="eyebrow">
+              {data.cap}
+              <small>{data.provenance}</small>
+            </p>
+            <h1 id="brain-heading">
+              {renderHighlightedText(data.headline, "heading-emphasis")}
+            </h1>
+            <Copy paragraphs={data.body} />
+            <div className="actions">
+              <a className="button" href={data.primaryCta.href}>
+                {data.primaryCta.label}
+              </a>
+              <a className="text-link" href={data.secondaryCta.href}>
+                {data.secondaryCta.label}
+              </a>
+            </div>
+          </div>
+          <div className="hero-visual">
+            {/* Progressive enhancement keeps the existing box; no sending before guest readiness. */}
+            <div
+              className="interface talk"
+              id="brain-chat"
+              role="region"
+              aria-labelledby="brain-chat-heading"
+            >
+              <div className="ui-bar">
+                <span className="brand">rizom.ai</span>
+              </div>
+              <div className="talk-body">
+                <div className="brain-box-static-scroll">
+                  <div className="brain-box-welcome">
+                    <h2 id="brain-chat-heading" className="display">
+                      {data.chat.title}
+                    </h2>
+                    <p id="brain-chat-notice" className="chat-notice">
+                      {data.chat.notice}
+                    </p>
+                    <p
+                      className="hints"
+                      data-topics-label={data.chat.topicsLabel}
+                    >
+                      {data.chat.topics.map((topic, index) => (
+                        <button
+                          key={`${index}:${topic}`}
+                          type="button"
+                          data-chat-topic
+                          disabled
+                        >
+                          {topic}
+                        </button>
+                      ))}
+                    </p>
+                  </div>
+                </div>
+                <p className="prompt-row brain-box-static-composer">
+                  <textarea
+                    rows={1}
+                    disabled
+                    placeholder={data.chat.inputHint}
+                    aria-label={data.chat.title}
+                    aria-describedby="brain-chat-notice"
+                  />
+                  <button
+                    className="send"
+                    type="button"
+                    aria-label="Send question"
+                    disabled
+                  >
+                    ↑
+                  </button>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <script src="/brain-chat.js" defer />
+      <nav className="chapter-nav shell" aria-label="What a brain does">
+        {data.navigation.map((link, index) => (
+          <a key={link.href} href={link.href}>
+            <span className="number">{String(index + 1).padStart(2, "0")}</span>
+            {link.label}
+            <span className="arrow" aria-hidden="true">
+              ↓
+            </span>
+          </a>
+        ))}
+      </nav>
+    </>
+  );
+}
+export function BrainChapter({
+  id,
+  data,
+  visual,
+}: {
+  id: string;
+  data: {
+    cap: string;
+    headline: string;
+    body: string[];
+    aside: { text: string; links: { label: string; href: string }[] };
+  };
+  visual: ReactNode;
+}): JSX.Element {
+  return (
+    <section
+      className="chapter shell"
+      id={id}
+      aria-labelledby={`${id}-heading`}
+    >
+      <div className="chapter-grid">
+        <div className="chapter-copy">
+          <p className="eyebrow">{data.cap}</p>
+          <h2 id={`${id}-heading`}>
+            {renderHighlightedText(data.headline, "heading-emphasis")}
           </h2>
-          <p className="reveal reveal-delay-2 mt-4 font-body text-[16.5px] leading-[1.7] text-theme-muted">
-            {intro}
-          </p>
-          <Checks items={checks} />
+          <Copy paragraphs={data.body} />
+          <Aside {...data.aside} />
         </div>
-        <div className="reveal reveal-delay-2">
-          <StudioScreen />
-        </div>
+        {visual}
       </div>
-    </Section>
+    </section>
   );
 }
-
-/* ============ 02 · ask — the chat and its integrations ============ */
-
-const askSchema = z.object({
-  cap: z.string(),
-  capNote: z.string().nullable().default(null),
-  headline: z.string(),
-  intro: z.string(),
-});
-
-function BrainAskSection({
-  cap,
-  capNote,
-  headline,
-  intro,
-}: z.infer<typeof askSchema>): JSX.Element {
+function Answers(data: z.infer<typeof chapterSchema>): JSX.Element {
   return (
-    <Section id="ask" className="py-14">
-      <ChapterHead
-        cap={cap}
-        capNote={capNote}
-        headline={headline}
-        intro={intro}
-      />
-      <div className="mt-7 grid items-start gap-6 lg:grid-cols-[1.12fr_1fr]">
-        <div className="reveal reveal-delay-1">
-          <ChatScreen />
+    <BrainChapter
+      id="answers"
+      data={data}
+      visual={<Capture {...data.capture} />}
+    />
+  );
+}
+function Capabilities(data: z.infer<typeof capabilitiesSchema>): JSX.Element {
+  return (
+    <section
+      className="chapter shell"
+      id="capabilities"
+      aria-labelledby="capabilities-heading"
+    >
+      <div className="chapter-grid flip">
+        <div className="chapter-copy">
+          <p className="eyebrow">{data.cap}</p>
+          <h2 id="capabilities-heading">
+            {renderHighlightedText(data.headline, "heading-emphasis")}
+          </h2>
+          <Copy paragraphs={data.body} />
+          <Aside {...data.aside} />
         </div>
-        <div className="reveal reveal-delay-2">
-          <IntegrationsScreen />
+        <div className="configuration">
+          <Code {...data.code} />
         </div>
       </div>
-    </Section>
+    </section>
   );
 }
-
-/* ============ 03 · see it run — the dashboard ============ */
-
-const runSchema = z.object({
-  cap: z.string(),
-  capNote: z.string().nullable().default(null),
-  headline: z.string(),
-  intro: z.string(),
-  note: z.string(),
-});
-
-function BrainRunSection({
-  cap,
-  capNote,
-  headline,
-  intro,
-  note,
-}: z.infer<typeof runSchema>): JSX.Element {
+function Layers(data: z.infer<typeof layersSchema>): JSX.Element {
   return (
-    <Section id="run" className="py-14">
-      <ChapterHead
-        cap={cap}
-        capNote={capNote}
-        headline={headline}
-        intro={intro}
-      />
-      <div className="reveal reveal-delay-1 mt-7">
-        <DashboardScreen />
+    <section className="layers shell" aria-label={data.label}>
+      {data.items.map((item) => (
+        <div className="layer" key={item.title}>
+          <div className="layer-head">
+            <h3>{item.title}</h3>
+            <span className="layer-tag">{item.tag}</span>
+          </div>
+          <p>{item.text}</p>
+        </div>
+      ))}
+    </section>
+  );
+}
+function Ownership(data: z.infer<typeof ownershipSchema>): JSX.Element {
+  return (
+    <section
+      className="shell ownership"
+      id="yours"
+      aria-labelledby="yours-heading"
+    >
+      <div className="principles-head">
+        <p className="eyebrow">{data.cap}</p>
+        <h2 id="yours-heading">
+          {renderHighlightedText(data.headline, "heading-emphasis")}
+        </h2>
+        <Copy paragraphs={data.body} />
       </div>
-      <p className="reveal reveal-delay-2 mt-5 max-w-[52em] font-display text-[17px] font-normal italic text-theme-light [font-variation-settings:'SOFT'_85]">
-        {renderHighlightedText(note, "font-medium not-italic text-theme-muted")}
-      </p>
-    </Section>
-  );
-}
-
-/* ============ 04 · connect — back to the map ============ */
-
-const connectSchema = z.object({
-  cap: z.string(),
-  capNote: z.string().nullable().default(null),
-  headline: z.string(),
-  intro: z.string(),
-  cta: ctaSchema,
-});
-
-function BrainConnectSection({
-  cap,
-  capNote,
-  headline,
-  intro,
-  cta,
-}: z.infer<typeof connectSchema>): JSX.Element {
-  return (
-    <Section id="connect" className="py-14">
-      <ChapterHead
-        cap={cap}
-        capNote={capNote}
-        headline={headline}
-        intro={intro}
-      />
-      <div className="reveal reveal-delay-2 mt-6">
-        <a
-          href={cta.href}
-          className="font-body text-[15.5px] text-theme-light no-underline transition-colors hover:text-accent"
-        >
-          {cta.label}
-        </a>
+      <div className="principles">
+        {data.items.map((item) => (
+          <div key={item.title}>
+            <h3>{item.title}</h3>
+            <p>{item.text}</p>
+          </div>
+        ))}
       </div>
-    </Section>
+    </section>
   );
 }
-
-/* ============ your data, your rules ============ */
-
-function BrainYourDataSection({
-  cap,
-  items,
-}: z.infer<typeof trioSchema>): JSX.Element {
+function Quickstart(data: z.infer<typeof quickstartSchema>): JSX.Element {
   return (
-    <Section id="your-data" className="py-14">
-      <SectCap lead={cap} />
-      <Trio items={items} mono={true} />
-    </Section>
-  );
-}
-
-/* ============ quickstart ============ */
-
-const termLineSchema = z.object({
-  kind: z.enum(["comment", "command", "ok"]),
-  text: z.string(),
-});
-
-const quickstartSchema = z.object({
-  cap: z.string(),
-  capNote: z.string(),
-  lines: z.array(termLineSchema),
-  checks: z.array(z.string()),
-});
-
-type TermLine = z.infer<typeof termLineSchema>;
-
-function termLineClass(kind: TermLine["kind"]): string {
-  switch (kind) {
-    case "comment":
-      return "text-theme-light opacity-70";
-    case "ok":
-      return "text-secondary";
-    case "command":
-      return "text-theme";
-  }
-}
-
-function BrainQuickstartSection({
-  cap,
-  capNote,
-  lines,
-  checks,
-}: z.infer<typeof quickstartSchema>): JSX.Element {
-  return (
-    <Section id="quickstart" className="py-14">
-      <SectCap lead={cap} trail={capNote} />
-      <div className="mt-7 grid items-start gap-12 md:grid-cols-[1.15fr_1fr]">
-        <div className="reveal reveal-delay-1 border border-theme bg-theme-subtle/60 px-6 py-5 font-label text-[14px] leading-[1.9]">
-          {lines.map((line, i) => (
-            <div key={i} className={termLineClass(line.kind)}>
-              {line.kind === "command" && (
-                <span className="select-none text-accent">$ </span>
-              )}
-              {line.text}
+    <section
+      className="start shell"
+      id="quickstart"
+      aria-labelledby="start-heading"
+    >
+      <div className="start-grid">
+        <div>
+          <p className="eyebrow">{data.cap}</p>
+          <h2 id="start-heading">
+            {renderHighlightedText(data.headline, "heading-emphasis")}
+          </h2>
+          <Copy paragraphs={data.body} />
+          <Code {...data.code} />
+        </div>
+        <div>
+          {data.options.map((option, index) => (
+            <div className="start-option" key={option.title}>
+              <p className="ui-label">{option.cap}</p>
+              <h3>{option.title}</h3>
+              <p>{option.text}</p>
+              <a
+                className={index === 0 ? "button" : "text-link"}
+                href={option.cta.href}
+              >
+                {option.cta.label}
+              </a>
             </div>
           ))}
         </div>
-        <Checks items={checks} />
       </div>
-    </Section>
+    </section>
   );
 }
 
-/* ============ closing band ============ */
-
-const closeSchema = z.object({
-  quote: z.string(),
-  sub: z.string(),
-  primaryCta: ctaSchema,
-  secondaryCta: ctaSchema,
-});
-
-function BrainCloseSection({
-  quote,
-  sub,
-  primaryCta,
-  secondaryCta,
-}: z.infer<typeof closeSchema>): JSX.Element {
-  return (
-    <Band quote={quote}>
-      <p className="reveal reveal-delay-1 mt-[18px] max-w-[52ch] font-body text-[17px] text-theme-light">
-        {sub}
-      </p>
-      <CtaRow
-        primaryCta={primaryCta}
-        secondaryCta={secondaryCta}
-        className="reveal reveal-delay-2 mt-[26px]"
-      />
-    </Band>
-  );
-}
-
-/* ============ the brain section group ============ */
-
+// Preserve durable section IDs. Display titles and DOM anchors describe the new composition.
+// The former closing content remains in the content repository, unrouted; its CTA is now in Quickstart.
 export const brainSections: SiteSectionGroup = sectionGroup("brain", {
-  hero: defineSection(heroSchema, BrainHeroSection, {
+  hero: defineSection(heroSchema, Hero, {
     title: "Hero",
-    description: "Product hero — build the agent that represents you",
+    description:
+      "Owned-agent introduction and non-sending public chat placeholder",
   }),
-  capture: defineSection(captureSchema, BrainCaptureSection, {
-    title: "Capture",
-    description: "01 · Capture — markdown corpus, illustrated by the studio",
+  capture: defineSection(chapterSchema, Answers, {
+    title: "Answers",
+    description: "Source-grounded answers through the brain and its clients",
   }),
-  ask: defineSection(askSchema, BrainAskSection, {
-    title: "Ask",
-    description: "02 · Ask — chat + Discord, Claude/MCP, terminal",
+  ask: defineSection(capabilitiesSchema, Capabilities, {
+    title: "Capabilities",
+    description: "Core abilities and configurable bundles",
   }),
-  run: defineSection(runSchema, BrainRunSection, {
-    title: "See It Run",
-    description: "03 · See it run — the dashboard overview",
+  run: defineSection(layersSchema, Layers, {
+    title: "You, Team, Network",
+    description: "Individual, team and network ownership",
   }),
-  connect: defineSection(connectSchema, BrainConnectSection, {
-    title: "Connect",
-    description: "04 · Connect — takes your seat in the network (the map)",
+  "your-data": defineSection(ownershipSchema, Ownership, {
+    title: "Stays Yours",
+    description: "Portable content, provider choice and open software",
   }),
-  "your-data": defineSection(trioSchema, BrainYourDataSection, {
-    title: "Your Data",
-    description: "Your data, your rules — ownership trio (mono markers)",
-  }),
-  quickstart: defineSection(quickstartSchema, BrainQuickstartSection, {
-    title: "Quickstart",
-    description: "Three-command quickstart terminal with a checklist",
-  }),
-  close: defineSection(closeSchema, BrainCloseSection, {
-    title: "Close",
-    description: "Closing band — own the intelligence you already have",
+  quickstart: defineSection(quickstartSchema, Quickstart, {
+    title: "Quick Start",
+    description: "Installation and knowledge-session entry points",
   }),
 });

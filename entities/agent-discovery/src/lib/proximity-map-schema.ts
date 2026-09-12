@@ -1,8 +1,21 @@
 import { z } from "@brains/utils/zod";
-import { agentFrontmatterSchema, agentStatusSchema } from "../schemas/agent";
+import type {
+  agentFrontmatterSchema,
+  agentStatusSchema as storedAgentStatusSchema,
+} from "../schemas/agent";
 
-const agentKindSchema: typeof agentFrontmatterSchema.shape.kind =
-  agentFrontmatterSchema.shape.kind;
+// Presentation contracts stay independent of entity-service initialization.
+// The annotations keep these finite view values aligned with the entity schema.
+const agentKindSchema: typeof agentFrontmatterSchema.shape.kind = z.enum([
+  "person",
+  "team",
+  "organization",
+]);
+const agentStatusSchema: typeof storedAgentStatusSchema = z.enum([
+  "discovered",
+  "approved",
+  "archived",
+]);
 
 export const proximityMapCenterSchema: z.ZodObject<{
   kind: z.ZodEnum<{ identity: "identity"; centroid: "centroid" }>;

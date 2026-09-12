@@ -2076,9 +2076,12 @@
         "tailwind-merge": "^3.6.0",
       },
       "devDependencies": {
+        "@brains/agent-discovery": "workspace:*",
         "@brains/atproto-contracts": "workspace:*",
         "@brains/build-tools": "workspace:*",
+        "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
+        "@brains/entity-service": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/site-composition": "workspace:*",
