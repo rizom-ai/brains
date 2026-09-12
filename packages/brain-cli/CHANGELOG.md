@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.369
+
+### Patch Changes
+
+- [`71104c6`](https://github.com/rizom-ai/brains/commit/71104c6a81203861b0d684c62b1e40980bed8777) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add default-off anonymous Ask using the shared Chat runtime, with visitor-owned conversations, atomic admission, bounded public retrieval, source cards and receipt-based history recovery. Reuse the existing hero chat box with retained drafts and explicit recovery controls.
+
+  Account guest query embeddings inside the turn cap without disabling semantic indexing. Enforce trusted loopback transport and ready-index checks for the local-test preset. Production guest admission remains closed; this release does not authorize live spending or include the paused clock changes.
+
 ## 0.2.0-alpha.368
 
 ### Patch Changes
