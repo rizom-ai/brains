@@ -14,7 +14,7 @@ import {
   uploadOutputSchema,
   type UploadGrant,
 } from "./upload-protocol";
-import { deserializeError } from "../../../src/turso-worker/error-protocol";
+import { deserializeError } from "./error-protocol";
 import {
   DATA_HEADER_BYTES,
   SEAL_BYTES,

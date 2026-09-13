@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { Worker } from "node:worker_threads";
 import { z } from "@brains/utils/zod";
-import type { TursoThreadProof } from "./client";
+import type { SqlWorkerDriver } from "../../../src/turso-worker/client";
 const SHA = "d4f9bcbd9be765d114b85ab79d16c218fb5c1e03315f689603d48eed00bff97f";
 const messageSchema = z.discriminatedUnion("kind", [
   z.strictObject({
@@ -18,7 +18,7 @@ const messageSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 export async function exerciseReadSnapshots(
-  driver: TursoThreadProof,
+  driver: SqlWorkerDriver,
   consumerUrl: URL,
 ): Promise<void> {
   await driver.executeMultiple(
@@ -71,7 +71,7 @@ export async function exerciseReadSnapshots(
     await scope.close();
   }
 }
-export async function assertReadRows(driver: TursoThreadProof): Promise<void> {
+export async function assertReadRows(driver: SqlWorkerDriver): Promise<void> {
   const result = await driver.execute({
     sql: "SELECT id, hex(bytes) AS bytes FROM proof_reads ORDER BY id",
   });

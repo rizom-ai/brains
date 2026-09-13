@@ -1,10 +1,7 @@
 import { isMainThread, type MessagePort } from "node:worker_threads";
 import { randomUUID } from "node:crypto";
 import { STAGE_CHUNK_BYTES, sealedSchema } from "./binary-protocol";
-import {
-  serializeError,
-  deserializeError,
-} from "../../../src/turso-worker/error-protocol";
+import { serializeError, deserializeError } from "./error-protocol";
 import { TRANSFER_SLOTS } from "./transfer-budget";
 import {
   uploadInputSchema,

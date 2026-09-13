@@ -8,8 +8,8 @@ export const NETWORK_BORROW_BYTES: number = 64 * 1024;
 export const CREDIT_HEADER_BYTES = 41;
 export const DATA_HEADER_BYTES = 45;
 export const SEAL_BYTES = 69;
-export { binaryUploadEndpointSchema as networkEndpointSchema } from "../../../src/binary-publication";
-export type { BinaryUploadEndpoint as NetworkEndpoint } from "../../../src/binary-publication";
+export { binaryUploadEndpointSchema as networkEndpointSchema } from "../binary-publication";
+export type { BinaryUploadEndpoint as NetworkEndpoint } from "../binary-publication";
 const creditSchema = z.strictObject({
   sequence: z.number().int().min(0).max(0xffffffff),
   credit: z.string().uuid(),

@@ -6,8 +6,8 @@ import {
 } from "node:worker_threads";
 import { createHash } from "node:crypto";
 import { z } from "@brains/utils/zod";
-import { uploadBootstrapSchema } from "./upload-protocol";
-import { readOutputSchema } from "./read-protocol";
+import { uploadBootstrapSchema } from "../../../src/turso-worker/upload-protocol";
+import { readOutputSchema } from "../../../src/turso-worker/read-protocol";
 import { deserializeError } from "../../../src/turso-worker/error-protocol";
 
 if (isMainThread || !parentPort)

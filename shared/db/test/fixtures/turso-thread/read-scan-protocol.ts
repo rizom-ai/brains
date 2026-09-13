@@ -1,12 +1,21 @@
 // Metadata-only component fault harness; deliberately not the runtime RPC protocol.
 import { z } from "@brains/utils/zod";
-import { budgetGrantSchema, type BudgetGrant } from "./budget-protocol";
+import {
+  budgetGrantSchema,
+  type BudgetGrant,
+} from "../../../src/turso-worker/budget-protocol";
 import {
   errorSchema,
   type ProofError,
 } from "../../../src/turso-worker/error-protocol";
-import { sealedSchema, type SealedStage } from "./binary-protocol";
-import { readStatsSchema, type ReadStats } from "./read-protocol";
+import {
+  sealedSchema,
+  type SealedStage,
+} from "../../../src/turso-worker/binary-protocol";
+import {
+  readStatsSchema,
+  type ReadStats,
+} from "../../../src/turso-worker/read-protocol";
 
 export type ScanMaterialization = "incremental" | "adopt";
 export const scanMaterializationSchema: z.ZodType<ScanMaterialization> = z.enum(

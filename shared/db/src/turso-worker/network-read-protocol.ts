@@ -1,6 +1,6 @@
 import { z } from "@brains/utils/zod";
 import { networkEndpointSchema } from "./network-wire";
-import { blobFactsSchema } from "../../../src/turso-worker/blob-protocol";
+import { blobFactsSchema } from "./blob-protocol";
 import { STAGE_CHUNK_BYTES, STAGE_BUDGET_BYTES } from "./binary-protocol";
 
 export const readEndpointSchema: z.ZodObject<

@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import type { TursoThreadProof } from "./client";
+import type { SqlWorkerDriver } from "../../../src/turso-worker/client";
 
 export async function exerciseControlAdmission(
-  driver: TursoThreadProof,
+  driver: SqlWorkerDriver,
 ): Promise<void> {
   await driver.execute({
     sql: "CREATE TABLE proof_control_rows (id INTEGER PRIMARY KEY)",

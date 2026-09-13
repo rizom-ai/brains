@@ -15,11 +15,14 @@ import type {
   NativeTransaction,
 } from "../../../src/turso-worker/backend-contract";
 import { ExecutionOwner } from "../../../src/turso-worker/ownership";
-import { ReadSnapshots } from "./read-snapshots";
+import { ReadSnapshots } from "../../../src/turso-worker/read-snapshots";
 import { VerificationBudget } from "../../../src/turso-worker/blob-verification";
 import { NativeStatementUncertainError } from "../../../src/turso-worker/native-statement";
-import { capabilitySchema, type StageCapability } from "./binary-protocol";
-import { validateBudgetGrant } from "./budget-protocol";
+import {
+  capabilitySchema,
+  type StageCapability,
+} from "../../../src/turso-worker/binary-protocol";
+import { validateBudgetGrant } from "../../../src/turso-worker/budget-protocol";
 import { serializeError } from "../../../src/turso-worker/error-protocol";
 import {
   scanFaultSchema,

@@ -1,5 +1,5 @@
 import { exerciseReadAdoption } from "./fixtures/turso-thread/read-adoption-exercise";
-import { STAGE_BUDGET_BYTES } from "./fixtures/turso-thread/binary-protocol";
+import { STAGE_BUDGET_BYTES } from "../src/turso-worker/binary-protocol";
 
 console.error(
   "[read-adoption] starting single 100 MiB component case (not the packed/authenticated matrix)",

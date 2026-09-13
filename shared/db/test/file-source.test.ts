@@ -12,8 +12,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { withFileSource } from "../src/turso-worker/file-source";
-import { TursoThreadProof } from "./fixtures/turso-thread/client";
-import { ProofBudgetPool } from "./fixtures/turso-thread/budget-pool";
+import { SqlWorkerDriver } from "../src/turso-worker/client";
+import { PersistenceBudgetPool } from "../src/turso-worker/budget-pool";
 import { uploadNetworkFixture } from "./fixtures/turso-thread/network-exercise";
 
 let directory: string;
@@ -145,10 +145,10 @@ test("the separate payload process sends the canonical 2 MiB PNG fixture directl
     "base64",
   ).copy(bytes);
   await writeFile(path, bytes);
-  const pool = new ProofBudgetPool();
-  const driver = new TursoThreadProof({
+  const pool = new PersistenceBudgetPool();
+  const driver = new SqlWorkerDriver({
     url: pathToFileURL(join(directory, "data.db")).href,
-    workerUrl: new URL("./fixtures/turso-thread/worker.ts", import.meta.url),
+    workerUrl: new URL("../src/turso-worker/worker.ts", import.meta.url),
     budget: pool,
   });
   cleanups.push(() => driver.close());
@@ -161,7 +161,7 @@ test("the separate payload process sends the canonical 2 MiB PNG fixture directl
   });
   const options = {
     bridgeUrl: new URL(
-      "./fixtures/turso-thread/network-ingress-worker.ts",
+      "../src/turso-worker/network-ingress-worker.ts",
       import.meta.url,
     ),
     producerUrl: new URL(

@@ -17,8 +17,11 @@ import {
   readFixed,
   writeBytes,
   endSocket,
-} from "./network-wire";
-import { STAGE_BUDGET_BYTES, STAGE_CHUNK_BYTES } from "./binary-protocol";
+} from "../../../src/turso-worker/network-wire";
+import {
+  STAGE_BUDGET_BYTES,
+  STAGE_CHUNK_BYTES,
+} from "../../../src/turso-worker/binary-protocol";
 import { serializeError } from "../../../src/turso-worker/error-protocol";
 
 const optionsSchema = z.strictObject({

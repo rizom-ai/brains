@@ -6,21 +6,21 @@ import {
   type StageClaim,
 } from "./binary-protocol";
 import type { BinaryScope } from "./binary-client";
-import type { TursoThreadProof, ProofTransaction } from "./client";
+import type { SqlWorkerDriver, WorkerTransaction } from "./client";
 
 import {
   binaryUploadSizeSchema as uploadSizeSchema,
   binaryUploadTicketSchema as uploadTicketSchema,
-} from "../../../src/binary-publication";
+} from "../binary-publication";
 export { uploadSizeSchema, uploadTicketSchema };
 export {
   binaryUploadOfferSchema as uploadOfferSchema,
   binaryUploadReceiptSchema as uploadReceiptSchema,
-} from "../../../src/binary-publication";
+} from "../binary-publication";
 import type {
   BinaryRequestContext as UploadControlContext,
   BinaryUploadReceipt as UploadReceipt,
-} from "../../../src/binary-publication";
+} from "../binary-publication";
 export type { UploadControlContext, UploadReceipt };
 interface Session {
   signal: AbortSignal;
@@ -44,10 +44,10 @@ interface Admission {
   closeError: unknown;
   finished: ReturnType<typeof Promise.withResolvers<void>>;
 }
-/** Metadata-only proof broker. Context must come from an authenticated transport,
+/** Metadata-only upload broker. Context must come from an authenticated transport,
  * never a client-supplied session string. No bytes or caller SQL enter this API. */
 export class ScopedUploads {
-  private readonly driver: TursoThreadProof;
+  private readonly driver: SqlWorkerDriver;
   private readonly spawn: (size: number) => Worker;
   private readonly sessions = new WeakMap<AbortSignal, Session>();
   private readonly live = new Set<Admission>();
@@ -55,10 +55,7 @@ export class ScopedUploads {
   private cleanupTail: Promise<void> = Promise.resolve();
   private closing = false;
   private failure: unknown;
-  public constructor(
-    driver: TursoThreadProof,
-    spawn: (size: number) => Worker,
-  ) {
+  public constructor(driver: SqlWorkerDriver, spawn: (size: number) => Worker) {
     this.driver = driver;
     this.spawn = spawn;
   }
@@ -182,7 +179,7 @@ export class ScopedUploads {
   public consume<T>(
     context: UploadControlContext,
     ticket: string,
-    body: (tx: ProofTransaction, claim: StageClaim) => Promise<T>,
+    body: (tx: WorkerTransaction, claim: StageClaim) => Promise<T>,
   ): Promise<T> {
     return this.consumeClaim(context, ticket, async (claim) => {
       const tx = await this.driver.transaction("write", [claim]);

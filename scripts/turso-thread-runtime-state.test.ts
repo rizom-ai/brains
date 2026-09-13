@@ -10,12 +10,12 @@ import { z } from "@brains/utils/zod";
 import { RuntimeStateStore } from "../shell/runtime-state/src/runtime-state-store";
 import type { RuntimeStateDB } from "../shell/runtime-state/src/db";
 import { runtimeStateRecords } from "../shell/runtime-state/src/schema/runtime-state";
-import { TursoThreadProof } from "../shared/db/test/fixtures/turso-thread/client";
-import { MAX_IN_FLIGHT } from "../shared/db/test/fixtures/turso-thread/protocol";
-import { createProofDatabase } from "../shared/db/test/fixtures/turso-thread/binary-transaction";
+import { SqlWorkerDriver } from "../shared/db/src/turso-worker/client";
+import { MAX_IN_FLIGHT } from "../shared/db/src/turso-worker/protocol";
+import { createWorkerDatabase } from "../shared/db/src/turso-worker/binary-transaction";
 
 const workerUrl = new URL(
-  "../shared/db/test/fixtures/turso-thread/worker.ts",
+  "../shared/db/src/turso-worker/worker.ts",
   import.meta.url,
 );
 const valueSchema = z.strictObject({
@@ -31,18 +31,18 @@ const value: Value = {
   enabled: true,
   tags: ["a", "b"],
 };
-const drivers: TursoThreadProof[] = [];
+const drivers: SqlWorkerDriver[] = [];
 let folder: string;
 async function open(
   path: string,
   initialize = true,
-): Promise<{ driver: TursoThreadProof; db: RuntimeStateDB }> {
-  const driver = new TursoThreadProof({
+): Promise<{ driver: SqlWorkerDriver; db: RuntimeStateDB }> {
+  const driver = new SqlWorkerDriver({
     url: pathToFileURL(path).href,
     workerUrl,
   });
   drivers.push(driver);
-  const db = createProofDatabase<Record<string, unknown>>(driver, {
+  const db = createWorkerDatabase<Record<string, unknown>>(driver, {
     runtimeStateRecords,
   });
   if (initialize)

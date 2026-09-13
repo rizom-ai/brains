@@ -4,10 +4,7 @@ import { TransferBudget } from "./transfer-budget";
 import { NetworkTransferBudget } from "./network-budget";
 import { isMainThread, type Worker } from "node:worker_threads";
 import { STAGE_BUDGET_BYTES, STAGE_SLOTS } from "./binary-protocol";
-import {
-  VERIFY_SCRATCH_BYTES,
-  VERIFY_SLOTS,
-} from "../../../src/turso-worker/blob-protocol";
+import { VERIFY_SCRATCH_BYTES, VERIFY_SLOTS } from "./blob-protocol";
 import {
   budgetGrantSchema,
   type BudgetGrant,
@@ -38,7 +35,7 @@ export interface BudgetMember {
 }
 
 /** One 100 MiB/16-slot resident pool and two scratch slots across up to five workers. */
-export class ProofBudgetPool {
+export class PersistenceBudgetPool {
   public readonly id: string;
   public readonly networkIngress: NetworkTransferBudget =
     new NetworkTransferBudget("ingress");

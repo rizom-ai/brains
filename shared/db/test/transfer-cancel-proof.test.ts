@@ -2,13 +2,13 @@ import { describe, expect, it } from "bun:test";
 import assert from "node:assert/strict";
 import { Worker } from "node:worker_threads";
 import { z } from "@brains/utils/zod";
-import { BinaryTransferClient } from "./fixtures/turso-thread/transfer-client";
-import { ProofBudgetPool } from "./fixtures/turso-thread/budget-pool";
-import { STAGE_CHUNK_BYTES } from "./fixtures/turso-thread/binary-protocol";
+import { BinaryTransferClient } from "../src/turso-worker/transfer-client";
+import { PersistenceBudgetPool } from "../src/turso-worker/budget-pool";
+import { STAGE_CHUNK_BYTES } from "../src/turso-worker/binary-protocol";
 import { serializeError } from "../src/turso-worker/error-protocol";
 
 const workerUrl = new URL(
-  "./fixtures/turso-thread/transfer-receiver.ts",
+  "../src/turso-worker/transfer-receiver.ts",
   import.meta.url,
 );
 const eventSchema = z.strictObject({
@@ -26,7 +26,7 @@ describe.each(["upload", "read"] as const)(
         const receiver = new Worker(workerUrl, { workerData: "receiver" });
         const receiverExit = Promise.withResolvers<number>();
         receiver.once("exit", (code) => receiverExit.resolve(code));
-        const pool = new ProofBudgetPool();
+        const pool = new PersistenceBudgetPool();
         const budget = direction === "upload" ? pool.ingress : pool.egress;
         const opened = Promise.withResolvers<void>();
         const settled = Promise.withResolvers<void>();

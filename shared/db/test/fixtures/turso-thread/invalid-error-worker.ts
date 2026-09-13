@@ -5,14 +5,17 @@ import {
   threadId,
   workerData,
 } from "node:worker_threads";
-import { parseRequest, type ProofReply } from "./protocol";
+import {
+  parseRequest,
+  type WorkerReply,
+} from "../../../src/turso-worker/protocol";
 import { parseBoot } from "../../../src/turso-worker/boot-protocol";
 if (isMainThread || !parentPort)
   throw new Error("Protocol fixture requires a worker");
 const port = parentPort;
 const boot = parseBoot(workerData);
 const placement = { generation: boot.generation, pid: process.pid, threadId };
-port.postMessage({ kind: "ready", ...placement } satisfies ProofReply);
+port.postMessage({ kind: "ready", ...placement } satisfies WorkerReply);
 port.on("message", (input: unknown) => {
   const request = parseRequest(input);
   port.postMessage({
@@ -23,5 +26,5 @@ port.on("message", (input: unknown) => {
       nodes: [{ name: "Error", message: "Malformed diagnostic", cause: 5 }],
       truncated: false,
     },
-  } satisfies ProofReply);
+  } satisfies WorkerReply);
 });

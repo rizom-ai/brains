@@ -5,7 +5,7 @@ import {
   sealedSchema,
   STAGE_CHUNK_BYTES,
 } from "./binary-protocol";
-import { errorSchema } from "../../../src/turso-worker/error-protocol";
+import { errorSchema } from "./error-protocol";
 
 export const uploadGrantSchema: z.ZodObject<{
   id: z.ZodString;

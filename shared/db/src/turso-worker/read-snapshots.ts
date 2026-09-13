@@ -6,12 +6,9 @@ import {
   type StageCapability,
   type SealedStage,
 } from "./binary-protocol";
-import type {
-  BlobPlan,
-  BlobFacts,
-} from "../../../src/turso-worker/blob-protocol";
+import type { BlobPlan, BlobFacts } from "./blob-protocol";
 import type { ReadCommand, ReadStats } from "./read-protocol";
-import type { ExecutionOwner } from "../../../src/turso-worker/ownership";
+import type { ExecutionOwner } from "./ownership";
 
 interface ReadAllocation {
   capability: StageCapability;

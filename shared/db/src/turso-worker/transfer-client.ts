@@ -3,7 +3,7 @@ import {
   type MessagePort,
   type Worker,
 } from "node:worker_threads";
-import type { ProofBudgetPool } from "./budget-pool";
+import type { PersistenceBudgetPool } from "./budget-pool";
 import type { TransferReservation } from "./transfer-budget";
 import {
   capabilitySchema,
@@ -11,7 +11,7 @@ import {
   type StageCapability,
   type SealedStage,
 } from "./binary-protocol";
-import { deserializeError } from "../../../src/turso-worker/error-protocol";
+import { deserializeError } from "./error-protocol";
 import {
   uploadResultSchema,
   type UploadGrant,
@@ -37,7 +37,7 @@ export class BinaryTransferClient {
   private readonly direction: "upload" | "read";
   private readonly receiver: Worker;
   private readonly receiverExit: Promise<number>;
-  private readonly pool: ProofBudgetPool;
+  private readonly pool: PersistenceBudgetPool;
   private readonly open: Open;
   private readonly cancel: (id: string) => Promise<void>;
   private readonly pending = new Map<string, PendingTransfer>();
@@ -48,7 +48,7 @@ export class BinaryTransferClient {
   public constructor(
     receiver: Worker,
     receiverExit: Promise<number>,
-    pool: ProofBudgetPool,
+    pool: PersistenceBudgetPool,
     direction: "upload" | "read",
     open: Open,
     cancel: (id: string) => Promise<void>,

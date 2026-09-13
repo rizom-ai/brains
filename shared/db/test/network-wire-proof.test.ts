@@ -2,7 +2,7 @@ import { describe, it, expect } from "bun:test";
 import assert from "node:assert/strict";
 import { PassThrough } from "node:stream";
 import { Worker } from "node:worker_threads";
-import { NetworkTransferBudget } from "./fixtures/turso-thread/network-budget";
+import { NetworkTransferBudget } from "../src/turso-worker/network-budget";
 import {
   encodeCredit,
   decodeCredit,
@@ -11,8 +11,8 @@ import {
   readInto,
   NETWORK_SCRATCH_BYTES,
   NETWORK_BORROW_BYTES,
-} from "./fixtures/turso-thread/network-wire";
-import { STAGE_CHUNK_BYTES } from "./fixtures/turso-thread/binary-protocol";
+} from "../src/turso-worker/network-wire";
+import { STAGE_CHUNK_BYTES } from "../src/turso-worker/binary-protocol";
 
 describe("bounded raw network ingress", () => {
   it("validates direction, exact headers, credit and size before reading a declared body", () => {

@@ -13,17 +13,17 @@ import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { createHash } from "node:crypto";
 import { z } from "@brains/utils/zod";
-import { ProofBudgetPool } from "./budget-pool";
-import { budgetGrantSchema } from "./budget-protocol";
+import { PersistenceBudgetPool } from "../../../src/turso-worker/budget-pool";
+import { budgetGrantSchema } from "../../../src/turso-worker/budget-protocol";
 import { VERIFY_SCRATCH_BYTES } from "../../../src/turso-worker/blob-protocol";
-import { STAGE_BUDGET_BYTES } from "./binary-protocol";
+import { STAGE_BUDGET_BYTES } from "../../../src/turso-worker/binary-protocol";
 import { withNativeStatement } from "../../../src/turso-worker/native-statement";
 import {
   errorSchema,
   serializeError,
   deserializeError,
 } from "../../../src/turso-worker/error-protocol";
-import { TursoThreadProof } from "./client";
+import { SqlWorkerDriver } from "../../../src/turso-worker/client";
 
 const scenarioSchema: z.ZodEnum<{
   complete: "complete";
@@ -337,7 +337,7 @@ export async function exerciseReadAdoption(input: {
     throw new Error("Adoption fault cases require the explicit small fixture");
   const directory = await mkdtemp(join(tmpdir(), "turso-read-adoption-"));
   const path = join(directory, "original.db");
-  const pool = new ProofBudgetPool();
+  const pool = new PersistenceBudgetPool();
   const member = pool.admit();
   const done = Promise.withResolvers<Done>();
   void done.promise.catch(() => undefined); // Awaited after each deterministic gate, including early startup failures.
@@ -427,7 +427,7 @@ export async function exerciseReadAdoption(input: {
     return stopping;
   };
   const errors: unknown[] = [];
-  let restored: TursoThreadProof | undefined;
+  let restored: SqlWorkerDriver | undefined;
   let result: ReadAdoptionResult | undefined;
   let restoreClosed = false;
   try {
@@ -499,9 +499,12 @@ export async function exerciseReadAdoption(input: {
     assert.equal(pool.stats().scratchBytes, 0);
     const restorePath = healthy ? join(directory, "restored.db") : path;
     if (healthy) await copyFile(path, restorePath); // Confirmed normal close: main-file-only restore.
-    restored = new TursoThreadProof({
+    restored = new SqlWorkerDriver({
       url: pathToFileURL(restorePath).href,
-      workerUrl: new URL("./worker.ts", import.meta.url),
+      workerUrl: new URL(
+        "../../../src/turso-worker/worker.ts",
+        import.meta.url,
+      ),
     });
     if (options.scenario === "complete")
       assert.equal(

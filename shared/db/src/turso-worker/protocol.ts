@@ -1,25 +1,19 @@
-// Isolated driver proof. Not exported by @brains/db or used by runtime callers.
+// Execution worker protocol; metadata and operation-specific validation.
 import { z } from "@brains/utils/zod";
-import {
-  MAX_COMMANDS,
-  MAX_QUEUED_COMMAND_BYTES,
-} from "../../../src/turso-worker/command-admission";
+import { MAX_COMMANDS, MAX_QUEUED_COMMAND_BYTES } from "./command-admission";
 import { MessagePort } from "node:worker_threads";
 import {
   executeCommandSchema,
   batchCommandSchema,
   migrateCommandSchema,
   scriptCommandSchema,
-} from "../../../src/turso-worker/sql-command";
+} from "./sql-command";
 import { uploadGrantSchema, uploadResultSchema } from "./upload-protocol";
 import { readCommandSchema } from "./read-protocol";
 import { savepointCommandSchema } from "./savepoint-protocol";
-import { errorSchema } from "../../../src/turso-worker/error-protocol";
+import { errorSchema } from "./error-protocol";
 import { budgetGrantSchema } from "./budget-protocol";
-import {
-  blobPlanSchema,
-  blobPlanBytes,
-} from "../../../src/turso-worker/blob-protocol";
+import { blobPlanSchema, blobPlanBytes } from "./blob-protocol";
 import {
   binaryCommandSchema,
   boundStatementSchema,
@@ -34,7 +28,7 @@ import {
   statementSchema,
   MAX_SQL_MESSAGE_BYTES,
   MAX_SQL_MIGRATION_STATEMENTS,
-} from "../../../src/turso-worker/client-protocol";
+} from "./client-protocol";
 
 export const MAX_MESSAGE_BYTES: number = MAX_SQL_MESSAGE_BYTES;
 export const MAX_PENDING_BYTES: number = MAX_QUEUED_COMMAND_BYTES;
@@ -301,29 +295,29 @@ const replySchema: z.ZodDiscriminatedUnion<
   }),
 ]);
 
-export type ProofStatement = z.output<typeof statementSchema>;
-export type ProofCommand = z.output<typeof commandSchema>;
-export type ProofRequest = z.output<typeof requestSchema>;
-export type ProofPlacement = z.output<typeof placementSchema>;
-export type ProofReply = z.output<typeof replySchema>;
+export type SqlStatement = z.output<typeof statementSchema>;
+export type WorkerCommand = z.output<typeof commandSchema>;
+export type WorkerRequest = z.output<typeof requestSchema>;
+export type WorkerPlacement = z.output<typeof placementSchema>;
+export type WorkerReply = z.output<typeof replySchema>;
 
-export function parseCommand(input: unknown): ProofCommand {
+export function parseCommand(input: unknown): WorkerCommand {
   return commandSchema.parse(input);
 }
-export function parseRequest(input: unknown): ProofRequest {
+export function parseRequest(input: unknown): WorkerRequest {
   return requestSchema.parse(input);
 }
-export function parseReply(input: unknown): ProofReply {
+export function parseReply(input: unknown): WorkerReply {
   return replySchema.parse(input);
 }
-export function isControlCommand(command: ProofCommand): boolean {
+export function isControlCommand(command: WorkerCommand): boolean {
   return (
     command.op === "close" ||
     command.op === "finish" ||
     command.op === "savepoint"
   );
 }
-export function isCleanupCommand(command: ProofCommand): boolean {
+export function isCleanupCommand(command: WorkerCommand): boolean {
   return (
     command.op === "cancelTransfer" ||
     (command.op === "binary" && isBinaryCleanup(command.command)) ||
@@ -348,7 +342,7 @@ function valueBytes(value: z.output<typeof argumentSchema>): number {
   return 8;
 }
 
-export function snapshotCommand(command: ProofCommand): ProofCommand {
+export function snapshotCommand(command: WorkerCommand): WorkerCommand {
   if (command.op === "migration" && command.command.action === "append")
     return {
       ...command,
@@ -384,7 +378,7 @@ export function snapshotCommand(command: ProofCommand): ProofCommand {
   return command;
 }
 
-export function snapshotStatement(statement: ProofStatement): ProofStatement {
+export function snapshotStatement(statement: SqlStatement): SqlStatement {
   if (statement.args === undefined) return statement;
   const args = statement.args;
   const copy = (
@@ -407,7 +401,7 @@ export function snapshotStatement(statement: ProofStatement): ProofStatement {
   };
 }
 
-export function commandBytes(command: ProofCommand): number {
+export function commandBytes(command: WorkerCommand): number {
   if (
     command.op === "openUpload" ||
     command.op === "openRead" ||
@@ -461,7 +455,7 @@ export function commandBytes(command: ProofCommand): number {
   return statementBytes(command.statement);
 }
 
-export function statementBytes(statement: ProofStatement): number {
+export function statementBytes(statement: SqlStatement): number {
   const args = statement.args;
   let bytes = 256 + Buffer.byteLength(statement.sql);
   if (Array.isArray(args)) for (const value of args) bytes += valueBytes(value);

@@ -7,9 +7,15 @@ import {
   threadId,
 } from "node:worker_threads";
 import { z } from "@brains/utils/zod";
-import { STAGE_BUDGET_BYTES, STAGE_CHUNK_BYTES } from "./binary-protocol";
+import {
+  STAGE_BUDGET_BYTES,
+  STAGE_CHUNK_BYTES,
+} from "../../../src/turso-worker/binary-protocol";
 import { deserializeError } from "../../../src/turso-worker/error-protocol";
-import { uploadBootstrapSchema, uploadOutputSchema } from "./upload-protocol";
+import {
+  uploadBootstrapSchema,
+  uploadOutputSchema,
+} from "../../../src/turso-worker/upload-protocol";
 
 if (isMainThread || !parentPort)
   throw new Error("Upload producer requires its own worker");

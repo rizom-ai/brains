@@ -1,5 +1,5 @@
 import { z } from "@brains/utils/zod";
-import { blobPlanSchema } from "../../../src/turso-worker/blob-protocol";
+import { blobPlanSchema } from "./blob-protocol";
 import {
   capabilitySchema,
   sealedSchema,

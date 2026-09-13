@@ -10,7 +10,7 @@ import {
   type BinaryUploadReceipt,
   type BinaryUploadEndpoint,
 } from "@brains/db/binary-publication";
-import type { ScopedUploads } from "../../shared/db/test/fixtures/turso-thread/scoped-uploads";
+import type { ScopedUploads } from "../../shared/db/src/turso-worker/scoped-uploads";
 import type { CanonicalAssetBindings } from "./turso-canonical-asset-bindings";
 const listeningSchema = z.strictObject({
   kind: z.literal("network-listening"),

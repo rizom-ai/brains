@@ -12,22 +12,22 @@ import {
   LocalDatabaseRpcServer,
   LocalDatabaseRpcClient,
 } from "../shell/core/src/local-database-endpoint";
-import { TursoThreadProof } from "../shared/db/test/fixtures/turso-thread/client";
-import type { ReadCommand } from "../shared/db/test/fixtures/turso-thread/read-protocol";
-import { ProofBudgetPool } from "../shared/db/test/fixtures/turso-thread/budget-pool";
-import { ScopedReads } from "../shared/db/test/fixtures/turso-thread/scoped-reads";
+import { SqlWorkerDriver } from "../shared/db/src/turso-worker/client";
+import type { ReadCommand } from "../shared/db/src/turso-worker/read-protocol";
+import { PersistenceBudgetPool } from "../shared/db/src/turso-worker/budget-pool";
+import { ScopedReads } from "../shared/db/src/turso-worker/scoped-reads";
 import {
   readOfferSchema,
   readEndpointSchema,
   readPausedSchema,
   type ReadOffer,
-} from "../shared/db/test/fixtures/turso-thread/network-read-protocol";
+} from "../shared/db/src/turso-worker/network-read-protocol";
 import {
   blobFactsSchema,
   type BlobFacts,
 } from "../shared/db/src/turso-worker/blob-protocol";
-import { NETWORK_SCRATCH_BYTES } from "../shared/db/test/fixtures/turso-thread/network-wire";
-import { STAGE_CHUNK_BYTES } from "../shared/db/test/fixtures/turso-thread/binary-protocol";
+import { NETWORK_SCRATCH_BYTES } from "../shared/db/src/turso-worker/network-wire";
+import { STAGE_CHUNK_BYTES } from "../shared/db/src/turso-worker/binary-protocol";
 import {
   errorSchema,
   serializeError,
@@ -35,11 +35,11 @@ import {
 } from "../shared/db/src/turso-worker/error-protocol";
 
 const workerUrl = new URL(
-  "../shared/db/test/fixtures/turso-thread/worker.ts",
+  "../shared/db/src/turso-worker/worker.ts",
   import.meta.url,
 );
 const bridgeUrl = new URL(
-  "../shared/db/test/fixtures/turso-thread/network-read-worker.ts",
+  "../shared/db/src/turso-worker/network-read-worker.ts",
   import.meta.url,
 );
 const consumerUrl = new URL(
@@ -78,7 +78,7 @@ async function call(
   if (!reply.ok) throw deserializeError(reply.error);
   return reply.value;
 }
-class ObservedDriver extends TursoThreadProof {
+class ObservedDriver extends SqlWorkerDriver {
   public fillSubmitted: () => void = () => undefined;
   public override read(command: ReadCommand): Promise<unknown> {
     const pending = super.read(command);
@@ -90,7 +90,7 @@ interface Fixture {
   directory: string;
   path: string;
   driver: ObservedDriver;
-  pool: ProofBudgetPool;
+  pool: PersistenceBudgetPool;
   broker: ScopedReads;
   server: LocalDatabaseRpcServer;
   clients: LocalDatabaseRpcClient[];
@@ -107,7 +107,7 @@ let fixture: Fixture;
 beforeEach(async () => {
   const directory = await mkdtemp(join(tmpdir(), "turso-read-scope-"));
   const path = join(directory, "source.db");
-  const pool = new ProofBudgetPool();
+  const pool = new PersistenceBudgetPool();
   const driver = new ObservedDriver({
     url: pathToFileURL(path).href,
     workerUrl,
@@ -559,7 +559,7 @@ describe("authenticated cross-process read scopes (source proof)", () => {
       await fixture.driver.close();
       const restoredPath = join(fixture.directory, "restored.db");
       await copyFile(fixture.path, restoredPath);
-      const restored = new TursoThreadProof({
+      const restored = new SqlWorkerDriver({
         url: pathToFileURL(restoredPath).href,
         workerUrl,
       });

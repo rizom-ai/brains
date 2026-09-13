@@ -1,6 +1,6 @@
 import { isAbsolute } from "node:path";
 import { z } from "@brains/utils/zod";
-import { sidecarPath } from "../../shared/db/test/fixtures/turso-thread/network-process-owner";
+import { sidecarPath } from "../../shared/db/src/turso-worker/network-process-owner";
 
 export const authenticatedSidecarsSchema: z.ZodObject<{
   nativeWorker: z.ZodString;
@@ -38,7 +38,14 @@ export function resolveAuthenticatedSidecars(
       );
     const native = (name: string): string =>
       new URL(
-        `../../shared/db/test/fixtures/turso-thread/${name}.ts`,
+        [
+          "worker",
+          "network-ingress-worker",
+          "network-read-worker",
+          "transfer-receiver",
+        ].includes(name)
+          ? `../../shared/db/src/turso-worker/${name}.ts`
+          : `../../shared/db/test/fixtures/turso-thread/${name}.ts`,
         import.meta.url,
       ).href;
     input = {

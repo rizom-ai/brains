@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { Worker } from "node:worker_threads";
-import type { TursoThreadProof } from "./client";
+import type { SqlWorkerDriver } from "../../../src/turso-worker/client";
 
 const SIZE = 65539;
 const SHA256 =
   "82abcd7b965a2c75bef1461e9f5206f47621c1bdeda0aa75de8714ba73dabccc";
 
 export async function exerciseDirectUpload(
-  driver: TursoThreadProof,
+  driver: SqlWorkerDriver,
   producerUrl: URL,
 ): Promise<void> {
   const placement = await driver.initialize();
@@ -69,7 +69,7 @@ export async function exerciseDirectUpload(
   }
 }
 export async function assertDirectUploadRows(
-  driver: TursoThreadProof,
+  driver: SqlWorkerDriver,
 ): Promise<void> {
   assert.deepEqual(
     await driver.verifyBlob({

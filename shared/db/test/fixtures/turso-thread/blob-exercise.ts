@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { sql } from "drizzle-orm";
 import { blob, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import type { TursoThreadProof } from "./client";
-import { withBinaryTransaction } from "./binary-transaction";
-import { STAGE_BUDGET_BYTES } from "./binary-protocol";
+import type { SqlWorkerDriver } from "../../../src/turso-worker/client";
+import { withBinaryTransaction } from "../../../src/turso-worker/binary-transaction";
+import { STAGE_BUDGET_BYTES } from "../../../src/turso-worker/binary-protocol";
 import type { BlobPlan } from "../../../src/turso-worker/blob-protocol";
 
 const zeroDigest =
@@ -46,7 +46,7 @@ const corruptPlan: BlobPlan = {
 };
 
 export async function assertVerifiedBlobs(
-  driver: TursoThreadProof,
+  driver: SqlWorkerDriver,
 ): Promise<void> {
   assert.deepEqual(await driver.verifyBlob(plan), {
     sizeBytes: 65539,
@@ -68,7 +68,7 @@ export async function assertVerifiedBlobs(
   );
 }
 export async function exerciseBlobVerification(
-  driver: TursoThreadProof,
+  driver: SqlWorkerDriver,
 ): Promise<void> {
   await driver.execute({
     sql: "CREATE TABLE proof_verify (partition TEXT, id TEXT, bytes BLOB, PRIMARY KEY(partition, id))",

@@ -1,18 +1,15 @@
-// Experimental proof only: runtime callers still use src/turso-client.ts.
+// Worker transport. The runtime database factory is not switched here.
 import type { Worker } from "node:worker_threads";
-import { spawnSqlWorker } from "../../../src/turso-worker/spawn-worker";
-import { WorkerLifetime } from "../../../src/turso-worker/worker-lifetime";
-import { ReplyIdentity } from "../../../src/turso-worker/reply-identity";
-import { PendingRequests } from "../../../src/turso-worker/pending-requests";
-import { CommandAdmission } from "../../../src/turso-worker/command-admission";
-import { parseBoot } from "../../../src/turso-worker/boot-protocol";
+import { spawnSqlWorker } from "./spawn-worker";
+import { WorkerLifetime } from "./worker-lifetime";
+import { ReplyIdentity } from "./reply-identity";
+import { PendingRequests } from "./pending-requests";
+import { CommandAdmission } from "./command-admission";
+import { parseBoot } from "./boot-protocol";
 import { randomUUID } from "node:crypto";
 import type { ResultSet, TransactionMode } from "@libsql/client";
-import { resultSet, resultSets } from "../../../src/turso-worker/result-codec";
-import {
-  parseResult,
-  parseResults,
-} from "../../../src/turso-worker/result-protocol";
+import { resultSet, resultSets } from "./result-codec";
+import { parseResult, parseResults } from "./result-protocol";
 import { BinaryScope } from "./binary-client";
 import { BinaryTransferClient } from "./transfer-client";
 import { ReadScope } from "./read-client";
@@ -23,14 +20,14 @@ import {
   type ReadCommand,
 } from "./read-protocol";
 import { MigrationPrograms } from "./migration-client";
-import { deserializeError } from "../../../src/turso-worker/error-protocol";
-import { ProofBudgetPool, type BudgetMember } from "./budget-pool";
+import { deserializeError } from "./error-protocol";
+import { PersistenceBudgetPool, type BudgetMember } from "./budget-pool";
 import { budgetRequirement, type BudgetGrant } from "./budget-protocol";
 import {
   blobFactsSchema,
   type BlobFacts,
   type BlobPlan,
-} from "../../../src/turso-worker/blob-protocol";
+} from "./blob-protocol";
 import {
   savepointTokenSchema,
   type SavepointCommand,
@@ -57,13 +54,13 @@ import {
   parseLease,
   parseReply,
   snapshotCommand,
-  type ProofCommand,
-  type ProofPlacement,
-  type ProofStatement,
+  type WorkerCommand,
+  type WorkerPlacement,
+  type SqlStatement,
 } from "./protocol";
 
 interface Pending {
-  command: ProofCommand;
+  command: WorkerCommand;
   releaseAdmission: () => void;
   resolve: (value: unknown) => void;
   reject: (error: Error) => void;
@@ -71,16 +68,16 @@ interface Pending {
   budget: BudgetGrant | undefined;
 }
 
-export interface ProofDriverOptions {
+export interface SqlWorkerDriverOptions {
   url: string;
   /** Supplied explicitly by the package/launcher, never guessed from the cwd. */
   workerUrl: URL;
   maxInFlight?: number;
   maxPendingBytes?: number;
-  budget?: ProofBudgetPool;
+  budget?: PersistenceBudgetPool;
 }
 
-export class ProofTransaction {
+export class WorkerTransaction {
   public readonly id: string;
   private closing = false;
   private readonly ownerFailed: () => boolean;
@@ -90,7 +87,7 @@ export class ProofTransaction {
     return this.closing || this.ownerFailed();
   }
   private readonly executeStatement: (
-    statement: ProofStatement,
+    statement: SqlStatement,
   ) => Promise<ResultSet>;
   private readonly executeResident: (
     statement: BoundStatement,
@@ -100,7 +97,7 @@ export class ProofTransaction {
 
   public constructor(
     id: string,
-    execute: (statement: ProofStatement) => Promise<ResultSet>,
+    execute: (statement: SqlStatement) => Promise<ResultSet>,
     finalize: (action: "commit" | "rollback") => Promise<void>,
     executeResident: (statement: BoundStatement) => Promise<ResultSet>,
     ownerFailed: () => boolean,
@@ -138,7 +135,7 @@ export class ProofTransaction {
       return Promise.reject(new Error("Transaction lease is closed"));
     return this.executeResident(statement);
   }
-  public execute(statement: ProofStatement): Promise<ResultSet> {
+  public execute(statement: SqlStatement): Promise<ResultSet> {
     if (this.closed)
       return Promise.reject(new Error("Transaction lease is closed"));
     return this.executeStatement(statement);
@@ -157,14 +154,14 @@ export class ProofTransaction {
   }
 }
 
-export class TursoThreadProof {
+export class SqlWorkerDriver {
   private readonly worker: Worker;
   private readonly uploads: BinaryTransferClient;
   private readonly downloads: BinaryTransferClient;
   private readonly budgetMember: BudgetMember;
   private readonly generation = randomUUID();
   private readonly identity = new ReplyIdentity(this.generation, process.pid);
-  private readonly ready = Promise.withResolvers<ProofPlacement>();
+  private readonly ready = Promise.withResolvers<WorkerPlacement>();
   private readonly lifetime: WorkerLifetime;
   private readonly pending = new PendingRequests<Pending>();
   private readonly migrationPrograms = new MigrationPrograms(this);
@@ -175,10 +172,10 @@ export class TursoThreadProof {
   private closeAcknowledged = false;
   private closeTask: Promise<void> | undefined;
 
-  public constructor(options: ProofDriverOptions) {
+  public constructor(options: SqlWorkerDriverOptions) {
     if (process.env["BRAINS_FORBID_LOCAL_DATABASE_OPEN"] === "1")
       throw new Error("Local SQLite opens are forbidden in this process");
-    const pool = options.budget ?? new ProofBudgetPool();
+    const pool = options.budget ?? new PersistenceBudgetPool();
     const boot = parseBoot({
       url: options.url,
       generation: this.generation,
@@ -284,7 +281,7 @@ export class TursoThreadProof {
     return this.downloads.run(capability, spawn, signal);
   }
 
-  public initialize(): Promise<ProofPlacement> {
+  public initialize(): Promise<WorkerPlacement> {
     if (this.failure) return Promise.reject(this.failure);
     if (this.closing)
       return Promise.reject(new Error("Proof driver is closing"));
@@ -292,7 +289,7 @@ export class TursoThreadProof {
   }
 
   public async execute(
-    statement: ProofStatement,
+    statement: SqlStatement,
     lease?: string,
   ): Promise<ResultSet> {
     return resultSet(
@@ -308,7 +305,7 @@ export class TursoThreadProof {
     return this.closing || this.failure !== undefined;
   }
   public async batch(
-    statements: ProofStatement[],
+    statements: SqlStatement[],
     mode: TransactionMode = "deferred",
     lease?: string,
   ): Promise<ResultSet[]> {
@@ -321,12 +318,12 @@ export class TursoThreadProof {
       }),
     ).map(resultSet);
   }
-  public async migrate(statements: ProofStatement[]): Promise<ResultSet[]> {
+  public async migrate(statements: SqlStatement[]): Promise<ResultSet[]> {
     return parseResults(await this.request({ op: "migrate", statements })).map(
       resultSet,
     );
   }
-  public migrateProgram(statements: ProofStatement[]): Promise<ResultSet[]> {
+  public migrateProgram(statements: SqlStatement[]): Promise<ResultSet[]> {
     return this.migrationPrograms.execute(statements).then(resultSets);
   }
   public migration(command: MigrationCommand): Promise<unknown> {
@@ -361,9 +358,9 @@ export class TursoThreadProof {
   public async transaction(
     mode: TransactionMode = "write",
     claims: StageClaim[] = [],
-  ): Promise<ProofTransaction> {
+  ): Promise<WorkerTransaction> {
     const lease = parseLease(await this.request({ op: "begin", mode, claims }));
-    return new ProofTransaction(
+    return new WorkerTransaction(
       lease,
       (statement) => this.execute(statement, lease),
       async (action): Promise<void> => {
@@ -446,7 +443,7 @@ export class TursoThreadProof {
   }
 
   private request(
-    input: ProofCommand,
+    input: WorkerCommand,
     entered?: () => void,
     handoff?: () => boolean,
   ): Promise<unknown> {

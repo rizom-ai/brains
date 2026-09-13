@@ -14,7 +14,7 @@ import {
   binaryUploadReceiptSchema,
   binaryUploadEndpointSchema,
 } from "@brains/db/binary-publication";
-import { NetworkProcessOwner } from "../../shared/db/test/fixtures/turso-thread/network-process-owner";
+import { NetworkProcessOwner } from "../../shared/db/src/turso-worker/network-process-owner";
 import type { CanonicalAssetBindings } from "./turso-canonical-asset-bindings";
 
 export async function exerciseCanonicalPublicationRpc(

@@ -1,12 +1,15 @@
 import assert from "node:assert/strict";
 import { eq, sql } from "drizzle-orm";
 import { blob, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { STAGE_CHUNK_BYTES, type StageClaim } from "./binary-protocol";
+import {
+  STAGE_CHUNK_BYTES,
+  type StageClaim,
+} from "../../../src/turso-worker/binary-protocol";
 import {
   withBinaryTransaction,
   type BinaryTransactionContext,
-} from "./binary-transaction";
-import type { TursoThreadProof } from "./client";
+} from "../../../src/turso-worker/binary-transaction";
+import type { SqlWorkerDriver } from "../../../src/turso-worker/client";
 
 const payloads = sqliteTable("proof_payloads", {
   id: text("id").primaryKey(),
@@ -20,7 +23,7 @@ const references = sqliteTable("proof_references", {
 const effects = sqliteTable("proof_effects", { id: text("id").primaryKey() });
 const payloadSize = 65539;
 
-async function stage(driver: TursoThreadProof): Promise<StageClaim> {
+async function stage(driver: SqlWorkerDriver): Promise<StageClaim> {
   const scope = await driver.openBinaryScope();
   try {
     const capability = await scope.begin({
@@ -82,9 +85,7 @@ async function insert(
   );
 }
 
-export async function assertStagedRows(
-  driver: TursoThreadProof,
-): Promise<void> {
+export async function assertStagedRows(driver: SqlWorkerDriver): Promise<void> {
   // This uniform fixture can be compared completely inside SQLite. This is not
   // the proposed generic streaming verification/read-capability implementation.
   const rows = await driver.execute({
@@ -108,7 +109,7 @@ export async function assertStagedRows(
 }
 
 export async function exerciseStagedBinaries(
-  driver: TursoThreadProof,
+  driver: SqlWorkerDriver,
 ): Promise<void> {
   await driver.execute({ sql: "PRAGMA foreign_keys = ON" });
   await driver.execute({

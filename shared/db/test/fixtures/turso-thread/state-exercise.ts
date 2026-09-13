@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
-import { TursoThreadProof, type ProofTransaction } from "./client";
+import {
+  SqlWorkerDriver,
+  type WorkerTransaction,
+} from "../../../src/turso-worker/client";
 
 /** Native implicit rollback must fence statements already admitted on that lease. */
 export async function exerciseNativeState(
@@ -7,8 +10,8 @@ export async function exerciseNativeState(
   workerUrl: URL,
 ): Promise<void> {
   const url = new URL("native-state-implicit-rollback.db", baseUrl).href;
-  const driver = new TursoThreadProof({ url, workerUrl });
-  let lease: ProofTransaction | undefined;
+  const driver = new SqlWorkerDriver({ url, workerUrl });
+  let lease: WorkerTransaction | undefined;
   let closed: Promise<void> | undefined;
   try {
     const original = await driver.initialize();
@@ -71,7 +74,7 @@ export async function exerciseNativeState(
     await assert.rejects(driver.initialize(), {
       name: "PersistenceOwnerLostError",
     });
-    const reopened = new TursoThreadProof({ url, workerUrl });
+    const reopened = new SqlWorkerDriver({ url, workerUrl });
     try {
       assert.notEqual(
         (await reopened.initialize()).generation,

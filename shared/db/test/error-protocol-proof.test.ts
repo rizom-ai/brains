@@ -9,11 +9,11 @@ import {
   MAX_ERROR_NODES,
   MAX_ERROR_DEPTH,
 } from "../src/turso-worker/error-protocol";
-import { TursoThreadProof } from "./fixtures/turso-thread/client";
+import { SqlWorkerDriver } from "../src/turso-worker/client";
 import {
-  ProofBudgetPool,
+  PersistenceBudgetPool,
   type BudgetMember,
-} from "./fixtures/turso-thread/budget-pool";
+} from "../src/turso-worker/budget-pool";
 import { VERIFY_SCRATCH_BYTES } from "../src/turso-worker/blob-protocol";
 
 function roundtrip(error: unknown): Error {
@@ -199,7 +199,7 @@ describe("bounded cross-worker error graphs", () => {
   it("fails pending work and joins before reclaiming credit after a malformed error reply", async () => {
     const stopping = Promise.withResolvers<void>();
     const allowExit = Promise.withResolvers<void>();
-    class PausedExitPool extends ProofBudgetPool {
+    class PausedExitPool extends PersistenceBudgetPool {
       public override admit(): BudgetMember {
         const member = super.admit();
         return {
@@ -221,7 +221,7 @@ describe("bounded cross-worker error graphs", () => {
       }
     }
     const pool = new PausedExitPool();
-    const driver = new TursoThreadProof({
+    const driver = new SqlWorkerDriver({
       url: "file::memory:",
       budget: pool,
       workerUrl: new URL(

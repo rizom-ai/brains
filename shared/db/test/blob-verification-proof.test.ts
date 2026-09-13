@@ -11,8 +11,8 @@ import {
 } from "../src/turso-worker/blob-verification";
 import { ExecutionOwner } from "../src/turso-worker/ownership";
 import type { OwnerBackend } from "../src/turso-worker/backend-contract";
-import { TursoThreadProof } from "./fixtures/turso-thread/client";
-import { withBinaryTransaction } from "./fixtures/turso-thread/binary-transaction";
+import { SqlWorkerDriver } from "../src/turso-worker/client";
+import { withBinaryTransaction } from "../src/turso-worker/binary-transaction";
 
 const digest =
   "d4f9bcbd9be765d114b85ab79d16c218fb5c1e03315f689603d48eed00bff97f";
@@ -43,11 +43,11 @@ function result(values: unknown[][]): ResultSet {
     toJSON: () => ({}),
   };
 }
-const drivers: TursoThreadProof[] = [];
-async function create(): Promise<TursoThreadProof> {
-  const driver = new TursoThreadProof({
+const drivers: SqlWorkerDriver[] = [];
+async function create(): Promise<SqlWorkerDriver> {
+  const driver = new SqlWorkerDriver({
     url: "file::memory:",
-    workerUrl: new URL("./fixtures/turso-thread/worker.ts", import.meta.url),
+    workerUrl: new URL("../src/turso-worker/worker.ts", import.meta.url),
   });
   drivers.push(driver);
   await driver.execute({

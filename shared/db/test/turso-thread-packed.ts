@@ -132,7 +132,17 @@ try {
       "network-read-consumer.ts",
     ].map((name) =>
       fileURLToPath(
-        new URL(`./fixtures/turso-thread/${name}`, import.meta.url),
+        new URL(
+          [
+            "worker.ts",
+            "network-ingress-worker.ts",
+            "network-read-worker.ts",
+            "transfer-receiver.ts",
+          ].includes(name)
+            ? `../src/turso-worker/${name}`
+            : `./fixtures/turso-thread/${name}`,
+          import.meta.url,
+        ),
       ),
     ),
     outdir: candidate,

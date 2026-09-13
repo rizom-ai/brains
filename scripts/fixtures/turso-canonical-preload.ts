@@ -9,9 +9,9 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import * as database from "@brains/db";
 import type { CreateSqliteDatabaseOptions, SqliteConnection } from "@brains/db";
-import { TursoThreadProof } from "../../shared/db/test/fixtures/turso-thread/client";
-import { ProofBudgetPool } from "../../shared/db/test/fixtures/turso-thread/budget-pool";
-import { createProofDatabase } from "../../shared/db/test/fixtures/turso-thread/binary-transaction";
+import { SqlWorkerDriver } from "../../shared/db/src/turso-worker/client";
+import { PersistenceBudgetPool } from "../../shared/db/src/turso-worker/budget-pool";
+import { createWorkerDatabase } from "../../shared/db/src/turso-worker/binary-transaction";
 import { SqlWorkerClient } from "../../shared/db/src/turso-worker/sql-client";
 import { CanonicalAssetBindings } from "./turso-canonical-asset-bindings";
 
@@ -23,10 +23,10 @@ const authUrl = pathToFileURL(join(directory, "auth", "auth.db")).href;
 console.error(
   `[canonical-worker-candidate] isolated auth fixture retained at ${directory}`,
 );
-const pool = new ProofBudgetPool();
+const pool = new PersistenceBudgetPool();
 const workers: {
   url: string;
-  driver: TursoThreadProof;
+  driver: SqlWorkerDriver;
   placement: Promise<void>;
   bindings: CanonicalAssetBindings;
 }[] = [];
@@ -40,7 +40,7 @@ export function canonicalAssetBindings(url: string): CanonicalAssetBindings {
   return owner.bindings;
 }
 const workerUrl = new URL(
-  "../../shared/db/test/fixtures/turso-thread/worker.ts",
+  "../../shared/db/src/turso-worker/worker.ts",
   import.meta.url,
 );
 function createCandidateDatabase<T extends Record<string, unknown>>(
@@ -48,7 +48,7 @@ function createCandidateDatabase<T extends Record<string, unknown>>(
 ): SqliteConnection<T> {
   const url = options.url === "file:data/auth/auth.db" ? authUrl : options.url;
   console.error(`[canonical-worker-candidate] opening ${url}`);
-  const driver = new TursoThreadProof({
+  const driver = new SqlWorkerDriver({
     url,
     workerUrl,
     budget: pool,
@@ -64,7 +64,7 @@ function createCandidateDatabase<T extends Record<string, unknown>>(
   return {
     url,
     client: new SqlWorkerClient(driver),
-    db: createProofDatabase(driver, options.schema, bindings),
+    db: createWorkerDatabase(driver, options.schema, bindings),
     ...(Object.hasOwn(options.schema, "assets") && { binary: bindings.binary }),
   };
 }

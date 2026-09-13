@@ -1,38 +1,32 @@
 // Test-only native execution owner. Never imported by the runtime driver.
 import { workerData } from "node:worker_threads";
-import { CommandAdmission } from "../../../src/turso-worker/command-admission";
-import { LeaseRegistry } from "../../../src/turso-worker/lease-registry";
+import { CommandAdmission } from "./command-admission";
+import { LeaseRegistry } from "./lease-registry";
 import { StagedBinaries } from "./staged-binaries";
 import { DirectUploads } from "./direct-uploads";
 import { ReadSnapshots } from "./read-snapshots";
 import { DirectReads } from "./direct-reads";
 import { MigrationPlans } from "./migration-plans";
-import { VerificationBudget } from "../../../src/turso-worker/blob-verification";
-import { serializeError } from "../../../src/turso-worker/error-protocol";
-import {
-  encodeResult,
-  encodeResults,
-} from "../../../src/turso-worker/result-codec";
+import { VerificationBudget } from "./blob-verification";
+import { serializeError } from "./error-protocol";
+import { encodeResult, encodeResults } from "./result-codec";
 import { validateBudgetGrant } from "./budget-protocol";
-import type {
-  BlobPlan,
-  BlobFacts,
-} from "../../../src/turso-worker/blob-protocol";
-import type { OwnedTransaction } from "../../../src/turso-worker/ownership";
-import { initializeSqlWorker } from "../../../src/turso-worker/worker-bootstrap";
-import { executeSqlCommand } from "../../../src/turso-worker/sql-command";
+import type { BlobPlan, BlobFacts } from "./blob-protocol";
+import type { OwnedTransaction } from "./ownership";
+import { initializeSqlWorker } from "./worker-bootstrap";
+import { executeSqlCommand } from "./sql-command";
 import {
   commandBytes,
   isCleanupCommand,
   isControlCommand,
   parseRequest,
-  type ProofCommand,
-  type ProofRequest,
-  type ProofReply,
+  type WorkerCommand,
+  type WorkerRequest,
+  type WorkerReply,
 } from "./protocol";
 
 const { owner, boot, placement, port } = await initializeSqlWorker(workerData);
-port.postMessage({ kind: "ready", ...placement } satisfies ProofReply);
+port.postMessage({ kind: "ready", ...placement } satisfies WorkerReply);
 
 const stages = new StagedBinaries(
   boot.generation,
@@ -44,7 +38,7 @@ const stages = new StagedBinaries(
         kind: "budget-release",
         id,
         ...placement,
-      } satisfies ProofReply);
+      } satisfies WorkerReply);
   },
   (id) => uploads.revoke(id),
 );
@@ -55,7 +49,7 @@ const uploads = new DirectUploads(stages, boot.budget, (id, result) =>
     id,
     result,
     ...placement,
-  } satisfies ProofReply),
+  } satisfies WorkerReply),
 );
 const readSnapshots = new ReadSnapshots(
   boot.generation,
@@ -65,7 +59,7 @@ const readSnapshots = new ReadSnapshots(
         kind: "budget-release",
         id,
         ...placement,
-      } satisfies ProofReply);
+      } satisfies WorkerReply);
   },
   (id) => readTransfers.revoke(id),
   "adopt",
@@ -79,7 +73,7 @@ const readTransfers = new DirectReads(
       id,
       result,
       ...placement,
-    } satisfies ProofReply),
+    } satisfies WorkerReply),
 );
 const migrationPlans = new MigrationPlans(boot.generation);
 const verificationBudget = new VerificationBudget();
@@ -114,7 +108,7 @@ async function verifySnapshot(plan: BlobPlan): Promise<BlobFacts> {
 }
 
 async function execute(
-  command: ProofCommand,
+  command: WorkerCommand,
   id: number,
 ): Promise<{ value: unknown; transfers: ArrayBuffer[] }> {
   owner.assertHealthy();
@@ -232,7 +226,7 @@ async function execute(
         kind: "gate-entered",
         id,
         ...placement,
-      } satisfies ProofReply);
+      } satisfies WorkerReply);
       const state = new Int32Array(command.state);
       while (Atomics.load(state, 0) === 0) Atomics.wait(state, 0, 0);
       return { value: undefined, transfers: [] };
@@ -261,12 +255,12 @@ async function receive(input: unknown): Promise<void> {
   }
 }
 
-async function receiveRequest(request: ProofRequest): Promise<void> {
+async function receiveRequest(request: WorkerRequest): Promise<void> {
   const control = isControlCommand(request.command);
   const cleanup = isCleanupCommand(request.command);
   const size = commandBytes(request.command);
   let releaseAdmission: (() => void) | undefined;
-  let reply: ProofReply;
+  let reply: WorkerReply;
   let transfers: ArrayBuffer[] = [];
   try {
     releaseAdmission = admission.reserve(

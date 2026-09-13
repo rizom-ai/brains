@@ -1,12 +1,8 @@
 import { randomUUID } from "node:crypto";
 import type { Worker } from "node:worker_threads";
-import {
-  blobPlanSchema,
-  type BlobPlan,
-  type BlobFacts,
-} from "../../../src/turso-worker/blob-protocol";
+import { blobPlanSchema, type BlobPlan, type BlobFacts } from "./blob-protocol";
 import { STAGE_SLOTS, type SealedStage } from "./binary-protocol";
-import type { TursoThreadProof } from "./client";
+import type { SqlWorkerDriver } from "./client";
 import type { ReadScope } from "./read-client";
 import { readOfferSchema, type ReadOffer } from "./network-read-protocol";
 
@@ -36,14 +32,14 @@ interface Admission {
 /** Server-owned read descriptors and authenticated context only. This broker is
  * metadata/lifetime policy, not an entity ACL or a remote SQL surface. */
 export class ScopedReads {
-  private readonly driver: TursoThreadProof;
+  private readonly driver: SqlWorkerDriver;
   private readonly sessions = new WeakMap<AbortSignal, Session>();
   private readonly records = new Set<Admission>();
   private readonly tickets = new Map<string, Admission>();
   private cleanupTail: Promise<void> = Promise.resolve();
   private closing = false;
   private failure: unknown;
-  public constructor(driver: TursoThreadProof) {
+  public constructor(driver: SqlWorkerDriver) {
     this.driver = driver;
   }
   public stats(): { admissions: number; tickets: number } {

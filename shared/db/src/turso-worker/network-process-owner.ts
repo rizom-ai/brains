@@ -10,15 +10,9 @@ import {
   readPauseAfterSchema,
   readPausedSchema,
 } from "./network-read-protocol";
-import {
-  errorSchema,
-  deserializeError,
-} from "../../../src/turso-worker/error-protocol";
+import { errorSchema, deserializeError } from "./error-protocol";
 import { STAGE_BUDGET_BYTES, STAGE_CHUNK_BYTES } from "./binary-protocol";
-import {
-  blobFactsSchema,
-  type BlobFacts,
-} from "../../../src/turso-worker/blob-protocol";
+import { blobFactsSchema, type BlobFacts } from "./blob-protocol";
 
 const startSchema: z.ZodType<NetworkProcessStart> = z.discriminatedUnion(
   "direction",
@@ -85,7 +79,7 @@ export interface NetworkProcessLease {
   start: (input: NetworkProcessStart) => void;
   resume: () => void;
   /** Test-owned child only; resolves after confirmed SIGKILL exit, not the request. */
-  killForProof: () => Promise<number>;
+  killAndJoin: () => Promise<number>;
 }
 interface Child {
   process: ReturnType<typeof Bun.spawn>;
@@ -298,7 +292,7 @@ export class NetworkProcessOwner {
               },
         );
       },
-      killForProof: (): Promise<number> => {
+      killAndJoin: (): Promise<number> => {
         killing ??= (async (): Promise<number> => {
           try {
             if (child.process.exitCode !== null)

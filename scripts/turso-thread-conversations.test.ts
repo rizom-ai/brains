@@ -24,28 +24,28 @@ import {
   type StartConversationRequest,
 } from "../shell/conversation-service/src/types";
 import { CONVERSATION_CHANNELS } from "../shell/conversation-service/src/conversation-channels";
-import { TursoThreadProof } from "../shared/db/test/fixtures/turso-thread/client";
-import { createProofDatabase } from "../shared/db/test/fixtures/turso-thread/binary-transaction";
+import { SqlWorkerDriver } from "../shared/db/src/turso-worker/client";
+import { createWorkerDatabase } from "../shared/db/src/turso-worker/binary-transaction";
 
 const workerUrl = new URL(
-  "../shared/db/test/fixtures/turso-thread/worker.ts",
+  "../shared/db/src/turso-worker/worker.ts",
   import.meta.url,
 );
-const drivers: TursoThreadProof[] = [];
+const drivers: SqlWorkerDriver[] = [];
 let folder: string;
 interface Fixture {
-  driver: TursoThreadProof;
+  driver: SqlWorkerDriver;
   db: ConversationDB;
   service: ConversationService;
   bus: MessageBus;
 }
 async function open(path: string, initialize = true): Promise<Fixture> {
-  const driver = new TursoThreadProof({
+  const driver = new SqlWorkerDriver({
     url: pathToFileURL(path).href,
     workerUrl,
   });
   drivers.push(driver);
-  const db = createProofDatabase<Record<string, unknown>>(driver, {
+  const db = createWorkerDatabase<Record<string, unknown>>(driver, {
     conversations,
     messages,
     summaryTracking,

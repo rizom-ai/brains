@@ -7,15 +7,15 @@ import {
   statementBytes,
   type MigrationCommand,
   type MigrationToken,
-  type ProofStatement,
+  type SqlStatement,
 } from "./protocol";
-import { assertOrdinarySql } from "../../../src/turso-worker/sql-admission";
+import { assertOrdinarySql } from "./sql-admission";
 
 interface Plan {
   bytes: number;
   count: number;
   received: number;
-  statements: ProofStatement[];
+  statements: SqlStatement[];
   running: boolean;
 }
 
@@ -50,7 +50,7 @@ export class MigrationPlans {
   public async execute<T>(
     input: MigrationCommand,
     requestId: number,
-    run: (statements: ProofStatement[]) => Promise<T>,
+    run: (statements: SqlStatement[]) => Promise<T>,
   ): Promise<T | MigrationToken | undefined> {
     const parsed = parseCommand({ op: "migration", command: input });
     if (parsed.op !== "migration")

@@ -4,23 +4,23 @@ import { createHash, randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { blob, integer, sqliteTable } from "drizzle-orm/sqlite-core";
 import {
-  TursoThreadProof,
-  type ProofTransaction,
-} from "./fixtures/turso-thread/client";
+  SqlWorkerDriver,
+  type WorkerTransaction,
+} from "../src/turso-worker/client";
 import {
   STAGE_BUDGET_BYTES,
   STAGE_CHUNK_BYTES,
   STAGE_SLOTS,
   type StageCapability,
   type StageClaim,
-} from "./fixtures/turso-thread/binary-protocol";
-import { withBinaryTransaction } from "./fixtures/turso-thread/binary-transaction";
-import type { BinaryScope } from "./fixtures/turso-thread/binary-client";
+} from "../src/turso-worker/binary-protocol";
+import { withBinaryTransaction } from "../src/turso-worker/binary-transaction";
+import type { BinaryScope } from "../src/turso-worker/binary-client";
 
-const workerUrl = new URL("./fixtures/turso-thread/worker.ts", import.meta.url);
-const drivers: TursoThreadProof[] = [];
-function create(maxInFlight?: number): TursoThreadProof {
-  const driver = new TursoThreadProof({
+const workerUrl = new URL("../src/turso-worker/worker.ts", import.meta.url);
+const drivers: SqlWorkerDriver[] = [];
+function create(maxInFlight?: number): SqlWorkerDriver {
+  const driver = new SqlWorkerDriver({
     url: "file::memory:",
     workerUrl,
     ...(maxInFlight !== undefined && { maxInFlight }),
@@ -31,7 +31,7 @@ function create(maxInFlight?: number): TursoThreadProof {
 afterEach(async () => {
   await Promise.all(drivers.splice(0).map((driver) => driver.close()));
 });
-async function prepared(driver: TursoThreadProof): Promise<{
+async function prepared(driver: SqlWorkerDriver): Promise<{
   scope: BinaryScope;
   capability: StageCapability;
   claim: StageClaim;
@@ -234,7 +234,7 @@ describe("worker-resident staged binary proof", () => {
     const driver = create();
     const { scope, claim } = await prepared(driver);
     const blocker = await driver.transaction();
-    let transaction: ProofTransaction | undefined;
+    let transaction: WorkerTransaction | undefined;
     const next = driver.transaction("write", [claim]);
     try {
       expect((await driver.stageStats()).attached).toBe(1);

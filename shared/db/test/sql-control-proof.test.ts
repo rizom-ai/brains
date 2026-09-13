@@ -5,14 +5,14 @@ import {
   assertOrdinarySql,
   SqlAdmissionError,
 } from "../src/turso-worker/sql-admission";
-import { TursoThreadProof } from "./fixtures/turso-thread/client";
-import { createProofDatabase } from "./fixtures/turso-thread/binary-transaction";
+import { SqlWorkerDriver } from "../src/turso-worker/client";
+import { createWorkerDatabase } from "../src/turso-worker/binary-transaction";
 import { integer, sqliteTable } from "drizzle-orm/sqlite-core";
 
-const workerUrl = new URL("./fixtures/turso-thread/worker.ts", import.meta.url);
-const drivers: TursoThreadProof[] = [];
-async function setup(maxInFlight?: number): Promise<TursoThreadProof> {
-  const driver = new TursoThreadProof({
+const workerUrl = new URL("../src/turso-worker/worker.ts", import.meta.url);
+const drivers: SqlWorkerDriver[] = [];
+async function setup(maxInFlight?: number): Promise<SqlWorkerDriver> {
+  const driver = new SqlWorkerDriver({
     url: "file::memory:",
     workerUrl,
     ...(maxInFlight !== undefined && { maxInFlight }),
@@ -258,7 +258,7 @@ describe("control SQL admission and typed savepoints", () => {
 
   it("routes ordinary root ORM transactions through the guarded typed factory too", async () => {
     const driver = await setup();
-    const db = createProofDatabase(driver, { records });
+    const db = createWorkerDatabase(driver, { records });
     await db.transaction(
       async (outer) => {
         const stale = await outer.transaction(async (inner) => {

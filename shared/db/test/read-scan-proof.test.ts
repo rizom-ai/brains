@@ -6,12 +6,12 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
-  ProofBudgetPool,
+  PersistenceBudgetPool,
   type BudgetMember,
-} from "./fixtures/turso-thread/budget-pool";
+} from "../src/turso-worker/budget-pool";
 import { VERIFY_SCRATCH_BYTES } from "../src/turso-worker/blob-protocol";
 import { deserializeError } from "../src/turso-worker/error-protocol";
-import { TursoThreadProof } from "./fixtures/turso-thread/client";
+import { SqlWorkerDriver } from "../src/turso-worker/client";
 import {
   scanEventSchema,
   type ScanEvent,
@@ -26,7 +26,7 @@ const workerUrl = new URL(
   import.meta.url,
 );
 const nativeWorkerUrl = new URL(
-  "./fixtures/turso-thread/worker.ts",
+  "../src/turso-worker/worker.ts",
   import.meta.url,
 );
 const SIZE = 65539;
@@ -42,7 +42,7 @@ type Request = ScanRequest extends infer T
 class ScanHarness {
   public readonly worker: Worker;
   public readonly materialization: ScanMaterialization;
-  public readonly pool = new ProofBudgetPool();
+  public readonly pool = new PersistenceBudgetPool();
   public readonly member: BudgetMember;
   public readonly ready = Promise.withResolvers<void>();
   public readonly gates = {
@@ -262,7 +262,7 @@ async function assertRecovery(
     path = join(fixture.directory, "restored.db");
     await copyFile(fixture.path, path);
   }
-  const driver = new TursoThreadProof({
+  const driver = new SqlWorkerDriver({
     url: pathToFileURL(path).href,
     workerUrl: nativeWorkerUrl,
   });

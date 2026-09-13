@@ -3,33 +3,33 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import type { Worker } from "node:worker_threads";
 import {
-  ProofBudgetPool,
+  PersistenceBudgetPool,
   type BudgetMember,
-} from "./fixtures/turso-thread/budget-pool";
+} from "../src/turso-worker/budget-pool";
 import {
   validateBudgetGrant,
   type BudgetGrant,
   type BudgetKind,
-} from "./fixtures/turso-thread/budget-protocol";
+} from "../src/turso-worker/budget-protocol";
 import {
-  TursoThreadProof,
-  type ProofDriverOptions,
-} from "./fixtures/turso-thread/client";
+  SqlWorkerDriver,
+  type SqlWorkerDriverOptions,
+} from "../src/turso-worker/client";
 import {
   STAGE_BUDGET_BYTES,
   type StageCapability,
-} from "./fixtures/turso-thread/binary-protocol";
+} from "../src/turso-worker/binary-protocol";
 import { VERIFY_SCRATCH_BYTES } from "../src/turso-worker/blob-protocol";
-import type { BinaryScope } from "./fixtures/turso-thread/binary-client";
+import type { BinaryScope } from "../src/turso-worker/binary-client";
 
-const workerUrl = new URL("./fixtures/turso-thread/worker.ts", import.meta.url);
-const drivers: TursoThreadProof[] = [];
-const failed = new Set<TursoThreadProof>();
+const workerUrl = new URL("../src/turso-worker/worker.ts", import.meta.url);
+const drivers: SqlWorkerDriver[] = [];
+const failed = new Set<SqlWorkerDriver>();
 function create(
-  pool: ProofBudgetPool,
-  options: Partial<ProofDriverOptions> = {},
-): TursoThreadProof {
-  const driver = new TursoThreadProof({
+  pool: PersistenceBudgetPool,
+  options: Partial<SqlWorkerDriverOptions> = {},
+): SqlWorkerDriver {
+  const driver = new SqlWorkerDriver({
     url: "file::memory:",
     workerUrl,
     ...options,
@@ -45,7 +45,7 @@ afterEach(async () => {
   }
   failed.clear();
 });
-class ObservedPool extends ProofBudgetPool {
+class ObservedPool extends PersistenceBudgetPool {
   public readonly membersSeen: BudgetMember[] = [];
   public readonly workersSeen: Worker[] = [];
   public readonly releases: { id: number; kind: BudgetKind }[] = [];
@@ -68,7 +68,7 @@ class ObservedPool extends ProofBudgetPool {
 
 describe("shared persistence worker resource pool", () => {
   it("bounds resident slots across five workers even for zero-byte allocations", async () => {
-    const pool = new ProofBudgetPool();
+    const pool = new PersistenceBudgetPool();
     const group = Array.from({ length: 5 }, () => create(pool));
     const scopes = await Promise.all(
       group.map((driver) => driver.openBinaryScope()),
@@ -96,7 +96,7 @@ describe("shared persistence worker resource pool", () => {
     assert.equal(pool.stats().residentSlots, 0);
   });
   it("reserves before worker dispatch and denies the other worker without a waiting queue", async () => {
-    const pool = new ProofBudgetPool();
+    const pool = new PersistenceBudgetPool();
     const a = create(pool);
     const b = create(pool);
     const scopeA = await a.openBinaryScope();
@@ -123,7 +123,7 @@ describe("shared persistence worker resource pool", () => {
     assert.equal(pool.stats().residentBytes, STAGE_BUDGET_BYTES);
   });
   it("releases failed allocations and malformed stages without stealing another member's credit", async () => {
-    const pool = new ProofBudgetPool();
+    const pool = new PersistenceBudgetPool();
     const a = create(pool);
     const b = create(pool);
     const scopeA = await a.openBinaryScope();

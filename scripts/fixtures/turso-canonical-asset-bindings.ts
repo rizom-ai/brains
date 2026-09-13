@@ -2,7 +2,7 @@
 import assert from "node:assert/strict";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { Worker } from "node:worker_threads";
-import { ScopedUploads } from "../../shared/db/test/fixtures/turso-thread/scoped-uploads";
+import { ScopedUploads } from "../../shared/db/src/turso-worker/scoped-uploads";
 import type { AssetRecord } from "@brains/assets";
 import {
   createOwnedAssetPublication,
@@ -10,13 +10,13 @@ import {
 } from "@brains/entity-service";
 import type { BinaryPublication } from "@brains/db/binary-publication";
 import { CanonicalBinaryRuntime } from "./turso-canonical-binary-runtime";
-import type { TursoThreadProof } from "../../shared/db/test/fixtures/turso-thread/client";
-import type { ProofBudgetPool } from "../../shared/db/test/fixtures/turso-thread/budget-pool";
-import type { StageClaim } from "../../shared/db/test/fixtures/turso-thread/binary-protocol";
+import type { SqlWorkerDriver } from "../../shared/db/src/turso-worker/client";
+import type { PersistenceBudgetPool } from "../../shared/db/src/turso-worker/budget-pool";
+import type { StageClaim } from "../../shared/db/src/turso-worker/binary-protocol";
 import type {
-  ProofBindingContext,
-  ProofDatabaseBindings,
-} from "../../shared/db/test/fixtures/turso-thread/binary-transaction";
+  WorkerBindingContext,
+  WorkerDatabaseBindings,
+} from "../../shared/db/src/turso-worker/binary-transaction";
 import { uploadNetworkFixture } from "../../shared/db/test/fixtures/turso-thread/network-exercise";
 import { downloadNetworkFixture } from "../../shared/db/test/fixtures/turso-thread/network-read-exercise";
 
@@ -44,22 +44,29 @@ async function withCleanup<T>(
 }
 const sidecar = (name: string): URL =>
   new URL(
-    `../../shared/db/test/fixtures/turso-thread/${name}.ts`,
+    [
+      "worker",
+      "network-ingress-worker",
+      "network-read-worker",
+      "transfer-receiver",
+    ].includes(name)
+      ? `../../shared/db/src/turso-worker/${name}.ts`
+      : `../../shared/db/test/fixtures/turso-thread/${name}.ts`,
     import.meta.url,
   );
 
-export class CanonicalAssetBindings implements ProofDatabaseBindings {
+export class CanonicalAssetBindings implements WorkerDatabaseBindings {
   private readonly scope = new AsyncLocalStorage<{
     claim: StageClaim;
     attached: boolean;
     root?: object;
-    afterBody?: ((context: ProofBindingContext) => Promise<void>) | undefined;
+    afterBody?: ((context: WorkerBindingContext) => Promise<void>) | undefined;
   }>();
-  private readonly contexts = new WeakMap<object, ProofBindingContext>();
+  private readonly contexts = new WeakMap<object, WorkerBindingContext>();
   public readonly binary: CanonicalBinaryRuntime;
-  private readonly driver: TursoThreadProof;
-  private readonly pool: ProofBudgetPool;
-  public constructor(driver: TursoThreadProof, pool: ProofBudgetPool) {
+  private readonly driver: SqlWorkerDriver;
+  private readonly pool: PersistenceBudgetPool;
+  public constructor(driver: SqlWorkerDriver, pool: PersistenceBudgetPool) {
     this.driver = driver;
     this.pool = pool;
     this.binary = new CanonicalBinaryRuntime(this);
@@ -72,7 +79,7 @@ export class CanonicalAssetBindings implements ProofDatabaseBindings {
     return [scope.claim];
   }
   public async run<T>(
-    context: ProofBindingContext,
+    context: WorkerBindingContext,
     operation: () => Promise<T>,
   ): Promise<T> {
     this.contexts.set(context.db, context);
@@ -92,7 +99,7 @@ export class CanonicalAssetBindings implements ProofDatabaseBindings {
     sizeBytes: number,
     digest: string,
     operation: (publication: OwnedAssetPublication) => Promise<T>,
-    afterBody?: (context: ProofBindingContext) => Promise<void>,
+    afterBody?: (context: WorkerBindingContext) => Promise<void>,
   ): Promise<T> {
     const scope = await this.driver.openBinaryScope();
     return withCleanup(
@@ -137,7 +144,7 @@ export class CanonicalAssetBindings implements ProofDatabaseBindings {
     claim: StageClaim,
     facts: { sha256: string; sizeBytes: number },
     operation: (publication: OwnedAssetPublication) => Promise<T>,
-    afterBody?: (context: ProofBindingContext) => Promise<void>,
+    afterBody?: (context: WorkerBindingContext) => Promise<void>,
   ): Promise<T> {
     return this.withBinaryClaim(
       claim,
@@ -151,9 +158,9 @@ export class CanonicalAssetBindings implements ProofDatabaseBindings {
     claim: StageClaim,
     facts: { sha256: string; sizeBytes: number },
     operation: (publication: BinaryPublication) => Promise<T>,
-    afterBody?: (context: ProofBindingContext) => Promise<void>,
+    afterBody?: (context: WorkerBindingContext) => Promise<void>,
   ): Promise<T> {
-    const contextFor = (transaction: object): ProofBindingContext => {
+    const contextFor = (transaction: object): WorkerBindingContext => {
       if (this.scope.getStore()?.claim !== claim)
         throw new Error("Publication has no matching native claim scope");
       const context = this.contexts.get(transaction);
@@ -179,7 +186,7 @@ export class CanonicalAssetBindings implements ProofDatabaseBindings {
 
   public async publicationRows(
     id: string,
-    context?: ProofBindingContext,
+    context?: WorkerBindingContext,
   ): Promise<{ entity: number; exportIntent: number; dirty: number }> {
     const text = `SELECT
       (SELECT count(*) FROM entities WHERE entityType='image' AND id=?) AS entity_count,

@@ -11,7 +11,7 @@ import {
 import { STAGE_CHUNK_BYTES } from "./binary-protocol";
 import { uploadBootstrapSchema, type UploadGrant } from "./upload-protocol";
 import { readOutputSchema } from "./read-protocol";
-import { deserializeError } from "../../../src/turso-worker/error-protocol";
+import { deserializeError } from "./error-protocol";
 import {
   CREDIT_HEADER_BYTES,
   SEAL_BYTES,

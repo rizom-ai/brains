@@ -1,11 +1,11 @@
 import { describe, expect, it } from "bun:test";
 import assert from "node:assert/strict";
 import { Worker } from "node:worker_threads";
-import { TursoThreadProof } from "./fixtures/turso-thread/client";
-import { ProofBudgetPool } from "./fixtures/turso-thread/budget-pool";
-import { STAGE_CHUNK_BYTES } from "./fixtures/turso-thread/binary-protocol";
+import { SqlWorkerDriver } from "../src/turso-worker/client";
+import { PersistenceBudgetPool } from "../src/turso-worker/budget-pool";
+import { STAGE_CHUNK_BYTES } from "../src/turso-worker/binary-protocol";
 
-const workerUrl = new URL("./fixtures/turso-thread/worker.ts", import.meta.url);
+const workerUrl = new URL("../src/turso-worker/worker.ts", import.meta.url);
 const producerUrl = new URL(
   "./fixtures/turso-thread/upload-producer.ts",
   import.meta.url,
@@ -39,8 +39,8 @@ describe("direct credited worker uploads", () => {
   it.each(["before-admission", "before-handoff", "active"])(
     "cancels %s without fencing a healthy receiver",
     async (phase) => {
-      const pool = new ProofBudgetPool();
-      const driver = new TursoThreadProof({
+      const pool = new PersistenceBudgetPool();
+      const driver = new SqlWorkerDriver({
         url: "file::memory:",
         workerUrl,
         budget: pool,
@@ -89,8 +89,8 @@ describe("direct credited worker uploads", () => {
   it.each(["grant", "replay", "sequence", "backing", "sql", "exit"])(
     "rejects %s without native SQL or leaked stages",
     async (fault) => {
-      const pool = new ProofBudgetPool();
-      const driver = new TursoThreadProof({
+      const pool = new PersistenceBudgetPool();
+      const driver = new SqlWorkerDriver({
         url: "file::memory:",
         workerUrl,
         budget: pool,
@@ -123,8 +123,8 @@ describe("direct credited worker uploads", () => {
   it.each(["empty", "incomplete", "digest"])(
     "settles the %s finish path with returned credit",
     async (mode) => {
-      const pool = new ProofBudgetPool();
-      const driver = new TursoThreadProof({
+      const pool = new PersistenceBudgetPool();
+      const driver = new SqlWorkerDriver({
         url: "file::memory:",
         workerUrl,
         budget: pool,
@@ -154,8 +154,8 @@ describe("direct credited worker uploads", () => {
     },
   );
   it("revokes through reserved cleanup capacity while ordinary native admission is full", async () => {
-    const pool = new ProofBudgetPool();
-    const driver = new TursoThreadProof({
+    const pool = new PersistenceBudgetPool();
+    const driver = new SqlWorkerDriver({
       url: "file::memory:",
       workerUrl,
       budget: pool,
@@ -192,11 +192,11 @@ describe("direct credited worker uploads", () => {
     }
   });
   it("shares two ingress slots and rejects before creating an excess producer", async () => {
-    const pool = new ProofBudgetPool();
+    const pool = new PersistenceBudgetPool();
     const drivers = Array.from(
       { length: 3 },
       () =>
-        new TursoThreadProof({ url: "file::memory:", workerUrl, budget: pool }),
+        new SqlWorkerDriver({ url: "file::memory:", workerUrl, budget: pool }),
     );
     try {
       const scopes = await Promise.all(
@@ -248,8 +248,8 @@ describe("direct credited worker uploads", () => {
     }
   });
   it("reclaims an unstarted producer reservation without pretending its stage was rolled back", async () => {
-    const pool = new ProofBudgetPool();
-    const driver = new TursoThreadProof({
+    const pool = new PersistenceBudgetPool();
+    const driver = new SqlWorkerDriver({
       url: "file::memory:",
       workerUrl,
       budget: pool,
@@ -272,8 +272,8 @@ describe("direct credited worker uploads", () => {
     }
   });
   it("settles a producer startup failure while the receiver handoff is queued", async () => {
-    const pool = new ProofBudgetPool();
-    const driver = new TursoThreadProof({
+    const pool = new PersistenceBudgetPool();
+    const driver = new SqlWorkerDriver({
       url: "file::memory:",
       workerUrl,
       budget: pool,
@@ -311,8 +311,8 @@ describe("direct credited worker uploads", () => {
     }
   });
   it("retains producer-owned credit after receiver exit and keeps HTTP control responsive", async () => {
-    const pool = new ProofBudgetPool();
-    const driver = new TursoThreadProof({
+    const pool = new PersistenceBudgetPool();
+    const driver = new SqlWorkerDriver({
       url: "file::memory:",
       workerUrl,
       budget: pool,
@@ -372,8 +372,8 @@ describe("direct credited worker uploads", () => {
     }
   });
   it("preserves owner and termination errors without refunding a live producer", async () => {
-    const pool = new ProofBudgetPool();
-    const driver = new TursoThreadProof({
+    const pool = new PersistenceBudgetPool();
+    const driver = new SqlWorkerDriver({
       url: "file::memory:",
       workerUrl,
       budget: pool,
@@ -424,8 +424,8 @@ describe("direct credited worker uploads", () => {
     assert.equal(pool.ingress.stats().slots, 0);
   });
   it("shutdown joins an active producer rather than only closing the database", async () => {
-    const pool = new ProofBudgetPool();
-    const driver = new TursoThreadProof({
+    const pool = new PersistenceBudgetPool();
+    const driver = new SqlWorkerDriver({
       url: "file::memory:",
       workerUrl,
       budget: pool,
@@ -464,8 +464,8 @@ describe("direct credited worker uploads", () => {
     }
   });
   it("moves three chunks between workers, seals, and binds without parent payloads", async () => {
-    const pool = new ProofBudgetPool();
-    const driver = new TursoThreadProof({
+    const pool = new PersistenceBudgetPool();
+    const driver = new SqlWorkerDriver({
       url: "file::memory:",
       workerUrl,
       budget: pool,
@@ -511,8 +511,8 @@ describe("direct credited worker uploads", () => {
     }
   });
   it("revokes a scope while the producer owns its credit and blocks competing append/seal", async () => {
-    const pool = new ProofBudgetPool();
-    const driver = new TursoThreadProof({
+    const pool = new PersistenceBudgetPool();
+    const driver = new SqlWorkerDriver({
       url: "file::memory:",
       workerUrl,
       budget: pool,

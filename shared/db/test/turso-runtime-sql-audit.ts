@@ -7,8 +7,8 @@ import { join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { readMigrationFiles } from "drizzle-orm/migrator";
 import { migrate } from "drizzle-orm/libsql/migrator";
-import { TursoThreadProof } from "./fixtures/turso-thread/client";
-import { createProofDatabase } from "./fixtures/turso-thread/binary-transaction";
+import { SqlWorkerDriver } from "../src/turso-worker/client";
+import { createWorkerDatabase } from "../src/turso-worker/binary-transaction";
 import { assertOrdinarySql } from "../src/turso-worker/sql-admission";
 
 const stores = [
@@ -18,7 +18,7 @@ const stores = [
   "conversation-service",
   "runtime-state",
 ];
-const workerUrl = new URL("./fixtures/turso-thread/worker.ts", import.meta.url);
+const workerUrl = new URL("../src/turso-worker/worker.ts", import.meta.url);
 async function withCleanup<T>(
   body: () => Promise<T>,
   cleanup: () => Promise<void>,
@@ -45,9 +45,9 @@ async function withCleanup<T>(
 }
 async function withDriver<T>(
   path: string,
-  body: (driver: TursoThreadProof) => Promise<T>,
+  body: (driver: SqlWorkerDriver) => Promise<T>,
 ): Promise<T> {
-  const driver = new TursoThreadProof({
+  const driver = new SqlWorkerDriver({
     url: pathToFileURL(path).href,
     workerUrl,
   });
@@ -57,7 +57,7 @@ async function withDriver<T>(
   );
 }
 async function state(
-  driver: TursoThreadProof,
+  driver: SqlWorkerDriver,
 ): Promise<{ schema: unknown[][]; journal: unknown[][] }> {
   assert.equal(
     (await driver.execute({ sql: "PRAGMA integrity_check" })).rows[0]?.[0],
@@ -100,7 +100,7 @@ await withCleanup(
         for (const sql of migration.sql) assertOrdinarySql(sql);
       const database = join(folder, "source.db");
       const expected = await withDriver(database, async (driver) => {
-        const db = createProofDatabase(driver, {});
+        const db = createWorkerDatabase(driver, {});
         await migrate(db, { migrationsFolder });
         const first = await state(driver);
         assert.deepEqual(

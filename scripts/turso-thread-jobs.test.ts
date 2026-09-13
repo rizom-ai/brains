@@ -16,28 +16,28 @@ import {
   jobQueue,
   jobWorkerSessions,
 } from "../shell/job-queue/src/schema/job-queue";
-import { TursoThreadProof } from "../shared/db/test/fixtures/turso-thread/client";
-import { SqlWorkerClient as ProofLibsqlClient } from "../shared/db/src/turso-worker/sql-client";
-import { createProofDatabase } from "../shared/db/test/fixtures/turso-thread/binary-transaction";
+import { SqlWorkerDriver } from "../shared/db/src/turso-worker/client";
+import { SqlWorkerClient } from "../shared/db/src/turso-worker/sql-client";
+import { createWorkerDatabase } from "../shared/db/src/turso-worker/binary-transaction";
 
 const workerUrl = new URL(
-  "../shared/db/test/fixtures/turso-thread/worker.ts",
+  "../shared/db/src/turso-worker/worker.ts",
   import.meta.url,
 );
-const drivers: TursoThreadProof[] = [];
+const drivers: SqlWorkerDriver[] = [];
 let folder: string;
 async function open(
   path: string,
   initialize = true,
-): Promise<{ driver: TursoThreadProof; repository: JobQueueRepository }> {
+): Promise<{ driver: SqlWorkerDriver; repository: JobQueueRepository }> {
   const url = pathToFileURL(path).href;
-  const driver = new TursoThreadProof({ url, workerUrl });
+  const driver = new SqlWorkerDriver({ url, workerUrl });
   drivers.push(driver);
-  const db = createProofDatabase<Record<string, unknown>>(driver, {
+  const db = createWorkerDatabase<Record<string, unknown>>(driver, {
     jobQueue,
     jobWorkerSessions,
   });
-  const client = new ProofLibsqlClient(driver);
+  const client = new SqlWorkerClient(driver);
   if (initialize)
     await migrate(db, {
       migrationsFolder: fileURLToPath(

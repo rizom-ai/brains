@@ -167,7 +167,14 @@ try {
     ].map(
       (name) =>
         new URL(
-          `../shared/db/test/fixtures/turso-thread/${name}.ts`,
+          [
+            "worker",
+            "network-ingress-worker",
+            "network-read-worker",
+            "transfer-receiver",
+          ].includes(name)
+            ? `../shared/db/src/turso-worker/${name}.ts`
+            : `../shared/db/test/fixtures/turso-thread/${name}.ts`,
           import.meta.url,
         ),
     ),

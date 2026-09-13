@@ -5,22 +5,22 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
-  TursoThreadProof,
-  type ProofDriverOptions,
-} from "./fixtures/turso-thread/client";
+  SqlWorkerDriver,
+  type SqlWorkerDriverOptions,
+} from "../src/turso-worker/client";
 import { exerciseThreadDriver } from "./fixtures/turso-thread/exercise";
-import { snapshotCommand } from "./fixtures/turso-thread/protocol";
+import { snapshotCommand } from "../src/turso-worker/protocol";
 import { openNativeBackend } from "../src/turso-worker/native-backend";
 import { initializeSqlWorker } from "../src/turso-worker/worker-bootstrap";
 
-const workerUrl = new URL("./fixtures/turso-thread/worker.ts", import.meta.url);
+const workerUrl = new URL("../src/turso-worker/worker.ts", import.meta.url);
 const directories: string[] = [];
-const drivers: TursoThreadProof[] = [];
-const failed = new Set<TursoThreadProof>();
+const drivers: SqlWorkerDriver[] = [];
+const failed = new Set<SqlWorkerDriver>();
 function create(
-  options: Omit<ProofDriverOptions, "workerUrl"> = { url: "file::memory:" },
-): TursoThreadProof {
-  const driver = new TursoThreadProof({ ...options, workerUrl });
+  options: Omit<SqlWorkerDriverOptions, "workerUrl"> = { url: "file::memory:" },
+): SqlWorkerDriver {
+  const driver = new SqlWorkerDriver({ ...options, workerUrl });
   drivers.push(driver);
   return driver;
 }
@@ -48,7 +48,7 @@ describe("isolated Turso execution-thread proof", () => {
       new URL("./fixtures/turso-thread/read-consumer.ts", import.meta.url),
       {
         bridgeUrl: new URL(
-          "./fixtures/turso-thread/network-ingress-worker.ts",
+          "../src/turso-worker/network-ingress-worker.ts",
           import.meta.url,
         ),
         producerUrl: new URL(
@@ -56,7 +56,7 @@ describe("isolated Turso execution-thread proof", () => {
           import.meta.url,
         ),
         readBridgeUrl: new URL(
-          "./fixtures/turso-thread/network-read-worker.ts",
+          "../src/turso-worker/network-read-worker.ts",
           import.meta.url,
         ),
         readConsumerUrl: new URL(

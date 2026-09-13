@@ -4,13 +4,13 @@ import assert from "node:assert/strict";
 import { z } from "@brains/utils/zod";
 import { LocalDatabaseRpcClient } from "../../shell/core/src/local-database-endpoint";
 import { createSqliteDatabase } from "../../shared/db/src/sqlite";
-import { TursoThreadProof } from "../../shared/db/test/fixtures/turso-thread/client";
-import { NetworkProcessOwner } from "../../shared/db/test/fixtures/turso-thread/network-process-owner";
+import { SqlWorkerDriver } from "../../shared/db/src/turso-worker/client";
+import { NetworkProcessOwner } from "../../shared/db/src/turso-worker/network-process-owner";
 import { blobFactsSchema } from "../../shared/db/src/turso-worker/blob-protocol";
 import {
   readOfferSchema,
   readEndpointSchema,
-} from "../../shared/db/test/fixtures/turso-thread/network-read-protocol";
+} from "../../shared/db/src/turso-worker/network-read-protocol";
 import {
   errorSchema,
   serializeError,
@@ -79,7 +79,7 @@ async function run(options: ControlStart): Promise<void> {
   );
   assert.throws(
     () =>
-      new TursoThreadProof({
+      new SqlWorkerDriver({
         url: options.forbiddenUrl,
         workerUrl: new URL(options.nativeWorkerUrl),
       }),
@@ -198,8 +198,8 @@ async function run(options: ControlStart): Promise<void> {
       if (action === "consumer-kill") {
         // SIGKILL is sent through the owned subprocess handle. No RPC cancellation
         // or client close may manufacture the data-disconnect failure here.
-        const killed = consumer.killForProof();
-        assert.equal(consumer.killForProof(), killed);
+        const killed = consumer.killAndJoin();
+        assert.equal(consumer.killAndJoin(), killed);
         assert.notEqual(await killed, 0);
         assert.equal(consumers.stats().children, 0);
       } else if (action === "disconnect") client.close();

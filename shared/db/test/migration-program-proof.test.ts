@@ -2,12 +2,12 @@ import { describe, expect, it } from "bun:test";
 import assert from "node:assert/strict";
 import { parseResults } from "../src/turso-worker/result-protocol";
 import { randomUUID } from "node:crypto";
-import { MigrationPlans } from "./fixtures/turso-thread/migration-plans";
+import { MigrationPlans } from "../src/turso-worker/migration-plans";
 import {
   MigrationPrograms,
   type MigrationSender,
-} from "./fixtures/turso-thread/migration-client";
-import { TursoThreadProof } from "./fixtures/turso-thread/client";
+} from "../src/turso-worker/migration-client";
+import { SqlWorkerDriver } from "../src/turso-worker/client";
 import {
   MAX_MIGRATION_BYTES,
   MAX_MIGRATION_PLANS,
@@ -15,11 +15,11 @@ import {
   migrationTokenSchema,
   statementBytes,
   type MigrationCommand,
-  type ProofStatement,
-} from "./fixtures/turso-thread/protocol";
+  type SqlStatement,
+} from "../src/turso-worker/protocol";
 
-const workerUrl = new URL("./fixtures/turso-thread/worker.ts", import.meta.url);
-const sql: ProofStatement = { sql: "SELECT 1" };
+const workerUrl = new URL("../src/turso-worker/worker.ts", import.meta.url);
+const sql: SqlStatement = { sql: "SELECT 1" };
 const bytes = statementBytes(sql);
 const notRun = async (): Promise<never> => {
   throw new Error("Native execution must not occur");
@@ -216,7 +216,7 @@ describe("bounded worker migration programs", () => {
   });
 
   it("uses independent cleanup capacity while ordinary native work is saturated", async () => {
-    const driver = new TursoThreadProof({
+    const driver = new SqlWorkerDriver({
       url: "file::memory:",
       workerUrl,
       maxInFlight: 2,
@@ -240,7 +240,7 @@ describe("bounded worker migration programs", () => {
   });
 
   it("fences queued work when an admitted program loses its native transaction", async () => {
-    const driver = new TursoThreadProof({ url: "file::memory:", workerUrl });
+    const driver = new SqlWorkerDriver({ url: "file::memory:", workerUrl });
     await driver.execute({
       sql: "CREATE TABLE records (id INTEGER PRIMARY KEY)",
     });
@@ -276,7 +276,7 @@ describe("bounded worker migration programs", () => {
   });
 
   it("drains an admitted complete program during shutdown without revoking its reservation", async () => {
-    const driver = new TursoThreadProof({ url: "file::memory:", workerUrl });
+    const driver = new SqlWorkerDriver({ url: "file::memory:", workerUrl });
     try {
       const token = migrationTokenSchema.parse(
         await driver.migration({ action: "reserve", bytes, count: 1 }),

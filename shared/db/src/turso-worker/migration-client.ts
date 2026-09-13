@@ -8,13 +8,10 @@ import {
   statementBytes,
   type MigrationCommand,
   type MigrationToken,
-  type ProofStatement,
+  type SqlStatement,
 } from "./protocol";
-import { parseStatement } from "../../../src/turso-worker/client-protocol";
-import {
-  parseResults,
-  type SqlResult as ProofResult,
-} from "../../../src/turso-worker/result-protocol";
+import { parseStatement } from "./client-protocol";
+import { parseResults, type SqlResult } from "./result-protocol";
 
 export interface MigrationSender {
   readonly closed: boolean;
@@ -29,7 +26,7 @@ export class MigrationPrograms {
     this.sender = sender;
   }
   // Synchronous bounded admission/snapshot; no continuation retains caller views.
-  public execute(inputs: ProofStatement[]): Promise<ProofResult[]> {
+  public execute(inputs: SqlStatement[]): Promise<SqlResult[]> {
     try {
       if (this.sender.closed) throw new Error("Proof driver is closed");
       if (inputs.length > MAX_MIGRATION_STATEMENTS)
@@ -37,7 +34,7 @@ export class MigrationPrograms {
       if (this.plans >= MAX_MIGRATION_PLANS)
         throw new Error("Migration plan capacity exceeded");
       let bytes = 0;
-      const parsed: ProofStatement[] = [];
+      const parsed: SqlStatement[] = [];
       for (const input of inputs) {
         const statement = parseStatement(input);
         const size = statementBytes(statement);
@@ -51,8 +48,8 @@ export class MigrationPrograms {
       this.bytes += bytes;
       this.plans++;
       try {
-        const chunks: ProofStatement[][] = [];
-        let chunk: ProofStatement[] = [];
+        const chunks: SqlStatement[][] = [];
+        let chunk: SqlStatement[] = [];
         let size = 512;
         for (const statement of parsed) {
           const next = statementBytes(statement);
@@ -76,10 +73,10 @@ export class MigrationPrograms {
     }
   }
   private async runReserved(
-    chunks: ProofStatement[][],
+    chunks: SqlStatement[][],
     count: number,
     bytes: number,
-  ): Promise<ProofResult[]> {
+  ): Promise<SqlResult[]> {
     try {
       return await this.run(chunks, count, bytes);
     } finally {
@@ -88,10 +85,10 @@ export class MigrationPrograms {
     }
   }
   private async run(
-    chunks: ProofStatement[][],
+    chunks: SqlStatement[][],
     count: number,
     bytes: number,
-  ): Promise<ProofResult[]> {
+  ): Promise<SqlResult[]> {
     let token: MigrationToken | undefined;
     try {
       token = migrationTokenSchema.parse(

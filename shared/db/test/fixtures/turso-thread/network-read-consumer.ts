@@ -5,7 +5,7 @@ import { z } from "@brains/utils/zod";
 import {
   readEndpointSchema,
   readPauseAfterSchema,
-} from "./network-read-protocol";
+} from "../../../src/turso-worker/network-read-protocol";
 import { blobFactsSchema } from "../../../src/turso-worker/blob-protocol";
 import {
   DATA_HEADER_BYTES,
@@ -16,8 +16,8 @@ import {
   readInto,
   writeBytes,
   endSocket,
-} from "./network-wire";
-import { STAGE_CHUNK_BYTES } from "./binary-protocol";
+} from "../../../src/turso-worker/network-wire";
+import { STAGE_CHUNK_BYTES } from "../../../src/turso-worker/binary-protocol";
 import { serializeError } from "../../../src/turso-worker/error-protocol";
 
 const optionsSchema = z.strictObject({

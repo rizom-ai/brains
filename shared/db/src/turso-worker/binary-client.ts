@@ -1,4 +1,4 @@
-import type { TursoThreadProof } from "./client";
+import type { SqlWorkerDriver } from "./client";
 import {
   STAGE_CHUNK_BYTES,
   capabilitySchema,
@@ -15,13 +15,13 @@ type BeginOptions = Omit<
   "action" | "scope"
 >;
 
-/** A local proof lifetime, not yet an authenticated application RPC scope. */
+/** A local binary lifetime; authenticated authority is managed by ScopedUploads. */
 export class BinaryScope {
   private closed = false;
   private closing: Promise<void> | undefined;
-  private readonly driver: TursoThreadProof;
+  private readonly driver: SqlWorkerDriver;
   public readonly id: string;
-  public constructor(driver: TursoThreadProof, id: string) {
+  public constructor(driver: SqlWorkerDriver, id: string) {
     this.driver = driver;
     this.id = id;
   }

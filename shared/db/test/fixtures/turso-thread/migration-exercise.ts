@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import type { TursoThreadProof } from "./client";
-import { SqlWorkerClient as ProofLibsqlClient } from "../../../src/turso-worker/sql-client";
-import type { ProofStatement } from "./protocol";
+import type { SqlWorkerDriver } from "../../../src/turso-worker/client";
+import { SqlWorkerClient } from "../../../src/turso-worker/sql-client";
+import type { SqlStatement } from "../../../src/turso-worker/protocol";
 
 export async function assertMigrationRows(
-  driver: TursoThreadProof,
+  driver: SqlWorkerDriver,
 ): Promise<void> {
   assert.equal(
     (await driver.execute({ sql: "SELECT count(*) FROM proof_migration_rows" }))
@@ -25,13 +25,13 @@ export async function assertMigrationRows(
 // migration transaction. The sole large caller allocation is a borrowed-view
 // lifetime probe; only three visible bytes per statement enter the snapshot.
 export async function exerciseMigrationProgram(
-  driver: TursoThreadProof,
+  driver: SqlWorkerDriver,
 ): Promise<void> {
-  const client = new ProofLibsqlClient(driver);
+  const client = new SqlWorkerClient(driver);
   const backing = new Uint8Array(1024 * 1024);
   const view = backing.subarray(4096, 4099);
   view.set([0, 128, 255]);
-  const statements: ProofStatement[] = [
+  const statements: SqlStatement[] = [
     {
       sql: "CREATE TABLE proof_migration_rows (id INTEGER PRIMARY KEY, bytes BLOB, label TEXT)",
     },

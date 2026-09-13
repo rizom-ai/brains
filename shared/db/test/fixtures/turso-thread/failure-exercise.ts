@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
-import { TursoThreadProof, type ProofTransaction } from "./client";
+import {
+  SqlWorkerDriver,
+  type WorkerTransaction,
+} from "../../../src/turso-worker/client";
 
 function ownerLost(error: unknown): boolean {
   assert.ok(error instanceof Error);
@@ -13,8 +16,8 @@ export async function exerciseFailedFinalization(
   url: string,
   workerUrl: URL,
 ): Promise<void> {
-  const driver = new TursoThreadProof({ url, workerUrl });
-  let lease: ProofTransaction | undefined;
+  const driver = new SqlWorkerDriver({ url, workerUrl });
+  let lease: WorkerTransaction | undefined;
   let faultAttempted = false;
   try {
     const placement = await driver.initialize();
@@ -54,7 +57,7 @@ export async function exerciseFailedFinalization(
     await assert.rejects(driver.stageStats(), ownerLost);
 
     // Explicit fresh-owner recovery in the fixture, never driver replay/respawn.
-    const reopened = new TursoThreadProof({ url, workerUrl });
+    const reopened = new SqlWorkerDriver({ url, workerUrl });
     try {
       assert.notEqual(
         (await reopened.initialize()).generation,

@@ -2,24 +2,24 @@ import { afterEach, describe, expect, it } from "bun:test";
 import assert from "node:assert/strict";
 import { sql } from "drizzle-orm";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { TursoThreadProof } from "./fixtures/turso-thread/client";
+import { SqlWorkerDriver } from "../src/turso-worker/client";
 import { closeSqliteClient } from "../src/turso-client";
-import { SqlWorkerClient as ProofLibsqlClient } from "../src/turso-worker/sql-client";
-import { withBinaryTransaction } from "./fixtures/turso-thread/binary-transaction";
+import { SqlWorkerClient } from "../src/turso-worker/sql-client";
+import { withBinaryTransaction } from "../src/turso-worker/binary-transaction";
 
-const workerUrl = new URL("./fixtures/turso-thread/worker.ts", import.meta.url);
-const drivers: TursoThreadProof[] = [];
+const workerUrl = new URL("../src/turso-worker/worker.ts", import.meta.url);
+const drivers: SqlWorkerDriver[] = [];
 const items = sqliteTable("items", {
   id: integer("id").primaryKey(),
   label: text("label").notNull(),
 });
 async function setup(): Promise<{
-  driver: TursoThreadProof;
-  client: ProofLibsqlClient;
+  driver: SqlWorkerDriver;
+  client: SqlWorkerClient;
 }> {
-  const driver = new TursoThreadProof({ url: "file::memory:", workerUrl });
+  const driver = new SqlWorkerDriver({ url: "file::memory:", workerUrl });
   drivers.push(driver);
-  const client = new ProofLibsqlClient(driver);
+  const client = new SqlWorkerClient(driver);
   await client.executeMultiple(
     "CREATE TABLE items (id INTEGER PRIMARY KEY, label TEXT NOT NULL);",
   );

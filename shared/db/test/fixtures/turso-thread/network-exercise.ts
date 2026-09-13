@@ -6,16 +6,25 @@ import { Worker } from "node:worker_threads";
 import { z } from "@brains/utils/zod";
 import { sql } from "drizzle-orm";
 import { blob, integer, sqliteTable } from "drizzle-orm/sqlite-core";
-import { TursoThreadProof } from "./client";
-import { ProofBudgetPool } from "./budget-pool";
+import { SqlWorkerDriver } from "../../../src/turso-worker/client";
+import { PersistenceBudgetPool } from "../../../src/turso-worker/budget-pool";
 import {
   serializeError,
   type ProofError,
 } from "../../../src/turso-worker/error-protocol";
-import type { StageCapability, SealedStage } from "./binary-protocol";
-import { withBinaryTransaction } from "./binary-transaction";
-import { networkEndpointSchema, type NetworkEndpoint } from "./network-wire";
-import { NetworkProcessOwner, sidecarPath } from "./network-process-owner";
+import type {
+  StageCapability,
+  SealedStage,
+} from "../../../src/turso-worker/binary-protocol";
+import { withBinaryTransaction } from "../../../src/turso-worker/binary-transaction";
+import {
+  networkEndpointSchema,
+  type NetworkEndpoint,
+} from "../../../src/turso-worker/network-wire";
+import {
+  NetworkProcessOwner,
+  sidecarPath,
+} from "../../../src/turso-worker/network-process-owner";
 
 export interface NetworkSidecars {
   bridgeUrl: URL;
@@ -38,8 +47,8 @@ const listeningSchema = z.strictObject({
 
 /** Generic local authority only. Authenticated RPC scope evidence stays in scripts. */
 export async function uploadNetworkFixture(
-  driver: TursoThreadProof,
-  pool: ProofBudgetPool,
+  driver: SqlWorkerDriver,
+  pool: PersistenceBudgetPool,
   stage: StageCapability,
   size: number,
   options: NetworkSidecars & { sourceFile?: string | undefined },
@@ -145,8 +154,8 @@ export async function uploadNetworkFixture(
   return facts;
 }
 export async function exerciseNetworkIngress(
-  driver: TursoThreadProof,
-  pool: ProofBudgetPool,
+  driver: SqlWorkerDriver,
+  pool: PersistenceBudgetPool,
   options: NetworkSidecars,
 ): Promise<void> {
   await driver.executeMultiple(
@@ -220,8 +229,8 @@ export async function exerciseNetworkArtifactFailure(
   workerUrl: URL,
   options: NetworkSidecars,
 ): Promise<ProofError> {
-  const pool = new ProofBudgetPool();
-  const driver = new TursoThreadProof({ url, workerUrl, budget: pool });
+  const pool = new PersistenceBudgetPool();
+  const driver = new SqlWorkerDriver({ url, workerUrl, budget: pool });
   let failure: unknown;
   try {
     await assert.rejects(
@@ -275,7 +284,7 @@ export async function exerciseNetworkArtifactFailure(
   return serializeError(failure);
 }
 export async function assertNetworkRows(
-  driver: TursoThreadProof,
+  driver: SqlWorkerDriver,
 ): Promise<void> {
   assert.deepEqual(
     await driver.verifyBlob({

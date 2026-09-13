@@ -22,14 +22,14 @@ import {
   LocalDatabaseRpcServer,
   LocalDatabaseRpcClient,
 } from "../shell/core/src/local-database-endpoint";
-import { TursoThreadProof } from "../shared/db/test/fixtures/turso-thread/client";
-import { ProofBudgetPool } from "../shared/db/test/fixtures/turso-thread/budget-pool";
-import { ScopedReads } from "../shared/db/test/fixtures/turso-thread/scoped-reads";
+import { SqlWorkerDriver } from "../shared/db/src/turso-worker/client";
+import { PersistenceBudgetPool } from "../shared/db/src/turso-worker/budget-pool";
+import { ScopedReads } from "../shared/db/src/turso-worker/scoped-reads";
 import {
   readOfferSchema,
   readEndpointSchema,
   type ReadOffer,
-} from "../shared/db/test/fixtures/turso-thread/network-read-protocol";
+} from "../shared/db/src/turso-worker/network-read-protocol";
 import {
   blobFactsSchema,
   type BlobFacts,
@@ -37,11 +37,11 @@ import {
 import {
   STAGE_BUDGET_BYTES,
   STAGE_CHUNK_BYTES,
-} from "../shared/db/test/fixtures/turso-thread/binary-protocol";
-import { NETWORK_SCRATCH_BYTES } from "../shared/db/test/fixtures/turso-thread/network-wire";
-import { withBinaryTransaction } from "../shared/db/test/fixtures/turso-thread/binary-transaction";
+} from "../shared/db/src/turso-worker/binary-protocol";
+import { NETWORK_SCRATCH_BYTES } from "../shared/db/src/turso-worker/network-wire";
+import { withBinaryTransaction } from "../shared/db/src/turso-worker/binary-transaction";
 import { uploadNetworkFixture } from "../shared/db/test/fixtures/turso-thread/network-exercise";
-import { NetworkProcessOwner } from "../shared/db/test/fixtures/turso-thread/network-process-owner";
+import { NetworkProcessOwner } from "../shared/db/src/turso-worker/network-process-owner";
 import {
   errorSchema,
   serializeError,
@@ -92,8 +92,8 @@ const payloads = sqliteTable("authenticated_payloads", {
 });
 const directory = await mkdtemp(join(tmpdir(), "turso-auth-large-read-"));
 const path = join(directory, "source.db");
-const pool = new ProofBudgetPool();
-const driver = new TursoThreadProof({
+const pool = new PersistenceBudgetPool();
+const driver = new SqlWorkerDriver({
   url: pathToFileURL(path).href,
   workerUrl: nativeWorker,
   budget: pool,
@@ -120,7 +120,7 @@ const endpoints = new Map<
 let admitted: (() => void) | undefined;
 let bridges = 0;
 const controlProcesses = new Set<{ stop: () => Promise<void> }>();
-let restored: TursoThreadProof | undefined;
+let restored: SqlWorkerDriver | undefined;
 function client(secret = config.secret): LocalDatabaseRpcClient {
   const value = new LocalDatabaseRpcClient({
     config: { ...config, secret, sessionId: "same-claimed-session" },
@@ -711,7 +711,7 @@ try {
   await driver.close();
   const restoredPath = join(directory, "restored.db");
   await copyFile(path, restoredPath);
-  restored = new TursoThreadProof({
+  restored = new SqlWorkerDriver({
     url: pathToFileURL(restoredPath).href,
     workerUrl: nativeWorker,
   });

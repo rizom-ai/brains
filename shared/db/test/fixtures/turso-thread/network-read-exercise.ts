@@ -2,15 +2,21 @@
 import assert from "node:assert/strict";
 import { Worker } from "node:worker_threads";
 import { z } from "@brains/utils/zod";
-import { TursoThreadProof } from "./client";
-import { ProofBudgetPool } from "./budget-pool";
-import { NetworkProcessOwner, sidecarPath } from "./network-process-owner";
-import { readEndpointSchema } from "./network-read-protocol";
+import { SqlWorkerDriver } from "../../../src/turso-worker/client";
+import { PersistenceBudgetPool } from "../../../src/turso-worker/budget-pool";
+import {
+  NetworkProcessOwner,
+  sidecarPath,
+} from "../../../src/turso-worker/network-process-owner";
+import { readEndpointSchema } from "../../../src/turso-worker/network-read-protocol";
 import {
   serializeError,
   type ProofError,
 } from "../../../src/turso-worker/error-protocol";
-import { STAGE_CHUNK_BYTES, type SealedStage } from "./binary-protocol";
+import {
+  STAGE_CHUNK_BYTES,
+  type SealedStage,
+} from "../../../src/turso-worker/binary-protocol";
 import type { BlobFacts } from "../../../src/turso-worker/blob-protocol";
 
 export interface NetworkReadSidecars {
@@ -35,8 +41,8 @@ const listeningSchema = z.strictObject({
 });
 
 export async function downloadNetworkFixture(
-  driver: TursoThreadProof,
-  pool: ProofBudgetPool,
+  driver: SqlWorkerDriver,
+  pool: PersistenceBudgetPool,
   stage: SealedStage,
   options: NetworkReadSidecars,
   whileHeld: () => Promise<void>,
@@ -139,8 +145,8 @@ export async function downloadNetworkFixture(
   return facts;
 }
 export async function exerciseNetworkRead(
-  driver: TursoThreadProof,
-  pool: ProofBudgetPool,
+  driver: SqlWorkerDriver,
+  pool: PersistenceBudgetPool,
   options: NetworkReadSidecars,
 ): Promise<void> {
   await driver.executeMultiple(
@@ -184,7 +190,7 @@ export async function exerciseNetworkRead(
   await assertNetworkReadRows(driver);
 }
 export async function assertNetworkReadRows(
-  driver: TursoThreadProof,
+  driver: SqlWorkerDriver,
 ): Promise<void> {
   assert.deepEqual(
     (
@@ -200,8 +206,8 @@ export async function exerciseNetworkReadArtifactFailure(
   workerUrl: URL,
   options: NetworkReadSidecars,
 ): Promise<ProofError> {
-  const pool = new ProofBudgetPool();
-  const driver = new TursoThreadProof({ url, workerUrl, budget: pool });
+  const pool = new PersistenceBudgetPool();
+  const driver = new SqlWorkerDriver({ url, workerUrl, budget: pool });
   let failure: unknown;
   try {
     await driver.executeMultiple(

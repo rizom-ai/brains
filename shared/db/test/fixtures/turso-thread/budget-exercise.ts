@@ -2,9 +2,12 @@ import assert from "node:assert/strict";
 import { constants } from "node:fs";
 import { copyFile } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { TursoThreadProof, type ProofTransaction } from "./client";
-import { ProofBudgetPool } from "./budget-pool";
-import { STAGE_BUDGET_BYTES } from "./binary-protocol";
+import {
+  SqlWorkerDriver,
+  type WorkerTransaction,
+} from "../../../src/turso-worker/client";
+import { PersistenceBudgetPool } from "../../../src/turso-worker/budget-pool";
+import { STAGE_BUDGET_BYTES } from "../../../src/turso-worker/binary-protocol";
 import type { BlobPlan } from "../../../src/turso-worker/blob-protocol";
 
 const plan: BlobPlan = {
@@ -22,19 +25,19 @@ export async function exerciseSharedBudget(
   baseUrl: string,
   workerUrl: URL,
 ): Promise<void> {
-  const pool = new ProofBudgetPool();
+  const pool = new PersistenceBudgetPool();
   const urls = Array.from(
     { length: 5 },
     (_, index) =>
       pathToFileURL(`${fileURLToPath(baseUrl)}.budget-${index}.db`).href,
   );
-  const drivers: TursoThreadProof[] = [];
-  const leases: ProofTransaction[] = [];
+  const drivers: SqlWorkerDriver[] = [];
+  const leases: WorkerTransaction[] = [];
   const errors: unknown[] = [];
   try {
     for (const [index, url] of urls.entries())
       drivers.push(
-        new TursoThreadProof({
+        new SqlWorkerDriver({
           url,
           workerUrl,
           budget: pool,
@@ -51,7 +54,7 @@ export async function exerciseSharedBudget(
     assert.equal(pool.stats().members, 5);
     assert.throws(
       () =>
-        new TursoThreadProof({
+        new SqlWorkerDriver({
           url: `${baseUrl}.sixth`,
           workerUrl,
           budget: pool,
@@ -172,7 +175,7 @@ export async function exerciseSharedBudget(
         fileURLToPath(restored),
         constants.COPYFILE_EXCL,
       );
-      const driver = new TursoThreadProof({
+      const driver = new SqlWorkerDriver({
         url: restored,
         workerUrl,
         budget: pool,

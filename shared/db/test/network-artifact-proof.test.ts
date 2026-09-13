@@ -4,20 +4,20 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
-import { NetworkProcessOwner } from "./fixtures/turso-thread/network-process-owner";
-import { readPauseAfterSchema } from "./fixtures/turso-thread/network-read-protocol";
+import { NetworkProcessOwner } from "../src/turso-worker/network-process-owner";
+import { readPauseAfterSchema } from "../src/turso-worker/network-read-protocol";
 import {
   STAGE_CHUNK_BYTES,
   STAGE_BUDGET_BYTES,
-} from "./fixtures/turso-thread/binary-protocol";
+} from "../src/turso-worker/binary-protocol";
 import {
   exerciseNetworkArtifactFailure,
   type NetworkSidecars,
 } from "./fixtures/turso-thread/network-exercise";
 
-const workerUrl = new URL("./fixtures/turso-thread/worker.ts", import.meta.url);
+const workerUrl = new URL("../src/turso-worker/worker.ts", import.meta.url);
 const bridgeUrl = new URL(
-  "./fixtures/turso-thread/network-ingress-worker.ts",
+  "../src/turso-worker/network-ingress-worker.ts",
   import.meta.url,
 );
 const producerUrl = new URL(
@@ -29,7 +29,7 @@ import {
   type NetworkReadSidecars,
 } from "./fixtures/turso-thread/network-read-exercise";
 const readBridgeUrl = new URL(
-  "./fixtures/turso-thread/network-read-worker.ts",
+  "../src/turso-worker/network-read-worker.ts",
   import.meta.url,
 );
 const readConsumerUrl = new URL(
@@ -62,10 +62,10 @@ describe("explicit network sidecars and process ownership", () => {
         "read",
       );
       const child = owner.spawn();
-      const killed = child.killForProof();
+      const killed = child.killAndJoin();
       void killed.catch(() => undefined); // Asserted below, including retained rejection after actual exit.
       try {
-        expect(child.killForProof()).toBe(killed);
+        expect(child.killAndJoin()).toBe(killed);
         assert.equal(owner.stats().children, 1);
         assert.equal(owner.requests, 1);
         assert.throws(
@@ -89,13 +89,13 @@ describe("explicit network sidecars and process ownership", () => {
         }
       } finally {
         // Explicit release/recovery of this exact test-owned subprocess handle,
-        // not a retry by killForProof, a PID lookup or an inferred exit.
+        // not a retry by killAndJoin, a PID lookup or an inferred exit.
         (await requested.promise)();
         await child.exited;
       }
       assert.equal(owner.stats().children, 0);
       assert.equal(owner.requests, 1);
-      assert.equal(child.killForProof(), killed);
+      assert.equal(child.killAndJoin(), killed);
       if (mode === "rejected") {
         await assert.rejects(killed, (error: unknown) => error === failure);
         await assert.rejects(

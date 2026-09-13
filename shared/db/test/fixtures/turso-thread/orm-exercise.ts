@@ -5,9 +5,9 @@ import { fileURLToPath } from "node:url";
 import { eq, sql } from "drizzle-orm";
 import { blob, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { migrate } from "drizzle-orm/libsql/migrator";
-import { SqlWorkerClient as ProofLibsqlClient } from "../../../src/turso-worker/sql-client";
-import { createProofDatabase } from "./binary-transaction";
-import type { TursoThreadProof } from "./client";
+import { SqlWorkerClient } from "../../../src/turso-worker/sql-client";
+import { createWorkerDatabase } from "../../../src/turso-worker/binary-transaction";
+import type { SqlWorkerDriver } from "../../../src/turso-worker/client";
 
 const records = sqliteTable("orm_records", {
   id: integer("id").primaryKey(),
@@ -17,8 +17,8 @@ const records = sqliteTable("orm_records", {
   bytes: blob("bytes", { mode: "buffer" }).notNull(),
 });
 
-export async function assertOrmRows(driver: TursoThreadProof): Promise<void> {
-  const client = new ProofLibsqlClient(driver);
+export async function assertOrmRows(driver: SqlWorkerDriver): Promise<void> {
+  const client = new SqlWorkerClient(driver);
   assert.deepEqual(
     (await client.execute("SELECT id FROM orm_records ORDER BY id")).rows.map(
       (row) => row["id"],
@@ -33,11 +33,11 @@ export async function assertOrmRows(driver: TursoThreadProof): Promise<void> {
 }
 
 export async function exerciseLibsqlSession(
-  driver: TursoThreadProof,
+  driver: SqlWorkerDriver,
   url: string,
 ): Promise<void> {
-  const client = new ProofLibsqlClient(driver);
-  const db = createProofDatabase(driver, { records });
+  const client = new SqlWorkerClient(driver);
+  const db = createWorkerDatabase(driver, { records });
   await client.executeMultiple(
     "CREATE TABLE orm_records (id INTEGER PRIMARY KEY, label TEXT NOT NULL, enabled INTEGER NOT NULL, at INTEGER NOT NULL, bytes BLOB NOT NULL);",
   );

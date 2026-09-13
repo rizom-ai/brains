@@ -11,7 +11,7 @@ import {
   networkEndpointSchema,
   type NetworkEndpoint,
   NETWORK_SCRATCH_BYTES,
-} from "../shared/db/test/fixtures/turso-thread/network-wire";
+} from "../shared/db/src/turso-worker/network-wire";
 import { Worker } from "node:worker_threads";
 import { z } from "@brains/utils/zod";
 import {
@@ -19,19 +19,19 @@ import {
   LocalDatabaseRpcServer,
 } from "../shell/core/src/local-database-endpoint";
 import {
-  TursoThreadProof,
-  type ProofTransaction,
-} from "../shared/db/test/fixtures/turso-thread/client";
+  SqlWorkerDriver,
+  type WorkerTransaction,
+} from "../shared/db/src/turso-worker/client";
 import type { TransactionMode } from "@libsql/client";
-import type { StageClaim } from "../shared/db/test/fixtures/turso-thread/binary-protocol";
-import { ProofBudgetPool } from "../shared/db/test/fixtures/turso-thread/budget-pool";
+import type { StageClaim } from "../shared/db/src/turso-worker/binary-protocol";
+import { PersistenceBudgetPool } from "../shared/db/src/turso-worker/budget-pool";
 import {
   ScopedUploads,
   uploadSizeSchema,
   uploadTicketSchema,
   uploadOfferSchema as ticketResult,
   uploadReceiptSchema as receiptResult,
-} from "../shared/db/test/fixtures/turso-thread/scoped-uploads";
+} from "../shared/db/src/turso-worker/scoped-uploads";
 import {
   errorSchema,
   serializeError,
@@ -39,7 +39,7 @@ import {
 } from "../shared/db/src/turso-worker/error-protocol";
 
 const workerUrl = new URL(
-  "../shared/db/test/fixtures/turso-thread/worker.ts",
+  "../shared/db/src/turso-worker/worker.ts",
   import.meta.url,
 );
 const producerUrl = new URL(
@@ -47,7 +47,7 @@ const producerUrl = new URL(
   import.meta.url,
 );
 const networkWorkerUrl = new URL(
-  "../shared/db/test/fixtures/turso-thread/network-ingress-worker.ts",
+  "../shared/db/src/turso-worker/network-ingress-worker.ts",
   import.meta.url,
 );
 const networkProducerUrl = new URL(
@@ -91,13 +91,13 @@ async function call(
   if (!reply.ok) throw deserializeError(reply.error);
   return reply.value;
 }
-class ObservedDriver extends TursoThreadProof {
+class ObservedDriver extends SqlWorkerDriver {
   public transactionSubmissions = 0;
   public claimSubmitted: () => void = () => undefined;
   public override transaction(
     mode: TransactionMode = "write",
     claims: StageClaim[] = [],
-  ): Promise<ProofTransaction> {
+  ): Promise<WorkerTransaction> {
     this.transactionSubmissions++;
     const pending = super.transaction(mode, claims);
     if (claims.length > 0) this.claimSubmitted();
@@ -108,7 +108,7 @@ interface Fixture {
   directory: string;
   path: string;
   driver: ObservedDriver;
-  pool: ProofBudgetPool;
+  pool: PersistenceBudgetPool;
   server: LocalDatabaseRpcServer;
   broker: ScopedUploads;
   clients: LocalDatabaseRpcClient[];
@@ -127,7 +127,7 @@ let fixture: Fixture;
 beforeEach(async () => {
   const directory = await mkdtemp(join(tmpdir(), "brains-scoped-upload-"));
   const path = join(directory, "source.db");
-  const pool = new ProofBudgetPool();
+  const pool = new PersistenceBudgetPool();
   const driver = new ObservedDriver({
     url: pathToFileURL(path).href,
     workerUrl,
@@ -770,7 +770,7 @@ describe("authenticated upload control scopes (source-only)", () => {
     await fixture.driver.close();
     const restoredPath = join(fixture.directory, "restored.db");
     await copyFile(fixture.path, restoredPath);
-    const restored = new TursoThreadProof({
+    const restored = new SqlWorkerDriver({
       url: pathToFileURL(restoredPath).href,
       workerUrl,
     });
@@ -1023,7 +1023,7 @@ describe("authenticated cross-process raw ingress (source proof)", () => {
       await fixture.driver.close();
       const restoredPath = join(fixture.directory, "network-restored.db");
       await copyFile(fixture.path, restoredPath);
-      const restored = new TursoThreadProof({
+      const restored = new SqlWorkerDriver({
         url: pathToFileURL(restoredPath).href,
         workerUrl,
       });

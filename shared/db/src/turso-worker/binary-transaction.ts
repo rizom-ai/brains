@@ -14,15 +14,9 @@ import {
 } from "drizzle-orm/relations";
 import type { ResultSet, TransactionMode } from "@libsql/client";
 import { boundStatementSchema, type StageClaim } from "./binary-protocol";
-import type { ProofTransaction, TursoThreadProof } from "./client";
-import {
-  SqlWorkerClient as ProofLibsqlClient,
-  SqlWorkerTransaction as ProofLibsqlTransaction,
-} from "../../../src/turso-worker/sql-client";
-import type {
-  BlobPlan,
-  BlobFacts,
-} from "../../../src/turso-worker/blob-protocol";
+import type { WorkerTransaction, SqlWorkerDriver } from "./client";
+import { SqlWorkerClient, SqlWorkerTransaction } from "./sql-client";
+import type { BlobPlan, BlobFacts } from "./blob-protocol";
 
 type EmptySchema = Record<string, never>;
 type RunNested<
@@ -44,14 +38,17 @@ export interface BinaryTransactionContext<
   ) => Promise<ResultSet>;
 }
 
-export interface ProofBindingContext {
+export interface WorkerBindingContext {
   readonly db: object;
   readonly executeBound: BinaryTransactionContext["executeBound"];
   readonly verifyBlob: BinaryTransactionContext["verifyBlob"];
 }
-export interface ProofDatabaseBindings {
+export interface WorkerDatabaseBindings {
   claims(): StageClaim[];
-  run<T>(context: ProofBindingContext, operation: () => Promise<T>): Promise<T>;
+  run<T>(
+    context: WorkerBindingContext,
+    operation: () => Promise<T>,
+  ): Promise<T>;
 }
 
 // Public extension points only. Ordinary queries use real LibSQLSession mappers;
@@ -91,12 +88,12 @@ async function scoped<
   F extends Record<string, unknown>,
   R extends TablesRelationalConfig,
 >(
-  driver: TursoThreadProof,
-  client: ProofLibsqlClient,
-  lease: ProofTransaction,
+  driver: SqlWorkerDriver,
+  client: SqlWorkerClient,
+  lease: WorkerTransaction,
   schema: RelationalSchemaConfig<R> | undefined,
   body: (context: BinaryTransactionContext<F, R>) => Promise<T>,
-  bindings?: ProofDatabaseBindings,
+  bindings?: WorkerDatabaseBindings,
 ): Promise<T> {
   let active = true;
   let child: Promise<unknown> | undefined;
@@ -138,7 +135,7 @@ async function scoped<
     dialect,
     schema,
     {},
-    new ProofLibsqlTransaction(driver, lease, assertLeaf),
+    new SqlWorkerTransaction(driver, lease, assertLeaf),
   );
   const db = new ScopedTransaction(dialect, session, schema, nested);
   const context: BinaryTransactionContext<F, R> = {
@@ -190,18 +187,18 @@ async function withTransaction<
   F extends Record<string, unknown>,
   R extends TablesRelationalConfig,
 >(
-  driver: TursoThreadProof,
+  driver: SqlWorkerDriver,
   claims: StageClaim[],
   mode: TransactionMode,
   schema: RelationalSchemaConfig<R> | undefined,
   body: (context: BinaryTransactionContext<F, R>) => Promise<T>,
-  bindings?: ProofDatabaseBindings,
+  bindings?: WorkerDatabaseBindings,
 ): Promise<T> {
   const lease = await driver.transaction(mode, claims);
   try {
     const result = await scoped(
       driver,
-      new ProofLibsqlClient(driver),
+      new SqlWorkerClient(driver),
       lease,
       schema,
       body,
@@ -223,17 +220,17 @@ async function withTransaction<
   }
 }
 export function withBinaryTransaction<T>(
-  driver: TursoThreadProof,
+  driver: SqlWorkerDriver,
   claims: StageClaim[],
   body: (context: BinaryTransactionContext) => Promise<T>,
 ): Promise<T> {
   return withTransaction(driver, claims, "write", undefined, body);
 }
 
-export function createProofDatabase<F extends Record<string, unknown>>(
-  driver: TursoThreadProof,
+export function createWorkerDatabase<F extends Record<string, unknown>>(
+  driver: SqlWorkerDriver,
   schema: F,
-  bindings?: ProofDatabaseBindings,
+  bindings?: WorkerDatabaseBindings,
 ): LibSQLDatabase<F> {
   type R = ExtractTablesWithRelations<F>;
   const dialect = new SQLiteAsyncDialect();
@@ -266,7 +263,7 @@ export function createProofDatabase<F extends Record<string, unknown>>(
     }
   }
   const session = new Session(
-    new ProofLibsqlClient(driver),
+    new SqlWorkerClient(driver),
     dialect,
     relationalSchema,
     {},

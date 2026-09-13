@@ -1,7 +1,7 @@
 import { z } from "@brains/utils/zod";
 import { STAGE_BUDGET_BYTES } from "./binary-protocol";
-import { VERIFY_SCRATCH_BYTES } from "../../../src/turso-worker/blob-protocol";
-import type { ProofCommand } from "./protocol";
+import { VERIFY_SCRATCH_BYTES } from "./blob-protocol";
+import type { WorkerCommand } from "./protocol";
 
 export const budgetGrantSchema: z.ZodObject<{
   pool: z.ZodString;
@@ -18,7 +18,7 @@ export type BudgetGrant = z.output<typeof budgetGrantSchema>;
 export type BudgetKind = BudgetGrant["kind"];
 export type BudgetRequirement = Pick<BudgetGrant, "kind" | "bytes">;
 export function budgetRequirement(
-  command: ProofCommand,
+  command: WorkerCommand,
 ): BudgetRequirement | undefined {
   if (command.op === "binary" && command.command.action === "beginStage")
     return { kind: "resident", bytes: command.command.reservationBytes };
@@ -33,7 +33,7 @@ export function budgetRequirement(
   return undefined;
 }
 export function validateBudgetGrant(
-  command: ProofCommand,
+  command: WorkerCommand,
   input: BudgetGrant | undefined,
   pool: string,
   id: number,

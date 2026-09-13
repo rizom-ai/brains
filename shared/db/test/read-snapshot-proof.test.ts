@@ -1,20 +1,20 @@
 import { beforeEach, afterEach, describe, expect, it } from "bun:test";
 import assert from "node:assert/strict";
 import { Worker } from "node:worker_threads";
-import { TursoThreadProof } from "./fixtures/turso-thread/client";
-import { ProofBudgetPool } from "./fixtures/turso-thread/budget-pool";
+import { SqlWorkerDriver } from "../src/turso-worker/client";
+import { PersistenceBudgetPool } from "../src/turso-worker/budget-pool";
 import {
   validateReadReply,
   type ReadCommand,
-} from "./fixtures/turso-thread/read-protocol";
+} from "../src/turso-worker/read-protocol";
 import type { BlobPlan } from "../src/turso-worker/blob-protocol";
 import {
   STAGE_BUDGET_BYTES,
   STAGE_CHUNK_BYTES,
   type SealedStage,
-} from "./fixtures/turso-thread/binary-protocol";
+} from "../src/turso-worker/binary-protocol";
 
-const workerUrl = new URL("./fixtures/turso-thread/worker.ts", import.meta.url);
+const workerUrl = new URL("../src/turso-worker/worker.ts", import.meta.url);
 const consumerUrl = new URL(
   "./fixtures/turso-thread/read-consumer.ts",
   import.meta.url,
@@ -26,7 +26,7 @@ const plan: BlobPlan = {
   key: [{ column: "id", value: 1 }],
   maxBytes: 65539,
 };
-class ObservedDriver extends TursoThreadProof {
+class ObservedDriver extends SqlWorkerDriver {
   public filled: () => void = () => undefined;
   public override read(command: ReadCommand): Promise<unknown> {
     const pending = super.read(command);
@@ -35,9 +35,9 @@ class ObservedDriver extends TursoThreadProof {
   }
 }
 let driver: ObservedDriver;
-let pool: ProofBudgetPool;
+let pool: PersistenceBudgetPool;
 beforeEach(async () => {
-  pool = new ProofBudgetPool();
+  pool = new PersistenceBudgetPool();
   driver = new ObservedDriver({
     url: "file::memory:",
     workerUrl,
@@ -186,7 +186,7 @@ describe("worker-owned read snapshots", () => {
     await scope.close();
   });
   it("retains consumer-held credit after database worker exit until the consumer actually exits", async () => {
-    const reader = new TursoThreadProof({
+    const reader = new SqlWorkerDriver({
       url: "file::memory:",
       workerUrl,
       budget: pool,
@@ -291,7 +291,7 @@ describe("worker-owned read snapshots", () => {
   it("shares two egress credits across owners without borrowing ingress capacity or creating an excess consumer", async () => {
     const extra = [0, 1].map(
       () =>
-        new TursoThreadProof({ url: "file::memory:", workerUrl, budget: pool }),
+        new SqlWorkerDriver({ url: "file::memory:", workerUrl, budget: pool }),
     );
     const drivers = [driver, ...extra];
     try {

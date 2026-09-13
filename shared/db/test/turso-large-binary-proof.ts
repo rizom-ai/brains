@@ -6,17 +6,17 @@ import { tmpdir } from "node:os";
 import { pathToFileURL } from "node:url";
 import { sql } from "drizzle-orm";
 import { blob, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
-import { TursoThreadProof } from "./fixtures/turso-thread/client";
-import { ProofBudgetPool } from "./fixtures/turso-thread/budget-pool";
+import { SqlWorkerDriver } from "../src/turso-worker/client";
+import { PersistenceBudgetPool } from "../src/turso-worker/budget-pool";
 import {
   STAGE_BUDGET_BYTES,
   STAGE_CHUNK_BYTES,
   type StageClaim,
-} from "./fixtures/turso-thread/binary-protocol";
+} from "../src/turso-worker/binary-protocol";
 import {
   withBinaryTransaction,
   type BinaryTransactionContext,
-} from "./fixtures/turso-thread/binary-transaction";
+} from "../src/turso-worker/binary-transaction";
 import { uploadNetworkFixture } from "./fixtures/turso-thread/network-exercise";
 import { downloadNetworkFixture } from "./fixtures/turso-thread/network-read-exercise";
 import type { BlobFacts, BlobPlan } from "../src/turso-worker/blob-protocol";
@@ -33,7 +33,7 @@ const payloads = sqliteTable("large_payloads", {
 });
 const options = {
   bridgeUrl: new URL(
-    "./fixtures/turso-thread/network-ingress-worker.ts",
+    "../src/turso-worker/network-ingress-worker.ts",
     import.meta.url,
   ),
   producerUrl: new URL(
@@ -41,7 +41,7 @@ const options = {
     import.meta.url,
   ),
   readBridgeUrl: new URL(
-    "./fixtures/turso-thread/network-read-worker.ts",
+    "../src/turso-worker/network-read-worker.ts",
     import.meta.url,
   ),
   readConsumerUrl: new URL(
@@ -50,16 +50,16 @@ const options = {
   ),
   bunExecutable: process.execPath,
 };
-const workerUrl = new URL("./fixtures/turso-thread/worker.ts", import.meta.url);
+const workerUrl = new URL("../src/turso-worker/worker.ts", import.meta.url);
 const directory = await mkdtemp(join(tmpdir(), "turso-large-binary-"));
 const path = join(directory, "source.db");
-const pool = new ProofBudgetPool();
-const driver = new TursoThreadProof({
+const pool = new PersistenceBudgetPool();
+const driver = new SqlWorkerDriver({
   url: pathToFileURL(path).href,
   workerUrl,
   budget: pool,
 });
-let restored: TursoThreadProof | undefined;
+let restored: SqlWorkerDriver | undefined;
 async function publish(
   context: BinaryTransactionContext,
   claim: StageClaim,
@@ -83,7 +83,7 @@ async function publish(
   await context.db.run(sql`INSERT INTO large_effects VALUES (${id})`);
 }
 async function assertRows(
-  owner: TursoThreadProof,
+  owner: SqlWorkerDriver,
   plan: BlobPlan,
   facts: BlobFacts,
 ): Promise<void> {
@@ -275,7 +275,7 @@ try {
   await driver.close();
   const restoredPath = join(directory, "restored.db");
   await copyFile(path, restoredPath);
-  restored = new TursoThreadProof({
+  restored = new SqlWorkerDriver({
     url: pathToFileURL(restoredPath).href,
     workerUrl,
   });

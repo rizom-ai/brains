@@ -1,21 +1,18 @@
 import type { Worker } from "node:worker_threads";
-import type { TursoThreadProof } from "./client";
+import type { SqlWorkerDriver } from "./client";
 import {
   capabilitySchema,
   sealedSchema,
   type StageCapability,
   type SealedStage,
 } from "./binary-protocol";
-import {
-  blobPlanSchema,
-  type BlobPlan,
-} from "../../../src/turso-worker/blob-protocol";
+import { blobPlanSchema, type BlobPlan } from "./blob-protocol";
 
 export class ReadScope {
   public readonly id: string;
-  private readonly driver: TursoThreadProof;
+  private readonly driver: SqlWorkerDriver;
   private closing: Promise<void> | undefined;
-  public constructor(driver: TursoThreadProof, id: string) {
+  public constructor(driver: SqlWorkerDriver, id: string) {
     this.driver = driver;
     this.id = id;
   }

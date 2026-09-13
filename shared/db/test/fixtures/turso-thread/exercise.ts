@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import { copyFile } from "node:fs/promises";
 import { constants } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { TursoThreadProof, type ProofTransaction } from "./client";
+import {
+  SqlWorkerDriver,
+  type WorkerTransaction,
+} from "../../../src/turso-worker/client";
 import { exerciseStagedBinaries, assertStagedRows } from "./binary-exercise";
 import { exerciseLibsqlSession, assertOrmRows } from "./orm-exercise";
 import { exerciseFailedFinalization } from "./failure-exercise";
@@ -23,7 +26,7 @@ import {
 } from "./upload-exercise";
 
 import { exerciseReadSnapshots, assertReadRows } from "./read-exercise";
-import { ProofBudgetPool } from "./budget-pool";
+import { PersistenceBudgetPool } from "../../../src/turso-worker/budget-pool";
 import {
   exerciseNetworkIngress,
   assertNetworkRows,
@@ -77,10 +80,10 @@ export async function exerciseThreadDriver(
   consumerUrl: URL,
   network: NetworkSidecars & NetworkReadSidecars,
 ): Promise<ThreadProofReport> {
-  const pool = new ProofBudgetPool();
-  const driver = new TursoThreadProof({ url, workerUrl, budget: pool });
-  let lease: ProofTransaction | undefined;
-  let restored: TursoThreadProof | undefined;
+  const pool = new PersistenceBudgetPool();
+  const driver = new SqlWorkerDriver({ url, workerUrl, budget: pool });
+  let lease: WorkerTransaction | undefined;
+  let restored: SqlWorkerDriver | undefined;
   try {
     const placement = await driver.initialize();
     assert.ok(placement.threadId > 0);
@@ -213,7 +216,7 @@ export async function exerciseThreadDriver(
       fileURLToPath(restoredUrl),
       constants.COPYFILE_EXCL,
     );
-    restored = new TursoThreadProof({ url: restoredUrl, workerUrl });
+    restored = new SqlWorkerDriver({ url: restoredUrl, workerUrl });
     const restoredPlacement = await restored.initialize();
     assert.notEqual(restoredPlacement.generation, placement.generation);
     await assert.rejects(
