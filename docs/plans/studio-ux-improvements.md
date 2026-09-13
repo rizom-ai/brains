@@ -175,6 +175,10 @@ Overview now uses the direct-destination rail, without reserving a leaf column o
 
 Verification: 388 Studio tests (1,935 assertions), scoped typecheck, and repository-wrapper lint pass. Browser assertions protect the leaf-free structure and 124px expanded desktop rail. Both desktop captures were reviewed and refreshed; all six Overview viewport/climate captures pass the subsequent visual and axe checks with zero violations. The remaining navigation/presentation items and manual checks stay open.
 
+### Merge verification
+
+Reconciled the implemented batch with upstream `b1205927b2`. Full commit hooks and published-surface checks pass. The first PR CI run exposed a real-clock insertion race in an existing job-tracking TTL test; its clock is now frozen before insertion. CI passed Dashboard and standalone Chat visuals, while local captures differed in text antialiasing. After inspecting CI captures across both climates and all three widths, 98 affected Studio baselines were refreshed from the CI artifacts; unrelated baselines remain unchanged. CI rerun and automatic release verification are pending. Manual accessibility and the remaining checklist items are still deferred.
+
 ### Implementation notes
 
 - Chat follows output only near the bottom, including content resizes; **Jump to latest** resumes following. Drafts remain in memory only.
