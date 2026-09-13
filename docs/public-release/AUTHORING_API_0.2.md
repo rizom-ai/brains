@@ -515,7 +515,9 @@ JSON and schema-backed content types:
 
 ## `@rizom/brain-ui`
 
-React components for site and dashboard templates. `react` and `react-dom` are peer dependencies. The package holds more components than it publishes; this list is the supported surface, and adding to it requires a named consumer.
+React components for site and dashboard templates. `react` and `react-dom` are peer dependencies. The package ships compiled JavaScript and bundled declarations; consumers need neither private workspace packages nor a StyleX compiler. The package holds more components than it publishes; this list is the supported surface, and adding to it requires a named consumer.
+
+Standalone hosts of the `Widget*` components and `CardHeader` must include `operatorViewStylexCSS` in their stylesheet. This immutable CSS string is an advanced-with-consumer export, used by the Agent Discovery proximity-map template. Treat its contents and generated class names as opaque implementation details; Studio and Dashboard already supply the shared operator stylesheet.
 
 Components and helpers:
 

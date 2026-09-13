@@ -2,9 +2,7 @@ import { createMockShell } from "@brains/plugins/test";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   createServicePluginContext,
-  STUDIO_WORKSPACE_REGISTER_MESSAGE,
   type StudioWorkspaceActor,
-  type StudioWorkspaceRegistration,
 } from "@brains/plugins";
 import {
   StudioOverviewRegistry,
@@ -13,10 +11,14 @@ import {
 import {
   InboxDataSource,
   InboxOperatorService,
-  registerUnifiedInboxStudioWorkspace,
+  inboxWorkspace,
+  inboxWorkspaceHandlers,
 } from "../../plugins/unified-inbox/src";
 
 import type { StudioStudyState } from "./studio-study-state";
+import { runInboxAction } from "../../plugins/unified-inbox/src/operator-studio";
+import { defineServicePlugin, z } from "@brains/sdk/services";
+import { registerFixtureWorkspace } from "./studio-fixture-workspace";
 
 /** Seed source inputs; the production providers own all view composition. */
 export async function createWorkViewFixtures(
@@ -92,8 +94,15 @@ export async function createWorkViewFixtures(
       jobDetails: { jobType: "site-build", priority: 0, retryCount: 0 },
     });
   }
+  const context = createServicePluginContext(shell, "studio");
   const overview = createStudioOverviewWorkspace({
-    context: createServicePluginContext(shell, "studio"),
+    runtime: {
+      entities: context.entityService,
+      identity: context.identity,
+      channels: context.channels,
+      inbox: context.inbox,
+      readiness: context.readiness,
+    },
     registry,
   });
   const inboxSources = shell.getInboxRegistry();
@@ -143,29 +152,29 @@ export async function createWorkViewFixtures(
   });
   inboxSources.finalize();
   shell.getInboxFollowUpRegistry().finalize();
-  let inbox: StudioWorkspaceRegistration | undefined;
-  shell
-    .getMessageBus()
-    .subscribe<StudioWorkspaceRegistration, { workspaceUrl: string }>(
-      STUDIO_WORKSPACE_REGISTER_MESSAGE,
-      async (message) => {
-        inbox = message.payload;
-        return {
-          success: true,
-          data: { workspaceUrl: "/studio/workspaces/unified-inbox%3Ainbox" },
-        };
-      },
-    );
-  await registerUnifiedInboxStudioWorkspace(
-    createServicePluginContext(shell, "unified-inbox"),
+  const handlers = inboxWorkspaceHandlers(
     new InboxOperatorService(
       inboxSources,
       new InboxDataSource(inboxSources),
       shell.getInboxFollowUpRegistry(),
     ),
   );
-  const workspace = inbox;
-  if (!workspace) throw new Error("Inbox fixture did not register");
+  const workspace = await registerFixtureWorkspace(
+    shell,
+    defineServicePlugin(
+      { id: "unified-inbox", config: z.strictObject({}) },
+      {
+        studioWorkspaces: (binding) => [
+          inboxWorkspace.bind(binding, {
+            load: handlers.load,
+            actions: [
+              runInboxAction.bind(binding, handlers.act, handlers.prepare),
+            ],
+          }),
+        ],
+      },
+    ),
+  );
   return {
     overview: () => overview.dataProvider(actor, {}),
     overviewBadge: async () => (await overview.badgeProvider?.(actor)) ?? 0,

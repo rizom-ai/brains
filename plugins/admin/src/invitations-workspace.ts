@@ -29,21 +29,6 @@ function titleCase(value: string): string {
   return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
 }
 
-function invitationTone(state: string): "good" | "warn" | "neutral" | "error" {
-  switch (state) {
-    case "claimed":
-    case "sent":
-      return "good";
-    case "failed":
-      return "error";
-    case "expired":
-    case "cancelled":
-      return "warn";
-    default:
-      return "neutral";
-  }
-}
-
 // Parsed from the Administration workspace query, which is a superset of
 // every tab s fields; unknown keys belong to other tabs.
 const invitationQuerySchema = z.object({
@@ -219,8 +204,8 @@ export function composeInvitationTabSections(
   const delivery = requiredInvitationRegion(blocks, "invitation-delivery");
   if (delivery.type !== "card")
     throw new Error("Invitations composition requires delivery capabilities");
-  const peerPanels = peerAside.flatMap<PanelBlock>(
-    (block) => (block.type === "card" ? [...block.blocks] : [block]),
+  const peerPanels = peerAside.flatMap<PanelBlock>((block) =>
+    block.type === "card" ? [...block.blocks] : [block],
   );
   return {
     blocks: [
@@ -652,6 +637,37 @@ export function createInvitationsTab(
             TERMINAL_INVITATION_STATES.has(user.invitation.state),
         );
         const selected = normalized.state === "pending" ? pending : history;
+        // Selection is independent of filtering and pagination, including deep links.
+        const invitationRows = invitations.flatMap((user) => {
+          const invitation = user.invitation;
+          if (!invitation) return [];
+          const destination =
+            user.identities.find((identity) => identity.type !== "passkey")
+              ?.label ??
+            user.externalPeers[0]?.peerId ??
+            "Not recorded";
+          const deliveryAttemptId = pendingManualDeliveries.get(invitation.id);
+          return [
+            {
+              id: invitation.id,
+              displayName: user.displayName,
+              role: user.role,
+              state: invitation.state,
+              destination,
+              updatedAt:
+                invitation.claimedAt ??
+                invitation.cancelledAt ??
+                invitation.expiredAt ??
+                invitation.sentAt ??
+                invitation.updatedAt,
+              ...(deliveryAttemptId ? { deliveryAttemptId } : {}),
+            },
+          ];
+        });
+        const rowsById = new Map(invitationRows.map((row) => [row.id, row]));
+        const selectedInvitation = normalized.selected
+          ? rowsById.get(normalized.selected)
+          : undefined;
         const data = {
           query: normalized,
           idempotencyKey: randomUUID(),
@@ -664,33 +680,12 @@ export function createInvitationsTab(
           invitations: selected
             .slice(normalized.offset, normalized.offset + normalized.limit)
             .flatMap((user) => {
-              const invitation = user.invitation;
-              if (!invitation) return [];
-              const destination =
-                user.identities.find((identity) => identity.type !== "passkey")
-                  ?.label ??
-                user.externalPeers[0]?.peerId ??
-                "Not recorded";
-              const deliveryAttemptId = pendingManualDeliveries.get(
-                invitation.id,
-              );
-              return [
-                {
-                  id: invitation.id,
-                  displayName: user.displayName,
-                  role: user.role,
-                  state: invitation.state,
-                  destination,
-                  updatedAt:
-                    invitation.claimedAt ??
-                    invitation.cancelledAt ??
-                    invitation.expiredAt ??
-                    invitation.sentAt ??
-                    invitation.updatedAt,
-                  ...(deliveryAttemptId ? { deliveryAttemptId } : {}),
-                },
-              ];
+              const row = user.invitation
+                ? rowsById.get(user.invitation.id)
+                : undefined;
+              return row ? [row] : [];
             }),
+          ...(selectedInvitation ? { selectedInvitation } : {}),
           selectedTotal: selected.length,
           pendingCount: pending.length,
           historyCount: history.length,

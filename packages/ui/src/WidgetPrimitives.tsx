@@ -1,6 +1,8 @@
 /** @jsxImportSource react */
 import type { HTMLAttributes, ReactNode, JSX } from "react";
 import {
+  operatorViewStylexCSS as compiledWidgetCSS,
+  OperatorPanelHeader,
   OperatorPanelParagraph,
   OperatorSummaryList,
   OperatorSummaryItem,
@@ -23,6 +25,9 @@ import {
   OperatorChoiceToggle,
 } from "@brains/operator-view-react";
 
+/** Immutable stylesheet required by standalone hosts of the compiled widgets. */
+export const operatorViewStylexCSS: string = compiledWidgetCSS;
+
 function classes(...values: Array<string | false | null | undefined>): string {
   return values.filter(Boolean).join(" ");
 }
@@ -43,6 +48,25 @@ export function createWidgetInstanceId(
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
   return `widget-${slug || "custom"}`;
+}
+
+export function CardHeader({
+  title,
+  source,
+  subtitle,
+  children,
+}: {
+  title: ReactNode;
+  source?: ReactNode;
+  subtitle?: ReactNode;
+  children?: ReactNode;
+}): JSX.Element {
+  let detail: ReactNode;
+  if (source) detail = source;
+  else if (subtitle) detail = subtitle;
+  return (
+    <OperatorPanelHeader heading={title} source={detail} accessory={children} />
+  );
 }
 
 export interface KeyValueItem {

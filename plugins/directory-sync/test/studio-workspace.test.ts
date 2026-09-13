@@ -111,20 +111,134 @@ describe("directory-sync Studio workspace", () => {
         changedFiles: [{ path: "note/one.md", status: "M" }],
       },
     });
-    expect(snapshot.issues).toHaveLength(1);
+    expect(snapshot.issues).toHaveLength(2);
+    const rendered = directorySyncWorkspace.view({ data: snapshot });
+    expect(rendered).toMatchObject({
+      title: "Content sync",
+      kicker: "Durability operations",
+      primaryAction: { action: syncNowAction, input: {} },
+    });
+    const serialized = JSON.stringify(rendered);
+    expect(serialized).not.toContain('"id":"sync-now"');
+    expect(serialized).toContain('"type":"columns"');
+    expect(serialized).not.toContain('"type":"flow"');
+    expect(serialized).toContain('"label":"Connection"');
+    expect(serialized).toContain('"label":"Recent runs"');
+    expect(serialized).toContain('"presentation":"disclosure"');
+    expect(serialized).toContain('"presentation":"editorial"');
+    expect(serialized).toContain('"details":[');
+    expect(serialized).toContain('"id":"sync-repository-facts"');
+    expect(serialized.match(/"label":"Content files"/g)).toHaveLength(1);
+    expect(serialized.match(/"label":"Issues"/g)).toHaveLength(1);
+    expect(serialized).toContain('"description":"Modified"');
+    expect(serialized).toContain("Git status: M · working tree");
+    expect(serialized).toContain('"label":"Branch","value":"main"');
+    expect(serialized.indexOf('"id":"sync-issues-import"')).toBeLessThan(
+      serialized.indexOf('"id":"recent-runs"'),
+    );
+    expect(serialized).not.toContain('"type":"meters"');
+    expect(serialized).not.toContain('"type":"stats"');
+    const issue = snapshot.issues[0];
+    if (!issue) throw new Error("Expected a rendered sync issue");
+    expect(serialized).toContain(`Path: ${issue.path}`);
+    expect(serialized).toContain(`Occurred: ${issue.occurredAt}`);
+    expect(serialized.match(/Content import needs attention/g)).toHaveLength(1);
+    expect(serialized).toContain("2 recorded issues");
+    expect(serialized).toContain("Frontmatter is invalid");
+    expect(serialized).toContain("Required title is missing");
     expect(JSON.stringify(snapshot)).not.toContain("secret");
     expect(JSON.stringify(snapshot)).not.toContain("/private/runtime");
 
     const runId = await operationStatus.startRun("manual", "pulling");
     if (!runId) throw new Error("Run did not start");
-    expect(await registration.dataProvider(adminActor)).toMatchObject({
-      view: { primaryAction: { actionId: "sync-now", disabled: true } },
+    expect(
+      directorySyncWorkspace.view({ data: await provider.getSnapshot() }),
+    ).toMatchObject({
+      primaryAction: { action: syncNowAction, disabled: true },
     });
     await operationStatus.clearRun(runId);
-    expect(await registration.dataProvider(adminActor)).not.toHaveProperty(
-      "view.primaryAction.disabled",
-    );
+    expect(
+      directorySyncWorkspace.view({ data: await provider.getSnapshot() }),
+    ).toMatchObject({
+      primaryAction: { disabled: false },
+    });
   });
+
+  for (const count of [0, 20, 21]) {
+    it(`reports ${count} working-tree files without implying a partial list is complete`, async () => {
+      const host = await hostFor(createMockShell());
+      const git = createMockGitSync({
+        getStatus: async () => ({
+          isRepo: true,
+          hasChanges: count > 0,
+          branch: "main",
+          ahead: 0,
+          behind: 0,
+          files: Array.from({ length: count }, (_, index) => ({
+            path: `note/${index}.md`,
+            status: index === 0 ? "??" : "AM",
+          })),
+        }),
+      });
+      const provider = new DirectorySyncWorkspaceProvider({
+        host,
+        config: directorySyncConfigSchema.parse({ initialSync: false }),
+        operationStatus: await statusFor(host, "/tmp/brain-data"),
+        getDirectorySync: (): IDirectorySync => createMockDirectorySync(),
+        getGitSync: (): IGitSync => git,
+      });
+      const view = directorySyncWorkspace.view({
+        data: await provider.getSnapshot(),
+      });
+      expect(view).toMatchObject({
+        blocks: [
+          {
+            type: "columns",
+            primary: [
+              { id: "recent-runs-section" },
+              {
+                id: "changed-files-section",
+                metadata: [
+                  `${Math.min(count, 20)} ${count > 20 ? "shown" : "in working tree"}`,
+                ],
+                blocks: [
+                  {
+                    id: "changed-files",
+                    empty: "No changed files.",
+                    items: Array.from(
+                      { length: Math.min(count, 20) },
+                      (_, index) => ({
+                        title: `note/${index}.md`,
+                        description:
+                          index === 0 ? "Untracked" : "Working-tree change",
+                        metadata: [
+                          `Git status: ${index === 0 ? "??" : "AM"} · working tree`,
+                        ],
+                      }),
+                    ),
+                  },
+                  ...(count > 20
+                    ? [
+                        {
+                          id: "changed-files-remainder",
+                          text: "Showing the first 20 changed files. Additional working-tree changes are not shown.",
+                        },
+                      ]
+                    : []),
+                ],
+              },
+            ],
+          },
+        ],
+      });
+      const serialized = JSON.stringify(view);
+      expect(serialized).toContain('"label":"Remote","value":"Not supplied"');
+      expect(serialized.includes('"id":"changed-files-remainder"')).toBe(
+        count > 20,
+      );
+      expect(serialized).not.toContain('"title":"note/20.md"');
+    });
+  }
 
   it("files Sync now as the person who asked, through the shared request", async () => {
     const enqueue = mock(async () => ({

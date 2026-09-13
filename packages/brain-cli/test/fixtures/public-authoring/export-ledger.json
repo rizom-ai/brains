@@ -1018,7 +1018,7 @@
         "WidgetTabs",
         "WidgetTags"
       ],
-      "advanced-with-consumer": [],
+      "advanced-with-consumer": ["operatorViewStylexCSS"],
       "internal/removable": []
     },
     "@rizom/brain/testing": {

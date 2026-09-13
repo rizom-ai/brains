@@ -1,6 +1,6 @@
 /** @jsxImportSource react */
 import type { CSSProperties, JSX } from "react";
-import { WidgetEmptyState } from "@brains/ui-library";
+import { WidgetEmptyState } from "@rizom/brain-ui";
 import proximityMapWidgetStyles from "./proximity-map-widget.css" with { type: "text" };
 import {
   proximityCenterLabel,

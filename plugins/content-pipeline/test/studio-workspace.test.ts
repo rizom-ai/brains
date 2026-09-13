@@ -46,6 +46,7 @@ async function desk(
   entities: ReadonlyArray<{
     id: string;
     status: string;
+    error?: string;
     visibility?: "public" | "shared" | "restricted";
   }>,
   options: {
@@ -66,7 +67,11 @@ async function desk(
         entityType: "social-post",
         content: entity.id,
         visibility: entity.visibility ?? "public",
-        metadata: { status: entity.status, title: entity.id },
+        metadata: {
+          status: entity.status,
+          title: entity.id,
+          ...(entity.error ? { error: entity.error } : {}),
+        },
       },
     });
   }
@@ -118,10 +123,29 @@ describe("content-pipeline Studio workspace", () => {
     ]);
   });
 
+  it("shows one rest notice without an empty queue tab", async () => {
+    const { handlers } = await desk([]);
+    const data = await handlers.load({ caller: adminCaller });
+    const serialized = JSON.stringify(publishingWorkspace.view({ data }));
+    expect(serialized).toContain('"id":"publishing-at-rest"');
+    expect(serialized).not.toContain('"id":"publishing-queue"');
+    expect(serialized).toContain('"label":"Published"');
+  });
+
   it("opens on the canonical snapshot, scoped to what the caller may act on", async () => {
-    const { handlers } = await desk([{ id: "queued-post", status: "queued" }], {
-      queued: ["queued-post"],
-    });
+    const { handlers } = await desk(
+      [
+        { id: "queued-post", status: "queued" },
+        {
+          id: "failed-post",
+          status: "failed",
+          error: "Provider refused delivery.\nRequest: delivery-123",
+        },
+      ],
+      {
+        queued: ["queued-post"],
+      },
+    );
 
     expect(handlers.authorize({ caller: adminCaller })).toBe(true);
     expect(handlers.authorize({ caller: null })).toBe(false);
@@ -131,7 +155,62 @@ describe("content-pipeline Studio workspace", () => {
 
     const data = await handlers.load({ caller: adminCaller });
     const view = publishingWorkspace.view({ data });
-    expect(view).toMatchObject({ title: "Publishing desk" });
+    expect(view).toMatchObject({
+      title: "Publishing",
+      blocks: [
+        {
+          id: "publishing-attention",
+          presentation: "disclosure",
+          disclosureLabel: "Review failure",
+          tone: "warn",
+          metadata: ["failed-post · Retries: 0"],
+          blocks: [
+            {
+              items: [
+                {
+                  description:
+                    "Provider refused delivery.\nRequest: delivery-123",
+                  actions: [
+                    {
+                      action: { name: "retry" },
+                      input: {
+                        entityType: "social-post",
+                        entityId: "failed-post",
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          type: "tabs",
+          tabs: [
+            {
+              id: "queued",
+              blocks: [
+                {
+                  items: [
+                    {
+                      description: "linkedin",
+                      actionsLabel: "Queue options",
+                      metadata: ["Position 1", "Next dispatch"],
+                      actions: [
+                        { label: "Move up", disabled: true },
+                        { label: "Move down", disabled: true },
+                        { action: { name: "remove" } },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+        { id: "publishing-summary" },
+      ],
+    });
     const serialized = JSON.stringify(view);
     expect(serialized).toContain("queued-post");
   });

@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup as render } from "react-dom/server";
 import { getTemplates } from "../src/lib/register-templates";
 import type { ProximityMapData } from "../src/lib/proximity-map-schema";
-import { operatorViewStylexCSS } from "@brains/ui-library";
+import { operatorViewStylexCSS } from "@rizom/brain-ui";
 import { AgentProximityMapTemplate } from "../src/templates/proximity-map-template";
 
 test("standalone site sections include compiled empty-state styling", () => {

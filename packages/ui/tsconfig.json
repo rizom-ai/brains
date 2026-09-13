@@ -7,5 +7,5 @@
     "rootDir": ".",
     "isolatedDeclarations": true
   },
-  "include": ["src/**/*", "test/**/*"]
+  "include": ["src/**/*", "test/**/*", "scripts/**/*.ts"]
 }

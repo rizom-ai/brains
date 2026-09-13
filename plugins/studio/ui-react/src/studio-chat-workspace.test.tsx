@@ -542,6 +542,7 @@ describe("native Studio Chat workspace", () => {
   });
 
   it("opens an authorized context session and seeds the native composer", async () => {
+    const store = new StudioChatDraftStore();
     let contextBody: unknown;
     const respondToContext = async (
       input: RequestInfo | URL,
@@ -550,6 +551,9 @@ describe("native Studio Chat workspace", () => {
       const url = String(input);
       if (url === "/custom/chat/sessions") {
         return Response.json({ sessions: [] });
+      }
+      if (url.startsWith("/custom/chat/messages?id=")) {
+        return Response.json({ messages: [] });
       }
       if (url === "/custom/chat/context-sessions" && init?.method === "POST") {
         contextBody = JSON.parse(String(init.body));
