@@ -506,6 +506,7 @@ describe("studio editor shell", () => {
     const shell = createEditorTestShell();
     const plugin = await registerPlugin(shell);
 
+    // Serve the current manifest's chunks, not older retained build artifacts.
     const manifest = await readAssetManifest();
     const assetRoute = findRoute(plugin, "/studio/assets");
     expect(assetRoute.match).toBe("prefix");

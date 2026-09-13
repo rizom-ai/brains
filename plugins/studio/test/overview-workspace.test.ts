@@ -2,7 +2,6 @@ import { AuthServicePlugin } from "@brains/auth-service";
 import { ENTITY_CHANNELS, JOB_CHANNELS } from "@brains/contracts";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-  createServicePluginContext,
   STUDIO_OVERVIEW_REGISTER_MESSAGE,
   STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
@@ -10,7 +9,6 @@ import {
   type DashboardWidgetProviderContext,
   type StudioOverviewContributionRegistration,
   type StudioWorkspaceRegistration,
-  type StudioWorkspaceActor,
   type WebRouteDefinition,
 } from "@brains/plugins";
 import {

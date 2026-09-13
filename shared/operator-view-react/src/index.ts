@@ -45,7 +45,11 @@ export {
   OperatorSteps,
   OperatorChecks,
 } from "./operator-status-content";
-export { OperatorPanel, OperatorPanelGrid } from "./operator-panel";
+export {
+  OperatorPanel,
+  OperatorPanelHeader,
+  OperatorPanelGrid,
+} from "./operator-panel";
 export {
   OperatorMapGroup,
   OperatorMapPath,

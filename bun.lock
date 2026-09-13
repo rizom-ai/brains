@@ -769,6 +769,7 @@
       "name": "@rizom/brain-ui",
       "version": "0.2.0-alpha.394",
       "dependencies": {
+        "@stylexjs/stylex": "^0.19.0",
         "class-variance-authority": "^0.7.0",
         "clsx": "^2.1.0",
         "marked": "^18.0.5",
@@ -777,7 +778,9 @@
         "zod": "^4.2.0",
       },
       "devDependencies": {
+        "@brains/build-tools": "workspace:*",
         "@brains/operator-view-react": "workspace:*",
+        "@brains/utils": "workspace:*",
         "@tailwindcss/postcss": "^4.3.1",
         "@tailwindcss/typography": "^0.5.20",
         "@types/bun": "^1.4.0",
@@ -788,6 +791,8 @@
         "postcss": "^8.5.15",
         "react": "^19.2.7",
         "react-dom": "^19.2.7",
+        "rolldown": "^1.0.0",
+        "rolldown-plugin-dts": "^0.27.4",
         "tailwindcss": "^4.3.1",
         "typescript": "^7.0.2",
       },

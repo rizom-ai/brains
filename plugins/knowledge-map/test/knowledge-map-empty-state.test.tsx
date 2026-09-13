@@ -1,7 +1,7 @@
 /** @jsxImportSource react */
 import { expect, test } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { KnowledgeMapWidget } from "../src/widgets/knowledge-map";
+import { KnowledgeMapWidget } from "../src/knowledge-map";
 
 test("invalid knowledge-map payloads retain the exact compiled empty-state message", () => {
   for (const data of [null, "invalid"]) {
