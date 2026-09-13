@@ -9,8 +9,13 @@ import type { FetchLike } from "@brains/utils/fetch-like";
 import { App } from "./App";
 import { StudioApi, type ValidationIssue } from "./api";
 import { Field } from "./entity-fields";
+import { BodyEditor } from "./body-editor";
 import { SaveStateNotice } from "./editor-status";
 import { createStudioQueryClient } from "./query-client";
+import {
+  StudioEditorProperties,
+  revealStudioProperties,
+} from "./studio-editor-content";
 import { StudioApiProvider } from "./studio-api-context";
 import { createStudioRouter } from "./studio-router";
 
@@ -84,6 +89,72 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   windowInstance.close();
+});
+
+describe("System Properties disclosure", () => {
+  it("names the source textbox and keeps it keyboard-focusable in single-pane mode", async () => {
+    await act(async () =>
+      root.render(
+        <BodyEditor
+          value="Unchanged source"
+          mode="source"
+          singlePane
+          onChange={() => {}}
+          onModeChange={() => {}}
+        />,
+      ),
+    );
+    const source = document.querySelector('.cm-content[role="textbox"]');
+    expect(source?.getAttribute("aria-label")).toBe("Markdown source");
+    expect(source?.getAttribute("tabindex")).toBe("0");
+    expect(
+      document.querySelectorAll('[aria-label="Editor body view"] [role="tab"]'),
+    ).toHaveLength(2);
+  });
+
+  function renderProperties(reveal: boolean): void {
+    root.render(
+      <form>
+        <StudioEditorProperties presentation="document" reveal={reveal}>
+          <input
+            aria-label="Draft title"
+            defaultValue="Original title"
+            required
+          />
+        </StudioEditorProperties>
+      </form>,
+    );
+  }
+
+  it("reveals structured errors without remounting controls or closing them on correction", async () => {
+    await act(async () => renderProperties(false));
+    const input = document.querySelector("input");
+    const details = document.querySelector("details");
+    if (!input || !details) throw new Error("Missing editor controls");
+    expect(details.open).toBe(false);
+    input.value = "Unsaved draft title";
+    await act(async () => renderProperties(true));
+    expect(details.open).toBe(true);
+    expect(document.querySelector("input")).toBe(input);
+    expect(input.value).toBe("Unsaved draft title");
+    await act(async () => renderProperties(false));
+    expect(details.open).toBe(true);
+    expect(input.value).toBe("Unsaved draft title");
+  });
+
+  it("opens Properties synchronously before native validation focuses a field", async () => {
+    await act(async () => renderProperties(false));
+    const form = document.querySelector("form");
+    const input = document.querySelector("input");
+    const details = document.querySelector("details");
+    if (!form || !input || !details) throw new Error("Missing editor controls");
+    input.value = "";
+    revealStudioProperties(form);
+    expect(details.open).toBe(true);
+    input.focus();
+    expect(document.activeElement).toBe(input);
+    expect(input.value).toBe("");
+  });
 });
 
 describe("Studio App transport", () => {

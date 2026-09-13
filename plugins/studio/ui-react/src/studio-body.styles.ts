@@ -4,6 +4,7 @@ type BodyStyle =
   | "root"
   | "toolbar"
   | "modes"
+  | "inlineModes"
   | "metadata"
   | "assist"
   | "input"
@@ -37,6 +38,9 @@ export const bodyStyles: Record<BodyStyle, stylex.StyleXStyles> = stylex.create(
       "@media (max-width: 640px)": { minHeight: 44, padding: "7px 14px" },
     },
     modes: { display: { default: null, "@media (max-width: 640px)": "none" } },
+    inlineModes: {
+      display: { default: null, "@media (max-width: 640px)": "inline-flex" },
+    },
     metadata: {
       marginLeft: { default: "auto", "@media (max-width: 640px)": 0 },
       fontFamily: "var(--console-mono)",
