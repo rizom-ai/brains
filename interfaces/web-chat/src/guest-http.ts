@@ -18,10 +18,14 @@ import {
   guestInterfaceType,
   getGuestSourceCards,
 } from "@brains/contracts/chat";
-import type {
-  InterfacePluginContext,
-  WebRouteDefinition,
-} from "@brains/plugins";
+import {
+  defineRoute,
+  verbatim,
+  type AgentNamespace,
+  type IInterfaceConversationsNamespace,
+  type AnyInterfaceRouteDefinition,
+} from "@brains/sdk/interfaces";
+import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import { z } from "@brains/utils/zod";
 import { deferred } from "@brains/utils/deferred";
 import {
@@ -46,10 +50,11 @@ export interface GuestHttpOptions {
   ready?: () => boolean;
   now?: () => number;
 }
-type Services = Pick<
-  InterfacePluginContext,
-  "agent" | "conversations" | "runtimeState"
->;
+interface Services {
+  readonly agent: AgentNamespace;
+  readonly conversations: IInterfaceConversationsNamespace;
+  readonly runtimeState: IRuntimeStateNamespace;
+}
 class GuestHttpError extends Error {
   readonly status: number;
   constructor(status: number, message: string) {
@@ -103,7 +108,7 @@ export class GuestHttpHandlers {
       : undefined;
   }
 
-  routes(apiPath: string): WebRouteDefinition[] {
+  routes(apiPath: string): AnyInterfaceRouteDefinition[] {
     const paths = createChatApiPaths(
       `${createChatApiPaths(apiPath).stream}/guest`,
     );
@@ -130,12 +135,13 @@ export class GuestHttpHandlers {
       request: Request,
       policy: EnabledGuestPolicy,
     ) => Promise<Response>,
-  ): WebRouteDefinition {
-    return {
+  ): AnyInterfaceRouteDefinition {
+    return defineRoute({
       path,
       method,
-      public: true,
-      handler: async (request, transport): Promise<Response> => {
+      security: { kind: "public" },
+      response: verbatim,
+      handle: async ({ request, transport }): Promise<Response> => {
         try {
           if (request.method !== method)
             throw new GuestHttpError(405, "Method not allowed");
@@ -184,7 +190,7 @@ export class GuestHttpHandlers {
           );
         }
       },
-    };
+    });
   }
 
   private async session(

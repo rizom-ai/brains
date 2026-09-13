@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
-import { ProximityMapDataSource } from "@brains/agent-discovery";
+import agentDiscovery from "@brains/agent-discovery";
+import { instantiatePluginPackageDefinition } from "@brains/plugins";
+import { createPluginHarness, fetchable } from "@brains/plugins/test";
 import { createElement, type ComponentType } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createMockEntityService } from "@brains/entity-service/test";
@@ -54,7 +56,7 @@ describe("Brain landing's own interactive network", () => {
     });
     expect(brainNetworkTemplate.requiredPermission).toBe("public");
     expect(brainNetworkTemplate.dataSourceId).toBe(
-      "agent-discovery:proximity-map",
+      "@brains/agent-discovery:proximity-map",
     );
     expect(brainNetworkTemplate.runtimeScripts).toContainEqual({
       src: "/scripts/agent-proximity-map.js",
@@ -76,19 +78,48 @@ describe("Brain landing's own interactive network", () => {
   });
   test("uses the supplied entity-service context and preserves a genuinely empty map", async () => {
     const entityService = createMockEntityService();
-    const data = await new ProximityMapDataSource().fetch(
-      {},
-      brainNetworkSchema,
-      { entityService },
-    );
-    expect(entityService.projectSemanticSpace).toHaveBeenCalledWith({
-      types: ["agent"],
-      origin: { entityId: "brain-character", entityType: "brain-character" },
-      maxNeighborDistance: 0.25,
-    });
-    expect(data.map?.nodes).toEqual([]);
-    expect(render({ ...data, ...copy })).toContain("data-proximity-map-empty");
+    const harness = createPluginHarness();
+    try {
+      for (const plugin of instantiatePluginPackageDefinition(
+        agentDiscovery,
+        {},
+        { name: "@brains/agent-discovery", version: "0.0.0" },
+      ))
+        await harness.installPlugin(plugin);
+      const source = harness
+        .getDataSources()
+        .get(brainNetworkTemplate.dataSourceId ?? "");
+      if (!source)
+        throw new Error(
+          `Network template names an unregistered data source: ${brainNetworkTemplate.dataSourceId}`,
+        );
+      const data = await fetchable(source).fetch({}, brainNetworkSchema, {
+        entityService,
+      });
+      expect(entityService.projectSemanticSpace).toHaveBeenCalledWith({
+        types: ["agent"],
+        origin: { entityId: "brain-character", entityType: "brain-character" },
+        maxNeighborDistance: 0.25,
+      });
+      expect(data.map?.nodes).toEqual([]);
+      expect(render({ ...data, ...copy })).toContain(
+        "data-proximity-map-empty",
+      );
+    } finally {
+      await harness.reset();
+    }
   });
+  test("ships the compiled styles used by the real empty network", () => {
+    const html = render({ ...copy, map: { ...map, nodes: [] } });
+    const classes = [...html.matchAll(/\bclass="([^"]+)"/g)]
+      .flatMap((match) => (match[1] ?? "").split(/\s+/))
+      .filter((name) => /^x[a-z0-9]+$/.test(name));
+    expect(classes.length).toBeGreaterThan(0);
+    const stylesheet =
+      brainNetworkTemplate.staticAssets?.["/styles/brain-network.css"] ?? "";
+    for (const name of classes) expect(stylesheet).toContain(`.${name}`);
+  });
+
   test("authored fallback shows unavailability rather than inventing a network", () => {
     const formatter = brainNetworkTemplate.formatter;
     if (!formatter) throw new Error("Fallback formatter missing");

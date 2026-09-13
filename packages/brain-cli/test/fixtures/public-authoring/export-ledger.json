@@ -755,6 +755,7 @@
       "advanced-with-consumer": [
         "AgentNamespace",
         "AnyInterfaceRouteDefinition",
+        "InterfaceDaemonDefinition",
         "AnyServiceToolDefinition",
         "ApprovalOutcome",
         "ApprovalResolution",

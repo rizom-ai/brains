@@ -17,7 +17,8 @@ import {
   type PluginTestHarness,
 } from "@brains/plugins/test";
 import { deferred } from "@brains/utils/deferred";
-import { WebChatInterface } from "../src/web-chat-interface";
+import { createWebChatPlugin } from "./helpers/definition";
+import { createStubAuth, createTestPrincipal } from "@brains/plugins/test";
 import { testGuestPolicy } from "./fixtures/guest-policy";
 
 type Conversation = NonNullable<
@@ -26,7 +27,7 @@ type Conversation = NonNullable<
 type Message = Awaited<ReturnType<IConversationService["getMessages"]>>[number];
 const origin = testGuestPolicy.origin;
 const base = "/api/chat/guest";
-const harnesses: PluginTestHarness<WebChatInterface>[] = [];
+const harnesses: PluginTestHarness[] = [];
 afterEach(async (): Promise<void> => {
   for (const harness of harnesses.splice(0)) await harness.reset();
 });
@@ -59,7 +60,7 @@ async function setup(
   } = {},
 ): Promise<Fixture> {
   const deploymentOrigin = options.origin ?? origin;
-  const harness = createPluginHarness<WebChatInterface>();
+  const harness = createPluginHarness();
   harnesses.push(harness);
   const state: Fixture = {
     now: Date.parse("2026-09-01T12:00:00Z"),
@@ -102,6 +103,9 @@ async function setup(
       ...state.conversations.values(),
     ],
     searchConversations: async (): Promise<Conversation[]> => [],
+    getManyWithMessages: async () => [],
+    listConversationsUpdatedSince: async () => [],
+    getConversationChangeHead: async () => null,
     countMessages: async (id): Promise<number> =>
       state.messages.get(id)?.length ?? 0,
     addMessage: async (): Promise<void> => {},
@@ -150,7 +154,18 @@ async function setup(
     },
     invalidateAgent: (): void => {},
   });
-  const plugin = new WebChatInterface(
+  // Exercise real principal resolution rather than bypassing browser access.
+  harness
+    .getMockShell()
+    .getAuthRegistry()
+    .register(
+      createStubAuth({
+        ...(options.authenticated === false
+          ? {}
+          : { principal: createTestPrincipal({ permissionLevel: "admin" }) }),
+      }),
+    );
+  const plugin = createWebChatPlugin(
     {},
     {
       guestPolicy:
@@ -166,11 +181,6 @@ async function setup(
                   testGuestPolicy.limits.streamIdleTimeoutSeconds,
               },
             },
-      // An operator's ambient browser authority must not reach guest execution.
-      resolvePermissionLevel: async (): Promise<"admin" | "public"> =>
-        options.authenticated === false ? "public" : "admin",
-      resolveAuthSession: async (): Promise<boolean> =>
-        options.authenticated !== false,
       guestHttp: {
         now: (): number => state.now,
         ...(options.readiness === false
@@ -194,13 +204,11 @@ async function setup(
         ...init,
         headers,
       });
-      const route = plugin
-        .getWebRoutes()
-        .find(
-          (candidate) =>
-            candidate.path === new URL(request.url).pathname &&
-            candidate.method === request.method,
-        );
+      const route = (plugin.getWebRoutes?.() ?? []).find(
+        (candidate) =>
+          candidate.path === new URL(request.url).pathname &&
+          candidate.method === request.method,
+      );
       if (!route) return new Response("Not found", { status: 404 });
       const remoteAddress =
         options.peerAddress === null

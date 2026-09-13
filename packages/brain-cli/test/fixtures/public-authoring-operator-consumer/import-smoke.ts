@@ -5,6 +5,18 @@ import readingInsights, {
   readingRequestCount,
 } from "@fixture/reading-insights";
 import { createBrainTestHarness } from "@rizom/brain/testing";
+import {
+  defineDaemon,
+  type InterfaceDaemonDefinition,
+} from "@rizom/brain/interfaces";
+
+const maintenance: InterfaceDaemonDefinition = defineDaemon({
+  id: "maintenance-contract",
+  required: false,
+  run: async () => {},
+});
+if (maintenance.id !== "maintenance-contract")
+  throw new Error("Invalid daemon declaration");
 import readingOperator from "@fixture/reading-operator";
 import type {
   OperatorCardBlock,

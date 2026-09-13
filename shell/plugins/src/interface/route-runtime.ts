@@ -44,7 +44,15 @@ export function createRuntimeRoute(
     path: definition.path,
     ...(definition.match ? { match: definition.match } : {}),
     public: true,
-    handler: async (request): Promise<Response> => {
+    handler: async (request, transport): Promise<Response> => {
+      const socket =
+        transport === undefined
+          ? undefined
+          : Object.freeze({
+              ...(transport.remoteAddress !== undefined
+                ? { remoteAddress: transport.remoteAddress }
+                : {}),
+            });
       let fallback: SdkErrorCode = "handler_failed";
       try {
         if (request.signal.aborted) throw new SdkError("cancelled");
@@ -58,7 +66,12 @@ export function createRuntimeRoute(
           ? definition.body.parse(await request.json())
           : undefined;
         fallback = "handler_failed";
-        const output = await definition.handle({ request, body, caller });
+        const output = await definition.handle({
+          request,
+          body,
+          caller,
+          ...(socket ? { transport: socket } : {}),
+        });
         fallback = "invalid_response";
         // Protocol responses retain their own mandated body, status and headers.
         if (isVerbatimResponse(definition.response)) {

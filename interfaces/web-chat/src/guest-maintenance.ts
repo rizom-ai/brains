@@ -1,7 +1,7 @@
 import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
-} from "@brains/plugins";
+} from "@brains/runtime-state";
 import { GuestVisitorStore } from "./guest-access";
 import {
   guestAdmissionNamespace,

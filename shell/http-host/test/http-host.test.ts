@@ -67,6 +67,24 @@ describe("runtime HTTP host", () => {
     await host.stop();
     expect(host.getStatus().running).toBe(false);
   });
+  it("passes the configured bind address to the one runtime listener", async () => {
+    let hostname: string | undefined;
+    const host = create({
+      config: {
+        port: 0,
+        productionDistDir: await directory(),
+        ...{ hostname: " 127.0.0.1 " },
+      },
+      serve: (options) => {
+        hostname = options.hostname;
+        return { port: 0, stop: (): void => {} };
+      },
+    });
+    await host.start();
+    expect(hostname).toBe("127.0.0.1");
+    expect(host.getStatus().running).toBe(true);
+  });
+
   it("serves site-only output and preview on one socket", async () => {
     const dir = await directory();
     const host = create({

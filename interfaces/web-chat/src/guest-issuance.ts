@@ -3,7 +3,7 @@ import { z } from "@brains/utils/zod";
 import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
-} from "@brains/plugins";
+} from "@brains/runtime-state";
 import {
   guestIssuanceLimitsSchema,
   type GuestIssuanceLimits,

@@ -120,15 +120,28 @@ export class RuntimeStateStore<T, TInput = T> implements IRuntimeStateStore<
     return Number(result.rowsAffected) > 0;
   }
 
-  async compareAndSet(key: string, expected: T, value: TInput): Promise<boolean> {
+  async compareAndSet(
+    key: string,
+    expected: T,
+    value: TInput,
+  ): Promise<boolean> {
     const normalizedKey = normalizeKey(key);
     const wireValue = prepareRuntimeStateValue(this.schema, value);
     const [snapshot] = await this.db
       .select({ value: runtimeStateRecords.value })
       .from(runtimeStateRecords)
-      .where(and(eq(runtimeStateRecords.namespace, this.namespace), eq(runtimeStateRecords.key, normalizedKey)))
+      .where(
+        and(
+          eq(runtimeStateRecords.namespace, this.namespace),
+          eq(runtimeStateRecords.key, normalizedKey),
+        ),
+      )
       .limit(1);
-    if (!snapshot || !isDeepStrictEqual(this.schema.parse(snapshot.value), expected)) return false;
+    if (
+      !snapshot ||
+      !isDeepStrictEqual(this.schema.parse(snapshot.value), expected)
+    )
+      return false;
     // Compare the exact wire snapshot in SQL, not its parsed output. Another
     // connection changing it after this read makes the atomic update fail.
     const expectedWire = snapshot.value === null ? sql`'null'` : snapshot.value;

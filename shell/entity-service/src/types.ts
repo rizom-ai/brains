@@ -520,7 +520,9 @@ export interface EntityReadOptions {
   signal?: AbortSignal;
 }
 
-export interface ListOptions<TMetadata = Record<string, unknown>> extends EntityReadOptions {
+export interface ListOptions<
+  TMetadata = Record<string, unknown>,
+> extends EntityReadOptions {
   limit?: number;
   offset?: number;
   /** Multi-field sorting - supports system fields (created, updated) and metadata fields */

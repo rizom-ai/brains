@@ -15,7 +15,11 @@ import { MessageBus } from "@brains/messaging-service";
 import { coerceConversationMetadata } from "../src/metadata";
 import { drizzle } from "drizzle-orm/libsql";
 import { sql, eq } from "drizzle-orm";
-import { liveGuestConversation, expiredGuestConversation, conversationSqlNow } from "../src/guest-retention";
+import {
+  liveGuestConversation,
+  expiredGuestConversation,
+  conversationSqlNow,
+} from "../src/guest-retention";
 import { conversations, messages, summaryTracking } from "../src/schema";
 
 describe("ConversationService", () => {
@@ -134,6 +138,56 @@ describe("ConversationService", () => {
         ),
       ).toEqual([]);
       expect(await service.getMessages(guestRequest.sessionId)).toHaveLength(1);
+    });
+
+    it("excludes guest transcripts from SDK bulk reads and change cursors", async () => {
+      await service.startConversation(guestRequest);
+      await service.addMessage({
+        conversationId: guestRequest.sessionId,
+        role: "user",
+        content: "private guest transcript",
+      });
+      expect(await service.getConversationChangeHead()).toBeNull();
+      expect(
+        await service.listConversationsUpdatedSince({
+          after: null,
+          limit: 100,
+        }),
+      ).toEqual([]);
+      expect(
+        await service.listConversationsUpdatedSince({
+          after: { updated: "1970-01-01T00:00:00.000Z", id: "start" },
+          limit: 100,
+        }),
+      ).toEqual([]);
+      expect(
+        await service.getManyWithMessages({
+          ids: [guestRequest.sessionId],
+          messageLimit: 10,
+        }),
+      ).toEqual([]);
+      await service.startConversation({
+        ...guestRequest,
+        sessionId: "operator",
+        interfaceType: "web-chat",
+      });
+      expect((await service.getConversationChangeHead())?.id).toBe("operator");
+      expect(
+        (
+          await service.listConversationsUpdatedSince({
+            after: null,
+            limit: 100,
+          })
+        ).map((entry) => entry.id),
+      ).toEqual(["operator"]);
+      expect(
+        (
+          await service.getManyWithMessages({
+            ids: [guestRequest.sessionId, "operator"],
+            messageLimit: 10,
+          })
+        ).map((entry) => entry.conversation.id),
+      ).toEqual(["operator"]);
     });
 
     it("rejects scope changes and authenticated ownership on guest creation", async () => {

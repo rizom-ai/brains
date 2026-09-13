@@ -1,8 +1,9 @@
 import { describe, expect, it, spyOn } from "bun:test";
 import { BunSchedulerBackend } from "@brains/scheduler";
 import { TestSchedulerBackend } from "@brains/scheduler/test";
-import { WebChatInterface } from "../src/web-chat-interface";
+import { createWebChatPlugin } from "./helpers/definition";
 import { randomUUID } from "node:crypto";
+import { deferred } from "@brains/utils/deferred";
 import { z } from "@brains/utils/zod";
 import {
   createMemoryRuntimeStateNamespace,
@@ -66,17 +67,29 @@ describe("guest state maintenance", () => {
     ).mockImplementation((interval, callback) =>
       scheduler.scheduleInterval(interval, callback),
     );
-    const harness = createPluginHarness<WebChatInterface>();
+    const harness = createPluginHarness();
     const shell = harness.getMockShell();
     const registry = shell.getDaemonRegistry();
-    const visitors = shell
+    // Seed the current owner-qualified scope, not the retired declaration-only
+    // namespace. This records the same ownership boundary as the SDK fixtures.
+    const prefix = `interface:${Buffer.from("@brains/web-chat").toString("base64url")}:${Buffer.from("web-chat").toString("base64url")}:`;
+    const state: IRuntimeStateNamespace = {
+      scoped: <T, TInput = T>(
+        options: RuntimeStateScopeOptions<T, TInput>,
+      ): IRuntimeStateStore<T, TInput> =>
+        shell
+          .getRuntimeState()
+          .scoped({ ...options, namespace: `${prefix}${options.namespace}` }),
+    };
+    const visitors = state.scoped({
+      namespace: "web-chat.guest-visitors",
+      schema: z.unknown(),
+    });
+    const legacy = shell
       .getRuntimeState()
       .scoped({ namespace: "web-chat.guest-visitors", schema: z.unknown() });
-    await new GuestVisitorStore(
-      shell.getRuntimeState(),
-      testGuestPolicy,
-      () => 0,
-    ).issue(
+    await legacy.set("legacy", { untouched: true });
+    await new GuestVisitorStore(state, testGuestPolicy, () => 0).issue(
       new Request(`${testGuestPolicy.origin}/api/chat/guest/session`, {
         method: "POST",
         headers: {
@@ -85,25 +98,23 @@ describe("guest state maintenance", () => {
         },
       }),
     );
-    const plugin = new WebChatInterface(
-      {},
-      { resolveAuthPrincipal: async (): Promise<undefined> => undefined },
-    );
+    const plugin = createWebChatPlugin();
     try {
       await harness.installPlugin(plugin);
-      expect(registry.get("web-chat:guest-maintenance")?.status).toBe(
+      expect(registry.get(`${plugin.id}:guest-maintenance`)?.status).toBe(
         "stopped",
       );
       expect(await visitors.list()).toHaveLength(1);
-      await registry.startPlugin("web-chat");
+      await registry.startPlugin(plugin.id);
       await scheduler.advanceBy(60000);
       expect(await visitors.list()).toEqual([]);
+      expect(await legacy.get("legacy")).toEqual({ untouched: true });
       expect(
-        (await registry.checkHealth("web-chat:guest-maintenance"))?.status,
+        (await registry.checkHealth(`${plugin.id}:guest-maintenance`))?.status,
       ).toBe("healthy");
-      const route = plugin
-        .getWebRoutes()
-        .find((entry) => entry.path === "/api/chat" && entry.method === "POST");
+      const route = (plugin.getWebRoutes?.() ?? []).find(
+        (entry) => entry.path === "/api/chat" && entry.method === "POST",
+      );
       if (!route) throw new Error("Expected chat route");
       const response = await route.handler(
         new Request("https://brain.test/api/chat", {
@@ -113,11 +124,55 @@ describe("guest state maintenance", () => {
       );
       expect(response.status).toBe(403);
     } finally {
-      await registry.stopPlugin("web-chat");
+      await registry.stopPlugin(plugin.id);
       await harness.reset();
       scheduled.mockRestore();
     }
   });
+  it("drains an active maintenance cycle before declarative shutdown finishes", async () => {
+    const scheduler = new TestSchedulerBackend();
+    const began = deferred<void>();
+    const release = deferred<void>();
+    const scheduled = spyOn(
+      BunSchedulerBackend.prototype,
+      "scheduleInterval",
+    ).mockImplementation((interval, callback) =>
+      scheduler.scheduleInterval(interval, callback),
+    );
+    const run = spyOn(
+      GuestStateMaintenance.prototype,
+      "run",
+    ).mockImplementation(async () => {
+      began.resolve();
+      await release.promise;
+    });
+    const harness = createPluginHarness();
+    const plugin = createWebChatPlugin();
+    try {
+      await harness.installPlugin(plugin);
+      const registry = harness.getMockShell().getDaemonRegistry();
+      await registry.startPlugin(plugin.id);
+      const advancing = scheduler.advanceBy(60_000);
+      await began.promise;
+      let stopped = false;
+      const stopping = registry.stopPlugin(plugin.id).then(() => {
+        stopped = true;
+      });
+      await Bun.sleep(0);
+      expect(stopped).toBe(false);
+      release.resolve();
+      await Promise.all([advancing, stopping]);
+      expect(stopped).toBe(true);
+      await scheduler.advanceBy(60_000);
+      expect(run).toHaveBeenCalledTimes(1);
+    } finally {
+      release.resolve();
+      await harness.reset();
+      run.mockRestore();
+      scheduled.mockRestore();
+    }
+  });
+
   it("prunes terminal references without enabling admission, adopting policy or releasing uncertain work", async () => {
     const state = createMemoryRuntimeStateNamespace();
     const store = state.scoped({
@@ -157,9 +212,9 @@ describe("guest state maintenance", () => {
       await store.set(key, original);
       let raced = false;
       const concurrent: IRuntimeStateNamespace = {
-        scoped: <T>(
-          options: RuntimeStateScopeOptions<T>,
-        ): IRuntimeStateStore<T> => {
+        scoped: <T, TInput = T>(
+          options: RuntimeStateScopeOptions<T, TInput>,
+        ): IRuntimeStateStore<T, TInput> => {
           const scoped = state.scoped(options);
           return {
             ...scoped,
@@ -203,9 +258,9 @@ describe("guest state maintenance", () => {
     await store.set(nextKey, original);
     let attempts = 0;
     const busy: IRuntimeStateNamespace = {
-      scoped: <T>(
-        options: RuntimeStateScopeOptions<T>,
-      ): IRuntimeStateStore<T> => {
+      scoped: <T, TInput = T>(
+        options: RuntimeStateScopeOptions<T, TInput>,
+      ): IRuntimeStateStore<T, TInput> => {
         const scoped = state.scoped(options);
         return {
           ...scoped,

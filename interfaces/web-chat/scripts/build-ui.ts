@@ -27,65 +27,73 @@ await mkdir(dirname(outdir), { recursive: true });
 // A sibling staging directory keeps source-map relative paths unchanged.
 const staging = await mkdtemp(join(dirname(outdir), ".web-chat-ui-"));
 try {
-  for (const [entryName, assetName] of [["main", "app"], ["guest-box", "guest"]] as const) {
-  const entrypoint = join(packageRoot, "ui-react", "src", `${entryName}.tsx`);
-  const stylex = createStylexBunTransform();
-  const result = await Bun.build({
-    entrypoints: [entrypoint],
-    outdir: staging,
-    target: "browser",
-    format: "esm",
-    minify: true,
-    sourcemap: "external",
-    naming: `${assetName}.js`,
-    plugins: [
-      stylex.plugin,
-      {
-        name: "web-chat-aliases",
-        setup(build): void {
-          build.onResolve({ filter: /^@\// }, (args) => {
-            const resolved = join(aliasRoot, args.path.slice(2));
-            for (const candidate of [
-              resolved,
-              `${resolved}.tsx`,
-              `${resolved}.ts`,
-            ]) {
-              if (existsSync(candidate)) return { path: candidate };
-            }
-            return { path: resolved };
-          });
+  for (const [entryName, assetName] of [
+    ["main", "app"],
+    ["guest-box", "guest"],
+  ] as const) {
+    const entrypoint = join(packageRoot, "ui-react", "src", `${entryName}.tsx`);
+    const stylex = createStylexBunTransform();
+    const result = await Bun.build({
+      entrypoints: [entrypoint],
+      outdir: staging,
+      target: "browser",
+      format: "esm",
+      minify: true,
+      sourcemap: "external",
+      naming: `${assetName}.js`,
+      plugins: [
+        stylex.plugin,
+        {
+          name: "web-chat-aliases",
+          setup(build): void {
+            build.onResolve({ filter: /^@\// }, (args) => {
+              const resolved = join(aliasRoot, args.path.slice(2));
+              for (const candidate of [
+                resolved,
+                `${resolved}.tsx`,
+                `${resolved}.ts`,
+              ]) {
+                if (existsSync(candidate)) return { path: candidate };
+              }
+              return { path: resolved };
+            });
+          },
         },
-      },
-      {
-        name: "dedupe-react",
-        setup(build): void {
-          build.onResolve(
-            {
-              filter:
-                /^(react|react\/jsx-runtime|react\/jsx-dev-runtime|react-dom|react-dom\/client)$/,
-            },
-            (args) => ({ path: reactAliases[args.path] }),
-          );
+        {
+          name: "dedupe-react",
+          setup(build): void {
+            build.onResolve(
+              {
+                filter:
+                  /^(react|react\/jsx-runtime|react\/jsx-dev-runtime|react-dom|react-dom\/client)$/,
+              },
+              (args) => ({ path: reactAliases[args.path] }),
+            );
+          },
         },
-      },
-    ],
-  });
+      ],
+    });
 
-  if (!result.success) {
-    for (const log of result.logs) {
-      console.error(log);
+    if (!result.success) {
+      for (const log of result.logs) {
+        console.error(log);
+      }
+      throw new Error("Web chat UI build failed");
     }
-    throw new Error("Web chat UI build failed");
-  }
 
-  for (const output of result.outputs) {
+    for (const output of result.outputs) {
+      await writeBuildFileAtomically(
+        join(outdir, relative(staging, output.path)),
+        new Uint8Array(await output.arrayBuffer()),
+      );
+    }
     await writeBuildFileAtomically(
-      join(outdir, relative(staging, output.path)),
-      new Uint8Array(await output.arrayBuffer()),
+      join(outdir, `${assetName}.css`),
+      `${stylex.css()}\n`,
     );
-  }
-  await writeBuildFileAtomically(join(outdir, `${assetName}.css`), `${stylex.css()}\n`);
-  console.log(`Built ${join(outdir, `${assetName}.js`)} and ${assetName}.css`);
+    console.log(
+      `Built ${join(outdir, `${assetName}.js`)} and ${assetName}.css`,
+    );
   }
 } finally {
   await rm(staging, { recursive: true, force: true });
