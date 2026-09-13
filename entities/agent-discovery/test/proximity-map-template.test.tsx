@@ -5,6 +5,13 @@ import { getTemplates } from "../src/lib/register-templates";
 import type { ProximityMapData } from "../src/lib/proximity-map-schema";
 import { operatorViewStylexCSS } from "@brains/ui-library";
 import { AgentProximityMapTemplate } from "../src/templates/proximity-map-template";
+import { proximityMapSiteStyles } from "../src/proximity-map";
+
+test("the homepage uses the same site-map styles exported for other site compositions", () => {
+  expect(render(AgentProximityMapTemplate(data))).toContain(
+    `<style>${proximityMapSiteStyles}</style>`,
+  );
+});
 
 test("standalone site sections include compiled empty-state styling", () => {
   const html = render(

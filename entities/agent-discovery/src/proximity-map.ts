@@ -4,6 +4,7 @@ export {
   proximityMapScript,
   proximityMapWidgetStyles,
 } from "./widgets/proximity-map";
+export { proximityMapSiteStyles } from "./templates/proximity-map-template";
 export {
   proximityMapDataSchema,
   type ProximityMapData,

@@ -4,7 +4,7 @@ import {
   ProximityMap,
   proximityMapDataSchema,
   proximityMapScript,
-  proximityMapWidgetStyles,
+  proximityMapSiteStyles,
   type ProximityMapData,
 } from "@brains/agent-discovery/proximity-map";
 import { StructuredContentFormatter } from "@brains/content-formatters";
@@ -45,7 +45,7 @@ function BrainNetwork(data: BrainNetworkProps): JSX.Element {
       data={data}
       visual={
         <div
-          className="interface brain-network"
+          className="interface brain-network agent-proximity-site"
           aria-label="This brain’s agent network"
         >
           <link
@@ -107,7 +107,7 @@ export const brainNetworkTemplate: Template = createTemplate({
   runtimeScripts: [{ src: scriptPath, defer: true }],
   staticAssets: {
     [scriptPath]: proximityMapScript,
-    "/styles/brain-network.css": proximityMapWidgetStyles,
+    "/styles/brain-network.css": proximityMapSiteStyles,
   },
   layout: { component: BrainNetwork },
 });

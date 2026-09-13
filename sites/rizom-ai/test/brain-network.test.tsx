@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { ProximityMapDataSource } from "@brains/agent-discovery";
+import { proximityMapSiteStyles } from "@brains/agent-discovery/proximity-map";
 import { createElement, type ComponentType } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createMockEntityService } from "@brains/entity-service/test";
@@ -73,6 +74,21 @@ describe("Brain landing's own interactive network", () => {
     expect(html).not.toContain("<img");
     expect(html).not.toContain("<iframe");
     expect(html).not.toContain("snapshot");
+  });
+  test("uses the homepage's site-map stylesheet and theme scope for populated maps", () => {
+    const html = render({ ...copy, map });
+    expect(html).toContain(
+      'class="interface brain-network agent-proximity-site"',
+    );
+    expect(html).toContain('data-proximity-node="alpha"');
+    expect(html).toContain('href="/styles/brain-network.css"');
+    expect(
+      brainNetworkTemplate.staticAssets?.["/styles/brain-network.css"],
+    ).toBe(proximityMapSiteStyles);
+    expect(proximityMapSiteStyles).toContain(
+      "--console-accent: var(--color-accent",
+    );
+    expect(proximityMapSiteStyles).not.toContain(".proximity-field::before");
   });
   test("uses the supplied entity-service context and preserves a genuinely empty map", async () => {
     const entityService = createMockEntityService();

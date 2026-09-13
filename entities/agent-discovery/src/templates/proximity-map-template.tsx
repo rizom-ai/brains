@@ -286,6 +286,10 @@ const SITE_STYLES = `
 }
 `;
 
+/** Shared site-map styling, including the native empty-state styles. */
+export const proximityMapSiteStyles: string =
+  SITE_STYLES + operatorViewStylexCSS;
+
 // Plugin defaults for the hero copy. A site overrides any of these by
 // authoring the section's markdown — the content-overlay merge splices the
 // authored fields onto the live map payload; absent fields fall back here.
@@ -322,7 +326,7 @@ export function AgentProximityMapTemplate(data: ProximityMapData): JSX.Element {
 
   return (
     <section className="agent-proximity-site" aria-label="Agent proximity map">
-      <style>{SITE_STYLES + operatorViewStylexCSS}</style>
+      <style>{proximityMapSiteStyles}</style>
       <div className="agent-proximity-site__grid">
         <div className="agent-proximity-site__copy">
           <p className="agent-proximity-site__kicker">{kicker}</p>

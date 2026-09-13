@@ -546,9 +546,11 @@
   figure .interface {
     position: relative;
   }
-  .brain-network {
+  .brain-network.agent-proximity-site {
     min-width: 0;
     align-self: center;
+    /* The chapter owns the spacing around this shared site-map surface. */
+    padding: 0;
   }
   .brain-network .proximity-field {
     border: 0;
