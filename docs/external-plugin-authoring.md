@@ -536,6 +536,17 @@ schema validation. `fetch()` decodes JSON responses to data (including JSON
 returned explicitly by a protocol route). Use `fetchResponse()` for an
 unconsumed standard `Response` so you can assert status codes, headers, cookies,
 and bodies regardless of content type.
+
+Both helpers JSON-encode `init.body` and default its `Content-Type` to
+`application/json` only when no case-insensitive header override exists.
+Relative paths use HTTPS at the harness's configured `domain` (a hostname with
+an optional port), or `https://test.brain` when omitted. Use an absolute request
+URL to choose a different origin or HTTP scheme.
+For peer-gated routes, pass explicit test-only host metadata, for example
+`{ transport: { remoteAddress: "127.0.0.1" } }` as `init`. The route receives the
+runtime's detached, frozen socket snapshot. Omitting it supplies no trusted
+peer; forwarding headers never grant one.
+
 The harness hands back names and answers rather than runtime objects, which is
 why nothing here imports `@brains/*`.
 
