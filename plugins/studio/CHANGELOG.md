@@ -1,5 +1,20 @@
 # @brains/studio
 
+## 0.2.0-alpha.373
+
+### Patch Changes
+
+- [#244](https://github.com/rizom-ai/brains/pull/244) [`a6f6883`](https://github.com/rizom-ai/brains/commit/a6f6883bbd61c16ccb0a10a4047cac5cee760dfc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restore Studio list and editor titles by exposing the adapter-owned metadata title instead of deriving headings from stored Markdown. Prefer that projected title in the UI, retaining authored-frontmatter and durable-ID fallbacks. Studio no longer misinterprets YAML frontmatter as a heading; raw editor source and stored content remain unchanged.
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.373
+  - @brains/console-theme@0.2.0-alpha.373
+  - @brains/contracts@0.2.0-alpha.373
+  - @brains/operator-view-react@0.2.0-alpha.373
+  - @brains/utils@0.2.0-alpha.373
+  - @brains/auth-service@0.2.0-alpha.373
+  - @brains/plugins@0.2.0-alpha.373
+
 ## 0.2.0-alpha.372
 
 ### Patch Changes
