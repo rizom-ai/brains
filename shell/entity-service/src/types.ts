@@ -528,6 +528,10 @@ export interface ListOptions<
   filter?: {
     // Typed metadata filter - partial match on metadata fields
     metadata?: Partial<TMetadata>;
+    /** Literal substring search through serialized content, including frontmatter. */
+    contentContains?: string | undefined;
+    /** Exact visibility, intersected with visibilityScope rather than widening it. */
+    visibility?: ContentVisibility | undefined;
     visibilityScope?: ContentVisibility | undefined;
   };
   /** Filter to only entities with metadata.status = "published" */

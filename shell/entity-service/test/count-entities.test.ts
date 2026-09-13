@@ -69,6 +69,80 @@ describe("countEntities", () => {
     await ctx.cleanup();
   });
 
+  test("uses the same content and metadata filters for counts and paged rows", async () => {
+    const filter = {
+      contentContains: "pOsT",
+      metadata: { status: "published" },
+    };
+    const total = await ctx.entityService.countEntities({
+      entityType: "post",
+      options: { filter },
+    });
+    const page = await ctx.entityService.listEntities({
+      entityType: "post",
+      options: {
+        filter,
+        offset: 1,
+        limit: 1,
+        sortFields: [{ field: "id", direction: "asc" }],
+      },
+    });
+    expect(total).toBe(2);
+    expect(page.map((entity) => entity.id)).toEqual(["post-2"]);
+  });
+
+  test("intersects exact visibility with the access scope and searches wildcard characters literally", async () => {
+    await insertTestEntity(
+      ctx.dbConfig,
+      {
+        id: "private-post",
+        entityType: "post",
+        content: "100% completion",
+        metadata: { status: "draft", category: "tech" },
+        visibility: "restricted",
+        created: Date.now(),
+        updated: Date.now(),
+        embedding: mockEmbedding,
+      },
+      ctx.embeddingDbConfig,
+    );
+    const filter = {
+      contentContains: "100%",
+      visibility: "restricted" as const,
+      visibilityScope: "public" as const,
+    };
+    expect(
+      await ctx.entityService.countEntities({
+        entityType: "post",
+        options: { filter },
+      }),
+    ).toBe(0);
+    expect(
+      await ctx.entityService.listEntities({
+        entityType: "post",
+        options: { filter },
+      }),
+    ).toHaveLength(0);
+    expect(
+      await ctx.entityService.countEntities({
+        entityType: "post",
+        options: { filter: { ...filter, visibilityScope: "restricted" } },
+      }),
+    ).toBe(1);
+    expect(
+      await ctx.entityService.countEntities({
+        entityType: "post",
+        options: {
+          filter: {
+            ...filter,
+            visibilityScope: "restricted",
+            contentContains: "100_",
+          },
+        },
+      }),
+    ).toBe(0);
+  });
+
   test("should count all entities of a type", async () => {
     const count = await ctx.entityService.countEntities({ entityType: "post" });
     expect(count).toBe(3);

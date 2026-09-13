@@ -48,6 +48,14 @@ const listOptionsSchema: z.ZodObject<{
   filter: z.ZodOptional<
     z.ZodObject<{
       metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+      contentContains: z.ZodOptional<z.ZodString>;
+      visibility: z.ZodOptional<
+        z.ZodEnum<{
+          public: "public";
+          shared: "shared";
+          restricted: "restricted";
+        }>
+      >;
       visibilityScope: z.ZodOptional<
         z.ZodEnum<{
           public: "public";
@@ -67,6 +75,8 @@ const listOptionsSchema: z.ZodObject<{
   filter: z
     .object({
       metadata: z.record(z.string(), z.unknown()).optional(),
+      contentContains: z.string().max(200).optional(),
+      visibility: z.enum(["public", "shared", "restricted"]).optional(),
       visibilityScope: z.enum(["public", "shared", "restricted"]).optional(),
     })
     .optional(),
@@ -188,6 +198,8 @@ export class EntityQueries {
       filter?.metadata,
       filter?.visibilityScope,
       publishedStatuses,
+      filter?.contentContains,
+      filter?.visibility,
     );
     if (readBudget) whereConditions.push(entityRowBudgetCondition(readBudget));
     const orderByClauses = this.buildOrderByClauses(sortFields);
@@ -228,6 +240,8 @@ export class EntityQueries {
     metadataFilter?: Record<string, unknown>,
     visibilityScope?: ContentVisibility,
     publishedStatuses?: string[],
+    contentContains?: string,
+    visibility?: ContentVisibility,
   ): SQL[] {
     const conditions: SQL[] = [eq(entities.entityType, entityType)];
 
@@ -255,6 +269,13 @@ export class EntityQueries {
     if (scope !== "restricted") {
       conditions.push(
         inArray(entities.visibility, getVisibleContentVisibilities(scope)),
+      );
+    }
+
+    if (visibility) conditions.push(eq(entities.visibility, visibility));
+    if (contentContains?.trim()) {
+      conditions.push(
+        sql`instr(lower(${entities.content}), lower(${contentContains.trim()})) > 0`,
       );
     }
 
@@ -332,18 +353,23 @@ export class EntityQueries {
       filter?:
         | {
             metadata?: Record<string, unknown> | undefined;
+            contentContains?: string | undefined;
+            visibility?: ContentVisibility | undefined;
             visibilityScope?: ContentVisibility | undefined;
           }
         | undefined;
     } = {},
     publishedStatuses?: string[],
   ): Promise<number> {
+    const validatedOptions = listOptionsSchema.parse(options);
     const whereConditions = this.buildWhereConditions(
       entityType,
-      options.publishedOnly,
-      options.filter?.metadata,
-      options.filter?.visibilityScope,
+      validatedOptions.publishedOnly,
+      validatedOptions.filter?.metadata,
+      validatedOptions.filter?.visibilityScope,
       publishedStatuses,
+      validatedOptions.filter?.contentContains,
+      validatedOptions.filter?.visibility,
     );
 
     const result = await this.db

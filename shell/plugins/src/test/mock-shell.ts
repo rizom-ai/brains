@@ -509,6 +509,18 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         e.entityType === request.entityType &&
         (visible === null || visible.has(e.visibility)),
     );
+    const exactVisibility = request.options?.filter?.visibility;
+    if (exactVisibility)
+      results = results.filter(
+        (entity) => entity.visibility === exactVisibility,
+      );
+    const contentContains = request.options?.filter?.contentContains
+      ?.trim()
+      .toLowerCase();
+    if (contentContains)
+      results = results.filter((entity) =>
+        entity.content.toLowerCase().includes(contentContains),
+      );
     if (request.options?.publishedOnly) {
       results = results.filter((e) => e.metadata["status"] === "published");
     }

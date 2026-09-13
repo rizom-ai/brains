@@ -25,7 +25,6 @@ type NavigationStyle =
   | "ordinalActive"
   | "leaf"
   | "leafHead"
-  | "leafKicker"
   | "leafTitle"
   | "leafDescription"
   | "leafScroll"
@@ -104,11 +103,6 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       color: "var(--console-text-muted)",
       cursor: "pointer",
       listStyle: "none",
-      fontFamily: "var(--console-mono)",
-      fontSize: "9px",
-      fontWeight: 650,
-      letterSpacing: "0.15em",
-      textTransform: "uppercase",
       "::-webkit-details-marker": { display: "none" },
       ":focus-visible": {
         outline: "2px solid var(--console-accent)",
@@ -170,11 +164,6 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       gap: "4px",
       padding: "7px 0 18px 9px",
       color: "var(--console-text-muted)",
-      fontFamily: "var(--console-mono)",
-      fontSize: "8px",
-      fontWeight: 650,
-      letterSpacing: "0.17em",
-      textTransform: "uppercase",
     },
     areaLink: {
       position: "relative",
@@ -232,21 +221,9 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       borderBottomStyle: "solid",
       borderBottomColor: "var(--console-rule)",
     },
-    leafKicker: {
-      color: "var(--console-accent)",
-      fontFamily: "var(--console-mono)",
-      fontSize: "8px",
-      fontWeight: 650,
-      letterSpacing: "0.16em",
-      textTransform: "uppercase",
-    },
     leafTitle: {
       margin: "7px 0 3px",
       color: "var(--console-text)",
-      fontFamily: "var(--console-display)",
-      fontSize: "24px",
-      fontWeight: 500,
-      lineHeight: 1,
     },
     leafDescription: {
       margin: 0,
@@ -264,10 +241,6 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
     leafLabel: {
       padding: "10px 18px 6px",
       color: "var(--console-text-muted)",
-      fontFamily: "var(--console-mono)",
-      fontSize: "8px",
-      letterSpacing: "0.14em",
-      textTransform: "uppercase",
     },
     list: { listStyle: "none", margin: 0, padding: 0 },
     leafLink: {
@@ -304,7 +277,8 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
     },
     count: {
       marginLeft: "auto",
-      color: "var(--console-text-muted)",
+      color:
+        "color-mix(in srgb, var(--console-text-muted) 70%, var(--console-text))",
       fontFamily: "var(--console-mono)",
       fontSize: "9px",
     },
@@ -332,11 +306,6 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       backgroundColor: "transparent",
       color: "var(--console-text)",
       cursor: "pointer",
-      fontFamily: "var(--console-mono)",
-      fontWeight: 650,
-      fontSize: "9px",
-      letterSpacing: "0.06em",
-      textTransform: "uppercase",
       "@media (max-width: 900px)": { display: "inline-flex" },
       ":focus-visible": {
         outline: "2px solid var(--console-accent)",
@@ -352,6 +321,8 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       left: 0,
     },
     sheet: {
+      "--console-text-muted":
+        "color-mix(in srgb, var(--color-text-light) 70%, var(--color-text))",
       position: "fixed",
       zIndex: 60,
       top: "calc(56px + env(safe-area-inset-top))",
@@ -380,12 +351,7 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       justifyContent: "space-between",
       marginBottom: "16px",
     },
-    sheetTitle: {
-      margin: 0,
-      fontFamily: "var(--console-display)",
-      fontWeight: 500,
-      fontSize: "28px",
-    },
+    sheetTitle: { margin: 0 },
     sheetClose: {
       borderWidth: 0,
       backgroundColor: "transparent",

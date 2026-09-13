@@ -1,4 +1,4 @@
-import type { EntityDetail, FieldDescriptor } from "./api";
+import type { EntityDetail, FieldDescriptor, ValidationIssue } from "./api";
 import type { EditorDocument } from "./editor-document";
 
 export type SaveState =
@@ -7,7 +7,7 @@ export type SaveState =
   /** noop: the entity service skipped a byte-identical write. */
   | { kind: "saved"; noop?: boolean }
   | { kind: "conflict"; message: string }
-  | { kind: "error"; message: string };
+  | { kind: "error"; message: string; issues?: ValidationIssue[] };
 
 export type EditorMode =
   | { kind: "browse" }

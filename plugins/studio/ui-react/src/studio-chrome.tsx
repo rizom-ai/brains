@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import {
+  Button,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -14,6 +15,7 @@ import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
 import { studioArea, TypeSwitcher } from "./entity-fields";
 import { getStudioRouterBasePath } from "./studio-router";
 import { chromeStyles as chrome } from "./studio-chrome.styles";
+import { typographyStyles } from "./studio-typography.styles";
 import {
   navigationClassName as navClass,
   navigationStyles as nav,
@@ -92,8 +94,31 @@ export function StudioChrome(props: {
       className={navClass("studio-chrome", chrome.header)}
       aria-label="Studio"
     >
+      {props.navigation && (
+        <Button
+          type="button"
+          xstyle={chrome.skip}
+          variant="outline"
+          className="studio-skip-content"
+          onClick={() => {
+            const content = document.querySelector<HTMLElement>(
+              '[data-studio-shell] main, [data-studio-shell] [role="main"]',
+            );
+            if (content) {
+              content.tabIndex = -1;
+              content.focus();
+            }
+          }}
+        >
+          Skip to content
+        </Button>
+      )}
       <a
-        className={navClass("studio-chrome-brand", chrome.brand)}
+        className={navClass(
+          "studio-chrome-brand",
+          chrome.brand,
+          typographyStyles.eyebrow,
+        )}
         href={studioPath}
       >
         <span
@@ -200,7 +225,11 @@ export function StudioChrome(props: {
               <strong className={navClass("", chrome.name)}>
                 {displayName}
               </strong>
-              <span className={navClass("", chrome.role)}>{role}</span>
+              <span
+                className={navClass("", chrome.role, typographyStyles.eyebrow)}
+              >
+                {role}
+              </span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem

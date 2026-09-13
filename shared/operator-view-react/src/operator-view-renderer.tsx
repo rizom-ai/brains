@@ -106,7 +106,7 @@ export interface OperatorTabsProps {
 }
 
 export interface OperatorDisclosureProps {
-  triggerVariant?: "outline" | "link";
+  triggerVariant?: "outline" | "link" | "primary" | undefined;
   /** CSS-host presentation; app hosts retain their dialog presentation. */
   presentation?: "action" | undefined;
   title: string;
@@ -678,22 +678,23 @@ function ActionFormFields(props: {
 }
 
 /**
- * Consequence, not position, decides an action's weight: anything that asks for
- * confirmation is marked, anything attached to a row stays subordinate to it,
- * and other actions stay quiet rather than competing with the content.
+ * Confirmation remains marked; only the declared page primary gains emphasis.
+ * Row controls and ordinary body actions stay subordinate to the content.
  */
 function actionVariant(
   action: RuntimeOperatorActionControl,
   subordinate: boolean,
+  primary: boolean,
 ): OperatorControlVariant {
   if (action.confirmation) return "danger";
-  return subordinate ? "link" : "secondary";
+  return subordinate ? "link" : primary ? "primary" : "secondary";
 }
 
 export function OperatorActionButton(props: {
   action: RuntimeOperatorActionControl;
   onAction: (action: RuntimeOperatorActionControl) => Promise<unknown>;
   subordinate?: boolean;
+  primary?: boolean;
   components?: OperatorViewComponents | undefined;
 }): ReactElement {
   const host = useContext(OperatorRendererHostContext);
@@ -810,7 +811,11 @@ export function OperatorActionButton(props: {
       <Button
         xstyle={formLayout.submit}
         type="submit"
-        variant={actionVariant(props.action, props.subordinate === true)}
+        variant={actionVariant(
+          props.action,
+          props.subordinate === true,
+          props.primary === true,
+        )}
         disabled={pending || props.action.disabled === true}
       >
         {pending
@@ -840,6 +845,7 @@ export function OperatorActionButton(props: {
               key={actionKey}
               className="declarative-action-disclosure"
               presentation="action"
+              triggerVariant={props.primary ? "primary" : undefined}
               title={props.action.label}
               triggerLabel={props.action.label}
             >
@@ -851,7 +857,11 @@ export function OperatorActionButton(props: {
         ) : (
           <Button
             type="button"
-            variant={actionVariant(props.action, props.subordinate === true)}
+            variant={actionVariant(
+              props.action,
+              props.subordinate === true,
+              props.primary === true,
+            )}
             disabled={pending || props.action.disabled === true}
             onClick={() => void start(props.action)}
           >
@@ -2450,6 +2460,7 @@ export function OperatorViewRenderer(
               {primaryAction && (
                 <OperatorActionButton
                   action={primaryAction}
+                  primary
                   onAction={props.onAction}
                 />
               )}

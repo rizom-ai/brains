@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import type { ReactElement, ReactNode } from "react";
+import { useEffect, useRef, type ReactElement, type ReactNode } from "react";
 import * as stylex from "@stylexjs/stylex";
 import { saveStyles as s } from "./studio-save.styles";
 import { StudioStatus } from "./studio-status";
@@ -12,6 +12,20 @@ export function SaveStateNotice(props: {
   conflictActions?: ReactNode;
 }): ReactElement | null {
   const { state } = props;
+  const summary = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (
+      state.kind === "error" &&
+      state.issues?.length &&
+      !summary.current
+        ?.closest("form")
+        ?.querySelector("[data-studio-invalid-field]")
+    ) {
+      const details = summary.current?.querySelector("details");
+      if (details) details.open = true;
+      summary.current?.focus();
+    }
+  }, [state]);
   if (state.kind === "saved") {
     return state.noop ? (
       <StudioStatus tone="good" save>
@@ -40,9 +54,42 @@ export function SaveStateNotice(props: {
   }
   if (state.kind === "error") {
     return (
-      <StudioStatus tone="error" save>
-        {state.message}
-      </StudioStatus>
+      <div
+        {...stylex.props(s.validationSummary)}
+        ref={summary}
+        tabIndex={-1}
+        role="group"
+        aria-label="Save failed"
+      >
+        <StudioStatus tone="error" save>
+          {state.message}
+          {state.issues?.length ? " Your draft is unchanged." : ""}
+        </StudioStatus>
+        {state.issues && state.issues.length > 0 && (
+          <details>
+            <summary>Review last save errors ({state.issues.length})</summary>
+            <div
+              {...stylex.props(s.validationDetails)}
+              tabIndex={0}
+              role="region"
+              aria-label="Save validation errors"
+            >
+              <p>
+                Correct the affected fields, then save again. Fields that are
+                read-only here must be corrected through their owning tool.
+              </p>
+              <ul>
+                {state.issues.map((issue, index) => (
+                  <li key={index}>
+                    {issue.path.length ? `${issue.path.join(".")}: ` : ""}
+                    {issue.message}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </details>
+        )}
+      </div>
     );
   }
   return null;

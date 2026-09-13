@@ -206,6 +206,11 @@ export interface UpdateConversationMetadataRequest {
 
 export interface ListConversationsOptions {
   limit?: number;
+  offset?: number;
+  /** Match title or message text literally, case-insensitively. */
+  query?: string;
+  /** Omit to include both active and archived conversations. */
+  archived?: boolean;
   updatedAfter?: string;
   interfaceType?: string;
   sessionId?: string;

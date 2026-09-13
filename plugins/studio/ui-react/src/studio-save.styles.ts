@@ -7,6 +7,8 @@ type SaveStyle =
   | "saveStatus"
   | "saveError"
   | "saveGood"
+  | "validationSummary"
+  | "validationDetails"
   | "conflict"
   | "conflictTitle"
   | "conflictCopy"
@@ -60,6 +62,16 @@ export const saveStyles: Record<SaveStyle, stylex.StyleXStyles> = stylex.create(
     },
     saveError: {
       color: "color-mix(in srgb, var(--console-err) 70%, var(--console-frame))",
+    },
+    validationSummary: {
+      minWidth: 0,
+      maxWidth: "100%",
+      overflowWrap: "anywhere",
+    },
+    validationDetails: {
+      maxHeight: "min(35dvh, 16rem)",
+      overflowY: "auto",
+      overscrollBehavior: "contain",
     },
     saveGood: {
       color: "color-mix(in srgb, var(--console-ok) 75%, var(--console-frame))",

@@ -3,6 +3,7 @@ import * as stylex from "@stylexjs/stylex";
 import {
   cloneElement,
   isValidElement,
+  useMemo,
   type ComponentProps,
   type ReactElement,
   type ReactNode,
@@ -10,6 +11,8 @@ import {
 import { CodeBlockCopyButton, Streamdown, type Components } from "streamdown";
 import { editorClassName as classes } from "./studio-editor.styles";
 import { markdownStyles as s } from "./studio-markdown.styles";
+import { typographyStyles } from "./studio-typography.styles";
+import { codeTokens } from "./code-tokens";
 
 type MarkdownElementProps<Tag extends keyof React.JSX.IntrinsicElements> =
   ComponentProps<Tag> & { node?: unknown };
@@ -32,7 +35,7 @@ function MarkdownCode({
   const source = sourceText(children);
   const language =
     /(?:^|\s)language-([^\s]+)/.exec(className ?? "")?.[1] ?? "text";
-  const lines = source.split("\n");
+  const lines = useMemo(() => codeTokens(source, language), [source, language]);
 
   return (
     <figure
@@ -55,7 +58,13 @@ function MarkdownCode({
           />
         </span>
       </figcaption>
-      <div {...stylex.props(s.codeScroller)} data-streamdown="code-block-body">
+      <div
+        {...stylex.props(s.codeScroller)}
+        data-streamdown="code-block-body"
+        tabIndex={0}
+        role="region"
+        aria-label={`${language} code; scroll horizontally when needed`}
+      >
         <pre {...stylex.props(s.codePre)}>
           <code {...props} className={classes(className ?? "", s.codeBody)}>
             {lines.map((line, index) => (
@@ -63,7 +72,19 @@ function MarkdownCode({
                 <span {...stylex.props(s.lineNumber)} aria-hidden="true">
                   {index + 1}
                 </span>
-                <span>{line || "\u200b"}</span>
+                <span>
+                  {line.length
+                    ? line.map((token, tokenIndex) => (
+                        <span
+                          {...stylex.props(s[token.kind])}
+                          data-code-token={token.kind}
+                          key={tokenIndex}
+                        >
+                          {token.text}
+                        </span>
+                      ))
+                    : "\u200b"}
+                </span>
               </span>
             ))}
           </code>
@@ -79,7 +100,13 @@ function MarkdownTable({
   ...props
 }: MarkdownElementProps<"table">): ReactElement {
   return (
-    <div {...stylex.props(s.tableFrame)} data-streamdown="table-wrapper">
+    <div
+      {...stylex.props(s.tableFrame)}
+      data-streamdown="table-wrapper"
+      tabIndex={0}
+      role="region"
+      aria-label="Markdown table; scroll horizontally when needed"
+    >
       <table
         {...props}
         className={classes(className ?? "", s.table)}
@@ -106,11 +133,19 @@ const structuralComponents: Components = {
   thead: ({ node: _node, className, ...props }) => (
     <thead {...props} className={classes(className ?? "", s.tableHead)} />
   ),
+  tr: ({ node: _node, className, ...props }) => (
+    <tr {...props} className={classes(className ?? "", s.tableRow)} />
+  ),
   th: ({ node: _node, className, ...props }) => (
     <th
       {...props}
-      className={classes(className ?? "", s.tableHeaderCell)}
+      className={classes(
+        className ?? "",
+        s.tableHeaderCell,
+        typographyStyles.eyebrow,
+      )}
       data-streamdown="table-header-cell"
+      scope="col"
     />
   ),
   td: ({ node: _node, className, ...props }) => (
@@ -169,7 +204,7 @@ const assistComponents: Components = {
 };
 
 const CHAT_STRUCTURE_PATTERN =
-  /(^|\n)[ \t]{0,3}(?:`{3,}|~{3,})|!\[[^\]]*\]\(|^\s*\|.+\|\s*$/m;
+  /(^|\n)[ \t]{0,3}(?:`{3,}|~{3,})|!\[[^\]]*\]\(|^\s*\|.+\|\s*$|^[ \t]*\|?[ \t]*:?-+:?[ \t]*\|[ \t]*:?-+:?/m;
 
 /** Native prose slots and Studio-owned controls for complete markdown. */
 export function StudioMarkdown(props: {

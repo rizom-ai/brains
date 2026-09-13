@@ -53,13 +53,15 @@ export const fieldStyles: Record<FieldStyle, stylex.StyleXStyles> =
       fontFamily: "var(--console-mono)",
       fontStyle: "normal",
       fontSize: 10,
-      color: "var(--console-accent)",
+      color:
+        "color-mix(in srgb, var(--console-accent) 75%, var(--console-text))",
     },
     kind: {
       fontFamily: "var(--console-mono)",
       fontStyle: "normal",
       fontSize: 10,
-      color: "var(--console-text-muted)",
+      color:
+        "color-mix(in srgb, var(--console-text-muted) 70%, var(--console-text))",
       fontWeight: 400,
     },
     inline: {
@@ -220,9 +222,10 @@ export const fieldStyles: Record<FieldStyle, stylex.StyleXStyles> =
     },
     tagAdd: { borderStyle: "dashed", paddingLeft: 9 },
     tagInput: {
-      width: { default: 58, ":focus": 86 },
+      width: { default: "8ch", ":focus": "12ch" },
       minWidth: 0,
-      padding: 0,
+      paddingBlock: 0,
+      paddingInline: 0,
       borderWidth: 0,
       backgroundColor: "transparent",
       color: "var(--console-text)",

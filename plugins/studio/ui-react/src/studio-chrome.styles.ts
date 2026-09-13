@@ -2,6 +2,7 @@ import * as stylex from "@stylexjs/stylex";
 
 type ChromeStyle =
   | "header"
+  | "skip"
   | "brand"
   | "studio"
   | "mark"
@@ -23,6 +24,19 @@ type ChromeStyle =
 /** Single-shell chrome, compiled with the Studio assets; no injected stylesheet. */
 export const chromeStyles: Record<ChromeStyle, stylex.StyleXStyles> =
   stylex.create({
+    skip: {
+      position: "fixed",
+      zIndex: 100,
+      top: 8,
+      left: 16,
+      minHeight: 44,
+      padding: "8px 16px",
+      backgroundColor: "var(--console-card)",
+      color: "var(--console-text)",
+      border: "2px solid var(--console-accent)",
+      transition: "none",
+      transform: { default: "translateY(-200%)", ":focus": "translateY(0)" },
+    },
     header: {
       position: "relative",
       zIndex: 40,
@@ -51,15 +65,11 @@ export const chromeStyles: Record<ChromeStyle, stylex.StyleXStyles> =
       gap: "9px",
       minWidth: 0,
       color: "var(--console-text)",
-      fontFamily: "var(--console-mono)",
-      fontSize: "10px",
-      letterSpacing: "0.13em",
       textDecoration: "none",
-      textTransform: "uppercase",
       whiteSpace: "nowrap",
       "@media (max-width: 900px)": { display: "none" },
     },
-    studio: { font: "inherit", fontWeight: 650 },
+    studio: { font: "inherit" },
     mark: {
       display: "grid",
       width: "28px",
@@ -226,10 +236,6 @@ export const chromeStyles: Record<ChromeStyle, stylex.StyleXStyles> =
       display: "block",
       marginTop: "3px",
       color: "var(--console-text-muted)",
-      fontFamily: "var(--console-mono)",
-      fontSize: "8px",
-      letterSpacing: "0.1em",
-      textTransform: "uppercase",
     },
     arrow: { marginLeft: "auto" },
   });

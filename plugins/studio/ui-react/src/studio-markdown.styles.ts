@@ -21,6 +21,14 @@ type MarkdownStyle =
   | "codeBody"
   | "codeLine"
   | "lineNumber"
+  | "plain"
+  | "keyword"
+  | "string"
+  | "number"
+  | "comment"
+  | "name"
+  | "operator"
+  | "tableRow"
   | "tableFrame"
   | "table"
   | "tableHead"
@@ -138,7 +146,11 @@ export const markdownStyles: Record<MarkdownStyle, stylex.StyleXStyles> =
         ":focus-visible": "var(--console-accent-dim)",
       },
       cursor: "pointer",
-      outline: { default: null, ":focus-visible": "none" },
+      outline: {
+        default: null,
+        ":focus-visible": "2px solid var(--console-accent)",
+      },
+      outlineOffset: 2,
       "@media (max-width: 640px)": {
         width: "var(--console-touch)",
         height: "var(--console-touch)",
@@ -146,6 +158,12 @@ export const markdownStyles: Record<MarkdownStyle, stylex.StyleXStyles> =
     },
     codeScroller: {
       minWidth: 0,
+      outline: {
+        default: null,
+        ":focus-visible": "2px solid var(--console-accent-dim)",
+      },
+      outlineOffset: -2,
+      overscrollBehaviorX: "contain",
       overflowX: "auto",
       scrollbarColor: "var(--console-rule-strong) transparent",
       scrollbarWidth: "thin",
@@ -172,6 +190,35 @@ export const markdownStyles: Record<MarkdownStyle, stylex.StyleXStyles> =
       columnGap: 14,
       minHeight: "1.65em",
     },
+    plain: {},
+    keyword: {
+      color:
+        "color-mix(in srgb, var(--console-accent) 55%, var(--console-text))",
+      fontWeight: 600,
+    },
+    string: {
+      color: "color-mix(in srgb, var(--console-ok) 55%, var(--console-text))",
+    },
+    number: {
+      color: "color-mix(in srgb, var(--console-warn) 45%, var(--console-text))",
+    },
+    comment: {
+      color:
+        "color-mix(in srgb, var(--console-text-dim) 70%, var(--console-text))",
+      fontStyle: "italic",
+    },
+    name: { color: "var(--console-text)", fontWeight: 600 },
+    operator: {
+      color:
+        "color-mix(in srgb, var(--console-accent) 55%, var(--console-text))",
+    },
+    tableRow: {
+      backgroundColor: {
+        default: null,
+        ":nth-child(even)":
+          "color-mix(in srgb, var(--console-text) 3%, transparent)",
+      },
+    },
     lineNumber: {
       color: "var(--console-text-muted)",
       textAlign: "right",
@@ -179,6 +226,12 @@ export const markdownStyles: Record<MarkdownStyle, stylex.StyleXStyles> =
     },
     tableFrame: {
       width: "100%",
+      outline: {
+        default: null,
+        ":focus-visible": "2px solid var(--console-accent-dim)",
+      },
+      outlineOffset: -2,
+      overscrollBehaviorX: "contain",
       margin: "18px 0",
       overflowX: "auto",
       borderWidth: 1,
@@ -200,16 +253,19 @@ export const markdownStyles: Record<MarkdownStyle, stylex.StyleXStyles> =
       borderBottomStyle: "solid",
       borderBottomColor: "var(--console-rule)",
       color: "var(--console-text-dim)",
-      fontFamily: "var(--console-mono)",
-      fontSize: 10,
-      fontWeight: 600,
-      letterSpacing: ".06em",
       textAlign: "left",
-      textTransform: "uppercase",
-      whiteSpace: "nowrap",
+      whiteSpace: "normal",
+      minWidth: "12ch",
+      verticalAlign: "top",
     },
     tableCell: {
       padding: "9px 12px",
+      minWidth: "12ch",
+      maxWidth: "48ch",
+      overflowWrap: "anywhere",
+      verticalAlign: "top",
+      lineHeight: 1.6,
+      fontVariantNumeric: "tabular-nums",
       borderRightWidth: 1,
       borderRightStyle: "solid",
       borderRightColor: "var(--console-rule)",

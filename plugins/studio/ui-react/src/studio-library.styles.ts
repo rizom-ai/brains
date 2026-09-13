@@ -1,6 +1,7 @@
 import * as stylex from "@stylexjs/stylex";
 export const libraryStyles: Record<
   | "frame"
+  | "readable"
   | "boot"
   | "listing"
   | "row"
@@ -13,7 +14,15 @@ export const libraryStyles: Record<
   | "range",
   stylex.StyleXStyles
 > = stylex.create({
+  readable: {
+    color: "var(--console-text)",
+    "--console-text-muted":
+      "color-mix(in srgb, var(--color-text-light) 70%, var(--color-text))",
+  },
   frame: {
+    // Small secondary labels must remain readable in both Studio climates.
+    "--console-text-muted":
+      "color-mix(in srgb, var(--color-text-light) 70%, var(--color-text))",
     display: "flex",
     flexDirection: "column",
     flex: 1,
@@ -24,12 +33,12 @@ export const libraryStyles: Record<
   listing: {
     width: "auto",
     margin: 0,
-    padding: "26px 30px 34px",
+    paddingBottom: 34,
     "@media (min-width: 901px)": { overflowY: "auto" },
     "@media (max-width: 640px)": {
       minWidth: 0,
       overflow: "visible",
-      padding: "12px 16px calc(28px + env(safe-area-inset-bottom))",
+      paddingBottom: "calc(28px + env(safe-area-inset-bottom))",
     },
   },
   row: {

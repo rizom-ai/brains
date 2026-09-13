@@ -8,6 +8,7 @@ export const chatLayout: Record<
   | "emptyThreadHead"
   | "emptyConversation"
   | "sessions"
+  | "mobileSessions"
   | "picker"
   | "thread"
   | "threadHead"
@@ -15,11 +16,14 @@ export const chatLayout: Record<
   | "session"
   | "activeSession"
   | "sessionTitle"
+  | "sessionControls"
+  | "sessionFilterInput"
   | "timestamp"
   | "actions"
   | "title"
   | "summary"
   | "context"
+  | "desktopContext"
   | "contextBody"
   | "contextItem"
   | "threadScroll"
@@ -37,6 +41,7 @@ export const chatLayout: Record<
   | "form"
   | "composer"
   | "fieldLabel"
+  | "composerHint"
   | "input"
   | "uploadInput"
   | "attachButton"
@@ -50,6 +55,35 @@ export const chatLayout: Record<
   | "cardText",
   stylex.StyleXStyles
 > = stylex.create({
+  sessionControls: {
+    display: "grid",
+    gap: 8,
+    minWidth: 0,
+    marginBottom: 12,
+    fontSize: 12,
+    color: "var(--console-text-muted)",
+  },
+  sessionFilterInput: {
+    display: "block",
+    width: "100%",
+    minWidth: 0,
+    minHeight: 44,
+    marginTop: 4,
+    padding: "8px 10px",
+    border: "1px solid var(--console-rule)",
+    borderRadius: 5,
+    fontFamily: "var(--console-ui)",
+    fontSize: 14,
+    color: "var(--console-text)",
+    backgroundColor: "var(--console-card)",
+  },
+  composerHint: {
+    display: "block",
+    marginTop: 8,
+    fontSize: 11,
+    lineHeight: 1.4,
+    color: "var(--console-text-muted)",
+  },
   shell: {
     display: "grid",
     flex: 1,
@@ -72,10 +106,9 @@ export const chatLayout: Record<
     minWidth: 0,
     minHeight: 0,
     overflow: "hidden",
-    padding: {
-      default: "36px 36px 38px",
-      "@media (max-width: 640px)":
-        "24px 20px calc(24px + env(safe-area-inset-bottom))",
+    paddingBottom: {
+      default: 38,
+      "@media (max-width: 640px)": "calc(24px + env(safe-area-inset-bottom))",
     },
     gap: 28,
   },
@@ -94,6 +127,9 @@ export const chatLayout: Record<
   roomWithoutSessions: { gridTemplateColumns: "minmax(0,1fr)" },
   emptyThreadHead: { marginBottom: 12 },
   emptyConversation: { margin: 0 },
+  mobileSessions: {
+    display: { default: "none", "@media (max-width: 860px)": "inline-flex" },
+  },
   sessions: {
     display: { default: "block", "@media (max-width: 860px)": "none" },
     minWidth: 0,
@@ -101,8 +137,10 @@ export const chatLayout: Record<
     overflowY: "auto",
   },
   picker: {
+    "--console-text-muted":
+      "color-mix(in srgb, var(--color-text-light) 70%, var(--color-text))",
     display: "grid",
-    gridTemplateRows: "auto minmax(0,1fr)",
+    gridTemplateRows: "auto auto minmax(0,1fr)",
     maxHeight: "65dvh",
     minHeight: 0,
     overflow: "hidden",
@@ -124,11 +162,6 @@ export const chatLayout: Record<
   },
   title: {
     margin: 0,
-    fontFamily: "var(--console-display)",
-    fontSize: 24,
-    fontVariationSettings: '"SOFT" 70,"opsz" 40',
-    fontWeight: 400,
-    lineHeight: 1.3,
     overflowWrap: "anywhere",
     color: "var(--console-text)",
   },
@@ -188,6 +221,9 @@ export const chatLayout: Record<
     color: "var(--console-text-muted)",
     cursor: "pointer",
   },
+  desktopContext: {
+    display: { default: "block", "@media (max-width: 860px)": "none" },
+  },
   context: {
     minWidth: 0,
     borderBottomWidth: 1,
@@ -196,13 +232,19 @@ export const chatLayout: Record<
   },
   contextBody: {
     display: "grid",
+    outline: {
+      default: null,
+      ":focus-visible": "2px solid var(--console-accent)",
+    },
+    outlineOffset: -2,
     gap: 16,
     maxHeight: {
       default: "min(240px, 28dvh)",
-      "@media (max-width: 860px)": "min(200px, 20dvh)",
+      "@media (max-width: 860px)": "min(480px, 60dvh)",
     },
     overflowY: "auto",
     paddingBottom: 16,
+    paddingInline: 4,
     minWidth: 0,
   },
   contextItem: {
@@ -219,6 +261,11 @@ export const chatLayout: Record<
   },
   threadScroll: {
     flex: 1,
+    outline: {
+      default: null,
+      ":focus-visible": "2px solid var(--console-accent)",
+    },
+    outlineOffset: -2,
     minHeight: 0,
     minWidth: 0,
     overflowY: "auto",
@@ -282,7 +329,7 @@ export const chatLayout: Record<
     fontSize: 11,
     color: "var(--console-text-muted)",
   },
-  cardHeading: { margin: 0, fontSize: 14, fontWeight: 600 },
+  cardHeading: { margin: 0 },
   cardText: {
     margin: 0,
     fontFamily: "var(--console-ui)",
@@ -339,7 +386,10 @@ export const chatLayout: Record<
   attachButton: {
     display: "inline-flex",
     alignItems: "center",
-    minHeight: 40,
+    minHeight: {
+      default: 40,
+      "@media (max-width: 640px)": "var(--console-touch)",
+    },
     padding: "8px 12px",
     boxSizing: "border-box",
     borderWidth: 1,
@@ -363,7 +413,14 @@ export const chatLayout: Record<
     overflow: "hidden",
     whiteSpace: "nowrap",
   },
-  uploadList: { display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 },
+  uploadList: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 8,
+    margin: "0 0 12px",
+    padding: 0,
+    listStyleType: "none",
+  },
   upload: {
     display: "inline-block",
     margin: 0,
@@ -399,9 +456,6 @@ export const chatLayout: Record<
   },
   subheading: {
     margin: 0,
-    fontFamily: "var(--console-ui)",
-    fontSize: 14,
-    fontWeight: 600,
     lineHeight: 1.5,
   },
 });

@@ -1,5 +1,12 @@
 /** @jsxImportSource react */
 import { libraryStyles as library } from "./studio-library.styles";
+import { StudioChatSessionRename } from "./studio-chat-session-rename";
+import { StudioChatWorkingSetDisclosure } from "./studio-chat-working-set-disclosure";
+import {
+  messageUploadAccept,
+  messageTextUploadMaxBytes,
+  messageUploadMaxBytes,
+} from "@brains/plugins/message-interface/upload-policy";
 import {
   Button,
   Dialog,
@@ -13,6 +20,8 @@ import {
   type StudioChatNavigationState,
 } from "./studio-chat-drafts";
 import { StudioPageHead, studioAccessRequirement } from "./studio-page-head";
+import { headStyles } from "./studio-page-head.styles";
+import { typographyStyles } from "./studio-typography.styles";
 import {
   createChatClient,
   readChatProtocolEvents,
@@ -58,6 +67,8 @@ import {
   navigationStyles as nav,
 } from "./studio-navigation.styles";
 
+const CHAT_UPLOAD_GUIDANCE = `Text/Markdown up to ${messageTextUploadMaxBytes / 1000} KB; PNG, JPEG, WebP, GIF or PDF up to ${messageUploadMaxBytes / 1000000} MB.`;
+
 const studioChatKeys = {
   sessions: ["studio", "chat", "sessions"] as const,
   messages: (conversationId: string) =>
@@ -66,6 +77,25 @@ const studioChatKeys = {
 
 type ChatActionCard = Extract<ChatCard, { kind: "actions" }>;
 type ChatSuggestedAction = ChatActionCard["actions"][number];
+
+interface SessionView {
+  query: string;
+  archived: boolean;
+  offset: number;
+}
+
+interface ChatUploadAttempt {
+  id: string;
+  file: File;
+  status: "uploading" | "failed";
+  error?: string;
+}
+
+interface InterruptedResponse {
+  kind: "stopped" | "disconnected" | "failed";
+  detail?: string;
+  retry?: { text: string; uploads: ChatUploadResponse[] };
+}
 
 export interface StudioChatWorkspaceProps {
   apiPath?: string | undefined;
@@ -129,20 +159,31 @@ export function StudioChatWorkspace(
   const [sending, setSending] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadAttempts, setUploadAttempts] = useState<ChatUploadAttempt[]>([]);
+  const uploadBatchRef = useRef<symbol | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [interrupted, setInterrupted] = useState<InterruptedResponse | null>(
+    null,
+  );
   useEffect(() => {
     props.onNavigationStateChange?.({
-      hasDraft: Boolean(draft || uploads.length),
+      hasDraft: Boolean(draft || uploads.length || uploadAttempts.length),
       busy: sending || uploading,
     });
-  }, [draft, uploads, sending, uploading, props.onNavigationStateChange]);
+  }, [
+    draft,
+    uploads,
+    uploadAttempts,
+    sending,
+    uploading,
+    props.onNavigationStateChange,
+  ]);
   useEffect(
     () => (): void =>
       props.onNavigationStateChange?.({ hasDraft: false, busy: false }),
     [props.onNavigationStateChange],
   );
   const navigationCollapsed = useStudioNavigationCollapsed();
-  const [contextOpen, setContextOpen] = useState(false);
   const [sessionPickerOpen, setSessionPickerOpen] = useState(false);
   const sessionPickerTrigger = useRef<HTMLSpanElement>(null);
   const threadEndRef = useRef<HTMLDivElement | null>(null);
@@ -155,6 +196,7 @@ export function StudioChatWorkspace(
     mountedRef.current = true;
     return (): void => {
       mountedRef.current = false;
+      uploadBatchRef.current = null;
       const active = activeStreamRef.current;
       activeStreamRef.current = null;
       active?.abort();
@@ -163,9 +205,27 @@ export function StudioChatWorkspace(
   const handledHandoffRef = useRef<string | null>(null);
   const adoptedSessionRef = useRef<string | null>(null);
 
+  const [sessionSearch, setSessionSearch] = useState("");
+  const [sessionView, setSessionView] = useState<SessionView>({
+    query: "",
+    archived: false,
+    offset: 0,
+  });
+  useEffect(() => {
+    const timer = window.setTimeout(
+      () =>
+        setSessionView((current) =>
+          current.query === sessionSearch.trim()
+            ? current
+            : { ...current, query: sessionSearch.trim(), offset: 0 },
+        ),
+      250,
+    );
+    return (): void => window.clearTimeout(timer);
+  }, [sessionSearch]);
   const sessionsQuery = useQuery({
-    queryKey: studioChatKeys.sessions,
-    queryFn: () => chatClient.listSessions(),
+    queryKey: [...studioChatKeys.sessions, sessionView],
+    queryFn: () => chatClient.listSessions(sessionView),
   });
   const messagesQuery = useQuery({
     queryKey: studioChatKeys.messages(props.sessionId ?? ""),
@@ -176,11 +236,31 @@ export function StudioChatWorkspace(
       props.sessionId !== null && !sending && pendingMessages.length === 0,
   });
   const sessions = sessionsQuery.data ?? [];
-  const showSessionRail = sessionsQuery.isPending || sessions.length > 0;
+  const showSessionRail =
+    sessionsQuery.isPending ||
+    Boolean(sessionsQuery.error) ||
+    sessions.length > 0 ||
+    sessionSearch.length > 0 ||
+    sessionView.archived ||
+    sessionView.offset > 0;
   const storedMessages = messagesQuery.data ?? [];
-  const currentSession = sessions.find(
-    (session) => session.id === props.sessionId,
-  );
+  const currentSession =
+    sessions.find((session) => session.id === props.sessionId) ??
+    queryClient
+      .getQueriesData<ChatSession[]>({ queryKey: studioChatKeys.sessions })
+      .flatMap(([, items]) => items ?? [])
+      .find((session) => session.id === props.sessionId);
+  const archivedSession = currentSession?.archived === true;
+  const sessionControls = {
+    search: sessionSearch,
+    view: sessionView,
+    error: sessionsQuery.error ? "Sessions could not be loaded." : null,
+    onRetry: (): void => {
+      void sessionsQuery.refetch();
+    },
+    onSearch: setSessionSearch,
+    onView: setSessionView,
+  };
   const visibleMessages = useMemo(() => {
     const next = [...storedMessages, ...pendingMessages];
     if (stream && (stream.text || stream.cards.length > 0)) {
@@ -210,8 +290,11 @@ export function StudioChatWorkspace(
     setPendingMessages([]);
     setStream(null);
     setUploading(false);
+    uploadBatchRef.current = null;
+    setUploadAttempts([]);
     setArchiving(false);
     setError(null);
+    setInterrupted(null);
   }, [props.sessionId]);
 
   useEffect(() => {
@@ -303,13 +386,19 @@ export function StudioChatWorkspace(
       conversationId: string,
       messages: ChatMessage[],
       onAccepted?: () => void,
+      retry?: InterruptedResponse["retry"],
     ): Promise<boolean> => {
       activeStreamRef.current?.abort();
       const controller = new AbortController();
       activeStreamRef.current = controller;
       setSending(true);
       setError(null);
-      let next = createStudioChatStreamState();
+      setInterrupted(null);
+      let stoppedByServer = false;
+      let next: StudioChatStreamState = {
+        ...createStudioChatStreamState(),
+        messageId: crypto.randomUUID(),
+      };
       setStream(next);
       let accepted = false;
       let retained = false;
@@ -333,11 +422,30 @@ export function StudioChatWorkspace(
         onAccepted?.();
         for await (const event of readChatProtocolEvents(response)) {
           if (activeStreamRef.current !== controller) return accepted;
+          if (event.type === "abort") stoppedByServer = true;
           next = reduceStudioChatStream(next, event);
           setStream(next);
         }
         if (activeStreamRef.current !== controller) return accepted;
         retainResponse();
+        if (
+          controller.signal.aborted ||
+          stoppedByServer ||
+          next.error !== null ||
+          !next.finished
+        ) {
+          setInterrupted({
+            kind:
+              controller.signal.aborted || stoppedByServer
+                ? "stopped"
+                : next.error !== null
+                  ? "failed"
+                  : "disconnected",
+            ...(next.error ? { detail: next.error } : {}),
+            ...(retry ? { retry } : {}),
+          });
+          return accepted;
+        }
         try {
           const authoritativeMessages =
             await chatClient.getMessages(conversationId);
@@ -357,8 +465,22 @@ export function StudioChatWorkspace(
       } catch (cause) {
         if (activeStreamRef.current !== controller) return accepted;
         retainResponse();
-        if (!controller.signal.aborted)
-          setError(errorMessage(cause, "Chat could not complete the response"));
+        setInterrupted({
+          kind: controller.signal.aborted
+            ? "stopped"
+            : accepted
+              ? "disconnected"
+              : "failed",
+          ...(!controller.signal.aborted
+            ? {
+                detail: errorMessage(
+                  cause,
+                  "Chat could not complete the response",
+                ),
+              }
+            : {}),
+          ...(retry ? { retry } : {}),
+        });
       } finally {
         if (activeStreamRef.current === controller) {
           activeStreamRef.current = null;
@@ -373,7 +495,13 @@ export function StudioChatWorkspace(
   const submitPrompt = useCallback(
     async (prompt: string): Promise<void> => {
       const text = prompt.trim();
-      if ((!text && uploads.length === 0) || sending || uploading) return;
+      if (
+        (!text && uploads.length === 0) ||
+        sending ||
+        uploading ||
+        uploadAttempts.length > 0
+      )
+        return;
       const conversationId = props.sessionId ?? `web-${crypto.randomUUID()}`;
       const sentKey = studioChatDraftKey(props.apiPath, conversationId);
       const messageId = crypto.randomUUID();
@@ -414,6 +542,7 @@ export function StudioChatWorkspace(
             ),
           });
         },
+        { text: prompt, uploads: [...uploads] },
       );
       if (
         !accepted &&
@@ -434,6 +563,7 @@ export function StudioChatWorkspace(
       sending,
       uploading,
       uploads,
+      uploadAttempts.length,
     ],
   );
 
@@ -491,31 +621,90 @@ export function StudioChatWorkspace(
     [chatClient, props.sessionId, sending, submitPrompt, draftKey],
   );
 
+  const runUploads = useCallback(
+    async (attempts: ChatUploadAttempt[]): Promise<void> => {
+      if (uploadBatchRef.current || attempts.length === 0) return;
+      const batch = Symbol();
+      uploadBatchRef.current = batch;
+      setUploading(true);
+      setUploadAttempts((current) => [
+        ...current.filter(
+          (item) => !attempts.some((attempt) => attempt.id === item.id),
+        ),
+        ...attempts.map((attempt): ChatUploadAttempt => ({
+          id: attempt.id,
+          file: attempt.file,
+          status: "uploading",
+        })),
+      ]);
+      await Promise.all(
+        attempts.map(async (attempt): Promise<void> => {
+          try {
+            const upload = await chatClient.upload(
+              attempt.file,
+              attempt.file.name,
+            );
+            if (
+              uploadBatchRef.current !== batch ||
+              currentDraftKey.current !== draftKey
+            )
+              return;
+            setUploads((current) => [...current, upload]);
+            setUploadAttempts((current) =>
+              current.filter((item) => item.id !== attempt.id),
+            );
+          } catch (cause) {
+            if (
+              uploadBatchRef.current !== batch ||
+              currentDraftKey.current !== draftKey
+            )
+              return;
+            setUploadAttempts((current) =>
+              current.map((item) =>
+                item.id === attempt.id
+                  ? {
+                      ...item,
+                      status: "failed",
+                      error: errorMessage(cause, "Upload failed"),
+                    }
+                  : item,
+              ),
+            );
+          }
+        }),
+      );
+      if (uploadBatchRef.current === batch) {
+        uploadBatchRef.current = null;
+        setUploading(false);
+      }
+    },
+    [chatClient, draftKey, setUploads],
+  );
+
   const uploadFiles = useCallback(
     async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
       const files = Array.from(event.target.files ?? []);
       event.target.value = "";
-      if (files.length === 0) return;
-      setUploading(true);
-      setError(null);
-      try {
-        const uploaded = await Promise.all(
-          files.map((file) => chatClient.upload(file, file.name)),
-        );
-        setUploads((current) => [...current, ...uploaded]);
-      } catch (cause) {
-        if (mountedRef.current && currentDraftKey.current === draftKey)
-          setError(errorMessage(cause, "Upload failed"));
-      } finally {
-        if (mountedRef.current && currentDraftKey.current === draftKey)
-          setUploading(false);
-      }
+      await runUploads(
+        files.map((file) => ({
+          id: crypto.randomUUID(),
+          file,
+          status: "uploading",
+        })),
+      );
     },
-    [chatClient, setUploads, draftKey],
+    [runUploads],
   );
 
   const archiveCurrent = useCallback(async (): Promise<void> => {
-    if (!props.sessionId || sending || uploading || draft || uploads.length)
+    if (
+      !props.sessionId ||
+      sending ||
+      uploading ||
+      draft ||
+      uploads.length ||
+      uploadAttempts.length
+    )
       return;
     setSending(true);
     setArchiving(true);
@@ -544,6 +733,7 @@ export function StudioChatWorkspace(
     uploading,
     draft,
     uploads.length,
+    uploadAttempts.length,
     draftKey,
   ]);
 
@@ -591,24 +781,14 @@ export function StudioChatWorkspace(
             onSelectWorkspace={props.selectWorkspace}
           />
         </aside>
-        <main className={chatClass("studio-chat-workspace", chatLayout.frame)}>
+        <main
+          className={chatClass(
+            "studio-chat-workspace",
+            chatLayout.frame,
+            headStyles.inset,
+          )}
+        >
           <div>
-            {sessionsQuery.error && (
-              <section role="alert">
-                <p>
-                  Sessions could not be refreshed. Your conversation and draft
-                  are still available.
-                </p>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  disabled={sessionsQuery.isFetching}
-                  onClick={() => void sessionsQuery.refetch()}
-                >
-                  Retry sessions
-                </Button>
-              </section>
-            )}
             <StudioPageHead
               model={{
                 title: "Chat",
@@ -624,7 +804,10 @@ export function StudioChatWorkspace(
                 >
                   <span
                     ref={sessionPickerTrigger}
-                    className="studio-chat-mobile-sessions"
+                    className={chatClass(
+                      "studio-chat-session-picker-trigger",
+                      showSessionRail && chatLayout.mobileSessions,
+                    )}
                   >
                     <Button
                       aria-expanded={sessionPickerOpen}
@@ -636,11 +819,7 @@ export function StudioChatWorkspace(
                       Sessions
                     </Button>
                   </span>
-                  <Button
-                    variant="outline"
-                    type="button"
-                    onClick={() => navigateToSession()}
-                  >
+                  <Button type="button" onClick={() => navigateToSession()}>
                     New conversation
                   </Button>
                 </div>
@@ -662,6 +841,7 @@ export function StudioChatWorkspace(
             >
               <DialogTitle>Conversations</DialogTitle>
               <SessionRail
+                {...sessionControls}
                 popup
                 activeSessionId={props.sessionId}
                 loading={sessionsQuery.isPending}
@@ -680,6 +860,7 @@ export function StudioChatWorkspace(
           >
             {showSessionRail && (
               <SessionRail
+                {...sessionControls}
                 activeSessionId={props.sessionId}
                 loading={sessionsQuery.isPending}
                 sessions={sessions}
@@ -710,12 +891,47 @@ export function StudioChatWorkspace(
                     className={chatClass(
                       "studio-chat-session-heading",
                       chatLayout.title,
+                      typographyStyles.secondaryDisplay,
                     )}
                   >
-                    {currentSession?.title ?? "New conversation"}
+                    {currentSession?.title ??
+                      (props.sessionId ? "Conversation" : "New conversation")}
                   </h2>
+                  {currentSession && (
+                    <StudioChatSessionRename
+                      key={currentSession.id}
+                      title={currentSession.title}
+                      onRename={async (title): Promise<void> => {
+                        const result = await chatClient.renameSession(
+                          currentSession.id,
+                          title,
+                        );
+                        if (!result.renamed)
+                          throw new Error(
+                            "The conversation could not be renamed.",
+                          );
+                        queryClient.setQueriesData<ChatSession[]>(
+                          { queryKey: studioChatKeys.sessions },
+                          (items) =>
+                            items?.map((session) =>
+                              session.id === currentSession.id
+                                ? { ...session, title: result.title }
+                                : session,
+                            ),
+                        );
+                        void queryClient.invalidateQueries({
+                          queryKey: studioChatKeys.sessions,
+                        });
+                      }}
+                    />
+                  )}
+                  {archivedSession && (
+                    <p role="status">
+                      Archived conversation. New messages here remain archived.
+                    </p>
+                  )}
                 </div>
-                {props.sessionId ? (
+                {props.sessionId && !archivedSession ? (
                   <Button
                     className="studio-chat-header-action"
                     variant="ghost"
@@ -725,10 +941,11 @@ export function StudioChatWorkspace(
                       sending ||
                       uploading ||
                       Boolean(draft) ||
-                      uploads.length > 0
+                      uploads.length > 0 ||
+                      uploadAttempts.length > 0
                     }
                     title={
-                      draft || uploads.length
+                      draft || uploads.length || uploadAttempts.length
                         ? "Send or clear the draft before archiving"
                         : undefined
                     }
@@ -738,32 +955,20 @@ export function StudioChatWorkspace(
                 ) : null}
               </header>
               {(props.sessionId !== null || visibleMessages.length > 0) && (
-                <details
-                  className={chatClass(
-                    "studio-chat-working-set",
-                    chatLayout.context,
-                  )}
-                  open={contextOpen}
-                  onToggle={(event) => setContextOpen(event.currentTarget.open)}
-                >
-                  <summary
-                    className={chatClass(
-                      "studio-chat-working-set-summary",
-                      chatLayout.summary,
-                    )}
-                  >
-                    Working set
-                  </summary>
+                <StudioChatWorkingSetDisclosure contextKey={props.sessionId}>
                   <WorkingSet
                     cards={contextCards}
                     messages={visibleMessages}
                     progress={stream?.progress ?? []}
                     session={currentSession}
                   />
-                </details>
+                </StudioChatWorkingSetDisclosure>
               )}
               <div
                 ref={threadScrollRef}
+                tabIndex={0}
+                role="region"
+                aria-label="Conversation messages"
                 onScroll={(event) => {
                   const scroll = event.currentTarget;
                   const nearBottom =
@@ -847,6 +1052,70 @@ export function StudioChatWorkspace(
                       Working…
                     </p>
                   ) : null}
+                  {interrupted && (
+                    <section
+                      className={chatClass(
+                        "studio-chat-interruption",
+                        chatLayout.empty,
+                      )}
+                      role={interrupted.kind === "stopped" ? "status" : "alert"}
+                      aria-atomic="true"
+                    >
+                      <strong>
+                        {interrupted.kind === "stopped"
+                          ? "Stopped"
+                          : interrupted.kind === "disconnected"
+                            ? "Connection lost"
+                            : "Response failed"}
+                      </strong>
+                      <p>
+                        Any received text is kept here. Stopping the response
+                        does not undo completed actions; the server may still be
+                        working.
+                      </p>
+                      {interrupted.detail && <p>{interrupted.detail}</p>}
+                      {interrupted.retry && (
+                        <>
+                          <p>
+                            Sending again may repeat completed actions. Review
+                            the request before sending.
+                          </p>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            disabled={
+                              sending ||
+                              uploading ||
+                              Boolean(draft) ||
+                              uploads.length > 0
+                            }
+                            onClick={() => {
+                              if (
+                                !interrupted.retry ||
+                                draft ||
+                                uploads.length > 0
+                              )
+                                return;
+                              setDraft(interrupted.retry.text);
+                              setUploads([...interrupted.retry.uploads]);
+                              threadScrollRef.current
+                                ?.closest(".studio-chat-thread")
+                                ?.querySelector<HTMLTextAreaElement>("textarea")
+                                ?.focus();
+                            }}
+                          >
+                            Review retry in composer
+                          </Button>
+                          {(draft || uploads.length > 0) && (
+                            <p>
+                              Your composer draft is unchanged. Send or clear it
+                              before restoring this request.
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </section>
+                  )}
                   {error ? (
                     <p
                       className={chatClass(
@@ -869,7 +1138,10 @@ export function StudioChatWorkspace(
                         followLatestRef.current = true;
                         setShowJumpToLatest(false);
                         const scroll = threadScrollRef.current;
-                        if (scroll) scroll.scrollTop = scroll.scrollHeight;
+                        if (scroll) {
+                          scroll.focus({ preventScroll: true });
+                          scroll.scrollTop = scroll.scrollHeight;
+                        }
                       }
                     : undefined
                 }
@@ -877,6 +1149,13 @@ export function StudioChatWorkspace(
                 sending={sending}
                 uploading={uploading}
                 uploads={uploads}
+                uploadAttempts={uploadAttempts}
+                onRetryUpload={(attempt) => void runUploads([attempt])}
+                onDismissUpload={(id) =>
+                  setUploadAttempts((current) =>
+                    current.filter((attempt) => attempt.id !== id),
+                  )
+                }
                 onDraft={setDraft}
                 locked={archiving}
                 onRemoveUpload={(id) =>
@@ -905,6 +1184,12 @@ function SessionRail(props: {
   sessions: ChatSession[];
   activeSessionId: string | null;
   loading: boolean;
+  search: string;
+  view: SessionView;
+  error: string | null;
+  onRetry: () => void;
+  onSearch: (search: string) => void;
+  onView: (view: SessionView) => void;
   onNew: () => void;
   onSelect: (id: string) => void;
 }): ReactElement {
@@ -931,6 +1216,7 @@ function SessionRail(props: {
               className={chatClass(
                 "studio-chat-sessions-title",
                 chatLayout.subheading,
+                typographyStyles.section,
               )}
             >
               Sessions
@@ -948,6 +1234,80 @@ function SessionRail(props: {
       )}
       <div
         className={chatClass(
+          "studio-chat-session-controls",
+          chatLayout.sessionControls,
+        )}
+      >
+        <label>
+          Search conversations
+          <input
+            type="search"
+            maxLength={200}
+            className={chatClass("", chatLayout.sessionFilterInput)}
+            placeholder="Titles or messages"
+            value={props.search}
+            onChange={(event) => props.onSearch(event.target.value)}
+          />
+        </label>
+        <label>
+          Show
+          <select
+            className={chatClass("", chatLayout.sessionFilterInput)}
+            value={props.view.archived ? "archived" : "active"}
+            onChange={(event) =>
+              props.onView({
+                ...props.view,
+                archived: event.target.value === "archived",
+                offset: 0,
+              })
+            }
+          >
+            <option value="active">Active conversations</option>
+            <option value="archived">Archived conversations</option>
+          </select>
+        </label>
+        <div
+          className={chatClass("", chatLayout.actions)}
+          aria-label="Conversation pages"
+          role="group"
+        >
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={props.loading || props.view.offset === 0}
+            onClick={() =>
+              props.onView({
+                ...props.view,
+                offset: Math.max(0, props.view.offset - 25),
+              })
+            }
+          >
+            Previous
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={props.loading || props.sessions.length < 25}
+            onClick={() =>
+              props.onView({ ...props.view, offset: props.view.offset + 25 })
+            }
+          >
+            Next
+          </Button>
+        </div>
+        {props.error && (
+          <p role="alert">
+            {props.error}{" "}
+            <Button type="button" variant="ghost" onClick={props.onRetry}>
+              Retry sessions
+            </Button>
+          </p>
+        )}
+      </div>
+      <div
+        className={chatClass(
           "studio-chat-session-list",
           chatLayout.sessionList,
         )}
@@ -957,9 +1317,15 @@ function SessionRail(props: {
             Loading sessions…
           </p>
         ) : null}
-        {!props.loading && props.sessions.length === 0 ? (
+        {!props.loading && !props.error && props.sessions.length === 0 ? (
           <p className={chatClass("studio-chat-empty", chatLayout.empty)}>
-            No conversations yet.
+            {props.view.query
+              ? "No conversations match this search."
+              : props.view.offset > 0
+                ? "No more conversations."
+                : props.view.archived
+                  ? "No archived conversations."
+                  : "No conversations yet."}
           </p>
         ) : null}
         {props.sessions.map((session) => (
@@ -1293,6 +1659,9 @@ function Composer(props: {
   onRemoveUpload: (id: string) => void;
   draft: string;
   uploads: ChatUploadResponse[];
+  uploadAttempts: ChatUploadAttempt[];
+  onRetryUpload: (attempt: ChatUploadAttempt) => void;
+  onDismissUpload: (id: string) => void;
   sending: boolean;
   uploading: boolean;
   onDraft: (value: string) => void;
@@ -1317,6 +1686,52 @@ function Composer(props: {
         <Button type="button" variant="ghost" onClick={props.onJumpToLatest}>
           Jump to latest ↓
         </Button>
+      )}
+      {props.uploadAttempts.length > 0 && (
+        <ul
+          className={chatClass(
+            "studio-chat-upload-list",
+            chatLayout.uploadList,
+          )}
+          aria-label="File upload progress"
+        >
+          {props.uploadAttempts.map((attempt) => (
+            <li
+              key={attempt.id}
+              className={chatClass("studio-chat-upload", chatLayout.upload)}
+            >
+              <span role={attempt.status === "failed" ? "alert" : "status"}>
+                {attempt.file.name}:{" "}
+                {attempt.status === "uploading"
+                  ? "Uploading…"
+                  : (attempt.error ?? "Upload failed")}
+              </span>
+              {attempt.status === "failed" && (
+                <>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`Retry uploading ${attempt.file.name}`}
+                    disabled={props.uploading || props.sending || props.locked}
+                    onClick={() => props.onRetryUpload(attempt)}
+                  >
+                    Retry
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`Dismiss failed upload ${attempt.file.name}`}
+                    onClick={() => props.onDismissUpload(attempt.id)}
+                  >
+                    Dismiss
+                  </Button>
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
       )}
       {props.uploads.length > 0 ? (
         <div
@@ -1359,6 +1774,7 @@ function Composer(props: {
           <textarea
             className={chatClass("studio-chat-message", chatLayout.input)}
             aria-label="Message"
+            aria-describedby="studio-chat-composer-hint"
             placeholder="Write to your brain…"
             value={props.draft}
             disabled={props.locked}
@@ -1377,7 +1793,6 @@ function Composer(props: {
               "studio-chat-composer-action",
               chatLayout.attachButton,
             )}
-            aria-label="Attach files"
           >
             {props.uploading ? "Attaching…" : "Attach files"}
             <input
@@ -1386,6 +1801,8 @@ function Composer(props: {
                 chatLayout.uploadInput,
               )}
               type="file"
+              accept={messageUploadAccept}
+              aria-describedby="studio-chat-upload-guidance"
               multiple
               disabled={props.locked || props.sending || props.uploading}
               onChange={(event) => void props.onFiles(event)}
@@ -1412,6 +1829,7 @@ function Composer(props: {
               aria-label="Send message"
               disabled={
                 props.uploading ||
+                props.uploadAttempts.length > 0 ||
                 (!props.draft.trim() && props.uploads.length === 0)
               }
             >
@@ -1420,6 +1838,24 @@ function Composer(props: {
           )}
         </div>
       </form>
+      <small
+        id="studio-chat-composer-hint"
+        className={chatClass(
+          "studio-chat-composer-hint",
+          chatLayout.composerHint,
+        )}
+      >
+        Enter to send · Shift+Enter for a new line
+      </small>
+      <details
+        className={chatClass(
+          "studio-chat-upload-guidance",
+          chatLayout.composerHint,
+        )}
+      >
+        <summary>File types and limits</summary>
+        <p id="studio-chat-upload-guidance">{CHAT_UPLOAD_GUIDANCE}</p>
+      </details>
     </footer>
   );
 }
@@ -1433,6 +1869,7 @@ function WorkingSet(props: {
   return (
     <aside
       className={chatClass("studio-chat-context", chatLayout.contextBody)}
+      tabIndex={0}
       aria-label="Working set"
     >
       <div className={chatClass("studio-chat-context-list", chatLayout.cards)}>
@@ -1455,6 +1892,7 @@ function WorkingSet(props: {
               className={chatClass(
                 "studio-chat-context-card-title",
                 chatLayout.cardHeading,
+                typographyStyles.section,
               )}
             >
               {props.session.contextHandoff.titleSeed}
@@ -1496,6 +1934,7 @@ function WorkingSet(props: {
               className={chatClass(
                 "studio-chat-context-card-title",
                 chatLayout.cardHeading,
+                typographyStyles.section,
               )}
             >
               {card.kind === "sources"
@@ -1554,6 +1993,7 @@ function WorkingSet(props: {
               className={chatClass(
                 "studio-chat-context-card-title",
                 chatLayout.cardHeading,
+                typographyStyles.section,
               )}
             >
               {item.operationTarget ?? item.operationType}
@@ -1587,6 +2027,7 @@ function WorkingSet(props: {
               className={chatClass(
                 "studio-chat-context-card-title",
                 chatLayout.cardHeading,
+                typographyStyles.section,
               )}
             >
               Visible conversation

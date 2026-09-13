@@ -19,6 +19,8 @@ import {
 } from "@brains/operator-view-react";
 import type { Dispatch, ReactElement, ReactNode, SetStateAction } from "react";
 import { workspaceClassName } from "./studio-workspace.styles";
+import { headStyles } from "./studio-page-head.styles";
+import { typographyStyles } from "./studio-typography.styles";
 import { libraryStyles as library } from "./studio-library.styles";
 import { StudioStatus } from "./studio-status";
 import { editorLayoutStyles as layout } from "./studio-editor-layout.styles";
@@ -86,7 +88,19 @@ import {
   singularLabel,
 } from "./ui-utils";
 
+import type { StudioCollectionQuery } from "../../src/collection-query";
+import { StudioCollectionControls } from "./studio-collection-controls";
+
 export type MobileEditorPane = "details" | "write" | "preview";
+
+/** Pane preferences are presentation-only and stay in the mounted app. */
+export function mobileEditorEntry(
+  schema: Pick<TypeSchema, "format" | "hasBody">,
+  preferred: MobileEditorPane | null,
+): MobileEditorPane {
+  if (!schema.hasBody) return "details";
+  return preferred ?? (schema.format === "raw" ? "preview" : "details");
+}
 
 const EMPTY_TYPE_SCHEMA: TypeSchema = {
   entityType: "",
@@ -115,6 +129,8 @@ export interface StudioAppViewProps {
   entityOffset: number;
   entityLimit: number;
   entityTotal: number;
+  collectionQuery: StudioCollectionQuery;
+  onCollectionQueryChange: (query: StudioCollectionQuery) => void;
   entityListLoading: boolean;
   schema: TypeSchema | null;
   editor: EditorWorkflowState;
@@ -130,7 +146,7 @@ export interface StudioAppViewProps {
   dispatchEditor: Dispatch<EditorWorkflowAction>;
   setFieldAssistState: Dispatch<SetStateAction<FieldAssistState>>;
   setBodyMode: Dispatch<SetStateAction<BodyMode>>;
-  setMobilePane: Dispatch<SetStateAction<MobileEditorPane>>;
+  setMobilePane: (pane: MobileEditorPane) => void;
   backToList: () => void;
   selectEntityType: (entityType: string) => void;
   selectWorkspace: (workspaceId: string) => void;
@@ -172,21 +188,36 @@ export function StudioAppStatus(props: {
   message: string;
   error?: boolean;
   onRetry?: () => void;
+  onHome?: () => void;
 }): ReactElement {
   return (
-    <div className={editorClass("studio", library.frame)} data-studio-shell="">
+    <div
+      className={editorClass(
+        "studio",
+        library.frame,
+        typographyStyles.operatorRoles,
+      )}
+      data-studio-shell=""
+    >
       <StudioChrome contextLabel="Studio" />
-      <StudioStatus
-        tone={props.error ? "error" : undefined}
-        className={editorClass("", library.boot)}
-      >
-        {props.message}
-        {props.onRetry && (
-          <Button type="button" variant="ghost" onClick={props.onRetry}>
-            Retry
-          </Button>
-        )}
-      </StudioStatus>
+      <main aria-label="Studio status">
+        <StudioStatus
+          tone={props.error ? "error" : undefined}
+          className={editorClass("", library.boot)}
+        >
+          {props.message}
+          {props.onRetry && (
+            <Button type="button" variant="ghost" onClick={props.onRetry}>
+              Retry
+            </Button>
+          )}
+          {props.onHome && (
+            <Button type="button" variant="ghost" onClick={props.onHome}>
+              Open Studio
+            </Button>
+          )}
+        </StudioStatus>
+      </main>
     </div>
   );
 }
@@ -202,7 +233,11 @@ export function StudioAccountWorkspaceView(props: {
   const navigationCollapsed = useStudioNavigationCollapsed();
   return (
     <div
-      className={editorClass("studio", library.frame)}
+      className={editorClass(
+        "studio",
+        library.frame,
+        typographyStyles.operatorRoles,
+      )}
       data-view="account"
       data-studio-shell=""
     >
@@ -380,7 +415,11 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
       : null;
   return (
     <div
-      className={editorClass("studio", library.frame)}
+      className={editorClass(
+        "studio",
+        library.frame,
+        typographyStyles.operatorRoles,
+      )}
       data-studio-shell=""
       data-view={
         activeWorkspaceId ? "workspace" : editing ? "editor" : "listing"
@@ -457,6 +496,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                       action: (
                         <OperatorActionButton
                           action={declarativeHead.primaryAction}
+                          primary
                           onAction={performDeclarativeAction}
                           components={STUDIO_OPERATOR_COMPONENTS}
                         />
@@ -484,7 +524,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
           ) : null
         ) : !editing ? (
           <main
-            className={editorClass("", library.listing)}
+            className={editorClass("", library.listing, headStyles.inset)}
             data-studio-library=""
             aria-busy={entityListLoading}
           >
@@ -513,6 +553,13 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                 </Button>
               }
             />
+            {!entitySchema.isSingleton && (
+              <StudioCollectionControls
+                query={props.collectionQuery}
+                fields={entitySchema.fields}
+                onChange={props.onCollectionQueryChange}
+              />
+            )}
             {!entitySchema.isSingleton && entityTotal > 0 && (
               <nav
                 className={editorClass(
@@ -598,18 +645,58 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
               !entityListLoading &&
               entities?.length === 0 && (
                 <StudioStatus className={editorClass("", library.empty)}>
-                  Nothing here yet — start the first entry.
+                  {props.collectionQuery.q ||
+                  props.collectionQuery.status ||
+                  props.collectionQuery.visibility !== "all"
+                    ? "No entries match these filters. Clear or change the filters to try again."
+                    : canCreate
+                      ? "Nothing here yet — start the first entry."
+                      : "No entries are available in this collection."}
                 </StudioStatus>
               )}
           </main>
         ) : (
           <form
+            role="main"
+            aria-label="Document editor"
             className={editorClass("", layout.editor)}
             data-studio-editor=""
             data-mobile-pane={mobilePane}
+            onInvalidCapture={(event) => {
+              if (mobilePane === "details") return;
+              event.preventDefault();
+              const first = event.currentTarget.querySelector<
+                HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+              >("input:invalid, select:invalid, textarea:invalid");
+              if (event.target !== first) return;
+              setMobilePane("details");
+              requestAnimationFrame(() => {
+                if (first.isConnected) {
+                  first.focus();
+                  first.reportValidity();
+                }
+              });
+            }}
             onSubmit={(event) => {
               event.preventDefault();
-              if (canEdit) save();
+              if (canEdit && saveState.kind !== "saving") save();
+            }}
+            onKeyDown={(event) => {
+              if (
+                (event.ctrlKey || event.metaKey) &&
+                !event.altKey &&
+                !event.shiftKey &&
+                event.key.toLowerCase() === "s"
+              ) {
+                if (
+                  event.target instanceof HTMLElement &&
+                  event.target.closest('[role="dialog"], [role="alertdialog"]')
+                )
+                  return;
+                event.preventDefault();
+                if (canEdit && saveState.kind !== "saving")
+                  event.currentTarget.requestSubmit();
+              }
             }}
           >
             <StudioPageHead
@@ -619,6 +706,9 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                 <Button
                   type="submit"
                   className="studio-editor-head-save"
+                  variant={hasUnsavedChanges ? "default" : "outline"}
+                  title="Save changes (Ctrl+S or ⌘S)"
+                  aria-keyshortcuts="Control+s Meta+s"
                   disabled={!canEdit || saveState.kind === "saving"}
                 >
                   {saveState.kind === "saving" ? "Saving…" : "Save changes"}
@@ -636,7 +726,11 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                   <button
                     type="button"
                     aria-label="Editor view"
-                    className={editorClass("", editorStyles.paneTrigger)}
+                    className={editorClass(
+                      "",
+                      editorStyles.paneTrigger,
+                      typographyStyles.eyebrow,
+                    )}
                   >
                     {mobilePane === "details"
                       ? "Properties"
@@ -669,12 +763,22 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
             </div>
             <aside className={editorClass("", layout.colophon)}>
               <div className={editorClass("", editorStyles.propertiesHead)}>
-                <h2 className={editorClass("", editorStyles.propertiesLabel)}>
+                <h2
+                  className={editorClass(
+                    "",
+                    editorStyles.propertiesLabel,
+                    typographyStyles.eyebrow,
+                  )}
+                >
                   Properties
                 </h2>
                 {mode.kind === "create" || publicationState ? (
                   <span
-                    className={editorClass("", editorStyles.propertiesLabel)}
+                    className={editorClass(
+                      "",
+                      editorStyles.propertiesLabel,
+                      typographyStyles.eyebrow,
+                    )}
                   >
                     {mode.kind === "create" ? "New" : publicationState}
                   </span>
@@ -687,9 +791,17 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                 {entitySchema.fields
                   .filter((descriptor) => isFieldVisible(descriptor, draft))
                   .map((descriptor) => (
-                    <div key={descriptor.name} data-studio-field-assist="">
+                    <div
+                      key={`${selectedEntityType}:${mode.kind === "edit" ? mode.entity.id : "create"}:${descriptor.name}`}
+                      data-studio-field-assist=""
+                    >
                       <Field
                         descriptor={descriptor}
+                        issues={
+                          saveState.kind === "error"
+                            ? saveState.issues
+                            : undefined
+                        }
                         value={draft[descriptor.name]}
                         onChange={(raw) =>
                           dispatchEditor({

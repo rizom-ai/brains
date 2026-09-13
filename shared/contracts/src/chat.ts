@@ -499,15 +499,35 @@ export type ChatContextHandoffRequest = z.output<
   typeof chatContextHandoffRequestSchema
 >;
 
+export const chatSessionListQuerySchema: z.ZodObject<{
+  query: z.ZodDefault<z.ZodString>;
+  archived: z.ZodDefault<z.ZodBoolean>;
+  offset: z.ZodDefault<z.ZodNumber>;
+  limit: z.ZodDefault<z.ZodNumber>;
+}> = z.object({
+  query: z.string().trim().max(200).default(""),
+  archived: z.boolean().default(false),
+  offset: z
+    .number()
+    .int()
+    .nonnegative()
+    .max(Number.MAX_SAFE_INTEGER)
+    .default(0),
+  limit: z.number().int().min(1).max(100).default(25),
+});
+export type ChatSessionListQuery = z.input<typeof chatSessionListQuerySchema>;
+
 export const chatSessionSchema: Loose<{
   id: z.ZodString;
   title: z.ZodString;
   lastActiveAt: z.ZodString;
+  archived: z.ZodOptional<z.ZodBoolean>;
   contextHandoff: z.ZodOptional<typeof chatContextHandoffRequestSchema>;
 }> = z.looseObject({
   id: chatIdSchema,
   title: chatTitleSchema,
   lastActiveAt: chatTimestampSchema,
+  archived: z.boolean().optional(),
   contextHandoff: chatContextHandoffRequestSchema.optional(),
 });
 
@@ -1255,7 +1275,7 @@ export interface ChatClient {
     request: ChatMessageRequest,
     options?: { signal?: AbortSignal | undefined },
   ): Promise<Response>;
-  listSessions(): Promise<ChatSession[]>;
+  listSessions(query?: ChatSessionListQuery): Promise<ChatSession[]>;
   getMessages(conversationId: string): Promise<ChatHistoryMessage[]>;
   getGuestHistory(
     conversationId: string,
@@ -1454,10 +1474,19 @@ export function createChatClient(options: ChatClientOptions = {}): ChatClient {
       }
       return response;
     },
-    async listSessions(): Promise<ChatSession[]> {
+    async listSessions(
+      options: ChatSessionListQuery = {},
+    ): Promise<ChatSession[]> {
+      const query = chatSessionListQuerySchema.parse(options);
+      const params = new URLSearchParams();
+      if (query.query) params.set("q", query.query);
+      if (query.archived) params.set("archived", "true");
+      if (query.offset) params.set("offset", String(query.offset));
+      if (query.limit !== 25) params.set("limit", String(query.limit));
+      const suffix = params.size ? `?${params.toString()}` : "";
       const response = await requestJson(
         "list sessions",
-        paths.sessions,
+        `${paths.sessions}${suffix}`,
         chatSessionsResponseSchema,
       );
       return response.sessions;

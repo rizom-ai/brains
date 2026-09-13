@@ -1,6 +1,7 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
 import { fieldStyles as f } from "./studio-fields.styles";
+import { typographyStyles } from "./studio-typography.styles";
 import { StudioStatus } from "./studio-status";
 import {
   Button,
@@ -14,7 +15,14 @@ import {
   Textarea,
 } from "@brains/app-ui-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useId, useState, type ReactElement, type ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactElement,
+  type ReactNode,
+} from "react";
 import {
   useStudioNavigationCollapsed,
   setStudioNavigationCollapsed,
@@ -24,6 +32,7 @@ import type {
   StudioWorkspaceInfo,
   EntityTypeInfo,
   FieldDescriptor,
+  ValidationIssue,
 } from "./api";
 import { uploadImage, type UploadImageResult } from "./mutations";
 import { invalidateAfterUpload } from "./queries";
@@ -185,7 +194,9 @@ function MobileNavigationGroup(props: {
       open={props.open}
       onToggle={(event) => props.onToggle(event.currentTarget.open)}
     >
-      <summary className={navClass("", nav.mobileSummary)}>
+      <summary
+        className={navClass("", nav.mobileSummary, typographyStyles.eyebrow)}
+      >
         {props.label}
         {!props.open && props.currentLabel ? (
           <span className={navClass("", nav.mobileCurrent)}>
@@ -274,7 +285,6 @@ export function TypeSwitcher(props: {
   }
   const activeArea = browsingArea ?? currentArea;
   const leafOpen =
-    activeArea === "overview" ||
     activeArea === "library" ||
     activeArea === "work" ||
     activeArea === "system";
@@ -404,7 +414,13 @@ export function TypeSwitcher(props: {
       className={navClass("studio-leaf-group", nav.leafGroup)}
       key={group.label}
     >
-      <div className={navClass("studio-leaf-label", nav.leafLabel)}>
+      <div
+        className={navClass(
+          "studio-leaf-label",
+          nav.leafLabel,
+          typographyStyles.eyebrow,
+        )}
+      >
         {group.label}
       </div>
       <ul className={navClass("", nav.list)}>
@@ -523,7 +539,11 @@ export function TypeSwitcher(props: {
           <DialogTrigger asChild>
             <button
               type="button"
-              className={navClass("studio-mobile-switcher", nav.browse)}
+              className={navClass(
+                "studio-mobile-switcher",
+                nav.browse,
+                typographyStyles.eyebrow,
+              )}
               aria-label="Browse Studio"
             >
               <span aria-hidden="true">≡</span>
@@ -546,7 +566,11 @@ export function TypeSwitcher(props: {
               >
                 <header className={navClass("", nav.sheetHead)}>
                   <DialogPrimitive.Title
-                    className={navClass("", nav.sheetTitle)}
+                    className={navClass(
+                      "",
+                      nav.sheetTitle,
+                      typographyStyles.secondaryDisplay,
+                    )}
                   >
                     Browse Studio
                   </DialogPrimitive.Title>
@@ -625,6 +649,7 @@ export function TypeSwitcher(props: {
               className={navClass(
                 "studio-area-title",
                 nav.areaTitle,
+                typographyStyles.eyebrow,
                 collapsed && nav.collapsedTitle,
               )}
             >
@@ -677,8 +702,13 @@ export function TypeSwitcher(props: {
                       : undefined
                   }
                   aria-controls={
-                    ["library", "work", "system"].includes(area.id)
+                    leafOpen && ["library", "work", "system"].includes(area.id)
                       ? leafId
+                      : undefined
+                  }
+                  aria-expanded={
+                    ["library", "work", "system"].includes(area.id)
+                      ? leafOpen && !collapsed && area.id === activeArea
                       : undefined
                   }
                   key={area.id}
@@ -739,20 +769,17 @@ export function TypeSwitcher(props: {
               aria-label={`${areas.find((area) => area.id === activeArea)?.label ?? "Studio"} destinations`}
             >
               <header className={navClass("studio-leaf-head", nav.leafHead)}>
-                <h2 className={navClass("", nav.leafTitle)}>
+                <h2
+                  className={navClass(
+                    "",
+                    nav.leafTitle,
+                    typographyStyles.secondaryDisplay,
+                  )}
+                >
                   {areas.find((area) => area.id === activeArea)?.label}
                 </h2>
               </header>
               <div className={navClass("studio-leaf-scroll", nav.leafScroll)}>
-                {activeArea === "overview" && overviewWorkspace ? (
-                  <section
-                    className={navClass("studio-leaf-group", nav.leafGroup)}
-                  >
-                    <ul className={navClass("", nav.list)}>
-                      {renderWorkspaceLink(overviewWorkspace)}
-                    </ul>
-                  </section>
-                ) : null}
                 {activeArea === "library"
                   ? primaryTypeGroups.map(renderGroup)
                   : null}
@@ -761,7 +788,11 @@ export function TypeSwitcher(props: {
                     className={navClass("studio-leaf-group", nav.leafGroup)}
                   >
                     <div
-                      className={navClass("studio-leaf-label", nav.leafLabel)}
+                      className={navClass(
+                        "studio-leaf-label",
+                        nav.leafLabel,
+                        typographyStyles.eyebrow,
+                      )}
                     >
                       Workspaces
                     </div>
@@ -798,8 +829,27 @@ function ImageField(props: {
   const uploadMutation = useMutation({
     mutationFn: (file: File): Promise<UploadImageResult> =>
       uploadImage(api, file),
+    onSuccess: () => {
+      void invalidateAfterUpload(queryClient);
+    },
   });
   const current = typeof value === "string" && value.length > 0 ? value : null;
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const uploading = useRef(false);
+  const startUpload = (file: File): void => {
+    if (uploading.current) return;
+    uploading.current = true;
+    setSelectedFile(file);
+    uploadMutation.mutate(file, {
+      onSuccess: (result) => {
+        onChange(result.entityId);
+        setSelectedFile(null);
+      },
+      onSettled: () => {
+        uploading.current = false;
+      },
+    });
+  };
 
   return (
     <div {...stylex.props(f.field)} data-studio-field="image">
@@ -815,7 +865,12 @@ function ImageField(props: {
             variant="link"
             size="xs"
             xstyle={f.clear}
-            onClick={() => onChange("")}
+            disabled={uploadMutation.isPending}
+            onClick={() => {
+              onChange("");
+              setSelectedFile(null);
+              uploadMutation.reset();
+            }}
           >
             Clear
           </Button>
@@ -827,28 +882,63 @@ function ImageField(props: {
         </span>
         <strong {...stylex.props(f.uploadTitle)}>Choose an image</strong>
         <small {...stylex.props(f.uploadNote)}>
-          PNG, JPEG, GIF, WebP, AVIF, or SVG
+          PNG, JPEG, GIF, WebP, AVIF, or SVG. Keep files below 10 MiB.
         </small>
         <input
           {...stylex.props(f.file)}
           type="file"
           accept="image/*"
+          disabled={uploadMutation.isPending}
           onChange={(event) => {
             const file = event.currentTarget.files?.[0];
-            if (!file) return;
-            uploadMutation.mutate(file, {
-              onSuccess: (result) => {
-                onChange(result.entityId);
-                void invalidateAfterUpload(queryClient);
-              },
-            });
+            event.currentTarget.value = "";
+            if (file) startUpload(file);
           }}
         />
       </label>
-      {uploadMutation.isPending && <StudioStatus>Uploading…</StudioStatus>}
+      <div role="status" aria-live="polite">
+        {uploadMutation.isPending && (
+          <StudioStatus>
+            Uploading {selectedFile?.name}… Wait for the upload before saving
+            this reference.
+          </StudioStatus>
+        )}
+        {uploadMutation.isSuccess && (
+          <StudioStatus tone="good">
+            Uploaded {uploadMutation.variables.name}. Save changes to keep this
+            reference.
+          </StudioStatus>
+        )}
+      </div>
       {uploadMutation.error && (
         <StudioStatus tone="error">
-          {errorMessage(uploadMutation.error)}
+          <span>
+            {selectedFile?.name}: {errorMessage(uploadMutation.error)} Your
+            previous image reference is unchanged.
+            <br />
+            Choose another file, or retry. If the previous upload reached the
+            server, retrying may create another image.
+            <br />
+            {selectedFile && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => startUpload(selectedFile)}
+              >
+                Retry upload
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setSelectedFile(null);
+                uploadMutation.reset();
+              }}
+            >
+              Dismiss upload error
+            </Button>
+          </span>
         </StudioStatus>
       )}
     </div>
@@ -1024,8 +1114,74 @@ export function Field(props: {
   descriptor: FieldDescriptor;
   value: unknown;
   onChange: (raw: unknown) => void;
+  issues?: ValidationIssue[] | undefined;
 }): ReactElement {
-  const { descriptor, value, onChange } = props;
+  const errorId = useId();
+  const group = useRef<HTMLDivElement>(null);
+  const issues =
+    props.issues?.filter((issue) => issue.path[0] === props.descriptor.name) ??
+    [];
+  useEffect(() => {
+    const node = group.current;
+    if (
+      !node?.hasAttribute("data-studio-invalid-field") ||
+      node !==
+        node.closest("form")?.querySelector("[data-studio-invalid-field]")
+    )
+      return;
+    const control = node.querySelector<HTMLElement>(
+      'input:not([disabled]), textarea:not([disabled]), select:not([disabled]), [role="switch"]:not([disabled])',
+    );
+    (control?.getAttribute("aria-describedby") === errorId
+      ? control
+      : node
+    ).focus();
+  }, [props.issues, errorId]);
+  return (
+    <div
+      ref={group}
+      role="group"
+      aria-label={props.descriptor.label}
+      tabIndex={-1}
+      aria-describedby={issues.length ? errorId : undefined}
+      data-studio-invalid-field={
+        issues.length ? props.descriptor.name : undefined
+      }
+    >
+      <FieldControl
+        descriptor={props.descriptor}
+        value={props.value}
+        onChange={props.onChange}
+        errorId={issues.length ? errorId : undefined}
+      />
+      {issues.length > 0 && (
+        <div id={errorId}>
+          <StudioStatus tone="error">
+            Last save:{" "}
+            {issues
+              .map(
+                (issue) =>
+                  `${issue.path.length > 1 ? `${issue.path.slice(1).join(".")}: ` : ""}${issue.message}`,
+              )
+              .join(" · ")}
+          </StudioStatus>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FieldControl(props: {
+  descriptor: FieldDescriptor;
+  value: unknown;
+  onChange: (raw: unknown) => void;
+  errorId: string | undefined;
+}): ReactElement {
+  const { descriptor, value, onChange, errorId } = props;
+  const validation = {
+    "aria-invalid": errorId ? true : undefined,
+    "aria-describedby": errorId,
+  };
   const required = descriptor.required !== false;
   const text =
     typeof value === "string" || typeof value === "number" ? String(value) : "";
@@ -1049,6 +1205,7 @@ export function Field(props: {
           {descriptor.label}
         </span>
         <Switch
+          {...validation}
           checked={value === true}
           onCheckedChange={(checked) => onChange(checked)}
         />
@@ -1061,6 +1218,7 @@ export function Field(props: {
       <label {...stylex.props(f.field)} data-studio-field="select">
         {label}
         <NativeSelect
+          {...validation}
           xstyle={f.control}
           value={text}
           required={required}
@@ -1082,6 +1240,7 @@ export function Field(props: {
       <label {...stylex.props(f.field)} data-studio-field="text">
         {label}
         <Textarea
+          {...validation}
           xstyle={f.control}
           value={text}
           required={required}
@@ -1112,6 +1271,7 @@ export function Field(props: {
           <em {...stylex.props(f.kind)}>read-only</em>
         </span>
         <Textarea
+          {...validation}
           xstyle={[f.control, f.readOnly]}
           value={JSON.stringify(value ?? null, null, 2)}
           disabled
@@ -1125,6 +1285,7 @@ export function Field(props: {
     <label {...stylex.props(f.field)} data-studio-field={descriptor.widget}>
       {label}
       <Input
+        {...validation}
         xstyle={[f.control, descriptor.widget === "datetime" && f.date]}
         type={
           descriptor.widget === "number"

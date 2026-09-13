@@ -1,5 +1,7 @@
 /** @jsxImportSource react */
 import { OperatorCard } from "@brains/operator-view-react";
+import { headStyles } from "../studio-page-head.styles";
+import { typographyStyles } from "../studio-typography.styles";
 
 import { Button, ConfirmDialog, Input, Switch } from "@brains/app-ui-react";
 import {
@@ -222,7 +224,13 @@ export function AccountApp({
 
   return (
     <>
-      <div className={accountClass("account-shell", accountLayout.shell)}>
+      <div
+        className={accountClass(
+          "account-shell",
+          accountLayout.shell,
+          headStyles.inset,
+        )}
+      >
         <StudioPageHead
           model={{
             access: studioAccessRequirement("public"),
@@ -283,6 +291,7 @@ export function AccountApp({
                           className={accountClass(
                             "people-detail-name",
                             accountLayout.name,
+                            typographyStyles.secondaryDisplay,
                           )}
                         >
                           {title}

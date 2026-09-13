@@ -217,6 +217,9 @@ describe("InterfacePlugin", () => {
       const start = Date.now();
 
       try {
+        // Freeze before insertion: even 1ms of real elapsed time changes the
+        // strict TTL boundary when the next clock value is start + 101.
+        setSystemTime(new Date(start));
         plugin.testSetJobTracking("old-job", { rootJobId: "old-job" });
         expect(plugin.getJobMessagesSize()).toBe(1);
 
