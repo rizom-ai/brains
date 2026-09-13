@@ -116,7 +116,7 @@ export interface TypeSchema {
 }
 
 export interface EntitySummary {
-  /** Read-only label derived from content; never inserted into frontmatter. */
+  /** Adapter-owned metadata title; read-only and never inserted into frontmatter. */
   displayTitle?: string | undefined;
   id: string;
   entityType: string;

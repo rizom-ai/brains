@@ -5,7 +5,6 @@ import {
   getPublishBoundaryState,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
-import { firstMarkdownHeading } from "@brains/utils/markdown";
 import { isRawEntityType } from "./config";
 import {
   studioMutationOptions,
@@ -29,6 +28,12 @@ import {
   studioCollectionQuerySchema,
   studioCollectionQueryFromParams,
 } from "./collection-query";
+
+/** Entity adapters own title derivation; Studio must not reinterpret source. */
+function entityDisplayTitle(entity: BaseEntity): string | undefined {
+  const title = entity.metadata["title"];
+  return typeof title === "string" && title.trim() ? title.trim() : undefined;
+}
 
 const updateEntityPayloadSchema = z.object({
   entityType: z.string(),
@@ -84,7 +89,7 @@ export async function handleGetEntities(
         // The editor contract always carries the authoritative system field,
         // even though public and raw entities omit it from stored markdown.
         frontmatter: { ...frontmatter, visibility: entity.visibility },
-        displayTitle: firstMarkdownHeading(body),
+        displayTitle: entityDisplayTitle(entity),
         body,
         contentHash: entity.contentHash,
         created: entity.created,
@@ -131,15 +136,12 @@ export async function handleGetEntities(
   return jsonResponse({
     total,
     entities: entities.map((entity) => {
-      const { frontmatter, body } = splitEntityContent(
-        entityType,
-        entity.content,
-      );
+      const { frontmatter } = splitEntityContent(entityType, entity.content);
       return {
         id: entity.id,
         entityType: entity.entityType,
         frontmatter: { ...frontmatter, visibility: entity.visibility },
-        displayTitle: firstMarkdownHeading(body),
+        displayTitle: entityDisplayTitle(entity),
         updated: entity.updated,
       };
     }),
