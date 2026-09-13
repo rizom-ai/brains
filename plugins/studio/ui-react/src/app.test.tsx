@@ -1472,7 +1472,7 @@ describe("mobile editor entry", () => {
 });
 
 describe("entityTitle", () => {
-  it("uses a derived heading without changing the durable id or properties", () => {
+  it("prefers the adapter-owned title without changing the durable id or properties", () => {
     const entity = {
       id: "opaque-id",
       entityType: "note",
@@ -1485,10 +1485,10 @@ describe("entityTitle", () => {
     expect(entity.frontmatter.title).toBe(" ");
     expect(
       entityTitle({ ...entity, frontmatter: { title: "Authored title" } }),
-    ).toBe("Authored title");
+    ).toBe("Readable heading");
   });
 
-  it("prefers the frontmatter title", () => {
+  it("uses the authored frontmatter title when no adapter title is available", () => {
     expect(
       entityTitle({
         id: "abc",

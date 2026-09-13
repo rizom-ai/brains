@@ -1059,17 +1059,16 @@ describe("studio editor api", () => {
     expect(payload.fields).toEqual([adminVisibilityField]);
   });
 
-  it("derives raw-note labels for the collection and editor without adding a title property", async () => {
+  it("exposes adapter-owned raw-note titles without adding an editable title property", async () => {
     const shell = createEditorTestShell();
     const cookie = await createSessionCookie(shell);
-    const content =
-      "```md\n# Not a title\n```\n\n# A **readable** heading\n\nBody";
+    const content = "# A readable heading\n\nBody";
     await shell.getEntityService().createEntity({
       entity: {
         id: "opaque-note-id",
         entityType: "note",
         content,
-        metadata: {},
+        metadata: { title: "A readable heading" },
         visibility: "public",
         created: "2026-07-01T00:00:00.000Z",
         updated: "2026-07-01T00:00:00.000Z",
@@ -1101,6 +1100,105 @@ describe("studio editor api", () => {
         .entities[0]?.displayTitle,
     ).toBe("A readable heading");
   });
+
+  for (const entityType of ["note", "post", "brief"]) {
+    for (const example of [
+      {
+        name: "authored frontmatter title",
+        content:
+          "---\ntitle: Actual title\ntags: [example]\n---\n\n# Body heading",
+        metadata: { title: "Actual title" },
+        expected: "Actual title",
+      },
+      {
+        name: "projected title without an authored title",
+        content: "---\nstatus: draft\n---\n\n# Body heading",
+        metadata: { title: "Projected title" },
+        expected: "Projected title",
+      },
+      {
+        name: "adapter title independent of frontmatter and body",
+        content:
+          "---\ntitle: Different source title\n---\n\n# Different heading",
+        metadata: { title: "Adapter-owned title" },
+        expected: "Adapter-owned title",
+      },
+      {
+        name: "malformed frontmatter",
+        content: "---\ntitle: [broken\nstatus: draft\n---\n\n# Actual heading",
+        metadata: { title: "Adapter-owned title" },
+        expected: "Adapter-owned title",
+      },
+      {
+        name: "missing projected title",
+        content: "---\nstatus: draft\n---\n\n# Not an adapter title",
+        metadata: {},
+        expected: undefined,
+      },
+      {
+        name: "invalid projected title",
+        content: "---\nstatus: draft\n---\n\n# Not an adapter title",
+        metadata: { title: 42 },
+        expected: undefined,
+      },
+      {
+        name: "blank projected title",
+        content: "---\nstatus: draft\n---\n\n# Not an adapter title",
+        metadata: { title: "   " },
+        expected: undefined,
+      },
+    ]) {
+      it(`keeps ${entityType} ${example.name} out of YAML-derived list labels`, async () => {
+        const shell = createEditorTestShell();
+        const cookie = await createSessionCookie(shell);
+        await shell.getEntityService().createEntity({
+          entity: {
+            id: "label-regression",
+            entityType,
+            content: example.content,
+            metadata: example.metadata,
+            visibility: "public",
+            created: "2026-07-01T00:00:00.000Z",
+            updated: "2026-07-01T00:00:00.000Z",
+          },
+        });
+        const plugin = await registerPlugin(shell);
+        const route = findRoute(plugin, "/studio/api/entities");
+        const labelSchema = z.object({ displayTitle: z.string().optional() });
+        const list = await route.handler(
+          apiRequest(`/studio/api/entities?type=${entityType}`, { cookie }),
+        );
+        const decodedList = z
+          .object({ entities: z.array(labelSchema) })
+          .parse(await list.json());
+        expect(decodedList.entities).toHaveLength(1);
+        expect(decodedList.entities[0]?.displayTitle).toBe(example.expected);
+        const detail = await route.handler(
+          apiRequest(
+            `/studio/api/entities?type=${entityType}&id=label-regression`,
+            { cookie },
+          ),
+        );
+        const decoded = z
+          .object({
+            entity: labelSchema.extend({
+              body: z.string(),
+              frontmatter: z.record(z.string(), z.unknown()),
+            }),
+          })
+          .parse(await detail.json());
+        expect(decoded.entity.displayTitle).toBe(example.expected);
+        if (entityType === "note") {
+          expect(decoded.entity.body).toBe(example.content);
+          expect(decoded.entity.frontmatter).toEqual({ visibility: "public" });
+        }
+        const stored = await shell
+          .getEntityService()
+          .getEntity({ entityType, id: "label-regression" });
+        expect(stored?.content).toBe(example.content);
+      });
+    }
+  }
 
   it("round-trips a raw note verbatim, even when it opens with a horizontal rule", async () => {
     const shell = createEditorTestShell();
