@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.251
+
+### Patch Changes
+
+- [`b6477ab`](https://github.com/rizom-ai/brains/commit/b6477ab989670c11176f43d63dbdadaf0473c62d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Reuse the homepage's native site-map stylesheet on the Brain landing page so populated maps inherit the site's light and dark theme colors without duplicating theme definitions.
+
 ## 0.2.0-alpha.250
 
 ### Patch Changes
