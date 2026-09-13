@@ -2,7 +2,7 @@
 
 ## Status
 
-The first batch and 25-entry pagination shipped in `@rizom/brain@0.2.0-alpha.368`. The user approved completing the remaining plan in one worktree: `studio-ux-completion`, branch `feat/studio-ux-completion`. The user requested merging the implemented portion of this second batch; upstream reconciliation and release verification are underway. The unchecked items below remain deferred, not completed. Draft persistence still requires an explicit privacy/retention decision.
+The first batch and 25-entry pagination shipped in `@rizom/brain@0.2.0-alpha.368`. The user approved completing the remaining plan in one worktree: `studio-ux-completion`, branch `feat/studio-ux-completion`. The implemented portion of this second batch merged through PR #242 and shipped in `@rizom/brain@0.2.0-alpha.371`. The unchecked items below remain deferred, not completed. Draft persistence still requires an explicit privacy/retention decision.
 
 ### Completion worktree checklist
 
@@ -23,7 +23,7 @@ The first batch and 25-entry pagination shipped in `@rizom/brain@0.2.0-alpha.368
 - [ ] Manual accessibility verification (including screen-reader announcements and axe incomplete findings) and canonical running-app smoke testing.
 - [ ] Opt-in draft recovery: agree on privacy, storage, retention, and clearing behavior before implementation.
 
-Checked items are implemented and fixture-verified, not released. The core changeset tracks the implemented portion; the remaining presentation work and manual checks are still open.
+Checked items are implemented, fixture-verified, and included in the released batch. The remaining presentation work and manual checks are still open.
 
 Accessibility checkpoint: 116 Studio captures across desktop/tablet/phone and both climates report zero axe violations against WCAG 2/2.1/2.2 A/AA tags. Native keyboard checks cover skipping navigation, reaching visible content controls, dialog Tab/Shift-Tab wrapping, and Chat PageUp scrolling. The harness restores independent scroll regions after keyboard checks. Reviewed 110 changed baselines were refreshed for this checkpoint, not as a claim that the presentation checklist is finished. Axe incomplete results remain recorded for manual review, including symbol/gradient/obscured-content contrast and modal background/focus-guard isolation. The subsequent non-update visual run passes all 116 captures. Full repository typecheck (102 tasks), affected-workspace lint, and 1,899 tests across eight affected workspaces pass (Studio: 382 tests, 1,742 assertions).
 
@@ -177,7 +177,7 @@ Verification: 388 Studio tests (1,935 assertions), scoped typecheck, and reposit
 
 ### Merge verification
 
-Reconciled the implemented batch with upstream `b1205927b2`. Full commit hooks and published-surface checks pass. The first PR CI run exposed a real-clock insertion race in an existing job-tracking TTL test; its clock is now frozen before insertion. CI passed Dashboard and standalone Chat visuals, while local captures differed in text antialiasing. After inspecting CI captures across both climates and all three widths, 98 affected Studio baselines were refreshed from the CI artifacts; unrelated baselines remain unchanged. CI rerun and automatic release verification are pending. Manual accessibility and the remaining checklist items are still deferred.
+Reconciled the implemented batch with upstream `b1205927b2`. Full commit hooks and published-surface checks pass. The first PR CI run exposed a real-clock insertion race in an existing job-tracking TTL test; its clock is now frozen before insertion. CI passed Dashboard and standalone Chat visuals, while local captures differed in text antialiasing. After inspecting CI captures across both climates and all three widths, 98 affected Studio baselines were refreshed from the CI artifacts; unrelated baselines remain unchanged. The PR rerun passed all checks (`34742394289`). Merge `154c5e31e0` passed main Core CI (`34742627456`) and Architecture CI, followed by successful automatic Release (`34742833574`). The npm registry confirms `@rizom/brain@0.2.0-alpha.371`; local main is synchronized to version commit `2772aec83a`. Manual accessibility and the remaining checklist items are still deferred.
 
 ### Implementation notes
 
