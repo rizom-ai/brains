@@ -1,5 +1,7 @@
 # @brains/utils
 
+## 0.2.0-alpha.372
+
 ## 0.2.0-alpha.371
 
 ## 0.2.0-alpha.370

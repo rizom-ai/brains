@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.372
+
+### Patch Changes
+
+- [#243](https://github.com/rizom-ai/brains/pull/243) [`c9ff2d0`](https://github.com/rizom-ai/brains/commit/c9ff2d07802df5c68de827123997c977dd4fd851) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Build each new shared Brain image with the full fleet's exact site/theme package union, including explicit builds, so smoke-to-fleet promotion reuses the same immutable image. Verify actual installed package versions before image reuse and in the scaffolded Deploy workflow before provisioning or container replacement. Fail closed on missing or mismatched packages without overwriting deployed tags.
+
 ## 0.2.0-alpha.371
 
 ## 0.2.0-alpha.370

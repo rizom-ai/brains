@@ -314,6 +314,7 @@
     "core--enqueue-retry-time-budget",
     "core--fenced-job-attempts",
     "core--fix-professional-profile-view-schema",
+    "core--fleet-image-promotion",
     "core--fold-notification-contracts",
     "core--git-authoritative-entity-convergence",
     "core--git-broker-env-interpolation",
