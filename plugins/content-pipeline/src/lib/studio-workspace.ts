@@ -358,83 +358,9 @@ const publishingWorkspace = defineStudioWorkspace({
       | typeof publishAction
     >;
     const totals: PublishingBlock = {
-      type: "stats",
+      type: "key-values",
       id: "publishing-summary",
-      items: [
-        {
-          label: "Queued",
-          value: data.summary.queued,
-          caption: "awaiting dispatch",
-        },
-        {
-          label: "Generating",
-          value: data.summary.generating,
-          caption: "in progress",
-        },
-        {
-          label: "Needs attention",
-          value: data.summary.needsOperator,
-          caption: data.summary.needsOperator > 0 ? "failed" : "all clear",
-          tone: data.summary.needsOperator > 0 ? "warn" : "good",
-        },
-        {
-          label: "Published",
-          value: data.summary.published,
-          caption: "all time",
-        },
-      ],
-    };
-    const primary: PublishingRegion[] = [
-      {
-        type: "flow",
-        id: "publication-flow",
-        label: "Publication flow",
-        steps: [
-          {
-            id: "draft",
-            label: "Draft",
-            status: data.summary.draft > 0 ? "active" : "idle",
-            detail: `${data.summary.draft} ready`,
-          },
-          {
-            id: "queued",
-            label: "Queued",
-            status: data.summary.queued > 0 ? "active" : "idle",
-            detail: `${data.summary.queued} waiting`,
-          },
-          {
-            id: "generating",
-            label: "Generating",
-            status: data.summary.generating > 0 ? "active" : "idle",
-            detail: `${data.summary.generating} active`,
-          },
-          {
-            id: "published",
-            label: "Published",
-            status: data.summary.published > 0 ? "complete" : "idle",
-            detail: `${data.summary.published} complete`,
-          },
-        ],
-      },
-    ];
-    const pipelineMeters: PublishingRegion = {
-      type: "meters",
-      id: "publication-meters",
-      items: [
-        { id: "drafts", label: "Drafts", value: data.summary.draft },
-        {
-          id: "failed",
-          label: "Failed",
-          value: data.summary.failed,
-          tone: data.summary.failed > 0 ? "warn" : "good",
-        },
-        {
-          id: "published",
-          label: "Published",
-          value: data.summary.published,
-          tone: "good",
-        },
-      ],
+      items: [{ label: "Published", value: data.summary.published }],
     };
     const atRest =
       data.queue.length === 0 &&
@@ -463,16 +389,19 @@ const publishingWorkspace = defineStudioWorkspace({
               return {
                 id: `queue-${item.entityType}-${item.position}`,
                 title: item.title,
+                description: item.destination,
                 metadata: [
-                  `${item.entityType}/${item.entityId}`,
-                  item.destination,
-                  item.scheduledFor ?? "Next dispatch",
+                  `Position ${item.position}`,
+                  item.scheduledFor
+                    ? `Scheduled: ${item.scheduledFor}`
+                    : "Next dispatch",
                 ],
-                count: item.position,
                 link: targetLink(item.entityType, item.entityId),
+                actionsLabel: "Queue options",
                 actions: [
                   {
                     action: reorderAction,
+                    label: "Move up",
                     input: {
                       entityType: item.entityType,
                       entityId: item.entityId,
@@ -482,6 +411,7 @@ const publishingWorkspace = defineStudioWorkspace({
                   },
                   {
                     action: reorderAction,
+                    label: "Move down",
                     input: {
                       entityType: item.entityType,
                       entityId: item.entityId,
@@ -510,7 +440,6 @@ const publishingWorkspace = defineStudioWorkspace({
                 id: `generating-${index + 1}`,
                 title: job.label,
                 metadata: [job.target, job.status],
-                badges: [{ label: job.status }],
                 ...(entityType && entityId.length > 0
                   ? { link: targetLink(entityType, entityId.join("/")) }
                   : {}),
@@ -525,10 +454,7 @@ const publishingWorkspace = defineStudioWorkspace({
               id: `failure-${index + 1}`,
               title: failure.title,
               description: failure.error,
-              metadata: [
-                `${failure.entityType}/${failure.entityId}`,
-                `Retries: ${failure.retryCount}`,
-              ],
+              metadata: [`Retries: ${failure.retryCount}`],
               tone: "error",
               link: targetLink(failure.entityType, failure.entityId),
               actions: [
@@ -543,39 +469,70 @@ const publishingWorkspace = defineStudioWorkspace({
             })),
           },
         ];
+    const failures = work.filter(
+      (block): block is Extract<PublishingRegion, { type: "list" }> =>
+        block.type === "list" &&
+        block.id === "publication-failures" &&
+        block.items.length > 0,
+    );
     const blocks: PublishingBlock[] = [
+      ...failures.map((block): PublishingBlock => ({
+        type: "card",
+        id: "publishing-attention",
+        presentation: "disclosure",
+        disclosureLabel: "Review failure",
+        tone: "warn",
+        metadata:
+          data.failures.length === 1
+            ? data.failures.map(
+                (failure) =>
+                  `${failure.title} · Retries: ${failure.retryCount}`,
+              )
+            : [],
+        label:
+          data.failures.length === 1
+            ? "One delivery needs attention"
+            : `${data.failures.length} deliveries need attention`,
+        blocks: [block],
+      })),
+      ...(atRest
+        ? work
+        : [
+            {
+              type: "tabs" as const,
+              id: "publishing-queue",
+              label: "Publishing queue",
+              defaultTab: "queued",
+              tabs: [
+                {
+                  id: "queued",
+                  label: "Queued",
+                  count: data.queue.length,
+                  blocks: work.filter(
+                    (block) =>
+                      block.type !== "list" || block.id === "dispatch-queue",
+                  ),
+                },
+                ...(data.generating.length > 0
+                  ? [
+                      {
+                        id: "generating",
+                        label: "Generating",
+                        count: data.generating.length,
+                        blocks: work.filter(
+                          (block) => block.id === "generating",
+                        ),
+                      },
+                    ]
+                  : []),
+              ],
+            },
+          ]),
       totals,
-      {
-        type: "columns",
-        id: "publishing-body",
-        primary: [...primary, ...work],
-        aside: [
-          {
-            type: "card",
-            id: "publishing-pipeline-card",
-            label: "Pipeline",
-            tone: data.summary.failed > 0 ? "warn" : "neutral",
-            blocks: [pipelineMeters],
-          },
-        ],
-      },
     ];
     return {
       kicker: "Publication operations",
-      title: "Publishing desk",
-      description:
-        "Review intent, inspect dispatch order, and resolve publication failures beside the content they belong to.",
-      status: {
-        label:
-          data.summary.needsOperator > 0
-            ? "Needs attention"
-            : "Pipeline online",
-        detail:
-          data.summary.generating > 0
-            ? `${data.summary.generating} generating`
-            : "no active run",
-        tone: data.summary.needsOperator > 0 ? "warn" : "good",
-      },
+      title: "Publishing",
       blocks,
     };
   },

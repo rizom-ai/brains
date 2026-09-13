@@ -12,6 +12,7 @@
     "lint": {
       "inputs": [
         "src/**",
+        "ui-react/**",
         "test/**",
         "scripts/**",
         "*.ts",
@@ -39,6 +40,19 @@
         "src/**/*.ts",
         "test/**/*.ts",
         "test/**/*.tsx"
+      ],
+      "outputs": [],
+      "cache": true
+    },
+    "test:surface": {
+      "dependsOn": ["^build", "build"],
+      "inputs": [
+        "src/**/*.tsx",
+        "src/**/*.ts",
+        "test/**/*.ts",
+        "test/**/*.tsx",
+        "scripts/**",
+        "package.json"
       ],
       "outputs": [],
       "cache": true

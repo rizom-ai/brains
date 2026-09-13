@@ -1,6 +1,6 @@
 import { createTempDir } from "@brains/test-utils";
 import { describe, expect, it } from "bun:test";
-import { execFileSync, spawnSync } from "node:child_process";
+import { runProcess, runProcessOrThrow } from "@brains/utils/run-process";
 import { mkdir, readFile, symlink, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
@@ -55,6 +55,42 @@ async function encryptForRecipient(
   const encrypter = new Encrypter();
   encrypter.addRecipient(recipient);
   return armor.encode(await encrypter.encrypt(plaintext));
+}
+
+async function writeCloudflareFetchMock(preloadPath: string): Promise<void> {
+  await writeFile(
+    preloadPath,
+    `import { appendFileSync } from "node:fs";
+
+const fetchLogPath = process.env.FETCH_LOG;
+if (!fetchLogPath) throw new Error("FETCH_LOG is required");
+
+globalThis.fetch = async (input, init = {}) => {
+  const url = String(input);
+  const method = init.method ?? "GET";
+  appendFileSync(fetchLogPath, method + " " + url + "\\n");
+
+  const payload = url.includes("?")
+    ? { success: true, result: [{ id: "existing-record" }] }
+    : {
+        success: true,
+        result: {
+          id: "existing-record",
+          name: "docs.rizom.ai",
+          type: "A",
+          content: "192.0.2.1",
+        },
+        errors: [],
+        messages: [],
+      };
+
+  return new Response(JSON.stringify(payload), {
+    status: 200,
+    headers: { "content-type": "application/json" },
+  });
+};
+`,
+  );
 }
 
 describe("rover-pilot custom-domain deploy scripts", () => {
@@ -131,9 +167,8 @@ describe("rover-pilot custom-domain deploy scripts", () => {
       );
       await writeFile(outputPath, "");
 
-      execFileSync(
-        process.execPath,
-        ["deploy/scripts/resolve-user-config.ts"],
+      await runProcessOrThrow(
+        [process.execPath, "deploy/scripts/resolve-user-config.ts"],
         {
           cwd: repo,
           env: {
@@ -143,7 +178,6 @@ describe("rover-pilot custom-domain deploy scripts", () => {
             GITHUB_OUTPUT: outputPath,
             CF_ZONE_ID: "shared-zone",
           },
-          encoding: "utf8",
         },
       );
 
@@ -156,6 +190,61 @@ describe("rover-pilot custom-domain deploy scripts", () => {
         testCase.expectedZoneId,
       );
     }
+  });
+
+  it("loads the generated predeploy backup without private workspace dependencies", async () => {
+    const root = await createTempDir("brains-ops-predeploy-import-");
+    const repo = join(root, "rover-pilot");
+
+    await initPilotRepo(repo);
+    const output = await runProcessOrThrow(
+      [
+        process.execPath,
+        "-e",
+        'await import("./deploy/scripts/create-predeploy-backup.ts")',
+      ],
+      { cwd: repo },
+    );
+
+    expect(output).toBe("");
+  });
+
+  it("accepts Cloudflare's object result for a successful DNS upsert", async () => {
+    const root = await createTempDir("brains-ops-cloudflare-dns-");
+    const repo = join(root, "rover-pilot");
+    const preloadPath = join(root, "mock-cloudflare.mjs");
+    const fetchLogPath = join(root, "fetch.log");
+
+    await initPilotRepo(repo);
+    await linkPilotDependencies(repo);
+    await writeCloudflareFetchMock(preloadPath);
+
+    const result = await runProcess(
+      [
+        process.execPath,
+        "--preload",
+        preloadPath,
+        "deploy/scripts/update-dns.ts",
+      ],
+      {
+        cwd: repo,
+        env: {
+          ...process.env,
+          CF_API_TOKEN: "cloudflare-token",
+          CF_ZONE_ID: "cloudflare-zone",
+          BRAIN_DOMAIN: "docs.rizom.ai",
+          SERVER_IP: "192.0.2.1",
+          FETCH_LOG: fetchLogPath,
+        },
+      },
+    );
+    if (result.exitCode !== 0) {
+      throw new Error(result.stderr);
+    }
+
+    expect(await readFile(fetchLogPath, "utf8")).toContain(
+      "PUT https://api.cloudflare.com/client/v4/zones/cloudflare-zone/dns_records/existing-record",
+    );
   });
 
   it("round-trips real PEM files and leaves shared TLS env untouched when absent", async () => {
@@ -191,9 +280,8 @@ describe("rover-pilot custom-domain deploy scripts", () => {
     const runDecrypt = async (): Promise<string> => {
       await Promise.all([writeFile(envPath, ""), writeFile(outputPath, "")]);
 
-      const result = spawnSync(
-        process.execPath,
-        ["deploy/scripts/decrypt-user-secrets.ts", "alice"],
+      const result = await runProcess(
+        [process.execPath, "deploy/scripts/decrypt-user-secrets.ts", "alice"],
         {
           cwd: repo,
           env: {
@@ -204,10 +292,9 @@ describe("rover-pilot custom-domain deploy scripts", () => {
             CERTIFICATE_PEM: "shared-certificate",
             PRIVATE_KEY_PEM: "shared-private-key",
           },
-          encoding: "utf8",
         },
       );
-      if (result.status !== 0) {
+      if (result.exitCode !== 0) {
         throw new Error(result.stderr);
       }
 

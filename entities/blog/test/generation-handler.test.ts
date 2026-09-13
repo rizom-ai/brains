@@ -1,3 +1,4 @@
+import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import {
   BlogGenerationJobHandler,
@@ -9,7 +10,6 @@ import type { ProgressReporter } from "@brains/utils/progress";
 import {
   createSilentLogger,
   createMockProgressReporter,
-  createMockEntityPluginContext,
 } from "@brains/test-utils";
 import { createMockPost } from "./fixtures/blog-entities";
 

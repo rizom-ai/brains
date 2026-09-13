@@ -1,9 +1,9 @@
+import { createTestEntity } from "@brains/entity-service/test";
 import type {
   DeckEntity,
   DeckFrontmatter,
   DeckMetadata,
 } from "../../src/schemas/deck";
-import { createTestEntity } from "@brains/test-utils";
 import { generateMarkdownWithFrontmatter } from "@brains/plugins";
 
 /**

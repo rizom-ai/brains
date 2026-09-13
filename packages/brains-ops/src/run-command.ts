@@ -1,6 +1,6 @@
 import packageJson from "../package.json";
 
-import type { FetchLike } from "@brains/deploy-support/origin-ca";
+import type { FetchLike } from "@brains/utils/fetch-like";
 import { getErrorMessage } from "@brains/utils/error";
 import {
   createCommandRegistry,

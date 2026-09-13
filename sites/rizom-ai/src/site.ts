@@ -1,7 +1,9 @@
 import { createRizomSite, type SitePackage } from "./rizom";
 import { AiLayout } from "./layout";
 import { homeSections } from "./home";
+import { livingMemorySections } from "./living-memory";
 import { brainSections } from "./brain";
+import { brainNetworkTemplate } from "./brain-network";
 import { workSections } from "./work";
 import { foundationSections } from "./foundation";
 import { aiRoutes } from "./routes";
@@ -12,9 +14,19 @@ export const rizomAiSite: SitePackage = createRizomSite({
   // The theme's room accents key off data-room, set by the layout.
   layout: AiLayout,
   routes: aiRoutes,
+  runtime: {
+    contentNamespace: "brain-network",
+    templates: { connect: brainNetworkTemplate },
+  },
   // Every page is authored schema-first (see ./home, ./brain, ./work,
   // ./foundation).
-  sections: [homeSections, brainSections, workSections, foundationSections],
+  sections: [
+    homeSections,
+    livingMemorySections,
+    brainSections,
+    workSections,
+    foundationSections,
+  ],
   // The org-level indexes (/writing, /network) are hand-written routes that
   // compose the plugins' own list templates; entityDisplay just supplies the
   // labels + detail-page paths. Navigation is hidden — the layout's faces

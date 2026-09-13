@@ -1,14 +1,12 @@
+import { createMockEntityService } from "@brains/entity-service/test";
+import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import type {
   BaseEntity,
   ProjectionExecutionContext,
   ProjectionInputContext,
 } from "@brains/plugins";
-import {
-  createMockEntityPluginContext,
-  createMockEntityService,
-  createSilentLogger,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { TopicAdapter } from "../../src/lib/topic-adapter";
 import { createTopicProjectionRule } from "../../src/lib/topic-wave-rule";
 import { topicsPluginConfigSchema } from "../../src/schemas/config";

@@ -1,10 +1,12 @@
 import { describe, expect, it } from "bun:test";
+import { studioCollectionQuerySchema } from "../../src/collection-query";
 import { QueryObserver, type QueryObserverResult } from "@tanstack/react-query";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import {
   StudioApi,
   type EntityDetail,
   type EntitySummary,
+  type EntityPage,
   type EntityTypeInfo,
   type SyncStatus,
   type TypeSchema,
@@ -51,7 +53,7 @@ function entity(title: string): EntitySummary {
 }
 
 function entitiesResponse(entities: EntitySummary[]): Response {
-  return Response.json({ entities });
+  return Response.json({ entities, total: entities.length });
 }
 
 function entityType(entityType: string): EntityTypeInfo {
@@ -107,15 +109,9 @@ function entityDetail(title: string, contentHash: string): EntityDetail {
 }
 
 function waitForResult<TQueryKey extends readonly unknown[]>(
-  observer: QueryObserver<
-    EntitySummary[],
-    Error,
-    EntitySummary[],
-    EntitySummary[],
-    TQueryKey
-  >,
-  predicate: (result: QueryObserverResult<EntitySummary[], Error>) => boolean,
-): Promise<QueryObserverResult<EntitySummary[], Error>> {
+  observer: QueryObserver<EntityPage, Error, EntityPage, EntityPage, TQueryKey>,
+  predicate: (result: QueryObserverResult<EntityPage, Error>) => boolean,
+): Promise<QueryObserverResult<EntityPage, Error>> {
   return new Promise((resolve) => {
     const unsubscribe = observer.subscribe((result) => {
       if (!predicate(result)) return;
@@ -483,15 +479,29 @@ describe("Studio entity-detail query", () => {
 });
 
 describe("Studio entity-list query", () => {
-  it("uses a stable key scoped by entity type", () => {
+  it("uses a stable type scope with independent page keys", () => {
     expect(studioKeys.entities("post")).toEqual(["studio", "entities", "post"]);
     expect(studioKeys.entities("note")).toEqual(["studio", "entities", "note"]);
+    const query = studioCollectionQuerySchema.parse({
+      offset: 10,
+      limit: 10,
+      q: "notes",
+    });
+    expect(studioKeys.entityPage("post", query)).toEqual([
+      "studio",
+      "entities",
+      "post",
+      query,
+    ]);
+    expect(studioKeys.entityPage("post", query)).not.toEqual(
+      studioKeys.entityPage("post", { ...query, visibility: "restricted" }),
+    );
   });
 
   it("deduplicates the mounted query and initialization read", async () => {
-    let requests = 0;
-    stubFetch(async () => {
-      requests += 1;
+    const requestedUrls: string[] = [];
+    stubFetch(async (url) => {
+      requestedUrls.push(url);
       return entitiesResponse([entity("Notes from the rhizome")]);
     });
     const client = createStudioQueryClient();
@@ -504,10 +514,13 @@ describe("Studio entity-list query", () => {
 
     const initialized = await client.ensureQueryData(options);
 
-    expect(initialized).toHaveLength(1);
+    expect(initialized.entities).toHaveLength(1);
+    expect(initialized.total).toBe(1);
     expect(statuses).toContain("pending");
     expect(observer.getCurrentResult().status).toBe("success");
-    expect(requests).toBe(1);
+    expect(requestedUrls).toEqual([
+      "/studio/api/entities?type=post&offset=0&limit=25",
+    ]);
     unsubscribe();
     client.clear();
   });
@@ -553,18 +566,17 @@ describe("Studio entity-list query", () => {
     );
     let resolveFirst: (() => void) | undefined;
     let resolveRefreshed:
-      | ((result: QueryObserverResult<EntitySummary[], Error>) => void)
-      | undefined;
+      ((result: QueryObserverResult<EntityPage, Error>) => void) | undefined;
     const firstResult = new Promise<void>((resolve) => {
       resolveFirst = resolve;
     });
-    const refreshedResult = new Promise<
-      QueryObserverResult<EntitySummary[], Error>
-    >((resolve) => {
-      resolveRefreshed = resolve;
-    });
+    const refreshedResult = new Promise<QueryObserverResult<EntityPage, Error>>(
+      (resolve) => {
+        resolveRefreshed = resolve;
+      },
+    );
     const unsubscribe = observer.subscribe((result) => {
-      const title = result.data?.[0]?.frontmatter["title"];
+      const title = result.data?.entities[0]?.frontmatter["title"];
       if (title === "Before mutation") resolveFirst?.();
       if (title === "After mutation") resolveRefreshed?.(result);
     });
@@ -573,7 +585,9 @@ describe("Studio entity-list query", () => {
     await client.invalidateQueries({ queryKey: studioKeys.entities("post") });
     const refreshed = await refreshedResult;
 
-    expect(refreshed.data?.[0]?.frontmatter["title"]).toBe("After mutation");
+    expect(refreshed.data?.entities[0]?.frontmatter["title"]).toBe(
+      "After mutation",
+    );
     expect(requests).toBe(2);
     unsubscribe();
     client.clear();

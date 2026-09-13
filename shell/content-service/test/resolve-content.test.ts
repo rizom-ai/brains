@@ -1,3 +1,8 @@
+import { createMockAIService } from "@brains/ai-service/test";
+import {
+  createMockDataSourceRegistry,
+  createMockEntityService,
+} from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, mock, spyOn } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
 import { z } from "@brains/utils/zod";
@@ -13,12 +18,7 @@ import type {
   BaseEntity,
   DataSource,
 } from "@brains/entity-service";
-import {
-  createSilentLogger,
-  createMockEntityService,
-  createMockAIService,
-  createMockDataSourceRegistry,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 
 describe("ContentService.resolveContent", () => {
   let mockDependencies: ContentServiceDependencies;

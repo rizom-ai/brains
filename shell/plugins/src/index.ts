@@ -198,10 +198,15 @@ export type {
   IMessageInterfaceChannelsNamespace,
   ISemanticNamespace,
 } from "./base/context";
+export {
+  createScheduledMaintenanceDaemon,
+  type ScheduledMaintenanceOptions,
+} from "./manager/scheduled-maintenance";
 export type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
   RuntimeStateRecordValue,
+  RuntimeStateListOptions,
   RuntimeStateScopeOptions,
 } from "@brains/runtime-state";
 export type {
@@ -776,6 +781,7 @@ export type {
   RegisteredWebRoute,
   WebRouteMethod,
   WebRouteHandler,
+  WebRouteTransportContext,
   WebRouteMatch,
   JsonResponseInit,
 } from "./types/web-routes";
@@ -797,6 +803,7 @@ export {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   STUDIO_OVERVIEW_REGISTER_MESSAGE,
   STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
+  type DashboardDigestLine,
   type DashboardWidgetProviderContext,
   type DashboardWidgetRegistration,
   type DashboardWidgetRenderer,

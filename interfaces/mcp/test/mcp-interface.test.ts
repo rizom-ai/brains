@@ -1,9 +1,10 @@
+import { createMockMCPService } from "@brains/mcp-service/test";
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { McpServer } from "@modelcontextprotocol/server";
 import { MCPInterface } from "../src/mcp-interface";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { IMCPService } from "@brains/mcp-service";
-import { createMockMCPService, createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 
 describe("MCPInterface", () => {
   let harness: ReturnType<typeof createPluginHarness>;

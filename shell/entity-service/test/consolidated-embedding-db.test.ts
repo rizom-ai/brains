@@ -7,11 +7,9 @@ import { EntityService } from "../src/entityService";
 import { EntityRegistry } from "../src/entityRegistry";
 import { migrateEntities } from "../src/migrate";
 import { createEntityDatabase } from "../src/db";
-import {
-  createSilentLogger,
-  createMockJobQueueService,
-  createTestEntity,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
+import { createMockJobQueueService } from "@brains/job-queue/test";
+import { createTestEntity } from "@brains/entity-service/test";
 import { mockEmbeddingService, MOCK_DIMENSIONS } from "./helpers/mock-services";
 import { minimalTestSchema, minimalTestAdapter } from "./helpers/test-schemas";
 import type { BaseEntity, EntityDbConfig } from "../src/types";

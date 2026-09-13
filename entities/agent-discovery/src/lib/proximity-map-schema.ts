@@ -1,8 +1,21 @@
 import { z } from "@brains/utils/zod";
-import { agentFrontmatterSchema, agentStatusSchema } from "../schemas/agent";
+import type {
+  agentFrontmatterSchema,
+  agentStatusSchema as storedAgentStatusSchema,
+} from "../schemas/agent";
 
-const agentKindSchema: typeof agentFrontmatterSchema.shape.kind =
-  agentFrontmatterSchema.shape.kind;
+// Presentation contracts stay independent of entity-service initialization.
+// The annotations keep these finite view values aligned with the entity schema.
+const agentKindSchema: typeof agentFrontmatterSchema.shape.kind = z.enum([
+  "person",
+  "team",
+  "organization",
+]);
+const agentStatusSchema: typeof storedAgentStatusSchema = z.enum([
+  "discovered",
+  "approved",
+  "archived",
+]);
 
 export const proximityMapCenterSchema: z.ZodObject<{
   kind: z.ZodEnum<{ identity: "identity"; centroid: "centroid" }>;
@@ -71,6 +84,7 @@ export type ProximityMapDistanceRange = z.output<
 >;
 
 type ProximityMapCopySchema = z.ZodObject<{
+  headingLevel: z.ZodDefault<z.ZodNullable<z.ZodEnum<{ h1: "h1"; h2: "h2" }>>>;
   kicker: z.ZodDefault<z.ZodNullable<z.ZodString>>;
   headingLead: z.ZodDefault<z.ZodNullable<z.ZodString>>;
   headingAccent: z.ZodDefault<z.ZodNullable<z.ZodString>>;
@@ -88,6 +102,8 @@ type ProximityMapCopySchema = z.ZodObject<{
  * copy is edited as a normal markdown section while map data stays live.
  */
 export const proximityMapCopySchema: ProximityMapCopySchema = z.object({
+  /** A page-opening map may own the document heading; section maps remain h2. */
+  headingLevel: z.enum(["h1", "h2"]).nullable().default(null),
   /** Eyebrow above the heading. */
   kicker: z.string().nullable().default(null),
   /** Heading, plain lead-in before the accented tail. */

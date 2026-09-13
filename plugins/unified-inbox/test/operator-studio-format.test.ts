@@ -2,16 +2,17 @@ import { describe, expect, it } from "bun:test";
 import { formatReceivedAt } from "../src/operator-studio";
 
 describe("formatReceivedAt", () => {
-  // Rows shipped the stored ISO string straight into metadata, so a phone
-  // showed "2026-07-11T09:14:00.000Z" and wrapped the line three deep.
-  it("renders a stored instant as something readable", () => {
+  // Shared metadata renders the readable date and retains this exact instant.
+  it("preserves an absolute instant for semantic shared rendering", () => {
     expect(formatReceivedAt("2026-07-11T09:14:00.000Z")).toBe(
-      "2026-07-11 09:14 UTC",
+      "2026-07-11T09:14:00.000Z",
     );
   });
 
   it("states the zone, because the reader is not necessarily in it", () => {
-    expect(formatReceivedAt("2026-07-11T09:14:00.000Z")).toContain("UTC");
+    expect(formatReceivedAt("2026-07-11T11:14:00+02:00")).toBe(
+      "2026-07-11T09:14:00.000Z",
+    );
   });
 
   // The snapshot is cached and re-served, so a relative rendering computed

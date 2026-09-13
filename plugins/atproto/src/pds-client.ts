@@ -1,3 +1,4 @@
+import type { AtprotoBlobRef } from "@brains/atproto-contracts";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import { z } from "@brains/utils/zod";
 
@@ -66,13 +67,6 @@ export interface DeleteRecordInput {
   repo: string;
   collection: string;
   rkey: string;
-}
-
-export interface AtprotoBlobRef {
-  $type?: "blob";
-  ref: { $link: string };
-  mimeType: string;
-  size: number;
 }
 
 export interface UploadBlobInput {

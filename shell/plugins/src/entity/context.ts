@@ -6,12 +6,11 @@ import type {
 } from "../public/types";
 import type { IShell, PluginRegistrationContext } from "../interfaces";
 import type { ContentGenerationConfig } from "../contracts/generation";
+import type { AIGenerationSchema, IEntityAINamespace } from "./ai-types";
 import type {
-  AIGenerationSchema,
-  IEntityAINamespace,
   ImageGenerationOptions,
   ImageGenerationResult,
-} from "./ai-types";
+} from "@brains/ai-service";
 import type {
   IEntityService,
   IEntitiesNamespace,
@@ -20,13 +19,13 @@ import { createEntitiesNamespace, createPromptsNamespace } from "./namespaces";
 import type { IPromptsNamespace } from "./namespaces";
 export type { IEntitiesNamespace };
 export type { IPromptsNamespace };
+export type { AIGenerationSchema, IEntityAINamespace } from "./ai-types";
+// Part of the entity plugin surface, but owned by the AI service.
 export type {
-  AIGenerationSchema,
   AspectRatio,
-  IEntityAINamespace,
   ImageGenerationOptions,
   ImageGenerationResult,
-} from "./ai-types";
+} from "@brains/ai-service";
 
 export interface FrontmatterSchemaParser {
   parse(data: unknown): unknown;

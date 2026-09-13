@@ -1,5 +1,57 @@
 # @brains/ops
 
+## 0.2.0-alpha.372
+
+### Patch Changes
+
+- [#243](https://github.com/rizom-ai/brains/pull/243) [`c9ff2d0`](https://github.com/rizom-ai/brains/commit/c9ff2d07802df5c68de827123997c977dd4fd851) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Build each new shared Brain image with the full fleet's exact site/theme package union, including explicit builds, so smoke-to-fleet promotion reuses the same immutable image. Verify actual installed package versions before image reuse and in the scaffolded Deploy workflow before provisioning or container replacement. Fail closed on missing or mismatched packages without overwriting deployed tags.
+
+## 0.2.0-alpha.371
+
+## 0.2.0-alpha.370
+
+## 0.2.0-alpha.369
+
+## 0.2.0-alpha.368
+
+## 0.2.0-alpha.367
+
+## 0.2.0-alpha.366
+
+## 0.2.0-alpha.365
+
+## 0.2.0-alpha.364
+
+## 0.2.0-alpha.363
+
+## 0.2.0-alpha.362
+
+## 0.2.0-alpha.361
+
+## 0.2.0-alpha.360
+
+## 0.2.0-alpha.359
+
+## 0.2.0-alpha.358
+
+## 0.2.0-alpha.357
+
+## 0.2.0-alpha.356
+
+## 0.2.0-alpha.355
+
+### Patch Changes
+
+- [#221](https://github.com/rizom-ai/brains/pull/221) [`5cd4e82`](https://github.com/rizom-ai/brains/commit/5cd4e8252056516b29f9ed1ab3c61af7c89ad28b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep the generated verified predeploy-backup script self-contained so it runs in pilot repositories without private monorepo packages.
+
+## 0.2.0-alpha.354
+
+### Patch Changes
+
+- [#220](https://github.com/rizom-ai/brains/pull/220) [`b905612`](https://github.com/rizom-ai/brains/commit/b905612601329c62adabfb17bc44fec1e873c2a7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Accept Cloudflare's object-shaped successful DNS mutation response while retaining strict array validation for record lookups.
+
+## 0.2.0-alpha.353
+
 ## 0.2.0-alpha.352
 
 ### Patch Changes

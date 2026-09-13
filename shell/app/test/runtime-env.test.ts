@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { spawnSync } from "node:child_process";
+import { runProcess } from "@brains/utils/run-process";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -48,18 +48,16 @@ describe("runtime environment helpers", () => {
       }
       await writeFile(outfile, await output.text());
 
-      const productionRun = spawnSync("bun", [outfile], {
+      const productionRun = await runProcess(["bun", outfile], {
         env: { ...process.env, NODE_ENV: "production" },
-        encoding: "utf8",
       });
-      expect(productionRun.status).toBe(0);
+      expect(productionRun.exitCode).toBe(0);
       expect(productionRun.stdout.trim()).toBe("false");
 
-      const localRun = spawnSync("bun", [outfile], {
+      const localRun = await runProcess(["bun", outfile], {
         env: { ...process.env, NODE_ENV: "development" },
-        encoding: "utf8",
       });
-      expect(localRun.status).toBe(0);
+      expect(localRun.exitCode).toBe(0);
       expect(localRun.stdout.trim()).toBe("true");
     } finally {
       await rm(testDir, { recursive: true, force: true });

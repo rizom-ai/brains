@@ -1,4 +1,5 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, gt, asc, sql, getTableColumns } from "drizzle-orm";
+import { z } from "@brains/utils/zod";
 import {
   runtimeStateRecords,
   type RuntimeStateRecord,
@@ -8,6 +9,7 @@ import type {
   IRuntimeStateStore,
   RuntimeStateRecordValue,
   RuntimeStateValueSchema,
+  RuntimeStateListOptions,
 } from "./types";
 import {
   assertValidRuntimeStateNamespace,
@@ -111,6 +113,23 @@ export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
     return Number(result.rowsAffected) > 0;
   }
 
+  async compareAndSet(key: string, expected: T, value: T): Promise<boolean> {
+    const normalizedKey = normalizeRuntimeStateKey(key);
+    const parsedExpected = this.schema.parse(expected);
+    const parsedValue = this.schema.parse(value);
+    const result = await this.db
+      .update(runtimeStateRecords)
+      .set({ value: parsedValue, updatedAt: this.now().getTime() })
+      .where(
+        and(
+          eq(runtimeStateRecords.namespace, this.namespace),
+          eq(runtimeStateRecords.key, normalizedKey),
+          eq(runtimeStateRecords.value, parsedExpected),
+        ),
+      );
+    return Number(result.rowsAffected) === 1;
+  }
+
   async delete(key: string): Promise<boolean> {
     const normalizedKey = normalizeRuntimeStateKey(key);
     const result = await this.db
@@ -125,20 +144,15 @@ export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
   }
 
   async list(
-    options: { keyPrefix?: string | undefined } = {},
+    options: RuntimeStateListOptions = {},
   ): Promise<RuntimeStateRecordValue<T>[]> {
-    const rows = await this.listRows();
-    const keyPrefix = options.keyPrefix;
-    if (keyPrefix !== undefined) normalizeRuntimeStateKeyPrefix(keyPrefix);
-
-    return rows
-      .filter((row) => keyPrefix === undefined || row.key.startsWith(keyPrefix))
-      .map((row) => ({
-        key: row.key,
-        value: this.schema.parse(row.value),
-        createdAt: new Date(row.createdAt),
-        updatedAt: new Date(row.updatedAt),
-      }));
+    const rows = await this.listRows(options);
+    return rows.map((row) => ({
+      key: row.key,
+      value: this.schema.parse(row.value),
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+    }));
   }
 
   async clear(
@@ -184,10 +198,37 @@ export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
     );
   }
 
-  private async listRows(): Promise<RuntimeStateRecord[]> {
-    return this.db
-      .select()
+  private async listRows(
+    options: RuntimeStateListOptions,
+  ): Promise<RuntimeStateRecord[]> {
+    const { keyPrefix, afterKey, limit } = options;
+    if (keyPrefix !== undefined) normalizeRuntimeStateKeyPrefix(keyPrefix);
+    if (afterKey !== undefined) normalizeRuntimeStateKey(afterKey);
+    if (limit !== undefined) z.number().int().min(1).max(1000).parse(limit);
+    const query = this.db
+      .select({
+        ...getTableColumns(runtimeStateRecords),
+        // libsql's text decoder can truncate embedded NULs. Preserve the full
+        // key so a page cursor cannot repeat or delete a different record.
+        key: sql`CAST(${runtimeStateRecords.key} AS BLOB)`.mapWith(
+          (bytes: Uint8Array | ArrayBuffer): string =>
+            new TextDecoder("utf-8", { fatal: true }).decode(bytes),
+        ),
+      })
       .from(runtimeStateRecords)
-      .where(eq(runtimeStateRecords.namespace, this.namespace));
+      .where(
+        and(
+          eq(runtimeStateRecords.namespace, this.namespace),
+          keyPrefix !== undefined
+            ? sql`substr(CAST(${runtimeStateRecords.key} AS BLOB), 1, length(CAST(${keyPrefix} AS BLOB))) = CAST(${keyPrefix} AS BLOB)`
+            : undefined,
+          afterKey !== undefined
+            ? gt(runtimeStateRecords.key, afterKey)
+            : undefined,
+        ),
+      )
+      .orderBy(asc(runtimeStateRecords.key))
+      .$dynamic();
+    return limit === undefined ? query : query.limit(limit);
   }
 }

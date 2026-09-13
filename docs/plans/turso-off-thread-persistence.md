@@ -7,7 +7,7 @@
 - The canonical native publication candidate still requires a test-only database factory binding.
 - Production ingestion/read byte handoffs and worker execution are not cut over.
 - Runtime-state prefix clear now uses validated, sequential deletes in one transaction.
-- Staged-asset binding and the existing worker/fixture implementation are recorded in separate commits; merging main is next.
+- Staged-asset binding and existing worker/fixture work are committed separately; main is merged, including new RPC contracts and moved test helpers.
 - `shared/db/src/sqlite.ts` retains its existing runtime factory. Do not switch it before the production binary path is complete.
 - No new standalone proofs during fixture-to-source promotion.
 
@@ -20,15 +20,15 @@
 | **3. Application cutover**             | Switch all five runtime factories; package workers/actors and wire single-owner lifecycle, including combined mode. | Canonical `start:minimal`, then `start:personal`; real jobs/auth/images/site rebuilds, installed startup, shutdown and restart.                |
 | **4. Release acceptance**              | Complete working-set, crash recovery, import/deployment/backup/restore and rollback coverage.                       | SDK/native/transport/GC/RSS accounting, controller/grandchild recovery and explicit fleet/soak acceptance.                                     |
 
-## Current slice: land existing work, then merge main
+## Current slice: fixture-to-source promotion
 
-1. Validate and commit staged-asset binding and image callers independently of the worker fixtures.
-2. Commit existing worker/fixture work separately, including its runtime-state compatibility fix. Leave no uncommitted work before proceeding.
-3. Merge main into `work/turso-migration`; resolve conflicts and all resulting failures, including failures inherited from main.
-4. Only after a clean merge, begin fixture-to-source promotion: protocol message pump, operation-specific reply validation, savepoint/staged-transfer routing and binary control plumbing.
+1. Run existing integration tests before changing implementation. No new standalone proofs.
+2. Move the protocol message pump, operation-specific reply validation, savepoint/staged-transfer routing and binary control plumbing into `shared/db/src/turso-worker/`.
+3. Point integration callers and packaging at the source implementation; leave only setup/assertions in fixtures, with no implementation re-exports.
+4. Validate, update Status and measured line counts, and commit before another slice. Do not switch the runtime factory.
 
-**Exit check:** separate validated commits for existing work, main merged, all checks passing and a clean working tree. No new implementation slice while this is incomplete.
+**Exit check:** production source owns those implementations, fixture lines decrease and source lines increase, existing integration/packaging checks pass, and the promotion is committed with a clean working tree.
 
-**Promotion baseline:** TypeScript files in `shared/db/test/fixtures/turso-thread/`: **9,883 lines**; in `shared/db/src/turso-worker/`: **2,325 lines**. Recount after the merge and after promotion. Fixtures must retain only setup/assertions, not implementation or implementation re-exports. Promotion must decrease fixture lines and increase source lines before it lands.
+**Post-merge promotion baseline:** TypeScript files in `shared/db/test/fixtures/turso-thread/`: **9,908 lines**; in `shared/db/src/turso-worker/`: **2,325 lines**. The initial pre-commit count was 9,883 / 2,325; the 25-line fixture increase is formatting/merge work, not promotion. Recount after promotion. Fixtures must retain only setup/assertions, not implementation or implementation re-exports. Promotion must decrease fixture lines and increase source lines before it lands.
 
 Keep the 100 MiB ceiling, 32 KiB data-plane credits, existing RPC/SQL/admission limits, entity/asset/reference/projection/outbox atomicity, primary/cleanup causes and actual-exit acknowledgement. Preserve failed recovery directories. If a fault matrix is needed, name the application integration blocker first.

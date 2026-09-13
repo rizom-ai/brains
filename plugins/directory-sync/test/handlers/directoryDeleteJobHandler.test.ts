@@ -1,9 +1,9 @@
+import { createMockServicePluginContext } from "@brains/plugins/test";
 import { describe, it, expect, mock, spyOn } from "bun:test";
 import { DirectoryDeleteJobHandler } from "../../src/handlers/directoryDeleteJobHandler";
 import {
   createMockLogger,
   createSilentLogger,
-  createMockServicePluginContext,
   createMockProgressReporter,
 } from "@brains/test-utils";
 import { createMockDirectorySync } from "../fixtures";

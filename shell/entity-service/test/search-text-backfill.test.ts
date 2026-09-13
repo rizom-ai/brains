@@ -1,9 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { createSqliteDatabase, closeSqliteClient } from "@brains/db";
-import {
-  createMockJobQueueService,
-  createSilentLogger,
-} from "@brains/test-utils";
+import { createMockJobQueueService } from "@brains/job-queue/test";
+import { createSilentLogger } from "@brains/test-utils";
 import { EntityService } from "../src/entityService";
 import { EntityRegistry } from "../src/entityRegistry";
 import { SEARCH_TEXT_BACKFILL_PAGE_SIZE } from "../src/entityService";

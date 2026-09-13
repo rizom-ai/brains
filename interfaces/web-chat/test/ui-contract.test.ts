@@ -35,6 +35,12 @@ function listSourceFiles(dir: string): string[] {
 }
 
 describe("Web chat UI contract", () => {
+  it("keeps the lazy guest bundle below its compressed size budget", () => {
+    const asset = readFileSync(join(packageRoot, "dist", "ui", "guest.js"));
+    expect(asset.toString()).toContain("mountGuestBox");
+    // Catch accidental inclusion of disabled diagram/highlighting plugins.
+    expect(Bun.gzipSync(asset).byteLength).toBeLessThan(600_000);
+  });
   it("publishes the built UI asset directory", () => {
     const packageJson = webChatPackageJsonSchema.parse(
       JSON.parse(readFileSync(packageJsonPath, "utf-8")),
@@ -136,7 +142,9 @@ describe("Web chat UI contract", () => {
     );
 
     expect(buildScript).toContain("createStylexBunTransform");
-    expect(buildScript).toContain('writeFile(join(outdir, "app.css")');
+    expect(buildScript).toContain("writeFile(join(outdir, `${assetName}.css`)");
+    expect(buildScript).toContain('["main", "app"]');
+    expect(buildScript).toContain('["guest-box", "guest"]');
     expect(css).toContain("var(--console-accent)");
     expect(css).not.toContain("insertRule");
   });

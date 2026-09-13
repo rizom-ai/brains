@@ -1,7 +1,7 @@
 {
   "name": "@brains/runtime-state",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.352",
+  "version": "0.2.0-alpha.372",
   "dependencies": {
     "@brains/db": "workspace:*",
     "@brains/utils": "workspace:*",
@@ -9,6 +9,7 @@
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@libsql/client": "^0.17.4",
     "@types/bun": "^1.4.0",

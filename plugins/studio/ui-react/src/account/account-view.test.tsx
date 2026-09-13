@@ -62,9 +62,9 @@ describe("Account surface", () => {
     expect(html).toContain("Passkeys");
     expect(html).toContain("Signed-in sessions");
     expect(html).toContain("mira@example.com");
-    expect(html).toContain(
-      "Verified contact details connected to your account.",
-    );
+    expect(html).toContain("mira@example.com");
+    expect(html).toContain("Verified:");
+    expect(html).toContain('title="2025-01-01T00:00:00.000Z"');
     expect(html).toContain("This session");
     expect(html).toContain("Sign out everywhere");
     expect(html).not.toContain("Members");
@@ -115,18 +115,23 @@ describe("Account surface", () => {
     const html = render();
 
     expect(html).toContain('data-studio-page-head="true"');
-    expect(html).toContain("Signed in");
-    expect(html).toContain("Mira Reyes · Trusted");
+    expect(html).not.toContain("<style");
+    expect(html).not.toContain("studio-head-access");
+    expect(html).not.toContain("Mira Reyes · Trusted");
+    expect(html).toMatch(/class="people-detail-name [^"]+">Mira Reyes/);
+    expect(html).toContain('data-account-role="trusted"');
+    expect(html).toContain(">Trusted</span>");
     expect(html).not.toContain('data-studio-primary-action="true"');
     expect(html).not.toContain("account-hero");
-    // One detail card with the admin identity header and labeled sections,
-    // not a bespoke multi-column panel grid.
-    expect(html).toContain("people-detail-identity");
+    // Profile and security have independent columns, with flat access rows.
+    expect(html).toContain("account-identity");
     expect(html).toContain("people-detail-name");
-    expect(html).toContain("people-detail-section");
-    expect(html).toContain("people-access-item");
-    expect(html).toContain("people-detail-footer");
-    expect(html).not.toContain("account-grid");
+    expect(html).toContain("account-detail-sections");
+    expect(html).toContain("account-detail-section");
+    expect(html).toContain("account-access-item");
+    expect(html).toContain("account-session-actions");
+    expect(html).not.toContain("people-facets");
+    expect(html).not.toContain('class="card people-detail"');
     expect(html).not.toContain("panel-heading");
     // A single live status region exists at surface level.
     expect(html).toContain('role="status"');

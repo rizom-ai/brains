@@ -40,6 +40,7 @@ export type ConversationRpcRequest =
       operation: "updateConversationMetadata";
       request: UpdateConversationMetadataRequest;
     }
+  | { operation: "deleteExpiredGuestConversations"; limit?: number | undefined }
   | { operation: "deleteConversation"; conversationId: string }
   | {
       operation: "searchConversations";
@@ -79,6 +80,9 @@ const getMessagesOptionsSchema = z.strictObject({
 });
 
 const listConversationsOptionsSchema = z.strictObject({
+  offset: z.number().int().nonnegative().optional(),
+  query: z.string().optional(),
+  archived: z.boolean().optional(),
   limit: z.number().int().nonnegative().optional(),
   updatedAfter: z.string().optional(),
   interfaceType: z.string().optional(),
@@ -131,6 +135,10 @@ export const ConversationRpcRequestSchema: z.ZodType<
     request: updateMetadataRequestSchema,
   }),
   z.strictObject({
+    operation: z.literal("deleteExpiredGuestConversations"),
+    limit: z.number().int().min(1).max(1000).optional(),
+  }),
+  z.strictObject({
     operation: z.literal("deleteConversation"),
     ...conversationIdSchema,
   }),
@@ -180,6 +188,7 @@ export interface ConversationRpcResults {
   searchConversations: Conversation[];
   updateConversationMetadata: boolean;
   deleteConversation: boolean;
+  deleteExpiredGuestConversations: number;
 }
 
 export type ConversationRpcOperation = keyof ConversationRpcResults;
@@ -194,6 +203,7 @@ const resultSchemas: RpcResultSchemas<ConversationRpcResults> = {
   searchConversations: conversationsSchema,
   updateConversationMetadata: z.boolean(),
   deleteConversation: z.boolean(),
+  deleteExpiredGuestConversations: z.number().int().nonnegative(),
 };
 
 export const parseConversationRpcResult: RpcResultParser<ConversationRpcResults> =
@@ -222,6 +232,8 @@ export function handleConversationRpcRequest(
       return service.listConversations(request.options);
     case "updateConversationMetadata":
       return service.updateConversationMetadata(request.request);
+    case "deleteExpiredGuestConversations":
+      return service.deleteExpiredGuestConversations(request.limit);
     case "deleteConversation":
       return service.deleteConversation(request.conversationId);
     case "searchConversations":

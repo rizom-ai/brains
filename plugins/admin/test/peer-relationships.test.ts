@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import type { StudioWorkspaceActor } from "@brains/plugins";
-import { createTempDataDir } from "@brains/plugins/test";
-import { createMockShell } from "@brains/test-utils";
+import { createMockShell, createTempDataDir } from "@brains/plugins/test";
+
 import { selectPeerTabSections } from "../src/peer-tab-provider";
 import {
   actionRequest,
@@ -44,7 +44,7 @@ function findById(value: unknown, id: string): unknown {
 describe("Administration peer relationships", () => {
   it("fails loudly when a required peer composition block disappears", () => {
     expect(() => selectPeerTabSections([])).toThrow(
-      'Peer tab composition requires block "link-peer"',
+      'Peer tab composition requires block "peers"',
     );
   });
 
@@ -105,7 +105,7 @@ describe("Administration peer relationships", () => {
         submitLabel: "Invite peer person",
       },
     });
-    const link = findAction(initial, "Link peer to person");
+    const link = findAction(initial, "Link an existing person");
     const prepared = await workspace.actionHandler?.(
       actionRequest(
         link,

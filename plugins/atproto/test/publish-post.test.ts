@@ -1,7 +1,8 @@
+import { createMockShell } from "@brains/plugins/test";
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createServicePluginContext } from "@brains/plugins";
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
-import { caughtError, createMockShell } from "@brains/test-utils";
+import { caughtError } from "@brains/test-utils";
 import {
   AtprotoPlugin,
   AtprotoProjectionRegistry,

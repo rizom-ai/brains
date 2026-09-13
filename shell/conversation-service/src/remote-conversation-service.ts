@@ -97,6 +97,13 @@ export class RemoteConversationService implements IConversationService {
     });
   }
 
+  public deleteExpiredGuestConversations(limit?: number): Promise<number> {
+    return this.requestRemote({
+      operation: "deleteExpiredGuestConversations",
+      limit,
+    });
+  }
+
   public deleteConversation(conversationId: string): Promise<boolean> {
     return this.requestRemote({
       operation: "deleteConversation",

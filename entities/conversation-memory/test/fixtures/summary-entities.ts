@@ -1,6 +1,6 @@
+import { createTestEntity } from "@brains/entity-service/test";
 import type { SummaryEntity, SummaryMetadata } from "../../src/schemas/summary";
 import { summaryConfigSchema } from "../../src/schemas/summary-config";
-import { createTestEntity } from "@brains/test-utils";
 
 export const defaultSummaryMetadata: SummaryMetadata = {
   conversationId: "test-conv",

@@ -6,7 +6,10 @@ import {
   type RuntimeOperatorLaunchIntent,
   type RuntimeOperatorLinkTarget,
 } from "@brains/plugins";
-import { OperatorViewRenderer } from "@brains/operator-view-react";
+import {
+  OperatorViewRenderer,
+  OperatorPanelParagraph,
+} from "@brains/operator-view-react";
 import type { JSX } from "react";
 import type { RenderableWidgetData } from "./types";
 
@@ -114,7 +117,11 @@ export function DeclarativeWidgetBody({
 }): JSX.Element {
   const parsed = safeParseRuntimeDashboardWidgetData(widget.data);
   if (!parsed.success) {
-    return <p className="operator-empty">Widget data is unavailable.</p>;
+    return (
+      <OperatorPanelParagraph presentation="muted">
+        Widget data is unavailable.
+      </OperatorPanelParagraph>
+    );
   }
   if (parsed.data.view.blocks.length === 0) {
     return (
@@ -122,7 +129,9 @@ export function DeclarativeWidgetBody({
         {parsed.data.view.title && (
           <h4 className="operator-view-title">{parsed.data.view.title}</h4>
         )}
-        <p className="operator-empty">No widget details.</p>
+        <OperatorPanelParagraph presentation="muted">
+          No widget details.
+        </OperatorPanelParagraph>
       </div>
     );
   }

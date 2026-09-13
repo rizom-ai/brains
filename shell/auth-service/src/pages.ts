@@ -4,6 +4,26 @@ import type { ValidAuthorizationRequest } from "./types";
 const AUTH_FONTS_URL =
   "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap";
 
+export function renderInactiveSetupPage(): string {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Setup link inactive</title>
+    ${authPageHeadAssets()}
+  </head>
+  <body>
+    <main class="card">
+      <h1>This setup link is no longer active</h1>
+      <p>This brain uses passkeys, not passwords. If setup was completed, sign in with the passkey saved on your device or in your password manager.</p>
+      <p>If that passkey is unavailable, ask your brain administrator for a replacement setup link. The old invitation link cannot be reused.</p>
+      <a class="button-link" href="/login">Sign in with a passkey</a>
+    </main>
+  </body>
+</html>`;
+}
+
 export function renderSetupSessionConflictPage(returnTo: string): string {
   const continueHref = `/logout?return_to=${encodeURIComponent(returnTo)}`;
   return `<!doctype html>
@@ -79,9 +99,10 @@ export function renderLoginPage(
   <body>
     <main class="card">
       <h1>${escapeHtml(title)}</h1>
-      <p>Choose the account for this brain in your passkey provider.</p>
-      <button type="button" id="login">Choose account</button>
+      <p>This brain uses passkeys, not passwords. Choose the passkey saved for this brain on your device or in your password manager.</p>
+      <button type="button" id="login">Choose passkey</button>
       <p id="status" role="status"></p>
+      <p>Can’t access your passkey? Ask your brain administrator for a replacement setup link.</p>
     </main>
     <script>${webauthnBrowserHelpers()}
     document.getElementById('login').addEventListener('click', async () => {

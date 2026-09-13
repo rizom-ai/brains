@@ -1,3 +1,4 @@
+import { createMockBatchJobManager } from "../src/test/index";
 import {
   describe,
   it,
@@ -16,10 +17,7 @@ import type {
 } from "../src/types";
 import type { JobQueue } from "../src/schema/job-queue";
 import type { BatchJobStatus } from "../src/batch-schemas";
-import {
-  createSilentLogger,
-  createMockBatchJobManager,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { createMockMessageBus } from "@brains/messaging-service/test";
 import type { Logger } from "@brains/utils/logger";
 import type { IMessageBus } from "@brains/messaging-service";

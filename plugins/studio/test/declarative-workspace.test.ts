@@ -1,5 +1,5 @@
 import { AuthServicePlugin } from "@brains/auth-service";
-import { createTempDataDir } from "@brains/plugins/test";
+import { createMockShell, createTempDataDir } from "@brains/plugins/test";
 import {
   defineStudioWorkspace,
   defineServicePlugin,
@@ -8,7 +8,7 @@ import {
   type Plugin,
   type WebRouteDefinition,
 } from "@brains/plugins";
-import { createMockShell } from "@brains/test-utils";
+
 import { z } from "@brains/utils/zod";
 import { afterEach, describe, expect, it } from "bun:test";
 import { studioPlugin, type StudioPlugin } from "../src";

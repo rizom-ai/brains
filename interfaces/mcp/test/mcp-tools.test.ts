@@ -1,12 +1,12 @@
 import { describe, expect, it, mock } from "bun:test";
 import { createExternalActorId } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
-import { createInterfacePluginContext } from "@brains/plugins/test";
 import {
+  createInterfacePluginContext,
   createMockShell,
-  createSilentLogger,
   type MockShellOptions,
-} from "@brains/test-utils";
+} from "@brains/plugins/test";
+import { createSilentLogger } from "@brains/test-utils";
 import { createMCPTools } from "../src/tools";
 
 type AgentService = NonNullable<MockShellOptions["agentService"]>;

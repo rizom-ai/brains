@@ -2,11 +2,24 @@
  * Test utilities for plugin development
  * Import from "@brains/plugins/test" instead of deep paths
  */
+export { createTestEntityAdapter } from "@brains/entity-service/test";
 export {
+  createMemoryRuntimeStateNamespace,
   createMockShell,
-  createTestEntityAdapter,
   type MockShell,
-} from "@brains/test-utils";
+  type MockShellOptions,
+} from "./src/test/mock-shell";
+export { createMockAppInfo } from "./src/test/mock-app-info";
+export {
+  createMockServicePluginContext,
+  type MockServicePluginContext,
+  type MockServicePluginContextOptions,
+  type MockServicePluginContextReturns,
+} from "./src/test/mock-service-plugin-context";
+export {
+  createMockEntityPluginContext,
+  type MockEntityPluginContextOptions,
+} from "./src/test/mock-entity-plugin-context";
 export {
   PluginTestHarness,
   createPluginHarness,

@@ -7,7 +7,6 @@ import {
   type OperatorRegionBlock,
   type OperatorViewBlock,
   type RuntimeStudioOperatorBlock,
-  type RuntimeStudioOperatorColumnsBlock,
   type RuntimeStudioOperatorPanelBlock,
   type RuntimeStudioOperatorRegionBlock,
   type ServicePluginContext,
@@ -20,11 +19,6 @@ import {
   requireAuthService,
   type AdminWorkspaceSource,
 } from "./workspace-format";
-
-type PeopleTotalsBlock = Extract<
-  RuntimeStudioOperatorPanelBlock,
-  { type: "stats" }
->;
 
 function requiredPeopleBlock(
   blocks: readonly RuntimeStudioOperatorBlock[],
@@ -39,35 +33,12 @@ function requiredPeopleBlock(
   return matches[0];
 }
 
-function requiredPeopleRegion(
-  blocks: readonly RuntimeStudioOperatorBlock[],
-  id: string,
-): RuntimeStudioOperatorRegionBlock {
-  const block = requiredPeopleBlock(blocks, id);
-  switch (block.type) {
-    case "tabs":
-    case "detail":
-    case "columns":
-      throw new Error(`People tab composition block "${id}" must be a region`);
-    default:
-      return block;
-  }
-}
-
-/**
- * People leads with the roster and follows with its standing material in the
- * console's main-plus-aside grammar, the same rhythm the Invitations tab
- * uses. The roster stays a top-level block because master/detail already owns
- * two columns and the region contract admits no nested detail; totals are
- * hoisted so the workspace head carries them instead of a full-width band
- * above the table.
- */
+/** Keep people primary; relationships and access facts remain available on demand. */
 export function composePeopleTabSections(
   blocks: readonly RuntimeStudioOperatorBlock[],
   peerNote: RuntimeStudioOperatorRegionBlock,
   peerSections: readonly RuntimeStudioOperatorRegionBlock[],
 ): {
-  readonly totals: PeopleTotalsBlock;
   readonly blocks: readonly Exclude<
     RuntimeStudioOperatorBlock,
     { type: "tabs" }
@@ -83,31 +54,35 @@ export function composePeopleTabSections(
   if (roster.type !== "detail") {
     throw new Error('People tab composition block "people" must be a detail');
   }
-  // The peer roster follows the member roster in the same column, so it needs
-  // its own caption: a bare table would read as more rows of the table above.
-  const peerRoster = peerSections
-    .filter(
-      (block): block is RuntimeStudioOperatorPanelBlock =>
-        block.id === "peers" && block.type !== "card",
-    )
-    .map((block) => ({
-      type: "card" as const,
-      id: "people-peers",
-      label: "External brains",
-      blocks: [block],
-    }));
-  const peerActions = peerSections.filter((block) => block.id !== "peers");
-  const layout: RuntimeStudioOperatorColumnsBlock = {
-    type: "columns",
-    id: "people-standing",
-    primary: peerRoster,
-    aside: [
-      requiredPeopleRegion(blocks, "brain-anchor"),
-      peerNote,
-      ...peerActions,
+  const anchor = requiredPeopleBlock(blocks, "brain-anchor");
+  if (anchor.type !== "card")
+    throw new Error(
+      'People tab composition block "brain-anchor" must be a card',
+    );
+  const peerPanels = [
+    peerNote,
+    ...peerSections,
+  ].flatMap<RuntimeStudioOperatorPanelBlock>((block) =>
+    block.type === "card" ? [...block.blocks] : [block],
+  );
+  return {
+    blocks: [
+      roster,
+      {
+        type: "card",
+        id: "people-peers",
+        label: "External brains",
+        presentation: "disclosure",
+        blocks: peerPanels,
+      },
+      {
+        ...anchor,
+        label: "Access reference",
+        presentation: "disclosure",
+        blocks: [totals, ...anchor.blocks],
+      },
     ],
   };
-  return { totals, blocks: [roster, layout] };
 }
 
 const peopleQuerySchema = z.strictObject({
@@ -357,10 +332,6 @@ function attachIdentityActionBlock(
 
 function titleCase(value: string): string {
   return `${value.slice(0, 1).toUpperCase()}${value.slice(1)}`;
-}
-
-function signInSummary(passkeys: number, channels: number): string {
-  return `${passkeys} ${passkeys === 1 ? "passkey" : "passkeys"} · ${channels} ${channels === 1 ? "channel" : "channels"}`;
 }
 
 function defaultAnchor(
@@ -675,45 +646,56 @@ const peopleWorkspace = defineStudioWorkspace({
         queryKey: "selected",
         empty: "Select a person to inspect their access.",
         master: {
-          type: "table",
+          type: "list",
           id: "people-roster",
+          presentation: "standard",
           empty: "No people are available.",
-          columns: [
-            { key: "person", label: "Person" },
-            { key: "role", label: "Role" },
-            { key: "status", label: "Status" },
-            { key: "brain", label: "Arrived via" },
-            { key: "signIn", label: "Sign-in" },
-          ],
-          rows: data.people.map((person) => ({
-            id: person.userId,
-            cells: {
-              person: person.displayName,
-              role: titleCase(person.role),
-              status: titleCase(person.status),
-              brain: peerOriginLabel(person.peers[0]?.peerId),
-              signIn: signInSummary(
-                person.passkeys.length,
-                person.identities.length,
-              ),
-            },
-            compact: {
+          items: [...data.people]
+            .sort(
+              (left, right) =>
+                Number(right.isSelf) - Number(left.isSelf) ||
+                Number(left.isAnchor) - Number(right.isAnchor) ||
+                left.displayName.localeCompare(right.displayName),
+            )
+            .map((person) => ({
+              id: person.userId,
               title: person.displayName,
-              metadata: [
+              description: [
                 titleCase(person.role),
-                peerOriginLabel(person.peers[0]?.peerId),
-                signInSummary(person.passkeys.length, person.identities.length),
+                titleCase(person.status),
+                ...(person.isSelf ? ["You"] : []),
+                ...(person.isAnchor ? ["Anchor"] : []),
+              ].join(" · "),
+              metadata: [
+                person.isAnchor
+                  ? "Protected brain identity"
+                  : person.isSelf
+                    ? "Not the Anchor"
+                    : person.identities.length === 1
+                      ? "One connected channel"
+                      : `${person.identities.length} connected channels`,
+                ...(person.peers.length > 0
+                  ? [`Arrived via ${peerOriginLabel(person.peers[0]?.peerId)}`]
+                  : []),
               ],
-              badges: [
+              // Self-service opens Account. The linked name retains access inspection
+              // without presenting credential management outside Account.
+              ...(person.isSelf
+                ? { link: { detail: { itemId: person.userId } } }
+                : {}),
+              links: [
                 {
-                  label: titleCase(person.status),
-                  tone: person.status === "active" ? "good" : "warn",
+                  label: person.isSelf
+                    ? "Account →"
+                    : person.isAnchor
+                      ? "View protection"
+                      : "Manage person",
+                  target: person.isSelf
+                    ? { launch: { target: "account-settings" } }
+                    : { detail: { itemId: person.userId } },
                 },
               ],
-              tone: person.status === "suspended" ? "warn" : "neutral",
-            },
-            link: { detail: { itemId: person.userId } },
-          })),
+            })),
         },
         ...(selected
           ? {

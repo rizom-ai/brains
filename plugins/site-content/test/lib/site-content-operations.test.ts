@@ -1,9 +1,7 @@
+import { createTestEntity } from "@brains/entity-service/test";
+import { createMockServicePluginContext } from "@brains/plugins/test";
 import { describe, test, expect, beforeEach, spyOn } from "bun:test";
 import { SiteContentOperations } from "../../src/lib/site-content-operations";
-import {
-  createMockServicePluginContext,
-  createTestEntity,
-} from "@brains/test-utils";
 import type {
   ServicePluginContext,
   BatchOperation,

@@ -34,6 +34,10 @@ import type {
 import type { Tool } from "@brains/mcp-service";
 import type { ModelMessage } from "ai";
 import { z } from "@brains/utils/zod";
+import {
+  guestExecutionPolicySchema,
+  type GuestExecutionPolicy,
+} from "@brains/contracts/chat";
 
 /**
  * Schema for runtime call options
@@ -57,6 +61,7 @@ export const brainCallOptionsSchema: z.ZodObject<{
   enableCreateUpload: z.ZodOptional<z.ZodBoolean>;
   enableCreateTransform: z.ZodOptional<z.ZodBoolean>;
   hasPriorResponseCandidate: z.ZodOptional<z.ZodBoolean>;
+  guestExecution: z.ZodOptional<typeof guestExecutionPolicySchema>;
 }> = z.object({
   userPermissionLevel: z.enum(["admin", "trusted", "public"]),
   isAnchor: z.boolean().optional(),
@@ -71,6 +76,7 @@ export const brainCallOptionsSchema: z.ZodObject<{
   enableCreateUpload: z.boolean().optional(),
   enableCreateTransform: z.boolean().optional(),
   hasPriorResponseCandidate: z.boolean().optional(),
+  guestExecution: guestExecutionPolicySchema.optional(),
 });
 
 export type BrainCallOptions = z.infer<typeof brainCallOptionsSchema>;
@@ -129,15 +135,20 @@ export interface BrainAgent {
 /**
  * Factory function type for creating brain agents
  */
-export type BrainAgentFactory = (config: BrainAgentConfig) => BrainAgent;
+export type BrainAgentFactory = ((config: BrainAgentConfig) => BrainAgent) & {
+  /** A paired guest model/accounting profile is installed; not transport admission. */
+  readonly guestProfileAvailable?: boolean;
+};
 
 /**
- * Configuration for the AgentService
+ * The part of the canonical identity service that fills in an actor.
+ *
+ * Not `@brains/identity-service`'s `CanonicalIdentityResolver`, which is the
+ * lookup function that service is configured with. This is a projection of
+ * `ICanonicalIdentityService` down to the one method the agent needs, so the
+ * agent can be handed the service without depending on the rest of it.
  */
-export type CanonicalIdentityResolver = Pick<
-  ICanonicalIdentityService,
-  "enrichActor"
->;
+export type ActorEnricher = Pick<ICanonicalIdentityService, "enrichActor">;
 
 export interface AgentIndexReadiness {
   isIndexReady(): boolean;
@@ -157,7 +168,7 @@ export interface AgentConfig {
   /** Stable agent id used for assistant messages, e.g. brain:relay */
   assistantAgentId?: string;
   /** Optional explicit actor -> canonical identity resolver */
-  canonicalIdentityResolver?: CanonicalIdentityResolver;
+  canonicalIdentityResolver?: ActorEnricher;
   /** Optional semantic-index readiness gate for retrieval-backed chat. */
   indexReadiness?: AgentIndexReadiness;
   /** Optional provider for same-turn retrieved context, e.g. durable memory. */
@@ -200,6 +211,8 @@ export interface FileChatAttachment {
 export type ChatAttachment = TextChatAttachment | FileChatAttachment;
 
 export interface ChatContext {
+  /** Server-owned limits bound to the already-reserved guest execution. */
+  guestExecution?: GuestExecutionPolicy;
   userPermissionLevel?: UserPermissionLevel; // Defaults to "public" for safety
   /** Whether the authenticated caller is the brain's configured Anchor. */
   isAnchor?: boolean;
@@ -215,6 +228,7 @@ export interface ChatContext {
  * Agent service interface
  */
 export interface IAgentService {
+  readonly guestProfileAvailable?: boolean;
   /**
    * Send a message to the agent and get a response
    * @param message - The user's message

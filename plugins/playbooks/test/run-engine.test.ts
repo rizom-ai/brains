@@ -1,5 +1,6 @@
+import { createMockShell } from "@brains/plugins/test";
 import { describe, it, expect } from "bun:test";
-import { createMockShell } from "@brains/test-utils";
+
 import { playbookBodySchema, type PlaybookBody } from "../src/entity";
 import { PlaybookRunStore, type PlaybookRun } from "../src/run-store";
 import { RunEngine, type GoalCheckResult } from "../src/lib/run-engine";

@@ -44,13 +44,19 @@ const styles = stylex.create({
     justifyContent: "center",
     lineHeight: 1,
     minHeight: "36px",
+    minWidth: 0,
+    maxWidth: "100%",
+    overflowWrap: "anywhere",
     outline: "none",
     paddingBlock: "8px",
     paddingInline: "14px",
     textDecoration: "none",
-    transition:
-      "background-color 120ms ease, border-color 120ms ease, color 120ms ease, opacity 120ms ease, transform 120ms ease",
-    whiteSpace: "nowrap",
+    transition: {
+      default:
+        "background-color 120ms ease, border-color 120ms ease, color 120ms ease, opacity 120ms ease, transform 120ms ease",
+      "@media (prefers-reduced-motion: reduce)": "none",
+    },
+    whiteSpace: "normal",
     ":focus-visible": {
       boxShadow:
         "0 0 0 3px color-mix(in srgb, var(--console-accent) 28%, transparent)",
@@ -66,10 +72,16 @@ const styles = stylex.create({
     backgroundColor: "var(--console-accent)",
     borderColor: "var(--console-accent)",
     color: "var(--console-on-accent)",
+    transform: {
+      default: null,
+      ":hover": {
+        default: "translateY(-1px)",
+        "@media (prefers-reduced-motion: reduce)": "none",
+      },
+    },
     ":hover": {
       backgroundColor: "var(--console-accent-dim)",
       borderColor: "var(--console-accent-dim)",
-      transform: "translateY(-1px)",
     },
   },
   secondary: {
@@ -166,6 +178,12 @@ const styles = stylex.create({
     minHeight: "42px",
     padding: 0,
     width: "42px",
+  },
+  touchIcon: {
+    minWidth: {
+      default: 0,
+      "@media (max-width: 640px)": "var(--console-touch)",
+    },
   },
   control: {
     appearance: "none",
@@ -280,13 +298,21 @@ function buttonStyles(
                 : size === "icon-lg"
                   ? styles.iconLg
                   : undefined;
-  return sizeStyle ? [styles.button, tone, sizeStyle] : [styles.button, tone];
+  return sizeStyle
+    ? [
+        styles.button,
+        tone,
+        sizeStyle,
+        size.startsWith("icon") && styles.touchIcon,
+      ]
+    : [styles.button, tone];
 }
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: AppButtonVariant | undefined;
   size?: AppButtonSize | undefined;
   asChild?: boolean | undefined;
+  xstyle?: stylex.StyleXStyles;
 }
 
 export function buttonClassName(
@@ -301,15 +327,19 @@ export function Button({
   variant = "default",
   size = "default",
   asChild = false,
+  xstyle,
+  style,
   ...props
 }: ButtonProps): ReactElement {
   const Component = asChild ? Slot.Root : "button";
+  const styleProps = stylex.props(...buttonStyles(variant, size), xstyle);
   return (
     <Component
       data-slot="button"
       data-variant={variant}
       data-size={size}
-      className={classes(buttonClassName(variant, size), className)}
+      className={classes(styleProps.className, className)}
+      style={{ ...styleProps.style, ...style }}
       {...props}
     />
   );
@@ -317,13 +347,18 @@ export function Button({
 
 export function Input({
   className,
+  xstyle,
+  style,
   ...props
-}: InputHTMLAttributes<HTMLInputElement>): ReactElement {
-  const styleProps = stylex.props(styles.control);
+}: InputHTMLAttributes<HTMLInputElement> & {
+  xstyle?: stylex.StyleXStyles;
+}): ReactElement {
+  const styleProps = stylex.props(styles.control, xstyle);
   return (
     <input
       data-slot="input"
       className={classes(styleProps.className, className)}
+      style={{ ...styleProps.style, ...style }}
       {...props}
     />
   );
@@ -331,13 +366,18 @@ export function Input({
 
 export function NativeSelect({
   className,
+  xstyle,
+  style,
   ...props
-}: SelectHTMLAttributes<HTMLSelectElement>): ReactElement {
-  const styleProps = stylex.props(styles.control, styles.select);
+}: SelectHTMLAttributes<HTMLSelectElement> & {
+  xstyle?: stylex.StyleXStyles;
+}): ReactElement {
+  const styleProps = stylex.props(styles.control, styles.select, xstyle);
   return (
     <select
       data-slot="native-select"
       className={classes(styleProps.className, className)}
+      style={{ ...styleProps.style, ...style }}
       {...props}
     />
   );
@@ -345,13 +385,18 @@ export function NativeSelect({
 
 export function Textarea({
   className,
+  xstyle,
+  style,
   ...props
-}: TextareaHTMLAttributes<HTMLTextAreaElement>): ReactElement {
-  const styleProps = stylex.props(styles.control, styles.textarea);
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  xstyle?: stylex.StyleXStyles;
+}): ReactElement {
+  const styleProps = stylex.props(styles.control, styles.textarea, xstyle);
   return (
     <textarea
       data-slot="textarea"
       className={classes(styleProps.className, className)}
+      style={{ ...styleProps.style, ...style }}
       {...props}
     />
   );

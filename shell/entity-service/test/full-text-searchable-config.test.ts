@@ -1,5 +1,5 @@
-import { describe, test, expect, afterEach } from "bun:test";
-import { createTestEntity } from "@brains/test-utils";
+import { createTestEntity } from "../src/test/index";
+import { afterEach, describe, expect, test } from "bun:test";
 import type { EntityTypeConfig } from "../src";
 import {
   setupEntityService,

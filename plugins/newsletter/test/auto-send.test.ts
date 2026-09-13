@@ -1,9 +1,7 @@
+import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, it, expect, spyOn } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
-import {
-  createSilentLogger,
-  createMockEntityService,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { createPluginHarness } from "@brains/plugins/test";
 import {
   ButtondownClient,

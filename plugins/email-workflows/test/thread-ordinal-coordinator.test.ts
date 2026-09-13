@@ -41,6 +41,10 @@ class MemoryStateStore<T> implements IRuntimeStateStore<T> {
     return true;
   }
 
+  async compareAndSet(): Promise<boolean> {
+    throw new Error("Unexpected compare-and-set in thread ordinal fixture");
+  }
+
   async delete(key: string): Promise<boolean> {
     return this.values.delete(key);
   }

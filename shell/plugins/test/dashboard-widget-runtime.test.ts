@@ -1,6 +1,7 @@
+import { createMockShell } from "../src/test/mock-shell";
 import { describe, expect, it } from "bun:test";
 import { DASHBOARD_CHANNELS } from "@brains/contracts";
-import { createMockShell, createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,

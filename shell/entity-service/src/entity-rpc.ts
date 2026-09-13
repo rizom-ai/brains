@@ -17,6 +17,7 @@ import {
   assetChunkRangeSchema,
 } from "./asset-transfers";
 import { z } from "@brains/utils/zod";
+import { entityReadBudgetSchema } from "@brains/contracts";
 import {
   createRpcResultParser,
   type LocalDatabaseTransport,
@@ -204,10 +205,13 @@ const entitySchema = z.looseObject({
   contentHash: z.string(),
 });
 const listFilterSchema = z.strictObject({
+  contentContains: z.string().optional(),
+  visibility: contentVisibilitySchema.optional(),
   metadata: metadataSchema.optional(),
   visibilityScope: contentVisibilitySchema.optional(),
 });
 const listOptionsSchema = z.strictObject({
+  readBudget: entityReadBudgetSchema.optional(),
   limit: z.number().int().positive().optional(),
   offset: z.number().int().nonnegative().optional(),
   sortFields: z
@@ -223,6 +227,7 @@ const listOptionsSchema = z.strictObject({
   publishedOnly: z.boolean().optional(),
 });
 const getRequestSchema = z.strictObject({
+  readBudget: entityReadBudgetSchema.optional(),
   entityType: nonEmptyString,
   id: nonEmptyString,
   visibilityScope: contentVisibilitySchema.optional(),
@@ -241,6 +246,7 @@ const countRequestSchema = z.strictObject({
     .optional(),
 });
 const searchOptionsSchema = z.strictObject({
+  readBudget: entityReadBudgetSchema.optional(),
   limit: z.number().int().positive().optional(),
   offset: z.number().int().nonnegative().optional(),
   types: z.array(nonEmptyString).optional(),

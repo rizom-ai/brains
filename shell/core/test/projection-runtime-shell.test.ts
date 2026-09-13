@@ -1,3 +1,4 @@
+import { createMockJobQueueService } from "@brains/job-queue/test";
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { migrateConversations } from "@brains/conversation-service/migrate";
 import {
@@ -13,10 +14,7 @@ import type {
   JobQueueEnqueueRequest,
 } from "@brains/job-queue";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
-import {
-  createMockJobQueueService,
-  createSilentLogger,
-} from "@brains/test-utils";
+import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import {
   EntityPlugin,
   defineProjectionRule,
@@ -32,7 +30,6 @@ import { z } from "@brains/utils/zod";
 import { Shell, type ShellDependencies } from "../src/shell";
 import { PROJECTION_RULE_JOB_TYPE } from "../src/projection-wave-scheduler";
 import { createTestShellConfig } from "./helpers/test-config";
-import { createTestDirectory } from "@brains/test-utils";
 
 class ProjectionTargetAdapter extends BaseEntityAdapter<BaseEntity> {
   constructor() {

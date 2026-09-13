@@ -1,7 +1,7 @@
+import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, expect, it } from "bun:test";
 import { createElement as h, type JSX } from "react";
 import { z } from "@brains/utils/zod";
-import { createMockEntityService } from "@brains/test-utils";
 import { baseEntitySchema } from "@brains/plugins";
 import {
   createOgImageProvider,

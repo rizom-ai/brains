@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { readdir } from "node:fs/promises";
-import { createTempDataDir } from "@brains/plugins/test";
+import { createMockShell, createTempDataDir } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import type {
   AppendAuthAuditEventInput,
@@ -12,7 +12,7 @@ import type {
 } from "@brains/plugins";
 import { createServicePluginContext } from "@brains/plugins";
 import { PermissionService } from "@brains/templates";
-import { createMockShell } from "@brains/test-utils";
+
 import { z } from "@brains/utils/zod";
 import { createEditorRoutes } from "../src/editor-routes";
 import { StudioWorkspaceRegistry } from "../src/workspace-registry";

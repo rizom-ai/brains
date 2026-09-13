@@ -3,6 +3,10 @@ import type {
   UserPermissionLevel,
 } from "@brains/plugins";
 import type { FetchLike } from "@brains/utils/fetch-like";
+import {
+  studioCollectionQuerySchema,
+  type StudioCollectionQuery,
+} from "../../src/collection-query";
 
 /**
  * Typed client for the Studio editor API served by plugins/studio.
@@ -112,10 +116,18 @@ export interface TypeSchema {
 }
 
 export interface EntitySummary {
+  /** Adapter-owned metadata title; read-only and never inserted into frontmatter. */
+  displayTitle?: string | undefined;
   id: string;
   entityType: string;
   frontmatter: Record<string, unknown>;
   updated: string;
+}
+
+export interface EntityPage {
+  entities: EntitySummary[];
+  /** Count after applying the same filters and visibility scope as the page. */
+  total: number;
 }
 
 export interface EntityDetail extends EntitySummary {
@@ -298,11 +310,23 @@ export class StudioApi {
     );
   }
 
-  async fetchEntities(entityType: string): Promise<EntitySummary[]> {
-    const { entities } = await this.requestJson<{ entities: EntitySummary[] }>(
-      this.path(`entities?type=${encodeURIComponent(entityType)}`),
+  async fetchEntities(
+    entityType: string,
+    query: StudioCollectionQuery = studioCollectionQuerySchema.parse({}),
+  ): Promise<EntityPage> {
+    const page = studioCollectionQuerySchema.parse(query);
+    const params = new URLSearchParams({
+      type: entityType,
+      offset: String(page.offset),
+      limit: String(page.limit),
+    });
+    if (page.q) params.set("q", page.q);
+    if (page.visibility !== "all") params.set("visibility", page.visibility);
+    if (page.status) params.set("status", page.status);
+    if (page.sort !== "updated-desc") params.set("sort", page.sort);
+    return this.requestJson<EntityPage>(
+      this.path(`entities?${params.toString()}`),
     );
-    return entities;
   }
 
   async fetchEntity(entityType: string, id: string): Promise<EntityDetail> {

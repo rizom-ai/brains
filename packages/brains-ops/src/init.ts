@@ -44,6 +44,7 @@ const starterFilePaths = [
   "deploy/scripts/write-kamal-secrets.ts",
   "deploy/scripts/resolve-user-config.ts",
   "deploy/scripts/resolve-missing-images.ts",
+  "deploy/scripts/verify-runtime-image.ts",
   "deploy/scripts/resolve-deploy-handles.ts",
   "deploy/scripts/sync-content-repo.ts",
   ".kamal/hooks/pre-deploy",

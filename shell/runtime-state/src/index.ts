@@ -19,6 +19,7 @@ export type {
   IRuntimeStateStore,
   RuntimeStateDbConfig,
   RuntimeStateRecordValue,
+  RuntimeStateListOptions,
   RuntimeStateScopeOptions,
   RuntimeStateServiceConfig,
   RuntimeStateValueSchema,

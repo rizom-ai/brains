@@ -1,12 +1,12 @@
+import { createTestEntityAdapter } from "@brains/entity-service/test";
+import { createMockShell } from "../../src/test/mock-shell";
 import { describe, expect, test, beforeEach, mock } from "bun:test";
 import type { Plugin, PluginCapabilities } from "@brains/plugins";
 import { PluginStatus } from "../../src/manager/types";
 import { baseEntitySchema } from "@brains/entity-service";
-import { createTestEntityAdapter } from "@brains/test-utils";
 import type { IShell } from "@brains/plugins";
 import { PluginManager } from "../../src/manager/pluginManager";
 import { createSilentLogger } from "@brains/test-utils";
-import { createMockShell } from "@brains/test-utils";
 
 function deferred(): { promise: Promise<void>; resolve(): void } {
   let settle: (() => void) | undefined;

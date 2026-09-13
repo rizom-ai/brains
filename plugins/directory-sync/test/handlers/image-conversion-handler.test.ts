@@ -1,3 +1,5 @@
+import { createTestEntity } from "@brains/entity-service/test";
+import { createMockServicePluginContext } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
 import { prepareAsset } from "@brains/assets";
 import {
@@ -14,11 +16,7 @@ import {
   CoverImageConversionJobHandler,
   type CoverImageConversionJobData,
 } from "../../src/handlers/image-conversion-handler";
-import {
-  createSilentLogger,
-  createMockServicePluginContext,
-  createTestEntity,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import {

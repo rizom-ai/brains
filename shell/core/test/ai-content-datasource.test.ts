@@ -1,3 +1,9 @@
+import { createMockTemplateRegistry } from "@brains/templates/test";
+import { createMockAIService } from "@brains/ai-service/test";
+import {
+  createMockEntityService,
+  createTestEntity,
+} from "@brains/entity-service/test";
 import {
   describe,
   it,
@@ -11,12 +17,6 @@ import { AIContentDataSource } from "../src/datasources/ai-content-datasource";
 import type { IAIService } from "@brains/ai-service";
 import type { IEntityService, SearchResult } from "@brains/plugins";
 import { resetPromptCache } from "@brains/plugins";
-import {
-  createMockEntityService,
-  createMockAIService,
-  createMockTemplateRegistry,
-  createTestEntity,
-} from "@brains/test-utils";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import type { Template } from "@brains/templates";
 import { z } from "@brains/utils/zod";

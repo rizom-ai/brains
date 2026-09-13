@@ -45,6 +45,8 @@ export class ProjectAdapter extends BaseEntityAdapter<
       };
       return this.buildMarkdown(body, completeFrontmatter);
     } catch {
+      // Same as the blog adapter: hand-edited frontmatter that no longer
+      // parses must not take the body down with it.
       return body;
     }
   }

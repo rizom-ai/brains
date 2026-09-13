@@ -1,3 +1,4 @@
+import { createMockJobQueueService } from "../src/test/index";
 import {
   describe,
   it,
@@ -18,7 +19,6 @@ import {
   createMockLogger,
   createSilentLogger,
   createMockProgressReporter,
-  createMockJobQueueService,
   waitUntil,
 } from "@brains/test-utils";
 import { createId } from "@brains/utils/id";

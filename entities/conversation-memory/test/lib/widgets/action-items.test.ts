@@ -1,13 +1,11 @@
+import { createTestEntity } from "@brains/entity-service/test";
+import { createMockEntityPluginContext } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import { DASHBOARD_CHANNELS } from "@brains/contracts";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   SYSTEM_CHANNELS,
 } from "@brains/plugins";
-import {
-  createMockEntityPluginContext,
-  createTestEntity,
-} from "@brains/test-utils";
 import {
   buildActionItemsWidgetData,
   registerActionItemsWidget,

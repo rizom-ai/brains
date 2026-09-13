@@ -1,4 +1,11 @@
 /** @jsxImportSource react */
+import { StudioStatus } from "./studio-status";
+import { ConfirmDialog } from "@brains/app-ui-react";
+import {
+  StudioChatDraftStore,
+  shouldBlockChatNavigation,
+  type StudioChatNavigationState,
+} from "./studio-chat-drafts";
 import type {
   RuntimeOperatorActionControl,
   RuntimeOperatorLaunchIntent,
@@ -16,6 +23,7 @@ import {
   useReducer,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactElement,
 } from "react";
 import {
@@ -26,6 +34,7 @@ import {
   parseStudioPath,
 } from "../../src/studio-paths";
 import { createStudioCreatePrefillState } from "../../src/create-prefill-contract";
+import type { StudioCollectionQuery } from "../../src/collection-query";
 import {
   STUDIO_ACCOUNT_WORKSPACE_ID,
   STUDIO_ACCOUNT_WORKSPACE_RENDERER,
@@ -41,6 +50,7 @@ import {
   StudioAppStatus,
   StudioAppView,
   type MobileEditorPane,
+  mobileEditorEntry,
 } from "./app-view";
 import {
   ApiError,
@@ -105,12 +115,15 @@ import {
   type StudioWorkspaceQuery,
 } from "./queries";
 import { emptyDraft, errorMessage } from "./ui-utils";
+import { readErrorMessage } from "./read-error";
 import {
   initialWorkspaceUrlQuery,
   replaceWorkspaceUrlQuery,
   workspaceUrlHref,
   workspaceUrlSearch,
 } from "./workspace-url-query";
+
+import { collectionQuery, collectionSearch } from "./collection-url-query";
 
 const LazyAccountApp = lazy(async () => {
   const module = await import("./account/account-view");
@@ -199,6 +212,7 @@ export function App(): ReactElement {
     null,
   );
   const [entityType, setEntityType] = useState<string | null>(null);
+
   // Renderer-agnostic per-workspace query params (filters, paging). Renderers
   // own their query semantics; the container only stores and forwards them.
   const [workspaceQueries, setWorkspaceQueries] = useState<
@@ -210,17 +224,38 @@ export function App(): ReactElement {
   );
   const { mode, draft, body, save: saveState } = editor;
   const hasUnsavedChanges = hasUnsavedEditorChanges(editor);
+  const [chatDraftStore] = useState(() => new StudioChatDraftStore());
+  const hasChatDrafts = useSyncExternalStore(
+    chatDraftStore.subscribe,
+    chatDraftStore.hasDrafts,
+    chatDraftStore.hasDrafts,
+  );
+  const [chatNavigation, setChatNavigation] =
+    useState<StudioChatNavigationState>({ hasDraft: false, busy: false });
   const navigationBlocker = useBlocker({
-    shouldBlockFn: () => hasUnsavedChanges,
-    enableBeforeUnload: hasUnsavedChanges,
+    shouldBlockFn: ({ next }) =>
+      hasUnsavedChanges ||
+      (routePathname === STUDIO_CHAT_ROUTE_PATH &&
+        shouldBlockChatNavigation(
+          { ...chatNavigation, hasDraft: hasChatDrafts },
+          next.pathname,
+        )),
+    enableBeforeUnload:
+      hasUnsavedChanges || hasChatDrafts || chatNavigation.busy,
     withResolver: true,
   });
   const [fieldAssistState, setFieldAssistState] = useState<FieldAssistState>({
     kind: "idle",
   });
-  const [bodyMode, setBodyMode] = useState<BodyMode>("split");
+  const [bodyMode, setBodyMode] = useState<BodyMode>("preview");
   const [mobilePane, setMobilePane] = useState<MobileEditorPane>("details");
+  const preferredMobilePane = useRef<MobileEditorPane | null>(null);
+  const selectMobilePane = useCallback((pane: MobileEditorPane): void => {
+    preferredMobilePane.current = pane;
+    setMobilePane(pane);
+  }, []);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [baselineCommit, setBaselineCommit] = useState<string | null>(null);
   const saveStartedAt = useRef(0);
   const pendingOpenState = useRef<{
@@ -236,6 +271,14 @@ export function App(): ReactElement {
   const types = navigationQuery.data?.types ?? null;
   const activeType = types?.find((info) => info.entityType === entityType);
   const activeCapabilities = activeType?.capabilities;
+  const entityCollectionQuery = useMemo(
+    () =>
+      activeType?.isSingleton
+        ? collectionQuery("")
+        : collectionQuery(routeSearch),
+    [activeType?.isSingleton, routeSearch],
+  );
+  const entityListOffset = entityCollectionQuery.offset;
   const workspaces = navigationQuery.data?.workspaces ?? EMPTY_WORKSPACES;
   const activeWorkspace = workspaces.find(
     (workspace) => workspace.id === activeWorkspaceId,
@@ -272,7 +315,7 @@ export function App(): ReactElement {
   const workspaceResponse = workspaceQuery.data ?? null;
   const workspaceData = workspaceResponse?.data ?? null;
   const workspaceError = workspaceQuery.error
-    ? errorMessage(workspaceQuery.error)
+    ? readErrorMessage(workspaceQuery.error)
     : null;
   const activeEntityId = mode.kind === "edit" ? mode.entity.id : null;
   const agentTargetsQuery = useQuery({
@@ -290,10 +333,11 @@ export function App(): ReactElement {
   });
   const syncStatus = syncStatusQuery.data ?? null;
   const entityListQuery = useQuery({
-    ...entityListQueryOptions(api, entityType ?? ""),
+    ...entityListQueryOptions(api, entityType ?? "", entityCollectionQuery),
     enabled: entityType !== null,
   });
-  const entities = entityType ? (entityListQuery.data ?? null) : null;
+  const entities = entityType ? (entityListQuery.data?.entities ?? null) : null;
+  const entityListTotal = entityListQuery.data?.total;
   const entitySchemaQuery = useQuery({
     ...entitySchemaQueryOptions(api, entityType ?? ""),
     enabled: entityType !== null,
@@ -320,6 +364,38 @@ export function App(): ReactElement {
     activeDeclarativeWorkspace && workspaceResponse
       ? workspaceResponse.data
       : null;
+
+  useEffect(() => {
+    if (
+      !entityType ||
+      !activeType ||
+      activeWorkspaceId ||
+      (routeTarget.kind !== "collection" && routeTarget.kind !== "entity") ||
+      routeTarget.entityType !== entityType
+    )
+      return;
+    if (entityListTotal === undefined) return;
+    const lastOffset =
+      Math.floor(
+        Math.max(0, entityListTotal - 1) / entityCollectionQuery.limit,
+      ) * entityCollectionQuery.limit;
+    if (entityListOffset > lastOffset) {
+      router.history.replace(
+        `${routePathname}${collectionSearch({ ...entityCollectionQuery, offset: lastOffset })}`,
+        router.history.location.state,
+      );
+    }
+  }, [
+    activeType,
+    activeWorkspaceId,
+    entityListOffset,
+    entityListTotal,
+    entityCollectionQuery,
+    entityType,
+    routePathname,
+    routeTarget,
+    router.history,
+  ]);
 
   useEffect(() => {
     if (!activeWorkspaceId || !declarativeWorkspaceData?.refreshAfterMs) {
@@ -386,7 +462,9 @@ export function App(): ReactElement {
           return;
         }
         openRequestId.current += 1;
-        setLoadError(`Unknown Studio workspace: ${routeTarget.workspaceId}`);
+        setLoadError(
+          `Workspace unavailable for this account: ${routeTarget.workspaceId}`,
+        );
         return;
       }
       setActiveWorkspaceId(workspace.id);
@@ -412,7 +490,7 @@ export function App(): ReactElement {
       !types.some((info) => info.entityType === requestedType)
     ) {
       openRequestId.current += 1;
-      setLoadError(`Unknown Studio entity type: ${requestedType}`);
+      setLoadError(`Collection unavailable for this account: ${requestedType}`);
       return;
     }
 
@@ -464,15 +542,26 @@ export function App(): ReactElement {
     setMobilePane("details");
     setFieldAssistState({ kind: "idle" });
     let active = true;
-    Promise.all([
-      queryClient.fetchQuery({
+    const isCurrentRequest = (): boolean =>
+      active && requestId === openRequestId.current;
+    queryClient
+      .fetchQuery({
         ...entitySchemaQueryOptions(api, entityType),
         staleTime: 0,
-      }),
-      queryClient.ensureQueryData(entityListQueryOptions(api, entityType)),
-    ])
-      .then(([loadedSchema, loadedEntities]) => {
+      })
+      .then(async (loadedSchema) => {
         if (!active || requestId !== openRequestId.current) return undefined;
+        const nextPane = mobileEditorEntry(
+          loadedSchema,
+          preferredMobilePane.current,
+        );
+        setMobilePane(nextPane);
+        if (
+          window.matchMedia("(max-width: 640px)").matches &&
+          nextPane !== "details"
+        ) {
+          setBodyMode(nextPane === "write" ? "source" : "preview");
+        }
         if (createMode && routeEntityId === null) {
           const canCreateRequestedType =
             types?.find((info) => info.entityType === entityType)?.capabilities
@@ -525,7 +614,11 @@ export function App(): ReactElement {
         }
         // Singletons skip the list: open the record, or start creating it.
         if (loadedSchema.isSingleton) {
-          const record = loadedEntities[0];
+          const loadedPage = await queryClient.ensureQueryData(
+            entityListQueryOptions(api, entityType),
+          );
+          if (!isCurrentRequest()) return undefined;
+          const record = loadedPage.entities[0];
           if (record) {
             return queryClient
               .fetchQuery({
@@ -547,7 +640,7 @@ export function App(): ReactElement {
       })
       .catch((error: unknown) => {
         if (active && requestId === openRequestId.current) {
-          setLoadError(errorMessage(error));
+          setLoadError(readErrorMessage(error));
         }
       });
     return (): void => {
@@ -557,6 +650,7 @@ export function App(): ReactElement {
     createMode,
     currentStudioPathname,
     entityType,
+    loadAttempt,
     queryClient,
     routePathname,
     routeTarget,
@@ -570,12 +664,9 @@ export function App(): ReactElement {
       if (pathname !== currentStudioPathname) {
         pendingOpenState.current = { pathname, save: nextState };
         router.history.push(
-          pathname,
+          `${pathname}${collectionSearch(entityCollectionQuery)}`,
           {
-            studioCollectionPath: studioCollectionPath(
-              studioBasePath,
-              entityType,
-            ),
+            studioCollectionPath: `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`,
           },
           nextState.kind === "saved" ? { ignoreBlocker: true } : undefined,
         );
@@ -605,7 +696,7 @@ export function App(): ReactElement {
         })
         .catch((error: unknown) => {
           if (requestId === openRequestId.current) {
-            setLoadError(errorMessage(error));
+            setLoadError(readErrorMessage(error));
           }
         });
     },
@@ -613,6 +704,7 @@ export function App(): ReactElement {
       studioBasePath,
       currentStudioPathname,
       entityType,
+      entityCollectionQuery,
       queryClient,
       router.history,
     ],
@@ -757,8 +849,23 @@ export function App(): ReactElement {
   const selectEntityType = useCallback(
     (nextEntityType: string): void => {
       router.history.push(studioCollectionPath(studioBasePath, nextEntityType));
+      // A long rail can put its last groups below the document fold. Treat a
+      // rail selection like page navigation instead of retaining that offset
+      // and making the destination appear blank or partially missing.
+      window.scrollTo({ top: 0, left: 0 });
     },
     [studioBasePath, router.history],
+  );
+
+  const changeEntityPage = useCallback(
+    (offset: number): void => {
+      if (!entityType) return;
+      router.history.push(
+        `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch({ ...entityCollectionQuery, offset })}`,
+      );
+      window.scrollTo({ top: 0, left: 0 });
+    },
+    [entityType, entityCollectionQuery, studioBasePath, router.history],
   );
 
   const selectWorkspace = useCallback(
@@ -768,6 +875,7 @@ export function App(): ReactElement {
           ? studioChatWorkspacePath(studioBasePath)
           : studioWorkspacePath(studioBasePath, workspaceId),
       );
+      window.scrollTo({ top: 0, left: 0 });
     },
     [studioBasePath, router.history],
   );
@@ -783,7 +891,7 @@ export function App(): ReactElement {
 
   const backToList = useCallback((): void => {
     if (!entityType) return;
-    const collectionPath = studioCollectionPath(studioBasePath, entityType);
+    const collectionPath = `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`;
     const historyState: unknown = router.history.location.state;
     if (
       typeof historyState === "object" &&
@@ -796,7 +904,7 @@ export function App(): ReactElement {
       return;
     }
     router.history.replace(collectionPath);
-  }, [studioBasePath, entityType, router.history]);
+  }, [studioBasePath, entityType, entityCollectionQuery, router.history]);
 
   const runFieldAssist = useCallback(
     (variant: FieldAssistVariant, field: string): void => {
@@ -877,6 +985,7 @@ export function App(): ReactElement {
             baseContentHash: mode.entity.contentHash,
             ...bodyPayload,
           };
+    const requestId = openRequestId.current;
     saveEntityMutation.mutate(input, {
       onSuccess: async (result) => {
         await Promise.all([
@@ -886,19 +995,39 @@ export function App(): ReactElement {
           queryClient.invalidateQueries({
             queryKey: studioKeys.syncStatus(),
           }),
+          ...(mode.kind === "create"
+            ? [
+                queryClient.invalidateQueries({
+                  queryKey: studioKeys.navigation(),
+                }),
+              ]
+            : []),
         ]);
+        if (requestId !== openRequestId.current) return;
         const noop = "skipped" in result && result.skipped === true;
         // Re-fetch after every save so the next edit carries a fresh
         // contentHash precondition.
         openEntity(result.entityId, { kind: "saved", noop });
       },
       onError: (error: Error) => {
+        if (requestId !== openRequestId.current) return;
+        if (error instanceof ApiError && error.issues.length > 0)
+          setMobilePane("details");
         dispatchEditor({
           type: "saveFailed",
           save:
             error instanceof ApiError && error.status === 409
               ? { kind: "conflict", message: errorMessage(error) }
-              : { kind: "error", message: errorMessage(error) },
+              : {
+                  kind: "error",
+                  message:
+                    error instanceof ApiError && error.issues.length > 0
+                      ? error.message || "Validation failed"
+                      : errorMessage(error),
+                  ...(error instanceof ApiError
+                    ? { issues: error.issues }
+                    : {}),
+                },
         });
       },
     });
@@ -940,6 +1069,9 @@ export function App(): ReactElement {
             }),
             queryClient.invalidateQueries({
               queryKey: studioKeys.syncStatus(),
+            }),
+            queryClient.invalidateQueries({
+              queryKey: studioKeys.navigation(),
             }),
           ]);
           router.history.replace(
@@ -1120,10 +1252,24 @@ export function App(): ReactElement {
 
   const visibleLoadError =
     loadError ??
-    (navigationQuery.error ? errorMessage(navigationQuery.error) : null);
+    (navigationQuery.error
+      ? readErrorMessage(navigationQuery.error)
+      : entityListQuery.error
+        ? readErrorMessage(entityListQuery.error)
+        : null);
 
-  if (visibleLoadError) {
-    return <StudioAppStatus message={visibleLoadError} error />;
+  const retryRead = (): void => {
+    setLoadError(null);
+    if (navigationQuery.error) void navigationQuery.refetch();
+    if (entityListQuery.error) void entityListQuery.refetch();
+    if (workspaceQuery.error) void workspaceQuery.refetch();
+    // Re-run an unsuccessful open, but never replace an already-open draft.
+    if (mode.kind === "browse") setLoadAttempt((attempt) => attempt + 1);
+  };
+  if (visibleLoadError && !types) {
+    return (
+      <StudioAppStatus message={visibleLoadError} error onRetry={retryRead} />
+    );
   }
   if (!types) {
     return <StudioAppStatus message="Loading…" />;
@@ -1141,7 +1287,7 @@ export function App(): ReactElement {
         selectEntityType={selectEntityType}
         selectWorkspace={selectWorkspace}
       >
-        <Suspense fallback={<p className="status">Opening Account…</p>}>
+        <Suspense fallback={<StudioStatus>Opening Account…</StudioStatus>}>
           <LazyAccountApp
             bootstrap={accountBootstrap(accountPath, studioBasePath)}
           />
@@ -1151,31 +1297,65 @@ export function App(): ReactElement {
   }
   if (activeChat) {
     return (
-      <Suspense fallback={<StudioAppStatus message="Opening Chat…" />}>
-        <LazyStudioChatWorkspace
-          apiPath={activeWorkspace.chatApiPath}
-          studioBasePath={studioBasePath}
-          sessionId={studioChatSessionId(routeSearch)}
-          types={types}
-          workspaces={workspaces}
-          handoff={readStudioChatHandoffState(routeState)}
-          navigate={(href) => router.history.push(href)}
-          selectEntityType={selectEntityType}
-          selectWorkspace={selectWorkspace}
-        />
-      </Suspense>
+      <>
+        <Suspense fallback={<StudioAppStatus message="Opening Chat…" />}>
+          <LazyStudioChatWorkspace
+            apiPath={activeWorkspace.chatApiPath}
+            draftStore={chatDraftStore}
+            onNavigationStateChange={setChatNavigation}
+            studioBasePath={studioBasePath}
+            sessionId={studioChatSessionId(routeSearch)}
+            types={types}
+            workspaces={workspaces}
+            handoff={readStudioChatHandoffState(routeState)}
+            navigate={(href, options) => {
+              // Acknowledged internal transitions keep drafts intact; work is not abandoned.
+              router.history.push(href, undefined, {
+                ignoreBlocker: options?.preserveWork === true,
+              });
+            }}
+            selectEntityType={selectEntityType}
+            selectWorkspace={selectWorkspace}
+          />
+        </Suspense>
+        {navigationBlocker.status === "blocked" && (
+          <ConfirmDialog
+            mark="↩"
+            title="Leave this conversation?"
+            titleId="chat-navigation-title"
+            cancelLabel="Stay"
+            confirmLabel="Leave"
+            onCancel={() => navigationBlocker.reset()}
+            onConfirm={() => navigationBlocker.proceed()}
+          >
+            <p>
+              Your draft stays in this tab. Leaving stops receiving the
+              response, but does not undo completed actions or background jobs.
+            </p>
+          </ConfirmDialog>
+        )}
+      </>
     );
   }
   if (
     activeWorkspaceId
       ? !workspaceData && !workspaceError
-      : entityType && (!schema || !entities)
+      : entityType && !schema && !visibleLoadError
   ) {
     return <StudioAppStatus message="Loading…" />;
   }
-  if (!activeWorkspaceId && (!entityType || !schema)) {
+  if (!activeWorkspaceId && (!entityType || (!schema && !visibleLoadError))) {
     return (
-      <StudioAppStatus message="No editable entity types are registered." />
+      <StudioAppStatus
+        message={
+          visibleLoadError ??
+          "No readable collections are available for this account."
+        }
+        error={Boolean(visibleLoadError)}
+        {...(visibleLoadError
+          ? { onHome: () => router.history.push(studioBasePath) }
+          : {})}
+      />
     );
   }
 
@@ -1185,10 +1365,24 @@ export function App(): ReactElement {
       types={types}
       workspaces={workspaces}
       workspaceError={workspaceError}
+      readError={visibleLoadError}
+      onRetryRead={retryRead}
       declarativeWorkspaceData={declarativeWorkspaceData}
       workspaceQuery={workspaceRequestQuery}
       entityType={entityType}
       entities={entities}
+      entityOffset={entityListOffset}
+      entityLimit={entityCollectionQuery.limit}
+      entityTotal={entityListTotal ?? 0}
+      collectionQuery={entityCollectionQuery}
+      onCollectionQueryChange={(query: StudioCollectionQuery): void => {
+        if (!entityType) return;
+        router.history.push(
+          `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch({ ...query, offset: 0 })}`,
+        );
+        window.scrollTo({ top: 0, left: 0 });
+      }}
+      entityListLoading={entityListQuery.isPending}
       schema={schema}
       editor={editor}
       fieldAssistState={fieldAssistState}
@@ -1203,10 +1397,11 @@ export function App(): ReactElement {
       dispatchEditor={dispatchEditor}
       setFieldAssistState={setFieldAssistState}
       setBodyMode={setBodyMode}
-      setMobilePane={setMobilePane}
+      setMobilePane={selectMobilePane}
       backToList={backToList}
       selectEntityType={selectEntityType}
       selectWorkspace={selectWorkspace}
+      changeEntityPage={changeEntityPage}
       openWorkspaceEntity={openWorkspaceEntity}
       openWorkspaceLaunch={openWorkspaceLaunch}
       performPublishingAction={performPublishingAction}

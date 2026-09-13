@@ -1,5 +1,5 @@
+import { createTestEntity } from "@brains/entity-service/test";
 import type { ContentVisibility } from "@brains/plugins";
-import { createTestEntity } from "@brains/test-utils";
 import type {
   ActionItemEntity,
   DecisionEntity,

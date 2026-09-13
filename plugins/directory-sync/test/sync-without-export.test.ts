@@ -1,7 +1,8 @@
+import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, mock } from "bun:test";
 import type { ImportResult, ExportResult } from "../src/types";
 import type { BaseEntity } from "@brains/plugins";
-import { createTestEntity, waitUntil } from "@brains/test-utils";
+import { waitUntil } from "@brains/test-utils";
 
 /**
  * Tests for sync() behavior when export is removed and subscribers handle file writes.

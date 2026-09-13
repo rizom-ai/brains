@@ -5,7 +5,7 @@ import type {
 } from "@brains/conversation-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import type {
-  CanonicalIdentityResolver,
+  ActorEnricher,
   ChatAttachment,
   StructuredChatCard,
 } from "./agent-types";
@@ -54,7 +54,7 @@ export async function buildMessageMetadata(params: {
   cards?: StructuredChatCard[];
   entityMemoryRefs?: EntityMemoryRef[];
   agentContactCandidates?: AgentContactCandidate[];
-  canonicalIdentityResolver?: CanonicalIdentityResolver;
+  canonicalIdentityResolver?: ActorEnricher;
 }): Promise<AgentMessageMetadata> {
   const {
     actor,

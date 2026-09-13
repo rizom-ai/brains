@@ -4,6 +4,17 @@ import { runGitBrokerChild } from "../src/lib/git-broker-child";
 import { GIT_BROKER_SOCKET_ENV } from "../src/lib/process-supervisor";
 
 /**
+ * Give the child's start-up its turn of the loop.
+ *
+ * A yield, not a wait: `runGitBrokerChild` registers its handlers in an
+ * already-resolved promise chain, so one turn is enough and no duration would
+ * make it more certain.
+ */
+async function letRegistrationSettle(): Promise<void> {
+  await Bun.sleep(0);
+}
+
+/**
  * The broker child's contract with its supervisor: it is told where to listen,
  * it reports ready once it is, and it stops only when asked.
  */
@@ -93,7 +104,7 @@ describe("git broker child", () => {
         },
       },
     });
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await letRegistrationSettle();
 
     // A wedged owner does not exit, so the supervisor needs facts, not a
     // liveness ping: what is active, and when it last moved.
@@ -121,7 +132,7 @@ describe("git broker child", () => {
         activity: { activeRequestIds: [], oldestActiveProgressAt: null },
       }),
     });
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await letRegistrationSettle();
 
     processImpl.emit("message", { type: "broker-close-admission" });
     expect(closeAdmission).toHaveBeenCalledTimes(1);
@@ -154,7 +165,7 @@ describe("git broker child", () => {
       },
       { processImpl, startHost },
     );
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await letRegistrationSettle();
 
     expect(startHost).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -186,7 +197,7 @@ describe("git broker child", () => {
       processImpl,
       startHost,
     });
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    await letRegistrationSettle();
 
     expect(startHost).toHaveBeenCalledWith(
       expect.objectContaining({

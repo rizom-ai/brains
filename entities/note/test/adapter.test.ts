@@ -1,7 +1,7 @@
+import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach } from "bun:test";
 import { NoteAdapter } from "../src/adapters/note-adapter";
 import type { Note } from "../src/schemas/note";
-import { createTestEntity } from "@brains/test-utils";
 
 function createMockNote(overrides: Partial<Note> = {}): Note {
   return createTestEntity<Note>("note", {

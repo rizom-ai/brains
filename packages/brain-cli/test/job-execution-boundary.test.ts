@@ -18,7 +18,7 @@ import { PROJECTION_RULE_JOB_TYPE } from "@brains/core";
 import defaultTheme from "@rizom/theme-default";
 import { startGitBrokerHost } from "@brains/directory-sync/broker-runtime";
 import { createSilentLogger } from "@brains/test-utils";
-import { execFileSync } from "node:child_process";
+import { runProcessOrThrow } from "@brains/utils/run-process";
 import { mkdtemp, mkdir, rm, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -177,8 +177,8 @@ function trackNextHandlerCompletion(
   };
 }
 
-function runGit(cwd: string, args: string[]): void {
-  execFileSync("git", args, { cwd, stdio: "pipe" });
+async function runGit(cwd: string, args: string[]): Promise<void> {
+  await runProcessOrThrow(["git", ...args], { cwd });
 }
 
 async function getAvailablePort(): Promise<number> {
@@ -415,17 +415,17 @@ describe("canonical durable job execution boundary", () => {
     }
     expect(recentJobsError.message).toBe("Job queue database is not local");
 
-    runGit(root, ["clone", gitUrl, editorPath]);
-    runGit(editorPath, ["config", "user.name", "Boundary Test"]);
-    runGit(editorPath, ["config", "user.email", "boundary@example.com"]);
+    await runGit(root, ["clone", gitUrl, editorPath]);
+    await runGit(editorPath, ["config", "user.name", "Boundary Test"]);
+    await runGit(editorPath, ["config", "user.email", "boundary@example.com"]);
     await mkdir(join(editorPath, "note"), { recursive: true });
     await writeFile(
       join(editorPath, "note", "endpoint-boundary.md"),
       "# Endpoint boundary\n\nImported through the worker.\n",
     );
-    runGit(editorPath, ["add", "."]);
-    runGit(editorPath, ["commit", "-m", "add endpoint boundary fixture"]);
-    runGit(editorPath, ["push", "origin", "main"]);
+    await runGit(editorPath, ["add", "."]);
+    await runGit(editorPath, ["commit", "-m", "add endpoint boundary fixture"]);
+    await runGit(editorPath, ["push", "origin", "main"]);
 
     const syncRequestCompletion = syncRequestCompletions.next();
     const importCompletion = importCompletions.next();

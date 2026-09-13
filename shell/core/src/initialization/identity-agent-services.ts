@@ -2,6 +2,9 @@ import {
   AgentService,
   createBrainAgentId,
   createBrainAgentFactory,
+  createOpenAiGuestProfile,
+  openAiGuestEmbeddingModel,
+  openAiGuestEmbeddingDimensions,
   type ChatAttachment,
   type ChatAttachmentSource,
   type IAgentService,
@@ -16,7 +19,11 @@ import {
   type AgentContextRequest,
 } from "@brains/contracts";
 import type { IConversationService } from "@brains/conversation-service";
-import type { IEntityRegistry, IEntityService } from "@brains/entity-service";
+import type {
+  IEntityRegistry,
+  IEntityService,
+  IEmbeddingService,
+} from "@brains/entity-service";
 import {
   AnchorProfileService,
   BrainCharacterService,
@@ -43,6 +50,7 @@ export interface IdentityAndAgentServices {
 export interface IdentityAndAgentServiceOptions {
   config: ShellConfig;
   entityService: IEntityService;
+  embeddingService: IEmbeddingService;
   entityRegistry: IEntityRegistry;
   logger: Logger;
   messageBus: MessageBus;
@@ -106,6 +114,8 @@ async function resolveRuntimeUploadAttachment(
     });
     return toChatAttachment(await store.read(source.id), source);
   } catch (error) {
+    // A prior upload may legitimately be gone by now. Skipping it keeps the
+    // rest of the conversation's attachments intact.
     logger.debug("Skipped unavailable prior runtime upload", {
       uploadKind: source.kind,
       uploadId: source.id,
@@ -211,7 +221,23 @@ export function initializeIdentityAndAgentServices(
     },
   );
 
+  const aiConfig = aiService.getConfig();
+  // Query embeddings are prepaid by guest search tools; indexing remains separate.
+  // Only the reviewed model/dimension pair can query this index safely.
+  const guestProfile =
+    config.embedding.enabled &&
+    "model" in options.embeddingService &&
+    options.embeddingService.model === openAiGuestEmbeddingModel &&
+    options.embeddingService.dimensions === openAiGuestEmbeddingDimensions &&
+    aiConfig.model === "gpt-5.6-luna" &&
+    aiConfig.apiKey?.trim()
+      ? createOpenAiGuestProfile({
+          apiKey: aiConfig.apiKey,
+          embeddingsEnabled: true,
+        })
+      : undefined;
   const agentFactory = createBrainAgentFactory({
+    ...(guestProfile ? { guestProfile } : {}),
     model: aiService.getModel(),
     modelId: aiService.getConfig().model,
     webSearch: aiService.getConfig().webSearch,
@@ -231,7 +257,8 @@ export function initializeIdentityAndAgentServices(
     {
       agentFactory,
       canonicalIdentityResolver: canonicalIdentityService,
-      indexReadiness: entityService,
+      // Lexical retrieval does not need a semantic index to be built.
+      ...(config.embedding.enabled ? { indexReadiness: entityService } : {}),
       uploadAttachmentResolver: (source) =>
         resolveRuntimeUploadAttachment(source, runtimeUploadRegistry, logger),
       agentContextProvider: async (request: AgentContextRequest) => {

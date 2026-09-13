@@ -152,6 +152,7 @@ describe("buildProximityMapData", () => {
     });
 
     expect(result).toEqual({
+      headingLevel: null,
       kicker: null,
       headingLead: null,
       headingAccent: null,

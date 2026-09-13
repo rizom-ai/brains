@@ -1,7 +1,7 @@
 {
   "name": "@brains/web-chat",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.352",
+  "version": "0.2.0-alpha.372",
   "description": "Web chat interface for Brains",
   "dependencies": {
     "@ai-sdk/react": "^3.0.208",
@@ -33,6 +33,8 @@
   "devDependencies": {
     "@brains/build-tools": "workspace:*",
     "@brains/eslint-config": "workspace:*",
+    "@brains/runtime-state": "workspace:*",
+    "@brains/scheduler": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",

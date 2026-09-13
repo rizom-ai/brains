@@ -29,6 +29,7 @@ function toRuntimeChatContext(
     ...(context.actor && { actor: context.actor }),
     ...(context.source && { source: context.source }),
     ...(context.attachments && { attachments: context.attachments }),
+    ...(context.guestExecution && { guestExecution: context.guestExecution }),
   };
 }
 
@@ -36,6 +37,9 @@ export function createPublicAgentNamespace(
   agentService: RuntimeAgentService,
 ): AgentNamespace {
   return {
+    get guestProfileAvailable(): boolean {
+      return agentService.guestProfileAvailable === true;
+    },
     chat: async (
       message,
       conversationId,

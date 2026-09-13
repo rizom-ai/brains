@@ -1,8 +1,4 @@
 import { Buffer } from "node:buffer";
-import {
-  parseTursoBackupManifest,
-  parseBackupRuntimeEnvironment,
-} from "./helpers";
 import { appendFileSync } from "node:fs";
 import {
   chmod,
@@ -379,6 +375,9 @@ async function restoreContents(
 export async function capturePredeployBackup(
   config: PredeployCaptureConfig,
 ): Promise<void> {
+  // Loading the portable script needs no installed public package. Resolve its
+  // validators before any capture side effects, when the operation is invoked.
+  const { parseBackupRuntimeEnvironment } = await import("./helpers");
   if (!config.sourceStopped)
     throw new Error("All source writers must be stopped before capture");
   if (!/^0\.3\./.test(config.metadata.sourceVersion))
@@ -492,6 +491,7 @@ export async function restorePredeployBackup(options: {
   signal?: AbortSignal;
 }): Promise<string> {
   options.signal?.throwIfAborted();
+  const { parseTursoBackupManifest } = await import("./helpers");
   const source = await realpath(options.backupDir);
   const destination = join(
     await realpath(dirname(resolve(options.destination))),

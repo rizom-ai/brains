@@ -96,6 +96,30 @@ describe("runtime state owner RPC", () => {
       true,
     );
 
+    expect(
+      await remoteStore.compareAndSet(
+        "item:1",
+        { status: "queued" },
+        { status: "claimed" },
+      ),
+    ).toBe(true);
+    expect(
+      await remoteStore.compareAndSet(
+        "item:1",
+        { status: "queued" },
+        { status: "stale" },
+      ),
+    ).toBe(false);
+    expect(await ownerStore.get("item:1")).toEqual({ status: "claimed" });
+    expect(
+      (
+        await remoteStore.list({
+          keyPrefix: "item:",
+          afterKey: "item:1",
+          limit: 1,
+        })
+      ).map((record) => record.key),
+    ).toEqual(["item:2"]);
     expect(await remoteStore.delete("item:1")).toBe(true);
     expect(await remoteStore.clear({ keyPrefix: "item:" })).toBe(1);
     expect(await remoteStore.get("item:2")).toBeNull();

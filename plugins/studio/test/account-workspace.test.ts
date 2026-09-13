@@ -1,9 +1,10 @@
+import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
   type StudioWorkspaceRegistration,
 } from "@brains/plugins";
-import { createMockShell } from "@brains/test-utils";
+
 import { studioPlugin } from "../src";
 import {
   STUDIO_ACCOUNT_WORKSPACE,

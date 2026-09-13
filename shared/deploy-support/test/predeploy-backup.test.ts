@@ -1,3 +1,4 @@
+import { runProcess } from "@brains/utils/run-process";
 import { afterEach, describe, expect, it } from "bun:test";
 import { connect } from "@tursodatabase/database";
 import {
@@ -30,10 +31,10 @@ afterEach(async () => {
   for (const root of roots.splice(0))
     await rm(root, { recursive: true, force: true });
 });
-function git(cwd: string, args: string[]): string {
-  const result = Bun.spawnSync(["git", ...args], { cwd, stderr: "pipe" });
+async function git(cwd: string, args: string[]): Promise<string> {
+  const result = await runProcess(["git", ...args], { cwd });
   if (result.exitCode !== 0) throw new Error(`git ${args[0]} failed`);
-  return result.stdout.toString().trim();
+  return result.stdout.trim();
 }
 async function failure(operation: Promise<unknown>): Promise<unknown> {
   return operation.then(
@@ -106,23 +107,23 @@ async function fixture(): Promise<{
     expect((await lstat(`${path}-wal`)).size).toBeGreaterThan(0);
     databases.push({ name, source: path });
   }
-  git(contentRoot, ["init", "-b", "main"]);
-  git(contentRoot, ["config", "user.name", "Backup Test"]);
-  git(contentRoot, ["config", "user.email", "backup@example.com"]);
+  await git(contentRoot, ["init", "-b", "main"]);
+  await git(contentRoot, ["config", "user.name", "Backup Test"]);
+  await git(contentRoot, ["config", "user.email", "backup@example.com"]);
   await writeFile(join(contentRoot, ".gitignore"), "ignored.bin\n");
   await writeFile(join(contentRoot, "tracked.txt"), "base\n");
-  git(contentRoot, ["add", "."]);
-  git(contentRoot, ["commit", "-m", "base"]);
+  await git(contentRoot, ["add", "."]);
+  await git(contentRoot, ["commit", "-m", "base"]);
   const remote = join(root, "remote.git");
-  git(root, ["init", "--bare", remote]);
-  git(contentRoot, ["remote", "add", "origin", remote]);
-  git(contentRoot, ["push", "--set-upstream", "origin", "main"]);
-  git(contentRoot, ["branch", "local-only"]);
+  await git(root, ["init", "--bare", remote]);
+  await git(contentRoot, ["remote", "add", "origin", remote]);
+  await git(contentRoot, ["push", "--set-upstream", "origin", "main"]);
+  await git(contentRoot, ["branch", "local-only"]);
   await writeFile(join(contentRoot, "stash-note.txt"), "keep this stash");
-  git(contentRoot, ["add", "stash-note.txt"]);
-  git(contentRoot, ["stash", "push", "-m", "saved work"]);
+  await git(contentRoot, ["add", "stash-note.txt"]);
+  await git(contentRoot, ["stash", "push", "-m", "saved work"]);
   await writeFile(join(contentRoot, "tracked.txt"), "staged\n");
-  git(contentRoot, ["add", "tracked.txt"]);
+  await git(contentRoot, ["add", "tracked.txt"]);
   await writeFile(join(contentRoot, "tracked.txt"), "unstaged\n");
   await writeFile(
     join(contentRoot, "untracked.bin"),
@@ -198,7 +199,7 @@ describe("predeploy backup", () => {
     );
   });
 
-  it("renders a cold, same-engine capture with restart cleanup and event-driven readiness", () => {
+  it("renders a cold, same-engine capture with restart cleanup and event-driven readiness", async () => {
     const script = renderPredeployBackupRemoteScript();
     expect(script).toContain("set -euo pipefail");
     expect(script).toContain(
@@ -227,18 +228,15 @@ describe("predeploy backup", () => {
     expect(script).not.toContain("embeddings.db");
     expect(script).not.toContain("sleep ");
     expect(script).not.toContain("skip_predeploy_backup");
-    expect(
-      Bun.spawnSync(["bash", "-n"], {
-        stdin: Buffer.from(script),
-        stderr: "pipe",
-      }).exitCode,
-    ).toBe(0);
+    expect((await runProcess(["bash", "-n"], { stdin: script })).exitCode).toBe(
+      0,
+    );
   });
 
   it("recovers all five Turso WALs and restores dirty Git, configuration and encrypted auth data without source mutation", async () => {
     const { root, config, key } = await fixture();
     const originalHashes = await hashes(config);
-    const status = git(config.contentRoot, [
+    const status = await git(config.contentRoot, [
       "status",
       "--porcelain=v1",
       "--untracked-files=all",
@@ -246,7 +244,7 @@ describe("predeploy backup", () => {
     await capturePredeployBackup(config);
     expect(await hashes(config)).toEqual(originalHashes);
     expect(
-      git(config.contentRoot, [
+      await git(config.contentRoot, [
         "status",
         "--porcelain=v1",
         "--untracked-files=all",
@@ -333,18 +331,21 @@ describe("predeploy backup", () => {
       }
     }
     expect(
-      git(join(destination, "content"), [
+      await git(join(destination, "content"), [
         "status",
         "--porcelain=v1",
         "--untracked-files=all",
       ]),
     ).toBe(status);
-    expect(git(join(destination, "content"), ["remote"])).toBe("");
-    expect(git(join(destination, "content"), ["show-ref"])).toBe(
-      git(config.contentRoot, ["show-ref"]),
+    expect(await git(join(destination, "content"), ["remote"])).toBe("");
+    expect(await git(join(destination, "content"), ["show-ref"])).toBe(
+      await git(config.contentRoot, ["show-ref"]),
     );
     expect(
-      git(join(destination, "content"), ["show", "refs/stash:stash-note.txt"]),
+      await git(join(destination, "content"), [
+        "show",
+        "refs/stash:stash-note.txt",
+      ]),
     ).toBe("keep this stash");
     expect(await readFile(join(destination, "content/untracked.bin"))).toEqual(
       Buffer.from([0, 1, 255]),

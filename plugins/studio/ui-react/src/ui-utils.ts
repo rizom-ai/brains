@@ -2,10 +2,13 @@ import { useCallback, useRef, useState } from "react";
 import { ApiError, type EntitySummary, type FieldDescriptor } from "./api";
 import { getErrorMessage } from "@brains/utils/error";
 
-/** Pick the list-row label for an entity: frontmatter title, else id. */
+/** Prefer the adapter-owned title, then authored frontmatter, then the durable id. */
 export function entityTitle(entity: EntitySummary): string {
   const title = entity.frontmatter["title"];
-  return typeof title === "string" && title.length > 0 ? title : entity.id;
+  const projected = entity.displayTitle?.trim();
+  if (projected) return projected;
+  if (typeof title === "string" && title.trim().length > 0) return title;
+  return entity.id;
 }
 
 /** Initial frontmatter draft for a new entity: descriptor defaults only. */

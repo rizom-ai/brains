@@ -5,6 +5,7 @@ import { Window } from "happy-dom";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { StudioChatWorkspace } from "./studio-chat-workspace";
+import { StudioChatDraftStore, studioChatDraftKey } from "./studio-chat-drafts";
 
 const originalFetch = globalThis.fetch;
 let windowInstance: Window;
@@ -89,7 +90,7 @@ beforeEach(() => {
           ],
         });
       }
-      if (url === "/api/chat/messages?id=conversation-1") {
+      if (url.startsWith("/api/chat/messages?id=")) {
         return Response.json({ messages: [] });
       }
       throw new Error(`Unexpected Studio Chat request: ${url}`);
@@ -112,15 +113,728 @@ afterEach(async () => {
   globalThis.fetch = originalFetch;
 });
 
+async function mountChat(
+  store: StudioChatDraftStore,
+  sessionId: string | null = "conversation-1",
+  apiPath = "/api/chat",
+): Promise<void> {
+  await act(async () =>
+    root.render(
+      createElement(
+        QueryClientProvider,
+        { client: queryClient },
+        createElement(StudioChatWorkspace, {
+          draftStore: store,
+          apiPath,
+          studioBasePath: "/studio",
+          sessionId,
+          handoff: null,
+          types: [],
+          workspaces: [],
+          navigate: (href) => navigations.push(href),
+          selectEntityType: () => {},
+          selectWorkspace: () => {},
+        }),
+      ),
+    ),
+  );
+  await settle();
+}
+
 describe("native Studio Chat workspace", () => {
+  it("loads archived sessions through the scoped API without replacing the open conversation", async () => {
+    const previous = globalThis.fetch;
+    const requests: string[] = [];
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        requests.push(String(input));
+        if (String(input) === "/api/chat/sessions?archived=true")
+          return Response.json({
+            sessions: [
+              {
+                id: "archived-1",
+                title: "Archived discussion",
+                lastActiveAt: "2026-09-11T12:00:00Z",
+                archived: true,
+              },
+            ],
+          });
+        return previous(input, init);
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+    const store = new StudioChatDraftStore();
+    const key = studioChatDraftKey("/api/chat", "conversation-1");
+    store.update(key, { text: "Keep my draft" });
+    await mountChat(store);
+    const select = document.querySelector<HTMLSelectElement>(
+      ".studio-chat-session-controls select",
+    );
+    if (!select) throw new Error("Missing session archive filter");
+    await act(async () => {
+      select.value = "archived";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await settle();
+    expect(requests).toContain("/api/chat/sessions?archived=true");
+    expect(document.body.textContent).toContain("Archived discussion");
+    expect(
+      document.querySelector(".studio-chat-session-heading")?.textContent,
+    ).toBe("Launch narrative");
+    expect(store.read(key).text).toBe("Keep my draft");
+    expect(navigations).toHaveLength(0);
+  });
+
+  it("keeps a proposed rename after failure and sends it only on explicit submit", async () => {
+    const previous = globalThis.fetch;
+    let renames = 0;
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.method === "PUT") {
+          renames += 1;
+          return new Response("Unavailable", { status: 503 });
+        }
+        return previous(input, init);
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+    const store = new StudioChatDraftStore();
+    const key = studioChatDraftKey("/api/chat", "conversation-1");
+    store.update(key, { text: "Unsent message" });
+    await mountChat(store);
+    click(
+      [...document.querySelectorAll("button")].find(
+        (button) => button.textContent === "Rename",
+      ),
+      "Rename",
+    );
+    await settle();
+    const input = document.querySelector<HTMLInputElement>(
+      ".studio-chat-rename input",
+    );
+    if (!input) throw new Error("Rename input missing");
+    expect(document.activeElement).toBe(input);
+    expect(renames).toBe(0);
+    click(
+      [...document.querySelectorAll("button")].find(
+        (button) => button.textContent === "Save title",
+      ),
+      "Save title",
+    );
+    await settle();
+    expect(renames).toBe(1);
+    expect(input.value).toBe("Launch narrative");
+    expect(
+      document.querySelector(".studio-chat-rename [role=alert]"),
+    ).not.toBeNull();
+    expect(store.read(key).text).toBe("Unsent message");
+    click(
+      [...document.querySelectorAll("button")].find(
+        (button) => button.textContent === "Cancel",
+      ),
+      "Cancel rename",
+    );
+    await settle();
+    expect(renames).toBe(1);
+    expect(document.querySelector(".studio-chat-rename")).toBeNull();
+  });
+
+  it("preserves a reader's scroll position until Jump to latest is selected", async () => {
+    await mountChat(new StudioChatDraftStore());
+    const scroll = document.querySelector<HTMLElement>(
+      ".studio-chat-thread-scroll",
+    );
+    if (!scroll) throw new Error("Missing conversation scroller");
+    expect(scroll.tabIndex).toBe(0);
+    expect(scroll.getAttribute("aria-label")).toBe("Conversation messages");
+    Object.defineProperties(scroll, {
+      scrollHeight: { configurable: true, value: 1200 },
+      clientHeight: { configurable: true, value: 400 },
+    });
+    const historyKey = ["studio", "chat", "messages", "conversation-1"];
+    const first = { id: "a", role: "assistant", content: "First answer" };
+    await act(async () => queryClient.setQueryData(historyKey, [first]));
+    await settle();
+    expect(scroll.scrollTop).toBe(1200);
+    scroll.scrollTop = 100;
+    await act(async () => scroll.dispatchEvent(new Event("scroll")));
+    await act(async () =>
+      queryClient.setQueryData(historyKey, [
+        first,
+        { ...first, id: "b", content: "New answer" },
+      ]),
+    );
+    await settle();
+    expect(scroll.scrollTop).toBe(100);
+    click(
+      [...document.querySelectorAll("button")].find((button) =>
+        button.textContent.includes("Jump to latest"),
+      ),
+      "Jump to latest",
+    );
+    await settle();
+    expect(scroll.scrollTop).toBe(1200);
+    expect(document.body.textContent).not.toContain("Jump to latest");
+    expect(document.activeElement).toBe(scroll);
+  });
+
+  it("retries a failed history read without sending a message or hiding the composer", async () => {
+    const previous = globalThis.fetch;
+    let reads = 0;
+    let sends = 0;
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.method === "POST") sends += 1;
+        if (String(input).startsWith("/api/chat/messages?id=")) {
+          reads += 1;
+          return reads === 1
+            ? new Response("Unavailable", { status: 503 })
+            : Response.json({
+                messages: [
+                  {
+                    id: "recovered",
+                    role: "assistant",
+                    content: "Recovered history",
+                  },
+                ],
+              });
+        }
+        return previous(input, init);
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+    await mountChat(new StudioChatDraftStore());
+    expect(document.querySelector("textarea")).not.toBeNull();
+    expect(document.body.textContent).toContain(
+      "Conversation could not be loaded",
+    );
+    expect(document.body.textContent).not.toContain("No messages yet");
+    click(
+      [...document.querySelectorAll("button")].find(
+        (button) => button.textContent === "Retry conversation",
+      ),
+      "Retry conversation",
+    );
+    await settle();
+    expect(document.body.textContent).toContain("Recovered history");
+    expect(reads).toBe(2);
+    expect(sends).toBe(0);
+  });
+
+  it("restores each session's draft without persisting it outside the mounted Studio", async () => {
+    const store = new StudioChatDraftStore();
+    store.update(studioChatDraftKey("/api/chat", "conversation-1"), {
+      text: "First unfinished message",
+    });
+    store.update(studioChatDraftKey("/api/chat", "conversation-2"), {
+      text: "Second unfinished message",
+    });
+    await mountChat(store);
+    expect(document.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+      "First unfinished message",
+    );
+    await mountChat(store, "conversation-2");
+    expect(document.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+      "Second unfinished message",
+    );
+    await mountChat(store);
+    expect(document.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+      "First unfinished message",
+    );
+  });
+
+  it("shows the new-conversation prompt while the disabled history query is pending", async () => {
+    await mountChat(new StudioChatDraftStore(), null);
+    expect(
+      document.querySelector('section[aria-label="New conversation"]')
+        ?.textContent,
+    ).toContain(
+      "No messages yet. Your draft stays in the composer until you send it.",
+    );
+    expect(document.body.textContent).not.toContain("Opening conversation…");
+    expect(document.body.textContent).not.toContain("Working set");
+  });
+
+  it("does not reserve an empty desktop conversation rail", async () => {
+    const previous = globalThis.fetch;
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) =>
+        String(input) === "/api/chat/sessions"
+          ? Response.json({ sessions: [] })
+          : previous(input, init),
+      { preconnect: previous.preconnect },
+    );
+    await mountChat(new StudioChatDraftStore(), null);
+    expect(document.querySelector(".studio-chat-sessions")).toBeNull();
+    expect(
+      document.querySelector('section[aria-label="New conversation"]'),
+    ).not.toBeNull();
+  });
+
+  for (const sessionId of ["conversation-1", null]) {
+    it(`keeps a rejected send in ${sessionId ?? "a new conversation"} for correction or retry`, async () => {
+      const store = new StudioChatDraftStore(),
+        key = studioChatDraftKey("/api/chat", sessionId);
+      store.update(key, { text: "Keep this if sending fails" });
+      const previous = globalThis.fetch;
+      globalThis.fetch = Object.assign(
+        async (input: RequestInfo | URL, init?: RequestInit) =>
+          String(input) === "/api/chat" && init?.method === "POST"
+            ? new Response("Unavailable", { status: 503 })
+            : previous(input, init),
+        { preconnect: originalFetch.preconnect },
+      );
+      await mountChat(store, sessionId);
+      click(document.querySelector('[aria-label="Send message"]'), "Send");
+      await settle();
+      expect(store.read(key).text).toBe("Keep this if sending fails");
+      expect(
+        document.querySelector<HTMLTextAreaElement>("textarea")?.value,
+      ).toBe("Keep this if sending fails");
+      expect(document.querySelector('[role="alert"]')).not.toBeNull();
+      expect(
+        document.querySelectorAll('.studio-chat-turn[data-role="user"]'),
+      ).toHaveLength(0);
+      expect(navigations).toHaveLength(0);
+    });
+  }
+
+  it("keeps successful uploads when another file fails and retries only that file", async () => {
+    const store = new StudioChatDraftStore();
+    const key = studioChatDraftKey("/api/chat", "conversation-1");
+    const attempts: string[] = [];
+    const previous = globalThis.fetch;
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input) !== "/api/chat/uploads") return previous(input, init);
+        if (!(init?.body instanceof FormData))
+          throw new Error("Missing upload form");
+        const file = init.body.get("file");
+        if (!(file instanceof File)) throw new Error("Missing file");
+        attempts.push(file.name);
+        if (
+          file.name === "retry.txt" &&
+          attempts.filter((name) => name === file.name).length === 1
+        )
+          return Response.json(
+            { error: "Temporary upload failure" },
+            { status: 503 },
+          );
+        const id = `upload-${crypto.randomUUID()}`;
+        return Response.json({
+          id,
+          ref: { kind: "upload", id },
+          filename: file.name,
+          mediaType: "text/plain",
+          sizeBytes: file.size,
+          createdAt: "2026-09-11T12:00:00Z",
+          url: `/api/chat/uploads/${file.name}`,
+          downloadUrl: `/api/chat/uploads/${file.name}?download=true`,
+        });
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+    await mountChat(store);
+    const picker =
+      document.querySelector<HTMLInputElement>('input[type="file"]');
+    if (!picker) throw new Error("No upload picker");
+    Object.defineProperty(picker, "files", {
+      value: [new File(["ok"], "ready.txt"), new File(["retry"], "retry.txt")],
+    });
+    await act(async () =>
+      picker.dispatchEvent(new Event("change", { bubbles: true })),
+    );
+    await settle();
+    expect(store.read(key).uploads.map((upload) => upload.filename)).toEqual([
+      "ready.txt",
+    ]);
+    expect(document.body.textContent).toContain(
+      "Chat API could not upload file (503)",
+    );
+    expect(
+      document.querySelector<HTMLButtonElement>('[aria-label="Send message"]')
+        ?.disabled,
+    ).toBe(true);
+    click(
+      document.querySelector('[aria-label="Retry uploading retry.txt"]'),
+      "Retry file",
+    );
+    await settle();
+    expect(attempts).toEqual(["ready.txt", "retry.txt", "retry.txt"]);
+    expect(store.read(key).uploads.map((upload) => upload.filename)).toEqual([
+      "ready.txt",
+      "retry.txt",
+    ]);
+    expect(
+      document.querySelector('[aria-label="File upload progress"]'),
+    ).toBeNull();
+    expect(
+      document.querySelector<HTMLButtonElement>('[aria-label="Send message"]')
+        ?.disabled,
+    ).toBe(false);
+  });
+
+  it("does not attach a late upload to another session", async () => {
+    const store = new StudioChatDraftStore();
+    const previous = globalThis.fetch;
+    let complete: ((response: Response) => void) | undefined;
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input) === "/api/chat/uploads")
+          return new Promise<Response>((resolve) => {
+            complete = resolve;
+          });
+        return previous(input, init);
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+    await mountChat(store);
+    const picker =
+      document.querySelector<HTMLInputElement>('input[type="file"]');
+    if (!picker) throw new Error("No upload picker");
+    Object.defineProperty(picker, "files", {
+      value: [new File(["text"], "late.txt")],
+    });
+    await act(async () =>
+      picker.dispatchEvent(new Event("change", { bubbles: true })),
+    );
+    expect(document.body.textContent).toContain("Uploading…");
+    await mountChat(store, "conversation-2");
+    const id = `upload-${crypto.randomUUID()}`;
+    await act(async () =>
+      complete?.(
+        Response.json({
+          id,
+          ref: { kind: "upload", id },
+          filename: "late.txt",
+          mediaType: "text/plain",
+          sizeBytes: 4,
+          createdAt: "2026-09-11T12:00:00Z",
+          url: `/api/chat/uploads/${id}`,
+          downloadUrl: `/api/chat/uploads/${id}?download=true`,
+        }),
+      ),
+    );
+    await settle();
+    expect(
+      store.read(studioChatDraftKey("/api/chat", "conversation-2")).uploads,
+    ).toHaveLength(0);
+    expect(document.body.textContent).not.toContain("late.txt");
+  });
+
+  it("keeps attached drafts reachable and allows removing an attachment without sending it", async () => {
+    const store = new StudioChatDraftStore(),
+      key = studioChatDraftKey("/api/chat", "conversation-1");
+    store.update(key, {
+      uploads: [
+        {
+          id: "upload-1",
+          ref: { kind: "upload", id: "upload-1" },
+          filename: "notes.txt",
+          mediaType: "text/plain",
+          sizeBytes: 3,
+          createdAt: "2026-09-05T12:00:00Z",
+          url: "/api/chat/uploads/upload-1",
+          downloadUrl: "/api/chat/uploads/upload-1?download=true",
+        },
+      ],
+    });
+    await mountChat(store);
+    expect(
+      document.querySelector<HTMLButtonElement>(".studio-chat-header-action")
+        ?.disabled,
+    ).toBe(true);
+    click(
+      document.querySelector('[aria-label="Remove notes.txt from message"]'),
+      "Remove attachment",
+    );
+    await settle();
+    expect(store.read(key).uploads).toHaveLength(0);
+    expect(store.hasDrafts()).toBe(false);
+    expect(
+      document.querySelector<HTMLButtonElement>(".studio-chat-header-action")
+        ?.disabled,
+    ).toBe(false);
+  });
+
+  for (const switchSession of [false, true]) {
+    it(`protects composition during archive and ${switchSession ? "ignores a late result after switching sessions" : "returns after acknowledgement"}`, async () => {
+      const store = new StudioChatDraftStore(),
+        previous = globalThis.fetch;
+      const pending: { finish?: () => void } = {};
+      globalThis.fetch = Object.assign(
+        async (input: RequestInfo | URL, init?: RequestInit) => {
+          if (init?.method !== "PUT") return previous(input, init);
+          return new Promise<Response>((resolve) => {
+            pending.finish = (): void =>
+              resolve(Response.json({ archived: true }));
+          });
+        },
+        { preconnect: originalFetch.preconnect },
+      );
+      await mountChat(store);
+      click(document.querySelector(".studio-chat-header-action"), "Archive");
+      await settle();
+      expect(
+        document.querySelector<HTMLTextAreaElement>("textarea")?.disabled,
+      ).toBe(true);
+      expect(navigations).toHaveLength(0);
+      if (switchSession) await mountChat(store, "conversation-2");
+      await act(async () => pending.finish?.());
+      await settle();
+      expect(
+        document.querySelector<HTMLTextAreaElement>("textarea")?.disabled,
+      ).toBe(false);
+      expect(navigations).toEqual(switchSession ? [] : ["/chat"]);
+    });
+  }
+
+  it("adopts a new session only after acceptance and keeps text composed while waiting", async () => {
+    const store = new StudioChatDraftStore(),
+      key = studioChatDraftKey("/api/chat", null);
+    store.update(key, { text: "First message" });
+    const previous = globalThis.fetch;
+    const pending: { accept?: () => void } = {};
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input) !== "/api/chat" || init?.method !== "POST")
+          return previous(input, init);
+        return new Promise<Response>((resolve, reject) => {
+          pending.accept = (): void =>
+            resolve(
+              new Response(
+                'data: {"type":"text-delta","id":"reply","delta":"Accepted"}\n\n',
+                { headers: { "Content-Type": "text/event-stream" } },
+              ),
+            );
+          init.signal?.addEventListener(
+            "abort",
+            () => reject(new DOMException("Stopped", "AbortError")),
+            { once: true },
+          );
+        });
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+    await mountChat(store, null);
+    click(document.querySelector('[aria-label="Send message"]'), "Send");
+    await settle();
+    expect(navigations).toHaveLength(0);
+    expect(store.read(key).text).toBe("First message");
+    await act(async () =>
+      store.update(key, { text: "My next unsent thought" }),
+    );
+    await act(async () => pending.accept?.());
+    await settle();
+    const href = navigations[0];
+    if (!href) throw new Error("Missing adopted conversation route");
+    const sessionId = new URL(href, "http://brain.test").searchParams.get(
+      "session",
+    );
+    if (!sessionId) throw new Error("Missing adopted conversation id");
+    expect(store.read(key).text).toBe("");
+    expect(store.read(studioChatDraftKey("/api/chat", sessionId)).text).toBe(
+      "My next unsent thought",
+    );
+  });
+
+  it("reconciles the first persisted turn without duplicating its optimistic messages", async () => {
+    const store = new StudioChatDraftStore();
+    store.update(studioChatDraftKey("/api/chat", null), {
+      text: "First message",
+    });
+    const previous = globalThis.fetch;
+    let conversationId = "";
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "/api/chat" && init?.method === "POST") {
+          const body: unknown = JSON.parse(String(init.body));
+          if (
+            typeof body !== "object" ||
+            body === null ||
+            !("id" in body) ||
+            typeof body.id !== "string"
+          )
+            throw new Error("Missing streamed conversation id");
+          conversationId = body.id;
+          return new Response(
+            'data: {"type":"text-delta","id":"reply","delta":"Accepted"}\n\n',
+            { headers: { "Content-Type": "text/event-stream" } },
+          );
+        }
+        if (
+          conversationId &&
+          url === `/api/chat/messages?id=${encodeURIComponent(conversationId)}`
+        ) {
+          return Response.json({
+            messages: [
+              {
+                id: "stored-user",
+                role: "user",
+                content: "First message",
+              },
+              {
+                id: "stored-assistant",
+                role: "assistant",
+                content: "Accepted",
+              },
+            ],
+          });
+        }
+        return previous(input, init);
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+
+    await mountChat(store, null);
+    click(document.querySelector('[aria-label="Send message"]'), "Send");
+    for (
+      let attempt = 0;
+      attempt < 20 && navigations.length === 0;
+      attempt += 1
+    )
+      await settle();
+    const href = navigations[0];
+    if (!href) throw new Error("Missing adopted conversation route");
+    const adoptedId = new URL(href, "http://brain.test").searchParams.get(
+      "session",
+    );
+    if (!adoptedId) throw new Error("Missing adopted conversation id");
+
+    await mountChat(store, adoptedId);
+    expect(
+      document.querySelectorAll('.studio-chat-turn[data-role="user"]'),
+    ).toHaveLength(1);
+    expect(
+      document.querySelectorAll('.studio-chat-turn[data-role="assistant"]'),
+    ).toHaveLength(1);
+  });
+
+  it("stops the active stream, retains received text, and does not erase the next draft", async () => {
+    const store = new StudioChatDraftStore(),
+      key = studioChatDraftKey("/api/chat", "conversation-1");
+    store.update(key, { text: "Start a response" });
+    const previous = globalThis.fetch;
+    const request: { signal?: AbortSignal | null | undefined } = {};
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (String(input) !== "/api/chat" || init?.method !== "POST")
+          return previous(input, init);
+        request.signal = init.signal;
+        return new Response(
+          new ReadableStream<Uint8Array>({
+            start(controller): void {
+              controller.enqueue(
+                new TextEncoder().encode(
+                  'data: {"type":"text-delta","id":"reply","delta":"Received partial response"}\n\n',
+                ),
+              );
+              init.signal?.addEventListener(
+                "abort",
+                () =>
+                  controller.error(new DOMException("Stopped", "AbortError")),
+                { once: true },
+              );
+            },
+          }),
+          { headers: { "Content-Type": "text/event-stream" } },
+        );
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+    await mountChat(store);
+    click(document.querySelector('[aria-label="Send message"]'), "Send");
+    await settle();
+    expect(request.signal).toBeDefined();
+    expect(store.read(key).text).toBe("");
+    await act(async () => store.update(key, { text: "My next thought" }));
+    const stop = [...document.querySelectorAll("button")].find(
+      (button) => button.textContent === "Stop",
+    );
+    click(stop, "Stop");
+    await settle();
+    expect(request.signal?.aborted).toBe(true);
+    expect(document.body.textContent).toContain("Received partial response");
+    expect(store.read(key).text).toBe("My next thought");
+    expect(
+      document.querySelector('[aria-label="Send message"]'),
+    ).not.toBeNull();
+    expect(document.querySelector('[role="alert"]')).toBeNull();
+    expect(
+      document.querySelector(".studio-chat-interruption")?.textContent,
+    ).toContain("Stopped");
+    const retry = [...document.querySelectorAll("button")].find(
+      (button) => button.textContent === "Review retry in composer",
+    );
+    expect(retry?.disabled).toBe(true);
+  });
+
+  for (const [ending, label] of [
+    ["", "Connection lost"],
+    ['data: {"type":"abort","reason":"Server stopped"}\n\n', "Stopped"],
+    [
+      'data: {"type":"error","errorText":"Provider unavailable"}\n\n',
+      "Response failed",
+    ],
+  ] as const) {
+    it(`preserves partial output after ${label} and only stages a retry`, async () => {
+      const store = new StudioChatDraftStore();
+      const key = studioChatDraftKey("/api/chat", "conversation-1");
+      store.update(key, { text: "Perform the requested task" });
+      const previous = globalThis.fetch;
+      let sends = 0;
+      let reads = 0;
+      globalThis.fetch = Object.assign(
+        async (input: RequestInfo | URL, init?: RequestInit) => {
+          if (String(input).startsWith("/api/chat/messages?id=")) reads += 1;
+          if (String(input) === "/api/chat" && init?.method === "POST") {
+            sends += 1;
+            return new Response(
+              'data: {"type":"text-delta","id":"reply","delta":"Partial output"}\n\n' +
+                ending,
+              { headers: { "Content-Type": "text/event-stream" } },
+            );
+          }
+          return previous(input, init);
+        },
+        { preconnect: originalFetch.preconnect },
+      );
+      await mountChat(store);
+      click(document.querySelector('[aria-label="Send message"]'), "Send");
+      await settle();
+      expect(document.body.textContent).toContain(label);
+      expect(document.body.textContent).toContain("Partial output");
+      expect(document.body.textContent).toContain(
+        "may repeat completed actions",
+      );
+      expect(reads).toBe(1);
+      expect(store.read(key).text).toBe("");
+      const retry = [...document.querySelectorAll("button")].find(
+        (button) => button.textContent === "Review retry in composer",
+      );
+      click(retry, "Review retry");
+      await settle();
+      expect(sends).toBe(1);
+      expect(store.read(key).text).toBe("Perform the requested task");
+      expect(document.activeElement?.tagName).toBe("TEXTAREA");
+      await mountChat(store, "conversation-2");
+      expect(document.querySelector(".studio-chat-interruption")).toBeNull();
+      expect(store.read(key).text).toBe("Perform the requested task");
+    });
+  }
+
   it("opens an authorized context session and seeds the native composer", async () => {
     let contextBody: unknown;
+    const store = new StudioChatDraftStore();
     globalThis.fetch = Object.assign(
       async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
         if (url === "/custom/chat/sessions") {
           return Response.json({ sessions: [] });
         }
+        if (url === "/custom/chat/messages?id=context-conversation")
+          return Response.json({ messages: [] });
         if (
           url === "/custom/chat/context-sessions" &&
           init?.method === "POST"
@@ -140,6 +854,7 @@ describe("native Studio Chat workspace", () => {
           { client: queryClient },
           createElement(StudioChatWorkspace, {
             apiPath: "/custom/chat",
+            draftStore: store,
             studioBasePath: "/studio",
             sessionId: null,
             handoff: {
@@ -167,6 +882,7 @@ describe("native Studio Chat workspace", () => {
       titleSeed: "Mercury launch",
     });
     expect(navigations).toContain("/chat?session=context-conversation");
+    await mountChat(store, "context-conversation", "/custom/chat");
     expect(
       document.querySelector<HTMLTextAreaElement>(
         ".studio-chat-composer textarea",
@@ -174,7 +890,41 @@ describe("native Studio Chat workspace", () => {
     ).toBe("Help me understand this Inbox item and decide what to do next.");
   });
 
-  it("navigates sessions and mobile destinations without mounting Web Chat", async () => {
+  it("moves narrow-screen context out of the thread and closes it when widening", async () => {
+    windowInstance.happyDOM.setWindowSize({ width: 390, height: 844 });
+    const matchMedia = windowInstance.matchMedia.bind(windowInstance);
+    const media = matchMedia("(max-width: 860px)");
+    windowInstance.matchMedia = (query): ReturnType<typeof matchMedia> =>
+      query === media.media ? media : matchMedia(query);
+    const store = new StudioChatDraftStore();
+    await mountChat(store);
+    await waitForSessions();
+    const trigger = document.querySelector<HTMLButtonElement>(
+      ".studio-chat-working-set-trigger",
+    );
+    expect(trigger?.getAttribute("aria-expanded")).toBe("false");
+    expect(
+      document.querySelector(".studio-chat-working-set .studio-chat-context"),
+    ).toBeNull();
+    click(trigger, "Working set");
+    expect(trigger?.getAttribute("aria-expanded")).toBe("true");
+    await mountChat(store, "conversation-2");
+    expect(trigger?.getAttribute("aria-expanded")).toBe("false");
+    await mountChat(store);
+    click(trigger, "Working set");
+    await act(async () => {
+      windowInstance.happyDOM.setWindowSize({ width: 1024, height: 1000 });
+      // Happy DOM does not emit the browser's media-query change event.
+      media.dispatchEvent(new windowInstance.Event("change"));
+    });
+    await settle();
+    expect(trigger?.getAttribute("aria-expanded")).toBe("false");
+    expect(
+      document.querySelector(".studio-chat-working-set")?.textContent,
+    ).toContain("Release decision");
+  });
+
+  it("requests the session picker without replacing the conversation", async () => {
     await act(async () => {
       root.render(
         createElement(
@@ -214,19 +964,30 @@ describe("native Studio Chat workspace", () => {
     click(launch, "Launch narrative session");
     expect(navigations).toContain("/chat?session=conversation-1");
 
-    const contextDestination = [
-      ...document.querySelectorAll(".studio-chat-mobile-destination"),
-    ].find((element) => element.textContent === "context");
-    click(contextDestination, "Context destination");
+    const context = document.querySelector<HTMLDetailsElement>(
+      ".studio-chat-working-set",
+    );
+    expect(context?.open).toBe(false);
+    click(context?.querySelector("summary"), "Working set disclosure");
+    await settle();
+    expect(context?.open).toBe(true);
+    expect(context?.textContent.match(/Working set/g)).toHaveLength(1);
     expect(
-      document
-        .querySelector(".studio-chat-room")
-        ?.getAttribute("data-mobile-destination"),
-    ).toBe("context");
+      context?.querySelector<HTMLElement>(".studio-chat-context")?.tabIndex,
+    ).toBe(0);
 
     expect(document.querySelector("[data-web-chat-root]")).toBeNull();
     expect(
-      document.querySelectorAll(".studio-chat-mobile-destination"),
-    ).toHaveLength(3);
+      document.querySelector(".studio-chat-mobile-destinations"),
+    ).toBeNull();
+    const trigger = document.querySelector(
+      ".studio-chat-session-picker-trigger button",
+    );
+    click(trigger, "Sessions");
+    expect(trigger?.getAttribute("aria-expanded")).toBe("true");
+    // The browser runner verifies Radix portal selection, dismissal, and focus.
+    click(launch, "Choose a conversation");
+    expect(trigger?.getAttribute("aria-expanded")).toBe("false");
+    expect(context?.open).toBe(true);
   });
 });

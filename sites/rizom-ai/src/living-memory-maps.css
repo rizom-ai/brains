@@ -1,0 +1,326 @@
+/* Adapt the entity-owned live map templates; keep their data and interactions. */
+@scope (.living-memory-page) {
+  .wordmark span:first-child {
+    color: var(--color-text);
+  }
+  .agent-proximity-site {
+    padding-inline: 0;
+    padding-bottom: 0;
+    margin-block: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+  }
+  .agent-proximity-site__grid {
+    max-width: none;
+    margin: 0;
+  }
+  .agent-proximity-site__heading em {
+    font-size: inherit;
+  }
+  .agent-proximity-site__map {
+    position: relative;
+  }
+  .agent-proximity-site__foot {
+    padding-inline: 0;
+    padding-bottom: 0;
+  }
+  .agent-proximity-site__cta {
+    border-radius: var(--rizom-btn-radius);
+    min-height: 46px;
+    padding: 12px 20px;
+    font-size: 14px;
+    line-height: 1.4;
+    color: var(--color-on-accent);
+    background: var(--color-accent);
+    letter-spacing: normal;
+    text-transform: none;
+  }
+  .agent-proximity-site__note {
+    margin-top: 16px;
+    font-size: 12px;
+  }
+  .proximity-field::before,
+  .proximity-field::after {
+    display: none;
+  }
+  .proximity-agent {
+    cursor: pointer;
+  }
+  .section-intro > div:last-child > .copy:first-child {
+    margin-top: 35px;
+  }
+  .entry[data-room="work"] .button {
+    background: var(--color-accent);
+  }
+  .knowledge-map-site {
+    padding: 0 0 86px;
+    border: 0;
+    border-radius: 0;
+    background: none;
+  }
+  .knowledge-map-site__grid {
+    display: grid;
+    grid-template-columns: 1.05fr 1fr;
+    gap: 0 80px;
+    align-items: start;
+    max-width: none;
+    margin: 0;
+  }
+  .knowledge-map-site__grid > div:first-child {
+    display: contents;
+  }
+  .knowledge-map-site__cap {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 22px;
+    font-family: var(--font-label);
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+  .knowledge-map-site__cap::before {
+    content: "";
+    width: 20px;
+    height: 1px;
+    background: currentColor;
+  }
+  .knowledge-map-site__heading {
+    grid-column: 1;
+    grid-row: 2 / span 2;
+    margin: 0;
+    max-width: none;
+    font-family: var(--font-display);
+    font-size: clamp(32px, 3.3vw, 44px);
+    font-weight: 450;
+    font-variation-settings:
+      "SOFT" 70,
+      "opsz" 72;
+    line-height: 1.12;
+    letter-spacing: -0.025em;
+    color: var(--color-text);
+    text-wrap: pretty;
+  }
+  .knowledge-map-site__heading em {
+    display: inline;
+    margin: 0;
+    font-size: inherit;
+    font-style: italic;
+    font-weight: 400;
+    color: var(--color-accent);
+  }
+  .knowledge-map-site__intro {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    margin: 34px 0 0;
+    font-size: 16.5px;
+    line-height: 1.7;
+    color: var(--color-text-muted);
+  }
+  .knowledge-map-site__ctas {
+    grid-column: 2;
+    grid-row: 3;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px 24px;
+    margin: 14px 0 0;
+  }
+  .knowledge-map-site__ctas a,
+  .knowledge-map-site__links a {
+    display: inline-flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 18px;
+    min-height: 44px;
+    padding: 9px 0;
+    border: 0;
+    border-bottom: 1px solid var(--color-border);
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+    transform: none;
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--color-text-muted);
+    text-transform: none;
+    letter-spacing: normal;
+  }
+  .knowledge-map-site__links a:last-child {
+    color: var(--color-text-muted);
+  }
+  .knowledge-map-site__ctas a:hover,
+  .knowledge-map-site__links a:hover {
+    color: var(--color-accent);
+    border-color: var(--color-accent);
+    background: none;
+    box-shadow: none;
+    transform: none;
+  }
+  .knowledge-map-site__grid > div:last-child {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-column: 1 / -1;
+    grid-row: 4;
+    margin-top: 30px;
+    border-block: 1px solid var(--color-border);
+  }
+  .knowledge-map-site__foot {
+    display: contents;
+  }
+  .knowledge-map-site__foot > span:first-child {
+    grid-row: 1;
+    padding-top: 19px;
+    font-family: var(--font-label);
+    font-size: 10px;
+    color: var(--color-text-muted);
+  }
+  .knowledge-map-site__foot b {
+    color: var(--color-accent);
+    font-weight: 400;
+  }
+  .knowledge-map-site__links {
+    grid-row: 3;
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 16px;
+  }
+  .knowledge-map-site .kmap {
+    grid-row: 2;
+  }
+  .knowledge-map-site .kmap-legend {
+    display: block;
+  }
+  .faces-strip,
+  .masthead {
+    padding-inline: 0;
+  }
+  .masthead {
+    padding-block: 0;
+  }
+  .masthead > .button {
+    min-height: 39px;
+    padding: 9px 15px;
+    font-size: 13px;
+  }
+  .site-footer {
+    padding-inline: max(48px, calc((100% - 1120px) / 2));
+  }
+  @media (max-width: 1050px) {
+    .knowledge-map-site__grid {
+      column-gap: 42px;
+    }
+    .site-footer {
+      padding-inline: 32px;
+    }
+  }
+  @media (max-width: 800px) {
+    .section-intro > div:last-child > .copy:first-child {
+      margin-top: 0;
+    }
+    .knowledge-map-site {
+      padding-bottom: 64px;
+    }
+    .knowledge-map-site__grid {
+      grid-template-columns: 1fr;
+    }
+    .knowledge-map-site__cap {
+      grid-column: 1;
+      grid-row: 1;
+      margin-bottom: 18px;
+    }
+    .knowledge-map-site__heading {
+      grid-column: 1;
+      grid-row: 2;
+    }
+    .knowledge-map-site__grid > div:last-child {
+      grid-column: 1;
+      grid-row: 3;
+      margin-top: 24px;
+    }
+    .knowledge-map-site__intro {
+      grid-column: 1;
+      grid-row: 4;
+      margin-top: 24px;
+    }
+    .knowledge-map-site__ctas {
+      grid-column: 1;
+      grid-row: 5;
+      margin-top: 16px;
+    }
+    .site-footer {
+      padding-inline: max(24px, calc((100% - 600px) / 2));
+    }
+  }
+  @media (max-width: 560px) {
+    .agent-proximity-site__live {
+      display: none;
+    }
+    .agent-proximity-site__heading {
+      max-width: 18ch;
+    }
+    .knowledge-map-site {
+      padding-block: calc(var(--page-space-section) / 2);
+    }
+    .knowledge-map-site__cap {
+      margin-bottom: var(--page-space-copy);
+    }
+    .knowledge-map-site__heading {
+      font-size: 31px;
+      line-height: 1.13;
+    }
+    .knowledge-map-site__grid > div:last-child {
+      margin-top: var(--page-space-group);
+    }
+    .knowledge-map-site__intro {
+      margin-top: var(--page-space-group);
+      font-size: 16px;
+      line-height: 1.65;
+    }
+    .knowledge-map-site__ctas {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0;
+    }
+    .knowledge-map-site__ctas a {
+      font-size: 14px;
+    }
+    .knowledge-map-site__foot > span:first-child {
+      padding-top: 16px;
+      font-size: 9px;
+    }
+    /* Keep the entity-owned legend readable without enlarging topic annotations. */
+    .knowledge-map-site .kmap-legend > g:nth-child(1) {
+      transform: translate(150px, 525px);
+    }
+    .knowledge-map-site .kmap-legend > g:nth-child(2) {
+      transform: translate(440px, 525px);
+    }
+    .knowledge-map-site .kmap-legend > g:nth-child(3) {
+      transform: translate(730px, 525px);
+    }
+    .knowledge-map-site .kmap-legend circle {
+      r: 7px;
+      stroke-width: 2px;
+    }
+    .knowledge-map-site .kmap-label--legend {
+      x: 20px;
+      font-size: 30px;
+    }
+    .masthead > .button {
+      min-height: 38px;
+      font-size: 12px;
+      padding-inline: 14px;
+    }
+    .site-footer {
+      padding-inline: 20px;
+    }
+  }
+}

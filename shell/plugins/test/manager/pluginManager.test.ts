@@ -1,14 +1,14 @@
+import { createMockShell } from "../../src/test/mock-shell";
 import { describe, expect, test, beforeEach, mock } from "bun:test";
+import { deferred } from "@brains/utils/deferred";
 import type { Plugin, PluginCapabilities } from "@brains/plugins";
 import type { IShell } from "@brains/plugins";
-import { caughtError } from "@brains/test-utils";
+import { caughtError, createSilentLogger } from "@brains/test-utils";
 import {
   PluginEvent,
   PluginManager,
   PluginStatus,
 } from "../../src/manager/pluginManager";
-import { createSilentLogger } from "@brains/test-utils";
-import { createMockShell } from "@brains/test-utils";
 
 import { match, P } from "ts-pattern";
 
@@ -494,6 +494,7 @@ describe("PluginManager", (): void => {
   test("plugin registration can handle async operations", async () => {
     // Create a plugin that does async work during registration
     let asyncWorkCompleted = false;
+    const finishAsyncWork = deferred();
     const asyncPlugin = {
       id: "async-plugin",
       version: "1.0.0",
@@ -501,8 +502,10 @@ describe("PluginManager", (): void => {
       name: "Async Test Plugin",
       type: "core" as const,
       async register(_shell: IShell): Promise<PluginCapabilities> {
-        // Simulate async work (e.g., initializing a database)
-        await new Promise((resolve) => setTimeout(resolve, 10));
+        // Held rather than slow. The claim is that registration is awaited,
+        // and a gate proves it: nothing can have set the flag while the gate
+        // is shut, whereas a 10ms sleep only made that likely.
+        await finishAsyncWork.promise;
         asyncWorkCompleted = true;
 
         return {
@@ -525,7 +528,9 @@ describe("PluginManager", (): void => {
     expect(asyncWorkCompleted).toBe(false);
 
     // Initialize plugins
-    await pluginManager.initializePlugins();
+    const initializing = pluginManager.initializePlugins();
+    finishAsyncWork.resolve();
+    await initializing;
 
     // Now async work should be completed
     expect(asyncWorkCompleted).toBe(true);

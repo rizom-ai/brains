@@ -1,7 +1,7 @@
 {
   "name": "@brains/social-media",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.352",
+  "version": "0.2.0-alpha.372",
   "description": "Multi-provider social media posting with queue-based publishing",
   "dependencies": {
     "@brains/assets": "workspace:*",
@@ -9,10 +9,12 @@
     "@brains/contracts": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/templates": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
+    "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",

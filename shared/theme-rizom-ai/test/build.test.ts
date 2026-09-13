@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { runProcess } from "@brains/utils/run-process";
 import { join } from "node:path";
 import { z } from "@brains/utils/zod";
 
@@ -23,7 +24,7 @@ const packageDir = join(import.meta.dir, "..");
  */
 describe("dist build", () => {
   it("emits a module that inlines its CSS and imports the base", async () => {
-    const build = Bun.spawnSync(["bun", "scripts/build.ts"], {
+    const build = await runProcess(["bun", "scripts/build.ts"], {
       cwd: packageDir,
     });
     expect(build.exitCode).toBe(0);

@@ -1,8 +1,8 @@
+import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach } from "bun:test";
 import { BrainCharacterAdapter } from "../src/brain-character-adapter";
 import type { BrainCharacterEntity } from "../src/brain-character-schema";
 import { z } from "@brains/utils/zod";
-import { createTestEntity } from "@brains/test-utils";
 
 describe("BrainCharacterAdapter", () => {
   let adapter: BrainCharacterAdapter;

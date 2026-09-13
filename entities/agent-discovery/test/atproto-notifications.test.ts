@@ -1,10 +1,11 @@
+import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import {
   ATPROTO_BRAIN_CARD_CONFLICT,
   ATPROTO_BRAIN_DISCOVERED,
   type AtprotoBrainDiscoveryEventPayload,
 } from "@brains/atproto-contracts";
-import { createMockShell } from "@brains/test-utils";
+
 import { AgentToolsPlugin } from "../src/plugins/agent-tools-plugin";
 
 const discoveredPayload: AtprotoBrainDiscoveryEventPayload = {

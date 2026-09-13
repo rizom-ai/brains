@@ -22,11 +22,20 @@ export type RuntimeStateRpcRequest =
       key: string;
       value: unknown;
     }
+  | {
+      operation: "compareAndSet";
+      namespace: string;
+      key: string;
+      expected: unknown;
+      value: unknown;
+    }
   | { operation: "delete"; namespace: string; key: string }
   | {
       operation: "list";
       namespace: string;
       keyPrefix?: string | undefined;
+      afterKey?: string | undefined;
+      limit?: number | undefined;
     }
   | {
       operation: "clear";
@@ -77,6 +86,13 @@ export const RuntimeStateRpcRequestSchema: z.ZodType<
     value: z.unknown(),
   }),
   z.strictObject({
+    operation: z.literal("compareAndSet"),
+    ...requestBaseSchema,
+    key: keySchema,
+    expected: z.unknown(),
+    value: z.unknown(),
+  }),
+  z.strictObject({
     operation: z.literal("delete"),
     ...requestBaseSchema,
     key: keySchema,
@@ -85,6 +101,8 @@ export const RuntimeStateRpcRequestSchema: z.ZodType<
     operation: z.literal("list"),
     ...requestBaseSchema,
     keyPrefix: keyPrefixSchema.optional(),
+    afterKey: keySchema.optional(),
+    limit: z.number().int().min(1).max(1000).optional(),
   }),
   z.strictObject({
     operation: z.literal("clear"),
@@ -117,6 +135,7 @@ export interface RuntimeStateRpcResults {
   has: boolean;
   set: undefined;
   setIfNotExists: boolean;
+  compareAndSet: boolean;
   delete: boolean;
   list: RuntimeStateRpcRecord[];
   clear: number;
@@ -129,6 +148,7 @@ const resultSchemas: RpcResultSchemas<RuntimeStateRpcResults> = {
   has: z.boolean(),
   set: z.undefined(),
   setIfNotExists: z.boolean(),
+  compareAndSet: z.boolean(),
   delete: z.boolean(),
   list: z.array(recordSchema),
   clear: z.number().int().nonnegative(),
@@ -159,14 +179,16 @@ export async function handleRuntimeStateRpcRequest(
       return store.set(request.key, request.value);
     case "setIfNotExists":
       return store.setIfNotExists(request.key, request.value);
+    case "compareAndSet":
+      return store.compareAndSet(request.key, request.expected, request.value);
     case "delete":
       return store.delete(request.key);
     case "list": {
-      const records: RuntimeStateRecordValue<unknown>[] = await store.list(
-        request.keyPrefix === undefined
-          ? undefined
-          : { keyPrefix: request.keyPrefix },
-      );
+      const records: RuntimeStateRecordValue<unknown>[] = await store.list({
+        keyPrefix: request.keyPrefix,
+        afterKey: request.afterKey,
+        limit: request.limit,
+      });
       return records.map((record): RuntimeStateRpcRecord => ({
         key: record.key,
         value: record.value,

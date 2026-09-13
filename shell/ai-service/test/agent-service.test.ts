@@ -1,12 +1,9 @@
+import { createMockMCPService } from "@brains/mcp-service/test";
 import { describe, expect, it, beforeEach, mock, afterEach } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
 import { AgentService } from "../src/agent-service";
 import type { AgentResponse } from "../src";
-import {
-  createMockMCPService,
-  createSilentLogger,
-  waitUntil,
-} from "@brains/test-utils";
+import { createSilentLogger, waitUntil } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { MCPService, type IMCPService, type Tool } from "@brains/mcp-service";
 import { createMockMessageBus } from "@brains/messaging-service/test";
@@ -134,6 +131,7 @@ const createMockConversationService = (): IConversationService => ({
   searchConversations: mock(() => Promise.resolve([])),
   updateConversationMetadata: mock(() => Promise.resolve(false)),
   deleteConversation: mock(() => Promise.resolve(false)),
+  deleteExpiredGuestConversations: mock(() => Promise.resolve(0)),
   close: mock(() => {}),
 });
 

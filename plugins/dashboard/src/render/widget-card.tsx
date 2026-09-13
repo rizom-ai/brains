@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import { CardHeader } from "@brains/ui-library";
+import { OperatorPanel } from "@brains/operator-view-react";
 import type { JSX } from "react";
 import { DeclarativeWidgetBody } from "./declarative-widget";
 import type { RenderableWidgetData } from "./types";
@@ -24,12 +24,12 @@ export function WidgetCard({
   studioPath?: string | undefined;
 }): JSX.Element {
   return (
-    <article
+    <OperatorPanel
+      heading={widget.widget.title}
       className={
         featured ? "card card--entity-summary" : "card widget-card--wide"
       }
     >
-      <CardHeader title={widget.widget.title} />
       {widget.component ? (
         <div className="widget-body widget-body--built-in">
           <widget.component data={sourceData(widget.data)} />
@@ -37,6 +37,6 @@ export function WidgetCard({
       ) : (
         <DeclarativeWidgetBody widget={widget} launchPaths={{ studioPath }} />
       )}
-    </article>
+    </OperatorPanel>
   );
 }

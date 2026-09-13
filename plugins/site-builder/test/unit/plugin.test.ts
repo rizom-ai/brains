@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
 import { createTempDataDir } from "@brains/plugins/test";
+import { waitUntil } from "@brains/test-utils";
 import { SiteBuilderPlugin } from "../../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
@@ -316,6 +317,20 @@ describe("SiteBuilderPlugin", () => {
       throw new Error("Expected Studio workspace actions");
     }
     const actionHandler = registration.actionHandler;
+    const workspaceRegistration = registration;
+    /** The workspace once it shows `buildId`, or a failure naming what it waited for. */
+    const waitUntilWorkspaceShows = async (
+      buildId: string,
+      description: string,
+    ): Promise<unknown> => {
+      let workspace: unknown;
+      await waitUntil(async () => {
+        workspace =
+          await workspaceRegistration.dataProvider(adminWorkspaceActor);
+        return JSON.stringify(workspace).includes(`"id":"${buildId}"`);
+      }, description);
+      return workspace;
+    };
     expect(
       await Promise.resolve(registration.accessHandler(publicWorkspaceActor)),
     ).toBe(false);
@@ -329,11 +344,42 @@ describe("SiteBuilderPlugin", () => {
       await registration.dataProvider(adminWorkspaceActor);
     expect(initialWorkspace).toMatchObject({
       view: {
-        title: "Site control",
-        kicker: "Website operations",
-        status: { label: "Test Site" },
+        title: "Site",
+        blocks: [
+          {
+            type: "tabs",
+            tabs: ["preview", "production"].map((id) => ({
+              id,
+              blocks: [
+                {
+                  type: "columns",
+                  primary: [
+                    { id: `site-${id}-card`, presentation: "section" },
+                    { id: `${id}-render-details`, presentation: "disclosure" },
+                    {
+                      id: "site-routes",
+                      label: "Configured routes",
+                      presentation: "disclosure",
+                    },
+                    { id: "site-recent-builds", label: "Recent builds" },
+                  ],
+                  aside: [
+                    { id: "site-automation-card" },
+                    { id: "site-automation-links", presentation: "disclosure" },
+                  ],
+                },
+              ],
+            })),
+          },
+        ],
       },
     });
+    expect(JSON.stringify(initialWorkspace)).toContain(
+      '"type":"tabs","id":"site-environments"',
+    );
+    expect(JSON.stringify(initialWorkspace)).toContain(
+      '"defaultTab":"preview"',
+    );
     expect(initialWorkspace).not.toHaveProperty("view.primaryAction");
     expect(findTableById(initialWorkspace, "routes")).toMatchObject({
       rows: [
@@ -350,11 +396,34 @@ describe("SiteBuilderPlugin", () => {
       adminWorkspaceActor,
     );
     expect(result).toEqual({ accepted: true, environment: "preview" });
-    await new Promise((resolve) => setTimeout(resolve, 10));
-    const previewWorkspace =
-      await registration.dataProvider(adminWorkspaceActor);
+    // The action is accepted before the build is queued, so wait for the
+    // workspace to show it rather than for 10ms to pass.
+    const previewWorkspace = await waitUntilWorkspaceShows(
+      "preview-build",
+      "the preview build to appear in the workspace",
+    );
+    expect(previewWorkspace).toMatchObject({
+      view: {
+        blocks: [
+          {
+            type: "tabs",
+            tabs: [
+              {
+                id: "preview",
+                blocks: [
+                  { type: "progress", id: "preview-build" },
+                  { type: "columns", id: "site-body" },
+                ],
+              },
+              { id: "production" },
+            ],
+          },
+        ],
+      },
+    });
     expect(JSON.stringify(previewWorkspace)).toContain('"id":"preview-build"');
     expect(JSON.stringify(previewWorkspace)).toContain('"state":"queued"');
+    expect(JSON.stringify(previewWorkspace)).toContain('"disabled":true');
     expect(
       actionHandler(
         { actionId: "missing-action", input: {} },
@@ -367,9 +436,10 @@ describe("SiteBuilderPlugin", () => {
         adminWorkspaceActor,
       ),
     ).toEqual({ accepted: true, environment: "production" });
-    await new Promise((resolve) => setTimeout(resolve, 10));
-    const productionWorkspace =
-      await registration.dataProvider(adminWorkspaceActor);
+    const productionWorkspace = await waitUntilWorkspaceShows(
+      "production-build",
+      "the production build to appear in the workspace",
+    );
     expect(JSON.stringify(productionWorkspace)).toContain(
       '"id":"production-build"',
     );
@@ -479,7 +549,7 @@ describe("SiteBuilderPlugin", () => {
       trustedWorkspaceActor,
     );
     expect(trustedWorkspace).toMatchObject({
-      view: { title: "Site control", status: { label: "Test Site" } },
+      view: { title: "Site" },
     });
     expect(JSON.stringify(trustedWorkspace)).toContain(
       '"actionId":"build-preview"',

@@ -197,6 +197,8 @@ export class AgentAdapter extends BaseEntityAdapter<
         notes: parsed.notes,
       };
     } catch {
+      // A body that does not parse yields an empty profile rather than a
+      // broken entity; the agent is still listed and can be re-fetched.
       return { about: "", skills: [], notes: "" };
     }
   }

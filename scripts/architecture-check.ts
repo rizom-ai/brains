@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
 import { join } from "node:path";
+import { runProcess } from "@brains/utils/run-process";
 import { getErrorMessage } from "@brains/utils/error";
 import {
   architectureStructuralEdges,
@@ -10,25 +11,24 @@ import {
 
 const repositoryRoot = join(import.meta.dir, "..");
 
-function trackedAndUnignoredPaths(): string[] {
-  const result = Bun.spawnSync(
+async function trackedAndUnignoredPaths(): Promise<string[]> {
+  const result = await runProcess(
     ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
     { cwd: repositoryRoot },
   );
   if (result.exitCode !== 0) {
     throw new Error(
-      result.stderr.toString().trim() ||
-        "Could not read the git source inventory",
+      result.stderr.trim() || "Could not read the git source inventory",
     );
   }
-  return result.stdout.toString().split("\0").filter(Boolean);
+  return result.stdout.split("\0").filter(Boolean);
 }
 
 async function main(): Promise<number> {
   const reporter = parseArchitectureReporter(process.argv.slice(2));
   const inventory = selectArchitectureSources(
     repositoryRoot,
-    trackedAndUnignoredPaths(),
+    await trackedAndUnignoredPaths(),
   );
   if (inventory.selected.length === 0) {
     throw new Error("Architecture source inventory is empty");

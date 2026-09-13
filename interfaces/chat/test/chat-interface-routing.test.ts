@@ -1,5 +1,6 @@
 import { describe, it, expect, mock } from "bun:test";
 import type { Mock } from "bun:test";
+import type { IConversationService } from "@brains/plugins";
 import { PermissionService } from "@brains/plugins/test";
 import type { DiscordChatAdapterConfig } from "../src/config";
 import {
@@ -462,25 +463,17 @@ describe("ChatInterface message routing", () => {
   });
 
   describe("passive space capture", () => {
-    interface MockConversationService {
-      startConversation: Mock<
-        (request: { sessionId: string }) => Promise<string>
+    type MockConversationService = {
+      [K in keyof IConversationService]: Mock<
+        NonNullable<IConversationService[K]>
       >;
-      addMessage: Mock<(request: unknown) => Promise<void>>;
-      getConversation: Mock<() => Promise<null>>;
-      listConversations: Mock<() => Promise<never[]>>;
-      searchConversations: Mock<() => Promise<never[]>>;
-      getMessages: Mock<() => Promise<never[]>>;
-      countMessages: Mock<() => Promise<number>>;
-      updateConversationMetadata: Mock<() => Promise<boolean>>;
-      deleteConversation: Mock<() => Promise<boolean>>;
-      close: Mock<() => void>;
-    }
+    };
 
     function createConversationService(): MockConversationService {
       return {
-        startConversation: mock((request: { sessionId: string }) =>
-          Promise.resolve(request.sessionId),
+        startConversation: mock(
+          (request: Parameters<IConversationService["startConversation"]>[0]) =>
+            Promise.resolve(request.sessionId),
         ),
         addMessage: mock(() => Promise.resolve()),
         getConversation: mock(() => Promise.resolve(null)),
@@ -490,6 +483,7 @@ describe("ChatInterface message routing", () => {
         countMessages: mock(() => Promise.resolve(0)),
         updateConversationMetadata: mock(() => Promise.resolve(true)),
         deleteConversation: mock(() => Promise.resolve(true)),
+        deleteExpiredGuestConversations: mock(() => Promise.resolve(0)),
         close: mock(() => undefined),
       };
     }

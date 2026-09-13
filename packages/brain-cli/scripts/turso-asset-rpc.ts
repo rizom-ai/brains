@@ -9,11 +9,9 @@ import {
   prepareAsset,
   computeAssetDigest,
 } from "@brains/assets";
-import {
-  createSilentLogger,
-  createMockJobQueueService,
-  createTestEntity,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
+import { createMockJobQueueService } from "@brains/job-queue/test";
+import { createTestEntity } from "@brains/entity-service/test";
 import {
   EntityRegistry,
   RemoteEntityService,

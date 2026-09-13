@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import type { GuestConversationOwnership } from "@brains/contracts/chat";
 import {
   actorRefFromLegacy,
   actorRefSchema,
@@ -30,6 +31,7 @@ export interface ConversationServiceConfig {
  * Metadata for a conversation
  */
 export interface ConversationMetadata {
+  guest?: GuestConversationOwnership;
   channelName: string; // Human-readable name for the channel/room
   interfaceType: string; // Interface that created the conversation (e.g., 'matrix', 'cli')
   channelId: string; // Original channel/room identifier
@@ -209,6 +211,11 @@ export interface UpdateConversationMetadataRequest {
 
 export interface ListConversationsOptions {
   limit?: number | undefined;
+  offset?: number | undefined;
+  /** Match title or message text literally, case-insensitively. */
+  query?: string | undefined;
+  /** Omit to include both active and archived conversations. */
+  archived?: boolean | undefined;
   updatedAfter?: string | undefined;
   interfaceType?: string | undefined;
   sessionId?: string | undefined;
@@ -235,6 +242,8 @@ export interface IConversationService {
     request: UpdateConversationMetadataRequest,
   ): Promise<boolean>;
   deleteConversation(conversationId: string): Promise<boolean>;
+  /** Trusted host maintenance; never an anonymous conversation action. */
+  deleteExpiredGuestConversations(limit?: number): Promise<number>;
 
   // Search operations
   searchConversations(

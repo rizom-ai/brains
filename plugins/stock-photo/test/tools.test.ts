@@ -1,10 +1,9 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { expectToolError, expectToolSuccess } from "@brains/mcp-service/test";
 import {
   createMockEntityService as createSharedEntityService,
   createTestEntity,
-  expectToolError,
-  expectToolSuccess,
-} from "@brains/test-utils";
+} from "@brains/entity-service/test";
+import { describe, it, expect, beforeEach } from "bun:test";
 import { createStockPhotoTools } from "../src/tools";
 import type { StockPhotoToolsDeps } from "../src/tools";
 import type { StockPhotoProvider, SearchResult } from "../src/lib/types";

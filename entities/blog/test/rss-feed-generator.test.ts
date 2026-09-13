@@ -1,7 +1,7 @@
+import { createTestEntity } from "@brains/entity-service/test";
 import { describe, expect, test } from "bun:test";
 import { generateRSSFeed } from "../src/rss/feed-generator";
 import type { BlogPostWithData } from "../src/datasources/blog-datasource";
-import { createTestEntity } from "@brains/test-utils";
 
 const defaultFeedConfig = {
   title: "My Blog",

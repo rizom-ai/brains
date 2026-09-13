@@ -1,6 +1,6 @@
 {
   "extends": "@brains/typescript-config/base.json",
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "scripts/**/*"],
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "react",

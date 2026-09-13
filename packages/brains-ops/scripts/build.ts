@@ -65,16 +65,16 @@ const binPath = join(outdir, "brains-ops.js");
 const stripped = readFileSync(binPath, "utf8").replace(/^#!.*\n/, "");
 writeFileSync(binPath, `#!/usr/bin/env bun\n${stripped}`);
 
-const dts = Bun.spawnSync(
+const dts = await Bun.spawn(
   ["bunx", "tsc", "-p", join(packageDir, "tsconfig.dts.json")],
   {
     cwd: packageDir,
     stdout: "inherit",
     stderr: "inherit",
   },
-);
+).exited;
 
-if (dts.exitCode !== 0) {
+if (dts !== 0) {
   console.error("Declaration build failed");
   process.exit(1);
 }

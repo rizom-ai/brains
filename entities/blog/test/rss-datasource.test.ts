@@ -1,12 +1,10 @@
+import { createTestEntity } from "@brains/entity-service/test";
+import { createMockShell, type MockShell } from "@brains/plugins/test";
 import { describe, expect, test, beforeEach, spyOn } from "bun:test";
 import { blogPostSchema } from "../src/schemas/blog-post";
 import { RSSDataSource } from "../src/datasources/rss-datasource";
-import {
-  createSilentLogger,
-  createMockShell,
-  createTestEntity,
-} from "@brains/test-utils";
-import type { MockShell } from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
+
 import type { IEntityService } from "@brains/plugins";
 import type { BlogPost } from "../src/schemas/blog-post";
 import { z } from "@brains/utils/zod";

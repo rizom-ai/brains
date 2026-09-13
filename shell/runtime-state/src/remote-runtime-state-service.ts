@@ -1,8 +1,10 @@
+import { z } from "@brains/utils/zod";
 import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import type {
   IRuntimeStateService,
   IRuntimeStateStore,
   RuntimeStateRecordValue,
+  RuntimeStateListOptions,
   RuntimeStateScopeOptions,
   RuntimeStateValueSchema,
 } from "./types";
@@ -134,6 +136,16 @@ class RemoteRuntimeStateStore<T> implements IRuntimeStateStore<T> {
     });
   }
 
+  public compareAndSet(key: string, expected: T, value: T): Promise<boolean> {
+    return this.requestRemote({
+      operation: "compareAndSet",
+      namespace: this.namespace,
+      key: normalizeRuntimeStateKey(key),
+      expected: this.schema.parse(expected),
+      value: this.schema.parse(value),
+    });
+  }
+
   public delete(key: string): Promise<boolean> {
     return this.requestRemote({
       operation: "delete",
@@ -143,7 +155,7 @@ class RemoteRuntimeStateStore<T> implements IRuntimeStateStore<T> {
   }
 
   public async list(
-    options: { keyPrefix?: string | undefined } = {},
+    options: RuntimeStateListOptions = {},
   ): Promise<RuntimeStateRecordValue<T>[]> {
     const keyPrefix = options.keyPrefix;
     if (keyPrefix !== undefined) normalizeRuntimeStateKeyPrefix(keyPrefix);
@@ -151,6 +163,12 @@ class RemoteRuntimeStateStore<T> implements IRuntimeStateStore<T> {
       operation: "list",
       namespace: this.namespace,
       ...(keyPrefix !== undefined && { keyPrefix }),
+      ...(options.afterKey !== undefined && {
+        afterKey: normalizeRuntimeStateKey(options.afterKey),
+      }),
+      ...(options.limit !== undefined && {
+        limit: z.number().int().min(1).max(1000).parse(options.limit),
+      }),
     });
     return records.map((record) => ({
       key: record.key,

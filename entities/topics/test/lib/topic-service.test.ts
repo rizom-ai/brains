@@ -1,12 +1,10 @@
+import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, it, expect, spyOn } from "bun:test";
 import type { ContentVisibility } from "@brains/plugins";
 import type { TopicMetadata } from "../../src/schemas/topic";
 import type { TopicEntity } from "../../src/types";
 import { TopicService } from "../../src/lib/topic-service";
-import {
-  createMockEntityService,
-  createSilentLogger,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import {
   createMockShell,
   createEntityPluginContext,

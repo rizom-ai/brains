@@ -1,6 +1,6 @@
+import { expectToolError } from "@brains/mcp-service/test";
 import { describe, expect, it } from "bun:test";
 import type { Message } from "@brains/conversation-service";
-import { expectToolError } from "@brains/test-utils";
 import type { ToolContext, ToolResponse } from "@brains/mcp-service";
 import { createEntityCreateTool } from "../../src/system/entity-create-tool";
 import { createEntityDeleteTool } from "../../src/system/entity-delete-tool";

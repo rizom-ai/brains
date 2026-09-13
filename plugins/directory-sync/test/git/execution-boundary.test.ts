@@ -72,12 +72,17 @@ describe("git execution boundary", () => {
     // deadline bounds a silent remote but cannot establish that Git is gone,
     // which is why it runs in the broker process, where an unfinished child
     // holds the checkout turn instead of wedging an app event loop.
+    // `run-process` counts as spawning. The seed bootstrap moved onto that
+    // helper when synchronous spawns were banned, and a detector that only
+    // knew the raw APIs stopped seeing it — which would have left every future
+    // caller of the helper outside this boundary too.
     const offenders = (await sources())
       .filter(
         ({ path, body }) =>
           !path.startsWith("lib/broker/") &&
           (body.includes("Bun.spawn") ||
             body.includes("spawnSync") ||
+            body.includes("run-process") ||
             body.includes("node:child_process")),
       )
       .map(({ path }) => path)

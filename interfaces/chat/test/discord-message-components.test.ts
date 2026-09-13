@@ -1,8 +1,6 @@
 import { describe, it, expect } from "bun:test";
-import {
-  clearDiscordMessageComponents,
-  type FetchLike,
-} from "../src/discord-message-components";
+import { clearDiscordMessageComponents } from "../src/discord-message-components";
+import type { FetchLike } from "@brains/utils/fetch-like";
 
 interface RecordedCall {
   url: string;

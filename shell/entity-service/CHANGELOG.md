@@ -1,5 +1,245 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.372
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.372
+  - @brains/content-formatters@0.2.0-alpha.372
+  - @brains/contracts@0.2.0-alpha.372
+  - @brains/db@0.2.0-alpha.372
+  - @brains/utils@0.2.0-alpha.372
+  - @brains/job-queue@0.2.0-alpha.372
+
+## 0.2.0-alpha.371
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.371
+  - @brains/content-formatters@0.2.0-alpha.371
+  - @brains/contracts@0.2.0-alpha.371
+  - @brains/db@0.2.0-alpha.371
+  - @brains/utils@0.2.0-alpha.371
+  - @brains/job-queue@0.2.0-alpha.371
+
+## 0.2.0-alpha.370
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.370
+  - @brains/content-formatters@0.2.0-alpha.370
+  - @brains/contracts@0.2.0-alpha.370
+  - @brains/db@0.2.0-alpha.370
+  - @brains/utils@0.2.0-alpha.370
+  - @brains/job-queue@0.2.0-alpha.370
+
+## 0.2.0-alpha.369
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.369
+  - @brains/content-formatters@0.2.0-alpha.369
+  - @brains/contracts@0.2.0-alpha.369
+  - @brains/db@0.2.0-alpha.369
+  - @brains/utils@0.2.0-alpha.369
+  - @brains/job-queue@0.2.0-alpha.369
+
+## 0.2.0-alpha.368
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.368
+  - @brains/content-formatters@0.2.0-alpha.368
+  - @brains/contracts@0.2.0-alpha.368
+  - @brains/db@0.2.0-alpha.368
+  - @brains/utils@0.2.0-alpha.368
+  - @brains/job-queue@0.2.0-alpha.368
+
+## 0.2.0-alpha.367
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.367
+  - @brains/content-formatters@0.2.0-alpha.367
+  - @brains/contracts@0.2.0-alpha.367
+  - @brains/db@0.2.0-alpha.367
+  - @brains/utils@0.2.0-alpha.367
+  - @brains/job-queue@0.2.0-alpha.367
+
+## 0.2.0-alpha.366
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.366
+  - @brains/content-formatters@0.2.0-alpha.366
+  - @brains/contracts@0.2.0-alpha.366
+  - @brains/db@0.2.0-alpha.366
+  - @brains/utils@0.2.0-alpha.366
+  - @brains/job-queue@0.2.0-alpha.366
+
+## 0.2.0-alpha.365
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.365
+  - @brains/content-formatters@0.2.0-alpha.365
+  - @brains/contracts@0.2.0-alpha.365
+  - @brains/db@0.2.0-alpha.365
+  - @brains/utils@0.2.0-alpha.365
+  - @brains/job-queue@0.2.0-alpha.365
+
+## 0.2.0-alpha.364
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.364
+  - @brains/content-formatters@0.2.0-alpha.364
+  - @brains/contracts@0.2.0-alpha.364
+  - @brains/db@0.2.0-alpha.364
+  - @brains/utils@0.2.0-alpha.364
+  - @brains/job-queue@0.2.0-alpha.364
+
+## 0.2.0-alpha.363
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.363
+  - @brains/content-formatters@0.2.0-alpha.363
+  - @brains/contracts@0.2.0-alpha.363
+  - @brains/db@0.2.0-alpha.363
+  - @brains/utils@0.2.0-alpha.363
+  - @brains/job-queue@0.2.0-alpha.363
+
+## 0.2.0-alpha.362
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.362
+  - @brains/content-formatters@0.2.0-alpha.362
+  - @brains/contracts@0.2.0-alpha.362
+  - @brains/db@0.2.0-alpha.362
+  - @brains/utils@0.2.0-alpha.362
+  - @brains/job-queue@0.2.0-alpha.362
+
+## 0.2.0-alpha.361
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.361
+  - @brains/content-formatters@0.2.0-alpha.361
+  - @brains/contracts@0.2.0-alpha.361
+  - @brains/db@0.2.0-alpha.361
+  - @brains/utils@0.2.0-alpha.361
+  - @brains/job-queue@0.2.0-alpha.361
+
+## 0.2.0-alpha.360
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.360
+  - @brains/content-formatters@0.2.0-alpha.360
+  - @brains/contracts@0.2.0-alpha.360
+  - @brains/db@0.2.0-alpha.360
+  - @brains/utils@0.2.0-alpha.360
+  - @brains/job-queue@0.2.0-alpha.360
+
+## 0.2.0-alpha.359
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.359
+  - @brains/content-formatters@0.2.0-alpha.359
+  - @brains/contracts@0.2.0-alpha.359
+  - @brains/db@0.2.0-alpha.359
+  - @brains/utils@0.2.0-alpha.359
+  - @brains/job-queue@0.2.0-alpha.359
+
+## 0.2.0-alpha.358
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.358
+  - @brains/content-formatters@0.2.0-alpha.358
+  - @brains/contracts@0.2.0-alpha.358
+  - @brains/db@0.2.0-alpha.358
+  - @brains/utils@0.2.0-alpha.358
+  - @brains/job-queue@0.2.0-alpha.358
+
+## 0.2.0-alpha.357
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.357
+  - @brains/content-formatters@0.2.0-alpha.357
+  - @brains/contracts@0.2.0-alpha.357
+  - @brains/db@0.2.0-alpha.357
+  - @brains/utils@0.2.0-alpha.357
+  - @brains/job-queue@0.2.0-alpha.357
+
+## 0.2.0-alpha.356
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.356
+  - @brains/content-formatters@0.2.0-alpha.356
+  - @brains/contracts@0.2.0-alpha.356
+  - @brains/db@0.2.0-alpha.356
+  - @brains/utils@0.2.0-alpha.356
+  - @brains/job-queue@0.2.0-alpha.356
+
+## 0.2.0-alpha.355
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.355
+  - @brains/content-formatters@0.2.0-alpha.355
+  - @brains/contracts@0.2.0-alpha.355
+  - @brains/db@0.2.0-alpha.355
+  - @brains/utils@0.2.0-alpha.355
+  - @brains/job-queue@0.2.0-alpha.355
+
+## 0.2.0-alpha.354
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.354
+  - @brains/content-formatters@0.2.0-alpha.354
+  - @brains/contracts@0.2.0-alpha.354
+  - @brains/db@0.2.0-alpha.354
+  - @brains/utils@0.2.0-alpha.354
+  - @brains/job-queue@0.2.0-alpha.354
+
+## 0.2.0-alpha.353
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.353
+  - @brains/content-formatters@0.2.0-alpha.353
+  - @brains/contracts@0.2.0-alpha.353
+  - @brains/db@0.2.0-alpha.353
+  - @brains/utils@0.2.0-alpha.353
+  - @brains/job-queue@0.2.0-alpha.353
+
 ## 0.2.0-alpha.352
 
 ### Patch Changes

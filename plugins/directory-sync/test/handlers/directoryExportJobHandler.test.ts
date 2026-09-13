@@ -1,9 +1,9 @@
+import { createMockServicePluginContext } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
 import { DirectoryExportJobHandler } from "../../src/handlers/directoryExportJobHandler";
 import {
   createSilentLogger,
-  createMockServicePluginContext,
   createMockProgressReporter,
 } from "@brains/test-utils";
 import { createMockDirectorySync } from "../fixtures";

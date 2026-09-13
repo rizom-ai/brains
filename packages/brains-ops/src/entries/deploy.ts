@@ -9,6 +9,7 @@ export {
   writeGitHubOutput,
   writeGitHubEnv,
 } from "@brains/deploy-support";
+export { verifyRuntimeImage } from "../image-inventory";
 export type { EnvSchemaEntry } from "@brains/deploy-support";
 export {
   runtimeImageTag,

@@ -8,6 +8,7 @@ import type {
   PublishMediaData,
 } from "@brains/contracts";
 import type {
+  AttachmentResolveRequest,
   MessageSender,
   BaseEntity,
   EntitySchema,
@@ -32,12 +33,6 @@ export interface PublishExecutePayload {
     userPermissionLevel?: ToolContext["userPermissionLevel"];
     authorization?: "user" | "system";
   };
-}
-
-export interface AttachmentResolveRequest {
-  sourceEntityType: string;
-  sourceEntityId: string;
-  attachmentType: string;
 }
 
 export type ResolveAttachmentFn = (
@@ -391,6 +386,8 @@ export class PublishExecuteHandler {
         filename,
       };
     } catch (error) {
+      // The document is an optional attachment. Publishing the post without
+      // it beats failing a post whose text is ready to go.
       this.logger.warn("Failed to fetch document", { documentId, error });
       return undefined;
     }
@@ -419,6 +416,8 @@ export class PublishExecuteHandler {
         mimeType: resolved.mediaType,
       };
     } catch (error) {
+      // The cover image is an optional attachment, and the post reads without
+      // it. Same call as the document above.
       this.logger.warn("Failed to fetch cover image", { imageId, error });
       return undefined;
     }

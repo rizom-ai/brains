@@ -1,6 +1,7 @@
 import { describe, expect, it, mock } from "bun:test";
 import { createServicePluginContext } from "../src/service/context";
-import { createMockEntityService, createMockShell } from "@brains/test-utils";
+import { createMockEntityService } from "@brains/entity-service/test";
+import { createMockShell } from "@brains/plugins/test";
 
 describe("service plugin context entity coordination", () => {
   it("binds the coordination capability to the plugin id as source", async () => {

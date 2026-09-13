@@ -1,9 +1,7 @@
+import { createMockJobQueueService } from "@brains/job-queue/test";
 import { EntityService } from "../../src/entityService";
 import { EntityRegistry } from "../../src/entityRegistry";
-import {
-  createSilentLogger,
-  createMockJobQueueService,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import type { IJobQueueService } from "@brains/job-queue";
 import type {
   EntityDbConfig,

@@ -55,4 +55,21 @@ describe("public messaging contracts", () => {
     });
     expect(response).toEqual({ success: true, data: { accepted: true } });
   });
+
+  it("rejects the empty identifiers the bus rejects", () => {
+    // The published schema is the bus's own. A second copy stood here that
+    // left off the `.min(1)` constraints, so a plugin author validating a
+    // message got a pass the runtime would not honour.
+    for (const field of ["id", "type", "source"] as const) {
+      const message = {
+        id: "msg-1",
+        timestamp: "2026-01-01T00:00:00.000Z",
+        type: "example:event",
+        source: "example-plugin",
+        [field]: "",
+      };
+
+      expect(BaseMessageSchema.safeParse(message).success, field).toBe(false);
+    }
+  });
 });

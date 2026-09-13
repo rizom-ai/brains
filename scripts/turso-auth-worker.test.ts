@@ -11,7 +11,8 @@ import {
 } from "@brains/contracts";
 import { MessageBus } from "@brains/messaging-service";
 import { createServicePluginContext } from "@brains/plugins";
-import { createMockShell, createSilentLogger } from "@brains/test-utils";
+import { createMockShell } from "@brains/plugins/test";
+import { createSilentLogger } from "@brains/test-utils";
 import {
   LocalDatabaseRpcClient,
   LocalDatabaseRpcServer,

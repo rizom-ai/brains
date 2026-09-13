@@ -4,7 +4,11 @@ import type {
   AssetVerification,
   PreparedAsset,
 } from "@brains/assets";
-import type { ActorRef } from "@brains/contracts";
+import type {
+  ActorRef,
+  EntityReadBudget,
+  QueryEmbedding,
+} from "@brains/contracts";
 import type { IProjectionStore } from "./projection-store";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
 import type {
@@ -508,17 +512,32 @@ export interface SortField {
  * List entities options
  * Generic over metadata type for type-safe filtering
  */
-export interface ListOptions<TMetadata = Record<string, unknown>> {
+export interface EntityReadOptions {
+  /** Bounds SQL result transfer, suppresses raw diagnostics, and leaves entity
+   * image references unexpanded. Not a bound on database or adapter execution.
+   */
+  readBudget?: EntityReadBudget | undefined;
+  /** Request-owned embedding capability, e.g. a prepaid guest search. */
+  queryEmbedding?: QueryEmbedding | undefined;
+  /** Cooperative boundary checks, not proof of remote SQL cancellation. */
+  signal?: AbortSignal | undefined;
+}
+
+export interface ListOptions<
+  TMetadata = Record<string, unknown>,
+> extends EntityReadOptions {
   limit?: number | undefined;
   offset?: number | undefined;
   /** Multi-field sorting - supports system fields (created, updated) and metadata fields */
-  // `| undefined` is load-bearing: these cross the entity RPC boundary, where
-  // zod `.optional()` produces `T | undefined` under exactOptionalPropertyTypes.
   sortFields?: SortField[] | undefined;
   filter?:
     | {
         // Typed metadata filter - partial match on metadata fields
         metadata?: Partial<TMetadata> | undefined;
+        /** Literal substring search through serialized content, including frontmatter. */
+        contentContains?: string | undefined;
+        /** Exact visibility, intersected with visibilityScope rather than widening it. */
+        visibility?: ContentVisibility | undefined;
         visibilityScope?: ContentVisibility | undefined;
       }
     | undefined;
@@ -529,7 +548,7 @@ export interface ListOptions<TMetadata = Record<string, unknown>> {
 /**
  * Search options
  */
-export interface SearchOptions {
+export interface SearchOptions extends EntityReadOptions {
   limit?: number | undefined;
   offset?: number | undefined;
   types?: string[] | undefined;
@@ -580,7 +599,7 @@ export interface EntityTypeConfig {
  * Core entity service interface for read-only operations
  * Used by core plugins that need entity access but shouldn't modify entities
  */
-export interface GetEntityRequest {
+export interface GetEntityRequest extends EntityReadOptions {
   entityType: string;
   id: string;
   /**
@@ -1153,3 +1172,28 @@ export interface EntityRegistry {
  * Database configuration for entity service
  */
 export type { DbConfig as EntityDbConfig } from "@brains/contracts";
+
+/**
+ * The read-only projection of the entity service.
+ *
+ * What a plugin is handed when it has no business writing: insight handlers
+ * compute over entities and return a summary. A projection of
+ * `ICoreEntityService` rather than a hand-written parallel interface, so a
+ * method that changes shape fails to compile here instead of drifting.
+ *
+ * `@brains/plugins` restates this as `IEntityService` on its published
+ * authoring surface; `public-surface-soundness.test.ts` holds the two
+ * together.
+ */
+export type ReadOnlyEntityService = Pick<
+  ICoreEntityService,
+  | "getEntity"
+  | "listEntities"
+  | "search"
+  | "searchWithDistances"
+  | "getEntityTypes"
+  | "hasEntityType"
+  | "countEntities"
+  | "getEntityCounts"
+  | "getEntityTypeConfig"
+>;

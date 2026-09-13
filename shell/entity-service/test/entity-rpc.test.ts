@@ -3,11 +3,9 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prepareAsset, computeAssetDigest } from "@brains/assets";
 import { ENTITY_CHANNELS } from "@brains/contracts";
-import {
-  createMockJobQueueService,
-  createSilentLogger,
-  createTestEntity,
-} from "@brains/test-utils";
+import { createMockJobQueueService } from "@brains/job-queue/test";
+import { createSilentLogger } from "@brains/test-utils";
+import { createTestEntity } from "@brains/entity-service/test";
 import {
   EntityRegistry,
   RemoteEntityService,
@@ -98,6 +96,36 @@ function captureThrown(invocation: () => unknown): Error {
 }
 
 describe("entity owner RPC", () => {
+  it("preserves main's bounded reads and literal filters through RPC", () => {
+    const readBudget = { rows: 1, rowBytes: 1024, queryCharacters: 128 };
+    const filter = {
+      contentContains: "100%_",
+      visibility: "restricted",
+      visibilityScope: "public",
+    } as const;
+    for (const request of [
+      {
+        operation: "getEntity",
+        request: { entityType: "test", id: "one", readBudget },
+      },
+      {
+        operation: "listEntities",
+        request: {
+          entityType: "test",
+          options: { limit: 1, readBudget, filter },
+        },
+      },
+      {
+        operation: "countEntities",
+        request: { entityType: "test", options: { filter } },
+      },
+      {
+        operation: "search",
+        request: { query: "needle", options: { readBudget } },
+      },
+    ] as const)
+      expect(parseEntityRpcRequest(request)).toEqual(request);
+  });
   let owner: EntityService;
   let remote: RemoteEntityService;
   let cleanup: () => Promise<void>;

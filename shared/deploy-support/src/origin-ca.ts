@@ -1,5 +1,6 @@
 import { createSign, generateKeyPairSync } from "node:crypto";
 import { parseJsonResponse } from "@brains/utils/http-response";
+import type { FetchLike } from "@brains/utils/fetch-like";
 import { z } from "@brains/utils/zod";
 
 export interface OriginKeyPair {
@@ -17,11 +18,6 @@ export interface CloudflareOriginCaResult {
   certificatePem: string;
   expiresOn?: string;
 }
-
-export type FetchLike = (
-  input: string | URL | Request,
-  init?: RequestInit,
-) => Promise<Response>;
 
 const CN_OID = "2.5.4.3";
 const SHA256_WITH_RSA_ENCRYPTION_OID = "1.2.840.113549.1.1.11";

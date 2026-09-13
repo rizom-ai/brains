@@ -84,9 +84,18 @@ function selectedTitle(): string | null {
   );
 }
 
+/**
+ * Wait out the palette's own input debounce.
+ *
+ * Elapsed time is the behaviour here: the component under test debounces input
+ * by 150ms before fetching, so there is a real duration to pass rather than a
+ * condition to wait for. The callers assert different effects afterwards — a
+ * fetch URL, rendered markup, no fetch at all — so this cannot wait on one
+ * signal for all of them.
+ */
+const PALETTE_DEBOUNCE_MS = 150;
 async function settle(): Promise<void> {
-  // Covers the 150ms input debounce plus fetch microtasks.
-  await new Promise((resolve) => setTimeout(resolve, 200));
+  await Bun.sleep(PALETTE_DEBOUNCE_MS + 50);
 }
 
 async function openPalette(): Promise<void> {

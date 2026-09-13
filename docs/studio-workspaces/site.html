@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en" data-climate="paper" data-theme="light" data-type="expressive">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Studio · Site mockup</title>
+    <link rel="stylesheet" href="study.css" />
+  </head>
+  <body data-workspace="site">
+    <div class="presentation">
+      <header class="review-head">
+        <div>
+          <p>STUDIO / NAVIGATION REVISION · FOR REVIEW</p>
+          <h1>Site</h1>
+        </div>
+        <div class="controls">
+          <a class="button" href="index.html">All workspaces</a>
+
+          <div class="control" data-control="viewport" aria-label="Viewport">
+            <button data-value="desktop" aria-pressed="true">Desktop</button
+            ><button data-value="phone" aria-pressed="false">Phone</button>
+          </div>
+
+          <div class="control" data-control="climate" aria-label="Climate">
+            <button data-value="paper" aria-pressed="true">Paper</button
+            ><button data-value="instrument" aria-pressed="false">
+              Instrument
+            </button>
+          </div>
+          <label class="scenario-control"
+            >Sample state<select id="scenario">
+              <option value="sample">Populated</option>
+              <option value="empty">Not published yet</option>
+              <option value="busy">Preview build running</option>
+            </select></label
+          >
+        </div>
+      </header>
+      <div class="browser" id="browser">
+        <div class="app" id="app">
+          <header class="chrome">
+            <div class="brand"><b>R</b>ROVER COLLECTIVE / STUDIO</div>
+            <button class="browse" id="browseButton">≡ Browse</button>
+            <div class="location" id="location">Overview</div>
+            <button
+              class="avatar"
+              aria-label="Profile menu"
+              id="profileButton"
+              popovertarget="profileMenu"
+              aria-expanded="false"
+              aria-controls="profileMenu"
+            >
+              MR
+            </button>
+          </header>
+          <div class="shell">
+            <nav class="area" aria-label="Studio areas">
+              <div class="area-head">
+                <span>Studio</span
+                ><button
+                  class="collapse"
+                  id="collapse"
+                  aria-expanded="true"
+                  aria-label="Collapse navigation"
+                >
+                  ⇤
+                </button>
+              </div>
+              <button
+                class="area-link"
+                data-area="overview"
+                aria-label="Overview"
+                aria-pressed="true"
+              >
+                <b aria-hidden="true">00</b><span>Overview</span></button
+              ><button
+                class="area-link"
+                aria-label="Chat"
+                data-area="chat"
+                data-screen="chat"
+                aria-pressed="false"
+              >
+                <b aria-hidden="true">01</b><span>Chat</span></button
+              ><button
+                class="area-link"
+                aria-label="Library"
+                title="Library — outside this study"
+                disabled=""
+              >
+                <b>02</b><span>Library</span></button
+              ><button
+                class="area-link"
+                data-area="work"
+                aria-label="Work"
+                aria-pressed="false"
+              >
+                <b aria-hidden="true">03</b><span>Work</span></button
+              ><button
+                class="area-link"
+                aria-label="Administration"
+                data-area="administration"
+                data-screen="administration"
+                aria-pressed="false"
+              >
+                <b aria-hidden="true">04</b><span>Admin</span></button
+              ><button
+                class="area-link"
+                aria-label="System"
+                data-area="system"
+                aria-pressed="false"
+              >
+                <b>05</b><span>System</span></button
+              ><button
+                class="area-link commands"
+                aria-label="Commands preview"
+                data-preview="Commands"
+              >
+                <b>⌘</b><span>Commands</span>
+              </button>
+            </nav>
+            <aside class="leaf" aria-label="Workspace destinations">
+              <h2 id="leafTitle">Overview</h2>
+              <div class="leaf-links" id="homeLeaf">
+                <button data-screen="overview" aria-current="page">
+                  Overview
+                </button>
+              </div>
+              <div class="leaf-links" id="workLeaf" hidden="">
+                <button data-screen="inbox">Inbox <small>3</small></button
+                ><button data-screen="publishing">Publishing</button
+                ><button data-screen="site">Site</button
+                ><button data-screen="sync">Content sync</button>
+              </div>
+              <div class="leaf-links" id="systemLeaf" hidden="">
+                <p class="minor">
+                  System settings are outside this workspace study.
+                </p>
+              </div>
+            </aside>
+            <main class="workspace" id="workspace">
+              <section id="site">
+                <header class="page-head"><h1>Site</h1></header>
+                <div data-scenario="sample">
+                  <div data-tabs="">
+                    <div class="tabs">
+                      <button data-panel="site-preview" aria-pressed="true">
+                        Preview</button
+                      ><button
+                        data-panel="site-production"
+                        aria-pressed="false"
+                      >
+                        Production
+                      </button>
+                    </div>
+                    <section id="site-preview" data-tab-panel="">
+                      <div class="notice">
+                        <div>
+                          <h2>Preview build failed</h2>
+                          <p>
+                            The previous published preview generation remains
+                            available.
+                          </p>
+                        </div>
+                        <button class="button" data-action="site-failure">
+                          View build details
+                        </button>
+                      </div>
+                      <div class="workspace-grid">
+                        <section>
+                          <header class="section-head"><h2>Preview</h2></header>
+                          <dl class="facts">
+                            <div>
+                              <dt>State</dt>
+                              <dd>Failed</dd>
+                            </div>
+                            <div>
+                              <dt>Published generation</dt>
+                              <dd>preview-previous</dd>
+                            </div>
+                            <div>
+                              <dt>Published at</dt>
+                              <dd>4 Sept, 16:30 UTC</dd>
+                            </div>
+                            <div>
+                              <dt>Published result</dt>
+                              <dd>24 routes</dd>
+                            </div>
+                            <div>
+                              <dt>Last successful render</dt>
+                              <dd>4 Sept, 16:29 UTC</dd>
+                            </div>
+                            <div>
+                              <dt>Rendered result</dt>
+                              <dd>24 routes · sample-build-previous</dd>
+                            </div>
+                          </dl>
+                          <div class="action-line">
+                            <button class="button" data-action="site-url">
+                              Open preview</button
+                            ><button class="button" data-action="build-preview">
+                              Build preview
+                            </button>
+                          </div>
+                          <details class="supporting">
+                            <summary>Configured routes</summary>
+                            <dl class="facts">
+                              <div>
+                                <dt>Home</dt>
+                                <dd>/</dd>
+                              </div>
+                              <div>
+                                <dt>Notes</dt>
+                                <dd>/notes</dd>
+                              </div>
+                              <div>
+                                <dt>Quiet infrastructure</dt>
+                                <dd>/notes/quiet-infrastructure</dd>
+                              </div>
+                              <div>
+                                <dt>About</dt>
+                                <dd>/about</dd>
+                              </div>
+                              <div>
+                                <dt>Contact</dt>
+                                <dd>/contact</dd>
+                              </div>
+                              <div>
+                                <dt>Archive</dt>
+                                <dd>/archive</dd>
+                              </div>
+                              <div>
+                                <dt>Field notes</dt>
+                                <dd>/notes/field-notes</dd>
+                              </div>
+                              <div>
+                                <dt>Reading list</dt>
+                                <dd>/reading</dd>
+                              </div>
+                            </dl>
+                            <p class="minor">
+                              16 further routes are configured.
+                            </p>
+                          </details>
+                          <div class="workspace-section">
+                            <header class="section-head">
+                              <h2>Recent builds</h2>
+                            </header>
+                            <article class="record">
+                              <div>
+                                <h3>preview · failed</h3>
+                                <p>Render failed for a configured route.</p>
+                                <small>5 Sept, 10:42 UTC</small>
+                              </div>
+                              <button
+                                class="text-action"
+                                data-action="site-failure"
+                              >
+                                Details
+                              </button>
+                            </article>
+                          </div>
+                        </section>
+                        <aside>
+                          <header class="section-head">
+                            <h2>Automation</h2>
+                          </header>
+                          <dl class="facts">
+                            <div>
+                              <dt>Automatic rebuild</dt>
+                              <dd>Yes</dd>
+                            </div>
+                            <div>
+                              <dt>Debounce</dt>
+                              <dd>1000 ms</dd>
+                            </div>
+                            <div>
+                              <dt>Default environment</dt>
+                              <dd>Preview</dd>
+                            </div>
+                          </dl>
+                          <details class="supporting">
+                            <summary>Site links</summary>
+                            <div class="action-line">
+                              <button class="button" data-action="site-url">
+                                Open preview</button
+                              ><button class="button" data-action="site-url">
+                                Open live site</button
+                              ><button
+                                class="button"
+                                data-action="site-settings"
+                              >
+                                Edit site settings
+                              </button>
+                            </div>
+                          </details>
+                        </aside>
+                      </div>
+                    </section>
+                    <section id="site-production" data-tab-panel="" hidden="">
+                      <div class="workspace-grid">
+                        <section>
+                          <header class="section-head">
+                            <h2>Live site</h2>
+                          </header>
+                          <dl class="facts">
+                            <div>
+                              <dt>State</dt>
+                              <dd>Complete</dd>
+                            </div>
+                            <div>
+                              <dt>Published generation</dt>
+                              <dd>production-previous</dd>
+                            </div>
+                            <div>
+                              <dt>Published at</dt>
+                              <dd>4 Sept, 16:30 UTC</dd>
+                            </div>
+                            <div>
+                              <dt>Published result</dt>
+                              <dd>24 routes</dd>
+                            </div>
+                            <div>
+                              <dt>Last successful render</dt>
+                              <dd>4 Sept, 16:29 UTC</dd>
+                            </div>
+                            <div>
+                              <dt>Rendered result</dt>
+                              <dd>24 routes · sample-build-previous</dd>
+                            </div>
+                          </dl>
+                          <div class="action-line">
+                            <button class="button" data-action="site-url">
+                              Open live site</button
+                            ><button
+                              class="button"
+                              data-action="build-production"
+                            >
+                              Build production
+                            </button>
+                          </div>
+                          <details class="supporting">
+                            <summary>Configured routes</summary>
+                            <dl class="facts">
+                              <div>
+                                <dt>Home</dt>
+                                <dd>/</dd>
+                              </div>
+                              <div>
+                                <dt>Notes</dt>
+                                <dd>/notes</dd>
+                              </div>
+                              <div>
+                                <dt>Quiet infrastructure</dt>
+                                <dd>/notes/quiet-infrastructure</dd>
+                              </div>
+                              <div>
+                                <dt>About</dt>
+                                <dd>/about</dd>
+                              </div>
+                              <div>
+                                <dt>Contact</dt>
+                                <dd>/contact</dd>
+                              </div>
+                              <div>
+                                <dt>Archive</dt>
+                                <dd>/archive</dd>
+                              </div>
+                              <div>
+                                <dt>Field notes</dt>
+                                <dd>/notes/field-notes</dd>
+                              </div>
+                              <div>
+                                <dt>Reading list</dt>
+                                <dd>/reading</dd>
+                              </div>
+                            </dl>
+                            <p class="minor">
+                              16 further routes are configured.
+                            </p>
+                          </details>
+                          <div class="workspace-section">
+                            <header class="section-head">
+                              <h2>Recent builds</h2>
+                            </header>
+                            <article class="record">
+                              <div>
+                                <h3>production · succeeded</h3>
+                                <p>Rendered 24 routes.</p>
+                                <small>4 Sept, 16:29 UTC · Routes: 24</small>
+                              </div>
+                            </article>
+                          </div>
+                        </section>
+                        <aside>
+                          <header class="section-head">
+                            <h2>Automation</h2>
+                          </header>
+                          <dl class="facts">
+                            <div>
+                              <dt>Automatic rebuild</dt>
+                              <dd>Yes</dd>
+                            </div>
+                            <div>
+                              <dt>Debounce</dt>
+                              <dd>1000 ms</dd>
+                            </div>
+                            <div>
+                              <dt>Default environment</dt>
+                              <dd>Preview</dd>
+                            </div>
+                          </dl>
+                          <details class="supporting">
+                            <summary>Site links</summary>
+                            <div class="action-line">
+                              <button class="button" data-action="site-url">
+                                Open preview</button
+                              ><button class="button" data-action="site-url">
+                                Open live site</button
+                              ><button
+                                class="button"
+                                data-action="site-settings"
+                              >
+                                Edit site settings
+                              </button>
+                            </div>
+                          </details>
+                        </aside>
+                      </div>
+                    </section>
+                  </div>
+                </div>
+                <div data-scenario="empty" hidden="">
+                  <header class="section-head"><h2>Preview</h2></header>
+                  <dl class="facts">
+                    <div>
+                      <dt>State</dt>
+                      <dd>Idle</dd>
+                    </div>
+                    <div>
+                      <dt>Published generation</dt>
+                      <dd>Not published</dd>
+                    </div>
+                    <div>
+                      <dt>Last successful render</dt>
+                      <dd>—</dd>
+                    </div>
+                    <div>
+                      <dt>Rendered result</dt>
+                      <dd>No successful render</dd>
+                    </div>
+                  </dl>
+                  <div class="action-line">
+                    <button class="button" data-action="build-preview">
+                      Build preview
+                    </button>
+                  </div>
+                  <p class="minor">
+                    No site routes are configured. No site builds have completed
+                    yet. URL links are omitted when no URL is configured.
+                  </p>
+                </div>
+                <div data-scenario="busy" hidden="">
+                  <div class="notice" role="status">
+                    <div>
+                      <h2>Preview build running</h2>
+                      <p>
+                        Started 5 Sept, 10:44 UTC · No completion percentage
+                        supplied
+                      </p>
+                    </div>
+                  </div>
+                  <header class="section-head">
+                    <h2>Published preview</h2>
+                  </header>
+                  <dl class="facts">
+                    <div>
+                      <dt>Generation</dt>
+                      <dd>preview-previous</dd>
+                    </div>
+                    <div>
+                      <dt>Published at</dt>
+                      <dd>4 Sept, 16:30 UTC</dd>
+                    </div>
+                    <div>
+                      <dt>Result</dt>
+                      <dd>24 routes</dd>
+                    </div>
+                  </dl>
+                  <div class="action-line">
+                    <button class="button" data-action="site-url">
+                      Open preview</button
+                    ><button class="button" data-action="build-preview">
+                      Build preview
+                    </button>
+                  </div>
+                </div>
+              </section>
+            </main>
+          </div>
+        </div>
+      </div>
+      <footer class="notes">
+        <p>
+          <strong>Implementation contract.</strong> The provider exposes
+          configured routes, URLs, published-generation state, successful
+          renders, failed attempts and recent builds. There is no
+          preview-thumbnail API. A completed render and the currently published
+          generation are distinct. Preview requires Trusted; production requires
+          Admin and confirmation.
+        </p>
+        <p>
+          <strong>Source:</strong>
+          <code>plugins/site-builder/src/lib/site-workspace.ts</code>
+        </p>
+        <p>
+          Illustrative snapshot · 5 September 2026 · Times shown in UTC ·
+          Non-Anchor Admin unless stated · No live actions ·
+          <a href="capabilities.md">Capabilities and state coverage</a>
+        </p>
+      </footer>
+    </div>
+    <dialog id="review">
+      <header>
+        <h2 id="reviewTitle">Action</h2>
+        <button class="text-action" data-close="">Close</button>
+      </header>
+      <p id="reviewDescription"></p>
+      <div id="reviewBody"></div>
+      <form id="actionForm">
+        <div id="reviewFields"></div>
+        <p id="reviewConfirmation" class="minor"></p>
+        <div class="action-line">
+          <button class="button" type="button" data-close="">Cancel</button
+          ><button class="button primary" id="reviewAction" type="submit">
+            Preview action
+          </button>
+        </div>
+      </form>
+      <p id="feedback" role="status"></p>
+    </dialog>
+    <dialog id="sessionDialog">
+      <header>
+        <h2>Sessions</h2>
+        <button class="text-action" data-close="">Close</button>
+      </header>
+      <button data-session="review">
+        The weekly review<small>5 Sept, 09:00 UTC</small></button
+      ><button data-session="voice">
+        Finding our voice<small>4 Sept, 16:00 UTC</small>
+      </button>
+    </dialog>
+    <dialog id="browseDialog">
+      <header>
+        <h2>Browse Studio</h2>
+        <button data-close="">Close</button>
+      </header>
+      <button data-screen="overview">Overview</button>
+      <button data-screen="chat">Chat</button>
+      <details open="">
+        <summary>Work</summary>
+        <button data-screen="inbox">Inbox</button
+        ><button data-screen="publishing">Publishing</button
+        ><button data-screen="site">Site</button
+        ><button data-screen="sync">Content sync</button>
+      </details>
+      <button data-screen="administration">Admin</button>
+      <details open="">
+        <summary>System</summary>
+        <p class="minor">System settings are outside this workspace study.</p>
+      </details>
+    </dialog>
+    <script src="study.js"></script>
+  </body>
+</html>

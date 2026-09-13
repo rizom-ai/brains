@@ -1,3 +1,4 @@
+import { createMockShell, type MockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import type { AuthPrincipal } from "@brains/auth-service";
 import type { BaseEntity, WebRouteDefinition } from "@brains/plugins";
@@ -7,7 +8,7 @@ import {
   createServicePluginContext,
 } from "@brains/plugins";
 import { PermissionService } from "@brains/templates";
-import { createMockShell, type MockShell } from "@brains/test-utils";
+
 import { z } from "@brains/utils/zod";
 import { createEditorRoutes } from "../src/editor-routes";
 import { StudioWorkspaceRegistry } from "../src/workspace-registry";

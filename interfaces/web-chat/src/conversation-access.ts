@@ -3,6 +3,8 @@ import type {
   UserPermissionLevel,
 } from "@brains/plugins";
 
+import { guestInterfaceType } from "@brains/contracts/chat";
+
 type ConversationService = InterfacePluginContext["conversations"];
 export type WebChatConversation = NonNullable<
   Awaited<ReturnType<ConversationService["get"]>>
@@ -18,7 +20,10 @@ export function canAccessBrowserConversation(
   access: WebChatConversationAccess,
   interfaceType: string,
 ): conversation is WebChatConversation {
-  if (conversation?.interfaceType !== interfaceType) {
+  if (
+    conversation?.interfaceType === guestInterfaceType ||
+    conversation?.interfaceType !== interfaceType
+  ) {
     return false;
   }
   if (access.permissionLevel === "admin") return true;

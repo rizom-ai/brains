@@ -85,6 +85,15 @@ describe("conversation owner RPC", () => {
     });
 
     expect(transport.initialized).toBe(true);
+    expect(await remote.deleteExpiredGuestConversations(1)).toBe(0);
+    expect(
+      await remote.listConversations({
+        query: "absent needle",
+        limit: 1,
+        offset: 0,
+        archived: false,
+      }),
+    ).toEqual([]);
     expect(await remote.countMessages(conversationId)).toBe(1);
     expect(await remote.getMessages(conversationId)).toMatchObject([
       { role: "user", content: "searchable worker message" },

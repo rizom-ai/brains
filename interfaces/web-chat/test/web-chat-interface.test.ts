@@ -3,6 +3,7 @@ import {
   createExternalActorId,
 } from "@brains/contracts";
 import type { AuthPrincipal } from "@brains/auth-service";
+import { coerceConversationMetadata } from "@brains/plugins";
 import { readChatProtocolEvents } from "@brains/contracts/chat";
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import type {
@@ -195,12 +196,32 @@ function makeFixedConversationService(input: {
     getConversation: async (conversationId: string) =>
       input.conversations.find((c) => c.id === conversationId) ?? null,
     listConversations: async (options) =>
-      input.conversations.filter(
-        (c) =>
-          (options?.interfaceType === undefined ||
-            c.interfaceType === options.interfaceType) &&
-          (options?.personId === undefined || c.personId === options.personId),
-      ),
+      input.conversations
+        .filter((c) => {
+          const metadata = coerceConversationMetadata(c.metadata);
+          const query = options?.query?.toLowerCase() ?? "";
+          return (
+            (options?.interfaceType === undefined ||
+              c.interfaceType === options.interfaceType) &&
+            (options?.personId === undefined ||
+              c.personId === options.personId) &&
+            (options?.archived === undefined ||
+              (typeof metadata["archivedAt"] === "string") ===
+                options.archived) &&
+            (!query ||
+              String(metadata["title"] ?? "")
+                .toLowerCase()
+                .includes(query) ||
+              (input.messagesByConversation[c.id] ?? []).some((message) =>
+                message.content.toLowerCase().includes(query),
+              ))
+          );
+        })
+        .slice(
+          options?.offset ?? 0,
+          (options?.offset ?? 0) +
+            (options?.limit ?? input.conversations.length),
+        ),
     searchConversations: async () => [],
     getMessages: async (conversationId: string) =>
       input.messagesByConversation[conversationId] ?? [],
@@ -210,6 +231,7 @@ function makeFixedConversationService(input: {
       input.updateConversationMetadata ?? (async (): Promise<boolean> => true),
     deleteConversation:
       input.deleteConversation ?? (async (): Promise<boolean> => true),
+    deleteExpiredGuestConversations: async (): Promise<number> => 0,
     close: (): void => {},
   };
 }
@@ -735,7 +757,7 @@ describe("WebChatInterface", () => {
 
     const routes = plugin.getWebRoutes();
 
-    expect(routes).toHaveLength(18);
+    expect(routes).toHaveLength(22);
     expect(routes[0]).toMatchObject({
       path: "/ask",
       method: "GET",
@@ -3787,7 +3809,7 @@ describe("WebChatInterface", () => {
     expect(body.sessions[0].title).toBe("Renamed thread");
   });
 
-  it("does not list archived web chat sessions", async () => {
+  it("lists active sessions by default and supports explicit archived search", async () => {
     const shell = harness.getMockShell();
     shell.setConversationService(
       makeFixedConversationService({
@@ -3823,6 +3845,30 @@ describe("WebChatInterface", () => {
     expect(body.sessions.map((session: { id: string }) => session.id)).toEqual([
       "active-session",
     ]);
+    const archived = await route?.handler(
+      new Request(
+        "http://brain/api/chat/sessions?archived=true&q=Archived&limit=1",
+      ),
+    );
+    const archivedBody = z
+      .object({
+        sessions: z.array(z.object({ id: z.string(), archived: z.boolean() })),
+      })
+      .parse(await archived?.json());
+    expect(archivedBody.sessions).toEqual([
+      { id: "archived-session", archived: true },
+    ]);
+    for (const search of [
+      "offset=-1",
+      "limit=101",
+      "archived=maybe",
+      `q=${"x".repeat(201)}`,
+    ]) {
+      const invalid = await route?.handler(
+        new Request(`http://brain/api/chat/sessions?${search}`),
+      );
+      expect(invalid?.status).toBe(400);
+    }
   });
 
   it("returns 404 for every Trusted read or mutation of another person's session", async () => {

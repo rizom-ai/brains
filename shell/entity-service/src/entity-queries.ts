@@ -1,4 +1,7 @@
 import type { EntityDB } from "./db";
+import { entityReadBudgetSchema } from "@brains/contracts";
+import { entityRowBudgetCondition } from "./bounded-reads";
+import type { EntityReadOptions } from "./types";
 import {
   getVisibleContentVisibilities,
   type BaseEntity,
@@ -43,6 +46,14 @@ const listOptionsSchema: z.ZodObject<{
   filter: z.ZodOptional<
     z.ZodObject<{
       metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+      contentContains: z.ZodOptional<z.ZodString>;
+      visibility: z.ZodOptional<
+        z.ZodEnum<{
+          public: "public";
+          shared: "shared";
+          restricted: "restricted";
+        }>
+      >;
       visibilityScope: z.ZodOptional<
         z.ZodEnum<{
           public: "public";
@@ -53,6 +64,8 @@ const listOptionsSchema: z.ZodObject<{
     }>
   >;
   publishedOnly: z.ZodOptional<z.ZodBoolean>;
+  readBudget: z.ZodOptional<typeof entityReadBudgetSchema>;
+  signal: z.ZodOptional<z.ZodCustom<AbortSignal>>;
 }> = z.object({
   limit: z.number().int().positive().optional(),
   offset: z.number().int().min(0).optional().default(0),
@@ -60,11 +73,15 @@ const listOptionsSchema: z.ZodObject<{
   filter: z
     .object({
       metadata: z.record(z.string(), z.unknown()).optional(),
+      contentContains: z.string().max(200).optional(),
+      visibility: z.enum(["public", "shared", "restricted"]).optional(),
       visibilityScope: z.enum(["public", "shared", "restricted"]).optional(),
     })
     .optional(),
   /** Filter to only entities with metadata.status = "published" */
   publishedOnly: z.boolean().optional(),
+  readBudget: entityReadBudgetSchema.optional(),
+  signal: z.instanceof(AbortSignal).optional(),
 });
 
 type ListOptions = z.input<typeof listOptionsSchema>;
@@ -98,8 +115,21 @@ export class EntityQueries {
     entityType: string,
     id: string,
     visibilityScope?: ContentVisibility,
+    options: EntityReadOptions = {},
   ): Promise<EntityData | null> {
-    this.logger.debug(`Getting entity of type ${entityType} with ID ${id}`);
+    options.signal?.throwIfAborted();
+    const readBudget =
+      options.readBudget === undefined
+        ? undefined
+        : entityReadBudgetSchema.parse(options.readBudget);
+    if (
+      readBudget &&
+      (id.length > readBudget.queryCharacters ||
+        entityType.length > readBudget.queryCharacters)
+    )
+      throw new Error("Entity lookup input limit exceeded");
+    if (!readBudget)
+      this.logger.debug(`Getting entity of type ${entityType} with ID ${id}`);
 
     const scope: ContentVisibility = visibilityScope ?? "public";
     const conditions: SQL[] = [
@@ -112,14 +142,19 @@ export class EntityQueries {
       );
     }
 
+    if (readBudget) conditions.push(entityRowBudgetCondition(readBudget));
     const result = await this.db
       .select()
       .from(entities)
       .where(and(...conditions))
       .limit(1);
+    options.signal?.throwIfAborted();
 
     if (result.length === 0) {
-      this.logger.debug(`Entity of type ${entityType} with ID ${id} not found`);
+      if (!readBudget)
+        this.logger.debug(
+          `Entity of type ${entityType} with ID ${id} not found`,
+        );
       return null;
     }
 
@@ -140,12 +175,16 @@ export class EntityQueries {
     publishedStatuses?: string[],
   ): Promise<BaseEntity[]> {
     const validatedOptions = listOptionsSchema.parse(options);
-    const { limit, offset, sortFields, filter, publishedOnly } =
+    const { offset, sortFields, filter, publishedOnly, readBudget, signal } =
       validatedOptions;
-
-    this.logger.debug(
-      `Listing entities of type ${entityType} (limit: ${limit}, offset: ${offset}, filter: ${JSON.stringify(filter)}, publishedOnly: ${publishedOnly})`,
-    );
+    const limit = readBudget
+      ? Math.min(validatedOptions.limit ?? readBudget.rows, readBudget.rows)
+      : validatedOptions.limit;
+    signal?.throwIfAborted();
+    if (!readBudget)
+      this.logger.debug(
+        `Listing entities of type ${entityType} (limit: ${limit}, offset: ${offset}, filter: ${JSON.stringify(filter)}, publishedOnly: ${publishedOnly})`,
+      );
 
     const whereConditions = this.buildWhereConditions(
       entityType,
@@ -153,7 +192,10 @@ export class EntityQueries {
       filter?.metadata,
       filter?.visibilityScope,
       publishedStatuses,
+      filter?.contentContains,
+      filter?.visibility,
     );
+    if (readBudget) whereConditions.push(entityRowBudgetCondition(readBudget));
     const orderByClauses = this.buildOrderByClauses(sortFields);
 
     const query = this.db
@@ -165,15 +207,19 @@ export class EntityQueries {
 
     const result = limit !== undefined ? await query.limit(limit) : await query;
 
+    signal?.throwIfAborted();
     // Convert from database format to entities
     const entityList = await this.serializer.convertToEntities(
       result.map(normalizeEntityRow),
       entityType,
+      readBudget === undefined,
     );
 
-    this.logger.debug(
-      `Listed ${entityList.length} entities of type ${entityType}`,
-    );
+    signal?.throwIfAborted();
+    if (!readBudget)
+      this.logger.debug(
+        `Listed ${entityList.length} entities of type ${entityType}`,
+      );
 
     return entityList;
   }
@@ -188,6 +234,8 @@ export class EntityQueries {
     metadataFilter?: Record<string, unknown>,
     visibilityScope?: ContentVisibility,
     publishedStatuses?: string[],
+    contentContains?: string,
+    visibility?: ContentVisibility,
   ): SQL[] {
     const conditions: SQL[] = [eq(entities.entityType, entityType)];
 
@@ -215,6 +263,13 @@ export class EntityQueries {
     if (scope !== "restricted") {
       conditions.push(
         inArray(entities.visibility, getVisibleContentVisibilities(scope)),
+      );
+    }
+
+    if (visibility) conditions.push(eq(entities.visibility, visibility));
+    if (contentContains?.trim()) {
+      conditions.push(
+        sql`instr(lower(${entities.content}), lower(${contentContains.trim()})) > 0`,
       );
     }
 
@@ -296,18 +351,23 @@ export class EntityQueries {
       filter?:
         | {
             metadata?: Record<string, unknown> | undefined;
+            contentContains?: string | undefined;
+            visibility?: ContentVisibility | undefined;
             visibilityScope?: ContentVisibility | undefined;
           }
         | undefined;
     } = {},
     publishedStatuses?: string[],
   ): Promise<number> {
+    const validatedOptions = listOptionsSchema.parse(options);
     const whereConditions = this.buildWhereConditions(
       entityType,
-      options.publishedOnly,
-      options.filter?.metadata,
-      options.filter?.visibilityScope,
+      validatedOptions.publishedOnly,
+      validatedOptions.filter?.metadata,
+      validatedOptions.filter?.visibilityScope,
       publishedStatuses,
+      validatedOptions.filter?.contentContains,
+      validatedOptions.filter?.visibility,
     );
 
     const result = await this.db

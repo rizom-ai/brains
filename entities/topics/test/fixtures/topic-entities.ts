@@ -1,6 +1,6 @@
+import { createTestEntity } from "@brains/entity-service/test";
 import type { TopicEntity } from "../../src/types";
 import type { BaseEntity } from "@brains/plugins";
-import { createTestEntity } from "@brains/test-utils";
 
 /**
  * Create a mock TopicEntity with computed contentHash

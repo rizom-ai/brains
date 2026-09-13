@@ -2,6 +2,7 @@ import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
   PermissionService,
   UserPermissionLevelSchema,
+  type DashboardDigestLine,
   type DashboardWidgetProviderContext,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
@@ -46,18 +47,17 @@ export type DashboardWidgetSection = z.output<
   typeof dashboardWidgetSectionSchema
 >;
 
-export const dashboardDigestLineSchema: z.ZodObject<{
-  label: z.ZodString;
-  value: z.ZodString;
-  tone: z.ZodOptional<
-    z.ZodEnum<{ plain: "plain"; good: "good"; warn: "warn" }>
-  >;
-}> = z.object({
+// Constrained to the shell's type rather than deriving a second one. The
+// dashboard namespace in `@brains/plugins` declares what a widget may report;
+// this schema is the check that a widget really reported it.
+export const dashboardDigestLineSchema: z.ZodType<
+  DashboardDigestLine,
+  DashboardDigestLine
+> = z.object({
   label: z.string(),
   value: z.string(),
   tone: z.enum(["plain", "good", "warn"]).optional(),
 });
-export type DashboardDigestLine = z.output<typeof dashboardDigestLineSchema>;
 
 export const dashboardWidgetSchema: z.ZodObject<{
   id: z.ZodString;

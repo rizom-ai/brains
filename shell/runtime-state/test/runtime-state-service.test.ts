@@ -68,6 +68,61 @@ describe("RuntimeStateService", () => {
     restarted.close();
   });
 
+  it("pages in key order before schema parsing and treats prefixes literally", async () => {
+    const service = RuntimeStateService.createFresh({ url: dbUrl });
+    const raw = service.scoped({ namespace: "pages", schema: z.unknown() });
+    const strings = service.scoped({
+      namespace: "pages",
+      schema: stringSchema,
+    });
+    try {
+      await raw.set("literal%/a", "a");
+      await raw.set("literal%/b", "b");
+      await raw.set("literalX/a", "not a prefix match");
+      await raw.set("z-invalid", 123);
+      await raw.set("nul\u0000/a", "nul");
+      await raw.set("nul\u0000/b", "next nul key");
+      expect(
+        (await strings.list({ keyPrefix: "nul\u0000/", limit: 1 })).map(
+          (record) => record.key,
+        ),
+      ).toEqual(["nul\u0000/a"]);
+      expect(
+        (
+          await strings.list({
+            keyPrefix: "nul\u0000/",
+            afterKey: "nul\u0000/a",
+            limit: 1,
+          })
+        ).map((record) => record.key),
+      ).toEqual(["nul\u0000/b"]);
+      const first = await strings.list({ keyPrefix: "literal%/", limit: 1 });
+      expect(first.map((record) => record.key)).toEqual(["literal%/a"]);
+      const second = await strings.list({
+        keyPrefix: "literal%/",
+        limit: 1,
+        afterKey: "literal%/a",
+      });
+      expect(second.map((record) => record.key)).toEqual(["literal%/b"]);
+      expect(
+        await strings.list({
+          keyPrefix: "literal%/",
+          limit: 1,
+          afterKey: "literal%/b",
+        }),
+      ).toEqual([]);
+      expect(await strings.list({ limit: 1 })).toHaveLength(1);
+      expect(
+        strings.list({ limit: 0, keyPrefix: "literal%/" }),
+      ).rejects.toThrow();
+      expect(
+        strings.list({ limit: 1001, keyPrefix: "literal%/" }),
+      ).rejects.toThrow();
+    } finally {
+      service.close();
+    }
+  });
+
   it("isolates records by namespace", async () => {
     const service = RuntimeStateService.createFresh({ url: dbUrl });
     const chat = service.scoped({
@@ -95,6 +150,62 @@ describe("RuntimeStateService", () => {
     expect(await store.setIfNotExists("message-1", "second")).toBe(false);
     expect(await store.get("message-1")).toBe("first");
     service.close();
+  });
+
+  it("atomically compares and replaces across independent database connections", async () => {
+    const first = RuntimeStateService.createFresh({ url: dbUrl });
+    const second = RuntimeStateService.createFresh({ url: dbUrl });
+    try {
+      await Promise.all([first.initialize(), second.initialize()]);
+      const schema = z.object({
+        revision: z.number().int(),
+        count: z.number().int(),
+      });
+      const left = first.scoped({ namespace: "reservations", schema });
+      const right = second.scoped({ namespace: "reservations", schema });
+      const initial = { revision: 0, count: 0 };
+      expect(
+        await left.compareAndSet("missing", initial, { revision: 1, count: 1 }),
+      ).toBe(false);
+      await left.set("ledger", initial);
+      const results = await Promise.all([
+        left.compareAndSet("ledger", initial, { revision: 1, count: 1 }),
+        right.compareAndSet("ledger", initial, { revision: 1, count: 2 }),
+      ]);
+      expect(results.filter(Boolean)).toHaveLength(1);
+      const winner = await right.get("ledger");
+      expect(winner?.revision).toBe(1);
+      expect(
+        await left.compareAndSet("ledger", initial, {
+          revision: 2,
+          count: 100,
+        }),
+      ).toBe(false);
+      expect(await left.get("ledger")).toEqual(winner);
+      const other = first.scoped({ namespace: "other-reservations", schema });
+      expect(
+        await other.compareAndSet("ledger", initial, { revision: 1, count: 1 }),
+      ).toBe(false);
+    } finally {
+      first.close();
+      second.close();
+    }
+  });
+
+  it("validates both compare-and-set values before writing", async () => {
+    const service = RuntimeStateService.createFresh({ url: dbUrl });
+    const store = service.scoped({
+      namespace: "cas-validation",
+      schema: z.number().int().nonnegative(),
+    });
+    try {
+      await store.set("counter", 1);
+      expect(store.compareAndSet("counter", 1, -1)).rejects.toThrow();
+      expect(store.compareAndSet("counter", -1, 2)).rejects.toThrow();
+      expect(await store.get("counter")).toBe(1);
+    } finally {
+      service.close();
+    }
   });
 
   it("lists and clears by literal key prefix", async () => {

@@ -65,6 +65,38 @@ describe("AiLayout chrome", () => {
     expect(strip).not.toContain('href="/network"');
   });
 
+  test("the homepage keeps both umbrella navigation levels and the approved styles", () => {
+    const html = renderChrome("/");
+    expect(html).toContain('href="/styles/living-memory.css"');
+    expect(renderChrome("/living-memory")).not.toContain(
+      'href="/styles/living-memory.css"',
+    );
+    expect(renderChrome("/brain")).not.toContain(
+      'href="/styles/living-memory.css"',
+    );
+    const strip = html.slice(html.indexOf("<header"), html.indexOf("<nav"));
+    const nav = html.slice(html.indexOf("<nav"), html.indexOf("</nav>"));
+    for (const href of ["/brain", "/work", "/foundation"]) {
+      expect(strip).toContain(`href="${href}"`);
+    }
+    expect(strip).toContain('id="themeToggle"');
+    expect(strip).not.toContain('aria-current="page"');
+    expect(nav).toContain('href="/writing"');
+    expect(nav).toContain('href="/network"');
+    expect(nav).toContain("Get Started");
+    expect(html).not.toContain(">brain</span>");
+  });
+
+  test("the homepage shares the desktop-only rail and gutter with the other pages", () => {
+    for (const path of ["/", "/brain", "/work", "/foundation"]) {
+      const html = renderChrome(path);
+      expect(html.match(/class="myc-root"/g)).toHaveLength(1);
+      expect(html).toContain("mycelium-rail pointer-events-none");
+      expect(html).toContain("hidden h-full w-[210px] xl:block");
+      expect(html).toContain("xl:pl-[68px]");
+    }
+  });
+
   test("org-index pages still claim no face in the strip", () => {
     const html = renderChrome("/writing");
     const strip = html.slice(html.indexOf("<header"), html.indexOf("<nav"));

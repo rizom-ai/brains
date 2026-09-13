@@ -19,11 +19,21 @@ import {
   stripStudioPolicyMetadata,
   withStudioVisibility,
 } from "./editor-content";
-import type {
-  StudioRequestAccess,
-  EditorRouteOptions,
+import {
+  type StudioRequestAccess,
+  type EditorRouteOptions,
 } from "./editor-contracts";
 import { jsonResponse } from "./editor-response";
+import {
+  studioCollectionQuerySchema,
+  studioCollectionQueryFromParams,
+} from "./collection-query";
+
+/** Entity adapters own title derivation; Studio must not reinterpret source. */
+function entityDisplayTitle(entity: BaseEntity): string | undefined {
+  const title = entity.metadata["title"];
+  return typeof title === "string" && title.trim() ? title.trim() : undefined;
+}
 
 const updateEntityPayloadSchema = z.object({
   entityType: z.string(),
@@ -79,6 +89,7 @@ export async function handleGetEntities(
         // The editor contract always carries the authoritative system field,
         // even though public and raw entities omit it from stored markdown.
         frontmatter: { ...frontmatter, visibility: entity.visibility },
+        displayTitle: entityDisplayTitle(entity),
         body,
         contentHash: entity.contentHash,
         created: entity.created,
@@ -87,20 +98,53 @@ export async function handleGetEntities(
     });
   }
 
-  const entities = await context.entityService.listEntities({
-    entityType,
-    options: { filter: { visibilityScope: access.visibilityScope } },
-  });
-  return jsonResponse({
-    entities: entities.map((entity) => ({
-      id: entity.id,
-      entityType: entity.entityType,
-      frontmatter: {
-        ...splitEntityContent(entityType, entity.content).frontmatter,
-        visibility: entity.visibility,
+  const query = studioCollectionQuerySchema.safeParse(
+    studioCollectionQueryFromParams(params),
+  );
+  if (!query.success) {
+    return jsonResponse({ error: "Invalid entity page" }, 400);
+  }
+
+  const filter = {
+    visibilityScope: access.visibilityScope,
+    ...(query.data.visibility !== "all"
+      ? { visibility: query.data.visibility }
+      : {}),
+    ...(query.data.q ? { contentContains: query.data.q } : {}),
+    ...(query.data.status ? { metadata: { status: query.data.status } } : {}),
+  };
+  const [entities, total] = await Promise.all([
+    context.entityService.listEntities({
+      entityType,
+      options: {
+        offset: query.data.offset,
+        limit: query.data.limit,
+        sortFields: [
+          {
+            field: query.data.sort.startsWith("created")
+              ? "created"
+              : "updated",
+            direction: query.data.sort.endsWith("asc") ? "asc" : "desc",
+          },
+          { field: "id", direction: "asc" },
+        ],
+        filter,
       },
-      updated: entity.updated,
-    })),
+    }),
+    context.entityService.countEntities({ entityType, options: { filter } }),
+  ]);
+  return jsonResponse({
+    total,
+    entities: entities.map((entity) => {
+      const { frontmatter } = splitEntityContent(entityType, entity.content);
+      return {
+        id: entity.id,
+        entityType: entity.entityType,
+        frontmatter: { ...frontmatter, visibility: entity.visibility },
+        displayTitle: entityDisplayTitle(entity),
+        updated: entity.updated,
+      };
+    }),
   });
 }
 

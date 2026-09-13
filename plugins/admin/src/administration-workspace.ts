@@ -193,7 +193,6 @@ export async function registerAdministrationWorkspace(
     accessHandler: (actor) => people.accessHandler(actor),
     dataProvider: async (actor, rawQuery, signal) => {
       const query = administrationQuerySchema.parse(rawQuery ?? {});
-      let headBlocks: AdministrationTabBlock[] = [];
       let primaryAction: RuntimeOperatorActionControl | undefined;
       let peopleBlocks = inactiveBlocks("People");
       let invitationBlocks = inactiveBlocks("Invitations");
@@ -229,7 +228,6 @@ export async function registerAdministrationWorkspace(
           },
           peerSections.people,
         );
-        headBlocks = [peopleSections.totals];
         peopleBlocks = [...peopleSections.blocks];
       } else if (query.tab === "invitations") {
         const [invitationData, peerData] = await Promise.all([
@@ -238,6 +236,7 @@ export async function registerAdministrationWorkspace(
             actor,
             {
               ...(query.state ? { state: query.state } : {}),
+              ...(query.selected ? { selected: query.selected } : {}),
               ...definedFields({
                 offset: query.offset,
                 limit: query.limit,
@@ -260,7 +259,6 @@ export async function registerAdministrationWorkspace(
           invitationData.view.blocks,
           peerSections.invitations,
         );
-        headBlocks = [invitationSections.totals];
         primaryAction = invitationData.view.primaryAction;
         invitationBlocks = [...invitationSections.blocks];
       } else {
@@ -289,7 +287,6 @@ export async function registerAdministrationWorkspace(
             "Manage local people, invitation delivery, external provenance, and security history.",
           ...(primaryAction ? { primaryAction } : {}),
           blocks: [
-            ...headBlocks,
             {
               type: "tabs",
               id: "administration-tabs",

@@ -1,6 +1,6 @@
+import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, expect, it } from "bun:test";
 import type { BaseEntity } from "@brains/plugins";
-import { createMockEntityService } from "@brains/test-utils";
 import { AgentAdapter } from "../src/adapters/agent-adapter";
 import {
   collectTagVocabulary,

@@ -1,3 +1,4 @@
+import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach } from "bun:test";
 import type { BlogPlugin } from "../src/index";
 import { blogPlugin } from "../src/index";
@@ -5,7 +6,6 @@ import { BlogPostAdapter } from "../src/adapters/blog-post-adapter";
 import type { BlogPost } from "../src/schemas/blog-post";
 import { blogPostFrontmatterSchema } from "../src/schemas/blog-post";
 import { createMockBlogPost } from "./fixtures/blog-entities";
-import { createTestEntity } from "@brains/test-utils";
 import packageJson from "../package.json";
 
 describe("BlogPlugin", () => {

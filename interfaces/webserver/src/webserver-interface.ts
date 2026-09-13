@@ -83,6 +83,7 @@ export class WebserverInterface extends InterfacePlugin<
       productionDistDir: this.config.productionDistDir,
       sharedImagesDir: this.config.sharedImagesDir,
       productionPort: this.config.productionPort,
+      ...(this.config.hostname ? { hostname: this.config.hostname } : {}),
       ...(this.config.enablePreview &&
         this.config.previewDistDir && {
           previewDistDir: this.config.previewDistDir,

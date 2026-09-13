@@ -50,6 +50,11 @@ class MemoryRuntimeState implements IRuntimeStateNamespace {
         this.values.set(fullKey, options.schema.parse(value));
         return true;
       },
+      compareAndSet: async (): Promise<boolean> => {
+        throw new Error(
+          "Unexpected compare-and-set in recurring-check fixture",
+        );
+      },
       delete: async (key): Promise<boolean> =>
         this.values.delete(`${prefix}${key}`),
       list: async (listOptions = {}): Promise<RuntimeStateRecordValue<T>[]> => {

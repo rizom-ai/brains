@@ -19,7 +19,7 @@ The deploy scripts and workflows should read from that contract instead of inven
 The fleet has one image topology:
 
 - one immutable `brain-${brainVersion}` image is published for each effective Brain version
-- each image contains the union of exact site/theme package pins required by instances on that version
+- every new image contains the union of exact site/theme package pins across the whole fleet, regardless of current Brain versions
 - conflicting versions of one package fail image resolution before build
 - generated `users/<handle>/.env` carries `BRAIN_VERSION=<brainVersion>`
 - build and deploy derive the same effective image tag from the resolved registry
@@ -28,7 +28,7 @@ The fleet has one image topology:
 
 When `pilot.yaml.brainVersion` changes and you push:
 
-1. build publishes each missing version image with its declared package union
+1. build publishes each missing version image with the full fleet package union, and verifies existing images against their assigned instances
 2. reconcile refreshes generated `users/<handle>/.env`
 3. deploy runs for handles whose generated config changed
 4. generated file commits happen once in a final aggregation step after the deploy matrix finishes
@@ -36,6 +36,19 @@ When `pilot.yaml.brainVersion` changes and you push:
 Every external site and theme package has its own exact version pin. A cohort or
 pilot brain-version bump never changes those package versions implicitly; update each
 pin deliberately from reviewed package and image evidence.
+
+Smoke-first upgrades build the full fleet package union before promotion. Moving
+other cohorts onto the tested Brain version then reuses that same immutable image.
+Explicit Build dispatches also include the fleet union; `site_packages` only adds
+extra pins and cannot replace or conflict with declared pins.
+
+Deploy verifies the actual installed Brain and selected instance's site/theme
+versions on the CI runner after image readiness and before provisioning or
+container replacement. It reads manifests in a read-only, network-disabled
+container without starting the Brain or mounting fleet data. Missing packages,
+wrong versions, or verification failures block deployment, even on manual runs.
+Never bypass this gate or overwrite a deployed tag to recover an older incomplete
+image; review artifact recovery separately.
 
 When a push changes only deploy contract files and no generated `users/<handle>/.env` or `users/<handle>/brain.yaml` files, the deploy workflow exits through its explicit no-op path and prints `No affected user configs; skipping deploy.`
 

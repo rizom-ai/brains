@@ -122,17 +122,6 @@ const siteInfoEntity = defineEntity({
   metadata: z.object({}),
 });
 
-function environmentStatus(
-  environment: SiteWorkspaceSnapshot["environments"][number],
-): "idle" | "active" | "complete" | "failed" {
-  if (environment.active) return "active";
-  if (environment.publication.state === "unreadable") return "failed";
-  if (environment.lastFailure) return "failed";
-  if (environment.publication.state === "published") return "complete";
-  if (environment.lastSuccess) return "complete";
-  return "idle";
-}
-
 function activeBuildProgress(
   environment: SiteWorkspaceSnapshot["environments"][number],
 ): Extract<OperatorViewBlock, { type: "progress" }> {
@@ -146,8 +135,43 @@ function activeBuildProgress(
   };
 }
 
+function buildFailureNotice(
+  environment: SiteWorkspaceSnapshot["environments"][number],
+): SiteRegionBlock[] {
+  const failure = environment.lastFailure;
+  if (!failure) return [];
+  const failedAt = Date.parse(failure.completedAt);
+  if (
+    environment.lastSuccess &&
+    Date.parse(environment.lastSuccess.completedAt) >= failedAt
+  )
+    return [];
+  if (
+    environment.lastCancellation &&
+    Date.parse(environment.lastCancellation.completedAt) >= failedAt
+  )
+    return [];
+  return [
+    {
+      type: "notice",
+      id: `${environment.environment}-failure`,
+      tone: "warn",
+      title: "The latest completed build failed",
+      text:
+        environment.publication.state === "published"
+          ? "The published generation is shown separately below."
+          : "Review the build diagnostics before trying again.",
+      details: [
+        `Completed: ${failure.completedAt}\nJob: ${failure.jobId}`,
+        failure.message,
+      ],
+    },
+  ];
+}
+
 function environmentCard(
   environment: SiteWorkspaceSnapshot["environments"][number],
+  href: string | undefined,
 ): SiteCardBlock {
   const isPreview = environment.environment === "preview";
   const publication = environment.publication;
@@ -173,21 +197,68 @@ function environmentCard(
   return {
     type: "card",
     id: `site-${environment.environment}-card`,
-    label: isPreview ? "Preview" : "Live",
-    tone: environment.active
-      ? "neutral"
-      : environment.lastFailure
-        ? "warn"
-        : environment.lastSuccess
-          ? "good"
-          : "neutral",
+    label:
+      publication.state === "published"
+        ? "Published"
+        : publication.state === "unreadable"
+          ? "Publication unavailable"
+          : "Not published yet",
+    presentation: "section",
+    metadata: [isPreview ? "Preview" : "Production"],
+    tone: publication.state === "unreadable" ? "warn" : "neutral",
     blocks: [
       {
         type: "key-values",
         id: `${environment.environment}-facts`,
+        items: [...publicationFacts],
+      },
+      ...(href
+        ? [
+            {
+              type: "links" as const,
+              id: `${environment.environment}-open`,
+              items: [
+                {
+                  label: isPreview ? "Open preview" : "Open live site",
+                  target: { external: href },
+                },
+              ],
+            },
+          ]
+        : []),
+      {
+        type: "actions",
+        id: `${environment.environment}-actions`,
         items: [
-          { label: "State", value: environmentStatus(environment) },
-          ...publicationFacts,
+          isPreview
+            ? {
+                action: buildPreviewAction,
+                input: {},
+                disabled: Boolean(environment.active),
+              }
+            : {
+                action: buildProductionAction,
+                input: {},
+                disabled: Boolean(environment.active),
+              },
+        ],
+      },
+    ],
+  };
+}
+
+function renderDetailsCard(
+  environment: SiteWorkspaceSnapshot["environments"][number],
+): SiteCardBlock {
+  return {
+    type: "card",
+    id: `${environment.environment}-render-details`,
+    label: "Render details",
+    presentation: "disclosure",
+    blocks: [
+      {
+        type: "key-values",
+        items: [
           {
             label: "Last successful render",
             value: environment.lastSuccess?.completedAt ?? "—",
@@ -201,20 +272,12 @@ function environmentCard(
           ...(environment.lastFailure
             ? [
                 {
-                  label: "Previous failed attempt",
-                  value: `${environment.lastFailure.completedAt} · ${environment.lastFailure.jobId}`,
+                  label: "Last failed attempt",
+                  value: environment.lastFailure.completedAt,
                 },
+                { label: "Failed job", value: environment.lastFailure.jobId },
               ]
             : []),
-        ],
-      },
-      {
-        type: "actions",
-        id: `${environment.environment}-actions`,
-        items: [
-          isPreview
-            ? { action: buildPreviewAction, input: {} }
-            : { action: buildProductionAction, input: {} },
         ],
       },
     ],
@@ -232,13 +295,6 @@ const siteWorkspace = defineStudioWorkspace({
       ? 1_000
       : undefined,
   view: ({ data }) => {
-    const activeBuilds = data.environments.filter(
-      (environment) => environment.active,
-    );
-    const warningCount = data.recentBuilds.reduce(
-      (total, build) => total + (build.warnings?.length ?? 0),
-      0,
-    );
     const links: Extract<OperatorViewBlock, { type: "links" }>["items"] = [
       ...(data.site.previewUrl
         ? [
@@ -261,7 +317,7 @@ const siteWorkspace = defineStudioWorkspace({
         target: { entity: siteInfoEntity, id: "site-info" },
       },
     ];
-    const routeRemainder: SiteRegionBlock[] =
+    const routeRemainder: Extract<OperatorViewBlock, { type: "notice" }>[] =
       data.routes.length > ROUTE_PREVIEW_COUNT
         ? [
             {
@@ -271,154 +327,133 @@ const siteWorkspace = defineStudioWorkspace({
             },
           ]
         : [];
-    const environmentCards = data.environments.map(environmentCard);
-    return {
-      kicker: "Website operations",
-      title: "Site control",
-      description:
-        "Build a proof with public drafts, then update the live site from published public content.",
-      status: {
-        label: data.site.title,
-        ...(activeBuilds.length > 0
-          ? { detail: `${activeBuilds.length} building` }
-          : {}),
-        tone: warningCount > 0 ? "warn" : "good",
-      },
+    const routesCard: SiteCardBlock = {
+      type: "card",
+      id: "site-routes",
+      label: "Configured routes",
+      presentation: "disclosure",
+      metadata: [`${data.routes.length} configured`],
       blocks: [
         {
-          type: "stats",
-          id: "site-summary",
-          items: [
-            {
-              label: "Routes",
-              value: data.routes.length,
-              caption: "configured",
-            },
-            {
-              label: "Active builds",
-              value: activeBuilds.length,
-              caption: activeBuilds.length > 0 ? "running" : "none running",
-            },
-            {
-              label: "Warnings",
-              value: warningCount,
-              caption: "last build",
-              tone: warningCount > 0 ? "warn" : "good",
-            },
+          type: "table",
+          id: "routes",
+          empty: "No site routes are configured.",
+          columns: [
+            { key: "title", label: "Route" },
+            { key: "path", label: "Path" },
           ],
+          rows: data.routes.slice(0, ROUTE_PREVIEW_COUNT).map((route) => ({
+            id: route.id,
+            cells: { title: route.title, path: route.path },
+            compact: { title: route.title, metadata: [route.path] },
+          })),
         },
+        ...routeRemainder,
+      ],
+    };
+    return {
+      title: "Site",
+      blocks: [
         {
-          type: "columns",
-          id: "site-body",
-          primary: [
-            {
-              type: "flow",
-              id: "release-flow",
-              label: "Release flow",
-              steps: [
-                {
-                  id: "routes",
-                  label: "Routes",
-                  status: data.routes.length > 0 ? "complete" : "idle",
-                  detail: `${data.routes.length} configured`,
-                },
-                ...data.environments.map((environment) => ({
-                  id: environment.environment,
-                  label:
+          type: "tabs",
+          id: "site-environments",
+          label: "Environment",
+          defaultTab: "preview",
+          tabs: data.environments.map((environment) => ({
+            id: environment.environment,
+            label:
+              environment.environment === "preview" ? "Preview" : "Production",
+            blocks: [
+              ...buildFailureNotice(environment),
+              ...(environment.active ? [activeBuildProgress(environment)] : []),
+              {
+                type: "columns",
+                id: "site-body",
+                primary: [
+                  environmentCard(
+                    environment,
                     environment.environment === "preview"
-                      ? "Preview"
-                      : "Production",
-                  status: environmentStatus(environment),
-                  detail:
-                    environment.active?.state ??
-                    environment.lastFailure?.message ??
-                    environment.lastSuccess?.completedAt,
-                })),
-              ],
-            },
-            ...activeBuilds.map(activeBuildProgress),
-            {
-              type: "table",
-              id: "routes",
-              empty: "No site routes are configured.",
-              columns: [
-                { key: "title", label: "Route" },
-                { key: "path", label: "Path" },
-              ],
-              // A route list is reference, not the work: show enough to
-              // recognise the shape of the site and say how much is beyond it.
-              rows: data.routes.slice(0, ROUTE_PREVIEW_COUNT).map((route) => ({
-                id: route.id,
-                cells: { title: route.title, path: route.path },
-                compact: { title: route.title, metadata: [route.path] },
-              })),
-            },
-            ...routeRemainder,
-            {
-              type: "list",
-              id: "recent-builds",
-              empty: "No site builds have completed yet.",
-              items: data.recentBuilds.map((build) => ({
-                id: build.jobId,
-                title: `${build.environment} · ${build.outcome}`,
-                description: build.message,
-                badges: [{ label: build.outcome }],
-                tone:
-                  build.outcome === "succeeded"
-                    ? "good"
-                    : build.outcome === "failed"
-                      ? "error"
-                      : "neutral",
-                metadata: [
-                  `Completed: ${build.completedAt}`,
-                  ...(build.routesBuilt === undefined
-                    ? []
-                    : [`Routes: ${build.routesBuilt}`]),
-                  ...(build.warnings?.length
-                    ? [`Warnings: ${build.warnings.length}`]
-                    : []),
+                      ? data.site.previewUrl
+                      : data.site.liveUrl,
+                  ),
+                  renderDetailsCard(environment),
+                  routesCard,
+                  {
+                    type: "card",
+                    id: "site-recent-builds",
+                    label: "Recent builds",
+                    blocks: [
+                      {
+                        type: "list",
+                        id: "recent-builds",
+                        presentation: "activity",
+                        empty: "No site builds have completed yet.",
+                        items: data.recentBuilds
+                          .filter(
+                            (build) =>
+                              build.environment === environment.environment,
+                          )
+                          .map((build) => ({
+                            id: build.jobId,
+                            title: `${build.environment} · ${build.outcome}`,
+                            description: build.message,
+                            tone:
+                              build.outcome === "succeeded"
+                                ? "good"
+                                : build.outcome === "failed"
+                                  ? "error"
+                                  : "neutral",
+                            metadata: [
+                              `Completed: ${build.completedAt}`,
+                              ...(build.routesBuilt === undefined
+                                ? []
+                                : [`Routes: ${build.routesBuilt}`]),
+                              ...(build.warnings?.length
+                                ? [`Warnings: ${build.warnings.length}`]
+                                : []),
+                            ],
+                          })),
+                      },
+                    ],
+                  },
                 ],
-              })),
-            },
-          ],
-          aside: [
-            {
-              type: "card",
-              id: "site-automation-card",
-              label: "Automation",
-              blocks: [
-                {
-                  type: "group",
-                  id: "automation",
-                  label: "Automation",
-                  items: [
-                    {
-                      id: "auto-rebuild",
-                      label: "Automatic rebuild",
-                      value: data.automation.autoRebuild,
-                    },
-                    {
-                      id: "debounce",
-                      label: "Debounce",
-                      value: `${data.automation.debounceMs} ms`,
-                    },
-                    {
-                      id: "default-environment",
-                      label: "Default environment",
-                      value: data.automation.defaultEnvironment,
-                    },
-                  ],
-                },
-              ],
-            },
-            ...environmentCards,
-            {
-              type: "card",
-              id: "site-automation-links",
-              label: "Elsewhere",
-              blocks: [{ type: "links", id: "site-links", items: links }],
-            },
-          ],
+                aside: [
+                  {
+                    type: "card",
+                    id: "site-automation-card",
+                    label: "Automation",
+                    blocks: [
+                      {
+                        type: "key-values",
+                        id: "automation",
+                        items: [
+                          {
+                            label: "Automatic rebuild",
+                            value: data.automation.autoRebuild,
+                          },
+                          {
+                            label: "Debounce",
+                            value: `${data.automation.debounceMs} ms`,
+                          },
+                          {
+                            label: "Default environment",
+                            value: data.automation.defaultEnvironment,
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                  {
+                    type: "card",
+                    id: "site-automation-links",
+                    label: "Site links",
+                    presentation: "disclosure",
+                    blocks: [{ type: "links", id: "site-links", items: links }],
+                  },
+                ],
+              },
+            ],
+          })),
         },
       ],
     };

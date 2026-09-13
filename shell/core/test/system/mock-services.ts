@@ -1,3 +1,4 @@
+import { createMockEntityService } from "@brains/entity-service/test";
 /* eslint-disable @typescript-eslint/explicit-function-return-type --
  * The two behaviour objects below carry no annotation on purpose: several of
  * their members stand in for generic ones, and a concrete return can never
@@ -10,10 +11,7 @@
  * same functions were exempt for the same reason, just implicitly.
  */
 import type { SystemServices } from "../../src/system/types";
-import {
-  createMockEntityService,
-  createSilentLogger,
-} from "@brains/test-utils";
+import { createSilentLogger } from "@brains/test-utils";
 import {
   EntityRegistry,
   getVisibleContentVisibilities,
@@ -452,6 +450,9 @@ export function createMockSystemServices(
     countMessages: unreached("countMessages"),
     updateConversationMetadata: unreached("updateConversationMetadata"),
     deleteConversation: unreached("deleteConversation"),
+    deleteExpiredGuestConversations: unreached(
+      "deleteExpiredGuestConversations",
+    ),
     close: unreached("close"),
   };
 
