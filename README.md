@@ -4,7 +4,7 @@
 
 `brains` lets you run an AI assistant around files you own. Your notes, posts, pages, images, and profile data live as markdown in a local `brain-data/` folder. The running brain can search that content, update it, expose it to tools like Claude or Cursor, and publish a static website from the same source.
 
-> **Status:** pre-stable `0.x`. It works today, but APIs and package names can still change before `1.0`. See [STABILITY.md](STABILITY.md).
+> **Status:** `0.2.0` alpha; stable nomination is pending final authoring, live/eval, and deployment evidence. It works today, but APIs outside the documented `0.2` candidate surface may still change before `1.0`. See [the roadmap](docs/roadmap.md) and [STABILITY.md](STABILITY.md).
 
 ## Who this is for
 

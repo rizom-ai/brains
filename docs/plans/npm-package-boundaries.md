@@ -205,7 +205,7 @@ Acceptance for that package:
 
 - package source imports no private `@brains/*` workspaces except its own package-relative imports
 - package declarations/build output do not require private workspaces
-- unit tests, package evals, and Rover evals still pass
+- unit tests, package evals, and canonical professional-posture evals still pass
 
 ### 4. Add enforcement
 
@@ -243,7 +243,7 @@ First implementation slice:
 2. map each non-relative import to a public/private decision
 3. add only the smallest missing `@rizom/brain/*` public exports needed by note
 4. convert note imports
-5. run targeted typecheck/tests/evals plus Rover eval
+5. run targeted typecheck/tests/evals plus the canonical professional-posture eval
 
 This milestone intentionally avoids the UI/template question. It proves the official-package dependency model, public SDK gaps, declaration cleanliness, and package-build shape without freezing a broader UI surface.
 

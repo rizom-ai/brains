@@ -1,0 +1,8 @@
+{
+  "jsonrpc": "2.0",
+  "id": "evidence-poll-0",
+  "error": {
+    "code": -32001,
+    "message": "Task not found: 6bd27dc0-a5c6-40d0-8c8b-e8e9aa488f7c"
+  }
+}
