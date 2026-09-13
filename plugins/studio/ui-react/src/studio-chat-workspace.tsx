@@ -6,7 +6,7 @@ import {
   messageUploadAccept,
   messageTextUploadMaxBytes,
   messageUploadMaxBytes,
-} from "@brains/plugins/message-interface/upload-policy";
+} from "@brains/contracts/upload-policy";
 import {
   Button,
   Dialog,

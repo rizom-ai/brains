@@ -91,6 +91,29 @@ describe("countEntities", () => {
     expect(page.map((entity) => entity.id)).toEqual(["post-2"]);
   });
 
+  test("intersects metadata alternatives with collection search in counts and rows", async () => {
+    for (const { contentContains, ids } of [
+      { contentContains: "Post 3", ids: [] },
+      { contentContains: "pOsT 2", ids: ["post-2"] },
+    ]) {
+      const filter = {
+        contentContains,
+        metadataAnyOf: { status: ["published"] },
+      };
+      expect(
+        await ctx.entityService.countEntities({
+          entityType: "post",
+          options: { filter },
+        }),
+      ).toBe(ids.length);
+      const rows = await ctx.entityService.listEntities({
+        entityType: "post",
+        options: { filter },
+      });
+      expect(rows.map((entity) => entity.id)).toEqual(ids);
+    }
+  });
+
   test("intersects exact visibility with the access scope and searches wildcard characters literally", async () => {
     await insertTestEntity(
       ctx.dbConfig,
