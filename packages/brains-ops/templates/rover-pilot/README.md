@@ -30,7 +30,7 @@ The repo also checks in its deploy contract:
 
 `.env.schema` is the single source of truth for required and sensitive deploy vars.
 Use separate GitHub tokens: `CONTENT_REPO_ADMIN_TOKEN` for operator-side content repo creation/checks, and `GIT_SYNC_TOKEN` for runtime directory-sync git access.
-The fleet publishes one `brain-${brainVersion}` image per effective Brain version and installs the union of exact site/theme package pins required by instances on that version.
+The fleet publishes one immutable `brain-${brainVersion}` image per effective Brain version. New images install the exact site/theme package union across the entire fleet, so smoke-to-fleet promotion reuses the tested image. Build and Deploy verify installed package versions before reusing existing images.
 When an effective brain version (`pilot.yaml.brainVersion`, or a cohort override) changes and you push, CI builds every missing version image, refreshes generated user env files, and redeploys affected users. Every external site and theme package keeps its own exact version pin; change that package set only together with a fresh Brain version so published tags remain immutable.
 When a push changes only deploy contract files, CI prints `No affected user configs; skipping deploy.` and stops before Kamal.
 
