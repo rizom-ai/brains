@@ -10,6 +10,7 @@ import {
   type IInterfaceConversationsNamespace,
   type InterfaceEntityReader,
   type InterfaceJobs,
+  type InterfaceDaemonDefinition,
   type MessageReceiver,
   type ScopedRuntimeUploadStore,
   type UserPermissionLevel,
@@ -27,6 +28,7 @@ import type { WebChatConversationAccess } from "./conversation-access";
 import { handleChatRequest } from "./chat-route";
 import {
   renderChatPage,
+  renderGuestChatPage,
   uiAssetFile,
   uiAssetPath,
   uiStylesheetFile,
@@ -57,6 +59,11 @@ import {
   handleUploadRequest,
 } from "./upload-handlers";
 
+import { GuestHttpHandlers, type GuestHttpOptions } from "./guest-http";
+import { guestPolicySchema, type GuestPolicy } from "./guest-policy";
+import { resolveGuestPreset } from "./guest-preset";
+import { createGuestMaintenanceDaemon } from "./guest-maintenance-daemon";
+
 const webChatInterfaceType = "web-chat";
 
 /**
@@ -69,6 +76,10 @@ const webChatInterfaceType = "web-chat";
  * store, and the streams it currently has open.
  */
 interface WebChatState {
+  guestPolicy: GuestPolicy;
+  guestHttp: GuestHttpHandlers;
+  guestMaintenance: InterfaceDaemonDefinition;
+  authenticatedRoutePath: string;
   access: BrowserAccessReader;
   /** One per turn in flight, keyed by the conversation the browser named. */
   activeStreams: Map<string, ActiveStream>;
@@ -153,18 +164,46 @@ function openStream(
  * so text renders as it lands and a tool row is replaced when the tool
  * finishes rather than reprinted underneath itself.
  */
-const webChatInterface: ReturnType<typeof defineMessageInterface> =
-  defineMessageInterface(
+/** Internal dependency injection for deterministic boundary tests, not configuration. */
+export function createWebChatDefinition(
+  deps: { guestPolicy?: GuestPolicy; guestHttp?: GuestHttpOptions } = {},
+): ReturnType<typeof defineMessageInterface> {
+  return defineMessageInterface(
     {
       id: webChatInterfaceType,
       config: webChatConfigSchema,
 
       setup: (context): WebChatState => {
         const config: WebChatConfig = context.config;
+        const guestPolicy =
+          deps.guestPolicy === undefined
+            ? resolveGuestPreset(config.guest)
+            : guestPolicySchema.parse(deps.guestPolicy);
+        const authenticatedRoutePath = guestPolicy.enabled
+          ? `${config.routePath.replace(/\/+$/, "")}/authenticated`
+          : config.routePath;
+        const runtimeState = { scoped: context.runtimeState };
+        const loopback =
+          guestPolicy.enabled && guestPolicy.origin.startsWith("http://");
+        const guestHttp = new GuestHttpHandlers(
+          {
+            agent: context.agent,
+            conversations: context.conversations,
+            runtimeState,
+          },
+          guestPolicy,
+          {
+            ...deps.guestHttp,
+            ready:
+              deps.guestHttp?.ready ??
+              ((): boolean =>
+                loopback && context.agent.guestProfileAvailable === true),
+          },
+        );
 
         context.endpoints.register({
           label: "Chat",
-          url: config.routePath,
+          url: authenticatedRoutePath,
           priority: 15,
           visibility: "trusted",
           requiresActiveSession: true,
@@ -173,7 +212,7 @@ const webChatInterface: ReturnType<typeof defineMessageInterface> =
           id: webChatInterfaceType,
           label: "Chat",
           description: "Chat with this brain in the browser.",
-          href: config.routePath,
+          href: authenticatedRoutePath,
           kind: "human",
           priority: 15,
           visibility: "trusted",
@@ -191,7 +230,7 @@ const webChatInterface: ReturnType<typeof defineMessageInterface> =
               return undefined;
             }
             return {
-              href: config.routePath,
+              href: authenticatedRoutePath,
               state: createWebChatInboxPrefillState(
                 "Help me understand this Inbox item and decide what to do next.",
                 {
@@ -205,6 +244,13 @@ const webChatInterface: ReturnType<typeof defineMessageInterface> =
         });
 
         return {
+          guestPolicy,
+          guestHttp,
+          guestMaintenance: createGuestMaintenanceDaemon(
+            runtimeState,
+            context.logger,
+          ),
+          authenticatedRoutePath,
           access: createBrowserAccess({
             resolveAuthPrincipal: (request) =>
               context.auth.getCaller()?.resolveSession(request) ??
@@ -247,6 +293,7 @@ const webChatInterface: ReturnType<typeof defineMessageInterface> =
     {
       routes: ({ config, state, jobs, messages }) =>
         webChatRoutes(config, state, jobs, messages),
+      daemons: ({ state }) => [state.guestMaintenance],
 
       // An answer arrives on the connection the person is already holding, one
       // frame per piece. Nothing is returned: `send` would post a second,
@@ -307,6 +354,7 @@ const webChatInterface: ReturnType<typeof defineMessageInterface> =
       },
     },
   );
+}
 
 function webChatRoutes(
   config: WebChatConfig,
@@ -341,9 +389,26 @@ function webChatRoutes(
   };
 
   return [
-    rawRoute("GET", config.routePath, async (request) =>
-      chatPage(config, state, request),
-    ),
+    rawRoute("GET", config.routePath, async (request) => {
+      if (!state.guestPolicy.enabled) return chatPage(config, state, request);
+      if (new URL(request.url).origin !== state.guestPolicy.origin)
+        return new Response("Guest access unavailable", {
+          status: 503,
+          headers: { "Cache-Control": "no-store" },
+        });
+      return new Response(
+        renderGuestChatPage({
+          apiPath: `${paths.stream}/guest`,
+          themeCSS: state.themeCSS,
+        }),
+        {
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "no-store",
+          },
+        },
+      );
+    }),
     rawRoute("POST", paths.stream, async (request) =>
       handleChatRequest(request, {
         access: state.access,
@@ -425,6 +490,26 @@ function webChatRoutes(
     rawRoute("POST", "/api/agent/chat/confirm", async (request) =>
       handleRemoteAgentConfirmRequest(request, agentDeps),
     ),
+    ...(state.guestPolicy.enabled
+      ? [
+          rawRoute("GET", state.authenticatedRoutePath, async (request) =>
+            chatPage(config, state, request),
+          ),
+          rawRoute("GET", "/ask/assets/guest.js", async () =>
+            builtUiFile(
+              uiAssetFile.replace(/app\.js$/, "guest.js"),
+              "text/javascript; charset=utf-8",
+            ),
+          ),
+          rawRoute("GET", "/ask/assets/guest.css", async () =>
+            builtUiFile(
+              uiStylesheetFile.replace(/app\.css$/, "guest.css"),
+              "text/css; charset=utf-8",
+            ),
+          ),
+        ]
+      : []),
+    ...state.guestHttp.routes(config.apiPath),
   ];
 }
 
@@ -442,7 +527,6 @@ function webChatRoutes(
  * door is what the header offers.
  */
 function headerDoors(
-  config: WebChatConfig,
   state: WebChatState,
   permissionLevel: UserPermissionLevel,
 ): { dashboardHref: string; studioHref?: string } {
@@ -457,7 +541,7 @@ function headerDoors(
     dashboardHref:
       surfaces.find((surface) => surface.id === "dashboard")?.href ??
       "/dashboard",
-    ...(chatDoor && chatDoor !== config.routePath
+    ...(chatDoor && chatDoor !== state.authenticatedRoutePath
       ? { studioHref: chatDoor }
       : {}),
   };
@@ -481,7 +565,7 @@ async function chatPage(
   return new Response(
     renderChatPage({
       apiPath: config.apiPath,
-      ...headerDoors(config, state, permissionLevel),
+      ...headerDoors(state, permissionLevel),
       sessionHref: `/logout?return_to=${returnTo}`,
       themeCSS: state.themeCSS,
       principal: {
@@ -493,4 +577,6 @@ async function chatPage(
   );
 }
 
+const webChatInterface: ReturnType<typeof defineMessageInterface> =
+  createWebChatDefinition();
 export default webChatInterface;

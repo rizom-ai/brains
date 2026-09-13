@@ -475,6 +475,12 @@ Subscription and entity contracts:
 
 The runtime owns HTTP hosting, caller permission and Anchor resolution, daemon supervision, worker exclusion, channel/provider registration, recipient validation, conversations, normalized progress, and shutdown. Account-settings declarations require auth-service plus the deployment-owned `ACCOUNT_SETTINGS_ENCRYPTION_KEY`; secret values are encrypted at rest and never echoed by Account APIs.
 
+`InterfaceDaemonDefinition` is an advanced named type for declarations retained in setup state; Web Chat's guest maintenance is its supported consumer. A daemon must drain its work before its `run` promise settles on cancellation.
+
+Route handlers receive optional, detached, frozen `transport` socket metadata from the HTTP host. `transport.remoteAddress` is never inferred from Host, Origin, or forwarding headers; absence must fail closed wherever a peer restriction is required. The instance's `http.hostname` selects the listener's bind address.
+
+Runtime-state `compareAndSet(key, expected, input)` compares a parsed read snapshot and persists validated JSON wire input, like `set`. A mismatch returns `false`; an invalid replacement rejects. The SQL update checks the exact stored snapshot atomically, including across connections. Use a persisted revision to distinguish ABA changes; non-deterministic read transformations cannot provide a stable expected snapshot.
+
 ## `@rizom/brain/testing`
 
 Testing a package without booting a brain. The same harness every package in

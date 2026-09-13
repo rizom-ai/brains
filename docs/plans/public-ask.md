@@ -18,6 +18,16 @@ Shipped and verified with synthetic providers:
 - fail-closed handling for ambiguous first sends, lost credentials, unsupported browsers, and uncertain remote completion; and
 - packaged/browser/canary checks against the published core/site pair.
 
+## Prior declarative SDK integration — historical local validation
+
+The SDK worktree rebases this implementation onto main `b1205927b2` without restoring the retired Web Chat or webserver classes. Guest routes use the declarative route contract; maintenance uses the shared scheduler through the declarative daemon lifecycle and drains active work on shutdown. Interface bookkeeping stays owner-qualified, with no adoption or pruning of retired namespaces.
+
+Overlap regressions protect guest exclusion from SDK bulk conversation reads and change cursors, atomic state replacement with parsed snapshots and wire inputs, trusted socket metadata across request admission, and the runtime listener's `http.hostname`. The Brain landing resolves the installed package-scoped network data source and ships its compiled empty-state styles.
+
+Local checks passed: 105 workspace typecheck tasks, 103 test tasks, 96 lint tasks, seven packed compatibility scenarios, seven surface tasks, script tests, and architecture/static checks. The packed suite rebuilds its own site through a running app; the Rizom-specific network checks here are source/SSR checks, not a new canonical Rizom preview or browser run. This evidence is not exact-registry, live-provider, billing, or deployment acceptance. Nothing from this SDK integration has been pushed or published; earlier rollout authorizations in this plan do not authorize those actions for this worktree.
+
+## Release preparation and coordinated rollout — not activation approval
+
 The Rizom deployment now runs core `0.2.0-alpha.372` with `@rizom/site-rizom-ai@0.2.0-alpha.251`. The paired landing content is present, operational health is green, the queue is idle, and the production page remains unchanged. Guest admission is still omitted and therefore off.
 
 The latest site deployment did not rebuild preview. Preview still needs an authenticated app-managed rebuild and inspection to prove that the deployed output contains the corrected shared map styling. The available live MCP credential was rejected; authentication was not bypassed.
@@ -110,6 +120,8 @@ plugins:
 - a small inspected public-source corpus.
 
 These are test conventions, not approved production defaults.
+
+Local guest routes require trusted loopback socket metadata from the HTTP host. The runtime HTTP host captures Bun’s `requestIP` from the original request, preserves it across the shutdown-signal request clone, and supplies a detached, frozen `transport` snapshot to declarative routes; missing or non-loopback peers fail closed, regardless of Host, Origin or forwarding headers. Other hosts must supply trusted transport context to serve local guest routes. Bind the runtime listener with `http: { hostname: "127.0.0.1" }` in `brain.yaml` as defense in depth; the retired webserver plugin is not restored. Keep embeddings enabled: guest query embeddings are prepaid inside the turn cap, separately from background indexing. Runtime accounting and atomic admission still gate execution. No production preset or public-launch approval is implied.
 
 ## Explicitly deferred
 

@@ -74,6 +74,7 @@ export class RuntimeStateService implements IRuntimeStateService {
       has: store.has.bind(store),
       set: store.set.bind(store),
       setIfNotExists: store.setIfNotExists.bind(store),
+      compareAndSet: store.compareAndSet.bind(store),
       delete: store.delete.bind(store),
       list: store.list.bind(store),
       clear: store.clear.bind(store),

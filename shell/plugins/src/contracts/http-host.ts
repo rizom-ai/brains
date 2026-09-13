@@ -2,11 +2,18 @@ import { z } from "@brains/utils/zod";
 
 /** Instance settings for the one runtime listener. Preview shares its port. */
 const httpConfigShape: {
+  hostname: z.ZodOptional<z.ZodString>;
   preview: z.ZodOptional<z.ZodBoolean>;
   productionDistDir: z.ZodOptional<z.ZodString>;
   previewDistDir: z.ZodOptional<z.ZodString>;
   imagesDir: z.ZodOptional<z.ZodString>;
 } = {
+  hostname: z
+    .string()
+    .trim()
+    .min(1)
+    .optional()
+    .describe("Bind address; use 127.0.0.1 for isolated local tests"),
   preview: z.boolean().optional(),
   productionDistDir: z.string().min(1).optional(),
   previewDistDir: z.string().min(1).optional(),

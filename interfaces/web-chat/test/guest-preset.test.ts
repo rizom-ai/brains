@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { webChatConfigSchema } from "../src/config";
 import { resolveGuestPreset } from "../src/guest-preset";
-import { WebChatInterface } from "../src/web-chat-interface";
+import { createWebChatPlugin } from "./helpers/definition";
 
 describe("guest configuration conventions", () => {
   it("stays off by default and allows explicit disabling", () => {
@@ -75,16 +75,14 @@ describe("guest configuration conventions", () => {
   });
 
   it("does not turn the preset into runtime admission", async () => {
-    const harness = createPluginHarness<WebChatInterface>();
-    const plugin = new WebChatInterface({ guest: "local-test" });
+    const harness = createPluginHarness();
+    const plugin = createWebChatPlugin({ guest: "local-test" });
     try {
       await harness.installPlugin(plugin);
-      const route = plugin
-        .getWebRoutes()
-        .find(
-          (route) =>
-            route.path === "/api/chat/guest/session" && route.method === "POST",
-        );
+      const route = (plugin.getWebRoutes?.() ?? []).find(
+        (route) =>
+          route.path === "/api/chat/guest/session" && route.method === "POST",
+      );
       if (!route) throw new Error("Missing guest session route");
       const response = await route.handler(
         new Request("http://127.0.0.1:8080/api/chat/guest/session", {

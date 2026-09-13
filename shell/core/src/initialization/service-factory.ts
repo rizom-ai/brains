@@ -26,7 +26,6 @@ import {
   OperationalHealthRegistry,
   PluginManager,
   RuntimeUploadRegistry,
-  createScheduledMaintenanceDaemon,
 } from "@brains/plugins";
 import { RecurringCheckService } from "@brains/recurring-checks";
 import {
@@ -41,6 +40,7 @@ import {
 } from "@brains/templates";
 import { Clock, Context } from "@brains/utils/effect";
 import type { Logger } from "@brains/utils/logger";
+import { createScheduledMaintenanceDaemon } from "@brains/scheduler/maintenance";
 import { OperationContext } from "@brains/operation-context";
 
 import { DaemonRegistry } from "../daemon-registry";

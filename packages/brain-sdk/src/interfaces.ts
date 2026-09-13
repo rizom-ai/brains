@@ -20,7 +20,10 @@ export type { RouteResponse, VerbatimResponse } from "@brains/plugins";
 // What a `routes` slot returns, for a declaration that builds its route list
 // somewhere other than the slot's own expression.
 // Named consumer: @brains/web-chat.
-export type { AnyInterfaceRouteDefinition } from "@brains/plugins";
+export type {
+  AnyInterfaceRouteDefinition,
+  InterfaceDaemonDefinition,
+} from "@brains/plugins";
 
 // Handing a turn to the runtime from a request rather than a socket, and
 // answering an approval the client named rather than one spelled out in a
