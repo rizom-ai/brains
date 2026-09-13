@@ -3,7 +3,7 @@ import * as stylex from "@stylexjs/stylex";
 import { Slot, Switch as SwitchPrimitive } from "radix-ui";
 import type {
   ButtonHTMLAttributes,
-  InputHTMLAttributes,
+  ComponentPropsWithRef,
   ReactElement,
   SelectHTMLAttributes,
   TextareaHTMLAttributes,
@@ -350,7 +350,7 @@ export function Input({
   xstyle,
   style,
   ...props
-}: InputHTMLAttributes<HTMLInputElement> & {
+}: ComponentPropsWithRef<"input"> & {
   xstyle?: stylex.StyleXStyles;
 }): ReactElement {
   const styleProps = stylex.props(styles.control, xstyle);

@@ -1,6 +1,6 @@
 /** @jsxImportSource react */
 import { useEffect, useRef, useState, type ReactElement } from "react";
-import { Button } from "@brains/app-ui-react";
+import { Button, Input } from "@brains/app-ui-react";
 import { getErrorMessage } from "@brains/utils/error";
 import { chatClass, chatLayout } from "./studio-chat-layout.styles";
 
@@ -82,9 +82,9 @@ export function StudioChatSessionRename(props: {
         >
           <label>
             Conversation title
-            <input
+            <Input
               ref={input}
-              className={chatClass("", chatLayout.sessionFilterInput)}
+              xstyle={chatLayout.sessionFilterSelect}
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               required

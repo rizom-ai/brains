@@ -589,7 +589,7 @@ describe("native Studio Chat workspace", () => {
     });
   }
 
-  it("adopts a new session only after acceptance and keeps text composed while waiting", async () => {
+  it("adopts a new session only after acceptance and carries text composed while waiting", async () => {
     const store = new StudioChatDraftStore(),
       key = studioChatDraftKey("/api/chat", null);
     store.update(key, { text: "First message" });
@@ -620,7 +620,8 @@ describe("native Studio Chat workspace", () => {
     click(document.querySelector('[aria-label="Send message"]'), "Send");
     await settle();
     expect(navigations).toHaveLength(0);
-    expect(store.read(key).text).toBe("First message");
+    // The sent text leaves the composer immediately; only a refusal returns it.
+    expect(store.read(key).text).toBe("");
     await act(async () =>
       store.update(key, { text: "My next unsent thought" }),
     );
@@ -989,5 +990,84 @@ describe("native Studio Chat workspace", () => {
     click(launch, "Choose a conversation");
     expect(trigger?.getAttribute("aria-expanded")).toBe("false");
     expect(context?.open).toBe(true);
+  });
+
+  it("empties the composer as the message enters the transcript, before the response", async () => {
+    const previous = globalThis.fetch;
+    let release = (): void => {};
+    const accepted = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.method === "POST" && String(input).endsWith("/api/chat")) {
+          await accepted;
+          return new Response(`data: {"type":"finish"}\n\n`, {
+            status: 200,
+            headers: { "content-type": "text/event-stream" },
+          });
+        }
+        return previous(input, init);
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+    const store = new StudioChatDraftStore();
+    const key = studioChatDraftKey("/api/chat", "conversation-1");
+    store.update(key, { text: "Send me" });
+    await mountChat(store);
+    const form = document.querySelector<HTMLFormElement>(
+      ".studio-chat-composer-form",
+    );
+    if (!form) throw new Error("Composer form missing");
+    await act(async () => {
+      form.dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true }),
+      );
+    });
+    // The request has not been answered yet: the transcript owns the message
+    // and the composer is already empty, so it never reads as unsent.
+    expect(document.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+      "",
+    );
+    expect(document.body.textContent).toContain("Send me");
+    expect(store.read(key).text).toBe("");
+    await act(async () => {
+      release();
+      await settle();
+    });
+    expect(document.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+      "",
+    );
+  });
+
+  it("restores the composer when the send is refused", async () => {
+    const previous = globalThis.fetch;
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        if (init?.method === "POST" && String(input).endsWith("/api/chat")) {
+          return new Response("Unavailable", { status: 503 });
+        }
+        return previous(input, init);
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+    const store = new StudioChatDraftStore();
+    const key = studioChatDraftKey("/api/chat", "conversation-1");
+    store.update(key, { text: "Send me" });
+    await mountChat(store);
+    const form = document.querySelector<HTMLFormElement>(
+      ".studio-chat-composer-form",
+    );
+    if (!form) throw new Error("Composer form missing");
+    await act(async () => {
+      form.dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true }),
+      );
+    });
+    await settle();
+    expect(document.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+      "Send me",
+    );
+    expect(store.read(key).text).toBe("Send me");
   });
 });

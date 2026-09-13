@@ -378,12 +378,20 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
     entityTotal,
   );
   const workspaceBadges = workspaceRailBadges(workspaces);
+  // The server counts what the query matched, so the head says so rather than
+  // reporting a filtered count as if the collection had shrunk.
+  const collectionFiltered =
+    Boolean(props.collectionQuery.q) ||
+    props.collectionQuery.visibility !== "all" ||
+    Boolean(props.collectionQuery.status);
   const listingHead: StudioPageHeadModel = {
     kicker: "Content library",
     access: studioAccessRequirement("trusted"),
     title: activeType?.label ?? entityType ?? "Library",
     metadata: [
-      `${entityCount} ${entityCount === 1 ? "entity" : "entities"}`,
+      collectionFiltered
+        ? `${entityCount} matching ${entityCount === 1 ? "entity" : "entities"}`
+        : `${entityCount} ${entityCount === 1 ? "entity" : "entities"}`,
       ...(syncPending ? ["Sync pending"] : []),
     ],
     totals: [],
@@ -557,6 +565,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
               <StudioCollectionControls
                 query={props.collectionQuery}
                 fields={entitySchema.fields}
+                total={entityTotal}
                 onChange={props.onCollectionQueryChange}
               />
             )}
