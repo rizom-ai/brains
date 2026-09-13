@@ -46,9 +46,11 @@
 + @brains/studio:studio|handler|POST|/studio/api/upload|exact|true
 + @brains/studio:studio|handler|POST|/studio/api/workspace|exact|true
 + @brains/studio:studio|handler|PUT|/studio/api/entities|exact|true
++ @brains/web-chat:web-chat|handler|DELETE|/api/chat/guest/sessions|exact|true
 + @brains/web-chat:web-chat|handler|DELETE|/api/chat/sessions|exact|true
 + @brains/web-chat:web-chat|handler|GET|/api/chat/attachments/document|exact|true
 + @brains/web-chat:web-chat|handler|GET|/api/chat/attachments/image|exact|true
++ @brains/web-chat:web-chat|handler|GET|/api/chat/guest/messages|exact|true
 + @brains/web-chat:web-chat|handler|GET|/api/chat/jobs/status|exact|true
 + @brains/web-chat:web-chat|handler|GET|/api/chat/messages|exact|true
 + @brains/web-chat:web-chat|handler|GET|/api/chat/sessions|exact|true
@@ -60,6 +62,8 @@
 + @brains/web-chat:web-chat|handler|POST|/api/agent/chat|exact|true
 + @brains/web-chat:web-chat|handler|POST|/api/chat/actions|exact|true
 + @brains/web-chat:web-chat|handler|POST|/api/chat/context-sessions|exact|true
++ @brains/web-chat:web-chat|handler|POST|/api/chat/guest/session|exact|true
++ @brains/web-chat:web-chat|handler|POST|/api/chat/guest|exact|true
 + @brains/web-chat:web-chat|handler|POST|/api/chat/uploads|exact|true
 + @brains/web-chat:web-chat|handler|POST|/api/chat|exact|true
 + @brains/web-chat:web-chat|handler|PUT|/api/chat/sessions/archive|exact|true

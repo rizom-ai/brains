@@ -54,7 +54,11 @@ import {
   type SQL,
 } from "drizzle-orm";
 import { z } from "@brains/utils/zod";
-import { liveGuestConversation, expiredGuestConversation, conversationSqlNow } from "./guest-retention";
+import {
+  liveGuestConversation,
+  expiredGuestConversation,
+  conversationSqlNow,
+} from "./guest-retention";
 
 function nextConversationTimestamp(previous?: string): string {
   const now = Date.now();
@@ -163,9 +167,13 @@ export class ConversationService implements IConversationService {
   async startConversation(request: StartConversationRequest): Promise<string> {
     const { sessionId, interfaceType, channelId, personId, metadata } = request;
     const guest = interfaceType === guestInterfaceType;
-    if (guest && personId) throw new Error("Guest conversation cannot have an authenticated owner");
-    const requestedOwnership = guestConversationOwnershipSchema.safeParse(metadata.guest);
-    if (guest && !requestedOwnership.success) throw new Error("Guest ownership required");
+    if (guest && personId)
+      throw new Error("Guest conversation cannot have an authenticated owner");
+    const requestedOwnership = guestConversationOwnershipSchema.safeParse(
+      metadata.guest,
+    );
+    if (guest && !requestedOwnership.success)
+      throw new Error("Guest ownership required");
     const outcome = await this.db.transaction(async (tx) => {
       const [existing] = await tx
         .select()
@@ -176,12 +184,24 @@ export class ConversationService implements IConversationService {
 
       if (existing) {
         if (guest || existing.interfaceType === guestInterfaceType) {
-          if (existing.interfaceType !== interfaceType) throw new Error("Conversation scope mismatch");
-          const ownership = guestConversationOwnershipSchema.safeParse(coerceConversationMetadata(existing.metadata)["guest"]);
-          if (!ownership.success || !requestedOwnership.success || JSON.stringify(ownership.data) !== JSON.stringify(requestedOwnership.data)) {
+          if (existing.interfaceType !== interfaceType)
+            throw new Error("Conversation scope mismatch");
+          const ownership = guestConversationOwnershipSchema.safeParse(
+            coerceConversationMetadata(existing.metadata)["guest"],
+          );
+          if (
+            !ownership.success ||
+            !requestedOwnership.success ||
+            JSON.stringify(ownership.data) !==
+              JSON.stringify(requestedOwnership.data)
+          ) {
             throw new Error("Guest ownership cannot be changed");
           }
-          const [live] = await tx.select({ id: conversations.id }).from(conversations).where(this.accessCondition(existing)).limit(1);
+          const [live] = await tx
+            .select({ id: conversations.id })
+            .from(conversations)
+            .where(this.accessCondition(existing))
+            .limit(1);
           if (!live) throw new Error("Guest conversation unavailable");
           // Looking up a locator must not extend its retention.
           return { created: false, timestamp };
@@ -212,7 +232,14 @@ export class ConversationService implements IConversationService {
       };
       await tx.insert(conversations).values({
         ...newConversation,
-        ...(guest ? { started: conversationSqlNow, lastActive: conversationSqlNow, created: conversationSqlNow, updated: conversationSqlNow } : {}),
+        ...(guest
+          ? {
+              started: conversationSqlNow,
+              lastActive: conversationSqlNow,
+              created: conversationSqlNow,
+              updated: conversationSqlNow,
+            }
+          : {}),
       });
       if (!guest) await tx.insert(summaryTracking).values(tracking);
       return { created: true, timestamp };
@@ -249,60 +276,86 @@ export class ConversationService implements IConversationService {
    */
   async addMessage(request: AddConversationMessageRequest): Promise<void> {
     const { conversationId, role, content, metadata } = request;
+    const snapshot = await this.getConversation(conversationId);
+    if (!snapshot) throw new Error("Conversation unavailable");
     const messageId = createId(12);
-    const outcome = await this.db.transaction(async (tx) => {
-      const [conversation] = await tx
-        .select()
-        .from(conversations)
-        .where(eq(conversations.id, conversationId))
-        .limit(1);
-      if (!conversation) {
-        throw new Error(`Conversation not found: ${conversationId}`);
-      }
-
-      if (conversation.interfaceType === guestInterfaceType) {
-        if (!guestConversationOwnershipSchema.safeParse(coerceConversationMetadata(conversation.metadata)["guest"]).success) {
+    const outcome = await this.db
+      .transaction(async (tx) => {
+        const [conversation] = await tx
+          .select()
+          .from(conversations)
+          .where(this.accessCondition(snapshot))
+          .limit(1);
+        if (!conversation) {
           throw new Error("Conversation unavailable");
         }
-        try {
-          const inserted = await tx.insert(messages).select(sql`
+
+        if (conversation.interfaceType === guestInterfaceType) {
+          if (
+            !guestConversationOwnershipSchema.safeParse(
+              coerceConversationMetadata(conversation.metadata)["guest"],
+            ).success
+          ) {
+            throw new Error("Conversation unavailable");
+          }
+          try {
+            const inserted = await tx
+              .insert(messages)
+              .select(
+                sql`
             SELECT ${messageId}, ${conversationId}, ${role}, ${content}, ${conversationSqlNow}, ${metadata ? JSON.stringify(metadata) : null}
             FROM ${conversations} WHERE ${this.accessCondition(conversation)}
-          `).returning({ id: messages.id });
-          if (inserted.length !== 1) throw new Error("Conversation unavailable");
-          const updated = await tx.update(conversations).set({ lastActive: conversationSqlNow, updated: conversationSqlNow }).where(this.accessCondition(conversation)).returning({ id: conversations.id });
-          if (updated.length !== 1) throw new Error("Conversation unavailable");
-        } catch {
-          // SQL errors can retain bound transcript text; never expose that cause.
-          throw new Error("Guest conversation write unavailable");
+          `,
+              )
+              .returning({ id: messages.id });
+            if (inserted.length !== 1)
+              throw new Error("Conversation unavailable");
+            const updated = await tx
+              .update(conversations)
+              .set({
+                lastActive: conversationSqlNow,
+                updated: conversationSqlNow,
+              })
+              .where(this.accessCondition(conversation))
+              .returning({ id: conversations.id });
+            if (updated.length !== 1)
+              throw new Error("Conversation unavailable");
+          } catch {
+            // SQL errors can retain bound transcript text; never expose that cause.
+            throw new Error("Guest conversation write unavailable");
+          }
+          return { guest: true, timestamp: conversation.updated };
         }
-        return { guest: true, timestamp: conversation.updated };
-      }
-      const nextTimestamp = nextConversationTimestamp(conversation.updated);
-      const newMessage: NewMessage = {
-        id: messageId,
-        conversationId,
-        role,
-        content,
-        timestamp: nextTimestamp,
-        metadata: metadata ? JSON.stringify(metadata) : null,
-      };
+        const nextTimestamp = nextConversationTimestamp(conversation.updated);
+        const newMessage: NewMessage = {
+          id: messageId,
+          conversationId,
+          role,
+          content,
+          timestamp: nextTimestamp,
+          metadata: metadata ? JSON.stringify(metadata) : null,
+        };
 
-      await tx.insert(messages).values(newMessage);
-      await tx
-        .update(conversations)
-        .set({ lastActive: nextTimestamp, updated: nextTimestamp })
-        .where(eq(conversations.id, conversationId));
-      await tx
-        .update(summaryTracking)
-        .set({
-          messagesSinceSummary: sql`${summaryTracking.messagesSinceSummary} + 1`,
-          lastMessageId: messageId,
-          updated: nextTimestamp,
-        })
-        .where(eq(summaryTracking.conversationId, conversationId));
-      return { guest: false, timestamp: nextTimestamp };
-    });
+        await tx.insert(messages).values(newMessage);
+        await tx
+          .update(conversations)
+          .set({ lastActive: nextTimestamp, updated: nextTimestamp })
+          .where(eq(conversations.id, conversationId));
+        await tx
+          .update(summaryTracking)
+          .set({
+            messagesSinceSummary: sql`${summaryTracking.messagesSinceSummary} + 1`,
+            lastMessageId: messageId,
+            updated: nextTimestamp,
+          })
+          .where(eq(summaryTracking.conversationId, conversationId));
+        return { guest: false, timestamp: nextTimestamp };
+      })
+      .catch((error: unknown) => {
+        if (snapshot.interfaceType === guestInterfaceType)
+          throw new Error("Guest conversation write unavailable");
+        throw error;
+      });
     if (outcome.guest) return;
     const timestamp = outcome.timestamp;
 
@@ -435,7 +488,12 @@ export class ConversationService implements IConversationService {
     const selectedConversations = await this.db
       .select()
       .from(conversations)
-      .where(inArray(conversations.id, ids));
+      .where(
+        and(
+          inArray(conversations.id, ids),
+          ne(conversations.interfaceType, guestInterfaceType),
+        ),
+      );
     const rankedMessages = this.db
       .select({
         id: messages.id,
@@ -449,7 +507,22 @@ export class ConversationService implements IConversationService {
         ),
       })
       .from(messages)
-      .where(inArray(messages.conversationId, ids))
+      .where(
+        and(
+          inArray(messages.conversationId, ids),
+          exists(
+            this.db
+              .select({ id: conversations.id })
+              .from(conversations)
+              .where(
+                and(
+                  eq(conversations.id, messages.conversationId),
+                  ne(conversations.interfaceType, guestInterfaceType),
+                ),
+              ),
+          ),
+        ),
+      )
       .as("ranked_messages");
     const selectedMessages = await this.db
       .select({
@@ -553,15 +626,18 @@ export class ConversationService implements IConversationService {
       .from(conversations)
       .orderBy(asc(conversations.updated), asc(conversations.id))
       .limit(input.limit);
-    if (input.after === null) return query;
-
     return query.where(
-      or(
-        gt(conversations.updated, input.after.updated),
-        and(
-          eq(conversations.updated, input.after.updated),
-          gt(conversations.id, input.after.id),
-        ),
+      and(
+        ne(conversations.interfaceType, guestInterfaceType),
+        input.after === null
+          ? undefined
+          : or(
+              gt(conversations.updated, input.after.updated),
+              and(
+                eq(conversations.updated, input.after.updated),
+                gt(conversations.id, input.after.id),
+              ),
+            ),
       ),
     );
   }
@@ -570,6 +646,7 @@ export class ConversationService implements IConversationService {
     const [head] = await this.db
       .select({ updated: conversations.updated, id: conversations.id })
       .from(conversations)
+      .where(ne(conversations.interfaceType, guestInterfaceType))
       .orderBy(desc(conversations.updated), desc(conversations.id))
       .limit(1);
     return head ?? null;
@@ -625,43 +702,64 @@ export class ConversationService implements IConversationService {
   async updateConversationMetadata(
     request: UpdateConversationMetadataRequest,
   ): Promise<boolean> {
-    const outcome = await this.db.transaction(async (tx) => {
-      const [existing] = await tx
-        .select()
-        .from(conversations)
-        .where(eq(conversations.id, request.conversationId))
-        .limit(1);
-      if (!existing) return { updated: false, guest: false };
-      const guest = existing.interfaceType === guestInterfaceType;
-      if (guest && !guestConversationOwnershipSchema.safeParse(coerceConversationMetadata(existing.metadata)["guest"]).success) return { updated: false, guest };
-      if (guest) {
-        const [live] = await tx.select({ id: conversations.id }).from(conversations).where(this.accessCondition(existing)).limit(1);
-        if (!live) return { updated: false, guest };
-        if ("guest" in request.metadata) throw new Error("Guest ownership cannot be changed");
-      }
-      const timestamp = guest ? conversationSqlNow : nextConversationTimestamp(existing.updated);
-      const metadata = {
-        ...coerceConversationMetadata(existing.metadata),
-        ...request.metadata,
-      };
-      try {
+    const snapshot = await this.getConversation(request.conversationId);
+    if (!snapshot) return false;
+    if (
+      snapshot.interfaceType === guestInterfaceType &&
+      "guest" in request.metadata
+    )
+      throw new Error("Guest ownership cannot be changed");
+    const outcome = await this.db
+      .transaction(async (tx) => {
+        const [existing] = await tx
+          .select()
+          .from(conversations)
+          .where(this.accessCondition(snapshot))
+          .limit(1);
+        if (!existing) return { updated: false, guest: false };
+        const guest = existing.interfaceType === guestInterfaceType;
+        if (
+          guest &&
+          !guestConversationOwnershipSchema.safeParse(
+            coerceConversationMetadata(existing.metadata)["guest"],
+          ).success
+        )
+          return { updated: false, guest };
+        if (guest) {
+          const [live] = await tx
+            .select({ id: conversations.id })
+            .from(conversations)
+            .where(this.accessCondition(existing))
+            .limit(1);
+          if (!live) return { updated: false, guest };
+          if ("guest" in request.metadata)
+            throw new Error("Guest ownership cannot be changed");
+        }
+        const timestamp = guest
+          ? conversationSqlNow
+          : nextConversationTimestamp(existing.updated);
+        const metadata = {
+          ...coerceConversationMetadata(existing.metadata),
+          ...request.metadata,
+        };
         const changed = await tx
           .update(conversations)
           .set({ metadata: JSON.stringify(metadata), updated: timestamp })
           .where(this.accessCondition(existing))
           .returning({ id: conversations.id });
         return { updated: changed.length === 1, guest };
-      } catch (error) {
-        // Guest metadata may contain private text in SQL parameters.
-        if (guest) throw new Error("Guest conversation write unavailable");
+      })
+      .catch((error: unknown) => {
+        if (snapshot.interfaceType === guestInterfaceType)
+          throw new Error("Guest conversation write unavailable");
         throw error;
-      }
-    });
+      });
     if (!outcome.updated) return false;
 
-    if (!outcome.guest) this.logger.debug("Updated conversation metadata", {
-      conversationId: request.conversationId,
-    });
+    if (!outcome.guest)
+      this.logger.debug("Updated conversation metadata", {
+        conversationId: request.conversationId,
+      });
     return true;
   }
 

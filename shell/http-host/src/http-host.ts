@@ -88,6 +88,7 @@ export class HttpHost {
       ...(this.preview && { previewDistDir: this.previewDir }),
       sharedImagesDir: imagesDir,
       productionPort: config.port,
+      ...(config.hostname !== undefined ? { hostname: config.hostname } : {}),
       getRoutes: (): readonly RegisteredHttpRoute[] => options.routes,
       ...(options.getOperationalInfo && {
         getOperationalInfo: options.getOperationalInfo,

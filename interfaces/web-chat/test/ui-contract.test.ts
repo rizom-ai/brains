@@ -143,7 +143,7 @@ describe("Web chat UI contract", () => {
 
     expect(buildScript).toContain("createStylexBunTransform");
     expect(buildScript).toMatch(
-      /writeBuildFileAtomically\(\s*join\(outdir, `\$\{assetName\}\.css`\)/,
+      /writeBuildFileAtomically\s*\(\s*join\(outdir,\s*`\$\{assetName\}\.css`\)/,
     );
     expect(buildScript).toContain('["main", "app"]');
     expect(buildScript).toContain('["guest-box", "guest"]');

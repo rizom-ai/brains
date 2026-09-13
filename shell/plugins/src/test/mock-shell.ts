@@ -93,6 +93,7 @@ import type {
   JobHandler,
 } from "@brains/job-queue";
 import { prepareRuntimeStateValue } from "@brains/runtime-state";
+import { isDeepStrictEqual } from "node:util";
 import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
@@ -100,7 +101,6 @@ import type {
   RuntimeStateScopeOptions,
 } from "@brains/runtime-state";
 import type { IConversationService } from "@brains/conversation-service";
-import { z } from "@brains/utils/zod";
 import {
   AnchorProfileAdapter,
   BrainCharacterAdapter,
@@ -215,12 +215,11 @@ export function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
           return true;
         },
         compareAndSet: async (key, expected, value): Promise<boolean> => {
-          const parsedExpected = options.schema.parse(expected);
-          const parsedValue = options.schema.parse(value);
+          const parsedValue = prepareRuntimeStateValue(options.schema, value);
           const existing = records.get(key);
           if (
             !existing ||
-            JSON.stringify(existing.value) !== JSON.stringify(parsedExpected)
+            !isDeepStrictEqual(options.schema.parse(existing.value), expected)
           )
             return false;
           records.set(key, {

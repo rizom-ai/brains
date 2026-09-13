@@ -99,7 +99,7 @@ export const brainNetworkTemplate: Template = createTemplate({
   description:
     "Shared work between independently owned brains, with this brain's interactive network",
   schema: brainNetworkSchema,
-  dataSourceId: "agent-discovery:proximity-map",
+  dataSourceId: "@brains/agent-discovery:proximity-map",
   requiredPermission: "public",
   // On datasource failure, preserve authored copy and show unavailable—not invented graph data.
   formatter: copyFormatter,

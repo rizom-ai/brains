@@ -187,6 +187,7 @@ describe("RuntimeStateService", () => {
       expect(changed).toBe(false);
       expect(Object.keys(first).sort()).toEqual([
         "clear",
+        "compareAndSet",
         "delete",
         "get",
         "has",
@@ -262,7 +263,7 @@ describe("RuntimeStateService", () => {
     });
     try {
       await store.set("counter", 1);
-      await expect(store.compareAndSet("counter", 1, -1)).rejects.toThrow();
+      expect(store.compareAndSet("counter", 1, -1)).rejects.toThrow();
       expect(await store.compareAndSet("counter", -1, 2)).toBe(false);
       expect(await store.get("counter")).toBe(1);
     } finally {

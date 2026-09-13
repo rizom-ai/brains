@@ -188,7 +188,10 @@ export class ServerManager {
             // Socket identity belongs to the original Bun request; route dispatch
             // uses the admitted clone carrying the host shutdown signal.
             const remoteAddress = server?.requestIP(request)?.address;
-            this.transport.set(req, Object.freeze({ ...(remoteAddress ? { remoteAddress } : {}) }));
+            this.transport.set(
+              req,
+              Object.freeze({ ...(remoteAddress ? { remoteAddress } : {}) }),
+            );
             const fastResponse = await this.serveImageFastPath(req);
             if (fastResponse) return fastResponse;
 

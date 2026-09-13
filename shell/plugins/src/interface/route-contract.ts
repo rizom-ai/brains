@@ -1,3 +1,4 @@
+import type { WebRouteTransportContext } from "../types/web-routes";
 import type { SchemaReturn } from "../internal/schema-return";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { z } from "@brains/utils/zod";
@@ -163,6 +164,8 @@ export interface InterfaceRouteInput<
   readonly response: TResponseSchema;
   handle(context: {
     readonly request: Request;
+    /** Trusted socket metadata supplied by the host, never HTTP headers. */
+    readonly transport?: WebRouteTransportContext;
     readonly body: RouteBody<TBodySchema>;
     readonly caller: RouteCaller<TSecurity>;
   }): TOutput | Promise<TOutput>;
