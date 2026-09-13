@@ -1,43 +1,30 @@
-import { z } from "@brains/utils/zod";
-import { readString } from "@brains/utils/record-fields";
-// Remove ContentGenerationRequest import - we'll define our own schema
 import { ConsoleLogger, type Logger } from "@brains/utils/logger";
+import type { ContentService } from "../types";
 import {
-  generationContextSchema,
-  type ContentService,
-  type GenerationContext,
-} from "../types";
-import type { JobHandler } from "@brains/job-queue";
-import type { IEntityService } from "@brains/entity-service";
-import type { ProgressReporter } from "@brains/utils/progress";
+  contentGenerationJobDataSchema,
+  type ContentGenerationJobData,
+} from "../generation-contracts";
+import { NonRetryableJobError, type JobHandler } from "@brains/job-queue";
+import { AIOutputValidationError } from "@brains/ai-service";
+import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
+import {
+  assertEntityWriteReceiptMatches,
+  EntityWriteConflictError,
+  EntityWriteIntentMismatchError,
+  EntityValidationError,
+  type BaseEntity,
+  type IEntityService,
+} from "@brains/entity-service";
+import type { ProgressReporter } from "@brains/utils/progress";
+import { GenerationAuthorizationError } from "../generation-authorization";
 
-/**
- * Zod schema for content generation job data validation
- */
-export const contentGenerationJobDataSchema: z.ZodObject<{
-  templateName: z.ZodString;
-  context: typeof generationContextSchema;
-  userId: z.ZodOptional<z.ZodString>;
-  entityId: z.ZodString;
-  entityType: z.ZodString;
-}> = z.object({
-  templateName: z.string().min(1, "Template name is required"),
-  context: generationContextSchema,
-  userId: z.string().optional(),
-  // Entity information for saving generated content
-  entityId: z.string(),
-  entityType: z.string(),
-});
+interface GeneratedOutput {
+  entityType: string;
+  entityId: string;
+}
 
-export type ContentGenerationJobData = z.output<
-  typeof contentGenerationJobDataSchema
->;
-
-/**
- * Job handler for content generation
- * Processes content generation requests using the ContentService
- */
+/** Generates independent targets; the entity service owns atomic admission/recovery. */
 export class ContentGenerationJobHandler implements JobHandler<"content-generation"> {
   private logger: Logger;
   private contentService: ContentService;
@@ -61,145 +48,171 @@ export class ContentGenerationJobHandler implements JobHandler<"content-generati
     this.entityService = entityService;
   }
 
-  /**
-   * Process a content generation job
-   * Generates content using the specified template and context
-   */
+  /** A committed receipt survives edits/deletes and must be checked before any AI call. */
+  private async committedOutput(
+    data: ContentGenerationJobData,
+  ): Promise<GeneratedOutput | null> {
+    const receipt = await this.entityService.getEntityWriteReceipt(
+      data.operationId,
+    );
+    if (!receipt) return null;
+    assertEntityWriteReceiptMatches(receipt, {
+      operationId: data.operationId,
+      expectedRevision: data.expectedRevision,
+      entityType: data.destination.entityType,
+      entityId: data.destination.entityId,
+    });
+    return { entityType: receipt.entityType, entityId: receipt.entityId };
+  }
+
   public async process(
     data: ContentGenerationJobData,
     jobId: string,
     progressReporter: ProgressReporter,
-  ): Promise<unknown> {
+    signal?: AbortSignal,
+  ): Promise<GeneratedOutput> {
     try {
-      this.logger.debug("Processing content generation job", {
-        jobId,
-        templateName: data.templateName,
-        hasPrompt: !!data.context.prompt,
-        hasData: !!data.context.data,
-        userId: data.userId,
+      signal?.throwIfAborted();
+      const committed = await this.committedOutput(data);
+      signal?.throwIfAborted();
+      if (committed) return committed;
+      const { destination } = data;
+      // First of two authority resolutions; the second guards the entity write.
+      await this.contentService.authorizeGenerationWrite(data);
+      signal?.throwIfAborted();
+      const snapshot = await this.entityService.getEntityWriteSnapshot({
+        entityType: destination.entityType,
+        id: destination.entityId,
+        visibilityScope: destination.visibility,
       });
+      signal?.throwIfAborted();
+      if (
+        (snapshot?.revision ?? null) !== data.expectedRevision ||
+        (snapshot && snapshot.entity.visibility !== destination.visibility)
+      ) {
+        // Another attempt of this same operation may have committed between
+        // the receipt lookup and snapshot read. Recover rather than conflict.
+        const completed = await this.committedOutput(data);
+        signal?.throwIfAborted();
+        if (completed) return completed;
+        throw new EntityWriteConflictError(
+          destination.entityType,
+          destination.entityId,
+        );
+      }
 
-      // Report initial progress
+      const template = this.contentService.getTemplate(data.templateName);
+      if (!template?.dataSourceId || !template.formatter) {
+        throw new NonRetryableJobError(
+          `Generation template is unavailable or incomplete: ${data.templateName}`,
+        );
+      }
       await progressReporter.report({
         progress: 0,
         total: 3,
         message: `Generating content with template: ${data.templateName}`,
       });
-
-      // Generate content using the ContentService
-      const generationContext: GenerationContext = {};
-      if (data.context.prompt !== undefined) {
-        generationContext.prompt = data.context.prompt;
-      }
-      if (data.context.data !== undefined) {
-        generationContext.data = data.context.data;
-      }
-      if (data.context.conversationHistory !== undefined) {
-        generationContext.conversationHistory =
-          data.context.conversationHistory;
-      }
-
+      signal?.throwIfAborted();
       const content = await this.contentService.generateContent(
         data.templateName,
-        generationContext,
+        data.context,
+        { ...(signal && { signal }), visibilityScope: destination.visibility },
       );
-
-      // Report progress after content generation
+      signal?.throwIfAborted();
       await progressReporter.report({
         progress: 1,
         total: 3,
         message: `Formatting content for template: ${data.templateName}`,
       });
-
-      // Format the content to string using the template's formatter
-      const formattedContent = this.contentService.formatContent(
-        data.templateName,
-        content,
-      );
-
-      // Save the generated content as an entity if entityId and entityType are provided
-      if (data.entityId && data.entityType) {
-        const routeId = readString(data.context.data, "routeId");
-        const sectionId = readString(data.context.data, "sectionId");
-
-        // Only save if we have the required metadata
-        if (routeId && sectionId) {
-          const newEntity = {
-            id: data.entityId,
-            entityType: data.entityType,
-            content: formattedContent,
-            metadata: { routeId, sectionId },
-          };
-
-          await this.entityService.createEntity({ entity: newEntity });
-
-          this.logger.debug("Saved generated content as entity", {
-            jobId,
-            entityId: data.entityId,
-            entityType: data.entityType,
-            routeId,
-            sectionId,
-          });
-        } else {
-          this.logger.warn("Cannot save entity without routeId and sectionId", {
-            jobId,
-            entityId: data.entityId,
-            entityType: data.entityType,
-            hasRouteId: !!routeId,
-            hasSectionId: !!sectionId,
-          });
-        }
+      signal?.throwIfAborted();
+      let formattedContent: string;
+      try {
+        formattedContent = this.contentService.formatContent(
+          data.templateName,
+          content,
+        );
+      } catch (error) {
+        throw new NonRetryableJobError(
+          getErrorMessage(error, "Content formatting failed"),
+          { cause: error },
+        );
       }
-
-      // Report completion
+      signal?.throwIfAborted();
+      const options = {
+        // Second and final resolution: revocation here must block persistence.
+        beforeWrite: async (entity: Readonly<BaseEntity>): Promise<void> => {
+          signal?.throwIfAborted();
+          await this.contentService.authorizeGenerationWrite(data, entity);
+        },
+        ...(signal && { signal }),
+        conditionalWrite: {
+          operationId: data.operationId,
+          expectedRevision: data.expectedRevision,
+        },
+      };
+      if (snapshot) {
+        await this.entityService.updateEntity({
+          entity: {
+            ...snapshot.entity,
+            content: formattedContent,
+            metadata: destination.metadata,
+          },
+          options,
+        });
+      } else {
+        await this.entityService.createEntity({
+          entity: {
+            id: destination.entityId,
+            entityType: destination.entityType,
+            content: formattedContent,
+            metadata: destination.metadata,
+            visibility: destination.visibility,
+          },
+          options,
+        });
+      }
       await progressReporter.report({
         progress: 3,
         total: 3,
         message: `Completed content generation for: ${data.templateName}`,
       });
-
-      this.logger.debug("Content generation job completed successfully", {
-        jobId,
-        templateName: data.templateName,
-        contentLength: formattedContent.length,
-      });
-
-      return formattedContent;
+      // Only advertise persistence after the atomic entity/receipt commit.
+      return {
+        entityType: destination.entityType,
+        entityId: destination.entityId,
+      };
     } catch (error) {
+      signal?.throwIfAborted();
       this.logger.error("Content generation job failed", {
         jobId,
         templateName: data.templateName,
-        userId: data.userId,
         error,
       });
-      return {
-        success: false,
-        error: getErrorMessage(error, "Unknown error"),
-      };
+      // Deterministic failures must not spend the queue's transient retry budget.
+      if (
+        error instanceof GenerationAuthorizationError ||
+        error instanceof EntityWriteConflictError ||
+        error instanceof EntityWriteIntentMismatchError ||
+        error instanceof EntityValidationError ||
+        error instanceof z.ZodError ||
+        error instanceof AIOutputValidationError
+      ) {
+        throw new NonRetryableJobError(error.message, { cause: error });
+      }
+      // Resolving an error object would incorrectly acknowledge queue success.
+      throw error;
     }
   }
 
-  /**
-   * Validate and parse content generation job data using Zod schema
-   * Ensures type safety and data integrity
-   */
+  /** The schema's preprocessor owns the payload limits; oversized data is invalid. */
   public validateAndParse(data: unknown): ContentGenerationJobData | null {
     const parsed = contentGenerationJobDataSchema.safeParse(data);
     if (!parsed.success) {
       this.logger.warn("Invalid content generation job data", {
-        data,
         validationError: parsed.error.issues,
       });
       return null;
     }
-
-    this.logger.debug("Content generation job data validation successful", {
-      templateName: parsed.data.templateName,
-      hasPrompt: !!parsed.data.context.prompt,
-      hasData: !!parsed.data.context.data,
-      userId: parsed.data.userId,
-    });
-
     return parsed.data;
   }
 }

@@ -1,5 +1,6 @@
 // With moduleResolution: "bundler", we can export implementations safely
 export { JobQueueService } from "./job-queue-service";
+export { NonRetryableJobError } from "./errors";
 export { JobQueueWorker } from "./job-queue-worker";
 export { BatchJobManager } from "./batch-job-manager";
 export { JobProgressMonitor } from "./job-progress-monitor";

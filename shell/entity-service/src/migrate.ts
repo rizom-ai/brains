@@ -7,6 +7,7 @@ import {
 import { ensureFtsTable } from "./db";
 import { assets } from "./schema/assets";
 import { entities } from "./schema/entities";
+import { entityWriteReceipts } from "./schema/entity-write-state";
 import {
   projectionDirtyInputs,
   projectionIncidents,
@@ -28,6 +29,7 @@ export async function migrateEntities(
     schema: {
       assets,
       entities,
+      entityWriteReceipts,
       projectionDirtyInputs,
       projectionWaves,
       projectionIncidents,

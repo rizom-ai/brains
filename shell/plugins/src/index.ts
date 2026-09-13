@@ -49,6 +49,7 @@ export type {
 export { createAINamespace, createEntityPluginContext } from "./entity/context";
 export {
   resolvePrompt,
+  readPromptOverride,
   resetPromptCache,
   materializePrompts,
 } from "./entity/prompt-resolver";
@@ -303,10 +304,20 @@ export {
   type WorkspaceActionResultDefinition,
   type WorkspaceActionResultFieldDefinition,
   type WorkspaceActionResultFieldMap,
+  type ServiceContentGeneration,
+  type ServiceContentGenerationContext,
+  type ServiceContentGenerationItem,
+  type ServiceContentGenerationResult,
+  contentGenerationResultSchema,
+  type ServiceContentGenerationSkipReason,
+  type ServiceContentGenerationTarget,
+  type ServiceContentGenerationTargetInput,
+  type ServiceEntityIdPath,
   type ServiceJobDefinition,
   type ServiceJobReference,
   type ServiceJobStatus,
   type ServicePackageDefinition,
+  type ServiceTemplateGenerationDefinition,
   type WorkspaceActionConfirmation,
   type WorkspaceActionDefinition,
   type WorkspacePreparedConfirmation,

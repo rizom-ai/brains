@@ -18,6 +18,7 @@ import type {
   SearchResult,
   SearchOptions,
   EntityMutationResult,
+  EntityWriteSnapshot,
   StoreEmbeddingData,
   EmbeddingBackfillResult,
   IndexReadinessOptions,
@@ -62,6 +63,8 @@ import { EntitySearch } from "./entity-search";
 import { EntitySerializer } from "./entity-serializer";
 import { EntityQueries } from "./entity-queries";
 import { EntityMutations } from "./entity-mutations";
+import { readEntityWriteReceipt } from "./entity-write-state";
+import type { EntityWriteReceipt } from "./entity-write-contracts";
 import { ProjectionStore } from "./projection-store";
 import { EntityExportStore } from "./entity-export-store";
 import { SqliteAssetRepository } from "./sqlite-asset-repository";
@@ -598,6 +601,20 @@ export class EntityService implements IEntityService {
   }
 
   // ── Reads ─────────────────────────────────────────────────────────
+
+  public async getEntityWriteSnapshot(
+    request: GetEntityRequest,
+  ): Promise<EntityWriteSnapshot | null> {
+    await this.initialize();
+    return this.entityQueries.getEntityWriteSnapshot(request);
+  }
+
+  public async getEntityWriteReceipt(
+    operationId: string,
+  ): Promise<EntityWriteReceipt | null> {
+    await this.initialize();
+    return readEntityWriteReceipt(this.db, operationId);
+  }
 
   public async readAsset(ref: AssetRef): Promise<Uint8Array> {
     await this.initialize();

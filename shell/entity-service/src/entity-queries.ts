@@ -7,8 +7,11 @@ import {
   getVisibleContentVisibilities,
   type BaseEntity,
   type ContentVisibility,
+  type EntityWriteSnapshot,
+  type GetEntityRequest,
 } from "./types";
 import { entities } from "./schema/entities";
+import { entityRevision } from "./entity-revision";
 import { embeddings } from "./schema/embeddings";
 import {
   eq,
@@ -170,6 +173,22 @@ export class EntityQueries {
     }
 
     return normalizeEntityRow(row);
+  }
+
+  /** The stored row and the revision derived from it, from one scoped read. */
+  public async getEntityWriteSnapshot(
+    request: GetEntityRequest,
+  ): Promise<EntityWriteSnapshot | null> {
+    const data = await this.getEntityData(
+      request.entityType,
+      request.id,
+      request.visibilityScope,
+      request,
+    );
+    if (!data) return null;
+    const entity = await this.serializer.convertToEntity(data);
+    if (!entity) throw new Error("Cannot deserialize entity write snapshot");
+    return { entity, revision: entityRevision(data) };
   }
 
   /**

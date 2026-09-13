@@ -1,3 +1,5 @@
+import { GenerationAuthorizer } from "../src/generation-authorization";
+import { PermissionService } from "@brains/templates";
 import { createMockAIService } from "@brains/ai-service/test";
 import {
   createMockDataSourceRegistry,
@@ -40,6 +42,10 @@ describe("ContentService", () => {
       aiService: mockAIService,
       templateRegistry,
       dataSourceRegistry: mockDataSourceRegistry,
+      generationAuthorizer: new GenerationAuthorizer(
+        new PermissionService({}),
+        async () => null,
+      ),
     };
 
     contentService = new ContentService(mockDependencies);
@@ -84,6 +90,7 @@ describe("ContentService", () => {
       expect(mockDataSource.generate).toHaveBeenCalledWith(
         { templateName: "test-template" },
         mockTemplate.schema,
+        undefined,
       );
       expect(result).toBe("raw content");
     });
@@ -103,6 +110,7 @@ describe("ContentService", () => {
           prompt: "Additional prompt",
         },
         mockTemplate.schema,
+        undefined,
       );
     });
 
@@ -138,6 +146,7 @@ describe("ContentService", () => {
           prompt: "Additional instructions",
         },
         mockTemplate.schema,
+        undefined,
       );
     });
 
@@ -153,6 +162,7 @@ describe("ContentService", () => {
           data: contextData,
         },
         mockTemplate.schema,
+        undefined,
       );
     });
 

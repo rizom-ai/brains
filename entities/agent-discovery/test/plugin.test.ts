@@ -540,7 +540,13 @@ describe("AgentDiscoveryPlugin", () => {
       cardCid: testBrainCardPayload.cid,
     };
 
-    await harness.installPlugin(new AgentDiscoveryPlugin(hostileFetch));
+    // The safe fetch resolves each hostname before calling the injected fetch,
+    // so stub the resolver too: without it this reaches the real DNS resolver
+    // for plc.directory. The private PDS endpoint is an IP literal and is
+    // rejected without resolution, which is what this test asserts.
+    await harness.installPlugin(
+      new AgentDiscoveryPlugin(hostileFetch, resolvePublicHostname),
+    );
     await harness.getEntityService().createEntity({ entity: original });
     await run?.({ signal: new AbortController().signal });
 
@@ -1287,7 +1293,9 @@ describe("AgentDiscoveryPlugin", () => {
     });
     const unavailableFetch: FetchFn = async () =>
       new Response("unavailable", { status: 503 });
-    await harness.installPlugin(new AgentDiscoveryPlugin(unavailableFetch));
+    await harness.installPlugin(
+      new AgentDiscoveryPlugin(unavailableFetch, resolvePublicHostname),
+    );
     await harness.sendMessage(
       ATPROTO_BRAIN_CARD_DISCOVERED,
       testBrainCardPayload,

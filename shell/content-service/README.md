@@ -1,208 +1,120 @@
-# @brains/content-generator
+# @brains/content-service
 
-Template-based content generation service for Brain applications.
+Internal template coordination, content resolution, and generation for the Brain runtime.
+External plugin authors use the curated declarative `@rizom/brain/services` surface, not
+this package's services, registries, authorization callbacks, or job payloads.
 
-## Overview
+## Responsibilities
 
-This service provides content generation and derivation capabilities using AI and templates. It supports generating new content from prompts and deriving content from existing entities.
+- `ContentService`: template lookup, formatting/parsing, resolution, and generation.
+- `planGeneration()`: validate structured destinations and templates, check current caller
+  policy, and record eligible/skipped decisions without enqueueing work.
+- `ContentGenerationJobHandler`: generate and persist independent targets with conditional
+  writes, recovery receipts, cancellation, and current permission checks.
+- `submitGeneration()`: centralizes preview/admission and enqueues admitted children under
+  one shared root job through the existing queue.
+- The plugin namespace supplies trusted caller and queue ownership bindings. Composition
+  discovery and output assembly remain domain responsibilities.
 
-## Features
+## Durable generation
 
-- Template-based content generation
-- Content derivation from existing entities
-- Multi-format output support
-- Background job processing
-- Progress tracking
-- Integration with AI service
+Destinations identify an entity type, structured `idPath`, JSON-safe metadata, and optional
+visibility. New outputs default to public; replacements preserve their existing visibility.
+`force` authorizes neither a visibility change nor replacement of an intervening edit: it
+records the revision observed during planning for a conditional write.
 
-## Installation
+The runtime binds the trusted actor, resolved account, and permission ceiling. A worker
+resolves that authority twice: once when it starts the job, and once at the entity write
+boundary over the final serialized fields, where revocation must block persistence. Reads
+in between use the visibility scope decided at admission rather than re-resolving the
+principal on every access. Existing template, entity-action, publication, and visibility
+policies apply. Service/agent authority requires current configured grants/rules; an
+incoming admin level alone does not grant durable authority.
 
-```bash
-bun add @brains/content-generator
-```
+Entity-service commits an operation receipt with the entity and its persistence journals.
+A committed retry must not regenerate, overwrite later edits, or resurrect deleted output.
+Deterministic failures, including permission denials and write conflicts, are terminal.
+Transient infrastructure/provider failures retain the queue's retry policy.
 
-## Usage
+## Admission results
 
-```typescript
-import { ContentGenerator } from "@brains/content-generator";
+Submission returns every target in request order with its decision: `queued` with an actual
+job ID, `planned` for a dry run, or `skipped` with a reason. Admitted children share one root
+job ID, which is the returned `batchId`; the queue already indexes that durably, so
+`getJobsByRootJobId(batchId)` recovers them after a restart without a separate batch record.
+Dry runs apply the same admission checks but create no jobs and return no batch ID.
 
-const generator = ContentGenerator.getInstance({
-  aiService,
-  entityService,
-  jobQueue,
-  messageBus,
-});
+Results are admission decisions, not completion evidence. Targets are independent, so a
+failure part-way through admission leaves earlier children queued. Re-submitting is safe:
+each job carries its own operation ID and conditional-write receipt, so a committed target
+is skipped rather than regenerated.
 
-// Generate new content
-const result = await generator.generateContent({
-  prompt: "Write a blog post about TypeScript",
-  template: "blog-post",
-  options: {
-    tone: "professional",
-    length: "medium",
-  },
-});
+Generated output is addressed by its destination, so callers observe completion by reading
+the destination entity through ordinary typed readers. Raw queue diagnostics and existing
+durable job progress remain the runtime's monitoring paths.
 
-// Derive content from existing entity
-const derived = await generator.deriveContent({
-  sourceEntityId: "note_123",
-  targetType: "article",
-  template: "note-to-article",
-});
-```
+## Scoped datasource contract
 
-## Templates
+Durable generation calls `DataSource.generateScoped(request, schema, context)`. A datasource
+without this capability is rejected; there is no fallback to its ambient `generate()` method.
+Ordinary immediate generation remains a separate runtime path.
 
-Templates define the structure and generation rules:
+The runtime-only `DataSourceGenerationContext` provides:
 
-```typescript
-interface ContentTemplate {
-  id: string;
-  name: string;
-  description: string;
-  inputSchema: z.ZodSchema;
-  outputSchema: z.ZodSchema;
-  promptTemplate: string;
-  formatter?: (data: unknown) => string;
-}
+- `getEntity(entityType, id)` and `search(query, options)`: read-only access with a fixed scope;
+- `visibilityScope`: capped to the authorized output visibility, including public-only
+  retrieval for public output generated by an admin;
+- `signal`: worker cancellation, checked around storage access and provider calls.
 
-// Register a template
-generator.registerTemplate({
-  id: "summary",
-  name: "Summary Generator",
-  description: "Generate concise summaries",
-  inputSchema: z.object({
-    content: z.string(),
-    maxLength: z.number().optional(),
-  }),
-  outputSchema: z.object({
-    summary: z.string(),
-    keyPoints: z.array(z.string()),
-  }),
-  promptTemplate: `
-    Summarize the following content:
-    {content}
-    
-    Max length: {maxLength} words
-  `,
-});
-```
+Datasources must use these readers for content and avoid ambient content caches, so that
+retrieval cannot exceed the authorized output visibility. This is a trusted implementation
+contract for runtime datasources, not a sandbox for untrusted code.
 
-## Content Operations
+The core AI datasource implements this contract for knowledge search, prompt overrides,
+brain identity, and anchor profile. Scoped requests do not materialize prompt entities or
+use bootstrap identity/profile caches (which are loaded under internal-full scope).
+Missing/inaccessible prompt overrides use the template's base prompt; missing/inaccessible
+identity documents contribute no cached/default identity content. Read failures propagate.
+Caller-supplied prompt/context data remains explicit input, not automatically retrieved
+knowledge.
 
-### Generation
+## Resource limits
 
-Create new content from prompts:
+Durable generation enforces these runtime ceilings:
 
-```typescript
-const generated = await generator.generateContent({
-  prompt: "Create a tutorial about React hooks",
-  template: "tutorial",
-  metadata: {
-    level: "beginner",
-    includeExamples: true,
-  },
-});
-```
+| Resource                           | Limit                                            |
+| ---------------------------------- | ------------------------------------------------ |
+| Targets per submission             | 256                                              |
+| Submission JSON / each durable job | 1 MiB UTF-8 JSON                                 |
+| Inspected JSON nesting             | 32 levels                                        |
+| Scoped knowledge-search query      | 12,000 JavaScript characters (UTF-16 code units) |
 
-### Derivation
+Admission checks run for both dry runs and real submissions, before recursive JSON-schema
+validation and enqueue. Public target metadata transforms are checked again after their
+schema validation. The JSON budget counts keys, punctuation, escaping, and repeated
+references; cycles and excessive depth are rejected without recursively parsing them
+through Zod. Workers check complete durable payloads again, and limit failures use the
+existing non-retryable queue marker.
 
-Transform existing content:
+These bound structural inputs that reach durable storage. They are not a model token budget:
+provider protocol overhead and model context windows remain provider-owned, and the existing
+`maxTokens` setting controls generated output separately. Assembled prompt size is likewise
+the provider's concern, not a content-service ceiling. Scoped search reuses the existing
+search length ceiling but rejects excess before the ordinary truncating search path runs.
 
-```typescript
-const article = await generator.deriveContent({
-  sourceEntityId: "note_456",
-  targetType: "article",
-  transformations: ["expand", "add-examples", "format-markdown"],
-});
-```
+## Feature verification and follow-ups
 
-### Batch Operations
+Public `content.target()` returns frozen validated targets with independently inferred
+metadata and local generation-template keys. Public submission results are schema-validated and use
+local template declaration keys. The packed service fixture compiles mixed-target tools and
+negative type tests, then generates both entity types and reads the committed outputs through
+typed entity readers. It also verifies dry-run and repeat-submission skips, using an explicit
+CLI service grant and a mocked provider with real runtime, queue, and persistence.
 
-Generate multiple pieces of content:
+Real SQLite tests cover conditional writes, receipt-backed recovery after acknowledgement
+loss, and visibility-scoped retrieval. Providers remain mocked, so these are service-reopen
+tests rather than full process-crash evidence. Transport-wide audits, deeper crash testing,
+and publishing preparation are separate follow-ups.
 
-```typescript
-const batchId = await generator.batchGenerate([
-  { prompt: "Topic 1", template: "blog" },
-  { prompt: "Topic 2", template: "blog" },
-  { prompt: "Topic 3", template: "blog" },
-]);
-
-// Monitor progress
-messageBus.on("job:progress", (event) => {
-  if (event.batchId === batchId) {
-    console.log(`Progress: ${event.progress}%`);
-  }
-});
-```
-
-## Job Handlers
-
-The service includes job handlers for async processing:
-
-- `ContentGenerationJobHandler` - Handles generation jobs
-- `ContentDerivationJobHandler` - Handles derivation jobs
-
-## Integration
-
-Works with other Brain services:
-
-```typescript
-// With EntityService
-const entity = await entityService.get(sourceId);
-const derived = await generator.deriveContent({
-  source: entity,
-  targetType: "summary",
-});
-
-// With JobQueue
-const jobId = await jobQueue.queueJob({
-  type: "content:generate",
-  payload: { prompt, template },
-});
-
-// With AIService
-// Automatically uses AI service for generation
-```
-
-## Configuration
-
-```typescript
-interface ContentGeneratorConfig {
-  aiService: AIService;
-  entityService: EntityService;
-  jobQueue: JobQueueService;
-  messageBus: MessageBus;
-  defaultTemplates?: ContentTemplate[];
-}
-```
-
-## Testing
-
-```typescript
-import { ContentGenerator } from "@brains/content-generator";
-
-const generator = ContentGenerator.createFresh({
-  aiService: mockAI,
-  entityService: mockEntities,
-  jobQueue: mockQueue,
-  messageBus: mockBus,
-});
-
-// Test generation
-const result = await generator.generateContent({
-  prompt: "Test prompt",
-  template: "test",
-});
-```
-
-## Exports
-
-- `ContentGenerator` - Main service class
-- `ContentGenerationJobHandler` - Generation job handler
-- `ContentDerivationJobHandler` - Derivation job handler
-- Types: `ContentTemplate`, `GenerationOptions`, `DerivationOptions`
-
-## License
-
-AGPL-3.0-only
+See the [generic content generation plan](../../docs/plans/generic-multi-section-content-generation.md)
+for the current checkpoint and release requirements.

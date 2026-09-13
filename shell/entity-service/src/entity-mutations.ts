@@ -40,43 +40,17 @@ import { entities } from "./schema/entities";
 import { embeddings } from "./schema/embeddings";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
 import { and, eq, sql } from "drizzle-orm";
-
-const jsonObjectSchema = z.custom<object>(
-  (value) =>
-    typeof value === "object" && value !== null && !Array.isArray(value),
-);
-
-function toStableJsonValue(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) =>
-      item === undefined ? null : toStableJsonValue(item),
-    );
-  }
-
-  const parsedObject = jsonObjectSchema.safeParse(value);
-  if (parsedObject.success) {
-    return Object.fromEntries(
-      Object.entries(parsedObject.data)
-        .filter(([, item]) => item !== undefined)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, item]) => [key, toStableJsonValue(item)]),
-    );
-  }
-
-  return value;
-}
-
-function stableJson(value: unknown): string {
-  return JSON.stringify(toStableJsonValue(value));
-}
-
-function entityRevision(input: {
-  contentHash: string;
-  metadata: unknown;
-  visibility: string;
-}): string {
-  return computeContentHash(stableJson(input));
-}
+import {
+  entityWriteConditionSchema,
+  EntityWriteConflictError,
+  type EntityWriteReceipt,
+} from "./entity-write-contracts";
+import {
+  assertEntityWriteCondition,
+  EntityWriteReplayed,
+  recordEntityWriteReceipt,
+} from "./entity-write-state";
+import { entityRevision, stableJson } from "./entity-revision";
 
 const failedEmbeddingJobDataSchema = z.object({
   id: z.string().min(1),
@@ -209,6 +183,27 @@ export class EntityMutations {
     request: CreateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
     const { entity, options, preparedAsset } = request;
+    options?.signal?.throwIfAborted();
+    const condition =
+      options?.conditionalWrite &&
+      entityWriteConditionSchema.parse(options.conditionalWrite);
+    if (
+      condition &&
+      (condition.expectedRevision !== null ||
+        options.deduplicateId ||
+        !entity.id)
+    ) {
+      throw new Error(
+        "Conditional creation requires an explicit ID, an absent precondition, and no deduplication",
+      );
+    }
+    const receipt: EntityWriteReceipt | undefined = condition
+      ? {
+          ...condition,
+          entityType: entity.entityType,
+          entityId: entity.id ?? "",
+        }
+      : undefined;
     this.logger.debug(
       `Creating entity asynchronously of type: ${entity["entityType"]}`,
     );
@@ -235,6 +230,7 @@ export class EntityMutations {
     if (persistValidator) {
       await persistValidator(validatedEntity, { operation: "create" });
     }
+    options?.signal?.throwIfAborted();
 
     // Prepare entity for storage
     const { markdown, metadata } =
@@ -267,53 +263,76 @@ export class EntityMutations {
       entityId: finalId,
     });
 
-    // Persist the entity, search row, and scheduler journal atomically.
-    await this.projectionStore.withDirtyInput(
-      {
-        sourceType: validatedEntity.entityType,
-        sourceId: finalId,
-        revision: entityRevision({
-          contentHash,
-          metadata,
-          visibility: validatedEntity.visibility,
-        }),
-        operation: "upsert",
-        markedAt: this.projectionNow(),
-      },
-      async (transaction) => {
-        await this.bindAssetContent(
-          transaction,
-          validatedEntity.entityType,
-          markdown,
-          stagedAsset,
-        );
-        await transaction.insert(entities).values({
-          id: finalId,
-          entityType: validatedEntity.entityType,
-          content: markdown,
-          contentHash,
-          visibility: validatedEntity.visibility,
-          metadata,
-          created: new Date(validatedEntity.created).getTime(),
-          updated: new Date(validatedEntity.updated).getTime(),
-        });
-        await this.syncFtsIndex(
-          transaction,
-          finalId,
-          validatedEntity.entityType,
-          markdown,
-        );
-        await this.persistEntityExport(
-          transaction,
-          {
+    // Persist the entity, receipt, search row, and scheduler journal atomically.
+    try {
+      await this.projectionStore.withDirtyInput(
+        {
+          sourceType: validatedEntity.entityType,
+          sourceId: finalId,
+          revision: entityRevision({
+            contentHash,
+            metadata,
+            visibility: validatedEntity.visibility,
+          }),
+          operation: "upsert",
+          markedAt: this.projectionNow(),
+        },
+        async (transaction) => {
+          if (receipt)
+            await assertEntityWriteCondition(
+              transaction,
+              receipt,
+              validatedEntity,
+            );
+          await this.bindAssetContent(
+            transaction,
+            validatedEntity.entityType,
+            markdown,
+            stagedAsset,
+          );
+          await options?.beforeWrite?.({
+            ...validatedEntity,
+            id: finalId,
+            content: markdown,
+            contentHash,
+            metadata,
+          });
+          options?.signal?.throwIfAborted();
+          // Once the entity write starts, settle the complete atomic mutation.
+          await transaction.insert(entities).values({
+            id: finalId,
             entityType: validatedEntity.entityType,
-            entityId: finalId,
-            operation: "upsert",
-          },
-          options?.persistenceOrigin,
-        );
-      },
-    );
+            content: markdown,
+            contentHash,
+            visibility: validatedEntity.visibility,
+            metadata,
+            created: new Date(validatedEntity.created).getTime(),
+            updated: new Date(validatedEntity.updated).getTime(),
+          });
+          if (receipt) await recordEntityWriteReceipt(transaction, receipt);
+          await this.syncFtsIndex(
+            transaction,
+            finalId,
+            validatedEntity.entityType,
+            markdown,
+          );
+          await this.persistEntityExport(
+            transaction,
+            {
+              entityType: validatedEntity.entityType,
+              entityId: finalId,
+              operation: "upsert",
+            },
+            options?.persistenceOrigin,
+          );
+        },
+      );
+    } catch (error) {
+      if (error instanceof EntityWriteReplayed) {
+        return { entityId: finalId, jobId: "", skipped: true };
+      }
+      throw error;
+    }
     await this.notifyProjectionScheduler();
 
     this.logger.debug(
@@ -352,6 +371,22 @@ export class EntityMutations {
     request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
     const { entity, options, preparedAsset } = request;
+    options?.signal?.throwIfAborted();
+    const condition =
+      options?.conditionalWrite &&
+      entityWriteConditionSchema.parse(options.conditionalWrite);
+    if (
+      condition &&
+      (condition.expectedRevision === null ||
+        options.expectedContentHash !== undefined)
+    ) {
+      throw new Error(
+        "Conditional replacement requires a revision and cannot combine preconditions",
+      );
+    }
+    const receipt: EntityWriteReceipt | undefined = condition
+      ? { ...condition, entityType: entity.entityType, entityId: entity.id }
+      : undefined;
     this.logger.debug(
       `Updating entity asynchronously: ${entity.entityType} with ID ${entity.id}`,
     );
@@ -374,6 +409,7 @@ export class EntityMutations {
     if (persistValidator) {
       await persistValidator(validatedEntity, { operation: "update" });
     }
+    options?.signal?.throwIfAborted();
 
     const { markdown, metadata } =
       this.entitySerializer.prepareEntityForStorage(
@@ -405,6 +441,11 @@ export class EntityMutations {
     const existingEntity = existing.at(0);
 
     if (!existingEntity) {
+      if (receipt)
+        throw new EntityWriteConflictError(
+          receipt.entityType,
+          receipt.entityId,
+        );
       throw new Error(
         `Entity not found: ${validatedEntity.entityType}:${validatedEntity.id}`,
       );
@@ -433,6 +474,7 @@ export class EntityMutations {
     );
 
     if (
+      !receipt &&
       existingEntity.contentHash === contentHash &&
       existingEntity.visibility === validatedEntity.visibility &&
       stableJson(existingEntity.metadata) === stableJson(metadata)
@@ -443,12 +485,14 @@ export class EntityMutations {
           id: validatedEntity.id,
         },
         async (transaction) => {
+          options?.signal?.throwIfAborted();
           await this.bindAssetContent(
             transaction,
             validatedEntity.entityType,
             markdown,
             stagedAsset,
           );
+          options?.signal?.throwIfAborted();
           await this.pruneFtsIndexIfExcluded(
             transaction,
             validatedEntity.id,
@@ -501,12 +545,26 @@ export class EntityMutations {
           markedAt: this.projectionNow(),
         },
         async (transaction) => {
+          if (receipt)
+            await assertEntityWriteCondition(
+              transaction,
+              receipt,
+              validatedEntity,
+            );
           await this.bindAssetContent(
             transaction,
             validatedEntity.entityType,
             markdown,
             stagedAsset,
           );
+          await options?.beforeWrite?.({
+            ...validatedEntity,
+            content: markdown,
+            contentHash,
+            metadata,
+          });
+          options?.signal?.throwIfAborted();
+          // Cancellation after this boundary must not split entity and receipt.
           const updateResult = await transaction
             .update(entities)
             .set({
@@ -526,11 +584,17 @@ export class EntityMutations {
               ),
             );
           if (
-            options?.expectedContentHash !== undefined &&
+            (condition || options?.expectedContentHash !== undefined) &&
             Number(updateResult.rowsAffected) === 0
           ) {
+            if (receipt)
+              throw new EntityWriteConflictError(
+                receipt.entityType,
+                receipt.entityId,
+              );
             throw new StaleEntityUpdateError();
           }
+          if (receipt) await recordEntityWriteReceipt(transaction, receipt);
           await this.syncFtsIndex(
             transaction,
             validatedEntity.id,
@@ -549,6 +613,9 @@ export class EntityMutations {
         },
       );
     } catch (error) {
+      if (error instanceof EntityWriteReplayed) {
+        return { entityId: validatedEntity.id, jobId: "", skipped: true };
+      }
       if (!(error instanceof StaleEntityUpdateError)) throw error;
       this.logger.debug(
         `Skipping concurrently stale update for ${validatedEntity.entityType}:${validatedEntity.id}`,

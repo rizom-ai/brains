@@ -102,6 +102,70 @@ describe("AIContentDataSource", () => {
   let mockGetIdentityContent: ReturnType<typeof mock>;
   let mockGetProfileContent: ReturnType<typeof mock>;
 
+  it("forwards the worker signal to the AI provider", async () => {
+    const controller = new AbortController();
+    await aiContentDataSource.generate(
+      { templateName: "test-template" },
+      messageSchema,
+      controller.signal,
+    );
+    expect(mockGenerateObject.mock.calls[0]?.[3]).toBe(controller.signal);
+    expect(mockEntityService.search).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({ signal: controller.signal }),
+      }),
+    );
+  });
+
+  it("stops before prompt/knowledge lookup when already aborted", async () => {
+    const reason = new Error("cancelled worker");
+    expect(
+      aiContentDataSource.generate(
+        { templateName: "test-template" },
+        messageSchema,
+        AbortSignal.abort(reason),
+      ),
+    ).rejects.toBe(reason);
+    expect(mockEntityService.search).not.toHaveBeenCalled();
+    expect(mockGenerateObject).not.toHaveBeenCalled();
+  });
+
+  it("does not call AI after cancellation during knowledge retrieval", async () => {
+    const controller = new AbortController();
+    const reason = new Error("cancelled retrieval");
+    spyOn(mockEntityService, "search").mockImplementation(async () => {
+      controller.abort(reason);
+      return [];
+    });
+    expect(
+      aiContentDataSource.generate(
+        { templateName: "test-template" },
+        messageSchema,
+        controller.signal,
+      ),
+    ).rejects.toBe(reason);
+    expect(mockGenerateObject).not.toHaveBeenCalled();
+  });
+
+  it("rejects provider output returned after cancellation", async () => {
+    const controller = new AbortController();
+    const reason = new Error("cancelled provider");
+    mockGenerateObject.mockImplementationOnce(async () => {
+      controller.abort(reason);
+      return {
+        object: { message: "late" },
+        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      };
+    });
+    expect(
+      aiContentDataSource.generate(
+        { templateName: "test-template" },
+        messageSchema,
+        controller.signal,
+      ),
+    ).rejects.toBe(reason);
+  });
+
   function getSystemPrompt(): string {
     return mockGenerateObject.mock.calls[0]?.[0];
   }

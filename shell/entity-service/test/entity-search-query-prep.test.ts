@@ -143,6 +143,15 @@ describe("EntitySearch query preparation", () => {
     expect(queries).toBe(0);
   });
 
+  test("an already aborted search does not call the embedding provider", async () => {
+    const { entitySearch, embeddingService } = createEntitySearch();
+    const reason = new Error("cancelled search");
+    expect(
+      entitySearch.search("query", { signal: AbortSignal.abort(reason) }),
+    ).rejects.toBe(reason);
+    expect(embeddingService.generateEmbedding).not.toHaveBeenCalled();
+  });
+
   test("normalizes whitespace before generating a search embedding", async () => {
     const { entitySearch, embeddingService } = createEntitySearch();
 

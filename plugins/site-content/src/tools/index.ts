@@ -1,5 +1,4 @@
-import { authenticatedUserId } from "@brains/contracts";
-import type { Tool, JobContext } from "@brains/plugins";
+import type { Tool } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
 import type { SiteContentService } from "../lib/site-content-service";
 import { GenerateOptionsSchema } from "../schemas/generate-options";
@@ -30,25 +29,13 @@ export function createSiteContentTools(
           };
         }
 
-        const userId = authenticatedUserId(context);
-        const metadata: JobContext = {
-          rootJobId: `generate-${Date.now()}`,
-          progressToken: context.progressToken,
-          pluginId,
-          operationType: "content_operations",
-          interfaceType: context.interfaceType,
-          channelId: context.channelId,
-          requestedByActor: context.actor,
-          ...(userId ? { requestedByUserId: userId } : {}),
-          requestedByInterface: context.interfaceType,
-        };
+        const result = await siteContentService.generateContent(input, context);
 
-        const result = await siteContentService.generateContent(
-          input,
-          metadata,
-        );
-
-        const message = `Generated ${result.queuedSections} of ${result.totalSections} sections. ${result.queuedSections > 0 ? "Jobs are running in the background." : "No new content to generate."}`;
+        const message = input.dryRun
+          ? `Planned ${result.totalSections} sections. No jobs were queued.`
+          : result.queuedSections > 0
+            ? `Queued ${result.queuedSections} of ${result.totalSections} sections. Jobs are running in the background.`
+            : "No new content to generate. No jobs were queued.";
 
         return {
           success: true,
