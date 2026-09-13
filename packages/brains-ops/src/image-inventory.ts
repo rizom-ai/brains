@@ -1,4 +1,4 @@
-import type { RequiredImage } from "./images";
+import type { RequiredImage } from "./image-types";
 import { runSubprocess, type RunCommand } from "./run-subprocess";
 
 // Read manifests, never import package code or start the Brain. Check actual

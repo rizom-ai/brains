@@ -1,4 +1,6 @@
 import { verifyRuntimeImage } from "./image-inventory";
+import type { RequiredImage } from "./image-types";
+export type { RequiredImage } from "./image-types";
 import { loadPilotRegistry, type ResolvedSiteOverride } from "./load-registry";
 import { runSubprocess, type RunCommand } from "./run-subprocess";
 
@@ -39,13 +41,6 @@ export function sitePackagesFor(
 export interface ImageRequirementSource {
   brainVersion: string;
   siteOverride?: ResolvedSiteOverride | undefined;
-}
-
-export interface RequiredImage {
-  tag: string;
-  brainVersion: string;
-  /** Sorted, deduped package specs installed into this runtime image. */
-  sitePackages: string[];
 }
 
 /**
