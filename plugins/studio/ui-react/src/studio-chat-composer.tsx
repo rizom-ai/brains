@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import { messageUploadAccept } from "@brains/plugins/message-interface/upload-policy";
+import { messageUploadAccept } from "@brains/contracts/upload-policy";
 import { Button } from "@brains/app-ui-react";
 import { chatClass, chatLayout } from "./studio-chat-layout.styles";
 import { type ChatUploadResponse } from "@brains/contracts/chat";
