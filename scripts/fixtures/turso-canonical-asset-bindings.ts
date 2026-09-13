@@ -1,22 +1,18 @@
 // Integration adapter only: real actors and real entity SQL, not runtime wiring.
 import assert from "node:assert/strict";
 import { AsyncLocalStorage } from "node:async_hooks";
-import { Worker } from "node:worker_threads";
-import { ScopedUploads } from "../../shared/db/src/turso-worker/scoped-uploads";
 import type { AssetRecord } from "@brains/assets";
 import {
   createOwnedAssetPublication,
   type OwnedAssetPublication,
 } from "@brains/entity-service";
-import type { BinaryPublication } from "@brains/db/binary-publication";
-import { CanonicalBinaryRuntime } from "./turso-canonical-binary-runtime";
-import type { SqlWorkerDriver } from "../../shared/db/src/turso-worker/client";
+import { WorkerBinaryPersistence } from "../../shared/db/src/turso-worker/binary-persistence";
+import type {
+  SqlWorkerDriver,
+  WorkerTransaction,
+} from "../../shared/db/src/turso-worker/client";
 import type { PersistenceBudgetPool } from "../../shared/db/src/turso-worker/budget-pool";
 import type { StageClaim } from "../../shared/db/src/turso-worker/binary-protocol";
-import type {
-  WorkerBindingContext,
-  WorkerDatabaseBindings,
-} from "../../shared/db/src/turso-worker/binary-transaction";
 import { uploadNetworkFixture } from "../../shared/db/test/fixtures/turso-thread/network-exercise";
 import { downloadNetworkFixture } from "../../shared/db/test/fixtures/turso-thread/network-read-exercise";
 
@@ -55,43 +51,43 @@ const sidecar = (name: string): URL =>
     import.meta.url,
   );
 
-export class CanonicalAssetBindings implements WorkerDatabaseBindings {
-  private readonly scope = new AsyncLocalStorage<{
-    claim: StageClaim;
-    attached: boolean;
-    root?: object;
-    afterBody?: ((context: WorkerBindingContext) => Promise<void>) | undefined;
+export class CanonicalAssetBindings {
+  private readonly observation = new AsyncLocalStorage<{
+    afterBody?: ((transaction: WorkerTransaction) => Promise<void>) | undefined;
   }>();
-  private readonly contexts = new WeakMap<object, WorkerBindingContext>();
-  public readonly binary: CanonicalBinaryRuntime;
+  public readonly binary: WorkerBinaryPersistence;
   private readonly driver: SqlWorkerDriver;
   private readonly pool: PersistenceBudgetPool;
   public constructor(driver: SqlWorkerDriver, pool: PersistenceBudgetPool) {
     this.driver = driver;
     this.pool = pool;
-    this.binary = new CanonicalBinaryRuntime(this);
-  }
-
-  public claims(): StageClaim[] {
-    const scope = this.scope.getStore();
-    if (!scope || scope.attached) return [];
-    scope.attached = true; // Claim admission happens before native begin, once.
-    return [scope.claim];
-  }
-  public async run<T>(
-    context: WorkerBindingContext,
-    operation: () => Promise<T>,
-  ): Promise<T> {
-    this.contexts.set(context.db, context);
-    const scope = this.scope.getStore();
-    if (scope && !scope.root) scope.root = context.db;
-    try {
-      const value = await operation();
-      if (scope?.root === context.db) await scope.afterBody?.(context);
-      return value;
-    } finally {
-      this.contexts.delete(context.db);
-    }
+    this.binary = new WorkerBinaryPersistence({
+      driver,
+      budget: pool,
+      uploadBridgeUrl: sidecar("network-ingress-worker"),
+    });
+    const transaction = driver.transaction.bind(driver);
+    driver.transaction = async (
+      mode,
+      claims = [],
+    ): ReturnType<typeof transaction> => {
+      const lease = await transaction(mode, claims);
+      const afterBody = this.observation.getStore()?.afterBody;
+      if (claims.length > 0 && afterBody) {
+        const commit = lease.commit.bind(lease);
+        lease.commit = async (): Promise<void> => {
+          await afterBody(lease);
+          await commit();
+        };
+      }
+      return lease;
+    };
+    const close = this.binary.close.bind(this.binary);
+    this.binary.close = async (): Promise<void> => {
+      this.assertOwnerOpen();
+      await close();
+      this.assertOwnerOpen();
+    };
   }
 
   public async withFile<T>(
@@ -99,7 +95,7 @@ export class CanonicalAssetBindings implements WorkerDatabaseBindings {
     sizeBytes: number,
     digest: string,
     operation: (publication: OwnedAssetPublication) => Promise<T>,
-    afterBody?: (context: WorkerBindingContext) => Promise<void>,
+    afterBody?: (transaction: WorkerTransaction) => Promise<void>,
   ): Promise<T> {
     const scope = await this.driver.openBinaryScope();
     return withCleanup(
@@ -128,65 +124,22 @@ export class CanonicalAssetBindings implements WorkerDatabaseBindings {
     );
   }
 
-  public createUploadBroker(): ScopedUploads {
-    return new ScopedUploads(this.driver, () => {
-      throw new Error("Canonical upload requires its admitted network bridge");
-    });
-  }
-
-  public spawnUploadBridge(): Worker {
-    return this.pool.networkIngress.spawn(
-      () => new Worker(sidecar("network-ingress-worker")),
-    );
-  }
-
   public withClaim<T>(
     claim: StageClaim,
     facts: { sha256: string; sizeBytes: number },
     operation: (publication: OwnedAssetPublication) => Promise<T>,
-    afterBody?: (context: WorkerBindingContext) => Promise<void>,
+    afterBody?: (transaction: WorkerTransaction) => Promise<void>,
   ): Promise<T> {
-    return this.withBinaryClaim(
-      claim,
-      facts,
-      (publication) => operation(createOwnedAssetPublication(publication)),
-      afterBody,
+    return this.observation.run({ afterBody }, () =>
+      this.binary.bindings.withClaim(claim, facts, (publication) =>
+        operation(createOwnedAssetPublication(publication)),
+      ),
     );
-  }
-
-  public withBinaryClaim<T>(
-    claim: StageClaim,
-    facts: { sha256: string; sizeBytes: number },
-    operation: (publication: BinaryPublication) => Promise<T>,
-    afterBody?: (context: WorkerBindingContext) => Promise<void>,
-  ): Promise<T> {
-    const contextFor = (transaction: object): WorkerBindingContext => {
-      if (this.scope.getStore()?.claim !== claim)
-        throw new Error("Publication has no matching native claim scope");
-      const context = this.contexts.get(transaction);
-      if (!context)
-        throw new Error("Publication has no live native transaction");
-      return context;
-    };
-    const publication: BinaryPublication = {
-      facts: Object.freeze({ ...facts }),
-      run: <U>(body: () => Promise<U>): Promise<U> =>
-        this.scope.run({ claim, attached: false, afterBody }, body),
-      executeBound: async (transaction, query, placeholder): Promise<void> => {
-        await contextFor(transaction).executeBound(
-          query,
-          new Map([[placeholder, claim]]),
-        );
-      },
-      verifyBlob: (transaction, plan) =>
-        contextFor(transaction).verifyBlob(plan),
-    };
-    return operation(publication);
   }
 
   public async publicationRows(
     id: string,
-    context?: WorkerBindingContext,
+    context?: WorkerTransaction,
   ): Promise<{ entity: number; exportIntent: number; dirty: number }> {
     const text = `SELECT
       (SELECT count(*) FROM entities WHERE entityType='image' AND id=?) AS entity_count,
@@ -194,10 +147,7 @@ export class CanonicalAssetBindings implements WorkerDatabaseBindings {
       (SELECT count(*) FROM projection_dirty_inputs WHERE source_type='image' AND source_id=?) AS dirty_count`;
     const params = [id, id, id];
     const result = context
-      ? await context.executeBound(
-          { toSQL: () => ({ sql: text, params }) },
-          new Map(),
-        )
+      ? await context.execute({ sql: text, args: params })
       : await this.driver.execute({ sql: text, args: params });
     const row = result.rows[0];
     return {

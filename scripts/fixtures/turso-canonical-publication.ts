@@ -18,6 +18,7 @@ import defaultTheme from "@rizom/theme-default";
 import { EntityService } from "@brains/entity-service";
 import { createAssetRef } from "@brains/assets";
 import { imageSchema, imageAdapter } from "@brains/image";
+import { WorkerBinaryPersistence } from "../../shared/db/src/turso-worker/binary-persistence";
 import { canonicalBrain } from "../../packages/brain-cli/src/model/canonical-brain";
 import {
   canonicalAssetBindings,
@@ -113,6 +114,7 @@ plugins:
     assert.ok(owner instanceof EntityService);
     const binding = canonicalAssetBindings(url);
     shutdownChecks.push(() => assert.equal(binding.binary.closed, true));
+    assert.ok(binding.binary instanceof WorkerBinaryPersistence);
     // Known fixture metadata, not a claim that image inspection callers migrated.
     const entity = imageAdapter.createImageEntity({
       facts: {

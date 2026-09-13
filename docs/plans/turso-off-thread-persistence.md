@@ -5,11 +5,11 @@
 - Architecture gate for 0.3 remains open; 0.2 stays libSQL, 0.3 is Turso-only.
 - Staged asset binding, authenticated App endpoint registration and metadata-only image construction are implemented; existing image-constructor callers are updated.
 - The canonical native publication candidate still requires a test-only database factory binding.
-- Source now owns the worker message pump, reply validation, staged/savepoint routing, budgets, authenticated binary scope plumbing and network bridges. Runtime ingestion/read handoffs are not cut over.
+- Source owns the worker transport and concrete upload `BinaryPersistence`, including endpoint lifecycle and native publication/transaction association. Runtime ingestion/read handoffs are not cut over.
 - Runtime-state prefix clear now uses validated, sequential deletes in one transaction.
 - Staged-asset binding and existing worker/fixture work are committed separately; main is merged, including new RPC contracts and moved test helpers.
 - `shared/db/src/sqlite.ts` retains its existing runtime factory. Do not switch it before the production binary path is complete.
-- No new standalone proofs during fixture-to-source promotion.
+- Existing canonical integration drives the binary path; no new standalone proofs were added.
 
 ## Delivery milestones
 
@@ -20,17 +20,15 @@
 | **3. Application cutover**             | Switch all five runtime factories; package workers/actors and wire single-owner lifecycle, including combined mode. | Canonical `start:minimal`, then `start:personal`; real jobs/auth/images/site rebuilds, installed startup, shutdown and restart.                |
 | **4. Release acceptance**              | Complete working-set, crash recovery, import/deployment/backup/restore and rollback coverage.                       | SDK/native/transport/GC/RSS accounting, controller/grandchild recovery and explicit fleet/soak acceptance.                                     |
 
-## Current slice: fixture-to-source promotion — complete
+## Current slice: source upload persistence and native binding — complete
 
-1. Run existing integration tests before changing implementation. No new standalone proofs.
-2. Move the protocol message pump, operation-specific reply validation, savepoint/staged-transfer routing and binary control plumbing into `shared/db/src/turso-worker/`.
-3. Point integration callers and packaging at the source implementation; leave only setup/assertions in fixtures, with no implementation re-exports.
-4. Validate, update Status and measured line counts, and commit before another slice. Do not switch the runtime factory.
+1. Require the source backend in the existing canonical publication integration before implementation.
+2. Implement `WorkerBinaryPersistence` and `WorkerPublicationBindings` using the promoted upload broker, credited bridge creation and native transaction context.
+3. Delete the test-owned binary runtime. Install source bindings directly on the canonical database; retain only producer setup, observations and pre-commit fault injection in its fixture.
+4. Validate and commit before another slice. Do not switch the runtime factory.
 
-**Exit check:** production source owns those implementations, fixture lines decrease and source lines increase, existing integration/packaging checks pass, and the promotion is committed with a clean working tree.
+**Exit check:** the App-owned authenticated upload/publication endpoint uses the source backend and direct source transaction bindings; the existing exact-image, rollback, deduplication, complete read-back, shutdown and joined-owner reopen checks pass. The slice is committed with a clean working tree.
 
-**Measured result (TypeScript lines):** `shared/db/test/fixtures/turso-thread/` **9,908 → 4,148**; `shared/db/src/turso-worker/` **2,325 → 8,091**. Twenty-nine implementation modules moved; their old fixture paths were deleted, not replaced with forwarding exports. Remaining fixtures are integration scenarios and instrumented test input/output/fault actors. Existing integration and installed-actor packaging checks use the source implementation. No standalone proof tests were added.
-
-**Next slice:** complete the production binary path and its real ingestion/read callers. Keep the runtime factory unchanged until milestone 2's exit check passes.
+**Next slice:** source-backed producer/read capabilities and coordinated `RemoteEntityService`/ingestion/read caller migration. The file producer and complete read-back consumer are still test actors; inspection/conversion must move to payload actors. Keep the runtime factory unchanged until milestone 2's exit check passes.
 
 Keep the 100 MiB ceiling, 32 KiB data-plane credits, existing RPC/SQL/admission limits, entity/asset/reference/projection/outbox atomicity, primary/cleanup causes and actual-exit acknowledgement. Preserve failed recovery directories. If a fault matrix is needed, name the application integration blocker first.

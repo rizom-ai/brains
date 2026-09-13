@@ -1,5 +1,4 @@
-// Execution adapter for the candidate database factory; source owns RPC routing.
-import assert from "node:assert/strict";
+import { Worker } from "node:worker_threads";
 import { z } from "@brains/utils/zod";
 import {
   binaryUploadEndpointSchema,
@@ -9,9 +8,12 @@ import {
   type BinaryUploadOffer,
   type BinaryUploadReceipt,
   type BinaryUploadEndpoint,
-} from "@brains/db/binary-publication";
-import type { ScopedUploads } from "../../shared/db/src/turso-worker/scoped-uploads";
-import type { CanonicalAssetBindings } from "./turso-canonical-asset-bindings";
+} from "../binary-publication";
+import { ScopedUploads } from "./scoped-uploads";
+import { WorkerPublicationBindings } from "./publication-bindings";
+import type { SqlWorkerDriver } from "./client";
+import type { PersistenceBudgetPool } from "./budget-pool";
+
 const listeningSchema = z.strictObject({
   kind: z.literal("network-listening"),
   endpoint: binaryUploadEndpointSchema,
@@ -25,49 +27,96 @@ interface EndpointEntry {
   started: boolean;
   cleanup: () => void;
 }
-export class CanonicalBinaryRuntime implements BinaryPersistence {
-  private readonly binding: CanonicalAssetBindings;
+export interface WorkerBinaryPersistenceOptions {
+  driver: SqlWorkerDriver;
+  /** The owner's shared pool, also supplied when constructing its SQL drivers. */
+  budget: PersistenceBudgetPool;
+  /** Explicit installed/source artifact URL; never inferred from cwd. */
+  uploadBridgeUrl: URL;
+}
+
+/** Authenticated metadata control over a credited, off-thread upload plane.
+ * Install bindings on the same driver's database, and close before the driver.
+ */
+export class WorkerBinaryPersistence implements BinaryPersistence {
+  public readonly bindings: WorkerPublicationBindings =
+    new WorkerPublicationBindings();
   private readonly broker: ScopedUploads;
+  private readonly spawn: () => Worker;
   private readonly endpoints = new Map<string, EndpointEntry>();
   private closePromise: Promise<void> | undefined;
+  private closing = false;
   private acknowledgedClosed = false;
+
+  public constructor(options: WorkerBinaryPersistenceOptions) {
+    if (options.uploadBridgeUrl.protocol !== "file:")
+      throw new Error("Binary upload bridge requires an explicit file URL");
+    const url = new URL(options.uploadBridgeUrl.href);
+    const ingress = options.budget.networkIngress;
+    this.spawn = (): Worker => ingress.spawn(() => new Worker(url));
+    this.broker = new ScopedUploads(options.driver, () => {
+      throw new Error("Binary upload requires its admitted network bridge");
+    });
+  }
   public get closed(): boolean {
     return this.acknowledgedClosed;
-  }
-  public constructor(binding: CanonicalAssetBindings) {
-    this.binding = binding;
-    this.broker = binding.createUploadBroker();
   }
   public stats(): { admissions: number; tickets: number } {
     return this.broker.stats();
   }
+
   public async offer(
     context: BinaryRequestContext,
     size: number,
   ): Promise<BinaryUploadOffer> {
     const offer = await this.broker.offer(context, size);
-    context.signal.throwIfAborted();
-    context.connectionSignal.throwIfAborted();
-    const ready = Promise.withResolvers<BinaryUploadEndpoint>();
-    void ready.promise.catch(() => undefined); // Observed by endpoint lookup or upload/shutdown settlement.
-    const cleanup = (): void => {
-      this.endpoints.delete(offer.ticket);
-      context.connectionSignal.removeEventListener("abort", cleanup);
-      ready.reject(new Error("Upload endpoint connection closed"));
-    };
-    context.connectionSignal.addEventListener("abort", cleanup, { once: true });
-    this.endpoints.set(offer.ticket, {
-      connection: context.connectionSignal,
-      ready,
-      abort: new AbortController(),
-      started: false,
-      cleanup,
-    });
-    return offer;
+    try {
+      context.signal.throwIfAborted();
+      context.connectionSignal.throwIfAborted();
+      if (this.closing) throw new Error("Binary persistence is closing");
+      const ready = Promise.withResolvers<BinaryUploadEndpoint>();
+      void ready.promise.catch(() => undefined); // Observed by endpoint lookup or upload/shutdown settlement.
+      const cleanup = (): void => {
+        this.endpoints.delete(offer.ticket);
+        context.connectionSignal.removeEventListener("abort", cleanup);
+        ready.reject(new Error("Upload endpoint connection closed"));
+      };
+      context.connectionSignal.addEventListener("abort", cleanup, {
+        once: true,
+      });
+      this.endpoints.set(offer.ticket, {
+        connection: context.connectionSignal,
+        ready,
+        abort: new AbortController(),
+        started: false,
+        cleanup,
+      });
+      return offer;
+    } catch (error) {
+      // A successful native offer whose metadata handoff fails still needs an
+      // acknowledged retirement. An aborted request cannot cancel itself.
+      try {
+        if (context.connectionSignal.aborted || this.closing)
+          await this.broker.retirement(context.connectionSignal);
+        else
+          await this.broker.cancel(
+            { ...context, signal: new AbortController().signal },
+            offer.ticket,
+          );
+      } catch (cleanup) {
+        throw new AggregateError(
+          [error, cleanup],
+          "Binary offer handoff and retirement failed",
+          { cause: cleanup },
+        );
+      }
+      throw error;
+    }
   }
   private entry(context: BinaryRequestContext, ticket: string): EndpointEntry {
     context.signal.throwIfAborted();
     context.connectionSignal.throwIfAborted();
+    if (this.closing) throw new Error("Binary persistence is closing");
     const entry = this.endpoints.get(ticket);
     if (entry?.connection !== context.connectionSignal)
       throw new Error("Unknown or foreign upload endpoint");
@@ -88,12 +137,15 @@ export class CanonicalBinaryRuntime implements BinaryPersistence {
         },
         ticket,
         () => {
-          const peer = this.binding.spawnUploadBridge();
+          const peer = this.spawn();
           peer.once("message", (input: unknown) => {
             try {
               const message = listeningSchema.parse(input);
-              assert.equal(message.pid, process.pid);
-              assert.equal(message.threadId, peer.threadId);
+              if (
+                message.pid !== process.pid ||
+                message.threadId !== peer.threadId
+              )
+                throw new Error("Binary upload bridge identity mismatch");
               entry.ready.resolve(message.endpoint);
             } catch (error) {
               entry.ready.reject(error);
@@ -121,7 +173,7 @@ export class CanonicalBinaryRuntime implements BinaryPersistence {
   ): Promise<BinaryUploadEndpoint> {
     const entry = this.entry(context, ticket);
     if (!entry.started) throw new Error("Upload has not started");
-    this.endpoints.delete(ticket);
+    this.endpoints.delete(ticket); // Consume socket-bound authority before await.
     try {
       const endpoint = await entry.ready.promise;
       context.signal.throwIfAborted();
@@ -145,7 +197,7 @@ export class CanonicalBinaryRuntime implements BinaryPersistence {
     operation: (publication: BinaryPublication) => Promise<T>,
   ): Promise<T> {
     return this.broker.consumeClaim(context, ticket, (claim, receipt) =>
-      this.binding.withBinaryClaim(claim, receipt, operation),
+      this.bindings.withClaim(claim, receipt, operation),
     );
   }
   public close(): Promise<void> {
@@ -153,13 +205,9 @@ export class CanonicalBinaryRuntime implements BinaryPersistence {
     return this.closePromise;
   }
   private async closeOwned(): Promise<void> {
-    this.binding.assertOwnerOpen();
-    try {
-      await this.broker.close();
-      this.binding.assertOwnerOpen();
-      this.acknowledgedClosed = true;
-    } finally {
-      for (const entry of this.endpoints.values()) entry.cleanup();
-    }
+    this.closing = true;
+    for (const entry of this.endpoints.values()) entry.cleanup();
+    await this.broker.close();
+    this.acknowledgedClosed = true;
   }
 }

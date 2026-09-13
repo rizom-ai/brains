@@ -64,7 +64,7 @@ function createCandidateDatabase<T extends Record<string, unknown>>(
   return {
     url,
     client: new SqlWorkerClient(driver),
-    db: createWorkerDatabase(driver, options.schema, bindings),
+    db: createWorkerDatabase(driver, options.schema, bindings.binary.bindings),
     ...(Object.hasOwn(options.schema, "assets") && { binary: bindings.binary }),
   };
 }
