@@ -509,6 +509,14 @@ ambiguous lookups throw with available names.
 including status and headers, after route authentication and schema validation.
 `fetch` runs the same pipeline but decodes JSON responses to data; use
 `fetchResponse` for protocol assertions, including explicit JSON responses.
+Both helpers JSON-encode `init.body`, defaulting its content type only if no
+case-insensitive header override is present. Relative paths resolve against
+HTTPS at `options.domain` (hostname and optional port), or `https://test.brain`
+when omitted; absolute URLs retain their own origin and scheme.
+`init.transport?: { readonly remoteAddress?: string }` supplies explicit
+test-only host socket metadata through the route pipeline's detached, frozen
+snapshot. Omitting transport supplies no trusted peer, regardless of forwarding
+headers.
 
 Tool calls enforce declared permissions and return success, error, or
 `{ ok: false, confirmation }` when approval is pending. Confirmation includes the
