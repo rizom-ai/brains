@@ -421,6 +421,27 @@ describe("initPilotRepo", () => {
     expect(deployWorkflow).toContain("git add --intent-to-add -- users views");
     expect(deployWorkflow).toContain("merge-multiple: true");
     expect(deployWorkflow).toContain("bun install");
+    const inventoryGate = deployWorkflow.indexOf(
+      "bun deploy/scripts/verify-runtime-image.ts",
+    );
+    expect(inventoryGate).toBeGreaterThan(
+      deployWorkflow.indexOf("- name: Wait for image tag"),
+    );
+    expect(inventoryGate).toBeLessThan(
+      deployWorkflow.indexOf("- name: Provision server"),
+    );
+    expect(inventoryGate).toBeLessThan(
+      deployWorkflow.indexOf("- name: Create verified predeploy backup"),
+    );
+    expect(inventoryGate).toBeLessThan(
+      deployWorkflow.indexOf("- name: Deploy\n"),
+    );
+    const inventoryScript = await readFile(
+      join(repo, "deploy", "scripts", "verify-runtime-image.ts"),
+      "utf8",
+    );
+    expect(inventoryScript).toContain("verifyRuntimeImage");
+    expect(inventoryScript).toContain("sitePackagesFor(user.siteOverride)");
     expect(deployWorkflow).toContain(
       "bun deploy/scripts/resolve-deploy-handles.ts",
     );

@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       brain_version:
-        description: Force one explicit build at this brain version (skips the registry-derived resolve)
+        description: Build one Brain version with the full fleet package union
         required: false
         type: string
       site_packages:
-        description: "Space-separated exact site/theme packages for one explicit image build. Shared-fleet automatic builds derive the version-wide package union from desired state."
+        description: "Extra exact site/theme package pins for an explicit build. All builds include the full fleet package union; conflicting pins are rejected."
         required: false
         type: string
       overwrite:

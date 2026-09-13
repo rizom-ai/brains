@@ -90,7 +90,10 @@ describe("requiredImages", () => {
       {
         tag: "brain-0.2.0-alpha.160",
         brainVersion: "0.2.0-alpha.160",
-        sitePackages: [],
+        sitePackages: [
+          "@rizom/site-rizom-ai@0.2.0-alpha.167",
+          "@rizom/theme-rizom-ai@0.2.0-alpha.165",
+        ],
       },
       {
         tag: "brain-0.2.0-alpha.167",
@@ -197,6 +200,7 @@ describe("resolveImageBuilds", () => {
     const checked: string[] = [];
     const builds = await resolveImageBuilds({
       users,
+      verifyImage: async () => {},
       imageExists: async (tag) => {
         checked.push(tag);
         return tag === "brain-0.2.0-alpha.160";
@@ -217,6 +221,7 @@ describe("resolveImageBuilds", () => {
   it("resolves to nothing when every declared image exists", async () => {
     const builds = await resolveImageBuilds({
       users,
+      verifyImage: async () => {},
       imageExists: async () => true,
     });
     expect(builds).toEqual([]);
@@ -230,6 +235,7 @@ describe("resolveImageBuilds", () => {
     void expect(
       resolveImageBuilds({
         users,
+        verifyImage: async () => {},
         brainVersionInput: "0.2.0-alpha.169",
         imageExists: async () => true,
       }),
@@ -239,6 +245,7 @@ describe("resolveImageBuilds", () => {
   it("force-rebuilds an existing tag when overwrite is confirmed", async () => {
     const builds = await resolveImageBuilds({
       users,
+      verifyImage: async () => {},
       brainVersionInput: "0.2.0-alpha.169",
       allowTagOverwrite: true,
       imageExists: async () => true,
@@ -250,9 +257,9 @@ describe("resolveImageBuilds", () => {
   it("forces a single explicit build from dispatch inputs", async () => {
     const builds = await resolveImageBuilds({
       users,
+      verifyImage: async () => {},
       brainVersionInput: "0.2.0-alpha.169",
-      sitePackagesInput:
-        "@rizom/site-rizom-ai@0.2.0-alpha.169 @rizom/theme-rizom-ai@0.2.0-alpha.169",
+      sitePackagesInput: "@rizom/theme-rizom-ai@0.2.0-alpha.169",
       imageExists: async () => false,
     });
 
@@ -261,7 +268,7 @@ describe("resolveImageBuilds", () => {
         tag: "brain-0.2.0-alpha.169",
         brainVersion: "0.2.0-alpha.169",
         sitePackages: [
-          "@rizom/site-rizom-ai@0.2.0-alpha.169",
+          "@rizom/site-rizom-ai@0.2.0-alpha.167",
           "@rizom/theme-rizom-ai@0.2.0-alpha.169",
         ],
       },
@@ -329,7 +336,10 @@ members:
         // Only the fleet-default image exists in the registry. Fails the way
         // runSubprocess does, so imageTagExists can tell an unknown manifest
         // from docker being unable to run at all.
-        if (!args.join(" ").endsWith(":brain-0.2.0-alpha.160")) {
+        if (
+          args[0] === "manifest" &&
+          !args.join(" ").endsWith(":brain-0.2.0-alpha.160")
+        ) {
           throw new Error(`docker ${args.join(" ")} exited with code 1`);
         }
       },
@@ -340,9 +350,7 @@ members:
     });
 
     expect(builds).toHaveLength(1);
-    expect(
-      probed.every((line) => line.startsWith("docker manifest inspect")),
-    ).toBe(true);
+    expect(probed.some((line) => line.startsWith("docker run"))).toBe(true);
     const matrix = z
       .array(
         z.looseObject({
@@ -362,17 +370,32 @@ members:
     ]);
   });
 
-  it("honors explicit dispatch inputs without loading the pilot registry", async () => {
-    // It does probe the image registry: that is how the tag-immutability guard
-    // knows the tag is free. What it must not do is load the pilot repo, hence
-    // the nonexistent rootDir. The previous name said "without touching the
-    // registry" and its fake threw to enforce that, but the throw was
-    // swallowed into "tag absent", so the claim went unchecked either way.
+  it("includes fleet packages in explicit builds even before any user adopts the version", async () => {
+    const root = await createPilotRepo({
+      "pilot.yaml": `brainVersion: 0.2.0-alpha.160
+bundleContract: capability-bundles-v1
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
+bundles: [core]
+aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
+agePublicKey: age1testpublickey
+`,
+      "users/alice.yaml": `handle: alice
+siteOverride:
+  package: "@rizom/site-docs"
+  version: 0.2.0-alpha.167
+discord:
+  enabled: false
+`,
+      "cohorts/pilot.yaml": "members: [alice]\n",
+    });
     const outputs: Record<string, string> = {};
     const probed: string[] = [];
     const builds = await runResolveMissingImages({
-      // No pilot repo at this path — the pilot registry must not be loaded.
-      rootDir: "/nonexistent",
+      rootDir: root,
       imageRepository: "ghcr.io/rizom-ai/rover-pilot",
       env: {
         BRAIN_VERSION_INPUT: "0.2.0-alpha.169",
@@ -391,6 +414,10 @@ members:
 
     expect(builds).toHaveLength(1);
     expect(builds[0]?.tag).toBe("brain-0.2.0-alpha.169");
+    expect(builds[0]?.sitePackages).toEqual([
+      "@rizom/site-docs@0.2.0-alpha.167",
+      "@rizom/site-rizom-ai@0.2.0-alpha.169",
+    ]);
     expect(JSON.parse(outputs["images_json"] ?? "[]")).toHaveLength(1);
     expect(probed).toHaveLength(1);
     expect(probed[0]).toContain("manifest inspect");
