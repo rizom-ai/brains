@@ -25,6 +25,12 @@ import {
 
 const now = 3 * 86400000;
 const key = "a".repeat(64);
+/** Awaited rejection message; Bun types `rejects` matchers as non-thenable. */
+const rejection = (run: Promise<unknown>): Promise<string> =>
+  run.then(
+    () => "resolved",
+    (error: unknown) => (error instanceof Error ? error.message : "unknown"),
+  );
 const expiredKey = "1".repeat(64);
 const activeKey = "2".repeat(64);
 const recentKey = "3".repeat(64);
@@ -35,7 +41,8 @@ function receipt(state: GuestAdmissionReceipt["state"]): GuestAdmissionReceipt {
     conversation: "e".repeat(64),
     fingerprint: "f".repeat(64),
     createdAt: now - 2 * 86400000,
-    deadline: now - 86400000,
+    // Active work stays within its deadline unless a test says otherwise.
+    deadline: state === "active" ? now + 1 : now - 86400000,
     retainUntil: now,
     reservedMicroUsd: 100000,
     state,
@@ -138,6 +145,39 @@ describe("guest state maintenance", () => {
     });
   });
 
+  it("reports active work past its deadline as an operator alert after pruning, without releasing it", async () => {
+    const state = createMemoryRuntimeStateNamespace();
+    const store = state.scoped({
+      namespace: guestAdmissionNamespace,
+      schema: guestAdmissionStateSchema,
+    });
+    const original = ledger();
+    original.receipts[activeKey] = {
+      ...receipt("active"),
+      deadline: now - 1,
+    };
+    await store.set(key, original);
+    const maintenance = new GuestStateMaintenance(state, () => now);
+    expect(await rejection(maintenance.run())).toBe(
+      "Guest maintenance unavailable",
+    );
+    const cleaned = await store.get(key);
+    const retained = { ...original.receipts };
+    delete retained[expiredKey];
+    expect(cleaned).toEqual({
+      ...original,
+      revision: 5,
+      lastSeenAt: now,
+      receipts: retained,
+    });
+    // Nothing left to prune, but the uncertain lease keeps the alert raised
+    // on every run, so daemon health stays unhealthy until it is reconciled.
+    expect(await rejection(maintenance.run())).toBe(
+      "Guest maintenance unavailable",
+    );
+    expect(await store.get(key)).toEqual(cleaned);
+  });
+
   it("preserves concurrent reservations and policy changes, or a concurrently deleted ledger", async () => {
     for (const deletion of [false, true]) {
       const state = createMemoryRuntimeStateNamespace();
@@ -191,7 +231,7 @@ describe("guest state maintenance", () => {
     }
   });
 
-  it("bounds contention retries and advances to the next origin without changing the busy ledger", async () => {
+  it("bounds contention retries per ledger and still sweeps the other origins in the same run", async () => {
     const state = createMemoryRuntimeStateNamespace();
     const store = state.scoped({
       namespace: guestAdmissionNamespace,
@@ -220,12 +260,12 @@ describe("guest state maintenance", () => {
       },
     };
     const maintenance = new GuestStateMaintenance(busy, () => now);
-    expect(maintenance.run()).rejects.toThrow("Guest maintenance unavailable");
+    expect(await rejection(maintenance.run())).toBe(
+      "Guest maintenance unavailable",
+    );
     expect(attempts).toBe(4);
     expect(await store.get(key)).toEqual(original);
-    await maintenance.run();
     expect((await store.get(nextKey))?.receipts[expiredKey]).toBeUndefined();
-    expect(await store.get(key)).toEqual(original);
   });
 
   it("reports ledger clock rollback without starving credential cleanup", async () => {
@@ -249,9 +289,9 @@ describe("guest state maintenance", () => {
         },
       }),
     );
-    expect(new GuestStateMaintenance(state, () => now).run()).rejects.toThrow(
-      "Guest maintenance unavailable",
-    );
+    expect(
+      await rejection(new GuestStateMaintenance(state, () => now).run()),
+    ).toBe("Guest maintenance unavailable");
     expect(await store.get(key)).toEqual(original);
     expect(await visitors.list()).toEqual([]);
   });

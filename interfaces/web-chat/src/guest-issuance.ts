@@ -4,6 +4,7 @@ import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
 } from "@brains/plugins";
+import { attempt, retry } from "./cas-retry";
 import {
   guestIssuanceLimitsSchema,
   type GuestIssuanceLimits,
@@ -83,67 +84,72 @@ export class GuestIssuance {
     const policy = this.fingerprint(validatedLimits);
     const id = randomUUID();
     try {
-      for (let attempt = 0; attempt < 32; attempt++) {
-        const stored = await this.store.get(ledgerKey);
-        const now = this.clock(stored);
-        if (!stored && !(await isEmpty())) {
-          // Another issuer may have initialized the ledger while this read waited.
-          if (await this.store.has(ledgerKey)) continue;
-          return null; // Never bootstrap over unaccounted credential records.
-        }
-        const state: GuestIssuanceState = stored ?? {
-          version: 1,
-          revision: 0,
-          policy,
-          enabled: true,
-          lastSeenAt: now,
-          attempts: [],
-          slots: {},
-        };
-        const attempts = state.attempts.filter((time) => time > now - dayMs);
-        if (
-          !state.enabled ||
-          state.policy !== policy ||
-          state.slots[key] ||
-          lifetime.createdAt > now ||
-          lifetime.expiresAt <= now ||
-          attempts.length >= validatedLimits.requestsPerDay ||
-          attempts.filter((time) => time > now - 60000).length >=
-            validatedLimits.requestsPerMinute ||
-          Object.keys(state.slots).length >=
-            validatedLimits.maxStoredCredentials
-        )
-          return null;
-        const next: GuestIssuanceState = {
-          ...state,
-          revision: state.revision + 1,
-          lastSeenAt: now,
-          attempts: [...attempts, now],
-          slots: {
-            ...state.slots,
-            [key]: {
-              createdAt: lifetime.createdAt,
-              expiresAt: lifetime.expiresAt,
-              id,
-              state: "pending",
-            },
-          },
-        };
-        const committed = stored
-          ? await this.store.compareAndSet(ledgerKey, stored, next)
-          : await this.store.setIfNotExists(ledgerKey, next);
-        if (committed)
-          return {
-            key,
-            id,
-            createdAt: lifetime.createdAt,
-            expiresAt: lifetime.expiresAt,
+      return await attempt<GuestIssuanceTicket | null>(
+        32,
+        async () => {
+          const stored = await this.store.get(ledgerKey);
+          const now = this.clock(stored);
+          if (!stored && !(await isEmpty())) {
+            // Another issuer may have initialized the ledger while this read waited.
+            if (await this.store.has(ledgerKey)) return retry;
+            return null; // Never bootstrap over unaccounted credential records.
+          }
+          const state: GuestIssuanceState = stored ?? {
+            version: 1,
+            revision: 0,
+            policy,
+            enabled: true,
+            lastSeenAt: now,
+            attempts: [],
+            slots: {},
           };
-      }
+          const attempts = state.attempts.filter((time) => time > now - dayMs);
+          if (
+            !state.enabled ||
+            state.policy !== policy ||
+            state.slots[key] ||
+            lifetime.createdAt > now ||
+            lifetime.expiresAt <= now ||
+            attempts.length >= validatedLimits.requestsPerDay ||
+            attempts.filter((time) => time > now - 60000).length >=
+              validatedLimits.requestsPerMinute ||
+            Object.keys(state.slots).length >=
+              validatedLimits.maxStoredCredentials
+          )
+            return null;
+          const next: GuestIssuanceState = {
+            ...state,
+            revision: state.revision + 1,
+            lastSeenAt: now,
+            attempts: [...attempts, now],
+            slots: {
+              ...state.slots,
+              [key]: {
+                createdAt: lifetime.createdAt,
+                expiresAt: lifetime.expiresAt,
+                id,
+                state: "pending",
+              },
+            },
+          };
+          const committed = stored
+            ? await this.store.compareAndSet(ledgerKey, stored, next)
+            : await this.store.setIfNotExists(ledgerKey, next);
+          return committed
+            ? {
+                key,
+                id,
+                createdAt: lifetime.createdAt,
+                expiresAt: lifetime.expiresAt,
+              }
+            : retry;
+        },
+        () => null,
+      );
     } catch {
       // Ambiguous reservations remain charged; no guessed refunds or raw errors.
+      return null;
     }
-    return null;
   }
 
   /** Only the original writer calls this, after the credential write resolves. */
@@ -253,24 +259,30 @@ export class GuestIssuance {
     change: (state: GuestIssuanceState) => GuestIssuanceState | null,
   ): Promise<boolean> {
     try {
-      for (let attempt = 0; attempt < 32; attempt++) {
-        const state = await this.store.get(ledgerKey);
-        if (!state) return false;
-        const now = this.clock(state);
-        const changed = change(state);
-        if (!changed) return false;
-        const next = {
-          ...changed,
-          revision: state.revision + 1,
-          lastSeenAt: now,
-          attempts: changed.attempts.filter((time) => time > now - dayMs),
-        };
-        if (await this.store.compareAndSet(ledgerKey, state, next)) return true;
-      }
+      return await attempt<boolean>(
+        32,
+        async () => {
+          const state = await this.store.get(ledgerKey);
+          if (!state) return false;
+          const now = this.clock(state);
+          const changed = change(state);
+          if (!changed) return false;
+          const next = {
+            ...changed,
+            revision: state.revision + 1,
+            lastSeenAt: now,
+            attempts: changed.attempts.filter((time) => time > now - dayMs),
+          };
+          return (await this.store.compareAndSet(ledgerKey, state, next))
+            ? true
+            : retry;
+        },
+        () => false,
+      );
     } catch {
       // Keep unknown writes/deletes reserved and report only safe availability.
+      return false;
     }
-    return false;
   }
 
   private clock(state: GuestIssuanceState | null): number {

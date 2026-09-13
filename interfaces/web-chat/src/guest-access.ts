@@ -186,15 +186,17 @@ export class GuestVisitorStore {
         (await this.store.list({ limit: 1 })).length > 0
       )
         throw new Error("Unaccounted credentials require reconciliation");
-      let removed = 0;
-      for (const record of records) {
-        if (
-          record.state !== "pending" &&
-          (record.state === "deleting" || record.expiresAt <= now)
-        ) {
-          if (await this.deleteCredential(record)) removed++;
-        }
-      }
+      // Sequential: each deletion is a ledger transition of its own.
+      const removed = await records.reduce(
+        async (count, record) =>
+          (await count) +
+          (record.state !== "pending" &&
+          (record.state === "deleting" || record.expiresAt <= now) &&
+          (await this.deleteCredential(record))
+            ? 1
+            : 0),
+        Promise.resolve(0),
+      );
       return {
         removed,
         uncertain,

@@ -590,12 +590,15 @@ describe("guest admission", () => {
     if (first.kind !== "reserved" || second.kind !== "reserved")
       throw new Error("Expected two leases");
     await admission.settle(first.lease, "completed");
+    expect(await admission.cleanup()).toEqual({ removed: 0, uncertain: 0 });
     now += testGuestPolicy.retention.maxAgeSeconds * 1000;
-    expect(await admission.cleanup()).toBe(1);
-    expect(await admission.cleanup()).toBe(0);
+    // The unsettled lease is past its deadline: still reserved, now reported.
+    expect(await admission.cleanup()).toEqual({ removed: 1, uncertain: 1 });
+    expect(await admission.cleanup()).toEqual({ removed: 0, uncertain: 1 });
     expect(await admission.settle(second.lease, "failed")).toBe(true);
+    expect(await admission.cleanup()).toEqual({ removed: 0, uncertain: 0 });
     now += 86_400_000;
-    expect(await admission.cleanup()).toBe(1);
+    expect(await admission.cleanup()).toEqual({ removed: 1, uncertain: 0 });
   });
 
   it("rejects clock rollback and isolates preview accounting from production", async () => {

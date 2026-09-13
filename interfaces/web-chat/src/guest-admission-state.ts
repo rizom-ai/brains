@@ -77,6 +77,16 @@ export function retainedGuestReceipts(
   );
 }
 
+/** Active work past its deadline: still reserved, but an operator must reconcile it. */
+export function countUncertainGuestReceipts(
+  state: GuestAdmissionState,
+  now: number,
+): number {
+  return Object.values(state.receipts).filter(
+    (receipt) => receipt.state === "active" && now >= receipt.deadline,
+  ).length;
+}
+
 export interface GuestExecutionLease {
   key: string;
   id: string;

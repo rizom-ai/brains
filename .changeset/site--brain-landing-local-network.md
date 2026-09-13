@@ -1,5 +1,5 @@
 ---
-"@rizom/site-rizom-ai": patch
+"@rizom/site-rizom-ai": minor
 ---
 
 Publish the redesigned Brain landing page with the shared fixed-height Ask box, updated section schemas and the interactive local agent proximity map. Remove the retired network snapshots from site assets while retaining the illustrative Studio captures.

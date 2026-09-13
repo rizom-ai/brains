@@ -4,12 +4,14 @@ import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
 } from "@brains/plugins";
+import { attempt, retry } from "./cas-retry";
 import { canAccessGuestConversation, type GuestVisitor } from "./guest-access";
 import type { WebChatConversation } from "./conversation-access";
 import { guestPolicySchema, type EnabledGuestPolicy } from "./guest-policy";
 import {
   guestAdmissionStateSchema,
   guestAdmissionNamespace,
+  countUncertainGuestReceipts,
   retainedGuestReceipts,
   type GuestAdmissionState,
   type GuestAdmissionReceipt,
@@ -296,17 +298,26 @@ export class GuestAdmission {
     }, false);
   }
 
-  /** Bounded references outlive content only as required for quotas/deduplication. */
-  async cleanup(): Promise<number | null> {
-    return this.transact<number | null>((state, now) => {
-      const receipts = retainedGuestReceipts(state, now);
-      const removed =
-        Object.keys(state.receipts).length - Object.keys(receipts).length;
-      return {
-        result: removed,
-        ...(removed > 0 ? { next: { ...state, receipts } } : {}),
-      };
-    }, null);
+  /** Bounded references outlive content only as required for quotas/deduplication.
+   * Active work past its deadline is never released here; it is counted so an
+   * operator can reconcile it before it exhausts concurrency or budget.
+   */
+  async cleanup(): Promise<{ removed: number; uncertain: number } | null> {
+    return this.transact<{ removed: number; uncertain: number } | null>(
+      (state, now) => {
+        const receipts = retainedGuestReceipts(state, now);
+        const removed =
+          Object.keys(state.receipts).length - Object.keys(receipts).length;
+        return {
+          result: {
+            removed,
+            uncertain: countUncertainGuestReceipts(state, now),
+          },
+          ...(removed > 0 ? { next: { ...state, receipts } } : {}),
+        };
+      },
+      null,
+    );
   }
 
   private async transact<T>(
@@ -314,40 +325,43 @@ export class GuestAdmission {
     unavailable: T,
   ): Promise<T> {
     try {
-      for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        const stored = await this.store.get(this.key);
-        const now = this.now();
-        if (
-          !Number.isSafeInteger(now) ||
-          now < 0 ||
-          (stored && now < stored.lastSeenAt)
-        )
-          return unavailable;
-        const state: GuestAdmissionState = stored ?? {
-          version: 1,
-          revision: 0,
-          policy: this.policyFingerprint,
-          enabled: true,
-          lastSeenAt: now,
-          receipts: {},
-        };
-        const change = transition(state, now);
-        if (!change.next) return change.result;
-        const next: GuestAdmissionState = {
-          ...change.next,
-          revision: state.revision + 1,
-          lastSeenAt: now,
-        };
-        const committed = stored
-          ? await this.store.compareAndSet(this.key, stored, next)
-          : await this.store.setIfNotExists(this.key, next);
-        if (committed) return change.result;
-      }
+      return await attempt<T>(
+        maxAttempts,
+        async () => {
+          const stored = await this.store.get(this.key);
+          const now = this.now();
+          if (
+            !Number.isSafeInteger(now) ||
+            now < 0 ||
+            (stored && now < stored.lastSeenAt)
+          )
+            return unavailable;
+          const state: GuestAdmissionState = stored ?? {
+            version: 1,
+            revision: 0,
+            policy: this.policyFingerprint,
+            enabled: true,
+            lastSeenAt: now,
+            receipts: {},
+          };
+          const change = transition(state, now);
+          if (!change.next) return change.result;
+          const next: GuestAdmissionState = {
+            ...change.next,
+            revision: state.revision + 1,
+            lastSeenAt: now,
+          };
+          const committed = stored
+            ? await this.store.compareAndSet(this.key, stored, next)
+            : await this.store.setIfNotExists(this.key, next);
+          return committed ? change.result : retry;
+        },
+        () => unavailable,
+      );
     } catch {
       // No confirmed reservation means no execution. An ambiguous write may have
       // committed: leave its lease held, never guess a rollback or log raw state.
       return unavailable;
     }
-    return unavailable;
   }
 }

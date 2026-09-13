@@ -465,27 +465,23 @@ export class GuestHttpHandlers {
       });
     };
     signal.addEventListener("abort", cancel, { once: true });
-    const chunks: Uint8Array[] = [];
-    let size = 0;
+    const drain = async (
+      chunks: Uint8Array[],
+      size: number,
+    ): Promise<Uint8Array[]> => {
+      const result = await reader.read();
+      signal.throwIfAborted();
+      if (result.done) return chunks;
+      const total = size + result.value.byteLength;
+      if (total > policy.limits.contextBytes) {
+        cancel();
+        throw new GuestHttpError(413, "Guest request too large");
+      }
+      return drain([...chunks, result.value], total);
+    };
     try {
       signal.throwIfAborted();
-      for (;;) {
-        const result = await reader.read();
-        signal.throwIfAborted();
-        if (result.done) break;
-        size += result.value.byteLength;
-        if (size > policy.limits.contextBytes) {
-          cancel();
-          throw new GuestHttpError(413, "Guest request too large");
-        }
-        chunks.push(result.value);
-      }
-      const bytes = new Uint8Array(size);
-      let offset = 0;
-      for (const chunk of chunks) {
-        bytes.set(chunk, offset);
-        offset += chunk.byteLength;
-      }
+      const bytes = Buffer.concat(await drain([], 0));
       try {
         return JSON.parse(
           new TextDecoder("utf-8", { fatal: true }).decode(bytes),
