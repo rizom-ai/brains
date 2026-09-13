@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.370
+
+### Patch Changes
+
+- [`cd1def4`](https://github.com/rizom-ai/brains/commit/cd1def4434c2fb9d56fbb7dcfad39eeffd8b0c3a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Report guest execution reservations that are still active past their deadline. `GuestAdmission.cleanup()` returns the removed and uncertain counts, and guest maintenance raises the same operator alert for uncertain execution work that it already raises for uncertain credential writes, after committing its pruning pass. The reservation itself is never released: only the verified recovery procedure may do that, so abandoned turns no longer wedge concurrency or budget silently.
+
 ## 0.2.0-alpha.369
 
 ### Patch Changes

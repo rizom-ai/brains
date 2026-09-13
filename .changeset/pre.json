@@ -320,6 +320,7 @@
     "core--git-child-lifecycle",
     "core--git-execution-broker-recovery-fixes",
     "core--git-execution-broker",
+    "core--guest-admission-uncertain-signal",
     "core--health-probe-and-declared-type-message",
     "core--health-watchdog-container-scope",
     "core--health-watchdog-deployment-smoke",
