@@ -2030,14 +2030,27 @@ async function fillLabel(
   const filled = await evaluatePageWith(
     page,
     ({ labelText: text, value: nextValue }) => {
+      // Fields that carry their own label expose it as aria-label rather than
+      // spending a line on it, so match either.
+      const labelled = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          "input[aria-label], textarea[aria-label]",
+        ),
+      ).find(
+        (candidate) =>
+          candidate.getAttribute("aria-label") === text &&
+          candidate.getBoundingClientRect().height > 0,
+      );
       const label = Array.from(document.querySelectorAll("label")).find(
         (candidate) =>
           candidate.textContent.includes(text) &&
           candidate.getBoundingClientRect().height > 0,
       );
-      const input = label?.htmlFor
-        ? document.getElementById(label.htmlFor)
-        : label?.querySelector("input, textarea");
+      const input =
+        labelled ??
+        (label?.htmlFor
+          ? document.getElementById(label.htmlFor)
+          : label?.querySelector("input, textarea"));
       if (!(
         input instanceof HTMLInputElement ||
         input instanceof HTMLTextAreaElement
@@ -4430,7 +4443,6 @@ try {
           await waitForText(page, "1–25 of 54");
           await clickText(page, ".listing-pagination button", "Next");
           await fillLabel(page, "Search title or content", "Archive note 22");
-          await clickText(page, ".studio-collection-controls button", "Search");
           await waitForText(page, "1–1 of 1");
           await evaluatePage(page, () => {
             if (new URLSearchParams(location.search).has("offset"))
@@ -4450,11 +4462,7 @@ try {
             select.dispatchEvent(new Event("change", { bubbles: true }));
           });
           await waitForText(page, "No entries match these filters");
-          await clickText(
-            page,
-            ".studio-collection-controls button",
-            "Clear search and filters",
-          );
+          await clickText(page, ".studio-collection-controls button", "Clear");
           await waitForText(page, "1–25 of 54");
           await evaluatePage(page, () => history.back());
           await waitForText(page, "No entries match these filters");

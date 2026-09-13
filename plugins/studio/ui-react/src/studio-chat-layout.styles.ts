@@ -17,7 +17,7 @@ export const chatLayout: Record<
   | "activeSession"
   | "sessionTitle"
   | "sessionControls"
-  | "sessionFilterInput"
+  | "sessionFilterSelect"
   | "timestamp"
   | "actions"
   | "title"
@@ -63,19 +63,13 @@ export const chatLayout: Record<
     fontSize: 12,
     color: "var(--console-text-muted)",
   },
-  sessionFilterInput: {
-    display: "block",
+  // The index is a narrow column: its controls stay one field tall each and
+  // carry their own labels, so the list starts near the top of the rail.
+  sessionFilterSelect: {
     width: "100%",
     minWidth: 0,
-    minHeight: 44,
-    marginTop: 4,
-    padding: "8px 10px",
-    border: "1px solid var(--console-rule)",
-    borderRadius: 5,
-    fontFamily: "var(--console-ui)",
-    fontSize: 14,
-    color: "var(--console-text)",
-    backgroundColor: "var(--console-card)",
+    minHeight: { default: 38, "@media (max-width: 640px)": 44 },
+    fontSize: { default: 13, "@media (max-width: 640px)": 16 },
   },
   composerHint: {
     display: "block",

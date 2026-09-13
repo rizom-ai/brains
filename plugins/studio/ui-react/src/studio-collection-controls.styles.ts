@@ -1,34 +1,84 @@
 import * as stylex from "@stylexjs/stylex";
 export const collectionControlStyles: Record<
-  "controls" | "search" | "searchLabel" | "input" | "summary" | "fields",
+  "controls" | "row" | "filters" | "summary" | "open" | "panel" | "state",
   stylex.StyleXStyles
 > = stylex.create({
   controls: {
-    paddingBlock: 16,
+    paddingBlock: 14,
     borderBottom: "1px solid var(--console-rule)",
     fontFamily: "var(--console-ui)",
     fontSize: 13,
     color: "var(--console-text-muted)",
   },
-  search: { display: "flex", alignItems: "end", gap: 12 },
-  searchLabel: { display: "grid", gap: 6, flex: 1, minWidth: 0 },
-  input: {
-    width: "100%",
-    minWidth: 0,
-    minHeight: 44,
-    padding: "8px 10px",
-    border: "1px solid var(--console-rule)",
-    borderRadius: 5,
-    fontFamily: "var(--console-ui)",
-    fontSize: 14,
-    color: "var(--console-text)",
-    backgroundColor: "var(--console-card)",
+  // One instrument row: the query, its filters, and what it matched.
+  row: {
+    display: "flex",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 10,
   },
-  summary: { paddingBlock: 12, cursor: "pointer", minHeight: 44 },
-  fields: {
+  filters: { position: "relative" },
+  summary: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 7,
+    minHeight: { default: 38, "@media (max-width: 640px)": 44 },
+    paddingInline: 11,
+    // Longhands: a sibling style sets borderColor, and a shorthand loses to it.
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "var(--console-rule-strong)",
+    borderRadius: 7,
+    backgroundColor: "var(--console-card)",
+    color: "var(--console-text-dim)",
+    fontSize: 13,
+    listStyle: "none",
+    cursor: "pointer",
+    "::-webkit-details-marker": { display: "none" },
+  },
+  open: {
+    borderColor: "var(--console-rule-accent)",
+    color: "var(--console-text)",
+  },
+  // A panel rather than a stacked block, so opening filters never pushes the
+  // collection down the page. Phones keep it in flow, where there is no room
+  // to float it.
+  panel: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
     gap: 12,
-    paddingBottom: 12,
+    gridTemplateColumns: {
+      default: "repeat(auto-fit, minmax(150px, 1fr))",
+      "@media (max-width: 640px)": "minmax(0, 1fr)",
+    },
+    position: { default: "absolute", "@media (max-width: 640px)": "static" },
+    zIndex: 6,
+    insetBlockStart: {
+      default: "calc(100% + 8px)",
+      "@media (max-width: 640px)": "auto",
+    },
+    insetInlineStart: 0,
+    width: { default: 420, "@media (max-width: 640px)": "100%" },
+    maxWidth: "100%",
+    marginBlockStart: { default: 0, "@media (max-width: 640px)": 10 },
+    padding: { default: 14, "@media (max-width: 640px)": 0 },
+    borderWidth: { default: 1, "@media (max-width: 640px)": 0 },
+    borderStyle: "solid",
+    borderColor: "var(--console-rule-strong)",
+    borderRadius: 9,
+    backgroundColor: {
+      default: "var(--console-card)",
+      "@media (max-width: 640px)": "transparent",
+    },
+    boxShadow: {
+      default: "var(--console-shadow-card)",
+      "@media (max-width: 640px)": "none",
+    },
+  },
+  state: {
+    marginInlineStart: "auto",
+    color: "var(--console-text-muted)",
+    fontFamily: "var(--console-mono)",
+    fontSize: 11,
+    whiteSpace: "nowrap",
   },
 });

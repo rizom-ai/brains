@@ -12,6 +12,7 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  NativeSelect,
 } from "@brains/app-ui-react";
 import { chatClass, chatLayout } from "./studio-chat-layout.styles";
 import {
@@ -61,6 +62,7 @@ import {
 import { TypeSwitcher } from "./entity-fields";
 import { useStudioNavigationCollapsed } from "./studio-navigation-state";
 import { StudioChrome } from "./studio-chrome";
+import { StudioSearchField } from "./studio-search-field";
 import { StudioMarkdown } from "./studio-markdown";
 import {
   navigationClassName as navClass,
@@ -521,6 +523,19 @@ export function StudioChatWorkspace(
           content: text || uploads.map((upload) => upload.filename).join(", "),
         },
       ]);
+      // The transcript owns the message from here, so the composer empties now
+      // rather than when the server answers; a refusal puts the draft back. A
+      // suggested action carries its own prompt and never empties the composer.
+      const sentUploads = [...uploads];
+      const held = draftStore.read(draftKey);
+      const sentFromComposer = held.text === prompt;
+      if (sentFromComposer || sentUploads.length > 0)
+        draftStore.update(draftKey, {
+          text: sentFromComposer ? "" : held.text,
+          uploads: held.uploads.filter(
+            (upload) => !sentUploads.some((sent) => sent.id === upload.id),
+          ),
+        });
       const accepted = await runStream(
         conversationId,
         [{ id: messageId, role: "user", parts }],
@@ -534,13 +549,6 @@ export function StudioChatWorkspace(
             adoptedSessionRef.current = conversationId;
             navigateToSession(conversationId, true);
           }
-          const current = draftStore.read(sentKey);
-          draftStore.update(sentKey, {
-            text: current.text === prompt ? "" : current.text,
-            uploads: current.uploads.filter(
-              (upload) => !uploads.some((sent) => sent.id === upload.id),
-            ),
-          });
         },
         { text: prompt, uploads: [...uploads] },
       );
@@ -548,10 +556,25 @@ export function StudioChatWorkspace(
         !accepted &&
         (currentDraftKey.current === sentKey ||
           (!props.sessionId && currentDraftKey.current === draftKey))
-      )
+      ) {
         setPendingMessages((current) =>
           current.filter((message) => message.id !== messageId),
         );
+        // Restore into whichever conversation the composer now shows, keeping
+        // anything typed while the request was in flight.
+        const key = currentDraftKey.current;
+        const current = draftStore.read(key);
+        draftStore.update(key, {
+          ...(sentFromComposer && !current.text ? { text: prompt } : {}),
+          uploads: [
+            ...sentUploads.filter(
+              (upload) =>
+                !current.uploads.some((kept) => kept.id === upload.id),
+            ),
+            ...current.uploads,
+          ],
+        });
+      }
     },
     [
       navigateToSession,
@@ -1238,65 +1261,60 @@ function SessionRail(props: {
           chatLayout.sessionControls,
         )}
       >
-        <label>
-          Search conversations
-          <input
-            type="search"
-            maxLength={200}
-            className={chatClass("", chatLayout.sessionFilterInput)}
-            placeholder="Titles or messages"
-            value={props.search}
-            onChange={(event) => props.onSearch(event.target.value)}
-          />
-        </label>
-        <label>
-          Show
-          <select
-            className={chatClass("", chatLayout.sessionFilterInput)}
-            value={props.view.archived ? "archived" : "active"}
-            onChange={(event) =>
-              props.onView({
-                ...props.view,
-                archived: event.target.value === "archived",
-                offset: 0,
-              })
-            }
-          >
-            <option value="active">Active conversations</option>
-            <option value="archived">Archived conversations</option>
-          </select>
-        </label>
-        <div
-          className={chatClass("", chatLayout.actions)}
-          aria-label="Conversation pages"
-          role="group"
+        <StudioSearchField
+          label="Search conversations"
+          placeholder="Search conversations"
+          value={props.search}
+          onChange={props.onSearch}
+        />
+        <NativeSelect
+          xstyle={chatLayout.sessionFilterSelect}
+          aria-label="Show conversations"
+          value={props.view.archived ? "archived" : "active"}
+          onChange={(event) =>
+            props.onView({
+              ...props.view,
+              archived: event.target.value === "archived",
+              offset: 0,
+            })
+          }
         >
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={props.loading || props.view.offset === 0}
-            onClick={() =>
-              props.onView({
-                ...props.view,
-                offset: Math.max(0, props.view.offset - 25),
-              })
-            }
+          <option value="active">Active conversations</option>
+          <option value="archived">Archived conversations</option>
+        </NativeSelect>
+        {(props.view.offset > 0 || props.sessions.length >= 25) && (
+          <div
+            className={chatClass("", chatLayout.actions)}
+            aria-label="Conversation pages"
+            role="group"
           >
-            Previous
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={props.loading || props.sessions.length < 25}
-            onClick={() =>
-              props.onView({ ...props.view, offset: props.view.offset + 25 })
-            }
-          >
-            Next
-          </Button>
-        </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={props.loading || props.view.offset === 0}
+              onClick={() =>
+                props.onView({
+                  ...props.view,
+                  offset: Math.max(0, props.view.offset - 25),
+                })
+              }
+            >
+              Previous
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={props.loading || props.sessions.length < 25}
+              onClick={() =>
+                props.onView({ ...props.view, offset: props.view.offset + 25 })
+              }
+            >
+              Next
+            </Button>
+          </div>
+        )}
         {props.error && (
           <p role="alert">
             {props.error}{" "}
