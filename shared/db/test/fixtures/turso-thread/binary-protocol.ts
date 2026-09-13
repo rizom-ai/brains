@@ -1,7 +1,8 @@
 import { z } from "@brains/utils/zod";
 
-// This slice uses bounded messages on the existing private worker port. It does
-// not yet implement the proposed direct bulk data channel or runtime ingress.
+// Small control-port staging remains useful for borrowed-view/transaction tests.
+// The separate upload protocol now proves direct same-process worker ingress;
+// neither path is wired into runtime callers or authenticated network ingress.
 export const STAGE_CHUNK_BYTES: number = 32 * 1024;
 export const STAGE_BUDGET_BYTES: number = 100 * 1024 * 1024;
 export const STAGE_SLOTS: number = 16;

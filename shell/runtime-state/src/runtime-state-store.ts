@@ -153,9 +153,35 @@ export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
     }
 
     normalizeRuntimeStateKeyPrefix(keyPrefix);
-    const records = await this.list({ keyPrefix });
-    await Promise.all(records.map((record) => this.delete(record.key)));
-    return records.length;
+    return this.db.transaction(
+      async (tx) => {
+        const rows = await tx
+          .select()
+          .from(runtimeStateRecords)
+          .where(eq(runtimeStateRecords.namespace, this.namespace));
+        const records = rows.filter((row) => row.key.startsWith(keyPrefix));
+        // Preserve prefix-clear's validation contract before any deletion. The
+        // unfiltered clear intentionally does not deserialize persisted values.
+        for (const record of records) this.schema.parse(record.value);
+        const keys = records.map((record) =>
+          normalizeRuntimeStateKey(record.key),
+        );
+        // One admitted statement at a time; a later failure rolls back earlier
+        // deletes rather than leaving the old Promise.all fan-out's partial clear.
+        for (const key of keys) {
+          await tx
+            .delete(runtimeStateRecords)
+            .where(
+              and(
+                eq(runtimeStateRecords.namespace, this.namespace),
+                eq(runtimeStateRecords.key, key),
+              ),
+            );
+        }
+        return records.length;
+      },
+      { behavior: "immediate" },
+    );
   }
 
   private async listRows(): Promise<RuntimeStateRecord[]> {

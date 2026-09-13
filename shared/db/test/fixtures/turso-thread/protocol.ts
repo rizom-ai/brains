@@ -1,6 +1,26 @@
 // Isolated driver proof. Not exported by @brains/db or used by runtime callers.
 import { z } from "@brains/utils/zod";
 import {
+  MAX_COMMANDS,
+  MAX_QUEUED_COMMAND_BYTES,
+} from "../../../src/turso-worker/command-admission";
+import { MessagePort } from "node:worker_threads";
+import {
+  executeCommandSchema,
+  batchCommandSchema,
+  migrateCommandSchema,
+  scriptCommandSchema,
+} from "../../../src/turso-worker/sql-command";
+import { uploadGrantSchema, uploadResultSchema } from "./upload-protocol";
+import { readCommandSchema } from "./read-protocol";
+import { savepointCommandSchema } from "./savepoint-protocol";
+import { errorSchema } from "../../../src/turso-worker/error-protocol";
+import { budgetGrantSchema } from "./budget-protocol";
+import {
+  blobPlanSchema,
+  blobPlanBytes,
+} from "../../../src/turso-worker/blob-protocol";
+import {
   binaryCommandSchema,
   boundStatementSchema,
   boundStatementBytes,
@@ -9,56 +29,73 @@ import {
   STAGE_SLOTS,
 } from "./binary-protocol";
 
-export const MAX_MESSAGE_BYTES: number = 64 * 1024;
-export const MAX_PENDING_BYTES: number = 256 * 1024;
-export const MAX_IN_FLIGHT: number = 16;
+import {
+  type argumentSchema,
+  statementSchema,
+  MAX_SQL_MESSAGE_BYTES,
+  MAX_SQL_MIGRATION_STATEMENTS,
+} from "../../../src/turso-worker/client-protocol";
 
-const argumentSchema: z.ZodUnion<
-  [
-    z.ZodNull,
-    z.ZodString,
-    z.ZodNumber,
-    z.ZodBigInt,
-    z.ZodBoolean,
-    z.ZodDate,
-    z.ZodCustom<ArrayBuffer>,
-    z.ZodCustom<Uint8Array>,
-  ]
-> = z.union([
-  z.null(),
-  z.string().max(MAX_MESSAGE_BYTES),
-  z.number(),
-  z.bigint(),
-  z.boolean(),
-  z.date(),
-  z
-    .instanceof(ArrayBuffer)
-    .refine((value) => value.byteLength <= MAX_MESSAGE_BYTES),
-  z
-    .instanceof(Uint8Array)
-    .refine((value) => value.byteLength <= MAX_MESSAGE_BYTES),
-]);
-const statementSchema: z.ZodObject<{
-  sql: z.ZodString;
-  args: z.ZodOptional<
-    z.ZodUnion<
-      readonly [
-        z.ZodArray<typeof argumentSchema>,
-        z.ZodRecord<z.ZodString, typeof argumentSchema>,
-      ]
-    >
-  >;
+export const MAX_MESSAGE_BYTES: number = MAX_SQL_MESSAGE_BYTES;
+export const MAX_PENDING_BYTES: number = MAX_QUEUED_COMMAND_BYTES;
+export const MAX_IN_FLIGHT: number = MAX_COMMANDS;
+export const MAX_MIGRATION_BYTES: number = 256 * 1024;
+export const MAX_MIGRATION_STATEMENTS: number = MAX_SQL_MIGRATION_STATEMENTS;
+export const MAX_MIGRATION_PLANS: number = 16;
+export const migrationTokenSchema: z.ZodObject<{
+  generation: z.ZodString;
+  id: z.ZodNumber;
 }> = z.strictObject({
-  sql: z.string().min(1).max(MAX_MESSAGE_BYTES),
-  args: z
-    .union([
-      z.array(argumentSchema).max(256),
-      z
-        .record(z.string().max(128), argumentSchema)
-        .refine((args) => Object.keys(args).length <= 256),
-    ])
-    .optional(),
+  generation: z.string().uuid(),
+  id: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
 });
+export type MigrationToken = z.output<typeof migrationTokenSchema>;
+
+const migrationCommandSchema: z.ZodDiscriminatedUnion<
+  [
+    z.ZodObject<{
+      action: z.ZodLiteral<"reserve">;
+      bytes: z.ZodNumber;
+      count: z.ZodNumber;
+    }>,
+    z.ZodObject<{
+      action: z.ZodLiteral<"append">;
+      token: typeof migrationTokenSchema;
+      offset: z.ZodNumber;
+      statements: z.ZodArray<typeof statementSchema>;
+    }>,
+    z.ZodObject<{
+      action: z.ZodLiteral<"run">;
+      token: typeof migrationTokenSchema;
+      count: z.ZodNumber;
+    }>,
+    z.ZodObject<{
+      action: z.ZodLiteral<"discard">;
+      token: typeof migrationTokenSchema;
+    }>,
+  ],
+  "action"
+> = z.discriminatedUnion("action", [
+  z.strictObject({
+    action: z.literal("reserve"),
+    bytes: z.number().int().min(0).max(MAX_MIGRATION_BYTES),
+    count: z.number().int().min(0).max(MAX_MIGRATION_STATEMENTS),
+  }),
+  z.strictObject({
+    action: z.literal("append"),
+    token: migrationTokenSchema,
+    offset: z.number().int().min(0).max(MAX_MIGRATION_STATEMENTS),
+    statements: z.array(statementSchema).min(1).max(16),
+  }),
+  z.strictObject({
+    action: z.literal("run"),
+    token: migrationTokenSchema,
+    count: z.number().int().min(0).max(MAX_MIGRATION_STATEMENTS),
+  }),
+  z.strictObject({ action: z.literal("discard"), token: migrationTokenSchema }),
+]);
+export type MigrationCommand = z.output<typeof migrationCommandSchema>;
+
 type Operation<
   Name extends string,
   Shape extends z.ZodRawShape = Record<never, never>,
@@ -85,6 +122,24 @@ const commandSchema: z.ZodDiscriminatedUnion<
     >,
     Operation<"close">,
     Operation<
+      "cancelTransfer",
+      { id: z.ZodString; direction: typeof uploadGrantSchema.shape.direction }
+    >,
+    Operation<"read", { command: typeof readCommandSchema }>,
+    Operation<
+      "openRead",
+      { grant: typeof uploadGrantSchema; port: z.ZodCustom<MessagePort> }
+    >,
+    Operation<
+      "openUpload",
+      { grant: typeof uploadGrantSchema; port: z.ZodCustom<MessagePort> }
+    >,
+    Operation<
+      "verifyBlob",
+      { plan: typeof blobPlanSchema; lease: z.ZodOptional<z.ZodString> }
+    >,
+    Operation<"savepoint", { command: typeof savepointCommandSchema }>,
+    Operation<
       "batch",
       {
         statements: z.ZodArray<typeof statementSchema>;
@@ -98,6 +153,7 @@ const commandSchema: z.ZodDiscriminatedUnion<
       { sql: z.ZodString; lease: z.ZodOptional<z.ZodString> }
     >,
     Operation<"binary", { command: typeof binaryCommandSchema }>,
+    Operation<"migration", { command: typeof migrationCommandSchema }>,
     Operation<
       "executeBound",
       { lease: z.ZodString; statement: typeof boundStatementSchema }
@@ -106,11 +162,7 @@ const commandSchema: z.ZodDiscriminatedUnion<
   ],
   "op"
 > = z.discriminatedUnion("op", [
-  z.strictObject({
-    op: z.literal("execute"),
-    statement: statementSchema,
-    lease: z.string().uuid().optional(),
-  }),
+  executeCommandSchema,
   z.strictObject({
     op: z.literal("begin"),
     mode: z.enum(["write", "read", "deferred"]),
@@ -123,21 +175,38 @@ const commandSchema: z.ZodDiscriminatedUnion<
   }),
   z.strictObject({ op: z.literal("close") }),
   z.strictObject({
-    op: z.literal("batch"),
-    statements: z.array(statementSchema).max(16),
-    mode: z.enum(["write", "read", "deferred"]),
+    op: z.literal("cancelTransfer"),
+    id: z.string().uuid(),
+    direction: uploadGrantSchema.shape.direction,
+  }),
+  z.strictObject({ op: z.literal("read"), command: readCommandSchema }),
+  z.strictObject({
+    op: z.literal("openRead"),
+    grant: uploadGrantSchema,
+    port: z.instanceof(MessagePort),
+  }),
+  z.strictObject({
+    op: z.literal("openUpload"),
+    grant: uploadGrantSchema,
+    port: z.instanceof(MessagePort),
+  }),
+  z.strictObject({
+    op: z.literal("verifyBlob"),
+    plan: blobPlanSchema,
     lease: z.string().uuid().optional(),
   }),
   z.strictObject({
-    op: z.literal("migrate"),
-    statements: z.array(statementSchema).max(16),
+    op: z.literal("savepoint"),
+    command: savepointCommandSchema,
   }),
-  z.strictObject({
-    op: z.literal("script"),
-    sql: z.string().max(MAX_MESSAGE_BYTES),
-    lease: z.string().uuid().optional(),
-  }),
+  batchCommandSchema,
+  migrateCommandSchema,
+  scriptCommandSchema,
   z.strictObject({ op: z.literal("binary"), command: binaryCommandSchema }),
+  z.strictObject({
+    op: z.literal("migration"),
+    command: migrationCommandSchema,
+  }),
   z.strictObject({
     op: z.literal("executeBound"),
     lease: z.string().uuid(),
@@ -155,41 +224,12 @@ const requestSchema: z.ZodObject<{
   id: z.ZodNumber;
   generation: z.ZodString;
   command: typeof commandSchema;
+  budget: z.ZodOptional<typeof budgetGrantSchema>;
 }> = z.strictObject({
   id: z.number().int().positive(),
   generation: z.string().uuid(),
   command: commandSchema,
-});
-const rowValueSchema: z.ZodUnion<
-  [z.ZodNull, z.ZodString, z.ZodNumber, z.ZodBigInt, z.ZodCustom<ArrayBuffer>]
-> = z.union([
-  z.null(),
-  z.string(),
-  z.number(),
-  z.bigint(),
-  z.instanceof(ArrayBuffer),
-]);
-const resultSchema: z.ZodObject<{
-  columns: z.ZodArray<z.ZodString>;
-  columnTypes: z.ZodArray<z.ZodString>;
-  rows: z.ZodArray<z.ZodArray<typeof rowValueSchema>>;
-  rowsAffected: z.ZodNumber;
-  lastInsertRowid: z.ZodOptional<z.ZodBigInt>;
-}> = z.strictObject({
-  columns: z.array(z.string()),
-  columnTypes: z.array(z.string()),
-  rows: z.array(z.array(rowValueSchema)),
-  rowsAffected: z.number().int().nonnegative(),
-  lastInsertRowid: z.bigint().optional(),
-});
-const errorSchema: z.ZodObject<{
-  name: z.ZodString;
-  message: z.ZodString;
-  code: z.ZodOptional<z.ZodString>;
-}> = z.strictObject({
-  name: z.string(),
-  message: z.string(),
-  code: z.string().optional(),
+  budget: budgetGrantSchema.optional(),
 });
 const placementSchema: z.ZodObject<{
   generation: z.ZodString;
@@ -209,6 +249,15 @@ type Reply<
 const replySchema: z.ZodDiscriminatedUnion<
   [
     Reply<"ready">,
+    Reply<
+      "read-closed",
+      { id: z.ZodString; result: typeof uploadResultSchema }
+    >,
+    Reply<
+      "upload-closed",
+      { id: z.ZodString; result: typeof uploadResultSchema }
+    >,
+    Reply<"budget-release", { id: z.ZodNumber }>,
     Reply<"gate-entered", { id: z.ZodNumber }>,
     Reply<"result", { id: z.ZodNumber; value: z.ZodUnknown }>,
     Reply<"error", { id: z.ZodNumber; error: typeof errorSchema }>,
@@ -217,6 +266,20 @@ const replySchema: z.ZodDiscriminatedUnion<
   "kind"
 > = z.discriminatedUnion("kind", [
   placementSchema.extend({ kind: z.literal("ready") }),
+  placementSchema.extend({
+    kind: z.literal("read-closed"),
+    id: z.string().uuid(),
+    result: uploadResultSchema,
+  }),
+  placementSchema.extend({
+    kind: z.literal("upload-closed"),
+    id: z.string().uuid(),
+    result: uploadResultSchema,
+  }),
+  placementSchema.extend({
+    kind: z.literal("budget-release"),
+    id: z.number().int().positive(),
+  }),
   placementSchema.extend({
     kind: z.literal("gate-entered"),
     id: z.number().int().positive(),
@@ -237,25 +300,13 @@ const replySchema: z.ZodDiscriminatedUnion<
     error: errorSchema,
   }),
 ]);
-const bootSchema: z.ZodObject<{ url: z.ZodString; generation: z.ZodString }> =
-  z.strictObject({
-    url: z.string().startsWith("file:"),
-    generation: z.string().uuid(),
-  });
 
 export type ProofStatement = z.output<typeof statementSchema>;
 export type ProofCommand = z.output<typeof commandSchema>;
 export type ProofRequest = z.output<typeof requestSchema>;
-export type ProofResult = z.output<typeof resultSchema>;
-export type ProofError = z.output<typeof errorSchema>;
 export type ProofPlacement = z.output<typeof placementSchema>;
 export type ProofReply = z.output<typeof replySchema>;
-export type ProofBoot = z.output<typeof bootSchema>;
-export type ProofRowValue = z.output<typeof rowValueSchema>;
 
-export function parseBoot(input: unknown): ProofBoot {
-  return bootSchema.parse(input);
-}
 export function parseCommand(input: unknown): ProofCommand {
   return commandSchema.parse(input);
 }
@@ -265,17 +316,22 @@ export function parseRequest(input: unknown): ProofRequest {
 export function parseReply(input: unknown): ProofReply {
   return replySchema.parse(input);
 }
-export function parseResult(input: unknown): ProofResult {
-  return resultSchema.parse(input);
-}
-export function parseResults(input: unknown): ProofResult[] {
-  return z.array(resultSchema).max(16).parse(input);
-}
-export function parseStatement(input: unknown): ProofStatement {
-  return statementSchema.parse(input);
+export function isControlCommand(command: ProofCommand): boolean {
+  return (
+    command.op === "close" ||
+    command.op === "finish" ||
+    command.op === "savepoint"
+  );
 }
 export function isCleanupCommand(command: ProofCommand): boolean {
-  return command.op === "binary" && isBinaryCleanup(command.command);
+  return (
+    command.op === "cancelTransfer" ||
+    (command.op === "binary" && isBinaryCleanup(command.command)) ||
+    (command.op === "read" &&
+      (command.command.action === "closeScope" ||
+        command.command.action === "discard")) ||
+    (command.op === "migration" && command.command.action === "discard")
+  );
 }
 export function parseLease(input: unknown): string {
   return z.string().uuid().parse(input);
@@ -293,6 +349,14 @@ function valueBytes(value: z.output<typeof argumentSchema>): number {
 }
 
 export function snapshotCommand(command: ProofCommand): ProofCommand {
+  if (command.op === "migration" && command.command.action === "append")
+    return {
+      ...command,
+      command: {
+        ...command.command,
+        statements: command.command.statements.map(snapshotStatement),
+      },
+    };
   if (command.op === "binary" && command.command.action === "append")
     return {
       ...command,
@@ -320,7 +384,7 @@ export function snapshotCommand(command: ProofCommand): ProofCommand {
   return command;
 }
 
-function snapshotStatement(statement: ProofStatement): ProofStatement {
+export function snapshotStatement(statement: ProofStatement): ProofStatement {
   if (statement.args === undefined) return statement;
   const args = statement.args;
   const copy = (
@@ -344,6 +408,29 @@ function snapshotStatement(statement: ProofStatement): ProofStatement {
 }
 
 export function commandBytes(command: ProofCommand): number {
+  if (
+    command.op === "openUpload" ||
+    command.op === "openRead" ||
+    command.op === "cancelTransfer"
+  )
+    return 512;
+  if (command.op === "read")
+    return command.command.action === "allocate"
+      ? blobPlanBytes(command.command.plan)
+      : 512;
+  if (command.op === "verifyBlob") return blobPlanBytes(command.plan);
+  if (command.op === "migration") {
+    const bytes =
+      command.command.action === "append"
+        ? command.command.statements.reduce(
+            (sum, statement) => sum + statementBytes(statement),
+            512,
+          )
+        : 512;
+    if (bytes > MAX_MESSAGE_BYTES)
+      throw new Error("Proof driver command byte limit exceeded");
+    return bytes;
+  }
   if (command.op === "binary")
     return command.command.action === "append"
       ? command.command.bytes.byteLength + 512
@@ -374,7 +461,7 @@ export function commandBytes(command: ProofCommand): number {
   return statementBytes(command.statement);
 }
 
-function statementBytes(statement: ProofStatement): number {
+export function statementBytes(statement: ProofStatement): number {
   const args = statement.args;
   let bytes = 256 + Buffer.byteLength(statement.sql);
   if (Array.isArray(args)) for (const value of args) bytes += valueBytes(value);
@@ -384,16 +471,4 @@ function statementBytes(statement: ProofStatement): number {
   if (bytes > MAX_MESSAGE_BYTES)
     throw new Error("Proof driver command byte limit exceeded");
   return bytes;
-}
-
-export function serializeError(error: unknown): ProofError {
-  if (!(error instanceof Error))
-    return { name: "Error", message: String(error) };
-  const code =
-    "code" in error && typeof error.code === "string" ? error.code : undefined;
-  return {
-    name: error.name,
-    message: error.message,
-    ...(code !== undefined && { code }),
-  };
 }

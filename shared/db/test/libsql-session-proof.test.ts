@@ -4,7 +4,7 @@ import { sql } from "drizzle-orm";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { TursoThreadProof } from "./fixtures/turso-thread/client";
 import { closeSqliteClient } from "../src/turso-client";
-import { ProofLibsqlClient } from "./fixtures/turso-thread/libsql-client";
+import { SqlWorkerClient as ProofLibsqlClient } from "../src/turso-worker/sql-client";
 import { withBinaryTransaction } from "./fixtures/turso-thread/binary-transaction";
 
 const workerUrl = new URL("./fixtures/turso-thread/worker.ts", import.meta.url);

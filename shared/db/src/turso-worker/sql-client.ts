@@ -1,4 +1,4 @@
-// Test-only contract adapter. Imports libSQL types, never its runtime client.
+// Internal Client-compatible facade. Imports libSQL types, never its runtime client.
 import type {
   Client,
   InArgs,
@@ -7,18 +7,15 @@ import type {
   Transaction,
   TransactionMode,
 } from "@libsql/client";
-import { LibSQLDatabase } from "drizzle-orm/libsql/driver-core";
-import { LibSQLSession } from "drizzle-orm/libsql/session";
-import { SQLiteAsyncDialect } from "drizzle-orm/sqlite-core";
 import {
-  createTableRelationsHelpers,
-  extractTablesRelationalConfig,
-  type ExtractTablesWithRelations,
-} from "drizzle-orm/relations";
-import { parseStatement, type ProofStatement } from "./protocol";
-import type { ProofTransaction, TursoThreadProof } from "./client";
+  MAX_SQL_MIGRATION_STATEMENTS,
+  MAX_SQL_BATCH_STATEMENTS,
+  parseStatement,
+  type SqlStatement,
+} from "./client-protocol";
+import type { SqlWorkerLease, SqlWorkerTransport } from "./client-transport";
 
-function statement(input: InStatement, args?: InArgs): ProofStatement {
+function statement(input: InStatement, args?: InArgs): SqlStatement {
   return parseStatement(
     typeof input === "string"
       ? { sql: input, ...(args !== undefined && { args }) }
@@ -27,21 +24,21 @@ function statement(input: InStatement, args?: InArgs): ProofStatement {
 }
 function statements(
   inputs: Array<InStatement | [string, InArgs?]>,
-): ProofStatement[] {
-  if (inputs.length > 16)
+): SqlStatement[] {
+  if (inputs.length > MAX_SQL_BATCH_STATEMENTS)
     throw new Error("Proof driver batch statement limit exceeded");
   return inputs.map((input) =>
     Array.isArray(input) ? statement(input[0], input[1]) : statement(input),
   );
 }
 
-export class ProofLibsqlTransaction implements Transaction {
-  private readonly driver: TursoThreadProof;
-  private readonly lease: ProofTransaction;
+export class SqlWorkerTransaction implements Transaction {
+  private readonly driver: SqlWorkerTransport;
+  private readonly lease: SqlWorkerLease;
   private readonly guard: () => void;
   public constructor(
-    driver: TursoThreadProof,
-    lease: ProofTransaction,
+    driver: SqlWorkerTransport,
+    lease: SqlWorkerLease,
     guard: () => void = () => undefined,
   ) {
     this.driver = driver;
@@ -84,10 +81,10 @@ export class ProofLibsqlTransaction implements Transaction {
   }
 }
 
-export class ProofLibsqlClient implements Client {
+export class SqlWorkerClient implements Client {
   public readonly protocol = "file";
-  private readonly driver: TursoThreadProof;
-  public constructor(driver: TursoThreadProof) {
+  private readonly driver: SqlWorkerTransport;
+  public constructor(driver: SqlWorkerTransport) {
     this.driver = driver;
   }
   public get closed(): boolean {
@@ -104,13 +101,21 @@ export class ProofLibsqlClient implements Client {
   ): Promise<ResultSet[]> {
     return this.driver.batch(statements(inputs), mode);
   }
-  public async migrate(inputs: InStatement[]): Promise<ResultSet[]> {
-    return this.driver.migrate(statements(inputs));
+  public migrate(inputs: InStatement[]): Promise<ResultSet[]> {
+    try {
+      if (inputs.length > MAX_SQL_MIGRATION_STATEMENTS)
+        throw new Error("Migration statement limit exceeded");
+      return this.driver.migrateProgram(
+        inputs.map((input) => statement(input)),
+      );
+    } catch (error) {
+      return Promise.reject(error);
+    }
   }
   public async transaction(
     mode: TransactionMode = "deferred",
-  ): Promise<ProofLibsqlTransaction> {
-    return new ProofLibsqlTransaction(
+  ): Promise<SqlWorkerTransaction> {
+    return new SqlWorkerTransaction(
       this.driver,
       await this.driver.transaction(mode),
     );
@@ -131,29 +136,4 @@ export class ProofLibsqlClient implements Client {
   public closeAsync(): Promise<void> {
     return this.driver.close();
   }
-}
-
-export function createProofDatabase<TSchema extends Record<string, unknown>>(
-  client: ProofLibsqlClient,
-  schema: TSchema,
-): LibSQLDatabase<TSchema> {
-  const dialect = new SQLiteAsyncDialect();
-  const tables = extractTablesRelationalConfig<
-    ExtractTablesWithRelations<TSchema>
-  >(schema, createTableRelationsHelpers);
-  const relationalSchema = {
-    fullSchema: schema,
-    schema: tables.tables,
-    tableNamesMap: tables.tableNamesMap,
-  };
-  const session = new LibSQLSession<
-    TSchema,
-    ExtractTablesWithRelations<TSchema>
-  >(client, dialect, relationalSchema, {}, undefined);
-  return new LibSQLDatabase<TSchema>(
-    "async",
-    dialect,
-    session,
-    relationalSchema,
-  );
 }

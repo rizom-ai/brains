@@ -28,6 +28,10 @@
     "lint:fix": "eslint . --max-warnings 0 --fix",
     "test": "bun test",
     "test:thread-proof:packed": "bun test/turso-thread-packed.ts",
+    "test:thread-proof:large-binary": "bun test/turso-large-binary-proof.ts",
+    "test:thread-proof:scan-shapes": "bun test/turso-blob-scan-diagnostic.ts",
+    "test:thread-proof:read-adoption": "bun test/turso-read-adoption-large.ts",
+    "test:thread-proof:runtime-sql": "bun test/turso-runtime-sql-audit.ts",
     "typecheck": "tsc --noEmit"
   },
   "type": "module",

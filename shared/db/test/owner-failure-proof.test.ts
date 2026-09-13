@@ -1,11 +1,15 @@
 import { describe, expect, it } from "bun:test";
 import assert from "node:assert/strict";
+import { withNativeStatement } from "../src/turso-worker/native-statement";
 import type { ResultSet, Transaction } from "@libsql/client";
 import {
   ExecutionOwner,
   OwnerUncertainError,
-  type OwnerBackend,
-} from "./fixtures/turso-thread/ownership";
+} from "../src/turso-worker/ownership";
+import type {
+  OwnerBackend,
+  NativeTransaction,
+} from "../src/turso-worker/backend-contract";
 
 interface Hooks {
   begin?: () => Promise<void>;
@@ -16,6 +20,8 @@ interface Hooks {
   setForeignKeys?: (enabled: boolean) => Promise<void>;
   readForeignKeys?: (actual: boolean) => Promise<boolean>;
   close?: () => Promise<void>;
+  readTransactionState?: (actual: boolean) => boolean;
+  savepoint?: NativeTransaction["savepoint"];
 }
 const empty: ResultSet = {
   columns: [],
@@ -28,10 +34,16 @@ const empty: ResultSet = {
 function fixture(hooks: Hooks = {}): {
   owner: ExecutionOwner;
   events: string[];
+  nativeState: { inTransaction: boolean };
 } {
   const events: string[] = [];
+  const nativeState = { inTransaction: false };
   let foreignKeys = true;
   const backend: OwnerBackend = {
+    inTransaction: () =>
+      hooks.readTransactionState
+        ? hooks.readTransactionState(nativeState.inTransaction)
+        : nativeState.inTransaction,
     execute: async () => {
       events.push("execute");
       return empty;
@@ -42,7 +54,8 @@ function fixture(hooks: Hooks = {}): {
     transaction: async () => {
       events.push("begin");
       await hooks.begin?.();
-      const transaction: Transaction = {
+      nativeState.inTransaction = true;
+      const transaction: Transaction & Pick<NativeTransaction, "savepoint"> = {
         closed: false,
         execute: async () => {
           events.push("lease-execute");
@@ -57,14 +70,20 @@ function fixture(hooks: Hooks = {}): {
         executeMultiple: async () => {
           events.push("lease-script");
         },
+        savepoint: async (action, id) => {
+          events.push(`savepoint:${action}:${id}`);
+          await hooks.savepoint?.(action, id);
+        },
         commit: async () => {
           events.push("commit");
           await hooks.commit?.();
+          nativeState.inTransaction = false;
           transaction.closed = true;
         },
         rollback: async () => {
           events.push("rollback");
           await hooks.rollback?.();
+          nativeState.inTransaction = false;
           transaction.closed = true;
         },
         close: () => {
@@ -89,7 +108,7 @@ function fixture(hooks: Hooks = {}): {
       await hooks.close?.();
     },
   };
-  return { owner: new ExecutionOwner(backend), events };
+  return { owner: new ExecutionOwner(backend), events, nativeState };
 }
 function gate(): {
   entered: ReturnType<typeof Promise.withResolvers<void>>;
@@ -102,6 +121,36 @@ function gate(): {
 }
 
 describe("fail-closed execution ownership", () => {
+  it("fences queued native work when statement cleanup fails with transaction state still valid", async () => {
+    const { owner, events, nativeState } = fixture({
+      statement: async () =>
+        withNativeStatement(
+          () => true,
+          async () => ({
+            close: (): void => {
+              throw new Error("finalization failed");
+            },
+          }),
+          async () => undefined,
+        ),
+    });
+    const lease = await owner.transaction("write");
+    const result = assert.rejects(
+      lease.execute("SELECT 1"),
+      /cannot be reused/,
+    );
+    const queued = assert.rejects(
+      owner.execute("SELECT 2"),
+      /cannot be reused/,
+    );
+    await result;
+    expect(nativeState.inTransaction).toBe(true);
+    expect(owner.failed).toBe(true);
+    await assert.rejects(lease.rollback(), /cannot be reused/);
+    await queued;
+    await assert.rejects(owner.close(), /cannot be reused/);
+    expect(events).toEqual(["begin", "lease-execute"]);
+  });
   for (const action of ["commit", "rollback"] as const) {
     it(`blocks every queued native entry after failed ${action}, even if the native slot was released`, async () => {
       const blocked = gate();
@@ -352,6 +401,181 @@ describe("fail-closed execution ownership", () => {
       "execute",
       "close",
     ]);
+  });
+
+  it("treats failed state observation as terminal before native execution", async () => {
+    const { owner, events } = fixture({
+      readTransactionState: () => {
+        throw new Error("state unavailable");
+      },
+    });
+    await assert.rejects(owner.execute("SELECT 1"), OwnerUncertainError);
+    await assert.rejects(owner.close(), OwnerUncertainError);
+    expect(events).toEqual([]);
+  });
+
+  it("rejects an acknowledged begin that did not establish native transaction state", async () => {
+    const { owner, events } = fixture({ readTransactionState: () => false });
+    await assert.rejects(owner.transaction("write"), OwnerUncertainError);
+    await assert.rejects(owner.execute("SELECT 1"), OwnerUncertainError);
+    expect(events).toEqual(["begin"]);
+  });
+
+  for (const action of ["commit", "rollback"] as const) {
+    it(`checks native state after an acknowledged ${action}`, async () => {
+      let keepActive = false;
+      const { owner, events } = fixture({
+        [action]: async () => {
+          keepActive = true;
+        },
+        readTransactionState: (actual) => actual || keepActive,
+      });
+      const lease = await owner.transaction("write");
+      const queued = assert.rejects(
+        owner.execute("SELECT 1"),
+        OwnerUncertainError,
+      );
+      await assert.rejects(lease[action](), OwnerUncertainError);
+      await queued;
+      expect(events).toEqual(["begin", action]);
+    });
+  }
+
+  it("fences admitted lease statements after an implicit rollback and preserves the SQL cause", async () => {
+    const cause = new Error("statement caused rollback");
+    const { owner, events, nativeState } = fixture({
+      statement: async () => {
+        nativeState.inTransaction = false;
+        throw cause;
+      },
+    });
+    const lease = await owner.transaction("write");
+    const first = assert.rejects(
+      lease.execute("SELECT 1"),
+      (error: unknown) => {
+        assert.ok(error instanceof OwnerUncertainError);
+        assert.ok(error.cause instanceof AggregateError);
+        assert.equal(error.cause.errors[0], cause);
+        return true;
+      },
+    );
+    const later = assert.rejects(
+      lease.execute("SELECT 2"),
+      OwnerUncertainError,
+    );
+    const outside = assert.rejects(
+      owner.execute("SELECT 3"),
+      OwnerUncertainError,
+    );
+    await first;
+    await assert.rejects(lease.rollback(), OwnerUncertainError);
+    await Promise.all([later, outside]);
+    expect(events).toEqual(["begin", "lease-execute"]);
+  });
+
+  for (const leased of [false, true]) {
+    it(`checks state between every statement of a ${leased ? "leased" : "root"} batch`, async () => {
+      const { owner, events, nativeState } = fixture({
+        batch: async () => {
+          nativeState.inTransaction = false;
+        },
+      });
+      if (leased) {
+        const lease = await owner.transaction("write");
+        await assert.rejects(
+          lease.batch(["SELECT 1", "SELECT 2"]),
+          OwnerUncertainError,
+        );
+        await assert.rejects(lease.rollback(), OwnerUncertainError);
+      } else
+        await assert.rejects(
+          owner.batch(["SELECT 1", "SELECT 2"], "write"),
+          OwnerUncertainError,
+        );
+      await assert.rejects(owner.execute("SELECT 3"), OwnerUncertainError);
+      expect(events).toEqual(["begin", "lease-batch"]);
+    });
+  }
+
+  it("does not enter a statement when an existing lease has already lost its native transaction", async () => {
+    const { owner, events, nativeState } = fixture();
+    const lease = await owner.transaction("write");
+    nativeState.inTransaction = false;
+    await assert.rejects(lease.execute("SELECT 1"), OwnerUncertainError);
+    await assert.rejects(lease.rollback(), OwnerUncertainError);
+    expect(events).toEqual(["begin"]);
+  });
+
+  for (const phase of [
+    "begin",
+    "release",
+    "rollback",
+    "release-after-rollback",
+  ] as const) {
+    it(`poisons savepoint ${phase} failure before any queued native work`, async () => {
+      const cause = new Error(`savepoint ${phase} failed`);
+      let rollingBack = false;
+      const { owner, events } = fixture({
+        savepoint: async (action) => {
+          if (action === "rollback") rollingBack = true;
+          if (
+            action === phase ||
+            (phase === "release-after-rollback" &&
+              action === "release" &&
+              rollingBack)
+          )
+            throw cause;
+        },
+      });
+      const lease = await owner.transaction("write");
+      if (phase !== "begin") await lease.savepoint("begin", 1);
+      const queued = assert.rejects(
+        owner.execute("SELECT 1"),
+        OwnerUncertainError,
+      );
+      const closing = assert.rejects(owner.close(), OwnerUncertainError);
+      await assert.rejects(
+        lease.savepoint(
+          phase === "release-after-rollback" ? "rollback" : phase,
+          1,
+        ),
+        (error: unknown) => {
+          assert.ok(error instanceof OwnerUncertainError);
+          assert.equal(error.cause, cause);
+          return true;
+        },
+      );
+      await assert.rejects(lease.rollback(), OwnerUncertainError);
+      await Promise.all([queued, closing]);
+      expect(events).toEqual([
+        "begin",
+        "savepoint:begin:1",
+        ...(phase === "begin"
+          ? []
+          : phase === "release-after-rollback"
+            ? ["savepoint:rollback:1", "savepoint:release:1"]
+            : [`savepoint:${phase}:1`]),
+      ]);
+    });
+  }
+
+  it("preflights every SQL group before even disabling foreign keys or beginning a transaction", async () => {
+    const { owner, events } = fixture();
+    await assert.rejects(owner.execute("BEGIN"), { name: "SqlAdmissionError" });
+    await assert.rejects(
+      owner.executeMultiple("INSERT INTO t VALUES (1); COMMIT; BEGIN"),
+      { name: "SqlAdmissionError" },
+    );
+    await assert.rejects(
+      owner.batch(["INSERT INTO t VALUES (1)", "COMMIT"], "write"),
+      { name: "SqlAdmissionError" },
+    );
+    await assert.rejects(
+      owner.migrate(["INSERT INTO t VALUES (1)", "SAVEPOINT sp"]),
+      { name: "SqlAdmissionError" },
+    );
+    expect(events).toEqual([]);
+    await owner.close();
   });
 
   it("drains admitted statements before finish without poisoning the lease on SQL error", async () => {

@@ -1,42 +1,77 @@
 import { is, Placeholder } from "drizzle-orm";
+import { LibSQLDatabase } from "drizzle-orm/libsql/driver-core";
 import { LibSQLSession, LibSQLTransaction } from "drizzle-orm/libsql/session";
-import { SQLiteAsyncDialect } from "drizzle-orm/sqlite-core";
-import type { ResultSet } from "@libsql/client";
+import {
+  SQLiteAsyncDialect,
+  type SQLiteTransactionConfig,
+} from "drizzle-orm/sqlite-core";
+import {
+  createTableRelationsHelpers,
+  extractTablesRelationalConfig,
+  type ExtractTablesWithRelations,
+  type RelationalSchemaConfig,
+  type TablesRelationalConfig,
+} from "drizzle-orm/relations";
+import type { ResultSet, TransactionMode } from "@libsql/client";
 import { boundStatementSchema, type StageClaim } from "./binary-protocol";
 import type { ProofTransaction, TursoThreadProof } from "./client";
-import { ProofLibsqlClient, ProofLibsqlTransaction } from "./libsql-client";
+import {
+  SqlWorkerClient as ProofLibsqlClient,
+  SqlWorkerTransaction as ProofLibsqlTransaction,
+} from "../../../src/turso-worker/sql-client";
+import type {
+  BlobPlan,
+  BlobFacts,
+} from "../../../src/turso-worker/blob-protocol";
 
 type EmptySchema = Record<string, never>;
-type TransactionDb = LibSQLTransaction<EmptySchema, EmptySchema>;
-type RunNested = <T>(
-  body: (context: BinaryTransactionContext) => Promise<T>,
+type RunNested<
+  F extends Record<string, unknown>,
+  R extends TablesRelationalConfig,
+> = <T>(
+  body: (context: BinaryTransactionContext<F, R>) => Promise<T>,
 ) => Promise<T>;
-
-export interface BinaryTransactionContext {
-  db: TransactionDb;
-  transaction: RunNested;
+export interface BinaryTransactionContext<
+  F extends Record<string, unknown> = EmptySchema,
+  R extends TablesRelationalConfig = EmptySchema,
+> {
+  db: LibSQLTransaction<F, R>;
+  transaction: RunNested<F, R>;
+  verifyBlob: (plan: BlobPlan) => Promise<BlobFacts>;
   executeBound: (
     query: { toSQL(): { sql: string; params: unknown[] } },
     bindings: ReadonlyMap<string, StageClaim>,
   ) => Promise<ResultSet>;
 }
 
-// Public override only: all queries still use LibSQLSession's real mappers.
-// This routes ordinary db.transaction callbacks through the same scoped factory
-// as binary callbacks, so escaped nested facades cannot use the parent's lease.
-class ScopedTransaction extends LibSQLTransaction<EmptySchema, EmptySchema> {
-  private readonly nested: RunNested;
+export interface ProofBindingContext {
+  readonly db: object;
+  readonly executeBound: BinaryTransactionContext["executeBound"];
+  readonly verifyBlob: BinaryTransactionContext["verifyBlob"];
+}
+export interface ProofDatabaseBindings {
+  claims(): StageClaim[];
+  run<T>(context: ProofBindingContext, operation: () => Promise<T>): Promise<T>;
+}
+
+// Public extension points only. Ordinary queries use real LibSQLSession mappers;
+// all nested callbacks use typed savepoint capabilities, never raw control SQL.
+class ScopedTransaction<
+  F extends Record<string, unknown>,
+  R extends TablesRelationalConfig,
+> extends LibSQLTransaction<F, R> {
+  private readonly nested: RunNested<F, R>;
   public constructor(
     dialect: SQLiteAsyncDialect,
-    session: LibSQLSession<EmptySchema, EmptySchema>,
-    depth: number,
-    nested: RunNested,
+    session: LibSQLSession<F, R>,
+    schema: RelationalSchemaConfig<R> | undefined,
+    nested: RunNested<F, R>,
   ) {
-    super("async", dialect, session, undefined, depth);
+    super("async", dialect, session, schema);
     this.nested = nested;
   }
   public override transaction<T>(
-    body: (transaction: TransactionDb) => Promise<T>,
+    body: (transaction: LibSQLTransaction<F, R>) => Promise<T>,
   ): Promise<T> {
     return this.nested((context) => body(context.db));
   }
@@ -51,62 +86,68 @@ async function outcome<T>(operation: () => Promise<T>): Promise<Outcome<T>> {
   }
 }
 
-async function scoped<T>(
+async function scoped<
+  T,
+  F extends Record<string, unknown>,
+  R extends TablesRelationalConfig,
+>(
   driver: TursoThreadProof,
   client: ProofLibsqlClient,
   lease: ProofTransaction,
-  depth: number,
-  body: (context: BinaryTransactionContext) => Promise<T>,
+  schema: RelationalSchemaConfig<R> | undefined,
+  body: (context: BinaryTransactionContext<F, R>) => Promise<T>,
+  bindings?: ProofDatabaseBindings,
 ): Promise<T> {
   let active = true;
   let child: Promise<unknown> | undefined;
-  const assertAlive = (): void => {
-    if (!active || lease.closed) throw new Error("Transaction scope is closed");
-  };
   const assertLeaf = (): void => {
-    assertAlive();
+    if (!active || lease.closed) throw new Error("Transaction scope is closed");
     if (child)
       throw new Error("Parent transaction is suspended by a nested scope");
   };
   const dialect = new SQLiteAsyncDialect();
-  // Separate public facades use the SAME native lease. The lifecycle facade
-  // can release/roll back a savepoint while ordinary parent work is suspended.
-  const lifecycleSession = new LibSQLSession<EmptySchema, EmptySchema>(
-    client,
-    dialect,
-    undefined,
-    {},
-    new ProofLibsqlTransaction(driver, lease, assertAlive),
-  );
-  const lifecycle = new LibSQLTransaction<EmptySchema, EmptySchema>(
-    "async",
-    dialect,
-    lifecycleSession,
-    undefined,
-    depth,
-  );
-  const nested: RunNested = async (callback) => {
+  const nested: RunNested<F, R> = async (callback) => {
     assertLeaf();
-    const task = lifecycle.transaction(async () =>
-      scoped(driver, client, lease, depth + 1, callback),
-    );
+    const task = (async (): Promise<Awaited<ReturnType<typeof callback>>> => {
+      const token = await lease.savepoint();
+      const result = await outcome(() =>
+        scoped(driver, client, lease, schema, callback, bindings),
+      );
+      // A rollback also releases its savepoint. Failure is terminal in the
+      // owner; do not guess a second cleanup sequence on that connection.
+      const settled = await outcome(() =>
+        lease.finishSavepoint(token, result.ok ? "release" : "rollback"),
+      );
+      if (!settled.ok)
+        throw new AggregateError(
+          result.ok ? [settled.error] : [result.error, settled.error],
+          "Savepoint finalization could not be confirmed",
+          { cause: settled.error },
+        );
+      if (!result.ok) throw result.error;
+      return await result.value;
+    })();
     const completion = task.finally(() => {
       child = undefined;
     });
     child = completion;
     return completion;
   };
-  const session = new LibSQLSession<EmptySchema, EmptySchema>(
+  const session = new LibSQLSession<F, R>(
     client,
     dialect,
-    undefined,
+    schema,
     {},
     new ProofLibsqlTransaction(driver, lease, assertLeaf),
   );
-  const db = new ScopedTransaction(dialect, session, depth, nested);
-  const context: BinaryTransactionContext = {
+  const db = new ScopedTransaction(dialect, session, schema, nested);
+  const context: BinaryTransactionContext<F, R> = {
     db,
     transaction: nested,
+    verifyBlob: async (plan): Promise<BlobFacts> => {
+      assertLeaf();
+      return lease.verifyBlob(plan);
+    },
     executeBound: async (query, bindings): Promise<ResultSet> => {
       assertLeaf();
       const compiled = query.toSQL();
@@ -125,9 +166,9 @@ async function scoped<T>(
       );
     },
   };
-  const result = await outcome(() => body(context));
-  // An admitted nested callback must finish before its parent's finalization,
-  // even if the body returns/throws before awaiting that callback.
+  const result = await outcome(() =>
+    bindings ? bindings.run(context, () => body(context)) : body(context),
+  );
   const pending = child;
   const drained = await outcome(async () => {
     await pending;
@@ -144,20 +185,27 @@ async function scoped<T>(
   return result.value;
 }
 
-/** Real LibSQLSession query mapping plus Drizzle's own savepoint implementation. */
-export async function withBinaryTransaction<T>(
+async function withTransaction<
+  T,
+  F extends Record<string, unknown>,
+  R extends TablesRelationalConfig,
+>(
   driver: TursoThreadProof,
   claims: StageClaim[],
-  body: (context: BinaryTransactionContext) => Promise<T>,
+  mode: TransactionMode,
+  schema: RelationalSchemaConfig<R> | undefined,
+  body: (context: BinaryTransactionContext<F, R>) => Promise<T>,
+  bindings?: ProofDatabaseBindings,
 ): Promise<T> {
-  const lease = await driver.transaction("write", claims);
+  const lease = await driver.transaction(mode, claims);
   try {
     const result = await scoped(
       driver,
       new ProofLibsqlClient(driver),
       lease,
-      0,
+      schema,
       body,
+      bindings,
     );
     await lease.commit();
     return result;
@@ -173,4 +221,56 @@ export async function withBinaryTransaction<T>(
     }
     throw error;
   }
+}
+export function withBinaryTransaction<T>(
+  driver: TursoThreadProof,
+  claims: StageClaim[],
+  body: (context: BinaryTransactionContext) => Promise<T>,
+): Promise<T> {
+  return withTransaction(driver, claims, "write", undefined, body);
+}
+
+export function createProofDatabase<F extends Record<string, unknown>>(
+  driver: TursoThreadProof,
+  schema: F,
+  bindings?: ProofDatabaseBindings,
+): LibSQLDatabase<F> {
+  type R = ExtractTablesWithRelations<F>;
+  const dialect = new SQLiteAsyncDialect();
+  const tables = extractTablesRelationalConfig<R>(
+    schema,
+    createTableRelationsHelpers,
+  );
+  const relationalSchema = {
+    fullSchema: schema,
+    schema: tables.tables,
+    tableNamesMap: tables.tableNamesMap,
+  };
+  class Session extends LibSQLSession<F, R> {
+    public override async transaction<T>(
+      body: (db: LibSQLTransaction<F, R>) => T | Promise<T>,
+      config?: SQLiteTransactionConfig,
+    ): Promise<T> {
+      if (config?.behavior === "exclusive")
+        throw new Error(
+          "Exclusive transaction config is not supported by the proof",
+        );
+      return withTransaction(
+        driver,
+        bindings?.claims() ?? [],
+        config?.behavior === "immediate" ? "write" : "deferred",
+        relationalSchema,
+        async (context: BinaryTransactionContext<F, R>) => body(context.db),
+        bindings,
+      );
+    }
+  }
+  const session = new Session(
+    new ProofLibsqlClient(driver),
+    dialect,
+    relationalSchema,
+    {},
+    undefined,
+  );
+  return new LibSQLDatabase<F>("async", dialect, session, relationalSchema);
 }

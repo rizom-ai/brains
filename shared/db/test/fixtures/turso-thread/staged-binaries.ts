@@ -4,6 +4,7 @@ import type { InArgs } from "@libsql/client";
 import {
   STAGE_BUDGET_BYTES,
   STAGE_SLOTS,
+  STAGE_CHUNK_BYTES,
   type BinaryCommand,
   type BoundStatement,
   type StageCapability,
@@ -21,6 +22,7 @@ interface Stage {
   sha256: string | undefined;
   claimId: string | undefined;
   lease: string | undefined;
+  upload: string | undefined;
 }
 
 /** Volatile storage beside the native handle. No asset schema or durable put. */
@@ -31,13 +33,25 @@ export class StagedBinaries {
   private closing = false;
 
   private readonly generation: string;
-  public constructor(generation: string) {
+  private readonly releaseBudget: (id: number) => void;
+  private readonly revokeUpload: (id: number) => void;
+  public constructor(
+    generation: string,
+    releaseBudget: (id: number) => void,
+    revokeUpload: (id: number) => void,
+  ) {
     if (isMainThread)
       throw new Error("Binary staging must execute off the main thread");
     this.generation = generation;
+    this.releaseBudget = releaseBudget;
+    this.revokeUpload = revokeUpload;
   }
 
-  public execute(command: BinaryCommand, requestId: number): unknown {
+  public execute(
+    command: BinaryCommand,
+    requestId: number,
+    upload?: string,
+  ): unknown {
     switch (command.action) {
       case "openScope": {
         if (this.closing || this.scopes.size >= STAGE_SLOTS)
@@ -84,31 +98,24 @@ export class StagedBinaries {
           sha256: undefined,
           claimId: undefined,
           lease: undefined,
+          upload: undefined,
         });
         this.reservedBytes += bytes.byteLength;
         return capability;
       }
-      case "append": {
-        this.assertScope(command.scope);
-        const stage = this.get(command.capability, command.scope);
-        if (stage.sha256 !== undefined)
-          throw new Error("Stage is already sealed");
-        if (
-          command.offset !== stage.received ||
-          command.bytes.byteLength > stage.bytes.byteLength - stage.received
-        ) {
-          this.drop(stage);
-          throw new Error("Invalid stage chunk order or size");
-        }
-        const bytes = new Uint8Array(command.bytes);
-        stage.bytes.set(bytes, stage.received);
-        stage.hash.update(bytes);
-        stage.received += bytes.byteLength;
+      case "append":
+        this.appendBytes(
+          command.scope,
+          command.capability,
+          command.offset,
+          new Uint8Array(command.bytes),
+          upload,
+        );
         return undefined;
-      }
       case "seal": {
         this.assertScope(command.scope);
         const stage = this.get(command.capability, command.scope);
+        this.assertWriter(stage, upload);
         if (stage.sha256 !== undefined)
           throw new Error("Stage is already sealed");
         const sha256 = stage.hash.digest("hex");
@@ -131,7 +138,11 @@ export class StagedBinaries {
       case "reserve": {
         this.assertScope(command.scope);
         const stage = this.get(command.capability, command.scope);
-        if (stage.sha256 === undefined || stage.claimId !== undefined)
+        if (
+          stage.sha256 === undefined ||
+          stage.claimId !== undefined ||
+          stage.upload !== undefined
+        )
           throw new Error("Stage is not available for a mutation");
         stage.claimId = randomUUID();
         return { ...stage.capability, claimId: stage.claimId };
@@ -157,6 +168,53 @@ export class StagedBinaries {
       case "stats":
         return this.stats();
     }
+  }
+
+  public openUpload(capability: StageCapability, id: string): void {
+    this.assertScope(capability.scope);
+    const stage = this.get(capability, capability.scope);
+    if (
+      stage.upload !== undefined ||
+      stage.received !== 0 ||
+      stage.sha256 !== undefined ||
+      stage.claimId !== undefined
+    )
+      throw new Error("Stage is not available for a direct upload");
+    stage.upload = id;
+  }
+  public finishUpload(capability: StageCapability, id: string): boolean {
+    const stage = this.stages.get(capability.id);
+    if (stage?.upload !== id) return false;
+    stage.upload = undefined;
+    return true;
+  }
+  public appendBytes(
+    scope: string,
+    capability: StageCapability,
+    offset: number,
+    bytes: Uint8Array,
+    upload?: string,
+  ): void {
+    this.assertScope(scope);
+    const stage = this.get(capability, scope);
+    this.assertWriter(stage, upload);
+    if (stage.sha256 !== undefined) throw new Error("Stage is already sealed");
+    if (
+      offset !== stage.received ||
+      bytes.byteLength < 1 ||
+      bytes.byteLength > STAGE_CHUNK_BYTES ||
+      bytes.byteLength > stage.bytes.byteLength - stage.received
+    ) {
+      this.drop(stage);
+      throw new Error("Invalid stage chunk order or size");
+    }
+    stage.bytes.set(bytes, stage.received);
+    stage.hash.update(bytes);
+    stage.received += bytes.byteLength;
+  }
+  private assertWriter(stage: Stage, upload?: string): void {
+    if (stage.upload !== upload)
+      throw new Error("Stage has a different active upload channel");
   }
 
   /** Pin all claims synchronously BEFORE waiting for the native transaction. */
@@ -230,5 +288,10 @@ export class StagedBinaries {
   private drop(stage: Stage): void {
     if (!this.stages.delete(stage.capability.id)) return;
     this.reservedBytes -= stage.bytes.byteLength;
+    // Remove the full backing allocation from every alias of this Stage object
+    // before advertising reusable credit to another execution worker.
+    stage.bytes = new Uint8Array(0);
+    this.revokeUpload(stage.capability.id);
+    this.releaseBudget(stage.capability.id);
   }
 }

@@ -7,6 +7,36 @@ import { TursoThreadProof, type ProofTransaction } from "./client";
 import { exerciseStagedBinaries, assertStagedRows } from "./binary-exercise";
 import { exerciseLibsqlSession, assertOrmRows } from "./orm-exercise";
 import { exerciseFailedFinalization } from "./failure-exercise";
+import { exerciseNativeState } from "./state-exercise";
+import { exerciseControlAdmission } from "./control-exercise";
+import {
+  exerciseMigrationProgram,
+  assertMigrationRows,
+} from "./migration-exercise";
+
+import { exerciseBlobVerification, assertVerifiedBlobs } from "./blob-exercise";
+
+import { exerciseSharedBudget } from "./budget-exercise";
+import {
+  exerciseDirectUpload,
+  assertDirectUploadRows,
+} from "./upload-exercise";
+
+import { exerciseReadSnapshots, assertReadRows } from "./read-exercise";
+import { ProofBudgetPool } from "./budget-pool";
+import {
+  exerciseNetworkIngress,
+  assertNetworkRows,
+  type NetworkSidecars,
+} from "./network-exercise";
+
+import {
+  exerciseNetworkRead,
+  assertNetworkReadRows,
+  type NetworkReadSidecars,
+} from "./network-read-exercise";
+export { exerciseNetworkArtifactFailure } from "./network-exercise";
+export { exerciseNetworkReadArtifactFailure } from "./network-read-exercise";
 
 export interface ThreadProofReport {
   scope: "isolated-turso-thread-driver";
@@ -21,6 +51,21 @@ export interface ThreadProofReport {
   libsqlSessionCompatibility: true;
   nestedResidentRollback: true;
   failedFinalizationFenced: true;
+  nativeStateMismatchFenced: true;
+  controlSqlPreflight: true;
+  typedSavepointOwnership: true;
+  boundedMigrationProgram: true;
+  incrementalBlobVerification: true;
+  sharedFiveWorkerBudget: true;
+  boundedFailureDiagnostics: true;
+  directWorkerUpload: true;
+  snapshotReleasedBeforeReadConsumer: true;
+  crossProcessNetworkIngress: true;
+  crossProcessNetworkRead: true;
+  authenticatedNetworkControl: false;
+  networkProducerRuntime: "external-bun";
+  networkProducerInput: "canonical-png-file";
+  networkConsumerRuntime: "external-bun";
   runtimeReplaced: false;
   largeAssetStaging: false;
 }
@@ -28,8 +73,12 @@ export interface ThreadProofReport {
 export async function exerciseThreadDriver(
   url: string,
   workerUrl: URL,
+  producerUrl: URL,
+  consumerUrl: URL,
+  network: NetworkSidecars & NetworkReadSidecars,
 ): Promise<ThreadProofReport> {
-  const driver = new TursoThreadProof({ url, workerUrl });
+  const pool = new ProofBudgetPool();
+  const driver = new TursoThreadProof({ url, workerUrl, budget: pool });
   let lease: ProofTransaction | undefined;
   let restored: TursoThreadProof | undefined;
   try {
@@ -102,6 +151,13 @@ export async function exerciseThreadDriver(
 
     await exerciseLibsqlSession(driver, url);
     await exerciseStagedBinaries(driver);
+    await exerciseControlAdmission(driver);
+    await exerciseMigrationProgram(driver);
+    await exerciseBlobVerification(driver);
+    await exerciseDirectUpload(driver, producerUrl);
+    await exerciseReadSnapshots(driver, consumerUrl);
+    await exerciseNetworkIngress(driver, pool, network);
+    await exerciseNetworkRead(driver, pool, network);
 
     const gate = new SharedArrayBuffer(4);
     const held = driver.holdThreadForProof(gate);
@@ -149,6 +205,7 @@ export async function exerciseThreadDriver(
     await lease.commit();
     await queued;
     await closing;
+    await exerciseSharedBudget(url, workerUrl);
 
     const restoredUrl = new URL("restored-main-file.db", url).href;
     await copyFile(
@@ -179,10 +236,17 @@ export async function exerciseThreadDriver(
     );
     await assertStagedRows(restored);
     await assertOrmRows(restored);
+    await assertMigrationRows(restored);
+    await assertVerifiedBlobs(restored);
+    await assertDirectUploadRows(restored);
+    await assertReadRows(restored);
+    await assertNetworkRows(restored);
+    await assertNetworkReadRows(restored);
     await exerciseFailedFinalization(
       new URL("failed-finalization.db", url).href,
       workerUrl,
     );
+    await exerciseNativeState(url, workerUrl);
     return {
       scope: "isolated-turso-thread-driver",
       nativeThreadId: placement.threadId,
@@ -196,6 +260,21 @@ export async function exerciseThreadDriver(
       libsqlSessionCompatibility: true,
       nestedResidentRollback: true,
       failedFinalizationFenced: true,
+      nativeStateMismatchFenced: true,
+      controlSqlPreflight: true,
+      typedSavepointOwnership: true,
+      boundedMigrationProgram: true,
+      incrementalBlobVerification: true,
+      sharedFiveWorkerBudget: true,
+      boundedFailureDiagnostics: true,
+      directWorkerUpload: true,
+      snapshotReleasedBeforeReadConsumer: true,
+      crossProcessNetworkIngress: true,
+      crossProcessNetworkRead: true,
+      authenticatedNetworkControl: false,
+      networkProducerRuntime: "external-bun",
+      networkProducerInput: "canonical-png-file",
+      networkConsumerRuntime: "external-bun",
       runtimeReplaced: false,
       largeAssetStaging: false,
     };

@@ -63,8 +63,49 @@ const reportSchema = z.object({
   libsqlSessionCompatibility: z.literal(true),
   nestedResidentRollback: z.literal(true),
   failedFinalizationFenced: z.literal(true),
+  nativeStateMismatchFenced: z.literal(true),
+  controlSqlPreflight: z.literal(true),
+  typedSavepointOwnership: z.literal(true),
+  boundedMigrationProgram: z.literal(true),
+  incrementalBlobVerification: z.literal(true),
+  sharedFiveWorkerBudget: z.literal(true),
+  boundedFailureDiagnostics: z.literal(true),
+  directWorkerUpload: z.literal(true),
+  snapshotReleasedBeforeReadConsumer: z.literal(true),
+  crossProcessNetworkIngress: z.literal(true),
+  crossProcessNetworkRead: z.literal(true),
+  authenticatedNetworkControl: z.literal(false),
+  networkProducerRuntime: z.literal("external-bun"),
+  networkProducerInput: z.literal("canonical-png-file"),
+  networkConsumerRuntime: z.literal("external-bun"),
   runtimeReplaced: z.literal(false),
   largeAssetStaging: z.literal(false),
+});
+const networkFailureSchema = z.strictObject({
+  scope: z.literal("network-transfer-artifact-failure"),
+  mode: z.enum(["javascript", "compiled"]),
+  scenario: z.enum([
+    "missing-network-bridge",
+    "missing-network-producer",
+    "missing-producer-runtime",
+  ]),
+  ownerReusable: z.literal(true),
+  unpublished: z.literal(true),
+  creditsReleased: z.literal(true),
+  producerChildrenJoined: z.literal(true),
+});
+const networkReadFailureSchema = z.strictObject({
+  scope: z.literal("network-read-artifact-failure"),
+  mode: z.enum(["javascript", "compiled"]),
+  scenario: z.enum([
+    "missing-network-read-bridge",
+    "missing-network-read-consumer",
+    "missing-consumer-runtime",
+  ]),
+  ownerReusable: z.literal(true),
+  sourceUnchanged: z.literal(true),
+  creditsReleased: z.literal(true),
+  consumerChildrenJoined: z.literal(true),
 });
 const failureSchema = z.object({
   scope: z.literal("thread-driver-startup-failure"),
@@ -80,7 +121,16 @@ try {
     mkdir(unrelated),
   ]);
   const build = await Bun.build({
-    entrypoints: ["exercise.ts", "worker.ts"].map((name) =>
+    entrypoints: [
+      "exercise.ts",
+      "worker.ts",
+      "upload-producer.ts",
+      "read-consumer.ts",
+      "network-ingress-worker.ts",
+      "network-producer.ts",
+      "network-read-worker.ts",
+      "network-read-consumer.ts",
+    ].map((name) =>
       fileURLToPath(
         new URL(`./fixtures/turso-thread/${name}`, import.meta.url),
       ),
@@ -99,8 +149,26 @@ try {
       version: "0.0.0",
       private: true,
       type: "module",
-      files: ["exercise.js", "worker.js"],
-      exports: { ".": "./exercise.js", "./worker": "./worker.js" },
+      files: [
+        "exercise.js",
+        "worker.js",
+        "upload-producer.js",
+        "read-consumer.js",
+        "network-ingress-worker.js",
+        "network-producer.js",
+        "network-read-worker.js",
+        "network-read-consumer.js",
+      ],
+      exports: {
+        ".": "./exercise.js",
+        "./worker": "./worker.js",
+        "./upload-producer": "./upload-producer.js",
+        "./read-consumer": "./read-consumer.js",
+        "./network-ingress-worker": "./network-ingress-worker.js",
+        "./network-producer": "./network-producer.js",
+        "./network-read-worker": "./network-read-worker.js",
+        "./network-read-consumer": "./network-read-consumer.js",
+      },
       dependencies: { "@tursodatabase/database": "0.7.2" },
     }),
   );
@@ -123,6 +191,31 @@ try {
     join(consumer, "node_modules/turso-thread-proof/worker.js"),
   );
   assert.ok(workerPath.startsWith(`${consumer}/`));
+  const producerPath = await realpath(
+    join(consumer, "node_modules/turso-thread-proof/upload-producer.js"),
+  );
+  assert.ok(producerPath.startsWith(`${consumer}/`));
+  const readConsumerPath = await realpath(
+    join(consumer, "node_modules/turso-thread-proof/read-consumer.js"),
+  );
+  assert.ok(readConsumerPath.startsWith(`${consumer}/`));
+  const networkBridgePath = await realpath(
+    join(consumer, "node_modules/turso-thread-proof/network-ingress-worker.js"),
+  );
+  const networkProducerPath = await realpath(
+    join(consumer, "node_modules/turso-thread-proof/network-producer.js"),
+  );
+  assert.ok(networkBridgePath.startsWith(`${consumer}/`));
+  assert.ok(networkProducerPath.startsWith(`${consumer}/`));
+  const networkReadBridgePath = await realpath(
+    join(consumer, "node_modules/turso-thread-proof/network-read-worker.js"),
+  );
+  const networkReadConsumerPath = await realpath(
+    join(consumer, "node_modules/turso-thread-proof/network-read-consumer.js"),
+  );
+  assert.ok(networkReadBridgePath.startsWith(`${consumer}/`));
+  assert.ok(networkReadConsumerPath.startsWith(`${consumer}/`));
+  const bunExecutable = await realpath(process.execPath);
   assert.equal(
     await Bun.file(
       join(consumer, "node_modules/@libsql/client/package.json"),
@@ -132,7 +225,7 @@ try {
   await writeFile(
     join(consumer, "consumer.ts"),
     `
-import { exerciseThreadDriver } from "turso-thread-proof";
+import { exerciseThreadDriver, exerciseNetworkArtifactFailure, exerciseNetworkReadArtifactFailure } from "turso-thread-proof";
 import assert from "node:assert/strict";
 import { mkdir, readdir } from "node:fs/promises";
 import { join } from "node:path";
@@ -140,18 +233,38 @@ import { pathToFileURL } from "node:url";
 const mode = process.argv[2];
 if (mode !== "javascript" && mode !== "compiled") throw new Error("Invalid proof mode");
 const workerPath = process.env.PROOF_WORKER_PATH;
-if (!workerPath) throw new Error("Missing installed worker sidecar path");
+const producerPath = process.env.PROOF_PRODUCER_PATH;
+const readConsumerPath = process.env.PROOF_READ_CONSUMER_PATH;
+const networkBridgePath = process.env.PROOF_NETWORK_BRIDGE_PATH;
+const networkProducerPath = process.env.PROOF_NETWORK_PRODUCER_PATH;
+const networkReadBridgePath = process.env.PROOF_NETWORK_READ_BRIDGE_PATH;
+const networkReadConsumerPath = process.env.PROOF_NETWORK_READ_CONSUMER_PATH;
+const bunExecutable = process.env.PROOF_BUN_EXECUTABLE;
+if (!workerPath || !producerPath || !readConsumerPath || !networkBridgePath || !networkProducerPath || !networkReadBridgePath || !networkReadConsumerPath || !bunExecutable) throw new Error("Missing explicit proof sidecar/runtime path");
+const network = { bridgeUrl: pathToFileURL(networkBridgePath), producerUrl: pathToFileURL(networkProducerPath), readBridgeUrl: pathToFileURL(networkReadBridgePath), readConsumerUrl: pathToFileURL(networkReadConsumerPath), bunExecutable };
 const scenario = process.argv[3] ?? "success";
-if (!["success", "missing-worker", "missing-native"].includes(scenario)) throw new Error("Invalid proof scenario");
+if (!["success", "missing-worker", "missing-native", "missing-network-bridge", "missing-network-producer", "missing-producer-runtime", "missing-network-read-bridge", "missing-network-read-consumer", "missing-consumer-runtime"].includes(scenario)) throw new Error("Invalid proof scenario");
 const directory = join(process.cwd(), mode + "-" + scenario);
 await mkdir(directory);
 const workerUrl = pathToFileURL(workerPath);
-const exercise = () => exerciseThreadDriver(pathToFileURL(join(directory, "database with spaces.db")).href, workerUrl);
+const databaseUrl = pathToFileURL(join(directory, "database with spaces.db")).href;
+const exercise = () => exerciseThreadDriver(databaseUrl, workerUrl, pathToFileURL(producerPath), pathToFileURL(readConsumerPath), network);
 if (scenario === "success") console.log(JSON.stringify(await exercise()));
-else {
+else if (["missing-network-read-bridge", "missing-network-read-consumer", "missing-consumer-runtime"].includes(scenario)) {
+  const error = await exerciseNetworkReadArtifactFailure(databaseUrl, workerUrl, network);
+  const path = scenario === "missing-network-read-bridge" ? networkReadBridgePath : scenario === "missing-network-read-consumer" ? networkReadConsumerPath : bunExecutable;
+  assert.ok(error.nodes.some((node) => node.message.includes(path)), "Expected the failed explicit read artifact in bounded diagnostics");
+  console.log(JSON.stringify({ scope: "network-read-artifact-failure", mode, scenario, ownerReusable: true, sourceUnchanged: true, creditsReleased: true, consumerChildrenJoined: true }));
+}
+else if (["missing-network-bridge", "missing-network-producer", "missing-producer-runtime"].includes(scenario)) {
+  const error = await exerciseNetworkArtifactFailure(databaseUrl, workerUrl, network);
+  const path = scenario === "missing-network-bridge" ? networkBridgePath : scenario === "missing-network-producer" ? networkProducerPath : bunExecutable;
+  assert.ok(error.nodes.some((node) => node.message.includes(path)), "Expected the failed explicit artifact in bounded diagnostics");
+  console.log(JSON.stringify({ scope: "network-transfer-artifact-failure", mode, scenario, ownerReusable: true, unpublished: true, creditsReleased: true, producerChildrenJoined: true }));
+} else {
   await assert.rejects(exercise, (error) => {
     assert.ok(error instanceof Error);
-    if (scenario === "missing-native") assert.match(error.message, /Native proof startup failed:.*Cannot find native binding/s);
+    if (scenario === "missing-native") assert.match(error.message, /Native worker startup failed:.*Cannot find native binding/s);
     else {
       assert.match(error.message, /Cannot find module|not found|ENOENT|resolve/i);
       assert.ok(error.message.includes(workerPath));
@@ -163,7 +276,16 @@ else {
 }
 `,
   );
-  const workerEnv = { PROOF_WORKER_PATH: workerPath };
+  const workerEnv = {
+    PROOF_WORKER_PATH: workerPath,
+    PROOF_PRODUCER_PATH: producerPath,
+    PROOF_READ_CONSUMER_PATH: readConsumerPath,
+    PROOF_NETWORK_BRIDGE_PATH: networkBridgePath,
+    PROOF_NETWORK_PRODUCER_PATH: networkProducerPath,
+    PROOF_NETWORK_READ_BRIDGE_PATH: networkReadBridgePath,
+    PROOF_NETWORK_READ_CONSUMER_PATH: networkReadConsumerPath,
+    PROOF_BUN_EXECUTABLE: bunExecutable,
+  };
   const javascript = reportSchema.parse(
     JSON.parse(
       await run(consumer, ["bun", "consumer.ts", "javascript"], workerEnv),
@@ -220,6 +342,12 @@ else {
     }),
   );
   await writeFile(join(unrelated, "worker.js"), trapSource);
+  await writeFile(join(unrelated, "upload-producer.js"), trapSource);
+  await writeFile(join(unrelated, "read-consumer.js"), trapSource);
+  await writeFile(join(unrelated, "network-ingress-worker.js"), trapSource);
+  await writeFile(join(unrelated, "network-producer.js"), trapSource);
+  await writeFile(join(unrelated, "network-read-worker.js"), trapSource);
+  await writeFile(join(unrelated, "network-read-consumer.js"), trapSource);
   for (const name of [
     "turso-thread-proof",
     "@tursodatabase/database-wasm32-wasi",
@@ -233,11 +361,26 @@ else {
         name,
         type: "module",
         main: "index.js",
-        exports: { ".": "./index.js", "./worker": "./worker.js" },
+        exports: {
+          ".": "./index.js",
+          "./worker": "./worker.js",
+          "./upload-producer": "./upload-producer.js",
+          "./read-consumer": "./read-consumer.js",
+          "./network-ingress-worker": "./network-ingress-worker.js",
+          "./network-producer": "./network-producer.js",
+          "./network-read-worker": "./network-read-worker.js",
+          "./network-read-consumer": "./network-read-consumer.js",
+        },
       }),
     );
     await writeFile(join(directory, "index.js"), trapSource);
     await writeFile(join(directory, "worker.js"), trapSource);
+    await writeFile(join(directory, "upload-producer.js"), trapSource);
+    await writeFile(join(directory, "read-consumer.js"), trapSource);
+    await writeFile(join(directory, "network-ingress-worker.js"), trapSource);
+    await writeFile(join(directory, "network-producer.js"), trapSource);
+    await writeFile(join(directory, "network-read-worker.js"), trapSource);
+    await writeFile(join(directory, "network-read-consumer.js"), trapSource);
   }
   const launches = [
     {
@@ -287,12 +430,93 @@ else {
       );
     }
   }
+  const networkArtifactFailures: z.output<typeof networkFailureSchema>[] = [];
+  const networkFaults: {
+    scenario: string;
+    paths: string[];
+    runtime?: string;
+  }[] = [
+    { scenario: "missing-network-bridge", paths: [networkBridgePath] },
+    { scenario: "missing-network-producer", paths: [networkProducerPath] },
+    {
+      scenario: "missing-producer-runtime",
+      paths: [],
+      runtime: join(unrelated, "missing-bun-runtime"),
+    },
+  ];
+  for (const fault of networkFaults) {
+    const moved: string[] = [];
+    try {
+      for (const path of fault.paths) {
+        await rename(path, `${path}.unavailable`);
+        moved.push(path);
+      }
+      for (const launch of launches) {
+        const report = networkFailureSchema.parse(
+          JSON.parse(
+            await run(unrelated, [...launch.command, fault.scenario], {
+              ...workerEnv,
+              ...(fault.runtime && { PROOF_BUN_EXECUTABLE: fault.runtime }),
+            }),
+          ),
+        );
+        assert.equal(report.mode, launch.mode);
+        assert.equal(report.scenario, fault.scenario);
+        assert.equal(await Bun.file(trapPath).exists(), false);
+        networkArtifactFailures.push(report);
+      }
+    } finally {
+      await Promise.all(
+        moved.map((path) => rename(`${path}.unavailable`, path)),
+      );
+    }
+  }
+  const networkReadArtifactFailures: z.output<
+    typeof networkReadFailureSchema
+  >[] = [];
+  for (const fault of [
+    { scenario: "missing-network-read-bridge", path: networkReadBridgePath },
+    {
+      scenario: "missing-network-read-consumer",
+      path: networkReadConsumerPath,
+    },
+    { scenario: "missing-consumer-runtime", path: undefined },
+  ]) {
+    if (fault.path) await rename(fault.path, `${fault.path}.unavailable`);
+    try {
+      for (const launch of launches) {
+        const report = networkReadFailureSchema.parse(
+          JSON.parse(
+            await run(unrelated, [...launch.command, fault.scenario], {
+              ...workerEnv,
+              ...(!fault.path && {
+                PROOF_BUN_EXECUTABLE: join(
+                  unrelated,
+                  "missing-read-bun-runtime",
+                ),
+              }),
+            }),
+          ),
+        );
+        assert.equal(report.mode, launch.mode);
+        assert.equal(report.scenario, fault.scenario);
+        assert.equal(await Bun.file(trapPath).exists(), false);
+        networkReadArtifactFailures.push(report);
+      }
+    } finally {
+      if (fault.path) await rename(`${fault.path}.unavailable`, fault.path);
+    }
+  }
   console.log(
     JSON.stringify({
       scope: "packed-thread-driver-proof",
       unrelatedWorkingDirectory: true,
       cwdDecoysExecuted: false,
       startupFailures,
+      networkArtifactFailures,
+      installedNetworkSidecars: true,
+      installedNetworkReadSidecars: true,
+      networkReadArtifactFailures,
       javascript,
       compiled,
       installedWorkerSidecar: true,

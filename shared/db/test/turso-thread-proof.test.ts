@@ -10,6 +10,8 @@ import {
 } from "./fixtures/turso-thread/client";
 import { exerciseThreadDriver } from "./fixtures/turso-thread/exercise";
 import { snapshotCommand } from "./fixtures/turso-thread/protocol";
+import { openNativeBackend } from "../src/turso-worker/native-backend";
+import { initializeSqlWorker } from "../src/turso-worker/worker-bootstrap";
 
 const workerUrl = new URL("./fixtures/turso-thread/worker.ts", import.meta.url);
 const directories: string[] = [];
@@ -42,13 +44,73 @@ describe("isolated Turso execution-thread proof", () => {
     const report = await exerciseThreadDriver(
       pathToFileURL(join(directory, "source with spaces.db")).href,
       workerUrl,
+      new URL("./fixtures/turso-thread/upload-producer.ts", import.meta.url),
+      new URL("./fixtures/turso-thread/read-consumer.ts", import.meta.url),
+      {
+        bridgeUrl: new URL(
+          "./fixtures/turso-thread/network-ingress-worker.ts",
+          import.meta.url,
+        ),
+        producerUrl: new URL(
+          "./fixtures/turso-thread/network-producer.ts",
+          import.meta.url,
+        ),
+        readBridgeUrl: new URL(
+          "./fixtures/turso-thread/network-read-worker.ts",
+          import.meta.url,
+        ),
+        readConsumerUrl: new URL(
+          "./fixtures/turso-thread/network-read-consumer.ts",
+          import.meta.url,
+        ),
+        bunExecutable: process.execPath,
+      },
     );
     expect(report).toMatchObject({
       mainControlWhileWorkerBlocked: true,
       transactionIsolation: true,
       durableMainFileRestore: true,
+      sharedFiveWorkerBudget: true,
+      boundedFailureDiagnostics: true,
+      directWorkerUpload: true,
+      snapshotReleasedBeforeReadConsumer: true,
+      crossProcessNetworkIngress: true,
+      crossProcessNetworkRead: true,
+      authenticatedNetworkControl: false,
+      networkProducerRuntime: "external-bun",
+      networkProducerInput: "canonical-png-file",
+      networkConsumerRuntime: "external-bun",
       runtimeReplaced: false,
     });
+  });
+
+  it("does not let exposed startup metadata change the trusted worker identity", async () => {
+    const driver = create({ url: "file::memory:" });
+    const placement = await driver.initialize();
+    placement.threadId += 1;
+    expect(
+      (await driver.execute({ sql: "SELECT 42 AS answer" })).rows[0]?.[
+        "answer"
+      ],
+    ).toBe(42);
+  });
+
+  it("retires pre-dispatch admission when a borrowed buffer snapshot fails", async () => {
+    const driver = create({ url: "file::memory:", maxInFlight: 1 });
+    const bytes = new ArrayBuffer(1);
+    const failure = new Error("Injected snapshot failure");
+    bytes.slice = (): ArrayBuffer => {
+      throw failure;
+    };
+    await assert.rejects(
+      driver.execute({ sql: "SELECT ?", args: [bytes] }),
+      (error) => error === failure,
+    );
+    expect(
+      (await driver.execute({ sql: "SELECT 42 AS answer" })).rows[0]?.[
+        "answer"
+      ],
+    ).toBe(42);
   });
 
   it("reserves finalization capacity when ordinary requests fill the queue", async () => {
@@ -181,6 +243,24 @@ describe("isolated Turso execution-thread proof", () => {
     await assert.rejects(lease.execute({ sql: "SELECT 3" }), /closed/);
     await assert.rejects(driver.initialize(), /exited/);
     await assert.rejects(driver.execute({ sql: "SELECT 2" }), /exited/);
+  });
+
+  it("refuses production worker initialization on the main thread", async () => {
+    await assert.rejects(
+      initializeSqlWorker({
+        url: "file::memory:",
+        generation: crypto.randomUUID(),
+        budget: crypto.randomUUID(),
+      }),
+      /must run in a worker thread/,
+    );
+  });
+
+  it("refuses to open the production native backend on the main thread", async () => {
+    await assert.rejects(
+      openNativeBackend("file::memory:"),
+      /requires an execution worker/,
+    );
   });
 
   it("retains the endpoint-only process fence before spawning", () => {

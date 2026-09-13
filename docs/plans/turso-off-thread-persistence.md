@@ -7,7 +7,7 @@
 - The canonical native publication candidate still requires a test-only database factory binding.
 - Production ingestion/read byte handoffs and worker execution are not cut over.
 - Runtime-state prefix clear now uses validated, sequential deletes in one transaction.
-- Existing implementation and fixture changes are being split into commits before merging main.
+- Staged-asset binding and the existing worker/fixture implementation are recorded in separate commits; merging main is next.
 - `shared/db/src/sqlite.ts` retains its existing runtime factory. Do not switch it before the production binary path is complete.
 - No new standalone proofs during fixture-to-source promotion.
 

@@ -5,7 +5,8 @@ import { fileURLToPath } from "node:url";
 import { eq, sql } from "drizzle-orm";
 import { blob, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 import { migrate } from "drizzle-orm/libsql/migrator";
-import { ProofLibsqlClient, createProofDatabase } from "./libsql-client";
+import { SqlWorkerClient as ProofLibsqlClient } from "../../../src/turso-worker/sql-client";
+import { createProofDatabase } from "./binary-transaction";
 import type { TursoThreadProof } from "./client";
 
 const records = sqliteTable("orm_records", {
@@ -36,7 +37,7 @@ export async function exerciseLibsqlSession(
   url: string,
 ): Promise<void> {
   const client = new ProofLibsqlClient(driver);
-  const db = createProofDatabase(client, { records });
+  const db = createProofDatabase(driver, { records });
   await client.executeMultiple(
     "CREATE TABLE orm_records (id INTEGER PRIMARY KEY, label TEXT NOT NULL, enabled INTEGER NOT NULL, at INTEGER NOT NULL, bytes BLOB NOT NULL);",
   );
