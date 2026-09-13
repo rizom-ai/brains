@@ -1,7 +1,15 @@
 import * as stylex from "@stylexjs/stylex";
+
+const WIDE_INSET = 36;
+const PHONE_INLINE_INSET = 20;
+const PHONE_TOP_INSET = 24;
 export const headStyles: Record<
   | "root"
+  | "inset"
+  | "documentInset"
   | "row"
+  | "hasAction"
+  | "copy"
   | "title"
   | "metadata"
   | "phoneHidden"
@@ -16,6 +24,22 @@ export const headStyles: Record<
   | "error",
   stylex.StyleXStyles
 > = stylex.create({
+  inset: {
+    paddingTop: WIDE_INSET,
+    paddingInline: WIDE_INSET,
+    "@media (max-width: 640px)": {
+      paddingTop: PHONE_TOP_INSET,
+      paddingInline: PHONE_INLINE_INSET,
+    },
+  },
+  documentInset: {
+    marginTop: WIDE_INSET,
+    marginInline: WIDE_INSET,
+    "@media (max-width: 640px)": {
+      marginTop: PHONE_TOP_INSET,
+      marginInline: PHONE_INLINE_INSET,
+    },
+  },
   root: {
     display: "grid",
     gap: 8,
@@ -26,7 +50,15 @@ export const headStyles: Record<
     borderBottomColor: "var(--console-text)",
     "@media (max-width: 640px)": { paddingBottom: 16 },
   },
+  hasAction: { gridTemplateColumns: "minmax(0, 1fr) auto" },
   row: {
+    display: "grid",
+    gridTemplateColumns: "minmax(0, 1fr)",
+    alignItems: "baseline",
+    gap: 12,
+    minWidth: 0,
+  },
+  copy: {
     display: "flex",
     flexWrap: "wrap",
     alignItems: "baseline",

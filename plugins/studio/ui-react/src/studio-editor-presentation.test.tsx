@@ -6,6 +6,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import * as stylex from "@stylexjs/stylex";
 import { BodyEditor } from "./body-editor";
 import { StudioAppStatus } from "./app-view";
+import { StudioPageHead, type StudioPageHeadModel } from "./studio-page-head";
+import { headStyles } from "./studio-page-head.styles";
 import { StudioMarkdown } from "./studio-markdown";
 import { libraryStyles as library } from "./studio-library.styles";
 import { editorLayoutStyles as layout } from "./studio-editor-layout.styles";
@@ -14,6 +16,11 @@ const css = readFileSync(
   new URL("../../dist/ui/studio-app.css", import.meta.url),
   "utf8",
 );
+const headModel: StudioPageHeadModel = {
+  title: "Shared heading",
+  access: { kind: "session", label: "Signed in" },
+  totals: [],
+};
 for (const width of [1440, 768, 390])
   test(`compiled Studio editor and library presentation at ${width}px`, async () => {
     const window = new Window({ width });
@@ -23,7 +30,12 @@ for (const width of [1440, 768, 390])
       doc.body.innerHTML = renderToStaticMarkup(
         <>
           <StudioAppStatus message="Exact boot message" />
-          <main {...stylex.props(library.listing)}>
+          <main
+            data-head-inset=""
+            {...stylex.props(library.listing, headStyles.inset)}
+          >
+            <StudioPageHead model={headModel} />
+            <StudioPageHead model={headModel} appearance="document" />
             <button {...stylex.props(library.row)} data-studio-record="">
               <span {...stylex.props(library.title)}>Full title α—/</span>
               <span {...stylex.props(library.updated)}>Exact timestamp</span>
@@ -72,6 +84,23 @@ for (const width of [1440, 768, 390])
         </>,
       );
       expect(doc.body.querySelector("style")).toBeNull();
+      for (const head of doc.querySelectorAll("[data-studio-page-head]")) {
+        const title = head.querySelector("h1");
+        if (!title) throw new Error("Page title must be a level-one heading");
+        expect(window.getComputedStyle(title).fontSize).toBe(
+          width <= 640 ? "29px" : "36px",
+        );
+        expect(window.getComputedStyle(title).fontWeight).toBe("600");
+        expect(window.getComputedStyle(head).borderBottomWidth).toBe("2px");
+        expect(window.getComputedStyle(head).paddingBottom).toBe(
+          width <= 640 ? "16px" : "18px",
+        );
+      }
+      const inset = doc.querySelector("[data-head-inset]");
+      if (!inset) throw new Error("Missing shared inset");
+      expect(window.getComputedStyle(inset).paddingTop).toBe(
+        width <= 640 ? "24px" : "36px",
+      );
       const fields = doc.querySelector("fieldset"),
         number = doc.querySelector("input[type=number]"),
         raw = doc.querySelector("textarea"),
@@ -89,6 +118,11 @@ for (const width of [1440, 768, 390])
       );
       expect(window.getComputedStyle(raw).borderTopStyle).toBe("dashed");
       expect(parseFloat(window.getComputedStyle(tag).borderTopWidth)).toBe(0);
+      expect(
+        parseFloat(
+          window.getComputedStyle(tag).getPropertyValue("padding-inline"),
+        ),
+      ).toBe(0);
       expect(window.getComputedStyle(tag).fontSize).toBe(
         width <= 640 ? "16px" : "12px",
       );
@@ -98,6 +132,15 @@ for (const width of [1440, 768, 390])
       const preview = doc.querySelector("[data-studio-preview]"),
         title = doc.querySelector("[data-studio-record] span");
       if (!preview || !title) throw Error("Missing native surfaces");
+      for (const tab of doc.querySelectorAll('[role="tab"]')) {
+        expect(
+          doc.getElementById(tab.getAttribute("aria-controls") ?? ""),
+        ).not.toBeNull();
+      }
+      expect(
+        doc.querySelector('[role="tabpanel"]')?.getAttribute("aria-labelledby"),
+      ).toBe(doc.querySelector('[role="tab"][aria-selected="true"]')?.id);
+      expect(preview.getAttribute("tabindex")).toBe("0");
       expect(title.textContent).toBe("Full title α—/");
       expect(window.getComputedStyle(title).fontSize).toBe(
         width <= 640 ? "17px" : "17.5px",
@@ -143,6 +186,7 @@ test("compiled prose retains safe links, fenced-code controls and ordered-list s
   expect(html).toContain('data-streamdown="code-block-copy-button"');
   expect(html).not.toContain('data-streamdown="code-block-download-button"');
   expect(html).toContain('data-language="ts"');
-  expect(html).toContain("const zero = 0;");
+  expect(html.replace(/<[^>]*>/g, "")).toContain("const zero = 0;");
+  expect(html).toContain('data-code-token="number"');
   expect(html).not.toContain('node="');
 });

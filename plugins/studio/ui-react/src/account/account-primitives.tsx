@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import { Button } from "@brains/app-ui-react";
+import { typographyStyles } from "../studio-typography.styles";
 import { OperatorRecordCopy } from "@brains/operator-view-react";
 import type { ReactElement, ReactNode } from "react";
 import {
@@ -59,7 +60,9 @@ export function AccountDetailSection(props: {
   return (
     <section className={cx("account-detail-section", s.section)}>
       <div className="account-section-label">
-        <h3 className={cx("", s.heading)}>{props.title}</h3>
+        <h3 className={cx("", s.heading, typographyStyles.section)}>
+          {props.title}
+        </h3>
         {props.description ? (
           <p className={cx("", s.description)}>{props.description}</p>
         ) : null}

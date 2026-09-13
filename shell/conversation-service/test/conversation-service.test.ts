@@ -869,6 +869,85 @@ describe("ConversationService", () => {
   });
 
   describe("listConversations", () => {
+    it("filters archive state and literal search before paging without crossing person or interface boundaries", async () => {
+      for (const [id, personId, interfaceType, archived] of [
+        ["a", "owner", "web-chat", false],
+        ["b", "owner", "web-chat", false],
+        ["c", "owner", "web-chat", true],
+        ["d", "other", "web-chat", true],
+        ["e", "owner", "cli", true],
+      ] as const) {
+        await service.startConversation({
+          sessionId: id,
+          interfaceType,
+          channelId: id,
+          personId,
+          metadata: testMetadata,
+        });
+        await service.updateConversationMetadata({
+          conversationId: id,
+          metadata: {
+            title: id === "b" ? "100% Review" : "Other",
+            ...(archived ? { archivedAt: "2026-09-11T00:00:00Z" } : {}),
+          },
+        });
+        await service.addMessage({
+          conversationId: id,
+          role: "user",
+          content: id === "b" ? "Plain text" : "Discuss 100% completion",
+          metadata: {},
+        });
+      }
+      await client.execute(
+        "UPDATE conversations SET last_active = '2026-09-11T00:00:00Z'",
+      );
+      const scope = {
+        interfaceType: "web-chat",
+        personId: "owner",
+        query: "100%",
+      };
+      expect(
+        (
+          await service.listConversations({
+            ...scope,
+            archived: true,
+            limit: 1,
+          })
+        ).map((c) => c.id),
+      ).toEqual(["c"]);
+      expect(
+        (
+          await service.listConversations({
+            ...scope,
+            archived: false,
+            limit: 1,
+          })
+        ).map((c) => c.id),
+      ).toEqual(["b"]);
+      expect(
+        (
+          await service.listConversations({
+            ...scope,
+            archived: false,
+            limit: 1,
+            offset: 1,
+          })
+        ).map((c) => c.id),
+      ).toEqual(["a"]);
+      expect(
+        await service.listConversations({ ...scope, query: "100_" }),
+      ).toHaveLength(0);
+      expect(
+        (
+          await service.listConversations({
+            ...scope,
+            query: "review",
+            archived: false,
+          })
+        ).map((c) => c.id),
+      ).toEqual(["b"]);
+    });
+
     it("should list conversations newest active first with limit", async () => {
       await service.startConversation({
         sessionId: "conv-list-1",

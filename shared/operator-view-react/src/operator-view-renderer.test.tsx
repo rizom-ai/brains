@@ -11,6 +11,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
 import {
   OperatorViewRenderer,
+  OperatorActionButton,
   actionFailureMessage,
   type OperatorViewComponents,
 } from "./operator-view-renderer";
@@ -444,6 +445,7 @@ describe("OperatorViewRenderer", () => {
     expect(delegated).toContain(">1</");
     expect(delegated).toContain("Ready.");
     expect(selfRendered).toContain("Refresh library");
+    expect(selfRendered).toContain('data-variant="primary"');
   });
 
   it("declares a layout span per block so the host grid can differentiate width", () => {
@@ -460,6 +462,23 @@ describe("OperatorViewRenderer", () => {
     expect(html).toContain('data-block="meters" data-span="compact"');
     expect(html).toContain('data-block="progress" data-span="compact"');
     expect(html).toContain('data-block="notice" data-span="wide"');
+  });
+
+  it("retains consequence styling for confirmed page primaries", () => {
+    const html = renderToStaticMarkup(
+      createElement(OperatorActionButton, {
+        primary: true,
+        action: {
+          actionId: "purge",
+          label: "Purge exports",
+          input: {},
+          confirmation: { kind: "prepared" },
+        },
+        onAction: async () => ({}),
+      }),
+    );
+    expect(html).toContain('data-variant="danger"');
+    expect(html).not.toContain('data-variant="primary"');
   });
 
   it("ranks action buttons by consequence rather than styling them all alike", async () => {

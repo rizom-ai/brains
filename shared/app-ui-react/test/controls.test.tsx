@@ -96,6 +96,11 @@ describe("app control vocabulary", () => {
     const dialog = document.querySelector('[role="dialog"]');
     if (!dialog) throw Error("Missing action sheet");
     expect(dialog.textContent).toContain("Exact row actions");
+    expect(dialog.hasAttribute("aria-describedby")).toBe(false);
+    expect(
+      document.getElementById(dialog.getAttribute("aria-labelledby") ?? "")
+        ?.textContent,
+    ).toBe("Exact row actions");
     expect(invoked).toBe(0);
     const move = Array.from(dialog.querySelectorAll("button")).find(
         (b) => b.textContent === "Move up",

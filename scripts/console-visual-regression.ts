@@ -1,8 +1,10 @@
 import { createMockAppInfo } from "@brains/plugins/test";
+import { renameChatSessionRequestSchema } from "@brains/contracts/chat";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { getErrorMessage } from "@brains/utils/error";
 import path from "node:path";
 import { PNG } from "pngjs";
+import axe from "axe-core";
 import { createAdministrationFixture } from "./fixtures/studio-administration";
 import { createWorkViewFixtures } from "./fixtures/studio-work-views";
 import { createDeliveryViewFixtures } from "./fixtures/studio-delivery-views";
@@ -31,6 +33,10 @@ const ROOT = path.resolve(import.meta.dir, "..");
 const BASELINE_DIR = path.join(ROOT, "test/visual/console/baselines");
 const ARTIFACT_DIR = path.join(ROOT, "test/visual/console/artifacts");
 const UPDATE = process.argv.includes("--update");
+const AUDIT_ACCESSIBILITY = process.argv.includes("--a11y");
+const SURFACE_PREFIX = process.argv
+  .find((argument) => argument.startsWith("--surface-prefix="))
+  ?.slice("--surface-prefix=".length);
 const STUDY_STATE = studioStudyStateSchema
   .optional()
   .parse(
@@ -170,7 +176,7 @@ const entity = {
     publishedAt: "2026-07-14T09:00:00.000Z",
     coverImageId: "image/verdigris-board",
   },
-  body: '# Notes from the rhizome\n\nA good console should make dense systems feel calm. Its structure needs to remain legible while the viewport changes around it.\n\n```ts\nconst manuscript = { source: "literal", preview: "rendered" };\nconst scrolling = "independent";\n```\n\n> The interface is not a dashboard pasted onto every screen. It is a continuous instrument with distinct working climates.\n\n## Responsive field rules\n\n- Keep shared wayfinding stable.\n- Let local tools adapt to the task.\n- Preserve touch targets and safe areas.\n\nThe result should feel authored at every width.',
+  body: '# Notes from the rhizome\n\nA good console should make dense systems feel calm. Its structure needs to remain legible while the viewport changes around it.\n\n```ts\nconst manuscript = { source: "literal", preview: "rendered" };\nconst scrolling = "independent"; // Preserve source bytes.\nconst pageSize = 25;\n```\n\n| Surface | Reading mode | Records | Keyboard access |\n| --- | --- | ---: | --- |\n| Library | Paged list | 54 | Search, filter, then open |\n| Preview | Markdown | 2 | Scroll code and tables |\n\n> The interface is not a dashboard pasted onto every screen. It is a continuous instrument with distinct working climates.\n\n## Responsive field rules\n\n- Keep shared wayfinding stable.\n- Let local tools adapt to the task.\n- Preserve touch targets and safe areas.\n\nThe result should feel authored at every width.',
   contentHash: "fixture-hash",
   created: "2026-06-18T09:00:00.000Z",
 };
@@ -2025,7 +2031,9 @@ async function fillLabel(
     page,
     ({ labelText: text, value: nextValue }) => {
       const label = Array.from(document.querySelectorAll("label")).find(
-        (candidate) => candidate.textContent.includes(text),
+        (candidate) =>
+          candidate.textContent.includes(text) &&
+          candidate.getBoundingClientRect().height > 0,
       );
       const input = label?.htmlFor
         ? document.getElementById(label.htmlFor)
@@ -2217,6 +2225,294 @@ function isStudioAppShellSurface(surface: string): boolean {
     surface === "studio-invalid" ||
     surface === "studio-upload"
   );
+}
+
+async function verifyStudioDialogKeyboard(page: Bun.WebView): Promise<void> {
+  const ready = await evaluatePage(page, () => {
+    const dialog = [
+      ...document.querySelectorAll<HTMLElement>(
+        '[role="dialog"], [role="alertdialog"]',
+      ),
+    ].find((node) => node.getBoundingClientRect().height > 0);
+    if (!dialog) return false;
+    const controls = [
+      ...dialog.querySelectorAll<HTMLElement>(
+        'button, input, select, textarea, summary, a[href], [tabindex], [contenteditable="true"]',
+      ),
+    ].filter((node) => {
+      const closed = node.closest("details:not([open])");
+      return (
+        !node.matches(":disabled") &&
+        node.tabIndex >= 0 &&
+        node.getBoundingClientRect().height > 0 &&
+        getComputedStyle(node).visibility !== "hidden" &&
+        (!closed || closed.querySelector(":scope > summary")?.contains(node))
+      );
+    });
+    const first = controls[0],
+      last = controls.at(-1);
+    if (!first || !last)
+      throw new Error("Dialog has no keyboard-reachable controls");
+    first.dataset["studioAuditFirst"] = "";
+    last.dataset["studioAuditLast"] = "";
+    const previous =
+      document.activeElement instanceof HTMLElement &&
+      dialog.contains(document.activeElement)
+        ? document.activeElement
+        : first;
+    previous.dataset["studioAuditReturn"] = "";
+    last.focus();
+    if (document.activeElement !== last)
+      throw new Error("Last dialog control could not receive focus");
+    return true;
+  });
+  if (!ready) return;
+  for (const [modifiers, expected] of [
+    [0, "first"],
+    [8, "last"],
+  ] as const) {
+    await page.cdp("Input.dispatchKeyEvent", {
+      type: "keyDown",
+      key: "Tab",
+      code: "Tab",
+      windowsVirtualKeyCode: 9,
+      modifiers,
+    });
+    await page.cdp("Input.dispatchKeyEvent", {
+      type: "keyUp",
+      key: "Tab",
+      code: "Tab",
+      windowsVirtualKeyCode: 9,
+      modifiers,
+    });
+    await evaluatePageWith(
+      page,
+      (edge) => {
+        if (
+          document.activeElement !==
+          document.querySelector(`[data-studio-audit-${edge}]`)
+        )
+          throw new Error(
+            `Dialog focus did not wrap to ${edge} control: active=${document.activeElement?.outerHTML.slice(0, 350)} expected=${document.querySelector(`[data-studio-audit-${edge}]`)?.outerHTML.slice(0, 350)}`,
+          );
+      },
+      expected,
+    );
+  }
+  await evaluatePage(page, () => {
+    document.querySelector<HTMLElement>("[data-studio-audit-return]")?.focus();
+    for (const edge of ["first", "last", "return"])
+      document
+        .querySelector(`[data-studio-audit-${edge}]`)
+        ?.removeAttribute(`data-studio-audit-${edge}`);
+  });
+}
+
+async function auditStudioAccessibility(
+  page: Bun.WebView,
+  name: string,
+): Promise<void> {
+  if (!AUDIT_ACCESSIBILITY) return;
+  await page.evaluate(`(() => { ${axe.source}; return true; })()`);
+  const audit = await evaluatePage(page, async () => {
+    const runtime = (globalThis as unknown as { axe: typeof axe }).axe;
+    const result = await runtime.run(document, {
+      runOnly: {
+        type: "tag",
+        values: ["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"],
+      },
+    });
+    return {
+      violations: result.violations,
+      incomplete: result.incomplete,
+      passedRules: result.passes.map((rule) => rule.id),
+    };
+  });
+  await writeFile(
+    path.join(ARTIFACT_DIR, `${name}-a11y.json`),
+    JSON.stringify(audit, null, 2),
+  );
+  if (audit.violations.length)
+    failures.push(
+      `${name}: accessibility ${audit.violations.map((violation) => `${violation.id} (${violation.nodes.length})`).join(", ")}`,
+    );
+}
+
+interface StudioScrollAudit {
+  left: number;
+  top: number;
+  regions: Array<{ node: HTMLElement; left: number; top: number }>;
+}
+
+async function verifyStudioKeyboardAccess(page: Bun.WebView): Promise<void> {
+  await evaluatePage(page, () => {
+    const host = globalThis as unknown as {
+      __studioScrollAudit?: StudioScrollAudit;
+    };
+    host.__studioScrollAudit = {
+      left: window.scrollX,
+      top: window.scrollY,
+      regions: [...document.querySelectorAll<HTMLElement>("*")]
+        .filter(
+          (node) =>
+            node.scrollHeight > node.clientHeight ||
+            node.scrollWidth > node.clientWidth,
+        )
+        .map((node) => ({ node, left: node.scrollLeft, top: node.scrollTop })),
+    };
+  });
+  try {
+    await verifyStudioDialogKeyboard(page);
+    const ready = await evaluatePage(page, () => {
+      if (
+        [
+          ...document.querySelectorAll<HTMLElement>(
+            '[role="dialog"], [role="alertdialog"], [role="menu"]',
+          ),
+        ].some((node) => node.getBoundingClientRect().height > 0)
+      )
+        return false;
+      const skip = document.querySelector<HTMLButtonElement>(
+        ".studio-skip-content",
+      );
+      if (!skip) return false;
+      skip.focus();
+      if (skip.getBoundingClientRect().top < 0)
+        throw new Error("Skip control is not visible on focus");
+      return true;
+    });
+    if (!ready) return;
+    await page.cdp("Input.dispatchKeyEvent", {
+      type: "keyDown",
+      key: "Enter",
+      code: "Enter",
+      windowsVirtualKeyCode: 13,
+      text: "\r",
+      unmodifiedText: "\r",
+    });
+    await page.cdp("Input.dispatchKeyEvent", {
+      type: "keyUp",
+      key: "Enter",
+      code: "Enter",
+      windowsVirtualKeyCode: 13,
+    });
+    await evaluatePage(page, () => {
+      const active = document.activeElement;
+      if (
+        !(active instanceof HTMLElement) ||
+        !active.matches('main, [role="main"]') ||
+        active.id === "root" ||
+        active.querySelector(".studio-chrome")
+      )
+        throw new Error(
+          `Skip to content did not focus the main landmark: ${active?.outerHTML.slice(0, 240)}`,
+        );
+    });
+    await page.cdp("Input.dispatchKeyEvent", {
+      type: "keyDown",
+      key: "Tab",
+      code: "Tab",
+      windowsVirtualKeyCode: 9,
+    });
+    await page.cdp("Input.dispatchKeyEvent", {
+      type: "keyUp",
+      key: "Tab",
+      code: "Tab",
+      windowsVirtualKeyCode: 9,
+    });
+    await evaluatePage(page, () => {
+      const main = document.querySelector(
+        '[data-studio-shell] main, [data-studio-shell] [role="main"]',
+      );
+      const active = document.activeElement;
+      if (!(active instanceof HTMLElement) || !main?.contains(active))
+        throw new Error("Tab after skipping content returned to navigation");
+      const chrome = document
+        .querySelector(".studio-chrome")
+        ?.getBoundingClientRect();
+      if (chrome && active.getBoundingClientRect().top < chrome.bottom - 1)
+        throw new Error("Content focus is obscured by Studio chrome");
+      active.blur();
+    });
+    const previous = await evaluatePage(page, () => {
+      const thread = document.querySelector<HTMLElement>(
+        ".studio-chat-thread-scroll",
+      );
+      if (
+        !thread ||
+        thread.scrollTop <= 0 ||
+        thread.getBoundingClientRect().height === 0
+      )
+        return null;
+      thread.focus();
+      return {
+        top: thread.scrollTop,
+        atLatest:
+          thread.scrollHeight - thread.clientHeight - thread.scrollTop <= 48,
+      };
+    });
+    if (previous !== null) {
+      await page.cdp("Input.dispatchKeyEvent", {
+        type: "keyDown",
+        key: "PageUp",
+        code: "PageUp",
+        windowsVirtualKeyCode: 33,
+      });
+      await page.cdp("Input.dispatchKeyEvent", {
+        type: "keyUp",
+        key: "PageUp",
+        code: "PageUp",
+        windowsVirtualKeyCode: 33,
+      });
+      await waitForPage("keyboard conversation scrolling", () =>
+        evaluatePageWith(
+          page,
+          (top) =>
+            (document.querySelector(".studio-chat-thread-scroll")?.scrollTop ??
+              top) < top,
+          previous.top,
+        ),
+      );
+      await waitForVisualStability(page);
+      await evaluatePageWith(
+        page,
+        (position) => {
+          const thread = document.querySelector<HTMLElement>(
+            ".studio-chat-thread-scroll",
+          );
+          if (thread) {
+            if (position.atLatest)
+              [...document.querySelectorAll("button")]
+                .find((button) => button.textContent.includes("Jump to latest"))
+                ?.click();
+            thread.scrollTo({
+              top: position.atLatest ? thread.scrollHeight : position.top,
+              behavior: "instant",
+            });
+            thread.blur();
+          }
+        },
+        previous,
+      );
+    }
+  } finally {
+    // Keyboard focus can scroll the document, workspace, or editor independently.
+    await evaluatePage(page, () => {
+      const host = globalThis as unknown as {
+        __studioScrollAudit?: StudioScrollAudit;
+      };
+      const snapshot = host.__studioScrollAudit;
+      if (!snapshot) return;
+      for (const { node, left, top } of snapshot.regions)
+        if (node.isConnected) node.scrollTo({ left, top, behavior: "instant" });
+      window.scrollTo({
+        left: snapshot.left,
+        top: snapshot.top,
+        behavior: "instant",
+      });
+      delete host.__studioScrollAudit;
+    });
+  }
 }
 
 async function checkLayout(
@@ -2429,15 +2725,180 @@ async function checkLayout(
         );
     }
   }
+  if (surface.startsWith("studio-")) {
+    await evaluatePage(page, () => {
+      const head = document.querySelector<HTMLElement>(
+        "[data-studio-page-head]",
+      );
+      const frame = head?.closest<HTMLElement>(
+        "[data-studio-editor], [data-studio-library], .studio-workspace-frame, .studio-chat-workspace, .account-shell",
+      );
+      if (head && frame) {
+        const box = head.getBoundingClientRect();
+        const parent = frame.getBoundingClientRect();
+        const inset = innerWidth <= 640 ? 20 : 36;
+        const left =
+          box.left - parent.left - frame.clientLeft + frame.scrollLeft;
+        const right = frame.clientWidth - left - box.width;
+        const top = box.top - parent.top - frame.clientTop + frame.scrollTop;
+        if (Math.abs(left - inset) > 1 || Math.abs(right - inset) > 1)
+          throw new Error(
+            `Page heading inset mismatch: ${left}/${right}, expected ${inset}`,
+          );
+        if (
+          frame.firstElementChild?.contains(head) &&
+          Math.abs(top - (innerWidth <= 640 ? 24 : 36)) > 1
+        )
+          throw new Error(`Page heading top inset mismatch: ${top}`);
+        const title = head.querySelector("h1");
+        if (
+          !title ||
+          getComputedStyle(title).fontSize !==
+            (innerWidth <= 640 ? "29px" : "36px") ||
+          getComputedStyle(title).fontWeight !== "600"
+        )
+          throw new Error("Page heading display scale diverged");
+        const action = head.querySelector(".studio-page-head-action");
+        if (action) {
+          const control = action.getBoundingClientRect();
+          const heading = title.getBoundingClientRect();
+          if (
+            control.left < heading.right - 1 ||
+            control.top - heading.top >
+              parseFloat(getComputedStyle(title).fontSize)
+          )
+            throw new Error(
+              "Page action overlaps the title or falls below its first line",
+            );
+        }
+        if (
+          getComputedStyle(head).borderBottomWidth !== "2px" ||
+          getComputedStyle(head).borderBottomColor !==
+            getComputedStyle(title).color
+        )
+          throw new Error("Page heading divider diverged");
+      }
+      const typeRoles = [
+        {
+          selector:
+            ".studio-chat-session-heading, .people-detail-name, .studio-leaf-head h2, .studio-mobile-navigation-sheet header h2",
+          size: "24px",
+          weight: "500",
+          tracking: -0.48,
+        },
+        {
+          selector:
+            ".account-section-label h3, .studio-chat-sessions-title, .studio-chat-context-card-title",
+          size: "14px",
+          weight: "650",
+        },
+        {
+          selector:
+            '.studio-chrome-brand, .studio-area-title, .studio-leaf-label, .studio-mobile-switcher, .studio-mobile-navigation-sheet summary, [data-studio-editor] aside > div > h2, button[aria-label="Editor view"], [aria-label="Publication actions"] header, [aria-label="Publication actions"] b, [data-studio-shell] th',
+          size: "10px",
+          weight: "600",
+          tracking: 1.2,
+        },
+      ];
+      for (const role of typeRoles) {
+        for (const element of document.querySelectorAll(role.selector)) {
+          const font = getComputedStyle(element);
+          if (
+            font.fontSize !== role.size ||
+            font.fontWeight !== role.weight ||
+            (role.tracking !== undefined &&
+              !(
+                Math.abs(parseFloat(font.letterSpacing) - role.tracking) <= 0.01
+              )) ||
+            (role.size === "10px" && font.textTransform !== "uppercase")
+          )
+            throw new Error(
+              `Studio type role diverged for ${element.textContent.trim()}: ${font.fontSize}/${font.fontWeight}/${font.letterSpacing}`,
+            );
+        }
+      }
+      const shell = document.querySelector("[data-studio-shell]");
+      const uiFamily = shell ? getComputedStyle(shell).fontFamily : undefined;
+      const cardWeights: Record<string, string> = {
+        "10px": "600",
+        "14px": "650",
+        "24px": "500",
+        // Attention disclosures retain the shared control's separate callout role.
+        "18px": "500",
+      };
+      for (const title of document.querySelectorAll(
+        ".declarative-card > header > h2",
+      )) {
+        if (!title.parentElement) throw new Error("Missing card heading owner");
+        const font = getComputedStyle(title);
+        const owner = getComputedStyle(title.parentElement);
+        const tracking =
+          font.fontSize === "10px"
+            ? 1.2
+            : font.fontSize === "24px"
+              ? -0.48
+              : undefined;
+        if (
+          (font.fontSize === "14px" && font.fontFamily !== uiFamily) ||
+          (tracking !== undefined &&
+            !(Math.abs(parseFloat(font.letterSpacing) - tracking) <= 0.01)) ||
+          font.fontWeight !== cardWeights[font.fontSize] ||
+          font.fontSize !== owner.fontSize ||
+          font.fontWeight !== owner.fontWeight ||
+          font.fontFamily !== owner.fontFamily ||
+          font.letterSpacing !== owner.letterSpacing
+        )
+          throw new Error(
+            `Hosted card type role diverged: ${title.textContent}/${font.fontSize}/${font.fontWeight}`,
+          );
+      }
+      const context = document.createElement("canvas").getContext("2d");
+      if (!context) throw new Error("Cannot measure tag placeholders");
+      for (const input of document.querySelectorAll<HTMLInputElement>(
+        'input[placeholder="Add tag"]',
+      )) {
+        if (!input.getBoundingClientRect().width) continue;
+        const font = getComputedStyle(input);
+        context.font = `${font.fontWeight} ${font.fontSize} ${font.fontFamily}`;
+        if (
+          input.clientWidth -
+            parseFloat(font.paddingLeft) -
+            parseFloat(font.paddingRight) <
+          context.measureText(input.placeholder).width + 2
+        )
+          throw new Error("Tag placeholder clips its label or caret");
+      }
+    });
+  }
+  if (surface === "studio-overview") {
+    await evaluatePage(page, () => {
+      const navigation =
+        document.querySelector<HTMLElement>(".studio-navigation");
+      if (
+        navigation?.dataset["leafOpen"] !== "false" ||
+        navigation.querySelector(".studio-leaf-rail")
+      )
+        throw new Error(
+          "Overview must remain a direct destination without a leaf column",
+        );
+      if (
+        innerWidth > 900 &&
+        Math.abs(navigation.getBoundingClientRect().width - 124) > 1
+      )
+        throw new Error(
+          "Overview navigation still reserves a duplicate leaf column",
+        );
+    });
+  }
   if (surface.startsWith("studio-chat")) {
     const destinations = await elementDisplay(
       page,
-      ".studio-chat-mobile-sessions",
+      ".studio-chat-session-picker-trigger",
     );
     const sessions = await elementDisplay(page, ".studio-chat-sessions");
     if (
-      destinations === "none" ||
       destinations === "missing" ||
+      (destinations === "none") !== (width > 860 && STUDY_STATE !== "empty") ||
       sessions !==
         (STUDY_STATE === "empty" ? "missing" : width <= 860 ? "none" : "block")
     ) {
@@ -2555,6 +3016,7 @@ for (let offset = 0; offset < fixturePng.data.length; offset += 4) {
 const fixtureImage = new Uint8Array(PNG.sync.write(fixturePng));
 
 const pendingUploadResponses = new Set<() => void>();
+let retryImageUploadFailed = false;
 const administrationFixture = await createAdministrationFixture(
   FIXED_NOW,
   STUDY_STATE,
@@ -2562,6 +3024,7 @@ const administrationFixture = await createAdministrationFixture(
 const workViewFixtures = await createWorkViewFixtures(STUDY_STATE);
 const deliveryViewFixtures = await createDeliveryViewFixtures(STUDY_STATE);
 const syncViewFixture = await createSyncViewFixture(STUDY_STATE);
+const sessionTitleOverrides = new Map<string, string>();
 const server = Bun.serve({
   port: 0,
   async fetch(request) {
@@ -2646,8 +3109,38 @@ const server = Bun.serve({
       return new Response(await readFile(chatStyles), {
         headers: { "content-type": "text/css" },
       });
-    if (url.pathname === "/api/chat/sessions")
-      return json({ sessions: STUDY_STATE === "empty" ? [] : sessions });
+    if (url.pathname === "/api/chat/sessions") {
+      if (request.method === "PUT") {
+        const { title } = renameChatSessionRequestSchema.parse(
+          await request.json(),
+        );
+        sessionTitleOverrides.set(url.searchParams.get("id") ?? "", title);
+        return json({ renamed: true, title });
+      }
+      const records =
+        url.searchParams.get("archived") === "true"
+          ? [
+              {
+                id: "archived-review",
+                title: "Archived review",
+                lastActiveAt: "2026-07-01T12:00:00Z",
+                archived: true,
+              },
+            ]
+          : sessions.map((session) => ({
+              ...session,
+              title: sessionTitleOverrides.get(session.id) ?? session.title,
+            }));
+      const query = (url.searchParams.get("q") ?? "").toLowerCase();
+      return json({
+        sessions:
+          STUDY_STATE === "empty"
+            ? []
+            : records.filter((session) =>
+                session.title.toLowerCase().includes(query),
+              ),
+      });
+    }
     if (
       url.pathname === "/api/chat" &&
       request.method === "POST" &&
@@ -3044,6 +3537,17 @@ const server = Bun.serve({
       );
     }
     if (url.pathname === "/studio/api/upload") {
+      const form = await request.formData();
+      const file = form.get("file");
+      if (file instanceof File && file.name === "retry-cover.png") {
+        retryImageUploadFailed = !retryImageUploadFailed;
+        return retryImageUploadFailed
+          ? Response.json(
+              { error: "Fixture upload interrupted" },
+              { status: 503 },
+            )
+          : json({ entityId: "image/recovered-cover" });
+      }
       // Hold the fixture at an observable in-flight boundary until its page
       // closes; teardown releases any request the browser did not abort.
       return new Promise<Response>((resolve) => {
@@ -3062,14 +3566,25 @@ const server = Bun.serve({
       return json(
         url.searchParams.has("id")
           ? { entity: styleGuideEntity }
-          : { entities: [styleGuideEntity] },
+          : { entities: [styleGuideEntity], total: 1 },
       );
     if (url.pathname === "/studio/api/entities" && url.searchParams.has("id"))
       return json({ entity });
     if (url.pathname === "/studio/api/entities") {
       const offset = Number(url.searchParams.get("offset") ?? 0);
-      const limit = Number(url.searchParams.get("limit") ?? 10);
-      return json({ entities: entities.slice(offset, offset + limit) });
+      const limit = Number(url.searchParams.get("limit") ?? 25);
+      const query = (url.searchParams.get("q") ?? "").toLowerCase();
+      const visibility = url.searchParams.get("visibility") ?? "all";
+      const filtered = entities.filter(
+        (item) =>
+          item.frontmatter.title.toLowerCase().includes(query) &&
+          (visibility === "all" || visibility === "public"),
+      );
+      if (url.searchParams.get("sort")?.endsWith("asc")) filtered.reverse();
+      return json({
+        entities: filtered.slice(offset, offset + limit),
+        total: filtered.length,
+      });
     }
     if (url.pathname === "/studio/api/sync-status")
       return json({
@@ -3176,6 +3691,7 @@ try {
         "studio-upload",
       ] as const) {
         if (SURFACE_FILTER && surface !== SURFACE_FILTER) continue;
+        if (SURFACE_PREFIX && !surface.startsWith(SURFACE_PREFIX)) continue;
         if (STUDY_STATE && !supportsStudioStudyState(surface, STUDY_STATE))
           continue;
         // Session and context destinations only exist at phone widths.
@@ -3382,6 +3898,10 @@ try {
             await waitForText(page, "No recent autonomous activity.");
           } else await waitForText(page, "unexpected-native-status");
           await checkLayout(page, surface, viewport.width, viewport.height);
+          await auditStudioAccessibility(
+            page,
+            `${surface}-${STUDY_STATE}-${viewport.width}x${viewport.height}-${climate}`,
+          );
           await recordVisualCapture(
             `${surface}-${STUDY_STATE}-${viewport.width}x${viewport.height}-${climate}.png`,
             await page.screenshot({ encoding: "buffer", format: "png" }),
@@ -3557,12 +4077,62 @@ try {
         if (surface.startsWith("studio-chat")) {
           await waitForText(page, "And the Studio?");
           await waitForSelector(page, ".studio-chat-upload");
+          if (surface === "studio-chat") {
+            await clickText(page, "button", "Rename");
+            await fillLabel(
+              page,
+              "Conversation title",
+              "Reviewed conversation",
+            );
+            await clickText(page, ".studio-chat-rename button", "Save title");
+            await waitForText(page, "Reviewed conversation");
+            await clickText(page, "button", "Rename");
+            await fillLabel(
+              page,
+              "Conversation title",
+              "Responsive console audit",
+            );
+            await clickText(page, ".studio-chat-rename button", "Save title");
+            await waitForText(page, "Responsive console audit");
+          }
           if (surface === "studio-chat" && viewport.width <= 700) {
-            await clickSelector(page, ".studio-chat-mobile-sessions button");
+            await clickSelector(
+              page,
+              ".studio-chat-session-picker-trigger button",
+            );
             await waitForSelector(
               page,
               '[role="dialog"] .studio-chat-session-picker',
             );
+            await fillLabel(page, "Search conversations", "Verdigris");
+            await waitForPage("session search filters results", () =>
+              evaluatePage(
+                page,
+                () =>
+                  document.querySelectorAll(
+                    '[role="dialog"] .studio-chat-session',
+                  ).length === 1,
+              ),
+            );
+            await fillLabel(page, "Search conversations", "");
+            await evaluatePage(page, () => {
+              const select = document.querySelector<HTMLSelectElement>(
+                '[role="dialog"] select',
+              );
+              if (!select) throw new Error("Missing archive selector");
+              select.value = "archived";
+              select.dispatchEvent(new Event("change", { bubbles: true }));
+            });
+            await waitForText(page, "Archived review");
+            await evaluatePage(page, () => {
+              const select = document.querySelector<HTMLSelectElement>(
+                '[role="dialog"] select',
+              );
+              if (!select) throw new Error("Missing archive selector");
+              select.value = "active";
+              select.dispatchEvent(new Event("change", { bubbles: true }));
+            });
+            await waitForText(page, "Responsive console audit");
             await clickText(
               page,
               ".studio-chat-session-picker .studio-chat-session",
@@ -3575,7 +4145,7 @@ try {
                 () =>
                   !document.querySelector('[role="dialog"]') &&
                   document.activeElement?.matches(
-                    ".studio-chat-mobile-sessions button",
+                    ".studio-chat-session-picker-trigger button",
                   ) === true,
               );
               if (restored) break;
@@ -3589,12 +4159,97 @@ try {
           if (surface === "studio-chat-sessions") {
             await clickText(
               page,
-              ".studio-chat-mobile-sessions button",
+              ".studio-chat-session-picker-trigger button",
               "Sessions",
             );
           }
+          if (surface === "studio-chat" && viewport.width <= 860) {
+            const metrics = await evaluatePage(page, () => ({
+              width: innerWidth,
+              height: innerHeight,
+              deviceScaleFactor: devicePixelRatio,
+              mobile: false,
+            }));
+            await fillLabel(
+              page,
+              "Message",
+              "Keep this draft while reading context",
+            );
+            const height = await evaluatePage(
+              page,
+              () =>
+                document.querySelector(".studio-chat-thread-scroll")
+                  ?.clientHeight,
+            );
+            await clickSelector(page, ".studio-chat-working-set-trigger");
+            await waitForSelector(page, ".studio-chat-working-set-dialog");
+            await evaluatePageWith(
+              page,
+              (previousHeight) => {
+                if (
+                  document.querySelector(".studio-chat-thread-scroll")
+                    ?.clientHeight !== previousHeight
+                )
+                  throw new Error("Working set squeezed the conversation");
+                if (
+                  document.querySelectorAll(".studio-chat-context").length !== 1
+                )
+                  throw new Error("Working set content is duplicated");
+              },
+              height,
+            );
+            await clickSelector(
+              page,
+              '.studio-chat-working-set-dialog [data-slot="dialog-close"]',
+            );
+            await waitForPage("Working set focus restoration", () =>
+              evaluatePage(
+                page,
+                () =>
+                  document.activeElement?.matches(
+                    ".studio-chat-working-set-trigger",
+                  ) === true,
+              ),
+            );
+            await clickSelector(page, ".studio-chat-working-set-trigger");
+            await waitForSelector(page, ".studio-chat-working-set-dialog");
+            await page.cdp("Emulation.setDeviceMetricsOverride", {
+              ...metrics,
+              width: 1024,
+            });
+            await waitForPage("Working set desktop focus", () =>
+              evaluatePage(
+                page,
+                () =>
+                  !document.querySelector('[role="dialog"]') &&
+                  document.activeElement?.matches(
+                    ".studio-chat-working-set summary",
+                  ) === true,
+              ),
+            );
+            await page.cdp("Emulation.setDeviceMetricsOverride", metrics);
+            await waitForPage("Working set narrow focus", () =>
+              evaluatePage(
+                page,
+                () =>
+                  document.activeElement?.matches(
+                    ".studio-chat-working-set-trigger",
+                  ) === true,
+              ),
+            );
+            await evaluatePage(page, () => {
+              if (
+                document.querySelector<HTMLTextAreaElement>(
+                  ".studio-chat-message",
+                )?.value !== "Keep this draft while reading context"
+              )
+                throw new Error("Working set lost the composer draft");
+            });
+            await fillLabel(page, "Message", "");
+          }
           if (surface === "studio-chat-context") {
-            await clickSelector(page, ".studio-chat-working-set summary");
+            await clickSelector(page, ".studio-chat-working-set-trigger");
+            await waitForSelector(page, ".studio-chat-working-set-dialog");
           }
         }
         if (isDashboard) {
@@ -3773,6 +4428,44 @@ try {
           await clickText(page, ".listing-pagination button", "Previous");
           await waitForText(page, "A console that travels well");
           await waitForText(page, "1–25 of 54");
+          await clickText(page, ".listing-pagination button", "Next");
+          await fillLabel(page, "Search title or content", "Archive note 22");
+          await clickText(page, ".studio-collection-controls button", "Search");
+          await waitForText(page, "1–1 of 1");
+          await evaluatePage(page, () => {
+            if (new URLSearchParams(location.search).has("offset"))
+              throw new Error("Searching must reset collection offset");
+          });
+          await clickText(
+            page,
+            ".studio-collection-controls summary",
+            "Filter and sort",
+          );
+          await evaluatePage(page, () => {
+            const select = document.querySelector<HTMLSelectElement>(
+              ".studio-collection-controls select",
+            );
+            if (!select) throw new Error("Visibility filter missing");
+            select.value = "restricted";
+            select.dispatchEvent(new Event("change", { bubbles: true }));
+          });
+          await waitForText(page, "No entries match these filters");
+          await clickText(
+            page,
+            ".studio-collection-controls button",
+            "Clear search and filters",
+          );
+          await waitForText(page, "1–25 of 54");
+          await evaluatePage(page, () => history.back());
+          await waitForText(page, "No entries match these filters");
+          await evaluatePage(page, () => history.forward());
+          await waitForText(page, "1–25 of 54");
+          await evaluatePage(page, () => {
+            const details = document.querySelector<HTMLDetailsElement>(
+              ".studio-collection-controls details",
+            );
+            if (details) details.open = false;
+          });
         }
         if (surface === "studio-overview") {
           await waitForText(page, "Recent activity");
@@ -4029,6 +4722,180 @@ try {
           await waitForSelector(page, ".delete-modal");
         }
         if (surface === "studio-editor") {
+          if (viewport.width <= 640) {
+            await pointerDownSelector(page, ".studio-mobile-tabs button");
+            await clickText(page, '[role="menuitem"]', "Preview");
+            await waitForSelector(page, '[data-mobile-pane="preview"]');
+          }
+          await evaluatePage(page, () => {
+            const keyword = document.querySelector<HTMLElement>(
+              '[data-code-token="keyword"]',
+            );
+            const plain = document.querySelector<HTMLElement>(
+              '[data-code-token="plain"]',
+            );
+            if (
+              !keyword ||
+              !plain ||
+              getComputedStyle(keyword).color === getComputedStyle(plain).color
+            )
+              throw new Error("Code tokens lost theme-aware highlighting");
+            const canvas = document.createElement("canvas");
+            canvas.width = canvas.height = 1;
+            const context = canvas.getContext("2d", {
+              willReadFrequently: true,
+            });
+            if (!context) throw new Error("Cannot measure syntax contrast");
+            const luminance = (pixel: Uint8ClampedArray): number => {
+              const linear = (index: number): number => {
+                const value = (pixel[index] ?? 0) / 255;
+                return value <= 0.04045
+                  ? value / 12.92
+                  : ((value + 0.055) / 1.055) ** 2.4;
+              };
+              return (
+                0.2126 * linear(0) + 0.7152 * linear(1) + 0.0722 * linear(2)
+              );
+            };
+            for (const token of document.querySelectorAll<HTMLElement>(
+              "[data-code-token]",
+            )) {
+              const ancestors: Element[] = [];
+              for (
+                let node: Element | null = token;
+                node;
+                node = node.parentElement
+              )
+                ancestors.unshift(node);
+              context.clearRect(0, 0, 1, 1);
+              context.fillStyle =
+                getComputedStyle(token).getPropertyValue("--console-bg");
+              context.fillRect(0, 0, 1, 1);
+              for (const ancestor of ancestors) {
+                context.fillStyle = getComputedStyle(ancestor).backgroundColor;
+                context.fillRect(0, 0, 1, 1);
+              }
+              const background = luminance(
+                context.getImageData(0, 0, 1, 1).data,
+              );
+              context.fillStyle = getComputedStyle(token).color;
+              context.fillRect(0, 0, 1, 1);
+              const foreground = luminance(
+                context.getImageData(0, 0, 1, 1).data,
+              );
+              if (
+                (Math.max(background, foreground) + 0.05) /
+                  (Math.min(background, foreground) + 0.05) <
+                4.5
+              )
+                throw new Error(
+                  `Insufficient ${token.dataset["codeToken"]} syntax contrast`,
+                );
+            }
+            Object.defineProperty(navigator, "clipboard", {
+              configurable: true,
+              value: {
+                writeText: async (text: string): Promise<void> => {
+                  document.documentElement.dataset["copiedCode"] = text;
+                },
+              },
+            });
+            const copy = document.querySelector(
+              '[data-streamdown="code-block-copy-button"]',
+            );
+            if (copy)
+              document.documentElement.dataset["copyIcon"] = copy.innerHTML;
+          });
+          await clickSelector(
+            page,
+            '[data-streamdown="code-block-copy-button"]',
+          );
+          await waitForPage(
+            "code copied without line numbers or token markup",
+            () =>
+              evaluatePageWith(
+                page,
+                (expected) =>
+                  document.documentElement.dataset["copiedCode"] === expected,
+                entity.body.split("```ts\n")[1]?.split("\n```")[0] ?? "",
+              ),
+          );
+          await waitForPage("copy action restored", () =>
+            evaluatePage(
+              page,
+              () =>
+                document.querySelector(
+                  '[data-streamdown="code-block-copy-button"]',
+                )?.innerHTML === document.documentElement.dataset["copyIcon"],
+            ),
+          );
+          for (const slot of ["code-block-body", "table-wrapper"]) {
+            const overflowing = await evaluatePageWith(
+              page,
+              (name) => {
+                const region = document.querySelector<HTMLElement>(
+                  `[data-streamdown="${name}"]`,
+                );
+                if (
+                  region?.tabIndex !== 0 ||
+                  !region.getAttribute("aria-label")
+                )
+                  throw new Error(
+                    "Markdown overflow is not keyboard accessible",
+                  );
+                region.focus();
+                return region.scrollWidth > region.clientWidth;
+              },
+              slot,
+            );
+            if (overflowing) {
+              await page.cdp("Input.dispatchKeyEvent", {
+                type: "keyDown",
+                key: "ArrowRight",
+                code: "ArrowRight",
+                windowsVirtualKeyCode: 39,
+              });
+              await page.cdp("Input.dispatchKeyEvent", {
+                type: "keyUp",
+                key: "ArrowRight",
+                code: "ArrowRight",
+                windowsVirtualKeyCode: 39,
+              });
+              await waitForPage("markdown keyboard scrolling", () =>
+                evaluatePageWith(
+                  page,
+                  (name) =>
+                    (document.querySelector(`[data-streamdown="${name}"]`)
+                      ?.scrollLeft ?? 0) > 0,
+                  slot,
+                ),
+              );
+            }
+          }
+          await waitForVisualStability(page);
+          await evaluatePage(page, () => {
+            document
+              .querySelectorAll<HTMLElement>(
+                '[data-streamdown="code-block-body"], [data-streamdown="table-wrapper"]',
+              )
+              .forEach((region) => {
+                region.scrollLeft = 0;
+                region.blur();
+              });
+            const preview = document.querySelector("[data-studio-preview]");
+            if (preview) preview.scrollTop = 0;
+          });
+          await writeFile(
+            path.join(
+              ARTIFACT_DIR,
+              `studio-markdown-${viewport.width}x${viewport.height}-${climate}.png`,
+            ),
+            await page.screenshot({ encoding: "buffer", format: "png" }),
+          );
+          if (viewport.width <= 640) {
+            await pointerDownSelector(page, ".studio-mobile-tabs button");
+            await clickText(page, '[role="menuitem"]', "Properties");
+          }
           await clickText(page, "summary", "Sync details");
           await evaluatePage(page, () => {
             const stations = [
@@ -4093,9 +4960,50 @@ try {
           // (the fixture 400s on "!!") pins the pipeline error line, then
           // an emptied required title pins the :user-invalid outline.
           await fillLabel(page, "Title", "Notes from the rhizome!!");
+          if (viewport.width <= 640) {
+            await pointerDownSelector(page, ".studio-mobile-tabs button");
+            await clickText(page, '[role="menuitem"]', "Source");
+            await waitForSelector(page, '[data-mobile-pane="write"]');
+          }
           await clickSelector(page, studioSaveSelector);
-          await waitForSelector(page, '[data-studio-status="error"]');
+          await waitForSelector(page, '[aria-invalid="true"]');
+          await evaluatePage(page, () => {
+            const input = document.querySelector<HTMLInputElement>(
+              '[aria-invalid="true"]',
+            );
+            if (
+              !input ||
+              document.activeElement !== input ||
+              !input.value.endsWith("!!")
+            )
+              throw new Error(
+                "Server validation must focus the rejected field without changing its draft",
+              );
+            if (
+              !document
+                .getElementById(input.getAttribute("aria-describedby") ?? "")
+                ?.textContent.includes("Title may not contain")
+            )
+              throw new Error("Field error has no accessible description");
+          });
           await fillLabel(page, "Title", "");
+          if (viewport.width <= 640) {
+            await pointerDownSelector(page, ".studio-mobile-tabs button");
+            await clickText(page, '[role="menuitem"]', "Preview");
+            await waitForSelector(page, '[data-mobile-pane="preview"]');
+            await clickSelector(page, studioSaveSelector);
+            await waitForSelector(page, '[data-mobile-pane="details"]');
+            await waitForPage(
+              "native validation focuses the revealed property",
+              () =>
+                evaluatePage(
+                  page,
+                  () =>
+                    document.activeElement instanceof HTMLInputElement &&
+                    !document.activeElement.validity.valid,
+                ),
+            );
+          }
           await blurLabel(page, "Title");
           await waitForPage("invalid title field", () =>
             page.evaluate<boolean>(
@@ -4104,40 +5012,52 @@ try {
           );
         }
         if (surface === "studio-upload") {
-          // Start a cover-image upload the fixture never completes, so the
-          // widget's in-flight state stays up for the capture.
-          const selected = await evaluatePageWith(
-            page,
-            async ({ selector, url, name, mediaType }) => {
-              const input = document.querySelector(selector);
-              if (!(input instanceof HTMLInputElement)) return false;
-              const response = await fetch(url);
-              const file = new File([await response.arrayBuffer()], name, {
-                type: mediaType,
+          // Exercise explicit recovery before leaving a second upload pending.
+          for (const name of ["retry-cover.png", "verdigris-board.png"]) {
+            const selected = await evaluatePageWith(
+              page,
+              async ({ selector, url, name, mediaType }) => {
+                const input = document.querySelector(selector);
+                if (!(input instanceof HTMLInputElement)) return false;
+                const response = await fetch(url);
+                const file = new File([await response.arrayBuffer()], name, {
+                  type: mediaType,
+                });
+                const transfer = new DataTransfer();
+                transfer.items.add(file);
+                input.files = transfer.files;
+                input.dispatchEvent(new Event("input", { bubbles: true }));
+                input.dispatchEvent(new Event("change", { bubbles: true }));
+                return true;
+              },
+              {
+                selector: '[data-studio-field="image"] input[type="file"]',
+                url: "/fixture/verdigris.png",
+                name,
+                mediaType: "image/png",
+              },
+            );
+            if (!selected)
+              throw new Error("Could not select Studio upload input");
+            if (name === "retry-cover.png") {
+              await waitForText(page, "Fixture upload interrupted");
+              await clickText(
+                page,
+                '[data-studio-field="image"] button',
+                "Retry upload",
+              );
+              await waitForText(page, "Save changes to keep this reference");
+              await waitForText(page, "image/recovered-cover");
+            } else {
+              await waitForText(page, "Uploading verdigris-board.png");
+              await evaluatePage(page, () => {
+                const status = document.querySelector(
+                  '[data-studio-field="image"] [role="status"]',
+                );
+                status?.scrollIntoView({ block: "nearest" });
               });
-              const transfer = new DataTransfer();
-              transfer.items.add(file);
-              input.files = transfer.files;
-              input.dispatchEvent(new Event("input", { bubbles: true }));
-              input.dispatchEvent(new Event("change", { bubbles: true }));
-              return true;
-            },
-            {
-              selector: '[data-studio-field="image"] input[type="file"]',
-              url: "/fixture/verdigris.png",
-              name: "verdigris-board.png",
-              mediaType: "image/png",
-            },
-          );
-          if (!selected)
-            throw new Error("Could not select Studio upload input");
-          await waitForText(page, "Uploading…");
-          await evaluatePage(page, () => {
-            const text = Array.from(
-              document.querySelectorAll<HTMLElement>("*"),
-            ).find((element) => element.textContent.trim() === "Uploading…");
-            text?.scrollIntoView({ block: "nearest" });
-          });
+            }
+          }
         }
         if (
           ["studio-chat", "studio-administration", "studio-account"].includes(
@@ -4156,6 +5076,13 @@ try {
         await evaluatePage(page, () => document.fonts.ready);
         await waitForVisualStability(page);
         await checkLayout(page, surface, viewport.width, viewport.height);
+        if (surface.startsWith("studio-"))
+          await verifyStudioKeyboardAccess(page);
+        if (surface.startsWith("studio-"))
+          await auditStudioAccessibility(
+            page,
+            `${surface}-${viewport.width}x${viewport.height}-${climate}`,
+          );
         await settleVisualCapture(page);
         const image = await page.screenshot({
           encoding: "buffer",

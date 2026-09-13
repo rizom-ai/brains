@@ -31,10 +31,9 @@ export const accountStyles: Record<Name, stylex.StyleXStyles> = stylex.create({
     boxSizing: "border-box",
     minWidth: 0,
     margin: 0,
-    padding: {
-      default: "36px 36px 48px",
-      "@media (max-width: 640px)":
-        "24px 20px calc(38px + env(safe-area-inset-bottom))",
+    paddingBottom: {
+      default: 48,
+      "@media (max-width: 640px)": "calc(38px + env(safe-area-inset-bottom))",
     },
   },
   pane: {
@@ -86,12 +85,6 @@ export const accountStyles: Record<Name, stylex.StyleXStyles> = stylex.create({
   field: { display: "grid", gap: "8px", width: "100%" },
   inlineActions: { display: "flex", flexWrap: "wrap", gap: "7px" },
   name: {
-    fontFamily: "var(--console-display)",
-    fontVariationSettings: '"SOFT" 70,"opsz" 40',
-    fontSize: "24px",
-    fontWeight: 500,
-    lineHeight: 1.2,
-    letterSpacing: "-0.5px",
     color: "var(--console-text)",
   },
   feedback: {
@@ -149,9 +142,6 @@ export const accountStyles: Record<Name, stylex.StyleXStyles> = stylex.create({
     borderBottomWidth: "1px",
     borderBottomStyle: "solid",
     borderBottomColor: "var(--console-rule-strong)",
-    fontFamily: "var(--console-ui)",
-    fontSize: "14px",
-    fontWeight: 650,
     color: "var(--console-text)",
   },
   description: {

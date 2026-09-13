@@ -1,10 +1,16 @@
 import * as stylex from "@stylexjs/stylex";
 
 export const disclosureStyles: Record<
-  "action" | "trigger" | "link",
+  "action" | "trigger" | "link" | "primary",
   stylex.StyleXStyles
 > = stylex.create({
   action: { width: "min(720px, 100%)", minWidth: 0 },
+  primary: {
+    backgroundColor: "var(--console-accent)",
+    borderColor: "var(--console-accent)",
+    color: "var(--console-on-accent)",
+    outlineOffset: 2,
+  },
   link: {
     display: { default: "flex", "::-webkit-details-marker": "none" },
     alignItems: "center",

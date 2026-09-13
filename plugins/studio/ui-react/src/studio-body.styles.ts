@@ -177,6 +177,11 @@ export const bodyStyles: Record<BodyStyle, stylex.StyleXStyles> = stylex.create(
     },
     preview: {
       minWidth: 0,
+      outline: {
+        default: null,
+        ":focus-visible": "2px solid var(--console-accent)",
+      },
+      outlineOffset: -2,
       minHeight: 0,
       padding: "30px 34px",
       overflowY: "auto",

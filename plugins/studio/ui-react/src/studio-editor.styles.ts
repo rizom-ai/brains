@@ -4,15 +4,10 @@ type EditorStyle =
   | "status"
   | "listingRow"
   | "publication"
-  | "head"
-  | "title"
-  | "kicker"
-  | "action"
   | "propertiesHead"
   | "propertiesLabel"
   | "mobileModes"
   | "paneTrigger"
-  | "paneContext"
   | "pipeline";
 export const editorStyles: Record<EditorStyle, stylex.StyleXStyles> =
   stylex.create({
@@ -41,46 +36,6 @@ export const editorStyles: Record<EditorStyle, stylex.StyleXStyles> =
       textTransform: "capitalize",
       letterSpacing: 0,
     },
-    head: {
-      display: "grid",
-      gridTemplateColumns: "minmax(0, 1fr) auto",
-      alignItems: "end",
-      gap: "22px",
-      margin: 0,
-      padding: "25px 28px 17px",
-      borderBottomWidth: "1px",
-      borderBottomStyle: "solid",
-      borderBottomColor: "var(--console-rule-strong)",
-      backgroundColor: "var(--console-frame)",
-      "@media (max-width: 640px)": { padding: "17px 16px 13px", gap: "12px" },
-    },
-    title: {
-      margin: "5px 0 0",
-      fontFamily: "var(--console-display)",
-      color: "var(--console-text)",
-      fontSize: "38px",
-      fontVariationSettings: '"SOFT" 70, "opsz" 60',
-      fontWeight: 500,
-      lineHeight: 1,
-      letterSpacing: "-0.025em",
-      "@media (max-width: 640px)": { fontSize: "27px" },
-    },
-    kicker: {
-      color: "var(--console-accent)",
-      fontFamily: "var(--console-mono)",
-      fontSize: "8px",
-      fontWeight: 650,
-      letterSpacing: "0.15em",
-      textTransform: "uppercase",
-    },
-    action: {
-      display: "block",
-      position: "static",
-      margin: 0,
-      inset: "auto",
-      width: "auto",
-      padding: 0,
-    },
     propertiesHead: {
       display: "flex",
       alignItems: "baseline",
@@ -91,11 +46,6 @@ export const editorStyles: Record<EditorStyle, stylex.StyleXStyles> =
     },
     propertiesLabel: {
       color: "var(--console-text-muted)",
-      fontFamily: "var(--console-mono)",
-      fontSize: "9px",
-      fontWeight: 500,
-      letterSpacing: "0.14em",
-      textTransform: "uppercase",
       margin: 0,
     },
     mobileModes: {
@@ -121,23 +71,13 @@ export const editorStyles: Record<EditorStyle, stylex.StyleXStyles> =
       padding: 0,
       borderWidth: 0,
       backgroundColor: "transparent",
-      color: "var(--console-text-muted)",
-      fontFamily: "var(--console-mono)",
-      fontSize: "9px",
-      letterSpacing: "0.12em",
-      textTransform: "uppercase",
+      color:
+        "color-mix(in srgb, var(--console-text-muted) 70%, var(--console-text))",
       cursor: "pointer",
       ":focus-visible": {
         outline: "2px solid var(--console-accent)",
         outlineOffset: "2px",
       },
-    },
-    paneContext: {
-      color: "var(--console-text-muted)",
-      fontFamily: "var(--console-mono)",
-      fontSize: "8px",
-      letterSpacing: "0.12em",
-      textTransform: "uppercase",
     },
     pipeline: {
       "--console-bg": "var(--console-text)",

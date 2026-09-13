@@ -7,7 +7,11 @@ import documentStyles from "./studio-document.css" with { type: "text" };
 const compiledStyles = await Bun.file(
   new URL("../../dist/ui/studio-app.css", import.meta.url),
 ).text();
-import { StudioAppView, type StudioAppViewProps } from "./app-view";
+import {
+  StudioAppView,
+  mobileEditorEntry,
+  type StudioAppViewProps,
+} from "./app-view";
 import { StudioChrome } from "./studio-chrome";
 import {
   AgentAnswerPanel,
@@ -31,6 +35,10 @@ import {
   PublishConfirmationDialog,
 } from "./publication-actions";
 import { emptyDraft, entityPublicationState, entityTitle } from "./ui-utils";
+import {
+  studioCollectionQuerySchema,
+  type StudioCollectionQuery,
+} from "../../src/collection-query";
 import {
   DeleteDialog,
   derivePipeline,
@@ -500,7 +508,7 @@ describe("TypeSwitcher", () => {
     expect(html).not.toContain("studio-leaf-rail");
   });
 
-  it("keeps Overview in the stable area map", () => {
+  it("keeps Overview a direct destination without a duplicate leaf column", () => {
     const overview: StudioWorkspaceInfo = {
       id: "studio:overview",
       pluginId: "studio",
@@ -530,7 +538,10 @@ describe("TypeSwitcher", () => {
       }),
     );
 
-    expect(html).toContain('aria-label="Overview destinations"');
+    expect(html).toContain('aria-label="Overview"');
+    expect(html).toContain('data-leaf-open="false"');
+    expect(html).not.toContain('aria-label="Overview destinations"');
+    expect(html).not.toContain("studio-leaf-rail");
     expect(html).not.toContain("00 / operator home");
     expect(html).not.toContain("Attention, activity and operational health.");
     expect(html.indexOf("Overview")).toBeLessThan(html.indexOf("Work"));
@@ -638,6 +649,8 @@ function renderCapabilityView(
     limit?: number;
     total?: number;
     readError?: string;
+    query?: Partial<StudioCollectionQuery>;
+    dirty?: boolean;
   } = {},
 ): string {
   const entity: EntityDetail = {
@@ -684,10 +697,16 @@ function renderCapabilityView(
     declarativeWorkspaceData: null,
     workspaceQuery: { offset: 0, limit: 50 },
     entityType: "post",
-    entities: [entity],
+    entities: page.total === 0 ? [] : [entity],
     entityOffset: page.offset ?? 0,
     entityLimit: page.limit ?? 10,
     entityTotal: page.total ?? 1,
+    collectionQuery: studioCollectionQuerySchema.parse({
+      offset: page.offset,
+      limit: page.limit,
+      ...page.query,
+    }),
+    onCollectionQueryChange: () => {},
     entityListLoading: false,
     schema,
     editor: {
@@ -704,7 +723,7 @@ function renderCapabilityView(
     baselineCommit: null,
     agentTargets: [],
     deleting: false,
-    hasUnsavedChanges: false,
+    hasUnsavedChanges: page.dirty ?? false,
     navigationBlocked: false,
     dispatchEditor: () => {},
     setFieldAssistState: () => {},
@@ -730,6 +749,30 @@ function renderCapabilityView(
   };
   return renderToStaticMarkup(createElement(StudioAppView, props));
 }
+
+describe("document action emphasis", () => {
+  it.each([false, true])(
+    "keeps clean saves available and emphasizes dirty=%s",
+    (dirty) => {
+      const html = renderCapabilityView(
+        {
+          canRead: true,
+          canCreate: true,
+          canUpdate: true,
+          canDelete: true,
+          canExtract: true,
+          canPublish: true,
+          canAssist: true,
+        },
+        "edit",
+        { dirty },
+      );
+      const save = html.match(/<button[^>]*studio-editor-head-save[^>]*>/)?.[0];
+      expect(save).toContain(`data-variant="${dirty ? "default" : "outline"}"`);
+      expect(save).not.toContain("disabled");
+    },
+  );
+});
 
 describe("capability-aware Studio controls", () => {
   const deniedCapabilities: EntityTypeInfo["capabilities"] = {
@@ -806,6 +849,19 @@ describe("capability-aware Studio controls", () => {
       expect(html).toContain("Post one");
       expect(html).toContain("Library");
     }
+  });
+
+  it("distinguishes an empty filtered collection from an empty writable collection", () => {
+    const filtered = renderCapabilityView(allowedCapabilities, "browse", {
+      total: 0,
+      query: { q: "missing", visibility: "restricted" },
+    });
+    expect(filtered).toContain("No entries match these filters");
+    expect(filtered).toContain("Clear search and filters");
+    expect(filtered).not.toContain("start the first entry");
+    expect(
+      renderCapabilityView(allowedCapabilities, "browse", { total: 0 }),
+    ).toContain("start the first entry");
   });
 
   it("paginates entity collections with the shared previous/next grammar", () => {
@@ -985,8 +1041,11 @@ describe("BodyEditor", () => {
     expect(html).toContain('data-streamdown="code-block-copy-button"');
     expect(html).toContain('data-streamdown="code-block-actions"');
     expect(html).not.toContain('data-streamdown="code-block-download-button"');
-    expect(html).toContain("const first = 1;");
-    expect(html).toContain("const second = 2;");
+    // Token spans may split source text; copy controls still receive the original source.
+    const text = html.replace(/<[^>]*>/g, "");
+    expect(text).toContain("const first = 1;");
+    expect(text).toContain("const second = 2;");
+    expect(html).toContain('data-code-token="keyword"');
   });
 
   it("keeps body content byte-identical in the CM6 state", () => {
@@ -1392,7 +1451,43 @@ describe("entityPublicationState", () => {
   });
 });
 
+describe("mobile editor entry", () => {
+  it("opens raw documents on content and respects a chosen pane without storing drafts", () => {
+    expect(mobileEditorEntry({ format: "raw", hasBody: true }, null)).toBe(
+      "preview",
+    );
+    expect(
+      mobileEditorEntry({ format: "frontmatter", hasBody: true }, null),
+    ).toBe("details");
+    expect(mobileEditorEntry({ format: "raw", hasBody: true }, "details")).toBe(
+      "details",
+    );
+    expect(
+      mobileEditorEntry({ format: "frontmatter", hasBody: true }, "write"),
+    ).toBe("write");
+    expect(
+      mobileEditorEntry({ format: "frontmatter", hasBody: false }, "write"),
+    ).toBe("details");
+  });
+});
+
 describe("entityTitle", () => {
+  it("uses a derived heading without changing the durable id or properties", () => {
+    const entity = {
+      id: "opaque-id",
+      entityType: "note",
+      frontmatter: { title: " " },
+      displayTitle: "Readable heading",
+      updated: "2026-09-11",
+    };
+    expect(entityTitle(entity)).toBe("Readable heading");
+    expect(entity.id).toBe("opaque-id");
+    expect(entity.frontmatter.title).toBe(" ");
+    expect(
+      entityTitle({ ...entity, frontmatter: { title: "Authored title" } }),
+    ).toBe("Authored title");
+  });
+
   it("prefers the frontmatter title", () => {
     expect(
       entityTitle({

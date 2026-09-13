@@ -1,6 +1,7 @@
 import { useCallback, useState, type ReactElement } from "react";
 import * as stylex from "@stylexjs/stylex";
 import { publicationStyles as s } from "./studio-publication.styles";
+import { typographyStyles } from "./studio-typography.styles";
 import { StudioStatus } from "./studio-status";
 import type {
   PublishingAction,
@@ -110,7 +111,7 @@ export function PublicationActions(props: {
 
   return (
     <section {...stylex.props(s.root)} aria-label="Publication actions">
-      <header {...stylex.props(s.head)}>
+      <header {...stylex.props(s.head, typographyStyles.eyebrow)}>
         <span>Publication</span>
         <b
           {...stylex.props(

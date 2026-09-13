@@ -69,6 +69,7 @@ const entityPayloadSchema = z.object({
   }),
 });
 const entityListPayloadSchema = z.object({
+  total: z.number().int().nonnegative(),
   entities: z.array(
     z.object({
       id: z.string(),
@@ -495,11 +496,24 @@ describe("studio editor shell", () => {
     );
     expect(response.status).toBe(200);
 
-    const accountChunk = [
-      ...new Bun.Glob("studio-chunks/account-view-*.js").scanSync({
-        cwd: join(import.meta.dir, "..", "dist", "ui"),
-      }),
-    ][0];
+    // Rebuilds/cache restores can retain older chunks. Test a published asset,
+    // not an arbitrary obsolete file that the manifest correctly refuses.
+    const manifest = z
+      .object({ assets: z.record(z.string(), z.string()) })
+      .parse(
+        await Bun.file(
+          join(
+            import.meta.dir,
+            "..",
+            "dist",
+            "ui",
+            "studio-asset-manifest.json",
+          ),
+        ).json(),
+      );
+    const accountChunk = Object.keys(manifest.assets).find((asset) =>
+      /^studio-chunks\/account-view-.*\.js$/.test(asset),
+    );
     if (!accountChunk) throw new Error("Missing built Account chunk");
     const chunkResponse = await assetRoute.handler(
       apiRequest(`/studio/assets/${accountChunk}`),
@@ -1045,6 +1059,49 @@ describe("studio editor api", () => {
     expect(payload.fields).toEqual([adminVisibilityField]);
   });
 
+  it("derives raw-note labels for the collection and editor without adding a title property", async () => {
+    const shell = createEditorTestShell();
+    const cookie = await createSessionCookie(shell);
+    const content =
+      "```md\n# Not a title\n```\n\n# A **readable** heading\n\nBody";
+    await shell.getEntityService().createEntity({
+      entity: {
+        id: "opaque-note-id",
+        entityType: "note",
+        content,
+        metadata: {},
+        visibility: "public",
+        created: "2026-07-01T00:00:00.000Z",
+        updated: "2026-07-01T00:00:00.000Z",
+      },
+    });
+    const plugin = await registerPlugin(shell);
+    const route = findRoute(plugin, "/studio/api/entities");
+    const detail = await route.handler(
+      apiRequest("/studio/api/entities?type=note&id=opaque-note-id", {
+        cookie,
+      }),
+    );
+    const labelSchema = z.object({
+      id: z.string(),
+      displayTitle: z.string(),
+      frontmatter: z.record(z.string(), z.unknown()),
+    });
+    const decoded = z
+      .object({ entity: labelSchema.extend({ body: z.string() }) })
+      .parse(await detail.json());
+    expect(decoded.entity.displayTitle).toBe("A readable heading");
+    expect(decoded.entity.frontmatter).toEqual({ visibility: "public" });
+    expect(decoded.entity.body).toBe(content);
+    const list = await route.handler(
+      apiRequest("/studio/api/entities?type=note", { cookie }),
+    );
+    expect(
+      z.object({ entities: z.array(labelSchema) }).parse(await list.json())
+        .entities[0]?.displayTitle,
+    ).toBe("A readable heading");
+  });
+
   it("round-trips a raw note verbatim, even when it opens with a horizontal rule", async () => {
     const shell = createEditorTestShell();
     const cookie = await createSessionCookie(shell);
@@ -1212,6 +1269,65 @@ describe("studio editor api", () => {
     );
 
     expect(response.status).toBe(404);
+  });
+
+  it("returns filtered totals and stable sorted pages for collection searches", async () => {
+    const shell = createEditorTestShell();
+    const cookie = await createSessionCookie(shell);
+    for (const [id, title, visibility, status, month] of [
+      ["a", "Alpha notes", "public", "draft", "01"],
+      ["b", "Beta notes", "restricted", "draft", "02"],
+      ["c", "Gamma notes", "restricted", "published", "03"],
+      ["d", "Unrelated", "restricted", "draft", "04"],
+    ] as const) {
+      await shell.getEntityService().createEntity({
+        entity: {
+          id,
+          entityType: "post",
+          content: `---\ntitle: ${title}\n---\n\nBody`,
+          metadata: { status },
+          visibility,
+          created: `2026-${month}-01T00:00:00Z`,
+          updated: `2026-${month}-01T00:00:00Z`,
+        },
+      });
+    }
+    const plugin = await registerPlugin(shell);
+    const route = findRoute(plugin, "/studio/api/entities");
+    const search = async (
+      query: string,
+    ): Promise<z.infer<typeof entityListPayloadSchema>> => {
+      const response = await route.handler(
+        apiRequest(`/studio/api/entities?type=post&${query}`, { cookie }),
+      );
+      expect(response.status).toBe(200);
+      return entityListPayloadSchema.parse(await response.json());
+    };
+    const filtered = await search(
+      "q=notes&visibility=restricted&status=draft&limit=1",
+    );
+    expect(filtered.total).toBe(1);
+    expect(filtered.entities.map((entity) => entity.id)).toEqual(["b"]);
+    const ascending = await search("q=notes&sort=created-asc&offset=1&limit=1");
+    expect(ascending.total).toBe(3);
+    expect(ascending.entities.map((entity) => entity.id)).toEqual(["b"]);
+    expect(
+      (await search("q=notes&sort=created-desc&limit=1")).entities[0]?.id,
+    ).toBe("c");
+    expect((await search("q=no-match")).total).toBe(0);
+    for (const query of [
+      "visibility=admin",
+      "sort=content",
+      `q=${"x".repeat(201)}`,
+    ]) {
+      expect(
+        (
+          await route.handler(
+            apiRequest(`/studio/api/entities?type=post&${query}`, { cookie }),
+          )
+        ).status,
+      ).toBe(400);
+    }
   });
 
   it("lists entities of a type with their frontmatter", async () => {

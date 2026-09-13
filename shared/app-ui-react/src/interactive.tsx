@@ -527,7 +527,7 @@ export function ConfirmDialog(props: ConfirmDialogProps): ReactElement {
 export function DisclosureSheet(props: {
   title: string;
   triggerLabel: ReactNode;
-  triggerVariant?: "outline" | "link";
+  triggerVariant?: "outline" | "link" | "primary" | undefined;
   children: ReactNode;
   className?: string | undefined;
 }): ReactElement {
@@ -543,7 +543,7 @@ export function DisclosureSheet(props: {
           {props.triggerLabel}
         </Button>
       </DialogTrigger>
-      <DialogContent aria-label={props.title}>
+      <DialogContent aria-label={props.title} aria-describedby={undefined}>
         <DialogHeader>
           <DialogTitle>{props.title}</DialogTitle>
         </DialogHeader>

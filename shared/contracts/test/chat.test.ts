@@ -17,6 +17,37 @@ import {
 } from "../src/chat";
 
 describe("public headless Chat contract", () => {
+  it("serializes bounded session search and archive pages without widening the transport scope", async () => {
+    const requests: string[] = [];
+    const client = createChatClient({
+      apiPath: "/custom/chat",
+      fetch: async (input): Promise<Response> => {
+        requests.push(String(input));
+        return Response.json({ sessions: [] });
+      },
+    });
+    await client.listSessions({
+      query: "  Release & notes  ",
+      archived: true,
+      offset: 25,
+    });
+    expect(requests).toEqual([
+      "/custom/chat/sessions?q=Release+%26+notes&archived=true&offset=25",
+    ]);
+    const rejected = await Promise.all(
+      [{ offset: -1 }, { limit: 101 }].map(async (query): Promise<boolean> => {
+        try {
+          await client.listSessions(query);
+          return false;
+        } catch {
+          return true;
+        }
+      }),
+    );
+    expect(rejected).toEqual([true, true]);
+    expect(requests).toHaveLength(1);
+  });
+
   it("derives every supported path from one configurable API root", () => {
     const paths = createChatApiPaths("/custom/chat/");
 

@@ -53,8 +53,6 @@ export const editorLayoutStyles: Record<LayoutStyle, stylex.StyleXStyles> =
     head: {
       gridColumn: "1 / -1",
       gridRow: "1",
-      margin: "18px 26px 0",
-      "@media (max-width: 640px)": { margin: "10px 16px 0" },
     },
     colophon: {
       gridColumn: "1",
@@ -177,9 +175,14 @@ export const editorLayoutStyles: Record<LayoutStyle, stylex.StyleXStyles> =
         ":hover": "var(--console-frame)",
       },
       backgroundColor: {
-        default: null,
+        default: "transparent",
         ":hover": "color-mix(in srgb, var(--console-err) 25%, transparent)",
       },
+      outline: {
+        default: null,
+        ":focus-visible": "2px solid var(--console-accent)",
+      },
+      outlineOffset: 2,
       "@media (max-width: 640px)": {
         minHeight: "var(--console-touch)",
         paddingLeft: 10,

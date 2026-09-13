@@ -76,11 +76,11 @@ ${CONSOLE_THEME_CSS}
     ${options.stylesheetPath ? `<link data-studio-app-styles rel="stylesheet" href="${escapeAttribute(options.stylesheetPath)}" />` : ""}
   </head>
   <body data-console-host="studio" class="${classes.body}">
-    <main id="root" class="${classes.mount}" data-studio-root data-studio-base-path="${basePath}" data-studio-session-href="${escapeAttribute(options.sessionHref)}" data-studio-dashboard-href="${escapeAttribute(options.dashboardHref)}" data-studio-brand-name="${escapeAttribute(options.brandName)}"${
+    <div id="root" class="${classes.mount}" data-studio-root data-studio-base-path="${basePath}" data-studio-session-href="${escapeAttribute(options.sessionHref)}" data-studio-dashboard-href="${escapeAttribute(options.dashboardHref)}" data-studio-brand-name="${escapeAttribute(options.brandName)}"${
       options.principal
         ? ` data-studio-principal-name="${escapeAttribute(options.principal.displayName)}" data-studio-principal-role="${escapeAttribute(options.principal.role)}"`
         : ""
-    }><p class="${classes.boot}">Opening the content studio…</p></main>
+    }><p class="${classes.boot}">Opening the content studio…</p></div>
     <script type="module" src="${options.assetPath}"></script>
   </body>
 </html>`;

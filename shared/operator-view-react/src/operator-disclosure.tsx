@@ -9,7 +9,7 @@ export function OperatorDisclosure(
   props: ComponentProps<"details"> & {
     triggerLabel: ReactNode;
     presentation?: "action" | undefined;
-    triggerVariant?: "outline" | "link" | undefined;
+    triggerVariant?: "outline" | "link" | "primary" | undefined;
   },
 ): ReactElement {
   const {
@@ -30,8 +30,11 @@ export function OperatorDisclosure(
     >
       <summary
         {...stylex.props(
-          (presentation === "action" || triggerVariant === "outline") &&
+          (presentation === "action" ||
+            triggerVariant === "outline" ||
+            triggerVariant === "primary") &&
             s.trigger,
+          triggerVariant === "primary" && s.primary,
           triggerVariant === "link" && [actionLayoutStyles.link, s.link],
         )}
       >

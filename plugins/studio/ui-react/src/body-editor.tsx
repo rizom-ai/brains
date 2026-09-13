@@ -24,6 +24,7 @@ import { tags } from "@lezer/highlight";
 import {
   useCallback,
   useEffect,
+  useId,
   useRef,
   useState,
   type ReactElement,
@@ -299,6 +300,7 @@ export function BodyEditor(props: {
     assist,
     readOnly = false,
   } = props;
+  const panelId = useId();
   const [selection, setSelection] = useState<SelectionRange | null>(null);
   const [instruction, setInstruction] = useState("");
   const [assistTarget, setAssistTarget] = useState(MODEL_ASSIST_TARGET);
@@ -414,7 +416,12 @@ export function BodyEditor(props: {
         >
           <TabsList {...stylex.props(s.modes)} aria-label="Editor body view">
             {BODY_MODES.map((candidate) => (
-              <TabsTrigger key={candidate} value={candidate}>
+              <TabsTrigger
+                key={candidate}
+                value={candidate}
+                id={`${panelId}-${candidate}`}
+                aria-controls={panelId}
+              >
                 {BODY_MODE_LABELS[candidate]}
               </TabsTrigger>
             ))}
@@ -548,6 +555,9 @@ export function BodyEditor(props: {
       <div
         {...stylex.props(s.panes, showSource && showPreview && s.split)}
         data-studio-split={showSource && showPreview ? "" : undefined}
+        id={panelId}
+        role="tabpanel"
+        aria-labelledby={`${panelId}-${mode}`}
       >
         {showSource && (
           <CodeMirrorBodySource
@@ -558,7 +568,13 @@ export function BodyEditor(props: {
           />
         )}
         {showPreview && (
-          <div {...stylex.props(s.preview)} data-studio-preview="">
+          <div
+            {...stylex.props(s.preview)}
+            data-studio-preview=""
+            tabIndex={0}
+            role="region"
+            aria-label="Rendered document"
+          >
             <StudioMarkdown presentation="document">{value}</StudioMarkdown>
           </div>
         )}

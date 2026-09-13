@@ -460,6 +460,9 @@ export class ConversationService implements IConversationService {
   ): Promise<Conversation[]> {
     const {
       limit = 100,
+      offset = 0,
+      query: search,
+      archived,
       updatedAfter,
       interfaceType,
       sessionId,
@@ -475,13 +478,26 @@ export class ConversationService implements IConversationService {
       sessionId ? eq(conversations.sessionId, sessionId) : undefined,
       channelId ? eq(conversations.channelId, channelId) : undefined,
       personId ? eq(conversations.personId, personId) : undefined,
+      archived === undefined
+        ? undefined
+        : archived
+          ? sql`json_type(${conversations.metadata}, '$.archivedAt') = 'text'`
+          : sql`json_type(${conversations.metadata}, '$.archivedAt') IS NOT 'text'`,
+      search?.trim()
+        ? sql`(
+        instr(lower(coalesce(json_extract(${conversations.metadata}, '$.title'), '')), ${search.trim().toLowerCase()}) > 0
+        OR EXISTS (SELECT 1 FROM ${messages} WHERE ${messages.conversationId} = ${conversations.id}
+          AND instr(lower(${messages.content}), ${search.trim().toLowerCase()}) > 0)
+      )`
+        : undefined,
     ].filter((filter) => filter !== undefined);
 
     const query = this.db
       .select()
       .from(conversations)
-      .orderBy(desc(conversations.lastActive))
-      .limit(limit);
+      .orderBy(desc(conversations.lastActive), desc(conversations.id))
+      .limit(limit)
+      .offset(offset);
 
     if (filters.length === 0) return query;
     return query.where(and(...filters));
