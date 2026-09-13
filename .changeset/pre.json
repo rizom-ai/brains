@@ -422,6 +422,7 @@
     "core--studio-auth-state-chrome",
     "core--studio-authoring-cutover",
     "core--studio-control-vocabulary",
+    "core--studio-frontmatter-titles",
     "core--studio-gate-inversion",
     "core--studio-interface-semantics",
     "core--studio-invitations-workspace",
