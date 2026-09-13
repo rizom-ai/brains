@@ -25,10 +25,19 @@ describe("private bundled UI builds", () => {
   ]) {
     it(`builds ${fixture.workspace} without touching dependency-owned assets`, async () => {
       const workspace = join(root, fixture.workspace);
+      const protectedAssets = [
+        ...fixture.assets.map((asset) => join(workspace, "dist", "ui", asset)),
+        ...(fixture.workspace === "plugins/studio"
+          ? [
+              join(root, "shared/operator-view-react/dist/index.js"),
+              join(root, "shared/operator-view-react/dist/stylex.css"),
+            ]
+          : []),
+      ];
       const snapshot = async (): Promise<unknown> =>
         Promise.all(
-          fixture.assets.map(async (asset) => {
-            const file = join(workspace, "dist", "ui", asset);
+          protectedAssets.map(async (file) => {
+            const asset = file;
             if (!(await Bun.file(file).exists()))
               return { asset, exists: false };
             const info = await stat(file);

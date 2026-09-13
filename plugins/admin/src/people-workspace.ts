@@ -57,7 +57,9 @@ export function composePeopleTabSections(
   }
   const anchor = requiredPeopleBlock(blocks, "brain-anchor");
   if (anchor.type !== "card")
-    throw new Error('People tab composition block "brain-anchor" must be a card');
+    throw new Error(
+      'People tab composition block "brain-anchor" must be a card',
+    );
   const peerPanels = [peerNote, ...peerSections].flatMap<PanelBlock>((block) =>
     block.type === "card" ? [...block.blocks] : [block],
   );

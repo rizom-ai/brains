@@ -490,8 +490,7 @@ describe("studio editor shell", () => {
     const shell = createEditorTestShell();
     const plugin = await registerPlugin(shell);
 
-    // The bundle may not be built when tests run; the route must exist and
-    // either serve JS or answer 404, never throw.
+    // Serve the current manifest's chunks, not older retained build artifacts.
     const assetRoute = findRoute(plugin, "/studio/assets");
     expect(assetRoute.match).toBe("prefix");
 
@@ -515,8 +514,9 @@ describe("studio editor shell", () => {
           ),
         ).json(),
       );
-    const accountChunk = Object.keys(manifest.assets).find((asset) =>
-      /^studio-chunks\/account-view-.*\.js$/.test(asset),
+    const accountChunk = Object.keys(manifest.assets).find(
+      (path) =>
+        path.startsWith("studio-chunks/account-view-") && path.endsWith(".js"),
     );
     if (!accountChunk) throw new Error("Missing built Account chunk");
     const chunkResponse = await assetRoute.handler(

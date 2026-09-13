@@ -340,8 +340,16 @@ function activityCard(
   };
 }
 
+type OverviewRuntime = Pick<
+  StudioRuntime,
+  "channels" | "inbox" | "readiness"
+> & {
+  readonly identity: Pick<StudioRuntime["identity"], "getAppInfo">;
+  readonly entities: Pick<StudioRuntime["entities"], "getEntityCounts">;
+};
+
 async function runtimeCards(
-  runtime: StudioRuntime,
+  runtime: OverviewRuntime,
   actor: StudioWorkspaceActor,
   sourceCount: number,
 ): Promise<readonly RuntimeStudioOperatorCardBlock[]> {
@@ -659,7 +667,7 @@ function overviewView(
 }
 
 export function createStudioOverviewWorkspace(input: {
-  runtime: StudioRuntime;
+  runtime: OverviewRuntime;
   registry: StudioOverviewRegistry;
 }): StudioWorkspaceRegistration {
   return {

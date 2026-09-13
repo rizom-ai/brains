@@ -6,7 +6,10 @@ import {
   type RuntimeStudioWorkspaceData,
 } from "@brains/sdk/services";
 /** @jsxImportSource react */
-import { OperatorViewRenderer, OperatorPanelParagraph } from "@brains/operator-view-react";
+import {
+  OperatorViewRenderer,
+  OperatorPanelParagraph,
+} from "@brains/operator-view-react";
 import type { JSX } from "react";
 import type { RenderableWidgetData } from "./types";
 

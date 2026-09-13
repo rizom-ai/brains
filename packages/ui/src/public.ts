@@ -57,6 +57,7 @@ export {
   cssVariables,
   formatDate,
   markdownToHtml,
+  operatorViewStylexCSS,
   renderHighlightedText,
   splitWordmark,
   tagVariants,
