@@ -9,8 +9,7 @@ import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { JobResult } from "@brains/contracts";
-import { prepareAsset } from "@brains/assets";
-import { imageAdapter, inspectImageBytes } from "@brains/image";
+import { imageAdapter, prepareImageAsset } from "@brains/image";
 import {
   getUploadImageIdentity,
   isSupportedImageMediaType,
@@ -84,16 +83,13 @@ export class UploadPromotionJobHandler extends BaseJobHandler<
         message: "Saving uploaded image",
       });
 
-      const inspected = inspectImageBytes(
+      const { asset: preparedAsset, facts } = prepareImageAsset(
         upload.content,
         upload.record.mediaType,
       );
-      const preparedAsset = prepareAsset(upload.content);
       const now = new Date().toISOString();
       const imageEntity = imageAdapter.createImageEntity({
-        assetRef: preparedAsset.ref,
-        bytes: upload.content,
-        declaredMediaType: inspected.mediaType,
+        facts,
         title: identity.title,
         status: "draft",
         sourceUploadId: data.uploadId,

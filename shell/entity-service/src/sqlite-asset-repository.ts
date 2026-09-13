@@ -1,5 +1,6 @@
 import {
   MAX_ASSET_BYTES,
+  assetRecordSchema,
   assertPreparedAsset,
   assetRefSchema,
   computeAssetDigest,
@@ -12,7 +13,9 @@ import {
   type AssetVerification,
   type PreparedAsset,
 } from "@brains/assets";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
+import { AsyncLocalStorage } from "node:async_hooks";
+import { assetChunkRangeSchema } from "./asset-transfers";
 import type { EntityDB } from "./db";
 import { assets } from "./schema/assets";
 
@@ -23,6 +26,30 @@ export type AssetTransaction = Parameters<
 /** Validated and copied before a transaction acquires SQLite's write lock. */
 export interface StagedAsset extends AssetRecord {
   bytes: Buffer;
+}
+
+/** Owner-internal capability, never a serializable entity/RPC input.
+ * The issuer retains cleanup responsibility on every outcome, including rejected
+ * handoffs. run establishes claim scope after initialization and awaits its
+ * lifecycle; bind must insert or verify immutable bytes on exactly the supplied
+ * entity transaction.
+ */
+export interface OwnedAssetPublication {
+  readonly record: AssetRecord;
+  run<T>(operation: () => Promise<T>): Promise<T>;
+  bind(transaction: AssetTransaction, createdAt: number): Promise<void>;
+}
+
+export interface PublicationStage extends AssetRecord {
+  bind(transaction: AssetTransaction, createdAt: number): Promise<void>;
+}
+export type EntityAssetStage = StagedAsset | PublicationStage;
+interface PublicationScope {
+  readonly record: AssetRecord;
+  readonly bind: OwnedAssetPublication["bind"];
+  active: boolean;
+  claimed: boolean;
+  bindingStarted: boolean;
 }
 
 export class AssetNotFoundError extends Error {
@@ -53,6 +80,8 @@ export class SqliteAssetRepository implements AssetReader {
   private readonly db: EntityDB;
   private readonly maxBytes: number;
   private readonly now: () => number;
+  private readonly publications = new AsyncLocalStorage<PublicationScope>();
+  private readonly consumedPublications = new WeakSet<OwnedAssetPublication>();
 
   constructor(
     db: EntityDB,
@@ -61,6 +90,95 @@ export class SqliteAssetRepository implements AssetReader {
     this.db = db;
     this.maxBytes = options.maxBytes ?? MAX_ASSET_BYTES;
     this.now = options.now ?? Date.now;
+  }
+
+  /** Enter one owner-issued publication. This scope does not itself release bytes. */
+  public async withPublication<T>(
+    publication: OwnedAssetPublication,
+    operation: () => Promise<T>,
+    initialize: () => Promise<void>,
+  ): Promise<T> {
+    const current = this.publications.getStore();
+    if (current?.active && !current.claimed)
+      return Promise.reject(
+        new Error("Nested unclaimed asset publication is not allowed"),
+      );
+    if (this.consumedPublications.has(publication))
+      return Promise.reject(
+        new Error("Asset publication was already consumed"),
+      );
+    this.consumedPublications.add(publication); // Consume before any await, including initialization.
+    const bind = publication.bind.bind(publication);
+    const run = publication.run.bind(publication);
+    const parsed = assetRecordSchema.safeParse(publication.record);
+    let admissionFailure: { error: unknown } | undefined;
+    if (!parsed.success) admissionFailure = { error: parsed.error };
+    else if (
+      parsed.data.sizeBytes > MAX_ASSET_BYTES ||
+      parsed.data.sizeBytes > this.maxBytes
+    )
+      admissionFailure = {
+        error: new Error("Asset publication exceeds repository capacity"),
+      };
+    else {
+      try {
+        await initialize();
+      } catch (error) {
+        admissionFailure = { error };
+      }
+    }
+    // Initial migrations must not accidentally acquire this publication's claims.
+    // Still enter the owner's retirement wrapper if admission failed.
+    let entered = false;
+    try {
+      return await run(async () => {
+        if (entered)
+          throw new Error("Asset publication operation was already entered");
+        entered = true;
+        if (admissionFailure) throw admissionFailure.error;
+        if (!parsed.success) throw parsed.error;
+        const record = Object.freeze(parsed.data);
+        const scope: PublicationScope = {
+          record,
+          bind,
+          active: true,
+          claimed: false,
+          bindingStarted: false,
+        };
+        try {
+          return await this.publications.run(scope, operation);
+        } finally {
+          scope.active = false;
+        }
+      });
+    } catch (error) {
+      if (admissionFailure && admissionFailure.error !== error)
+        throw new AggregateError(
+          [admissionFailure.error, error],
+          "Asset publication admission and owner lifetime failed",
+          { cause: error },
+        );
+      throw error;
+    }
+  }
+
+  /** Claim the current publication before mutation admission/transaction acquisition. */
+  public claimPublication(): PublicationStage | undefined {
+    const scope = this.publications.getStore();
+    // Subsequent event-driven mutations must not inherit this operation's input.
+    if (!scope || !scope.active || scope.claimed) return undefined;
+    scope.claimed = true;
+    return {
+      ...scope.record,
+      bind: async (transaction, createdAt): Promise<void> => {
+        if (!scope.active || scope.bindingStarted)
+          throw new Error(
+            "Asset publication binding is closed or already consumed",
+          );
+        scope.bindingStarted = true;
+        await scope.bind(transaction, createdAt);
+      },
+    };
   }
 
   /** Validate and copy bytes before entering an entity transaction. */
@@ -86,7 +204,7 @@ export class SqliteAssetRepository implements AssetReader {
   public async bindEntityContent(
     transaction: AssetTransaction,
     content: string,
-    staged?: StagedAsset,
+    staged?: EntityAssetStage,
   ): Promise<void> {
     if (staged) {
       if (content !== staged.ref) {
@@ -94,7 +212,29 @@ export class SqliteAssetRepository implements AssetReader {
           `Prepared asset ${staged.ref} does not match entity content`,
         );
       }
-      await this.insertOrVerify(transaction, staged);
+      if ("bind" in staged) {
+        await staged.bind(transaction, this.now());
+        const [row] = await transaction
+          .select({
+            size: assets.sizeBytes,
+            actualSize: sql<number>`length(${assets.bytes})`,
+            storageType: sql<string>`typeof(${assets.bytes})`,
+          })
+          .from(assets)
+          .where(eq(assets.digest, staged.digest))
+          .limit(1);
+        if (!row) throw new AssetNotFoundError(staged.ref);
+        if (
+          row.storageType !== "blob" ||
+          row.size !== staged.sizeBytes ||
+          row.actualSize !== staged.sizeBytes
+        ) {
+          throw new AssetIntegrityError(
+            staged.ref,
+            "publication storage type or size does not match its receipt",
+          );
+        }
+      } else await this.insertOrVerify(transaction, staged);
       return;
     }
 
@@ -118,6 +258,41 @@ export class SqliteAssetRepository implements AssetReader {
     const row = rows[0];
     if (!row) throw new AssetNotFoundError(canonical);
     this.assertSize(canonical, row.bytes, row.sizeBytes);
+    return Uint8Array.from(row.bytes);
+  }
+
+  /** SQLite slices the BLOB; only one bounded chunk crosses the native bridge. */
+  public async readChunk(
+    ref: AssetRef,
+    offset: number,
+    length: number,
+  ): Promise<Uint8Array> {
+    const canonical = parseAssetRef(ref);
+    assetChunkRangeSchema.parse({ offset, length });
+    const [row] = await this.db
+      .select({
+        bytes: sql`substr(${assets.bytes}, ${offset + 1}, ${length})`.mapWith(
+          assets.bytes,
+        ),
+        sizeBytes: assets.sizeBytes,
+        actualSize: sql<number>`length(${assets.bytes})`,
+      })
+      .from(assets)
+      .where(eq(assets.digest, getAssetDigest(canonical)))
+      .limit(1);
+    if (!row) throw new AssetNotFoundError(canonical);
+    if (
+      row.actualSize !== row.sizeBytes ||
+      row.sizeBytes < 0 ||
+      row.sizeBytes > this.maxBytes ||
+      offset > row.sizeBytes ||
+      row.bytes.byteLength !== Math.min(length, row.sizeBytes - offset)
+    ) {
+      throw new AssetIntegrityError(
+        canonical,
+        "invalid byte range or stored size",
+      );
+    }
     return Uint8Array.from(row.bytes);
   }
 

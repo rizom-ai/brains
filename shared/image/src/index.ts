@@ -13,6 +13,15 @@ export {
   type ResolvedImage,
 } from "./schemas/image";
 
+export {
+  imageAssetFactsSchema,
+  type ImageAssetFacts,
+} from "./schemas/image-asset-facts";
+export {
+  prepareImageAsset,
+  type PreparedImageAsset,
+} from "./lib/prepare-image-asset";
+
 // Image entity adapter
 export { imageAdapter, ImageAdapter } from "./adapters/image-adapter";
 export type {

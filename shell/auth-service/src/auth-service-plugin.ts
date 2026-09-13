@@ -19,6 +19,10 @@ import { z } from "@brains/utils/zod";
 import { AUTH_BRAIN_ANCHOR_CONFIG_KINDS } from "./admin-contracts";
 import { AuthService, type PasskeySetupRequired } from "./auth-service";
 import { DEFAULT_SETUP_TOKEN_TTL_SECONDS } from "./setup-flow";
+import {
+  createWorkerAccountSettingsBackend,
+  registerOwnerAccountSettingsReads,
+} from "./worker-account-settings";
 import packageJson from "../package.json";
 
 const setupEmailSchema: z.ZodUnion<
@@ -138,6 +142,7 @@ export class AuthServicePlugin extends ServicePlugin<
   private service: AuthService | undefined;
   private unbindAccountSettings: (() => void) | undefined;
   private unsubscribePrincipalResolver: (() => void) | undefined;
+  private unsubscribeAccountSettingsReads: (() => void) | undefined;
 
   constructor(config: AuthServiceConfigInput = {}) {
     super("auth-service", packageJson, config, authServiceConfigSchema);
@@ -147,6 +152,12 @@ export class AuthServicePlugin extends ServicePlugin<
     context: ServicePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
+    if (context.executionOnly) {
+      this.unbindAccountSettings = context.accountSettings.bindBackend(
+        createWorkerAccountSettingsBackend(context),
+      );
+      return;
+    }
 
     const issuer =
       this.config.issuer ??
@@ -203,6 +214,10 @@ export class AuthServicePlugin extends ServicePlugin<
       );
     context.permissions.replaceRuntimePrincipalState(principalState);
     activeAuthService = this.service;
+    this.unsubscribeAccountSettingsReads = registerOwnerAccountSettingsReads(
+      context,
+      accountSettingsBackend,
+    );
 
     this.unsubscribePrincipalResolver = context.messaging.subscribe(
       AUTH_PRINCIPAL_RESOLVE_CHANNEL,
@@ -237,16 +252,20 @@ export class AuthServicePlugin extends ServicePlugin<
   }
 
   protected override async onRegistrationComplete(): Promise<void> {
+    if (this.getContext().executionOnly) return;
     await this.getService().startInvitationDeliveryRecovery();
   }
 
   protected override async onReady(
     context: ServicePluginContext,
   ): Promise<void> {
+    if (context.executionOnly) return;
     await this.requestSetupEmailIfNeeded(context);
   }
 
   protected override async onShutdown(): Promise<void> {
+    this.unsubscribeAccountSettingsReads?.();
+    this.unsubscribeAccountSettingsReads = undefined;
     this.unsubscribePrincipalResolver?.();
     this.unsubscribePrincipalResolver = undefined;
     this.unbindAccountSettings?.();
@@ -259,6 +278,7 @@ export class AuthServicePlugin extends ServicePlugin<
   }
 
   protected override async getTools(): Promise<Tool[]> {
+    if (this.getContext().executionOnly) return [];
     const hasPasskeyCredentials =
       await this.getService().hasPasskeyCredentials();
 
@@ -305,6 +325,7 @@ export class AuthServicePlugin extends ServicePlugin<
   }
 
   override getWebRoutes(): WebRouteDefinition[] {
+    if (this.context?.executionOnly) return [];
     const handler = (request: Request): Promise<Response> =>
       this.getService().handleRequest(request);
 
@@ -511,6 +532,9 @@ export class AuthServicePlugin extends ServicePlugin<
   }
 
   getService(): AuthService {
+    if (this.context?.executionOnly) {
+      throw new Error("AuthService is owned by the control-plane process");
+    }
     if (!this.service) {
       throw new Error("AuthServicePlugin has not been registered");
     }

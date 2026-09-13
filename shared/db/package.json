@@ -17,7 +17,9 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./drizzle-config": "./src/drizzle-config.ts"
+    "./drizzle-config": "./src/drizzle-config.ts",
+    "./binary-publication": "./src/binary-publication.ts",
+    "./error-protocol": "./src/turso-worker/error-protocol.ts"
   },
   "main": "./src/index.ts",
   "private": true,

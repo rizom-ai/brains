@@ -7,8 +7,12 @@ import {
   saveProcessedEntity,
 } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils/progress";
-import { prepareAsset } from "@brains/assets";
-import { imageAdapter, parseDataUrl, setCoverImageId } from "@brains/image";
+import {
+  imageAdapter,
+  parseDataUrl,
+  prepareImageAsset,
+  setCoverImageId,
+} from "@brains/image";
 import { fetchStyleGuide, formatVisualGuidance } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { slugify } from "@brains/utils/string-utils";
@@ -197,11 +201,12 @@ ${entityContent}`,
 
       // Step 3: Validate provider output and commit bytes with the entity.
       const parsedImage = parseDataUrl(generationResult.dataUrl);
-      const preparedAsset = prepareAsset(parsedImage.bytes);
+      const { asset: preparedAsset, facts } = prepareImageAsset(
+        parsedImage.bytes,
+        parsedImage.mediaType,
+      );
       const entityData = imageAdapter.createImageEntity({
-        assetRef: preparedAsset.ref,
-        bytes: parsedImage.bytes,
-        declaredMediaType: parsedImage.mediaType,
+        facts,
         title,
         status: "draft",
         attachmentType: "generated",

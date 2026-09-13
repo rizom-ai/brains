@@ -1,4 +1,8 @@
-import { assetRefSchema, prepareAsset, type AssetRef } from "@brains/assets";
+import { assetRefSchema } from "@brains/assets";
+import {
+  imageAssetFactsSchema,
+  type ImageAssetFacts,
+} from "../schemas/image-asset-facts";
 import type { EntityAdapter, EntitySchema } from "@brains/entity-service";
 import {
   imageSchema,
@@ -21,9 +25,7 @@ interface ImageProvenanceInput {
 
 /** Input for a completed, asset-backed image entity. */
 export interface CreateImageInput extends ImageProvenanceInput {
-  assetRef: AssetRef;
-  bytes: Uint8Array;
-  declaredMediaType?: string;
+  facts: ImageAssetFacts;
   title: string;
   alt?: string;
   status?: "draft";
@@ -39,7 +41,7 @@ export interface CreatePendingImageInput extends ImageProvenanceInput {
 
 /**
  * Pure adapter for image entities. Binary I/O remains in ingestion/read
- * callers; the adapter validates byte facts and serializes the opaque ref.
+ * callers; image construction validates metadata and serializes the opaque ref.
  */
 export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
   public readonly entityType = "image" as const;
@@ -94,16 +96,11 @@ export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
   public createImageEntity(
     input: CreateImageInput,
   ): Pick<Image, "entityType" | "content" | "metadata"> {
-    const assetRef = assetRefSchema.parse(input.assetRef);
-    const canonicalAsset = prepareAsset(input.bytes);
-    if (canonicalAsset.ref !== assetRef) {
-      throw new Error("Image asset reference does not match its bytes");
-    }
-    const inspected = inspectImageBytes(input.bytes, input.declaredMediaType);
+    const inspected = imageAssetFactsSchema.parse(input.facts);
 
     return {
       entityType: "image",
-      content: assetRef,
+      content: inspected.ref,
       metadata: {
         title: input.title,
         alt: input.alt ?? input.title,

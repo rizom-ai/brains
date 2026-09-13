@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import assert from "node:assert/strict";
 import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtemp, access, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -109,6 +110,58 @@ afterEach(async () => {
 });
 
 describe("private local database endpoint", () => {
+  it("keeps binary query errors off the wire and preserves shared primary/cleanup causes", async () => {
+    const { server, client } = await createHarness({
+      serverMaxFrameBytes: 1_024,
+      clientMaxFrameBytes: 1_024,
+    });
+    const primary = new Error("Resident binding rejected");
+    const query = new Error(
+      `Failed query: insert into assets values (?)\nparams: ${"secret-binary-fixture".repeat(110_000)}`,
+      { cause: primary },
+    );
+    const cleanup = new Error("Rollback acknowledgement lost", {
+      cause: primary,
+    });
+    const failure = new AggregateError(
+      [query, cleanup, primary],
+      "Asset transaction failed",
+      { cause: primary },
+    );
+    server.register("assets", async (input) => {
+      if (input === "fail") throw failure;
+      return "endpoint remains available";
+    });
+    await server.initialize();
+    await assert.rejects(
+      client.request("assets", "fail"),
+      (error: unknown): boolean => {
+        assert(error instanceof AggregateError);
+        const children: unknown[] = error.errors;
+        const [remoteQuery, remoteCleanup, remotePrimary] = children;
+        assert(
+          remoteQuery instanceof Error &&
+            remoteCleanup instanceof Error &&
+            remotePrimary instanceof Error,
+        );
+        assert.equal(
+          remoteQuery.message,
+          "Failed query (SQL and parameters omitted)",
+        );
+        assert.equal(remoteCleanup.message, cleanup.message);
+        assert.equal(remotePrimary.message, primary.message);
+        assert.equal(remoteQuery.cause, remotePrimary);
+        assert.equal(remoteCleanup.cause, remotePrimary);
+        assert.equal(error.cause, remotePrimary);
+        assert.equal(Reflect.get(error, "diagnosticsTruncated"), true);
+        return true;
+      },
+    );
+    assert.equal(
+      await client.request("assets", "healthy"),
+      "endpoint remains available",
+    );
+  });
   it("decodes fragmented and coalesced length-prefixed frames", () => {
     const decoder = new LocalDatabaseFrameDecoder(1_024);
     const first = encodeTestFrame({
@@ -188,6 +241,29 @@ describe("private local database endpoint", () => {
     expect(observedSession).toBe("worker-session");
   });
 
+  it("retains socket lifetime after a request and aborts it on disconnect", async () => {
+    const harness = await createHarness();
+    const disconnected = Promise.withResolvers<void>();
+    let lifetime: AbortSignal | undefined;
+    harness.server.register("lifetime", async (_payload, context) => {
+      if (lifetime) expect(context.connectionSignal).toBe(lifetime);
+      else {
+        lifetime = context.connectionSignal;
+        lifetime.addEventListener("abort", () => disconnected.resolve(), {
+          once: true,
+        });
+      }
+      return context.connectionSignal.aborted;
+    });
+    await harness.server.initialize();
+    expect(await harness.client.request("lifetime", {})).toBe(false);
+    expect(await harness.client.request("lifetime", {})).toBe(false);
+    expect(lifetime?.aborted).toBe(false);
+    harness.client.close();
+    await disconnected.promise;
+    expect(lifetime?.aborted).toBe(true);
+  });
+
   it("rejects a client with the wrong capability secret", async () => {
     const harness = await createHarness({ clientSecret: "x".repeat(48) });
     await harness.server.initialize();
@@ -197,28 +273,34 @@ describe("private local database endpoint", () => {
     ).toMatch(/handshake|endpoint closed/i);
   });
 
-  it("rejects unsupported protocol versions before dispatch", async () => {
-    const harness = await createHarness();
-    await harness.server.initialize();
-    const socket = createConnection(harness.serverConfig.address);
-    socket.on("error", () => undefined);
-    await once(socket, "connect");
+  it.each([
+    LOCAL_DATABASE_PROTOCOL_VERSION - 1,
+    LOCAL_DATABASE_PROTOCOL_VERSION + 1,
+  ])(
+    "rejects unsupported protocol version %s before dispatch",
+    async (version) => {
+      const harness = await createHarness();
+      await harness.server.initialize();
+      const socket = createConnection(harness.serverConfig.address);
+      socket.on("error", () => undefined);
+      await once(socket, "connect");
 
-    socket.write(
-      encodeTestFrame({
-        kind: "handshake",
-        version: LOCAL_DATABASE_PROTOCOL_VERSION + 1,
-        secret: harness.serverConfig.secret,
-        sessionId: "unsupported-client",
-      }),
-    );
+      socket.write(
+        encodeTestFrame({
+          kind: "handshake",
+          version,
+          secret: harness.serverConfig.secret,
+          sessionId: "unsupported-client",
+        }),
+      );
 
-    // The owner closes the connection instead of dispatching a frame it
-    // cannot speak; nothing is written back before the close.
-    const [closedWithError] = await once(socket, "close");
-    expect(closedWithError).toBeFalsy();
-    expect(socket.bytesRead).toBe(0);
-  });
+      // The owner closes the connection instead of dispatching a frame it
+      // cannot speak; nothing is written back before the close.
+      const [closedWithError] = await once(socket, "close");
+      expect(closedWithError).toBeFalsy();
+      expect(socket.bytesRead).toBe(0);
+    },
+  );
 
   it("propagates cancellation to an admitted owner request", async () => {
     const harness = await createHarness();

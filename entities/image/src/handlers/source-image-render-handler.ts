@@ -1,4 +1,3 @@
-import { prepareAsset } from "@brains/assets";
 import type { EntityPluginContext } from "@brains/plugins";
 import {
   BaseJobHandler,
@@ -13,6 +12,7 @@ import { z } from "@brains/utils/zod";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
 import {
   imageAdapter,
+  prepareImageAsset,
   imageSchema,
   setCoverImageId,
   setOgImageId,
@@ -121,11 +121,12 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
         message: "Creating image entity",
       });
 
-      const preparedAsset = prepareAsset(attachment.data);
+      const { asset: preparedAsset, facts } = prepareImageAsset(
+        attachment.data,
+        attachment.mimeType,
+      );
       const entityData = imageAdapter.createImageEntity({
-        assetRef: preparedAsset.ref,
-        bytes: attachment.data,
-        declaredMediaType: attachment.mimeType,
+        facts,
         title: data.imageId,
         status: "draft",
         sourceEntityType: data.sourceEntityType,

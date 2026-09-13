@@ -7,6 +7,7 @@ import {
   type ExtractTablesWithRelations,
 } from "drizzle-orm/relations";
 import { createTursoClient } from "./turso-client";
+import type { BinaryPersistence } from "./binary-publication";
 import { isLocalFileDatabaseUrl } from "./local-file-url";
 
 export type SqliteDatabase<
@@ -33,6 +34,8 @@ export interface SqliteConnection<
   db: SqliteDatabase<TSchema>;
   client: ReturnType<typeof createTursoClient>;
   url: string;
+  /** Present only when the database factory supplies an owned binary plane. */
+  binary?: BinaryPersistence | undefined;
 }
 
 /**

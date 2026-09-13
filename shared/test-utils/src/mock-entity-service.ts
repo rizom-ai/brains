@@ -117,6 +117,11 @@ export function createMockEntityService(
     readAsset: mock(() =>
       Promise.resolve(Uint8Array.from(returns.readAsset ?? [])),
     ),
+    readAssetChunk: mock((_ref, offset, length) =>
+      Promise.resolve(
+        Uint8Array.from(returns.readAsset ?? []).slice(offset, offset + length),
+      ),
+    ),
     statAsset: mock(() => Promise.resolve(returns.statAsset ?? null)),
     verifyAsset: mock((ref) => {
       if (!returns.verifyAsset) {

@@ -3,8 +3,12 @@ import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { BaseJobHandler } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils/progress";
-import { prepareAsset } from "@brains/assets";
-import { fetchImageAsBase64, imageAdapter, parseDataUrl } from "@brains/image";
+import {
+  fetchImageAsBase64,
+  imageAdapter,
+  parseDataUrl,
+  prepareImageAsset,
+} from "@brains/image";
 import { getErrorMessage } from "@brains/utils/error";
 import { parseMarkdown, generateMarkdown } from "@brains/utils/markdown";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
@@ -179,16 +183,17 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
         });
 
         const parsedImage = parseDataUrl(dataUrl);
-        const preparedAsset = prepareAsset(parsedImage.bytes);
+        const { asset: preparedAsset, facts } = prepareImageAsset(
+          parsedImage.bytes,
+          parsedImage.mediaType,
+        );
 
         // Step 5: Create image entity
         imageId = `${postSlug}-cover`;
         const imageTitle = `Cover image for ${postTitle}`;
         const imageAlt = customAlt ?? imageTitle;
         const imageData = imageAdapter.createImageEntity({
-          assetRef: preparedAsset.ref,
-          bytes: parsedImage.bytes,
-          declaredMediaType: parsedImage.mediaType,
+          facts,
           title: imageTitle,
           alt: imageAlt,
           sourceUrl,

@@ -1,5 +1,7 @@
 import {
   preparedAssetSchema,
+  assetRecordSchema,
+  type AssetRecord,
   assetRefSchema,
   SHA256_DIGEST_PATTERN,
   type AssetRef,
@@ -7,6 +9,13 @@ import {
   type AssetVerification,
 } from "@brains/assets";
 import { actorRefSchema } from "@brains/contracts";
+import type { OwnedAssetPublication } from "./sqlite-asset-repository";
+import type { EntityService as PublicationOwner } from "./entityService";
+import {
+  EntityAssetTransfers,
+  ASSET_RPC_CHUNK_BYTES,
+  assetChunkRangeSchema,
+} from "./asset-transfers";
 import { z } from "@brains/utils/zod";
 import {
   createRpcResultParser,
@@ -57,14 +66,26 @@ export interface EntityIndexReadinessRpcOptions {
 }
 
 export type EntityRpcRequest =
-  | { operation: "createEntity"; request: CreateEntityRequest<BaseEntity> }
+  | {
+      operation: "createEntity";
+      request: CreateEntityRequest<BaseEntity>;
+      assetUploadId?: string | undefined;
+    }
   | {
       operation: "createEntityFromMarkdown";
       request: CreateEntityFromMarkdownRequest;
     }
-  | { operation: "updateEntity"; request: UpdateEntityRequest<BaseEntity> }
+  | {
+      operation: "updateEntity";
+      request: UpdateEntityRequest<BaseEntity>;
+      assetUploadId?: string | undefined;
+    }
   | { operation: "deleteEntity"; request: DeleteEntityRequest }
-  | { operation: "upsertEntity"; request: UpsertEntityRequest<BaseEntity> }
+  | {
+      operation: "upsertEntity";
+      request: UpsertEntityRequest<BaseEntity>;
+      assetUploadId?: string | undefined;
+    }
   | { operation: "storeEmbedding"; data: StoreEmbeddingData }
   | {
       operation: "reconcileProjectionTargets";
@@ -77,7 +98,20 @@ export type EntityRpcRequest =
     }
   | { operation: "getEntity"; request: GetEntityRequest }
   | { operation: "getEntityRaw"; request: GetEntityRawRequest }
-  | { operation: "readAsset"; ref: AssetRef }
+  | {
+      operation: "readAssetChunk";
+      ref: AssetRef;
+      offset: number;
+      length: number;
+    }
+  | { operation: "beginAssetUpload"; uploadId: string; asset: AssetRecord }
+  | {
+      operation: "appendAssetUpload";
+      uploadId: string;
+      offset: number;
+      bytes: Uint8Array;
+    }
+  | { operation: "discardAssetUpload"; uploadId: string }
   | { operation: "statAsset"; ref: AssetRef }
   | { operation: "verifyAsset"; ref: AssetRef }
   | { operation: "listEntities"; request: ListEntitiesRequest }
@@ -238,12 +272,17 @@ const changedTargetSchema = z.strictObject({
   contentHash: nonEmptyString.optional(),
 });
 
+const inlinePreparedAssetSchema = preparedAssetSchema.refine(
+  (asset) => asset.bytes.byteLength <= ASSET_RPC_CHUNK_BYTES,
+  { message: "Large assets require a chunked upload" },
+);
+
 export const createEntityRequestSchema: z.ZodType<
   CreateEntityRequest<BaseEntity>,
   unknown
 > = z.strictObject({
   entity: entityInputSchema,
-  preparedAsset: preparedAssetSchema.optional(),
+  preparedAsset: inlinePreparedAssetSchema.optional(),
   options: createOptionsSchema.optional(),
 });
 export const createEntityFromMarkdownRequestSchema: z.ZodType<
@@ -263,7 +302,7 @@ export const updateEntityRequestSchema: z.ZodType<
   unknown
 > = z.strictObject({
   entity: entitySchema,
-  preparedAsset: preparedAssetSchema.optional(),
+  preparedAsset: inlinePreparedAssetSchema.optional(),
   options: updateOptionsSchema.optional(),
 });
 export const deleteEntityRequestSchema: z.ZodType<
@@ -279,7 +318,7 @@ export const upsertEntityRequestSchema: z.ZodType<
   unknown
 > = z.strictObject({
   entity: entitySchema,
-  preparedAsset: preparedAssetSchema.optional(),
+  preparedAsset: inlinePreparedAssetSchema.optional(),
   options: jobOptionsSchema.optional(),
 });
 export const getEntityRequestSchema: z.ZodType<GetEntityRequest, unknown> =
@@ -344,6 +383,7 @@ export const EntityRpcRequestSchema: z.ZodType<EntityRpcRequest, unknown> =
     z.strictObject({
       operation: z.literal("createEntity"),
       request: createEntityRequestSchema,
+      assetUploadId: z.string().uuid().optional(),
     }),
     z.strictObject({
       operation: z.literal("createEntityFromMarkdown"),
@@ -352,6 +392,7 @@ export const EntityRpcRequestSchema: z.ZodType<EntityRpcRequest, unknown> =
     z.strictObject({
       operation: z.literal("updateEntity"),
       request: updateEntityRequestSchema,
+      assetUploadId: z.string().uuid().optional(),
     }),
     z.strictObject({
       operation: z.literal("deleteEntity"),
@@ -360,6 +401,7 @@ export const EntityRpcRequestSchema: z.ZodType<EntityRpcRequest, unknown> =
     z.strictObject({
       operation: z.literal("upsertEntity"),
       request: upsertEntityRequestSchema,
+      assetUploadId: z.string().uuid().optional(),
     }),
     z.strictObject({
       operation: z.literal("storeEmbedding"),
@@ -385,7 +427,31 @@ export const EntityRpcRequestSchema: z.ZodType<EntityRpcRequest, unknown> =
       operation: z.literal("getEntityRaw"),
       request: getEntityRequestSchema,
     }),
-    z.strictObject({ operation: z.literal("readAsset"), ref: assetRefSchema }),
+    z.strictObject({
+      operation: z.literal("readAssetChunk"),
+      ref: assetRefSchema,
+      ...assetChunkRangeSchema.shape,
+    }),
+    z.strictObject({
+      operation: z.literal("beginAssetUpload"),
+      uploadId: z.string().uuid(),
+      asset: assetRecordSchema,
+    }),
+    z.strictObject({
+      operation: z.literal("appendAssetUpload"),
+      uploadId: z.string().uuid(),
+      offset: z.number().int().nonnegative(),
+      bytes: z
+        .instanceof(Uint8Array)
+        .refine(
+          (bytes) =>
+            bytes.byteLength > 0 && bytes.byteLength <= ASSET_RPC_CHUNK_BYTES,
+        ),
+    }),
+    z.strictObject({
+      operation: z.literal("discardAssetUpload"),
+      uploadId: z.string().uuid(),
+    }),
     z.strictObject({ operation: z.literal("statAsset"), ref: assetRefSchema }),
     z.strictObject({
       operation: z.literal("verifyAsset"),
@@ -609,7 +675,10 @@ export interface EntityRpcResults {
   awaitIndexReady: IndexReadinessStatus;
   getEntity: BaseEntity | null;
   getEntityRaw: BaseEntity | null;
-  readAsset: Uint8Array;
+  readAssetChunk: Uint8Array;
+  beginAssetUpload: string;
+  appendAssetUpload: undefined;
+  discardAssetUpload: undefined;
   statAsset: AssetStat | null;
   verifyAsset: AssetVerification;
   listEntities: BaseEntity[];
@@ -651,7 +720,12 @@ const resultSchemas: RpcResultSchemas<EntityRpcResults> = {
   awaitIndexReady: readinessSchema,
   getEntity: nullableEntitySchema,
   getEntityRaw: nullableEntitySchema,
-  readAsset: z.instanceof(Uint8Array),
+  readAssetChunk: z
+    .instanceof(Uint8Array)
+    .refine((bytes) => bytes.byteLength <= ASSET_RPC_CHUNK_BYTES),
+  beginAssetUpload: z.string().uuid(),
+  appendAssetUpload: undefinedResultSchema,
+  discardAssetUpload: undefinedResultSchema,
   statAsset: assetStatSchema.nullable(),
   verifyAsset: assetVerificationSchema,
   listEntities: entityListSchema,
@@ -675,6 +749,175 @@ const resultSchemas: RpcResultSchemas<EntityRpcResults> = {
 export const parseEntityRpcResult: RpcResultParser<EntityRpcResults> =
   createRpcResultParser(resultSchemas);
 
+export type EntityPublicationRpcRequest =
+  | {
+      operation: "createEntity";
+      assetUploadId: string;
+      request: Omit<CreateEntityRequest<BaseEntity>, "preparedAsset">;
+    }
+  | {
+      operation: "updateEntity";
+      assetUploadId: string;
+      request: Omit<UpdateEntityRequest<BaseEntity>, "preparedAsset">;
+    }
+  | {
+      operation: "upsertEntity";
+      assetUploadId: string;
+      request: Omit<UpsertEntityRequest<BaseEntity>, "preparedAsset">;
+    };
+
+// Do not use parseEntityRpcRequest here: its prepared-asset schema hashes bytes.
+// Publication content is a canonical ref, never inline/base64 binary content.
+const entityPublicationSchema: z.ZodType<EntityPublicationRpcRequest, unknown> =
+  z.discriminatedUnion("operation", [
+    z.strictObject({
+      operation: z.literal("createEntity"),
+      assetUploadId: z.string().uuid(),
+      request: z.strictObject({
+        entity: entityInputSchema.extend({ content: assetRefSchema }),
+        options: createOptionsSchema.optional(),
+      }),
+    }),
+    z.strictObject({
+      operation: z.literal("updateEntity"),
+      assetUploadId: z.string().uuid(),
+      request: z.strictObject({
+        entity: entitySchema.extend({ content: assetRefSchema }),
+        options: updateOptionsSchema.optional(),
+      }),
+    }),
+    z.strictObject({
+      operation: z.literal("upsertEntity"),
+      assetUploadId: z.string().uuid(),
+      request: z.strictObject({
+        entity: entitySchema.extend({ content: assetRefSchema }),
+        options: jobOptionsSchema.optional(),
+      }),
+    }),
+  ]);
+
+export interface EntityPublicationConsumer {
+  consumeClaim<T>(
+    context: { signal: AbortSignal; connectionSignal: AbortSignal },
+    ticket: string,
+    operation: (publication: OwnedAssetPublication) => Promise<T>,
+  ): Promise<T>;
+}
+
+/** Metadata-only publication entry. The consumer owns authenticated ticket
+ * admission/cleanup; the real entity service owns the mutation transaction.
+ * No upload chunks, inline prepared bytes, read buffers or other RPC operations
+ * are accepted here. This is not a fallback to the buffered transfer prototype.
+ */
+export function createEntityPublicationRpcHandler(
+  service: PublicationOwner,
+  consumer: EntityPublicationConsumer,
+): (
+  input: unknown,
+  signal: AbortSignal,
+  connectionSignal: AbortSignal,
+) => Promise<unknown> {
+  return async (input, signal, connectionSignal): Promise<unknown> => {
+    signal.throwIfAborted();
+    connectionSignal.throwIfAborted();
+    const request = entityPublicationSchema.parse(input);
+    return consumer.consumeClaim(
+      { signal, connectionSignal },
+      request.assetUploadId,
+      async (publication) => {
+        // Admission is the consumer's linearization point. Cancellation afterwards
+        // is not permission to replay or retract an admitted mutation.
+        switch (request.operation) {
+          case "createEntity":
+            return service.createEntityWithPublication(
+              publication,
+              request.request,
+            );
+          case "updateEntity":
+            return service.updateEntityWithPublication(
+              publication,
+              request.request,
+            );
+          case "upsertEntity":
+            return service.upsertEntityWithPublication(
+              publication,
+              request.request,
+            );
+        }
+      },
+    );
+  };
+}
+
+/** One upload budget per owner; socket lifetime controls every staged upload. */
+export function createEntityRpcHandler(
+  service: EntityService,
+): (
+  input: unknown,
+  signal: AbortSignal,
+  connectionSignal: AbortSignal,
+) => Promise<unknown> {
+  const transfers = new EntityAssetTransfers();
+  return async (input, signal, connectionSignal): Promise<unknown> => {
+    signal.throwIfAborted();
+    connectionSignal.throwIfAborted();
+    const request = parseEntityRpcRequest(input);
+    switch (request.operation) {
+      case "beginAssetUpload":
+        return transfers.begin(
+          request.asset,
+          connectionSignal,
+          request.uploadId,
+        );
+      case "appendAssetUpload":
+        transfers.append(
+          request.uploadId,
+          request.offset,
+          request.bytes,
+          connectionSignal,
+        );
+        return undefined;
+      case "discardAssetUpload":
+        transfers.discard(request.uploadId, connectionSignal);
+        return undefined;
+      case "createEntity":
+      case "updateEntity":
+      case "upsertEntity":
+        if (request.assetUploadId !== undefined) {
+          if (request.request.preparedAsset !== undefined)
+            throw new Error(
+              "Use either inline bytes or an asset upload, not both",
+            );
+          return transfers.consume(
+            request.assetUploadId,
+            connectionSignal,
+            async (preparedAsset) => {
+              signal.throwIfAborted();
+              switch (request.operation) {
+                case "createEntity":
+                  return service.createEntity({
+                    ...request.request,
+                    preparedAsset,
+                  });
+                case "updateEntity":
+                  return service.updateEntity({
+                    ...request.request,
+                    preparedAsset,
+                  });
+                case "upsertEntity":
+                  return service.upsertEntity({
+                    ...request.request,
+                    preparedAsset,
+                  });
+              }
+            },
+          );
+        }
+    }
+    return handleEntityRpcRequest(service, request, signal);
+  };
+}
+
 /** Dispatch one validated request against the web-owned entity service. */
 export function handleEntityRpcRequest(
   service: EntityService,
@@ -683,7 +926,18 @@ export function handleEntityRpcRequest(
 ): Promise<unknown> {
   signal?.throwIfAborted();
   const request = parseEntityRpcRequest(input);
+  if ("assetUploadId" in request && request.assetUploadId !== undefined) {
+    throw new Error(
+      "Asset uploads require an authenticated connection handler",
+    );
+  }
   switch (request.operation) {
+    case "beginAssetUpload":
+    case "appendAssetUpload":
+    case "discardAssetUpload":
+      throw new Error(
+        "Asset uploads require an authenticated connection handler",
+      );
     case "createEntity":
       return service.createEntity(request.request);
     case "createEntityFromMarkdown":
@@ -714,8 +968,12 @@ export function handleEntityRpcRequest(
       return service.getEntity(request.request);
     case "getEntityRaw":
       return service.getEntityRaw(request.request);
-    case "readAsset":
-      return service.readAsset(request.ref);
+    case "readAssetChunk":
+      return service.readAssetChunk(
+        request.ref,
+        request.offset,
+        request.length,
+      );
     case "statAsset":
       return service.statAsset(request.ref);
     case "verifyAsset":

@@ -14,8 +14,7 @@ import {
 } from "@brains/db";
 import { AuthAccountSettingsStore } from "../../../../../shell/auth-service/src/account-settings-store";
 import { z } from "@brains/utils/zod";
-import { prepareAsset } from "@brains/assets";
-import { imageAdapter } from "@brains/image";
+import { imageAdapter, prepareImageAsset } from "@brains/image";
 import type { AccountSettingsStorageIdentity } from "@brains/plugins";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 
@@ -72,10 +71,9 @@ const imageBytes = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
   "base64",
 );
-const imageAsset = prepareAsset(imageBytes);
+const { asset: imageAsset, facts } = prepareImageAsset(imageBytes);
 const image = imageAdapter.createImageEntity({
-  assetRef: imageAsset.ref,
-  bytes: imageBytes,
+  facts,
   title: "Recovered image",
 });
 const evidencePath = "/config/rehearsal.json";

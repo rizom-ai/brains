@@ -13,9 +13,17 @@ import {
 } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
+// Metadata-only entry: importing the database factory here would load the SDK
+// in control actors that must never open a database.
+import {
+  errorSchema,
+  serializeError,
+  deserializeError,
+} from "@brains/db/error-protocol";
 import type { LocalDatabaseEndpointConfig } from "./runtime-process-role";
 
-export const LOCAL_DATABASE_PROTOCOL_VERSION = 1;
+// v2 carries bounded cause graphs; owners and clients must upgrade together.
+export const LOCAL_DATABASE_PROTOCOL_VERSION = 2;
 export const LOCAL_DATABASE_CLI_SERVICE = "cli";
 const DEFAULT_MAX_FRAME_BYTES = 16 * 1024 * 1024;
 const DEFAULT_MAX_IN_FLIGHT = 128;
@@ -30,6 +38,8 @@ export interface LocalDatabaseOperationScope {
 
 export interface LocalDatabaseRequestContext {
   readonly signal: AbortSignal;
+  /** Stable identity and lifetime of this authenticated socket, not one request. */
+  readonly connectionSignal: AbortSignal;
   readonly scope: LocalDatabaseOperationScope | undefined;
   readonly sessionId: string;
 }
@@ -83,7 +93,7 @@ type WireMessage =
       kind: "response";
       requestId: string;
       ok: false;
-      error: { name: string; message: string; code?: string | undefined };
+      error: z.output<typeof errorSchema>;
     };
 
 const operationScopeSchema: z.ZodType<LocalDatabaseOperationScope, unknown> =
@@ -129,11 +139,7 @@ const wireMessageSchema: z.ZodType<WireMessage, unknown> = z.union([
     kind: z.literal("response"),
     requestId: z.string().min(1),
     ok: z.literal(false),
-    error: z.strictObject({
-      name: z.string().min(1),
-      message: z.string(),
-      code: z.string().optional(),
-    }),
+    error: errorSchema,
   }),
 ]);
 
@@ -374,23 +380,6 @@ async function waitForRequestDrain(
   });
 }
 
-function serializeError(error: unknown): {
-  name: string;
-  message: string;
-  code?: string | undefined;
-} {
-  if (!(error instanceof Error)) {
-    return { name: "Error", message: String(error) };
-  }
-  const code =
-    "code" in error && typeof error.code === "string" ? error.code : undefined;
-  return {
-    name: error.name || "Error",
-    message: error.message,
-    ...(code !== undefined && { code }),
-  };
-}
-
 interface ServerInFlightRequest {
   readonly controller: AbortController;
   readonly completion: Promise<void>;
@@ -398,6 +387,7 @@ interface ServerInFlightRequest {
 
 interface ServerConnection {
   readonly socket: Socket;
+  readonly lifetime: AbortController;
   readonly decoder: LocalDatabaseFrameDecoder;
   readonly inFlight: Map<string, ServerInFlightRequest>;
   authenticated: boolean;
@@ -471,6 +461,7 @@ export class LocalDatabaseRpcServer {
     }
     const connection: ServerConnection = {
       socket,
+      lifetime: new AbortController(),
       decoder: new LocalDatabaseFrameDecoder(this.maxFrameBytes),
       inFlight: new Map(),
       authenticated: false,
@@ -591,6 +582,7 @@ export class LocalDatabaseRpcServer {
       }
       const value = await handler(message.payload, {
         signal: controller.signal,
+        connectionSignal: connection.lifetime.signal,
         scope: message.scope,
         sessionId: connection.sessionId ?? "",
       });
@@ -660,11 +652,12 @@ export class LocalDatabaseRpcServer {
             kind: "response",
             requestId: message.requestId,
             ok: false,
-            error: {
-              name: "LocalDatabaseProtocolError",
-              message: "Local database response could not be encoded",
-              code: "LOCAL_DATABASE_RESPONSE_ENCODING",
-            },
+            error: serializeError(
+              new LocalDatabaseProtocolError(
+                "Local database response could not be encoded",
+                "LOCAL_DATABASE_RESPONSE_ENCODING",
+              ),
+            ),
           },
           this.maxFrameBytes,
         );
@@ -678,6 +671,7 @@ export class LocalDatabaseRpcServer {
   }
 
   private releaseConnection(connection: ServerConnection): void {
+    connection.lifetime.abort(new Error("Local database client disconnected"));
     if (connection.handshakeTimer) clearTimeout(connection.handshakeTimer);
     for (const request of connection.inFlight.values()) {
       request.controller.abort(new Error("Local database client disconnected"));
@@ -711,6 +705,7 @@ export class LocalDatabaseRpcServer {
       }
     }
     for (const connection of connections) {
+      connection.lifetime.abort(new Error("Local database owner is closing"));
       for (const request of connection.inFlight.values()) {
         request.controller.abort(new Error("Local database owner is closing"));
       }
@@ -898,12 +893,7 @@ export class LocalDatabaseRpcClient {
       pending.resolve(message.value);
       return;
     }
-    const error = new Error(message.error.message);
-    error.name = message.error.name;
-    if (message.error.code) {
-      Object.defineProperty(error, "code", { value: message.error.code });
-    }
-    pending.reject(error);
+    pending.reject(deserializeError(message.error));
   }
 
   public async request(

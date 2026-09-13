@@ -1052,6 +1052,12 @@ export interface EntityServiceClient extends ICoreEntityService {
 }
 
 export interface EntityService extends EntityServiceClient {
+  /** Internal bounded read used by the owner RPC boundary. */
+  readAssetChunk(
+    ref: AssetRef,
+    offset: number,
+    length: number,
+  ): Promise<Uint8Array>;
   // Scheduler-owned projection coordination
   // Stays the interface, not the concrete store: the worker's facade returns
   // RemoteProjectionStore over the owner's endpoint.

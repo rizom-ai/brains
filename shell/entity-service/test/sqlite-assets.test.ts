@@ -1,14 +1,21 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { Client } from "@libsql/client";
+import assert from "node:assert/strict";
+import { sql } from "drizzle-orm";
+import { assets } from "../src/schema/assets";
 import { closeSqliteClient, createSqliteDatabase } from "@brains/db";
-import { prepareAsset, type PreparedAsset } from "@brains/assets";
+import {
+  MAX_ASSET_BYTES,
+  prepareAsset,
+  type PreparedAsset,
+} from "@brains/assets";
 import { createTestEntity } from "@brains/test-utils";
 import { fileURLToPath } from "node:url";
 import {
   setupEntityService,
   type EntityServiceTestContext,
 } from "./helpers/setup-entity-service";
-import type { BaseEntity } from "../src";
+import type { BaseEntity, OwnedAssetPublication } from "../src";
 import { minimalTestAdapter, minimalTestSchema } from "./helpers/test-schemas";
 
 describe("SQLite durable assets", () => {
@@ -44,12 +51,196 @@ describe("SQLite durable assets", () => {
     });
   }
 
-  async function tableCount(table: "assets" | "entities"): Promise<number> {
+  async function tableCount(
+    table:
+      "assets" | "entities" | "entity_export_intents" | "entity_job_outbox",
+  ): Promise<number> {
     const result = await client.execute(
       `SELECT count(*) AS count FROM ${table}`,
     );
     return Number(result.rows[0]?.["count"] ?? 0);
   }
+
+  // Database-local zero generation isolates the real entity transaction binding.
+  // The file producer/worker-backed adapter is validated separately.
+  function zeroPublication(size: number): {
+    asset: PreparedAsset;
+    publication: OwnedAssetPublication;
+  } {
+    const asset = prepareAsset(new Uint8Array(size));
+    const publication: OwnedAssetPublication = {
+      record: { ref: asset.ref, digest: asset.digest, sizeBytes: size },
+      run: <T>(operation: () => Promise<T>): Promise<T> => operation(),
+      bind: async (transaction, createdAt): Promise<void> => {
+        await transaction.insert(assets).values({
+          digest: asset.digest,
+          bytes: sql`zeroblob(${size})`,
+          sizeBytes: size,
+          created: createdAt,
+        });
+      },
+    };
+    return { asset, publication };
+  }
+
+  test("owner publications bind inside real create, update and upsert mutations and cannot be replayed", async () => {
+    const first = zeroPublication(1);
+    await ctx.entityService.createEntityWithPublication(first.publication, {
+      entity: entityForAsset("owned", first.asset),
+    });
+    await assert.rejects(
+      ctx.entityService.createEntityWithPublication(first.publication, {
+        entity: entityForAsset("replay", first.asset),
+      }),
+      /already consumed/,
+    );
+    const second = zeroPublication(2);
+    await ctx.entityService.updateEntityWithPublication(second.publication, {
+      entity: entityForAsset("owned", second.asset),
+    });
+    const third = zeroPublication(3);
+    const inserted = await ctx.entityService.upsertEntityWithPublication(
+      third.publication,
+      { entity: entityForAsset("upsert-owned", third.asset) },
+    );
+    assert.equal(inserted.created, true);
+    const fourth = zeroPublication(4);
+    const updated = await ctx.entityService.upsertEntityWithPublication(
+      fourth.publication,
+      { entity: entityForAsset("upsert-owned", fourth.asset) },
+    );
+    assert.equal(updated.created, false);
+    assert.equal(await tableCount("assets"), 4);
+    assert.equal(await tableCount("entities"), 2);
+    assert.equal(
+      (await ctx.entityService.verifyAsset(fourth.asset.ref)).valid,
+      true,
+    );
+  });
+
+  test("a late projection journal failure rolls back the publication and entity together", async () => {
+    const { asset, publication } = zeroPublication(1);
+    await client.execute("DROP TABLE projection_dirty_inputs");
+    await assert.rejects(
+      ctx.entityService.createEntityWithPublication(publication, {
+        entity: entityForAsset("late-failure", asset),
+      }),
+    );
+    assert.equal(await tableCount("assets"), 0);
+    assert.equal(await tableCount("entities"), 0);
+    assert.equal(await tableCount("entity_export_intents"), 0);
+    assert.equal(await tableCount("entity_job_outbox"), 0);
+    await assert.rejects(
+      ctx.entityService.createEntityWithPublication(publication, {
+        entity: entityForAsset("retry", asset),
+      }),
+      /already consumed/,
+    );
+  });
+
+  test("snapshots publication metadata before entering an asynchronous owner lifetime", async () => {
+    const first = zeroPublication(1);
+    const other = zeroPublication(2);
+    const mutable = { ...first.publication.record };
+    const publication: OwnedAssetPublication = {
+      ...first.publication,
+      record: mutable,
+      run: <T>(operation: () => Promise<T>): Promise<T> => {
+        Object.assign(mutable, other.publication.record);
+        return operation();
+      },
+    };
+    await ctx.entityService.createEntityWithPublication(publication, {
+      entity: entityForAsset("snapshot", first.asset),
+    });
+    expect((await ctx.entityService.verifyAsset(first.asset.ref)).valid).toBe(
+      true,
+    );
+    expect(await ctx.entityService.statAsset(other.asset.ref)).toBeNull();
+  });
+
+  test("does not publish an entity if its owner binding fails to create the asset", async () => {
+    const { asset, publication } = zeroPublication(1);
+    await assert.rejects(
+      ctx.entityService.createEntityWithPublication(
+        { ...publication, bind: async () => {} },
+        { entity: entityForAsset("unbound", asset) },
+      ),
+      /Asset not found/,
+    );
+    assert.equal(await tableCount("assets"), 0);
+    assert.equal(await tableCount("entities"), 0);
+  });
+
+  test("rejects publication metadata mismatches inside the transaction", async () => {
+    const { asset, publication } = zeroPublication(1);
+    await assert.rejects(
+      ctx.entityService.createEntityWithPublication(
+        {
+          ...publication,
+          bind: async (transaction, createdAt): Promise<void> => {
+            await transaction.insert(assets).values({
+              digest: asset.digest,
+              bytes: sql`zeroblob(2)`,
+              sizeBytes: 2,
+              created: createdAt,
+            });
+          },
+        },
+        { entity: entityForAsset("wrong-size", asset) },
+      ),
+      /storage type or size/,
+    );
+    assert.equal(await tableCount("assets"), 0);
+    assert.equal(await tableCount("entities"), 0);
+  });
+
+  test("preserves admission and owner retirement failures without allocating an oversized payload", async () => {
+    const { asset, publication } = zeroPublication(1);
+    const cleanup = new Error("owner retirement uncertain");
+    await assert.rejects(
+      ctx.entityService.createEntityWithPublication(
+        {
+          ...publication,
+          record: { ...publication.record, sizeBytes: MAX_ASSET_BYTES + 1 },
+          run: () => Promise.reject(cleanup),
+        },
+        { entity: entityForAsset("oversized", asset) },
+      ),
+      (error: unknown) => {
+        assert.ok(error instanceof AggregateError);
+        const primary: unknown = error.errors[0];
+        assert.ok(primary instanceof Error);
+        assert.match(primary.message, /exceeds repository capacity/);
+        assert.equal(error.errors[1], cleanup);
+        assert.equal(error.cause, cleanup);
+        return true;
+      },
+    );
+    assert.equal(await tableCount("assets"), 0);
+    assert.equal(await tableCount("entities"), 0);
+  });
+
+  test("the publication path refuses mixed buffers and mismatched references without falling back", async () => {
+    const first = zeroPublication(1);
+    const request = {
+      entity: entityForAsset("mixed", first.asset),
+      preparedAsset: first.asset,
+    };
+    await assert.rejects(
+      ctx.entityService.createEntityWithPublication(first.publication, request),
+      /cannot be mixed/,
+    );
+    const second = zeroPublication(2);
+    await assert.rejects(
+      ctx.entityService.createEntityWithPublication(second.publication, {
+        entity: entityForAsset("mismatched", first.asset),
+      }),
+      /does not match/,
+    );
+    assert.equal(await tableCount("assets"), 0);
+    assert.equal(await tableCount("entities"), 0);
+  });
 
   test("commits bytes and their entity reference atomically", async () => {
     const source = Uint8Array.from([0, 1, 2, 3, 255]);

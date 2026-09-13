@@ -2,6 +2,7 @@ import type { AssetRef, AssetStat, AssetVerification } from "@brains/assets";
 import { SHELL_CHANNELS } from "@brains/contracts";
 import type { Client } from "@libsql/client";
 import { applySqlitePragmas, closeSqliteClient } from "@brains/db";
+import type { BinaryPersistence } from "@brains/db/binary-publication";
 import { createEntityDatabase, normalizeSearchText, type EntityDB } from "./db";
 import type {
   EntityDbConfig,
@@ -58,7 +59,10 @@ import { EntityMutations } from "./entity-mutations";
 import { EntityJobOutbox } from "./entity-job-outbox";
 import { ProjectionStore } from "./projection-store";
 import { EntityExportStore } from "./entity-export-store";
-import { SqliteAssetRepository } from "./sqlite-asset-repository";
+import {
+  SqliteAssetRepository,
+  type OwnedAssetPublication,
+} from "./sqlite-asset-repository";
 import { ContentResolver, shouldResolveContent } from "./lib/content-resolver";
 import { Cause, Effect, Exit } from "@brains/utils/effect";
 import { makeIndexReadinessPollingEffect } from "./index-readiness";
@@ -119,6 +123,12 @@ export class EntityService implements IEntityService {
   private embeddingHandlerRegistered = false;
   private indexReady = false;
   private closePromise: Promise<void> | null = null;
+  private readonly binaryPersistence: BinaryPersistence | undefined;
+
+  /** Owner-only infrastructure; never exposed through the worker entity facade. */
+  public getBinaryPersistence(): BinaryPersistence | undefined {
+    return this.binaryPersistence;
+  }
 
   /** Begin closing without changing the existing synchronous service contract. */
   public close(): void {
@@ -134,8 +144,7 @@ export class EntityService implements IEntityService {
   }
 
   private async closeOwnedResources(): Promise<void> {
-    let firstError: unknown;
-    let failed = false;
+    const errors: unknown[] = [];
     this.jobOutbox.abandon();
     try {
       if (this.embeddingHandlerRegistered) {
@@ -143,16 +152,26 @@ export class EntityService implements IEntityService {
         this.embeddingHandlerRegistered = false;
       }
     } catch (error) {
-      firstError = error;
-      failed = true;
+      errors.push(error);
+    }
+    // Retire ingress/claims before closing their native database owner.
+    try {
+      await this.binaryPersistence?.close();
+    } catch (error) {
+      errors.push(error);
     }
     try {
       await closeSqliteClient(this.dbClient);
     } catch (error) {
-      if (!failed) firstError = error;
-      failed = true;
+      errors.push(error);
     }
-    if (failed) throw firstError;
+    if (errors.length === 1) throw errors[0];
+    if (errors.length > 1)
+      throw new AggregateError(
+        errors,
+        "Entity storage and binary owner cleanup failed",
+        { cause: errors[0] },
+      );
   }
 
   public static createFresh(options: EntityServiceOptions): EntityService {
@@ -160,7 +179,8 @@ export class EntityService implements IEntityService {
   }
 
   private constructor(options: EntityServiceOptions) {
-    const { db, client, url } = createEntityDatabase(options.dbConfig);
+    const { db, client, url, binary } = createEntityDatabase(options.dbConfig);
+    this.binaryPersistence = binary;
     this.db = db;
     this.dbClient = client;
     this.dbUrl = url;
@@ -496,6 +516,40 @@ export class EntityService implements IEntityService {
 
   // ── Mutations ─────────────────────────────────────────────────────
 
+  /** Owner-only handoff from a consumed upload capability; not an RPC DTO. */
+  public createEntityWithPublication<T extends BaseEntity>(
+    publication: OwnedAssetPublication,
+    request: Omit<CreateEntityRequest<T>, "preparedAsset">,
+  ): Promise<EntityMutationResult> {
+    return this.assetRepository.withPublication(
+      publication,
+      () => this.entityMutations.createEntity(request),
+      () => this.initialize(),
+    );
+  }
+
+  public updateEntityWithPublication<T extends BaseEntity>(
+    publication: OwnedAssetPublication,
+    request: Omit<UpdateEntityRequest<T>, "preparedAsset">,
+  ): Promise<EntityMutationResult> {
+    return this.assetRepository.withPublication(
+      publication,
+      () => this.entityMutations.updateEntity(request),
+      () => this.initialize(),
+    );
+  }
+
+  public upsertEntityWithPublication<T extends BaseEntity>(
+    publication: OwnedAssetPublication,
+    request: Omit<UpsertEntityRequest<T>, "preparedAsset">,
+  ): Promise<EntityMutationResult & { created: boolean }> {
+    return this.assetRepository.withPublication(
+      publication,
+      () => this.entityMutations.upsertEntity(request),
+      () => this.initialize(),
+    );
+  }
+
   public async createEntity<T extends BaseEntity>(
     request: CreateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
@@ -645,6 +699,15 @@ export class EntityService implements IEntityService {
   public async readAsset(ref: AssetRef): Promise<Uint8Array> {
     await this.initialize();
     return this.assetRepository.read(ref);
+  }
+
+  public async readAssetChunk(
+    ref: AssetRef,
+    offset: number,
+    length: number,
+  ): Promise<Uint8Array> {
+    await this.initialize();
+    return this.assetRepository.readChunk(ref, offset, length);
   }
 
   public async statAsset(ref: AssetRef): Promise<AssetStat | null> {

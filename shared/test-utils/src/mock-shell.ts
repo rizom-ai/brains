@@ -739,6 +739,11 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       if (!bytes) throw new Error(`Asset not found: ${ref}`);
       return Uint8Array.from(bytes);
     },
+    readAssetChunk: async (ref, offset, length): Promise<Uint8Array> => {
+      const bytes = assets.get(ref);
+      if (!bytes) throw new Error(`Asset not found: ${ref}`);
+      return Uint8Array.from(bytes.subarray(offset, offset + length));
+    },
     statAsset: async (ref): Promise<AssetStat | null> => {
       const bytes = assets.get(ref);
       return bytes ? { ref, sizeBytes: bytes.byteLength } : null;

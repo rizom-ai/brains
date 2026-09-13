@@ -1,6 +1,11 @@
 import { z } from "@brains/utils/zod";
 import { prepareAsset } from "@brains/assets";
-import { imageAdapter, imageSchema, resolveImageBytes } from "@brains/image";
+import {
+  imageAdapter,
+  imageSchema,
+  resolveImageBytes,
+  prepareImageAsset,
+} from "@brains/image";
 import { afterEach, describe, expect, it } from "bun:test";
 import defaultSite from "@brains/site-default";
 import {
@@ -496,14 +501,15 @@ describe("canonical durable job execution boundary", () => {
     ).toBeNull();
 
     // The worker must persist and read image bytes through the owner endpoint.
-    const bytes = Buffer.from(
+    const png = Buffer.from(
       "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
       "base64",
     );
-    const asset = prepareAsset(bytes);
+    const bytes = Buffer.alloc(2 * 1024 * 1024 + 7);
+    png.copy(bytes);
+    const { asset, facts } = prepareImageAsset(bytes);
     const image = imageAdapter.createImageEntity({
-      assetRef: asset.ref,
-      bytes,
+      facts,
       title: "Remote image",
     });
     await workerEntities.createEntity({

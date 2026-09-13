@@ -27,6 +27,10 @@ export {
   ENTITY_RPC_SERVICE,
   EntityRpcRequestSchema,
   handleEntityRpcRequest,
+  createEntityRpcHandler,
+  createEntityPublicationRpcHandler,
+  type EntityPublicationConsumer,
+  type EntityPublicationRpcRequest,
   parseEntityRpcCall,
   parseEntityRpcRequest,
   parseEntityRpcResult,
@@ -75,9 +79,17 @@ export {
   type ProjectionJsonValue,
   type ProjectionWriteIntent,
 } from "./projection-contracts";
+export { createOwnedAssetPublication } from "./binary-asset-publication";
+export {
+  createEntityBinaryRpcHandlers,
+  ENTITY_BINARY_CONTROL_SERVICE,
+  ENTITY_PUBLICATION_SERVICE,
+  type EntityBinaryRpcHandlers,
+} from "./entity-binary-rpc";
 export {
   AssetIntegrityError,
   AssetNotFoundError,
+  type OwnedAssetPublication,
 } from "./sqlite-asset-repository";
 export {
   ProjectionBatchFencedError,

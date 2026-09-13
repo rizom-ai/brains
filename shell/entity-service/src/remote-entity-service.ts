@@ -1,6 +1,19 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import { randomUUID } from "node:crypto";
 import { SHELL_CHANNELS } from "@brains/contracts";
-import type { AssetRef, AssetStat, AssetVerification } from "@brains/assets";
+import {
+  MAX_ASSET_BYTES,
+  assertPreparedAsset,
+  computeAssetDigest,
+  getAssetDigest,
+  type AssetRef,
+  type AssetStat,
+  type AssetVerification,
+} from "@brains/assets";
+import {
+  ASSET_RPC_CHUNK_BYTES,
+  assetChunkRangeSchema,
+} from "./asset-transfers";
 import type { IJobQueueService } from "@brains/job-queue";
 import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import type { IEmbeddingService } from "./embedding-types";
@@ -82,6 +95,7 @@ export class RemoteEntityService implements EntityService {
   private closeRequested = false;
   private embeddingHandlerRegistered = false;
   private indexReady = false;
+  private transferBytes = 0;
 
   public constructor(options: RemoteEntityServiceOptions) {
     this.transport = options.transport;
@@ -148,6 +162,86 @@ export class RemoteEntityService implements EntityService {
     return parseEntityRpcResult<TRequest["operation"]>(request, result);
   }
 
+  private async withTransferBudget<T>(
+    size: number,
+    body: () => Promise<T>,
+  ): Promise<T> {
+    if (
+      !Number.isSafeInteger(size) ||
+      size < 0 ||
+      size > MAX_ASSET_BYTES - this.transferBytes
+    )
+      throw new Error("Asset transfer capacity exceeded");
+    this.transferBytes += size;
+    try {
+      return await body();
+    } finally {
+      this.transferBytes -= size;
+    }
+  }
+
+  private async requestMutation<
+    TRequest extends Extract<
+      EntityRpcRequest,
+      { operation: "createEntity" | "updateEntity" | "upsertEntity" }
+    >,
+  >(request: TRequest): Promise<EntityRpcResults[TRequest["operation"]]> {
+    const asset = request.request.preparedAsset;
+    if (!asset || asset.bytes.byteLength <= ASSET_RPC_CHUNK_BYTES)
+      return this.requestRemote(request);
+    return this.withTransferBudget(asset.bytes.byteLength, async () => {
+      assertPreparedAsset(asset);
+      // Know the ID before admission so a failed/lost acknowledgement can be discarded.
+      const uploadId = randomUUID();
+      try {
+        await this.requestRemote({
+          operation: "beginAssetUpload",
+          uploadId,
+          asset: {
+            ref: asset.ref,
+            digest: asset.digest,
+            sizeBytes: asset.sizeBytes,
+          },
+        });
+        for (
+          let offset = 0;
+          offset < asset.bytes.byteLength;
+          offset += ASSET_RPC_CHUNK_BYTES
+        ) {
+          await this.requestRemote({
+            operation: "appendAssetUpload",
+            uploadId,
+            offset,
+            bytes: asset.bytes.subarray(offset, offset + ASSET_RPC_CHUNK_BYTES),
+          });
+        }
+        const mutation = {
+          ...request,
+          request: { ...request.request },
+          assetUploadId: uploadId,
+        };
+        delete mutation.request.preparedAsset;
+        return await this.requestRemote(mutation);
+      } catch (error) {
+        if (!this.closeRequested) {
+          try {
+            await this.requestRemote({
+              operation: "discardAssetUpload",
+              uploadId,
+            });
+          } catch (cleanupError) {
+            throw new AggregateError(
+              [error, cleanupError],
+              "Asset transfer failed; remote cleanup could not be confirmed",
+              { cause: cleanupError },
+            );
+          }
+        }
+        throw error;
+      }
+    });
+  }
+
   public getProjectionStore(): RemoteProjectionStore {
     return this.projectionStore;
   }
@@ -160,7 +254,7 @@ export class RemoteEntityService implements EntityService {
   public createEntity<T extends BaseEntity>(
     request: CreateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
-    return this.requestRemote({
+    return this.requestMutation({
       operation: "createEntity",
       request,
     });
@@ -178,7 +272,7 @@ export class RemoteEntityService implements EntityService {
   public updateEntity<T extends BaseEntity>(
     request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
-    return this.requestRemote({
+    return this.requestMutation({
       operation: "updateEntity",
       request,
     });
@@ -191,7 +285,7 @@ export class RemoteEntityService implements EntityService {
   public upsertEntity<T extends BaseEntity>(
     request: UpsertEntityRequest<T>,
   ): Promise<EntityMutationResult & { created: boolean }> {
-    return this.requestRemote({
+    return this.requestMutation({
       operation: "upsertEntity",
       request,
     });
@@ -322,8 +416,44 @@ export class RemoteEntityService implements EntityService {
     return schema ? entities.map((entity) => schema.parse(entity)) : entities;
   }
 
-  public readAsset(ref: AssetRef): Promise<Uint8Array> {
-    return this.requestRemote({ operation: "readAsset", ref });
+  public async readAsset(ref: AssetRef): Promise<Uint8Array> {
+    const stat = await this.statAsset(ref);
+    if (!stat) throw new Error(`Asset not found: ${ref}`);
+    if (stat.ref !== ref) throw new Error("Asset response reference mismatch");
+    return this.withTransferBudget(stat.sizeBytes, async () => {
+      const bytes = new Uint8Array(stat.sizeBytes);
+      for (
+        let offset = 0;
+        offset < bytes.byteLength;
+        offset += ASSET_RPC_CHUNK_BYTES
+      ) {
+        const length = Math.min(
+          ASSET_RPC_CHUNK_BYTES,
+          bytes.byteLength - offset,
+        );
+        const chunk = await this.readAssetChunk(ref, offset, length);
+        if (chunk.byteLength !== length)
+          throw new Error("Incomplete asset read chunk");
+        bytes.set(chunk, offset);
+      }
+      if (computeAssetDigest(bytes) !== getAssetDigest(ref))
+        throw new Error("Asset read digest mismatch");
+      return bytes;
+    });
+  }
+
+  public readAssetChunk(
+    ref: AssetRef,
+    offset: number,
+    length: number,
+  ): Promise<Uint8Array> {
+    assetChunkRangeSchema.parse({ offset, length });
+    return this.requestRemote({
+      operation: "readAssetChunk",
+      ref,
+      offset,
+      length,
+    });
   }
 
   public statAsset(ref: AssetRef): Promise<AssetStat | null> {

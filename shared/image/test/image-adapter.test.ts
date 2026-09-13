@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { createAssetRef, prepareAsset } from "@brains/assets";
+import { createAssetRef, MAX_ASSET_BYTES } from "@brains/assets";
+import { prepareImageAsset } from "../src/lib/prepare-image-asset";
 import { imageAdapter } from "../src/adapters/image-adapter";
 import type { Image } from "../src/schemas/image";
 
@@ -8,7 +9,8 @@ const TINY_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 const TINY_PNG_DATA_URL = `data:image/png;base64,${TINY_PNG_BASE64}`;
 const TINY_PNG_BYTES = Buffer.from(TINY_PNG_BASE64, "base64");
-const ASSET_REF = prepareAsset(TINY_PNG_BYTES).ref;
+const IMAGE_FACTS = prepareImageAsset(TINY_PNG_BYTES).facts;
+const ASSET_REF = IMAGE_FACTS.ref;
 
 const mockImageEntity: Image = {
   id: "img-123",
@@ -111,11 +113,9 @@ describe("ImageAdapter", () => {
   });
 
   describe("createImageEntity", () => {
-    it("should create a valid asset-backed image entity from bytes", () => {
+    it("should create a valid asset-backed image entity from inspected metadata", () => {
       const result = imageAdapter.createImageEntity({
-        assetRef: ASSET_REF,
-        bytes: TINY_PNG_BYTES,
-        declaredMediaType: "image/png",
+        facts: IMAGE_FACTS,
         title: "My Image",
         alt: "Description of my image",
       });
@@ -131,24 +131,57 @@ describe("ImageAdapter", () => {
       expect(result.metadata.height).toBe(1);
     });
 
-    it("should reject a reference that does not match the bytes", () => {
+    it("should reject a reference that does not match the inspected digest", () => {
       expect(() =>
         imageAdapter.createImageEntity({
-          assetRef: createAssetRef("0".repeat(64)),
-          bytes: TINY_PNG_BYTES,
+          facts: { ...IMAGE_FACTS, ref: createAssetRef("0".repeat(64)) },
           title: "Mismatched",
         }),
-      ).toThrow("Image asset reference does not match its bytes");
+      ).toThrow("Asset reference and digest must match");
     });
 
     it("should default alt to title if not provided", () => {
       const result = imageAdapter.createImageEntity({
-        assetRef: ASSET_REF,
-        bytes: TINY_PNG_BYTES,
+        facts: IMAGE_FACTS,
         title: "My Image",
       });
 
       expect(result.metadata.alt).toBe("My Image");
+    });
+
+    it("constructs without touching a byte backing", () => {
+      let touched = false;
+      const input = {
+        facts: IMAGE_FACTS,
+        title: "Metadata only",
+        get bytes(): Uint8Array {
+          touched = true;
+          throw new Error("Unexpected byte access");
+        },
+      };
+      expect(imageAdapter.createImageEntity(input).content).toBe(ASSET_REF);
+      expect(touched).toBe(false);
+    });
+
+    it("rejects inconsistent formats, dimensions and oversized metadata without allocating payloads", () => {
+      expect(() =>
+        imageAdapter.createImageEntity({
+          facts: { ...IMAGE_FACTS, mediaType: "image/jpeg" },
+          title: "Bad MIME",
+        }),
+      ).toThrow("format and media type");
+      expect(() =>
+        imageAdapter.createImageEntity({
+          facts: { ...IMAGE_FACTS, width: 0 },
+          title: "Bad dimensions",
+        }),
+      ).toThrow();
+      expect(() =>
+        imageAdapter.createImageEntity({
+          facts: { ...IMAGE_FACTS, sizeBytes: MAX_ASSET_BYTES + 1 },
+          title: "Too big",
+        }),
+      ).toThrow();
     });
 
     it("should create pending images without persisted fake bytes", () => {

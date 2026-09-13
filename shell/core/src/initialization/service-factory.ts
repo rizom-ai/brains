@@ -1,4 +1,5 @@
 import { AIService, OnlineEmbeddingProvider } from "@brains/ai-service";
+import { registerAuthWorkerBridge } from "../auth-worker-bridge";
 import { ContentService as ContentServiceClass } from "@brains/content-service";
 import {
   CONVERSATION_RPC_SERVICE,
@@ -13,9 +14,13 @@ import {
   InMemoryDataSourceRegistry,
   ENTITY_RPC_SERVICE,
   EntityRegistry,
+  EntityService as EntityServiceClass,
+  createEntityBinaryRpcHandlers,
+  ENTITY_BINARY_CONTROL_SERVICE,
+  ENTITY_PUBLICATION_SERVICE,
   PROJECTION_STORE_RPC_SERVICE,
   ProjectionStore,
-  handleEntityRpcRequest,
+  createEntityRpcHandler,
   handleProjectionStoreRpcRequest,
   parseEntityRpcCall,
   type EntityRpcTransport,
@@ -171,11 +176,16 @@ export function createShellServices(options: {
     createRemoteTransport(PROJECTION_STORE_RPC_SERVICE);
   const registerOwnerHandler = (
     service: string,
-    handler: (payload: unknown, signal: AbortSignal) => Promise<unknown>,
+    handler: (
+      payload: unknown,
+      signal: AbortSignal,
+      connectionSignal: AbortSignal,
+    ) => Promise<unknown>,
   ): void => {
     if (!localDatabaseServer) return;
     localDatabaseServer.register(service, (payload, context) => {
-      const invoke = (): Promise<unknown> => handler(payload, context.signal);
+      const invoke = (): Promise<unknown> =>
+        handler(payload, context.signal, context.connectionSignal);
       return context.scope
         ? operationContext.run(
             context.scope.provenance,
@@ -201,6 +211,13 @@ export function createShellServices(options: {
   const messageBus =
     dependencies?.messageBus ??
     MessageBus.createFresh(logger, operationContext);
+  disposables.push(
+    registerAuthWorkerBridge({
+      messageBus,
+      client: localDatabaseClient,
+      registerOwnerHandler,
+    }),
+  );
   const templateRegistry =
     dependencies?.templateRegistry ??
     InMemoryTemplateRegistry.createFresh(logger);
@@ -398,21 +415,33 @@ export function createShellServices(options: {
     }),
   );
   const entityService = Context.get(entityContext, EntityServiceTag);
-  registerOwnerHandler(ENTITY_RPC_SERVICE, (payload, signal) => {
-    // A worker running a bulk mutation sends its batch scope with each call;
-    // re-entering it here keeps those writes fenced against the batch.
-    const call = parseEntityRpcCall(payload);
-    const dispatch = (): Promise<unknown> =>
-      handleEntityRpcRequest(entityService, call.request, signal);
-    if (!call.batchScope) return dispatch();
-    const projectionStore = entityService.getProjectionStore();
-    if (!(projectionStore instanceof ProjectionStore)) {
-      throw new Error(
-        "Batch-scoped entity calls require the owner's local projection store",
-      );
+  if (entityService instanceof EntityServiceClass) {
+    const binary = entityService.getBinaryPersistence();
+    if (binary) {
+      const handlers = createEntityBinaryRpcHandlers(entityService, binary);
+      registerOwnerHandler(ENTITY_BINARY_CONTROL_SERVICE, handlers.control);
+      registerOwnerHandler(ENTITY_PUBLICATION_SERVICE, handlers.publication);
     }
-    return projectionStore.runInBatchScope(call.batchScope, dispatch);
-  });
+  }
+  const handleEntityRequest = createEntityRpcHandler(entityService);
+  registerOwnerHandler(
+    ENTITY_RPC_SERVICE,
+    (payload, signal, connectionSignal) => {
+      // A worker running a bulk mutation sends its batch scope with each call;
+      // re-entering it here keeps those writes fenced against the batch.
+      const call = parseEntityRpcCall(payload);
+      const dispatch = (): Promise<unknown> =>
+        handleEntityRequest(call.request, signal, connectionSignal);
+      if (!call.batchScope) return dispatch();
+      const projectionStore = entityService.getProjectionStore();
+      if (!(projectionStore instanceof ProjectionStore)) {
+        throw new Error(
+          "Batch-scoped entity calls require the owner's local projection store",
+        );
+      }
+      return projectionStore.runInBatchScope(call.batchScope, dispatch);
+    },
+  );
   registerOwnerHandler(PROJECTION_STORE_RPC_SERVICE, (payload, signal) =>
     handleProjectionStoreRpcRequest(
       entityService.getProjectionStore(),

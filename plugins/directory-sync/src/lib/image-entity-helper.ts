@@ -1,7 +1,6 @@
 import type { EntityServiceClient } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import { prepareAsset } from "@brains/assets";
-import { imageAdapter, parseDataUrl } from "@brains/image";
+import { imageAdapter, parseDataUrl, prepareImageAsset } from "@brains/image";
 
 /** Function to fetch an image URL and return base64 data URL */
 export type ImageFetcher = (url: string) => Promise<string>;
@@ -45,11 +44,12 @@ export async function getOrCreateImageEntity(
   const dataUrl = await fetcher(sourceUrl);
 
   const parsedImage = parseDataUrl(dataUrl);
-  const preparedAsset = prepareAsset(parsedImage.bytes);
+  const { asset: preparedAsset, facts } = prepareImageAsset(
+    parsedImage.bytes,
+    parsedImage.mediaType,
+  );
   const imageData = imageAdapter.createImageEntity({
-    assetRef: preparedAsset.ref,
-    bytes: parsedImage.bytes,
-    declaredMediaType: parsedImage.mediaType,
+    facts,
     title: params.title,
     alt: params.alt,
     sourceUrl,

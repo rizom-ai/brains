@@ -3,7 +3,7 @@ import { normalizeSearchText, type EntityDB } from "./db";
 import type {
   AssetTransaction,
   SqliteAssetRepository,
-  StagedAsset,
+  EntityAssetStage,
 } from "./sqlite-asset-repository";
 import type {
   BaseEntity,
@@ -983,10 +983,27 @@ export class EntityMutations {
     entityContent: string,
     storedContent: string,
     preparedAsset: CreateEntityRequest<BaseEntity>["preparedAsset"],
-  ): StagedAsset | undefined {
+  ): EntityAssetStage | undefined {
     const assetBacked =
       this.entityRegistry.getEntityTypeConfig(entityType).binaryStorage ===
       "asset";
+    const publication = this.assetRepository.claimPublication();
+    if (publication) {
+      if (preparedAsset)
+        throw new Error(
+          "Owner asset publications cannot be mixed with prepared bytes",
+        );
+      if (
+        !assetBacked ||
+        entityContent !== publication.ref ||
+        storedContent !== publication.ref
+      ) {
+        throw new Error(
+          "Asset publication does not match canonical asset-backed entity content",
+        );
+      }
+      return publication;
+    }
     if (!preparedAsset) return undefined;
     if (!assetBacked) {
       throw new Error(
@@ -1008,7 +1025,7 @@ export class EntityMutations {
     transaction: AssetTransaction,
     entityType: string,
     storedContent: string,
-    stagedAsset?: StagedAsset,
+    stagedAsset?: EntityAssetStage,
   ): Promise<void> {
     if (
       this.entityRegistry.getEntityTypeConfig(entityType).binaryStorage !==
