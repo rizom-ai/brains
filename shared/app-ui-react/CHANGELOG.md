@@ -1,5 +1,11 @@
 # @brains/app-ui-react
 
+## 0.2.0-alpha.374
+
+### Patch Changes
+
+- [#245](https://github.com/rizom-ai/brains/pull/245) [`1469e09`](https://github.com/rizom-ai/brains/commit/1469e09de8c3f63fe91b5c534bd3b86e19e427fe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Empty the Chat composer when the message enters the transcript rather than when the server answers, and restore the draft if the send is refused. Give the library collection and the Chat session index one search field: live, debounced, with its own glyph and clear control instead of a label line and a submit button. Filters move into a panel that does not push the collection down, a filtered collection says how many entries matched, and the session index drops its duplicate labels and its always-present pager.
+
 ## 0.2.0-alpha.373
 
 ## 0.2.0-alpha.372
