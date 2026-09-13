@@ -1,5 +1,12 @@
 # @brains/console-theme
 
+## 0.2.0-alpha.371
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/theme-base@0.2.0-alpha.371
+
 ## 0.2.0-alpha.370
 
 ### Patch Changes

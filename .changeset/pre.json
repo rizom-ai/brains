@@ -429,6 +429,7 @@
     "core--studio-quiet-screens",
     "core--studio-system-navigation",
     "core--studio-three-site-image",
+    "core--studio-ux-completion",
     "core--studio-ux-recovery",
     "core--studio-workspace-refinement",
     "core--supervised-worker-split",
