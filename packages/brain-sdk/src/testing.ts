@@ -154,8 +154,11 @@ export interface BrainTestHarness {
     method: string,
     path: string,
     init?: {
+      /** JSON-encoded request body. */
       readonly body?: unknown;
       readonly headers?: Record<string, string> | undefined;
+      /** Test-only host socket metadata; never inferred from request headers. */
+      readonly transport?: { readonly remoteAddress?: string } | undefined;
     },
   ): Promise<unknown>;
   /** Run the same route pipeline and return its full, unconsumed HTTP response. */
@@ -174,7 +177,7 @@ export interface BrainTestHarness {
 
 /** How the brain a test drives is set up. */
 export interface BrainTestHarnessOptions {
-  /** The brain's domain, for a package whose routes or links depend on it. */
+  /** Hostname (optionally with a port). Relative requests use HTTPS at this host, or test.brain if omitted. */
   readonly domain?: string | undefined;
   /** The declared profile kind selected by the brain; resolved at finalization. */
   readonly profileKind?: string | undefined;
@@ -210,12 +213,13 @@ export function createBrainTestHarness(
   // one, so what each installs is kept as it is installed.
   const installedRoutes: WebRouteDefinition[] = [];
   const installedPluginIds = new Set<string>();
+  const baseUrl = `https://${options.domain ?? "test.brain"}`;
   const fetchResponse: BrainTestHarness["fetchResponse"] = async (
     method,
     path,
     init,
   ) => {
-    const url = new URL(path, "https://test.brain");
+    const url = new URL(path, baseUrl);
     const route = matchHttpRoute(
       installedRoutes.filter(
         (candidate) => (candidate.method ?? "GET") === method.toUpperCase(),
@@ -224,19 +228,19 @@ export function createBrainTestHarness(
       (candidate) => candidate,
     );
     if (!route) throw new Error(`Nothing serves ${method} ${path}`);
+    const headers = new Headers(init?.headers);
+    if (init?.body !== undefined && !headers.has("content-type")) {
+      headers.set("content-type", "application/json");
+    }
     return route.handler(
       new Request(url, {
         method,
-        headers: {
-          ...(init?.body === undefined
-            ? {}
-            : { "content-type": "application/json" }),
-          ...(init?.headers ?? {}),
-        },
+        headers,
         ...(init?.body === undefined
           ? {}
           : { body: JSON.stringify(init.body) }),
       }),
+      init?.transport,
     );
   };
   const localTemplates = (): Array<{ localName: string; template: Template }> =>

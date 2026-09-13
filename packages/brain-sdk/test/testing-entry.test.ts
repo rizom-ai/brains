@@ -5,6 +5,7 @@ import {
   defineServicePlugin,
   defineSubscription,
   defineTool,
+  type AnyInterfaceRouteDefinition,
   type AnySubscriptionDefinition,
   type EntityAccess,
   type LoggerContract,
@@ -652,6 +653,195 @@ describe("the public testing harness", () => {
     );
   });
 
+  it("merges request headers case-insensitively without duplicating Content-Type", async () => {
+    const harness = createBrainTestHarness();
+    try {
+      await harness.installPackage(
+        defineInterface(
+          { id: "request-headers", config: z.object({}) },
+          {
+            routes: () => [
+              defineRoute({
+                method: "POST",
+                path: "/headers",
+                security: { kind: "public" },
+                body: z.object({ value: z.string() }),
+                response: verbatim,
+                handle: ({ body, request }) => {
+                  const contentType = request.headers.get("content-type");
+                  return Response.json(
+                    { body, contentType },
+                    {
+                      status:
+                        contentType?.split(";")[0] === "application/json"
+                          ? 200
+                          : 415,
+                    },
+                  );
+                },
+              }),
+              defineRoute({
+                method: "GET",
+                path: "/headers",
+                security: { kind: "public" },
+                response: z.object({ contentType: z.string().nullable() }),
+                handle: ({ request }) => ({
+                  contentType: request.headers.get("content-type"),
+                }),
+              }),
+            ],
+          },
+        ),
+      );
+      await harness.finalizeRegistration();
+      expect(await harness.fetch("GET", "/headers")).toEqual({
+        contentType: null,
+      });
+      expect(
+        await harness.fetch("POST", "/headers", { body: { value: "ok" } }),
+      ).toEqual({ body: { value: "ok" }, contentType: "application/json" });
+      for (const name of ["content-type", "Content-Type", "CONTENT-TYPE"]) {
+        const response = await harness.fetchResponse("POST", "/headers", {
+          body: { value: "ok" },
+          headers: { [name]: "application/json; charset=utf-8" },
+        });
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual({
+          body: { value: "ok" },
+          contentType: "application/json; charset=utf-8",
+        });
+      }
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it.each([
+    { domain: undefined, origin: "https://test.brain" },
+    { domain: "author.example", origin: "https://author.example" },
+    { domain: "author.example:8443", origin: "https://author.example:8443" },
+    { domain: "[::1]:8443", origin: "https://[::1]:8443" },
+  ])(
+    "resolves relative requests against $origin",
+    async ({ domain, origin }) => {
+      const harness = createBrainTestHarness({ domain });
+      try {
+        await harness.installPackage(
+          defineServicePlugin(
+            { id: "request-origin", config: z.object({}) },
+            {
+              routes: () => [
+                defineRoute({
+                  method: "GET",
+                  path: "/origin",
+                  security: { kind: "public" },
+                  response: z.object({ url: z.string() }),
+                  handle: ({ request }) => ({ url: request.url }),
+                }),
+              ],
+            },
+          ),
+        );
+        await harness.finalizeRegistration();
+        expect(await harness.fetch("GET", "/origin?tag=one")).toEqual({
+          url: `${origin}/origin?tag=one`,
+        });
+        const absolute = "http://other.example:8123/origin?tag=two";
+        expect(await harness.fetch("GET", absolute)).toEqual({ url: absolute });
+      } finally {
+        await harness.reset();
+      }
+    },
+  );
+
+  it.each(["service", "interface"])(
+    "supplies explicit trusted transport to %s routes without trusting headers",
+    async (family) => {
+      const harness = createBrainTestHarness();
+      try {
+        const header = { id: "request-transport", config: z.object({}) };
+        const slots = {
+          routes: (): AnyInterfaceRouteDefinition[] => [
+            defineRoute({
+              method: "GET",
+              path: "/local",
+              security: { kind: "public" },
+              response: verbatim,
+              handle: ({ transport }) =>
+                Response.json(
+                  {
+                    address: transport?.remoteAddress ?? null,
+                    frozen:
+                      transport === undefined || Object.isFrozen(transport),
+                    keys: Object.keys(transport ?? {}),
+                  },
+                  {
+                    status:
+                      transport?.remoteAddress === "127.0.0.1" ? 200 : 403,
+                  },
+                ),
+            }),
+          ],
+        };
+        await harness.installPackage(
+          family === "service"
+            ? defineServicePlugin(header, slots)
+            : defineInterface(header, slots),
+        );
+        await harness.finalizeRegistration();
+        const headers = {
+          "X-Forwarded-For": "127.0.0.1",
+          Forwarded: "for=127.0.0.1",
+        };
+        const absent = await harness.fetchResponse("GET", "/local", {
+          headers,
+        });
+        expect(absent.status).toBe(403);
+        expect(await absent.json()).toEqual({
+          address: null,
+          frozen: true,
+          keys: [],
+        });
+        const local = await harness.fetchResponse("GET", "/local", {
+          transport: { remoteAddress: "127.0.0.1" },
+        });
+        expect(local.status).toBe(200);
+        expect(await local.json()).toEqual({
+          address: "127.0.0.1",
+          frozen: true,
+          keys: ["remoteAddress"],
+        });
+        const transport = {
+          remoteAddress: "192.0.2.1",
+          privateKey: "not-a-route-capability",
+        };
+        const pending = harness.fetchResponse("GET", "/local", {
+          headers,
+          transport,
+        });
+        transport.remoteAddress = "127.0.0.1";
+        const remote = await pending;
+        expect(remote.status).toBe(403);
+        expect(await remote.json()).toEqual({
+          address: "192.0.2.1",
+          frozen: true,
+          keys: ["remoteAddress"],
+        });
+        expect(
+          await harness.fetch("GET", "/local", {
+            transport: { remoteAddress: "127.0.0.1" },
+          }),
+        ).toEqual({
+          address: "127.0.0.1",
+          frozen: true,
+          keys: ["remoteAddress"],
+        });
+      } finally {
+        await harness.reset();
+      }
+    },
+  );
+
   it("stores canonical metadata and materializes defaults once before author reads", async () => {
     let defaults = 0;
     const entity = defineEntity({
@@ -1108,8 +1298,11 @@ describe("the public testing harness", () => {
             path: "/domain",
             method: "GET",
             security: { kind: "public" },
-            response: z.object({ domain: z.string().optional() }),
-            handle: () => state,
+            response: z.object({
+              domain: z.string().optional(),
+              url: z.string(),
+            }),
+            handle: ({ request }) => ({ ...state, url: request.url }),
           }),
         ],
       },
@@ -1119,11 +1312,13 @@ describe("the public testing harness", () => {
       await harness.installPackage(definition);
       expect(await harness.fetch("GET", "/domain")).toEqual({
         domain: "example.test",
+        url: "https://example.test/domain",
       });
       await harness.reset();
       await harness.installPackage(definition);
       expect(await harness.fetch("GET", "/domain")).toEqual({
         domain: "example.test",
+        url: "https://example.test/domain",
       });
     } finally {
       await harness.reset();
