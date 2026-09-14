@@ -40,6 +40,11 @@ export const routes: RouteDefinitionInput[] = [
         template: "professional-site:about",
         dataQuery: {},
       },
+      // Generated; renders only once site-content_generate has run.
+      {
+        id: "highlights",
+        template: "professional-site:about-highlights",
+      },
     ],
   },
   {

@@ -5,6 +5,7 @@
   "description": "Professional site composition package",
   "dependencies": {
     "@brains/blog": "workspace:*",
+    "@brains/content-formatters": "workspace:*",
     "@brains/decks": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/profile": "workspace:*",
