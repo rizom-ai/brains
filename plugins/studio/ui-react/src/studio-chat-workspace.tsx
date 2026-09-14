@@ -867,7 +867,7 @@ export function StudioChatWorkspace(
                     title="New conversation"
                     onClick={() => navigateToSession()}
                   >
-                    ＋
+                    +
                   </Button>
                   <span ref={detailsTrigger}>
                     <Button
@@ -1879,7 +1879,7 @@ function Composer(props: {
             )}
             title={CHAT_UPLOAD_GUIDANCE}
           >
-            <span aria-hidden="true">＋</span>
+            <span aria-hidden="true">+</span>
             <input
               className={chatClass(
                 "studio-chat-upload-input",
