@@ -15,6 +15,7 @@ import type {
   SharedHostAdmission,
 } from "@brains/plugins/internal/http-routes";
 import { createMockMessageBus } from "@brains/plugins/test";
+import { SitePageResponse } from "@brains/plugins";
 import {
   ServerManager,
   type ServerManagerOptions,
@@ -607,6 +608,48 @@ describe("ServerManager (in-process)", () => {
         })
       ).status,
     ).toBe(404);
+  });
+
+  it("uses site-owned presentation only after explicit handler admission", async () => {
+    let response: Response = new SitePageResponse("standalone", {
+      headers: { "Cache-Control": "no-store" },
+    });
+    const m = setup({
+      preview: true,
+      getRoutes: () => [
+        handlerRoute("chat", "/ask", () => response, { preview: true }),
+      ],
+    });
+    for (const surface of ["production", "preview"]) {
+      mkdirSync(join(testDir, "dist", surface, "ask"));
+      writeFileSync(
+        join(testDir, "dist", surface, "ask", "index.html"),
+        `${surface} site chrome`,
+      );
+    }
+    await m.start();
+    const url = m.getStatus().productionUrl;
+    if (!url) throw new Error("Missing server URL");
+    const get = (): Promise<Response> =>
+      fetch(`${url}/ask`, {
+        headers: { host: "preview.example.com" },
+        redirect: "manual",
+      });
+    const result = await get();
+    expect(await result.text()).toBe("preview site chrome");
+    expect(result.headers.get("Cache-Control")).toBe("no-store");
+    response = new Response("Authenticated UI");
+    expect(await (await get()).text()).toBe("Authenticated UI");
+    response = new SitePageResponse("Denied", { status: 403 });
+    expect((await get()).status).toBe(403);
+    response = new Response(null, {
+      status: 302,
+      headers: { Location: "/login" },
+    });
+    expect((await get()).status).toBe(302);
+    response = new SitePageResponse("standalone");
+    rmSync(join(testDir, "dist", "preview", "ask"), { recursive: true });
+    expect(await (await get()).text()).toBe("standalone");
   });
 
   it("should serve plugin-contributed web routes when configured", async () => {

@@ -58,11 +58,15 @@ export function GuestApp({
   box,
   initialDraft = "",
   initialSubmit = false,
+  name = "the Brain",
+  siteLabel = "Brain",
 }: {
   client?: ChatClient;
   box?: GuestBoxCopy;
   initialDraft?: string;
   initialSubmit?: boolean;
+  name?: string;
+  siteLabel?: string;
 }): ReactElement {
   const [client] = useState(() => suppliedClient ?? createWebChatClient());
   const [session, setSession] = useState<GuestChatSessionResponse>();
@@ -83,6 +87,19 @@ export function GuestApp({
   const lock = useRef(true);
   const controller = useRef<AbortController | undefined>(undefined);
   const textarea = useRef<HTMLTextAreaElement>(null);
+  const transcript = useRef<HTMLDivElement>(null);
+  const conversationMenu = useRef<HTMLDetailsElement>(null);
+  function closeConversationMenu(): void {
+    if (conversationMenu.current) conversationMenu.current.open = false;
+  }
+  const followTranscript = useRef(true);
+
+  useEffect(() => {
+    if (box || !transcript.current) return;
+    if (!messages.length) followTranscript.current = true;
+    if (followTranscript.current)
+      transcript.current.scrollTop = transcript.current.scrollHeight;
+  }, [box, messages]);
 
   const restoreFocus = useRef(!!box);
 
@@ -525,176 +542,249 @@ export function GuestApp({
 
   return (
     <div className="guest-ask">
-      <header className="guest-masthead">
-        <a href="/">
-          Brain <span>/ Ask</span>
-        </a>
-        <span>Public knowledge · Private conversation</span>
-      </header>
-      <main>
+      <section aria-label="Public Ask">
         <div className="guest-introduction">
-          <p className="guest-eyebrow">A conversation with the Brain</p>
-          <h1>
-            What would you
-            <br />
-            like to explore?
-          </h1>
-          <p>
-            Ask about public knowledge, connect ideas, or bring a piece of text
-            to think through. This chat cannot edit, publish or administer the
-            Brain.
-          </p>
-        </div>
-        {session && (
-          <details className="guest-disclosure" open={!messages.length}>
-            <summary>Before you ask · privacy and limits</summary>
-            <p>{session.notice}</p>
-            <p>Provider: {session.provider}</p>
-            <p>
-              Visitor access expires{" "}
-              {new Date(session.expiresAt).toLocaleString()}. Conversation
-              retention: idle limit {session.retention.idleSeconds / 3600}{" "}
-              hours; maximum age {session.retention.maxAgeSeconds / 3600} hours.
-            </p>
-            <p>{session.deletionLimitations}</p>
-            <p>
-              Avoid sensitive material. Your messages are not automatically
-              added to the Brain’s knowledge.
-            </p>
-          </details>
-        )}
-        {session && (
           <div>
-            <nav className="guest-tools" aria-label="Conversation controls">
-              <label>
-                Conversations in this tab{" "}
-                <select
-                  aria-label="Previous conversation"
-                  value={id ?? ""}
-                  disabled={busy}
-                  onChange={(event): void => {
-                    void restore(event.target.value);
-                  }}
-                >
-                  <option value="">Choose conversation</option>
-                  {conversations.map((locator, index) => (
-                    <option key={locator} value={locator}>
-                      Conversation {index + 1}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button
-                disabled={busy}
-                onClick={(): void => {
-                  savedLocator("");
-                  setId(undefined);
-                  setMessages([]);
-                  setPending(undefined);
-                  setDeleting(false);
-                  setStatus(
-                    "New conversation. Previous conversations are not deleted, and running work is not cancelled.",
-                  );
-                }}
-              >
-                New conversation
-              </button>
-              <button
-                disabled={!id || busy}
-                onClick={(): void => setDeleting(true)}
-              >
-                Delete conversation
-              </button>
-              <button
-                disabled={!id || busy}
-                onClick={(): void => {
-                  if (id) void restore(id);
-                }}
-              >
-                Reload history
-              </button>
-            </nav>
+            <p className="guest-eyebrow">Public knowledge · Your questions</p>
+            <h1>Ask {name}.</h1>
           </div>
-        )}
-        {deleting && (
-          <div className="guest-delete" role="alert">
-            <p>
-              Delete this conversation from the Brain? This does not erase
-              provider records or cancel remote work.
-            </p>
-            <button
-              disabled={busy}
-              onClick={(): void => {
-                void remove();
-              }}
-            >
-              Confirm deletion
-            </button>
-            <button disabled={busy} onClick={(): void => setDeleting(false)}>
-              Keep conversation
-            </button>
-          </div>
-        )}
-        <GuestTranscript messages={messages} />
-        <p className="guest-status" role="status" aria-live="polite">
-          {status}
-        </p>
-        {session?.canSend && (
-          <form
-            onSubmit={(event): void => {
-              event.preventDefault();
-              void send(pending);
+        </div>
+        <section className="guest-card" aria-label="Public conversation">
+          <header className="guest-card-header">
+            <span className="guest-brain-name">{siteLabel}</span>
+            <span className="guest-scope">Public knowledge</span>
+            {session && (
+              <details
+                className="guest-conversation-menu"
+                ref={conversationMenu}
+              >
+                <summary aria-label="Conversation actions">···</summary>
+                <nav className="guest-tools" aria-label="Conversation controls">
+                  <label>
+                    Conversations in this tab{" "}
+                    <select
+                      aria-label="Previous conversation"
+                      value={id ?? ""}
+                      disabled={busy}
+                      onChange={(event): void => {
+                        closeConversationMenu();
+                        void restore(event.target.value);
+                      }}
+                    >
+                      <option value="">Choose conversation</option>
+                      {conversations.map((locator, index) => (
+                        <option key={locator} value={locator}>
+                          Conversation {index + 1}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    disabled={busy}
+                    onClick={(): void => {
+                      closeConversationMenu();
+                      savedLocator("");
+                      setId(undefined);
+                      setMessages([]);
+                      setPending(undefined);
+                      setDeleting(false);
+                      setStatus(
+                        "New conversation. Previous conversations are not deleted, and running work is not cancelled.",
+                      );
+                    }}
+                  >
+                    New conversation
+                  </button>
+                  <button
+                    disabled={!id || busy}
+                    onClick={(): void => {
+                      closeConversationMenu();
+                      setDeleting(true);
+                    }}
+                  >
+                    Delete conversation
+                  </button>
+                  <button
+                    disabled={!id || busy}
+                    onClick={(): void => {
+                      closeConversationMenu();
+                      if (id) void restore(id);
+                    }}
+                  >
+                    Reload history
+                  </button>
+                </nav>
+              </details>
+            )}
+          </header>
+          <div
+            className="guest-transcript-scroll"
+            ref={transcript}
+            role="region"
+            aria-label="Conversation transcript"
+            tabIndex={0}
+            onScroll={(event): void => {
+              const view = event.currentTarget;
+              followTranscript.current =
+                view.scrollHeight - view.scrollTop - view.clientHeight < 64;
             }}
           >
-            <label htmlFor="guest-question">Your question</label>
-            <textarea
-              ref={textarea}
-              id="guest-question"
-              value={draft}
-              onInput={(event): void => setDraft(event.currentTarget.value)}
-              maxLength={session.messageCharacters}
-              disabled={busy || !!pending || expired}
-              placeholder="Start with a question, an idea, or a passage…"
-              rows={4}
-            />
-            <div className="guest-compose-actions">
-              <small>
-                {draft.length} / {session.messageCharacters}
-              </small>
-              {busy ? (
+            {deleting && (
+              <div className="guest-delete" role="alert">
+                <p>
+                  Delete this conversation from the Brain? This does not erase
+                  provider records or cancel remote work.
+                </p>
                 <button
-                  type="button"
+                  disabled={busy}
                   onClick={(): void => {
-                    controller.current?.abort();
+                    void remove();
                   }}
                 >
-                  Stop waiting
+                  Confirm deletion
                 </button>
-              ) : pending ? (
                 <button
-                  type="button"
-                  disabled={!pending.id}
-                  onClick={(): void => {
-                    void send(pending);
-                  }}
+                  disabled={busy}
+                  onClick={(): void => setDeleting(false)}
                 >
-                  {pending.id
-                    ? "Check / retry same request"
-                    : "Recovery unavailable"}
+                  Keep conversation
                 </button>
-              ) : (
-                <button type="submit" disabled={!draft.trim() || expired}>
-                  Ask the Brain <span aria-hidden="true">↗</span>
-                </button>
-              )}
-            </div>
-          </form>
-        )}
-      </main>
-      <footer>
-        Uses public Brain knowledge and the text you share. Answers can be
-        mistaken.
-      </footer>
+              </div>
+            )}
+            {!messages.length && session?.canSend && !pending && (
+              <div className="guest-empty">
+                <p className="guest-eyebrow">A place to begin</p>
+                <h2>What’s on your mind?</h2>
+                <p>
+                  Explore public knowledge, connect ideas, or bring a question
+                  from your work.
+                </p>
+                <div className="guest-topics">
+                  {[
+                    "What ideas shape this Brain?",
+                    "How could this help with my work?",
+                    "Where should I begin?",
+                  ].map((topic, index) => (
+                    <button
+                      className="guest-topic"
+                      type="button"
+                      key={topic}
+                      onClick={(): void => {
+                        setDraft(topic);
+                        textarea.current?.focus();
+                      }}
+                    >
+                      <span aria-hidden="true">0{index + 1}</span>
+                      {topic}
+                      <span aria-hidden="true">↗</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {!messages.length && !session?.canSend && !busy && !pending && (
+              <div className="guest-empty guest-unavailable">
+                <p className="guest-eyebrow">Public knowledge</p>
+                <h2>Asking is unavailable right now.</h2>
+                <p>
+                  No new question has been sent. This page does not renew an
+                  expired or exhausted allowance.
+                </p>
+              </div>
+            )}
+            <GuestTranscript messages={messages} />
+          </div>
+          <p className="guest-status" role="status" aria-live="polite">
+            {status}
+          </p>
+          {session?.canSend && (
+            <form
+              className="guest-composer"
+              onSubmit={(event): void => {
+                event.preventDefault();
+                followTranscript.current = true;
+                void send(pending);
+              }}
+            >
+              <label className="guest-sr" htmlFor="guest-question">
+                Your question
+              </label>
+              <textarea
+                ref={textarea}
+                id="guest-question"
+                value={draft}
+                onInput={(event): void => setDraft(event.currentTarget.value)}
+                maxLength={session.messageCharacters}
+                disabled={busy || !!pending || expired}
+                placeholder={
+                  messages.length
+                    ? "Follow that thought…"
+                    : "Start with a question…"
+                }
+                rows={2}
+              />
+              <div className="guest-compose-actions">
+                <small>
+                  {draft.length} / {session.messageCharacters}
+                </small>
+                {busy ? (
+                  <button
+                    type="button"
+                    onClick={(): void => {
+                      controller.current?.abort();
+                    }}
+                  >
+                    Stop waiting
+                  </button>
+                ) : pending ? (
+                  <button
+                    type="button"
+                    disabled={!pending.id}
+                    onClick={(): void => {
+                      void send(pending);
+                    }}
+                  >
+                    {pending.id
+                      ? "Check / retry same request"
+                      : "Recovery unavailable"}
+                  </button>
+                ) : (
+                  <button
+                    className="guest-send"
+                    type="submit"
+                    disabled={!draft.trim() || expired}
+                  >
+                    <span className="guest-sr">Ask the Brain</span>
+                    <span aria-hidden="true">↑</span>
+                  </button>
+                )}
+              </div>
+            </form>
+          )}
+        </section>
+        <div className="guest-below">
+          {session && (
+            <details className="guest-disclosure">
+              <summary>Privacy and limits</summary>
+              <p>{session.notice}</p>
+              <p>Provider: {session.provider}</p>
+              <p>
+                Visitor access expires{" "}
+                {new Date(session.expiresAt).toLocaleString()}. Conversation
+                retention: idle limit {session.retention.idleSeconds / 3600}{" "}
+                hours; maximum age {session.retention.maxAgeSeconds / 3600}{" "}
+                hours.
+              </p>
+              <p>{session.deletionLimitations}</p>
+              <p>
+                Your messages are not automatically added to the Brain’s
+                knowledge. This chat cannot edit, publish or administer the
+                Brain.
+              </p>
+            </details>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
