@@ -4,7 +4,11 @@ import { Window } from "happy-dom";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
-import { studioArea, TypeSwitcher } from "./entity-fields";
+import {
+  StudioBrowseDestinations,
+  studioArea,
+  TypeSwitcher,
+} from "./entity-fields";
 import { StudioChrome } from "./studio-chrome";
 
 let browser: Window;
@@ -108,9 +112,17 @@ beforeEach(() => {
     document: browser.document,
     navigator: browser.navigator,
     HTMLElement: browser.HTMLElement,
+    HTMLInputElement: browser.HTMLInputElement,
     Element: browser.Element,
     Node: browser.Node,
     Event: browser.Event,
+    CustomEvent: browser.CustomEvent,
+    // Radix needs these to mount a dialog.
+    MutationObserver: browser.MutationObserver,
+    ResizeObserver: browser.ResizeObserver,
+    requestAnimationFrame: browser.requestAnimationFrame.bind(browser),
+    cancelAnimationFrame: browser.cancelAnimationFrame.bind(browser),
+    getComputedStyle: browser.getComputedStyle.bind(browser),
     IS_REACT_ACT_ENVIRONMENT: true,
   });
   const container = document.createElement("div");
@@ -189,6 +201,181 @@ describe("profile navigation", () => {
     expect(document.querySelector(".studio-chrome-location")?.textContent).toBe(
       label,
     );
+  });
+});
+
+function browseGroups(): {
+  area: string;
+  label: string;
+  options: {
+    value: string;
+    label: string;
+    tally?: number;
+    attention?: number;
+    accessibleLabel?: string;
+  }[];
+}[] {
+  return [
+    {
+      area: "overview",
+      label: "Home",
+      options: [
+        {
+          value: "workspace:studio:overview",
+          label: "Overview",
+          accessibleLabel: "Overview",
+          attention: 2,
+        },
+      ],
+    },
+    {
+      area: "chat",
+      label: "Chat",
+      options: [
+        {
+          value: "workspace:web-chat:chat",
+          label: "Chat",
+          accessibleLabel: "Chat",
+        },
+      ],
+    },
+    {
+      area: "library",
+      label: "Library",
+      options: [{ value: "type:note", label: "Notes", tally: 12 }],
+    },
+    {
+      area: "administration",
+      label: "Admin",
+      options: [
+        {
+          value: "workspace:admin:administration",
+          label: "Administration",
+          accessibleLabel: "Administration",
+          attention: 1,
+        },
+      ],
+    },
+    {
+      area: "system",
+      label: "System",
+      options: [
+        { value: "type:prompt", label: "Prompts", tally: 18 },
+        { value: "type:agent", label: "Agents", tally: 15 },
+      ],
+    },
+  ];
+}
+
+async function renderBrowse(filter = "", folded: string[] = []): Promise<void> {
+  const state = { filter, folded: new Set(folded) };
+  const draw = async (): Promise<void> => {
+    await act(async () =>
+      root.render(
+        <StudioBrowseDestinations
+          groups={browseGroups()}
+          filter={state.filter}
+          activeValue="type:note"
+          groupId={(area) => `browse-${area}`}
+          isGroupOpen={(area) => !state.folded.has(area)}
+          onFilterChange={(value) => {
+            state.filter = value;
+            void draw();
+          }}
+          onToggleGroup={(area, open) => {
+            if (open) state.folded.delete(area);
+            else state.folded.add(area);
+            void draw();
+          }}
+          onSelect={(value) => selected.push(value)}
+        />,
+      ),
+    );
+  };
+  await draw();
+}
+const browseLinks = (): string[] =>
+  [...document.querySelectorAll(".studio-mobile-navigation-link")].map((link) =>
+    link.textContent.trim(),
+  );
+
+describe("phone Browse destinations", () => {
+  it("gathers direct destinations above the groups instead of between them", async () => {
+    await renderBrowse();
+    const blocks = [...document.querySelectorAll("section, details")];
+    const direct = blocks.filter((block) => block.tagName === "SECTION");
+    expect(direct).toHaveLength(1);
+    expect(direct[0]?.textContent).toContain("Overview");
+    expect(direct[0]?.textContent).toContain("Chat");
+    expect(direct[0]?.textContent).toContain("Administration");
+    expect(blocks.findIndex((block) => block.tagName === "DETAILS")).toBe(1);
+  });
+
+  it("rests every group open so the sheet shows what it is for", async () => {
+    await renderBrowse();
+    const groups = [...document.querySelectorAll("details")];
+    expect(groups).toHaveLength(2);
+    expect(groups.every((group) => group.open)).toBe(true);
+  });
+
+  it("keeps naming the destination inside a folded group", async () => {
+    await renderBrowse("", ["library"]);
+    const library = [...document.querySelectorAll("details")].find((group) =>
+      group.querySelector("summary")?.textContent.includes("Library"),
+    );
+    expect(library?.open).toBe(false);
+    expect(library?.querySelector("summary")?.textContent).toContain("Notes");
+    expect(selected).toHaveLength(0);
+  });
+
+  it("separates an attention count from an item tally", async () => {
+    await renderBrowse();
+    const overview = [...document.querySelectorAll("button")].find(
+      (button) => button.getAttribute("aria-label") === "Overview",
+    );
+    const notes = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent.includes("Notes"),
+    );
+    expect(
+      overview?.querySelector("[data-studio-attention]")?.textContent,
+    ).toBe("2");
+    expect(overview?.querySelector("[data-studio-tally]")).toBeNull();
+    expect(notes?.querySelector("[data-studio-tally]")?.textContent).toBe("12");
+    expect(notes?.querySelector("[data-studio-attention]")).toBeNull();
+  });
+
+  it("narrows destinations across every group, opening the ones that match", async () => {
+    await renderBrowse("age", ["system"]);
+    expect(browseLinks()).toEqual(["Agents15"]);
+    // A folded group still shows what the filter found in it.
+    expect(
+      [...document.querySelectorAll("details")].every((group) => group.open),
+    ).toBe(true);
+  });
+
+  it("says so when the filter matches nothing", async () => {
+    await renderBrowse("nothing matches this");
+    expect(document.body.textContent).toContain("No destination matches");
+    expect(browseLinks()).toHaveLength(0);
+  });
+
+  it("keeps Account out of Browse and spends no display line naming the sheet", async () => {
+    await renderBrowse();
+    expect(
+      [...document.querySelectorAll("button")].some(
+        (button) => button.textContent.trim() === "Account",
+      ),
+    ).toBe(false);
+    expect(document.querySelector("header h2")).toBeNull();
+  });
+
+  it("reports the chosen destination without closing anything itself", async () => {
+    await renderBrowse();
+    const notes = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent.includes("Notes"),
+    );
+    await act(async () => notes?.click());
+    expect(selected).toEqual(["type:note"]);
   });
 });
 

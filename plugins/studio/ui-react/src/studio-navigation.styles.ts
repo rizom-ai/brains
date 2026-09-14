@@ -11,8 +11,14 @@ type NavigationStyle =
   | "collapsedTitle"
   | "collapseButton"
   | "mobileSummary"
+  | "mobileGroupName"
   | "mobileCurrent"
   | "mobileDisclosure"
+  | "mobileDirect"
+  | "mobileFilter"
+  | "mobileEmpty"
+  | "mobileTally"
+  | "mobileAttention"
   | "shell"
   | "rail"
   | "navigation"
@@ -94,38 +100,84 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
     mobileSummary: {
       display: "flex",
       alignItems: "center",
-      gap: "10px",
-      minHeight: "44px",
-      marginBottom: "7px",
-      borderBottomWidth: "1px",
-      borderBottomStyle: "solid",
-      borderBottomColor: "var(--console-rule-strong)",
-      color: "var(--console-text-muted)",
+      gap: "8px",
+      minHeight: "var(--console-touch)",
+      paddingInline: "8px 10px",
+      borderRadius: "8px",
+      color: "var(--console-text)",
       cursor: "pointer",
       listStyle: "none",
       "::-webkit-details-marker": { display: "none" },
+      ":hover": { backgroundColor: "var(--console-card)" },
       ":focus-visible": {
         outline: "2px solid var(--console-accent)",
         outlineOffset: "-2px",
       },
     },
+    mobileGroupName: { color: "var(--console-text)" },
     mobileCurrent: {
+      marginLeft: "auto",
+      maxWidth: "55%",
       minWidth: 0,
       overflow: "hidden",
       textOverflow: "ellipsis",
       whiteSpace: "nowrap",
-      color: "var(--console-text)",
+      color: "var(--console-text-muted)",
       fontFamily: "var(--console-ui)",
-      fontSize: "12px",
-      fontWeight: 500,
+      fontSize: "13px",
+      fontWeight: 400,
       letterSpacing: "0",
       textTransform: "none",
     },
+    // Leading, so the row reads as a control rather than a caption.
     mobileDisclosure: {
+      display: "grid",
+      placeItems: "center",
+      width: "20px",
+      color: "var(--console-text-muted)",
+      fontSize: "10px",
+      transitionProperty: {
+        default: "transform",
+        "@media (prefers-reduced-motion: reduce)": "none",
+      },
+      transitionDuration: "120ms",
+      transform: {
+        default: "rotate(-90deg)",
+        ":is([open] > summary > *)": "none",
+      },
+    },
+    // Overview, Chat and Admin share one block; a destination never appears
+    // between two group headers.
+    mobileDirect: {
+      display: "block",
+      marginBottom: "16px",
+      paddingBottom: "12px",
+      borderBottomWidth: "1px",
+      borderBottomStyle: "solid",
+      borderBottomColor: "var(--console-rule)",
+    },
+    mobileFilter: { flex: "1 1 auto", minWidth: 0 },
+    mobileEmpty: {
+      padding: "24px 8px",
+      color: "var(--console-text-muted)",
+      fontFamily: "var(--console-ui)",
+      fontSize: "14px",
+      lineHeight: 1.55,
+    },
+    mobileTally: {
+      marginLeft: "auto",
+      color:
+        "color-mix(in srgb, var(--console-text-muted) 70%, var(--console-text))",
+      fontFamily: "var(--console-mono)",
+      fontSize: "11px",
+    },
+    // Attention takes the accent; a tally stays quiet. Same slot, two meanings.
+    mobileAttention: {
       marginLeft: "auto",
       color: "var(--console-accent)",
-      fontSize: "16px",
-      fontWeight: 500,
+      fontFamily: "var(--console-mono)",
+      fontSize: "11px",
+      fontWeight: 650,
     },
     rail: {
       minWidth: 0,
@@ -345,37 +397,42 @@ export const navigationStyles: Record<NavigationStyle, stylex.StyleXStyles> =
       overscrollBehavior: "contain",
       padding: "20px 16px max(20px, env(safe-area-inset-bottom))",
     },
+    // The chrome line above already names the place, so the header carries
+    // the filter and the way out.
     sheetHead: {
       display: "flex",
-      alignItems: "baseline",
-      justifyContent: "space-between",
+      alignItems: "center",
+      gap: "10px",
       marginBottom: "16px",
     },
     sheetTitle: { margin: 0 },
     sheetClose: {
-      borderWidth: 0,
+      display: "grid",
+      placeItems: "center",
+      width: "var(--console-touch)",
+      height: "var(--console-touch)",
+      flexShrink: 0,
+      borderWidth: "1px",
+      borderStyle: "solid",
+      borderColor: "var(--console-rule-strong)",
+      borderRadius: "50%",
       backgroundColor: "transparent",
-      color: "var(--console-accent)",
+      color: "var(--console-text-dim)",
       cursor: "pointer",
-      fontFamily: "var(--console-mono)",
-      fontWeight: 650,
-      fontSize: "10px",
-      minHeight: "44px",
-      padding: "0 6px",
+      fontSize: "15px",
+      ":hover": { color: "var(--console-text)" },
       ":focus-visible": { outline: "2px solid var(--console-accent)" },
     },
-    mobileGroup: { marginBottom: "20px", scrollMarginTop: "12px" },
+    mobileGroup: { marginBottom: "16px", scrollMarginTop: "12px" },
     mobileLink: {
       display: "flex",
       alignItems: "center",
       gap: "8px",
       width: "100%",
       minHeight: "var(--console-touch)",
-      padding: "0 11px",
+      padding: "0 10px 0 36px",
       borderWidth: 0,
-      borderBottomWidth: "1px",
-      borderStyle: "solid",
-      borderColor: "var(--console-rule)",
+      borderRadius: "8px",
       backgroundColor: "transparent",
       color: "var(--console-text-dim)",
       cursor: "pointer",
