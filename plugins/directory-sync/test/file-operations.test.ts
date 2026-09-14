@@ -1,4 +1,4 @@
-import { prepareAsset } from "@brains/assets";
+import { prepareAsset, type AssetRef } from "@brains/assets";
 import assert from "node:assert/strict";
 import { mockFileAssets } from "./helpers/file-assets";
 import { createTestEntity } from "@brains/entity-service/test";
@@ -33,18 +33,24 @@ const TINY_JPEG_BYTES = Buffer.from(
 describe("FileOperations", () => {
   let fileOps: FileOperations;
   let testDir: string;
-  let mockEntityService: FileOperationsEntityService;
+  let mockEntityService: FileOperationsEntityService & {
+    readAsset(ref: AssetRef): Promise<Uint8Array>;
+  };
 
   beforeEach(() => {
     // Create a unique test directory
     testDir = mkdtempSync(join(tmpdir(), "test-file-ops-"));
 
     mockEntityService = {
-      fileAssets: mockFileAssets(),
+      fileAssets: mockFileAssets(undefined, (ref) =>
+        mockEntityService.readAsset(ref),
+      ),
       serializeEntity: (entity: BaseEntity): string =>
         `# ${entity.id}\n\n${entity.content}`,
       hasEntityType: (): boolean => true,
-      readAsset: async (): Promise<Uint8Array> => {
+      readAsset: async (ref): Promise<Uint8Array> => {
+        for (const bytes of [TINY_PNG_BYTES, TINY_JPEG_BYTES])
+          if (prepareAsset(bytes).ref === ref) return bytes;
         throw new Error("asset read not configured");
       },
     };
@@ -315,9 +321,6 @@ describe("FileOperations", () => {
         const selectiveService: FileOperationsEntityService = {
           serializeEntity: () => "",
           hasEntityType: (type: string) => ["post", "link"].includes(type),
-          readAsset: async () => {
-            throw new Error("asset read not configured");
-          },
         };
         const selectiveFileOps = new FileOperations(testDir, selectiveService);
 
@@ -382,7 +385,7 @@ describe("FileOperations", () => {
     it("should write image entities as binary files in image/ directory", async () => {
       const entity = createTestEntity("image", {
         id: "my-image",
-        content: TINY_PNG_DATA_URL,
+        content: prepareAsset(TINY_PNG_BYTES).ref,
         metadata: { format: "png" },
       });
 
@@ -396,7 +399,7 @@ describe("FileOperations", () => {
       expect(writtenBytes.equals(TINY_PNG_BYTES)).toBe(true);
     });
 
-    it("should explicitly read asset-backed image bytes for export", async () => {
+    it("should export asset-backed images through the file capability", async () => {
       const prepared = prepareAsset(TINY_PNG_BYTES);
       mockEntityService.readAsset = async (ref): Promise<Uint8Array> => {
         expect(ref).toBe(prepared.ref);
@@ -440,8 +443,9 @@ describe("FileOperations", () => {
         },
       });
 
-      expect(fileOps.writeEntity(entity)).rejects.toThrow(
-        "asset read not configured",
+      await assert.rejects(
+        fileOps.writeEntity(entity),
+        /asset read not configured/,
       );
       expect(readFileSync(existingPath).equals(TINY_JPEG_BYTES)).toBe(true);
       expect(existsSync(join(imageDir, "guarded.png"))).toBe(false);
@@ -488,7 +492,7 @@ describe("FileOperations", () => {
     it("should converge an image to one path when its content format changes", async () => {
       const pngEntity = createTestEntity("image", {
         id: "photo",
-        content: TINY_PNG_DATA_URL,
+        content: prepareAsset(TINY_PNG_BYTES).ref,
         metadata: { format: "png" },
       });
       await fileOps.writeEntity(pngEntity);
@@ -496,7 +500,7 @@ describe("FileOperations", () => {
 
       const jpgEntity = createTestEntity("image", {
         id: "photo",
-        content: "data:image/jpeg;base64," + TINY_JPEG_BYTES.toString("base64"),
+        content: prepareAsset(TINY_JPEG_BYTES).ref,
         metadata: { format: "jpeg" },
       });
 
@@ -509,7 +513,7 @@ describe("FileOperations", () => {
     it("should roundtrip image entities correctly", async () => {
       const entity = createTestEntity("image", {
         id: "roundtrip-test",
-        content: TINY_PNG_DATA_URL,
+        content: prepareAsset(TINY_PNG_BYTES).ref,
         metadata: { format: "png" },
       });
 
@@ -835,7 +839,7 @@ describe("FileOperations", () => {
 
       const entity = createTestEntity("image", {
         id: "test-image",
-        content: TINY_PNG_DATA_URL,
+        content: prepareAsset(TINY_PNG_BYTES).ref,
         metadata: { format: "png" },
       });
 
@@ -859,7 +863,7 @@ describe("FileOperations", () => {
 
       const entity = createTestEntity("image", {
         id: "test-image",
-        content: TINY_PNG_DATA_URL,
+        content: prepareAsset(TINY_PNG_BYTES).ref,
         metadata: { format: "png" },
       });
 

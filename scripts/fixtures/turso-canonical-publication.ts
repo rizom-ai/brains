@@ -1,6 +1,6 @@
 // Explicit candidate: bun test --preload ./scripts/fixtures/turso-canonical-preload.ts ./scripts/fixtures/turso-canonical-publication.ts
 // Not auto-discovered by test:scripts; not a normal CLI startup acceptance gate.
-import { test } from "bun:test";
+import { test, spyOn } from "bun:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { mkdtemp, writeFile, mkdir, copyFile } from "node:fs/promises";
@@ -202,6 +202,7 @@ plugins:
       logger: createSilentLogger(),
       syncPath: importRoot,
       autoSync: false,
+      deleteOnFileRemoval: false,
     });
     const imported = await importer.importEntities(["image/inspected.png"]);
     assert.equal(imported.failed, 0);
@@ -214,6 +215,32 @@ plugins:
     assert.equal(inspected.content, record.ref);
     assert.equal(inspected.metadata["width"], 1);
     assert.equal(inspected.metadata["height"], 1);
+    await writeFile(
+      join(importRoot, "image", "inspected.png"),
+      Buffer.alloc(SIZE, 0x5a),
+    );
+    const bufferedRead = spyOn(owner, "readAsset").mockImplementation(
+      async (): Promise<never> => {
+        throw new Error("Controller asset buffering is forbidden");
+      },
+    );
+    try {
+      const exported = await importer.exportEntities(["image"]);
+      assert.equal(exported.failed, 0);
+      assert.ok(exported.exported > 0);
+      assert.equal((await importer.exportEntities(["image"])).failed, 0);
+      await binding.withFile(
+        join(importRoot, "image", "inspected.png"),
+        SIZE,
+        SHA,
+        async (publication) => {
+          assert.deepEqual(publication.record, record);
+        },
+      );
+    } finally {
+      bufferedRead.mockRestore();
+    }
+    binding.assertTransferIdle();
     const repeatedImport = await importer.importEntities([
       "image/inspected.png",
     ]);

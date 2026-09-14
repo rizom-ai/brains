@@ -28,14 +28,15 @@ import {
 import { pathExists } from "./fs-utils";
 import { OversizedFileError } from "./oversized-file-error";
 import type { PendingDeleteTarget } from "./pending-delete-registry";
-import { imageAssetFactsSchema, resolveImageBytes } from "@brains/image";
+import { imageAssetFactsSchema } from "@brains/image";
+import { exportImageFile } from "./image-file-export";
 
 export { IMAGE_EXTENSIONS, isImageFile } from "./image-file-utils";
 export { DOCUMENT_EXTENSIONS, isDocumentFile } from "./document-file-utils";
 
 export type FileOperationsEntityService = Pick<
   EntityServiceClient,
-  "serializeEntity" | "hasEntityType" | "readAsset" | "fileAssets"
+  "serializeEntity" | "hasEntityType" | "fileAssets"
 >;
 
 const sidecarMetadataSchema = z.record(z.string(), z.unknown());
@@ -188,12 +189,21 @@ export class FileOperations {
     const isImage = entity.entityType === "image";
     const isDocument = entity.entityType === "document";
 
-    if (isImage || isDocument) {
-      const contentToWrite = isImage
-        ? Buffer.from(
-            (await resolveImageBytes(entity, this.entityService)).bytes,
-          )
-        : decodeDocumentContent(entity.content);
+    if (isImage) {
+      const files = this.entityService.fileAssets;
+      if (!files) throw new Error("Image file export is not provisioned");
+      await this.ensureEntityDirectory(entity, filePath);
+      await exportImageFile(
+        files,
+        filePath,
+        entity.content,
+        new Date(entity.updated),
+      );
+      await this.removeObsoleteImageFiles(entity, filePath);
+      return;
+    }
+    if (isDocument) {
+      const contentToWrite = decodeDocumentContent(entity.content);
 
       let binaryUnchanged = false;
       if (await pathExists(filePath)) {
@@ -213,33 +223,7 @@ export class FileOperations {
         await writeFile(filePath, contentToWrite);
       }
 
-      if (isDocument) {
-        await this.writeDocumentSidecar(entity, filePath);
-      }
-
-      // Resolve and write the authoritative bytes before removing obsolete
-      // extensions. A missing/corrupt asset must never destroy a good export.
-      if (isImage) {
-        await Promise.all(
-          this.getEntityDeletePaths(entity.entityType, entity.id)
-            .filter((candidate) => candidate !== filePath)
-            .map(async (candidate) => {
-              try {
-                await unlink(candidate);
-              } catch (error) {
-                if (
-                  typeof error === "object" &&
-                  error !== null &&
-                  "code" in error &&
-                  error.code === "ENOENT"
-                ) {
-                  return;
-                }
-                throw error;
-              }
-            }),
-        );
-      }
+      await this.writeDocumentSidecar(entity, filePath);
 
       if (binaryUnchanged) {
         return;
@@ -264,6 +248,30 @@ export class FileOperations {
     // Preserve entity timestamps on the file to prevent unnecessary re-syncs
     const updatedTime = new Date(entity.updated);
     await utimes(filePath, updatedTime, updatedTime);
+  }
+
+  private async removeObsoleteImageFiles(
+    entity: BaseEntity,
+    filePath: string,
+  ): Promise<void> {
+    // Only an acknowledged export permits removal of obsolete extensions.
+    await Promise.all(
+      this.getEntityDeletePaths(entity.entityType, entity.id)
+        .filter((candidate) => candidate !== filePath)
+        .map(async (candidate) => {
+          try {
+            await unlink(candidate);
+          } catch (error) {
+            if (
+              error instanceof Error &&
+              "code" in error &&
+              error.code === "ENOENT"
+            )
+              return;
+            throw error;
+          }
+        }),
+    );
   }
 
   private async ensureEntityDirectory(

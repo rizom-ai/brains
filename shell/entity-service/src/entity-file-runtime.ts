@@ -10,6 +10,7 @@ import {
   type FileInspectionResult,
 } from "@brains/db/file-process-owner";
 import type { EntityBinaryClient } from "./entity-binary-client";
+import type { FileUploadInput } from "@brains/db/file-upload";
 import type { EntityFilePublicationInput } from "./entity-file-publication";
 import type { EntityFileDownloadInput } from "./entity-file-download";
 import type { EntityMutationResult } from "./types";
@@ -20,6 +21,10 @@ export interface EntityFileSource {
 }
 export interface EntityFileAssets {
   inspect(input: EntityFileSource): Promise<FileInspectionResult>;
+  /** Actor-local file hashing with native verification and acknowledged transient retirement. */
+  fingerprint(
+    input: EntityFileSource,
+  ): Promise<{ sizeBytes: number; sha256: string }>;
   publish(input: EntityFilePublicationInput): Promise<EntityMutationResult>;
   download(
     input: EntityFileDownloadInput,
@@ -96,12 +101,26 @@ export class EntityFileRuntime implements EntityFileAssets {
     );
   }
   public inspect(input: EntityFileSource): Promise<FileInspectionResult> {
-    return this.run((signal) => this.inspectOwned(input, signal));
+    return this.run((signal) =>
+      this.inspectOwned(input, signal, (source, abort) =>
+        this.actors.inspectUpload(source, abort),
+      ),
+    );
   }
-  private async inspectOwned(
+  public fingerprint(
+    input: EntityFileSource,
+  ): Promise<{ sizeBytes: number; sha256: string }> {
+    return this.run((signal) =>
+      this.inspectOwned(input, signal, (source, abort) =>
+        this.actors.upload(source, abort),
+      ),
+    );
+  }
+  private async inspectOwned<T extends { sizeBytes: number; sha256: string }>(
     input: EntityFileSource,
     signal: AbortSignal,
-  ): Promise<FileInspectionResult> {
+    upload: (source: FileUploadInput, abort: AbortSignal) => Promise<T>,
+  ): Promise<T> {
     const parsed = sourceSchema.parse(input);
     signal.throwIfAborted();
     const offered = await observe(() => this.client.offer(parsed.sizeBytes));
@@ -117,8 +136,8 @@ export class EntityFileRuntime implements EntityFileAssets {
     };
     let cleanup: Promise<Outcome<void>> | undefined;
     let native: Promise<Outcome<BinaryUploadReceipt>> | undefined;
-    let actor: Promise<Outcome<FileInspectionResult>> | undefined;
-    let facts: FileInspectionResult | undefined;
+    let actor: Promise<Outcome<T>> | undefined;
+    let facts: T | undefined;
     const retire = (): void => {
       cleanup ??= observe(() => this.client.cancel(offer.ticket));
     };
@@ -140,11 +159,11 @@ export class EntityFileRuntime implements EntityFileAssets {
       const endpoint = await this.client.endpoint(offer.ticket);
       abort.signal.throwIfAborted();
       actor = observe(() =>
-        this.actors.inspectUpload(
+        upload(
           { sourceFile: parsed.sourceFile, size: parsed.sizeBytes, endpoint },
           abort.signal,
         ),
-      ).then((result): Outcome<FileInspectionResult> => {
+      ).then((result): Outcome<T> => {
         if (!result.ok) stop(result.error);
         return result;
       });
@@ -155,7 +174,7 @@ export class EntityFileRuntime implements EntityFileAssets {
           sealed.value.sizeBytes !== inspected.value.sizeBytes ||
           inspected.value.sizeBytes !== parsed.sizeBytes
         )
-          throw new Error("Image inspection receipt mismatch");
+          throw new Error("File verification receipt mismatch");
         facts = inspected.value;
       }
     } catch (error) {

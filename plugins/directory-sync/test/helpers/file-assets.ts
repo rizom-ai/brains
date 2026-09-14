@@ -1,11 +1,15 @@
-import { readFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
+import { prepareAsset, type AssetRef } from "@brains/assets";
 import { extname } from "node:path";
 import { getMimeTypeForExtension } from "../../src/lib/image-file-utils";
 import { prepareImageAsset } from "@brains/image";
 import type { EntityServiceClient } from "@brains/plugins";
 type Files = NonNullable<EntityServiceClient["fileAssets"]>;
 /** Unit-test substitute for the external payload actor. Production never imports this. */
-export function mockFileAssets(publish?: Files["publish"]): Files {
+export function mockFileAssets(
+  publish?: Files["publish"],
+  read?: (ref: AssetRef) => Promise<Uint8Array>,
+): Files {
   return {
     inspect: async ({ sourceFile }): ReturnType<Files["inspect"]> => {
       const { facts } = prepareImageAsset(
@@ -29,8 +33,16 @@ export function mockFileAssets(publish?: Files["publish"]): Files {
       (async (): Promise<never> => {
         throw new Error("File publication not configured");
       }),
-    download: async (): Promise<never> => {
-      throw new Error("File download not configured");
+    fingerprint: async ({ sourceFile }): ReturnType<Files["fingerprint"]> => {
+      const asset = prepareAsset(await readFile(sourceFile));
+      return { sizeBytes: asset.sizeBytes, sha256: asset.digest };
+    },
+    download: async ({ ref, outputFile }): ReturnType<Files["download"]> => {
+      if (!read) throw new Error("asset read not configured");
+      const asset = prepareAsset(await read(ref));
+      if (asset.ref !== ref) throw new Error("Asset digest mismatch");
+      await writeFile(outputFile, asset.bytes, { flag: "wx" });
+      return { sizeBytes: asset.sizeBytes, sha256: asset.digest };
     },
     close: async (): Promise<void> => undefined,
   };
