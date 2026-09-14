@@ -1,5 +1,15 @@
 # @brains/content-pipeline
 
+## 0.2.0-alpha.375
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.375
+  - @brains/utils@0.2.0-alpha.375
+  - @brains/plugins@0.2.0-alpha.375
+  - @brains/scheduler@0.2.0-alpha.375
+
 ## 0.2.0-alpha.374
 
 ### Patch Changes

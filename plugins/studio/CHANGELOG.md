@@ -1,5 +1,20 @@
 # @brains/studio
 
+## 0.2.0-alpha.375
+
+### Patch Changes
+
+- [#247](https://github.com/rizom-ai/brains/pull/247) [`3315017`](https://github.com/rizom-ai/brains/commit/3315017a45c9a65c682c325a64520649473b7bc8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Give System configuration records full-width Properties with supported bodies below, and intelligence documents expandable Properties above a full-width body editor. Preserve library split editors, adapter body support, and access controls. Keep body navigation available on phones, reveal collapsed fields on validation errors without remounting drafts, and name keyboard-accessible source and scrolling regions.
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.375
+  - @brains/console-theme@0.2.0-alpha.375
+  - @brains/contracts@0.2.0-alpha.375
+  - @brains/operator-view-react@0.2.0-alpha.375
+  - @brains/utils@0.2.0-alpha.375
+  - @brains/auth-service@0.2.0-alpha.375
+  - @brains/plugins@0.2.0-alpha.375
+
 ## 0.2.0-alpha.374
 
 ### Patch Changes
