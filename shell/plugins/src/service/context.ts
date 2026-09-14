@@ -264,6 +264,10 @@ export function createServicePluginContext(
                 options: {
                   source: pluginId,
                   rootJobId: batchId,
+                  // At most once. A job whose worker died is marked failed on
+                  // reclaim instead of re-run, so output is never regenerated
+                  // or resurrected; re-submitting skips what exists.
+                  maxRetries: 0,
                   metadata: { operationType: "content_operations", pluginId },
                 },
               }),

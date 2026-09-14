@@ -187,12 +187,8 @@ describe("generation persistence and recovery (real SQLite, mocked AI)", () => {
           .process(job, reason, createMockProgressReporter())
           .catch((error: unknown) => error);
         expect(outcome).toMatchObject({
-          name: "NonRetryableJobError",
-          cause: { name: "GenerationAuthorizationError" },
+          name: "GenerationAuthorizationError",
         });
-        expect(
-          await entities.getEntityWriteReceipt(job.operationId),
-        ).toBeNull();
         const saved = await entities.getEntityRaw({
           entityType: "book-section",
           id: entityId,
@@ -218,7 +214,7 @@ describe("generation persistence and recovery (real SQLite, mocked AI)", () => {
     },
   );
 
-  test("cancellation during persist validation rolls back without a receipt", async () => {
+  test("cancellation during persist validation rolls back the write", async () => {
     const controller = new AbortController();
     const reason = new Error("cancelled before commit");
     const job = await plan();
@@ -240,10 +236,9 @@ describe("generation persistence and recovery (real SQLite, mocked AI)", () => {
         id: job.destination.entityId,
       }),
     ).toBeNull();
-    expect(await entities.getEntityWriteReceipt(job.operationId)).toBeNull();
   });
 
-  test("cancellation after the atomic commit preserves output and recovery evidence", async () => {
+  test("cancellation after the atomic commit preserves output", async () => {
     const controller = new AbortController();
     const job = await plan();
     const clearWakeup = entities.setProjectionWakeup(async () => {
@@ -257,9 +252,6 @@ describe("generation persistence and recovery (real SQLite, mocked AI)", () => {
         controller.signal,
       );
       expect(controller.signal.aborted).toBe(true);
-      expect(
-        await entities.getEntityWriteReceipt(job.operationId),
-      ).not.toBeNull();
       expect(
         (
           await entities.getEntityRaw({
@@ -288,7 +280,7 @@ describe("generation persistence and recovery (real SQLite, mocked AI)", () => {
       result.planned.map(({ jobData }) =>
         handler.process(
           jobData,
-          jobData.operationId,
+          jobData.destination.entityId,
           createMockProgressReporter(),
         ),
       ),
@@ -304,55 +296,31 @@ describe("generation persistence and recovery (real SQLite, mocked AI)", () => {
     }
   });
 
-  test.each(["edit", "delete"] as const)(
-    "recovers after commit/ack loss and restart without regenerating or undoing a later %s",
-    async (change) => {
-      const job = await plan();
-      const progress = createMockProgressReporter();
-      spyOn(progress, "report").mockImplementation(
-        async ({ progress: value }) => {
-          if (value === 3) throw new Error("acknowledgement lost");
-        },
-      );
-      expect(handler.process(job, "attempt-1", progress)).rejects.toThrow(
-        "acknowledgement lost",
-      );
-      const saved = await entities.getEntityRaw({
-        entityType: job.destination.entityType,
-        id: job.destination.entityId,
-      });
-      if (!saved) throw new Error("Commit missing");
-      if (change === "edit")
-        await entities.updateEntity({
-          entity: { ...saved, content: "Editor wins" },
-        });
-      else
-        await entities.deleteEntity({
-          entityType: saved.entityType,
-          id: saved.id,
-        });
-      entities.close();
-      openServices();
-      const output = await handler.process(
-        job,
-        "attempt-2",
-        createMockProgressReporter(),
-      );
-      expect(generate).toHaveBeenCalledTimes(1);
-      expect(output).toEqual({
-        entityType: "book-section",
-        entityId: job.destination.entityId,
-      });
-      expect(
-        (
-          await entities.getEntityRaw({
-            entityType: output.entityType,
-            id: output.entityId,
-          })
-        )?.content ?? null,
-      ).toBe(change === "edit" ? "Editor wins" : null);
-    },
-  );
+  test("a progress failure after the commit does not fail the job", async () => {
+    const job = await plan();
+    const progress = createMockProgressReporter();
+    spyOn(progress, "report").mockImplementation(
+      async ({ progress: value }) => {
+        if (value === 3) throw new Error("acknowledgement lost");
+      },
+    );
+    // Generation jobs run at most once, so an explicit failure must mean
+    // nothing was written. After the commit, reporting is best-effort.
+    const output = await handler.process(job, "attempt-1", progress);
+    expect(output).toEqual({
+      entityType: "book-section",
+      entityId: job.destination.entityId,
+    });
+    expect(generate).toHaveBeenCalledTimes(1);
+    expect(
+      (
+        await entities.getEntityRaw({
+          entityType: output.entityType,
+          id: output.entityId,
+        })
+      )?.content,
+    ).toBe("# Generated chapter");
+  });
 
   test.each([false, true])(
     "rejects an edit racing AI generation (force=%s)",
@@ -388,11 +356,7 @@ describe("generation persistence and recovery (real SQLite, mocked AI)", () => {
       });
       expect(
         handler.process(job, "racing", createMockProgressReporter()),
-      ).rejects.toMatchObject({
-        name: "NonRetryableJobError",
-        cause: expect.any(EntityWriteConflictError),
-      });
-      expect(await entities.getEntityWriteReceipt(job.operationId)).toBeNull();
+      ).rejects.toBeInstanceOf(EntityWriteConflictError);
       const saved = await entities.getEntityRaw({
         entityType: "book-section",
         id: job.destination.entityId,

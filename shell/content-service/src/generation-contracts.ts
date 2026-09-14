@@ -88,7 +88,6 @@ export interface PersistedContentGenerationDestination {
 
 export interface ContentGenerationJobData {
   authority: GenerationAuthority;
-  operationId: string;
   templateName: string;
   context: DurableGenerationContext;
   destination: PersistedContentGenerationDestination;
@@ -162,7 +161,6 @@ export const contentGenerationJobDataSchema: z.ZodType<
   generationLimitPreprocessor(assertGenerationJsonLimits),
   z.object({
     authority: generationAuthoritySchema,
-    operationId: z.string().min(1),
     templateName: z.string().min(1, "Template name is required"),
     context: durableGenerationContextSchema,
     destination: persistedContentGenerationDestinationSchema,

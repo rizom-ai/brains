@@ -19,7 +19,6 @@ import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import { KeyedSerialQueue } from "@brains/utils/serial-queue";
 import { JOB_STATUS } from "./schemas";
-import { NonRetryableJobError } from "./errors";
 import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { Row, Transaction } from "@libsql/client";
 import {
@@ -617,9 +616,7 @@ export class JobQueueRepository {
     const job = current[0];
     if (!job) return false;
 
-    const canRetry =
-      !(error instanceof NonRetryableJobError) &&
-      job.retryCount < job.maxRetries;
+    const canRetry = job.retryCount < job.maxRetries;
     const nextRetryCount = canRetry ? job.retryCount + 1 : job.retryCount;
     const backoffMs = Math.min(1000 * 2 ** job.retryCount, 60_000);
     const scheduledFor = canRetry ? now + backoffMs : job.scheduledFor;
@@ -658,7 +655,7 @@ export class JobQueueRepository {
         scheduledFor: new Date(scheduledFor).toISOString(),
       });
     } else {
-      this.logger.error("Job failed terminally", {
+      this.logger.error("Job failed after max retries", {
         jobId,
         type: job.type,
         retryCount: job.retryCount,

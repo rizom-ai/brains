@@ -10,7 +10,7 @@ this package's services, registries, authorization callbacks, or job payloads.
 - `planGeneration()`: validate structured destinations and templates, check current caller
   policy, and record eligible/skipped decisions without enqueueing work.
 - `ContentGenerationJobHandler`: generate and persist independent targets with conditional
-  writes, recovery receipts, cancellation, and current permission checks.
+  writes, cancellation, and current permission checks.
 - `submitGeneration()`: centralizes preview/admission and enqueues admitted children under
   one shared root job through the existing queue.
 - The plugin namespace supplies trusted caller and queue ownership bindings. Composition
@@ -31,10 +31,11 @@ principal on every access. Existing template, entity-action, publication, and vi
 policies apply. Service/agent authority requires current configured grants/rules; an
 incoming admin level alone does not grant durable authority.
 
-Entity-service commits an operation receipt with the entity and its persistence journals.
-A committed retry must not regenerate, overwrite later edits, or resurrect deleted output.
-Deterministic failures, including permission denials and write conflicts, are terminal.
-Transient infrastructure/provider failures retain the queue's retry policy.
+Entity-service commits the entity with its persistence journals in one transaction.
+Generation jobs are enqueued without retries and never throw after that commit, so a job
+runs at most once: a failed job wrote nothing, and an interrupted worker leaves the job
+failed instead of re-running it against output that may already exist. Re-running the tool
+is the recovery path; planning skips destinations whose output exists.
 
 ## Admission results
 
@@ -46,8 +47,8 @@ Dry runs apply the same admission checks but create no jobs and return no batch 
 
 Results are admission decisions, not completion evidence. Targets are independent, so a
 failure part-way through admission leaves earlier children queued. Re-submitting is safe:
-each job carries its own operation ID and conditional-write receipt, so a committed target
-is skipped rather than regenerated.
+planning skips targets whose output exists, and each job carries the revision it planned
+against, so a stale job conflicts instead of overwriting.
 
 Generated output is addressed by its destination, so callers observe completion by reading
 the destination entity through ordinary typed readers. Raw queue diagnostics and existing
@@ -93,8 +94,7 @@ Admission checks run for both dry runs and real submissions, before recursive JS
 validation and enqueue. Public target metadata transforms are checked again after their
 schema validation. The JSON budget counts keys, punctuation, escaping, and repeated
 references; cycles and excessive depth are rejected without recursively parsing them
-through Zod. Workers check complete durable payloads again, and limit failures use the
-existing non-retryable queue marker.
+through Zod. Workers check complete durable payloads again.
 
 These bound structural inputs that reach durable storage. They are not a model token budget:
 provider protocol overhead and model context windows remain provider-owned, and the existing
@@ -111,8 +111,8 @@ negative type tests, then generates both entity types and reads the committed ou
 typed entity readers. It also verifies dry-run and repeat-submission skips, using an explicit
 CLI service grant and a mocked provider with real runtime, queue, and persistence.
 
-Real SQLite tests cover conditional writes, receipt-backed recovery after acknowledgement
-loss, and visibility-scoped retrieval. Providers remain mocked, so these are service-reopen
+Real SQLite tests cover conditional writes, conflicts after acknowledgement loss, and
+visibility-scoped retrieval. Providers remain mocked, so these are service-reopen
 tests rather than full process-crash evidence. Transport-wide audits, deeper crash testing,
 and publishing preparation are separate follow-ups.
 

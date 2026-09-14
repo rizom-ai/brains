@@ -93,18 +93,6 @@ fatal: it records the reason and exits so the container restart policy can
 replace the process. A bounded host watchdog separately handles event-loop
 liveness failures that prevent the process from exiting itself.
 
-## Retry classification
-
-Ordinary thrown errors use the job's bounded exponential-backoff retry policy.
-Internal handlers can throw `NonRetryableJobError` (exported by this package) for
-failures that retrying the same input cannot repair, such as a revision conflict
-or invalid generated output. Preserve the original error with `{ cause }`.
-
-The queue persists `failed` immediately for that marker, retaining the actual
-retry count rather than pretending retries occurred. The normal attempt fence,
-terminal error callback, and progress notification still apply. Network failures
-and worker cancellation must not be reclassified as permanent validation errors.
-
 ## Deduplication
 
 Deduplicating enqueue decisions are serialized in a database write transaction,

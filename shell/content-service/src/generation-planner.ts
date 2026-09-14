@@ -1,4 +1,3 @@
-import { createId } from "@brains/utils/id";
 import {
   encodeEntityIdPath,
   type IEntityService,
@@ -160,7 +159,6 @@ export async function planContentGeneration(
     );
     const jobData: ContentGenerationJobData = {
       authority,
-      operationId: createId(),
       templateName: target.templateName,
       context: target.context,
       destination,

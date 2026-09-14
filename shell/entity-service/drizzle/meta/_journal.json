@@ -78,13 +78,6 @@
       "when": 1787937772304,
       "tag": "0010_happy_the_enforcers",
       "breakpoints": true
-    },
-    {
-      "idx": 11,
-      "version": "6",
-      "when": 1789290212168,
-      "tag": "0011_breezy_lizard",
-      "breakpoints": true
     }
   ]
 }

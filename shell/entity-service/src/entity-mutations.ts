@@ -43,12 +43,10 @@ import { and, eq, sql } from "drizzle-orm";
 import {
   entityWriteConditionSchema,
   EntityWriteConflictError,
-  type EntityWriteReceipt,
 } from "./entity-write-contracts";
 import {
   assertEntityWriteCondition,
-  EntityWriteReplayed,
-  recordEntityWriteReceipt,
+  type EntityWritePrecondition,
 } from "./entity-write-state";
 import { entityRevision, stableJson } from "./entity-revision";
 
@@ -197,7 +195,7 @@ export class EntityMutations {
         "Conditional creation requires an explicit ID, an absent precondition, and no deduplication",
       );
     }
-    const receipt: EntityWriteReceipt | undefined = condition
+    const precondition: EntityWritePrecondition | undefined = condition
       ? {
           ...condition,
           entityType: entity.entityType,
@@ -263,76 +261,68 @@ export class EntityMutations {
       entityId: finalId,
     });
 
-    // Persist the entity, receipt, search row, and scheduler journal atomically.
-    try {
-      await this.projectionStore.withDirtyInput(
-        {
-          sourceType: validatedEntity.entityType,
-          sourceId: finalId,
-          revision: entityRevision({
-            contentHash,
-            metadata,
-            visibility: validatedEntity.visibility,
-          }),
-          operation: "upsert",
-          markedAt: this.projectionNow(),
-        },
-        async (transaction) => {
-          if (receipt)
-            await assertEntityWriteCondition(
-              transaction,
-              receipt,
-              validatedEntity,
-            );
-          await this.bindAssetContent(
+    // Persist the entity, search row, and scheduler journal atomically.
+    await this.projectionStore.withDirtyInput(
+      {
+        sourceType: validatedEntity.entityType,
+        sourceId: finalId,
+        revision: entityRevision({
+          contentHash,
+          metadata,
+          visibility: validatedEntity.visibility,
+        }),
+        operation: "upsert",
+        markedAt: this.projectionNow(),
+      },
+      async (transaction) => {
+        if (precondition)
+          await assertEntityWriteCondition(
             transaction,
-            validatedEntity.entityType,
-            markdown,
-            stagedAsset,
+            precondition,
+            validatedEntity,
           );
-          await options?.beforeWrite?.({
-            ...validatedEntity,
-            id: finalId,
-            content: markdown,
-            contentHash,
-            metadata,
-          });
-          options?.signal?.throwIfAborted();
-          // Once the entity write starts, settle the complete atomic mutation.
-          await transaction.insert(entities).values({
-            id: finalId,
+        await this.bindAssetContent(
+          transaction,
+          validatedEntity.entityType,
+          markdown,
+          stagedAsset,
+        );
+        await options?.beforeWrite?.({
+          ...validatedEntity,
+          id: finalId,
+          content: markdown,
+          contentHash,
+          metadata,
+        });
+        options?.signal?.throwIfAborted();
+        // Once the entity write starts, settle the complete atomic mutation.
+        await transaction.insert(entities).values({
+          id: finalId,
+          entityType: validatedEntity.entityType,
+          content: markdown,
+          contentHash,
+          visibility: validatedEntity.visibility,
+          metadata,
+          created: new Date(validatedEntity.created).getTime(),
+          updated: new Date(validatedEntity.updated).getTime(),
+        });
+        await this.syncFtsIndex(
+          transaction,
+          finalId,
+          validatedEntity.entityType,
+          markdown,
+        );
+        await this.persistEntityExport(
+          transaction,
+          {
             entityType: validatedEntity.entityType,
-            content: markdown,
-            contentHash,
-            visibility: validatedEntity.visibility,
-            metadata,
-            created: new Date(validatedEntity.created).getTime(),
-            updated: new Date(validatedEntity.updated).getTime(),
-          });
-          if (receipt) await recordEntityWriteReceipt(transaction, receipt);
-          await this.syncFtsIndex(
-            transaction,
-            finalId,
-            validatedEntity.entityType,
-            markdown,
-          );
-          await this.persistEntityExport(
-            transaction,
-            {
-              entityType: validatedEntity.entityType,
-              entityId: finalId,
-              operation: "upsert",
-            },
-            options?.persistenceOrigin,
-          );
-        },
-      );
-    } catch (error) {
-      if (error instanceof EntityWriteReplayed) {
-        return { entityId: finalId, jobId: "", skipped: true };
-      }
-      throw error;
-    }
+            entityId: finalId,
+            operation: "upsert",
+          },
+          options?.persistenceOrigin,
+        );
+      },
+    );
     await this.notifyProjectionScheduler();
 
     this.logger.debug(
@@ -384,7 +374,7 @@ export class EntityMutations {
         "Conditional replacement requires a revision and cannot combine preconditions",
       );
     }
-    const receipt: EntityWriteReceipt | undefined = condition
+    const precondition: EntityWritePrecondition | undefined = condition
       ? { ...condition, entityType: entity.entityType, entityId: entity.id }
       : undefined;
     this.logger.debug(
@@ -441,10 +431,10 @@ export class EntityMutations {
     const existingEntity = existing.at(0);
 
     if (!existingEntity) {
-      if (receipt)
+      if (precondition)
         throw new EntityWriteConflictError(
-          receipt.entityType,
-          receipt.entityId,
+          precondition.entityType,
+          precondition.entityId,
         );
       throw new Error(
         `Entity not found: ${validatedEntity.entityType}:${validatedEntity.id}`,
@@ -474,7 +464,7 @@ export class EntityMutations {
     );
 
     if (
-      !receipt &&
+      !precondition &&
       existingEntity.contentHash === contentHash &&
       existingEntity.visibility === validatedEntity.visibility &&
       stableJson(existingEntity.metadata) === stableJson(metadata)
@@ -545,10 +535,10 @@ export class EntityMutations {
           markedAt: this.projectionNow(),
         },
         async (transaction) => {
-          if (receipt)
+          if (precondition)
             await assertEntityWriteCondition(
               transaction,
-              receipt,
+              precondition,
               validatedEntity,
             );
           await this.bindAssetContent(
@@ -564,7 +554,7 @@ export class EntityMutations {
             metadata,
           });
           options?.signal?.throwIfAborted();
-          // Cancellation after this boundary must not split entity and receipt.
+          // Cancellation after this boundary must not split the entity from its journals.
           const updateResult = await transaction
             .update(entities)
             .set({
@@ -587,14 +577,13 @@ export class EntityMutations {
             (condition || options?.expectedContentHash !== undefined) &&
             Number(updateResult.rowsAffected) === 0
           ) {
-            if (receipt)
+            if (precondition)
               throw new EntityWriteConflictError(
-                receipt.entityType,
-                receipt.entityId,
+                precondition.entityType,
+                precondition.entityId,
               );
             throw new StaleEntityUpdateError();
           }
-          if (receipt) await recordEntityWriteReceipt(transaction, receipt);
           await this.syncFtsIndex(
             transaction,
             validatedEntity.id,
@@ -613,9 +602,6 @@ export class EntityMutations {
         },
       );
     } catch (error) {
-      if (error instanceof EntityWriteReplayed) {
-        return { entityId: validatedEntity.id, jobId: "", skipped: true };
-      }
       if (!(error instanceof StaleEntityUpdateError)) throw error;
       this.logger.debug(
         `Skipping concurrently stale update for ${validatedEntity.entityType}:${validatedEntity.id}`,

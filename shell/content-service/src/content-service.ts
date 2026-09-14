@@ -29,7 +29,6 @@ import type {
   ListOptions,
 } from "@brains/entity-service";
 import type { IAIService } from "@brains/ai-service";
-import { NonRetryableJobError } from "@brains/job-queue";
 import { isPlainRecord } from "@brains/utils/predicates";
 import type { Logger } from "@brains/utils/logger";
 import type { ContentService as IContentService } from "./types";
@@ -468,7 +467,7 @@ export class ContentService implements IContentService {
     if (visibilityScope) {
       if (!dataSource.generateScoped) {
         // A configuration gap, not an authorization failure; retrying cannot fix it.
-        throw new NonRetryableJobError(
+        throw new Error(
           `DataSource ${template.dataSourceId} does not support visibility-scoped generation`,
         );
       }

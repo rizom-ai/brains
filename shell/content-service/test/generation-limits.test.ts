@@ -1,5 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { NonRetryableJobError } from "@brains/job-queue";
 import type { JsonObject, JsonValue } from "@brains/contracts";
 import {
   MAX_GENERATION_REQUEST_BYTES,
@@ -106,13 +105,5 @@ describe("generation request budgets", () => {
     expect(() =>
       assertGenerationRequestLimits({ targets: [one, one] }),
     ).toThrow(GenerationLimitError);
-  });
-});
-
-describe("generation limit errors", () => {
-  test("limit failures use the existing non-retryable queue marker", () => {
-    expect(new GenerationLimitError("limit")).toBeInstanceOf(
-      NonRetryableJobError,
-    );
   });
 });

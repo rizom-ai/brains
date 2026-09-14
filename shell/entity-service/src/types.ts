@@ -60,10 +60,7 @@ export type {
   EntityMutationAdmissionTarget,
 } from "./mutation-admission";
 
-import type {
-  EntityWriteCondition,
-  EntityWriteReceipt,
-} from "./entity-write-contracts";
+import type { EntityWriteCondition } from "./entity-write-contracts";
 
 export interface EntityWriteSnapshot {
   entity: BaseEntity;
@@ -103,7 +100,7 @@ export interface CreateEntityOptions extends EntityJobOptions {
   /** Runtime-only guard over the final persisted fields, immediately before writing. */
   beforeWrite?: (entity: Readonly<BaseEntity>) => Promise<void>;
   deduplicateId?: boolean;
-  /** Atomic create-if-absent plus an operation receipt. Cannot deduplicate. */
+  /** Atomic create-if-absent. Cannot deduplicate. */
   conditionalWrite?: EntityWriteCondition;
 }
 
@@ -115,7 +112,7 @@ export interface UpdateEntityOptions extends EntityJobOptions {
   beforeWrite?: (entity: Readonly<BaseEntity>) => Promise<void>;
   /** Apply only while the stored entity still has this content hash. */
   expectedContentHash?: string | undefined;
-  /** Atomic full-revision replace plus an operation receipt. */
+  /** Atomic full-revision replace. */
   conditionalWrite?: EntityWriteCondition;
 }
 
@@ -1125,10 +1122,6 @@ export interface EntityService extends EntityServiceClient {
   getEntityWriteSnapshot(
     request: GetEntityRequest,
   ): Promise<EntityWriteSnapshot | null>;
-  /** Internal recovery evidence; callers must enforce operation access. */
-  getEntityWriteReceipt(
-    operationId: string,
-  ): Promise<EntityWriteReceipt | null>;
   // Scheduler-owned projection coordination
   getProjectionStore(): ProjectionStore;
   setProjectionWakeup(wakeup: () => Promise<void>): () => void;

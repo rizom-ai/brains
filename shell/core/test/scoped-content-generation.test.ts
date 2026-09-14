@@ -274,10 +274,7 @@ describe("scoped durable content generation", () => {
     const outcome = await generate("restricted").catch(
       (error: unknown) => error,
     );
-    expect(outcome).toMatchObject({
-      name: "NonRetryableJobError",
-      cause: { name: "GenerationAuthorizationError" },
-    });
+    expect(outcome).toMatchObject({ name: "GenerationAuthorizationError" });
     expect(provider).toHaveBeenCalledTimes(1);
     expect(
       await entities.getEntity({

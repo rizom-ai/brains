@@ -4,27 +4,28 @@ import {
   contentGenerationJobDataSchema,
   type ContentGenerationJobData,
 } from "../generation-contracts";
-import { NonRetryableJobError, type JobHandler } from "@brains/job-queue";
-import { AIOutputValidationError } from "@brains/ai-service";
-import { z } from "@brains/utils/zod";
+import type { JobHandler } from "@brains/job-queue";
 import { getErrorMessage } from "@brains/utils/error";
 import {
-  assertEntityWriteReceiptMatches,
   EntityWriteConflictError,
-  EntityWriteIntentMismatchError,
-  EntityValidationError,
   type BaseEntity,
   type IEntityService,
 } from "@brains/entity-service";
 import type { ProgressReporter } from "@brains/utils/progress";
-import { GenerationAuthorizationError } from "../generation-authorization";
 
 interface GeneratedOutput {
   entityType: string;
   entityId: string;
 }
 
-/** Generates independent targets; the entity service owns atomic admission/recovery. */
+/**
+ * Generates independent targets; the entity service owns atomic admission.
+ *
+ * Jobs run at most once: they are enqueued without retries, and nothing here
+ * throws after the entity commit. So a failed job wrote nothing, and an
+ * interrupted worker leaves a failed job rather than re-running against output
+ * that may already exist. Re-submitting plans afresh and skips existing output.
+ */
 export class ContentGenerationJobHandler implements JobHandler<"content-generation"> {
   private logger: Logger;
   private contentService: ContentService;
@@ -48,23 +49,6 @@ export class ContentGenerationJobHandler implements JobHandler<"content-generati
     this.entityService = entityService;
   }
 
-  /** A committed receipt survives edits/deletes and must be checked before any AI call. */
-  private async committedOutput(
-    data: ContentGenerationJobData,
-  ): Promise<GeneratedOutput | null> {
-    const receipt = await this.entityService.getEntityWriteReceipt(
-      data.operationId,
-    );
-    if (!receipt) return null;
-    assertEntityWriteReceiptMatches(receipt, {
-      operationId: data.operationId,
-      expectedRevision: data.expectedRevision,
-      entityType: data.destination.entityType,
-      entityId: data.destination.entityId,
-    });
-    return { entityType: receipt.entityType, entityId: receipt.entityId };
-  }
-
   public async process(
     data: ContentGenerationJobData,
     jobId: string,
@@ -73,9 +57,6 @@ export class ContentGenerationJobHandler implements JobHandler<"content-generati
   ): Promise<GeneratedOutput> {
     try {
       signal?.throwIfAborted();
-      const committed = await this.committedOutput(data);
-      signal?.throwIfAborted();
-      if (committed) return committed;
       const { destination } = data;
       // First of two authority resolutions; the second guards the entity write.
       await this.contentService.authorizeGenerationWrite(data);
@@ -90,11 +71,9 @@ export class ContentGenerationJobHandler implements JobHandler<"content-generati
         (snapshot?.revision ?? null) !== data.expectedRevision ||
         (snapshot && snapshot.entity.visibility !== destination.visibility)
       ) {
-        // Another attempt of this same operation may have committed between
-        // the receipt lookup and snapshot read. Recover rather than conflict.
-        const completed = await this.committedOutput(data);
-        signal?.throwIfAborted();
-        if (completed) return completed;
+        // Includes a retry of an attempt that committed before the queue was
+        // acknowledged: the output exists, so fail terminally rather than
+        // regenerate it. No AI call has been made yet.
         throw new EntityWriteConflictError(
           destination.entityType,
           destination.entityId,
@@ -103,7 +82,7 @@ export class ContentGenerationJobHandler implements JobHandler<"content-generati
 
       const template = this.contentService.getTemplate(data.templateName);
       if (!template?.dataSourceId || !template.formatter) {
-        throw new NonRetryableJobError(
+        throw new Error(
           `Generation template is unavailable or incomplete: ${data.templateName}`,
         );
       }
@@ -132,10 +111,9 @@ export class ContentGenerationJobHandler implements JobHandler<"content-generati
           content,
         );
       } catch (error) {
-        throw new NonRetryableJobError(
-          getErrorMessage(error, "Content formatting failed"),
-          { cause: error },
-        );
+        throw new Error(getErrorMessage(error, "Content formatting failed"), {
+          cause: error,
+        });
       }
       signal?.throwIfAborted();
       const options = {
@@ -145,10 +123,7 @@ export class ContentGenerationJobHandler implements JobHandler<"content-generati
           await this.contentService.authorizeGenerationWrite(data, entity);
         },
         ...(signal && { signal }),
-        conditionalWrite: {
-          operationId: data.operationId,
-          expectedRevision: data.expectedRevision,
-        },
+        conditionalWrite: { expectedRevision: data.expectedRevision },
       };
       if (snapshot) {
         await this.entityService.updateEntity({
@@ -171,12 +146,20 @@ export class ContentGenerationJobHandler implements JobHandler<"content-generati
           options,
         });
       }
-      await progressReporter.report({
-        progress: 3,
-        total: 3,
-        message: `Completed content generation for: ${data.templateName}`,
-      });
-      // Only advertise persistence after the atomic entity/receipt commit.
+      // The write is committed. Reporting is best-effort from here: a failure
+      // would make the queue retry-or-fail a job whose output already exists.
+      try {
+        await progressReporter.report({
+          progress: 3,
+          total: 3,
+          message: `Completed content generation for: ${data.templateName}`,
+        });
+      } catch (error) {
+        this.logger.warn("Completion report failed after commit", {
+          jobId,
+          error,
+        });
+      }
       return {
         entityType: destination.entityType,
         entityId: destination.entityId,
@@ -188,17 +171,6 @@ export class ContentGenerationJobHandler implements JobHandler<"content-generati
         templateName: data.templateName,
         error,
       });
-      // Deterministic failures must not spend the queue's transient retry budget.
-      if (
-        error instanceof GenerationAuthorizationError ||
-        error instanceof EntityWriteConflictError ||
-        error instanceof EntityWriteIntentMismatchError ||
-        error instanceof EntityValidationError ||
-        error instanceof z.ZodError ||
-        error instanceof AIOutputValidationError
-      ) {
-        throw new NonRetryableJobError(error.message, { cause: error });
-      }
       // Resolving an error object would incorrectly acknowledge queue success.
       throw error;
     }

@@ -10,7 +10,6 @@ import {
   createSilentLogger,
   createMockProgressReporter,
 } from "@brains/test-utils";
-import { NonRetryableJobError } from "@brains/job-queue";
 import { ContentService } from "../src/content-service";
 import { ContentGenerationJobHandler } from "../src/handlers/contentGenerationJobHandler";
 import {
@@ -357,7 +356,7 @@ describe("generation policy boundaries", () => {
           createMockProgressReporter(),
         ),
       );
-      expect(denied).toBeInstanceOf(NonRetryableJobError);
+      expect(denied).toBeInstanceOf(GenerationAuthorizationError);
       expect(read).not.toHaveBeenCalled();
       expect(generate).not.toHaveBeenCalled();
     },
@@ -380,16 +379,13 @@ describe("generation policy boundaries", () => {
         createMockProgressReporter(),
       ),
     );
-    expect(denied).toMatchObject({
-      name: "NonRetryableJobError",
-      cause: { name: "GenerationAuthorizationError" },
-    });
+    expect(denied).toBeInstanceOf(GenerationAuthorizationError);
     // The guard runs at the write boundary, so the mutation aborts instead of
     // committing; persistence rolls back rather than never being attempted.
     expect(create).toHaveBeenCalledTimes(1);
   });
 
-  test("resolver infrastructure errors retain the queue's retry policy", async () => {
+  test("resolver infrastructure errors propagate unchanged", async () => {
     const { service, entities, principal } = fixture();
     const plan = await service.planGeneration({ caller, targets: [target] });
     const data = plan.planned[0]?.jobData;

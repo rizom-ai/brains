@@ -1,6 +1,5 @@
 import { createMockAIService } from "@brains/ai-service/test";
 import { AIOutputValidationError } from "@brains/ai-service";
-import { NonRetryableJobError } from "@brains/job-queue";
 import {
   createMockDataSourceRegistry,
   createMockEntityService,
@@ -107,7 +106,6 @@ const existingEntity: BaseEntity = {
 };
 const jobData: ContentGenerationJobData = {
   authority: { actor: caller.actor, permissionCeiling: "trusted" },
-  operationId: "operation-test",
   templateName: chapterTarget.templateName,
   context: chapterTarget.context,
   destination: {
@@ -269,26 +267,10 @@ describe("ContentService.planGeneration", () => {
     ).rejects.toThrow();
     expect(read).not.toHaveBeenCalled();
   });
-
-  test("assigns distinct operation identities to separate submissions", async () => {
-    const { service } = createFixture();
-    const first = await service.planGeneration({
-      caller,
-      targets: [chapterTarget],
-    });
-    const second = await service.planGeneration({
-      caller,
-      targets: [chapterTarget],
-    });
-    expect(first.planned[0]?.jobData.operationId).toBeString();
-    expect(first.planned[0]?.jobData.operationId).not.toBe(
-      second.planned[0]?.jobData.operationId,
-    );
-  });
 });
 
 describe("ContentGenerationJobHandler", () => {
-  test("oversized durable payloads fail terminally before receipt reads or AI", async () => {
+  test("oversized durable payloads fail terminally before entity reads or AI", async () => {
     const { service, entityService } = createFixture();
     const handler = ContentGenerationJobHandler.createFresh(
       service,
@@ -298,16 +280,16 @@ describe("ContentGenerationJobHandler", () => {
       ...jobData,
       context: { prompt: "x".repeat(MAX_GENERATION_REQUEST_BYTES) },
     };
-    const receipts = spyOn(entityService, "getEntityWriteReceipt");
+    const read = spyOn(entityService, "getEntityWriteSnapshot");
     const generate = spyOn(service, "generateContent");
     // The payload schema owns the limit; the worker never processes invalid data.
     expect(handler.validateAndParse(data)).toBeNull();
-    expect(receipts).not.toHaveBeenCalled();
+    expect(read).not.toHaveBeenCalled();
     expect(generate).not.toHaveBeenCalled();
   });
-  test("already aborted work performs no receipt reads, AI calls or mutations", async () => {
+  test("already aborted work performs no entity reads, AI calls or mutations", async () => {
     const { service, entityService } = createFixture();
-    const receipt = spyOn(entityService, "getEntityWriteReceipt");
+    const read = spyOn(entityService, "getEntityWriteSnapshot");
     const generate = spyOn(service, "generateContent");
     const create = spyOn(entityService, "createEntity");
     const reason = new Error("worker cancelled");
@@ -323,7 +305,7 @@ describe("ContentGenerationJobHandler", () => {
         AbortSignal.abort(reason),
       ),
     ).rejects.toBe(reason);
-    expect(receipt).not.toHaveBeenCalled();
+    expect(read).not.toHaveBeenCalled();
     expect(generate).not.toHaveBeenCalled();
     expect(create).not.toHaveBeenCalled();
   });
@@ -389,11 +371,11 @@ describe("ContentGenerationJobHandler", () => {
       );
       expect(
         handler.process(jobData, "invalid", createMockProgressReporter()),
-      ).rejects.toMatchObject({ name: "NonRetryableJobError", cause: error });
+      ).rejects.toBe(error);
     },
   );
 
-  test("a removed generation template is terminal before any provider call", async () => {
+  test("a removed generation template is denied before any provider call", async () => {
     const { service, entityService } = createFixture();
     const generate = spyOn(service, "generateContent");
     const handler = ContentGenerationJobHandler.createFresh(
@@ -406,7 +388,9 @@ describe("ContentGenerationJobHandler", () => {
         "invalid",
         createMockProgressReporter(),
       ),
-    ).rejects.toBeInstanceOf(NonRetryableJobError);
+      // Authorization resolves the template first, so a missing template is a
+      // denial: the job carries no authority for a template that no longer exists.
+    ).rejects.toThrow("Content generation is not permitted");
     expect(generate).not.toHaveBeenCalled();
   });
 
@@ -436,10 +420,7 @@ describe("ContentGenerationJobHandler", () => {
         createMockProgressReporter(),
       );
       if (stage === "formatting") {
-        expect(result).rejects.toMatchObject({
-          name: "NonRetryableJobError",
-          cause: error,
-        });
+        expect(result).rejects.toMatchObject({ cause: error });
       } else {
         expect(result).rejects.toBe(error);
       }
@@ -463,7 +444,7 @@ describe("ContentGenerationJobHandler", () => {
       .process(jobData, "unsupported", createMockProgressReporter())
       .catch((error: unknown) => error);
     // A configuration gap is terminal, but it is not an authorization failure.
-    expect(outcome).toBeInstanceOf(NonRetryableJobError);
+    expect(outcome).toBeInstanceOf(Error);
     expect(outcome).toMatchObject({
       message: expect.stringContaining("visibility-scoped generation"),
     });
@@ -512,10 +493,7 @@ describe("ContentGenerationJobHandler", () => {
       },
       options: {
         beforeWrite: expect.any(Function),
-        conditionalWrite: {
-          operationId: jobData.operationId,
-          expectedRevision: null,
-        },
+        conditionalWrite: { expectedRevision: null },
       },
     });
   });
@@ -542,12 +520,33 @@ describe("ContentGenerationJobHandler", () => {
       entity: { ...existingEntity, content: "New chapter" },
       options: {
         beforeWrite: expect.any(Function),
-        conditionalWrite: {
-          operationId: jobData.operationId,
-          expectedRevision: "observed",
-        },
+        conditionalWrite: { expectedRevision: "observed" },
       },
     });
+  });
+
+  test("a progress failure after the commit does not fail the job", async () => {
+    const { service, entityService } = createFixture();
+    spyOn(service, "generateContent").mockResolvedValue("body");
+    spyOn(service, "formatContent").mockReturnValue("body");
+    const create = spyOn(entityService, "createEntity");
+    const progress = createMockProgressReporter();
+    spyOn(progress, "report").mockImplementation(
+      async ({ progress: value }) => {
+        if (value === 3) throw new Error("notification failed");
+      },
+    );
+    const handler = ContentGenerationJobHandler.createFresh(
+      service,
+      entityService,
+    );
+    // Jobs run at most once: after the commit nothing may turn success into
+    // a failure the queue would report as "nothing written".
+    expect(await handler.process(jobData, "job", progress)).toEqual({
+      entityType: "book-section",
+      entityId: existingEntity.id,
+    });
+    expect(create).toHaveBeenCalledTimes(1);
   });
 
   test("rejects an already stale plan before calling AI", async () => {
@@ -567,31 +566,7 @@ describe("ContentGenerationJobHandler", () => {
         "job",
         createMockProgressReporter(),
       ),
-    ).rejects.toMatchObject({
-      name: NonRetryableJobError.name,
-      cause: expect.any(EntityWriteConflictError),
-    });
-    expect(generate).not.toHaveBeenCalled();
-  });
-
-  test("recognizes committed operations before entity reads or AI", async () => {
-    const { service, entityService } = createFixture();
-    spyOn(entityService, "getEntityWriteReceipt").mockResolvedValue({
-      operationId: jobData.operationId,
-      expectedRevision: null,
-      entityType: "book-section",
-      entityId: existingEntity.id,
-    });
-    const read = spyOn(entityService, "getEntityWriteSnapshot");
-    const generate = spyOn(service, "generateContent");
-    const handler = ContentGenerationJobHandler.createFresh(
-      service,
-      entityService,
-    );
-    expect(
-      await handler.process(jobData, "retry", createMockProgressReporter()),
-    ).toEqual({ entityType: "book-section", entityId: existingEntity.id });
-    expect(read).not.toHaveBeenCalled();
+    ).rejects.toBeInstanceOf(EntityWriteConflictError);
     expect(generate).not.toHaveBeenCalled();
   });
 });

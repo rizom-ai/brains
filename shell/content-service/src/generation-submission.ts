@@ -22,8 +22,8 @@ export interface GenerationQueueBinding {
  * The queue already indexes that durably, so no separate batch record is kept:
  * `getJobsByRootJobId(batchId)` recovers the children after a restart. Targets
  * are independent, so a failure mid-admission leaves earlier children queued,
- * matching existing batch enqueue behavior. Re-submitting is safe because each
- * job carries its own operation ID and conditional-write receipt.
+ * matching existing batch enqueue behavior. Re-submitting is safe because planning
+ * skips existing output and each job conflicts on a changed revision.
  */
 export async function submitContentGeneration(
   planner: {

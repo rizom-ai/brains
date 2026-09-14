@@ -250,8 +250,9 @@ returned `batchId` is the shared root job ID of the admitted children, for use w
 runtime's existing job diagnostics.
 
 Targets are independent and may partially succeed. Re-submitting the same request is safe:
-each admitted target carries its own operation receipt, so committed work is skipped rather
-than regenerated or overwritten. Caller identity, permission levels, queue internals, and
+targets whose output already exists are skipped, and a job that planned against an older
+revision conflicts rather than overwriting. A job runs at most once, so a failed job wrote
+nothing and re-submitting generates only what is missing. Caller identity, permission levels, queue internals, and
 authorization callbacks are not author inputs.
 
 The packed service fixture compiles mixed targets and negative type tests, submits both

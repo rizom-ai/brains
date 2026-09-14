@@ -5,7 +5,6 @@ import type {
   BaseEntity,
   EntityMutationResult,
   EntityWriteSnapshot,
-  EntityWriteReceipt,
   IEntityService,
   SearchResult,
 } from "../index";
@@ -16,7 +15,6 @@ import type {
 export interface MockEntityServiceReturns {
   getEntity?: BaseEntity | null;
   getEntityWriteSnapshot?: EntityWriteSnapshot | null;
-  getEntityWriteReceipt?: EntityWriteReceipt | null;
   createEntity?: EntityMutationResult;
   updateEntity?: EntityMutationResult;
   deleteEntity?: boolean;
@@ -128,9 +126,6 @@ export function createMockEntityService(
   return {
     getEntityWriteSnapshot: mock(
       async () => returns.getEntityWriteSnapshot ?? null,
-    ),
-    getEntityWriteReceipt: mock(
-      async () => returns.getEntityWriteReceipt ?? null,
     ),
     getEntity: genericSpy<IEntityService["getEntity"]>(getEntityMock),
     getEntityRaw: genericSpy<IEntityService["getEntityRaw"]>(getEntityRawMock),

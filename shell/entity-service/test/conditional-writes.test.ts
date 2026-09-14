@@ -17,12 +17,9 @@ const input = {
   content: "Original",
   metadata: { clientId: "a" },
 };
-const createCondition = {
-  operationId: "create-chapter",
-  expectedRevision: null,
-};
+const createCondition = { expectedRevision: null };
 
-describe("atomic entity writes and receipts (real SQLite)", () => {
+describe("atomic conditional entity writes (real SQLite)", () => {
   let ctx: EntityServiceTestContext;
   let client: Client;
   beforeEach(async () => {
@@ -48,38 +45,23 @@ describe("atomic entity writes and receipts (real SQLite)", () => {
     return result;
   }
 
-  test("creates once, records its receipt, and rejects a competing create", async () => {
+  test("creates once and rejects any later create-if-absent", async () => {
     await ctx.entityService.createEntity({
       entity: input,
       options: { conditionalWrite: createCondition },
     });
     const first = await snapshot();
     expect(
-      await ctx.entityService.getEntityWriteReceipt(
-        createCondition.operationId,
-      ),
-    ).toEqual({ ...createCondition, entityType: "test", entityId: "chapter" });
-    const replay = await ctx.entityService.createEntity({
-      entity: input,
-      options: { conditionalWrite: createCondition },
-    });
-    expect(replay.skipped).toBe(true);
-    expect((await snapshot()).revision).toBe(first.revision);
-    expect(
       ctx.entityService.createEntity({
         entity: input,
-        options: {
-          conditionalWrite: { ...createCondition, operationId: "competitor" },
-        },
+        options: { conditionalWrite: createCondition },
       }),
     ).rejects.toBeInstanceOf(EntityWriteConflictError);
-    expect(
-      await ctx.entityService.getEntityWriteReceipt("competitor"),
-    ).toBeNull();
+    expect((await snapshot()).revision).toBe(first.revision);
   });
 
   test.each(["create", "replace"] as const)(
-    "cancellation during %s validation leaves entity and receipt unchanged",
+    "cancellation during %s validation leaves the entity unchanged",
     async (mode) => {
       if (mode === "replace")
         await ctx.entityService.createEntity({ entity: input });
@@ -91,10 +73,7 @@ describe("atomic entity writes and receipts (real SQLite)", () => {
       });
       const options = {
         signal: controller.signal,
-        conditionalWrite: {
-          operationId: "cancelled",
-          expectedRevision: before?.revision ?? null,
-        },
+        conditionalWrite: { expectedRevision: before?.revision ?? null },
       };
       const mutation = before
         ? ctx.entityService.updateEntity({
@@ -103,9 +82,6 @@ describe("atomic entity writes and receipts (real SQLite)", () => {
           })
         : ctx.entityService.createEntity({ entity: input, options });
       expect(mutation).rejects.toBe(reason);
-      expect(
-        await ctx.entityService.getEntityWriteReceipt("cancelled"),
-      ).toBeNull();
       expect(
         await ctx.entityService.getEntityWriteSnapshot({
           entityType: "test",
@@ -118,22 +94,13 @@ describe("atomic entity writes and receipts (real SQLite)", () => {
   test("replaces exactly the observed revision and changes the token", async () => {
     await ctx.entityService.createEntity({ entity: input });
     const observed = await snapshot();
-    const condition = {
-      operationId: "replace",
-      expectedRevision: observed.revision,
-    };
     await ctx.entityService.updateEntity({
       entity: { ...observed.entity, content: "Generated" },
-      options: { conditionalWrite: condition },
+      options: { conditionalWrite: { expectedRevision: observed.revision } },
     });
     const after = await snapshot();
     expect(after.entity.content).toBe("Generated");
     expect(after.revision).not.toBe(observed.revision);
-    expect(await ctx.entityService.getEntityWriteReceipt("replace")).toEqual({
-      ...condition,
-      entityType: "test",
-      entityId: "chapter",
-    });
   });
 
   test.each(["body", "metadata", "visibility", "delete"] as const)(
@@ -171,14 +138,10 @@ describe("atomic entity writes and receipts (real SQLite)", () => {
         ctx.entityService.updateEntity({
           entity: { ...observed.entity, content: "Stale generation" },
           options: {
-            conditionalWrite: {
-              operationId: "stale",
-              expectedRevision: observed.revision,
-            },
+            conditionalWrite: { expectedRevision: observed.revision },
           },
         }),
       ).rejects.toBeInstanceOf(EntityWriteConflictError);
-      expect(await ctx.entityService.getEntityWriteReceipt("stale")).toBeNull();
       expect(
         await ctx.entityService.getEntityWriteSnapshot({
           entityType: "test",
@@ -212,28 +175,22 @@ describe("atomic entity writes and receipts (real SQLite)", () => {
       await ctx.entityService.updateEntity({
         entity: { ...observed.entity, content: "Generated" },
         options: {
-          conditionalWrite: {
-            operationId: `after-${change}`,
-            expectedRevision: observed.revision,
-          },
+          conditionalWrite: { expectedRevision: observed.revision },
         },
       });
       expect((await snapshot()).entity.content).toBe("Generated");
     },
   );
 
-  test("identical conditional writes are idempotent: both commit receipts and the revision stays", async () => {
+  test("identical conditional writes are idempotent: both commit and the revision stays", async () => {
     await ctx.entityService.createEntity({ entity: input });
     const observed = await snapshot();
     const results = await Promise.allSettled(
-      ["one", "two"].map((operationId) =>
+      [1, 2].map(() =>
         ctx.entityService.updateEntity({
           entity: observed.entity,
           options: {
-            conditionalWrite: {
-              operationId,
-              expectedRevision: observed.revision,
-            },
+            conditionalWrite: { expectedRevision: observed.revision },
           },
         }),
       ),
@@ -242,10 +199,6 @@ describe("atomic entity writes and receipts (real SQLite)", () => {
     // so a second identical writer still matches its precondition. Distinct
     // content is the case that must lose; see the independent-connections test.
     expect(results.every((result) => result.status === "fulfilled")).toBe(true);
-    const receipts = await Promise.all(
-      ["one", "two"].map((id) => ctx.entityService.getEntityWriteReceipt(id)),
-    );
-    expect(receipts.filter(Boolean)).toHaveLength(2);
     expect((await snapshot()).revision).toBe(observed.revision);
   });
 
@@ -267,40 +220,25 @@ describe("atomic entity writes and receipts (real SQLite)", () => {
           service.updateEntity({
             entity: { ...observed.entity, content: `writer-${index}` },
             options: {
-              conditionalWrite: {
-                operationId: `writer-${index}`,
-                expectedRevision: observed.revision,
-              },
+              conditionalWrite: { expectedRevision: observed.revision },
             },
           }),
         ),
       );
-      expect(
-        results.filter((result) => result.status === "fulfilled"),
-      ).toHaveLength(1);
-      expect(
-        results.filter((result) => result.status === "rejected"),
-      ).toHaveLength(1);
-      const receipts = await Promise.all(
-        ["writer-0", "writer-1"].map((id) =>
-          ctx.entityService.getEntityWriteReceipt(id),
-        ),
+      const winner = results.findIndex(
+        (result) => result.status === "fulfilled",
       );
-      expect(receipts.filter(Boolean)).toHaveLength(1);
-      const winner = receipts.find((receipt) => receipt !== null);
-      if (!winner) throw new Error("Expected exactly one committed writer");
-      expect((await snapshot()).entity.content).toBe(winner.operationId);
+      const loser = results.findIndex((result) => result.status === "rejected");
+      expect(winner).not.toBe(-1);
+      expect(loser).not.toBe(-1);
+      expect((await snapshot()).entity.content).toBe(`writer-${winner}`);
       // A connection may first lose with SQLITE_BUSY; retrying must conflict,
       // not adopt the winner's revision and overwrite it.
-      const loser = results.findIndex((result) => result.status === "rejected");
       expect(
         ctx.entityService.updateEntity({
           entity: { ...observed.entity, content: "Retry must not overwrite" },
           options: {
-            conditionalWrite: {
-              operationId: `writer-${loser}`,
-              expectedRevision: observed.revision,
-            },
+            conditionalWrite: { expectedRevision: observed.revision },
           },
         }),
       ).rejects.toBeInstanceOf(EntityWriteConflictError);
@@ -310,8 +248,8 @@ describe("atomic entity writes and receipts (real SQLite)", () => {
     // Two local libsql connections can wait out SQLite's 5s busy timeout.
   }, 15_000);
 
-  test("concurrent retries commit one write and one receipt", async () => {
-    const results = await Promise.all(
+  test("concurrent create-if-absent attempts commit exactly one write", async () => {
+    const results = await Promise.allSettled(
       [1, 2].map(() =>
         ctx.entityService.createEntity({
           entity: input,
@@ -319,7 +257,11 @@ describe("atomic entity writes and receipts (real SQLite)", () => {
         }),
       ),
     );
-    expect(results.filter((result) => !result.skipped)).toHaveLength(1);
+    expect(
+      results.filter((result) => result.status === "fulfilled"),
+    ).toHaveLength(1);
+    const rejected = results.find((result) => result.status === "rejected");
+    expect(rejected?.reason).toBeInstanceOf(EntityWriteConflictError);
     expect(
       await ctx.entityService.getProjectionStore().listPendingInputs(),
     ).toHaveLength(1);
@@ -327,7 +269,7 @@ describe("atomic entity writes and receipts (real SQLite)", () => {
   });
 
   test.each(["create", "replace"] as const)(
-    "rolls back %s, its revision, receipt, FTS and export on a late failure",
+    "rolls back %s, its revision, FTS and export on a late failure",
     async (mode) => {
       if (mode === "replace")
         await ctx.entityService.createEntity({ entity: input });
@@ -337,12 +279,9 @@ describe("atomic entity writes and receipts (real SQLite)", () => {
         .getProjectionStore()
         .listPendingInputs();
       await client.execute(
-        `CREATE TRIGGER reject_receipt_test BEFORE INSERT ON entity_export_intents BEGIN SELECT RAISE(ABORT, 'injected failure'); END`,
+        `CREATE TRIGGER reject_export_test BEFORE INSERT ON entity_export_intents BEGIN SELECT RAISE(ABORT, 'injected failure'); END`,
       );
-      const conditionalWrite = {
-        operationId: "rollback",
-        expectedRevision: before?.revision ?? null,
-      };
+      const conditionalWrite = { expectedRevision: before?.revision ?? null };
       const mutation = before
         ? ctx.entityService.updateEntity({
             entity: { ...before.entity, content: "Rollback" },
@@ -364,9 +303,6 @@ describe("atomic entity writes and receipts (real SQLite)", () => {
         },
       );
       expect(
-        await ctx.entityService.getEntityWriteReceipt("rollback"),
-      ).toBeNull();
-      expect(
         await ctx.entityService.getEntityWriteSnapshot({
           entityType: "test",
           id: "chapter",
@@ -387,64 +323,46 @@ describe("atomic entity writes and receipts (real SQLite)", () => {
     },
   );
 
-  test.each(["edit", "delete"] as const)(
-    "recovers after acknowledgement loss and restart without undoing a later %s",
-    async (change) => {
-      const enqueue = spyOn(
-        ctx.jobQueueService,
-        "enqueue",
-      ).mockRejectedValueOnce(new Error("acknowledgement lost"));
-      expect(
-        ctx.entityService.createEntity({
-          entity: input,
-          options: { conditionalWrite: createCondition },
-        }),
-      ).rejects.toThrow("acknowledgement lost");
-      expect(
-        await ctx.entityService.getEntityWriteReceipt(
-          createCondition.operationId,
-        ),
-      ).not.toBeNull();
-      if (change === "edit") {
-        const saved = await snapshot();
-        await ctx.entityService.updateEntity({
-          entity: { ...saved.entity, content: "Editor wins" },
-        });
-      } else {
-        await ctx.entityService.deleteEntity({
+  test("a retry after acknowledgement loss and restart conflicts instead of undoing a later edit", async () => {
+    const enqueue = spyOn(ctx.jobQueueService, "enqueue").mockRejectedValueOnce(
+      new Error("acknowledgement lost"),
+    );
+    expect(
+      ctx.entityService.createEntity({
+        entity: input,
+        options: { conditionalWrite: createCondition },
+      }),
+    ).rejects.toThrow("acknowledgement lost");
+    const saved = await snapshot();
+    await ctx.entityService.updateEntity({
+      entity: { ...saved.entity, content: "Editor wins" },
+    });
+    ctx.entityService.close();
+    ctx.entityService = EntityService.createFresh({
+      dbConfig: ctx.dbConfig,
+      embeddingDbConfig: ctx.embeddingDbConfig,
+      entityRegistry: ctx.entityRegistry,
+      embeddingService: mockEmbeddingService,
+      jobQueueService: ctx.jobQueueService,
+      logger: createSilentLogger(),
+    });
+    enqueue.mockClear();
+    expect(
+      ctx.entityService.createEntity({
+        entity: input,
+        options: { conditionalWrite: createCondition },
+      }),
+    ).rejects.toBeInstanceOf(EntityWriteConflictError);
+    expect(enqueue).not.toHaveBeenCalled();
+    expect(
+      (
+        await ctx.entityService.getEntityRaw({
           entityType: "test",
           id: "chapter",
-        });
-      }
-      ctx.entityService.close();
-      ctx.entityService = EntityService.createFresh({
-        dbConfig: ctx.dbConfig,
-        embeddingDbConfig: ctx.embeddingDbConfig,
-        entityRegistry: ctx.entityRegistry,
-        embeddingService: mockEmbeddingService,
-        jobQueueService: ctx.jobQueueService,
-        logger: createSilentLogger(),
-      });
-      enqueue.mockClear();
-      expect(
-        (
-          await ctx.entityService.createEntity({
-            entity: input,
-            options: { conditionalWrite: createCondition },
-          })
-        ).skipped,
-      ).toBe(true);
-      expect(enqueue).not.toHaveBeenCalled();
-      expect(
-        (
-          await ctx.entityService.getEntityRaw({
-            entityType: "test",
-            id: "chapter",
-          })
-        )?.content ?? null,
-      ).toBe(change === "edit" ? "Editor wins" : null);
-    },
-  );
+        })
+      )?.content,
+    ).toBe("Editor wins");
+  });
 
   test("revisions derive from the stored row, so direct SQL writers are detected and snapshots stay visibility scoped", async () => {
     await ctx.entityService.createEntity({ entity: input });
@@ -472,12 +390,7 @@ describe("atomic entity writes and receipts (real SQLite)", () => {
     expect(
       ctx.entityService.updateEntity({
         entity: { ...before.entity, content: "Stale generation" },
-        options: {
-          conditionalWrite: {
-            operationId: "after-sql-edit",
-            expectedRevision: before.revision,
-          },
-        },
+        options: { conditionalWrite: { expectedRevision: before.revision } },
       }),
     ).rejects.toBeInstanceOf(EntityWriteConflictError);
   });
@@ -490,22 +403,10 @@ describe("atomic entity writes and receipts (real SQLite)", () => {
     const tables = await client.execute(
       "SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'entity_write_%'",
     );
-    expect(tables.rows.map((row) => row["name"])).toEqual([
-      "entity_write_receipts",
-    ]);
+    expect(tables.rows).toEqual([]);
   });
 
-  test("rejects operation ID reuse and conditional deduplication", async () => {
-    await ctx.entityService.createEntity({
-      entity: input,
-      options: { conditionalWrite: createCondition },
-    });
-    expect(
-      ctx.entityService.createEntity({
-        entity: { ...input, id: "different" },
-        options: { conditionalWrite: createCondition },
-      }),
-    ).rejects.toThrow("reused");
+  test("rejects conditional deduplication", async () => {
     expect(
       ctx.entityService.createEntity({
         entity: input,

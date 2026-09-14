@@ -166,7 +166,7 @@ export interface JobHandler<
     signal: AbortSignal,
   ): Promise<void>;
 
-  /** Runs after terminal failure is persisted (non-retryable or retries exhausted). */
+  /** Runs once after the queue exhausts retries and persists terminal failure. */
   onTerminalError?(
     error: Error,
     data: TInput,

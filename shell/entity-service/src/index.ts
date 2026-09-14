@@ -29,12 +29,9 @@ export {
 } from "./entity-id-path";
 export { EntityRegistry } from "./entityRegistry";
 export {
-  assertEntityWriteReceiptMatches,
   entityWriteConditionSchema,
   EntityWriteConflictError,
-  EntityWriteIntentMismatchError,
   type EntityWriteCondition,
-  type EntityWriteReceipt,
 } from "./entity-write-contracts";
 export type { EntityWriteSnapshot } from "./types";
 export { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";

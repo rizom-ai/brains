@@ -769,7 +769,6 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       const entity = await getEntityFake(request);
       return entity ? { entity, revision: "mock-revision" } : null;
     },
-    getEntityWriteReceipt: async () => null,
 
     // Embeddings and projections are not modelled: the fake has no vectors, so
     // it reports an empty, ready index rather than pretending to search one.
@@ -921,7 +920,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       source: request.options?.source ?? null,
       priority: 0,
       retryCount: 0,
-      maxRetries: 3,
+      maxRetries: request.options?.maxRetries ?? 3,
       lastError: null,
       createdAt: now,
       scheduledFor: now,

@@ -1,4 +1,3 @@
-import { NonRetryableJobError } from "@brains/job-queue";
 import { isPlainRecord } from "@brains/utils/predicates";
 import { z } from "@brains/utils/zod";
 
@@ -6,7 +5,7 @@ export const MAX_GENERATION_TARGETS = 256;
 export const MAX_GENERATION_REQUEST_BYTES = 1_048_576;
 export const MAX_GENERATION_JSON_DEPTH = 32;
 
-export class GenerationLimitError extends NonRetryableJobError {
+export class GenerationLimitError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "GenerationLimitError";

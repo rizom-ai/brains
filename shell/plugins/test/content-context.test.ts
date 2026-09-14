@@ -190,6 +190,9 @@ describe("service content admission", () => {
       expect(child?.source).toBe("books");
       expect(child?.metadata.rootJobId).toBe(result.batchId);
       expect(child?.metadata.operationType).toBe("content_operations");
+      // At most once: an interrupted worker must not re-run a job whose
+      // output may already exist.
+      expect(child?.maxRetries).toBe(0);
       expect(child?.metadata.requestedByActor).toEqual(toolContext.actor);
       // Progress for each generated target must reach the caller that asked.
       expect(child?.metadata.progressToken).toBe(toolContext.progressToken);
