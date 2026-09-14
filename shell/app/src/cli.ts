@@ -1,7 +1,10 @@
 import { z } from "@brains/utils/zod";
 import type { AppConfig } from "./types";
 import type { App as AppClass, AppRuntimeOptions } from "./app";
-import type { ActorRef } from "@brains/contracts";
+import {
+  createCliOperatorContext,
+  type CliOperatorContext,
+} from "./cli-operator";
 import type { ToolResponse } from "@brains/mcp-service";
 import { getErrorMessage } from "@brains/utils/error";
 
@@ -140,7 +143,7 @@ async function invokeCliTool(
   io: CliIo,
   handler: (
     input: unknown,
-    context: { interfaceType: string; actor: ActorRef },
+    context: CliOperatorContext,
   ) => Promise<ToolResponse>,
   input: unknown,
   failureLabel: string,
@@ -150,10 +153,7 @@ async function invokeCliTool(
   // tool failing, and labelling it as one hides where it went wrong.
   let result: ToolResponse;
   try {
-    result = await handler(input, {
-      interfaceType: "cli",
-      actor: { kind: "service", serviceId: "shell-cli" },
-    });
+    result = await handler(input, createCliOperatorContext());
   } catch (error) {
     io.error(`❌ ${failureLabel} failed:`, getErrorMessage(error));
     io.exit(1);

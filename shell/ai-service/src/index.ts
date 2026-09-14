@@ -6,6 +6,7 @@
  */
 
 export { AIService } from "./aiService";
+export { AIOutputValidationError } from "./errors";
 export {
   resolveTextProvider,
   selectTextProvider,

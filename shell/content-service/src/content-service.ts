@@ -1,9 +1,29 @@
 import type {
+  GenerateContentOptions,
   GenerationContext,
   ContentTemplate,
   ResolutionOptions,
 } from "./types";
 import type {
+  ContentGenerationPlan,
+  ContentGenerationRequestInput,
+  ContentGenerationJobData,
+  ContentGenerationBatchResult,
+} from "./generation-contracts";
+import {
+  submitContentGeneration,
+  type GenerationQueueBinding,
+} from "./generation-submission";
+import { planContentGeneration } from "./generation-planner";
+import { createGenerationReadContext } from "./generation-read-context";
+import type {
+  GenerationAccess,
+  GenerationAuthorizer,
+} from "./generation-authorization";
+import { authorizeGenerationWrite } from "./generation-write-authorization";
+import { scopeTemplateName } from "./template-scope";
+import type {
+  BaseEntity,
   ContentVisibility,
   IEntityService,
   ListOptions,
@@ -28,6 +48,7 @@ export interface ContentServiceDependencies {
   aiService: IAIService;
   templateRegistry: TemplateRegistry;
   dataSourceRegistry: DataSourceRegistry;
+  generationAuthorizer: GenerationAuthorizer;
 }
 
 /**
@@ -45,25 +66,40 @@ export class ContentService implements IContentService {
     this.dependencies = dependencies;
   }
 
-  /**
-   * Apply template scoping logic
-   */
-  private applyTemplateScoping(
-    templateName: string,
-    pluginId?: string,
-  ): string {
-    // If no pluginId provided, use template name as-is
-    if (!pluginId) {
-      return templateName;
-    }
+  async planGeneration(
+    request: ContentGenerationRequestInput,
+    signal?: AbortSignal,
+  ): Promise<ContentGenerationPlan> {
+    return planContentGeneration(
+      {
+        ...this.dependencies,
+        authorizer: this.dependencies.generationAuthorizer,
+      },
+      request,
+      signal,
+    );
+  }
 
-    // If template name already has scoping (contains ":"), use as-is
-    if (templateName.includes(":")) {
-      return templateName;
-    }
+  submitGeneration(
+    request: ContentGenerationRequestInput,
+    binding: GenerationQueueBinding,
+    signal?: AbortSignal,
+  ): Promise<ContentGenerationBatchResult> {
+    return submitContentGeneration(this, request, binding, signal);
+  }
 
-    // Apply plugin scoping
-    return `${pluginId}:${templateName}`;
+  authorizeGenerationWrite(
+    data: ContentGenerationJobData,
+    persisted?: Readonly<BaseEntity>,
+  ): Promise<GenerationAccess> {
+    return authorizeGenerationWrite(
+      {
+        ...this.dependencies,
+        authorizer: this.dependencies.generationAuthorizer,
+      },
+      data,
+      persisted,
+    );
   }
 
   /**
@@ -113,10 +149,7 @@ export class ContentService implements IContentService {
     pluginId?: string,
   ): Promise<unknown> {
     // Apply template scoping if pluginId is provided
-    const scopedTemplateName = this.applyTemplateScoping(
-      templateName,
-      pluginId,
-    );
+    const scopedTemplateName = scopeTemplateName(templateName, pluginId);
 
     const template = this.dependencies.templateRegistry.get(scopedTemplateName);
     if (!template) {
@@ -400,13 +433,11 @@ export class ContentService implements IContentService {
   async generateContent(
     templateName: string,
     context: GenerationContext = {},
-    pluginId?: string,
+    options: GenerateContentOptions = {},
   ): Promise<unknown> {
-    // Apply template scoping if pluginId is provided
-    const scopedTemplateName = this.applyTemplateScoping(
-      templateName,
-      pluginId,
-    );
+    const { pluginId, signal, visibilityScope } = options;
+    signal?.throwIfAborted();
+    const scopedTemplateName = scopeTemplateName(templateName, pluginId);
 
     const template = this.getTemplate(scopedTemplateName);
     if (!template) {
@@ -429,6 +460,30 @@ export class ContentService implements IContentService {
       throw new Error(`DataSource ${template.dataSourceId} not found`);
     }
 
+    const request = {
+      ...context,
+      templateName: scopedTemplateName,
+    };
+    if (visibilityScope) {
+      if (!dataSource.generateScoped) {
+        // A configuration gap, not an authorization failure; retrying cannot fix it.
+        throw new Error(
+          `DataSource ${template.dataSourceId} does not support visibility-scoped generation`,
+        );
+      }
+      const result = await dataSource.generateScoped(
+        request,
+        template.schema,
+        createGenerationReadContext(
+          this.dependencies.entityService,
+          { visibilityScope },
+          signal,
+        ),
+      );
+      signal?.throwIfAborted();
+      return result;
+    }
+
     if (!dataSource.generate) {
       // This DataSource doesn't support generation (e.g., fetch-only like system-stats)
       throw new Error(
@@ -436,12 +491,9 @@ export class ContentService implements IContentService {
       );
     }
 
-    const request = {
-      templateName: scopedTemplateName,
-      ...context,
-    };
-
-    return dataSource.generate(request, template.schema);
+    const result = await dataSource.generate(request, template.schema, signal);
+    signal?.throwIfAborted();
+    return result;
   }
 
   /**
@@ -453,10 +505,7 @@ export class ContentService implements IContentService {
     pluginId?: string,
   ): unknown {
     // Apply template scoping if pluginId is provided
-    const scopedTemplateName = this.applyTemplateScoping(
-      templateName,
-      pluginId,
-    );
+    const scopedTemplateName = scopeTemplateName(templateName, pluginId);
 
     const template = this.getTemplate(scopedTemplateName);
     if (!template) {
@@ -482,7 +531,7 @@ export class ContentService implements IContentService {
     options?: { truncate?: number; pluginId?: string },
   ): string {
     // Apply template scoping if pluginId is provided
-    const scopedTemplateName = this.applyTemplateScoping(
+    const scopedTemplateName = scopeTemplateName(
       templateName,
       options?.pluginId,
     );

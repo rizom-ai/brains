@@ -121,7 +121,7 @@ A running brain is driven by an _instance directory_ centered on `brain.yaml` pl
 | `shell/app`                                             | Brain resolver, `defineBrain()`, instance loading, runtime bootstrap     |
 | `shell/core`                                            | Core shell, lifecycle orchestration, system tools/resources/prompts      |
 | `shell/ai-service`                                      | AI querying, orchestration, provider abstraction                         |
-| `shell/content-service`                                 | Template-based content generation support                                |
+| `shell/content-service`                                 | Template-based generation, multi-target planning and durable admission   |
 | `shell/conversation-service`                            | Conversation state and message history                                   |
 | `shell/entity-service`                                  | Entity CRUD, indexing, search, embeddings                                |
 | `shell/identity-service`                                | Brain identity, anchor profile, URL derivation                           |
@@ -177,7 +177,7 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 | `plugins/notifications`    | Notification routing for transactional and administrative messages                                 |
 | `plugins/obsidian-vault`   | Obsidian export/templates                                                                          |
 | `plugins/site-builder`     | Static site build orchestration                                                                    |
-| `plugins/site-content`     | Site section content generation                                                                    |
+| `plugins/site-content`     | Site route/section discovery over the shell's generic content generation                           |
 | `plugins/stock-photo`      | Stock-photo search and selection                                                                   |
 | `plugins/unified-inbox`    | Live inbox projection, source facets, resolved launches, registered Studio triage, summary, digest |
 | `plugins/studio`           | Browser authoring routes + Studio config                                                           |
@@ -248,6 +248,33 @@ For creation, the standard pattern is:
 5. otherwise shared flow performs a direct entity create
 
 This is the canonical place for entity-specific create behavior such as URL capture, target resolution, deduplicating wishes, or enriching required metadata.
+
+### Multi-target content generation
+
+`shell/content-service` owns the generic mechanics for generating many entities from
+templates: validating structured destinations, checking template capability and existing
+output, applying `force` and `dryRun`, and enqueuing admitted work. Its contracts use
+content vocabulary only; no route, chapter, or section concepts enter the shell.
+
+A destination is an entity type, a structured `idPath` of segments, JSON-safe metadata, and
+an optional visibility. The shared entity-path codec serializes those segments to the stored
+string ID at the persistence boundary, so callers never concatenate separators. The
+registered domain schema remains the final authority over the generated entity.
+
+Domain plugins decide which targets exist. `plugins/site-content` discovers site-builder
+routes and maps eligible sections to generic targets; a book or course plugin would map its
+own structure the same way. Each domain keeps its entity schema, adapter, filters, tools,
+and presentation.
+
+Admitted children share one root job ID, which is the returned batch ID, so the queue's
+existing durable root index recovers them after a restart. Each target carries an operation
+ID and a conditional write, making retries idempotent: a job that commits and then fails
+before acknowledgement does not regenerate or overwrite later edits. Completion is observed
+by reading the destination entity, not through a generation-specific status channel.
+
+External authors reach the same capability declaratively through `@rizom/brain/services`.
+Generation-only templates need no React layout, so non-web compositions generate through the
+same pipeline as site sections.
 
 ### Projection graph and causal runtime
 

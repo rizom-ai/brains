@@ -1,5 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import { unscopeTemplateName } from "@brains/content-service";
 import type { JsonObject } from "@brains/contracts";
+import { createServiceContentTarget } from "./content-generation-target";
 import type { JobHandler, JobInfo } from "@brains/job-queue";
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
@@ -46,6 +48,8 @@ import type {
   AnyServiceJobDefinition,
   AnyServiceToolDefinition,
   NormalizedServiceDefinitionInput,
+  ServiceContentGeneration,
+  ServiceContentGenerationResult,
   ServiceJobBinding,
   ServiceJobReference,
   ServiceJobStatus,
@@ -55,6 +59,8 @@ import type {
   ServiceSchemaMap,
   ServiceViewSchemaMap,
   ServiceTemplateFormatter,
+  ServiceTemplateGenerationDefinition,
+  ServiceTemplateShapeMap,
 } from "./service-definition-contract";
 import {
   getServiceJobHandler,
@@ -70,6 +76,7 @@ const confirmationTokenField = "_rizomConfirmationToken";
 /** A template with its schema type erased and `format` bound to that schema. */
 interface ErasedServiceTemplate {
   readonly schema: ServiceSchema;
+  readonly generation?: ServiceTemplateGenerationDefinition | undefined;
   format(value: unknown): string;
 }
 
@@ -174,6 +181,7 @@ class DeclarativeServicePlugin<
   TTemplateSchemas extends ServiceSchemaMap,
   TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TTemplateDefinitions extends ServiceTemplateShapeMap,
 > extends ServicePlugin<z.output<TConfigSchema>, z.output<TConfigSchema>> {
   private readonly definition: NormalizedServiceDefinitionInput<
     TConfigSchema,
@@ -181,7 +189,8 @@ class DeclarativeServicePlugin<
     TPromptSchemas,
     TTemplateSchemas,
     TViewSchemas,
-    TAccountSettings
+    TAccountSettings,
+    TTemplateDefinitions
   >;
   private readonly publicId: string;
   private readonly toolContext = new AsyncLocalStorage<ToolContext>();
@@ -216,7 +225,8 @@ class DeclarativeServicePlugin<
       TPromptSchemas,
       TTemplateSchemas,
       TViewSchemas,
-      TAccountSettings
+      TAccountSettings,
+      TTemplateDefinitions
     >,
     config: z.output<TConfigSchema>,
     metadata: InstalledPluginPackageMetadata,
@@ -382,6 +392,7 @@ class DeclarativeServicePlugin<
         state,
         jobs: this.jobs(),
         templates: this.templateFormatter(),
+        content: this.content(),
       }) ?? [];
     const names = new Set<string>();
     this.tools = definitions.map((definition) => {
@@ -576,6 +587,44 @@ class DeclarativeServicePlugin<
     };
   }
 
+  private content(): ServiceContentGeneration<string> {
+    const context = this.getContext();
+    const generationTemplates = this.erasedTemplates();
+    const canGenerate = (name: string): boolean =>
+      generationTemplates.get(name)?.generation !== undefined;
+    return {
+      target: (input) => createServiceContentTarget(input, canGenerate),
+      generate: async (input): Promise<ServiceContentGenerationResult> => {
+        const toolContext = this.toolContext.getStore();
+        const result = await context.content.generate({
+          targets: [...input.targets],
+          toolContext,
+          ...(input.force !== undefined && { force: input.force }),
+          ...(input.dryRun !== undefined && { dryRun: input.dryRun }),
+          ...(toolContext?.signal && { signal: toolContext.signal }),
+        });
+        // Authors see their local template keys; the result is built typed,
+        // and the public schema validates tool output, not this producer.
+        return {
+          ...result,
+          items: result.items.map(
+            ({ destination, templateName, ...decision }) => ({
+              // The stored ID travels with the path so authors read output
+              // back through entity readers without rebuilding an identifier.
+              destination: {
+                entityType: destination.entityType,
+                idPath: destination.idPath,
+                entityId: destination.entityId,
+              },
+              template: unscopeTemplateName(templateName, this.id),
+              ...decision,
+            }),
+          ),
+        };
+      },
+    };
+  }
+
   private templateFormatter(): ServiceTemplateFormatter {
     const formatters = this.erasedTemplates();
     return {
@@ -594,19 +643,24 @@ class DeclarativeServicePlugin<
    * contravariant in its schema through `format` — so the erasure happens here
    * rather than being asserted away at the read site.
    */
+  private erasedTemplateCache: Map<string, ErasedServiceTemplate> | undefined;
+
+  /** Built once per plugin instance; the definition never changes after construction. */
   private erasedTemplates(): Map<string, ErasedServiceTemplate> {
-    return new Map(
+    this.erasedTemplateCache ??= new Map(
       Object.entries(this.definition.templates ?? {}).map(
         ([name, template]) => [
           name,
           {
             schema: template.schema,
+            generation: template.generation,
             format: (value: unknown): string =>
               template.format({ value: template.schema.parse(value) }),
           },
         ],
       ),
     );
+    return this.erasedTemplateCache;
   }
 
   private erasedViews(): Map<string, ErasedServiceView> {
@@ -639,6 +693,11 @@ class DeclarativeServicePlugin<
       }
       const schema = template?.schema ?? view?.schema;
       if (!schema) continue;
+      if (template?.generation && !template.generation.prompt.trim()) {
+        throw new Error(
+          `Service "${this.publicId}" generation template "${name}" requires a non-empty prompt`,
+        );
+      }
       const base = {
         name,
         description: view?.description ?? `${this.publicId} ${name}`,
@@ -652,6 +711,18 @@ class DeclarativeServicePlugin<
                   throw new Error(`Template "${name}" is format-only`);
                 },
               },
+              ...(template.generation
+                ? {
+                    basePrompt: template.generation.prompt,
+                    dataSourceId: "shell:ai-content",
+                    ...(template.generation.useKnowledgeContext !== undefined
+                      ? {
+                          useKnowledgeContext:
+                            template.generation.useKnowledgeContext,
+                        }
+                      : {}),
+                  }
+                : {}),
             }
           : {}),
       };
@@ -791,6 +862,7 @@ export function createDeclarativeServicePlugin<
   TTemplateSchemas extends ServiceSchemaMap,
   TViewSchemas extends ServiceViewSchemaMap,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+  TTemplateDefinitions extends ServiceTemplateShapeMap,
 >(
   definition: NormalizedServiceDefinitionInput<
     TConfigSchema,
@@ -798,7 +870,8 @@ export function createDeclarativeServicePlugin<
     TPromptSchemas,
     TTemplateSchemas,
     TViewSchemas,
-    TAccountSettings
+    TAccountSettings,
+    TTemplateDefinitions
   >,
   config: z.output<TConfigSchema>,
   metadata: InstalledPluginPackageMetadata,
@@ -809,7 +882,8 @@ export function createDeclarativeServicePlugin<
   TPromptSchemas,
   TTemplateSchemas,
   TViewSchemas,
-  TAccountSettings
+  TAccountSettings,
+  TTemplateDefinitions
 > {
   return new DeclarativeServicePlugin(definition, config, metadata, id);
 }

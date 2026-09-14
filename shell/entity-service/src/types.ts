@@ -60,6 +60,13 @@ export type {
   EntityMutationAdmissionTarget,
 } from "./mutation-admission";
 
+import type { EntityWriteCondition } from "./entity-write-contracts";
+
+export interface EntityWriteSnapshot {
+  entity: BaseEntity;
+  revision: string;
+}
+
 export type EntityPersistenceOrigin = "ordinary" | "directory-sync";
 
 export interface EntityJobOptions {
@@ -88,13 +95,25 @@ export type { ContentVisibility, RawContentVisibility } from "./visibility";
  * Options for entity creation (extends EntityJobOptions with deduplication)
  */
 export interface CreateEntityOptions extends EntityJobOptions {
+  /** Cancel before the atomic write boundary, not after a mutation commits. */
+  signal?: AbortSignal;
+  /** Runtime-only guard over the final persisted fields, immediately before writing. */
+  beforeWrite?: (entity: Readonly<BaseEntity>) => Promise<void>;
   deduplicateId?: boolean;
+  /** Atomic create-if-absent. Cannot deduplicate. */
+  conditionalWrite?: EntityWriteCondition;
 }
 
 /** Options for updating an existing entity. */
 export interface UpdateEntityOptions extends EntityJobOptions {
+  /** Cancel before the atomic write boundary, not after a mutation commits. */
+  signal?: AbortSignal;
+  /** Runtime-only guard over the final persisted fields, immediately before writing. */
+  beforeWrite?: (entity: Readonly<BaseEntity>) => Promise<void>;
   /** Apply only while the stored entity still has this content hash. */
   expectedContentHash?: string | undefined;
+  /** Atomic full-revision replace. */
+  conditionalWrite?: EntityWriteCondition;
 }
 
 /**
@@ -734,6 +753,17 @@ export type DataSourceSchema<T> = z.ZodType<T, unknown>;
  * DataSources are registered in the DataSourceRegistry and referenced by templates
  * via their dataSourceId property.
  */
+/** Runtime-only, read-only access for caller-bound generation. */
+export interface DataSourceGenerationContext {
+  readonly visibilityScope: ContentVisibility;
+  readonly signal?: AbortSignal;
+  getEntity(entityType: string, id: string): Promise<BaseEntity | null>;
+  search(
+    query: string,
+    options?: Pick<SearchOptions, "limit" | "weight">,
+  ): Promise<SearchResult[]>;
+}
+
 export interface DataSource {
   /**
    * Unique identifier for this data source
@@ -768,7 +798,21 @@ export interface DataSource {
    * Optional: Generate new content
    * Used by data sources that create content (e.g., AI-generated content, reports)
    */
-  generate?: <T>(request: unknown, schema: z.ZodSchema<T>) => Promise<T>;
+  generate?: <T>(
+    request: unknown,
+    schema: z.ZodSchema<T>,
+    signal?: AbortSignal,
+  ) => Promise<T>;
+
+  /**
+   * Opt-in scoped generation. All content reads must use this runtime context,
+   * not ambient entity services/caches. Never fall back to generate().
+   */
+  generateScoped?: <T>(
+    request: unknown,
+    schema: z.ZodSchema<T>,
+    context: DataSourceGenerationContext,
+  ) => Promise<T>;
 
   /**
    * Optional: Transform content between formats
@@ -1074,6 +1118,10 @@ export type DurableBulkMutationCoordinator = Pick<
 >;
 
 export interface EntityService extends EntityServiceClient {
+  /** Visibility-scoped entity and the revision derived from its stored row. */
+  getEntityWriteSnapshot(
+    request: GetEntityRequest,
+  ): Promise<EntityWriteSnapshot | null>;
   // Scheduler-owned projection coordination
   getProjectionStore(): ProjectionStore;
   setProjectionWakeup(wakeup: () => Promise<void>): () => void;

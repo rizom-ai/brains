@@ -77,6 +77,63 @@ if (note) {
 await entityService.deleteEntity({ entityType: "note", id: entityId });
 ```
 
+## Conditional writes and recovery (internal runtime)
+
+`getEntityWriteSnapshot()` reads the raw entity and its opaque revision together, using
+an explicit visibility scope (public-only when omitted). Authorized runtime callers can
+pass that revision to `updateEntity()`:
+
+```typescript
+const snapshot = await entityService.getEntityWriteSnapshot({
+  entityType: "note",
+  id: entityId,
+  visibilityScope: "public",
+});
+if (snapshot) {
+  await entityService.updateEntity({
+    entity: { ...snapshot.entity, content: "Generated replacement" },
+    options: {
+      conditionalWrite: { expectedRevision: snapshot.revision },
+    },
+  });
+}
+```
+
+For `createEntity()`, use an explicit ID and `expectedRevision: null`; conditional creates
+cannot deduplicate IDs. A failed precondition throws `EntityWriteConflictError`. The
+revision is derived from the stored row's content hash, metadata, and visibility, so any
+writer's change is detected, including direct SQL, with no version table or triggers. An
+identical state after a revert or recreate is the same revision: it is the state that was
+authorized for replacement.
+
+A conditional mutation commits the entity, FTS changes, and projection/export journals in
+one SQLite transaction. Nothing records completion: a retry after acknowledgement loss
+meets the changed revision and fails with `EntityWriteConflictError`, so a committed write
+is never repeated or overwritten. Concurrent attempts can still both call an external
+provider before either commits.
+
+Create/update options also accept a runtime `signal`. Cancellation is checked before
+validation and immediately before the entity write, including after awaited validation
+or asset preparation. Once the write starts, the entity and its journals settle atomically;
+late cancellation does not undo a committed entity. Search options accept a runtime
+signal for query embedding and result-consumption checkpoints. Signals are not persisted.
+
+Runtime callers may also supply `beforeWrite(entity)`, an asynchronous guard receiving the
+final serialized fields after entity/persist validation and immediately before SQL mutation.
+A thrown error rolls back the transaction, including projection/export state.
+The guard must not mutate entities or perform nested writes. It is not called for no-op
+skips. Durable generation uses it to recheck current authority and reject
+validator-derived visibility/publication escalation. The hook is runtime-only; it does not
+make auth-account changes atomic with the separate entity database.
+
+These primitives do **not** grant authority: runtime callers must enforce current actor,
+entity-action, visibility, and operation-access policy. Event publication and embedding
+enqueue happen after the transaction and are not guaranteed to replay following
+acknowledgement loss.
+
+Revisions are derived from stored rows, so no table, migration, or trigger is added and no
+revision data enters Markdown.
+
 ## Entity model
 
 All entities extend `BaseEntity`:

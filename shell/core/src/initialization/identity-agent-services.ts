@@ -1,3 +1,4 @@
+import { resolvePrincipalViaBus } from "./principal-resolution";
 import {
   AgentService,
   createBrainAgentId,
@@ -12,9 +13,7 @@ import {
 } from "@brains/ai-service";
 import {
   AGENT_CONTEXT_REQUEST_CHANNEL,
-  AUTH_PRINCIPAL_RESOLVE_CHANNEL,
   ENTITY_CHANNELS,
-  authPrincipalResolveResponseSchema,
   parseAgentContextItems,
   type AgentContextRequest,
 } from "@brains/contracts";
@@ -203,20 +202,17 @@ export function initializeIdentityAndAgentServices(
   const canonicalIdentityService = CanonicalIdentityService.createFresh(
     logger,
     async (actor) => {
-      const response = await messageBus.send({
-        type: AUTH_PRINCIPAL_RESOLVE_CHANNEL,
-        sender: "shell:canonical-identity-service",
-        payload: { actor },
-      });
-      if ("noop" in response || !response.success) return null;
-      const parsed = authPrincipalResolveResponseSchema.safeParse(
-        response.data,
-      );
-      if (!parsed.success || !parsed.data.principal?.canonicalId) return null;
+      // Identity display degrades to anonymous on any resolution failure.
+      const principal = await resolvePrincipalViaBus(
+        messageBus,
+        "shell:canonical-identity-service",
+        actor,
+      ).catch(() => null);
+      if (!principal?.canonicalId) return null;
       return {
-        userId: parsed.data.principal.userId,
-        canonicalId: parsed.data.principal.canonicalId,
-        displayName: parsed.data.principal.displayName,
+        userId: principal.userId,
+        canonicalId: principal.canonicalId,
+        displayName: principal.displayName,
       };
     },
   );

@@ -7,7 +7,8 @@ import type {
 import { ServicePlugin } from "@brains/plugins";
 import { blogViewSchema } from "@brains/blog";
 import { deckViewSchema } from "@brains/decks";
-import { professionalProfileSchema } from "./schemas";
+import { aboutHighlightsSchema, professionalProfileSchema } from "./schemas";
+import { StructuredContentFormatter } from "@brains/content-formatters";
 import { z } from "@brains/utils/zod";
 import { createTemplate } from "@brains/templates";
 import { HomepageListDataSource } from "./datasources/homepage-datasource";
@@ -17,6 +18,7 @@ import {
   type HomepageListData,
 } from "./templates/homepage-list";
 import { AboutPageLayout, type AboutPageData } from "./templates/about";
+import { AboutHighlightsLayout } from "./templates/about-highlights";
 import {
   SubscribeThanksLayout,
   SubscribeErrorLayout,
@@ -132,6 +134,39 @@ export class ProfessionalSitePlugin extends ServicePlugin<
           component: AboutPageLayout,
         },
       }),
+      // The default site's one generated section. Knowledge-aware, so the
+      // portrait is drawn from what the brain actually holds about its owner.
+      "about-highlights": createTemplate<z.infer<typeof aboutHighlightsSchema>>(
+        {
+          name: "about-highlights",
+          description: "Short generated portrait shown under the about page",
+          schema: aboutHighlightsSchema,
+          dataSourceId: "shell:ai-content",
+          useKnowledgeContext: true,
+          requiredPermission: "public",
+          basePrompt: `Write a short professional portrait of the owner of this site, in the third person, from the knowledge available to you.
+
+Be concrete: name the kind of work they do, the problems they return to, and how they approach them. Do not invent employers, credentials, dates, or achievements that the knowledge does not support. If the knowledge is thin, stay general rather than making things up.
+
+The headline is one sentence of at most 90 characters. The summary is two or three sentences. The themes are two to five short phrases, three words or fewer each, naming recurring threads in their work.`,
+          formatter: new StructuredContentFormatter(aboutHighlightsSchema, {
+            title: "About highlights",
+            mappings: [
+              { key: "headline", label: "Headline", type: "string" },
+              { key: "summary", label: "Summary", type: "string" },
+              {
+                key: "themes",
+                label: "Themes",
+                type: "array",
+                itemType: "string",
+              },
+            ],
+          }),
+          layout: {
+            component: AboutHighlightsLayout,
+          },
+        },
+      ),
       "subscribe-thanks": createTemplate<
         z.infer<typeof emptySchema>,
         Record<string, never>

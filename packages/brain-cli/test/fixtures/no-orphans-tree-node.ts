@@ -20,9 +20,10 @@ if (spawnGrandchild === "1") {
   );
 }
 
-writeFileSync(join(reportDir, `${role}.pid`), String(process.pid));
-appendFileSync(join(reportDir, "events.log"), `${role}:ready:${process.pid}\n`);
-
+// Install the handler before publishing readiness. The pid file is what the
+// test and this node's parent wait on, so it must mean "ready to drain
+// gracefully". Writing it first leaves a window where SIGTERM takes the
+// default disposition and the node dies without reporting.
 let stopping = false;
 process.on("SIGTERM", async () => {
   if (stopping) return;
@@ -35,5 +36,8 @@ process.on("SIGTERM", async () => {
   appendFileSync(join(reportDir, "events.log"), `${role}:drained\n`);
   process.exit(0);
 });
+
+appendFileSync(join(reportDir, "events.log"), `${role}:ready:${process.pid}\n`);
+writeFileSync(join(reportDir, `${role}.pid`), String(process.pid));
 
 setInterval(() => {}, 1_000);

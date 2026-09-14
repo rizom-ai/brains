@@ -1,5 +1,6 @@
 import { AIService, OnlineEmbeddingProvider } from "@brains/ai-service";
 import { ContentService as ContentServiceClass } from "@brains/content-service";
+import { createGenerationAuthorizer } from "./generation-authorization";
 import {
   ConversationServiceTag,
   createConversationServiceLayer,
@@ -278,6 +279,10 @@ export function createShellServices(options: {
       aiService,
       templateRegistry,
       dataSourceRegistry,
+      generationAuthorizer: createGenerationAuthorizer(
+        permissionService,
+        messageBus,
+      ),
     });
 
   const {

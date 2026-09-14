@@ -1,3 +1,5 @@
+import { GenerationAuthorizer } from "../src/generation-authorization";
+import { PermissionService } from "@brains/templates";
 import { createMockAIService } from "@brains/ai-service/test";
 import {
   createMockDataSourceRegistry,
@@ -43,6 +45,10 @@ describe("ContentService.resolveContent", () => {
       aiService: mockAIService,
       templateRegistry,
       dataSourceRegistry: mockDataSourceRegistry,
+      generationAuthorizer: new GenerationAuthorizer(
+        new PermissionService({}),
+        async () => null,
+      ),
     };
 
     // Set up spies

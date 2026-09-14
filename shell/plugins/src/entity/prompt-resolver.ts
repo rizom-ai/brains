@@ -17,6 +17,24 @@ function targetToTitle(target: string): string {
     .join(" ");
 }
 
+/** A prompt entity's body is its markdown with the frontmatter stripped. */
+function promptBody(content: string): string {
+  return parseMarkdownWithFrontmatter(
+    content,
+    z.record(z.string(), z.unknown()),
+  ).content;
+}
+
+/** Read an override without global caches, materialization, or tolerated read errors. */
+export async function readPromptOverride(
+  read: (entityType: string, id: string) => Promise<{ content: string } | null>,
+  target: string,
+  fallback: string,
+): Promise<string> {
+  const entity = await read("prompt", targetToEntityId(target));
+  return entity?.content ? promptBody(entity.content) : fallback;
+}
+
 /** Caches resolved prompt bodies and tracks materialization */
 const promptCache = new Map<string, string>();
 
@@ -58,10 +76,7 @@ export async function resolvePrompt(
   }
 
   if (entity?.content) {
-    const body = parseMarkdownWithFrontmatter(
-      entity.content,
-      z.record(z.string(), z.unknown()),
-    ).content;
+    const body = promptBody(entity.content);
     promptCache.set(target, body);
     return body;
   }

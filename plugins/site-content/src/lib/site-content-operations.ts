@@ -1,14 +1,7 @@
-import { SHELL_CHANNELS, SITE_BUILDER_CHANNELS } from "@brains/contracts";
-import type {
-  ServicePluginContext,
-  JobContext,
-  JobOptions,
-} from "@brains/plugins";
-import type { SiteMetadata } from "@brains/site-composition";
+import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
+import type { ServicePluginContext, ToolContext } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { GenerateOptions } from "../schemas/generate-options";
-
-export type SiteGenerationConfig = Pick<SiteMetadata, "title" | "description">;
 
 const routeSectionSchema = z.looseObject({
   id: z.string(),
@@ -26,35 +19,11 @@ const routeSchema = z.looseObject({
 const routesResponseSchema = z.array(routeSchema);
 
 type SiteContentRoute = z.output<typeof routeSchema>;
-type SiteContentSection = z.output<typeof routeSectionSchema>;
 
 export class SiteContentOperations {
   private readonly context: ServicePluginContext;
   constructor(context: ServicePluginContext) {
     this.context = context;
-  }
-
-  private createJobOptions(
-    metadata: Partial<JobContext> | undefined,
-    defaultSource: string,
-  ): JobOptions | undefined {
-    if (!metadata) return undefined;
-
-    return {
-      source: metadata.operationType ?? defaultSource,
-      rootJobId: metadata.rootJobId ?? `${defaultSource}-${Date.now()}`,
-      metadata: {
-        operationType: metadata.operationType ?? "content_operations",
-        progressToken: metadata.progressToken,
-        pluginId: metadata.pluginId ?? "site-content",
-        interfaceType: metadata.interfaceType,
-        conversationId: metadata.conversationId,
-        channelId: metadata.channelId,
-        requestedByActor: metadata.requestedByActor,
-        requestedByUserId: metadata.requestedByUserId,
-        requestedByInterface: metadata.requestedByInterface,
-      },
-    };
   }
 
   private async fetchRoutes(): Promise<SiteContentRoute[]> {
@@ -77,19 +46,22 @@ export class SiteContentOperations {
     return parsed.data;
   }
 
+  /** Discovers site targets; the tool context carries the caller and cancellation. */
   async generate(
     options: GenerateOptions,
-    siteConfig?: SiteGenerationConfig,
-    metadata?: Partial<JobContext>,
+    toolContext?: ToolContext,
   ): Promise<{
     jobs: Array<{ jobId: string; routeId: string; sectionId: string }>;
     totalSections: number;
     queuedSections: number;
     batchId: string;
   }> {
+    const signal = toolContext?.signal;
+    signal?.throwIfAborted();
     const logger = this.context.logger.child("SiteContentOperations");
 
     const routes = await this.fetchRoutes();
+    signal?.throwIfAborted();
 
     let targetRoutes = routes;
     if (options.routeId) {
@@ -99,16 +71,26 @@ export class SiteContentOperations {
       }
     }
 
-    const sectionsToGenerate: Array<{
-      route: SiteContentRoute;
-      section: SiteContentSection;
+    const targets: Array<{
+      templateName: string;
+      context: {
+        data: {
+          routeId: string;
+          sectionId: string;
+          routeTitle?: string;
+          routeDescription?: string;
+        };
+      };
+      destination: {
+        entityType: "site-content";
+        idPath: [string, string];
+        metadata: { routeId: string; sectionId: string };
+      };
     }> = [];
 
     for (const route of targetRoutes) {
       for (const section of route.sections) {
-        if (options.sectionId && section.id !== options.sectionId) {
-          continue;
-        }
+        if (options.sectionId && section.id !== options.sectionId) continue;
 
         if (section.content) {
           logger.debug("Section has static content, skipping", {
@@ -117,31 +99,7 @@ export class SiteContentOperations {
           });
           continue;
         }
-
-        if (section.template) {
-          const capabilities = this.context.templates.getCapabilities(
-            section.template,
-          );
-
-          if (!capabilities) {
-            logger.warn("Template not found, skipping section", {
-              routeId: route.id,
-              sectionId: section.id,
-              templateName: section.template,
-            });
-            continue;
-          }
-
-          if (!capabilities.canGenerate) {
-            logger.debug("Template doesn't support generation, skipping", {
-              routeId: route.id,
-              sectionId: section.id,
-              templateName: section.template,
-              capabilities,
-            });
-            continue;
-          }
-        } else {
+        if (!section.template) {
           logger.debug("Section has no template, skipping", {
             routeId: route.id,
             sectionId: section.id,
@@ -149,108 +107,46 @@ export class SiteContentOperations {
           continue;
         }
 
-        if (!options.force && !options.dryRun) {
-          const entityId = `${route.id}:${section.id}`;
-          const existing = await this.context.entityService.getEntity({
-            entityType: "site-content",
-            id: entityId,
-          });
-          if (existing) {
-            logger.debug("Content already exists, skipping", {
+        targets.push({
+          templateName: section.template,
+          context: {
+            data: {
               routeId: route.id,
               sectionId: section.id,
-            });
-            continue;
-          }
-        }
-
-        sectionsToGenerate.push({ route, section });
-      }
-    }
-
-    const totalSections = sectionsToGenerate.length;
-
-    if (options.dryRun) {
-      return {
-        jobs: [],
-        totalSections,
-        queuedSections: totalSections,
-        batchId: `dry-run-${Date.now()}`,
-      };
-    }
-
-    const jobs: Array<{ jobId: string; routeId: string; sectionId: string }> =
-      [];
-    const batchJobs: Array<{
-      type: string;
-      data: Record<string, unknown>;
-    }> = [];
-
-    for (const { route, section } of sectionsToGenerate) {
-      const entityId = `${route.id}:${section.id}`;
-      const templateName = section.template;
-
-      const jobData: Record<string, unknown> = {
-        routeId: route.id,
-        sectionId: section.id,
-        entityId,
-        entityType: "site-content",
-        templateName,
-        context: {
-          prompt:
-            typeof section.content === "string" ? section.content : undefined,
-          data: {
-            routeId: route.id,
-            sectionId: section.id,
-            routeTitle: route.title,
-            routeDescription: route.description,
-            sectionContent: section.content,
+              ...(route.title !== undefined && { routeTitle: route.title }),
+              ...(route.description !== undefined && {
+                routeDescription: route.description,
+              }),
+            },
           },
-          conversationId: "system",
-        },
-        siteConfig,
-      };
-
-      batchJobs.push({
-        type: SHELL_CHANNELS.contentGeneration,
-        data: jobData,
-      });
-    }
-
-    if (batchJobs.length > 0) {
-      const jobOptions = this.createJobOptions(
-        metadata,
-        "site:content-generation",
-      );
-      const batchId = await this.context.jobs.enqueueBatch(
-        batchJobs,
-        jobOptions,
-      );
-
-      for (let i = 0; i < sectionsToGenerate.length; i++) {
-        const item = sectionsToGenerate[i];
-        if (item) {
-          jobs.push({
-            jobId: `${batchId}-${i}`,
-            routeId: item.route.id,
-            sectionId: item.section.id,
-          });
-        }
+          destination: {
+            entityType: "site-content",
+            idPath: [route.id, section.id],
+            metadata: { routeId: route.id, sectionId: section.id },
+          },
+        });
       }
-
-      return {
-        jobs,
-        totalSections,
-        queuedSections: jobs.length,
-        batchId,
-      };
     }
+
+    const result = await this.context.content.generate({
+      targets,
+      toolContext,
+      ...(options.force !== undefined && { force: options.force }),
+      ...(options.dryRun !== undefined && { dryRun: options.dryRun }),
+      ...(signal && { signal }),
+    });
+    const jobs = result.items.flatMap((item) => {
+      if (item.status !== "queued" || !item.jobId) return [];
+      const [routeId, sectionId] = item.destination.idPath;
+      if (!routeId || !sectionId) return [];
+      return [{ jobId: item.jobId, routeId, sectionId }];
+    });
 
     return {
-      jobs: [],
-      totalSections,
-      queuedSections: 0,
-      batchId: `empty-${Date.now()}`,
+      jobs,
+      totalSections: result.plannedTargets,
+      queuedSections: result.queuedTargets,
+      batchId: result.batchId ?? "",
     };
   }
 }

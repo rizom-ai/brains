@@ -1,6 +1,12 @@
 export { App } from "./app";
 export { defineConfig } from "./config";
 export { handleCLI } from "./cli";
+export {
+  CLI_OPERATOR_ACTOR,
+  CLI_OPERATOR_PRINCIPAL,
+  createCliOperatorContext,
+  type CliOperatorContext,
+} from "./cli-operator";
 export { SeedDataManager } from "./seed-data-manager";
 export { MigrationManager } from "./migration-manager";
 export {

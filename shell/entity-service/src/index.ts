@@ -20,7 +20,20 @@ export {
   type PrepareAssetOptions,
 } from "@brains/assets";
 export { EntityService } from "./entityService";
+export {
+  decodeEntityIdPath,
+  encodeEntityIdPath,
+  entityIdPathSchema,
+  type EntityIdPath,
+  type EntityIdPathInput,
+} from "./entity-id-path";
 export { EntityRegistry } from "./entityRegistry";
+export {
+  entityWriteConditionSchema,
+  EntityWriteConflictError,
+  type EntityWriteCondition,
+} from "./entity-write-contracts";
+export type { EntityWriteSnapshot } from "./types";
 export { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 export { BaseEntityFormatter } from "./base-entity-formatter";
 export { BaseEntityAdapter, FallbackEntityAdapter } from "./adapters";
@@ -204,10 +217,12 @@ export {
 } from "./frontmatter";
 
 // Datasource (merged from @brains/datasource)
+export { MAX_SEARCH_QUERY_CHARS } from "./entity-search";
 export { InMemoryDataSourceRegistry } from "./datasource-registry";
 export type { DataSourceRegistry } from "./datasource-registry";
 export type {
   DataSource,
+  DataSourceGenerationContext,
   DataSourceSchema,
   DataSourceCapabilities,
   BaseDataSourceContext,

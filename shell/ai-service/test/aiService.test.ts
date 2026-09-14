@@ -8,6 +8,7 @@ import {
   spyOn,
 } from "bun:test";
 import { AIService } from "../src/aiService";
+import { AIOutputValidationError } from "../src/errors";
 import { createSilentLogger, createTestLogger } from "@brains/test-utils";
 import { LogLevel } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -516,6 +517,63 @@ describe("AIService", () => {
       void expect(
         service.generateObject("System", "User", testSchema),
       ).rejects.toThrow("AI object generation failed");
+    });
+
+    it("distinguishes invalid structured output from transient provider failures", async () => {
+      const service = AIService.createFresh(
+        { model: DEFAULT_TEXT_MODEL },
+        logger,
+      );
+      const invalid = new ai.NoObjectGeneratedError({
+        text: "not valid JSON",
+        response: {
+          id: "response",
+          timestamp: new Date(),
+          modelId: DEFAULT_TEXT_MODEL,
+        },
+        usage: {
+          inputTokens: 1,
+          outputTokens: 1,
+          totalTokens: 2,
+          inputTokenDetails: {
+            noCacheTokens: 1,
+            cacheReadTokens: 0,
+            cacheWriteTokens: 0,
+          },
+          outputTokenDetails: { textTokens: 1, reasoningTokens: 0 },
+        },
+        finishReason: "stop",
+      });
+      generateObjectSpy.mockRejectedValueOnce(invalid);
+      const result = await service
+        .generateObject("System", "User", testSchema)
+        .catch((error: unknown) => error);
+      expect(result).toBeInstanceOf(AIOutputValidationError);
+      expect(result).toMatchObject({ cause: invalid });
+      const transient = new Error("Provider unavailable");
+      generateObjectSpy.mockRejectedValueOnce(transient);
+      const retryable = await service
+        .generateObject("System", "User", testSchema)
+        .catch((error: unknown) => error);
+      expect(retryable).not.toBeInstanceOf(AIOutputValidationError);
+      expect(retryable).toMatchObject({ cause: transient });
+    });
+
+    it("preserves cancellation rather than classifying it as invalid output", async () => {
+      const service = AIService.createFresh(
+        { model: DEFAULT_TEXT_MODEL },
+        logger,
+      );
+      const controller = new AbortController();
+      const reason = new Error("cancelled");
+      generateObjectSpy.mockImplementationOnce(async () => {
+        controller.abort(reason);
+        throw new Error("provider rejected aborted request");
+      });
+      const result = await service
+        .generateObject("System", "User", testSchema, controller.signal)
+        .catch((error: unknown) => error);
+      expect(result).toBe(reason);
     });
 
     it("should respect configuration for object generation", async () => {

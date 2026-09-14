@@ -1,8 +1,10 @@
 import { genericSpy } from "@brains/test-utils";
 import { mock } from "bun:test";
+import { createTestEntity } from "./fixtures";
 import type {
   BaseEntity,
   EntityMutationResult,
+  EntityWriteSnapshot,
   IEntityService,
   SearchResult,
 } from "../index";
@@ -12,6 +14,7 @@ import type {
  */
 export interface MockEntityServiceReturns {
   getEntity?: BaseEntity | null;
+  getEntityWriteSnapshot?: EntityWriteSnapshot | null;
   createEntity?: EntityMutationResult;
   updateEntity?: EntityMutationResult;
   deleteEntity?: boolean;
@@ -28,6 +31,22 @@ const mutationResult = (
     jobId: "mock-job-id",
     skipped: false,
   };
+
+/** The fields a write guard inspects, filled in the way persistence would. */
+function writtenEntity(entity: {
+  entityType: string;
+  id?: string | undefined;
+  content?: string | undefined;
+  metadata?: Record<string, unknown> | undefined;
+  visibility?: BaseEntity["visibility"] | undefined;
+}): BaseEntity {
+  return createTestEntity(entity.entityType, {
+    id: entity.id ?? "mock-entity-id",
+    ...(entity.content !== undefined && { content: entity.content }),
+    ...(entity.metadata && { metadata: entity.metadata }),
+    ...(entity.visibility && { visibility: entity.visibility }),
+  });
+}
 
 /**
  * Options for creating a mock entity service
@@ -105,20 +124,27 @@ export function createMockEntityService(
   );
 
   return {
+    getEntityWriteSnapshot: mock(
+      async () => returns.getEntityWriteSnapshot ?? null,
+    ),
     getEntity: genericSpy<IEntityService["getEntity"]>(getEntityMock),
     getEntityRaw: genericSpy<IEntityService["getEntityRaw"]>(getEntityRawMock),
     listEntities: genericSpy<IEntityService["listEntities"]>(listEntitiesMock),
     search: genericSpy<IEntityService["search"]>(searchMock),
 
-    createEntity: mock(() =>
-      Promise.resolve(mutationResult(returns.createEntity)),
-    ),
+    // The real mutations run beforeWrite inside the write transaction, so a
+    // guard that throws there must also prevent a mocked write from recording.
+    createEntity: mock(async (request) => {
+      await request.options?.beforeWrite?.(writtenEntity(request.entity));
+      return mutationResult(returns.createEntity);
+    }),
     createEntityFromMarkdown: mock(() =>
       Promise.resolve(mutationResult(undefined)),
     ),
-    updateEntity: mock(() =>
-      Promise.resolve(mutationResult(returns.updateEntity)),
-    ),
+    updateEntity: mock(async (request) => {
+      await request.options?.beforeWrite?.(writtenEntity(request.entity));
+      return mutationResult(returns.updateEntity);
+    }),
     deleteEntity: mock(() => Promise.resolve(returns.deleteEntity ?? true)),
     upsertEntity: mock(() =>
       Promise.resolve({ ...mutationResult(undefined), created: false }),

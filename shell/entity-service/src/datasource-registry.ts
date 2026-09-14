@@ -113,7 +113,7 @@ export class InMemoryDataSourceRegistry implements DataSourceRegistry {
         case "canFetch":
           return !!dataSource.fetch;
         case "canGenerate":
-          return !!dataSource.generate;
+          return !!(dataSource.generate ?? dataSource.generateScoped);
         case "canTransform":
           return !!dataSource.transform;
         default:

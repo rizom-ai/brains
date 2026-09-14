@@ -18,6 +18,7 @@ import type {
   SearchResult,
   SearchOptions,
   EntityMutationResult,
+  EntityWriteSnapshot,
   StoreEmbeddingData,
   EmbeddingBackfillResult,
   IndexReadinessOptions,
@@ -598,6 +599,13 @@ export class EntityService implements IEntityService {
   }
 
   // ── Reads ─────────────────────────────────────────────────────────
+
+  public async getEntityWriteSnapshot(
+    request: GetEntityRequest,
+  ): Promise<EntityWriteSnapshot | null> {
+    await this.initialize();
+    return this.entityQueries.getEntityWriteSnapshot(request);
+  }
 
   public async readAsset(ref: AssetRef): Promise<Uint8Array> {
     await this.initialize();

@@ -45,6 +45,12 @@ import type {
   MessageResponse,
 } from "@brains/messaging-service";
 import { validateMessage } from "@brains/messaging-service";
+import {
+  authorizeGenerationWrite,
+  planContentGeneration,
+  submitContentGeneration,
+  GenerationAuthorizer,
+} from "@brains/content-service";
 import type { IContentService, ContentTemplate } from "@brains/content-service";
 import type { Logger } from "@brains/utils/logger";
 import type { DefaultQueryResponse } from "@brains/contracts";
@@ -757,6 +763,12 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     // The fake stores serialized entities directly, so there is no separate
     // unresolved form to return.
     getEntityRaw: getEntityFake,
+    getEntityWriteSnapshot: async (
+      request,
+    ): ReturnType<IEntityService["getEntityWriteSnapshot"]> => {
+      const entity = await getEntityFake(request);
+      return entity ? { entity, revision: "mock-revision" } : null;
+    },
 
     // Embeddings and projections are not modelled: the fake has no vectors, so
     // it reports an empty, ready index rather than pretending to search one.
@@ -908,7 +920,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       source: request.options?.source ?? null,
       priority: 0,
       retryCount: 0,
-      maxRetries: 3,
+      maxRetries: request.options?.maxRetries ?? 3,
       lastError: null,
       createdAt: now,
       scheduledFor: now,
@@ -921,8 +933,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       attemptHeartbeatAt: null,
       runtimeUpdatedAt: now,
       metadata: {
-        rootJobId: id,
         operationType: "data_processing",
+        ...request.options?.metadata,
+        rootJobId: request.options?.rootJobId ?? id,
       },
       progress: null,
       result: null,
@@ -938,7 +951,16 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
 
   // --- Jobs namespace ---
   const jobs: IJobsNamespace = {
-    enqueueBatch: async () => `batch-${Date.now()}`,
+    enqueueBatch: async (operations, options, batchId) => {
+      for (const operation of operations) {
+        recordEnqueuedJob({
+          type: operation.type,
+          data: operation.data,
+          options: { ...options, rootJobId: batchId },
+        });
+      }
+      return batchId;
+    },
     getActiveBatches: async () => [],
     getBatchStatus: async (batchId: string) => ({
       batchId,
@@ -978,7 +1000,32 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     return contentTemplate;
   };
 
+  const generationAuthorizer = (): GenerationAuthorizer =>
+    new GenerationAuthorizer(shell.getPermissionService(), async () => null);
   const contentService: IContentService = {
+    submitGeneration: (request, binding, signal) =>
+      submitContentGeneration(contentService, request, binding, signal),
+    // Delegate to the runtime routine so the fake enforces production policy.
+    authorizeGenerationWrite: (data, persisted) =>
+      authorizeGenerationWrite(
+        {
+          authorizer: generationAuthorizer(),
+          templateRegistry: { get: (name) => templates.get(name) },
+          entityService,
+        },
+        data,
+        persisted,
+      ),
+    planGeneration: (request, signal) =>
+      planContentGeneration(
+        {
+          entityService,
+          authorizer: generationAuthorizer(),
+          templateRegistry: { get: (name) => templates.get(name) },
+        },
+        request,
+        signal,
+      ),
     generateContent: async (
       templateName: string,
       context?: Record<string, unknown>,
@@ -1173,7 +1220,8 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     fail: async () => true,
     update: async () => true,
     getStatus: async (jobId) => enqueuedJobs.get(jobId) ?? null,
-    getJobsByRootJobId: async () => [],
+    getJobsByRootJobId: async (rootJobId) =>
+      listQueuedJobs().filter((job) => job.metadata.rootJobId === rootJobId),
     getStats: async () => ({
       pending: 0,
       processing: 0,

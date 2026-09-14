@@ -18,8 +18,8 @@ Studio hierarchy is a separate demand-gated follow-up in [studio-hierarchical-en
 - `site-content` keeps site discovery/filtering and maps accepted sections to generic targets; it no longer owns durable payload construction or batch enqueueing.
 - Destinations carry an entity definition, structured non-empty `idPath`, schema-bound JSON metadata, and optional visibility.
 - One shared codec serializes a path at the durable entity boundary. A book-shaped path round-trips to `book-section/book-1/part-1/chapter-2.md` without asking public authors to join or split delimiters.
-- Duplicate destinations, unknown types, invalid metadata, unavailable generation templates, authorization failures, and deterministic conflicts fail before consuming transient retry budgets.
-- Conditional writes and operation receipts make each target idempotent across retries and protect later edits/deletes from stale generation.
+- Duplicate destinations, unknown types, invalid metadata, unavailable generation templates, authorization failures, and conflicts fail terminally. Generation jobs run at most once, so a failed job wrote nothing.
+- Conditional writes protect later edits/deletes from stale generation; a retried job conflicts instead of overwriting.
 - Durable jobs carry the trusted caller, resolved account, and admission-time permission ceiling; authority is checked again at execution and final write.
 - Public-output retrieval is scoped to public knowledge even when an Admin starts the job.
 - Submission is bounded by target count, JSON bytes, nesting depth, and cycle checks.
@@ -36,7 +36,7 @@ Structured `idPath` models storage containment only. Metadata models independent
 
 ### Targets are independently durable
 
-A multi-target request may partially succeed. Each target has its own operation receipt and write precondition, so resubmission is safe. The existing job queue's root job ID is the returned batch correlation; no second durable batch table or generic generation-status API is introduced.
+A multi-target request may partially succeed. Each target has its own write precondition, so resubmission is safe. The existing job queue's root job ID is the returned batch correlation; no second durable batch table or generic generation-status API is introduced.
 
 Callers observe output through ordinary typed entity readers. A dedicated status surface would duplicate queue/entity state without a proven user need.
 
