@@ -240,6 +240,7 @@
     "core--batch-enqueue-validation-only-mode",
     "core--boot-and-roundtrip-hardening",
     "core--bounded-parallel-ai-load",
+    "core--bounded-preview-guest-authorization",
     "core--brain-definition-profile-kind",
     "core--brain-model-capability-bundle-crossover",
     "core--brain-model-headless-foundation",

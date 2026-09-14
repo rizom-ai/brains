@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.378
+
+### Patch Changes
+
+- [#251](https://github.com/rizom-ai/brains/pull/251) [`053304f`](https://github.com/rizom-ai/brains/commit/053304fba16abb9ab7db2e6d76dcd9889d2d157b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add default-off, admin-authorized guest access on the deployment's preview origin, using shared execution bounds and durable lifetime accounting. Repeated activation, cleanup and restarts cannot replenish the two-message/$4 total allowance.
+
+  Serve explicitly declared guest routes and their presentation assets on preview without granting admission or exposing other APIs. Keep management on the authenticated primary origin and deny primary-host guest execution. Preserve owned history and deletion after allowance exhaustion.
+
 ## 0.2.0-alpha.377
 
 ## 0.2.0-alpha.376

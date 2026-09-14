@@ -1,5 +1,15 @@
 # @brains/email-workflows
 
+## 0.2.0-alpha.378
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.378
+  - @brains/ui-library@0.2.0-alpha.378
+  - @brains/utils@0.2.0-alpha.378
+  - @brains/plugins@0.2.0-alpha.378
+
 ## 0.2.0-alpha.377
 
 ### Patch Changes
