@@ -57,20 +57,30 @@ export class GuestAdmission {
   private readonly isEnabled: () => boolean;
   private readonly turnCost: number;
   private readonly dailyBudget: number;
+  private readonly requireAuthorization: boolean;
 
   constructor(
     runtimeState: IRuntimeStateNamespace,
     policy: EnabledGuestPolicy,
-    options: { now?: () => number; isEnabled?: () => boolean } = {},
+    options: {
+      now?: () => number;
+      isEnabled?: () => boolean;
+      requireAuthorization?: boolean;
+    } = {},
   ) {
     const parsed = guestPolicySchema.parse(policy);
     if (!parsed.enabled) throw new Error("Guest admission unavailable");
     this.policy = parsed;
+    this.requireAuthorization = options.requireAuthorization === true;
+    if (this.requireAuthorization && !parsed.allowance)
+      throw new Error("Guest authorization requires a bounded allowance");
     this.store = runtimeState.scoped({
       namespace: guestAdmissionNamespace,
       schema: guestAdmissionStateSchema,
     });
-    this.key = digest(parsed.origin);
+    // Lifetime usage belongs to the deployment, not a replaceable origin name.
+    // Existing maintenance prunes receipts but preserves anonymous usage totals.
+    this.key = digest(parsed.allowance ? "guest-allowance" : parsed.origin);
     this.policyFingerprint = digest(JSON.stringify(parsed));
     this.now = options.now ?? Date.now;
     this.isEnabled = options.isEnabled ?? ((): boolean => true);
@@ -152,7 +162,8 @@ export class GuestAdmission {
       if (
         !this.isEnabled() ||
         !state.enabled ||
-        state.policy !== this.policyFingerprint
+        state.policy !== this.policyFingerprint ||
+        (this.requireAuthorization && !this.authorizationMatches(state))
       )
         return { result: denied("unavailable") };
       if (
@@ -173,6 +184,16 @@ export class GuestAdmission {
                 : previous.state,
           },
         };
+      }
+      if (this.policy.allowance) {
+        const usage = state.lifetime;
+        if (!usage) return { result: denied("unavailable") };
+        if (
+          usage.requests >= this.policy.allowance.requests ||
+          usage.reservedMicroUsd >
+            this.policy.allowance.maxCostMicroUsd - this.turnCost
+        )
+          return { result: denied("budget-exhausted") };
       }
       const receipts = Object.values(state.receipts);
       const active = receipts.filter((receipt) => receipt.state === "active");
@@ -252,9 +273,100 @@ export class GuestAdmission {
         next: {
           ...state,
           receipts: { ...retainedGuestReceipts(state, now), [key]: receipt },
+          ...(state.lifetime && this.policy.allowance
+            ? {
+                lifetime: {
+                  requests: state.lifetime.requests + 1,
+                  reservedMicroUsd:
+                    state.lifetime.reservedMicroUsd + this.turnCost,
+                },
+              }
+            : {}),
         },
       };
     }, denied("unavailable"));
+  }
+
+  /** Read-only control state. Missing authorization is closed, never a grant. */
+  async accessStatus(): Promise<{
+    authorized: boolean;
+    enabled: boolean;
+    usedRequests: number;
+    reservedMicroUsd: number;
+  } | null> {
+    try {
+      const state = await this.store.get(this.key);
+      const now = this.now();
+      if (
+        !Number.isSafeInteger(now) ||
+        now < 0 ||
+        (state && now < state.lastSeenAt)
+      )
+        return null;
+      if (!state)
+        return {
+          authorized: false,
+          enabled: false,
+          usedRequests: 0,
+          reservedMicroUsd: 0,
+        };
+      const usage = state.lifetime;
+      const allowance = this.policy.allowance;
+      if (!usage || !allowance) return null;
+      const authorized =
+        this.authorizationMatches(state) &&
+        state.policy === this.policyFingerprint;
+      return {
+        authorized,
+        enabled:
+          authorized &&
+          state.enabled &&
+          usage.requests < allowance.requests &&
+          usage.reservedMicroUsd <= allowance.maxCostMicroUsd - this.turnCost,
+        usedRequests: usage.requests,
+        reservedMicroUsd: usage.reservedMicroUsd,
+      };
+    } catch {
+      // Control reads must not reveal storage/accounting details or imply credit.
+      return null;
+    }
+  }
+
+  /** Authenticated operator action only. Repetition/re-enablement never adds credit. */
+  async authorize(): Promise<boolean> {
+    const allowance = this.policy.allowance;
+    if (!this.requireAuthorization || !allowance) return false;
+    return this.transact<boolean>((state) => {
+      if (
+        !state.lifetime ||
+        (state.authorization && !this.authorizationMatches(state))
+      )
+        return { result: false };
+      return {
+        result: true,
+        next: {
+          ...state,
+          enabled: true,
+          policy: this.policyFingerprint,
+          authorization: state.authorization ?? {
+            origin: this.policy.origin,
+            ...allowance,
+          },
+        },
+      };
+    }, false);
+  }
+
+  private authorizationMatches(state: GuestAdmissionState): boolean {
+    const granted = state.authorization;
+    const proposed = this.policy.allowance;
+    return Boolean(
+      granted &&
+      proposed &&
+      granted.origin === this.policy.origin &&
+      granted.requests === proposed.requests &&
+      granted.maxCostMicroUsd === proposed.maxCostMicroUsd,
+    );
   }
 
   /** Operator-only action: adopt this policy and shared switch without resetting usage.
@@ -340,9 +452,12 @@ export class GuestAdmission {
             version: 1,
             revision: 0,
             policy: this.policyFingerprint,
-            enabled: true,
+            enabled: !this.requireAuthorization,
             lastSeenAt: now,
             receipts: {},
+            ...(this.policy.allowance
+              ? { lifetime: { requests: 0, reservedMicroUsd: 0 } }
+              : {}),
           };
           const change = transition(state, now);
           if (!change.next) return change.result;

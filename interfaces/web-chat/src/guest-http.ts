@@ -32,6 +32,7 @@ import {
 import { GuestAdmission } from "./guest-admission";
 import {
   guestPolicySchema,
+  matchesGuestOrigin,
   type GuestPolicy,
   type EnabledGuestPolicy,
 } from "./guest-policy";
@@ -45,6 +46,8 @@ export interface GuestHttpOptions {
    */
   ready?: () => boolean;
   now?: () => number;
+  /** Runtime-owned activation gate; never browser or deployment configuration. */
+  requireAuthorization?: boolean;
 }
 type Services = Pick<
   InterfacePluginContext,
@@ -81,12 +84,14 @@ export class GuestHttpHandlers {
   private readonly now: () => number;
   private readonly ready: () => boolean;
   private readonly services: Services;
+  private readonly requireAuthorization: boolean;
   constructor(
     services: Services,
     policy: GuestPolicy,
     options: GuestHttpOptions = {},
   ) {
     this.services = services;
+    this.requireAuthorization = options.requireAuthorization === true;
     this.policy = guestPolicySchema.parse(policy);
     this.now = options.now ?? Date.now;
     this.ready = options.ready ?? ((): boolean => false);
@@ -99,6 +104,7 @@ export class GuestHttpHandlers {
       ? new GuestAdmission(services.runtimeState, this.policy, {
           now: this.now,
           isEnabled: this.ready,
+          requireAuthorization: this.requireAuthorization,
         })
       : undefined;
   }
@@ -135,6 +141,7 @@ export class GuestHttpHandlers {
       path,
       method,
       public: true,
+      preview: true,
       handler: async (request, transport): Promise<Response> => {
         try {
           if (request.method !== method)
@@ -148,7 +155,7 @@ export class GuestHttpHandlers {
             throw new GuestHttpError(403, "Guest request denied");
           const origin = request.headers.get("origin");
           if (
-            new URL(request.url).origin !== this.policy.origin ||
+            !matchesGuestOrigin(request, this.policy) ||
             (origin !== null && origin !== this.policy.origin) ||
             request.headers.get("sec-fetch-site") === "cross-site" ||
             (method !== "GET" && origin !== this.policy.origin)
@@ -194,11 +201,14 @@ export class GuestHttpHandlers {
     const body = await this.body(request, policy);
     if (!z.strictObject({}).safeParse(body).success)
       throw new GuestHttpError(400, "Invalid guest session request");
+    const canSend =
+      this.ready() &&
+      (!this.requireAuthorization ||
+        (await this.admission?.accessStatus())?.enabled === true);
     let visitor = await this.visitors.resolve(request);
     let cookie: string | undefined;
     if (!visitor) {
-      if (!this.ready())
-        throw new GuestHttpError(503, "Guest access unavailable");
+      if (!canSend) throw new GuestHttpError(503, "Guest access unavailable");
       const issued = await this.visitors.issue(request);
       visitor = issued.visitor;
       cookie = issued.cookie;
@@ -210,7 +220,7 @@ export class GuestHttpHandlers {
         ...policy.disclosure,
         retention: policy.retention,
         messageCharacters: policy.limits.messageCharacters,
-        canSend: this.ready(),
+        canSend,
       }),
     );
     if (cookie) response.headers.set("Set-Cookie", cookie);

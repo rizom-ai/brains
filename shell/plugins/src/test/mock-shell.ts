@@ -1146,6 +1146,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
           method: definition.method ?? "GET",
           match: definition.match ?? "exact",
           sharedHostAdmission: definition.public ? "admit" : "deny",
+          ...(definition.preview === true ? { preview: true } : {}),
           handler: definition.handler,
         });
       }

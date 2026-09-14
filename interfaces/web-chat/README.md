@@ -25,10 +25,37 @@ The current release remains fail-closed:
 
 The intended future split is Studio for authenticated actors, with a separately
 restricted Public policy, and standalone Web Chat for explicitly enabled
-anonymous guests. Guest mode is not implemented or implied by routes registered
-with `public: true`. It must remain disabled until guest identity, capability,
+anonymous guests. Neither `public: true` nor preview route reachability grants
+guest access. It must remain disabled until guest identity, capability,
 rate, abuse, spend, retention, consent, deletion, and kill-switch policies are
 accepted and enforced server-side.
+
+## Bounded preview authorization
+
+With guest configuration omitted, the runtime derives the preview origin from
+deployment context and reuses shared guest bounds. It stays off until an
+administrator explicitly authorizes access. Existing `guest: false` blocks this
+activation; `guest: local-test` remains a separate loopback-only test convention.
+
+On the authenticated primary origin, `GET /api/chat/guest/access` reports the
+proposed allowance and current usage without granting access or invoking a model.
+`POST` accepts only `{"enabled":true}` or `{"enabled":false}`, requires an Admin
+browser session and same-origin JSON request, and cannot override the origin,
+limits or accounting. This is an operator HTTP action, not an Ops/YAML setting.
+
+The current shared bounds authorize at most **two messages and $4 total** across
+all visitors and time. Authorization and lifetime reservations are durable in the
+existing CAS ledger. Failures, cleanup, retries, restart and disable/re-enable do
+not refund or replenish them. An exhausted allowance cannot be renewed through
+this action. Background generation/indexing is accounted separately.
+
+Only declared guest routes and their presentation assets are served on preview.
+Management and other APIs stay excluded there; primary-host guest requests remain
+denied. Owned history and deletion remain available after exhaustion. Guest
+credentials are HttpOnly cookies; optional conversation locators use sessionStorage,
+not transcript storage. Closing a tab can lose its locators; this is not automatic
+credential or locator recovery. Production guest access requires separate work
+and approval.
 
 ## Build
 
@@ -42,7 +69,7 @@ Buttons, fields, selects, dialogs, and menus reuse `@brains/app-ui-react`, the s
 - `Chat`/`useChat` from the AI SDK exclusively owns the active conversation's messages, transient parts, and stream state.
 - Reopening a session fetches `webChatKeys.history(conversationId)`, copies that snapshot with `createActiveMessageSeed()`, and seeds the AI SDK owner. Never render or stream directly from the history query cache.
 - Drawer, dialog, composer, upload notice, and other transient controls stay component-local.
-- The durable conversation ID remains the AI SDK chat ID and is mirrored in localStorage for reload continuity.
+- In the authenticated presentation, the durable conversation ID remains the AI SDK chat ID and is mirrored in localStorage for reload continuity. Anonymous guest locators follow the separate sessionStorage boundary described above.
 
 ## Query and mutation conventions
 
@@ -63,7 +90,7 @@ Do not persist the query cache or use it as a second active-message owner. Tests
 
 ## Addressable state
 
-A guest-surface conversation door uses `/ask#s/{encodedConversationId}`. The chat surface consumes the hash, reopens that session, then clears the transient door from the URL. Streaming blocks session switching so an active AI SDK stream cannot be replaced by a history seed.
+An authenticated standalone conversation door uses `/ask#s/{encodedConversationId}`. The chat surface consumes the hash, reopens that session, then clears the transient door from the URL. Streaming blocks session switching so an active AI SDK stream cannot be replaced by a history seed.
 
 The interface owns the universal Inbox **Discuss in chat** follow-up at its
 configured mount for sources that support permission-checked detail. Its

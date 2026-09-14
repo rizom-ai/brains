@@ -36,6 +36,20 @@ function contributor(
 }
 
 describe("HttpRouteRegistry", () => {
+  it("preserves preview reachability separately from public admission", () => {
+    const registry = HttpRouteRegistry.createFresh();
+    const routes = registry.finalize([
+      contributor("guest", {
+        webRoutes: [webRoute("/ask", { preview: true })],
+        apiRoutes: [],
+      }),
+    ]);
+    expect(routes[0]).toMatchObject({
+      preview: true,
+      sharedHostAdmission: "deny",
+    });
+  });
+
   it("normalizes getter declarations into one immutable snapshot", () => {
     const registry = HttpRouteRegistry.createFresh();
 
