@@ -1,5 +1,17 @@
-import { mkdir, readdir, readFile, rm, stat, writeFile } from "fs/promises";
-import { basename, dirname, join } from "path";
+import {
+  mkdir,
+  readdir,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+  mkdtemp,
+  link,
+  lstat,
+  unlink,
+  rmdir,
+} from "fs/promises";
+import { basename, dirname, join, resolve } from "path";
 import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
@@ -75,8 +87,12 @@ export type RuntimeUploadStoreErrorCode =
 
 export class RuntimeUploadStoreError extends Error {
   public readonly code: RuntimeUploadStoreErrorCode;
-  constructor(code: RuntimeUploadStoreErrorCode, message: string) {
-    super(message);
+  constructor(
+    code: RuntimeUploadStoreErrorCode,
+    message: string,
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
     this.code = code;
     this.name = "RuntimeUploadStoreError";
   }
@@ -107,6 +123,7 @@ export type ScopedRuntimeUploadStore = Pick<
   | "save"
   | "read"
   | "readRecord"
+  | "withFile"
   | "toResponseBody"
   | "prune"
   | "getUploadDir"
@@ -216,6 +233,44 @@ export class RuntimeUploadStore {
   async remove(uploadId: string): Promise<void> {
     this.assertValidUploadId(uploadId);
     await rm(this.getUploadDir(uploadId), { recursive: true, force: true });
+  }
+
+  /** Pin an upload outside the prunable uploads directory without reading bytes.
+   * The callback must join every file consumer before returning. Failed pins
+   * are retained for recovery; these paths are not filesystem authorization.
+   * A pin is a lifetime link, not an immutable snapshot or crash-durable backup.
+   */
+  async withFile<T>(
+    uploadId: string,
+    use: (input: {
+      record: RuntimeUploadRecord;
+      sourceFile: string;
+    }) => Promise<T>,
+  ): Promise<T> {
+    const record = await this.readRecord(uploadId);
+    const directory = await mkdtemp(
+      join(resolve(dirname(this.getUploadsRoot())), ".upload-file-"),
+    );
+    const sourceFile = join(directory, "content");
+    try {
+      await link(join(this.getUploadDir(uploadId), "content"), sourceFile);
+    } catch (error) {
+      if (isNoEntryError(error))
+        throw new RuntimeUploadStoreError("not_found", "Upload not found", {
+          cause: error,
+        });
+      throw error;
+    }
+    const info = await lstat(sourceFile);
+    if (!info.isFile() || info.size !== record.sizeBytes)
+      throw new RuntimeUploadStoreError(
+        "invalid_metadata",
+        "Upload file does not match its metadata",
+      );
+    const result = await use({ record, sourceFile });
+    await unlink(sourceFile);
+    await rmdir(directory);
+    return result;
   }
 
   async read(uploadId: string): Promise<ResolvedRuntimeUpload> {

@@ -7,6 +7,8 @@ import {
   type EntityMutationResult,
   type PreparedAsset,
   type UpdateEntityOptions,
+  type EntityFileSource,
+  type EntityFileAssets,
 } from "@brains/entity-service";
 
 export type PendingIngestionStatus = "pending" | "draft" | "failed";
@@ -18,6 +20,7 @@ export interface PendingEntityMetadata {
 }
 
 export interface PendingEntityService {
+  fileAssets?: EntityFileAssets;
   getEntity(request: {
     entityType: string;
     id: string;
@@ -94,6 +97,7 @@ export async function createPendingEntity({
 export interface SaveProcessedEntityRequest {
   entityService: PendingEntityService;
   entity: EntityInputWithId;
+  fileAsset?: EntityFileSource;
   preparedAsset?: PreparedAsset | undefined;
   expectedContentHash?: string | undefined;
 }
@@ -133,8 +137,14 @@ export async function saveProcessedEntity({
   entityService,
   entity,
   preparedAsset,
+  fileAsset,
   expectedContentHash,
 }: SaveProcessedEntityRequest): Promise<SaveProcessedEntityResult> {
+  const files = entityService.fileAssets;
+  if (fileAsset && preparedAsset)
+    throw new Error("File publication cannot be mixed with prepared bytes");
+  if (fileAsset && !files)
+    throw new Error("File publication is not provisioned");
   const previousEntity = await entityService.getEntity({
     entityType: entity.entityType,
     id: entity.id,
@@ -148,13 +158,22 @@ export async function saveProcessedEntity({
       metadata: entity.metadata,
       updated: entity.updated ?? new Date().toISOString(),
     };
-    const mutation = await entityService.updateEntity({
+    const request = {
       entity: updatedEntity,
-      ...(preparedAsset ? { preparedAsset } : {}),
       ...(expectedContentHash !== undefined
         ? { options: { expectedContentHash } }
         : {}),
-    });
+    };
+    const mutation =
+      fileAsset && files
+        ? await files.publish({
+            ...fileAsset,
+            publication: { operation: "updateEntity", request },
+          })
+        : await entityService.updateEntity({
+            ...request,
+            ...(preparedAsset ? { preparedAsset } : {}),
+          });
     return {
       entityId: mutation.entityId,
       updated: true,
@@ -176,10 +195,16 @@ export async function saveProcessedEntity({
     };
   }
 
-  const mutation = await entityService.createEntity({
-    entity,
-    ...(preparedAsset ? { preparedAsset } : {}),
-  });
+  const mutation =
+    fileAsset && files
+      ? await files.publish({
+          ...fileAsset,
+          publication: { operation: "createEntity", request: { entity } },
+        })
+      : await entityService.createEntity({
+          entity,
+          ...(preparedAsset ? { preparedAsset } : {}),
+        });
   return {
     entityId: mutation.entityId,
     updated: false,

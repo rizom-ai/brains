@@ -9,7 +9,8 @@ import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { JobResult } from "@brains/contracts";
-import { imageAdapter, prepareImageAsset } from "@brains/image";
+import { imageAdapter, imageAssetFactsSchema } from "@brains/image";
+import { createAssetRef } from "@brains/assets";
 import {
   getUploadImageIdentity,
   isSupportedImageMediaType,
@@ -58,70 +59,106 @@ export class UploadPromotionJobHandler extends BaseJobHandler<
     _jobId: string,
     progressReporter: ProgressReporter,
   ): Promise<UploadPromotionJobResult> {
+    const state: { publicationEntered: boolean } = {
+      publicationEntered: false,
+    };
     try {
       await this.reportProgress(progressReporter, {
         progress: 10,
         message: "Reading uploaded image",
       });
 
-      const upload = await this.context.uploads
+      const files = this.context.entityService.fileAssets;
+      if (!files)
+        throw new Error("Uploaded image file publication is not provisioned");
+      return await this.context.uploads
         .scoped(webChatUploadsScope)
-        .read(data.uploadId);
+        .withFile(
+          data.uploadId,
+          async (upload): Promise<UploadPromotionJobResult> => {
+            if (!isSupportedImageMediaType(upload.record.mediaType)) {
+              throw new Error(
+                "Only image uploads can be promoted to image entities",
+              );
+            }
 
-      if (!isSupportedImageMediaType(upload.record.mediaType)) {
-        throw new Error("Only image uploads can be promoted to image entities");
-      }
+            const identity = getUploadImageIdentity({
+              filename: upload.record.filename,
+              ...(data.title !== undefined ? { title: data.title } : {}),
+            });
+            const imageId = data.imageId ?? identity.id;
 
-      const identity = getUploadImageIdentity({
-        filename: upload.record.filename,
-        ...(data.title !== undefined ? { title: data.title } : {}),
-      });
-      const imageId = data.imageId ?? identity.id;
+            await this.reportProgress(progressReporter, {
+              progress: 60,
+              message: "Saving uploaded image",
+            });
 
-      await this.reportProgress(progressReporter, {
-        progress: 60,
-        message: "Saving uploaded image",
-      });
+            const fileAsset = {
+              sourceFile: upload.sourceFile,
+              sizeBytes: upload.record.sizeBytes,
+            };
+            const inspected = await files.inspect(fileAsset);
+            const facts = imageAssetFactsSchema.parse({
+              ...inspected.details,
+              ref: createAssetRef(inspected.sha256),
+              digest: inspected.sha256,
+              sizeBytes: inspected.sizeBytes,
+            });
+            if (facts.mediaType !== upload.record.mediaType.toLowerCase())
+              throw new Error(
+                "Upload media type does not match its inspected signature",
+              );
+            const now = new Date().toISOString();
+            const imageEntity = imageAdapter.createImageEntity({
+              facts,
+              title: identity.title,
+              status: "draft",
+              sourceUploadId: data.uploadId,
+              sourceFilename: upload.record.filename,
+              sourceMediaType: upload.record.mediaType,
+              attachmentType: "uploaded",
+            });
+            // Publication may commit even if its reply or subsequent cleanup fails.
+            // Do not follow an uncertain outcome with another entity mutation.
+            state.publicationEntered = true;
+            const result = await saveProcessedEntity({
+              entityService: this.context.entityService,
+              entity: {
+                id: imageId,
+                ...imageEntity,
+                created: now,
+                updated: now,
+              },
+              fileAsset,
+            });
 
-      const { asset: preparedAsset, facts } = prepareImageAsset(
-        upload.content,
-        upload.record.mediaType,
-      );
-      const now = new Date().toISOString();
-      const imageEntity = imageAdapter.createImageEntity({
-        facts,
-        title: identity.title,
-        status: "draft",
-        sourceUploadId: data.uploadId,
-        sourceFilename: upload.record.filename,
-        sourceMediaType: upload.record.mediaType,
-        attachmentType: "uploaded",
-      });
-      const result = await saveProcessedEntity({
-        entityService: this.context.entityService,
-        entity: {
-          id: imageId,
-          ...imageEntity,
-          created: now,
-          updated: now,
-        },
-        preparedAsset,
-      });
+            await this.reportProgress(progressReporter, {
+              progress: 100,
+              message: "Uploaded image promoted",
+            });
 
-      await this.reportProgress(progressReporter, {
-        progress: 100,
-        message: "Uploaded image promoted",
-      });
-
-      return { entityId: result.entityId, status: "created" };
+            return { entityId: result.entityId, status: "created" };
+          },
+        );
     } catch (error) {
-      if (data.imageId) {
-        await failPendingEntity({
-          entityService: this.context.entityService,
-          entityType: "image",
-          id: data.imageId,
-          error: getErrorMessage(error),
-        });
+      if (data.imageId && !state.publicationEntered) {
+        const errors: unknown[] = [error];
+        try {
+          await failPendingEntity({
+            entityService: this.context.entityService,
+            entityType: "image",
+            id: data.imageId,
+            error: getErrorMessage(error),
+          });
+        } catch (failureUpdate) {
+          errors.push(failureUpdate);
+        }
+        if (errors.length > 1)
+          throw new AggregateError(
+            errors,
+            "Upload promotion and pending failure update failed",
+            { cause: error },
+          );
       }
       return JobResult.failure(error);
     }

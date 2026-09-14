@@ -157,11 +157,14 @@ export class EntitySerializer {
     // Get adapter for the entity type
     const adapter = this.entityRegistry.getAdapter(entityType);
 
-    // Convert to markdown using adapter
-    const markdown = applyVisibilityToMarkdown(
-      adapter.toMarkdown(entity),
-      entity.visibility,
-    );
+    // Asset bodies remain canonical refs (or empty pending bodies). Visibility
+    // is authoritative in the DB column; wrapping refs breaks native binding.
+    const body = adapter.toMarkdown(entity);
+    const markdown =
+      this.entityRegistry.getEntityTypeConfig(entityType).binaryStorage ===
+      "asset"
+        ? body
+        : applyVisibilityToMarkdown(body, entity.visibility);
 
     // Extract metadata using adapter, keeping visibility as a top-level field.
     const metadata = this.stripPolicyMetadata(adapter.extractMetadata(entity));

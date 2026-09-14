@@ -465,6 +465,7 @@ export function createMockSystemServices(
         throw new Error("Upload ref not found");
       },
       save: unreached("save"),
+      withFile: unreached("withFile"),
       remove: unreached("remove"),
       toResponseBody: unreached("toResponseBody"),
       prune: unreached("prune"),

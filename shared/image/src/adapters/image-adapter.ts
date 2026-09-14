@@ -11,6 +11,7 @@ import {
   type ImageMetadata,
 } from "../schemas/image";
 import { inspectImageBytes, parseDataUrl } from "../lib/image-utils";
+import { parseMarkdown } from "@brains/utils/markdown";
 
 interface ImageProvenanceInput {
   sourceUrl?: string;
@@ -54,7 +55,11 @@ export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
   }
 
   public fromMarkdown(content: string): Partial<Image> {
-    const normalized = content.trim();
+    const trimmed = content.trim();
+    const normalized =
+      trimmed.startsWith("---\n") || trimmed.startsWith("---\r\n")
+        ? parseMarkdown(trimmed).content
+        : trimmed;
     if (!normalized || assetRefSchema.safeParse(normalized).success) {
       return { entityType: "image", content: normalized };
     }

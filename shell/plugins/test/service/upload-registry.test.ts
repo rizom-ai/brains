@@ -1,6 +1,7 @@
 import { createMockShell } from "../../src/test/mock-shell";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile } from "fs/promises";
+import { mkdir, mkdtemp, rm, writeFile, readFile, stat } from "fs/promises";
+import assert from "node:assert/strict";
 import { tmpdir } from "os";
 import { join } from "path";
 import { createServicePluginContext } from "../../src/service/context";
@@ -54,6 +55,71 @@ describe("RuntimeUploadRegistry", () => {
       now: fixedNow,
     });
   }
+
+  it("pins files outside pruning until the joined consumer returns", async () => {
+    const store = scopedStore();
+    const record = await store.save({
+      filename: "image.png",
+      mediaType: "image/png",
+      content: Buffer.from("bytes"),
+    });
+    let pinned = "";
+    const result = await store.withFile(
+      record.id,
+      async ({ record: metadata, sourceFile }): Promise<string> => {
+        pinned = sourceFile;
+        expect(metadata).toEqual(record);
+        await store.remove(record.id);
+        await store.prune();
+        expect(await readFile(sourceFile, "utf8")).toBe("bytes");
+        return "joined";
+      },
+    );
+    expect(result).toBe("joined");
+    await assert.rejects(stat(pinned), /ENOENT/);
+  });
+
+  it("retains failed consumer pins for recovery", async () => {
+    const store = scopedStore();
+    const record = await store.save({
+      filename: "image.png",
+      mediaType: "image/png",
+      content: Buffer.from("bytes"),
+    });
+    const primary = new Error("unconfirmed consumer completion");
+    let pinned = "";
+    await assert.rejects(
+      store.withFile(record.id, async ({ sourceFile }): Promise<never> => {
+        pinned = sourceFile;
+        throw primary;
+      }),
+      (error: unknown) => error === primary,
+    );
+    await store.remove(record.id);
+    await store.prune();
+    expect(await readFile(pinned, "utf8")).toBe("bytes");
+  });
+
+  it("rejects mismatched file metadata before entering the consumer", async () => {
+    const store = scopedStore();
+    const record = await store.save({
+      filename: "image.png",
+      mediaType: "image/png",
+      content: Buffer.from("bytes"),
+    });
+    await writeFile(
+      join(store.getUploadDir(record.id), "content"),
+      "changed length",
+    );
+    let entered = false;
+    await assert.rejects(
+      store.withFile(record.id, async (): Promise<void> => {
+        entered = true;
+      }),
+      /does not match/,
+    );
+    expect(entered).toBe(false);
+  });
 
   it("prunes quietly before the uploads directory exists", async () => {
     // Created lazily on first save, so "not there yet" is not a fault.

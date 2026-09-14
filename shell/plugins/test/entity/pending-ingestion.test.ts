@@ -1,4 +1,6 @@
 import { describe, expect, mock, test } from "bun:test";
+import assert from "node:assert/strict";
+import { prepareAsset } from "@brains/assets";
 import type { BaseEntity, EntityMutationResult } from "@brains/entity-service";
 import {
   createPendingEntity,
@@ -25,6 +27,83 @@ const makeEntity = (overrides: Partial<BaseEntity> = {}): BaseEntity => ({
 });
 
 describe("pending ingestion helpers", () => {
+  test("processed files preserve pending identity, visibility and content guards without byte handoffs", async () => {
+    const existing = makeEntity({ visibility: "shared" });
+    const publish = mock(async (_request: unknown) => mutation("item-1"));
+    const unused = async (): Promise<never> => {
+      throw new Error("Unexpected buffered operation");
+    };
+    const entityService = {
+      getEntity: async (): Promise<BaseEntity> => existing,
+      createEntity: unused,
+      updateEntity: unused,
+      fileAssets: {
+        publish,
+        inspect: unused,
+        fingerprint: unused,
+        download: unused,
+        close: async (): Promise<void> => undefined,
+      },
+    };
+    const fileAsset = { sourceFile: "/trusted/pinned", sizeBytes: 1 };
+    const result = await saveProcessedEntity({
+      entityService,
+      entity: {
+        id: "item-1",
+        entityType: "test",
+        content: "asset://sha256/test",
+        metadata: { status: "draft" },
+        updated: "2026-02-01T00:00:00.000Z",
+      },
+      fileAsset,
+      expectedContentHash: "hash-1",
+    });
+    expect(result.updated).toBe(true);
+    expect(publish.mock.calls[0]?.[0]).toEqual({
+      ...fileAsset,
+      publication: {
+        operation: "updateEntity",
+        request: {
+          entity: {
+            ...existing,
+            content: "asset://sha256/test",
+            metadata: { status: "draft" },
+            updated: "2026-02-01T00:00:00.000Z",
+          },
+          options: { expectedContentHash: "hash-1" },
+        },
+      },
+    });
+  });
+
+  test("processed file requests reject missing capabilities and mixed bytes before lookup", async () => {
+    const getEntity = mock(async () => null);
+    const entityService = {
+      getEntity,
+      createEntity: mock(async () => mutation("unexpected")),
+      updateEntity: mock(async () => mutation("unexpected")),
+    };
+    const input = {
+      entityService,
+      entity: {
+        id: "item-1",
+        entityType: "test",
+        content: "asset://sha256/test",
+        metadata: {},
+      },
+      fileAsset: { sourceFile: "/trusted/pinned", sizeBytes: 1 },
+    };
+    await assert.rejects(saveProcessedEntity(input), /not provisioned/);
+    await assert.rejects(
+      saveProcessedEntity({
+        ...input,
+        preparedAsset: prepareAsset(new Uint8Array([1])),
+      }),
+      /mixed/,
+    );
+    expect(getEntity).not.toHaveBeenCalled();
+  });
+
   test("createPendingEntity creates a durable placeholder when missing", async () => {
     const createEntity = mock(async (_request: unknown) => mutation("item-1"));
     const entityService = {

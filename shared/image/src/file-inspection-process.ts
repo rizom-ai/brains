@@ -30,7 +30,11 @@ process.on("message", (input: unknown) => {
     });
     const details = inspector.finish();
     const extension = extname(options.sourceFile).slice(1).toLowerCase();
-    if ((extension === "jpg" ? "jpeg" : extension) !== details.format)
+    // Pinned uploads have no extension; their declared MIME is checked by the caller.
+    if (
+      extension &&
+      (extension === "jpg" ? "jpeg" : extension) !== details.format
+    )
       throw new Error("Image extension does not match its signature");
     process.send?.({ kind: "sealed", pid: process.pid, ...facts, details });
   })().then(

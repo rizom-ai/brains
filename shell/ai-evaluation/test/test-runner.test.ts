@@ -282,6 +282,7 @@ describe("TestRunner", () => {
             // store a real ScopedRuntimeUploadStore, so a member added to the
             // interface fails to compile here instead of being asserted away.
             read: notStubbed("read"),
+            withFile: notStubbed("withFile"),
             readRecord: notStubbed("readRecord"),
             toResponseBody: notStubbed("toResponseBody"),
             prune: notStubbed("prune"),

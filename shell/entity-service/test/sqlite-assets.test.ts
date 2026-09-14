@@ -83,6 +83,25 @@ describe("SQLite durable assets", () => {
     return { asset, publication };
   }
 
+  test("non-public asset publication keeps canonical storage bodies and column visibility", async () => {
+    const first = zeroPublication(1);
+    await ctx.entityService.createEntityWithPublication(first.publication, {
+      entity: {
+        ...entityForAsset("private-asset", first.asset),
+        visibility: "shared",
+      },
+    });
+    const stored = await client.execute({
+      sql: "SELECT content, visibility FROM entities WHERE id = ?",
+      args: ["private-asset"],
+    });
+    expect(stored.rows[0]?.["content"]).toBe(first.asset.ref);
+    expect(stored.rows[0]?.["visibility"]).toBe("shared");
+    expect(await ctx.entityService.readAsset(first.asset.ref)).toEqual(
+      first.asset.bytes,
+    );
+  });
+
   test("owner publications bind inside real create, update and upsert mutations and cannot be replayed", async () => {
     const first = zeroPublication(1);
     await ctx.entityService.createEntityWithPublication(first.publication, {

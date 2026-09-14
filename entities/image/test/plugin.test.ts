@@ -1,4 +1,6 @@
 import { parseAssetRef } from "@brains/assets";
+import assert from "node:assert/strict";
+import { mockImageFileAssets } from "./helpers/file-assets";
 import { rm } from "node:fs/promises";
 import { createTempDir } from "@brains/test-utils";
 import { join } from "node:path";
@@ -20,6 +22,9 @@ describe("ImagePlugin", () => {
     harness = createPluginHarness({
       dataDir: await createTempDir("test-image-"),
     });
+    harness.getEntityService().fileAssets = mockImageFileAssets(
+      harness.getEntityService(),
+    );
     const shell = harness.getMockShell();
     const jobQueue = shell.getJobQueueService();
     shell.getJobQueueService = (): typeof jobQueue => ({
@@ -83,6 +88,91 @@ describe("ImagePlugin", () => {
       new AbortController().signal,
     );
   }
+
+  it("rejects a declared MIME that disagrees with inspected bytes before publication", async () => {
+    const service = harness.getEntityService();
+    const files = service.fileAssets;
+    assert.ok(files);
+    const publish = spyOn(files, "publish");
+    const store = harness.getMockShell().getRuntimeUploadRegistry().scoped({
+      namespace: "upload",
+      refKind: "upload",
+      routePath: "/api/chat/uploads",
+    });
+    const record = await store.save({
+      filename: "wrong.png",
+      mediaType: "image/jpeg",
+      content: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "base64",
+      ),
+    });
+    const handler = registeredHandlers.get("image:upload-promote");
+    const reporter = CallbackProgressReporter.from(
+      async (): Promise<void> => undefined,
+    );
+    assert.ok(handler);
+    assert.ok(reporter);
+    expect(
+      await handler.process(
+        { uploadId: record.id },
+        "job",
+        reporter,
+        new AbortController().signal,
+      ),
+    ).toEqual({
+      success: false,
+      error: "Upload media type does not match its inspected signature",
+    });
+    expect(publish).not.toHaveBeenCalled();
+    expect(
+      await service.getEntity({ entityType: "image", id: "wrong" }),
+    ).toBeNull();
+  });
+
+  it("does not mark committed file output failed after an unavailable publication reply", async () => {
+    const service = harness.getEntityService();
+    const files = service.fileAssets;
+    assert.ok(files);
+    const publish = files.publish;
+    files.publish = async (input): ReturnType<typeof publish> => {
+      await publish(input);
+      throw new Error("publication reply unavailable");
+    };
+    const store = harness.getMockShell().getRuntimeUploadRegistry().scoped({
+      namespace: "upload",
+      refKind: "upload",
+      routePath: "/api/chat/uploads",
+    });
+    const record = await store.save({
+      filename: "committed.png",
+      mediaType: "image/png",
+      content: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "base64",
+      ),
+    });
+    const handler = registeredHandlers.get("image:upload-promote");
+    const reporter = CallbackProgressReporter.from(
+      async (): Promise<void> => undefined,
+    );
+    assert.ok(handler);
+    assert.ok(reporter);
+    const result = await handler.process(
+      { uploadId: record.id, imageId: "committed" },
+      "job",
+      reporter,
+      new AbortController().signal,
+    );
+    expect(result).toEqual({
+      success: false,
+      error: "publication reply unavailable",
+    });
+    expect(
+      (await service.getEntity({ entityType: "image", id: "committed" }))
+        ?.metadata["status"],
+    ).toBe("draft");
+  });
 
   it("queues uploaded image promotion into a durable image entity", async () => {
     const store = harness

@@ -380,6 +380,13 @@ export interface RuntimeUploadScopeOptions {
 export interface RuntimeUploadStore {
   save(input: SaveRuntimeUploadInput): Promise<RuntimeUploadRecord>;
   read(uploadId: string): Promise<ResolvedRuntimeUpload>;
+  withFile<T>(
+    uploadId: string,
+    use: (input: {
+      record: RuntimeUploadRecord;
+      sourceFile: string;
+    }) => Promise<T>,
+  ): Promise<T>;
   readRecord(uploadId: string): Promise<RuntimeUploadRecord>;
   toResponseBody(record: RuntimeUploadRecord): RuntimeUploadResponseBody;
   prune(): Promise<void>;

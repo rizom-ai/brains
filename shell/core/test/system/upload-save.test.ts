@@ -76,6 +76,7 @@ function buildServices(input: {
         createdAt: new Date(0).toISOString(),
       }),
       save: unexpected("save"),
+      withFile: unexpected("withFile"),
       read: unexpected("read"),
       toResponseBody: unexpected("toResponseBody"),
       prune: unexpected("prune"),

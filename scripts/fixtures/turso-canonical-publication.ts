@@ -5,6 +5,9 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { mkdtemp, writeFile, mkdir, copyFile } from "node:fs/promises";
 import { createSilentLogger } from "@brains/test-utils";
+import { CallbackProgressReporter } from "@brains/utils/progress";
+import { RuntimeUploadStore } from "../../shell/plugins/src/service/upload-registry";
+import { webChatUploadsScope } from "../../entities/image/src/lib/upload-promotion";
 import { DirectorySync } from "../../plugins/directory-sync/src/lib/directory-sync";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -103,6 +106,21 @@ plugins:
   };
   const shutdownChecks: (() => void)[] = [];
   const app = createApp();
+  const fileActors = {
+    executable: process.execPath,
+    uploadUrl: new URL(
+      "../../shared/db/src/turso-worker/file-upload-process.ts",
+      import.meta.url,
+    ),
+    downloadUrl: new URL(
+      "../../shared/db/src/turso-worker/file-download-process.ts",
+      import.meta.url,
+    ),
+    inspectionUploadUrl: new URL(
+      "../../shared/image/src/file-inspection-process.ts",
+      import.meta.url,
+    ),
+  };
   const record = { ref: createAssetRef(SHA), digest: SHA, sizeBytes: SIZE };
   try {
     await app.migrate();
@@ -112,21 +130,7 @@ plugins:
         migrationsCompleted: true,
         processRole: "web",
         localDatabaseEndpoint: endpoint,
-        fileActors: {
-          executable: process.execPath,
-          uploadUrl: new URL(
-            "../../shared/db/src/turso-worker/file-upload-process.ts",
-            import.meta.url,
-          ),
-          downloadUrl: new URL(
-            "../../shared/db/src/turso-worker/file-download-process.ts",
-            import.meta.url,
-          ),
-          inspectionUploadUrl: new URL(
-            "../../shared/image/src/file-inspection-process.ts",
-            import.meta.url,
-          ),
-        },
+        fileActors,
       },
     );
     assert.deepEqual(app.getShell().getPluginManager().getFailedPlugins(), []);
@@ -177,23 +181,6 @@ plugins:
       exportIntent: 0,
       dirty: 0,
     });
-    for (const id of ["canonical-image", "deduplicated-image"]) {
-      await binding.withFile(sourceFile, SIZE, SHA, (publication) =>
-        owner.createEntityWithPublication(publication, {
-          entity: { ...entity, id },
-        }),
-      );
-      binding.assertTransferIdle();
-      const stored = imageSchema.parse(
-        await owner.getEntityRaw({
-          entityType: "image",
-          id,
-          visibilityScope: "restricted",
-        }),
-      );
-      assert.equal(stored.content, record.ref);
-      assert.equal(stored.metadata.sizeBytes, SIZE);
-    }
     const importRoot = join(directory, "local-import");
     await mkdir(join(importRoot, "image"), { recursive: true });
     await copyFile(sourceFile, join(importRoot, "image", "inspected.png"));
@@ -256,6 +243,116 @@ plugins:
       null,
     );
     binding.assertTransferIdle();
+    // Add transaction fixtures after directory export: exporting those unrelated
+    // entities twice adds no directory-caller coverage, only extra file actors.
+    for (const id of ["canonical-image", "deduplicated-image"]) {
+      await binding.withFile(sourceFile, SIZE, SHA, (publication) =>
+        owner.createEntityWithPublication(publication, {
+          entity: { ...entity, id },
+        }),
+      );
+      binding.assertTransferIdle();
+      const stored = imageSchema.parse(
+        await owner.getEntityRaw({
+          entityType: "image",
+          id,
+          visibilityScope: "restricted",
+        }),
+      );
+      assert.equal(stored.content, record.ref);
+      assert.equal(stored.metadata.sizeBytes, SIZE);
+    }
+    const uploadStore = app
+      .getShell()
+      .getRuntimeUploadRegistry()
+      .scoped(webChatUploadsScope);
+    const uploaded = await uploadStore.save({
+      filename: "promoted.png",
+      mediaType: "image/png",
+      content: bytes,
+    });
+    await owner.createEntity({
+      entity: {
+        ...imageAdapter.createPendingImageEntity({
+          title: "Pending upload",
+          sourceUploadId: uploaded.id,
+        }),
+        id: "promoted-upload",
+        visibility: "shared",
+      },
+    });
+    assert.equal(
+      (
+        await owner.getEntityRaw({
+          entityType: "image",
+          id: "promoted-upload",
+          visibilityScope: "restricted",
+        })
+      )?.content,
+      "",
+    );
+    const pendingUpload = await owner.getEntity({
+      entityType: "image",
+      id: "promoted-upload",
+      visibilityScope: "restricted",
+    });
+    assert.ok(pendingUpload);
+    // Web mode registers validators, not executable handlers. This worker App
+    // uniquely checks handler registration and file-capability provisioning over
+    // the existing owner's authenticated RPC; it opens no additional databases.
+    const workerApp = createApp();
+    await workerApp.initialize(
+      { mode: "register-only" },
+      {
+        migrationsCompleted: true,
+        processRole: "worker",
+        localDatabaseEndpoint: { ...endpoint, sessionId: "promotion-worker" },
+        fileActors,
+      },
+    );
+    try {
+      const promotion = workerApp
+        .getShell()
+        .getJobQueueService()
+        .getHandler("image:upload-promote");
+      assert.ok(promotion);
+      const reporter = CallbackProgressReporter.from(
+        async (): Promise<void> => undefined,
+      );
+      assert.ok(reporter);
+      const bufferedUpload = spyOn(
+        RuntimeUploadStore.prototype,
+        "read",
+      ).mockImplementation(async (): Promise<never> => {
+        throw new Error("Controller upload buffering is forbidden");
+      });
+      try {
+        const result = await promotion.process(
+          { uploadId: uploaded.id, imageId: "promoted-upload" },
+          "canonical-upload-promotion",
+          reporter,
+          new AbortController().signal,
+        );
+        assert.deepEqual(result, {
+          entityId: "promoted-upload",
+          status: "created",
+        });
+        const promoted = await owner.getEntity({
+          entityType: "image",
+          id: "promoted-upload",
+          visibilityScope: "restricted",
+        });
+        assert.ok(promoted);
+        assert.equal(promoted.content, record.ref);
+        assert.equal(promoted.visibility, "shared");
+        assert.equal(promoted.created, pendingUpload.created);
+      } finally {
+        bufferedUpload.mockRestore();
+      }
+    } finally {
+      await workerApp.stop();
+    }
+    binding.assertTransferIdle();
     await exerciseCanonicalPublicationRpc(
       binding,
       endpoint,
@@ -313,6 +410,7 @@ plugins:
       "deduplicated-image",
       "rpc-image",
       "inspected",
+      "promoted-upload",
     ]) {
       const stored = imageSchema.parse(
         await owner.getEntityRaw({

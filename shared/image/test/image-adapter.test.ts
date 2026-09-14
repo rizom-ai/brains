@@ -78,6 +78,16 @@ describe("ImageAdapter", () => {
   });
 
   describe("fromMarkdown", () => {
+    it("reads asset refs and empty pending bodies wrapped in visibility frontmatter", () => {
+      expect(
+        imageAdapter.fromMarkdown(
+          `---\nvisibility: shared\n---\n\n${ASSET_REF}`,
+        ),
+      ).toEqual({ entityType: "image", content: ASSET_REF });
+      expect(
+        imageAdapter.fromMarkdown("---\nvisibility: restricted\n---\n\n"),
+      ).toEqual({ entityType: "image", content: "" });
+    });
     it("should parse base64 data URL and extract metadata", () => {
       const result = imageAdapter.fromMarkdown(TINY_PNG_DATA_URL);
       expect(result.entityType).toBe("image");
