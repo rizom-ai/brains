@@ -318,6 +318,7 @@
     "core--fix-professional-profile-view-schema",
     "core--fleet-image-promotion",
     "core--fold-notification-contracts",
+    "core--generic-content-generation",
     "core--git-authoritative-entity-convergence",
     "core--git-broker-env-interpolation",
     "core--git-child-lifecycle",
