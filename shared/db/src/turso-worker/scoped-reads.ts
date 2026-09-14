@@ -135,11 +135,11 @@ export class ScopedReads {
     this.revoke(record);
     await record.finished.promise;
   }
-  public retirement(connection: AbortSignal): Promise<void> {
+  public retirement(connection: AbortSignal, ticket?: string): Promise<void> {
     return Promise.all(
-      [...(this.sessions.get(connection)?.records ?? [])].map(
-        (record) => record.finished.promise,
-      ),
+      [...(this.sessions.get(connection)?.records ?? [])]
+        .filter((record) => ticket === undefined || record.ticket === ticket)
+        .map((record) => record.finished.promise),
     ).then(() => undefined);
   }
   public async cleanupSettled(): Promise<void> {

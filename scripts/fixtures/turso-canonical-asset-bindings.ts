@@ -1,7 +1,7 @@
 // Integration adapter only: real actors and real entity SQL, not runtime wiring.
 import assert from "node:assert/strict";
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { AssetRecord } from "@brains/assets";
+import { createAssetRef, type AssetRef } from "@brains/assets";
 import {
   createOwnedAssetPublication,
   type OwnedAssetPublication,
@@ -14,7 +14,6 @@ import type {
 import type { PersistenceBudgetPool } from "../../shared/db/src/turso-worker/budget-pool";
 import type { StageClaim } from "../../shared/db/src/turso-worker/binary-protocol";
 import { uploadNetworkFixture } from "../../shared/db/test/fixtures/turso-thread/network-exercise";
-import { downloadNetworkFixture } from "../../shared/db/test/fixtures/turso-thread/network-read-exercise";
 
 async function withCleanup<T>(
   operation: () => Promise<T>,
@@ -66,6 +65,7 @@ export class CanonicalAssetBindings {
       driver,
       budget: pool,
       uploadBridgeUrl: sidecar("network-ingress-worker"),
+      readBridgeUrl: sidecar("network-read-worker"),
     });
     const transaction = driver.transaction.bind(driver);
     driver.transaction = async (
@@ -158,6 +158,26 @@ export class CanonicalAssetBindings {
     };
   }
 
+  public async withCorruptRead<T>(
+    operation: (ref: AssetRef) => Promise<T>,
+  ): Promise<T> {
+    const digest = "0".repeat(64);
+    const ref = createAssetRef(digest);
+    await this.driver.execute({
+      sql: "INSERT INTO assets (digest, size_bytes, bytes, created) VALUES (?, 1, x'00', 0)",
+      args: [digest],
+    });
+    return withCleanup(
+      () => operation(ref),
+      async () => {
+        await this.driver.execute({
+          sql: "DELETE FROM assets WHERE digest = ?",
+          args: [digest],
+        });
+      },
+    );
+  }
+
   public assertOwnerOpen(): void {
     assert.equal(this.driver.closed, false);
   }
@@ -168,36 +188,5 @@ export class CanonicalAssetBindings {
     assert.equal(this.pool.ingress.stats().slots, 0);
     assert.equal(this.pool.networkIngress.stats().slots, 0);
     assert.equal(this.pool.networkEgress.stats().slots, 0);
-  }
-
-  public async verifyDownload(record: AssetRecord): Promise<void> {
-    const scope = await this.driver.openReadScope();
-    await withCleanup(
-      async () => {
-        const stage = await scope.prepare({
-          table: "assets",
-          column: "bytes",
-          key: [{ column: "digest", value: record.digest }],
-          maxBytes: record.sizeBytes,
-          expectedSize: record.sizeBytes,
-        });
-        const facts = await downloadNetworkFixture(
-          this.driver,
-          this.pool,
-          stage,
-          {
-            bunExecutable: process.execPath,
-            readBridgeUrl: sidecar("network-read-worker"),
-            readConsumerUrl: sidecar("network-read-consumer"),
-          },
-          async () => {},
-        );
-        assert.deepEqual(facts, {
-          sizeBytes: record.sizeBytes,
-          sha256: record.digest,
-        });
-      },
-      () => scope.close(),
-    );
   }
 }

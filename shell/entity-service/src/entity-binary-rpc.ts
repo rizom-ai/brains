@@ -1,4 +1,10 @@
 import { z } from "@brains/utils/zod";
+import { assetRefSchema } from "@brains/assets";
+import {
+  binaryReadOfferSchema,
+  binaryReadEndpointSchema,
+  binaryReadFactsSchema,
+} from "@brains/db/binary-read";
 import {
   binaryUploadSizeSchema,
   binaryUploadTicketSchema,
@@ -15,6 +21,19 @@ import { createEntityPublicationRpcHandler } from "./entity-rpc";
 export const ENTITY_BINARY_CONTROL_SERVICE = "entity-binary-control";
 export const ENTITY_PUBLICATION_SERVICE = "entity-publication";
 const controlSchema = z.discriminatedUnion("operation", [
+  z.strictObject({ operation: z.literal("offerRead"), ref: assetRefSchema }),
+  z.strictObject({
+    operation: z.literal("download"),
+    ticket: binaryUploadTicketSchema,
+  }),
+  z.strictObject({
+    operation: z.literal("readEndpoint"),
+    ticket: binaryUploadTicketSchema,
+  }),
+  z.strictObject({
+    operation: z.literal("cancelRead"),
+    ticket: binaryUploadTicketSchema,
+  }),
   z.strictObject({
     operation: z.literal("offer"),
     size: binaryUploadSizeSchema,
@@ -56,6 +75,21 @@ export function createEntityBinaryRpcHandlers(
       const request = controlSchema.parse(input);
       const context: BinaryRequestContext = { signal, connectionSignal };
       switch (request.operation) {
+        case "offerRead":
+          return binaryReadOfferSchema.parse(
+            await service.offerAssetRead(context, request.ref),
+          );
+        case "download":
+          return binaryReadFactsSchema.parse(
+            await binary.reads.download(context, request.ticket),
+          );
+        case "readEndpoint":
+          return binaryReadEndpointSchema.parse(
+            await binary.reads.endpoint(context, request.ticket),
+          );
+        case "cancelRead":
+          await binary.reads.cancel(context, request.ticket);
+          return null;
         case "offer":
           return binaryUploadOfferSchema.parse(
             await binary.offer(context, request.size),

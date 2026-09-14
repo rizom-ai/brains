@@ -2,7 +2,11 @@ import type { AssetRef, AssetStat, AssetVerification } from "@brains/assets";
 import { SHELL_CHANNELS } from "@brains/contracts";
 import type { Client } from "@libsql/client";
 import { applySqlitePragmas, closeSqliteClient } from "@brains/db";
-import type { BinaryPersistence } from "@brains/db/binary-publication";
+import type {
+  BinaryPersistence,
+  BinaryRequestContext,
+} from "@brains/db/binary-publication";
+import type { BinaryReadOffer } from "@brains/db/binary-read";
 import { createEntityDatabase, normalizeSearchText, type EntityDB } from "./db";
 import type {
   EntityDbConfig,
@@ -695,6 +699,21 @@ export class EntityService implements IEntityService {
   }
 
   // ── Reads ─────────────────────────────────────────────────────────
+
+  public async offerAssetRead(
+    context: BinaryRequestContext,
+    ref: AssetRef,
+  ): Promise<BinaryReadOffer> {
+    context.signal.throwIfAborted();
+    context.connectionSignal.throwIfAborted();
+    if (!this.binaryPersistence)
+      throw new Error("Asset read requires the binary owner");
+    await this.initialize();
+    return this.binaryPersistence.reads.offer(
+      context,
+      await this.assetRepository.selectRead(ref),
+    );
+  }
 
   public async readAsset(ref: AssetRef): Promise<Uint8Array> {
     await this.initialize();

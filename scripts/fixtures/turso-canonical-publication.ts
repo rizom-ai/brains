@@ -25,7 +25,10 @@ import {
   joinCanonicalOwners,
 } from "./turso-canonical-preload";
 
-import { exerciseCanonicalPublicationRpc } from "./turso-canonical-publication-rpc";
+import {
+  exerciseCanonicalPublicationRpc,
+  exerciseCanonicalReadRpc,
+} from "./turso-canonical-publication-rpc";
 
 registerPackage("@brains/site-default", defaultSite);
 registerPackage("@rizom/theme-default", defaultTheme);
@@ -190,7 +193,7 @@ plugins:
     );
     assert.equal(rpcImage.content, record.ref);
     assert.equal(rpcImage.metadata.sizeBytes, SIZE);
-    await binding.verifyDownload(record);
+    await exerciseCanonicalReadRpc(binding, endpoint, record);
     binding.assertTransferIdle();
     assert.deepEqual(await owner.statAsset(record.ref), {
       ref: record.ref,
@@ -233,7 +236,7 @@ plugins:
     }
     const binding = canonicalAssetBindings(url);
     shutdownChecks.push(() => assert.equal(binding.binary.closed, true));
-    await binding.verifyDownload(record);
+    await exerciseCanonicalReadRpc(binding, endpoint, record);
     binding.assertTransferIdle();
     assert.deepEqual(await binding.publicationRows("rolled-back"), {
       entity: 0,

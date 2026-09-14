@@ -16,6 +16,229 @@ import {
 } from "@brains/db/binary-publication";
 import { NetworkProcessOwner } from "../../shared/db/src/turso-worker/network-process-owner";
 import type { CanonicalAssetBindings } from "./turso-canonical-asset-bindings";
+import type { AssetRecord } from "@brains/assets";
+import {
+  binaryReadOfferSchema as readOfferSchema,
+  binaryReadEndpointSchema as readEndpointSchema,
+} from "@brains/db/binary-read";
+
+export async function exerciseCanonicalReadRpc(
+  binding: CanonicalAssetBindings,
+  config: LocalDatabaseEndpointConfig,
+  record: AssetRecord,
+): Promise<void> {
+  const client = new LocalDatabaseRpcClient({
+    config: { ...config, sessionId: "worker" },
+  });
+  const foreign = new LocalDatabaseRpcClient({
+    config: { ...config, sessionId: "worker" },
+  });
+  const processes = new NetworkProcessOwner(
+    process.execPath,
+    new URL(
+      "../../shared/db/test/fixtures/turso-thread/network-read-consumer.ts",
+      import.meta.url,
+    ),
+    "read",
+  );
+  const pending: Promise<unknown>[] = [];
+  const errors: unknown[] = [];
+  try {
+    await assert.rejects(
+      client.request(ENTITY_BINARY_CONTROL_SERVICE, {
+        operation: "offerRead",
+        ref: record.ref,
+        plan: { table: "arbitrary" },
+      }),
+    );
+    await binding.withCorruptRead(async (ref) => {
+      await assert.rejects(
+        client.request(ENTITY_BINARY_CONTROL_SERVICE, {
+          operation: "offerRead",
+          ref,
+        }),
+        /expected digest/,
+      );
+      assert.deepEqual(binding.binary.reads.stats(), {
+        admissions: 0,
+        tickets: 0,
+      });
+      binding.assertTransferIdle();
+    });
+    const idle = readOfferSchema.parse(
+      await client.request(ENTITY_BINARY_CONTROL_SERVICE, {
+        operation: "offerRead",
+        ref: record.ref,
+      }),
+    );
+    await assert.rejects(
+      foreign.request(ENTITY_BINARY_CONTROL_SERVICE, {
+        operation: "cancelRead",
+        ticket: idle.ticket,
+      }),
+    );
+    assert.equal(
+      await client.request(ENTITY_BINARY_CONTROL_SERVICE, {
+        operation: "cancelRead",
+        ticket: idle.ticket,
+      }),
+      null,
+    );
+    const offer = readOfferSchema.parse(
+      await client.request(ENTITY_BINARY_CONTROL_SERVICE, {
+        operation: "offerRead",
+        ref: record.ref,
+      }),
+    );
+    const facts = { sizeBytes: record.sizeBytes, sha256: record.digest };
+    assert.deepEqual(
+      { sizeBytes: offer.sizeBytes, sha256: offer.sha256 },
+      facts,
+    );
+    const download = client.request(ENTITY_BINARY_CONTROL_SERVICE, {
+      operation: "download",
+      ticket: offer.ticket,
+    });
+    pending.push(download);
+    void download.catch(() => undefined); // Observed below and during acknowledged teardown.
+    await assert.rejects(
+      foreign.request(ENTITY_BINARY_CONTROL_SERVICE, {
+        operation: "readEndpoint",
+        ticket: offer.ticket,
+      }),
+    );
+    const endpoint = readEndpointSchema.parse(
+      await client.request(ENTITY_BINARY_CONTROL_SERVICE, {
+        operation: "readEndpoint",
+        ticket: offer.ticket,
+      }),
+    );
+    await assert.rejects(
+      client.request(ENTITY_BINARY_CONTROL_SERVICE, {
+        operation: "readEndpoint",
+        ticket: offer.ticket,
+      }),
+    );
+    await assert.rejects(
+      client.request(ENTITY_BINARY_CONTROL_SERVICE, {
+        operation: "download",
+        ticket: offer.ticket,
+      }),
+    );
+    const consumer = processes.spawn();
+    pending.push(consumer.result, consumer.exited);
+    const failed = download.then<never>(() => {
+      throw new Error("Read completed before consumer resume");
+    });
+    void failed.catch(() => undefined); // One startup rendezvous, never a per-chunk observer.
+    consumer.start({ direction: "read", endpoint, facts });
+    await Promise.race([consumer.held, failed]);
+    consumer.resume();
+    const [received, delivered, code] = await Promise.all([
+      consumer.result,
+      download,
+      consumer.exited,
+    ]);
+    assert.deepEqual(received, facts);
+    assert.deepEqual(delivered, facts);
+    assert.equal(code, 0);
+
+    const cancelled = readOfferSchema.parse(
+      await client.request(ENTITY_BINARY_CONTROL_SERVICE, {
+        operation: "offerRead",
+        ref: record.ref,
+      }),
+    );
+    const retired = Promise.withResolvers<{
+      error: unknown;
+      connectionAborted: boolean;
+    }>();
+    const original = binding.binary.reads.download;
+    binding.binary.reads.download = async (
+      context,
+      ticket,
+    ): ReturnType<typeof original> => {
+      if (ticket !== cancelled.ticket)
+        return original.call(binding.binary.reads, context, ticket);
+      let failure: unknown;
+      try {
+        return await original.call(binding.binary.reads, context, ticket);
+      } catch (error) {
+        failure = error;
+        throw error;
+      } finally {
+        retired.resolve({
+          error: failure,
+          connectionAborted: context.connectionSignal.aborted,
+        });
+      }
+    };
+    try {
+      const cancelledRead = client.request(ENTITY_BINARY_CONTROL_SERVICE, {
+        operation: "download",
+        ticket: cancelled.ticket,
+      });
+      pending.push(cancelledRead.catch(() => undefined)); // Explicitly asserted as cancellation below.
+      const address = readEndpointSchema.parse(
+        await client.request(ENTITY_BINARY_CONTROL_SERVICE, {
+          operation: "readEndpoint",
+          ticket: cancelled.ticket,
+        }),
+      );
+      const heldConsumer = processes.spawn();
+      pending.push(
+        heldConsumer.result.catch(() => undefined),
+        heldConsumer.exited,
+      );
+      heldConsumer.start({ direction: "read", endpoint: address, facts });
+      await Promise.race([
+        heldConsumer.held,
+        cancelledRead.then(() => {
+          throw new Error("Read completed before disconnect");
+        }),
+      ]);
+      client.close();
+      await assert.rejects(cancelledRead);
+      const observed = await retired.promise; // Observation of the real source method, not a cleanup request.
+      assert.equal(observed.connectionAborted, true);
+      assert.ok(observed.error instanceof Error);
+      binding.assertTransferIdle();
+      const reusable = readOfferSchema.parse(
+        await foreign.request(ENTITY_BINARY_CONTROL_SERVICE, {
+          operation: "offerRead",
+          ref: record.ref,
+        }),
+      );
+      assert.equal(
+        await foreign.request(ENTITY_BINARY_CONTROL_SERVICE, {
+          operation: "cancelRead",
+          ticket: reusable.ticket,
+        }),
+        null,
+      );
+      await heldConsumer.killAndJoin(); // Only this creator joins its intentionally paused child.
+      await assert.rejects(heldConsumer.result);
+    } finally {
+      binding.binary.reads.download = original;
+    }
+  } catch (error) {
+    errors.push(error);
+  }
+  client.close();
+  foreign.close();
+  for (const result of await Promise.allSettled([
+    processes.close(),
+    ...pending,
+  ]))
+    if (result.status === "rejected" && !errors.includes(result.reason))
+      errors.push(result.reason);
+  if (errors.length === 1) throw errors[0];
+  if (errors.length > 1)
+    throw new AggregateError(errors, "Canonical read and peer cleanup failed", {
+      cause: errors[0],
+    });
+  assert.equal(processes.stats().children, 0);
+}
 
 export async function exerciseCanonicalPublicationRpc(
   binding: CanonicalAssetBindings,

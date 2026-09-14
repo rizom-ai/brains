@@ -1,15 +1,12 @@
 import { z } from "@brains/utils/zod";
-import { networkEndpointSchema } from "./network-wire";
 import { blobFactsSchema } from "./blob-protocol";
 import { STAGE_CHUNK_BYTES, STAGE_BUDGET_BYTES } from "./binary-protocol";
 
-export const readEndpointSchema: z.ZodObject<
-  typeof networkEndpointSchema.shape & { direction: z.ZodLiteral<"read"> }
-> = networkEndpointSchema.extend({ direction: z.literal("read") });
-export const readOfferSchema: z.ZodObject<
-  typeof blobFactsSchema.shape & { ticket: z.ZodString }
-> = blobFactsSchema.extend({ ticket: z.string().uuid() });
-export type ReadOffer = z.output<typeof readOfferSchema>;
+export {
+  binaryReadEndpointSchema as readEndpointSchema,
+  binaryReadOfferSchema as readOfferSchema,
+} from "../binary-read";
+export type { BinaryReadOffer as ReadOffer } from "../binary-read";
 
 // Deterministic consumer checkpoint, not a timer or a transport chunk-size change.
 export const readPauseAfterSchema: z.ZodNumber = z

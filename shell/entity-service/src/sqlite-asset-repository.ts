@@ -13,7 +13,11 @@ import {
   type AssetVerification,
   type PreparedAsset,
 } from "@brains/assets";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, getTableName } from "drizzle-orm";
+import {
+  binaryReadSelectionSchema,
+  type BinaryReadSelection,
+} from "@brains/db/binary-read";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { assetChunkRangeSchema } from "./asset-transfers";
 import type { EntityDB } from "./db";
@@ -305,6 +309,23 @@ export class SqliteAssetRepository implements AssetReader {
       .limit(1);
     const row = rows[0];
     return row ? { ref: canonical, sizeBytes: row.sizeBytes } : null;
+  }
+
+  /** Metadata only. The execution owner verifies size/type/digest before offering bytes. */
+  public async selectRead(ref: AssetRef): Promise<BinaryReadSelection> {
+    const canonical = parseAssetRef(ref);
+    const stat = await this.stat(canonical);
+    if (!stat) throw new AssetNotFoundError(canonical);
+    return binaryReadSelectionSchema.parse({
+      sha256: getAssetDigest(canonical),
+      plan: {
+        table: getTableName(assets),
+        column: assets.bytes.name,
+        key: [{ column: assets.digest.name, value: getAssetDigest(canonical) }],
+        maxBytes: stat.sizeBytes,
+        expectedSize: stat.sizeBytes,
+      },
+    });
   }
 
   public async verify(ref: AssetRef): Promise<AssetVerification> {

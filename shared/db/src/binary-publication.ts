@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import type { BinaryReadPersistence } from "./binary-read";
 import {
   MAX_VERIFY_BYTES,
   type BlobFacts,
@@ -58,6 +59,7 @@ export interface BinaryPublication {
  * consume owns acknowledged cleanup even if its callback rejects before use.
  */
 export interface BinaryPersistence {
+  readonly reads: BinaryReadPersistence;
   offer(
     context: BinaryRequestContext,
     size: number,

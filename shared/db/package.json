@@ -19,6 +19,7 @@
     ".": "./src/index.ts",
     "./drizzle-config": "./src/drizzle-config.ts",
     "./binary-publication": "./src/binary-publication.ts",
+    "./binary-read": "./src/binary-read.ts",
     "./error-protocol": "./src/turso-worker/error-protocol.ts"
   },
   "main": "./src/index.ts",

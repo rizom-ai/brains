@@ -10,6 +10,7 @@ import {
   type BinaryUploadEndpoint,
 } from "../binary-publication";
 import { ScopedUploads } from "./scoped-uploads";
+import { WorkerBinaryReads } from "./binary-reads";
 import { WorkerPublicationBindings } from "./publication-bindings";
 import type { SqlWorkerDriver } from "./client";
 import type { PersistenceBudgetPool } from "./budget-pool";
@@ -33,12 +34,14 @@ export interface WorkerBinaryPersistenceOptions {
   budget: PersistenceBudgetPool;
   /** Explicit installed/source artifact URL; never inferred from cwd. */
   uploadBridgeUrl: URL;
+  readBridgeUrl: URL;
 }
 
 /** Authenticated metadata control over a credited, off-thread upload plane.
  * Install bindings on the same driver's database, and close before the driver.
  */
 export class WorkerBinaryPersistence implements BinaryPersistence {
+  public readonly reads: WorkerBinaryReads;
   public readonly bindings: WorkerPublicationBindings =
     new WorkerPublicationBindings();
   private readonly broker: ScopedUploads;
@@ -49,6 +52,7 @@ export class WorkerBinaryPersistence implements BinaryPersistence {
   private acknowledgedClosed = false;
 
   public constructor(options: WorkerBinaryPersistenceOptions) {
+    this.reads = new WorkerBinaryReads(options);
     if (options.uploadBridgeUrl.protocol !== "file:")
       throw new Error("Binary upload bridge requires an explicit file URL");
     const url = new URL(options.uploadBridgeUrl.href);
@@ -207,7 +211,21 @@ export class WorkerBinaryPersistence implements BinaryPersistence {
   private async closeOwned(): Promise<void> {
     this.closing = true;
     for (const entry of this.endpoints.values()) entry.cleanup();
-    await this.broker.close();
+    const results = await Promise.allSettled([
+      this.broker.close(),
+      this.reads.close(),
+    ]);
+    const errors: unknown[] = [];
+    for (const result of results)
+      if (result.status === "rejected" && !errors.includes(result.reason))
+        errors.push(result.reason);
+    if (errors.length === 1) throw errors[0];
+    if (errors.length > 1)
+      throw new AggregateError(
+        errors,
+        "Binary upload and read cleanup failed",
+        { cause: errors[0] },
+      );
     this.acknowledgedClosed = true;
   }
 }
