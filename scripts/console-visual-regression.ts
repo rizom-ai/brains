@@ -1818,6 +1818,25 @@ async function verifyStudioMobileSwitcher(page: Bun.WebView): Promise<void> {
     throw new Error(
       "Browse no longer matches the approved direct destinations and independently collapsible groups",
     );
+  await fillLabel(page, "Filter destinations", "agen");
+  await waitForPage("Browse filter narrows every group", () =>
+    evaluatePage(page, () => {
+      const links = Array.from(
+        document.querySelectorAll(".studio-mobile-navigation-link"),
+      );
+      return (
+        links.length === 1 && links[0]?.textContent.includes("Agents") === true
+      );
+    }),
+  );
+  await fillLabel(page, "Filter destinations", "");
+  await waitForPage("Browse filter clears", () =>
+    evaluatePage(
+      page,
+      () =>
+        document.querySelectorAll(".studio-mobile-navigation-link").length > 1,
+    ),
+  );
   await page.cdp("Input.dispatchKeyEvent", {
     type: "keyDown",
     key: "Escape",
@@ -1842,7 +1861,7 @@ async function verifyStudioMobileSwitcher(page: Bun.WebView): Promise<void> {
   );
   if (!libraryOpen)
     await clickText(page, ".studio-mobile-navigation-group summary", "Library");
-  await waitForPage("Library group expands", () =>
+  await waitForPage("Library group rests open", () =>
     page.evaluate<boolean>(
       'Array.from(document.querySelectorAll("details")).some(group => group.open && group.querySelector("summary")?.textContent.includes("Library"))',
     ),
@@ -2794,20 +2813,20 @@ async function checkLayout(
       const typeRoles = [
         {
           selector:
-            ".studio-chat-session-heading, .people-detail-name, .studio-leaf-head h2, .studio-mobile-navigation-sheet header h2",
+            ".studio-chat-session-heading, .people-detail-name, .studio-leaf-head h2",
           size: "24px",
           weight: "500",
           tracking: -0.48,
         },
         {
           selector:
-            ".account-section-label h3, .studio-chat-sessions-title, .studio-chat-context-card-title",
+            ".account-section-label h3, .studio-chat-sessions-title, .studio-chat-context-card-title, .studio-mobile-group-name",
           size: "14px",
           weight: "650",
         },
         {
           selector:
-            '.studio-chrome-brand, .studio-area-title, .studio-leaf-label, .studio-mobile-switcher, .studio-mobile-navigation-sheet summary, [data-studio-editor] aside > div > h2, button[aria-label="Editor view"], [aria-label="Publication actions"] header, [aria-label="Publication actions"] b, [data-studio-shell] th',
+            '.studio-chrome-brand, .studio-area-title, .studio-leaf-label, .studio-mobile-switcher, [data-studio-editor] aside > div > h2, button[aria-label="Editor view"], [aria-label="Publication actions"] header, [aria-label="Publication actions"] b, [data-studio-shell] th',
           size: "10px",
           weight: "600",
           tracking: 1.2,
