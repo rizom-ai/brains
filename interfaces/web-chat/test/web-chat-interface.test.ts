@@ -1711,9 +1711,45 @@ describe("WebChatInterface", () => {
       }),
     );
     expect(events.at(-1)).toEqual(
-      expect.objectContaining({ type: "text-end" }),
+      expect.objectContaining({ type: "finish", finishReason: "stop" }),
     );
   });
+
+  for (const outcome of ["abort", "error"] as const) {
+    it(`does not mark an ${outcome} as a successful stream completion`, async () => {
+      const controller = new AbortController();
+      const agent = createSpyAgentService();
+      agent.chat = async (): Promise<AgentResponse> => {
+        if (outcome === "error") throw new Error("Private provider failure");
+        controller.abort();
+        return {
+          text: "Partial response",
+          usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+        };
+      };
+      harness.setAgentService(agent);
+      const plugin = adminPlugin();
+      await harness.installPlugin(plugin);
+      const response = await requireRoute(plugin, "/api/chat", "POST").handler(
+        new Request("http://brain/api/chat", {
+          method: "POST",
+          signal: controller.signal,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: "test-conversation",
+            messages: [
+              { role: "user", parts: [{ type: "text", text: "Hello" }] },
+            ],
+          }),
+        }),
+      );
+      const events = [];
+      for await (const event of readChatProtocolEvents(response))
+        events.push(event);
+      expect(events.at(-1)?.type).toBe(outcome);
+      expect(events.some((event) => event.type === "finish")).toBe(false);
+    });
+  }
 
   it("keeps streamed tool results compatible with the public decoder", async () => {
     const agent = createSpyAgentService({
@@ -1754,6 +1790,8 @@ describe("WebChatInterface", () => {
         data: expect.objectContaining({ toolName: "note_search" }),
       }),
     );
+    expect(events.filter((event) => event.type === "finish")).toHaveLength(1);
+    expect(events.at(-1)?.type).toBe("finish");
   });
 
   it("streams approval cards as AI SDK native tool chunks", async () => {
@@ -3064,6 +3102,7 @@ describe("WebChatInterface", () => {
 
     expect(response?.status).toBe(200);
     expect(agent.confirmCalls).toHaveLength(1);
+    expect(body).toContain('"type":"finish"');
     expect(body).toContain("tool-output-error");
     expect(body).toContain("expired-call");
     expect(persistedMessages).toContainEqual(

@@ -815,29 +815,33 @@ export class WebChatInterface extends MessageInterfacePlugin<
             },
             streamDeps,
           );
-          return;
-        }
-
-        if (responseText !== undefined) {
+        } else if (responseText !== undefined) {
           this.writeText(writer, responseText, "text");
-          return;
+        } else {
+          await handleStreamedChatRoute(
+            {
+              writer,
+              conversationId,
+              message,
+              permissionLevel,
+              ...(principal ? { principal } : {}),
+              attachments: inboxAttachment
+                ? [inboxAttachment, ...attachments]
+                : attachments,
+              ...(messageId ? { messageId } : {}),
+              interfaceType: webChatInterfaceType,
+              signal: request.signal,
+            },
+            streamDeps,
+          );
         }
 
-        await handleStreamedChatRoute(
-          {
-            writer,
-            conversationId,
-            message,
-            permissionLevel,
-            ...(principal ? { principal } : {}),
-            attachments: inboxAttachment
-              ? [inboxAttachment, ...attachments]
-              : attachments,
-            ...(messageId ? { messageId } : {}),
-            interfaceType: webChatInterfaceType,
-            signal: request.signal,
-          },
-          streamDeps,
+        // Closing SSE is not a successful message completion. The SDK does not
+        // synthesize this event for custom streams; errors must remain errors.
+        writer.write(
+          request.signal.aborted
+            ? { type: "abort" }
+            : { type: "finish", finishReason: "stop" },
         );
       },
     });
