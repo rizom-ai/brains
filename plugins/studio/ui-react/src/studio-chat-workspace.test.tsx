@@ -149,6 +149,18 @@ async function mountChat(
 }
 
 describe("generated attachments in Studio Chat", () => {
+  async function waitForAttachmentStatus(label: string): Promise<void> {
+    for (let attempt = 0; attempt < 200; attempt++) {
+      if (
+        document.querySelector('.studio-chat-card [role="status"]')
+          ?.textContent === label
+      )
+        return;
+      await settle();
+    }
+    throw new Error(`Attachment status did not become ${label}`);
+  }
+
   const image: Extract<ChatCard, { kind: "attachment" }> = {
     kind: "attachment",
     id: "image-card",
@@ -220,11 +232,9 @@ describe("generated attachments in Studio Chat", () => {
       }),
     );
     await mountChat(new StudioChatDraftStore());
+    await waitForAttachmentStatus("generating");
     expect(document.querySelector(".studio-chat-card img")).toBeNull();
     expect(document.querySelector(".studio-chat-card a")).toBeNull();
-    expect(document.querySelector(".studio-chat-card")?.textContent).toContain(
-      "generating",
-    );
     for (
       let i = 0;
       i < 300 && !document.querySelector(".studio-chat-card img");
@@ -245,11 +255,9 @@ describe("generated attachments in Studio Chat", () => {
         Response.json({ id: "job-image", status }),
       );
       await mountChat(new StudioChatDraftStore());
+      await waitForAttachmentStatus(status);
       expect(document.querySelector(".studio-chat-card img")).toBeNull();
       expect(document.querySelector(".studio-chat-card a")).toBeNull();
-      expect(
-        document.querySelector(".studio-chat-card")?.textContent,
-      ).toContain(status);
     });
   }
 
@@ -259,6 +267,7 @@ describe("generated attachments in Studio Chat", () => {
       () => new Response("Job not found", { status: 404 }),
     );
     await mountChat(new StudioChatDraftStore());
+    await waitForAttachmentStatus("status unknown");
     expect(
       document.querySelector(".studio-chat-card img")?.getAttribute("src"),
     ).toBe(image.attachment.url);
@@ -276,16 +285,14 @@ describe("generated attachments in Studio Chat", () => {
     );
     await mountChat(new StudioChatDraftStore());
     expect(document.querySelector(".studio-chat-card img")).toBeNull();
-    expect(document.querySelector(".studio-chat-card")?.textContent).toContain(
-      "Status unavailable",
-    );
+    await waitForAttachmentStatus("Status unavailable");
     click(
       [...document.querySelectorAll(".studio-chat-card button")].find(
         (button) => button.textContent === "Check status",
       ),
       "Check status",
     );
-    await settle();
+    await waitForAttachmentStatus("ready");
     expect(reads).toBe(2);
     expect(document.querySelector(".studio-chat-card img")).not.toBeNull();
   });
