@@ -77,6 +77,40 @@ if (note) {
 await entityService.deleteEntity({ entityType: "note", id: entityId });
 ```
 
+## Hierarchy queries (internal client)
+
+`queryEntityHierarchy()` is available on the existing entity-service client used by
+Studio. It projects stored identity, not filesystem placement or composition order:
+
+```typescript
+const page = await entityService.queryEntityHierarchy({
+  entityType: "book-section",
+  prefix: ["book-1"], // null or omitted for the collection root
+  visibilityScope: "shared",
+  limit: 40,
+  offset: 0,
+});
+// page.folders: [{ path, name, descendantCount }]
+// page.entities: [{ entity, path }] — direct children only
+// page.totalEntities and page.offset describe the direct-entry page.
+```
+
+Visibility defaults to public and is applied before deriving folders and counts.
+Optional `filter` supports literal content search, metadata equality and exact visibility
+(intersected with the caller scope). Folders are complete and ordered by their segment's
+UTF-8 bytes; only direct entries page. Entries default to ID order; `sortFields` uses the
+ordinary list sorting rules with an ID tie-breaker.
+
+The entry limit defaults to 50 and accepts 1–100. More than 1,000 visible matching immediate
+folders rejects the query rather than returning an incomplete folder list. Folder grouping
+and entry paging run in SQLite. Nested prefixes use the existing ID index, with literal,
+case-sensitive bounds supplied by the entity-path codec. No schema migration is needed.
+
+Existing empty or path-like ID segments remain addressable through structured prefixes;
+components containing the identity separator are rejected. New-path authoring still uses
+the stricter `entityIdPathSchema`. Derived paths are returned outside entity data: neither
+stored IDs nor metadata are modified. Filesystem placement remains directory-sync's job.
+
 ## Conditional writes and recovery (internal runtime)
 
 `getEntityWriteSnapshot()` reads the raw entity and its opaque revision together, using

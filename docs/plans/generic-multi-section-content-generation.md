@@ -48,7 +48,7 @@ The old private payload has one production producer and is replaced cleanly. Thi
 
 ### Directory-sync compatibility is not silently tightened
 
-The shared codec governs new structured paths and their tested round-trip. Directory-sync still splits and joins stored IDs independently; generation did not move it onto the codec. Phase 0 of the Studio hierarchy plan owns that adoption, with golden tests preserving existing placement. Legacy malformed IDs, root-note conventions, embedded separators, and unsafe path-like values are not normalized or relocated by this work. Codec adoption does not authorize ID rewrites, file moves, or database migrations.
+The shared codec governs new structured paths and their tested round-trip. Generation left directory-sync splitting and joining stored IDs independently; it did not move that adapter onto the codec. Phase 0 of the Studio hierarchy plan owns that adoption, with golden tests preserving existing placement. Legacy malformed IDs, root-note conventions, embedded separators, and unsafe path-like values are not normalized or relocated by this work. Codec adoption does not authorize ID rewrites, file moves, or database migrations.
 
 ## Remaining gates
 

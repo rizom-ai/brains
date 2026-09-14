@@ -1,7 +1,16 @@
 import type { EntityDB } from "./db";
 import { entityReadBudgetSchema } from "@brains/contracts";
 import { entityRowBudgetCondition } from "./bounded-reads";
-import type { EntityReadOptions } from "./types";
+import type {
+  EntityReadOptions,
+  EntityHierarchyPage,
+  QueryEntityHierarchyRequest,
+} from "./types";
+import {
+  decodeEntityIdPath,
+  entityIdHierarchyExpressions,
+  storedEntityIdPathSchema,
+} from "./entity-id-path";
 import type { EmbeddingDB } from "./db/embedding-db";
 import {
   getVisibleContentVisibilities,
@@ -21,6 +30,8 @@ import {
   sql,
   isNotNull,
   inArray,
+  not,
+  getTableColumns,
   type SQL,
 } from "drizzle-orm";
 import { type Logger } from "@brains/utils/logger";
@@ -90,6 +101,22 @@ const listOptionsSchema: z.ZodObject<{
 });
 
 type ListOptions = z.input<typeof listOptionsSchema>;
+
+const hierarchyRequestSchema = z.object({
+  entityType: z.string().min(1),
+  prefix: storedEntityIdPathSchema.nullable().optional(),
+  visibilityScope: z.enum(["public", "shared", "restricted"]).optional(),
+  limit: z.number().int().min(1).max(100).default(50),
+  offset: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).default(0),
+  sortFields: listOptionsSchema.shape.sortFields,
+  filter: listOptionsSchema.shape.filter
+    .unwrap()
+    .omit({ visibilityScope: true })
+    .optional(),
+  signal: z.instanceof(AbortSignal).optional(),
+});
+
+const MAX_HIERARCHY_FOLDERS = 1000;
 
 /**
  * EntityQueries handles database query operations for entities
@@ -249,9 +276,97 @@ export class EntityQueries {
     return entityList;
   }
 
+  /** Immediate folders are grouped in SQLite; only direct entries are paginated. */
+  public async queryEntityHierarchy(
+    request: QueryEntityHierarchyRequest,
+  ): Promise<EntityHierarchyPage> {
+    const input = hierarchyRequestSchema.parse(request);
+    const { entityType, filter, limit, offset, signal, sortFields } = input;
+    const prefix = input.prefix ?? null;
+    signal?.throwIfAborted();
+    const path = entityIdHierarchyExpressions(entities.id, prefix);
+    const conditions = this.buildWhereConditions(
+      entityType,
+      undefined,
+      filter?.metadata,
+      input.visibilityScope,
+      undefined,
+      filter?.contentContains,
+      filter?.visibility,
+    );
+    conditions.push(path.withinPrefix);
+
+    const folders = await this.db
+      .select({
+        name: path.childName,
+        count: sql<number>`COUNT(*)`,
+      })
+      .from(entities)
+      .where(and(...conditions, not(path.directChild)))
+      .groupBy(path.childName)
+      .orderBy(asc(path.childName))
+      .limit(MAX_HIERARCHY_FOLDERS + 1);
+    signal?.throwIfAborted();
+    if (folders.length > MAX_HIERARCHY_FOLDERS) {
+      throw new Error(
+        `Entity hierarchy exceeds ${MAX_HIERARCHY_FOLDERS} immediate folders`,
+      );
+    }
+
+    const direct = and(...conditions, path.directChild);
+    const counts = await this.db
+      .select({ count: sql<number>`COUNT(*)` })
+      .from(entities)
+      .where(direct);
+    signal?.throwIfAborted();
+    // The driver truncates NUL-containing text results. Identity fields travel
+    // as bytes and are decoded here; this does not modify stored rows.
+    const rows = await this.db
+      .select({
+        ...getTableColumns(entities),
+        id: sql<ArrayBuffer>`CAST(${entities.id} AS BLOB)`,
+      })
+      .from(entities)
+      .where(direct)
+      .orderBy(
+        ...this.buildOrderByClauses(
+          sortFields ?? [{ field: "id", direction: "asc" }],
+        ),
+        asc(entities.id),
+      )
+      .limit(limit)
+      .offset(offset);
+    signal?.throwIfAborted();
+    const decoder = new TextDecoder("utf-8", { ignoreBOM: true });
+    const page = await this.serializer.convertToEntities(
+      rows.map((row) =>
+        normalizeEntityRow({ ...row, id: decoder.decode(row.id) }),
+      ),
+      entityType,
+    );
+    signal?.throwIfAborted();
+    return {
+      prefix,
+      folders: folders.map((folder) => {
+        const name = decoder.decode(folder.name);
+        return {
+          path: prefix ? [prefix[0], ...prefix.slice(1), name] : [name],
+          name,
+          descendantCount: Number(folder.count),
+        };
+      }),
+      entities: page.map((entity) => ({
+        entity,
+        path: decodeEntityIdPath(entity.id),
+      })),
+      offset,
+      totalEntities: Number(counts[0]?.count ?? 0),
+    };
+  }
+
   /**
    * Build WHERE conditions for entity queries.
-   * Shared by listEntities and countEntities.
+   * Shared by listEntities, countEntities and hierarchy queries.
    */
   private buildWhereConditions(
     entityType: string,

@@ -4,14 +4,18 @@ Last updated: 2026-09-12
 
 ## Status
 
-**In progress: Slice 1 (directory-sync codec adoption).**
+**In progress: Slice 2 (entity-service hierarchy query).**
+
+Slice 1 is committed as `69363eae6c`. Directory-sync now delegates identity encoding and
+decoding to entity-service while retaining its filesystem placement rules. The 47-case
+golden inventory passed before adoption and unchanged afterward.
 
 Implementation follow-up to
 [generic-multi-section-content-generation.md](./generic-multi-section-content-generation.md),
 merged in PR #252 and included in Brain `0.2.0-alpha.379`. Generation uses the entity-service
-path codec. Directory-sync still splits and joins stored IDs independently; its adoption of
-the codec was not delivered by generation. Studio still presents each entity type as one
-flat, updated-time-paginated collection.
+path codec. That release did not move directory-sync onto the codec; Slice 1 delivered
+that bridge. Studio still presents each entity type as one flat, updated-time-paginated
+collection.
 
 Phase 0 below owns that missing bridge. It preserves existing filesystem placement and
 stored IDs before adding hierarchy queries or UI. Deliver the work sequentially in three

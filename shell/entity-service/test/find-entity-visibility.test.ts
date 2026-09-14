@@ -4,6 +4,7 @@ import {
   resolveEntityOrError,
 } from "../src/find-entity";
 import { getErrorMessage } from "@brains/utils/error";
+import { createMockEntityService } from "../src/test/mock-entity-service";
 import type {
   BaseEntity,
   EntitySearchRequest,
@@ -48,6 +49,7 @@ function createCapturedService(): CapturedService {
     ): Promise<SearchResult<T>[]> {
       return [];
     },
+    queryEntityHierarchy: createMockEntityService().queryEntityHierarchy,
     searchWithDistances: async () => [],
     projectSemanticSpace: async () => ({
       origin: { kind: "centroid" },
