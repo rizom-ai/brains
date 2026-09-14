@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import { libraryStyles as library } from "./studio-library.styles";
+import { StudioChatAttachment } from "./studio-chat-attachment";
 import { StudioChatSessionRename } from "./studio-chat-session-rename";
 import { StudioChatWorkingSetDisclosure } from "./studio-chat-working-set-disclosure";
 import {
@@ -27,6 +28,7 @@ import {
   createChatClient,
   readChatProtocolEvents,
   type ChatCard,
+  type ChatClient,
   type ChatHistoryMessage,
   type ChatMessage,
   type ChatSession,
@@ -1052,6 +1054,7 @@ export function StudioChatWorkspace(
                     <ChatTurn
                       key={message.id}
                       message={message}
+                      client={chatClient}
                       onAction={runSuggestedAction}
                       onApproval={respondToApproval}
                     />
@@ -1404,6 +1407,7 @@ function ChatEmptyState(): ReactElement {
 
 function ChatTurn(props: {
   message: ChatHistoryMessage;
+  client: ChatClient;
   onAction: (action: ChatSuggestedAction) => Promise<void>;
   onApproval: (
     approval: StudioChatApproval,
@@ -1452,6 +1456,7 @@ function ChatTurn(props: {
             {props.message.cards.map((card) => (
               <MessageCard
                 card={card}
+                client={props.client}
                 key={`${card.kind}-${card.id}`}
                 onAction={props.onAction}
                 onApproval={props.onApproval}
@@ -1466,6 +1471,7 @@ function ChatTurn(props: {
 
 function MessageCard(props: {
   card: ChatCard;
+  client: ChatClient;
   onAction: (action: ChatSuggestedAction) => Promise<void>;
   onApproval: (
     approval: StudioChatApproval,
@@ -1525,44 +1531,7 @@ function MessageCard(props: {
     );
   }
   if (card.kind === "attachment") {
-    return (
-      <section className={chatClass("studio-chat-card", chatLayout.card)}>
-        <span
-          className={chatClass("studio-chat-card-kicker", chatLayout.kicker)}
-        >
-          Artifact
-        </span>
-        <strong>{card.title}</strong>
-        {card.description ? (
-          <p
-            className={chatClass(
-              "studio-chat-card-description",
-              chatLayout.cardText,
-            )}
-          >
-            {card.description}
-          </p>
-        ) : null}
-        {card.attachment.previewUrl || card.attachment.downloadUrl ? (
-          <div
-            className={chatClass(
-              "studio-chat-card-actions",
-              chatLayout.actions,
-            )}
-          >
-            <a
-              className={chatClass(
-                "studio-chat-card-action",
-                chatLayout.button,
-              )}
-              href={card.attachment.previewUrl ?? card.attachment.downloadUrl}
-            >
-              Open
-            </a>
-          </div>
-        ) : null}
-      </section>
-    );
+    return <StudioChatAttachment card={card} client={props.client} />;
   }
   const pending = card.state === "approval-requested";
   const approval: StudioChatApproval = {

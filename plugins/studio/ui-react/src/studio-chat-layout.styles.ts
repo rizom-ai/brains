@@ -35,6 +35,7 @@ export const chatLayout: Record<
   | "paragraph"
   | "cards"
   | "card"
+  | "attachmentPreview"
   | "kicker"
   | "empty"
   | "error"
@@ -302,6 +303,15 @@ export const chatLayout: Record<
   userBody: { fontWeight: 600 },
   paragraph: { margin: 0, whiteSpace: "pre-wrap", overflowWrap: "anywhere" },
   cards: { display: "grid", gap: 12, minWidth: 0 },
+  attachmentPreview: {
+    display: "block",
+    width: "100%",
+    maxWidth: "100%",
+    height: "auto",
+    maxHeight: 480,
+    objectFit: "contain",
+    backgroundColor: "var(--console-card)",
+  },
   card: {
     display: "grid",
     gap: 10,
