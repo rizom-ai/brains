@@ -1,6 +1,9 @@
 // Generic installed transport proof, not authenticated RPC or runtime adoption.
 import assert from "node:assert/strict";
 import { Worker } from "node:worker_threads";
+import { mkdtemp, stat, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { z } from "@brains/utils/zod";
 import { SqlWorkerDriver } from "../../../src/turso-worker/client";
 import { PersistenceBudgetPool } from "../../../src/turso-worker/budget-pool";
@@ -23,6 +26,7 @@ export interface NetworkReadSidecars {
   readBridgeUrl: URL;
   readConsumerUrl: URL;
   bunExecutable: string;
+  outputFile?: string;
 }
 // Matches the canonical PNG uploaded and atomically published by network-exercise.
 const SIZE = 2 * 1024 * 1024 + 7;
@@ -99,6 +103,9 @@ export async function downloadNetworkFixture(
       direction: "read",
       endpoint: address,
       facts: expected,
+      ...(options.outputFile !== undefined && {
+        outputFile: options.outputFile,
+      }),
       pauseAfterBytes,
     });
     const held = await Promise.race([consumer.held, transferFailed]);
@@ -149,6 +156,11 @@ export async function exerciseNetworkRead(
   pool: PersistenceBudgetPool,
   options: NetworkReadSidecars,
 ): Promise<void> {
+  const outputDirectory = await mkdtemp(
+    join(tmpdir(), "turso-network-output-"),
+  );
+  const outputFile = join(outputDirectory, "image.png");
+  console.error(`[network-output] retained until success: ${outputDirectory}`);
   await driver.executeMultiple(
     "CREATE TABLE proof_network_reads (id INTEGER PRIMARY KEY, bytes BLOB NOT NULL); INSERT INTO proof_network_reads SELECT id, bytes FROM proof_network_payloads",
   );
@@ -160,7 +172,7 @@ export async function exerciseNetworkRead(
       driver,
       pool,
       stage,
-      options,
+      { ...options, outputFile },
       async () => {
         assert.equal(pool.stats().scratchSlots, 0);
         assert.equal(pool.networkEgress.stats().slots, 1);
@@ -188,6 +200,8 @@ export async function exerciseNetworkRead(
   assert.equal(pool.egress.stats().slots, 0);
   assert.equal(pool.networkEgress.stats().slots, 0);
   await assertNetworkReadRows(driver);
+  assert.equal((await stat(outputFile)).size, SIZE);
+  await rm(outputDirectory, { recursive: true, force: true });
 }
 export async function assertNetworkReadRows(
   driver: SqlWorkerDriver,
@@ -209,6 +223,11 @@ export async function exerciseNetworkReadArtifactFailure(
   const pool = new PersistenceBudgetPool();
   const driver = new SqlWorkerDriver({ url, workerUrl, budget: pool });
   let failure: unknown;
+  const outputDirectory = await mkdtemp(
+    join(tmpdir(), "turso-read-artifact-output-"),
+  );
+  const outputFile = join(outputDirectory, "output");
+  console.error(`[read-artifact-output] retained: ${outputDirectory}`);
   try {
     await driver.executeMultiple(
       "CREATE TABLE proof_network_reads (id INTEGER PRIMARY KEY, bytes BLOB NOT NULL); INSERT INTO proof_network_reads VALUES (1, zeroblob(65539))",
@@ -217,11 +236,17 @@ export async function exerciseNetworkReadArtifactFailure(
     try {
       const stage = await scope.prepare(plan);
       await assert.rejects(
-        downloadNetworkFixture(driver, pool, stage, options, async () => {
-          throw new Error(
-            "Missing read artifact unexpectedly reached consumer handoff",
-          );
-        }),
+        downloadNetworkFixture(
+          driver,
+          pool,
+          stage,
+          { ...options, outputFile },
+          async () => {
+            throw new Error(
+              "Missing read artifact unexpectedly reached consumer handoff",
+            );
+          },
+        ),
         (error: unknown) => {
           failure = error;
           return error instanceof Error;

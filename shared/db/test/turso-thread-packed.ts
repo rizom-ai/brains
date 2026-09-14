@@ -129,7 +129,7 @@ try {
       "network-ingress-worker.ts",
       "file-upload-process.ts",
       "network-read-worker.ts",
-      "network-read-consumer.ts",
+      "file-download-process.ts",
     ].map((name) =>
       fileURLToPath(
         new URL(
@@ -137,6 +137,7 @@ try {
             "worker.ts",
             "network-ingress-worker.ts",
             "file-upload-process.ts",
+            "file-download-process.ts",
             "network-read-worker.ts",
             "transfer-receiver.ts",
           ].includes(name)
@@ -157,6 +158,10 @@ try {
   await rename(
     join(candidate, "file-upload-process.js"),
     join(candidate, "network-producer.js"),
+  );
+  await rename(
+    join(candidate, "file-download-process.js"),
+    join(candidate, "network-read-consumer.js"),
   );
   await writeFile(
     join(candidate, "package.json"),

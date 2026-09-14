@@ -119,7 +119,12 @@ export class CanonicalAssetBindings {
           },
         );
         const claim = await scope.reserve(stage);
-        return this.withClaim(claim, facts, operation, afterBody);
+        return withCleanup(
+          () => this.withClaim(claim, facts, operation, afterBody),
+          async () => {
+            await this.driver.binary({ action: "releaseClaim", claim });
+          },
+        );
       },
       () => scope.close(),
     );

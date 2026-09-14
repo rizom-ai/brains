@@ -26,6 +26,7 @@ export async function exerciseCanonicalReadRpc(
   binding: CanonicalAssetBindings,
   config: LocalDatabaseEndpointConfig,
   record: AssetRecord,
+  outputFile: string,
 ): Promise<void> {
   const client = new LocalDatabaseRpcClient({
     config: { ...config, sessionId: "worker" },
@@ -36,7 +37,7 @@ export async function exerciseCanonicalReadRpc(
   const processes = new NetworkProcessOwner(
     process.execPath,
     new URL(
-      "../../shared/db/test/fixtures/turso-thread/network-read-consumer.ts",
+      "../../shared/db/src/turso-worker/file-download-process.ts",
       import.meta.url,
     ),
     "read",
@@ -131,7 +132,7 @@ export async function exerciseCanonicalReadRpc(
       throw new Error("Read completed before consumer resume");
     });
     void failed.catch(() => undefined); // One startup rendezvous, never a per-chunk observer.
-    consumer.start({ direction: "read", endpoint, facts });
+    consumer.start({ direction: "read", endpoint, facts, outputFile });
     await Promise.race([consumer.held, failed]);
     consumer.resume();
     const [received, delivered, code] = await Promise.all([
@@ -142,6 +143,16 @@ export async function exerciseCanonicalReadRpc(
     assert.deepEqual(received, facts);
     assert.deepEqual(delivered, facts);
     assert.equal(code, 0);
+    // Independently read every output byte in the source file producer, not this controller.
+    await binding.withFile(
+      outputFile,
+      record.sizeBytes,
+      record.digest,
+      async (publication) => {
+        assert.deepEqual(publication.record, record);
+      },
+    );
+    binding.assertTransferIdle();
 
     const cancelled = readOfferSchema.parse(
       await client.request(ENTITY_BINARY_CONTROL_SERVICE, {
@@ -190,7 +201,12 @@ export async function exerciseCanonicalReadRpc(
         heldConsumer.result.catch(() => undefined),
         heldConsumer.exited,
       );
-      heldConsumer.start({ direction: "read", endpoint: address, facts });
+      heldConsumer.start({
+        direction: "read",
+        endpoint: address,
+        facts,
+        outputFile: `${outputFile}.cancelled`,
+      });
       await Promise.race([
         heldConsumer.held,
         cancelledRead.then(() => {
@@ -216,7 +232,8 @@ export async function exerciseCanonicalReadRpc(
         }),
         null,
       );
-      await heldConsumer.killAndJoin(); // Only this creator joins its intentionally paused child.
+      assert.notEqual(await heldConsumer.exited, 0); // Source consumer closes and exits after peer loss, even while paused.
+      assert.equal(await Bun.file(`${outputFile}.cancelled`).exists(), false);
       await assert.rejects(heldConsumer.result);
     } finally {
       binding.binary.reads.download = original;

@@ -33,7 +33,7 @@ const readBridgeUrl = new URL(
   import.meta.url,
 );
 const readConsumerUrl = new URL(
-  "./fixtures/turso-thread/network-read-consumer.ts",
+  "../src/turso-worker/file-download-process.ts",
   import.meta.url,
 );
 const directories: string[] = [];

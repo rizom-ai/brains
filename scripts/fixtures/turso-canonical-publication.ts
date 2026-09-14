@@ -193,7 +193,12 @@ plugins:
     );
     assert.equal(rpcImage.content, record.ref);
     assert.equal(rpcImage.metadata.sizeBytes, SIZE);
-    await exerciseCanonicalReadRpc(binding, endpoint, record);
+    await exerciseCanonicalReadRpc(
+      binding,
+      endpoint,
+      record,
+      join(directory, "download.png"),
+    );
     binding.assertTransferIdle();
     assert.deepEqual(await owner.statAsset(record.ref), {
       ref: record.ref,
@@ -236,7 +241,12 @@ plugins:
     }
     const binding = canonicalAssetBindings(url);
     shutdownChecks.push(() => assert.equal(binding.binary.closed, true));
-    await exerciseCanonicalReadRpc(binding, endpoint, record);
+    await exerciseCanonicalReadRpc(
+      binding,
+      endpoint,
+      record,
+      join(directory, "reopened.png"),
+    );
     binding.assertTransferIdle();
     assert.deepEqual(await binding.publicationRows("rolled-back"), {
       entity: 0,

@@ -60,7 +60,7 @@ describe("isolated Turso execution-thread proof", () => {
           import.meta.url,
         ),
         readConsumerUrl: new URL(
-          "./fixtures/turso-thread/network-read-consumer.ts",
+          "../src/turso-worker/file-download-process.ts",
           import.meta.url,
         ),
         bunExecutable: process.execPath,

@@ -27,6 +27,7 @@ const startSchema: z.ZodType<NetworkProcessStart> = z.discriminatedUnion(
       direction: z.literal("read"),
       endpoint: readEndpointSchema,
       facts: blobFactsSchema,
+      outputFile: z.string().min(1).max(4096).refine(isAbsolute).optional(),
       pauseAfterBytes: readPauseAfterSchema.optional(),
     }),
   ],
@@ -42,6 +43,7 @@ export type NetworkProcessStart =
       direction: "read";
       endpoint: z.output<typeof readEndpointSchema>;
       facts: BlobFacts;
+      outputFile?: string | undefined;
       pauseAfterBytes?: number | undefined;
     };
 export type NetworkPause =
@@ -287,7 +289,9 @@ export class NetworkProcessOwner {
                 endpoint: options.endpoint,
                 facts: options.facts,
                 pause: true,
-                fragmentAck: true,
+                ...(options.outputFile === undefined
+                  ? { fragmentAck: true }
+                  : { outputFile: options.outputFile }),
                 pauseAfterBytes: options.pauseAfterBytes ?? STAGE_CHUNK_BYTES,
               },
         );
