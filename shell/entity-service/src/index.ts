@@ -22,6 +22,12 @@ export {
 export { EntityService } from "./entityService";
 export { RemoteEntityService } from "./remote-entity-service";
 export { EntityBinaryClient } from "./entity-binary-client";
+export { EntityFileRuntime } from "./entity-file-runtime";
+export type {
+  EntityFileActorOptions,
+  EntityFileAssets,
+  EntityFileSource,
+} from "./entity-file-runtime";
 export type {
   EntityFilePublicationInput,
   EntityFilePublicationRequest,
@@ -113,6 +119,7 @@ export {
   type IProjectionStore,
   type ApplyProjectionRuleResultInput,
   type ProjectionBatchDiagnostics,
+  type ProjectionBatchScope,
   type ClaimProjectionWaveInput,
   type GetProjectionRuleMemoInput,
   type MarkProjectionDirtyInput,

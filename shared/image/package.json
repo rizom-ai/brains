@@ -5,6 +5,7 @@
   "description": "Image entity schemas, asset-backed storage contracts, and utilities",
   "dependencies": {
     "@brains/assets": "workspace:*",
+    "@brains/db": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/utils": "workspace:*",
     "remark": "^15.0.1",

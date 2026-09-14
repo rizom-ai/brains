@@ -83,12 +83,14 @@ import { ProjectionRuntimeSupervisor } from "../projection-runtime-supervisor";
 import type { ShellConfig } from "../config";
 import type { ShellDependencies, ShellServices } from "../types/shell-types";
 import type { ShellLifecycle } from "./shell-lifecycle";
+import type { EntityFileActorOptions } from "@brains/entity-service";
 import {
   resolveRuntimeProcessTopology,
   type LocalDatabaseEndpointConfig,
   type RuntimeProcessRole,
 } from "../runtime-process-role";
 import { initializeIdentityAndAgentServices } from "./identity-agent-services";
+import { provisionEntityFiles } from "./entity-file-runtime";
 import { initializeJobServices } from "./job-services";
 import { createRecurringCheckDelivery } from "./recurring-check-delivery";
 import { createRecurringCheckInboxSource } from "./recurring-check-inbox-source";
@@ -121,6 +123,7 @@ export function createShellServices(options: {
   lifecycle: ShellLifecycle;
   processRole?: RuntimeProcessRole;
   localDatabaseEndpoint?: LocalDatabaseEndpointConfig;
+  fileActors?: EntityFileActorOptions;
 }): ShellServices {
   const { config, dependencies, initializerLogger, lifecycle, processRole } =
     options;
@@ -436,6 +439,14 @@ export function createShellServices(options: {
     }),
   );
   const entityService = Context.get(entityContext, EntityServiceTag);
+  if (options.fileActors)
+    provisionEntityFiles(
+      entityService,
+      options.fileActors,
+      options.localDatabaseEndpoint,
+      lifecycle,
+      (): OperationScope | undefined => operationContext.current(),
+    );
   if (entityService instanceof EntityServiceClass) {
     const binary = entityService.getBinaryPersistence();
     if (binary) {

@@ -1,4 +1,6 @@
 import { prepareAsset } from "@brains/assets";
+import assert from "node:assert/strict";
+import { mockFileAssets } from "./helpers/file-assets";
 import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { FileOperations } from "../src/lib/file-operations";
@@ -38,6 +40,7 @@ describe("FileOperations", () => {
     testDir = mkdtempSync(join(tmpdir(), "test-file-ops-"));
 
     mockEntityService = {
+      fileAssets: mockFileAssets(),
       serializeEntity: (entity: BaseEntity): string =>
         `# ${entity.id}\n\n${entity.content}`,
       hasEntityType: (): boolean => true,
@@ -338,6 +341,19 @@ describe("FileOperations", () => {
   });
 
   describe("Image File Support", () => {
+    it("rejects local image ingress without an explicitly provisioned actor runtime", async () => {
+      mkdirSync(join(testDir, "image"), { recursive: true });
+      writeFileSync(
+        join(testDir, "image", "unprovisioned.png"),
+        TINY_PNG_BYTES,
+      );
+      delete mockEntityService.fileAssets;
+      await assert.rejects(
+        fileOps.readEntity("image/unprovisioned.png"),
+        /Image file ingress is not provisioned/,
+      );
+      expect(mockEntityService.fileAssets).toBeUndefined();
+    });
     it("should prepare image files as asset references", async () => {
       // Create image file in image/ directory
       mkdirSync(join(testDir, "image"), { recursive: true });
@@ -350,7 +366,10 @@ describe("FileOperations", () => {
       expect(entity.entityType).toBe("image");
       expect(entity.id).toBe("test-photo");
       expect(entity.content).toBe(expected.ref);
-      expect(entity.preparedAsset).toEqual(expected);
+      expect(entity.fileAsset).toEqual({
+        sourceFile: imagePath,
+        sizeBytes: expected.sizeBytes,
+      });
       expect(entity.metadata).toEqual({
         format: "png",
         mediaType: "image/png",
@@ -503,10 +522,13 @@ describe("FileOperations", () => {
       expect(readEntity.id).toBe("roundtrip-test");
       expect(readEntity.entityType).toBe("image");
       expect(readEntity.content).toBe(prepareAsset(TINY_PNG_BYTES).ref);
-      expect(readEntity.preparedAsset?.bytes).toEqual(TINY_PNG_BYTES);
+      expect(readEntity.fileAsset).toEqual({
+        sourceFile: join(testDir, "image/roundtrip-test.png"),
+        sizeBytes: TINY_PNG_BYTES.length,
+      });
     });
 
-    it("does not implicitly migrate an unchanged inline image during ordinary sync", async () => {
+    it("requires asset-backed publication for an imported inline image", async () => {
       mkdirSync(join(testDir, "image"), { recursive: true });
       writeFileSync(join(testDir, "image", "legacy.png"), TINY_PNG_BYTES);
       const raw = await fileOps.readEntity("image/legacy.png");
@@ -516,7 +538,7 @@ describe("FileOperations", () => {
         metadata: { format: "png", width: 1, height: 1 },
       });
 
-      expect(fileOps.shouldUpdateEntity(existing, raw)).toBe(false);
+      expect(fileOps.shouldUpdateEntity(existing, raw)).toBe(true);
     });
   });
 

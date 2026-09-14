@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import type { EntityFileAssets } from "./entity-file-runtime";
 import { randomUUID } from "node:crypto";
 import { SHELL_CHANNELS } from "@brains/contracts";
 import {
@@ -89,6 +90,7 @@ export interface RemoteEntityServiceOptions {
 
 /** Worker facade: registries and handlers stay local; persistence stays in web. */
 export class RemoteEntityService implements EntityService {
+  public fileAssets?: EntityFileAssets;
   public readonly assetTransfers: EntityBinaryClient;
   private readonly transport: EntityRpcTransport;
   private readonly projectionTransport: ProjectionStoreRpcTransport;

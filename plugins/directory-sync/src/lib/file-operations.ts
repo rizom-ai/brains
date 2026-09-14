@@ -1,12 +1,8 @@
-import { prepareAsset } from "@brains/assets";
+import { createAssetRef } from "@brains/assets";
 import type { BaseEntity, EntityServiceClient } from "@brains/plugins";
 import { basename, dirname, extname } from "path";
 import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
-import {
-  getMimeTypeForExtension,
-  IMAGE_EXTENSIONS,
-  isImageFile,
-} from "./image-file-utils";
+import { IMAGE_EXTENSIONS, isImageFile } from "./image-file-utils";
 import {
   DOCUMENT_SIDECAR_SUFFIX,
   getDocumentMimeTypeForExtension,
@@ -32,18 +28,14 @@ import {
 import { pathExists } from "./fs-utils";
 import { OversizedFileError } from "./oversized-file-error";
 import type { PendingDeleteTarget } from "./pending-delete-registry";
-import {
-  inspectImageBytes,
-  resolveImageBytes,
-  tryParseDataUrl,
-} from "@brains/image";
+import { imageAssetFactsSchema, resolveImageBytes } from "@brains/image";
 
 export { IMAGE_EXTENSIONS, isImageFile } from "./image-file-utils";
 export { DOCUMENT_EXTENSIONS, isDocumentFile } from "./document-file-utils";
 
 export type FileOperationsEntityService = Pick<
   EntityServiceClient,
-  "serializeEntity" | "hasEntityType" | "readAsset"
+  "serializeEntity" | "hasEntityType" | "readAsset" | "fileAssets"
 >;
 
 const sidecarMetadataSchema = z.record(z.string(), z.unknown());
@@ -56,8 +48,7 @@ function decodeDocumentContent(content: string): Buffer {
 function getComparableImageRef(content: string): string | undefined {
   const normalized = content.trim();
   if (normalized.startsWith("asset://sha256/")) return normalized;
-  const parsed = tryParseDataUrl(normalized);
-  return parsed ? prepareAsset(parsed.bytes).ref : undefined;
+  return undefined;
 }
 
 /**
@@ -114,16 +105,26 @@ export class FileOperations {
 
     let content: string;
     let metadata: Record<string, unknown> | undefined;
-    let preparedAsset: RawEntity["preparedAsset"];
+    let fileAsset: RawEntity["fileAsset"];
     if (isImageFile(filePath)) {
-      const buffer = await readFile(fullPath);
-      const inspected = inspectImageBytes(
-        buffer,
-        getMimeTypeForExtension(extname(filePath)),
-      );
-      preparedAsset = prepareAsset(buffer);
-      content = preparedAsset.ref;
-      metadata = { ...inspected };
+      const files = this.entityService.fileAssets;
+      if (!files) throw new Error("Image file ingress is not provisioned");
+      fileAsset = { sourceFile: fullPath, sizeBytes: stats.size };
+      const inspected = await files.inspect(fileAsset);
+      const facts = imageAssetFactsSchema.parse({
+        ...inspected.details,
+        ref: createAssetRef(inspected.sha256),
+        digest: inspected.sha256,
+        sizeBytes: inspected.sizeBytes,
+      });
+      content = facts.ref;
+      metadata = {
+        format: facts.format,
+        mediaType: facts.mediaType,
+        width: facts.width,
+        height: facts.height,
+        sizeBytes: facts.sizeBytes,
+      };
     } else if (isDocumentFile(filePath)) {
       const buffer = await readFile(fullPath);
       const mimeType = getDocumentMimeTypeForExtension(extname(filePath));
@@ -137,7 +138,7 @@ export class FileOperations {
       entityType,
       id,
       content,
-      ...(preparedAsset ? { preparedAsset } : {}),
+      ...(fileAsset ? { fileAsset } : {}),
       created,
       updated,
     };
@@ -393,8 +394,8 @@ export class FileOperations {
   shouldUpdateEntity(existing: BaseEntity, newEntity: RawEntity): boolean {
     if (
       existing.entityType === "image" &&
-      newEntity.preparedAsset &&
-      getComparableImageRef(existing.content) === newEntity.preparedAsset.ref
+      newEntity.fileAsset &&
+      getComparableImageRef(existing.content) === newEntity.content
     ) {
       return false;
     }

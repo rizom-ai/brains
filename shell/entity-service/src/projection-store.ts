@@ -424,6 +424,10 @@ export class ProjectionStore implements IProjectionStore {
    * write. The owner re-enters the scope here so `withDirtyInput` still
    * fences those writes against the batch.
    */
+  /** Metadata-only scope propagation for owner-local file RPC handoffs. */
+  public currentBatchScope(): ProjectionBatchScope | undefined {
+    return this.batchScope.getStore();
+  }
   public runInBatchScope<TResult>(
     scope: ProjectionBatchScope,
     fn: () => Promise<TResult>,

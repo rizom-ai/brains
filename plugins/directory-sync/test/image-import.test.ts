@@ -1,4 +1,5 @@
-import { prepareAsset, type PreparedAsset } from "@brains/assets";
+import { prepareAsset } from "@brains/assets";
+import { mockFileAssets } from "./helpers/file-assets";
 import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { DirectorySync } from "../src/lib/directory-sync";
@@ -14,11 +15,13 @@ describe("Image Import - Regression Tests", () => {
   let testDir: string;
   let mockEntityService: ReturnType<typeof createMockEntityService>;
   let upsertedEntities: Array<{ entityType: string; id: string }>;
+  let publishedFiles: Array<{ sourceFile: string; sizeBytes: number }>;
 
   beforeEach(() => {
     testDir = mkdtempSync(join(tmpdir(), "test-image-import-"));
 
     upsertedEntities = [];
+    publishedFiles = [];
     mockEntityService = createMockEntityService({
       entityTypes: ["topic", "image", "post", "document"],
     });
@@ -49,6 +52,17 @@ describe("Image Import - Regression Tests", () => {
       },
     );
 
+    mockEntityService.fileAssets = mockFileAssets(
+      async (input): Promise<EntityMutationResult> => {
+        publishedFiles.push({
+          sourceFile: input.sourceFile,
+          sizeBytes: input.sizeBytes,
+        });
+        if (input.publication.operation !== "upsertEntity")
+          throw new Error("Unexpected publication operation");
+        return mockEntityService.upsertEntity(input.publication.request);
+      },
+    );
     dirSync = new DirectorySync({
       syncPath: testDir,
       entityService: mockEntityService,
@@ -104,17 +118,17 @@ describe("Image Import - Regression Tests", () => {
       ]);
     });
 
-    it("should prepare binary image bytes for atomic asset import", async () => {
+    it("should publish inspected files without prepared byte handoffs", async () => {
       mkdirSync(join(testDir, "image"), { recursive: true });
       writeFileSync(join(testDir, "image", "test-image.png"), TINY_PNG_BYTES);
 
-      // Track the entity reference and transaction-bound prepared bytes.
+      // The unit actor substitute returns metadata; production receives no bytes.
       let capturedEntity: Partial<BaseEntity> | undefined;
-      let capturedAsset: PreparedAsset | undefined;
+      let capturedAsset: unknown;
       spyOn(mockEntityService, "upsertEntity").mockImplementation(
         async (request: {
           entity: Partial<BaseEntity>;
-          preparedAsset?: PreparedAsset | undefined;
+          preparedAsset?: unknown;
         }) => {
           const entity = request.entity;
           capturedEntity = entity;
@@ -148,7 +162,13 @@ describe("Image Import - Regression Tests", () => {
         width: 1,
         height: 1,
       });
-      expect(capturedAsset).toEqual(expected);
+      expect(capturedAsset).toBeUndefined();
+      expect(publishedFiles).toEqual([
+        {
+          sourceFile: join(testDir, "image", "test-image.png"),
+          sizeBytes: TINY_PNG_BYTES.length,
+        },
+      ]);
     });
 
     it("should handle mixed import of markdown and images in single call", async () => {

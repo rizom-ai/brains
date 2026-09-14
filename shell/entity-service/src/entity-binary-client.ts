@@ -83,6 +83,10 @@ export class EntityBinaryClient {
     if (this.failure !== undefined)
       throw new Error("Binary client is fenced", { cause: this.failure });
   }
+  /** Fail closed when a composed operation cannot establish authority retirement. */
+  public invalidate(error: unknown): void {
+    this.fence(error);
+  }
   private fence(error: unknown): void {
     if (this.failure !== undefined) return;
     this.failure = error;

@@ -1,5 +1,8 @@
-import type { PreparedAsset } from "@brains/assets";
-import type { BaseEntity, ContentVisibility } from "@brains/plugins";
+import type {
+  BaseEntity,
+  ContentVisibility,
+  EntityServiceClient,
+} from "@brains/plugins";
 import { internalFullScope } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
@@ -10,6 +13,7 @@ import { resolveInSyncPath } from "./path-utils";
 
 export interface ImportPersistenceDeps {
   entityService: {
+    fileAssets?: EntityServiceClient["fileAssets"];
     getEntity(request: {
       entityType: string;
       id: string;
@@ -18,7 +22,6 @@ export interface ImportPersistenceDeps {
     serializeEntity(entity: BaseEntity): string;
     upsertEntity(request: {
       entity: BaseEntity;
-      preparedAsset?: PreparedAsset | undefined;
       options: { persistenceOrigin: "directory-sync" };
     }): Promise<{ jobId: string }>;
   };
@@ -142,13 +145,19 @@ export async function persistImportEntity(
       deps.entityService.serializeEntity(entity),
     );
 
-    const upsertResult = await deps.entityService.upsertEntity({
+    const request = {
       entity,
-      ...(rawEntity.preparedAsset
-        ? { preparedAsset: rawEntity.preparedAsset }
-        : {}),
-      options: { persistenceOrigin: "directory-sync" },
-    });
+      options: { persistenceOrigin: "directory-sync" as const },
+    };
+    let upsertResult: { jobId: string };
+    if (rawEntity.fileAsset) {
+      const files = deps.entityService.fileAssets;
+      if (!files) throw new Error("Image file publication is not provisioned");
+      upsertResult = await files.publish({
+        ...rawEntity.fileAsset,
+        publication: { operation: "upsertEntity", request },
+      });
+    } else upsertResult = await deps.entityService.upsertEntity(request);
     result.imported++;
     result.jobIds.push(upsertResult.jobId);
     deps.logger.debug("Imported entity from directory", {

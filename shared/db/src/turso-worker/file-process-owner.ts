@@ -10,6 +10,16 @@ export type { FileUploadInput } from "./file-upload";
 export type { FileDownloadInput } from "./file-download";
 export type { BlobFacts } from "./blob-protocol";
 
+const detailsSchema = z
+  .record(
+    z.string().max(64),
+    z.union([z.string().max(1024), z.number().finite(), z.boolean()]),
+  )
+  .refine((details) => Object.keys(details).length <= 16);
+export interface FileInspectionResult extends BlobFacts {
+  details: Record<string, string | number | boolean>;
+}
+
 const messageSchema = z.discriminatedUnion("kind", [
   z.strictObject({
     kind: z.literal("runtime"),
@@ -20,6 +30,7 @@ const messageSchema = z.discriminatedUnion("kind", [
   blobFactsSchema.extend({
     kind: z.enum(["sealed", "consumed"]),
     pid: z.number().int().positive(),
+    details: detailsSchema.optional(),
   }),
   z.strictObject({
     kind: z.literal("failed"),
@@ -32,6 +43,7 @@ export interface FileProcessOwnerOptions {
   executable: string;
   uploadUrl: URL;
   downloadUrl: URL;
+  inspectionUploadUrl?: URL;
 }
 interface Child {
   readonly terminal: boolean;
@@ -56,6 +68,7 @@ export class FileProcessOwner {
   private readonly executable: string;
   private readonly uploadPath: string;
   private readonly downloadPath: string;
+  private readonly inspectionPath: string | undefined;
   private readonly children = new Set<Child>();
   private admissions = 0;
   private failure: unknown;
@@ -75,6 +88,9 @@ export class FileProcessOwner {
     this.executable = options.executable;
     this.uploadPath = actorPath(options.uploadUrl);
     this.downloadPath = actorPath(options.downloadUrl);
+    this.inspectionPath = options.inspectionUploadUrl
+      ? actorPath(options.inspectionUploadUrl)
+      : undefined;
   }
   public stats(): {
     children: number;
@@ -116,6 +132,28 @@ export class FileProcessOwner {
       signal,
     );
   }
+  public async inspectUpload(
+    input: FileUploadInput,
+    signal?: AbortSignal,
+  ): Promise<FileInspectionResult> {
+    if (!this.inspectionPath)
+      throw new Error("File inspection actor is not provisioned");
+    const options = fileUploadSchema.parse(input);
+    const result = await this.run(
+      this.inspectionPath,
+      "sealed",
+      options,
+      options.size,
+      undefined,
+      signal,
+    );
+    if (!result.details) {
+      const error = new Error("File inspection actor returned no metadata");
+      this.fence(error);
+      throw error;
+    }
+    return { ...result, details: result.details };
+  }
   private fence(error: unknown): void {
     this.failure ??= error;
     for (const child of this.children) child.stop(error);
@@ -127,7 +165,7 @@ export class FileProcessOwner {
     size: number,
     digest: string | undefined,
     signal?: AbortSignal,
-  ): Promise<BlobFacts> {
+  ): Promise<BlobFacts & { details?: FileInspectionResult["details"] }> {
     if (this.closing || this.failure !== undefined)
       throw new Error("File process owner is fenced", { cause: this.failure });
     signal?.throwIfAborted();
@@ -142,7 +180,8 @@ export class FileProcessOwner {
       runtime: boolean;
       terminal: boolean;
       stopping: boolean;
-      facts: BlobFacts | undefined;
+      facts:
+        (BlobFacts & { details?: FileInspectionResult["details"] }) | undefined;
     } = { runtime: false, terminal: false, stopping: false, facts: undefined };
     let child: Child | undefined;
     let abort: (() => void) | undefined;
@@ -192,6 +231,7 @@ export class FileProcessOwner {
                 state.facts = {
                   sizeBytes: message.sizeBytes,
                   sha256: message.sha256,
+                  ...(message.details && { details: message.details }),
                 };
               }
             }

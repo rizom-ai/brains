@@ -159,6 +159,7 @@ export class Shell implements IShell {
       this.config,
       runtimeOptions?.processRole,
       runtimeOptions?.localDatabaseEndpoint,
+      runtimeOptions?.fileActors,
     );
 
     try {

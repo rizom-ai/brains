@@ -1,5 +1,4 @@
 import { z } from "@brains/utils/zod";
-import type { PreparedAsset } from "@brains/assets";
 
 /**
  * Directory sync status
@@ -293,8 +292,8 @@ export interface RawEntity {
   entityType: string;
   id: string;
   content: string;
-  /** Binary bytes staged for the same transaction as an asset-backed entity. */
-  preparedAsset?: PreparedAsset;
+  /** Trusted file location; publication re-verifies bytes against the inspected reference. */
+  fileAsset?: { sourceFile: string; sizeBytes: number };
   created: Date;
   updated: Date;
   metadata?: Record<string, unknown>;

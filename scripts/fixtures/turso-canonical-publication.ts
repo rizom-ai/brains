@@ -3,7 +3,9 @@
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, writeFile, mkdir, copyFile } from "node:fs/promises";
+import { createSilentLogger } from "@brains/test-utils";
+import { DirectorySync } from "../../plugins/directory-sync/src/lib/directory-sync";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -110,6 +112,21 @@ plugins:
         migrationsCompleted: true,
         processRole: "web",
         localDatabaseEndpoint: endpoint,
+        fileActors: {
+          executable: process.execPath,
+          uploadUrl: new URL(
+            "../../shared/db/src/turso-worker/file-upload-process.ts",
+            import.meta.url,
+          ),
+          downloadUrl: new URL(
+            "../../shared/db/src/turso-worker/file-download-process.ts",
+            import.meta.url,
+          ),
+          inspectionUploadUrl: new URL(
+            "../../shared/image/src/file-inspection-process.ts",
+            import.meta.url,
+          ),
+        },
       },
     );
     assert.deepEqual(app.getShell().getPluginManager().getFailedPlugins(), []);
@@ -118,7 +135,8 @@ plugins:
     const binding = canonicalAssetBindings(url);
     shutdownChecks.push(() => assert.equal(binding.binary.closed, true));
     assert.ok(binding.binary instanceof WorkerBinaryPersistence);
-    // Known fixture metadata, not a claim that image inspection callers migrated.
+    assert.ok(owner.fileAssets);
+    // The following fixtures still supply metadata to isolate transaction faults.
     const entity = imageAdapter.createImageEntity({
       facts: {
         ...record,
@@ -176,6 +194,41 @@ plugins:
       assert.equal(stored.content, record.ref);
       assert.equal(stored.metadata.sizeBytes, SIZE);
     }
+    const importRoot = join(directory, "local-import");
+    await mkdir(join(importRoot, "image"), { recursive: true });
+    await copyFile(sourceFile, join(importRoot, "image", "inspected.png"));
+    const importer = new DirectorySync({
+      entityService: owner,
+      logger: createSilentLogger(),
+      syncPath: importRoot,
+      autoSync: false,
+    });
+    const imported = await importer.importEntities(["image/inspected.png"]);
+    assert.equal(imported.failed, 0);
+    assert.equal(imported.imported, 1);
+    const inspected = await owner.getEntity({
+      entityType: "image",
+      id: "inspected",
+    });
+    assert.ok(inspected);
+    assert.equal(inspected.content, record.ref);
+    assert.equal(inspected.metadata["width"], 1);
+    assert.equal(inspected.metadata["height"], 1);
+    const repeatedImport = await importer.importEntities([
+      "image/inspected.png",
+    ]);
+    assert.equal(repeatedImport.skipped, 1);
+    assert.equal(repeatedImport.failed, 0);
+    await copyFile(sourceFile, join(importRoot, "image", "mislabeled.jpg"));
+    const rejectedImport = await importer.importEntities([
+      "image/mislabeled.jpg",
+    ]);
+    assert.equal(rejectedImport.failed, 1);
+    assert.equal(
+      await owner.getEntity({ entityType: "image", id: "mislabeled" }),
+      null,
+    );
+    binding.assertTransferIdle();
     await exerciseCanonicalPublicationRpc(
       binding,
       endpoint,
@@ -205,7 +258,7 @@ plugins:
       sizeBytes: SIZE,
     });
     console.error(
-      "[canonical-publication] native rollback, publication, deduplication and full consumer digest passed; runtime database factory/caller cutover not exercised",
+      "[canonical-publication] native rollback, publication, deduplication and full consumer digest passed; local image import exercised; full caller/runtime factory cutover not exercised",
     );
   } finally {
     await app.stop();
@@ -228,7 +281,12 @@ plugins:
       [],
     );
     const owner = restarted.getShell().getEntityService();
-    for (const id of ["canonical-image", "deduplicated-image", "rpc-image"]) {
+    for (const id of [
+      "canonical-image",
+      "deduplicated-image",
+      "rpc-image",
+      "inspected",
+    ]) {
       const stored = imageSchema.parse(
         await owner.getEntityRaw({
           entityType: "image",

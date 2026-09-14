@@ -30,6 +30,8 @@ export interface FileUploadControl {
   signal?: AbortSignal;
   /** Once, after the first credit and before acquiring the borrowed data buffer. */
   ready?: () => Promise<void>;
+  /** Actor-local synchronous inspection; the credited view must not be retained or mutated. */
+  observe?: (bytes: Uint8Array) => void;
 }
 
 /** Payload-actor operation, not a controller API. Returns only after native seal,
@@ -110,6 +112,7 @@ async function transfer(
       await source.readInto(view);
       await writeBytes(socket, view);
       hash.update(view);
+      control.observe?.(view);
       sent += size;
       sequence++;
     }

@@ -1,6 +1,10 @@
 import { ContentGenerationJobHandler } from "@brains/content-service";
 import type { ContentService } from "@brains/content-service";
-import type { IEntityRegistry, IEntityService } from "@brains/entity-service";
+import type {
+  IEntityRegistry,
+  IEntityService,
+  EntityFileActorOptions,
+} from "@brains/entity-service";
 import type { IJobQueueService } from "@brains/job-queue";
 import { SHELL_CHANNELS } from "@brains/contracts";
 import type { PluginManager, IShell } from "@brains/plugins";
@@ -22,6 +26,7 @@ export type { ShellServices } from "../types/shell-types";
 export type { PluginInitializeOptions } from "./shell-registration";
 
 export class ShellInitializer {
+  private readonly fileActors: EntityFileActorOptions | undefined;
   private readonly logger: Logger;
   private readonly config: ShellConfig;
   private readonly processRole: RuntimeProcessRole | undefined;
@@ -33,12 +38,14 @@ export class ShellInitializer {
     config: ShellConfig,
     processRole?: RuntimeProcessRole,
     localDatabaseEndpoint?: LocalDatabaseEndpointConfig,
+    fileActors?: EntityFileActorOptions,
   ): ShellInitializer {
     return new ShellInitializer(
       logger,
       config,
       processRole,
       localDatabaseEndpoint,
+      fileActors,
     );
   }
 
@@ -47,7 +54,9 @@ export class ShellInitializer {
     config: ShellConfig,
     processRole?: RuntimeProcessRole,
     localDatabaseEndpoint?: LocalDatabaseEndpointConfig,
+    fileActors?: EntityFileActorOptions,
   ) {
+    this.fileActors = fileActors;
     this.logger = logger.child("ShellInitializer");
     this.config = config;
     this.processRole = processRole;
@@ -107,6 +116,7 @@ export class ShellInitializer {
       dependencies,
       initializerLogger: this.logger,
       lifecycle,
+      ...(this.fileActors && { fileActors: this.fileActors }),
       ...(this.processRole && { processRole: this.processRole }),
       ...(this.localDatabaseEndpoint && {
         localDatabaseEndpoint: this.localDatabaseEndpoint,

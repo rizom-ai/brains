@@ -99,4 +99,8 @@ export function registerShellRuntimeFinalizers(
   if (endpoint?.role === "owner") {
     lifecycle.addFinalizer(() => endpoint.close());
   }
+  // File handoffs need live RPC replies to retire native authority. Drain them
+  // before closing either the owner endpoint or its databases.
+  const files = services.entityService.fileAssets;
+  if (files) lifecycle.addFinalizer(() => files.close());
 }

@@ -128,6 +128,33 @@ test("missing file actors fail closed after joined exit without selecting anothe
   await assert.rejects(files.close(), /without acknowledged completion/);
 });
 
+test("inspection metadata is required after actual actor exit and fences reuse", async () => {
+  const root = await mkdtemp(join(tmpdir(), "turso-file-inspection-owner-"));
+  const path = join(root, "inspect");
+  const files = new FileProcessOwner({
+    executable: process.execPath,
+    uploadUrl: peer,
+    downloadUrl: peer,
+    inspectionUploadUrl: peer,
+  });
+  const transfer = files.inspectUpload(input(path));
+  const rejected = assert.rejects(transfer, /returned no metadata/);
+  try {
+    await terminals(files, 1);
+    expect(files.stats().children).toBe(1);
+  } finally {
+    await Bun.write(`${path}.exit`, "release");
+    await rejected;
+    await assert.rejects(files.close(), /returned no metadata/);
+    await rm(root, { recursive: true });
+  }
+  expect(files.stats()).toEqual({
+    children: 0,
+    terminalChildren: 0,
+    fenced: true,
+  });
+});
+
 test("file process rejects implicit runtimes and synthetic input before spawning", async () => {
   expect(
     () =>

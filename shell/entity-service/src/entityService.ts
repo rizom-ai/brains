@@ -1,4 +1,5 @@
 import type { AssetRef, AssetStat, AssetVerification } from "@brains/assets";
+import type { EntityFileAssets } from "./entity-file-runtime";
 import { SHELL_CHANNELS } from "@brains/contracts";
 import type { Client } from "@libsql/client";
 import { applySqlitePragmas, closeSqliteClient } from "@brains/db";
@@ -105,6 +106,7 @@ export interface EntityServiceOptions {
 export const SEARCH_TEXT_BACKFILL_PAGE_SIZE = 200;
 
 export class EntityService implements IEntityService {
+  public fileAssets?: EntityFileAssets;
   private db: EntityDB;
   private dbClient: Client;
   private dbUrl: string;

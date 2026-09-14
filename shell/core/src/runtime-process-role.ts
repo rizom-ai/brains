@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import type { EntityFileActorOptions } from "@brains/entity-service";
 
 export type RuntimeProcessRole = "web" | "worker";
 
@@ -39,6 +40,7 @@ export function parseLocalDatabaseEndpointConfig(
 }
 
 export interface ShellRuntimeOptions {
+  readonly fileActors?: EntityFileActorOptions;
   readonly processRole?: RuntimeProcessRole;
   readonly localDatabaseEndpoint?: LocalDatabaseEndpointConfig;
 }

@@ -1,4 +1,5 @@
 import { prepareAsset } from "@brains/assets";
+import { mockFileAssets } from "./helpers/file-assets";
 import { createMockEntityService } from "@brains/entity-service/test";
 import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
@@ -72,6 +73,7 @@ describe("directory import size guard", () => {
     mkdirSync(join(testDir, "image"), { recursive: true });
     writeFileSync(join(testDir, "image", "exact.png"), TINY_PNG_BYTES);
     const service = createMockEntityService({ entityTypes: ["image"] });
+    service.fileAssets = mockFileAssets();
     const fileOperations = new FileOperations(testDir, service);
 
     const entity = await fileOperations.readEntity(

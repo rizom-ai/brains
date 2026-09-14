@@ -1,4 +1,5 @@
 import { Shell } from "@brains/core";
+import type { EntityFileActorOptions } from "@brains/entity-service";
 import { type AppConfig, type AppConfigInput, appConfigSchema } from "./types";
 import { ConsoleLogger, LogLevel } from "@brains/utils/logger";
 import { MigrationManager } from "./migration-manager";
@@ -23,6 +24,7 @@ export interface AppRuntimeOptions {
   migrationsCompleted?: boolean;
   processRole?: RuntimeProcessRole;
   localDatabaseEndpoint?: LocalDatabaseEndpointConfig;
+  fileActors?: EntityFileActorOptions;
   onRuntimeReady?: () => void;
 }
 
@@ -252,6 +254,9 @@ export class App {
       buildShellConfig(this.config, options),
       undefined,
       {
+        ...(runtimeOptions?.fileActors && {
+          fileActors: runtimeOptions.fileActors,
+        }),
         ...(runtimeOptions?.processRole && {
           processRole: runtimeOptions.processRole,
         }),
