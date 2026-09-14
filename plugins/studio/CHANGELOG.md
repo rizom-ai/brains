@@ -1,5 +1,20 @@
 # @brains/studio
 
+## 0.2.0-alpha.376
+
+### Patch Changes
+
+- [#249](https://github.com/rizom-ai/brains/pull/249) [`ee64c6b`](https://github.com/rizom-ai/brains/commit/ee64c6b0366258daa2df7f1df4a0db1a66d19098) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restore inline generated image previews in Studio Chat with main-URL fallbacks and Open/Download links. Poll read-only generation status until completion, distinguish failed jobs and lookup errors, and keep durable files accessible after job records expire. Preserve file links on preview loading errors without replaying generation actions.
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.376
+  - @brains/console-theme@0.2.0-alpha.376
+  - @brains/contracts@0.2.0-alpha.376
+  - @brains/operator-view-react@0.2.0-alpha.376
+  - @brains/utils@0.2.0-alpha.376
+  - @brains/auth-service@0.2.0-alpha.376
+  - @brains/plugins@0.2.0-alpha.376
+
 ## 0.2.0-alpha.375
 
 ### Patch Changes

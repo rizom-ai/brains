@@ -1,5 +1,19 @@
 # @brains/web-chat
 
+## 0.2.0-alpha.376
+
+### Patch Changes
+
+- [#248](https://github.com/rizom-ai/brains/pull/248) [`d7d069e`](https://github.com/rizom-ai/brains/commit/d7d069ef1102418c6f20437b951836e45c96d1bc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Emit an explicit completion event after successful authenticated chat and confirmation streams, preventing Studio from incorrectly reporting completed replies as connection losses. Preserve error events and signal aborted requests separately; do not retry or replay actions.
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.376
+  - @brains/console-theme@0.2.0-alpha.376
+  - @brains/contracts@0.2.0-alpha.376
+  - @brains/utils@0.2.0-alpha.376
+  - @brains/auth-service@0.2.0-alpha.376
+  - @brains/plugins@0.2.0-alpha.376
+
 ## 0.2.0-alpha.375
 
 ### Patch Changes
