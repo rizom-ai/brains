@@ -313,7 +313,7 @@ const browseLinks = (): string[] =>
   );
 
 describe("phone Browse destinations", () => {
-  it("keeps the rail order, so Admin stays between Work and System", async () => {
+  it("puts every single destination above the toggles", async () => {
     await renderBrowse();
     const blocks = [...document.querySelectorAll("section, details")].map(
       (block) =>
@@ -322,15 +322,14 @@ describe("phone Browse destinations", () => {
           : `group:${clean(block.querySelector("summary")?.textContent ?? "")}`,
     );
     expect(blocks).toEqual([
-      "direct:OverviewChat",
+      "direct:OverviewChatAdministration",
       "group:Library",
       "group:Work",
-      "direct:Administration",
       "group:System",
     ]);
   });
 
-  it("marks a direct destination by treatment, not by position", async () => {
+  it("marks a single destination by treatment as well as position", async () => {
     await renderBrowse();
     const admin = [...document.querySelectorAll("button")].find(
       (button) => button.getAttribute("aria-label") === "Administration",
