@@ -4,9 +4,8 @@ Last updated: 2026-09-12
 
 ## Status
 
-Proposed, demand-gated follow-up to
-[generic-multi-section-content-generation.md](./generic-multi-section-content-generation.md).
-That feature is implemented on its branch but not merged. It establishes structured entity
+Proposed, demand-gated follow-up to generic content generation, shipped in PR #252
+(Brain 0.2.0-alpha.379). That work establishes structured entity
 ID paths, a shared codec, and a well-formed book-path directory-sync round trip; it
 deliberately does **not** reinterpret or relocate legacy malformed IDs or root-note
 conventions. Studio still presents each entity type as one flat, updated-time-paginated
