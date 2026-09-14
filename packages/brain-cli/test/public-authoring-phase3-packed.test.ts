@@ -1,5 +1,5 @@
 import { describe, expect, it as bunIt } from "bun:test";
-import { appendFile, mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { getErrorMessage } from "@brains/utils/error";
@@ -179,12 +179,6 @@ describe("public authoring Phase 3 packed service contract", () => {
 
       const consumerDirectory = join(temporaryDirectory, "consumer");
       await installPackedConsumer(consumerFixture, consumerDirectory, tarballs);
-      // Generation uses the existing service grant, not the CLI's ambient admin ceiling.
-      await appendFile(
-        join(consumerDirectory, "brain.yaml"),
-        "\npermissions:\n  admins: [service:brain-cli]\n",
-      );
-
       await invokeTool(
         consumerDirectory,
         "system_create",
