@@ -5,6 +5,9 @@ import type { ToolResponse } from "@brains/mcp-service";
 export interface MockShellTool {
   name: string;
   handler: (input: unknown, context: unknown) => Promise<ToolResponse>;
+  /** Present on tools that are also exposed as `brain <cli.name>` commands. */
+  cli?: { name: string };
+  inputSchema?: Record<string, unknown>;
 }
 
 /**
@@ -30,6 +33,8 @@ export const createMockShell = (
     getMCPService: mock(() => ({
       listTools: (): { tool: MockShellTool }[] =>
         tools.map((tool) => ({ tool })),
+      getCliTools: (): { tool: MockShellTool }[] =>
+        tools.filter((tool) => tool.cli).map((tool) => ({ tool })),
     })),
   } as unknown as Shell;
 };
