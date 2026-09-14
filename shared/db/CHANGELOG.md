@@ -1,5 +1,12 @@
 # @brains/db
 
+## 0.2.0-alpha.377
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.377
+
 ## 0.2.0-alpha.376
 
 ### Patch Changes

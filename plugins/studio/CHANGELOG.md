@@ -1,5 +1,20 @@
 # @brains/studio
 
+## 0.2.0-alpha.377
+
+### Patch Changes
+
+- [#250](https://github.com/rizom-ai/brains/pull/250) [`94f22fe`](https://github.com/rizom-ai/brains/commit/94f22fea64e88a24ca3dca8c407eeeca3a830556) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Clear completed live response state once authoritative conversation history loads, so approval controls are not rendered twice. Preserve live approvals when the history read fails. No changes to approval requirements or action execution.
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.377
+  - @brains/console-theme@0.2.0-alpha.377
+  - @brains/contracts@0.2.0-alpha.377
+  - @brains/operator-view-react@0.2.0-alpha.377
+  - @brains/utils@0.2.0-alpha.377
+  - @brains/auth-service@0.2.0-alpha.377
+  - @brains/plugins@0.2.0-alpha.377
+
 ## 0.2.0-alpha.376
 
 ### Patch Changes
