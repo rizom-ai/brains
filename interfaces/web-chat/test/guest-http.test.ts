@@ -18,6 +18,7 @@ import {
 } from "@brains/plugins/test";
 import { deferred } from "@brains/utils/deferred";
 import { WebChatInterface } from "../src/web-chat-interface";
+import { resolveGuestPreset } from "../src/guest-preset";
 import { testGuestPolicy } from "./fixtures/guest-policy";
 
 type Conversation = NonNullable<
@@ -54,12 +55,16 @@ async function setup(
     authenticated?: boolean;
     origin?: string;
     profileAvailable?: boolean;
+    previewTrial?: boolean;
+    managed?: boolean;
     idleSeconds?: number;
     peerAddress?: string | null;
   } = {},
 ): Promise<Fixture> {
   const deploymentOrigin = options.origin ?? origin;
-  const harness = createPluginHarness<WebChatInterface>();
+  const harness = createPluginHarness<WebChatInterface>(
+    options.managed ? { domain: "brain.test" } : {},
+  );
   harnesses.push(harness);
   const state: Fixture = {
     now: Date.parse("2026-09-01T12:00:00Z"),
@@ -150,22 +155,37 @@ async function setup(
     },
     invalidateAgent: (): void => {},
   });
+  const defaults = resolveGuestPreset("local-test");
+  if (!defaults.enabled) throw new Error("Expected shared guest defaults");
   const plugin = new WebChatInterface(
     {},
     {
-      guestPolicy:
-        options.enabled === false
-          ? { enabled: false }
-          : {
-              ...testGuestPolicy,
-              origin: deploymentOrigin,
-              limits: {
-                ...testGuestPolicy.limits,
-                streamIdleTimeoutSeconds:
-                  options.idleSeconds ??
-                  testGuestPolicy.limits.streamIdleTimeoutSeconds,
+      ...(options.managed
+        ? {}
+        : options.previewTrial
+          ? {
+              // Trusted, already-authorized policy fixture. Activation is tested separately.
+              guestPolicy: {
+                ...defaults,
+                origin: deploymentOrigin,
+                allowance: { requests: 2, maxCostMicroUsd: 4_000_000 },
               },
-            },
+            }
+          : {
+              guestPolicy:
+                options.enabled === false
+                  ? { enabled: false as const }
+                  : {
+                      ...testGuestPolicy,
+                      origin: deploymentOrigin,
+                      limits: {
+                        ...testGuestPolicy.limits,
+                        streamIdleTimeoutSeconds:
+                          options.idleSeconds ??
+                          testGuestPolicy.limits.streamIdleTimeoutSeconds,
+                      },
+                    },
+            }),
       // An operator's ambient browser authority must not reach guest execution.
       resolvePermissionLevel: async (): Promise<"admin" | "public"> =>
         options.authenticated === false ? "public" : "admin",
@@ -180,6 +200,8 @@ async function setup(
     },
   );
   await harness.installPlugin(plugin);
+  // The real HTTP host snapshots routes before activation, not per request.
+  const routes = plugin.getWebRoutes();
   state.browser = (): Browser => {
     let cookie = "";
     const fetch = async (
@@ -194,13 +216,11 @@ async function setup(
         ...init,
         headers,
       });
-      const route = plugin
-        .getWebRoutes()
-        .find(
-          (candidate) =>
-            candidate.path === new URL(request.url).pathname &&
-            candidate.method === request.method,
-        );
+      const route = routes.find(
+        (candidate) =>
+          candidate.path === new URL(request.url).pathname &&
+          candidate.method === request.method,
+      );
       if (!route) return new Response("Not found", { status: 404 });
       const remoteAddress =
         options.peerAddress === null
@@ -255,6 +275,208 @@ async function post(browser: Browser, payload: unknown): Promise<Response> {
 }
 
 describe("guest HTTP Chat integration (mocked agent)", () => {
+  it("activates the actual default-config preview flow without replenishing its allowance", async () => {
+    const state = await setup({
+      managed: true,
+      origin: "https://preview.brain.test",
+      profileAvailable: true,
+      readiness: false,
+    });
+    const browser = state.browser();
+    const control = (enabled: boolean): Promise<Response> =>
+      browser.fetch("https://brain.test/api/chat/guest/access", {
+        method: "POST",
+        headers: {
+          Origin: "https://brain.test",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ enabled }),
+      });
+    const sessionRequest = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    };
+    expect(
+      (await browser.fetch(`${base}/session`, sessionRequest)).status,
+    ).toBe(503);
+    expect(browser.cookie()).toBe("");
+    expect(
+      (await browser.fetch("/ask/assets/guest.js", { method: "GET" })).status,
+    ).toBe(404);
+    expect(state.calls).toHaveLength(0);
+
+    expect((await control(true)).status).toBe(200);
+    expect((await browser.client.openGuestSession()).canSend).toBe(true);
+    expect(
+      (await browser.fetch("/ask/assets/guest.js", { method: "GET" })).status,
+    ).toBe(200);
+    const submission = randomUUID();
+    const first = await post(
+      browser,
+      message("Question", undefined, submission),
+    );
+    expect(first.status).toBe(200);
+    const id = conversationId(first);
+    await events(first);
+    expect((await control(false)).status).toBe(200);
+    expect((await browser.client.openGuestSession()).canSend).toBe(false);
+    expect(
+      (await browser.client.getGuestHistory(id, submission)).messages,
+    ).toHaveLength(2);
+    expect(
+      (await state.browser().fetch(`${base}/session`, sessionRequest)).status,
+    ).toBe(503);
+
+    expect((await control(true)).status).toBe(200);
+    const second = await post(browser, message("Follow-up", id));
+    expect(second.status).toBe(200);
+    await events(second);
+    expect((await browser.client.openGuestSession()).canSend).toBe(false);
+    expect((await control(true)).status).toBe(200);
+    expect((await post(browser, message("Third", id))).status).toBe(429);
+    expect(
+      (
+        await browser.fetch(`https://brain.test${base}/session`, {
+          ...sessionRequest,
+          headers: {
+            "Content-Type": "application/json",
+            Origin: "https://brain.test",
+          },
+        })
+      ).status,
+    ).toBe(403);
+    expect(state.calls).toHaveLength(2);
+    expect(await browser.client.deleteSession(id)).toEqual({ deleted: true });
+  });
+  it.each([false, true])(
+    "preserves production Ask authentication while preview trial is enabled: %j",
+    async (authenticated) => {
+      const state = await setup({
+        origin: "https://preview.brain.test",
+        previewTrial: true,
+        authenticated,
+        profileAvailable: true,
+        readiness: false,
+      });
+      const response = await state
+        .browser()
+        .fetch("https://brain.test/ask", { method: "GET" });
+      expect(response.status).toBe(authenticated ? 200 : 401);
+      expect(await response.text()).not.toContain("guest-root");
+      expect(response.headers.has("Set-Cookie")).toBe(false);
+      expect(state.calls).toHaveLength(0);
+    },
+  );
+
+  it("admits the explicit HTTPS preview trial only with a supported guest profile", async () => {
+    for (const profileAvailable of [false, true]) {
+      const state = await setup({
+        origin: "https://preview.brain.test",
+        previewTrial: true,
+        readiness: false,
+        profileAvailable,
+        peerAddress: "192.0.2.10",
+      });
+      const response = await state.browser().fetch(`${base}/session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      expect(response.status).toBe(profileAvailable ? 200 : 503);
+      expect(response.headers.has("Set-Cookie")).toBe(profileAvailable);
+      if (profileAvailable)
+        expect(response.headers.get("Set-Cookie")).toContain("; Secure");
+      expect(state.calls).toHaveLength(0);
+    }
+  });
+
+  it("supports TLS-terminated preview requests but rejects production and forged forwarding claims", async () => {
+    const preview = "https://preview.brain.test";
+    const state = await setup({
+      origin: preview,
+      previewTrial: true,
+      readiness: false,
+      profileAvailable: true,
+      peerAddress: "172.18.0.2",
+    });
+    const browser = state.browser();
+    for (const url of [
+      "https://brain.test",
+      "http://brain.test",
+      "https://other.test",
+    ]) {
+      const response = await browser.fetch(`${url}${base}/session`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Origin: preview,
+          "X-Forwarded-Host": "preview.brain.test",
+          "X-Forwarded-Proto": "https",
+          Forwarded: "host=preview.brain.test;proto=https",
+        },
+        body: "{}",
+      });
+      expect(response.status).toBe(403);
+      expect(response.headers.has("Set-Cookie")).toBe(false);
+    }
+    const response = await browser.fetch(
+      `http://preview.brain.test${base}/session`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Origin: preview },
+        body: "{}",
+      },
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("Set-Cookie")).toContain(
+      "__Host-brain-visitor=",
+    );
+    expect(response.headers.get("Set-Cookie")).toContain("; Secure");
+    const answer = await browser.fetch(`http://preview.brain.test${base}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Origin: preview },
+      body: JSON.stringify(message()),
+    });
+    expect(answer.status).toBe(200);
+    expect(
+      (await events(answer)).some((event) => event.type === "text-delta"),
+    ).toBe(true);
+    expect(state.calls).toHaveLength(1);
+  });
+
+  it("executes only the preview question and follow-up, never a third message from a new visitor", async () => {
+    const state = await setup({
+      origin: "https://preview.brain.test",
+      previewTrial: true,
+      readiness: false,
+      profileAvailable: true,
+    });
+    const browser = state.browser();
+    const session = await browser.client.openGuestSession();
+    expect(session.canSend).toBe(true);
+    const submission = randomUUID();
+    const first = await post(
+      browser,
+      message("Question", undefined, submission),
+    );
+    expect(first.status).toBe(200);
+    const id = conversationId(first);
+    await events(first);
+    const second = await post(browser, message("Follow-up", id));
+    expect(second.status).toBe(200);
+    await events(second);
+    expect(state.calls).toHaveLength(2);
+    const other = state.browser();
+    await other.client.openGuestSession();
+    const denied = await post(other, message("Third"));
+    expect(denied.status).toBe(429);
+    expect(await denied.json()).toEqual({ error: "budget-exhausted" });
+    expect(state.calls).toHaveLength(2);
+    expect(
+      (await browser.client.getGuestHistory(id, submission)).messages.length,
+    ).toBeGreaterThan(0);
+  });
   it("rejects non-loopback or missing socket peers despite forged local headers", async () => {
     for (const peerAddress of [
       null,

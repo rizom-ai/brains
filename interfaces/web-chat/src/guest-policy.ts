@@ -69,7 +69,7 @@ const budgetSchema: Strict<{
   );
 
 /** Exact deployment origin; forwarded headers and browser claims cannot supply it. */
-function isGuestOrigin(value: string): boolean {
+export function isGuestOrigin(value: string): boolean {
   try {
     const url = new URL(value);
     if (url.origin !== value || url.username || url.password) return false;
@@ -84,11 +84,21 @@ function isGuestOrigin(value: string): boolean {
   }
 }
 
+/** Optional lifetime bounds, independent of the origin's name or environment. */
+const allowanceSchema: Strict<{
+  requests: z.ZodNumber;
+  maxCostMicroUsd: z.ZodNumber;
+}> = z.strictObject({
+  requests: positiveInteger,
+  maxCostMicroUsd: positiveInteger,
+});
+
 const disabledPolicySchema: Strict<{ enabled: z.ZodLiteral<false> }> =
   z.strictObject({ enabled: z.literal(false) });
 const enabledPolicySchema: Strict<{
   enabled: z.ZodLiteral<true>;
   origin: z.ZodString;
+  allowance: z.ZodOptional<typeof allowanceSchema>;
   issuance: typeof guestIssuanceLimitsSchema;
   limits: typeof limitsSchema;
   retention: typeof guestRetentionSchema;
@@ -106,6 +116,7 @@ const enabledPolicySchema: Strict<{
       isGuestOrigin,
       "Guest origin must be canonical HTTPS (or loopback HTTP)",
     ),
+  allowance: allowanceSchema.optional(),
   issuance: guestIssuanceLimitsSchema,
   limits: limitsSchema,
   retention: guestRetentionSchema,
@@ -128,3 +139,22 @@ export const guestPolicySchema: z.ZodDiscriminatedUnion<
 ]);
 export type GuestPolicy = z.output<typeof guestPolicySchema>;
 export type EnabledGuestPolicy = Extract<GuestPolicy, { enabled: true }>;
+
+/** Deployment TLS terminates at the HTTPS proxy. For bounded guest access,
+ * accept its backend HTTP scheme only for the exact configured HTTPS host.
+ * Never infer the public host or protocol from Forwarded/X-Forwarded-* claims.
+ * Loopback policies retain exact-origin and socket-peer checks.
+ */
+export function matchesGuestOrigin(
+  request: Request,
+  policy: EnabledGuestPolicy,
+): boolean {
+  const url = new URL(request.url);
+  if (url.origin === policy.origin) return true;
+  return Boolean(
+    policy.allowance &&
+    new URL(policy.origin).protocol === "https:" &&
+    url.protocol === "http:" &&
+    url.host === new URL(policy.origin).host,
+  );
+}

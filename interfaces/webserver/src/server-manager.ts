@@ -394,10 +394,6 @@ export class ServerManager {
     c: HonoContext,
     opts: AppOptions,
   ): Promise<Response | null> {
-    if (!opts.healthEndpoint) {
-      return null;
-    }
-
     const requestMethod = c.req.method.toUpperCase();
     const requestPath = c.req.path;
 
@@ -418,11 +414,15 @@ export class ServerManager {
         )
         .sort((left, right) => right.fullPath.length - left.fullPath.length)[0];
     if (handlerRoute) {
+      if (!opts.healthEndpoint && handlerRoute.preview !== true) return null;
       if (handlerRoute.sharedHostAdmission === "deny") {
         return c.text("Unauthorized", 401);
       }
       return handlerRoute.handler(c.req.raw, this.transport.get(c.req.raw));
     }
+
+    // Preview opt-in applies only to handler routes, never the tool API surface.
+    if (!opts.healthEndpoint) return null;
 
     const toolRoute = this.routes.find(
       (route): route is RegisteredToolHttpRoute =>

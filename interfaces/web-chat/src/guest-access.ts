@@ -8,6 +8,7 @@ import { z } from "@brains/utils/zod";
 import type { WebChatConversation } from "./conversation-access";
 import {
   guestPolicySchema,
+  matchesGuestOrigin,
   type EnabledGuestPolicy,
   type GuestPolicy,
 } from "./guest-policy";
@@ -255,7 +256,7 @@ export class GuestVisitorStore {
       .toLowerCase();
     if (
       request.method !== "POST" ||
-      new URL(request.url).origin !== this.policy.origin ||
+      !matchesGuestOrigin(request, this.policy) ||
       request.headers.get("origin") !== this.policy.origin ||
       contentType !== "application/json" ||
       request.headers.get("sec-fetch-site") === "cross-site"
@@ -266,7 +267,7 @@ export class GuestVisitorStore {
   }
 
   private token(request: Request, policy: EnabledGuestPolicy): string | null {
-    if (new URL(request.url).origin !== policy.origin) return null;
+    if (!matchesGuestOrigin(request, policy)) return null;
     const name = `${this.cookieName(policy)}=`;
     const matches = (request.headers.get("cookie") ?? "")
       .split(";")

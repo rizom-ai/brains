@@ -28,6 +28,8 @@ export interface WebRouteDefinition {
   method?: WebRouteMethod;
   /** Allow unauthenticated access */
   public?: boolean;
+  /** Also serve on the preview host. Reachability only; admission checks still apply. */
+  preview?: boolean;
   /** Request handler */
   handler: WebRouteHandler;
 }

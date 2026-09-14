@@ -757,7 +757,11 @@ describe("WebChatInterface", () => {
 
     const routes = plugin.getWebRoutes();
 
-    expect(routes).toHaveLength(22);
+    expect(routes).toHaveLength(24);
+    expect(routes.slice(-2)).toMatchObject([
+      { path: "/api/chat/guest/access", method: "GET", public: true },
+      { path: "/api/chat/guest/access", method: "POST", public: true },
+    ]);
     expect(routes[0]).toMatchObject({
       path: "/ask",
       method: "GET",

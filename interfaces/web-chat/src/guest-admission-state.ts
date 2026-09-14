@@ -47,6 +47,21 @@ const receiptSchema: Strict<{
   );
 export type GuestAdmissionReceipt = z.output<typeof receiptSchema>;
 
+const lifetimeUsageSchema: Strict<{
+  requests: z.ZodNumber;
+  reservedMicroUsd: z.ZodNumber;
+}> = z.strictObject({ requests: integer, reservedMicroUsd: integer });
+
+const authorizationSchema: Strict<{
+  origin: z.ZodString;
+  requests: z.ZodNumber;
+  maxCostMicroUsd: z.ZodNumber;
+}> = z.strictObject({
+  origin: z.string().url(),
+  requests: z.number().int().positive(),
+  maxCostMicroUsd: z.number().int().positive(),
+});
+
 export const guestAdmissionStateSchema: Strict<{
   version: z.ZodLiteral<1>;
   revision: z.ZodNumber;
@@ -54,6 +69,8 @@ export const guestAdmissionStateSchema: Strict<{
   enabled: z.ZodBoolean;
   lastSeenAt: z.ZodNumber;
   receipts: z.ZodRecord<z.ZodString, typeof receiptSchema>;
+  lifetime: z.ZodOptional<typeof lifetimeUsageSchema>;
+  authorization: z.ZodOptional<typeof authorizationSchema>;
 }> = z.strictObject({
   version: z.literal(1),
   revision: integer,
@@ -61,6 +78,10 @@ export const guestAdmissionStateSchema: Strict<{
   enabled: z.boolean(),
   lastSeenAt: integer,
   receipts: z.record(digest, receiptSchema),
+  // Anonymous lifetime totals survive receipt/visitor cleanup. Bounded admission
+  // fails closed if these totals are missing; absence never means zero.
+  lifetime: lifetimeUsageSchema.optional(),
+  authorization: authorizationSchema.optional(),
 });
 export type GuestAdmissionState = z.output<typeof guestAdmissionStateSchema>;
 export const guestAdmissionNamespace = "web-chat.guest-admission";

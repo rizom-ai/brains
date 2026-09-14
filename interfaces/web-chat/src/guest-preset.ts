@@ -26,8 +26,8 @@ const localPresetSchema: z.ZodObject<
   origin: localOriginSchema.default("http://127.0.0.1:8080"),
 });
 
-/** Reviewed, bounded localhost trial; not a production guest policy. */
-function localTestPolicy(origin: string): GuestPolicy {
+/** Shared execution defaults. A hosted policy still needs explicit authorization. */
+export function createDefaultGuestPolicy(origin: string): GuestPolicy {
   return guestPolicySchema.parse({
     enabled: true,
     origin,
@@ -59,7 +59,8 @@ function localTestPolicy(origin: string): GuestPolicy {
     disclosure: {
       provider: "OpenAI (gpt-5.6-luna)",
       notice:
-        "Local test only. Messages and retrieved public text reach this Brain and OpenAI. Do not send sensitive information. AI answers can be wrong. Conversations are not added to public knowledge. This session expires after one hour without renewal.",
+        (origin.startsWith("http://") ? "Local test only. " : "") +
+        "Messages and retrieved public text reach this Brain and OpenAI. Do not send sensitive information. AI answers can be wrong. Conversations are not added to public knowledge. This session expires after one hour without renewal.",
       deletionLimitations:
         "Local deletion does not guarantee erasure from journals, backups, test artifacts, or provider and security logs. Usage reservations can remain.",
     },
@@ -75,7 +76,7 @@ export function resolveGuestPreset(
   input: z.output<typeof guestPresetSchema>,
 ): GuestPolicy {
   if (input === false) return { enabled: false };
-  return localTestPolicy(
+  return createDefaultGuestPolicy(
     localPresetSchema.parse(input === "local-test" ? { preset: input } : input)
       .origin,
   );
