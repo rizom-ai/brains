@@ -1,5 +1,20 @@
 # @brains/studio
 
+## 0.2.0-alpha.380
+
+### Patch Changes
+
+- [#254](https://github.com/rizom-ai/brains/pull/254) [`9fbd8ad`](https://github.com/rizom-ai/brains/commit/9fbd8ad73d1d2f5fca58a4dcc73b92ad6daa97ee) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Rebuild the phone Browse sheet around its hierarchy. Overview, Chat and Admin gather into one block above the groups instead of sitting between them, group headers become section-heading rows with the chevron leading rather than muted captions with a `+` at the far edge, and groups rest open so the sheet fills with destinations. A filter over every destination replaces the display line that named the sheet, the way out becomes a quiet round control, and a count that needs the operator is set in the accent while an item tally stays quiet. A folded group still names the destination you are in.
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.380
+  - @brains/console-theme@0.2.0-alpha.380
+  - @brains/contracts@0.2.0-alpha.380
+  - @brains/operator-view-react@0.2.0-alpha.380
+  - @brains/utils@0.2.0-alpha.380
+  - @brains/auth-service@0.2.0-alpha.380
+  - @brains/plugins@0.2.0-alpha.380
+
 ## 0.2.0-alpha.379
 
 ### Patch Changes
