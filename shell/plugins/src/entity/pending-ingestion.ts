@@ -98,6 +98,7 @@ export interface SaveProcessedEntityRequest {
   entityService: PendingEntityService;
   entity: EntityInputWithId;
   fileAsset?: EntityFileSource;
+  signal?: AbortSignal;
   preparedAsset?: PreparedAsset | undefined;
   expectedContentHash?: string | undefined;
 }
@@ -138,6 +139,7 @@ export async function saveProcessedEntity({
   entity,
   preparedAsset,
   fileAsset,
+  signal,
   expectedContentHash,
 }: SaveProcessedEntityRequest): Promise<SaveProcessedEntityResult> {
   const files = entityService.fileAssets;
@@ -145,11 +147,13 @@ export async function saveProcessedEntity({
     throw new Error("File publication cannot be mixed with prepared bytes");
   if (fileAsset && !files)
     throw new Error("File publication is not provisioned");
+  signal?.throwIfAborted();
   const previousEntity = await entityService.getEntity({
     entityType: entity.entityType,
     id: entity.id,
     visibilityScope: internalFullScope("pending entity completion"),
   });
+  signal?.throwIfAborted();
 
   if (previousEntity) {
     const updatedEntity: BaseEntity = {
@@ -166,10 +170,13 @@ export async function saveProcessedEntity({
     };
     const mutation =
       fileAsset && files
-        ? await files.publish({
-            ...fileAsset,
-            publication: { operation: "updateEntity", request },
-          })
+        ? await files.publish(
+            {
+              ...fileAsset,
+              publication: { operation: "updateEntity", request },
+            },
+            { signal },
+          )
         : await entityService.updateEntity({
             ...request,
             ...(preparedAsset ? { preparedAsset } : {}),
@@ -197,10 +204,13 @@ export async function saveProcessedEntity({
 
   const mutation =
     fileAsset && files
-      ? await files.publish({
-          ...fileAsset,
-          publication: { operation: "createEntity", request: { entity } },
-        })
+      ? await files.publish(
+          {
+            ...fileAsset,
+            publication: { operation: "createEntity", request: { entity } },
+          },
+          { signal },
+        )
       : await entityService.createEntity({
           entity,
           ...(preparedAsset ? { preparedAsset } : {}),

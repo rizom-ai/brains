@@ -27,6 +27,48 @@ const makeEntity = (overrides: Partial<BaseEntity> = {}): BaseEntity => ({
 });
 
 describe("pending ingestion helpers", () => {
+  test("cancellation during pending lookup prevents file publication", async () => {
+    const entered = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    const abort = new AbortController();
+    const primary = new Error("job cancelled during lookup");
+    const publish = mock(async (_request: unknown) => mutation("item-1"));
+    const unused = async (): Promise<never> => {
+      throw new Error("Unexpected operation");
+    };
+    const entityService = {
+      getEntity: async (): Promise<BaseEntity> => {
+        entered.resolve();
+        await release.promise;
+        return makeEntity();
+      },
+      createEntity: unused,
+      updateEntity: unused,
+      fileAssets: {
+        publish,
+        inspect: unused,
+        fingerprint: unused,
+        download: unused,
+        close: async (): Promise<void> => undefined,
+      },
+    };
+    const pending = saveProcessedEntity({
+      entityService,
+      entity: makeEntity(),
+      fileAsset: { sourceFile: "/trusted/pinned", sizeBytes: 1 },
+      signal: abort.signal,
+    });
+    const rejected = assert.rejects(
+      pending,
+      (error: unknown) => error === primary,
+    );
+    await entered.promise;
+    abort.abort(primary);
+    release.resolve();
+    await rejected;
+    expect(publish).not.toHaveBeenCalled();
+  });
+
   test("processed files preserve pending identity, visibility and content guards without byte handoffs", async () => {
     const existing = makeEntity({ visibility: "shared" });
     const publish = mock(async (_request: unknown) => mutation("item-1"));

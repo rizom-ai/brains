@@ -20,14 +20,14 @@
 | **3. Application cutover**             | Switch all five runtime factories; package workers/actors and wire single-owner lifecycle, including combined mode. | Canonical `start:minimal`, then `start:personal`; real jobs/auth/images/site rebuilds, installed startup, shutdown and restart.                |
 | **4. Release acceptance**              | Complete working-set, crash recovery, import/deployment/backup/restore and rollback coverage.                       | SDK/native/transport/GC/RSS accounting, controller/grandchild recovery and explicit fleet/soak acceptance.                                     |
 
-## Current slice: stored-upload image promotion — complete
+## Current slice: promotion job cancellation — complete
 
-1. Exercise the registered promotion handler through a worker-role App over authenticated owner RPC, forbidding buffered upload reads before implementation.
-2. Pin stored files outside upload pruning for the joined callback lifetime; retain failed pins. Pins are neither immutable snapshots nor crash-durable backups.
-3. Inspect extensionless pins in the payload actor, validate declared MIME, and publish files through pending-entity completion while preserving identity, visibility, timestamps and content guards. Store canonical asset bodies with visibility in its DB column; decode visibility envelopes at the image adapter boundary.
-4. Before publication, retain pending-failure behavior and distinct failure causes. Once entering publication, do not follow uncertain outcomes or later cleanup failures with another entity mutation. Keep the runtime factory unchanged.
+1. Fail focused tests for caller cancellation before file admission and during pending lookup before implementation.
+2. Relay caller signals through the shared file runtime without aborting receipt-bearing RPCs; await retirement and detach listeners. Retain cancellation, lost-receipt and fencing causes.
+3. Forward promotion job cancellation through inspection and file publication. Cancelled jobs preserve pending state and interrupted pins rather than marking ingestion failed.
+4. Observe actual publication outcomes: late cancellation cannot retract a committed result or force a report through an already-cancelled progress channel. Keep the runtime factory unchanged.
 
-**Exit check:** canonical worker-role promotion, owner visibility and joined-owner reopen pass with existing import/export/rollback/download coverage under the default test timeout. Export fixtures avoid unrelated transfers; MIME mismatch stays in focused handler tests. Unit checks also cover pin/prune lifetimes, failed pin retention, metadata mismatches, pending metadata and unavailable post-commit replies. This is source handler integration, not separate-process or installed startup acceptance. Upstream upload capture remains buffered.
+**Exit check:** deterministic unit gates cover pending receipts/retirement, pre-publication cancellation, cause identity, listener cleanup and late committed outcomes. Reuse existing handoff tests for actor/native lifetime behavior. The canonical application test gains no scenarios or timeout override; it remains the successful real-caller regression check. Upstream upload capture remains buffered.
 
 **Next slice:** migrate the next real image ingress/read caller, moving its conversion or provider assembly into actors without buffered fallback. Package/default application provisioning remains milestone 3; do not switch the runtime factory until milestone 2's exit check passes.
 

@@ -58,7 +58,9 @@ export class UploadPromotionJobHandler extends BaseJobHandler<
     data: UploadPromotionJobData,
     _jobId: string,
     progressReporter: ProgressReporter,
+    signal: AbortSignal,
   ): Promise<UploadPromotionJobResult> {
+    signal.throwIfAborted();
     const state: { publicationEntered: boolean } = {
       publicationEntered: false,
     };
@@ -67,6 +69,7 @@ export class UploadPromotionJobHandler extends BaseJobHandler<
         progress: 10,
         message: "Reading uploaded image",
       });
+      signal.throwIfAborted();
 
       const files = this.context.entityService.fileAssets;
       if (!files)
@@ -76,6 +79,7 @@ export class UploadPromotionJobHandler extends BaseJobHandler<
         .withFile(
           data.uploadId,
           async (upload): Promise<UploadPromotionJobResult> => {
+            signal.throwIfAborted();
             if (!isSupportedImageMediaType(upload.record.mediaType)) {
               throw new Error(
                 "Only image uploads can be promoted to image entities",
@@ -97,7 +101,8 @@ export class UploadPromotionJobHandler extends BaseJobHandler<
               sourceFile: upload.sourceFile,
               sizeBytes: upload.record.sizeBytes,
             };
-            const inspected = await files.inspect(fileAsset);
+            const inspected = await files.inspect(fileAsset, { signal });
+            signal.throwIfAborted();
             const facts = imageAssetFactsSchema.parse({
               ...inspected.details,
               ref: createAssetRef(inspected.sha256),
@@ -130,17 +135,24 @@ export class UploadPromotionJobHandler extends BaseJobHandler<
                 updated: now,
               },
               fileAsset,
+              signal,
             });
 
-            await this.reportProgress(progressReporter, {
-              progress: 100,
-              message: "Uploaded image promoted",
-            });
+            // Publication is acknowledged. A cancelled progress channel must
+            // not replace the committed result with a cancellation error.
+            if (!signal.aborted)
+              await this.reportProgress(progressReporter, {
+                progress: 100,
+                message: "Uploaded image promoted",
+              });
 
             return { entityId: result.entityId, status: "created" };
           },
         );
     } catch (error) {
+      // Cancellation is not an ingestion failure. File operations already joined
+      // retirement before rejecting; retain their error/cause graph unchanged.
+      if (signal.aborted) throw error;
       if (data.imageId && !state.publicationEntered) {
         const errors: unknown[] = [error];
         try {

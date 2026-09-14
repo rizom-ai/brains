@@ -1,7 +1,7 @@
 import { parseAssetRef } from "@brains/assets";
 import assert from "node:assert/strict";
 import { mockImageFileAssets } from "./helpers/file-assets";
-import { rm } from "node:fs/promises";
+import { rm, stat } from "node:fs/promises";
 import { createTempDir } from "@brains/test-utils";
 import { join } from "node:path";
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
@@ -88,6 +88,161 @@ describe("ImagePlugin", () => {
       new AbortController().signal,
     );
   }
+
+  it("preserves pending state and skips file work for a pre-cancelled promotion", async () => {
+    const service = harness.getEntityService();
+    await service.createEntity({
+      entity: {
+        id: "cancelled",
+        entityType: "image",
+        content: "",
+        metadata: { title: "Pending", alt: "Pending", status: "pending" },
+      },
+    });
+    const files = service.fileAssets;
+    assert.ok(files);
+    const inspect = spyOn(files, "inspect");
+    const handler = registeredHandlers.get("image:upload-promote");
+    const reporter = CallbackProgressReporter.from(
+      async (): Promise<void> => undefined,
+    );
+    assert.ok(handler);
+    assert.ok(reporter);
+    const abort = new AbortController();
+    const primary = new Error("promotion cancelled");
+    abort.abort(primary);
+    await assert.rejects(
+      handler.process(
+        { uploadId: "not-read", imageId: "cancelled" },
+        "job",
+        reporter,
+        abort.signal,
+      ),
+      (error: unknown) => error === primary,
+    );
+    expect(inspect).not.toHaveBeenCalled();
+    expect(
+      (await service.getEntity({ entityType: "image", id: "cancelled" }))
+        ?.metadata["status"],
+    ).toBe("pending");
+  });
+
+  it("joins cancelled inspection before rejecting and retains the pin without failing the pending entity", async () => {
+    const service = harness.getEntityService();
+    await service.createEntity({
+      entity: {
+        id: "cancelled",
+        entityType: "image",
+        content: "",
+        metadata: { title: "Pending", alt: "Pending", status: "pending" },
+      },
+    });
+    const files = service.fileAssets;
+    assert.ok(files);
+    const caller = new AbortController();
+    const primary = new Error("job cancelled during inspection");
+    const entered = Promise.withResolvers<void>();
+    const retire = Promise.withResolvers<void>();
+    let pin = "";
+    files.inspect = async (input, options): Promise<never> => {
+      expect(options?.signal).toBe(caller.signal);
+      pin = input.sourceFile;
+      entered.resolve();
+      await retire.promise;
+      throw primary;
+    };
+    const publish = spyOn(files, "publish");
+    const store = harness.getMockShell().getRuntimeUploadRegistry().scoped({
+      namespace: "upload",
+      refKind: "upload",
+      routePath: "/api/chat/uploads",
+    });
+    const record = await store.save({
+      filename: "cancelled.png",
+      mediaType: "image/png",
+      content: Buffer.from("bytes stay in the test actor"),
+    });
+    const handler = registeredHandlers.get("image:upload-promote");
+    const reporter = CallbackProgressReporter.from(
+      async (): Promise<void> => undefined,
+    );
+    assert.ok(handler);
+    assert.ok(reporter);
+    let settled = false;
+    const running = handler
+      .process(
+        { uploadId: record.id, imageId: "cancelled" },
+        "job",
+        reporter,
+        caller.signal,
+      )
+      .finally(() => {
+        settled = true;
+      });
+    const rejected = assert.rejects(
+      running,
+      (error: unknown) => error === primary,
+    );
+    try {
+      await entered.promise;
+      caller.abort(primary);
+      expect(settled).toBe(false);
+    } finally {
+      retire.resolve();
+      await rejected;
+    }
+    expect(publish).not.toHaveBeenCalled();
+    expect((await stat(pin)).isFile()).toBe(true);
+    expect(
+      (await service.getEntity({ entityType: "image", id: "cancelled" }))
+        ?.metadata["status"],
+    ).toBe("pending");
+  });
+
+  it("observes committed publication despite late job cancellation", async () => {
+    const service = harness.getEntityService();
+    const files = service.fileAssets;
+    assert.ok(files);
+    const caller = new AbortController();
+    const publish = files.publish;
+    files.publish = async (input, options): ReturnType<typeof publish> => {
+      expect(options?.signal).toBe(caller.signal);
+      const result = await publish(input);
+      caller.abort(new Error("cancelled after commit"));
+      return result;
+    };
+    const store = harness.getMockShell().getRuntimeUploadRegistry().scoped({
+      namespace: "upload",
+      refKind: "upload",
+      routePath: "/api/chat/uploads",
+    });
+    const record = await store.save({
+      filename: "committed.png",
+      mediaType: "image/png",
+      content: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+        "base64",
+      ),
+    });
+    const handler = registeredHandlers.get("image:upload-promote");
+    assert.ok(handler);
+    const cancellationAwareReporter = CallbackProgressReporter.from(
+      async (): Promise<void> => caller.signal.throwIfAborted(),
+    );
+    assert.ok(cancellationAwareReporter);
+    expect(
+      await handler.process(
+        { uploadId: record.id, imageId: "committed" },
+        "job",
+        cancellationAwareReporter,
+        caller.signal,
+      ),
+    ).toEqual({ entityId: "committed", status: "created" });
+    expect(
+      (await service.getEntity({ entityType: "image", id: "committed" }))
+        ?.metadata["status"],
+    ).toBe("draft");
+  });
 
   it("rejects a declared MIME that disagrees with inspected bytes before publication", async () => {
     const service = harness.getEntityService();

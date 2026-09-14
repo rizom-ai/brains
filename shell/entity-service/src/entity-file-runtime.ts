@@ -9,7 +9,10 @@ import {
   type FileProcessOwnerOptions,
   type FileInspectionResult,
 } from "@brains/db/file-process-owner";
-import type { EntityBinaryClient } from "./entity-binary-client";
+import type {
+  EntityBinaryClient,
+  EntityBinaryRequestOptions,
+} from "./entity-binary-client";
 import type { FileUploadInput } from "@brains/db/file-upload";
 import type { EntityFilePublicationInput } from "./entity-file-publication";
 import type { EntityFileDownloadInput } from "./entity-file-download";
@@ -20,14 +23,22 @@ export interface EntityFileSource {
   sizeBytes: number;
 }
 export interface EntityFileAssets {
-  inspect(input: EntityFileSource): Promise<FileInspectionResult>;
+  inspect(
+    input: EntityFileSource,
+    options?: EntityBinaryRequestOptions,
+  ): Promise<FileInspectionResult>;
   /** Actor-local file hashing with native verification and acknowledged transient retirement. */
   fingerprint(
     input: EntityFileSource,
+    options?: EntityBinaryRequestOptions,
   ): Promise<{ sizeBytes: number; sha256: string }>;
-  publish(input: EntityFilePublicationInput): Promise<EntityMutationResult>;
+  publish(
+    input: EntityFilePublicationInput,
+    options?: EntityBinaryRequestOptions,
+  ): Promise<EntityMutationResult>;
   download(
     input: EntityFileDownloadInput,
+    options?: EntityBinaryRequestOptions,
   ): Promise<{ sizeBytes: number; sha256: string }>;
   close(): Promise<void>;
 }
@@ -70,17 +81,25 @@ export class EntityFileRuntime implements EntityFileAssets {
     this.actors = new FileProcessOwner(options);
     this.closeControl = closeControl;
   }
-  private run<T>(body: (signal: AbortSignal) => Promise<T>): Promise<T> {
+  private run<T>(
+    body: (signal: AbortSignal) => Promise<T>,
+    caller?: AbortSignal,
+  ): Promise<T> {
     if (this.closed)
       return Promise.reject(new Error("File runtime is closing"));
+    if (caller?.aborted) return Promise.reject(caller.reason);
     if (this.operations.size >= 16)
       return Promise.reject(
         new Error("File operation admission capacity exceeded"),
       );
     const abort = new AbortController();
+    const cancelled = (): void => abort.abort(caller?.reason);
+    caller?.addEventListener("abort", cancelled, { once: true });
+    // Observe the body's real outcome: a late abort cannot retract publication.
     const work = Promise.resolve()
       .then(() => body(abort.signal))
       .finally(() => {
+        caller?.removeEventListener("abort", cancelled);
         this.operations.delete(abort);
       });
     this.operations.set(abort, work);
@@ -88,32 +107,44 @@ export class EntityFileRuntime implements EntityFileAssets {
   }
   public publish(
     input: EntityFilePublicationInput,
+    options?: EntityBinaryRequestOptions,
   ): Promise<EntityMutationResult> {
-    return this.run((signal) =>
-      this.client.publishFile(input, this.actors, { signal }),
+    return this.run(
+      (signal) => this.client.publishFile(input, this.actors, { signal }),
+      options?.signal,
     );
   }
   public download(
     input: EntityFileDownloadInput,
+    options?: EntityBinaryRequestOptions,
   ): Promise<{ sizeBytes: number; sha256: string }> {
-    return this.run((signal) =>
-      this.client.downloadFile(input, this.actors, { signal }),
+    return this.run(
+      (signal) => this.client.downloadFile(input, this.actors, { signal }),
+      options?.signal,
     );
   }
-  public inspect(input: EntityFileSource): Promise<FileInspectionResult> {
-    return this.run((signal) =>
-      this.inspectOwned(input, signal, (source, abort) =>
-        this.actors.inspectUpload(source, abort),
-      ),
+  public inspect(
+    input: EntityFileSource,
+    options?: EntityBinaryRequestOptions,
+  ): Promise<FileInspectionResult> {
+    return this.run(
+      (signal) =>
+        this.inspectOwned(input, signal, (source, abort) =>
+          this.actors.inspectUpload(source, abort),
+        ),
+      options?.signal,
     );
   }
   public fingerprint(
     input: EntityFileSource,
+    options?: EntityBinaryRequestOptions,
   ): Promise<{ sizeBytes: number; sha256: string }> {
-    return this.run((signal) =>
-      this.inspectOwned(input, signal, (source, abort) =>
-        this.actors.upload(source, abort),
-      ),
+    return this.run(
+      (signal) =>
+        this.inspectOwned(input, signal, (source, abort) =>
+          this.actors.upload(source, abort),
+        ),
+      options?.signal,
     );
   }
   private async inspectOwned<T extends { sizeBytes: number; sha256: string }>(
@@ -125,8 +156,16 @@ export class EntityFileRuntime implements EntityFileAssets {
     signal.throwIfAborted();
     const offered = await observe(() => this.client.offer(parsed.sizeBytes));
     if (!offered.ok) {
-      this.client.invalidate(offered.error);
-      throw offered.error;
+      const failure =
+        signal.aborted && signal.reason !== offered.error
+          ? new AggregateError(
+              [signal.reason, offered.error],
+              "Cancelled inspection has no offer receipt",
+              { cause: signal.reason },
+            )
+          : offered.error;
+      this.client.invalidate(failure);
+      throw failure;
     }
     const offer = offered.value;
     const abort = new AbortController();
