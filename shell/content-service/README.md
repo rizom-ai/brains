@@ -116,5 +116,5 @@ visibility-scoped retrieval. Providers remain mocked, so these are service-reope
 tests rather than full process-crash evidence. Transport-wide audits, deeper crash testing,
 and publishing preparation are separate follow-ups.
 
-See the [generic content generation plan](../../docs/plans/generic-multi-section-content-generation.md)
-for the current checkpoint and release requirements.
+The generation plan closed with PR #252. Its durable contracts live in this README, in
+`plugins/site-content`, in directory-sync, and in the public authoring documentation.

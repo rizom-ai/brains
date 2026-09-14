@@ -46,7 +46,7 @@ An existing worktree does not automatically outrank release work.
 | **P0**   | Freeze the public authoring boundary | Finish review and integration of `work/plugin-api-boundaries`; preserve the declarative outside-author path and do not retain superseded alpha APIs.                                       |
 | **P0**   | Nominate and release stable `v0.2.0` | Publish one final alpha, rerun exact registry/packed/live/eval evidence, certify canaries and `yeehaa.io`, then request explicit stable-release authorization.                             |
 | **P1**   | Prove Public Ask                     | Rebuild and inspect the deployed preview, then—only with fresh approval—verify a real public-source question, follow-up, history, and owned deletion. Keep production guest admission off. |
-| **P2**   | General content generation           | Review and merge the implemented `feat/generic-content-generation` slice, drain incompatible pending generation jobs before rollout, and leave Studio folders as a demand-gated follow-up. |
+| **P2**   | General content generation           | Shipped in PR #252 (Brain 0.2.0-alpha.379) and verified on smoke; the default site carries a generated section. Studio folders remain a demand-gated follow-up.                            |
 | **P2**   | Opportunity-prioritization dogfood   | Finish the single-entity opportunity rework, composition, eval hardening, and focused operator surface without adding it to a default bundle.                                              |
 
 Everything marked parked, proposed, or exploratory below is demand-gated. New work should not preempt P0 without an explicit roadmap change.
@@ -146,7 +146,6 @@ These reduce drag or preserve future options; they are not product bets and do n
 
 Active cleanup and infrastructure plans:
 
-- [generic-multi-section-content-generation.md](./plans/generic-multi-section-content-generation.md) — implemented pending review: generic typed multi-target generation with site-content as a domain adapter.
 - [durable-binary-assets.md](./plans/durable-binary-assets.md) — move image bytes into same-database content-addressed BLOB storage, then validate a production cutover.
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval subprocesses.
 - [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — continue security, matching, advertising, and cleanup beyond the shipped normalized registry.
