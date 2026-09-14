@@ -422,6 +422,7 @@
     "core--site-metadata-single-schema",
     "core--site-template-render-version",
     "core--sqlite-asset-foundation",
+    "core--standalone-ask-design",
     "core--standalone-predeploy-backup",
     "core--status-palette-light-mode",
     "core--studio-account-workspace",

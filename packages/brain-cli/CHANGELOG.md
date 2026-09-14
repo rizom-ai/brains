@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.383
+
+### Patch Changes
+
+- [#262](https://github.com/rizom-ai/brains/pull/262) [`6376bb3`](https://github.com/rizom-ai/brains/commit/6376bb31e305c9591e0f499035013088231823fe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Apply the public Ask design with editable suggestions, a scrollable transcript and a compact conversation menu. Let admitted public-page handlers use the installed site's generated presentation, retaining a headerless fallback when no site page exists. Keep provider and retention information in the existing Privacy and limits disclosure, and preserve guest admission, ownership controls and the embedded Brain-page box.
+
 ## 0.2.0-alpha.382
 
 ### Patch Changes
