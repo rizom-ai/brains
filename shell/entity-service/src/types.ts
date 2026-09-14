@@ -10,6 +10,7 @@ import type {
   QueryEmbedding,
 } from "@brains/contracts";
 import type { IProjectionStore } from "./projection-store";
+import type { EntityBinaryClient } from "./entity-binary-client";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
 import type {
   AcknowledgeEntityExportsRequest,
@@ -1008,6 +1009,8 @@ export interface SettleDurableBulkMutationChildInput {
  * methods (like the schema-taking reads) down to one signature.
  */
 export interface EntityServiceClient extends ICoreEntityService {
+  /** Available on authenticated remote facades. Absence is not permission for a byte fallback. */
+  readonly assetTransfers?: EntityBinaryClient;
   /** Internal source-authority check used by persistence integrations. */
   isProjectionOwnedEntity(
     request: ProjectionOwnedEntityRequest,

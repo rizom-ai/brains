@@ -5,6 +5,7 @@ import type { EntityServiceOptions } from "./entityService";
 import { RemoteEntityService } from "./remote-entity-service";
 import type { EntityRpcTransport } from "./entity-rpc";
 import type { ProjectionStoreRpcTransport } from "./projection-rpc";
+import type { EntityBinaryClientTransport } from "./entity-binary-client";
 import type { EntityService as IEntityService } from "./types";
 
 export type EntityServiceTag = "@brains/entity-service/EntityService";
@@ -16,6 +17,7 @@ export const EntityServiceTag: Context.Tag<EntityServiceTag, IEntityService> =
 export interface EntityServiceLayerOptions extends EntityServiceOptions {
   remoteTransport?: EntityRpcTransport;
   projectionTransport?: ProjectionStoreRpcTransport;
+  binaryTransport?: EntityBinaryClientTransport;
   service?: IEntityService;
 }
 
@@ -32,25 +34,29 @@ export function createEntityServiceLayer(
   return scopedServiceLayer(EntityServiceTag, () => {
     if (
       (options.remoteTransport === undefined) !==
-      (options.projectionTransport === undefined)
+        (options.projectionTransport === undefined) ||
+      (options.remoteTransport === undefined) !==
+        (options.binaryTransport === undefined)
     ) {
       throw new Error(
-        "Remote entity service requires both entity and projection transports",
+        "Remote entity service requires entity, projection and binary transports",
       );
     }
     const createRemoteService = (): RemoteEntityService => {
       if (
         !options.remoteTransport ||
         !options.projectionTransport ||
+        !options.binaryTransport ||
         !options.jobQueueService
       ) {
         throw new Error(
-          "Remote entity service requires entity, projection, and job queue transports",
+          "Remote entity service requires entity, projection, binary, and job queue transports",
         );
       }
       return new RemoteEntityService({
         transport: options.remoteTransport,
         projectionTransport: options.projectionTransport,
+        binaryTransport: options.binaryTransport,
         embeddingService: options.embeddingService,
         entityRegistry: options.entityRegistry,
         jobQueueService: options.jobQueueService,

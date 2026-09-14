@@ -18,6 +18,10 @@ import type { IJobQueueService } from "@brains/job-queue";
 import { ConsoleLogger, type Logger } from "@brains/utils/logger";
 import type { IEmbeddingService } from "./embedding-types";
 import { EntitySerializer } from "./entity-serializer";
+import {
+  EntityBinaryClient,
+  type EntityBinaryClientTransport,
+} from "./entity-binary-client";
 import { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 import {
   ENTITY_RPC_EXPORT_PAGE_SIZE,
@@ -75,6 +79,7 @@ import type {
 export interface RemoteEntityServiceOptions {
   transport: EntityRpcTransport;
   projectionTransport: ProjectionStoreRpcTransport;
+  binaryTransport: EntityBinaryClientTransport;
   embeddingService: IEmbeddingService;
   entityRegistry: EntityRegistry;
   jobQueueService: IJobQueueService;
@@ -84,6 +89,7 @@ export interface RemoteEntityServiceOptions {
 
 /** Worker facade: registries and handlers stay local; persistence stays in web. */
 export class RemoteEntityService implements EntityService {
+  public readonly assetTransfers: EntityBinaryClient;
   private readonly transport: EntityRpcTransport;
   private readonly projectionTransport: ProjectionStoreRpcTransport;
   private readonly entityRegistry: EntityRegistry;
@@ -98,6 +104,12 @@ export class RemoteEntityService implements EntityService {
   private transferBytes = 0;
 
   public constructor(options: RemoteEntityServiceOptions) {
+    this.assetTransfers = new EntityBinaryClient({
+      transport: options.binaryTransport,
+      assertLive: (): void => this.assertOpen(),
+      getBatchScope: (): ProjectionBatchScope | undefined =>
+        this.batchScope.getStore(),
+    });
     this.transport = options.transport;
     this.projectionTransport = options.projectionTransport;
     this.entityRegistry = options.entityRegistry;

@@ -6,7 +6,7 @@
 - Staged asset binding, authenticated App endpoint registration and metadata-only image construction are implemented; existing image-constructor callers are updated.
 - The canonical native publication candidate still requires a test-only database factory binding.
 - Source owns upload/read binary authority, endpoint lifecycle and native publication/transaction association. Canonical downloads now use the App-owned authenticated endpoint, not direct driver access.
-- Binary read callers supply only an asset reference; the owner selects and verifies the native row. General ingestion/read callers remain unmigrated.
+- Remote facades expose `assetTransfers`, a source metadata client using one authenticated connection. Binary reads remain reference-only; existing buffered ingestion/read callers still await coordinated replacement.
 - Canonical uploads and verified file output use source payload actors. Output publication is no-replace and acknowledges file/directory cleanup; failed staging is retained. Instrumented fault actors remain in fixtures.
 - `shared/db/src/sqlite.ts` retains its existing runtime factory. Do not switch it before the production binary path is complete.
 - Existing canonical integration drives the binary path; no new standalone proofs were added.
@@ -20,15 +20,15 @@
 | **3. Application cutover**             | Switch all five runtime factories; package workers/actors and wire single-owner lifecycle, including combined mode. | Canonical `start:minimal`, then `start:personal`; real jobs/auth/images/site rebuilds, installed startup, shutdown and restart.                |
 | **4. Release acceptance**              | Complete working-set, crash recovery, import/deployment/backup/restore and rollback coverage.                       | SDK/native/transport/GC/RSS accounting, controller/grandchild recovery and explicit fleet/soak acceptance.                                     |
 
-## Current slice: source file-output consumer — complete
+## Current slice: source binary client and remote facade — complete
 
-1. Require file output in canonical read-back and test the sink before implementation.
-2. Add a credited receive/write/hash actor and no-replace staging sink; acknowledge success only after digest verification, socket/file closure and file/directory sync.
-3. Re-read every canonical output byte with the source producer; test disconnect without forced consumer termination and use the source output actor in existing installed checks.
+1. Test metadata validation, signal propagation and facade admission before implementation.
+2. Wire `EntityBinaryClient` into `RemoteEntityService` through the real service factory; replace successful raw canonical RPC calls with the source client.
+3. Carry/re-enter publication batch scopes, reject prepared bytes before transport and fence the owning connection on malformed replies. No buffered fallback or automatic mutation replay.
 4. Validate and commit before another slice. Do not switch the runtime factory.
 
-**Exit check:** canonical and reopened images reach verified output files through authenticated RPC and source actors; incomplete output and cancellation before publication leave staging only; existing destinations are never overwritten. A published file is not retracted if acknowledgement fails. Existing JS/compiled installed actor checks pass, without claiming installed application acceptance or filesystem path authorization. The slice is committed with a clean working tree.
+**Exit check:** canonical publication, verified output, disconnect cleanup and reopen pass through the source client. Facade close stops admission; malformed replies fence reuse and retain fencing failures. Publication preserves batch context. This is not general ingestion migration or installed application acceptance. The slice is committed with a clean working tree.
 
-**Next slice:** coordinated `RemoteEntityService`/ingestion/read caller migration onto the source file handoffs, with inspection/conversion in payload actors. Keep the runtime factory unchanged until milestone 2's exit check passes.
+**Next slice:** lifetime-managed file transfer orchestration over `assetTransfers`, then coordinated ingestion/read caller replacement and payload-actor inspection/conversion. Connection fencing and request cancellation are not native retirement acknowledgements. Keep the runtime factory unchanged until milestone 2's exit check passes.
 
 Keep the 100 MiB ceiling, 32 KiB data-plane credits, existing RPC/SQL/admission limits, entity/asset/reference/projection/outbox atomicity, primary/cleanup causes and actual-exit acknowledgement. Preserve failed recovery directories. If a fault matrix is needed, name the application integration blocker first.

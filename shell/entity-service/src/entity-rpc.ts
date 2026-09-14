@@ -802,6 +802,12 @@ const entityPublicationSchema: z.ZodType<EntityPublicationRpcRequest, unknown> =
     }),
   ]);
 
+export function parseEntityPublicationRpcRequest(
+  input: unknown,
+): EntityPublicationRpcRequest {
+  return entityPublicationSchema.parse(input);
+}
+
 export interface EntityPublicationConsumer {
   consumeClaim<T>(
     context: { signal: AbortSignal; connectionSignal: AbortSignal },
@@ -826,7 +832,7 @@ export function createEntityPublicationRpcHandler(
   return async (input, signal, connectionSignal): Promise<unknown> => {
     signal.throwIfAborted();
     connectionSignal.throwIfAborted();
-    const request = entityPublicationSchema.parse(input);
+    const request = parseEntityPublicationRpcRequest(input);
     return consumer.consumeClaim(
       { signal, connectionSignal },
       request.assetUploadId,

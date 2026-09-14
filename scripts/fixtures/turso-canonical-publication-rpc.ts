@@ -1,7 +1,8 @@
-// Client exercise only: the App's source service factory owns endpoint routing.
+// Client exercise only: source clients and the App own protocol routing/validation.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import {
+  EntityBinaryClient,
   ENTITY_BINARY_CONTROL_SERVICE,
   ENTITY_PUBLICATION_SERVICE,
   type BaseEntity,
@@ -9,19 +10,21 @@ import {
 } from "@brains/entity-service";
 import type { LocalDatabaseEndpointConfig } from "@brains/core";
 import { LocalDatabaseRpcClient } from "../../shell/core/src/local-database-endpoint";
-import {
-  binaryUploadOfferSchema,
-  binaryUploadReceiptSchema,
-  binaryUploadEndpointSchema,
-} from "@brains/db/binary-publication";
 import { NetworkProcessOwner } from "../../shared/db/src/turso-worker/network-process-owner";
 import type { CanonicalAssetBindings } from "./turso-canonical-asset-bindings";
 import type { AssetRecord } from "@brains/assets";
-import {
-  binaryReadOfferSchema as readOfferSchema,
-  binaryReadEndpointSchema as readEndpointSchema,
-} from "@brains/db/binary-read";
 
+function binaryClient(client: LocalDatabaseRpcClient): EntityBinaryClient {
+  return new EntityBinaryClient({
+    transport: {
+      invalidate: (): void => client.close(),
+      control: (input, options) =>
+        client.request(ENTITY_BINARY_CONTROL_SERVICE, input, options),
+      publication: (input, options) =>
+        client.request(ENTITY_PUBLICATION_SERVICE, input, options),
+    },
+  });
+}
 export async function exerciseCanonicalReadRpc(
   binding: CanonicalAssetBindings,
   config: LocalDatabaseEndpointConfig,
@@ -34,6 +37,8 @@ export async function exerciseCanonicalReadRpc(
   const foreign = new LocalDatabaseRpcClient({
     config: { ...config, sessionId: "worker" },
   });
+  const assets = binaryClient(client);
+  const foreignAssets = binaryClient(foreign);
   const processes = new NetworkProcessOwner(
     process.execPath,
     new URL(
@@ -45,6 +50,7 @@ export async function exerciseCanonicalReadRpc(
   const pending: Promise<unknown>[] = [];
   const errors: unknown[] = [];
   try {
+    // Deliberately bypass the client only for malformed-wire checks.
     await assert.rejects(
       client.request(ENTITY_BINARY_CONTROL_SERVICE, {
         operation: "offerRead",
@@ -53,85 +59,35 @@ export async function exerciseCanonicalReadRpc(
       }),
     );
     await binding.withCorruptRead(async (ref) => {
-      await assert.rejects(
-        client.request(ENTITY_BINARY_CONTROL_SERVICE, {
-          operation: "offerRead",
-          ref,
-        }),
-        /expected digest/,
-      );
+      await assert.rejects(assets.offerRead(ref), /expected digest/);
       assert.deepEqual(binding.binary.reads.stats(), {
         admissions: 0,
         tickets: 0,
       });
       binding.assertTransferIdle();
     });
-    const idle = readOfferSchema.parse(
-      await client.request(ENTITY_BINARY_CONTROL_SERVICE, {
-        operation: "offerRead",
-        ref: record.ref,
-      }),
-    );
-    await assert.rejects(
-      foreign.request(ENTITY_BINARY_CONTROL_SERVICE, {
-        operation: "cancelRead",
-        ticket: idle.ticket,
-      }),
-    );
-    assert.equal(
-      await client.request(ENTITY_BINARY_CONTROL_SERVICE, {
-        operation: "cancelRead",
-        ticket: idle.ticket,
-      }),
-      null,
-    );
-    const offer = readOfferSchema.parse(
-      await client.request(ENTITY_BINARY_CONTROL_SERVICE, {
-        operation: "offerRead",
-        ref: record.ref,
-      }),
-    );
+    const idle = await assets.offerRead(record.ref);
+    await assert.rejects(foreignAssets.cancelRead(idle.ticket));
+    await assets.cancelRead(idle.ticket);
+    const offer = await assets.offerRead(record.ref);
     const facts = { sizeBytes: record.sizeBytes, sha256: record.digest };
     assert.deepEqual(
       { sizeBytes: offer.sizeBytes, sha256: offer.sha256 },
       facts,
     );
-    const download = client.request(ENTITY_BINARY_CONTROL_SERVICE, {
-      operation: "download",
-      ticket: offer.ticket,
-    });
+    const download = assets.download(offer.ticket);
     pending.push(download);
     void download.catch(() => undefined); // Observed below and during acknowledged teardown.
-    await assert.rejects(
-      foreign.request(ENTITY_BINARY_CONTROL_SERVICE, {
-        operation: "readEndpoint",
-        ticket: offer.ticket,
-      }),
-    );
-    const endpoint = readEndpointSchema.parse(
-      await client.request(ENTITY_BINARY_CONTROL_SERVICE, {
-        operation: "readEndpoint",
-        ticket: offer.ticket,
-      }),
-    );
-    await assert.rejects(
-      client.request(ENTITY_BINARY_CONTROL_SERVICE, {
-        operation: "readEndpoint",
-        ticket: offer.ticket,
-      }),
-    );
-    await assert.rejects(
-      client.request(ENTITY_BINARY_CONTROL_SERVICE, {
-        operation: "download",
-        ticket: offer.ticket,
-      }),
-    );
+    await assert.rejects(foreignAssets.readEndpoint(offer.ticket));
+    const endpoint = await assets.readEndpoint(offer.ticket);
+    await assert.rejects(assets.readEndpoint(offer.ticket));
+    await assert.rejects(assets.download(offer.ticket));
     const consumer = processes.spawn();
     pending.push(consumer.result, consumer.exited);
     const failed = download.then<never>(() => {
       throw new Error("Read completed before consumer resume");
     });
-    void failed.catch(() => undefined); // One startup rendezvous, never a per-chunk observer.
+    void failed.catch(() => undefined); // One startup rendezvous, not a per-chunk observer.
     consumer.start({ direction: "read", endpoint, facts, outputFile });
     await Promise.race([consumer.held, failed]);
     consumer.resume();
@@ -143,7 +99,7 @@ export async function exerciseCanonicalReadRpc(
     assert.deepEqual(received, facts);
     assert.deepEqual(delivered, facts);
     assert.equal(code, 0);
-    // Independently read every output byte in the source file producer, not this controller.
+    // Independently read every output byte in the source producer, not this controller.
     await binding.withFile(
       outputFile,
       record.sizeBytes,
@@ -154,12 +110,7 @@ export async function exerciseCanonicalReadRpc(
     );
     binding.assertTransferIdle();
 
-    const cancelled = readOfferSchema.parse(
-      await client.request(ENTITY_BINARY_CONTROL_SERVICE, {
-        operation: "offerRead",
-        ref: record.ref,
-      }),
-    );
+    const cancelled = await assets.offerRead(record.ref);
     const retired = Promise.withResolvers<{
       error: unknown;
       connectionAborted: boolean;
@@ -185,17 +136,9 @@ export async function exerciseCanonicalReadRpc(
       }
     };
     try {
-      const cancelledRead = client.request(ENTITY_BINARY_CONTROL_SERVICE, {
-        operation: "download",
-        ticket: cancelled.ticket,
-      });
+      const cancelledRead = assets.download(cancelled.ticket);
       pending.push(cancelledRead.catch(() => undefined)); // Explicitly asserted as cancellation below.
-      const address = readEndpointSchema.parse(
-        await client.request(ENTITY_BINARY_CONTROL_SERVICE, {
-          operation: "readEndpoint",
-          ticket: cancelled.ticket,
-        }),
-      );
+      const address = await assets.readEndpoint(cancelled.ticket);
       const heldConsumer = processes.spawn();
       pending.push(
         heldConsumer.result.catch(() => undefined),
@@ -215,24 +158,13 @@ export async function exerciseCanonicalReadRpc(
       ]);
       client.close();
       await assert.rejects(cancelledRead);
-      const observed = await retired.promise; // Observation of the real source method, not a cleanup request.
+      const observed = await retired.promise; // Real source-method settlement, not a cleanup request.
       assert.equal(observed.connectionAborted, true);
       assert.ok(observed.error instanceof Error);
       binding.assertTransferIdle();
-      const reusable = readOfferSchema.parse(
-        await foreign.request(ENTITY_BINARY_CONTROL_SERVICE, {
-          operation: "offerRead",
-          ref: record.ref,
-        }),
-      );
-      assert.equal(
-        await foreign.request(ENTITY_BINARY_CONTROL_SERVICE, {
-          operation: "cancelRead",
-          ticket: reusable.ticket,
-        }),
-        null,
-      );
-      assert.notEqual(await heldConsumer.exited, 0); // Source consumer closes and exits after peer loss, even while paused.
+      const reusable = await foreignAssets.offerRead(record.ref);
+      await foreignAssets.cancelRead(reusable.ticket);
+      assert.notEqual(await heldConsumer.exited, 0); // Source consumer exits after peer loss, even while paused.
       assert.equal(await Bun.file(`${outputFile}.cancelled`).exists(), false);
       await assert.rejects(heldConsumer.result);
     } finally {
@@ -274,6 +206,8 @@ export async function exerciseCanonicalPublicationRpc(
   const unauthenticated = new LocalDatabaseRpcClient({
     config: { ...config, secret: randomUUID(), sessionId: "worker" },
   });
+  const assets = binaryClient(client);
+  const foreignAssets = binaryClient(foreign);
   const processes = new NetworkProcessOwner(
     process.execPath,
     new URL(
@@ -285,108 +219,78 @@ export async function exerciseCanonicalPublicationRpc(
   const pending: Promise<unknown>[] = [];
   const errors: unknown[] = [];
   try {
-    await assert.rejects(
-      unauthenticated.request(ENTITY_BINARY_CONTROL_SERVICE, {
-        operation: "offer",
-        size,
-      }),
-    );
+    await assert.rejects(binaryClient(unauthenticated).offer(size));
     assert.deepEqual(binding.binary.stats(), { admissions: 0, tickets: 0 });
-    const cancelled = binaryUploadOfferSchema.parse(
-      await client.request(ENTITY_BINARY_CONTROL_SERVICE, {
-        operation: "offer",
-        size: 32768,
-      }),
-    );
-    await assert.rejects(
-      foreign.request(ENTITY_BINARY_CONTROL_SERVICE, {
-        operation: "cancel",
-        ticket: cancelled.ticket,
-      }),
-    );
-    assert.equal(
-      await client.request(ENTITY_BINARY_CONTROL_SERVICE, {
-        operation: "cancel",
-        ticket: cancelled.ticket,
-      }),
-      null,
-    );
+    const cancelled = await assets.offer(32768);
+    await assert.rejects(foreignAssets.cancel(cancelled.ticket));
+    await assets.cancel(cancelled.ticket);
     assert.deepEqual(binding.binary.stats(), { admissions: 0, tickets: 0 });
     binding.assertTransferIdle();
-    const offer = binaryUploadOfferSchema.parse(
-      await client.request(ENTITY_BINARY_CONTROL_SERVICE, {
-        operation: "offer",
-        size,
-      }),
-    );
-    const upload = client.request(ENTITY_BINARY_CONTROL_SERVICE, {
-      operation: "upload",
-      ticket: offer.ticket,
-    });
+    const offer = await assets.offer(size);
+    const upload = assets.upload(offer.ticket);
     pending.push(upload);
     void upload.catch(() => undefined); // Observed below and again during acknowledged teardown.
-    const endpoint = binaryUploadEndpointSchema.parse(
-      await client.request(ENTITY_BINARY_CONTROL_SERVICE, {
-        operation: "endpoint",
-        ticket: offer.ticket,
-      }),
-    );
+    const endpoint = await assets.endpoint(offer.ticket);
     const producer = processes.spawn();
     assert.notEqual(producer.pid, process.pid);
     producer.start({ direction: "upload", endpoint, size, sourceFile });
     const transferFailed = upload.then<never>(() => {
       throw new Error("Upload completed before producer credit was resumed");
     });
-    void transferFailed.catch(() => undefined); // Observed by held-credit rendezvous, not per chunk.
+    void transferFailed.catch(() => undefined); // Held-credit rendezvous only.
     pending.push(producer.result, producer.exited);
     await Promise.race([producer.held, transferFailed]);
     producer.resume();
-    const [wireReceipt, produced, exitCode] = await Promise.all([
+    const [receipt, produced, exitCode] = await Promise.all([
       upload,
       producer.result,
       producer.exited,
     ]);
-    const receipt = binaryUploadReceiptSchema.parse(wireReceipt);
     assert.deepEqual(produced, { sizeBytes: size, sha256: digest });
     assert.equal(exitCode, 0);
     assert.equal(receipt.sha256, digest);
     assert.equal(receipt.sizeBytes, size);
     const request = {
-      operation: "createEntity",
+      operation: "createEntity" as const,
       assetUploadId: receipt.ticket,
       request: { entity },
     };
-    await assert.rejects(foreign.request(ENTITY_PUBLICATION_SERVICE, request));
+    await assert.rejects(foreignAssets.publish(request));
     await assert.rejects(
       client.request(ENTITY_PUBLICATION_SERVICE, {
-        operation: "readAssetChunk",
-        ref: entity.content,
-        offset: 0,
-        length: 1,
+        request: {
+          operation: "readAssetChunk",
+          ref: entity.content,
+          offset: 0,
+          length: 1,
+        },
       }),
       { name: "ZodError" },
     );
     await assert.rejects(
       client.request(ENTITY_PUBLICATION_SERVICE, {
-        ...request,
         request: {
-          entity,
-          preparedAsset: {
-            ref: entity.content,
-            digest,
-            sizeBytes: 0,
-            bytes: new Uint8Array(),
+          ...request,
+          request: {
+            entity,
+            preparedAsset: {
+              ref: entity.content,
+              digest,
+              sizeBytes: 0,
+              bytes: new Uint8Array(),
+            },
           },
         },
       }),
       /preparedAsset/,
     );
-    await client.request(ENTITY_PUBLICATION_SERVICE, request);
-    await assert.rejects(client.request(ENTITY_PUBLICATION_SERVICE, request));
+    const published = await assets.publish(request);
+    assert.equal(published.entityId, entity.id);
+    await assert.rejects(assets.publish(request));
     assert.deepEqual(binding.binary.stats(), { admissions: 0, tickets: 0 });
     binding.assertTransferIdle();
     console.error(
-      "[canonical-publication-rpc] App-owned authenticated file offer/upload/publication passed; wrong secret, foreign socket, buffered handoff and replay rejected",
+      "[canonical-publication-rpc] source client and App-owned file publication passed; foreign sockets, buffered handoff and replay rejected",
     );
   } catch (error) {
     errors.push(error);
@@ -394,9 +298,12 @@ export async function exerciseCanonicalPublicationRpc(
   client.close();
   foreign.close();
   unauthenticated.close();
-  const settled = await Promise.allSettled([processes.close(), ...pending]);
-  for (const result of settled)
-    if (result.status === "rejected") errors.push(result.reason);
+  for (const result of await Promise.allSettled([
+    processes.close(),
+    ...pending,
+  ]))
+    if (result.status === "rejected" && !errors.includes(result.reason))
+      errors.push(result.reason);
   if (errors.length === 1) throw errors[0];
   if (errors.length > 1)
     throw new AggregateError(

@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { prepareAsset, computeAssetDigest } from "@brains/assets";
 import { ENTITY_CHANNELS } from "@brains/contracts";
+import type { BinaryPersistence } from "@brains/db/binary-publication";
 import { createMockJobQueueService } from "@brains/job-queue/test";
 import { createSilentLogger } from "@brains/test-utils";
 import { createTestEntity } from "@brains/entity-service/test";
@@ -10,6 +11,7 @@ import {
   EntityRegistry,
   RemoteEntityService,
   createEntityRpcHandler,
+  createEntityBinaryRpcHandlers,
   createEntityPublicationRpcHandler,
   handleEntityRpcRequest,
   handleProjectionStoreRpcRequest,
@@ -177,6 +179,17 @@ describe("entity owner RPC", () => {
     remote = new RemoteEntityService({
       transport: new DirectEntityTransport(owner),
       projectionTransport: new DirectProjectionTransport(owner),
+      binaryTransport: {
+        invalidate: (): void => {
+          throw new Error("Unexpected binary invalidation");
+        },
+        control: async (): Promise<unknown> => ({
+          ticket: "00000000-0000-4000-8000-000000000001",
+        }),
+        publication: async (): Promise<never> => {
+          throw new Error("Unexpected binary publication");
+        },
+      },
       embeddingService: mockEmbeddingService,
       entityRegistry: workerRegistry,
       jobQueueService: createMockJobQueueService(),
@@ -189,6 +202,73 @@ describe("entity owner RPC", () => {
     remote.close();
     owner.close();
     await cleanup();
+  });
+
+  it("exposes a metadata transfer client on the remote facade and closes its admission", async () => {
+    expect(await remote.assetTransfers.offer(1)).toEqual({
+      ticket: "00000000-0000-4000-8000-000000000001",
+    });
+    remote.close();
+    await assert.rejects(remote.assetTransfers.offer(1), /closed/);
+  });
+
+  it("re-enters a publication batch scope before claim admission", async () => {
+    const unexpected = async (): Promise<never> => {
+      throw new Error("Unexpected binary admission");
+    };
+    const binary: BinaryPersistence = {
+      offer: unexpected,
+      upload: unexpected,
+      endpoint: unexpected,
+      cancel: unexpected,
+      consume: unexpected,
+      close: unexpected,
+      reads: {
+        offer: unexpected,
+        download: unexpected,
+        endpoint: unexpected,
+        cancel: unexpected,
+        close: unexpected,
+      },
+    };
+    const scope = {
+      batchId: "batch",
+      source: "directory-sync",
+      operationId: "operation",
+      ownerToken: "token",
+    };
+    const primary = new Error("batch fence rejected");
+    const store = owner.getProjectionStore();
+    const original = store.runInBatchScope;
+    store.runInBatchScope = async (received): Promise<never> => {
+      expect(received).toEqual(scope);
+      throw primary;
+    };
+    try {
+      const handlers = createEntityBinaryRpcHandlers(owner, binary);
+      const signal = new AbortController().signal;
+      await assert.rejects(
+        handlers.publication(
+          {
+            batchScope: scope,
+            request: {
+              operation: "createEntity",
+              assetUploadId: randomUUID(),
+              request: {
+                entity: createTestEntity("test", {
+                  content: `asset://sha256/${"0".repeat(64)}`,
+                }),
+              },
+            },
+          },
+          signal,
+          signal,
+        ),
+        (error: unknown) => error === primary,
+      );
+    } finally {
+      store.runInBatchScope = original;
+    }
   });
 
   it("rejects publication bytes without reading or hashing them or admitting a ticket", async () => {

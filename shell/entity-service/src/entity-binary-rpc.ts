@@ -1,5 +1,5 @@
 import { z } from "@brains/utils/zod";
-import { assetRefSchema } from "@brains/assets";
+import { assetRefSchema, type AssetRef } from "@brains/assets";
 import {
   binaryReadOfferSchema,
   binaryReadEndpointSchema,
@@ -16,41 +16,84 @@ import {
 } from "@brains/db/binary-publication";
 import type { EntityService } from "./entityService";
 import { createOwnedAssetPublication } from "./binary-asset-publication";
-import { createEntityPublicationRpcHandler } from "./entity-rpc";
+import {
+  createEntityPublicationRpcHandler,
+  parseEntityPublicationRpcRequest,
+  type EntityPublicationRpcRequest,
+} from "./entity-rpc";
+import { ProjectionBatchScopeSchema } from "./projection-rpc";
+import type { ProjectionBatchScope } from "./projection-store";
 
 export const ENTITY_BINARY_CONTROL_SERVICE = "entity-binary-control";
 export const ENTITY_PUBLICATION_SERVICE = "entity-publication";
-const controlSchema = z.discriminatedUnion("operation", [
-  z.strictObject({ operation: z.literal("offerRead"), ref: assetRefSchema }),
-  z.strictObject({
-    operation: z.literal("download"),
-    ticket: binaryUploadTicketSchema,
-  }),
-  z.strictObject({
-    operation: z.literal("readEndpoint"),
-    ticket: binaryUploadTicketSchema,
-  }),
-  z.strictObject({
-    operation: z.literal("cancelRead"),
-    ticket: binaryUploadTicketSchema,
-  }),
-  z.strictObject({
-    operation: z.literal("offer"),
-    size: binaryUploadSizeSchema,
-  }),
-  z.strictObject({
-    operation: z.literal("upload"),
-    ticket: binaryUploadTicketSchema,
-  }),
-  z.strictObject({
-    operation: z.literal("endpoint"),
-    ticket: binaryUploadTicketSchema,
-  }),
-  z.strictObject({
-    operation: z.literal("cancel"),
-    ticket: binaryUploadTicketSchema,
-  }),
-]);
+const controlSchema: z.ZodType<EntityBinaryControlRequest, unknown> =
+  z.discriminatedUnion("operation", [
+    z.strictObject({ operation: z.literal("offerRead"), ref: assetRefSchema }),
+    z.strictObject({
+      operation: z.literal("download"),
+      ticket: binaryUploadTicketSchema,
+    }),
+    z.strictObject({
+      operation: z.literal("readEndpoint"),
+      ticket: binaryUploadTicketSchema,
+    }),
+    z.strictObject({
+      operation: z.literal("cancelRead"),
+      ticket: binaryUploadTicketSchema,
+    }),
+    z.strictObject({
+      operation: z.literal("offer"),
+      size: binaryUploadSizeSchema,
+    }),
+    z.strictObject({
+      operation: z.literal("upload"),
+      ticket: binaryUploadTicketSchema,
+    }),
+    z.strictObject({
+      operation: z.literal("endpoint"),
+      ticket: binaryUploadTicketSchema,
+    }),
+    z.strictObject({
+      operation: z.literal("cancel"),
+      ticket: binaryUploadTicketSchema,
+    }),
+  ]);
+export type EntityBinaryControlRequest =
+  | { operation: "offer"; size: number }
+  | { operation: "offerRead"; ref: AssetRef }
+  | {
+      operation:
+        | "upload"
+        | "endpoint"
+        | "cancel"
+        | "download"
+        | "readEndpoint"
+        | "cancelRead";
+      ticket: string;
+    };
+export function parseEntityBinaryControlRequest(
+  input: unknown,
+): EntityBinaryControlRequest {
+  return controlSchema.parse(input);
+}
+const publicationCallSchema = z.strictObject({
+  request: z.unknown(),
+  batchScope: ProjectionBatchScopeSchema.optional(),
+});
+export interface EntityBinaryPublicationCall {
+  request: EntityPublicationRpcRequest;
+  batchScope?: ProjectionBatchScope | undefined;
+}
+export function parseEntityBinaryPublicationCall(
+  input: unknown,
+): EntityBinaryPublicationCall {
+  const call = publicationCallSchema.parse(input);
+  return {
+    request: parseEntityPublicationRpcRequest(call.request),
+    ...(call.batchScope !== undefined && { batchScope: call.batchScope }),
+  };
+}
+
 export interface EntityBinaryRpcHandlers {
   control(
     input: unknown,
@@ -68,6 +111,12 @@ export function createEntityBinaryRpcHandlers(
   service: EntityService,
   binary: BinaryPersistence,
 ): EntityBinaryRpcHandlers {
+  const publish = createEntityPublicationRpcHandler(service, {
+    consumeClaim: (context, ticket, operation) =>
+      binary.consume(context, ticket, (publication) =>
+        operation(createOwnedAssetPublication(publication)),
+      ),
+  });
   return {
     control: async (input, signal, connectionSignal): Promise<unknown> => {
       signal.throwIfAborted();
@@ -107,11 +156,17 @@ export function createEntityBinaryRpcHandlers(
           return null;
       }
     },
-    publication: createEntityPublicationRpcHandler(service, {
-      consumeClaim: (context, ticket, operation) =>
-        binary.consume(context, ticket, (publication) =>
-          operation(createOwnedAssetPublication(publication)),
-        ),
-    }),
+    publication: async (input, signal, connectionSignal): Promise<unknown> => {
+      signal.throwIfAborted();
+      connectionSignal.throwIfAborted();
+      const call = parseEntityBinaryPublicationCall(input);
+      const dispatch = (): Promise<unknown> =>
+        publish(call.request, signal, connectionSignal);
+      return call.batchScope
+        ? service
+            .getProjectionStore()
+            .runInBatchScope(call.batchScope, dispatch)
+        : dispatch();
+    },
   };
 }

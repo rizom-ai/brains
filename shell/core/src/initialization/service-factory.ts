@@ -24,6 +24,7 @@ import {
   handleProjectionStoreRpcRequest,
   parseEntityRpcCall,
   type EntityRpcTransport,
+  type EntityBinaryClientTransport,
   type ProjectionStoreRpcTransport,
 } from "@brains/entity-service";
 import {
@@ -175,6 +176,24 @@ export function createShellServices(options: {
     createRemoteTransport(ENTITY_RPC_SERVICE);
   const remoteProjectionTransport: ProjectionStoreRpcTransport | undefined =
     createRemoteTransport(PROJECTION_STORE_RPC_SERVICE);
+  const remoteBinaryTransport: EntityBinaryClientTransport | undefined =
+    localDatabaseClient
+      ? {
+          invalidate: (): void => localDatabaseClient.close(),
+          control: (payload, options) =>
+            localDatabaseClient.request(
+              ENTITY_BINARY_CONTROL_SERVICE,
+              payload,
+              options,
+            ),
+          publication: (payload, options) =>
+            localDatabaseClient.request(
+              ENTITY_PUBLICATION_SERVICE,
+              payload,
+              options,
+            ),
+        }
+      : undefined;
   const registerOwnerHandler = (
     service: string,
     handler: (
@@ -410,6 +429,7 @@ export function createShellServices(options: {
       ...(remoteProjectionTransport && {
         projectionTransport: remoteProjectionTransport,
       }),
+      ...(remoteBinaryTransport && { binaryTransport: remoteBinaryTransport }),
       ...(dependencies?.entityService && {
         service: dependencies.entityService,
       }),

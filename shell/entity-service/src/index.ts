@@ -21,6 +21,13 @@ export {
 } from "@brains/assets";
 export { EntityService } from "./entityService";
 export { RemoteEntityService } from "./remote-entity-service";
+export { EntityBinaryClient } from "./entity-binary-client";
+export type {
+  EntityBinaryClientTransport,
+  EntityBinaryClientOptions,
+  EntityBinaryRequestOptions,
+  EntityBinaryReadFacts,
+} from "./entity-binary-client";
 export { RemoteProjectionStore } from "./remote-projection-store";
 export { EntityRegistry } from "./entityRegistry";
 export {
