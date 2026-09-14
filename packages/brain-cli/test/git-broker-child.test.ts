@@ -202,6 +202,9 @@ describe("git broker child", () => {
     expect(startHost).toHaveBeenCalledWith(
       expect.objectContaining({
         socketPath: "/run/brain/git-broker.sock",
+        // The socket may live outside the instance, so the runtime dir is
+        // named rather than recovered from the socket's location.
+        runtimeDir: "/brain/.brain-runtime",
         cwd: "/brain",
         pluginConfig: { git: { repo: "rizom-ai/content" } },
       }),
