@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.381
+
+### Patch Changes
+
+- [#259](https://github.com/rizom-ai/brains/pull/259) [`d3ca552`](https://github.com/rizom-ai/brains/commit/d3ca552547af0c87f9ce6ad80997395b9dafc868) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A Brain whose instance directory is too deep for a unix socket address can start again. The Git broker socket normally lives in the instance's `.brain-runtime`; when that path exceeds the kernel's limit, the socket now lives in the OS temp dir under a name derived from the instance, so it stays one socket per instance and never inside a checkout. Before, such a Brain refused to boot with "Git broker socket path is too long for a unix socket".
+
+- [#256](https://github.com/rizom-ai/brains/pull/256) [`fbc1b6e`](https://github.com/rizom-ai/brains/commit/fbc1b6e54607e72c91bd31b7fb385e6a627293b9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Align System editors with the reviewed form and document presentation: schema-derived field groups, responsive grids, explicit Story and Guidance sections, contextual collections, and readable permission-aware profiles. Preserve nested draft values and supported Markdown bodies through validation and Save. Existing read-only complex lists display structured content rather than disabled JSON. Keep empty documents' Properties visible, distinguish relationship states from publication, and make Markdown source headings and URLs readable in both climates.
+
 ## 0.2.0-alpha.380
 
 ### Patch Changes
