@@ -1,5 +1,14 @@
 # @brains/unified-inbox
 
+## 0.2.0-alpha.382
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/ui-library@0.2.0-alpha.382
+  - @brains/utils@0.2.0-alpha.382
+  - @brains/plugins@0.2.0-alpha.382
+
 ## 0.2.0-alpha.381
 
 ### Patch Changes

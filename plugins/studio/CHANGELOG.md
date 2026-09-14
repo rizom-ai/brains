@@ -1,5 +1,20 @@
 # @brains/studio
 
+## 0.2.0-alpha.382
+
+### Patch Changes
+
+- [#260](https://github.com/rizom-ai/brains/pull/260) [`3fde4a0`](https://github.com/rizom-ai/brains/commit/3fde4a0421c787fe7c58fc7902bfc81ab7f85a04) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep the rail's Overview/Chat/Library/Work/Admin/System order in phone Browse. Admin is area 04 and now stays between Work and System instead of being hoisted into the top block, so the phone and the desktop rail agree on where a destination lives. A direct destination is marked by its treatment rather than its position: group children indent under their header while a direct destination sits flush and rule-separated, so Admin cannot read as the last row of the group above it.
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.382
+  - @brains/console-theme@0.2.0-alpha.382
+  - @brains/contracts@0.2.0-alpha.382
+  - @brains/operator-view-react@0.2.0-alpha.382
+  - @brains/utils@0.2.0-alpha.382
+  - @brains/auth-service@0.2.0-alpha.382
+  - @brains/plugins@0.2.0-alpha.382
+
 ## 0.2.0-alpha.381
 
 ### Patch Changes
