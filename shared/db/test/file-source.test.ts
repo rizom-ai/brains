@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, test } from "bun:test";
+import { afterEach, beforeEach, expect, test } from "bun:test";
 import assert from "node:assert/strict";
 import {
   mkdtemp,
@@ -12,6 +12,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { withFileSource } from "../src/turso-worker/file-source";
+import {
+  fileUploadSchema,
+  type FileUploadInput,
+} from "../src/turso-worker/file-upload";
 import { SqlWorkerDriver } from "../src/turso-worker/client";
 import { PersistenceBudgetPool } from "../src/turso-worker/budget-pool";
 import { uploadNetworkFixture } from "./fixtures/turso-thread/network-exercise";
@@ -33,6 +37,28 @@ afterEach(async () => {
   if (errors.length)
     throw new AggregateError(errors, "File source fixture cleanup failed");
   await rm(directory, { recursive: true, force: true });
+});
+
+test("file upload metadata requires a file and rejects synthetic controls without lowering the ceiling", () => {
+  const metadata: FileUploadInput = {
+    endpoint: { host: "127.0.0.1", port: 1, token: "a".repeat(64) },
+    sourceFile: join(directory, "input"),
+    size: 100 * 1024 * 1024,
+  };
+  expect(fileUploadSchema.parse(metadata)).toEqual(metadata);
+  expect(
+    fileUploadSchema.safeParse({ ...metadata, size: metadata.size + 1 })
+      .success,
+  ).toBe(false);
+  expect(
+    fileUploadSchema.safeParse({ ...metadata, sourceFile: undefined }).success,
+  ).toBe(false);
+  expect(
+    fileUploadSchema.safeParse({ ...metadata, fault: "token" }).success,
+  ).toBe(false);
+  expect(
+    fileUploadSchema.safeParse({ ...metadata, fragment: true }).success,
+  ).toBe(false);
 });
 
 test("fills borrowed credit buffers, handles an empty source, and closes before returning", async () => {
@@ -165,7 +191,7 @@ test("the separate payload process sends the canonical 2 MiB PNG fixture directl
       import.meta.url,
     ),
     producerUrl: new URL(
-      "./fixtures/turso-thread/network-producer.ts",
+      "../src/turso-worker/file-upload-process.ts",
       import.meta.url,
     ),
     bunExecutable: process.execPath,

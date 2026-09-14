@@ -43,6 +43,7 @@ const sidecar = (name: string): URL =>
     [
       "worker",
       "network-ingress-worker",
+      "file-upload-process",
       "network-read-worker",
       "transfer-receiver",
     ].includes(name)
@@ -114,7 +115,7 @@ export class CanonicalAssetBindings {
             sourceFile: path,
             bunExecutable: process.execPath, // This source-only test runs under external Bun.
             bridgeUrl: sidecar("network-ingress-worker"),
-            producerUrl: sidecar("network-producer"),
+            producerUrl: sidecar("file-upload-process"),
           },
         );
         const claim = await scope.reserve(stage);

@@ -281,7 +281,7 @@ export class NetworkProcessOwner {
                   sourceFile: options.sourceFile,
                 }),
                 pause: true,
-                fragment: true,
+                ...(options.sourceFile === undefined && { fragment: true }),
               }
             : {
                 endpoint: options.endpoint,

@@ -21,7 +21,7 @@ const bridgeUrl = new URL(
   import.meta.url,
 );
 const producerUrl = new URL(
-  "./fixtures/turso-thread/network-producer.ts",
+  "../src/turso-worker/file-upload-process.ts",
   import.meta.url,
 );
 import {

@@ -127,7 +127,7 @@ try {
       "upload-producer.ts",
       "read-consumer.ts",
       "network-ingress-worker.ts",
-      "network-producer.ts",
+      "file-upload-process.ts",
       "network-read-worker.ts",
       "network-read-consumer.ts",
     ].map((name) =>
@@ -136,6 +136,7 @@ try {
           [
             "worker.ts",
             "network-ingress-worker.ts",
+            "file-upload-process.ts",
             "network-read-worker.ts",
             "transfer-receiver.ts",
           ].includes(name)
@@ -152,6 +153,11 @@ try {
   });
   if (!build.success)
     throw new AggregateError(build.logs, "Thread proof bundle failed");
+  // The installed producer role now contains the source-only file actor.
+  await rename(
+    join(candidate, "file-upload-process.js"),
+    join(candidate, "network-producer.js"),
+  );
   await writeFile(
     join(candidate, "package.json"),
     JSON.stringify({

@@ -1,12 +1,6 @@
-// A separate payload PROCESS reads a real file or generates fixture bytes.
-// IPC carries bounded metadata only; file failures never fall back to fixtures.
+// Instrumented synthetic payload process. Real files require the source file actor.
 import { connect } from "node:net";
 import { createHash } from "node:crypto";
-import { isAbsolute } from "node:path";
-import {
-  withFileSource,
-  type FileChunkSource,
-} from "../../../src/turso-worker/file-source";
 import { z } from "@brains/utils/zod";
 import {
   networkEndpointSchema,
@@ -27,7 +21,6 @@ import { serializeError } from "../../../src/turso-worker/error-protocol";
 const optionsSchema = z.strictObject({
   endpoint: networkEndpointSchema,
   size: z.number().int().min(0).max(STAGE_BUDGET_BYTES),
-  sourceFile: z.string().min(1).max(4096).refine(isAbsolute).optional(),
   fragment: z.boolean().default(false),
   pause: z.boolean().default(false),
   fault: z
@@ -73,19 +66,18 @@ process.on("message", (input: unknown) => {
   );
 });
 async function run(options: z.output<typeof optionsSchema>): Promise<void> {
-  const facts =
-    options.sourceFile === undefined
-      ? await transfer(options)
-      : await withFileSource(
-          { path: options.sourceFile, sizeBytes: options.size },
-          (source) => transfer(options, source),
-        );
-  // A receipt follows file close, socket completion and the native seal acknowledgement.
+  const facts = await transfer(options);
+  // A receipt follows socket completion and the native seal acknowledgement.
   process.send?.({ kind: "sealed", ...facts, pid: process.pid });
+}
+async function holdCredit(): Promise<void> {
+  await new Promise<void>((resolve) => {
+    resume = resolve;
+    process.send?.({ kind: "credit-held", pid: process.pid });
+  });
 }
 async function transfer(
   options: z.output<typeof optionsSchema>,
-  source?: FileChunkSource,
 ): Promise<{ sizeBytes: number; sha256: string }> {
   const socket = connect({
     host: options.endpoint.host,
@@ -124,10 +116,7 @@ async function transfer(
       if (credit.sequence !== sequence)
         throw new Error("Unexpected network producer sequence");
       if (options.pause && sent === 0) {
-        await new Promise<void>((resolve) => {
-          resume = resolve;
-          process.send?.({ kind: "credit-held", pid: process.pid });
-        });
+        await holdCredit();
       }
       if (options.fault === "disconnect") {
         socket.destroy();
@@ -142,7 +131,6 @@ async function transfer(
         kind: size === 0 ? "finish" : "chunk",
         size: options.fault === "oversize" ? STAGE_CHUNK_BYTES + 1 : size,
       });
-      if (size === 0 && source) await source.complete();
       await write(header);
       if (
         options.fault === "oversize" ||
@@ -154,8 +142,7 @@ async function transfer(
         throw new Error("Server accepted an invalid network header");
       }
       if (size === 0) break;
-      if (source) await source.readInto(bytes.subarray(0, size));
-      else bytes.fill(0x5a, 0, size);
+      bytes.fill(0x5a, 0, size);
       if (options.fault === "truncated") {
         await write(bytes.subarray(0, size - 1));
         socket.end();

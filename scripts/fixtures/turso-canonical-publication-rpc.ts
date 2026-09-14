@@ -37,7 +37,7 @@ export async function exerciseCanonicalPublicationRpc(
   const processes = new NetworkProcessOwner(
     process.execPath,
     new URL(
-      "../../shared/db/test/fixtures/turso-thread/network-producer.ts",
+      "../../shared/db/src/turso-worker/file-upload-process.ts",
       import.meta.url,
     ),
     "upload",

@@ -52,7 +52,7 @@ describe("isolated Turso execution-thread proof", () => {
           import.meta.url,
         ),
         producerUrl: new URL(
-          "./fixtures/turso-thread/network-producer.ts",
+          "../src/turso-worker/file-upload-process.ts",
           import.meta.url,
         ),
         readBridgeUrl: new URL(
