@@ -4,17 +4,19 @@ Last updated: 2026-09-12
 
 ## Status
 
-Proposed, demand-gated follow-up to
-[generic-multi-section-content-generation.md](./generic-multi-section-content-generation.md).
-That feature is implemented on its branch but not merged. It establishes structured entity
-ID paths, a shared codec, and a well-formed book-path directory-sync round trip; it
-deliberately does **not** reinterpret or relocate legacy malformed IDs or root-note
-conventions. Studio still presents each entity type as one flat, updated-time-paginated
-collection.
+**In progress: Slice 1 (directory-sync codec adoption).**
 
-Before this plan starts, review the merged path contract and settle any legacy/root mapping
-needed for safe server-side hierarchy queries. This work does not block generic content
-generation.
+Implementation follow-up to
+[generic-multi-section-content-generation.md](./generic-multi-section-content-generation.md),
+merged in PR #252 and included in Brain `0.2.0-alpha.379`. Generation uses the entity-service
+path codec. Directory-sync still splits and joins stored IDs independently; its adoption of
+the codec was not delivered by generation. Studio still presents each entity type as one
+flat, updated-time-paginated collection.
+
+Phase 0 below owns that missing bridge. It preserves existing filesystem placement and
+stored IDs before adding hierarchy queries or UI. Deliver the work sequentially in three
+thin slices: directory-sync adoption, entity-service hierarchy query, then Studio. Each
+slice is tests-first, committed and green before starting the next.
 
 Interface design for Phase 2 and Phase 3 is reviewed and approved. The mockup is
 [studio-hierarchical-navigation-mockups.html](../studio-hierarchical-navigation-mockups.html):
@@ -68,17 +70,18 @@ Success means:
 
 ## Prerequisite baseline
 
-The generic content-generation branch must first merge with:
+PR #252 delivered:
 
 - a schema-backed, non-empty `EntityIdPath` segment array;
 - one entity-contract codec between structured paths and stored string IDs;
 - book-shaped path/ID/file round-trip tests; and
 - regression coverage preserving existing directory-sync placement.
 
-Before hierarchy queries decode existing IDs, this plan must also inventory root-note,
-separator-like, empty, dot-segment, and otherwise unsafe legacy values and choose an
-explicit compatibility policy. It must not normalize IDs or move files merely to make the
-folder UI simpler. This plan consumes the shared codec and does not define a second one.
+The stored ID remains the only identity. Exactly one codec, owned by entity-service,
+interprets its separator. Directory-sync owns filesystem placement on top of decoded
+segments: export roots, extensions, root-note conventions and existing placement rules.
+Phase 0 pins those rules before adopting the codec. It must not rewrite IDs, move files,
+introduce database migrations, or give Studio a separate delimiter parser.
 
 ## Current Studio state
 
@@ -181,17 +184,31 @@ remain package-local and are not public authoring APIs.
 
 ## Implementation phases
 
-### Phase 0: Verify the prerequisite
+### Phase 0 / Slice 1: Directory-sync adopts the shared codec
 
-1. Confirm the shared path schema and codec have landed.
-2. Confirm directory-sync no longer owns delimiter parsing.
-3. Run the book-shaped path/ID/file round-trip tests.
-4. Stop if compatibility inventory left unresolved IDs that cannot be represented safely.
+1. Rebase the implementation branch onto current main.
+2. Before changing runtime code, add a golden test under `plugins/directory-sync/test`
+   recording the exact current relative export paths for representative IDs. Include empty
+   segments, root-note IDs, embedded separators, repeated type prefixes and unsafe path-like
+   values. Run it against the unchanged implementation and confirm it passes.
+3. Replace ID splitting in `plugins/directory-sync/src/lib/entity-paths.ts` with
+   `decodeEntityIdPath`, imported through `@brains/entity-service`. Route ID reconstruction
+   through `encodeEntityIdPath` from the same package.
+4. Keep identity interpretation in the codec and filesystem placement rules in
+   directory-sync. Add codec tests before changing its behavior. Keep the golden placement
+   expectations unchanged; authoring validation must remain strict without rejecting stored
+   IDs that the current filesystem adapter handles.
+5. Remove other entity-ID separator splits and joins from directory-sync and Studio. Check
+   all remaining separator operations and distinguish unrelated header/frontmatter parsing
+   from entity-ID interpretation.
+6. Run the golden tests, codec tests, directory-sync tests, affected typechecks and lint.
+   Commit the green slice and report the changes, proof and remaining Slice 2 requirements.
 
-### Phase 1: Server-side hierarchy projection
+### Phase 1 / Slice 2: Server-side hierarchy projection
 
-1. Add an entity hierarchy query that accepts an entity type and optional structured
-   prefix.
+1. Write tests against real SQLite first, using the entity-service test database helpers.
+   Add an entity hierarchy query accepting an entity type, optional structured folder
+   prefix and caller visibility scope. Match the prefix against stored IDs.
 2. Return immediate child folders plus paginated direct children.
 3. Include structured paths in summaries; perform stored-ID decoding only behind the
    shared codec.
@@ -199,11 +216,17 @@ remain package-local and are not public authoring APIs.
 5. Apply the caller's visibility scope before folder counts and child results are derived.
 6. Define deterministic sort behavior for folders and direct children.
 7. Keep limits bounded and avoid loading every entity into the browser.
+8. Expose the query on the existing entity-service client surface used by Studio.
+9. Run affected tests, typechecks and lint; commit and report the green slice before UI work.
 
 Prefer an entity-service query primitive if Studio would otherwise scan the full
 collection. Do not add a Studio-only unbounded list operation.
 
-### Phase 2: Studio folder navigation
+### Phase 2 / Slice 3: Studio folder navigation
+
+Write editor-entities layer tests first, then UI tests. This slice includes Phase 3's
+folder-aware creation and follows the approved mockup. Commit and report it only after
+its tests, typechecks and lint pass.
 
 1. Render virtual folders in entity collections when nested paths exist, in the shared row
    grid, above direct entries and labelled complete rather than paged.

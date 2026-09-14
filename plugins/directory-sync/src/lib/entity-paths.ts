@@ -1,4 +1,5 @@
 import type { BaseEntity } from "@brains/plugins";
+import { decodeEntityIdPath, encodeEntityIdPath } from "@brains/entity-service";
 import { extname, join } from "path";
 import { readString } from "@brains/utils/record-fields";
 import { IMAGE_EXTENSIONS, getExtensionForFormat } from "./image-file-utils";
@@ -35,7 +36,7 @@ export function parseEntityPath(
     if (lastPart) {
       idPathParts[idPathParts.length - 1] = stripEntityExtension(lastPart);
     }
-    id = idPathParts.join(":");
+    id = encodeEntityIdPath([idPathParts[0] ?? "", ...idPathParts.slice(1)]);
   } else {
     id = stripEntityExtension(idPathParts[0] ?? "");
   }
@@ -49,7 +50,10 @@ export function buildEntityFilePath(
   entityType: string,
   extension: string = ".md",
 ): string {
-  const cleanParts = entityId.split(":").filter((part) => part.length > 0);
+  // Empty components are omitted only for filesystem placement, not identity.
+  const cleanParts = decodeEntityIdPath(entityId).filter(
+    (part) => part.length > 0,
+  );
   const isRootNote = entityType === "note";
 
   if (cleanParts.length === 1) {

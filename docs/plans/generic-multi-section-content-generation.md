@@ -4,7 +4,7 @@ Last updated: 2026-09-13
 
 ## Status
 
-**Implemented on `feat/generic-content-generation`, pending review and merge.**
+**Merged in PR #252 and included in Brain `0.2.0-alpha.379`.**
 
 The branch moves reusable multi-target generation into `shell/content-service`; domain plugins retain composition, discovery, entity, tool, and presentation ownership. It preserves the user-facing `site-content_generate` input/result shape, replaces the private `shell:content-generation` payload without a dual-format shim, and exposes the proven capability through an additive declarative `@rizom/brain/services` contract.
 
@@ -48,7 +48,7 @@ The old private payload has one production producer and is replaced cleanly. Thi
 
 ### Directory-sync compatibility is not silently tightened
 
-The shared codec governs new structured paths and their tested round-trip. Legacy malformed IDs, root-note conventions, embedded separators, and unsafe path-like values are not normalized or relocated by this work. Any broader directory-sync migration needs its own inventory and approval.
+The shared codec governs new structured paths and their tested round-trip. Directory-sync still splits and joins stored IDs independently; generation did not move it onto the codec. Phase 0 of the Studio hierarchy plan owns that adoption, with golden tests preserving existing placement. Legacy malformed IDs, root-note conventions, embedded separators, and unsafe path-like values are not normalized or relocated by this work. Codec adoption does not authorize ID rewrites, file moves, or database migrations.
 
 ## Remaining gates
 

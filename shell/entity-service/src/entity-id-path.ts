@@ -27,12 +27,17 @@ export const entityIdPathSchema: z.ZodType<EntityIdPath, unknown> = z.tuple(
   entityIdPathSegmentSchema,
 );
 
-/** Serialize an already-validated structured path at a storage boundary. */
+/** Serialize segments at a storage boundary; validate new author input separately. */
 export function encodeEntityIdPath(path: EntityIdPathInput): string {
   return path.join(SEPARATOR);
 }
 
-/** Decode a stored entity ID at a hierarchy-aware boundary. */
+/**
+ * Decode stored identity losslessly, including values predating authoring validation.
+ * Do not filter empty segments or normalize path-like values here: re-encoding must
+ * reproduce the original ID. Filesystem placement belongs to directory-sync.
+ */
 export function decodeEntityIdPath(id: string): EntityIdPath {
-  return entityIdPathSchema.parse(id.split(SEPARATOR));
+  const [first = "", ...rest] = id.split(SEPARATOR);
+  return [first, ...rest];
 }
