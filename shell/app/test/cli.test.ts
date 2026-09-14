@@ -187,7 +187,7 @@ describe("handleCLI", () => {
       testConfig,
       createMockShell([{ name: "probe", handler }]),
     );
-    spyOn(app, "initialize").mockResolvedValue(undefined);
+    const initialize = spyOn(app, "initialize").mockResolvedValue(undefined);
     const io = fakeIo(["--tool", "probe", "--tool-input", '{"dryRun":true}'], {
       create: mock(() => app),
     });
@@ -195,6 +195,11 @@ describe("handleCLI", () => {
     const code = await exitCodeOf(handleCLI(testConfig, undefined, io));
 
     expect(code).toBe(0);
+    // A one-shot process owns no runtime work. A full boot would start a job
+    // worker on the queue's stable slot and supersede the running app's
+    // worker session, which then stops claiming jobs until it is restarted.
+    // The bundled runtime already boots tools register-only; so must this path.
+    expect(initialize).toHaveBeenCalledWith({ mode: "register-only" });
     expect(handler).toHaveBeenCalledWith(
       { dryRun: true },
       {
@@ -208,6 +213,29 @@ describe("handleCLI", () => {
       serviceId: "brain-cli",
     });
     expect(io.logged).toEqual(["ok"]);
+  });
+
+  it("invokes --cli-command through the same register-only boot", async () => {
+    const handler = mock(
+      async (_input: unknown, _context: unknown): Promise<ToolResponse> => ({
+        success: true,
+        message: "listed",
+      }),
+    );
+    const app = App.create(
+      testConfig,
+      createMockShell([
+        { name: "probe", handler, cli: { name: "probe" }, inputSchema: {} },
+      ]),
+    );
+    const initialize = spyOn(app, "initialize").mockResolvedValue(undefined);
+    const io = fakeIo(["--cli-command", "probe"], { create: mock(() => app) });
+
+    const code = await exitCodeOf(handleCLI(testConfig, undefined, io));
+
+    expect(code).toBe(0);
+    expect(initialize).toHaveBeenCalledWith({ mode: "register-only" });
+    expect(io.logged).toEqual(["listed"]);
   });
 
   it("rejects --tool-input that is not JSON with exit 1", async () => {
