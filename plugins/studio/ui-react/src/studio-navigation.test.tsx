@@ -245,6 +245,17 @@ function browseGroups(): {
       options: [{ value: "type:note", label: "Notes", tally: 12 }],
     },
     {
+      area: "work",
+      label: "Work",
+      options: [
+        {
+          value: "workspace:unified-inbox:inbox",
+          label: "Inbox",
+          attention: 3,
+        },
+      ],
+    },
+    {
       area: "administration",
       label: "Admin",
       options: [
@@ -294,27 +305,49 @@ async function renderBrowse(filter = "", folded: string[] = []): Promise<void> {
   };
   await draw();
 }
+const clean = (text: string): string =>
+  text.replace(/[0-9\u25b8\u25be]/g, "").trim();
 const browseLinks = (): string[] =>
   [...document.querySelectorAll(".studio-mobile-navigation-link")].map((link) =>
     link.textContent.trim(),
   );
 
 describe("phone Browse destinations", () => {
-  it("gathers direct destinations above the groups instead of between them", async () => {
+  it("keeps the rail order, so Admin stays between Work and System", async () => {
     await renderBrowse();
-    const blocks = [...document.querySelectorAll("section, details")];
-    const direct = blocks.filter((block) => block.tagName === "SECTION");
-    expect(direct).toHaveLength(1);
-    expect(direct[0]?.textContent).toContain("Overview");
-    expect(direct[0]?.textContent).toContain("Chat");
-    expect(direct[0]?.textContent).toContain("Administration");
-    expect(blocks.findIndex((block) => block.tagName === "DETAILS")).toBe(1);
+    const blocks = [...document.querySelectorAll("section, details")].map(
+      (block) =>
+        block.tagName === "SECTION"
+          ? `direct:${clean(block.textContent)}`
+          : `group:${clean(block.querySelector("summary")?.textContent ?? "")}`,
+    );
+    expect(blocks).toEqual([
+      "direct:OverviewChat",
+      "group:Library",
+      "group:Work",
+      "direct:Administration",
+      "group:System",
+    ]);
+  });
+
+  it("marks a direct destination by treatment, not by position", async () => {
+    await renderBrowse();
+    const admin = [...document.querySelectorAll("button")].find(
+      (button) => button.getAttribute("aria-label") === "Administration",
+    );
+    const child = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent.includes("Inbox"),
+    );
+    // Group children indent; a direct destination sits flush, so Admin cannot
+    // read as the last row of the Work group above it.
+    expect(admin?.closest("details")).toBeNull();
+    expect(child?.closest("details")).not.toBeNull();
   });
 
   it("rests every group open so the sheet shows what it is for", async () => {
     await renderBrowse();
     const groups = [...document.querySelectorAll("details")];
-    expect(groups).toHaveLength(2);
+    expect(groups).toHaveLength(3);
     expect(groups.every((group) => group.open)).toBe(true);
   });
 

@@ -275,13 +275,33 @@ export function StudioBrowseDestinations(props: {
       ),
     }))
     .filter((group) => group.options.length > 0);
-  const direct = matching
-    .filter((group) => DIRECT_MOBILE_AREAS.includes(group.area))
-    .flatMap((group) => group.options);
-  const collapsible = matching.filter(
-    (group) => !DIRECT_MOBILE_AREAS.includes(group.area),
-  );
-  const option = (entry: MobileNavigationOption): ReactElement => (
+  // Browse keeps the rail's Overview/Chat/Library/Work/Admin/System order, so
+  // a destination sits where the desktop puts it. Adjacent direct
+  // destinations share one block; a group never splits them and they never
+  // jump over one.
+  const blocks = matching.reduce<
+    (
+      | { kind: "direct"; key: string; options: MobileNavigationOption[] }
+      | { kind: "group"; key: string; group: MobileNavigationGroupModel }
+    )[]
+  >((carry, group) => {
+    if (!DIRECT_MOBILE_AREAS.includes(group.area))
+      return [...carry, { kind: "group", key: group.area, group }];
+    const previous = carry[carry.length - 1];
+    if (previous?.kind === "direct")
+      return [
+        ...carry.slice(0, -1),
+        { ...previous, options: [...previous.options, ...group.options] },
+      ];
+    return [
+      ...carry,
+      { kind: "direct", key: group.area, options: group.options },
+    ];
+  }, []);
+  const option = (
+    entry: MobileNavigationOption,
+    flush = false,
+  ): ReactElement => (
     <button
       key={entry.value}
       className={navClass(
@@ -289,6 +309,7 @@ export function StudioBrowseDestinations(props: {
           ? "studio-mobile-navigation-link active"
           : "studio-mobile-navigation-link",
         nav.mobileLink,
+        flush && nav.mobileDirectLink,
         entry.value === props.activeValue && nav.mobileActive,
       )}
       type="button"
@@ -332,32 +353,35 @@ export function StudioBrowseDestinations(props: {
           see every destination.
         </p>
       ) : null}
-      {direct.length > 0 && (
-        <section
-          className={navClass(
-            "studio-mobile-navigation-group",
-            nav.mobileDirect,
-          )}
-        >
-          {direct.map(option)}
-        </section>
+      {blocks.map((block) =>
+        block.kind === "direct" ? (
+          <section
+            key={block.key}
+            className={navClass(
+              "studio-mobile-navigation-group",
+              nav.mobileDirect,
+            )}
+          >
+            {block.options.map((entry) => option(entry, true))}
+          </section>
+        ) : (
+          <MobileNavigationGroup
+            id={props.groupId(block.group.area)}
+            key={block.key}
+            label={block.group.label}
+            // A filter opens every group that still has something in it.
+            open={query !== "" || props.isGroupOpen(block.group.area)}
+            currentLabel={
+              block.group.options.find(
+                (entry) => entry.value === props.activeValue,
+              )?.label
+            }
+            onToggle={(open) => props.onToggleGroup(block.group.area, open)}
+          >
+            {block.group.options.map((entry) => option(entry))}
+          </MobileNavigationGroup>
+        ),
       )}
-      {collapsible.map((group) => (
-        <MobileNavigationGroup
-          id={props.groupId(group.area)}
-          key={group.area}
-          label={group.label}
-          // A filter opens every group that still has something in it.
-          open={query !== "" || props.isGroupOpen(group.area)}
-          currentLabel={
-            group.options.find((entry) => entry.value === props.activeValue)
-              ?.label
-          }
-          onToggle={(open) => props.onToggleGroup(group.area, open)}
-        >
-          {group.options.map(option)}
-        </MobileNavigationGroup>
-      ))}
     </>
   );
 }
