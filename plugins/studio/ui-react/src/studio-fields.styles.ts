@@ -38,6 +38,11 @@ export const fieldStyles: Record<FieldStyle, stylex.StyleXStyles> =
         paddingTop: 12,
         paddingBottom: { default: 12, ":is([data-studio-field-assist] *)": 9 },
       },
+      ":is([data-studio-system-fields] *)": {
+        paddingTop: 0,
+        paddingBottom: 0,
+        borderTopWidth: 0,
+      },
     },
     label: {
       display: "flex",

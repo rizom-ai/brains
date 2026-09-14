@@ -49,11 +49,15 @@ const BODY_MODE_LABELS: Record<BodyMode, string> = {
 const externalDocumentSync = Annotation.define<boolean>();
 
 const studioMarkdownHighlightStyle = HighlightStyle.define([
-  { tag: tags.heading, color: "var(--console-accent-dim)", fontWeight: "500" },
+  { tag: tags.heading, color: "var(--console-text)", fontWeight: "600" },
   { tag: tags.meta, color: "var(--console-text-muted)" },
   { tag: tags.emphasis, fontStyle: "italic" },
   { tag: tags.strong, fontWeight: "600" },
-  { tag: [tags.link, tags.url], color: "var(--console-accent-dim)" },
+  {
+    tag: [tags.link, tags.url],
+    color: "var(--console-text)",
+    textDecoration: "underline",
+  },
   { tag: tags.quote, color: "var(--console-text-dim)" },
 ]);
 

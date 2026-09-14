@@ -124,7 +124,9 @@ function studioTypeGroup(
  */
 export function typeHasPublicationField(fields: FieldDescriptor[]): boolean {
   return fields.some(
-    (field) => field.name === "status" || field.name === "published",
+    (field) =>
+      field.name === "published" ||
+      (field.name === "status" && field.options?.includes("published")),
   );
 }
 
