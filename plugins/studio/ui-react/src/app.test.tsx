@@ -136,7 +136,8 @@ describe("compiled editor surface contracts", () => {
     expect(compiledStyles).toContain("env(safe-area-inset-bottom)");
   });
   it("keeps native Chat bounded without a second dock", () => {
-    expect(compiledStyles).toContain(
+    expect(compiledStyles).toContain("grid-template-columns:minmax(0,1fr)");
+    expect(compiledStyles).not.toContain(
       "grid-template-columns:180px minmax(0,1fr)",
     );
     expect(compiledStyles).toContain("height:100dvh");

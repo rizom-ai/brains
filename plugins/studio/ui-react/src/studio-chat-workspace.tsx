@@ -2,7 +2,6 @@
 import { libraryStyles as library } from "./studio-library.styles";
 import { StudioChatAttachment } from "./studio-chat-attachment";
 import { StudioChatSessionRename } from "./studio-chat-session-rename";
-import { StudioChatWorkingSetDisclosure } from "./studio-chat-working-set-disclosure";
 import {
   messageUploadAccept,
   messageTextUploadMaxBytes,
@@ -21,8 +20,6 @@ import {
   studioChatDraftKey,
   type StudioChatNavigationState,
 } from "./studio-chat-drafts";
-import { StudioPageHead, studioAccessRequirement } from "./studio-page-head";
-import { headStyles } from "./studio-page-head.styles";
 import { typographyStyles } from "./studio-typography.styles";
 import {
   createChatClient,
@@ -189,6 +186,8 @@ export function StudioChatWorkspace(
   );
   const navigationCollapsed = useStudioNavigationCollapsed();
   const [sessionPickerOpen, setSessionPickerOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const detailsTrigger = useRef<HTMLSpanElement>(null);
   const sessionPickerTrigger = useRef<HTMLSpanElement>(null);
   const threadEndRef = useRef<HTMLDivElement | null>(null);
   const threadScrollRef = useRef<HTMLDivElement | null>(null);
@@ -240,13 +239,6 @@ export function StudioChatWorkspace(
       props.sessionId !== null && !sending && pendingMessages.length === 0,
   });
   const sessions = sessionsQuery.data ?? [];
-  const showSessionRail =
-    sessionsQuery.isPending ||
-    Boolean(sessionsQuery.error) ||
-    sessions.length > 0 ||
-    sessionSearch.length > 0 ||
-    sessionView.archived ||
-    sessionView.offset > 0;
   const storedMessages = messagesQuery.data ?? [];
   const currentSession =
     sessions.find((session) => session.id === props.sessionId) ??
@@ -283,6 +275,8 @@ export function StudioChatWorkspace(
   );
 
   useEffect(() => {
+    setDetailsOpen(false);
+    setSessionPickerOpen(false);
     if (props.sessionId && adoptedSessionRef.current === props.sessionId) {
       adoptedSessionRef.current = null;
       return;
@@ -333,6 +327,7 @@ export function StudioChatWorkspace(
         { preserveWork },
       );
       setSessionPickerOpen(false);
+      setDetailsOpen(false);
     },
     [props.navigate, props.studioBasePath],
   );
@@ -525,7 +520,19 @@ export function StudioChatWorkspace(
         {
           id: messageId,
           role: "user",
-          content: text || uploads.map((upload) => upload.filename).join(", "),
+          content: text,
+          cards: uploads.map((upload): ChatCard => ({
+            kind: "attachment",
+            id: upload.id,
+            title: upload.filename,
+            attachment: {
+              mediaType: upload.mediaType,
+              filename: upload.filename,
+              sizeBytes: upload.sizeBytes,
+              url: upload.url,
+              downloadUrl: upload.downloadUrl,
+            },
+          })),
         },
       ]);
       // The transcript owns the message from here, so the composer empties now
@@ -809,93 +816,8 @@ export function StudioChatWorkspace(
             onSelectWorkspace={props.selectWorkspace}
           />
         </aside>
-        <main
-          className={chatClass(
-            "studio-chat-workspace",
-            chatLayout.frame,
-            headStyles.inset,
-          )}
-        >
-          <div>
-            <StudioPageHead
-              model={{
-                title: "Chat",
-                totals: [],
-                access: studioAccessRequirement("trusted"),
-              }}
-              action={
-                <div
-                  className={chatClass(
-                    "studio-chat-head-actions",
-                    chatLayout.actions,
-                  )}
-                >
-                  <span
-                    ref={sessionPickerTrigger}
-                    className={chatClass(
-                      "studio-chat-session-picker-trigger",
-                      showSessionRail && chatLayout.mobileSessions,
-                    )}
-                  >
-                    <Button
-                      aria-expanded={sessionPickerOpen}
-                      aria-haspopup="dialog"
-                      variant="outline"
-                      type="button"
-                      onClick={() => setSessionPickerOpen(true)}
-                    >
-                      Sessions
-                    </Button>
-                  </span>
-                  <Button type="button" onClick={() => navigateToSession()}>
-                    New conversation
-                  </Button>
-                </div>
-              }
-            />
-          </div>
-          <Dialog
-            open={sessionPickerOpen}
-            onOpenChange={(open) => {
-              setSessionPickerOpen(open);
-            }}
-          >
-            <DialogContent
-              aria-describedby={undefined}
-              onCloseAutoFocus={(event) => {
-                event.preventDefault();
-                sessionPickerTrigger.current?.querySelector("button")?.focus();
-              }}
-            >
-              <DialogTitle>Conversations</DialogTitle>
-              <SessionRail
-                {...sessionControls}
-                popup
-                activeSessionId={props.sessionId}
-                loading={sessionsQuery.isPending}
-                sessions={sessions}
-                onNew={() => navigateToSession()}
-                onSelect={navigateToSession}
-              />
-            </DialogContent>
-          </Dialog>
-          <div
-            className={chatClass(
-              "studio-chat-room",
-              chatLayout.room,
-              !showSessionRail && chatLayout.roomWithoutSessions,
-            )}
-          >
-            {showSessionRail && (
-              <SessionRail
-                {...sessionControls}
-                activeSessionId={props.sessionId}
-                loading={sessionsQuery.isPending}
-                sessions={sessions}
-                onNew={() => navigateToSession()}
-                onSelect={navigateToSession}
-              />
-            )}
+        <main className={chatClass("studio-chat-workspace", chatLayout.frame)}>
+          <div className={chatClass("studio-chat-room", chatLayout.room)}>
             <section
               className={chatClass("studio-chat-thread", chatLayout.thread)}
               aria-label="Conversation"
@@ -904,94 +826,184 @@ export function StudioChatWorkspace(
                 className={chatClass(
                   "studio-chat-thread-head",
                   chatLayout.threadHead,
-                  !props.sessionId &&
-                    visibleMessages.length === 0 &&
-                    chatLayout.emptyThreadHead,
                 )}
               >
+                <h1
+                  className={chatClass(
+                    "studio-chat-session-heading",
+                    chatLayout.title,
+                  )}
+                  title={currentSession?.title}
+                >
+                  {currentSession?.title ??
+                    (props.sessionId ? "Conversation" : "New conversation")}
+                </h1>
                 <div
                   className={chatClass(
-                    "studio-chat-head-copy",
-                    chatLayout.headCopy,
+                    "studio-chat-head-actions",
+                    chatLayout.toolbar,
                   )}
                 >
-                  <h2
+                  <span
+                    ref={sessionPickerTrigger}
+                    className="studio-chat-session-picker-trigger"
+                  >
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      xstyle={chatLayout.toolbarButton}
+                      aria-haspopup="dialog"
+                      aria-expanded={sessionPickerOpen}
+                      onClick={() => setSessionPickerOpen(true)}
+                    >
+                      History
+                    </Button>
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    xstyle={chatLayout.toolbarButton}
+                    aria-label="New conversation"
+                    title="New conversation"
+                    onClick={() => navigateToSession()}
+                  >
+                    ＋
+                  </Button>
+                  <span ref={detailsTrigger}>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      xstyle={chatLayout.toolbarButton}
+                      aria-label="Conversation details and options"
+                      aria-haspopup="dialog"
+                      aria-expanded={detailsOpen}
+                      onClick={() => setDetailsOpen(true)}
+                    >
+                      •••
+                    </Button>
+                  </span>
+                </div>
+              </header>
+              <Dialog
+                open={sessionPickerOpen}
+                onOpenChange={setSessionPickerOpen}
+              >
+                <DialogContent
+                  aria-describedby={undefined}
+                  onCloseAutoFocus={(event) => {
+                    event.preventDefault();
+                    sessionPickerTrigger.current
+                      ?.querySelector("button")
+                      ?.focus();
+                  }}
+                >
+                  <DialogTitle>Conversations</DialogTitle>
+                  <SessionRail
+                    {...sessionControls}
+                    activeSessionId={props.sessionId}
+                    loading={sessionsQuery.isPending}
+                    sessions={sessions}
+                    onNew={() => navigateToSession()}
+                    onSelect={navigateToSession}
+                  />
+                </DialogContent>
+              </Dialog>
+              <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+                <DialogContent
+                  aria-describedby={undefined}
+                  onCloseAutoFocus={(event) => {
+                    event.preventDefault();
+                    detailsTrigger.current?.querySelector("button")?.focus();
+                  }}
+                >
+                  <DialogTitle>Conversation details</DialogTitle>
+                  <div
                     className={chatClass(
-                      "studio-chat-session-heading",
-                      chatLayout.title,
-                      typographyStyles.secondaryDisplay,
+                      "studio-chat-details",
+                      chatLayout.details,
                     )}
                   >
-                    {currentSession?.title ??
-                      (props.sessionId ? "Conversation" : "New conversation")}
-                  </h2>
-                  {currentSession && (
-                    <StudioChatSessionRename
-                      key={currentSession.id}
-                      title={currentSession.title}
-                      onRename={async (title): Promise<void> => {
-                        const result = await chatClient.renameSession(
-                          currentSession.id,
-                          title,
-                        );
-                        if (!result.renamed)
-                          throw new Error(
-                            "The conversation could not be renamed.",
-                          );
-                        queryClient.setQueriesData<ChatSession[]>(
-                          { queryKey: studioChatKeys.sessions },
-                          (items) =>
-                            items?.map((session) =>
-                              session.id === currentSession.id
-                                ? { ...session, title: result.title }
-                                : session,
-                            ),
-                        );
-                        void queryClient.invalidateQueries({
-                          queryKey: studioChatKeys.sessions,
-                        });
-                      }}
-                    />
-                  )}
-                  {archivedSession && (
-                    <p role="status">
-                      Archived conversation. New messages here remain archived.
-                    </p>
-                  )}
-                </div>
-                {props.sessionId && !archivedSession ? (
-                  <Button
-                    className="studio-chat-header-action"
-                    variant="ghost"
-                    type="button"
-                    onClick={() => void archiveCurrent()}
-                    disabled={
-                      sending ||
-                      uploading ||
-                      Boolean(draft) ||
-                      uploads.length > 0 ||
-                      uploadAttempts.length > 0
-                    }
-                    title={
-                      draft || uploads.length || uploadAttempts.length
-                        ? "Send or clear the draft before archiving"
-                        : undefined
-                    }
-                  >
-                    {archiving ? "Archiving…" : "Archive"}
-                  </Button>
-                ) : null}
-              </header>
-              {(props.sessionId !== null || visibleMessages.length > 0) && (
-                <StudioChatWorkingSetDisclosure contextKey={props.sessionId}>
-                  <WorkingSet
-                    cards={contextCards}
-                    messages={visibleMessages}
-                    progress={stream?.progress ?? []}
-                    session={currentSession}
-                  />
-                </StudioChatWorkingSetDisclosure>
-              )}
+                    <p>{currentSession?.title ?? "New conversation"}</p>
+                    <div
+                      className={chatClass(
+                        "studio-chat-session-actions",
+                        chatLayout.actions,
+                      )}
+                    >
+                      {currentSession && (
+                        <StudioChatSessionRename
+                          key={currentSession.id}
+                          title={currentSession.title}
+                          onRename={async (title): Promise<void> => {
+                            const result = await chatClient.renameSession(
+                              currentSession.id,
+                              title,
+                            );
+                            if (!result.renamed)
+                              throw new Error(
+                                "The conversation could not be renamed.",
+                              );
+                            queryClient.setQueriesData<ChatSession[]>(
+                              { queryKey: studioChatKeys.sessions },
+                              (items) =>
+                                items?.map((session) =>
+                                  session.id === currentSession.id
+                                    ? { ...session, title: result.title }
+                                    : session,
+                                ),
+                            );
+                            void queryClient.invalidateQueries({
+                              queryKey: studioChatKeys.sessions,
+                            });
+                          }}
+                        />
+                      )}
+                      {archivedSession && (
+                        <p role="status">
+                          Archived conversation. New messages here remain
+                          archived.
+                        </p>
+                      )}
+                      {props.sessionId && !archivedSession ? (
+                        <Button
+                          className="studio-chat-header-action"
+                          variant="ghost"
+                          type="button"
+                          onClick={() => void archiveCurrent()}
+                          disabled={
+                            sending ||
+                            uploading ||
+                            Boolean(draft) ||
+                            uploads.length > 0 ||
+                            uploadAttempts.length > 0
+                          }
+                          title={
+                            draft || uploads.length || uploadAttempts.length
+                              ? "Send or clear the draft before archiving"
+                              : undefined
+                          }
+                        >
+                          {archiving ? "Archiving…" : "Archive"}
+                        </Button>
+                      ) : null}
+                    </div>
+                    <details>
+                      <summary>Sources and attachments</summary>
+                      <ConversationContext
+                        cards={contextCards}
+                        progress={stream?.progress ?? []}
+                        session={currentSession}
+                      />
+                    </details>
+                    <details>
+                      <summary>File types and limits</summary>
+                      <p id="studio-chat-upload-guidance">
+                        {CHAT_UPLOAD_GUIDANCE}
+                      </p>
+                    </details>
+                  </div>
+                </DialogContent>
+              </Dialog>
               <div
                 ref={threadScrollRef}
                 tabIndex={0}
@@ -1058,6 +1070,7 @@ export function StudioChatWorkspace(
                       key={message.id}
                       message={message}
                       client={chatClient}
+                      disabled={sending}
                       onAction={runSuggestedAction}
                       onApproval={respondToApproval}
                     />
@@ -1070,6 +1083,21 @@ export function StudioChatWorkspace(
                       onDecision={respondToApproval}
                     />
                   ))}
+                  {stream && stream.progress.length > 0 && (
+                    <details
+                      className={chatClass(
+                        "studio-chat-progress",
+                        chatLayout.card,
+                      )}
+                    >
+                      <summary>
+                        Activity · {stream.progress.length} updates
+                      </summary>
+                      <pre className={chatClass("", chatLayout.source)}>
+                        {JSON.stringify(stream.progress, null, 2)}
+                      </pre>
+                    </details>
+                  )}
                   {sending ? (
                     <p
                       className={chatClass(
@@ -1078,7 +1106,7 @@ export function StudioChatWorkspace(
                       )}
                       role="status"
                     >
-                      Working…
+                      Responding…
                     </p>
                   ) : null}
                   {interrupted && (
@@ -1209,7 +1237,6 @@ export function StudioChatWorkspace(
 }
 
 function SessionRail(props: {
-  popup?: boolean;
   sessions: ChatSession[];
   activeSessionId: string | null;
   loading: boolean;
@@ -1224,14 +1251,10 @@ function SessionRail(props: {
 }): ReactElement {
   return (
     <aside
-      className={
-        props.popup
-          ? chatClass("studio-chat-session-picker", chatLayout.picker)
-          : chatClass("studio-chat-sessions", chatLayout.sessions)
-      }
+      className={chatClass("studio-chat-session-picker", chatLayout.picker)}
       aria-label="Chat sessions"
     >
-      {props.popup && (
+      {
         <header
           className={chatClass(
             "studio-chat-sessions-head",
@@ -1248,7 +1271,7 @@ function SessionRail(props: {
                 typographyStyles.section,
               )}
             >
-              Sessions
+              History
             </h2>
           </div>
           <button
@@ -1260,7 +1283,7 @@ function SessionRail(props: {
             +
           </button>
         </header>
-      )}
+      }
       <div
         className={chatClass(
           "studio-chat-session-controls",
@@ -1409,6 +1432,7 @@ function ChatEmptyState(): ReactElement {
 }
 
 function ChatTurn(props: {
+  disabled: boolean;
   message: ChatHistoryMessage;
   client: ChatClient;
   onAction: (action: ChatSuggestedAction) => Promise<void>;
@@ -1419,7 +1443,11 @@ function ChatTurn(props: {
 }): ReactElement {
   return (
     <article
-      className={chatClass("studio-chat-turn", chatLayout.turn)}
+      className={chatClass(
+        "studio-chat-turn",
+        chatLayout.turn,
+        props.message.role === "user" && chatLayout.userTurn,
+      )}
       data-role={props.message.role}
     >
       <span className={chatClass("studio-chat-turn-label", chatLayout.speaker)}>
@@ -1460,6 +1488,7 @@ function ChatTurn(props: {
               <MessageCard
                 card={card}
                 client={props.client}
+                disabled={props.disabled}
                 key={`${card.kind}-${card.id}`}
                 onAction={props.onAction}
                 onApproval={props.onApproval}
@@ -1473,6 +1502,7 @@ function ChatTurn(props: {
 }
 
 function MessageCard(props: {
+  disabled: boolean;
   card: ChatCard;
   client: ChatClient;
   onAction: (action: ChatSuggestedAction) => Promise<void>;
@@ -1502,6 +1532,7 @@ function MessageCard(props: {
               )}
               type="button"
               key={action.id}
+              disabled={props.disabled}
               onClick={() => void props.onAction(action)}
             >
               {action.label}
@@ -1513,12 +1544,8 @@ function MessageCard(props: {
   }
   if (card.kind === "sources") {
     return (
-      <section className={chatClass("studio-chat-card", chatLayout.card)}>
-        <span
-          className={chatClass("studio-chat-card-kicker", chatLayout.kicker)}
-        >
-          Sources
-        </span>
+      <details className={chatClass("studio-chat-sources", chatLayout.card)}>
+        <summary>{card.title ?? `${card.sources.length} sources`}</summary>
         <ul>
           {card.sources.map((source) => (
             <li key={source.id}>
@@ -1527,10 +1554,21 @@ function MessageCard(props: {
               ) : (
                 (source.title ?? source.source)
               )}
+              {source.excerpt && (
+                <p className={chatClass("", chatLayout.paragraph)}>
+                  {source.excerpt}
+                </p>
+              )}
+              <details>
+                <summary>Source details</summary>
+                <pre className={chatClass("", chatLayout.source)}>
+                  {JSON.stringify(source, null, 2)}
+                </pre>
+              </details>
             </li>
           ))}
         </ul>
-      </section>
+      </details>
     );
   }
   if (card.kind === "attachment") {
@@ -1547,19 +1585,50 @@ function MessageCard(props: {
   return (
     <section className={chatClass("studio-chat-card", chatLayout.card)}>
       <span className={chatClass("studio-chat-card-kicker", chatLayout.kicker)}>
-        {pending ? "Approval required" : "Approval record"}
+        {pending
+          ? "Approval required"
+          : card.state === "approval-responded"
+            ? "Decision received · awaiting result"
+            : card.state === "output-available"
+              ? "Completed"
+              : card.state === "output-denied"
+                ? "Declined"
+                : "Action failed"}
       </span>
       <strong>{card.summary}</strong>
-      {card.preview ? (
-        <p
-          className={chatClass(
-            "studio-chat-card-preview",
-            chatLayout.paragraph,
+      {card.completionSummary && <p>{card.completionSummary}</p>}
+      {card.error !== undefined && <p role="alert">{card.error}</p>}
+      {(card.preview !== undefined || card.input !== undefined) && (
+        <details>
+          <summary>Review exact action</summary>
+          <pre
+            className={chatClass("studio-chat-card-preview", chatLayout.source)}
+          >
+            {card.preview ?? JSON.stringify(card.input, null, 2)}
+          </pre>
+          {card.preview !== undefined && card.input !== undefined && (
+            <details>
+              <summary>Tool input</summary>
+              <pre className={chatClass("", chatLayout.source)}>
+                {JSON.stringify(card.input, null, 2)}
+              </pre>
+            </details>
           )}
-        >
-          {card.preview}
-        </p>
-      ) : null}
+          <p className={chatClass("", chatLayout.cardText)}>
+            Tool: {card.toolName}
+          </p>
+        </details>
+      )}
+      {card.output !== undefined && (
+        <details>
+          <summary>Action result</summary>
+          <pre className={chatClass("", chatLayout.source)}>
+            {typeof card.output === "string"
+              ? card.output
+              : JSON.stringify(card.output, null, 2)}
+          </pre>
+        </details>
+      )}
       {pending ? (
         <div
           className={chatClass(
@@ -1573,6 +1642,7 @@ function MessageCard(props: {
               chatLayout.button,
             )}
             type="button"
+            disabled={props.disabled}
             onClick={() => void props.onApproval(approval, false)}
           >
             Decline
@@ -1585,6 +1655,7 @@ function MessageCard(props: {
             )}
             data-primary="true"
             type="button"
+            disabled={props.disabled}
             onClick={() => void props.onApproval(approval, true)}
           >
             Approve
@@ -1609,6 +1680,15 @@ function ApprovalCard(props: {
         Approval required
       </span>
       <strong>{props.approval.title ?? props.approval.toolName}</strong>
+      {props.approval.input !== undefined && (
+        <details>
+          <summary>Review exact action</summary>
+          <pre className={chatClass("", chatLayout.source)}>
+            {JSON.stringify(props.approval.input, null, 2)}
+          </pre>
+          <p>Tool: {props.approval.toolName}</p>
+        </details>
+      )}
       <div
         className={chatClass(
           "studio-chat-approval-actions",
@@ -1677,105 +1757,119 @@ function Composer(props: {
           Jump to latest ↓
         </Button>
       )}
-      {props.uploadAttempts.length > 0 && (
-        <ul
-          className={chatClass(
-            "studio-chat-upload-list",
-            chatLayout.uploadList,
-          )}
-          aria-label="File upload progress"
-        >
-          {props.uploadAttempts.map((attempt) => (
-            <li
-              key={attempt.id}
-              className={chatClass("studio-chat-upload", chatLayout.upload)}
-            >
-              <span role={attempt.status === "failed" ? "alert" : "status"}>
-                {attempt.file.name}:{" "}
-                {attempt.status === "uploading"
-                  ? "Uploading…"
-                  : (attempt.error ?? "Upload failed")}
-              </span>
-              {attempt.status === "failed" && (
-                <>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    aria-label={`Retry uploading ${attempt.file.name}`}
-                    disabled={props.uploading || props.sending || props.locked}
-                    onClick={() => props.onRetryUpload(attempt)}
-                  >
-                    Retry
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    aria-label={`Dismiss failed upload ${attempt.file.name}`}
-                    onClick={() => props.onDismissUpload(attempt.id)}
-                  >
-                    Dismiss
-                  </Button>
-                </>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-      {props.uploads.length > 0 ? (
-        <div
-          className={chatClass(
-            "studio-chat-upload-list",
-            chatLayout.uploadList,
-          )}
-        >
-          {props.uploads.map((upload) => (
-            <span
-              className={chatClass("studio-chat-upload", chatLayout.upload)}
-              key={upload.id}
-            >
-              {upload.filename}{" "}
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                aria-label={`Remove ${upload.filename} from message`}
-                disabled={props.locked}
-                onClick={() => props.onRemoveUpload(upload.id)}
-              >
-                ×
-              </Button>
-            </span>
-          ))}
-        </div>
-      ) : null}
       <form
         className={chatClass("studio-chat-composer-form", chatLayout.form)}
         onSubmit={props.onSubmit}
       >
-        <label
-          className={chatClass(
-            "studio-chat-message-label",
-            chatLayout.fieldLabel,
-          )}
-        >
-          Message
-          <textarea
-            className={chatClass("studio-chat-message", chatLayout.input)}
-            aria-label="Message"
-            aria-describedby="studio-chat-composer-hint"
-            placeholder="Write to your brain…"
-            value={props.draft}
-            disabled={props.locked}
-            onChange={(event) => props.onDraft(event.target.value)}
-            onKeyDown={keyDown}
-          />
-        </label>
+        {(props.uploadAttempts.length > 0 || props.uploads.length > 0) && (
+          <div
+            className={chatClass(
+              "studio-chat-upload-strip",
+              chatLayout.uploadStrip,
+            )}
+            role="region"
+            aria-label="Draft attachments"
+            tabIndex={0}
+          >
+            <ul
+              className={chatClass(
+                "studio-chat-upload-list",
+                chatLayout.uploadList,
+              )}
+              aria-label={
+                props.uploadAttempts.length > 0
+                  ? "File upload progress"
+                  : "Attached files"
+              }
+            >
+              {props.uploadAttempts.map((attempt) => (
+                <li
+                  key={attempt.id}
+                  className={chatClass("studio-chat-upload", chatLayout.upload)}
+                >
+                  <div className={chatClass("", chatLayout.uploadName)}>
+                    <span
+                      role={attempt.status === "failed" ? "alert" : "status"}
+                    >
+                      {attempt.file.name}:{" "}
+                      {attempt.status === "uploading"
+                        ? "Uploading…"
+                        : (attempt.error ?? "Upload failed")}
+                    </span>
+                    {attempt.status === "uploading" && (
+                      <progress aria-label={`Uploading ${attempt.file.name}`} />
+                    )}
+                  </div>
+                  {attempt.status === "failed" && (
+                    <>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        xstyle={chatLayout.toolbarButton}
+                        aria-label={`Retry uploading ${attempt.file.name}`}
+                        disabled={
+                          props.uploading || props.sending || props.locked
+                        }
+                        onClick={() => props.onRetryUpload(attempt)}
+                      >
+                        Retry
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        xstyle={chatLayout.toolbarButton}
+                        aria-label={`Dismiss failed upload ${attempt.file.name}`}
+                        onClick={() => props.onDismissUpload(attempt.id)}
+                      >
+                        ×
+                      </Button>
+                    </>
+                  )}
+                </li>
+              ))}
+              {props.uploads.map((upload) => (
+                <li
+                  className={chatClass("studio-chat-upload", chatLayout.upload)}
+                  key={upload.id}
+                >
+                  <DraftUploadPreview upload={upload} />
+                  <span className={chatClass("", chatLayout.uploadName)}>
+                    {upload.filename}
+                    <br />
+                    Ready · draft only
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    xstyle={chatLayout.toolbarButton}
+                    aria-label={`Remove ${upload.filename} from message`}
+                    disabled={props.locked}
+                    onClick={() => props.onRemoveUpload(upload.id)}
+                  >
+                    ×
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <textarea
+          className={chatClass("studio-chat-message", chatLayout.input)}
+          aria-label="Message"
+          aria-describedby="studio-chat-composer-hint"
+          placeholder="Message…"
+          value={props.draft}
+          disabled={props.locked}
+          onChange={(event) => props.onDraft(event.target.value)}
+          onKeyDown={keyDown}
+        />
         <div
           className={chatClass(
             "studio-chat-composer-actions",
-            chatLayout.actions,
+            chatLayout.composerBar,
           )}
         >
           <label
@@ -1783,21 +1877,27 @@ function Composer(props: {
               "studio-chat-composer-action",
               chatLayout.attachButton,
             )}
+            title={CHAT_UPLOAD_GUIDANCE}
           >
-            {props.uploading ? "Attaching…" : "Attach files"}
+            <span aria-hidden="true">＋</span>
             <input
               className={chatClass(
                 "studio-chat-upload-input",
                 chatLayout.uploadInput,
               )}
+              aria-label="Attach files"
               type="file"
               accept={messageUploadAccept}
-              aria-describedby="studio-chat-upload-guidance"
               multiple
               disabled={props.locked || props.sending || props.uploading}
               onChange={(event) => void props.onFiles(event)}
             />
           </label>
+          {props.uploadAttempts.length > 0 && (
+            <span className={chatClass("", chatLayout.kicker)}>
+              Resolve uploads before sending
+            </span>
+          )}
           {props.locked ? (
             <Button type="button" disabled>
               Archiving…
@@ -1806,6 +1906,7 @@ function Composer(props: {
             <Button
               type="button"
               variant="outline"
+              xstyle={chatLayout.toolbarButton}
               onClick={props.onStop}
               disabled={!props.onStop}
               title="Stop receiving the response. Completed actions are not undone."
@@ -1816,6 +1917,7 @@ function Composer(props: {
             <Button
               className="studio-chat-composer-action"
               type="submit"
+              xstyle={chatLayout.toolbarButton}
               aria-label="Send message"
               disabled={
                 props.uploading ||
@@ -1823,7 +1925,7 @@ function Composer(props: {
                 (!props.draft.trim() && props.uploads.length === 0)
               }
             >
-              Send
+              ↑
             </Button>
           )}
         </div>
@@ -1837,22 +1939,32 @@ function Composer(props: {
       >
         Enter to send · Shift+Enter for a new line
       </small>
-      <details
-        className={chatClass(
-          "studio-chat-upload-guidance",
-          chatLayout.composerHint,
-        )}
-      >
-        <summary>File types and limits</summary>
-        <p id="studio-chat-upload-guidance">{CHAT_UPLOAD_GUIDANCE}</p>
-      </details>
     </footer>
   );
 }
 
-function WorkingSet(props: {
+function DraftUploadPreview({
+  upload,
+}: {
+  upload: ChatUploadResponse;
+}): ReactElement | null {
+  const [failed, setFailed] = useState(false);
+  if (failed || !upload.mediaType.startsWith("image/")) return null;
+  return (
+    <img
+      className={chatClass(
+        "studio-chat-draft-preview",
+        chatLayout.uploadPreview,
+      )}
+      src={upload.url}
+      alt={upload.filename}
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+function ConversationContext(props: {
   cards: ChatCard[];
-  messages: ChatHistoryMessage[];
   progress: StudioChatStreamState["progress"];
   session: ChatSession | undefined;
 }): ReactElement {
@@ -1860,7 +1972,7 @@ function WorkingSet(props: {
     <aside
       className={chatClass("studio-chat-context", chatLayout.contextBody)}
       tabIndex={0}
-      aria-label="Working set"
+      aria-label="Conversation sources and attachments"
     >
       <div className={chatClass("studio-chat-context-list", chatLayout.cards)}>
         {props.session?.contextHandoff ? (
@@ -1900,8 +2012,7 @@ function WorkingSet(props: {
         ) : null}
         {props.cards.length === 0 && props.progress.length === 0 ? (
           <p className={chatClass("studio-chat-empty", chatLayout.empty)}>
-            Sources, artifacts, and durable jobs appear here as the conversation
-            develops.
+            No sources or attachments in this conversation yet.
           </p>
         ) : null}
         {props.cards.map((card, index) => (
@@ -1998,40 +2109,6 @@ function WorkingSet(props: {
             </p>
           </section>
         ))}
-        {props.messages.length > 0 ? (
-          <section
-            className={chatClass(
-              "studio-chat-context-card",
-              chatLayout.contextItem,
-            )}
-          >
-            <span
-              className={chatClass(
-                "studio-chat-context-kicker",
-                chatLayout.kicker,
-              )}
-            >
-              Activity
-            </span>
-            <h3
-              className={chatClass(
-                "studio-chat-context-card-title",
-                chatLayout.cardHeading,
-                typographyStyles.section,
-              )}
-            >
-              Visible conversation
-            </h3>
-            <p
-              className={chatClass(
-                "studio-chat-context-card-text",
-                chatLayout.cardText,
-              )}
-            >
-              {props.messages.length} visible messages.
-            </p>
-          </section>
-        ) : null}
       </div>
     </aside>
   );

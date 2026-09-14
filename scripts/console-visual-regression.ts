@@ -2823,8 +2823,7 @@ async function checkLayout(
       }
       const typeRoles = [
         {
-          selector:
-            ".studio-chat-session-heading, .people-detail-name, .studio-leaf-head h2",
+          selector: ".people-detail-name, .studio-leaf-head h2",
           size: "24px",
           weight: "500",
           tracking: -0.48,
@@ -2941,22 +2940,44 @@ async function checkLayout(
     const sessions = await elementDisplay(page, ".studio-chat-sessions");
     if (
       destinations === "missing" ||
-      (destinations === "none") !== (width > 860 && STUDY_STATE !== "empty") ||
-      sessions !==
-        (STUDY_STATE === "empty" ? "missing" : width <= 860 ? "none" : "block")
+      destinations === "none" ||
+      sessions !== "missing"
     ) {
-      throw new Error(`Studio Chat responsive mode mismatch at ${width}px`);
+      throw new Error(`Studio Chat must keep history on demand at ${width}px`);
     }
     const workspace = await elementBounds(page, ".studio-chat-room");
     const composer = await elementBounds(page, ".studio-chat-composer");
+    const transcript = await elementBounds(page, ".studio-chat-thread-scroll");
     if (
-      STUDY_STATE === "empty" &&
-      workspace &&
-      composer &&
-      Math.abs(workspace.width - composer.width) > 1
+      !transcript ||
+      !workspace ||
+      transcript.height < workspace.height * 0.55
     )
-      throw Error("Empty Chat must not reserve a phantom conversation rail");
-    if (!workspace || !composer) {
+      throw new Error("Conversation must dominate the workspace");
+    await evaluatePage(page, () => {
+      if (
+        document.querySelector(
+          ".studio-chat-workspace > [data-studio-page-head]",
+        )
+      )
+        throw new Error("Chat duplicates its page header");
+      const form = document.querySelector(".studio-chat-composer-form");
+      if (
+        !form ||
+        getComputedStyle(form).borderTopWidth !== "1px" ||
+        getComputedStyle(form).borderRadius !== "12px"
+      )
+        throw new Error(
+          `Composer frame missing: ${form ? getComputedStyle(form).cssText + form.className + getComputedStyle(form).borderTop : "missing"}`,
+        );
+      if (
+        document.querySelector(
+          ".studio-chat-thread-scroll .studio-chat-context",
+        )
+      )
+        throw new Error("Context must stay outside the dialogue");
+    });
+    if (!composer) {
       throw new Error(`Studio Chat workspace did not render at ${width}px`);
     }
     if (composer.y + composer.height > viewportHeight + 1) {
@@ -3796,15 +3817,8 @@ try {
         if (SURFACE_PREFIX && !surface.startsWith(SURFACE_PREFIX)) continue;
         if (STUDY_STATE && !supportsStudioStudyState(surface, STUDY_STATE))
           continue;
-        // Session and context destinations only exist at phone widths.
+        // Guest Chat's drawer is mobile-only; Studio dialogs work at every width.
         if (surface === "chat-drawer" && viewport.width > 760) continue;
-        if (
-          (surface === "studio-chat-sessions" ||
-            surface === "studio-chat-context") &&
-          viewport.width > 640
-        ) {
-          continue;
-        }
         // Secondary editor states are pinned at desktop and phone; tablet
         // adds no distinct composition for these overlays and lines.
         const isStudioSecondary =
@@ -4224,6 +4238,11 @@ try {
           await waitForText(page, "And the Studio?");
           await waitForSelector(page, ".studio-chat-upload");
           if (surface === "studio-chat") {
+            await clickSelector(
+              page,
+              '[aria-label="Conversation details and options"]',
+            );
+            await waitForSelector(page, '[role="dialog"]');
             await clickText(page, "button", "Rename");
             await fillLabel(
               page,
@@ -4240,8 +4259,12 @@ try {
             );
             await clickText(page, ".studio-chat-rename button", "Save title");
             await waitForText(page, "Responsive console audit");
+            await clickSelector(
+              page,
+              '[role="dialog"] [data-slot="dialog-close"]',
+            );
           }
-          if (surface === "studio-chat" && viewport.width <= 700) {
+          if (surface === "studio-chat") {
             await clickSelector(
               page,
               ".studio-chat-session-picker-trigger button",
@@ -4306,16 +4329,10 @@ try {
             await clickText(
               page,
               ".studio-chat-session-picker-trigger button",
-              "Sessions",
+              "History",
             );
           }
-          if (surface === "studio-chat" && viewport.width <= 860) {
-            const metrics = await evaluatePage(page, () => ({
-              width: innerWidth,
-              height: innerHeight,
-              deviceScaleFactor: devicePixelRatio,
-              mobile: false,
-            }));
+          if (surface === "studio-chat") {
             await fillLabel(
               page,
               "Message",
@@ -4327,8 +4344,11 @@ try {
                 document.querySelector(".studio-chat-thread-scroll")
                   ?.clientHeight,
             );
-            await clickSelector(page, ".studio-chat-working-set-trigger");
-            await waitForSelector(page, ".studio-chat-working-set-dialog");
+            await clickSelector(
+              page,
+              '[aria-label="Conversation details and options"]',
+            );
+            await waitForSelector(page, ".studio-chat-details");
             await evaluatePageWith(
               page,
               (previousHeight) => {
@@ -4336,51 +4356,24 @@ try {
                   document.querySelector(".studio-chat-thread-scroll")
                     ?.clientHeight !== previousHeight
                 )
-                  throw new Error("Working set squeezed the conversation");
+                  throw new Error("Details squeezed the conversation");
                 if (
                   document.querySelectorAll(".studio-chat-context").length !== 1
                 )
-                  throw new Error("Working set content is duplicated");
+                  throw new Error("Context duplicated");
               },
               height,
             );
             await clickSelector(
               page,
-              '.studio-chat-working-set-dialog [data-slot="dialog-close"]',
+              '[role="dialog"] [data-slot="dialog-close"]',
             );
-            await waitForPage("Working set focus restoration", () =>
+            await waitForPage("Details focus restoration", () =>
               evaluatePage(
                 page,
                 () =>
-                  document.activeElement?.matches(
-                    ".studio-chat-working-set-trigger",
-                  ) === true,
-              ),
-            );
-            await clickSelector(page, ".studio-chat-working-set-trigger");
-            await waitForSelector(page, ".studio-chat-working-set-dialog");
-            await page.cdp("Emulation.setDeviceMetricsOverride", {
-              ...metrics,
-              width: 1024,
-            });
-            await waitForPage("Working set desktop focus", () =>
-              evaluatePage(
-                page,
-                () =>
-                  !document.querySelector('[role="dialog"]') &&
-                  document.activeElement?.matches(
-                    ".studio-chat-working-set summary",
-                  ) === true,
-              ),
-            );
-            await page.cdp("Emulation.setDeviceMetricsOverride", metrics);
-            await waitForPage("Working set narrow focus", () =>
-              evaluatePage(
-                page,
-                () =>
-                  document.activeElement?.matches(
-                    ".studio-chat-working-set-trigger",
-                  ) === true,
+                  document.activeElement?.getAttribute("aria-label") ===
+                  "Conversation details and options",
               ),
             );
             await evaluatePage(page, () => {
@@ -4389,15 +4382,24 @@ try {
                   ".studio-chat-message",
                 )?.value !== "Keep this draft while reading context"
               )
-                throw new Error("Working set lost the composer draft");
+                throw new Error("Details lost draft");
             });
             await fillLabel(page, "Message", "");
           }
           if (surface === "studio-chat-context") {
-            await clickSelector(page, ".studio-chat-working-set-trigger");
-            await waitForSelector(page, ".studio-chat-working-set-dialog");
+            await clickSelector(
+              page,
+              '[aria-label="Conversation details and options"]',
+            );
+            await waitForSelector(page, ".studio-chat-details");
+            await clickText(
+              page,
+              ".studio-chat-details summary",
+              "Sources and attachments",
+            );
           }
         }
+
         if (isDashboard) {
           await verifyDashboardChrome(page);
           await verifyDashboardSummary(page);
@@ -5548,6 +5550,38 @@ try {
             )
               throw new Error("Generated image escaped its card or viewport");
           });
+          await clickSelector(page, ".studio-chat-image-trigger");
+          await waitForPage("full image to load", () =>
+            evaluatePage(page, () => {
+              const image = document.querySelector<HTMLImageElement>(
+                '[role="dialog"] .studio-chat-full-image',
+              );
+              return Boolean(image?.complete && image.naturalWidth > 0);
+            }),
+          );
+          await auditStudioAccessibility(page, "studio-chat-image-preview");
+          await page.cdp("Input.dispatchKeyEvent", {
+            type: "keyDown",
+            key: "Escape",
+            code: "Escape",
+            windowsVirtualKeyCode: 27,
+          });
+          await page.cdp("Input.dispatchKeyEvent", {
+            type: "keyUp",
+            key: "Escape",
+            code: "Escape",
+            windowsVirtualKeyCode: 27,
+          });
+          await waitForPage("image preview focus restoration", () =>
+            evaluatePage(
+              page,
+              () =>
+                !document.querySelector('[role="dialog"]') &&
+                document.activeElement?.matches(
+                  ".studio-chat-image-trigger",
+                ) === true,
+            ),
+          );
           const attachmentName = `studio-chat-attachments-${viewport.width}x${viewport.height}-${climate}`;
           await auditStudioAccessibility(page, attachmentName);
           await recordVisualCapture(
