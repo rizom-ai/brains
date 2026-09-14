@@ -2558,6 +2558,117 @@ async function verifyStudioKeyboardAccess(page: Bun.WebView): Promise<void> {
   }
 }
 
+async function verifyDisabledPrimaries(page: Bun.WebView): Promise<void> {
+  const check = async (): Promise<{ x: number; y: number } | undefined> =>
+    evaluatePage(page, () => {
+      let point: { x: number; y: number } | undefined;
+      for (const button of document.querySelectorAll<HTMLButtonElement>(
+        'button[data-slot="button"]:is([data-variant="default"], [data-variant="primary"]):disabled',
+      )) {
+        const reference = document.createElement("span");
+        reference.style.cssText =
+          "display:none;background-color:var(--console-card-soft);color:var(--console-text-muted);border:1px solid var(--console-rule-strong)";
+        button.append(reference);
+        const expected = getComputedStyle(reference),
+          actual = getComputedStyle(button);
+        const neutral =
+          actual.backgroundColor === expected.backgroundColor &&
+          actual.color === expected.color &&
+          actual.borderTopColor === expected.borderTopColor &&
+          actual.opacity === "1" &&
+          actual.transform === "none";
+        reference.remove();
+        if (!neutral)
+          throw Error(
+            `Disabled primary must stay neutral, including on hover: ${button.getAttribute("aria-label") ?? button.textContent}`,
+          );
+        const rect = button.getBoundingClientRect();
+        if (
+          rect.width > 0 &&
+          rect.height > 0 &&
+          rect.top >= 0 &&
+          rect.bottom <= innerHeight &&
+          rect.left >= 0 &&
+          rect.right <= innerWidth
+        )
+          point = { x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 };
+      }
+      return point;
+    });
+  const point = await check();
+  if (point) {
+    await page.cdp("Input.dispatchMouseEvent", {
+      type: "mouseMoved",
+      ...point,
+    });
+    await waitForVisualStability(page);
+    await check();
+    await page.cdp("Input.dispatchMouseEvent", {
+      type: "mouseMoved",
+      x: 0,
+      y: 0,
+    });
+  }
+}
+
+async function verifyNativeDateFits(page: Bun.WebView): Promise<void> {
+  // The input's own scrollWidth does not expose clipped native date segments.
+  // Inspect Chromium's user-agent shadow layout instead of guessing its locale.
+  interface NativeNode {
+    nodeId: number;
+    nodeName: string;
+    attributes?: string[];
+    children?: NativeNode[];
+    shadowRoots?: NativeNode[];
+  }
+  const tree = await page.cdp<{ root: NativeNode }>("DOM.getDocument", {
+    depth: -1,
+    pierce: true,
+  });
+  function nodes(node: NativeNode): NativeNode[] {
+    return [
+      node,
+      ...[...(node.children ?? []), ...(node.shadowRoots ?? [])].flatMap(nodes),
+    ];
+  }
+  const input = nodes(tree.root).find(
+    (node) =>
+      node.nodeName === "INPUT" && node.attributes?.includes("datetime-local"),
+  );
+  if (!input) throw Error("Missing native date input");
+  const shadow = nodes(input);
+  const edit = shadow.find((node) =>
+    node.attributes?.includes("-webkit-datetime-edit"),
+  );
+  const fields = shadow.find((node) =>
+    node.attributes?.includes("-webkit-datetime-edit-fields-wrapper"),
+  );
+  if (!edit || !fields) throw Error("Native date layout is unavailable");
+  const box = await page.cdp<{ model: { content: number[] } }>(
+    "DOM.getBoxModel",
+    { nodeId: edit.nodeId },
+  );
+  const text = await page.cdp<{ model: { content: number[] } }>(
+    "DOM.getBoxModel",
+    { nodeId: fields.nodeId },
+  );
+  const left = box.model.content[0],
+    right = box.model.content[2],
+    textLeft = text.model.content[0],
+    textRight = text.model.content[2];
+  if (
+    left === undefined ||
+    right === undefined ||
+    textLeft === undefined ||
+    textRight === undefined ||
+    textLeft < left - 1 ||
+    textRight > right + 1
+  )
+    throw Error(
+      `Native date/time segments are clipped: ${JSON.stringify({ left, right, textLeft, textRight })}`,
+    );
+}
+
 async function checkLayout(
   page: Bun.WebView,
   surface: string,
@@ -5227,10 +5338,49 @@ try {
             `${surface}-${viewport.width}x${viewport.height}-${climate}`,
           );
         await settleVisualCapture(page);
+        await verifyDisabledPrimaries(page);
         const image = await page.screenshot({
           encoding: "buffer",
           format: "png",
         });
+        if (surface === "studio-editor") {
+          if (viewport.width <= 640) {
+            await pointerDownSelector(page, 'button[aria-label="Editor view"]');
+            await clickText(page, '[role="menuitem"]', "Properties");
+          }
+          await evaluatePage(page, () => {
+            const properties = document.querySelector<HTMLElement>(
+              "[data-studio-properties]",
+            );
+            if (!properties) throw Error("Missing Properties scroller");
+            properties.scrollTop = properties.scrollHeight;
+            window.scrollTo(0, 0);
+          });
+          await settleVisualCapture(page);
+          await verifyNativeDateFits(page);
+          await evaluatePage(page, () => {
+            const date = document.querySelector<HTMLInputElement>(
+              'input[type="datetime-local"]',
+            );
+            const note = document.querySelector<HTMLElement>(
+              'label:has(input[type="file"]) small',
+            );
+            if (
+              date?.value !== "2026-07-14T09:00" ||
+              !note ||
+              note.scrollWidth > note.clientWidth + 1
+            )
+              throw Error(
+                "Properties must retain the date value and wrap the full upload guidance",
+              );
+          });
+          const propertiesName = `studio-editor-properties-${viewport.width}x${viewport.height}-${climate}`;
+          await auditStudioAccessibility(page, propertiesName);
+          await recordVisualCapture(
+            `${propertiesName}.png`,
+            await page.screenshot({ encoding: "buffer", format: "png" }),
+          );
+        }
         if (
           surface === "studio-system" ||
           surface === "studio-system-anchor-profile"

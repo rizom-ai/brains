@@ -67,6 +67,33 @@ describe("app control vocabulary", () => {
     expect(html).not.toContain("@stylexjs");
   });
 
+  it("keeps disabled primary actions inert until the caller enables them", async () => {
+    let calls = 0;
+    const render = (disabled: boolean): void =>
+      root.render(
+        <Button
+          variant="primary"
+          disabled={disabled}
+          onClick={() => {
+            calls += 1;
+          }}
+        >
+          Save
+        </Button>,
+      );
+    await act(async () => render(true));
+    const button = document.querySelector("button");
+    if (!button) throw Error("Missing primary control");
+    await act(async () => button.click());
+    expect(calls).toBe(0);
+    expect(button.disabled).toBe(true);
+    await act(async () => render(false));
+    expect(document.querySelector("button")).toBe(button);
+    expect(button.disabled).toBe(false);
+    await act(async () => button.click());
+    expect(calls).toBe(1);
+  });
+
   it("uses lightweight grouped-action triggers without changing dialog or action behavior", async () => {
     let invoked = 0;
     await act(async () =>

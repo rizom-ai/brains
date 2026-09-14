@@ -74,14 +74,20 @@ const styles = stylex.create({
     color: "var(--console-on-accent)",
     transform: {
       default: null,
-      ":hover": {
+      ":hover:not(:disabled)": {
         default: "translateY(-1px)",
         "@media (prefers-reduced-motion: reduce)": "none",
       },
     },
-    ":hover": {
+    ":hover:not(:disabled)": {
       backgroundColor: "var(--console-accent-dim)",
       borderColor: "var(--console-accent-dim)",
+    },
+    ":disabled": {
+      backgroundColor: "var(--console-card-soft)",
+      borderColor: "var(--console-rule-strong)",
+      color: "var(--console-text-muted)",
+      opacity: 1,
     },
   },
   secondary: {

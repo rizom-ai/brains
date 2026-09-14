@@ -1,6 +1,6 @@
 # Plan: Studio UX follow-through
 
-Last updated: 2026-09-13
+Last updated: 2026-09-14
 
 ## Status
 
@@ -13,11 +13,9 @@ None of the remaining items gates stable `v0.2.0` unless a release-candidate acc
 ## Remaining presentation work
 
 - **Collapsed rail identity.** Replace ordinal-only collapsed navigation with glanceable per-area marks while preserving accessible names.
-- **Properties width.** Widen the properties column and size date/upload controls so their values and format guidance do not truncate.
 - **Site-link emphasis.** Make preview/live-site launch links read as actions consistently with Overview launches.
 - **Publishing totals.** Move the orphaned published total into the tab row or page-head metadata.
 - **People language.** Replace internal Anchor vocabulary with user-facing protection/status copy and show the same connected-channel line for every person.
-- **Disabled primary treatment.** Use a neutral disabled surface instead of a dimmed accent fill.
 - **Collection grammar.** Unify library and Chat search, filter, range, and pagination presentation without merging their backend query semantics.
 - **Time presentation.** Define where relative and absolute timestamps belong and fix singular relative-time copy.
 
