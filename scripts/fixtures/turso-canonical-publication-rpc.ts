@@ -108,17 +108,27 @@ export async function exerciseCanonicalReadRpc(
       facts,
     );
     const download = assets.download(offer.ticket);
-    pending.push(download);
-    void download.catch(() => undefined); // Observed below and during acknowledged teardown.
+    const rejectedReplayRead = assert.rejects(download);
+    pending.push(rejectedReplayRead);
     await assert.rejects(foreignAssets.readEndpoint(offer.ticket));
-    const endpoint = await assets.readEndpoint(offer.ticket);
+    await assets.readEndpoint(offer.ticket);
     await assert.rejects(assets.readEndpoint(offer.ticket));
     await assert.rejects(assets.download(offer.ticket));
-    const consumer = files.download({ endpoint, facts, outputFile });
+    await assets.cancelRead(offer.ticket);
+    await rejectedReplayRead;
+    await exerciseCancelledFileHandoff(
+      assets,
+      files,
+      binding,
+      record,
+      `${outputFile}.handoff-cancelled`,
+    );
+    const consumer = assets.downloadFile(
+      { ref: record.ref, outputFile },
+      files,
+    );
     pending.push(consumer);
-    const [received, delivered] = await Promise.all([consumer, download]);
-    assert.deepEqual(received, facts);
-    assert.deepEqual(delivered, facts);
+    assert.deepEqual(await consumer, facts);
     assert.equal(files.stats().children, 0); // Completion includes actual actor exit.
     // Independently read every output byte in the source producer, not this controller.
     await binding.withFile(
@@ -209,6 +219,76 @@ export async function exerciseCanonicalReadRpc(
       cause: errors[0],
     });
   assert.equal(processes.stats().children, 0);
+}
+
+async function exerciseCancelledFileHandoff(
+  assets: EntityBinaryClient,
+  files: FileProcessOwner,
+  binding: CanonicalAssetBindings,
+  record: AssetRecord,
+  outputFile: string,
+): Promise<void> {
+  const endpoint = assets.readEndpoint.bind(assets);
+  const cancel = assets.cancelRead.bind(assets);
+  const ready = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  const retired = Promise.withResolvers<{ ok: boolean; error?: unknown }>();
+  const signal = new AbortController();
+  const primary = new Error("Canonical file handoff cancelled");
+  assets.readEndpoint = async (
+    ticket,
+    options,
+  ): ReturnType<typeof endpoint> => {
+    const address = await endpoint(ticket, options);
+    ready.resolve();
+    await release.promise; // Hold returned metadata, never payload or a native worker.
+    return address;
+  };
+  assets.cancelRead = async (ticket, options): Promise<void> => {
+    try {
+      await cancel(ticket, options);
+      retired.resolve({ ok: true });
+    } catch (error) {
+      retired.resolve({ ok: false, error });
+      throw error;
+    }
+  };
+  const handoff = assets.downloadFile({ ref: record.ref, outputFile }, files, {
+    signal: signal.signal,
+  });
+  const rejected = assert.rejects(
+    handoff,
+    (error: unknown) =>
+      error === primary ||
+      (error instanceof AggregateError && error.errors.includes(primary)),
+  );
+  try {
+    await Promise.race([
+      ready.promise,
+      handoff.then(() => {
+        throw new Error("File handoff finished before endpoint release");
+      }),
+    ]);
+    signal.abort(primary);
+    const acknowledgement = await retired.promise;
+    assert.equal(acknowledgement.ok, true);
+    assert.deepEqual(binding.binary.reads.stats(), {
+      admissions: 0,
+      tickets: 0,
+    });
+    binding.assertTransferIdle();
+    assert.equal(files.stats().children, 0);
+    assert.equal(await Bun.file(outputFile).exists(), false);
+  } finally {
+    signal.abort(primary);
+    release.resolve();
+    try {
+      await rejected;
+    } finally {
+      assets.readEndpoint = endpoint;
+      assets.cancelRead = cancel;
+    }
+  }
 }
 
 export async function exerciseCanonicalPublicationRpc(

@@ -37,7 +37,6 @@ export interface BinaryReadPersistence {
     context: BinaryRequestContext,
     ticket: string,
   ): Promise<BinaryReadEndpoint>;
-  /** Retire an unconsumed offer. In-flight downloads use request/connection cancellation. */
   /** Retire an idle or active socket-bound read; success acknowledges scope cleanup. */
   cancel(context: BinaryRequestContext, ticket: string): Promise<void>;
   close(): Promise<void>;

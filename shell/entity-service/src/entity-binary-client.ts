@@ -26,6 +26,11 @@ import {
 } from "./entity-rpc";
 import type { EntityMutationResult } from "./types";
 import type { ProjectionBatchScope } from "./projection-store";
+import {
+  downloadEntityFile,
+  type EntityFileDownloadInput,
+  type EntityFileDownloadActor,
+} from "./entity-file-download";
 
 export interface EntityBinaryRequestOptions {
   signal?: AbortSignal | undefined;
@@ -73,22 +78,26 @@ export class EntityBinaryClient {
     if (this.failure !== undefined)
       throw new Error("Binary client is fenced", { cause: this.failure });
   }
+  private fence(error: unknown): void {
+    if (this.failure !== undefined) return;
+    this.failure = error;
+    try {
+      this.transport.invalidate(error);
+    } catch (cleanup) {
+      const failure = new AggregateError(
+        [error, cleanup],
+        "Binary operation and connection fencing failed",
+        { cause: cleanup },
+      );
+      this.failure = failure;
+      throw failure;
+    }
+  }
   private decode<T>(parse: () => T): T {
     try {
       return parse();
     } catch (error) {
-      this.failure ??= error;
-      try {
-        this.transport.invalidate(error);
-      } catch (cleanup) {
-        const failure = new AggregateError(
-          [error, cleanup],
-          "Binary reply validation and connection fencing failed",
-          { cause: cleanup },
-        );
-        this.failure = failure;
-        throw failure;
-      }
+      this.fence(error);
       throw error;
     }
   }
@@ -173,7 +182,6 @@ export class EntityBinaryClient {
       options,
     );
   }
-  /** Cancel an unconsumed read offer; an active read uses request/connection cancellation. */
   /** Retire an idle or active read. Success acknowledges native scope cleanup;
    * aborting this RPC does not, and published file output is never retracted.
    */
@@ -185,6 +193,30 @@ export class EntityBinaryClient {
       { operation: "cancelRead", ticket },
       cancelledSchema,
       options,
+    );
+  }
+  /** Metadata-only file handoff. The supplied actor owner remains caller-owned;
+   * await this operation during shutdown before closing the shared connection.
+   */
+  public async downloadFile(
+    input: EntityFileDownloadInput,
+    actors: EntityFileDownloadActor,
+    options?: EntityBinaryRequestOptions,
+  ): Promise<EntityBinaryReadFacts> {
+    this.assertOpen();
+    return downloadEntityFile(
+      {
+        offerRead: (ref): Promise<BinaryReadOffer> => this.offerRead(ref),
+        download: (ticket): Promise<EntityBinaryReadFacts> =>
+          this.download(ticket),
+        readEndpoint: (ticket): Promise<BinaryReadEndpoint> =>
+          this.readEndpoint(ticket),
+        cancelRead: (ticket): Promise<void> => this.cancelRead(ticket),
+        fence: (error): void => this.fence(error),
+      },
+      actors,
+      input,
+      options?.signal,
     );
   }
   public async publish(
