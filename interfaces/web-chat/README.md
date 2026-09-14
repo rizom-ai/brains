@@ -57,6 +57,20 @@ not transcript storage. Closing a tab can lose its locators; this is not automat
 credential or locator recovery. Production guest access requires separate work
 and approval.
 
+## Public page composition
+
+The installed site owns `/ask` chrome. After guest admission, Web Chat returns a
+`SitePageResponse`: Webserver can serve the generated page at the same path from
+that host's active site output, retaining the handler's cache policy. Denials,
+redirects and ordinary authenticated responses never delegate to site output.
+Apps without a generated Ask page retain a headerless standalone fallback.
+
+The site page mounts the shared guest app using `data-web-chat-root`,
+`data-guest-chat` and `data-chat-api-path="/api/chat/guest"`, plus the existing
+`/ask/assets/app.js`, `app.css` and scoped `page.css`. The site's own layout and
+runtime supply navigation, fonts, theme switching and footer. This does not
+change guest API admission or authorize production-page publication.
+
 ## Build
 
 `bun run build` invokes `scripts/build-ui.ts`, which owns the browser target, ESM output, minification, source maps, React deduplication, the `@/` alias, and compile-time StyleX extraction through `Bun.build`. It emits `app.js` plus static `app.css`; the browser receives no Babel plugin or runtime style injector. Web Chat has no second Vite build path.

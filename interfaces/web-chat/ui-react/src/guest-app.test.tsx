@@ -218,6 +218,57 @@ async function ask(text: string): Promise<void> {
 }
 
 describe("public Ask UI with mocked Chat transport", () => {
+  it("presents standalone Ask as one conversation card with quiet, accessible controls", async () => {
+    await mount();
+    expect(document.querySelector(".guest-card")).not.toBeNull();
+    expect(document.querySelector(".guest-introduction > p")).toBeNull();
+    expect(document.querySelector(".guest-below > p")).toBeNull();
+    expect(
+      document.querySelector(".guest-card .guest-transcript-scroll"),
+    ).not.toBeNull();
+    expect(
+      document.querySelector(".guest-conversation-menu .guest-tools"),
+    ).not.toBeNull();
+    expect(
+      document.querySelector<HTMLDetailsElement>(".guest-conversation-menu")
+        ?.open,
+    ).toBe(false);
+    expect(
+      document.querySelector<HTMLDetailsElement>(".guest-disclosure")?.open,
+    ).toBe(false);
+    expect(document.body.textContent).not.toContain("Private conversation");
+    expect(document.body.textContent).not.toContain("Illustrative answer");
+    expect(calls.filter((c) => c.path === "/api/chat/guest")).toHaveLength(0);
+  });
+
+  it("closes the conversation menu before showing deletion confirmation", async () => {
+    sessionStorage.setItem("brain-ask-conversation", id);
+    await mount();
+    const menu = document.querySelector<HTMLDetailsElement>(
+      ".guest-conversation-menu",
+    );
+    if (!menu) throw new Error("Missing conversation menu");
+    menu.open = true;
+    await click("Delete conversation");
+    expect(menu.open).toBe(false);
+    expect(document.querySelector(".guest-delete")).not.toBeNull();
+    expect(deleted).toBe(false);
+  });
+
+  it("fills a standalone topic without submitting or losing the editable draft", async () => {
+    await mount();
+    const topic = document.querySelector<HTMLButtonElement>(".guest-topic");
+    expect(topic).not.toBeNull();
+    await act(async () => topic?.click());
+    expect(document.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+      "What ideas shape this Brain?",
+    );
+    expect(calls.filter((c) => c.path === "/api/chat/guest")).toHaveLength(0);
+    await ask("My edited question");
+    expect(calls.filter((c) => c.path === "/api/chat/guest")).toHaveLength(1);
+    expect(document.querySelector(".guest-empty")).toBeNull();
+  });
+
   it("uses the existing box and continues the same conversation in standalone Ask without replay", async () => {
     await mount({ box: boxCopy, initialDraft: "An editable suggestion" });
     expect(document.querySelector("main")).toBeNull();
@@ -239,7 +290,10 @@ describe("public Ask UI with mocked Chat transport", () => {
     if (!container) throw new Error("Missing root");
     root = createRoot(container);
     await mount();
-    expect(document.querySelector("main")).not.toBeNull();
+    expect(
+      document.querySelector('.guest-ask section[aria-label="Public Ask"]'),
+    ).not.toBeNull();
+    expect(document.querySelector("main")).toBeNull(); // The host owns the page landmark.
     expect(
       calls.some((call) => call.path === `/api/chat/guest/messages?id=${id}`),
     ).toBe(true);
@@ -486,11 +540,17 @@ describe("public Ask UI with mocked Chat transport", () => {
     expect(calls).toHaveLength(0);
   });
 
-  it("discloses provider/retention before sending and never generates on mount", async () => {
+  it("keeps provider and retention in the disclosure without duplicate composer copy or generation on mount", async () => {
     await mount();
     expect(lockNames).toEqual(["brain-ask-visitor-session"]);
-    expect(document.querySelector("details")?.open).toBe(true);
-    expect(document.body.textContent).toContain("Mock provider");
+    expect(document.querySelector("#guest-input-note")).toBeNull();
+    const disclosure = document.querySelector(".guest-disclosure");
+    expect(disclosure?.textContent).toContain("Mock provider");
+    expect(disclosure?.textContent).toContain("Visitor access expires");
+    expect(disclosure?.textContent).toContain("maximum age 2 hours");
+    expect(
+      document.querySelector("textarea")?.getAttribute("aria-describedby"),
+    ).toBeNull();
     expect(calls.map((call) => call.path)).toEqual(["/api/chat/guest/session"]);
   });
   it("preserves the draft and blocks sending after the visitor lease expires", async () => {
@@ -512,6 +572,10 @@ describe("public Ask UI with mocked Chat transport", () => {
     await mount();
     expect(document.querySelector("textarea")).toBeNull();
     expect(document.body.textContent).toContain("unavailable");
+    expect(document.querySelector(".guest-unavailable h2")?.textContent).toBe(
+      "Asking is unavailable right now.",
+    );
+    expect(calls.map((call) => call.path)).toEqual(["/api/chat/guest/session"]);
   });
   it("restores authorized history, renders Markdown and blocks images and executable HTML/links", async () => {
     sessionStorage.setItem("brain-ask-conversation", id);

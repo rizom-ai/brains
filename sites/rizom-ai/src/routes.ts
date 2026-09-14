@@ -58,6 +58,18 @@ export const aiRoutes: RouteDefinitionInput[] = [
     ],
   },
   {
+    id: "public-ask",
+    path: "/ask",
+    title: "Ask Rizom AI",
+    description: "Ask a question of Rizom's public Brain knowledge",
+    layout: "default",
+    navigation: { show: false },
+    // The runtime mount has no authored copy or generated answer content.
+    sections: [
+      { id: "conversation", template: "public-ask:conversation", content: {} },
+    ],
+  },
+  {
     // Everything published, in one index — essays (post) + talks (deck),
     // rendered by the blog and decks plugins' own list templates. This custom
     // path stands alongside the auto-generated /essays and /talks indexes.

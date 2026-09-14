@@ -3,7 +3,7 @@ import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
-import type { IRuntimeStateStore } from "@brains/plugins";
+import { SitePageResponse, type IRuntimeStateStore } from "@brains/plugins";
 import { WebChatInterface } from "../src/web-chat-interface";
 import {
   guestAdmissionNamespace,
@@ -21,6 +21,7 @@ interface Fixture {
     path: string,
     body?: unknown,
     headers?: Record<string, string>,
+    origin?: string,
   ): Promise<Response>;
   ledger: IRuntimeStateStore<GuestAdmissionState>;
   calls(): number;
@@ -64,9 +65,10 @@ async function fixture(
     path: string,
     body?: unknown,
     headers: Record<string, string> = {},
+    origin = "https://rizom.ai",
   ): Promise<Response> => {
     const method = body === undefined ? "GET" : "POST";
-    const request = new Request(`https://rizom.ai${path}`, {
+    const request = new Request(`${origin}${path}`, {
       method,
       headers: {
         Accept: "application/json",
@@ -110,11 +112,35 @@ describe("admin guest activation using deployment conventions", () => {
         "GET /ask/assets/app.js",
         "GET /ask/assets/guest.css",
         "GET /ask/assets/guest.js",
+        "GET /ask/assets/page.css",
         "POST /api/chat/guest",
         "POST /api/chat/guest/session",
       ].sort(),
     );
   });
+  it("serves scoped Ask styles without replacing the site chrome", async () => {
+    const f = await fixture();
+    await f.send(access, { enabled: true });
+    const response = await f.send(
+      "/ask/assets/page.css",
+      undefined,
+      {},
+      "https://preview.rizom.ai",
+    );
+    expect(response.status).toBe(200);
+    const css = await response.text();
+    expect(css).toContain(".guest-ask");
+    expect(css).not.toContain("guest-masthead");
+    expect(css).not.toMatch(/(?:^|\n)body\s*\{/);
+    expect(
+      await f.send("/ask", undefined, {}, "https://preview.rizom.ai"),
+    ).toBeInstanceOf(SitePageResponse);
+    expect(await f.send("/ask")).not.toBeInstanceOf(SitePageResponse);
+    const visitor = await fixture("public");
+    expect((await visitor.send("/ask/assets/page.css")).status).toBe(404);
+    expect(f.calls()).toBe(0);
+  });
+
   it("derives the preview origin and shared limits without activating or allocating on read", async () => {
     const f = await fixture();
     const response = await f.send(access);
