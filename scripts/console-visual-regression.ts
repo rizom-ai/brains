@@ -2,6 +2,7 @@ import { createMockAppInfo } from "@brains/plugins/test";
 import { renameChatSessionRequestSchema } from "@brains/contracts/chat";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { getErrorMessage } from "@brains/utils/error";
+import { isRecord } from "@brains/utils/is-record";
 import path from "node:path";
 import { PNG } from "pngjs";
 import axe from "axe-core";
@@ -9,6 +10,7 @@ import { createAdministrationFixture } from "./fixtures/studio-administration";
 import { createWorkViewFixtures } from "./fixtures/studio-work-views";
 import { createDeliveryViewFixtures } from "./fixtures/studio-delivery-views";
 import { createSyncViewFixture } from "./fixtures/studio-sync-view";
+import { systemFixtures } from "./fixtures/studio-system";
 import {
   studioStudyStateSchema,
   supportsStudioStudyState,
@@ -180,17 +182,26 @@ const entity = {
   contentHash: "fixture-hash",
   created: "2026-06-18T09:00:00.000Z",
 };
-const styleGuideEntity = {
-  ...entity,
-  id: "style-guide",
-  entityType: "style-guide",
-  frontmatter: {
-    title: "Rover Collective voice",
-    tone: "Warm, precise and candid. Prefer useful language over performance.",
-    accent: "verdigris + vermilion",
-  },
-  body: "# A working voice\n\nWrite as a capable collaborator: direct enough to act on, generous enough to understand.\n\n> The interface should feel authored, but it should never compete with the work.\n\nUse structure to make complex systems legible. Names should describe stable concepts rather than implementation details.",
-};
+let reviewingSystem = false;
+let lastSystemSave:
+  { frontmatter?: Record<string, unknown>; body?: string } | undefined;
+const systemTypes = [...systemFixtures.values()].map((fixture) => ({
+  entityType: fixture.entityType,
+  label: fixture.label,
+  isSingleton: fixture.isSingleton,
+  hasBody: fixture.hasBody,
+  count: 1,
+  capabilities: fixture.readOnly
+    ? {
+        ...editCapabilities,
+        canCreate: false,
+        canUpdate: false,
+        canDelete: false,
+        canAssist: false,
+        canPublish: false,
+      }
+    : editCapabilities,
+}));
 const sessions = [
   {
     id: "responsive",
@@ -2251,7 +2262,7 @@ async function addVisualInitScript(
 function isStudioAppShellSurface(surface: string): boolean {
   return (
     surface === "studio-editor" ||
-    surface === "studio-system" ||
+    (surface.startsWith("studio-system") && !surface.endsWith("-collection")) ||
     surface === "studio-delete" ||
     surface === "studio-conflict" ||
     surface === "studio-invalid" ||
@@ -2967,9 +2978,20 @@ async function checkLayout(
     if (stacked) {
       if (await elementBounds(page, ".studio-mobile-tabs"))
         throw new Error("Stacked editors must not duplicate body navigation");
-      const content = await elementBounds(page, "[data-studio-editor-content]");
+      // Compare against the usable scrollport, not its scrollbar-inclusive box.
+      const contentWidth = await evaluatePage(
+        page,
+        () =>
+          document.querySelector("[data-studio-editor-content]")?.clientWidth ??
+          0,
+      );
       const properties = await elementBounds(page, "[data-studio-properties]");
-      if (!content || !properties || properties.width < content.width - 74)
+      const insets = width > 640 ? 72 : 40;
+      if (
+        !contentWidth ||
+        !properties ||
+        properties.width < contentWidth - insets - 2
+      )
         throw new Error(
           "System Properties must use the available editor width",
         );
@@ -2993,7 +3015,12 @@ async function checkLayout(
             'button[aria-label="More document actions"]',
           ),
           save = await elementBounds(page, ".studio-editor-head-save");
-        if (!save || save.width < 44 || save.height < 44 || save.y > 220)
+        const readOnlyProfile = systemFixtures.get(
+          surface.slice("studio-system-".length),
+        )?.readOnly;
+        if (readOnlyProfile) {
+          if (save) throw Error("Read-only profiles must not offer Save");
+        } else if (!save || save.width < 44 || save.height < 44 || save.y > 220)
           throw Error("Phone Save must remain visible in the document head");
         if (
           more &&
@@ -3290,7 +3317,16 @@ const server = Bun.serve({
     }
     if (url.pathname === "/studio/api/types")
       return json({
-        types,
+        types: reviewingSystem
+          ? [
+              ...types.filter(
+                (item) =>
+                  !systemFixtures.has(item.entityType) &&
+                  item.entityType !== "settings",
+              ),
+              ...systemTypes,
+            ]
+          : types,
         workspaces: [
           {
             id: "studio:overview",
@@ -3494,25 +3530,16 @@ const server = Bun.serve({
           ].slice(0, STUDY_STATE === "empty" ? 1 : undefined),
         },
       });
-    if (
-      url.pathname === "/studio/api/schema" &&
-      url.searchParams.get("type") === "style-guide"
-    )
+    const systemFixture = systemFixtures.get(
+      url.searchParams.get("type") ?? "",
+    );
+    if (url.pathname === "/studio/api/schema" && systemFixture)
       return json({
-        entityType: "style-guide",
+        entityType: systemFixture.entityType,
         format: "frontmatter",
-        isSingleton: true,
-        hasBody: true,
-        fields: [
-          { name: "title", label: "Title", widget: "string", required: true },
-          { name: "tone", label: "Tone", widget: "text", required: false },
-          {
-            name: "accent",
-            label: "Accent",
-            widget: "string",
-            required: false,
-          },
-        ],
+        isSingleton: systemFixture.isSingleton,
+        hasBody: systemFixture.hasBody,
+        fields: systemFixture.fields,
       });
     if (url.pathname === "/studio/api/schema")
       return json({
@@ -3568,8 +3595,29 @@ const server = Bun.serve({
       // title pins the validation error line (studio-invalid), any other
       // save pins the reconcile card (studio-conflict).
       const body = (await request.json()) as {
-        frontmatter?: { title?: string };
+        entityType?: string;
+        frontmatter?: { title?: string; [key: string]: unknown };
+        body?: string;
       };
+      if (body.entityType && systemFixtures.has(body.entityType)) {
+        lastSystemSave = body;
+        const voice = body.frontmatter?.["voice"];
+        if (isRecord(voice) && voice["summary"] === "!!")
+          return Response.json(
+            {
+              error: "Validation failed",
+              issues: [
+                { path: ["voice", "summary"], message: "Review this summary." },
+              ],
+            },
+            { status: 400 },
+          );
+        return json({
+          entityId: body.entityType,
+          jobId: "system-save",
+          skipped: true,
+        });
+      }
       if (body.frontmatter?.title?.includes("!!"))
         return Response.json(
           {
@@ -3611,14 +3659,11 @@ const server = Bun.serve({
         request.signal.addEventListener("abort", release, { once: true });
       });
     }
-    if (
-      url.pathname === "/studio/api/entities" &&
-      url.searchParams.get("type") === "style-guide"
-    )
+    if (url.pathname === "/studio/api/entities" && systemFixture)
       return json(
         url.searchParams.has("id")
-          ? { entity: styleGuideEntity }
-          : { entities: [styleGuideEntity], total: 1 },
+          ? { entity: systemFixture.entity }
+          : { entities: [systemFixture.entity], total: 1 },
       );
     if (url.pathname === "/studio/api/entities" && url.searchParams.has("id"))
       return json({ entity });
@@ -3737,6 +3782,11 @@ try {
         "studio-account",
         "studio-editor",
         "studio-system",
+        "studio-system-prompt-collection",
+        "studio-system-agent-collection",
+        ...[...systemFixtures.keys()]
+          .filter((key) => key !== "style-guide")
+          .map((key) => `studio-system-${key}`),
         "studio-delete",
         "studio-conflict",
         "studio-invalid",
@@ -3766,6 +3816,16 @@ try {
         console.error(
           `→ ${surface} ${viewport.width}x${viewport.height} ${climate}`,
         );
+        reviewingSystem = surface.startsWith("studio-system");
+        const systemCollection =
+          reviewingSystem && surface.endsWith("-collection");
+        const systemType =
+          surface === "studio-system"
+            ? "style-guide"
+            : surface.slice(
+                "studio-system-".length,
+                systemCollection ? -"-collection".length : undefined,
+              );
         const isChat = surface.startsWith("chat");
         const isDashboard = surface.startsWith("dashboard");
         const conversationId =
@@ -3791,7 +3851,7 @@ try {
         await addVisualInitScript(page, conversationId);
         const isStudioEditor =
           surface === "studio-editor" ||
-          surface === "studio-system" ||
+          (reviewingSystem && !systemCollection) ||
           isStudioSecondary;
         const studioSaveSelector = ".studio-editor-head-save";
         const route = isDashboard
@@ -3814,8 +3874,8 @@ try {
                           ? "/studio/workspaces/content-pipeline%3Apublishing"
                           : surface.startsWith("studio-administration")
                             ? "/studio/workspaces/admin%3Aadministration"
-                            : surface === "studio-system"
-                              ? "/studio/entities/style-guide/style-guide"
+                            : surface.startsWith("studio-system")
+                              ? `/studio/entities/${systemType}${systemCollection ? "" : `/${systemType}`}`
                               : isStudioEditor
                                 ? "/studio/entities/posts/field-notes"
                                 : "/studio/entities/posts";
@@ -3833,6 +3893,23 @@ try {
           page,
           `http://127.0.0.1:${server.port}${route}?climate=${climate}${workspaceQuery}${hash}`,
         );
+        const emptySystemDocument =
+          reviewingSystem &&
+          !systemCollection &&
+          systemFixtures.get(systemType)?.hasBody &&
+          systemFixtures.get(systemType)?.entity.body.trim() === "";
+        if (emptySystemDocument)
+          await waitForPage(
+            "Properties visible when the document has no body",
+            () =>
+              evaluatePage(
+                page,
+                () =>
+                  document.querySelector<HTMLDetailsElement>(
+                    "details[data-studio-properties]",
+                  )?.open === true,
+              ),
+          );
         if (STUDY_STATE) {
           await settleVisualCapture(page);
           const emptyCopy: Record<string, string> = {
@@ -5152,6 +5229,76 @@ try {
           encoding: "buffer",
           format: "png",
         });
+        if (
+          surface === "studio-system" ||
+          surface === "studio-system-anchor-profile"
+        ) {
+          await evaluatePage(page, () =>
+            document
+              .querySelector("[data-studio-editor-content] > section > header")
+              ?.scrollIntoView({ block: "start" }),
+          );
+          await activateWorkspaceTab(page, "Source");
+          await settleVisualCapture(page);
+          const bodyName = `${surface}-body-${viewport.width}x${viewport.height}-${climate}`;
+          await auditStudioAccessibility(page, bodyName);
+          await recordVisualCapture(
+            `${bodyName}.png`,
+            await page.screenshot({ encoding: "buffer", format: "png" }),
+          );
+        }
+        if (
+          surface === "studio-system" &&
+          viewport.width === 1440 &&
+          climate === "instrument"
+        ) {
+          const original = systemFixtures.get("style-guide")?.entity;
+          if (!original || !isRecord(original.frontmatter["voice"]))
+            throw Error("Missing real Style guide fixture");
+          await fillLabel(page, "Summary", "!!");
+          await clickSelector(page, studioSaveSelector);
+          await waitForText(page, "Review this summary.");
+          if (
+            !(await evaluatePage(
+              page,
+              () =>
+                document.activeElement?.getAttribute("aria-invalid") === "true",
+            ))
+          )
+            throw Error("Nested validation must focus its field");
+          const summary = "A revised voice, kept only in this fixture.";
+          await fillLabel(page, "Summary", summary);
+          for (const label of ["Preview", "Source"]) {
+            await evaluatePage(page, () =>
+              document
+                .querySelector('[aria-label="Editor body view"]')
+                ?.scrollIntoView({ block: "center" }),
+            );
+            await activateWorkspaceTab(page, label);
+          }
+          await clickSelector(page, studioSaveSelector);
+          const expected = {
+            ...original.frontmatter,
+            voice: { ...original.frontmatter["voice"], summary },
+          };
+          await waitForPage(
+            "System save payload",
+            async () =>
+              JSON.stringify(lastSystemSave?.frontmatter) ===
+              JSON.stringify(expected),
+          );
+          if (
+            JSON.stringify(lastSystemSave?.frontmatter) !==
+              JSON.stringify(expected) ||
+            lastSystemSave?.body !== original.body
+          )
+            throw Error(
+              "Nested edits and mode changes must preserve siblings and exact body bytes",
+            );
+          console.log(
+            "✓ System nested validation, draft handoff and unchanged body payload",
+          );
+        }
         if (surface === "dashboard") {
           await navigateToNetworkIdle(
             page,

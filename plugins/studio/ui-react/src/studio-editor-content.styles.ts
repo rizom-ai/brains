@@ -1,7 +1,14 @@
 import * as stylex from "@stylexjs/stylex";
 
 type ContentStyle =
-  "editor" | "content" | "properties" | "manuscript" | "disclosure" | "summary";
+  | "editor"
+  | "content"
+  | "properties"
+  | "manuscript"
+  | "disclosure"
+  | "summary"
+  | "summaryDescription"
+  | "disclosedFields";
 export const editorContentStyles: Record<ContentStyle, stylex.StyleXStyles> =
   stylex.create({
     editor: {
@@ -44,7 +51,7 @@ export const editorContentStyles: Record<ContentStyle, stylex.StyleXStyles> =
     manuscript: {
       flex: "1 0 480px",
       minHeight: 480,
-      borderTop: "1px solid var(--console-rule)",
+      borderTop: "1px solid var(--console-rule-strong)",
       overflow: "hidden",
       "@media (max-width: 640px)": {
         overflowY: "hidden",
@@ -56,9 +63,17 @@ export const editorContentStyles: Record<ContentStyle, stylex.StyleXStyles> =
       flexShrink: 0,
       minWidth: 0,
       margin: "20px 36px",
-      border: "1px solid var(--console-rule)",
+      border: "1px solid var(--console-rule-strong)",
       borderRadius: 4,
       "@media (max-width: 640px)": { margin: "18px 20px" },
+    },
+    disclosedFields: { padding: "6px 16px 20px", minWidth: 0 },
+    summaryDescription: {
+      fontSize: 12,
+      fontWeight: 400,
+      color: "var(--console-text-dim)",
+      marginInlineStart: 14,
+      display: { default: "inline", "@media (max-width: 640px)": "none" },
     },
     summary: {
       cursor: "pointer",
