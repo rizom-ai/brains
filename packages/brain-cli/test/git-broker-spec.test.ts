@@ -64,6 +64,21 @@ describe("git broker spec", () => {
     });
   });
 
+  it("keeps one socket per instance when the instance path is too long for a unix socket", () => {
+    const cwd = join("/", "x".repeat(120));
+    const spec = resolveGitBrokerSpec(cwd, {
+      brain: "brain",
+      plugins: {
+        "directory-sync": { git: { repo: "rizom-ai/content" } },
+      },
+    });
+
+    if (!spec) throw new Error("Expected a broker spec");
+    expect(Buffer.byteLength(spec.socketPath)).toBeLessThanOrEqual(107);
+    expect(spec.socketPath.startsWith(cwd)).toBe(false);
+    expect(spec.checkoutPath).toBe(join(cwd, "brain-data"));
+  });
+
   it("refuses a configuration whose checkout would contain the socket", () => {
     expect(() =>
       resolveGitBrokerSpec("/brain", {
