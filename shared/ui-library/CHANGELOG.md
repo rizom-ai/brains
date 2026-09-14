@@ -1,5 +1,15 @@
 # @brains/ui-library
 
+## 0.2.0-alpha.384
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.384
+  - @brains/operator-view-react@0.2.0-alpha.384
+  - @brains/utils@0.2.0-alpha.384
+  - @brains/plugins@0.2.0-alpha.384
+
 ## 0.2.0-alpha.383
 
 ### Patch Changes

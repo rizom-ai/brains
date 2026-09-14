@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.384
+
+### Patch Changes
+
+- [#263](https://github.com/rizom-ai/brains/pull/263) [`3ec2b73`](https://github.com/rizom-ai/brains/commit/3ec2b73902389be86ff5e1fe358841ce05504a90) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Put every single destination above the toggles in phone Browse. Overview, Chat and Admin share one block at the top, separated by a rule from the Library, Work and System groups below. A lone destination placed between two group headers reads as the tail of the group above it whichever slot it holds, so position alone cannot carry that distinction.
+
 ## 0.2.0-alpha.383
 
 ### Patch Changes

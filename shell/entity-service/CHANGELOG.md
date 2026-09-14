@@ -1,5 +1,17 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.384
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.384
+  - @brains/content-formatters@0.2.0-alpha.384
+  - @brains/contracts@0.2.0-alpha.384
+  - @brains/db@0.2.0-alpha.384
+  - @brains/utils@0.2.0-alpha.384
+  - @brains/job-queue@0.2.0-alpha.384
+
 ## 0.2.0-alpha.383
 
 ### Patch Changes
