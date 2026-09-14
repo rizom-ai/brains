@@ -6,7 +6,7 @@
 - Staged asset binding, authenticated App endpoint registration and metadata-only image construction are implemented; existing image-constructor callers are updated.
 - The canonical native publication candidate still requires a test-only database factory binding.
 - Source owns upload/read binary authority, endpoint lifecycle and native publication/transaction association. Canonical downloads now use the App-owned authenticated endpoint, not direct driver access.
-- Remote facades expose `assetTransfers`, a source metadata client using one authenticated connection. Binary reads remain reference-only; existing buffered ingestion/read callers still await coordinated replacement.
+- Remote facades expose `assetTransfers`, a source metadata client using one authenticated connection. Reads remain reference-only; `cancelRead` now acknowledges idle or active scope retirement. Buffered ingestion/read callers still await coordinated replacement.
 - Normal canonical RPC transfers use source payload actors and `FileProcessOwner`, with two-child admission, strict metadata, explicit artifacts and actual exit joins. Instrumented process ownership remains for fault exercises; failed staging is retained and output is never overwritten.
 - `shared/db/src/sqlite.ts` retains its existing runtime factory. Do not switch it before the production binary path is complete.
 - Existing canonical integration drives the binary path; no new standalone proofs were added.
@@ -20,15 +20,15 @@
 | **3. Application cutover**             | Switch all five runtime factories; package workers/actors and wire single-owner lifecycle, including combined mode. | Canonical `start:minimal`, then `start:personal`; real jobs/auth/images/site rebuilds, installed startup, shutdown and restart.                |
 | **4. Release acceptance**              | Complete working-set, crash recovery, import/deployment/backup/restore and rollback coverage.                       | SDK/native/transport/GC/RSS accounting, controller/grandchild recovery and explicit fleet/soak acceptance.                                     |
 
-## Current slice: production file-actor lifecycle — complete
+## Current slice: acknowledged active-read cancellation — complete
 
-1. Require the production actor owner in existing canonical upload/download paths before implementation.
-2. Own explicit file actors with pre-spawn admission, runtime/reply validation, cancellation and actual exit joins; reject synthetic controls and implicit executables.
-3. Verify that terminal metadata and termination requests do not release capacity or establish completion before exit. Keep native retirement separate from child termination.
+1. Extend the existing canonical RPC flow with cancellation before a download peer connects; establish the failing case before implementation.
+2. Resolve cancellation authority from live socket-owned records, including active reads, without making download tickets replayable.
+3. Hold native execution to verify cancellation cannot acknowledge early; test connected-peer cancellation, sibling isolation, foreign/replayed requests and owner reuse.
 4. Validate and commit before another slice. Do not switch the runtime factory.
 
-**Exit check:** normal canonical publication and verified output/reopen use the production actor owner; focused tests gate actual exit after terminal metadata and cancellation. Missing artifacts fail closed. This establishes local actor lifecycle, not remote authority retirement, general ingestion migration or installed application acceptance. The slice is committed with a clean working tree.
+**Exit check:** successful cancellation waits for native scope retirement and releases read/transport resources, including before peer connection. Foreign and retired tickets reject; sibling offers survive. Canonical output/reopen still passes. Aborting the cancellation RPC is not acknowledgement, and published output is never retracted. The slice is committed with a clean working tree.
 
-**Next slice:** compose `assetTransfers` and `FileProcessOwner` into file handoffs. Resolve acknowledged cancellation before a download peer connects: current `cancelRead` only retires idle offers, while request cancellation is not a native retirement acknowledgement. Then replace ingestion/read callers and move inspection/conversion into payload actors. Keep the runtime factory unchanged until milestone 2's exit check passes.
+**Next slice:** compose `assetTransfers` and `FileProcessOwner` into lifetime-managed file handoffs, awaiting both native retirement and creator-owned actor exit on failure. Then replace ingestion/read callers and move inspection/conversion into payload actors. Keep the runtime factory unchanged until milestone 2's exit check passes.
 
 Keep the 100 MiB ceiling, 32 KiB data-plane credits, existing RPC/SQL/admission limits, entity/asset/reference/projection/outbox atomicity, primary/cleanup causes and actual-exit acknowledgement. Preserve failed recovery directories. If a fault matrix is needed, name the application integration blocker first.

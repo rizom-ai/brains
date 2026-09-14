@@ -404,6 +404,51 @@ function consumer(
 }
 
 describe("authenticated cross-process read scopes (source proof)", () => {
+  it("active cancellation waits for native retirement while no download peer is connected", async () => {
+    const client = fixture.client();
+    const read = await offer(client);
+    const transfer = await begin(client, read.ticket);
+    const rejected = assert.rejects(transfer.completion);
+    await endpoint(client, read.ticket);
+    const gate = new SharedArrayBuffer(4);
+    const blocked = fixture.driver.holdThreadForProof(gate);
+    await blocked.entered;
+    const entered = Promise.withResolvers<void>();
+    const original = fixture.broker.cancel;
+    const observed = { settled: false };
+    fixture.broker.cancel = (context, ticket): Promise<void> => {
+      const result = original.call(fixture.broker, context, ticket);
+      void result.then(
+        () => {
+          observed.settled = true;
+        },
+        () => {
+          observed.settled = true;
+        },
+      );
+      entered.resolve();
+      return result;
+    };
+    const cancel = call(client, { operation: "cancel", ticket: read.ticket });
+    void cancel.catch(() => undefined); // Joined below, including failure teardown.
+    try {
+      await entered.promise;
+      expect(observed.settled).toBe(false);
+      expect(fixture.broker.stats()).toEqual({ admissions: 1, tickets: 0 });
+      expect(fixture.pool.stats().residentBytes).toBe(65539);
+    } finally {
+      Atomics.store(new Int32Array(gate), 0, 1);
+      Atomics.notify(new Int32Array(gate), 0);
+      await blocked.done;
+      fixture.broker.cancel = original;
+      await cancel;
+    }
+    expect(fixture.broker.stats()).toEqual({ admissions: 0, tickets: 0 });
+    expect(fixture.pool.stats().residentBytes).toBe(0);
+    await rejected;
+    const reusable = await offer(client);
+    await call(client, { operation: "cancel", ticket: reusable.ticket });
+  });
   it("retains unconfirmed read cleanup and fences authority when its cleanup lane is exhausted", async () => {
     const client = fixture.client();
     const read = await offer(client);
@@ -613,12 +658,12 @@ describe("authenticated cross-process read scopes (source proof)", () => {
       );
     },
   );
-  it.each(["cancel", "disconnect"])(
+  it.each(["cancel", "ticket", "disconnect"])(
     "reclaims a slow read on control %s without revoking a sibling offer",
     async (mode) => {
       const client = fixture.client();
       const connection = await fixture.connection(client);
-      const other = mode === "cancel" ? client : fixture.client();
+      const other = mode === "disconnect" ? fixture.client() : client;
       const sibling = await offer(other, "empty");
       const read = await offer(client);
       const cancellation = new AbortController();
@@ -629,7 +674,10 @@ describe("authenticated cross-process read scopes (source proof)", () => {
       });
       await remote.held;
       if (mode === "cancel") cancellation.abort();
-      else client.close();
+      else if (mode === "ticket") {
+        await call(client, { operation: "cancel", ticket: read.ticket });
+        expect(fixture.broker.stats()).toEqual({ admissions: 1, tickets: 1 });
+      } else client.close();
       await rejected;
       assert.equal(fixture.broker.stats().tickets, 1);
       await call(other, { operation: "cancel", ticket: sibling.ticket });

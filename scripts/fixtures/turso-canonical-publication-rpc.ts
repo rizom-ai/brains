@@ -85,6 +85,22 @@ export async function exerciseCanonicalReadRpc(
     const idle = await assets.offerRead(record.ref);
     await assert.rejects(foreignAssets.cancelRead(idle.ticket));
     await assets.cancelRead(idle.ticket);
+    // No consumer exists yet: cancellation must retire the listening bridge and
+    // native snapshot, not merely abort the caller's pending RPC promise.
+    const waiting = await assets.offerRead(record.ref);
+    const waitingRead = assets.download(waiting.ticket);
+    const rejectedWaiting = assert.rejects(waitingRead);
+    pending.push(rejectedWaiting);
+    await assets.readEndpoint(waiting.ticket);
+    await assert.rejects(foreignAssets.cancelRead(waiting.ticket));
+    await assets.cancelRead(waiting.ticket);
+    assert.deepEqual(binding.binary.reads.stats(), {
+      admissions: 0,
+      tickets: 0,
+    });
+    binding.assertTransferIdle();
+    await rejectedWaiting;
+    await assert.rejects(assets.cancelRead(waiting.ticket));
     const offer = await assets.offerRead(record.ref);
     const facts = { sizeBytes: record.sizeBytes, sha256: record.digest };
     assert.deepEqual(

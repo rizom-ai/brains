@@ -174,6 +174,9 @@ export class EntityBinaryClient {
     );
   }
   /** Cancel an unconsumed read offer; an active read uses request/connection cancellation. */
+  /** Retire an idle or active read. Success acknowledges native scope cleanup;
+   * aborting this RPC does not, and published file output is never retracted.
+   */
   public async cancelRead(
     ticket: string,
     options?: EntityBinaryRequestOptions,

@@ -131,7 +131,14 @@ export class ScopedReads {
     context: ReadControlContext,
     ticket: string,
   ): Promise<void> {
-    const record = this.take(context, ticket);
+    this.check(context);
+    const id = readOfferSchema.shape.ticket.parse(ticket);
+    // Download consumes endpoint authority, not cancellation authority. Session
+    // records remain charged until retirement, including active/revoked reads.
+    const record = [
+      ...(this.sessions.get(context.connectionSignal)?.records ?? []),
+    ].find((candidate) => candidate.ticket === id);
+    if (!record) throw new Error("Unknown or foreign read ticket");
     this.revoke(record);
     await record.finished.promise;
   }
