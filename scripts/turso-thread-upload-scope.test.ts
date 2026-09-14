@@ -730,7 +730,8 @@ describe("authenticated upload control scopes (source-only)", () => {
   it("commits an admitted BLOB/reference/effect transaction after disconnect and restores its main file", async () => {
     const client = fixture.client();
     const connection = await fixture.connection(client);
-    const receipt = await upload(client, await offer(client));
+    const offered = await offer(client);
+    const receipt = await upload(client, offered);
     const entered = Promise.withResolvers<void>();
     const release = Promise.withResolvers<void>();
     fixture.beforeCommit = async (): Promise<void> => {
@@ -753,6 +754,14 @@ describe("authenticated upload control scopes (source-only)", () => {
           key: "duplicate-running",
         }),
         /Unknown/,
+      );
+      await assert.rejects(
+        call(client, { operation: "cancel", ticket: offered }),
+        /already been admitted/,
+      );
+      await assert.rejects(
+        call(client, { operation: "cancel", ticket: receipt.ticket }),
+        /already been admitted/,
       );
       const retired = fixture.broker.retirement(connection);
       client.close();
@@ -927,6 +936,51 @@ async function networkEndpoint(
   );
 }
 describe("authenticated cross-process raw ingress (source proof)", () => {
+  it("active upload cancellation waits for native retirement before peer connection", async () => {
+    const client = fixture.client();
+    const transfer = await beginNetwork(client, 65539);
+    const rejected = assert.rejects(transfer.completion);
+    await networkEndpoint(client, transfer.ticket);
+    const gate = new SharedArrayBuffer(4);
+    const blocked = fixture.driver.holdThreadForProof(gate);
+    await blocked.entered;
+    const entered = Promise.withResolvers<void>();
+    const original = fixture.broker.cancel;
+    const observed = { settled: false };
+    fixture.broker.cancel = (context, ticket): Promise<void> => {
+      const result = original.call(fixture.broker, context, ticket);
+      void result.then(
+        () => {
+          observed.settled = true;
+        },
+        () => {
+          observed.settled = true;
+        },
+      );
+      entered.resolve();
+      return result;
+    };
+    const cancel = call(client, {
+      operation: "cancel",
+      ticket: transfer.ticket,
+    });
+    void cancel.catch(() => undefined); // Joined after releasing the native gate.
+    try {
+      await entered.promise;
+      expect(observed.settled).toBe(false);
+      expect(fixture.broker.stats()).toEqual({ admissions: 1, tickets: 0 });
+      expect(fixture.pool.stats().residentBytes).toBe(65539);
+    } finally {
+      Atomics.store(new Int32Array(gate), 0, 1);
+      Atomics.notify(new Int32Array(gate), 0);
+      await blocked.done;
+      fixture.broker.cancel = original;
+      await cancel;
+    }
+    expect(fixture.broker.stats()).toEqual({ admissions: 0, tickets: 0 });
+    expect(fixture.pool.stats().residentBytes).toBe(0);
+    await rejected;
+  });
   it("bounds live TCP bridges before a third factory and retires both on control disconnect", async () => {
     const clients = [fixture.client(), fixture.client()];
     const connections = await Promise.all(

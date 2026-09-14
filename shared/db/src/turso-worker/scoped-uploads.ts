@@ -30,6 +30,7 @@ interface Session {
 interface Admission {
   session: Session;
   ticket: string;
+  readonly cancelTicket: string;
   size: number;
   scope: Promise<BinaryScope>;
   stage: StageCapability | undefined;
@@ -99,10 +100,12 @@ export class ScopedUploads {
       if (this.live.size >= STAGE_SLOTS)
         throw new Error("Scoped upload admission capacity exceeded");
       const session = this.session(context.connectionSignal);
+      const ticket = randomUUID();
       const record: Admission = {
         session,
         size,
-        ticket: randomUUID(),
+        ticket,
+        cancelTicket: ticket,
         scope: this.driver.openBinaryScope(),
         stage: undefined,
         phase: "allocating",
@@ -254,7 +257,16 @@ export class ScopedUploads {
   public cancel(context: UploadControlContext, input: string): Promise<void> {
     try {
       this.check(context);
-      const record = this.lookup(context, input);
+      const ticket = uploadTicketSchema.parse(input);
+      const record = [
+        ...(this.sessions.get(context.connectionSignal)?.records ?? []),
+      ].find(
+        (candidate) =>
+          candidate.ticket === ticket || candidate.cancelTicket === ticket,
+      );
+      if (!record) throw new Error("Unknown or foreign upload ticket");
+      if (record.phase === "consuming")
+        throw new Error("Upload publication has already been admitted");
       this.revoke(record);
       return record.finished.promise;
     } catch (error) {

@@ -7,6 +7,7 @@ import {
   ENTITY_PUBLICATION_SERVICE,
   type BaseEntity,
   type CreateEntityRequest,
+  type EntityPublicationRpcRequest,
 } from "@brains/entity-service";
 import type { LocalDatabaseEndpointConfig } from "@brains/core";
 import { LocalDatabaseRpcClient } from "../../shell/core/src/local-database-endpoint";
@@ -321,6 +322,16 @@ export async function exerciseCanonicalPublicationRpc(
     await assets.cancel(cancelled.ticket);
     assert.deepEqual(binding.binary.stats(), { admissions: 0, tickets: 0 });
     binding.assertTransferIdle();
+    const waiting = await assets.offer(32768);
+    const waitingUpload = assets.upload(waiting.ticket);
+    const rejectedWaiting = assert.rejects(waitingUpload);
+    pending.push(rejectedWaiting);
+    await assets.endpoint(waiting.ticket);
+    await assert.rejects(foreignAssets.cancel(waiting.ticket));
+    await assets.cancel(waiting.ticket);
+    assert.deepEqual(binding.binary.stats(), { admissions: 0, tickets: 0 });
+    binding.assertTransferIdle();
+    await rejectedWaiting;
     const offer = await assets.offer(size);
     const upload = assets.upload(offer.ticket);
     pending.push(upload);
@@ -367,9 +378,33 @@ export async function exerciseCanonicalPublicationRpc(
       }),
       /preparedAsset/,
     );
-    const published = await assets.publish(request);
-    assert.equal(published.entityId, entity.id);
+    await assert.rejects(foreignAssets.cancel(offer.ticket));
+    await assets.cancel(offer.ticket); // Cancellation authority survives receipt rotation.
     await assert.rejects(assets.publish(request));
+    const publish = assets.publish.bind(assets);
+    const lateCancellation = new AbortController();
+    let submitted: EntityPublicationRpcRequest | undefined;
+    assets.publish = (input, options): ReturnType<typeof publish> => {
+      submitted = input;
+      return publish(input, options).then((result) => {
+        lateCancellation.abort(new Error("Publication already committed"));
+        return result;
+      });
+    };
+    const published = await assets.publishFile(
+      {
+        sourceFile,
+        sizeBytes: size,
+        publication: { operation: "createEntity", request: { entity } },
+      },
+      processes,
+      { signal: lateCancellation.signal },
+    );
+    assert.equal(published.entityId, entity.id);
+    assert.equal(lateCancellation.signal.aborted, true);
+    assert.ok(submitted);
+    await assert.rejects(publish(submitted));
+    assets.publish = publish;
     assert.deepEqual(binding.binary.stats(), { admissions: 0, tickets: 0 });
     binding.assertTransferIdle();
     console.error(

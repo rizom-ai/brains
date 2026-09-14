@@ -27,6 +27,11 @@ import {
 import type { EntityMutationResult } from "./types";
 import type { ProjectionBatchScope } from "./projection-store";
 import {
+  publishEntityFile,
+  type EntityFilePublicationInput,
+  type EntityFileUploadActor,
+} from "./entity-file-publication";
+import {
   downloadEntityFile,
   type EntityFileDownloadInput,
   type EntityFileDownloadActor,
@@ -142,6 +147,9 @@ export class EntityBinaryClient {
       options,
     );
   }
+  /** Retire an upload using its offer or sealed receipt; successful completion
+   * acknowledges cleanup. This cannot retract an admitted publication.
+   */
   public async cancel(
     ticket: string,
     options?: EntityBinaryRequestOptions,
@@ -212,6 +220,31 @@ export class EntityBinaryClient {
         readEndpoint: (ticket): Promise<BinaryReadEndpoint> =>
           this.readEndpoint(ticket),
         cancelRead: (ticket): Promise<void> => this.cancelRead(ticket),
+        fence: (error): void => this.fence(error),
+      },
+      actors,
+      input,
+      options?.signal,
+    );
+  }
+  /** Verified file upload followed by one publication. Cancellation after submission
+   * does not retract the mutation; await the outcome before closing its connection.
+   */
+  public async publishFile(
+    input: EntityFilePublicationInput,
+    actors: EntityFileUploadActor,
+    options?: EntityBinaryRequestOptions,
+  ): Promise<EntityMutationResult> {
+    this.assertOpen();
+    return publishEntityFile(
+      {
+        offer: (size): Promise<BinaryUploadOffer> => this.offer(size),
+        upload: (ticket): Promise<BinaryUploadReceipt> => this.upload(ticket),
+        endpoint: (ticket): Promise<BinaryUploadEndpoint> =>
+          this.endpoint(ticket),
+        cancel: (ticket): Promise<void> => this.cancel(ticket),
+        publish: (request): Promise<EntityMutationResult> =>
+          this.publish(request),
         fence: (error): void => this.fence(error),
       },
       actors,

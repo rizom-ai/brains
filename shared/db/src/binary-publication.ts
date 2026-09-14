@@ -72,6 +72,10 @@ export interface BinaryPersistence {
     context: BinaryRequestContext,
     ticket: string,
   ): Promise<BinaryUploadEndpoint>;
+  /** Offer or receipt authority retires idle, active or sealed uploads and awaits
+   * cleanup. The offer remains cancellation-only after receipt rotation. An
+   * admitted publication cannot be cancelled or retracted through this method.
+   */
   cancel(context: BinaryRequestContext, ticket: string): Promise<void>;
   consume<T>(
     context: BinaryRequestContext,

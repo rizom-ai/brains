@@ -23,6 +23,11 @@ export { EntityService } from "./entityService";
 export { RemoteEntityService } from "./remote-entity-service";
 export { EntityBinaryClient } from "./entity-binary-client";
 export type {
+  EntityFilePublicationInput,
+  EntityFilePublicationRequest,
+  EntityFileUploadActor,
+} from "./entity-file-publication";
+export type {
   EntityFileDownloadInput,
   EntityFileDownloadActor,
 } from "./entity-file-download";
