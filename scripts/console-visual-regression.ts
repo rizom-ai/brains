@@ -5347,6 +5347,48 @@ try {
         await recordVisualCapture(name, image);
         if (surface === "studio-chat" || surface === "studio-account")
           await verifyStudioProfileNavigation(page, surface);
+        if (surface === "studio-chat") {
+          const attachmentUrl = new URL(
+            await page.evaluate<string>("location.href"),
+          );
+          attachmentUrl.pathname = "/chat";
+          attachmentUrl.searchParams.set("session", "cards");
+          attachmentUrl.searchParams.set("climate", climate);
+          await navigateToNetworkIdle(page, attachmentUrl.href);
+          await waitForSelector(page, ".studio-chat-attachment-preview");
+          await evaluatePage(page, () =>
+            document
+              .querySelector(".studio-chat-attachment-preview")
+              ?.scrollIntoView({ block: "center" }),
+          );
+          await waitForPage("generated image to load", () =>
+            evaluatePage(page, () => {
+              const preview = document.querySelector<HTMLImageElement>(
+                ".studio-chat-attachment-preview",
+              );
+              return Boolean(preview?.complete && preview.naturalWidth > 0);
+            }),
+          );
+          await evaluatePage(page, () => {
+            const preview = document.querySelector<HTMLImageElement>(
+              ".studio-chat-attachment-preview",
+            );
+            const card = preview?.closest(".studio-chat-card");
+            if (
+              !preview ||
+              !card ||
+              preview.getBoundingClientRect().width > card.clientWidth ||
+              document.documentElement.scrollWidth > innerWidth
+            )
+              throw new Error("Generated image escaped its card or viewport");
+          });
+          const attachmentName = `studio-chat-attachments-${viewport.width}x${viewport.height}-${climate}`;
+          await auditStudioAccessibility(page, attachmentName);
+          await recordVisualCapture(
+            `${attachmentName}.png`,
+            await page.screenshot({ encoding: "buffer", format: "png" }),
+          );
+        }
         page.close();
       }
     }

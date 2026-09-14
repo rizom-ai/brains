@@ -1,10 +1,16 @@
 /** @jsxImportSource react */
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  environmentManager,
+} from "@tanstack/react-query";
+const originalIsServer = environmentManager.isServer();
 import { Window } from "happy-dom";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { StudioChatWorkspace } from "./studio-chat-workspace";
+import type { ChatCard } from "@brains/contracts/chat";
 import { StudioChatDraftStore, studioChatDraftKey } from "./studio-chat-drafts";
 
 const originalFetch = globalThis.fetch;
@@ -110,6 +116,7 @@ afterEach(async () => {
   await act(async () => root.unmount());
   queryClient.clear();
   windowInstance.close();
+  environmentManager.setIsServer(() => originalIsServer);
   globalThis.fetch = originalFetch;
 });
 
@@ -140,6 +147,181 @@ async function mountChat(
   );
   await settle();
 }
+
+describe("generated attachments in Studio Chat", () => {
+  const image: Extract<ChatCard, { kind: "attachment" }> = {
+    kind: "attachment",
+    id: "image-card",
+    title: "Generated landscape",
+    attachment: { mediaType: "image/png", url: "/images/landscape.png" },
+  };
+
+  function serveCard(
+    card: ChatCard,
+    job: () => Response = () =>
+      Response.json({ id: "job-image", status: "completed" }),
+  ): void {
+    const previous = globalThis.fetch;
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url.startsWith("/api/chat/messages?id="))
+          return Response.json({
+            messages: [
+              {
+                id: "generated",
+                role: "assistant",
+                content: "Here is your image.",
+                cards: [card],
+              },
+            ],
+          });
+        if (url.startsWith("/api/chat/jobs/status?id=")) return job();
+        return previous(input, init);
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+  }
+
+  for (const previewUrl of [undefined, "/images/preview.png"]) {
+    it(`renders a ready image using ${previewUrl ? "its preview URL" : "the main URL fallback"}`, async () => {
+      serveCard({
+        ...image,
+        attachment: {
+          ...image.attachment,
+          ...(previewUrl ? { previewUrl } : {}),
+        },
+      });
+      await mountChat(new StudioChatDraftStore());
+      expect(
+        document.querySelector(".studio-chat-card img")?.getAttribute("src"),
+      ).toBe(previewUrl ?? image.attachment.url);
+      const links = [
+        ...document.querySelectorAll<HTMLAnchorElement>(".studio-chat-card a"),
+      ];
+      expect(
+        links.find((link) => link.textContent === "Open")?.getAttribute("href"),
+      ).toBe(image.attachment.url);
+      expect(
+        links
+          .find((link) => link.textContent === "Download")
+          ?.getAttribute("href"),
+      ).toBe(image.attachment.url);
+    });
+  }
+
+  it("polls generation, displays the image only on completion, and stops polling", async () => {
+    environmentManager.setIsServer(() => false);
+    let calls = 0;
+    serveCard({ ...image, jobId: "job-image" }, () =>
+      Response.json({
+        id: "job-image",
+        status: ++calls === 1 ? "processing" : "completed",
+      }),
+    );
+    await mountChat(new StudioChatDraftStore());
+    expect(document.querySelector(".studio-chat-card img")).toBeNull();
+    expect(document.querySelector(".studio-chat-card a")).toBeNull();
+    expect(document.querySelector(".studio-chat-card")?.textContent).toContain(
+      "generating",
+    );
+    for (
+      let i = 0;
+      i < 300 && !document.querySelector(".studio-chat-card img");
+      i++
+    )
+      await settle();
+    expect(document.querySelector(".studio-chat-card img")).not.toBeNull();
+    expect(calls).toBe(2);
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 2200));
+    });
+    expect(calls).toBe(2);
+  }, 10000);
+
+  for (const status of ["failed"]) {
+    it(`does not present ${status} generation as a ready image`, async () => {
+      serveCard({ ...image, jobId: "job-image" }, () =>
+        Response.json({ id: "job-image", status }),
+      );
+      await mountChat(new StudioChatDraftStore());
+      expect(document.querySelector(".studio-chat-card img")).toBeNull();
+      expect(document.querySelector(".studio-chat-card a")).toBeNull();
+      expect(
+        document.querySelector(".studio-chat-card")?.textContent,
+      ).toContain(status);
+    });
+  }
+
+  it("keeps durable images accessible when their job record is no longer available", async () => {
+    serveCard(
+      { ...image, jobId: "job-image" },
+      () => new Response("Job not found", { status: 404 }),
+    );
+    await mountChat(new StudioChatDraftStore());
+    expect(
+      document.querySelector(".studio-chat-card img")?.getAttribute("src"),
+    ).toBe(image.attachment.url);
+    expect(document.querySelector(".studio-chat-card")?.textContent).toContain(
+      "status unknown",
+    );
+  });
+
+  it("retries only the status read after a lookup failure", async () => {
+    let reads = 0;
+    serveCard({ ...image, jobId: "job-image" }, () =>
+      ++reads === 1
+        ? new Response("Unavailable", { status: 503 })
+        : Response.json({ id: "job-image", status: "completed" }),
+    );
+    await mountChat(new StudioChatDraftStore());
+    expect(document.querySelector(".studio-chat-card img")).toBeNull();
+    expect(document.querySelector(".studio-chat-card")?.textContent).toContain(
+      "Status unavailable",
+    );
+    click(
+      [...document.querySelectorAll(".studio-chat-card button")].find(
+        (button) => button.textContent === "Check status",
+      ),
+      "Check status",
+    );
+    await settle();
+    expect(reads).toBe(2);
+    expect(document.querySelector(".studio-chat-card img")).not.toBeNull();
+  });
+
+  it("keeps non-image attachments downloadable without an image element", async () => {
+    serveCard({
+      ...image,
+      attachment: {
+        mediaType: "application/pdf",
+        url: "/files/report.pdf",
+        downloadUrl: "/files/report/download",
+      },
+    });
+    await mountChat(new StudioChatDraftStore());
+    expect(document.querySelector(".studio-chat-card img")).toBeNull();
+    expect(
+      [...document.querySelectorAll(".studio-chat-card a")]
+        .find((link) => link.textContent === "Download")
+        ?.getAttribute("href"),
+    ).toBe("/files/report/download");
+  });
+
+  it("preserves file links when an image preview fails to load", async () => {
+    serveCard(image);
+    await mountChat(new StudioChatDraftStore());
+    const preview = document.querySelector(".studio-chat-card img");
+    expect(preview).not.toBeNull();
+    await act(async () => preview?.dispatchEvent(new Event("error")));
+    expect(document.querySelector(".studio-chat-card")?.textContent).toContain(
+      "Image preview unavailable",
+    );
+    expect(
+      document.querySelector(".studio-chat-card a")?.getAttribute("href"),
+    ).toBe(image.attachment.url);
+  });
+});
 
 describe("native Studio Chat workspace", () => {
   it("loads archived sessions through the scoped API without replacing the open conversation", async () => {
