@@ -66,21 +66,46 @@ const SITE_ENTITY_TYPES = new Set([
 ]);
 // Brain machinery: operator-editable, but not authored content. These live
 // in their own rail group so a full brain doesn't flood "Content".
-const SYSTEM_ENTITY_TYPES = new Set([
-  "agent",
-  "agents",
-  "anchor-profile",
-  "brain-character",
-  "playbook",
-  "playbooks",
-  "prompt",
-  "prompts",
-  "skill",
-  "skills",
-  "style-guide",
-  "swot",
-  "swots",
-]);
+const SYSTEM_TYPE_GROUPS = [
+  {
+    label: "Identity",
+    presentation: "form",
+    types: ["anchor-profile", "brain-character", "style-guide"],
+  },
+  {
+    label: "Intelligence",
+    presentation: "document",
+    types: [
+      "prompt",
+      "prompts",
+      "skill",
+      "skills",
+      "playbook",
+      "playbooks",
+      "swot",
+      "swots",
+    ],
+  },
+  { label: "Network", presentation: "form", types: ["agent", "agents"] },
+] as const;
+const SYSTEM_ENTITY_TYPES = new Set<string>(
+  SYSTEM_TYPE_GROUPS.flatMap((group) => [...group.types]),
+);
+
+export type StudioEditorPresentation = "form" | "document" | "split";
+
+/** Host presentation only: never changes adapter body support or permissions. */
+export function studioEditorPresentation(
+  entityType: string,
+  hasBody: boolean,
+): StudioEditorPresentation {
+  if (!hasBody || SITE_ENTITY_TYPES.has(entityType)) return "form";
+  return (
+    SYSTEM_TYPE_GROUPS.find((group) =>
+      group.types.some((type) => type === entityType),
+    )?.presentation ?? "split"
+  );
+}
 
 function studioTypeGroup(
   entityType: string,
@@ -250,27 +275,10 @@ export function TypeSwitcher(props: {
   const systemTypes = (ids: string[]): EntityTypeInfo[] =>
     ids.flatMap((id) => props.types.filter((info) => info.entityType === id));
   const secondaryTypeGroups = [
-    {
-      label: "Identity",
-      types: systemTypes(["anchor-profile", "brain-character", "style-guide"]),
-    },
-    {
-      label: "Intelligence",
-      types: systemTypes([
-        "prompt",
-        "prompts",
-        "skill",
-        "skills",
-        "playbook",
-        "playbooks",
-        "swot",
-        "swots",
-      ]),
-    },
-    {
-      label: "Network",
-      types: systemTypes(["agent", "agents"]),
-    },
+    ...SYSTEM_TYPE_GROUPS.map((group) => ({
+      label: group.label,
+      types: systemTypes([...group.types]),
+    })),
     ...groups.filter((group) => group.label === "Site"),
   ].filter((group) => group.types.length > 0);
   const currentArea = studioArea(props.active, props.activeWorkspace ?? null);

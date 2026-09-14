@@ -4,9 +4,9 @@ type LayoutStyle =
   | "editor"
   | "head"
   | "colophon"
+  | "fullWidthProperties"
   | "fields"
   | "manuscript"
-  | "empty"
   | "pipeline"
   | "compactStatus"
   | "compactValue"
@@ -78,6 +78,10 @@ export const editorLayoutStyles: Record<LayoutStyle, stylex.StyleXStyles> =
         },
       },
     },
+    fullWidthProperties: {
+      gridColumn: "1 / -1",
+      borderRightWidth: 0,
+    },
     fields: { borderWidth: 0, margin: 0, padding: 0, minInlineSize: 0 },
     manuscript: {
       display: "flex",
@@ -99,7 +103,6 @@ export const editorLayoutStyles: Record<LayoutStyle, stylex.StyleXStyles> =
         },
       },
     },
-    empty: { padding: "30px 34px" },
     pipeline: {
       gridColumn: "1 / -1",
       gridRow: "3",

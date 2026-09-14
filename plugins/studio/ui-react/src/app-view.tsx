@@ -23,6 +23,12 @@ import { headStyles } from "./studio-page-head.styles";
 import { typographyStyles } from "./studio-typography.styles";
 import { libraryStyles as library } from "./studio-library.styles";
 import { StudioStatus } from "./studio-status";
+import {
+  StudioEditorContent,
+  StudioEditorProperties,
+  revealStudioProperties,
+} from "./studio-editor-content";
+import { editorContentStyles as contentLayout } from "./studio-editor-content.styles";
 import { editorLayoutStyles as layout } from "./studio-editor-layout.styles";
 import {
   accountClass,
@@ -52,6 +58,7 @@ import {
   isFieldVisible,
   TypeSwitcher,
   studioArea,
+  studioEditorPresentation,
   typeHasPublicationField,
   type FieldAssistState,
   type FieldAssistVariant,
@@ -340,6 +347,10 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
 
   // Workspace branches do not read these entity fallbacks.
   const entitySchema = schema ?? EMPTY_TYPE_SCHEMA;
+  const presentation = studioEditorPresentation(
+    entitySchema.entityType,
+    entitySchema.hasBody,
+  );
   const selectedEntityType = entityType ?? "";
   const editing = !activeWorkspaceId && mode.kind !== "browse";
   const canCreate = activeType?.capabilities.canCreate === true;
@@ -668,10 +679,16 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
           <form
             role="main"
             aria-label="Document editor"
-            className={editorClass("", layout.editor)}
+            className={editorClass(
+              "",
+              layout.editor,
+              presentation !== "split" && contentLayout.editor,
+            )}
             data-studio-editor=""
-            data-mobile-pane={mobilePane}
+            data-editor-presentation={presentation}
+            data-mobile-pane={presentation === "split" ? mobilePane : undefined}
             onInvalidCapture={(event) => {
+              revealStudioProperties(event.currentTarget);
               if (mobilePane === "details") return;
               event.preventDefault();
               const first = event.currentTarget.querySelector<
@@ -712,176 +729,195 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
               model={editorHead}
               appearance="document"
               action={
-                <Button
-                  type="submit"
-                  className="studio-editor-head-save"
-                  variant={hasUnsavedChanges ? "default" : "outline"}
-                  title="Save changes (Ctrl+S or ⌘S)"
-                  aria-keyshortcuts="Control+s Meta+s"
-                  disabled={!canEdit || saveState.kind === "saving"}
-                >
-                  {saveState.kind === "saving" ? "Saving…" : "Save changes"}
-                </Button>
+                canEdit || presentation === "split" ? (
+                  <Button
+                    type="submit"
+                    className="studio-editor-head-save"
+                    variant={hasUnsavedChanges ? "default" : "outline"}
+                    title="Save changes (Ctrl+S or ⌘S)"
+                    aria-keyshortcuts="Control+s Meta+s"
+                    disabled={!canEdit || saveState.kind === "saving"}
+                  >
+                    {saveState.kind === "saving" ? "Saving…" : "Save changes"}
+                  </Button>
+                ) : undefined
               }
             />
-            <div
-              className={editorClass(
-                "studio-mobile-tabs",
-                editorStyles.mobileModes,
-              )}
-            >
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    aria-label="Editor view"
-                    className={editorClass(
-                      "",
-                      editorStyles.paneTrigger,
-                      typographyStyles.eyebrow,
-                    )}
-                  >
-                    {mobilePane === "details"
-                      ? "Properties"
-                      : mobilePane === "write"
-                        ? "Source"
-                        : "Preview"}
-                    <span aria-hidden="true">⌄</span>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  {MOBILE_EDITOR_PANES.map((pane) => (
-                    <DropdownMenuItem
-                      key={pane}
-                      disabled={pane !== "details" && !entitySchema.hasBody}
-                      onSelect={() => {
-                        setMobilePane(pane);
-                        if (pane === "write") setBodyMode("source");
-                        if (pane === "preview") setBodyMode("preview");
-                      }}
+            {presentation === "split" && (
+              <div
+                className={editorClass(
+                  "studio-mobile-tabs",
+                  editorStyles.mobileModes,
+                )}
+              >
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="Editor view"
+                      className={editorClass(
+                        "",
+                        editorStyles.paneTrigger,
+                        typographyStyles.eyebrow,
+                      )}
                     >
-                      {pane === "details"
+                      {mobilePane === "details"
                         ? "Properties"
-                        : pane === "write"
+                        : mobilePane === "write"
                           ? "Source"
                           : "Preview"}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-            <aside className={editorClass("", layout.colophon)}>
-              <div className={editorClass("", editorStyles.propertiesHead)}>
-                <h2
+                      <span aria-hidden="true">⌄</span>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {MOBILE_EDITOR_PANES.map((pane) => (
+                      <DropdownMenuItem
+                        key={pane}
+                        disabled={pane !== "details" && !entitySchema.hasBody}
+                        onSelect={() => {
+                          setMobilePane(pane);
+                          if (pane === "write") setBodyMode("source");
+                          if (pane === "preview") setBodyMode("preview");
+                        }}
+                      >
+                        {pane === "details"
+                          ? "Properties"
+                          : pane === "write"
+                            ? "Source"
+                            : "Preview"}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+            <StudioEditorContent presentation={presentation}>
+              <StudioEditorProperties
+                key={`${selectedEntityType}:${mode.kind === "edit" ? mode.entity.id : "create"}`}
+                presentation={presentation}
+                reveal={
+                  saveState.kind === "error" &&
+                  (saveState.issues?.length ?? 0) > 0
+                }
+              >
+                {presentation !== "document" && (
+                  <div className={editorClass("", editorStyles.propertiesHead)}>
+                    <h2
+                      className={editorClass(
+                        "",
+                        editorStyles.propertiesLabel,
+                        typographyStyles.eyebrow,
+                      )}
+                    >
+                      Properties
+                    </h2>
+                    {mode.kind === "create" || publicationState ? (
+                      <span
+                        className={editorClass(
+                          "",
+                          editorStyles.propertiesLabel,
+                          typographyStyles.eyebrow,
+                        )}
+                      >
+                        {mode.kind === "create" ? "New" : publicationState}
+                      </span>
+                    ) : null}
+                  </div>
+                )}
+                <fieldset
+                  className={editorClass("", layout.fields)}
+                  disabled={!canEdit}
+                >
+                  {entitySchema.fields
+                    .filter((descriptor) => isFieldVisible(descriptor, draft))
+                    .map((descriptor) => (
+                      <div
+                        key={`${selectedEntityType}:${mode.kind === "edit" ? mode.entity.id : "create"}:${descriptor.name}`}
+                        data-studio-field-assist=""
+                      >
+                        <Field
+                          descriptor={descriptor}
+                          issues={
+                            saveState.kind === "error"
+                              ? saveState.issues
+                              : undefined
+                          }
+                          value={draft[descriptor.name]}
+                          onChange={(raw) =>
+                            dispatchEditor({
+                              type: "fieldChanged",
+                              descriptor,
+                              raw,
+                            })
+                          }
+                        />
+                        {canAssist &&
+                          entitySchema.hasBody &&
+                          body.trim().length > 0 && (
+                            <FieldAssistControls
+                              descriptor={descriptor}
+                              state={fieldAssistState}
+                              onRun={runFieldAssist}
+                              onApply={applyFieldAssist}
+                              onDiscard={() =>
+                                setFieldAssistState({ kind: "idle" })
+                              }
+                            />
+                          )}
+                      </div>
+                    ))}
+                  {entitySchema.format === "raw" && (
+                    <StudioStatus>
+                      This type is raw markdown — the whole document is the
+                      body.
+                    </StudioStatus>
+                  )}
+                </fieldset>
+                {publicationWorkspace && mode.kind === "edit" && canPublish && (
+                  <PublicationActions
+                    entityType={selectedEntityType}
+                    entityId={mode.entity.id}
+                    title={entityTitle(mode.entity)}
+                    status={
+                      typeof mode.entity.frontmatter["status"] === "string"
+                        ? mode.entity.frontmatter["status"]
+                        : "draft"
+                    }
+                    unsaved={hasUnsavedChanges}
+                    onAction={performPublishingAction}
+                  />
+                )}
+              </StudioEditorProperties>
+              {entitySchema.hasBody && (
+                <section
                   className={editorClass(
                     "",
-                    editorStyles.propertiesLabel,
-                    typographyStyles.eyebrow,
+                    layout.manuscript,
+                    presentation !== "split" && contentLayout.manuscript,
                   )}
                 >
-                  Properties
-                </h2>
-                {mode.kind === "create" || publicationState ? (
-                  <span
-                    className={editorClass(
-                      "",
-                      editorStyles.propertiesLabel,
-                      typographyStyles.eyebrow,
-                    )}
-                  >
-                    {mode.kind === "create" ? "New" : publicationState}
-                  </span>
-                ) : null}
-              </div>
-              <fieldset
-                className={editorClass("", layout.fields)}
-                disabled={!canEdit}
-              >
-                {entitySchema.fields
-                  .filter((descriptor) => isFieldVisible(descriptor, draft))
-                  .map((descriptor) => (
-                    <div
-                      key={`${selectedEntityType}:${mode.kind === "edit" ? mode.entity.id : "create"}:${descriptor.name}`}
-                      data-studio-field-assist=""
-                    >
-                      <Field
-                        descriptor={descriptor}
-                        issues={
-                          saveState.kind === "error"
-                            ? saveState.issues
-                            : undefined
+                  <BodyEditor
+                    value={body}
+                    mode={bodyMode}
+                    singlePane={presentation !== "split"}
+                    onChange={(nextBody) =>
+                      dispatchEditor({ type: "bodyChanged", body: nextBody })
+                    }
+                    onModeChange={setBodyMode}
+                    readOnly={!canEdit}
+                    {...(mode.kind === "edit" && canAssist
+                      ? {
+                          assist: {
+                            entityType: selectedEntityType,
+                            entityId: mode.entity.id,
+                            agents: agentTargets,
+                          },
                         }
-                        value={draft[descriptor.name]}
-                        onChange={(raw) =>
-                          dispatchEditor({
-                            type: "fieldChanged",
-                            descriptor,
-                            raw,
-                          })
-                        }
-                      />
-                      {canAssist &&
-                        entitySchema.hasBody &&
-                        body.trim().length > 0 && (
-                          <FieldAssistControls
-                            descriptor={descriptor}
-                            state={fieldAssistState}
-                            onRun={runFieldAssist}
-                            onApply={applyFieldAssist}
-                            onDiscard={() =>
-                              setFieldAssistState({ kind: "idle" })
-                            }
-                          />
-                        )}
-                    </div>
-                  ))}
-                {entitySchema.format === "raw" && (
-                  <StudioStatus>
-                    This type is raw markdown — the whole document is the body.
-                  </StudioStatus>
-                )}
-              </fieldset>
-              {publicationWorkspace && mode.kind === "edit" && canPublish && (
-                <PublicationActions
-                  entityType={selectedEntityType}
-                  entityId={mode.entity.id}
-                  title={entityTitle(mode.entity)}
-                  status={
-                    typeof mode.entity.frontmatter["status"] === "string"
-                      ? mode.entity.frontmatter["status"]
-                      : "draft"
-                  }
-                  unsaved={hasUnsavedChanges}
-                  onAction={performPublishingAction}
-                />
+                      : {})}
+                  />
+                </section>
               )}
-            </aside>
-            <section className={editorClass("", layout.manuscript)}>
-              {entitySchema.hasBody ? (
-                <BodyEditor
-                  value={body}
-                  mode={bodyMode}
-                  onChange={(nextBody) =>
-                    dispatchEditor({ type: "bodyChanged", body: nextBody })
-                  }
-                  onModeChange={setBodyMode}
-                  readOnly={!canEdit}
-                  {...(mode.kind === "edit" && canAssist
-                    ? {
-                        assist: {
-                          entityType: selectedEntityType,
-                          entityId: mode.entity.id,
-                          agents: agentTargets,
-                        },
-                      }
-                    : {})}
-                />
-              ) : (
-                <StudioStatus className={editorClass("", layout.empty)}>
-                  This type has no body — its fields are the whole record.
-                </StudioStatus>
-              )}
-            </section>
+            </StudioEditorContent>
             <footer
               className={editorClass(
                 "",
@@ -896,7 +932,9 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                   aria-live="polite"
                   title="Saved means stored in this Brain. File export and Git synchronization are separate."
                 >
-                  {editorSaveLabel(saveState, hasUnsavedChanges)}
+                  {!canEdit && presentation !== "split"
+                    ? "Read-only"
+                    : editorSaveLabel(saveState, hasUnsavedChanges)}
                 </span>
                 {props.readError && (
                   <StudioStatus tone="error">

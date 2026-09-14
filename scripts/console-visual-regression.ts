@@ -2941,9 +2941,29 @@ async function checkLayout(
     }
   }
   if (isStudioAppShellSurface(surface)) {
-    const modes = await elementDisplay(page, ".studio-mobile-tabs");
-    if (width <= 640 !== (modes !== "none"))
-      throw new Error(`Studio responsive mode mismatch at ${width}px`);
+    const stacked = await evaluatePage(page, () => {
+      const editor = document.querySelector("[data-studio-editor]");
+      return editor?.getAttribute("data-editor-presentation") !== "split";
+    });
+    if (stacked) {
+      if (await elementBounds(page, ".studio-mobile-tabs"))
+        throw new Error("Stacked editors must not duplicate body navigation");
+      const content = await elementBounds(page, "[data-studio-editor-content]");
+      const properties = await elementBounds(page, "[data-studio-properties]");
+      if (!content || !properties || properties.width < content.width - 74)
+        throw new Error(
+          "System Properties must use the available editor width",
+        );
+      if (
+        (await elementDisplay(page, '[aria-label="Editor body view"]')) ===
+        "none"
+      )
+        throw new Error("Stacked body modes must remain available on phones");
+    } else {
+      const modes = await elementDisplay(page, ".studio-mobile-tabs");
+      if (width <= 640 !== (modes !== "none"))
+        throw new Error(`Studio responsive mode mismatch at ${width}px`);
+    }
     if (width <= 900) {
       const pipeline = await elementBounds(page, "[data-studio-save-bar]");
       if (!pipeline || pipeline.y + pipeline.height > viewportHeight + 1)
@@ -4026,19 +4046,36 @@ try {
           viewport.width <= 640 &&
           climate === "instrument"
         ) {
-          for (const [label, pane] of [
-            ["Source", "write"],
-            ["Preview", "preview"],
-            ["Properties", "details"],
-          ] as const) {
-            await pointerDownSelector(page, ".studio-mobile-tabs button");
-            await waitForSelector(page, '[role="menuitem"]');
-            await clickText(page, '[role="menuitem"]', label);
-            await waitForSelector(
-              page,
-              `[data-studio-editor][data-mobile-pane="${pane}"]`,
+          for (const label of ["Preview", "Source"]) {
+            await evaluatePage(page, () => {
+              document
+                .querySelector('[aria-label="Editor body view"]')
+                ?.scrollIntoView({ block: "center" });
+            });
+            await activateWorkspaceTab(page, label);
+            await waitForPage(`inline ${label} mode`, () =>
+              evaluatePageWith(
+                page,
+                (expected) => {
+                  const selected = document.querySelector(
+                    '[aria-label="Editor body view"] [aria-selected="true"]',
+                  );
+                  return selected?.textContent.trim() === expected;
+                },
+                label,
+              ),
             );
+            if (!(await elementBounds(page, "[data-studio-properties]")))
+              throw new Error(
+                "Body mode changes must not hide System Properties",
+              );
           }
+          await evaluatePage(page, () => {
+            const content = document.querySelector<HTMLElement>(
+              "[data-studio-editor-content]",
+            );
+            if (content) content.scrollTop = 0;
+          });
         }
         if (surface.startsWith("studio-navigation")) {
           if (viewport.width > 900) {

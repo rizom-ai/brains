@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import { describe, expect, it } from "bun:test";
+import { Window } from "happy-dom";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -651,11 +652,14 @@ function renderCapabilityView(
     readError?: string;
     query?: Partial<StudioCollectionQuery>;
     dirty?: boolean;
+    hasBody?: boolean;
+    entityType?: string;
   } = {},
 ): string {
+  const entityType = page.entityType ?? "post";
   const entity: EntityDetail = {
     id: "post-1",
-    entityType: "post",
+    entityType,
     frontmatter: { title: "Post one", status: "draft" },
     body: "Post body",
     contentHash: "post-1-hash",
@@ -663,17 +667,17 @@ function renderCapabilityView(
     updated: "2026-07-01T00:00:00.000Z",
   };
   const schema: TypeSchema = {
-    entityType: "post",
+    entityType,
     format: "frontmatter",
     isSingleton: false,
-    hasBody: true,
+    hasBody: page.hasBody ?? true,
     fields: [stringField],
   };
   const type: EntityTypeInfo = {
-    entityType: "post",
+    entityType,
     label: "Posts",
     isSingleton: false,
-    hasBody: true,
+    hasBody: page.hasBody ?? true,
     count: page.total ?? 1,
     capabilities,
   };
@@ -696,7 +700,7 @@ function renderCapabilityView(
     workspaceError: null,
     declarativeWorkspaceData: null,
     workspaceQuery: { offset: 0, limit: 50 },
-    entityType: "post",
+    entityType,
     entities: page.total === 0 ? [] : [entity],
     entityOffset: page.offset ?? 0,
     entityLimit: page.limit ?? 10,
@@ -749,6 +753,124 @@ function renderCapabilityView(
   };
   return renderToStaticMarkup(createElement(StudioAppView, props));
 }
+
+describe("bodyless entity editor layout", () => {
+  for (const width of [1440, 768, 390]) {
+    for (const hasBody of [false, true]) {
+      it(`uses the available form width at ${width}px with hasBody=${hasBody}`, async () => {
+        const window = new Window({ width });
+        try {
+          const doc = window.document;
+          doc.head.innerHTML = `<style>:root{--console-rule-strong:black}${compiledStyles}</style>`;
+          doc.body.innerHTML = renderCapabilityView(
+            {
+              canRead: true,
+              canCreate: false,
+              canUpdate: false,
+              canDelete: false,
+              canExtract: false,
+              canPublish: false,
+              canAssist: false,
+            },
+            "edit",
+            { hasBody },
+          );
+          const properties = doc.querySelector(
+            "[data-studio-editor] [data-studio-properties]",
+          );
+          if (!properties) throw new Error("Missing Properties form");
+          expect(window.getComputedStyle(properties).gridColumn).toBe(
+            hasBody ? "1" : "1 / -1",
+          );
+          expect(properties.querySelector("fieldset")?.disabled).toBe(true);
+          expect(properties.querySelector("input")).not.toBeNull();
+          expect(
+            doc.querySelector("[data-studio-editor] section") !== null,
+          ).toBe(hasBody);
+          if (!hasBody) {
+            expect(window.getComputedStyle(properties).borderRightWidth).toBe(
+              "0px",
+            );
+            expect(doc.body.textContent).not.toContain("This type has no body");
+          }
+          expect(doc.querySelector(".studio-editor-head-save") !== null).toBe(
+            hasBody,
+          );
+        } finally {
+          await window.happyDOM.close();
+        }
+      });
+    }
+  }
+});
+
+describe("System editor presentation", () => {
+  const readonlyCapabilities = {
+    canRead: true,
+    canCreate: false,
+    canUpdate: false,
+    canDelete: false,
+    canExtract: false,
+    canPublish: false,
+    canAssist: false,
+  };
+  for (const width of [1440, 768, 390]) {
+    for (const [entityType, presentation] of [
+      ["anchor-profile", "form"],
+      ["brain-character", "form"],
+      ["style-guide", "form"],
+      ["site-info", "form"],
+      ["agent", "form"],
+      ["prompt", "document"],
+      ["skill", "document"],
+      ["playbook", "document"],
+      ["swot", "document"],
+      ["post", "split"],
+    ] satisfies Array<[string, string]>) {
+      it(`renders ${entityType} as ${presentation} at ${width}px without dropping body or permissions`, async () => {
+        const window = new Window({ width });
+        try {
+          const doc = window.document;
+          doc.head.innerHTML = `<style>${compiledStyles}</style>`;
+          doc.body.innerHTML = renderCapabilityView(
+            readonlyCapabilities,
+            "edit",
+            { entityType, hasBody: true },
+          );
+          const editor = doc.querySelector("[data-studio-editor]");
+          expect(editor?.getAttribute("data-editor-presentation")).toBe(
+            presentation,
+          );
+          expect(editor?.querySelector("fieldset")?.disabled).toBe(true);
+          expect(editor?.textContent).toContain("Post body");
+          if (presentation !== "split") {
+            expect(doc.querySelector(".studio-mobile-tabs")).toBeNull();
+            expect(doc.querySelector(".studio-editor-head-save")).toBeNull();
+            const content = editor?.querySelector(
+              "[data-studio-editor-content]",
+            );
+            if (!content) throw new Error("Missing scroll owner");
+            expect(window.getComputedStyle(content).overflowY).toBe("auto");
+            expect(window.getComputedStyle(content).gridRow).toBe("2");
+            const modes = editor?.querySelector(
+              '[aria-label="Editor body view"]',
+            );
+            if (!modes) throw new Error("Missing inline body modes");
+            expect(modes.querySelectorAll('[role="tab"]')).toHaveLength(2);
+            expect(window.getComputedStyle(modes).display).not.toBe("none");
+          }
+          const disclosure = editor?.querySelector(
+            "details[data-studio-properties]",
+          );
+          expect(!!disclosure).toBe(presentation === "document");
+          if (disclosure) expect(disclosure.hasAttribute("open")).toBe(false);
+        } finally {
+          await window.happyDOM.close();
+        }
+      });
+    }
+  }
+});
 
 describe("document action emphasis", () => {
   it.each([false, true])(
