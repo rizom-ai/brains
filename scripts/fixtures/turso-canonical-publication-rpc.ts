@@ -11,6 +11,21 @@ import {
 import type { LocalDatabaseEndpointConfig } from "@brains/core";
 import { LocalDatabaseRpcClient } from "../../shell/core/src/local-database-endpoint";
 import { NetworkProcessOwner } from "../../shared/db/src/turso-worker/network-process-owner";
+import { FileProcessOwner } from "@brains/db/file-process-owner";
+
+function fileProcesses(): FileProcessOwner {
+  return new FileProcessOwner({
+    executable: process.execPath,
+    uploadUrl: new URL(
+      "../../shared/db/src/turso-worker/file-upload-process.ts",
+      import.meta.url,
+    ),
+    downloadUrl: new URL(
+      "../../shared/db/src/turso-worker/file-download-process.ts",
+      import.meta.url,
+    ),
+  });
+}
 import type { CanonicalAssetBindings } from "./turso-canonical-asset-bindings";
 import type { AssetRecord } from "@brains/assets";
 
@@ -39,6 +54,7 @@ export async function exerciseCanonicalReadRpc(
   });
   const assets = binaryClient(client);
   const foreignAssets = binaryClient(foreign);
+  const files = fileProcesses();
   const processes = new NetworkProcessOwner(
     process.execPath,
     new URL(
@@ -82,23 +98,12 @@ export async function exerciseCanonicalReadRpc(
     const endpoint = await assets.readEndpoint(offer.ticket);
     await assert.rejects(assets.readEndpoint(offer.ticket));
     await assert.rejects(assets.download(offer.ticket));
-    const consumer = processes.spawn();
-    pending.push(consumer.result, consumer.exited);
-    const failed = download.then<never>(() => {
-      throw new Error("Read completed before consumer resume");
-    });
-    void failed.catch(() => undefined); // One startup rendezvous, not a per-chunk observer.
-    consumer.start({ direction: "read", endpoint, facts, outputFile });
-    await Promise.race([consumer.held, failed]);
-    consumer.resume();
-    const [received, delivered, code] = await Promise.all([
-      consumer.result,
-      download,
-      consumer.exited,
-    ]);
+    const consumer = files.download({ endpoint, facts, outputFile });
+    pending.push(consumer);
+    const [received, delivered] = await Promise.all([consumer, download]);
     assert.deepEqual(received, facts);
     assert.deepEqual(delivered, facts);
-    assert.equal(code, 0);
+    assert.equal(files.stats().children, 0); // Completion includes actual actor exit.
     // Independently read every output byte in the source producer, not this controller.
     await binding.withFile(
       outputFile,
@@ -177,6 +182,7 @@ export async function exerciseCanonicalReadRpc(
   foreign.close();
   for (const result of await Promise.allSettled([
     processes.close(),
+    files.close(),
     ...pending,
   ]))
     if (result.status === "rejected" && !errors.includes(result.reason))
@@ -208,14 +214,7 @@ export async function exerciseCanonicalPublicationRpc(
   });
   const assets = binaryClient(client);
   const foreignAssets = binaryClient(foreign);
-  const processes = new NetworkProcessOwner(
-    process.execPath,
-    new URL(
-      "../../shared/db/src/turso-worker/file-upload-process.ts",
-      import.meta.url,
-    ),
-    "upload",
-  );
+  const processes = fileProcesses();
   const pending: Promise<unknown>[] = [];
   const errors: unknown[] = [];
   try {
@@ -231,23 +230,11 @@ export async function exerciseCanonicalPublicationRpc(
     pending.push(upload);
     void upload.catch(() => undefined); // Observed below and again during acknowledged teardown.
     const endpoint = await assets.endpoint(offer.ticket);
-    const producer = processes.spawn();
-    assert.notEqual(producer.pid, process.pid);
-    producer.start({ direction: "upload", endpoint, size, sourceFile });
-    const transferFailed = upload.then<never>(() => {
-      throw new Error("Upload completed before producer credit was resumed");
-    });
-    void transferFailed.catch(() => undefined); // Held-credit rendezvous only.
-    pending.push(producer.result, producer.exited);
-    await Promise.race([producer.held, transferFailed]);
-    producer.resume();
-    const [receipt, produced, exitCode] = await Promise.all([
-      upload,
-      producer.result,
-      producer.exited,
-    ]);
+    const producer = processes.upload({ endpoint, size, sourceFile });
+    pending.push(producer);
+    const [receipt, produced] = await Promise.all([upload, producer]);
     assert.deepEqual(produced, { sizeBytes: size, sha256: digest });
-    assert.equal(exitCode, 0);
+    assert.equal(processes.stats().children, 0);
     assert.equal(receipt.sha256, digest);
     assert.equal(receipt.sizeBytes, size);
     const request = {
