@@ -331,6 +331,112 @@ describe("generated attachments in Studio Chat", () => {
 });
 
 describe("native Studio Chat workspace", () => {
+  for (const historyFails of [false, true]) {
+    it(`shows one approval across stream completion when history ${historyFails ? "fails" : "loads"}`, async () => {
+      const store = new StudioChatDraftStore();
+      store.update(studioChatDraftKey("/api/chat", "conversation-1"), {
+        text: "Generate a car without wheels",
+      });
+      const previous = globalThis.fetch;
+      let reads = 0;
+      let sends = 0;
+      const transport: {
+        controller?: ReadableStreamDefaultController<Uint8Array>;
+      } = {};
+      const encoder = new TextEncoder();
+      const approval = {
+        kind: "tool-approval",
+        id: "approval-car",
+        toolCallId: "call-car",
+        toolName: "system_generate",
+        state: "approval-requested",
+        summary: "Generate Car Without Wheels?",
+        input: { entityType: "image", title: "Car Without Wheels" },
+      };
+      globalThis.fetch = Object.assign(
+        async (input: RequestInfo | URL, init?: RequestInit) => {
+          if (String(input).startsWith("/api/chat/messages?id=")) {
+            reads++;
+            if (reads === 1) return Response.json({ messages: [] });
+            if (historyFails)
+              return new Response("Unavailable", { status: 503 });
+            return Response.json({
+              messages: [
+                {
+                  id: "saved-response",
+                  role: "assistant",
+                  content: "Confirmation required.",
+                  cards: [approval],
+                },
+              ],
+            });
+          }
+          if (String(input) === "/api/chat" && init?.method === "POST") {
+            sends++;
+            return new Response(
+              new ReadableStream<Uint8Array>({
+                start(controller): void {
+                  transport.controller = controller;
+                  for (const event of [
+                    {
+                      type: "text-delta",
+                      id: "reply",
+                      delta: "Confirmation required.",
+                    },
+                    {
+                      type: "tool-input-available",
+                      toolCallId: "call-car",
+                      toolName: "system_generate",
+                      input: approval.input,
+                      title: approval.summary,
+                    },
+                    {
+                      type: "tool-approval-request",
+                      toolCallId: "call-car",
+                      approvalId: "approval-car",
+                    },
+                  ])
+                    controller.enqueue(
+                      encoder.encode(`data: ${JSON.stringify(event)}\n\n`),
+                    );
+                },
+              }),
+              { headers: { "Content-Type": "text/event-stream" } },
+            );
+          }
+          return previous(input, init);
+        },
+        { preconnect: originalFetch.preconnect },
+      );
+      const approvals = (): HTMLButtonElement[] =>
+        [...document.querySelectorAll("button")].filter(
+          (button) => button.textContent === "Approve",
+        );
+      await mountChat(store);
+      click(document.querySelector('[aria-label="Send message"]'), "Send");
+      for (let i = 0; i < 100 && approvals().length === 0; i++) await settle();
+      expect(approvals()).toHaveLength(1);
+      expect(reads).toBe(1);
+      await act(async () => {
+        transport.controller?.enqueue(
+          encoder.encode('data: {"type":"finish"}\n\n'),
+        );
+        transport.controller?.close();
+      });
+      for (
+        let i = 0;
+        i < 100 &&
+        document.querySelector('button[aria-label="Send message"]') === null;
+        i++
+      )
+        await settle();
+      await settle();
+      expect(reads).toBeGreaterThanOrEqual(2);
+      expect(approvals()).toHaveLength(1);
+      expect(sends).toBe(1);
+    });
+  }
+
   it("loads archived sessions through the scoped API without replacing the open conversation", async () => {
     const previous = globalThis.fetch;
     const requests: string[] = [];

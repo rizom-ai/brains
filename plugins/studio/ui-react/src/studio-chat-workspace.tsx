@@ -459,6 +459,9 @@ export function StudioChatWorkspace(
             authoritativeMessages,
           );
           setPendingMessages([]);
+          // History now owns the completed turn, including its approvals.
+          // Keep the live state only when this read fails.
+          setStream(null);
         } catch {
           // The completed response remains visible from the optimistic state;
           // a later session visit can retry the authoritative history read.
