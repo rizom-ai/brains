@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.385
+
+### Patch Changes
+
+- [#264](https://github.com/rizom-ai/brains/pull/264) [`b290b28`](https://github.com/rizom-ai/brains/commit/b290b2832c5246e7294bc326c4b08f416e28a28b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Complete Studio's presentation follow-through: widen Properties without clipping native date/time values or upload guidance; neutralize disabled primary buttons; add distinct collapsed navigation marks; give grouped site links shared outlined controls; place published totals in the page head; use clear protection language and consistent connected-channel counts in People; share collection search, filters, ranges, and pagination while preserving separate query contracts; and retain exact timestamps with truthful relative/absolute presentation. Filter panels fit their containers and dismiss safely with the keyboard. Chat detail guidance uses accessible text colors. Permissions, source content, draft safety, and configured typography remain unchanged.
+
+  Preserve agent-reported failures through Web Chat's stream protocol so their error messages cannot disappear during Studio's history handoff. Explicit failure metadata produces sanitized stream errors instead of successful completion, while retry review and approval handling preserve no-replay guarantees.
+
 ## 0.2.0-alpha.384
 
 ### Patch Changes

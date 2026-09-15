@@ -1,5 +1,12 @@
 # @brains/deploy-support
 
+## 0.2.0-alpha.385
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.385
+
 ## 0.2.0-alpha.384
 
 ### Patch Changes

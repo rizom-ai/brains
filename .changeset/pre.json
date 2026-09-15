@@ -441,6 +441,7 @@
     "core--studio-mobile-browse",
     "core--studio-overview-workspace",
     "core--studio-pagination-editor-release",
+    "core--studio-properties-disabled-controls",
     "core--studio-quiet-screens",
     "core--studio-search-and-composer",
     "core--studio-system-editor-layouts",
