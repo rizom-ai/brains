@@ -56,6 +56,78 @@ describe("console climate behavior", () => {
     ).toBe("Switch to instrument climate");
   });
 
+  it.each(["late mount", "remount"])(
+    "supports a toggle after %s",
+    async (scenario) => {
+      if (scenario === "late mount") window.document.body.innerHTML = "";
+      runClimateScript();
+      window.document.body.innerHTML = '<button id="climateToggle">◐</button>';
+      await window.happyDOM.whenAsyncComplete();
+
+      const button = window.document.querySelector("button");
+      expect(button?.getAttribute("aria-label")).toBe(
+        "Switch to paper climate",
+      );
+      button?.click();
+      expect(window.document.documentElement.getAttribute("data-climate")).toBe(
+        "paper",
+      );
+      expect(window.document.documentElement.getAttribute("data-theme")).toBe(
+        "light",
+      );
+      expect(window.localStorage.getItem("console.climate")).toBe("paper");
+      expect(button?.getAttribute("aria-label")).toBe(
+        "Switch to instrument climate",
+      );
+      button?.click();
+      expect(window.document.documentElement.getAttribute("data-theme")).toBe(
+        "dark",
+      );
+      expect(window.localStorage.getItem("console.climate")).toBe("instrument");
+    },
+  );
+
+  it("handles nested targets but ignores unrelated controls", () => {
+    runClimateScript();
+    window.document.body.insertAdjacentHTML(
+      "beforeend",
+      "<button>Other</button>",
+    );
+    window.document
+      .querySelector("button:last-child")
+      ?.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+    expect(window.document.documentElement.getAttribute("data-climate")).toBe(
+      "instrument",
+    );
+
+    const button = window.document.getElementById("climateToggle");
+    button?.insertAdjacentHTML("beforeend", "<span>Toggle</span>");
+    button?.querySelector("span")?.click();
+    expect(window.document.documentElement.getAttribute("data-climate")).toBe(
+      "paper",
+    );
+  });
+
+  it("still toggles when preference storage is unavailable", () => {
+    Object.assign(globalThis, {
+      localStorage: {
+        getItem: () => {
+          throw new Error("Storage blocked");
+        },
+        setItem: () => {
+          throw new Error("Storage blocked");
+        },
+      },
+    });
+    runClimateScript();
+    window.document
+      .getElementById("climateToggle")
+      ?.dispatchEvent(new window.MouseEvent("click", { bubbles: true }));
+    expect(window.document.documentElement.getAttribute("data-theme")).toBe(
+      "light",
+    );
+  });
+
   it("updates the climate, theme mode, and stored preference together", () => {
     runClimateScript();
 
