@@ -25,11 +25,18 @@ The complete presentation batch is in PR #264, not yet merged. The checks below 
 
 CI-native visual review and the acceptance checks below are required before closing this plan. No per-workspace variants or persistent drafts were introduced.
 
+## Local acceptance evidence
+
+- Reviewed 52 CI-native completion-batch captures across desktop, tablet, and phone in both climates, including 12 new open-filter captures. Unrelated host/font drift was not adopted.
+- Canonical personal and publishing apps ran with isolated data, private Git remotes, and normal first-passkey authentication. Anonymous Studio API access returned 401.
+- Verified explicit save/reload, unsaved-navigation cancellation, native invalid-field focus and save blocking, exact note restoration, bodyless form saving with sibling/body preservation, search/clear, semantic timestamps, People copy, and the real published count.
+- Triggered the default preview build through the running Site workspace: 36 routes, succeeded. No production deployment or external launch URL was configured.
+- Verified History/filter Escape handling and retained drafts. An invalid-provider-key probe exposed disappearing agent-error text; the fix adds explicit failure metadata and sanitized stream errors. The authenticated retest retained the failure and restored the request for review with zero retry POSTs.
+
 ## Remaining acceptance work
 
-1. Run canonical app-managed Studio smoke checks against the release candidate, including real routing, assets, auth, save/reload, Chat, and representative operator workspaces.
+1. Complete release-candidate verification with a working AI provider and configured site-launch URLs. Placeholder credentials exercise failure recovery, not successful AI turns; local QA is not deployed-fleet acceptance.
 2. Complete manual accessibility verification for screen-reader announcements, focus order/restoration, obscured content, contrast cases that axe marks incomplete, and dialog background isolation.
-3. Review desktop, tablet, and phone captures in both climates after the remaining presentation changes. Do not refresh baselines merely to hide host font or antialiasing drift.
 
 ## Separate decision: draft recovery
 

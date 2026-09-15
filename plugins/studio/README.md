@@ -86,7 +86,9 @@ Collection updates use “Just now”, correctly inflected minutes/hours, and re
 
 People uses protection/status language instead of internal Anchor terminology and shows connected-channel counts for every person, including the current operator and protected brain identity. Existing role, suspension, and self-service guards remain authoritative. Grouped workspace links use shared outlined controls while retaining native links and their destinations. Publishing keeps its actual published count in the page head rather than a separate body panel. Chat detail captions and empty-state guidance use legible text tokens in both climates.
 
-These are presentation changes; authenticated running-app and manual screen-reader acceptance remain separate from fixture, keyboard, and axe results.
+Agent-reported failures use explicit response metadata rather than text-prefix detection. Web Chat turns them into sanitized protocol errors, not successful completions whose transient error text disappears during history handoff. Retry review restores the request without resending it; submitted approval decisions are not replayed.
+
+Authenticated running-app and manual screen-reader acceptance remain separate from fixture, keyboard, and axe results.
 
 ## Workspaces
 
