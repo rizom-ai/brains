@@ -600,7 +600,12 @@ export function App(): ReactElement {
             type: "creationStarted",
             draft: next.draft,
             body: next.body,
-            ...(!prefill && { prefix: collectionQuery(routeSearch).prefix }),
+            ...(!prefill && {
+              prefix:
+                entityType === "note"
+                  ? null
+                  : collectionQuery(routeSearch).prefix,
+            }),
           });
           return undefined;
         }

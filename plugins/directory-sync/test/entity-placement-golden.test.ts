@@ -4,13 +4,16 @@ import { buildEntityFilePath, parseEntityPath } from "../src/lib/entity-paths";
 
 // Captured against the released implementation BEFORE codec adoption.
 // These are placement observations, not validation rules or approval of unsafe IDs.
-// Keep the expected paths unchanged when changing the implementation.
+// Owner decision: remove type-prefix stripping to make valid IDs injective.
+// Only the seven type-prefixed rows below change their diagnostic placement.
+// Nested notes remain readable here but are refused by the filesystem guard;
+// this inventory describes paths, not permission to write historical IDs.
 const placements = [
   ["note", "intro", ".md", "intro.md"],
-  ["note", "note:intro", ".md", "intro.md"],
+  ["note", "note:intro", ".md", "note/intro.md"],
   ["note", "book:intro", ".md", "book/intro.md"],
-  ["note", "note:book:intro", ".md", "book/intro.md"],
-  ["note", "note:note:intro", ".md", "note/intro.md"],
+  ["note", "note:book:intro", ".md", "note/book/intro.md"],
+  ["note", "note:note:intro", ".md", "note/note/intro.md"],
   ["note", "note", ".md", "note.md"],
   ["note", "", ".md", "undefined.md"],
   ["note", ":intro:", ".md", "intro.md"],
@@ -22,12 +25,17 @@ const placements = [
     ".md",
     "book-section/book-1/part-1/chapter-2.md",
   ],
-  ["book-section", "book-section:intro", ".md", "book-section/intro.md"],
+  [
+    "book-section",
+    "book-section:intro",
+    ".md",
+    "book-section/book-section/intro.md",
+  ],
   [
     "book-section",
     "book-section:book-section:intro",
     ".md",
-    "book-section/book-section/intro.md",
+    "book-section/book-section/book-section/intro.md",
   ],
   ["book-section", "book-section", ".md", "book-section/book-section.md"],
   ["book-section", "", ".md", "book-section/undefined.md"],
@@ -65,10 +73,10 @@ const placements = [
     "site-content",
     "site-content:home:hero",
     ".md",
-    "site-content/home/hero.md",
+    "site-content/site-content/home/hero.md",
   ],
   ["image", "gallery:cover", ".png", "image/gallery/cover.png"],
-  ["image", "image:cover", ".webp", "image/cover.webp"],
+  ["image", "image:cover", ".webp", "image/image/cover.webp"],
   ["document", "book:chapter", ".pdf", "document/book/chapter.pdf"],
 ] as const;
 

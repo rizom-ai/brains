@@ -27,11 +27,13 @@ brain-data/
   image/cover.png               # entityType: image
 ```
 
-Root markdown files become `note` entities. Files under a registered `brain-data/<entity-type>/` directory use its first segment as the entity type. Directory-sync delegates stored-ID encoding and decoding to `@brains/entity-service`; it retains ownership of filesystem roots, extensions and placement conventions. Nested notes also remain relative to the sync root: `book-1:part-1:intro` exports to `book-1/part-1/intro.md`, creating the required parent directories, not a `note/` directory.
+Root markdown files become `note` entities. Exportable notes have exactly one ID segment and write `<id>.md` at the root; directories represent entity types. Directory-sync delegates stored-ID encoding and decoding to `@brains/entity-service` and owns filesystem placement. Every type-prefixed segment is retained: site-content ID `site-content:home:hero` exports to `site-content/site-content/home/hero.md`, separately from `home:hero` at `site-content/home/hero.md`.
 
-The read-only `sync:path:request` message previews that same placement from an entity type, stored ID, metadata and serialized content. It returns a relative path and optional filename-leaf display offsets, allowing Studio to show the destination without duplicating filesystem rules. Previewing neither writes a file nor creates a folder entity. Existing placement conventions are unchanged.
+The read-only `sync:path:request` message previews placement from an entity type, stored ID, metadata and serialized content. It returns a relative path, filename-leaf display offsets, the read-back identity (`owner`), and a pure `writable` verdict. The latter two fields are optional for older responders. Previewing neither writes files nor creates folders; it does not look up existing entities or reserve destinations.
 
-**Nested-note limitation:** export placement is not a round-trip guarantee. Discovery still skips unregistered root directories, and import interprets a registered root directory as that entity type. Consequently nested notes can be ignored or misclassified on import. This change does not broaden discovery, move notes, or normalize historical IDs. Normal typed hierarchies such as `site-content/home/hero.md` retain their existing import/export contract.
+Before writes or deletion, a pure guard checks strict ID segments, flat-only notes, and identity round-trip. Historical invalid IDs raise `EntityPlacementError`; manual export reports failure and orphan cleanup keeps their database rows. Durable refusals are recorded as standing `placement` issues before acknowledgement. These issues clear when the entity exports or its delete intent is processed, not on unrelated successful exports.
+
+No IDs are rewritten and no files are moved or migrated. Old-layout files require operator review; discovery and import interpretation are unchanged. The [golden inventory](test/entity-placement-golden.test.ts) records the seven changed path expectations. Its IDs are synthetic regression inputs, not an inventory of production notes.
 
 ## Typical brain.yaml config
 

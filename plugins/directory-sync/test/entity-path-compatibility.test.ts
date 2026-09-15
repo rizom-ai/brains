@@ -2,13 +2,13 @@ import { describe, expect, test } from "bun:test";
 import { decodeEntityIdPath, encodeEntityIdPath } from "@brains/entity-service";
 import { buildEntityFilePath, parseEntityPath } from "../src/lib/entity-paths";
 
-// Inventory, not approval of lossy mappings. Codec adoption must not silently
-// change these existing placements or claim that they all round-trip.
+// Historical diagnostic paths, not approval of unsafe IDs. Type prefixes now
+// remain literal (owner decision); invalid IDs are refused at filesystem effects.
 describe("existing directory-sync path compatibility", () => {
   test.each([
     ["note", "intro", "/sync/intro.md", "note", "intro"],
     ["note", "book:intro", "/sync/book/intro.md", "book", "intro"],
-    ["note", "note:intro", "/sync/intro.md", "note", "intro"],
+    ["note", "note:intro", "/sync/note/intro.md", "note", "intro"],
     [
       "book-section",
       "book:intro",
@@ -19,16 +19,16 @@ describe("existing directory-sync path compatibility", () => {
     [
       "book-section",
       "book-section:intro",
-      "/sync/book-section/intro.md",
+      "/sync/book-section/book-section/intro.md",
       "book-section",
-      "intro",
+      "book-section:intro",
     ],
     [
       "book-section",
       "book-section:book-section:intro",
-      "/sync/book-section/book-section/intro.md",
+      "/sync/book-section/book-section/book-section/intro.md",
       "book-section",
-      "book-section:intro",
+      "book-section:book-section:intro",
     ],
     [
       "book-section",

@@ -14,9 +14,9 @@ import { StudioWorkspaceRegistry } from "../src/workspace-registry";
 
 const frontmatterSchema = z.object({ title: z.string().optional() });
 class Adapter extends BaseEntityAdapter<BaseEntity> {
-  constructor() {
+  constructor(entityType = "section") {
     super({
-      entityType: "section",
+      entityType,
       purpose: "Studio hierarchy fixture",
       schema: baseEntitySchema,
       frontmatterSchema,
@@ -36,18 +36,21 @@ const entity: BaseEntity = {
   created: "2026-09-13T00:00:00Z",
   updated: "2026-09-13T00:00:00Z",
 };
-function fixture(permissionLevel: "public" | "trusted" | "admin" = "trusted"): {
+function fixture(
+  permissionLevel: "public" | "trusted" | "admin" = "trusted",
+  entityType = "section",
+): {
   shell: ReturnType<typeof createMockShell>;
   routes: WebRouteDefinition[];
 } {
   const shell = createMockShell({ domain: "example.com" });
   shell
     .getEntityRegistry()
-    .registerEntityType("section", baseEntitySchema, new Adapter());
+    .registerEntityType(entityType, baseEntitySchema, new Adapter(entityType));
   shell.getEntityRegistry().getEffectiveFrontmatterSchema = (
     type,
   ): typeof frontmatterSchema | undefined =>
-    type === "section" ? frontmatterSchema : undefined;
+    type === entityType ? frontmatterSchema : undefined;
   const context = createServicePluginContext(shell, "studio");
   const routes = createEditorRoutes({
     routePath: "/studio",
@@ -108,6 +111,88 @@ const pageSchema = z.object({
 });
 
 describe("Studio hierarchy editor API", () => {
+  test.each([
+    { entityType: "note", path: ["book", "intro"], field: "prefix" },
+    { entityType: "section", path: ["intro"], field: "segment" },
+  ])(
+    "refuses explicit placement denial for $entityType against $field",
+    async ({ entityType, path, field }) => {
+      const { shell, routes } = fixture("trusted", entityType);
+      const create = spyOn(shell.getEntityService(), "createEntity");
+      shell.getMessageBus().subscribe("sync:path:request", async () => ({
+        success: true,
+        data: {
+          relativePath: "book/intro.md",
+          leaf: null,
+          writable: false,
+          owner: { entityType: "book", id: "intro" },
+        },
+      }));
+      const preview = await request(routes, "destination", {
+        entityType,
+        idPath: path,
+        frontmatter: {},
+      });
+      expect(await preview.json()).toMatchObject({
+        fileWritable: false,
+        fileOwner: { entityType: "book", id: "intro" },
+      });
+      const response = await request(routes, "entities", {
+        entityType,
+        idPath: path,
+        frontmatter: {},
+        body: "Body",
+      });
+      expect(response.status).toBe(400);
+      const body = await response.json();
+      expect(body).toMatchObject({ issues: [{ path: [field] }] });
+      expect(JSON.stringify(body)).toContain("book/intro");
+      expect(create).not.toHaveBeenCalled();
+    },
+  );
+
+  test("an explicit false still refuses when an optional owner is absent", async () => {
+    const { shell, routes } = fixture();
+    shell.getMessageBus().subscribe("sync:path:request", async () => ({
+      success: true,
+      data: { relativePath: "section/intro.md", leaf: null, writable: false },
+    }));
+    expect(
+      (
+        await request(routes, "entities", {
+          entityType: "section",
+          idPath: ["intro"],
+          frontmatter: {},
+        })
+      ).status,
+    ).toBe(400);
+  });
+
+  test.each(["absent", "older", "writable"])(
+    "allows creation with %s directory-sync admission",
+    async (version) => {
+      const { shell, routes } = fixture();
+      if (version !== "absent")
+        shell.getMessageBus().subscribe("sync:path:request", async () => ({
+          success: true,
+          data: {
+            relativePath: "section/section/intro.md",
+            leaf: null,
+            ...(version === "writable" && {
+              writable: true,
+              owner: { entityType: "section", id: "section:intro" },
+            }),
+          },
+        }));
+      const response = await request(routes, "entities", {
+        entityType: "section",
+        idPath: ["section", "intro"],
+        frontmatter: {},
+        body: "Body",
+      });
+      expect(response.status).toBe(201);
+    },
+  );
   test("returns the server hierarchy and binds reads to caller visibility", async () => {
     const { shell, routes } = fixture();
     const query = spyOn(

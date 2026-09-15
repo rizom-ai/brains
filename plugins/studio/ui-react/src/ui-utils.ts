@@ -2,13 +2,13 @@ import { useCallback, useRef, useState } from "react";
 import { ApiError, type EntitySummary, type FieldDescriptor } from "./api";
 import { getErrorMessage } from "@brains/utils/error";
 
-/** Prefer the adapter-owned title, then authored frontmatter, then the durable id. */
-export function entityTitle(entity: EntitySummary): string {
+/** Prefer an authored title, then the supplied display fallback or durable ID. */
+export function entityTitle(entity: EntitySummary, fallback?: string): string {
   const title = entity.frontmatter["title"];
   const projected = entity.displayTitle?.trim();
   if (projected) return projected;
   if (typeof title === "string" && title.trim().length > 0) return title;
-  return entity.id;
+  return fallback?.length ? fallback : entity.id;
 }
 
 /** Initial frontmatter draft for a new entity: descriptor defaults only. */

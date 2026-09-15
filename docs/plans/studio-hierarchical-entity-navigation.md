@@ -4,18 +4,22 @@ Last updated: 2026-09-15
 
 ## Status
 
-**Implemented on the feature branch; review pending.**
+**Implemented on the feature branch, including the owner-approved placement correction.**
 
 Slice 1 is committed as `69363eae6c`. Directory-sync now delegates identity encoding and
 decoding to entity-service while retaining its filesystem placement rules. The 47-case
-golden inventory passed before adoption and unchanged afterward.
+golden inventory passed before adoption and unchanged afterward. A subsequent owner
+mapping decision intentionally changes seven type-prefixed paths; see the
+[golden inventory](../../plugins/directory-sync/test/entity-placement-golden.test.ts) and
+[directory-sync path conventions](../../plugins/directory-sync/README.md#path-conventions).
+These IDs are synthetic regression inputs, not an inventory of production notes.
 
 Slice 2 is committed as `3791721010`, with visibility-scoped SQL hierarchy queries on the
 existing entity-service client. Slice 3 implements the approved navigation, explicit
 recursive search scope, guarded folder-aware creation and directory-sync-owned destination
-preview. Browser review also exposed two concrete defects: conflicting StyleX border
-properties suppressed row rules, and nested note export skipped creating parent directories.
-Both have regression tests; neither fix changes IDs or filesystem placement. Merge and
+preview. Browser review exposed conflicting StyleX border properties and missing nested
+export directories, both covered by regressions. The subsequent owner decision limits
+notes to one segment and removes type-prefix stripping for other types. Merge and
 release remain user decisions.
 
 The canonical publishing app now passes the 24-state site-content browser matrix, live
@@ -26,12 +30,16 @@ recognizes the entity-service conflict's stable error name rather than construct
 Both same-constructor and cross-bundle cases have regressions, including propagation of
 unrelated persistence failures. Code review remains required before merge or release.
 
-Nested notes are a separate known filesystem limitation, not a site-content hierarchy defect:
-directory-sync ignores non-entity-type root directories, while note exports omit a type root.
-Broadening discovery would import currently ignored Markdown; reserving a new note directory
-would change placement. Neither policy change nor a new authoring restriction is part of this
-slice. Existing root-note conventions and all golden placements remain unchanged. This slice
-does not claim that every historical stored ID has an invertible filesystem representation.
+The owner resolved the placement ambiguity: exported notes are flat, and type-prefixed IDs
+retain every segment. Valid IDs now have distinct, round-trippable destinations. One pure
+directory-sync guard refuses historical invalid IDs before writes/deletes; manual export and
+orphan cleanup cannot mistake those refusals for missing-file deletion. Durable refusals
+produce standing placement issues, and Studio blocks explicit placement denials and does not
+offer creation inside note folders. No competitor scans, ownership index, new entity-service
+primitives, ID rewrites, file moves, or migrations are included. Earlier placement-preservation
+statements below describe the original codec-adoption slice; the new decision supersedes them.
+Collection rows without an authored title display the server-provided leaf segment while
+preserving the full stored ID for navigation and identity details.
 
 Browser verification uses isolated local data and mocked AI. It does not establish real-provider,
 unchanged-install upgrade, release, or deployment acceptance.

@@ -1,4 +1,5 @@
 import { describe, it, expect } from "bun:test";
+import { directorySyncPathResponseSchema } from "@brains/contracts";
 import { registerMessageHandlers } from "../src/lib/message-handlers";
 import type {
   GitStatusSource,
@@ -77,6 +78,47 @@ function setup(options: {
 }
 
 describe("sync:path:request placement preview", () => {
+  it("accepts an older placement response without an admission verdict", () => {
+    expect(
+      directorySyncPathResponseSchema.parse({
+        relativePath: "intro.md",
+        leaf: null,
+      }),
+    ).toEqual({ relativePath: "intro.md", leaf: null });
+  });
+  it.each([
+    ["note", "book:intro", { entityType: "book", id: "intro" }, false],
+    ["note", "intro", { entityType: "note", id: "intro" }, true],
+    [
+      "site-content",
+      "site-content:home:hero",
+      { entityType: "site-content", id: "site-content:home:hero" },
+      true,
+    ],
+    [
+      "section",
+      "home::hero",
+      { entityType: "section", id: "home:hero" },
+      false,
+    ],
+  ])(
+    "returns a pure verdict for %s/%s without registered types",
+    async (entityType, entityId, owner, writable) => {
+      const harness = setup({ directorySync: fakeDirectorySync() });
+      try {
+        expect(
+          await harness.sendMessage("sync:path:request", {
+            entityType,
+            entityId,
+            metadata: {},
+            content: "",
+          }),
+        ).toMatchObject({ owner, writable });
+      } finally {
+        await harness.reset();
+      }
+    },
+  );
   it("identifies the new filename segment without confusing it with the extension", async () => {
     const harness = setup({ directorySync: fakeDirectorySync() });
     try {
@@ -89,6 +131,8 @@ describe("sync:path:request placement preview", () => {
       expect(result).toEqual({
         relativePath: "book/.md.md",
         leaf: { start: 5, end: 8 },
+        owner: { entityType: "book", id: ".md" },
+        writable: false,
       });
     } finally {
       await harness.reset();
@@ -103,7 +147,12 @@ describe("sync:path:request placement preview", () => {
       {},
       "book-section/book-1/part-1/chapter-2.md",
     ],
-    ["book-section", "book-section:intro", {}, "book-section/intro.md"],
+    [
+      "book-section",
+      "book-section:intro",
+      {},
+      "book-section/book-section/intro.md",
+    ],
     ["document", "book:chapter", {}, "document/book/chapter.pdf"],
     ["image", "book:cover", { format: "png" }, "image/book/cover.png"],
   ])(

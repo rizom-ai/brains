@@ -2,7 +2,7 @@ import {
   DIRECTORY_SYNC_CHANNELS,
   directorySyncPathRequestSchema,
 } from "@brains/contracts";
-import { buildEntityFilePath, getEntityFileExtension } from "./entity-paths";
+import { resolveEntityPlacement, getEntityFileExtension } from "./entity-paths";
 import { decodeEntityIdPath } from "@brains/entity-service";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
@@ -99,10 +99,10 @@ export function registerMessageHandlers(
   subscribe(DIRECTORY_SYNC_CHANNELS.pathRequest, async (message) => {
     const input = directorySyncPathRequestSchema.parse(message.payload);
     const extension = getEntityFileExtension(input);
-    const relativePath = buildEntityFilePath(
+    const { relativePath, owner, writable } = resolveEntityPlacement(
       ".",
-      input.entityId,
       input.entityType,
+      input.entityId,
       extension,
     );
     const [first, ...rest] = decodeEntityIdPath(input.entityId);
@@ -113,7 +113,7 @@ export function registerMessageHandlers(
       segment && relativePath.endsWith(`${segment}${extension}`)
         ? { start: end - segment.length, end }
         : null;
-    return { success: true, data: { relativePath, leaf } };
+    return { success: true, data: { relativePath, leaf, owner, writable } };
   });
 
   subscribe(DIRECTORY_SYNC_CHANNELS.statusRequest, async () => {

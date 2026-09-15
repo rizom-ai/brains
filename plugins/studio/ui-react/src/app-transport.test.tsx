@@ -158,6 +158,97 @@ describe("System Properties disclosure", () => {
 });
 
 describe("Studio App transport", () => {
+  it("does not inherit a historical folder from a note creation URL", async () => {
+    const destinations: unknown[] = [];
+    const api = new StudioApi({
+      basePath: "/studio",
+      fetch: async (input, init): Promise<Response> => {
+        const url = new URL(String(input), "http://brain.test");
+        requests.push(String(input));
+        if (url.pathname.endsWith("/types"))
+          return Response.json({
+            types: [
+              {
+                entityType: "note",
+                label: "Notes",
+                isSingleton: false,
+                hasBody: false,
+                count: 1,
+                capabilities: {
+                  canRead: true,
+                  canCreate: true,
+                  canUpdate: true,
+                  canDelete: false,
+                  canAssist: false,
+                  canPublish: false,
+                  canExtract: false,
+                },
+              },
+            ],
+            workspaces: [],
+          });
+        if (url.pathname.endsWith("/schema"))
+          return Response.json({
+            entityType: "note",
+            format: "frontmatter",
+            isSingleton: false,
+            hasBody: false,
+            fields: [],
+          });
+        if (url.pathname.endsWith("/hierarchy"))
+          return Response.json({
+            prefix: ["book"],
+            folders: [],
+            entities: [],
+            total: 0,
+          });
+        if (url.pathname.endsWith("/destination")) {
+          if (typeof init?.body === "string")
+            destinations.push(JSON.parse(init.body));
+          return Response.json({
+            idPath: ["intro"],
+            entityId: "intro",
+            entityLeaf: { start: 0, end: 5 },
+            filePath: "intro.md",
+            fileLeaf: { start: 0, end: 5 },
+          });
+        }
+        return Response.json({}, { status: 404 });
+      },
+    });
+    const history = createMemoryHistory({
+      initialEntries: [
+        "/studio/entities/note?mode=create&prefix=%5B%22book%22%5D",
+      ],
+    });
+    const router = createStudioRouter("/studio", App, history);
+    await act(async () =>
+      root.render(
+        <QueryClientProvider client={createStudioQueryClient()}>
+          <StudioApiProvider api={api}>
+            <RouterProvider router={router} />
+          </StudioApiProvider>
+        </QueryClientProvider>,
+      ),
+    );
+    await waitFor(
+      () => document.querySelector('input[name="segment"]') !== null,
+    );
+    const segment = document.querySelector<HTMLInputElement>(
+      'input[name="segment"]',
+    );
+    if (!segment) throw new Error("Missing Segment");
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(
+        windowInstance.HTMLInputElement.prototype,
+        "value",
+      )?.set?.call(segment, "intro");
+      segment.dispatchEvent(new Event("input", { bubbles: true }));
+      segment.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await waitFor(() => destinations.length > 0);
+    expect(destinations.at(-1)).toMatchObject({ idPath: ["intro"] });
+  });
   it("navigates folders through history and sends only segments when creating there", async () => {
     const writes: unknown[] = [];
     let conflict = true;

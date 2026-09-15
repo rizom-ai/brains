@@ -373,7 +373,12 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
   );
   const selectedEntityType = entityType ?? "";
   const editing = !activeWorkspaceId && mode.kind !== "browse";
-  const canCreate = activeType?.capabilities.canCreate === true;
+  const canCreate =
+    activeType?.capabilities.canCreate === true &&
+    (entityType !== "note" ||
+      (mode.kind === "create"
+        ? !mode.prefix
+        : props.collectionQuery.prefix === null));
   const canEdit =
     mode.kind === "create"
       ? canCreate
@@ -726,7 +731,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                     className={editorClass("", library.title)}
                     title={entity.id}
                   >
-                    {entityTitle(entity)}
+                    {entityTitle(entity, entity.path?.at(-1))}
                     {(props.collectionQuery.q ||
                       props.collectionQuery.scope === "collection") &&
                       entity.path &&

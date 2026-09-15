@@ -20,6 +20,10 @@ export const directorySyncPathResponseSchema: z.ZodType<{
   relativePath: string;
   /** UTF-16 display offsets, not a second identity or filesystem path. */
   leaf: { start: number; end: number } | null;
+  /** Identity read back from this path; optional for older directory-sync responses. */
+  owner?: { entityType: string; id: string } | undefined;
+  /** Pure ID/path admission, not an existence or reservation check. */
+  writable?: boolean | undefined;
 }> = z.object({
   relativePath: z.string(),
   leaf: z
@@ -28,4 +32,6 @@ export const directorySyncPathResponseSchema: z.ZodType<{
       end: z.number().int().nonnegative(),
     })
     .nullable(),
+  owner: z.object({ entityType: z.string(), id: z.string() }).optional(),
+  writable: z.boolean().optional(),
 });

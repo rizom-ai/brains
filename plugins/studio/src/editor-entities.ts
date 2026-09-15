@@ -88,6 +88,29 @@ function invalidCreatePayload(error: unknown, input: unknown): Response {
   );
 }
 
+/** Directory-sync is optional; only an explicit placement denial blocks creation. */
+async function resolvePlacement(
+  context: ServicePluginContext,
+  entityType: string,
+  entityId: string,
+  entity: Pick<BaseEntity, "metadata" | "content">,
+): Promise<z.output<typeof directorySyncPathResponseSchema> | null> {
+  const response = await context.messaging.send({
+    type: DIRECTORY_SYNC_CHANNELS.pathRequest,
+    payload: {
+      entityType,
+      entityId,
+      metadata: entity.metadata,
+      content: entity.content,
+    },
+  });
+  return "success" in response &&
+    response.success &&
+    response.data !== undefined
+    ? directorySyncPathResponseSchema.parse(response.data)
+    : null;
+}
+
 export async function handlePreviewDestination(
   context: ServicePluginContext,
   request: Request,
@@ -115,21 +138,12 @@ export async function handlePreviewDestination(
   if (!canWriteVisibility(access.permissionLevel, entity.visibility))
     return jsonResponse({ error: "Cannot create at this visibility" }, 403);
   const entityId = encodeEntityIdPath(payload.idPath);
-  const response = await context.messaging.send({
-    type: DIRECTORY_SYNC_CHANNELS.pathRequest,
-    payload: {
-      entityType: payload.entityType,
-      entityId,
-      metadata: entity.metadata,
-      content: entity.content,
-    },
-  });
-  // Directory-sync is optional. An unavailable placement preview is explicit,
-  // not a guessed path or a reason to prevent database-only authoring.
-  const placement =
-    "success" in response && response.success && response.data !== undefined
-      ? directorySyncPathResponseSchema.parse(response.data)
-      : null;
+  const placement = await resolvePlacement(
+    context,
+    payload.entityType,
+    entityId,
+    entity,
+  );
   const [first, ...rest] = payload.idPath;
   const encodedLeaf = encodeEntityIdPath([rest.at(-1) ?? first]);
   return jsonResponse({
@@ -141,6 +155,8 @@ export async function handlePreviewDestination(
     },
     filePath: placement?.relativePath ?? null,
     fileLeaf: placement?.leaf ?? null,
+    fileWritable: placement?.writable ?? null,
+    fileOwner: placement?.owner ?? null,
   });
 }
 
@@ -628,6 +644,44 @@ export async function handleCreateEntity(
       "entity-action-policy",
     );
     return persistenceDenied;
+  }
+
+  if (payload.idPath) {
+    const placement = await resolvePlacement(
+      context,
+      entityType,
+      encodeEntityIdPath(payload.idPath),
+      entity,
+    );
+    if (placement?.writable === false) {
+      await recordStudioMutationAudit(
+        recordAuditEvent,
+        access,
+        "create",
+        "denied",
+        entityType,
+        undefined,
+        "invalid-placement",
+      );
+      const nested = payload.idPath.length > 1;
+      const reason = placement.owner
+        ? `reads as ${placement.owner.entityType}/${placement.owner.id}`
+        : "was refused by directory-sync";
+      return jsonResponse(
+        {
+          error: `This destination cannot be exported: ${placement.relativePath} ${reason}.`,
+          issues: [
+            {
+              path: [nested ? "prefix" : "segment"],
+              message: nested
+                ? "Choose a different folder for this entry."
+                : "Choose a different segment.",
+            },
+          ],
+        },
+        400,
+      );
+    }
   }
 
   // Explicit paths are create-if-absent; other creation flows retain server-derived IDs.

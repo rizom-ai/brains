@@ -657,6 +657,7 @@ function renderCapabilityView(
     dirty?: boolean;
     hasBody?: boolean;
     entityType?: string;
+    entity?: Partial<EntityDetail>;
   } = {},
 ): string {
   const entityType = page.entityType ?? "post";
@@ -668,6 +669,7 @@ function renderCapabilityView(
     contentHash: "post-1-hash",
     created: "2026-07-01T00:00:00.000Z",
     updated: "2026-07-01T00:00:00.000Z",
+    ...page.entity,
   };
   const schema: TypeSchema = {
     entityType,
@@ -760,6 +762,82 @@ function renderCapabilityView(
   };
   return renderToStaticMarkup(createElement(StudioAppView, props));
 }
+
+it("uses the structured leaf as a folder row fallback without changing titles or identity", () => {
+  const cases: Array<{ entity: Partial<EntityDetail>; label: string }> = [
+    { entity: {}, label: "highlights" },
+    {
+      entity: { displayTitle: "Projected highlights" },
+      label: "Projected highlights",
+    },
+    {
+      entity: { frontmatter: { title: "Authored highlights" } },
+      label: "Authored highlights",
+    },
+    {
+      entity: { id: "about:high%3Alights", path: ["about", "high:lights"] },
+      label: "high:lights",
+    },
+    { entity: { id: "about:", path: ["about", ""] }, label: "about:" },
+  ];
+  const window = new Window();
+  try {
+    for (const { entity: overrides, label } of cases) {
+      const entity: Partial<EntityDetail> = {
+        id: "about:highlights",
+        path: ["about", "highlights"],
+        frontmatter: {},
+        ...overrides,
+      };
+      window.document.body.innerHTML = renderCapabilityView(
+        {
+          canRead: true,
+          canCreate: false,
+          canUpdate: false,
+          canDelete: false,
+          canExtract: false,
+          canPublish: false,
+          canAssist: false,
+        },
+        "browse",
+        { entityType: "site-content", query: { prefix: ["about"] }, entity },
+      );
+      const title = window.document.querySelector(
+        "[data-studio-record] [title]",
+      );
+      expect(title?.textContent).toBe(label);
+      expect(title?.getAttribute("title")).toBe(entity.id);
+    }
+  } finally {
+    window.close();
+  }
+});
+
+it("offers note creation only at the collection root, not in historical folders", () => {
+  const window = new Window();
+  try {
+    for (const nested of [false, true]) {
+      window.document.body.innerHTML = renderCapabilityView(
+        {
+          canRead: true,
+          canCreate: true,
+          canUpdate: true,
+          canDelete: false,
+          canExtract: false,
+          canPublish: false,
+          canAssist: false,
+        },
+        "browse",
+        { entityType: "note", query: { prefix: nested ? ["book"] : null } },
+      );
+      const action = window.document.querySelector("[data-studio-library-new]");
+      expect(action).not.toBeNull();
+      expect(action?.hasAttribute("disabled")).toBe(nested);
+    }
+  } finally {
+    window.close();
+  }
+});
 
 it("labels a folder's direct count as entries here, not a collection total", () => {
   const html = renderCapabilityView(
