@@ -3916,14 +3916,15 @@ async function recordVisualCapture(name: string, image: Buffer): Promise<void> {
     const ratio = await comparePng(image, baselinePath).catch(() => 1);
     if (ratio > 0.002) await writeFile(baselinePath, image);
   } else {
+    // Keep CI-native evidence even when small, intentional changes (for
+    // example rail marks) fall below the whole-page comparison threshold.
+    await writeFile(path.join(ARTIFACT_DIR, name), image);
     try {
       const ratio = await comparePng(image, baselinePath);
       if (ratio > 0.002) {
-        await writeFile(path.join(ARTIFACT_DIR, name), image);
         failures.push(`${name}: ${(ratio * 100).toFixed(2)}% pixels changed`);
       }
     } catch (error) {
-      await writeFile(path.join(ARTIFACT_DIR, name), image);
       failures.push(`${name}: ${getErrorMessage(error)}`);
     }
   }
