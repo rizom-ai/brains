@@ -20,14 +20,14 @@
 | **3. Application cutover**             | Switch all five runtime factories; package workers/actors and wire single-owner lifecycle, including combined mode. | Canonical `start:minimal`, then `start:personal`; real jobs/auth/images/site rebuilds, installed startup, shutdown and restart.                |
 | **4. Release acceptance**              | Complete working-set, crash recovery, import/deployment/backup/restore and rollback coverage.                       | SDK/native/transport/GC/RSS accounting, controller/grandchild recovery and explicit fleet/soak acceptance.                                     |
 
-## Current slice: source-render publication safety — complete
+## Current slice: scoped file attachment contract — complete
 
-1. Inspection found a provider-boundary blocker: source attachments still return rendered buffers, and media content helpers assemble referenced-image data URLs. Moving only the final save would not move rendering/assembly off controllers.
-2. Fix the prerequisite mutation hazard: once publication is submitted, or a durable image is reused, target/progress failures must not mark that image failed.
-3. Keep pre-publication pending-failure handling and preserve both rendering and failure-update causes. Establish focused regressions before implementation.
+1. `attachments.withFile` supports file-only providers and validates strict PNG/PDF metadata plus the shared absolute-path/100 MiB source descriptor. It never falls back to buffered resolution; existing buffered callers remain unmigrated.
+2. Permit one consumer admission, reject pre-cancelled work, and join both consumer and provider settlement. Preserve distinct consumer/cleanup causes and acknowledged results despite late cancellation.
+3. Providers must combine caller/lifetime cancellation, keep the borrowed file through consumer settlement, and acknowledge their own cleanup. Registry joining cannot repair premature file deletion. Descriptors are not provenance: native inspection/publication still verify bytes.
 
-**Exit check:** focused source-handler tests cover committed/uncertain publication, reuse, target failure and distinct failure causes. No extra actors, app startup or timeout changes are needed for this local safety fix. Source rendering remains buffered; this is not the actor migration or installed acceptance.
+**Exit check:** registry and entity/service context coverage exercises metadata validation, closed/duplicate admission, premature provider settlement, distinct failure causes and late cancellation. No new actors, app startup or timeout changes. Source-render publication safety remains covered; source rendering itself is still buffered.
 
-**Next slice:** add a metadata/file-producing attachment contract and actor-owned rendering, including referenced-image resolution, then migrate the real source-render job without a buffer-to-file shim. Package/default application provisioning remains milestone 3; do not switch the runtime factory until milestone 2's exit check passes.
+**Next slice:** establish observable browser ownership for render actors: the current WebView adapter requests global browser shutdown but does not acknowledge process exit. Then implement file-producing rendering and referenced-image resolution, and migrate the real source-render job without a buffer-to-file shim. Package/default application provisioning remains milestone 3; do not switch the runtime factory until milestone 2's exit check passes.
 
 Keep the 100 MiB ceiling, 32 KiB data-plane credits, existing RPC/SQL/admission limits, entity/asset/reference/projection/outbox atomicity, primary/cleanup causes and actual-exit acknowledgement. Preserve failed recovery directories. If a fault matrix is needed, name the application integration blocker first.

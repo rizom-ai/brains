@@ -155,11 +155,20 @@ export type {
   IServiceTemplatesNamespace,
   IViewsNamespace,
 } from "./service/context";
+export { attachmentFileSchema } from "./service/attachment-file";
+export type {
+  AttachmentFile,
+  AttachmentFileConsumer,
+  AttachmentFileOptions,
+  AttachmentFileResolver,
+} from "./service/attachment-file";
 export {
   AttachmentRegistry,
   createAttachmentsNamespace,
   type AttachmentProvider,
   type AttachmentProviderMetadata,
+  type AttachmentProviderRegistration,
+  type FileAttachmentProvider,
   type AttachmentResolveRequest,
   type IAttachmentsNamespace,
 } from "./service/attachment-registry";

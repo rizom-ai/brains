@@ -1,4 +1,10 @@
 import type { PublishMediaData } from "@brains/contracts";
+import {
+  consumeAttachmentFile,
+  type AttachmentFileResolver,
+  type AttachmentFileConsumer,
+  type AttachmentFileOptions,
+} from "./attachment-file";
 
 export interface AttachmentResolveRequest {
   sourceEntityType: string;
@@ -11,8 +17,16 @@ export interface AttachmentProviderMetadata {
   targetField?: "coverImageId" | "ogImageId";
 }
 
+export interface FileAttachmentProvider {
+  metadata?: AttachmentProviderMetadata;
+  withFile: AttachmentFileResolver;
+}
+export type AttachmentProviderRegistration =
+  AttachmentProvider | FileAttachmentProvider;
+
 export interface AttachmentProvider {
   metadata?: AttachmentProviderMetadata;
+  withFile?: AttachmentFileResolver;
   resolve(
     request: AttachmentResolveRequest,
   ): Promise<PublishMediaData | undefined> | PublishMediaData | undefined;
@@ -23,11 +37,13 @@ export interface AttachmentProvider {
  * Source plugins register providers; publishers resolve by semantic attachment type.
  */
 export interface IAttachmentsNamespace {
+  /** Borrow a validated file through consumer and producer cleanup; never call buffered resolve. */
+  withFile: AttachmentFileResolver;
   /** Register an attachment provider for a source entity type and semantic attachment type. */
   register: (
     sourceEntityType: string,
     attachmentType: string,
-    provider: AttachmentProvider,
+    provider: AttachmentProviderRegistration,
   ) => () => void;
 
   /** Resolve a source-derived attachment if a provider is available. */
@@ -49,10 +65,15 @@ export function createAttachmentsNamespace(
   registry: AttachmentRegistry,
 ): IAttachmentsNamespace {
   return {
+    withFile: <T>(
+      request: AttachmentResolveRequest,
+      use: AttachmentFileConsumer<T>,
+      options?: AttachmentFileOptions,
+    ): Promise<T | undefined> => registry.withFile(request, use, options),
     register: (
       sourceEntityType: string,
       attachmentType: string,
-      provider: AttachmentProvider,
+      provider: AttachmentProviderRegistration,
     ): (() => void) => {
       return registry.register(sourceEntityType, attachmentType, provider);
     },
@@ -79,7 +100,7 @@ export function createAttachmentsNamespace(
 export class AttachmentRegistry {
   private readonly providers = new Map<
     string,
-    Map<string, AttachmentProvider>
+    Map<string, AttachmentProviderRegistration>
   >();
 
   public static createFresh(): AttachmentRegistry {
@@ -91,7 +112,7 @@ export class AttachmentRegistry {
   public register(
     sourceEntityType: string,
     attachmentType: string,
-    provider: AttachmentProvider,
+    provider: AttachmentProviderRegistration,
   ): () => void {
     const providersByAttachmentType =
       this.getOrCreateSourceProviders(sourceEntityType);
@@ -102,12 +123,33 @@ export class AttachmentRegistry {
     };
   }
 
+  public async withFile<T>(
+    request: AttachmentResolveRequest,
+    use: AttachmentFileConsumer<T>,
+    options?: AttachmentFileOptions,
+  ): Promise<T | undefined> {
+    options?.signal?.throwIfAborted();
+    const provider = this.get(request.sourceEntityType, request.attachmentType);
+    if (!provider) return undefined;
+    if (!provider.withFile)
+      throw new Error("Attachment provider does not support file handoff");
+    return consumeAttachmentFile(
+      provider.withFile.bind(provider),
+      request,
+      use,
+      options,
+    );
+  }
+
   public async resolve(
     request: AttachmentResolveRequest,
   ): Promise<PublishMediaData | undefined> {
     const provider = this.get(request.sourceEntityType, request.attachmentType);
-    if (!provider) {
-      return undefined;
+    if (!provider) return undefined;
+    if (!("resolve" in provider)) {
+      throw new Error(
+        "Attachment provider does not support buffered resolution",
+      );
     }
     return provider.resolve(request);
   }
@@ -115,7 +157,7 @@ export class AttachmentRegistry {
   public get(
     sourceEntityType: string,
     attachmentType: string,
-  ): AttachmentProvider | undefined {
+  ): AttachmentProviderRegistration | undefined {
     return this.providers.get(sourceEntityType)?.get(attachmentType);
   }
 
@@ -152,13 +194,16 @@ export class AttachmentRegistry {
 
   private getOrCreateSourceProviders(
     sourceEntityType: string,
-  ): Map<string, AttachmentProvider> {
+  ): Map<string, AttachmentProviderRegistration> {
     const existing = this.providers.get(sourceEntityType);
     if (existing) {
       return existing;
     }
 
-    const providersByAttachmentType = new Map<string, AttachmentProvider>();
+    const providersByAttachmentType = new Map<
+      string,
+      AttachmentProviderRegistration
+    >();
     this.providers.set(sourceEntityType, providersByAttachmentType);
     return providersByAttachmentType;
   }

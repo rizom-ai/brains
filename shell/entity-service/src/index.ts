@@ -22,7 +22,10 @@ export {
 export { EntityService } from "./entityService";
 export { RemoteEntityService } from "./remote-entity-service";
 export { EntityBinaryClient } from "./entity-binary-client";
-export { EntityFileRuntime } from "./entity-file-runtime";
+export {
+  EntityFileRuntime,
+  entityFileSourceSchema,
+} from "./entity-file-runtime";
 export type {
   EntityFileActorOptions,
   EntityFileAssets,

@@ -20,11 +20,10 @@ import {
   type EntitySearchRequest,
   type ListEntitiesRequest,
 } from "@brains/entity-service";
-import type {
-  AttachmentProvider,
-  AttachmentResolveRequest,
+import {
+  AttachmentRegistry,
+  createAttachmentsNamespace,
 } from "@brains/plugins";
-import type { PublishMediaData } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { PermissionService } from "@brains/templates";
 
@@ -473,41 +472,9 @@ export function createMockSystemServices(
     }),
   };
 
-  // AttachmentProvider rather than a locally invented shape: the fake declared
-  // resolve as (...args: unknown[]) => unknown, which accepts providers the
-  // real namespace would reject and returns something no caller could use. The
-  // cast that used to sit at the end of this object hid both.
-  const attachmentProviders = new Map<string, AttachmentProvider>();
-  const attachmentKey = (
-    sourceEntityType: string,
-    attachmentType: string,
-  ): string => `${sourceEntityType}:${attachmentType}`;
-  const attachments = {
-    register: (
-      sourceEntityType: string,
-      attachmentType: string,
-      provider: AttachmentProvider,
-    ): (() => void) => {
-      const key = attachmentKey(sourceEntityType, attachmentType);
-      attachmentProviders.set(key, provider);
-      return (): void => {
-        attachmentProviders.delete(key);
-      };
-    },
-    resolve: async (
-      request: AttachmentResolveRequest,
-    ): Promise<PublishMediaData | undefined> => {
-      const provider = attachmentProviders.get(
-        attachmentKey(request.sourceEntityType, request.attachmentType),
-      );
-      return provider?.resolve(request);
-    },
-    hasProvider: (sourceEntityType: string, attachmentType: string) =>
-      attachmentProviders.has(attachmentKey(sourceEntityType, attachmentType)),
-    getProviderMetadata: (sourceEntityType: string, attachmentType: string) =>
-      attachmentProviders.get(attachmentKey(sourceEntityType, attachmentType))
-        ?.metadata,
-  } satisfies SystemServices["attachments"];
+  const attachments = createAttachmentsNamespace(
+    AttachmentRegistry.createFresh(),
+  );
 
   return {
     entityService,

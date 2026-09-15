@@ -57,14 +57,15 @@ export interface EntityFileAssets {
 export type EntityFileActorOptions = FileProcessOwnerOptions & {
   inspectionUploadUrl: URL;
 };
-const sourceSchema: z.ZodType<EntityFileSource> = z.strictObject({
-  sourceFile: z
-    .string()
-    .min(1)
-    .max(4096)
-    .refine((value) => isAbsolute(value) && !value.includes("\0")),
-  sizeBytes: binaryUploadSizeSchema,
-});
+export const entityFileSourceSchema: z.ZodType<EntityFileSource> =
+  z.strictObject({
+    sourceFile: z
+      .string()
+      .min(1)
+      .max(4096)
+      .refine((value) => isAbsolute(value) && !value.includes("\0")),
+    sizeBytes: binaryUploadSizeSchema,
+  });
 type Outcome<T> = { ok: true; value: T } | { ok: false; error: unknown };
 async function observe<T>(operation: () => Promise<T>): Promise<Outcome<T>> {
   try {
@@ -188,7 +189,7 @@ export class EntityFileRuntime implements EntityFileAssets {
     signal: AbortSignal,
     upload: (source: FileUploadInput, abort: AbortSignal) => Promise<T>,
   ): Promise<T> {
-    const parsed = sourceSchema.parse(input);
+    const parsed = entityFileSourceSchema.parse(input);
     signal.throwIfAborted();
     const offered = await observe(() => this.client.offer(parsed.sizeBytes));
     if (!offered.ok) {
