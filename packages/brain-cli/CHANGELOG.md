@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.387
+
+### Patch Changes
+
+- [#266](https://github.com/rizom-ai/brains/pull/266) [`ceebad4`](https://github.com/rizom-ai/brains/commit/ceebad44bc43dc5672453681a70d40bb0e22149d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Cap first-line note title fallbacks at 80 characters including an ellipsis, preferring word boundaries and avoiding split Unicode surrogate pairs. Preserve authored titles, H1 headings, meaningful stored metadata titles, and exact note content. Stored Untitled placeholders use the same capped adapter projection without read-side writes.
+
 ## 0.2.0-alpha.386
 
 ### Patch Changes
