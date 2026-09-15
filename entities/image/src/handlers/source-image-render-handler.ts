@@ -70,6 +70,7 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
     jobId: string,
     progressReporter: ProgressReporter,
   ): Promise<SourceImageRenderResult> {
+    const state: { preserveImage: boolean } = { preserveImage: false };
     this.logger.debug("Starting source image render job", {
       jobId,
       sourceEntityType: data.sourceEntityType,
@@ -82,6 +83,7 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
       if (data.replace !== true && data.dedupKey) {
         const existing = await this.findImageByDedupKey(data.dedupKey);
         if (existing) {
+          state.preserveImage = true;
           await this.updateTarget(data, existing.id);
           await this.reportProgress(progressReporter, {
             progress: PROGRESS_STEPS.COMPLETE,
@@ -135,6 +137,9 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
         ...(data.dedupKey && { dedupKey: data.dedupKey }),
       });
 
+      // Publication may commit even if its reply or a subsequent target/progress
+      // update fails. Do not follow that uncertainty with an image mutation.
+      state.preserveImage = true;
       await saveProcessedEntity({
         entityService: this.context.entityService,
         entity: { ...entityData, id: data.imageId },
@@ -155,12 +160,25 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
         jobId,
         error: errorMessage,
       });
-      await failPendingEntity({
-        entityService: this.context.entityService,
-        entityType: "image",
-        id: data.imageId,
-        error: errorMessage,
-      });
+      if (!state.preserveImage) {
+        const errors: unknown[] = [error];
+        try {
+          await failPendingEntity({
+            entityService: this.context.entityService,
+            entityType: "image",
+            id: data.imageId,
+            error: errorMessage,
+          });
+        } catch (failureUpdate) {
+          errors.push(failureUpdate);
+        }
+        if (errors.length > 1)
+          throw new AggregateError(
+            errors,
+            "Source rendering and pending failure update failed",
+            { cause: error },
+          );
+      }
       return JobResult.failure(error);
     }
   }
