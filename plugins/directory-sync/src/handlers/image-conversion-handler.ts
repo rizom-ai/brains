@@ -3,12 +3,8 @@ import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { BaseJobHandler } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils/progress";
-import {
-  fetchImageAsBase64,
-  imageAdapter,
-  parseDataUrl,
-  prepareImageAsset,
-} from "@brains/image";
+import { imageAdapter, imageAssetFactsSchema } from "@brains/image";
+import { createAssetRef } from "@brains/assets";
 import { getErrorMessage } from "@brains/utils/error";
 import { parseMarkdown, generateMarkdown } from "@brains/utils/markdown";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
@@ -33,9 +29,6 @@ export interface ImageConversionResult {
   error?: string;
 }
 
-/** Function to fetch an image URL and return base64 data URL */
-export type ImageFetcher = (url: string) => Promise<string>;
-
 /**
  * Job handler for converting coverImageUrl to coverImageId in markdown files
  *
@@ -54,26 +47,22 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
   ImageConversionResult
 > {
   private readonly context: ServicePluginContext;
-  private readonly fetcher: ImageFetcher;
 
-  constructor(
-    context: ServicePluginContext,
-    logger: Logger,
-    fetcher: ImageFetcher = fetchImageAsBase64,
-  ) {
+  constructor(context: ServicePluginContext, logger: Logger) {
     super(logger, {
       schema: coverImageConversionJobDataSchema,
       jobTypeName: "cover-image-convert",
     });
     this.context = context;
-    this.fetcher = fetcher;
   }
 
   async process(
     data: CoverImageConversionJobData,
     jobId: string,
     progressReporter: ProgressReporter,
+    signal?: AbortSignal,
   ): Promise<ImageConversionResult> {
+    signal?.throwIfAborted();
     const { filePath, sourceUrl, postTitle, postSlug, customAlt } = data;
 
     this.logger.debug("Starting image conversion job", {
@@ -146,6 +135,7 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
         },
       });
 
+      signal?.throwIfAborted();
       let imageId: string;
 
       if (existing[0]) {
@@ -166,46 +156,40 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
           message: `Fetching image from ${sourceUrl}`,
         });
 
-        let dataUrl: string;
-        try {
-          dataUrl = await this.fetcher(sourceUrl);
-        } catch (error) {
-          this.logger.error("Failed to fetch image", {
-            sourceUrl,
-            error: getErrorMessage(error),
-          });
-          return JobResult.failure(error);
-        }
-
-        await this.reportProgress(progressReporter, {
-          progress: PROGRESS_STEPS.GENERATE,
-          message: "Creating image entity",
-        });
-
-        const parsedImage = parseDataUrl(dataUrl);
-        const { asset: preparedAsset, facts } = prepareImageAsset(
-          parsedImage.bytes,
-          parsedImage.mediaType,
-        );
-
-        // Step 5: Create image entity
+        const files = this.context.entityService.fileAssets;
+        if (!files?.withRemoteFile)
+          throw new Error("Remote image file ingress is not provisioned");
         imageId = `${postSlug}-cover`;
         const imageTitle = `Cover image for ${postTitle}`;
-        const imageAlt = customAlt ?? imageTitle;
-        const imageData = imageAdapter.createImageEntity({
-          facts,
-          title: imageTitle,
-          alt: imageAlt,
+        await files.withRemoteFile(
           sourceUrl,
-        });
-
-        await this.context.entityService.createEntity({
-          entity: {
-            id: imageId,
-            ...imageData,
+          async (file, transferSignal): Promise<void> => {
+            const facts = imageAssetFactsSchema.parse({
+              ...file.details,
+              ref: createAssetRef(file.sha256),
+              digest: file.sha256,
+              sizeBytes: file.sizeBytes,
+            });
+            const imageData = imageAdapter.createImageEntity({
+              facts,
+              title: imageTitle,
+              alt: customAlt ?? imageTitle,
+              sourceUrl,
+            });
+            await files.publish(
+              {
+                sourceFile: file.sourceFile,
+                sizeBytes: file.sizeBytes,
+                publication: {
+                  operation: "createEntity",
+                  request: { entity: { id: imageId, ...imageData } },
+                },
+              },
+              { signal: transferSignal },
+            );
           },
-          preparedAsset,
-        });
+          { signal },
+        );
 
         this.logger.debug("Created image entity", { imageId, sourceUrl });
 
@@ -215,6 +199,7 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
         });
       }
 
+      signal?.throwIfAborted();
       // Step 6: Update frontmatter
       await this.reportProgress(progressReporter, {
         progress: PROGRESS_STEPS.SAVE,

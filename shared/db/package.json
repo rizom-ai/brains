@@ -22,7 +22,8 @@
     "./binary-read": "./src/binary-read.ts",
     "./error-protocol": "./src/turso-worker/error-protocol.ts",
     "./file-process-owner": "./src/turso-worker/file-process-owner.ts",
-    "./file-upload": "./src/turso-worker/file-upload.ts"
+    "./file-upload": "./src/turso-worker/file-upload.ts",
+    "./file-fetch": "./src/turso-worker/file-fetch.ts"
   },
   "main": "./src/index.ts",
   "private": true,

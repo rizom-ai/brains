@@ -20,15 +20,15 @@
 | **3. Application cutover**             | Switch all five runtime factories; package workers/actors and wire single-owner lifecycle, including combined mode. | Canonical `start:minimal`, then `start:personal`; real jobs/auth/images/site rebuilds, installed startup, shutdown and restart.                |
 | **4. Release acceptance**              | Complete working-set, crash recovery, import/deployment/backup/restore and rollback coverage.                       | SDK/native/transport/GC/RSS accounting, controller/grandchild recovery and explicit fleet/soak acceptance.                                     |
 
-## Current slice: promotion job cancellation — complete
+## Current slice: directory-sync URL cover images — complete
 
-1. Fail focused tests for caller cancellation before file admission and during pending lookup before implementation.
-2. Relay caller signals through the shared file runtime without aborting receipt-bearing RPCs; await retirement and detach listeners. Retain cancellation, lost-receipt and fencing causes.
-3. Forward promotion job cancellation through inspection and file publication. Cancelled jobs preserve pending state and interrupted pins rather than marking ingestion failed.
-4. Observe actual publication outcomes: late cancellation cannot retract a committed result or force a report through an already-cancelled progress channel. Keep the runtime factory unchanged.
+1. Extend the existing worker-role App scenario with its registered cover-image conversion handler, forbidding controller fetches before implementation. Reuse the running owner and verify the image after joined restart.
+2. An explicitly provisioned actor owns HTTP(S), redirects, decompression, inspection, hashing and no-replace file staging. Preserve URL reachability, including private/loopback destinations.
+3. Keep the 100 MiB output cap and one serial 32 KiB application read/write credit per admitted actor. HTTP/TLS/zlib/kernel/GC/RSS bounds remain unestablished; logical limits are not peak-allocation evidence.
+4. The file runtime joins actor exit, lends metadata and a file to the callback, then removes acknowledged staging. Interrupted callbacks retain files. The real cover-image job publishes through authenticated native verification without a buffered fallback.
 
-**Exit check:** deterministic unit gates cover pending receipts/retirement, pre-publication cancellation, cause identity, listener cleanup and late committed outcomes. Reuse existing handoff tests for actor/native lifetime behavior. The canonical application test gains no scenarios or timeout override; it remains the successful real-caller regression check. Upstream upload capture remains buffered.
+**Exit check:** existing canonical coverage plus one URL ingress/publication passes under the default timeout, with no extra app startup. Focused checks cover redirects/compression, chunked bodies, invalid declarations/signatures, truncation, no-replace output, cancellation/actual exit and callback staging lifetime. Runtime factory and default/installed actor provisioning remain unchanged.
 
-**Next slice:** migrate the next real image ingress/read caller, moving its conversion or provider assembly into actors without buffered fallback. Package/default application provisioning remains milestone 3; do not switch the runtime factory until milestone 2's exit check passes.
+**Next slice:** move directory-sync inline/frontmatter URL conversion onto the same file capability; those paths still use base64 fetchers. Package/default application provisioning remains milestone 3; do not switch the runtime factory until milestone 2's exit check passes.
 
 Keep the 100 MiB ceiling, 32 KiB data-plane credits, existing RPC/SQL/admission limits, entity/asset/reference/projection/outbox atomicity, primary/cleanup causes and actual-exit acknowledgement. Preserve failed recovery directories. If a fault matrix is needed, name the application integration blocker first.

@@ -1,4 +1,7 @@
-import { isAbsolute } from "node:path";
+import { isAbsolute, join } from "node:path";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { remoteUrlSchema } from "@brains/db/file-fetch";
 import { z } from "@brains/utils/zod";
 import {
   binaryUploadSizeSchema,
@@ -23,6 +26,15 @@ export interface EntityFileSource {
   sizeBytes: number;
 }
 export interface EntityFileAssets {
+  /** Join all consumers before returning. Success removes staging; failure retains it. */
+  withRemoteFile?<T>(
+    url: string,
+    use: (
+      file: EntityFileSource & FileInspectionResult,
+      signal: AbortSignal,
+    ) => Promise<T>,
+    options?: EntityBinaryRequestOptions,
+  ): Promise<T>;
   inspect(
     input: EntityFileSource,
     options?: EntityBinaryRequestOptions,
@@ -104,6 +116,30 @@ export class EntityFileRuntime implements EntityFileAssets {
       });
     this.operations.set(abort, work);
     return work;
+  }
+  public withRemoteFile<T>(
+    url: string,
+    use: (
+      file: EntityFileSource & FileInspectionResult,
+      signal: AbortSignal,
+    ) => Promise<T>,
+    options?: EntityBinaryRequestOptions,
+  ): Promise<T> {
+    return this.run(async (signal): Promise<T> => {
+      const source = remoteUrlSchema.parse(url);
+      signal.throwIfAborted();
+      const directory = await mkdtemp(join(tmpdir(), "turso-remote-image-"));
+      const sourceFile = join(directory, "verified");
+      const facts = await this.actors.fetch(
+        { url: source, outputFile: sourceFile },
+        signal,
+      );
+      signal.throwIfAborted();
+      const result = await use({ sourceFile, ...facts }, signal);
+      // No post-publication abort check: acknowledge cleanup, not retraction.
+      await rm(directory, { recursive: true });
+      return result;
+    }, options?.signal);
   }
   public publish(
     input: EntityFilePublicationInput,

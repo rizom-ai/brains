@@ -37,6 +37,25 @@ test("publishes only the completed file and rejects late writes", async () => {
   await assert.rejects(late(), /closed/);
 });
 
+test("unknown-length targets enforce their cap without requiring exact fullness", async () => {
+  const path = join(directory, "bounded");
+  await withFileTarget({ path, maxBytes: 3 }, (target) =>
+    target.write(new Uint8Array([1, 2])),
+  );
+  expect([...(await readFile(path))]).toEqual([1, 2]);
+  const overflow = join(directory, "overflow");
+  await assert.rejects(
+    withFileTarget({ path: overflow, maxBytes: 1 }, (target) =>
+      target.write(new Uint8Array([1, 2])),
+    ),
+    /declared size/,
+  );
+  expect(await Bun.file(overflow).exists()).toBe(false);
+  expect(
+    (await readdir(directory)).some((name) => name.endsWith(".partial")),
+  ).toBe(true);
+});
+
 test("never replaces an existing file or symlink", async () => {
   const existing = join(directory, "existing");
   const alias = join(directory, "alias");

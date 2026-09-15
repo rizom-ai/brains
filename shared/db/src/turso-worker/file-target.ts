@@ -5,14 +5,19 @@ import { dirname, isAbsolute, join } from "node:path";
 import { z } from "@brains/utils/zod";
 import { STAGE_BUDGET_BYTES, STAGE_CHUNK_BYTES } from "./binary-protocol";
 
-const planSchema = z.strictObject({
-  path: z.string().min(1).max(4096).refine(isAbsolute),
-  sizeBytes: z.number().int().min(0).max(STAGE_BUDGET_BYTES),
-});
-export interface FileTargetPlan {
-  path: string;
-  sizeBytes: number;
-}
+const pathSchema = z
+  .string()
+  .min(1)
+  .max(4096)
+  .refine((path) => isAbsolute(path) && !path.includes("\0"));
+const sizeSchema = z.number().int().min(0).max(STAGE_BUDGET_BYTES);
+const planSchema = z.union([
+  z.strictObject({ path: pathSchema, sizeBytes: sizeSchema }),
+  z.strictObject({ path: pathSchema, maxBytes: sizeSchema }),
+]);
+export type FileTargetPlan = { path: string } & (
+  { sizeBytes: number } | { maxBytes: number }
+);
 export interface FileChunkTarget {
   /** Borrows the view through settlement; the caller must not mutate or reuse it meanwhile. */
   write(bytes: Uint8Array): Promise<void>;
@@ -29,6 +34,7 @@ export async function withFileTarget<T>(
   signal?: AbortSignal,
 ): Promise<T> {
   const plan = planSchema.parse(input);
+  const limit = "sizeBytes" in plan ? plan.sizeBytes : plan.maxBytes;
   signal?.throwIfAborted();
   if (!constants.O_NOFOLLOW || !constants.O_NONBLOCK || !constants.O_DIRECTORY)
     throw new Error(
@@ -76,7 +82,7 @@ export async function withFileTarget<T>(
             return Promise.reject(
               new Error("File target write exceeds credit"),
             );
-          if (bytes.byteLength > plan.sizeBytes - position)
+          if (bytes.byteLength > limit - position)
             return Promise.reject(
               new Error("File target exceeds its declared size"),
             );
@@ -117,7 +123,7 @@ export async function withFileTarget<T>(
   } catch (error) {
     failed(error);
   }
-  if (errors.length === 0 && position !== plan.sizeBytes)
+  if (errors.length === 0 && "sizeBytes" in plan && position !== plan.sizeBytes)
     failed(new Error("File target was not completely written"));
   if (file) {
     if (errors.length === 0) {

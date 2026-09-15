@@ -5,6 +5,7 @@ import { fileUploadSchema, type FileUploadInput } from "./file-upload";
 import { fileDownloadSchema, type FileDownloadInput } from "./file-download";
 import { blobFactsSchema, type BlobFacts } from "./blob-protocol";
 import { errorSchema, deserializeError } from "./error-protocol";
+import { fileFetchSchema, type FileFetchInput } from "./file-fetch";
 
 export type { FileUploadInput } from "./file-upload";
 export type { FileDownloadInput } from "./file-download";
@@ -44,6 +45,7 @@ export interface FileProcessOwnerOptions {
   uploadUrl: URL;
   downloadUrl: URL;
   inspectionUploadUrl?: URL;
+  remoteDownloadUrl?: URL;
 }
 interface Child {
   readonly terminal: boolean;
@@ -69,6 +71,7 @@ export class FileProcessOwner {
   private readonly uploadPath: string;
   private readonly downloadPath: string;
   private readonly inspectionPath: string | undefined;
+  private readonly remotePath: string | undefined;
   private readonly children = new Set<Child>();
   private admissions = 0;
   private failure: unknown;
@@ -85,6 +88,9 @@ export class FileProcessOwner {
       throw new Error(
         "Compiled file controllers require an external Bun executable",
       );
+    this.remotePath = options.remoteDownloadUrl
+      ? actorPath(options.remoteDownloadUrl)
+      : undefined;
     this.executable = options.executable;
     this.uploadPath = actorPath(options.uploadUrl);
     this.downloadPath = actorPath(options.downloadUrl);
@@ -154,6 +160,27 @@ export class FileProcessOwner {
     }
     return { ...result, details: result.details };
   }
+  public async fetch(
+    input: FileFetchInput,
+    signal?: AbortSignal,
+  ): Promise<FileInspectionResult> {
+    if (!this.remotePath)
+      throw new Error("Remote image actor is not provisioned");
+    const result = await this.run(
+      this.remotePath,
+      "consumed",
+      fileFetchSchema.parse(input),
+      undefined,
+      undefined,
+      signal,
+    );
+    if (!result.details) {
+      const error = new Error("Remote image actor returned no metadata");
+      this.fence(error);
+      throw error;
+    }
+    return { ...result, details: result.details };
+  }
   private fence(error: unknown): void {
     this.failure ??= error;
     for (const child of this.children) child.stop(error);
@@ -161,8 +188,8 @@ export class FileProcessOwner {
   private async run(
     path: string,
     kind: "sealed" | "consumed",
-    input: FileUploadInput | FileDownloadInput,
-    size: number,
+    input: FileUploadInput | FileDownloadInput | FileFetchInput,
+    size: number | undefined,
     digest: string | undefined,
     signal?: AbortSignal,
   ): Promise<BlobFacts & { details?: FileInspectionResult["details"] }> {
@@ -222,7 +249,7 @@ export class FileProcessOwner {
               else {
                 if (
                   message.kind !== kind ||
-                  message.sizeBytes !== size ||
+                  (size !== undefined && message.sizeBytes !== size) ||
                   (digest !== undefined && message.sha256 !== digest)
                 )
                   throw new Error(

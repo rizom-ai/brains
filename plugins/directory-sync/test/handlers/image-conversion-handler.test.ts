@@ -1,3 +1,4 @@
+import { mockFileAssets } from "../helpers/file-assets";
 import { createTestEntity } from "@brains/entity-service/test";
 import { createMockServicePluginContext } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
@@ -71,9 +72,30 @@ describe("CoverImageConversionJobHandler", () => {
       },
     });
 
-    mockFetcher = mock(() => Promise.resolve(VALID_PNG_DATA_URL));
-
-    handler = new CoverImageConversionJobHandler(context, logger, mockFetcher);
+    // Test-only actor/native substitute; the production handler sees metadata.
+    mockFetcher = mock(() =>
+      Promise.resolve({
+        sourceFile: "/trusted/remote-image",
+        sizeBytes: VALID_PNG_ASSET.sizeBytes,
+        sha256: VALID_PNG_ASSET.digest,
+        details: { format: "png", mediaType: "image/png", width: 1, height: 1 },
+      }),
+    );
+    const files = mockFileAssets(async ({ publication }) => {
+      if (publication.operation !== "createEntity")
+        throw new Error("Unexpected publication");
+      return context.entityService.createEntity({
+        ...publication.request,
+        preparedAsset: VALID_PNG_ASSET,
+      });
+    });
+    files.withRemoteFile = async (url, use, options): ReturnType<typeof use> =>
+      use(
+        await mockFetcher(url),
+        options?.signal ?? new AbortController().signal,
+      );
+    context.entityService.fileAssets = files;
+    handler = new CoverImageConversionJobHandler(context, logger);
     progressReporter = createProgressReporter();
 
     // Mock file system operations - reset any previous spies first
@@ -228,6 +250,23 @@ Some content here.
       const writtenContent = z.string().parse(writeFileSpy.mock.calls[0]?.[1]);
       expect(writtenContent).toContain("coverImageId: test-post-cover");
       expect(writtenContent).not.toContain("coverImageUrl:");
+    });
+
+    it("fails closed without remote file ingress", async () => {
+      readFileSpy.mockResolvedValue(markdownWithCoverImageUrl);
+      delete context.entityService.fileAssets;
+      const result = await handler.process(
+        createValidJobData(),
+        "job",
+        progressReporter,
+      );
+      expect(result.success).toBe(false);
+      expect(result.error).toContain(
+        "Remote image file ingress is not provisioned",
+      );
+      expect(mockFetcher).not.toHaveBeenCalled();
+      expect(context.entityService.createEntity).not.toHaveBeenCalled();
+      expect(writeFileSpy).not.toHaveBeenCalled();
     });
 
     it("should use customAlt when provided", async () => {

@@ -107,6 +107,10 @@ plugins:
   const shutdownChecks: (() => void)[] = [];
   const app = createApp();
   const fileActors = {
+    remoteDownloadUrl: new URL(
+      "../../shared/image/src/remote-image-process.ts",
+      import.meta.url,
+    ),
     executable: process.execPath,
     uploadUrl: new URL(
       "../../shared/db/src/turso-worker/file-upload-process.ts",
@@ -320,6 +324,46 @@ plugins:
         async (): Promise<void> => undefined,
       );
       assert.ok(reporter);
+      const conversion = workerApp
+        .getShell()
+        .getJobQueueService()
+        .getHandler("directory-sync:cover-image-convert");
+      assert.ok(conversion);
+      const page = join(directory, "remote-cover.md");
+      await writeFile(page, "---\ntitle: Remote cover\n---\nBody\n");
+      const server = Bun.serve({
+        port: 0,
+        hostname: "127.0.0.1",
+        fetch: (): Response =>
+          new Response(Bun.file(sourceFile), {
+            headers: { "content-type": "image/png" },
+          }),
+      });
+      const bufferedFetch = spyOn(globalThis, "fetch").mockRejectedValue(
+        new Error("Controller URL fetch is forbidden"),
+      );
+      try {
+        const result = await conversion.process(
+          {
+            filePath: page,
+            sourceUrl: `http://127.0.0.1:${server.port}/image`,
+            postTitle: "Remote cover",
+            postSlug: "remote",
+          },
+          "canonical-url-image",
+          reporter,
+          new AbortController().signal,
+        );
+        assert.deepEqual(result, { success: true, imageId: "remote-cover" });
+        assert.equal(
+          (await owner.getEntity({ entityType: "image", id: "remote-cover" }))
+            ?.content,
+          record.ref,
+        );
+      } finally {
+        bufferedFetch.mockRestore();
+        await server.stop(true);
+      }
       const bufferedUpload = spyOn(
         RuntimeUploadStore.prototype,
         "read",
@@ -411,6 +455,7 @@ plugins:
       "rpc-image",
       "inspected",
       "promoted-upload",
+      "remote-cover",
     ]) {
       const stored = imageSchema.parse(
         await owner.getEntityRaw({
