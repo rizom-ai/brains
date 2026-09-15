@@ -6,6 +6,7 @@ import { fileDownloadSchema, type FileDownloadInput } from "./file-download";
 import { blobFactsSchema, type BlobFacts } from "./blob-protocol";
 import { errorSchema, deserializeError } from "./error-protocol";
 import { fileFetchSchema, type FileFetchInput } from "./file-fetch";
+import { fileProduceSchema, type FileProduceInput } from "./file-produce";
 
 export type { FileUploadInput } from "./file-upload";
 export type { FileDownloadInput } from "./file-download";
@@ -46,6 +47,7 @@ export interface FileProcessOwnerOptions {
   downloadUrl: URL;
   inspectionUploadUrl?: URL;
   remoteDownloadUrl?: URL;
+  producerUrl?: URL;
 }
 interface Child {
   readonly terminal: boolean;
@@ -72,6 +74,8 @@ export class FileProcessOwner {
   private readonly downloadPath: string;
   private readonly inspectionPath: string | undefined;
   private readonly remotePath: string | undefined;
+  private readonly producerPath: string | undefined;
+  private producing = false;
   private readonly children = new Set<Child>();
   private admissions = 0;
   private failure: unknown;
@@ -88,6 +92,9 @@ export class FileProcessOwner {
       throw new Error(
         "Compiled file controllers require an external Bun executable",
       );
+    this.producerPath = options.producerUrl
+      ? actorPath(options.producerUrl)
+      : undefined;
     this.remotePath = options.remoteDownloadUrl
       ? actorPath(options.remoteDownloadUrl)
       : undefined;
@@ -181,6 +188,32 @@ export class FileProcessOwner {
     }
     return { ...result, details: result.details };
   }
+  /** At most one bulk SDK producer, within the existing two-child admission.
+   * The reservation is held through actual Bun actor exit, not terminal metadata.
+   */
+  public async produce(
+    input: FileProduceInput,
+    signal?: AbortSignal,
+  ): Promise<BlobFacts> {
+    if (!this.producerPath)
+      throw new Error("File producer actor is not provisioned");
+    const options = fileProduceSchema.parse(input);
+    signal?.throwIfAborted();
+    if (this.producing) throw new Error("File production capacity exceeded");
+    this.producing = true;
+    try {
+      return await this.run(
+        this.producerPath,
+        "consumed",
+        options,
+        undefined,
+        undefined,
+        signal,
+      );
+    } finally {
+      this.producing = false;
+    }
+  }
   private fence(error: unknown): void {
     this.failure ??= error;
     for (const child of this.children) child.stop(error);
@@ -188,7 +221,8 @@ export class FileProcessOwner {
   private async run(
     path: string,
     kind: "sealed" | "consumed",
-    input: FileUploadInput | FileDownloadInput | FileFetchInput,
+    input:
+      FileUploadInput | FileDownloadInput | FileFetchInput | FileProduceInput,
     size: number | undefined,
     digest: string | undefined,
     signal?: AbortSignal,

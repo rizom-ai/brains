@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "fs/promises";
+import {
+  chmod,
+  mkdir,
+  mkdtemp,
+  open,
+  readFile,
+  rm,
+  writeFile,
+} from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
 import { createElement as h, type JSX } from "react";
@@ -168,6 +176,25 @@ describe("containsTraversal", () => {
 });
 
 describe("startStaticRenderServer", () => {
+  it("rejects oversized static inputs before serving their body", async () => {
+    const rootDir = await createTempDir();
+    const file = await open(join(rootDir, "large.png"), "wx");
+    try {
+      await file.truncate(100 * 1024 * 1024 + 1);
+    } finally {
+      await file.close();
+    }
+    const server = await startStaticRenderServer({ rootDir });
+    try {
+      const response = await fetch(server.urlFor("/large.png"), {
+        method: "HEAD",
+      });
+      expect(response.status).toBe(413);
+    } finally {
+      await server.close();
+    }
+  });
+
   it("serves generated media pages and shared CSS from the build output", async () => {
     const outputDir = await createTempDir();
     await mkdir(join(outputDir, "styles"), { recursive: true });

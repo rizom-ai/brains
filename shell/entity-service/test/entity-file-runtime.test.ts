@@ -1,5 +1,8 @@
 import { expect, test, spyOn } from "bun:test";
 import assert from "node:assert/strict";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { FileProcessOwner } from "@brains/db/file-process-owner";
 import { EntityFileRuntime } from "../src/entity-file-runtime";
 import { EntityBinaryClient } from "../src/entity-binary-client";
@@ -28,6 +31,10 @@ function runtime(
     },
   });
   return new EntityFileRuntime(client, {
+    producerUrl: new URL(
+      "../../../shared/db/test/fixtures/file-process-peer.ts",
+      import.meta.url,
+    ),
     executable: process.execPath,
     uploadUrl: new URL(
       "../../../shared/db/src/turso-worker/file-upload-process.ts",
@@ -76,6 +83,16 @@ test("caller cancellation rejects every file operation before native admission",
   const options = { signal: abort.signal };
   try {
     await assert.rejects(
+      files.withProducedFile(
+        "/unused",
+        async (): Promise<never> => {
+          throw new Error("Unexpected consumer");
+        },
+        options,
+      ),
+      (error: unknown) => error === primary,
+    );
+    await assert.rejects(
       files.inspect(input, options),
       (error: unknown) => error === primary,
     );
@@ -116,6 +133,58 @@ test("caller cancellation rejects every file operation before native admission",
     expect(calls).toBe(0);
   } finally {
     await files.close();
+  }
+});
+
+test("produced files stay borrowed through consumption, retain failures and preserve late acknowledged results", async () => {
+  const root = await mkdtemp(join(tmpdir(), "produced-runtime-"));
+  const sourceDirectory = join(root, "source");
+  await mkdir(sourceDirectory);
+  await Bun.write(`${sourceDirectory}.exit`, "release actor");
+  const files = runtime(async (): Promise<never> => {
+    throw new Error("Unexpected native request");
+  });
+  const primary = new Error("consumer failed");
+  let failedFile = "";
+  try {
+    await assert.rejects(
+      files.withProducedFile(sourceDirectory, async (file): Promise<never> => {
+        failedFile = file.sourceFile;
+        expect(
+          new Uint8Array(await Bun.file(failedFile).arrayBuffer()),
+        ).toEqual(new Uint8Array([7, 8, 9]));
+        throw primary;
+      }),
+      (error: unknown) => error === primary,
+    );
+    expect(await Bun.file(failedFile).exists()).toBe(true);
+    const caller = new AbortController();
+    const entered = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    let successfulFile = "";
+    const work = files.withProducedFile(
+      sourceDirectory,
+      async (file, signal): Promise<string> => {
+        successfulFile = file.sourceFile;
+        entered.resolve();
+        await release.promise;
+        expect(signal.aborted).toBe(true);
+        return "publication acknowledged";
+      },
+      { signal: caller.signal },
+    );
+    try {
+      await entered.promise;
+      caller.abort(new Error("late cancellation"));
+      expect(await Bun.file(successfulFile).exists()).toBe(true);
+    } finally {
+      release.resolve();
+    }
+    expect(await work).toBe("publication acknowledged");
+    expect(await Bun.file(successfulFile).exists()).toBe(false);
+  } finally {
+    await files.close();
+    await rm(root, { recursive: true });
   }
 });
 

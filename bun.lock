@@ -1407,7 +1407,9 @@
       "name": "@brains/media-page-composer",
       "version": "0.2.0-alpha.373",
       "dependencies": {
+        "@brains/assets": "workspace:*",
         "@brains/contracts": "workspace:*",
+        "@brains/db": "workspace:*",
         "@brains/image": "workspace:*",
         "@brains/media-renderer": "workspace:*",
         "@brains/plugins": "workspace:*",

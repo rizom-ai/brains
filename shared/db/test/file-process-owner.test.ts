@@ -41,6 +41,49 @@ async function terminals(
   }
 }
 
+test("bulk production shares actor admission and holds its single reservation through actual exit", async () => {
+  const root = await mkdtemp(join(tmpdir(), "turso-producer-owner-"));
+  const gate = join(root, "producer");
+  const files = new FileProcessOwner({
+    executable: process.execPath,
+    uploadUrl: peer,
+    downloadUrl: peer,
+    producerUrl: peer,
+  });
+  const producing = files.produce({
+    sourceDirectory: gate,
+    outputFile: join(root, "output"),
+  });
+  const ordinaryGate = join(root, "ordinary");
+  const ordinary = files.upload(input(ordinaryGate));
+  let settled = false;
+  void producing.then(
+    () => {
+      settled = true;
+    },
+    () => {
+      settled = true;
+    },
+  );
+  try {
+    await terminals(files, 2);
+    expect(settled).toBe(false);
+    await assert.rejects(
+      files.produce({ sourceDirectory: gate, outputFile: join(root, "other") }),
+      /production capacity/,
+    );
+    await assert.rejects(files.upload(input(join(root, "third"))), /capacity/);
+    expect(files.stats().children).toBe(2);
+  } finally {
+    await Bun.write(`${gate}.exit`, "release");
+    await Bun.write(`${ordinaryGate}.exit`, "release");
+    await Promise.all([producing, ordinary]);
+    await files.close();
+    await rm(root, { recursive: true });
+  }
+  expect(files.stats().children).toBe(0);
+});
+
 test("file process completion and capacity remain held until actual exit", async () => {
   const root = await mkdtemp(join(tmpdir(), "turso-file-owner-"));
   const files = owner();

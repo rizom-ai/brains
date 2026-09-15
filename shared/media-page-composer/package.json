@@ -3,7 +3,9 @@
   "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.373",
   "dependencies": {
+    "@brains/assets": "workspace:*",
     "@brains/contracts": "workspace:*",
+    "@brains/db": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/media-renderer": "workspace:*",
     "@brains/plugins": "workspace:*",
@@ -27,7 +29,8 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
-    }
+    },
+    "./render-process": "./src/render-process.ts"
   },
   "main": "./src/index.ts",
   "private": true,

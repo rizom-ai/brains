@@ -1,5 +1,8 @@
 import { createServer, type Server } from "http";
-import { lstat, mkdir, readFile, writeFile } from "fs/promises";
+import { lstat, mkdir, open, writeFile } from "fs/promises";
+import { constants } from "node:fs";
+import { pipeline } from "node:stream/promises";
+import { MAX_ASSET_BYTES } from "@brains/assets";
 import { dirname, extname, join, posix, resolve, sep } from "path";
 import { renderMediaTemplateHtml } from "./media-template-renderer";
 import type {
@@ -82,15 +85,54 @@ export async function startStaticRenderServer(
         return;
       }
 
-      const body = await readFile(filePath);
-      response.writeHead(200, { "content-type": getContentType(filePath) });
-      response.end(body);
+      const file = await open(
+        filePath,
+        constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK,
+      );
+      try {
+        const info = await file.stat();
+        if (!info.isFile()) {
+          response.writeHead(404);
+          response.end("Not found");
+          return;
+        }
+        if (info.size > MAX_ASSET_BYTES) {
+          response.writeHead(413);
+          response.end("Render input exceeds its size limit");
+          return;
+        }
+        response.writeHead(200, {
+          "content-type": getContentType(filePath),
+          "content-length": info.size,
+        });
+        if (info.size === 0 || request.method === "HEAD") {
+          response.end();
+          return;
+        }
+        // Bound each stream read and its total extent; not a snapshot or RSS bound.
+        const stream = file.createReadStream({
+          highWaterMark: 32 * 1024,
+          start: 0,
+          end: info.size - 1,
+          autoClose: false,
+        });
+        try {
+          await pipeline(stream, response);
+        } finally {
+          stream.destroy();
+        }
+      } finally {
+        await file.close();
+      }
     } catch {
       // Absence is already answered with 404 above, so reaching here means a
       // file we resolved could not be served — still closed, but not the
       // caller's fault, and calling it "not found" hides a real failure.
-      response.writeHead(500);
-      response.end("Internal error");
+      if (response.headersSent) response.destroy();
+      else {
+        response.writeHead(500);
+        response.end("Internal error");
+      }
     }
   });
 

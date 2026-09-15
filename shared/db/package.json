@@ -23,7 +23,8 @@
     "./error-protocol": "./src/turso-worker/error-protocol.ts",
     "./file-process-owner": "./src/turso-worker/file-process-owner.ts",
     "./file-upload": "./src/turso-worker/file-upload.ts",
-    "./file-fetch": "./src/turso-worker/file-fetch.ts"
+    "./file-fetch": "./src/turso-worker/file-fetch.ts",
+    "./file-produce": "./src/turso-worker/file-produce.ts"
   },
   "main": "./src/index.ts",
   "private": true,

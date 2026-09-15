@@ -22,9 +22,13 @@ import {
 } from "@brains/app";
 import defaultSite from "@brains/site-default";
 import defaultTheme from "@rizom/theme-default";
-import { EntityService } from "@brains/entity-service";
+import { EntityService, type EntityFileAssets } from "@brains/entity-service";
 import { createAssetRef } from "@brains/assets";
-import { imageSchema, imageAdapter } from "@brains/image";
+import {
+  imageSchema,
+  imageAdapter,
+  imageAssetFactsSchema,
+} from "@brains/image";
 import { WorkerBinaryPersistence } from "../../shared/db/src/turso-worker/binary-persistence";
 import { canonicalBrain } from "../../packages/brain-cli/src/model/canonical-brain";
 import {
@@ -43,6 +47,54 @@ registerPackage("@rizom/theme-default", defaultTheme);
 // large-binary matrices own 100 MiB coverage; this test owns application wiring.
 const SIZE = 256 * 1024 + 7;
 const SHA = "6bc5839d31ffd66263d28992f1186b33312444ffb4e2b1aab184df47e9c3b149";
+
+async function renderCanonicalFile(
+  files: EntityFileAssets,
+  directory: string,
+  ref: ReturnType<typeof createAssetRef>,
+): Promise<{
+  ref: ReturnType<typeof createAssetRef>;
+  digest: string;
+  sizeBytes: number;
+}> {
+  assert.ok(files.withProducedFile);
+  const renderSource = join(directory, "render-page");
+  await mkdir(renderSource);
+  await files.download({ ref, outputFile: join(renderSource, "cover.png") });
+  await writeFile(
+    join(renderSource, "index.html"),
+    '<!doctype html><html><head><style>body{margin:0;background:#123;color:white}img{width:64px;height:64px}</style></head><body><h1>Bun file rendering</h1><img src="/cover.png"></body></html>',
+  );
+  return files.withProducedFile(renderSource, async (file, signal) => {
+    const source = { sourceFile: file.sourceFile, sizeBytes: file.sizeBytes };
+    const inspected = await files.inspect(source, { signal });
+    assert.equal(inspected.sha256, file.sha256);
+    const facts = imageAssetFactsSchema.parse({
+      ...inspected.details,
+      ref: createAssetRef(inspected.sha256),
+      digest: inspected.sha256,
+      sizeBytes: inspected.sizeBytes,
+    });
+    assert.equal(facts.width, 1200);
+    assert.equal(facts.height, 630);
+    const image = imageAdapter.createImageEntity({
+      facts,
+      title: "Actor-rendered image",
+      status: "draft",
+    });
+    await files.publish(
+      {
+        ...source,
+        publication: {
+          operation: "createEntity",
+          request: { entity: { ...image, id: "actor-rendered-image" } },
+        },
+      },
+      { signal },
+    );
+    return { ref: facts.ref, digest: facts.digest, sizeBytes: facts.sizeBytes };
+  });
+}
 
 test("canonical App binds a real file claim in its entity transaction and downloads every image byte", async () => {
   const directory = await mkdtemp(
@@ -131,6 +183,10 @@ plugins:
   const shutdownChecks: (() => void)[] = [];
   const app = createApp();
   const fileActors = {
+    producerUrl: new URL(
+      "../../shared/media-page-composer/src/render-process.ts",
+      import.meta.url,
+    ),
     remoteDownloadUrl: new URL(
       "../../shared/image/src/remote-image-process.ts",
       import.meta.url,
@@ -150,6 +206,7 @@ plugins:
     ),
   };
   const record = { ref: createAssetRef(SHA), digest: SHA, sizeBytes: SIZE };
+  const rendered: { record?: typeof record } = {};
   try {
     await app.migrate();
     await app.initialize(
@@ -340,155 +397,175 @@ plugins:
       },
     );
     try {
-      const promotion = workerApp
-        .getShell()
-        .getJobQueueService()
-        .getHandler("image:upload-promote");
-      assert.ok(promotion);
-      const reporter = CallbackProgressReporter.from(
-        async (): Promise<void> => undefined,
-      );
-      assert.ok(reporter);
-      const conversion = workerApp
-        .getShell()
-        .getJobQueueService()
-        .getHandler("directory-sync:cover-image-convert");
-      assert.ok(conversion);
-      const page = join(directory, "remote-cover.md");
-      await writeFile(page, "---\ntitle: Remote cover\n---\nBody\n");
       const workerFiles = workerApp.getShell().getEntityService().fileAssets;
       assert.ok(workerFiles?.withRemoteFile);
-      // Observe this App's injected capability without replacing its implementation
-      // or global fetch. The real owned actors and native publication still run.
-      const remoteFiles = spyOn(workerFiles, "withRemoteFile");
-      let requests = 0;
-      const server = Bun.serve({
-        port: 0,
-        hostname: "127.0.0.1",
-        fetch: (): Response => {
-          requests++;
-          return new Response(Bun.file(sourceFile), {
-            headers: { "content-type": "image/png" },
-          });
-        },
-      });
-      try {
-        const result = await conversion.process(
-          {
-            filePath: page,
-            sourceUrl: `http://127.0.0.1:${server.port}/image`,
-            postTitle: "Remote cover",
-            postSlug: "remote",
-          },
-          "canonical-url-image",
-          reporter,
-          new AbortController().signal,
-        );
-        assert.deepEqual(result, { success: true, imageId: "remote-cover" });
-        assert.equal(
-          (await owner.getEntity({ entityType: "image", id: "remote-cover" }))
-            ?.content,
-          record.ref,
-        );
-        const inline = workerApp
+      const jobs = async (): Promise<void> => {
+        const promotion = workerApp
           .getShell()
           .getJobQueueService()
-          .getHandler("directory-sync:inline-image-convert");
-        assert.ok(inline);
-        // The cover job now exercises the same helper's native creation branch.
-        // Inline/frontmatter reuse exercises both callers without redundant actors.
-        const inlineUrl = `http://127.0.0.1:${server.port}/image`;
-        await writeFile(page, `![Inline](${inlineUrl})\n`);
-        assert.deepEqual(
-          await inline.process(
-            { filePath: page, postSlug: "remote" },
-            "canonical-inline-image",
+          .getHandler("image:upload-promote");
+        assert.ok(promotion);
+        const reporter = CallbackProgressReporter.from(
+          async (): Promise<void> => undefined,
+        );
+        assert.ok(reporter);
+        const conversion = workerApp
+          .getShell()
+          .getJobQueueService()
+          .getHandler("directory-sync:cover-image-convert");
+        assert.ok(conversion);
+        const page = join(directory, "remote-cover.md");
+        await writeFile(page, "---\ntitle: Remote cover\n---\nBody\n");
+        // Observe this App's injected capability without replacing its implementation
+        // or global fetch. The real owned actors and native publication still run.
+        const remoteFiles = spyOn(workerFiles, "withRemoteFile");
+        let requests = 0;
+        const server = Bun.serve({
+          port: 0,
+          hostname: "127.0.0.1",
+          fetch: (): Response => {
+            requests++;
+            return new Response(Bun.file(sourceFile), {
+              headers: { "content-type": "image/png" },
+            });
+          },
+        });
+        try {
+          const result = await conversion.process(
+            {
+              filePath: page,
+              sourceUrl: `http://127.0.0.1:${server.port}/image`,
+              postTitle: "Remote cover",
+              postSlug: "remote",
+            },
+            "canonical-url-image",
             reporter,
             new AbortController().signal,
-          ),
-          { success: true, convertedCount: 1 },
-        );
-        assert.match(
-          await Bun.file(page).text(),
-          /entity:\/\/image\/remote-cover/,
-        );
-        const frontmatter = new FrontmatterImageConverter(
-          owner,
-          createSilentLogger(),
-        );
-        const converted = await frontmatter.convert(
-          `---\ntitle: Reused\ncoverImageUrl: ${inlineUrl}\n---\nBody\n`,
-        );
-        assert.equal(converted.imageId, "remote-cover");
-        assert.equal(converted.converted, true);
-        assert.equal(requests, 1);
-        assert.deepEqual(
-          remoteFiles.mock.calls.map(([url]) => url),
-          [inlineUrl],
-        );
-        const selection = workerApp
-          .getShell()
-          .getJobQueueService()
-          .getHandler("stock-photo:select-photo");
-        assert.ok(selection);
-        const selected = await selection.process(
-          {
-            photoId: "stock-image",
-            downloadLocation: "https://api.unsplash.com/fixture/download",
-            photographerName: "Fixture",
-            photographerUrl: "https://unsplash.com/@fixture",
-            sourceUrl: "https://unsplash.com/photos/fixture",
-            imageUrl: `http://127.0.0.1:${server.port}/stock`,
-            title: "Stock fixture",
-            alt: "Stock alt",
-          },
-          "canonical-stock-photo",
-          reporter,
-          new AbortController().signal,
-        );
-        assert.deepEqual(selected, {
-          imageEntityId: "stock-image",
-          alreadyExisted: false,
+          );
+          assert.deepEqual(result, { success: true, imageId: "remote-cover" });
+          assert.equal(
+            (await owner.getEntity({ entityType: "image", id: "remote-cover" }))
+              ?.content,
+            record.ref,
+          );
+          const inline = workerApp
+            .getShell()
+            .getJobQueueService()
+            .getHandler("directory-sync:inline-image-convert");
+          assert.ok(inline);
+          // The cover job now exercises the same helper's native creation branch.
+          // Inline/frontmatter reuse exercises both callers without redundant actors.
+          const inlineUrl = `http://127.0.0.1:${server.port}/image`;
+          await writeFile(page, `![Inline](${inlineUrl})\n`);
+          assert.deepEqual(
+            await inline.process(
+              { filePath: page, postSlug: "remote" },
+              "canonical-inline-image",
+              reporter,
+              new AbortController().signal,
+            ),
+            { success: true, convertedCount: 1 },
+          );
+          assert.match(
+            await Bun.file(page).text(),
+            /entity:\/\/image\/remote-cover/,
+          );
+          const frontmatter = new FrontmatterImageConverter(
+            owner,
+            createSilentLogger(),
+          );
+          const converted = await frontmatter.convert(
+            `---\ntitle: Reused\ncoverImageUrl: ${inlineUrl}\n---\nBody\n`,
+          );
+          assert.equal(converted.imageId, "remote-cover");
+          assert.equal(converted.converted, true);
+          assert.equal(requests, 1);
+          assert.deepEqual(
+            remoteFiles.mock.calls.map(([url]) => url),
+            [inlineUrl],
+          );
+          const selection = workerApp
+            .getShell()
+            .getJobQueueService()
+            .getHandler("stock-photo:select-photo");
+          assert.ok(selection);
+          const selected = await selection.process(
+            {
+              photoId: "stock-image",
+              downloadLocation: "https://api.unsplash.com/fixture/download",
+              photographerName: "Fixture",
+              photographerUrl: "https://unsplash.com/@fixture",
+              sourceUrl: "https://unsplash.com/photos/fixture",
+              imageUrl: `http://127.0.0.1:${server.port}/stock`,
+              title: "Stock fixture",
+              alt: "Stock alt",
+            },
+            "canonical-stock-photo",
+            reporter,
+            new AbortController().signal,
+          );
+          assert.deepEqual(selected, {
+            imageEntityId: "stock-image",
+            alreadyExisted: false,
+          });
+          assert.equal(tracked, 1);
+          assert.equal(requests, 2);
+          assert.deepEqual(
+            remoteFiles.mock.calls.map(([url]) => url),
+            [inlineUrl, `http://127.0.0.1:${server.port}/stock`],
+          );
+        } finally {
+          remoteFiles.mockRestore();
+          await server.stop(true);
+        }
+        const bufferedUpload = spyOn(
+          RuntimeUploadStore.prototype,
+          "read",
+        ).mockImplementation(async (): Promise<never> => {
+          throw new Error("Controller upload buffering is forbidden");
         });
-        assert.equal(tracked, 1);
-        assert.equal(requests, 2);
-        assert.deepEqual(
-          remoteFiles.mock.calls.map(([url]) => url),
-          [inlineUrl, `http://127.0.0.1:${server.port}/stock`],
+        try {
+          const result = await promotion.process(
+            { uploadId: uploaded.id, imageId: "promoted-upload" },
+            "canonical-upload-promotion",
+            reporter,
+            new AbortController().signal,
+          );
+          assert.deepEqual(result, {
+            entityId: "promoted-upload",
+            status: "created",
+          });
+          const promoted = await owner.getEntity({
+            entityType: "image",
+            id: "promoted-upload",
+            visibilityScope: "restricted",
+          });
+          assert.ok(promoted);
+          assert.equal(promoted.content, record.ref);
+          assert.equal(promoted.visibility, "shared");
+          assert.equal(promoted.created, pendingUpload.created);
+        } finally {
+          bufferedUpload.mockRestore();
+        }
+      };
+      // Independent workflows share the unchanged two-child admission. Join
+      // both real outcomes rather than racing away on the first failure.
+      const outcomes = await Promise.allSettled([
+        renderCanonicalFile(workerFiles, directory, record.ref),
+        jobs(),
+      ]);
+      const errors = outcomes.flatMap((outcome) =>
+        outcome.status === "rejected" ? [outcome.reason] : [],
+      );
+      if (errors.length === 1) throw errors[0];
+      if (errors.length > 1)
+        throw new AggregateError(
+          errors,
+          "Canonical rendering and jobs failed",
+          { cause: errors[0] },
         );
-      } finally {
-        remoteFiles.mockRestore();
-        await server.stop(true);
-      }
-      const bufferedUpload = spyOn(
-        RuntimeUploadStore.prototype,
-        "read",
-      ).mockImplementation(async (): Promise<never> => {
-        throw new Error("Controller upload buffering is forbidden");
-      });
-      try {
-        const result = await promotion.process(
-          { uploadId: uploaded.id, imageId: "promoted-upload" },
-          "canonical-upload-promotion",
-          reporter,
-          new AbortController().signal,
-        );
-        assert.deepEqual(result, {
-          entityId: "promoted-upload",
-          status: "created",
-        });
-        const promoted = await owner.getEntity({
-          entityType: "image",
-          id: "promoted-upload",
-          visibilityScope: "restricted",
-        });
-        assert.ok(promoted);
-        assert.equal(promoted.content, record.ref);
-        assert.equal(promoted.visibility, "shared");
-        assert.equal(promoted.created, pendingUpload.created);
-      } finally {
-        bufferedUpload.mockRestore();
-      }
+      if (outcomes[0].status === "fulfilled")
+        rendered.record = outcomes[0].value;
     } finally {
       await workerApp.stop();
     }
@@ -566,6 +643,23 @@ plugins:
     }
     const binding = canonicalAssetBindings(url);
     shutdownChecks.push(() => assert.equal(binding.binary.closed, true));
+    assert.ok(rendered.record);
+    const renderedImage = imageSchema.parse(
+      await owner.getEntityRaw({
+        entityType: "image",
+        id: "actor-rendered-image",
+        visibilityScope: "restricted",
+      }),
+    );
+    assert.equal(renderedImage.content, rendered.record.ref);
+    assert.equal(renderedImage.metadata.width, 1200);
+    assert.equal(renderedImage.metadata.height, 630);
+    await exerciseCanonicalReadRpc(
+      binding,
+      endpoint,
+      rendered.record,
+      join(directory, "reopened-rendered.png"),
+    );
     await exerciseCanonicalReadRpc(
       binding,
       endpoint,
