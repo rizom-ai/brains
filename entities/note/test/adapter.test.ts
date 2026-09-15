@@ -29,6 +29,43 @@ describe("NoteAdapter", () => {
   });
 
   describe("fromMarkdown", () => {
+    it.each([
+      ["a".repeat(80), "a".repeat(80)],
+      ["a".repeat(81), `${"a".repeat(79)}…`],
+      [`${"word ".repeat(20)}ending`, `${"word ".repeat(15)}word…`],
+      [`${"a".repeat(75)} longword`, `${"a".repeat(75)}…`],
+      [`${"a".repeat(79)} next word`, `${"a".repeat(79)}…`],
+      ["😀".repeat(81), `${"😀".repeat(79)}…`],
+    ])("caps only first-line fallbacks: %s", (line, expected) => {
+      const content = `---\nstatus: generating\n---\n\n${line}\nSecond line`;
+      const result = adapter.fromMarkdown(content);
+      expect(result.metadata?.title).toBe(expected);
+      expect(
+        Array.from(result.metadata?.title ?? "").length,
+      ).toBeLessThanOrEqual(80);
+      expect(result.content).toBe(content);
+      const stored = createMockNote({
+        content,
+        metadata: { title: "Untitled" },
+      });
+      expect(adapter.extractMetadata(stored).title).toBe(expected);
+      expect(stored.metadata.title).toBe("Untitled");
+      expect(stored.content).toBe(content);
+    });
+
+    it("preserves long authored titles and H1 headings", () => {
+      const title = "Authored title ".repeat(10).trim();
+      expect(
+        adapter.fromMarkdown(`---\ntitle: ${title}\n---\nBody`).metadata?.title,
+      ).toBe(title);
+      expect(adapter.fromMarkdown(`# ${title}\nBody`).metadata?.title).toBe(
+        title,
+      );
+      expect(
+        adapter.extractMetadata(createMockNote({ metadata: { title } })).title,
+      ).toBe(title);
+    });
+
     it("should extract title from frontmatter", () => {
       const markdown = `---
 title: My Note Title

@@ -54,7 +54,7 @@ export class NoteAdapter extends BaseEntityAdapter<
       [
         frontmatter.title?.trim(),
         this.extractH1(body),
-        firstLine?.trim().replace(/^#{1,6}\s+/, ""),
+        this.limitFallbackTitle(firstLine?.trim().replace(/^#{1,6}\s+/, "")),
       ].find((candidate) => (candidate?.length ?? 0) > 0) ?? "Untitled";
     return {
       content: markdown,
@@ -126,6 +126,18 @@ export class NoteAdapter extends BaseEntityAdapter<
       // Parse error — save as-is
       return content;
     }
+  }
+
+  /** Reserve one character for the ellipsis; split long tokens only when necessary. */
+  private limitFallbackTitle(title: string | undefined): string | undefined {
+    if (title === undefined) return undefined;
+    const characters = Array.from(title);
+    if (characters.length <= 80) return title;
+    const prefix = characters.slice(0, 79).join("");
+    const boundary = /\s/u.test(characters[79] ?? "")
+      ? prefix
+      : prefix.replace(/\s+\S*$/u, "");
+    return `${boundary.trimEnd()}…`;
   }
 
   private extractH1(markdown: string): string | null {
