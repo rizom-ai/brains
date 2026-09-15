@@ -1,5 +1,4 @@
 import { describe, expect, it } from "bun:test";
-import { waitUntil } from "@brains/test-utils";
 import {
   MediaRenderError,
   renderPdf,
@@ -183,10 +182,7 @@ describe("media renderer", () => {
       expect(error).toMatchObject({ code: "render-timeout" });
     }
 
-    // Promise.race leaves the close to a straggling microtask, so wait for it
-    // to happen rather than for a duration to pass. The count is still
-    // asserted exactly: the point is that the timeout closes once, not twice.
-    await waitUntil(() => browser.closeCalls > 0, "the browser to close");
+    // Returning the timeout must already have joined exact-once release.
     expect(browser.closeCalls).toBe(1);
   });
 
@@ -206,6 +202,7 @@ describe("media renderer", () => {
         await releaseClose.promise;
       },
       process: () => ({
+        exited: Promise.resolve(0),
         kill: (): boolean => {
           killCalls++;
           return true;
@@ -261,7 +258,7 @@ describe("media renderer", () => {
     expect(browser.closeCalls).toBe(1);
   });
 
-  it("times out when browser launch hangs", async () => {
+  it("waits for slow launch before reporting timeout", async () => {
     let launchCalled = false;
     const slowFactory: BrowserFactory = {
       async launch(): Promise<MediaBrowser> {
@@ -284,7 +281,7 @@ describe("media renderer", () => {
     expect(launchCalled).toBe(true);
   });
 
-  it("kills a late-arriving browser when launch resolves after timeout", async () => {
+  it("retires a late-arriving browser before reporting timeout", async () => {
     let createdBrowser: FakeBrowser | undefined;
     const slowFactory: BrowserFactory = {
       async launch(): Promise<MediaBrowser> {
@@ -304,13 +301,7 @@ describe("media renderer", () => {
       expect(error).toMatchObject({ code: "render-timeout" });
     }
 
-    // The late launch resolves after the timeout has already rejected, and
-    // cleanup runs in its `.then()`. Wait for that to have happened rather
-    // than for long enough that it probably has.
-    await waitUntil(
-      () => (createdBrowser?.closeCalls ?? 0) > 0,
-      "the late browser to be killed",
-    );
+    // Rejection is withheld until the late browser has actually retired.
     expect(createdBrowser?.closeCalls).toBe(1);
   });
 

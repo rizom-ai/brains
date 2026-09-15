@@ -7,6 +7,8 @@ export interface ViewportOptions {
 }
 
 export interface BrowserProcess {
+  /** Exit observed by the subprocess creator; a kill request is not this receipt. */
+  readonly exited: Promise<number>;
   kill(signal?: NodeJS.Signals | number): boolean;
 }
 
@@ -43,5 +45,6 @@ export interface MediaBrowser {
 }
 
 export interface BrowserFactory {
-  launch(): Promise<MediaBrowser>;
+  /** Acquisition-only cancellation; callers still join launch settlement. */
+  launch(signal?: AbortSignal): Promise<MediaBrowser>;
 }
