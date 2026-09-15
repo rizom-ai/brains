@@ -1,8 +1,14 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
+import { encodeEntityIdPath } from "@brains/entity-service";
+import {
+  DIRECTORY_SYNC_CHANNELS,
+  directorySyncPathResponseSchema,
+} from "@brains/contracts";
 import {
   canWriteVisibility,
   generateMarkdownWithFrontmatter,
   getPublishBoundaryState,
+  entityIdPathSchema,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { isRawEntityType } from "./config";
@@ -46,9 +52,97 @@ const updateEntityPayloadSchema = z.object({
 
 const createEntityPayloadSchema = z.object({
   entityType: z.string(),
+  idPath: entityIdPathSchema.optional(),
   frontmatter: z.record(z.string(), z.unknown()),
   body: z.string().optional(),
 });
+
+const destinationPayloadSchema = createEntityPayloadSchema.extend({
+  idPath: entityIdPathSchema,
+});
+
+function invalidCreatePayload(error: unknown, input: unknown): Response {
+  const candidate =
+    typeof input === "object" && input !== null && "idPath" in input
+      ? input.idPath
+      : null;
+  const leafIndex = Array.isArray(candidate) ? candidate.length - 1 : 0;
+  return jsonResponse(
+    {
+      error: "Invalid destination or entry fields",
+      ...(error instanceof z.ZodError && {
+        issues: error.issues.map((issue) => ({
+          ...issue,
+          path:
+            issue.path[0] === "idPath"
+              ? [
+                  issue.path.length < 2 || issue.path[1] === leafIndex
+                    ? "segment"
+                    : "prefix",
+                ]
+              : issue.path,
+        })),
+      }),
+    },
+    400,
+  );
+}
+
+export async function handlePreviewDestination(
+  context: ServicePluginContext,
+  request: Request,
+  access: StudioRequestAccess,
+): Promise<Response> {
+  let input: unknown;
+  let payload: z.infer<typeof destinationPayloadSchema>;
+  try {
+    input = await request.json();
+    payload = destinationPayloadSchema.parse(input);
+  } catch (error) {
+    return invalidCreatePayload(error, input);
+  }
+  if (!context.entities.getEffectiveFrontmatterSchema(payload.entityType))
+    return jsonResponse({ error: "Unknown entity type" }, 404);
+  const denied = requireEntityAction(
+    context,
+    payload.entityType,
+    "create",
+    access,
+  );
+  if (denied) return denied;
+  const entity = prepareStudioCreation(context, payload);
+  if (entity instanceof Response) return entity;
+  if (!canWriteVisibility(access.permissionLevel, entity.visibility))
+    return jsonResponse({ error: "Cannot create at this visibility" }, 403);
+  const entityId = encodeEntityIdPath(payload.idPath);
+  const response = await context.messaging.send({
+    type: DIRECTORY_SYNC_CHANNELS.pathRequest,
+    payload: {
+      entityType: payload.entityType,
+      entityId,
+      metadata: entity.metadata,
+      content: entity.content,
+    },
+  });
+  // Directory-sync is optional. An unavailable placement preview is explicit,
+  // not a guessed path or a reason to prevent database-only authoring.
+  const placement =
+    "success" in response && response.success && response.data !== undefined
+      ? directorySyncPathResponseSchema.parse(response.data)
+      : null;
+  const [first, ...rest] = payload.idPath;
+  const encodedLeaf = encodeEntityIdPath([rest.at(-1) ?? first]);
+  return jsonResponse({
+    idPath: payload.idPath,
+    entityId,
+    entityLeaf: {
+      start: entityId.length - encodedLeaf.length,
+      end: entityId.length,
+    },
+    filePath: placement?.relativePath ?? null,
+    fileLeaf: placement?.leaf ?? null,
+  });
+}
 
 const deleteEntityPayloadSchema = z.object({
   confirmed: z.literal(true),
@@ -146,6 +240,69 @@ export async function handleGetEntities(
       };
     }),
   });
+}
+
+export async function handleGetEntityHierarchy(
+  context: ServicePluginContext,
+  request: Request,
+  access: StudioRequestAccess,
+): Promise<Response> {
+  const params = new URL(request.url).searchParams;
+  const entityType = params.get("type");
+  if (!entityType)
+    return jsonResponse({ error: "type query parameter is required" }, 400);
+  if (!(await getTypeCapabilities(context, entityType, access)))
+    return jsonResponse({ error: `Unknown entity type: ${entityType}` }, 404);
+  const query = studioCollectionQuerySchema.safeParse(
+    studioCollectionQueryFromParams(params),
+  );
+  if (!query.success)
+    return jsonResponse({ error: "Invalid folder query" }, 400);
+  const { prefix, scope, q, visibility, status, sort, limit, offset } =
+    query.data;
+  try {
+    const page = await context.entityService.queryEntityHierarchy({
+      entityType,
+      prefix: scope === "collection" ? null : prefix,
+      limit,
+      offset,
+      visibilityScope: access.visibilityScope,
+      includeDescendants: scope === "collection" || Boolean(q),
+      filter: {
+        ...(q && { contentContains: q }),
+        ...(visibility !== "all" && { visibility }),
+        ...(status && { metadata: { status } }),
+      },
+      sortFields: [
+        {
+          field: sort.startsWith("created") ? "created" : "updated",
+          direction: sort.endsWith("asc") ? "asc" : "desc",
+        },
+        { field: "id", direction: "asc" },
+      ],
+      signal: request.signal,
+    });
+    return jsonResponse({
+      prefix: page.prefix,
+      folders: page.folders,
+      total: page.totalEntities,
+      entities: page.entities.map(({ entity, path }) => ({
+        id: entity.id,
+        entityType: entity.entityType,
+        path,
+        frontmatter: {
+          ...splitEntityContent(entityType, entity.content).frontmatter,
+          visibility: entity.visibility,
+        },
+        displayTitle: entityDisplayTitle(entity),
+        updated: entity.updated,
+      })),
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError)
+      return jsonResponse({ error: "Invalid folder prefix" }, 400);
+    throw error;
+  }
 }
 
 export async function handleUpdateEntity(
@@ -339,6 +496,60 @@ export async function handleUpdateEntity(
   });
 }
 
+function prepareStudioCreation(
+  context: ServicePluginContext,
+  payload: z.infer<typeof createEntityPayloadSchema>,
+):
+  | (Partial<BaseEntity> &
+      Pick<BaseEntity, "entityType" | "content" | "metadata" | "visibility">)
+  | Response {
+  const { entityType } = payload;
+  const schema = context.entities.getEffectiveFrontmatterSchema(entityType);
+  if (!schema)
+    return jsonResponse({ error: `Unknown entity type: ${entityType}` }, 404);
+  const bodyError = rejectBodyForBodylessType(
+    context,
+    entityType,
+    payload.body,
+  );
+  if (bodyError) return bodyError;
+  const raw = isRawEntityType(entityType);
+  const domainFrontmatter = stripStudioPolicyMetadata(payload.frontmatter);
+  if (raw && Object.keys(domainFrontmatter).length > 0)
+    return jsonResponse(
+      {
+        error: `Entity type ${entityType} is raw markdown without frontmatter`,
+      },
+      400,
+    );
+  const visibility = resolveStudioVisibility(payload.frontmatter, "public");
+  if (!visibility.success) return visibility.response;
+  // System visibility is validated separately, never by a strict domain schema.
+  const frontmatter = raw
+    ? z.object({}).safeParse({})
+    : schema.safeParse(domainFrontmatter);
+  if (!frontmatter.success)
+    return jsonResponse(
+      { error: "Invalid frontmatter", issues: frontmatter.error.issues },
+      400,
+    );
+  const content = raw
+    ? (payload.body ?? "")
+    : generateMarkdownWithFrontmatter(
+        payload.body ?? "",
+        withStudioVisibility(frontmatter.data, visibility.visibility),
+      );
+  const parsed = context.entities.getAdapter(entityType)?.fromMarkdown(content);
+  return {
+    ...parsed,
+    ...(payload.idPath && { id: encodeEntityIdPath(payload.idPath) }),
+    entityType,
+    content,
+    metadata: stripStudioPolicyMetadata(parsed?.metadata ?? {}),
+    visibility: visibility.visibility,
+  };
+}
+
 export async function handleCreateEntity(
   context: ServicePluginContext,
   request: Request,
@@ -346,10 +557,12 @@ export async function handleCreateEntity(
   recordAuditEvent: EditorRouteOptions["recordAuditEvent"],
 ): Promise<Response> {
   let payload: z.infer<typeof createEntityPayloadSchema>;
+  let input: unknown;
   try {
-    payload = createEntityPayloadSchema.parse(await request.json());
-  } catch {
-    return jsonResponse({ error: "Invalid create payload" }, 400);
+    input = await request.json();
+    payload = createEntityPayloadSchema.parse(input);
+  } catch (error) {
+    return invalidCreatePayload(error, input);
   }
 
   const { entityType } = payload;
@@ -377,53 +590,8 @@ export async function handleCreateEntity(
     return actionDenied;
   }
 
-  const bodyError = rejectBodyForBodylessType(
-    context,
-    entityType,
-    payload.body,
-  );
-  if (bodyError) return bodyError;
-
-  const raw = isRawEntityType(entityType);
-  const domainFrontmatter = stripStudioPolicyMetadata(payload.frontmatter);
-  if (raw && Object.keys(domainFrontmatter).length > 0) {
-    return jsonResponse(
-      {
-        error: `Entity type ${entityType} is raw markdown without frontmatter`,
-      },
-      400,
-    );
-  }
-
-  const visibility = resolveStudioVisibility(payload.frontmatter, "public");
-  if (!visibility.success) return visibility.response;
-
-  const frontmatter = raw
-    ? z.object({}).safeParse({})
-    : // `visibility` is a system field in the editor projection. It is
-      // resolved above and must not reach a strict domain schema.
-      schema.safeParse(domainFrontmatter);
-  if (!frontmatter.success) {
-    return jsonResponse(
-      { error: "Invalid frontmatter", issues: frontmatter.error.issues },
-      400,
-    );
-  }
-
-  const content = raw
-    ? (payload.body ?? "")
-    : generateMarkdownWithFrontmatter(
-        payload.body ?? "",
-        withStudioVisibility(frontmatter.data, visibility.visibility),
-      );
-  const parsed = context.entities.getAdapter(entityType)?.fromMarkdown(content);
-  const entity = {
-    ...parsed,
-    entityType,
-    content,
-    metadata: stripStudioPolicyMetadata(parsed?.metadata ?? {}),
-    visibility: visibility.visibility,
-  };
+  const entity = prepareStudioCreation(context, payload);
+  if (entity instanceof Response) return entity;
   if (!canWriteVisibility(access.permissionLevel, entity.visibility)) {
     await recordStudioMutationAudit(
       recordAuditEvent,
@@ -462,11 +630,31 @@ export async function handleCreateEntity(
     return persistenceDenied;
   }
 
-  // No id: the entity service derives one, keeping id policy server-side.
-  const result = await context.entityService.createEntity({
-    entity,
-    options: studioMutationOptions(access),
-  });
+  // Explicit paths are create-if-absent; other creation flows retain server-derived IDs.
+  let result;
+  try {
+    result = await context.entityService.createEntity({
+      entity,
+      options: {
+        ...studioMutationOptions(access),
+        ...(payload.idPath && { conditionalWrite: { expectedRevision: null } }),
+      },
+    });
+  } catch (error) {
+    // The packed plugin and source runtime can carry separate class copies.
+    // Match the entity-service error's stable name, not constructor identity.
+    if (error instanceof Error && error.name === "EntityWriteConflictError")
+      return jsonResponse(
+        {
+          error: "An entry already exists at this destination.",
+          issues: [
+            { path: ["segment"], message: "Choose a different segment." },
+          ],
+        },
+        409,
+      );
+    throw error;
+  }
   await recordStudioMutationAudit(
     recordAuditEvent,
     access,

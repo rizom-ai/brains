@@ -1,21 +1,47 @@
 # Plan: Studio Hierarchical Entity Navigation
 
-Last updated: 2026-09-12
+Last updated: 2026-09-15
 
 ## Status
 
-**In progress: Slice 2 (entity-service hierarchy query).**
+**Implemented on the feature branch; review pending.**
 
 Slice 1 is committed as `69363eae6c`. Directory-sync now delegates identity encoding and
 decoding to entity-service while retaining its filesystem placement rules. The 47-case
 golden inventory passed before adoption and unchanged afterward.
 
+Slice 2 is committed as `3791721010`, with visibility-scoped SQL hierarchy queries on the
+existing entity-service client. Slice 3 implements the approved navigation, explicit
+recursive search scope, guarded folder-aware creation and directory-sync-owned destination
+preview. Browser review also exposed two concrete defects: conflicting StyleX border
+properties suppressed row rules, and nested note export skipped creating parent directories.
+Both have regression tests; neither fix changes IDs or filesystem placement. Merge and
+release remain user decisions.
+
+The canonical publishing app now passes the 24-state site-content browser matrix, live
+creation, duplicate rejection without overwrite, Save/Back navigation, export, live file
+reimport, and import into a fresh database with the full ID and route/section metadata intact.
+The duplicate-write check exposed separate source/bundle error constructors; Studio now
+recognizes the entity-service conflict's stable error name rather than constructor identity.
+Both same-constructor and cross-bundle cases have regressions, including propagation of
+unrelated persistence failures. Code review remains required before merge or release.
+
+Nested notes are a separate known filesystem limitation, not a site-content hierarchy defect:
+directory-sync ignores non-entity-type root directories, while note exports omit a type root.
+Broadening discovery would import currently ignored Markdown; reserving a new note directory
+would change placement. Neither policy change nor a new authoring restriction is part of this
+slice. Existing root-note conventions and all golden placements remain unchanged. This slice
+does not claim that every historical stored ID has an invertible filesystem representation.
+
+Browser verification uses isolated local data and mocked AI. It does not establish real-provider,
+unchanged-install upgrade, release, or deployment acceptance.
+
 Implementation follow-up to
 [generic-multi-section-content-generation.md](./generic-multi-section-content-generation.md),
 merged in PR #252 and included in Brain `0.2.0-alpha.379`. Generation uses the entity-service
 path codec. That release did not move directory-sync onto the codec; Slice 1 delivered
-that bridge. Studio still presents each entity type as one flat, updated-time-paginated
-collection.
+that bridge. The feature branch now presents complete virtual folders above paged direct
+entries; it has not moved main.
 
 Phase 0 below owns that missing bridge. It preserves existing filesystem placement and
 stored IDs before adding hierarchy queries or UI. Deliver the work sequentially in three
@@ -87,14 +113,19 @@ segments: export roots, extensions, root-note conventions and existing placement
 Phase 0 pins those rules before adopting the codec. It must not rewrite IDs, move files,
 introduce database migrations, or give Studio a separate delimiter parser.
 
-## Current Studio state
+## Implementation state
 
-- Studio lists one page of entities ordered by update time from
-  `plugins/studio/src/editor-entities.ts`.
-- Studio collection routes identify an entity type; entity routes encode the complete
-  stored ID as one URL value.
-- A browser cannot construct a complete folder tree from one paginated entity page.
-- Existing list responses expose stored IDs but no structured path projection.
+- Studio's hierarchy route calls entity-service rather than scanning client-side pages.
+- Collection URLs retain structured prefixes and scope alongside filters and pagination;
+  direct entity routes still encode the complete stored ID as one URL value.
+- Creation previews and writes use the same schema/adapter projection. The server encodes
+  identity; directory-sync supplies file placement and presentation offsets.
+- New explicit destinations use conditional creation. Singleton and Inbox capture flows
+  retain their existing server-derived identity behavior.
+- The running publishing app was verified with isolated local data and a test AI
+  responder. This establishes UI/runtime behavior, not AI-provider or deployment acceptance.
+- No additive `@rizom/brain` public export is needed: its explicit authoring entrypoints
+  remain unchanged.
 
 ## Settled architecture
 

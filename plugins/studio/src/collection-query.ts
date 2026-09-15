@@ -1,7 +1,10 @@
 import { z } from "@brains/utils/zod";
+import type { EntityIdPath } from "@brains/plugins";
 import { STUDIO_ENTITY_PAGE_LIMIT } from "./editor-contracts";
 
 export interface StudioCollectionQuery {
+  prefix: EntityIdPath | null;
+  scope: "folder" | "collection";
   q: string;
   visibility: "all" | "public" | "shared" | "restricted";
   status: string;
@@ -12,6 +15,8 @@ export interface StudioCollectionQuery {
 
 export const studioCollectionQuerySchema: z.ZodType<StudioCollectionQuery> =
   z.object({
+    prefix: z.tuple([z.string()], z.string()).nullable().default(null),
+    scope: z.enum(["folder", "collection"]).default("folder"),
     q: z.string().trim().max(200).default(""),
     visibility: z
       .enum(["all", "public", "shared", "restricted"])
@@ -37,7 +42,18 @@ export const studioCollectionQuerySchema: z.ZodType<StudioCollectionQuery> =
 export function studioCollectionQueryFromParams(
   params: URLSearchParams,
 ): unknown {
+  const rawPrefix = params.get("prefix");
+  let prefix: unknown = null;
+  if (rawPrefix !== null) {
+    try {
+      prefix = JSON.parse(rawPrefix);
+    } catch {
+      prefix = rawPrefix;
+    } // Preserve invalid input for the transport schema to reject.
+  }
   return {
+    prefix,
+    scope: params.get("scope") ?? undefined,
     q: params.get("q") ?? undefined,
     visibility: params.get("visibility") ?? undefined,
     status: params.get("status") ?? undefined,

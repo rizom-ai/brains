@@ -158,6 +158,275 @@ describe("System Properties disclosure", () => {
 });
 
 describe("Studio App transport", () => {
+  it("navigates folders through history and sends only segments when creating there", async () => {
+    const writes: unknown[] = [];
+    let conflict = true;
+    const api = new StudioApi({
+      basePath: "/studio",
+      fetch: async (input, init): Promise<Response> => {
+        const url = new URL(String(input), "http://brain.test");
+        requests.push(String(input));
+        if (url.pathname.endsWith("/types"))
+          return Response.json({
+            types: [
+              {
+                entityType: "section",
+                label: "Book sections",
+                isSingleton: false,
+                hasBody: false,
+                count: conflict ? 2 : 3,
+                capabilities: {
+                  canRead: true,
+                  canCreate: true,
+                  canUpdate: true,
+                  canDelete: false,
+                  canAssist: false,
+                  canPublish: false,
+                  canExtract: false,
+                },
+              },
+            ],
+            workspaces: [],
+          });
+        if (url.pathname.endsWith("/schema"))
+          return Response.json({
+            entityType: "section",
+            format: "frontmatter",
+            isSingleton: false,
+            hasBody: false,
+            fields: [],
+          });
+        if (url.pathname.endsWith("/hierarchy"))
+          return Response.json({
+            prefix: url.searchParams.has("prefix") ? ["book-1"] : null,
+            folders: url.searchParams.has("prefix")
+              ? []
+              : [{ path: ["book-1"], name: "book-1", descendantCount: 2 }],
+            entities: [],
+            total: 0,
+          });
+        if (url.pathname.endsWith("/destination"))
+          return Response.json({
+            idPath: ["book-1", "intro"],
+            entityId: "book-1:intro",
+            filePath: "section/book-1/intro.md",
+            entityLeaf: { start: 7, end: 12 },
+            fileLeaf: { start: 15, end: 20 },
+          });
+        if (url.pathname.endsWith("/entities") && init?.method === "POST") {
+          writes.push(JSON.parse(String(init.body)));
+          if (!conflict)
+            return Response.json(
+              { entityId: "book-1:intro", jobId: "created" },
+              { status: 201 },
+            );
+          return Response.json(
+            {
+              error: "Destination exists",
+              issues: [
+                { path: ["segment"], message: "Choose a different segment." },
+              ],
+            },
+            { status: 409 },
+          );
+        }
+        // Count refresh must not reset the draft while another invalidation is pending.
+        if (!conflict && url.pathname.endsWith("/sync-status"))
+          await new Promise((resolve) => setTimeout(resolve, 40));
+        if (url.pathname.endsWith("/entities"))
+          return Response.json({
+            entity: {
+              id: "book-1:intro",
+              entityType: "section",
+              frontmatter: {},
+              body: "",
+              contentHash: "hash",
+              created: "2026-09-13T00:00:00Z",
+              updated: "2026-09-13T00:00:00Z",
+            },
+          });
+        return Response.json({ directorySync: false, git: null });
+      },
+    });
+    const history = createMemoryHistory({
+      initialEntries: ["/studio/entities/section"],
+    });
+    const router = createStudioRouter("/studio", App, history);
+    await act(async () =>
+      root.render(
+        <QueryClientProvider client={createStudioQueryClient()}>
+          <StudioApiProvider api={api}>
+            <RouterProvider router={router} />
+          </StudioApiProvider>
+        </QueryClientProvider>,
+      ),
+    );
+    await waitFor(
+      () => document.querySelector("[data-studio-folder]") !== null,
+    );
+    await act(async () =>
+      document
+        .querySelector<HTMLAnchorElement>("[data-studio-folder]")
+        ?.click(),
+    );
+    await waitFor(
+      () => document.querySelector('[aria-label="Folder trail"]') !== null,
+    );
+    expect(document.querySelector("h1")?.textContent).toBe("Book sections");
+    expect(history.location.search).toContain("prefix=%5B%22book-1%22%5D");
+    await act(async () => history.back());
+    await waitFor(
+      () => document.querySelector("[data-studio-folder]") !== null,
+    );
+    expect(document.querySelector('[aria-label="Folder trail"]')).toBeNull();
+    await act(async () => history.forward());
+    await waitFor(
+      () => document.querySelector('[aria-label="Folder trail"]') !== null,
+    );
+    const create = [...document.querySelectorAll("button")].find(
+      (button) => button.textContent === "New book section",
+    );
+    if (!create) throw new Error("Missing New action");
+    await act(async () => create.click());
+    await waitFor(
+      () => document.querySelector('input[name="segment"]') !== null,
+    );
+    expect(document.querySelector("[data-studio-folder-action]")).toBeNull();
+    expect(document.querySelector('[aria-label="Folder trail"] a')).toBeNull();
+    const segment = document.querySelector<HTMLInputElement>(
+      'input[name="segment"]',
+    );
+    if (!segment) throw new Error("Missing Segment");
+    expect(segment.closest("[data-studio-creation-layout]")).not.toBeNull();
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(
+        windowInstance.HTMLInputElement.prototype,
+        "value",
+      )?.set?.call(segment, "intro");
+      segment.dispatchEvent(new Event("input", { bubbles: true }));
+      segment.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await waitFor(() =>
+      document.body.textContent.includes("section/book-1/intro.md"),
+    );
+    await act(async () =>
+      document
+        .querySelector<HTMLFormElement>("[data-studio-editor]")
+        ?.dispatchEvent(
+          new Event("submit", { bubbles: true, cancelable: true }),
+        ),
+    );
+    await waitFor(() => writes.length === 1);
+    expect(writes[0]).toEqual({
+      entityType: "section",
+      idPath: ["book-1", "intro"],
+      frontmatter: {},
+    });
+    await waitFor(() =>
+      document.body.textContent.includes("Choose a different segment."),
+    );
+    expect(segment.getAttribute("aria-invalid")).toBe("true");
+    conflict = false;
+    await act(async () =>
+      document
+        .querySelector<HTMLFormElement>("[data-studio-editor]")
+        ?.dispatchEvent(
+          new Event("submit", { bubbles: true, cancelable: true }),
+        ),
+    );
+    await waitFor(
+      () =>
+        history.location.pathname.endsWith("book-1%3Aintro") &&
+        document.querySelector('input[name="segment"]') === null,
+    );
+    await act(async () =>
+      document
+        .querySelector<HTMLButtonElement>('[aria-label^="Back to"]')
+        ?.click(),
+    );
+    await waitFor(
+      () => document.querySelector("[data-studio-library]") !== null,
+    );
+    expect(document.querySelector('input[name="segment"]')).toBeNull();
+    expect(history.location.search).toBe("?prefix=%5B%22book-1%22%5D");
+  });
+
+  it("opens an existing singleton regardless of its stored ID depth", async () => {
+    const entity = {
+      id: "profile:singleton",
+      entityType: "profile",
+      frontmatter: {},
+      body: "",
+      contentHash: "hash",
+      created: "2026-09-13T00:00:00Z",
+      updated: "2026-09-13T00:00:00Z",
+    };
+    const api = new StudioApi({
+      basePath: "/studio",
+      fetch: async (input): Promise<Response> => {
+        const url = new URL(String(input), "http://brain.test");
+        requests.push(String(input));
+        if (url.pathname.endsWith("/types"))
+          return Response.json({
+            types: [
+              {
+                entityType: "profile",
+                label: "Profile",
+                isSingleton: true,
+                hasBody: false,
+                count: 1,
+                capabilities: {
+                  canRead: true,
+                  canCreate: true,
+                  canUpdate: true,
+                  canDelete: false,
+                  canAssist: false,
+                  canPublish: false,
+                  canExtract: false,
+                },
+              },
+            ],
+            workspaces: [],
+          });
+        if (url.pathname.endsWith("/schema"))
+          return Response.json({
+            entityType: "profile",
+            format: "frontmatter",
+            isSingleton: true,
+            hasBody: false,
+            fields: [],
+          });
+        if (url.pathname.endsWith("/hierarchy"))
+          return Response.json({
+            entities:
+              url.searchParams.get("scope") === "collection" ? [entity] : [],
+            total: 1,
+          });
+        if (url.pathname.endsWith("/entities"))
+          return Response.json({ entity });
+        return Response.json({ directorySync: false, git: null });
+      },
+    });
+    const router = createStudioRouter(
+      "/studio",
+      App,
+      createMemoryHistory({ initialEntries: ["/studio/entities/profile"] }),
+    );
+    await act(async () =>
+      root.render(
+        <QueryClientProvider client={createStudioQueryClient()}>
+          <StudioApiProvider api={api}>
+            <RouterProvider router={router} />
+          </StudioApiProvider>
+        </QueryClientProvider>,
+      ),
+    );
+    await waitFor(() =>
+      requests.some((url) => url.includes("id=profile%3Asingleton")),
+    );
+    expect(document.querySelector('input[name="segment"]')).toBeNull();
+  });
+
   it.each([
     [401, "no longer authenticated"],
     [403, "permission"],
@@ -393,7 +662,10 @@ describe("Studio App transport", () => {
                 },
               ],
             });
-          if (url.pathname.endsWith("/entities"))
+          if (
+            url.pathname.endsWith("/entities") ||
+            url.pathname.endsWith("/hierarchy")
+          )
             return Response.json(
               url.searchParams.has("id")
                 ? { entity: makeEntity(url.searchParams.get("id") ?? "first") }
@@ -601,7 +873,10 @@ describe("Studio App transport", () => {
             hasBody: false,
             fields: [],
           });
-        if (url.pathname.endsWith("/entities"))
+        if (
+          url.pathname.endsWith("/entities") ||
+          url.pathname.endsWith("/hierarchy")
+        )
           return Response.json(
             url.searchParams.has("id")
               ? { entity }
@@ -633,7 +908,7 @@ describe("Studio App transport", () => {
       () => document.querySelector("[data-studio-record]") !== null,
     );
     expect(requests).toContain(
-      `/studio/api/entities?type=post&offset=25&limit=25&${filters}`,
+      `/studio/api/hierarchy?type=post&offset=25&limit=25&${filters}`,
     );
     expect(document.body.textContent).toContain("26–26 of 76");
     await act(async () =>
@@ -719,7 +994,7 @@ describe("Studio App transport", () => {
         "?q=Page&visibility=restricted&sort=created-asc",
     );
     expect(requests).toContain(
-      "/studio/api/entities?type=post&offset=0&limit=25&q=Page&visibility=restricted&sort=created-asc",
+      "/studio/api/hierarchy?type=post&offset=0&limit=25&q=Page&visibility=restricted&sort=created-asc",
     );
     await act(async () => history.back());
     await waitFor(() => document.body.textContent.includes("26–26 of 76"));
@@ -752,7 +1027,7 @@ describe("Studio App transport", () => {
     // App asks for the "post" collection only because the types the provided
     // client answered with named it, so this follow-up shows the round trip.
     await waitFor(() =>
-      requests.includes("/studio/api/entities?type=post&offset=0&limit=25"),
+      requests.includes("/studio/api/hierarchy?type=post&offset=0&limit=25"),
     );
 
     expect(requests[0]).toBe("/studio/api/types");

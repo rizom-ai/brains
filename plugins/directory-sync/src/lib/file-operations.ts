@@ -212,7 +212,7 @@ export class FileOperations {
       }
 
       if (!binaryUnchanged) {
-        await this.ensureEntityDirectory(entity, filePath);
+        await this.ensureEntityDirectory(filePath);
         await writeFile(filePath, contentToWrite);
       }
 
@@ -236,7 +236,7 @@ export class FileOperations {
         }
       }
 
-      await this.ensureEntityDirectory(entity, filePath);
+      await this.ensureEntityDirectory(filePath);
       await writeFile(filePath, contentToWrite, "utf-8");
     }
 
@@ -245,13 +245,8 @@ export class FileOperations {
     await utimes(filePath, updatedTime, updatedTime);
   }
 
-  private async ensureEntityDirectory(
-    entity: BaseEntity,
-    filePath: string,
-  ): Promise<void> {
-    if (entity.entityType !== "note") {
-      await mkdir(dirname(filePath), { recursive: true });
-    }
+  private async ensureEntityDirectory(filePath: string): Promise<void> {
+    await mkdir(dirname(filePath), { recursive: true });
   }
 
   /**
@@ -282,7 +277,7 @@ export class FileOperations {
       }
     }
 
-    await this.ensureEntityDirectory(entity, sidecarPath);
+    await this.ensureEntityDirectory(sidecarPath);
     await writeFile(sidecarPath, serialized, "utf-8");
   }
 

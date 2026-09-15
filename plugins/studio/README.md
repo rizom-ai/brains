@@ -18,6 +18,7 @@ All server-state keys come from `ui-react/src/queries.ts`:
 studioKeys.navigation();
 studioKeys.workspace(workspaceId);
 studioKeys.schema(entityType);
+studioKeys.destination(authoringInput);
 studioKeys.entities(entityType);
 studioKeys.entityPage(entityType, collectionQuery);
 studioKeys.entity(entityType, entityId);
@@ -43,7 +44,15 @@ Studio doors use `{routePath}/entities/{encodedEntityType}`, `{routePath}/entiti
 
 System editors share the navigation's role groups: Identity, Site, and Network use full-width Properties with any supported body below; Intelligence uses an expandable Properties section above the document. Bodyless types never reserve a manuscript pane. Library documents keep the split layout. Stacked editors own one keyboard-focusable content scroller and inline Source/Preview controls at every width. Existing write permissions still govern fields and actions; read-only System records do not advertise Save. Native and structured validation reveal collapsed Properties without remounting controls or discarding drafts. This is host presentation only; adapter schemas and stored content are unchanged.
 
-Entity collections keep `q`, `visibility`, `status`, `sort`, `offset`, and nondefault `limit` in the URL, including editor return links. Filter changes reset the offset; Back/Forward and refresh restore it. The entity-list API returns `{ entities, total }`, with both values using the same filters and access scope. Search matches literal text in serialized content, including titles; status uses projected metadata; sorting supports created/updated time with an ID tie-breaker. Exact visibility filters can narrow access but cannot widen it. Collection query schemas bound search length and page sizes, and cache keys include the complete normalized query.
+Entity collections keep a JSON-array `prefix`, explicit search `scope`, `q`, `visibility`, `status`, `sort`, `offset`, and nondefault `limit` in the URL, including editor return links. Folder and filter changes reset the offset; Back/Forward and refresh restore it. The hierarchy API delegates to entity-service and returns `{ prefix, folders, entities, total }`: complete immediate folders appear above the paged direct entries. Counts and folders are derived after applying the authenticated caller's visibility. Exact visibility filters can narrow access but cannot widen it. No folder records or duplicate path metadata are stored.
+
+With a folder selected, search explicitly chooses **This folder** (including descendants) or **Whole collection**. Search matches literal text in serialized content, including titles; status uses projected metadata; sorting supports created/updated time with an ID tie-breaker. Recursive search returns a paged entry result without folder summaries. Singletons use collection-wide retrieval regardless of their stored ID depth. Query schemas bound search length and page sizes, and cache keys include the complete normalized query.
+
+**New** fixes the selected folder and asks for one **Segment**. Studio submits `idPath`; the server validates it and encodes the ID through the entity-service codec. Destination previews share creation's schema and adapter projection, then ask directory-sync for the relative export path over `sync:path:request`. Identity and placement owners also supply display offsets for highlighting the new segment; the browser does not parse IDs or reconstruct filenames. Missing directory-sync means an explicitly unavailable file preview, not a guessed path. Creation uses an absent-write precondition: a collision reports against Segment rather than silently renaming or overwriting. Saved creation replaces its transient history entry, so returning to the collection does not reopen the creation form.
+
+Folder trails use links above the list and scrollable chips on phones. The collection title and entity-type rail remain fixed. The phone creation action names its folder; the creation document instead keeps its single **Save changes** in the heading. Existing stored paths remain readable through the hierarchy query; new authoring paths must pass the stricter path schema. Singleton and destination-owned capture flows retain their server-derived IDs. No move/rename operation or migration is introduced.
+
+The file preview reports directory-sync's existing placement, not a guarantee that every historical ID can be reconstructed from its filename. In particular, nested notes retain directory-sync's root-note import limitation; this feature neither changes that filesystem policy nor adds a note-specific creation restriction. The live site-content create/export/reimport workflow is verified independently of that limitation.
 
 Destination-owned Inbox handoffs may open `{routePath}/entities/note?mode=create` with a
 bounded, schema-validated history-state envelope. Studio consumes that envelope once, seeds an

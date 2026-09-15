@@ -143,6 +143,8 @@ export function StudioCollectionControls(props: {
                 props.onChange(
                   studioCollectionQuerySchema.parse({
                     limit: props.query.limit,
+                    prefix: props.query.prefix,
+                    scope: props.query.scope,
                   }),
                 );
               }}
@@ -152,6 +154,31 @@ export function StudioCollectionControls(props: {
           </>
         )}
       </div>
+      {(props.query.prefix !== null || props.query.scope === "collection") && (
+        <div
+          role="group"
+          aria-label="Search scope"
+          className={editorClassName("", styles.scope)}
+        >
+          <span>Search</span>
+          <button
+            type="button"
+            aria-pressed={props.query.scope === "folder"}
+            className={editorClassName("", styles.scopeChoice)}
+            onClick={() => commit({ scope: "folder" })}
+          >
+            This folder
+          </button>
+          <button
+            type="button"
+            aria-pressed={props.query.scope === "collection"}
+            className={editorClassName("", styles.scopeChoice)}
+            onClick={() => commit({ scope: "collection" })}
+          >
+            Whole collection
+          </button>
+        </div>
+      )}
     </section>
   );
 }

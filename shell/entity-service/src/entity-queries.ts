@@ -105,6 +105,7 @@ type ListOptions = z.input<typeof listOptionsSchema>;
 const hierarchyRequestSchema = z.object({
   entityType: z.string().min(1),
   prefix: storedEntityIdPathSchema.nullable().optional(),
+  includeDescendants: z.boolean().default(false),
   visibilityScope: z.enum(["public", "shared", "restricted"]).optional(),
   limit: z.number().int().min(1).max(100).default(50),
   offset: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).default(0),
@@ -296,16 +297,18 @@ export class EntityQueries {
     );
     conditions.push(path.withinPrefix);
 
-    const folders = await this.db
-      .select({
-        name: path.childName,
-        count: sql<number>`COUNT(*)`,
-      })
-      .from(entities)
-      .where(and(...conditions, not(path.directChild)))
-      .groupBy(path.childName)
-      .orderBy(asc(path.childName))
-      .limit(MAX_HIERARCHY_FOLDERS + 1);
+    const folders = input.includeDescendants
+      ? []
+      : await this.db
+          .select({
+            name: path.childName,
+            count: sql<number>`COUNT(*)`,
+          })
+          .from(entities)
+          .where(and(...conditions, not(path.directChild)))
+          .groupBy(path.childName)
+          .orderBy(asc(path.childName))
+          .limit(MAX_HIERARCHY_FOLDERS + 1);
     signal?.throwIfAborted();
     if (folders.length > MAX_HIERARCHY_FOLDERS) {
       throw new Error(
@@ -313,7 +316,10 @@ export class EntityQueries {
       );
     }
 
-    const direct = and(...conditions, path.directChild);
+    const direct = and(
+      ...conditions,
+      ...(input.includeDescendants ? [] : [path.directChild]),
+    );
     const counts = await this.db
       .select({ count: sql<number>`COUNT(*)` })
       .from(entities)

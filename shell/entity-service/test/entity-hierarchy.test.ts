@@ -263,6 +263,27 @@ describe("entity hierarchy (real SQLite)", () => {
     expect(pathLike.entities[0]?.path).toEqual(["book/part", "..", "intro"]);
   });
 
+  test("folder search pages matching descendants without escaping the selected prefix", async () => {
+    await add("book:intro", "public", "Needle");
+    await add("book:part:one", "public", "Needle");
+    await add("book:part:private", "restricted", "Needle");
+    await add("bookish:outside", "public", "Needle");
+    const page = await ctx.entityService.queryEntityHierarchy({
+      entityType: "test",
+      prefix: ["book"],
+      includeDescendants: true,
+      filter: { contentContains: "needle" },
+      limit: 1,
+      offset: 1,
+    });
+    expect(page.totalEntities).toBe(2);
+    expect(page.folders).toEqual([]);
+    expect(page.entities.map((row) => row.entity.id)).toEqual([
+      "book:part:one",
+    ]);
+    expect(page.entities[0]?.path).toEqual(["book", "part", "one"]);
+  });
+
   test("filters content and metadata before deriving folders and leaf totals", async () => {
     await add("book:match", "public", "NEEDLE%_ body");
     await add("book:nested:match", "public", "needle%_ body");

@@ -178,6 +178,18 @@ describe("FileOperations", () => {
     });
 
     describe("writeEntity with subdirectories", () => {
+      it("creates a nested note's parent directories while keeping notes at the sync root", async () => {
+        const entity = createTestEntity("note", {
+          id: "book-1:part-1:chapter-2",
+          content: "Nested note",
+          metadata: {},
+        });
+        await fileOps.writeEntity(entity);
+        const expectedPath = join(testDir, "book-1", "part-1", "chapter-2.md");
+        expect(readFileSync(expectedPath, "utf-8")).toContain("Nested note");
+        expect(existsSync(join(testDir, "note"))).toBe(false);
+        expect(entity.id).toBe("book-1:part-1:chapter-2");
+      });
       it("should create necessary subdirectories when writing", async () => {
         const entityContent = "Daily summary content";
         const entity = createTestEntity("summary", {

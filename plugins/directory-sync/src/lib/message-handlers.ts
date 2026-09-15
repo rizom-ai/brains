@@ -1,4 +1,9 @@
-import { DIRECTORY_SYNC_CHANNELS } from "@brains/contracts";
+import {
+  DIRECTORY_SYNC_CHANNELS,
+  directorySyncPathRequestSchema,
+} from "@brains/contracts";
+import { buildEntityFilePath, getEntityFileExtension } from "./entity-paths";
+import { decodeEntityIdPath } from "@brains/entity-service";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type {
@@ -90,6 +95,26 @@ export function registerMessageHandlers(
       }
     },
   );
+
+  subscribe(DIRECTORY_SYNC_CHANNELS.pathRequest, async (message) => {
+    const input = directorySyncPathRequestSchema.parse(message.payload);
+    const extension = getEntityFileExtension(input);
+    const relativePath = buildEntityFilePath(
+      ".",
+      input.entityId,
+      input.entityType,
+      extension,
+    );
+    const [first, ...rest] = decodeEntityIdPath(input.entityId);
+    const segment = rest.at(-1) ?? first;
+    const end = relativePath.length - extension.length;
+    // Placement owns the highlight too: a segment may itself equal an extension.
+    const leaf =
+      segment && relativePath.endsWith(`${segment}${extension}`)
+        ? { start: end - segment.length, end }
+        : null;
+    return { success: true, data: { relativePath, leaf } };
+  });
 
   subscribe(DIRECTORY_SYNC_CHANNELS.statusRequest, async () => {
     try {

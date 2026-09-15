@@ -27,7 +27,11 @@ brain-data/
   image/cover.png               # entityType: image
 ```
 
-Root markdown files become `note` note entities. Files under `brain-data/<entity-type>/` use the first path segment as the entity type. Nested paths below that directory become colon-separated ids.
+Root markdown files become `note` entities. Files under a registered `brain-data/<entity-type>/` directory use its first segment as the entity type. Directory-sync delegates stored-ID encoding and decoding to `@brains/entity-service`; it retains ownership of filesystem roots, extensions and placement conventions. Nested notes also remain relative to the sync root: `book-1:part-1:intro` exports to `book-1/part-1/intro.md`, creating the required parent directories, not a `note/` directory.
+
+The read-only `sync:path:request` message previews that same placement from an entity type, stored ID, metadata and serialized content. It returns a relative path and optional filename-leaf display offsets, allowing Studio to show the destination without duplicating filesystem rules. Previewing neither writes a file nor creates a folder entity. Existing placement conventions are unchanged.
+
+**Nested-note limitation:** export placement is not a round-trip guarantee. Discovery still skips unregistered root directories, and import interprets a registered root directory as that entity type. Consequently nested notes can be ignored or misclassified on import. This change does not broaden discovery, move notes, or normalize historical IDs. Normal typed hierarchies such as `site-content/home/hero.md` retain their existing import/export contract.
 
 ## Typical brain.yaml config
 

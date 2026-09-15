@@ -78,7 +78,9 @@ export function buildEntityFilePath(
   return join(syncPath, entityType, ...directories, `${filename}${extension}`);
 }
 
-export function getEntityFileExtension(entity: BaseEntity): string {
+export function getEntityFileExtension(
+  entity: Pick<BaseEntity, "entityType" | "metadata" | "content">,
+): string {
   if (entity.entityType === "document") {
     return ".pdf";
   }

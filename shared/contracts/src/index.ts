@@ -139,6 +139,11 @@ export {
   SITE_CHANNELS,
   SOCIAL_CHANNELS,
 } from "./message-channels";
+export {
+  directorySyncPathRequestSchema,
+  directorySyncPathResponseSchema,
+  type DirectorySyncPathRequest,
+} from "./directory-sync-path";
 export { PROGRESS_STEPS, type ProgressStep } from "./progress-steps";
 export {
   ProjectionWaveReadySchema,

@@ -76,6 +76,53 @@ function setup(options: {
   return harness;
 }
 
+describe("sync:path:request placement preview", () => {
+  it("identifies the new filename segment without confusing it with the extension", async () => {
+    const harness = setup({ directorySync: fakeDirectorySync() });
+    try {
+      const result = await harness.sendMessage("sync:path:request", {
+        entityType: "note",
+        entityId: "book:.md",
+        metadata: {},
+        content: "",
+      });
+      expect(result).toEqual({
+        relativePath: "book/.md.md",
+        leaf: { start: 5, end: 8 },
+      });
+    } finally {
+      await harness.reset();
+    }
+  });
+  it.each([
+    ["note", "intro", {}, "intro.md"],
+    ["note", "book:intro", {}, "book/intro.md"],
+    [
+      "book-section",
+      "book-1:part-1:chapter-2",
+      {},
+      "book-section/book-1/part-1/chapter-2.md",
+    ],
+    ["book-section", "book-section:intro", {}, "book-section/intro.md"],
+    ["document", "book:chapter", {}, "document/book/chapter.pdf"],
+    ["image", "book:cover", { format: "png" }, "image/book/cover.png"],
+  ])(
+    "previews %s/%s through directory-sync's existing placement rules",
+    async (entityType, entityId, metadata, relativePath) => {
+      const harness = setup({ directorySync: fakeDirectorySync() });
+      try {
+        const result = await harness.sendMessage<
+          unknown,
+          { relativePath: string }
+        >("sync:path:request", { entityType, entityId, metadata, content: "" });
+        expect(result).toMatchObject({ relativePath });
+      } finally {
+        await harness.reset();
+      }
+    },
+  );
+});
+
 describe("sync:status:request message handler", () => {
   it("reports lastSync and the git state when git sync is enabled", async () => {
     const gitStatus: GitSyncStatus = {

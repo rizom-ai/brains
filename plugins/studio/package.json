@@ -8,6 +8,7 @@
     "@brains/auth-service": "workspace:*",
     "@brains/console-theme": "workspace:*",
     "@brains/contracts": "workspace:*",
+    "@brains/entity-service": "workspace:*",
     "@brains/operator-view-react": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*",
@@ -51,7 +52,7 @@
     "build:ui": "bun scripts/build-ui.ts",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
-    "test": "bun test --preload @brains/build-tools/stylex-test-preload",
+    "test": "bun test --preload ./test/dom-preload.ts --preload @brains/build-tools/stylex-test-preload",
     "typecheck": "tsc --noEmit"
   },
   "type": "module"

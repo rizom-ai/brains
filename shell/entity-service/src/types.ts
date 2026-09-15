@@ -638,6 +638,8 @@ export interface QueryEntityHierarchyRequest {
   entityType: string;
   /** Null/omitted means the collection root; segments identify stored identity. */
   prefix?: EntityIdPathInput | null | undefined;
+  /** Search matching entries throughout the prefix; no folder rows in this mode. */
+  includeDescendants?: boolean | undefined;
   /** Omitted fails closed to public, including folder names and counts. */
   visibilityScope?: ContentVisibility | undefined;
   limit?: number | undefined;

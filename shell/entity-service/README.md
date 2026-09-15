@@ -101,6 +101,11 @@ Optional `filter` supports literal content search, metadata equality and exact v
 UTF-8 bytes; only direct entries page. Entries default to ID order; `sortFields` uses the
 ordinary list sorting rules with an ID tie-breaker.
 
+Set `includeDescendants: true` for a paged recursive result beneath the same prefix.
+This mode returns no folder summaries; `totalEntities` counts all matching descendants
+before pagination. A null prefix searches the whole collection. Visibility and filters
+still apply before counting or returning entries. The default remains immediate children.
+
 The entry limit defaults to 50 and accepts 1–100. More than 1,000 visible matching immediate
 folders rejects the query rather than returning an incomplete folder list. Folder grouping
 and entry paging run in SQLite. Nested prefixes use the existing ID index, with literal,
