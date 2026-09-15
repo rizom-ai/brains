@@ -6,6 +6,7 @@ import { randomUUID } from "node:crypto";
 import { mkdtemp, writeFile, mkdir, copyFile } from "node:fs/promises";
 import { createSilentLogger } from "@brains/test-utils";
 import { CallbackProgressReporter } from "@brains/utils/progress";
+import { StockPhotoPlugin } from "@brains/stock-photo";
 import { RuntimeUploadStore } from "../../shell/plugins/src/service/upload-registry";
 import { webChatUploadsScope } from "../../entities/image/src/lib/upload-promotion";
 import { FrontmatterImageConverter } from "../../plugins/directory-sync/src/lib/frontmatter-image-converter";
@@ -38,8 +39,10 @@ import {
 
 registerPackage("@brains/site-default", defaultSite);
 registerPackage("@rizom/theme-default", defaultTheme);
-const SIZE = 2 * 1024 * 1024 + 7;
-const SHA = "7e669b7062e7303b6b89603b041faaa151e9c0e37fed549258a422760a734962";
+// Above the 64 KiB SQL ceiling, with nine 32 KiB transfer frames. The dedicated
+// large-binary matrices own 100 MiB coverage; this test owns application wiring.
+const SIZE = 256 * 1024 + 7;
+const SHA = "6bc5839d31ffd66263d28992f1186b33312444ffb4e2b1aab184df47e9c3b149";
 
 test("canonical App binds a real file claim in its entity transaction and downloads every image byte", async () => {
   const directory = await mkdtemp(
@@ -67,6 +70,8 @@ site:
   package: "@brains/site-default"
   theme: "@rizom/theme-default"
 plugins:
+  stock-photo:
+    apiKey: fixture-only
   directory-sync:
     autoSync: false
     initialSync: false
@@ -83,10 +88,28 @@ plugins:
     secret: randomUUID() + randomUUID(),
     sessionId: "owner",
   };
+  let tracked = 0;
   const createApp = (): App => {
     const config = resolveConfig();
     return App.create({
       ...config,
+      plugins: (config.plugins ?? []).map((plugin) =>
+        plugin.id === "stock-photo"
+          ? new StockPhotoPlugin(
+              { apiKey: "fixture-only" },
+              {
+                fetch: async (input): Promise<Response> => {
+                  assert.equal(
+                    input,
+                    "https://api.unsplash.com/fixture/download",
+                  );
+                  tracked++;
+                  return new Response(null, { status: 204 });
+                },
+              },
+            )
+          : plugin,
+      ),
       shellConfig: {
         ...config.shellConfig,
         database: { url },
@@ -220,7 +243,8 @@ plugins:
       const exported = await importer.exportEntities(["image"]);
       assert.equal(exported.failed, 0);
       assert.ok(exported.exported > 0);
-      assert.equal((await importer.exportEntities(["image"])).failed, 0);
+      // Unchanged-output inode/mtime behavior is covered in image-file-export.test.ts;
+      // repeating the full export here adds two otherwise identical actor transfers.
       await binding.withFile(
         join(importRoot, "image", "inspected.png"),
         SIZE,
@@ -332,6 +356,11 @@ plugins:
       assert.ok(conversion);
       const page = join(directory, "remote-cover.md");
       await writeFile(page, "---\ntitle: Remote cover\n---\nBody\n");
+      const workerFiles = workerApp.getShell().getEntityService().fileAssets;
+      assert.ok(workerFiles?.withRemoteFile);
+      // Observe this App's injected capability without replacing its implementation
+      // or global fetch. The real owned actors and native publication still run.
+      const remoteFiles = spyOn(workerFiles, "withRemoteFile");
       let requests = 0;
       const server = Bun.serve({
         port: 0,
@@ -343,9 +372,6 @@ plugins:
           });
         },
       });
-      const bufferedFetch = spyOn(globalThis, "fetch").mockRejectedValue(
-        new Error("Controller URL fetch is forbidden"),
-      );
       try {
         const result = await conversion.process(
           {
@@ -396,8 +422,42 @@ plugins:
         assert.equal(converted.imageId, "remote-cover");
         assert.equal(converted.converted, true);
         assert.equal(requests, 1);
+        assert.deepEqual(
+          remoteFiles.mock.calls.map(([url]) => url),
+          [inlineUrl],
+        );
+        const selection = workerApp
+          .getShell()
+          .getJobQueueService()
+          .getHandler("stock-photo:select-photo");
+        assert.ok(selection);
+        const selected = await selection.process(
+          {
+            photoId: "stock-image",
+            downloadLocation: "https://api.unsplash.com/fixture/download",
+            photographerName: "Fixture",
+            photographerUrl: "https://unsplash.com/@fixture",
+            sourceUrl: "https://unsplash.com/photos/fixture",
+            imageUrl: `http://127.0.0.1:${server.port}/stock`,
+            title: "Stock fixture",
+            alt: "Stock alt",
+          },
+          "canonical-stock-photo",
+          reporter,
+          new AbortController().signal,
+        );
+        assert.deepEqual(selected, {
+          imageEntityId: "stock-image",
+          alreadyExisted: false,
+        });
+        assert.equal(tracked, 1);
+        assert.equal(requests, 2);
+        assert.deepEqual(
+          remoteFiles.mock.calls.map(([url]) => url),
+          [inlineUrl, `http://127.0.0.1:${server.port}/stock`],
+        );
       } finally {
-        bufferedFetch.mockRestore();
+        remoteFiles.mockRestore();
         await server.stop(true);
       }
       const bufferedUpload = spyOn(
@@ -492,6 +552,7 @@ plugins:
       "inspected",
       "promoted-upload",
       "remote-cover",
+      "stock-image",
     ]) {
       const stored = imageSchema.parse(
         await owner.getEntityRaw({

@@ -6,5 +6,4 @@ export type {
   PhotoCandidate,
   SelectResult,
   FetchFn,
-  FetchImageFn,
 } from "./lib/types";

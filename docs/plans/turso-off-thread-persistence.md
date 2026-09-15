@@ -20,15 +20,15 @@
 | **3. Application cutover**             | Switch all five runtime factories; package workers/actors and wire single-owner lifecycle, including combined mode. | Canonical `start:minimal`, then `start:personal`; real jobs/auth/images/site rebuilds, installed startup, shutdown and restart.                |
 | **4. Release acceptance**              | Complete working-set, crash recovery, import/deployment/backup/restore and rollback coverage.                       | SDK/native/transport/GC/RSS accounting, controller/grandchild recovery and explicit fleet/soak acceptance.                                     |
 
-## Current slice: directory-sync inline/frontmatter URL images — complete
+## Current slice: stock-photo URL selection — complete
 
-1. Extend the existing worker-App scenario with registered inline conversion and frontmatter conversion; forbid controller fetches before implementation.
-2. Share source-URL deduplication, actor metadata inspection and native file publication across cover, inline and frontmatter callers. Remove their base64-fetcher injection paths; test fixtures stay test-only.
-3. Propagate cancellation through lookup and file handoffs. Inline jobs stop before another image or document write; acknowledged publication is not retracted. Preserve ordinary per-image failure handling.
-4. Reuse one URL in canonical coverage: the cover job exercises shared native creation, then inline/frontmatter exercise reuse. Assert exactly one HTTP request; add no actors or startup beyond the previous slice.
+1. Exercise the registered stock-photo job in the existing worker App, with one additional URL publication and joined-owner reopen. Inject the provider's metadata transport; observe the App's real file capability instead of patching global fetch.
+2. Preserve provider tracking, title/alt/source metadata and target-cover updates. Publish inspected file metadata through native verification; remove the obsolete buffered-fetch dependencies and public type.
+3. Reject missing capabilities and early cancellation before tracking. Join ingress cancellation; do not replay an unavailable publication or update its target. Keep acknowledged images when cancellation stops a later cover update.
+4. Distinguish cancellation before target mutation admission from failures after admission. Never report an uncertain target update as safely cancelled.
 
-**Exit check:** focused caller/cancellation tests and the canonical source integration pass under the default timeout. HTTP behavior, budgets, failed staging, native verification and actor lifetime remain supplied by the existing file capability. Logical quotas do not establish HTTP/TLS/zlib/kernel/GC/RSS bounds. Runtime factory and default/installed actor provisioning remain unchanged.
+**Exit check:** focused provider/tool/handler tests and the canonical source integration pass under the default timeout, without another app startup. The canonical fixture remains above the SQL ceiling and spans nine transfer frames; dedicated matrices retain 100 MiB coverage. Unchanged-export behavior stays in focused tests rather than repeating actor transfers. HTTP behavior, budgets, retained staging, native verification and actor exit remain supplied by the existing file capability. Logical quotas do not establish HTTP/TLS/zlib/kernel/GC/RSS bounds. Runtime factory and default/installed actor provisioning remain unchanged.
 
-**Next slice:** migrate stock-photo selection's buffered image download onto the same file capability. Package/default application provisioning remains milestone 3; do not switch the runtime factory until milestone 2's exit check passes.
+**Next slice:** migrate source-rendered image production to actor-owned rendering and file publication. Package/default application provisioning remains milestone 3; do not switch the runtime factory until milestone 2's exit check passes.
 
 Keep the 100 MiB ceiling, 32 KiB data-plane credits, existing RPC/SQL/admission limits, entity/asset/reference/projection/outbox atomicity, primary/cleanup causes and actual-exit acknowledgement. Preserve failed recovery directories. If a fault matrix is needed, name the application integration blocker first.

@@ -3,8 +3,6 @@ export type FetchFn = (
   init?: RequestInit,
 ) => Promise<Response>;
 
-export type FetchImageFn = (url: string) => Promise<string>;
-
 /**
  * A photo candidate returned from a stock photo search.
  */

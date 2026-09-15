@@ -4,13 +4,11 @@ import { z } from "@brains/utils/zod";
 import { UnsplashClient } from "./lib/unsplash-client";
 import { createStockPhotoTools } from "./tools";
 import { SelectPhotoJobHandler } from "./handlers/select-photo-handler";
-import { fetchImageAsBase64 } from "@brains/image";
-import type { FetchFn, FetchImageFn } from "./lib/types";
+import type { FetchFn } from "./lib/types";
 import packageJson from "../package.json";
 
 export interface StockPhotoDeps {
   fetch?: FetchFn;
-  fetchImage?: FetchImageFn;
 }
 
 const stockPhotoConfigSchema: z.ZodObject<{
@@ -46,7 +44,6 @@ export class StockPhotoPlugin extends ServicePlugin<
     this.cachedTools = createStockPhotoTools(this.id, {
       provider,
       entityService: context.entityService,
-      fetchImage: this.deps.fetchImage ?? fetchImageAsBase64,
       jobs: context.jobs,
     });
 
@@ -62,7 +59,6 @@ export class StockPhotoPlugin extends ServicePlugin<
       new SelectPhotoJobHandler(this.logger.child("SelectPhotoJobHandler"), {
         provider: this.createProvider(),
         entityService: context.entityService,
-        fetchImage: this.deps.fetchImage ?? fetchImageAsBase64,
       }),
     );
   }

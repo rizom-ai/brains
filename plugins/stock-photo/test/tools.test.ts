@@ -83,10 +83,6 @@ const TINY_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 const TINY_PNG_DATA_URL = `data:image/png;base64,${TINY_PNG_BASE64}`;
 
-function mockFetchImage(): (url: string) => Promise<string> {
-  return async () => TINY_PNG_DATA_URL;
-}
-
 // -- Helpers --
 
 function findTool(tools: Tool[], name: string): Tool {
@@ -115,7 +111,6 @@ describe("stock-photo tools", () => {
     tools = createStockPhotoTools("stock-photo", {
       provider,
       entityService,
-      fetchImage: mockFetchImage(),
       jobs,
     });
   });
@@ -168,7 +163,6 @@ describe("stock-photo tools", () => {
       tools = createStockPhotoTools("stock-photo", {
         provider,
         entityService,
-        fetchImage: mockFetchImage(),
         jobs,
       });
 
@@ -192,7 +186,6 @@ describe("stock-photo tools", () => {
       tools = createStockPhotoTools("stock-photo", {
         provider,
         entityService,
-        fetchImage: mockFetchImage(),
         jobs,
       });
 
@@ -212,7 +205,6 @@ describe("stock-photo tools", () => {
       tools = createStockPhotoTools("stock-photo", {
         provider,
         entityService,
-        fetchImage: mockFetchImage(),
         jobs,
       });
 
@@ -278,7 +270,6 @@ describe("stock-photo tools", () => {
       tools = createStockPhotoTools("stock-photo", {
         provider,
         entityService,
-        fetchImage: mockFetchImage(),
         jobs,
       });
 
@@ -303,7 +294,6 @@ describe("stock-photo tools", () => {
       tools = createStockPhotoTools("stock-photo", {
         provider,
         entityService,
-        fetchImage: mockFetchImage(),
         jobs,
       });
 
@@ -346,7 +336,6 @@ describe("stock-photo tools", () => {
       tools = createStockPhotoTools("stock-photo", {
         provider,
         entityService,
-        fetchImage: mockFetchImage(),
         jobs,
       });
 
@@ -409,7 +398,6 @@ describe("stock-photo tools", () => {
       tools = createStockPhotoTools("stock-photo", {
         provider,
         entityService,
-        fetchImage: mockFetchImage(),
         jobs,
       });
 
@@ -448,7 +436,6 @@ describe("stock-photo tools", () => {
       tools = createStockPhotoTools("stock-photo", {
         provider,
         entityService,
-        fetchImage: mockFetchImage(),
         jobs,
       });
 
@@ -471,22 +458,20 @@ describe("stock-photo tools", () => {
     });
 
     it("should not download the image inline", async () => {
-      const failingFetchImage = async (): Promise<never> => {
-        throw new Error("Connection refused");
-      };
-
-      tools = createStockPhotoTools("stock-photo", {
-        provider,
-        entityService,
-        fetchImage: failingFetchImage,
-        jobs,
+      let fileAccesses = 0;
+      Object.defineProperty(entityService, "fileAssets", {
+        get: (): never => {
+          fileAccesses++;
+          throw new Error(
+            "Selection tools must leave file ingress to the queued job",
+          );
+        },
       });
-
       const tool = findTool(tools, "stock-photo_select");
       const result = await tool.handler(validInput, mockContext);
-
       expect(result).toMatchObject({ success: true });
       expect(enqueuedJobs).toHaveLength(1);
+      expect(fileAccesses).toBe(0);
     });
 
     it("should reject invalid input", async () => {

@@ -3,9 +3,13 @@ import type { StockPhotoEntityWriter } from "../lib/set-cover-image";
 import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
-import { imageAdapter, parseDataUrl, prepareImageAsset } from "@brains/image";
-import type { FetchImageFn, StockPhotoProvider } from "../lib/types";
-import { setCoverImage } from "../lib/set-cover-image";
+import { imageAdapter, imageAssetFactsSchema } from "@brains/image";
+import { createAssetRef } from "@brains/assets";
+import type { StockPhotoProvider } from "../lib/types";
+import {
+  setCoverImage,
+  CoverImageUpdateCancelled,
+} from "../lib/set-cover-image";
 
 export const selectPhotoJobSchema: z.ZodObject<{
   photoId: z.ZodString;
@@ -44,7 +48,6 @@ export interface SelectPhotoJobResult {
 export interface SelectPhotoHandlerDeps {
   provider: StockPhotoProvider;
   entityService: StockPhotoEntityWriter;
-  fetchImage: FetchImageFn;
 }
 
 export class SelectPhotoJobHandler extends BaseJobHandler<
@@ -65,48 +68,60 @@ export class SelectPhotoJobHandler extends BaseJobHandler<
     data: SelectPhotoJobData,
     _jobId: string,
     progressReporter: ProgressReporter,
+    signal?: AbortSignal,
   ): Promise<SelectPhotoJobResult> {
+    signal?.throwIfAborted();
+    const files = this.deps.entityService.fileAssets;
+    if (!files?.withRemoteFile)
+      throw new Error("Stock photo file ingress is not provisioned");
     await this.reportProgress(progressReporter, {
       progress: 10,
       message: "Tracking stock photo download",
     });
 
+    signal?.throwIfAborted();
     await this.deps.provider.triggerDownload(data.downloadLocation);
+    signal?.throwIfAborted();
 
     await this.reportProgress(progressReporter, {
       progress: 35,
       message: "Downloading stock photo",
     });
 
-    const dataUrl = await this.deps.fetchImage(data.imageUrl);
-    const parsedImage = parseDataUrl(dataUrl);
-    const { asset: preparedAsset, facts } = prepareImageAsset(
-      parsedImage.bytes,
-      parsedImage.mediaType,
-    );
-    const imageTitle = data.title ?? `Stock photo ${data.photoId}`;
-    const imageData = imageAdapter.createImageEntity({
-      facts,
-      title: imageTitle,
-      alt: data.alt ?? imageTitle,
-    });
-
-    await this.reportProgress(progressReporter, {
-      progress: 75,
-      message: "Saving stock photo",
-    });
-
-    const { entityId } = await this.deps.entityService.createEntity({
-      entity: {
-        id: data.photoId,
-        ...imageData,
-        metadata: {
-          ...imageData.metadata,
+    const { entityId } = await files.withRemoteFile(
+      data.imageUrl,
+      async (file, transferSignal): ReturnType<typeof files.publish> => {
+        const facts = imageAssetFactsSchema.parse({
+          ...file.details,
+          ref: createAssetRef(file.sha256),
+          digest: file.sha256,
+          sizeBytes: file.sizeBytes,
+        });
+        const title = data.title ?? `Stock photo ${data.photoId}`;
+        const imageData = imageAdapter.createImageEntity({
+          facts,
+          title,
+          alt: data.alt ?? title,
           sourceUrl: data.imageUrl,
-        },
+        });
+        await this.reportProgress(progressReporter, {
+          progress: 75,
+          message: "Saving stock photo",
+        });
+        return files.publish(
+          {
+            sourceFile: file.sourceFile,
+            sizeBytes: file.sizeBytes,
+            publication: {
+              operation: "createEntity",
+              request: { entity: { id: data.photoId, ...imageData } },
+            },
+          },
+          { signal: transferSignal },
+        );
       },
-      preparedAsset,
-    });
+      { signal },
+    );
 
     const result: SelectPhotoJobResult = {
       imageEntityId: entityId,
@@ -114,21 +129,30 @@ export class SelectPhotoJobHandler extends BaseJobHandler<
     };
 
     if (data.targetEntityType && data.targetEntityId) {
-      result.coverSet = await setCoverImage(
-        this.deps.entityService,
-        data.targetEntityType,
-        data.targetEntityId,
-        entityId,
-      );
-      if (!result.coverSet) {
-        result.warning = `Target entity ${data.targetEntityType}:${data.targetEntityId} not found; cover image not set`;
+      try {
+        result.coverSet = await setCoverImage(
+          this.deps.entityService,
+          data.targetEntityType,
+          data.targetEntityId,
+          entityId,
+          signal,
+        );
+        if (!result.coverSet)
+          result.warning = `Target entity ${data.targetEntityType}:${data.targetEntityId} not found; cover image not set`;
+      } catch (error) {
+        // An acknowledged image is not retracted when cancellation prevents the
+        // separate target update. Unrelated target failures still propagate.
+        if (!(error instanceof CoverImageUpdateCancelled)) throw error;
+        result.coverSet = false;
+        result.warning = "Image saved; cover image update cancelled";
       }
     }
 
-    await this.reportProgress(progressReporter, {
-      progress: 100,
-      message: "Stock photo selected",
-    });
+    if (!signal?.aborted)
+      await this.reportProgress(progressReporter, {
+        progress: 100,
+        message: "Stock photo selected",
+      });
 
     return result;
   }

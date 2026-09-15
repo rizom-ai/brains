@@ -7,26 +7,35 @@ import type { IEntityService } from "@brains/plugins";
  * does not exist.
  */
 /**
- * The entity reads and writes stock-photo performs.
- *
- * IEntityService is a large surface; asking for all of it meant a test could
- * not supply three methods without asserting it was the whole service.
+ * Stock-photo uses metadata reads/updates and an owned file capability.
+ * It does not require buffered entity creation or the full entity service.
  */
 export type StockPhotoEntityWriter = Pick<
   IEntityService,
-  "createEntity" | "getEntity" | "updateEntity"
+  "fileAssets" | "getEntity" | "updateEntity"
 >;
+
+export class CoverImageUpdateCancelled extends Error {
+  constructor(reason: unknown) {
+    super("Cover image update cancelled before mutation admission", {
+      cause: reason,
+    });
+  }
+}
 
 export async function setCoverImage(
   entityService: StockPhotoEntityWriter,
   entityType: string,
   entityId: string,
   imageEntityId: string,
+  signal?: AbortSignal,
 ): Promise<boolean> {
+  if (signal?.aborted) throw new CoverImageUpdateCancelled(signal.reason);
   const target = await entityService.getEntity({
     entityType,
     id: entityId,
   });
+  if (signal?.aborted) throw new CoverImageUpdateCancelled(signal.reason);
   if (!target) return false;
 
   await entityService.updateEntity({
