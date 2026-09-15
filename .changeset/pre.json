@@ -431,6 +431,7 @@
     "core--studio-audit-workspace",
     "core--studio-auth-state-chrome",
     "core--studio-authoring-cutover",
+    "core--studio-climate-note-labels",
     "core--studio-control-vocabulary",
     "core--studio-conversation-first-chat",
     "core--studio-frontmatter-titles",
