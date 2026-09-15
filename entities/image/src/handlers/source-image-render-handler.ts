@@ -10,9 +10,10 @@ import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
+import { createAssetRef } from "@brains/assets";
 import {
   imageAdapter,
-  prepareImageAsset,
+  imageAssetFactsSchema,
   imageSchema,
   setCoverImageId,
   setOgImageId,
@@ -49,6 +50,15 @@ interface SourceImageRenderResult {
   imageId?: string;
   reused?: boolean;
   error?: string;
+  warning?: string;
+}
+class TargetUpdateCancelled extends Error {}
+function assertTargetLive(signal: AbortSignal): void {
+  if (signal.aborted)
+    throw new TargetUpdateCancelled(
+      "Target update cancelled before admission",
+      { cause: signal.reason },
+    );
 }
 
 export class SourceImageRenderJobHandler extends BaseJobHandler<
@@ -69,7 +79,9 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
     data: SourceImageRenderJobData,
     jobId: string,
     progressReporter: ProgressReporter,
+    signal: AbortSignal,
   ): Promise<SourceImageRenderResult> {
+    signal.throwIfAborted();
     const state: { preserveImage: boolean } = { preserveImage: false };
     this.logger.debug("Starting source image render job", {
       jobId,
@@ -82,14 +94,16 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
     try {
       if (data.replace !== true && data.dedupKey) {
         const existing = await this.findImageByDedupKey(data.dedupKey);
+        signal.throwIfAborted();
         if (existing) {
           state.preserveImage = true;
-          await this.updateTarget(data, existing.id);
-          await this.reportProgress(progressReporter, {
-            progress: PROGRESS_STEPS.COMPLETE,
-            message: "Reusing existing generated image",
-          });
-          return { success: true, imageId: existing.id, reused: true };
+          return await this.finish(
+            data,
+            existing.id,
+            true,
+            progressReporter,
+            signal,
+          );
         }
       }
 
@@ -98,63 +112,80 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
         message: "Rendering source image",
       });
 
-      const attachment = await this.context.attachments.resolve({
-        sourceEntityType: data.sourceEntityType,
-        sourceEntityId: data.sourceEntityId,
-        attachmentType: data.attachmentType,
-      });
-      if (!attachment) {
+      signal.throwIfAborted();
+      const files = this.context.entityService.fileAssets;
+      if (!files)
+        throw new Error("Rendered image file publication is not provisioned");
+      const published = await this.context.attachments.withFile(
+        {
+          sourceEntityType: data.sourceEntityType,
+          sourceEntityId: data.sourceEntityId,
+          attachmentType: data.attachmentType,
+        },
+        async (attachment, transferSignal): Promise<boolean> => {
+          if (attachment.type !== "image")
+            throw new Error(
+              `Attachment provider returned ${attachment.type}; expected image`,
+            );
+          const inspected = await files.inspect(attachment.source, {
+            signal: transferSignal,
+          });
+          transferSignal.throwIfAborted();
+          const facts = imageAssetFactsSchema.parse({
+            ...inspected.details,
+            ref: createAssetRef(inspected.sha256),
+            digest: inspected.sha256,
+            sizeBytes: inspected.sizeBytes,
+          });
+          if (
+            facts.mediaType !== attachment.mimeType ||
+            facts.sizeBytes !== attachment.source.sizeBytes ||
+            facts.digest !== attachment.sha256
+          )
+            throw new Error(
+              "Rendered image file does not match its attachment metadata",
+            );
+          await this.reportProgress(progressReporter, {
+            progress: PROGRESS_STEPS.GENERATE,
+            message: "Creating image entity",
+          });
+          const entityData = imageAdapter.createImageEntity({
+            facts,
+            title: data.imageId,
+            status: "draft",
+            sourceEntityType: data.sourceEntityType,
+            sourceEntityId: data.sourceEntityId,
+            attachmentType: data.attachmentType,
+            ...(data.dedupKey && { dedupKey: data.dedupKey }),
+          });
+          // Observe publication and provider cleanup; neither uncertainty permits
+          // a later failed-placeholder mutation or a replay of publication.
+          state.preserveImage = true;
+          await saveProcessedEntity({
+            entityService: this.context.entityService,
+            entity: { ...entityData, id: data.imageId },
+            fileAsset: attachment.source,
+            signal: transferSignal,
+          });
+          return true;
+        },
+        { signal },
+      );
+      if (!published)
         return JobResult.failure(
           new Error(
             `No attachment provider found for ${data.sourceEntityType}/${data.attachmentType}`,
           ),
         );
-      }
-      if (attachment.type !== "image") {
-        return JobResult.failure(
-          new Error(
-            `Attachment provider returned ${attachment.type}; expected image`,
-          ),
-        );
-      }
-
-      await this.reportProgress(progressReporter, {
-        progress: PROGRESS_STEPS.GENERATE,
-        message: "Creating image entity",
-      });
-
-      const { asset: preparedAsset, facts } = prepareImageAsset(
-        attachment.data,
-        attachment.mimeType,
+      return await this.finish(
+        data,
+        data.imageId,
+        false,
+        progressReporter,
+        signal,
       );
-      const entityData = imageAdapter.createImageEntity({
-        facts,
-        title: data.imageId,
-        status: "draft",
-        sourceEntityType: data.sourceEntityType,
-        sourceEntityId: data.sourceEntityId,
-        attachmentType: data.attachmentType,
-        ...(data.dedupKey && { dedupKey: data.dedupKey }),
-      });
-
-      // Publication may commit even if its reply or a subsequent target/progress
-      // update fails. Do not follow that uncertainty with an image mutation.
-      state.preserveImage = true;
-      await saveProcessedEntity({
-        entityService: this.context.entityService,
-        entity: { ...entityData, id: data.imageId },
-        preparedAsset,
-      });
-
-      await this.updateTarget(data, data.imageId);
-
-      await this.reportProgress(progressReporter, {
-        progress: PROGRESS_STEPS.COMPLETE,
-        message: "Image render complete",
-      });
-
-      return { success: true, imageId: data.imageId, reused: false };
     } catch (error) {
+      if (signal.aborted) throw error;
       const errorMessage = getErrorMessage(error);
       this.logger.error("Source image render job failed", {
         jobId,
@@ -183,6 +214,30 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
     }
   }
 
+  private async finish(
+    data: SourceImageRenderJobData,
+    imageId: string,
+    reused: boolean,
+    progressReporter: ProgressReporter,
+    signal: AbortSignal,
+  ): Promise<SourceImageRenderResult> {
+    let warning: string | undefined;
+    try {
+      await this.updateTarget(data, imageId, signal);
+    } catch (error) {
+      if (!(error instanceof TargetUpdateCancelled)) throw error;
+      warning = "Image saved; target update cancelled";
+    }
+    if (!signal.aborted)
+      await this.reportProgress(progressReporter, {
+        progress: PROGRESS_STEPS.COMPLETE,
+        message: reused
+          ? "Reusing existing generated image"
+          : "Image render complete",
+      });
+    return { success: true, imageId, reused, ...(warning && { warning }) };
+  }
+
   private async findImageByDedupKey(
     dedupKey: string,
   ): Promise<Image | undefined> {
@@ -203,8 +258,10 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
   private async updateTarget(
     data: SourceImageRenderJobData,
     imageId: string,
+    signal: AbortSignal,
   ): Promise<void> {
     if (!data.targetEntityType || !data.targetEntityId) return;
+    assertTargetLive(signal);
 
     const targetEntity = await findEntityByIdentifier(
       this.context.entityService,
@@ -212,6 +269,7 @@ export class SourceImageRenderJobHandler extends BaseJobHandler<
       data.targetEntityId,
       this.logger,
     );
+    assertTargetLive(signal);
     if (!targetEntity) {
       throw new Error(
         `Target entity not found: ${data.targetEntityType}/${data.targetEntityId}`,

@@ -41,6 +41,55 @@ function binaryClient(client: LocalDatabaseRpcClient): EntityBinaryClient {
     },
   });
 }
+/** Restart acceptance checks the actual output bytes, not a second execution of
+ * the malformed-wire, cancellation and replay matrix exercised before restart.
+ */
+export async function exerciseCanonicalRestartDownloads(
+  binding: CanonicalAssetBindings,
+  config: LocalDatabaseEndpointConfig,
+  outputs: ReadonlyArray<{ record: AssetRecord; outputFile: string }>,
+): Promise<void> {
+  const client = new LocalDatabaseRpcClient({
+    config: { ...config, sessionId: "restarted-downloads" },
+  });
+  const assets = binaryClient(client);
+  const files = fileProcesses();
+  const errors: unknown[] = [];
+  try {
+    for (const { record, outputFile } of outputs) {
+      assert.deepEqual(
+        await assets.downloadFile({ ref: record.ref, outputFile }, files),
+        { sizeBytes: record.sizeBytes, sha256: record.digest },
+      );
+      assert.equal(files.stats().children, 0);
+      await binding.withFile(
+        outputFile,
+        record.sizeBytes,
+        record.digest,
+        async (publication) => {
+          assert.deepEqual(publication.record, record);
+        },
+      );
+      binding.assertTransferIdle();
+    }
+  } catch (error) {
+    errors.push(error);
+  }
+  client.close();
+  try {
+    await files.close();
+  } catch (error) {
+    if (!errors.includes(error)) errors.push(error);
+  }
+  if (errors.length === 1) throw errors[0];
+  if (errors.length > 1)
+    throw new AggregateError(
+      errors,
+      "Restart downloads and peer cleanup failed",
+      { cause: errors[0] },
+    );
+}
+
 export async function exerciseCanonicalReadRpc(
   binding: CanonicalAssetBindings,
   config: LocalDatabaseEndpointConfig,

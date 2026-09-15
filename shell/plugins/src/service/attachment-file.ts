@@ -10,6 +10,8 @@ import type { AttachmentResolveRequest } from "./attachment-registry";
  */
 export type AttachmentFile = {
   source: EntityFileSource;
+  /** Producer receipt; consumers verify it through their owned file capability. */
+  sha256: string;
   filename: string;
 } & (
   | { type: "image"; mimeType: "image/png" }
@@ -21,6 +23,7 @@ export const attachmentFileSchema: z.ZodType<AttachmentFile> =
       type: z.literal("image"),
       mimeType: z.literal("image/png"),
       source: entityFileSourceSchema,
+      sha256: z.string().regex(/^[a-f0-9]{64}$/),
       filename: z
         .string()
         .min(1)
@@ -31,6 +34,7 @@ export const attachmentFileSchema: z.ZodType<AttachmentFile> =
       type: z.literal("document"),
       mimeType: z.literal("application/pdf"),
       source: entityFileSourceSchema,
+      sha256: z.string().regex(/^[a-f0-9]{64}$/),
       filename: z
         .string()
         .min(1)

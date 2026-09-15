@@ -1,4 +1,6 @@
-import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { createPluginHarness } from "@brains/plugins/test";
 import { PortfolioPlugin } from "../../src/plugin";
 import { createProjectOgImageProvider } from "../../src/attachments/og-image-provider";
@@ -33,11 +35,11 @@ City teams needed a shared view of maintenance patterns.
   },
 };
 
-const TINY_PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const unexpected = async (): Promise<never> => {
+  throw new Error("Unexpected file operation");
+};
 
 describe("Project OG image attachment provider", () => {
-  beforeEach(() => {});
-
   it("registers a project OG image attachment provider", async () => {
     const harness = createPluginHarness<PortfolioPlugin>();
     await harness.installPlugin(new PortfolioPlugin());
@@ -47,38 +49,57 @@ describe("Project OG image attachment provider", () => {
   });
 
   it("resolves a project into a PNG OG image attachment", async () => {
-    const screenshotPng = mock(async (url: string, viewport) => {
-      expect(url).toContain("/_media/og/project/project-1/");
-      expect(viewport).toEqual({ width: 1200, height: 630 });
-      const html = await (await fetch(url)).text();
-      expect(html).toContain("Civic Signals");
-      expect(html).toContain("slow infrastructure signals");
-      return TINY_PNG;
-    });
     const harness = createPluginHarness<PortfolioPlugin>();
     await harness.installPlugin(new PortfolioPlugin());
     await harness.getEntityService().createEntity({ entity: sampleProject });
 
-    const provider = createProjectOgImageProvider(
-      {
-        entityService: harness.getEntityService(),
-        themeCSS: "",
-        identity: harness.getEntityContext("test").identity,
-        domain: "example.com",
+    const service = harness.getEntityService();
+    service.fileAssets = {
+      inspect: unexpected,
+      publish: unexpected,
+      download: unexpected,
+      fingerprint: unexpected,
+      close: async (): Promise<void> => undefined,
+      withProducedFile: async (
+        directory,
+        use,
+        options,
+      ): ReturnType<typeof use> => {
+        const html = await readFile(join(directory, "index.html"), "utf8");
+        expect(html).toContain("Civic Signals");
+        expect(html).toContain("slow infrastructure signals");
+        return use(
+          {
+            sourceFile: join(directory, "rendered.png"),
+            sizeBytes: 8,
+            sha256: "a".repeat(64),
+          },
+          options?.signal ?? new AbortController().signal,
+        );
       },
-      { screenshotPng },
-    );
-
-    const attachment = await provider.resolve({
-      sourceEntityType: "project",
-      sourceEntityId: "project-1",
-      attachmentType: "og-image",
+    };
+    spyOn(service.fileAssets, "withProducedFile");
+    const provider = createProjectOgImageProvider({
+      entityService: harness.getEntityService(),
+      themeCSS: "",
+      identity: harness.getEntityContext("test").identity,
+      domain: "example.com",
     });
 
-    expect(screenshotPng).toHaveBeenCalled();
+    const attachment = await provider.withFile(
+      {
+        sourceEntityType: "project",
+        sourceEntityId: "project-1",
+        attachmentType: "og-image",
+      },
+      async (file) => file,
+    );
+
+    expect(service.fileAssets.withProducedFile).toHaveBeenCalled();
     expect(attachment).toEqual({
       type: "image",
-      data: TINY_PNG,
+      source: { sourceFile: expect.any(String), sizeBytes: 8 },
+      sha256: "a".repeat(64),
       mimeType: "image/png",
       filename: "civic-signals-og.png",
     });

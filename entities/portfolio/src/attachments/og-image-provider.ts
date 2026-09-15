@@ -22,9 +22,7 @@ export const createProjectOgImageProvider: OgImageProviderFactory =
     buildContent: async (project, helpers) => {
       const { frontmatter } = parseMarkdown(project.content);
       const parsed = projectFrontmatterSchema.parse(frontmatter);
-      const coverImageUrl = await helpers.resolveImageDataUrl(
-        parsed.coverImageId,
-      );
+      const coverImageUrl = await helpers.resolveImageUrl(parsed.coverImageId);
 
       return {
         title: parsed.title,

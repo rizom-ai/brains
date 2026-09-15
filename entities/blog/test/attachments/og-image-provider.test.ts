@@ -1,10 +1,14 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, expect, it } from "bun:test";
 import type { EntityPluginContext } from "@brains/plugins";
 import { createBlogOgImageProvider } from "../../src/attachments/og-image-provider";
 import { BLOG_OG_IMAGE_ATTACHMENT_TYPE } from "../../src/attachments/og-image-template";
 
-const TINY_PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const unexpected = async (): Promise<never> => {
+  throw new Error("Unexpected file operation");
+};
 
 function createContext(): Pick<
   EntityPluginContext,
@@ -84,37 +88,58 @@ Body`,
 
 describe("Blog OG image attachment provider", () => {
   it("resolves a post into a PNG OG image attachment", async () => {
-    const provider = createBlogOgImageProvider(createContext(), {
-      screenshotPng: async (_url, viewport): Promise<Buffer> => {
-        expect(viewport).toEqual({ width: 1200, height: 630 });
-        return TINY_PNG;
+    const context = createContext();
+    context.entityService.fileAssets = {
+      inspect: unexpected,
+      publish: unexpected,
+      download: unexpected,
+      fingerprint: unexpected,
+      close: async (): Promise<void> => undefined,
+      withProducedFile: async (
+        directory,
+        use,
+        options,
+      ): ReturnType<typeof use> => {
+        expect(await readFile(join(directory, "index.html"), "utf8")).toContain(
+          "Resilience Is Not Redundancy",
+        );
+        return use(
+          {
+            sourceFile: join(directory, "rendered.png"),
+            sizeBytes: 8,
+            sha256: "a".repeat(64),
+          },
+          options?.signal ?? new AbortController().signal,
+        );
       },
-    });
-
-    const attachment = await provider.resolve({
-      sourceEntityType: "post",
-      sourceEntityId: "resilience",
-      attachmentType: BLOG_OG_IMAGE_ATTACHMENT_TYPE,
-    });
-
+    };
+    const attachment = await createBlogOgImageProvider(context).withFile(
+      {
+        sourceEntityType: "post",
+        sourceEntityId: "resilience",
+        attachmentType: BLOG_OG_IMAGE_ATTACHMENT_TYPE,
+      },
+      async (file) => file,
+    );
     expect(attachment).toEqual({
       type: "image",
-      data: TINY_PNG,
       mimeType: "image/png",
       filename: "resilience-og.png",
+      sha256: "a".repeat(64),
+      source: { sourceFile: expect.any(String), sizeBytes: 8 },
     });
   });
 
   it("returns undefined for non-OG requests", async () => {
-    const provider = createBlogOgImageProvider(createContext(), {
-      screenshotPng: async (): Promise<Buffer> => TINY_PNG,
-    });
-
-    const attachment = await provider.resolve({
-      sourceEntityType: "post",
-      sourceEntityId: "resilience",
-      attachmentType: "printable",
-    });
+    const provider = createBlogOgImageProvider(createContext());
+    const attachment = await provider.withFile(
+      {
+        sourceEntityType: "post",
+        sourceEntityId: "resilience",
+        attachmentType: "printable",
+      },
+      async (file) => file,
+    );
 
     expect(attachment).toBeUndefined();
   });

@@ -17,7 +17,6 @@ export type {
   MediaAttachmentContext,
   MediaAttachmentProviderConfig,
   MediaContentHelpers,
-  OgImageProviderDeps,
   OgImageProviderFactory,
   PrintableProviderDeps,
   PrintableProviderFactory,

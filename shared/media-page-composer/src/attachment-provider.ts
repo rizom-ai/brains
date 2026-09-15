@@ -1,6 +1,7 @@
 import { createDataUrl, resolveImageBytes } from "@brains/image";
 import type {
   AttachmentProvider,
+  FileAttachmentProvider,
   AttachmentProviderMetadata,
   AttachmentResolveRequest,
   BaseEntity,
@@ -9,7 +10,7 @@ import type {
 } from "@brains/plugins";
 import type { PublishMediaData } from "@brains/contracts";
 import { slugify } from "@brains/utils/string-utils";
-import { renderOgImagePng, type ScreenshotPng } from "./og-image";
+import { createOgFileProvider } from "./og-file-provider";
 import { renderPrintablePdf, type RenderPdf } from "./printable";
 import type { MediaPageTemplate } from "./types";
 
@@ -27,10 +28,10 @@ export interface MediaContentHelpers {
    */
   brandLabel: string | undefined;
   /**
-   * Data URL for a referenced image entity. Resolves to undefined when the id
-   * is unset, the entity is missing, or its content is not inline image data.
+   * URL for a referenced image. OG providers use scoped files; the unmigrated
+   * printable provider still uses data URLs. Missing/non-asset images are omitted.
    */
-  resolveImageDataUrl(imageId: string | undefined): Promise<string | undefined>;
+  resolveImageUrl(imageId: string | undefined): Promise<string | undefined>;
 }
 
 export interface MediaAttachmentProviderConfig<
@@ -57,18 +58,13 @@ export interface MediaAttachmentProviderConfig<
   slug: (entity: TEntity) => string;
 }
 
-export interface OgImageProviderDeps {
-  screenshotPng?: ScreenshotPng;
-}
-
 export interface PrintableProviderDeps {
   renderPdf?: RenderPdf;
 }
 
 export type OgImageProviderFactory = (
   context: MediaAttachmentContext,
-  deps?: OgImageProviderDeps,
-) => AttachmentProvider;
+) => FileAttachmentProvider;
 
 export type PrintableProviderFactory = (
   context: MediaAttachmentContext,
@@ -86,7 +82,7 @@ export function createMediaContentHelpers(
 ): MediaContentHelpers {
   return {
     brandLabel: resolveBrandLabel(context),
-    resolveImageDataUrl: async (
+    resolveImageUrl: async (
       imageId: string | undefined,
     ): Promise<string | undefined> => {
       if (!imageId) return undefined;
@@ -206,25 +202,8 @@ function createMediaAttachmentProvider<
 export function createOgImageProvider<TEntity extends BaseEntity, TContent>(
   config: MediaAttachmentProviderConfig<TEntity, TContent>,
 ): OgImageProviderFactory {
-  return createMediaAttachmentProvider<TEntity, TContent, OgImageProviderDeps>(
-    config,
-    {
-      metadata: { outputEntityType: "image", targetField: "ogImageId" },
-      routeSegment: "og",
-      filenameSuffix: "-og.png",
-      envelope: (data, filename) => ({
-        type: "image",
-        data,
-        mimeType: "image/png",
-        filename,
-      }),
-      render: (renderOptions, deps) =>
-        renderOgImagePng({
-          ...renderOptions,
-          ...(deps?.screenshotPng ? { screenshotPng: deps.screenshotPng } : {}),
-        }),
-    },
-  );
+  return (context): FileAttachmentProvider =>
+    createOgFileProvider(config, context, () => resolveBrandLabel(context));
 }
 
 /**

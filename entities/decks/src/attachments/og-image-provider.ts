@@ -23,9 +23,7 @@ export const createDeckOgImageProvider: OgImageProviderFactory =
       const { frontmatter, content: body } = parseMarkdown(deck.content);
       const parsed = deckFrontmatterSchema.parse(frontmatter);
       const slideCount = countSlides(body);
-      const coverImageUrl = await helpers.resolveImageDataUrl(
-        parsed.coverImageId,
-      );
+      const coverImageUrl = await helpers.resolveImageUrl(parsed.coverImageId);
 
       return {
         title: parsed.title,

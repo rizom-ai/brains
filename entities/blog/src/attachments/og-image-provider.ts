@@ -25,9 +25,7 @@ export const createBlogOgImageProvider: OgImageProviderFactory =
     buildContent: async (post, helpers) => {
       const { frontmatter } = parseMarkdown(post.content);
       const parsed = blogPostFrontmatterSchema.parse(frontmatter);
-      const coverImageUrl = await helpers.resolveImageDataUrl(
-        parsed.coverImageId,
-      );
+      const coverImageUrl = await helpers.resolveImageUrl(parsed.coverImageId);
 
       return {
         title: parsed.title,

@@ -30,6 +30,7 @@ const file: AttachmentFile = {
   type: "image",
   mimeType: "image/png",
   filename: "og.png",
+  sha256: "a".repeat(64),
   source: { sourceFile: "/trusted/og.png", sizeBytes: 123 },
 };
 const signal = new AbortController().signal;
@@ -47,6 +48,11 @@ describe("AttachmentRegistry", () => {
       /does not support file handoff/,
     );
     expect(resolve).not.toHaveBeenCalled();
+    for (const sha256 of [undefined, "a".repeat(63), "g".repeat(64)]) {
+      expect(attachmentFileSchema.safeParse({ ...file, sha256 }).success).toBe(
+        false,
+      );
+    }
     expect(
       attachmentFileSchema.safeParse({
         ...file,

@@ -22,13 +22,9 @@ import {
 } from "@brains/app";
 import defaultSite from "@brains/site-default";
 import defaultTheme from "@rizom/theme-default";
-import { EntityService, type EntityFileAssets } from "@brains/entity-service";
-import { createAssetRef } from "@brains/assets";
-import {
-  imageSchema,
-  imageAdapter,
-  imageAssetFactsSchema,
-} from "@brains/image";
+import { EntityService } from "@brains/entity-service";
+import { createAssetRef, parseAssetRef, getAssetDigest } from "@brains/assets";
+import { imageSchema, imageAdapter } from "@brains/image";
 import { WorkerBinaryPersistence } from "../../shared/db/src/turso-worker/binary-persistence";
 import { canonicalBrain } from "../../packages/brain-cli/src/model/canonical-brain";
 import {
@@ -39,6 +35,7 @@ import {
 import {
   exerciseCanonicalPublicationRpc,
   exerciseCanonicalReadRpc,
+  exerciseCanonicalRestartDownloads,
 } from "./turso-canonical-publication-rpc";
 
 registerPackage("@brains/site-default", defaultSite);
@@ -48,52 +45,103 @@ registerPackage("@rizom/theme-default", defaultTheme);
 const SIZE = 256 * 1024 + 7;
 const SHA = "6bc5839d31ffd66263d28992f1186b33312444ffb4e2b1aab184df47e9c3b149";
 
-async function renderCanonicalFile(
-  files: EntityFileAssets,
-  directory: string,
-  ref: ReturnType<typeof createAssetRef>,
-): Promise<{
+async function renderCanonicalFile(app: App): Promise<{
   ref: ReturnType<typeof createAssetRef>;
   digest: string;
   sizeBytes: number;
 }> {
-  assert.ok(files.withProducedFile);
-  const renderSource = join(directory, "render-page");
-  await mkdir(renderSource);
-  await files.download({ ref, outputFile: join(renderSource, "cover.png") });
-  await writeFile(
-    join(renderSource, "index.html"),
-    '<!doctype html><html><head><style>body{margin:0;background:#123;color:white}img{width:64px;height:64px}</style></head><body><h1>Bun file rendering</h1><img src="/cover.png"></body></html>',
-  );
-  return files.withProducedFile(renderSource, async (file, signal) => {
-    const source = { sourceFile: file.sourceFile, sizeBytes: file.sizeBytes };
-    const inspected = await files.inspect(source, { signal });
-    assert.equal(inspected.sha256, file.sha256);
-    const facts = imageAssetFactsSchema.parse({
-      ...inspected.details,
-      ref: createAssetRef(inspected.sha256),
-      digest: inspected.sha256,
-      sizeBytes: inspected.sizeBytes,
-    });
-    assert.equal(facts.width, 1200);
-    assert.equal(facts.height, 630);
-    const image = imageAdapter.createImageEntity({
-      facts,
-      title: "Actor-rendered image",
-      status: "draft",
-    });
-    await files.publish(
-      {
-        ...source,
-        publication: {
-          operation: "createEntity",
-          request: { entity: { ...image, id: "actor-rendered-image" } },
-        },
+  const shell = app.getShell();
+  const service = shell.getEntityService();
+  const files = service.fileAssets;
+  assert.ok(files?.withProducedFile);
+  const attachments = shell.getAttachmentRegistry();
+  assert.equal(attachments.hasProvider("post", "og-image"), true);
+  await service.createEntity({
+    entity: {
+      id: "render-source",
+      entityType: "post",
+      visibility: "public",
+      content:
+        "---\ntitle: Canonical Bun rendering\nslug: render-source\nstatus: draft\nexcerpt: Owned OG file publication\nauthor: Fixture\ncoverImageId: canonical-image\n---\nBody\n",
+      metadata: {
+        title: "Canonical Bun rendering",
+        slug: "render-source",
+        status: "draft",
       },
-      { signal },
-    );
-    return { ref: facts.ref, digest: facts.digest, sizeBytes: facts.sizeBytes };
+    },
   });
+  const handler = shell
+    .getJobQueueService()
+    .getHandler("image:image-render-source");
+  assert.ok(handler);
+  const reporter = CallbackProgressReporter.from(
+    async (): Promise<void> => undefined,
+  );
+  assert.ok(reporter);
+  const buffered = spyOn(attachments, "resolve").mockImplementation(
+    async (): Promise<never> => {
+      throw new Error("Controller attachment buffering is forbidden");
+    },
+  );
+  const reads = spyOn(service, "readAsset").mockImplementation(
+    async (): Promise<never> => {
+      throw new Error("Controller image buffering is forbidden");
+    },
+  );
+  const producer = spyOn(files, "withProducedFile");
+  const download = spyOn(files, "download");
+  try {
+    assert.deepEqual(
+      await handler.process(
+        {
+          sourceEntityType: "post",
+          sourceEntityId: "render-source",
+          attachmentType: "og-image",
+          imageId: "actor-rendered-image",
+          targetEntityType: "post",
+          targetEntityId: "render-source",
+          targetImageField: "ogImageId",
+        },
+        "canonical-render-source",
+        reporter,
+        new AbortController().signal,
+      ),
+      { success: true, imageId: "actor-rendered-image", reused: false },
+    );
+    assert.equal(producer.mock.calls.length, 1);
+    assert.equal(download.mock.calls.length, 1);
+    assert.equal(download.mock.calls[0]?.[0].ref, createAssetRef(SHA));
+    assert.equal(buffered.mock.calls.length, 0);
+    assert.equal(reads.mock.calls.length, 0);
+  } finally {
+    buffered.mockRestore();
+    reads.mockRestore();
+    producer.mockRestore();
+    download.mockRestore();
+  }
+  const image = imageSchema.parse(
+    await service.getEntity({
+      entityType: "image",
+      id: "actor-rendered-image",
+    }),
+  );
+  assert.equal(image.metadata.width, 1200);
+  assert.equal(image.metadata.height, 630);
+  assert.equal(image.metadata.sourceEntityId, "render-source");
+  assert.equal(image.metadata.attachmentType, "og-image");
+  const post = await service.getEntity({
+    entityType: "post",
+    id: "render-source",
+  });
+  assert.ok(post);
+  assert.match(post.content, /ogImageId: actor-rendered-image/);
+  const ref = parseAssetRef(image.content);
+  assert.ok(image.metadata.sizeBytes);
+  return {
+    ref,
+    digest: getAssetDigest(ref),
+    sizeBytes: image.metadata.sizeBytes,
+  };
 }
 
 test("canonical App binds a real file claim in its entity transaction and downloads every image byte", async () => {
@@ -551,7 +599,7 @@ plugins:
       // Independent workflows share the unchanged two-child admission. Join
       // both real outcomes rather than racing away on the first failure.
       const outcomes = await Promise.allSettled([
-        renderCanonicalFile(workerFiles, directory, record.ref),
+        renderCanonicalFile(workerApp),
         jobs(),
       ]);
       const errors = outcomes.flatMap((outcome) =>
@@ -654,18 +702,13 @@ plugins:
     assert.equal(renderedImage.content, rendered.record.ref);
     assert.equal(renderedImage.metadata.width, 1200);
     assert.equal(renderedImage.metadata.height, 630);
-    await exerciseCanonicalReadRpc(
-      binding,
-      endpoint,
-      rendered.record,
-      join(directory, "reopened-rendered.png"),
-    );
-    await exerciseCanonicalReadRpc(
-      binding,
-      endpoint,
-      record,
-      join(directory, "reopened.png"),
-    );
+    await exerciseCanonicalRestartDownloads(binding, endpoint, [
+      {
+        record: rendered.record,
+        outputFile: join(directory, "reopened-rendered.png"),
+      },
+      { record, outputFile: join(directory, "reopened.png") },
+    ]);
     binding.assertTransferIdle();
     assert.deepEqual(await binding.publicationRows("rolled-back"), {
       entity: 0,
