@@ -3,8 +3,7 @@ import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { BaseJobHandler } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils/progress";
-import { imageAdapter, imageAssetFactsSchema } from "@brains/image";
-import { createAssetRef } from "@brains/assets";
+import { getOrCreateImageEntity } from "../lib/image-entity-helper";
 import { getErrorMessage } from "@brains/utils/error";
 import { parseMarkdown, generateMarkdown } from "@brains/utils/markdown";
 import { PROGRESS_STEPS, JobResult } from "@brains/contracts";
@@ -126,78 +125,14 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
         message: "Checking for existing image",
       });
 
-      // Step 3: Check for existing image with this sourceUrl (deduplication)
-      const existing = await this.context.entityService.listEntities({
-        entityType: "image",
-        options: {
-          filter: { metadata: { sourceUrl } },
-          limit: 1,
-        },
-      });
-
-      signal?.throwIfAborted();
-      let imageId: string;
-
-      if (existing[0]) {
-        // Reuse existing image
-        imageId = existing[0].id;
-        this.logger.debug("Reusing existing image entity", {
-          sourceUrl,
-          imageId,
-        });
-        await this.reportProgress(progressReporter, {
-          progress: PROGRESS_STEPS.EXTRACT,
-          message: `Reusing existing image: ${imageId}`,
-        });
-      } else {
-        // Step 4: Fetch image from URL
-        await this.reportProgress(progressReporter, {
-          progress: PROGRESS_STEPS.PROCESS,
-          message: `Fetching image from ${sourceUrl}`,
-        });
-
-        const files = this.context.entityService.fileAssets;
-        if (!files?.withRemoteFile)
-          throw new Error("Remote image file ingress is not provisioned");
-        imageId = `${postSlug}-cover`;
-        const imageTitle = `Cover image for ${postTitle}`;
-        await files.withRemoteFile(
-          sourceUrl,
-          async (file, transferSignal): Promise<void> => {
-            const facts = imageAssetFactsSchema.parse({
-              ...file.details,
-              ref: createAssetRef(file.sha256),
-              digest: file.sha256,
-              sizeBytes: file.sizeBytes,
-            });
-            const imageData = imageAdapter.createImageEntity({
-              facts,
-              title: imageTitle,
-              alt: customAlt ?? imageTitle,
-              sourceUrl,
-            });
-            await files.publish(
-              {
-                sourceFile: file.sourceFile,
-                sizeBytes: file.sizeBytes,
-                publication: {
-                  operation: "createEntity",
-                  request: { entity: { id: imageId, ...imageData } },
-                },
-              },
-              { signal: transferSignal },
-            );
-          },
-          { signal },
-        );
-
-        this.logger.debug("Created image entity", { imageId, sourceUrl });
-
-        await this.reportProgress(progressReporter, {
-          progress: PROGRESS_STEPS.EXTRACT,
-          message: `Created image: ${imageId}`,
-        });
-      }
+      // All directory URL callers share the same deduplication and verified publication path.
+      const title = `Cover image for ${postTitle}`;
+      const imageId = await getOrCreateImageEntity(
+        { id: `${postSlug}-cover`, title, alt: customAlt ?? title, sourceUrl },
+        this.context.entityService,
+        this.logger,
+        signal,
+      );
 
       signal?.throwIfAborted();
       // Step 6: Update frontmatter

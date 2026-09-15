@@ -8,6 +8,7 @@ import { createSilentLogger } from "@brains/test-utils";
 import { CallbackProgressReporter } from "@brains/utils/progress";
 import { RuntimeUploadStore } from "../../shell/plugins/src/service/upload-registry";
 import { webChatUploadsScope } from "../../entities/image/src/lib/upload-promotion";
+import { FrontmatterImageConverter } from "../../plugins/directory-sync/src/lib/frontmatter-image-converter";
 import { DirectorySync } from "../../plugins/directory-sync/src/lib/directory-sync";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -331,13 +332,16 @@ plugins:
       assert.ok(conversion);
       const page = join(directory, "remote-cover.md");
       await writeFile(page, "---\ntitle: Remote cover\n---\nBody\n");
+      let requests = 0;
       const server = Bun.serve({
         port: 0,
         hostname: "127.0.0.1",
-        fetch: (): Response =>
-          new Response(Bun.file(sourceFile), {
+        fetch: (): Response => {
+          requests++;
+          return new Response(Bun.file(sourceFile), {
             headers: { "content-type": "image/png" },
-          }),
+          });
+        },
       });
       const bufferedFetch = spyOn(globalThis, "fetch").mockRejectedValue(
         new Error("Controller URL fetch is forbidden"),
@@ -360,6 +364,38 @@ plugins:
             ?.content,
           record.ref,
         );
+        const inline = workerApp
+          .getShell()
+          .getJobQueueService()
+          .getHandler("directory-sync:inline-image-convert");
+        assert.ok(inline);
+        // The cover job now exercises the same helper's native creation branch.
+        // Inline/frontmatter reuse exercises both callers without redundant actors.
+        const inlineUrl = `http://127.0.0.1:${server.port}/image`;
+        await writeFile(page, `![Inline](${inlineUrl})\n`);
+        assert.deepEqual(
+          await inline.process(
+            { filePath: page, postSlug: "remote" },
+            "canonical-inline-image",
+            reporter,
+            new AbortController().signal,
+          ),
+          { success: true, convertedCount: 1 },
+        );
+        assert.match(
+          await Bun.file(page).text(),
+          /entity:\/\/image\/remote-cover/,
+        );
+        const frontmatter = new FrontmatterImageConverter(
+          owner,
+          createSilentLogger(),
+        );
+        const converted = await frontmatter.convert(
+          `---\ntitle: Reused\ncoverImageUrl: ${inlineUrl}\n---\nBody\n`,
+        );
+        assert.equal(converted.imageId, "remote-cover");
+        assert.equal(converted.converted, true);
+        assert.equal(requests, 1);
       } finally {
         bufferedFetch.mockRestore();
         await server.stop(true);

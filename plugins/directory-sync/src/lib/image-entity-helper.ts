@@ -1,9 +1,7 @@
 import type { EntityServiceClient } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import { imageAdapter, parseDataUrl, prepareImageAsset } from "@brains/image";
-
-/** Function to fetch an image URL and return base64 data URL */
-export type ImageFetcher = (url: string) => Promise<string>;
+import { imageAdapter, imageAssetFactsSchema } from "@brains/image";
+import { createAssetRef } from "@brains/assets";
 
 interface ImageEntityParams {
   id: string;
@@ -19,9 +17,10 @@ interface ImageEntityParams {
 export async function getOrCreateImageEntity(
   params: ImageEntityParams,
   entityService: EntityServiceClient,
-  fetcher: ImageFetcher,
   logger: Logger,
+  signal?: AbortSignal,
 ): Promise<string> {
+  signal?.throwIfAborted();
   const { sourceUrl } = params;
 
   // Check for existing image with this sourceUrl (deduplication)
@@ -33,6 +32,7 @@ export async function getOrCreateImageEntity(
     },
   });
 
+  signal?.throwIfAborted();
   if (existing[0]) {
     logger.debug("Reusing existing image entity", {
       sourceUrl,
@@ -41,27 +41,38 @@ export async function getOrCreateImageEntity(
     return existing[0].id;
   }
 
-  const dataUrl = await fetcher(sourceUrl);
-
-  const parsedImage = parseDataUrl(dataUrl);
-  const { asset: preparedAsset, facts } = prepareImageAsset(
-    parsedImage.bytes,
-    parsedImage.mediaType,
-  );
-  const imageData = imageAdapter.createImageEntity({
-    facts,
-    title: params.title,
-    alt: params.alt,
+  const files = entityService.fileAssets;
+  if (!files?.withRemoteFile)
+    throw new Error("Remote image file ingress is not provisioned");
+  const result = await files.withRemoteFile(
     sourceUrl,
-  });
-
-  const result = await entityService.createEntity({
-    entity: {
-      id: params.id,
-      ...imageData,
+    async (file, transferSignal): ReturnType<typeof files.publish> => {
+      const facts = imageAssetFactsSchema.parse({
+        ...file.details,
+        ref: createAssetRef(file.sha256),
+        digest: file.sha256,
+        sizeBytes: file.sizeBytes,
+      });
+      const imageData = imageAdapter.createImageEntity({
+        facts,
+        title: params.title,
+        alt: params.alt,
+        sourceUrl,
+      });
+      return files.publish(
+        {
+          sourceFile: file.sourceFile,
+          sizeBytes: file.sizeBytes,
+          publication: {
+            operation: "createEntity",
+            request: { entity: { id: params.id, ...imageData } },
+          },
+        },
+        { signal: transferSignal },
+      );
     },
-    preparedAsset,
-  });
+    { signal },
+  );
 
   logger.debug("Created image entity from URL", {
     sourceUrl,

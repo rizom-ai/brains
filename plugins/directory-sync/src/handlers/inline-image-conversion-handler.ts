@@ -3,13 +3,11 @@ import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { BaseJobHandler } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils/progress";
-import { fetchImageAsBase64 } from "@brains/image";
 import { getErrorMessage } from "@brains/utils/error";
 import { PROGRESS_STEPS } from "@brains/contracts";
 import { inlineImageConversionJobSchema } from "../types";
 import type { InlineImageConversionJobData } from "../types";
 import { MarkdownImageConverter } from "../lib/markdown-image-converter";
-import type { ImageFetcher } from "../lib/frontmatter-image-converter";
 
 export interface InlineImageConversionResult {
   success: boolean;
@@ -36,27 +34,21 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
 > {
   private readonly converter: MarkdownImageConverter;
 
-  constructor(
-    context: ServicePluginContext,
-    logger: Logger,
-    fetcher: ImageFetcher = fetchImageAsBase64,
-  ) {
+  constructor(context: ServicePluginContext, logger: Logger) {
     super(logger, {
       schema: inlineImageConversionJobSchema,
       jobTypeName: "inline-image-convert",
     });
-    this.converter = new MarkdownImageConverter(
-      context.entityService,
-      logger,
-      fetcher,
-    );
+    this.converter = new MarkdownImageConverter(context.entityService, logger);
   }
 
   async process(
     data: InlineImageConversionJobData,
     jobId: string,
     progressReporter: ProgressReporter,
+    signal?: AbortSignal,
   ): Promise<InlineImageConversionResult> {
+    signal?.throwIfAborted();
     const { filePath, postSlug } = data;
 
     this.logger.debug("Starting inline image conversion job", {
@@ -112,7 +104,12 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
       });
 
       // Step 3: Convert images using the converter
-      const result = await this.converter.convert(fileContent, postSlug);
+      const result = await this.converter.convert(
+        fileContent,
+        postSlug,
+        signal,
+      );
+      signal?.throwIfAborted();
 
       if (!result.converted) {
         this.logger.debug("No images were converted", { filePath });
@@ -128,6 +125,7 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
         message: "Writing updated file",
       });
 
+      signal?.throwIfAborted();
       // Step 4: Write updated content back to file
       try {
         await writeFile(filePath, result.content, "utf-8");
@@ -149,6 +147,7 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
 
       return { success: true, convertedCount: result.convertedCount };
     } catch (error) {
+      if (signal?.aborted) throw error;
       const message = getErrorMessage(error);
       this.logger.error("Inline image conversion job failed", {
         jobId,

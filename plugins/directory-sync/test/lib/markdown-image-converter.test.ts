@@ -1,3 +1,4 @@
+import { installRemoteFileAssets } from "../helpers/file-assets";
 import {
   createMockEntityService,
   createTestEntity,
@@ -26,11 +27,8 @@ describe("MarkdownImageConverter", () => {
       },
     });
 
-    converter = new MarkdownImageConverter(
-      mockEntityService,
-      logger,
-      mockFetcher,
-    );
+    installRemoteFileAssets(mockEntityService, mockFetcher);
+    converter = new MarkdownImageConverter(mockEntityService, logger);
   });
 
   describe("detectInlineImages", () => {
@@ -375,10 +373,10 @@ slug: my-post
         },
       });
 
+      installRemoteFileAssets(entityServiceWithExisting, localFetcher);
       const converterWithExisting = new MarkdownImageConverter(
         entityServiceWithExisting,
         localLogger,
-        localFetcher,
       );
 
       const content = `---

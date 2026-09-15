@@ -1,8 +1,10 @@
+import assert from "node:assert/strict";
+import { installRemoteFileAssets } from "../helpers/file-assets";
 import {
   createMockEntityService,
   createTestEntity,
 } from "@brains/entity-service/test";
-import { describe, test, expect, mock, beforeEach } from "bun:test";
+import { describe, test, expect, mock, beforeEach, spyOn } from "bun:test";
 import { FrontmatterImageConverter } from "../../src/lib/frontmatter-image-converter";
 import { createSilentLogger } from "@brains/test-utils";
 import { TINY_PNG_DATA_URL as VALID_PNG_DATA_URL } from "../fixtures";
@@ -26,14 +28,43 @@ describe("FrontmatterImageConverter", () => {
       },
     });
 
-    converter = new FrontmatterImageConverter(
-      mockEntityService,
-      logger,
-      mockFetcher,
-    );
+    installRemoteFileAssets(mockEntityService, mockFetcher);
+    converter = new FrontmatterImageConverter(mockEntityService, logger);
   });
 
   describe("convert", () => {
+    test("pre-cancelled conversion acquires no image or file authority", async () => {
+      const caller = new AbortController();
+      const primary = new Error("cover conversion cancelled");
+      caller.abort(primary);
+      await assert.rejects(
+        converter.convert(
+          "---\ntitle: Cover\ncoverImageUrl: https://example.com/image.png\n---\n",
+          caller.signal,
+        ),
+        (error: unknown) => error === primary,
+      );
+      expect(mockFetcher).not.toHaveBeenCalled();
+      expect(mockEntityService.listEntities).not.toHaveBeenCalled();
+    });
+
+    test("late cancellation preserves an acknowledged image publication", async () => {
+      const caller = new AbortController();
+      spyOn(mockEntityService, "createEntity").mockImplementation(
+        async (): ReturnType<typeof mockEntityService.createEntity> => {
+          caller.abort(new Error("cancelled after commit"));
+          return { entityId: "committed-cover", jobId: "job", skipped: false };
+        },
+      );
+      const result = await converter.convert(
+        "---\ntitle: Cover\ncoverImageUrl: https://example.com/image.png\n---\n",
+        caller.signal,
+      );
+      expect(result.converted).toBe(true);
+      expect(result.imageId).toBe("committed-cover");
+      expect(mockEntityService.createEntity).toHaveBeenCalledTimes(1);
+    });
+
     test("should convert coverImage URL to coverImageId", async () => {
       const content = `---
 title: Test Post
@@ -109,10 +140,10 @@ Post content here.`;
         },
       });
 
+      installRemoteFileAssets(entityServiceWithExisting, localFetcher);
       const converterWithExisting = new FrontmatterImageConverter(
         entityServiceWithExisting,
         localLogger,
-        localFetcher,
       );
 
       const content = `---

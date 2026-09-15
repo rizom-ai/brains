@@ -2,12 +2,10 @@ import type { EntityServiceClient } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import {
   extractMarkdownImages,
-  fetchImageAsBase64,
   isHttpUrl,
   type ExtractedImage,
 } from "@brains/image";
 import { getErrorMessage } from "@brains/utils/error";
-import type { ImageFetcher } from "./frontmatter-image-converter";
 import { getOrCreateImageEntity } from "./image-entity-helper";
 
 /**
@@ -47,16 +45,10 @@ export interface InlineConversionResult {
  */
 export class MarkdownImageConverter {
   private entityService: EntityServiceClient;
-  private fetcher: ImageFetcher;
   private logger: Logger;
 
-  constructor(
-    entityService: EntityServiceClient,
-    logger: Logger,
-    fetcher: ImageFetcher = fetchImageAsBase64,
-  ) {
+  constructor(entityService: EntityServiceClient, logger: Logger) {
     this.entityService = entityService;
-    this.fetcher = fetcher;
     this.logger = logger.child("MarkdownImageConverter");
   }
 
@@ -122,7 +114,9 @@ export class MarkdownImageConverter {
   async convert(
     content: string,
     postSlug: string,
+    signal?: AbortSignal,
   ): Promise<InlineConversionResult> {
+    signal?.throwIfAborted();
     const detections = this.detectInlineImages(content, postSlug);
 
     if (detections.length === 0) {
@@ -134,8 +128,13 @@ export class MarkdownImageConverter {
     let imageIndex = 0;
 
     for (const detection of detections) {
+      signal?.throwIfAborted();
       try {
-        const imageId = await this.createImageEntity(detection, imageIndex++);
+        const imageId = await this.createImageEntity(
+          detection,
+          imageIndex++,
+          signal,
+        );
 
         // Replace the original markdown with entity reference
         // Preserve the alt text
@@ -151,6 +150,7 @@ export class MarkdownImageConverter {
           imageId,
         });
       } catch (error) {
+        if (signal?.aborted) throw error;
         this.logger.warn("Failed to convert inline image", {
           sourceUrl: detection.sourceUrl,
           error: getErrorMessage(error),
@@ -169,6 +169,7 @@ export class MarkdownImageConverter {
   private async createImageEntity(
     detection: InlineImageDetection,
     index: number,
+    signal?: AbortSignal,
   ): Promise<string> {
     const { sourceUrl, alt, postSlug } = detection;
     return getOrCreateImageEntity(
@@ -179,8 +180,8 @@ export class MarkdownImageConverter {
         sourceUrl,
       },
       this.entityService,
-      this.fetcher,
       this.logger,
+      signal,
     );
   }
 }

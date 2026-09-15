@@ -1,16 +1,11 @@
 import type { EntityServiceClient } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
-import { fetchImageAsBase64, isHttpUrl } from "@brains/image";
+import { isHttpUrl } from "@brains/image";
 import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
 import { parseMarkdown, generateMarkdown } from "@brains/utils/markdown";
 import { slugify } from "@brains/utils/string-utils";
-import {
-  getOrCreateImageEntity,
-  type ImageFetcher,
-} from "./image-entity-helper";
-
-export type { ImageFetcher } from "./image-entity-helper";
+import { getOrCreateImageEntity } from "./image-entity-helper";
 
 /**
  * Result of image URL conversion
@@ -66,16 +61,10 @@ export interface CoverImageDetection {
  */
 export class FrontmatterImageConverter {
   private entityService: EntityServiceClient;
-  private fetcher: ImageFetcher;
   private logger: Logger;
 
-  constructor(
-    entityService: EntityServiceClient,
-    logger: Logger,
-    fetcher: ImageFetcher = fetchImageAsBase64,
-  ) {
+  constructor(entityService: EntityServiceClient, logger: Logger) {
     this.entityService = entityService;
-    this.fetcher = fetcher;
     this.logger = logger.child("FrontmatterImageConverter");
   }
 
@@ -126,7 +115,11 @@ export class FrontmatterImageConverter {
    * Convert coverImageUrl to coverImageId in frontmatter
    * Works on any markdown content with a coverImageUrl HTTP URL
    */
-  async convert(content: string): Promise<ConversionResult> {
+  async convert(
+    content: string,
+    signal?: AbortSignal,
+  ): Promise<ConversionResult> {
+    signal?.throwIfAborted();
     // Parse frontmatter
     let parsed;
     try {
@@ -166,7 +159,7 @@ export class FrontmatterImageConverter {
 
     // Convert the image URL
     try {
-      const imageId = await this.createImageEntity(imageContext);
+      const imageId = await this.createImageEntity(imageContext, signal);
 
       // Clone frontmatter and replace coverImageUrl with coverImageId
       const newFrontmatter = { ...frontmatter };
@@ -180,6 +173,7 @@ export class FrontmatterImageConverter {
         imageId,
       };
     } catch (error) {
+      if (signal?.aborted) throw error;
       this.logger.warn("Failed to convert coverImageUrl", {
         url: coverImageUrl,
         error: getErrorMessage(error),
@@ -188,7 +182,10 @@ export class FrontmatterImageConverter {
     }
   }
 
-  private async createImageEntity(context: ImageContext): Promise<string> {
+  private async createImageEntity(
+    context: ImageContext,
+    signal?: AbortSignal,
+  ): Promise<string> {
     const { postTitle, postSlug, sourceUrl, customAlt } = context;
     const imageTitle = `Cover image for ${postTitle}`;
     return getOrCreateImageEntity(
@@ -199,8 +196,8 @@ export class FrontmatterImageConverter {
         sourceUrl,
       },
       this.entityService,
-      this.fetcher,
       this.logger,
+      signal,
     );
   }
 }

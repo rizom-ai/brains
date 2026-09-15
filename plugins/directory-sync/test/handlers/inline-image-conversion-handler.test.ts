@@ -1,3 +1,5 @@
+import assert from "node:assert/strict";
+import { installRemoteFileAssets } from "../helpers/file-assets";
 import { createMockServicePluginContext } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
 import {
@@ -60,7 +62,8 @@ describe("InlineImageConversionJobHandler", () => {
     });
 
     mockFetcher = mock(() => Promise.resolve(VALID_PNG_DATA_URL));
-    handler = new InlineImageConversionJobHandler(context, logger, mockFetcher);
+    installRemoteFileAssets(context.entityService, mockFetcher);
+    handler = new InlineImageConversionJobHandler(context, logger);
     progressReporter = createProgressReporter();
 
     // Mock file system operations
@@ -142,6 +145,47 @@ Here is an image: ![Alt text](https://example.com/image.png)`;
       const writtenContent = z.string().parse(writeFileSpy.mock.calls[0]?.[1]);
       expect(writtenContent).toContain("entity://image/");
       expect(writtenContent).not.toContain("https://example.com/image.png");
+    });
+
+    it("joins cancelled ingress without publishing, writing or starting the next image", async () => {
+      const entered = Promise.withResolvers<void>();
+      const release = Promise.withResolvers<void>();
+      const caller = new AbortController();
+      const primary = new Error("inline job cancelled");
+      mockFetcher.mockImplementation(async (): Promise<string> => {
+        entered.resolve();
+        await release.promise;
+        return VALID_PNG_DATA_URL;
+      });
+      readFileSpy.mockResolvedValue(
+        "![One](https://example.com/one.png)\n![Two](https://example.com/two.png)",
+      );
+      let settled = false;
+      const work = handler
+        .process(
+          { filePath: "/path/post.md", postSlug: "post" },
+          "job",
+          progressReporter,
+          caller.signal,
+        )
+        .finally(() => {
+          settled = true;
+        });
+      const rejected = assert.rejects(
+        work,
+        (error: unknown) => error === primary,
+      );
+      try {
+        await entered.promise;
+        caller.abort(primary);
+        expect(settled).toBe(false);
+      } finally {
+        release.resolve();
+        await rejected;
+      }
+      expect(mockFetcher).toHaveBeenCalledTimes(1);
+      expect(context.entityService.createEntity).not.toHaveBeenCalled();
+      expect(writeFileSpy).not.toHaveBeenCalled();
     });
 
     it("should handle file read errors gracefully", async () => {

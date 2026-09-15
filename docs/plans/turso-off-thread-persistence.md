@@ -6,7 +6,7 @@
 - Staged asset binding, authenticated App endpoint registration and metadata-only image construction are implemented; existing image-constructor callers are updated.
 - The canonical native publication candidate still requires a test-only database factory binding.
 - Source owns upload/read binary authority, endpoint lifecycle and native publication/transaction association. Canonical downloads now use the App-owned authenticated endpoint, not direct driver access.
-- Remote facades expose `assetTransfers` on one authenticated connection. `downloadFile` and `publishFile` compose actors, native authority and outcome observation. Local directory image import/export uses explicitly provisioned `fileAssets`; other buffered ingress/read callers remain.
+- Remote facades expose `assetTransfers` on one authenticated connection. `downloadFile` and `publishFile` compose actors, native authority and outcome observation. Directory image import/export and URL conversion use explicitly provisioned `fileAssets`; other buffered ingress/read callers remain.
 - Normal canonical RPC transfers use source payload actors and `FileProcessOwner`, with two-child admission, strict metadata, explicit artifacts and actual exit joins. Instrumented process ownership remains for fault exercises; failed staging is retained and output is never overwritten.
 - `shared/db/src/sqlite.ts` retains its existing runtime factory. Do not switch it before the production binary path is complete.
 - Existing canonical integration drives the binary path; no new standalone proofs were added.
@@ -20,15 +20,15 @@
 | **3. Application cutover**             | Switch all five runtime factories; package workers/actors and wire single-owner lifecycle, including combined mode. | Canonical `start:minimal`, then `start:personal`; real jobs/auth/images/site rebuilds, installed startup, shutdown and restart.                |
 | **4. Release acceptance**              | Complete working-set, crash recovery, import/deployment/backup/restore and rollback coverage.                       | SDK/native/transport/GC/RSS accounting, controller/grandchild recovery and explicit fleet/soak acceptance.                                     |
 
-## Current slice: directory-sync URL cover images — complete
+## Current slice: directory-sync inline/frontmatter URL images — complete
 
-1. Extend the existing worker-role App scenario with its registered cover-image conversion handler, forbidding controller fetches before implementation. Reuse the running owner and verify the image after joined restart.
-2. An explicitly provisioned actor owns HTTP(S), redirects, decompression, inspection, hashing and no-replace file staging. Preserve URL reachability, including private/loopback destinations.
-3. Keep the 100 MiB output cap and one serial 32 KiB application read/write credit per admitted actor. HTTP/TLS/zlib/kernel/GC/RSS bounds remain unestablished; logical limits are not peak-allocation evidence.
-4. The file runtime joins actor exit, lends metadata and a file to the callback, then removes acknowledged staging. Interrupted callbacks retain files. The real cover-image job publishes through authenticated native verification without a buffered fallback.
+1. Extend the existing worker-App scenario with registered inline conversion and frontmatter conversion; forbid controller fetches before implementation.
+2. Share source-URL deduplication, actor metadata inspection and native file publication across cover, inline and frontmatter callers. Remove their base64-fetcher injection paths; test fixtures stay test-only.
+3. Propagate cancellation through lookup and file handoffs. Inline jobs stop before another image or document write; acknowledged publication is not retracted. Preserve ordinary per-image failure handling.
+4. Reuse one URL in canonical coverage: the cover job exercises shared native creation, then inline/frontmatter exercise reuse. Assert exactly one HTTP request; add no actors or startup beyond the previous slice.
 
-**Exit check:** existing canonical coverage plus one URL ingress/publication passes under the default timeout, with no extra app startup. Focused checks cover redirects/compression, chunked bodies, invalid declarations/signatures, truncation, no-replace output, cancellation/actual exit and callback staging lifetime. Runtime factory and default/installed actor provisioning remain unchanged.
+**Exit check:** focused caller/cancellation tests and the canonical source integration pass under the default timeout. HTTP behavior, budgets, failed staging, native verification and actor lifetime remain supplied by the existing file capability. Logical quotas do not establish HTTP/TLS/zlib/kernel/GC/RSS bounds. Runtime factory and default/installed actor provisioning remain unchanged.
 
-**Next slice:** move directory-sync inline/frontmatter URL conversion onto the same file capability; those paths still use base64 fetchers. Package/default application provisioning remains milestone 3; do not switch the runtime factory until milestone 2's exit check passes.
+**Next slice:** migrate stock-photo selection's buffered image download onto the same file capability. Package/default application provisioning remains milestone 3; do not switch the runtime factory until milestone 2's exit check passes.
 
 Keep the 100 MiB ceiling, 32 KiB data-plane credits, existing RPC/SQL/admission limits, entity/asset/reference/projection/outbox atomicity, primary/cleanup causes and actual-exit acknowledgement. Preserve failed recovery directories. If a fault matrix is needed, name the application integration blocker first.
