@@ -23,6 +23,7 @@ beforeEach(() => {
     Element: windowInstance.Element,
     Node: windowInstance.Node,
     Event: windowInstance.Event,
+    KeyboardEvent: windowInstance.KeyboardEvent,
     IS_REACT_ACT_ENVIRONMENT: true,
   });
   const container = document.createElement("div");
@@ -76,6 +77,47 @@ it("commits a filter from the settled query, never a half-typed one", async () =
     q: "settled",
     offset: 0,
   });
+});
+
+it("dismisses filters with Escape without clearing the query or remounting fields", async () => {
+  const changes: StudioCollectionQuery[] = [];
+  await mount({ q: "keep this" }, (value) => changes.push(value));
+  const details = document.querySelector("details"),
+    summary = document.querySelector("summary"),
+    select = document.querySelector("select");
+  if (!details || !summary || !select) throw Error("Missing filters");
+  details.open = true;
+  await act(async () => {
+    select.focus();
+    select.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Escape",
+        bubbles: true,
+      }),
+    );
+  });
+  expect(details.open).toBe(false);
+  expect(document.activeElement).toBe(summary);
+  expect(document.querySelector("select")).toBe(select);
+  expect(changes).toHaveLength(0);
+  expect(document.querySelector("input")?.value).toBe("keep this");
+});
+
+it("closes filters when keyboard focus leaves their panel", async () => {
+  await mount({ q: "keep this" }, () => {});
+  const details = document.querySelector("details"),
+    select = document.querySelector("select"),
+    clear = document.querySelector<HTMLButtonElement>(
+      'button[aria-label="Clear search and filters"]',
+    );
+  if (!details || !select || !clear) throw Error("Missing filters");
+  details.open = true;
+  await act(async () => {
+    select.focus();
+    clear.focus();
+  });
+  expect(details.open).toBe(false);
+  expect(document.activeElement).toBe(clear);
 });
 
 it("offers one way back out of a filtered collection", async () => {

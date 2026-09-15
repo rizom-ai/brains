@@ -103,7 +103,10 @@ describe("content-pipeline Studio workspace registration", () => {
     const result = JSON.stringify(await registration.dataProvider(adminActor));
     expect(result).toContain('"id":"publishing-at-rest"');
     expect(result).not.toContain('"id":"publishing-queue"');
-    expect(result).toContain('"label":"Published"');
+    expect(result).toContain(
+      '"status":{"label":"0 published","tone":"neutral"}',
+    );
+    expect(result).not.toContain('"id":"publishing-summary"');
   });
   it("is a no-op when the Studio is absent", async () => {
     const context = createServicePluginContext(
@@ -213,6 +216,7 @@ describe("content-pipeline Studio workspace registration", () => {
     expect(JSON.stringify(workspace)).toContain('"entityType":"social-post"');
     expect(workspace).toMatchObject({
       view: {
+        status: { label: "0 published", tone: "neutral" },
         blocks: [
           {
             id: "publishing-attention",
@@ -264,7 +268,6 @@ describe("content-pipeline Studio workspace registration", () => {
               },
             ],
           },
-          { id: "publishing-summary" },
         ],
       },
     });

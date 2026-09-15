@@ -466,6 +466,25 @@ describe("area and leaf navigation", () => {
         ?.getAttribute("aria-expanded"),
     ).toBe("true");
   });
+  it("gives collapsed areas distinct decorative marks without losing names or routing", async () => {
+    await render("style-guide");
+    await click(".studio-navigation-collapse", "⇤");
+    const areas = [...document.querySelectorAll(".studio-area-link")];
+    expect(areas).toHaveLength(6);
+    const paths = new Set<string>();
+    for (const area of areas) {
+      const mark = area.querySelector("svg");
+      expect(mark).not.toBeNull();
+      expect(mark?.getAttribute("aria-hidden")).toBe("true");
+      expect(mark?.getAttribute("viewBox")).toBe("0 0 24 24");
+      expect(area.getAttribute("title")).toBe(area.getAttribute("aria-label"));
+      paths.add(mark?.querySelector("path")?.getAttribute("d") ?? "");
+    }
+    expect(paths.size).toBe(6);
+    await click('.studio-area-link[aria-label="Library"]', "");
+    expect(leafText()).toContain("Content");
+  });
+
   it("keeps B's numbered area items, singular singleton labels and Commands footer", async () => {
     await render("style-guide");
     expect(

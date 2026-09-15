@@ -877,6 +877,33 @@ describe("System editor presentation", () => {
   }
 });
 
+it("keeps exact timestamps in semantic Library and System collection metadata", async () => {
+  const window = new Window();
+  try {
+    for (const entityType of ["post", "prompt"]) {
+      window.document.body.innerHTML = renderCapabilityView(
+        {
+          canRead: true,
+          canCreate: false,
+          canUpdate: false,
+          canDelete: false,
+          canPublish: false,
+          canExtract: false,
+          canAssist: false,
+        },
+        "browse",
+        { entityType },
+      );
+      const time = window.document.querySelector("[data-studio-record] time");
+      expect(time?.getAttribute("datetime")).toBe("2026-07-01T00:00:00.000Z");
+      expect(time?.getAttribute("title")).toBe("2026-07-01T00:00:00.000Z");
+      expect(time?.textContent).toBeTruthy();
+    }
+  } finally {
+    await window.happyDOM.close();
+  }
+});
+
 describe("System mockup alignment", () => {
   const capabilities = {
     canRead: true,

@@ -381,14 +381,14 @@ const peopleWorkspace = defineStudioWorkspace({
         selected.status === "active" &&
         data.activeAdminCount <= 1;
       const roleProtection = selected.isAnchor
-        ? "A professional Anchor must remain an active Admin."
+        ? "The protected brain identity must remain an active Admin."
         : selected.status === "suspended"
           ? "Reactivate this person before changing access."
           : protectsLastAdmin
             ? "Add another active Admin before changing this role."
             : undefined;
       const suspensionProtection = selected.isAnchor
-        ? "The professional Anchor cannot be suspended."
+        ? "The protected brain identity cannot be suspended."
         : protectsLastAdmin
           ? "Add another active Admin before suspending this person."
           : undefined;
@@ -398,7 +398,7 @@ const peopleWorkspace = defineStudioWorkspace({
         items: [
           { label: "Role", value: titleCase(selected.role) },
           { label: "Status", value: titleCase(selected.status) },
-          { label: "Anchor", value: selected.isAnchor },
+          { label: "Protected brain identity", value: selected.isAnchor },
           {
             label: "Brain relationship",
             value:
@@ -627,7 +627,7 @@ const peopleWorkspace = defineStudioWorkspace({
       {
         type: "card",
         id: "brain-anchor",
-        label: "Brain Anchor",
+        label: "Brain identity",
         blocks: [
           {
             type: "key-values",
@@ -664,16 +664,14 @@ const peopleWorkspace = defineStudioWorkspace({
                 titleCase(person.role),
                 titleCase(person.status),
                 ...(person.isSelf ? ["You"] : []),
-                ...(person.isAnchor ? ["Anchor"] : []),
+                ...(person.isAnchor ? ["Protected brain identity"] : []),
               ].join(" · "),
               metadata: [
-                person.isAnchor
-                  ? "Protected brain identity"
-                  : person.isSelf
-                    ? "Not the Anchor"
-                    : person.identities.length === 1
-                      ? "One connected channel"
-                      : `${person.identities.length} connected channels`,
+                person.identities.length === 0
+                  ? "No connected channels"
+                  : person.identities.length === 1
+                    ? "One connected channel"
+                    : `${person.identities.length} connected channels`,
                 ...(person.peers.length > 0
                   ? [`Arrived via ${peerOriginLabel(person.peers[0]?.peerId)}`]
                   : []),

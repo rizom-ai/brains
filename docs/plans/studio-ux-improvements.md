@@ -1,6 +1,6 @@
 # Plan: Studio UX follow-through
 
-Last updated: 2026-09-14
+Last updated: 2026-09-15
 
 ## Status
 
@@ -10,16 +10,20 @@ Those outcomes are now maintained in Studio/Web Chat tests, package changelogs, 
 
 None of the remaining items gates stable `v0.2.0` unless a release-candidate acceptance run exposes it as a concrete regression.
 
-## Remaining presentation work
+## Presentation implementation
 
-- **Collapsed rail identity.** Replace ordinal-only collapsed navigation with glanceable per-area marks while preserving accessible names.
-- **Site-link emphasis.** Make preview/live-site launch links read as actions consistently with Overview launches.
-- **Publishing totals.** Move the orphaned published total into the tab row or page-head metadata.
-- **People language.** Replace internal Anchor vocabulary with user-facing protection/status copy and show the same connected-channel line for every person.
-- **Collection grammar.** Unify library and Chat search, filter, range, and pagination presentation without merging their backend query semantics.
-- **Time presentation.** Define where relative and absolute timestamps belong and fix singular relative-time copy.
+The complete presentation batch is in PR #264, not yet merged. The checks below describe implemented code, not release or authenticated acceptance:
 
-Each change should reuse the shared React/StyleX control and typography contracts. Do not create per-workspace variants for shared semantics.
+- [x] Distinct collapsed rail marks with accessible names and preserved routing.
+- [x] Properties width and unclipped native date/time controls and upload guidance.
+- [x] Grouped site links rendered through shared outlined controls.
+- [x] Actual published totals in the page head, without an orphaned body total.
+- [x] User-facing protection language and connected-channel counts for every person.
+- [x] Neutral disabled primary surfaces, including hover.
+- [x] Shared collection search/filter/range/pager presentation with separate query semantics, truthful unknown totals, bounded filters, and keyboard dismissal.
+- [x] Defined relative/absolute time policy, singular wording, and exact semantic timestamps.
+
+CI-native visual review and the acceptance checks below are required before closing this plan. No per-workspace variants or persistent drafts were introduced.
 
 ## Remaining acceptance work
 

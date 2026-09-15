@@ -2611,6 +2611,55 @@ async function verifyDisabledPrimaries(page: Bun.WebView): Promise<void> {
   }
 }
 
+async function verifyCollectionFiltersFit(page: Bun.WebView): Promise<void> {
+  await evaluatePage(page, () => {
+    const panel = document.querySelector<HTMLElement>(
+      ".studio-collection-controls details[open] > div",
+    );
+    if (!panel) throw Error("Missing open collection filters");
+    const bounds = panel.getBoundingClientRect();
+    if (bounds.width <= 0 || panel.scrollWidth > panel.clientWidth + 1)
+      throw Error("Collection filters overflow their panel");
+    for (const field of panel.querySelectorAll("select, input")) {
+      const rect = field.getBoundingClientRect();
+      if (
+        rect.width <= 0 ||
+        rect.left < bounds.left - 1 ||
+        rect.right > bounds.right + 1 ||
+        rect.right > innerWidth
+      )
+        throw Error("Collection filter control is clipped");
+    }
+    panel.querySelector<HTMLSelectElement>("select")?.focus();
+  });
+  await page.cdp("Input.dispatchKeyEvent", {
+    type: "keyDown",
+    key: "Escape",
+    code: "Escape",
+    windowsVirtualKeyCode: 27,
+  });
+  await page.cdp("Input.dispatchKeyEvent", {
+    type: "keyUp",
+    key: "Escape",
+    code: "Escape",
+    windowsVirtualKeyCode: 27,
+  });
+  await evaluatePage(page, () => {
+    const details = document.querySelector<HTMLDetailsElement>(
+      ".studio-collection-controls details",
+    );
+    if (
+      !details ||
+      details.open ||
+      document.activeElement !== details.querySelector("summary")
+    )
+      throw Error(
+        "Escape must close only the filters and restore their trigger",
+      );
+  });
+  await clickText(page, ".studio-collection-controls summary", "Filter");
+}
+
 async function verifyNativeDateFits(page: Bun.WebView): Promise<void> {
   // The input's own scrollWidth does not expose clipped native date segments.
   // Inspect Chromium's user-agent shadow layout instead of guessing its locale.
@@ -4395,6 +4444,24 @@ try {
               ),
             );
             await fillLabel(page, "Search conversations", "");
+            await clickText(
+              page,
+              ".studio-collection-controls summary",
+              "Filter",
+            );
+            await verifyCollectionFiltersFit(page);
+            await waitForPage("unfiltered conversation collection", () =>
+              page.evaluate<boolean>(
+                'document.querySelector(".studio-chat-session-list")?.textContent?.includes("Responsive console audit") ?? false',
+              ),
+            );
+            await settleVisualCapture(page);
+            const filtersName = `studio-chat-filters-${viewport.width}x${viewport.height}-${climate}`;
+            await auditStudioAccessibility(page, filtersName);
+            await recordVisualCapture(
+              `${filtersName}.png`,
+              await page.screenshot({ encoding: "buffer", format: "png" }),
+            );
             await evaluatePage(page, () => {
               const select = document.querySelector<HTMLSelectElement>(
                 '[role="dialog"] select',
@@ -4699,6 +4766,14 @@ try {
             ".studio-collection-controls summary",
             "Filter and sort",
           );
+          await verifyCollectionFiltersFit(page);
+          await settleVisualCapture(page);
+          const filtersName = `studio-library-filters-${viewport.width}x${viewport.height}-${climate}`;
+          await auditStudioAccessibility(page, filtersName);
+          await recordVisualCapture(
+            `${filtersName}.png`,
+            await page.screenshot({ encoding: "buffer", format: "png" }),
+          );
           await evaluatePage(page, () => {
             const select = document.querySelector<HTMLSelectElement>(
               ".studio-collection-controls select",
@@ -4863,6 +4938,17 @@ try {
         }
         if (surface === "studio-publishing") {
           await waitForText(page, "Notes from the rhizome");
+          await evaluatePage(page, () => {
+            if (
+              !document
+                .querySelector("[data-studio-page-head]")
+                ?.textContent.includes("14 published") ||
+              document.querySelector('[data-block-id="publishing-summary"]')
+            )
+              throw Error(
+                "Published totals belong in the page head, not a separate body panel",
+              );
+          });
           await evaluatePage(page, () => {
             const attention = document.querySelector(
               'section[data-tone="warn"]',
