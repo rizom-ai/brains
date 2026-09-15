@@ -181,7 +181,10 @@ export class EntityQueries {
 
     if (readBudget) conditions.push(entityRowBudgetCondition(readBudget));
     const result = await this.db
-      .select()
+      .select({
+        ...getTableColumns(entities),
+        id: sql<ArrayBuffer>`CAST(${entities.id} AS BLOB)`,
+      })
       .from(entities)
       .where(and(...conditions))
       .limit(1);
@@ -200,7 +203,10 @@ export class EntityQueries {
       return null;
     }
 
-    return normalizeEntityRow(row);
+    // As in hierarchy reads, bypass the driver's NUL-truncating text decoding.
+    // Preserve a leading BOM too: the stored ID is opaque identity, not a text file.
+    const idDecoder = new TextDecoder("utf-8", { ignoreBOM: true });
+    return normalizeEntityRow({ ...row, id: idDecoder.decode(row.id) });
   }
 
   /** The stored row and the revision derived from it, from one scoped read. */

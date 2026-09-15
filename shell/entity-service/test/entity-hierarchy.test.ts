@@ -95,6 +95,47 @@ describe("entity hierarchy (real SQLite)", () => {
     }
   });
 
+  test.each(["legacy\u0000", "\uFEFFlegacy\u0000"])(
+    "opening a historical NUL ID preserves identity through snapshots and conditional edits (%j)",
+    async (prefix) => {
+      const id = `${prefix}:leaf`;
+      await add("legacy", "public", "Unrelated entry");
+      await add(id, "public", "Nested entry");
+      const page = await ctx.entityService.queryEntityHierarchy({
+        entityType: "test",
+        prefix: [prefix],
+      });
+      expect(page.entities[0]?.entity.id).toBe(id);
+      const detail = await ctx.entityService.getEntity({
+        entityType: "test",
+        id,
+      });
+      expect(detail?.id).toBe(id);
+      const snapshot = await ctx.entityService.getEntityWriteSnapshot({
+        entityType: "test",
+        id,
+      });
+      if (!snapshot) throw new Error("Missing historical entity");
+      expect(snapshot.entity.id).toBe(id);
+      await ctx.entityService.updateEntity({
+        entity: { ...snapshot.entity, content: "Edited nested entry" },
+        options: { conditionalWrite: { expectedRevision: snapshot.revision } },
+      });
+      expect(
+        (await ctx.entityService.getEntity({ entityType: "test", id }))
+          ?.content,
+      ).toContain("Edited nested entry");
+      expect(
+        (
+          await ctx.entityService.getEntity({
+            entityType: "test",
+            id: "legacy",
+          })
+        )?.content,
+      ).toContain("Unrelated entry");
+    },
+  );
+
   test("root returns complete immediate folders and only direct entries", async () => {
     await inventory();
     const page = await ctx.entityService.queryEntityHierarchy({
