@@ -10,6 +10,10 @@ Personal knowledge capture with markdown-first workflow.
 - **Tagging**: Organize notes with tags
 - **Search**: Full-text search across notes
 
+## Titles
+
+Adapter titles prefer nonblank frontmatter titles, then body H1 headings, then the first nonblank body line without heading markers. Empty notes remain `Untitled`. Metadata extraction also resolves stored blank/`Untitled` placeholders without mutating the entity or its source. Meaningful stored titles and explicit frontmatter titles, including literal `Untitled`, are preserved.
+
 ## Usage
 
 ```typescript

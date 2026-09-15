@@ -68,13 +68,26 @@ Content`;
       expect(result.metadata?.title).toBe("Heading Title");
     });
 
-    it("should use 'Untitled' when no title or H1", () => {
-      const markdown = `Just some content without any title or heading.`;
+    it.each([
+      ["Just some content.\n\nMore content", "Just some content."],
+      [
+        "---\nstatus: generating\n# Not a body heading\n---\n\nFirst body line\nSecond line",
+        "First body line",
+      ],
+      ["---\ntitle: ''\n---\n\nFirst body line", "First body line"],
+      ["\n\n## A smaller heading\n\nBody", "A smaller heading"],
+      ["---\ntitle: Untitled\n---\nAuthored title must win", "Untitled"],
+      ["---\nstatus: generating\n---\n\n", "Untitled"],
+      ["\n \n", "Untitled"],
+    ])(
+      "derives a body fallback without rewriting source: %s",
+      (markdown, title) => {
+        const result = adapter.fromMarkdown(markdown);
 
-      const result = adapter.fromMarkdown(markdown);
-
-      expect(result.metadata?.title).toBe("Untitled");
-    });
+        expect(result.metadata?.title).toBe(title);
+        expect(result.content).toBe(markdown);
+      },
+    );
 
     it("should prefer frontmatter title over H1", () => {
       const markdown = `---
@@ -159,6 +172,28 @@ Body content`;
   });
 
   describe("extractMetadata", () => {
+    it.each([
+      ["\nFirst body line\nSecond line", "First body line"],
+      ["---\nstatus: failed\n---\nFirst body line", "First body line"],
+      ["---\ntitle: Untitled\n---\nFirst body line", "Untitled"],
+      ["", "Untitled"],
+    ])(
+      "projects stored placeholder titles without mutating notes: %s",
+      (content, title) => {
+        const entity = createMockNote({
+          content,
+          metadata: { title: "Untitled", status: "failed", error: "Keep this" },
+        });
+        const before = structuredClone(entity);
+        expect(adapter.extractMetadata(entity)).toEqual({
+          title,
+          status: "failed",
+          error: "Keep this",
+        });
+        expect(entity).toEqual(before);
+      },
+    );
+
     it("should return entity metadata", () => {
       const entity = createMockNote({
         metadata: { title: "Extracted Title" },

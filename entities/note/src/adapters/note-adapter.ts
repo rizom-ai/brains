@@ -48,7 +48,14 @@ export class NoteAdapter extends BaseEntityAdapter<
 
   public fromMarkdown(markdown: string): Partial<Note> {
     const frontmatter = this.parseMarkdownFrontmatter(markdown);
-    const title = frontmatter.title ?? this.extractH1(markdown) ?? "Untitled";
+    const body = this.extractBody(markdown);
+    const firstLine = body.split(/\r?\n/).find((line) => line.trim());
+    const title =
+      [
+        frontmatter.title?.trim(),
+        this.extractH1(body),
+        firstLine?.trim().replace(/^#{1,6}\s+/, ""),
+      ].find((candidate) => (candidate?.length ?? 0) > 0) ?? "Untitled";
     return {
       content: markdown,
       entityType: "note",
@@ -57,6 +64,17 @@ export class NoteAdapter extends BaseEntityAdapter<
         ...(frontmatter.status && { status: frontmatter.status }),
         ...(frontmatter.error && { error: frontmatter.error }),
       },
+    };
+  }
+
+  /** Resolve missing/default labels for stored notes without changing their source. */
+  public override extractMetadata(entity: Note): NoteMetadata {
+    if (entity.metadata.title.trim() && entity.metadata.title !== "Untitled") {
+      return entity.metadata;
+    }
+    return {
+      ...entity.metadata,
+      title: this.fromMarkdown(entity.content).metadata?.title ?? "Untitled",
     };
   }
 
