@@ -12,10 +12,59 @@ import { StudioMarkdown } from "./studio-markdown";
 import { libraryStyles as library } from "./studio-library.styles";
 import { editorLayoutStyles as layout } from "./studio-editor-layout.styles";
 import { Field } from "./entity-fields";
+import { Button, buttonClassName } from "@brains/app-ui-react";
 const css = readFileSync(
   new URL("../../dist/ui/studio-app.css", import.meta.url),
   "utf8",
 );
+for (const variant of ["default", "primary"] as const)
+  for (const paper of [true, false])
+    test(`disabled ${variant} controls use neutral tokens (${paper ? "paper" : "instrument"})`, async () => {
+      const window = new Window();
+      try {
+        const doc = window.document;
+        doc.head.innerHTML = `<style>:root{--console-accent:#b8410c;--console-accent-dim:#853009;--console-on-accent:white;--console-card-soft:${paper ? "#eee9dd" : "#282538"};--console-rule-strong:#666;--console-text-muted:${paper ? "#666" : "#bbb"}}${css}</style>`;
+        doc.body.innerHTML = renderToStaticMarkup(
+          <>
+            <Button variant={variant}>Enabled</Button>
+            <Button variant={variant} disabled>
+              Unavailable
+            </Button>
+            <button className={buttonClassName(variant)} disabled>
+              Native consumer
+            </button>
+            <span
+              style={{
+                backgroundColor: "var(--console-card-soft)",
+                color: "var(--console-text-muted)",
+              }}
+            >
+              Reference
+            </span>
+          </>,
+        );
+        const buttons = [...doc.querySelectorAll("button")];
+        const reference = doc.querySelector("span");
+        const enabled = buttons[0];
+        if (buttons.length !== 3 || !enabled || !reference)
+          throw Error("Missing control fixture");
+        for (const button of buttons.slice(1)) {
+          const style = window.getComputedStyle(button);
+          expect(style.backgroundColor).toBe(
+            window.getComputedStyle(reference).backgroundColor,
+          );
+          expect(style.color).toBe(window.getComputedStyle(reference).color);
+          expect(style.opacity).toBe("1");
+          expect(button.disabled).toBe(true);
+        }
+        expect(window.getComputedStyle(enabled).backgroundColor).not.toBe(
+          window.getComputedStyle(reference).backgroundColor,
+        );
+      } finally {
+        await window.happyDOM.close();
+      }
+    });
+
 const headModel: StudioPageHeadModel = {
   title: "Shared heading",
   access: { kind: "session", label: "Signed in" },

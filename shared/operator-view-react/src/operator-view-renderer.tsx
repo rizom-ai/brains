@@ -347,7 +347,7 @@ const OpenDetailContext = createContext<((itemId: string) => void) | null>(
 function OperatorLink(props: {
   target: RuntimeOperatorLinkTarget;
   children: ReactNode;
-  emphasis?: "normal" | "title" | "quiet" | undefined;
+  emphasis?: "normal" | "title" | "quiet" | "action" | undefined;
   onOpenEntity: (entityType: string, id: string) => void;
   onLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
 }): ReactElement {
@@ -1035,7 +1035,7 @@ function LinksBlock(props: {
         <OperatorLink
           key={`${item.label}:${index}`}
           target={item.target}
-          emphasis="quiet"
+          emphasis="action"
           onOpenEntity={props.onOpenEntity}
           onLaunch={props.onLaunch}
         >

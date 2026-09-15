@@ -159,6 +159,36 @@ export function visibleFieldValues(
 type StudioArea =
   "overview" | "chat" | "library" | "work" | "administration" | "system";
 
+const areaMarks: Record<StudioArea, string> = {
+  overview: "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z",
+  chat: "M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 3v-3a2 2 0 0 1-2-2V6a2 2 0 0 1 3-2z",
+  library:
+    "M12 5v16 M12 5C9 3 5 3 2 4v15c3-1 7-1 10 2 3-3 7-3 10-2V4c-3-1-7-1-10 1z",
+  work: "M8 7V4h8v3 M3 7h18v14H3z M3 12l9 3 9-3 M10 14v3h4v-3",
+  administration: "M12 2l9 4v6c0 5-4 8-9 10-5-2-9-5-9-10V6z M8 12l3 3 5-6",
+  system:
+    "M5 3v6m0 4v8 M12 3v11m0 4v3 M19 3v2m0 4v12 M2 9h6v4H2z M9 14h6v4H9z M16 5h6v4h-6z",
+};
+
+function StudioAreaMark({ area }: { area: StudioArea }): ReactElement {
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d={areaMarks[area]} />
+    </svg>
+  );
+}
+
 export function studioArea(
   entityType: string | null,
   workspaceId: string | null,
@@ -834,7 +864,7 @@ export function TypeSwitcher(props: {
                       area.id === activeArea && nav.ordinalActive,
                     )}
                   >
-                    {area.index}
+                    {collapsed ? <StudioAreaMark area={area.id} /> : area.index}
                   </b>
                   <span
                     data-area-label={area.label}

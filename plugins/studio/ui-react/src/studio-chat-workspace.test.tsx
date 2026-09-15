@@ -518,6 +518,77 @@ describe("native Studio Chat workspace", () => {
     });
   }
 
+  it("shares collection search, filter disclosure and truthful ranges without inventing a Chat total", async () => {
+    await mountChat(new StudioChatDraftStore());
+    await openHistory();
+    const controls = document.querySelector(
+      ".studio-chat-session-controls .studio-collection-controls",
+    );
+    expect(controls).not.toBeNull();
+    expect(controls?.querySelector("summary")?.textContent).toBe("Filter");
+    const pages = document.querySelector('[aria-label="Conversation pages"]');
+    expect(pages?.textContent).toContain("1–2");
+    expect(pages?.textContent).not.toContain(" of ");
+    const buttons = [...(pages?.querySelectorAll("button") ?? [])];
+    expect(buttons.map((button) => button.textContent)).toEqual([
+      "Previous",
+      "Next",
+    ]);
+    expect(buttons.every((button) => button.disabled)).toBe(true);
+  });
+
+  it("pages an unknown Chat total through an empty trailing page without dropping the draft", async () => {
+    const previous = globalThis.fetch;
+    const reads: string[] = [];
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = new URL(String(input), "http://brain.test");
+        if (url.pathname === "/api/chat/sessions") {
+          reads.push(url.search);
+          return Response.json({
+            sessions:
+              url.searchParams.get("offset") === "25"
+                ? []
+                : Array.from({ length: 25 }, (_, index) => ({
+                    id: index === 0 ? "conversation-1" : `page-${index}`,
+                    title: `Conversation ${index + 1}`,
+                    lastActiveAt: "2026-09-11T12:00:00Z",
+                  })),
+          });
+        }
+        return previous(input, init);
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+    const store = new StudioChatDraftStore();
+    const key = studioChatDraftKey("/api/chat", "conversation-1");
+    store.update(key, { text: "Keep this unsent" });
+    await mountChat(store);
+    await openHistory();
+    const pages = (): Element | null =>
+      document.querySelector('[aria-label="Conversation pages"]');
+    expect(pages()?.textContent).toContain("1–25");
+    const next = [...(pages()?.querySelectorAll("button") ?? [])].find(
+      (button) => button.textContent === "Next",
+    );
+    if (!next) throw Error("Missing next page");
+    await act(async () => next.click());
+    await settle();
+    expect(reads.some((query) => query.includes("offset=25"))).toBe(true);
+    expect(pages()?.textContent).toContain("No results on this page");
+    expect(pages()?.textContent).not.toContain("26–25");
+    const back = [...(pages()?.querySelectorAll("button") ?? [])].find(
+      (button) => button.textContent === "Previous",
+    );
+    if (!back) throw Error("Missing previous page");
+    expect(back.disabled).toBe(false);
+    await act(async () => back.click());
+    await settle();
+    expect(pages()?.textContent).toContain("1–25");
+    expect(store.read(key).text).toBe("Keep this unsent");
+    expect(navigations).toHaveLength(0);
+  });
+
   it("loads archived sessions through the scoped API without replacing the open conversation", async () => {
     const previous = globalThis.fetch;
     const requests: string[] = [];

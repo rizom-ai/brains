@@ -380,7 +380,7 @@ export const chatLayout: Record<
   kicker: {
     fontFamily: "var(--console-mono)",
     fontSize: 11,
-    color: "var(--console-text-muted)",
+    color: "var(--console-text-dim)",
   },
   cardHeading: { margin: 0 },
   cardText: {
@@ -394,7 +394,7 @@ export const chatLayout: Record<
     fontFamily: "var(--console-ui)",
     fontSize: 12,
     lineHeight: 1.6,
-    color: "var(--console-text-muted)",
+    color: "var(--console-text-dim)",
     overflowWrap: "anywhere",
   },
   error: { color: "var(--console-err)" },

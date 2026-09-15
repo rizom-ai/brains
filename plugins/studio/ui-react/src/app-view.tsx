@@ -100,7 +100,10 @@ import {
 } from "./ui-utils";
 
 import type { StudioCollectionQuery } from "../../src/collection-query";
-import { StudioCollectionControls } from "./studio-collection-controls";
+import {
+  StudioCollectionControls,
+  StudioCollectionPager,
+} from "./studio-collection-controls";
 
 export type MobileEditorPane = "details" | "write" | "preview";
 
@@ -596,43 +599,18 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
               />
             )}
             {!entitySchema.isSingleton && entityTotal > 0 && (
-              <nav
-                className={editorClass(
-                  "listing-pagination",
-                  library.pagination,
-                )}
-                aria-label={`${activeType?.label ?? "Entity"} pagination`}
-              >
-                <span
-                  className={editorClass("", library.range)}
-                  aria-live="polite"
-                >
-                  {entityOffset + 1}–{pageEnd} of {entityTotal}
-                </span>
-                <span className={editorClass("", library.pager)}>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    disabled={entityListLoading || entityOffset === 0}
-                    onClick={() =>
-                      changeEntityPage(Math.max(0, entityOffset - entityLimit))
-                    }
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    disabled={
-                      entityListLoading ||
-                      entityOffset + entityLimit >= entityTotal
-                    }
-                    onClick={() => changeEntityPage(entityOffset + entityLimit)}
-                  >
-                    Next
-                  </Button>
-                </span>
-              </nav>
+              <StudioCollectionPager
+                label={`${activeType?.label ?? "Entity"} pagination`}
+                offset={entityOffset}
+                count={Math.max(0, pageEnd - entityOffset)}
+                total={entityTotal}
+                loading={entityListLoading}
+                hasNext={entityOffset + entityLimit < entityTotal}
+                onPrevious={() =>
+                  changeEntityPage(Math.max(0, entityOffset - entityLimit))
+                }
+                onNext={() => changeEntityPage(entityOffset + entityLimit)}
+              />
             )}
             {entityListLoading && (
               <StudioStatus className={editorClass("", library.empty)}>
@@ -669,7 +647,10 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                     {entityTitle(entity)}
                     {systemDesign && (
                       <span {...stylex.props(systemFieldStyles.collectionMeta)}>
-                        {entryLabel} · {formatUpdated(entity.updated)}
+                        {entryLabel} ·{" "}
+                        <time dateTime={entity.updated} title={entity.updated}>
+                          {formatUpdated(entity.updated)}
+                        </time>
                       </span>
                     )}
                     {typeHasPublicationField(entitySchema.fields) && (
@@ -686,9 +667,13 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                   {systemDesign ? (
                     <span aria-hidden="true">→</span>
                   ) : (
-                    <span className={editorClass("", library.updated)}>
+                    <time
+                      className={editorClass("", library.updated)}
+                      dateTime={entity.updated}
+                      title={entity.updated}
+                    >
                       {formatUpdated(entity.updated)}
-                    </span>
+                    </time>
                   )}
                 </button>
               ))}

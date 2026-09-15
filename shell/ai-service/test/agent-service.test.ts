@@ -2172,6 +2172,9 @@ describe("AgentService", () => {
 
       const response = await service.chat("Hello", "test-conversation");
       expect(response.text).toContain("Agent error");
+      expect(response).toEqual(
+        expect.objectContaining({ error: "Agent error" }),
+      );
     });
 
     it("keeps failed-turn uploads available to the next agent call", async () => {

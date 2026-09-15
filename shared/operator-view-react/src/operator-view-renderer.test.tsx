@@ -131,6 +131,71 @@ describe("actionFailureMessage", () => {
 });
 
 describe("OperatorViewRenderer", () => {
+  for (const width of [1440, 390])
+    it(`presents grouped workspace destinations as launch controls at ${width}px`, async () => {
+      const window = new Window({ width });
+      try {
+        const doc = window.document;
+        doc.head.innerHTML = `<style>:root{--console-touch:44px}${operatorViewStylexCSS}</style>`;
+        doc.body.innerHTML = renderToStaticMarkup(
+          <OperatorViewRenderer
+            data={{
+              view: {
+                blocks: [
+                  {
+                    type: "links",
+                    items: [
+                      {
+                        label: "Open preview",
+                        target: {
+                          kind: "external",
+                          href: "https://preview.example.test",
+                        },
+                      },
+                      {
+                        label: "Open live site",
+                        target: {
+                          kind: "external",
+                          href: "https://example.test",
+                        },
+                      },
+                      {
+                        label: "Open publishing",
+                        target: {
+                          kind: "launch",
+                          launch: { target: "publishing" },
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            }}
+            onAction={async () => ({})}
+            onOpenEntity={() => {}}
+          />,
+        );
+        const links = [
+          ...doc.querySelectorAll(
+            '[aria-label="Workspace links"] a, [aria-label="Workspace links"] button',
+          ),
+        ];
+        expect(links).toHaveLength(3);
+        for (const link of links) {
+          const css = window.getComputedStyle(link);
+          expect(css.minHeight).toBe(width <= 640 ? "44px" : "36px");
+          expect(css.borderTopWidth).toBe("1px");
+          expect(css.fontSize).toBe("13px");
+        }
+        expect(links[0]?.getAttribute("href")).toBe(
+          "https://preview.example.test",
+        );
+        expect(links[0]?.getAttribute("target")).toBe("_blank");
+        expect(links[0]?.getAttribute("rel")).toContain("noreferrer");
+      } finally {
+        await window.happyDOM.close();
+      }
+    });
   it("renders one notice heading and preserves every supporting diagnostic", () => {
     const html = renderToStaticMarkup(
       <OperatorViewRenderer

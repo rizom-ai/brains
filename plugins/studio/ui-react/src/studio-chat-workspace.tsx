@@ -61,7 +61,10 @@ import {
 import { TypeSwitcher } from "./entity-fields";
 import { useStudioNavigationCollapsed } from "./studio-navigation-state";
 import { StudioChrome } from "./studio-chrome";
-import { StudioSearchField } from "./studio-search-field";
+import {
+  StudioCollectionBar,
+  StudioCollectionPager,
+} from "./studio-collection-controls";
 import { StudioMarkdown } from "./studio-markdown";
 import {
   navigationClassName as navClass,
@@ -1290,59 +1293,56 @@ function SessionRail(props: {
           chatLayout.sessionControls,
         )}
       >
-        <StudioSearchField
-          label="Search conversations"
-          placeholder="Search conversations"
-          value={props.search}
-          onChange={props.onSearch}
-        />
-        <NativeSelect
-          xstyle={chatLayout.sessionFilterSelect}
-          aria-label="Show conversations"
-          value={props.view.archived ? "archived" : "active"}
-          onChange={(event) =>
+        <StudioCollectionBar
+          label="Conversation search and filters"
+          searchLabel="Search conversations"
+          search={props.search}
+          onSearch={props.onSearch}
+          filterLabel="Filter"
+          filterCount={props.view.archived ? 1 : 0}
+          filtered={Boolean(props.view.query) || props.view.archived}
+          onClear={() => {
+            props.onSearch("");
             props.onView({
               ...props.view,
-              archived: event.target.value === "archived",
+              query: "",
+              archived: false,
               offset: 0,
-            })
-          }
+            });
+          }}
         >
-          <option value="active">Active conversations</option>
-          <option value="archived">Archived conversations</option>
-        </NativeSelect>
-        {(props.view.offset > 0 || props.sessions.length >= 25) && (
-          <div
-            className={chatClass("", chatLayout.actions)}
-            aria-label="Conversation pages"
-            role="group"
+          <NativeSelect
+            aria-label="Show conversations"
+            value={props.view.archived ? "archived" : "active"}
+            onChange={(event) =>
+              props.onView({
+                ...props.view,
+                archived: event.target.value === "archived",
+                offset: 0,
+              })
+            }
           >
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={props.loading || props.view.offset === 0}
-              onClick={() =>
-                props.onView({
-                  ...props.view,
-                  offset: Math.max(0, props.view.offset - 25),
-                })
-              }
-            >
-              Previous
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={props.loading || props.sessions.length < 25}
-              onClick={() =>
-                props.onView({ ...props.view, offset: props.view.offset + 25 })
-              }
-            >
-              Next
-            </Button>
-          </div>
+            <option value="active">Active conversations</option>
+            <option value="archived">Archived conversations</option>
+          </NativeSelect>
+        </StudioCollectionBar>
+        {(props.view.offset > 0 || props.sessions.length > 0) && (
+          <StudioCollectionPager
+            label="Conversation pages"
+            offset={props.view.offset}
+            count={props.sessions.length}
+            loading={props.loading}
+            hasNext={props.sessions.length >= 25}
+            onPrevious={() =>
+              props.onView({
+                ...props.view,
+                offset: Math.max(0, props.view.offset - 25),
+              })
+            }
+            onNext={() =>
+              props.onView({ ...props.view, offset: props.view.offset + 25 })
+            }
+          />
         )}
         {props.error && (
           <p role="alert">
