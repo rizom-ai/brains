@@ -36,8 +36,14 @@ import {
 } from "./collection-query";
 
 /** Entity adapters own title derivation; Studio must not reinterpret source. */
-function entityDisplayTitle(entity: BaseEntity): string | undefined {
-  const title = entity.metadata["title"];
+function entityDisplayTitle(
+  context: ServicePluginContext,
+  entity: BaseEntity,
+): string | undefined {
+  const title =
+    context.entities.getAdapter(entity.entityType)?.extractMetadata(entity)[
+      "title"
+    ] ?? entity.metadata["title"];
   return typeof title === "string" && title.trim() ? title.trim() : undefined;
 }
 
@@ -199,7 +205,7 @@ export async function handleGetEntities(
         // The editor contract always carries the authoritative system field,
         // even though public and raw entities omit it from stored markdown.
         frontmatter: { ...frontmatter, visibility: entity.visibility },
-        displayTitle: entityDisplayTitle(entity),
+        displayTitle: entityDisplayTitle(context, entity),
         body,
         contentHash: entity.contentHash,
         created: entity.created,
@@ -251,7 +257,7 @@ export async function handleGetEntities(
         id: entity.id,
         entityType: entity.entityType,
         frontmatter: { ...frontmatter, visibility: entity.visibility },
-        displayTitle: entityDisplayTitle(entity),
+        displayTitle: entityDisplayTitle(context, entity),
         updated: entity.updated,
       };
     }),
@@ -310,7 +316,7 @@ export async function handleGetEntityHierarchy(
           ...splitEntityContent(entityType, entity.content).frontmatter,
           visibility: entity.visibility,
         },
-        displayTitle: entityDisplayTitle(entity),
+        displayTitle: entityDisplayTitle(context, entity),
         updated: entity.updated,
       })),
     });

@@ -1,13 +1,15 @@
 /** @jsxImportSource react */
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { act, createElement } from "react";
+import { act, createElement, useState, type ReactElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { Window } from "happy-dom";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import { App } from "./App";
-import { StudioApi, type ValidationIssue } from "./api";
+import { StudioApi, type ValidationIssue, type FieldDescriptor } from "./api";
+import { StudioSystemFields } from "./studio-system-fields";
+import { applyFieldChange } from "./editor-workflow";
 import { Field } from "./entity-fields";
 import { BodyEditor } from "./body-editor";
 import { SaveStateNotice } from "./editor-status";
@@ -154,6 +156,116 @@ describe("System Properties disclosure", () => {
     input.focus();
     expect(document.activeElement).toBe(input);
     expect(input.value).toBe("");
+  });
+});
+
+describe("System grouped field editing", () => {
+  const fields: FieldDescriptor[] = [
+    {
+      name: "voice",
+      label: "Voice",
+      widget: "object",
+      required: false,
+      fields: [
+        {
+          name: "tone",
+          label: "Tone",
+          widget: "select",
+          options: ["Warm", "Direct"],
+          required: true,
+        },
+        { name: "summary", label: "Summary", widget: "text", required: false },
+      ],
+    },
+  ];
+  function GroupedEditor({
+    issues,
+  }: {
+    issues?: ValidationIssue[];
+  }): ReactElement {
+    const [draft, setDraft] = useState<Record<string, unknown>>({
+      voice: {
+        tone: "Warm",
+        summary: "Keep this summary",
+        futureField: "Preserved",
+      },
+      untouched: "Keep this too",
+    });
+    const [preview, setPreview] = useState(false);
+    return (
+      <form>
+        <StudioEditorProperties
+          presentation="document"
+          reveal={Boolean(issues?.length)}
+        >
+          <StudioSystemFields
+            fields={fields}
+            draft={draft}
+            title=""
+            readOnly={false}
+            issues={issues}
+            onChange={(descriptor, raw) =>
+              setDraft((current) => applyFieldChange(current, descriptor, raw))
+            }
+          />
+        </StudioEditorProperties>
+        <button type="button" onClick={() => setPreview((value) => !value)}>
+          Toggle body view
+        </button>
+        <BodyEditor
+          value="# Existing guidance"
+          mode={preview ? "preview" : "source"}
+          singlePane
+          onChange={() => {}}
+          onModeChange={() => {}}
+        />
+        <output>{JSON.stringify(draft)}</output>
+      </form>
+    );
+  }
+  it("preserves siblings, unknown fields and body when a nested value changes and the disclosure toggles", async () => {
+    await act(async () => root.render(<GroupedEditor />));
+    const select = document.querySelector("select");
+    const details = document.querySelector("details");
+    if (!select || !details) throw new Error("Missing nested fields");
+    details.open = true;
+    await act(async () => {
+      select.value = "Direct";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    expect(document.querySelector("output")?.textContent).toBe(
+      JSON.stringify({
+        voice: {
+          tone: "Direct",
+          summary: "Keep this summary",
+          futureField: "Preserved",
+        },
+        untouched: "Keep this too",
+      }),
+    );
+    details.open = false;
+    await act(async () => document.querySelector("button")?.click());
+    details.open = true;
+    expect(document.querySelector("select")).toBe(select);
+    expect(select.value).toBe("Direct");
+    expect(document.body.textContent).toContain("Existing guidance");
+  });
+  it("reveals nested validation and focuses its field without remounting it", async () => {
+    await act(async () => root.render(<GroupedEditor />));
+    const select = document.querySelector("select");
+    await act(async () =>
+      root.render(
+        <GroupedEditor
+          issues={[
+            { path: ["voice", "tone"], message: "Choose a different tone" },
+          ]}
+        />,
+      ),
+    );
+    expect(document.querySelector("details")?.open).toBe(true);
+    expect(document.querySelector("select")).toBe(select);
+    expect(select?.getAttribute("aria-invalid")).toBe("true");
+    expect(document.activeElement).toBe(select);
   });
 });
 

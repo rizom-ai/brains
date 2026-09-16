@@ -1,5 +1,117 @@
 # @brains/studio
 
+## 0.2.0-alpha.387
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.387
+  - @brains/console-theme@0.2.0-alpha.387
+  - @brains/contracts@0.2.0-alpha.387
+  - @brains/operator-view-react@0.2.0-alpha.387
+  - @brains/utils@0.2.0-alpha.387
+  - @brains/auth-service@0.2.0-alpha.387
+  - @brains/plugins@0.2.0-alpha.387
+
+## 0.2.0-alpha.386
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.386
+  - @brains/console-theme@0.2.0-alpha.386
+  - @brains/contracts@0.2.0-alpha.386
+  - @brains/operator-view-react@0.2.0-alpha.386
+  - @brains/utils@0.2.0-alpha.386
+  - @brains/auth-service@0.2.0-alpha.386
+  - @brains/plugins@0.2.0-alpha.386
+
+## 0.2.0-alpha.385
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.385
+  - @brains/console-theme@0.2.0-alpha.385
+  - @brains/contracts@0.2.0-alpha.385
+  - @brains/operator-view-react@0.2.0-alpha.385
+  - @brains/utils@0.2.0-alpha.385
+  - @brains/auth-service@0.2.0-alpha.385
+  - @brains/plugins@0.2.0-alpha.385
+
+## 0.2.0-alpha.384
+
+### Patch Changes
+
+- [#263](https://github.com/rizom-ai/brains/pull/263) [`3ec2b73`](https://github.com/rizom-ai/brains/commit/3ec2b73902389be86ff5e1fe358841ce05504a90) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Put every single destination above the toggles in phone Browse. Overview, Chat and Admin share one block at the top, separated by a rule from the Library, Work and System groups below. A lone destination placed between two group headers reads as the tail of the group above it whichever slot it holds, so position alone cannot carry that distinction.
+
+- [#261](https://github.com/rizom-ai/brains/pull/261) [`ae8890d`](https://github.com/rizom-ai/brains/commit/ae8890d25c353582ada6bf94e042350a224d3d6f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make Studio Chat conversation-first on desktop and phones: compact toolbar, independently scrolling dialogue, bounded composer and draft attachments, and on-demand history and conversation details. Keep approvals and complete tool records inline, and add accessible image enlargement without changing chat permissions or transport semantics.
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.384
+  - @brains/console-theme@0.2.0-alpha.384
+  - @brains/contracts@0.2.0-alpha.384
+  - @brains/operator-view-react@0.2.0-alpha.384
+  - @brains/utils@0.2.0-alpha.384
+  - @brains/auth-service@0.2.0-alpha.384
+  - @brains/plugins@0.2.0-alpha.384
+
+## 0.2.0-alpha.383
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.383
+  - @brains/console-theme@0.2.0-alpha.383
+  - @brains/contracts@0.2.0-alpha.383
+  - @brains/operator-view-react@0.2.0-alpha.383
+  - @brains/utils@0.2.0-alpha.383
+  - @brains/auth-service@0.2.0-alpha.383
+  - @brains/plugins@0.2.0-alpha.383
+
+## 0.2.0-alpha.382
+
+### Patch Changes
+
+- [#260](https://github.com/rizom-ai/brains/pull/260) [`3fde4a0`](https://github.com/rizom-ai/brains/commit/3fde4a0421c787fe7c58fc7902bfc81ab7f85a04) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep the rail's Overview/Chat/Library/Work/Admin/System order in phone Browse. Admin is area 04 and now stays between Work and System instead of being hoisted into the top block, so the phone and the desktop rail agree on where a destination lives. A direct destination is marked by its treatment rather than its position: group children indent under their header while a direct destination sits flush and rule-separated, so Admin cannot read as the last row of the group above it.
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.382
+  - @brains/console-theme@0.2.0-alpha.382
+  - @brains/contracts@0.2.0-alpha.382
+  - @brains/operator-view-react@0.2.0-alpha.382
+  - @brains/utils@0.2.0-alpha.382
+  - @brains/auth-service@0.2.0-alpha.382
+  - @brains/plugins@0.2.0-alpha.382
+
+## 0.2.0-alpha.381
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.381
+  - @brains/console-theme@0.2.0-alpha.381
+  - @brains/contracts@0.2.0-alpha.381
+  - @brains/operator-view-react@0.2.0-alpha.381
+  - @brains/utils@0.2.0-alpha.381
+  - @brains/auth-service@0.2.0-alpha.381
+  - @brains/plugins@0.2.0-alpha.381
+
+## 0.2.0-alpha.380
+
+### Patch Changes
+
+- [#254](https://github.com/rizom-ai/brains/pull/254) [`9fbd8ad`](https://github.com/rizom-ai/brains/commit/9fbd8ad73d1d2f5fca58a4dcc73b92ad6daa97ee) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Rebuild the phone Browse sheet around its hierarchy. Overview, Chat and Admin gather into one block above the groups instead of sitting between them, group headers become section-heading rows with the chevron leading rather than muted captions with a `+` at the far edge, and groups rest open so the sheet fills with destinations. A filter over every destination replaces the display line that named the sheet, the way out becomes a quiet round control, and a count that needs the operator is set in the accent while an item tally stays quiet. A folded group still names the destination you are in.
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.380
+  - @brains/console-theme@0.2.0-alpha.380
+  - @brains/contracts@0.2.0-alpha.380
+  - @brains/operator-view-react@0.2.0-alpha.380
+  - @brains/utils@0.2.0-alpha.380
+  - @brains/auth-service@0.2.0-alpha.380
+  - @brains/plugins@0.2.0-alpha.380
+
 ## 0.2.0-alpha.379
 
 ### Patch Changes

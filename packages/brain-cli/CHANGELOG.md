@@ -1,5 +1,63 @@
 # @rizom/brain
 
+## 0.2.0-alpha.387
+
+### Patch Changes
+
+- [#266](https://github.com/rizom-ai/brains/pull/266) [`ceebad4`](https://github.com/rizom-ai/brains/commit/ceebad44bc43dc5672453681a70d40bb0e22149d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Cap first-line note title fallbacks at 80 characters including an ellipsis, preferring word boundaries and avoiding split Unicode surrogate pairs. Preserve authored titles, H1 headings, meaningful stored metadata titles, and exact note content. Stored Untitled placeholders use the same capped adapter projection without read-side writes.
+
+## 0.2.0-alpha.386
+
+### Patch Changes
+
+- [#265](https://github.com/rizom-ai/brains/pull/265) [`217ad1b`](https://github.com/rizom-ai/brains/commit/217ad1b24c96f6eee715281ec9455da1ba50a065) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix the console climate toggle when Studio mounts or remounts its React chrome after document readiness. Keep theme tokens, accessible labels, and the shared preference synchronized.
+
+  Restore note title fallbacks to the first nonblank body line when no frontmatter title or body H1 exists. Studio requests adapter metadata projections for list and detail labels, so stored Untitled placeholders also display useful titles without a database backfill or read-side writes. Preserve authored titles and source content.
+
+## 0.2.0-alpha.385
+
+### Patch Changes
+
+- [#264](https://github.com/rizom-ai/brains/pull/264) [`b290b28`](https://github.com/rizom-ai/brains/commit/b290b2832c5246e7294bc326c4b08f416e28a28b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Complete Studio's presentation follow-through: widen Properties without clipping native date/time values or upload guidance; neutralize disabled primary buttons; add distinct collapsed navigation marks; give grouped site links shared outlined controls; place published totals in the page head; use clear protection language and consistent connected-channel counts in People; share collection search, filters, ranges, and pagination while preserving separate query contracts; and retain exact timestamps with truthful relative/absolute presentation. Filter panels fit their containers and dismiss safely with the keyboard. Chat detail guidance uses accessible text colors. Permissions, source content, draft safety, and configured typography remain unchanged.
+
+  Preserve agent-reported failures through Web Chat's stream protocol so their error messages cannot disappear during Studio's history handoff. Explicit failure metadata produces sanitized stream errors instead of successful completion, while retry review and approval handling preserve no-replay guarantees.
+
+## 0.2.0-alpha.384
+
+### Patch Changes
+
+- [#263](https://github.com/rizom-ai/brains/pull/263) [`3ec2b73`](https://github.com/rizom-ai/brains/commit/3ec2b73902389be86ff5e1fe358841ce05504a90) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Put every single destination above the toggles in phone Browse. Overview, Chat and Admin share one block at the top, separated by a rule from the Library, Work and System groups below. A lone destination placed between two group headers reads as the tail of the group above it whichever slot it holds, so position alone cannot carry that distinction.
+
+## 0.2.0-alpha.383
+
+### Patch Changes
+
+- [#262](https://github.com/rizom-ai/brains/pull/262) [`6376bb3`](https://github.com/rizom-ai/brains/commit/6376bb31e305c9591e0f499035013088231823fe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Apply the public Ask design with editable suggestions, a scrollable transcript and a compact conversation menu. Let admitted public-page handlers use the installed site's generated presentation, retaining a headerless fallback when no site page exists. Keep provider and retention information in the existing Privacy and limits disclosure, and preserve guest admission, ownership controls and the embedded Brain-page box.
+
+## 0.2.0-alpha.382
+
+### Patch Changes
+
+- [#260](https://github.com/rizom-ai/brains/pull/260) [`3fde4a0`](https://github.com/rizom-ai/brains/commit/3fde4a0421c787fe7c58fc7902bfc81ab7f85a04) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep the rail's Overview/Chat/Library/Work/Admin/System order in phone Browse. Admin is area 04 and now stays between Work and System instead of being hoisted into the top block, so the phone and the desktop rail agree on where a destination lives. A direct destination is marked by its treatment rather than its position: group children indent under their header while a direct destination sits flush and rule-separated, so Admin cannot read as the last row of the group above it.
+
+- [#260](https://github.com/rizom-ai/brains/pull/260) [`28793f1`](https://github.com/rizom-ai/brains/commit/28793f1407de682c65503b149d04bdd0c0a09a86) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A Brain whose instance directory is too deep for a unix socket address can start again. The Git broker socket normally lives in the instance's `.brain-runtime`; when that path exceeds the kernel's limit, the socket now lives in the OS temp dir under a name derived from the instance, so it stays one socket per instance and never inside a checkout. Before, such a Brain refused to boot with "Git broker socket path is too long for a unix socket".
+
+## 0.2.0-alpha.381
+
+### Patch Changes
+
+- [#259](https://github.com/rizom-ai/brains/pull/259) [`d3ca552`](https://github.com/rizom-ai/brains/commit/d3ca552547af0c87f9ce6ad80997395b9dafc868) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A Brain whose instance directory is too deep for a unix socket address can start again. The Git broker socket normally lives in the instance's `.brain-runtime`; when that path exceeds the kernel's limit, the socket now lives in the OS temp dir under a name derived from the instance, so it stays one socket per instance and never inside a checkout. Before, such a Brain refused to boot with "Git broker socket path is too long for a unix socket".
+
+- [#256](https://github.com/rizom-ai/brains/pull/256) [`fbc1b6e`](https://github.com/rizom-ai/brains/commit/fbc1b6e54607e72c91bd31b7fb385e6a627293b9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Align System editors with the reviewed form and document presentation: schema-derived field groups, responsive grids, explicit Story and Guidance sections, contextual collections, and readable permission-aware profiles. Preserve nested draft values and supported Markdown bodies through validation and Save. Existing read-only complex lists display structured content rather than disabled JSON. Keep empty documents' Properties visible, distinguish relationship states from publication, and make Markdown source headings and URLs readable in both climates.
+
+## 0.2.0-alpha.380
+
+### Patch Changes
+
+- [#257](https://github.com/rizom-ai/brains/pull/257) [`13ed6d3`](https://github.com/rizom-ai/brains/commit/13ed6d32d46175250464243036d7615cb3f4df9e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - `brain tool` and `brain <command>` in the monorepo runner now boot register-only, as the bundled runtime already did. A full boot started a job worker on the queue's stable slot, which superseded a running app's worker session; that app then stopped claiming jobs until it was restarted. A one-shot CLI process owns no runtime work: it registers plugins, invokes the tool, and exits, leaving queued jobs to the running app.
+
+- [#254](https://github.com/rizom-ai/brains/pull/254) [`9fbd8ad`](https://github.com/rizom-ai/brains/commit/9fbd8ad73d1d2f5fca58a4dcc73b92ad6daa97ee) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Rebuild the phone Browse sheet around its hierarchy. Overview, Chat and Admin gather into one block above the groups instead of sitting between them, group headers become section-heading rows with the chevron leading rather than muted captions with a `+` at the far edge, and groups rest open so the sheet fills with destinations. A filter over every destination replaces the display line that named the sheet, the way out becomes a quiet round control, and a count that needs the operator is set in the accent while an item tally stays quiet. A folded group still names the destination you are in.
+
 ## 0.2.0-alpha.379
 
 ### Patch Changes

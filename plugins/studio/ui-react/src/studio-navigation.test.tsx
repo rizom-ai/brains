@@ -4,7 +4,11 @@ import { Window } from "happy-dom";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
-import { studioArea, TypeSwitcher } from "./entity-fields";
+import {
+  StudioBrowseDestinations,
+  studioArea,
+  TypeSwitcher,
+} from "./entity-fields";
 import { StudioChrome } from "./studio-chrome";
 
 let browser: Window;
@@ -108,9 +112,17 @@ beforeEach(() => {
     document: browser.document,
     navigator: browser.navigator,
     HTMLElement: browser.HTMLElement,
+    HTMLInputElement: browser.HTMLInputElement,
     Element: browser.Element,
     Node: browser.Node,
     Event: browser.Event,
+    CustomEvent: browser.CustomEvent,
+    // Radix needs these to mount a dialog.
+    MutationObserver: browser.MutationObserver,
+    ResizeObserver: browser.ResizeObserver,
+    requestAnimationFrame: browser.requestAnimationFrame.bind(browser),
+    cancelAnimationFrame: browser.cancelAnimationFrame.bind(browser),
+    getComputedStyle: browser.getComputedStyle.bind(browser),
     IS_REACT_ACT_ENVIRONMENT: true,
   });
   const container = document.createElement("div");
@@ -192,6 +204,213 @@ describe("profile navigation", () => {
   });
 });
 
+function browseGroups(): {
+  area: string;
+  label: string;
+  options: {
+    value: string;
+    label: string;
+    tally?: number;
+    attention?: number;
+    accessibleLabel?: string;
+  }[];
+}[] {
+  return [
+    {
+      area: "overview",
+      label: "Home",
+      options: [
+        {
+          value: "workspace:studio:overview",
+          label: "Overview",
+          accessibleLabel: "Overview",
+          attention: 2,
+        },
+      ],
+    },
+    {
+      area: "chat",
+      label: "Chat",
+      options: [
+        {
+          value: "workspace:web-chat:chat",
+          label: "Chat",
+          accessibleLabel: "Chat",
+        },
+      ],
+    },
+    {
+      area: "library",
+      label: "Library",
+      options: [{ value: "type:note", label: "Notes", tally: 12 }],
+    },
+    {
+      area: "work",
+      label: "Work",
+      options: [
+        {
+          value: "workspace:unified-inbox:inbox",
+          label: "Inbox",
+          attention: 3,
+        },
+      ],
+    },
+    {
+      area: "administration",
+      label: "Admin",
+      options: [
+        {
+          value: "workspace:admin:administration",
+          label: "Administration",
+          accessibleLabel: "Administration",
+          attention: 1,
+        },
+      ],
+    },
+    {
+      area: "system",
+      label: "System",
+      options: [
+        { value: "type:prompt", label: "Prompts", tally: 18 },
+        { value: "type:agent", label: "Agents", tally: 15 },
+      ],
+    },
+  ];
+}
+
+async function renderBrowse(filter = "", folded: string[] = []): Promise<void> {
+  const state = { filter, folded: new Set(folded) };
+  const draw = async (): Promise<void> => {
+    await act(async () =>
+      root.render(
+        <StudioBrowseDestinations
+          groups={browseGroups()}
+          filter={state.filter}
+          activeValue="type:note"
+          groupId={(area) => `browse-${area}`}
+          isGroupOpen={(area) => !state.folded.has(area)}
+          onFilterChange={(value) => {
+            state.filter = value;
+            void draw();
+          }}
+          onToggleGroup={(area, open) => {
+            if (open) state.folded.delete(area);
+            else state.folded.add(area);
+            void draw();
+          }}
+          onSelect={(value) => selected.push(value)}
+        />,
+      ),
+    );
+  };
+  await draw();
+}
+const clean = (text: string): string =>
+  text.replace(/[0-9\u25b8\u25be]/g, "").trim();
+const browseLinks = (): string[] =>
+  [...document.querySelectorAll(".studio-mobile-navigation-link")].map((link) =>
+    link.textContent.trim(),
+  );
+
+describe("phone Browse destinations", () => {
+  it("puts every single destination above the toggles", async () => {
+    await renderBrowse();
+    const blocks = [...document.querySelectorAll("section, details")].map(
+      (block) =>
+        block.tagName === "SECTION"
+          ? `direct:${clean(block.textContent)}`
+          : `group:${clean(block.querySelector("summary")?.textContent ?? "")}`,
+    );
+    expect(blocks).toEqual([
+      "direct:OverviewChatAdministration",
+      "group:Library",
+      "group:Work",
+      "group:System",
+    ]);
+  });
+
+  it("marks a single destination by treatment as well as position", async () => {
+    await renderBrowse();
+    const admin = [...document.querySelectorAll("button")].find(
+      (button) => button.getAttribute("aria-label") === "Administration",
+    );
+    const child = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent.includes("Inbox"),
+    );
+    // Group children indent; a direct destination sits flush, so Admin cannot
+    // read as the last row of the Work group above it.
+    expect(admin?.closest("details")).toBeNull();
+    expect(child?.closest("details")).not.toBeNull();
+  });
+
+  it("rests every group open so the sheet shows what it is for", async () => {
+    await renderBrowse();
+    const groups = [...document.querySelectorAll("details")];
+    expect(groups).toHaveLength(3);
+    expect(groups.every((group) => group.open)).toBe(true);
+  });
+
+  it("keeps naming the destination inside a folded group", async () => {
+    await renderBrowse("", ["library"]);
+    const library = [...document.querySelectorAll("details")].find((group) =>
+      group.querySelector("summary")?.textContent.includes("Library"),
+    );
+    expect(library?.open).toBe(false);
+    expect(library?.querySelector("summary")?.textContent).toContain("Notes");
+    expect(selected).toHaveLength(0);
+  });
+
+  it("separates an attention count from an item tally", async () => {
+    await renderBrowse();
+    const overview = [...document.querySelectorAll("button")].find(
+      (button) => button.getAttribute("aria-label") === "Overview",
+    );
+    const notes = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent.includes("Notes"),
+    );
+    expect(
+      overview?.querySelector("[data-studio-attention]")?.textContent,
+    ).toBe("2");
+    expect(overview?.querySelector("[data-studio-tally]")).toBeNull();
+    expect(notes?.querySelector("[data-studio-tally]")?.textContent).toBe("12");
+    expect(notes?.querySelector("[data-studio-attention]")).toBeNull();
+  });
+
+  it("narrows destinations across every group, opening the ones that match", async () => {
+    await renderBrowse("age", ["system"]);
+    expect(browseLinks()).toEqual(["Agents15"]);
+    // A folded group still shows what the filter found in it.
+    expect(
+      [...document.querySelectorAll("details")].every((group) => group.open),
+    ).toBe(true);
+  });
+
+  it("says so when the filter matches nothing", async () => {
+    await renderBrowse("nothing matches this");
+    expect(document.body.textContent).toContain("No destination matches");
+    expect(browseLinks()).toHaveLength(0);
+  });
+
+  it("keeps Account out of Browse and spends no display line naming the sheet", async () => {
+    await renderBrowse();
+    expect(
+      [...document.querySelectorAll("button")].some(
+        (button) => button.textContent.trim() === "Account",
+      ),
+    ).toBe(false);
+    expect(document.querySelector("header h2")).toBeNull();
+  });
+
+  it("reports the chosen destination without closing anything itself", async () => {
+    await renderBrowse();
+    const notes = [...document.querySelectorAll("button")].find((button) =>
+      button.textContent.includes("Notes"),
+    );
+    await act(async () => notes?.click());
+    expect(selected).toEqual(["type:note"]);
+  });
+});
+
 describe("area and leaf navigation", () => {
   it("collapses only on request and preserves that choice through destinations and remounts", async () => {
     await render();
@@ -247,6 +466,25 @@ describe("area and leaf navigation", () => {
         ?.getAttribute("aria-expanded"),
     ).toBe("true");
   });
+  it("gives collapsed areas distinct decorative marks without losing names or routing", async () => {
+    await render("style-guide");
+    await click(".studio-navigation-collapse", "⇤");
+    const areas = [...document.querySelectorAll(".studio-area-link")];
+    expect(areas).toHaveLength(6);
+    const paths = new Set<string>();
+    for (const area of areas) {
+      const mark = area.querySelector("svg");
+      expect(mark).not.toBeNull();
+      expect(mark?.getAttribute("aria-hidden")).toBe("true");
+      expect(mark?.getAttribute("viewBox")).toBe("0 0 24 24");
+      expect(area.getAttribute("title")).toBe(area.getAttribute("aria-label"));
+      paths.add(mark?.querySelector("path")?.getAttribute("d") ?? "");
+    }
+    expect(paths.size).toBe(6);
+    await click('.studio-area-link[aria-label="Library"]', "");
+    expect(leafText()).toContain("Content");
+  });
+
   it("keeps B's numbered area items, singular singleton labels and Commands footer", async () => {
     await render("style-guide");
     expect(

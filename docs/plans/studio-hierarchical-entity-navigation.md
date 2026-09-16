@@ -4,7 +4,7 @@ Last updated: 2026-09-15
 
 ## Status
 
-**Implemented on the feature branch, including the owner-approved placement correction.**
+**Implemented, including the owner-approved placement correction.**
 
 Slice 1 is committed as `69363eae6c`. Directory-sync now delegates identity encoding and
 decoding to entity-service while retaining its filesystem placement rules. The 47-case
@@ -44,9 +44,8 @@ preserving the full stored ID for navigation and identity details.
 Browser verification uses isolated local data and mocked AI. It does not establish real-provider,
 unchanged-install upgrade, release, or deployment acceptance.
 
-Implementation follow-up to
-[generic-multi-section-content-generation.md](./generic-multi-section-content-generation.md),
-merged in PR #252 and included in Brain `0.2.0-alpha.379`. Generation uses the entity-service
+Implementation follow-up to generic content generation,
+merged in [PR #252](https://github.com/rizom-ai/brains/pull/252) and included in Brain `0.2.0-alpha.379`. Generation uses the entity-service
 path codec. That release did not move directory-sync onto the codec; Slice 1 delivered
 that bridge. The feature branch now presents complete virtual folders above paged direct
 entries; it has not moved main.

@@ -27,7 +27,7 @@ import {
   useStudioNavigationCollapsed,
   setStudioNavigationCollapsed,
 } from "./studio-navigation-state";
-import { Dialog as DialogPrimitive } from "radix-ui";
+import { Dialog as DialogPrimitive, VisuallyHidden } from "radix-ui";
 import type {
   StudioWorkspaceInfo,
   EntityTypeInfo,
@@ -37,6 +37,7 @@ import type {
 import { uploadImage, type UploadImageResult } from "./mutations";
 import { invalidateAfterUpload } from "./queries";
 import { useStudioApi } from "./studio-api-context";
+import { StudioSearchField } from "./studio-search-field";
 import {
   navigationClassName as navClass,
   navigationStyles as nav,
@@ -123,7 +124,9 @@ function studioTypeGroup(
  */
 export function typeHasPublicationField(fields: FieldDescriptor[]): boolean {
   return fields.some(
-    (field) => field.name === "status" || field.name === "published",
+    (field) =>
+      field.name === "published" ||
+      (field.name === "status" && field.options?.includes("published")),
   );
 }
 
@@ -156,6 +159,36 @@ export function visibleFieldValues(
 type StudioArea =
   "overview" | "chat" | "library" | "work" | "administration" | "system";
 
+const areaMarks: Record<StudioArea, string> = {
+  overview: "M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z",
+  chat: "M5 4h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 3v-3a2 2 0 0 1-2-2V6a2 2 0 0 1 3-2z",
+  library:
+    "M12 5v16 M12 5C9 3 5 3 2 4v15c3-1 7-1 10 2 3-3 7-3 10-2V4c-3-1-7-1-10 1z",
+  work: "M8 7V4h8v3 M3 7h18v14H3z M3 12l9 3 9-3 M10 14v3h4v-3",
+  administration: "M12 2l9 4v6c0 5-4 8-9 10-5-2-9-5-9-10V6z M8 12l3 3 5-6",
+  system:
+    "M5 3v6m0 4v8 M12 3v11m0 4v3 M19 3v2m0 4v12 M2 9h6v4H2z M9 14h6v4H9z M16 5h6v4h-6z",
+};
+
+function StudioAreaMark({ area }: { area: StudioArea }): ReactElement {
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d={areaMarks[area]} />
+    </svg>
+  );
+}
+
 export function studioArea(
   entityType: string | null,
   workspaceId: string | null,
@@ -173,8 +206,20 @@ export function studioArea(
 interface MobileNavigationOption {
   value: string;
   label: string;
-  metadata: string;
+  /** How many items the destination holds. */
+  tally?: number;
+  /** How many of them need the operator. */
+  attention?: number;
   accessibleLabel?: string;
+}
+
+/** Areas that are one destination, not a group of them. */
+const DIRECT_MOBILE_AREAS = ["overview", "chat", "administration"];
+
+interface MobileNavigationGroupModel {
+  area: string;
+  label: string;
+  options: MobileNavigationOption[];
 }
 
 const MOBILE_TYPE_PREFIX = "type:";
@@ -197,21 +242,11 @@ export function studioMobileSelection(
 function MobileNavigationGroup(props: {
   id: string;
   label: string;
-  direct: boolean;
   open: boolean;
   currentLabel?: string | undefined;
   onToggle: (open: boolean) => void;
   children: ReactNode;
 }): ReactElement {
-  if (props.direct)
-    return (
-      <section
-        id={props.id}
-        className={navClass("studio-mobile-navigation-group", nav.mobileGroup)}
-      >
-        {props.children}
-      </section>
-    );
   return (
     <details
       id={props.id}
@@ -219,21 +254,147 @@ function MobileNavigationGroup(props: {
       open={props.open}
       onToggle={(event) => props.onToggle(event.currentTarget.open)}
     >
-      <summary
-        className={navClass("", nav.mobileSummary, typographyStyles.eyebrow)}
-      >
-        {props.label}
+      <summary className={navClass("", nav.mobileSummary)}>
+        <span aria-hidden="true" className={navClass("", nav.mobileDisclosure)}>
+          ▾
+        </span>
+        <span
+          className={navClass(
+            "studio-mobile-group-name",
+            nav.mobileGroupName,
+            typographyStyles.section,
+          )}
+        >
+          {props.label}
+        </span>
         {!props.open && props.currentLabel ? (
           <span className={navClass("", nav.mobileCurrent)}>
             {props.currentLabel}
           </span>
         ) : null}
-        <span aria-hidden="true" className={navClass("", nav.mobileDisclosure)}>
-          {props.open ? "−" : "+"}
-        </span>
       </summary>
       {props.children}
     </details>
+  );
+}
+
+/**
+ * The Browse sheet's contents, independent of the dialog that carries them:
+ * one block of direct destinations above independently collapsible groups,
+ * narrowed by a filter. Selecting a destination is the caller's business, so
+ * this renders and reports, and closes nothing itself.
+ */
+export function StudioBrowseDestinations(props: {
+  groups: MobileNavigationGroupModel[];
+  filter: string;
+  activeValue: string;
+  groupId: (area: string) => string;
+  isGroupOpen: (area: string) => boolean;
+  onFilterChange: (value: string) => void;
+  onToggleGroup: (area: string, open: boolean) => void;
+  onSelect: (value: string) => void;
+  /** The dialog contributes its own way out; the list does not own one. */
+  trailing?: ReactNode;
+}): ReactElement {
+  const query = props.filter.trim().toLowerCase();
+  const matching = props.groups
+    .map((group) => ({
+      ...group,
+      options: group.options.filter(
+        (option) => query === "" || option.label.toLowerCase().includes(query),
+      ),
+    }))
+    .filter((group) => group.options.length > 0);
+  // Every single destination sits above the toggles: a lone row wedged
+  // between two group headers reads as the tail of the group above it.
+  const direct = matching
+    .filter((group) => DIRECT_MOBILE_AREAS.includes(group.area))
+    .flatMap((group) => group.options);
+  const collapsible = matching.filter(
+    (group) => !DIRECT_MOBILE_AREAS.includes(group.area),
+  );
+  const option = (
+    entry: MobileNavigationOption,
+    flush = false,
+  ): ReactElement => (
+    <button
+      key={entry.value}
+      className={navClass(
+        entry.value === props.activeValue
+          ? "studio-mobile-navigation-link active"
+          : "studio-mobile-navigation-link",
+        nav.mobileLink,
+        flush && nav.mobileDirectLink,
+        entry.value === props.activeValue && nav.mobileActive,
+      )}
+      type="button"
+      aria-label={entry.accessibleLabel}
+      aria-current={entry.value === props.activeValue ? "page" : undefined}
+      onClick={() => props.onSelect(entry.value)}
+    >
+      {entry.label}
+      {entry.attention === undefined ? null : (
+        <span
+          data-studio-attention=""
+          className={navClass("", nav.mobileAttention)}
+        >
+          {entry.attention}
+        </span>
+      )}
+      {entry.tally === undefined ? null : (
+        <span data-studio-tally="" className={navClass("", nav.mobileTally)}>
+          {entry.tally}
+        </span>
+      )}
+    </button>
+  );
+  return (
+    <>
+      <header className={navClass("", nav.sheetHead)}>
+        <div className={navClass("", nav.mobileFilter)}>
+          <StudioSearchField
+            hook="studio-mobile-navigation-filter"
+            label="Filter destinations"
+            placeholder="Filter destinations"
+            value={props.filter}
+            onChange={props.onFilterChange}
+          />
+        </div>
+        {props.trailing}
+      </header>
+      {matching.length === 0 ? (
+        <p className={navClass("", nav.mobileEmpty)}>
+          No destination matches “{props.filter.trim()}”. Clear the filter to
+          see every destination.
+        </p>
+      ) : null}
+      {direct.length > 0 && (
+        <section
+          className={navClass(
+            "studio-mobile-navigation-group",
+            nav.mobileDirect,
+          )}
+        >
+          {direct.map((entry) => option(entry, true))}
+        </section>
+      )}
+      {collapsible.map((group) => (
+        <MobileNavigationGroup
+          id={props.groupId(group.area)}
+          key={group.area}
+          label={group.label}
+          // A filter opens every group that still has something in it.
+          open={query !== "" || props.isGroupOpen(group.area)}
+          currentLabel={
+            group.options.find((entry) => entry.value === props.activeValue)
+              ?.label
+          }
+          onToggle={(open) => props.onToggleGroup(group.area, open)}
+        >
+          {group.options.map((entry) => option(entry))}
+        </MobileNavigationGroup>
+      ))}
+    </>
   );
 }
 
@@ -323,22 +484,22 @@ export function TypeSwitcher(props: {
   const mobileTypeOption = (info: EntityTypeInfo): MobileNavigationOption => ({
     value: `${MOBILE_TYPE_PREFIX}${info.entityType}`,
     label: navigationTypeLabel(info),
-    metadata: info.isSingleton ? "" : String(info.count),
+    ...(info.isSingleton ? {} : { tally: info.count }),
   });
   const workspaceBadge = (
     workspace: StudioWorkspaceInfo | undefined,
   ): number => (workspace ? (props.workspaceBadges?.[workspace.id] ?? 0) : 0);
   const mobileWorkspaceOption = (
     workspace: StudioWorkspaceInfo,
-  ): MobileNavigationOption => ({
-    value: `${MOBILE_WORKSPACE_PREFIX}${workspace.id}`,
-    label: workspace.label,
-    accessibleLabel: workspace.label,
-    metadata:
-      (props.workspaceBadges?.[workspace.id] ?? 0) > 0
-        ? String(props.workspaceBadges?.[workspace.id])
-        : "",
-  });
+  ): MobileNavigationOption => {
+    const attention = workspaceBadge(workspace);
+    return {
+      value: `${MOBILE_WORKSPACE_PREFIX}${workspace.id}`,
+      label: workspace.label,
+      accessibleLabel: workspace.label,
+      ...(attention > 0 ? { attention } : {}),
+    };
+  };
   const mobileGroups = [
     ...(overviewWorkspace
       ? [
@@ -401,6 +562,8 @@ export function TypeSwitcher(props: {
     : props.activeWorkspace
       ? `${MOBILE_WORKSPACE_PREFIX}${props.activeWorkspace}`
       : "";
+  const [mobileFilter, setMobileFilter] = useState("");
+  const [browseOpen, setBrowseOpen] = useState(false);
   const selectMobileView = (value: string): void => {
     const selection = studioMobileSelection(value);
     if (selection?.kind === "type") {
@@ -540,8 +703,10 @@ export function TypeSwitcher(props: {
     <>
       {props.renderMode !== "desktop" ? (
         <Dialog
+          open={browseOpen}
           onOpenChange={(open) => {
-            if (open && currentArea) toggleGroup(currentArea, true);
+            setBrowseOpen(open);
+            if (open) setMobileFilter("");
           }}
         >
           <DialogTrigger asChild>
@@ -565,6 +730,13 @@ export function TypeSwitcher(props: {
             <DialogPrimitive.Content
               className={navClass("studio-mobile-navigation-sheet", nav.sheet)}
               aria-describedby={undefined}
+              // Browse opens to be read. Focusing the filter would raise the
+              // phone keyboard over the destinations every time.
+              onOpenAutoFocus={(event) => {
+                event.preventDefault();
+                if (event.currentTarget instanceof HTMLElement)
+                  event.currentTarget.focus();
+              }}
             >
               <div
                 className={navClass(
@@ -572,67 +744,30 @@ export function TypeSwitcher(props: {
                   nav.sheetList,
                 )}
               >
-                <header className={navClass("", nav.sheetHead)}>
-                  <DialogPrimitive.Title
-                    className={navClass(
-                      "",
-                      nav.sheetTitle,
-                      typographyStyles.secondaryDisplay,
-                    )}
-                  >
-                    Browse Studio
-                  </DialogPrimitive.Title>
-                  <DialogClose className={navClass("", nav.sheetClose)}>
-                    Close
-                  </DialogClose>
-                </header>
-                {mobileGroups
-                  .filter((group) => group.options.length > 0)
-                  .map((group) => (
-                    <MobileNavigationGroup
-                      id={`${leafId}-${group.area}`}
-                      key={group.area}
-                      label={group.label}
-                      direct={["overview", "chat", "administration"].includes(
-                        group.area,
-                      )}
-                      open={openGroups[group.area] === true}
-                      currentLabel={
-                        group.options.find(
-                          (option) => option.value === activeMobileView,
-                        )?.label
-                      }
-                      onToggle={(open) => toggleGroup(group.area, open)}
+                <VisuallyHidden.Root>
+                  <DialogPrimitive.Title>Browse Studio</DialogPrimitive.Title>
+                </VisuallyHidden.Root>
+                <StudioBrowseDestinations
+                  groups={mobileGroups}
+                  filter={mobileFilter}
+                  activeValue={activeMobileView}
+                  groupId={(area) => `${leafId}-${area}`}
+                  isGroupOpen={(area) => openGroups[area] !== false}
+                  onFilterChange={setMobileFilter}
+                  onToggleGroup={toggleGroup}
+                  onSelect={(value) => {
+                    selectMobileView(value);
+                    setBrowseOpen(false);
+                  }}
+                  trailing={
+                    <DialogClose
+                      className={navClass("", nav.sheetClose)}
+                      aria-label="Close browse"
                     >
-                      {group.options.map((option) => (
-                        <DialogClose asChild key={option.value}>
-                          <button
-                            className={navClass(
-                              option.value === activeMobileView
-                                ? "studio-mobile-navigation-link active"
-                                : "studio-mobile-navigation-link",
-                              nav.mobileLink,
-                              option.value === activeMobileView &&
-                                nav.mobileActive,
-                            )}
-                            type="button"
-                            aria-label={option.accessibleLabel}
-                            aria-current={
-                              option.value === activeMobileView
-                                ? "page"
-                                : undefined
-                            }
-                            onClick={() => selectMobileView(option.value)}
-                          >
-                            {option.label}
-                            <span className={navClass("", nav.count)}>
-                              {option.metadata}
-                            </span>
-                          </button>
-                        </DialogClose>
-                      ))}
-                    </MobileNavigationGroup>
-                  ))}
+                      ✕
+                    </DialogClose>
+                  }
+                />
               </div>
             </DialogPrimitive.Content>
           </DialogPortal>
@@ -729,7 +864,7 @@ export function TypeSwitcher(props: {
                       area.id === activeArea && nav.ordinalActive,
                     )}
                   >
-                    {area.index}
+                    {collapsed ? <StudioAreaMark area={area.id} /> : area.index}
                   </b>
                   <span
                     data-area-label={area.label}

@@ -1101,6 +1101,55 @@ describe("studio editor api", () => {
     ).toBe("A readable heading");
   });
 
+  it("uses current adapter title projections on list and detail without writing stored notes", async () => {
+    const shell = createEditorTestShell();
+    const cookie = await createSessionCookie(shell);
+    const service = shell.getEntityService();
+    await service.createEntity({
+      entity: {
+        id: "stored-placeholder",
+        entityType: "note",
+        content: "First body line\nSecond line",
+        metadata: { title: "Untitled" },
+        visibility: "public",
+        created: "2026-07-01T00:00:00.000Z",
+        updated: "2026-07-01T00:00:00.000Z",
+      },
+    });
+    const before = await service.getEntity({
+      entityType: "note",
+      id: "stored-placeholder",
+    });
+    shell.getEntityRegistry().getAdapter("note").extractMetadata = (
+      entity,
+    ): Record<string, unknown> => ({
+      ...entity.metadata,
+      title: "Adapter-projected fallback",
+    });
+    const plugin = await registerPlugin(shell);
+    const route = findRoute(plugin, "/studio/api/entities");
+    const label = z.object({ displayTitle: z.string() });
+    const list = await route.handler(
+      apiRequest("/studio/api/entities?type=note", { cookie }),
+    );
+    expect(
+      z.object({ entities: z.array(label) }).parse(await list.json())
+        .entities[0]?.displayTitle,
+    ).toBe("Adapter-projected fallback");
+    const detail = await route.handler(
+      apiRequest("/studio/api/entities?type=note&id=stored-placeholder", {
+        cookie,
+      }),
+    );
+    expect(
+      z.object({ entity: label }).parse(await detail.json()).entity
+        .displayTitle,
+    ).toBe("Adapter-projected fallback");
+    expect(
+      await service.getEntity({ entityType: "note", id: "stored-placeholder" }),
+    ).toEqual(before);
+  });
+
   for (const entityType of ["note", "post", "brief"]) {
     for (const example of [
       {

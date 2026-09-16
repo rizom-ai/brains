@@ -72,7 +72,10 @@ describe("Studio split UI assets", () => {
       "grid-template-columns:24px minmax(0,1fr) auto",
     );
     expect(stylesheet).toMatch(/@media\s*\(max-width:\s*900px\)/);
-    expect(stylesheet).toContain("grid-template-columns:180px minmax(0,1fr)");
+    expect(stylesheet).toContain("grid-template-columns:minmax(0,1fr)");
+    expect(stylesheet).not.toContain(
+      "grid-template-columns:180px minmax(0,1fr)",
+    );
     expect(stylesheet).not.toContain("--studio-chat-columns");
     expect(stylesheet).toContain("--operator-section-family:var(--console-ui)");
     expect(stylesheet).not.toContain("--operator-row-title-family:");
@@ -115,6 +118,8 @@ describe("Studio split UI assets", () => {
       "No messages yet. Your draft stays in the composer until you send it.",
     );
     expect(chatSource).not.toContain("Working room");
+    expect(chatSource).not.toContain("Working set");
+    expect(chatSource).toContain("Conversation details and options");
     expect(chatSource).not.toContain("data-web-chat-root");
     expect(chatSource).not.toContain("<iframe");
   });

@@ -1,14 +1,21 @@
 import * as stylex from "@stylexjs/stylex";
 export const chatLayout: Record<
+  | "imageTrigger"
+  | "fullImage"
+  | "toolbar"
+  | "toolbarButton"
+  | "details"
+  | "composerBar"
+  | "userTurn"
+  | "source"
+  | "uploadStrip"
+  | "uploadPreview"
+  | "uploadName"
   | "root"
   | "shell"
   | "frame"
   | "room"
-  | "roomWithoutSessions"
-  | "emptyThreadHead"
   | "emptyConversation"
-  | "sessions"
-  | "mobileSessions"
   | "picker"
   | "thread"
   | "threadHead"
@@ -21,9 +28,7 @@ export const chatLayout: Record<
   | "timestamp"
   | "actions"
   | "title"
-  | "summary"
   | "context"
-  | "desktopContext"
   | "contextBody"
   | "contextItem"
   | "threadScroll"
@@ -41,7 +46,6 @@ export const chatLayout: Record<
   | "error"
   | "form"
   | "composer"
-  | "fieldLabel"
   | "composerHint"
   | "input"
   | "uploadInput"
@@ -56,6 +60,69 @@ export const chatLayout: Record<
   | "cardText",
   stylex.StyleXStyles
 > = stylex.create({
+  imageTrigger: {
+    display: "block",
+    width: "100%",
+    padding: 0,
+    borderWidth: 0,
+    backgroundColor: "transparent",
+    cursor: "zoom-in",
+    minHeight: 44,
+    ":focus-visible": {
+      outline: "2px solid var(--console-accent)",
+      outlineOffset: 2,
+    },
+  },
+  fullImage: {
+    width: "100%",
+    height: "auto",
+    maxHeight: "60dvh",
+    objectFit: "contain",
+  },
+  toolbar: { display: "flex", alignItems: "center", gap: 2, flexShrink: 0 },
+  toolbarButton: {
+    minHeight: 44,
+    minWidth: 44,
+    padding: "8px 10px",
+    fontSize: 12,
+  },
+  details: { display: "grid", gap: 16, minWidth: 0 },
+  composerBar: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 8,
+  },
+  userTurn: {
+    marginLeft: "auto",
+    maxWidth: "min(580px, 100%)",
+    backgroundColor: "var(--console-card-soft)",
+    borderRadius: "12px 12px 2px 12px",
+    padding: "14px 16px",
+  },
+  source: {
+    whiteSpace: "pre-wrap",
+    overflowWrap: "anywhere",
+    overflow: "auto",
+    maxHeight: "min(40dvh, 320px)",
+    padding: 12,
+    margin: 0,
+    fontFamily: "var(--console-mono)",
+    fontSize: 12,
+    lineHeight: 1.6,
+    backgroundColor: "var(--console-card-soft)",
+  },
+  uploadStrip: {
+    display: "flex",
+    overflowX: "auto",
+    maxHeight: 100,
+    gap: 8,
+    minWidth: 0,
+    scrollbarWidth: "thin",
+    marginBottom: 6,
+  },
+  uploadPreview: { width: 40, height: 40, objectFit: "cover", borderRadius: 4 },
+  uploadName: { minWidth: 0, flex: 1, overflowWrap: "anywhere", fontSize: 12 },
   sessionControls: {
     display: "grid",
     gap: 8,
@@ -73,7 +140,7 @@ export const chatLayout: Record<
     fontSize: { default: 13, "@media (max-width: 640px)": 16 },
   },
   composerHint: {
-    display: "block",
+    display: { default: "block", "@media (max-width: 640px)": "none" },
     marginTop: 8,
     fontSize: 11,
     lineHeight: 1.4,
@@ -101,36 +168,19 @@ export const chatLayout: Record<
     minWidth: 0,
     minHeight: 0,
     overflow: "hidden",
-    paddingBottom: {
-      default: 38,
-      "@media (max-width: 640px)": "calc(24px + env(safe-area-inset-bottom))",
-    },
-    gap: 28,
+    padding: 0,
+    gap: 0,
   },
   room: {
     display: "grid",
-    gridTemplateColumns: {
-      default: "180px minmax(0,1fr)",
-      "@media (max-width: 860px)": "minmax(0,1fr)",
-    },
-    gap: 32,
+    gridTemplateColumns: "minmax(0,1fr)",
+    gap: 0,
     flex: 1,
     minHeight: 0,
     minWidth: 0,
     overflow: "hidden",
   },
-  roomWithoutSessions: { gridTemplateColumns: "minmax(0,1fr)" },
-  emptyThreadHead: { marginBottom: 12 },
   emptyConversation: { margin: 0 },
-  mobileSessions: {
-    display: { default: "none", "@media (max-width: 860px)": "inline-flex" },
-  },
-  sessions: {
-    display: { default: "block", "@media (max-width: 860px)": "none" },
-    minWidth: 0,
-    minHeight: 0,
-    overflowY: "auto",
-  },
   picker: {
     "--console-text-muted":
       "color-mix(in srgb, var(--color-text-light) 70%, var(--color-text))",
@@ -149,15 +199,28 @@ export const chatLayout: Record<
   },
   threadHead: {
     display: "flex",
-    alignItems: "baseline",
+    alignItems: "center",
     justifyContent: "space-between",
-    gap: 20,
+    gap: 8,
     minWidth: 0,
-    marginBottom: 22,
+    flexShrink: 0,
+    minHeight: 54,
+    padding: { default: "4px 24px", "@media (max-width: 640px)": "4px 10px" },
+    borderBottomWidth: 1,
+    borderBottomStyle: "solid",
+    borderBottomColor: "var(--console-rule)",
+    marginBottom: 0,
   },
   title: {
     margin: 0,
-    overflowWrap: "anywhere",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    minWidth: 0,
+    fontFamily: "var(--console-ui)",
+    fontSize: 13,
+    fontWeight: 400,
+    lineHeight: 1.5,
     color: "var(--console-text)",
   },
   headCopy: { minWidth: 0, flex: 1 },
@@ -208,17 +271,6 @@ export const chatLayout: Record<
     color: "var(--console-text-muted)",
     overflowWrap: "anywhere",
   },
-  summary: {
-    minHeight: 32,
-    paddingBottom: 12,
-    fontFamily: "var(--console-ui)",
-    fontSize: 12,
-    color: "var(--console-text-muted)",
-    cursor: "pointer",
-  },
-  desktopContext: {
-    display: { default: "block", "@media (max-width: 860px)": "none" },
-  },
   context: {
     minWidth: 0,
     borderBottomWidth: 1,
@@ -233,10 +285,7 @@ export const chatLayout: Record<
     },
     outlineOffset: -2,
     gap: 16,
-    maxHeight: {
-      default: "min(240px, 28dvh)",
-      "@media (max-width: 860px)": "min(480px, 60dvh)",
-    },
+    maxHeight: "min(480px, 60dvh)",
     overflowY: "auto",
     paddingBottom: 16,
     paddingInline: 4,
@@ -268,22 +317,22 @@ export const chatLayout: Record<
     scrollbarWidth: "thin",
     scrollbarColor: "var(--console-rule-strong) transparent",
   },
-  manuscript: { minWidth: 0 },
+  manuscript: {
+    minWidth: 0,
+    maxWidth: 740,
+    marginInline: "auto",
+    padding: { default: "26px 24px", "@media (max-width: 640px)": "18px 16px" },
+  },
   turn: {
     display: "grid",
-    gridTemplateColumns: {
-      default: "40px minmax(0,1fr)",
-      "@media (max-width: 640px)": "28px minmax(0,1fr)",
-    },
-    gap: 16,
-    padding: "24px 8px 24px 0",
-    borderBottomWidth: 1,
-    borderBottomStyle: "solid",
-    borderBottomColor: "var(--console-rule)",
+    gridTemplateColumns: "minmax(0,1fr)",
+    gap: 8,
+    padding: 0,
+    marginBottom: 26,
     minWidth: 0,
   },
   speaker: {
-    paddingTop: 6,
+    paddingTop: 0,
     fontFamily: "var(--console-mono)",
     fontSize: 11,
     lineHeight: 1.6,
@@ -293,14 +342,14 @@ export const chatLayout: Record<
     display: "grid",
     gap: 12,
     minWidth: 0,
-    fontFamily: "var(--console-display)",
-    fontSize: 18,
+    fontFamily: "var(--console-ui)",
+    fontSize: { default: 16, "@media (max-width: 640px)": 15 },
     fontWeight: 400,
     lineHeight: 1.65,
     color: "var(--console-text)",
     overflowWrap: "anywhere",
   },
-  userBody: { fontWeight: 600 },
+  userBody: { fontWeight: 400 },
   paragraph: { margin: 0, whiteSpace: "pre-wrap", overflowWrap: "anywhere" },
   cards: { display: "grid", gap: 12, minWidth: 0 },
   attachmentPreview: {
@@ -308,7 +357,7 @@ export const chatLayout: Record<
     width: "100%",
     maxWidth: "100%",
     height: "auto",
-    maxHeight: 480,
+    maxHeight: 260,
     objectFit: "contain",
     backgroundColor: "var(--console-card)",
   },
@@ -331,7 +380,7 @@ export const chatLayout: Record<
   kicker: {
     fontFamily: "var(--console-mono)",
     fontSize: 11,
-    color: "var(--console-text-muted)",
+    color: "var(--console-text-dim)",
   },
   cardHeading: { margin: 0 },
   cardText: {
@@ -345,41 +394,49 @@ export const chatLayout: Record<
     fontFamily: "var(--console-ui)",
     fontSize: 12,
     lineHeight: 1.6,
-    color: "var(--console-text-muted)",
+    color: "var(--console-text-dim)",
     overflowWrap: "anywhere",
   },
   error: { color: "var(--console-err)" },
-  form: { display: "grid", gap: 12, minWidth: 0 },
+  form: {
+    display: "grid",
+    gap: 4,
+    minWidth: 0,
+    borderWidth: 1,
+    borderStyle: "solid",
+    borderColor: "var(--console-rule-strong)",
+    borderRadius: 12,
+    padding: "8px 10px",
+    backgroundColor: "var(--console-card)",
+  },
   composer: {
     flexShrink: 0,
     minWidth: 0,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopStyle: "solid",
-    borderTopColor: "var(--console-rule)",
-  },
-  fieldLabel: {
-    display: "grid",
-    gap: 8,
-    fontFamily: "var(--console-ui)",
-    fontSize: 12,
-    color: "var(--console-text)",
+    width: "100%",
+    maxWidth: 740,
+    alignSelf: "center",
+    padding: {
+      default: "10px 24px 16px",
+      "@media (max-width: 640px)":
+        "8px 10px calc(10px + env(safe-area-inset-bottom))",
+    },
   },
   input: {
     width: "100%",
     boxSizing: "border-box",
     minWidth: 0,
-    minHeight: 80,
-    maxHeight: 180,
-    resize: "vertical",
-    padding: 12,
-    borderWidth: 1,
+    height: 44,
+    minHeight: 44,
+    maxHeight: 140,
+    resize: "none",
+    padding: 5,
+    borderWidth: 0,
     borderStyle: "solid",
     borderColor: "var(--console-rule)",
     borderRadius: 5,
     backgroundColor: "transparent",
     fontFamily: "var(--console-ui)",
-    fontSize: 14,
+    fontSize: 16,
     lineHeight: 1.5,
     color: "var(--console-text)",
     ":focus-visible": {
@@ -419,16 +476,20 @@ export const chatLayout: Record<
   },
   uploadList: {
     display: "flex",
-    flexWrap: "wrap",
+    flexWrap: "nowrap",
+    flexShrink: 0,
     gap: 8,
-    margin: "0 0 12px",
+    margin: 0,
     padding: 0,
     listStyleType: "none",
   },
   upload: {
-    display: "inline-block",
+    display: "flex",
+    alignItems: "center",
+    gap: 6,
+    flexShrink: 0,
     margin: 0,
-    maxWidth: "100%",
+    maxWidth: 280,
     fontFamily: "var(--console-mono)",
     fontSize: 11,
     fontWeight: 400,
@@ -436,7 +497,7 @@ export const chatLayout: Record<
     overflowWrap: "anywhere",
   },
   button: {
-    minHeight: 40,
+    minHeight: 44,
     padding: "8px 12px",
     borderWidth: 1,
     borderStyle: "solid",

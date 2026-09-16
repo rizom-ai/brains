@@ -1,4 +1,8 @@
 /** @jsxImportSource react */
+import * as stylex from "@stylexjs/stylex";
+import { StudioSystemFields } from "./studio-system-fields";
+import { systemEditorCopy } from "./studio-system-presentation";
+import { systemFieldStyles } from "./studio-system-fields.styles";
 import type {
   RuntimeStudioWorkspaceData,
   RuntimeOperatorActionControl,
@@ -100,7 +104,10 @@ import {
 } from "./ui-utils";
 
 import type { StudioCollectionQuery } from "../../src/collection-query";
-import { StudioCollectionControls } from "./studio-collection-controls";
+import {
+  StudioCollectionControls,
+  StudioCollectionPager,
+} from "./studio-collection-controls";
 import {
   StudioFolderTrail,
   StudioFolderRows,
@@ -372,6 +379,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
     entitySchema.hasBody,
   );
   const selectedEntityType = entityType ?? "";
+  const systemDesign = systemEditorCopy(selectedEntityType);
   const editing = !activeWorkspaceId && mode.kind !== "browse";
   const canCreate =
     activeType?.capabilities.canCreate === true &&
@@ -626,17 +634,27 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
             <StudioPageHead
               model={listingHead}
               action={
-                <Button
-                  type="button"
-                  disabled={!canCreate || !schema}
-                  data-studio-library-new=""
-                  xstyle={hierarchy.desktopCreateAction}
-                  onClick={startCreate}
-                >
-                  New {entryLabel.toLowerCase()}
-                </Button>
+                (!systemDesign || canCreate) && (
+                  <Button
+                    type="button"
+                    disabled={!canCreate || !schema}
+                    data-studio-library-new=""
+                    xstyle={hierarchy.desktopCreateAction}
+                    onClick={startCreate}
+                  >
+                    New {entryLabel.toLowerCase()}
+                  </Button>
+                )
               }
             />
+            {systemDesign && (
+              <p
+                data-studio-system-intro=""
+                {...stylex.props(systemFieldStyles.collectionIntro)}
+              >
+                {systemDesign.intro}
+              </p>
+            )}
             <StudioFolderTrail
               kind={hierarchyKind}
               collectionLabel={collectionLabel}
@@ -669,43 +687,18 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
               </div>
             )}
             {!entitySchema.isSingleton && entityTotal > 0 && (
-              <nav
-                className={editorClass(
-                  "listing-pagination",
-                  library.pagination,
-                )}
-                aria-label={`${activeType?.label ?? "Entity"} pagination`}
-              >
-                <span
-                  className={editorClass("", library.range)}
-                  aria-live="polite"
-                >
-                  {entityOffset + 1}–{pageEnd} of {entityTotal}
-                </span>
-                <span className={editorClass("", library.pager)}>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    disabled={entityListLoading || entityOffset === 0}
-                    onClick={() =>
-                      changeEntityPage(Math.max(0, entityOffset - entityLimit))
-                    }
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    disabled={
-                      entityListLoading ||
-                      entityOffset + entityLimit >= entityTotal
-                    }
-                    onClick={() => changeEntityPage(entityOffset + entityLimit)}
-                  >
-                    Next
-                  </Button>
-                </span>
-              </nav>
+              <StudioCollectionPager
+                label={`${activeType?.label ?? "Entity"} pagination`}
+                offset={entityOffset}
+                count={Math.max(0, pageEnd - entityOffset)}
+                total={entityTotal}
+                loading={entityListLoading}
+                hasNext={entityOffset + entityLimit < entityTotal}
+                onPrevious={() =>
+                  changeEntityPage(Math.max(0, entityOffset - entityLimit))
+                }
+                onNext={() => changeEntityPage(entityOffset + entityLimit)}
+              />
             )}
             {entityListLoading && (
               <StudioStatus className={editorClass("", library.empty)}>
@@ -721,15 +714,22 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                     "",
                     library.row,
                     editorStyles.listingRow,
+                    systemDesign && systemFieldStyles.collectionRow,
                   )}
                   data-studio-record=""
                   onClick={() => openEntity(entity.id)}
                 >
-                  <span className={editorClass("", library.index)}>
-                    {String(entityOffset + index + 1).padStart(2, "0")}
-                  </span>
+                  {!systemDesign && (
+                    <span className={editorClass("", library.index)}>
+                      {String(entityOffset + index + 1).padStart(2, "0")}
+                    </span>
+                  )}
                   <span
-                    className={editorClass("", library.title)}
+                    className={editorClass(
+                      "",
+                      library.title,
+                      systemDesign && systemFieldStyles.collectionTitle,
+                    )}
                     title={entity.id}
                   >
                     {entityTitle(entity, entity.path?.at(-1))}
@@ -744,6 +744,14 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                             .join(" / ")}
                         </span>
                       )}
+                    {systemDesign && (
+                      <span {...stylex.props(systemFieldStyles.collectionMeta)}>
+                        {entryLabel} ·{" "}
+                        <time dateTime={entity.updated} title={entity.updated}>
+                          {formatUpdated(entity.updated)}
+                        </time>
+                      </span>
+                    )}
                     {typeHasPublicationField(entitySchema.fields) && (
                       <span
                         className={editorClass(
@@ -755,9 +763,17 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                       </span>
                     )}
                   </span>
-                  <span className={editorClass("", library.updated)}>
-                    {formatUpdated(entity.updated)}
-                  </span>
+                  {systemDesign ? (
+                    <span aria-hidden="true">→</span>
+                  ) : (
+                    <time
+                      className={editorClass("", library.updated)}
+                      dateTime={entity.updated}
+                      title={entity.updated}
+                    >
+                      {formatUpdated(entity.updated)}
+                    </time>
+                  )}
                 </button>
               ))}
             {!props.readError &&
@@ -977,12 +993,31 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                 </div>
               )}
               <StudioEditorContent presentation={presentation}>
+                {systemDesign && (
+                  <p
+                    data-studio-system-intro=""
+                    {...stylex.props(systemFieldStyles.intro)}
+                  >
+                    {systemDesign.intro}
+                  </p>
+                )}
                 <StudioEditorProperties
                   key={`${selectedEntityType}:${mode.kind === "edit" ? mode.entity.id : "create"}`}
                   presentation={presentation}
-                  reveal={(fieldIssues?.length ?? 0) > 0}
+                  summaryDescription={
+                    systemDesign
+                      ? entitySchema.fields
+                          .slice(0, 3)
+                          .map((field) => field.label)
+                          .join(" · ")
+                      : undefined
+                  }
+                  reveal={
+                    (presentation === "document" && !editor.body.trim()) ||
+                    (fieldIssues?.length ?? 0) > 0
+                  }
                 >
-                  {presentation !== "document" && (
+                  {presentation !== "document" && !systemDesign && (
                     <div
                       className={editorClass("", editorStyles.propertiesHead)}
                     >
@@ -1012,40 +1047,80 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                     className={editorClass("", layout.fields)}
                     disabled={!canEdit}
                   >
-                    {entitySchema.fields
-                      .filter((descriptor) => isFieldVisible(descriptor, draft))
-                      .map((descriptor) => (
-                        <div
-                          key={`${selectedEntityType}:${mode.kind === "edit" ? mode.entity.id : "create"}:${descriptor.name}`}
-                          data-studio-field-assist=""
-                        >
-                          <Field
-                            descriptor={descriptor}
-                            issues={fieldIssues}
-                            value={draft[descriptor.name]}
-                            onChange={(raw) =>
-                              dispatchEditor({
-                                type: "fieldChanged",
-                                descriptor,
-                                raw,
-                              })
-                            }
-                          />
-                          {canAssist &&
-                            entitySchema.hasBody &&
-                            body.trim().length > 0 && (
-                              <FieldAssistControls
-                                descriptor={descriptor}
-                                state={fieldAssistState}
-                                onRun={runFieldAssist}
-                                onApply={applyFieldAssist}
-                                onDiscard={() =>
-                                  setFieldAssistState({ kind: "idle" })
-                                }
-                              />
-                            )}
-                        </div>
-                      ))}
+                    {systemDesign ? (
+                      <StudioSystemFields
+                        fields={entitySchema.fields}
+                        draft={draft}
+                        title={
+                          presentation === "document"
+                            ? ""
+                            : systemDesign.fieldsTitle
+                        }
+                        readOnly={!canEdit}
+                        issues={fieldIssues}
+                        onChange={(descriptor, raw) =>
+                          dispatchEditor({
+                            type: "fieldChanged",
+                            descriptor,
+                            raw,
+                          })
+                        }
+                        renderAssist={
+                          canAssist &&
+                          entitySchema.hasBody &&
+                          body.trim().length > 0
+                            ? (descriptor): ReactElement => (
+                                <FieldAssistControls
+                                  descriptor={descriptor}
+                                  state={fieldAssistState}
+                                  onRun={runFieldAssist}
+                                  onApply={applyFieldAssist}
+                                  onDiscard={() =>
+                                    setFieldAssistState({ kind: "idle" })
+                                  }
+                                />
+                              )
+                            : undefined
+                        }
+                      />
+                    ) : (
+                      entitySchema.fields
+                        .filter((descriptor) =>
+                          isFieldVisible(descriptor, draft),
+                        )
+                        .map((descriptor) => (
+                          <div
+                            key={`${selectedEntityType}:${mode.kind === "edit" ? mode.entity.id : "create"}:${descriptor.name}`}
+                            data-studio-field-assist=""
+                          >
+                            <Field
+                              descriptor={descriptor}
+                              issues={fieldIssues}
+                              value={draft[descriptor.name]}
+                              onChange={(raw) =>
+                                dispatchEditor({
+                                  type: "fieldChanged",
+                                  descriptor,
+                                  raw,
+                                })
+                              }
+                            />
+                            {canAssist &&
+                              entitySchema.hasBody &&
+                              body.trim().length > 0 && (
+                                <FieldAssistControls
+                                  descriptor={descriptor}
+                                  state={fieldAssistState}
+                                  onRun={runFieldAssist}
+                                  onApply={applyFieldAssist}
+                                  onDiscard={() =>
+                                    setFieldAssistState({ kind: "idle" })
+                                  }
+                                />
+                              )}
+                          </div>
+                        ))
+                    )}
                     {entitySchema.format === "raw" && (
                       <StudioStatus>
                         This type is raw markdown — the whole document is the
@@ -1078,6 +1153,18 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                       presentation !== "split" && contentLayout.manuscript,
                     )}
                   >
+                    {systemDesign && (
+                      <header {...stylex.props(systemFieldStyles.bodyHeading)}>
+                        <h2
+                          {...stylex.props(typographyStyles.secondaryDisplay)}
+                        >
+                          {systemDesign.bodyTitle}
+                        </h2>
+                        <p {...stylex.props(systemFieldStyles.description)}>
+                          {systemDesign.bodyDescription}
+                        </p>
+                      </header>
+                    )}
                     <BodyEditor
                       value={body}
                       mode={bodyMode}

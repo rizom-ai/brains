@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.252
+
+### Patch Changes
+
+- [#262](https://github.com/rizom-ai/brains/pull/262) [`6376bb3`](https://github.com/rizom-ai/brains/commit/6376bb31e305c9591e0f499035013088231823fe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Compose public Ask inside the existing Rizom layout, including its navigation, theme control and footer. Mount the shared guest UI rather than introducing separate page chrome or a second conversation runtime.
+
 ## 0.2.0-alpha.251
 
 ### Patch Changes

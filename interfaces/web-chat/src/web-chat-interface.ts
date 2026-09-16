@@ -14,6 +14,7 @@ import {
 } from "@brains/auth-service";
 import {
   MessageInterfacePlugin,
+  SitePageResponse,
   createScheduledMaintenanceDaemon,
   type AgentResponse,
   type EditMessageRequest,
@@ -68,6 +69,7 @@ import { handleContextSessionRequest as handleContextSessionRouteRequest } from 
 import {
   renderChatPage,
   renderGuestChatPage,
+  guestPageStyles,
   uiAssetFile,
   uiStylesheetFile,
 } from "./chat-page";
@@ -331,22 +333,39 @@ export class WebChatInterface extends MessageInterfacePlugin<
                 headers: { "Cache-Control": "no-store" },
               }),
       });
-      routes.push({
-        path: "/ask/assets/guest.css",
-        method: "GET",
-        public: true,
-        preview: true,
-        handler: async (request): Promise<Response> =>
-          (await this.canServeGuestAssets(request))
-            ? this.handleBuiltUiFile(
-                uiStylesheetFile.replace(/app\.css$/, "guest.css"),
-                "text/css; charset=utf-8",
-              )
-            : new Response("Not found", {
-                status: 404,
-                headers: { "Cache-Control": "no-store" },
-              }),
-      });
+      routes.push(
+        {
+          path: "/ask/assets/page.css",
+          method: "GET",
+          public: true,
+          preview: true,
+          handler: async (request): Promise<Response> =>
+            (await this.canServeGuestAssets(request))
+              ? new Response(guestPageStyles, {
+                  headers: { "Content-Type": "text/css; charset=utf-8" },
+                })
+              : new Response("Not found", {
+                  status: 404,
+                  headers: { "Cache-Control": "no-store" },
+                }),
+        },
+        {
+          path: "/ask/assets/guest.css",
+          method: "GET",
+          public: true,
+          preview: true,
+          handler: async (request): Promise<Response> =>
+            (await this.canServeGuestAssets(request))
+              ? this.handleBuiltUiFile(
+                  uiStylesheetFile.replace(/app\.css$/, "guest.css"),
+                  "text/css; charset=utf-8",
+                )
+              : new Response("Not found", {
+                  status: 404,
+                  headers: { "Cache-Control": "no-store" },
+                }),
+        },
+      );
     }
     return [
       ...routes,
@@ -472,9 +491,11 @@ export class WebChatInterface extends MessageInterfacePlugin<
           headers: { "Cache-Control": "no-store" },
         });
       }
-      return new Response(
+      return new SitePageResponse(
         renderGuestChatPage({
           apiPath: `${createChatApiPaths(this.config.apiPath).stream}/guest`,
+          name: this.getContext().identity.getProfile().name,
+          siteLabel: this.getContext().identity.getProfile().name,
           themeCSS: this.getContext().themeCSS,
         }),
         {

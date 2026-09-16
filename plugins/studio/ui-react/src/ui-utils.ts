@@ -31,8 +31,19 @@ export function formatUpdated(iso: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return "";
   const elapsed = Date.now() - date.getTime();
-  const minutes = Math.max(0, Math.floor(elapsed / 60_000));
-  if (minutes < 60) return `${Math.max(1, minutes)} minutes ago`;
+  if (elapsed < 0)
+    return date.toLocaleString(undefined, {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZoneName: "short",
+    });
+  const minutes = Math.floor(elapsed / 60_000);
+  if (minutes === 0) return "Just now";
+  if (minutes < 60)
+    return `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
   const days = Math.floor(hours / 24);

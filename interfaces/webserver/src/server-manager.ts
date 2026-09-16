@@ -7,7 +7,10 @@ import type {
   RegisteredHttpRoute,
   RegisteredToolHttpRoute,
 } from "@brains/plugins/internal/http-routes";
-import type { WebRouteTransportContext } from "@brains/plugins/contracts/web-routes";
+import {
+  SitePageResponse,
+  type WebRouteTransportContext,
+} from "@brains/plugins/contracts/web-routes";
 import { resolve, join, sep } from "path";
 import { Hono, type Context as HonoContext, type Next as HonoNext } from "hono";
 import { serveStatic } from "hono/bun";
@@ -418,7 +421,29 @@ export class ServerManager {
       if (handlerRoute.sharedHostAdmission === "deny") {
         return c.text("Unauthorized", 401);
       }
-      return handlerRoute.handler(c.req.raw, this.transport.get(c.req.raw));
+      const response = await handlerRoute.handler(
+        c.req.raw,
+        this.transport.get(c.req.raw),
+      );
+      if (
+        requestMethod === "GET" &&
+        response instanceof SitePageResponse &&
+        response.status === 200
+      ) {
+        const path = resolve(opts.distDir, `.${requestPath}`, "index.html");
+        if (isPathContained(path, resolve(opts.distDir))) {
+          const page = Bun.file(path);
+          if (await page.exists()) {
+            const headers = new Headers(response.headers);
+            headers.delete("Content-Length");
+            headers.delete("Content-Encoding");
+            headers.delete("ETag");
+            headers.set("Content-Type", "text/html; charset=utf-8");
+            return new Response(page, { headers });
+          }
+        }
+      }
+      return response;
     }
 
     // Preview opt-in applies only to handler routes, never the tool API surface.

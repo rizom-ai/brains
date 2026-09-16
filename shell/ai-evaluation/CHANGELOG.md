@@ -1,5 +1,117 @@
 # @brains/ai-evaluation
 
+## 0.2.0-alpha.387
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.387
+  - @brains/contracts@0.2.0-alpha.387
+  - @brains/utils@0.2.0-alpha.387
+  - @brains/ai-service@0.2.0-alpha.387
+  - @brains/app@0.2.0-alpha.387
+  - @brains/mcp-service@0.2.0-alpha.387
+  - @brains/plugins@0.2.0-alpha.387
+  - @brains/templates@0.2.0-alpha.387
+
+## 0.2.0-alpha.386
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.386
+  - @brains/contracts@0.2.0-alpha.386
+  - @brains/utils@0.2.0-alpha.386
+  - @brains/ai-service@0.2.0-alpha.386
+  - @brains/app@0.2.0-alpha.386
+  - @brains/mcp-service@0.2.0-alpha.386
+  - @brains/plugins@0.2.0-alpha.386
+  - @brains/templates@0.2.0-alpha.386
+
+## 0.2.0-alpha.385
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.385
+  - @brains/contracts@0.2.0-alpha.385
+  - @brains/utils@0.2.0-alpha.385
+  - @brains/ai-service@0.2.0-alpha.385
+  - @brains/app@0.2.0-alpha.385
+  - @brains/mcp-service@0.2.0-alpha.385
+  - @brains/plugins@0.2.0-alpha.385
+  - @brains/templates@0.2.0-alpha.385
+
+## 0.2.0-alpha.384
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.384
+  - @brains/contracts@0.2.0-alpha.384
+  - @brains/utils@0.2.0-alpha.384
+  - @brains/ai-service@0.2.0-alpha.384
+  - @brains/app@0.2.0-alpha.384
+  - @brains/mcp-service@0.2.0-alpha.384
+  - @brains/plugins@0.2.0-alpha.384
+  - @brains/templates@0.2.0-alpha.384
+
+## 0.2.0-alpha.383
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.383
+  - @brains/contracts@0.2.0-alpha.383
+  - @brains/utils@0.2.0-alpha.383
+  - @brains/ai-service@0.2.0-alpha.383
+  - @brains/app@0.2.0-alpha.383
+  - @brains/mcp-service@0.2.0-alpha.383
+  - @brains/plugins@0.2.0-alpha.383
+  - @brains/templates@0.2.0-alpha.383
+
+## 0.2.0-alpha.382
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.382
+  - @brains/contracts@0.2.0-alpha.382
+  - @brains/utils@0.2.0-alpha.382
+  - @brains/ai-service@0.2.0-alpha.382
+  - @brains/app@0.2.0-alpha.382
+  - @brains/mcp-service@0.2.0-alpha.382
+  - @brains/plugins@0.2.0-alpha.382
+  - @brains/templates@0.2.0-alpha.382
+
+## 0.2.0-alpha.381
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.381
+  - @brains/contracts@0.2.0-alpha.381
+  - @brains/utils@0.2.0-alpha.381
+  - @brains/ai-service@0.2.0-alpha.381
+  - @brains/app@0.2.0-alpha.381
+  - @brains/mcp-service@0.2.0-alpha.381
+  - @brains/plugins@0.2.0-alpha.381
+  - @brains/templates@0.2.0-alpha.381
+
+## 0.2.0-alpha.380
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.380
+  - @brains/contracts@0.2.0-alpha.380
+  - @brains/utils@0.2.0-alpha.380
+  - @brains/ai-service@0.2.0-alpha.380
+  - @brains/app@0.2.0-alpha.380
+  - @brains/mcp-service@0.2.0-alpha.380
+  - @brains/plugins@0.2.0-alpha.380
+  - @brains/templates@0.2.0-alpha.380
+
 ## 0.2.0-alpha.379
 
 ### Patch Changes

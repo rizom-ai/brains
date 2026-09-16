@@ -38,6 +38,22 @@ function click(element: unknown, description: string): void {
   void act(() => activate());
 }
 
+async function openDetails(): Promise<void> {
+  click(
+    document.querySelector('[aria-label="Conversation details and options"]'),
+    "Conversation details",
+  );
+  await settle();
+}
+
+async function openHistory(): Promise<void> {
+  click(
+    document.querySelector(".studio-chat-session-picker-trigger button"),
+    "History",
+  );
+  await settle();
+}
+
 async function waitForSessions(): Promise<void> {
   for (let attempt = 0; attempt < 20; attempt += 1) {
     if (document.querySelectorAll(".studio-chat-session").length === 2) return;
@@ -54,6 +70,8 @@ beforeEach(() => {
     document: windowInstance.document,
     navigator: windowInstance.navigator,
     HTMLElement: windowInstance.HTMLElement,
+    HTMLInputElement: windowInstance.HTMLInputElement,
+    NodeFilter: windowInstance.NodeFilter,
     HTMLFormElement: windowInstance.HTMLFormElement,
     Element: windowInstance.Element,
     Node: windowInstance.Node,
@@ -148,7 +166,7 @@ async function mountChat(
   await settle();
 }
 
-describe("generated attachments in Studio Chat", () => {
+describe("rich dialogue in Studio Chat", () => {
   async function waitForAttachmentStatus(label: string): Promise<void> {
     for (let attempt = 0; attempt < 200; attempt++) {
       if (
@@ -219,6 +237,69 @@ describe("generated attachments in Studio Chat", () => {
           .find((link) => link.textContent === "Download")
           ?.getAttribute("href"),
       ).toBe(image.attachment.url);
+    });
+  }
+
+  it("enlarges an image on demand and restores focus when closed", async () => {
+    serveCard(image);
+    await mountChat(new StudioChatDraftStore());
+    const trigger = document.querySelector(
+      '[aria-label="Enlarge Generated landscape"]',
+    );
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    click(trigger, "Image preview");
+    await settle();
+    expect(
+      document.querySelector('[role="dialog"] img')?.getAttribute("src"),
+    ).toBe(image.attachment.url);
+    expect(
+      document.querySelector('[role="dialog"] a')?.getAttribute("download"),
+    ).not.toBeNull();
+    click(
+      document.querySelector('[role="dialog"] [data-slot="dialog-close"]'),
+      "Close preview",
+    );
+    await settle();
+    expect(document.querySelector('[role="dialog"]')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  for (const [state, label] of [
+    ["approval-requested", "Approval required"],
+    ["approval-responded", "Decision received"],
+    ["output-available", "Completed"],
+    ["output-denied", "Declined"],
+    ["output-error", "Action failed"],
+  ] as const) {
+    it(`retains the server-owned ${state} receipt and complete action details`, async () => {
+      const preview =
+        "Exact proposed change\n" + "detail ".repeat(10_000) + "END OF PREVIEW";
+      serveCard({
+        kind: "tool-approval",
+        id: "approval-card",
+        toolName: "update_entity",
+        summary: "Update the project note",
+        state,
+        preview,
+        input: { revision: "revision-17" },
+        ...(state === "output-error"
+          ? { error: "Revision conflict — inspect the current record." }
+          : {}),
+        ...(state === "output-available"
+          ? { output: { revision: "revision-18" } }
+          : {}),
+      });
+      await mountChat(new StudioChatDraftStore());
+      const card = document.querySelector(".studio-chat-card");
+      expect(card?.textContent).toContain(label);
+      expect(card?.textContent).toContain(preview);
+      expect(card?.textContent).toContain("revision-17");
+      if (state === "output-error") {
+        expect(card?.textContent).toContain("Revision conflict");
+        expect(card?.querySelector("button")).toBeNull();
+      }
+      if (state === "output-available")
+        expect(card?.textContent).toContain("revision-18");
     });
   }
 
@@ -437,6 +518,77 @@ describe("native Studio Chat workspace", () => {
     });
   }
 
+  it("shares collection search, filter disclosure and truthful ranges without inventing a Chat total", async () => {
+    await mountChat(new StudioChatDraftStore());
+    await openHistory();
+    const controls = document.querySelector(
+      ".studio-chat-session-controls .studio-collection-controls",
+    );
+    expect(controls).not.toBeNull();
+    expect(controls?.querySelector("summary")?.textContent).toBe("Filter");
+    const pages = document.querySelector('[aria-label="Conversation pages"]');
+    expect(pages?.textContent).toContain("1–2");
+    expect(pages?.textContent).not.toContain(" of ");
+    const buttons = [...(pages?.querySelectorAll("button") ?? [])];
+    expect(buttons.map((button) => button.textContent)).toEqual([
+      "Previous",
+      "Next",
+    ]);
+    expect(buttons.every((button) => button.disabled)).toBe(true);
+  });
+
+  it("pages an unknown Chat total through an empty trailing page without dropping the draft", async () => {
+    const previous = globalThis.fetch;
+    const reads: string[] = [];
+    globalThis.fetch = Object.assign(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = new URL(String(input), "http://brain.test");
+        if (url.pathname === "/api/chat/sessions") {
+          reads.push(url.search);
+          return Response.json({
+            sessions:
+              url.searchParams.get("offset") === "25"
+                ? []
+                : Array.from({ length: 25 }, (_, index) => ({
+                    id: index === 0 ? "conversation-1" : `page-${index}`,
+                    title: `Conversation ${index + 1}`,
+                    lastActiveAt: "2026-09-11T12:00:00Z",
+                  })),
+          });
+        }
+        return previous(input, init);
+      },
+      { preconnect: originalFetch.preconnect },
+    );
+    const store = new StudioChatDraftStore();
+    const key = studioChatDraftKey("/api/chat", "conversation-1");
+    store.update(key, { text: "Keep this unsent" });
+    await mountChat(store);
+    await openHistory();
+    const pages = (): Element | null =>
+      document.querySelector('[aria-label="Conversation pages"]');
+    expect(pages()?.textContent).toContain("1–25");
+    const next = [...(pages()?.querySelectorAll("button") ?? [])].find(
+      (button) => button.textContent === "Next",
+    );
+    if (!next) throw Error("Missing next page");
+    await act(async () => next.click());
+    await settle();
+    expect(reads.some((query) => query.includes("offset=25"))).toBe(true);
+    expect(pages()?.textContent).toContain("No results on this page");
+    expect(pages()?.textContent).not.toContain("26–25");
+    const back = [...(pages()?.querySelectorAll("button") ?? [])].find(
+      (button) => button.textContent === "Previous",
+    );
+    if (!back) throw Error("Missing previous page");
+    expect(back.disabled).toBe(false);
+    await act(async () => back.click());
+    await settle();
+    expect(pages()?.textContent).toContain("1–25");
+    expect(store.read(key).text).toBe("Keep this unsent");
+    expect(navigations).toHaveLength(0);
+  });
+
   it("loads archived sessions through the scoped API without replacing the open conversation", async () => {
     const previous = globalThis.fetch;
     const requests: string[] = [];
@@ -462,6 +614,7 @@ describe("native Studio Chat workspace", () => {
     const key = studioChatDraftKey("/api/chat", "conversation-1");
     store.update(key, { text: "Keep my draft" });
     await mountChat(store);
+    await openHistory();
     const select = document.querySelector<HTMLSelectElement>(
       ".studio-chat-session-controls select",
     );
@@ -497,6 +650,7 @@ describe("native Studio Chat workspace", () => {
     const key = studioChatDraftKey("/api/chat", "conversation-1");
     store.update(key, { text: "Unsent message" });
     await mountChat(store);
+    await openDetails();
     click(
       [...document.querySelectorAll("button")].find(
         (button) => button.textContent === "Rename",
@@ -835,6 +989,7 @@ describe("native Studio Chat workspace", () => {
       ],
     });
     await mountChat(store);
+    await openDetails();
     expect(
       document.querySelector<HTMLButtonElement>(".studio-chat-header-action")
         ?.disabled,
@@ -868,6 +1023,7 @@ describe("native Studio Chat workspace", () => {
         { preconnect: originalFetch.preconnect },
       );
       await mountChat(store);
+      await openDetails();
       click(document.querySelector(".studio-chat-header-action"), "Archive");
       await settle();
       expect(
@@ -1186,105 +1342,64 @@ describe("native Studio Chat workspace", () => {
     ).toBe("Help me understand this Inbox item and decide what to do next.");
   });
 
-  it("moves narrow-screen context out of the thread and closes it when widening", async () => {
-    windowInstance.happyDOM.setWindowSize({ width: 390, height: 844 });
-    const matchMedia = windowInstance.matchMedia.bind(windowInstance);
-    const media = matchMedia("(max-width: 860px)");
-    windowInstance.matchMedia = (query): ReturnType<typeof matchMedia> =>
-      query === media.media ? media : matchMedia(query);
+  it("keeps history and context out of the conversation at every width", async () => {
     const store = new StudioChatDraftStore();
-    await mountChat(store);
-    await waitForSessions();
-    const trigger = document.querySelector<HTMLButtonElement>(
-      ".studio-chat-working-set-trigger",
-    );
-    expect(trigger?.getAttribute("aria-expanded")).toBe("false");
-    expect(
-      document.querySelector(".studio-chat-working-set .studio-chat-context"),
-    ).toBeNull();
-    click(trigger, "Working set");
-    expect(trigger?.getAttribute("aria-expanded")).toBe("true");
-    await mountChat(store, "conversation-2");
-    expect(trigger?.getAttribute("aria-expanded")).toBe("false");
-    await mountChat(store);
-    click(trigger, "Working set");
-    await act(async () => {
-      windowInstance.happyDOM.setWindowSize({ width: 1024, height: 1000 });
-      // Happy DOM does not emit the browser's media-query change event.
-      media.dispatchEvent(new windowInstance.Event("change"));
+    store.update(studioChatDraftKey("/api/chat", "conversation-1"), {
+      text: "Keep this draft",
     });
-    await settle();
-    expect(trigger?.getAttribute("aria-expanded")).toBe("false");
+    await mountChat(store);
+    expect(document.querySelector(".studio-chat-sessions")).toBeNull();
+    expect(document.querySelector(".studio-chat-context")).toBeNull();
+    expect(document.body.textContent).not.toContain("Working set");
+    await openDetails();
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
+      "Conversation details",
+    );
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
+      "Release decision",
+    );
     expect(
-      document.querySelector(".studio-chat-working-set")?.textContent,
-    ).toContain("Release decision");
+      document.querySelector(".studio-chat-thread-scroll .studio-chat-context"),
+    ).toBeNull();
+    windowInstance.happyDOM.setWindowSize({ width: 390, height: 844 });
+    expect(document.querySelectorAll(".studio-chat-context")).toHaveLength(1);
+    expect(document.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+      "Keep this draft",
+    );
+    await mountChat(store, "conversation-2");
+    expect(
+      document
+        .querySelector('[aria-label="Conversation details and options"]')
+        ?.getAttribute("aria-expanded"),
+    ).toBe("false");
   });
 
-  it("requests the session picker without replacing the conversation", async () => {
-    await act(async () => {
-      root.render(
-        createElement(
-          QueryClientProvider,
-          { client: queryClient },
-          createElement(StudioChatWorkspace, {
-            apiPath: "/api/chat",
-            studioBasePath: "/studio",
-            sessionId: "conversation-1",
-            handoff: null,
-            types: [],
-            workspaces: [
-              {
-                id: "studio:overview",
-                pluginId: "studio",
-                label: "Overview",
-                rendererName: "DeclarativeOperatorWorkspace",
-                priority: -100,
-                permission: "trusted",
-                entityTypes: [],
-              },
-            ],
-            navigate: (href: string) => navigations.push(href),
-            selectEntityType: () => {},
-            selectWorkspace: () => {},
-          }),
-        ),
-      );
+  it("opens history on demand without replacing messages or drafts", async () => {
+    const store = new StudioChatDraftStore();
+    store.update(studioChatDraftKey("/api/chat", "conversation-1"), {
+      text: "Keep this draft",
     });
+    await mountChat(store);
+    await openHistory();
     await waitForSessions();
-    expect(document.body.textContent).toContain("Linked context");
-    expect(document.body.textContent).toContain("Release decision");
-
+    expect(document.querySelector('[role="dialog"]')?.textContent).toContain(
+      "Conversations",
+    );
     const launch = [...document.querySelectorAll(".studio-chat-session")].find(
       (element) => element.textContent.includes("Launch narrative"),
     );
     click(launch, "Launch narrative session");
-    expect(navigations).toContain("/chat?session=conversation-1");
-
-    const context = document.querySelector<HTMLDetailsElement>(
-      ".studio-chat-working-set",
-    );
-    expect(context?.open).toBe(false);
-    click(context?.querySelector("summary"), "Working set disclosure");
     await settle();
-    expect(context?.open).toBe(true);
-    expect(context?.textContent.match(/Working set/g)).toHaveLength(1);
+    expect(navigations).toContain("/chat?session=conversation-1");
     expect(
-      context?.querySelector<HTMLElement>(".studio-chat-context")?.tabIndex,
-    ).toBe(0);
-
-    expect(document.querySelector("[data-web-chat-root]")).toBeNull();
-    expect(
-      document.querySelector(".studio-chat-mobile-destinations"),
-    ).toBeNull();
-    const trigger = document.querySelector(
-      ".studio-chat-session-picker-trigger button",
+      document
+        .querySelector(".studio-chat-session-picker-trigger button")
+        ?.getAttribute("aria-expanded"),
+    ).toBe("false");
+    expect(document.querySelector<HTMLTextAreaElement>("textarea")?.value).toBe(
+      "Keep this draft",
     );
-    click(trigger, "Sessions");
-    expect(trigger?.getAttribute("aria-expanded")).toBe("true");
-    // The browser runner verifies Radix portal selection, dismissal, and focus.
-    click(launch, "Choose a conversation");
-    expect(trigger?.getAttribute("aria-expanded")).toBe("false");
-    expect(context?.open).toBe(true);
+    expect(document.querySelector("iframe")).toBeNull();
   });
 
   it("empties the composer as the message enters the transcript, before the response", async () => {

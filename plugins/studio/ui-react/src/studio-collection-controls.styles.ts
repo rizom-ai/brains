@@ -46,12 +46,19 @@ export const collectionControlStyles: Record<
   },
   // One instrument row: the query, its filters, and what it matched.
   row: {
+    position: "relative",
     display: "flex",
     alignItems: "center",
     flexWrap: "wrap",
     gap: 10,
   },
-  filters: { position: "relative" },
+  filters: {
+    position: "static",
+    flexBasis: {
+      default: null,
+      ":is([open])": { default: null, "@media (max-width: 640px)": "100%" },
+    },
+  },
   summary: {
     display: "inline-flex",
     alignItems: "center",

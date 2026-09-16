@@ -124,22 +124,33 @@ exports[`renderDashboardPageHtml renders the anonymous card without restricted-a
   if (climate === "paper" || climate === "instrument") {
     applyClimate(climate);
   }
-  function bind() {
+  function sync() {
     var btn = document.getElementById("climateToggle");
     if (!btn) return;
-    function sync() {
-      var instrument = root.getAttribute("data-climate") === "instrument";
-      btn.textContent = instrument ? "\\u25D0" : "\\u25D1";
-      var label = instrument ? "Switch to paper climate" : "Switch to instrument climate";
-      btn.setAttribute("aria-label", label);
-      btn.setAttribute("title", label);
-    }
-    btn.addEventListener("click", function () {
+    var instrument = root.getAttribute("data-climate") === "instrument";
+    btn.textContent = instrument ? "\\u25D0" : "\\u25D1";
+    var label = instrument ? "Switch to paper climate" : "Switch to instrument climate";
+    btn.setAttribute("aria-label", label);
+    btn.setAttribute("title", label);
+  }
+  function bind() {
+    document.addEventListener("click", function (event) {
+      var target = event.target;
+      var btn = target && target.closest ? target.closest("button#climateToggle") : null;
+      if (!btn || btn.disabled) return;
       var next = root.getAttribute("data-climate") === "instrument" ? "paper" : "instrument";
       applyClimate(next);
       try { localStorage.setItem("console.climate", next); } catch (e) { /* storage unavailable */ }
       sync();
     });
+    new window.MutationObserver(function (records) {
+      var mounted = records.some(function (record) {
+        return Array.from(record.addedNodes).some(function (node) {
+          return node.nodeType === 1 && (node.id === "climateToggle" || node.querySelector("#climateToggle"));
+        });
+      });
+      if (mounted) sync();
+    }).observe(root, { childList: true, subtree: true });
     sync();
   }
   if (document.readyState === "loading") {
@@ -711,6 +722,7 @@ html {
 .x1oagamk:not(#\\#):not(#\\#){transition:background-color .12s ease,border-color .12s ease}
 .x1p5amsn:not(#\\#):not(#\\#){transition:border-color .12s ease,box-shadow .12s ease}
 .x1gt6r2q:not(#\\#):not(#\\#){transition:transform .12s ease,background-color .12s ease}
+.xpc9js7:hover:not(:disabled):not(#\\#):not(#\\#){border-color:var(--console-accent-dim)}
 .x16yjenj:is([data-state='checked']):not(#\\#):not(#\\#){border-color:var(--console-accent)}
 .x1iom3s4:focus-visible:not(#\\#):not(#\\#){border-color:var(--console-accent)}
 .x6cfppn:is([data-status=active] > *, [data-status=complete] > *):not(#\\#):not(#\\#){border-color:var(--console-accent)}
@@ -724,8 +736,8 @@ html {
 .x1g79t40:is([data-operator-detail-pane] *):not(#\\#):not(#\\#){gap:16px}
 .xvtq9v3:is([data-operator-blocks] > [data-block=links] *):not(#\\#):not(#\\#){gap:18px}
 .x16dl9wz:focus-visible:not(#\\#):not(#\\#){outline:2px solid var(--console-accent)}
+.xcysz91:disabled:not(#\\#):not(#\\#){border-color:var(--console-rule-strong)}
 .xck444f:user-invalid:not(#\\#):not(#\\#){border-color:var(--console-err)}
-.xahbki9:hover:not(#\\#):not(#\\#){border-color:var(--console-accent-dim)}
 .x8bwlc1:hover:not(#\\#):not(#\\#){border-color:var(--console-accent)}
 .xu43hr4:hover:not(#\\#):not(#\\#){border-color:var(--console-err)}
 .x1jokge8:hover:not(#\\#):not(#\\#){border-color:var(--console-rule-accent)}
@@ -1145,6 +1157,7 @@ html {
 .xat1s67.xat1s67:where(.x-default-marker:hover *):not(#\\#):not(#\\#):not(#\\#){color:var(--console-accent)}
 .xozkggm.xozkggm:where(.x-default-marker:hover *):not(#\\#):not(#\\#):not(#\\#){transform:translate(2px,-1px)}
 .x156vuz7:is([aria-selected="true"],[aria-pressed="true"]):not(#\\#):not(#\\#):not(#\\#){background-color:color-mix(in srgb,var(--console-card-soft) 55%,transparent)}
+.xenc7ac:hover:not(:disabled):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-accent-dim)}
 .x1n1caiv:is([data-state='checked']):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-accent)}
 .xn4j7m4:is([data-status=active] > *, [data-status=complete] > *):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-accent)}
 .x1b32d6n:is([aria-current="true"]):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-card)}
@@ -1204,19 +1217,22 @@ html {
 .x1ffr0y8:is([data-align="center"]):not(#\\#):not(#\\#):not(#\\#){text-align:center}
 .xpebyx1:is([data-align="end"]):not(#\\#):not(#\\#):not(#\\#){text-align:right}
 .xu021ln:is([data-state='checked']):not(#\\#):not(#\\#):not(#\\#){transform:translateX(18px)}
+.x1nlf60j:hover:not(:disabled):not(#\\#):not(#\\#):not(#\\#){transform:translateY(-1px)}
 .x110e2yq:is([aria-pressed="true"], [data-ui-spatial-related-active]):not(#\\#):not(#\\#):not(#\\#){z-index:4}
 .x1qm06za:focus-visible:not(#\\#):not(#\\#):not(#\\#){z-index:4}
 .x79gikr:has(> details[open]):not(#\\#):not(#\\#):not(#\\#){grid-template-columns:minmax(0,1fr)}
 .xbd3v37:first-child:not(#\\#):not(#\\#):not(#\\#){color:var(--console-text)}
 .xq648tx:first-child:not(#\\#):not(#\\#):not(#\\#){font-size:14px}
 .xsnqk1y:first-child:not(#\\#):not(#\\#):not(#\\#){font-weight:500}
+.x163vtw:disabled:not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-card-soft)}
+.x1bi1fg1:disabled:not(#\\#):not(#\\#):not(#\\#){color:var(--console-text-muted)}
 .x1s07b3s:disabled:not(#\\#):not(#\\#):not(#\\#){cursor:not-allowed}
 .xijokvz:disabled:not(#\\#):not(#\\#):not(#\\#){opacity:.5}
 .xk0mbs4:disabled:not(#\\#):not(#\\#):not(#\\#){opacity:.55}
+.x1fzehxr:disabled:not(#\\#):not(#\\#):not(#\\#){opacity:1}
 .x1gl3shj:disabled:not(#\\#):not(#\\#):not(#\\#){transform:none}
 .x10ve9f0:user-invalid:not(#\\#):not(#\\#):not(#\\#){box-shadow:0 0 0 3px color-mix(in srgb,var(--console-err) 14%,transparent)}
 .xo6m4nm:hover:not(#\\#):not(#\\#):not(#\\#){background-color:color-mix(in srgb,var(--console-err) 12%,transparent)}
-.x1kgmmxr:hover:not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-accent-dim)}
 .xuvuc2f:hover:not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-accent-soft)}
 .xd8d5gp:hover:not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-card)}
 .x1uvu3ev:hover:not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-rule-strong)}
@@ -1327,9 +1343,9 @@ html {
 @media (max-width: 640px){.xqwvrdo.xqwvrdo:is([data-has-unannotated="true"]):not(#\\#):not(#\\#):not(#\\#){overscroll-behavior-inline:contain}}
 @media (min-width: 641px){.x16e9dwd.x16e9dwd:is([data-operator-action-popover] *):not(#\\#):not(#\\#):not(#\\#){position:absolute}}
 @media (max-width: 640px){.x1defwea.x1defwea:is([data-has-unannotated="true"]):not(#\\#):not(#\\#):not(#\\#){scrollbar-width:thin}}
+@media (prefers-reduced-motion: reduce){.x6wgdar.x6wgdar:hover:not(:disabled):not(#\\#):not(#\\#):not(#\\#){transform:none}}
 @media (min-width: 641px){.x1q652j.x1q652j:is([data-operator-action-popover] *):not(#\\#):not(#\\#):not(#\\#){z-index:10}}
 @container operator-aside (min-width: 0px){.x1ram2ln.x1ram2ln:not(#\\#):not(#\\#):not(#\\#){grid-template-columns:minmax(0,1fr)}}
-@media (prefers-reduced-motion: reduce){.xnotfpo.xnotfpo:hover:not(#\\#):not(#\\#):not(#\\#){transform:none}}
 .x16stqrj:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-bottom-color:transparent}
 .xna4lh4:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-bottom-color:var(--console-rule-strong)}
 .xpqg30t:not(#\\#):not(#\\#):not(#\\#):not(#\\#){border-bottom-color:var(--console-rule)}

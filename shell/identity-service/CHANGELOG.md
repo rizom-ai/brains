@@ -1,5 +1,85 @@
 # @brains/identity-service
 
+## 0.2.0-alpha.387
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.387
+  - @brains/utils@0.2.0-alpha.387
+  - @brains/conversation-service@0.2.0-alpha.387
+  - @brains/entity-service@0.2.0-alpha.387
+
+## 0.2.0-alpha.386
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.386
+  - @brains/utils@0.2.0-alpha.386
+  - @brains/conversation-service@0.2.0-alpha.386
+  - @brains/entity-service@0.2.0-alpha.386
+
+## 0.2.0-alpha.385
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.385
+  - @brains/utils@0.2.0-alpha.385
+  - @brains/conversation-service@0.2.0-alpha.385
+  - @brains/entity-service@0.2.0-alpha.385
+
+## 0.2.0-alpha.384
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.384
+  - @brains/utils@0.2.0-alpha.384
+  - @brains/conversation-service@0.2.0-alpha.384
+  - @brains/entity-service@0.2.0-alpha.384
+
+## 0.2.0-alpha.383
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.383
+  - @brains/utils@0.2.0-alpha.383
+  - @brains/conversation-service@0.2.0-alpha.383
+  - @brains/entity-service@0.2.0-alpha.383
+
+## 0.2.0-alpha.382
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.382
+  - @brains/utils@0.2.0-alpha.382
+  - @brains/conversation-service@0.2.0-alpha.382
+  - @brains/entity-service@0.2.0-alpha.382
+
+## 0.2.0-alpha.381
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.381
+  - @brains/utils@0.2.0-alpha.381
+  - @brains/conversation-service@0.2.0-alpha.381
+  - @brains/entity-service@0.2.0-alpha.381
+
+## 0.2.0-alpha.380
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.380
+  - @brains/utils@0.2.0-alpha.380
+  - @brains/conversation-service@0.2.0-alpha.380
+  - @brains/entity-service@0.2.0-alpha.380
+
 ## 0.2.0-alpha.379
 
 ### Patch Changes

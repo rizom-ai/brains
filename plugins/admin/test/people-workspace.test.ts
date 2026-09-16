@@ -108,7 +108,7 @@ describe("Administration People tab", () => {
           id: admin.userId,
           title: "Ada Admin",
           description: "Admin · Active · You",
-          metadata: ["Not the Anchor"],
+          metadata: ["No connected channels"],
           link: { kind: "detail", itemId: admin.userId },
           links: [
             {

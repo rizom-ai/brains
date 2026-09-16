@@ -293,6 +293,7 @@ type AgentResponseUsageSchema = z.ZodObject<{
 
 type AgentResponseSchema = z.ZodObject<{
   text: z.ZodString;
+  error: z.ZodOptional<z.ZodString>;
   toolResults: z.ZodOptional<z.ZodArray<ToolResultDataSchema>>;
   cards: z.ZodOptional<z.ZodArray<StructuredChatCardSchema>>;
   pendingConfirmations: z.ZodOptional<z.ZodArray<PendingConfirmationSchema>>;
@@ -301,6 +302,8 @@ type AgentResponseSchema = z.ZodObject<{
 
 export const AgentResponseSchema: AgentResponseSchema = z.object({
   text: z.string(),
+  // Explicit failure metadata; transports must not infer failure from prose.
+  error: z.string().optional(),
   toolResults: z.array(ToolResultDataSchema).optional(),
   cards: z.array(StructuredChatCardSchema).optional(),
   pendingConfirmations: z.array(PendingConfirmationSchema).optional(),

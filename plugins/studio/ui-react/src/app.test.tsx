@@ -4,6 +4,8 @@ import { Window } from "happy-dom";
 import * as stylex from "@stylexjs/stylex";
 import { StudioCreationLayout, StudioFolderTrail } from "./studio-hierarchy";
 import { hierarchyStyles } from "./studio-hierarchy.styles";
+import { styleGuideFrontmatterSchema } from "@brains/contracts";
+import { zodFieldToStudioWidget } from "../../src/config";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -137,7 +139,8 @@ describe("compiled editor surface contracts", () => {
     expect(compiledStyles).toContain("env(safe-area-inset-bottom)");
   });
   it("keeps native Chat bounded without a second dock", () => {
-    expect(compiledStyles).toContain(
+    expect(compiledStyles).toContain("grid-template-columns:minmax(0,1fr)");
+    expect(compiledStyles).not.toContain(
       "grid-template-columns:180px minmax(0,1fr)",
     );
     expect(compiledStyles).toContain("height:100dvh");
@@ -660,13 +663,15 @@ function renderCapabilityView(
     entity?: Partial<EntityDetail>;
     folders?: StudioAppViewProps["folders"];
     singleton?: boolean;
+    fields?: FieldDescriptor[];
+    frontmatter?: Record<string, unknown>;
   } = {},
 ): string {
   const entityType = page.entityType ?? "post";
   const entity: EntityDetail = {
     id: "post-1",
     entityType,
-    frontmatter: { title: "Post one", status: "draft" },
+    frontmatter: page.frontmatter ?? { title: "Post one", status: "draft" },
     body: "Post body",
     contentHash: "post-1-hash",
     created: "2026-07-01T00:00:00.000Z",
@@ -678,7 +683,7 @@ function renderCapabilityView(
     format: "frontmatter",
     isSingleton: page.singleton ?? false,
     hasBody: page.hasBody ?? true,
-    fields: [stringField],
+    fields: page.fields ?? [stringField],
   };
   const type: EntityTypeInfo = {
     entityType,
@@ -1131,6 +1136,181 @@ describe("System editor presentation", () => {
   }
 });
 
+it("keeps exact timestamps in semantic Library and System collection metadata", async () => {
+  const window = new Window();
+  try {
+    for (const entityType of ["post", "prompt"]) {
+      window.document.body.innerHTML = renderCapabilityView(
+        {
+          canRead: true,
+          canCreate: false,
+          canUpdate: false,
+          canDelete: false,
+          canPublish: false,
+          canExtract: false,
+          canAssist: false,
+        },
+        "browse",
+        { entityType },
+      );
+      const time = window.document.querySelector("[data-studio-record] time");
+      expect(time?.getAttribute("datetime")).toBe("2026-07-01T00:00:00.000Z");
+      expect(time?.getAttribute("title")).toBe("2026-07-01T00:00:00.000Z");
+      expect(time?.textContent).toBeTruthy();
+    }
+  } finally {
+    await window.happyDOM.close();
+  }
+});
+
+describe("System mockup alignment", () => {
+  const capabilities = {
+    canRead: true,
+    canCreate: true,
+    canUpdate: true,
+    canDelete: false,
+    canExtract: false,
+    canPublish: false,
+    canAssist: false,
+  };
+  for (const [entityType, heading] of [
+    ["anchor-profile", "Story"],
+    ["style-guide", "Guidance"],
+    ["prompt", "Instructions"],
+    ["skill", "Capability notes"],
+    ["playbook", "Procedure"],
+    ["swot", "Analysis"],
+    ["agent", "Profile and capabilities"],
+  ] satisfies Array<[string, string]>) {
+    it(`names the supported ${entityType} body and explains its purpose`, () => {
+      const html = renderCapabilityView(capabilities, "edit", { entityType });
+      expect(html).toContain(`>${heading}</h2>`);
+      expect(html).toContain("data-studio-system-intro");
+      expect(html).toContain('aria-label="Markdown source"');
+    });
+  }
+  for (const width of [1440, 768, 390]) {
+    it(`renders real Style guide schema groups and usable fields at ${width}px`, async () => {
+      const window = new Window({ width });
+      try {
+        const fields = Object.entries(styleGuideFrontmatterSchema.shape).map(
+          ([name, schema]) => zodFieldToStudioWidget(name, schema),
+        );
+        window.document.head.innerHTML = `<style>${compiledStyles}</style>`;
+        window.document.body.innerHTML = renderCapabilityView(
+          capabilities,
+          "edit",
+          {
+            entityType: "style-guide",
+            fields,
+            frontmatter: {
+              name: "Editorial style",
+              messaging: { positioning: "Evidence first" },
+              voice: { summary: "Clear and candid", traits: ["Precise"] },
+              visual: { artDirection: "Editorial" },
+            },
+          },
+        );
+        const form = window.document.querySelector(
+          "[data-studio-system-fields]",
+        );
+        expect(form).not.toBeNull();
+        for (const name of ["Messaging", "Voice", "Visual"])
+          expect(form?.textContent).toContain(name);
+        expect(
+          form?.querySelector('[data-studio-field="structured"]'),
+        ).toBeNull();
+        expect(
+          [...window.document.querySelectorAll("textarea")].some(
+            (input) => input.value === "Clear and candid" && !input.disabled,
+          ),
+        ).toBe(true);
+        const grid = form?.querySelector("[data-studio-system-grid]");
+        if (!grid) throw new Error("Missing field grid");
+        expect(window.getComputedStyle(grid).gridTemplateColumns).toBe(
+          width > 1000 ? "minmax(0,1fr) minmax(0,1fr)" : "minmax(0,1fr)",
+        );
+      } finally {
+        await window.happyDOM.close();
+      }
+    });
+  }
+  it("keeps System collections contextual and does not advertise denied creation", () => {
+    const html = renderCapabilityView(
+      { ...capabilities, canCreate: false },
+      "browse",
+      { entityType: "agent" },
+    );
+    expect(html).toContain("data-studio-system-intro");
+    expect(html).toContain("Post one");
+    expect(html).not.toContain("New agent");
+    expect(html).toContain("pagination");
+  });
+  it("presents unsupported structured lists as readable content, not disabled JSON", () => {
+    const html = renderCapabilityView(capabilities, "edit", {
+      entityType: "anchor-profile",
+      fields: [
+        {
+          name: "socialLinks",
+          label: "Social links",
+          widget: "list",
+          required: false,
+          fields: [{ name: "url", label: "URL", widget: "string" }],
+        },
+      ],
+      frontmatter: { socialLinks: [{ url: "https://example.org" }] },
+    });
+    expect(html).toContain('href="https://example.org"');
+    expect(html).toContain("Read-only structured field");
+    expect(html).not.toContain("&quot;url&quot;");
+  });
+  it("omits unset optional profile fields without hiding required values or zero counts", () => {
+    const html = renderCapabilityView(
+      { ...capabilities, canUpdate: false },
+      "edit",
+      {
+        entityType: "agent",
+        fields: [
+          { name: "name", label: "Name", widget: "text", required: true },
+          {
+            name: "cardUri",
+            label: "Card URI",
+            widget: "text",
+            required: false,
+          },
+          {
+            name: "cardFailureCount",
+            label: "Failures",
+            widget: "number",
+            required: false,
+          },
+        ],
+        frontmatter: { name: "Network peer", cardFailureCount: 0 },
+      },
+    );
+    expect(html).not.toContain("Card URI");
+    expect(html).toContain("Network peer");
+    expect(html).toContain("Failures");
+  });
+  it("renders a read-only Agent as a readable profile rather than disabled inputs", () => {
+    const html = renderCapabilityView(
+      { ...capabilities, canUpdate: false },
+      "edit",
+      { entityType: "agent" },
+    );
+    const window = new Window();
+    window.document.body.innerHTML = html;
+    const properties = window.document.querySelector(
+      "[data-studio-properties]",
+    );
+    expect(properties?.querySelector("dl")).not.toBeNull();
+    expect(properties?.querySelector("input, textarea, select")).toBeNull();
+    expect(properties?.textContent).toContain("Post one");
+    expect(html).not.toContain("Save changes");
+    window.close();
+  });
+});
+
 describe("document action emphasis", () => {
   it.each([false, true])(
     "keeps clean saves available and emphasizes dirty=%s",
@@ -1343,6 +1523,24 @@ describe("typeHasPublicationField", () => {
     ).toBe(false);
     expect(typeHasPublicationField([])).toBe(false);
   });
+  it.each([
+    ["discovered", "approved", "archived"],
+    ["draft", "active", "archived"],
+  ])(
+    "does not label relationship or workflow states as publication",
+    (first, second, third) => {
+      expect(
+        typeHasPublicationField([
+          {
+            name: "status",
+            label: "Status",
+            widget: "select",
+            options: [first, second, third],
+          },
+        ]),
+      ).toBe(false);
+    },
+  );
 });
 
 describe("emptyDraft", () => {

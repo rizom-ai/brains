@@ -795,7 +795,7 @@ export type {
   WebRouteMatch,
   JsonResponseInit,
 } from "./types/web-routes";
-export { jsonResponse, jsonError } from "./types/web-routes";
+export { jsonResponse, jsonError, SitePageResponse } from "./types/web-routes";
 export {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
   STUDIO_WORKSPACE_UNREGISTER_MESSAGE,

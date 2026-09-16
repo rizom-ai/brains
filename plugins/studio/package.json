@@ -1,7 +1,7 @@
 {
   "name": "@brains/studio",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.379",
+  "version": "0.2.0-alpha.387",
   "description": "Studio plugin for config and browser authoring routes",
   "dependencies": {
     "@brains/app-ui-react": "workspace:*",
@@ -52,7 +52,7 @@
     "build:ui": "bun scripts/build-ui.ts",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
-    "test": "bun test --preload ./test/dom-preload.ts --preload @brains/build-tools/stylex-test-preload",
+    "test": "bun test",
     "typecheck": "tsc --noEmit"
   },
   "type": "module"
