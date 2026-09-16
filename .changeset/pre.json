@@ -347,6 +347,7 @@
     "core--inbox-thread-position",
     "core--inbox-useful-chat-capture",
     "core--injective-directory-placement",
+    "core--job-claim-handoff",
     "core--job-queue-commit-replay",
     "core--job-queue-wait-for-idle",
     "core--json-native-section-content",

@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.389
+
+### Patch Changes
+
+- [#268](https://github.com/rizom-ai/brains/pull/268) [`5b10272`](https://github.com/rizom-ai/brains/commit/5b10272c4f9108b1d2c8404190724c79427d70df) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Start each claimed job under worker supervision before requesting the next claim. A later dequeue error or stall can no longer strand an earlier durable processing attempt without its handler or lease heartbeat. Preserve attempt fencing, concurrency limits, retry policy, and stop/drain behavior.
+
 ## 0.2.0-alpha.388
 
 ## 0.2.0-alpha.387
