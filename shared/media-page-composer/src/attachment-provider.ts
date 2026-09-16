@@ -22,6 +22,8 @@ export interface MediaContentHelpers {
   resolveImageUrl(imageId: string | undefined): Promise<string | undefined>;
 }
 
+export type MediaThemeMode = "light" | "dark";
+
 export interface MediaAttachmentProviderConfig<
   TEntity extends BaseEntity,
   TContent,
@@ -33,8 +35,8 @@ export interface MediaAttachmentProviderConfig<
   /** Semantic attachment type this provider answers to. */
   attachmentType: string;
   template: MediaPageTemplate;
-  /** Rendering theme; defaults to light. */
-  themeMode?: "light" | "dark" | undefined;
+  /** Rendering theme; request-time resolution is joined before actor acquisition. */
+  themeMode?: MediaThemeMode | (() => Promise<MediaThemeMode>) | undefined;
   /** Build the template's content model from the resolved entity. */
   buildContent: (
     entity: TEntity,
@@ -44,6 +46,8 @@ export interface MediaAttachmentProviderConfig<
   pageTitle: (content: TContent) => string;
   /** Slug the output filename is built from. */
   slug: (entity: TEntity) => string;
+  /** Override the default OG/printable attachment filename. */
+  filename?: ((entity: TEntity) => string) | undefined;
 }
 
 export type OgImageProviderFactory = (

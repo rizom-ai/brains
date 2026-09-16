@@ -122,13 +122,21 @@ export function createMediaFileProvider<TEntity extends BaseEntity, TContent>(
         );
       if (!built) throw new Error("Media content has no acknowledged outcome");
       options?.signal?.throwIfAborted();
+      const themeMode =
+        typeof config.themeMode === "function"
+          ? await config.themeMode()
+          : (config.themeMode ?? "light");
+      options?.signal?.throwIfAborted();
+      const filename =
+        config.filename?.(entity) ??
+        `${config.slug(entity)}${format === "image" ? "-og.png" : "-printable.pdf"}`;
       const html = renderMediaTemplateHtml({
         template: config.template,
         format,
         content: built.content,
         siteConfig: {
           title: config.pageTitle(built.content),
-          themeMode: config.themeMode ?? "light",
+          themeMode,
         },
         imageBuildService: null,
       });
@@ -148,12 +156,12 @@ export function createMediaFileProvider<TEntity extends BaseEntity, TContent>(
                 ? {
                     type: "image",
                     mimeType: "image/png",
-                    filename: `${config.slug(entity)}-og.png`,
+                    filename,
                   }
                 : {
                     type: "document",
                     mimeType: "application/pdf",
-                    filename: `${config.slug(entity)}-printable.pdf`,
+                    filename,
                   }),
               sha256: file.sha256,
               source: {

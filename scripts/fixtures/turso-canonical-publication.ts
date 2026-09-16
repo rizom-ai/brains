@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { mkdtemp, writeFile, mkdir, copyFile } from "node:fs/promises";
 import { createSilentLogger } from "@brains/test-utils";
+import { z } from "@brains/utils/zod";
 import { CallbackProgressReporter } from "@brains/utils/progress";
 import { StockPhotoPlugin } from "@brains/stock-photo";
 import { RuntimeUploadStore } from "../../shell/plugins/src/service/upload-registry";
@@ -49,6 +50,11 @@ registerPackage("@rizom/theme-default", defaultTheme);
 // large-binary matrices own 100 MiB coverage; this test owns application wiring.
 const SIZE = 256 * 1024 + 7;
 const SHA = "6bc5839d31ffd66263d28992f1186b33312444ffb4e2b1aab184df47e9c3b149";
+// Run the same canonical lifecycle for each registered PDF provider without
+// adding a second serial browser lifecycle to the default five-second test.
+const pdfKind = z
+  .enum(["printable", "carousel"])
+  .parse(process.env["TURSO_CANONICAL_PDF_KIND"] ?? "printable");
 
 async function renderCanonicalFile(
   app: App,
@@ -74,6 +80,21 @@ async function renderCanonicalFile(
       },
     },
   });
+  if (pdfKind === "carousel")
+    await service.createEntity({
+      entity: {
+        id: "canonical-deck",
+        entityType: "deck",
+        visibility: "public",
+        content:
+          "---\ntitle: Canonical carousel\nslug: canonical-deck\nstatus: draft\n---\n# First slide\n\n---\n\n# Second slide",
+        metadata: {
+          title: "Canonical carousel",
+          slug: "canonical-deck",
+          status: "draft",
+        },
+      },
+    });
   const renderImage = async (): Promise<AssetRecord> => {
     const handler = shell
       .getJobQueueService()
@@ -181,9 +202,10 @@ async function renderCanonicalPrintable(app: App): Promise<void> {
   try {
     const printable = await attachments.withFile(
       {
-        sourceEntityType: "post",
-        sourceEntityId: "render-source",
-        attachmentType: "printable",
+        sourceEntityType: pdfKind === "carousel" ? "deck" : "post",
+        sourceEntityId:
+          pdfKind === "carousel" ? "canonical-deck" : "render-source",
+        attachmentType: pdfKind,
       },
       async (file, signal) => {
         assert.equal(file.type, "document");
@@ -199,7 +221,12 @@ async function renderCanonicalPrintable(app: App): Promise<void> {
         return file.filename;
       },
     );
-    assert.equal(printable, "render-source-printable.pdf");
+    assert.equal(
+      printable,
+      pdfKind === "carousel"
+        ? "canonical-deck-carousel.pdf"
+        : "render-source-printable.pdf",
+    );
     assert.equal(producer.mock.calls.length, 1);
     assert.equal(reads.mock.calls.length, 0);
     assert.equal(buffered.mock.calls.length, 0);
@@ -214,7 +241,9 @@ test("canonical App binds a real file claim in its entity transaction and downlo
   const directory = await mkdtemp(
     join(tmpdir(), "turso-canonical-publication-"),
   );
-  console.error(`[canonical-publication] retained fixture: ${directory}`);
+  console.error(
+    `[canonical-publication] retained fixture: ${directory}; PDF provider: ${pdfKind}`,
+  );
   const sourceFile = join(directory, "canonical.png");
   // Exact canonical fixture generation only. The publication carries no bytes.
   const bytes = Buffer.alloc(SIZE);

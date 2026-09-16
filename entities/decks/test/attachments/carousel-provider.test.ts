@@ -1,5 +1,9 @@
-import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { describe, expect, it, spyOn, mock, type Mock } from "bun:test";
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { createPluginHarness } from "@brains/plugins/test";
+import type { AttachmentFile, EntityPluginContext } from "@brains/plugins";
 import { DecksPlugin, type DecksPluginDeps } from "../../src/plugin";
 import { DeckCarouselAttachmentProvider } from "../../src/attachments/carousel-provider";
 import type { DeckEntity } from "../../src/schemas/deck";
@@ -8,269 +12,242 @@ const sampleDeck: DeckEntity = {
   id: "deck-1",
   entityType: "deck",
   visibility: "public",
-  content: `---
-title: Test Deck
-status: draft
-slug: test-deck
----
-# Slide 1
-
----
-
-# Slide 2`,
+  content:
+    "---\ntitle: Test Deck\nstatus: draft\nslug: test-deck\n---\n# Slide 1\n\n---\n\n# Slide 2",
   contentHash: "deck-hash",
   created: "2024-01-01T00:00:00Z",
   updated: "2024-01-01T00:00:00Z",
-  metadata: {
-    title: "Test Deck",
-    slug: "test-deck",
-    status: "draft",
-  },
+  metadata: { title: "Test Deck", slug: "test-deck", status: "draft" },
 };
+const request = {
+  sourceEntityType: "deck",
+  sourceEntityId: "deck-1",
+  attachmentType: "carousel",
+};
+const accept = async (file: AttachmentFile): Promise<AttachmentFile> => file;
+interface CapturedPage {
+  html: string;
+  css: string;
+  directory: string;
+}
+type FileAssets = NonNullable<
+  EntityPluginContext["entityService"]["fileAssets"]
+>;
+interface CarouselFixture {
+  context: EntityPluginContext;
+  service: EntityPluginContext["entityService"];
+  pages: CapturedPage[];
+  produce: Mock<NonNullable<FileAssets["withProducedFile"]>>;
+  buffered: EntityPluginContext["entityService"]["readAsset"];
+}
+async function setup(
+  deps: DecksPluginDeps = {},
+  deck: DeckEntity = sampleDeck,
+): Promise<CarouselFixture> {
+  const harness = createPluginHarness<DecksPlugin>();
+  await harness.installPlugin(new DecksPlugin(deps));
+  const service = harness.getEntityService();
+  await service.createEntity({ entity: deck });
+  const pages: CapturedPage[] = [];
+  const unexpected = async (): Promise<never> => {
+    throw new Error("Unexpected file operation");
+  };
+  service.fileAssets = {
+    inspect: unexpected,
+    publish: unexpected,
+    fingerprint: unexpected,
+    download: unexpected,
+    close: async (): Promise<void> => undefined,
+    withProducedFile: async (
+      directory,
+      use,
+      options,
+    ): ReturnType<typeof use> => {
+      pages.push({
+        directory,
+        html: await readFile(join(directory, "index.html"), "utf8"),
+        css: await readFile(join(directory, "styles/main.css"), "utf8"),
+      });
+      expect(
+        JSON.parse(await readFile(join(directory, "render.json"), "utf8")),
+      ).toEqual({ format: "pdf" });
+      return use(
+        {
+          sourceFile: join(directory, "rendered.pdf"),
+          sizeBytes: 8,
+          sha256: "a".repeat(64),
+        },
+        options?.signal ?? new AbortController().signal,
+      );
+    },
+  };
+  const produce = spyOn(service.fileAssets, "withProducedFile");
+  const buffered = spyOn(service, "readAsset").mockImplementation(unexpected);
+  const context = harness.getEntityContext("test");
+  return { context, service, pages, produce, buffered };
+}
 
 describe("Deck carousel attachment provider", () => {
-  beforeEach(() => {});
-
-  it("registers a deck carousel attachment provider", async () => {
-    const harness = createPluginHarness<DecksPlugin>();
-    const deps: DecksPluginDeps = {
-      renderPdf: async () => Buffer.from("%PDF-carousel"),
-    };
-
-    await harness.installPlugin(new DecksPlugin(deps));
-
-    const context = harness.getEntityContext("test");
+  it("registers a file-only provider with the carousel filename and document metadata", async () => {
+    const { context, produce, buffered, pages } = await setup();
     expect(context.attachments.hasProvider("deck", "carousel")).toBe(true);
-  });
-
-  it("refuses to render decks that exceed the max slide count", async () => {
-    const renderPdf = mock(async () => Buffer.from("%PDF"));
-    const harness = createPluginHarness<DecksPlugin>();
-    const deps: DecksPluginDeps = { renderPdf };
-
-    await harness.installPlugin(new DecksPlugin(deps));
-    const slides = Array.from(
-      { length: 21 },
-      (_, i) => `# Slide ${i + 1}`,
-    ).join("\n\n---\n\n");
-    await harness.getEntityService().createEntity({
-      entity: {
-        ...sampleDeck,
-        id: "deck-oversized",
-        content: `---\ntitle: Oversized\nstatus: draft\nslug: oversized\n---\n${slides}`,
-      },
+    expect(await context.attachments.withFile(request, accept)).toEqual({
+      type: "document",
+      mimeType: "application/pdf",
+      filename: "test-deck-carousel.pdf",
+      source: { sourceFile: expect.any(String), sizeBytes: 8 },
+      sha256: "a".repeat(64),
     });
-
-    try {
-      await harness.getEntityContext("test").attachments.resolve({
-        sourceEntityType: "deck",
-        sourceEntityId: "deck-oversized",
-        attachmentType: "carousel",
-      });
-      throw new Error("Expected carousel resolution to reject");
-    } catch (error) {
-      expect(error).toBeInstanceOf(Error);
-      if (error instanceof Error) {
-        expect(error.message).toContain("21 slides");
+    expect(produce).toHaveBeenCalledTimes(1);
+    expect(buffered).not.toHaveBeenCalled();
+    expect(pages[0]?.html).toContain("Slide 1");
+    expect(pages[0]?.html).toContain("Slide 2");
+    assert.ok(pages[0]);
+    expect(
+      await Bun.file(join(pages[0].directory, "index.html")).exists(),
+    ).toBe(false);
+    await assert.rejects(
+      context.attachments.resolve(request),
+      /does not support buffered resolution/,
+    );
+  });
+  it("accepts twenty slides but refuses twenty-one before theme or producer acquisition", async () => {
+    for (const count of [20, 21]) {
+      const getThemeMode = mock(async (): Promise<"dark"> => "dark");
+      const deck = {
+        ...sampleDeck,
+        content: `---\ntitle: Test Deck\nstatus: draft\nslug: test-deck\n---\n${Array.from({ length: count }, (_, index) => `# Slide ${index + 1}`).join("\n\n---\n\n")}`,
+      };
+      const { context, produce } = await setup({ getThemeMode }, deck);
+      if (count === 21) {
+        await assert.rejects(
+          context.attachments.withFile(request, accept),
+          /21 slides; maxSlides=20/,
+        );
+        expect(getThemeMode).not.toHaveBeenCalled();
+        expect(produce).not.toHaveBeenCalled();
+      } else {
+        expect(
+          await context.attachments.withFile(request, accept),
+        ).toBeDefined();
+        expect(produce).toHaveBeenCalledTimes(1);
       }
     }
-    expect(renderPdf).not.toHaveBeenCalled();
   });
-
-  it("passes active theme CSS through to the media render page", async () => {
-    const harness = createPluginHarness<DecksPlugin>();
-    await harness.installPlugin(new DecksPlugin());
-    await harness.getEntityService().createEntity({ entity: sampleDeck });
-
-    const provider = new DeckCarouselAttachmentProvider(
-      {
-        entityService: harness.getEntityService(),
-        themeCSS: ":root { --carousel-test-token: #123456; }",
-        identity: harness.getEntityContext("test").identity,
-        domain: undefined,
+  it("preserves theme CSS, brand wordmark and the direct provider's dark default", async () => {
+    const { context, service, pages } = await setup();
+    const provider = new DeckCarouselAttachmentProvider({
+      entityService: service,
+      identity: context.identity,
+      themeCSS: ":root{--carousel-test-token:#123456}",
+      domain: "yeehaa.io",
+    });
+    await provider.withFile(request, accept);
+    expect(provider.metadata).toEqual({ outputEntityType: "document" });
+    expect(pages[0]?.css).toContain("--carousel-test-token");
+    expect(pages[0]?.html).toContain('data-theme="dark"');
+    expect(pages[0]?.html).toContain('aria-label="yeehaa.io"');
+    expect(pages[0]?.html).toContain('<span class="wm-primary">yeehaa</span>');
+    expect(pages[0]?.html).toContain('<span class="wm-secondary">io</span>');
+  });
+  it("reads current site-info theme per registered request rather than capturing it at registration", async () => {
+    const { context, service, pages } = await setup();
+    const info = {
+      id: "site-info",
+      entityType: "site-info",
+      visibility: "public" as const,
+      contentHash: "site-info-hash",
+      content:
+        "---\ntitle: Test Site\ndescription: Test\nthemeMode: light\n---",
+      created: sampleDeck.created,
+      updated: sampleDeck.updated,
+      metadata: {},
+    };
+    await service.createEntity({ entity: info });
+    await context.attachments.withFile(request, accept);
+    await service.updateEntity({
+      entity: { ...info, content: info.content.replace("light", "dark") },
+    });
+    await context.attachments.withFile(request, accept);
+    expect(pages[0]?.html).toContain('data-theme="light"');
+    expect(pages[1]?.html).toContain('data-theme="dark"');
+  });
+  it("forwards an injected live theme resolver", async () => {
+    const getThemeMode = mock(async (): Promise<"light"> => "light");
+    const { context, pages } = await setup({ getThemeMode });
+    await context.attachments.withFile(request, accept);
+    expect(getThemeMode).toHaveBeenCalledTimes(1);
+    expect(pages[0]?.html).toContain('data-theme="light"');
+  });
+  it("joins theme acquisition on cancellation without starting a producer", async () => {
+    const entered = Promise.withResolvers<void>(),
+      release = Promise.withResolvers<"light">();
+    const { context, produce } = await setup({
+      getThemeMode: async () => {
+        entered.resolve();
+        return release.promise;
       },
-      {
-        renderPdf: async (url: string): Promise<Buffer> => {
-          const stylesUrl = new URL("/styles/main.css", url).toString();
-          const response = await fetch(stylesUrl);
-          expect(response.status).toBe(200);
-          expect(await response.text()).toContain("--carousel-test-token");
-          return Buffer.from("%PDF-themed-carousel");
-        },
-      },
+    });
+    const caller = new AbortController();
+    const primary = new Error("cancelled during theme lookup");
+    let settled = false;
+    const rejected = assert.rejects(
+      context.attachments
+        .withFile(request, accept, { signal: caller.signal })
+        .finally(() => {
+          settled = true;
+        }),
+      (error: unknown) => error === primary,
     );
-
-    const attachment = await provider.resolve({
-      sourceEntityType: "deck",
-      sourceEntityId: "deck-1",
-      attachmentType: "carousel",
-    });
-
-    expect(attachment).toEqual({
-      type: "document",
-      data: Buffer.from("%PDF-themed-carousel"),
-      mimeType: "application/pdf",
-      filename: "test-deck-carousel.pdf",
-    });
+    try {
+      await entered.promise;
+      caller.abort(primary);
+      expect(settled).toBe(false);
+    } finally {
+      release.resolve("light");
+      await rejected;
+    }
+    expect(produce).not.toHaveBeenCalled();
   });
-
-  it("uses the brain domain as the carousel brand wordmark", async () => {
-    const harness = createPluginHarness<DecksPlugin>();
-    await harness.installPlugin(new DecksPlugin());
-    await harness.getEntityService().createEntity({ entity: sampleDeck });
-
-    let renderedHtml = "";
-    const provider = new DeckCarouselAttachmentProvider(
-      {
-        entityService: harness.getEntityService(),
-        themeCSS: "",
-        identity: harness.getEntityContext("test").identity,
-        domain: "yeehaa.io",
+  it("preserves theme failure without entering the consumer", async () => {
+    const primary = new Error("theme unavailable");
+    const { context, produce } = await setup({
+      getThemeMode: async (): Promise<never> => {
+        throw primary;
       },
-      {
-        renderPdf: async (url: string): Promise<Buffer> => {
-          renderedHtml = await (await fetch(url)).text();
-          return Buffer.from("%PDF-brand");
-        },
-      },
+    });
+    const use = mock(accept);
+    await assert.rejects(
+      context.attachments.withFile(request, use),
+      (error: unknown) => error === primary,
     );
-
-    await provider.resolve({
-      sourceEntityType: "deck",
-      sourceEntityId: "deck-1",
-      attachmentType: "carousel",
-    });
-
-    // Domain labels are split into `primary.secondary` by the masthead formatter.
-    expect(renderedHtml).toContain('aria-label="yeehaa.io"');
-    expect(renderedHtml).toContain('<span class="wm-primary">yeehaa</span>');
-    expect(renderedHtml).toContain('<span class="wm-secondary">io</span>');
+    expect(use).not.toHaveBeenCalled();
+    expect(produce).not.toHaveBeenCalled();
   });
-
-  it("reads themeMode from the site-info entity by default", async () => {
-    const harness = createPluginHarness<DecksPlugin>();
-
-    let renderedHtml = "";
-    await harness.installPlugin(
-      new DecksPlugin({
-        renderPdf: async (url: string): Promise<Buffer> => {
-          renderedHtml = await (await fetch(url)).text();
-          return Buffer.from("%PDF-site-info");
-        },
+  it("rejects pre-aborted requests and omits mismatched requests without theme acquisition", async () => {
+    const getThemeMode = mock(async (): Promise<"dark"> => "dark");
+    const { context, service, produce } = await setup();
+    const provider = new DeckCarouselAttachmentProvider(
+      { ...context, entityService: service },
+      { getThemeMode },
+    );
+    expect(
+      await provider.withFile({ ...request, attachmentType: "other" }, accept),
+    ).toBeUndefined();
+    expect(
+      await provider.withFile(
+        { ...request, sourceEntityType: "other" },
+        accept,
+      ),
+    ).toBeUndefined();
+    const primary = new Error("pre-aborted");
+    await assert.rejects(
+      provider.withFile(request, accept, {
+        signal: AbortSignal.abort(primary),
       }),
+      (error: unknown) => error === primary,
     );
-
-    await harness.getEntityService().createEntity({ entity: sampleDeck });
-    await harness.getEntityService().createEntity({
-      entity: {
-        id: "site-info",
-        entityType: "site-info",
-        content: `---
-title: Test Site
-description: Test
-themeMode: light
----`,
-        created: "2024-01-01T00:00:00Z",
-        updated: "2024-01-01T00:00:00Z",
-        metadata: {},
-      },
-    });
-
-    await harness.getEntityContext("test").attachments.resolve({
-      sourceEntityType: "deck",
-      sourceEntityId: "deck-1",
-      attachmentType: "carousel",
-    });
-
-    expect(renderedHtml).toContain('data-theme="light"');
-  });
-
-  it("passes themeMode from getThemeMode dep through to the rendered page", async () => {
-    const harness = createPluginHarness<DecksPlugin>();
-    await harness.installPlugin(new DecksPlugin());
-    await harness.getEntityService().createEntity({ entity: sampleDeck });
-
-    let renderedHtml = "";
-    const provider = new DeckCarouselAttachmentProvider(
-      {
-        entityService: harness.getEntityService(),
-        themeCSS: "",
-        identity: harness.getEntityContext("test").identity,
-        domain: undefined,
-      },
-      {
-        renderPdf: async (url: string): Promise<Buffer> => {
-          renderedHtml = await (await fetch(url)).text();
-          return Buffer.from("%PDF-light");
-        },
-        getThemeMode: async (): Promise<"light" | "dark"> => "light",
-      },
-    );
-
-    await provider.resolve({
-      sourceEntityType: "deck",
-      sourceEntityId: "deck-1",
-      attachmentType: "carousel",
-    });
-
-    expect(renderedHtml).toContain('data-theme="light"');
-  });
-
-  it("defaults to dark mode when getThemeMode is not provided", async () => {
-    const harness = createPluginHarness<DecksPlugin>();
-    await harness.installPlugin(new DecksPlugin());
-    await harness.getEntityService().createEntity({ entity: sampleDeck });
-
-    let renderedHtml = "";
-    const provider = new DeckCarouselAttachmentProvider(
-      {
-        entityService: harness.getEntityService(),
-        themeCSS: "",
-        identity: harness.getEntityContext("test").identity,
-        domain: undefined,
-      },
-      {
-        renderPdf: async (url: string): Promise<Buffer> => {
-          renderedHtml = await (await fetch(url)).text();
-          return Buffer.from("%PDF-dark");
-        },
-      },
-    );
-
-    await provider.resolve({
-      sourceEntityType: "deck",
-      sourceEntityId: "deck-1",
-      attachmentType: "carousel",
-    });
-
-    expect(renderedHtml).toContain('data-theme="dark"');
-  });
-
-  it("resolves a deck into a PDF carousel attachment", async () => {
-    const renderPdf = mock(async (url: string) => {
-      expect(url).toContain("/_media/carousel/deck-1/");
-      return Buffer.from("%PDF-carousel");
-    });
-    const harness = createPluginHarness<DecksPlugin>();
-    const deps: DecksPluginDeps = { renderPdf };
-
-    await harness.installPlugin(new DecksPlugin(deps));
-    await harness.getEntityService().createEntity({ entity: sampleDeck });
-
-    const attachment = await harness
-      .getEntityContext("test")
-      .attachments.resolve({
-        sourceEntityType: "deck",
-        sourceEntityId: "deck-1",
-        attachmentType: "carousel",
-      });
-
-    expect(renderPdf).toHaveBeenCalled();
-    expect(attachment).toEqual({
-      type: "document",
-      data: Buffer.from("%PDF-carousel"),
-      mimeType: "application/pdf",
-      filename: "test-deck-carousel.pdf",
-    });
+    expect(getThemeMode).not.toHaveBeenCalled();
+    expect(produce).not.toHaveBeenCalled();
   });
 });

@@ -4,14 +4,12 @@ import { produceFile, type FileProduceInput } from "@brains/db/file-produce";
 import type { BlobFacts } from "@brains/db/file-process-owner";
 import { screenshotPng, renderPdf } from "@brains/media-renderer";
 import { readRenderRequest, MAX_PDF_BYTES } from "./render-request";
-import type { RenderPdf } from "./printable";
 import { startStaticRenderServer } from "./media-render-page";
-import type { ScreenshotPng } from "./og-image";
 
 /** SDK injection is actor-local, never a controller-side buffer handoff. */
 export interface RenderDirectoryDeps {
-  screenshotPng?: ScreenshotPng;
-  renderPdf?: RenderPdf;
+  screenshotPng?: typeof screenshotPng;
+  renderPdf?: typeof renderPdf;
 }
 /** Render an index.html + assets + render.json directory to a no-replace file. Called
  * only in a payload actor; HTML serving, WebView buffers and hashing stay here.
