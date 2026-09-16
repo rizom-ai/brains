@@ -110,6 +110,7 @@ Plans:
 - [user-offboarding-plan.md](./plans/user-offboarding-plan.md) — explicit, recoverable hosted-user offboarding.
 - [discord-opt-in-plan.md](./plans/discord-opt-in-plan.md) — make Discord an explicit pilot choice rather than a default.
 - [operational-alert-delivery.md](./plans/operational-alert-delivery.md) — deliver sustained operational degradation to a human over a path that survives a dead worker.
+- [git-sync-credentials.md](./plans/git-sync-credentials.md) — revalidate optional remote configuration and replace fleet-wide static Git credentials with short-lived, repository-scoped GitHub App tokens.
 
 ### 5. Interfaces
 
