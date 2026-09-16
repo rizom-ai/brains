@@ -1,5 +1,27 @@
 # @brains/directory-sync
 
+## 0.2.0-alpha.388
+
+### Patch Changes
+
+- Use the shared entity-path codec for directory-sync ID interpretation without changing existing filesystem placement. Decode stored IDs losslessly while retaining strict validation for newly authored paths. Permit only the named codec functions through the entity-service package import boundary.
+
+- Make valid entity export paths injective: retain type-prefixed ID segments and limit exported notes to one segment at the sync root. Refuse historical invalid placements before file writes, deletion, or cleanup, and retain placement diagnostics independently of successful exports. Studio previews the placement verdict, refuses explicitly invalid destinations, and keeps note creation flat. Collection rows without an authored title display their structured leaf segment while preserving full stored IDs for links and identity details.
+
+  Existing IDs are not rewritten and existing files are not moved or migrated. Files created under the previous prefix-stripping or nested-note conventions require operator review.
+
+- Add Studio virtual-folder navigation, explicit folder/collection search, and folder-aware creation with server-encoded IDs and conditional writes. Preserve direct entity links, history, permissions, and ordinary singleton/capture flows.
+
+  Directory-sync supplies read-only destination previews and creates missing parent directories for nested notes without changing placement. No folder entities, ID rewrites, file moves, or database migrations are introduced.
+
+- Updated dependencies []:
+  - @brains/entity-service@0.2.0-alpha.388
+  - @brains/plugins@0.2.0-alpha.388
+  - @brains/contracts@0.2.0-alpha.388
+  - @brains/image@0.2.0-alpha.388
+  - @brains/content-formatters@0.2.0-alpha.388
+  - @brains/utils@0.2.0-alpha.388
+
 ## 0.2.0-alpha.387
 
 ### Patch Changes

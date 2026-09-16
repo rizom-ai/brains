@@ -1,5 +1,11 @@
 # @brains/eslint-config
 
+## 0.2.0-alpha.388
+
+### Patch Changes
+
+- Use the shared entity-path codec for directory-sync ID interpretation without changing existing filesystem placement. Decode stored IDs losslessly while retaining strict validation for newly authored paths. Permit only the named codec functions through the entity-service package import boundary.
+
 ## 0.2.0-alpha.387
 
 ## 0.2.0-alpha.386

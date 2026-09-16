@@ -1,5 +1,27 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.388
+
+### Patch Changes
+
+- Use the shared entity-path codec for directory-sync ID interpretation without changing existing filesystem placement. Decode stored IDs losslessly while retaining strict validation for newly authored paths. Permit only the named codec functions through the entity-service package import boundary.
+
+- Add a visibility-scoped hierarchy query to the existing entity-service client. Derive immediate folders and counts in SQLite, page direct entries independently, and keep stored IDs intact. Prefix queries use the existing ID index and the shared codec; no database migration is required.
+
+- Preserve complete historical entity IDs in detail reads and revision snapshots, including embedded NUL characters and leading BOMs. Match the hierarchy query's byte-based ID decoding so opening and editing an entry cannot target its truncated ID. Stored IDs, filesystem placement, and database schemas are unchanged.
+
+- Add Studio virtual-folder navigation, explicit folder/collection search, and folder-aware creation with server-encoded IDs and conditional writes. Preserve direct entity links, history, permissions, and ordinary singleton/capture flows.
+
+  Directory-sync supplies read-only destination previews and creates missing parent directories for nested notes without changing placement. No folder entities, ID rewrites, file moves, or database migrations are introduced.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.388
+  - @brains/assets@0.2.0-alpha.388
+  - @brains/content-formatters@0.2.0-alpha.388
+  - @brains/db@0.2.0-alpha.388
+  - @brains/utils@0.2.0-alpha.388
+  - @brains/job-queue@0.2.0-alpha.388
+
 ## 0.2.0-alpha.387
 
 ### Patch Changes

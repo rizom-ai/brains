@@ -1,5 +1,33 @@
 # @brains/plugins
 
+## 0.2.0-alpha.388
+
+### Patch Changes
+
+- Add a visibility-scoped hierarchy query to the existing entity-service client. Derive immediate folders and counts in SQLite, page direct entries independently, and keep stored IDs intact. Prefix queries use the existing ID index and the shared codec; no database migration is required.
+
+- Add Studio virtual-folder navigation, explicit folder/collection search, and folder-aware creation with server-encoded IDs and conditional writes. Preserve direct entity links, history, permissions, and ordinary singleton/capture flows.
+
+  Directory-sync supplies read-only destination previews and creates missing parent directories for nested notes without changing placement. No folder entities, ID rewrites, file moves, or database migrations are introduced.
+
+- Updated dependencies []:
+  - @brains/entity-service@0.2.0-alpha.388
+  - @brains/contracts@0.2.0-alpha.388
+  - @brains/ai-service@0.2.0-alpha.388
+  - @brains/content-service@0.2.0-alpha.388
+  - @brains/identity-service@0.2.0-alpha.388
+  - @brains/content-formatters@0.2.0-alpha.388
+  - @brains/site-composition@0.2.0-alpha.388
+  - @brains/utils@0.2.0-alpha.388
+  - @brains/job-queue@0.2.0-alpha.388
+  - @brains/mcp-service@0.2.0-alpha.388
+  - @brains/messaging-service@0.2.0-alpha.388
+  - @brains/recurring-checks@0.2.0-alpha.388
+  - @brains/runtime-state@0.2.0-alpha.388
+  - @brains/scheduler@0.2.0-alpha.388
+  - @brains/conversation-service@0.2.0-alpha.388
+  - @brains/templates@0.2.0-alpha.388
+
 ## 0.2.0-alpha.387
 
 ### Patch Changes

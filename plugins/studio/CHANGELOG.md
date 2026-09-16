@@ -1,5 +1,31 @@
 # @brains/studio
 
+## 0.2.0-alpha.388
+
+### Minor Changes
+
+- Add Studio virtual-folder navigation, explicit folder/collection search, and folder-aware creation with server-encoded IDs and conditional writes. Preserve direct entity links, history, permissions, and ordinary singleton/capture flows.
+
+  Directory-sync supplies read-only destination previews and creates missing parent directories for nested notes without changing placement. No folder entities, ID rewrites, file moves, or database migrations are introduced.
+
+### Patch Changes
+
+- Make valid entity export paths injective: retain type-prefixed ID segments and limit exported notes to one segment at the sync root. Refuse historical invalid placements before file writes, deletion, or cleanup, and retain placement diagnostics independently of successful exports. Studio previews the placement verdict, refuses explicitly invalid destinations, and keeps note creation flat. Collection rows without an authored title display their structured leaf segment while preserving full stored IDs for links and identity details.
+
+  Existing IDs are not rewritten and existing files are not moved or migrated. Files created under the previous prefix-stripping or nested-note conventions require operator review.
+
+- Use page terminology for site-content hierarchy headings, trails, search scope, and creation guidance. Move the return-to-collection action into the visible editor header, including read-only records, while preserving collection filters and folder context.
+
+- Updated dependencies []:
+  - @brains/entity-service@0.2.0-alpha.388
+  - @brains/plugins@0.2.0-alpha.388
+  - @brains/contracts@0.2.0-alpha.388
+  - @brains/app-ui-react@0.2.0-alpha.388
+  - @brains/console-theme@0.2.0-alpha.388
+  - @brains/operator-view-react@0.2.0-alpha.388
+  - @brains/utils@0.2.0-alpha.388
+  - @brains/auth-service@0.2.0-alpha.388
+
 ## 0.2.0-alpha.387
 
 ### Patch Changes
