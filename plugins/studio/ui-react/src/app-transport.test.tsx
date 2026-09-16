@@ -432,7 +432,9 @@ describe("Studio App transport", () => {
     );
     await act(async () =>
       document
-        .querySelector<HTMLButtonElement>('[aria-label^="Back to"]')
+        .querySelector<HTMLButtonElement>(
+          '[data-studio-page-head] [aria-label^="Back to"]',
+        )
         ?.click(),
     );
     await waitFor(
@@ -1008,7 +1010,10 @@ describe("Studio App transport", () => {
         ?.click(),
     );
     await waitFor(
-      () => document.querySelector('[aria-label^="Back to"]') !== null,
+      () =>
+        document.querySelector(
+          '[data-studio-page-head] [aria-label^="Back to"]',
+        ) !== null,
     );
     expect(history.location.search).toBe(`?offset=25&${filters}`);
     const form = document.querySelector<HTMLFormElement>(
@@ -1056,7 +1061,9 @@ describe("Studio App transport", () => {
     expect(submissions).toBe(2);
     await act(async () =>
       document
-        .querySelector<HTMLButtonElement>('[aria-label^="Back to"]')
+        .querySelector<HTMLButtonElement>(
+          '[data-studio-page-head] [aria-label^="Back to"]',
+        )
         ?.click(),
     );
     await waitFor(

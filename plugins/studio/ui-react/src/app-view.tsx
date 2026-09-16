@@ -395,6 +395,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
     (!props.creationDestination.data ||
       props.creationDestination.pending ||
       Boolean(props.creationDestination.error));
+  const hierarchyKind = entityType === "site-content" ? "page" : "folder";
   const folderContext =
     props.collectionQuery.prefix?.map(folderLabel).join(" / ") ??
     activeType?.label ??
@@ -453,14 +454,14 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
           : `${entityCount} ${entityCount === 1 ? "entity" : "entities"}`,
       ...(props.folders.length > 0
         ? [
-            `${props.folders.length} folders · ${entityCount + props.folders.reduce((sum, folder) => sum + folder.descendantCount, 0)} in total`,
+            `${props.folders.length} ${hierarchyKind}${props.folders.length === 1 ? "" : "s"} · ${entityCount + props.folders.reduce((sum, folder) => sum + folder.descendantCount, 0)} in total`,
           ]
         : []),
       ...(props.collectionQuery.prefix && !directFolderCount
         ? [
             props.collectionQuery.scope === "collection"
               ? "Whole collection"
-              : "In this folder",
+              : `In this ${hierarchyKind}`,
           ]
         : []),
       ...(syncPending ? ["Sync pending"] : []),
@@ -506,9 +507,6 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
     >
       <StudioChrome
         contextLabel={collectionLabel}
-        onContextClick={
-          editing && !entitySchema.isSingleton ? backToList : undefined
-        }
         navigation={{
           types,
           workspaces,
@@ -640,6 +638,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
               }
             />
             <StudioFolderTrail
+              kind={hierarchyKind}
               collectionLabel={collectionLabel}
               collectionPath={props.collectionPath}
               query={props.collectionQuery}
@@ -647,6 +646,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
             />
             {!entitySchema.isSingleton && (
               <StudioCollectionControls
+                kind={hierarchyKind}
                 query={props.collectionQuery}
                 fields={entitySchema.fields}
                 total={entityTotal}
@@ -655,6 +655,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
             )}
             {!entityListLoading && (
               <StudioFolderRows
+                kind={hierarchyKind}
                 folders={props.folders}
                 collectionPath={props.collectionPath}
                 query={props.collectionQuery}
@@ -858,6 +859,18 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
             <StudioPageHead
               model={editorHead}
               appearance="document"
+              navigation={
+                !entitySchema.isSingleton ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={backToList}
+                    aria-label={`Back to ${collectionLabel}`}
+                  >
+                    <span aria-hidden="true">←</span> Back to {collectionLabel}
+                  </Button>
+                ) : undefined
+              }
               action={
                 canEdit || presentation === "split" ? (
                   <Button
@@ -890,6 +903,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                   )}
                 >
                   <StudioFolderTrail
+                    kind={hierarchyKind}
                     collectionLabel={collectionLabel}
                     collectionPath={props.collectionPath}
                     query={{
@@ -900,6 +914,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                     fixed
                   />
                   <StudioDestination
+                    kind={hierarchyKind}
                     segment={mode.segment ?? ""}
                     onSegmentChange={(segment) =>
                       dispatchEditor({ type: "segmentChanged", segment })

@@ -9,11 +9,13 @@ import type { FieldDescriptor } from "./api";
 import { editorClassName } from "./studio-editor.styles";
 import { collectionControlStyles as styles } from "./studio-collection-controls.styles";
 import { StudioSearchField } from "./studio-search-field";
+import type { HierarchyKind } from "./studio-hierarchy";
 
 /** Matches the Chat session index, so a query settles at the same pace. */
 const SEARCH_DEBOUNCE_MS = 250;
 
 export function StudioCollectionControls(props: {
+  kind?: HierarchyKind;
   query: StudioCollectionQuery;
   fields: FieldDescriptor[];
   total: number;
@@ -167,7 +169,7 @@ export function StudioCollectionControls(props: {
             className={editorClassName("", styles.scopeChoice)}
             onClick={() => commit({ scope: "folder" })}
           >
-            This folder
+            This {props.kind ?? "folder"}
           </button>
           <button
             type="button"

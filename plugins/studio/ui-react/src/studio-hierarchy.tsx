@@ -27,7 +27,10 @@ export function folderLabel(segment: string): string {
     .replace(/^\p{L}/u, (letter) => letter.toUpperCase());
 }
 
+export type HierarchyKind = "page" | "folder";
+
 interface FolderNavigationProps {
+  kind?: HierarchyKind;
   collectionPath: string;
   query: StudioCollectionQuery;
   onNavigate: (prefix: EntityIdPath | null) => void;
@@ -64,7 +67,7 @@ export function StudioFolderTrail(
   if (!prefix) return null;
   return (
     <nav
-      aria-label="Folder trail"
+      aria-label={props.kind === "page" ? "Page trail" : "Folder trail"}
       className={editorClassName("", styles.trail)}
     >
       {props.fixed ? (
@@ -113,13 +116,14 @@ export function StudioFolderRows(
   props: FolderNavigationProps & { folders: EntityFolder[] },
 ): ReactElement | null {
   if (!props.folders.length) return null;
+  const heading = props.kind === "page" ? "Pages" : "Folders";
   return (
     <section
-      aria-label="Folders (complete list)"
+      aria-label={`${heading} (complete list)`}
       className={editorClassName("", styles.group)}
     >
       <div className={editorClassName("", styles.label)}>
-        <span>Folders</span>
+        <span>{heading}</span>
         <span>complete · not paged</span>
       </div>
       {props.folders.map((folder) => (
@@ -192,6 +196,7 @@ function emphasizeRange(
 }
 
 export function StudioDestination(props: {
+  kind?: HierarchyKind;
   segment: string;
   onSegmentChange: (segment: string) => void;
   preview: DestinationPreview | null;
@@ -207,7 +212,7 @@ export function StudioDestination(props: {
   );
   const error =
     issue?.path[0] === "prefix"
-      ? `Cannot create in this folder: ${issue.message}`
+      ? `Cannot create in this ${props.kind ?? "folder"}: ${issue.message}`
       : (issue?.message ??
         (issues?.length
           ? issues.map((item) => item.message).join(" ")
@@ -234,7 +239,8 @@ export function StudioDestination(props: {
           aria-describedby={`${id}-help${segmentInvalid ? ` ${id}-error` : ""}`}
         />
         <small id={`${id}-help`}>
-          One segment in the selected folder. No separators or traversal.
+          One segment in the selected {props.kind ?? "folder"}. No separators or
+          traversal.
         </small>
       </label>
       {error && (

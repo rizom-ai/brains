@@ -658,6 +658,8 @@ function renderCapabilityView(
     hasBody?: boolean;
     entityType?: string;
     entity?: Partial<EntityDetail>;
+    folders?: StudioAppViewProps["folders"];
+    singleton?: boolean;
   } = {},
 ): string {
   const entityType = page.entityType ?? "post";
@@ -674,14 +676,14 @@ function renderCapabilityView(
   const schema: TypeSchema = {
     entityType,
     format: "frontmatter",
-    isSingleton: false,
+    isSingleton: page.singleton ?? false,
     hasBody: page.hasBody ?? true,
     fields: [stringField],
   };
   const type: EntityTypeInfo = {
     entityType,
-    label: "Posts",
-    isSingleton: false,
+    label: entityType === "site-content" ? "Site content" : "Posts",
+    isSingleton: page.singleton ?? false,
     hasBody: page.hasBody ?? true,
     count: page.total ?? 1,
     capabilities,
@@ -707,7 +709,7 @@ function renderCapabilityView(
     workspaceQuery: { offset: 0, limit: 50 },
     entityType,
     entities: page.total === 0 ? [] : [entity],
-    folders: [],
+    folders: page.folders ?? [],
     collectionPath: "/studio/entities/post",
     selectFolder: () => {},
     creationDestination: { data: null, pending: false, error: null },
@@ -762,6 +764,75 @@ function renderCapabilityView(
   };
   return renderToStaticMarkup(createElement(StudioAppView, props));
 }
+
+it("uses page terminology throughout site-content collection navigation", () => {
+  const window = new Window();
+  try {
+    window.document.body.innerHTML = renderCapabilityView(
+      {
+        canRead: true,
+        canCreate: false,
+        canUpdate: false,
+        canDelete: false,
+        canExtract: false,
+        canPublish: false,
+        canAssist: false,
+      },
+      "browse",
+      {
+        entityType: "site-content",
+        query: { prefix: ["about"] },
+        folders: [
+          { name: "team", path: ["about", "team"], descendantCount: 3 },
+        ],
+      },
+    );
+    expect(
+      window.document.querySelector('[aria-label="Pages (complete list)"]'),
+    ).not.toBeNull();
+    expect(
+      window.document.querySelector('[aria-label="Page trail"]'),
+    ).not.toBeNull();
+    expect(window.document.body.textContent).toContain("1 page");
+    expect(window.document.body.textContent).toContain("This page");
+    expect(window.document.body.textContent.toLowerCase()).not.toContain(
+      "folder",
+    );
+  } finally {
+    window.close();
+  }
+});
+
+it("offers an explicit editor-header return control, including read-only records, but not singletons", () => {
+  const window = new Window();
+  try {
+    for (const singleton of [false, true]) {
+      window.document.body.innerHTML = renderCapabilityView(
+        {
+          canRead: true,
+          canCreate: false,
+          canUpdate: false,
+          canDelete: false,
+          canExtract: false,
+          canPublish: false,
+          canAssist: false,
+        },
+        "edit",
+        { entityType: "site-content", singleton },
+      );
+      const back = window.document.querySelector(
+        '[data-studio-page-head] button[aria-label="Back to Site content"]',
+      );
+      expect(back !== null).toBe(!singleton);
+      if (back) {
+        expect(back.textContent).toContain("Back to Site content");
+        expect(back.getAttribute("type")).toBe("button");
+      }
+    }
+  } finally {
+    window.close();
+  }
+});
 
 it("uses the structured leaf as a folder row fallback without changing titles or identity", () => {
   const cases: Array<{ entity: Partial<EntityDetail>; label: string }> = [
