@@ -5,6 +5,7 @@ import type { FetchLike } from "@brains/utils/fetch-like";
 import {
   StudioApi,
   type EntityDetail,
+  type DestinationInput,
   type EntitySummary,
   type EntityPage,
   type EntityTypeInfo,
@@ -15,6 +16,7 @@ import { createEditorDocument } from "./editor-document";
 import { createStudioQueryClient } from "./query-client";
 import {
   agentTargetsQueryOptions,
+  destinationQueryOptions,
   studioKeys,
   entityDetailQueryOptions,
   entityListQueryOptions,
@@ -25,6 +27,40 @@ import {
   syncStatusQueryOptions,
   workspaceQueryOptions,
 } from "./queries";
+
+it("keys destination previews by all authoring inputs without reusing a previous destination", async () => {
+  const input: DestinationInput = {
+    entityType: "note",
+    idPath: ["book", "intro"],
+    frontmatter: {},
+    body: "Source",
+  };
+  stubFetch(async (_url, options) => {
+    expect(JSON.parse(String(options.body))).toEqual(input);
+    return Response.json({
+      idPath: input.idPath,
+      entityId: "book:intro",
+      entityLeaf: { start: 5, end: 10 },
+      filePath: null,
+      fileLeaf: null,
+    });
+  });
+  const client = createStudioQueryClient();
+  try {
+    const options = destinationQueryOptions(studioApi, input);
+    expect(options.placeholderData).toBeUndefined();
+    expect(destinationQueryOptions(studioApi, null).enabled).toBe(false);
+    expect(studioKeys.destination(input)).not.toEqual(
+      studioKeys.destination({ ...input, idPath: ["other", "intro"] }),
+    );
+    expect(studioKeys.destination(input)).not.toEqual(
+      studioKeys.destination({ ...input, frontmatter: { format: "png" } }),
+    );
+    expect((await client.fetchQuery(options)).entityId).toBe("book:intro");
+  } finally {
+    client.clear();
+  }
+});
 
 // The functions under test are handed a client built on delegatingFetch,
 // which reads the per-test handler at call time, so the global fetch is never
@@ -519,7 +555,7 @@ describe("Studio entity-list query", () => {
     expect(statuses).toContain("pending");
     expect(observer.getCurrentResult().status).toBe("success");
     expect(requestedUrls).toEqual([
-      "/studio/api/entities?type=post&offset=0&limit=25",
+      "/studio/api/hierarchy?type=post&offset=0&limit=25",
     ]);
     unsubscribe();
     client.clear();

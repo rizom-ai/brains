@@ -48,6 +48,7 @@
 + studio|handler|GET|/cms|prefix|true
 + studio|handler|GET|/studio/api/agents|exact|true
 + studio|handler|GET|/studio/api/entities|exact|true
++ studio|handler|GET|/studio/api/hierarchy|exact|true
 + studio|handler|GET|/studio/api/schema|exact|true
 + studio|handler|GET|/studio/api/sync-status|exact|true
 + studio|handler|GET|/studio/api/types|exact|true
@@ -58,6 +59,7 @@
 + studio|handler|GET|/studio|exact|true
 + studio|handler|POST|/studio/api/ask-agent|exact|true
 + studio|handler|POST|/studio/api/assist|exact|true
++ studio|handler|POST|/studio/api/destination|exact|true
 + studio|handler|POST|/studio/api/entities|exact|true
 + studio|handler|POST|/studio/api/upload|exact|true
 + studio|handler|POST|/studio/api/workspace|exact|true

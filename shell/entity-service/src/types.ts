@@ -1,4 +1,5 @@
 import type { PreparedAsset } from "@brains/assets";
+import type { EntityIdPath, EntityIdPathInput } from "./entity-id-path";
 import type {
   ActorRef,
   EntityReadBudget,
@@ -633,6 +634,40 @@ export interface ListEntitiesRequest {
   options?: ListOptions | undefined;
 }
 
+export interface QueryEntityHierarchyRequest {
+  entityType: string;
+  /** Null/omitted means the collection root; segments identify stored identity. */
+  prefix?: EntityIdPathInput | null | undefined;
+  /** Search matching entries throughout the prefix; no folder rows in this mode. */
+  includeDescendants?: boolean | undefined;
+  /** Omitted fails closed to public, including folder names and counts. */
+  visibilityScope?: ContentVisibility | undefined;
+  limit?: number | undefined;
+  offset?: number | undefined;
+  sortFields?: SortField[] | undefined;
+  filter?:
+    | {
+        metadata?: Record<string, unknown> | undefined;
+        contentContains?: string | undefined;
+        visibility?: ContentVisibility | undefined;
+      }
+    | undefined;
+  signal?: AbortSignal | undefined;
+}
+
+export interface EntityHierarchyPage {
+  prefix: EntityIdPath | null;
+  folders: Array<{
+    path: EntityIdPath;
+    name: string;
+    descendantCount: number;
+  }>;
+  /** Only direct children, with derived paths kept outside durable entity data. */
+  entities: Array<{ entity: BaseEntity; path: EntityIdPath }>;
+  offset: number;
+  totalEntities: number;
+}
+
 export interface CountEntitiesRequest {
   entityType: string;
   options?: Pick<ListOptions, "publishedOnly" | "filter"> | undefined;
@@ -859,6 +894,11 @@ export interface ICoreEntityService {
     request: ListEntitiesRequest,
     schema: EntitySchema<T>,
   ): Promise<T[]>;
+
+  /** Immediate folders and paginated direct children; no filesystem interpretation. */
+  queryEntityHierarchy(
+    request: QueryEntityHierarchyRequest,
+  ): Promise<EntityHierarchyPage>;
 
   search(request: EntitySearchRequest): Promise<SearchResult<BaseEntity>[]>;
   search<T extends BaseEntity>(

@@ -3840,15 +3840,25 @@ const server = Bun.serve({
         request.signal.addEventListener("abort", release, { once: true });
       });
     }
-    if (url.pathname === "/studio/api/entities" && systemFixture)
+    const hierarchyRequest = url.pathname === "/studio/api/hierarchy";
+    if (
+      (hierarchyRequest || url.pathname === "/studio/api/entities") &&
+      systemFixture
+    )
       return json(
         url.searchParams.has("id")
           ? { entity: systemFixture.entity }
-          : { entities: [systemFixture.entity], total: 1 },
+          : {
+              ...(hierarchyRequest ? { prefix: null, folders: [] } : {}),
+              entities: [
+                { ...systemFixture.entity, path: [systemFixture.entity.id] },
+              ],
+              total: 1,
+            },
       );
     if (url.pathname === "/studio/api/entities" && url.searchParams.has("id"))
       return json({ entity });
-    if (url.pathname === "/studio/api/entities") {
+    if (hierarchyRequest || url.pathname === "/studio/api/entities") {
       const offset = Number(url.searchParams.get("offset") ?? 0);
       const limit = Number(url.searchParams.get("limit") ?? 25);
       const query = (url.searchParams.get("q") ?? "").toLowerCase();
@@ -3860,7 +3870,11 @@ const server = Bun.serve({
       );
       if (url.searchParams.get("sort")?.endsWith("asc")) filtered.reverse();
       return json({
-        entities: filtered.slice(offset, offset + limit),
+        ...(hierarchyRequest ? { prefix: null, folders: [] } : {}),
+        // These fixtures have flat IDs; the real service owns hierarchy derivation.
+        entities: filtered
+          .slice(offset, offset + limit)
+          .map((item) => ({ ...item, path: [item.id] })),
         total: filtered.length,
       });
     }

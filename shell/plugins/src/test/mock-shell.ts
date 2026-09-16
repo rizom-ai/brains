@@ -818,6 +818,12 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       fencedCallbacks: 0,
       releasedDurableRoots: 0,
     }),
+    // Hierarchy grouping is tested against SQLite, not duplicated in this fake.
+    queryEntityHierarchy: async (): Promise<never> => {
+      throw new Error(
+        "createMockShell: inject an entity service for hierarchy queries",
+      );
+    },
     // Projection storage is database-backed and cannot be faked usefully. Fail
     // loudly rather than hand back an empty stand-in, which would make a test
     // asserting projection behaviour silently meaningless.

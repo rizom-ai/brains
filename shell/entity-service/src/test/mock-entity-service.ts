@@ -5,6 +5,8 @@ import type {
   BaseEntity,
   EntityMutationResult,
   EntityWriteSnapshot,
+  EntityHierarchyPage,
+  QueryEntityHierarchyRequest,
   IEntityService,
   SearchResult,
 } from "../index";
@@ -19,6 +21,7 @@ export interface MockEntityServiceReturns {
   updateEntity?: EntityMutationResult;
   deleteEntity?: boolean;
   listEntities?: BaseEntity[];
+  queryEntityHierarchy?: EntityHierarchyPage;
   search?: SearchResult[];
   countEntities?: number;
 }
@@ -130,6 +133,18 @@ export function createMockEntityService(
     getEntity: genericSpy<IEntityService["getEntity"]>(getEntityMock),
     getEntityRaw: genericSpy<IEntityService["getEntityRaw"]>(getEntityRawMock),
     listEntities: genericSpy<IEntityService["listEntities"]>(listEntitiesMock),
+    queryEntityHierarchy: mock(
+      async (
+        request: QueryEntityHierarchyRequest,
+      ): Promise<EntityHierarchyPage> =>
+        returns.queryEntityHierarchy ?? {
+          prefix: request.prefix ? [...request.prefix] : null,
+          folders: [],
+          entities: [],
+          offset: request.offset ?? 0,
+          totalEntities: 0,
+        },
+    ),
     search: genericSpy<IEntityService["search"]>(searchMock),
 
     // The real mutations run beforeWrite inside the write transaction, so a

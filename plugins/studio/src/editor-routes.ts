@@ -31,6 +31,8 @@ import {
   handleCreateEntity,
   handleDeleteEntity,
   handleGetEntities,
+  handleGetEntityHierarchy,
+  handlePreviewDestination,
   handleUpdateEntity,
 } from "./editor-entities";
 import { handleUpload } from "./editor-upload";
@@ -377,6 +379,28 @@ export function createEditorRoutes(
         const access = await requireTrustedAccess(request);
         if (access instanceof Response) return access;
         return handleGetSchema(getContext(), request, access);
+      },
+    },
+    {
+      path: apiPath("destination"),
+      method: "POST",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const access = await requireTrustedAccess(request);
+        if (access instanceof Response) return access;
+        const denied = requireSameOriginJson(request);
+        if (denied) return denied;
+        return handlePreviewDestination(getContext(), request, access);
+      },
+    },
+    {
+      path: apiPath("hierarchy"),
+      method: "GET",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const access = await requireTrustedAccess(request);
+        if (access instanceof Response) return access;
+        return handleGetEntityHierarchy(getContext(), request, access);
       },
     },
     {

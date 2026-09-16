@@ -9,6 +9,7 @@ import {
 import type {
   RuntimeOperatorActionControl,
   RuntimeOperatorLaunchIntent,
+  EntityIdPath,
 } from "@brains/plugins";
 import type { AuthAccountRole } from "@brains/auth-service/account-contracts";
 import { isPlainRecord } from "@brains/utils/predicates";
@@ -79,6 +80,7 @@ import {
 } from "./entity-fields";
 import {
   editorWorkflowReducer,
+  creationIdPath,
   hasUnsavedEditorChanges,
   initialEditorWorkflowState,
   type SaveState,
@@ -104,6 +106,7 @@ import {
 } from "./publication-actions";
 import {
   agentTargetsQueryOptions,
+  destinationQueryOptions,
   studioKeys,
   entityDetailQueryOptions,
   entityListQueryOptions,
@@ -274,7 +277,7 @@ export function App(): ReactElement {
   const entityCollectionQuery = useMemo(
     () =>
       activeType?.isSingleton
-        ? collectionQuery("")
+        ? collectionQuery("?scope=collection")
         : collectionQuery(routeSearch),
     [activeType?.isSingleton, routeSearch],
   );
@@ -343,6 +346,20 @@ export function App(): ReactElement {
     enabled: entityType !== null,
   });
   const schema = entityType ? (entitySchemaQuery.data ?? null) : null;
+  const createPath = creationIdPath(mode);
+  const destinationQuery = useQuery(
+    destinationQueryOptions(
+      api,
+      entityType && createPath && mode.kind === "create" && mode.segment
+        ? {
+            entityType,
+            idPath: createPath,
+            frontmatter: visibleFieldValues(schema?.fields ?? [], draft),
+            ...(schema?.hasBody && { body }),
+          }
+        : null,
+    ),
+  );
   useQuery({
     ...entityDetailQueryOptions(api, entityType ?? "", activeEntityId ?? ""),
     enabled: entityType !== null && activeEntityId !== null,
@@ -563,9 +580,7 @@ export function App(): ReactElement {
           setBodyMode(nextPane === "write" ? "source" : "preview");
         }
         if (createMode && routeEntityId === null) {
-          const canCreateRequestedType =
-            types?.find((info) => info.entityType === entityType)?.capabilities
-              .canCreate === true;
+          const canCreateRequestedType = activeCapabilities?.canCreate === true;
           if (!canCreateRequestedType) {
             setLoadError(`Creating ${entityType} is not allowed.`);
             return undefined;
@@ -585,6 +600,12 @@ export function App(): ReactElement {
             type: "creationStarted",
             draft: next.draft,
             body: next.body,
+            ...(!prefill && {
+              prefix:
+                entityType === "note"
+                  ? null
+                  : collectionQuery(routeSearch).prefix,
+            }),
           });
           return undefined;
         }
@@ -615,7 +636,11 @@ export function App(): ReactElement {
         // Singletons skip the list: open the record, or start creating it.
         if (loadedSchema.isSingleton) {
           const loadedPage = await queryClient.ensureQueryData(
-            entityListQueryOptions(api, entityType),
+            entityListQueryOptions(
+              api,
+              entityType,
+              collectionQuery("?scope=collection"),
+            ),
           );
           if (!isCurrentRequest()) return undefined;
           const record = loadedPage.entities[0];
@@ -653,8 +678,9 @@ export function App(): ReactElement {
     loadAttempt,
     queryClient,
     routePathname,
+    routeSearch,
     routeTarget,
-    types,
+    activeCapabilities?.canCreate,
   ]);
 
   const openEntity = useCallback(
@@ -663,11 +689,16 @@ export function App(): ReactElement {
       const pathname = studioEntityPath(studioBasePath, entityType, id);
       if (pathname !== currentStudioPathname) {
         pendingOpenState.current = { pathname, save: nextState };
-        router.history.push(
+        const collectionPath = `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`;
+        const replaceCreation = createMode && nextState.kind === "saved";
+        const historyState: unknown = router.history.location.state;
+        const fromCollection =
+          !replaceCreation ||
+          (isPlainRecord(historyState) &&
+            historyState["studioCollectionPath"] === collectionPath);
+        router.history[replaceCreation ? "replace" : "push"](
           `${pathname}${collectionSearch(entityCollectionQuery)}`,
-          {
-            studioCollectionPath: `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`,
-          },
+          fromCollection ? { studioCollectionPath: collectionPath } : undefined,
           nextState.kind === "saved" ? { ignoreBlocker: true } : undefined,
         );
         return;
@@ -703,6 +734,7 @@ export function App(): ReactElement {
     [
       studioBasePath,
       currentStudioPathname,
+      createMode,
       entityType,
       entityCollectionQuery,
       queryClient,
@@ -880,14 +912,37 @@ export function App(): ReactElement {
     [studioBasePath, router.history],
   );
 
+  const selectFolder = useCallback(
+    (prefix: EntityIdPath | null): void => {
+      if (!entityType) return;
+      router.history.push(
+        `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch({ ...entityCollectionQuery, prefix, offset: 0 })}`,
+      );
+      window.scrollTo({ top: 0, left: 0 });
+    },
+    [entityType, studioBasePath, entityCollectionQuery, router.history],
+  );
+
   const startCreate = useCallback((): void => {
-    if (!schema || activeCapabilities?.canCreate !== true) return;
-    dispatchEditor({
-      type: "creationStarted",
-      draft: emptyDraft(schema.fields),
-    });
+    if (!schema || !entityType || activeCapabilities?.canCreate !== true)
+      return;
+    const params = new URLSearchParams(collectionSearch(entityCollectionQuery));
+    params.set("mode", "create");
+    router.history.push(
+      `${studioCollectionPath(studioBasePath, entityType)}?${params.toString()}`,
+      {
+        studioCollectionPath: `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`,
+      },
+    );
     setFieldAssistState({ kind: "idle" });
-  }, [activeCapabilities, schema]);
+  }, [
+    activeCapabilities,
+    schema,
+    entityType,
+    entityCollectionQuery,
+    studioBasePath,
+    router.history,
+  ]);
 
   const backToList = useCallback((): void => {
     if (!entityType) return;
@@ -974,6 +1029,7 @@ export function App(): ReactElement {
         ? {
             kind: "create",
             entityType,
+            ...(createPath && { idPath: createPath }),
             frontmatter,
             ...bodyPayload,
           }
@@ -1016,7 +1072,9 @@ export function App(): ReactElement {
         dispatchEditor({
           type: "saveFailed",
           save:
-            error instanceof ApiError && error.status === 409
+            error instanceof ApiError &&
+            error.status === 409 &&
+            mode.kind === "edit"
               ? { kind: "conflict", message: errorMessage(error) }
               : {
                   kind: "error",
@@ -1035,6 +1093,7 @@ export function App(): ReactElement {
     activeCapabilities,
     entityType,
     mode,
+    createPath,
     draft,
     body,
     schema,
@@ -1075,7 +1134,7 @@ export function App(): ReactElement {
             }),
           ]);
           router.history.replace(
-            studioCollectionPath(studioBasePath, entityType),
+            `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`,
             undefined,
             { ignoreBlocker: true },
           );
@@ -1371,6 +1430,18 @@ export function App(): ReactElement {
       workspaceQuery={workspaceRequestQuery}
       entityType={entityType}
       entities={entities}
+      folders={entityListQuery.data?.folders ?? []}
+      collectionPath={
+        entityType
+          ? studioCollectionPath(studioBasePath, entityType)
+          : studioBasePath
+      }
+      selectFolder={selectFolder}
+      creationDestination={{
+        data: destinationQuery.data ?? null,
+        pending: destinationQuery.isPending,
+        error: destinationQuery.error,
+      }}
       entityOffset={entityListOffset}
       entityLimit={entityCollectionQuery.limit}
       entityTotal={entityListTotal ?? 0}

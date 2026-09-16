@@ -157,6 +157,8 @@ export type {
   SemanticSpacePoint,
   SemanticSpaceProjection,
   ListEntitiesRequest,
+  QueryEntityHierarchyRequest,
+  EntityHierarchyPage,
   CountEntitiesRequest,
   EntitySearchRequest,
   SearchWithDistancesRequest,

@@ -59,6 +59,7 @@ it("applies a query without a control to press", async () => {
     button.textContent.trim(),
   );
   expect(buttons).not.toContain("Search");
+  expect(document.querySelector('[aria-label="Search scope"]')).toBeNull();
   expect(document.body.textContent).toContain("3 matches");
 });
 
@@ -75,6 +76,34 @@ it("commits a filter from the settled query, never a half-typed one", async () =
   expect(committed[0]).toMatchObject({
     visibility: "restricted",
     q: "settled",
+    offset: 0,
+  });
+});
+
+it("keeps the selected folder when clearing filters and exposes the search scope", async () => {
+  const committed: StudioCollectionQuery[] = [];
+  await mount({ prefix: ["book-1"], scope: "folder", q: "shared" }, (next) =>
+    committed.push(next),
+  );
+  const whole = [...document.querySelectorAll("button")].find(
+    (button) => button.textContent === "Whole collection",
+  );
+  expect(whole).toBeDefined();
+  await act(async () => whole?.click());
+  expect(committed[0]).toMatchObject({
+    prefix: ["book-1"],
+    scope: "collection",
+    q: "shared",
+    offset: 0,
+  });
+  const clear = document.querySelector<HTMLButtonElement>(
+    '[aria-label="Clear search and filters"]',
+  );
+  await act(async () => clear?.click());
+  expect(committed[1]).toMatchObject({
+    prefix: ["book-1"],
+    scope: "folder",
+    q: "",
     offset: 0,
   });
 });

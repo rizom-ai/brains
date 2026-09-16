@@ -29,6 +29,8 @@ import type {
   GetEntityRawRequest,
   ProjectionOwnedEntityRequest,
   ListEntitiesRequest,
+  QueryEntityHierarchyRequest,
+  EntityHierarchyPage,
   CountEntitiesRequest,
   DeleteEntityRequest,
   EntitySearchRequest,
@@ -717,6 +719,14 @@ export class EntityService implements IEntityService {
       this.publishedStatusesFor(entityType),
     );
     return schema ? entities.map((entity) => schema.parse(entity)) : entities;
+  }
+
+  public async queryEntityHierarchy(
+    request: QueryEntityHierarchyRequest,
+  ): Promise<EntityHierarchyPage> {
+    request.signal?.throwIfAborted();
+    await this.initialize();
+    return this.entityQueries.queryEntityHierarchy(request);
   }
 
   public async countEntities(request: CountEntitiesRequest): Promise<number> {

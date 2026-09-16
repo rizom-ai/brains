@@ -61,8 +61,11 @@ module.exports = {
               },
               {
                 name: "@brains/entity-service",
+                // The shared identity codec is a package-level contract, not a
+                // service capability. Keep all other shell imports restricted.
+                allowImportNames: ["decodeEntityIdPath", "encodeEntityIdPath"],
                 message:
-                  "Import from @brains/plugins instead. Shell packages should be accessed through the plugins package.",
+                  "Only the entity-path codec may be imported here; access entity-service capabilities through @brains/plugins.",
               },
               {
                 name: "@brains/content-service",

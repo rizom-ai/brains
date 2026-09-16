@@ -1,6 +1,8 @@
 import type {
   RuntimeStudioWorkspaceData,
   UserPermissionLevel,
+  EntityIdPath,
+  EntityIdPathInput,
 } from "@brains/plugins";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import {
@@ -122,9 +124,33 @@ export interface EntitySummary {
   entityType: string;
   frontmatter: Record<string, unknown>;
   updated: string;
+  path?: EntityIdPath;
+}
+
+export interface EntityFolder {
+  path: EntityIdPath;
+  name: string;
+  descendantCount: number;
+}
+
+export interface DestinationInput {
+  entityType: string;
+  idPath: EntityIdPathInput;
+  frontmatter: Record<string, unknown>;
+  body?: string;
+}
+
+export interface DestinationPreview {
+  idPath: EntityIdPath;
+  entityId: string;
+  entityLeaf: { start: number; end: number };
+  filePath: string | null;
+  fileLeaf: { start: number; end: number } | null;
 }
 
 export interface EntityPage {
+  prefix?: EntityIdPath | null;
+  folders?: EntityFolder[];
   entities: EntitySummary[];
   /** Count after applying the same filters and visibility scope as the page. */
   total: number;
@@ -320,12 +346,14 @@ export class StudioApi {
       offset: String(page.offset),
       limit: String(page.limit),
     });
+    if (page.prefix) params.set("prefix", JSON.stringify(page.prefix));
+    if (page.scope !== "folder") params.set("scope", page.scope);
     if (page.q) params.set("q", page.q);
     if (page.visibility !== "all") params.set("visibility", page.visibility);
     if (page.status) params.set("status", page.status);
     if (page.sort !== "updated-desc") params.set("sort", page.sort);
     return this.requestJson<EntityPage>(
-      this.path(`entities?${params.toString()}`),
+      this.path(`hierarchy?${params.toString()}`),
     );
   }
 
@@ -356,8 +384,21 @@ export class StudioApi {
     });
   }
 
+  async previewDestination(
+    input: DestinationInput,
+    signal?: AbortSignal,
+  ): Promise<DestinationPreview> {
+    return this.requestJson<DestinationPreview>(this.path("destination"), {
+      ...(signal && { signal }),
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+  }
+
   async createEntity(input: {
     entityType: string;
+    idPath?: EntityIdPathInput;
     frontmatter: Record<string, unknown>;
     body?: string;
   }): Promise<{ entityId: string; jobId: string }> {
