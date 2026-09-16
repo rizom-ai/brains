@@ -217,6 +217,9 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
       message: "Rendering PDF document",
     });
 
+    const state: { publicationEntered: boolean } = {
+      publicationEntered: false,
+    };
     try {
       const attachment = await this.resolveDocumentAttachment(
         data,
@@ -264,6 +267,10 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
         dedupKey,
       });
 
+      // A save can commit without returning its acknowledgement. Once entered,
+      // neither reply uncertainty nor target/progress failure permits a second
+      // mutation marking this document failed.
+      state.publicationEntered = true;
       await saveProcessedEntity({
         entityService: this.context.entityService,
         entity: {
@@ -293,12 +300,25 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
         jobId,
         error: errorMessage,
       });
-      await failPendingEntity({
-        entityService: this.context.entityService,
-        entityType: "document",
-        id: documentId,
-        error: errorMessage,
-      });
+      const failures: unknown[] = [];
+      if (!state.publicationEntered) {
+        try {
+          await failPendingEntity({
+            entityService: this.context.entityService,
+            entityType: "document",
+            id: documentId,
+            error: errorMessage,
+          });
+        } catch (failure) {
+          if (!Object.is(failure, error)) failures.push(failure);
+        }
+      }
+      if (failures.length > 0)
+        throw new AggregateError(
+          [error, ...failures],
+          "Document rendering and pending failure update failed",
+          { cause: error },
+        );
       throw error;
     }
   }

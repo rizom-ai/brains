@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it, spyOn, mock } from "bun:test";
+import assert from "node:assert/strict";
 import {
   CallbackProgressReporter,
   type ProgressReporter,
@@ -73,6 +74,182 @@ describe("DocumentGenerationJobHandler", () => {
         new SocialPostStubAdapter(),
       );
     context = createServicePluginContext(shell, "document");
+  });
+
+  const publicationRequest = {
+    renderUrl: "http://localhost/printable",
+    sourceEntityType: "social-post",
+    sourceEntityId: "post-1",
+    attachmentType: "carousel",
+    documentId: "publication-document",
+    filename: "publication-document.pdf",
+    dedupKey: "publication-key",
+  };
+
+  async function seedPublicationDocument(
+    status: "pending" | "draft" = "pending",
+  ): Promise<void> {
+    await context.entityService.createEntity({
+      entity: {
+        ...documentAdapter.createDocumentEntity({
+          dataUrl: createPdfDataUrl(pdfBuffer),
+          filename: publicationRequest.filename,
+          status,
+          dedupKey: publicationRequest.dedupKey,
+        }),
+        id: publicationRequest.documentId,
+      },
+    });
+  }
+
+  it("does not mark a saved document failed when target linkage fails", async () => {
+    await seedPublicationDocument();
+    const handler = new DocumentGenerationJobHandler(
+      createSilentLogger(),
+      context,
+      { renderPdf: async (): Promise<Buffer> => pdfBuffer },
+    );
+    await assert.rejects(
+      handler.process(
+        {
+          ...publicationRequest,
+          targetEntityType: "social-post",
+          targetEntityId: "missing",
+        },
+        "job",
+        progressReporter(),
+      ),
+      /Target entity not found/,
+    );
+    const stored = await context.entityService.getEntity({
+      entityType: "document",
+      id: publicationRequest.documentId,
+    });
+    expect(stored?.metadata["status"]).toBe("draft");
+    expect(stored?.metadata["processingError"]).toBeUndefined();
+    expect(stored?.content).toBe(createPdfDataUrl(pdfBuffer));
+  });
+
+  it("preserves a saved document when final progress fails", async () => {
+    await seedPublicationDocument();
+    const primary = new Error("progress delivery failed");
+    const reporter = CallbackProgressReporter.from(async (event) => {
+      if (event.progress === 100) throw primary;
+    });
+    assert.ok(reporter);
+    const handler = new DocumentGenerationJobHandler(
+      createSilentLogger(),
+      context,
+      { renderPdf: async (): Promise<Buffer> => pdfBuffer },
+    );
+    await assert.rejects(
+      handler.process(publicationRequest, "job", reporter),
+      (error: unknown) => error === primary,
+    );
+    const stored = await context.entityService.getEntity({
+      entityType: "document",
+      id: publicationRequest.documentId,
+    });
+    expect(stored?.metadata["status"]).toBe("draft");
+    expect(stored?.metadata["processingError"]).toBeUndefined();
+  });
+
+  it("never follows an unavailable save outcome with a failed-placeholder mutation", async () => {
+    await seedPublicationDocument();
+    const primary = new Error("save outcome unavailable");
+    const update = spyOn(
+      context.entityService,
+      "updateEntity",
+    ).mockRejectedValue(primary);
+    const handler = new DocumentGenerationJobHandler(
+      createSilentLogger(),
+      context,
+      { renderPdf: async (): Promise<Buffer> => pdfBuffer },
+    );
+    await assert.rejects(
+      handler.process(publicationRequest, "job", progressReporter()),
+      (error: unknown) => error === primary,
+    );
+    expect(update).toHaveBeenCalledTimes(1);
+  });
+
+  it("retains distinct rendering and failed-placeholder update causes", async () => {
+    await seedPublicationDocument();
+    const primary = new Error("render failed"),
+      secondary = new Error("failed-placeholder update failed");
+    const update = spyOn(
+      context.entityService,
+      "updateEntity",
+    ).mockRejectedValue(secondary);
+    const handler = new DocumentGenerationJobHandler(
+      createSilentLogger(),
+      context,
+      {
+        renderPdf: async (): Promise<never> => {
+          throw primary;
+        },
+      },
+    );
+    await assert.rejects(
+      handler.process(publicationRequest, "job", progressReporter()),
+      (error: unknown) => {
+        assert.ok(error instanceof AggregateError);
+        expect(error.errors).toEqual([primary, secondary]);
+        expect(error.cause).toBe(primary);
+        return true;
+      },
+    );
+    expect(update).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not wrap the same rendering and failed-update error twice", async () => {
+    await seedPublicationDocument();
+    const primary = new Error("shared failure");
+    const update = spyOn(
+      context.entityService,
+      "updateEntity",
+    ).mockRejectedValue(primary);
+    const handler = new DocumentGenerationJobHandler(
+      createSilentLogger(),
+      context,
+      {
+        renderPdf: async (): Promise<never> => {
+          throw primary;
+        },
+      },
+    );
+    await assert.rejects(
+      handler.process(publicationRequest, "job", progressReporter()),
+      (error: unknown) => error === primary,
+    );
+    expect(update).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not rerender or fail a reused document after target failure", async () => {
+    await seedPublicationDocument("draft");
+    const renderPdf = mock(async (): Promise<never> => {
+      throw new Error("Unexpected render");
+    });
+    const update = spyOn(context.entityService, "updateEntity");
+    const handler = new DocumentGenerationJobHandler(
+      createSilentLogger(),
+      context,
+      { renderPdf },
+    );
+    await assert.rejects(
+      handler.process(
+        {
+          ...publicationRequest,
+          targetEntityType: "social-post",
+          targetEntityId: "missing",
+        },
+        "job",
+        progressReporter(),
+      ),
+      /Target entity not found/,
+    );
+    expect(renderPdf).not.toHaveBeenCalled();
+    expect(update).not.toHaveBeenCalled();
   });
 
   it("renders and stores a generated PDF document", async () => {
