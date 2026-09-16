@@ -741,6 +741,26 @@ plugins:
         } finally {
           bufferedUpload.mockRestore();
         }
+        let borrowedFile = "";
+        const consumed = await workerFiles.withAssetFile(
+          record.ref,
+          async (file, signal) => {
+            signal.throwIfAborted();
+            borrowedFile = file.sourceFile;
+            assert.deepEqual(
+              { sizeBytes: file.sizeBytes, sha256: file.sha256 },
+              { sizeBytes: SIZE, sha256: SHA },
+            );
+            // Independent fixture verification only, never a production byte handoff.
+            assert.deepEqual(
+              await Bun.file(file.sourceFile).bytes(),
+              await Bun.file(sourceFile).bytes(),
+            );
+            return "consumed";
+          },
+        );
+        assert.equal(consumed, "consumed");
+        assert.equal(await Bun.file(borrowedFile).exists(), false);
       };
       // Independent workflows share the unchanged two-child admission. Join
       // both real outcomes rather than racing away on the first failure.

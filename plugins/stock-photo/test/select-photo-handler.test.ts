@@ -27,6 +27,7 @@ function createFiles(): Files {
   return {
     inspect: unused,
     fingerprint: unused,
+    withAssetFile: unused,
     download: unused,
     publish: mock(
       async (): Promise<{

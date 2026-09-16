@@ -35,6 +35,9 @@ export function mockImageFileAssets(service: EntityServiceClient): Files {
     fingerprint: async (): Promise<never> => {
       throw new Error("Unexpected fingerprint");
     },
+    withAssetFile: async (): Promise<never> => {
+      throw new Error("Unexpected asset file loan");
+    },
     download: async (): Promise<never> => {
       throw new Error("Unexpected download");
     },

@@ -49,6 +49,7 @@ describe("pending ingestion helpers", () => {
         inspect: unused,
         fingerprint: unused,
         download: unused,
+        withAssetFile: unused,
         close: async (): Promise<void> => undefined,
       },
     };
@@ -84,6 +85,7 @@ describe("pending ingestion helpers", () => {
         inspect: unused,
         fingerprint: unused,
         download: unused,
+        withAssetFile: unused,
         close: async (): Promise<void> => undefined,
       },
     };

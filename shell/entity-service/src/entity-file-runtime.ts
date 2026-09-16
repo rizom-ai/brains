@@ -1,6 +1,7 @@
 import { isAbsolute, join } from "node:path";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
+import { assetRefSchema, type AssetRef } from "@brains/assets";
 import { remoteUrlSchema } from "@brains/db/file-fetch";
 import { fileProducePathSchema } from "@brains/db/file-produce";
 import { z } from "@brains/utils/zod";
@@ -26,11 +27,23 @@ export interface EntityFileSource {
   sourceFile: string;
   sizeBytes: number;
 }
+export interface EntityVerifiedFileSource extends EntityFileSource {
+  sha256: string;
+}
 export interface EntityFileInspectionOptions extends EntityBinaryRequestOptions {
   /** Select an explicitly provisioned inspection artifact. No default fallback. */
   inspector?: string;
 }
 export interface EntityFileAssets {
+  /** Borrow an owned, verified download through consumer settlement. Failed
+   * staging is retained; a successful result is not retracted by late abort.
+   * A file path is not authority or an immutable snapshot.
+   */
+  withAssetFile<T>(
+    ref: AssetRef,
+    use: (file: EntityVerifiedFileSource, signal: AbortSignal) => Promise<T>,
+    options?: EntityBinaryRequestOptions,
+  ): Promise<T>;
   /** Lend actor-produced output after actual Bun exit. Failed staging is retained.
    * Caller keeps the input directory alive through settlement and joins consumers.
    * The producer artifact is explicitly provisioned; no controller byte fallback.
@@ -134,6 +147,29 @@ export class EntityFileRuntime implements EntityFileAssets {
       });
     this.operations.set(abort, work);
     return work;
+  }
+  public withAssetFile<T>(
+    ref: AssetRef,
+    use: (file: EntityVerifiedFileSource, signal: AbortSignal) => Promise<T>,
+    options?: EntityBinaryRequestOptions,
+  ): Promise<T> {
+    return this.run(async (signal): Promise<T> => {
+      const parsed = assetRefSchema.parse(ref);
+      signal.throwIfAborted();
+      const directory = await mkdtemp(join(tmpdir(), "turso-asset-file-"));
+      const sourceFile = join(directory, "verified");
+      // Keep one operation admitted through borrowing; do not nest download's
+      // admission. downloadFile joins both native retirement and actor exit.
+      const facts = await this.client.downloadFile(
+        { ref: parsed, outputFile: sourceFile },
+        this.actors,
+        { signal },
+      );
+      signal.throwIfAborted();
+      const result = await use({ sourceFile, ...facts }, signal);
+      await rm(directory, { recursive: true });
+      return result;
+    }, options?.signal);
   }
   public withRemoteFile<T>(
     url: string,

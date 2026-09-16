@@ -91,6 +91,7 @@ describe("Blog printable attachment provider", () => {
     service.fileAssets = {
       inspect: unexpected,
       publish: unexpected,
+      withAssetFile: unexpected,
       download: unexpected,
       fingerprint: unexpected,
       close: async (): Promise<void> => undefined,

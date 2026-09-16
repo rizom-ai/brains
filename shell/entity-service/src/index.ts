@@ -31,6 +31,7 @@ export type {
   EntityFileAssets,
   EntityFileInspectionOptions,
   EntityFileSource,
+  EntityVerifiedFileSource,
 } from "./entity-file-runtime";
 export type {
   EntityFilePublicationInput,

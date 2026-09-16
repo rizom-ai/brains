@@ -85,6 +85,9 @@ export function mockFileAssets(
       const asset = prepareAsset(await readFile(sourceFile));
       return { sizeBytes: asset.sizeBytes, sha256: asset.digest };
     },
+    withAssetFile: async (): Promise<never> => {
+      throw new Error("Unexpected asset file loan");
+    },
     download: async ({ ref, outputFile }): ReturnType<Files["download"]> => {
       if (!read) throw new Error("asset read not configured");
       const asset = prepareAsset(await read(ref));

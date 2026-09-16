@@ -50,6 +50,230 @@ function runtime(
     ),
   });
 }
+test("asset file loans retain failures and join borrowers during shutdown", async () => {
+  const files = runtime(async (): Promise<never> => {
+    throw new Error("Unexpected control");
+  });
+  const ref = `asset://sha256/${"a".repeat(64)}` as const;
+  const download = spyOn(
+    EntityBinaryClient.prototype,
+    "downloadFile",
+  ).mockImplementation(async (request) => {
+    await Bun.write(request.outputFile, "fixture");
+    return { sizeBytes: 7, sha256: "a".repeat(64) };
+  });
+  const primary = new Error("consumer failed");
+  let failedFile = "";
+  let successfulFile = "";
+  const entered = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  try {
+    await assert.rejects(
+      files.withAssetFile(ref, async (file): Promise<never> => {
+        failedFile = file.sourceFile;
+        expect(file.sizeBytes).toBe(7);
+        expect(file.sha256).toBe("a".repeat(64));
+        throw primary;
+      }),
+      (error: unknown) => error === primary,
+    );
+    expect(await Bun.file(failedFile).exists()).toBe(true);
+    const work = files.withAssetFile(ref, async (file, signal) => {
+      successfulFile = file.sourceFile;
+      entered.resolve();
+      await release.promise;
+      expect(signal.aborted).toBe(true);
+      expect(await Bun.file(successfulFile).exists()).toBe(true);
+      return "acknowledged";
+    });
+    await entered.promise;
+    let closed = false;
+    const closing = files.close().then(() => {
+      closed = true;
+    });
+    await assert.rejects(
+      files.withAssetFile(ref, async () => "unexpected"),
+      /closing/,
+    );
+    expect(closed).toBe(false);
+    release.resolve();
+    expect(await work).toBe("acknowledged");
+    await closing;
+    expect(await Bun.file(successfulFile).exists()).toBe(false);
+    expect(await Bun.file(failedFile).exists()).toBe(true);
+    expect(download).toHaveBeenCalledTimes(2);
+  } finally {
+    release.resolve();
+    await files.close();
+    download.mockRestore();
+  }
+});
+
+test("cancelled asset downloads join their receipt without admitting a consumer", async () => {
+  const files = runtime(async (): Promise<never> => {
+    throw new Error("Unexpected control");
+  });
+  const entered = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  const caller = new AbortController();
+  const primary = new Error("cancelled during download");
+  let retained = "";
+  let consumed = false;
+  const download = spyOn(
+    EntityBinaryClient.prototype,
+    "downloadFile",
+  ).mockImplementation(async (request) => {
+    retained = request.outputFile;
+    await Bun.write(retained, "fixture");
+    entered.resolve();
+    await release.promise;
+    return { sizeBytes: 7, sha256: "a".repeat(64) };
+  });
+  try {
+    const work = files.withAssetFile(
+      `asset://sha256/${"a".repeat(64)}`,
+      async () => {
+        consumed = true;
+      },
+      { signal: caller.signal },
+    );
+    const rejected = assert.rejects(
+      work,
+      (error: unknown) => error === primary,
+    );
+    await entered.promise;
+    caller.abort(primary);
+    expect(consumed).toBe(false);
+    let closed = false;
+    const closing = files.close().finally(() => {
+      closed = true;
+    });
+    const retired = assert.rejects(
+      closing,
+      (error: unknown) =>
+        error instanceof AggregateError && error.cause === primary,
+    );
+    expect(closed).toBe(false);
+    release.resolve();
+    await rejected;
+    await retired;
+    expect(consumed).toBe(false);
+    expect(await Bun.file(retained).exists()).toBe(true);
+  } finally {
+    release.resolve();
+    await assert.rejects(
+      files.close(),
+      (error: unknown) =>
+        error instanceof AggregateError && error.cause === primary,
+    );
+    download.mockRestore();
+  }
+});
+
+test("asset loans preserve native failure graphs and never lend unacknowledged files", async () => {
+  const files = runtime(async (): Promise<never> => {
+    throw new Error("Unexpected control");
+  });
+  const primary = new Error("download failed");
+  const cleanup = new Error("retirement uncertain");
+  const failure = new AggregateError(
+    [primary, cleanup],
+    "Download and retirement failed",
+    { cause: primary },
+  );
+  let retained = "";
+  let consumed = false;
+  const download = spyOn(
+    EntityBinaryClient.prototype,
+    "downloadFile",
+  ).mockImplementation(async (request) => {
+    retained = request.outputFile;
+    await Bun.write(retained, "fixture");
+    throw failure;
+  });
+  try {
+    await assert.rejects(
+      files.withAssetFile(`asset://sha256/${"a".repeat(64)}`, async () => {
+        consumed = true;
+      }),
+      (error: unknown) => error === failure,
+    );
+    expect(consumed).toBe(false);
+    expect(await Bun.file(retained).exists()).toBe(true);
+  } finally {
+    await files.close();
+    download.mockRestore();
+  }
+});
+
+test("borrowed assets hold the existing sixteen operation slots until consumers settle", async () => {
+  const files = runtime(async (): Promise<never> => {
+    throw new Error("Unexpected control");
+  });
+  const release = Promise.withResolvers<void>();
+  const work: Promise<void>[] = [];
+  const download = spyOn(
+    EntityBinaryClient.prototype,
+    "downloadFile",
+  ).mockImplementation(async (request) => {
+    await Bun.write(request.outputFile, "fixture");
+    return { sizeBytes: 7, sha256: "a".repeat(64) };
+  });
+  try {
+    for (let index = 0; index < 16; index++) {
+      const entered = Promise.withResolvers<void>();
+      work.push(
+        files.withAssetFile(`asset://sha256/${"a".repeat(64)}`, async () => {
+          entered.resolve();
+          await release.promise;
+        }),
+      );
+      await entered.promise;
+    }
+    await assert.rejects(
+      files.withAssetFile(
+        `asset://sha256/${"a".repeat(64)}`,
+        async () => "unexpected",
+      ),
+      /admission capacity/,
+    );
+    expect(download).toHaveBeenCalledTimes(16);
+  } finally {
+    release.resolve();
+    await Promise.all(work);
+    await files.close();
+    download.mockRestore();
+  }
+});
+
+test("asset file loans reject invalid references and pre-aborts before downloading", async () => {
+  const files = runtime(async (): Promise<never> => {
+    throw new Error("Unexpected control");
+  });
+  const download = spyOn(EntityBinaryClient.prototype, "downloadFile");
+  const abort = new AbortController();
+  const primary = new Error("cancelled");
+  abort.abort(primary);
+  try {
+    await assert.rejects(
+      files.withAssetFile("asset://sha256/invalid", async () => "unexpected"),
+      /asset reference/,
+    );
+    await assert.rejects(
+      files.withAssetFile(
+        `asset://sha256/${"a".repeat(64)}`,
+        async () => "unexpected",
+        { signal: abort.signal },
+      ),
+      (error: unknown) => error === primary,
+    );
+    expect(download).not.toHaveBeenCalled();
+  } finally {
+    await files.close();
+    download.mockRestore();
+  }
+});
+
 test("unknown inspection selections never acquire native authority or fall back", async () => {
   let calls = 0;
   const files = runtime(async (): Promise<never> => {
