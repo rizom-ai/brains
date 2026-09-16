@@ -314,8 +314,14 @@ export class JobQueueWorker {
         availableSlots = Math.min(availableSlots, remainingJobs);
       }
 
-      // Get jobs from the queue
-      const jobs: JobInfo[] = [];
+      // Establish supervision before acquiring any durable attempt ownership.
+      const jobFibers = this.jobFibers;
+      if (!jobFibers) {
+        throw new Error("Worker job fiber scope is not available");
+      }
+
+      // Hand off each claim before requesting another. A later dequeue can
+      // fail or stall; it must not strand an earlier claim without a heartbeat.
       for (let i = 0; i < availableSlots; i++) {
         // Re-check on every iteration — stop() may have been requested
         // while awaiting a previous dequeue
@@ -331,22 +337,8 @@ export class JobQueueWorker {
           workerSessionId,
           leaseDurationMs: this.config.leaseDurationMs,
         });
-        if (job) {
-          jobs.push(job);
-        } else {
-          break; // No more jobs available
-        }
-      }
+        if (!job) break;
 
-      // Process jobs concurrently under the worker's supervised fiber map.
-      const jobFibers = this.jobFibers;
-      if (!jobFibers) {
-        if (jobs.length > 0) {
-          throw new Error("Worker job fiber scope is not available");
-        }
-        return;
-      }
-      for (const job of jobs) {
         this.activeJobs.add(job.id);
         await Effect.runPromise(
           FiberMap.run(
