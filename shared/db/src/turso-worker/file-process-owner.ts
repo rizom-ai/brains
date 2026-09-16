@@ -46,9 +46,16 @@ export interface FileProcessOwnerOptions {
   uploadUrl: URL;
   downloadUrl: URL;
   inspectionUploadUrl?: URL;
+  /** Explicit named inspection artifacts; selection never falls back to the default. */
+  inspectionUploadUrls?: Readonly<Record<string, URL>>;
   remoteDownloadUrl?: URL;
   producerUrl?: URL;
 }
+const inspectorNameSchema = z
+  .string()
+  .min(1)
+  .max(64)
+  .regex(/^[a-z][a-z0-9-]*$/);
 interface Child {
   readonly terminal: boolean;
   stop(error: unknown): void;
@@ -73,6 +80,7 @@ export class FileProcessOwner {
   private readonly uploadPath: string;
   private readonly downloadPath: string;
   private readonly inspectionPath: string | undefined;
+  private readonly inspectionPaths = new Map<string, string>();
   private readonly remotePath: string | undefined;
   private readonly producerPath: string | undefined;
   private producing = false;
@@ -101,6 +109,11 @@ export class FileProcessOwner {
     this.executable = options.executable;
     this.uploadPath = actorPath(options.uploadUrl);
     this.downloadPath = actorPath(options.downloadUrl);
+    const inspectors = Object.entries(options.inspectionUploadUrls ?? {});
+    if (inspectors.length > 16)
+      throw new Error("File inspector configuration exceeds its limit");
+    for (const [name, url] of inspectors)
+      this.inspectionPaths.set(inspectorNameSchema.parse(name), actorPath(url));
     this.inspectionPath = options.inspectionUploadUrl
       ? actorPath(options.inspectionUploadUrl)
       : undefined;
@@ -145,15 +158,26 @@ export class FileProcessOwner {
       signal,
     );
   }
+  public assertInspectionAvailable(inspector?: string): void {
+    this.inspectorPath(inspector);
+  }
+  private inspectorPath(inspector?: string): string {
+    const path =
+      inspector === undefined
+        ? this.inspectionPath
+        : this.inspectionPaths.get(inspectorNameSchema.parse(inspector));
+    if (!path) throw new Error("File inspection actor is not provisioned");
+    return path;
+  }
   public async inspectUpload(
     input: FileUploadInput,
     signal?: AbortSignal,
+    inspector?: string,
   ): Promise<FileInspectionResult> {
-    if (!this.inspectionPath)
-      throw new Error("File inspection actor is not provisioned");
+    const path = this.inspectorPath(inspector);
     const options = fileUploadSchema.parse(input);
     const result = await this.run(
-      this.inspectionPath,
+      path,
       "sealed",
       options,
       options.size,

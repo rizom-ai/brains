@@ -41,6 +41,80 @@ async function terminals(
   }
 }
 
+test("named inspection is explicit and waits for its selected actor's actual exit", async () => {
+  const root = await mkdtemp(join(tmpdir(), "turso-named-inspector-"));
+  const gate = join(root, "inspection");
+  const files = new FileProcessOwner({
+    executable: process.execPath,
+    uploadUrl: peer,
+    downloadUrl: peer,
+    inspectionUploadUrls: { pdf: peer },
+  });
+  let settled = false;
+  const inspected = files
+    .inspectUpload(input(gate), undefined, "pdf")
+    .finally(() => {
+      settled = true;
+    });
+  try {
+    await terminals(files, 1);
+    expect(settled).toBe(false);
+    await assert.rejects(
+      files.inspectUpload(input(gate), undefined, "missing"),
+      /not provisioned/,
+    );
+    await assert.rejects(files.inspectUpload(input(gate)), /not provisioned/);
+    expect(files.stats().children).toBe(1);
+  } finally {
+    await Bun.write(`${gate}.exit`, "release");
+    try {
+      await inspected;
+    } finally {
+      await files.close();
+    }
+  }
+  expect(await inspected).toEqual({
+    sizeBytes: 0,
+    sha256: "a".repeat(64),
+    details: { kind: "fixture" },
+  });
+  expect(files.stats().children).toBe(0);
+  await rm(root, { recursive: true });
+});
+
+test("inspection selector configuration is bounded and local", () => {
+  const base = {
+    executable: process.execPath,
+    uploadUrl: peer,
+    downloadUrl: peer,
+  };
+  expect(
+    () =>
+      new FileProcessOwner({
+        ...base,
+        inspectionUploadUrls: { "bad/name": peer },
+      }),
+  ).toThrow();
+  expect(
+    () =>
+      new FileProcessOwner({
+        ...base,
+        inspectionUploadUrls: {
+          pdf: new URL("https://example.test/inspector"),
+        },
+      }),
+  ).toThrow(/explicit local URL/);
+  expect(
+    () =>
+      new FileProcessOwner({
+        ...base,
+        inspectionUploadUrls: Object.fromEntries(
+          Array.from({ length: 17 }, (_, index) => [`pdf-${index}`, peer]),
+        ),
+      }),
+  ).toThrow(/configuration exceeds/);
+});
+
 test("bulk production shares actor admission and holds its single reservation through actual exit", async () => {
   const root = await mkdtemp(join(tmpdir(), "turso-producer-owner-"));
   const gate = join(root, "producer");

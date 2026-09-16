@@ -50,6 +50,24 @@ function runtime(
     ),
   });
 }
+test("unknown inspection selections never acquire native authority or fall back", async () => {
+  let calls = 0;
+  const files = runtime(async (): Promise<never> => {
+    calls++;
+    throw new Error("Unexpected control");
+  });
+  try {
+    await assert.rejects(
+      files.inspect(input, { inspector: "pdf" }),
+      /not provisioned/,
+    );
+    await assert.rejects(files.inspect(input, { inspector: "bad/name" }));
+    expect(calls).toBe(0);
+  } finally {
+    await files.close();
+  }
+});
+
 test("file inspection validates trusted paths and sizes before acquiring authority", async () => {
   let calls = 0;
   const files = runtime(async (): Promise<never> => {

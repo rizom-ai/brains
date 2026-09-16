@@ -3,6 +3,7 @@
   "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.373",
   "dependencies": {
+    "@brains/db": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/utils": "workspace:*",
     "pdfjs-dist": "^6.0.227"
@@ -17,7 +18,8 @@
     ".": {
       "types": "./src/index.ts",
       "default": "./src/index.ts"
-    }
+    },
+    "./file-inspection-process": "./src/file-inspection-process.ts"
   },
   "main": "./src/index.ts",
   "private": true,

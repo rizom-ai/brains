@@ -29,6 +29,7 @@ export {
 export type {
   EntityFileActorOptions,
   EntityFileAssets,
+  EntityFileInspectionOptions,
   EntityFileSource,
 } from "./entity-file-runtime";
 export type {

@@ -1,4 +1,8 @@
 export {
+  pdfInspectionDetailsSchema,
+  type PdfInspectionDetails,
+} from "./file-inspection";
+export {
   documentIngestionStatusSchema,
   documentMimeTypeSchema,
   documentMetadataSchema,

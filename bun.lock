@@ -1351,6 +1351,7 @@
       "name": "@brains/document",
       "version": "0.2.0-alpha.373",
       "dependencies": {
+        "@brains/db": "workspace:*",
         "@brains/entity-service": "workspace:*",
         "@brains/utils": "workspace:*",
         "pdfjs-dist": "^6.0.227",

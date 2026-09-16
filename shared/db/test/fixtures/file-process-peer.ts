@@ -31,6 +31,7 @@ process.on("message", (input: unknown) => {
       kind: upload.success ? "sealed" : "consumed",
       pid: process.pid,
       ...facts,
+      ...(gate.endsWith("inspection") ? { details: { kind: "fixture" } } : {}),
     });
     const timer = setInterval(() => {
       void (async (): Promise<void> => {

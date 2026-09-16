@@ -31,6 +31,7 @@ import {
   type AssetRecord,
 } from "@brains/assets";
 import { imageSchema, imageAdapter } from "@brains/image";
+import { pdfInspectionDetailsSchema } from "@brains/document";
 import { WorkerBinaryPersistence } from "../../shared/db/src/turso-worker/binary-persistence";
 import { canonicalBrain } from "../../packages/brain-cli/src/model/canonical-brain";
 import {
@@ -59,6 +60,7 @@ const pdfKind = z
 async function renderCanonicalFile(
   app: App,
   printableApp: App,
+  directory: string,
 ): Promise<AssetRecord> {
   const shell = app.getShell();
   const service = shell.getEntityService();
@@ -173,7 +175,7 @@ async function renderCanonicalFile(
   // admission. Both share the unchanged persistence budget; join both outcomes.
   const outcomes = await Promise.allSettled([
     renderImage(),
-    renderCanonicalPrintable(printableApp),
+    renderCanonicalPrintable(printableApp, directory),
   ]);
   const errors = outcomes.flatMap((outcome) =>
     outcome.status === "rejected" ? [outcome.reason] : [],
@@ -188,7 +190,10 @@ async function renderCanonicalFile(
   return outcomes[0].value;
 }
 
-async function renderCanonicalPrintable(app: App): Promise<void> {
+async function renderCanonicalPrintable(
+  app: App,
+  directory: string,
+): Promise<void> {
   const service = app.getShell().getEntityService();
   const files = service.fileAssets;
   assert.ok(files?.withProducedFile);
@@ -200,7 +205,23 @@ async function renderCanonicalPrintable(app: App): Promise<void> {
   const buffered = spyOn(attachments, "resolve").mockImplementation(forbidden);
   const producer = spyOn(files, "withProducedFile");
   try {
-    const printable = await attachments.withFile(
+    const invalidPdf = join(directory, "invalid.pdf");
+    await writeFile(invalidPdf, "not-a-pdf");
+    // Failure after native seal must retire the transient offer and leave the
+    // runtime usable for the following real PDF inspection. Keep the fixture.
+    const rejected = assert.rejects(
+      files.inspect(
+        { sourceFile: invalidPdf, sizeBytes: 9 },
+        { inspector: "pdf" },
+      ),
+      (error: unknown) => {
+        const primary = error instanceof AggregateError ? error.cause : error;
+        assert.ok(primary instanceof Error);
+        assert.match(primary.message, /PDF signature/);
+        return true;
+      },
+    );
+    const printable = attachments.withFile(
       {
         sourceEntityType: pdfKind === "carousel" ? "deck" : "post",
         sourceEntityId:
@@ -208,21 +229,45 @@ async function renderCanonicalPrintable(app: App): Promise<void> {
         attachmentType: pdfKind,
       },
       async (file, signal) => {
+        await rejected; // Join failed inspection retirement before verifying reuse.
         assert.equal(file.type, "document");
         assert.equal(file.mimeType, "application/pdf");
         assert.ok(
           file.source.sizeBytes > 0 &&
             file.source.sizeBytes <= 25 * 1024 * 1024,
         );
-        assert.deepEqual(await files.fingerprint(file.source, { signal }), {
-          sizeBytes: file.source.sizeBytes,
-          sha256: file.sha256,
+        const inspected = await files.inspect(file.source, {
+          signal,
+          inspector: "pdf",
         });
+        assert.deepEqual(
+          { sizeBytes: inspected.sizeBytes, sha256: inspected.sha256 },
+          { sizeBytes: file.source.sizeBytes, sha256: file.sha256 },
+        );
+        const details = pdfInspectionDetailsSchema.parse(inspected.details);
+        assert.equal(details.mimeType, "application/pdf");
+        assert.ok(details.pageCount > 0);
+        if (pdfKind === "carousel") assert.equal(details.pageCount, 2);
         return file.filename;
       },
     );
+    // Use the existing owner's two slots while PDF rendering is independent;
+    // neither a rejected fault assertion nor rendering may detach the other.
+    const outcomes = await Promise.allSettled([rejected, printable]);
+    const errors = outcomes.flatMap((outcome) =>
+      outcome.status === "rejected" ? [outcome.reason] : [],
+    );
+    if (errors.length === 1) throw errors[0];
+    if (errors.length > 1)
+      throw new AggregateError(
+        errors,
+        "PDF inspection fault and rendering failed",
+        { cause: errors[0] },
+      );
+    if (outcomes[1].status !== "fulfilled")
+      throw new Error("Canonical PDF has no outcome");
     assert.equal(
-      printable,
+      outcomes[1].value,
       pdfKind === "carousel"
         ? "canonical-deck-carousel.pdf"
         : "render-source-printable.pdf",
@@ -347,6 +392,12 @@ plugins:
       "../../shared/image/src/file-inspection-process.ts",
       import.meta.url,
     ),
+    inspectionUploadUrls: {
+      pdf: new URL(
+        "../../shared/document/src/file-inspection-process.ts",
+        import.meta.url,
+      ),
+    },
   };
   const record = { ref: createAssetRef(SHA), digest: SHA, sizeBytes: SIZE };
   const rendered: { record?: typeof record } = {};
@@ -694,7 +745,7 @@ plugins:
       // Independent workflows share the unchanged two-child admission. Join
       // both real outcomes rather than racing away on the first failure.
       const outcomes = await Promise.allSettled([
-        renderCanonicalFile(workerApp, app),
+        renderCanonicalFile(workerApp, app, directory),
         jobs(),
       ]);
       const errors = outcomes.flatMap((outcome) =>

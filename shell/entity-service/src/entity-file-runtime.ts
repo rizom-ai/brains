@@ -26,6 +26,10 @@ export interface EntityFileSource {
   sourceFile: string;
   sizeBytes: number;
 }
+export interface EntityFileInspectionOptions extends EntityBinaryRequestOptions {
+  /** Select an explicitly provisioned inspection artifact. No default fallback. */
+  inspector?: string;
+}
 export interface EntityFileAssets {
   /** Lend actor-produced output after actual Bun exit. Failed staging is retained.
    * Caller keeps the input directory alive through settlement and joins consumers.
@@ -50,7 +54,7 @@ export interface EntityFileAssets {
   ): Promise<T>;
   inspect(
     input: EntityFileSource,
-    options?: EntityBinaryRequestOptions,
+    options?: EntityFileInspectionOptions,
   ): Promise<FileInspectionResult>;
   /** Actor-local file hashing with native verification and acknowledged transient retirement. */
   fingerprint(
@@ -198,15 +202,14 @@ export class EntityFileRuntime implements EntityFileAssets {
   }
   public inspect(
     input: EntityFileSource,
-    options?: EntityBinaryRequestOptions,
+    options?: EntityFileInspectionOptions,
   ): Promise<FileInspectionResult> {
-    return this.run(
-      (signal) =>
-        this.inspectOwned(input, signal, (source, abort) =>
-          this.actors.inspectUpload(source, abort),
-        ),
-      options?.signal,
-    );
+    return this.run((signal) => {
+      this.actors.assertInspectionAvailable(options?.inspector);
+      return this.inspectOwned(input, signal, (source, abort) =>
+        this.actors.inspectUpload(source, abort, options?.inspector),
+      );
+    }, options?.signal);
   }
   public fingerprint(
     input: EntityFileSource,
