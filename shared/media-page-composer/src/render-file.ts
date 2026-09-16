@@ -2,18 +2,21 @@ import { lstat } from "node:fs/promises";
 import { join } from "node:path";
 import { produceFile, type FileProduceInput } from "@brains/db/file-produce";
 import type { BlobFacts } from "@brains/db/file-process-owner";
-import { screenshotPng } from "@brains/media-renderer";
+import { screenshotPng, renderPdf } from "@brains/media-renderer";
+import { readRenderRequest, MAX_PDF_BYTES } from "./render-request";
+import type { RenderPdf } from "./printable";
 import { startStaticRenderServer } from "./media-render-page";
 import type { ScreenshotPng } from "./og-image";
 
 /** SDK injection is actor-local, never a controller-side buffer handoff. */
 export interface RenderDirectoryDeps {
   screenshotPng?: ScreenshotPng;
+  renderPdf?: RenderPdf;
 }
-/** Render an index.html + assets directory to a no-replace PNG output. Called
+/** Render an index.html + assets + render.json directory to a no-replace file. Called
  * only in a payload actor; HTML serving, WebView buffers and hashing stay here.
  */
-export async function renderDirectoryPng(
+export async function renderDirectoryFile(
   input: FileProduceInput,
   deps: RenderDirectoryDeps = {},
   signal?: AbortSignal,
@@ -33,20 +36,36 @@ export async function renderDirectoryPng(
         throw new Error(
           "Render source requires a regular index.html directory",
         );
+      const request = await readRenderRequest(directory);
+      cancellation?.throwIfAborted();
       const server = await startStaticRenderServer({ rootDir: directory });
       const errors: unknown[] = [];
       let output: Buffer | undefined;
       try {
-        output = await (deps.screenshotPng ?? screenshotPng)(
-          server.urlFor("/"),
-          { width: 1200, height: 630 },
-          {
+        if (request.format === "pdf") {
+          output = await (deps.renderPdf ?? renderPdf)(server.urlFor("/"), {
+            maxBytes: MAX_PDF_BYTES,
             timeoutMs: 60_000,
-            fullPage: false,
-            omitBackground: false,
+            printBackground: true,
+            preferCSSPageSize: true,
             ...(cancellation && { signal: cancellation }),
-          },
-        );
+          });
+          if (output.length > MAX_PDF_BYTES)
+            throw new Error("Rendered PDF exceeds its size limit");
+          if (!output.subarray(0, 5).equals(Buffer.from("%PDF-")))
+            throw new Error("Rendered output has no PDF signature");
+        } else {
+          output = await (deps.screenshotPng ?? screenshotPng)(
+            server.urlFor("/"),
+            { width: 1200, height: 630 },
+            {
+              timeoutMs: 60_000,
+              fullPage: false,
+              omitBackground: false,
+              ...(cancellation && { signal: cancellation }),
+            },
+          );
+        }
       } catch (error) {
         errors.push(error);
       }

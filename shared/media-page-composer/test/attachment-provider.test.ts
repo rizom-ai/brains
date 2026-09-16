@@ -410,22 +410,45 @@ describe("file-only OG attachment providers", () => {
   });
 });
 
-describe("unmigrated printable provider", () => {
-  it("retains its explicit PDF path, not an OG fallback", async () => {
-    const { context } = setup();
-    const pdf = Buffer.from("%PDF-1.7\n");
+describe("file-only printable provider", () => {
+  it("lends PDF facts with a strict render instruction and file-backed references", async () => {
+    const { context, files } = setup();
+    spyOn(files, "withProducedFile").mockImplementation(
+      async (directory, use, options): ReturnType<typeof use> => {
+        expect(
+          JSON.parse(await readFile(join(directory, "render.json"), "utf8")),
+        ).toEqual({ format: "pdf" });
+        const html = await readFile(join(directory, "index.html"), "utf8");
+        expect(html).toContain("/assets/image-0.png");
+        expect(html).not.toContain("data:image");
+        return use(
+          {
+            sourceFile: join(directory, "printed.pdf"),
+            sizeBytes: 8,
+            sha256: "b".repeat(64),
+          },
+          options?.signal ?? new AbortController().signal,
+        );
+      },
+    );
     const provider = createPrintableProvider({
       ...config,
       attachmentType: "printable",
-    })(context, { renderPdf: async () => pdf });
+    })(context);
     expect(
-      await provider.resolve({ ...request, attachmentType: "printable" }),
+      await provider.withFile(
+        { ...request, attachmentType: "printable" },
+        accept,
+      ),
     ).toEqual({
       type: "document",
-      data: pdf,
       mimeType: "application/pdf",
       filename: "civic-signals-printable.pdf",
+      source: { sourceFile: expect.any(String), sizeBytes: 8 },
+      sha256: "b".repeat(64),
     });
+    expect("resolve" in provider).toBe(false);
+    expect(context.entityService.readAsset).not.toHaveBeenCalled();
     expect(provider.metadata).toEqual({ outputEntityType: "document" });
   });
 });

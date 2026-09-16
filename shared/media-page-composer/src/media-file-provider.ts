@@ -16,18 +16,23 @@ import type {
   MediaAttachmentProviderConfig,
   MediaContentHelpers,
 } from "./attachment-provider";
+import { RENDER_REQUEST_FILE, type RenderRequest } from "./render-request";
 import { renderMediaTemplateHtml } from "./media-template-renderer";
 
 /** Controllers assemble textual template metadata only. Asset downloads and
  * rendering use owned actors; no data URL or buffer-to-file fallback exists.
  */
-export function createOgFileProvider<TEntity extends BaseEntity, TContent>(
+export function createMediaFileProvider<TEntity extends BaseEntity, TContent>(
   config: MediaAttachmentProviderConfig<TEntity, TContent>,
   context: MediaAttachmentContext,
   brandLabel: () => string | undefined,
+  format: RenderRequest["format"],
 ): FileAttachmentProvider {
   return {
-    metadata: { outputEntityType: "image", targetField: "ogImageId" },
+    metadata:
+      format === "image"
+        ? { outputEntityType: "image", targetField: "ogImageId" }
+        : { outputEntityType: "document" },
     withFile: async <T>(
       request: AttachmentResolveRequest,
       use: AttachmentFileConsumer<T>,
@@ -47,8 +52,8 @@ export function createOgFileProvider<TEntity extends BaseEntity, TContent>(
       if (!entity) return undefined;
       const files = context.entityService.fileAssets;
       if (!files?.withProducedFile)
-        throw new Error("OG file rendering is not provisioned");
-      const root = await mkdtemp(join(tmpdir(), "brain-og-file-"));
+        throw new Error("Media file rendering is not provisioned");
+      const root = await mkdtemp(join(tmpdir(), "brain-media-file-"));
       await mkdir(join(root, "assets"));
       await mkdir(join(root, "styles"));
       const transfers = new Map<string, Promise<string | undefined>>();
@@ -59,7 +64,7 @@ export function createOgFileProvider<TEntity extends BaseEntity, TContent>(
       const helpers: MediaContentHelpers = {
         brandLabel: brandLabel(),
         resolveImageUrl: (id): Promise<string | undefined> => {
-          if (!open) throw new Error("OG image reference scope is closed");
+          if (!open) throw new Error("Media image reference scope is closed");
           options?.signal?.throwIfAborted();
           if (!id) return Promise.resolve(undefined);
           const existing = transfers.get(id);
@@ -67,7 +72,7 @@ export function createOgFileProvider<TEntity extends BaseEntity, TContent>(
           // Bound retained reference metadata, alongside the existing 16-operation
           // runtime and two-actor admission. Repeated references share one transfer.
           if (transfers.size >= 16)
-            throw new Error("OG image reference capacity exceeded");
+            throw new Error("Media image reference capacity exceeded");
           const index = transfers.size;
           const work = (async (): Promise<string | undefined> => {
             const image = await context.entityService.getEntity({
@@ -112,14 +117,14 @@ export function createOgFileProvider<TEntity extends BaseEntity, TContent>(
       if (errors.length > 1)
         throw new AggregateError(
           errors,
-          "OG content and referenced image downloads failed",
+          "Media content and referenced image downloads failed",
           { cause: errors[0] },
         );
-      if (!built) throw new Error("OG content has no acknowledged outcome");
+      if (!built) throw new Error("Media content has no acknowledged outcome");
       options?.signal?.throwIfAborted();
       const html = renderMediaTemplateHtml({
         template: config.template,
-        format: "image",
+        format,
         content: built.content,
         siteConfig: {
           title: config.pageTitle(built.content),
@@ -127,6 +132,11 @@ export function createOgFileProvider<TEntity extends BaseEntity, TContent>(
         },
         imageBuildService: null,
       });
+      await writeFile(
+        join(root, RENDER_REQUEST_FILE),
+        JSON.stringify({ format }),
+        "utf8",
+      );
       await writeFile(join(root, "index.html"), html, "utf8");
       await writeFile(join(root, "styles/main.css"), context.themeCSS, "utf8");
       const result = await files.withProducedFile(
@@ -134,9 +144,17 @@ export function createOgFileProvider<TEntity extends BaseEntity, TContent>(
         (file, signal) =>
           use(
             attachmentFileSchema.parse({
-              type: "image",
-              mimeType: "image/png",
-              filename: `${config.slug(entity)}-og.png`,
+              ...(format === "image"
+                ? {
+                    type: "image",
+                    mimeType: "image/png",
+                    filename: `${config.slug(entity)}-og.png`,
+                  }
+                : {
+                    type: "document",
+                    mimeType: "application/pdf",
+                    filename: `${config.slug(entity)}-printable.pdf`,
+                  }),
               sha256: file.sha256,
               source: {
                 sourceFile: file.sourceFile,

@@ -1,4 +1,6 @@
-import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { createPluginHarness } from "@brains/plugins/test";
 import { PortfolioPlugin } from "../../src/plugin";
 import { createProjectPrintableProvider } from "../../src/attachments/printable-provider";
@@ -46,8 +48,6 @@ Teams spotted patterns earlier.
 };
 
 describe("Project printable attachment provider", () => {
-  beforeEach(() => {});
-
   it("registers a project printable attachment provider", async () => {
     const harness = createPluginHarness<PortfolioPlugin>();
     await harness.installPlugin(new PortfolioPlugin());
@@ -57,38 +57,66 @@ describe("Project printable attachment provider", () => {
   });
 
   it("resolves a project into a printable PDF attachment", async () => {
-    const renderPdf = mock(async (url: string) => {
-      expect(url).toContain("/_media/printable/project/project-1/");
-      const html = await (await fetch(url)).text();
+    const inspectHtml = (html: string): void => {
       expect(html).toContain("Civic Signals");
       expect(html).toContain("City teams needed a shared view");
       expect(html).toContain("https://example.com/projects/civic-signals");
-      return Buffer.from("%PDF-project-printable");
-    });
+    };
     const harness = createPluginHarness<PortfolioPlugin>();
     await harness.installPlugin(new PortfolioPlugin());
     await harness.getEntityService().createEntity({ entity: sampleProject });
 
-    const provider = createProjectPrintableProvider(
-      {
-        entityService: harness.getEntityService(),
-        themeCSS: "",
-        identity: harness.getEntityContext("test").identity,
-        domain: "example.com",
+    const service = harness.getEntityService();
+    const unexpected = async (): Promise<never> => {
+      throw new Error("Unexpected file operation");
+    };
+    service.fileAssets = {
+      inspect: unexpected,
+      publish: unexpected,
+      download: unexpected,
+      fingerprint: unexpected,
+      close: async (): Promise<void> => undefined,
+      withProducedFile: async (
+        directory,
+        use,
+        options,
+      ): ReturnType<typeof use> => {
+        inspectHtml(await readFile(join(directory, "index.html"), "utf8"));
+        expect(
+          JSON.parse(await readFile(join(directory, "render.json"), "utf8")),
+        ).toEqual({ format: "pdf" });
+        return use(
+          {
+            sourceFile: join(directory, "printed.pdf"),
+            sizeBytes: 8,
+            sha256: "a".repeat(64),
+          },
+          options?.signal ?? new AbortController().signal,
+        );
       },
-      { renderPdf },
-    );
-
-    const attachment = await provider.resolve({
-      sourceEntityType: "project",
-      sourceEntityId: "project-1",
-      attachmentType: "printable",
+    };
+    spyOn(service.fileAssets, "withProducedFile");
+    const provider = createProjectPrintableProvider({
+      entityService: harness.getEntityService(),
+      themeCSS: "",
+      identity: harness.getEntityContext("test").identity,
+      domain: "example.com",
     });
 
-    expect(renderPdf).toHaveBeenCalled();
+    const attachment = await provider.withFile(
+      {
+        sourceEntityType: "project",
+        sourceEntityId: "project-1",
+        attachmentType: "printable",
+      },
+      async (file) => file,
+    );
+
+    expect(service.fileAssets.withProducedFile).toHaveBeenCalled();
     expect(attachment).toEqual({
       type: "document",
-      data: Buffer.from("%PDF-project-printable"),
+      source: { sourceFile: expect.any(String), sizeBytes: 8 },
+      sha256: "a".repeat(64),
       mimeType: "application/pdf",
       filename: "civic-signals-printable.pdf",
     });

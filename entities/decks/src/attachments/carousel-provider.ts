@@ -1,7 +1,7 @@
 import type { AttachmentProvider, EntityPluginContext } from "@brains/plugins";
 import type { PublishMediaData } from "@brains/contracts";
 import {
-  createMediaContentHelpers,
+  resolveBrandLabel,
   preferredSlug,
   renderPrintablePdf,
   type RenderPdf,
@@ -73,7 +73,7 @@ export class DeckCarouselAttachmentProvider implements AttachmentProvider {
       return undefined;
     }
 
-    const { brandLabel } = createMediaContentHelpers(this.context);
+    const brandLabel = resolveBrandLabel(this.context);
     const carouselContent = buildCarouselContent(deck, { brandLabel });
     if (carouselContent.slides.length > DEFAULT_MAX_SLIDES) {
       throw new Error(

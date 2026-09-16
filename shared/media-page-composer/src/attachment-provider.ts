@@ -1,17 +1,11 @@
-import { createDataUrl, resolveImageBytes } from "@brains/image";
 import type {
-  AttachmentProvider,
   FileAttachmentProvider,
-  AttachmentProviderMetadata,
-  AttachmentResolveRequest,
   BaseEntity,
   EntityPluginContext,
   EntitySchema,
 } from "@brains/plugins";
-import type { PublishMediaData } from "@brains/contracts";
 import { slugify } from "@brains/utils/string-utils";
-import { createOgFileProvider } from "./og-file-provider";
-import { renderPrintablePdf, type RenderPdf } from "./printable";
+import { createMediaFileProvider } from "./media-file-provider";
 import type { MediaPageTemplate } from "./types";
 
 /** The slice of the entity plugin context media attachment providers need. */
@@ -22,15 +16,9 @@ export type MediaAttachmentContext = Pick<
 
 /** Context-derived values every template content builder ends up needing. */
 export interface MediaContentHelpers {
-  /**
-   * Publisher label for the rendered artwork: the configured domain, else the
-   * identity profile name, else undefined when both are blank.
-   */
+  /** Configured domain, else identity profile name, else undefined. */
   brandLabel: string | undefined;
-  /**
-   * URL for a referenced image. OG providers use scoped files; the unmigrated
-   * printable provider still uses data URLs. Missing/non-asset images are omitted.
-   */
+  /** Scoped file URL. Missing/non-asset images are omitted; no data URL fallback. */
   resolveImageUrl(imageId: string | undefined): Promise<string | undefined>;
 }
 
@@ -58,178 +46,49 @@ export interface MediaAttachmentProviderConfig<
   slug: (entity: TEntity) => string;
 }
 
-export interface PrintableProviderDeps {
-  renderPdf?: RenderPdf;
-}
-
 export type OgImageProviderFactory = (
   context: MediaAttachmentContext,
 ) => FileAttachmentProvider;
-
 export type PrintableProviderFactory = (
   context: MediaAttachmentContext,
-  deps?: PrintableProviderDeps,
-) => AttachmentProvider;
+) => FileAttachmentProvider;
 
 /** Prefer an explicit slug, falling back to a slugified title. */
 export function preferredSlug(slug: string, title: string): string {
   return slug.length > 0 ? slug : slugify(title);
 }
 
-/** Build the shared content helpers for a media attachment context. */
-export function createMediaContentHelpers(
-  context: MediaAttachmentContext,
-): MediaContentHelpers {
-  return {
-    brandLabel: resolveBrandLabel(context),
-    resolveImageUrl: async (
-      imageId: string | undefined,
-    ): Promise<string | undefined> => {
-      if (!imageId) return undefined;
-      const image = await context.entityService.getEntity({
-        entityType: "image",
-        id: imageId,
-      });
-      if (!image?.content) return undefined;
-      try {
-        const resolved = await resolveImageBytes(image, context.entityService);
-        return createDataUrl(
-          Buffer.from(resolved.bytes).toString("base64"),
-          resolved.format,
-        );
-      } catch {
-        return undefined;
-      }
-    },
-  };
-}
-
-function resolveBrandLabel(
+export function resolveBrandLabel(
   context: MediaAttachmentContext,
 ): string | undefined {
   const domain = context.domain?.trim();
   if (domain && domain.length > 0) return domain;
-
   const name = context.identity.getProfile().name.trim();
   return name.length > 0 ? name : undefined;
 }
 
-/**
- * Every media attachment provider follows the same shape: match the request,
- * load the source entity, build the template content from it, render the page,
- * and wrap the bytes as publish media. Only the render step and the output
- * envelope differ, so those are the two parameters here.
- */
-function createMediaAttachmentProvider<
-  TEntity extends BaseEntity,
-  TContent,
-  TDeps,
->(
-  config: MediaAttachmentProviderConfig<TEntity, TContent>,
-  output: {
-    metadata: AttachmentProviderMetadata;
-    /** Media route segment, e.g. `og` in `/_media/og/post/<id>`. */
-    routeSegment: string;
-    /** Filename suffix, e.g. `-og.png`. */
-    filenameSuffix: string;
-    /** Wrap the rendered bytes; keeps `type`/`mimeType` correlated. */
-    envelope: (data: Buffer, filename: string) => PublishMediaData;
-    render: (
-      renderOptions: {
-        mediaPath: string;
-        template: MediaPageTemplate;
-        content: unknown;
-        title: string;
-        themeMode: "light" | "dark" | undefined;
-        themeCSS: string;
-        tmpPrefix: string;
-      },
-      deps: TDeps | undefined,
-    ) => Promise<Buffer>;
-  },
-): (context: MediaAttachmentContext, deps?: TDeps) => AttachmentProvider {
-  return (context, deps): AttachmentProvider => ({
-    metadata: output.metadata,
-    resolve: async (
-      request: AttachmentResolveRequest,
-    ): Promise<PublishMediaData | undefined> => {
-      if (
-        request.sourceEntityType !== config.sourceEntityType ||
-        request.attachmentType !== config.attachmentType
-      ) {
-        return undefined;
-      }
-
-      const entity = await context.entityService.getEntity(
-        {
-          entityType: config.sourceEntityType,
-          id: request.sourceEntityId,
-        },
-        config.entitySchema,
-      );
-      if (!entity) return undefined;
-
-      const content = await config.buildContent(
-        entity,
-        createMediaContentHelpers(context),
-      );
-
-      const data = await output.render(
-        {
-          mediaPath: `/_media/${output.routeSegment}/${config.sourceEntityType}/${entity.id}`,
-          template: config.template,
-          content,
-          title: config.pageTitle(content),
-          themeMode: config.themeMode,
-          themeCSS: context.themeCSS,
-          tmpPrefix: `brain-${config.sourceEntityType}-${output.routeSegment}-`,
-        },
-        deps,
-      );
-
-      return output.envelope(
-        data,
-        `${config.slug(entity)}${output.filenameSuffix}`,
-      );
-    },
-  });
-}
-
-/**
- * Build an attachment provider that renders a source entity to a 1200×630 PNG
- * Open Graph image.
- */
+/** Render a source entity to a scoped 1200×630 PNG using the provisioned actor. */
 export function createOgImageProvider<TEntity extends BaseEntity, TContent>(
   config: MediaAttachmentProviderConfig<TEntity, TContent>,
 ): OgImageProviderFactory {
   return (context): FileAttachmentProvider =>
-    createOgFileProvider(config, context, () => resolveBrandLabel(context));
+    createMediaFileProvider(
+      config,
+      context,
+      () => resolveBrandLabel(context),
+      "image",
+    );
 }
 
-/**
- * Build an attachment provider that renders a source entity to a printable PDF.
- */
+/** Render a source entity to a scoped PDF using the same provisioned Bun actor. */
 export function createPrintableProvider<TEntity extends BaseEntity, TContent>(
   config: MediaAttachmentProviderConfig<TEntity, TContent>,
 ): PrintableProviderFactory {
-  return createMediaAttachmentProvider<
-    TEntity,
-    TContent,
-    PrintableProviderDeps
-  >(config, {
-    metadata: { outputEntityType: "document" },
-    routeSegment: "printable",
-    filenameSuffix: "-printable.pdf",
-    envelope: (data, filename) => ({
-      type: "document",
-      data,
-      mimeType: "application/pdf",
-      filename,
-    }),
-    render: (renderOptions, deps) =>
-      renderPrintablePdf({
-        ...renderOptions,
-        ...(deps?.renderPdf ? { renderPdf: deps.renderPdf } : {}),
-      }),
-  });
+  return (context): FileAttachmentProvider =>
+    createMediaFileProvider(
+      config,
+      context,
+      () => resolveBrandLabel(context),
+      "pdf",
+    );
 }

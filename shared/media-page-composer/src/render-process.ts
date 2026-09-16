@@ -1,7 +1,7 @@
 // A single-use Bun payload actor. No renderer bytes cross its IPC boundary.
 import { fileProduceSchema } from "@brains/db/file-produce";
 import { serializeError } from "@brains/db/error-protocol";
-import { renderDirectoryPng } from "./render-file";
+import { renderDirectoryFile } from "./render-file";
 
 const cancellation = new AbortController();
 let started = false;
@@ -23,9 +23,9 @@ process.on("message", (input: unknown) => {
   });
   void (async (): Promise<void> => {
     const errors: unknown[] = [];
-    let result: Awaited<ReturnType<typeof renderDirectoryPng>> | undefined;
+    let result: Awaited<ReturnType<typeof renderDirectoryFile>> | undefined;
     try {
-      result = await renderDirectoryPng(
+      result = await renderDirectoryFile(
         fileProduceSchema.parse(input),
         {},
         cancellation.signal,

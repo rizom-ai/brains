@@ -8,7 +8,7 @@ export type { RenderOgImagePngOptions, ScreenshotPng } from "./og-image";
 export { renderPrintablePdf } from "./printable";
 export type { RenderPrintablePdfOptions, RenderPdf } from "./printable";
 export {
-  createMediaContentHelpers,
+  resolveBrandLabel,
   createOgImageProvider,
   createPrintableProvider,
   preferredSlug,
@@ -18,7 +18,6 @@ export type {
   MediaAttachmentProviderConfig,
   MediaContentHelpers,
   OgImageProviderFactory,
-  PrintableProviderDeps,
   PrintableProviderFactory,
 } from "./attachment-provider";
 export type {

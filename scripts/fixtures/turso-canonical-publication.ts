@@ -23,7 +23,12 @@ import {
 import defaultSite from "@brains/site-default";
 import defaultTheme from "@rizom/theme-default";
 import { EntityService } from "@brains/entity-service";
-import { createAssetRef, parseAssetRef, getAssetDigest } from "@brains/assets";
+import {
+  createAssetRef,
+  parseAssetRef,
+  getAssetDigest,
+  type AssetRecord,
+} from "@brains/assets";
 import { imageSchema, imageAdapter } from "@brains/image";
 import { WorkerBinaryPersistence } from "../../shared/db/src/turso-worker/binary-persistence";
 import { canonicalBrain } from "../../packages/brain-cli/src/model/canonical-brain";
@@ -45,11 +50,10 @@ registerPackage("@rizom/theme-default", defaultTheme);
 const SIZE = 256 * 1024 + 7;
 const SHA = "6bc5839d31ffd66263d28992f1186b33312444ffb4e2b1aab184df47e9c3b149";
 
-async function renderCanonicalFile(app: App): Promise<{
-  ref: ReturnType<typeof createAssetRef>;
-  digest: string;
-  sizeBytes: number;
-}> {
+async function renderCanonicalFile(
+  app: App,
+  printableApp: App,
+): Promise<AssetRecord> {
   const shell = app.getShell();
   const service = shell.getEntityService();
   const files = service.fileAssets;
@@ -70,78 +74,140 @@ async function renderCanonicalFile(app: App): Promise<{
       },
     },
   });
-  const handler = shell
-    .getJobQueueService()
-    .getHandler("image:image-render-source");
-  assert.ok(handler);
-  const reporter = CallbackProgressReporter.from(
-    async (): Promise<void> => undefined,
-  );
-  assert.ok(reporter);
-  const buffered = spyOn(attachments, "resolve").mockImplementation(
-    async (): Promise<never> => {
-      throw new Error("Controller attachment buffering is forbidden");
-    },
-  );
-  const reads = spyOn(service, "readAsset").mockImplementation(
-    async (): Promise<never> => {
-      throw new Error("Controller image buffering is forbidden");
-    },
-  );
-  const producer = spyOn(files, "withProducedFile");
-  const download = spyOn(files, "download");
-  try {
-    assert.deepEqual(
-      await handler.process(
-        {
-          sourceEntityType: "post",
-          sourceEntityId: "render-source",
-          attachmentType: "og-image",
-          imageId: "actor-rendered-image",
-          targetEntityType: "post",
-          targetEntityId: "render-source",
-          targetImageField: "ogImageId",
-        },
-        "canonical-render-source",
-        reporter,
-        new AbortController().signal,
-      ),
-      { success: true, imageId: "actor-rendered-image", reused: false },
+  const renderImage = async (): Promise<AssetRecord> => {
+    const handler = shell
+      .getJobQueueService()
+      .getHandler("image:image-render-source");
+    assert.ok(handler);
+    const reporter = CallbackProgressReporter.from(
+      async (): Promise<void> => undefined,
     );
-    assert.equal(producer.mock.calls.length, 1);
-    assert.equal(download.mock.calls.length, 1);
-    assert.equal(download.mock.calls[0]?.[0].ref, createAssetRef(SHA));
-    assert.equal(buffered.mock.calls.length, 0);
-    assert.equal(reads.mock.calls.length, 0);
-  } finally {
-    buffered.mockRestore();
-    reads.mockRestore();
-    producer.mockRestore();
-    download.mockRestore();
-  }
-  const image = imageSchema.parse(
-    await service.getEntity({
-      entityType: "image",
-      id: "actor-rendered-image",
-    }),
-  );
-  assert.equal(image.metadata.width, 1200);
-  assert.equal(image.metadata.height, 630);
-  assert.equal(image.metadata.sourceEntityId, "render-source");
-  assert.equal(image.metadata.attachmentType, "og-image");
-  const post = await service.getEntity({
-    entityType: "post",
-    id: "render-source",
-  });
-  assert.ok(post);
-  assert.match(post.content, /ogImageId: actor-rendered-image/);
-  const ref = parseAssetRef(image.content);
-  assert.ok(image.metadata.sizeBytes);
-  return {
-    ref,
-    digest: getAssetDigest(ref),
-    sizeBytes: image.metadata.sizeBytes,
+    assert.ok(reporter);
+    const buffered = spyOn(attachments, "resolve").mockImplementation(
+      async (): Promise<never> => {
+        throw new Error("Controller attachment buffering is forbidden");
+      },
+    );
+    const reads = spyOn(service, "readAsset").mockImplementation(
+      async (): Promise<never> => {
+        throw new Error("Controller image buffering is forbidden");
+      },
+    );
+    const producer = spyOn(files, "withProducedFile");
+    const download = spyOn(files, "download");
+    try {
+      assert.deepEqual(
+        await handler.process(
+          {
+            sourceEntityType: "post",
+            sourceEntityId: "render-source",
+            attachmentType: "og-image",
+            imageId: "actor-rendered-image",
+            targetEntityType: "post",
+            targetEntityId: "render-source",
+            targetImageField: "ogImageId",
+          },
+          "canonical-render-source",
+          reporter,
+          new AbortController().signal,
+        ),
+        { success: true, imageId: "actor-rendered-image", reused: false },
+      );
+      assert.equal(producer.mock.calls.length, 1);
+      assert.equal(download.mock.calls.length, 1);
+      assert.equal(download.mock.calls[0]?.[0].ref, createAssetRef(SHA));
+      assert.equal(buffered.mock.calls.length, 0);
+      assert.equal(reads.mock.calls.length, 0);
+    } finally {
+      buffered.mockRestore();
+      reads.mockRestore();
+      producer.mockRestore();
+      download.mockRestore();
+    }
+    const image = imageSchema.parse(
+      await service.getEntity({
+        entityType: "image",
+        id: "actor-rendered-image",
+      }),
+    );
+    assert.equal(image.metadata.width, 1200);
+    assert.equal(image.metadata.height, 630);
+    assert.equal(image.metadata.sourceEntityId, "render-source");
+    assert.equal(image.metadata.attachmentType, "og-image");
+    const post = await service.getEntity({
+      entityType: "post",
+      id: "render-source",
+    });
+    assert.ok(post);
+    assert.match(post.content, /ogImageId: actor-rendered-image/);
+    const ref = parseAssetRef(image.content);
+    assert.ok(image.metadata.sizeBytes);
+    return {
+      ref,
+      digest: getAssetDigest(ref),
+      sizeBytes: image.metadata.sizeBytes,
+    };
   };
+  // Existing owner and worker runtimes each keep their one-producer/two-child
+  // admission. Both share the unchanged persistence budget; join both outcomes.
+  const outcomes = await Promise.allSettled([
+    renderImage(),
+    renderCanonicalPrintable(printableApp),
+  ]);
+  const errors = outcomes.flatMap((outcome) =>
+    outcome.status === "rejected" ? [outcome.reason] : [],
+  );
+  if (errors.length === 1) throw errors[0];
+  if (errors.length > 1)
+    throw new AggregateError(errors, "Canonical PNG and PDF rendering failed", {
+      cause: errors[0],
+    });
+  if (outcomes[0].status !== "fulfilled")
+    throw new Error("Canonical image has no outcome");
+  return outcomes[0].value;
+}
+
+async function renderCanonicalPrintable(app: App): Promise<void> {
+  const service = app.getShell().getEntityService();
+  const files = service.fileAssets;
+  assert.ok(files?.withProducedFile);
+  const attachments = app.getShell().getAttachmentRegistry();
+  const forbidden = async (): Promise<never> => {
+    throw new Error("Controller PDF buffering is forbidden");
+  };
+  const reads = spyOn(service, "readAsset").mockImplementation(forbidden);
+  const buffered = spyOn(attachments, "resolve").mockImplementation(forbidden);
+  const producer = spyOn(files, "withProducedFile");
+  try {
+    const printable = await attachments.withFile(
+      {
+        sourceEntityType: "post",
+        sourceEntityId: "render-source",
+        attachmentType: "printable",
+      },
+      async (file, signal) => {
+        assert.equal(file.type, "document");
+        assert.equal(file.mimeType, "application/pdf");
+        assert.ok(
+          file.source.sizeBytes > 0 &&
+            file.source.sizeBytes <= 25 * 1024 * 1024,
+        );
+        assert.deepEqual(await files.fingerprint(file.source, { signal }), {
+          sizeBytes: file.source.sizeBytes,
+          sha256: file.sha256,
+        });
+        return file.filename;
+      },
+    );
+    assert.equal(printable, "render-source-printable.pdf");
+    assert.equal(producer.mock.calls.length, 1);
+    assert.equal(reads.mock.calls.length, 0);
+    assert.equal(buffered.mock.calls.length, 0);
+  } finally {
+    reads.mockRestore();
+    buffered.mockRestore();
+    producer.mockRestore();
+  }
 }
 
 test("canonical App binds a real file claim in its entity transaction and downloads every image byte", async () => {
@@ -599,7 +665,7 @@ plugins:
       // Independent workflows share the unchanged two-child admission. Join
       // both real outcomes rather than racing away on the first failure.
       const outcomes = await Promise.allSettled([
-        renderCanonicalFile(workerApp),
+        renderCanonicalFile(workerApp, app),
         jobs(),
       ]);
       const errors = outcomes.flatMap((outcome) =>

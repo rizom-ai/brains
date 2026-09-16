@@ -1,4 +1,6 @@
-import { beforeEach, describe, expect, it, mock } from "bun:test";
+import { describe, expect, it, spyOn } from "bun:test";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { createPluginHarness } from "@brains/plugins/test";
 import { normalizeRendererHtml } from "@brains/test-utils";
 import { BlogPlugin } from "../../src/plugin";
@@ -34,8 +36,6 @@ Resilience is the capacity to change shape under pressure.
 };
 
 describe("Blog printable attachment provider", () => {
-  beforeEach(() => {});
-
   it("registers a post printable attachment provider", async () => {
     const harness = createPluginHarness<BlogPlugin>();
     await harness.installPlugin(new BlogPlugin());
@@ -56,19 +56,20 @@ describe("Blog printable attachment provider", () => {
       domain: undefined,
     });
 
-    const attachment = await provider.resolve({
-      sourceEntityType: "post",
-      sourceEntityId: "post-1",
-      attachmentType: "carousel",
-    });
+    const attachment = await provider.withFile(
+      {
+        sourceEntityType: "post",
+        sourceEntityId: "post-1",
+        attachmentType: "carousel",
+      },
+      async (file) => file,
+    );
 
     expect(attachment).toBeUndefined();
   });
 
   it("resolves a blog post into a printable PDF attachment", async () => {
-    const renderPdf = mock(async (url: string) => {
-      expect(url).toContain("/_media/printable/post/post-1/");
-      const html = await (await fetch(url)).text();
+    const inspectHtml = (html: string): void => {
       expect(html).toContain("Resilience Is Not Redundancy");
       expect(html).toContain("Core idea");
       expect(html).toContain(
@@ -78,32 +79,62 @@ describe("Blog printable attachment provider", () => {
       expect(
         normalizeRendererHtml(html, { ignoreImagePreloads: true }),
       ).toMatchSnapshot();
-      return Buffer.from("%PDF-post-printable");
-    });
+    };
     const harness = createPluginHarness<BlogPlugin>();
     await harness.installPlugin(new BlogPlugin());
     await harness.getEntityService().createEntity({ entity: samplePost });
 
-    const provider = createBlogPrintableProvider(
-      {
-        entityService: harness.getEntityService(),
-        themeCSS: ":root { --print-test-token: #123456; }",
-        identity: harness.getEntityContext("test").identity,
-        domain: "example.com",
+    const service = harness.getEntityService();
+    const unexpected = async (): Promise<never> => {
+      throw new Error("Unexpected file operation");
+    };
+    service.fileAssets = {
+      inspect: unexpected,
+      publish: unexpected,
+      download: unexpected,
+      fingerprint: unexpected,
+      close: async (): Promise<void> => undefined,
+      withProducedFile: async (
+        directory,
+        use,
+        options,
+      ): ReturnType<typeof use> => {
+        inspectHtml(await readFile(join(directory, "index.html"), "utf8"));
+        expect(
+          JSON.parse(await readFile(join(directory, "render.json"), "utf8")),
+        ).toEqual({ format: "pdf" });
+        return use(
+          {
+            sourceFile: join(directory, "printed.pdf"),
+            sizeBytes: 8,
+            sha256: "a".repeat(64),
+          },
+          options?.signal ?? new AbortController().signal,
+        );
       },
-      { renderPdf },
-    );
-
-    const attachment = await provider.resolve({
-      sourceEntityType: "post",
-      sourceEntityId: "post-1",
-      attachmentType: "printable",
+    };
+    spyOn(service.fileAssets, "withProducedFile");
+    const provider = createBlogPrintableProvider({
+      entityService: harness.getEntityService(),
+      themeCSS: ":root { --print-test-token: #123456; }",
+      identity: harness.getEntityContext("test").identity,
+      domain: "example.com",
     });
 
-    expect(renderPdf).toHaveBeenCalled();
+    const attachment = await provider.withFile(
+      {
+        sourceEntityType: "post",
+        sourceEntityId: "post-1",
+        attachmentType: "printable",
+      },
+      async (file) => file,
+    );
+
+    expect(service.fileAssets.withProducedFile).toHaveBeenCalled();
     expect(attachment).toEqual({
       type: "document",
-      data: Buffer.from("%PDF-post-printable"),
+      source: { sourceFile: expect.any(String), sizeBytes: 8 },
+      sha256: "a".repeat(64),
       mimeType: "application/pdf",
       filename: "resilience-is-not-redundancy-printable.pdf",
     });
