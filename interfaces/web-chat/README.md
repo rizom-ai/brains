@@ -71,6 +71,38 @@ The site page mounts the shared guest app using `data-web-chat-root`,
 runtime supply navigation, fonts, theme switching and footer. This does not
 change guest API admission or authorize production-page publication.
 
+## Authored Ask content and the dashboard tab
+
+The `ask-content` singleton is the shared source of welcome copy and suggested
+questions for `/ask`, the Brain-page box and the dashboard. Its markdown body is
+the introduction; optional `title` and `topics` frontmatter provide the heading
+and editable topic buttons. Store it at `ask-content/ask-content.md` in the
+content directory, with `visibility: public`. Missing, private or malformed
+content produces no welcome or topics. It is not a system prompt or policy.
+
+The guest bootstrap response delivers this bounded presentation after the
+existing admission checks. Privacy, provider, retention and expiry information
+still come from runtime policy. No host page supplies fallback chat copy.
+
+An owner can show the public dashboard tab with:
+
+```yaml
+plugins:
+  dashboard:
+    ask: true
+```
+
+This setting defaults to false and requires Web Chat to be installed. It only
+controls visibility: it does not enable guest access or replenish limits. The
+shared Web Chat UI mounts once when the tab is first selected; switching tabs
+preserves its draft and conversation. Full Ask uses the existing same-origin
+owned locator and never replays a question on navigation.
+
+Existing Brain-page `hero.chat` copy is no longer consumed. Move approved welcome
+and topics into the dedicated entity before publishing the new presentation;
+do not copy old privacy or retention text into authored welcome content. No
+automatic migration, generated welcome or hosted content write is performed.
+
 ## Build
 
 `bun run build` invokes `scripts/build-ui.ts`, which owns the browser target, ESM output, minification, source maps, React deduplication, the `@/` alias, and compile-time StyleX extraction through `Bun.build`. It emits `app.js` plus static `app.css`; the browser receives no Babel plugin or runtime style injector. Web Chat has no second Vite build path.

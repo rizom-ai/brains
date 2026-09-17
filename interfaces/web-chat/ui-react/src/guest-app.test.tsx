@@ -122,6 +122,7 @@ afterEach(async (): Promise<void> => {
 async function mount(
   options: {
     box?: GuestBoxCopy;
+    withContent?: boolean;
     initialDraft?: string;
     initialSubmit?: boolean;
   } = {},
@@ -135,7 +136,20 @@ async function mount(
       calls.push({ path, body, method: init?.method ?? "GET" });
       if (path.endsWith("/session"))
         return available
-          ? Response.json(session)
+          ? Response.json({
+              ...session,
+              presentation:
+                options.withContent === false
+                  ? undefined
+                  : {
+                      title: options.box?.title ?? "Authored welcome",
+                      introduction:
+                        options.box?.notice ?? "Authored introduction",
+                      topics: options.box?.topics ?? [
+                        "What ideas shape this Brain?",
+                      ],
+                    },
+            })
           : Response.json({ error: "unavailable" }, { status: 503 });
       if (path.includes("/messages?") && unavailableHistory)
         return Response.json(
@@ -191,7 +205,7 @@ async function mount(
     },
   });
   await act(async (): Promise<void> => {
-    root.render(<GuestApp client={client} {...options} />);
+    root.render(<GuestApp client={client} {...options} box={!!options.box} />);
   });
 }
 async function click(label: string): Promise<void> {
@@ -218,6 +232,23 @@ async function ask(text: string): Promise<void> {
 }
 
 describe("public Ask UI with mocked Chat transport", () => {
+  it("omits optional welcome and topics when no authored entity is available", async () => {
+    await mount({ withContent: false });
+    expect(document.querySelector(".guest-empty h2")).toBeNull();
+    expect(document.querySelectorAll(".guest-topic")).toHaveLength(0);
+    expect(document.querySelector("textarea")).not.toBeNull();
+    expect(
+      calls.filter((call) => call.path === "/api/chat/guest"),
+    ).toHaveLength(0);
+  });
+  it("does not revive the old host-page welcome in embedded chat", async () => {
+    await mount({ box: boxCopy, withContent: false });
+    expect(document.querySelector(".brain-box-welcome")).toBeNull();
+    expect(document.body.textContent).not.toContain(boxCopy.title);
+    expect(document.querySelector("textarea")?.getAttribute("aria-label")).toBe(
+      "Your question",
+    );
+  });
   it("presents standalone Ask as one conversation card with quiet, accessible controls", async () => {
     await mount();
     expect(document.querySelector(".guest-card")).not.toBeNull();

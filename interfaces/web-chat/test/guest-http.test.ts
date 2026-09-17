@@ -640,7 +640,12 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
   it("does not expose box assets when guest access is disabled", async () => {
     const state = await setup({ enabled: false });
     const browser = state.browser();
-    for (const path of ["/ask/assets/guest.js", "/ask/assets/guest.css"]) {
+    for (const path of [
+      "/ask/assets/guest.js",
+      "/ask/assets/guest.css",
+      "/ask/assets/dashboard.js",
+      "/ask/assets/dashboard.css",
+    ]) {
       expect((await browser.fetch(path, { method: "GET" })).status).toBe(404);
     }
     expect(state.calls).toHaveLength(0);

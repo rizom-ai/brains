@@ -25,6 +25,7 @@ export const coreBundle: CapabilityBundleDefinition = defineBundle({
     "profile",
     "prompt",
     "style-guide",
+    "ask-content",
     "directory-sync",
     "note",
     "link",

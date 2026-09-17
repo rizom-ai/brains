@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { askContentSchema } from "./ask-content";
 import { agentEventActionSchema, type AgentEventAction } from "./agent-action";
 
 export {
@@ -60,6 +61,7 @@ export const guestChatSessionResponseSchema: Strict<{
   retention: typeof guestRetentionSchema;
   messageCharacters: z.ZodNumber;
   canSend: z.ZodBoolean;
+  presentation: z.ZodOptional<typeof askContentSchema>;
 }> = z.strictObject({
   expiresAt: z.number().int().positive(),
   provider: z.string().min(1),
@@ -68,6 +70,7 @@ export const guestChatSessionResponseSchema: Strict<{
   retention: guestRetentionSchema,
   messageCharacters: z.number().int().positive(),
   canSend: z.boolean(),
+  presentation: askContentSchema.optional(),
 });
 export type GuestChatSessionResponse = z.output<
   typeof guestChatSessionResponseSchema

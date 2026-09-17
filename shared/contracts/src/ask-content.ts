@@ -1,0 +1,31 @@
+import { parseMarkdown } from "@brains/utils/markdown";
+import { z } from "@brains/utils/zod";
+
+/** Authored presentation only. Never permissions, policy, prompts or model instructions. */
+export const askContentSchema: z.ZodObject<{
+  title: z.ZodOptional<z.ZodString>;
+  introduction: z.ZodOptional<z.ZodString>;
+  topics: z.ZodOptional<z.ZodArray<z.ZodString>>;
+}> = z.object({
+  title: z.string().trim().min(1).max(500).optional(),
+  introduction: z.string().trim().min(1).max(4000).optional(),
+  topics: z.array(z.string().trim().min(1).max(500)).max(20).optional(),
+});
+export type AskContent = z.output<typeof askContentSchema>;
+
+export const askContentFrontmatterSchema: z.ZodObject<{
+  title: z.ZodOptional<z.ZodString>;
+  topics: z.ZodOptional<z.ZodArray<z.ZodString>>;
+}> = askContentSchema.omit({ introduction: true });
+export type AskContentFrontmatter = z.output<
+  typeof askContentFrontmatterSchema
+>;
+
+/** Markdown body is welcome copy, not an instruction to the agent. */
+export function parseAskContent(markdown: string): AskContent {
+  const { frontmatter, content } = parseMarkdown(markdown);
+  return askContentSchema.parse({
+    ...askContentFrontmatterSchema.parse(frontmatter),
+    ...(content.trim() ? { introduction: content.trim() } : {}),
+  });
+}

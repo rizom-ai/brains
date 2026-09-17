@@ -37,9 +37,6 @@
       sheet.remove();
       sendRequested = false;
       input.readOnly = false;
-      body.querySelectorAll("[data-chat-topic]").forEach(function (button) {
-        button.disabled = false;
-      });
       status.textContent =
         "Public chat is unavailable here. Your draft is unchanged; no question has been sent.";
     } finally {
@@ -51,9 +48,6 @@
     if (input.value.trim()) {
       sendRequested = true;
       input.readOnly = true;
-      body.querySelectorAll("[data-chat-topic]").forEach(function (button) {
-        button.disabled = true;
-      });
     }
     void open();
   }
@@ -70,12 +64,4 @@
     send.disabled = false;
     send.addEventListener("click", requestSend);
   }
-  body.querySelectorAll("[data-chat-topic]").forEach(function (button) {
-    button.disabled = false;
-    button.addEventListener("click", function () {
-      if (mounted) return;
-      input.value = button.textContent || "";
-      void open();
-    });
-  });
 })();

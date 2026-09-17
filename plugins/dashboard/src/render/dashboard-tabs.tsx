@@ -8,12 +8,15 @@ import {
 export function TabBar({
   knowledgeCount,
   networkCount,
+  askEnabled = false,
 }: {
   knowledgeCount: number;
   networkCount: number;
+  askEnabled?: boolean;
 }): JSX.Element {
   const tabs = [
     { id: "overview", label: "Overview", count: 0 },
+    ...(askEnabled ? [{ id: "ask", label: "Ask", count: 0 }] : []),
     { id: "knowledge", label: "Knowledge", count: knowledgeCount },
     { id: "network", label: "Network", count: networkCount },
     { id: "system", label: "System", count: 0 },

@@ -39,6 +39,7 @@
     "@brains/ai-service": "workspace:*",
     "@brains/analytics": "workspace:*",
     "@brains/app": "workspace:*",
+    "@brains/ask-content": "workspace:*",
     "@brains/assessment": "workspace:*",
     "@brains/atproto": "workspace:*",
     "@brains/atproto-registry": "workspace:*",
