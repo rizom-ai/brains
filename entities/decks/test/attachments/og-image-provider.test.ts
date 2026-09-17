@@ -63,6 +63,7 @@ describe("Deck OG image attachment provider", () => {
     service.fileAssets = {
       inspect: unexpected,
       publish: unexpected,
+      putHttp: unexpected,
       withAssetFile: unexpected,
       download: unexpected,
       fingerprint: unexpected,

@@ -137,6 +137,7 @@ function setup(
         options?.signal ?? new AbortController().signal,
       );
     },
+    putHttp: unexpected,
     withAssetFile: unexpected,
     inspect: unexpected,
     publish: unexpected,

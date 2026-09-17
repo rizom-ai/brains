@@ -77,6 +77,7 @@ function setup(): {
           ? context.entityService.createEntity(publication.request)
           : context.entityService.updateEntity(publication.request),
       ),
+      putHttp: unexpected,
       withAssetFile: unexpected,
       download: unexpected,
       fingerprint: unexpected,

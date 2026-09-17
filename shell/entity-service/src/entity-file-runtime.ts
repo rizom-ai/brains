@@ -13,6 +13,8 @@ import {
   FileProcessOwner,
   type FileProcessOwnerOptions,
   type FileInspectionResult,
+  type FileHttpPutInput,
+  type FileHttpPutResult,
 } from "@brains/db/file-process-owner";
 import type {
   EntityBinaryClient,
@@ -35,6 +37,14 @@ export interface EntityFileInspectionOptions extends EntityBinaryRequestOptions 
   inspector?: string;
 }
 export interface EntityFileAssets {
+  /** Single-attempt owned HTTP PUT. Keep the source borrowed through settlement.
+   * Status is observed through actor exit; cancellation cannot retract it.
+   * No redirect/retry or buffered fallback. Callers interpret the returned status.
+   */
+  putHttp(
+    input: FileHttpPutInput,
+    options?: EntityBinaryRequestOptions,
+  ): Promise<FileHttpPutResult>;
   /** Borrow an owned, verified download through consumer settlement. Failed
    * staging is retained; a successful result is not retracted by late abort.
    * A file path is not authority or an immutable snapshot.
@@ -224,6 +234,15 @@ export class EntityFileRuntime implements EntityFileAssets {
   ): Promise<EntityMutationResult> {
     return this.run(
       (signal) => this.client.publishFile(input, this.actors, { signal }),
+      options?.signal,
+    );
+  }
+  public putHttp(
+    input: FileHttpPutInput,
+    options?: EntityBinaryRequestOptions,
+  ): Promise<FileHttpPutResult> {
+    return this.run(
+      (signal) => this.actors.put(input, signal),
       options?.signal,
     );
   }

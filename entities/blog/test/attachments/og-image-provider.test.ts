@@ -92,6 +92,7 @@ describe("Blog OG image attachment provider", () => {
     context.entityService.fileAssets = {
       inspect: unexpected,
       publish: unexpected,
+      putHttp: unexpected,
       withAssetFile: unexpected,
       download: unexpected,
       fingerprint: unexpected,

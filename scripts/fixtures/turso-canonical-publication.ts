@@ -204,6 +204,29 @@ async function renderCanonicalPrintable(
   const reads = spyOn(service, "readAsset").mockImplementation(forbidden);
   const buffered = spyOn(attachments, "resolve").mockImplementation(forbidden);
   const producer = spyOn(files, "withProducedFile");
+  const received: {
+    facts?: { sizeBytes: number; sha256: string };
+    requests: number;
+  } = { requests: 0 };
+  const uploadServer = Bun.serve({
+    hostname: "127.0.0.1",
+    port: 0,
+    fetch: async (request): Promise<Response> => {
+      received.requests++;
+      assert.equal(request.method, "PUT");
+      assert.equal(request.headers.get("content-type"), "application/pdf");
+      assert.ok(request.body);
+      // Independent receiving-server fixture, not a production controller reader.
+      const hash = new Bun.CryptoHasher("sha256");
+      let sizeBytes = 0;
+      for await (const chunk of request.body) {
+        hash.update(chunk);
+        sizeBytes += chunk.byteLength;
+      }
+      received.facts = { sizeBytes, sha256: hash.digest("hex") };
+      return new Response(null, { status: 201 });
+    },
+  });
   try {
     const invalidPdf = join(directory, "invalid.pdf");
     await writeFile(invalidPdf, "not-a-pdf");
@@ -248,6 +271,24 @@ async function renderCanonicalPrintable(
         assert.equal(details.mimeType, "application/pdf");
         assert.ok(details.pageCount > 0);
         if (pdfKind === "carousel") assert.equal(details.pageCount, 2);
+        const facts = {
+          sizeBytes: inspected.sizeBytes,
+          sha256: inspected.sha256,
+        };
+        assert.deepEqual(
+          await files.putHttp(
+            {
+              sourceFile: file.source.sourceFile,
+              facts,
+              url: `http://127.0.0.1:${uploadServer.port}/document`,
+              headers: { "content-type": "application/pdf" },
+            },
+            { signal },
+          ),
+          { ...facts, statusCode: 201 },
+        );
+        assert.deepEqual(received.facts, facts);
+        assert.equal(received.requests, 1);
         return file.filename;
       },
     );
@@ -279,6 +320,7 @@ async function renderCanonicalPrintable(
     reads.mockRestore();
     buffered.mockRestore();
     producer.mockRestore();
+    await uploadServer.stop(true);
   }
 }
 
@@ -390,6 +432,10 @@ plugins:
     ),
     inspectionUploadUrl: new URL(
       "../../shared/image/src/file-inspection-process.ts",
+      import.meta.url,
+    ),
+    httpUploadUrl: new URL(
+      "../../shared/db/src/turso-worker/file-http-put-process.ts",
       import.meta.url,
     ),
     inspectionUploadUrls: {

@@ -85,6 +85,9 @@ export function mockFileAssets(
       const asset = prepareAsset(await readFile(sourceFile));
       return { sizeBytes: asset.sizeBytes, sha256: asset.digest };
     },
+    putHttp: async (): Promise<never> => {
+      throw new Error("Unexpected HTTP upload");
+    },
     withAssetFile: async (): Promise<never> => {
       throw new Error("Unexpected asset file loan");
     },
