@@ -125,7 +125,8 @@
     "@brains/operation-context": "0.2.0-alpha.240",
     "@brains/operator-view-react": "0.2.0-alpha.313",
     "@brains/assets": "0.2.0-alpha.336",
-    "@brains/app-ui-react": "0.2.0-alpha.347"
+    "@brains/app-ui-react": "0.2.0-alpha.347",
+    "@brains/ask-content": "0.2.0-alpha.388"
   },
   "changesets": [
     "a2a-agent-call-instruction-cleanup",
@@ -677,6 +678,7 @@
     "site--reuse-homepage-map-styles",
     "site--rizom-btn-shared-defaults",
     "site--rizom-homepage-rail",
+    "site--shared-ask-content",
     "site--zod-4-2-minimum",
     "site-build-preflight-diagnostics",
     "site-build-prepared-snapshots",

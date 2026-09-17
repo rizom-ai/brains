@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.253
+
+### Patch Changes
+
+- [#269](https://github.com/rizom-ai/brains/pull/269) [`54d112a`](https://github.com/rizom-ai/brains/commit/54d112a5335806940e1a8fba23c85e6f929fc3fa) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Use the shared authored Ask presentation in the Brain-page chat instead of reading chat copy from the page hero. Keep the site frame and existing guest enhancement behavior.
+
 ## 0.2.0-alpha.252
 
 ### Patch Changes
