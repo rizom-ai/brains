@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented on `feat/dashboard-ask`; not merged, released, activated or published.
+Implemented on `feat/dashboard-ask`; review PR [brains#269](https://github.com/rizom-ai/brains/pull/269). Not merged, released, activated or published.
 
 ## Decision
 
@@ -53,7 +53,7 @@ Missing or invalid optional content means no welcome or suggestions. No invented
 
 ## Rollout gate
 
-Prepared the dedicated public `ask-content/ask-content.md` in the separate content branch `feat/shared-ask-content` (commit `eb6a8a7`, local only). Its title, introduction and topics exactly match the current user-edited mockup; no sample answers, citations, state messages or privacy limits were migrated. The same commit removes only the obsolete `hero.chat` section. No live content migration was performed.
+Prepared the dedicated public `ask-content/ask-content.md` in the separate content branch `feat/shared-ask-content` (commit `eb6a8a7`, draft review PR [rizom-content#2](https://github.com/rizom-ai/rizom-content/pull/2)). Its title, introduction and topics exactly match the current user-edited mockup; no sample answers, citations, state messages or privacy limits were migrated. The same commit removes only the obsolete `hero.chat` section. No live content migration was performed.
 
 Rollout order: review both changes, release/deploy the supporting core and site versions first, then merge/import the content migration and rebuild preview through the running app. Do not merge the content change before the supporting code: the older site still requires `hero.chat`. A rollback to that site version must restore the old content section too.
 
