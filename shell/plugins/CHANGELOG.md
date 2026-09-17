@@ -1,5 +1,27 @@
 # @brains/plugins
 
+## 0.2.0-alpha.390
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.390
+  - @brains/contracts@0.2.0-alpha.390
+  - @brains/site-composition@0.2.0-alpha.390
+  - @brains/utils@0.2.0-alpha.390
+  - @brains/ai-service@0.2.0-alpha.390
+  - @brains/content-service@0.2.0-alpha.390
+  - @brains/conversation-service@0.2.0-alpha.390
+  - @brains/entity-service@0.2.0-alpha.390
+  - @brains/identity-service@0.2.0-alpha.390
+  - @brains/job-queue@0.2.0-alpha.390
+  - @brains/mcp-service@0.2.0-alpha.390
+  - @brains/messaging-service@0.2.0-alpha.390
+  - @brains/recurring-checks@0.2.0-alpha.390
+  - @brains/runtime-state@0.2.0-alpha.390
+  - @brains/scheduler@0.2.0-alpha.390
+  - @brains/templates@0.2.0-alpha.390
+
 ## 0.2.0-alpha.389
 
 ### Patch Changes

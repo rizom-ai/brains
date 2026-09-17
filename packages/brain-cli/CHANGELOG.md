@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.390
+
+### Patch Changes
+
+- [#269](https://github.com/rizom-ai/brains/pull/269) [`54d112a`](https://github.com/rizom-ai/brains/commit/54d112a5335806940e1a8fba23c85e6f929fc3fa) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add an optional public dashboard Ask tab using the existing guest runtime and a dedicated authored Ask content entity. Share safe welcome content and topics across guest presentations without changing permissions, budgets or activation.
+
 ## 0.2.0-alpha.389
 
 ### Patch Changes
