@@ -1,10 +1,10 @@
 export {
   askContentSchema,
   askContentFrontmatterSchema,
-  parseAskContent,
   type AskContent,
   type AskContentFrontmatter,
 } from "./ask-content";
+export { parseAskContent } from "./ask-content-markdown";
 export {
   entityReadBudgetSchema,
   type EntityReadBudget,

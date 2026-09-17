@@ -1,4 +1,3 @@
-import { parseMarkdown } from "@brains/utils/markdown";
 import { z } from "@brains/utils/zod";
 
 /** Authored presentation only. Never permissions, policy, prompts or model instructions. */
@@ -20,12 +19,3 @@ export const askContentFrontmatterSchema: z.ZodObject<{
 export type AskContentFrontmatter = z.output<
   typeof askContentFrontmatterSchema
 >;
-
-/** Markdown body is welcome copy, not an instruction to the agent. */
-export function parseAskContent(markdown: string): AskContent {
-  const { frontmatter, content } = parseMarkdown(markdown);
-  return askContentSchema.parse({
-    ...askContentFrontmatterSchema.parse(frontmatter),
-    ...(content.trim() ? { introduction: content.trim() } : {}),
-  });
-}
