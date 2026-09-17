@@ -11,8 +11,8 @@ import {
   type ChatMessageRequest,
   type GuestChatSessionResponse,
 } from "@brains/contracts/chat";
-import { GuestTranscript } from "./GuestTranscript";
-import { GuestBox, type GuestBoxCopy, type GuestBoxState } from "./GuestBox";
+import { GuestMarkdown, GuestTranscript } from "./GuestTranscript";
+import { GuestBox, type GuestBoxState } from "./GuestBox";
 import { createWebChatClient } from "./web-chat-client";
 import { openGuestBrowserSession } from "./guest-session";
 
@@ -62,7 +62,7 @@ export function GuestApp({
   siteLabel = "Brain",
 }: {
   client?: ChatClient;
-  box?: GuestBoxCopy;
+  box?: boolean;
   initialDraft?: string;
   initialSubmit?: boolean;
   name?: string;
@@ -502,7 +502,13 @@ export function GuestApp({
   if (box)
     return (
       <GuestBox
-        copy={box}
+        copy={{
+          title: session?.presentation?.title ?? "",
+          notice: session?.presentation?.introduction ?? "",
+          topics: session?.presentation?.topics ?? [],
+          inputHint: "Start with a question…",
+          topicsLabel: "Suggested topics",
+        }}
         session={session}
         state={boxState}
         busy={busy}
@@ -651,37 +657,42 @@ export function GuestApp({
                 </button>
               </div>
             )}
-            {!messages.length && session?.canSend && !pending && (
-              <div className="guest-empty">
-                <p className="guest-eyebrow">A place to begin</p>
-                <h2>What’s on your mind?</h2>
-                <p>
-                  Explore public knowledge, connect ideas, or bring a question
-                  from your work.
-                </p>
-                <div className="guest-topics">
-                  {[
-                    "What ideas shape this Brain?",
-                    "How could this help with my work?",
-                    "Where should I begin?",
-                  ].map((topic, index) => (
-                    <button
-                      className="guest-topic"
-                      type="button"
-                      key={topic}
-                      onClick={(): void => {
-                        setDraft(topic);
-                        textarea.current?.focus();
-                      }}
-                    >
-                      <span aria-hidden="true">0{index + 1}</span>
-                      {topic}
-                      <span aria-hidden="true">↗</span>
-                    </button>
-                  ))}
+            {!messages.length &&
+              session?.canSend &&
+              !pending &&
+              !!(
+                session.presentation?.title ??
+                session.presentation?.introduction ??
+                session.presentation?.topics?.length
+              ) && (
+                <div className="guest-empty">
+                  {session.presentation.title && (
+                    <h2>{session.presentation.title}</h2>
+                  )}
+                  {session.presentation.introduction && (
+                    <GuestMarkdown>
+                      {session.presentation.introduction}
+                    </GuestMarkdown>
+                  )}
+                  <div className="guest-topics">
+                    {(session.presentation.topics ?? []).map((topic, index) => (
+                      <button
+                        className="guest-topic"
+                        type="button"
+                        key={topic}
+                        onClick={(): void => {
+                          setDraft(topic);
+                          textarea.current?.focus();
+                        }}
+                      >
+                        <span aria-hidden="true">0{index + 1}</span>
+                        {topic}
+                        <span aria-hidden="true">↗</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
             {!messages.length && !session?.canSend && !busy && !pending && (
               <div className="guest-empty guest-unavailable">
                 <p className="guest-eyebrow">Public knowledge</p>

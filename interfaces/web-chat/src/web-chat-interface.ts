@@ -90,6 +90,7 @@ import {
 } from "./upload-handlers";
 
 import { GuestStateMaintenance } from "./guest-maintenance";
+import { loadAskContent } from "./ask-content";
 import { createChatApiPaths } from "@brains/contracts/chat";
 import { GuestHttpHandlers, type GuestHttpOptions } from "./guest-http";
 import {
@@ -206,6 +207,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
       managedPolicy ?? this.guestPolicy,
       {
         ...this.guestHttpOptions,
+        presentation: (): ReturnType<typeof loadAskContent> =>
+          loadAskContent(context.entityService),
         requireAuthorization: managedPolicy !== undefined,
         ready:
           this.guestHttpOptions.ready ??
@@ -317,6 +320,26 @@ export class WebChatInterface extends MessageInterfacePlugin<
           this.handleAuthenticatedChatPage(request),
       });
     if (this.guestPolicy.enabled || this.guestControl?.policy) {
+      for (const extension of ["js", "css"] as const) {
+        routes.push({
+          path: `/ask/assets/dashboard.${extension}`,
+          method: "GET",
+          public: true,
+          preview: true,
+          handler: async (request): Promise<Response> =>
+            (await this.canServeGuestAssets(request))
+              ? this.handleBuiltUiFile(
+                  uiAssetFile.replace(/app\.js$/, `dashboard.${extension}`),
+                  extension === "js"
+                    ? "text/javascript; charset=utf-8"
+                    : "text/css; charset=utf-8",
+                )
+              : new Response("Not found", {
+                  status: 404,
+                  headers: { "Cache-Control": "no-store" },
+                }),
+        });
+      }
       routes.push({
         path: "/ask/assets/guest.js",
         method: "GET",

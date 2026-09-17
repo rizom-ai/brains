@@ -23,6 +23,7 @@ await mkdir(outdir, { recursive: true });
 for (const [entryName, assetName] of [
   ["main", "app"],
   ["guest-box", "guest"],
+  ["guest-dashboard", "dashboard"],
 ] as const) {
   const entrypoint = join(packageRoot, "ui-react", "src", `${entryName}.tsx`);
   const stylex = createStylexBunTransform();
@@ -33,7 +34,7 @@ for (const [entryName, assetName] of [
     format: "esm",
     minify: true,
     sourcemap: "external",
-    naming: `${assetName}.js`,
+    naming: `${assetName}.[ext]`,
     plugins: [
       stylex.plugin,
       {
@@ -74,6 +75,12 @@ for (const [entryName, assetName] of [
     process.exit(1);
   }
 
-  await writeFile(join(outdir, `${assetName}.css`), `${stylex.css()}\n`);
+  const bundledStyles = result.outputs.find((output) =>
+    output.path.endsWith(`/${assetName}.css`),
+  );
+  await writeFile(
+    join(outdir, `${assetName}.css`),
+    `${stylex.css()}\n${(await bundledStyles?.text()) ?? ""}`,
+  );
   console.log(`Built ${join(outdir, `${assetName}.js`)} and ${assetName}.css`);
 }

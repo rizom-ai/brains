@@ -1,4 +1,11 @@
 export {
+  askContentSchema,
+  askContentFrontmatterSchema,
+  parseAskContent,
+  type AskContent,
+  type AskContentFrontmatter,
+} from "./ask-content";
+export {
   entityReadBudgetSchema,
   type EntityReadBudget,
   type QueryEmbedding,

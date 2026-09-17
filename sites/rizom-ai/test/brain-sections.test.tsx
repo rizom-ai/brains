@@ -48,10 +48,12 @@ describe("Brain product landing page", () => {
     });
     expect(html).toContain('id="brain-chat"');
     expect(html).toContain('disabled=""');
-    expect(html).toContain("Public chat is coming soon.");
+    expect(html).not.toContain("Public chat is coming soon.");
+    expect(html).not.toContain("Governance");
+    expect(html).toContain('aria-label="Your question"');
     expect(html).not.toContain("<form");
     expect(html).toContain('src="/brain-chat.js"');
-    expect(html).toContain("data-chat-topic");
+    expect(html).not.toContain("data-chat-topic");
     expect(html).not.toContain("data-ask-panel");
     expect(html).not.toContain("/ask/assets/guest.js");
     expect(html).not.toContain("/api/chat");

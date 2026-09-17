@@ -42,6 +42,7 @@ import { siteInfoPlugin } from "@brains/site-info";
 import { socialMediaPlugin } from "@brains/social-media";
 import { stockPhotoPlugin } from "@brains/stock-photo";
 import { styleGuidePlugin } from "@brains/style-guide";
+import { askContentPlugin } from "@brains/ask-content";
 import { topicsPlugin } from "@brains/topics";
 import { unifiedInboxPlugin } from "@brains/unified-inbox";
 import { WebChatInterface } from "@brains/web-chat";
@@ -104,6 +105,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
     ["prompt", promptPlugin, undefined],
     ["profile", profilePlugin, undefined],
     ["style-guide", styleGuidePlugin, undefined],
+    ["ask-content", askContentPlugin, undefined],
     ["image", imagePlugin, undefined],
     ["document", documentPlugin, undefined],
     ["note", notePlugin, undefined],

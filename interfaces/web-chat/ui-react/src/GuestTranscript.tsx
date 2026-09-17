@@ -7,6 +7,56 @@ import {
 } from "@brains/contracts/chat";
 import { SourcesPart } from "./ai-elements/data-parts";
 
+/** The same safe Markdown subset for authored welcome copy and public replies. */
+export function GuestMarkdown({
+  children,
+}: {
+  children: string;
+}): ReactElement {
+  return (
+    <Streamdown
+      className="web-chat-markdown-response"
+      mode="static"
+      controls={false}
+      skipHtml
+      plugins={{}}
+      allowedElements={[
+        "p",
+        "a",
+        "strong",
+        "em",
+        "ul",
+        "ol",
+        "li",
+        "blockquote",
+        "pre",
+        "code",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "hr",
+        "br",
+      ]}
+      components={{
+        a: ({ href, children }): ReactElement => (
+          <a
+            href={
+              href && /^(https?:\/\/|\/[^/])/i.test(href) ? href : undefined
+            }
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            {children}
+          </a>
+        ),
+      }}
+    >
+      {children}
+    </Streamdown>
+  );
+}
+
 export function GuestTranscript({
   messages,
 }: {
@@ -23,48 +73,7 @@ export function GuestTranscript({
           {message.role === "user" ? (
             <p>{message.content}</p>
           ) : (
-            <Streamdown
-              className="web-chat-markdown-response"
-              mode="static"
-              controls={false}
-              skipHtml
-              plugins={{}}
-              allowedElements={[
-                "p",
-                "a",
-                "strong",
-                "em",
-                "ul",
-                "ol",
-                "li",
-                "blockquote",
-                "pre",
-                "code",
-                "h1",
-                "h2",
-                "h3",
-                "h4",
-                "hr",
-                "br",
-              ]}
-              components={{
-                a: ({ href, children }): ReactElement => (
-                  <a
-                    href={
-                      href && /^(https?:\/\/|\/[^/])/i.test(href)
-                        ? href
-                        : undefined
-                    }
-                    rel="noopener noreferrer"
-                    target="_blank"
-                  >
-                    {children}
-                  </a>
-                ),
-              }}
-            >
-              {message.content}
-            </Streamdown>
+            <GuestMarkdown>{message.content}</GuestMarkdown>
           )}
           {message.role === "assistant" &&
             getGuestSourceCards(message.cards).map((card) => (

@@ -11,7 +11,7 @@ import type {
   ChatHistoryMessage,
   GuestChatSessionResponse,
 } from "@brains/contracts/chat";
-import { GuestTranscript } from "./GuestTranscript";
+import { GuestMarkdown, GuestTranscript } from "./GuestTranscript";
 
 export interface GuestBoxCopy {
   title: string;
@@ -306,14 +306,18 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
             </button>
           </section>
         )}
-        {welcome && (
+        {welcome && (copy.title || copy.notice || copy.topics.length > 0) && (
           <div className="brain-box-welcome">
-            <h2 id="brain-chat-heading" className="display">
-              {copy.title}
-            </h2>
-            <p className="chat-notice">
-              Explore this Brain’s public knowledge.
-            </p>
+            {copy.title && (
+              <h2 id="brain-chat-heading" className="display">
+                {copy.title}
+              </h2>
+            )}
+            {copy.notice && (
+              <div className="chat-notice">
+                <GuestMarkdown>{copy.notice}</GuestMarkdown>
+              </div>
+            )}
             <div className="hints" aria-label={copy.topicsLabel}>
               {copy.topics.map((topic, index) => (
                 <button
@@ -330,9 +334,9 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
             </div>
           </div>
         )}
-        {!welcome && (
+        {(!welcome || !copy.title) && (
           <h2 id="brain-chat-heading" className="brain-box-sr-only">
-            {copy.title}
+            {copy.title || "Ask"}
           </h2>
         )}
         {earlier.length > 0 && (
@@ -467,7 +471,9 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
               ref={input}
               rows={1}
               value={draft}
-              aria-label={welcome ? copy.title : "Your follow-up"}
+              aria-label={
+                welcome ? copy.title || "Your question" : "Your follow-up"
+              }
               aria-describedby="brain-chat-notice"
               aria-invalid={over > 0}
               placeholder={welcome ? copy.inputHint : "Ask a follow-up…"}

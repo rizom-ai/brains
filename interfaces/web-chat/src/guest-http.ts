@@ -39,7 +39,11 @@ import {
 import type { WebChatConversation } from "./conversation-access";
 import { writeTextPart } from "./stream-writer";
 
+import type { AskContent } from "@brains/contracts";
+
 export interface GuestHttpOptions {
+  /** Bounded public authored copy, not execution configuration. */
+  presentation?: () => Promise<AskContent | undefined>;
   /** Trusted host readiness, never browser configuration. Absent means closed.
    * Tests can supply a mocked runtime; production must verify accounting and
    * source-work prerequisites before supplying a positive readiness check.
@@ -85,12 +89,14 @@ export class GuestHttpHandlers {
   private readonly ready: () => boolean;
   private readonly services: Services;
   private readonly requireAuthorization: boolean;
+  private readonly presentation: GuestHttpOptions["presentation"];
   constructor(
     services: Services,
     policy: GuestPolicy,
     options: GuestHttpOptions = {},
   ) {
     this.services = services;
+    this.presentation = options.presentation;
     this.requireAuthorization = options.requireAuthorization === true;
     this.policy = guestPolicySchema.parse(policy);
     this.now = options.now ?? Date.now;
@@ -221,6 +227,7 @@ export class GuestHttpHandlers {
         retention: policy.retention,
         messageCharacters: policy.limits.messageCharacters,
         canSend,
+        presentation: await this.presentation?.(),
       }),
     );
     if (cookie) response.headers.set("Set-Cookie", cookie);
