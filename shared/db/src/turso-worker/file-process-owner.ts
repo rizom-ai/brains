@@ -7,10 +7,19 @@ import { blobFactsSchema, type BlobFacts } from "./blob-protocol";
 import { errorSchema, deserializeError } from "./error-protocol";
 import { fileFetchSchema, type FileFetchInput } from "./file-fetch";
 import { fileProduceSchema, type FileProduceInput } from "./file-produce";
+import {
+  fileHttpPutSchema,
+  fileHttpStatusSchema,
+  type FileHttpPutInput,
+  type FileHttpPutResult,
+} from "./file-http-put";
+
+const httpDetailsSchema = z.strictObject({ statusCode: fileHttpStatusSchema });
 
 export type { FileUploadInput } from "./file-upload";
 export type { FileDownloadInput } from "./file-download";
 export type { BlobFacts } from "./blob-protocol";
+export type { FileHttpPutInput, FileHttpPutResult } from "./file-http-put";
 
 const detailsSchema = z
   .record(
@@ -20,6 +29,19 @@ const detailsSchema = z
   .refine((details) => Object.keys(details).length <= 16);
 export interface FileInspectionResult extends BlobFacts {
   details: Record<string, string | number | boolean>;
+}
+
+interface FileActorResult extends BlobFacts {
+  details?: FileInspectionResult["details"];
+}
+interface FileActorState {
+  runtime: boolean;
+  terminal: boolean;
+  stopping: boolean;
+  submitted: boolean;
+  forced: boolean;
+  cancellation?: unknown;
+  facts: FileActorResult | undefined;
 }
 
 const messageSchema = z.discriminatedUnion("kind", [
@@ -50,6 +72,7 @@ export interface FileProcessOwnerOptions {
   inspectionUploadUrls?: Readonly<Record<string, URL>>;
   remoteDownloadUrl?: URL;
   producerUrl?: URL;
+  httpUploadUrl?: URL;
 }
 const inspectorNameSchema = z
   .string()
@@ -58,7 +81,7 @@ const inspectorNameSchema = z
   .regex(/^[a-z][a-z0-9-]*$/);
 interface Child {
   readonly terminal: boolean;
-  stop(error: unknown): void;
+  stop(error: unknown, force?: boolean): void;
   exited: Promise<number>;
 }
 function actorPath(url: URL): string {
@@ -83,6 +106,7 @@ export class FileProcessOwner {
   private readonly inspectionPaths = new Map<string, string>();
   private readonly remotePath: string | undefined;
   private readonly producerPath: string | undefined;
+  private readonly httpUploadPath: string | undefined;
   private producing = false;
   private readonly children = new Set<Child>();
   private admissions = 0;
@@ -100,6 +124,9 @@ export class FileProcessOwner {
       throw new Error(
         "Compiled file controllers require an external Bun executable",
       );
+    this.httpUploadPath = options.httpUploadUrl
+      ? actorPath(options.httpUploadUrl)
+      : undefined;
     this.producerPath = options.producerUrl
       ? actorPath(options.producerUrl)
       : undefined;
@@ -238,19 +265,50 @@ export class FileProcessOwner {
       this.producing = false;
     }
   }
+  /** Single attempt. Cooperative cancellation still observes a submitted receipt;
+   * slots remain charged until actual exit, even after terminal metadata.
+   */
+  public async put(
+    input: FileHttpPutInput,
+    signal?: AbortSignal,
+  ): Promise<FileHttpPutResult> {
+    if (!this.httpUploadPath)
+      throw new Error("HTTP upload actor is not provisioned");
+    const options = fileHttpPutSchema.parse(input);
+    const result = await this.run(
+      this.httpUploadPath,
+      "consumed",
+      options,
+      options.facts.sizeBytes,
+      options.facts.sha256,
+      signal,
+      "http",
+    );
+    return {
+      sizeBytes: result.sizeBytes,
+      sha256: result.sha256,
+      ...httpDetailsSchema.parse(result.details),
+    };
+  }
   private fence(error: unknown): void {
     this.failure ??= error;
-    for (const child of this.children) child.stop(error);
+    for (const child of this.children) child.stop(error, true);
   }
   private async run(
     path: string,
     kind: "sealed" | "consumed",
     input:
-      FileUploadInput | FileDownloadInput | FileFetchInput | FileProduceInput,
+      | FileUploadInput
+      | FileDownloadInput
+      | FileFetchInput
+      | FileProduceInput
+      | FileHttpPutInput,
     size: number | undefined,
     digest: string | undefined,
     signal?: AbortSignal,
-  ): Promise<BlobFacts & { details?: FileInspectionResult["details"] }> {
+    mode: "file" | "http" = "file",
+  ): Promise<FileActorResult> {
+    const observeHttp = mode === "http";
     if (this.closing || this.failure !== undefined)
       throw new Error("File process owner is fenced", { cause: this.failure });
     signal?.throwIfAborted();
@@ -261,13 +319,14 @@ export class FileProcessOwner {
     const remember = (error: unknown): void => {
       if (!errors.includes(error)) errors.push(error);
     };
-    const state: {
-      runtime: boolean;
-      terminal: boolean;
-      stopping: boolean;
-      facts:
-        (BlobFacts & { details?: FileInspectionResult["details"] }) | undefined;
-    } = { runtime: false, terminal: false, stopping: false, facts: undefined };
+    const state: FileActorState = {
+      runtime: false,
+      terminal: false,
+      stopping: false,
+      submitted: false,
+      forced: false,
+      facts: undefined,
+    };
     let child: Child | undefined;
     let abort: (() => void) | undefined;
     try {
@@ -283,7 +342,7 @@ export class FileProcessOwner {
               message.pid === globalThis.process.pid
             )
               throw new Error("Invalid file actor identity or phase");
-            if (state.stopping) {
+            if (state.stopping && (!observeHttp || state.forced)) {
               if (message.kind === "failed")
                 remember(deserializeError(message.error));
               return; // Late metadata cannot establish success, but cleanup causes remain visible.
@@ -302,9 +361,10 @@ export class FileProcessOwner {
               if (!state.runtime)
                 throw new Error("File actor skipped its runtime handshake");
               state.terminal = true;
-              if (message.kind === "failed")
+              if (message.kind === "failed") {
+                if (state.stopping) remember(state.cancellation);
                 remember(deserializeError(message.error));
-              else {
+              } else {
                 if (
                   message.kind !== kind ||
                   (size !== undefined && message.sizeBytes !== size) ||
@@ -313,6 +373,7 @@ export class FileProcessOwner {
                   throw new Error(
                     "File actor completion does not match its request",
                   );
+                if (observeHttp) httpDetailsSchema.parse(message.details);
                 state.facts = {
                   sizeBytes: message.sizeBytes,
                   sha256: message.sha256,
@@ -321,6 +382,7 @@ export class FileProcessOwner {
               }
             }
           } catch (error) {
+            if (state.cancellation !== undefined) remember(state.cancellation);
             remember(error);
             this.fence(error);
           }
@@ -331,9 +393,24 @@ export class FileProcessOwner {
           return state.terminal;
         },
         exited: process.exited,
-        stop: (error): void => {
-          if (state.stopping) return;
+        stop: (error, force = false): void => {
+          if (observeHttp && !force && state.submitted) {
+            if (state.terminal || state.stopping) return;
+            state.stopping = true;
+            state.cancellation = error;
+            try {
+              process.send({ kind: "cancel" });
+            } catch (cleanup) {
+              remember(error);
+              remember(cleanup);
+              this.fence(cleanup);
+            }
+            return;
+          }
+          if (state.forced || (state.stopping && !force)) return;
+          state.forced = true;
           state.stopping = true;
+          if (state.cancellation !== undefined) remember(state.cancellation);
           remember(error);
           try {
             if (process.exitCode === null) process.kill("SIGTERM");
@@ -357,7 +434,10 @@ export class FileProcessOwner {
       signal?.addEventListener("abort", abort, { once: true });
       if (signal?.aborted) abort();
       try {
-        if (!state.stopping) process.send(input);
+        if (!state.stopping) {
+          state.submitted = true;
+          process.send(input);
+        }
       } catch (error) {
         this.fence(error);
       }
@@ -380,7 +460,7 @@ export class FileProcessOwner {
       charged = false;
       child = undefined;
       if (
-        !state.stopping &&
+        (!state.stopping || (observeHttp && state.submitted)) &&
         (!state.terminal ||
           process.signalCode !== null ||
           (code !== 0 && errors.length === 0))
@@ -388,6 +468,7 @@ export class FileProcessOwner {
         const error = new Error(
           `File actor exited without acknowledged completion (code ${code}; ${path})`,
         );
+        if (state.cancellation !== undefined) remember(state.cancellation);
         remember(error);
         this.fence(error);
       }

@@ -17,6 +17,11 @@ export interface FileHttpPutInput {
 export interface FileHttpPutResult extends BlobFacts {
   statusCode: number;
 }
+export const fileHttpStatusSchema: z.ZodNumber = z
+  .number()
+  .int()
+  .min(200)
+  .max(599);
 const reservedHeaders = new Set([
   "content-length",
   "transfer-encoding",
@@ -192,9 +197,8 @@ async function transfer(
       incoming.promise,
       interrupted.promise,
     ]);
-    if (!received.statusCode)
-      throw new Error("HTTP upload has no status receipt");
-    result = { ...options.facts, statusCode: received.statusCode };
+    const statusCode = fileHttpStatusSchema.parse(received.statusCode);
+    result = { ...options.facts, statusCode };
   } catch (error) {
     remember(error);
   }

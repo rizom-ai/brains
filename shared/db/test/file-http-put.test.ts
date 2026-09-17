@@ -9,6 +9,7 @@ import {
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { FileProcessOwner } from "../src/turso-worker/file-process-owner";
 import {
   putFile,
   type FileHttpPutInput,
@@ -55,7 +56,7 @@ async function fixture(
   };
 }
 
-test("owned HTTP actor sends only metadata and the creator joins its exit", async () => {
+test("file process owner joins the real HTTP actor and returns metadata only", async () => {
   const received = Promise.withResolvers<Buffer>();
   const setup = await fixture((request, response) => {
     const chunks: Buffer[] = [];
@@ -69,36 +70,25 @@ test("owned HTTP actor sends only metadata and the creator joins its exit", asyn
     "../src/turso-worker/file-http-put-process.ts",
     import.meta.url,
   );
-  const messages: unknown[] = [];
-  const child = Bun.spawn([process.execPath, actorUrl.pathname], {
-    stdin: "ignore",
-    stdout: "ignore",
-    stderr: "inherit",
-    ipc: (message: unknown): void => {
-      messages.push(message);
-    },
+  const files = new FileProcessOwner({
+    executable: process.execPath,
+    uploadUrl: actorUrl,
+    downloadUrl: actorUrl,
+    httpUploadUrl: actorUrl,
   });
   try {
-    child.send(setup.input);
-    expect(await child.exited).toBe(0);
-    expect(messages).toEqual([
-      {
-        kind: "runtime",
-        pid: child.pid,
-        executable: process.execPath,
-        sidecarUrl: actorUrl.href,
-      },
-      {
-        kind: "consumed",
-        pid: child.pid,
-        ...setup.input.facts,
-        details: { statusCode: 201 },
-      },
-    ]);
+    expect(await files.put(setup.input)).toEqual({
+      ...setup.input.facts,
+      statusCode: 201,
+    });
+    expect(files.stats()).toEqual({
+      children: 0,
+      terminalChildren: 0,
+      fenced: false,
+    });
     expect(await received.promise).toEqual(setup.bytes);
   } finally {
-    if (child.exitCode === null) child.kill();
-    await child.exited;
+    await files.close();
     await setup.close();
   }
 });
