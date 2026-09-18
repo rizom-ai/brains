@@ -67,6 +67,9 @@ export function defineEntity<
   readonly metadata: TMetadataSchema;
   readonly metadataFrom?: ((stored: unknown) => unknown) | undefined;
   readonly markdown?: EntityMarkdownCodec<TMetadataSchema> | undefined;
+  readonly displayTitle?: NonNullable<
+    EntityDefinition<TType, TMetadataSchema>["displayTitle"]
+  >;
   readonly config?: EntityDefinitionConfig | undefined;
   readonly actions?: EntityActionPolicyRule | undefined;
   readonly coverImage?: boolean | undefined;

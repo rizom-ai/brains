@@ -1,4 +1,6 @@
 /** Declarative public interface authoring contract. */
+// Host-rendered pages inherit the site's theme. Named consumer: Web Chat's preview guest page.
+export { SitePageResponse } from "@brains/plugins";
 export { SdkError, sdkErrorCodeSchema, sdkErrorSchema } from "@brains/plugins";
 export type { SdkErrorCode, SdkErrorData } from "@brains/plugins";
 

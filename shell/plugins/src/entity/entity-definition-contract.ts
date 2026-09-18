@@ -180,6 +180,11 @@ export interface EntityDefinition<
    */
   readonly metadataFrom?: ((stored: unknown) => unknown) | undefined;
   readonly markdown?: EntityMarkdownCodec<TMetadataSchema> | undefined;
+  /** A source-derived display label; reading it never writes the stored record. Named consumer: Note. */
+  displayTitle?(entity: {
+    readonly content: string;
+    readonly metadata: z.output<TMetadataSchema>;
+  }): string | undefined;
   readonly config?: EntityDefinitionConfig | undefined;
   /**
    * Who may do what to this type, when the default is not right.

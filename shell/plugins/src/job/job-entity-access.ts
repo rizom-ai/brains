@@ -18,6 +18,19 @@ import {
 } from "../entity/pending-ingestion";
 import type { EntityDefinitionShape, EntityOf } from "../entity/entity-shape";
 
+/** Shared by immediate writes and durable generation admission. */
+export function assertEntityWriteOwnership(
+  ownedTypes: ReadonlySet<string>,
+  ownerLabel: string,
+  entityType: string,
+): void {
+  if (!ownedTypes.has(entityType)) {
+    throw new Error(
+      `"${ownerLabel}" may only write entity types it declares or stewards, and "${entityType}" is not one of them. Declare owned types in entities: [...] on the service header; stewards is only for eligible shell-owned types.`,
+    );
+  }
+}
+
 /**
  * Build the entity access a job handler sees.
  *
@@ -38,13 +51,8 @@ export function createJobEntityAccess(
 ): JobEntityAccess {
   const scoped = <T extends object>(request: T): T =>
     visibilityScope === undefined ? request : { ...request, visibilityScope };
-  const assertOwned = (entityType: string): void => {
-    if (!ownedTypes.has(entityType)) {
-      throw new Error(
-        `"${ownerLabel}" may only write entity types it declares or stewards, and "${entityType}" is not one of them. Declare owned types in entities: [...] on the service header; stewards is only for eligible shell-owned types.`,
-      );
-    }
-  };
+  const assertOwned = (entityType: string): void =>
+    assertEntityWriteOwnership(ownedTypes, ownerLabel, entityType);
 
   // Each read is declared as the same overload pair the contract carries, so
   // the schema-bearing form hands the schema straight to the entity service
@@ -157,6 +165,8 @@ export function createJobEntityAccess(
   }
 
   return {
+    queryEntityHierarchy: (request) =>
+      entityService.queryEntityHierarchy(scoped(request)),
     listEntities: listEntitiesScoped,
     getEntity: getEntityScoped,
     find: findScoped,

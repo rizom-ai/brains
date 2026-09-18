@@ -11,6 +11,10 @@ import type {
   IEntityService,
 } from "../index";
 import { genericSpy } from "@brains/test-utils";
+import {
+  normalizeContentVisibility,
+  type RawContentVisibility,
+} from "../types";
 
 /**
  * Return value configuration for mock entity service methods
@@ -43,13 +47,15 @@ function writtenEntity(entity: {
   id?: string | undefined;
   content?: string | undefined;
   metadata?: Record<string, unknown> | undefined;
-  visibility?: BaseEntity["visibility"] | undefined;
+  visibility?: RawContentVisibility | undefined;
 }): BaseEntity {
   return createTestEntity(entity.entityType, {
     id: entity.id ?? "mock-entity-id",
     ...(entity.content !== undefined && { content: entity.content }),
     ...(entity.metadata && { metadata: entity.metadata }),
-    ...(entity.visibility && { visibility: entity.visibility }),
+    ...(entity.visibility && {
+      visibility: normalizeContentVisibility(entity.visibility),
+    }),
   });
 }
 
@@ -200,7 +206,9 @@ export function createMockEntityService(
       mock(async (request: Parameters<IEntityService["createEntity"]>[0]) => {
         const entity = writtenEntity(request.entity);
         await request.options?.beforeWrite?.(entity);
-        return createEntityImpl?.({ entity }) ?? mutationResult(returns.createEntity);
+        return (
+          createEntityImpl?.({ entity }) ?? mutationResult(returns.createEntity)
+        );
       }),
     ),
     createEntityFromMarkdown: mock(() =>
@@ -210,7 +218,9 @@ export function createMockEntityService(
       mock(async (request: Parameters<IEntityService["updateEntity"]>[0]) => {
         const entity = writtenEntity(request.entity);
         await request.options?.beforeWrite?.(entity);
-        return updateEntityImpl?.({ entity }) ?? mutationResult(returns.updateEntity);
+        return (
+          updateEntityImpl?.({ entity }) ?? mutationResult(returns.updateEntity)
+        );
       }),
     ),
     deleteEntity: mock(() => Promise.resolve(returns.deleteEntity ?? true)),

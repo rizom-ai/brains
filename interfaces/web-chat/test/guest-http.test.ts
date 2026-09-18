@@ -167,6 +167,8 @@ async function setup(
     .getAuthRegistry()
     .register(
       createStubAuth({
+        loginResponse: () =>
+          new Response("Authentication required", { status: 401 }),
         ...(options.authenticated === false
           ? {}
           : { principal: createTestPrincipal({ permissionLevel: "admin" }) }),

@@ -6,9 +6,45 @@ import readingInsights, {
 } from "@fixture/reading-insights";
 import { createBrainTestHarness } from "@rizom/brain/testing";
 import {
+  encodeEntityIdPath,
+  entityIdPathSchema,
+  type EntityIdPath,
+  type EntityIdPathInput,
+  type EntityHierarchyPage,
+  type QueryEntityHierarchyRequest,
+} from "@rizom/brain/entities";
+
+const destination: EntityIdPathInput = ["folder", "entry"];
+const canonicalDestination: EntityIdPath =
+  entityIdPathSchema.parse(destination);
+const query: QueryEntityHierarchyRequest = {
+  entityType: "reading-request",
+  prefix: canonicalDestination,
+};
+const page: EntityHierarchyPage = {
+  prefix: canonicalDestination,
+  folders: [],
+  entities: [],
+  offset: 0,
+  totalEntities: 0,
+};
+if (
+  encodeEntityIdPath(canonicalDestination) !== "folder:entry" ||
+  query.entityType !== "reading-request" ||
+  page.totalEntities !== 0
+)
+  throw new Error("Invalid hierarchy contracts");
+import {
   defineDaemon,
+  SitePageResponse,
   type InterfaceDaemonDefinition,
 } from "@rizom/brain/interfaces";
+
+const themedPage = new SitePageResponse("<main>Preview</main>", {
+  headers: { "content-type": "text/html" },
+});
+if ((await themedPage.text()) !== "<main>Preview</main>")
+  throw new Error("Invalid host page response");
 
 const maintenance: InterfaceDaemonDefinition = defineDaemon({
   id: "maintenance-contract",

@@ -1,4 +1,5 @@
 import { requireSameOriginJson } from "@brains/auth-service";
+import { SitePageResponse } from "@brains/sdk/interfaces";
 import {
   defineMessageInterface,
   defineRoute,
@@ -29,6 +30,7 @@ import { handleChatRequest } from "./chat-route";
 import {
   renderChatPage,
   renderGuestChatPage,
+  guestPageStyles,
   uiAssetFile,
   uiAssetPath,
   uiStylesheetFile,
@@ -60,7 +62,12 @@ import {
 } from "./upload-handlers";
 
 import { GuestHttpHandlers, type GuestHttpOptions } from "./guest-http";
-import { guestPolicySchema, type GuestPolicy } from "./guest-policy";
+import {
+  guestPolicySchema,
+  matchesGuestOrigin,
+  type GuestPolicy,
+} from "./guest-policy";
+import { GuestAccessControl } from "./guest-access-control";
 import { resolveGuestPreset } from "./guest-preset";
 import { createGuestMaintenanceDaemon } from "./guest-maintenance-daemon";
 
@@ -78,6 +85,8 @@ const webChatInterfaceType = "web-chat";
 interface WebChatState {
   guestPolicy: GuestPolicy;
   guestHttp: GuestHttpHandlers;
+  guestControl: GuestAccessControl;
+  profileName(): string;
   guestMaintenance: InterfaceDaemonDefinition;
   authenticatedRoutePath: string;
   access: BrowserAccessReader;
@@ -108,10 +117,12 @@ function rawRoute(
   method: "GET" | "POST" | "PUT" | "DELETE",
   path: string,
   handle: (request: Request) => Promise<Response>,
+  preview?: true,
 ): AnyInterfaceRouteDefinition {
   return defineRoute({
     method,
     path,
+    ...(preview ? { preview } : {}),
     security: { kind: "public" },
     response: verbatim,
     handle: ({ request }) => handle(request),
@@ -177,27 +188,56 @@ export function createWebChatDefinition(
         const config: WebChatConfig = context.config;
         const guestPolicy =
           deps.guestPolicy === undefined
-            ? resolveGuestPreset(config.guest)
+            ? resolveGuestPreset(config.guest ?? false)
             : guestPolicySchema.parse(deps.guestPolicy);
-        const authenticatedRoutePath = guestPolicy.enabled
-          ? `${config.routePath.replace(/\/+$/, "")}/authenticated`
-          : config.routePath;
         const runtimeState = { scoped: context.runtimeState };
-        const loopback =
-          guestPolicy.enabled && guestPolicy.origin.startsWith("http://");
+        const access = createBrowserAccess({
+          resolveAuthPrincipal: (request) =>
+            context.auth.getCaller()?.resolveSession(request) ??
+            Promise.resolve(undefined),
+          createAuthLoginResponse: (request) =>
+            context.auth.getCaller()?.createAuthLoginResponse(request) ??
+            new Response("Authentication required", {
+              status: 401,
+              headers: { "Content-Type": "text/plain; charset=utf-8" },
+            }),
+          conversations: context.conversations,
+        });
+        const guestControl = new GuestAccessControl(
+          {
+            runtimeState,
+            siteUrl: context.siteUrl,
+            previewUrl: context.previewUrl,
+          },
+          (request) => access.resolve(request),
+          () => context.agent.guestProfileAvailable === true,
+          config.guest === undefined && deps.guestPolicy === undefined,
+          deps.guestHttp?.now,
+        );
+        const managedPolicy = guestControl.policy;
+        const authenticatedRoutePath =
+          guestPolicy.enabled || managedPolicy
+            ? `${config.routePath.replace(/\/+$/, "")}/authenticated`
+            : config.routePath;
+        const boundedPolicy =
+          guestPolicy.enabled &&
+          (guestPolicy.origin.startsWith("http://") ||
+            guestPolicy.allowance !== undefined);
         const guestHttp = new GuestHttpHandlers(
           {
             agent: context.agent,
             conversations: context.conversations,
             runtimeState,
           },
-          guestPolicy,
+          managedPolicy ?? guestPolicy,
           {
             ...deps.guestHttp,
+            requireAuthorization: managedPolicy !== undefined,
             ready:
               deps.guestHttp?.ready ??
               ((): boolean =>
-                loopback && context.agent.guestProfileAvailable === true),
+                (managedPolicy !== undefined || boundedPolicy) &&
+                context.agent.guestProfileAvailable === true),
           },
         );
 
@@ -246,23 +286,14 @@ export function createWebChatDefinition(
         return {
           guestPolicy,
           guestHttp,
+          guestControl,
+          profileName: () => context.identity.getProfile().name,
           guestMaintenance: createGuestMaintenanceDaemon(
             runtimeState,
             context.logger,
           ),
           authenticatedRoutePath,
-          access: createBrowserAccess({
-            resolveAuthPrincipal: (request) =>
-              context.auth.getCaller()?.resolveSession(request) ??
-              Promise.resolve(undefined),
-            createAuthLoginResponse: (request) =>
-              context.auth.getCaller()?.createAuthLoginResponse(request) ??
-              new Response("Authentication required", {
-                status: 401,
-                headers: { "Content-Type": "text/plain; charset=utf-8" },
-              }),
-            conversations: context.conversations,
-          }),
+          access,
           activeStreams: new Map<string, ActiveStream>(),
           agent: context.agent,
           messaging: context.messaging,
@@ -389,26 +420,40 @@ function webChatRoutes(
   };
 
   return [
-    rawRoute("GET", config.routePath, async (request) => {
-      if (!state.guestPolicy.enabled) return chatPage(config, state, request);
-      if (new URL(request.url).origin !== state.guestPolicy.origin)
-        return new Response("Guest access unavailable", {
-          status: 503,
-          headers: { "Cache-Control": "no-store" },
-        });
-      return new Response(
-        renderGuestChatPage({
-          apiPath: `${paths.stream}/guest`,
-          themeCSS: state.themeCSS,
-        }),
-        {
-          headers: {
-            "Content-Type": "text/html; charset=utf-8",
-            "Cache-Control": "no-store",
+    rawRoute(
+      "GET",
+      config.routePath,
+      async (request) => {
+        const managed = state.guestControl.policy;
+        const policy =
+          managed && (await state.guestControl.isAuthorized())
+            ? managed
+            : state.guestPolicy;
+        if (!policy.enabled) return chatPage(config, state, request);
+        if (!matchesGuestOrigin(request, policy)) {
+          if (policy.allowance) return chatPage(config, state, request);
+          return new Response("Guest access unavailable", {
+            status: 503,
+            headers: { "Cache-Control": "no-store" },
+          });
+        }
+        return new SitePageResponse(
+          renderGuestChatPage({
+            apiPath: `${paths.stream}/guest`,
+            name: state.profileName(),
+            siteLabel: state.profileName(),
+            themeCSS: state.themeCSS,
+          }),
+          {
+            headers: {
+              "Content-Type": "text/html; charset=utf-8",
+              "Cache-Control": "no-store",
+            },
           },
-        },
-      );
-    }),
+        );
+      },
+      true,
+    ),
     rawRoute("POST", paths.stream, async (request) =>
       handleChatRequest(request, {
         access: state.access,
@@ -472,11 +517,17 @@ function webChatRoutes(
         jobs,
       }),
     ),
-    rawRoute("GET", uiAssetPath, async () =>
-      builtUiFile(uiAssetFile, "text/javascript; charset=utf-8"),
+    rawRoute(
+      "GET",
+      uiAssetPath,
+      async () => builtUiFile(uiAssetFile, "text/javascript; charset=utf-8"),
+      true,
     ),
-    rawRoute("GET", uiStylesheetPath, async () =>
-      builtUiFile(uiStylesheetFile, "text/css; charset=utf-8"),
+    rawRoute(
+      "GET",
+      uiStylesheetPath,
+      async () => builtUiFile(uiStylesheetFile, "text/css; charset=utf-8"),
+      true,
     ),
     rawRoute("POST", paths.uploads, async (request) =>
       handleUploadRequest(request, uploadDeps),
@@ -490,27 +541,72 @@ function webChatRoutes(
     rawRoute("POST", "/api/agent/chat/confirm", async (request) =>
       handleRemoteAgentConfirmRequest(request, agentDeps),
     ),
-    ...(state.guestPolicy.enabled
+    ...(state.guestPolicy.enabled || state.guestControl.policy
       ? [
           rawRoute("GET", state.authenticatedRoutePath, async (request) =>
             chatPage(config, state, request),
           ),
-          rawRoute("GET", "/ask/assets/guest.js", async () =>
-            builtUiFile(
-              uiAssetFile.replace(/app\.js$/, "guest.js"),
-              "text/javascript; charset=utf-8",
-            ),
+          rawRoute(
+            "GET",
+            "/ask/assets/guest.js",
+            async (request) =>
+              canServeGuestAsset(state, request, () =>
+                builtUiFile(
+                  uiAssetFile.replace(/app\.js$/, "guest.js"),
+                  "text/javascript; charset=utf-8",
+                ),
+              ),
+            true,
           ),
-          rawRoute("GET", "/ask/assets/guest.css", async () =>
-            builtUiFile(
-              uiStylesheetFile.replace(/app\.css$/, "guest.css"),
-              "text/css; charset=utf-8",
-            ),
+          rawRoute(
+            "GET",
+            "/ask/assets/guest.css",
+            async (request) =>
+              canServeGuestAsset(state, request, () =>
+                builtUiFile(
+                  uiStylesheetFile.replace(/app\.css$/, "guest.css"),
+                  "text/css; charset=utf-8",
+                ),
+              ),
+            true,
+          ),
+          rawRoute(
+            "GET",
+            "/ask/assets/page.css",
+            async (request) =>
+              canServeGuestAsset(
+                state,
+                request,
+                () =>
+                  new Response(guestPageStyles, {
+                    headers: { "Content-Type": "text/css; charset=utf-8" },
+                  }),
+              ),
+            true,
           ),
         ]
       : []),
     ...state.guestHttp.routes(config.apiPath),
+    ...state.guestControl.routes(config.apiPath),
   ];
+}
+
+async function canServeGuestAsset(
+  state: WebChatState,
+  request: Request,
+  serve: () => Response | Promise<Response>,
+): Promise<Response> {
+  const managed = state.guestControl.policy;
+  const allowed = managed
+    ? matchesGuestOrigin(request, managed) &&
+      (await state.guestControl.isAuthorized())
+    : state.guestPolicy.enabled;
+  return allowed
+    ? serve()
+    : new Response("Not found", {
+        status: 404,
+        headers: { "Cache-Control": "no-store" },
+      });
 }
 
 /**

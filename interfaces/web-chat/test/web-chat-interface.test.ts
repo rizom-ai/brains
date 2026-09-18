@@ -1798,7 +1798,7 @@ describe("the web chat interface", () => {
         };
       };
       harness.setAgentService(agent);
-      const plugin = adminPlugin();
+      const plugin = adminPlugin(harness);
       await harness.installPlugin(plugin);
       const response = await requireRoute(plugin, "/api/chat", "POST").handler(
         new Request("http://brain/api/chat", {
@@ -3374,7 +3374,7 @@ describe("the web chat interface", () => {
       usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
     });
     harness.setAgentService(agent);
-    const plugin = adminPlugin();
+    const plugin = adminPlugin(harness);
     await harness.installPlugin(plugin);
     const response = await requireRoute(plugin, "/api/chat", "POST").handler(
       new Request("http://brain/api/chat", {

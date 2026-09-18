@@ -1,5 +1,5 @@
 import { z } from "@brains/utils/zod";
-import type { EntityIdPath } from "@brains/plugins";
+import type { EntityIdPath } from "@brains/sdk/entities";
 import { STUDIO_ENTITY_PAGE_LIMIT } from "./editor-contracts";
 
 export interface StudioCollectionQuery {

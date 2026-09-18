@@ -337,6 +337,9 @@ export interface InterfaceSetupContext<
    * than each package re-deriving it from three fields.
    */
   readonly displayBaseUrl: string | undefined;
+  /** Deployment-derived HTTPS origins, never request headers. Named consumer: Web Chat guest authorization. */
+  readonly siteUrl: string | undefined;
+  readonly previewUrl: string | undefined;
   /**
    * The brain's theme, for an interface that serves a page of its own.
    *
@@ -633,6 +636,8 @@ export interface AuthenticatedCaller {
 }
 
 export interface ReceiveAuthenticatedInput {
+  /** Cancellation of the incoming request, combined with the interface lifecycle. */
+  readonly signal?: AbortSignal | undefined;
   readonly sender: InboundMessageSender;
   readonly channel: MessageChannel;
   readonly text: string;
@@ -660,6 +665,7 @@ export interface ReceiveAuthenticatedInput {
  * Named consumer: @brains/web-chat.
  */
 export interface ResolveApprovalInput {
+  readonly signal?: AbortSignal | undefined;
   readonly sender: InboundMessageSender;
   readonly channel: MessageChannel;
   readonly approvalId: string;
@@ -679,7 +685,9 @@ export interface ResolveApprovalInput {
  */
 export type ApprovalOutcome =
   | { readonly kind: "resolved" }
-  | { readonly kind: "not-pending"; readonly text: string };
+  | { readonly kind: "not-pending"; readonly text: string }
+  /** The decision was submitted, but the turn failed. Never retry it implicitly. */
+  | { readonly kind: "failed"; readonly needsTerminal: boolean };
 
 export interface MessageReceiver {
   receiveAuthenticated(input: ReceiveAuthenticatedInput): Promise<void>;

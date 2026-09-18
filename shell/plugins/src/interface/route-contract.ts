@@ -159,6 +159,8 @@ export interface InterfaceRouteInput<
    * paths. Defaults to exact. Named consumer: @brains/studio.
    */
   readonly match?: "exact" | "prefix" | undefined;
+  /** Preview-host reachability only; all admission checks still apply. Named consumer: Web Chat. */
+  readonly preview?: boolean | undefined;
   readonly security: TSecurity;
   readonly body?: TBodySchema | undefined;
   readonly response: TResponseSchema;

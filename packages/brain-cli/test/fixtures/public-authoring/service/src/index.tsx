@@ -1,6 +1,7 @@
-import { bookmark } from "@fixture/reading-entities";
+import { bookmark, readingDigest } from "@fixture/reading-entities";
 import { defineEntity } from "@rizom/brain/entities";
 import {
+  contentGenerationResultSchema,
   defineJob,
   defineRoute,
   defineServicePlugin,
@@ -60,10 +61,39 @@ export const compileReadingDigest = defineJob({
   deadline: "30s",
 });
 
+// Generation writes belong to this service, not the separately installed source package.
+export const generatedReadingDigest = defineEntity({
+  type: "generated-reading-digest",
+  purpose: "A generated digest",
+  metadata: readingDigest.metadata,
+});
+export const generatedReadingOverview = defineEntity({
+  type: "generated-reading-overview",
+  purpose: "A generated overview",
+  metadata: bookmark.metadata,
+});
+const readbackInput = z.object({
+  digestId: z.string(),
+  overviewId: z.string(),
+});
+const readbackResult = z.object({
+  digest: z.object({ content: z.string(), bookmarkId: z.string() }),
+  overview: z.object({ content: z.string(), url: z.string() }),
+});
+const readGeneratedOutputs = defineJob({
+  name: "read-generated-outputs",
+  input: readbackInput,
+  output: readbackResult,
+});
+
 export default defineServicePlugin(
   {
     id: "reading-insights",
-    entities: [readingRequest],
+    entities: [
+      readingRequest,
+      generatedReadingDigest,
+      generatedReadingOverview,
+    ],
     config: z.object({
       summaryPrefix: z.string().default("Reading digest"),
     }),
@@ -123,6 +153,22 @@ export default defineServicePlugin(
     // One declaration per template: how it reads as text, how it draws in a
     // browser, or both. The schema is written once and validates either way.
     templates: {
+      generatedBookmark: {
+        schema: z.object({ title: z.string(), body: z.string() }),
+        generation: {
+          prompt: "Write a reading overview for the supplied bookmark.",
+        },
+        format: ({ value }) => `# ${value.title}\n\n${value.body}`,
+      },
+      generatedDigest: {
+        schema: digestResult,
+        generation: {
+          prompt: "Write a concise digest of the requested bookmark.",
+          useKnowledgeContext: true,
+        },
+        format: ({ value }) =>
+          `# ${value.summary}\n\nSource bookmark: ${value.bookmarkId}`,
+      },
       digest: {
         schema: digestResult,
         description: "A compact reading-digest result.",
@@ -139,6 +185,25 @@ export default defineServicePlugin(
 
     // Binding with .handle() keeps the contract importable without its executor.
     jobs: ({ state }) => [
+      readGeneratedOutputs.handle(async ({ input, entities }) => {
+        const digest = await entities.get(
+          generatedReadingDigest,
+          input.digestId,
+        );
+        const overview = await entities.get(
+          generatedReadingOverview,
+          input.overviewId,
+        );
+        if (!digest || !overview)
+          throw new Error("Generated outputs are missing");
+        return {
+          digest: {
+            content: digest.content,
+            bookmarkId: digest.metadata.bookmarkId,
+          },
+          overview: { content: overview.content, url: overview.metadata.url },
+        };
+      }),
       compileReadingDigest.handle(
         async ({ input, entities, messaging, progress, signal, templates }) => {
           signal.throwIfAborted();
@@ -178,7 +243,75 @@ export default defineServicePlugin(
     ],
 
     // Tools return plain schema-valid data; durable mechanics stay framework-owned.
-    tools: ({ jobs }) => [
+    tools: ({ content, jobs }) => [
+      defineTool({
+        name: "read-generated-outputs",
+        description: "Read generated entities through typed readers",
+        input: readbackInput,
+        output: z.object({ jobId: z.string() }),
+        sideEffects: "writes",
+        async execute({ input }) {
+          const job = await jobs.enqueue(readGeneratedOutputs, input);
+          return { jobId: job.id };
+        },
+      }),
+      defineTool({
+        name: "generated-output-status",
+        description: "Read typed output readback status",
+        input: z.object({ jobId: z.string() }),
+        output: z
+          .object({ status: z.string(), result: readbackResult.optional() })
+          .nullable(),
+        async execute({ input }) {
+          const status = await jobs.status(readGeneratedOutputs, input.jobId);
+          return status
+            ? {
+                status: status.status,
+                ...(status.result ? { result: status.result } : {}),
+              }
+            : null;
+        },
+      }),
+      defineTool({
+        name: "generate-reading-content",
+        description: "Generate independent digest and overview outputs",
+        input: digestRequest.extend({ dryRun: z.boolean().default(false) }),
+        output: contentGenerationResultSchema,
+        sideEffects: "writes",
+        async execute({ input }) {
+          return content.generate({
+            dryRun: input.dryRun,
+            targets: [
+              content.target({
+                template: "generatedDigest",
+                context: { data: { bookmarkId: input.bookmarkId } },
+                destination: {
+                  entity: generatedReadingDigest,
+                  idPath: [input.bookmarkId, "generated"],
+                  metadata: {
+                    bookmarkId: input.bookmarkId,
+                    title: "Generated digest",
+                    wordCount: 0,
+                  },
+                },
+              }),
+              content.target({
+                template: "generatedBookmark",
+                context: { data: { bookmarkId: input.bookmarkId } },
+                destination: {
+                  entity: generatedReadingOverview,
+                  idPath: [input.bookmarkId, "overview"],
+                  metadata: {
+                    title: "Reading overview",
+                    url: `https://example.test/reading/${encodeURIComponent(input.bookmarkId)}`,
+                    tags: ["generated"],
+                  },
+                },
+              }),
+            ],
+          });
+        },
+      }),
       defineTool({
         name: "record-reading-request",
         description: "Record a request in the service's own type",

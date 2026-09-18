@@ -95,7 +95,7 @@ const goldenPackages: GoldenPackageExpectation[] = [
       "defineJob",
       "defineServicePlugin",
       "defineTool",
-      "entities: [readingRequest]",
+      "entities: [\n      readingRequest,\n      generatedReadingDigest,\n      generatedReadingOverview,\n    ]",
       "z",
     ],
   },
@@ -424,7 +424,10 @@ describe("public authoring 0.2 golden packages", () => {
       expect(manifest.dependencies?.zod).toBeUndefined();
       expect(manifest.devDependencies?.zod).toBeUndefined();
       expect(manifest.peerDependencies?.zod).toBeUndefined();
-      expect(publicImports).toEqual(fixture.publicEntryPoints);
+      // This is an import inventory, independent of source file traversal order.
+      expect(publicImports.sort()).toEqual(
+        [...fixture.publicEntryPoints].sort(),
+      );
 
       for (const symbol of fixture.requiredVocabulary) {
         expect(source).toContain(symbol);

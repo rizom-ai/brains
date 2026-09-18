@@ -478,7 +478,7 @@ export class ServerManager {
       );
       if (
         requestMethod === "GET" &&
-        response instanceof SitePageResponse &&
+        SitePageResponse.is(response) &&
         response.status === 200
       ) {
         const path = resolve(opts.distDir, `.${requestPath}`, "index.html");

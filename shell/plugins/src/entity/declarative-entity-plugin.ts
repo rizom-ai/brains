@@ -311,7 +311,19 @@ function entityAdapter(
         metadata: decoded.metadata,
       };
     },
-    extractMetadata: (entity) => entity.metadata,
+    extractMetadata: (entity): Record<string, unknown> => {
+      const title = definition.displayTitle?.({
+        content: entity.content,
+        metadata: definition.metadata.parse(
+          definition.metadataFrom
+            ? definition.metadataFrom(entity.metadata)
+            : entity.metadata,
+        ),
+      });
+      return title === undefined
+        ? entity.metadata
+        : { ...entity.metadata, title };
+    },
     parseFrontMatter: (markdown, schemaToParse) =>
       parseMarkdownWithFrontmatter(markdown, schemaToParse).metadata,
     generateFrontMatter(entity): string {

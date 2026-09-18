@@ -31,6 +31,8 @@ import {
   handleCreateEntity,
   handleDeleteEntity,
   handleGetEntities,
+  handleGetEntityHierarchy,
+  handlePreviewDestination,
   handleUpdateEntity,
 } from "./editor-entities";
 import { handleUpload } from "./editor-upload";
@@ -370,6 +372,20 @@ export function createEditorRoutes(
       "GET",
       "schema",
       (request, access, s) => handleGetSchema(s.runtime, request, access),
+      { trusted: true },
+    ),
+    api(
+      "POST",
+      "destination",
+      (request, access, s) =>
+        handlePreviewDestination(s.runtime, request, access),
+      { trusted: true, sameOrigin: "json" },
+    ),
+    api(
+      "GET",
+      "hierarchy",
+      (request, access, s) =>
+        handleGetEntityHierarchy(s.runtime, request, access),
       { trusted: true },
     ),
     api(

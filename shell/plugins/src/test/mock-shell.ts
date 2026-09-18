@@ -916,7 +916,6 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   // fake queue that forgets its own enqueues makes reconciliation code treat
   // every fresh job as pruned.
   const enqueuedJobs = new Map<string, JobInfo>();
-  let enqueuedBatchCount = 0;
   let enqueuedJobCount = 0;
 
   function recordEnqueuedJob(request: JobQueueEnqueueRequest): string {
@@ -968,7 +967,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         // who it works for. A fake that dropped it would let a handler pass
         // here and refuse against a real brain.
         ...(request.options?.metadata ?? {}),
-        rootJobId: request.options?.rootJobId ?? request.options?.metadata?.["rootJobId"] ?? id,
+        rootJobId: request.options?.rootJobId ?? id,
       },
       progress: null,
       result: null,
@@ -985,8 +984,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   // --- Jobs namespace ---
   const jobs: IJobsNamespace = {
     // A batch is its operations filed under one root, as the real queue files them.
-    enqueueBatch: async (operations, options, requestedBatchId) => {
-      const batchId = requestedBatchId ?? options.rootJobId ?? `batch-${++enqueuedBatchCount}`;
+    enqueueBatch: async (operations, options, batchId) => {
       for (const operation of operations) {
         recordEnqueuedJob({
           type: operation.type,

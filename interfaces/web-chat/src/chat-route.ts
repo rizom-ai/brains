@@ -8,7 +8,7 @@ import type {
   ScopedRuntimeUploadStore,
   UserPermissionLevel,
 } from "@brains/sdk/interfaces";
-import { coerceConversationMetadata } from "@brains/sdk/interfaces";
+import { coerceConversationMetadata, SdkError } from "@brains/sdk/interfaces";
 import {
   createUIMessageStream,
   createUIMessageStreamResponse,
@@ -309,8 +309,10 @@ export async function handleChatRequest(
       deps.activeStreams.set(conversationId, { writer });
       try {
         if (approvalResponses.length > 0) {
+          let failed = false;
           for (const approvalResponse of approvalResponses) {
             const outcome = await deps.messages.resolveApproval({
+              signal: request.signal,
               sender,
               channel,
               approvalId: approvalResponse.id,
@@ -329,31 +331,50 @@ export async function handleChatRequest(
                 outcome.text,
                 permissionLevel,
               );
+            } else if (outcome.kind === "failed") {
+              failed = true;
+              if (outcome.needsTerminal) {
+                await closeStaleApproval(
+                  writer,
+                  deps,
+                  conversationId,
+                  approvalResponse,
+                  "The action failed.",
+                  permissionLevel,
+                );
+              }
             }
           }
-          return;
-        }
-
-        // A resubmitted assistant turn: the client already has the text, so
-        // the brain is not asked again — it is written straight back.
-        if (responseText !== undefined) {
+          // Complete each explicit decision once; a reported failure must not
+          // turn the whole stream into success or cause a decision replay.
+          if (failed) throw new SdkError("handler_failed");
+        } else if (responseText !== undefined) {
+          // The client already has this assistant turn; do not ask again.
           writeText(writer, responseText, "text", deps.createId);
-          return;
+        } else {
+          await deps.messages.receiveAuthenticated({
+            signal: request.signal,
+            sender,
+            channel,
+            text: message,
+            ...(messageId ? { messageId } : {}),
+            caller,
+            ...(inbound.length > 0
+              ? {
+                  attachments: async (): Promise<InboundMessageAttachment[]> =>
+                    inbound,
+                }
+              : {}),
+          });
         }
-
-        await deps.messages.receiveAuthenticated({
-          sender,
-          channel,
-          text: message,
-          ...(messageId ? { messageId } : {}),
-          caller,
-          ...(inbound.length > 0
-            ? {
-                attachments: async (): Promise<InboundMessageAttachment[]> =>
-                  inbound,
-              }
-            : {}),
-        });
+        writer.write(
+          request.signal.aborted
+            ? { type: "abort" }
+            : { type: "finish", finishReason: "stop" },
+        );
+      } catch (error) {
+        if (!request.signal.aborted) throw error;
+        writer.write({ type: "abort" });
       } finally {
         deps.activeStreams.delete(conversationId);
       }

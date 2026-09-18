@@ -73,7 +73,7 @@ export const guestPresetSchema: z.ZodUnion<
 > = z.union([z.literal(false), z.literal("local-test"), localPresetSchema]);
 
 export function resolveGuestPreset(
-  input: z.output<typeof guestPresetSchema>,
+  input: z.output<typeof guestPresetSchema> = false,
 ): GuestPolicy {
   if (input === false) return { enabled: false };
   return createDefaultGuestPolicy(

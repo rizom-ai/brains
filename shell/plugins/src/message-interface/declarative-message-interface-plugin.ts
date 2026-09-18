@@ -1,4 +1,8 @@
-import { createExternalActorId, type ActorRef } from "@brains/contracts";
+import {
+  createExternalActorId,
+  SdkError,
+  type ActorRef,
+} from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import {
   interfaceStateNamespaceFor,
@@ -309,6 +313,8 @@ class DeclarativeMessageInterfacePlugin<
           spaces: context.spaces,
           domain: context.domain,
           displayBaseUrl: effectiveDisplayBaseUrl(context),
+          siteUrl: context.siteUrl,
+          previewUrl: context.previewUrl,
           themeCSS: context.themeCSS,
           messaging: {
             request: createRequester((message) =>
@@ -912,8 +918,12 @@ class DeclarativeMessageInterfacePlugin<
 
   private async resolveApproval(
     input: ResolveApprovalInput,
-    signal: AbortSignal,
+    lifecycleSignal: AbortSignal,
   ): Promise<ApprovalOutcome> {
+    const signal = input.signal
+      ? AbortSignal.any([lifecycleSignal, input.signal])
+      : lifecycleSignal;
+    signal.throwIfAborted();
     if (!input.sender.id.trim() || !input.channel.id.trim()) {
       throw new Error("Authenticated messages require sender and channel ids");
     }
@@ -941,12 +951,26 @@ class DeclarativeMessageInterfacePlugin<
         resolved,
         input.approvalId,
       );
-      await this.deliverResponse(input.channel, resolved, permission, {
-        approvalId: input.approvalId,
-        approved: input.approved,
-        remaining: [...(await this.approvals().getApprovalIds(conversationId))],
-      });
+      signal.throwIfAborted();
+      const failed = resolved.error !== undefined;
+      await this.deliverResponse(
+        input.channel,
+        failed ? { ...resolved, text: "The action failed." } : resolved,
+        permission,
+        {
+          approvalId: input.approvalId,
+          approved: input.approved,
+          remaining: [
+            ...(await this.approvals().getApprovalIds(conversationId)),
+          ],
+        },
+      );
       await this.handleAgentResponseToolStatuses(resolved, conversationId);
+      if (failed)
+        return {
+          kind: "failed",
+          needsTerminal: !hasApprovalCard(resolved, input),
+        };
       return hasApprovalCard(resolved, input)
         ? { kind: "resolved" }
         : { kind: "not-pending", text: resolved.text };
@@ -957,8 +981,12 @@ class DeclarativeMessageInterfacePlugin<
 
   private async receiveAuthenticated(
     input: ReceiveAuthenticatedInput,
-    signal: AbortSignal,
+    lifecycleSignal: AbortSignal,
   ): Promise<void> {
+    const signal = input.signal
+      ? AbortSignal.any([lifecycleSignal, input.signal])
+      : lifecycleSignal;
+    signal.throwIfAborted();
     if (!input.sender.id.trim() || !input.channel.id.trim()) {
       throw new Error("Authenticated messages require sender and channel ids");
     }
@@ -1014,6 +1042,8 @@ class DeclarativeMessageInterfacePlugin<
           resolved,
           routed.approvalId,
         );
+        signal.throwIfAborted();
+        if (resolved.error !== undefined) throw new SdkError("handler_failed");
         await this.deliverResponse(input.channel, resolved, permission, {
           approvalId: routed.approvalId,
           approved: routed.confirmed,
@@ -1051,6 +1081,8 @@ class DeclarativeMessageInterfacePlugin<
         },
         signal,
       );
+      signal.throwIfAborted();
+      if (response.error !== undefined) throw new SdkError("handler_failed");
       this.approvals().rememberFromResponse(conversationId, response);
       const messageId = await this.deliverResponse(
         input.channel,

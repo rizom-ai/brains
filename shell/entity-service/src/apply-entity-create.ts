@@ -1,4 +1,9 @@
 import { getErrorMessage } from "@brains/utils/error";
+import {
+  encodeEntityIdPath,
+  entityIdPathSchema,
+  type EntityIdPathInput,
+} from "./entity-id-path";
 import type { EntityEditCaller } from "./apply-entity-edit";
 import type {
   BaseEntity,
@@ -12,6 +17,8 @@ import { canWriteVisibility, normalizeContentVisibility } from "./visibility";
 export interface EntityCreateRequest {
   readonly entityType: string;
   readonly entity: EntityInput<BaseEntity>;
+  /** Explicit destinations are validated and created only if absent. */
+  readonly idPath?: EntityIdPathInput | undefined;
   readonly eventContext?: EntityMutationEventContext | undefined;
 }
 
@@ -92,10 +99,18 @@ export async function applyEntityCreate(
   }
 
   const result = await services.entities.createEntity({
-    entity: request.entity,
-    ...(request.eventContext
-      ? { options: { eventContext: request.eventContext } }
-      : {}),
+    entity: {
+      ...request.entity,
+      ...(request.idPath && {
+        id: encodeEntityIdPath(entityIdPathSchema.parse(request.idPath)),
+      }),
+    },
+    options: {
+      ...(request.eventContext ? { eventContext: request.eventContext } : {}),
+      ...(request.idPath
+        ? { conditionalWrite: { expectedRevision: null } }
+        : {}),
+    },
   });
   return {
     kind: "created",

@@ -1,4 +1,12 @@
 /** Declarative public entity authoring surface. */
+// Structured destination and folder reads. Named consumer: Studio.
+export { encodeEntityIdPath, entityIdPathSchema } from "@brains/entity-service";
+export type {
+  EntityIdPath,
+  EntityIdPathInput,
+  QueryEntityHierarchyRequest,
+  EntityHierarchyPage,
+} from "@brains/entity-service";
 export { SdkError, sdkErrorCodeSchema, sdkErrorSchema } from "@brains/plugins";
 export type { SdkErrorCode, SdkErrorData } from "@brains/plugins";
 export type {

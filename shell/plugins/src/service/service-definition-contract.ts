@@ -82,6 +82,8 @@ export interface ServiceSeedDefinition {
  * Named consumer: @brains/obsidian-vault.
  */
 export interface ServiceEntityShapes {
+  /** Adapter-derived title, without handing the caller the mutable adapter. Named consumer: Studio. */
+  displayTitle(entity: BaseEntity): string | undefined;
   frontmatterSchema(entityType: string): z.ZodObject<z.ZodRawShape> | undefined;
   isSingleton(entityType: string): boolean;
   bodyTemplate(entityType: string): string;
