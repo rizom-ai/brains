@@ -1,14 +1,7 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
 import { StudioSystemFields } from "./studio-system-fields";
-import { systemEditorCopy } from "./studio-system-presentation";
 import { systemFieldStyles } from "./studio-system-fields.styles";
-import type {
-  RuntimeStudioWorkspaceData,
-  RuntimeOperatorActionControl,
-  RuntimeOperatorLaunchIntent,
-  EntityIdPath,
-} from "@brains/plugins";
 import {
   Button,
   ConfirmDialog,
@@ -22,7 +15,7 @@ import {
   OperatorActionButton,
   OperatorViewRenderer,
 } from "@brains/operator-view-react";
-import type { Dispatch, ReactElement, ReactNode, SetStateAction } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { workspaceClassName } from "./studio-workspace.styles";
 import { headStyles } from "./studio-page-head.styles";
 import { typographyStyles } from "./studio-typography.styles";
@@ -45,36 +38,16 @@ import {
   editorStyles,
 } from "./studio-editor.styles";
 import { STUDIO_OPERATOR_COMPONENTS } from "./app-controls";
-import { ApiError } from "./api";
-import type {
-  AgentTarget,
-  StudioWorkspaceInfo,
-  EntitySummary,
-  EntityFolder,
-  DestinationPreview,
-  EntityTypeInfo,
-  PublishingAction,
-  PublishingActionResult,
-  SyncStatus,
-  TypeSchema,
-} from "./api";
-import { BodyEditor, type BodyMode } from "./body-editor";
+import type { EntityTypeInfo, StudioWorkspaceInfo, TypeSchema } from "./api";
+import { BodyEditor } from "./body-editor";
 import type { StudioWorkspaceQuery } from "./queries";
 import {
   Field,
   FieldAssistControls,
   isFieldVisible,
   TypeSwitcher,
-  studioArea,
-  studioEditorPresentation,
   typeHasPublicationField,
-  type FieldAssistState,
-  type FieldAssistVariant,
 } from "./entity-fields";
-import type {
-  EditorWorkflowAction,
-  EditorWorkflowState,
-} from "./editor-workflow";
 import {
   DeleteDialog,
   derivePipeline,
@@ -90,20 +63,9 @@ import {
   navigationClassName as navClass,
   navigationStyles as nav,
 } from "./studio-navigation.styles";
-import {
-  declarativeStudioPageHead,
-  StudioPageHead,
-  studioAccessRequirement,
-  type StudioPageHeadModel,
-} from "./studio-page-head";
-import {
-  entityPublicationState,
-  entityTitle,
-  formatUpdated,
-  singularLabel,
-} from "./ui-utils";
+import { StudioPageHead } from "./studio-page-head";
+import { entityPublicationState, entityTitle, formatUpdated } from "./ui-utils";
 
-import type { StudioCollectionQuery } from "../../src/collection-query";
 import {
   StudioCollectionControls,
   StudioCollectionPager,
@@ -117,7 +79,10 @@ import {
 } from "./studio-hierarchy";
 import { hierarchyStyles as hierarchy } from "./studio-hierarchy.styles";
 
-export type MobileEditorPane = "details" | "write" | "preview";
+import type { MobileEditorPane, StudioAppViewProps } from "./app-view-props";
+import { deriveStudioAppModel, workspaceRailBadges } from "./studio-app-model";
+
+export type { MobileEditorPane, StudioAppViewProps } from "./app-view-props";
 
 /** Pane preferences are presentation-only and stay in the mounted app. */
 export function mobileEditorEntry(
@@ -128,95 +93,11 @@ export function mobileEditorEntry(
   return preferred ?? (schema.format === "raw" ? "preview" : "details");
 }
 
-const EMPTY_TYPE_SCHEMA: TypeSchema = {
-  entityType: "",
-  format: "frontmatter",
-  isSingleton: false,
-  hasBody: false,
-  fields: [],
-};
 const MOBILE_EDITOR_PANES: readonly MobileEditorPane[] = [
   "details",
   "write",
   "preview",
 ];
-
-export interface StudioAppViewProps {
-  activeWorkspaceId: string | null;
-  types: EntityTypeInfo[];
-  workspaces: StudioWorkspaceInfo[];
-  workspaceError: string | null;
-  readError?: string | null;
-  onRetryRead?: () => void;
-  declarativeWorkspaceData: RuntimeStudioWorkspaceData | null;
-  workspaceQuery: StudioWorkspaceQuery;
-  entityType: string | null;
-  entities: EntitySummary[] | null;
-  folders: EntityFolder[];
-  collectionPath: string;
-  selectFolder: (prefix: EntityIdPath | null) => void;
-  creationDestination: {
-    data: DestinationPreview | null;
-    pending: boolean;
-    error: Error | null;
-  };
-  entityOffset: number;
-  entityLimit: number;
-  entityTotal: number;
-  collectionQuery: StudioCollectionQuery;
-  onCollectionQueryChange: (query: StudioCollectionQuery) => void;
-  entityListLoading: boolean;
-  schema: TypeSchema | null;
-  editor: EditorWorkflowState;
-  fieldAssistState: FieldAssistState;
-  bodyMode: BodyMode;
-  mobilePane: MobileEditorPane;
-  syncStatus: SyncStatus | null;
-  baselineCommit: string | null;
-  agentTargets: AgentTarget[];
-  deleting: boolean;
-  hasUnsavedChanges: boolean;
-  navigationBlocked: boolean;
-  dispatchEditor: Dispatch<EditorWorkflowAction>;
-  setFieldAssistState: Dispatch<SetStateAction<FieldAssistState>>;
-  setBodyMode: Dispatch<SetStateAction<BodyMode>>;
-  setMobilePane: (pane: MobileEditorPane) => void;
-  backToList: () => void;
-  selectEntityType: (entityType: string) => void;
-  selectWorkspace: (workspaceId: string) => void;
-  changeEntityPage: (offset: number) => void;
-  openWorkspaceEntity: (entityType: string, entityId: string) => void;
-  openWorkspaceLaunch: (launch: RuntimeOperatorLaunchIntent) => void;
-  performPublishingAction: (
-    action: PublishingAction,
-  ) => Promise<PublishingActionResult>;
-  performDeclarativeAction: (
-    action: RuntimeOperatorActionControl,
-  ) => Promise<unknown>;
-  onWorkspaceQueryChange: (
-    workspaceId: string,
-    query: StudioWorkspaceQuery,
-    canonicalUrlQuery?: StudioWorkspaceQuery,
-  ) => void;
-  startCreate: () => void;
-  openEntity: (entityId: string) => void;
-  runFieldAssist: (variant: FieldAssistVariant, field: string) => void;
-  applyFieldAssist: (field: string, suggestion: string | string[]) => void;
-  save: () => void;
-  remove: () => void;
-  onNavigationReset: () => void;
-  onNavigationProceed: () => void;
-}
-
-function workspaceRailBadges(
-  workspaces: StudioWorkspaceInfo[],
-): Record<string, number> {
-  return Object.fromEntries(
-    workspaces.flatMap((workspace) =>
-      workspace.badge === undefined ? [] : [[workspace.id, workspace.badge]],
-    ),
-  );
-}
 
 export function StudioAppStatus(props: {
   message: string;
@@ -367,140 +248,35 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
     onNavigationProceed,
   } = props;
   const { mode, draft, body, save: saveState, deleteOpen } = editor;
-  const activeType = types.find((info) => info.entityType === entityType);
-  const activeWorkspace = workspaces.find(
-    (workspace) => workspace.id === activeWorkspaceId,
-  );
-
-  // Workspace branches do not read these entity fallbacks.
-  const entitySchema = schema ?? EMPTY_TYPE_SCHEMA;
-  const presentation = studioEditorPresentation(
-    entitySchema.entityType,
-    entitySchema.hasBody,
-  );
-  const selectedEntityType = entityType ?? "";
-  const systemDesign = systemEditorCopy(selectedEntityType);
-  const editing = !activeWorkspaceId && mode.kind !== "browse";
-  const canCreate =
-    activeType?.capabilities.canCreate === true &&
-    (entityType !== "note" ||
-      (mode.kind === "create"
-        ? !mode.prefix
-        : props.collectionQuery.prefix === null));
-  const canEdit =
-    mode.kind === "create"
-      ? canCreate
-      : mode.kind === "edit" && activeType?.capabilities.canUpdate === true;
-  const namedCreate = mode.kind === "create" && mode.segment !== undefined;
-  const fieldIssues =
-    saveState.kind === "error"
-      ? saveState.issues
-      : namedCreate && props.creationDestination.error instanceof ApiError
-        ? props.creationDestination.error.issues
-        : undefined;
-  const destinationBlocked =
-    namedCreate &&
-    (!props.creationDestination.data ||
-      props.creationDestination.pending ||
-      Boolean(props.creationDestination.error));
-  const hierarchyKind = entityType === "site-content" ? "page" : "folder";
-  const folderContext =
-    props.collectionQuery.prefix?.map(folderLabel).join(" / ") ??
-    activeType?.label ??
-    entityType ??
-    "Collection";
-  const canDelete = activeType?.capabilities.canDelete === true;
-  const canPublish = activeType?.capabilities.canPublish === true;
-  const canAssist = canEdit && activeType?.capabilities.canAssist === true;
-  const heading =
-    mode.kind === "edit"
-      ? activeType?.isSingleton
-        ? singularLabel(activeType.label)
-        : entityTitle(mode.entity)
-      : mode.kind === "create"
-        ? `New ${activeType?.label ?? entityType}`
-        : (activeType?.label ?? entityType);
-  const collectionLabel =
-    activeWorkspace?.label ??
-    (activeType?.isSingleton
-      ? singularLabel(activeType.label)
-      : activeType?.label) ??
-    entityType ??
-    "Studio";
-  const entryLabel = singularLabel(collectionLabel);
-  const syncPending = syncStatus?.git?.hasChanges === true;
-  const publicationWorkspace = workspaces.find(
-    (workspace) =>
-      workspace.pluginId === "content-pipeline" &&
-      workspace.entityTypes.includes(selectedEntityType),
-  );
-  const entityCount = entityTotal;
-  const pageEnd = Math.min(
-    entityOffset + (entities?.length ?? entityLimit),
-    entityTotal,
-  );
-  const workspaceBadges = workspaceRailBadges(workspaces);
-  // The server counts what the query matched, so the head says so rather than
-  // reporting a filtered count as if the collection had shrunk.
-  const collectionFiltered =
-    Boolean(props.collectionQuery.q) ||
-    props.collectionQuery.visibility !== "all" ||
-    Boolean(props.collectionQuery.status);
-  const directFolderCount =
-    props.collectionQuery.scope === "folder" &&
-    !props.collectionQuery.q &&
-    (props.collectionQuery.prefix !== null || props.folders.length > 0);
-  const listingHead: StudioPageHeadModel = {
-    kicker: "Content library",
-    access: studioAccessRequirement("trusted"),
-    title: activeType?.label ?? entityType ?? "Library",
-    metadata: [
-      directFolderCount
-        ? `${entityCount} ${collectionFiltered ? "matching " : ""}${entityCount === 1 ? "entry" : "entries"} here`
-        : collectionFiltered
-          ? `${entityCount} matching ${entityCount === 1 ? "entity" : "entities"}`
-          : `${entityCount} ${entityCount === 1 ? "entity" : "entities"}`,
-      ...(props.folders.length > 0
-        ? [
-            `${props.folders.length} ${hierarchyKind}${props.folders.length === 1 ? "" : "s"} · ${entityCount + props.folders.reduce((sum, folder) => sum + folder.descendantCount, 0)} in total`,
-          ]
-        : []),
-      ...(props.collectionQuery.prefix && !directFolderCount
-        ? [
-            props.collectionQuery.scope === "collection"
-              ? "Whole collection"
-              : `In this ${hierarchyKind}`,
-          ]
-        : []),
-      ...(syncPending ? ["Sync pending"] : []),
-    ],
-    totals: [],
-  };
-  const publicationState =
-    typeHasPublicationField(entitySchema.fields) && mode.kind === "edit"
-      ? entityPublicationState(mode.entity)
-      : null;
-  const editorHead: StudioPageHeadModel = {
-    kicker: entitySchema.isSingleton
-      ? `${studioArea(entityType, null)} / singleton`
-      : collectionLabel,
-    access: studioAccessRequirement("trusted"),
-    title: heading ?? "Editor",
-    metadata:
-      mode.kind === "create"
-        ? [`${entryLabel} · new`]
-        : publicationState
-          ? [`${entryLabel} · ${publicationState}`]
-          : [],
-    totals: [],
-  };
-  const declarativeHead =
-    activeWorkspace && declarativeWorkspaceData
-      ? declarativeStudioPageHead(
-          activeWorkspace,
-          declarativeWorkspaceData.view,
-        )
-      : null;
+  const model = deriveStudioAppModel(props);
+  const {
+    activeType,
+    entitySchema,
+    presentation,
+    selectedEntityType,
+    systemDesign,
+    editing,
+    canCreate,
+    canEdit,
+    namedCreate,
+    fieldIssues,
+    destinationBlocked,
+    hierarchyKind,
+    folderContext,
+    canDelete,
+    canPublish,
+    canAssist,
+    collectionLabel,
+    entryLabel,
+    publicationWorkspace,
+    pageEnd,
+    workspaceBadges,
+    collectionFiltered,
+    listingHead,
+    publicationState,
+    editorHead,
+    declarativeHead,
+  } = model;
   return (
     <div
       className={editorClass(
@@ -910,7 +686,7 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
               active={namedCreate}
               split={presentation === "split"}
             >
-              {namedCreate && (
+              {mode.kind === "create" && namedCreate && (
                 <div
                   className={editorClass(
                     "",
