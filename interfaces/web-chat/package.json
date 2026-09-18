@@ -56,7 +56,7 @@
     "build:ui": "bun scripts/build-ui.ts",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
-    "test": "bun test --preload @brains/build-tools/stylex-test-preload",
+    "test": "BUN_JSC_useDFGJIT=0 bun test --preload @brains/build-tools/stylex-test-preload",
     "typecheck": "tsc --noEmit"
   },
   "type": "module"
