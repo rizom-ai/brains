@@ -2,7 +2,7 @@
 
 ## Status
 
-**Active.** Slices 1 (`useStudioData`) and 2 (`useStudioNavigationActions`) have landed; slice 3 is next.
+**Active.** Slices 1 (`useStudioData`), 2 (`useStudioNavigationActions`) and 3 (`useEntityOpener`) have landed; slice 4 is next.
 
 ## Goal
 
@@ -34,7 +34,7 @@ Tests: `app.test.tsx` (2091 lines) drives the whole container through a memory r
 ## Architecture decisions
 
 1. **One hook per concern, composed in `App`.** `useStudioData`, `useStudioNavigationActions`, `useEntityOpener`, `useEditorActions`, `useStudioRouteEffects`. Each lives in its own file next to `App.tsx` and exports its input and output types.
-2. **Open requests become a reducer.** The request id, pending open state and load attempt are one `openRequestReducer` with actions `requested`, `superseded`, `retried`, `pendingConsumed`. The effect and `openEntity` read the current id from state instead of a ref, so "a stale fetch never dispatches" is a reducer property with a test, not a convention.
+2. **Open requests live in one hook with an explicit API.** `useEntityOpener` owns the request id, the pending open state and the load attempt. The id stays a ref, because the async continuations inside the open effect must read the latest id synchronously and React state would be stale there; what makes it safe is that the ref never leaves the hook. Callers get `openEntity`, `retryOpen`, `supersedeOpen` and `currentOpenRequest`, and the hook's tests pin that a superseded fetch never dispatches.
 3. **Refs that only bridge callbacks stay refs.** `selectedEntityTypeRef`, `preferredMobilePane` and `saveStartedAt` carry values across async boundaries without re-rendering; they move with the hook that owns them.
 4. **Inputs are values, not the whole props bag.** A hook receives what it reads (for example `entityType`, `entityCollectionQuery`, `router.history`), so its tests construct only that.
 5. **Behaviour-preserving slices, one PR each.** Each slice moves code verbatim where it can, adds the hook's tests first, and runs the full studio suite before merge.
