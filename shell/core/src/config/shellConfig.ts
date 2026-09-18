@@ -1,5 +1,6 @@
 import { dbConfigSchema } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
+import { definedFields } from "@brains/utils/strip-undefined";
 import type {
   Plugin,
   IEvalHandlerRegistry,
@@ -68,7 +69,7 @@ export const shellConfigSchema: z.ZodObject<{
   runtimeStateDatabase: typeof dbConfigSchema;
   embeddingDatabase: typeof dbConfigSchema;
   ai: z.ZodObject<{
-    apiKey: z.ZodString;
+    apiKey: z.ZodDefault<z.ZodString>;
     imageApiKey: z.ZodOptional<z.ZodString>;
     model: z.ZodString;
     temperature: z.ZodDefault<z.ZodNumber>;
@@ -131,7 +132,8 @@ export const shellConfigSchema: z.ZodObject<{
   embeddingDatabase: dbConfigSchema,
 
   ai: z.object({
-    apiKey: z.string(),
+    /** Absent when the AI provider is configured later or not at all. */
+    apiKey: z.string().default(""),
     imageApiKey: z.string().optional(),
     model: z.string(),
     temperature: z.number().min(0).max(2).default(0.7),
@@ -203,89 +205,48 @@ export type ShellConfigInput = Partial<
   }
 >;
 
+/**
+ * Resolve a shell configuration: the schema owns every default, the standard
+ * config owns the database locations, and the runtime objects that are not
+ * data (plugin instances, permissions, identity) pass through untouched.
+ */
 export function createShellConfig(
   overrides: ShellConfigInput = {},
 ): ShellConfig {
-  const standardConfig = getStandardConfig();
+  const {
+    plugins = [],
+    permissions = {},
+    identity,
+    profile,
+    agentInstructions,
+    evalHandlerRegistry,
+    ai,
+    logging,
+    embedding,
+    jobQueue,
+    ...fields
+  } = overrides;
 
-  const config = {
-    name: overrides.name ?? "brain-app",
-    version: overrides.version ?? "1.0.0",
-    database: overrides.database ?? standardConfig.database,
-    jobQueueDatabase:
-      overrides.jobQueueDatabase ?? standardConfig.jobQueueDatabase,
-    jobQueue: overrides.jobQueue ?? {},
-    conversationDatabase:
-      overrides.conversationDatabase ?? standardConfig.conversationDatabase,
-    runtimeStateDatabase:
-      overrides.runtimeStateDatabase ?? standardConfig.runtimeStateDatabase,
-    embeddingDatabase:
-      overrides.embeddingDatabase ?? standardConfig.embeddingDatabase,
-    ai: {
-      apiKey: overrides.ai?.apiKey ?? "",
-      ...(overrides.ai?.imageApiKey
-        ? { imageApiKey: overrides.ai.imageApiKey }
-        : {}),
-      ...(overrides.ai?.model ? { model: overrides.ai.model } : {}),
-      temperature: overrides.ai?.temperature ?? 0.7,
-      maxTokens: overrides.ai?.maxTokens ?? 1000,
-      webSearch: overrides.ai?.webSearch ?? true,
-      ...(overrides.ai?.reasoningEffort && {
-        reasoningEffort: overrides.ai.reasoningEffort,
-      }),
-    },
-    embedding: {
-      ...standardConfig.embedding,
-      ...overrides.embedding,
-    },
-    logging: {
-      level: overrides.logging?.level ?? "info",
-      format: overrides.logging?.format ?? "text",
-      ...(overrides.logging?.file ? { file: overrides.logging.file } : {}),
-      context: overrides.logging?.context ?? "shell",
-    },
-    features: {},
-    plugins: overrides.plugins ?? [],
-    permissions: overrides.permissions ?? {},
-    spaces: overrides.spaces ?? [],
-    preferLocalUrls: overrides.preferLocalUrls ?? false,
-    ...(overrides.dataDir && { dataDir: overrides.dataDir }),
-    ...(overrides.gitBrokerSocket && {
-      gitBrokerSocket: overrides.gitBrokerSocket,
+  const { entityDisplay, ...validated } = shellConfigSchema.parse({
+    ...getStandardConfig(),
+    ...definedFields(fields),
+    ai: definedFields({ ...ai }),
+    logging: definedFields({ ...logging }),
+    embedding: definedFields({ ...embedding }),
+    jobQueue: definedFields({ ...jobQueue }),
+    plugins: [],
+  });
+
+  return {
+    ...validated,
+    plugins,
+    permissions,
+    ...definedFields({
+      entityDisplay,
+      identity,
+      profile,
+      agentInstructions,
+      evalHandlerRegistry,
     }),
-    ...(overrides.gitBrokerCheckout && {
-      gitBrokerCheckout: overrides.gitBrokerCheckout,
-    }),
-    ...(overrides.siteBaseUrl && { siteBaseUrl: overrides.siteBaseUrl }),
-    ...(overrides.localSiteUrl && { localSiteUrl: overrides.localSiteUrl }),
-    themeCSS: overrides.themeCSS ?? "",
-    ...(overrides.entityDisplay && { entityDisplay: overrides.entityDisplay }),
-    ...(overrides.profileKind && { profileKind: overrides.profileKind }),
   };
-
-  const validated = shellConfigSchema.parse(config);
-  const { entityDisplay, ...validatedRest } = validated;
-  const result: ShellConfig = {
-    ...validatedRest,
-    plugins: config.plugins,
-    permissions: config.permissions,
-  };
-
-  // Guard each optional property assignment (required by exactOptionalPropertyTypes)
-  if (overrides.identity !== undefined) result.identity = overrides.identity;
-  if (overrides.profile !== undefined) result.profile = overrides.profile;
-  if (overrides.agentInstructions !== undefined)
-    result.agentInstructions = overrides.agentInstructions;
-  if (overrides.evalHandlerRegistry !== undefined)
-    result.evalHandlerRegistry = overrides.evalHandlerRegistry;
-  if (overrides.siteBaseUrl !== undefined)
-    result.siteBaseUrl = overrides.siteBaseUrl;
-  if (overrides.localSiteUrl !== undefined)
-    result.localSiteUrl = overrides.localSiteUrl;
-  if (overrides.preferLocalUrls !== undefined)
-    result.preferLocalUrls = overrides.preferLocalUrls;
-  result.themeCSS = overrides.themeCSS ?? "";
-  if (entityDisplay !== undefined) result.entityDisplay = entityDisplay;
-
-  return result;
 }
