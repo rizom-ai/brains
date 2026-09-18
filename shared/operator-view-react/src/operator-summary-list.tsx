@@ -2,16 +2,10 @@
 import * as stylex from "@stylexjs/stylex";
 import type { ComponentProps, ReactElement, ReactNode } from "react";
 import { summaryListStyles as s } from "./operator-summary-list.styles";
+import { styledProps } from "./styled-props";
 
 export function OperatorSummaryList(props: ComponentProps<"ul">): ReactElement {
-  const css = stylex.props(s.list);
-  return (
-    <ul
-      {...props}
-      {...css}
-      className={[props.className, css.className].filter(Boolean).join(" ")}
-    />
-  );
+  return <ul {...styledProps(props, s.list)} />;
 }
 /** Hosts supply content, metadata, tags and filter attributes; this component owns their layout. */
 export function OperatorSummaryItem(
@@ -25,15 +19,8 @@ export function OperatorSummaryItem(
 ): ReactElement {
   const { heading, description, metadata, tags, trailing, ...attributes } =
     props;
-  const css = stylex.props(s.item);
   return (
-    <li
-      {...attributes}
-      {...css}
-      className={[attributes.className, css.className]
-        .filter(Boolean)
-        .join(" ")}
-    >
+    <li {...styledProps(attributes, s.item)}>
       <div {...stylex.props(s.copy)} data-summary-copy>
         <span
           {...stylex.props(s.heading)}
@@ -63,48 +50,20 @@ export function OperatorSummaryItem(
 export function OperatorSummaryMetadata(
   props: ComponentProps<"span">,
 ): ReactElement {
-  const css = stylex.props(s.metadata);
-  return (
-    <span
-      {...props}
-      {...css}
-      className={[props.className, css.className].filter(Boolean).join(" ")}
-    />
-  );
+  return <span {...styledProps(props, s.metadata)} />;
 }
 export function OperatorSummarySeparator(
   props: ComponentProps<"span">,
 ): ReactElement {
-  const css = stylex.props(s.separator);
-  return (
-    <span
-      {...props}
-      {...css}
-      className={[props.className, css.className].filter(Boolean).join(" ")}
-    />
-  );
+  return <span {...styledProps(props, s.separator)} />;
 }
 export function OperatorSummaryTags(
   props: ComponentProps<"div">,
 ): ReactElement {
-  const css = stylex.props(s.tags);
-  return (
-    <div
-      {...props}
-      {...css}
-      className={[props.className, css.className].filter(Boolean).join(" ")}
-    />
-  );
+  return <div {...styledProps(props, s.tags)} />;
 }
 export function OperatorSummaryTag(
   props: ComponentProps<"span">,
 ): ReactElement {
-  const css = stylex.props(s.tag);
-  return (
-    <span
-      {...props}
-      {...css}
-      className={[props.className, css.className].filter(Boolean).join(" ")}
-    />
-  );
+  return <span {...styledProps(props, s.tag)} />;
 }
