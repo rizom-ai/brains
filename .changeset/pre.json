@@ -321,6 +321,7 @@
     "core--email-workflows-decisive-inbox-actions",
     "core--email-workflows-source-drafting",
     "core--email-workflows-threaded-send",
+    "core--embedding-index-coordinator",
     "core--enqueue-retry-time-budget",
     "core--entity-hierarchy-query",
     "core--fenced-job-attempts",

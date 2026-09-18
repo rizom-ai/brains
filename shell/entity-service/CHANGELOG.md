@@ -1,5 +1,19 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.393
+
+### Patch Changes
+
+- [`0010eb2`](https://github.com/rizom-ai/brains/commit/0010eb2834335a8a0a88a66a96c2c6267b29d2df) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Separate recoverable embedding persistence, queueing, backfill, and readiness statistics from the core entity mutation pipeline while preserving its public service surface.
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.393
+  - @brains/content-formatters@0.2.0-alpha.393
+  - @brains/contracts@0.2.0-alpha.393
+  - @brains/db@0.2.0-alpha.393
+  - @brains/utils@0.2.0-alpha.393
+  - @brains/job-queue@0.2.0-alpha.393
+
 ## 0.2.0-alpha.392
 
 ### Patch Changes
