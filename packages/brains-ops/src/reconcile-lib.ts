@@ -1,5 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { isDeepStrictEqual } from "node:util";
+import { parseYamlDocument } from "@brains/utils/yaml";
 
 import {
   syncUserContentRepo,
@@ -76,6 +78,15 @@ async function writeUserFile(
   content: string,
 ): Promise<void> {
   const filePath = join(rootDir, "users", handle, fileName);
+  const existing = Bun.file(filePath);
+  if (fileName === "brain.yaml" && (await existing.exists())) {
+    // Compare artifacts only: configuration composition is already complete.
+    // A serializer change must not schedule deployments for unchanged users.
+    const previous = parseYamlDocument(await existing.text());
+    const next = parseYamlDocument(content);
+    if (previous.ok && next.ok && isDeepStrictEqual(previous.data, next.data))
+      return;
+  }
   await mkdir(dirname(filePath), { recursive: true });
   await writeFile(filePath, content);
 }
