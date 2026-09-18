@@ -1,4 +1,5 @@
 import { createTempDir } from "@brains/test-utils";
+import { fromYaml } from "@brains/utils/yaml";
 import { describe, expect, it } from "bun:test";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -1082,8 +1083,12 @@ members:
     });
 
     expect(result.success).toBe(true);
-    expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
-      "brain: brain\nbundleContract: capability-bundles-v1\nkind: professional\ndomain: alice.rizom.ai\nbundles:\n  - core\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
+    expect(
+      fromYaml(await readFile(join(root, "users/alice/brain.yaml"), "utf8")),
+    ).toEqual(
+      fromYaml(
+        "brain: brain\nbundleContract: capability-bundles-v1\nkind: professional\ndomain: alice.rizom.ai\nbundles:\n  - core\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
+      ),
     );
     expect(await readFile(join(root, "users/alice/.env"), "utf8")).toBe(
       "BRAIN_VERSION=0.1.1-alpha.14\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
@@ -1104,8 +1109,8 @@ members:
 
     expect(result.success).toBe(true);
     expect(
-      await readFile(join(root, "users/bob/brain.yaml"), "utf8"),
-    ).toContain('anchors: ["discord:123456789"]');
+      fromYaml(await readFile(join(root, "users/bob/brain.yaml"), "utf8")),
+    ).toMatchObject({ anchors: ["discord:123456789"] });
   });
 
   it("uses injected operator runner for onboard", async () => {

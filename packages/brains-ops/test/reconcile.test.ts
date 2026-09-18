@@ -1,4 +1,5 @@
 import { createTempDir } from "@brains/test-utils";
+import { fromYaml } from "@brains/utils/yaml";
 import { describe, expect, it } from "bun:test";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
@@ -155,6 +156,37 @@ describe("reconcile scripts", () => {
     });
   });
 
+  it("changes only the selected user's config, preserving formatting-only differences elsewhere", async () => {
+    const root = await createPilotRepo(baseFiles);
+    await reconcileAll(root, undefined, { env: {} });
+    const bobPath = join(root, "users/bob/brain.yaml");
+    const bobConfig =
+      "# Existing formatting must not cause a fleet redeploy\n" +
+      (await readFile(bobPath, "utf8"));
+    await writeFile(bobPath, bobConfig);
+    await writeFile(
+      join(root, "users/alice.yaml"),
+      baseFiles["users/alice.yaml"] +
+        "\nplugins:\n  dashboard:\n    ask: true\n",
+    );
+    await reconcileAll(root, undefined, { env: {} });
+    expect(await readFile(bobPath, "utf8")).toBe(bobConfig);
+    expect(
+      fromYaml(await readFile(join(root, "users/alice/brain.yaml"), "utf8")),
+    ).toMatchObject({ plugins: { dashboard: { ask: true } } });
+  });
+
+  it("repairs malformed existing brain config instead of treating it as unchanged", async () => {
+    const root = await createPilotRepo({
+      ...baseFiles,
+      "users/alice/brain.yaml": "broken: [",
+    });
+    await reconcileAll(root, undefined, { env: {} });
+    expect(
+      fromYaml(await readFile(join(root, "users/alice/brain.yaml"), "utf8")),
+    ).toMatchObject({ brain: "brain" });
+  });
+
   it("onboardUser uses the default runner without rewriting the observed users table", async () => {
     const root = await createPilotRepo({
       ...baseFiles,
@@ -163,8 +195,12 @@ describe("reconcile scripts", () => {
 
     await onboardUser(root, "alice");
 
-    expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
-      "brain: brain\nbundleContract: capability-bundles-v1\nkind: professional\ndomain: alice.rizom.ai\nbundles:\n  - core\n  - site\n  - publishing\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
+    expect(
+      fromYaml(await readFile(join(root, "users/alice/brain.yaml"), "utf8")),
+    ).toEqual(
+      fromYaml(
+        "brain: brain\nbundleContract: capability-bundles-v1\nkind: professional\ndomain: alice.rizom.ai\nbundles:\n  - core\n  - site\n  - publishing\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
+      ),
     );
     expect(await readFile(join(root, "users/alice/.env"), "utf8")).toBe(
       "BRAIN_VERSION=0.1.1-alpha.15\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
@@ -199,8 +235,12 @@ discord:
 
     await onboardUser(root, "alice");
 
-    expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
-      "brain: brain\nbundleContract: capability-bundles-v1\nkind: professional\ndomain: alice.rizom.ai\nbundles:\n  - core\n  - site\n  - publishing\n\nanchors: []\n\nplugins:\n  auth-service:\n    setupEmail:\n      to: alice@example.com\n      subject: Welcome to Rover — set up your passkey\n      body: |\n        Hi,\n\n        Your Rover is ready.\n\n        Rover is your own AI — a private assistant deployed just for you, that holds your notes, links, and ideas, and gets more useful the more you put into it.\n\n        Set up your passkey:\n        {{setupUrl}}\n\n        This link is single-use. Do not forward it.\n        It expires at {{expiresAt}}.\n\n        After setup, open your chat and say hello:\n        {{origin}}/chat\n\n        Sign in with the passkey you just registered. The chat in your browser is where you and Rover will spend most of your time.\n\n        The onboarding guide shows the way of working — capture, ask back, shape:\n        https://github.com/rizom-ai/brains/blob/main/packages/brains-ops/templates/rover-pilot/docs/user-onboarding.md\n\n        If this link is expired, does not work, or you did not expect this email, reply to your Rover operator and we will help.\n  notifications:\n    defaultRecipient:\n      type: email\n      address: alice@example.com\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n  email:\n    transport: resend\n    apiKey: ${SETUP_EMAIL_API_KEY}\n    from: ${SETUP_EMAIL_FROM}\n",
+    expect(
+      fromYaml(await readFile(join(root, "users/alice/brain.yaml"), "utf8")),
+    ).toEqual(
+      fromYaml(
+        "brain: brain\nbundleContract: capability-bundles-v1\nkind: professional\ndomain: alice.rizom.ai\nbundles:\n  - core\n  - site\n  - publishing\n\nanchors: []\n\nplugins:\n  auth-service:\n    setupEmail:\n      to: alice@example.com\n      subject: Welcome to Rover — set up your passkey\n      body: |\n        Hi,\n\n        Your Rover is ready.\n\n        Rover is your own AI — a private assistant deployed just for you, that holds your notes, links, and ideas, and gets more useful the more you put into it.\n\n        Set up your passkey:\n        {{setupUrl}}\n\n        This link is single-use. Do not forward it.\n        It expires at {{expiresAt}}.\n\n        After setup, open your chat and say hello:\n        {{origin}}/chat\n\n        Sign in with the passkey you just registered. The chat in your browser is where you and Rover will spend most of your time.\n\n        The onboarding guide shows the way of working — capture, ask back, shape:\n        https://github.com/rizom-ai/brains/blob/main/packages/brains-ops/templates/rover-pilot/docs/user-onboarding.md\n\n        If this link is expired, does not work, or you did not expect this email, reply to your Rover operator and we will help.\n  notifications:\n    defaultRecipient:\n      type: email\n      address: alice@example.com\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n  email:\n    transport: resend\n    apiKey: ${SETUP_EMAIL_API_KEY}\n    from: ${SETUP_EMAIL_FROM}\n",
+      ),
     );
   });
 
@@ -217,8 +257,12 @@ discord:
 
     await onboardUser(root, "alice");
 
-    expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
-      "brain: brain\nbundleContract: capability-bundles-v1\nkind: professional\ndomain: alice.rizom.ai\nbundles:\n  - core\n  - site\n  - publishing\n\nanchors: []\n\nplugins:\n  onboarding:\n    enabled: true\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
+    expect(
+      fromYaml(await readFile(join(root, "users/alice/brain.yaml"), "utf8")),
+    ).toEqual(
+      fromYaml(
+        "brain: brain\nbundleContract: capability-bundles-v1\nkind: professional\ndomain: alice.rizom.ai\nbundles:\n  - core\n  - site\n  - publishing\n\nanchors: []\n\nplugins:\n  onboarding:\n    enabled: true\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n",
+      ),
     );
   });
 
@@ -235,8 +279,12 @@ discord:
 
     await onboardUser(root, "alice");
 
-    expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
-      "brain: brain\nbundleContract: capability-bundles-v1\nkind: professional\ndomain: alice.rizom.ai\nbundles:\n  - core\n  - site\n  - publishing\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n  atproto:\n    identifier: rizom-test.bsky.social\n    appPassword: ${ATPROTO_APP_PASSWORD}\n",
+    expect(
+      fromYaml(await readFile(join(root, "users/alice/brain.yaml"), "utf8")),
+    ).toEqual(
+      fromYaml(
+        "brain: brain\nbundleContract: capability-bundles-v1\nkind: professional\ndomain: alice.rizom.ai\nbundles:\n  - core\n  - site\n  - publishing\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n  atproto:\n    identifier: rizom-test.bsky.social\n    appPassword: ${ATPROTO_APP_PASSWORD}\n",
+      ),
     );
   });
 
@@ -249,8 +297,8 @@ discord:
     await onboardUser(root, "bob");
 
     expect(
-      await readFile(join(root, "users/bob/brain.yaml"), "utf8"),
-    ).toContain('anchors: ["discord:123456789"]');
+      fromYaml(await readFile(join(root, "users/bob/brain.yaml"), "utf8")),
+    ).toMatchObject({ anchors: ["discord:123456789"] });
   });
 
   it("reconcileCohort runs only users in target cohort, sorted by handle", async () => {
