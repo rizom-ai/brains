@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.391
+
+### Patch Changes
+
+- [#270](https://github.com/rizom-ai/brains/pull/270) [`1a0278b`](https://github.com/rizom-ai/brains/commit/1a0278b4f49143968abb0e2b3c61fc701bb6265d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep the public Chat browser contract free of server-only markdown parsing dependencies by separating the authored Ask schema from its markdown loader.
+
 ## 0.2.0-alpha.390
 
 ### Patch Changes
