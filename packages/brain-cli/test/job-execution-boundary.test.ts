@@ -123,5 +123,6 @@ describe("canonical durable job execution boundary", () => {
         .getAllPluginIds()
         .filter((pluginId) => configuredInterfaces.has(pluginId)),
     ).toEqual([]);
-  });
+    // Two full-preset boots do not fit bun's 5s default on a two-CPU runner.
+  }, 30_000);
 });
