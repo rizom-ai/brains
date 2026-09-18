@@ -13,13 +13,11 @@ import {
 } from "drizzle-orm";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { getErrorMessage } from "@brains/utils/error";
-import { computeContentHash } from "@brains/utils/hash";
 import { createId } from "@brains/utils/id";
 import { SerialQueue } from "@brains/utils/serial-queue";
 import { z } from "@brains/utils/zod";
 import type { EntityDB } from "./db";
 import { EntityExportStore } from "./entity-export-store";
-import type { SqliteAssetRepository } from "./sqlite-asset-repository";
 import type { EntityMutationAdmission } from "./mutation-admission";
 import {
   parseBulkMutationInput,
@@ -38,6 +36,11 @@ import {
   ProjectionWriteIntentSchema,
   type ProjectionWriteIntent,
 } from "./projection-contracts";
+import {
+  canonicalProjectionJson,
+  ProjectionWriteIntentApplier,
+  type ProjectionEntityStoragePolicy,
+} from "./projection-write-intent-applier";
 import {
   projectionAdmissionState,
   projectionBatchChildren,
@@ -60,7 +63,6 @@ import {
   type ProjectionWaveInput,
   type ProjectionWaveRule,
 } from "./schema/projection-state";
-import { entities } from "./schema/entities";
 
 const dirtyInputSchema = z.strictObject({
   sourceType: z.string().trim().min(1),
@@ -232,19 +234,6 @@ function coalesceLatestInputs(
   );
 }
 
-function canonicalJson(value: unknown): string {
-  if (Array.isArray(value)) {
-    return `[${value.map((item) => canonicalJson(item)).join(",")}]`;
-  }
-  if (value !== null && typeof value === "object") {
-    return `{${Object.entries(value)
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, item]) => `${JSON.stringify(key)}:${canonicalJson(item)}`)
-      .join(",")}}`;
-  }
-  return JSON.stringify(value);
-}
-
 function parseWaveRule(rule: ProjectionWaveRule): ProjectionWaveRule {
   const changedTargets: ProjectionChangedTarget[] = z
     .array(changedTargetSchema)
@@ -309,19 +298,13 @@ export async function retrySqliteWrite<TResult>(
   }
 }
 
-export interface ProjectionEntityStoragePolicy {
-  assetRepository: SqliteAssetRepository;
-  isAssetBacked(entityType: string): boolean;
-  isFullTextSearchable(entityType: string): boolean;
-}
+export type { ProjectionEntityStoragePolicy } from "./projection-write-intent-applier";
 
 /** Entity-database persistence boundary for scheduler coordination state. */
 export class ProjectionStore {
   private readonly db: EntityDB;
-  private readonly entityExportStore: EntityExportStore;
-  private readonly mutationAdmission: EntityMutationAdmission | undefined;
   private readonly now: () => number;
-  private readonly storagePolicy: ProjectionEntityStoragePolicy | undefined;
+  private readonly writeIntentApplier: ProjectionWriteIntentApplier;
   private readonly transactionTail = new SerialQueue();
   private readonly batchScope = new AsyncLocalStorage<ProjectionBatchScope>();
 
@@ -332,10 +315,12 @@ export class ProjectionStore {
     storagePolicy?: ProjectionEntityStoragePolicy,
   ) {
     this.db = db;
-    this.entityExportStore = new EntityExportStore(db, now);
-    this.mutationAdmission = mutationAdmission;
     this.now = now;
-    this.storagePolicy = storagePolicy;
+    this.writeIntentApplier = new ProjectionWriteIntentApplier({
+      entityExportStore: new EntityExportStore(db, now),
+      ...(mutationAdmission && { mutationAdmission }),
+      ...(storagePolicy && { storagePolicy }),
+    });
   }
 
   private assertBatchIdentity(
@@ -1771,7 +1756,8 @@ export class ProjectionStore {
       const existingMemo = memoRows[0];
       if (
         existingMemo &&
-        canonicalJson(existingMemo.writeIntents) !== canonicalJson(writeIntents)
+        canonicalProjectionJson(existingMemo.writeIntents) !==
+          canonicalProjectionJson(writeIntents)
       ) {
         throw new Error(
           `Projection memo conflict for rule "${key.ruleId}" and fingerprint "${key.inputFingerprint}"`,
@@ -1787,7 +1773,7 @@ export class ProjectionStore {
 
       const changedTargets: ProjectionChangedTarget[] = [];
       for (const intent of writeIntents) {
-        const target = await this.applyWriteIntent(
+        const target = await this.writeIntentApplier.apply(
           transaction,
           intent,
           completedAt,
@@ -1855,161 +1841,5 @@ export class ProjectionStore {
     write: () => Promise<TResult>,
   ): Promise<TResult> {
     return this.transactionTail.run(() => retrySqliteWrite(write));
-  }
-
-  private async applyWriteIntent(
-    transaction: EntityTransaction,
-    intent: ProjectionWriteIntent,
-    changedAt: number,
-    owner: GetProjectionRuleMemoInput,
-  ): Promise<ProjectionChangedTarget | null> {
-    const entityType =
-      intent.operation === "upsert"
-        ? intent.entity.entityType
-        : intent.entityType;
-    const entityId =
-      intent.operation === "upsert" ? intent.entity.id : intent.id;
-    const existingRows = await transaction
-      .select({
-        content: entities.content,
-        contentHash: entities.contentHash,
-        metadata: entities.metadata,
-        visibility: entities.visibility,
-      })
-      .from(entities)
-      .where(
-        and(eq(entities.entityType, entityType), eq(entities.id, entityId)),
-      )
-      .limit(1);
-    const existing = existingRows[0];
-
-    if (intent.operation === "delete") {
-      await transaction
-        .delete(projectionEntityOwners)
-        .where(
-          and(
-            eq(projectionEntityOwners.entityType, entityType),
-            eq(projectionEntityOwners.entityId, entityId),
-          ),
-        );
-      if (!existing) return null;
-      await this.mutationAdmission?.assertMutationAdmission({
-        operation: "delete",
-        entityType,
-        entityId,
-      });
-      await transaction
-        .delete(entities)
-        .where(
-          and(eq(entities.entityType, entityType), eq(entities.id, entityId)),
-        );
-      await transaction.run(
-        sql`DELETE FROM entity_fts WHERE entity_id = ${entityId} AND entity_type = ${entityType}`,
-      );
-      await this.entityExportStore.record(transaction, {
-        entityType,
-        entityId,
-        operation: "delete",
-        markedAt: changedAt,
-      });
-      return { entityType, entityId, operation: "delete" };
-    }
-
-    const contentHash = computeContentHash(intent.entity.content);
-    await transaction
-      .insert(projectionEntityOwners)
-      .values({
-        entityType,
-        entityId,
-        ruleId: owner.ruleId,
-        ruleVersion: owner.ruleVersion,
-        inputFingerprint: owner.inputFingerprint,
-        claimedAt: changedAt,
-      })
-      .onConflictDoUpdate({
-        target: [
-          projectionEntityOwners.entityType,
-          projectionEntityOwners.entityId,
-        ],
-        set: {
-          ruleId: owner.ruleId,
-          ruleVersion: owner.ruleVersion,
-          inputFingerprint: owner.inputFingerprint,
-          claimedAt: changedAt,
-        },
-      });
-    if (this.storagePolicy?.isAssetBacked(entityType)) {
-      await this.storagePolicy.assetRepository.bindEntityContent(
-        transaction,
-        intent.entity.content,
-      );
-    }
-
-    if (
-      existing?.contentHash === contentHash &&
-      existing.content === intent.entity.content &&
-      existing.visibility === intent.entity.visibility &&
-      canonicalJson(existing.metadata) === canonicalJson(intent.entity.metadata)
-    ) {
-      if (this.storagePolicy?.isFullTextSearchable(entityType) === false) {
-        await transaction.run(
-          sql`DELETE FROM entity_fts WHERE entity_id = ${entityId} AND entity_type = ${entityType}`,
-        );
-      }
-      return null;
-    }
-
-    await this.mutationAdmission?.assertMutationAdmission({
-      operation: existing ? "update" : "create",
-      entityType,
-      entityId,
-    });
-
-    if (existing) {
-      await transaction
-        .update(entities)
-        .set({
-          content: intent.entity.content,
-          contentHash,
-          metadata: intent.entity.metadata,
-          visibility: intent.entity.visibility,
-          updated: changedAt,
-        })
-        .where(
-          and(eq(entities.entityType, entityType), eq(entities.id, entityId)),
-        );
-    } else {
-      await transaction.insert(entities).values({
-        id: entityId,
-        entityType,
-        content: intent.entity.content,
-        contentHash,
-        metadata: intent.entity.metadata,
-        visibility: intent.entity.visibility,
-        created: changedAt,
-        updated: changedAt,
-      });
-    }
-
-    await transaction.run(
-      sql`DELETE FROM entity_fts WHERE entity_id = ${entityId} AND entity_type = ${entityType}`,
-    );
-    if (this.storagePolicy?.isFullTextSearchable(entityType) !== false) {
-      await transaction.run(
-        sql`INSERT INTO entity_fts (entity_id, entity_type, content) VALUES (${entityId}, ${entityType}, ${intent.entity.content})`,
-      );
-    }
-    await this.entityExportStore.record(transaction, {
-      entityType,
-      entityId,
-      operation: "upsert",
-      markedAt: changedAt,
-    });
-    return {
-      entityType,
-      entityId,
-      operation: "upsert",
-      contentHash,
-    };
   }
 }
