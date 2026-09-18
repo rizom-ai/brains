@@ -13,7 +13,7 @@ import type {
 } from "@brains/plugins";
 import type { AuthAccountRole } from "@brains/auth-service/account-contracts";
 import { isPlainRecord } from "@brains/utils/predicates";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useBlocker, useRouter, useRouterState } from "@tanstack/react-router";
 import {
   lazy,
@@ -36,10 +36,7 @@ import {
 } from "../../src/studio-paths";
 import { createStudioCreatePrefillState } from "../../src/create-prefill-contract";
 import type { StudioCollectionQuery } from "../../src/collection-query";
-import {
-  STUDIO_ACCOUNT_WORKSPACE_ID,
-  STUDIO_ACCOUNT_WORKSPACE_RENDERER,
-} from "../../src/account-workspace";
+import { STUDIO_ACCOUNT_WORKSPACE_ID } from "../../src/account-workspace";
 import {
   STUDIO_CHAT_ROUTE_PATH,
   STUDIO_CHAT_WORKSPACE_ID,
@@ -55,8 +52,6 @@ import {
 } from "./app-view";
 import {
   ApiError,
-  type AgentTarget,
-  type StudioWorkspaceInfo,
   type FieldAssistResponse,
   type PublishingAction,
   type PublishingActionResult,
@@ -80,21 +75,12 @@ import {
 } from "./entity-fields";
 import {
   editorWorkflowReducer,
-  creationIdPath,
   hasUnsavedEditorChanges,
   initialEditorWorkflowState,
   type SaveState,
 } from "./editor-workflow";
 import { derivePipeline } from "./editor-status";
-import {
-  removeEntity,
-  runDeclarativeWorkspaceAction,
-  saveEntity,
-  type DeclarativeWorkspaceActionInput,
-  type DeleteEntityInput,
-  type SaveEntityInput,
-  type SaveEntityResult,
-} from "./mutations";
+import { type SaveEntityInput } from "./mutations";
 import { useStudioApi } from "./studio-api-context";
 import {
   createStudioChatHandoffState,
@@ -105,28 +91,24 @@ import {
   isPublishingActionError,
 } from "./publication-actions";
 import {
-  agentTargetsQueryOptions,
-  destinationQueryOptions,
   studioKeys,
   entityDetailQueryOptions,
   entityListQueryOptions,
   entitySchemaQueryOptions,
   invalidateAfterWorkspaceAction,
-  navigationQueryOptions,
-  syncStatusQueryOptions,
-  workspaceQueryOptions,
   type StudioWorkspaceQuery,
 } from "./queries";
 import { emptyDraft, errorMessage } from "./ui-utils";
 import { readErrorMessage } from "./read-error";
 import {
-  initialWorkspaceUrlQuery,
   replaceWorkspaceUrlQuery,
   workspaceUrlHref,
   workspaceUrlSearch,
 } from "./workspace-url-query";
 
 import { collectionQuery, collectionSearch } from "./collection-url-query";
+
+import { useStudioData, type WorkspaceQueryState } from "./use-studio-data";
 
 const LazyAccountApp = lazy(async () => {
   const module = await import("./account/account-view");
@@ -148,10 +130,6 @@ function historyStateRecord(): Record<string, unknown> {
   const state: unknown = window.history.state;
   return isPlainRecord(state) ? state : {};
 }
-
-const EMPTY_AGENT_TARGETS: AgentTarget[] = [];
-const EMPTY_WORKSPACES: StudioWorkspaceInfo[] = [];
-const EMPTY_WORKSPACE_QUERY: StudioWorkspaceQuery = {};
 
 const ACCOUNT_ROLES: readonly AuthAccountRole[] = [
   "public",
@@ -175,11 +153,6 @@ function accountBootstrap(
   const role =
     ACCOUNT_ROLES.find((candidate) => candidate === rawRole) ?? "public";
   return { displayName, role, routePath, studioPath };
-}
-
-interface WorkspaceQueryState {
-  query: StudioWorkspaceQuery;
-  urlSearch?: string | undefined;
 }
 
 export function App(): ReactElement {
@@ -270,117 +243,43 @@ export function App(): ReactElement {
   selectedEntityTypeRef.current = entityType;
   const queryClient = useQueryClient();
   const api = useStudioApi();
-  const navigationQuery = useQuery(navigationQueryOptions(api));
-  const types = navigationQuery.data?.types ?? null;
-  const activeType = types?.find((info) => info.entityType === entityType);
-  const activeCapabilities = activeType?.capabilities;
-  const entityCollectionQuery = useMemo(
-    () =>
-      activeType?.isSingleton
-        ? collectionQuery("?scope=collection")
-        : collectionQuery(routeSearch),
-    [activeType?.isSingleton, routeSearch],
-  );
-  const entityListOffset = entityCollectionQuery.offset;
-  const workspaces = navigationQuery.data?.workspaces ?? EMPTY_WORKSPACES;
-  const activeWorkspace = workspaces.find(
-    (workspace) => workspace.id === activeWorkspaceId,
-  );
-  const activeAccount =
-    activeWorkspace?.rendererName === STUDIO_ACCOUNT_WORKSPACE_RENDERER;
-  const activeChat =
-    activeWorkspace?.rendererName === STUDIO_CHAT_WORKSPACE_RENDERER;
-  const activeDeclarativeWorkspace =
-    activeWorkspace?.rendererName === "DeclarativeOperatorWorkspace";
-  const storedWorkspaceQuery = activeWorkspaceId
-    ? workspaceQueries[activeWorkspaceId]
-    : undefined;
-  const storedQueryMatchesLocation =
-    activeWorkspace?.urlQuery !== true ||
-    storedWorkspaceQuery?.urlSearch === routeSearch;
-  const initialUrlWorkspaceQuery = useMemo(
-    () => initialWorkspaceUrlQuery(activeWorkspace, routeSearch),
-    [activeWorkspace, routeSearch],
-  );
-  const workspaceRequestQuery = activeWorkspaceId
-    ? storedWorkspaceQuery && storedQueryMatchesLocation
-      ? storedWorkspaceQuery.query
-      : initialUrlWorkspaceQuery
-    : EMPTY_WORKSPACE_QUERY;
-  const workspaceQuery = useQuery({
-    ...workspaceQueryOptions(
-      api,
-      activeWorkspaceId ?? "",
-      workspaceRequestQuery,
-    ),
-    enabled: activeDeclarativeWorkspace,
+  const {
+    navigationQuery,
+    types,
+    activeType,
+    activeCapabilities,
+    entityCollectionQuery,
+    entityListOffset,
+    workspaces,
+    activeWorkspace,
+    activeAccount,
+    activeChat,
+    initialUrlWorkspaceQuery,
+    workspaceRequestQuery,
+    workspaceQuery,
+    workspaceData,
+    workspaceError,
+    agentTargets,
+    syncStatus,
+    entityListQuery,
+    entities,
+    entityListTotal,
+    schema,
+    createPath,
+    destinationQuery,
+    saveEntityMutation,
+    deleteEntityMutation,
+    declarativeWorkspaceActionMutation,
+    deleting,
+    declarativeWorkspaceData,
+  } = useStudioData({
+    api,
+    entityType,
+    activeWorkspaceId,
+    routeSearch,
+    workspaceQueries,
+    editor,
   });
-  const workspaceResponse = workspaceQuery.data ?? null;
-  const workspaceData = workspaceResponse?.data ?? null;
-  const workspaceError = workspaceQuery.error
-    ? readErrorMessage(workspaceQuery.error)
-    : null;
-  const activeEntityId = mode.kind === "edit" ? mode.entity.id : null;
-  const agentTargetsQuery = useQuery({
-    ...agentTargetsQueryOptions(api, entityType ?? "", activeEntityId ?? ""),
-    enabled:
-      entityType !== null &&
-      activeEntityId !== null &&
-      activeCapabilities?.canAssist === true &&
-      activeCapabilities.canUpdate,
-  });
-  const agentTargets = agentTargetsQuery.data ?? EMPTY_AGENT_TARGETS;
-  const syncStatusQuery = useQuery({
-    ...syncStatusQueryOptions(api),
-    enabled: entityType !== null,
-  });
-  const syncStatus = syncStatusQuery.data ?? null;
-  const entityListQuery = useQuery({
-    ...entityListQueryOptions(api, entityType ?? "", entityCollectionQuery),
-    enabled: entityType !== null,
-  });
-  const entities = entityType ? (entityListQuery.data?.entities ?? null) : null;
-  const entityListTotal = entityListQuery.data?.total;
-  const entitySchemaQuery = useQuery({
-    ...entitySchemaQueryOptions(api, entityType ?? ""),
-    enabled: entityType !== null,
-  });
-  const schema = entityType ? (entitySchemaQuery.data ?? null) : null;
-  const createPath = creationIdPath(mode);
-  const destinationQuery = useQuery(
-    destinationQueryOptions(
-      api,
-      entityType && createPath && mode.kind === "create" && mode.segment
-        ? {
-            entityType,
-            idPath: createPath,
-            frontmatter: visibleFieldValues(schema?.fields ?? [], draft),
-            ...(schema?.hasBody && { body }),
-          }
-        : null,
-    ),
-  );
-  useQuery({
-    ...entityDetailQueryOptions(api, entityType ?? "", activeEntityId ?? ""),
-    enabled: entityType !== null && activeEntityId !== null,
-  });
-  const saveEntityMutation = useMutation({
-    mutationFn: (input: SaveEntityInput): Promise<SaveEntityResult> =>
-      saveEntity(api, input),
-  });
-  const deleteEntityMutation = useMutation({
-    mutationFn: (input: DeleteEntityInput): Promise<{ deleted: boolean }> =>
-      removeEntity(api, input),
-  });
-  const declarativeWorkspaceActionMutation = useMutation({
-    mutationFn: (input: DeclarativeWorkspaceActionInput): Promise<unknown> =>
-      runDeclarativeWorkspaceAction(api, input),
-  });
-  const deleting = deleteEntityMutation.isPending;
-  const declarativeWorkspaceData =
-    activeDeclarativeWorkspace && workspaceResponse
-      ? workspaceResponse.data
-      : null;
 
   useEffect(() => {
     if (
@@ -1333,7 +1232,7 @@ export function App(): ReactElement {
   if (!types) {
     return <StudioAppStatus message="Loading…" />;
   }
-  if (activeAccount) {
+  if (activeAccount && activeWorkspace) {
     const accountPath = studioWorkspacePath(
       studioBasePath,
       STUDIO_ACCOUNT_WORKSPACE_ID,
@@ -1354,7 +1253,7 @@ export function App(): ReactElement {
       </StudioAccountWorkspaceView>
     );
   }
-  if (activeChat) {
+  if (activeChat && activeWorkspace) {
     return (
       <>
         <Suspense fallback={<StudioAppStatus message="Opening Chat…" />}>
