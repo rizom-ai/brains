@@ -2,6 +2,7 @@
 import * as stylex from "@stylexjs/stylex";
 import type { ComponentProps, ReactElement, ReactNode } from "react";
 import { statusContentStyles as s } from "./operator-status-content.styles";
+import { styledProps } from "./styled-props";
 
 type Tone = "neutral" | "good" | "warn" | "error";
 
@@ -12,24 +13,20 @@ export function OperatorStatusPill(
   },
 ): ReactElement {
   const { tone, presentation, ...attributes } = props;
-  const css = stylex.props(
-    s.pill,
-    s[tone === "muted" ? "neutral" : tone],
-    presentation === "label" && s.labelPill,
-    presentation === "label" && tone === "neutral" && s.labelNeutral,
-    presentation === "label" && tone === "good" && s.labelGood,
-    presentation === "label" && tone === "warn" && s.labelWarn,
-    presentation === "label" && tone === "error" && s.labelError,
-    presentation === "soft" && s.softPill,
-    presentation === "soft" && tone === "good" && s.goodSoft,
-  );
   return (
     <span
-      {...attributes}
-      {...css}
-      className={[attributes.className, css.className]
-        .filter(Boolean)
-        .join(" ")}
+      {...styledProps(
+        attributes,
+        s.pill,
+        s[tone === "muted" ? "neutral" : tone],
+        presentation === "label" && s.labelPill,
+        presentation === "label" && tone === "neutral" && s.labelNeutral,
+        presentation === "label" && tone === "good" && s.labelGood,
+        presentation === "label" && tone === "warn" && s.labelWarn,
+        presentation === "label" && tone === "error" && s.labelError,
+        presentation === "soft" && s.softPill,
+        presentation === "soft" && tone === "good" && s.goodSoft,
+      )}
     />
   );
 }

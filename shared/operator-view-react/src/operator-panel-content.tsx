@@ -2,6 +2,7 @@
 import * as stylex from "@stylexjs/stylex";
 import type { ComponentProps, ReactElement, ReactNode } from "react";
 import { panelContentStyles as s } from "./operator-panel-content.styles";
+import { styledProps } from "./styled-props";
 
 export function OperatorPanelParagraph(
   props: ComponentProps<"p"> & {
@@ -11,20 +12,16 @@ export function OperatorPanelParagraph(
   },
 ): ReactElement {
   const { lead, children, presentation, ...attributes } = props;
-  const css = stylex.props(
-    presentation === "note"
-      ? s.note
-      : presentation === "muted"
-        ? s.muted
-        : s.paragraph,
-  );
   return (
     <p
-      {...attributes}
-      {...css}
-      className={[attributes.className, css.className]
-        .filter(Boolean)
-        .join(" ")}
+      {...styledProps(
+        attributes,
+        presentation === "note"
+          ? s.note
+          : presentation === "muted"
+            ? s.muted
+            : s.paragraph,
+      )}
     >
       {lead !== undefined && <b {...stylex.props(s.lead)}>{lead}</b>}
       {children}
@@ -75,7 +72,6 @@ export function OperatorPanelListItem(
   },
 ): ReactElement {
   const { label, description, badge, href, tone, ...attributes } = props;
-  const css = stylex.props(s.row);
   const content = (
     <>
       <span {...stylex.props(s.copy)}>
@@ -101,14 +97,7 @@ export function OperatorPanelListItem(
     </>
   );
   return (
-    <li
-      {...attributes}
-      {...css}
-      className={[attributes.className, css.className]
-        .filter(Boolean)
-        .join(" ")}
-      data-tone={tone ?? "neutral"}
-    >
+    <li {...styledProps(attributes, s.row)} data-tone={tone ?? "neutral"}>
       {href !== undefined ? (
         <a href={href} {...stylex.props(stylex.defaultMarker(), s.link)}>
           {content}
