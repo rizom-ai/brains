@@ -1,5 +1,7 @@
 export {
   shellConfigSchema,
+  logLevelSchema,
+  reasoningEffortSchema,
   createShellConfig,
   STANDARD_PATHS,
   getStandardConfig,
