@@ -163,7 +163,19 @@ describe("Admin-owned Studio Administration workspace", () => {
     expect(audit).toMatchObject({
       view: {
         title: "Administration",
-        blocks: [{ type: "tabs", defaultTab: "audit" }],
+        description:
+          "Manage people, invitations, and access to this brain. Use Account for your own profile, sign-in security, and personal settings.",
+        blocks: [
+          {
+            type: "tabs",
+            defaultTab: "audit",
+            tabs: [
+              { id: "people", label: "People" },
+              { id: "invitations", label: "Invitations" },
+              { id: "audit", label: "Access activity" },
+            ],
+          },
+        ],
       },
     });
     expect(audit).not.toHaveProperty("view.status");
