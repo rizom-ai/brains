@@ -65,11 +65,92 @@ describe("note title derivation", () => {
     ).toBe("Heading Title");
   });
 
-  it("falls back to Untitled when there is neither", () => {
-    expect(decoded("Just content, no title anywhere.").metadata.title).toBe(
-      "Untitled",
-    );
+  it("uses the first nonempty body line, or Untitled for empty content", () => {
+    expect(
+      decoded("\n\nJust content, no heading.\nSecond line").metadata.title,
+    ).toBe("Just content, no heading.");
+    expect(decoded(" \n ").metadata.title).toBe("Untitled");
   });
+
+  it("caps fallback titles at 80 Unicode characters without truncating authored titles", () => {
+    const long = "🧠".repeat(90);
+    expect(Array.from(decoded(long).metadata.title)).toHaveLength(80);
+    expect(decoded(long).metadata.title).toBe("🧠".repeat(79) + "…");
+    expect(decoded(`# ${long}`).metadata.title).toBe(long);
+    expect(decoded(`---\ntitle: ${long}\n---\nBody`).metadata.title).toBe(long);
+  });
+
+  it("projects a default stored title from current source without mutating the record", () => {
+    const entity = decoded("# Current title\n\nBody");
+    entity.metadata.title = "Untitled";
+    const before = structuredClone(entity);
+    expect(adapter.extractMetadata(entity)["title"]).toBe("Current title");
+    expect(entity).toEqual(before);
+  });
+
+  it.each([
+    ["a".repeat(80), "a".repeat(80)],
+    ["a".repeat(81), `${"a".repeat(79)}…`],
+    [`${"word ".repeat(20)}ending`, `${"word ".repeat(15)}word…`],
+    [`${"a".repeat(75)} longword`, `${"a".repeat(75)}…`],
+    [`${"a".repeat(79)} next word`, `${"a".repeat(79)}…`],
+    ["😀".repeat(81), `${"😀".repeat(79)}…`],
+  ])(
+    "bounds first-line fallbacks at word and Unicode boundaries: %s",
+    (line, expected) => {
+      const content = `---\nstatus: generating\n---\n\n${line}\nSecond line`;
+      expect(decoded(content).metadata.title).toBe(expected);
+      const stored = {
+        ...decoded(content),
+        content,
+        metadata: { title: "Untitled" },
+      };
+      const before = structuredClone(stored);
+      expect(adapter.extractMetadata(stored)["title"]).toBe(expected);
+      expect(stored).toEqual(before);
+    },
+  );
+
+  it.each([
+    ["Just some content.\n\nMore content", "Just some content."],
+    [
+      "---\nstatus: generating\n# Not a body heading\n---\n\nFirst body line\nSecond line",
+      "First body line",
+    ],
+    ["---\ntitle: ''\n---\n\nFirst body line", "First body line"],
+    ["\n\n## A smaller heading\n\nBody", "A smaller heading"],
+    ["---\ntitle: Untitled\n---\nAuthored title must win", "Untitled"],
+    ["---\nstatus: generating\n---\n\n", "Untitled"],
+    ["\n \n", "Untitled"],
+  ])(
+    "derives fallback titles from the body, not frontmatter: %s",
+    (markdown, title) => {
+      expect(decoded(markdown).metadata.title).toBe(title);
+    },
+  );
+
+  it.each([
+    ["\nFirst body line\nSecond line", "First body line"],
+    ["---\nstatus: failed\n---\nFirst body line", "First body line"],
+    ["---\ntitle: Untitled\n---\nFirst body line", "Untitled"],
+    ["", "Untitled"],
+  ])(
+    "projects placeholder labels without rewriting source or status: %s",
+    (content, title) => {
+      const entity = {
+        ...decoded(content),
+        content,
+        metadata: { title: "Untitled", status: "failed", error: "Keep this" },
+      };
+      const before = structuredClone(entity);
+      expect(adapter.extractMetadata(entity)).toEqual({
+        title,
+        status: "failed",
+        error: "Keep this",
+      });
+      expect(entity).toEqual(before);
+    },
+  );
 
   it("prefers a stored title over the body's H1", () => {
     expect(

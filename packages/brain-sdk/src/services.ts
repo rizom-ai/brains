@@ -1,6 +1,7 @@
 /** Declarative service authoring contract. */
 
 export {
+  contentGenerationResultSchema,
   defineAccountSettings,
   defineStudioWorkspace,
   defineDashboardWidget,
@@ -24,6 +25,15 @@ export {
   verbatim,
 } from "@brains/plugins";
 export type {
+  ServiceContentGeneration,
+  ServiceContentGenerationContext,
+  ServiceContentGenerationItem,
+  ServiceContentGenerationResult,
+  ServiceContentGenerationSkipReason,
+  ServiceContentGenerationTarget,
+  ServiceContentGenerationTargetInput,
+  ServiceEntityIdPath,
+  ServiceTemplateGenerationDefinition,
   AccountSettingsDefinition,
   AccountSettingsFieldDefinition,
   AccountSettingsValue,

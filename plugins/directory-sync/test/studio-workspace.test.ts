@@ -61,6 +61,16 @@ describe("directory-sync Studio workspace", () => {
       path: "note/broken.md",
       message: "Frontmatter is invalid",
     });
+    await operationStatus.recordIssue({
+      kind: "import",
+      path: "note/another.md",
+      message: "Required title is missing",
+    });
+    await operationStatus.recordIssue({
+      kind: "placement",
+      path: "note/book:intro",
+      message: "Nested note cannot export",
+    });
     const directorySync = createMockDirectorySync({
       getStatus: mock(async () => ({
         syncPath: "/private/runtime/brain-data",
@@ -106,7 +116,7 @@ describe("directory-sync Studio workspace", () => {
         changedFiles: [{ path: "note/one.md", status: "M" }],
       },
     });
-    expect(snapshot.issues).toHaveLength(2);
+    expect(snapshot.issues).toHaveLength(3);
     const rendered = directorySyncWorkspace.view({ data: snapshot });
     expect(rendered).toMatchObject({
       title: "Content sync",
@@ -139,6 +149,8 @@ describe("directory-sync Studio workspace", () => {
     expect(serialized).toContain(`Occurred: ${issue.occurredAt}`);
     expect(serialized.match(/Content import needs attention/g)).toHaveLength(1);
     expect(serialized).toContain("2 recorded issues");
+    expect(serialized).toContain("1 recorded issue · note/book:intro");
+    expect(serialized).toContain("Content placement");
     expect(serialized).toContain("Frontmatter is invalid");
     expect(serialized).toContain("Required title is missing");
     expect(JSON.stringify(snapshot)).not.toContain("secret");

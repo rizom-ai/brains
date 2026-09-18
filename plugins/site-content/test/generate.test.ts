@@ -5,6 +5,7 @@ import type { PluginCapabilities, ToolContext } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
 import { SITE_BUILDER_CHANNELS } from "@brains/contracts";
+import { PermissionService } from "@brains/sdk/services";
 import type { SiteContentDefinition } from "../src/definitions";
 import { installSiteContent } from "./helpers/install";
 
@@ -12,7 +13,8 @@ const TestLayout = (): ReactElement => createElement("section");
 
 const operator: ToolContext = {
   interfaceType: "cli",
-  actor: { kind: "user", userId: "operator" },
+  actor: { kind: "service", serviceId: "test" },
+  userPermissionLevel: "admin",
 };
 
 const definition: SiteContentDefinition = {
@@ -38,7 +40,7 @@ const toolAnswerSchema = z.union([
 
 /** What the generate tool answers, parsed rather than asserted piecemeal. */
 const generateResultSchema = z.looseObject({
-  queued: z.array(
+  jobs: z.array(
     z.looseObject({
       jobId: z.string(),
       routeId: z.string(),
@@ -46,8 +48,8 @@ const generateResultSchema = z.looseObject({
     }),
   ),
   totalSections: z.number(),
-  queuedSections: z.number(),
-  dryRun: z.boolean(),
+  jobsQueued: z.number(),
+  message: z.string(),
 });
 
 /**
@@ -61,6 +63,9 @@ describe("generating the site's sections", () => {
 
   beforeEach(async () => {
     harness = createPluginHarness({ dataDir: "/tmp/test-site-content-gen" });
+    harness.setPermissionService(
+      new PermissionService({ admins: ["service:test"] }),
+    );
     ({ capabilities } = await installSiteContent(harness, {
       definitions: [definition],
     }));
@@ -86,9 +91,12 @@ describe("generating the site's sections", () => {
 
   /** A page section registered the way a composed brain registers one. */
   function registerSection(name: string, canGenerate: boolean): void {
+    const template = harness.getMockShell().getTemplate(`landing-page:${name}`);
+    if (!template) throw new Error("Missing section template");
     harness.getMockShell().registerTemplates(
       {
         [name]: {
+          ...template,
           name,
           description: `The ${name} section`,
           schema: z.object({ headline: z.string() }),
@@ -143,8 +151,8 @@ describe("generating the site's sections", () => {
 
     const result = await generate();
 
-    expect(result.queued).toHaveLength(1);
-    expect(result.queued[0]).toMatchObject({
+    expect(result.jobs).toHaveLength(1);
+    expect(result.jobs[0]).toMatchObject({
       routeId: "home",
       sectionId: "hero",
     });
@@ -160,7 +168,7 @@ describe("generating the site's sections", () => {
     ]);
 
     expect(await generate()).toMatchObject({
-      queued: [],
+      jobs: [],
       totalSections: 0,
     });
   });
@@ -189,9 +197,10 @@ describe("generating the site's sections", () => {
     ]);
 
     expect(await generate({ dryRun: true })).toMatchObject({
-      queued: [],
+      jobs: [],
       totalSections: 1,
-      dryRun: true,
+      jobsQueued: 0,
+      message: "Planned 1 sections. No jobs were queued.",
     });
   });
 

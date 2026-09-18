@@ -129,7 +129,9 @@ describe("content-pipeline Studio workspace", () => {
     const serialized = JSON.stringify(publishingWorkspace.view({ data }));
     expect(serialized).toContain('"id":"publishing-at-rest"');
     expect(serialized).not.toContain('"id":"publishing-queue"');
-    expect(serialized).toContain('"label":"Published"');
+    expect(serialized).toContain(
+      '"status":{"label":"0 published","tone":"neutral"}',
+    );
   });
 
   it("opens on the canonical snapshot, scoped to what the caller may act on", async () => {
@@ -157,6 +159,7 @@ describe("content-pipeline Studio workspace", () => {
     const view = publishingWorkspace.view({ data });
     expect(view).toMatchObject({
       title: "Publishing",
+      status: { label: "0 published", tone: "neutral" },
       blocks: [
         {
           id: "publishing-attention",
@@ -208,7 +211,6 @@ describe("content-pipeline Studio workspace", () => {
             },
           ],
         },
-        { id: "publishing-summary" },
       ],
     });
     const serialized = JSON.stringify(view);

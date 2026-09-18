@@ -50,6 +50,14 @@ export interface ServiceContentGeneration<
   target<TDefinition extends AnyEntityDefinition>(
     input: ServiceContentGenerationTargetInput<TDefinition, TTemplateName>,
   ): ServiceContentGenerationTarget;
+  /**
+   * A registered, qualified template selected by another composition (not a
+   * local declaration key). Destination ownership and caller permissions still
+   * apply at admission. Advanced named consumer: Site Content route discovery.
+   */
+  targetFromRegisteredTemplate<TDefinition extends AnyEntityDefinition>(
+    input: ServiceContentGenerationTargetInput<TDefinition>,
+  ): ServiceContentGenerationTarget;
   generate(input: {
     readonly targets: readonly ServiceContentGenerationTarget[];
     readonly force?: boolean | undefined;

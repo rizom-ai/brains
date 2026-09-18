@@ -184,6 +184,17 @@ Types:
 
 The runtime owns base entity fields, persistence, markdown validation, search indexing, projection scheduling, and worker execution.
 
+Advanced named consumer: Studio uses `encodeEntityIdPath`, `entityIdPathSchema`,
+`EntityIdPath`, `EntityIdPathInput`, `QueryEntityHierarchyRequest`, and
+`EntityHierarchyPage`. Setup/job entity readers expose bounded `queryEntityHierarchy`
+reads, capped by their visibility scope. Operator creation accepts `idPath` and
+atomically requires that destination to be absent; it never silently renames or overwrites it.
+
+`defineEntity.displayTitle` is a read-only label projection (named consumer: Note).
+It receives content and validated metadata without a writer. Studio asks the
+adapter through `ServiceEntityShapes.displayTitle`, rather than deriving titles itself.
+Note preserves authored titles and limits first-body-line fallbacks to 80 Unicode characters.
+
 `EntityDefinitionConfig` is the optional `config` slot on `defineEntity`. It carries deliberate opt-outs — `embeddable`, `projectionSource`, `projectionSourceRole`, `weight` — for entity types that are system configuration rather than user content. Omitted fields keep the runtime defaults.
 
 `frontmatterInContent` builds the markdown codec for a type whose files keep
@@ -377,9 +388,11 @@ can accept heterogeneous entities without widening their metadata types. Format-
 unknown template keys are rejected.
 
 A target is the frozen, validated JSON that `content.target()` returns. Its entity
-definition is not on it, and its metadata has already been transformed by that definition
-once; `generate` re-validates targets on submission, so a target may be reused across
-calls. Normal entity persistence validation still applies. The active caller is bound when
+definition is not on it, and its canonical metadata has already been validated by that
+definition once (including defaults and safe coercions, not rewriting transforms).
+`generate` re-validates targets on submission, so a target may be reused across calls.
+Every destination must be declared or validly stewarded by the submitting service;
+installing an entity package or referencing its definition grants no write authority. Normal entity persistence validation still applies. The active caller is bound when
 submitting, not when constructing a target.
 
 Use `contentGenerationResultSchema` as a generating tool's output schema. Results contain
@@ -387,6 +400,12 @@ admission decisions, not prose or completion evidence. Counts and references are
 `plannedTargets` includes both planned and queued items. Dry runs return planned/skipped
 items, zero queued targets, and no batch or job references. All-skipped submissions also
 have no batch reference. Submission items report local template declaration keys.
+
+Advanced named consumer: Site Content uses `content.targetFromRegisteredTemplate`
+for qualified templates discovered from composed site routes. These targets retain
+registered names; destination ownership and live caller authorization still apply.
+Site Content delegates durable writes, revision checks, force handling, and cancellation
+to the shared generation runtime rather than a separate fill-section job.
 
 Generation is asynchronous, and its result is an admission record. Each item's destination
 carries the stored `entityId` alongside its `idPath`, so observe completion by reading that
@@ -476,6 +495,21 @@ Subscription and entity contracts:
 The runtime owns HTTP hosting, caller permission and Anchor resolution, daemon supervision, worker exclusion, channel/provider registration, recipient validation, conversations, normalized progress, and shutdown. Account-settings declarations require auth-service plus the deployment-owned `ACCOUNT_SETTINGS_ENCRYPTION_KEY`; secret values are encrypted at rest and never echoed by Account APIs.
 
 `InterfaceDaemonDefinition` is an advanced named type for declarations retained in setup state; Web Chat's guest maintenance is its supported consumer. A daemon must drain its work before its `run` promise settles on cancellation.
+
+`SitePageResponse` is an advanced host-themed HTML response marker, supported by
+Web Chat's preview page. It adds no routing or authorization authority.
+
+Routes may declare `preview: true` for preview-host reachability; this never bypasses
+session, origin, authorization, or admission checks. Interface setup exposes the
+runtime-derived `siteUrl` and `previewUrl` for Web Chat's operator-authorized preview
+trial. Omitted guest configuration remains inactive until authorized; explicit
+`guest: false` disallows activation. These deployment origins never come from headers.
+
+Message receive/approval inputs accept a request `signal`, combined with lifecycle
+cancellation. An approval outcome of `failed` must not trigger an implicit replay;
+`needsTerminal` tells the transport whether to close an unmatched client tool call.
+Web Chat completes each submitted decision once and ends failed/aborted streams
+without a success frame or provider-error disclosure.
 
 Route handlers receive optional, detached, frozen `transport` socket metadata from the HTTP host. `transport.remoteAddress` is never inferred from Host, Origin, or forwarding headers; absence must fail closed wherever a peer restriction is required. The instance's `http.hostname` selects the listener's bind address.
 

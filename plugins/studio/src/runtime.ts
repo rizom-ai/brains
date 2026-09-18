@@ -13,7 +13,11 @@ import type {
   ServicePublisher,
   SurfacePermissionLevel,
 } from "@brains/sdk/services";
-import type { BaseEntity, ListOptions } from "@brains/sdk/entities";
+import type {
+  BaseEntity,
+  ListOptions,
+  JobEntityAccess,
+} from "@brains/sdk/entities";
 import type { AnchorProfile } from "@brains/sdk/services";
 
 /**
@@ -22,7 +26,10 @@ import type { AnchorProfile } from "@brains/sdk/services";
  * Reads only, and across every type: the console shows whatever the brain
  * holds. Writes go through `operatorEntities`, which takes the caller.
  */
-export interface StudioEntityReads {
+export interface StudioEntityReads extends Pick<
+  JobEntityAccess,
+  "queryEntityHierarchy"
+> {
   getEntity(request: {
     entityType: string;
     id: string;

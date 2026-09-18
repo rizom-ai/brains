@@ -43,6 +43,9 @@ export function createRuntimeRoute(
     method: definition.method,
     path: definition.path,
     ...(definition.match ? { match: definition.match } : {}),
+    ...(definition.preview !== undefined
+      ? { preview: definition.preview }
+      : {}),
     public: true,
     handler: async (request, transport): Promise<Response> => {
       const socket =

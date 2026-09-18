@@ -104,7 +104,7 @@ describe("sync:path:request placement preview", () => {
   ])(
     "returns a pure verdict for %s/%s without registered types",
     async (entityType, entityId, owner, writable) => {
-      const harness = setup({ directorySync: fakeDirectorySync() });
+      const harness = await setup({ directorySync: fakeDirectorySync() });
       try {
         expect(
           await harness.sendMessage("sync:path:request", {
@@ -120,7 +120,7 @@ describe("sync:path:request placement preview", () => {
     },
   );
   it("identifies the new filename segment without confusing it with the extension", async () => {
-    const harness = setup({ directorySync: fakeDirectorySync() });
+    const harness = await setup({ directorySync: fakeDirectorySync() });
     try {
       const result = await harness.sendMessage("sync:path:request", {
         entityType: "note",
@@ -158,7 +158,7 @@ describe("sync:path:request placement preview", () => {
   ])(
     "previews %s/%s through directory-sync's existing placement rules",
     async (entityType, entityId, metadata, relativePath) => {
-      const harness = setup({ directorySync: fakeDirectorySync() });
+      const harness = await setup({ directorySync: fakeDirectorySync() });
       try {
         const result = await harness.sendMessage<
           unknown,

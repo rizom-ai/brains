@@ -22,7 +22,7 @@ export function createServiceContentTarget<
   input: ServiceContentGenerationTargetInput<TDefinition>,
   canGenerate: (template: string) => boolean,
 ): ServiceContentGenerationTarget {
-  if (input.template.includes(":") || !canGenerate(input.template)) {
+  if (!canGenerate(input.template)) {
     throw new Error(
       `Unknown or non-generatable service template: ${input.template}`,
     );

@@ -166,6 +166,8 @@ class DeclarativeInterfacePlugin<
             }),
           domain: context.domain,
           displayBaseUrl: effectiveDisplayBaseUrl(context),
+          siteUrl: context.siteUrl,
+          previewUrl: context.previewUrl,
           themeCSS: context.themeCSS,
           logger: this.logger,
         })

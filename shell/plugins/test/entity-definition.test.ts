@@ -1510,11 +1510,12 @@ describe("entity package definitions", () => {
   // metadata schema that normalises what it is given was rejected by the
   // slot's type — which left the migration in a hand-written adapter, and
   // the adapter is what conversion removes.
-  it("accepts a metadata schema that migrates what it reads", () => {
+  it("migrates stored metadata for typed parsing and label projection", async () => {
     const memory = defineEntity({
       type: "memory",
       purpose: "A thing recalled, attributed to whoever said it.",
       metadata: z.object({ said_by: z.string() }),
+      displayTitle: ({ metadata }) => metadata.said_by,
       metadataFrom: (stored) =>
         typeof stored === "object" &&
         stored !== null &&
@@ -1548,6 +1549,21 @@ describe("entity package definitions", () => {
     });
 
     expect(parsed.metadata).toEqual({ said_by: "alice" });
+    const harness = createPluginHarness();
+    try {
+      await harness.installPlugin(plugin);
+      const legacy = { ...parsed, metadata: { actorId: "alice" } };
+      const before = structuredClone(legacy);
+      expect(
+        harness
+          .getEntityRegistry()
+          .getAdapter("memory")
+          .extractMetadata(legacy),
+      ).toEqual({ actorId: "alice", title: "alice" });
+      expect(legacy).toEqual(before);
+    } finally {
+      await harness.reset();
+    }
   });
 
   // Two packages ground the agent's next turn from what they hold, and both

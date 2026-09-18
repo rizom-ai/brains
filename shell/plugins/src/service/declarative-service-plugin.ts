@@ -2,7 +2,10 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import type { ContentFormatter } from "@brains/content-formatters";
 import { PUBLISH_CHANNELS, type JsonObject } from "@brains/contracts";
 import { SYSTEM_CHANNELS } from "../system-channels";
-import { unscopeTemplateName } from "@brains/content-service";
+import {
+  unscopeTemplateName,
+  contentGenerationTargetSchema,
+} from "@brains/content-service";
 import { createServiceContentTarget } from "./content-generation-target";
 import type { JobHandler, JobInfo } from "@brains/job-queue";
 import { createInboxReader } from "../base/namespaces";
@@ -71,7 +74,10 @@ import {
 import { createReactionContext } from "./reaction-context";
 import { createRoutedCreate } from "../entity/routed-create";
 import type { RoutedCreate } from "../job/job-context-contract";
-import { createJobEntityAccess } from "../job/job-entity-access";
+import {
+  createJobEntityAccess,
+  assertEntityWriteOwnership,
+} from "../job/job-entity-access";
 import {
   createAuthoringEntityAccess,
   createAuthoringEntityReader,
@@ -1474,13 +1480,33 @@ class DeclarativeServicePlugin<
     const context = this.getContext();
     const generationTemplates = this.erasedTemplates();
     const canGenerate = (name: string): boolean =>
+      !name.includes(":") &&
       generationTemplates.get(name)?.generation !== undefined;
-    return {
+    return Object.freeze({
       target: (input) => createServiceContentTarget(input, canGenerate),
+      targetFromRegisteredTemplate: (input) =>
+        createServiceContentTarget(
+          input,
+          (name) =>
+            context.templates.getCapabilities(name)?.canGenerate === true,
+        ),
       generate: async (input): Promise<ServiceContentGenerationResult> => {
+        // Snapshot the submitted wire values before checking every destination.
+        // Admission must not turn a referenced foreign definition into write authority.
+        const targets = input.targets.map((target) =>
+          contentGenerationTargetSchema.parse(target),
+        );
+        const ownedTypes = this.ownedTypeNames();
+        for (const target of targets) {
+          assertEntityWriteOwnership(
+            ownedTypes,
+            this.id,
+            target.destination.entityType,
+          );
+        }
         const toolContext = this.toolContext.getStore();
         const result = await context.content.generate({
-          targets: [...input.targets],
+          targets,
           toolContext,
           ...(input.force !== undefined && { force: input.force }),
           ...(input.dryRun !== undefined && { dryRun: input.dryRun }),
@@ -1505,7 +1531,7 @@ class DeclarativeServicePlugin<
           ),
         };
       },
-    };
+    } satisfies ServiceContentGeneration<string>);
   }
 
   private templateFormatter(
@@ -1578,7 +1604,9 @@ class DeclarativeServicePlugin<
               : {}),
             ...(render
               ? {
-                  component: (props: JsonObject) =>
+                  component: (
+                    props: JsonObject,
+                  ): ReturnType<ComponentType<JsonObject>> =>
                     render(template.schema.parse(props)),
                 }
               : {}),
@@ -1856,6 +1884,15 @@ function parseJobData(data: string): unknown {
  */
 function entityShapesOf(context: ServicePluginContext): ServiceEntityShapes {
   return {
+    displayTitle: (entity): string | undefined => {
+      const title =
+        context.entities.getAdapter(entity.entityType)?.extractMetadata(entity)[
+          "title"
+        ] ?? entity.metadata["title"];
+      return typeof title === "string" && title.trim()
+        ? title.trim()
+        : undefined;
+    },
     frontmatterSchema: (entityType) =>
       context.entities.getEffectiveFrontmatterSchema(entityType),
     isSingleton: (entityType) =>

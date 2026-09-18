@@ -1,6 +1,7 @@
 import {
   defineEntity,
   ensureUniqueTitle,
+  parseMarkdown,
   z,
   type EntityDefinition,
   type EntityGenerationJobDeclaration,
@@ -53,14 +54,24 @@ export const note: EntityDefinition<"note", typeof noteMetadataSchema> =
       "A short, free-form captured thought, reference, or snippet the user wants to keep.",
     metadata: noteMetadataSchema,
     config: { projectionSourceRole: "primary" },
+    displayTitle: ({ content, metadata }) => {
+      if (metadata.title.trim() && metadata.title !== "Untitled")
+        return metadata.title;
+      const parsed = parseMarkdown(content);
+      const fields = noteFrontmatterSchema.safeParse(parsed.frontmatter);
+      const title = fields.success ? fields.data.title?.trim() : undefined;
+      if (title !== undefined && title.length > 0) return title;
+      return titleFromBody(parsed.content);
+    },
     markdown: {
       decode: ({ content, frontmatter }) => {
         const parsed = noteFrontmatterSchema.safeParse(frontmatter);
         const fields = parsed.success ? parsed.data : {};
+        const title = fields.title?.trim();
         return {
           content,
           metadata: {
-            title: fields.title ?? titleFromBody(content),
+            title: title?.length ? title : titleFromBody(content),
             ...(fields.status ? { status: fields.status } : {}),
             ...(fields.error ? { error: fields.error } : {}),
           },

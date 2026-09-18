@@ -1,17 +1,20 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import {
   createPluginHarness,
+  createStubAuth,
+  createTestPrincipal,
   type PluginTestHarness,
 } from "@brains/plugins/test";
-import { SitePageResponse, type IRuntimeStateStore } from "@brains/plugins";
-import { WebChatInterface } from "../src/web-chat-interface";
+import { SitePageResponse } from "@brains/plugins/contracts/web-routes";
+import type { IRuntimeStateStore } from "@brains/runtime-state";
+import { createWebChatPlugin } from "./helpers/definition";
 import {
   guestAdmissionNamespace,
   guestAdmissionStateSchema,
   type GuestAdmissionState,
 } from "../src/guest-admission-state";
 
-const harnesses: PluginTestHarness<WebChatInterface>[] = [];
+const harnesses: PluginTestHarness[] = [];
 afterEach(async () => {
   for (const harness of harnesses.splice(0)) await harness.reset();
 });
@@ -33,9 +36,7 @@ async function fixture(
   domain: string | null = "rizom.ai",
   options: { profileAvailable?: boolean; disabled?: boolean } = {},
 ): Promise<Fixture> {
-  const harness = createPluginHarness<WebChatInterface>(
-    domain ? { domain } : {},
-  );
+  const harness = createPluginHarness(domain ? { domain } : {});
   harnesses.push(harness);
   let calls = 0;
   harness.getMockShell().setAgentService({
@@ -49,18 +50,25 @@ async function fixture(
     },
     invalidateAgent: (): void => {},
   });
-  const plugin = new WebChatInterface(
-    options.disabled ? { guest: false } : {},
-    {
-      resolveAuthSession: async (): Promise<boolean> => role !== "public",
-      resolvePermissionLevel: async (): Promise<typeof role> => role,
-    },
-  );
+  harness
+    .getMockShell()
+    .getAuthRegistry()
+    .register(
+      createStubAuth({
+        ...(role === "public"
+          ? {}
+          : { principal: createTestPrincipal({ permissionLevel: role }) }),
+      }),
+    );
+  const plugin = createWebChatPlugin(options.disabled ? { guest: false } : {});
   await harness.installPlugin(plugin);
-  const ledger = harness.getMockShell().getRuntimeState().scoped({
-    namespace: guestAdmissionNamespace,
-    schema: guestAdmissionStateSchema,
-  });
+  const ledger = harness
+    .getMockShell()
+    .getRuntimeState()
+    .scoped({
+      namespace: `interface:${Buffer.from("@brains/web-chat").toString("base64url")}:${Buffer.from("web-chat").toString("base64url")}:${guestAdmissionNamespace}`,
+      schema: guestAdmissionStateSchema,
+    });
   const send = async (
     path: string,
     body?: unknown,
@@ -79,9 +87,9 @@ async function fixture(
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
-    const route = plugin
-      .getWebRoutes()
-      .find((r) => r.path === path && r.method === method);
+    const route = (plugin.getWebRoutes?.() ?? []).find(
+      (r) => r.path === path && r.method === method,
+    );
     return route
       ? route.handler(request, { remoteAddress: "172.18.0.2" })
       : new Response("Not found", { status: 404 });
@@ -90,8 +98,7 @@ async function fixture(
     send,
     ledger,
     calls: (): number => calls,
-    previewPaths: plugin
-      .getWebRoutes()
+    previewPaths: (plugin.getWebRoutes?.() ?? [])
       .filter((r) => r.preview === true)
       .map((r) => `${r.method} ${r.path}`)
       .sort(),

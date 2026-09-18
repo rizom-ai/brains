@@ -61,7 +61,9 @@ function request(
 
 describe("one deployment-wide preview trial, never a recurring allowance", () => {
   it("does not expose test authorization as product configuration", () => {
-    expect(webChatConfigSchema.parse({}).guest).toBe(false);
+    // Omission permits operator authorization, but never authorizes a trial.
+    expect(webChatConfigSchema.parse({}).guest).toBeUndefined();
+    expect(webChatConfigSchema.parse({ guest: false }).guest).toBe(false);
     expect(
       webChatConfigSchema.safeParse({
         guest: {

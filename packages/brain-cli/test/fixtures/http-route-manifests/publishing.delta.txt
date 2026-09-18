@@ -32,6 +32,7 @@
 + @brains/studio:studio|handler|GET|/cms|prefix|true
 + @brains/studio:studio|handler|GET|/studio/api/agents|exact|true
 + @brains/studio:studio|handler|GET|/studio/api/entities|exact|true
++ @brains/studio:studio|handler|GET|/studio/api/hierarchy|exact|true
 + @brains/studio:studio|handler|GET|/studio/api/schema|exact|true
 + @brains/studio:studio|handler|GET|/studio/api/sync-status|exact|true
 + @brains/studio:studio|handler|GET|/studio/api/types|exact|true
@@ -42,6 +43,7 @@
 + @brains/studio:studio|handler|GET|/studio|exact|true
 + @brains/studio:studio|handler|POST|/studio/api/ask-agent|exact|true
 + @brains/studio:studio|handler|POST|/studio/api/assist|exact|true
++ @brains/studio:studio|handler|POST|/studio/api/destination|exact|true
 + @brains/studio:studio|handler|POST|/studio/api/entities|exact|true
 + @brains/studio:studio|handler|POST|/studio/api/upload|exact|true
 + @brains/studio:studio|handler|POST|/studio/api/workspace|exact|true
@@ -50,6 +52,7 @@
 + @brains/web-chat:web-chat|handler|DELETE|/api/chat/sessions|exact|true
 + @brains/web-chat:web-chat|handler|GET|/api/chat/attachments/document|exact|true
 + @brains/web-chat:web-chat|handler|GET|/api/chat/attachments/image|exact|true
++ @brains/web-chat:web-chat|handler|GET|/api/chat/guest/access|exact|true
 + @brains/web-chat:web-chat|handler|GET|/api/chat/guest/messages|exact|true
 + @brains/web-chat:web-chat|handler|GET|/api/chat/jobs/status|exact|true
 + @brains/web-chat:web-chat|handler|GET|/api/chat/messages|exact|true
@@ -62,6 +65,7 @@
 + @brains/web-chat:web-chat|handler|POST|/api/agent/chat|exact|true
 + @brains/web-chat:web-chat|handler|POST|/api/chat/actions|exact|true
 + @brains/web-chat:web-chat|handler|POST|/api/chat/context-sessions|exact|true
++ @brains/web-chat:web-chat|handler|POST|/api/chat/guest/access|exact|true
 + @brains/web-chat:web-chat|handler|POST|/api/chat/guest/session|exact|true
 + @brains/web-chat:web-chat|handler|POST|/api/chat/guest|exact|true
 + @brains/web-chat:web-chat|handler|POST|/api/chat/uploads|exact|true

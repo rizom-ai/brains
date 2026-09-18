@@ -364,6 +364,11 @@ function createCaptureEntityAccess(input: {
     return [];
   }
   return {
+    queryEntityHierarchy: (): never => {
+      throw new Error(
+        "Hierarchy reads are unavailable in summary projection captures",
+      );
+    },
     getEntity: getEntityStub,
     listEntities: listEntitiesStub,
     find: async () => null,

@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import { tagVariants } from "@brains/ui-library";
+import { tagVariants } from "@rizom/brain-ui";
 import type { AboutHighlights } from "../schemas";
 
 /**

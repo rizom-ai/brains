@@ -19,8 +19,8 @@ fixtures, and active documentation now use eight capability bundles plus the pol
 notification channel. The prior four-bundle contract is no longer accepted by the
 canonical checked-in configurations. The explicit migration contract, pilot/standalone
 mappings, and newsletter product decision are reviewed; repository merge remains a
-separate approval boundary. See
-[brain-model-unification-migration-inventory.md](./brain-model-unification-migration-inventory.md).
+separate approval boundary. The historical migration inventory is retired; current
+bundle definitions live in [canonical-bundles.ts](../../packages/brain-cli/src/model/canonical-bundles.ts).
 
 **The fleet crossover has not executed.** An operator-approved branch canary exercised
 `0.2.0-alpha.244` on `jo` and `smoke`; both coherent config/image pairs passed exact

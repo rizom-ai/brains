@@ -6,11 +6,25 @@ import {
 /**
  * A note is plain markdown the user may have written by hand, so its title
  * is not necessarily stored: frontmatter first, then the body's own H1, then
- * a placeholder. Metadata always carries one so listings have something to
+ * a bounded first body line, then a placeholder. Metadata always carries one so listings have something to
  * show; the file does not have to.
  */
 export function titleFromBody(body: string): string {
-  return body.match(/^#\s+(.+)$/mu)?.[1]?.trim() ?? "Untitled";
+  const heading = body.match(/^#\s+(.+)$/mu)?.[1]?.trim();
+  if (heading) return heading;
+  const line = body
+    .split(/\r?\n/)
+    .find((value) => value.trim())
+    ?.trim()
+    .replace(/^#{1,6}\s+/, "");
+  if (!line) return "Untitled";
+  const characters = Array.from(line);
+  if (characters.length <= 80) return line;
+  const prefix = characters.slice(0, 79).join("");
+  const boundary = /\s/u.test(characters[79] ?? "")
+    ? prefix
+    : prefix.replace(/\s+\S*$/u, "");
+  return `${boundary.trimEnd()}…`;
 }
 
 /**

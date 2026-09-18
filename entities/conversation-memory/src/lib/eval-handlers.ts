@@ -546,6 +546,9 @@ function seededEntityAccess(memory: SeededMemory[]): JobEntityAccess {
   }
 
   return {
+    queryEntityHierarchy: (): never => {
+      throw new Error("Hierarchy reads are unavailable in memory evaluations");
+    },
     search,
     listEntities,
     getEntity,

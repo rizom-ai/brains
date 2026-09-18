@@ -2,15 +2,13 @@ import { describe, expect, spyOn, test } from "bun:test";
 import {
   BaseEntityAdapter,
   baseEntitySchema,
-  createServicePluginContext,
   type BaseEntity,
   type WebRouteDefinition,
 } from "@brains/plugins";
 import { createMockShell } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
 import { EntityWriteConflictError } from "@brains/plugins";
-import { createEditorRoutes } from "../src/editor-routes";
-import { StudioWorkspaceRegistry } from "../src/workspace-registry";
+import { installStudio, signIn } from "./helpers/install";
 
 const frontmatterSchema = z.object({ title: z.string().optional() });
 class Adapter extends BaseEntityAdapter<BaseEntity> {
@@ -36,13 +34,13 @@ const entity: BaseEntity = {
   created: "2026-09-13T00:00:00Z",
   updated: "2026-09-13T00:00:00Z",
 };
-function fixture(
+async function fixture(
   permissionLevel: "public" | "trusted" | "admin" = "trusted",
   entityType = "section",
-): {
+): Promise<{
   shell: ReturnType<typeof createMockShell>;
   routes: WebRouteDefinition[];
-} {
+}> {
   const shell = createMockShell({ domain: "example.com" });
   shell
     .getEntityRegistry()
@@ -51,22 +49,16 @@ function fixture(
     type,
   ): typeof frontmatterSchema | undefined =>
     type === entityType ? frontmatterSchema : undefined;
-  const context = createServicePluginContext(shell, "studio");
-  const routes = createEditorRoutes({
-    routePath: "/studio",
-    getContext: () => context,
-    getEntityDisplay: () => undefined,
-    resolveAuthPrincipal: async () => ({
-      userId: "usr_editor",
-      personId: "person_editor",
-      displayName: "Editor",
-      role: permissionLevel,
-      status: "active",
-      permissionLevel,
-      isAnchor: false,
-    }),
-    workspaceRegistry: new StudioWorkspaceRegistry(),
-  });
+  signIn(shell, () => ({
+    userId: "usr_editor",
+    personId: "person_editor",
+    displayName: "Editor",
+    role: permissionLevel,
+    status: "active",
+    permissionLevel,
+    isAnchor: false,
+  }));
+  const { routes } = await installStudio(shell);
   return { shell, routes };
 }
 async function request(
@@ -117,7 +109,7 @@ describe("Studio hierarchy editor API", () => {
   ])(
     "refuses explicit placement denial for $entityType against $field",
     async ({ entityType, path, field }) => {
-      const { shell, routes } = fixture("trusted", entityType);
+      const { shell, routes } = await fixture("trusted", entityType);
       const create = spyOn(shell.getEntityService(), "createEntity");
       shell.getMessageBus().subscribe("sync:path:request", async () => ({
         success: true,
@@ -152,7 +144,7 @@ describe("Studio hierarchy editor API", () => {
   );
 
   test("an explicit false still refuses when an optional owner is absent", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     shell.getMessageBus().subscribe("sync:path:request", async () => ({
       success: true,
       data: { relativePath: "section/intro.md", leaf: null, writable: false },
@@ -171,7 +163,7 @@ describe("Studio hierarchy editor API", () => {
   test.each(["absent", "older", "writable"])(
     "allows creation with %s directory-sync admission",
     async (version) => {
-      const { shell, routes } = fixture();
+      const { shell, routes } = await fixture();
       if (version !== "absent")
         shell.getMessageBus().subscribe("sync:path:request", async () => ({
           success: true,
@@ -194,7 +186,7 @@ describe("Studio hierarchy editor API", () => {
     },
   );
   test("returns the server hierarchy and binds reads to caller visibility", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     const query = spyOn(
       shell.getEntityService(),
       "queryEntityHierarchy",
@@ -238,7 +230,7 @@ describe("Studio hierarchy editor API", () => {
   });
 
   test("root navigation and folder-scoped search are explicit server requests", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     const query = spyOn(
       shell.getEntityService(),
       "queryEntityHierarchy",
@@ -283,7 +275,7 @@ describe("Studio hierarchy editor API", () => {
   });
 
   test("rejects malformed navigation and denies public access before querying", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     const query = spyOn(shell.getEntityService(), "queryEntityHierarchy");
     for (const prefix of ["not-json", "42", "[]", '["book",42]']) {
       expect(
@@ -296,14 +288,14 @@ describe("Studio hierarchy editor API", () => {
       ).toBe(400);
     }
     expect(query).not.toHaveBeenCalled();
-    const publicFixture = fixture("public");
+    const publicFixture = await fixture("public");
     expect(
       (await request(publicFixture.routes, "hierarchy?type=section")).status,
     ).toBe(403);
   });
 
   test("direct entity reads keep the complete opaque ID", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     const get = spyOn(shell.getEntityService(), "getEntity").mockResolvedValue(
       entity,
     );
@@ -324,7 +316,7 @@ describe("Studio hierarchy editor API", () => {
   });
 
   test("creation encodes submitted segments server-side with an absent-write precondition", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     const create = spyOn(
       shell.getEntityService(),
       "createEntity",
@@ -353,7 +345,7 @@ describe("Studio hierarchy editor API", () => {
   });
 
   test("invalid leaf segments report against Segment and never write", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     const create = spyOn(shell.getEntityService(), "createEntity");
     for (const segment of [
       "",
@@ -387,7 +379,7 @@ describe("Studio hierarchy editor API", () => {
   });
 
   test("destination preview encodes identity on the server and asks its placement owner", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     shell.getMessageBus().subscribe("sync:path:request", async () => ({
       success: true,
       data: {
@@ -424,7 +416,7 @@ describe("Studio hierarchy editor API", () => {
   });
 
   test("previews adapter-derived metadata and serialized content, just like creation", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     const adapter = shell.getEntityRegistry().getAdapter("section");
     spyOn(adapter, "fromMarkdown").mockReturnValue({
       metadata: { format: "png" },
@@ -458,7 +450,7 @@ describe("Studio hierarchy editor API", () => {
   });
 
   test("does not guess a file path when directory-sync is absent", async () => {
-    const { routes } = fixture();
+    const { routes } = await fixture();
     const response = await request(routes, "destination", {
       entityType: "section",
       idPath: ["book", "intro"],
@@ -472,7 +464,7 @@ describe("Studio hierarchy editor API", () => {
   });
 
   test("recognizes a conflict from a different bundle by its error name", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     const conflict = new Error("Entity write conflict: section/book:intro");
     conflict.name = "EntityWriteConflictError";
     expect(conflict).not.toBeInstanceOf(EntityWriteConflictError);
@@ -495,19 +487,23 @@ describe("Studio hierarchy editor API", () => {
   });
 
   test("does not mistake an unrelated persistence error for a destination conflict", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     const failure = new Error("Entity write conflict: section/book:intro");
     spyOn(shell.getEntityService(), "createEntity").mockRejectedValue(failure);
     const rejected = await request(routes, "entities", {
       entityType: "section",
       idPath: ["book", "intro"],
       frontmatter: {},
-    }).catch((error: unknown) => error);
-    expect(rejected).toBe(failure);
+    });
+    expect(rejected.status).toBe(500);
+    expect(await rejected.json()).toEqual({
+      error: "The operation failed",
+      code: "handler_failed",
+    });
   });
 
   test("a conflicting destination reports 409 without renaming it", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     const create = spyOn(
       shell.getEntityService(),
       "createEntity",

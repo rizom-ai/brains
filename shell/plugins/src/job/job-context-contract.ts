@@ -6,6 +6,8 @@ import type {
   EntityInput,
   EntityMutationResult,
   EntitySchema,
+  QueryEntityHierarchyRequest,
+  EntityHierarchyPage,
   ListOptions,
   SearchOptions,
   SearchResult,
@@ -69,6 +71,10 @@ export interface EntityConversationReader {
  * declares it — a cycle.
  */
 export interface JobEntityAccess {
+  /** Bounded folder projections with visibility enforced by the reader. Named consumer: Studio. */
+  queryEntityHierarchy(
+    request: QueryEntityHierarchyRequest,
+  ): Promise<EntityHierarchyPage>;
   /**
    * Entities of one type. Without a schema these come back as the registered
    * `BaseEntity` view; pass the schema that proves the shape to get a parsed

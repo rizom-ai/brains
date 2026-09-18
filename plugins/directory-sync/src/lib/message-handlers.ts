@@ -102,14 +102,18 @@ export function directorySyncSubscriptions(
       handle: ({ payload }) => {
         const extension = getEntityFileExtension(payload);
         const { relativePath, owner, writable } = resolveEntityPlacement(
-          ".", payload.entityType, payload.entityId, extension,
+          ".",
+          payload.entityType,
+          payload.entityId,
+          extension,
         );
         const [first, ...rest] = decodeEntityIdPath(payload.entityId);
         const segment = rest.at(-1) ?? first;
         const end = relativePath.length - extension.length;
-        const leaf = segment && relativePath.endsWith(`${segment}${extension}`)
-          ? { start: end - segment.length, end }
-          : null;
+        const leaf =
+          segment && relativePath.endsWith(`${segment}${extension}`)
+            ? { start: end - segment.length, end }
+            : null;
         return { relativePath, leaf, owner, writable };
       },
     }),

@@ -336,6 +336,7 @@ export class EntityQueries {
       entityType,
       undefined,
       filter?.metadata,
+      undefined,
       input.visibilityScope,
       undefined,
       filter?.contentContains,

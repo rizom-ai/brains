@@ -128,6 +128,8 @@ export function createInterfaceEntityAccess(
   }
 
   return {
+    queryEntityHierarchy: (request) =>
+      entityService.queryEntityHierarchy(request),
     listEntities,
     getEntityCounts: (visibilityScope) =>
       entityService.getEntityCounts(visibilityScope),

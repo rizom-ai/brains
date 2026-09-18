@@ -272,7 +272,7 @@ Five core extension fixtures are the primary general documentation source. The r
 
 Normal PR and pre-commit feedback keeps focused contract/integration tests plus one canonical packed-install/startup canary. The complete hermetic packed matrix is an explicit nightly, manual, and pre-publication tier: package loading, config, metadata inference, CRUD/FTS, markdown, visibility, deterministic projection, durable jobs, public/protocol routes, caller resolution, daemons, outbound delivery, site builds, restart, and shutdown. It uses no model-provider network calls or secrets and runs through `bun run test:packed:compat`, which packs Brain once and isolates each scenario's mutable state.
 
-At stable nomination, freeze the approved `0.2.0` fixtures as an immutable compatibility baseline. Every later `0.2.x` candidate compiles and runs that baseline; current examples may evolve additively without replacing it. The phase-oriented suite names are retired once the stable baseline is frozen. See [`packed-compatibility-test-tiering.md`](./packed-compatibility-test-tiering.md).
+At stable nomination, freeze the approved `0.2.0` fixtures as an immutable compatibility baseline. Every later `0.2.x` candidate compiles and runs that baseline; current examples may evolve additively without replacing it. The phase-oriented suite names are retired once the stable baseline is frozen. See the [architecture and validation overview](../architecture-overview.md).
 
 A nominated-alpha live tier supplies real providers and proves embedding completion, semantic ranking, `agent.chat`, confirmation, inbound conversations, attachments, and model-backed progress. Live evidence gates stable nomination but is not a flaky per-PR compatibility test.
 
@@ -643,8 +643,8 @@ Status labels distinguish delivered alpha evidence from work that still gates st
 
 ## Related work
 
-- [Packed compatibility test tiering](./packed-compatibility-test-tiering.md) — focused PR feedback, one default packed canary, and the nightly/release compatibility lifecycle.
-- [Independent site and theme package versioning](./site-package-independent-versioning.md) — external site publishing and exact hosted pins.
+- [Architecture and validation overview](../architecture-overview.md) — focused PR feedback and the explicit packed compatibility lifecycle.
+- [Authoring release evidence](../public-release/evidence/AUTHORING_0.2.md) — independent site/theme release lanes, external site publishing, and exact hosted pins.
 - [HTTP route registry hardening](./http-route-registry-hardening.md) — post-baseline route ownership and authorization improvements.
 - [Brain model unification](./brain-model-unification.md) — stable `v0.2.0` nomination and canary crossover.
 - [API stability](../public-release/STABILITY.md) — current compatibility policy to update at Phase 6.

@@ -339,7 +339,7 @@ export function createServicePluginContext(
               ? { data: generationContext.data }
               : {}),
           },
-          pluginId,
+          { pluginId },
         ),
       getCapabilities: (
         templateName: string,
