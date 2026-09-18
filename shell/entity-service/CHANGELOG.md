@@ -1,5 +1,19 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.392
+
+### Patch Changes
+
+- [`384bac5`](https://github.com/rizom-ai/brains/commit/384bac51f68f6f11d255d61f1a78dacd78fc9abe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Centralize projection-batch contracts and terminal transitions, enforce nested batch identity, and isolate projection write-intent application without changing persistence boundaries.
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.392
+  - @brains/content-formatters@0.2.0-alpha.392
+  - @brains/contracts@0.2.0-alpha.392
+  - @brains/db@0.2.0-alpha.392
+  - @brains/utils@0.2.0-alpha.392
+  - @brains/job-queue@0.2.0-alpha.392
+
 ## 0.2.0-alpha.391
 
 ### Patch Changes
