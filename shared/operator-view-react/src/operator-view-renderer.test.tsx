@@ -9,12 +9,12 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
+import { OperatorViewRenderer } from "./operator-view-renderer";
 import {
-  OperatorViewRenderer,
   OperatorActionButton,
   actionFailureMessage,
-  type OperatorViewComponents,
-} from "./operator-view-renderer";
+} from "./operator-view-actions";
+import type { OperatorViewComponents } from "./operator-view-host";
 
 const data: RuntimeStudioWorkspaceData = {
   view: {
