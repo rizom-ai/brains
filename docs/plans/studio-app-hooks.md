@@ -2,7 +2,7 @@
 
 ## Status
 
-**Active.** Slice 1 (`useStudioData`) has landed; slice 2 is next.
+**Active.** Slices 1 (`useStudioData`) and 2 (`useStudioNavigationActions`) have landed; slice 3 is next.
 
 ## Goal
 
