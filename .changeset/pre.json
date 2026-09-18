@@ -437,6 +437,7 @@
     "core--standalone-ask-design",
     "core--standalone-predeploy-backup",
     "core--status-palette-light-mode",
+    "core--studio-account-administration-separation",
     "core--studio-account-workspace",
     "core--studio-approval-handoff",
     "core--studio-audit-workspace",
