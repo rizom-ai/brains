@@ -276,7 +276,10 @@ export function AccountApp({
             value={section}
             onValueChange={setSection}
           >
-            <TabsList aria-label="Account sections">
+            <TabsList
+              aria-label="Account sections"
+              className={accountClass("account-tabs", accountLayout.tabs)}
+            >
               <TabsTrigger value="profile" disabled={busy}>
                 Profile
               </TabsTrigger>

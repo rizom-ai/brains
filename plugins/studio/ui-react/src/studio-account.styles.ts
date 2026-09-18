@@ -2,6 +2,7 @@ import * as stylex from "@stylexjs/stylex";
 type Name =
   | "identity"
   | "tabPanel"
+  | "tabs"
   | "column"
   | "section"
   | "heading"
@@ -26,6 +27,7 @@ type Name =
   | "field"
   | "inlineActions";
 export const accountStyles: Record<Name, stylex.StyleXStyles> = stylex.create({
+  tabs: { flexWrap: "wrap" },
   tabPanel: {
     minWidth: 0,
     maxWidth: "1040px",

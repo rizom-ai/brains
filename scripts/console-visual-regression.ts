@@ -5116,6 +5116,22 @@ try {
                 ).length !== 1
               )
                 throw new Error("Inactive account sections must stay hidden");
+              const selected = document.querySelector<HTMLElement>(
+                '.account-details [role="tab"][aria-selected="true"]',
+              );
+              const list = selected
+                ?.closest('[role="tablist"]')
+                ?.getBoundingClientRect();
+              const rect = selected?.getBoundingClientRect();
+              if (
+                !list ||
+                !rect ||
+                rect.left < list.left - 1 ||
+                rect.right > list.right + 1
+              )
+                throw new Error(
+                  "Selected account tab must remain fully visible",
+                );
             });
             if (index === 3) {
               await clickSelector(
