@@ -108,7 +108,7 @@ describe("Administration People tab", () => {
           id: admin.userId,
           title: "Ada Admin",
           description: "Admin · Active · You",
-          metadata: ["No connected channels"],
+          metadata: ["No linked identities"],
           link: { kind: "detail", itemId: admin.userId },
           links: [
             {
@@ -124,7 +124,7 @@ describe("Administration People tab", () => {
           id: member.userId,
           title: "Tess Trusted",
           description: "Trusted · Active",
-          metadata: ["One connected channel"],
+          metadata: ["One linked identity"],
           links: [
             {
               label: "Manage person",

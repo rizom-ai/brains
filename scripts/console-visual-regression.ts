@@ -940,7 +940,7 @@ async function verifyAdministrationRecords(
         ? "People"
         : surface === "studio-administration-invitations"
           ? "Invitations"
-          : "Audit",
+          : "Access activity",
     );
   }
   await waitForPage("Administration collection after closing inspection", () =>
@@ -3686,7 +3686,37 @@ const server = Bun.serve({
                     verifiedAt: 1_735_689_600_000,
                   },
                 ],
-          pluginSettings: [],
+          pluginSettings:
+            STUDY_STATE === "empty"
+              ? []
+              : [
+                  {
+                    id: "mailbox",
+                    title: "Personal mailbox",
+                    configured: true,
+                    revision: 1,
+                    description:
+                      "Mailbox settings for your account, not the brain’s shared email service.",
+                    fields: [
+                      {
+                        name: "host",
+                        label: "IMAP host",
+                        control: "text",
+                        secret: false,
+                        required: true,
+                        value: "imap.example.test",
+                      },
+                      {
+                        name: "password",
+                        label: "Password",
+                        control: "text",
+                        secret: true,
+                        required: true,
+                        set: true,
+                      },
+                    ],
+                  },
+                ],
           passkeys: [
             {
               id: "passkey-1",
@@ -5054,7 +5084,55 @@ try {
         )
           await verifyRecordTypography(page);
         if (surface === "studio-account") {
-          await waitForText(page, "Signed-in sessions");
+          // Exercise the real account tabs, including native hidden-panel layout.
+          for (const index of [1, 2, 3, 0]) {
+            await evaluatePageWith(
+              page,
+              (tabIndex) => {
+                const tab = document.querySelectorAll<HTMLElement>(
+                  '.account-details [role="tab"]',
+                )[tabIndex];
+                if (!tab) throw new Error("Account section missing");
+                tab.focus();
+                tab.dispatchEvent(
+                  new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+                );
+              },
+              index,
+            );
+            await waitForSelector(
+              page,
+              `.account-details [role="tab"]:nth-child(${index + 1})[aria-selected="true"]`,
+            );
+            await evaluatePage(page, () => {
+              const panels = [
+                ...document.querySelectorAll<HTMLElement>(
+                  '.account-details [role="tabpanel"]',
+                ),
+              ];
+              if (
+                panels.filter(
+                  (panel) => getComputedStyle(panel).display !== "none",
+                ).length !== 1
+              )
+                throw new Error("Inactive account sections must stay hidden");
+            });
+            if (index === 3) {
+              await clickSelector(
+                page,
+                '.account-details [role="tabpanel"]:not([hidden]) summary',
+              );
+            }
+            if (index !== 0) {
+              await settleVisualCapture(page);
+              await recordVisualCapture(
+                `studio-account-${index === 1 ? "security" : index === 2 ? "identities" : "settings"}-${viewport.width}x${viewport.height}-${climate}.png`,
+                Buffer.from(
+                  await page.screenshot({ encoding: "buffer", format: "png" }),
+                ),
+              );
+            }
+          }
         }
         if (surface === "studio-administration-invitations-form") {
           await clickSelector(page, ".declarative-action-disclosure");

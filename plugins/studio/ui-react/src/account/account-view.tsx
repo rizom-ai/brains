@@ -3,7 +3,17 @@ import { OperatorCard } from "@brains/operator-view-react";
 import { headStyles } from "../studio-page-head.styles";
 import { typographyStyles } from "../studio-typography.styles";
 
-import { Button, ConfirmDialog, Input, Switch } from "@brains/app-ui-react";
+import {
+  Button,
+  ConfirmDialog,
+  Input,
+  Switch,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "@brains/app-ui-react";
+import { studioWorkspacePath } from "../../../src/studio-paths";
 import {
   accountClass,
   accountStyles as accountLayout,
@@ -78,6 +88,7 @@ export function AccountApp({
   const [status, setStatus] = useState("");
   const [error, setError] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [section, setSection] = useState("profile");
   const [confirmation, setConfirmation] = useState<AccountConfirmation | null>(
     null,
   );
@@ -234,10 +245,15 @@ export function AccountApp({
         <StudioPageHead
           model={{
             access: studioAccessRequirement("public"),
-            title: "Account",
+            title: "Your account",
             totals: [],
           }}
         />
+        <p className={accountClass("account-scope", accountLayout.description)}>
+          Your account on this brain. Manage your profile, sign-in security,
+          linked identities, and personal settings here—not shared services or
+          other people’s access.
+        </p>
         <p
           className={accountClass(
             `account-status${error ? " is-error" : ""}`,
@@ -255,143 +271,202 @@ export function AccountApp({
             Reading your account…
           </p>
         ) : (
-          <section className="account-details" aria-live="polite">
-            <div
+          <Tabs
+            className="account-details"
+            value={section}
+            onValueChange={setSection}
+          >
+            <TabsList aria-label="Account sections">
+              <TabsTrigger value="profile" disabled={busy}>
+                Profile
+              </TabsTrigger>
+              <TabsTrigger value="security" disabled={busy}>
+                Sign-in &amp; sessions
+              </TabsTrigger>
+              <TabsTrigger value="identities" disabled={busy}>
+                Linked identities
+              </TabsTrigger>
+              {current.pluginSettings.length > 0 && (
+                <TabsTrigger value="settings" disabled={busy}>
+                  Personal settings
+                </TabsTrigger>
+              )}
+            </TabsList>
+            <TabsContent
+              value="profile"
+              forceMount
+              hidden={section !== "profile"}
               className={accountClass(
                 "account-detail-sections",
-                accountLayout.grid,
+                accountLayout.tabPanel,
               )}
             >
-              <div className={accountClass("", accountLayout.column)}>
-                <AccountDetailSection title="Profile">
+              <AccountDetailSection title="Profile">
+                <div
+                  className={accountClass(
+                    "account-identity",
+                    accountLayout.identity,
+                  )}
+                >
                   <div
                     className={accountClass(
-                      "account-identity",
-                      accountLayout.identity,
+                      "people-detail-person",
+                      accountLayout.person,
                     )}
                   >
-                    <div
+                    <span
                       className={accountClass(
-                        "people-detail-person",
-                        accountLayout.person,
+                        "people-avatar people-avatar--large",
+                        accountLayout.avatar,
                       )}
                     >
-                      <span
-                        className={accountClass(
-                          "people-avatar people-avatar--large",
-                          accountLayout.avatar,
-                        )}
-                      >
-                        {initials(title)}
-                      </span>
-                      <span
-                        className={accountClass("", accountLayout.personCopy)}
-                      >
-                        <span
-                          className={accountClass(
-                            "people-detail-name",
-                            accountLayout.name,
-                            typographyStyles.secondaryDisplay,
-                          )}
-                        >
-                          {title}
-                        </span>
-                        <span
-                          data-account-role={role}
-                          className={accountClass(
-                            "account-role",
-                            accountLayout.role,
-                          )}
-                        >
-                          {roleLabel(role)}
-                        </span>
-                      </span>
-                    </div>
-                  </div>
-
-                  {current.profileEntityId ? (
-                    <>
-                      <p
-                        className={accountClass(
-                          "account-profile-note",
-                          accountLayout.description,
-                        )}
-                      >
-                        Managed by the Anchor profile — your account name
-                        follows the published profile.
-                      </p>
-                      <AccountAccessItem
-                        kind="Anchor profile"
-                        description={title}
-                        action={
-                          studioEntityHref(
-                            bootstrap.studioPath,
-                            current.profileEntityId,
-                          ) ? (
-                            <Button asChild variant="link">
-                              <a
-                                href={studioEntityHref(
-                                  bootstrap.studioPath,
-                                  current.profileEntityId,
-                                )}
-                              >
-                                Edit in Studio →
-                              </a>
-                            </Button>
-                          ) : undefined
-                        }
-                      />
-                    </>
-                  ) : (
-                    <form
-                      className={accountClass("name-form", accountLayout.form)}
-                      onSubmit={saveName}
+                      {initials(title)}
+                    </span>
+                    <span
+                      className={accountClass("", accountLayout.personCopy)}
                     >
-                      <label
-                        className={accountClass("", accountLayout.formLabel)}
-                        htmlFor="display-name"
+                      <span
+                        className={accountClass(
+                          "people-detail-name",
+                          accountLayout.name,
+                          typographyStyles.secondaryDisplay,
+                        )}
                       >
-                        Display name
-                      </label>
-                      <Input
-                        id="display-name"
-                        maxLength={200}
-                        autoComplete="name"
-                        required
-                        value={displayName}
-                        onChange={(event) => setDisplayName(event.target.value)}
-                      />
-                      <AccountButton type="submit" disabled={busy}>
-                        Save name
-                      </AccountButton>
-                    </form>
-                  )}
-                </AccountDetailSection>
+                        {title}
+                      </span>
+                      <span
+                        data-account-role={role}
+                        className={accountClass(
+                          "account-role",
+                          accountLayout.role,
+                        )}
+                      >
+                        {roleLabel(role)}
+                      </span>
+                    </span>
+                  </div>
+                </div>
 
-                <AccountDetailSection title="Connected channels">
-                  {current.connectedChannels.length === 0 ? (
+                {current.profileEntityId ? (
+                  <>
                     <p
                       className={accountClass(
-                        "people-empty",
-                        accountLayout.empty,
+                        "account-profile-note",
+                        accountLayout.description,
                       )}
                     >
-                      No connected channels.
+                      Managed by the Anchor profile — your account name follows
+                      the published profile.
                     </p>
-                  ) : (
-                    current.connectedChannels.map((channel) => (
-                      <AccountAccessItem
-                        key={`${channel.type}:${channel.label}`}
-                        kind={channel.type}
-                        description={channel.label}
-                        metadata={[
-                          `Verified: ${accountTimestamp(channel.verifiedAt, true)}`,
-                        ]}
-                      />
-                    ))
-                  )}
-                </AccountDetailSection>
+                    <AccountAccessItem
+                      kind="Anchor profile"
+                      description={title}
+                      action={
+                        studioEntityHref(
+                          bootstrap.studioPath,
+                          current.profileEntityId,
+                        ) ? (
+                          <Button asChild variant="link">
+                            <a
+                              href={studioEntityHref(
+                                bootstrap.studioPath,
+                                current.profileEntityId,
+                              )}
+                            >
+                              Edit in Studio →
+                            </a>
+                          </Button>
+                        ) : undefined
+                      }
+                    />
+                  </>
+                ) : (
+                  <form
+                    className={accountClass("name-form", accountLayout.form)}
+                    onSubmit={saveName}
+                  >
+                    <label
+                      className={accountClass("", accountLayout.formLabel)}
+                      htmlFor="display-name"
+                    >
+                      Display name
+                    </label>
+                    <Input
+                      id="display-name"
+                      maxLength={200}
+                      autoComplete="name"
+                      required
+                      value={displayName}
+                      onChange={(event) => setDisplayName(event.target.value)}
+                    />
+                    <AccountButton type="submit" disabled={busy}>
+                      Save name
+                    </AccountButton>
+                  </form>
+                )}
+              </AccountDetailSection>
 
+              <p className={accountClass("", accountLayout.description)}>
+                Your role controls access to this brain. An administrator
+                manages access in Administration.
+              </p>
+              {role === "admin" && (
+                <Button asChild variant="outline">
+                  <a
+                    href={studioWorkspacePath(
+                      bootstrap.studioPath,
+                      "admin:administration",
+                    )}
+                  >
+                    Manage people in Administration →
+                  </a>
+                </Button>
+              )}
+            </TabsContent>
+            <TabsContent
+              value="identities"
+              forceMount
+              hidden={section !== "identities"}
+              className={accountClass("", accountLayout.tabPanel)}
+            >
+              <AccountDetailSection
+                title="Linked identities"
+                description="How this brain recognises messages from you. These are your identities, not services configured for the whole brain."
+              >
+                {current.connectedChannels.length === 0 ? (
+                  <p
+                    className={accountClass(
+                      "people-empty",
+                      accountLayout.empty,
+                    )}
+                  >
+                    No linked identities.
+                  </p>
+                ) : (
+                  current.connectedChannels.map((channel) => (
+                    <AccountAccessItem
+                      key={`${channel.type}:${channel.label}`}
+                      kind={channel.type}
+                      description={channel.label}
+                      metadata={[
+                        `Verified: ${accountTimestamp(channel.verifiedAt, true)}`,
+                      ]}
+                    />
+                  ))
+                )}
+              </AccountDetailSection>
+            </TabsContent>
+            {current.pluginSettings.length > 0 && (
+              <TabsContent
+                value="settings"
+                forceMount
+                hidden={section !== "settings"}
+                className={accountClass("", accountLayout.tabPanel)}
+              >
+                <p className={accountClass("", accountLayout.description)}>
+                  Settings for your account only. These do not configure shared
+                  services for the brain.
+                </p>
                 {current.pluginSettings.map((settings) => (
                   <OperatorCard
                     key={settings.id}
@@ -517,7 +592,7 @@ export function AccountApp({
                               setConfirmation({
                                 title: `Remove ${settings.title}?`,
                                 message:
-                                  "The stored settings for this integration will be removed.",
+                                  "The stored settings for this integration will be removed from your account only.",
                                 confirmLabel: "Remove settings",
                                 action: () => {
                                   void run(
@@ -540,7 +615,14 @@ export function AccountApp({
                     </form>
                   </OperatorCard>
                 ))}
-              </div>
+              </TabsContent>
+            )}
+            <TabsContent
+              value="security"
+              forceMount
+              hidden={section !== "security"}
+              className={accountClass("", accountLayout.tabPanel)}
+            >
               <div className={accountClass("", accountLayout.column)}>
                 <AccountDetailSection
                   title="Sign-in"
@@ -585,7 +667,7 @@ export function AccountApp({
                         void run(
                           "Waiting for your authenticator…",
                           "Passkey added.",
-                          client.registerPasskey,
+                          () => client.registerPasskey(),
                         )
                       }
                     >
@@ -647,8 +729,8 @@ export function AccountApp({
                   </div>
                 </footer>
               </div>
-            </div>
-          </section>
+            </TabsContent>
+          </Tabs>
         )}
       </div>
       {confirmation && (

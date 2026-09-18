@@ -1,7 +1,7 @@
 import * as stylex from "@stylexjs/stylex";
 type Name =
   | "identity"
-  | "grid"
+  | "tabPanel"
   | "column"
   | "section"
   | "heading"
@@ -26,6 +26,10 @@ type Name =
   | "field"
   | "inlineActions";
 export const accountStyles: Record<Name, stylex.StyleXStyles> = stylex.create({
+  tabPanel: {
+    minWidth: 0,
+    maxWidth: "1040px",
+  },
   shell: {
     width: "100%",
     boxSizing: "border-box",
@@ -75,7 +79,12 @@ export const accountStyles: Record<Name, stylex.StyleXStyles> = stylex.create({
     fontSize: "12px",
   },
   stack: { display: "grid", gap: "20px", minWidth: 0 },
-  form: { display: "grid", gap: "10px", justifyItems: "start" },
+  form: {
+    display: "grid",
+    gap: "10px",
+    justifyItems: "start",
+    maxWidth: "480px",
+  },
   formLabel: {
     color: "var(--console-text)",
     fontFamily: "var(--console-ui)",
@@ -112,17 +121,6 @@ export const accountStyles: Record<Name, stylex.StyleXStyles> = stylex.create({
     color: "var(--console-text-muted)",
   },
   actions: { display: "flex", flexWrap: "wrap", gap: "12px" },
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "minmax(0,1.4fr) minmax(220px,1fr)",
-    marginTop: "28px",
-    gap: "36px",
-    borderTopWidth: 0,
-    "@media (max-width:900px)": {
-      gridTemplateColumns: "minmax(0,1fr)",
-      gap: "28px",
-    },
-  },
   column: {
     minWidth: 0,
     display: "flex",
