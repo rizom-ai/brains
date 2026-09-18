@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { askContentSchema, parseAskContent } from "../src/ask-content";
+import { askContentSchema } from "../src/ask-content";
+import { parseAskContent } from "../src/ask-content-markdown";
 
 describe("authored Ask presentation", () => {
   test("has no invented defaults", () => {

@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented on `feat/dashboard-ask`; review PR [brains#269](https://github.com/rizom-ai/brains/pull/269). Not merged, released, activated or published.
+Implementation PR [brains#269](https://github.com/rizom-ai/brains/pull/269) merged as `3f96c1e335`. Release verification found a browser packaging regression and rollout remains blocked pending the follow-up fix. No deployment, guest activation or content publication has been performed.
 
 ## Decision
 
@@ -50,6 +50,14 @@ Missing or invalid optional content means no welcome or suggestions. No invented
 - One synthetic question completed through the actual guest runtime. Navigating to Full chat restored the owned answer without another send. No live provider requests were authorized or made.
 - App verification found a missing packaged-asset copy step for the new dashboard bundle. The CLI build now includes both dashboard assets; the canonical app was restarted against the same preserved fixture and allowance, then the check passed.
 - Local fixture/evidence: `/tmp/dashboard-ask-app.KeWOe8`; checks: `/tmp/dashboard-ask-*.log`. The bounded test app was stopped and its canonical configuration restored.
+
+## Release verification and follow-up
+
+Both post-merge release workflows failed the exact packed Chat browser-consumer check: Site Release `35193745580`, Core Release `35194096842`. The ordinary CI suites had passed, but the opt-in packed check exposed Node `process`/`url` dependencies in the Chat browser bundle. The new Ask schema shared a module with its server-side markdown parser.
+
+The follow-up separates the pure schema from `ask-content-markdown.ts`, retaining the server parser export without importing it through `chat.ts`. A default-suite browser-bundle regression test also rejects `gray-matter` in the Chat bundle. Local evidence reproduced the packed failure before the change, then passed the exact packed Chat consumer and the full seven-test packed compatibility matrix after it. No browser polyfill, test bypass or contract relaxation was introduced.
+
+Evidence: `/tmp/dashboard-ask-release/` (`packed-red.log`, `packed-green.log`, `packed-matrix-green.log`, browser red/green logs). Both releases must be verified again after the fix is reviewed and merged before deployment is considered.
 
 ## Rollout gate
 
