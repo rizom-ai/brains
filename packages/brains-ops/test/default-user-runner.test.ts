@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { fromYaml } from "@brains/utils/yaml";
 
 import { createDefaultUserRunner } from "../src/default-user-runner";
 import type { ResolvedUser } from "../src/load-registry";
@@ -53,13 +54,18 @@ describe("createDefaultUserRunner", () => {
       "bundles:\n  - core\n  - media\n  - automation\n  - web\n  - chat\n  - site\n  - publishing\n  - federation",
     );
     expect(result.brainYaml).toContain(`add:\n  - docs`);
-    expect(result.brainYaml).toContain(
-      `site:\n  package: "@rizom/site-rizom-ai"\n  theme: "@brains/theme-rizom"`,
-    );
+    expect(fromYaml(result.brainYaml ?? "")).toMatchObject({
+      site: {
+        package: "@rizom/site-rizom-ai",
+        theme: "@brains/theme-rizom",
+      },
+    });
     expect(result.brainYaml).not.toContain("0.2.0-alpha.136");
-    expect(result.brainYaml).toContain(
-      `directory-sync:\n    git:\n      repo: rizom-ai/rizom-ai-content`,
-    );
+    expect(fromYaml(result.brainYaml ?? "")).toMatchObject({
+      plugins: {
+        "directory-sync": { git: { repo: "rizom-ai/rizom-ai-content" } },
+      },
+    });
     expect(result.envFile).toContain("CONTENT_REPO=rizom-ai/rizom-ai-content");
     expect(result.contentRepoFiles?.[0]?.content).not.toContain("kind:");
   });
@@ -108,13 +114,16 @@ describe("createDefaultUserRunner", () => {
       },
     });
 
-    expect(result.brainYaml).toContain(
-      "  atproto:\n" +
-        "    identifier: did:plc:oehciuqunzskplljt3qnnncw\n" +
-        "    accountDid: did:plc:oehciuqunzskplljt3qnnncw\n" +
-        "    lexiconAuthority: true\n" +
-        "    appPassword: ${ATPROTO_APP_PASSWORD}",
-    );
+    expect(fromYaml(result.brainYaml ?? "")).toMatchObject({
+      plugins: {
+        atproto: {
+          identifier: "did:plc:oehciuqunzskplljt3qnnncw",
+          accountDid: "did:plc:oehciuqunzskplljt3qnnncw",
+          lexiconAuthority: true,
+          appPassword: "${ATPROTO_APP_PASSWORD}",
+        },
+      },
+    });
   });
 
   it("renders the atproto block without accountDid when not configured", async () => {
@@ -125,11 +134,14 @@ describe("createDefaultUserRunner", () => {
       atproto: { identifier: "rizom.bsky.social" },
     });
 
-    expect(result.brainYaml).toContain(
-      "  atproto:\n" +
-        "    identifier: rizom.bsky.social\n" +
-        "    appPassword: ${ATPROTO_APP_PASSWORD}",
-    );
+    expect(fromYaml(result.brainYaml ?? "")).toMatchObject({
+      plugins: {
+        atproto: {
+          identifier: "rizom.bsky.social",
+          appPassword: "${ATPROTO_APP_PASSWORD}",
+        },
+      },
+    });
     expect(result.brainYaml).not.toContain("accountDid");
     expect(result.brainYaml).not.toContain("lexiconAuthority");
   });
