@@ -57,6 +57,22 @@ export function getStandardConfig(): StandardConfig {
   return createStandardConfig(STANDARD_PATHS);
 }
 
+export const logLevelSchema: z.ZodEnum<{
+  debug: "debug";
+  info: "info";
+  warn: "warn";
+  error: "error";
+}> = z.enum(["debug", "info", "warn", "error"]);
+
+export const reasoningEffortSchema: z.ZodEnum<{
+  none: "none";
+  low: "low";
+  medium: "medium";
+  high: "high";
+  xhigh: "xhigh";
+  max: "max";
+}> = z.enum(["none", "low", "medium", "high", "xhigh", "max"]);
+
 export const shellConfigSchema: z.ZodObject<{
   name: z.ZodDefault<z.ZodString>;
   version: z.ZodDefault<z.ZodString>;
@@ -75,28 +91,12 @@ export const shellConfigSchema: z.ZodObject<{
     temperature: z.ZodDefault<z.ZodNumber>;
     maxTokens: z.ZodDefault<z.ZodNumber>;
     webSearch: z.ZodDefault<z.ZodBoolean>;
-    reasoningEffort: z.ZodOptional<
-      z.ZodEnum<{
-        none: "none";
-        low: "low";
-        medium: "medium";
-        high: "high";
-        xhigh: "xhigh";
-        max: "max";
-      }>
-    >;
+    reasoningEffort: z.ZodOptional<typeof reasoningEffortSchema>;
   }>;
   embedding: z.ZodObject<{ enabled: z.ZodDefault<z.ZodBoolean> }>;
   logging: z.ZodPrefault<
     z.ZodObject<{
-      level: z.ZodDefault<
-        z.ZodEnum<{
-          debug: "debug";
-          info: "info";
-          warn: "warn";
-          error: "error";
-        }>
-      >;
+      level: z.ZodDefault<typeof logLevelSchema>;
       format: z.ZodDefault<z.ZodEnum<{ text: "text"; json: "json" }>>;
       file: z.ZodOptional<z.ZodString>;
       context: z.ZodDefault<z.ZodString>;
@@ -139,9 +139,7 @@ export const shellConfigSchema: z.ZodObject<{
     temperature: z.number().min(0).max(2).default(0.7),
     maxTokens: z.number().positive().default(1000),
     webSearch: z.boolean().default(true),
-    reasoningEffort: z
-      .enum(["none", "low", "medium", "high", "xhigh", "max"])
-      .optional(),
+    reasoningEffort: reasoningEffortSchema.optional(),
   }),
 
   embedding: z.object({
@@ -150,7 +148,7 @@ export const shellConfigSchema: z.ZodObject<{
 
   logging: z
     .object({
-      level: z.enum(["debug", "info", "warn", "error"]).default("info"),
+      level: logLevelSchema.default("info"),
       format: z.enum(["text", "json"]).default("text"),
       file: z.string().optional(),
       context: z.string().default("shell"),

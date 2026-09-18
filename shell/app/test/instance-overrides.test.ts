@@ -7,6 +7,7 @@ import {
 import type { SitePackage } from "../src/site-package";
 import { caughtError } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
+import { logLevelSchema } from "@brains/core";
 import { resolve } from "../src/brain-resolver";
 import { registerPackage } from "../src/package-registry";
 import {
@@ -120,6 +121,17 @@ describe("parseInstanceOverrides", () => {
   test("should parse logLevel", () => {
     const result = parseInstanceOverrides('brain: "brain"\nlogLevel: debug');
     expect(result.logLevel).toBe("debug");
+  });
+
+  test("accepts exactly the shell config log levels", () => {
+    for (const level of logLevelSchema.options) {
+      expect(
+        parseInstanceOverrides(`brain: "brain"\nlogLevel: ${level}`).logLevel,
+      ).toBe(level);
+    }
+    expect(() =>
+      parseInstanceOverrides('brain: "brain"\nlogLevel: silly'),
+    ).toThrow(InstanceOverridesParseError);
   });
 
   test("should parse model reasoning effort", () => {

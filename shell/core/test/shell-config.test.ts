@@ -1,5 +1,22 @@
 import { describe, expect, it } from "bun:test";
-import { createShellConfig, getStandardConfig } from "../src/config";
+import {
+  createShellConfig,
+  getStandardConfig,
+  logLevelSchema,
+  reasoningEffortSchema,
+  shellConfigSchema,
+} from "../src/config";
+
+describe("shell config schema", () => {
+  it("exposes the log level and reasoning effort enums it validates with", () => {
+    expect(shellConfigSchema.shape.logging.unwrap().shape.level.unwrap()).toBe(
+      logLevelSchema,
+    );
+    expect(shellConfigSchema.shape.ai.shape.reasoningEffort.unwrap()).toBe(
+      reasoningEffortSchema,
+    );
+  });
+});
 
 describe("shell config", () => {
   it("preserves shared conversation spaces", () => {
