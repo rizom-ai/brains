@@ -6,11 +6,7 @@ import {
   shouldBlockChatNavigation,
   type StudioChatNavigationState,
 } from "./studio-chat-drafts";
-import type {
-  RuntimeOperatorActionControl,
-  RuntimeOperatorLaunchIntent,
-  EntityIdPath,
-} from "@brains/plugins";
+import type { RuntimeOperatorActionControl } from "@brains/plugins";
 import type { AuthAccountRole } from "@brains/auth-service/account-contracts";
 import { isPlainRecord } from "@brains/utils/predicates";
 import { useQueryClient } from "@tanstack/react-query";
@@ -29,19 +25,15 @@ import {
 } from "react";
 import {
   studioCollectionPath,
-  studioCreatePath,
   studioEntityPath,
   studioWorkspacePath,
   parseStudioPath,
 } from "../../src/studio-paths";
-import { createStudioCreatePrefillState } from "../../src/create-prefill-contract";
 import type { StudioCollectionQuery } from "../../src/collection-query";
 import { STUDIO_ACCOUNT_WORKSPACE_ID } from "../../src/account-workspace";
 import {
   STUDIO_CHAT_ROUTE_PATH,
   STUDIO_CHAT_WORKSPACE_ID,
-  STUDIO_CHAT_WORKSPACE_RENDERER,
-  studioChatWorkspacePath,
 } from "../../src/chat-workspace";
 import {
   StudioAccountWorkspaceView,
@@ -82,10 +74,7 @@ import {
 import { derivePipeline } from "./editor-status";
 import { type SaveEntityInput } from "./mutations";
 import { useStudioApi } from "./studio-api-context";
-import {
-  createStudioChatHandoffState,
-  readStudioChatHandoffState,
-} from "./operator-launch";
+import { readStudioChatHandoffState } from "./operator-launch";
 import {
   isPublishConfirmation,
   isPublishingActionError,
@@ -96,19 +85,19 @@ import {
   entityListQueryOptions,
   entitySchemaQueryOptions,
   invalidateAfterWorkspaceAction,
-  type StudioWorkspaceQuery,
 } from "./queries";
 import { emptyDraft, errorMessage } from "./ui-utils";
 import { readErrorMessage } from "./read-error";
 import {
   replaceWorkspaceUrlQuery,
   workspaceUrlHref,
-  workspaceUrlSearch,
 } from "./workspace-url-query";
 
 import { collectionQuery, collectionSearch } from "./collection-url-query";
 
 import { useStudioData, type WorkspaceQueryState } from "./use-studio-data";
+
+import { useStudioNavigationActions } from "./use-studio-navigation-actions";
 
 const LazyAccountApp = lazy(async () => {
   const module = await import("./account/account-view");
@@ -641,224 +630,29 @@ export function App(): ReactElement {
     ],
   );
 
-  const openWorkspaceEntity = useCallback(
-    (nextEntityType: string, id: string): void => {
-      const pathname = studioEntityPath(studioBasePath, nextEntityType, id);
-      pendingOpenState.current = { pathname, save: { kind: "idle" } };
-      router.history.push(pathname, {
-        studioCollectionPath: studioCollectionPath(
-          studioBasePath,
-          nextEntityType,
-        ),
-      });
-    },
-    [studioBasePath, router.history],
-  );
-
-  const captureInboxAsNote = useCallback(
-    (
-      title: string,
-      summary: string | undefined,
-      entityType: string,
-      entityId: string,
-    ): void => {
-      router.history.push(
-        studioCreatePath(studioBasePath, "note"),
-        createStudioCreatePrefillState(
-          title,
-          `entity://${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}`,
-          summary,
-        ),
-      );
-    },
-    [studioBasePath, router.history],
-  );
-
-  const discussInboxInChat = useCallback(
-    (sourceId: string, itemId: string, label: string): void => {
-      if (
-        workspaces.some(
-          (workspace) =>
-            workspace.rendererName === STUDIO_CHAT_WORKSPACE_RENDERER,
-        )
-      ) {
-        router.history.push(
-          studioChatWorkspacePath(studioBasePath),
-          createStudioChatHandoffState(sourceId, itemId, label),
-        );
-        return;
-      }
-    },
-    [router.history, studioBasePath, workspaces],
-  );
-
-  const openWorkspaceLaunch = useCallback(
-    (launch: RuntimeOperatorLaunchIntent): void => {
-      switch (launch.target) {
-        case "account-settings": {
-          router.history.push(
-            studioWorkspacePath(studioBasePath, STUDIO_ACCOUNT_WORKSPACE_ID),
-          );
-          return;
-        }
-        case "invitations":
-          router.history.push(
-            workspaceUrlHref(
-              studioWorkspacePath(studioBasePath, "admin:administration"),
-              { tab: "invitations" },
-            ),
-          );
-          return;
-        case "admin-peer-invite": {
-          router.history.push(
-            workspaceUrlHref(
-              studioWorkspacePath(studioBasePath, "admin:administration"),
-              {
-                tab: "invitations",
-                peerId: launch.peerId,
-                displayName: launch.displayName,
-              },
-            ),
-          );
-          return;
-        }
-        case "inbox": {
-          const query: Record<string, string> = {};
-          if ("source" in launch) {
-            query["sourceId"] = "mail-items";
-            if (launch.filter === "high-priority") {
-              query["facet.mail-priority"] = "high";
-            } else if (launch.filter === "needs-reply") {
-              query["facet.needs-reply"] = "true";
-            } else if (launch.filter === "unclassified") {
-              query["facet.category"] = "unclassified";
-            }
-          }
-          router.history.push(
-            workspaceUrlHref(
-              studioWorkspacePath(studioBasePath, "unified-inbox:inbox"),
-              query,
-            ),
-          );
-          return;
-        }
-        case "publishing":
-          router.history.push(
-            studioWorkspacePath(studioBasePath, "content-pipeline:publishing"),
-          );
-          return;
-        case "site":
-          router.history.push(
-            studioWorkspacePath(studioBasePath, "site-builder:site"),
-          );
-          return;
-        case "inbox-open-entity":
-          openWorkspaceEntity(launch.entityType, launch.entityId);
-          return;
-        case "inbox-capture-note":
-          captureInboxAsNote(
-            launch.title,
-            launch.summary,
-            launch.entityType,
-            launch.entityId,
-          );
-          return;
-        case "inbox-discuss-in-chat":
-          discussInboxInChat(launch.sourceId, launch.itemId, launch.label);
-      }
-    },
-    [
-      captureInboxAsNote,
-      studioBasePath,
-      discussInboxInChat,
-      openWorkspaceEntity,
-      routeSearch,
-      router.history,
-    ],
-  );
-
-  const selectEntityType = useCallback(
-    (nextEntityType: string): void => {
-      router.history.push(studioCollectionPath(studioBasePath, nextEntityType));
-      // A long rail can put its last groups below the document fold. Treat a
-      // rail selection like page navigation instead of retaining that offset
-      // and making the destination appear blank or partially missing.
-      window.scrollTo({ top: 0, left: 0 });
-    },
-    [studioBasePath, router.history],
-  );
-
-  const changeEntityPage = useCallback(
-    (offset: number): void => {
-      if (!entityType) return;
-      router.history.push(
-        `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch({ ...entityCollectionQuery, offset })}`,
-      );
-      window.scrollTo({ top: 0, left: 0 });
-    },
-    [entityType, entityCollectionQuery, studioBasePath, router.history],
-  );
-
-  const selectWorkspace = useCallback(
-    (workspaceId: string): void => {
-      router.history.push(
-        workspaceId === STUDIO_CHAT_WORKSPACE_ID
-          ? studioChatWorkspacePath(studioBasePath)
-          : studioWorkspacePath(studioBasePath, workspaceId),
-      );
-      window.scrollTo({ top: 0, left: 0 });
-    },
-    [studioBasePath, router.history],
-  );
-
-  const selectFolder = useCallback(
-    (prefix: EntityIdPath | null): void => {
-      if (!entityType) return;
-      router.history.push(
-        `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch({ ...entityCollectionQuery, prefix, offset: 0 })}`,
-      );
-      window.scrollTo({ top: 0, left: 0 });
-    },
-    [entityType, studioBasePath, entityCollectionQuery, router.history],
-  );
-
-  const startCreate = useCallback((): void => {
-    if (!schema || !entityType || activeCapabilities?.canCreate !== true)
-      return;
-    const params = new URLSearchParams(collectionSearch(entityCollectionQuery));
-    params.set("mode", "create");
-    router.history.push(
-      `${studioCollectionPath(studioBasePath, entityType)}?${params.toString()}`,
-      {
-        studioCollectionPath: `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`,
-      },
-    );
-    setFieldAssistState({ kind: "idle" });
-  }, [
-    activeCapabilities,
-    schema,
+  const {
+    openWorkspaceEntity,
+    openWorkspaceLaunch,
+    selectEntityType,
+    changeEntityPage,
+    selectWorkspace,
+    selectFolder,
+    startCreate,
+    backToList,
+    changeWorkspaceQuery,
+  } = useStudioNavigationActions({
+    history: router.history,
+    studioBasePath,
+    routeSearch,
     entityType,
     entityCollectionQuery,
-    studioBasePath,
-    router.history,
-  ]);
-
-  const backToList = useCallback((): void => {
-    if (!entityType) return;
-    const collectionPath = `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`;
-    const historyState: unknown = router.history.location.state;
-    if (
-      typeof historyState === "object" &&
-      historyState !== null &&
-      "studioCollectionPath" in historyState &&
-      historyState.studioCollectionPath === collectionPath &&
-      router.history.canGoBack()
-    ) {
-      router.history.back();
-      return;
-    }
-    router.history.replace(collectionPath);
-  }, [studioBasePath, entityType, entityCollectionQuery, router.history]);
+    workspaces,
+    schema,
+    activeCapabilities,
+    pendingOpenState,
+    setFieldAssistState,
+    setWorkspaceQueries,
+  });
 
   const runFieldAssist = useCallback(
     (variant: FieldAssistVariant, field: string): void => {
@@ -1177,35 +971,6 @@ export function App(): ReactElement {
       }
     },
     [activeWorkspaceId, declarativeWorkspaceActionMutation, queryClient],
-  );
-
-  const changeWorkspaceQuery = useCallback(
-    (
-      workspaceId: string,
-      query: StudioWorkspaceQuery,
-      canonicalUrlQuery?: StudioWorkspaceQuery,
-    ): void => {
-      const workspace = workspaces.find((entry) => entry.id === workspaceId);
-      let urlSearch = workspace?.urlQuery === true ? routeSearch : undefined;
-      if (workspace?.urlQuery === true && canonicalUrlQuery !== undefined) {
-        const pathname = studioWorkspacePath(studioBasePath, workspaceId);
-        urlSearch = workspaceUrlSearch(canonicalUrlQuery);
-        replaceWorkspaceUrlQuery(
-          router.history,
-          pathname,
-          canonicalUrlQuery,
-          window.location.pathname,
-        );
-      }
-      setWorkspaceQueries((current) => ({
-        ...current,
-        [workspaceId]: {
-          query,
-          ...(urlSearch !== undefined ? { urlSearch } : {}),
-        },
-      }));
-    },
-    [studioBasePath, routeSearch, router.history, workspaces],
   );
 
   const visibleLoadError =
