@@ -6,6 +6,7 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  useAppFetch,
 } from "@brains/app-ui-react";
 import { chatClass, chatLayout } from "./studio-chat-layout.styles";
 import {
@@ -70,13 +71,10 @@ export function StudioChatWorkspace(
   props: StudioChatWorkspaceProps,
 ): ReactElement {
   const queryClient = useQueryClient();
+  const appFetch = useAppFetch();
   const chatClient = useMemo(
-    () =>
-      createChatClient({
-        apiPath: props.apiPath,
-        fetch: (input, init) => globalThis.fetch(input, init),
-      }),
-    [props.apiPath],
+    () => createChatClient({ apiPath: props.apiPath, fetch: appFetch }),
+    [props.apiPath, appFetch],
   );
   const [localDraftStore] = useState(() => new StudioChatDraftStore());
   const draftStore = props.draftStore ?? localDraftStore;

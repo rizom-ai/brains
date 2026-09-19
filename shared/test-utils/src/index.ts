@@ -27,8 +27,6 @@ export {
   createMockMessagePublisher,
 } from "./mock-message-sender";
 
-// Fetch mocks
-
 // Isolated file-backed database for one test, with one cleanup contract
 export {
   createTestDatabase,
