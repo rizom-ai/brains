@@ -7,7 +7,7 @@ import { Window } from "happy-dom";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import { App } from "./App";
 import { createWebChatQueryClient } from "./query-client";
-import { WebChatFetchProvider } from "./web-chat-fetch";
+import { AppFetchProvider } from "@brains/app-ui-react";
 
 let windowInstance: Window;
 let stubbedFetch: FetchLike;
@@ -98,7 +98,7 @@ describe("startup session restoration", () => {
           QueryClientProvider,
           { client: queryClient },
           createElement(
-            WebChatFetchProvider,
+            AppFetchProvider,
             { fetch: stubbedFetch },
             createElement(App),
           ),
@@ -141,7 +141,7 @@ describe("startup session restoration", () => {
           QueryClientProvider,
           { client: queryClient },
           createElement(
-            WebChatFetchProvider,
+            AppFetchProvider,
             { fetch: stubbedFetch },
             createElement(App),
           ),
@@ -224,7 +224,7 @@ describe("startup session restoration", () => {
           QueryClientProvider,
           { client: queryClient },
           createElement(
-            WebChatFetchProvider,
+            AppFetchProvider,
             { fetch: stubbedFetch },
             createElement(App),
           ),
