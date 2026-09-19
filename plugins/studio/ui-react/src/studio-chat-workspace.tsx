@@ -15,10 +15,6 @@ import {
 } from "./studio-chat-drafts";
 import {
   createChatClient,
-  readChatProtocolEvents,
-  type ChatCard,
-  type ChatHistoryMessage,
-  type ChatMessage,
   type ChatSession,
   type ChatUploadResponse,
 } from "@brains/contracts/chat";
@@ -37,14 +33,7 @@ import {
 import { STUDIO_CHAT_WORKSPACE_ID } from "../../src/chat-workspace";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
 import type { StudioChatHandoff } from "./operator-launch";
-import {
-  approvalResponseMessage,
-  createStudioChatStreamState,
-  reduceStudioChatStream,
-  streamAssistantMessage,
-  type StudioChatApproval,
-  type StudioChatStreamState,
-} from "./chat-workspace-model";
+import { streamAssistantMessage } from "./chat-workspace-model";
 import { TypeSwitcher } from "./entity-fields";
 import { useStudioNavigationCollapsed } from "./studio-navigation-state";
 import { StudioChrome } from "./studio-chrome";
@@ -54,23 +43,15 @@ import {
 } from "./studio-navigation.styles";
 
 import { CHAT_UPLOAD_GUIDANCE, studioChatKeys } from "./studio-chat-contracts";
-import type {
-  ChatSuggestedAction,
-  ChatUploadAttempt,
-} from "./studio-chat-contracts";
+import type { ChatUploadAttempt } from "./studio-chat-contracts";
 import { SessionRail } from "./studio-chat-rail";
 import { ChatEmptyState, ChatTurn, ApprovalCard } from "./studio-chat-thread";
 import { Composer } from "./studio-chat-composer";
 import { ConversationContext } from "./studio-chat-context-panel";
 import { errorMessage } from "./studio-chat-errors";
 import { useChatSessions } from "./use-chat-sessions";
+import { useChatStream } from "./use-chat-stream";
 import { useChatThreadScroll } from "./use-chat-thread-scroll";
-
-interface InterruptedResponse {
-  kind: "stopped" | "disconnected" | "failed";
-  detail?: string;
-  retry?: { text: string; uploads: ChatUploadResponse[] };
-}
 
 export interface StudioChatWorkspaceProps {
   apiPath?: string | undefined;
@@ -127,37 +108,10 @@ export function StudioChatWorkspace(
       }),
     [draftStore, draftKey],
   );
-  const [pendingMessages, setPendingMessages] = useState<ChatHistoryMessage[]>(
-    [],
-  );
-  const [stream, setStream] = useState<StudioChatStreamState | null>(null);
-  const [sending, setSending] = useState(false);
   const [archiving, setArchiving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadAttempts, setUploadAttempts] = useState<ChatUploadAttempt[]>([]);
   const uploadBatchRef = useRef<symbol | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [interrupted, setInterrupted] = useState<InterruptedResponse | null>(
-    null,
-  );
-  useEffect(() => {
-    props.onNavigationStateChange?.({
-      hasDraft: Boolean(draft || uploads.length || uploadAttempts.length),
-      busy: sending || uploading,
-    });
-  }, [
-    draft,
-    uploads,
-    uploadAttempts,
-    sending,
-    uploading,
-    props.onNavigationStateChange,
-  ]);
-  useEffect(
-    () => (): void =>
-      props.onNavigationStateChange?.({ hasDraft: false, busy: false }),
-    [props.onNavigationStateChange],
-  );
   const navigationCollapsed = useStudioNavigationCollapsed();
   const {
     sessions,
@@ -180,20 +134,65 @@ export function StudioChatWorkspace(
   });
   const detailsTrigger = useRef<HTMLSpanElement>(null);
   const sessionPickerTrigger = useRef<HTMLSpanElement>(null);
-  const activeStreamRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(false);
+  const handledHandoffRef = useRef<string | null>(null);
+  const adoptedSessionRef = useRef<string | null>(null);
+  const {
+    pendingMessages,
+    stream,
+    sending,
+    error,
+    interrupted,
+    setSending,
+    setError,
+    submitPrompt,
+    respondToApproval,
+    runSuggestedAction,
+    hasActiveStream,
+    stopActiveStream,
+    abortActiveStream,
+    reset: resetStream,
+  } = useChatStream({
+    chatClient,
+    queryClient,
+    sessionId: props.sessionId,
+    apiPath: props.apiPath,
+    draftStore,
+    draftKey,
+    currentDraftKey,
+    mountedRef,
+    adoptedSessionRef,
+    uploads,
+    uploading,
+    uploadAttemptCount: uploadAttempts.length,
+    navigateToSession,
+  });
   useEffect(() => {
     mountedRef.current = true;
     return (): void => {
       mountedRef.current = false;
       uploadBatchRef.current = null;
-      const active = activeStreamRef.current;
-      activeStreamRef.current = null;
-      active?.abort();
+      abortActiveStream();
     };
-  }, []);
-  const handledHandoffRef = useRef<string | null>(null);
-  const adoptedSessionRef = useRef<string | null>(null);
+  }, [abortActiveStream]);
+  useEffect(() => {
+    props.onNavigationStateChange?.({
+      hasDraft: Boolean(draft || uploads.length || uploadAttempts.length),
+      busy: sending || uploading,
+    });
+  }, [
+    draft,
+    uploads,
+    uploadAttempts,
+    sending,
+    uploading,
+    props.onNavigationStateChange,
+  ]);
+  useEffect(
+    () => (): void =>
+      props.onNavigationStateChange?.({ hasDraft: false, busy: false }),
+    [props.onNavigationStateChange],
+  );
 
   const messagesQuery = useQuery({
     queryKey: studioChatKeys.messages(props.sessionId ?? ""),
@@ -232,18 +231,11 @@ export function StudioChatWorkspace(
       adoptedSessionRef.current = null;
       return;
     }
-    const active = activeStreamRef.current;
-    activeStreamRef.current = null;
-    active?.abort();
-    setSending(false);
-    setPendingMessages([]);
-    setStream(null);
+    resetStream();
     setUploading(false);
     uploadBatchRef.current = null;
     setUploadAttempts([]);
     setArchiving(false);
-    setError(null);
-    setInterrupted(null);
   }, [props.sessionId]);
 
   useEffect(() => {
@@ -294,281 +286,10 @@ export function StudioChatWorkspace(
     setDraft,
   ]);
 
-  const runStream = useCallback(
-    async (
-      conversationId: string,
-      messages: ChatMessage[],
-      onAccepted?: () => void,
-      retry?: InterruptedResponse["retry"],
-    ): Promise<boolean> => {
-      activeStreamRef.current?.abort();
-      const controller = new AbortController();
-      activeStreamRef.current = controller;
-      setSending(true);
-      setError(null);
-      setInterrupted(null);
-      let stoppedByServer = false;
-      let next: StudioChatStreamState = {
-        ...createStudioChatStreamState(),
-        messageId: crypto.randomUUID(),
-      };
-      setStream(next);
-      let accepted = false;
-      let retained = false;
-      const retainResponse = (): void => {
-        if (retained || (!next.text && next.cards.length === 0)) return;
-        retained = true;
-        const message = streamAssistantMessage(next);
-        setPendingMessages((current) => [...current, message]);
-        setStream({ ...next, text: "", cards: [] });
-      };
-      try {
-        const response = await chatClient.streamMessages(
-          {
-            id: conversationId,
-            messages,
-            trigger: "submit-message",
-          },
-          { signal: controller.signal },
-        );
-        accepted = true;
-        onAccepted?.();
-        for await (const event of readChatProtocolEvents(response)) {
-          if (activeStreamRef.current !== controller) return accepted;
-          if (event.type === "abort") stoppedByServer = true;
-          next = reduceStudioChatStream(next, event);
-          setStream(next);
-        }
-        if (activeStreamRef.current !== controller) return accepted;
-        retainResponse();
-        if (
-          controller.signal.aborted ||
-          stoppedByServer ||
-          next.error !== null ||
-          !next.finished
-        ) {
-          setInterrupted({
-            kind:
-              controller.signal.aborted || stoppedByServer
-                ? "stopped"
-                : next.error !== null
-                  ? "failed"
-                  : "disconnected",
-            ...(next.error ? { detail: next.error } : {}),
-            ...(retry ? { retry } : {}),
-          });
-          return accepted;
-        }
-        try {
-          const authoritativeMessages =
-            await chatClient.getMessages(conversationId);
-          if (activeStreamRef.current !== controller) return accepted;
-          queryClient.setQueryData(
-            studioChatKeys.messages(conversationId),
-            authoritativeMessages,
-          );
-          setPendingMessages([]);
-          // History now owns the completed turn, including its approvals.
-          // Keep the live state only when this read fails.
-          setStream(null);
-        } catch {
-          // The completed response remains visible from the optimistic state;
-          // a later session visit can retry the authoritative history read.
-        }
-        await queryClient.invalidateQueries({
-          queryKey: studioChatKeys.sessions,
-        });
-      } catch (cause) {
-        if (activeStreamRef.current !== controller) return accepted;
-        retainResponse();
-        setInterrupted({
-          kind: controller.signal.aborted
-            ? "stopped"
-            : accepted
-              ? "disconnected"
-              : "failed",
-          ...(!controller.signal.aborted
-            ? {
-                detail: errorMessage(
-                  cause,
-                  "Chat could not complete the response",
-                ),
-              }
-            : {}),
-          ...(retry ? { retry } : {}),
-        });
-      } finally {
-        if (activeStreamRef.current === controller) {
-          activeStreamRef.current = null;
-          setSending(false);
-        }
-      }
-      return accepted;
-    },
-    [chatClient, queryClient],
-  );
-
-  const submitPrompt = useCallback(
-    async (prompt: string): Promise<void> => {
-      const text = prompt.trim();
-      if (
-        (!text && uploads.length === 0) ||
-        sending ||
-        uploading ||
-        uploadAttempts.length > 0
-      )
-        return;
-      const conversationId = props.sessionId ?? `web-${crypto.randomUUID()}`;
-      const sentKey = studioChatDraftKey(props.apiPath, conversationId);
-      const messageId = crypto.randomUUID();
-      const uploadParts = uploads.map((upload) => ({
-        type: "data-upload" as const,
-        data: { ref: upload.ref },
-      }));
-      const parts = [
-        ...(text ? [{ type: "text" as const, text }] : []),
-        ...uploadParts,
-      ];
-      setPendingMessages((current) => [
-        ...current,
-        {
-          id: messageId,
-          role: "user",
-          content: text,
-          cards: uploads.map((upload): ChatCard => ({
-            kind: "attachment",
-            id: upload.id,
-            title: upload.filename,
-            attachment: {
-              mediaType: upload.mediaType,
-              filename: upload.filename,
-              sizeBytes: upload.sizeBytes,
-              url: upload.url,
-              downloadUrl: upload.downloadUrl,
-            },
-          })),
-        },
-      ]);
-      // The transcript owns the message from here, so the composer empties now
-      // rather than when the server answers; a refusal puts the draft back. A
-      // suggested action carries its own prompt and never empties the composer.
-      const sentUploads = [...uploads];
-      const held = draftStore.read(draftKey);
-      const sentFromComposer = held.text === prompt;
-      if (sentFromComposer || sentUploads.length > 0)
-        draftStore.update(draftKey, {
-          text: sentFromComposer ? "" : held.text,
-          uploads: held.uploads.filter(
-            (upload) => !sentUploads.some((sent) => sent.id === upload.id),
-          ),
-        });
-      const accepted = await runStream(
-        conversationId,
-        [{ id: messageId, role: "user", parts }],
-        () => {
-          if (
-            !props.sessionId &&
-            mountedRef.current &&
-            currentDraftKey.current === draftKey
-          ) {
-            draftStore.adopt(draftKey, sentKey);
-            adoptedSessionRef.current = conversationId;
-            navigateToSession(conversationId, true);
-          }
-        },
-        { text: prompt, uploads: [...uploads] },
-      );
-      if (
-        !accepted &&
-        (currentDraftKey.current === sentKey ||
-          (!props.sessionId && currentDraftKey.current === draftKey))
-      ) {
-        setPendingMessages((current) =>
-          current.filter((message) => message.id !== messageId),
-        );
-        // Restore into whichever conversation the composer now shows, keeping
-        // anything typed while the request was in flight.
-        const key = currentDraftKey.current;
-        const current = draftStore.read(key);
-        draftStore.update(key, {
-          ...(sentFromComposer && !current.text ? { text: prompt } : {}),
-          uploads: [
-            ...sentUploads.filter(
-              (upload) =>
-                !current.uploads.some((kept) => kept.id === upload.id),
-            ),
-            ...current.uploads,
-          ],
-        });
-      }
-    },
-    [
-      navigateToSession,
-      props.sessionId,
-      props.apiPath,
-      draftStore,
-      draftKey,
-      runStream,
-      sending,
-      uploading,
-      uploads,
-      uploadAttempts.length,
-    ],
-  );
-
   const submit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
     void submitPrompt(draft);
   };
-
-  const respondToApproval = useCallback(
-    async (approval: StudioChatApproval, approved: boolean): Promise<void> => {
-      if (!props.sessionId || sending) return;
-      await runStream(props.sessionId, [
-        approvalResponseMessage(approval, approved),
-      ]);
-    },
-    [props.sessionId, runStream, sending],
-  );
-
-  const runSuggestedAction = useCallback(
-    async (action: ChatSuggestedAction): Promise<void> => {
-      if (action.type === "prompt") {
-        await submitPrompt(action.prompt);
-        return;
-      }
-      if (!props.sessionId || sending) return;
-      setSending(true);
-      setError(null);
-      try {
-        const result = await chatClient.runAction({
-          conversationId: props.sessionId,
-          action: {
-            type: "event",
-            event: action.event,
-            ...(action.fromState ? { fromState: action.fromState } : {}),
-          },
-        });
-        if (!mountedRef.current || currentDraftKey.current !== draftKey) return;
-        setPendingMessages((current) => [
-          ...current,
-          {
-            id: crypto.randomUUID(),
-            role: "assistant",
-            content: result.text,
-            ...(result.cards ? { cards: result.cards } : {}),
-          },
-        ]);
-      } catch (cause) {
-        if (mountedRef.current && currentDraftKey.current === draftKey)
-          setError(errorMessage(cause, "Chat action failed"));
-      } finally {
-        if (mountedRef.current && currentDraftKey.current === draftKey)
-          setSending(false);
-      }
-    },
-    [chatClient, props.sessionId, sending, submitPrompt, draftKey],
-  );
 
   const runUploads = useCallback(
     async (attempts: ChatUploadAttempt[]): Promise<void> => {
@@ -1116,11 +837,7 @@ export function StudioChatWorkspace(
                 }
                 onFiles={uploadFiles}
                 onSubmit={submit}
-                onStop={
-                  activeStreamRef.current
-                    ? (): void => activeStreamRef.current?.abort()
-                    : undefined
-                }
+                onStop={hasActiveStream() ? stopActiveStream : undefined}
               />
             </section>
           </div>
