@@ -2,7 +2,7 @@
 
 ## Status
 
-**Active.** Slices 1 (`useStudioData`), 2 (`useStudioNavigationActions`) and 3 (`useEntityOpener`) have landed; slice 4 is next.
+**Active.** Slices 1 (`useStudioData`), 2 (`useStudioNavigationActions`), 3 (`useEntityOpener`) and 4 (`useEditorActions`) have landed; slice 5 is next.
 
 ## Goal
 
