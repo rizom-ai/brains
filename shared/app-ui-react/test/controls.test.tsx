@@ -4,28 +4,31 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
+import {
+  installDomGlobals,
+  installGlobals,
+  type RestoreGlobals,
+} from "@brains/test-utils";
 // Radix chooses its browser layout-effect implementation at module load.
 const bootstrapWindow = new Window();
-Object.assign(globalThis, {
+const restoreBootstrap = installGlobals({
   window: bootstrapWindow,
   document: bootstrapWindow.document,
 });
 const { Button, ConfirmDialog, DisclosureSheet, Input, NativeSelect, Switch } =
   await import("../src");
 await bootstrapWindow.happyDOM.close();
+// The window is closed now; leaving it installed would hand the next test
+// file in this process a document that no longer works.
+restoreBootstrap();
 
+let restoreGlobals: RestoreGlobals;
 let windowInstance: Window;
 let root: Root;
 
 beforeEach(() => {
   windowInstance = new Window({ url: "http://brain.test/studio" });
-  Object.assign(globalThis, {
-    window: windowInstance,
-    document: windowInstance.document,
-    navigator: windowInstance.navigator,
-    HTMLElement: windowInstance.HTMLElement,
-    Element: windowInstance.Element,
-    Node: windowInstance.Node,
+  restoreGlobals = installDomGlobals(windowInstance, {
     Event: windowInstance.Event,
     CustomEvent: windowInstance.CustomEvent,
     PointerEvent: windowInstance.PointerEvent,
@@ -35,7 +38,6 @@ beforeEach(() => {
     HTMLInputElement: windowInstance.HTMLInputElement,
     ResizeObserver: windowInstance.ResizeObserver,
     getComputedStyle: windowInstance.getComputedStyle.bind(windowInstance),
-    IS_REACT_ACT_ENVIRONMENT: true,
   });
   const container = document.createElement("div");
   document.body.append(container);
@@ -44,7 +46,9 @@ beforeEach(() => {
 
 afterEach(async () => {
   await act(async () => root.unmount());
+  await windowInstance.happyDOM.abort();
   windowInstance.close();
+  restoreGlobals();
 });
 
 describe("app control vocabulary", () => {

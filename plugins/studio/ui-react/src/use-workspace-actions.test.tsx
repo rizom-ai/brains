@@ -4,7 +4,11 @@ import { QueryClientProvider, useMutation } from "@tanstack/react-query";
 import { Window } from "happy-dom";
 import { act, createElement, type ReactElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { caughtError } from "@brains/test-utils";
+import {
+  caughtError,
+  installDomGlobals,
+  type RestoreGlobals,
+} from "@brains/test-utils";
 import type { StudioWorkspaceInfo } from "./api";
 import type { EditorMode } from "./editor-workflow";
 import type { DeclarativeWorkspaceActionInput } from "./mutations";
@@ -56,20 +60,13 @@ const editingPost: EditorMode = {
   },
 };
 
+let restoreGlobals: RestoreGlobals;
 let windowInstance: Window;
 let root: Root;
 
 beforeEach(() => {
   windowInstance = new Window({ url: "http://brain.test/studio" });
-  Object.assign(globalThis, {
-    window: windowInstance,
-    document: windowInstance.document,
-    navigator: windowInstance.navigator,
-    HTMLElement: windowInstance.HTMLElement,
-    Element: windowInstance.Element,
-    Node: windowInstance.Node,
-    IS_REACT_ACT_ENVIRONMENT: true,
-  });
+  restoreGlobals = installDomGlobals(windowInstance);
   const container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -78,6 +75,7 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   windowInstance.close();
+  restoreGlobals();
 });
 
 interface Harness {

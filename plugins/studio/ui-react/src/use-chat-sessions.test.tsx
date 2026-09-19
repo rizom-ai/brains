@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import type { ChatSession, ChatSessionListQuery } from "@brains/contracts/chat";
@@ -26,20 +27,13 @@ function session(
   };
 }
 
+let restoreGlobals: RestoreGlobals;
 let windowInstance: Window;
 let root: Root;
 
 beforeEach(() => {
   windowInstance = new Window({ url: "http://brain.test/studio/chat" });
-  Object.assign(globalThis, {
-    window: windowInstance,
-    document: windowInstance.document,
-    navigator: windowInstance.navigator,
-    HTMLElement: windowInstance.HTMLElement,
-    Element: windowInstance.Element,
-    Node: windowInstance.Node,
-    IS_REACT_ACT_ENVIRONMENT: true,
-  });
+  restoreGlobals = installDomGlobals(windowInstance);
   const container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -48,6 +42,7 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   windowInstance.close();
+  restoreGlobals();
 });
 
 interface Harness {

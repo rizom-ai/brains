@@ -1,24 +1,18 @@
 /** @jsxImportSource react */
+import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { act, createElement, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Window } from "happy-dom";
 import { AppFetchProvider, useAppFetch, type AppFetch } from "../src";
 
+let restoreGlobals: RestoreGlobals;
 let windowInstance: Window;
 let root: Root;
 
 beforeEach(() => {
   windowInstance = new Window({ url: "http://brain.test/" });
-  Object.assign(globalThis, {
-    window: windowInstance,
-    document: windowInstance.document,
-    navigator: windowInstance.navigator,
-    HTMLElement: windowInstance.HTMLElement,
-    Element: windowInstance.Element,
-    Node: windowInstance.Node,
-    IS_REACT_ACT_ENVIRONMENT: true,
-  });
+  restoreGlobals = installDomGlobals(windowInstance);
   const container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -27,6 +21,7 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   await windowInstance.happyDOM.close();
+  restoreGlobals();
 });
 
 let seen: AppFetch | undefined;

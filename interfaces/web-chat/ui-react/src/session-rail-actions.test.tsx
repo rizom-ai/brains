@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -9,6 +10,7 @@ import { App } from "./App";
 import { createWebChatQueryClient } from "./query-client";
 import { AppFetchProvider } from "@brains/app-ui-react";
 
+let restoreGlobals: RestoreGlobals;
 let windowInstance: Window;
 let stubbedFetch: FetchLike;
 let root: Root;
@@ -96,14 +98,8 @@ async function renderApp(): Promise<
 beforeEach(() => {
   windowInstance = new Window({ url: "http://brain.test/ask" });
   mutationCalls = [];
-  Object.assign(globalThis, {
-    window: windowInstance,
-    document: windowInstance.document,
+  restoreGlobals = installDomGlobals(windowInstance, {
     localStorage: windowInstance.localStorage,
-    navigator: windowInstance.navigator,
-    HTMLElement: windowInstance.HTMLElement,
-    Element: windowInstance.Element,
-    Node: windowInstance.Node,
     Event: windowInstance.Event,
     CustomEvent: windowInstance.CustomEvent,
     MutationObserver: windowInstance.MutationObserver,
@@ -113,7 +109,6 @@ beforeEach(() => {
     cancelAnimationFrame:
       windowInstance.cancelAnimationFrame.bind(windowInstance),
     getComputedStyle: windowInstance.getComputedStyle.bind(windowInstance),
-    IS_REACT_ACT_ENVIRONMENT: true,
   });
   windowInstance.localStorage.setItem(
     "brain:web-chat:conversation-id",
@@ -155,6 +150,7 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   windowInstance.close();
+  restoreGlobals();
 });
 
 describe("session rail actions", () => {
