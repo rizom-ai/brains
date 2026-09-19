@@ -26,7 +26,7 @@ export function createMediaFileProvider<TEntity extends BaseEntity, TContent>(
   config: MediaAttachmentProviderConfig<TEntity, TContent>,
   context: MediaAttachmentContext,
   brandLabel: () => string | undefined,
-  format: RenderRequest["format"],
+  format: Exclude<RenderRequest["format"], "preview-pdf">,
 ): FileAttachmentProvider {
   return {
     metadata:

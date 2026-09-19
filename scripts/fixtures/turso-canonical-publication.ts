@@ -32,6 +32,12 @@ import {
 } from "@brains/assets";
 import { imageSchema, imageAdapter } from "@brains/image";
 import { pdfInspectionDetailsSchema } from "@brains/document";
+import { withPreviewPdfFile } from "@brains/media-page-composer";
+import type {
+  AttachmentResolveRequest,
+  AttachmentFileConsumer,
+  AttachmentFileOptions,
+} from "@brains/plugins";
 import { WorkerBinaryPersistence } from "../../shared/db/src/turso-worker/binary-persistence";
 import { canonicalBrain } from "../../packages/brain-cli/src/model/canonical-brain";
 import {
@@ -51,10 +57,10 @@ registerPackage("@rizom/theme-default", defaultTheme);
 // large-binary matrices own 100 MiB coverage; this test owns application wiring.
 const SIZE = 256 * 1024 + 7;
 const SHA = "6bc5839d31ffd66263d28992f1186b33312444ffb4e2b1aab184df47e9c3b149";
-// Run the same canonical lifecycle for each registered PDF provider without
+// Run the same canonical lifecycle for each PDF provider or preview case without
 // adding a second serial browser lifecycle to the default five-second test.
 const pdfKind = z
-  .enum(["printable", "carousel"])
+  .enum(["printable", "carousel", "preview"])
   .parse(process.env["TURSO_CANONICAL_PDF_KIND"] ?? "printable");
 
 async function renderCanonicalFile(
@@ -212,6 +218,14 @@ async function renderCanonicalPrintable(
     hostname: "127.0.0.1",
     port: 0,
     fetch: async (request): Promise<Response> => {
+      if (request.method === "GET") {
+        if (new URL(request.url).pathname !== "/preview")
+          return new Response(null, { status: 404 });
+        return new Response(
+          '<!doctype html><html><body><h1>Preview PDF</h1><section style="break-before:page">Second page</section></body></html>',
+          { headers: { "content-type": "text/html" } },
+        );
+      }
       received.requests++;
       assert.equal(request.method, "PUT");
       assert.equal(request.headers.get("content-type"), "application/pdf");
@@ -244,7 +258,33 @@ async function renderCanonicalPrintable(
         return true;
       },
     );
-    const printable = attachments.withFile(
+    const lendPdf = <T>(
+      _request: AttachmentResolveRequest,
+      use: AttachmentFileConsumer<T>,
+      options?: AttachmentFileOptions,
+    ): Promise<T | undefined> =>
+      pdfKind === "preview"
+        ? withPreviewPdfFile(
+            { url: `http://127.0.0.1:${uploadServer.port}/preview` },
+            files,
+            (file, signal) =>
+              use(
+                {
+                  type: "document",
+                  mimeType: "application/pdf",
+                  filename: "canonical-preview.pdf",
+                  source: {
+                    sourceFile: file.sourceFile,
+                    sizeBytes: file.sizeBytes,
+                  },
+                  sha256: file.sha256,
+                },
+                signal,
+              ),
+            options,
+          )
+        : attachments.withFile(_request, use, options);
+    const printable = lendPdf(
       {
         sourceEntityType: pdfKind === "carousel" ? "deck" : "post",
         sourceEntityId:
@@ -259,24 +299,13 @@ async function renderCanonicalPrintable(
           file.source.sizeBytes > 0 &&
             file.source.sizeBytes <= 25 * 1024 * 1024,
         );
-        const inspected = await files.inspect(file.source, {
-          signal,
-          inspector: "pdf",
-        });
-        assert.deepEqual(
-          { sizeBytes: inspected.sizeBytes, sha256: inspected.sha256 },
-          { sizeBytes: file.source.sizeBytes, sha256: file.sha256 },
-        );
-        const details = pdfInspectionDetailsSchema.parse(inspected.details);
-        assert.equal(details.mimeType, "application/pdf");
-        assert.ok(details.pageCount > 0);
-        if (pdfKind === "carousel") assert.equal(details.pageCount, 2);
-        const facts = {
-          sizeBytes: inspected.sizeBytes,
-          sha256: inspected.sha256,
-        };
-        assert.deepEqual(
-          await files.putHttp(
+        const facts = { sizeBytes: file.source.sizeBytes, sha256: file.sha256 };
+        // Independent fixture checks of the borrowed producer output. The PUT
+        // goes only to the test receiver, not a public publishing provider.
+        // Join both before accepting either receipt or releasing the file.
+        const checks = await Promise.allSettled([
+          files.inspect(file.source, { signal, inspector: "pdf" }),
+          files.putHttp(
             {
               sourceFile: file.source.sourceFile,
               facts,
@@ -285,8 +314,30 @@ async function renderCanonicalPrintable(
             },
             { signal },
           ),
-          { ...facts, statusCode: 201 },
+        ]);
+        const failures = checks.flatMap((check) =>
+          check.status === "rejected" ? [check.reason] : [],
         );
+        if (failures.length === 1) throw failures[0];
+        if (failures.length > 1)
+          throw new AggregateError(
+            failures,
+            "PDF inspection and fixture upload failed",
+            { cause: failures[0] },
+          );
+        assert.equal(checks[0].status, "fulfilled");
+        assert.equal(checks[1].status, "fulfilled");
+        const inspected = checks[0].value;
+        assert.deepEqual(
+          { sizeBytes: inspected.sizeBytes, sha256: inspected.sha256 },
+          facts,
+        );
+        const details = pdfInspectionDetailsSchema.parse(inspected.details);
+        assert.equal(details.mimeType, "application/pdf");
+        assert.ok(details.pageCount > 0);
+        if (pdfKind === "carousel" || pdfKind === "preview")
+          assert.equal(details.pageCount, 2);
+        assert.deepEqual(checks[1].value, { ...facts, statusCode: 201 });
         assert.deepEqual(received.facts, facts);
         assert.equal(received.requests, 1);
         return file.filename;
@@ -309,9 +360,11 @@ async function renderCanonicalPrintable(
       throw new Error("Canonical PDF has no outcome");
     assert.equal(
       outcomes[1].value,
-      pdfKind === "carousel"
-        ? "canonical-deck-carousel.pdf"
-        : "render-source-printable.pdf",
+      pdfKind === "preview"
+        ? "canonical-preview.pdf"
+        : pdfKind === "carousel"
+          ? "canonical-deck-carousel.pdf"
+          : "render-source-printable.pdf",
     );
     assert.equal(producer.mock.calls.length, 1);
     assert.equal(reads.mock.calls.length, 0);
@@ -329,7 +382,7 @@ test("canonical App binds a real file claim in its entity transaction and downlo
     join(tmpdir(), "turso-canonical-publication-"),
   );
   console.error(
-    `[canonical-publication] retained fixture: ${directory}; PDF provider: ${pdfKind}`,
+    `[canonical-publication] retained fixture: ${directory}; PDF case: ${pdfKind}`,
   );
   const sourceFile = join(directory, "canonical.png");
   // Exact canonical fixture generation only. The publication carries no bytes.

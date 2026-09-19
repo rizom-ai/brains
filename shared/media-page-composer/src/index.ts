@@ -1,4 +1,10 @@
 export { renderMediaTemplateHtml } from "./media-template-renderer";
+export { withPreviewPdfFile, type PreviewPdfOptions } from "./preview-pdf";
+export {
+  previewPdfRequestSchema,
+  type PreviewPdfInput,
+  type PreviewPdfRequest,
+} from "./preview-pdf-request";
 export {
   startStaticRenderServer,
   writeMediaRenderPage,
