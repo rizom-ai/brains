@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
+import assert from "node:assert/strict";
 import {
   baseEntitySchema,
   createMockShell,
@@ -10,7 +11,18 @@ import {
 import type { BaseEntity } from "@brains/plugins";
 import { createSilentLogger } from "@brains/test-utils";
 import type { PublishableMetadata } from "../../src/schemas/publishable";
-import { preparePublishContent } from "../../src/tools/publish-content";
+import {
+  withPublishContent,
+  type PreparedPublishContent,
+} from "../../src/tools/publish-content";
+
+// Materialize content only in these preparation assertions, never production.
+async function preparePublishContent(
+  context: ServicePluginContext,
+  entity: BaseEntity<PublishableMetadata>,
+): Promise<PreparedPublishContent> {
+  return withPublishContent(context, entity, async (content) => content);
+}
 
 const TINY_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
@@ -50,7 +62,7 @@ function createPublishableEntity(
   };
 }
 
-describe("preparePublishContent", () => {
+describe("withPublishContent", () => {
   let context: ServicePluginContext;
   let mockShell: MockShell;
 
@@ -71,6 +83,39 @@ describe("preparePublishContent", () => {
         baseEntitySchema,
         createStubAdapter("document"),
       );
+  });
+
+  it("joins the consumer and preserves its exact outcome or failure", async () => {
+    const entered = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    const outcome = { id: "published" };
+    let settled = false;
+    const work = withPublishContent(
+      context,
+      createPublishableEntity("Body"),
+      async (content) => {
+        expect(content.bodyContent).toBe("Body");
+        entered.resolve();
+        await release.promise;
+        return outcome;
+      },
+    ).finally(() => {
+      settled = true;
+    });
+    try {
+      await entered.promise;
+      expect(settled).toBe(false);
+    } finally {
+      release.resolve();
+    }
+    expect(await work).toBe(outcome);
+    const primary = new Error("consumer failed");
+    await assert.rejects(
+      withPublishContent(context, createPublishableEntity("Body"), async () => {
+        throw primary;
+      }),
+      (error: unknown) => error === primary,
+    );
   });
 
   it("should strip markdown frontmatter", async () => {

@@ -1,4 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
+import assert from "node:assert/strict";
 import { z } from "@brains/utils/zod";
 import {
   baseEntitySchema,
@@ -10,6 +11,79 @@ import { ProviderRegistry } from "../src/provider-registry";
 import { PublishExecutor } from "../src/publish-executor";
 
 describe("PublishExecutor", () => {
+  it("publishes and saves state inside the content scope before cleanup, without replay after cleanup failure", async () => {
+    const shell = createMockShell();
+    shell
+      .getEntityRegistry()
+      .registerEntityType(
+        "post",
+        baseEntitySchema.partial().passthrough(),
+        createTestEntityAdapter("post"),
+      );
+    const context = createServicePluginContext(shell, "content-pipeline");
+    await context.entityService.createEntity({
+      entity: {
+        id: "scoped",
+        entityType: "post",
+        visibility: "public",
+        content: "---\nstatus: draft\n---\nBody",
+        metadata: { status: "draft" },
+      },
+    });
+    const providerRegistry = ProviderRegistry.createFresh();
+    const entered = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    let scopeOpen = false;
+    const publish = mock(async () => {
+      expect(scopeOpen).toBe(true);
+      entered.resolve();
+      await release.promise;
+      expect(scopeOpen).toBe(true);
+      return { id: "remote-post" };
+    });
+    providerRegistry.register("post", { name: "fixture", publish });
+    const cleanup = new Error("content cleanup failed after publication");
+    const executor = new PublishExecutor({
+      context,
+      providerRegistry,
+      withPublishContent: async (
+        scopedContext,
+        entity,
+        use,
+      ): Promise<never> => {
+        scopeOpen = true;
+        try {
+          await use({ bodyContent: "Body" });
+          const saved = await scopedContext.entityService.getEntity({
+            entityType: entity.entityType,
+            id: entity.id,
+          });
+          expect(saved?.metadata["status"]).toBe("published");
+          expect(saved?.metadata["platformId"]).toBe("remote-post");
+          throw cleanup;
+        } finally {
+          scopeOpen = false;
+        }
+      },
+    });
+    const work = executor.publish({ entityType: "post", id: "scoped" });
+    const rejected = assert.rejects(
+      work,
+      (error: unknown) => error === cleanup,
+    );
+    try {
+      await entered.promise;
+      expect(scopeOpen).toBe(true);
+    } finally {
+      release.resolve();
+    }
+    await rejected;
+    expect(scopeOpen).toBe(false);
+    expect(
+      await executor.publish({ entityType: "post", id: "scoped" }),
+    ).toEqual({ error: "Entity is already published" });
+    expect(publish).toHaveBeenCalledTimes(1);
+  });
   it("stores configured provider result ID field", async () => {
     const shell = createMockShell();
     shell

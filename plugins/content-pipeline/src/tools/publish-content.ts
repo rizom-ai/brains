@@ -27,10 +27,14 @@ export interface PreparedPublishContent {
   documentData?: PublishMediaData[];
 }
 
-export async function preparePublishContent(
+/** Consume prepared content before its scope settles. Provider publication and
+ * its durable state acknowledgement must be awaited inside the consumer.
+ */
+export async function withPublishContent<T>(
   context: ServicePluginContext,
   entity: PublishableEntity,
-): Promise<PreparedPublishContent> {
+  use: (content: PreparedPublishContent) => Promise<T>,
+): Promise<T> {
   const {
     bodyContent,
     coverImageId,
@@ -66,7 +70,7 @@ export async function preparePublishContent(
   if (documentData && documentData.length > 0) {
     prepared.documentData = documentData;
   }
-  return prepared;
+  return use(prepared);
 }
 
 function parsePublishContent(content: string): ParsedPublishContent {

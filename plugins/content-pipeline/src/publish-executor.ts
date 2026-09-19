@@ -6,7 +6,7 @@ import {
   publishableEntitySchema,
   type PublishableEntity,
 } from "./schemas/publishable";
-import { preparePublishContent } from "./tools/publish-content";
+import { withPublishContent } from "./tools/publish-content";
 import { markEntityPublished } from "./publish-state-updater";
 
 export interface PublishEntityInput {
@@ -44,6 +44,8 @@ export interface PublishEntityExecutor {
 export interface PublishExecutorDeps {
   context: ServicePluginContext;
   providerRegistry: ProviderRegistry;
+  /** Inject the scoped content collaborator, not global module mocks. */
+  withPublishContent?: typeof withPublishContent;
   publishAssetPreflight?:
     | {
         ensureForEntity(entity: BaseEntity): Promise<unknown>;
@@ -107,36 +109,43 @@ export class PublishExecutor implements PublishEntityExecutor {
     const { entity } = resolution;
     const { entityType } = input;
     const provider = this.deps.providerRegistry.get(entityType);
-    const { bodyContent, imageData, documentData } =
-      await preparePublishContent(this.deps.context, entity);
-
-    const result = await provider.publish(
-      bodyContent,
-      entity.metadata,
-      imageData,
-      documentData,
-    );
-    const publishResultIdField =
-      this.deps.providerRegistry.getPublishResultIdField(entityType);
-    const publishTimestampField =
-      this.deps.providerRegistry.getPublishTimestampField(entityType);
-    const updated = await markEntityPublished(
+    return (this.deps.withPublishContent ?? withPublishContent)(
       this.deps.context,
       entity,
-      result,
-      {
-        ...(publishResultIdField ? { publishResultIdField } : {}),
-        ...(publishTimestampField ? { publishTimestampField } : {}),
+      async ({
+        bodyContent,
+        imageData,
+        documentData,
+      }): Promise<PublishEntitySuccess> => {
+        const result = await provider.publish(
+          bodyContent,
+          entity.metadata,
+          imageData,
+          documentData,
+        );
+        const publishResultIdField =
+          this.deps.providerRegistry.getPublishResultIdField(entityType);
+        const publishTimestampField =
+          this.deps.providerRegistry.getPublishTimestampField(entityType);
+        const updated = await markEntityPublished(
+          this.deps.context,
+          entity,
+          result,
+          {
+            ...(publishResultIdField ? { publishResultIdField } : {}),
+            ...(publishTimestampField ? { publishTimestampField } : {}),
+          },
+        );
+        // The markEntityPublished update above also emits entity:updated, which the
+        // plugin routes to the same preflight for status changes that bypass this
+        // executor (e.g. direct system_update). Running it here too is deliberate:
+        // it guarantees preflight for executor-driven publishes regardless of event
+        // delivery, and the overlap is collapsed by the job dedupe key.
+        await this.runPublishAssetPreflight(updated);
+
+        return { entity: updated, result };
       },
     );
-    // The markEntityPublished update above also emits entity:updated, which the
-    // plugin routes to the same preflight for status changes that bypass this
-    // executor (e.g. direct system_update). Running it here too is deliberate:
-    // it guarantees preflight for executor-driven publishes regardless of event
-    // delivery, and the overlap is collapsed by the job dedupe key.
-    await this.runPublishAssetPreflight(updated);
-
-    return { entity: updated, result };
   }
 
   private async runPublishAssetPreflight(entity: BaseEntity): Promise<void> {
