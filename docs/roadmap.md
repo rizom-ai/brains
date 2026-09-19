@@ -120,6 +120,7 @@ Plans:
 - [public-ask.md](./plans/public-ask.md) — complete live visitor acceptance and obtain separate production policy/publication approval.
 - [studio-ux-improvements.md](./plans/studio-ux-improvements.md) — the remaining reviewed presentation, accessibility, and optional draft-recovery decisions after the shipped UX batches.
 - [studio-hierarchical-entity-navigation.md](./plans/studio-hierarchical-entity-navigation.md) — implemented on the feature branch, pending review: virtual folders, scoped search, and folder-aware creation over structured entity paths.
+- [studio-chat-workspace-split.md](./plans/studio-chat-workspace-split.md) — move Studio Chat's presentation into modules and give each container concern a hook, one behaviour-preserving slice per PR.
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — optional network-first installable shell without an offline-authoring claim.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy for deeper Chat SDK semantic alignment.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked transport-neutral structured forms.
