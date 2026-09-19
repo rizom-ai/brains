@@ -6,7 +6,6 @@ import {
   shouldBlockChatNavigation,
   type StudioChatNavigationState,
 } from "./studio-chat-drafts";
-import type { RuntimeOperatorActionControl } from "@brains/plugins";
 import type { AuthAccountRole } from "@brains/auth-service/account-contracts";
 import { useQueryClient } from "@tanstack/react-query";
 import { useBlocker, useRouter, useRouterState } from "@tanstack/react-router";
@@ -38,7 +37,6 @@ import {
   StudioAppView,
   type MobileEditorPane,
 } from "./app-view";
-import { type PublishingAction, type PublishingActionResult } from "./api";
 import type { BodyMode } from "./body-editor";
 import { getStudioRouterBasePath } from "./studio-router";
 import { type FieldAssistState } from "./entity-fields";
@@ -49,11 +47,6 @@ import {
 } from "./editor-workflow";
 import { useStudioApi } from "./studio-api-context";
 import { readStudioChatHandoffState } from "./operator-launch";
-import {
-  isPublishConfirmation,
-  isPublishingActionError,
-} from "./publication-actions";
-import { invalidateAfterWorkspaceAction } from "./queries";
 import { readErrorMessage } from "./read-error";
 
 import { collectionSearch } from "./collection-url-query";
@@ -67,6 +60,8 @@ import { useEntityOpener } from "./use-entity-opener";
 import { useEditorActions } from "./use-editor-actions";
 
 import { useStudioRouteEffects } from "./use-studio-route-effects";
+
+import { useWorkspaceActions } from "./use-workspace-actions";
 
 const LazyAccountApp = lazy(async () => {
   const module = await import("./account/account-view");
@@ -320,127 +315,16 @@ export function App(): ReactElement {
       setFieldAssistState,
     });
 
-  const performPublishingAction = useCallback(
-    async (action: PublishingAction): Promise<PublishingActionResult> => {
-      const capability = workspaces.find(
-        (workspace) =>
-          workspace.pluginId === "content-pipeline" &&
-          workspace.entityTypes.includes(action.entityType),
-      );
-      if (!capability) throw new Error("Publishing is unavailable");
-
-      const input = {
-        entityType: action.entityType,
-        entityId: action.entityId,
-        ...(action.type === "reorder" ? { position: action.position } : {}),
-      };
-      if (action.type === "publish" && !action.confirmation) {
-        const prepared = await declarativeWorkspaceActionMutation.mutateAsync({
-          workspaceId: capability.id,
-          action: {
-            actionId: "publish",
-            label: "Publish now",
-            input,
-            invocation: { mode: "prepare" },
-          },
-        });
-        if (
-          typeof prepared !== "object" ||
-          prepared === null ||
-          !("kind" in prepared) ||
-          prepared.kind !== "prepared-confirmation" ||
-          !("token" in prepared) ||
-          typeof prepared.token !== "string" ||
-          !("summary" in prepared) ||
-          typeof prepared.summary !== "string" ||
-          !("expiresAt" in prepared) ||
-          typeof prepared.expiresAt !== "string"
-        ) {
-          throw new Error("Publishing confirmation is unavailable");
-        }
-        return {
-          needsConfirmation: true,
-          summary: prepared.summary,
-          args: {
-            confirmed: true,
-            confirmationToken: prepared.token,
-            contentHash: prepared.token,
-            expiresAt: prepared.expiresAt,
-          },
-        };
-      }
-      const rawResult = await declarativeWorkspaceActionMutation.mutateAsync({
-        workspaceId: capability.id,
-        action: {
-          actionId: action.type,
-          label: action.type,
-          input,
-          ...(action.type === "publish" && action.confirmation
-            ? {
-                invocation: {
-                  mode: "execute",
-                  token: action.confirmation.confirmationToken,
-                },
-              }
-            : {}),
-        },
-      });
-      if (typeof rawResult !== "object" || rawResult === null) {
-        throw new Error("Publishing returned an invalid result");
-      }
-      const result: PublishingActionResult =
-        "success" in rawResult && rawResult.success === false
-          ? {
-              success: false,
-              error:
-                "error" in rawResult && typeof rawResult.error === "string"
-                  ? rawResult.error
-                  : "Publishing failed",
-              ...("code" in rawResult && typeof rawResult.code === "string"
-                ? { code: rawResult.code }
-                : {}),
-            }
-          : { success: true };
-      if (!isPublishingActionError(result) && !isPublishConfirmation(result)) {
-        await invalidateAfterWorkspaceAction(queryClient, capability.id);
-        if (
-          mode.kind === "edit" &&
-          entityType === action.entityType &&
-          mode.entity.id === action.entityId
-        ) {
-          openEntity(action.entityId);
-        }
-      }
-      return result;
-    },
-    [
+  const { performPublishingAction, performDeclarativeAction } =
+    useWorkspaceActions({
+      queryClient,
+      workspaces,
+      activeWorkspaceId,
       entityType,
       mode,
-      openEntity,
-      queryClient,
       declarativeWorkspaceActionMutation,
-      workspaces,
-    ],
-  );
-
-  const performDeclarativeAction = useCallback(
-    async (action: RuntimeOperatorActionControl): Promise<unknown> => {
-      if (!activeWorkspaceId) {
-        throw new Error("Declarative workspace is unavailable");
-      }
-      try {
-        const result = await declarativeWorkspaceActionMutation.mutateAsync({
-          workspaceId: activeWorkspaceId,
-          action,
-        });
-        await invalidateAfterWorkspaceAction(queryClient, activeWorkspaceId);
-        return result;
-      } finally {
-        declarativeWorkspaceActionMutation.reset();
-      }
-    },
-    [activeWorkspaceId, declarativeWorkspaceActionMutation, queryClient],
-  );
+      openEntity,
+    });
 
   const visibleLoadError =
     loadError ??
