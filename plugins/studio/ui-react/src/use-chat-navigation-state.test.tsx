@@ -20,6 +20,7 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
+  await windowInstance.happyDOM.abort();
   windowInstance.close();
   restoreGlobals();
 });
