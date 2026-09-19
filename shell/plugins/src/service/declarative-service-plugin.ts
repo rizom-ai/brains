@@ -1885,10 +1885,11 @@ function parseJobData(data: string): unknown {
 function entityShapesOf(context: ServicePluginContext): ServiceEntityShapes {
   return {
     displayTitle: (entity): string | undefined => {
+      const adapter = context.entities.getAdapter(entity.entityType);
       const title =
-        context.entities.getAdapter(entity.entityType)?.extractMetadata(entity)[
-          "title"
-        ] ?? entity.metadata["title"];
+        adapter?.displayTitle?.(entity) ??
+        adapter?.extractMetadata(entity)["title"] ??
+        entity.metadata["title"];
       return typeof title === "string" && title.trim()
         ? title.trim()
         : undefined;

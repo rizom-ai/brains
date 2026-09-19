@@ -191,8 +191,10 @@ reads, capped by their visibility scope. Operator creation accepts `idPath` and
 atomically requires that destination to be absent; it never silently renames or overwrites it.
 
 `defineEntity.displayTitle` is a read-only label projection (named consumer: Note).
-It receives content and validated metadata without a writer. Studio asks the
-adapter through `ServiceEntityShapes.displayTitle`, rather than deriving titles itself.
+It receives content and validated metadata without a writer. Its result is never
+used for serialization or persisted metadata; display labels cannot replace stored
+titles. Studio asks the adapter through `ServiceEntityShapes.displayTitle`, rather
+than deriving titles itself.
 Note preserves authored titles and limits first-body-line fallbacks to 80 Unicode characters.
 
 `EntityDefinitionConfig` is the optional `config` slot on `defineEntity`. It carries deliberate opt-outs — `embeddable`, `projectionSource`, `projectionSourceRole`, `weight` — for entity types that are system configuration rather than user content. Omitted fields keep the runtime defaults.

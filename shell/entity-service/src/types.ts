@@ -459,8 +459,11 @@ export interface EntityAdapter<
   // Returns Partial<TEntity> as core fields come from database
   fromMarkdown(markdown: string): Partial<TEntity>;
 
-  // Extract metadata from entity for search/filtering - now strongly typed
+  // Extract canonical metadata for persistence and search/filtering.
   extractMetadata(entity: TEntity): TMetadata;
+
+  /** Optional presentation-only label; never used to prepare stored metadata. */
+  displayTitle?(entity: TEntity): string | undefined;
 
   // Parse frontmatter metadata from markdown
   parseFrontMatter<TFrontmatter>(
