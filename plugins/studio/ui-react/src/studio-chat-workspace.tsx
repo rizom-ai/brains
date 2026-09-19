@@ -64,6 +64,7 @@ import { Composer } from "./studio-chat-composer";
 import { ConversationContext } from "./studio-chat-context-panel";
 import { errorMessage } from "./studio-chat-errors";
 import { useChatSessions } from "./use-chat-sessions";
+import { useChatThreadScroll } from "./use-chat-thread-scroll";
 
 interface InterruptedResponse {
   kind: "stopped" | "disconnected" | "failed";
@@ -179,10 +180,6 @@ export function StudioChatWorkspace(
   });
   const detailsTrigger = useRef<HTMLSpanElement>(null);
   const sessionPickerTrigger = useRef<HTMLSpanElement>(null);
-  const threadEndRef = useRef<HTMLDivElement | null>(null);
-  const threadScrollRef = useRef<HTMLDivElement | null>(null);
-  const followLatestRef = useRef(true);
-  const [showJumpToLatest, setShowJumpToLatest] = useState(false);
   const activeStreamRef = useRef<AbortController | null>(null);
   const mountedRef = useRef(false);
   useEffect(() => {
@@ -223,6 +220,11 @@ export function StudioChatWorkspace(
       ),
     [visibleMessages],
   );
+  const { threadScrollRef, onThreadScroll, showJumpToLatest, jumpToLatest } =
+    useChatThreadScroll({
+      sessionId: props.sessionId,
+      contentKey: `${visibleMessages.length}:${stream?.text.length ?? -1}`,
+    });
 
   useEffect(() => {
     closeDisclosures();
@@ -243,31 +245,6 @@ export function StudioChatWorkspace(
     setError(null);
     setInterrupted(null);
   }, [props.sessionId]);
-
-  useEffect(() => {
-    followLatestRef.current = true;
-    setShowJumpToLatest(false);
-  }, [props.sessionId]);
-
-  useEffect(() => {
-    const scroll = threadScrollRef.current;
-    const manuscript = scroll?.firstElementChild;
-    if (!scroll || !manuscript) return;
-    const follow = (): void => {
-      if (followLatestRef.current) scroll.scrollTop = scroll.scrollHeight;
-    };
-    follow();
-    const observer = new ResizeObserver(follow);
-    observer.observe(manuscript);
-    return (): void => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (followLatestRef.current) {
-      const scroll = threadScrollRef.current;
-      if (scroll) scroll.scrollTop = scroll.scrollHeight;
-    }
-  }, [stream, visibleMessages.length]);
 
   useEffect(() => {
     if (!props.handoff || props.sessionId) return;
@@ -946,16 +923,7 @@ export function StudioChatWorkspace(
                 tabIndex={0}
                 role="region"
                 aria-label="Conversation messages"
-                onScroll={(event) => {
-                  const scroll = event.currentTarget;
-                  const nearBottom =
-                    scroll.scrollHeight -
-                      scroll.clientHeight -
-                      scroll.scrollTop <=
-                    48;
-                  followLatestRef.current = nearBottom;
-                  setShowJumpToLatest(!nearBottom);
-                }}
+                onScroll={onThreadScroll}
                 className={chatClass(
                   "studio-chat-thread-scroll",
                   chatLayout.threadScroll,
@@ -1122,23 +1090,12 @@ export function StudioChatWorkspace(
                       {error}
                     </p>
                   ) : null}
-                  <div ref={threadEndRef} />
+                  {/* Trailing anchor; the thread scrolls to its own end. */}
+                  <div />
                 </div>
               </div>
               <Composer
-                onJumpToLatest={
-                  showJumpToLatest
-                    ? (): void => {
-                        followLatestRef.current = true;
-                        setShowJumpToLatest(false);
-                        const scroll = threadScrollRef.current;
-                        if (scroll) {
-                          scroll.focus({ preventScroll: true });
-                          scroll.scrollTop = scroll.scrollHeight;
-                        }
-                      }
-                    : undefined
-                }
+                onJumpToLatest={showJumpToLatest ? jumpToLatest : undefined}
                 draft={draft}
                 sending={sending}
                 uploading={uploading}

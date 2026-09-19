@@ -2,7 +2,7 @@
 
 ## Status
 
-**Active.** Slices 1 (presentation modules) and 2 (`useChatSessions`) have landed; slice 3 is next.
+**Active.** Slices 1 (presentation modules), 2 (`useChatSessions`) and 3 (`useChatThreadScroll`) have landed; slice 4 is next.
 
 ## Goal
 
