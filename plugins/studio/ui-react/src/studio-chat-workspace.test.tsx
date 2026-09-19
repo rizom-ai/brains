@@ -125,6 +125,7 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   queryClient.clear();
+  await windowInstance.happyDOM.abort();
   windowInstance.close();
   environmentManager.setIsServer(() => originalIsServer);
   restoreGlobals();
