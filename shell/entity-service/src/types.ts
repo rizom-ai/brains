@@ -11,7 +11,7 @@ import type {
 } from "@brains/contracts";
 import type { IProjectionStore } from "./projection-store";
 import type { EntityBinaryClient } from "./entity-binary-client";
-import type { EntityFileAssets } from "./entity-file-runtime";
+import type { EntityFileAssets, EntityFileReader } from "./entity-file-runtime";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
 import type {
   AcknowledgeEntityExportsRequest,
@@ -800,6 +800,11 @@ export interface DataSourceCapabilities {
 }
 
 export interface ICoreEntityService {
+  /** Explicitly provisioned, read-only file loans after entity authorization.
+   * The consumer must join actual sends before returning; no buffered fallback.
+   * Runtime ownership and shutdown stay with the provisioning entity service.
+   */
+  readonly fileAssets?: EntityFileReader;
   // Read-only operations. Without a schema these return the registered
   // BaseEntity view; pass the entity schema you own to get a parsed,
   // proven T instead of asserting one.

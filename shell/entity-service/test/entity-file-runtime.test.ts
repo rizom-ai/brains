@@ -4,7 +4,10 @@ import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { FileProcessOwner } from "@brains/db/file-process-owner";
-import { EntityFileRuntime } from "../src/entity-file-runtime";
+import {
+  EntityFileRuntime,
+  type EntityFileReader,
+} from "../src/entity-file-runtime";
 import { EntityBinaryClient } from "../src/entity-binary-client";
 import {
   parseEntityBinaryControlRequest,
@@ -192,10 +195,11 @@ test("HTTP capability rejects pre-abort and missing provisioning without native 
   }
 });
 
-test("asset file loans retain failures and join borrowers during shutdown", async () => {
+test("read-only asset loans retain failures and join borrowers during owner shutdown", async () => {
   const files = runtime(async (): Promise<never> => {
     throw new Error("Unexpected control");
   });
+  const reader: EntityFileReader = files;
   const ref = `asset://sha256/${"a".repeat(64)}` as const;
   const download = spyOn(
     EntityBinaryClient.prototype,
@@ -211,7 +215,7 @@ test("asset file loans retain failures and join borrowers during shutdown", asyn
   const release = Promise.withResolvers<void>();
   try {
     await assert.rejects(
-      files.withAssetFile(ref, async (file): Promise<never> => {
+      reader.withAssetFile(ref, async (file): Promise<never> => {
         failedFile = file.sourceFile;
         expect(file.sizeBytes).toBe(7);
         expect(file.sha256).toBe("a".repeat(64));
@@ -220,7 +224,7 @@ test("asset file loans retain failures and join borrowers during shutdown", asyn
       (error: unknown) => error === primary,
     );
     expect(await Bun.file(failedFile).exists()).toBe(true);
-    const work = files.withAssetFile(ref, async (file, signal) => {
+    const work = reader.withAssetFile(ref, async (file, signal) => {
       successfulFile = file.sourceFile;
       entered.resolve();
       await release.promise;
@@ -234,7 +238,7 @@ test("asset file loans retain failures and join borrowers during shutdown", asyn
       closed = true;
     });
     await assert.rejects(
-      files.withAssetFile(ref, async () => "unexpected"),
+      reader.withAssetFile(ref, async () => "unexpected"),
       /closing/,
     );
     expect(closed).toBe(false);

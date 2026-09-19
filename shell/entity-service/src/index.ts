@@ -30,6 +30,7 @@ export type {
   EntityFileActorOptions,
   EntityFileAssets,
   EntityFileInspectionOptions,
+  EntityFileReader,
   EntityFileSource,
   EntityVerifiedFileSource,
 } from "./entity-file-runtime";

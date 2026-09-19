@@ -36,15 +36,10 @@ export interface EntityFileInspectionOptions extends EntityBinaryRequestOptions 
   /** Select an explicitly provisioned inspection artifact. No default fallback. */
   inspector?: string;
 }
-export interface EntityFileAssets {
-  /** Single-attempt owned HTTP PUT. Keep the source borrowed through settlement.
-   * Status is observed through actor exit; cancellation cannot retract it.
-   * No redirect/retry or buffered fallback. Callers interpret the returned status.
-   */
-  putHttp(
-    input: FileHttpPutInput,
-    options?: EntityBinaryRequestOptions,
-  ): Promise<FileHttpPutResult>;
+/** Read-only file consumption contract. Callers authorize access through the
+ * owning entity before borrowing. This type is not a runtime security sandbox.
+ */
+export interface EntityFileReader {
   /** Borrow an owned, verified download through consumer settlement. Failed
    * staging is retained; a successful result is not retracted by late abort.
    * A file path is not authority or an immutable snapshot.
@@ -54,6 +49,16 @@ export interface EntityFileAssets {
     use: (file: EntityVerifiedFileSource, signal: AbortSignal) => Promise<T>,
     options?: EntityBinaryRequestOptions,
   ): Promise<T>;
+}
+export interface EntityFileAssets extends EntityFileReader {
+  /** Single-attempt owned HTTP PUT. Keep the source borrowed through settlement.
+   * Status is observed through actor exit; cancellation cannot retract it.
+   * No redirect/retry or buffered fallback. Callers interpret the returned status.
+   */
+  putHttp(
+    input: FileHttpPutInput,
+    options?: EntityBinaryRequestOptions,
+  ): Promise<FileHttpPutResult>;
   /** Lend actor-produced output after actual Bun exit. Failed staging is retained.
    * Caller keeps the input directory alive through settlement and joins consumers.
    * The producer artifact is explicitly provisioned; no controller byte fallback.
