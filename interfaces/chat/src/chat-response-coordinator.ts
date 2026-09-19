@@ -18,7 +18,10 @@ import {
 } from "@brains/plugins";
 import type { FileUpload, SentMessage } from "chat";
 import { ApprovalCardTracker } from "./approval-card-tracker";
-import { ArtifactDeliveryResolver } from "./artifact-delivery";
+import {
+  ArtifactDeliveryResolver,
+  type ArtifactDelivery,
+} from "./artifact-delivery";
 import { ChatCardBuilder } from "./chat-cards";
 import { chunkForChannel } from "./chat-platform";
 import {
@@ -31,6 +34,15 @@ import type { ChatThread } from "./types";
 
 const GENERIC_APPROVAL_TEXT =
   /^(?:(?:confirmation|approval) required|please confirm(?: this action)?)\.?$/i;
+
+interface RenderAgentResponseInput {
+  thread: ChatThread;
+  channelId: string;
+  conversationId: string;
+  response: AgentResponse;
+  userPermissionLevel: UserPermissionLevel;
+  confirmation?: { approvalId: string; confirmed: boolean };
+}
 
 interface PendingJobArtifactDelivery {
   card: Extract<StructuredChatCard, { kind: "attachment" }>;
@@ -234,14 +246,7 @@ export class ChatResponseCoordinator {
     }
   }
 
-  async renderAgentResponse(input: {
-    thread: ChatThread;
-    channelId: string;
-    conversationId: string;
-    response: AgentResponse;
-    userPermissionLevel: UserPermissionLevel;
-    confirmation?: { approvalId: string; confirmed: boolean };
-  }): Promise<void> {
+  async renderAgentResponse(input: RenderAgentResponseInput): Promise<void> {
     if (input.confirmation) {
       this.pendingApprovals.syncFromResponse(
         input.conversationId,
@@ -258,10 +263,17 @@ export class ChatResponseCoordinator {
       input.response,
       input.conversationId,
     );
-    const artifactDelivery = await this.artifactDelivery.resolve(
+    await this.artifactDelivery.withFiles(
       input.response.cards,
       input.userPermissionLevel,
+      (artifactDelivery) => this.renderWithArtifacts(input, artifactDelivery),
     );
+  }
+
+  private async renderWithArtifacts(
+    input: RenderAgentResponseInput,
+    artifactDelivery: ArtifactDelivery,
+  ): Promise<void> {
     const plan = buildResponsePlan(input.response, {
       deniedCardIds: artifactDelivery.deniedCardIds,
     });
@@ -393,20 +405,22 @@ export class ChatResponseCoordinator {
       const thread = this.deps.threadRegistry.get(delivery.channelId);
       if (!thread) continue;
       try {
-        const resolved = await this.artifactDelivery.resolve(
+        await this.artifactDelivery.withFiles(
           [delivery.card],
           delivery.userPermissionLevel,
+          async (resolved): Promise<void> => {
+            if (resolved.files.length === 0) return;
+            const sent = await thread.post(
+              thread.adapter.name === "slack"
+                ? { raw: "", files: resolved.files }
+                : {
+                    markdown: `Generated artifact ready: ${resolved.files.map((file) => file.filename).join(", ")}`,
+                    files: resolved.files,
+                  },
+            );
+            this.deps.threadRegistry.trackMessage(delivery.channelId, sent);
+          },
         );
-        if (resolved.files.length === 0) continue;
-        const sent = await thread.post(
-          thread.adapter.name === "slack"
-            ? { raw: "", files: resolved.files }
-            : {
-                markdown: `Generated artifact ready: ${resolved.files.map((file) => file.filename).join(", ")}`,
-                files: resolved.files,
-              },
-        );
-        this.deps.threadRegistry.trackMessage(delivery.channelId, sent);
       } catch (error: unknown) {
         this.deps.logger.error("Failed to deliver completed chat artifact", {
           error,

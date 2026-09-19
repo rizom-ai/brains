@@ -18,6 +18,16 @@ const NON_DELIVERABLE_ARTIFACT_STATUSES = new Set([
   "error",
 ]);
 
+export interface ArtifactDelivery {
+  files: FileUpload[];
+  deniedCardIds: Set<string>;
+  deliveredCardIds: Set<string>;
+}
+interface ArtifactCardDelivery {
+  file?: FileUpload;
+  denied?: boolean;
+}
+
 interface ArtifactDeliveryDeps {
   getContext: () => InterfacePluginContext | undefined;
   getDisplayBaseUrl: () => string | undefined;
@@ -40,19 +50,17 @@ export class ArtifactDeliveryResolver {
     this.deps = deps;
   }
 
-  async resolve(
+  /** The consumer must await all transport sends before releasing this scope. */
+  async withFiles<T>(
     cards: StructuredChatCard[] | undefined,
     userLevel: UserPermissionLevel,
-  ): Promise<{
-    files: FileUpload[];
-    deniedCardIds: Set<string>;
-    deliveredCardIds: Set<string>;
-  }> {
+    use: (delivery: ArtifactDelivery) => Promise<T>,
+  ): Promise<T> {
     const files: FileUpload[] = [];
     const deniedCardIds = new Set<string>();
     const deliveredCardIds = new Set<string>();
     if (!cards || !this.deps.getContext()) {
-      return { files, deniedCardIds, deliveredCardIds };
+      return use({ files, deniedCardIds, deliveredCardIds });
     }
 
     for (const card of cards) {
@@ -78,14 +86,16 @@ export class ArtifactDeliveryResolver {
         deliveredCardIds.add(card.id);
       }
     }
-    return { files, deniedCardIds, deliveredCardIds };
+    // A send failure is not a missing attachment. Keep consumption outside
+    // optional-resolution catches and never retry the consumer.
+    return use({ files, deniedCardIds, deliveredCardIds });
   }
 
   private async resolveCard(
     card: Extract<StructuredChatCard, { kind: "attachment" }>,
     entityRef: NonNullable<ReturnType<typeof resolveArtifactEntityRefFromCard>>,
     userLevel: UserPermissionLevel,
-  ): Promise<{ file?: FileUpload; denied?: boolean }> {
+  ): Promise<ArtifactCardDelivery> {
     const context = this.deps.getContext();
     if (!context) return {};
 
