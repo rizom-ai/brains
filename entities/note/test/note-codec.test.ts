@@ -84,7 +84,8 @@ describe("note title derivation", () => {
     const entity = decoded("# Current title\n\nBody");
     entity.metadata.title = "Untitled";
     const before = structuredClone(entity);
-    expect(adapter.extractMetadata(entity)["title"]).toBe("Current title");
+    expect(adapter.displayTitle?.(entity)).toBe("Current title");
+    expect(adapter.extractMetadata(entity)).toEqual(before.metadata);
     expect(entity).toEqual(before);
   });
 
@@ -106,7 +107,8 @@ describe("note title derivation", () => {
         metadata: { title: "Untitled" },
       };
       const before = structuredClone(stored);
-      expect(adapter.extractMetadata(stored)["title"]).toBe(expected);
+      expect(adapter.displayTitle?.(stored)).toBe(expected);
+      expect(adapter.extractMetadata(stored)).toEqual(before.metadata);
       expect(stored).toEqual(before);
     },
   );
@@ -143,11 +145,8 @@ describe("note title derivation", () => {
         metadata: { title: "Untitled", status: "failed", error: "Keep this" },
       };
       const before = structuredClone(entity);
-      expect(adapter.extractMetadata(entity)).toEqual({
-        title,
-        status: "failed",
-        error: "Keep this",
-      });
+      expect(adapter.displayTitle?.(entity)).toBe(title);
+      expect(adapter.extractMetadata(entity)).toEqual(before.metadata);
       expect(entity).toEqual(before);
     },
   );

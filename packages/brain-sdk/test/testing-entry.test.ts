@@ -60,6 +60,76 @@ async function expectCodedRejection(
 // Also compiled against the built public entries by public-plugin-api.test.ts.
 // No runtime imports, casts, or fixture-only access to plugin callbacks.
 describe("the public testing harness", () => {
+  it("projects display labels without changing persisted titles on create or update", async () => {
+    const item = defineEntity({
+      type: "labeled-item",
+      purpose: "An item whose UI label differs from its stored title",
+      metadata: z.object({ title: z.string() }),
+      displayTitle: ({ metadata }) => `UI: ${metadata.title}`,
+    });
+    const harness = createBrainTestHarness();
+    try {
+      const installed = await harness.installPackage(
+        defineServicePlugin(
+          {
+            id: "labels",
+            config: z.object({}),
+            entities: [item],
+            setup: ({ entityShapes }) => ({ label: entityShapes.displayTitle }),
+          },
+          {
+            tools: ({ state }) => [
+              defineTool({
+                name: "roundtrip",
+                description: "Read labels without changing the stored record",
+                input: z.object({}),
+                output: z.object({
+                  storedTitle: z.string(),
+                  label: z.string(),
+                  updatedTitle: z.string(),
+                  updatedLabel: z.string(),
+                }),
+                async execute({ entities }) {
+                  const { id } = await entities.create(item, {
+                    content: "Body",
+                    metadata: { title: "Original" },
+                  });
+                  const saved = await entities.get(item, id);
+                  if (!saved) throw new Error("Missing created item");
+                  const label = state.label(saved) ?? saved.id;
+                  await entities.update(item, {
+                    ...saved,
+                    metadata: { title: "Revised" },
+                  });
+                  const updated = await entities.get(item, id);
+                  if (!updated) throw new Error("Missing updated item");
+                  return {
+                    storedTitle: saved.metadata.title,
+                    label,
+                    updatedTitle: updated.metadata.title,
+                    updatedLabel: state.label(updated) ?? updated.id,
+                  };
+                },
+              }),
+            ],
+          },
+        ),
+      );
+      await harness.finalizeRegistration();
+      expect(await installed.tool("roundtrip").call({})).toMatchObject({
+        ok: true,
+        data: {
+          storedTitle: "Original",
+          label: "UI: Original",
+          updatedTitle: "Revised",
+          updatedLabel: "UI: Revised",
+        },
+      });
+    } finally {
+      await harness.reset();
+    }
+  });
+
   it("retains each author's original exception for tools and jobs in tests", async () => {
     const reasons = [
       new Error("the real reason", { cause: new Error("an inner reason") }),

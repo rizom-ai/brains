@@ -1554,12 +1554,9 @@ describe("entity package definitions", () => {
       await harness.installPlugin(plugin);
       const legacy = { ...parsed, metadata: { actorId: "alice" } };
       const before = structuredClone(legacy);
-      expect(
-        harness
-          .getEntityRegistry()
-          .getAdapter("memory")
-          .extractMetadata(legacy),
-      ).toEqual({ actorId: "alice", title: "alice" });
+      const adapter = harness.getEntityRegistry().getAdapter("memory");
+      expect(adapter.displayTitle?.(legacy)).toBe("alice");
+      expect(adapter.extractMetadata(legacy)).toEqual(before.metadata);
       expect(legacy).toEqual(before);
     } finally {
       await harness.reset();

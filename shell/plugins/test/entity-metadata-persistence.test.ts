@@ -52,13 +52,19 @@ describe("canonical entity metadata", () => {
     const directory = await mkdtemp(join(tmpdir(), "canonical-metadata-"));
     const logger = createSilentLogger();
     const registry = EntityRegistry.createFresh(logger);
+    let titleProjections = 0;
     const definition = defineEntity({
       type: "canonical",
       purpose: "Canonical values",
       metadata: z.object({
         priority: z.coerce.number(),
         done: z.boolean().default(false),
+        title: z.string().default("Stored title"),
       }),
+      displayTitle: ({ metadata }) => {
+        titleProjections++;
+        return `Display: ${metadata.title}`;
+      },
     });
     const [plugin] = createEntityPackagePlugins(
       [definition],
@@ -111,7 +117,12 @@ describe("canonical entity metadata", () => {
         entityType: definition.type,
         id: "one",
       });
-      expect(stored?.metadata).toEqual({ priority: 3, done: false });
+      expect(stored?.metadata).toEqual({
+        priority: 3,
+        done: false,
+        title: "Stored title",
+      });
+      expect(titleProjections).toBe(0);
       const entity = parseDefinitionEntity(definition, stored);
       expect(entity.content).toBe("Body");
       await service.updateEntity({
@@ -128,7 +139,12 @@ describe("canonical entity metadata", () => {
         await service.getEntity({ entityType: definition.type, id: "one" }),
       );
       expect(updated.content).toBe("Updated");
-      expect(updated.metadata).toEqual({ priority: 3, done: true });
+      expect(updated.metadata).toEqual({
+        priority: 3,
+        done: true,
+        title: "Stored title",
+      });
+      expect(titleProjections).toBe(0);
       // Safe coercion accepts its canonical output on every read as well.
       await service.createEntity({
         entity: {
