@@ -19,7 +19,7 @@ import {
   type ChatSession,
   type ChatUploadResponse,
 } from "@brains/contracts/chat";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useCallback,
   useEffect,
@@ -33,7 +33,6 @@ import {
 import { STUDIO_CHAT_WORKSPACE_ID } from "../../src/chat-workspace";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
 import type { StudioChatHandoff } from "./operator-launch";
-import { streamAssistantMessage } from "./chat-workspace-model";
 import { TypeSwitcher } from "./entity-fields";
 import { useStudioNavigationCollapsed } from "./studio-navigation-state";
 import { StudioChrome } from "./studio-chrome";
@@ -46,11 +45,14 @@ import { SessionRail } from "./studio-chat-rail";
 import { ChatEmptyState, ChatTurn, ApprovalCard } from "./studio-chat-thread";
 import { Composer } from "./studio-chat-composer";
 import { ConversationContext } from "./studio-chat-context-panel";
-import { errorMessage } from "./studio-chat-errors";
 import { useChatSessions } from "./use-chat-sessions";
 import { useChatStream } from "./use-chat-stream";
 import { useChatThreadScroll } from "./use-chat-thread-scroll";
 import { useChatUploads } from "./use-chat-uploads";
+import { useChatArchive } from "./use-chat-archive";
+import { useChatHandoff } from "./use-chat-handoff";
+import { useChatThread } from "./use-chat-thread";
+import { useChatNavigationState } from "./use-chat-navigation-state";
 
 export interface StudioChatWorkspaceProps {
   apiPath?: string | undefined;
@@ -104,7 +106,6 @@ export function StudioChatWorkspace(
       }),
     [draftStore, draftKey],
   );
-  const [archiving, setArchiving] = useState(false);
   const {
     uploading,
     uploadAttempts,
@@ -136,7 +137,6 @@ export function StudioChatWorkspace(
   const detailsTrigger = useRef<HTMLSpanElement>(null);
   const sessionPickerTrigger = useRef<HTMLSpanElement>(null);
   const mountedRef = useRef(false);
-  const handledHandoffRef = useRef<string | null>(null);
   const adoptedSessionRef = useRef<string | null>(null);
   const {
     pendingMessages,
@@ -168,6 +168,41 @@ export function StudioChatWorkspace(
     uploadAttemptCount: uploadAttempts.length,
     navigateToSession,
   });
+
+  useChatHandoff({
+    chatClient,
+    handoff: props.handoff,
+    sessionId: props.sessionId,
+    apiPath: props.apiPath,
+    draftStore,
+    draftKey,
+    currentDraftKey,
+    mountedRef,
+    setDraft,
+    setError,
+    navigateToSession,
+  });
+  const {
+    archiving,
+    archiveCurrent,
+    reset: resetArchive,
+  } = useChatArchive({
+    chatClient,
+    queryClient,
+    sessionId: props.sessionId,
+    draftKey,
+    currentDraftKey,
+    mountedRef,
+    blocked:
+      sending ||
+      uploading ||
+      Boolean(draft) ||
+      uploads.length > 0 ||
+      uploadAttempts.length > 0,
+    setSending,
+    setError,
+    navigateToSession,
+  });
   useEffect(() => {
     mountedRef.current = true;
     return (): void => {
@@ -175,50 +210,30 @@ export function StudioChatWorkspace(
       abortActiveStream();
     };
   }, [abortActiveStream]);
-  useEffect(() => {
-    props.onNavigationStateChange?.({
-      hasDraft: Boolean(draft || uploads.length || uploadAttempts.length),
-      busy: sending || uploading,
-    });
-  }, [
+  useChatNavigationState({
+    onChange: props.onNavigationStateChange,
     draft,
-    uploads,
-    uploadAttempts,
+    uploadCount: uploads.length,
+    uploadAttemptCount: uploadAttempts.length,
     sending,
     uploading,
-    props.onNavigationStateChange,
-  ]);
-  useEffect(
-    () => (): void =>
-      props.onNavigationStateChange?.({ hasDraft: false, busy: false }),
-    [props.onNavigationStateChange],
-  );
-
-  const messagesQuery = useQuery({
-    queryKey: studioChatKeys.messages(props.sessionId ?? ""),
-    queryFn: () => chatClient.getMessages(props.sessionId ?? ""),
-    // A newly accepted session already has an optimistic copy of its first
-    // turn. Wait for the completed stream to replace that copy atomically.
-    enabled:
-      props.sessionId !== null && !sending && pendingMessages.length === 0,
   });
-  const storedMessages = messagesQuery.data ?? [];
-  const visibleMessages = useMemo(() => {
-    const next = [...storedMessages, ...pendingMessages];
-    if (stream && (stream.text || stream.cards.length > 0)) {
-      next.push(streamAssistantMessage(stream));
-    }
-    return next;
-  }, [pendingMessages, storedMessages, stream]);
-  const contextCards = useMemo(
-    () =>
-      visibleMessages.flatMap((message) =>
-        (message.cards ?? []).filter(
-          (card) => card.kind === "sources" || card.kind === "attachment",
-        ),
-      ),
-    [visibleMessages],
-  );
+
+  const {
+    visibleMessages,
+    contextCards,
+    historyFailed,
+    historyOpening,
+    historyReading,
+    hasStoredHistory,
+    retryHistory,
+  } = useChatThread({
+    chatClient,
+    sessionId: props.sessionId,
+    sending,
+    pendingMessages,
+    stream,
+  });
   const { threadScrollRef, onThreadScroll, showJumpToLatest, jumpToLatest } =
     useChatThreadScroll({
       sessionId: props.sessionId,
@@ -233,102 +248,13 @@ export function StudioChatWorkspace(
     }
     resetStream();
     resetUploads();
-    setArchiving(false);
+    resetArchive();
   }, [props.sessionId]);
-
-  useEffect(() => {
-    if (!props.handoff || props.sessionId) return;
-    const handoffKey = `${props.handoff.sourceId}\u0000${props.handoff.itemId}`;
-    if (handledHandoffRef.current === handoffKey) return;
-    handledHandoffRef.current = handoffKey;
-    setDraft(props.handoff.prompt);
-    setError(null);
-    void chatClient
-      .openContextSession({
-        version: 1,
-        sourceId: props.handoff.sourceId,
-        itemId: props.handoff.itemId,
-        titleSeed: props.handoff.label,
-      })
-      .then(({ conversationId }) => {
-        if (
-          !mountedRef.current ||
-          currentDraftKey.current !== draftKey ||
-          handledHandoffRef.current !== handoffKey
-        )
-          return;
-        draftStore.adopt(
-          draftKey,
-          studioChatDraftKey(props.apiPath, conversationId),
-        );
-        navigateToSession(conversationId, true);
-      })
-      .catch((cause: unknown) => {
-        if (
-          !mountedRef.current ||
-          currentDraftKey.current !== draftKey ||
-          handledHandoffRef.current !== handoffKey
-        )
-          return;
-        handledHandoffRef.current = null;
-        setError(errorMessage(cause, "Context could not be attached"));
-      });
-  }, [
-    chatClient,
-    navigateToSession,
-    props.handoff,
-    props.sessionId,
-    props.apiPath,
-    draftStore,
-    draftKey,
-    setDraft,
-  ]);
 
   const submit = (event: FormEvent<HTMLFormElement>): void => {
     event.preventDefault();
     void submitPrompt(draft);
   };
-
-  const archiveCurrent = useCallback(async (): Promise<void> => {
-    if (
-      !props.sessionId ||
-      sending ||
-      uploading ||
-      draft ||
-      uploads.length ||
-      uploadAttempts.length
-    )
-      return;
-    setSending(true);
-    setArchiving(true);
-    try {
-      await chatClient.archiveSession(props.sessionId);
-      await queryClient.invalidateQueries({
-        queryKey: studioChatKeys.sessions,
-      });
-      if (mountedRef.current && currentDraftKey.current === draftKey)
-        navigateToSession(undefined, true);
-    } catch (cause) {
-      if (mountedRef.current && currentDraftKey.current === draftKey)
-        setError(errorMessage(cause, "Conversation could not be archived"));
-    } finally {
-      if (mountedRef.current && currentDraftKey.current === draftKey) {
-        setSending(false);
-        setArchiving(false);
-      }
-    }
-  }, [
-    chatClient,
-    navigateToSession,
-    props.sessionId,
-    queryClient,
-    sending,
-    uploading,
-    draft,
-    uploads.length,
-    uploadAttempts.length,
-    draftKey,
-  ]);
 
   const workspaceBadges = Object.fromEntries(
     props.workspaces.flatMap((workspace) =>
@@ -579,10 +505,10 @@ export function StudioChatWorkspace(
                     chatLayout.manuscript,
                   )}
                 >
-                  {messagesQuery.error && (
+                  {historyFailed && (
                     <section role="alert">
                       <p>
-                        {storedMessages.length > 0
+                        {hasStoredHistory
                           ? "Showing previously loaded messages. "
                           : ""}
                         Conversation could not be loaded.
@@ -590,14 +516,14 @@ export function StudioChatWorkspace(
                       <Button
                         type="button"
                         variant="ghost"
-                        disabled={messagesQuery.isFetching}
-                        onClick={() => void messagesQuery.refetch()}
+                        disabled={historyReading}
+                        onClick={retryHistory}
                       >
                         Retry conversation
                       </Button>
                     </section>
                   )}
-                  {messagesQuery.isPending &&
+                  {historyOpening &&
                   props.sessionId &&
                   visibleMessages.length === 0 ? (
                     <p
@@ -609,8 +535,8 @@ export function StudioChatWorkspace(
                       Opening conversation…
                     </p>
                   ) : null}
-                  {!messagesQuery.error &&
-                  (!props.sessionId || !messagesQuery.isPending) &&
+                  {!historyFailed &&
+                  (!props.sessionId || !historyOpening) &&
                   visibleMessages.length === 0 ? (
                     <ChatEmptyState />
                   ) : null}
