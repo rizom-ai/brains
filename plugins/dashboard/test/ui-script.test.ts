@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { Window, type HTMLElement as HappyDOMHTMLElement } from "happy-dom";
+import { installGlobals, type RestoreGlobals } from "@brains/test-utils";
 import { DASHBOARD_UI_SCRIPT } from "../src/render/ui-script";
 
+let restoreGlobals: RestoreGlobals;
 let window: Window;
 
 function element(selector: string): HappyDOMHTMLElement {
@@ -49,18 +51,12 @@ function runScript(): void {
 
 beforeEach(() => {
   window = new Window({ url: "http://brain.test/dashboard" });
-  Object.assign(globalThis, {
-    window,
-    document: window.document,
-  });
+  restoreGlobals = installGlobals({ window, document: window.document });
 });
 
 afterEach(() => {
   window.close();
-  // `delete` on globalThis needs the property to be optional; Reflect does the
-  // same removal without asserting the global object into a bag of unknowns.
-  Reflect.deleteProperty(globalThis, "window");
-  Reflect.deleteProperty(globalThis, "document");
+  restoreGlobals();
 });
 
 describe("dashboard tab behavior", () => {

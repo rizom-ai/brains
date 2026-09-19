@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
   QueryClient,
@@ -15,6 +16,7 @@ import type { ChatCard } from "@brains/contracts/chat";
 import { StudioChatDraftStore, studioChatDraftKey } from "./studio-chat-drafts";
 
 /** The transport the mounted workspace is given; each test may replace it. */
+let restoreGlobals: RestoreGlobals;
 let chatFetch: AppFetch;
 let windowInstance: Window;
 let root: Root;
@@ -67,16 +69,10 @@ async function waitForSessions(): Promise<void> {
 beforeEach(() => {
   windowInstance = new Window({ url: "http://brain.test/chat" });
   navigations = [];
-  Object.assign(globalThis, {
-    window: windowInstance,
-    document: windowInstance.document,
-    navigator: windowInstance.navigator,
-    HTMLElement: windowInstance.HTMLElement,
+  restoreGlobals = installDomGlobals(windowInstance, {
     HTMLInputElement: windowInstance.HTMLInputElement,
     NodeFilter: windowInstance.NodeFilter,
     HTMLFormElement: windowInstance.HTMLFormElement,
-    Element: windowInstance.Element,
-    Node: windowInstance.Node,
     Event: windowInstance.Event,
     CustomEvent: windowInstance.CustomEvent,
     MutationObserver: windowInstance.MutationObserver,
@@ -86,7 +82,6 @@ beforeEach(() => {
     cancelAnimationFrame:
       windowInstance.cancelAnimationFrame.bind(windowInstance),
     getComputedStyle: windowInstance.getComputedStyle.bind(windowInstance),
-    IS_REACT_ACT_ENVIRONMENT: true,
   });
   windowInstance.Element.prototype.scrollIntoView = (): void => {};
   chatFetch = async (input: RequestInfo | URL): Promise<Response> => {
@@ -132,6 +127,7 @@ afterEach(async () => {
   queryClient.clear();
   windowInstance.close();
   environmentManager.setIsServer(() => originalIsServer);
+  restoreGlobals();
 });
 
 async function mountChat(

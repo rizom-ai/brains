@@ -19,7 +19,9 @@ const boxCopy: GuestBoxCopy = {
   topics: ["Energy efficiency"],
 };
 import { deferred } from "@brains/utils/deferred";
+import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
 
+let restoreGlobals: RestoreGlobals;
 let dom: Window;
 let root: Root;
 const id = `guest-${"a".repeat(64)}`;
@@ -88,19 +90,12 @@ beforeEach(() => {
       },
     },
   });
-  Object.assign(globalThis, {
-    window: dom,
-    document: dom.document,
+  restoreGlobals = installDomGlobals(dom, {
     sessionStorage: dom.sessionStorage,
-    navigator: dom.navigator,
-    HTMLElement: dom.HTMLElement,
-    Element: dom.Element,
-    Node: dom.Node,
     Event: dom.Event,
     MutationObserver: dom.MutationObserver,
     ResizeObserver: dom.ResizeObserver,
     getComputedStyle: dom.getComputedStyle.bind(dom),
-    IS_REACT_ACT_ENVIRONMENT: true,
   });
   const container = document.createElement("div");
   document.body.append(container);
@@ -117,7 +112,9 @@ beforeEach(() => {
 });
 afterEach(async (): Promise<void> => {
   await act(async (): Promise<void> => root.unmount());
+  await dom.happyDOM.abort();
   dom.close();
+  restoreGlobals();
 });
 async function mount(
   options: {

@@ -61,3 +61,11 @@ export {
   type NormalizedHtmlNode,
   type NormalizeRendererHtmlOptions,
 } from "./html-equivalence";
+
+// Globals a test installs, with a restore so they cannot leak between files
+export {
+  installGlobals,
+  installDomGlobals,
+  type RestoreGlobals,
+  type TestDomWindow,
+} from "./dom-globals";

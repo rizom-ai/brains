@@ -1,7 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { Window } from "happy-dom";
+import { installGlobals, type RestoreGlobals } from "@brains/test-utils";
 import { CONSOLE_CLIMATE_SCRIPT } from "../src";
 
+let restoreGlobals: RestoreGlobals;
+let restoreStorage: RestoreGlobals | undefined;
 let window: Window;
 
 function runClimateScript(): void {
@@ -12,7 +15,7 @@ beforeEach(() => {
   window = new Window({ url: "http://brain.test/dashboard" });
   window.document.documentElement.setAttribute("data-climate", "instrument");
   window.document.body.innerHTML = '<button id="climateToggle"></button>';
-  Object.assign(globalThis, {
+  restoreGlobals = installGlobals({
     window,
     document: window.document,
     localStorage: window.localStorage,
@@ -21,9 +24,9 @@ beforeEach(() => {
 
 afterEach(() => {
   window.close();
-  Reflect.deleteProperty(globalThis, "window");
-  Reflect.deleteProperty(globalThis, "document");
-  Reflect.deleteProperty(globalThis, "localStorage");
+  restoreStorage?.();
+  restoreStorage = undefined;
+  restoreGlobals();
 });
 
 describe("console climate behavior", () => {
@@ -109,7 +112,7 @@ describe("console climate behavior", () => {
   });
 
   it("still toggles when preference storage is unavailable", () => {
-    Object.assign(globalThis, {
+    restoreStorage = installGlobals({
       localStorage: {
         getItem: () => {
           throw new Error("Storage blocked");

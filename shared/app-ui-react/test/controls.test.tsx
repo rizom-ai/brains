@@ -4,28 +4,25 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
-// Radix chooses its browser layout-effect implementation at module load.
-const bootstrapWindow = new Window();
-Object.assign(globalThis, {
-  window: bootstrapWindow,
-  document: bootstrapWindow.document,
-});
-const { Button, ConfirmDialog, DisclosureSheet, Input, NativeSelect, Switch } =
-  await import("../src");
-await bootstrapWindow.happyDOM.close();
+import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
+// The browser Radix needs at module load comes from test/browser-preload.ts,
+// so this is an ordinary import.
+import {
+  Button,
+  ConfirmDialog,
+  DisclosureSheet,
+  Input,
+  NativeSelect,
+  Switch,
+} from "../src";
 
+let restoreGlobals: RestoreGlobals;
 let windowInstance: Window;
 let root: Root;
 
 beforeEach(() => {
   windowInstance = new Window({ url: "http://brain.test/studio" });
-  Object.assign(globalThis, {
-    window: windowInstance,
-    document: windowInstance.document,
-    navigator: windowInstance.navigator,
-    HTMLElement: windowInstance.HTMLElement,
-    Element: windowInstance.Element,
-    Node: windowInstance.Node,
+  restoreGlobals = installDomGlobals(windowInstance, {
     Event: windowInstance.Event,
     CustomEvent: windowInstance.CustomEvent,
     PointerEvent: windowInstance.PointerEvent,
@@ -35,7 +32,6 @@ beforeEach(() => {
     HTMLInputElement: windowInstance.HTMLInputElement,
     ResizeObserver: windowInstance.ResizeObserver,
     getComputedStyle: windowInstance.getComputedStyle.bind(windowInstance),
-    IS_REACT_ACT_ENVIRONMENT: true,
   });
   const container = document.createElement("div");
   document.body.append(container);
@@ -44,7 +40,9 @@ beforeEach(() => {
 
 afterEach(async () => {
   await act(async () => root.unmount());
+  await windowInstance.happyDOM.abort();
   windowInstance.close();
+  restoreGlobals();
 });
 
 describe("app control vocabulary", () => {
