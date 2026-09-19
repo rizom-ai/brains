@@ -34,10 +34,7 @@ import {
   type FormEvent,
   type ReactElement,
 } from "react";
-import {
-  STUDIO_CHAT_WORKSPACE_ID,
-  studioChatWorkspacePath,
-} from "../../src/chat-workspace";
+import { STUDIO_CHAT_WORKSPACE_ID } from "../../src/chat-workspace";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
 import type { StudioChatHandoff } from "./operator-launch";
 import {
@@ -56,10 +53,9 @@ import {
   navigationStyles as nav,
 } from "./studio-navigation.styles";
 
-import { CHAT_UPLOAD_GUIDANCE } from "./studio-chat-contracts";
+import { CHAT_UPLOAD_GUIDANCE, studioChatKeys } from "./studio-chat-contracts";
 import type {
   ChatSuggestedAction,
-  SessionView,
   ChatUploadAttempt,
 } from "./studio-chat-contracts";
 import { SessionRail } from "./studio-chat-rail";
@@ -67,12 +63,7 @@ import { ChatEmptyState, ChatTurn, ApprovalCard } from "./studio-chat-thread";
 import { Composer } from "./studio-chat-composer";
 import { ConversationContext } from "./studio-chat-context-panel";
 import { errorMessage } from "./studio-chat-errors";
-
-const studioChatKeys = {
-  sessions: ["studio", "chat", "sessions"] as const,
-  messages: (conversationId: string) =>
-    ["studio", "chat", "messages", conversationId] as const,
-};
+import { useChatSessions } from "./use-chat-sessions";
 
 interface InterruptedResponse {
   kind: "stopped" | "disconnected" | "failed";
@@ -167,8 +158,25 @@ export function StudioChatWorkspace(
     [props.onNavigationStateChange],
   );
   const navigationCollapsed = useStudioNavigationCollapsed();
-  const [sessionPickerOpen, setSessionPickerOpen] = useState(false);
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  const {
+    sessions,
+    currentSession,
+    archivedSession,
+    sessionControls,
+    sessionsLoading,
+    navigateToSession,
+    sessionPickerOpen,
+    setSessionPickerOpen,
+    detailsOpen,
+    setDetailsOpen,
+    closeDisclosures,
+  } = useChatSessions({
+    chatClient,
+    queryClient,
+    sessionId: props.sessionId,
+    studioBasePath: props.studioBasePath,
+    navigate: props.navigate,
+  });
   const detailsTrigger = useRef<HTMLSpanElement>(null);
   const sessionPickerTrigger = useRef<HTMLSpanElement>(null);
   const threadEndRef = useRef<HTMLDivElement | null>(null);
@@ -190,28 +198,6 @@ export function StudioChatWorkspace(
   const handledHandoffRef = useRef<string | null>(null);
   const adoptedSessionRef = useRef<string | null>(null);
 
-  const [sessionSearch, setSessionSearch] = useState("");
-  const [sessionView, setSessionView] = useState<SessionView>({
-    query: "",
-    archived: false,
-    offset: 0,
-  });
-  useEffect(() => {
-    const timer = window.setTimeout(
-      () =>
-        setSessionView((current) =>
-          current.query === sessionSearch.trim()
-            ? current
-            : { ...current, query: sessionSearch.trim(), offset: 0 },
-        ),
-      250,
-    );
-    return (): void => window.clearTimeout(timer);
-  }, [sessionSearch]);
-  const sessionsQuery = useQuery({
-    queryKey: [...studioChatKeys.sessions, sessionView],
-    queryFn: () => chatClient.listSessions(sessionView),
-  });
   const messagesQuery = useQuery({
     queryKey: studioChatKeys.messages(props.sessionId ?? ""),
     queryFn: () => chatClient.getMessages(props.sessionId ?? ""),
@@ -220,25 +206,7 @@ export function StudioChatWorkspace(
     enabled:
       props.sessionId !== null && !sending && pendingMessages.length === 0,
   });
-  const sessions = sessionsQuery.data ?? [];
   const storedMessages = messagesQuery.data ?? [];
-  const currentSession =
-    sessions.find((session) => session.id === props.sessionId) ??
-    queryClient
-      .getQueriesData<ChatSession[]>({ queryKey: studioChatKeys.sessions })
-      .flatMap(([, items]) => items ?? [])
-      .find((session) => session.id === props.sessionId);
-  const archivedSession = currentSession?.archived === true;
-  const sessionControls = {
-    search: sessionSearch,
-    view: sessionView,
-    error: sessionsQuery.error ? "Sessions could not be loaded." : null,
-    onRetry: (): void => {
-      void sessionsQuery.refetch();
-    },
-    onSearch: setSessionSearch,
-    onView: setSessionView,
-  };
   const visibleMessages = useMemo(() => {
     const next = [...storedMessages, ...pendingMessages];
     if (stream && (stream.text || stream.cards.length > 0)) {
@@ -257,8 +225,7 @@ export function StudioChatWorkspace(
   );
 
   useEffect(() => {
-    setDetailsOpen(false);
-    setSessionPickerOpen(false);
+    closeDisclosures();
     if (props.sessionId && adoptedSessionRef.current === props.sessionId) {
       adoptedSessionRef.current = null;
       return;
@@ -301,18 +268,6 @@ export function StudioChatWorkspace(
       if (scroll) scroll.scrollTop = scroll.scrollHeight;
     }
   }, [stream, visibleMessages.length]);
-
-  const navigateToSession = useCallback(
-    (conversationId?: string, preserveWork = false): void => {
-      props.navigate(
-        studioChatWorkspacePath(props.studioBasePath, conversationId),
-        { preserveWork },
-      );
-      setSessionPickerOpen(false);
-      setDetailsOpen(false);
-    },
-    [props.navigate, props.studioBasePath],
-  );
 
   useEffect(() => {
     if (!props.handoff || props.sessionId) return;
@@ -883,7 +838,7 @@ export function StudioChatWorkspace(
                   <SessionRail
                     {...sessionControls}
                     activeSessionId={props.sessionId}
-                    loading={sessionsQuery.isPending}
+                    loading={sessionsLoading}
                     sessions={sessions}
                     onNew={() => navigateToSession()}
                     onSelect={navigateToSession}
