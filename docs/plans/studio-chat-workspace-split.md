@@ -2,7 +2,7 @@
 
 ## Status
 
-**Active.** Nothing has shipped yet. Slice 1 is next.
+**Active.** Slice 1 (presentation modules) has landed; slice 2 is next.
 
 ## Goal
 
