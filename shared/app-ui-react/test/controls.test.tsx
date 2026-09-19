@@ -4,23 +4,17 @@ import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
+import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
+// The browser Radix needs at module load comes from test/browser-preload.ts,
+// so this is an ordinary import.
 import {
-  installDomGlobals,
-  installGlobals,
-  type RestoreGlobals,
-} from "@brains/test-utils";
-// Radix chooses its browser layout-effect implementation at module load.
-const bootstrapWindow = new Window();
-const restoreBootstrap = installGlobals({
-  window: bootstrapWindow,
-  document: bootstrapWindow.document,
-});
-const { Button, ConfirmDialog, DisclosureSheet, Input, NativeSelect, Switch } =
-  await import("../src");
-await bootstrapWindow.happyDOM.close();
-// The window is closed now; leaving it installed would hand the next test
-// file in this process a document that no longer works.
-restoreBootstrap();
+  Button,
+  ConfirmDialog,
+  DisclosureSheet,
+  Input,
+  NativeSelect,
+  Switch,
+} from "../src";
 
 let restoreGlobals: RestoreGlobals;
 let windowInstance: Window;

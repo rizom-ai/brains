@@ -11,7 +11,7 @@
   "scripts": {
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
-    "test": "BUN_JSC_useDFGJIT=0 bun test --preload @brains/build-tools/stylex-test-preload",
+    "test": "BUN_JSC_useDFGJIT=0 bun test --preload @brains/build-tools/stylex-test-preload --preload ./test/browser-preload.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
