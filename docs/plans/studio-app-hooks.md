@@ -2,7 +2,7 @@
 
 ## Status
 
-**Active.** Slices 1 (`useStudioData`), 2 (`useStudioNavigationActions`), 3 (`useEntityOpener`) and 4 (`useEditorActions`) have landed; slice 5 is next.
+**Active.** Slices 1 (`useStudioData`), 2 (`useStudioNavigationActions`), 3 (`useEntityOpener`), 4 (`useEditorActions`) and 5 (`useStudioRouteEffects`) have landed; slice 6 is next. `App.tsx` is at 624 lines, down from 1307.
 
 ## Goal
 
