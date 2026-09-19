@@ -26,7 +26,6 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
-  type ChangeEvent,
   type FormEvent,
   type ReactElement,
 } from "react";
@@ -41,9 +40,7 @@ import {
   navigationClassName as navClass,
   navigationStyles as nav,
 } from "./studio-navigation.styles";
-
 import { CHAT_UPLOAD_GUIDANCE, studioChatKeys } from "./studio-chat-contracts";
-import type { ChatUploadAttempt } from "./studio-chat-contracts";
 import { SessionRail } from "./studio-chat-rail";
 import { ChatEmptyState, ChatTurn, ApprovalCard } from "./studio-chat-thread";
 import { Composer } from "./studio-chat-composer";
@@ -52,6 +49,7 @@ import { errorMessage } from "./studio-chat-errors";
 import { useChatSessions } from "./use-chat-sessions";
 import { useChatStream } from "./use-chat-stream";
 import { useChatThreadScroll } from "./use-chat-thread-scroll";
+import { useChatUploads } from "./use-chat-uploads";
 
 export interface StudioChatWorkspaceProps {
   apiPath?: string | undefined;
@@ -109,9 +107,14 @@ export function StudioChatWorkspace(
     [draftStore, draftKey],
   );
   const [archiving, setArchiving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [uploadAttempts, setUploadAttempts] = useState<ChatUploadAttempt[]>([]);
-  const uploadBatchRef = useRef<symbol | null>(null);
+  const {
+    uploading,
+    uploadAttempts,
+    runUploads,
+    uploadFiles,
+    dismissAttempt,
+    reset: resetUploads,
+  } = useChatUploads({ chatClient, draftKey, currentDraftKey, setUploads });
   const navigationCollapsed = useStudioNavigationCollapsed();
   const {
     sessions,
@@ -171,7 +174,6 @@ export function StudioChatWorkspace(
     mountedRef.current = true;
     return (): void => {
       mountedRef.current = false;
-      uploadBatchRef.current = null;
       abortActiveStream();
     };
   }, [abortActiveStream]);
@@ -232,9 +234,7 @@ export function StudioChatWorkspace(
       return;
     }
     resetStream();
-    setUploading(false);
-    uploadBatchRef.current = null;
-    setUploadAttempts([]);
+    resetUploads();
     setArchiving(false);
   }, [props.sessionId]);
 
@@ -290,81 +290,6 @@ export function StudioChatWorkspace(
     event.preventDefault();
     void submitPrompt(draft);
   };
-
-  const runUploads = useCallback(
-    async (attempts: ChatUploadAttempt[]): Promise<void> => {
-      if (uploadBatchRef.current || attempts.length === 0) return;
-      const batch = Symbol();
-      uploadBatchRef.current = batch;
-      setUploading(true);
-      setUploadAttempts((current) => [
-        ...current.filter(
-          (item) => !attempts.some((attempt) => attempt.id === item.id),
-        ),
-        ...attempts.map((attempt): ChatUploadAttempt => ({
-          id: attempt.id,
-          file: attempt.file,
-          status: "uploading",
-        })),
-      ]);
-      await Promise.all(
-        attempts.map(async (attempt): Promise<void> => {
-          try {
-            const upload = await chatClient.upload(
-              attempt.file,
-              attempt.file.name,
-            );
-            if (
-              uploadBatchRef.current !== batch ||
-              currentDraftKey.current !== draftKey
-            )
-              return;
-            setUploads((current) => [...current, upload]);
-            setUploadAttempts((current) =>
-              current.filter((item) => item.id !== attempt.id),
-            );
-          } catch (cause) {
-            if (
-              uploadBatchRef.current !== batch ||
-              currentDraftKey.current !== draftKey
-            )
-              return;
-            setUploadAttempts((current) =>
-              current.map((item) =>
-                item.id === attempt.id
-                  ? {
-                      ...item,
-                      status: "failed",
-                      error: errorMessage(cause, "Upload failed"),
-                    }
-                  : item,
-              ),
-            );
-          }
-        }),
-      );
-      if (uploadBatchRef.current === batch) {
-        uploadBatchRef.current = null;
-        setUploading(false);
-      }
-    },
-    [chatClient, draftKey, setUploads],
-  );
-
-  const uploadFiles = useCallback(
-    async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
-      const files = Array.from(event.target.files ?? []);
-      event.target.value = "";
-      await runUploads(
-        files.map((file) => ({
-          id: crypto.randomUUID(),
-          file,
-          status: "uploading",
-        })),
-      );
-    },
-    [runUploads],
-  );
 
   const archiveCurrent = useCallback(async (): Promise<void> => {
     if (
@@ -823,11 +748,7 @@ export function StudioChatWorkspace(
                 uploads={uploads}
                 uploadAttempts={uploadAttempts}
                 onRetryUpload={(attempt) => void runUploads([attempt])}
-                onDismissUpload={(id) =>
-                  setUploadAttempts((current) =>
-                    current.filter((attempt) => attempt.id !== id),
-                  )
-                }
+                onDismissUpload={dismissAttempt}
                 onDraft={setDraft}
                 locked={archiving}
                 onRemoveUpload={(id) =>
