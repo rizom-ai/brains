@@ -1,10 +1,12 @@
 # Plan: Agent tool surface consolidation
 
-Last updated: 2026-09-13
+Last updated: 2026-09-20
 
 ## Status
 
 **Implementation substantially complete; analytics and final eval closeout remain.**
+
+MCP `basic` mode is now the teammate surface: it advertises only `chat` and `confirm`, while raw tools remain available to Admin operators in `debug` mode. Tools must explicitly opt into `basic`; omitted `directMcpExposure` defaults to `debug`.
 
 The canonical brain now distinguishes `agentTool` exposure from `directMcpExposure`, reports its effective tool surface through the eval CLI, and filters coverage by the agent-visible set. Maintenance adapters no longer occupy model context. Playbook, directory-sync, publishing, and configured Buttondown operations use their canonical typed tools. Cloudflare query is direct-MCP-only, passkey setup is exposed to the agent only when contextually relevant, and stale registered-name references have been audited from active tests and runtime shutdown paths.
 
@@ -29,7 +31,7 @@ Reduce model context without hiding useful capability, weakening authorization, 
 
 ## Shipped surface
 
-- MCP `chat` and `confirm` are protocol adapters, not recursive model tools.
+- MCP `basic` mode advertises only the `chat` and `confirm` protocol adapters; raw tools remain on the Admin-only `debug` surface.
 - Publish-asset reconciliation and Obsidian metadata sync run through their automatic/maintenance paths rather than registered model tools.
 - `agent_scan_directories` remains agent-visible and behaviorally covered.
 - Playbook lifecycle actions use `playbook_manage`.
@@ -37,14 +39,14 @@ Reduce model context without hiding useful capability, weakening authorization, 
 - Publication queueing and direct publication use `publishing_manage`, retaining confirmation and target-reuse rules.
 - Configured Buttondown subscriber actions use `newsletter_subscribers`.
 - Stock-photo search and selection remain separate because selection must bind prior provider metadata.
-- Cloudflare's raw query remains available only to direct MCP clients.
+- Cloudflare's raw query remains available only to Admin operators through debug MCP.
 - Passkey setup URL retrieval is agent-visible only while setup is incomplete.
 
 ## Remaining work
 
 ### 1. Finish analytics consolidation
 
-Complete the typed report registry in [system-analytics-tool.md](./system-analytics-tool.md), fold Cloudflare traffic reporting into it, and prove no duplicate LLM-callable analytics surface remains. Raw provider queries may remain direct-MCP-only for diagnostics.
+Complete the typed report registry in [system-analytics-tool.md](./system-analytics-tool.md), fold Cloudflare traffic reporting into it, and prove no duplicate LLM-callable analytics surface remains. Raw provider queries may remain debug-MCP-only for diagnostics.
 
 ### 2. Re-measure the canonical composition
 
@@ -85,6 +87,7 @@ Do not guarantee replay of predeploy pending confirmations across a tool-name ch
 ## Invariants
 
 - Permission and agent/protocol exposure are separate checks.
+- Omitted `directMcpExposure` defaults to `debug`; basic exposure is always an explicit opt-in.
 - A consolidated discriminated union enforces action-level authorization and confirmation.
 - Business logic stays in existing services; tools remain adapters.
 - CLI commands and supported direct-MCP capabilities are not removed silently.
@@ -95,7 +98,7 @@ Do not guarantee replay of predeploy pending confirmations across a tool-name ch
 
 - registry enumeration and permission/exposure filtering;
 - agent construction from agent-visible tools only;
-- MCP basic/debug protocol snapshots;
+- exact `chat`/`confirm` MCP basic snapshots and unchanged debug protocol snapshots;
 - strict action-union validation and side-effect annotations;
 - confirmation mismatch, expiry, replay, and stale-content tests;
 - conditional directory/provider schemas;
@@ -104,4 +107,4 @@ Do not guarantee replay of predeploy pending confirmations across a tool-name ch
 
 ## Completion
 
-Delete this plan after analytics has one model surface, final canonical measurements and evals are recorded, and every legacy registered name has an explicit disposition.
+Delete this plan after analytics has one model surface, final canonical measurements and evals are recorded, the chat-only basic MCP surface is validated on the release candidate, and every legacy registered name has an explicit disposition.

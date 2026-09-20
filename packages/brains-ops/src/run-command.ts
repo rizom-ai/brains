@@ -33,6 +33,7 @@ import { pushPilotSecrets } from "./secrets-push";
 import { type RunCommand as OpsRunCommand } from "./run-subprocess";
 import { runPilotSshKeyBootstrap, type SshKeygen } from "./ssh-key-bootstrap";
 import { addPilotUser } from "./user-add";
+import type { PilotOffboardDriver } from "./user-offboard";
 import type { UserRunner } from "./user-runner";
 import { verifyPilotUser } from "./verify-user";
 import type {
@@ -72,6 +73,7 @@ export interface CommandDependencies extends LoadPilotRegistryOptions {
     typeof cleanupHealthWatchdogSmoke | undefined;
   legacyProjectionJobRecoveryRunner?:
     typeof retireLegacyProjectionJob | undefined;
+  pilotOffboardDriver?: PilotOffboardDriver | undefined;
 }
 
 type OpsCommand = CommandDefinition<CommandDependencies, CommandResult>;
@@ -237,6 +239,52 @@ const userAdd: OpsCommand = defineCommand({
     return {
       success: true,
       message: `Added ${handle} to ${cohort}`,
+    };
+  },
+});
+
+const userOffboard: OpsCommand = defineCommand({
+  name: "user:offboard",
+  usage:
+    "<repo> <handle>... [--apply --confirm sunset:<sorted-comma-separated-handles>]",
+  description: "Archive content and remove pilot users, DNS, and servers",
+  flags: {
+    apply: {
+      type: "boolean",
+      description: "Apply the plan (defaults to a read-only dry run)",
+    },
+    confirm: {
+      type: "string",
+      placeholder: "<confirmation>",
+      description: "Exact batch confirmation required with --apply",
+    },
+  },
+  run: async ({ args, flags }, dependencies): Promise<CommandResult> => {
+    const repo = args[0];
+    const handles = args.slice(1);
+    if (!repo || handles.length === 0) {
+      return usageFailure(userOffboard);
+    }
+
+    const apply = getBooleanFlag(flags, "apply") ?? false;
+    const confirmation = getStringFlag(flags, "confirm");
+    const { offboardPilotUsers } = await import("./user-offboard");
+    const result = await offboardPilotUsers(repo, {
+      handles,
+      dryRun: !apply,
+      ...(confirmation ? { confirmation } : {}),
+      ...(dependencies.env ? { env: dependencies.env } : {}),
+      ...(dependencies.fetchImpl ? { fetchImpl: dependencies.fetchImpl } : {}),
+      ...(dependencies.logger ? { logger: dependencies.logger } : {}),
+      ...(dependencies.pilotOffboardDriver
+        ? { driver: dependencies.pilotOffboardDriver }
+        : {}),
+    });
+    return {
+      success: true,
+      message: result.dryRun
+        ? `Dry run: ${result.handles.length} pilot user(s); apply with --apply --confirm ${result.confirmation}`
+        : `Offboarded ${result.handles.length} pilot user(s)`,
     };
   },
 });
@@ -847,6 +895,7 @@ export const commands: readonly CommandDefinition<
   crossoverStage,
   render,
   userAdd,
+  userOffboard,
   onboard,
   ageKeyBootstrap,
   sshKeyBootstrap,

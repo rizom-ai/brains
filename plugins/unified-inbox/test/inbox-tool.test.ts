@@ -6,6 +6,7 @@ import {
   type InboxItem,
   type InboxRegistry,
   type Tool,
+  type UserPermissionLevel,
 } from "@brains/plugins";
 
 import {
@@ -93,7 +94,7 @@ async function createToolFixture(items?: InboxItem[]): Promise<{
 
 async function listToolNames(
   mcpService: MCPService,
-  permission: "admin" | "trusted",
+  permission: UserPermissionLevel,
 ): Promise<string[]> {
   const client = new Client({ name: "inbox-tool-test", version: "1.0.0" });
   const mcpServer = mcpService.createMcpServer(permission);
@@ -292,12 +293,20 @@ describe("inbox_list tool", () => {
       mcpService.registerTool(plugin.id, registered);
     }
 
+    // Basic mode offers conversational entrypoints, not raw inbox reads.
+    expect(await listToolNames(mcpService, "admin")).not.toContain(
+      "unified-inbox_list",
+    );
+    mcpService.setProtocolMode("debug");
     // Both halves, so the absence below is evidence of the permission and
     // not of an empty server.
     expect(await listToolNames(mcpService, "admin")).toContain(
       "unified-inbox_list",
     );
     expect(await listToolNames(mcpService, "trusted")).not.toContain(
+      "unified-inbox_list",
+    );
+    expect(await listToolNames(mcpService, "public")).not.toContain(
       "unified-inbox_list",
     );
     expect(reads).toBe(0);

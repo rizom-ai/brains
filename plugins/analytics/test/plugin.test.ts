@@ -56,6 +56,7 @@ describe("analytics service", () => {
       expect(queryTool?.visibility).toBe("admin");
       expect(queryTool?.sideEffects).toBe("none");
       expect(queryTool?.agentTool).toBe(false);
+      expect(queryTool?.directMcpExposure).toBe("debug");
       await harness.reset();
     });
   });

@@ -59,6 +59,13 @@ if git diff --cached --name-only | grep -qE '(env-schema\.ts|env\.schema\.templa
   bun run env-schema:check
 fi
 
+# Deploy scripts are copied into generated-project templates, which cannot
+# import from this monorepo. Only runs when one of those copies changed.
+if git diff --cached --name-only | grep -qE '(deploy-support/src/deploy-scripts/|templates/.*deploy/scripts/)'; then
+  echo "🚢 Checking copied deploy scripts are in sync..."
+  bun run deploy-scripts:check
+fi
+
 # Skip lint/typecheck/test for docs-only commits — they cannot break code correctness
 if git diff --cached --name-only | grep -qE '\.(ts|tsx|js|jsx|mjs|cjs|json)$'; then
   # Run linting on all packages (cached by turbo).

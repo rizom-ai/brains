@@ -20,6 +20,16 @@ import {
   type ProjectionWriteIntent,
 } from "./projection-contracts";
 import {
+  completionEffect,
+  failureEffect,
+  parseGraphFingerprint,
+  parseJobId,
+  parseRuleId,
+  parseWaveId,
+  parseWaveTimestamp,
+  supersessionEffect,
+} from "./projection-wave-contracts";
+import {
   canonicalProjectionJson,
   ProjectionWriteIntentApplier,
   type ProjectionEntityStoragePolicy,
@@ -386,13 +396,9 @@ export class ProjectionStore {
   public async claimPendingWave(
     input: ClaimProjectionWaveInput,
   ): Promise<ProjectionWave | null> {
-    const waveId = z.string().trim().min(1).parse(input.waveId);
-    const graphFingerprint = z
-      .string()
-      .trim()
-      .min(1)
-      .parse(input.graphFingerprint);
-    const startedAt = z.number().int().nonnegative().parse(input.startedAt);
+    const waveId = parseWaveId(input.waveId);
+    const graphFingerprint = parseGraphFingerprint(input.graphFingerprint);
+    const startedAt = parseWaveTimestamp(input.startedAt);
 
     if (await this.hasActiveProjectionBatch()) return null;
 
@@ -466,7 +472,7 @@ export class ProjectionStore {
   }
 
   public async getWave(waveId: string): Promise<ProjectionWave | null> {
-    const parsedWaveId = z.string().trim().min(1).parse(waveId);
+    const parsedWaveId = parseWaveId(waveId);
     const rows = await this.db
       .select()
       .from(projectionWaves)
@@ -504,16 +510,14 @@ export class ProjectionStore {
     waveId: string,
     completedAt: number,
   ): Promise<ProjectionWave> {
-    const parsedWaveId = z.string().trim().min(1).parse(waveId);
-    const parsedCompletedAt = z.number().int().nonnegative().parse(completedAt);
+    const parsedWaveId = parseWaveId(waveId);
+    const parsedCompletedAt = parseWaveTimestamp(completedAt);
     return this.transactions.run(async (transaction) => {
       const wave = await this.requireWave(transaction, parsedWaveId);
-      if (wave.status === "completed") return wave;
-      if (wave.status === "failed") {
-        throw new Error(`Projection wave "${parsedWaveId}" already failed`);
-      }
-      if (wave.status === "superseded") {
-        throw new Error(`Projection wave "${parsedWaveId}" was superseded`);
+      const effect = completionEffect(wave.status);
+      if (effect.kind === "settled") return wave;
+      if (effect.kind === "refuse") {
+        throw new Error(`Projection wave "${parsedWaveId}" ${effect.reason}`);
       }
 
       const incompleteRules = await transaction
@@ -565,12 +569,13 @@ export class ProjectionStore {
     waveId: string,
     supersededAt: number,
   ): Promise<boolean> {
-    const parsedWaveId = z.string().trim().min(1).parse(waveId);
-    const parsedAt = z.number().int().nonnegative().parse(supersededAt);
+    const parsedWaveId = parseWaveId(waveId);
+    const parsedAt = parseWaveTimestamp(supersededAt);
     return this.transactions.run(async (transaction) => {
       const wave = await this.requireWave(transaction, parsedWaveId);
-      if (wave.status === "superseded") return true;
-      if (wave.status !== "running") return false;
+      const effect = supersessionEffect(wave.status);
+      if (effect.kind === "settled") return true;
+      if (effect.kind !== "apply") return false;
       const epoch = await this.batches.getAdmissionEpoch(transaction);
       if (wave.admissionEpoch === epoch) return false;
       await this.supersedeWaveInTransaction(transaction, wave, parsedAt);
@@ -582,8 +587,8 @@ export class ProjectionStore {
     waveId: string,
     failedAt: number,
   ): Promise<ProjectionWave> {
-    const parsedWaveId = z.string().trim().min(1).parse(waveId);
-    const parsedFailedAt = z.number().int().nonnegative().parse(failedAt);
+    const parsedWaveId = parseWaveId(waveId);
+    const parsedFailedAt = parseWaveTimestamp(failedAt);
     return this.transactions.run(
       async (transaction) =>
         (
@@ -665,19 +670,13 @@ export class ProjectionStore {
     failedAt: number,
   ): Promise<FailedProjectionWave> {
     const wave = await this.requireWave(transaction, waveId);
-    if (wave.status === "completed") {
-      throw new Error(`Projection wave "${waveId}" already completed`);
+    const effect = failureEffect(wave.status);
+    if (effect.kind === "refuse") {
+      throw new Error(`Projection wave "${waveId}" ${effect.reason}`);
     }
-    if (wave.status === "superseded") {
-      return {
-        wave,
-        recoveryGeneration: await this.getRecoveryGeneration(
-          transaction,
-          wave.cutoffGeneration,
-        ),
-      };
-    }
-    if (wave.status === "failed") {
+    if (effect.kind === "settled") {
+      // Already released its inputs. Requeueing them again would hand the
+      // same work to a second wave.
       return {
         wave,
         recoveryGeneration: await this.getRecoveryGeneration(
@@ -772,7 +771,7 @@ export class ProjectionStore {
     waveId: string,
     rules: readonly ProjectionWaveRuleInput[],
   ): Promise<void> {
-    const parsedWaveId = z.string().trim().min(1).parse(waveId);
+    const parsedWaveId = parseWaveId(waveId);
     const parsedRules = z.array(waveRuleInputSchema).min(1).parse(rules);
     const values: Array<typeof projectionWaveRules.$inferInsert> =
       parsedRules.map((rule) => ({
@@ -800,9 +799,9 @@ export class ProjectionStore {
     ruleId: string,
     jobId: string,
   ): Promise<ProjectionWaveRule> {
-    const parsedWaveId = z.string().trim().min(1).parse(waveId);
-    const parsedRuleId = z.string().trim().min(1).parse(ruleId);
-    const parsedJobId = z.string().trim().min(1).parse(jobId);
+    const parsedWaveId = parseWaveId(waveId);
+    const parsedRuleId = parseRuleId(ruleId);
+    const parsedJobId = parseJobId(jobId);
     const updated = await this.db
       .update(projectionWaveRules)
       .set({ status: "queued", jobId: parsedJobId })
@@ -850,7 +849,7 @@ export class ProjectionStore {
   public async applyRuleResult(
     input: ApplyProjectionRuleResultInput,
   ): Promise<ProjectionWaveRule | null> {
-    const waveId = z.string().trim().min(1).parse(input.waveId);
+    const waveId = parseWaveId(input.waveId);
     const key = memoKeySchema.parse({
       ruleId: input.ruleId,
       ruleVersion: input.ruleVersion,
@@ -859,7 +858,7 @@ export class ProjectionStore {
     const writeIntents = z
       .array(ProjectionWriteIntentSchema)
       .parse(input.writeIntents);
-    const completedAt = z.number().int().nonnegative().parse(input.completedAt);
+    const completedAt = parseWaveTimestamp(input.completedAt);
 
     return this.transactions.run(async (transaction) => {
       const ruleRows = await transaction

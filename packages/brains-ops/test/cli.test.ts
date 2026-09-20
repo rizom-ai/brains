@@ -50,6 +50,24 @@ describe("brains-ops parseArgs", () => {
     expect(result.flags["anchor-id"]).toBe("1234567890");
   });
 
+  it("parses batch user offboarding with explicit apply confirmation", () => {
+    const result = parseArgs([
+      "user:offboard",
+      "/tmp/rover-pilot",
+      "bob",
+      "alice",
+      "--apply",
+      "--confirm",
+      "sunset:alice,bob",
+    ]);
+    expect(result.command).toBe("user:offboard");
+    expect(result.args).toEqual(["/tmp/rover-pilot", "bob", "alice"]);
+    expect(result.flags).toMatchObject({
+      apply: true,
+      confirm: "sunset:alice,bob",
+    });
+  });
+
   it("parses init command with repo path", () => {
     const result = parseArgs(["init", "/tmp/rover-pilot"]);
     expect(result.command).toBe("init");
@@ -512,6 +530,19 @@ discord:
     expect(result.success).toBe(false);
     expect(result.message).toContain(
       "Usage: brains-ops user:add <repo> <handle> --cohort <cohort>",
+    );
+  });
+
+  it("returns usage error when user:offboard is missing handles", async () => {
+    const result = await runCommand({
+      command: "user:offboard",
+      args: ["/tmp/rover-pilot"],
+      flags: {},
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain(
+      "Usage: brains-ops user:offboard <repo> <handle>...",
     );
   });
 
@@ -1226,6 +1257,7 @@ members:
     expect(result.message).toContain(
       "user:add <repo> <handle> --cohort <cohort>",
     );
+    expect(result.message).toContain("user:offboard <repo> <handle>...");
     expect(result.message).toContain("age-key:bootstrap <repo>");
     expect(result.message).toContain("ssh-key:bootstrap <repo>");
     expect(result.message).toContain("cert:bootstrap <repo>");
