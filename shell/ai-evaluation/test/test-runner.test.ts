@@ -281,6 +281,7 @@ describe("TestRunner", () => {
             // The runner only saves. Stubbing the rest as throwing keeps the
             // store a real ScopedRuntimeUploadStore, so a member added to the
             // interface fails to compile here instead of being asserted away.
+            saveFile: notStubbed("saveFile"),
             read: notStubbed("read"),
             withFile: notStubbed("withFile"),
             readRecord: notStubbed("readRecord"),

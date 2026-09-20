@@ -1,6 +1,17 @@
 import { createMockShell } from "../../src/test/mock-shell";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { mkdir, mkdtemp, rm, writeFile, readFile, stat } from "fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  rm,
+  writeFile,
+  readFile,
+  stat,
+  lstat,
+  readdir,
+  symlink,
+  unlink,
+} from "fs/promises";
 import assert from "node:assert/strict";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -8,6 +19,7 @@ import { createServicePluginContext } from "../../src/service/context";
 import {
   RuntimeUploadRegistry,
   RuntimeUploadStoreError,
+  AcknowledgedRuntimeUploadError,
   normalizeRuntimeUploadDataDir,
 } from "../../src/service/upload-registry";
 
@@ -55,6 +67,190 @@ describe("RuntimeUploadRegistry", () => {
       now: fixedNow,
     });
   }
+
+  it("retains a file by inode and survives producer cleanup without buffered saving", async () => {
+    const store = scopedStore();
+    const sourceFile = join(dataDir, "produced");
+    await writeFile(sourceFile, "file bytes");
+    const original = await stat(sourceFile);
+    const metadata = { source: "original" };
+    const pending = store.saveFile({
+      sourceFile,
+      sizeBytes: 10,
+      filename: "file.pdf",
+      mediaType: "application/pdf",
+      metadata,
+    });
+    metadata.source = "mutated";
+    const record = await pending;
+    expect(record.metadata).toEqual({ source: "original" });
+    expect(await store.readRecord(record.id)).toEqual(record);
+    const retained = await stat(join(store.getUploadDir(record.id), "content"));
+    expect(retained.ino).toBe(original.ino);
+    expect(retained.dev).toBe(original.dev);
+    expect((await stat(store.getUploadDir(record.id))).mode & 0o777).toBe(
+      0o700,
+    );
+    expect(
+      (await stat(join(store.getUploadDir(record.id), "metadata.json"))).mode &
+        0o777,
+    ).toBe(0o600);
+    await unlink(sourceFile);
+    await store.withFile(
+      record.id,
+      async ({ sourceFile: pinned }): Promise<void> => {
+        await store.remove(record.id);
+        expect(await readFile(pinned, "utf8")).toBe("file bytes");
+      },
+    );
+    expect(
+      (await readdir(join(dataDir, "upload"))).filter((name) =>
+        name.startsWith(".upload-save-"),
+      ),
+    ).toEqual([]);
+  });
+
+  it("never overwrites an existing upload and retains failed staging outside pruning", async () => {
+    const store = RuntimeUploadRegistry.createFresh({ dataDir }).scoped({
+      namespace: "upload",
+      refKind: "upload",
+      routePath: "/uploads",
+      createId: () => fixedUploadId("000000000001"),
+      maxCount: 1,
+    });
+    const sourceFile = join(dataDir, "first");
+    const replacement = join(dataDir, "second");
+    await writeFile(sourceFile, "first");
+    await writeFile(replacement, "second");
+    const record = await store.saveFile({
+      sourceFile,
+      sizeBytes: 5,
+      filename: "first.pdf",
+      mediaType: "application/pdf",
+    });
+    await assert.rejects(
+      store.saveFile({
+        sourceFile: replacement,
+        sizeBytes: 6,
+        filename: "second.pdf",
+        mediaType: "application/pdf",
+      }),
+      /EEXIST/,
+    );
+    await assert.rejects(
+      store.save({
+        filename: "overwrite.pdf",
+        mediaType: "application/pdf",
+        content: Buffer.from("overwritten"),
+      }),
+      /EEXIST/,
+    );
+    expect(await readFile(sourceFile, "utf8")).toBe("first");
+    expect(await store.readRecord(record.id)).toEqual(record);
+    expect(
+      await readFile(join(store.getUploadDir(record.id), "content"), "utf8"),
+    ).toBe("first");
+    const stages = (await readdir(join(dataDir, "upload"))).filter((name) =>
+      name.startsWith(".upload-save-"),
+    );
+    expect(stages).toHaveLength(1);
+    const stage = stages[0];
+    assert.ok(stage);
+    await unlink(replacement);
+    await store.remove(record.id);
+    await store.prune();
+    expect(
+      await readFile(join(dataDir, "upload", stage, "content"), "utf8"),
+    ).toBe("second");
+    expect(
+      (await lstat(join(dataDir, "upload", stage, "metadata.json"))).isFile(),
+    ).toBe(true);
+  });
+
+  it("rejects non-files, symlinks, wrong sizes and unbounded descriptors before publication", async () => {
+    const store = scopedStore();
+    const sourceFile = join(dataDir, "source");
+    const alias = join(dataDir, "alias");
+    await writeFile(sourceFile, "bytes");
+    await symlink(sourceFile, alias);
+    const input = {
+      sourceFile,
+      sizeBytes: 5,
+      filename: "source.pdf",
+      mediaType: "application/pdf",
+    };
+    for (const invalid of [
+      { ...input, sourceFile: alias },
+      { ...input, sourceFile: dataDir },
+      { ...input, sourceFile: "relative" },
+      { ...input, sizeBytes: 6 },
+      { ...input, sizeBytes: 100 * 1024 * 1024 + 1 },
+      { ...input, metadata: { large: "x".repeat(16384) } },
+    ])
+      await assert.rejects(store.saveFile(invalid));
+    await assert.rejects(stat(join(dataDir, "upload")), /ENOENT/);
+    expect(await readFile(sourceFile, "utf8")).toBe("bytes");
+  });
+
+  it("preserves the published record when post-publication retirement throws", async () => {
+    const store = scopedStore();
+    const sourceFile = join(dataDir, "source");
+    await writeFile(sourceFile, "bytes");
+    const failure = new Error("retirement failed before returning its promise");
+    store.prune = (): Promise<void> => {
+      throw failure;
+    };
+    let acknowledgedId = "";
+    await assert.rejects(
+      store.saveFile({
+        sourceFile,
+        sizeBytes: 5,
+        filename: "source.pdf",
+        mediaType: "application/pdf",
+      }),
+      (error: unknown) => {
+        assert.ok(error instanceof AcknowledgedRuntimeUploadError);
+        expect(error.cause).toBe(failure);
+        acknowledgedId = error.record.id;
+        return true;
+      },
+    );
+    expect((await store.readRecord(acknowledgedId)).filename).toBe(
+      "source.pdf",
+    );
+    expect(
+      await readFile(
+        join(store.getUploadDir(acknowledgedId), "content"),
+        "utf8",
+      ),
+    ).toBe("bytes");
+  });
+
+  it("refuses even an empty pre-existing destination directory", async () => {
+    const id = fixedUploadId("000000000002");
+    const store = RuntimeUploadRegistry.createFresh({ dataDir }).scoped({
+      namespace: "upload",
+      refKind: "upload",
+      routePath: "/uploads",
+      createId: () => id,
+    });
+    const sourceFile = join(dataDir, "source");
+    await writeFile(sourceFile, "bytes");
+    await mkdir(store.getUploadDir(id), { recursive: true });
+    const before = await stat(store.getUploadDir(id));
+    await assert.rejects(
+      store.saveFile({
+        sourceFile,
+        sizeBytes: 5,
+        filename: "source.pdf",
+        mediaType: "application/pdf",
+      }),
+      /EEXIST/,
+    );
+    expect((await stat(store.getUploadDir(id))).ino).toBe(before.ino);
+    expect(await readdir(store.getUploadDir(id))).toEqual([]);
+    await expectStoreError(store.readRecord(id), "not_found");
+  });
 
   it("pins files outside pruning until the joined consumer returns", async () => {
     const store = scopedStore();

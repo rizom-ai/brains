@@ -191,6 +191,8 @@ export {
   type RuntimeUploadStoreErrorCode,
   type RuntimeUploadStoreOptions,
   type SaveRuntimeUploadInput,
+  type SaveRuntimeUploadFileInput,
+  AcknowledgedRuntimeUploadError,
 } from "./service/upload-registry";
 export type {
   BasePluginContext,

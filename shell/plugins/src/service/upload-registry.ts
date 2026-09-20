@@ -11,7 +11,9 @@ import {
   unlink,
   rmdir,
 } from "fs/promises";
-import { basename, dirname, join, resolve } from "path";
+import { basename, dirname, join, resolve, isAbsolute } from "path";
+import { MAX_ASSET_BYTES } from "@brains/assets";
+import { jsonObjectSchema, type JsonObject } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
@@ -77,6 +79,36 @@ export interface SaveRuntimeUploadInput {
   metadata?: Record<string, unknown> | undefined;
 }
 
+export interface SaveRuntimeUploadFileInput {
+  sourceFile: string;
+  sizeBytes: number;
+  filename: string;
+  mediaType: string;
+  metadata?: JsonObject | undefined;
+}
+
+/** Publication is known even when subsequent retirement fails. */
+export class AcknowledgedRuntimeUploadError extends Error {
+  public readonly record: RuntimeUploadRecord;
+  constructor(record: RuntimeUploadRecord, cause: unknown) {
+    super("Upload saved but retirement failed", { cause });
+    this.name = "AcknowledgedRuntimeUploadError";
+    this.record = record;
+  }
+}
+
+const saveFileSchema: z.ZodType<SaveRuntimeUploadFileInput> = z.strictObject({
+  sourceFile: z
+    .string()
+    .min(1)
+    .max(4096)
+    .refine((value) => isAbsolute(value) && !value.includes("\0")),
+  sizeBytes: z.number().int().nonnegative().max(MAX_ASSET_BYTES),
+  filename: z.string().min(1).max(255),
+  mediaType: z.string().min(1).max(128),
+  metadata: jsonObjectSchema.optional(),
+});
+
 export interface ResolvedRuntimeUpload {
   record: RuntimeUploadRecord;
   content: Buffer;
@@ -121,6 +153,7 @@ const runtimeUploadRecordSchema = z.object({
 export type ScopedRuntimeUploadStore = Pick<
   RuntimeUploadStore,
   | "save"
+  | "saveFile"
   | "read"
   | "readRecord"
   | "withFile"
@@ -212,12 +245,16 @@ export class RuntimeUploadStore {
     };
 
     const uploadDir = this.getUploadDir(uploadId);
-    await mkdir(uploadDir, { recursive: true });
-    await writeFile(join(uploadDir, "content"), input.content);
+    await mkdir(this.getUploadsRoot(), { recursive: true });
+    await mkdir(uploadDir, { mode: 0o700 });
+    await writeFile(join(uploadDir, "content"), input.content, {
+      flag: "wx",
+      mode: 0o600,
+    });
     await writeFile(
       join(uploadDir, "metadata.json"),
       `${JSON.stringify(record, null, 2)}\n`,
-      "utf8",
+      { encoding: "utf8", flag: "wx", mode: 0o600 },
     );
     // The upload is already on disk, so a pruning fault must not fail the
     // save. It must not vanish either: unpruned uploads grow without bound.
@@ -227,6 +264,86 @@ export class RuntimeUploadStore {
       });
     });
 
+    return record;
+  }
+
+  /** Retain a joined producer's file without reading, copying or hashing bytes.
+   * Requires one filesystem: EXDEV fails, never falls back to buffered copying.
+   * Links protect lifetime, not immutability/provenance; promotion still inspects
+   * actual bytes. Failed private staging stays outside the prunable uploads root.
+   * No crash-durability guarantee is implied by this runtime retention store.
+   */
+  async saveFile(
+    input: SaveRuntimeUploadFileInput,
+  ): Promise<RuntimeUploadRecord> {
+    const options = saveFileSchema.parse(input);
+    const uploadId = this.createUploadId();
+    this.assertValidUploadId(uploadId);
+    // Snapshot textual metadata before asynchronous work or caller mutation.
+    const json = JSON.stringify({
+      id: uploadId,
+      ref: { kind: this.options.refKind, id: uploadId },
+      filename: options.filename,
+      mediaType: options.mediaType,
+      sizeBytes: options.sizeBytes,
+      createdAt: this.getNow().toISOString(),
+      ...(options.metadata !== undefined && { metadata: options.metadata }),
+    });
+    if (Buffer.byteLength(json, "utf8") > 16_384)
+      throw new Error("Upload metadata exceeds its byte limit");
+    const record = runtimeUploadRecordSchema.parse(JSON.parse(json));
+    const original = await lstat(options.sourceFile, { bigint: true });
+    if (!original.isFile() || original.size !== BigInt(record.sizeBytes))
+      throw new RuntimeUploadStoreError(
+        "invalid_metadata",
+        "Upload file does not match its metadata",
+      );
+    const parent = resolve(dirname(this.getUploadsRoot()));
+    await mkdir(parent, { recursive: true });
+    const staging = await mkdtemp(join(parent, ".upload-save-"));
+    const content = join(staging, "content");
+    const metadata = join(staging, "metadata.json");
+    await link(options.sourceFile, content);
+    const pinned = await lstat(content, { bigint: true });
+    if (
+      !pinned.isFile() ||
+      pinned.dev !== original.dev ||
+      pinned.ino !== original.ino ||
+      pinned.size !== BigInt(record.sizeBytes)
+    )
+      throw new RuntimeUploadStoreError(
+        "invalid_metadata",
+        "Upload file changed while being retained",
+      );
+    await writeFile(metadata, `${json}\n`, { flag: "wx", mode: 0o600 });
+    await mkdir(this.getUploadsRoot(), { recursive: true });
+    const destination = this.getUploadDir(uploadId);
+    await mkdir(destination, { mode: 0o700 });
+    await link(content, join(destination, "content"));
+    // Publishing the complete metadata link makes the record visible atomically.
+    // Every destination acquisition is exclusive: collisions cannot overwrite.
+    await link(metadata, join(destination, "metadata.json"));
+    try {
+      await unlink(content);
+      await unlink(metadata);
+      await rmdir(staging);
+      await this.prune().catch((error: unknown) => {
+        try {
+          this.logger?.warn("Failed to prune runtime uploads", {
+            error: getErrorMessage(error),
+          });
+        } catch (reportingError) {
+          if (reportingError === error) throw error;
+          throw new AggregateError(
+            [error, reportingError],
+            "Upload pruning and reporting failed",
+            { cause: reportingError },
+          );
+        }
+      });
+    } catch (error) {
+      throw new AcknowledgedRuntimeUploadError(record, error);
+    }
     return record;
   }
 
