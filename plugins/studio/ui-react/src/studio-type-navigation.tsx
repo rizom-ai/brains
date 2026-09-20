@@ -1,17 +1,10 @@
 /** @jsxImportSource react */
 import { typographyStyles } from "./studio-typography.styles";
-import {
-  Dialog,
-  DialogClose,
-  DialogPortal,
-  DialogTrigger,
-} from "@brains/app-ui-react";
-import { useState, type ReactElement } from "react";
+import { type ReactElement } from "react";
 import {
   useStudioNavigationCollapsed,
   setStudioNavigationCollapsed,
 } from "./studio-navigation-state";
-import { Dialog as DialogPrimitive, VisuallyHidden } from "radix-ui";
 import type { StudioWorkspaceInfo, EntityTypeInfo } from "./api";
 import {
   studioArea,
@@ -26,14 +19,8 @@ export {
   studioMobileSelection,
 } from "./studio-navigation-parts";
 export type { MobileNavigationOption } from "./studio-navigation-parts";
-import {
-  MOBILE_TYPE_PREFIX,
-  MOBILE_WORKSPACE_PREFIX,
-  StudioBrowseDestinations,
-  navigationTypeLabel,
-  studioMobileSelection,
-  type MobileNavigationOption,
-} from "./studio-navigation-parts";
+import { navigationTypeLabel, workspaceBadge } from "./studio-navigation-parts";
+import { MobileNavigation } from "./studio-mobile-navigation";
 import { useNavigationTree } from "./use-navigation-tree";
 import {
   navigationClassName as navClass,
@@ -142,114 +129,14 @@ export function TypeSwitcher(props: {
   ].filter((group) => group.types.length > 0);
   const currentArea = studioArea(props.active, props.activeWorkspace ?? null);
   const destination = props.activeWorkspace ?? props.active;
-  const { activeArea, leafOpen, leafId, selectArea, openGroups, toggleGroup } =
-    useNavigationTree({
-      currentArea,
-      destination,
-      activeWorkspace: props.activeWorkspace,
-      areaWorkspaces: [
-        overviewWorkspace,
-        chatWorkspace,
-        administrationWorkspace,
-      ],
-      onSelectWorkspace: props.onSelectWorkspace,
-    });
-  const mobileTypeOption = (info: EntityTypeInfo): MobileNavigationOption => ({
-    value: `${MOBILE_TYPE_PREFIX}${info.entityType}`,
-    label: navigationTypeLabel(info),
-    ...(info.isSingleton ? {} : { tally: info.count }),
+  const tree = useNavigationTree({
+    currentArea,
+    destination,
+    activeWorkspace: props.activeWorkspace,
+    areaWorkspaces: [overviewWorkspace, chatWorkspace, administrationWorkspace],
+    onSelectWorkspace: props.onSelectWorkspace,
   });
-  const workspaceBadge = (
-    workspace: StudioWorkspaceInfo | undefined,
-  ): number => (workspace ? (props.workspaceBadges?.[workspace.id] ?? 0) : 0);
-  const mobileWorkspaceOption = (
-    workspace: StudioWorkspaceInfo,
-  ): MobileNavigationOption => {
-    const attention = workspaceBadge(workspace);
-    return {
-      value: `${MOBILE_WORKSPACE_PREFIX}${workspace.id}`,
-      label: workspace.label,
-      accessibleLabel: workspace.label,
-      ...(attention > 0 ? { attention } : {}),
-    };
-  };
-  const mobileGroups = [
-    ...(overviewWorkspace
-      ? [
-          {
-            area: "overview",
-            label: "Home",
-            options: [mobileWorkspaceOption(overviewWorkspace)],
-          },
-        ]
-      : []),
-    ...(chatWorkspace
-      ? [
-          {
-            area: "chat",
-            label: "Chat",
-            options: [mobileWorkspaceOption(chatWorkspace)],
-          },
-        ]
-      : []),
-    {
-      area: "library",
-      label: "Library",
-      options: primaryTypeGroups.flatMap((group) =>
-        group.types.map(mobileTypeOption),
-      ),
-    },
-    ...(operationWorkspaces.length > 0
-      ? [
-          {
-            area: "work",
-            label: "Work",
-            options: operationWorkspaces.map(mobileWorkspaceOption),
-          },
-        ]
-      : []),
-    ...(administrationWorkspace
-      ? [
-          {
-            area: "administration",
-            label: "Admin",
-            options: [
-              {
-                ...mobileWorkspaceOption(administrationWorkspace),
-                label: "Admin",
-              },
-            ],
-          },
-        ]
-      : []),
-    {
-      area: "system",
-      label: "System",
-      options: secondaryTypeGroups.flatMap((group) =>
-        group.types.map(mobileTypeOption),
-      ),
-    },
-  ];
-  const activeMobileView = props.active
-    ? `${MOBILE_TYPE_PREFIX}${props.active}`
-    : props.activeWorkspace
-      ? `${MOBILE_WORKSPACE_PREFIX}${props.activeWorkspace}`
-      : "";
-  const [mobileFilter, setMobileFilter] = useState("");
-  const [browseOpen, setBrowseOpen] = useState(false);
-  const selectMobileView = (value: string): void => {
-    const selection = studioMobileSelection(value);
-    if (selection?.kind === "type") {
-      props.onSelect(selection.id);
-      return;
-    }
-    if (
-      selection?.kind === "workspace" &&
-      selection.id !== props.activeWorkspace
-    ) {
-      props.onSelectWorkspace?.(selection.id);
-    }
-  };
+  const { activeArea, leafOpen, leafId, selectArea } = tree;
   const renderGroup = (group: {
     label: string;
     types: EntityTypeInfo[];
@@ -336,14 +223,14 @@ export function TypeSwitcher(props: {
       index: "00",
       label: "Overview",
       available: overviewWorkspace !== undefined,
-      badge: workspaceBadge(overviewWorkspace),
+      badge: workspaceBadge(overviewWorkspace, props.workspaceBadges),
     },
     {
       id: "chat",
       index: "01",
       label: "Chat",
       available: chatWorkspace !== undefined,
-      badge: workspaceBadge(chatWorkspace),
+      badge: workspaceBadge(chatWorkspace, props.workspaceBadges),
     },
     {
       id: "library",
@@ -363,7 +250,7 @@ export function TypeSwitcher(props: {
       label: "Admin",
       accessibleLabel: "Administration",
       available: administrationWorkspace !== undefined,
-      badge: workspaceBadge(administrationWorkspace),
+      badge: workspaceBadge(administrationWorkspace, props.workspaceBadges),
     },
     {
       id: "system",
@@ -375,76 +262,21 @@ export function TypeSwitcher(props: {
   return (
     <>
       {props.renderMode !== "desktop" ? (
-        <Dialog
-          open={browseOpen}
-          onOpenChange={(open) => {
-            setBrowseOpen(open);
-            if (open) setMobileFilter("");
-          }}
-        >
-          <DialogTrigger asChild>
-            <button
-              type="button"
-              className={navClass(
-                "studio-mobile-switcher",
-                nav.browse,
-                typographyStyles.eyebrow,
-              )}
-              aria-label="Browse Studio"
-            >
-              <span aria-hidden="true">≡</span>
-              Browse
-            </button>
-          </DialogTrigger>
-          <DialogPortal>
-            <DialogPrimitive.Overlay
-              className={navClass("", nav.sheetOverlay)}
-            />
-            <DialogPrimitive.Content
-              className={navClass("studio-mobile-navigation-sheet", nav.sheet)}
-              aria-describedby={undefined}
-              // Browse opens to be read. Focusing the filter would raise the
-              // phone keyboard over the destinations every time.
-              onOpenAutoFocus={(event) => {
-                event.preventDefault();
-                if (event.currentTarget instanceof HTMLElement)
-                  event.currentTarget.focus();
-              }}
-            >
-              <div
-                className={navClass(
-                  "studio-mobile-navigation-list",
-                  nav.sheetList,
-                )}
-              >
-                <VisuallyHidden.Root>
-                  <DialogPrimitive.Title>Browse Studio</DialogPrimitive.Title>
-                </VisuallyHidden.Root>
-                <StudioBrowseDestinations
-                  groups={mobileGroups}
-                  filter={mobileFilter}
-                  activeValue={activeMobileView}
-                  groupId={(area) => `${leafId}-${area}`}
-                  isGroupOpen={(area) => openGroups[area] !== false}
-                  onFilterChange={setMobileFilter}
-                  onToggleGroup={toggleGroup}
-                  onSelect={(value) => {
-                    selectMobileView(value);
-                    setBrowseOpen(false);
-                  }}
-                  trailing={
-                    <DialogClose
-                      className={navClass("", nav.sheetClose)}
-                      aria-label="Close browse"
-                    >
-                      ✕
-                    </DialogClose>
-                  }
-                />
-              </div>
-            </DialogPrimitive.Content>
-          </DialogPortal>
-        </Dialog>
+        <MobileNavigation
+          types={props.types}
+          active={props.active}
+          onSelect={props.onSelect}
+          activeWorkspace={props.activeWorkspace}
+          workspaceBadges={props.workspaceBadges}
+          onSelectWorkspace={props.onSelectWorkspace}
+          overviewWorkspace={overviewWorkspace}
+          chatWorkspace={chatWorkspace}
+          administrationWorkspace={administrationWorkspace}
+          operationWorkspaces={operationWorkspaces}
+          primaryTypeGroups={primaryTypeGroups}
+          secondaryTypeGroups={secondaryTypeGroups}
+          tree={tree}
+        />
       ) : null}
       {props.renderMode !== "mobile" ? (
         <nav
