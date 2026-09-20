@@ -38,22 +38,38 @@ touched, and the existing suites are the whole net.
 
 One PR each, behaviour-preserving, gates green before the next starts.
 
-1. **`defaultEntityService`** (271 lines) → `mock-entity-service.ts`, taking
-   the entity maps, adapters and type configs it reads. The largest double
-   and the one most tests exercise.
-2. **`messageBus`** (197) → `mock-message-bus.ts`, taking the handler map.
-3. **Jobs** (148) → `mock-jobs.ts`: `enqueuedJobs`, `jobs`, `jobQueueService`
-   are one piece of state and its two views.
-4. **`entityRegistry`** (65) with `updateEntityExportIntent` and the export
-   intent map → `mock-entity-registry.ts`.
-5. **`daemonRegistry`** (62) with `endpoints` and `interactions` →
-   `mock-daemons.ts`.
-6. **Content** (86) → `mock-content.ts`: `contentService`,
+1. **The entity service** (397 lines) → `mock-entity-store.ts` and
+   `mock-entity-service.ts`. The state moves first, because every other
+   double reads it. _Shipped: 1630 → 1183._
+2. **`messageBus`** (74) → `mock-message-bus.ts`, which owns the handler map
+   outright — nothing else touches it.
+3. **The entity registry** (65) → `mock-entity-registry.ts`, over the store
+   slice 1 created.
+4. **Jobs** (82) → `mock-jobs.ts`: `enqueuedJobs` and the two views of it,
+   `jobs` and `jobQueueService`.
+5. **Content** (105) → `mock-content.ts`: `contentService`,
    `dataSourceRegistry` and `toContentTemplate`.
+6. **Daemons** (95) → `mock-daemons.ts`: the daemon and insights registries
+   with `endpoints` and `interactions`.
 
-What remains is the assembly: the options, the shared state, and the 329-line
-`shell` literal that names which double fills which slot — which is what the
-file should have read as from the start.
+### A correction to these numbers
+
+The sizes above are measured; the ones this plan first carried were not. They
+came from a span mapper that ends a declaration at the next one it recognises,
+and three overloaded `function` declarations inside the entity service region
+are invisible to it — so every double after `defaultEntityService` was
+reported carrying the lines between it and the next `const`. `messageBus` was
+recorded as 197 lines and is 74.
+
+The correction changes the shape of the work, not just its arithmetic. Slice 1
+was the concentration: 397 lines against 32–105 for everything left. The
+remaining slices are separation rather than decongestion, and are worth doing
+for the reason this plan opens with — a double you can read against one
+interface — not because any of them is large.
+
+What remains after all six is the assembly: the options, the shared state, and
+a 446-line `shell` literal of 109 members whose largest is 40 lines. That is
+composed, not concentrated, and it stays whole.
 
 ## Validation
 
