@@ -1,12 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { z } from "@brains/utils/zod";
+import type { z } from "@brains/utils/zod";
 
-const manifestSchema = z.object({
-  version: z.literal(1),
-  assets: z.record(z.string(), z.string()),
-});
+import { studioAssetManifestSchema as manifestSchema } from "../src/ui-assets";
 const uiDirectory = join(import.meta.dir, "..", "dist", "ui");
 
 function readManifest(): z.output<typeof manifestSchema> {
@@ -22,15 +19,19 @@ describe("Studio split UI assets", () => {
     const manifest = readManifest();
     const entries = Object.entries(manifest.assets);
 
-    expect(manifest.assets["app.js"]).toBe("studio-app.js");
-    expect(manifest.assets["app.css"]).toBe("studio-app.css");
+    expect(manifest.entrypoints.script).toMatch(
+      /^studio-app-[a-zA-Z0-9]+\.js$/,
+    );
+    expect(manifest.entrypoints.stylesheet).toMatch(
+      /^studio-app-[a-zA-Z0-9]+\.css$/,
+    );
     expect(
       entries.every(
         ([publicPath, filePath]) =>
-          /^(?:app\.(?:js|css)|studio-app\.js\.map|studio-chunks\/[A-Za-z0-9_-]+\.(?:js|js\.map))$/.test(
+          /^(?:studio-app-[a-zA-Z0-9]+\.(?:js|css|js\.map)|studio-chunks\/[A-Za-z0-9_-]+\.(?:js|js\.map))$/.test(
             publicPath,
           ) &&
-          /^(?:studio-app\.(?:js|css)|studio-app\.js\.map|studio-chunks\/[A-Za-z0-9_-]+\.(?:js|js\.map))$/.test(
+          /^(?:studio-app-[a-zA-Z0-9]+\.(?:js|css|js\.map)|studio-chunks\/[A-Za-z0-9_-]+\.(?:js|js\.map))$/.test(
             filePath,
           ),
       ),
@@ -43,7 +44,7 @@ describe("Studio split UI assets", () => {
     if (!accountEntry) throw new Error("Missing lazy Account asset");
 
     const stylesheet = readFileSync(
-      join(uiDirectory, manifest.assets["app.css"] ?? ""),
+      join(uiDirectory, manifest.entrypoints.stylesheet),
       "utf8",
     );
     const operatorCSS = readFileSync(
@@ -91,7 +92,7 @@ describe("Studio split UI assets", () => {
     }
 
     const entrySource = readFileSync(
-      join(uiDirectory, manifest.assets["app.js"] ?? ""),
+      join(uiDirectory, manifest.entrypoints.script),
       "utf8",
     );
     const accountSource = readFileSync(

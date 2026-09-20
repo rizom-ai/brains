@@ -4,6 +4,12 @@ import { createStylexBunTransform } from "@brains/build-tools";
 import { runProcessOrThrow } from "@brains/utils/run-process";
 import { dirname, join, relative } from "node:path";
 
+import {
+  STUDIO_ENTRY_NAMING,
+  studioAssetManifestSchema,
+  studioStylesheetName,
+} from "../src/ui-assets";
+
 const require = createRequire(import.meta.url);
 const packageRoot = join(import.meta.dir, "..");
 const operatorRoot = join(packageRoot, "../../shared/operator-view-react");
@@ -34,7 +40,7 @@ const result = await Bun.build({
   splitting: true,
   sourcemap: "external",
   naming: {
-    entry: "studio-app.js",
+    entry: STUDIO_ENTRY_NAMING,
     chunk: "studio-chunks/[name]-[hash].js",
     asset: "studio-chunks/[name]-[hash].[ext]",
   },
@@ -64,7 +70,6 @@ if (!result.success) {
   process.exit(1);
 }
 
-const stylexFile = "studio-app.css";
 const operatorCSS = await Bun.file(
   join(operatorRoot, "dist/stylex.css"),
 ).text();
@@ -74,10 +79,9 @@ const vendorCSS = await Bun.file(
 const documentCSS = await Bun.file(
   join(packageRoot, "ui-react/src/studio-document.css"),
 ).text();
-await writeFile(
-  join(outdir, stylexFile),
-  `${vendorCSS}\n${stylex.css()}\n${operatorCSS}\n${documentCSS}\n`,
-);
+const stylesheet = `${vendorCSS}\n${stylex.css()}\n${operatorCSS}\n${documentCSS}\n`;
+const stylexFile = studioStylesheetName(stylesheet);
+await writeFile(join(outdir, stylexFile), stylesheet);
 const outputFiles = [
   ...result.outputs.map((output) =>
     relative(outdir, output.path).replaceAll("\\", "/"),
@@ -86,17 +90,19 @@ const outputFiles = [
 ].sort();
 const assets: Record<string, string> = {};
 for (const file of outputFiles) {
-  const publicPath =
-    file === "studio-app.js"
-      ? "app.js"
-      : file === stylexFile
-        ? "app.css"
-        : file;
-  assets[publicPath] = file;
+  assets[file] = file;
 }
+const script = outputFiles.find((file) =>
+  /^studio-app-[a-zA-Z0-9]+\.js$/.test(file),
+);
+const manifest = studioAssetManifestSchema.parse({
+  version: 2,
+  entrypoints: { script, stylesheet: stylexFile },
+  assets,
+});
 await writeFile(
   join(outdir, "studio-asset-manifest.json"),
-  `${JSON.stringify({ version: 1, assets }, null, 2)}\n`,
+  `${JSON.stringify(manifest, null, 2)}\n`,
 );
 
 // Publish complete files without removing assets being read by tests or open
@@ -109,5 +115,5 @@ for (const file of [...outputFiles, "studio-asset-manifest.json"]) {
 await rm(outdir, { recursive: true, force: true });
 
 console.log(
-  `Built ${join(destination, "studio-app.js")} with ${outputFiles.length - 1} split assets`,
+  `Built ${join(destination, manifest.entrypoints.script)} with ${outputFiles.length - 1} split assets`,
 );

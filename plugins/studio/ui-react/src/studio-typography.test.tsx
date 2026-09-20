@@ -1,6 +1,5 @@
 /** @jsxImportSource react */
 import { expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
 import { Window } from "happy-dom";
 import { renderToStaticMarkup } from "react-dom/server";
 import * as stylex from "@stylexjs/stylex";
@@ -11,10 +10,8 @@ import { StudioMarkdown } from "./studio-markdown";
 import { typographyStyles as typography } from "./studio-typography.styles";
 import { workspaceClassName } from "./studio-workspace.styles";
 
-const css = readFileSync(
-  new URL("../../dist/ui/studio-app.css", import.meta.url),
-  "utf8",
-);
+import { readStudioStylesheet } from "../../test/ui-asset-fixture";
+const css = await readStudioStylesheet();
 
 for (const width of [1440, 768, 390]) {
   test(`compiled Studio type roles remain consistent at ${width}px`, async () => {

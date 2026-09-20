@@ -1,6 +1,5 @@
 /** @jsxImportSource react */
 import { expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
 import { Window } from "happy-dom";
 import { renderToStaticMarkup } from "react-dom/server";
 import * as stylex from "@stylexjs/stylex";
@@ -13,10 +12,8 @@ import { libraryStyles as library } from "./studio-library.styles";
 import { editorLayoutStyles as layout } from "./studio-editor-layout.styles";
 import { Field } from "./entity-fields";
 import { Button, buttonClassName } from "@brains/app-ui-react";
-const css = readFileSync(
-  new URL("../../dist/ui/studio-app.css", import.meta.url),
-  "utf8",
-);
+import { readStudioStylesheet } from "../../test/ui-asset-fixture";
+const css = await readStudioStylesheet();
 for (const variant of ["default", "primary"] as const)
   for (const paper of [true, false])
     test(`disabled ${variant} controls use neutral tokens (${paper ? "paper" : "instrument"})`, async () => {

@@ -1,5 +1,9 @@
 /** @jsxImportSource react */
 import { StudioStatus } from "./studio-status";
+import {
+  loadStudioWorkspace,
+  StudioWorkspaceLoadRecovery,
+} from "./studio-workspace-load";
 import { ConfirmDialog } from "@brains/app-ui-react";
 import {
   StudioChatDraftStore,
@@ -63,15 +67,26 @@ import { useStudioRouteEffects } from "./use-studio-route-effects";
 
 import { useWorkspaceActions } from "./use-workspace-actions";
 
-const LazyAccountApp = lazy(async () => {
-  const module = await import("./account/account-view");
-  return { default: module.AccountApp };
-});
+const LazyAccountApp = lazy(() =>
+  loadStudioWorkspace(async () => {
+    const module = await import("./account/account-view");
+    return { default: module.AccountApp };
+  }),
+);
 
-const LazyStudioChatWorkspace = lazy(async () => {
-  const module = await import("./studio-chat-workspace");
-  return { default: module.StudioChatWorkspace };
-});
+const LazyStudioChatWorkspace = lazy(() =>
+  loadStudioWorkspace(
+    async () => {
+      const module = await import("./studio-chat-workspace");
+      return { default: module.StudioChatWorkspace };
+    },
+    () => (
+      <StudioAppStatus message="Chat could not open.">
+        <StudioWorkspaceLoadRecovery />
+      </StudioAppStatus>
+    ),
+  ),
+);
 
 export function studioChatSessionId(rawSearch: string): string | null {
   const value = new URLSearchParams(rawSearch).get("session")?.trim();
