@@ -1,7 +1,6 @@
 import matter from "gray-matter";
 import { z } from "@brains/utils/zod";
 import type { FrontmatterSchema } from "./types";
-import { parseMarkdownWithFrontmatter } from "./frontmatter";
 
 const recordSchema = z.record(z.string(), z.unknown());
 const policyKeys = new Set([
@@ -14,17 +13,17 @@ const policyKeys = new Set([
   "visibility",
 ]);
 
+/** How a registered field whose stored value fails its own schema is treated. */
+export type InvalidFieldPolicy = "reject" | "omit";
+
 /** Projection is derived from source, never from a caller's cached metadata. */
 export function projectFrontmatterExtensions(
-  content: string,
+  source: Record<string, unknown>,
   metadata: Record<string, unknown>,
   extensions: readonly FrontmatterSchema[],
+  invalid: InvalidFieldPolicy = "reject",
 ): Record<string, unknown> {
   if (extensions.length === 0) return metadata;
-  const { metadata: source } = parseMarkdownWithFrontmatter(
-    content,
-    recordSchema,
-  );
   const projected = { ...metadata };
   for (const extension of extensions) {
     const keys = Object.keys(extension.shape);
@@ -33,16 +32,19 @@ export function projectFrontmatterExtensions(
         .filter((key) => Object.hasOwn(source, key))
         .map((key) => [key, source[key]]),
     );
-    // Parse the whole extension, including cross-field refinements.
-    const parsed = extension.parse(input);
+    // Parse the whole extension, including cross-field refinements. Only this
+    // extension's own keys are read, so another field's error never lands here.
+    const result = extension.safeParse(input);
+    if (!result.success && invalid === "reject") throw result.error;
     for (const key of keys) {
       delete projected[key];
       if (
+        result.success &&
         Object.hasOwn(source, key) &&
-        parsed[key] !== undefined &&
+        result.data[key] !== undefined &&
         !policyKeys.has(key)
       ) {
-        projected[key] = parsed[key];
+        projected[key] = result.data[key];
       }
     }
   }
@@ -60,8 +62,10 @@ export function preserveSourceFrontmatter(
   groupingFields: readonly string[] = [],
 ): string {
   if (!ownerSchema) return serializedContent;
-  const source = matter(sourceContent);
-  const serialized = matter(serializedContent);
+  // Exports walk every entity once; an options object keeps these documents
+  // out of gray-matter's process-lifetime cache.
+  const source = matter(sourceContent, {});
+  const serialized = matter(serializedContent, {});
   const sourceFields = recordSchema.parse(source.data);
   const serializedFields = recordSchema.parse(serialized.data);
   const extensionKeys = new Set([

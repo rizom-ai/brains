@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented on `feat/dashboard-ask`; review PR [brains#269](https://github.com/rizom-ai/brains/pull/269). Not merged, released, activated or published.
+Implementation PR [brains#269](https://github.com/rizom-ai/brains/pull/269) and browser-contract fix [brains#270](https://github.com/rizom-ai/brains/pull/270) are merged. Brain `0.2.0-alpha.391` and Rizom site `0.2.0-alpha.253` are published and independently verified. Deployment remains a separate approval gate. No deployment, guest activation or content publication has been performed.
 
 ## Decision
 
@@ -50,6 +50,20 @@ Missing or invalid optional content means no welcome or suggestions. No invented
 - One synthetic question completed through the actual guest runtime. Navigating to Full chat restored the owned answer without another send. No live provider requests were authorized or made.
 - App verification found a missing packaged-asset copy step for the new dashboard bundle. The CLI build now includes both dashboard assets; the canonical app was restarted against the same preserved fixture and allowance, then the check passed.
 - Local fixture/evidence: `/tmp/dashboard-ask-app.KeWOe8`; checks: `/tmp/dashboard-ask-*.log`. The bounded test app was stopped and its canonical configuration restored.
+
+## Release verification and follow-up
+
+Both post-merge release workflows failed the exact packed Chat browser-consumer check: Site Release `35193745580`, Core Release `35194096842`. The ordinary CI suites had passed, but the opt-in packed check exposed Node `process`/`url` dependencies in the Chat browser bundle. The new Ask schema shared a module with its server-side markdown parser.
+
+The follow-up separates the pure schema from `ask-content-markdown.ts`, retaining the server parser export without importing it through `chat.ts`. A default-suite browser-bundle regression test also rejects `gray-matter` in the Chat bundle. Local evidence reproduced the packed failure before the change, then passed the exact packed Chat consumer and the full seven-test packed compatibility matrix after it. No browser polyfill, test bypass or contract relaxation was introduced.
+
+Evidence: `/tmp/dashboard-ask-release/` (`packed-red.log`, `packed-green.log`, `packed-matrix-green.log`, browser red/green logs).
+
+Post-fix Core CI `35313976336` and Core Release `35314455597` passed. The publishing acknowledgement preceded public availability of Brain `.391`: independent registry reads and Site Release `35314961253` correctly rejected its temporary 404. Once available, the exact Brain and Ops `.391` archives passed registry identity, SHA512 and embedded manifest checks. The installed Brain archive passed the packed Chat browser/typecheck/runtime test; the installed Ops archive passed its CLI help smoke.
+
+Site CI `35314762195` passed. Site Release `35315865751` initially stopped on the same availability delay for site `.253`; after independent archive verification it was rerun normally and passed, including registry/tarball peer metadata. Existing versions were not overwritten. Evidence includes `core-gate-live.log`, `site-published-verification.json`, `site-registry-metadata-verified.log` and `site-final-run.log`.
+
+A separate workflow-hardening follow-up adds the full packed matrix to both existing blocking PR CI lanes and requires exact public registry identity, SHA512, archive identity and downloaded-package smoke checks after core publishing. Its tests cover temporary 404 recovery, bounded exhaustion and non-retryable identity/integrity/origin defects. This hardening is prepared for review; it is not yet merged. Content PR `rizom-ai/rizom-content#2` remains draft until compatible deployment and separate content approval.
 
 ## Rollout gate
 

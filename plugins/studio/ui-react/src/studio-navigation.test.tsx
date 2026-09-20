@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { Window } from "happy-dom";
 import { act } from "react";
@@ -11,6 +12,7 @@ import {
 } from "./entity-fields";
 import { StudioChrome } from "./studio-chrome";
 
+let restoreGlobals: RestoreGlobals;
 let browser: Window;
 let root: Root;
 let selected: string[];
@@ -107,14 +109,8 @@ const workspaces: StudioWorkspaceInfo[] = [
 
 beforeEach(() => {
   browser = new Window({ url: "http://brain.test/studio/entities/note" });
-  Object.assign(globalThis, {
-    window: browser,
-    document: browser.document,
-    navigator: browser.navigator,
-    HTMLElement: browser.HTMLElement,
+  restoreGlobals = installDomGlobals(browser, {
     HTMLInputElement: browser.HTMLInputElement,
-    Element: browser.Element,
-    Node: browser.Node,
     Event: browser.Event,
     CustomEvent: browser.CustomEvent,
     // Radix needs these to mount a dialog.
@@ -123,7 +119,6 @@ beforeEach(() => {
     requestAnimationFrame: browser.requestAnimationFrame.bind(browser),
     cancelAnimationFrame: browser.cancelAnimationFrame.bind(browser),
     getComputedStyle: browser.getComputedStyle.bind(browser),
-    IS_REACT_ACT_ENVIRONMENT: true,
   });
   const container = document.createElement("div");
   document.body.append(container);
@@ -134,6 +129,7 @@ afterEach(async () => {
   await act(async () => root.unmount());
   await browser.happyDOM.abort();
   browser.close();
+  restoreGlobals();
 });
 async function render(
   active: string | null = "note",

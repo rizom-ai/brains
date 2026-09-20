@@ -1,4 +1,12 @@
 import type { EntityGrouping, ServicePluginContext } from "@brains/plugins";
+import {
+  GROUPING_PAGE_LIMIT,
+  GROUPING_MAX_PAGE_LIMIT,
+  groupingKeySchema,
+  groupingSearchSchema,
+  groupingSortSchema,
+  groupingValueSchema,
+} from "@brains/plugins";
 import { decodeEntityIdPath } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 import { getTypeCapabilities } from "./editor-access";
@@ -8,20 +16,23 @@ import { entityDisplayTitle } from "./editor-entities";
 import { jsonResponse } from "./editor-response";
 
 const querySchema = z.object({
-  grouping: z.string().min(1).max(80),
+  grouping: groupingKeySchema,
   type: z.string().min(1).max(100).optional(),
-  value: z.string().max(10000).optional(),
-  q: z.string().max(200).default(""),
-  sort: z
-    .enum(["updated-desc", "updated-asc", "created-desc", "created-asc"])
-    .default("updated-desc"),
+  value: groupingValueSchema.optional(),
+  q: groupingSearchSchema.default(""),
+  sort: groupingSortSchema.default("updated-desc"),
   offset: z.coerce
     .number()
     .int()
     .min(0)
     .max(Number.MAX_SAFE_INTEGER)
     .default(0),
-  limit: z.coerce.number().int().min(1).max(100).default(50),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(GROUPING_MAX_PAGE_LIMIT)
+    .default(GROUPING_PAGE_LIMIT),
 });
 
 /** Descriptors cannot disclose contributing types the caller cannot read. */

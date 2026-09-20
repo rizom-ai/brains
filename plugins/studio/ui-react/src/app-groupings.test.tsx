@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import { afterEach, beforeEach, expect, test } from "bun:test";
+import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
 import { Window } from "happy-dom";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -15,16 +16,11 @@ import { groupingQuery } from "./grouping-url-query";
 import { StudioGroupingView } from "./studio-groupings";
 
 let windowInstance: Window;
+let restoreGlobals: RestoreGlobals;
 beforeEach(() => {
   windowInstance = new Window({ url: "https://studio.test/studio" });
-  Object.assign(globalThis, {
-    window: windowInstance,
-    document: windowInstance.document,
-    navigator: windowInstance.navigator,
+  restoreGlobals = installDomGlobals(windowInstance, {
     localStorage: windowInstance.localStorage,
-    HTMLElement: windowInstance.HTMLElement,
-    Element: windowInstance.Element,
-    Node: windowInstance.Node,
     NodeFilter: windowInstance.NodeFilter,
     Event: windowInstance.Event,
     CustomEvent: windowInstance.CustomEvent,
@@ -35,13 +31,15 @@ beforeEach(() => {
     cancelAnimationFrame:
       windowInstance.cancelAnimationFrame.bind(windowInstance),
     getComputedStyle: windowInstance.getComputedStyle.bind(windowInstance),
-    IS_REACT_ACT_ENVIRONMENT: true,
   });
 });
 let root: Root | undefined;
 afterEach(async () => {
   await act(async () => root?.unmount());
+  root = undefined;
+  await windowInstance.happyDOM.abort();
   windowInstance.close();
+  restoreGlobals();
 });
 async function waitFor(predicate: () => boolean): Promise<void> {
   for (let i = 0; i < 100; i++) {
@@ -111,6 +109,7 @@ for (const status of [401, 403])
             <QueryClientProvider client={client}>
               <StudioApiProvider api={api}>
                 <StudioGroupingView
+                  basePath="/studio"
                   grouping={grouping}
                   types={[]}
                   query={query}
@@ -146,7 +145,7 @@ for (const status of [401, 403])
         await act(async () => retry.click());
         await waitFor(() =>
           document.body.textContent.includes(
-            search ? "No entries are available" : "No clients here yet",
+            search ? "No entries in this group" : "No clients here yet",
           ),
         );
         expect(document.body.textContent).not.toContain("Private result");
@@ -218,6 +217,7 @@ test.each(["", "?value=Acme"])(
           <QueryClientProvider client={client}>
             <StudioApiProvider api={api}>
               <StudioGroupingView
+                basePath="/studio"
                 grouping={grouping}
                 query={query}
                 types={[]}
@@ -243,7 +243,7 @@ test.each(["", "?value=Acme"])(
       () =>
         aborted &&
         document.body.textContent.includes(
-          search ? "No entries are available" : "No clients here yet",
+          search ? "No entries in this group" : "No clients here yet",
         ),
     );
     expect(document.body.textContent).not.toContain("Private result");
@@ -404,8 +404,7 @@ test.each(["read", "save", "delete"] as const)(
       );
     });
     await waitFor(
-      () =>
-        document.body.textContent.includes("Preparing collections") === true,
+      () => document.body.textContent.includes("Preparing groups") === true,
     );
     expect(document.querySelectorAll("[data-studio-record]")).toHaveLength(0);
     expect(requests.some((request) => request.endsWith("/hierarchy"))).toBe(
@@ -480,7 +479,7 @@ test.each(["read", "save", "delete"] as const)(
     await waitFor(() => history.location.href === path);
     await waitFor(() =>
       writable
-        ? document.body.textContent.includes("No entries are available")
+        ? document.body.textContent.includes("No entries in this group")
         : document.querySelectorAll("[data-studio-record]").length === 1,
     );
     await act(async () => client.clear());

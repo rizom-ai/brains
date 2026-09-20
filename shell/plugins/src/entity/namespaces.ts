@@ -42,6 +42,8 @@ export function createEntitiesNamespace(shell: IShell): IEntitiesNamespace {
     registerGrouping: (grouping: EntityGrouping): void =>
       entityRegistry.registerGrouping(grouping),
     getGroupings: (): EntityGrouping[] => entityRegistry.getGroupings(),
+    isGroupingContributor: (type: string): boolean =>
+      entityRegistry.isGroupingContributor(type),
     register: <T extends BaseEntity>(
       entityType: string,
       schema: EntitySchema<T>,

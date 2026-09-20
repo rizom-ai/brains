@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { act, createElement, useState, type ReactElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -21,6 +22,7 @@ import {
 import { StudioApiProvider } from "./studio-api-context";
 import { createStudioRouter } from "./studio-router";
 
+let restoreGlobals: RestoreGlobals;
 let windowInstance: Window;
 let root: Root;
 let requests: string[];
@@ -64,14 +66,8 @@ async function waitFor(
 beforeEach(() => {
   windowInstance = new Window({ url: "http://brain.test/studio" });
   requests = [];
-  Object.assign(globalThis, {
-    window: windowInstance,
-    document: windowInstance.document,
+  restoreGlobals = installDomGlobals(windowInstance, {
     localStorage: windowInstance.localStorage,
-    navigator: windowInstance.navigator,
-    HTMLElement: windowInstance.HTMLElement,
-    Element: windowInstance.Element,
-    Node: windowInstance.Node,
     Event: windowInstance.Event,
     CustomEvent: windowInstance.CustomEvent,
     MutationObserver: windowInstance.MutationObserver,
@@ -81,7 +77,6 @@ beforeEach(() => {
     cancelAnimationFrame:
       windowInstance.cancelAnimationFrame.bind(windowInstance),
     getComputedStyle: windowInstance.getComputedStyle.bind(windowInstance),
-    IS_REACT_ACT_ENVIRONMENT: true,
   });
   const container = document.createElement("div");
   document.body.append(container);
@@ -90,7 +85,9 @@ beforeEach(() => {
 
 afterEach(async () => {
   await act(async () => root.unmount());
+  await windowInstance.happyDOM.abort();
   windowInstance.close();
+  restoreGlobals();
 });
 
 describe("System Properties disclosure", () => {

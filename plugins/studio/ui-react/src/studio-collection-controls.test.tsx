@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
 import { afterEach, beforeEach, expect, it } from "bun:test";
 import { Window } from "happy-dom";
 import { act, createElement } from "react";
@@ -9,22 +10,16 @@ import {
   type StudioCollectionQuery,
 } from "../../src/collection-query";
 
+let restoreGlobals: RestoreGlobals;
 let windowInstance: Window;
 let root: Root;
 
 beforeEach(() => {
   windowInstance = new Window({ url: "http://brain.test/studio" });
-  Object.assign(globalThis, {
-    window: windowInstance,
-    document: windowInstance.document,
-    navigator: windowInstance.navigator,
-    HTMLElement: windowInstance.HTMLElement,
+  restoreGlobals = installDomGlobals(windowInstance, {
     HTMLInputElement: windowInstance.HTMLInputElement,
-    Element: windowInstance.Element,
-    Node: windowInstance.Node,
     Event: windowInstance.Event,
     KeyboardEvent: windowInstance.KeyboardEvent,
-    IS_REACT_ACT_ENVIRONMENT: true,
   });
   const container = document.createElement("div");
   document.body.append(container);
@@ -33,7 +28,9 @@ beforeEach(() => {
 
 afterEach(async () => {
   await act(async () => root.unmount());
+  await windowInstance.happyDOM.abort();
   windowInstance.close();
+  restoreGlobals();
 });
 
 async function mount(

@@ -26,12 +26,29 @@ import { libraryStyles } from "./studio-library.styles";
 import { groupingStyles } from "./studio-groupings.styles";
 import { headStyles } from "./studio-page-head.styles";
 import { entityTitle, formatUpdated, singularLabel } from "./ui-utils";
+import { studioGroupingPath } from "../../src/studio-paths";
+import { groupingSearch } from "./grouping-url-query";
+
+/** Studio calls these groups and entries; "collection" belongs to entity types. */
+function countLabel(count: number, one: string, many: string): string {
+  return count === 1 ? one : many;
+}
+
+/** A correction the reader did not ask for must not become a Back step. */
+export interface GroupingChangeOptions {
+  replace?: boolean;
+}
 
 interface GroupingViewProps {
   grouping: EntityGrouping;
+  /** Studio's base path, so each group row can carry a real href. */
+  basePath: string;
   types: EntityTypeInfo[];
   query: StudioGroupingQuery;
-  onChange: (query: StudioGroupingQuery) => void;
+  onChange: (
+    query: StudioGroupingQuery,
+    options?: GroupingChangeOptions,
+  ) => void;
   onOpen: (entityType: string, id: string) => void;
 }
 export function StudioGroupingView(props: GroupingViewProps): ReactElement {
@@ -47,7 +64,9 @@ export function StudioGroupingView(props: GroupingViewProps): ReactElement {
       Math.floor(Math.max(0, result.data.total - 1) / props.query.limit) *
       props.query.limit;
     if (props.query.offset > last)
-      props.onChange({ ...props.query, offset: last });
+      // Clamping an out-of-range page is a repair of the current URL, so Back
+      // still leaves the collection instead of returning to the empty page.
+      props.onChange({ ...props.query, offset: last }, { replace: true });
   }, [
     result.isSuccess,
     result.isFetching,
@@ -93,8 +112,10 @@ export function StudioGroupingContent(
   }, [query.q]);
   useEffect(() => {
     if (search === query.q) return;
+    // Typing is continuous; each keystroke must not become its own Back step.
     const timer = setTimeout(
-      () => props.onChange({ ...query, q: search, offset: 0 }),
+      () =>
+        props.onChange({ ...query, q: search, offset: 0 }, { replace: true }),
       250,
     );
     return (): void => clearTimeout(timer);
@@ -104,6 +125,13 @@ export function StudioGroupingContent(
       studioGroupingQuerySchema.parse({ ...query, ...patch, offset: 0 }),
     );
   const rows = page?.kind === "catalog" ? page.values : (page?.entities ?? []);
+  const filtered = Boolean(
+    query.type || query.q || query.sort !== "updated-desc",
+  );
+  const groupHref = (value: string): string =>
+    `${studioGroupingPath(props.basePath, grouping.key)}${groupingSearch(
+      studioGroupingQuerySchema.parse({ value }),
+    )}`;
   return (
     <main
       className={editorClassName(
@@ -120,7 +148,11 @@ export function StudioGroupingContent(
           title,
           metadata: page
             ? [
-                `${total} ${catalog ? (total === 1 ? "collection" : "collections") : total === 1 ? "entity" : "entities"}`,
+                `${total} ${countLabel(
+                  total,
+                  catalog ? "group" : "entry",
+                  catalog ? "groups" : "entries",
+                )}`,
               ]
             : [],
           totals: [],
@@ -142,11 +174,11 @@ export function StudioGroupingContent(
       {catalog ? (
         <p className={editorClassName("", groupingStyles.hint)}>
           Content grouped by its {grouping.label} property. An entry can belong
-          to more than one collection.
+          to more than one group.
         </p>
       ) : (
         <StudioCollectionBar
-          label="Collection controls"
+          label="Group controls"
           searchLabel="Search title or content"
           search={search}
           onSearch={setSearch}
@@ -154,9 +186,7 @@ export function StudioGroupingContent(
           filterCount={
             Number(Boolean(query.type)) + Number(query.sort !== "updated-desc")
           }
-          filtered={Boolean(
-            query.type || query.q || query.sort !== "updated-desc",
-          )}
+          filtered={filtered}
           onClear={() => {
             setSearch("");
             change({ type: "", q: "", sort: "updated-desc" });
@@ -208,15 +238,15 @@ export function StudioGroupingContent(
         </StudioStatus>
       ) : props.initializing ? (
         <StudioStatus>
-          <strong>Preparing collections</strong>
+          <strong>Preparing groups</strong>
           <br />
           <span>
             Checking existing content. This view will update automatically when
-            the complete collection is ready.
+            the complete group is ready.
           </span>
         </StudioStatus>
       ) : props.loading ? (
-        <StudioStatus>Loading collection…</StudioStatus>
+        <StudioStatus>Loading group…</StudioStatus>
       ) : (
         <>
           {total > 0 && (
@@ -240,20 +270,30 @@ export function StudioGroupingContent(
           )}
           {page?.kind === "catalog" &&
             page.values.map((entry, index) => (
-              <button
-                type="button"
+              // A group is a place, so it opens in a new tab like any link.
+              <a
                 key={entry.value}
+                href={groupHref(entry.value)}
                 data-studio-grouping-value=""
                 className={editorClassName(
                   "",
                   libraryStyles.row,
                   editorStyles.listingRow,
+                  groupingStyles.valueLink,
                 )}
-                onClick={() =>
+                onClick={(event) => {
+                  if (
+                    event.metaKey ||
+                    event.ctrlKey ||
+                    event.shiftKey ||
+                    event.altKey
+                  )
+                    return;
+                  event.preventDefault();
                   props.onChange(
                     studioGroupingQuerySchema.parse({ value: entry.value }),
-                  )
-                }
+                  );
+                }}
               >
                 <span className={editorClassName("", libraryStyles.index)}>
                   {String(query.offset + index + 1).padStart(2, "0")}
@@ -262,9 +302,9 @@ export function StudioGroupingContent(
                   {groupingValueLabel(entry.value)}
                 </span>
                 <span className={editorClassName("", libraryStyles.updated)}>
-                  {entry.count} {entry.count === 1 ? "entity" : "entities"} →
+                  {entry.count} {countLabel(entry.count, "entry", "entries")} →
                 </span>
-              </button>
+              </a>
             ))}
           {page?.kind === "members" &&
             page.entities.map((entity, index) => (
@@ -315,8 +355,10 @@ export function StudioGroupingContent(
                     entries.
                   </span>
                 </>
+              ) : filtered ? (
+                "No entries in this group match the current filters."
               ) : (
-                "No entries are available in this collection under the current filters."
+                "No entries in this group are available to you."
               )}
             </StudioStatus>
           )}

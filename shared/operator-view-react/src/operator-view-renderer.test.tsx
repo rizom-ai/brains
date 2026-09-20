@@ -9,12 +9,13 @@ import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
+import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
+import { OperatorViewRenderer } from "./operator-view-renderer";
 import {
-  OperatorViewRenderer,
   OperatorActionButton,
   actionFailureMessage,
-  type OperatorViewComponents,
-} from "./operator-view-renderer";
+} from "./operator-view-actions";
+import type { OperatorViewComponents } from "./operator-view-host";
 
 const data: RuntimeStudioWorkspaceData = {
   view: {
@@ -887,6 +888,7 @@ describe("OperatorViewRenderer conformance", () => {
 });
 
 describe("OperatorViewRenderer confirmations", () => {
+  let restoreGlobals: RestoreGlobals;
   let windowInstance: Window;
   let root: Root;
   let container: HTMLElement;
@@ -895,13 +897,7 @@ describe("OperatorViewRenderer confirmations", () => {
     windowInstance = new Window({
       url: "https://brain.test/studio/workspaces/directory-sync",
     });
-    Object.assign(globalThis, {
-      window: windowInstance,
-      document: windowInstance.document,
-      navigator: windowInstance.navigator,
-      HTMLElement: windowInstance.HTMLElement,
-      Element: windowInstance.Element,
-      Node: windowInstance.Node,
+    restoreGlobals = installDomGlobals(windowInstance, {
       Event: windowInstance.Event,
       FormData: windowInstance.FormData,
       MutationObserver: windowInstance.MutationObserver,
@@ -913,7 +909,6 @@ describe("OperatorViewRenderer confirmations", () => {
         windowInstance.requestAnimationFrame.bind(windowInstance),
       cancelAnimationFrame:
         windowInstance.cancelAnimationFrame.bind(windowInstance),
-      IS_REACT_ACT_ENVIRONMENT: true,
     });
     // globalThis.document is the happy-dom document assigned above, but typed
     // as lib.dom's — so the element it makes is the one createRoot declares,
@@ -925,7 +920,11 @@ describe("OperatorViewRenderer confirmations", () => {
 
   afterEach(async () => {
     await act(async () => root.unmount());
+    // Radix's focus scope dispatches on its way out. Drain that before the
+    // globals go back, or it runs against a native Event and throws.
+    await windowInstance.happyDOM.abort();
     windowInstance.close();
+    restoreGlobals();
   });
 
   const clickButton = async (label: string): Promise<void> => {
@@ -1479,21 +1478,15 @@ const detailData = (open?: {
 });
 
 describe("OperatorViewRenderer master/detail", () => {
+  let restoreGlobals: RestoreGlobals;
   let windowInstance: Window;
   let root: Root;
   let container: HTMLElement;
 
   beforeEach(() => {
     windowInstance = new Window({ url: "https://brain.test/studio" });
-    Object.assign(globalThis, {
-      window: windowInstance,
-      document: windowInstance.document,
-      navigator: windowInstance.navigator,
-      HTMLElement: windowInstance.HTMLElement,
-      Element: windowInstance.Element,
-      Node: windowInstance.Node,
+    restoreGlobals = installDomGlobals(windowInstance, {
       Event: windowInstance.Event,
-      IS_REACT_ACT_ENVIRONMENT: true,
     });
     container = document.createElement("div");
     document.body.append(container);
@@ -1504,6 +1497,7 @@ describe("OperatorViewRenderer master/detail", () => {
     await act(async () => root.unmount());
     await windowInstance.happyDOM.abort();
     windowInstance.close();
+    restoreGlobals();
   });
 
   it("renders the collection beside the open item and marks the open row", () => {

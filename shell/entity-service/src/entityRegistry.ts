@@ -1,18 +1,19 @@
 import type { Logger } from "@brains/utils/logger";
 import { baseEntitySchema, contentVisibilitySchema } from "./types";
-import { projectFrontmatterExtensions } from "./frontmatter-extensions";
+import {
+  projectFrontmatterExtensions,
+  type InvalidFieldPolicy,
+} from "./frontmatter-extensions";
 import { z } from "@brains/utils/zod";
 import {
   getArrayElement,
   getObjectShape,
+  haveSameStringListContract,
   readEnumValues,
   readLiteralValue,
   unwrapField,
 } from "@brains/utils/zod-introspect";
-import {
-  parseMarkdownWithFrontmatter,
-  stripSystemVisibility,
-} from "./frontmatter";
+import { parseMarkdownWithFrontmatter } from "./frontmatter";
 import {
   entityGroupingSchema,
   GROUPING_RESERVED_FIELDS,
@@ -30,9 +31,7 @@ import type {
   UnknownEntitySchema,
 } from "./types";
 
-/**
- * Registry for entity types
- */
+/** Registry for entity types. */
 export class EntityRegistry implements IEntityRegistry {
   private entitySchemas = new Map<string, UnknownEntitySchema>();
   private entityAdapters = new Map<string, EntityAdapter<BaseEntity>>();
@@ -374,7 +373,9 @@ export class EntityRegistry implements IEntityRegistry {
           `Grouping field must be a string list: ${type}.${grouping.field}`,
         );
       }
-      if (metadataField && metadataField !== field) {
+      // Reuse independently declared shapes only when runtime checks also
+      // match. JSON Schema alone cannot prove refinement/transform equality.
+      if (metadataField && !haveSameStringListContract(metadataField, field)) {
         throw new Error(
           `Cannot establish a shared frontmatter/metadata contract for ${type}.${grouping.field}`,
         );
@@ -399,35 +400,83 @@ export class EntityRegistry implements IEntityRegistry {
     return [...this.groupings.keys()].map((key) => this.getGrouping(key));
   }
 
+  /** Write path: a submitted membership value that fails its own schema is an error. */
   projectMetadata(
     type: string,
     content: string,
     metadata: Record<string, unknown>,
   ): Record<string, unknown> {
-    const projected = projectFrontmatterExtensions(
-      content,
-      metadata,
-      this.getFrontmatterExtensions(type),
-    );
-    const fields = new Set(
-      [...this.groupings.values()]
-        .filter((grouping) => grouping.types.includes(type))
-        .map((grouping) => grouping.field),
-    );
-    if (fields.size === 0) return projected;
-    const schema = this.getEffectiveFrontmatterSchema(type);
-    if (!schema)
-      throw new Error("Grouping contributor lost its frontmatter schema");
+    return this.projectRegisteredFields(type, content, metadata, "reject");
+  }
+
+  /**
+   * Bootstrap path over already-stored content: an invalid registered value is
+   * omitted from the projection and left untouched in source, never fatal.
+   */
+  projectStoredMetadata(
+    type: string,
+    content: string,
+    metadata: Record<string, unknown>,
+  ): Record<string, unknown> {
+    return this.projectRegisteredFields(type, content, metadata, "omit");
+  }
+
+  groupingFields(type: string): string[] {
+    return [
+      ...new Set(
+        [...this.groupings.values()]
+          .filter((grouping) => grouping.types.includes(type))
+          .map((grouping) => grouping.field),
+      ),
+    ];
+  }
+
+  isGroupingContributor(type: string): boolean {
+    for (const grouping of this.groupings.values())
+      if (grouping.types.includes(type)) return true;
+    return false;
+  }
+
+  /**
+   * Each registered field is validated against its own schema entry. A sibling
+   * the entity owner rejects belongs to owner validation; it must not decide
+   * whether this entity is a member of a collection.
+   */
+  private projectRegisteredFields(
+    type: string,
+    content: string,
+    metadata: Record<string, unknown>,
+    invalid: InvalidFieldPolicy,
+  ): Record<string, unknown> {
+    // One parse feeds both projections; a bulk pass sees each row once, so it
+    // must not leave the document in gray-matter's process-lifetime cache.
     const source = parseMarkdownWithFrontmatter(
       content,
       z.record(z.string(), z.unknown()),
+      { cache: invalid === "omit" ? false : true },
     ).metadata;
-    const validated = schema.parse(stripSystemVisibility(source));
+    const projected = projectFrontmatterExtensions(
+      source,
+      metadata,
+      this.getFrontmatterExtensions(type),
+      invalid,
+    );
+    const fields = this.groupingFields(type);
+    if (fields.length === 0) return projected;
+    const schema = this.getEffectiveFrontmatterSchema(type);
+    if (!schema)
+      throw new Error("Grouping contributor lost its frontmatter schema");
     const result = { ...projected };
     for (const field of fields) {
       delete result[field];
-      if (Object.hasOwn(source, field) && validated[field] !== undefined)
-        result[field] = validated[field];
+      const fieldSchema = schema.shape[field];
+      if (!fieldSchema || !Object.hasOwn(source, field)) continue;
+      const parsed = z.safeParse(fieldSchema, source[field]);
+      if (!parsed.success) {
+        if (invalid === "reject") throw parsed.error;
+        continue;
+      }
+      if (parsed.data !== undefined) result[field] = parsed.data;
     }
     return result;
   }

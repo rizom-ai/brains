@@ -333,12 +333,13 @@ export class StudioApi {
     const response = await this.requestJson<{
       types: EntityTypeInfo[];
       workspaces?: StudioWorkspaceInfo[];
-      groupings: EntityGrouping[];
+      groupings?: EntityGrouping[];
     }>(this.path("types"));
     return {
       types: response.types,
       workspaces: response.workspaces ?? [],
-      groupings: response.groupings,
+      // An older server has no groupings; that is no reason to fail navigation.
+      groupings: response.groupings ?? [],
     };
   }
 

@@ -66,14 +66,14 @@ describe("setupInitialSync with git", () => {
       saveCheckpoint: mock(async () => {}),
     };
 
-    setupInitialSync(
+    setupInitialSync({
       context,
-      () => ds,
-      baseConfig,
-      createSilentLogger(),
-      gs,
+      getDirectorySync: () => ds,
+      config: baseConfig,
+      logger: createSilentLogger(),
+      gitSync: gs,
       reconciliation,
-    );
+    });
 
     await context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
@@ -127,16 +127,15 @@ describe("setupInitialSync with git", () => {
       }),
     };
 
-    setupInitialSync(
+    setupInitialSync({
       context,
-      () => ds,
-      baseConfig,
-      createSilentLogger(),
-      gs,
+      getDirectorySync: () => ds,
+      config: baseConfig,
+      logger: createSilentLogger(),
+      gitSync: gs,
       reconciliation,
-      undefined,
       operationStatus,
-    );
+    });
 
     await context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
@@ -165,14 +164,14 @@ describe("setupInitialSync with git", () => {
       saveCheckpoint: mock(async () => {}),
     };
 
-    setupInitialSync(
+    setupInitialSync({
       context,
-      () => createMockDirectorySync(),
-      baseConfig,
-      createSilentLogger(),
-      gs,
+      getDirectorySync: () => createMockDirectorySync(),
+      config: baseConfig,
+      logger: createSilentLogger(),
+      gitSync: gs,
       reconciliation,
-    );
+    });
 
     await context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
@@ -202,19 +201,18 @@ describe("setupInitialSync with git", () => {
       }),
     });
 
-    setupInitialSync(
+    setupInitialSync({
       context,
-      () => createMockDirectorySync(),
-      baseConfig,
-      createSilentLogger(),
-      gs,
-      undefined,
-      {
+      getDirectorySync: () => createMockDirectorySync(),
+      config: baseConfig,
+      logger: createSilentLogger(),
+      gitSync: gs,
+      recovery: {
         onGitProgress,
         onGitRecoverySucceeded,
         onGitRecoveryFailed,
       },
-    );
+    });
 
     await context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
@@ -235,7 +233,12 @@ describe("setupInitialSync with git", () => {
     }));
     const ds = createMockDirectorySync({ sync: syncMock });
 
-    setupInitialSync(context, () => ds, baseConfig, createSilentLogger());
+    setupInitialSync({
+      context,
+      getDirectorySync: () => ds,
+      config: baseConfig,
+      logger: createSilentLogger(),
+    });
 
     await context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
@@ -250,7 +253,13 @@ describe("setupInitialSync with git", () => {
     const ds = createMockDirectorySync();
     const gs = createMockGitSync();
 
-    setupInitialSync(context, () => ds, baseConfig, createSilentLogger(), gs);
+    setupInitialSync({
+      context,
+      getDirectorySync: () => ds,
+      config: baseConfig,
+      logger: createSilentLogger(),
+      gitSync: gs,
+    });
 
     await context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
@@ -273,7 +282,13 @@ describe("setupInitialSync with git", () => {
       }),
     });
 
-    setupInitialSync(context, () => ds, baseConfig, createSilentLogger(), gs);
+    setupInitialSync({
+      context,
+      getDirectorySync: () => ds,
+      config: baseConfig,
+      logger: createSilentLogger(),
+      gitSync: gs,
+    });
 
     await context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
@@ -299,7 +314,12 @@ describe("setupInitialSync with git", () => {
       }),
     });
 
-    setupInitialSync(context, () => ds, baseConfig, createSilentLogger());
+    setupInitialSync({
+      context,
+      getDirectorySync: () => ds,
+      config: baseConfig,
+      logger: createSilentLogger(),
+    });
 
     await context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,

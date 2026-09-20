@@ -1,4 +1,4 @@
-import type { EntityGrouping } from "@brains/plugins";
+import type { ServicePluginContext } from "@brains/plugins";
 import { formatLabel, pluralize } from "@brains/utils/string-utils";
 import {
   getArrayElement,
@@ -70,11 +70,11 @@ function pluralizeLabel(label: string): string {
  */
 export function isRawEntityType(
   entityType: string,
-  groupings: readonly EntityGrouping[],
+  entities: Pick<ServicePluginContext["entities"], "isGroupingContributor">,
 ): boolean {
   return (
     entityType === NOTE_ENTITY_TYPE &&
-    !groupings.some((grouping) => grouping.types.includes(entityType))
+    !entities.isGroupingContributor(entityType)
   );
 }
 

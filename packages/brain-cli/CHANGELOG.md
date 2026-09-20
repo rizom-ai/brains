@@ -1,5 +1,25 @@
 # @rizom/brain
 
+## 0.2.0-alpha.394
+
+### Patch Changes
+
+- [#274](https://github.com/rizom-ai/brains/pull/274) [`46d8477`](https://github.com/rizom-ai/brains/commit/46d847799d564a8b71302b0cb4faaa70b95632fc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Separate Account into accessible Profile, Sign-in & sessions, Linked identities, and capability-driven Personal settings sections. Preserve unsaved values while switching sections, clarify that settings belong to the current account on this brain, and link administrators to separate access management.
+
+  Preserve the account client binding when starting Add passkey so the existing authenticated WebAuthn registration ceremony can run.
+
+  Use consistent linked-identity terminology in Administration and label its existing audit tab Access activity. Preserve access checks, account-recovery controls, passkey protection, System navigation, and existing mutation contracts; do not expose proposed app-grant or shared-integration management features.
+
+## 0.2.0-alpha.393
+
+## 0.2.0-alpha.392
+
+## 0.2.0-alpha.391
+
+### Patch Changes
+
+- [#270](https://github.com/rizom-ai/brains/pull/270) [`1a0278b`](https://github.com/rizom-ai/brains/commit/1a0278b4f49143968abb0e2b3c61fc701bb6265d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep the public Chat browser contract free of server-only markdown parsing dependencies by separating the authored Ask schema from its markdown loader.
+
 ## 0.2.0-alpha.390
 
 ### Patch Changes

@@ -1,7 +1,7 @@
 {
   "name": "@brains/app-ui-react",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.390",
+  "version": "0.2.0-alpha.394",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
@@ -11,7 +11,7 @@
   "scripts": {
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
-    "test": "bun test --preload @brains/build-tools/stylex-test-preload",
+    "test": "BUN_JSC_useDFGJIT=0 bun test --preload @brains/build-tools/stylex-test-preload --preload ./test/browser-preload.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -22,6 +22,7 @@
   "devDependencies": {
     "@brains/build-tools": "workspace:*",
     "@brains/eslint-config": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",
     "@types/react": "^19.2.17",

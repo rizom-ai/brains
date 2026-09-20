@@ -1,5 +1,61 @@
 # @brains/ai-service
 
+## 0.2.0-alpha.394
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.394
+  - @brains/utils@0.2.0-alpha.394
+  - @brains/conversation-service@0.2.0-alpha.394
+  - @brains/entity-service@0.2.0-alpha.394
+  - @brains/identity-service@0.2.0-alpha.394
+  - @brains/mcp-service@0.2.0-alpha.394
+  - @brains/messaging-service@0.2.0-alpha.394
+  - @brains/templates@0.2.0-alpha.394
+
+## 0.2.0-alpha.393
+
+### Patch Changes
+
+- Updated dependencies [[`0010eb2`](https://github.com/rizom-ai/brains/commit/0010eb2834335a8a0a88a66a96c2c6267b29d2df)]:
+  - @brains/entity-service@0.2.0-alpha.393
+  - @brains/identity-service@0.2.0-alpha.393
+  - @brains/contracts@0.2.0-alpha.393
+  - @brains/utils@0.2.0-alpha.393
+  - @brains/conversation-service@0.2.0-alpha.393
+  - @brains/mcp-service@0.2.0-alpha.393
+  - @brains/messaging-service@0.2.0-alpha.393
+  - @brains/templates@0.2.0-alpha.393
+
+## 0.2.0-alpha.392
+
+### Patch Changes
+
+- Updated dependencies [[`384bac5`](https://github.com/rizom-ai/brains/commit/384bac51f68f6f11d255d61f1a78dacd78fc9abe)]:
+  - @brains/entity-service@0.2.0-alpha.392
+  - @brains/identity-service@0.2.0-alpha.392
+  - @brains/contracts@0.2.0-alpha.392
+  - @brains/utils@0.2.0-alpha.392
+  - @brains/conversation-service@0.2.0-alpha.392
+  - @brains/mcp-service@0.2.0-alpha.392
+  - @brains/messaging-service@0.2.0-alpha.392
+  - @brains/templates@0.2.0-alpha.392
+
+## 0.2.0-alpha.391
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.391
+  - @brains/utils@0.2.0-alpha.391
+  - @brains/conversation-service@0.2.0-alpha.391
+  - @brains/entity-service@0.2.0-alpha.391
+  - @brains/identity-service@0.2.0-alpha.391
+  - @brains/mcp-service@0.2.0-alpha.391
+  - @brains/messaging-service@0.2.0-alpha.391
+  - @brains/templates@0.2.0-alpha.391
+
 ## 0.2.0-alpha.390
 
 ### Patch Changes

@@ -13,22 +13,39 @@ import {
 } from "drizzle-orm";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { getErrorMessage } from "@brains/utils/error";
-import { computeContentHash } from "@brains/utils/hash";
 import { createId } from "@brains/utils/id";
 import { SerialQueue } from "@brains/utils/serial-queue";
 import { z } from "@brains/utils/zod";
 import type { EntityDB } from "./db";
 import { EntityExportStore } from "./entity-export-store";
-import type { SqliteAssetRepository } from "./sqlite-asset-repository";
 import type { EntityMutationAdmission } from "./mutation-admission";
+import {
+  parseBulkMutationInput,
+  parseDurableBulkMutationChildInput,
+  parseDurableBulkMutationRootInput,
+  parseSettleDurableBulkMutationChildInput,
+  type BulkMutationInput,
+  type DurableBulkMutationChildInput,
+  type DurableBulkMutationRootInput,
+  type ProjectionBatchOwnedJob,
+  type ProjectionBatchRecoveryResult,
+  type ProjectionBatchRootReader,
+  type SettleDurableBulkMutationChildInput,
+} from "./projection-batch-contracts";
 import {
   ProjectionWriteIntentSchema,
   type ProjectionWriteIntent,
 } from "./projection-contracts";
 import {
+  canonicalProjectionJson,
+  ProjectionWriteIntentApplier,
+  type ProjectionEntityStoragePolicy,
+} from "./projection-write-intent-applier";
+import {
   projectionAdmissionState,
   projectionBatchChildren,
   projectionBatches,
+  type ProjectionBatch,
 } from "./schema/projection-batches";
 import {
   projectionDirtyInputs,
@@ -46,7 +63,6 @@ import {
   type ProjectionWaveInput,
   type ProjectionWaveRule,
 } from "./schema/projection-state";
-import { entities } from "./schema/entities";
 
 const dirtyInputSchema = z.strictObject({
   sourceType: z.string().trim().min(1),
@@ -81,36 +97,15 @@ const waveRuleInputSchema = z.strictObject({
   level: z.number().int().nonnegative(),
 });
 
-const bulkMutationInputSchema = z.strictObject({
-  source: z.string().trim().min(1).max(100),
-  operationId: z.string().trim().min(1).max(200),
-});
-
 const DURABLE_ROOT_RECOVERY_GRACE_MS = 5_000;
+const DURABLE_ROOT_PARTIAL_TIMEOUT_MS = 30_000;
+const PROJECTION_BATCH_LEASE_MS = 30_000;
+const CALLBACK_BATCH_HEARTBEAT_MS = 10_000;
 // These state transitions are idempotent and may race entity writes in the
 // worker process. Retry by time budget so transient SQLite writers can drain.
 const BATCH_STATE_WRITE_RETRY_BUDGET_MS = 2_000;
 const BATCH_STATE_WRITE_RETRY_BASE_DELAY_MS = 5;
 const BATCH_STATE_WRITE_RETRY_MAX_DELAY_MS = 40;
-
-const durableBulkMutationRootSchema = bulkMutationInputSchema.extend({
-  rootJobId: z.string().trim().min(1).max(200),
-  expectedChildren: z.number().int().positive().max(10_000),
-});
-
-const durableBulkMutationChildSchema = durableBulkMutationRootSchema.extend({
-  rootJobId: z.string().trim().min(1).max(200),
-  childKey: z.string().trim().min(1).max(200),
-  expectedChildren: z.number().int().positive().max(10_000),
-  jobId: z.string().trim().min(1).max(200),
-});
-
-const settleDurableBulkMutationChildSchema = z.strictObject({
-  operationId: z.string().trim().min(1).max(200),
-  childKey: z.string().trim().min(1).max(200),
-  jobId: z.string().trim().min(1).max(200),
-  outcome: z.enum(["completed", "failed"]),
-});
 
 const changedTargetSchema = z.strictObject({
   entityType: z.string().trim().min(1),
@@ -119,27 +114,15 @@ const changedTargetSchema = z.strictObject({
   contentHash: z.string().min(1).optional(),
 });
 
-export interface BulkMutationInput {
-  source: string;
-  operationId: string;
-}
-
-export interface DurableBulkMutationRootInput extends BulkMutationInput {
-  rootJobId: string;
-  expectedChildren: number;
-}
-
-export interface DurableBulkMutationChildInput extends DurableBulkMutationRootInput {
-  childKey: string;
-  jobId: string;
-}
-
-export interface SettleDurableBulkMutationChildInput {
-  operationId: string;
-  childKey: string;
-  jobId: string;
-  outcome: "completed" | "failed";
-}
+export type {
+  BulkMutationInput,
+  DurableBulkMutationChildInput,
+  DurableBulkMutationRootInput,
+  ProjectionBatchOwnedJob,
+  ProjectionBatchRecoveryResult,
+  ProjectionBatchRootReader,
+  SettleDurableBulkMutationChildInput,
+} from "./projection-batch-contracts";
 
 export class ProjectionBatchFencedError extends Error {}
 
@@ -148,23 +131,6 @@ interface ProjectionBatchScope {
   source: string;
   operationId: string;
   ownerToken: string;
-}
-
-export interface ProjectionBatchOwnedJob {
-  jobId: string;
-  childKey: string;
-  status: "pending" | "processing" | "completed" | "failed";
-  terminalAt: number | null;
-}
-
-export type ProjectionBatchRootReader = (
-  rootJobId: string,
-  operationId: string,
-) => Promise<readonly ProjectionBatchOwnedJob[]>;
-
-export interface ProjectionBatchRecoveryResult {
-  fencedCallbacks: number;
-  releasedDurableRoots: number;
 }
 
 export interface ProjectionBatchDiagnostics {
@@ -225,6 +191,13 @@ interface FailedProjectionWave {
   recoveryGeneration: number;
 }
 
+interface TerminalProjectionBatchTransition {
+  abandoned: boolean;
+  terminalAt: number;
+  fenceOwner: boolean;
+  clearLease: boolean;
+}
+
 export interface ApplyProjectionRuleResultInput {
   waveId: string;
   ruleId: string;
@@ -259,19 +232,6 @@ function coalesceLatestInputs(
   return [...latestBySource.values()].sort(
     (left, right) => left.generation - right.generation,
   );
-}
-
-function canonicalJson(value: unknown): string {
-  if (Array.isArray(value)) {
-    return `[${value.map((item) => canonicalJson(item)).join(",")}]`;
-  }
-  if (value !== null && typeof value === "object") {
-    return `{${Object.entries(value)
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, item]) => `${JSON.stringify(key)}:${canonicalJson(item)}`)
-      .join(",")}}`;
-  }
-  return JSON.stringify(value);
 }
 
 function parseWaveRule(rule: ProjectionWaveRule): ProjectionWaveRule {
@@ -319,9 +279,9 @@ export async function retrySqliteWrite<TResult>(
       new Promise((resolve) => setTimeout(resolve, delayMs)));
   const random = options.random ?? Math.random;
   const deadline = now() + retryBudgetMs;
-  let attempt = 1;
 
-  for (;;) {
+  /** One attempt per step, backing off until the budget would be overrun. */
+  const attemptWrite = async (attempt: number): Promise<TResult> => {
     try {
       return await write();
     } catch (error) {
@@ -333,24 +293,19 @@ export async function retrySqliteWrite<TResult>(
       const delay = backoff / 2 + random() * (backoff / 2);
       if (now() + delay >= deadline) throw error;
       await sleep(delay);
-      attempt += 1;
+      return attemptWrite(attempt + 1);
     }
-  }
+  };
+  return attemptWrite(1);
 }
 
-export interface ProjectionEntityStoragePolicy {
-  assetRepository: SqliteAssetRepository;
-  isAssetBacked(entityType: string): boolean;
-  isFullTextSearchable(entityType: string): boolean;
-}
+export type { ProjectionEntityStoragePolicy } from "./projection-write-intent-applier";
 
 /** Entity-database persistence boundary for scheduler coordination state. */
 export class ProjectionStore {
   private readonly db: EntityDB;
-  private readonly entityExportStore: EntityExportStore;
-  private readonly mutationAdmission: EntityMutationAdmission | undefined;
   private readonly now: () => number;
-  private readonly storagePolicy: ProjectionEntityStoragePolicy | undefined;
+  private readonly writeIntentApplier: ProjectionWriteIntentApplier;
   private readonly transactionTail = new SerialQueue();
   private readonly batchScope = new AsyncLocalStorage<ProjectionBatchScope>();
 
@@ -361,26 +316,45 @@ export class ProjectionStore {
     storagePolicy?: ProjectionEntityStoragePolicy,
   ) {
     this.db = db;
-    this.entityExportStore = new EntityExportStore(db, now);
-    this.mutationAdmission = mutationAdmission;
     this.now = now;
-    this.storagePolicy = storagePolicy;
+    this.writeIntentApplier = new ProjectionWriteIntentApplier({
+      entityExportStore: new EntityExportStore(db, now),
+      ...(mutationAdmission && { mutationAdmission }),
+      ...(storagePolicy && { storagePolicy }),
+    });
+  }
+
+  private assertBatchIdentity(
+    scope: ProjectionBatchScope,
+    input: BulkMutationInput,
+  ): void {
+    if (
+      scope.source !== input.source ||
+      scope.operationId !== input.operationId
+    ) {
+      throw new ProjectionBatchFencedError(
+        `Projection batch "${input.operationId}" cannot join active batch "${scope.operationId}"`,
+      );
+    }
   }
 
   public async runBulkMutation<TResult>(
     input: BulkMutationInput,
     mutation: () => Promise<TResult>,
   ): Promise<TResult> {
-    const parsed = bulkMutationInputSchema.parse(input);
+    const parsed = parseBulkMutationInput(input);
     const existingScope = this.batchScope.getStore();
-    if (existingScope) return mutation();
+    if (existingScope) {
+      this.assertBatchIdentity(existingScope, parsed);
+      return mutation();
+    }
 
     const scope = await this.openCallbackBatch(parsed);
     const heartbeat = setInterval(() => {
       void this.renewCallbackBatch(scope).catch(() => {
         // Mutation transactions enforce the fence if renewal loses ownership.
       });
-    }, 10_000);
+    }, CALLBACK_BATCH_HEARTBEAT_MS);
     heartbeat.unref();
     try {
       return await this.batchScope.run(scope, mutation);
@@ -393,7 +367,7 @@ export class ProjectionStore {
   public async prepareDurableBulkMutation(
     input: DurableBulkMutationRootInput,
   ): Promise<void> {
-    const parsed = durableBulkMutationRootSchema.parse(input);
+    const parsed = parseDurableBulkMutationRootInput(input);
     const now = this.now();
     await this.runTransaction(async (transaction) => {
       const existing = await transaction
@@ -440,7 +414,7 @@ export class ProjectionStore {
         enqueueFailed: 0,
         openedAt: now,
         lastProgressAt: now,
-        leaseExpiresAt: now + 30_000,
+        leaseExpiresAt: now + PROJECTION_BATCH_LEASE_MS,
       });
     });
   }
@@ -505,9 +479,12 @@ export class ProjectionStore {
     input: DurableBulkMutationChildInput,
     mutation: () => Promise<TResult>,
   ): Promise<TResult> {
-    const parsed = durableBulkMutationChildSchema.parse(input);
+    const parsed = parseDurableBulkMutationChildInput(input);
     const existingScope = this.batchScope.getStore();
-    if (existingScope) return mutation();
+    if (existingScope) {
+      this.assertBatchIdentity(existingScope, parsed);
+      return mutation();
+    }
     const scope = await this.openDurableBatchChild(parsed);
     return this.batchScope.run(scope, mutation);
   }
@@ -515,7 +492,7 @@ export class ProjectionStore {
   public async settleDurableBulkMutationChild(
     input: SettleDurableBulkMutationChildInput,
   ): Promise<boolean> {
-    const parsed = settleDurableBulkMutationChildSchema.parse(input);
+    const parsed = parseSettleDurableBulkMutationChildInput(input);
     const now = this.now();
     return this.runTransaction(async (transaction) => {
       const batches = await transaction
@@ -567,24 +544,12 @@ export class ProjectionStore {
           ),
         );
       const abandoned = Number(failedRows[0]?.total ?? 0) > 0;
-      const recoveryGeneration = abandoned
-        ? await this.getRecoveryGeneration(
-            transaction,
-            batch.highestGeneration ?? 0,
-          )
-        : null;
-      await transaction
-        .update(projectionBatches)
-        .set({
-          status: abandoned ? "abandoned" : "closed",
-          terminalAt: now,
-          lastProgressAt: now,
-          leaseExpiresAt: null,
-          recoveryGeneration,
-          recoveredAt:
-            abandoned && batch.highestGeneration === null ? now : null,
-        })
-        .where(eq(projectionBatches.id, batch.id));
+      await this.transitionProjectionBatchToTerminal(transaction, batch, {
+        abandoned,
+        terminalAt: now,
+        fenceOwner: false,
+        clearLease: true,
+      });
       return true;
     });
   }
@@ -666,7 +631,8 @@ export class ProjectionStore {
           job.terminalAt <= now - DURABLE_ROOT_RECOVERY_GRACE_MS,
       );
       const completeRoot = jobs.length >= batch.expectedChildren;
-      const provablyPartial = now - batch.openedAt >= 30_000;
+      const provablyPartial =
+        now - batch.openedAt >= DURABLE_ROOT_PARTIAL_TIMEOUT_MS;
       if (
         hasActiveJob ||
         !terminalRecoveryReady ||
@@ -780,31 +746,50 @@ export class ProjectionStore {
       const provablyPartial =
         !active &&
         jobs.length < batch.expectedChildren &&
-        now - batch.openedAt >= 30_000;
+        now - batch.openedAt >= DURABLE_ROOT_PARTIAL_TIMEOUT_MS;
       if (!completeRoot && !provablyPartial) return false;
 
       const abandoned =
         provablyPartial || jobs.some((job) => job.status === "failed");
-      const recoveryGeneration = abandoned
-        ? await this.getRecoveryGeneration(
-            transaction,
-            batch.highestGeneration ?? 0,
-          )
-        : null;
-      await transaction
-        .update(projectionBatches)
-        .set({
-          status: abandoned ? "abandoned" : "closed",
-          ownerToken: abandoned ? createId() : batch.ownerToken,
-          terminalAt: now,
-          lastProgressAt: now,
-          recoveryGeneration,
-          recoveredAt:
-            abandoned && batch.highestGeneration === null ? now : null,
-        })
-        .where(eq(projectionBatches.id, batchId));
+      await this.transitionProjectionBatchToTerminal(transaction, batch, {
+        abandoned,
+        terminalAt: now,
+        fenceOwner: true,
+        clearLease: false,
+      });
       return true;
     });
+  }
+
+  private async transitionProjectionBatchToTerminal(
+    transaction: EntityTransaction,
+    batch: ProjectionBatch,
+    transition: TerminalProjectionBatchTransition,
+  ): Promise<void> {
+    const recoveryGeneration = transition.abandoned
+      ? await this.getRecoveryGeneration(
+          transaction,
+          batch.highestGeneration ?? 0,
+        )
+      : null;
+    await transaction
+      .update(projectionBatches)
+      .set({
+        status: transition.abandoned ? "abandoned" : "closed",
+        ownerToken:
+          transition.abandoned && transition.fenceOwner
+            ? createId()
+            : batch.ownerToken,
+        terminalAt: transition.terminalAt,
+        lastProgressAt: transition.terminalAt,
+        leaseExpiresAt: transition.clearLease ? null : batch.leaseExpiresAt,
+        recoveryGeneration,
+        recoveredAt:
+          transition.abandoned && batch.highestGeneration === null
+            ? transition.terminalAt
+            : null,
+      })
+      .where(eq(projectionBatches.id, batch.id));
   }
 
   public async getProjectionBatchDiagnostics(): Promise<ProjectionBatchDiagnostics> {
@@ -987,7 +972,7 @@ export class ProjectionStore {
         enqueueFailed: 0,
         openedAt: now,
         lastProgressAt: now,
-        leaseExpiresAt: now + 30_000,
+        leaseExpiresAt: now + PROJECTION_BATCH_LEASE_MS,
       });
     });
     return scope;
@@ -997,7 +982,10 @@ export class ProjectionStore {
     const now = this.now();
     const rows = await this.db
       .update(projectionBatches)
-      .set({ lastProgressAt: now, leaseExpiresAt: now + 30_000 })
+      .set({
+        lastProgressAt: now,
+        leaseExpiresAt: now + PROJECTION_BATCH_LEASE_MS,
+      })
       .where(
         and(
           eq(projectionBatches.id, scope.batchId),
@@ -1068,7 +1056,7 @@ export class ProjectionStore {
         highestGeneration: generation,
         mutationCount: sql`${projectionBatches.mutationCount} + 1`,
         lastProgressAt: now,
-        leaseExpiresAt: now + 30_000,
+        leaseExpiresAt: now + PROJECTION_BATCH_LEASE_MS,
       })
       .where(
         and(
@@ -1304,6 +1292,22 @@ export class ProjectionStore {
     return rows[0] ?? null;
   }
 
+  private async requireWave(
+    transaction: EntityTransaction,
+    waveId: string,
+  ): Promise<ProjectionWave> {
+    const rows = await transaction
+      .select()
+      .from(projectionWaves)
+      .where(eq(projectionWaves.id, waveId))
+      .limit(1);
+    const wave = rows[0];
+    if (!wave) {
+      throw new Error(`Projection wave "${waveId}" does not exist`);
+    }
+    return wave;
+  }
+
   public async completeWave(
     waveId: string,
     completedAt: number,
@@ -1311,15 +1315,7 @@ export class ProjectionStore {
     const parsedWaveId = z.string().trim().min(1).parse(waveId);
     const parsedCompletedAt = z.number().int().nonnegative().parse(completedAt);
     return this.runTransaction(async (transaction) => {
-      const waveRows = await transaction
-        .select()
-        .from(projectionWaves)
-        .where(eq(projectionWaves.id, parsedWaveId))
-        .limit(1);
-      const wave = waveRows[0];
-      if (!wave) {
-        throw new Error(`Projection wave "${parsedWaveId}" does not exist`);
-      }
+      const wave = await this.requireWave(transaction, parsedWaveId);
       if (wave.status === "completed") return wave;
       if (wave.status === "failed") {
         throw new Error(`Projection wave "${parsedWaveId}" already failed`);
@@ -1385,15 +1381,7 @@ export class ProjectionStore {
     const parsedWaveId = z.string().trim().min(1).parse(waveId);
     const parsedAt = z.number().int().nonnegative().parse(supersededAt);
     return this.runTransaction(async (transaction) => {
-      const waveRows = await transaction
-        .select()
-        .from(projectionWaves)
-        .where(eq(projectionWaves.id, parsedWaveId))
-        .limit(1);
-      const wave = waveRows[0];
-      if (!wave) {
-        throw new Error(`Projection wave "${parsedWaveId}" does not exist`);
-      }
+      const wave = await this.requireWave(transaction, parsedWaveId);
       if (wave.status === "superseded") return true;
       if (wave.status !== "running") return false;
       const epoch = await this.getAdmissionEpoch(transaction);
@@ -1489,15 +1477,7 @@ export class ProjectionStore {
     waveId: string,
     failedAt: number,
   ): Promise<FailedProjectionWave> {
-    const waveRows = await transaction
-      .select()
-      .from(projectionWaves)
-      .where(eq(projectionWaves.id, waveId))
-      .limit(1);
-    const wave = waveRows[0];
-    if (!wave) {
-      throw new Error(`Projection wave "${waveId}" does not exist`);
-    }
+    const wave = await this.requireWave(transaction, waveId);
     if (wave.status === "completed") {
       throw new Error(`Projection wave "${waveId}" already completed`);
     }
@@ -1727,13 +1707,7 @@ export class ProjectionStore {
         );
       }
 
-      const waveRows = await transaction
-        .select()
-        .from(projectionWaves)
-        .where(eq(projectionWaves.id, waveId))
-        .limit(1);
-      const wave = waveRows[0];
-      if (!wave) throw new Error(`Projection wave "${waveId}" does not exist`);
+      const wave = await this.requireWave(transaction, waveId);
       if (wave.status === "superseded") return null;
       if (wave.status !== "running") {
         throw new Error(`Projection wave "${waveId}" is not running`);
@@ -1783,7 +1757,8 @@ export class ProjectionStore {
       const existingMemo = memoRows[0];
       if (
         existingMemo &&
-        canonicalJson(existingMemo.writeIntents) !== canonicalJson(writeIntents)
+        canonicalProjectionJson(existingMemo.writeIntents) !==
+          canonicalProjectionJson(writeIntents)
       ) {
         throw new Error(
           `Projection memo conflict for rule "${key.ruleId}" and fingerprint "${key.inputFingerprint}"`,
@@ -1797,18 +1772,16 @@ export class ProjectionStore {
         });
       }
 
-      const changedTargets = await writeIntents.reduce<
-        Promise<ProjectionChangedTarget[]>
-      >(async (pendingTargets, intent) => {
-        const targets = await pendingTargets;
-        const target = await this.applyWriteIntent(
+      const changedTargets: ProjectionChangedTarget[] = [];
+      for (const intent of writeIntents) {
+        const target = await this.writeIntentApplier.apply(
           transaction,
           intent,
           completedAt,
           key,
         );
-        return target ? [...targets, target] : targets;
-      }, Promise.resolve([]));
+        if (target) changedTargets.push(target);
+      }
 
       const updatedRules = await transaction
         .update(projectionWaveRules)
@@ -1869,161 +1842,5 @@ export class ProjectionStore {
     write: () => Promise<TResult>,
   ): Promise<TResult> {
     return this.transactionTail.run(() => retrySqliteWrite(write));
-  }
-
-  private async applyWriteIntent(
-    transaction: EntityTransaction,
-    intent: ProjectionWriteIntent,
-    changedAt: number,
-    owner: GetProjectionRuleMemoInput,
-  ): Promise<ProjectionChangedTarget | null> {
-    const entityType =
-      intent.operation === "upsert"
-        ? intent.entity.entityType
-        : intent.entityType;
-    const entityId =
-      intent.operation === "upsert" ? intent.entity.id : intent.id;
-    const existingRows = await transaction
-      .select({
-        content: entities.content,
-        contentHash: entities.contentHash,
-        metadata: entities.metadata,
-        visibility: entities.visibility,
-      })
-      .from(entities)
-      .where(
-        and(eq(entities.entityType, entityType), eq(entities.id, entityId)),
-      )
-      .limit(1);
-    const existing = existingRows[0];
-
-    if (intent.operation === "delete") {
-      await transaction
-        .delete(projectionEntityOwners)
-        .where(
-          and(
-            eq(projectionEntityOwners.entityType, entityType),
-            eq(projectionEntityOwners.entityId, entityId),
-          ),
-        );
-      if (!existing) return null;
-      await this.mutationAdmission?.assertMutationAdmission({
-        operation: "delete",
-        entityType,
-        entityId,
-      });
-      await transaction
-        .delete(entities)
-        .where(
-          and(eq(entities.entityType, entityType), eq(entities.id, entityId)),
-        );
-      await transaction.run(
-        sql`DELETE FROM entity_fts WHERE entity_id = ${entityId} AND entity_type = ${entityType}`,
-      );
-      await this.entityExportStore.record(transaction, {
-        entityType,
-        entityId,
-        operation: "delete",
-        markedAt: changedAt,
-      });
-      return { entityType, entityId, operation: "delete" };
-    }
-
-    const contentHash = computeContentHash(intent.entity.content);
-    await transaction
-      .insert(projectionEntityOwners)
-      .values({
-        entityType,
-        entityId,
-        ruleId: owner.ruleId,
-        ruleVersion: owner.ruleVersion,
-        inputFingerprint: owner.inputFingerprint,
-        claimedAt: changedAt,
-      })
-      .onConflictDoUpdate({
-        target: [
-          projectionEntityOwners.entityType,
-          projectionEntityOwners.entityId,
-        ],
-        set: {
-          ruleId: owner.ruleId,
-          ruleVersion: owner.ruleVersion,
-          inputFingerprint: owner.inputFingerprint,
-          claimedAt: changedAt,
-        },
-      });
-    if (this.storagePolicy?.isAssetBacked(entityType)) {
-      await this.storagePolicy.assetRepository.bindEntityContent(
-        transaction,
-        intent.entity.content,
-      );
-    }
-
-    if (
-      existing?.contentHash === contentHash &&
-      existing.content === intent.entity.content &&
-      existing.visibility === intent.entity.visibility &&
-      canonicalJson(existing.metadata) === canonicalJson(intent.entity.metadata)
-    ) {
-      if (this.storagePolicy?.isFullTextSearchable(entityType) === false) {
-        await transaction.run(
-          sql`DELETE FROM entity_fts WHERE entity_id = ${entityId} AND entity_type = ${entityType}`,
-        );
-      }
-      return null;
-    }
-
-    await this.mutationAdmission?.assertMutationAdmission({
-      operation: existing ? "update" : "create",
-      entityType,
-      entityId,
-    });
-
-    if (existing) {
-      await transaction
-        .update(entities)
-        .set({
-          content: intent.entity.content,
-          contentHash,
-          metadata: intent.entity.metadata,
-          visibility: intent.entity.visibility,
-          updated: changedAt,
-        })
-        .where(
-          and(eq(entities.entityType, entityType), eq(entities.id, entityId)),
-        );
-    } else {
-      await transaction.insert(entities).values({
-        id: entityId,
-        entityType,
-        content: intent.entity.content,
-        contentHash,
-        metadata: intent.entity.metadata,
-        visibility: intent.entity.visibility,
-        created: changedAt,
-        updated: changedAt,
-      });
-    }
-
-    await transaction.run(
-      sql`DELETE FROM entity_fts WHERE entity_id = ${entityId} AND entity_type = ${entityType}`,
-    );
-    if (this.storagePolicy?.isFullTextSearchable(entityType) !== false) {
-      await transaction.run(
-        sql`INSERT INTO entity_fts (entity_id, entity_type, content) VALUES (${entityId}, ${entityType}, ${intent.entity.content})`,
-      );
-    }
-    await this.entityExportStore.record(transaction, {
-      entityType,
-      entityId,
-      operation: "upsert",
-      markedAt: changedAt,
-    });
-    return {
-      entityType,
-      entityId,
-      operation: "upsert",
-      contentHash,
-    };
   }
 }

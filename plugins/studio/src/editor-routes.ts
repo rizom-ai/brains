@@ -759,7 +759,7 @@ async function handleGetSchema(
   }
 
   const adapter = context.entities.getAdapter(entityType);
-  const raw = isRawEntityType(entityType, context.entities.getGroupings());
+  const raw = isRawEntityType(entityType, context.entities);
   // Raw types edit the whole document as body; their domain frontmatter
   // bookkeeping must not surface. Visibility is system-owned and applies to
   // every entity type independently of its markdown representation.

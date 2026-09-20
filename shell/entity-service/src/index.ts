@@ -30,7 +30,14 @@ export {
 export { EntityRegistry } from "./entityRegistry";
 export {
   entityGroupingSchema,
+  groupingSortSchema,
+  groupingKeySchema,
+  groupingValueSchema,
+  groupingSearchSchema,
+  GROUPING_PAGE_LIMIT,
+  GROUPING_MAX_PAGE_LIMIT,
   type EntityGrouping,
+  type GroupingSort,
   type QueryGroupingCatalogRequest,
   type QueryGroupingMembersRequest,
   type EntityGroupingCatalog,

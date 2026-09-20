@@ -6,7 +6,7 @@ import {
 } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import { brainAnchorConfigKindSchema } from "./brain-definition";
-import { reasoningEffortSchema } from "./types";
+import { logLevelSchema, reasoningEffortSchema } from "./types";
 
 /**
  * Zod schema for instance overrides parsed from brain.yaml.
@@ -21,12 +21,6 @@ const rawRecordSchema: z.ZodRecord<z.ZodString, z.ZodUnknown> = z.record(
 );
 
 const overrideModeSchema: z.ZodEnum<{ eval: "eval" }> = z.enum(["eval"]);
-const overrideLogLevelSchema: z.ZodEnum<{
-  debug: "debug";
-  info: "info";
-  warn: "warn";
-  error: "error";
-}> = z.enum(["debug", "info", "warn", "error"]);
 const overridePermissionLevelSchema: typeof UserPermissionLevelSchema =
   UserPermissionLevelSchema;
 const overrideEntityActionRequiredLevelSchema: typeof EntityActionRequiredLevelSchema =
@@ -77,7 +71,7 @@ type InstanceOverridesSchema = z.ZodObject<
     >;
     name: z.ZodOptional<z.ZodString>;
     kind: z.ZodOptional<z.ZodString>;
-    logLevel: z.ZodOptional<typeof overrideLogLevelSchema>;
+    logLevel: z.ZodOptional<typeof logLevelSchema>;
     logFile: z.ZodOptional<z.ZodString>;
     port: z.ZodOptional<z.ZodNumber>;
     domain: z.ZodOptional<z.ZodString>;
@@ -162,7 +156,7 @@ const instanceOverridesSchema: InstanceOverridesSchema = z.strictObject({
   kind: z.string().trim().min(1).optional(),
 
   /** Log level */
-  logLevel: overrideLogLevelSchema.optional(),
+  logLevel: logLevelSchema.optional(),
 
   /** Log file path (enables usage tracking) */
   logFile: z.string().optional(),

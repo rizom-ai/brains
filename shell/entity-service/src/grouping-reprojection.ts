@@ -1,5 +1,4 @@
-import { and, asc, eq, gt, inArray, or, sql } from "drizzle-orm";
-import { z } from "@brains/utils/zod";
+import { and, asc, eq, gt, inArray, or, sql, type SQL } from "drizzle-orm";
 import type { EntityDB } from "./db";
 import type { EntityRegistry } from "./types";
 import { entities } from "./schema/entities";
@@ -24,6 +23,16 @@ interface ProjectionRow {
   metadata: Record<string, unknown>;
   visibility: string;
 }
+interface Cursor {
+  type: string;
+  id: string;
+}
+interface RowTarget {
+  type: string;
+  id: string;
+  destination: SQL | undefined;
+  fields: ReadonlySet<string>;
+}
 
 /** Metadata-only bootstrap. Never calls ordinary mutations or export/event paths. */
 export async function reprojectGroupings(
@@ -39,35 +48,44 @@ export async function reprojectGroupings(
     }
   }
   if (fields.size === 0) return;
-  let cursor: { type: string; id: string } | undefined;
-  for (;;) {
-    const rows = await db
-      .select(columns)
-      .from(entities)
-      .where(
-        and(
-          inArray(entities.entityType, [...fields.keys()]),
-          cursor
-            ? or(
-                gt(entities.entityType, cursor.type),
-                and(
-                  eq(entities.entityType, cursor.type),
-                  gt(entities.id, cursor.id),
-                ),
-              )
-            : undefined,
-        ),
-      )
-      .orderBy(asc(entities.entityType), asc(entities.id))
-      .limit(PAGE_SIZE);
-    if (rows.length === 0) return;
-    for (const row of rows) {
-      const type = decoder.decode(row.entityType);
-      const id = decoder.decode(row.id);
-      await reprojectRow(db, registry, row, fields.get(type) ?? new Set());
-      cursor = { type, id };
-    }
+  // Declaration equality does not prove projection freshness: register-only
+  // writers may have run without these declarations, or field validators may
+  // have changed. Revalidate source on every serving start until every writer
+  // and schema change participates in a durable invalidation protocol.
+  await reprojectPage(db, registry, fields, undefined);
+}
+
+/** Keyset paging over (entityType, id); each page continues from its own tail. */
+async function reprojectPage(
+  db: EntityDB,
+  registry: EntityRegistry,
+  fields: ReadonlyMap<string, ReadonlySet<string>>,
+  cursor: Cursor | undefined,
+): Promise<void> {
+  const rows = await db
+    .select(columns)
+    .from(entities)
+    .where(and(inArray(entities.entityType, [...fields.keys()]), after(cursor)))
+    .orderBy(asc(entities.entityType), asc(entities.id))
+    .limit(PAGE_SIZE);
+  for (const row of rows) {
+    const type = decoder.decode(row.entityType);
+    await reprojectRow(db, registry, row, fields.get(type) ?? new Set());
   }
+  const tail = rows.at(-1);
+  if (!tail || rows.length < PAGE_SIZE) return;
+  return reprojectPage(db, registry, fields, {
+    type: decoder.decode(tail.entityType),
+    id: decoder.decode(tail.id),
+  });
+}
+
+function after(cursor: Cursor | undefined): SQL | undefined {
+  if (!cursor) return undefined;
+  return or(
+    gt(entities.entityType, cursor.type),
+    and(eq(entities.entityType, cursor.type), gt(entities.id, cursor.id)),
+  );
 }
 
 async function reprojectRow(
@@ -78,46 +96,66 @@ async function reprojectRow(
 ): Promise<void> {
   const type = decoder.decode(initial.entityType);
   const id = decoder.decode(initial.id);
-  const destination = and(eq(entities.entityType, type), eq(entities.id, id));
-  let row: ProjectionRow | undefined = initial;
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    if (!row) return; // A concurrent deletion is never an insertion request.
-    const content = decoder.decode(row.content);
-    let projected: Record<string, unknown> = {};
-    try {
-      projected = registry.projectMetadata(type, content, row.metadata);
-    } catch (error) {
-      // Invalid persisted fields remain authored source, but cannot be indexed.
-      if (!(error instanceof z.ZodError)) throw error;
-    }
-    const metadata = { ...row.metadata };
-    for (const field of fields) {
-      delete metadata[field];
-      if (Object.hasOwn(projected, field)) metadata[field] = projected[field];
-    }
-    if (stableJson(metadata) === stableJson(row.metadata)) return;
-    const expectedRevision = entityRevision(row);
-    const outcome = await db.transaction(async (tx) => {
-      const current = (
-        await tx.select(columns).from(entities).where(destination).limit(1)
-      )[0];
-      if (!current) return "deleted";
-      // SQLite serializes writers inside this transaction. Include source too,
-      // so an out-of-band content edit with an unchanged hash cannot win a race.
-      if (
-        entityRevision(current) !== expectedRevision ||
-        decoder.decode(current.content) !== content
-      )
-        return "conflict";
-      await tx.update(entities).set({ metadata }).where(destination);
-      return "updated";
-    });
-    if (outcome !== "conflict") return;
-    row = (
-      await db.select(columns).from(entities).where(destination).limit(1)
-    )[0];
-  }
-  throw new Error(
-    "Grouping reprojection exceeded concurrent-write retry limit",
+  return attemptRow(
+    db,
+    registry,
+    {
+      type,
+      id,
+      destination: and(eq(entities.entityType, type), eq(entities.id, id)),
+      fields,
+    },
+    initial,
+    MAX_ATTEMPTS,
   );
+}
+
+/** One revision-conditional write, retried against fresh state on conflict. */
+async function attemptRow(
+  db: EntityDB,
+  registry: EntityRegistry,
+  target: RowTarget,
+  row: ProjectionRow | undefined,
+  remaining: number,
+): Promise<void> {
+  if (!row) return; // A concurrent deletion is never an insertion request.
+  if (remaining === 0)
+    throw new Error(
+      "Grouping reprojection exceeded concurrent-write retry limit",
+    );
+  const content = decoder.decode(row.content);
+  // Invalid persisted fields remain authored source, but cannot be indexed.
+  // Only the offending field is skipped; its siblings still project.
+  const projected = registry.projectStoredMetadata(
+    target.type,
+    content,
+    row.metadata,
+  );
+  const metadata = { ...row.metadata };
+  for (const field of target.fields) {
+    delete metadata[field];
+    if (Object.hasOwn(projected, field)) metadata[field] = projected[field];
+  }
+  if (stableJson(metadata) === stableJson(row.metadata)) return;
+  const expectedRevision = entityRevision(row);
+  const outcome = await db.transaction(async (tx) => {
+    const current = (
+      await tx.select(columns).from(entities).where(target.destination).limit(1)
+    )[0];
+    if (!current) return "deleted";
+    // SQLite serializes writers inside this transaction. Include source too,
+    // so an out-of-band content edit with an unchanged hash cannot win a race.
+    if (
+      entityRevision(current) !== expectedRevision ||
+      decoder.decode(current.content) !== content
+    )
+      return "conflict";
+    await tx.update(entities).set({ metadata }).where(target.destination);
+    return "updated";
+  });
+  if (outcome !== "conflict") return;
+  const current = (
+    await db.select(columns).from(entities).where(target.destination).limit(1)
+  )[0];
+  return attemptRow(db, registry, target, current, remaining - 1);
 }

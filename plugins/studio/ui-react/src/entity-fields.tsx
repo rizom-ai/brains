@@ -1163,10 +1163,16 @@ function StringListField(props: {
   value: unknown;
   onChange: (raw: string[]) => void;
   literalList?: boolean | undefined;
+  suggestions?: readonly string[] | undefined;
 }): ReactElement {
   const [pending, setPending] = useState("");
   const helpId = useId();
+  const listId = useId();
   const literal = props.literalList === true;
+  // Offer values that already exist, so exact matching does not fragment.
+  const suggestions = (props.suggestions ?? []).filter(
+    (value) => !(Array.isArray(props.value) ? props.value : []).includes(value),
+  );
   const values = Array.isArray(props.value)
     ? props.value.filter((item): item is string => typeof item === "string")
     : [];
@@ -1205,12 +1211,15 @@ function StringListField(props: {
             xstyle={[f.tagInput, literal && f.literalInput]}
             type="text"
             value={pending}
+            list={suggestions.length > 0 ? listId : undefined}
             aria-label={`Add ${props.descriptor.label.toLowerCase()} ${literal ? "value" : "tag"}`}
             aria-describedby={literal ? helpId : undefined}
             placeholder={literal ? "Add value" : "Add tag"}
             onChange={(event) => setPending(event.currentTarget.value)}
             onKeyDown={(event) => {
-              if (literal && event.nativeEvent.isComposing) return;
+              // A composing IME sends Enter to accept a candidate, never to
+              // submit. This is true of ordinary tags as much as literal values.
+              if (event.nativeEvent.isComposing) return;
               if (event.key === "Enter" || (!literal && event.key === ",")) {
                 event.preventDefault();
                 add();
@@ -1228,6 +1237,13 @@ function StringListField(props: {
             +
           </Button>
         </span>
+        {suggestions.length > 0 && (
+          <datalist id={listId}>
+            {suggestions.map((value) => (
+              <option key={value} value={value} />
+            ))}
+          </datalist>
+        )}
       </div>
       {literal && (
         <span id={helpId} {...stylex.props(f.listHelp)}>
@@ -1236,8 +1252,7 @@ function StringListField(props: {
             values.some((value) => value !== value.trim())) && (
             <strong>
               {" "}
-              Surrounding whitespace is preserved and creates a different
-              collection.
+              Surrounding whitespace is preserved and creates a different group.
             </strong>
           )}
         </span>
@@ -1343,6 +1358,7 @@ export function FieldAssistControls(props: {
 
 export function Field(props: {
   literalList?: boolean | undefined;
+  suggestions?: readonly string[] | undefined;
   descriptor: FieldDescriptor;
   value: unknown;
   onChange: (raw: unknown) => void;
@@ -1382,6 +1398,7 @@ export function Field(props: {
     >
       <FieldControl
         literalList={props.literalList}
+        suggestions={props.suggestions}
         descriptor={props.descriptor}
         value={props.value}
         onChange={props.onChange}
@@ -1406,6 +1423,7 @@ export function Field(props: {
 
 function FieldControl(props: {
   literalList?: boolean | undefined;
+  suggestions?: readonly string[] | undefined;
   descriptor: FieldDescriptor;
   value: unknown;
   onChange: (raw: unknown) => void;
@@ -1489,6 +1507,7 @@ function FieldControl(props: {
     return (
       <StringListField
         literalList={props.literalList}
+        suggestions={props.suggestions}
         descriptor={descriptor}
         value={value}
         onChange={onChange}

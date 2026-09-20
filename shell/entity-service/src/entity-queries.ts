@@ -14,6 +14,10 @@ import type {
   EntityGroupingCatalog,
 } from "./entity-grouping";
 import {
+  queryGroupingCatalogSchema,
+  queryGroupingMembersSchema,
+} from "./entity-grouping";
+import {
   decodeEntityIdPath,
   entityIdHierarchyExpressions,
   storedEntityIdPathSchema,
@@ -126,21 +130,10 @@ const hierarchyRequestSchema = z.object({
 
 const MAX_HIERARCHY_FOLDERS = 1000;
 
-const groupingCatalogRequestSchema = z.object({
-  grouping: z.string().min(1).max(80),
-  entityTypes: z.array(z.string().min(1)).max(100),
-  visibilityScope: z.enum(["public", "shared", "restricted"]).optional(),
-  limit: z.number().int().min(1).max(100).default(50),
-  offset: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).default(0),
-  signal: z.instanceof(AbortSignal).optional(),
-});
-const groupingMembersRequestSchema = groupingCatalogRequestSchema.extend({
-  value: z.string().max(10000),
-  q: z.string().max(200).optional(),
-  sort: z
-    .enum(["updated-desc", "updated-asc", "created-desc", "created-asc"])
-    .default("updated-desc"),
-});
+/** Case-insensitive substring match over stored content, used by every read. */
+function contentContainsCondition(term: string): SQL {
+  return sql`instr(lower(${entities.content}), lower(${term.trim()})) > 0`;
+}
 
 /**
  * EntityQueries handles database query operations for entities
@@ -313,7 +306,7 @@ export class EntityQueries {
   public async queryGroupingCatalog(
     request: QueryGroupingCatalogRequest,
   ): Promise<EntityGroupingCatalog> {
-    const input = groupingCatalogRequestSchema.parse(request);
+    const input = queryGroupingCatalogSchema.parse(request);
     input.signal?.throwIfAborted();
     const { conditions, array } = this.groupingConditions(input);
     const source = sql`(SELECT DISTINCT ${entities.entityType}, ${entities.id}, j.value AS value
@@ -330,7 +323,12 @@ export class EntityQueries {
       })
       .from(source)
       .groupBy(sql`grouping_values.value`)
-      .orderBy(sql`grouping_values.value COLLATE BINARY ASC`)
+      // Readers scan this list alphabetically; BINARY would file every
+      // capitalised value ahead of every lowercase one. Membership stays exact.
+      .orderBy(
+        sql`grouping_values.value COLLATE NOCASE ASC`,
+        sql`grouping_values.value COLLATE BINARY ASC`,
+      )
       .limit(input.limit)
       .offset(input.offset);
     input.signal?.throwIfAborted();
@@ -347,16 +345,13 @@ export class EntityQueries {
   public async queryGroupingMembers(
     request: QueryGroupingMembersRequest,
   ): Promise<EntityGroupingMembers> {
-    const input = groupingMembersRequestSchema.parse(request);
+    const input = queryGroupingMembersSchema.parse(request);
     input.signal?.throwIfAborted();
     const { conditions, array } = this.groupingConditions(input);
     conditions.push(
       sql`EXISTS (SELECT 1 FROM json_each(${array}) AS j WHERE j.type = 'text' AND j.value = ${input.value})`,
     );
-    if (input.q?.trim())
-      conditions.push(
-        sql`instr(lower(${entities.content}), lower(${input.q.trim()})) > 0`,
-      );
+    if (input.q?.trim()) conditions.push(contentContainsCondition(input.q));
     const where = and(...conditions);
     const counts = await this.db
       .select({ total: sql<number>`COUNT(*)` })
@@ -393,7 +388,7 @@ export class EntityQueries {
   }
 
   private groupingConditions(
-    input: z.output<typeof groupingCatalogRequestSchema>,
+    input: z.output<typeof queryGroupingCatalogSchema>,
   ): { conditions: SQL[]; array: SQL } {
     const grouping = this.entityRegistry.getGrouping(input.grouping);
     const admitted = new Set(input.entityTypes);
@@ -548,9 +543,7 @@ export class EntityQueries {
 
     if (visibility) conditions.push(eq(entities.visibility, visibility));
     if (contentContains?.trim()) {
-      conditions.push(
-        sql`instr(lower(${entities.content}), lower(${contentContains.trim()})) > 0`,
-      );
+      conditions.push(contentContainsCondition(contentContains));
     }
 
     if (metadataFilter) {

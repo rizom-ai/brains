@@ -1,12 +1,17 @@
 /** @jsxImportSource react */
 import { afterEach, beforeEach, expect, it } from "bun:test";
 import { Window } from "happy-dom";
+import {
+  installDomGlobals,
+  installGlobals,
+  type RestoreGlobals,
+} from "@brains/test-utils";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { StudioApi, type EntityDetail } from "./api";
 import { StudioApiProvider } from "./studio-api-context";
 const bootstrapWindow = new Window();
-Object.assign(globalThis, {
+const restoreBootstrap = installGlobals({
   window: bootstrapWindow,
   document: bootstrapWindow.document,
 });
@@ -14,19 +19,17 @@ const { StudioConflictRecovery, rescueVersion } =
   await import("./studio-conflict-recovery");
 const { editorSaveLabel } = await import("./editor-status");
 await bootstrapWindow.happyDOM.close();
+// The window is closed now; leaving it installed would hand the next test
+// file in this process a document that no longer works.
+restoreBootstrap();
 
+let restoreGlobals: RestoreGlobals;
 let windowInstance: Window;
 let root: Root;
 beforeEach(() => {
   windowInstance = new Window({ url: "http://brain.test/studio" });
-  Object.assign(globalThis, {
-    window: windowInstance,
-    document: windowInstance.document,
-    navigator: windowInstance.navigator,
-    HTMLElement: windowInstance.HTMLElement,
+  restoreGlobals = installDomGlobals(windowInstance, {
     HTMLInputElement: windowInstance.HTMLInputElement,
-    Element: windowInstance.Element,
-    Node: windowInstance.Node,
     NodeFilter: windowInstance.NodeFilter,
     Event: windowInstance.Event,
     CustomEvent: windowInstance.CustomEvent,
@@ -37,7 +40,6 @@ beforeEach(() => {
       windowInstance.requestAnimationFrame.bind(windowInstance),
     cancelAnimationFrame:
       windowInstance.cancelAnimationFrame.bind(windowInstance),
-    IS_REACT_ACT_ENVIRONMENT: true,
   });
   const container = document.createElement("div");
   document.body.append(container);
@@ -45,7 +47,9 @@ beforeEach(() => {
 });
 afterEach(async () => {
   await act(async () => root.unmount());
+  await windowInstance.happyDOM.abort();
   windowInstance.close();
+  restoreGlobals();
 });
 async function click(text: string): Promise<void> {
   const button = [...document.querySelectorAll("button")].find(

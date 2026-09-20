@@ -931,6 +931,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       throw new Error("createMockShell: grouping registry is not mocked");
     },
     projectMetadata: (_type, _content, metadata) => metadata,
+    projectStoredMetadata: (_type, _content, metadata) => metadata,
+    groupingFields: (): string[] => [],
+    isGroupingContributor: (): boolean => false,
   };
 
   // --- In-memory job queue state ---

@@ -31,14 +31,16 @@ test("group query preserves exact values, filters, and pagination", () => {
   expect(groupingQuery("").value).toBeNull();
   expect(groupingQuery("?limit=999&offset=-1")).toEqual(groupingQuery(""));
 });
-test("escaped return labels never replace the original URL value", () => {
+test("marked return labels never replace the original URL value", () => {
   const value = " Acme, Inc. ";
   const path =
     "/studio/groups/clients" + groupingSearch({ ...groupingQuery(""), value });
   const target = groupingReturnTarget({ studioGroupingPath: path }, "/studio", [
     { key: "clients", label: "Clients" },
   ]);
-  expect(target?.label).toBe('"\\u0020Acme,\\u0020Inc.\\u0020"');
+  // The label marks the invisible edge spaces; the URL keeps the exact value.
+  const dot = String.fromCharCode(0xb7);
+  expect(target?.label).toBe(dot + "Acme, Inc." + dot);
   expect(target?.path).toBe(path);
   expect(
     new URL(target?.path ?? "", "https://studio.test").searchParams.get(

@@ -1,5 +1,57 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.394
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.394
+  - @brains/content-formatters@0.2.0-alpha.394
+  - @brains/contracts@0.2.0-alpha.394
+  - @brains/db@0.2.0-alpha.394
+  - @brains/utils@0.2.0-alpha.394
+  - @brains/job-queue@0.2.0-alpha.394
+
+## 0.2.0-alpha.393
+
+### Patch Changes
+
+- [`0010eb2`](https://github.com/rizom-ai/brains/commit/0010eb2834335a8a0a88a66a96c2c6267b29d2df) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Separate recoverable embedding persistence, queueing, backfill, and readiness statistics from the core entity mutation pipeline while preserving its public service surface.
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.393
+  - @brains/content-formatters@0.2.0-alpha.393
+  - @brains/contracts@0.2.0-alpha.393
+  - @brains/db@0.2.0-alpha.393
+  - @brains/utils@0.2.0-alpha.393
+  - @brains/job-queue@0.2.0-alpha.393
+
+## 0.2.0-alpha.392
+
+### Patch Changes
+
+- [`384bac5`](https://github.com/rizom-ai/brains/commit/384bac51f68f6f11d255d61f1a78dacd78fc9abe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Centralize projection-batch contracts and terminal transitions, enforce nested batch identity, and isolate projection write-intent application without changing persistence boundaries.
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.392
+  - @brains/content-formatters@0.2.0-alpha.392
+  - @brains/contracts@0.2.0-alpha.392
+  - @brains/db@0.2.0-alpha.392
+  - @brains/utils@0.2.0-alpha.392
+  - @brains/job-queue@0.2.0-alpha.392
+
+## 0.2.0-alpha.391
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.391
+  - @brains/content-formatters@0.2.0-alpha.391
+  - @brains/contracts@0.2.0-alpha.391
+  - @brains/db@0.2.0-alpha.391
+  - @brains/utils@0.2.0-alpha.391
+  - @brains/job-queue@0.2.0-alpha.391
+
 ## 0.2.0-alpha.390
 
 ### Patch Changes

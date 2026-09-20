@@ -1,5 +1,45 @@
 # @brains/recurring-checks
 
+## 0.2.0-alpha.394
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.394
+  - @brains/job-queue@0.2.0-alpha.394
+  - @brains/runtime-state@0.2.0-alpha.394
+  - @brains/scheduler@0.2.0-alpha.394
+
+## 0.2.0-alpha.393
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.393
+  - @brains/job-queue@0.2.0-alpha.393
+  - @brains/runtime-state@0.2.0-alpha.393
+  - @brains/scheduler@0.2.0-alpha.393
+
+## 0.2.0-alpha.392
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.392
+  - @brains/job-queue@0.2.0-alpha.392
+  - @brains/runtime-state@0.2.0-alpha.392
+  - @brains/scheduler@0.2.0-alpha.392
+
+## 0.2.0-alpha.391
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.391
+  - @brains/job-queue@0.2.0-alpha.391
+  - @brains/runtime-state@0.2.0-alpha.391
+  - @brains/scheduler@0.2.0-alpha.391
+
 ## 0.2.0-alpha.390
 
 ### Patch Changes

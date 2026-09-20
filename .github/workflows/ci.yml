@@ -243,6 +243,11 @@ jobs:
       - name: Check published surface
         run: bun run surface:check
 
+      # A source build does not prove that the installed tarballs work in browsers.
+      # Keep this in the existing blocking Build check, including pull requests.
+      - name: Run packed compatibility matrix
+        run: bun run test:packed:compat
+
   console-visual:
     name: Console visual regression
     timeout-minutes: 20

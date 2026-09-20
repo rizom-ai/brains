@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import {
   QueryClient,
@@ -9,11 +10,15 @@ const originalIsServer = environmentManager.isServer();
 import { Window } from "happy-dom";
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { AppFetchProvider, type AppFetch } from "@brains/app-ui-react";
 import { StudioChatWorkspace } from "./studio-chat-workspace";
 import type { ChatCard } from "@brains/contracts/chat";
-import { StudioChatDraftStore, studioChatDraftKey } from "./studio-chat-drafts";
+import { StudioChatDraftStore } from "./studio-chat-drafts";
+import { studioChatDraftKey } from "./studio-chat-draft-key";
 
-const originalFetch = globalThis.fetch;
+/** The transport the mounted workspace is given; each test may replace it. */
+let restoreGlobals: RestoreGlobals;
+let chatFetch: AppFetch;
 let windowInstance: Window;
 let root: Root;
 let queryClient: QueryClient;
@@ -65,16 +70,10 @@ async function waitForSessions(): Promise<void> {
 beforeEach(() => {
   windowInstance = new Window({ url: "http://brain.test/chat" });
   navigations = [];
-  Object.assign(globalThis, {
-    window: windowInstance,
-    document: windowInstance.document,
-    navigator: windowInstance.navigator,
-    HTMLElement: windowInstance.HTMLElement,
+  restoreGlobals = installDomGlobals(windowInstance, {
     HTMLInputElement: windowInstance.HTMLInputElement,
     NodeFilter: windowInstance.NodeFilter,
     HTMLFormElement: windowInstance.HTMLFormElement,
-    Element: windowInstance.Element,
-    Node: windowInstance.Node,
     Event: windowInstance.Event,
     CustomEvent: windowInstance.CustomEvent,
     MutationObserver: windowInstance.MutationObserver,
@@ -84,43 +83,37 @@ beforeEach(() => {
     cancelAnimationFrame:
       windowInstance.cancelAnimationFrame.bind(windowInstance),
     getComputedStyle: windowInstance.getComputedStyle.bind(windowInstance),
-    IS_REACT_ACT_ENVIRONMENT: true,
   });
   windowInstance.Element.prototype.scrollIntoView = (): void => {};
-  // Object.assign rather than an assertion: Bun types `fetch` with a
-  // `preconnect` member, so the stub carries one instead of claiming to.
-  globalThis.fetch = Object.assign(
-    async (input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url === "/api/chat/sessions") {
-        return Response.json({
-          sessions: [
-            {
-              id: "conversation-1",
-              title: "Launch narrative",
-              lastActiveAt: "2026-09-02T09:48:00.000Z",
-              contextHandoff: {
-                version: 1,
-                sourceId: "unified-inbox",
-                itemId: "item-1",
-                titleSeed: "Release decision",
-              },
+  chatFetch = async (input: RequestInfo | URL): Promise<Response> => {
+    const url = String(input);
+    if (url === "/api/chat/sessions") {
+      return Response.json({
+        sessions: [
+          {
+            id: "conversation-1",
+            title: "Launch narrative",
+            lastActiveAt: "2026-09-02T09:48:00.000Z",
+            contextHandoff: {
+              version: 1,
+              sourceId: "unified-inbox",
+              itemId: "item-1",
+              titleSeed: "Release decision",
             },
-            {
-              id: "conversation-2",
-              title: "Quarterly review",
-              lastActiveAt: "2026-09-02T08:12:00.000Z",
-            },
-          ],
-        });
-      }
-      if (url.startsWith("/api/chat/messages?id=")) {
-        return Response.json({ messages: [] });
-      }
-      throw new Error(`Unexpected Studio Chat request: ${url}`);
-    },
-    { preconnect: originalFetch.preconnect },
-  );
+          },
+          {
+            id: "conversation-2",
+            title: "Quarterly review",
+            lastActiveAt: "2026-09-02T08:12:00.000Z",
+          },
+        ],
+      });
+    }
+    if (url.startsWith("/api/chat/messages?id=")) {
+      return Response.json({ messages: [] });
+    }
+    throw new Error(`Unexpected Studio Chat request: ${url}`);
+  };
 
   queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -133,9 +126,10 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   queryClient.clear();
+  await windowInstance.happyDOM.abort();
   windowInstance.close();
   environmentManager.setIsServer(() => originalIsServer);
-  globalThis.fetch = originalFetch;
+  restoreGlobals();
 });
 
 async function mountChat(
@@ -146,20 +140,24 @@ async function mountChat(
   await act(async () =>
     root.render(
       createElement(
-        QueryClientProvider,
-        { client: queryClient },
-        createElement(StudioChatWorkspace, {
-          draftStore: store,
-          apiPath,
-          studioBasePath: "/studio",
-          sessionId,
-          handoff: null,
-          types: [],
-          workspaces: [],
-          navigate: (href) => navigations.push(href),
-          selectEntityType: () => {},
-          selectWorkspace: () => {},
-        }),
+        AppFetchProvider,
+        { fetch: (input, init) => chatFetch(input, init) },
+        createElement(
+          QueryClientProvider,
+          { client: queryClient },
+          createElement(StudioChatWorkspace, {
+            draftStore: store,
+            apiPath,
+            studioBasePath: "/studio",
+            sessionId,
+            handoff: null,
+            types: [],
+            workspaces: [],
+            navigate: (href) => navigations.push(href),
+            selectEntityType: () => {},
+            selectWorkspace: () => {},
+          }),
+        ),
       ),
     ),
   );
@@ -191,26 +189,26 @@ describe("rich dialogue in Studio Chat", () => {
     job: () => Response = () =>
       Response.json({ id: "job-image", status: "completed" }),
   ): void {
-    const previous = globalThis.fetch;
-    globalThis.fetch = Object.assign(
-      async (input: RequestInfo | URL, init?: RequestInit) => {
-        const url = String(input);
-        if (url.startsWith("/api/chat/messages?id="))
-          return Response.json({
-            messages: [
-              {
-                id: "generated",
-                role: "assistant",
-                content: "Here is your image.",
-                cards: [card],
-              },
-            ],
-          });
-        if (url.startsWith("/api/chat/jobs/status?id=")) return job();
-        return previous(input, init);
-      },
-      { preconnect: originalFetch.preconnect },
-    );
+    const previous = chatFetch;
+    chatFetch = async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ): Promise<Response> => {
+      const url = String(input);
+      if (url.startsWith("/api/chat/messages?id="))
+        return Response.json({
+          messages: [
+            {
+              id: "generated",
+              role: "assistant",
+              content: "Here is your image.",
+              cards: [card],
+            },
+          ],
+        });
+      if (url.startsWith("/api/chat/jobs/status?id=")) return job();
+      return previous(input, init);
+    };
   }
 
   for (const previewUrl of [undefined, "/images/preview.png"]) {
@@ -418,7 +416,7 @@ describe("native Studio Chat workspace", () => {
       store.update(studioChatDraftKey("/api/chat", "conversation-1"), {
         text: "Generate a car without wheels",
       });
-      const previous = globalThis.fetch;
+      const previous = chatFetch;
       let reads = 0;
       let sends = 0;
       const transport: {
@@ -434,61 +432,60 @@ describe("native Studio Chat workspace", () => {
         summary: "Generate Car Without Wheels?",
         input: { entityType: "image", title: "Car Without Wheels" },
       };
-      globalThis.fetch = Object.assign(
-        async (input: RequestInfo | URL, init?: RequestInit) => {
-          if (String(input).startsWith("/api/chat/messages?id=")) {
-            reads++;
-            if (reads === 1) return Response.json({ messages: [] });
-            if (historyFails)
-              return new Response("Unavailable", { status: 503 });
-            return Response.json({
-              messages: [
-                {
-                  id: "saved-response",
-                  role: "assistant",
-                  content: "Confirmation required.",
-                  cards: [approval],
-                },
-              ],
-            });
-          }
-          if (String(input) === "/api/chat" && init?.method === "POST") {
-            sends++;
-            return new Response(
-              new ReadableStream<Uint8Array>({
-                start(controller): void {
-                  transport.controller = controller;
-                  for (const event of [
-                    {
-                      type: "text-delta",
-                      id: "reply",
-                      delta: "Confirmation required.",
-                    },
-                    {
-                      type: "tool-input-available",
-                      toolCallId: "call-car",
-                      toolName: "system_generate",
-                      input: approval.input,
-                      title: approval.summary,
-                    },
-                    {
-                      type: "tool-approval-request",
-                      toolCallId: "call-car",
-                      approvalId: "approval-car",
-                    },
-                  ])
-                    controller.enqueue(
-                      encoder.encode(`data: ${JSON.stringify(event)}\n\n`),
-                    );
-                },
-              }),
-              { headers: { "Content-Type": "text/event-stream" } },
-            );
-          }
-          return previous(input, init);
-        },
-        { preconnect: originalFetch.preconnect },
-      );
+      chatFetch = async (
+        input: RequestInfo | URL,
+        init?: RequestInit,
+      ): Promise<Response> => {
+        if (String(input).startsWith("/api/chat/messages?id=")) {
+          reads++;
+          if (reads === 1) return Response.json({ messages: [] });
+          if (historyFails) return new Response("Unavailable", { status: 503 });
+          return Response.json({
+            messages: [
+              {
+                id: "saved-response",
+                role: "assistant",
+                content: "Confirmation required.",
+                cards: [approval],
+              },
+            ],
+          });
+        }
+        if (String(input) === "/api/chat" && init?.method === "POST") {
+          sends++;
+          return new Response(
+            new ReadableStream<Uint8Array>({
+              start(controller): void {
+                transport.controller = controller;
+                for (const event of [
+                  {
+                    type: "text-delta",
+                    id: "reply",
+                    delta: "Confirmation required.",
+                  },
+                  {
+                    type: "tool-input-available",
+                    toolCallId: "call-car",
+                    toolName: "system_generate",
+                    input: approval.input,
+                    title: approval.summary,
+                  },
+                  {
+                    type: "tool-approval-request",
+                    toolCallId: "call-car",
+                    approvalId: "approval-car",
+                  },
+                ])
+                  controller.enqueue(
+                    encoder.encode(`data: ${JSON.stringify(event)}\n\n`),
+                  );
+              },
+            }),
+            { headers: { "Content-Type": "text/event-stream" } },
+          );
+        }
+        return previous(input, init);
+      };
       const approvals = (): HTMLButtonElement[] =>
         [...document.querySelectorAll("button")].filter(
           (button) => button.textContent === "Approve",
@@ -538,28 +535,28 @@ describe("native Studio Chat workspace", () => {
   });
 
   it("pages an unknown Chat total through an empty trailing page without dropping the draft", async () => {
-    const previous = globalThis.fetch;
+    const previous = chatFetch;
     const reads: string[] = [];
-    globalThis.fetch = Object.assign(
-      async (input: RequestInfo | URL, init?: RequestInit) => {
-        const url = new URL(String(input), "http://brain.test");
-        if (url.pathname === "/api/chat/sessions") {
-          reads.push(url.search);
-          return Response.json({
-            sessions:
-              url.searchParams.get("offset") === "25"
-                ? []
-                : Array.from({ length: 25 }, (_, index) => ({
-                    id: index === 0 ? "conversation-1" : `page-${index}`,
-                    title: `Conversation ${index + 1}`,
-                    lastActiveAt: "2026-09-11T12:00:00Z",
-                  })),
-          });
-        }
-        return previous(input, init);
-      },
-      { preconnect: originalFetch.preconnect },
-    );
+    chatFetch = async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ): Promise<Response> => {
+      const url = new URL(String(input), "http://brain.test");
+      if (url.pathname === "/api/chat/sessions") {
+        reads.push(url.search);
+        return Response.json({
+          sessions:
+            url.searchParams.get("offset") === "25"
+              ? []
+              : Array.from({ length: 25 }, (_, index) => ({
+                  id: index === 0 ? "conversation-1" : `page-${index}`,
+                  title: `Conversation ${index + 1}`,
+                  lastActiveAt: "2026-09-11T12:00:00Z",
+                })),
+        });
+      }
+      return previous(input, init);
+    };
     const store = new StudioChatDraftStore();
     const key = studioChatDraftKey("/api/chat", "conversation-1");
     store.update(key, { text: "Keep this unsent" });
@@ -590,26 +587,26 @@ describe("native Studio Chat workspace", () => {
   });
 
   it("loads archived sessions through the scoped API without replacing the open conversation", async () => {
-    const previous = globalThis.fetch;
+    const previous = chatFetch;
     const requests: string[] = [];
-    globalThis.fetch = Object.assign(
-      async (input: RequestInfo | URL, init?: RequestInit) => {
-        requests.push(String(input));
-        if (String(input) === "/api/chat/sessions?archived=true")
-          return Response.json({
-            sessions: [
-              {
-                id: "archived-1",
-                title: "Archived discussion",
-                lastActiveAt: "2026-09-11T12:00:00Z",
-                archived: true,
-              },
-            ],
-          });
-        return previous(input, init);
-      },
-      { preconnect: originalFetch.preconnect },
-    );
+    chatFetch = async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ): Promise<Response> => {
+      requests.push(String(input));
+      if (String(input) === "/api/chat/sessions?archived=true")
+        return Response.json({
+          sessions: [
+            {
+              id: "archived-1",
+              title: "Archived discussion",
+              lastActiveAt: "2026-09-11T12:00:00Z",
+              archived: true,
+            },
+          ],
+        });
+      return previous(input, init);
+    };
     const store = new StudioChatDraftStore();
     const key = studioChatDraftKey("/api/chat", "conversation-1");
     store.update(key, { text: "Keep my draft" });
@@ -634,18 +631,18 @@ describe("native Studio Chat workspace", () => {
   });
 
   it("keeps a proposed rename after failure and sends it only on explicit submit", async () => {
-    const previous = globalThis.fetch;
+    const previous = chatFetch;
     let renames = 0;
-    globalThis.fetch = Object.assign(
-      async (input: RequestInfo | URL, init?: RequestInit) => {
-        if (init?.method === "PUT") {
-          renames += 1;
-          return new Response("Unavailable", { status: 503 });
-        }
-        return previous(input, init);
-      },
-      { preconnect: originalFetch.preconnect },
-    );
+    chatFetch = async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ): Promise<Response> => {
+      if (init?.method === "PUT") {
+        renames += 1;
+        return new Response("Unavailable", { status: 503 });
+      }
+      return previous(input, init);
+    };
     const store = new StudioChatDraftStore();
     const key = studioChatDraftKey("/api/chat", "conversation-1");
     store.update(key, { text: "Unsent message" });
@@ -728,30 +725,30 @@ describe("native Studio Chat workspace", () => {
   });
 
   it("retries a failed history read without sending a message or hiding the composer", async () => {
-    const previous = globalThis.fetch;
+    const previous = chatFetch;
     let reads = 0;
     let sends = 0;
-    globalThis.fetch = Object.assign(
-      async (input: RequestInfo | URL, init?: RequestInit) => {
-        if (init?.method === "POST") sends += 1;
-        if (String(input).startsWith("/api/chat/messages?id=")) {
-          reads += 1;
-          return reads === 1
-            ? new Response("Unavailable", { status: 503 })
-            : Response.json({
-                messages: [
-                  {
-                    id: "recovered",
-                    role: "assistant",
-                    content: "Recovered history",
-                  },
-                ],
-              });
-        }
-        return previous(input, init);
-      },
-      { preconnect: originalFetch.preconnect },
-    );
+    chatFetch = async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ): Promise<Response> => {
+      if (init?.method === "POST") sends += 1;
+      if (String(input).startsWith("/api/chat/messages?id=")) {
+        reads += 1;
+        return reads === 1
+          ? new Response("Unavailable", { status: 503 })
+          : Response.json({
+              messages: [
+                {
+                  id: "recovered",
+                  role: "assistant",
+                  content: "Recovered history",
+                },
+              ],
+            });
+      }
+      return previous(input, init);
+    };
     await mountChat(new StudioChatDraftStore());
     expect(document.querySelector("textarea")).not.toBeNull();
     expect(document.body.textContent).toContain(
@@ -805,14 +802,14 @@ describe("native Studio Chat workspace", () => {
   });
 
   it("does not reserve an empty desktop conversation rail", async () => {
-    const previous = globalThis.fetch;
-    globalThis.fetch = Object.assign(
-      async (input: RequestInfo | URL, init?: RequestInit) =>
-        String(input) === "/api/chat/sessions"
-          ? Response.json({ sessions: [] })
-          : previous(input, init),
-      { preconnect: previous.preconnect },
-    );
+    const previous = chatFetch;
+    chatFetch = async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ): Promise<Response> =>
+      String(input) === "/api/chat/sessions"
+        ? Response.json({ sessions: [] })
+        : previous(input, init);
     await mountChat(new StudioChatDraftStore(), null);
     expect(document.querySelector(".studio-chat-sessions")).toBeNull();
     expect(
@@ -825,14 +822,14 @@ describe("native Studio Chat workspace", () => {
       const store = new StudioChatDraftStore(),
         key = studioChatDraftKey("/api/chat", sessionId);
       store.update(key, { text: "Keep this if sending fails" });
-      const previous = globalThis.fetch;
-      globalThis.fetch = Object.assign(
-        async (input: RequestInfo | URL, init?: RequestInit) =>
-          String(input) === "/api/chat" && init?.method === "POST"
-            ? new Response("Unavailable", { status: 503 })
-            : previous(input, init),
-        { preconnect: originalFetch.preconnect },
-      );
+      const previous = chatFetch;
+      chatFetch = async (
+        input: RequestInfo | URL,
+        init?: RequestInit,
+      ): Promise<Response> =>
+        String(input) === "/api/chat" && init?.method === "POST"
+          ? new Response("Unavailable", { status: 503 })
+          : previous(input, init);
       await mountChat(store, sessionId);
       click(document.querySelector('[aria-label="Send message"]'), "Send");
       await settle();
@@ -852,37 +849,37 @@ describe("native Studio Chat workspace", () => {
     const store = new StudioChatDraftStore();
     const key = studioChatDraftKey("/api/chat", "conversation-1");
     const attempts: string[] = [];
-    const previous = globalThis.fetch;
-    globalThis.fetch = Object.assign(
-      async (input: RequestInfo | URL, init?: RequestInit) => {
-        if (String(input) !== "/api/chat/uploads") return previous(input, init);
-        if (!(init?.body instanceof FormData))
-          throw new Error("Missing upload form");
-        const file = init.body.get("file");
-        if (!(file instanceof File)) throw new Error("Missing file");
-        attempts.push(file.name);
-        if (
-          file.name === "retry.txt" &&
-          attempts.filter((name) => name === file.name).length === 1
-        )
-          return Response.json(
-            { error: "Temporary upload failure" },
-            { status: 503 },
-          );
-        const id = `upload-${crypto.randomUUID()}`;
-        return Response.json({
-          id,
-          ref: { kind: "upload", id },
-          filename: file.name,
-          mediaType: "text/plain",
-          sizeBytes: file.size,
-          createdAt: "2026-09-11T12:00:00Z",
-          url: `/api/chat/uploads/${file.name}`,
-          downloadUrl: `/api/chat/uploads/${file.name}?download=true`,
-        });
-      },
-      { preconnect: originalFetch.preconnect },
-    );
+    const previous = chatFetch;
+    chatFetch = async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ): Promise<Response> => {
+      if (String(input) !== "/api/chat/uploads") return previous(input, init);
+      if (!(init?.body instanceof FormData))
+        throw new Error("Missing upload form");
+      const file = init.body.get("file");
+      if (!(file instanceof File)) throw new Error("Missing file");
+      attempts.push(file.name);
+      if (
+        file.name === "retry.txt" &&
+        attempts.filter((name) => name === file.name).length === 1
+      )
+        return Response.json(
+          { error: "Temporary upload failure" },
+          { status: 503 },
+        );
+      const id = `upload-${crypto.randomUUID()}`;
+      return Response.json({
+        id,
+        ref: { kind: "upload", id },
+        filename: file.name,
+        mediaType: "text/plain",
+        sizeBytes: file.size,
+        createdAt: "2026-09-11T12:00:00Z",
+        url: `/api/chat/uploads/${file.name}`,
+        downloadUrl: `/api/chat/uploads/${file.name}?download=true`,
+      });
+    };
     await mountChat(store);
     const picker =
       document.querySelector<HTMLInputElement>('input[type="file"]');
@@ -925,18 +922,18 @@ describe("native Studio Chat workspace", () => {
 
   it("does not attach a late upload to another session", async () => {
     const store = new StudioChatDraftStore();
-    const previous = globalThis.fetch;
+    const previous = chatFetch;
     let complete: ((response: Response) => void) | undefined;
-    globalThis.fetch = Object.assign(
-      async (input: RequestInfo | URL, init?: RequestInit) => {
-        if (String(input) === "/api/chat/uploads")
-          return new Promise<Response>((resolve) => {
-            complete = resolve;
-          });
-        return previous(input, init);
-      },
-      { preconnect: originalFetch.preconnect },
-    );
+    chatFetch = async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ): Promise<Response> => {
+      if (String(input) === "/api/chat/uploads")
+        return new Promise<Response>((resolve) => {
+          complete = resolve;
+        });
+      return previous(input, init);
+    };
     await mountChat(store);
     const picker =
       document.querySelector<HTMLInputElement>('input[type="file"]');
@@ -1010,18 +1007,18 @@ describe("native Studio Chat workspace", () => {
   for (const switchSession of [false, true]) {
     it(`protects composition during archive and ${switchSession ? "ignores a late result after switching sessions" : "returns after acknowledgement"}`, async () => {
       const store = new StudioChatDraftStore(),
-        previous = globalThis.fetch;
+        previous = chatFetch;
       const pending: { finish?: () => void } = {};
-      globalThis.fetch = Object.assign(
-        async (input: RequestInfo | URL, init?: RequestInit) => {
-          if (init?.method !== "PUT") return previous(input, init);
-          return new Promise<Response>((resolve) => {
-            pending.finish = (): void =>
-              resolve(Response.json({ archived: true }));
-          });
-        },
-        { preconnect: originalFetch.preconnect },
-      );
+      chatFetch = async (
+        input: RequestInfo | URL,
+        init?: RequestInit,
+      ): Promise<Response> => {
+        if (init?.method !== "PUT") return previous(input, init);
+        return new Promise<Response>((resolve) => {
+          pending.finish = (): void =>
+            resolve(Response.json({ archived: true }));
+        });
+      };
       await mountChat(store);
       await openDetails();
       click(document.querySelector(".studio-chat-header-action"), "Archive");
@@ -1044,29 +1041,29 @@ describe("native Studio Chat workspace", () => {
     const store = new StudioChatDraftStore(),
       key = studioChatDraftKey("/api/chat", null);
     store.update(key, { text: "First message" });
-    const previous = globalThis.fetch;
+    const previous = chatFetch;
     const pending: { accept?: () => void } = {};
-    globalThis.fetch = Object.assign(
-      async (input: RequestInfo | URL, init?: RequestInit) => {
-        if (String(input) !== "/api/chat" || init?.method !== "POST")
-          return previous(input, init);
-        return new Promise<Response>((resolve, reject) => {
-          pending.accept = (): void =>
-            resolve(
-              new Response(
-                'data: {"type":"text-delta","id":"reply","delta":"Accepted"}\n\n',
-                { headers: { "Content-Type": "text/event-stream" } },
-              ),
-            );
-          init.signal?.addEventListener(
-            "abort",
-            () => reject(new DOMException("Stopped", "AbortError")),
-            { once: true },
+    chatFetch = async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ): Promise<Response> => {
+      if (String(input) !== "/api/chat" || init?.method !== "POST")
+        return previous(input, init);
+      return new Promise<Response>((resolve, reject) => {
+        pending.accept = (): void =>
+          resolve(
+            new Response(
+              'data: {"type":"text-delta","id":"reply","delta":"Accepted"}\n\n',
+              { headers: { "Content-Type": "text/event-stream" } },
+            ),
           );
-        });
-      },
-      { preconnect: originalFetch.preconnect },
-    );
+        init.signal?.addEventListener(
+          "abort",
+          () => reject(new DOMException("Stopped", "AbortError")),
+          { once: true },
+        );
+      });
+    };
     await mountChat(store, null);
     click(document.querySelector('[aria-label="Send message"]'), "Send");
     await settle();
@@ -1095,49 +1092,49 @@ describe("native Studio Chat workspace", () => {
     store.update(studioChatDraftKey("/api/chat", null), {
       text: "First message",
     });
-    const previous = globalThis.fetch;
+    const previous = chatFetch;
     let conversationId = "";
-    globalThis.fetch = Object.assign(
-      async (input: RequestInfo | URL, init?: RequestInit) => {
-        const url = String(input);
-        if (url === "/api/chat" && init?.method === "POST") {
-          const body: unknown = JSON.parse(String(init.body));
-          if (
-            typeof body !== "object" ||
-            body === null ||
-            !("id" in body) ||
-            typeof body.id !== "string"
-          )
-            throw new Error("Missing streamed conversation id");
-          conversationId = body.id;
-          return new Response(
-            'data: {"type":"text-delta","id":"reply","delta":"Accepted"}\n\n',
-            { headers: { "Content-Type": "text/event-stream" } },
-          );
-        }
+    chatFetch = async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ): Promise<Response> => {
+      const url = String(input);
+      if (url === "/api/chat" && init?.method === "POST") {
+        const body: unknown = JSON.parse(String(init.body));
         if (
-          conversationId &&
-          url === `/api/chat/messages?id=${encodeURIComponent(conversationId)}`
-        ) {
-          return Response.json({
-            messages: [
-              {
-                id: "stored-user",
-                role: "user",
-                content: "First message",
-              },
-              {
-                id: "stored-assistant",
-                role: "assistant",
-                content: "Accepted",
-              },
-            ],
-          });
-        }
-        return previous(input, init);
-      },
-      { preconnect: originalFetch.preconnect },
-    );
+          typeof body !== "object" ||
+          body === null ||
+          !("id" in body) ||
+          typeof body.id !== "string"
+        )
+          throw new Error("Missing streamed conversation id");
+        conversationId = body.id;
+        return new Response(
+          'data: {"type":"text-delta","id":"reply","delta":"Accepted"}\n\n',
+          { headers: { "Content-Type": "text/event-stream" } },
+        );
+      }
+      if (
+        conversationId &&
+        url === `/api/chat/messages?id=${encodeURIComponent(conversationId)}`
+      ) {
+        return Response.json({
+          messages: [
+            {
+              id: "stored-user",
+              role: "user",
+              content: "First message",
+            },
+            {
+              id: "stored-assistant",
+              role: "assistant",
+              content: "Accepted",
+            },
+          ],
+        });
+      }
+      return previous(input, init);
+    };
 
     await mountChat(store, null);
     click(document.querySelector('[aria-label="Send message"]'), "Send");
@@ -1167,34 +1164,33 @@ describe("native Studio Chat workspace", () => {
     const store = new StudioChatDraftStore(),
       key = studioChatDraftKey("/api/chat", "conversation-1");
     store.update(key, { text: "Start a response" });
-    const previous = globalThis.fetch;
+    const previous = chatFetch;
     const request: { signal?: AbortSignal | null | undefined } = {};
-    globalThis.fetch = Object.assign(
-      async (input: RequestInfo | URL, init?: RequestInit) => {
-        if (String(input) !== "/api/chat" || init?.method !== "POST")
-          return previous(input, init);
-        request.signal = init.signal;
-        return new Response(
-          new ReadableStream<Uint8Array>({
-            start(controller): void {
-              controller.enqueue(
-                new TextEncoder().encode(
-                  'data: {"type":"text-delta","id":"reply","delta":"Received partial response"}\n\n',
-                ),
-              );
-              init.signal?.addEventListener(
-                "abort",
-                () =>
-                  controller.error(new DOMException("Stopped", "AbortError")),
-                { once: true },
-              );
-            },
-          }),
-          { headers: { "Content-Type": "text/event-stream" } },
-        );
-      },
-      { preconnect: originalFetch.preconnect },
-    );
+    chatFetch = async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ): Promise<Response> => {
+      if (String(input) !== "/api/chat" || init?.method !== "POST")
+        return previous(input, init);
+      request.signal = init.signal;
+      return new Response(
+        new ReadableStream<Uint8Array>({
+          start(controller): void {
+            controller.enqueue(
+              new TextEncoder().encode(
+                'data: {"type":"text-delta","id":"reply","delta":"Received partial response"}\n\n',
+              ),
+            );
+            init.signal?.addEventListener(
+              "abort",
+              () => controller.error(new DOMException("Stopped", "AbortError")),
+              { once: true },
+            );
+          },
+        }),
+        { headers: { "Content-Type": "text/event-stream" } },
+      );
+    };
     await mountChat(store);
     click(document.querySelector('[aria-label="Send message"]'), "Send");
     await settle();
@@ -1234,24 +1230,24 @@ describe("native Studio Chat workspace", () => {
       const store = new StudioChatDraftStore();
       const key = studioChatDraftKey("/api/chat", "conversation-1");
       store.update(key, { text: "Perform the requested task" });
-      const previous = globalThis.fetch;
+      const previous = chatFetch;
       let sends = 0;
       let reads = 0;
-      globalThis.fetch = Object.assign(
-        async (input: RequestInfo | URL, init?: RequestInit) => {
-          if (String(input).startsWith("/api/chat/messages?id=")) reads += 1;
-          if (String(input) === "/api/chat" && init?.method === "POST") {
-            sends += 1;
-            return new Response(
-              'data: {"type":"text-delta","id":"reply","delta":"Partial output"}\n\n' +
-                ending,
-              { headers: { "Content-Type": "text/event-stream" } },
-            );
-          }
-          return previous(input, init);
-        },
-        { preconnect: originalFetch.preconnect },
-      );
+      chatFetch = async (
+        input: RequestInfo | URL,
+        init?: RequestInit,
+      ): Promise<Response> => {
+        if (String(input).startsWith("/api/chat/messages?id=")) reads += 1;
+        if (String(input) === "/api/chat" && init?.method === "POST") {
+          sends += 1;
+          return new Response(
+            'data: {"type":"text-delta","id":"reply","delta":"Partial output"}\n\n' +
+              ending,
+            { headers: { "Content-Type": "text/event-stream" } },
+          );
+        }
+        return previous(input, init);
+      };
       await mountChat(store);
       click(document.querySelector('[aria-label="Send message"]'), "Send");
       await settle();
@@ -1279,49 +1275,50 @@ describe("native Studio Chat workspace", () => {
   it("opens an authorized context session and seeds the native composer", async () => {
     let contextBody: unknown;
     const store = new StudioChatDraftStore();
-    globalThis.fetch = Object.assign(
-      async (input: RequestInfo | URL, init?: RequestInit) => {
-        const url = String(input);
-        if (url === "/custom/chat/sessions") {
-          return Response.json({ sessions: [] });
-        }
-        if (url === "/custom/chat/messages?id=context-conversation")
-          return Response.json({ messages: [] });
-        if (
-          url === "/custom/chat/context-sessions" &&
-          init?.method === "POST"
-        ) {
-          contextBody = JSON.parse(String(init.body));
-          return Response.json({ conversationId: "context-conversation" });
-        }
-        throw new Error(`Unexpected Studio Chat request: ${url}`);
-      },
-      { preconnect: originalFetch.preconnect },
-    );
+    chatFetch = async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ): Promise<Response> => {
+      const url = String(input);
+      if (url === "/custom/chat/sessions") {
+        return Response.json({ sessions: [] });
+      }
+      if (url === "/custom/chat/messages?id=context-conversation")
+        return Response.json({ messages: [] });
+      if (url === "/custom/chat/context-sessions" && init?.method === "POST") {
+        contextBody = JSON.parse(String(init.body));
+        return Response.json({ conversationId: "context-conversation" });
+      }
+      throw new Error(`Unexpected Studio Chat request: ${url}`);
+    };
 
     await act(async () => {
       root.render(
         createElement(
-          QueryClientProvider,
-          { client: queryClient },
-          createElement(StudioChatWorkspace, {
-            apiPath: "/custom/chat",
-            draftStore: store,
-            studioBasePath: "/studio",
-            sessionId: null,
-            handoff: {
-              sourceId: "mail-items",
-              itemId: "mail-1",
-              label: "Mercury launch",
-              prompt:
-                "Help me understand this Inbox item and decide what to do next.",
-            },
-            types: [],
-            workspaces: [],
-            navigate: (href: string) => navigations.push(href),
-            selectEntityType: () => {},
-            selectWorkspace: () => {},
-          }),
+          AppFetchProvider,
+          { fetch: (input, init) => chatFetch(input, init) },
+          createElement(
+            QueryClientProvider,
+            { client: queryClient },
+            createElement(StudioChatWorkspace, {
+              apiPath: "/custom/chat",
+              draftStore: store,
+              studioBasePath: "/studio",
+              sessionId: null,
+              handoff: {
+                sourceId: "mail-items",
+                itemId: "mail-1",
+                label: "Mercury launch",
+                prompt:
+                  "Help me understand this Inbox item and decide what to do next.",
+              },
+              types: [],
+              workspaces: [],
+              navigate: (href: string) => navigations.push(href),
+              selectEntityType: () => {},
+              selectWorkspace: () => {},
+            }),
+          ),
         ),
       );
     });
@@ -1403,24 +1400,24 @@ describe("native Studio Chat workspace", () => {
   });
 
   it("empties the composer as the message enters the transcript, before the response", async () => {
-    const previous = globalThis.fetch;
+    const previous = chatFetch;
     let release = (): void => {};
     const accepted = new Promise<void>((resolve) => {
       release = resolve;
     });
-    globalThis.fetch = Object.assign(
-      async (input: RequestInfo | URL, init?: RequestInit) => {
-        if (init?.method === "POST" && String(input).endsWith("/api/chat")) {
-          await accepted;
-          return new Response(`data: {"type":"finish"}\n\n`, {
-            status: 200,
-            headers: { "content-type": "text/event-stream" },
-          });
-        }
-        return previous(input, init);
-      },
-      { preconnect: originalFetch.preconnect },
-    );
+    chatFetch = async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ): Promise<Response> => {
+      if (init?.method === "POST" && String(input).endsWith("/api/chat")) {
+        await accepted;
+        return new Response(`data: {"type":"finish"}\n\n`, {
+          status: 200,
+          headers: { "content-type": "text/event-stream" },
+        });
+      }
+      return previous(input, init);
+    };
     const store = new StudioChatDraftStore();
     const key = studioChatDraftKey("/api/chat", "conversation-1");
     store.update(key, { text: "Send me" });
@@ -1451,16 +1448,16 @@ describe("native Studio Chat workspace", () => {
   });
 
   it("restores the composer when the send is refused", async () => {
-    const previous = globalThis.fetch;
-    globalThis.fetch = Object.assign(
-      async (input: RequestInfo | URL, init?: RequestInit) => {
-        if (init?.method === "POST" && String(input).endsWith("/api/chat")) {
-          return new Response("Unavailable", { status: 503 });
-        }
-        return previous(input, init);
-      },
-      { preconnect: originalFetch.preconnect },
-    );
+    const previous = chatFetch;
+    chatFetch = async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ): Promise<Response> => {
+      if (init?.method === "POST" && String(input).endsWith("/api/chat")) {
+        return new Response("Unavailable", { status: 503 });
+      }
+      return previous(input, init);
+    };
     const store = new StudioChatDraftStore();
     const key = studioChatDraftKey("/api/chat", "conversation-1");
     store.update(key, { text: "Send me" });

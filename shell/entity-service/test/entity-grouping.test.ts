@@ -8,6 +8,10 @@ import {
   minimalTestSchema,
   postAdapter,
   postSchema,
+  reuseAdapter,
+  reuseSchema,
+  strictAdapter,
+  strictSchema,
 } from "./helpers/test-schemas";
 import {
   setupEntityService,
@@ -84,6 +88,60 @@ describe("grouping registration", () => {
       value.registerGrouping({ ...clients, field: "constructor" }),
     ).toThrow();
   });
+  test("reuses an owner list field declared separately from its metadata", () => {
+    const value = EntityRegistry.createFresh(createSilentLogger());
+    // An adapter writes its frontmatter and metadata contracts separately, so
+    // equal contracts are two objects. Reuse must compare them by shape.
+    value.registerEntityType("reuse", reuseSchema, reuseAdapter);
+    value.registerGrouping({ ...clients, types: ["reuse"] });
+    expect(value.getGroupings()).toHaveLength(1);
+    expect(
+      value
+        .getEffectiveFrontmatterSchema("reuse")
+        ?.safeParse({ clients: ["Acme"] }).success,
+    ).toBe(true);
+  });
+  test.each([
+    [
+      "array refinement",
+      z
+        .array(z.string())
+        .refine((values) => values.every((value) => value === "Acme"))
+        .optional(),
+    ],
+    [
+      "element refinement",
+      z.array(z.string().refine((value) => value === "Acme")).optional(),
+    ],
+    [
+      "overwrite",
+      z
+        .array(z.string())
+        .overwrite(() => ["Acme"])
+        .optional(),
+    ],
+    [
+      "transform",
+      z
+        .array(z.string())
+        .transform(() => ["Acme"])
+        .optional(),
+    ],
+  ])(
+    "rejects a separately declared %s that JSON Schema cannot compare",
+    (_name, field) => {
+      const value = EntityRegistry.createFresh(createSilentLogger());
+      const schema = reuseSchema.extend({
+        metadata: z.object({ clients: field }),
+      });
+      value.registerEntityType("reuse", schema, reuseAdapter);
+      expect(() =>
+        value.registerGrouping({ ...clients, types: ["reuse"] }),
+      ).toThrow("Cannot establish a shared frontmatter/metadata contract");
+      expect(value.getGroupings()).toEqual([]);
+    },
+  );
+
   test("retains an existing extension's bounds and refinements", () => {
     const value = registry();
     value.extendFrontmatterSchema(
@@ -104,6 +162,69 @@ describe("grouping registration", () => {
         z.object({ clients: z.array(z.string()).optional() }),
       ),
     ).toThrow();
+  });
+});
+
+describe("grouping projection", () => {
+  function registry(): EntityRegistry {
+    const value = EntityRegistry.createFresh(createSilentLogger());
+    value.registerEntityType("strict", strictSchema, strictAdapter);
+    value.registerGrouping({ ...clients, types: ["strict"] });
+    return value;
+  }
+  const source = (frontmatter: string): string =>
+    `---\n${frontmatter}\n---\n\nBody`;
+
+  test("projects membership while an unrelated field is invalid", () => {
+    const value = registry();
+    // An invalid sibling belongs to its owner's validation, not to membership.
+    expect(
+      value.projectMetadata(
+        "strict",
+        source("status: bogus\nclients:\n  - Acme"),
+        {},
+      ),
+    ).toEqual({ clients: ["Acme"] });
+    expect(
+      value.projectStoredMetadata(
+        "strict",
+        source("status: bogus\nclients:\n  - Acme"),
+        {},
+      ),
+    ).toEqual({ clients: ["Acme"] });
+  });
+
+  test("rejects an invalid membership value on a write", () => {
+    const value = registry();
+    expect(() =>
+      value.projectMetadata("strict", source("clients: 3"), {}),
+    ).toThrow();
+  });
+
+  test("omits, rather than rejects, an invalid stored membership value", () => {
+    const value = registry();
+    expect(
+      value.projectStoredMetadata("strict", source("clients: 3"), {
+        clients: ["Stale"],
+      }),
+    ).toEqual({});
+  });
+
+  test("keeps one grouping's membership when another is invalid", () => {
+    const value = registry();
+    value.registerGrouping({
+      key: "projects",
+      label: "Projects",
+      field: "projects",
+      types: ["strict"],
+    });
+    expect(
+      value.projectStoredMetadata(
+        "strict",
+        source("clients:\n  - Acme\nprojects: 7"),
+        {},
+      ),
+    ).toEqual({ clients: ["Acme"] });
   });
 });
 
@@ -232,7 +353,9 @@ describe("grouping queries (real SQLite)", () => {
       (await ctx.entityService.queryGroupingCatalog(query)).values.map(
         (entry) => entry.value,
       ),
-    ).toEqual(["Acme", "Client\u0000name", "acme", "\ufeffClient"]);
+      // Case-insensitive ordering keeps "Acme" beside "acme"; exact stored
+      // bytes still break ties, and membership matching stays exact.
+    ).toEqual(["Acme", "acme", "Client\u0000name", "\ufeffClient"]);
     expect(
       (
         await ctx.entityService.queryGroupingMembers({

@@ -2,6 +2,7 @@
 import * as stylex from "@stylexjs/stylex";
 import type { ComponentProps, ReactElement, ReactNode } from "react";
 import { chromeStyles as s } from "./operator-chrome.styles";
+import { styledProps } from "./styled-props";
 
 function BrandText(props: { title: string; display?: boolean }): ReactElement {
   const title = props.title.trim();
@@ -27,11 +28,9 @@ export function OperatorHeader(props: {
   children: ReactNode;
   className?: string;
 }): ReactElement {
-  const css = stylex.props(s.header);
   return (
     <header
-      {...css}
-      className={[props.className, css.className].filter(Boolean).join(" ")}
+      {...styledProps({ className: props.className }, s.header)}
       aria-label={props.label}
     >
       <a {...stylex.props(s.brandLink, s.focus)} href={props.homeHref}>
@@ -53,14 +52,7 @@ export function OperatorHeaderLink({
   variant,
   ...props
 }: ComponentProps<"a"> & { variant: "primary" | "secondary" }): ReactElement {
-  const css = stylex.props(s.control, s[variant], s.focus);
-  return (
-    <a
-      {...props}
-      {...css}
-      className={[props.className, css.className].filter(Boolean).join(" ")}
-    />
-  );
+  return <a {...styledProps(props, s.control, s[variant], s.focus)} />;
 }
 
 /** A supplementary icon control; the host supplies its accessible label. */
@@ -71,18 +63,16 @@ export function OperatorHeaderButton({
   "aria-label": string;
   desktopOnly?: boolean;
 }): ReactElement {
-  const css = stylex.props(
-    s.control,
-    s.icon,
-    desktopOnly && s.desktopOnly,
-    s.focus,
-  );
   return (
     <button
       type="button"
-      {...props}
-      {...css}
-      className={[props.className, css.className].filter(Boolean).join(" ")}
+      {...styledProps(
+        props,
+        s.control,
+        s.icon,
+        desktopOnly && s.desktopOnly,
+        s.focus,
+      )}
     />
   );
 }
@@ -92,12 +82,8 @@ export function OperatorMasthead(props: {
   description?: string | undefined;
   className?: string;
 }): ReactElement {
-  const css = stylex.props(s.masthead);
   return (
-    <header
-      {...css}
-      className={[props.className, css.className].filter(Boolean).join(" ")}
-    >
+    <header {...styledProps({ className: props.className }, s.masthead)}>
       <h1 {...stylex.props(s.title)}>
         <BrandText title={props.title} display />
       </h1>
@@ -114,11 +100,9 @@ export function OperatorSectionTabs(props: {
   children: ReactNode;
   className?: string;
 }): ReactElement {
-  const css = stylex.props(s.tabs);
   return (
     <nav
-      {...css}
-      className={[props.className, css.className].filter(Boolean).join(" ")}
+      {...styledProps({ className: props.className }, s.tabs)}
       aria-label={props.label}
       role="tablist"
     >
@@ -133,12 +117,9 @@ export function OperatorSectionTab({
   children,
   ...props
 }: ComponentProps<"a"> & { selected: boolean; count?: number }): ReactElement {
-  const css = stylex.props(s.tab, s.focus);
   return (
     <a
-      {...props}
-      {...css}
-      className={[props.className, css.className].filter(Boolean).join(" ")}
+      {...styledProps(props, s.tab, s.focus)}
       role="tab"
       aria-selected={selected}
     >

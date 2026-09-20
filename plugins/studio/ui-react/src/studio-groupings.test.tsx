@@ -6,6 +6,7 @@ import { groupingQuery } from "./grouping-url-query";
 import { TypeSwitcher, studioMobileSelection } from "./entity-fields";
 
 const common = {
+  basePath: "/studio",
   grouping: {
     key: "clients",
     label: "Clients",
@@ -59,7 +60,11 @@ test("catalog uses one row per value and offers no entity or collection creation
     />,
   );
   expect(html).toContain("Acme");
-  expect(html).toContain("2 entities");
+  expect(html).toContain("2 entries");
+  // A group row is a link, so it opens in a new tab like any other place.
+  expect(html).toContain(
+    String.fromCharCode(60) + 'a href="/studio/groups/clients?value=Acme"',
+  );
   expect(html).not.toContain("New ");
   expect(html).not.toContain("Delete collection");
 });
@@ -101,7 +106,7 @@ test("initializing, failed, and empty are distinct states", () => {
   const loading = renderToStaticMarkup(
     <StudioGroupingContent {...common} initializing loading page={null} />,
   );
-  expect(loading).toContain("Preparing collections");
+  expect(loading).toContain("Preparing groups");
   expect(loading).not.toContain("No clients");
   const failed = renderToStaticMarkup(
     <StudioGroupingContent

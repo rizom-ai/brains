@@ -2,6 +2,7 @@
 import * as stylex from "@stylexjs/stylex";
 import type { ComponentProps, ReactElement } from "react";
 import { documentStyles as s } from "./operator-document.styles";
+import { styledProps } from "./styled-props";
 /** Compiled application-document slots for hosts that compose their own HTML. */
 export function operatorApplicationDocumentClasses(): Record<
   "body" | "mount" | "boot",
@@ -17,12 +18,5 @@ export function operatorApplicationDocumentClasses(): Record<
 export function OperatorDocumentBody(
   props: ComponentProps<"body">,
 ): ReactElement {
-  const css = stylex.props(s.body);
-  return (
-    <body
-      {...props}
-      {...css}
-      className={[props.className, css.className].filter(Boolean).join(" ")}
-    />
-  );
+  return <body {...styledProps(props, s.body)} />;
 }

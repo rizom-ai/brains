@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import { afterEach, beforeEach, expect, test } from "bun:test";
+import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
 import { Window } from "happy-dom";
 import { readFileSync } from "node:fs";
 import { act, useState, type ReactElement } from "react";
@@ -8,7 +9,11 @@ import { Field } from "./entity-fields";
 import { StudioSystemFields } from "./studio-system-fields";
 import type { FieldDescriptor } from "./api";
 
+/** Marks a space a reader could not otherwise see. */
+const MARK = String.fromCharCode(0xb7);
+
 let windowInstance: Window;
+let restoreGlobals: RestoreGlobals;
 let root: Root;
 let values: unknown;
 const descriptor: FieldDescriptor = {
@@ -20,22 +25,18 @@ const descriptor: FieldDescriptor = {
 };
 beforeEach(() => {
   windowInstance = new Window();
-  Object.assign(globalThis, {
-    window: windowInstance,
-    document: windowInstance.document,
-    navigator: windowInstance.navigator,
-    HTMLElement: windowInstance.HTMLElement,
-    Node: windowInstance.Node,
+  restoreGlobals = installDomGlobals(windowInstance, {
     Event: windowInstance.Event,
     KeyboardEvent: windowInstance.KeyboardEvent,
     getComputedStyle: windowInstance.getComputedStyle.bind(windowInstance),
-    IS_REACT_ACT_ENVIRONMENT: true,
   });
   root = createRoot(document.body.appendChild(document.createElement("div")));
 });
 afterEach(async () => {
   await act(async () => root.unmount());
+  await windowInstance.happyDOM.abort();
   windowInstance.close();
+  restoreGlobals();
 });
 function Fixture({
   literal = true,
@@ -106,9 +107,7 @@ for (const system of [false, true])
     expect(values).toEqual(["Acme"]);
     await key(node, "Enter");
     expect(values).toEqual(["Acme", " Acme, Inc. "]);
-    expect(document.body.textContent).toContain(
-      '"\\u0020Acme,\\u0020Inc.\\u0020"',
-    );
+    expect(document.body.textContent).toContain(MARK + "Acme, Inc." + MARK);
     await input("Acme, Inc.");
     const add = document.querySelector<HTMLButtonElement>(
       '[aria-label="Add value"]',
@@ -146,7 +145,7 @@ test("read-only system grouping values retain visible empty/whitespace boundarie
   );
   expect(
     [...document.querySelectorAll("li")].map((node) => node.textContent),
-  ).toEqual(['""', '"\\u0020Acme\\u0020"']);
+  ).toEqual(["(empty)", MARK + "Acme" + MARK]);
 });
 test("literal Add control stays stationary when the input loses focus", async () => {
   const style = document.createElement("style");
@@ -169,4 +168,42 @@ test("ordinary tag inputs retain trimming and comma submission", async () => {
   expect(await key(node, ",")).toBe(true);
   expect(values).toEqual(["Acme", "Beta"]);
   expect(document.body.textContent).not.toContain("Surrounding whitespace");
+});
+
+test("existing values are offered so exact matching does not fragment", async () => {
+  await act(async () =>
+    root.render(
+      <Field
+        literalList
+        descriptor={descriptor}
+        value={["Acme"]}
+        suggestions={["Acme", "Acme, Inc.", "Northstar"]}
+        onChange={() => {}}
+      />,
+    ),
+  );
+  const input = document.querySelector<HTMLInputElement>('input[type="text"]');
+  const list = input?.getAttribute("list");
+  expect(list).toBeTruthy();
+  const options = [
+    ...document.querySelectorAll<HTMLOptionElement>(`#${list} option`),
+  ].map((option) => option.value);
+  // An already-chosen value is not offered again; the rest are exact.
+  expect(options).toEqual(["Acme, Inc.", "Northstar"]);
+});
+
+test("a field with no known values offers no list", async () => {
+  await act(async () =>
+    root.render(
+      <Field
+        literalList
+        descriptor={descriptor}
+        value={[]}
+        onChange={() => {}}
+      />,
+    ),
+  );
+  const input = document.querySelector<HTMLInputElement>('input[type="text"]');
+  expect(input?.getAttribute("list")).toBeNull();
+  expect(document.querySelector("datalist")).toBeNull();
 });

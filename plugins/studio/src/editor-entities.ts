@@ -369,7 +369,7 @@ export async function handleUpdateEntity(
   );
   if (bodyError) return bodyError;
 
-  const raw = isRawEntityType(entityType, context.entities.getGroupings());
+  const raw = isRawEntityType(entityType, context.entities);
   const domainFrontmatter = stripStudioPolicyMetadata(payload.frontmatter);
   if (raw && Object.keys(domainFrontmatter).length > 0) {
     return jsonResponse(
@@ -571,7 +571,7 @@ function prepareStudioCreation(
     payload.body,
   );
   if (bodyError) return bodyError;
-  const raw = isRawEntityType(entityType, context.entities.getGroupings());
+  const raw = isRawEntityType(entityType, context.entities);
   const domainFrontmatter = stripStudioPolicyMetadata(payload.frontmatter);
   if (raw && Object.keys(domainFrontmatter).length > 0)
     return jsonResponse(

@@ -1,9 +1,9 @@
 import { expect, test } from "bun:test";
 import {
   StudioChatDraftStore,
-  studioChatDraftKey,
   shouldBlockChatNavigation,
 } from "./studio-chat-drafts";
+import { studioChatDraftKey } from "./studio-chat-draft-key";
 
 test("session changes keep drafts, while leaving or interrupting work requires review", () => {
   expect(

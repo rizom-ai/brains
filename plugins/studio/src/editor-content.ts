@@ -66,7 +66,7 @@ export function splitEntityContent(
 } {
   // Without grouping participation, retain whole-document note editing,
   // including any authored frontmatter or leading Markdown horizontal rule.
-  if (isRawEntityType(entityType, context.entities.getGroupings())) {
+  if (isRawEntityType(entityType, context.entities)) {
     return { frontmatter: {}, body: content };
   }
   try {

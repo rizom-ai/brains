@@ -1,32 +1,24 @@
 /** @jsxImportSource react */
 import { StudioStatus } from "./studio-status";
-import { ConfirmDialog } from "@brains/app-ui-react";
-import {
-  StudioChatDraftStore,
-  shouldBlockChatNavigation,
-  type StudioChatNavigationState,
-} from "./studio-chat-drafts";
-import type {
-  RuntimeOperatorActionControl,
-  RuntimeOperatorLaunchIntent,
-  EntityIdPath,
-  EntityGrouping,
-} from "@brains/plugins";
 import { StudioGroupingView } from "./studio-groupings";
 import {
   groupingQuery,
   groupingSearch,
   groupingReturnTarget,
 } from "./grouping-url-query";
+import { ConfirmDialog } from "@brains/app-ui-react";
+import {
+  StudioChatDraftStore,
+  shouldBlockChatNavigation,
+  type StudioChatNavigationState,
+} from "./studio-chat-drafts";
 import type { AuthAccountRole } from "@brains/auth-service/account-contracts";
-import { isPlainRecord } from "@brains/utils/predicates";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useBlocker, useRouter, useRouterState } from "@tanstack/react-router";
 import {
   lazy,
   Suspense,
   useCallback,
-  useEffect,
   useMemo,
   useReducer,
   useRef,
@@ -37,104 +29,48 @@ import {
 import {
   studioCollectionPath,
   studioGroupingPath,
-  studioCreatePath,
   studioEntityPath,
   studioWorkspacePath,
   parseStudioPath,
 } from "../../src/studio-paths";
-import { createStudioCreatePrefillState } from "../../src/create-prefill-contract";
 import type { StudioCollectionQuery } from "../../src/collection-query";
-import {
-  STUDIO_ACCOUNT_WORKSPACE_ID,
-  STUDIO_ACCOUNT_WORKSPACE_RENDERER,
-} from "../../src/account-workspace";
+import { STUDIO_ACCOUNT_WORKSPACE_ID } from "../../src/account-workspace";
 import {
   STUDIO_CHAT_ROUTE_PATH,
   STUDIO_CHAT_WORKSPACE_ID,
-  STUDIO_CHAT_WORKSPACE_RENDERER,
-  studioChatWorkspacePath,
 } from "../../src/chat-workspace";
 import {
   StudioAccountWorkspaceView,
   StudioAppStatus,
   StudioAppView,
   type MobileEditorPane,
-  mobileEditorEntry,
 } from "./app-view";
-import {
-  ApiError,
-  type AgentTarget,
-  type StudioWorkspaceInfo,
-  type FieldAssistResponse,
-  type PublishingAction,
-  type PublishingActionResult,
-} from "./api";
 import type { BodyMode } from "./body-editor";
-import {
-  getStudioRouterBasePath,
-  resolveStudioHomePath,
-  resolveStudioWorkspaceAlias,
-} from "./studio-router";
-import { createEditorDocument } from "./editor-document";
-import {
-  consumeStudioCreatePrefill,
-  createPrefilledDraft,
-  withoutStudioCreatePrefill,
-} from "./create-prefill";
-import {
-  visibleFieldValues,
-  type FieldAssistState,
-  type FieldAssistVariant,
-} from "./entity-fields";
+import { getStudioRouterBasePath } from "./studio-router";
+import { type FieldAssistState } from "./entity-fields";
 import {
   editorWorkflowReducer,
-  creationIdPath,
   hasUnsavedEditorChanges,
   initialEditorWorkflowState,
-  type SaveState,
 } from "./editor-workflow";
-import { derivePipeline } from "./editor-status";
-import {
-  removeEntity,
-  runDeclarativeWorkspaceAction,
-  saveEntity,
-  type DeclarativeWorkspaceActionInput,
-  type DeleteEntityInput,
-  type SaveEntityInput,
-  type SaveEntityResult,
-} from "./mutations";
 import { useStudioApi } from "./studio-api-context";
-import {
-  createStudioChatHandoffState,
-  readStudioChatHandoffState,
-} from "./operator-launch";
-import {
-  isPublishConfirmation,
-  isPublishingActionError,
-} from "./publication-actions";
-import {
-  agentTargetsQueryOptions,
-  destinationQueryOptions,
-  studioKeys,
-  entityDetailQueryOptions,
-  entityListQueryOptions,
-  entitySchemaQueryOptions,
-  invalidateAfterWorkspaceAction,
-  navigationQueryOptions,
-  syncStatusQueryOptions,
-  workspaceQueryOptions,
-  type StudioWorkspaceQuery,
-} from "./queries";
-import { emptyDraft, errorMessage } from "./ui-utils";
+import { readStudioChatHandoffState } from "./operator-launch";
 import { readErrorMessage } from "./read-error";
-import {
-  initialWorkspaceUrlQuery,
-  replaceWorkspaceUrlQuery,
-  workspaceUrlHref,
-  workspaceUrlSearch,
-} from "./workspace-url-query";
+import { useGroupingSuggestions } from "./use-grouping-suggestions";
 
-import { collectionQuery, collectionSearch } from "./collection-url-query";
+import { collectionSearch } from "./collection-url-query";
+
+import { useStudioData, type WorkspaceQueryState } from "./use-studio-data";
+
+import { useStudioNavigationActions } from "./use-studio-navigation-actions";
+
+import { useEntityOpener } from "./use-entity-opener";
+
+import { useEditorActions } from "./use-editor-actions";
+
+import { useStudioRouteEffects } from "./use-studio-route-effects";
+
+import { useWorkspaceActions } from "./use-workspace-actions";
 
 const LazyAccountApp = lazy(async () => {
   const module = await import("./account/account-view");
@@ -150,17 +86,6 @@ export function studioChatSessionId(rawSearch: string): string | null {
   const value = new URLSearchParams(rawSearch).get("session")?.trim();
   return value && value.length <= 256 ? value : null;
 }
-
-/** `History.state` is typed `any`; narrow it before handing it to callers. */
-function historyStateRecord(): Record<string, unknown> {
-  const state: unknown = window.history.state;
-  return isPlainRecord(state) ? state : {};
-}
-
-const EMPTY_AGENT_TARGETS: AgentTarget[] = [];
-const EMPTY_WORKSPACES: StudioWorkspaceInfo[] = [];
-const EMPTY_GROUPINGS: EntityGrouping[] = [];
-const EMPTY_WORKSPACE_QUERY: StudioWorkspaceQuery = {};
 
 const ACCOUNT_ROLES: readonly AuthAccountRole[] = [
   "public",
@@ -184,11 +109,6 @@ function accountBootstrap(
   const role =
     ACCOUNT_ROLES.find((candidate) => candidate === rawRole) ?? "public";
   return { displayName, role, routePath, studioPath };
-}
-
-interface WorkspaceQueryState {
-  query: StudioWorkspaceQuery;
-  urlSearch?: string | undefined;
 }
 
 export function App(): ReactElement {
@@ -234,7 +154,7 @@ export function App(): ReactElement {
     editorWorkflowReducer,
     initialEditorWorkflowState,
   );
-  const { mode, draft, body, save: saveState } = editor;
+  const { mode } = editor;
   const hasUnsavedChanges = hasUnsavedEditorChanges(editor);
   const [chatDraftStore] = useState(() => new StudioChatDraftStore());
   const hasChatDrafts = useSyncExternalStore(
@@ -266,22 +186,46 @@ export function App(): ReactElement {
     preferredMobilePane.current = pane;
     setMobilePane(pane);
   }, []);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [loadAttempt, setLoadAttempt] = useState(0);
-  const [baselineCommit, setBaselineCommit] = useState<string | null>(null);
-  const saveStartedAt = useRef(0);
-  const pendingOpenState = useRef<{
-    pathname: string;
-    save: SaveState;
-  } | null>(null);
-  const openRequestId = useRef(0);
-  const selectedEntityTypeRef = useRef(entityType);
-  selectedEntityTypeRef.current = entityType;
   const queryClient = useQueryClient();
   const api = useStudioApi();
-  const navigationQuery = useQuery(navigationQueryOptions(api));
-  const types = navigationQuery.data?.types ?? null;
-  const groupings = navigationQuery.data?.groupings ?? EMPTY_GROUPINGS;
+  const {
+    navigationQuery,
+    types,
+    groupings,
+    activeType,
+    activeCapabilities,
+    entityCollectionQuery,
+    entityListOffset,
+    workspaces,
+    activeWorkspace,
+    activeAccount,
+    activeChat,
+    initialUrlWorkspaceQuery,
+    workspaceRequestQuery,
+    workspaceQuery,
+    workspaceData,
+    workspaceError,
+    agentTargets,
+    syncStatus,
+    entityListQuery,
+    entities,
+    entityListTotal,
+    schema,
+    createPath,
+    destinationQuery,
+    saveEntityMutation,
+    deleteEntityMutation,
+    declarativeWorkspaceActionMutation,
+    deleting,
+    declarativeWorkspaceData,
+  } = useStudioData({
+    api,
+    entityType,
+    activeWorkspaceId,
+    routeSearch,
+    workspaceQueries,
+    editor,
+  });
   const activeGrouping =
     routeTarget.kind === "grouping"
       ? groupings.find((grouping) => grouping.key === routeTarget.grouping)
@@ -292,1082 +236,126 @@ export function App(): ReactElement {
       ? groupingReturnTarget(routeState, studioBasePath, groupings)
       : null;
   const groupReturnPath = groupReturn?.path;
-  const activeType = types?.find((info) => info.entityType === entityType);
-  const activeCapabilities = activeType?.capabilities;
-  const entityCollectionQuery = useMemo(
+  const editorGroupings = useMemo(
     () =>
-      activeType?.isSingleton
-        ? collectionQuery("?scope=collection")
-        : collectionQuery(routeSearch),
-    [activeType?.isSingleton, routeSearch],
+      entityType
+        ? groupings.filter((grouping) => grouping.types.includes(entityType))
+        : [],
+    [groupings, entityType],
   );
-  const entityListOffset = entityCollectionQuery.offset;
-  const workspaces = navigationQuery.data?.workspaces ?? EMPTY_WORKSPACES;
-  const activeWorkspace = workspaces.find(
-    (workspace) => workspace.id === activeWorkspaceId,
-  );
-  const activeAccount =
-    activeWorkspace?.rendererName === STUDIO_ACCOUNT_WORKSPACE_RENDERER;
-  const activeChat =
-    activeWorkspace?.rendererName === STUDIO_CHAT_WORKSPACE_RENDERER;
-  const activeDeclarativeWorkspace =
-    activeWorkspace?.rendererName === "DeclarativeOperatorWorkspace";
-  const storedWorkspaceQuery = activeWorkspaceId
-    ? workspaceQueries[activeWorkspaceId]
-    : undefined;
-  const storedQueryMatchesLocation =
-    activeWorkspace?.urlQuery !== true ||
-    storedWorkspaceQuery?.urlSearch === routeSearch;
-  const initialUrlWorkspaceQuery = useMemo(
-    () => initialWorkspaceUrlQuery(activeWorkspace, routeSearch),
-    [activeWorkspace, routeSearch],
-  );
-  const workspaceRequestQuery = activeWorkspaceId
-    ? storedWorkspaceQuery && storedQueryMatchesLocation
-      ? storedWorkspaceQuery.query
-      : initialUrlWorkspaceQuery
-    : EMPTY_WORKSPACE_QUERY;
-  const workspaceQuery = useQuery({
-    ...workspaceQueryOptions(
-      api,
-      activeWorkspaceId ?? "",
-      workspaceRequestQuery,
-    ),
-    enabled: activeDeclarativeWorkspace,
+  const groupingSuggestions = useGroupingSuggestions(editorGroupings);
+  const {
+    openEntity,
+    loadError,
+    setLoadError,
+    retryOpen,
+    supersedeOpen,
+    currentOpenRequest,
+    pendingOpenState,
+  } = useEntityOpener({
+    api,
+    queryClient,
+    history: router.history,
+    studioBasePath,
+    routeTarget,
+    routePathname,
+    routeSearch,
+    currentStudioPathname,
+    createMode,
+    entityType,
+    activeCapabilities,
+    entityCollectionQuery,
+    preferredMobilePane,
+    dispatchEditor,
+    setMobilePane,
+    setBodyMode,
+    setFieldAssistState,
   });
-  const workspaceResponse = workspaceQuery.data ?? null;
-  const workspaceData = workspaceResponse?.data ?? null;
-  const workspaceError = workspaceQuery.error
-    ? readErrorMessage(workspaceQuery.error)
-    : null;
-  const activeEntityId = mode.kind === "edit" ? mode.entity.id : null;
-  const agentTargetsQuery = useQuery({
-    ...agentTargetsQueryOptions(api, entityType ?? "", activeEntityId ?? ""),
-    enabled:
-      entityType !== null &&
-      activeEntityId !== null &&
-      activeCapabilities?.canAssist === true &&
-      activeCapabilities.canUpdate,
-  });
-  const agentTargets = agentTargetsQuery.data ?? EMPTY_AGENT_TARGETS;
-  const syncStatusQuery = useQuery({
-    ...syncStatusQueryOptions(api),
-    enabled: entityType !== null,
-  });
-  const syncStatus = syncStatusQuery.data ?? null;
-  const entityListQuery = useQuery({
-    ...entityListQueryOptions(api, entityType ?? "", entityCollectionQuery),
-    enabled: entityType !== null,
-  });
-  const entities = entityType ? (entityListQuery.data?.entities ?? null) : null;
-  const entityListTotal = entityListQuery.data?.total;
-  const entitySchemaQuery = useQuery({
-    ...entitySchemaQueryOptions(api, entityType ?? ""),
-    enabled: entityType !== null,
-  });
-  const schema = entityType ? (entitySchemaQuery.data ?? null) : null;
-  const createPath = creationIdPath(mode);
-  const destinationQuery = useQuery(
-    destinationQueryOptions(
-      api,
-      entityType && createPath && mode.kind === "create" && mode.segment
-        ? {
-            entityType,
-            idPath: createPath,
-            frontmatter: visibleFieldValues(schema?.fields ?? [], draft),
-            ...(schema?.hasBody && { body }),
-          }
-        : null,
-    ),
-  );
-  useQuery({
-    ...entityDetailQueryOptions(api, entityType ?? "", activeEntityId ?? ""),
-    enabled: entityType !== null && activeEntityId !== null,
-  });
-  const saveEntityMutation = useMutation({
-    mutationFn: (input: SaveEntityInput): Promise<SaveEntityResult> =>
-      saveEntity(api, input),
-  });
-  const deleteEntityMutation = useMutation({
-    mutationFn: (input: DeleteEntityInput): Promise<{ deleted: boolean }> =>
-      removeEntity(api, input),
-  });
-  const declarativeWorkspaceActionMutation = useMutation({
-    mutationFn: (input: DeclarativeWorkspaceActionInput): Promise<unknown> =>
-      runDeclarativeWorkspaceAction(api, input),
-  });
-  const deleting = deleteEntityMutation.isPending;
-  const declarativeWorkspaceData =
-    activeDeclarativeWorkspace && workspaceResponse
-      ? workspaceResponse.data
-      : null;
 
-  useEffect(() => {
-    if (
-      !entityType ||
-      !activeType ||
-      activeWorkspaceId ||
-      (routeTarget.kind !== "collection" && routeTarget.kind !== "entity") ||
-      routeTarget.entityType !== entityType
-    )
-      return;
-    if (entityListTotal === undefined) return;
-    const lastOffset =
-      Math.floor(
-        Math.max(0, entityListTotal - 1) / entityCollectionQuery.limit,
-      ) * entityCollectionQuery.limit;
-    if (entityListOffset > lastOffset) {
-      router.history.replace(
-        `${routePathname}${collectionSearch({ ...entityCollectionQuery, offset: lastOffset })}`,
-        router.history.location.state,
-      );
-    }
-  }, [
-    activeType,
+  useStudioRouteEffects({
+    history: router.history,
+    queryClient,
+    studioBasePath,
+    routeTarget,
+    routePathname,
+    routeSearch,
+    entityType,
     activeWorkspaceId,
+    types,
+    groupings,
+    workspaces,
+    activeType,
+    activeWorkspace,
+    entityCollectionQuery,
     entityListOffset,
     entityListTotal,
-    entityCollectionQuery,
-    entityType,
-    routePathname,
-    routeTarget,
-    router.history,
-  ]);
-
-  useEffect(() => {
-    if (!activeWorkspaceId || !declarativeWorkspaceData?.refreshAfterMs) {
-      return undefined;
-    }
-    const timer = window.setTimeout(() => {
-      void queryClient.invalidateQueries({
-        queryKey: studioKeys.workspace(activeWorkspaceId),
-      });
-    }, declarativeWorkspaceData.refreshAfterMs);
-    return (): void => window.clearTimeout(timer);
-  }, [activeWorkspaceId, declarativeWorkspaceData, queryClient]);
-
-  useEffect(() => {
-    if (
-      activeWorkspace?.urlQuery !== true ||
-      routeTarget.kind !== "workspace" ||
-      routeTarget.workspaceId !== activeWorkspace.id
-    ) {
-      return;
-    }
-    const pathname = studioWorkspacePath(studioBasePath, activeWorkspace.id);
-    const canonicalHref = workspaceUrlHref(pathname, initialUrlWorkspaceQuery);
-    if (canonicalHref !== `${pathname}${routeSearch}`) {
-      replaceWorkspaceUrlQuery(
-        router.history,
-        pathname,
-        initialUrlWorkspaceQuery,
-        window.location.pathname,
-      );
-    }
-  }, [
-    activeWorkspace,
-    studioBasePath,
+    declarativeWorkspaceData,
     initialUrlWorkspaceQuery,
-    routeSearch,
-    routeTarget,
-    router.history,
-  ]);
+    setActiveWorkspaceId,
+    setEntityType,
+    setLoadError,
+    supersedeOpen,
+  });
 
-  useEffect(() => {
-    if (!types) return;
-    setLoadError(null);
-
-    if (routeTarget.kind === "not-found") {
-      openRequestId.current += 1;
-      setLoadError(`Studio route not found: ${routeTarget.pathname}`);
-      return;
-    }
-
-    if (routeTarget.kind === "grouping") {
-      openRequestId.current += 1;
-      setActiveWorkspaceId(null);
-      setEntityType(null);
-      dispatchEditor({ type: "collectionChanged" });
-      if (!groupings.some((grouping) => grouping.key === routeTarget.grouping))
-        setLoadError("Collection unavailable for this account.");
-      return;
-    }
-
-    if (routeTarget.kind === "workspace") {
-      const workspace = workspaces.find(
-        (entry) => entry.id === routeTarget.workspaceId,
-      );
-      if (!workspace) {
-        const aliasHref = resolveStudioWorkspaceAlias(
-          studioBasePath,
-          routeTarget.workspaceId,
-          routeSearch,
-          workspaces,
-        );
-        if (aliasHref) {
-          router.history.replace(aliasHref);
-          return;
-        }
-        openRequestId.current += 1;
-        setLoadError(
-          `Workspace unavailable for this account: ${routeTarget.workspaceId}`,
-        );
-        return;
-      }
-      setActiveWorkspaceId(workspace.id);
-      setEntityType(null);
-      return;
-    }
-
-    const requestedType =
-      routeTarget.kind === "collection" || routeTarget.kind === "entity"
-        ? routeTarget.entityType
-        : undefined;
-    const first = types.find((info) => !info.isSingleton) ?? types[0];
-    if (routeTarget.kind === "home") {
-      const homePath = resolveStudioHomePath(studioBasePath, types, workspaces);
-      if (homePath !== studioBasePath) {
-        router.history.replace(homePath);
-        return;
-      }
-    }
-    const nextType = requestedType ?? first?.entityType ?? null;
-    if (
-      requestedType !== undefined &&
-      !types.some((info) => info.entityType === requestedType)
-    ) {
-      openRequestId.current += 1;
-      setLoadError(`Collection unavailable for this account: ${requestedType}`);
-      return;
-    }
-
-    setActiveWorkspaceId(null);
-    setEntityType(nextType);
-  }, [
-    routeSearch,
-    routeTarget,
-    router.history,
+  const {
+    openWorkspaceEntity,
+    openWorkspaceLaunch,
+    selectEntityType,
+    changeEntityPage,
+    selectWorkspace,
+    selectFolder,
+    startCreate,
+    backToList,
+    changeWorkspaceQuery,
+  } = useStudioNavigationActions({
+    history: router.history,
     studioBasePath,
-    types,
-    workspaces,
-    groupings,
-  ]);
-
-  // After a save, poll the pipeline until the auto-commit lands. Every poll
-  // updates syncStatus, which re-runs this effect until the view settles or
-  // the save is 20s old (a byte-identical save never produces a new commit).
-  useEffect(() => {
-    if (saveState.kind !== "saved" || !syncStatus?.git) return undefined;
-    const view = derivePipeline({
-      save: saveState,
-      git: syncStatus.git,
-      baselineCommit,
-    });
-    if (view.committed === "done") return undefined;
-    if (Date.now() - saveStartedAt.current > 20_000) return undefined;
-    const timer = window.setTimeout(() => {
-      void queryClient.invalidateQueries({
-        queryKey: studioKeys.syncStatus(),
-      });
-    }, 900);
-    return (): void => window.clearTimeout(timer);
-  }, [saveState, syncStatus, baselineCommit, queryClient]);
-
-  useEffect(() => {
-    if (
-      !entityType ||
-      routeTarget.kind === "workspace" ||
-      routeTarget.kind === "grouping" ||
-      routeTarget.kind === "not-found"
-    ) {
-      return;
-    }
-    const routeEntityId =
-      routeTarget.kind === "entity" && routeTarget.entityType === entityType
-        ? routeTarget.id
-        : null;
-    const requestId = ++openRequestId.current;
-    dispatchEditor({ type: "collectionChanged" });
-    setMobilePane("details");
-    setFieldAssistState({ kind: "idle" });
-    let active = true;
-    const isCurrentRequest = (): boolean =>
-      active && requestId === openRequestId.current;
-    queryClient
-      .fetchQuery({
-        ...entitySchemaQueryOptions(api, entityType),
-        staleTime: 0,
-      })
-      .then(async (loadedSchema) => {
-        if (!active || requestId !== openRequestId.current) return undefined;
-        const nextPane = mobileEditorEntry(
-          loadedSchema,
-          preferredMobilePane.current,
-        );
-        setMobilePane(nextPane);
-        if (
-          window.matchMedia("(max-width: 640px)").matches &&
-          nextPane !== "details"
-        ) {
-          setBodyMode(nextPane === "write" ? "source" : "preview");
-        }
-        if (createMode && routeEntityId === null) {
-          const canCreateRequestedType = activeCapabilities?.canCreate === true;
-          if (!canCreateRequestedType) {
-            setLoadError(`Creating ${entityType} is not allowed.`);
-            return undefined;
-          }
-          const prefill = consumeStudioCreatePrefill(
-            window.history.state,
-            entityType,
-            () =>
-              window.history.replaceState(
-                withoutStudioCreatePrefill(historyStateRecord()),
-                "",
-                window.location.href,
-              ),
-          );
-          const next = createPrefilledDraft(loadedSchema.fields, prefill);
-          dispatchEditor({
-            type: "creationStarted",
-            draft: next.draft,
-            body: next.body,
-            ...(!prefill && {
-              prefix:
-                entityType === "note"
-                  ? null
-                  : collectionQuery(routeSearch).prefix,
-            }),
-          });
-          return undefined;
-        }
-        if (routeEntityId !== null) {
-          return queryClient
-            .fetchQuery({
-              ...entityDetailQueryOptions(api, entityType, routeEntityId),
-              staleTime: 0,
-            })
-            .then((entity) => {
-              if (!active || requestId !== openRequestId.current) return;
-              const document = createEditorDocument(entity);
-              const pending = pendingOpenState.current;
-              const canonicalPath = studioEntityPath(
-                studioBasePath,
-                entityType,
-                routeEntityId,
-              );
-              const nextSave: SaveState =
-                pending?.pathname === canonicalPath
-                  ? pending.save
-                  : { kind: "idle" };
-              if (pending?.pathname === canonicalPath) {
-                pendingOpenState.current = null;
-              }
-              dispatchEditor({
-                type: "documentOpened",
-                document,
-                save: nextSave,
-              });
-            });
-        }
-        // Singletons skip the list: open the record, or start creating it.
-        if (loadedSchema.isSingleton) {
-          const loadedPage = await queryClient.ensureQueryData(
-            entityListQueryOptions(
-              api,
-              entityType,
-              collectionQuery("?scope=collection"),
-            ),
-          );
-          if (!isCurrentRequest()) return undefined;
-          const record = loadedPage.entities[0];
-          if (record) {
-            return queryClient
-              .fetchQuery({
-                ...entityDetailQueryOptions(api, entityType, record.id),
-                staleTime: 0,
-              })
-              .then((entity) => {
-                if (!active || requestId !== openRequestId.current) return;
-                const document = createEditorDocument(entity);
-                dispatchEditor({ type: "documentOpened", document });
-              });
-          }
-          dispatchEditor({
-            type: "creationStarted",
-            draft: emptyDraft(loadedSchema.fields),
-          });
-        }
-        return undefined;
-      })
-      .catch((error: unknown) => {
-        if (active && requestId === openRequestId.current) {
-          setLoadError(readErrorMessage(error));
-        }
-      });
-    return (): void => {
-      active = false;
-    };
-  }, [
-    createMode,
-    currentStudioPathname,
-    entityType,
-    loadAttempt,
-    queryClient,
-    routePathname,
     routeSearch,
-    routeTarget,
-    activeCapabilities?.canCreate,
-  ]);
+    entityType,
+    entityCollectionQuery,
+    groupReturnPath,
+    workspaces,
+    schema,
+    activeCapabilities,
+    pendingOpenState,
+    setFieldAssistState,
+    setWorkspaceQueries,
+  });
 
-  const openEntity = useCallback(
-    (id: string, nextState: SaveState = { kind: "idle" }): void => {
-      if (!entityType) return;
-      const pathname = studioEntityPath(studioBasePath, entityType, id);
-      const sameEntity =
-        routeTarget.kind === "entity" &&
-        routeTarget.entityType === entityType &&
-        routeTarget.id === id;
-      if (!sameEntity) {
-        pendingOpenState.current = { pathname, save: nextState };
-        const collectionPath = `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`;
-        const replaceCreation = createMode && nextState.kind === "saved";
-        const historyState: unknown = router.history.location.state;
-        const fromCollection =
-          !replaceCreation ||
-          (isPlainRecord(historyState) &&
-            historyState["studioCollectionPath"] === collectionPath);
-        router.history[replaceCreation ? "replace" : "push"](
-          `${pathname}${collectionSearch(entityCollectionQuery)}`,
-          fromCollection ? { studioCollectionPath: collectionPath } : undefined,
-          nextState.kind === "saved" ? { ignoreBlocker: true } : undefined,
-        );
-        return;
-      }
-      const requestId = ++openRequestId.current;
-      const requestedType = entityType;
-      queryClient
-        .fetchQuery({
-          ...entityDetailQueryOptions(api, entityType, id),
-          staleTime: 0,
-        })
-        .then((entity) => {
-          if (
-            requestId !== openRequestId.current ||
-            selectedEntityTypeRef.current !== requestedType
-          ) {
-            return;
-          }
-          const document = createEditorDocument(entity);
-          dispatchEditor({
-            type: "documentOpened",
-            document,
-            save: nextState,
-          });
-          setFieldAssistState({ kind: "idle" });
-        })
-        .catch((error: unknown) => {
-          if (requestId === openRequestId.current) {
-            setLoadError(readErrorMessage(error));
-          }
-        });
-    },
-    [
+  const { runFieldAssist, applyFieldAssist, save, remove, baselineCommit } =
+    useEditorActions({
+      api,
+      queryClient,
+      history: router.history,
       studioBasePath,
-      currentStudioPathname,
-      routeTarget,
-      createMode,
       entityType,
       entityCollectionQuery,
-      queryClient,
-      router.history,
-    ],
-  );
-
-  const openWorkspaceEntity = useCallback(
-    (nextEntityType: string, id: string): void => {
-      const pathname = studioEntityPath(studioBasePath, nextEntityType, id);
-      pendingOpenState.current = { pathname, save: { kind: "idle" } };
-      router.history.push(pathname, {
-        studioCollectionPath: studioCollectionPath(
-          studioBasePath,
-          nextEntityType,
-        ),
-      });
-    },
-    [studioBasePath, router.history],
-  );
-
-  const captureInboxAsNote = useCallback(
-    (
-      title: string,
-      summary: string | undefined,
-      entityType: string,
-      entityId: string,
-    ): void => {
-      router.history.push(
-        studioCreatePath(studioBasePath, "note"),
-        createStudioCreatePrefillState(
-          title,
-          `entity://${encodeURIComponent(entityType)}/${encodeURIComponent(entityId)}`,
-          summary,
-        ),
-      );
-    },
-    [studioBasePath, router.history],
-  );
-
-  const discussInboxInChat = useCallback(
-    (sourceId: string, itemId: string, label: string): void => {
-      if (
-        workspaces.some(
-          (workspace) =>
-            workspace.rendererName === STUDIO_CHAT_WORKSPACE_RENDERER,
-        )
-      ) {
-        router.history.push(
-          studioChatWorkspacePath(studioBasePath),
-          createStudioChatHandoffState(sourceId, itemId, label),
-        );
-        return;
-      }
-    },
-    [router.history, studioBasePath, workspaces],
-  );
-
-  const openWorkspaceLaunch = useCallback(
-    (launch: RuntimeOperatorLaunchIntent): void => {
-      switch (launch.target) {
-        case "account-settings": {
-          router.history.push(
-            studioWorkspacePath(studioBasePath, STUDIO_ACCOUNT_WORKSPACE_ID),
-          );
-          return;
-        }
-        case "invitations":
-          router.history.push(
-            workspaceUrlHref(
-              studioWorkspacePath(studioBasePath, "admin:administration"),
-              { tab: "invitations" },
-            ),
-          );
-          return;
-        case "admin-peer-invite": {
-          router.history.push(
-            workspaceUrlHref(
-              studioWorkspacePath(studioBasePath, "admin:administration"),
-              {
-                tab: "invitations",
-                peerId: launch.peerId,
-                displayName: launch.displayName,
-              },
-            ),
-          );
-          return;
-        }
-        case "inbox": {
-          const query: Record<string, string> = {};
-          if ("source" in launch) {
-            query["sourceId"] = "mail-items";
-            if (launch.filter === "high-priority") {
-              query["facet.mail-priority"] = "high";
-            } else if (launch.filter === "needs-reply") {
-              query["facet.needs-reply"] = "true";
-            } else if (launch.filter === "unclassified") {
-              query["facet.category"] = "unclassified";
-            }
-          }
-          router.history.push(
-            workspaceUrlHref(
-              studioWorkspacePath(studioBasePath, "unified-inbox:inbox"),
-              query,
-            ),
-          );
-          return;
-        }
-        case "publishing":
-          router.history.push(
-            studioWorkspacePath(studioBasePath, "content-pipeline:publishing"),
-          );
-          return;
-        case "site":
-          router.history.push(
-            studioWorkspacePath(studioBasePath, "site-builder:site"),
-          );
-          return;
-        case "inbox-open-entity":
-          openWorkspaceEntity(launch.entityType, launch.entityId);
-          return;
-        case "inbox-capture-note":
-          captureInboxAsNote(
-            launch.title,
-            launch.summary,
-            launch.entityType,
-            launch.entityId,
-          );
-          return;
-        case "inbox-discuss-in-chat":
-          discussInboxInChat(launch.sourceId, launch.itemId, launch.label);
-      }
-    },
-    [
-      captureInboxAsNote,
-      studioBasePath,
-      discussInboxInChat,
-      openWorkspaceEntity,
-      routeSearch,
-      router.history,
-    ],
-  );
-
-  const selectEntityType = useCallback(
-    (nextEntityType: string): void => {
-      router.history.push(studioCollectionPath(studioBasePath, nextEntityType));
-      // A long rail can put its last groups below the document fold. Treat a
-      // rail selection like page navigation instead of retaining that offset
-      // and making the destination appear blank or partially missing.
-      window.scrollTo({ top: 0, left: 0 });
-    },
-    [studioBasePath, router.history],
-  );
-
-  const changeEntityPage = useCallback(
-    (offset: number): void => {
-      if (!entityType) return;
-      router.history.push(
-        `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch({ ...entityCollectionQuery, offset })}`,
-      );
-      window.scrollTo({ top: 0, left: 0 });
-    },
-    [entityType, entityCollectionQuery, studioBasePath, router.history],
-  );
-
-  const selectWorkspace = useCallback(
-    (workspaceId: string): void => {
-      router.history.push(
-        workspaceId === STUDIO_CHAT_WORKSPACE_ID
-          ? studioChatWorkspacePath(studioBasePath)
-          : studioWorkspacePath(studioBasePath, workspaceId),
-      );
-      window.scrollTo({ top: 0, left: 0 });
-    },
-    [studioBasePath, router.history],
-  );
-
-  const selectFolder = useCallback(
-    (prefix: EntityIdPath | null): void => {
-      if (!entityType) return;
-      router.history.push(
-        `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch({ ...entityCollectionQuery, prefix, offset: 0 })}`,
-      );
-      window.scrollTo({ top: 0, left: 0 });
-    },
-    [entityType, studioBasePath, entityCollectionQuery, router.history],
-  );
-
-  const startCreate = useCallback((): void => {
-    if (!schema || !entityType || activeCapabilities?.canCreate !== true)
-      return;
-    const params = new URLSearchParams(collectionSearch(entityCollectionQuery));
-    params.set("mode", "create");
-    router.history.push(
-      `${studioCollectionPath(studioBasePath, entityType)}?${params.toString()}`,
-      {
-        studioCollectionPath: `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`,
-      },
-    );
-    setFieldAssistState({ kind: "idle" });
-  }, [
-    activeCapabilities,
-    schema,
-    entityType,
-    entityCollectionQuery,
-    studioBasePath,
-    router.history,
-  ]);
-
-  const backToList = useCallback((): void => {
-    if (groupReturnPath) {
-      if (router.history.canGoBack()) router.history.back();
-      else router.history.replace(groupReturnPath);
-      return;
-    }
-    if (!entityType) return;
-    const collectionPath = `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`;
-    const historyState: unknown = router.history.location.state;
-    if (
-      typeof historyState === "object" &&
-      historyState !== null &&
-      "studioCollectionPath" in historyState &&
-      historyState.studioCollectionPath === collectionPath &&
-      router.history.canGoBack()
-    ) {
-      router.history.back();
-      return;
-    }
-    router.history.replace(collectionPath);
-  }, [
-    studioBasePath,
-    entityType,
-    entityCollectionQuery,
-    router.history,
-    groupReturnPath,
-  ]);
-
-  const runFieldAssist = useCallback(
-    (variant: FieldAssistVariant, field: string): void => {
-      if (
-        !entityType ||
-        mode.kind !== "edit" ||
-        activeCapabilities?.canUpdate !== true ||
-        activeCapabilities.canAssist !== true ||
-        body.trim().length === 0
-      )
-        return;
-      setFieldAssistState({ kind: "loading", field, variant });
-      api
-        .requestFieldAssist({
-          variant,
-          entityType,
-          id: mode.entity.id,
-          targetField: field,
-        })
-        .then((response: FieldAssistResponse) => {
-          const suggestion =
-            response.variant === "summarise"
-              ? response.suggestion
-              : response.suggestions;
-          setFieldAssistState({
-            kind: "suggested",
-            field: response.targetField,
-            variant: response.variant,
-            suggestion,
-          });
-        })
-        .catch((error: unknown) => {
-          setFieldAssistState({
-            kind: "error",
-            field,
-            message: errorMessage(error),
-          });
-        });
-    },
-    [activeCapabilities, body, entityType, mode],
-  );
-
-  const applyFieldAssist = useCallback(
-    (field: string, suggestion: string | string[]): void => {
-      dispatchEditor({ type: "fieldAssistApplied", field, suggestion });
-      setFieldAssistState({ kind: "idle" });
-    },
-    [],
-  );
-
-  const save = useCallback((): void => {
-    if (!entityType || mode.kind === "browse" || !schema) return;
-    if (
-      mode.kind === "create"
-        ? activeCapabilities?.canCreate !== true
-        : activeCapabilities?.canUpdate !== true
-    ) {
-      return;
-    }
-    saveStartedAt.current = Date.now();
-    setBaselineCommit(syncStatus?.git?.lastCommit ?? null);
-    dispatchEditor({ type: "saveStarted" });
-    const bodyPayload = schema.hasBody ? { body } : {};
-    const frontmatter = visibleFieldValues(schema.fields, draft);
-    const input: SaveEntityInput =
-      mode.kind === "create"
-        ? {
-            kind: "create",
-            entityType,
-            ...(createPath && { idPath: createPath }),
-            frontmatter,
-            ...bodyPayload,
-          }
-        : {
-            kind: "update",
-            entityType,
-            id: mode.entity.id,
-            frontmatter,
-            baseContentHash: mode.entity.contentHash,
-            ...bodyPayload,
-          };
-    const requestId = openRequestId.current;
-    saveEntityMutation.mutate(input, {
-      onSuccess: async (result) => {
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ["studio", "groupings"] }),
-          queryClient.invalidateQueries({
-            queryKey: studioKeys.entities(entityType),
-          }),
-          queryClient.invalidateQueries({
-            queryKey: studioKeys.syncStatus(),
-          }),
-          ...(mode.kind === "create"
-            ? [
-                queryClient.invalidateQueries({
-                  queryKey: studioKeys.navigation(),
-                }),
-              ]
-            : []),
-        ]);
-        if (requestId !== openRequestId.current) return;
-        const noop = "skipped" in result && result.skipped === true;
-        // Re-fetch after every save so the next edit carries a fresh
-        // contentHash precondition.
-        openEntity(result.entityId, { kind: "saved", noop });
-      },
-      onError: (error: Error) => {
-        if (requestId !== openRequestId.current) return;
-        if (error instanceof ApiError && error.issues.length > 0)
-          setMobilePane("details");
-        dispatchEditor({
-          type: "saveFailed",
-          save:
-            error instanceof ApiError &&
-            error.status === 409 &&
-            mode.kind === "edit"
-              ? { kind: "conflict", message: errorMessage(error) }
-              : {
-                  kind: "error",
-                  message:
-                    error instanceof ApiError && error.issues.length > 0
-                      ? error.message || "Validation failed"
-                      : errorMessage(error),
-                  ...(error instanceof ApiError
-                    ? { issues: error.issues }
-                    : {}),
-                },
-        });
-      },
+      groupReturnPath,
+      activeCapabilities,
+      schema,
+      editor,
+      dispatchEditor,
+      createPath,
+      syncStatus,
+      deleting,
+      saveEntityMutation,
+      deleteEntityMutation,
+      openEntity,
+      currentOpenRequest,
+      setMobilePane,
+      setFieldAssistState,
     });
-  }, [
-    activeCapabilities,
-    entityType,
-    mode,
-    createPath,
-    draft,
-    body,
-    schema,
-    openEntity,
-    syncStatus,
-    queryClient,
-    saveEntityMutation,
-  ]);
 
-  const remove = useCallback((): void => {
-    if (
-      !entityType ||
-      mode.kind !== "edit" ||
-      deleting ||
-      activeCapabilities?.canDelete !== true
-    )
-      return;
-    const { id } = mode.entity;
-    // Recoverable downstream: the delete is exported and committed, so the
-    // file remains in git history.
-    deleteEntityMutation.mutate(
-      { entityType, id },
-      {
-        onSuccess: async () => {
-          dispatchEditor({ type: "deleteSucceeded" });
-          queryClient.removeQueries({
-            queryKey: studioKeys.entity(entityType, id),
-          });
-          await Promise.all([
-            queryClient.invalidateQueries({
-              queryKey: ["studio", "groupings"],
-            }),
-            queryClient.invalidateQueries({
-              queryKey: studioKeys.entities(entityType),
-            }),
-            queryClient.invalidateQueries({
-              queryKey: studioKeys.syncStatus(),
-            }),
-            queryClient.invalidateQueries({
-              queryKey: studioKeys.navigation(),
-            }),
-          ]);
-          router.history.replace(
-            groupReturnPath ??
-              `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`,
-            undefined,
-            { ignoreBlocker: true },
-          );
-        },
-        onError: (error: Error) => {
-          dispatchEditor({
-            type: "deleteFailed",
-            message: errorMessage(error),
-          });
-        },
-      },
-    );
-  }, [
-    activeCapabilities,
-    studioBasePath,
-    entityType,
-    mode,
-    deleting,
-    queryClient,
-    deleteEntityMutation,
-    router.history,
-    groupReturnPath,
-    entityCollectionQuery,
-  ]);
-
-  const performPublishingAction = useCallback(
-    async (action: PublishingAction): Promise<PublishingActionResult> => {
-      const capability = workspaces.find(
-        (workspace) =>
-          workspace.pluginId === "content-pipeline" &&
-          workspace.entityTypes.includes(action.entityType),
-      );
-      if (!capability) throw new Error("Publishing is unavailable");
-
-      const input = {
-        entityType: action.entityType,
-        entityId: action.entityId,
-        ...(action.type === "reorder" ? { position: action.position } : {}),
-      };
-      if (action.type === "publish" && !action.confirmation) {
-        const prepared = await declarativeWorkspaceActionMutation.mutateAsync({
-          workspaceId: capability.id,
-          action: {
-            actionId: "publish",
-            label: "Publish now",
-            input,
-            invocation: { mode: "prepare" },
-          },
-        });
-        if (
-          typeof prepared !== "object" ||
-          prepared === null ||
-          !("kind" in prepared) ||
-          prepared.kind !== "prepared-confirmation" ||
-          !("token" in prepared) ||
-          typeof prepared.token !== "string" ||
-          !("summary" in prepared) ||
-          typeof prepared.summary !== "string" ||
-          !("expiresAt" in prepared) ||
-          typeof prepared.expiresAt !== "string"
-        ) {
-          throw new Error("Publishing confirmation is unavailable");
-        }
-        return {
-          needsConfirmation: true,
-          summary: prepared.summary,
-          args: {
-            confirmed: true,
-            confirmationToken: prepared.token,
-            contentHash: prepared.token,
-            expiresAt: prepared.expiresAt,
-          },
-        };
-      }
-      const rawResult = await declarativeWorkspaceActionMutation.mutateAsync({
-        workspaceId: capability.id,
-        action: {
-          actionId: action.type,
-          label: action.type,
-          input,
-          ...(action.type === "publish" && action.confirmation
-            ? {
-                invocation: {
-                  mode: "execute",
-                  token: action.confirmation.confirmationToken,
-                },
-              }
-            : {}),
-        },
-      });
-      if (typeof rawResult !== "object" || rawResult === null) {
-        throw new Error("Publishing returned an invalid result");
-      }
-      const result: PublishingActionResult =
-        "success" in rawResult && rawResult.success === false
-          ? {
-              success: false,
-              error:
-                "error" in rawResult && typeof rawResult.error === "string"
-                  ? rawResult.error
-                  : "Publishing failed",
-              ...("code" in rawResult && typeof rawResult.code === "string"
-                ? { code: rawResult.code }
-                : {}),
-            }
-          : { success: true };
-      if (!isPublishingActionError(result) && !isPublishConfirmation(result)) {
-        await invalidateAfterWorkspaceAction(queryClient, capability.id);
-        if (
-          mode.kind === "edit" &&
-          entityType === action.entityType &&
-          mode.entity.id === action.entityId
-        ) {
-          openEntity(action.entityId);
-        }
-      }
-      return result;
-    },
-    [
+  const { performPublishingAction, performDeclarativeAction } =
+    useWorkspaceActions({
+      queryClient,
+      workspaces,
+      activeWorkspaceId,
       entityType,
       mode,
-      openEntity,
-      queryClient,
       declarativeWorkspaceActionMutation,
-      workspaces,
-    ],
-  );
-
-  const performDeclarativeAction = useCallback(
-    async (action: RuntimeOperatorActionControl): Promise<unknown> => {
-      if (!activeWorkspaceId) {
-        throw new Error("Declarative workspace is unavailable");
-      }
-      try {
-        const result = await declarativeWorkspaceActionMutation.mutateAsync({
-          workspaceId: activeWorkspaceId,
-          action,
-        });
-        await invalidateAfterWorkspaceAction(queryClient, activeWorkspaceId);
-        return result;
-      } finally {
-        declarativeWorkspaceActionMutation.reset();
-      }
-    },
-    [activeWorkspaceId, declarativeWorkspaceActionMutation, queryClient],
-  );
-
-  const changeWorkspaceQuery = useCallback(
-    (
-      workspaceId: string,
-      query: StudioWorkspaceQuery,
-      canonicalUrlQuery?: StudioWorkspaceQuery,
-    ): void => {
-      const workspace = workspaces.find((entry) => entry.id === workspaceId);
-      let urlSearch = workspace?.urlQuery === true ? routeSearch : undefined;
-      if (workspace?.urlQuery === true && canonicalUrlQuery !== undefined) {
-        const pathname = studioWorkspacePath(studioBasePath, workspaceId);
-        urlSearch = workspaceUrlSearch(canonicalUrlQuery);
-        replaceWorkspaceUrlQuery(
-          router.history,
-          pathname,
-          canonicalUrlQuery,
-          window.location.pathname,
-        );
-      }
-      setWorkspaceQueries((current) => ({
-        ...current,
-        [workspaceId]: {
-          query,
-          ...(urlSearch !== undefined ? { urlSearch } : {}),
-        },
-      }));
-    },
-    [studioBasePath, routeSearch, router.history, workspaces],
-  );
+      openEntity,
+    });
 
   const visibleLoadError =
     loadError ??
@@ -1383,7 +371,7 @@ export function App(): ReactElement {
     if (entityListQuery.error) void entityListQuery.refetch();
     if (workspaceQuery.error) void workspaceQuery.refetch();
     // Re-run an unsuccessful open, but never replace an already-open draft.
-    if (mode.kind === "browse") setLoadAttempt((attempt) => attempt + 1);
+    if (mode.kind === "browse") retryOpen();
   };
   if (visibleLoadError && !types) {
     return (
@@ -1393,7 +381,7 @@ export function App(): ReactElement {
   if (!types) {
     return <StudioAppStatus message="Loading…" />;
   }
-  if (activeAccount) {
+  if (activeAccount && activeWorkspace) {
     const accountPath = studioWorkspacePath(
       studioBasePath,
       STUDIO_ACCOUNT_WORKSPACE_ID,
@@ -1414,7 +402,7 @@ export function App(): ReactElement {
       </StudioAccountWorkspaceView>
     );
   }
-  if (activeChat) {
+  if (activeChat && activeWorkspace) {
     return (
       <>
         <Suspense fallback={<StudioAppStatus message="Opening Chat…" />}>
@@ -1491,19 +479,21 @@ export function App(): ReactElement {
           router.history.push(studioGroupingPath(studioBasePath, key)),
       }}
       groupReturnLabel={groupReturn?.label}
+      groupingSuggestions={groupingSuggestions}
       groupingView={
         activeGrouping ? (
           <StudioGroupingView
+            basePath={studioBasePath}
             grouping={activeGrouping}
             types={types}
             query={groupQuery}
-            onChange={(next) => {
+            onChange={(next, options) => {
               const href = `${studioGroupingPath(studioBasePath, activeGrouping.key)}${groupingSearch(next)}`;
-              router.history[
+              const stepped =
                 next.value !== groupQuery.value ||
-                next.offset !== groupQuery.offset
-                  ? "push"
-                  : "replace"
+                next.offset !== groupQuery.offset;
+              router.history[
+                stepped && options?.replace !== true ? "push" : "replace"
               ](href);
             }}
             onOpen={(nextType, id) => {

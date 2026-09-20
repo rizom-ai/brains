@@ -93,6 +93,7 @@ export function SystemReadOnlyValue({
 
 export function StudioSystemFields(props: {
   literalFields?: readonly string[] | undefined;
+  suggestions?: Record<string, readonly string[]> | undefined;
   fields: FieldDescriptor[];
   draft: Record<string, unknown>;
   title: string;
@@ -140,6 +141,7 @@ export function StudioSystemFields(props: {
   const render = (field: FieldDescriptor): ReactElement => (
     <SystemField
       literalList={props.literalFields?.includes(field.name)}
+      suggestions={props.suggestions?.[field.name]}
       key={field.name}
       descriptor={field}
       value={props.draft[field.name]}
@@ -174,6 +176,7 @@ export function StudioSystemFields(props: {
 
 function SystemField(props: {
   literalList?: boolean | undefined;
+  suggestions?: readonly string[] | undefined;
   descriptor: FieldDescriptor;
   value: unknown;
   issues?: ValidationIssue[] | undefined;
@@ -199,6 +202,7 @@ function SystemField(props: {
     >
       <Field
         literalList={props.literalList}
+        suggestions={props.suggestions}
         descriptor={descriptor}
         value={props.value}
         issues={props.issues}

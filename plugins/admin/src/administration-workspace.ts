@@ -284,7 +284,7 @@ export async function registerAdministrationWorkspace(
           kicker: "Access administration",
           title: "Administration",
           description:
-            "Manage local people, invitation delivery, external provenance, and security history.",
+            "Manage people, invitations, and access to this brain. Use Account for your own profile, sign-in security, and personal settings.",
           ...(primaryAction ? { primaryAction } : {}),
           blocks: [
             {
@@ -300,7 +300,7 @@ export async function registerAdministrationWorkspace(
                   label: "Invitations",
                   blocks: invitationBlocks,
                 },
-                { id: "audit", label: "Audit", blocks: auditBlocks },
+                { id: "audit", label: "Access activity", blocks: auditBlocks },
               ],
             },
           ],

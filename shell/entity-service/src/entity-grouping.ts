@@ -1,5 +1,5 @@
 import { z } from "@brains/utils/zod";
-import type { ContentVisibility } from "./visibility";
+import { canonicalContentVisibilitySchema } from "./visibility";
 
 export const entityGroupingSchema: z.ZodObject<{
   key: z.ZodString;
@@ -29,21 +29,67 @@ export const entityGroupingSchema: z.ZodObject<{
 });
 export type EntityGrouping = z.infer<typeof entityGroupingSchema>;
 
-export interface QueryGroupingCatalogRequest {
-  grouping: string;
+/** One ordering vocabulary, shared by the queries, the routes and the UI. */
+export const groupingSortSchema: z.ZodEnum<{
+  "updated-desc": "updated-desc";
+  "updated-asc": "updated-asc";
+  "created-desc": "created-desc";
+  "created-asc": "created-asc";
+}> = z.enum(["updated-desc", "updated-asc", "created-desc", "created-asc"]);
+export type GroupingSort = z.infer<typeof groupingSortSchema>;
+
+export const GROUPING_PAGE_LIMIT = 50;
+export const GROUPING_MAX_PAGE_LIMIT = 100;
+/** Bounds every grouping read, whoever builds the request. */
+export const groupingKeySchema: z.ZodString = z.string().min(1).max(80);
+export const groupingValueSchema: z.ZodString = z.string().max(10000);
+export const groupingSearchSchema: z.ZodString = z.string().max(200);
+
+export const queryGroupingCatalogSchema: z.ZodObject<{
+  grouping: z.ZodString;
+  entityTypes: z.ZodArray<z.ZodString>;
+  visibilityScope: z.ZodOptional<typeof canonicalContentVisibilitySchema>;
+  limit: z.ZodDefault<z.ZodNumber>;
+  offset: z.ZodDefault<z.ZodNumber>;
+  signal: z.ZodOptional<z.ZodCustom<AbortSignal, AbortSignal>>;
+}> = z.object({
+  grouping: groupingKeySchema,
   /** Required caller-admitted set; it can only narrow the declared types. */
-  entityTypes: string[];
-  visibilityScope?: ContentVisibility | undefined;
-  limit?: number | undefined;
-  offset?: number | undefined;
-  signal?: AbortSignal | undefined;
-}
-export interface QueryGroupingMembersRequest extends QueryGroupingCatalogRequest {
-  value: string;
-  q?: string | undefined;
-  sort?:
-    "updated-desc" | "updated-asc" | "created-desc" | "created-asc" | undefined;
-}
+  entityTypes: z.array(z.string().min(1)).max(100),
+  visibilityScope: canonicalContentVisibilitySchema.optional(),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .max(GROUPING_MAX_PAGE_LIMIT)
+    .default(GROUPING_PAGE_LIMIT),
+  offset: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER).default(0),
+  signal: z.instanceof(AbortSignal).optional(),
+});
+
+export const queryGroupingMembersSchema: z.ZodObject<{
+  grouping: z.ZodString;
+  entityTypes: z.ZodArray<z.ZodString>;
+  visibilityScope: z.ZodOptional<typeof canonicalContentVisibilitySchema>;
+  limit: z.ZodDefault<z.ZodNumber>;
+  offset: z.ZodDefault<z.ZodNumber>;
+  signal: z.ZodOptional<z.ZodCustom<AbortSignal, AbortSignal>>;
+  value: z.ZodString;
+  q: z.ZodOptional<z.ZodString>;
+  sort: z.ZodDefault<typeof groupingSortSchema>;
+}> = queryGroupingCatalogSchema.extend({
+  value: groupingValueSchema,
+  q: groupingSearchSchema.optional(),
+  sort: groupingSortSchema.default("updated-desc"),
+});
+
+export type QueryGroupingCatalogRequest = z.input<
+  typeof queryGroupingCatalogSchema
+>;
+export type QueryGroupingMembersRequest = z.input<
+  typeof queryGroupingMembersSchema
+>;
+
 export interface EntityGroupingCatalog {
   values: Array<{ value: string; count: number }>;
   total: number;

@@ -10,7 +10,17 @@ import {
 import { Database } from "bun:sqlite";
 import { fileURLToPath } from "node:url";
 import { computeContentHash } from "@brains/utils/hash";
-import { minimalTestAdapter, minimalTestSchema } from "./helpers/test-schemas";
+import { z } from "@brains/utils/zod";
+import { createSilentLogger } from "@brains/test-utils";
+import { EntityService } from "../src/entityService";
+import { EntityRegistry } from "../src/entityRegistry";
+import { mockEmbeddingService } from "./helpers/mock-services";
+import {
+  minimalTestAdapter,
+  minimalTestSchema,
+  strictAdapter,
+  strictSchema,
+} from "./helpers/test-schemas";
 import {
   setupEntityService,
   type EntityServiceTestContext,
@@ -39,6 +49,7 @@ describe("grouping startup reprojection", () => {
           schema: minimalTestSchema,
           adapter: minimalTestAdapter,
         },
+        { name: "strict", schema: strictSchema, adapter: strictAdapter },
       ],
       { embeddingsEnabled: false, messageBus: { send } },
     );
@@ -60,6 +71,60 @@ describe("grouping startup reprojection", () => {
       },
     });
   }
+  async function restart(groupingEnabled: boolean): Promise<void> {
+    ctx.entityService.close();
+    ctx.entityRegistry = EntityRegistry.createFresh(createSilentLogger());
+    ctx.entityRegistry.registerEntityType(
+      "test",
+      minimalTestSchema,
+      minimalTestAdapter,
+    );
+    if (groupingEnabled) ctx.entityRegistry.registerGrouping(grouping);
+    ctx.entityService = EntityService.createFresh({
+      entityRegistry: ctx.entityRegistry,
+      embeddingService: mockEmbeddingService,
+      embeddingsEnabled: false,
+      logger: createSilentLogger(),
+      jobQueueService: ctx.jobQueueService,
+      dbConfig: ctx.dbConfig,
+      embeddingDbConfig: ctx.embeddingDbConfig,
+    });
+    await ctx.entityService.initialize();
+  }
+  test("reprojects after a register-only write while the grouping was disabled", async () => {
+    await seed("first");
+    ctx.entityRegistry.registerGrouping(grouping);
+    await ctx.entityService.reprojectRegisteredGroupings();
+    await restart(false);
+    await seed("later", "[Beta]");
+    await restart(true);
+    await ctx.entityService.reprojectRegisteredGroupings();
+    expect(ctx.entityService.areGroupingsReady()).toBe(true);
+    expect(
+      (await ctx.entityService.queryGroupingCatalog(query)).values,
+    ).toEqual([
+      { value: "Acme", count: 1 },
+      { value: "Beta", count: 1 },
+    ]);
+  });
+  test("revalidates changed field constraints even when declarations are identical", async () => {
+    await seed("entry");
+    ctx.entityRegistry.registerGrouping(grouping);
+    await ctx.entityService.reprojectRegisteredGroupings();
+    await restart(false);
+    ctx.entityRegistry.extendFrontmatterSchema(
+      "test",
+      z.object({ clients: z.array(z.string()).min(2).optional() }),
+    );
+    ctx.entityRegistry.registerGrouping(grouping);
+    await ctx.entityService.reprojectRegisteredGroupings();
+    expect(
+      (await ctx.entityService.queryGroupingCatalog(query)).values,
+    ).toEqual([]);
+    expect(
+      db.query("SELECT content FROM entities WHERE id = 'entry'").get(),
+    ).toEqual({ content: content("[Acme]") });
+  });
   test("discovers existing source without saves, timestamps, events, or export work", async () => {
     await seed("legacy\u0000id");
     await seed("\ufeffid", "[Beta]");
@@ -99,13 +164,80 @@ describe("grouping startup reprojection", () => {
       { metadata: JSON.stringify({ unrelated: "keep", clients: ["Acme"] }) },
       { metadata: JSON.stringify({ unrelated: "keep", clients: ["Beta"] }) },
     ]);
-    const updated = spyOn(ctx.entityRegistry, "projectMetadata");
+    // Repeated passes validate source again, but remain write/event-idempotent.
+    const updated = spyOn(ctx.entityRegistry, "projectStoredMetadata");
     await ctx.entityService.reprojectRegisteredGroupings();
     expect(updated).toHaveBeenCalled();
+    expect(ctx.entityService.areGroupingsReady()).toBe(true);
     expect(db.query("SELECT metadata FROM entities ORDER BY id").all()).toEqual(
       all,
     );
     expect(send).not.toHaveBeenCalled();
+  });
+  test("rescans and converges when the declaration set changes", async () => {
+    await seed("entry");
+    ctx.entityRegistry.registerGrouping(grouping);
+    await ctx.entityService.reprojectRegisteredGroupings();
+    const projected = spyOn(ctx.entityRegistry, "projectStoredMetadata");
+    // Adding a contributor is picked up by the next bounded pass.
+    ctx.entityRegistry.registerGrouping({
+      key: "projects",
+      label: "Projects",
+      field: "projects",
+      types: ["test"],
+    });
+    await ctx.entityService.reprojectRegisteredGroupings();
+    expect(projected).toHaveBeenCalled();
+    expect(
+      (await ctx.entityService.queryGroupingCatalog(query)).values,
+    ).toEqual([{ value: "Acme", count: 1 }]);
+  });
+  test("repeats the pass when an earlier one never completed", async () => {
+    await seed("entry");
+    ctx.entityRegistry.registerGrouping(grouping);
+    const failing = spyOn(
+      ctx.entityRegistry,
+      "projectStoredMetadata",
+    ).mockImplementation(() => {
+      throw new Error("boom");
+    });
+    const failure = await ctx.entityService.reprojectRegisteredGroupings().then(
+      () => null,
+      (error: Error) => error,
+    );
+    expect(failure?.message).toBe("boom");
+    expect(ctx.entityService.areGroupingsReady()).toBe(false);
+    failing.mockRestore();
+    const retried = spyOn(ctx.entityRegistry, "projectStoredMetadata");
+    await ctx.entityService.reprojectRegisteredGroupings();
+    expect(retried).toHaveBeenCalled();
+    expect(ctx.entityService.areGroupingsReady()).toBe(true);
+  });
+  test("discovers membership on rows whose unrelated frontmatter is invalid", async () => {
+    // Canonical content carries invalid-status rows; they are still members.
+    await ctx.entityService.createEntity({
+      entity: {
+        id: "bad-status",
+        entityType: "strict",
+        content: `---\nstatus: bogus\nclients:\n  - Acme\n---\n\nBody`,
+        metadata: {},
+      },
+    });
+    ctx.entityRegistry.registerGrouping({ ...grouping, types: ["strict"] });
+    await ctx.entityService.reprojectRegisteredGroupings();
+    expect(
+      (
+        await ctx.entityService.queryGroupingCatalog({
+          grouping: "clients",
+          entityTypes: ["strict"],
+        })
+      ).values,
+    ).toEqual([{ value: "Acme", count: 1 }]);
+    expect(
+      db.query("SELECT content FROM entities WHERE id = 'bad-status'").get(),
+    ).toEqual({
+      content: `---\nstatus: bogus\nclients:\n  - Acme\n---\n\nBody`,
+    });
   });
   test("removes stale projections and preserves malformed authored values", async () => {
     for (const [index, value] of ["Acme", "null", "[]", "[Acme, 3]"].entries())
@@ -127,11 +259,11 @@ describe("grouping startup reprojection", () => {
   test("retries a fresh source revision rather than overwriting a concurrent writer", async () => {
     await seed("entry");
     ctx.entityRegistry.registerGrouping(grouping);
-    const original = ctx.entityRegistry.projectMetadata.bind(
+    const original = ctx.entityRegistry.projectStoredMetadata.bind(
       ctx.entityRegistry,
     );
     let writes = 0;
-    spyOn(ctx.entityRegistry, "projectMetadata").mockImplementation(
+    spyOn(ctx.entityRegistry, "projectStoredMetadata").mockImplementation(
       (...args) => {
         if (writes++ === 0) {
           const changed = content("[Beta]");
@@ -159,10 +291,10 @@ describe("grouping startup reprojection", () => {
   test("never recreates a row deleted after it was read", async () => {
     await seed("entry");
     ctx.entityRegistry.registerGrouping(grouping);
-    const original = ctx.entityRegistry.projectMetadata.bind(
+    const original = ctx.entityRegistry.projectStoredMetadata.bind(
       ctx.entityRegistry,
     );
-    spyOn(ctx.entityRegistry, "projectMetadata").mockImplementation(
+    spyOn(ctx.entityRegistry, "projectStoredMetadata").mockImplementation(
       (...args) => {
         db.run("DELETE FROM entities WHERE id = 'entry'");
         return original(...args);
@@ -174,11 +306,11 @@ describe("grouping startup reprojection", () => {
   test("bounded conflict exhaustion leaves reads unready", async () => {
     await seed("entry");
     ctx.entityRegistry.registerGrouping(grouping);
-    const original = ctx.entityRegistry.projectMetadata.bind(
+    const original = ctx.entityRegistry.projectStoredMetadata.bind(
       ctx.entityRegistry,
     );
     let writes = 0;
-    spyOn(ctx.entityRegistry, "projectMetadata").mockImplementation(
+    spyOn(ctx.entityRegistry, "projectStoredMetadata").mockImplementation(
       (...args) => {
         const changed = content(`[Revision-${++writes}]`);
         db.run(

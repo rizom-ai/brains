@@ -12,6 +12,23 @@ import type {
   QueryEmbedding,
 } from "@brains/contracts";
 import type { ProjectionStore } from "./projection-store";
+import type {
+  BulkMutationInput,
+  DurableBulkMutationChildInput,
+  DurableBulkMutationRootInput,
+  ProjectionBatchRecoveryResult,
+  ProjectionBatchRootReader,
+  SettleDurableBulkMutationChildInput,
+} from "./projection-batch-contracts";
+export type {
+  BulkMutationInput,
+  DurableBulkMutationChildInput,
+  DurableBulkMutationRootInput,
+  ProjectionBatchOwnedJob,
+  ProjectionBatchRecoveryResult,
+  ProjectionBatchRootReader,
+  SettleDurableBulkMutationChildInput,
+} from "./projection-batch-contracts";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
 import type {
   AcknowledgeEntityExportsRequest,
@@ -964,6 +981,8 @@ export interface IEntitiesNamespace {
   validateGroupings(groupings: readonly EntityGrouping[]): void;
   registerGrouping(grouping: EntityGrouping): void;
   getGroupings(): EntityGrouping[];
+  /** Whether this type participates in any declared grouping. */
+  isGroupingContributor(type: string): boolean;
   /** Register a new entity type with schema and adapter */
   register<TEntity extends BaseEntity>(
     entityType: string,
@@ -1055,45 +1074,6 @@ export interface IndexReadinessStatus extends EmbeddingIndexStats {
   ready: boolean;
   degraded: boolean;
   activeEmbeddingJobs: number;
-}
-
-export interface BulkMutationInput {
-  source: string;
-  operationId: string;
-}
-
-export interface DurableBulkMutationRootInput extends BulkMutationInput {
-  rootJobId: string;
-  expectedChildren: number;
-}
-
-export interface DurableBulkMutationChildInput extends DurableBulkMutationRootInput {
-  childKey: string;
-  jobId: string;
-}
-
-export interface ProjectionBatchOwnedJob {
-  jobId: string;
-  childKey: string;
-  status: "pending" | "processing" | "completed" | "failed";
-  terminalAt: number | null;
-}
-
-export type ProjectionBatchRootReader = (
-  rootJobId: string,
-  operationId: string,
-) => Promise<readonly ProjectionBatchOwnedJob[]>;
-
-export interface ProjectionBatchRecoveryResult {
-  fencedCallbacks: number;
-  releasedDurableRoots: number;
-}
-
-export interface SettleDurableBulkMutationChildInput {
-  operationId: string;
-  childKey: string;
-  jobId: string;
-  outcome: "completed" | "failed";
 }
 
 /**
@@ -1276,6 +1256,14 @@ export interface EntityRegistry {
     content: string,
     metadata: Record<string, unknown>,
   ): Record<string, unknown>;
+  /** Bootstrap projection: an invalid stored value is omitted, never fatal. */
+  projectStoredMetadata(
+    type: string,
+    content: string,
+    metadata: Record<string, unknown>,
+  ): Record<string, unknown>;
+  groupingFields(type: string): string[];
+  isGroupingContributor(type: string): boolean;
 
   /** Registered extension contracts, including their refinements. */
   getFrontmatterExtensions(type: string): readonly FrontmatterSchema[];

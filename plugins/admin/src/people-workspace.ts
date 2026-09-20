@@ -542,12 +542,12 @@ const peopleWorkspace = defineStudioWorkspace({
       openBlocks.push({
         type: "card",
         id: "person-channels",
-        label: "Connected channels",
+        label: "Linked identities",
         blocks: [
           {
             type: "table",
             id: "person-identities",
-            empty: "No connected channel.",
+            empty: "No linked identity.",
             columns: [
               { key: "channel", label: "Channel" },
               { key: "identity", label: "Identity" },
@@ -668,10 +668,10 @@ const peopleWorkspace = defineStudioWorkspace({
               ].join(" · "),
               metadata: [
                 person.identities.length === 0
-                  ? "No connected channels"
+                  ? "No linked identities"
                   : person.identities.length === 1
-                    ? "One connected channel"
-                    : `${person.identities.length} connected channels`,
+                    ? "One linked identity"
+                    : `${person.identities.length} linked identities`,
                 ...(person.peers.length > 0
                   ? [`Arrived via ${peerOriginLabel(person.peers[0]?.peerId)}`]
                   : []),
@@ -710,7 +710,7 @@ const peopleWorkspace = defineStudioWorkspace({
       kicker: "Access administration",
       title: "People",
       description:
-        "Inspect membership, sign-in, connected channels, and local access.",
+        "Manage people’s access to this brain, linked identities, and account recovery. Use Account for your own profile and sign-in settings.",
       status: {
         label: `${data.activeCount} active`,
         tone: data.suspendedCount > 0 ? "warn" : "neutral",

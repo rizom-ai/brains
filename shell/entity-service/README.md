@@ -116,6 +116,39 @@ components containing the identity separator are rejected. New-path authoring st
 the stricter `entityIdPathSchema`. Derived paths are returned outside entity data: neither
 stored IDs nor metadata are modified. Filesystem placement remains directory-sync's job.
 
+## Grouping queries (internal client)
+
+A grouping is a declared dimension — Clients, Projects — resolved from one
+frontmatter field across a listed set of entity types. Callers never supply a
+field name or selector: `registerGrouping({ key, label, field, types })` records
+the declaration, and the two reads resolve it by key.
+
+`queryGroupingCatalog` returns each distinct value with the number of entities
+the caller may read. `queryGroupingMembers` returns one mixed-type page for a
+single value, with optional type, content-search and sort filters. Both
+intersect the caller's admitted types with the declaration's own, so neither
+side can widen the other, and both apply the caller's visibility scope. A value
+no readable entity carries does not appear, and a restricted member reveals
+nothing through counts, ordering or errors.
+
+Values match exactly as stored: no slugging, case folding or normalisation.
+The catalog orders values case-insensitively so related spellings read together,
+with the stored bytes breaking ties. Missing, empty or non-array fields mean no
+membership rather than a query error, and non-string elements are ignored.
+
+Membership is a projection of authored frontmatter, never an independent store.
+Ordinary writes maintain it. `reprojectRegisteredGroupings()` bootstraps rows
+whose stored content already carries membership, in keyset pages, writing only
+metadata: it leaves `updated`, source Markdown, identities and file paths alone
+and emits no events or export intents. Each registered field is validated
+against its own schema entry, so frontmatter the entity owner rejects elsewhere
+in the document never removes an entity from its collections; a field whose own
+value is invalid is left unprojected and unrepaired. Every serving start runs
+the bounded pass, including when declarations are unchanged: register-only
+writers with grouping disabled and changes to runtime field validators can
+otherwise leave a previously completed projection stale. No declaration-only
+completion cache or grouping-state migration is included.
+
 ## Conditional writes and recovery (internal runtime)
 
 `getEntityWriteSnapshot()` reads the raw entity and its opaque revision together, using
