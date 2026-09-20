@@ -65,27 +65,28 @@ const statSchema = z.strictObject({
   ref: assetRefSchema,
   sizeBytes: z.number().int().nonnegative().max(MAX_ASSET_BYTES),
 });
-const fileSchema: z.ZodType<ArtifactDeliveryFile> = z.strictObject({
-  sourceFile: z
-    .string()
-    .min(1)
-    .max(4096)
-    .refine((path) => isAbsolute(path) && !path.includes("\0")),
-  sizeBytes: z.number().int().positive().max(CHAT_NATIVE_ARTIFACT_MAX_BYTES),
-  sha256: z.string().regex(/^[a-f0-9]{64}$/),
-  mimeType: z.enum([
-    "application/pdf",
-    "image/png",
-    "image/jpeg",
-    "image/gif",
-    "image/webp",
-  ]),
-  filename: z
-    .string()
-    .min(1)
-    .max(1024)
-    .refine((name) => !/[\0\r\n]/.test(name)),
-});
+export const artifactDeliveryFileSchema: z.ZodType<ArtifactDeliveryFile> =
+  z.strictObject({
+    sourceFile: z
+      .string()
+      .min(1)
+      .max(4096)
+      .refine((path) => isAbsolute(path) && !path.includes("\0")),
+    sizeBytes: z.number().int().positive().max(CHAT_NATIVE_ARTIFACT_MAX_BYTES),
+    sha256: z.string().regex(/^[a-f0-9]{64}$/),
+    mimeType: z.enum([
+      "application/pdf",
+      "image/png",
+      "image/jpeg",
+      "image/gif",
+      "image/webp",
+    ]),
+    filename: z
+      .string()
+      .min(1)
+      .max(1024)
+      .refine((name) => !/[\0\r\n]/.test(name)),
+  });
 const unavailableStatuses = new Set([
   "pending",
   "generating",
@@ -163,7 +164,11 @@ export async function deliverArtifactFile<TReceipt>(
           );
         entered = true;
         signal.throwIfAborted();
-        const file = fileSchema.parse({ ...source, mimeType, filename });
+        const file = artifactDeliveryFileSchema.parse({
+          ...source,
+          mimeType,
+          filename,
+        });
         if (
           file.sizeBytes !== stat.sizeBytes ||
           file.sha256 !== getAssetDigest(ref.data)

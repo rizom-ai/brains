@@ -37,6 +37,10 @@ import {
   type SlackFileDeliveryReceipt,
 } from "./slack-file-delivery";
 import { createSlackFileMetadataApi } from "./slack-file-api";
+import {
+  createDiscordFileDeliveryAdapter,
+  type DiscordFileDeliveryReceipt,
+} from "./discord-file-delivery";
 import { ChatUploadCoordinator } from "./chat-upload-coordinator";
 import { toPlatformPostOutput, type ChatCardOutput } from "./chat-output";
 import { DiscordGatewayLoop } from "./discord-gateway-loop";
@@ -94,13 +98,19 @@ export class ChatInterface extends MessageInterfacePlugin<
   private readonly responseCoordinator = new ChatResponseCoordinator({
     getFileDeliveryAdapter: (
       thread,
-    ): FileDeliveryAdapter<SlackFileDeliveryReceipt> | undefined => {
-      if (thread.adapter.name !== "slack") return undefined;
+    ): FileDeliveryAdapter<unknown> | undefined => {
       const threadId = thread.id;
-      return {
-        deliver: (file, signal) =>
-          this.deliverSlackAsset(threadId, file, signal),
-      };
+      if (thread.adapter.name === "slack")
+        return {
+          deliver: (file, signal) =>
+            this.deliverSlackAsset(threadId, file, signal),
+        };
+      if (thread.adapter.name === "discord")
+        return {
+          deliver: (file, signal) =>
+            this.deliverDiscordAsset(threadId, file, signal),
+        };
+      return undefined;
     },
     getContext: (): InterfacePluginContext | undefined => this.context,
     getDisplayBaseUrl: (): string | undefined =>
@@ -155,6 +165,26 @@ export class ChatInterface extends MessageInterfacePlugin<
       { ...metadata, postHttp: transfers.postHttp },
     );
     return adapter.deliver(file, signal);
+  }
+
+  private async deliverDiscordAsset(
+    threadId: string,
+    file: ArtifactDeliveryFile,
+    signal: AbortSignal,
+  ): Promise<DiscordFileDeliveryReceipt> {
+    const transfers = this.context?.fileTransfers;
+    const token = this.config.adapters.discord?.botToken;
+    if (!transfers || !token)
+      throw new Error("Discord file delivery is not provisioned");
+    const parts = getThreadIdParts(threadId);
+    const count = threadId.split(":").length;
+    const channelId = parts.threadId ?? parts.channelId;
+    if (!channelId || count < 3 || count > 4)
+      throw new Error("Invalid Discord file delivery thread");
+    return createDiscordFileDeliveryAdapter(
+      { channelId, botToken: token },
+      transfers,
+    ).deliver(file, signal);
   }
 
   private readonly subscriptionRouter = new SubscriptionRouter({

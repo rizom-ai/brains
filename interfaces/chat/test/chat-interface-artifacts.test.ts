@@ -300,10 +300,14 @@ describe("ChatInterface artifacts", () => {
     );
   });
 
-  it("posts SQLite-backed native Discord image files", async () => {
+  it("never buffers SQLite-backed Discord images when file delivery is unprovisioned", async () => {
     const bytes = Buffer.from("asset-image-bytes");
     const digest = new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
     const ref = `asset://sha256/${digest}` as const;
+    const readAsset = mock(async (): Promise<never> => {
+      throw new Error("Buffered fallback is forbidden");
+    });
+    suite.harness.getMockShell().getEntityService().readAsset = readAsset;
     await suite.harness
       .getMockShell()
       .getEntityService()
@@ -356,26 +360,16 @@ describe("ChatInterface artifacts", () => {
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
 
+    expect(readAsset).not.toHaveBeenCalled();
     expect(thread.post).toHaveBeenCalledWith(
       expect.objectContaining({
-        files: [
-          expect.objectContaining({
-            data: expect.any(ArrayBuffer),
-            filename: "asset-image.png",
-            mimeType: "image/png",
-          }),
-        ],
+        fallbackText:
+          "Message failed: Artifact file delivery is not provisioned",
       }),
     );
-    const posted = thread.post.mock.calls.find(
-      ([message]) => typeof message !== "string" && message.files?.length === 1,
-    )?.[0];
-    if (typeof posted === "string") throw new Error("Expected file post");
-    const postedData = posted?.files?.[0]?.data;
-    if (!(postedData instanceof ArrayBuffer)) {
-      throw new Error("Expected ArrayBuffer file data");
+    for (const [message] of thread.post.mock.calls) {
+      if (typeof message !== "string") expect(message.files).toBeUndefined();
     }
-    expect(Buffer.from(postedData)).toEqual(bytes);
   });
 
   it("does not post restricted native Discord artifact files for trusted users", async () => {

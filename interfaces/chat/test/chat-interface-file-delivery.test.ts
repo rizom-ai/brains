@@ -7,6 +7,7 @@ import {
   ChatInterface,
   MockChatSdk,
   baseSlackConfig,
+  baseDiscordConfig,
   createMessage,
   createThread,
   setupChatInterfaceTest,
@@ -19,23 +20,26 @@ function unexpected(): never {
 
 const cases: Array<
   [
+    "slack" | "discord",
     "response" | "completion" | "claim",
     "success" | "post-failure" | "cleanup-failure" | "unprovisioned",
   ]
 > = [];
-for (const route of ["response", "completion", "claim"] as const) {
-  for (const mode of [
-    "success",
-    "post-failure",
-    "cleanup-failure",
-    "unprovisioned",
-  ] as const)
-    cases.push([route, mode]);
+for (const platform of ["slack", "discord"] as const) {
+  for (const route of ["response", "completion", "claim"] as const) {
+    for (const mode of [
+      "success",
+      "post-failure",
+      "cleanup-failure",
+      "unprovisioned",
+    ] as const)
+      cases.push([platform, route, mode]);
+  }
 }
 
 test.each(cases)(
-  "production Slack asset delivery: %s / %s never enters buffered SDK upload or replays completion",
-  async (route, mode) => {
+  "production %s asset delivery: %s / %s never enters buffered SDK upload or replays completion",
+  async (platform, route, mode) => {
     const service = suite.harness.getMockShell().getEntityService();
     const asset = prepareAsset(new TextEncoder().encode("fixture image bytes"));
     await service.createEntity({
@@ -55,7 +59,7 @@ test.each(cases)(
     service.readAsset = unexpected;
     suite.harness.setPermissionService(
       new PermissionService({
-        rules: [{ pattern: "slack:*", level: "trusted" }],
+        rules: [{ pattern: `${platform}:*`, level: "trusted" }],
       }),
     );
     const response: AgentResponse = {
@@ -91,11 +95,42 @@ test.each(cases)(
           sizeBytes: asset.sizeBytes,
           sha256: asset.digest,
         });
-        expect(input.headers).toEqual({
-          "content-type": "application/octet-stream",
-        });
+        expect(input.headers).toEqual(
+          platform === "slack"
+            ? { "content-type": "application/octet-stream" }
+            : { authorization: "Bot discord-token" },
+        );
+        if (platform === "discord") {
+          expect(input.url).toBe(
+            "https://discord.com/api/v10/channels/333/messages",
+          );
+          expect(input.multipart).toEqual({
+            fieldName: "files[0]",
+            filename: "image.png",
+            mimeType: "image/png",
+            fields: {
+              payload_json: JSON.stringify({
+                attachments: [{ id: 0, filename: "image.png" }],
+                allowed_mentions: { parse: [] },
+              }),
+            },
+          });
+        }
         if (mode === "post-failure") throw failure;
-        return { ...input.facts, statusCode: 200 };
+        return {
+          ...input.facts,
+          statusCode: 200,
+          ...(platform === "discord" && {
+            responseMetadata: {
+              messageId: "987",
+              channelId: "333",
+              attachmentId: "654",
+              attachmentCount: 1,
+              filename: "image.png",
+              sizeBytes: asset.sizeBytes,
+            },
+          }),
+        };
       },
     );
     const files: NonNullable<typeof service.fileAssets> = {
@@ -131,9 +166,9 @@ test.each(cases)(
     };
     if (mode !== "unprovisioned") service.fileAssets = files;
     const thread = createThread({
-      id: "slack:C123:123.456",
-      channelId: "slack:C123",
-      adapter: { name: "slack" },
+      id: platform === "slack" ? "slack:C123:123.456" : "discord:111:222:333",
+      channelId: platform === "slack" ? "slack:C123" : "discord:111:222",
+      adapter: { name: platform },
     });
     const metadata = mock(
       async (url: string | URL | Request): Promise<Response> => {
@@ -152,7 +187,12 @@ test.each(cases)(
       },
     );
     const plugin = new ChatInterface(
-      { adapters: { slack: baseSlackConfig } },
+      {
+        adapters:
+          platform === "slack"
+            ? { slack: baseSlackConfig }
+            : { discord: baseDiscordConfig },
+      },
       undefined,
       { fetch: metadata },
     );
@@ -161,7 +201,7 @@ test.each(cases)(
     const mention = chat?.handlers.mentions[0];
     assert.ok(mention);
     await mention(thread, createMessage());
-    if (route === "response" && mode === "success")
+    if (platform === "slack" && route === "response" && mode === "success")
       expect(thread.post).toHaveBeenCalledTimes(1);
     if (route !== "response") {
       expect(loans).toBe(0);
@@ -194,7 +234,7 @@ test.each(cases)(
           rootJobId: "image-job",
           operationType: "content_operations",
           operationTarget: "Image",
-          interfaceType: "slack",
+          interfaceType: platform,
           channelId: thread.id,
         },
       });
@@ -202,7 +242,11 @@ test.each(cases)(
     expect(loans).toBe(mode === "unprovisioned" ? 0 : 1);
     expect(post).toHaveBeenCalledTimes(mode === "unprovisioned" ? 0 : 1);
     expect(metadata).toHaveBeenCalledTimes(
-      mode === "unprovisioned" ? 0 : mode === "post-failure" ? 1 : 2,
+      mode === "unprovisioned" || platform === "discord"
+        ? 0
+        : mode === "post-failure"
+          ? 1
+          : 2,
     );
     expect(active).toBe(false);
     expect(retained).toBe(
