@@ -10,6 +10,7 @@ import {
   type ArtifactDeliveryFile,
 } from "../src/file-delivery";
 import { createSlackFileDeliveryAdapter } from "../src/slack-file-delivery";
+import { createSlackFileMetadataApi } from "../src/slack-file-api";
 import { CHAT_NATIVE_ARTIFACT_MAX_BYTES } from "../src/artifact-limits";
 
 const ref: AssetRef = `asset://sha256/${"a".repeat(64)}`;
@@ -127,16 +128,17 @@ test("shared delivery keeps the loan through adapter settlement and preserves a 
 test("Slack implements the same delivery contract without owning policy or the loan", async () => {
   const { assets, state } = await fixture();
   const target = { channelId: "C123" };
-  const complete = mock(async () => {
+  const api = createSlackFileMetadataApi("xoxb-test", async (url) => {
     expect(state.active).toBe(true);
-    return { ok: true, files: [{ id: "F123" }] };
+    return Response.json(
+      url.endsWith("files.getUploadURLExternal")
+        ? { ok: true, file_id: "F123", upload_url: "http://127.0.0.1/upload" }
+        : { ok: true, files: [{ id: "F123" }] },
+    );
   });
+  const complete = mock(api.complete);
   const adapter = createSlackFileDeliveryAdapter(target, {
-    initialize: async () => ({
-      ok: true,
-      file_id: "F123",
-      upload_url: "http://127.0.0.1/upload",
-    }),
+    ...api,
     postHttp: async (input) => ({ ...input.facts, statusCode: 200 }),
     complete,
   });

@@ -36,6 +36,7 @@
     "./freeze": "./src/freeze.ts",
     "./hash": "./src/hash.ts",
     "./http-response": "./src/http-response.ts",
+    "./bounded-json-response": "./src/bounded-json-response.ts",
     "./http-utils": "./src/http-utils.ts",
     "./id": "./src/id.ts",
     "./logger": "./src/logger.ts",
