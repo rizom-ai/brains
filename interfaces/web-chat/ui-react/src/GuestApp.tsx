@@ -2,13 +2,8 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import {
   ChatApiError,
-  CHAT_CONVERSATION_ID_HEADER,
-  readChatProtocolEvents,
-  getGuestSourceCards,
-  type ChatCard,
   type ChatClient,
   type ChatHistoryMessage,
-  type ChatMessageRequest,
   type GuestChatSessionResponse,
 } from "@brains/contracts/chat";
 import { GuestPage } from "./GuestPage";
@@ -19,6 +14,7 @@ import { useGuestGate } from "./use-guest-gate";
 import { useGuestConversations } from "./use-guest-conversations";
 import { useGuestSession } from "./use-guest-session";
 import { useGuestTranscript } from "./use-guest-transcript";
+import { useGuestSend } from "./use-guest-send";
 
 const incompleteHistoryNotice =
   "History loaded. The previous answer may still be running or incomplete. Nothing has been replayed; you can reload history later.";
@@ -84,9 +80,27 @@ export function GuestApp({
     setBoxNotice,
     mounted,
   } = gate;
-  const [pending, setPending] = useState<ChatMessageRequest>();
-  const [deleting, setDeleting] = useState(false);
   const controller = useRef<AbortController | undefined>(undefined);
+  const { pending, setPending, send, stopWaiting } = useGuestSend({
+    client,
+    gate,
+    session,
+    canSend,
+    hasElapsed,
+    markExpired,
+    conversationId: id,
+    remember,
+    setMessages,
+    showHistory,
+    draft,
+    setDraft,
+    onStart: (): void => {
+      restoreFocus.current = true;
+      setDeleting(false);
+    },
+    controller,
+  });
+  const [deleting, setDeleting] = useState(false);
   const textarea = useRef<HTMLTextAreaElement>(null);
   const conversationMenu = useRef<HTMLDetailsElement>(null);
   function closeConversationMenu(): void {
@@ -184,150 +198,6 @@ export function GuestApp({
         );
       },
     );
-  }
-
-  async function send(retry?: ChatMessageRequest): Promise<void> {
-    if (gate.locked() || !canSend || !session) return;
-    // The cookie may have changed since an ambiguous first send. Without a
-    // server locator, replaying its ID could create a turn for another visitor.
-    if (retry && !retry.id) return;
-    if (hasElapsed()) {
-      markExpired();
-      setBoxState("expired");
-      setStatus(
-        "Your visitor session has expired. Reload to begin a new session.",
-      );
-      return;
-    }
-    const text = draft.trim();
-    if (!retry && (!text || draft.length > session.messageCharacters)) return;
-    const submission = retry ?? {
-      ...(id ? { id } : {}),
-      messages: [
-        {
-          id: crypto.randomUUID(),
-          role: "user" as const,
-          parts: [{ type: "text", text }],
-        },
-      ],
-    };
-    await gate.run(async (): Promise<void> => {
-      setBoxState("sending");
-      setBoxNotice(undefined);
-      restoreFocus.current = true;
-      setPending(submission);
-      setStatus("Thinking with public knowledge…");
-      setDeleting(false);
-      if (!retry) {
-        setMessages((previous) => [
-          ...previous,
-          {
-            id: submission.messages[0]?.id ?? crypto.randomUUID(),
-            role: "user",
-            content: text,
-          },
-        ]);
-        setDraft("");
-      }
-      const abort = new AbortController();
-      controller.current = abort;
-      const answerId = crypto.randomUUID();
-      let finished = false;
-      let locatorReceived = false;
-      let responseText = "";
-      let responseCards: ChatCard[] = [];
-      try {
-        const response = await client.streamMessages(submission, {
-          signal: abort.signal,
-        });
-        abort.signal.throwIfAborted();
-        const locator = response.headers.get(CHAT_CONVERSATION_ID_HEADER);
-        if (!locator) throw new Error("Missing conversation locator");
-        remember(locator);
-        locatorReceived = true;
-        setBoxState("working");
-        setPending({ ...submission, id: locator });
-        for await (const event of readChatProtocolEvents(response)) {
-          if (abort.signal.aborted) throw new Error("Stopped waiting");
-          if (event.type === "error" || event.type === "abort")
-            throw new Error("Response unavailable");
-          if (event.type === "text-delta") responseText += event.delta;
-          if (event.type === "data-sources")
-            responseCards = getGuestSourceCards([...responseCards, event.data]);
-          if (event.type === "text-delta" || event.type === "data-sources") {
-            setMessages((previous) => [
-              ...previous.filter((message) => message.id !== answerId),
-              {
-                id: answerId,
-                role: "assistant",
-                content: responseText,
-                cards: responseCards,
-              },
-            ]);
-          }
-          if (event.type === "finish") finished = event.finishReason === "stop";
-        }
-        if (!finished || !responseText.trim())
-          throw new Error("Incomplete response");
-        setPending(undefined);
-        setBoxState("complete");
-        setStatus(
-          "Answer received. Check important claims against the original sources.",
-        );
-      } catch (error) {
-        if (error instanceof ChatApiError && error.guestSubmission) {
-          const receipt = error.guestSubmission;
-          setBoxState("incomplete");
-          remember(receipt.conversationId);
-          setPending({ ...submission, id: receipt.conversationId });
-          setStatus(
-            receipt.state === "completed"
-              ? "This request already completed. Restoring history…"
-              : "This request was already received. It will not be sent again automatically.",
-          );
-          try {
-            const history = await client.getMessages(receipt.conversationId);
-            if (receipt.state === "completed") {
-              setMessages(history);
-              setPending(undefined);
-              setBoxState("complete");
-              setStatus("Conversation restored.");
-            }
-            if (receipt.state === "failed" || receipt.state === "interrupted") {
-              setPending(undefined);
-              setBoxState("ended");
-              setStatus(
-                "The previous request ended without a complete answer. You may submit a new question.",
-              );
-            }
-          } catch {
-            // Preserve the visible question/partial reply when history cannot load.
-            setStatus(
-              "The request was received, but its conversation is unavailable or expired.",
-            );
-          }
-        } else if (error instanceof ChatApiError && error.status === 429) {
-          setBoxState("limit");
-          setStatus(
-            "A guest limit has been reached, or another request is still running. Nothing will be retried automatically.",
-          );
-        } else if (!submission.id && !locatorReceived) {
-          setBoxState("uncertain");
-          setStatus(
-            "No conversation locator was received. This tab cannot safely retry or confirm whether the request ran. Your visible question is preserved; nothing will be resent automatically.",
-          );
-        } else {
-          setBoxState("incomplete");
-          setStatus(
-            abort.signal.aborted
-              ? "Stopped waiting. Remote work may still be running; this is not a cancellation guarantee."
-              : "The answer is unavailable or incomplete. Your visible text is preserved. Retry checks the same submission, not a new question.",
-          );
-        }
-      } finally {
-        controller.current = undefined;
-      }
-    });
   }
 
   async function remove(): Promise<void> {
@@ -504,7 +374,7 @@ export function GuestApp({
         onContinue={(): void => {
           if (id) remember(id);
         }}
-        onStopWaiting={(): void => controller.current?.abort()}
+        onStopWaiting={stopWaiting}
       />
     );
 
@@ -561,9 +431,7 @@ export function GuestApp({
         followTranscript.current = true;
         void send(pending);
       }}
-      onStopWaiting={(): void => {
-        controller.current?.abort();
-      }}
+      onStopWaiting={stopWaiting}
       onRetry={(): void => {
         void send(pending);
       }}
