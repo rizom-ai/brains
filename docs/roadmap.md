@@ -118,6 +118,7 @@ Discord, Slack, standalone `/ask`, native Studio Chat, and the shared Chat proto
 Plans:
 
 - [public-ask.md](./plans/public-ask.md) — complete live visitor acceptance and obtain separate production policy/publication approval.
+- [guest-app-split.md](./plans/guest-app-split.md) — give each Guest Ask concern a hook and a test, one behaviour-preserving slice per PR.
 - [studio-ux-improvements.md](./plans/studio-ux-improvements.md) — the remaining reviewed presentation, accessibility, and optional draft-recovery decisions after the shipped UX batches.
 - [studio-hierarchical-entity-navigation.md](./plans/studio-hierarchical-entity-navigation.md) — implemented on the feature branch, pending review: virtual folders, scoped search, and folder-aware creation over structured entity paths.
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — optional network-first installable shell without an offline-authoring claim.
