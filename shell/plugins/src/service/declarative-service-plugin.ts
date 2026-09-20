@@ -134,7 +134,7 @@ import { stateNamespaceFor } from "../internal/state-namespace";
 import { permissionToVisibilityScope } from "@brains/entity-service";
 import type { RuntimeStateScopeOptions } from "@brains/runtime-state";
 
-/** A template with its schema type erased and `format` bound to that schema. */
+/** A template with its schema type erased; `format` consumes the parsed value. */
 interface ErasedServiceTemplate {
   readonly schema: ServiceSchema;
   readonly namespace?: string | undefined;
@@ -1546,7 +1546,8 @@ class DeclarativeServicePlugin<
         // registry that holds it.
         // A template that only renders has no text to give, so the registry
         // answers for it.
-        if (template?.format) return template.format(value);
+        if (template?.format)
+          return template.format(template.schema.parse(value));
         return context.templates.format(name, value);
       },
       capabilities: (name) => context.templates.getCapabilities(name),
@@ -1556,8 +1557,10 @@ class DeclarativeServicePlugin<
   }
 
   /**
-   * Erase each template's schema type where it is still known, binding format
-   * to the schema it belongs to. Reading the definition's mapped type as a
+   * Erase each template's schema type where it is still known. As with native
+   * ContentFormatters, format consumes parsed data: raw-input entrypoints
+   * (the local formatter and test harness) own validation, while generation
+   * already supplies the schema's output. Reading the mapped type as a
    * plain record is not assignable — ServiceTemplateDefinition is
    * contravariant in its schema through `format` — so the erasure happens here
    * rather than being asserted away at the read site.
@@ -1592,8 +1595,7 @@ class DeclarativeServicePlugin<
             overlayFormatter: template.overlayFormatter,
             ...(format
               ? {
-                  format: (value: unknown): string =>
-                    format({ value: template.schema.parse(value) }),
+                  format: (value: unknown): string => format({ value }),
                 }
               : {}),
             ...(template.parse

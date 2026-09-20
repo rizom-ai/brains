@@ -134,7 +134,11 @@ export interface BrainTestHarness {
   readonly request: SubscriptionRequester;
   /** Announce over the bus, as the runtime would. */
   publish(topic: string, payload: unknown): Promise<void>;
-  /** Put records in the brain for the package under test to read. */
+  /**
+   * Seed records for reads and deterministic fixture search. Search matches
+   * all whitespace-separated terms, case-insensitively, in id/title/body;
+   * it enforces visibility and type filters, but does not model FTS or vectors.
+   */
   addEntities(entities: readonly SeededEntity[]): void;
   /** One record back, as the brain stores it. */
   getEntity(
@@ -212,7 +216,6 @@ export function createBrainTestHarness(
   // A brain serves what every installed package declared, not only the last
   // one, so what each installs is kept as it is installed.
   const installedRoutes: WebRouteDefinition[] = [];
-  const installedPluginIds = new Set<string>();
   const baseUrl = `https://${options.domain ?? "test.brain"}`;
   const fetchResponse: BrainTestHarness["fetchResponse"] = async (
     method,
@@ -244,15 +247,10 @@ export function createBrainTestHarness(
     );
   };
   const localTemplates = (): Array<{ localName: string; template: Template }> =>
-    [...harness.getTemplates()].map(([name, template]) => {
-      const owner = [...installedPluginIds].find((id) =>
-        name.startsWith(`${id}:`),
-      );
-      return {
-        localName: owner ? name.slice(owner.length + 1) : name,
-        template,
-      };
-    });
+    [...harness.getTemplates()].map(([name, template]) => ({
+      localName: harness.getMockShell().getTemplateLocalName(name),
+      template,
+    }));
 
   return {
     installPackage: async (
@@ -273,7 +271,6 @@ export function createBrainTestHarness(
       const jobs: InstalledPackage["jobs"][number][] = [];
       const installed = await harness.installPlugins(plugins);
       for (const { plugin, capabilities } of installed) {
-        installedPluginIds.add(plugin.id);
         installedRoutes.push(...(plugin.getWebRoutes?.() ?? []));
         for (const type of harness
           .getMockShell()
@@ -390,7 +387,6 @@ export function createBrainTestHarness(
     templateNames: () => localTemplates().map(({ localName }) => localName),
     reset: async (): Promise<void> => {
       installedRoutes.length = 0;
-      installedPluginIds.clear();
       await harness.reset();
     },
   };

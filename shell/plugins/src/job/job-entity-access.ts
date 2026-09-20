@@ -9,7 +9,10 @@ import type {
   SearchOptions,
   SearchResult,
 } from "@brains/entity-service";
-import { findEntityByIdentifier } from "@brains/entity-service";
+import {
+  findEntityByIdentifier,
+  getVisibleContentVisibilities,
+} from "@brains/entity-service";
 import type { JobEntityAccess } from "./job-context-contract";
 import { parseDefinitionEntity } from "../entity/entity-schema";
 import {
@@ -49,8 +52,41 @@ export function createJobEntityAccess(
    */
   visibilityScope?: ContentVisibility,
 ): JobEntityAccess {
-  const scoped = <T extends object>(request: T): T =>
-    visibilityScope === undefined ? request : { ...request, visibilityScope };
+  // A requested scope may narrow a caller's access, never widen it. An
+  // unbound, brain-owned job retains the underlying reader's defaults.
+  const scopeFor = (
+    requested?: ContentVisibility,
+  ): ContentVisibility | undefined =>
+    visibilityScope === undefined
+      ? requested
+      : requested !== undefined &&
+          getVisibleContentVisibilities(visibilityScope).includes(requested)
+        ? requested
+        : visibilityScope;
+  const scoped = <
+    T extends { readonly visibilityScope?: ContentVisibility | undefined },
+  >(
+    request: T,
+  ): T => {
+    const scope = scopeFor(request.visibilityScope);
+    return scope === undefined
+      ? request
+      : { ...request, visibilityScope: scope };
+  };
+  const scopedList = <T extends { readonly options?: ListOptions | undefined }>(
+    request: T,
+  ): T => {
+    const scope = scopeFor(request.options?.filter?.visibilityScope);
+    return scope === undefined
+      ? request
+      : {
+          ...request,
+          options: {
+            ...request.options,
+            filter: { ...request.options?.filter, visibilityScope: scope },
+          },
+        };
+  };
   const assertOwned = (entityType: string): void =>
     assertEntityWriteOwnership(ownedTypes, ownerLabel, entityType);
 
@@ -69,17 +105,7 @@ export function createJobEntityAccess(
     request: { entityType: string; options?: ListOptions },
     schema?: EntitySchema<T>,
   ): Promise<BaseEntity[] | T[]> {
-    const scopedRequest = {
-      ...request,
-      ...(visibilityScope === undefined
-        ? {}
-        : {
-            options: {
-              ...request.options,
-              filter: { ...request.options?.filter, visibilityScope },
-            },
-          }),
-    };
+    const scopedRequest = scopedList(request);
     return schema
       ? entityService.listEntities(scopedRequest, schema)
       : entityService.listEntities(scopedRequest);
@@ -138,6 +164,8 @@ export function createJobEntityAccess(
       entityService,
       entityType,
       identifier,
+      undefined,
+      scopeFor(),
     );
     if (!found) return null;
     return schema ? schema.parse(found) : found;
@@ -155,7 +183,15 @@ export function createJobEntityAccess(
     request: { query: string; options?: SearchOptions },
     schema?: EntitySchema<T>,
   ): Promise<SearchResult<BaseEntity>[] | SearchResult<T>[]> {
-    const results = await entityService.search(request);
+    const scope = scopeFor(request.options?.visibilityScope);
+    const results = await entityService.search(
+      scope === undefined
+        ? request
+        : {
+            ...request,
+            options: { ...request.options, visibilityScope: scope },
+          },
+    );
     return schema
       ? results.map((result) => ({
           ...result,
@@ -174,24 +210,14 @@ export function createJobEntityAccess(
     getEntityCounts: (
       requested?: ContentVisibility,
     ): Promise<Array<{ entityType: string; count: number }>> =>
-      entityService.getEntityCounts(requested ?? visibilityScope),
+      entityService.getEntityCounts(scopeFor(requested)),
     count: (request): Promise<number> =>
-      entityService.countEntities(
-        visibilityScope === undefined
-          ? request
-          : {
-              ...request,
-              options: {
-                ...request.options,
-                filter: { ...request.options?.filter, visibilityScope },
-              },
-            },
-      ),
+      entityService.countEntities(scopedList(request)),
     get: async <TDefinition extends EntityDefinitionShape>(
       definition: TDefinition,
       id: string,
     ): Promise<EntityOf<TDefinition> | null> => {
-      const entity = await entityService.getEntity({
+      const entity = await getEntityScoped({
         entityType: definition.type,
         id,
         visibilityScope: "restricted",

@@ -528,8 +528,9 @@ or ambiguous lookups throw with available local names.
 and runs one handler attempt in-process; it does not simulate durable queue
 retries, deadlines, or terminal hooks. `harness.templateNames()` lists local
 names; `harness.formatTemplate("due-list", value)` validates and formats the
-unique matching text template. Give templates distinct local names when testing
-multiple packages in one harness. Missing or ambiguous names throw rather than
+unique matching text template, parsing its input exactly once. Explicit template
+namespaces do not change these declaration-local names. Give templates distinct
+local names when testing multiple packages in one harness. Missing or ambiguous names throw rather than
 selecting an arbitrary template. Both `harness.fetch()` and
 `harness.fetchResponse()` exercise declared routes with their authentication and
 schema validation. `fetch()` decodes JSON responses to data (including JSON
@@ -566,6 +567,15 @@ Use the capability handed to your callback:
   metadata does not change registry policy or other readers.
 - Attachment-provider factories receive `domain`, `themeCSS`,
   `identity.getProfile`, and `entityService.getEntity`/`listEntities`.
+
+The test harness searches seeded and newly written records without an index:
+all whitespace-separated query terms must occur in the id, title, or body
+(case-insensitively). Visibility, type inclusion/exclusion, generation-status
+filtering, pagination, and explicit sorting/weights apply. Matches have a base
+score of 1, with type/id ordering for ties and a default limit of 20; empty queries
+return no results. This deterministic fixture search does **not** simulate FTS,
+vector similarity, embeddings, or production relevance scores. Use a running
+brain for those assertions; reset clears searchable fixtures.
 
 State and upload namespaces are scoped by the runtime. Supply local names, not
 package encodings or filesystem paths. Upgrade effects on existing state and

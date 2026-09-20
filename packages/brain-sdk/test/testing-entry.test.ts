@@ -19,6 +19,7 @@ import {
 import {
   createTemplate,
   defineEntity,
+  defineEntityPackage,
   defineProjectionRule,
   type AttachmentProvider,
   type MediaAttachmentContext,
@@ -60,6 +61,292 @@ async function expectCodedRejection(
 // Also compiled against the built public entries by public-plugin-api.test.ts.
 // No runtime imports, casts, or fixture-only access to plugin callbacks.
 describe("the public testing harness", () => {
+  it("caps every agent-context read at the asker's visibility", async () => {
+    const record = defineEntity({
+      type: "context-record",
+      purpose: "Context with different visibility levels",
+      metadata: z.object({ title: z.string() }),
+    });
+    const provider = defineEntity({
+      type: "context-provider",
+      purpose: "Read context without manually applying caller permissions",
+      metadata: z.object({}),
+      agentContext: async ({ entities }) => {
+        const ids = ["public", "shared", "restricted"];
+        const typed = await Promise.all(
+          ids.map((id) => entities.get(record, id)),
+        );
+        const found = await Promise.all(
+          ids.map((id) => entities.find(record.type, `Title ${id}`)),
+        );
+        const listed = await entities.listEntities({ entityType: record.type });
+        const searched = await entities.search({
+          query: "needle",
+          options: { visibilityScope: "restricted" },
+        });
+        const counts = await entities.getEntityCounts("restricted");
+        return [
+          {
+            id: "context",
+            source: "test",
+            content: JSON.stringify({
+              typed: typed.flatMap((entity) => (entity ? [entity.id] : [])),
+              found: found.flatMap((entity) => (entity ? [entity.id] : [])),
+              listed: listed.map((entity) => entity.id).sort(),
+              searched: searched.map(({ entity }) => entity.id).sort(),
+              count: counts.find(({ entityType }) => entityType === record.type)
+                ?.count,
+            }),
+          },
+        ];
+      },
+    });
+    const harness = createBrainTestHarness();
+    try {
+      await harness.installPackage(
+        defineEntityPackage({ id: "context", entities: [record, provider] }),
+      );
+      await harness.finalizeRegistration();
+      harness.addEntities(
+        (["public", "shared", "restricted"] as const).map((visibility) => ({
+          id: visibility,
+          entityType: record.type,
+          visibility,
+          content: "needle",
+          metadata: { title: `Title ${visibility}` },
+        })),
+      );
+      for (const [permission, visible] of [
+        ["public", ["public"]],
+        ["trusted", ["public", "shared"]],
+        ["admin", ["public", "shared", "restricted"]],
+      ] as const) {
+        expect(
+          await harness.request({
+            type: "agent:context:request",
+            payload: {
+              conversationId: "test",
+              message: "needle",
+              interfaceType: "test",
+              userPermissionLevel: permission,
+            },
+          }),
+        ).toEqual({
+          success: true,
+          data: {
+            items: [
+              {
+                id: "context",
+                source: "test",
+                content: JSON.stringify({
+                  typed: visible,
+                  found: visible,
+                  listed: [...visible].sort(),
+                  searched: [...visible].sort(),
+                  count: visible.length,
+                }),
+              },
+            ],
+          },
+        });
+      }
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("formats transformed service template inputs exactly once", async () => {
+    let parses = 0;
+    const harness = createBrainTestHarness();
+    try {
+      const installed = await harness.installPackage(
+        defineServicePlugin(
+          { id: "format-once", config: z.object({}) },
+          {
+            templates: {
+              numeric: {
+                schema: z.object({
+                  amount: z.string().transform((value) => {
+                    parses++;
+                    return Number(value);
+                  }),
+                }),
+                format: ({ value }) => value.amount.toFixed(2),
+              },
+              prefix: {
+                schema: z.object({
+                  label: z.string().transform((value) => `UI:${value}`),
+                }),
+                format: ({ value }) => value.label,
+              },
+            },
+            tools: ({ templates }) => [
+              defineTool({
+                name: "format",
+                description: "Format a value",
+                input: z.object({}),
+                output: z.string(),
+                execute: () => templates.format("numeric", { amount: "2" }),
+              }),
+            ],
+          },
+        ),
+      );
+      expect(await installed.tool("format").call({})).toEqual({
+        ok: true,
+        data: "2.00",
+      });
+      expect(parses).toBe(1);
+      expect(harness.formatTemplate("numeric", { amount: "2" })).toBe("2.00");
+      expect(parses).toBe(2);
+      expect(harness.formatTemplate("prefix", { label: "A" })).toBe("UI:A");
+      expect(() => harness.formatTemplate("numeric", { amount: 2 })).toThrow();
+      expect(parses).toBe(2);
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("uses declaration keys for namespaced templates and refuses ambiguous local names", async () => {
+    const harness = createBrainTestHarness();
+    const definition = (
+      id: string,
+      namespace: string,
+    ): ReturnType<typeof defineServicePlugin> =>
+      defineServicePlugin(
+        { id, config: z.object({}) },
+        {
+          templates: {
+            card: {
+              namespace,
+              schema: z.object({ title: z.string() }),
+              format: ({ value }) => value.title,
+            },
+          },
+        },
+      );
+    try {
+      await harness.installPackage(definition("first", "example-pages"));
+      expect(harness.templateNames()).toEqual(["card"]);
+      expect(harness.formatTemplate("card", { title: "Works" })).toBe("Works");
+      expect(() => harness.formatTemplate("ard", {})).toThrow(
+        'No template "ard"',
+      );
+      await harness.installPackage(definition("second", "other-pages"));
+      expect(harness.templateNames()).toEqual(["card", "card"]);
+      expect(() =>
+        harness.formatTemplate("card", { title: "Ambiguous" }),
+      ).toThrow("Ambiguous");
+      await harness.reset();
+      expect(harness.templateNames()).toEqual([]);
+      await harness.installPackage(definition("third", "new-pages"));
+      expect(harness.formatTemplate("card", { title: "Fresh" })).toBe("Fresh");
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("searches seeded and written entities through the public typed reader", async () => {
+    const item = defineEntity({
+      type: "search-item",
+      purpose: "Search fixture",
+      metadata: z.object({
+        title: z.string(),
+        done: z.boolean().default(false),
+      }),
+    });
+    const harness = createBrainTestHarness();
+    try {
+      const installed = await harness.installPackage(
+        defineServicePlugin(
+          { id: "search-fixture", config: z.object({}), entities: [item] },
+          {
+            tools: () => [
+              defineTool({
+                name: "search",
+                description: "Search fixture text",
+                input: z.object({ query: z.string() }),
+                output: z.array(
+                  z.object({ id: z.string(), done: z.boolean() }),
+                ),
+                execute: async ({ input, entities }) =>
+                  (await entities.search(item, input.query)).map(
+                    ({ entity }) => ({
+                      id: entity.id,
+                      done: entity.metadata.done,
+                    }),
+                  ),
+              }),
+              defineTool({
+                name: "write",
+                description: "Write searchable content",
+                input: z.object({}),
+                output: z.object({ id: z.string() }),
+                execute: ({ entities }) =>
+                  entities.create(item, {
+                    id: "written",
+                    content: "A written needle",
+                    metadata: { title: "Written", done: true },
+                  }),
+              }),
+            ],
+          },
+        ),
+      );
+      harness.addEntities([
+        {
+          id: "seeded",
+          entityType: item.type,
+          content: "A seeded NEEDLE",
+          metadata: { title: "Seeded", done: false },
+          visibility: "public",
+        },
+      ]);
+      expect(await installed.tool("search").call({ query: "needle" })).toEqual({
+        ok: true,
+        data: [{ id: "seeded", done: false }],
+      });
+      expect(await installed.tool("write").call({})).toEqual({
+        ok: true,
+        data: { id: "written" },
+      });
+      expect(
+        await installed.tool("search").call({ query: "written needle" }),
+      ).toEqual({ ok: true, data: [{ id: "written", done: true }] });
+      expect(await installed.tool("search").call({ query: "missing" })).toEqual(
+        { ok: true, data: [] },
+      );
+      expect(await installed.tool("search").call({ query: "  " })).toEqual({
+        ok: true,
+        data: [],
+      });
+      await harness.reset();
+      const fresh = await harness.installPackage(
+        defineServicePlugin(
+          { id: "empty-search", config: z.object({}), entities: [item] },
+          {
+            tools: () => [
+              defineTool({
+                name: "search",
+                description: "Search after reset",
+                input: z.object({}),
+                output: z.number(),
+                execute: async ({ entities }) =>
+                  (await entities.search(item, "needle")).length,
+              }),
+            ],
+          },
+        ),
+      );
+      expect(await fresh.tool("search").call({})).toEqual({
+        ok: true,
+        data: 0,
+      });
+    } finally {
+      await harness.reset();
+    }
+  });
+
   it("projects display labels without changing persisted titles on create or update", async () => {
     const item = defineEntity({
       type: "labeled-item",
@@ -1161,7 +1448,7 @@ describe("the public testing harness", () => {
       metadata: z.object({ title: z.string(), url: z.url() }),
       templates: {
         card: createTemplate({
-          name: "card",
+          name: "Bookmark presentation",
           description: "A bookmark as text.",
           requiredPermission: "public",
           schema: z.object({ title: z.string() }),

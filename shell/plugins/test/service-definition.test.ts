@@ -33,6 +33,47 @@ const digestJob = defineJob({
 });
 
 describe("declarative service definitions", () => {
+  it("hands parsed schema output to registered text formatters without transforming again", async () => {
+    let parses = 0;
+    const schema = z.object({
+      amount: z.string().transform((value) => {
+        parses++;
+        return Number(value);
+      }),
+    });
+    const definition = defineServicePlugin(
+      { id: "parsed-format", config: z.object({}) },
+      {
+        templates: {
+          numeric: {
+            schema,
+            generation: { prompt: "Produce an amount" },
+            format: ({ value }) => value.amount.toFixed(2),
+          },
+        },
+      },
+    );
+    const harness = createPluginHarness();
+    try {
+      const plugins = instantiatePluginPackageDefinition(
+        definition,
+        {},
+        { name: "@fixture/parsed-format", version: "0.0.0" },
+      );
+      await harness.installPlugins(plugins);
+      const plugin = plugins[0];
+      if (!plugin) throw new Error("Missing service");
+      const template = harness.getTemplates().get(`${plugin.id}:numeric`);
+      if (!template?.formatter) throw new Error("Missing formatter");
+      // Generation and other schema-bearing consumers already validated this.
+      const value = template.schema.parse({ amount: "2" });
+      expect(template.formatter.format(value)).toBe("2.00");
+      expect(parses).toBe(1);
+    } finally {
+      await harness.reset();
+    }
+  });
+
   it("bounds target construction and admission after ingress normalization", async () => {
     let validations = 0;
     const section = defineEntity({

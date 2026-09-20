@@ -538,8 +538,17 @@ contexts stay internal.
 
 `InstalledPackage.tool(name)` and `job(name)` resolve exact local declaration
 names. Tools and jobs expose `localName`; their `name` remains runtime-scoped.
-`templateNames()` and `formatTemplate(name, value)` use local names. Unknown or
-ambiguous lookups throw with available names.
+`templateNames()` and `formatTemplate(name, value)` use exact declaration-local
+names, including templates with explicit namespaces. Unknown or ambiguous
+lookups throw with available names. Formatting parses the input once; registered
+text formatters consume schema output, including transformed values.
+
+`addEntities` and package writes feed deterministic fixture search: all query
+terms must match id/title/body case-insensitively. Visibility, type filters,
+generation-status filtering, sorting, weights, score cutoffs, and pagination
+apply. Matches have base score 1 with type/id tie-breaking; the default page is
+20 results and empty queries return none. This is not FTS or vector-search
+acceptance. Reset removes the fixtures.
 
 `fetchResponse(method, path, init)` returns the full, unconsumed `Response`,
 including status and headers, after route authentication and schema validation.

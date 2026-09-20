@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { searchFixtureEntities } from "./entity-search";
 import {
   AccountSettingsRegistry,
   AttachmentRegistry,
@@ -80,6 +81,8 @@ import {
   type EntitySchema,
   type GetEntityRequest,
   type ListEntitiesRequest,
+  type EntitySearchRequest,
+  type SearchResult,
   type EntityMutationResult,
   type EntityExportIntent,
   type CreateInterceptor,
@@ -130,6 +133,7 @@ export interface MockShell extends IShell {
   removePlugin(pluginId: string): void;
   getPlugin(pluginId: string): Plugin | undefined;
   getTemplates(): Map<string, Template>;
+  getTemplateLocalName(name: string): string;
   setAgentService(agentService: IAgentService): void;
   setConversationService(conversationService: IConversationService): void;
   getDaemonRegistry(): IDaemonRegistry;
@@ -381,6 +385,10 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     };
   };
   const templates = InMemoryTemplateRegistry.createFresh();
+  // Keep declaration identity, rather than guessing a namespace from a name.
+  // Weak keys retain correct metadata when registration rollback restores an
+  // earlier template; reset replaces this entire shell.
+  const templateLocalNames = new WeakMap<Template, Map<string, string>>();
   const dataSources = new Map<string, DataSource>();
   const plugins = new Map<string, Plugin>();
 
@@ -515,6 +523,26 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       .sort((left, right) => compareBySortFields(left, right, sortFields))
       .slice(offset, limit === undefined ? undefined : offset + limit);
     return schema ? results.map((entity) => schema.parse(entity)) : results;
+  }
+
+  async function searchFake(
+    request: EntitySearchRequest,
+  ): Promise<SearchResult[]>;
+  async function searchFake<T extends BaseEntity>(
+    request: EntitySearchRequest,
+    schema: EntitySchema<T>,
+  ): Promise<SearchResult<T>[]>;
+  async function searchFake(
+    request: EntitySearchRequest,
+    schema?: EntitySchema<BaseEntity>,
+  ): Promise<SearchResult[]> {
+    const results = searchFixtureEntities([...entities.values()], request);
+    return schema
+      ? results.map((result) => ({
+          ...result,
+          entity: schema.parse(result.entity),
+        }))
+      : results;
   }
 
   const defaultEntityService: IEntityService = {
@@ -653,7 +681,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       });
     },
     listEntities: listEntitiesFake,
-    search: async () => [],
+    search: searchFake,
     searchWithDistances: async () => [],
     getEntityTypes: () => Array.from(entityTypes),
     hasEntityType: (type: string) => entityTypes.has(type),
@@ -1561,6 +1589,10 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     registerTemplates: (tmpls: Record<string, Template>, pluginId?: string) => {
       for (const [name, template] of Object.entries(tmpls)) {
         const scopedName = pluginId ? `${pluginId}:${name}` : `shell:${name}`;
+        const names =
+          templateLocalNames.get(template) ?? new Map<string, string>();
+        names.set(scopedName, name);
+        templateLocalNames.set(template, names);
         templates.register(scopedName, template);
       }
     },
@@ -1740,6 +1772,13 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     },
     getPlugin: (pluginId: string) => plugins.get(pluginId),
     getTemplates: () => templates.getAll(),
+    getTemplateLocalName: (name) => {
+      const template = templates.get(name);
+      const localName = template && templateLocalNames.get(template)?.get(name);
+      if (localName === undefined)
+        throw new Error(`No declaration for template "${name}"`);
+      return localName;
+    },
     setAgentService: (svc: IAgentService) => {
       agentService = svc;
     },
