@@ -11,7 +11,7 @@ import {
   type ChatMessageRequest,
   type GuestChatSessionResponse,
 } from "@brains/contracts/chat";
-import { GuestMarkdown, GuestTranscript } from "./GuestTranscript";
+import { GuestPage } from "./GuestPage";
 import { GuestBox, type GuestBoxState } from "./GuestBox";
 import { createWebChatClient } from "./web-chat-client";
 import { openGuestBrowserSession } from "./guest-session";
@@ -547,255 +547,65 @@ export function GuestApp({
     );
 
   return (
-    <div className="guest-ask">
-      <section aria-label="Public Ask">
-        <div className="guest-introduction">
-          <div>
-            <p className="guest-eyebrow">Public knowledge · Your questions</p>
-            <h1>Ask {name}.</h1>
-          </div>
-        </div>
-        <section className="guest-card" aria-label="Public conversation">
-          <header className="guest-card-header">
-            <span className="guest-brain-name">{siteLabel}</span>
-            <span className="guest-scope">Public knowledge</span>
-            {session && (
-              <details
-                className="guest-conversation-menu"
-                ref={conversationMenu}
-              >
-                <summary aria-label="Conversation actions">···</summary>
-                <nav className="guest-tools" aria-label="Conversation controls">
-                  <label>
-                    Conversations in this tab{" "}
-                    <select
-                      aria-label="Previous conversation"
-                      value={id ?? ""}
-                      disabled={busy}
-                      onChange={(event): void => {
-                        closeConversationMenu();
-                        void restore(event.target.value);
-                      }}
-                    >
-                      <option value="">Choose conversation</option>
-                      {conversations.map((locator, index) => (
-                        <option key={locator} value={locator}>
-                          Conversation {index + 1}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <button
-                    disabled={busy}
-                    onClick={(): void => {
-                      closeConversationMenu();
-                      savedLocator("");
-                      setId(undefined);
-                      setMessages([]);
-                      setPending(undefined);
-                      setDeleting(false);
-                      setStatus(
-                        "New conversation. Previous conversations are not deleted, and running work is not cancelled.",
-                      );
-                    }}
-                  >
-                    New conversation
-                  </button>
-                  <button
-                    disabled={!id || busy}
-                    onClick={(): void => {
-                      closeConversationMenu();
-                      setDeleting(true);
-                    }}
-                  >
-                    Delete conversation
-                  </button>
-                  <button
-                    disabled={!id || busy}
-                    onClick={(): void => {
-                      closeConversationMenu();
-                      if (id) void restore(id);
-                    }}
-                  >
-                    Reload history
-                  </button>
-                </nav>
-              </details>
-            )}
-          </header>
-          <div
-            className="guest-transcript-scroll"
-            ref={transcript}
-            role="region"
-            aria-label="Conversation transcript"
-            tabIndex={0}
-            onScroll={(event): void => {
-              const view = event.currentTarget;
-              followTranscript.current =
-                view.scrollHeight - view.scrollTop - view.clientHeight < 64;
-            }}
-          >
-            {deleting && (
-              <div className="guest-delete" role="alert">
-                <p>
-                  Delete this conversation from the Brain? This does not erase
-                  provider records or cancel remote work.
-                </p>
-                <button
-                  disabled={busy}
-                  onClick={(): void => {
-                    void remove();
-                  }}
-                >
-                  Confirm deletion
-                </button>
-                <button
-                  disabled={busy}
-                  onClick={(): void => setDeleting(false)}
-                >
-                  Keep conversation
-                </button>
-              </div>
-            )}
-            {!messages.length &&
-              session?.canSend &&
-              !pending &&
-              !!(
-                session.presentation?.title ??
-                session.presentation?.introduction ??
-                session.presentation?.topics?.length
-              ) && (
-                <div className="guest-empty">
-                  {session.presentation.title && (
-                    <h2>{session.presentation.title}</h2>
-                  )}
-                  {session.presentation.introduction && (
-                    <GuestMarkdown>
-                      {session.presentation.introduction}
-                    </GuestMarkdown>
-                  )}
-                  <div className="guest-topics">
-                    {(session.presentation.topics ?? []).map((topic, index) => (
-                      <button
-                        className="guest-topic"
-                        type="button"
-                        key={topic}
-                        onClick={(): void => {
-                          setDraft(topic);
-                          textarea.current?.focus();
-                        }}
-                      >
-                        <span aria-hidden="true">0{index + 1}</span>
-                        {topic}
-                        <span aria-hidden="true">↗</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            {!messages.length && !session?.canSend && !busy && !pending && (
-              <div className="guest-empty guest-unavailable">
-                <p className="guest-eyebrow">Public knowledge</p>
-                <h2>Asking is unavailable right now.</h2>
-                <p>
-                  No new question has been sent. This page does not renew an
-                  expired or exhausted allowance.
-                </p>
-              </div>
-            )}
-            <GuestTranscript messages={messages} />
-          </div>
-          <p className="guest-status" role="status" aria-live="polite">
-            {status}
-          </p>
-          {session?.canSend && (
-            <form
-              className="guest-composer"
-              onSubmit={(event): void => {
-                event.preventDefault();
-                followTranscript.current = true;
-                void send(pending);
-              }}
-            >
-              <label className="guest-sr" htmlFor="guest-question">
-                Your question
-              </label>
-              <textarea
-                ref={textarea}
-                id="guest-question"
-                value={draft}
-                onInput={(event): void => setDraft(event.currentTarget.value)}
-                maxLength={session.messageCharacters}
-                disabled={busy || !!pending || expired}
-                placeholder={
-                  messages.length
-                    ? "Follow that thought…"
-                    : "Start with a question…"
-                }
-                rows={2}
-              />
-              <div className="guest-compose-actions">
-                <small>
-                  {draft.length} / {session.messageCharacters}
-                </small>
-                {busy ? (
-                  <button
-                    type="button"
-                    onClick={(): void => {
-                      controller.current?.abort();
-                    }}
-                  >
-                    Stop waiting
-                  </button>
-                ) : pending ? (
-                  <button
-                    type="button"
-                    disabled={!pending.id}
-                    onClick={(): void => {
-                      void send(pending);
-                    }}
-                  >
-                    {pending.id
-                      ? "Check / retry same request"
-                      : "Recovery unavailable"}
-                  </button>
-                ) : (
-                  <button
-                    className="guest-send"
-                    type="submit"
-                    disabled={!draft.trim() || expired}
-                  >
-                    <span className="guest-sr">Ask the Brain</span>
-                    <span aria-hidden="true">↑</span>
-                  </button>
-                )}
-              </div>
-            </form>
-          )}
-        </section>
-        <div className="guest-below">
-          {session && (
-            <details className="guest-disclosure">
-              <summary>Privacy and limits</summary>
-              <p>{session.notice}</p>
-              <p>Provider: {session.provider}</p>
-              <p>
-                Visitor access expires{" "}
-                {new Date(session.expiresAt).toLocaleString()}. Conversation
-                retention: idle limit {session.retention.idleSeconds / 3600}{" "}
-                hours; maximum age {session.retention.maxAgeSeconds / 3600}{" "}
-                hours.
-              </p>
-              <p>{session.deletionLimitations}</p>
-              <p>
-                Your messages are not automatically added to the Brain’s
-                knowledge. This chat cannot edit, publish or administer the
-                Brain.
-              </p>
-            </details>
-          )}
-        </div>
-      </section>
-    </div>
+    <GuestPage
+      name={name}
+      siteLabel={siteLabel}
+      session={session}
+      messages={messages}
+      status={status}
+      draft={draft}
+      conversations={conversations}
+      id={id}
+      busy={busy}
+      pending={pending}
+      deleting={deleting}
+      expired={expired}
+      transcriptRef={transcript}
+      textareaRef={textarea}
+      conversationMenuRef={conversationMenu}
+      followTranscript={followTranscript}
+      onRestore={(locator): void => {
+        closeConversationMenu();
+        void restore(locator);
+      }}
+      onNewConversation={(): void => {
+        closeConversationMenu();
+        savedLocator("");
+        setId(undefined);
+        setMessages([]);
+        setPending(undefined);
+        setDeleting(false);
+        setStatus(
+          "New conversation. Previous conversations are not deleted, and running work is not cancelled.",
+        );
+      }}
+      onAskDelete={(): void => {
+        closeConversationMenu();
+        setDeleting(true);
+      }}
+      onCancelDelete={(): void => setDeleting(false)}
+      onConfirmDelete={(): void => {
+        void remove();
+      }}
+      onReloadHistory={(): void => {
+        closeConversationMenu();
+        if (id) void restore(id);
+      }}
+      onDraftChange={setDraft}
+      onTopic={(topic): void => {
+        setDraft(topic);
+        textarea.current?.focus();
+      }}
+      onSubmit={(): void => {
+        followTranscript.current = true;
+        void send(pending);
+      }}
+      onStopWaiting={(): void => {
+        controller.current?.abort();
+      }}
+      onRetry={(): void => {
+        void send(pending);
+      }}
+    />
   );
 }
