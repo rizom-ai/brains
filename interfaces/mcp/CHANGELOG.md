@@ -1,5 +1,20 @@
 # @brains/mcp
 
+## 0.2.0-alpha.397
+
+### Minor Changes
+
+- [#316](https://github.com/rizom-ai/brains/pull/316) [`da567ad`](https://github.com/rizom-ai/brains/commit/da567ad5d2d033d24ffd4c71b52e9d19286443fe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Collapse the MCP basic protocol surface to `chat` and `confirm` only. Omitted `directMcpExposure` now defaults to `"debug"` regardless of `sideEffects`, so raw read tools (`system_search`, `system_get`, `system_list`, status, insights, and job status) are no longer advertised in basic mode. Basic-mode reads and writes now go through the brain agent, keeping its system prompt, context, and confirmation flow in the loop. The analytics Cloudflare query moved from `"basic"` to `"debug"` exposure. Debug mode is unchanged; tools can still opt into the basic surface with an explicit `directMcpExposure: "basic"`.
+
+### Patch Changes
+
+- Updated dependencies [[`da567ad`](https://github.com/rizom-ai/brains/commit/da567ad5d2d033d24ffd4c71b52e9d19286443fe)]:
+  - @brains/mcp-service@0.2.0-alpha.397
+  - @brains/plugins@0.2.0-alpha.397
+  - @brains/auth-service@0.2.0-alpha.397
+  - @brains/contracts@0.2.0-alpha.397
+  - @brains/utils@0.2.0-alpha.397
+
 ## 0.2.0-alpha.396
 
 ### Patch Changes

@@ -357,6 +357,7 @@
     "core--json-native-section-content",
     "core--json-type-parity-guard",
     "core--json-types-single-declaration",
+    "core--mcp-basic-chat-only",
     "core--mcp-client-metadata-documents",
     "core--mcp-drop-phantom-express-deps",
     "core--mcp-sdk-1-30",
