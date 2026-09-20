@@ -5,7 +5,6 @@ import type {
   ChannelDeliveryResult,
   ChannelDescriptor,
 } from "@brains/plugins";
-import { sha256Hex } from "@brains/utils/hash";
 import { createPrefixedId } from "@brains/utils/id";
 import { KeyedSingleFlight, SingleFlight } from "@brains/utils/serial-queue";
 import { and, eq, inArray, isNull, lte, sql } from "drizzle-orm";
@@ -20,6 +19,7 @@ import {
 } from "./invitation-schema";
 import { absoluteUrl } from "./issuer";
 import { InvitationChannels } from "./invitation-channels";
+import { invitationIdempotencyKeyHash } from "./invitation-keys";
 import {
   isInterruptedDelivery,
   selectInterruptedDeliveries,
@@ -1197,12 +1197,6 @@ export class AuthInvitationService {
     if (!invitation) throw new Error("Invitation is unavailable");
     return invitation;
   }
-}
-
-function invitationIdempotencyKeyHash(value: string): string {
-  const normalized = value.trim();
-  if (!normalized) throw new Error("Invitation idempotency key is required");
-  return sha256Hex(normalized);
 }
 
 function normalizeDeliverySubject(delivery: AuthSetupDeliveryInput): string {
