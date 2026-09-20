@@ -66,6 +66,7 @@ async function setup(
       use,
       options,
     ): ReturnType<typeof use> => {
+      if (!directory) throw new Error("Expected render source directory");
       pages.push({
         directory,
         html: await readFile(join(directory, "index.html"), "utf8"),

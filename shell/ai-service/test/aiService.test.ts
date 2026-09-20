@@ -1,4 +1,8 @@
 import {
+  createImageService,
+  readGeneratedImage,
+} from "./helpers/generated-image";
+import {
   describe,
   expect,
   it,
@@ -44,7 +48,7 @@ void mock.module("ai", () => ({
   ),
   generateImage: mock(() =>
     Promise.resolve({
-      image: { base64: VALID_PNG_BASE64 },
+      image: { uint8Array: Buffer.from(VALID_PNG_BASE64, "base64") },
     }),
   ),
 }));
@@ -624,29 +628,26 @@ describe("AIService", () => {
   describe("Image Generation", () => {
     describe("canGenerateImages", () => {
       it("should return false when no image provider keys are set", () => {
-        const service = AIService.createFresh({}, logger);
+        const service = createImageService({}, logger);
         expect(service.canGenerateImages()).toBe(false);
       });
 
       it("should return true when apiKey is set (OpenAI)", () => {
-        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
+        const service = createImageService({ apiKey: "sk-test" }, logger);
         expect(service.canGenerateImages()).toBe(true);
       });
 
       it("should return true when imageApiKey is set", () => {
-        const service = AIService.createFresh(
-          { imageApiKey: "sk-img" },
-          logger,
-        );
+        const service = createImageService({ imageApiKey: "sk-img" }, logger);
         expect(service.canGenerateImages()).toBe(true);
       });
     });
 
     describe("generateImage with OpenAI", () => {
       it("should generate image with default options", async () => {
-        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
+        const service = createImageService({ apiKey: "sk-test" }, logger);
 
-        const result = await service.generateImage("A sunset");
+        const result = await readGeneratedImage(service, "A sunset");
 
         expect(result.base64).toBe(VALID_PNG_BASE64);
         expect(result.dataUrl).toBe(
@@ -655,10 +656,10 @@ describe("AIService", () => {
       });
 
       it("should pass cancellation to the image provider", async () => {
-        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
+        const service = createImageService({ apiKey: "sk-test" }, logger);
         const signal = new AbortController().signal;
 
-        await service.generateImage("A sunset", { signal });
+        await readGeneratedImage(service, "A sunset", { signal });
 
         expect(generateImageSpy).toHaveBeenCalledWith(
           expect.objectContaining({ abortSignal: signal }),
@@ -666,9 +667,9 @@ describe("AIService", () => {
       });
 
       it("should map aspectRatio to DALL-E size for OpenAI provider", async () => {
-        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
+        const service = createImageService({ apiKey: "sk-test" }, logger);
 
-        await service.generateImage("A sunset", { aspectRatio: "1:1" });
+        await readGeneratedImage(service, "A sunset", { aspectRatio: "1:1" });
 
         expect(generateImageSpy).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -678,9 +679,9 @@ describe("AIService", () => {
       });
 
       it("should map 16:9 to 1536x1024", async () => {
-        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
+        const service = createImageService({ apiKey: "sk-test" }, logger);
 
-        await service.generateImage("A sunset", { aspectRatio: "16:9" });
+        await readGeneratedImage(service, "A sunset", { aspectRatio: "16:9" });
 
         expect(generateImageSpy).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -690,9 +691,9 @@ describe("AIService", () => {
       });
 
       it("should map 9:16 to 1024x1536", async () => {
-        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
+        const service = createImageService({ apiKey: "sk-test" }, logger);
 
-        await service.generateImage("A sunset", { aspectRatio: "9:16" });
+        await readGeneratedImage(service, "A sunset", { aspectRatio: "9:16" });
 
         expect(generateImageSpy).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -702,9 +703,9 @@ describe("AIService", () => {
       });
 
       it("should default to 16:9 (1536x1024) when no aspectRatio given", async () => {
-        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
+        const service = createImageService({ apiKey: "sk-test" }, logger);
 
-        await service.generateImage("A sunset");
+        await readGeneratedImage(service, "A sunset");
 
         expect(generateImageSpy).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -716,12 +717,12 @@ describe("AIService", () => {
 
     describe("generateImage with Google", () => {
       it("should use Google provider when imageModel is a gemini model", async () => {
-        const service = AIService.createFresh(
+        const service = createImageService(
           { apiKey: "sk-test", imageModel: "gemini-3-pro-image-preview" },
           logger,
         );
 
-        const result = await service.generateImage("A sunset");
+        const result = await readGeneratedImage(service, "A sunset");
 
         expect(result.base64).toBe(VALID_PNG_BASE64);
         expect(mockGoogleImage).toHaveBeenCalledWith(
@@ -730,12 +731,12 @@ describe("AIService", () => {
       });
 
       it("should pass aspectRatio directly to Google provider", async () => {
-        const service = AIService.createFresh(
+        const service = createImageService(
           { apiKey: "sk-test", imageModel: "gemini-3-pro-image-preview" },
           logger,
         );
 
-        await service.generateImage("A sunset", { aspectRatio: "16:9" });
+        await readGeneratedImage(service, "A sunset", { aspectRatio: "16:9" });
 
         expect(generateImageSpy).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -745,12 +746,12 @@ describe("AIService", () => {
       });
 
       it("should not pass size to Google provider", async () => {
-        const service = AIService.createFresh(
+        const service = createImageService(
           { apiKey: "sk-test", imageModel: "gemini-3-pro-image-preview" },
           logger,
         );
 
-        await service.generateImage("A sunset", { aspectRatio: "1:1" });
+        await readGeneratedImage(service, "A sunset", { aspectRatio: "1:1" });
 
         const call = generateImageSpy.mock.calls[0]?.[0];
         expect(call).not.toHaveProperty("size");
@@ -759,7 +760,7 @@ describe("AIService", () => {
 
     describe("provider selection", () => {
       it("should use imageModel to select provider", async () => {
-        const service = AIService.createFresh(
+        const service = createImageService(
           {
             apiKey: "sk-test",
 
@@ -768,26 +769,26 @@ describe("AIService", () => {
           logger,
         );
 
-        await service.generateImage("A sunset");
+        await readGeneratedImage(service, "A sunset");
 
         expect(mockGoogleImage).toHaveBeenCalled();
       });
 
       it("should auto-detect OpenAI when only apiKey is set", async () => {
-        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
+        const service = createImageService({ apiKey: "sk-test" }, logger);
 
-        await service.generateImage("A sunset");
+        await readGeneratedImage(service, "A sunset");
 
         expect(mockOpenAIImage).toHaveBeenCalledWith("gpt-image-1.5");
       });
 
       it("should use Google when imageModel is gemini", async () => {
-        const service = AIService.createFresh(
+        const service = createImageService(
           { apiKey: "sk-test", imageModel: "gemini-3-pro-image-preview" },
           logger,
         );
 
-        await service.generateImage("A sunset");
+        await readGeneratedImage(service, "A sunset");
 
         expect(mockGoogleImage).toHaveBeenCalled();
       });
@@ -796,19 +797,19 @@ describe("AIService", () => {
         // This previously constructed the service with apiKey alone, making it
         // byte-identical to the auto-detect case above and leaving the
         // imageApiKey ?? apiKey fallback untested.
-        const service = AIService.createFresh(
+        const service = createImageService(
           { apiKey: "sk-text", imageApiKey: "sk-image" },
           logger,
         );
 
-        await service.generateImage("A sunset");
+        await readGeneratedImage(service, "A sunset");
 
         expect(mockOpenAIImage).toHaveBeenCalledWith("gpt-image-1.5");
         expect(mockCreateOpenAI).toHaveBeenCalledWith({ apiKey: "sk-image" });
       });
 
       it("should pass imageModel to Google provider", async () => {
-        const service = AIService.createFresh(
+        const service = createImageService(
           {
             apiKey: "sk-test",
             imageModel: "gemini-3-pro-image-preview",
@@ -816,7 +817,7 @@ describe("AIService", () => {
           logger,
         );
 
-        await service.generateImage("A sunset");
+        await readGeneratedImage(service, "A sunset");
 
         expect(mockGoogleImage).toHaveBeenCalledWith(
           "gemini-3-pro-image-preview",
@@ -826,22 +827,22 @@ describe("AIService", () => {
 
     describe("error handling", () => {
       it("should throw when no image provider is available", () => {
-        const service = AIService.createFresh({}, logger);
+        const service = createImageService({}, logger);
 
-        void expect(service.generateImage("A sunset")).rejects.toThrow(
+        void expect(readGeneratedImage(service, "A sunset")).rejects.toThrow(
           "Image generation not available",
         );
       });
 
       it("should handle generation API errors", () => {
-        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
+        const service = createImageService({ apiKey: "sk-test" }, logger);
 
         generateImageSpy.mockRejectedValueOnce(
           new Error("Rate limit exceeded"),
         );
 
-        void expect(service.generateImage("A sunset")).rejects.toThrow(
-          "Image generation failed",
+        void expect(readGeneratedImage(service, "A sunset")).rejects.toThrow(
+          "Rate limit exceeded",
         );
       });
     });

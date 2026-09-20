@@ -1,6 +1,11 @@
+import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { mockImageFileAssets } from "../helpers/file-assets";
 import { prepareAsset } from "@brains/assets";
-import { createMockEntityPluginContext } from "@brains/plugins/test";
-import { describe, it, expect, beforeEach } from "bun:test";
+import { createMockEntityPluginContext as createBaseMockContext } from "@brains/plugins/test";
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
+import assert from "node:assert/strict";
 import {
   ImageGenerationJobHandler,
   type ImageGenerationJobData,
@@ -19,7 +24,23 @@ const VALID_PNG_BASE64 =
 const VALID_PNG_DATA_URL = `data:image/png;base64,${VALID_PNG_BASE64}`;
 const VALID_PNG_ASSET = prepareAsset(Buffer.from(VALID_PNG_BASE64, "base64"));
 
+let generatedImageFile: {
+  sourceFile: string;
+  sizeBytes: number;
+  sha256: string;
+};
+function createMockEntityPluginContext(
+  options: Parameters<typeof createBaseMockContext>[0],
+): ReturnType<typeof createBaseMockContext> {
+  const context = createBaseMockContext(options);
+  context.entityService.fileAssets = mockImageFileAssets(context.entityService);
+  return context;
+}
+
 describe("ImageGenerationJobHandler", () => {
+  afterEach(async () => {
+    await rm(directory, { recursive: true });
+  });
   let handler: ImageGenerationJobHandler;
   let context: EntityPluginContext;
   let logger: Logger;
@@ -43,7 +64,18 @@ describe("ImageGenerationJobHandler", () => {
     return reporter;
   };
 
-  beforeEach(() => {
+  let directory: string;
+  beforeEach(async () => {
+    directory = await mkdtemp(join(tmpdir(), "image-handler-input-"));
+    generatedImageFile = {
+      sourceFile: join(directory, "image.png"),
+      sizeBytes: VALID_PNG_ASSET.sizeBytes,
+      sha256: VALID_PNG_ASSET.digest,
+    };
+    await writeFile(
+      generatedImageFile.sourceFile,
+      Buffer.from(VALID_PNG_BASE64, "base64"),
+    );
     logger = createSilentLogger();
     context = createMockEntityPluginContext({
       returns: {
@@ -57,10 +89,7 @@ describe("ImageGenerationJobHandler", () => {
         },
         ai: {
           canGenerateImages: true,
-          generateImage: {
-            base64: VALID_PNG_BASE64,
-            dataUrl: VALID_PNG_DATA_URL,
-          },
+          generatedImageFile,
         },
       },
     });
@@ -130,6 +159,7 @@ describe("ImageGenerationJobHandler", () => {
         jobData,
         "job-no-title",
         progressReporter,
+        new AbortController().signal,
       );
 
       expect(result.success).toBe(true);
@@ -174,6 +204,7 @@ describe("ImageGenerationJobHandler", () => {
         jobData,
         "job-123",
         progressReporter,
+        new AbortController().signal,
       );
 
       expect(result.success).toBe(true);
@@ -224,10 +255,7 @@ describe("ImageGenerationJobHandler", () => {
           },
           ai: {
             canGenerateImages: true,
-            generateImage: {
-              base64: VALID_PNG_BASE64,
-              dataUrl: VALID_PNG_DATA_URL,
-            },
+            generatedImageFile,
           },
         },
       });
@@ -240,6 +268,7 @@ describe("ImageGenerationJobHandler", () => {
         createValidJobData(),
         "job-123",
         progressReporter,
+        new AbortController().signal,
       );
 
       expect(result.success).toBe(true);
@@ -284,10 +313,7 @@ describe("ImageGenerationJobHandler", () => {
           },
           ai: {
             canGenerateImages: true,
-            generateImage: {
-              base64: VALID_PNG_BASE64,
-              dataUrl: VALID_PNG_DATA_URL,
-            },
+            generatedImageFile,
           },
         },
       });
@@ -298,6 +324,7 @@ describe("ImageGenerationJobHandler", () => {
         jobData,
         "job-123",
         progressReporter,
+        new AbortController().signal,
       );
 
       expect(result.success).toBe(true);
@@ -318,11 +345,17 @@ describe("ImageGenerationJobHandler", () => {
         aspectRatio: "1:1",
       });
 
-      await handler.process(jobData, "job-123", progressReporter);
+      await handler.process(
+        jobData,
+        "job-123",
+        progressReporter,
+        new AbortController().signal,
+      );
 
-      expect(context.ai.generateImage).toHaveBeenCalledWith(
+      expect(context.ai.withGeneratedImageFile).toHaveBeenCalledWith(
         expect.stringContaining("A beautiful sunset over mountains"),
-        { aspectRatio: "1:1" },
+        expect.any(Function),
+        expect.objectContaining({ aspectRatio: "1:1" }),
       );
     });
 
@@ -342,6 +375,7 @@ describe("ImageGenerationJobHandler", () => {
         jobData,
         "job-123",
         progressReporter,
+        new AbortController().signal,
       );
 
       expect(result.success).toBe(false);
@@ -364,6 +398,7 @@ describe("ImageGenerationJobHandler", () => {
         jobData,
         "job-123",
         progressReporter,
+        new AbortController().signal,
       );
 
       expect(result.success).toBe(false);
@@ -372,7 +407,12 @@ describe("ImageGenerationJobHandler", () => {
 
     it("should report progress during generation", async () => {
       const jobData = createValidJobData();
-      await handler.process(jobData, "job-123", progressReporter);
+      await handler.process(
+        jobData,
+        "job-123",
+        progressReporter,
+        new AbortController().signal,
+      );
 
       expect(progressCalls.length).toBeGreaterThan(0);
       // Should have progress at start, during generation, and completion
@@ -402,10 +442,7 @@ describe("ImageGenerationJobHandler", () => {
           },
           ai: {
             canGenerateImages: true,
-            generateImage: {
-              base64: VALID_PNG_BASE64,
-              dataUrl: VALID_PNG_DATA_URL,
-            },
+            generatedImageFile,
           },
         },
         listEntitiesImpl: async () => [mockTargetEntity],
@@ -424,6 +461,7 @@ describe("ImageGenerationJobHandler", () => {
         jobData,
         "job-123",
         progressReporter,
+        new AbortController().signal,
       );
 
       expect(result.success).toBe(true);
@@ -463,10 +501,7 @@ describe("ImageGenerationJobHandler", () => {
           },
           ai: {
             canGenerateImages: true,
-            generateImage: {
-              base64: VALID_PNG_BASE64,
-              dataUrl: VALID_PNG_DATA_URL,
-            },
+            generatedImageFile,
           },
         },
         listEntitiesImpl: async () => [mockTargetEntity],
@@ -485,6 +520,7 @@ describe("ImageGenerationJobHandler", () => {
         jobData,
         "job-123",
         progressReporter,
+        new AbortController().signal,
       );
 
       expect(result.success).toBe(true);
@@ -505,6 +541,7 @@ describe("ImageGenerationJobHandler", () => {
         jobData,
         "job-123",
         progressReporter,
+        new AbortController().signal,
       );
 
       expect(result.success).toBe(false);
@@ -520,6 +557,7 @@ describe("ImageGenerationJobHandler", () => {
         jobData,
         "job-123",
         progressReporter,
+        new AbortController().signal,
       );
 
       expect(result.success).toBe(true);
@@ -539,10 +577,7 @@ describe("ImageGenerationJobHandler", () => {
           },
           ai: {
             canGenerateImages: true,
-            generateImage: {
-              base64: VALID_PNG_BASE64,
-              dataUrl: VALID_PNG_DATA_URL,
-            },
+            generatedImageFile,
             generateObject: {
               imagePrompt: "A glowing coral reef floating in amber light",
             },
@@ -564,14 +599,16 @@ describe("ImageGenerationJobHandler", () => {
         jobData,
         "job-123",
         createProgressReporter(),
+        new AbortController().signal,
       );
 
       expect(result.success).toBe(true);
       // Should have called generateObject to distill the prompt
       expect(distillContext.ai.generateObject).toHaveBeenCalled();
       // The distilled prompt should be used for image generation, not the raw content
-      expect(distillContext.ai.generateImage).toHaveBeenCalledWith(
+      expect(distillContext.ai.withGeneratedImageFile).toHaveBeenCalledWith(
         expect.stringContaining("A glowing coral reef floating in amber light"),
+        expect.any(Function),
         expect.any(Object),
       );
     });
@@ -587,23 +624,199 @@ describe("ImageGenerationJobHandler", () => {
         jobData,
         "job-123",
         progressReporter,
+        new AbortController().signal,
       );
 
       expect(result.success).toBe(true);
       expect(context.ai.generateObject).not.toHaveBeenCalled();
-      expect(context.ai.generateImage).toHaveBeenCalledWith(
+      expect(context.ai.withGeneratedImageFile).toHaveBeenCalledWith(
         expect.stringContaining("A pretty robot, elegant and friendly"),
+        expect.any(Function),
         expect.any(Object),
       );
+    });
+
+    it("does not replay a reclaimed or imported retry, or overwrite its prior image", async () => {
+      spyOn(context.jobs, "getStatus").mockResolvedValue({
+        id: "retry",
+        type: "image:image-generate",
+        data: "{}",
+        status: "processing",
+        source: "image",
+        priority: 0,
+        retryCount: 1,
+        maxRetries: 3,
+        lastError: "previous outcome unknown",
+        createdAt: 0,
+        scheduledFor: 0,
+        startedAt: 0,
+        completedAt: null,
+        attemptId: "retry-attempt",
+        workerSlotId: "worker",
+        workerSessionId: "session",
+        leaseExpiresAt: 1000,
+        attemptHeartbeatAt: 0,
+        runtimeUpdatedAt: 0,
+        metadata: { operationType: "data_processing", rootJobId: "retry" },
+        progress: null,
+      });
+      const result = await handler.process(
+        createValidJobData(),
+        "retry",
+        progressReporter,
+        new AbortController().signal,
+      );
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("cannot be automatically replayed");
+      expect(context.ai.withGeneratedImageFile).not.toHaveBeenCalled();
+      expect(context.entityService.createEntity).not.toHaveBeenCalled();
+      expect(context.entityService.updateEntity).not.toHaveBeenCalled();
+    });
+
+    it("fails closed without file publication and never enters generation", async () => {
+      delete context.entityService.fileAssets;
+      const result = await handler.process(
+        createValidJobData(),
+        "unprovisioned",
+        progressReporter,
+        new AbortController().signal,
+      );
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("not provisioned");
+      expect(context.ai.withGeneratedImageFile).not.toHaveBeenCalled();
+    });
+
+    it("rejects an inspected file that differs from its producer receipt", async () => {
+      generatedImageFile.sha256 = "a".repeat(64);
+      const result = await handler.process(
+        createValidJobData(),
+        "mismatch",
+        progressReporter,
+        new AbortController().signal,
+      );
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("producer receipt");
+      expect(context.entityService.createEntity).not.toHaveBeenCalled();
+      expect(context.entityService.updateEntity).not.toHaveBeenCalled();
+    });
+
+    it.each(["publication", "cleanup"] as const)(
+      "does not overwrite a submitted image after %s uncertainty",
+      async (fault) => {
+        const pending: BaseEntity = {
+          id: "sunset-image",
+          entityType: "image",
+          content: VALID_PNG_ASSET.ref,
+          visibility: "public",
+          metadata: { status: "pending", title: "Sunset Image" },
+          created: "2026-01-01T00:00:00.000Z",
+          updated: "2026-01-01T00:00:00.000Z",
+          contentHash: "pending",
+        };
+        const ctx = createMockEntityPluginContext({
+          returns: {
+            entityService: { getEntity: pending },
+            ai: { canGenerateImages: true, generatedImageFile },
+          },
+        });
+        const failure = new Error(`${fault} failed after submission`);
+        assert.ok(ctx.entityService.fileAssets);
+        if (fault === "publication")
+          spyOn(ctx.entityService.fileAssets, "publish").mockRejectedValue(
+            failure,
+          );
+        else
+          spyOn(ctx.ai, "withGeneratedImageFile").mockImplementation(
+            async (_prompt, use, options): Promise<never> => {
+              await use(
+                generatedImageFile,
+                options?.signal ?? new AbortController().signal,
+              );
+              throw failure;
+            },
+          );
+        const result = await new ImageGenerationJobHandler(ctx, logger).process(
+          createValidJobData(),
+          "uncertain",
+          progressReporter,
+          new AbortController().signal,
+        );
+        expect(result.success).toBe(false);
+        expect(result.error).toBe(failure.message);
+        expect(ctx.entityService.updateEntity).toHaveBeenCalledTimes(
+          fault === "publication" ? 0 : 1,
+        );
+        if (fault === "cleanup")
+          expect(ctx.entityService.updateEntity).toHaveBeenCalledWith(
+            expect.objectContaining({
+              entity: expect.objectContaining({
+                metadata: expect.objectContaining({ status: "draft" }),
+              }),
+            }),
+          );
+      },
+    );
+
+    it("prevents publication after inspection cancellation", async () => {
+      const caller = new AbortController();
+      const files = context.entityService.fileAssets;
+      assert.ok(files);
+      const inspect = files.inspect;
+      spyOn(files, "inspect").mockImplementation(async (input, options) => {
+        const facts = await inspect(input, options);
+        caller.abort(new Error("cancel before publish"));
+        return facts;
+      });
+      const result = await handler.process(
+        createValidJobData(),
+        "cancelled",
+        progressReporter,
+        caller.signal,
+      );
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("cancel before publish");
+      expect(context.entityService.createEntity).not.toHaveBeenCalled();
+    });
+
+    it("retains a published image but prevents a cancelled target update", async () => {
+      const caller = new AbortController();
+      const files = context.entityService.fileAssets;
+      assert.ok(files);
+      const publish = files.publish;
+      spyOn(files, "publish").mockImplementation(async (input, options) => {
+        const result = await publish(input, options);
+        caller.abort(new Error("cancel after publish"));
+        return result;
+      });
+      const result = await handler.process(
+        createValidJobData({
+          targetEntityType: "post",
+          targetEntityId: "target",
+        }),
+        "cancelled-target",
+        progressReporter,
+        caller.signal,
+      );
+      expect(result.success).toBe(true);
+      expect(result.warning).toBe("Image saved; target update cancelled");
+      expect(context.entityService.createEntity).toHaveBeenCalledTimes(1);
+      expect(context.entities.update).not.toHaveBeenCalled();
+      expect(context.entityService.updateEntity).not.toHaveBeenCalled();
     });
 
     it("uses a neutral subject prompt when the style guide is empty", async () => {
       const jobData = createValidJobData();
 
-      await handler.process(jobData, "job-123", progressReporter);
+      await handler.process(
+        jobData,
+        "job-123",
+        progressReporter,
+        new AbortController().signal,
+      );
 
-      expect(context.ai.generateImage).toHaveBeenCalledWith(
+      expect(context.ai.withGeneratedImageFile).toHaveBeenCalledWith(
         "Subject: A beautiful sunset over mountains",
+        expect.any(Function),
         expect.any(Object),
       );
     });
@@ -613,13 +826,19 @@ describe("ImageGenerationJobHandler", () => {
         prompt: "A beautiful sunset over mountains",
       });
 
-      await handler.process(jobData, "job-123", progressReporter);
+      await handler.process(
+        jobData,
+        "job-123",
+        progressReporter,
+        new AbortController().signal,
+      );
 
       // Should NOT call generateObject
       expect(context.ai.generateObject).not.toHaveBeenCalled();
       // Should use the prompt with base style prepended
-      expect(context.ai.generateImage).toHaveBeenCalledWith(
+      expect(context.ai.withGeneratedImageFile).toHaveBeenCalledWith(
         expect.stringContaining("A beautiful sunset over mountains"),
+        expect.any(Function),
         expect.any(Object),
       );
     });

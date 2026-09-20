@@ -1,11 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { asSchema } from "ai";
-import type {
-  AIModelConfig,
-  IAIService,
-  ImageGenerationResult,
-  JudgeInput,
-} from "@brains/ai-service";
+import type { AIModelConfig, IAIService, JudgeInput } from "@brains/ai-service";
 import { LLMJudge } from "../src/llm-judge";
 
 interface Usage {
@@ -73,8 +68,8 @@ function createAIServiceWithJudge(): TestAIService {
     getModel(): never {
       throw new Error("getModel should not be called by LLMJudge");
     },
-    async generateImage(): Promise<ImageGenerationResult> {
-      return { base64: "", dataUrl: "" };
+    async withGeneratedImageFile(): Promise<never> {
+      throw new Error("Unexpected image generation");
     },
     canGenerateImages(): boolean {
       return false;

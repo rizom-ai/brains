@@ -68,6 +68,7 @@ describe("Project OG image attachment provider", () => {
         use,
         options,
       ): ReturnType<typeof use> => {
+        if (!directory) throw new Error("Expected render source directory");
         const html = await readFile(join(directory, "index.html"), "utf8");
         expect(html).toContain("Civic Signals");
         expect(html).toContain("slow infrastructure signals");

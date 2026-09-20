@@ -74,12 +74,9 @@ export function createMockAIService(
         Promise.resolve({ verdict: generateObjectReturn, usage: defaultUsage }),
       ),
     ),
-    generateImage: mock(() =>
-      Promise.resolve({
-        base64: "",
-        dataUrl: "data:image/png;base64,",
-      }),
-    ),
+    withGeneratedImageFile: mock(async (): Promise<never> => {
+      throw new Error("AI image file production is not stubbed");
+    }),
     canGenerateImages: mock(() => false),
     updateConfig: mock(() => {}),
     getConfig: mock(() => configReturn),

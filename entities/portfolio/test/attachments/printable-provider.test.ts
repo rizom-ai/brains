@@ -84,6 +84,7 @@ describe("Project printable attachment provider", () => {
         use,
         options,
       ): ReturnType<typeof use> => {
+        if (!directory) throw new Error("Expected render source directory");
         inspectHtml(await readFile(join(directory, "index.html"), "utf8"));
         expect(
           JSON.parse(await readFile(join(directory, "render.json"), "utf8")),

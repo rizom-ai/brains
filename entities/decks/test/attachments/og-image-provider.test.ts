@@ -74,6 +74,7 @@ describe("Deck OG image attachment provider", () => {
         use,
         options,
       ): ReturnType<typeof use> => {
+        if (!directory) throw new Error("Expected render source directory");
         const html = await readFile(join(directory, "index.html"), "utf8");
         expect(html).toContain("Distributed Systems Primer");
         expect(html).toContain("2 slides");

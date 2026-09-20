@@ -6,6 +6,10 @@
  */
 
 export { AIService } from "./aiService";
+export type {
+  ImageFileDependencies,
+  GeneratedImageConsumer,
+} from "./image-generation";
 export {
   resolveTextProvider,
   selectTextProvider,
@@ -31,7 +35,6 @@ export type {
   JudgeInput,
   AspectRatio,
   ImageGenerationOptions,
-  ImageGenerationResult,
 } from "./types";
 
 // Agent service (merged from @brains/agent-service)

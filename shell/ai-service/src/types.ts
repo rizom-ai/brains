@@ -1,5 +1,6 @@
 import type { LanguageModel } from "ai";
 import type { ZodType } from "@brains/utils/zod";
+import type { GeneratedImageConsumer } from "./image-generation";
 
 export type ReasoningEffort =
   "none" | "low" | "medium" | "high" | "xhigh" | "max";
@@ -84,10 +85,11 @@ export interface IAIService {
   /**
    * Generate an image from a text prompt
    */
-  generateImage(
+  withGeneratedImageFile<T>(
     prompt: string,
+    use: GeneratedImageConsumer<T>,
     options?: ImageGenerationOptions,
-  ): Promise<ImageGenerationResult>;
+  ): Promise<T>;
 
   /**
    * Check if image generation is available (OpenAI or Google API key configured)
@@ -108,14 +110,4 @@ export interface ImageGenerationOptions {
   aspectRatio?: AspectRatio;
   /** Cancel the underlying provider request. */
   signal?: AbortSignal;
-}
-
-/**
- * Result of image generation
- */
-export interface ImageGenerationResult {
-  /** Raw base64-encoded image data */
-  base64: string;
-  /** Data URL format: data:image/png;base64,... */
-  dataUrl: string;
 }

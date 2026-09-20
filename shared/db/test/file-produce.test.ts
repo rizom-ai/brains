@@ -4,7 +4,10 @@ import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createHash } from "node:crypto";
-import { produceFile } from "../src/turso-worker/file-produce";
+import {
+  produceFile,
+  fileProduceMetadataSchema,
+} from "../src/turso-worker/file-produce";
 
 test("actor-local production hashes and writes bounded chunks without replacing output", async () => {
   const directory = await mkdtemp(join(tmpdir(), "turso-produce-"));
@@ -29,6 +32,31 @@ test("actor-local production hashes and writes bounded chunks without replacing 
   } finally {
     await rm(directory, { recursive: true });
   }
+});
+
+test("producer control metadata bounds keys, fields, strings and encoded bytes", () => {
+  expect(
+    fileProduceMetadataSchema.parse({ prompt: "subject", apiKey: "fixture" }),
+  ).toEqual({ prompt: "subject", apiKey: "fixture" });
+  assert.throws(() =>
+    fileProduceMetadataSchema.parse({ prompt: "x".repeat(32769) }),
+  );
+  assert.throws(() =>
+    fileProduceMetadataSchema.parse({ prompt: "界".repeat(32768) }),
+  );
+  assert.throws(() =>
+    fileProduceMetadataSchema.parse(
+      Object.fromEntries(
+        Array.from({ length: 17 }, (_, index) => [`field${index}`, "value"]),
+      ),
+    ),
+  );
+  assert.throws(() =>
+    fileProduceMetadataSchema.parse({ "invalid-key": "value" }),
+  );
+  assert.throws(() =>
+    fileProduceMetadataSchema.parse({ payload: new Uint8Array(1) }),
+  );
 });
 
 test("production rejects pre-cancelled and malformed input before invoking the SDK", async () => {

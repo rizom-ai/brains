@@ -307,7 +307,9 @@ const executionContext: ProjectionExecutionContext = {
     generateObject: async <T>(): Promise<{ object: T }> => {
       throw new Error("not used by activation test");
     },
-    generateImage: async () => ({ base64: "", dataUrl: "" }),
+    withGeneratedImageFile: async (): Promise<never> => {
+      throw new Error("not used by activation test");
+    },
   },
   logger: createSilentLogger(),
 };

@@ -8,7 +8,24 @@ import type { BlobFacts } from "./blob-protocol";
 export interface FileProduceInput {
   sourceDirectory: string;
   outputFile: string;
+  metadata?: Record<string, string> | undefined;
 }
+/** Bounded control metadata only, never binary payloads. */
+export const fileProduceMetadataSchema: z.ZodType<Record<string, string>> = z
+  .record(
+    z
+      .string()
+      .min(1)
+      .max(64)
+      .regex(/^[a-zA-Z][a-zA-Z0-9]*$/),
+    z.string().max(32768),
+  )
+  .refine(
+    (value) =>
+      Object.keys(value).length <= 16 &&
+      Buffer.byteLength(JSON.stringify(value), "utf8") <= 65536,
+    "Producer metadata exceeds its limit",
+  );
 export const fileProducePathSchema: z.ZodType<string> = z
   .string()
   .min(1)
@@ -17,6 +34,7 @@ export const fileProducePathSchema: z.ZodType<string> = z
 export const fileProduceSchema: z.ZodType<FileProduceInput> = z.strictObject({
   sourceDirectory: fileProducePathSchema,
   outputFile: fileProducePathSchema,
+  metadata: fileProduceMetadataSchema.optional(),
 });
 /** Actor-local SDK production. The creator admits the actor before acquisition.
  * The SDK backing stays here; only one borrowed 32 KiB write is outstanding.

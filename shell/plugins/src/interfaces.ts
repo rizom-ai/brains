@@ -73,7 +73,7 @@ import type { ProjectionRule } from "./entity/projection-rule";
 import type {
   AIGenerationSchema,
   ImageGenerationOptions,
-  ImageGenerationResult,
+  GeneratedImageConsumer,
 } from "@brains/ai-service";
 import type {
   ApiRouteDefinition,
@@ -289,10 +289,11 @@ export interface IShell {
   query(prompt: string, context?: QueryContext): Promise<DefaultQueryResponse>;
 
   // Image generation (requires AI_API_KEY)
-  generateImage(
+  withGeneratedImageFile<T>(
     prompt: string,
+    use: GeneratedImageConsumer<T>,
     options?: ImageGenerationOptions,
-  ): Promise<ImageGenerationResult>;
+  ): Promise<T>;
   canGenerateImages(): boolean;
 
   registerTemplates(

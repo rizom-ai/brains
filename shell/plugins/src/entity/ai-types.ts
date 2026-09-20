@@ -2,7 +2,7 @@ import type { DefaultQueryResponse } from "@brains/contracts";
 import type { ZodType } from "@brains/utils/zod";
 import type {
   ImageGenerationOptions,
-  ImageGenerationResult,
+  GeneratedImageConsumer,
 } from "@brains/ai-service";
 import type { ContentGenerationConfig } from "../contracts/generation";
 
@@ -28,9 +28,10 @@ export interface IEntityAINamespace {
     schema: AIGenerationSchema<T>,
     signal?: AbortSignal,
   ) => Promise<{ object: T }>;
-  generateImage: (
+  withGeneratedImageFile: <T>(
     prompt: string,
+    use: GeneratedImageConsumer<T>,
     options?: ImageGenerationOptions,
-  ) => Promise<ImageGenerationResult>;
+  ) => Promise<T>;
   canGenerateImages: () => boolean;
 }

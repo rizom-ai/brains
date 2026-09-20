@@ -7,7 +7,10 @@ import {
   fileFetchSourceSchema,
   type FileFetchSource,
 } from "@brains/db/file-fetch";
-import { fileProducePathSchema } from "@brains/db/file-produce";
+import {
+  fileProducePathSchema,
+  fileProduceMetadataSchema,
+} from "@brains/db/file-produce";
 import { z } from "@brains/utils/zod";
 import {
   binaryUploadSizeSchema,
@@ -41,6 +44,10 @@ export type EntityFileCaptureInput = FileFetchSource;
 export interface EntityCapturedFileSource extends EntityVerifiedFileSource {
   /** Untrusted server MIME hint; promotion must inspect actual bytes. */
   details: FileCaptureDetails;
+}
+export interface EntityFileProductionOptions extends EntityBinaryRequestOptions {
+  producer?: string;
+  metadata?: Record<string, string>;
 }
 export interface EntityFileInspectionOptions extends EntityBinaryRequestOptions {
   /** Select an explicitly provisioned inspection artifact. No default fallback. */
@@ -85,16 +92,17 @@ export interface EntityFileAssets extends EntityFileReader {
     options?: EntityBinaryRequestOptions,
   ): Promise<FileHttpUploadResult>;
   /** Lend actor-produced output after actual Bun exit. Failed staging is retained.
-   * Caller keeps the input directory alive through settlement and joins consumers.
+   * Caller keeps a supplied input directory alive through settlement. An undefined
+   * directory gives an explicitly named metadata-only producer its owned workspace.
    * The producer artifact is explicitly provisioned; no controller byte fallback.
    */
   withProducedFile?<T>(
-    sourceDirectory: string,
+    sourceDirectory: string | undefined,
     use: (
       file: EntityFileSource & { sha256: string },
       signal: AbortSignal,
     ) => Promise<T>,
-    options?: EntityBinaryRequestOptions,
+    options?: EntityFileProductionOptions,
   ): Promise<T>;
   /** Join all consumers before returning. Success removes staging; failure retains it. */
   withRemoteFile?<T>(
@@ -257,21 +265,36 @@ export class EntityFileRuntime implements EntityFileAssets {
     }, options?.signal);
   }
   public withProducedFile<T>(
-    sourceDirectory: string,
+    sourceDirectory: string | undefined,
     use: (
       file: EntityFileSource & { sha256: string },
       signal: AbortSignal,
     ) => Promise<T>,
-    options?: EntityBinaryRequestOptions,
+    options?: EntityFileProductionOptions,
   ): Promise<T> {
     return this.run(async (signal): Promise<T> => {
-      const source = fileProducePathSchema.parse(sourceDirectory);
+      const source =
+        sourceDirectory === undefined
+          ? undefined
+          : fileProducePathSchema.parse(sourceDirectory);
+      const producer = options?.producer;
+      if (source === undefined && producer === undefined)
+        throw new Error("Metadata-only production requires a named actor");
+      const metadata =
+        options?.metadata === undefined
+          ? undefined
+          : fileProduceMetadataSchema.parse(options.metadata);
       signal.throwIfAborted();
       const directory = await mkdtemp(join(tmpdir(), "turso-produced-file-"));
       const sourceFile = join(directory, "verified");
       const facts = await this.actors.produce(
-        { sourceDirectory: source, outputFile: sourceFile },
+        {
+          sourceDirectory: source ?? directory,
+          outputFile: sourceFile,
+          ...(metadata && { metadata }),
+        },
         signal,
+        producer,
       );
       signal.throwIfAborted();
       const result = await use({ sourceFile, ...facts }, signal);

@@ -9,6 +9,7 @@
     "@ai-sdk/openai": "^3.0.71",
     "@brains/contracts": "workspace:*",
     "@brains/conversation-service": "workspace:*",
+    "@brains/db": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/identity-service": "workspace:*",
     "@brains/mcp-service": "workspace:*",
@@ -31,7 +32,8 @@
       "default": "./src/index.ts"
     },
     "./test": "./src/test/index.ts",
-    "./env-schema": "./src/env-schema.ts"
+    "./env-schema": "./src/env-schema.ts",
+    "./image-generation-process": "./src/image-generation-process.ts"
   },
   "files": [
     "src"

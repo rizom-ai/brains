@@ -1,4 +1,8 @@
 import type { EntityPluginContext } from "@brains/plugins";
+import {
+  TargetUpdateCancelled,
+  assertTargetLive,
+} from "../lib/target-update-cancellation";
 import type { Logger } from "@brains/utils/logger";
 import {
   BaseJobHandler,
@@ -9,11 +13,11 @@ import {
 import type { ProgressReporter } from "@brains/utils/progress";
 import {
   imageAdapter,
-  parseDataUrl,
-  prepareImageAsset,
+  imageAssetFactsSchema,
   setCoverImageId,
 } from "@brains/image";
 import { fetchStyleGuide, formatVisualGuidance } from "@brains/contracts";
+import { createAssetRef } from "@brains/assets";
 import { getErrorMessage } from "@brains/utils/error";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
@@ -69,6 +73,7 @@ interface ImageGenerationResult {
   success: boolean;
   imageId?: string;
   error?: string;
+  warning?: string;
 }
 
 /**
@@ -100,7 +105,10 @@ export class ImageGenerationJobHandler extends BaseJobHandler<
     data: ImageGenerationJobData,
     jobId: string,
     progressReporter: ProgressReporter,
+    signal: AbortSignal,
   ): Promise<ImageGenerationResult> {
+    signal.throwIfAborted();
+    const state = { preserveImage: true };
     const { prompt, aspectRatio, targetEntityType, targetEntityId } = data;
     const title =
       data.title ??
@@ -115,6 +123,16 @@ export class ImageGenerationJobHandler extends BaseJobHandler<
     const imageId = slugify(title);
 
     try {
+      const attempt = await this.context.jobs.getStatus(jobId);
+      signal.throwIfAborted();
+      if (attempt && attempt.retryCount > 0) {
+        // Includes imported jobs and lease reclamation: an earlier SDK send may
+        // have completed remotely even when its local attempt has no receipt.
+        throw new Error(
+          "AI image generation cannot be automatically replayed; create a new request",
+        );
+      }
+      state.preserveImage = false;
       await this.reportProgress(progressReporter, {
         progress: PROGRESS_STEPS.INIT,
         message: "Checking image generation availability",
@@ -122,18 +140,14 @@ export class ImageGenerationJobHandler extends BaseJobHandler<
 
       // Step 1: Check if image generation is available
       if (!this.context.ai.canGenerateImages()) {
-        const error = new Error(
+        throw new Error(
           "Image generation not available: no API key configured",
         );
-        await failPendingEntity({
-          entityService: this.context.entityService,
-          entityType: "image",
-          id: imageId,
-          error: error.message,
-        });
-        return JobResult.failure(error);
       }
 
+      const files = this.context.entityService.fileAssets;
+      if (!files)
+        throw new Error("Generated image file publication is not provisioned");
       const styleGuide = await fetchStyleGuide(this.context.entityService);
       const visualGuidance = formatVisualGuidance(styleGuide).trim();
 
@@ -161,9 +175,11 @@ Title: "${data.entityTitle ?? title}"
 Content:
 ${entityContent}`,
             imagePromptSchema,
+            signal,
           );
           finalPrompt = `${prompt.trim()} ${object.imagePrompt}`;
         } catch (error) {
+          if (signal.aborted) throw error;
           this.logger.warn("AI prompt distillation failed, using fallback", {
             error: getErrorMessage(error),
           });
@@ -180,53 +196,59 @@ ${entityContent}`,
       const basePrompt = buildImageBasePrompt(styleGuide);
       const styledPrompt = basePrompt + finalPrompt;
 
-      // Step 3: Generate image
-      let generationResult;
-      try {
-        generationResult = await this.context.ai.generateImage(styledPrompt, {
-          ...(aspectRatio && { aspectRatio }),
-        });
-      } catch (error) {
-        this.logger.error("Image generation failed", {
-          jobId,
-          error: getErrorMessage(error),
-        });
-        return JobResult.failure(error);
-      }
-
-      await this.reportProgress(progressReporter, {
-        progress: PROGRESS_STEPS.GENERATE,
-        message: "Creating image entity",
-      });
-
-      // Step 3: Validate provider output and commit bytes with the entity.
-      const parsedImage = parseDataUrl(generationResult.dataUrl);
-      const { asset: preparedAsset, facts } = prepareImageAsset(
-        parsedImage.bytes,
-        parsedImage.mediaType,
-      );
-      const entityData = imageAdapter.createImageEntity({
-        facts,
-        title,
-        status: "draft",
-        attachmentType: "generated",
-        ...(targetEntityType && { sourceEntityType: targetEntityType }),
-        ...(targetEntityId && { sourceEntityId: targetEntityId }),
-      });
-
-      await saveProcessedEntity({
-        entityService: this.context.entityService,
-        entity: {
-          ...entityData,
-          id: imageId,
+      signal.throwIfAborted();
+      await this.context.ai.withGeneratedImageFile(
+        styledPrompt,
+        async (source, transferSignal): Promise<void> => {
+          const { sourceFile, sizeBytes, sha256 } = source;
+          const file = { sourceFile, sizeBytes };
+          const inspected = await files.inspect(file, {
+            signal: transferSignal,
+          });
+          transferSignal.throwIfAborted();
+          const facts = imageAssetFactsSchema.parse({
+            ...inspected.details,
+            ref: createAssetRef(inspected.sha256),
+            digest: inspected.sha256,
+            sizeBytes: inspected.sizeBytes,
+          });
+          if (facts.mediaType !== "image/png")
+            throw new Error("Generated image must be PNG");
+          if (facts.digest !== sha256 || facts.sizeBytes !== sizeBytes)
+            throw new Error(
+              "Generated image file does not match its producer receipt",
+            );
+          await this.reportProgress(progressReporter, {
+            progress: PROGRESS_STEPS.GENERATE,
+            message: "Creating image entity",
+          });
+          const entityData = imageAdapter.createImageEntity({
+            facts,
+            title,
+            status: "draft",
+            attachmentType: "generated",
+            ...(targetEntityType && { sourceEntityType: targetEntityType }),
+            ...(targetEntityId && { sourceEntityId: targetEntityId }),
+          });
+          transferSignal.throwIfAborted();
+          // Submission uncertainty and subsequent producer cleanup never permit a
+          // failed-placeholder mutation over an acknowledged or submitted image.
+          state.preserveImage = true;
+          await saveProcessedEntity({
+            entityService: this.context.entityService,
+            entity: { ...entityData, id: imageId },
+            fileAsset: file,
+            signal: transferSignal,
+          });
         },
-        preparedAsset,
-      });
+        { ...(aspectRatio && { aspectRatio }), signal },
+      );
 
       this.logger.debug("Created image entity", { imageId });
 
       // Step 4: Optionally update target entity
       if (targetEntityType && targetEntityId) {
+        assertTargetLive(signal);
         await this.reportProgress(progressReporter, {
           progress: PROGRESS_STEPS.SAVE,
           message: `Updating ${targetEntityType} with cover image`,
@@ -239,6 +261,7 @@ ${entityContent}`,
           this.logger,
         );
 
+        assertTargetLive(signal);
         if (!targetEntity) {
           return JobResult.failure(
             new Error(
@@ -257,10 +280,11 @@ ${entityContent}`,
         });
       }
 
-      await this.reportProgress(progressReporter, {
-        progress: PROGRESS_STEPS.COMPLETE,
-        message: "Image generation complete",
-      });
+      if (!signal.aborted)
+        await this.reportProgress(progressReporter, {
+          progress: PROGRESS_STEPS.COMPLETE,
+          message: "Image generation complete",
+        });
 
       this.logger.info("Image generation job complete", {
         jobId,
@@ -271,17 +295,35 @@ ${entityContent}`,
 
       return { success: true, imageId };
     } catch (error) {
+      if (error instanceof TargetUpdateCancelled)
+        return {
+          success: true,
+          imageId,
+          warning: "Image saved; target update cancelled",
+        };
       const errorMessage = getErrorMessage(error);
       this.logger.error("Image generation job failed", {
         jobId,
-        error: errorMessage,
+        error,
       });
-      await failPendingEntity({
-        entityService: this.context.entityService,
-        entityType: "image",
-        id: imageId,
-        error: errorMessage,
-      });
+      if (!state.preserveImage) {
+        try {
+          await failPendingEntity({
+            entityService: this.context.entityService,
+            entityType: "image",
+            id: imageId,
+            error: errorMessage,
+          });
+        } catch (updateError) {
+          return JobResult.failure(
+            new AggregateError(
+              [error, updateError],
+              "Image generation and pending failure update failed",
+              { cause: updateError },
+            ),
+          );
+        }
+      }
       return JobResult.failure(error);
     }
   }

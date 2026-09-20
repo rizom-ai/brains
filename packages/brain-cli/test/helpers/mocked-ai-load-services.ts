@@ -4,7 +4,7 @@ import type {
   AIModelConfigUpdate,
   IAIService,
   ImageGenerationOptions,
-  ImageGenerationResult,
+  GeneratedImageConsumer,
   JudgeInput,
   LanguageModel,
 } from "@brains/ai-service";
@@ -313,10 +313,11 @@ export class MockLoadAIService implements IAIService {
     return this.model;
   }
 
-  async generateImage(
+  async withGeneratedImageFile<T>(
     _prompt: string,
+    _use: GeneratedImageConsumer<T>,
     _options?: ImageGenerationOptions,
-  ): Promise<ImageGenerationResult> {
+  ): Promise<T> {
     throw new Error("Image generation is not part of the mocked load fixture");
   }
 

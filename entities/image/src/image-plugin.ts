@@ -253,6 +253,7 @@ export class ImagePlugin extends EntityPlugin<
       });
       const jobId = await context.jobs.enqueue({
         type: "image-generate",
+        options: { maxRetries: 0 },
         data: {
           prompt,
           ...(title && { title }),
@@ -313,6 +314,7 @@ export class ImagePlugin extends EntityPlugin<
     });
     const jobId = await context.jobs.enqueue({
       type: "image-generate",
+      options: { maxRetries: 0 },
       data: {
         prompt,
         ...(input.title && { title: input.title }),

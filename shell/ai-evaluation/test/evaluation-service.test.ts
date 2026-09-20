@@ -61,10 +61,9 @@ const createAIService = (): IAIService => ({
   getModel: (): LanguageModel => {
     throw new Error("getModel is not used by these tests");
   },
-  generateImage: async () => ({
-    base64: "",
-    dataUrl: "data:image/png;base64,",
-  }),
+  withGeneratedImageFile: async (): Promise<never> => {
+    throw new Error("Unexpected image generation");
+  },
   canGenerateImages: () => false,
 });
 

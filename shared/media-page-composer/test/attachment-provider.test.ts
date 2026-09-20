@@ -130,6 +130,7 @@ function setup(
       use,
       options,
     ): ReturnType<typeof use> => {
+      assert.ok(directory);
       const sourceFile = join(directory, "test-output.png");
       await writeFile(sourceFile, png);
       return use(
@@ -170,6 +171,7 @@ describe("file-only OG attachment providers", () => {
     assert.ok(files.withProducedFile);
     spyOn(files, "withProducedFile").mockImplementation(
       async (directory, use, options): ReturnType<typeof use> => {
+        assert.ok(directory);
         root = directory;
         const html = await readFile(join(root, "index.html"), "utf8");
         expect(html).toContain("Civic Signals");
@@ -333,6 +335,7 @@ describe("file-only OG attachment providers", () => {
     let root = "";
     spyOn(files, "withProducedFile").mockImplementation(
       async (directory, use, options): ReturnType<typeof use> => {
+        assert.ok(directory);
         root = directory;
         await use(
           {
@@ -418,6 +421,7 @@ describe("file-only printable provider", () => {
     const { context, files } = setup();
     spyOn(files, "withProducedFile").mockImplementation(
       async (directory, use, options): ReturnType<typeof use> => {
+        assert.ok(directory);
         expect(
           JSON.parse(await readFile(join(directory, "render.json"), "utf8")),
         ).toEqual({ format: "pdf" });

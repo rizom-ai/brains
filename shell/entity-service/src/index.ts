@@ -30,6 +30,7 @@ export type {
   EntityFileActorOptions,
   EntityFileAssets,
   EntityFileInspectionOptions,
+  EntityFileProductionOptions,
   EntityFileReader,
   EntityFileSource,
   EntityVerifiedFileSource,

@@ -596,6 +596,7 @@ describe("ImagePlugin", () => {
     expect(enqueuedJobs).toHaveLength(1);
     expect(enqueuedJobs[0]).toMatchObject({
       type: "image:image-generate",
+      options: expect.objectContaining({ maxRetries: 0 }),
       data: {
         prompt: "Generate an abstract image",
         title: "Abstract cover",
@@ -628,6 +629,7 @@ describe("ImagePlugin", () => {
     expect(enqueuedJobs).toHaveLength(1);
     expect(enqueuedJobs[0]).toMatchObject({
       type: "image:image-generate",
+      options: expect.objectContaining({ maxRetries: 0 }),
       data: {
         prompt: "Can you generate an image of a robot for me?",
         title: "Robot",
@@ -777,6 +779,7 @@ describe("ImagePlugin", () => {
     expect(enqueuedJobs).toHaveLength(1);
     expect(enqueuedJobs[0]).toMatchObject({
       type: "image:image-generate",
+      options: expect.objectContaining({ maxRetries: 0 }),
       data: {
         prompt: "Generate an OG image for this post",
         targetEntityType: "post",
@@ -886,6 +889,7 @@ describe("ImagePlugin", () => {
     expect(enqueuedJobs).toHaveLength(1);
     expect(enqueuedJobs[0]).toMatchObject({
       type: "image:image-generate",
+      options: expect.objectContaining({ maxRetries: 0 }),
       data: {
         prompt: "Generate a cover image",
         targetEntityType: "post",

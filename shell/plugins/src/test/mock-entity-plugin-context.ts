@@ -5,6 +5,11 @@ import {
   type SpiedMembers,
 } from "@brains/test-utils";
 import { mock } from "bun:test";
+import type {
+  GeneratedImageConsumer,
+  ImageGenerationOptions,
+} from "@brains/ai-service";
+import type { EntityVerifiedFileSource } from "@brains/entity-service";
 import {
   createEntityPluginContext,
   type EntityPluginContext,
@@ -56,7 +61,7 @@ export type MockEntityPluginContext = Omit<
  */
 export interface MockAIReturns {
   canGenerateImages?: boolean;
-  generateImage?: { base64: string; dataUrl: string };
+  generatedImageFile?: EntityVerifiedFileSource;
   generateImageError?: Error;
   generate?: Record<string, unknown>;
   generateObject?: unknown;
@@ -86,7 +91,7 @@ export interface MockEntityPluginContextOptions {
 /**
  * Create a mock EntityPluginContext for testing entity plugin handlers.
  *
- * Includes AI namespace (generate, generateImage, generateObject).
+ * Includes AI namespace (generate, withGeneratedImageFile, generateObject).
  */
 export function createMockEntityPluginContext(
   options: MockEntityPluginContextOptions = {},
@@ -161,15 +166,24 @@ export function createMockEntityPluginContext(
       generateObject: genericSpy<EntityPluginContext["ai"]["generateObject"]>(
         mock(() => Promise.resolve({ object: ai?.generateObject ?? {} })),
       ),
-      generateImage: mock(() =>
-        ai?.generateImageError
-          ? Promise.reject(ai.generateImageError)
-          : Promise.resolve(
-              ai?.generateImage ?? {
-                base64: "mock-base64",
-                dataUrl: "data:image/png;base64,mock-base64",
-              },
-            ),
+      withGeneratedImageFile: genericSpy<
+        EntityPluginContext["ai"]["withGeneratedImageFile"]
+      >(
+        mock(
+          async <T>(
+            _prompt: string,
+            use: GeneratedImageConsumer<T>,
+            options?: ImageGenerationOptions,
+          ): Promise<T> => {
+            if (ai?.generateImageError) throw ai.generateImageError;
+            if (!ai?.generatedImageFile)
+              throw new Error("AI image file production is not stubbed");
+            return use(
+              ai.generatedImageFile,
+              options?.signal ?? new AbortController().signal,
+            );
+          },
+        ),
       ),
       canGenerateImages: mock(() => ai?.canGenerateImages ?? false),
     },

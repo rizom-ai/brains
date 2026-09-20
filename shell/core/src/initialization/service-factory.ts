@@ -24,6 +24,7 @@ import {
   handleProjectionStoreRpcRequest,
   parseEntityRpcCall,
   type EntityRpcTransport,
+  type EntityFileAssets,
   type EntityBinaryClientTransport,
   type ProjectionStoreRpcTransport,
 } from "@brains/entity-service";
@@ -228,7 +229,9 @@ export function createShellServices(options: {
     });
   const aiService =
     dependencies?.aiService ??
-    AIService.createFresh(createAIModelConfig(config), logger);
+    AIService.createFresh(createAIModelConfig(config), logger, {
+      getFiles: (): EntityFileAssets | undefined => entityService.fileAssets,
+    });
   const entityRegistry =
     dependencies?.entityRegistry ?? EntityRegistry.createFresh(logger);
   const messageBus =

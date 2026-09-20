@@ -67,7 +67,7 @@ import type {
   IAgentService,
   AIGenerationSchema,
   ImageGenerationOptions,
-  ImageGenerationResult,
+  GeneratedImageConsumer,
   JudgeInput,
 } from "@brains/ai-service";
 import type { Daemon } from "@brains/plugins";
@@ -460,11 +460,12 @@ export class Shell implements IShell {
     return this.services.aiService;
   }
 
-  public generateImage(
+  public withGeneratedImageFile<T>(
     prompt: string,
+    use: GeneratedImageConsumer<T>,
     options?: ImageGenerationOptions,
-  ): Promise<ImageGenerationResult> {
-    return this.services.aiService.generateImage(prompt, options);
+  ): Promise<T> {
+    return this.services.aiService.withGeneratedImageFile(prompt, use, options);
   }
 
   public canGenerateImages(): boolean {

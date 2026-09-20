@@ -9,7 +9,7 @@ import type { ContentGenerationConfig } from "../contracts/generation";
 import type { AIGenerationSchema, IEntityAINamespace } from "./ai-types";
 import type {
   ImageGenerationOptions,
-  ImageGenerationResult,
+  GeneratedImageConsumer,
 } from "@brains/ai-service";
 import type {
   IEntityService,
@@ -24,7 +24,7 @@ export type { AIGenerationSchema, IEntityAINamespace } from "./ai-types";
 export type {
   AspectRatio,
   ImageGenerationOptions,
-  ImageGenerationResult,
+  GeneratedImageConsumer,
 } from "@brains/ai-service";
 
 export interface FrontmatterSchemaParser {
@@ -60,12 +60,11 @@ export function createAINamespace(shell: IShell): IEntityAINamespace {
     ): Promise<{ object: T }> => {
       return shell.generateObject(prompt, schema, signal);
     },
-    generateImage: async (
+    withGeneratedImageFile: <T>(
       prompt: string,
+      use: GeneratedImageConsumer<T>,
       options?: ImageGenerationOptions,
-    ): Promise<ImageGenerationResult> => {
-      return shell.generateImage(prompt, options);
-    },
+    ): Promise<T> => shell.withGeneratedImageFile(prompt, use, options),
     canGenerateImages: (): boolean => {
       return shell.canGenerateImages();
     },

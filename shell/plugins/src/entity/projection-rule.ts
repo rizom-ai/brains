@@ -63,7 +63,7 @@ export interface ProjectionInputContext {
 export interface ProjectionExecutionContext {
   readonly ai: Pick<
     IEntityAINamespace,
-    "query" | "generate" | "generateObject" | "generateImage"
+    "query" | "generate" | "generateObject" | "withGeneratedImageFile"
   >;
   readonly logger: Logger;
 }

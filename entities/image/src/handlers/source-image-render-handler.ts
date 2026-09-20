@@ -1,5 +1,9 @@
 import type { EntityPluginContext } from "@brains/plugins";
 import {
+  TargetUpdateCancelled,
+  assertTargetLive,
+} from "../lib/target-update-cancellation";
+import {
   BaseJobHandler,
   failPendingEntity,
   findEntityByIdentifier,
@@ -51,14 +55,6 @@ interface SourceImageRenderResult {
   reused?: boolean;
   error?: string;
   warning?: string;
-}
-class TargetUpdateCancelled extends Error {}
-function assertTargetLive(signal: AbortSignal): void {
-  if (signal.aborted)
-    throw new TargetUpdateCancelled(
-      "Target update cancelled before admission",
-      { cause: signal.reason },
-    );
 }
 
 export class SourceImageRenderJobHandler extends BaseJobHandler<

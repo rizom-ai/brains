@@ -32,8 +32,8 @@ export interface EnqueueJobRequest {
   data: unknown;
   /** Tool routing context, or null/omitted for background jobs. */
   toolContext?: ToolContext | null;
-  /** Optional queue behavior, routing metadata, and retry settings. */
-  options?: JobOptions;
+  /** Optional overrides; the scoped helper supplies source and default metadata. */
+  options?: Partial<JobOptions>;
   /** Projection framework identity used for causal lineage propagation. */
   projection?: ProjectionJobContext;
 }

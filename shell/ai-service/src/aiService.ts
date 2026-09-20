@@ -7,7 +7,6 @@ import type {
   AIModelConfigUpdate,
   IAIService,
   ImageGenerationOptions,
-  ImageGenerationResult,
   JudgeInput,
 } from "./types";
 import {
@@ -20,7 +19,11 @@ import {
   getLanguageModel,
   type ProviderClients,
 } from "./provider-clients";
-import { generateImageResult } from "./image-generation";
+import {
+  withGeneratedImageFile,
+  type ImageFileDependencies,
+  type GeneratedImageConsumer,
+} from "./image-generation";
 import {
   getTextGenerationOptions,
   toTokenUsage,
@@ -38,11 +41,21 @@ export class AIService implements IAIService {
   private capabilities: TextModelCapabilities;
   private cachedModel: LanguageModel | null = null;
 
-  public static createFresh(config: AIModelConfig, logger: Logger): AIService {
-    return new AIService(config, logger);
+  private readonly imageFiles: ImageFileDependencies | undefined;
+  public static createFresh(
+    config: AIModelConfig,
+    logger: Logger,
+    imageFiles?: ImageFileDependencies,
+  ): AIService {
+    return new AIService(config, logger, imageFiles);
   }
 
-  private constructor(config: AIModelConfig, logger: Logger) {
+  private constructor(
+    config: AIModelConfig,
+    logger: Logger,
+    imageFiles?: ImageFileDependencies,
+  ) {
+    this.imageFiles = imageFiles;
     this.config = withAIModelDefaults(config);
     this.logger = logger.child("AIService");
     this.providers = createProviderClients(this.config);
@@ -212,16 +225,17 @@ export class AIService implements IAIService {
   /**
    * Generate an image from a text prompt
    */
-  public async generateImage(
+  public withGeneratedImageFile<T>(
     prompt: string,
+    use: GeneratedImageConsumer<T>,
     options?: ImageGenerationOptions,
-  ): Promise<ImageGenerationResult> {
-    return generateImageResult(
+  ): Promise<T> {
+    return withGeneratedImageFile(
       prompt,
-      this.config.imageModel,
+      this.config,
+      this.imageFiles,
+      use,
       options,
-      this.providers,
-      this.logger,
     );
   }
 

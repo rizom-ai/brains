@@ -312,6 +312,7 @@ ${sourceEntity.content}`,
       const title = generated.title ?? "Social Post";
       await this.context.jobs.enqueue({
         type: IMAGE_CHANNELS.generate,
+        options: { maxRetries: 0 },
         data: {
           prompt: `Social media graphic for: ${title}`,
           title: `${title} Image`,

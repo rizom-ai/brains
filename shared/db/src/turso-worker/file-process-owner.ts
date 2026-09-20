@@ -87,6 +87,7 @@ export interface FileProcessOwnerOptions {
   remoteDownloadUrl?: URL;
   captureUrl?: URL;
   producerUrl?: URL;
+  producerUrls?: Readonly<Record<string, URL>>;
   httpUploadUrl?: URL;
 }
 const inspectorNameSchema = z
@@ -122,6 +123,7 @@ export class FileProcessOwner {
   private readonly remotePath: string | undefined;
   private readonly capturePath: string | undefined;
   private readonly producerPath: string | undefined;
+  private readonly producerPaths = new Map<string, string>();
   private readonly httpUploadPath: string | undefined;
   private producing = false;
   private readonly children = new Set<Child>();
@@ -146,6 +148,10 @@ export class FileProcessOwner {
     this.producerPath = options.producerUrl
       ? actorPath(options.producerUrl)
       : undefined;
+    const producers = Object.entries(options.producerUrls ?? {});
+    if (producers.length > 16) throw new Error("Too many producer artifacts");
+    for (const [name, url] of producers)
+      this.producerPaths.set(inspectorNameSchema.parse(name), actorPath(url));
     this.capturePath = options.captureUrl
       ? actorPath(options.captureUrl)
       : undefined;
@@ -295,16 +301,20 @@ export class FileProcessOwner {
   public async produce(
     input: FileProduceInput,
     signal?: AbortSignal,
+    producer?: string,
   ): Promise<BlobFacts> {
-    if (!this.producerPath)
-      throw new Error("File producer actor is not provisioned");
+    const path =
+      producer === undefined
+        ? this.producerPath
+        : this.producerPaths.get(inspectorNameSchema.parse(producer));
+    if (!path) throw new Error("File producer actor is not provisioned");
     const options = fileProduceSchema.parse(input);
     signal?.throwIfAborted();
     if (this.producing) throw new Error("File production capacity exceeded");
     this.producing = true;
     try {
       return await this.run(
-        this.producerPath,
+        path,
         "consumed",
         options,
         undefined,

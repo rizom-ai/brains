@@ -99,7 +99,7 @@ import type {
   AgentResponse,
   IAgentService,
   ImageGenerationOptions,
-  ImageGenerationResult,
+  GeneratedImageConsumer,
   JudgeInput,
   AIGenerationSchema,
 } from "@brains/ai-service";
@@ -1478,16 +1478,12 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     },
 
     // Image generation
-    generateImage: async (
+    withGeneratedImageFile: async <T>(
       _prompt: string,
+      _use: GeneratedImageConsumer<T>,
       _options?: ImageGenerationOptions,
-    ): Promise<ImageGenerationResult> => {
-      const placeholderBase64 =
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-      return {
-        base64: placeholderBase64,
-        dataUrl: `data:image/png;base64,${placeholderBase64}`,
-      };
+    ): Promise<T> => {
+      throw new Error("AI image file production is not stubbed");
     },
     canGenerateImages: () => false,
 

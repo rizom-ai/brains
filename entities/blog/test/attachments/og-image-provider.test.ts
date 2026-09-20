@@ -103,6 +103,7 @@ describe("Blog OG image attachment provider", () => {
         use,
         options,
       ): ReturnType<typeof use> => {
+        if (!directory) throw new Error("Expected render source directory");
         expect(await readFile(join(directory, "index.html"), "utf8")).toContain(
           "Resilience Is Not Redundancy",
         );
