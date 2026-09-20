@@ -10,7 +10,7 @@ import {
 } from "@brains/plugins";
 import type { FileUpload } from "chat";
 
-const CHAT_NATIVE_ARTIFACT_MAX_BYTES = 8 * 1024 * 1024;
+import { CHAT_NATIVE_ARTIFACT_MAX_BYTES } from "./artifact-limits";
 const NON_DELIVERABLE_ARTIFACT_STATUSES = new Set([
   "pending",
   "generating",
