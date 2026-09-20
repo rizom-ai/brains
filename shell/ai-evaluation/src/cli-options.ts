@@ -5,6 +5,7 @@ export interface CliOptions {
   verbose: boolean;
   toolCoverage: boolean;
   toolSurface: boolean;
+  mcpBasic: boolean;
   suite?: string;
   tags?: string[];
   testCaseIds?: string[];
@@ -56,6 +57,7 @@ export function parseCliOptions(args: string[]): CliOptions {
     verbose: args.includes("--verbose") || args.includes("-v"),
     toolCoverage: args.includes("--tool-coverage"),
     toolSurface: args.includes("--tool-surface"),
+    mcpBasic: args.includes("--mcp-basic"),
   };
 
   if (suite) options.suite = suite;

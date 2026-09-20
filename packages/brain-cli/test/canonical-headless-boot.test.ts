@@ -35,7 +35,223 @@ function textContent(result: unknown): string {
     .join("\n");
 }
 
+function objectContent(result: unknown): Record<string, unknown> {
+  const parsed: unknown = JSON.parse(textContent(result));
+  if (!isRecord(parsed)) throw new Error("Expected an MCP object payload");
+  return parsed;
+}
+
+function successData(result: unknown): Record<string, unknown> {
+  const payload = objectContent(result);
+  const data = payload["data"];
+  return payload["success"] === true && isRecord(data) ? data : payload;
+}
+
 describe("canonical headless walking skeleton", () => {
+  test("reads seeded content through canonical chat-only stdio MCP", async () => {
+    const instanceDirectory = mkdtempSync(
+      join(tmpdir(), "brain-canonical-basic-mcp-"),
+    );
+    const seedDirectory = join(instanceDirectory, "seed-content");
+    mkdirSync(seedDirectory, { recursive: true });
+    writeFileSync(
+      join(seedDirectory, "headless-proof.md"),
+      `---
+title: Headless Proof
+status: draft
+---
+
+A headless brain imported this note before serving its first MCP request.
+`,
+    );
+    writeFileSync(
+      join(instanceDirectory, "brain.yaml"),
+      `brain: brain
+bundleContract: capability-bundles-v1
+anchor: person
+kind: professional
+bundles: [core]
+plugins:
+  mcp:
+    mode: basic
+  directory-sync:
+    seedContentPath: ./seed-content
+    seedContent: true
+    initialSync: true
+`,
+    );
+
+    const transport = new StdioClientTransport({
+      command: "bun",
+      args: [appEntrypoint],
+      cwd: instanceDirectory,
+      env: {
+        ...getDefaultEnvironment(),
+        AI_API_KEY: "placeholder-headless-test",
+        XDG_DATA_HOME: join(instanceDirectory, "xdg-data"),
+        CANONICAL_HEADLESS_AI_SCENARIO: "read",
+      },
+      stderr: "pipe",
+    });
+    const client = new Client({
+      name: "canonical-basic-mcp-test",
+      version: "1.0.0",
+    });
+    let connected = false;
+
+    try {
+      await client.connect(transport);
+      connected = true;
+      const tools = await client.listTools();
+      expect(tools.tools.map(({ name }) => name).sort()).toEqual([
+        "chat",
+        "confirm",
+      ]);
+
+      let responseText = "";
+      await waitUntil(
+        async () => {
+          const response = await client.callTool({
+            name: "chat",
+            arguments: {
+              message: "Retrieve the seeded note with id headless-proof.",
+              conversationId: "seeded-read",
+            },
+          });
+          expect(response.isError).not.toBe(true);
+          responseText = textContent(response);
+          return !responseText.includes("knowledge base ready");
+        },
+        "the seeded brain to answer through basic MCP chat",
+        { timeoutMs: 20_000, intervalMs: 100 },
+      );
+      expect(responseText).toContain(
+        "A headless brain imported this note before serving its first MCP request.",
+      );
+    } finally {
+      if (connected) await client.close();
+      else await transport.close();
+      rmSync(instanceDirectory, { recursive: true, force: true });
+    }
+  }, 120_000);
+
+  test("writes, confirms, and reads back through canonical basic MCP", async () => {
+    const instanceDirectory = mkdtempSync(
+      join(tmpdir(), "brain-canonical-basic-mcp-write-"),
+    );
+    mkdirSync(join(instanceDirectory, "seed-content"), { recursive: true });
+    writeFileSync(
+      join(instanceDirectory, "brain.yaml"),
+      `brain: brain
+bundleContract: capability-bundles-v1
+anchor: person
+kind: professional
+bundles: [core]
+plugins:
+  mcp:
+    mode: basic
+  directory-sync:
+    seedContentPath: ./seed-content
+    seedContent: true
+    initialSync: true
+`,
+    );
+
+    const transport = new StdioClientTransport({
+      command: "bun",
+      args: [appEntrypoint],
+      cwd: instanceDirectory,
+      env: {
+        ...getDefaultEnvironment(),
+        AI_API_KEY: "placeholder-headless-test",
+        XDG_DATA_HOME: join(instanceDirectory, "xdg-data"),
+        CANONICAL_HEADLESS_AI_SCENARIO: "write-confirm-read",
+      },
+      stderr: "pipe",
+    });
+    const client = new Client({
+      name: "canonical-basic-mcp-write-test",
+      version: "1.0.0",
+    });
+    let connected = false;
+
+    try {
+      await client.connect(transport);
+      connected = true;
+      expect(
+        (await client.listTools()).tools.map(({ name }) => name).sort(),
+      ).toEqual(["chat", "confirm"]);
+
+      let pending: Record<string, unknown> = {};
+      await waitUntil(
+        async () => {
+          pending = objectContent(
+            await client.callTool({
+              name: "chat",
+              arguments: {
+                message:
+                  "Save this exact Markdown as a note:\n\n# MCP Basic Evidence Note\n\nProtocol write confirmation survived.",
+                conversationId: "write-confirm-read",
+              },
+            }),
+          );
+          return pending["needsConfirmation"] === true;
+        },
+        "the seeded brain to request confirmation through basic MCP chat",
+        { timeoutMs: 20_000, intervalMs: 100 },
+      );
+      const confirmationArgs = pending["args"];
+      if (!isRecord(confirmationArgs)) {
+        throw new Error("Expected MCP confirmation arguments");
+      }
+      const approvalId = confirmationArgs["approvalId"];
+      if (typeof approvalId !== "string") {
+        throw new Error(`Expected MCP approval id: ${JSON.stringify(pending)}`);
+      }
+      expect(pending).toMatchObject({
+        needsConfirmation: true,
+        toolName: "system_create",
+        args: {
+          conversationId: "write-confirm-read",
+          approvalId,
+        },
+      });
+
+      const confirmed = successData(
+        await client.callTool({
+          name: "confirm",
+          arguments: {
+            approvalId,
+            confirmed: true,
+            conversationId: "write-confirm-read",
+          },
+        }),
+      );
+      expect(confirmed["text"]).toContain("Completed");
+      expect(JSON.stringify(confirmed["toolResults"])).toContain(
+        "mcp-basic-evidence-note",
+      );
+
+      const retrieved = successData(
+        await client.callTool({
+          name: "chat",
+          arguments: {
+            message:
+              "Retrieve the note with exact id mcp-basic-evidence-note and quote its body.",
+            conversationId: "write-confirm-read",
+          },
+        }),
+      );
+      expect(retrieved["text"]).toContain(
+        "Protocol write confirmation survived.",
+      );
+    } finally {
+      if (connected) await client.close();
+      else await transport.close();
+      rmSync(instanceDirectory, { recursive: true, force: true });
+    }
+  }, 120_000);
+
   test("boots core over MCP stdio, syncs its vault, and answers a tool", async () => {
     const instanceDirectory = mkdtempSync(
       join(tmpdir(), "brain-canonical-headless-"),
@@ -61,6 +277,8 @@ anchor: person
 kind: professional
 bundles: [core]
 plugins:
+  mcp:
+    mode: debug
   directory-sync:
     seedContentPath: ./seed-content
     seedContent: true

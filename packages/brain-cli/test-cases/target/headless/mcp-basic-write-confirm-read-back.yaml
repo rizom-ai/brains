@@ -1,0 +1,69 @@
+id: mcp-basic-write-confirm-read-back
+name: Basic MCP writes, confirms, and reads back durable content
+description: >-
+  Release evidence that the chat-only MCP surface can mediate an approval-gated
+  write and retrieve the completed durable entity in the same conversation.
+type: tool_invocation
+setup:
+  permissionLevel: admin
+  isAnchor: true
+  interfaceType: mcp
+tags:
+  - recipe-headless
+  - headless
+  - core
+  - mcp-basic
+  - tool-invocation
+
+turns:
+  - userMessage: |-
+      Save this exact Markdown as a note:
+
+      # MCP Basic Evidence Note
+
+      Protocol write confirmation survived.
+    successCriteria:
+      responseNotContains:
+        - "already saved"
+        - "created successfully"
+  - userMessage: "Confirm the pending note save."
+    confirmPendingAction: true
+    successCriteria:
+      responseContains:
+        - "Completed"
+      responseNotContains:
+        - "permission denied"
+        - "cannot save"
+  - userMessage: >-
+      Retrieve the saved note with exact id mcp-basic-evidence-note and tell me
+      the sentence in its body.
+    successCriteria:
+      expectedTools:
+        - toolName: system_get
+          shouldBeCalled: true
+          argsContain:
+            entityType: note
+            id: mcp-basic-evidence-note
+      responseContains:
+        - "Protocol write confirmation survived"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: note
+        source.kind: text
+    - toolName: system_get
+      shouldBeCalled: true
+      argsContain:
+        entityType: note
+        id: mcp-basic-evidence-note
+  responseNotContains:
+    - "I cannot"
+    - "not supported"
+    - "permission denied"
+
+efficiency:
+  maxToolCalls: 8
+  maxTokens: 30000

@@ -43,9 +43,9 @@ In Inspector:
 
 The brain advertises OAuth metadata, opens a browser/passkey authorization flow, and issues an access token with the `mcp` scope. Current clients can identify themselves through an HTTPS Client ID Metadata Document; deprecated Dynamic Client Registration remains available as a compatibility fallback.
 
-Once connected, you can list tools/resources. In the default `basic` mode, raw write tools are intentionally hidden: use read-only tools such as `system_search`, `system_get`, `system_list`, and `job_status` for structured queries, and use `chat` for any create/update/delete or reasoning request.
+Once connected, you can list tools/resources. In the default `basic` mode, only `chat` and `confirm` are advertised: every request — reads and writes alike — goes through the brain agent. Raw tools such as `system_search`, `system_get`, `system_list`, and `system_job_status` are only advertised in `debug` mode for local/operator inspection.
 
-If `chat` returns `needsConfirmation`, call `confirm` with the returned `approvalId` and `conversationId`. Successful `chat`/`confirm` responses may include `readYourWrites` handles with entity IDs and job IDs to fetch with `system_get` or poll with `job_status`.
+If `chat` returns `needsConfirmation`, call `confirm` with the returned `approvalId` and `conversationId`. Successful `chat`/`confirm` responses may include `readYourWrites` handles with entity IDs and job IDs; in basic mode, ask through `chat` to retrieve or poll those results. Direct `system_get` and `system_job_status` calls require debug mode.
 
 ## Debug mode
 

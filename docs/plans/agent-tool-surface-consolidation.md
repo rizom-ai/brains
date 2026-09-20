@@ -4,9 +4,9 @@ Last updated: 2026-09-20
 
 ## Status
 
-**Implementation substantially complete; analytics and final eval closeout remain.**
+**Implementation substantially complete; live model eval and final release closeout remain.**
 
-The proposed chat-only MCP basic surface is deferred. Basic mode continues to expose read-only tools alongside `chat` and `confirm` until canonical protocol acceptance and behavioral evals prove the replacement path.
+The chat-only MCP basic surface is staged for reintroduction but is not release-approved. Canonical protocol acceptance now proves the replacement path deterministically; merging remains blocked until the affected live behavioral evals and nominated release-candidate suite are green.
 
 The canonical brain now distinguishes `agentTool` exposure from `directMcpExposure`, reports its effective tool surface through the eval CLI, and filters coverage by the agent-visible set. Maintenance adapters no longer occupy model context. Playbook, directory-sync, publishing, and configured Buttondown operations use their canonical typed tools. Cloudflare query is direct-MCP-only, passkey setup is exposed to the agent only when contextually relevant, and stale registered-name references have been audited from active tests and runtime shutdown paths.
 
@@ -17,7 +17,7 @@ This plan remains open for:
 - completing [system-analytics-tool.md](./system-analytics-tool.md) so analytics has one typed agent surface;
 - recording final tool-count/schema-size evidence on the nominated composition;
 - rerunning affected behavioral evals and the full release-candidate eval without a routing regression;
-- adding canonical basic-mode MCP acceptance and eval evidence before removing raw reads; and
+- recording those live-model results before merging the staged chat-only basic surface; and
 - deciding case by case whether any old direct-MCP registered name is retained or removed.
 
 ## Goal
@@ -40,7 +40,7 @@ Reduce model context without hiding useful capability, weakening authorization, 
 - Publication queueing and direct publication use `publishing_manage`, retaining confirmation and target-reuse rules.
 - Configured Buttondown subscriber actions use `newsletter_subscribers`.
 - Stock-photo search and selection remain separate because selection must bind prior provider metadata.
-- Cloudflare's raw query remains available only to direct MCP clients.
+- Cloudflare's raw query remains available only to Admin debug-MCP clients.
 - Passkey setup URL retrieval is agent-visible only while setup is incomplete.
 
 ## Remaining work
@@ -89,13 +89,15 @@ Do not guarantee replay of predeploy pending confirmations across a tool-name ch
 
 Before removing raw read tools from MCP basic mode:
 
-- snapshot the actual canonical basic and debug protocol surfaces at Public, Trusted, and Admin permissions;
-- boot a canonical brain through basic stdio MCP and prove a seeded read succeeds through `chat` while raw tools are absent;
-- exercise a write, confirmation, and read-back entirely through `chat` and `confirm`;
-- cover authenticated HTTP basic mode at its configured permission boundary; and
-- run the affected read, write, confirmation, and follow-up behavioral evals plus the nominated full release-candidate suite.
+- [x] snapshot the actual canonical basic and debug protocol surfaces at Public, Trusted, and Admin permissions;
+- [x] boot a canonical brain through basic stdio MCP and prove a seeded read succeeds through `chat` while raw tools are absent;
+- [x] exercise a write, confirmation, and read-back entirely through `chat` and `confirm`;
+- [x] cover authenticated HTTP permission propagation alongside the canonical basic-mode surface checks; and
+- [ ] run the affected read, write, confirmation, and follow-up behavioral evals plus the nominated full release-candidate suite with release credentials.
 
-Do not ship the chat-only default until these checks are green and the remaining interface documentation no longer promises direct basic-mode reads.
+The eval runner now supports `--mcp-basic`, which restores the eval-disabled MCP interface, rejects any surface beyond `chat` and `confirm`, and routes every selected case through the real protocol adapter. The canonical write/confirm/read-back case is `mcp-basic-write-confirm-read-back`.
+
+Do not merge or ship the chat-only default until the remaining live-model eval gate is green.
 
 ## Invariants
 
