@@ -14,7 +14,9 @@ test("concurrent UI rebuilds keep published CSS readable", async () => {
     await runProcessOrThrow(command, { cwd });
     const manifestFile = Bun.file(join(outdir, "studio-asset-manifest.json"));
     const initialManifest = await manifestFile.text();
-    const manifest = studioAssetManifestSchema.parse(JSON.parse(initialManifest));
+    const manifest = studioAssetManifestSchema.parse(
+      JSON.parse(initialManifest),
+    );
     const css = Bun.file(join(outdir, manifest.entrypoints.stylesheet));
     const script = Bun.file(join(outdir, manifest.entrypoints.script));
     const initialScript = await script.text();
@@ -47,7 +49,10 @@ test("concurrent UI rebuilds keep published CSS readable", async () => {
     expect(failures).toEqual([]);
     expect(await script.text()).toBe(initialScript);
     expect(await manifestFile.text()).toBe(initialManifest);
-    expect(studioAssetManifestSchema.parse(await manifestFile.json()).entrypoints.stylesheet).toBe(manifest.entrypoints.stylesheet);
+    expect(
+      studioAssetManifestSchema.parse(await manifestFile.json()).entrypoints
+        .stylesheet,
+    ).toBe(manifest.entrypoints.stylesheet);
   } finally {
     await rm(outdir, { recursive: true, force: true });
   }

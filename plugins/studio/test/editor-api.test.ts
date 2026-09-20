@@ -9,7 +9,6 @@ async function readAssetManifest(): Promise<
     ).json(),
   );
 }
-import { join } from "node:path";
 import { A2A_CHANNELS } from "@brains/contracts";
 import type {
   MessageBusSendRequest,

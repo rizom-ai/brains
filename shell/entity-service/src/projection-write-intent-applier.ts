@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { computeContentHash } from "@brains/utils/hash";
 import type { EntityDB } from "./db";
 import type { EntityExportStore } from "./entity-export-store";
@@ -47,6 +47,17 @@ export function canonicalProjectionJson(value: unknown): string {
   return JSON.stringify(value);
 }
 
+interface ExistingProjectionTarget {
+  readonly content: string;
+  readonly contentHash: string;
+  readonly metadata: Record<string, unknown>;
+  readonly visibility: "public" | "shared" | "restricted";
+}
+
+function projectionTargetKey(entityType: string, entityId: string): string {
+  return JSON.stringify([entityType, entityId]);
+}
+
 export class ProjectionWriteIntentApplier {
   private readonly entityExportStore: EntityExportStore;
   private readonly mutationAdmission: EntityMutationAdmission | undefined;
@@ -58,20 +69,68 @@ export class ProjectionWriteIntentApplier {
     this.storagePolicy = options.storagePolicy;
   }
 
-  public async apply(
+  /** Apply a batch with one target lookup, retaining sequential intent semantics. */
+  public async applyAll(
     transaction: EntityTransaction,
-    intent: ProjectionWriteIntent,
-    changedAt: number,
-    owner: ProjectionWriteIntentOwner,
-  ): Promise<ProjectionChangedTarget | null> {
+    writeIntents: readonly ProjectionWriteIntent[],
+    completedAt: number,
+    key: ProjectionWriteIntentOwner,
+  ): Promise<ProjectionChangedTarget[]> {
+    const existingTargets = await this.prefetchWriteTargets(
+      transaction,
+      writeIntents,
+    );
+    const changedTargets: ProjectionChangedTarget[] = [];
+    for (const intent of writeIntents) {
+      const entityType =
+        intent.operation === "upsert"
+          ? intent.entity.entityType
+          : intent.entityType;
+      const entityId =
+        intent.operation === "upsert" ? intent.entity.id : intent.id;
+      const targetKey = projectionTargetKey(entityType, entityId);
+      const target = await this.apply(
+        transaction,
+        intent,
+        completedAt,
+        key,
+        existingTargets.get(targetKey),
+      );
+      if (target) changedTargets.push(target);
+      if (intent.operation === "delete") {
+        existingTargets.delete(targetKey);
+      } else {
+        existingTargets.set(targetKey, {
+          content: intent.entity.content,
+          contentHash: computeContentHash(intent.entity.content),
+          metadata: intent.entity.metadata,
+          visibility: intent.entity.visibility,
+        });
+      }
+    }
+
+    return changedTargets;
+  }
+
+  private async prefetchWriteTargets(
+    transaction: EntityTransaction,
+    intents: readonly ProjectionWriteIntent[],
+  ): Promise<Map<string, ExistingProjectionTarget>> {
+    const first = intents[0];
+    if (!first) return new Map();
     const entityType =
-      intent.operation === "upsert"
-        ? intent.entity.entityType
-        : intent.entityType;
-    const entityId =
-      intent.operation === "upsert" ? intent.entity.id : intent.id;
-    const existingRows = await transaction
+      first.operation === "upsert" ? first.entity.entityType : first.entityType;
+    const ids = [
+      ...new Set(
+        intents.map((intent) =>
+          intent.operation === "upsert" ? intent.entity.id : intent.id,
+        ),
+      ),
+    ];
+    const rows = await transaction
       .select({
+        id: entities.id,
+        entityType: entities.entityType,
         content: entities.content,
         contentHash: entities.contentHash,
         metadata: entities.metadata,
@@ -79,10 +138,29 @@ export class ProjectionWriteIntentApplier {
       })
       .from(entities)
       .where(
-        and(eq(entities.entityType, entityType), eq(entities.id, entityId)),
-      )
-      .limit(1);
-    const existing = existingRows[0];
+        and(eq(entities.entityType, entityType), inArray(entities.id, ids)),
+      );
+    return new Map(
+      rows.map(({ id, entityType: rowType, ...entity }) => [
+        projectionTargetKey(rowType, id),
+        entity,
+      ]),
+    );
+  }
+
+  private async apply(
+    transaction: EntityTransaction,
+    intent: ProjectionWriteIntent,
+    changedAt: number,
+    owner: ProjectionWriteIntentOwner,
+    existing: ExistingProjectionTarget | undefined,
+  ): Promise<ProjectionChangedTarget | null> {
+    const entityType =
+      intent.operation === "upsert"
+        ? intent.entity.entityType
+        : intent.entityType;
+    const entityId =
+      intent.operation === "upsert" ? intent.entity.id : intent.id;
 
     if (intent.operation === "delete") {
       await transaction

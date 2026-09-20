@@ -9,6 +9,30 @@ import {
 } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import { z } from "@brains/utils/zod";
+
+async function studioManifestAssets(directory: string): Promise<string[]> {
+  const file = Bun.file(join(directory, "studio-asset-manifest.json"));
+  if (!(await file.exists())) return [];
+  const manifest = z
+    .object({
+      version: z.literal(2),
+      entrypoints: z.object({ script: z.string(), stylesheet: z.string() }),
+      assets: z.record(z.string(), z.string()),
+    })
+    .parse(await file.json());
+  expect(manifest.entrypoints.script).toMatch(/^studio-app-[a-zA-Z0-9]+\.js$/);
+  expect(manifest.entrypoints.stylesheet).toMatch(
+    /^studio-app-[a-zA-Z0-9]+\.css$/,
+  );
+  expect(manifest.assets[manifest.entrypoints.script]).toBe(
+    manifest.entrypoints.script,
+  );
+  expect(manifest.assets[manifest.entrypoints.stylesheet]).toBe(
+    manifest.entrypoints.stylesheet,
+  );
+  return Object.values(manifest.assets);
+}
 
 const root = join(import.meta.dir, "..", "..", "..");
 
@@ -16,17 +40,27 @@ describe("private bundled UI builds", () => {
   for (const fixture of [
     {
       workspace: "interfaces/web-chat",
-      assets: ["app.js", "app.css", "app.js.map"],
+      assets: ["app", "guest", "dashboard"].flatMap((entry) => [
+        `${entry}.js`,
+        `${entry}.css`,
+        `${entry}.js.map`,
+      ]),
     },
     {
       workspace: "plugins/studio",
-      assets: ["studio-app.js", "studio-app.css", "studio-asset-manifest.json"],
+      assets: ["studio-asset-manifest.json"],
     },
   ]) {
     it(`builds ${fixture.workspace} without touching dependency-owned assets`, async () => {
       const workspace = join(root, fixture.workspace);
+      const defaultDirectory = join(workspace, "dist", "ui");
       const protectedAssets = [
-        ...fixture.assets.map((asset) => join(workspace, "dist", "ui", asset)),
+        ...fixture.assets.map((asset) => join(defaultDirectory, asset)),
+        ...(fixture.workspace === "plugins/studio"
+          ? (await studioManifestAssets(defaultDirectory)).map((asset) =>
+              join(defaultDirectory, asset),
+            )
+          : []),
         ...(fixture.workspace === "plugins/studio"
           ? [
               join(root, "shared/operator-view-react/dist/index.js"),
@@ -72,7 +106,13 @@ describe("private bundled UI builds", () => {
           code,
           error: code === 0 ? "" : `${stdout}\n${stderr}`,
         }).toEqual({ code: 0, error: "" });
-        for (const asset of fixture.assets) {
+        const assets = [
+          ...fixture.assets,
+          ...(fixture.workspace === "plugins/studio"
+            ? await studioManifestAssets(destination)
+            : []),
+        ];
+        for (const asset of assets) {
           expect(
             (await readFile(join(destination, asset))).length,
           ).toBeGreaterThan(0);
