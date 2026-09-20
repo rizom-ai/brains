@@ -24,7 +24,7 @@ import {
   type PluginOverrides,
   type ResolvedBrainSelection,
 } from "./resolver/active-ids";
-import { deepMerge } from "./resolver/merge";
+import { deepMerge } from "@brains/utils/config-merge";
 import {
   isScopedPackageRef,
   resolveAllPackageRefs,

@@ -2,7 +2,9 @@
 
 ## Status
 
-Implementation PR [brains#269](https://github.com/rizom-ai/brains/pull/269) and browser-contract fix [brains#270](https://github.com/rizom-ai/brains/pull/270) are merged. Brain `0.2.0-alpha.391` and Rizom site `0.2.0-alpha.253` are published and independently verified. Deployment remains a separate approval gate. No deployment, guest activation or content publication has been performed.
+Implementation PR [brains#269](https://github.com/rizom-ai/brains/pull/269) and browser-contract fix [brains#270](https://github.com/rizom-ai/brains/pull/270) are merged. Brain `0.2.0-alpha.391` and Rizom site `0.2.0-alpha.253` are published and independently verified. These supporting packages were deployed to Rizom through operator PR82, with runtime verification, predeploy backup and health checks passing (Deploy `35318639187`). Production pages remained unchanged. No guest activation or content publication was performed.
+
+The owner subsequently approved enabling the Ask tab. The missing operator configuration path is being fixed before applying it: per-user `plugins.dashboard.ask` flows through structured generation, using the existing shared merger with null markers preserved until runtime. No dashboard-specific operator flag or alternate conflict rules are added. Reconciliation skips semantically unchanged YAML so serialization changes cannot redeploy unrelated users. An isolated rehearsal against the 19 checked-in user configurations changed only Rizom, with zero second-pass changes. This operator fix is not yet merged or released, and the live tab has not yet been enabled.
 
 ## Decision
 
@@ -63,7 +65,7 @@ Post-fix Core CI `35313976336` and Core Release `35314455597` passed. The publis
 
 Site CI `35314762195` passed. Site Release `35315865751` initially stopped on the same availability delay for site `.253`; after independent archive verification it was rerun normally and passed, including registry/tarball peer metadata. Existing versions were not overwritten. Evidence includes `core-gate-live.log`, `site-published-verification.json`, `site-registry-metadata-verified.log` and `site-final-run.log`.
 
-A separate workflow-hardening follow-up adds the full packed matrix to both existing blocking PR CI lanes and requires exact public registry identity, SHA512, archive identity and downloaded-package smoke checks after core publishing. Its tests cover temporary 404 recovery, bounded exhaustion and non-retryable identity/integrity/origin defects. This hardening is prepared for review; it is not yet merged. Content PR `rizom-ai/rizom-content#2` remains draft until compatible deployment and separate content approval.
+A separate workflow-hardening follow-up adds the full packed matrix to both existing blocking PR CI lanes and requires exact public registry identity, SHA512, archive identity and downloaded-package smoke checks after core publishing. Its tests cover temporary 404 recovery, bounded exhaustion and non-retryable identity/integrity/origin defects. This hardening merged in PR273 (`fac4cd7273`). Content PR `rizom-ai/rizom-content#2` remains draft until compatible deployment and separate content approval.
 
 ## Rollout gate
 
