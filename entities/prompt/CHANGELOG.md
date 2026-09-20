@@ -1,5 +1,13 @@
 # @brains/prompt
 
+## 0.2.0-alpha.396
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.396
+  - @brains/plugins@0.2.0-alpha.396
+
 ## 0.2.0-alpha.395
 
 ### Patch Changes

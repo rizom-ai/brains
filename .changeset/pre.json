@@ -370,6 +370,7 @@
     "core--operator-detached-action-receipt",
     "core--operator-disclosure-feedback",
     "core--operator-master-detail",
+    "core--operator-plugin-configuration",
     "core--operator-workspace-composition",
     "core--operator-workspace-design",
     "core--ops-explicit-theme-version",
