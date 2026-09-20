@@ -68,11 +68,12 @@
       "version": "0.2.0-alpha.394",
       "dependencies": {
         "@brains/contracts": "workspace:*",
-        "@brains/plugins": "workspace:*",
-        "@brains/utils": "workspace:*",
+        "@brains/sdk": "workspace:*",
       },
       "devDependencies": {
+        "@brains/entity-service": "workspace:*",
         "@brains/eslint-config": "workspace:*",
+        "@brains/plugins": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.4.0",
         "bun-types": "^1.4.0",

@@ -18,6 +18,8 @@ export interface EntityDefinitionShape {
   >;
   /** Migrates stored metadata into the shape above, when one is declared. */
   readonly metadataFrom?: ((stored: unknown) => unknown) | undefined;
+  /** A singleton uses its entity type as its sole record id. */
+  readonly singleton?: boolean | undefined;
 }
 
 export type EntityVisibility = "public" | "shared" | "restricted";

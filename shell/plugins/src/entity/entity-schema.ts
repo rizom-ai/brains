@@ -40,6 +40,10 @@ export function entitySchema(
   if (!schema) {
     schema = baseEntitySchema.extend({
       entityType: z.literal(definition.type),
+      id:
+        definition.singleton === true
+          ? z.literal(definition.type)
+          : baseEntitySchema.shape.id,
       metadata: definition.metadataFrom
         ? z.preprocess(definition.metadataFrom, definition.metadata)
         : definition.metadata,
@@ -73,7 +77,12 @@ export function parseDefinitionEntity<
   // Validate the envelope separately so metadata is not parsed a second
   // time merely to prove its definition-specific output type.
   const parsed = entityFieldsSchema.parse(input);
-  z.object({ entityType: z.literal(definition.type) }).parse(parsed);
+  z.object({
+    entityType: z.literal(definition.type),
+    ...(definition.singleton === true
+      ? { id: z.literal(definition.type) }
+      : {}),
+  }).parse(parsed);
   const metadata = definition.metadataFrom
     ? definition.metadataFrom(parsed.metadata)
     : parsed.metadata;

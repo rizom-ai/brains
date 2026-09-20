@@ -302,6 +302,13 @@ async function renderDashboard(
     widgetScripts: resolved.widgetScripts,
     assetUrls: state.assetUrls,
     dashboardPath: config.routePath,
+    // Discover the mounted Ask transport through declared endpoints, not
+    // private plugin ids. Guest admission remains the transport's decision.
+    askEnabled:
+      config.ask &&
+      appInfo.endpoints.some(
+        ({ url }) => url === "/ask" || url === "/ask/authenticated",
+      ),
     ...(askHref ? { askHref } : {}),
     character: reads.identity.get(),
     profile,

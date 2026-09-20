@@ -94,6 +94,8 @@ export interface EncodedEntityMarkdown {
 export interface EntityMarkdownCodec<
   TMetadataSchema extends EntityMetadataSchema,
 > {
+  /** Authored file fields when they differ from indexed metadata. Named consumer: Ask content. */
+  readonly frontmatter?: z.ZodObject<z.ZodRawShape> | undefined;
   /**
    * Partial metadata, because not every type keeps all of its in the file.
    * A document is a data URL whose filename and media type arrive in a
@@ -179,6 +181,8 @@ export interface EntityDefinition<
    * once a bare id.
    */
   readonly metadataFrom?: ((stored: unknown) => unknown) | undefined;
+  /** One authored file, identified by the entity type. Named consumer: Ask content. */
+  readonly singleton?: boolean | undefined;
   readonly markdown?: EntityMarkdownCodec<TMetadataSchema> | undefined;
   /** A source-derived display label; reading it never writes the stored record. Named consumer: Note. */
   displayTitle?(entity: {

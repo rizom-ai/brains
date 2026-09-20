@@ -15,6 +15,7 @@ function noteAdapter(): EntityAdapter<BaseEntity> {
   return {
     entityType: "note",
     schema: baseEntitySchema,
+    frontmatterSchema: z.object({ title: z.string().optional() }),
     purpose: "A note somebody wrote.",
     hasBody: true,
     fromMarkdown: (markdown) => ({
@@ -85,6 +86,12 @@ describe("entity shapes, read at setup", () => {
     const shapes = await install();
 
     expect(shapes.frontmatterSchema("note")).toBeDefined();
+    expect(
+      shapes.frontmatterSchema("note")?.parse({ title: "Authored" }),
+    ).toEqual({ title: "Authored" });
+    expect(
+      shapes.frontmatterSchema("note")?.safeParse({ title: 123 }).success,
+    ).toBe(false);
     expect(shapes.frontmatterSchema("ghost")).toBeUndefined();
   });
 

@@ -38,7 +38,9 @@ export interface InitialSyncOptions {
  * optionally copy seed content, import files synchronously, then announce
  * SYSTEM_CHANNELS.initialSyncCompleted.
  */
-export function initialSyncSubscription(options: InitialSyncOptions): AnySubscriptionDefinition {
+export function initialSyncSubscription(
+  options: InitialSyncOptions,
+): AnySubscriptionDefinition {
   const {
     context: host,
     getDirectorySync,

@@ -35,7 +35,9 @@ function yieldToFibers(): Effect.Effect<void> {
   return Effect.yieldNow().pipe(Effect.andThen(Effect.yieldNow()));
 }
 
-function createReconciliation(): Parameters<typeof setupPeriodicGitSync>[0]["reconciliation"] {
+function createReconciliation(): Parameters<
+  typeof setupPeriodicGitSync
+>[0]["reconciliation"] {
   return {
     pullAndQueue: async (options): Promise<GitReconciliationResult> => {
       const pull = await options.gitSync.pull(options.signal);
@@ -85,13 +87,15 @@ describe("setupPeriodicGitSync", () => {
         const runtime = new DirectorySyncRuntime({ clock });
         const pullMock = mock(async (): Promise<PullResult> => ({ files: [] }));
 
-        setupPeriodicGitSync({gitSync: createMockGitSync({ pull: pullMock }),
-directorySync: createMockDirectorySync(),
-context: host,
-intervalMinutes: 0.001,
-logger: createSilentLogger(),
-runtime: runtime,
-reconciliation: createReconciliation()});
+        setupPeriodicGitSync({
+          gitSync: createMockGitSync({ pull: pullMock }),
+          directorySync: createMockDirectorySync(),
+          context: host,
+          intervalMinutes: 0.001,
+          logger: createSilentLogger(),
+          runtime: runtime,
+          reconciliation: createReconciliation(),
+        });
 
         yield* TestClock.adjust(59);
         yield* yieldToFibers();
@@ -125,17 +129,19 @@ reconciliation: createReconciliation()});
         }));
 
         const context = host;
-        setupPeriodicGitSync({gitSync: createMockGitSync({ pull: pullMock }),
-directorySync: createMockDirectorySync({
+        setupPeriodicGitSync({
+          gitSync: createMockGitSync({ pull: pullMock }),
+          directorySync: createMockDirectorySync({
             queueSyncBatch: queueSyncBatchMock,
             suppressWatchPaths: suppressWatchPathsMock,
             recordPendingPullDeletes: recordPendingPullDeletesMock,
           }),
-context: context,
-intervalMinutes: 0.001,
-logger: createSilentLogger(),
-runtime: runtime,
-reconciliation: createReconciliation()});
+          context: context,
+          intervalMinutes: 0.001,
+          logger: createSilentLogger(),
+          runtime: runtime,
+          reconciliation: createReconciliation(),
+        });
         yield* TestClock.adjust(60);
         yield* yieldToFibers();
         expect(queueSyncBatchMock).toHaveBeenCalledTimes(1);
@@ -170,18 +176,20 @@ reconciliation: createReconciliation()});
         const runtime = new DirectorySyncRuntime({ clock });
         const suppressWatchPathsMock = mock(() => {});
 
-        setupPeriodicGitSync({gitSync: createMockGitSync({
+        setupPeriodicGitSync({
+          gitSync: createMockGitSync({
             pull: mock(async (): Promise<PullResult> => ({ files: ["a.md"] })),
           }),
-directorySync: createMockDirectorySync({
+          directorySync: createMockDirectorySync({
             queueSyncBatch: mock(async () => null),
             suppressWatchPaths: suppressWatchPathsMock,
           }),
-context: host,
-intervalMinutes: 0.001,
-logger: createSilentLogger(),
-runtime: runtime,
-reconciliation: createReconciliation()});
+          context: host,
+          intervalMinutes: 0.001,
+          logger: createSilentLogger(),
+          runtime: runtime,
+          reconciliation: createReconciliation(),
+        });
         yield* TestClock.adjust(60);
         yield* yieldToFibers();
 
@@ -203,18 +211,20 @@ reconciliation: createReconciliation()});
           async (): Promise<BatchResult | null> => emptyBatchResult,
         );
 
-        setupPeriodicGitSync({gitSync: createMockGitSync({
+        setupPeriodicGitSync({
+          gitSync: createMockGitSync({
             pull: mock(async (): Promise<PullResult> => ({ files: ["a.md"] })),
           }),
-directorySync: createMockDirectorySync({
+          directorySync: createMockDirectorySync({
             sync: syncMock,
             queueSyncBatch: queueSyncBatchMock,
           }),
-context: host,
-intervalMinutes: 0.001,
-logger: createSilentLogger(),
-runtime: runtime,
-reconciliation: createReconciliation()});
+          context: host,
+          intervalMinutes: 0.001,
+          logger: createSilentLogger(),
+          runtime: runtime,
+          reconciliation: createReconciliation(),
+        });
         yield* TestClock.adjust(60);
         yield* yieldToFibers();
 
@@ -232,13 +242,15 @@ reconciliation: createReconciliation()});
         const runtime = new DirectorySyncRuntime({ clock });
         const pullMock = mock(async (): Promise<PullResult> => ({ files: [] }));
 
-        setupPeriodicGitSync({gitSync: createMockGitSync({ pull: pullMock }),
-directorySync: createMockDirectorySync(),
-context: host,
-intervalMinutes: 0,
-logger: createSilentLogger(),
-runtime: runtime,
-reconciliation: createReconciliation()});
+        setupPeriodicGitSync({
+          gitSync: createMockGitSync({ pull: pullMock }),
+          directorySync: createMockDirectorySync(),
+          context: host,
+          intervalMinutes: 0,
+          logger: createSilentLogger(),
+          runtime: runtime,
+          reconciliation: createReconciliation(),
+        });
         yield* TestClock.adjust(1_000);
         yield* yieldToFibers();
 
@@ -275,13 +287,17 @@ reconciliation: createReconciliation()});
           },
         );
 
-        setupPeriodicGitSync({gitSync: createMockGitSync({ pull: pullMock }),
-directorySync: createMockDirectorySync({ queueSyncBatch: queueSyncBatchMock }),
-context: host,
-intervalMinutes: 0.001,
-logger: createSilentLogger(),
-runtime: runtime,
-reconciliation: createReconciliation()});
+        setupPeriodicGitSync({
+          gitSync: createMockGitSync({ pull: pullMock }),
+          directorySync: createMockDirectorySync({
+            queueSyncBatch: queueSyncBatchMock,
+          }),
+          context: host,
+          intervalMinutes: 0.001,
+          logger: createSilentLogger(),
+          runtime: runtime,
+          reconciliation: createReconciliation(),
+        });
         yield* TestClock.adjust(60);
         yield* Effect.promise(() => pullStarted.promise);
 
@@ -317,13 +333,17 @@ reconciliation: createReconciliation()});
           },
         );
 
-        setupPeriodicGitSync({gitSync: createMockGitSync({ pull: pullMock }),
-directorySync: createMockDirectorySync({ queueSyncBatch: queueSyncBatchMock }),
-context: host,
-intervalMinutes: 0.001,
-logger: createSilentLogger(),
-runtime: runtime,
-reconciliation: createReconciliation()});
+        setupPeriodicGitSync({
+          gitSync: createMockGitSync({ pull: pullMock }),
+          directorySync: createMockDirectorySync({
+            queueSyncBatch: queueSyncBatchMock,
+          }),
+          context: host,
+          intervalMinutes: 0.001,
+          logger: createSilentLogger(),
+          runtime: runtime,
+          reconciliation: createReconciliation(),
+        });
         yield* TestClock.adjust(60);
         yield* yieldToFibers();
         expect(pullMock).toHaveBeenCalledTimes(1);

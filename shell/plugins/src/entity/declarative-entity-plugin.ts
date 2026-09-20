@@ -278,7 +278,8 @@ function entityAdapter(
     entityType: definition.type,
     purpose: definition.purpose,
     schema,
-    frontmatterSchema: definition.metadata,
+    frontmatterSchema: definition.markdown?.frontmatter ?? definition.metadata,
+    ...(definition.singleton === true ? { isSingleton: true } : {}),
     toMarkdown(entity): string {
       return encodeEntityMarkdown(definition, entity);
     },

@@ -660,7 +660,7 @@ async function bringUp(
 /** The recovery an interrupted pull is told about while initial sync runs. */
 function initialSyncRecovery(
   state: DirectorySyncState,
-): Parameters<typeof initialSyncSubscription>[6] {
+): Parameters<typeof initialSyncSubscription>[0]["recovery"] {
   const interruptedPull = state.interruptedPull;
   if (!interruptedPull || !state.gitSync) return undefined;
   const { operationStatus } = state;

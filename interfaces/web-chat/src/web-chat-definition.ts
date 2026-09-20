@@ -43,12 +43,12 @@ import { toProgressData, toToolStatusData } from "./event-data";
 import { createWebChatInboxPrefillState } from "./inbox-prefill-contract";
 import { handleJobStatusRequest } from "./job-handlers";
 import { handleMessagesRequest } from "./message-handlers";
+import { handleActionRequest, type AgentRouteDeps } from "./agent-routes";
 import {
-  handleActionRequest,
   handleRemoteAgentChatRequest,
   handleRemoteAgentConfirmRequest,
-  type AgentRouteDeps,
-} from "./agent-routes";
+  type RemoteAgentHandlerDeps,
+} from "./remote-agent-handlers";
 import {
   handleArchiveSessionRequest,
   handleDeleteSessionRequest,
@@ -62,6 +62,7 @@ import {
 } from "./upload-handlers";
 
 import { GuestHttpHandlers, type GuestHttpOptions } from "./guest-http";
+import { loadAskContent } from "./ask-content";
 import {
   guestPolicySchema,
   matchesGuestOrigin,
@@ -232,6 +233,8 @@ export function createWebChatDefinition(
           managedPolicy ?? guestPolicy,
           {
             ...deps.guestHttp,
+            presentation: (): ReturnType<typeof loadAskContent> =>
+              loadAskContent(context.entities),
             requireAuthorization: managedPolicy !== undefined,
             ready:
               deps.guestHttp?.ready ??
@@ -400,6 +403,13 @@ function webChatRoutes(
     messaging: state.messaging,
     interfaceType: webChatInterfaceType,
   };
+  const remoteAgentDeps: RemoteAgentHandlerDeps = {
+    agent: state.agent,
+    resolveBrowserAccess: state.access.resolve,
+    toConversationAccess: state.access.toConversationAccess,
+    ensureConversation: state.access.ensure,
+    requireExistingConversation: state.access.requireExisting,
+  };
   const sessionDeps = {
     conversations: state.conversations,
     resolveAccess: (request: Request): Promise<WebChatConversationAccess> =>
@@ -536,13 +546,29 @@ function webChatRoutes(
       handleUploadDownloadRequest(request, uploadDeps),
     ),
     rawRoute("POST", "/api/agent/chat", async (request) =>
-      handleRemoteAgentChatRequest(request, agentDeps),
+      handleRemoteAgentChatRequest(request, remoteAgentDeps),
     ),
     rawRoute("POST", "/api/agent/chat/confirm", async (request) =>
-      handleRemoteAgentConfirmRequest(request, agentDeps),
+      handleRemoteAgentConfirmRequest(request, remoteAgentDeps),
     ),
     ...(state.guestPolicy.enabled || state.guestControl.policy
       ? [
+          ...(["js", "css"] as const).map((extension) =>
+            rawRoute(
+              "GET",
+              `/ask/assets/dashboard.${extension}`,
+              async (request) =>
+                canServeGuestAsset(state, request, () =>
+                  builtUiFile(
+                    uiAssetFile.replace(/app\.js$/, `dashboard.${extension}`),
+                    extension === "js"
+                      ? "text/javascript; charset=utf-8"
+                      : "text/css; charset=utf-8",
+                  ),
+                ),
+              true,
+            ),
+          ),
           rawRoute("GET", state.authenticatedRoutePath, async (request) =>
             chatPage(config, state, request),
           ),

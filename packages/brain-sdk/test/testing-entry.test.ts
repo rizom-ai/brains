@@ -347,6 +347,91 @@ describe("the public testing harness", () => {
     }
   });
 
+  it("enforces a singleton's identity and exposes it to file collections", async () => {
+    const settings = defineEntity({
+      type: "single-settings",
+      purpose: "One authored settings document",
+      metadata: z.object({}),
+      singleton: true,
+      markdown: {
+        frontmatter: z.object({ welcome: z.string().optional() }),
+        decode: ({ content }) => ({ content, metadata: {} }),
+        encode: ({ content }) => ({
+          content,
+          frontmatter: { welcome: "Hello" },
+        }),
+      },
+    });
+    const harness = createBrainTestHarness();
+    try {
+      const installed = await harness.installPackage(
+        defineServicePlugin(
+          {
+            id: "singletons",
+            config: z.object({}),
+            entities: [settings],
+            setup: ({ entityShapes }) => ({
+              isSingleton: entityShapes.isSingleton,
+              frontmatterSchema: entityShapes.frontmatterSchema,
+            }),
+          },
+          {
+            tools: ({ state }) => [
+              defineTool({
+                name: "create",
+                description: "Create the settings file",
+                input: z.object({ id: z.string() }),
+                output: z.object({
+                  id: z.string(),
+                  singleton: z.boolean(),
+                  count: z.number(),
+                  fields: z.array(z.string()),
+                  metadata: z.record(z.string(), z.unknown()),
+                }),
+                async execute({ input, entities }) {
+                  const result = await entities.create(settings, {
+                    id: input.id,
+                    content: "Settings",
+                    metadata: {},
+                  });
+                  const saved = await entities.get(settings, result.id);
+                  if (!saved) throw new Error("Missing settings");
+                  return {
+                    id: saved.id,
+                    singleton: state.isSingleton(settings.type),
+                    count: (await entities.list(settings)).length,
+                    fields: Object.keys(
+                      state.frontmatterSchema(settings.type)?.shape ?? {},
+                    ),
+                    metadata: saved.metadata,
+                  };
+                },
+              }),
+            ],
+          },
+        ),
+      );
+      await harness.finalizeRegistration();
+      expect(
+        await installed.tool("create").call({ id: "another" }),
+      ).toMatchObject({ ok: false });
+      expect(
+        await installed.tool("create").call({ id: settings.type }),
+      ).toMatchObject({
+        ok: true,
+        data: {
+          id: settings.type,
+          singleton: true,
+          count: 1,
+          fields: ["welcome"],
+          metadata: {},
+        },
+      });
+    } finally {
+      await harness.reset();
+    }
+  });
+
   it("projects display labels without changing persisted titles on create or update", async () => {
     const item = defineEntity({
       type: "labeled-item",

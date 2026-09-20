@@ -945,7 +945,10 @@ export class ProjectionStore {
       }
 
       const changedTargets = await this.writeIntentApplier.applyAll(
-        transaction, writeIntents, completedAt, key,
+        transaction,
+        writeIntents,
+        completedAt,
+        key,
       );
 
       const updatedRules = await transaction

@@ -918,10 +918,8 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     registerPersistValidator: (): void => {},
     getPersistValidator: () => undefined,
     extendFrontmatterSchema: (): void => {},
-    // A registered type has a frontmatter schema and an unknown one has
-    // none; an editor decides whether a type exists by asking this.
     getEffectiveFrontmatterSchema: (type: string) =>
-      entityTypes.has(type) ? z.looseObject({}) : undefined,
+      entityAdapters.get(type)?.frontmatterSchema,
   };
 
   // The shell registers its own identity types before any plugin runs, so a

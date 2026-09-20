@@ -3,12 +3,14 @@ import { z } from "@brains/sdk/services";
 type DashboardConfigSchema = z.ZodObject<{
   version: z.ZodDefault<z.ZodString>;
   routePath: z.ZodDefault<z.ZodString>;
+  ask: z.ZodDefault<z.ZodBoolean>;
   themeCSS: z.ZodOptional<z.ZodString>;
 }>;
 
 export const dashboardConfigSchema: DashboardConfigSchema = z.object({
   version: z.string().default("1.0.0"),
   routePath: z.string().default("/dashboard"),
+  ask: z.boolean().default(false),
   themeCSS: z.string().optional(),
 });
 

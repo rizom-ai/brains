@@ -14,8 +14,16 @@ import type { PermissionConfig } from "@brains/templates";
 
 export { logLevelSchema, reasoningEffortSchema } from "@brains/core";
 export type ReasoningEffort = z.output<typeof reasoningEffortSchema>;
-import { deploymentConfigSchema, type DeploymentConfig, type DeploymentConfigInput } from "@brains/sdk/internal/brain-config";
-export { deploymentConfigSchema, type DeploymentConfig, type DeploymentConfigInput } from "@brains/sdk/internal/brain-config";
+import {
+  deploymentConfigSchema,
+  type DeploymentConfig,
+  type DeploymentConfigInput,
+} from "@brains/sdk/internal/brain-config";
+export {
+  deploymentConfigSchema,
+  type DeploymentConfig,
+  type DeploymentConfigInput,
+} from "@brains/sdk/internal/brain-config";
 export type LogLevel = z.output<typeof logLevelSchema>;
 
 import { httpConfigSchema } from "@brains/plugins/contracts/http-host";

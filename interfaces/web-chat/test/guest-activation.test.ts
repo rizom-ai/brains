@@ -34,10 +34,23 @@ interface Fixture {
 async function fixture(
   role: "public" | "trusted" | "admin" = "admin",
   domain: string | null = "rizom.ai",
-  options: { profileAvailable?: boolean; disabled?: boolean } = {},
+  options: {
+    profileAvailable?: boolean;
+    disabled?: boolean;
+    copy?: { content: string; visibility: "public" | "restricted" };
+  } = {},
 ): Promise<Fixture> {
   const harness = createPluginHarness(domain ? { domain } : {});
   harnesses.push(harness);
+  if (options.copy)
+    harness.addEntities([
+      {
+        id: "ask-content",
+        entityType: "ask-content",
+        metadata: {},
+        ...options.copy,
+      },
+    ]);
   let calls = 0;
   harness.getMockShell().setAgentService({
     guestProfileAvailable: options.profileAvailable !== false,
@@ -127,6 +140,40 @@ describe("admin guest activation using deployment conventions", () => {
       ].sort(),
     );
   });
+  it.each(["public", "restricted", "invalid"] as const)(
+    "loads only valid public authored copy into the guest session (%s)",
+    async (kind) => {
+      const f = await fixture("admin", "rizom.ai", {
+        copy: {
+          visibility: kind === "restricted" ? "restricted" : "public",
+          content:
+            kind === "invalid"
+              ? "x".repeat(4001)
+              : "---\ntitle: Ask us\ntopics: [Welcome]\n---\nAuthored welcome.",
+        },
+      });
+      expect((await f.send(access, { enabled: true })).status).toBe(200);
+      const response = await f.send(
+        "/api/chat/guest/session",
+        {},
+        { Origin: "https://preview.rizom.ai" },
+        "https://preview.rizom.ai",
+      );
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.presentation).toEqual(
+        kind === "public"
+          ? {
+              title: "Ask us",
+              topics: ["Welcome"],
+              introduction: "Authored welcome.",
+            }
+          : undefined,
+      );
+      expect(f.calls()).toBe(0);
+    },
+  );
+
   it("serves scoped Ask styles without replacing the site chrome", async () => {
     const f = await fixture();
     await f.send(access, { enabled: true });

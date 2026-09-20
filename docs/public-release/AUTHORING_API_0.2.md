@@ -197,6 +197,8 @@ titles. Studio asks the adapter through `ServiceEntityShapes.displayTitle`, rath
 than deriving titles itself.
 Note preserves authored titles and limits first-body-line fallbacks to 80 Unicode characters.
 
+`defineEntity.singleton: true` constrains the record ID to its entity type and marks the type as a singleton for file collections. `markdown.frontmatter` optionally describes authored file fields separately from indexed metadata; otherwise the metadata schema is used. Ask content consumes both: bounded welcome/topic fields remain in markdown while indexed metadata stays empty.
+
 `EntityDefinitionConfig` is the optional `config` slot on `defineEntity`. It carries deliberate opt-outs — `embeddable`, `projectionSource`, `projectionSourceRole`, `weight` — for entity types that are system configuration rather than user content. Omitted fields keep the runtime defaults.
 
 `frontmatterInContent` builds the markdown codec for a type whose files keep

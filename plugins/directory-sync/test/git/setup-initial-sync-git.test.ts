@@ -79,12 +79,14 @@ describe("setupInitialSync with git", () => {
     };
 
     await installSubscriptions(shell, [
-      initialSyncSubscription({context: host,
-getDirectorySync: () => ds,
-config: baseConfig,
-logger: createSilentLogger(),
-gitSync: gs,
-reconciliation: reconciliation}),
+      initialSyncSubscription({
+        context: host,
+        getDirectorySync: () => ds,
+        config: baseConfig,
+        logger: createSilentLogger(),
+        gitSync: gs,
+        reconciliation: reconciliation,
+      }),
     ]);
 
     await shell.getMessageBus().send({
@@ -141,14 +143,16 @@ reconciliation: reconciliation}),
     };
 
     await installSubscriptions(shell, [
-      initialSyncSubscription({context: host,
-getDirectorySync: () => ds,
-config: baseConfig,
-logger: createSilentLogger(),
-gitSync: gs,
-reconciliation: reconciliation,
-recovery: undefined,
-operationStatus: operationStatus}),
+      initialSyncSubscription({
+        context: host,
+        getDirectorySync: () => ds,
+        config: baseConfig,
+        logger: createSilentLogger(),
+        gitSync: gs,
+        reconciliation: reconciliation,
+        recovery: undefined,
+        operationStatus: operationStatus,
+      }),
     ]);
 
     await shell.getMessageBus().send({
@@ -180,12 +184,14 @@ operationStatus: operationStatus}),
     };
 
     await installSubscriptions(shell, [
-      initialSyncSubscription({context: host,
-getDirectorySync: () => createMockDirectorySync(),
-config: baseConfig,
-logger: createSilentLogger(),
-gitSync: gs,
-reconciliation: reconciliation}),
+      initialSyncSubscription({
+        context: host,
+        getDirectorySync: () => createMockDirectorySync(),
+        config: baseConfig,
+        logger: createSilentLogger(),
+        gitSync: gs,
+        reconciliation: reconciliation,
+      }),
     ]);
 
     await shell.getMessageBus().send({
@@ -214,17 +220,19 @@ reconciliation: reconciliation}),
     });
 
     await installSubscriptions(shell, [
-      initialSyncSubscription({context: host,
-getDirectorySync: () => createMockDirectorySync(),
-config: baseConfig,
-logger: createSilentLogger(),
-gitSync: gs,
-reconciliation: undefined,
-recovery: {
+      initialSyncSubscription({
+        context: host,
+        getDirectorySync: () => createMockDirectorySync(),
+        config: baseConfig,
+        logger: createSilentLogger(),
+        gitSync: gs,
+        reconciliation: undefined,
+        recovery: {
           onGitProgress,
           onGitRecoverySucceeded,
           onGitRecoveryFailed,
-        }}),
+        },
+      }),
     ]);
 
     await shell.getMessageBus().send({
@@ -248,10 +256,12 @@ recovery: {
     const ds = createMockDirectorySync({ sync: syncMock });
 
     await installSubscriptions(shell, [
-      initialSyncSubscription({context: host,
-getDirectorySync: () => ds,
-config: baseConfig,
-logger: createSilentLogger()}),
+      initialSyncSubscription({
+        context: host,
+        getDirectorySync: () => ds,
+        config: baseConfig,
+        logger: createSilentLogger(),
+      }),
     ]);
 
     await shell.getMessageBus().send({
@@ -269,11 +279,13 @@ logger: createSilentLogger()}),
     const gs = createMockGitSync();
 
     await installSubscriptions(shell, [
-      initialSyncSubscription({context: host,
-getDirectorySync: () => ds,
-config: baseConfig,
-logger: createSilentLogger(),
-gitSync: gs}),
+      initialSyncSubscription({
+        context: host,
+        getDirectorySync: () => ds,
+        config: baseConfig,
+        logger: createSilentLogger(),
+        gitSync: gs,
+      }),
     ]);
 
     await shell.getMessageBus().send({
@@ -295,11 +307,13 @@ gitSync: gs}),
     });
 
     await installSubscriptions(shell, [
-      initialSyncSubscription({context: host,
-getDirectorySync: () => ds,
-config: baseConfig,
-logger: createSilentLogger(),
-gitSync: gs}),
+      initialSyncSubscription({
+        context: host,
+        getDirectorySync: () => ds,
+        config: baseConfig,
+        logger: createSilentLogger(),
+        gitSync: gs,
+      }),
     ]);
 
     await shell.getMessageBus().send({
@@ -326,10 +340,12 @@ gitSync: gs}),
     });
 
     await installSubscriptions(shell, [
-      initialSyncSubscription({context: host,
-getDirectorySync: () => ds,
-config: baseConfig,
-logger: createSilentLogger()}),
+      initialSyncSubscription({
+        context: host,
+        getDirectorySync: () => ds,
+        config: baseConfig,
+        logger: createSilentLogger(),
+      }),
     ]);
 
     await shell.getMessageBus().send({

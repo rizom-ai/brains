@@ -130,6 +130,35 @@ describe("dashboard service", () => {
       expect(await scriptResponse?.text()).toContain("/api/console/jump");
     });
 
+    it.each([
+      { ask: true, url: "/ask", visible: true },
+      { ask: true, url: "/ask/authenticated", visible: true },
+      { ask: false, url: "/ask", visible: false },
+      { ask: true, url: undefined, visible: false },
+    ])(
+      "shows the opt-in Ask panel only with a mounted Ask endpoint ($ask, $url)",
+      async ({ ask, url, visible }) => {
+        await harness.reset();
+        const configured = await installDashboard(harness, { ask });
+        if (url)
+          harness.getMockShell().registerEndpoint({
+            pluginId: "@brains/web-chat:web-chat",
+            label: "Chat",
+            url,
+            visibility: "trusted",
+            requiresActiveSession: true,
+          });
+        const response = await configured
+          .routes()
+          .find((route) => route.path === "/dashboard")
+          ?.handler(new Request("http://brain/dashboard"));
+        expect(response?.status).toBe(200);
+        const html = await response?.text();
+        expect(html?.includes("data-guest-dashboard")).toBe(visible);
+        expect(html?.includes("/ask/assets/dashboard.js")).toBe(visible);
+      },
+    );
+
     it("should declare configured theme assets before the route snapshot", async () => {
       const themeCSS = ":root { --dashboard-accent: lime; }";
       await harness.reset();
