@@ -1,7 +1,7 @@
 import { useId, useState } from "react";
 import type { StudioWorkspaceInfo } from "./api";
 import { setStudioNavigationCollapsed } from "./studio-navigation-state";
-import { studioArea, type StudioArea } from "./studio-type-navigation";
+import { studioArea, type StudioArea } from "./studio-areas";
 
 export interface NavigationTreeInput {
   /** The area the open destination belongs to. */
