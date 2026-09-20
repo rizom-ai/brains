@@ -80,6 +80,7 @@ Plans:
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral, permission-gated, audited web search.
 - [system-analytics-tool.md](./plans/system-analytics-tool.md) — one extensible typed analytics/reporting surface.
 - [agent-tool-surface-consolidation.md](./plans/agent-tool-surface-consolidation.md) — keep agent, protocol, and CLI exposure distinct and finish the measured tool-surface/eval closeout.
+- [operator-view-contract-from-schemas.md](./plans/operator-view-contract-from-schemas.md) — proposed: derive the operator view authoring types from the schemas that already validate them, so the bounds are visible to authors.
 
 ### 2. The collective posture
 
