@@ -10,9 +10,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import documentStyles from "./studio-document.css" with { type: "text" };
-const compiledStyles = await Bun.file(
-  new URL("../../dist/ui/studio-app.css", import.meta.url),
-).text();
+import { readStudioStylesheet } from "../../test/ui-asset-fixture";
+const compiledStyles = await readStudioStylesheet();
 import {
   StudioAppView,
   mobileEditorEntry,

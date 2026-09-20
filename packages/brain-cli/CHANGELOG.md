@@ -1,5 +1,23 @@
 # @rizom/brain
 
+## 0.2.0-alpha.399
+
+## 0.2.0-alpha.398
+
+## 0.2.0-alpha.397
+
+## 0.2.0-alpha.396
+
+### Patch Changes
+
+- [#285](https://github.com/rizom-ai/brains/pull/285) [`6fa0d8e`](https://github.com/rizom-ai/brains/commit/6fa0d8edbfc3f3e3363e7ed7ba5c101eba57587c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Compose operator-generated brain configuration as an object and serialize once. Carry per-user canonical plugin configuration through reconciliation, using the runtime's shared merge implementation with explicit preservation of null deletion markers until runtime resolution. Plugin schemas remain authoritative; no dashboard-specific operator switch is introduced.
+
+## 0.2.0-alpha.395
+
+### Patch Changes
+
+- [#304](https://github.com/rizom-ai/brains/pull/304) [`18aec18`](https://github.com/rizom-ai/brains/commit/18aec1819582a18a5e4c7b5bb19393186e5a0d11) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Use manifest-selected, content-hashed Studio JavaScript and CSS entry URLs so browser caching cannot mask new releases. Keep authenticated shells uncached, serve immutable public assets only from the validated manifest, and offer explicit draft-loss confirmation rather than automatically reloading when an Account or Chat chunk cannot load.
+
 ## 0.2.0-alpha.394
 
 ### Patch Changes

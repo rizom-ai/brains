@@ -1,4 +1,5 @@
 import { createMockAppInfo } from "@brains/plugins/test";
+import { studioAssetManifestSchema } from "../plugins/studio/src/ui-assets";
 import { renameChatSessionRequestSchema } from "@brains/contracts/chat";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { getErrorMessage } from "@brains/utils/error";
@@ -3249,7 +3250,18 @@ async function comparePng(
 await mkdir(BASELINE_DIR, { recursive: true });
 await mkdir(ARTIFACT_DIR, { recursive: true });
 const studioUiDirectory = path.join(ROOT, "plugins/studio/dist/ui");
-const studioAsset = path.join(studioUiDirectory, "studio-app.js");
+const studioManifest = studioAssetManifestSchema.parse(
+  JSON.parse(
+    await readFile(
+      path.join(studioUiDirectory, "studio-asset-manifest.json"),
+      "utf8",
+    ),
+  ),
+);
+const studioAsset = path.join(
+  studioUiDirectory,
+  studioManifest.entrypoints.script,
+);
 const chatAsset = path.join(ROOT, "interfaces/web-chat/dist/ui/app.js");
 const chatStyles = path.join(ROOT, "interfaces/web-chat/dist/ui/app.css");
 await Promise.all([
@@ -3456,8 +3468,8 @@ const server = Bun.serve({
       return new Response(
         climateHtml(
           renderEditorShellHtml({
-            assetPath: "/studio/assets/app.js",
-            stylesheetPath: "/studio/assets/app.css",
+            assetPath: `/studio/assets/${studioManifest.entrypoints.script}`,
+            stylesheetPath: `/studio/assets/${studioManifest.entrypoints.stylesheet}`,
             basePath: "/studio",
             sessionHref: "/logout",
             dashboardHref: "/dashboard",
@@ -3470,17 +3482,8 @@ const server = Bun.serve({
       );
     if (url.pathname.startsWith("/studio/assets/")) {
       const publicPath = url.pathname.slice("/studio/assets/".length);
-      const filePath =
-        publicPath === "app.js"
-          ? "studio-app.js"
-          : publicPath === "app.css"
-            ? "studio-app.css"
-            : publicPath;
-      if (
-        !/^(?:studio-app\.(?:js|css)|studio-app\.js\.map|studio-chunks\/[A-Za-z0-9_-]+\.(?:js|js\.map))$/.test(
-          filePath,
-        )
-      ) {
+      const filePath = studioManifest.assets[publicPath];
+      if (!filePath) {
         return new Response("Not found", { status: 404 });
       }
       return new Response(

@@ -1,5 +1,58 @@
 # @brains/analytics
 
+## 0.2.0-alpha.399
+
+### Minor Changes
+
+- [#325](https://github.com/rizom-ai/brains/pull/325) [`4098f79`](https://github.com/rizom-ai/brains/commit/4098f79a6fe6c81a67fa6f8398680ecea0bde0e6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restore read-only tools to the MCP basic protocol surface while chat-only behavior receives canonical acceptance and behavioral-eval coverage. Omitted `directMcpExposure` once again derives from `sideEffects`, Cloudflare analytics query is available in basic mode, and debug mode remains unchanged.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.399
+  - @brains/contracts@0.2.0-alpha.399
+  - @brains/utils@0.2.0-alpha.399
+
+## 0.2.0-alpha.398
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.398
+  - @brains/utils@0.2.0-alpha.398
+  - @brains/plugins@0.2.0-alpha.398
+
+## 0.2.0-alpha.397
+
+### Minor Changes
+
+- [#316](https://github.com/rizom-ai/brains/pull/316) [`da567ad`](https://github.com/rizom-ai/brains/commit/da567ad5d2d033d24ffd4c71b52e9d19286443fe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Collapse the MCP basic protocol surface to `chat` and `confirm` only. Omitted `directMcpExposure` now defaults to `"debug"` regardless of `sideEffects`, so raw read tools (`system_search`, `system_get`, `system_list`, status, insights, and job status) are no longer advertised in basic mode. Basic-mode reads and writes now go through the brain agent, keeping its system prompt, context, and confirmation flow in the loop. The analytics Cloudflare query moved from `"basic"` to `"debug"` exposure. Debug mode is unchanged; tools can still opt into the basic surface with an explicit `directMcpExposure: "basic"`.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.397
+  - @brains/contracts@0.2.0-alpha.397
+  - @brains/utils@0.2.0-alpha.397
+
+## 0.2.0-alpha.396
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.396
+  - @brains/utils@0.2.0-alpha.396
+  - @brains/plugins@0.2.0-alpha.396
+
+## 0.2.0-alpha.395
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.395
+  - @brains/contracts@0.2.0-alpha.395
+  - @brains/utils@0.2.0-alpha.395
+
 ## 0.2.0-alpha.394
 
 ### Patch Changes

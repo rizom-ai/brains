@@ -1,4 +1,14 @@
-import { join } from "node:path";
+import { studioAssetManifestSchema } from "../src/ui-assets";
+
+async function readAssetManifest(): Promise<
+  z.output<typeof studioAssetManifestSchema>
+> {
+  return studioAssetManifestSchema.parse(
+    await Bun.file(
+      new URL("../dist/ui/studio-asset-manifest.json", import.meta.url),
+    ).json(),
+  );
+}
 import {
   createMockShell,
   createTempDataDir,
@@ -376,7 +386,10 @@ describe("studio editor shell", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("text/html");
-    expect(html).toContain("/studio/assets/app.js");
+    const manifest = await readAssetManifest();
+    expect(html).toContain(`/studio/assets/${manifest.entrypoints.script}`);
+    expect(html).toContain(`/studio/assets/${manifest.entrypoints.stylesheet}`);
+    expect(response.headers.get("cache-control")).toBe("no-store");
     expect(html).toContain('data-studio-base-path="/studio"');
     expect(html).not.toContain("sveltia");
   });
@@ -424,7 +437,9 @@ describe("studio editor shell", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("location")).toBeNull();
-    expect(html).toContain("/studio/assets/app.js");
+    expect(html).toContain(
+      `/studio/assets/${(await readAssetManifest()).entrypoints.script}`,
+    );
     expect(html).toContain('data-studio-base-path="/studio"');
     expect(html).not.toContain('class="console-strip"');
     expect(html).not.toContain("data-console-surface=");
@@ -486,31 +501,37 @@ describe("studio editor shell", () => {
     const shell = createEditorTestShell();
     const plugin = await registerPlugin(shell);
 
-    // The bundle may not be built when tests run; the route must exist and
-    // either serve JS or answer 404, never throw.
+    const manifest = await readAssetManifest();
     const assetRoute = findRoute(plugin, "/studio/assets");
     expect(assetRoute.match).toBe("prefix");
 
     const response = await assetRoute.handler(
-      apiRequest("/studio/assets/app.js"),
+      apiRequest(`/studio/assets/${manifest.entrypoints.script}`),
     );
     expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe(
+      "public, max-age=31536000, immutable",
+    );
+    for (const path of [
+      "app.js",
+      "app.css",
+      "studio-app-obsolete.js",
+      "studio-app.js",
+    ]) {
+      const missing = await assetRoute.handler(
+        apiRequest(`/studio/assets/${path}`),
+      );
+      expect(missing.status).toBe(404);
+      expect(missing.headers.get("cache-control")).toBe("no-store");
+    }
+    const css = await assetRoute.handler(
+      apiRequest(`/studio/assets/${manifest.entrypoints.stylesheet}`),
+    );
+    expect(css.status).toBe(200);
+    expect(css.headers.get("content-type")).toContain("text/css");
 
     // Rebuilds/cache restores can retain older chunks. Test a published asset,
     // not an arbitrary obsolete file that the manifest correctly refuses.
-    const manifest = z
-      .object({ assets: z.record(z.string(), z.string()) })
-      .parse(
-        await Bun.file(
-          join(
-            import.meta.dir,
-            "..",
-            "dist",
-            "ui",
-            "studio-asset-manifest.json",
-          ),
-        ).json(),
-      );
     const accountChunk = Object.keys(manifest.assets).find((asset) =>
       /^studio-chunks\/account-view-.*\.js$/.test(asset),
     );

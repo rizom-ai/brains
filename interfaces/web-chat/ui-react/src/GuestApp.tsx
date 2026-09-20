@@ -2,56 +2,23 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import {
   ChatApiError,
-  CHAT_CONVERSATION_ID_HEADER,
-  readChatProtocolEvents,
-  getGuestSourceCards,
-  type ChatCard,
   type ChatClient,
   type ChatHistoryMessage,
-  type ChatMessageRequest,
   type GuestChatSessionResponse,
 } from "@brains/contracts/chat";
-import { GuestMarkdown, GuestTranscript } from "./GuestTranscript";
-import { GuestBox, type GuestBoxState } from "./GuestBox";
+import { GuestPage } from "./GuestPage";
+import { GuestBox } from "./GuestBox";
 import { createWebChatClient } from "./web-chat-client";
 import { openGuestBrowserSession } from "./guest-session";
+import { useGuestGate } from "./use-guest-gate";
+import { useGuestConversations } from "./use-guest-conversations";
+import { useGuestSession } from "./use-guest-session";
+import { useGuestTranscript } from "./use-guest-transcript";
+import { useGuestSend } from "./use-guest-send";
+import { useGuestHistoryCheck } from "./use-guest-history-check";
 
-const locatorKey = "brain-ask-conversation";
 const incompleteHistoryNotice =
   "History loaded. The previous answer may still be running or incomplete. Nothing has been replayed; you can reload history later.";
-function savedConversations(add?: string, remove?: string): string[] {
-  try {
-    const value: unknown = JSON.parse(
-      sessionStorage.getItem(`${locatorKey}-list`) ?? "[]",
-    );
-    const ids = Array.isArray(value)
-      ? value.filter(
-          (id): id is string =>
-            typeof id === "string" &&
-            /^guest-[a-f0-9]{64}$/.test(id) &&
-            id !== remove,
-        )
-      : [];
-    if (add && !ids.includes(add)) ids.push(add);
-    sessionStorage.setItem(`${locatorKey}-list`, JSON.stringify(ids));
-    return ids;
-  } catch {
-    // Conversation locators are optional; transcripts never enter browser storage.
-    return add ? [add] : [];
-  }
-}
-function savedLocator(value?: string): string | undefined {
-  try {
-    if (value !== undefined) {
-      if (value) sessionStorage.setItem(locatorKey, value);
-      else sessionStorage.removeItem(locatorKey);
-    }
-    return sessionStorage.getItem(locatorKey) ?? undefined;
-  } catch {
-    // Storage can be disabled. Never fall back to persisting transcript text.
-    return undefined;
-  }
-}
 
 export function GuestApp({
   client: suppliedClient,
@@ -69,37 +36,87 @@ export function GuestApp({
   siteLabel?: string;
 }): ReactElement {
   const [client] = useState(() => suppliedClient ?? createWebChatClient());
-  const [session, setSession] = useState<GuestChatSessionResponse>();
-  const [id, setId] = useState<string>();
-  const [messages, setMessages] = useState<ChatHistoryMessage[]>([]);
+  const {
+    session,
+    expired,
+    canSend,
+    open: openSession,
+    hasElapsed,
+    markExpired,
+    clearExpired,
+  } = useGuestSession({
+    open: (signal): Promise<GuestChatSessionResponse> =>
+      openGuestBrowserSession(client, signal),
+  });
+  const {
+    id,
+    conversations,
+    adopt: adoptSavedConversation,
+    remember,
+    note: noteConversation,
+    clear: clearConversation,
+    forget: forgetConversation,
+    isSaved: isSavedConversation,
+  } = useGuestConversations();
+  const {
+    messages,
+    earlier,
+    setMessages,
+    show: showHistory,
+    setAside: setTurnsAside,
+    clear: clearTranscript,
+    restoredQuestion,
+    transcriptRef,
+    followTranscript,
+  } = useGuestTranscript({ box: !!box });
   const [draft, setDraft] = useState(initialDraft);
-  const [boxState, setBoxState] = useState<GuestBoxState>("connecting");
-  const [earlier, setEarlier] = useState<ChatHistoryMessage[]>([]);
-  const [boxNotice, setBoxNotice] = useState<string>();
-  const restoredQuestion = useRef<string | undefined>(undefined);
-  const mounted = useRef(true);
-  const [status, setStatus] = useState("Connecting…");
-  const [busy, setBusy] = useState(true);
-  const [conversations, setConversations] = useState<string[]>([]);
-  const [pending, setPending] = useState<ChatMessageRequest>();
-  const [deleting, setDeleting] = useState(false);
-  const [expired, setExpired] = useState(false);
-  const lock = useRef(true);
+  const gate = useGuestGate();
+  const {
+    busy,
+    status,
+    boxState,
+    boxNotice,
+    setStatus,
+    setBoxState,
+    setBoxNotice,
+    mounted,
+  } = gate;
   const controller = useRef<AbortController | undefined>(undefined);
+  const { pending, setPending, send, stopWaiting } = useGuestSend({
+    client,
+    gate,
+    session,
+    canSend,
+    hasElapsed,
+    markExpired,
+    conversationId: id,
+    remember,
+    setMessages,
+    showHistory,
+    draft,
+    setDraft,
+    onStart: (): void => {
+      restoreFocus.current = true;
+      setDeleting(false);
+    },
+    controller,
+  });
+  const [deleting, setDeleting] = useState(false);
   const textarea = useRef<HTMLTextAreaElement>(null);
-  const transcript = useRef<HTMLDivElement>(null);
   const conversationMenu = useRef<HTMLDetailsElement>(null);
   function closeConversationMenu(): void {
     if (conversationMenu.current) conversationMenu.current.open = false;
   }
-  const followTranscript = useRef(true);
 
-  useEffect(() => {
-    if (box || !transcript.current) return;
-    if (!messages.length) followTranscript.current = true;
-    if (followTranscript.current)
-      transcript.current.scrollTop = transcript.current.scrollHeight;
-  }, [box, messages]);
+  const { check: checkBoxHistory } = useGuestHistoryCheck({
+    client,
+    gate,
+    conversationId: id,
+    pending,
+    clearPending: (): void => setPending(undefined),
+    showHistory,
+    restoredQuestion,
+  });
 
   const restoreFocus = useRef(!!box);
 
@@ -115,16 +132,13 @@ export function GuestApp({
   useEffect(() => {
     mounted.current = true;
     const lifetime = new AbortController();
-    void (async (): Promise<void> => {
+    void gate.runBoot(async (): Promise<void> => {
       try {
-        const opened = await openGuestBrowserSession(client, lifetime.signal);
+        const opened = await openSession(lifetime.signal);
         lifetime.signal.throwIfAborted();
-        setSession(opened);
         setBoxState(opened.canSend ? "ready" : "unavailable");
-        setConversations(savedConversations());
-        const locator = savedLocator();
+        const locator = adoptSavedConversation();
         if (locator) {
-          setId(locator);
           let history: ChatHistoryMessage[];
           try {
             history = await client.getMessages(locator);
@@ -140,11 +154,11 @@ export function GuestApp({
             throw error;
           }
           lifetime.signal.throwIfAborted();
-          setMessages(history);
+          showHistory(history);
           restoredQuestion.current = history
             .filter((message) => message.role === "user")
             .at(-1)?.id;
-          setConversations(savedConversations(locator));
+          noteConversation(locator);
           if (history.at(-1)?.role === "user") {
             setBoxState("incomplete");
             setStatus(incompleteHistoryNotice);
@@ -164,13 +178,8 @@ export function GuestApp({
             "Guest access or saved history is unavailable. No new question has been sent.",
           );
         }
-      } finally {
-        if (!lifetime.signal.aborted) {
-          lock.current = false;
-          setBusy(false);
-        }
       }
-    })();
+    });
     return (): void => {
       mounted.current = false;
       lifetime.abort();
@@ -178,325 +187,101 @@ export function GuestApp({
     };
   }, [client, box]);
 
-  function remember(locator: string): void {
-    setId(locator);
-    savedLocator(locator);
-    setConversations(savedConversations(locator));
-  }
-
   async function restore(locator: string): Promise<void> {
-    if (lock.current || !locator) return;
-    lock.current = true;
-    setBusy(true);
-    try {
-      const history = await client.getMessages(locator);
-      remember(locator);
-      setMessages(history);
-      setPending(undefined);
-      setDeleting(false);
-      setStatus(
-        history.at(-1)?.role === "user"
-          ? incompleteHistoryNotice
-          : "Conversation restored.",
-      );
-    } catch {
-      // Keep the currently visible transcript when a different locator is unavailable.
-      setStatus(
-        "That conversation is unavailable or expired. Your current view is unchanged.",
-      );
-    } finally {
-      lock.current = false;
-      setBusy(false);
-    }
-  }
-
-  async function send(retry?: ChatMessageRequest): Promise<void> {
-    if (lock.current || !session?.canSend) return;
-    // The cookie may have changed since an ambiguous first send. Without a
-    // server locator, replaying its ID could create a turn for another visitor.
-    if (retry && !retry.id) return;
-    if (Date.now() >= session.expiresAt) {
-      setExpired(true);
-      setBoxState("expired");
-      setStatus(
-        "Your visitor session has expired. Reload to begin a new session.",
-      );
-      return;
-    }
-    const text = draft.trim();
-    if (!retry && (!text || draft.length > session.messageCharacters)) return;
-    const submission = retry ?? {
-      ...(id ? { id } : {}),
-      messages: [
-        {
-          id: crypto.randomUUID(),
-          role: "user" as const,
-          parts: [{ type: "text", text }],
-        },
-      ],
-    };
-    lock.current = true;
-    setBusy(true);
-    setBoxState("sending");
-    setBoxNotice(undefined);
-    restoreFocus.current = true;
-    setPending(submission);
-    setStatus("Thinking with public knowledge…");
-    setDeleting(false);
-    if (!retry) {
-      setMessages((previous) => [
-        ...previous,
-        {
-          id: submission.messages[0]?.id ?? crypto.randomUUID(),
-          role: "user",
-          content: text,
-        },
-      ]);
-      setDraft("");
-    }
-    const abort = new AbortController();
-    controller.current = abort;
-    const answerId = crypto.randomUUID();
-    let finished = false;
-    let locatorReceived = false;
-    let responseText = "";
-    let responseCards: ChatCard[] = [];
-    try {
-      const response = await client.streamMessages(submission, {
-        signal: abort.signal,
-      });
-      abort.signal.throwIfAborted();
-      const locator = response.headers.get(CHAT_CONVERSATION_ID_HEADER);
-      if (!locator) throw new Error("Missing conversation locator");
-      remember(locator);
-      locatorReceived = true;
-      setBoxState("working");
-      setPending({ ...submission, id: locator });
-      for await (const event of readChatProtocolEvents(response)) {
-        if (abort.signal.aborted) throw new Error("Stopped waiting");
-        if (event.type === "error" || event.type === "abort")
-          throw new Error("Response unavailable");
-        if (event.type === "text-delta") responseText += event.delta;
-        if (event.type === "data-sources")
-          responseCards = getGuestSourceCards([...responseCards, event.data]);
-        if (event.type === "text-delta" || event.type === "data-sources") {
-          setMessages((previous) => [
-            ...previous.filter((message) => message.id !== answerId),
-            {
-              id: answerId,
-              role: "assistant",
-              content: responseText,
-              cards: responseCards,
-            },
-          ]);
-        }
-        if (event.type === "finish") finished = event.finishReason === "stop";
-      }
-      if (!finished || !responseText.trim())
-        throw new Error("Incomplete response");
-      setPending(undefined);
-      setBoxState("complete");
-      setStatus(
-        "Answer received. Check important claims against the original sources.",
-      );
-    } catch (error) {
-      if (error instanceof ChatApiError && error.guestSubmission) {
-        const receipt = error.guestSubmission;
-        setBoxState("incomplete");
-        remember(receipt.conversationId);
-        setPending({ ...submission, id: receipt.conversationId });
+    if (!locator) return;
+    await gate.run(
+      async (): Promise<void> => {
+        const history = await client.getMessages(locator);
+        remember(locator);
+        showHistory(history);
+        setPending(undefined);
+        setDeleting(false);
         setStatus(
-          receipt.state === "completed"
-            ? "This request already completed. Restoring history…"
-            : "This request was already received. It will not be sent again automatically.",
+          history.at(-1)?.role === "user"
+            ? incompleteHistoryNotice
+            : "Conversation restored.",
         );
-        try {
-          const history = await client.getMessages(receipt.conversationId);
-          if (receipt.state === "completed") {
-            setMessages(history);
-            setPending(undefined);
-            setBoxState("complete");
-            setStatus("Conversation restored.");
-          }
-          if (receipt.state === "failed" || receipt.state === "interrupted") {
-            setPending(undefined);
-            setBoxState("ended");
-            setStatus(
-              "The previous request ended without a complete answer. You may submit a new question.",
-            );
-          }
-        } catch {
-          // Preserve the visible question/partial reply when history cannot load.
-          setStatus(
-            "The request was received, but its conversation is unavailable or expired.",
-          );
-        }
-      } else if (error instanceof ChatApiError && error.status === 429) {
-        setBoxState("limit");
+      },
+      (): void => {
+        // Keep the currently visible transcript when a different locator is unavailable.
         setStatus(
-          "A guest limit has been reached, or another request is still running. Nothing will be retried automatically.",
+          "That conversation is unavailable or expired. Your current view is unchanged.",
         );
-      } else if (!submission.id && !locatorReceived) {
-        setBoxState("uncertain");
-        setStatus(
-          "No conversation locator was received. This tab cannot safely retry or confirm whether the request ran. Your visible question is preserved; nothing will be resent automatically.",
-        );
-      } else {
-        setBoxState("incomplete");
-        setStatus(
-          abort.signal.aborted
-            ? "Stopped waiting. Remote work may still be running; this is not a cancellation guarantee."
-            : "The answer is unavailable or incomplete. Your visible text is preserved. Retry checks the same submission, not a new question.",
-        );
-      }
-    } finally {
-      lock.current = false;
-      controller.current = undefined;
-      setBusy(false);
-    }
+      },
+    );
   }
 
   async function remove(): Promise<void> {
-    if (!id || lock.current) return;
-    lock.current = true;
-    setBusy(true);
-    try {
-      const result = await client.deleteSession(id);
-      if (!result.deleted) throw new Error("Deletion not acknowledged");
-      savedLocator("");
-      setConversations(savedConversations(undefined, id));
-      setId(undefined);
-      setMessages([]);
-      setPending(undefined);
-      setDeleting(false);
-      setStatus(
-        "Conversation deleted from this Brain. Provider and backup limitations still apply.",
-      );
-    } catch {
-      // An unavailable record is not an acknowledgement of deletion.
-      setStatus(
-        "Deletion could not be confirmed. Your visible conversation is preserved.",
-      );
-    } finally {
-      lock.current = false;
-      setBusy(false);
-    }
-  }
-
-  async function checkBoxHistory(): Promise<void> {
-    if (!id || lock.current) return;
-    lock.current = true;
-    setBusy(true);
-    setBoxNotice(undefined);
-    try {
-      const submissionId = pending?.messages[0]?.id;
-      const checked = submissionId
-        ? await client.getGuestHistory(id, submissionId)
-        : undefined;
-      const history = checked?.messages ?? (await client.getMessages(id));
-      if (!mounted.current) return;
-      // Count/text matching cannot identify a submission across tabs. Only an
-      // exact receipt, or a stable restored server message ID, can confirm it.
-      const restoredIndex = history.findIndex(
-        (message) =>
-          message.id === restoredQuestion.current && message.role === "user",
-      );
-      const completed = checked
-        ? checked.submission?.conversationId === id &&
-          checked.submission.state === "completed"
-        : restoredIndex >= 0 &&
-          history[restoredIndex + 1]?.role === "assistant";
-      if (
-        completed &&
-        history.some(
-          (message) => message.role === "assistant" && message.content.trim(),
-        )
-      ) {
-        setMessages(history);
+    if (!id) return;
+    await gate.run(
+      async (): Promise<void> => {
+        const result = await client.deleteSession(id);
+        if (!result.deleted) throw new Error("Deletion not acknowledged");
+        forgetConversation(id);
+        clearTranscript();
         setPending(undefined);
-        if (history.at(-1)?.role === "user") {
-          restoredQuestion.current = history.at(-1)?.id;
-          setBoxState("incomplete");
-        } else setBoxState("complete");
-      } else if (
-        checked?.submission?.conversationId === id &&
-        ["failed", "interrupted"].includes(checked.submission.state)
-      ) {
-        setPending(undefined);
-        setBoxState("ended");
-      } else {
-        setBoxNotice(
-          completed
-            ? "The request completed, but its answer is not available in history. Your visible text is preserved."
-            : "No complete answer is confirmed yet. Your question has not been sent again.",
+        setDeleting(false);
+        setStatus(
+          "Conversation deleted from this Brain. Provider and backup limitations still apply.",
         );
-      }
-    } catch {
-      // Treat failed/cancelled history checks as inconclusive, never as proof
-      // that replay is safe. Preserve visible text and hide raw transport errors.
-      if (mounted.current)
-        setBoxNotice(
-          "We couldn’t check the answer. Your visible text is unchanged; nothing was sent again.",
+      },
+      (): void => {
+        // An unavailable record is not an acknowledgement of deletion.
+        setStatus(
+          "Deletion could not be confirmed. Your visible conversation is preserved.",
         );
-    } finally {
-      lock.current = false;
-      if (mounted.current) setBusy(false);
-    }
+      },
+    );
   }
 
   async function openBoxSession(fresh: boolean): Promise<boolean> {
-    if (lock.current) return false;
-    lock.current = true;
-    setBusy(true);
+    if (gate.locked()) return false;
     setBoxNotice(undefined);
     const abort = new AbortController();
     controller.current = abort;
-    try {
-      const opened = await openGuestBrowserSession(client, abort.signal);
-      abort.signal.throwIfAborted();
-      if (!mounted.current) return false;
-      setSession(opened);
-      if (!opened.canSend) {
-        setBoxNotice(
-          "Chat is still unavailable. Your question has not been sent.",
+    let canSendNow = false;
+    await gate.run(async (): Promise<void> => {
+      try {
+        const opened = await openSession(abort.signal);
+        abort.signal.throwIfAborted();
+        if (!mounted.current) return;
+        if (!opened.canSend) {
+          setBoxNotice(
+            "Chat is still unavailable. Your question has not been sent.",
+          );
+          return;
+        }
+        if (fresh) {
+          // Change only the local selection. Never delete, refund, or replay.
+          setTurnsAside();
+          setPending(undefined);
+          clearConversation();
+          clearExpired();
+        }
+        setBoxState(
+          pending && !fresh
+            ? pending.id
+              ? "incomplete"
+              : "uncertain"
+            : id && !fresh
+              ? messages.at(-1)?.role === "assistant"
+                ? "complete"
+                : "incomplete"
+              : "ready",
         );
-        return false;
+        canSendNow = true;
+      } catch {
+        // Session and cancellation failures deny sending; raw transport details
+        // are not useful recovery instructions and must not replace the draft.
+        if (mounted.current)
+          setBoxNotice(
+            "Chat is unavailable. Your text stays here; nothing was sent.",
+          );
+      } finally {
+        controller.current = undefined;
       }
-      if (fresh) {
-        // Change only the local selection. Never delete, refund, or replay.
-        setEarlier((previous) => [...previous, ...messages]);
-        setMessages([]);
-        setPending(undefined);
-        setId(undefined);
-        savedLocator("");
-        restoredQuestion.current = undefined;
-        setExpired(false);
-      }
-      setBoxState(
-        pending && !fresh
-          ? pending.id
-            ? "incomplete"
-            : "uncertain"
-          : id && !fresh
-            ? messages.at(-1)?.role === "assistant"
-              ? "complete"
-              : "incomplete"
-            : "ready",
-      );
-      return true;
-    } catch {
-      // Session and cancellation failures deny sending; raw transport details
-      // are not useful recovery instructions and must not replace the draft.
-      if (mounted.current)
-        setBoxNotice(
-          "Chat is unavailable. Your text stays here; nothing was sent.",
-        );
-      return false;
-    } finally {
-      lock.current = false;
-      controller.current = undefined;
-      if (mounted.current) setBusy(false);
-    }
+    });
+    return canSendNow;
   }
 
   if (box)
@@ -519,8 +304,7 @@ export function GuestApp({
         actionNotice={boxNotice}
         submitOnReady={initialSubmit}
         canSend={
-          !!session?.canSend &&
-          !expired &&
+          canSend &&
           !pending &&
           ["ready", "complete", "ended"].includes(boxState)
         }
@@ -528,7 +312,7 @@ export function GuestApp({
         canContinue={
           !busy &&
           !!id &&
-          savedLocator() === id &&
+          isSavedConversation(id) &&
           !["history-unavailable", "expired"].includes(boxState)
         }
         onSend={(): void => {
@@ -542,260 +326,67 @@ export function GuestApp({
         onContinue={(): void => {
           if (id) remember(id);
         }}
-        onStopWaiting={(): void => controller.current?.abort()}
+        onStopWaiting={stopWaiting}
       />
     );
 
   return (
-    <div className="guest-ask">
-      <section aria-label="Public Ask">
-        <div className="guest-introduction">
-          <div>
-            <p className="guest-eyebrow">Public knowledge · Your questions</p>
-            <h1>Ask {name}.</h1>
-          </div>
-        </div>
-        <section className="guest-card" aria-label="Public conversation">
-          <header className="guest-card-header">
-            <span className="guest-brain-name">{siteLabel}</span>
-            <span className="guest-scope">Public knowledge</span>
-            {session && (
-              <details
-                className="guest-conversation-menu"
-                ref={conversationMenu}
-              >
-                <summary aria-label="Conversation actions">···</summary>
-                <nav className="guest-tools" aria-label="Conversation controls">
-                  <label>
-                    Conversations in this tab{" "}
-                    <select
-                      aria-label="Previous conversation"
-                      value={id ?? ""}
-                      disabled={busy}
-                      onChange={(event): void => {
-                        closeConversationMenu();
-                        void restore(event.target.value);
-                      }}
-                    >
-                      <option value="">Choose conversation</option>
-                      {conversations.map((locator, index) => (
-                        <option key={locator} value={locator}>
-                          Conversation {index + 1}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <button
-                    disabled={busy}
-                    onClick={(): void => {
-                      closeConversationMenu();
-                      savedLocator("");
-                      setId(undefined);
-                      setMessages([]);
-                      setPending(undefined);
-                      setDeleting(false);
-                      setStatus(
-                        "New conversation. Previous conversations are not deleted, and running work is not cancelled.",
-                      );
-                    }}
-                  >
-                    New conversation
-                  </button>
-                  <button
-                    disabled={!id || busy}
-                    onClick={(): void => {
-                      closeConversationMenu();
-                      setDeleting(true);
-                    }}
-                  >
-                    Delete conversation
-                  </button>
-                  <button
-                    disabled={!id || busy}
-                    onClick={(): void => {
-                      closeConversationMenu();
-                      if (id) void restore(id);
-                    }}
-                  >
-                    Reload history
-                  </button>
-                </nav>
-              </details>
-            )}
-          </header>
-          <div
-            className="guest-transcript-scroll"
-            ref={transcript}
-            role="region"
-            aria-label="Conversation transcript"
-            tabIndex={0}
-            onScroll={(event): void => {
-              const view = event.currentTarget;
-              followTranscript.current =
-                view.scrollHeight - view.scrollTop - view.clientHeight < 64;
-            }}
-          >
-            {deleting && (
-              <div className="guest-delete" role="alert">
-                <p>
-                  Delete this conversation from the Brain? This does not erase
-                  provider records or cancel remote work.
-                </p>
-                <button
-                  disabled={busy}
-                  onClick={(): void => {
-                    void remove();
-                  }}
-                >
-                  Confirm deletion
-                </button>
-                <button
-                  disabled={busy}
-                  onClick={(): void => setDeleting(false)}
-                >
-                  Keep conversation
-                </button>
-              </div>
-            )}
-            {!messages.length &&
-              session?.canSend &&
-              !pending &&
-              !!(
-                session.presentation?.title ??
-                session.presentation?.introduction ??
-                session.presentation?.topics?.length
-              ) && (
-                <div className="guest-empty">
-                  {session.presentation.title && (
-                    <h2>{session.presentation.title}</h2>
-                  )}
-                  {session.presentation.introduction && (
-                    <GuestMarkdown>
-                      {session.presentation.introduction}
-                    </GuestMarkdown>
-                  )}
-                  <div className="guest-topics">
-                    {(session.presentation.topics ?? []).map((topic, index) => (
-                      <button
-                        className="guest-topic"
-                        type="button"
-                        key={topic}
-                        onClick={(): void => {
-                          setDraft(topic);
-                          textarea.current?.focus();
-                        }}
-                      >
-                        <span aria-hidden="true">0{index + 1}</span>
-                        {topic}
-                        <span aria-hidden="true">↗</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            {!messages.length && !session?.canSend && !busy && !pending && (
-              <div className="guest-empty guest-unavailable">
-                <p className="guest-eyebrow">Public knowledge</p>
-                <h2>Asking is unavailable right now.</h2>
-                <p>
-                  No new question has been sent. This page does not renew an
-                  expired or exhausted allowance.
-                </p>
-              </div>
-            )}
-            <GuestTranscript messages={messages} />
-          </div>
-          <p className="guest-status" role="status" aria-live="polite">
-            {status}
-          </p>
-          {session?.canSend && (
-            <form
-              className="guest-composer"
-              onSubmit={(event): void => {
-                event.preventDefault();
-                followTranscript.current = true;
-                void send(pending);
-              }}
-            >
-              <label className="guest-sr" htmlFor="guest-question">
-                Your question
-              </label>
-              <textarea
-                ref={textarea}
-                id="guest-question"
-                value={draft}
-                onInput={(event): void => setDraft(event.currentTarget.value)}
-                maxLength={session.messageCharacters}
-                disabled={busy || !!pending || expired}
-                placeholder={
-                  messages.length
-                    ? "Follow that thought…"
-                    : "Start with a question…"
-                }
-                rows={2}
-              />
-              <div className="guest-compose-actions">
-                <small>
-                  {draft.length} / {session.messageCharacters}
-                </small>
-                {busy ? (
-                  <button
-                    type="button"
-                    onClick={(): void => {
-                      controller.current?.abort();
-                    }}
-                  >
-                    Stop waiting
-                  </button>
-                ) : pending ? (
-                  <button
-                    type="button"
-                    disabled={!pending.id}
-                    onClick={(): void => {
-                      void send(pending);
-                    }}
-                  >
-                    {pending.id
-                      ? "Check / retry same request"
-                      : "Recovery unavailable"}
-                  </button>
-                ) : (
-                  <button
-                    className="guest-send"
-                    type="submit"
-                    disabled={!draft.trim() || expired}
-                  >
-                    <span className="guest-sr">Ask the Brain</span>
-                    <span aria-hidden="true">↑</span>
-                  </button>
-                )}
-              </div>
-            </form>
-          )}
-        </section>
-        <div className="guest-below">
-          {session && (
-            <details className="guest-disclosure">
-              <summary>Privacy and limits</summary>
-              <p>{session.notice}</p>
-              <p>Provider: {session.provider}</p>
-              <p>
-                Visitor access expires{" "}
-                {new Date(session.expiresAt).toLocaleString()}. Conversation
-                retention: idle limit {session.retention.idleSeconds / 3600}{" "}
-                hours; maximum age {session.retention.maxAgeSeconds / 3600}{" "}
-                hours.
-              </p>
-              <p>{session.deletionLimitations}</p>
-              <p>
-                Your messages are not automatically added to the Brain’s
-                knowledge. This chat cannot edit, publish or administer the
-                Brain.
-              </p>
-            </details>
-          )}
-        </div>
-      </section>
-    </div>
+    <GuestPage
+      name={name}
+      siteLabel={siteLabel}
+      session={session}
+      messages={messages}
+      status={status}
+      draft={draft}
+      conversations={conversations}
+      id={id}
+      busy={busy}
+      pending={pending}
+      deleting={deleting}
+      expired={expired}
+      transcriptRef={transcriptRef}
+      textareaRef={textarea}
+      conversationMenuRef={conversationMenu}
+      followTranscript={followTranscript}
+      onRestore={(locator): void => {
+        closeConversationMenu();
+        void restore(locator);
+      }}
+      onNewConversation={(): void => {
+        closeConversationMenu();
+        clearConversation();
+        clearTranscript();
+        setPending(undefined);
+        setDeleting(false);
+        setStatus(
+          "New conversation. Previous conversations are not deleted, and running work is not cancelled.",
+        );
+      }}
+      onAskDelete={(): void => {
+        closeConversationMenu();
+        setDeleting(true);
+      }}
+      onCancelDelete={(): void => setDeleting(false)}
+      onConfirmDelete={(): void => {
+        void remove();
+      }}
+      onReloadHistory={(): void => {
+        closeConversationMenu();
+        if (id) void restore(id);
+      }}
+      onDraftChange={setDraft}
+      onTopic={(topic): void => {
+        setDraft(topic);
+        textarea.current?.focus();
+      }}
+      onSubmit={(): void => {
+        followTranscript.current = true;
+        void send(pending);
+      }}
+      onStopWaiting={stopWaiting}
+      onRetry={(): void => {
+        void send(pending);
+      }}
+    />
   );
 }

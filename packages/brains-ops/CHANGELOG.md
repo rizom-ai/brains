@@ -1,5 +1,23 @@
 # @brains/ops
 
+## 0.2.0-alpha.399
+
+## 0.2.0-alpha.398
+
+### Minor Changes
+
+- [#323](https://github.com/rizom-ai/brains/pull/323) [`972e900`](https://github.com/rizom-ai/brains/commit/972e900adedb251ee22e3d6b1184ebd822e42234) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add an explicit, dry-run-first `user:offboard` command and scaffolded Offboard workflow that archive pilot content repositories, remove managed DNS, destroy dedicated servers, and commit desired-state removal with exact batch confirmation.
+
+## 0.2.0-alpha.397
+
+## 0.2.0-alpha.396
+
+### Patch Changes
+
+- [#285](https://github.com/rizom-ai/brains/pull/285) [`6fa0d8e`](https://github.com/rizom-ai/brains/commit/6fa0d8edbfc3f3e3363e7ed7ba5c101eba57587c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Compose operator-generated brain configuration as an object and serialize once. Carry per-user canonical plugin configuration through reconciliation, using the runtime's shared merge implementation with explicit preservation of null deletion markers until runtime resolution. Plugin schemas remain authoritative; no dashboard-specific operator switch is introduced.
+
+## 0.2.0-alpha.395
+
 ## 0.2.0-alpha.394
 
 ## 0.2.0-alpha.393

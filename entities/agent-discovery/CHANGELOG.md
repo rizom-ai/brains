@@ -1,5 +1,90 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.399
+
+### Patch Changes
+
+- Updated dependencies [[`4098f79`](https://github.com/rizom-ai/brains/commit/4098f79a6fe6c81a67fa6f8398680ecea0bde0e6)]:
+  - @brains/mcp-service@0.2.0-alpha.399
+  - @brains/plugins@0.2.0-alpha.399
+  - @brains/dashboard@0.2.0-alpha.399
+  - @brains/ui-library@0.2.0-alpha.399
+  - @brains/auth-service@0.2.0-alpha.399
+  - @brains/atproto-contracts@0.2.0-alpha.399
+  - @brains/content-formatters@0.2.0-alpha.399
+  - @brains/contracts@0.2.0-alpha.399
+  - @brains/http-signatures@0.2.0-alpha.399
+  - @brains/utils@0.2.0-alpha.399
+  - @brains/templates@0.2.0-alpha.399
+
+## 0.2.0-alpha.398
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.398
+  - @brains/atproto-contracts@0.2.0-alpha.398
+  - @brains/content-formatters@0.2.0-alpha.398
+  - @brains/contracts@0.2.0-alpha.398
+  - @brains/http-signatures@0.2.0-alpha.398
+  - @brains/ui-library@0.2.0-alpha.398
+  - @brains/utils@0.2.0-alpha.398
+  - @brains/auth-service@0.2.0-alpha.398
+  - @brains/mcp-service@0.2.0-alpha.398
+  - @brains/plugins@0.2.0-alpha.398
+  - @brains/templates@0.2.0-alpha.398
+
+## 0.2.0-alpha.397
+
+### Patch Changes
+
+- Updated dependencies [[`da567ad`](https://github.com/rizom-ai/brains/commit/da567ad5d2d033d24ffd4c71b52e9d19286443fe)]:
+  - @brains/mcp-service@0.2.0-alpha.397
+  - @brains/plugins@0.2.0-alpha.397
+  - @brains/dashboard@0.2.0-alpha.397
+  - @brains/ui-library@0.2.0-alpha.397
+  - @brains/auth-service@0.2.0-alpha.397
+  - @brains/atproto-contracts@0.2.0-alpha.397
+  - @brains/content-formatters@0.2.0-alpha.397
+  - @brains/contracts@0.2.0-alpha.397
+  - @brains/http-signatures@0.2.0-alpha.397
+  - @brains/utils@0.2.0-alpha.397
+  - @brains/templates@0.2.0-alpha.397
+
+## 0.2.0-alpha.396
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.396
+  - @brains/atproto-contracts@0.2.0-alpha.396
+  - @brains/content-formatters@0.2.0-alpha.396
+  - @brains/contracts@0.2.0-alpha.396
+  - @brains/http-signatures@0.2.0-alpha.396
+  - @brains/ui-library@0.2.0-alpha.396
+  - @brains/utils@0.2.0-alpha.396
+  - @brains/auth-service@0.2.0-alpha.396
+  - @brains/mcp-service@0.2.0-alpha.396
+  - @brains/plugins@0.2.0-alpha.396
+  - @brains/templates@0.2.0-alpha.396
+
+## 0.2.0-alpha.395
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.395
+  - @brains/atproto-contracts@0.2.0-alpha.395
+  - @brains/plugins@0.2.0-alpha.395
+  - @brains/ui-library@0.2.0-alpha.395
+  - @brains/auth-service@0.2.0-alpha.395
+  - @brains/content-formatters@0.2.0-alpha.395
+  - @brains/contracts@0.2.0-alpha.395
+  - @brains/http-signatures@0.2.0-alpha.395
+  - @brains/utils@0.2.0-alpha.395
+  - @brains/mcp-service@0.2.0-alpha.395
+  - @brains/templates@0.2.0-alpha.395
+
 ## 0.2.0-alpha.394
 
 ### Patch Changes

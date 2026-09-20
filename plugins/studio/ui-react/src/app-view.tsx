@@ -42,6 +42,7 @@ export function StudioAppStatus(props: {
   error?: boolean;
   onRetry?: () => void;
   onHome?: () => void;
+  children?: ReactNode;
 }): ReactElement {
   return (
     <div
@@ -70,6 +71,9 @@ export function StudioAppStatus(props: {
             </Button>
           )}
         </StudioStatus>
+        {props.children && (
+          <div className={editorClass("", library.boot)}>{props.children}</div>
+        )}
       </main>
     </div>
   );

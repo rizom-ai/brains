@@ -11,7 +11,8 @@ import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 
 const studioAssetManifestSchema = z.object({
-  version: z.literal(1),
+  version: z.literal(2),
+  entrypoints: z.object({ script: z.string(), stylesheet: z.string() }),
   assets: z.record(z.string(), z.string()),
 });
 
@@ -149,8 +150,20 @@ describe("@rizom/brain package metadata", () => {
     const manifest = studioAssetManifestSchema.parse(
       JSON.parse(readPackageFile("dist/ui/studio-asset-manifest.json")),
     );
-    expect(manifest.assets["app.js"]).toBe("studio-app.js");
-    expect(manifest.assets["app.css"]).toBe("studio-app.css");
+    expect(manifest.entrypoints.script).toMatch(
+      /^studio-app-[a-zA-Z0-9]+\.js$/,
+    );
+    expect(manifest.entrypoints.stylesheet).toMatch(
+      /^studio-app-[a-zA-Z0-9]+\.css$/,
+    );
+    expect(manifest.assets[manifest.entrypoints.script]).toBe(
+      manifest.entrypoints.script,
+    );
+    expect(manifest.assets[manifest.entrypoints.stylesheet]).toBe(
+      manifest.entrypoints.stylesheet,
+    );
+    expect(manifest.assets["app.js"]).toBeUndefined();
+    expect(manifest.assets["app.css"]).toBeUndefined();
     expect(
       Object.keys(manifest.assets).some((asset) =>
         /^studio-chunks\/account-view-[A-Za-z0-9]+\.js$/.test(asset),

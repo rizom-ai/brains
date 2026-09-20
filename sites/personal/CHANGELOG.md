@@ -1,5 +1,80 @@
 # @brains/site-personal
 
+## 0.2.0-alpha.399
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.399
+  - @brains/blog@0.2.0-alpha.399
+  - @brains/site-info@0.2.0-alpha.399
+  - @brains/profile@0.2.0-alpha.399
+  - @brains/ui-library@0.2.0-alpha.399
+  - @brains/site-engine@0.2.0-alpha.399
+  - @brains/site-composition@0.2.0-alpha.399
+  - @brains/utils@0.2.0-alpha.399
+  - @brains/templates@0.2.0-alpha.399
+
+## 0.2.0-alpha.398
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.398
+  - @brains/site-info@0.2.0-alpha.398
+  - @brains/profile@0.2.0-alpha.398
+  - @brains/site-composition@0.2.0-alpha.398
+  - @brains/site-engine@0.2.0-alpha.398
+  - @brains/ui-library@0.2.0-alpha.398
+  - @brains/utils@0.2.0-alpha.398
+  - @brains/plugins@0.2.0-alpha.398
+  - @brains/templates@0.2.0-alpha.398
+
+## 0.2.0-alpha.397
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.397
+  - @brains/blog@0.2.0-alpha.397
+  - @brains/site-info@0.2.0-alpha.397
+  - @brains/profile@0.2.0-alpha.397
+  - @brains/ui-library@0.2.0-alpha.397
+  - @brains/site-engine@0.2.0-alpha.397
+  - @brains/site-composition@0.2.0-alpha.397
+  - @brains/utils@0.2.0-alpha.397
+  - @brains/templates@0.2.0-alpha.397
+
+## 0.2.0-alpha.396
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.396
+  - @brains/site-info@0.2.0-alpha.396
+  - @brains/profile@0.2.0-alpha.396
+  - @brains/site-composition@0.2.0-alpha.396
+  - @brains/site-engine@0.2.0-alpha.396
+  - @brains/ui-library@0.2.0-alpha.396
+  - @brains/utils@0.2.0-alpha.396
+  - @brains/plugins@0.2.0-alpha.396
+  - @brains/templates@0.2.0-alpha.396
+
+## 0.2.0-alpha.395
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/blog@0.2.0-alpha.395
+  - @brains/site-info@0.2.0-alpha.395
+  - @brains/profile@0.2.0-alpha.395
+  - @brains/site-engine@0.2.0-alpha.395
+  - @brains/plugins@0.2.0-alpha.395
+  - @brains/ui-library@0.2.0-alpha.395
+  - @brains/site-composition@0.2.0-alpha.395
+  - @brains/utils@0.2.0-alpha.395
+  - @brains/templates@0.2.0-alpha.395
+
 ## 0.2.0-alpha.394
 
 ### Patch Changes

@@ -1,5 +1,70 @@
 # @brains/content-service
 
+## 0.2.0-alpha.399
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/ai-service@0.2.0-alpha.399
+  - @brains/job-queue@0.2.0-alpha.399
+  - @brains/entity-service@0.2.0-alpha.399
+  - @brains/content-formatters@0.2.0-alpha.399
+  - @brains/contracts@0.2.0-alpha.399
+  - @brains/utils@0.2.0-alpha.399
+  - @brains/templates@0.2.0-alpha.399
+
+## 0.2.0-alpha.398
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.398
+  - @brains/contracts@0.2.0-alpha.398
+  - @brains/utils@0.2.0-alpha.398
+  - @brains/ai-service@0.2.0-alpha.398
+  - @brains/entity-service@0.2.0-alpha.398
+  - @brains/job-queue@0.2.0-alpha.398
+  - @brains/templates@0.2.0-alpha.398
+
+## 0.2.0-alpha.397
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/ai-service@0.2.0-alpha.397
+  - @brains/job-queue@0.2.0-alpha.397
+  - @brains/entity-service@0.2.0-alpha.397
+  - @brains/content-formatters@0.2.0-alpha.397
+  - @brains/contracts@0.2.0-alpha.397
+  - @brains/utils@0.2.0-alpha.397
+  - @brains/templates@0.2.0-alpha.397
+
+## 0.2.0-alpha.396
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.396
+  - @brains/contracts@0.2.0-alpha.396
+  - @brains/utils@0.2.0-alpha.396
+  - @brains/ai-service@0.2.0-alpha.396
+  - @brains/entity-service@0.2.0-alpha.396
+  - @brains/job-queue@0.2.0-alpha.396
+  - @brains/templates@0.2.0-alpha.396
+
+## 0.2.0-alpha.395
+
+### Patch Changes
+
+- Updated dependencies [[`5d0a6fa`](https://github.com/rizom-ai/brains/commit/5d0a6faf3dfc5b5adbda3038862e2c665194b762)]:
+  - @brains/entity-service@0.2.0-alpha.395
+  - @brains/ai-service@0.2.0-alpha.395
+  - @brains/content-formatters@0.2.0-alpha.395
+  - @brains/contracts@0.2.0-alpha.395
+  - @brains/utils@0.2.0-alpha.395
+  - @brains/job-queue@0.2.0-alpha.395
+  - @brains/templates@0.2.0-alpha.395
+
 ## 0.2.0-alpha.394
 
 ### Patch Changes

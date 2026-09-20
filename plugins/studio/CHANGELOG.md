@@ -1,5 +1,77 @@
 # @brains/studio
 
+## 0.2.0-alpha.399
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.399
+  - @brains/entity-service@0.2.0-alpha.399
+  - @brains/operator-view-react@0.2.0-alpha.399
+  - @brains/auth-service@0.2.0-alpha.399
+  - @brains/app-ui-react@0.2.0-alpha.399
+  - @brains/console-theme@0.2.0-alpha.399
+  - @brains/contracts@0.2.0-alpha.399
+  - @brains/utils@0.2.0-alpha.399
+
+## 0.2.0-alpha.398
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.398
+  - @brains/console-theme@0.2.0-alpha.398
+  - @brains/contracts@0.2.0-alpha.398
+  - @brains/operator-view-react@0.2.0-alpha.398
+  - @brains/utils@0.2.0-alpha.398
+  - @brains/auth-service@0.2.0-alpha.398
+  - @brains/entity-service@0.2.0-alpha.398
+  - @brains/plugins@0.2.0-alpha.398
+
+## 0.2.0-alpha.397
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.397
+  - @brains/entity-service@0.2.0-alpha.397
+  - @brains/operator-view-react@0.2.0-alpha.397
+  - @brains/auth-service@0.2.0-alpha.397
+  - @brains/app-ui-react@0.2.0-alpha.397
+  - @brains/console-theme@0.2.0-alpha.397
+  - @brains/contracts@0.2.0-alpha.397
+  - @brains/utils@0.2.0-alpha.397
+
+## 0.2.0-alpha.396
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.396
+  - @brains/console-theme@0.2.0-alpha.396
+  - @brains/contracts@0.2.0-alpha.396
+  - @brains/operator-view-react@0.2.0-alpha.396
+  - @brains/utils@0.2.0-alpha.396
+  - @brains/auth-service@0.2.0-alpha.396
+  - @brains/entity-service@0.2.0-alpha.396
+  - @brains/plugins@0.2.0-alpha.396
+
+## 0.2.0-alpha.395
+
+### Patch Changes
+
+- [#304](https://github.com/rizom-ai/brains/pull/304) [`18aec18`](https://github.com/rizom-ai/brains/commit/18aec1819582a18a5e4c7b5bb19393186e5a0d11) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Use manifest-selected, content-hashed Studio JavaScript and CSS entry URLs so browser caching cannot mask new releases. Keep authenticated shells uncached, serve immutable public assets only from the validated manifest, and offer explicit draft-loss confirmation rather than automatically reloading when an Account or Chat chunk cannot load.
+
+- Updated dependencies [[`5d0a6fa`](https://github.com/rizom-ai/brains/commit/5d0a6faf3dfc5b5adbda3038862e2c665194b762)]:
+  - @brains/entity-service@0.2.0-alpha.395
+  - @brains/plugins@0.2.0-alpha.395
+  - @brains/operator-view-react@0.2.0-alpha.395
+  - @brains/auth-service@0.2.0-alpha.395
+  - @brains/app-ui-react@0.2.0-alpha.395
+  - @brains/console-theme@0.2.0-alpha.395
+  - @brains/contracts@0.2.0-alpha.395
+  - @brains/utils@0.2.0-alpha.395
+
 ## 0.2.0-alpha.394
 
 ### Patch Changes

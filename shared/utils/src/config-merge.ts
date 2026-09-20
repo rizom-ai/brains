@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "./zod";
 
 const recordSchema = z.record(z.string(), z.unknown());
 
@@ -7,22 +7,23 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * Merge a brain.yaml override over a brain-model default.
+ * Merge explicit configuration over defaults before serialization or validation.
  *
- * A `null` in the override deletes the key rather than setting it to null,
- * which is how an instance turns off something its model switched on.
+ * Runtime resolution deletes keys overridden with null by default. Intermediate
+ * configuration documents preserve those markers for the runtime to apply.
  */
 export function deepMerge(
   base: Record<string, unknown>,
   override: Record<string, unknown>,
+  options: { nulls?: "delete" | "preserve" } = {},
 ): Record<string, unknown> {
   const result = { ...base };
   for (const key of Object.keys(override)) {
     const overrideVal = override[key];
-    if (overrideVal === null) {
+    if (overrideVal === null && options.nulls !== "preserve") {
       delete result[key];
     } else if (isPlainObject(result[key]) && isPlainObject(overrideVal)) {
-      result[key] = deepMerge(result[key], overrideVal);
+      result[key] = deepMerge(result[key], overrideVal, options);
     } else {
       result[key] = overrideVal;
     }

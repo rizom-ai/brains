@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { studioAssetManifestSchema, studioAssetPathSchema } from "./ui-assets";
 import {
   requireSameOriginJson,
   requireSameOriginRequest,
@@ -95,10 +96,13 @@ const uiAssetManifestFile = join(
   uiAssetDirectory,
   "studio-asset-manifest.json",
 );
-const studioAssetManifestSchema = z.object({
-  version: z.literal(1),
-  assets: z.record(z.string(), z.string()),
-});
+async function readStudioAssetManifest(): Promise<
+  z.output<typeof studioAssetManifestSchema>
+> {
+  return studioAssetManifestSchema.parse(
+    await Bun.file(uiAssetManifestFile).json(),
+  );
+}
 
 const workspaceActionPayloadSchema = z.object({
   id: z.string().trim().min(1),
@@ -121,56 +125,48 @@ const syncStatusMessageSchema = z.object({
 });
 
 function isSafeStudioAssetPath(value: string): boolean {
-  return (
-    value.length > 0 &&
-    !value.startsWith("/") &&
-    !value.includes("\\") &&
-    value
-      .split("/")
-      .every(
-        (segment) => segment !== "" && segment !== "." && segment !== "..",
-      ) &&
-    /^(?:app\.(?:js|css)|studio-app\.(?:js|css)|studio-app\.js\.map|studio-chunks\/[a-zA-Z0-9_-]+\.(?:js|js\.map))$/.test(
-      value,
-    )
-  );
+  return studioAssetPathSchema.safeParse(value).success;
 }
 
 async function serveStudioAsset(
   request: Request,
   assetPrefix: string,
 ): Promise<Response> {
+  const notFound = (): Response =>
+    new Response("Studio UI asset not found", {
+      status: 404,
+      headers: { "Cache-Control": "no-store" },
+    });
   const pathname = new URL(request.url).pathname;
   if (!pathname.startsWith(`${assetPrefix}/`)) {
-    return new Response("Studio UI asset not found", { status: 404 });
+    return notFound();
   }
 
   let publicPath: string;
   try {
     publicPath = decodeURIComponent(pathname.slice(assetPrefix.length + 1));
   } catch {
-    return new Response("Studio UI asset not found", { status: 404 });
+    return notFound();
   }
   if (!isSafeStudioAssetPath(publicPath)) {
-    return new Response("Studio UI asset not found", { status: 404 });
+    return notFound();
   }
 
   let manifest: z.output<typeof studioAssetManifestSchema>;
   try {
-    manifest = studioAssetManifestSchema.parse(
-      await Bun.file(uiAssetManifestFile).json(),
-    );
+    manifest = await readStudioAssetManifest();
   } catch {
-    return new Response("Studio editor UI assets not built", { status: 404 });
+    // Missing builds fail closed, without caching the temporary error.
+    return notFound();
   }
 
   const relativeFile = manifest.assets[publicPath];
   if (!relativeFile || !isSafeStudioAssetPath(relativeFile)) {
-    return new Response("Studio UI asset not found", { status: 404 });
+    return notFound();
   }
   const file = Bun.file(join(uiAssetDirectory, relativeFile));
   if (!(await file.exists())) {
-    return new Response("Studio UI asset not found", { status: 404 });
+    return notFound();
   }
   return new Response(file, {
     headers: {
@@ -179,7 +175,7 @@ async function serveStudioAsset(
         : relativeFile.endsWith(".css")
           ? "text/css; charset=utf-8"
           : "text/javascript; charset=utf-8",
-      "Cache-Control": "no-cache",
+      "Cache-Control": "public, max-age=31536000, immutable",
     },
   });
 }
@@ -203,8 +199,6 @@ export function createEditorRoutes(
   const normalizedBase = normalizeStudioBasePath(routePath);
   const shellPath = normalizedBase || "/";
   const assetPrefix = `${normalizedBase}/assets`;
-  const assetPath = `${assetPrefix}/app.js`;
-  const stylesheetPath = `${assetPrefix}/app.css`;
   const apiPath = (suffix: string): string => `${normalizedBase}/api/${suffix}`;
 
   const resolveRequestAccess = async (
@@ -277,10 +271,20 @@ export function createEditorRoutes(
       .map((route) => route.fullPath)
       .sort((left, right) => left.length - right.length)[0];
     const profileName = context.identity.getProfile().name.trim();
+    let manifest: z.output<typeof studioAssetManifestSchema>;
+    try {
+      manifest = await readStudioAssetManifest();
+    } catch {
+      // A missing or invalid build must not advertise stale or mutable assets.
+      return new Response("Studio editor UI assets not built", {
+        status: 503,
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
     return new Response(
       renderEditorShellHtml({
-        assetPath,
-        stylesheetPath,
+        assetPath: `${assetPrefix}/${manifest.entrypoints.script}`,
+        stylesheetPath: `${assetPrefix}/${manifest.entrypoints.stylesheet}`,
         basePath: shellPath,
         sessionHref: `/logout?return_to=${encodeURIComponent(returnTo)}`,
         dashboardHref: `${dashboardHref ?? "/dashboard"}?view=public`,
