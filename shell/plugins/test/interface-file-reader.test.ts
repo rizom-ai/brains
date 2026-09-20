@@ -8,6 +8,7 @@ import type {
   ICoreEntityService,
 } from "@brains/entity-service";
 import { createInterfacePluginContext, createMockShell } from "../test";
+import { createMessageInterfacePluginContext } from "../src/interface/context";
 import type { InterfacePluginContext } from "../src/interface/context";
 
 function unexpected(): never {
@@ -95,6 +96,61 @@ test("an existing interface context borrows through the provisioned owner until 
   expect(await pending).toBe(result);
   expect(active).toBe(false);
   expect(calls).toBe(1);
+});
+
+test("interface transports bind only outbound methods and observe late provisioning without changing owner identity", async () => {
+  const shell = createMockShell();
+  const context = createMessageInterfacePluginContext(shell, "chat");
+  expectTypeOf<keyof NonNullable<typeof context.fileTransfers>>().toEqualTypeOf<
+    "putHttp" | "postHttp"
+  >();
+  expect(context.fileTransfers).toBeUndefined();
+  const files = provision(unexpected);
+  const caller = new AbortController();
+  const options = { signal: caller.signal };
+  const request = {
+    sourceFile: file.sourceFile,
+    facts: { sizeBytes: file.sizeBytes, sha256: file.sha256 },
+    url: "http://127.0.0.1/upload",
+    headers: {},
+  };
+  const receipt = { ...request.facts, statusCode: 200 };
+  const entered = Promise.withResolvers<void>();
+  const release = Promise.withResolvers<void>();
+  files.postHttp = async function (
+    this: EntityFileAssets,
+    input,
+    receivedOptions,
+  ): Promise<typeof receipt> {
+    expect(this).toBe(files);
+    expect(input).toBe(request);
+    expect(receivedOptions).toBe(options);
+    entered.resolve();
+    await release.promise;
+    return receipt;
+  };
+  shell.getEntityService().fileAssets = files;
+  const send = context.fileTransfers?.postHttp;
+  assert.ok(send);
+  let settled = false;
+  const work = send(request, options).finally(() => {
+    settled = true;
+  });
+  try {
+    await Promise.race([entered.promise, work]);
+    caller.abort(new Error("late cancellation"));
+    expect(settled).toBe(false);
+  } finally {
+    release.resolve();
+  }
+  expect(await work).toBe(receipt);
+  const failure = new Error("remote outcome unknown");
+  files.putHttp = async (): Promise<never> => {
+    throw failure;
+  };
+  const put = context.fileTransfers.putHttp;
+  assert.ok(put);
+  await assert.rejects(put(request), (error: unknown) => error === failure);
 });
 
 test("interface loans propagate the exact consumer failure without replay", async () => {

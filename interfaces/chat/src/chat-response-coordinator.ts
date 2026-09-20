@@ -8,6 +8,7 @@ import {
   PendingApprovalTracker,
   parseConfirmationIntent,
   routeConfirmationResponse,
+  resolveArtifactEntityRefFromCard,
   type AgentResponse,
   type InterfacePluginContext,
   type JobProgressEvent,
@@ -31,6 +32,7 @@ import {
 } from "./chat-output";
 import type { ThreadRegistry } from "./thread-registry";
 import type { ChatThread } from "./types";
+import type { FileDeliveryAdapter } from "./file-delivery";
 
 const GENERIC_APPROVAL_TEXT =
   /^(?:(?:confirmation|approval) required|please confirm(?: this action)?)\.?$/i;
@@ -51,6 +53,9 @@ interface PendingJobArtifactDelivery {
 }
 
 interface ChatResponseCoordinatorDeps {
+  getFileDeliveryAdapter?: (
+    thread: ChatThread,
+  ) => FileDeliveryAdapter<unknown> | undefined;
   getContext: () => InterfacePluginContext | undefined;
   getDisplayBaseUrl: () => string | undefined;
   registerPromptAction: (
@@ -267,6 +272,7 @@ export class ChatResponseCoordinator {
       input.response.cards,
       input.userPermissionLevel,
       (artifactDelivery) => this.renderWithArtifacts(input, artifactDelivery),
+      this.deps.getFileDeliveryAdapter?.(input.thread),
     );
   }
 
@@ -274,16 +280,9 @@ export class ChatResponseCoordinator {
     input: RenderAgentResponseInput,
     artifactDelivery: ArtifactDelivery,
   ): Promise<void> {
-    const plan = buildResponsePlan(input.response, {
+    let plan = buildResponsePlan(input.response, {
       deniedCardIds: artifactDelivery.deniedCardIds,
     });
-    this.rememberPendingJobArtifacts(
-      plan,
-      input.channelId,
-      input.userPermissionLevel,
-      artifactDelivery.deliveredCardIds,
-      artifactDelivery.deniedCardIds,
-    );
     let resolvedNativeApproval = false;
     if (input.confirmation) {
       const display = formatConfirmationResult(
@@ -355,6 +354,24 @@ export class ChatResponseCoordinator {
           message,
           files: artifactDelivery.files,
         });
+    // The primary message is already acknowledged even if file delivery fails.
+    if (messageId) {
+      for (const jobId of plan.jobIds)
+        this.deps.trackAgentResponseForJob(jobId, messageId, input.channelId);
+    }
+    await artifactDelivery.sendFiles?.((cardId) =>
+      this.claimPendingArtifact(plan, input.channelId, cardId),
+    );
+    plan = buildResponsePlan(input.response, {
+      deniedCardIds: artifactDelivery.deniedCardIds,
+    });
+    this.rememberPendingJobArtifacts(
+      plan,
+      input.channelId,
+      input.userPermissionLevel,
+      artifactDelivery.deliveredCardIds,
+      artifactDelivery.deniedCardIds,
+    );
     const artifactMessageId = await this.sendArtifactCards(
       input.thread,
       plan,
@@ -377,7 +394,7 @@ export class ChatResponseCoordinator {
     }
 
     const progressMessageId = artifactMessageId ?? messageId;
-    if (progressMessageId) {
+    if (progressMessageId && progressMessageId !== messageId) {
       for (const jobId of plan.jobIds) {
         this.deps.trackAgentResponseForJob(
           jobId,
@@ -409,6 +426,7 @@ export class ChatResponseCoordinator {
           [delivery.card],
           delivery.userPermissionLevel,
           async (resolved): Promise<void> => {
+            await resolved.sendFiles?.();
             if (resolved.files.length === 0) return;
             const sent = await thread.post(
               thread.adapter.name === "slack"
@@ -420,6 +438,7 @@ export class ChatResponseCoordinator {
             );
             this.deps.threadRegistry.trackMessage(delivery.channelId, sent);
           },
+          this.deps.getFileDeliveryAdapter?.(thread),
         );
       } catch (error: unknown) {
         this.deps.logger.error("Failed to deliver completed chat artifact", {
@@ -429,6 +448,42 @@ export class ChatResponseCoordinator {
         });
       }
     }
+  }
+
+  private claimPendingArtifact(
+    plan: ResponsePlan,
+    channelId: string,
+    cardId: string,
+  ): void {
+    const directive = plan.directives.find(
+      (item) => item.kind === "artifact" && item.card.id === cardId,
+    );
+    if (directive?.kind !== "artifact" || !directive.card.jobId) return;
+    const jobId = directive.card.jobId;
+    const pending = this.pendingJobArtifacts.get(jobId);
+    if (!pending) return;
+    const ref = resolveArtifactEntityRefFromCard(
+      directive.card,
+      this.deps.getDisplayBaseUrl(),
+    );
+    const remaining = pending.filter((entry) => {
+      if (entry.channelId !== channelId) return true;
+      const candidate = resolveArtifactEntityRefFromCard(
+        entry.card,
+        this.deps.getDisplayBaseUrl(),
+      );
+      return (
+        entry.card.id !== cardId &&
+        !(
+          ref &&
+          ref.id === candidate?.id &&
+          ref.entityType === candidate.entityType
+        )
+      );
+    });
+    // Claim before a send: a later completion event must not retry uncertainty.
+    if (remaining.length) this.pendingJobArtifacts.set(jobId, remaining);
+    else this.pendingJobArtifacts.delete(jobId);
   }
 
   private rememberPendingJobArtifacts(

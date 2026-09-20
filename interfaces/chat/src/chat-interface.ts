@@ -28,6 +28,15 @@ import { ToolStatusMessenger } from "./tool-status-messenger";
 import { buildProgressCard } from "./chat-cards";
 import { chunkForChannel, parseChatPlatform } from "./chat-platform";
 import { ChatResponseCoordinator } from "./chat-response-coordinator";
+import type {
+  ArtifactDeliveryFile,
+  FileDeliveryAdapter,
+} from "./file-delivery";
+import {
+  createSlackFileDeliveryAdapter,
+  type SlackFileDeliveryReceipt,
+} from "./slack-file-delivery";
+import { createSlackFileMetadataApi } from "./slack-file-api";
 import { ChatUploadCoordinator } from "./chat-upload-coordinator";
 import { toPlatformPostOutput, type ChatCardOutput } from "./chat-output";
 import { DiscordGatewayLoop } from "./discord-gateway-loop";
@@ -83,6 +92,16 @@ export class ChatInterface extends MessageInterfacePlugin<
     logger: this.logger,
   });
   private readonly responseCoordinator = new ChatResponseCoordinator({
+    getFileDeliveryAdapter: (
+      thread,
+    ): FileDeliveryAdapter<SlackFileDeliveryReceipt> | undefined => {
+      if (thread.adapter.name !== "slack") return undefined;
+      const threadId = thread.id;
+      return {
+        deliver: (file, signal) =>
+          this.deliverSlackAsset(threadId, file, signal),
+      };
+    },
     getContext: (): InterfacePluginContext | undefined => this.context,
     getDisplayBaseUrl: (): string | undefined =>
       this.getPreferredDisplayBaseUrl(),
@@ -111,6 +130,33 @@ export class ChatInterface extends MessageInterfacePlugin<
     threadRegistry: this.threadRegistry,
     logger: this.logger,
   });
+  private async deliverSlackAsset(
+    threadId: string,
+    file: ArtifactDeliveryFile,
+    signal: AbortSignal,
+  ): Promise<SlackFileDeliveryReceipt> {
+    const transfers = this.context?.fileTransfers;
+    const token = this.config.adapters.slack?.botToken;
+    if (!transfers || !token)
+      throw new Error("Slack file delivery is not provisioned");
+    const parts = threadId.split(":");
+    if (
+      parts[0] !== "slack" ||
+      parts.length < 2 ||
+      parts.length > 3 ||
+      !parts[1]
+    )
+      throw new Error("Invalid Slack file delivery thread");
+    const metadata = createSlackFileMetadataApi(token, (url, options) =>
+      (this.deps.fetch ?? fetch)(url, options),
+    );
+    const adapter = createSlackFileDeliveryAdapter(
+      { channelId: parts[1], ...(parts[2] && { threadTs: parts[2] }) },
+      { ...metadata, postHttp: transfers.postHttp },
+    );
+    return adapter.deliver(file, signal);
+  }
+
   private readonly subscriptionRouter = new SubscriptionRouter({
     getSubscriptions: (
       platform: string,

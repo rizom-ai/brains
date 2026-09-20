@@ -34,6 +34,16 @@ import type { RegisteredHttpRoute } from "../types/http-routes";
 import { getHttpRouteSnapshot } from "@brains/plugins/internal/http-route-snapshot";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { ToolInfo } from "@brains/mcp-service";
+import type { EntityFileAssets } from "@brains/entity-service";
+
+/** Trusted outbound file I/O, separate from the read-only entity contract.
+ * Callers authorize the entity and retain its file loan through settlement.
+ * No publication, provisioning or owner-shutdown capability is exposed here.
+ */
+export type InterfaceFileTransfers = Pick<
+  EntityFileAssets,
+  "putHttp" | "postHttp"
+>;
 
 /**
  * Permissions namespace for InterfacePluginContext
@@ -131,6 +141,8 @@ export interface InterfacePluginContext
   // ============================================================================
   // Services
   // ============================================================================
+
+  readonly fileTransfers?: InterfaceFileTransfers | undefined;
 
   /** MCP transport for tool execution */
   readonly mcpTransport: IMCPTransport;
@@ -237,6 +249,15 @@ export function createInterfacePluginContext(
   return {
     ...baseContext,
 
+    get fileTransfers(): InterfaceFileTransfers | undefined {
+      const files = shell.getEntityService().fileAssets;
+      if (!files) return undefined;
+      return {
+        putHttp: (input, options) => files.putHttp(input, options),
+        postHttp: (input, options) => files.postHttp(input, options),
+      };
+    },
+
     mcpTransport,
 
     agent,
@@ -333,8 +354,16 @@ export function createMessageInterfacePluginContext(
   pluginId: string,
   registrationContext?: PluginRegistrationContext,
 ): MessageInterfacePluginContext {
+  const context = createInterfacePluginContext(
+    shell,
+    pluginId,
+    registrationContext,
+  );
   return {
-    ...createInterfacePluginContext(shell, pluginId, registrationContext),
+    ...context,
+    get fileTransfers(): InterfaceFileTransfers | undefined {
+      return context.fileTransfers;
+    },
     channels: createMessageInterfaceChannelsNamespace(shell, pluginId),
   };
 }

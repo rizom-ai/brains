@@ -9,6 +9,12 @@ import {
   type UserPermissionLevel,
 } from "@brains/plugins";
 import type { FileUpload } from "chat";
+import {
+  deliverArtifactFile,
+  AcknowledgedFileDeliveryError,
+  type FileDeliveryAdapter,
+  type FileDeliveryRequest,
+} from "./file-delivery";
 
 import { CHAT_NATIVE_ARTIFACT_MAX_BYTES } from "./artifact-limits";
 const NON_DELIVERABLE_ARTIFACT_STATUSES = new Set([
@@ -22,8 +28,15 @@ export interface ArtifactDelivery {
   files: FileUpload[];
   deniedCardIds: Set<string>;
   deliveredCardIds: Set<string>;
+  /** Invoke once after the primary message; the enclosing scope joins it. */
+  sendFiles?: (onAttempt?: (cardId: string) => void) => Promise<void>;
+}
+interface NativeArtifactRequest {
+  cardId: string;
+  request: FileDeliveryRequest;
 }
 interface ArtifactCardDelivery {
+  fileRequest?: FileDeliveryRequest;
   file?: FileUpload;
   denied?: boolean;
 }
@@ -55,11 +68,14 @@ export class ArtifactDeliveryResolver {
     cards: StructuredChatCard[] | undefined,
     userLevel: UserPermissionLevel,
     use: (delivery: ArtifactDelivery) => Promise<T>,
+    adapter?: FileDeliveryAdapter<unknown>,
   ): Promise<T> {
     const files: FileUpload[] = [];
     const deniedCardIds = new Set<string>();
     const deliveredCardIds = new Set<string>();
-    if (!cards || !this.deps.getContext()) {
+    const native: NativeArtifactRequest[] = [];
+    const context = this.deps.getContext();
+    if (!cards || !context) {
       return use({ files, deniedCardIds, deliveredCardIds });
     }
 
@@ -71,15 +87,20 @@ export class ArtifactDeliveryResolver {
       );
       if (!entityRef) continue;
 
-      const resolved = await this.resolveCard(card, entityRef, userLevel).catch(
-        (error: unknown) => {
-          this.deps.logger.debug("Failed to resolve chat artifact file", {
-            error,
-            cardId: card.id,
-          });
-          return undefined;
-        },
-      );
+      const resolved = await this.resolveCard(
+        card,
+        entityRef,
+        userLevel,
+        adapter !== undefined,
+      ).catch((error: unknown) => {
+        this.deps.logger.debug("Failed to resolve chat artifact file", {
+          error,
+          cardId: card.id,
+        });
+        return undefined;
+      });
+      if (resolved?.fileRequest)
+        native.push({ cardId: card.id, request: resolved.fileRequest });
       if (resolved?.denied) deniedCardIds.add(card.id);
       if (resolved?.file) {
         files.push(resolved.file);
@@ -88,13 +109,95 @@ export class ArtifactDeliveryResolver {
     }
     // A send failure is not a missing attachment. Keep consumption outside
     // optional-resolution catches and never retry the consumer.
-    return use({ files, deniedCardIds, deliveredCardIds });
+    const delivery = { files, deniedCardIds, deliveredCardIds };
+    if (!adapter || native.length === 0) return use(delivery);
+    return this.consumeNative(
+      delivery,
+      use,
+      async (signal, onAttempt): Promise<void> => {
+        // Serial independent loans preserve the existing runtime/actor budgets.
+        // Stop on the first uncertain result; never replay earlier acknowledgements.
+        for (const entry of native) {
+          signal.throwIfAborted();
+          onAttempt?.(entry.cardId);
+          try {
+            const result = await deliverArtifactFile(
+              { ...entry.request, signal },
+              context.entityService,
+              adapter,
+            );
+            if (result.status === "delivered")
+              deliveredCardIds.add(entry.cardId);
+            if (result.status === "denied") deniedCardIds.add(entry.cardId);
+          } catch (error) {
+            if (error instanceof AcknowledgedFileDeliveryError)
+              deliveredCardIds.add(entry.cardId);
+            throw error;
+          }
+        }
+      },
+    );
+  }
+
+  private async consumeNative<T>(
+    delivery: ArtifactDelivery,
+    use: (delivery: ArtifactDelivery) => Promise<T>,
+    send: (
+      signal: AbortSignal,
+      onAttempt?: (cardId: string) => void,
+    ) => Promise<void>,
+  ): Promise<T> {
+    const lifetime = new AbortController();
+    let open = true;
+    let entered = false;
+    let sent: Promise<void> | undefined;
+    const errors: unknown[] = [];
+    const remember = (error: unknown): void => {
+      if (!errors.includes(error)) errors.push(error);
+    };
+    delivery.sendFiles = (onAttempt): Promise<void> => {
+      if (!open || entered)
+        return Promise.reject(
+          new Error("Artifact sends are closed or already entered"),
+        );
+      entered = true;
+      sent = send(lifetime.signal, onAttempt);
+      // Observe immediately even if the consumer fails to await its send.
+      void sent.catch(remember);
+      return sent;
+    };
+    let outcome: { value: T } | undefined;
+    try {
+      outcome = { value: await use(delivery) };
+    } catch (error) {
+      remember(error);
+      lifetime.abort(error);
+    }
+    open = false;
+    if (sent) {
+      try {
+        await sent;
+      } catch (error) {
+        remember(error);
+      }
+    } else if (outcome)
+      remember(new Error("Artifact consumer did not enter file delivery"));
+    if (errors.length === 1) throw errors[0];
+    if (errors.length > 1)
+      throw new AggregateError(
+        errors,
+        "Artifact consumption and delivery failed",
+        { cause: errors[0] },
+      );
+    if (!outcome) throw new Error("Artifact consumer has no outcome");
+    return outcome.value;
   }
 
   private async resolveCard(
     card: Extract<StructuredChatCard, { kind: "attachment" }>,
     entityRef: NonNullable<ReturnType<typeof resolveArtifactEntityRefFromCard>>,
     userLevel: UserPermissionLevel,
+    fileDelivery: boolean,
   ): Promise<ArtifactCardDelivery> {
     const context = this.deps.getContext();
     if (!context) return {};
@@ -118,6 +221,18 @@ export class ArtifactDeliveryResolver {
     }
     if (typeof entity.content !== "string") return {};
     if (!canReceiveNativeArtifactFile(userLevel)) return {};
+
+    if (fileDelivery && entity.content.startsWith("asset:")) {
+      return {
+        fileRequest: {
+          entityRef,
+          userLevel,
+          ...(card.attachment.filename !== undefined && {
+            filename: card.attachment.filename,
+          }),
+        },
+      };
+    }
 
     const parsed = await resolveArtifactEntityData(
       entityRef.entityType,

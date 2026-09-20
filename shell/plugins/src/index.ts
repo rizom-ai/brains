@@ -220,6 +220,7 @@ export type {
 } from "@brains/runtime-state";
 export type {
   InterfacePluginContext,
+  InterfaceFileTransfers,
   MessageInterfacePluginContext,
   IPermissionsNamespace,
   IDaemonsNamespace,
