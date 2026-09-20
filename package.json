@@ -76,6 +76,8 @@
     "docs:manifest": "bun scripts/check-docs-manifest.ts",
     "env-schema:check": "bun scripts/sync-env-templates.ts --check",
     "env-schema:sync": "bun scripts/sync-env-templates.ts",
+    "deploy-scripts:check": "bun scripts/sync-deploy-scripts.ts --check",
+    "deploy-scripts:sync": "bun scripts/sync-deploy-scripts.ts",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,md}\"",
     "format:check:core": "bun scripts/format-release-lane.ts core",
