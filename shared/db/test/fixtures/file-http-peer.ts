@@ -1,5 +1,5 @@
 // Test-only receipt and actual-exit gates; no production imports this peer.
-import { fileHttpPutSchema } from "../../src/turso-worker/file-http-put";
+import { fileHttpUploadRequestSchema } from "../../src/turso-worker/file-http-upload";
 import { serializeError } from "../../src/turso-worker/error-protocol";
 let gate: string | undefined;
 process.on("message", (value: unknown) => {
@@ -7,7 +7,7 @@ process.on("message", (value: unknown) => {
     void Bun.write(`${gate}.cancelled`, "cancel requested");
     return;
   }
-  const input = fileHttpPutSchema.parse(value);
+  const { input, method } = fileHttpUploadRequestSchema.parse(value);
   gate = input.sourceFile;
   const path = gate;
   process.send?.({
@@ -17,7 +17,7 @@ process.on("message", (value: unknown) => {
     sidecarUrl: import.meta.url,
   });
   void (async (): Promise<void> => {
-    await Bun.write(`${path}.entered`, "entered");
+    await Bun.write(`${path}.entered`, method);
     while (!(await Bun.file(`${path}.receipt`).exists())) await Bun.sleep(5);
     const mode = new URL(input.url).pathname;
     if (mode === "/failure") {

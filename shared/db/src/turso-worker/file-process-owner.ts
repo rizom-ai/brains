@@ -8,18 +8,23 @@ import { errorSchema, deserializeError } from "./error-protocol";
 import { fileFetchSchema, type FileFetchInput } from "./file-fetch";
 import { fileProduceSchema, type FileProduceInput } from "./file-produce";
 import {
-  fileHttpPutSchema,
+  fileHttpUploadSchema,
   fileHttpStatusSchema,
-  type FileHttpPutInput,
-  type FileHttpPutResult,
-} from "./file-http-put";
+  type FileHttpUploadInput,
+  type FileHttpUploadResult,
+  type FileHttpUploadRequest,
+  type FileHttpMethod,
+} from "./file-http-upload";
 
 const httpDetailsSchema = z.strictObject({ statusCode: fileHttpStatusSchema });
 
 export type { FileUploadInput } from "./file-upload";
 export type { FileDownloadInput } from "./file-download";
 export type { BlobFacts } from "./blob-protocol";
-export type { FileHttpPutInput, FileHttpPutResult } from "./file-http-put";
+export type {
+  FileHttpUploadInput,
+  FileHttpUploadResult,
+} from "./file-http-upload";
 
 const detailsSchema = z
   .record(
@@ -268,17 +273,30 @@ export class FileProcessOwner {
   /** Single attempt. Cooperative cancellation still observes a submitted receipt;
    * slots remain charged until actual exit, even after terminal metadata.
    */
-  public async put(
-    input: FileHttpPutInput,
+  public put(
+    input: FileHttpUploadInput,
     signal?: AbortSignal,
-  ): Promise<FileHttpPutResult> {
+  ): Promise<FileHttpUploadResult> {
+    return this.uploadHttp(input, "PUT", signal);
+  }
+  public post(
+    input: FileHttpUploadInput,
+    signal?: AbortSignal,
+  ): Promise<FileHttpUploadResult> {
+    return this.uploadHttp(input, "POST", signal);
+  }
+  private async uploadHttp(
+    input: FileHttpUploadInput,
+    method: FileHttpMethod,
+    signal?: AbortSignal,
+  ): Promise<FileHttpUploadResult> {
     if (!this.httpUploadPath)
       throw new Error("HTTP upload actor is not provisioned");
-    const options = fileHttpPutSchema.parse(input);
+    const options = fileHttpUploadSchema.parse(input);
     const result = await this.run(
       this.httpUploadPath,
       "consumed",
-      options,
+      { method, input: options },
       options.facts.sizeBytes,
       options.facts.sha256,
       signal,
@@ -302,7 +320,7 @@ export class FileProcessOwner {
       | FileDownloadInput
       | FileFetchInput
       | FileProduceInput
-      | FileHttpPutInput,
+      | FileHttpUploadRequest,
     size: number | undefined,
     digest: string | undefined,
     signal?: AbortSignal,

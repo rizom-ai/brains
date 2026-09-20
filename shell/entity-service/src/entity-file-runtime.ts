@@ -13,8 +13,8 @@ import {
   FileProcessOwner,
   type FileProcessOwnerOptions,
   type FileInspectionResult,
-  type FileHttpPutInput,
-  type FileHttpPutResult,
+  type FileHttpUploadInput,
+  type FileHttpUploadResult,
 } from "@brains/db/file-process-owner";
 import type {
   EntityBinaryClient,
@@ -56,9 +56,9 @@ export interface EntityFileAssets extends EntityFileReader {
    * No redirect/retry or buffered fallback. Callers interpret the returned status.
    */
   putHttp(
-    input: FileHttpPutInput,
+    input: FileHttpUploadInput,
     options?: EntityBinaryRequestOptions,
-  ): Promise<FileHttpPutResult>;
+  ): Promise<FileHttpUploadResult>;
   /** Lend actor-produced output after actual Bun exit. Failed staging is retained.
    * Caller keeps the input directory alive through settlement and joins consumers.
    * The producer artifact is explicitly provisioned; no controller byte fallback.
@@ -243,9 +243,9 @@ export class EntityFileRuntime implements EntityFileAssets {
     );
   }
   public putHttp(
-    input: FileHttpPutInput,
+    input: FileHttpUploadInput,
     options?: EntityBinaryRequestOptions,
-  ): Promise<FileHttpPutResult> {
+  ): Promise<FileHttpUploadResult> {
     return this.run(
       (signal) => this.actors.put(input, signal),
       options?.signal,

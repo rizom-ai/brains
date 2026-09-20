@@ -4,7 +4,8 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { FileProcessOwner } from "../src/turso-worker/file-process-owner";
-import type { FileHttpPutInput } from "../src/turso-worker/file-http-put";
+import type { FileHttpUploadInput } from "../src/turso-worker/file-http-upload";
+const methods: ("put" | "post")[] = ["put", "post"];
 const peer = new URL("./fixtures/file-http-peer.ts", import.meta.url);
 function owner(): FileProcessOwner {
   return new FileProcessOwner({
@@ -14,7 +15,7 @@ function owner(): FileProcessOwner {
     httpUploadUrl: peer,
   });
 }
-function input(sourceFile: string, mode = "success"): FileHttpPutInput {
+function input(sourceFile: string, mode = "success"): FileHttpUploadInput {
   return {
     sourceFile,
     url: `http://127.0.0.1/${mode}`,
@@ -31,40 +32,46 @@ async function until(check: () => boolean | Promise<boolean>): Promise<void> {
   }
 }
 
-test("HTTP cancellation observes a late receipt and holds admission through actual exit", async () => {
-  const directory = await mkdtemp(join(tmpdir(), "turso-http-owner-"));
-  const gate = join(directory, "upload");
-  const files = owner();
-  const caller = new AbortController();
-  let settled = false;
-  const work = files.put(input(gate), caller.signal).finally(() => {
-    settled = true;
-  });
-  try {
-    await until(() => Bun.file(`${gate}.entered`).exists());
-    caller.abort(new Error("caller cancelled after submission"));
-    await until(() => Bun.file(`${gate}.cancelled`).exists());
-    expect(settled).toBe(false);
-    await Bun.write(`${gate}.receipt`, "acknowledge");
-    await until(() => files.stats().terminalChildren === 1);
-    expect(settled).toBe(false);
-    let closed = false;
-    const closing = files.close().then(() => {
-      closed = true;
+test.each(methods)(
+  "HTTP %s cancellation observes a late receipt and holds admission through actual exit",
+  async (method) => {
+    const directory = await mkdtemp(join(tmpdir(), "turso-http-owner-"));
+    const gate = join(directory, "upload");
+    const files = owner();
+    const caller = new AbortController();
+    let settled = false;
+    const work = files[method](input(gate), caller.signal).finally(() => {
+      settled = true;
     });
-    expect(closed).toBe(false);
-    expect(files.stats().children).toBe(1);
-    await Bun.write(`${gate}.exit`, "release");
-    expect(await work).toEqual({ ...input(gate).facts, statusCode: 201 });
-    await closing;
-    expect(files.stats().children).toBe(0);
-  } finally {
-    await Bun.write(`${gate}.receipt`, "release");
-    await Bun.write(`${gate}.exit`, "release");
-    await Promise.allSettled([work, files.close()]);
-  }
-  await rm(directory, { recursive: true });
-});
+    try {
+      await until(() => Bun.file(`${gate}.entered`).exists());
+      expect(await Bun.file(`${gate}.entered`).text()).toBe(
+        method.toUpperCase(),
+      );
+      caller.abort(new Error("caller cancelled after submission"));
+      await until(() => Bun.file(`${gate}.cancelled`).exists());
+      expect(settled).toBe(false);
+      await Bun.write(`${gate}.receipt`, "acknowledge");
+      await until(() => files.stats().terminalChildren === 1);
+      expect(settled).toBe(false);
+      let closed = false;
+      const closing = files.close().then(() => {
+        closed = true;
+      });
+      expect(closed).toBe(false);
+      expect(files.stats().children).toBe(1);
+      await Bun.write(`${gate}.exit`, "release");
+      expect(await work).toEqual({ ...input(gate).facts, statusCode: 201 });
+      await closing;
+      expect(files.stats().children).toBe(0);
+    } finally {
+      await Bun.write(`${gate}.receipt`, "release");
+      await Bun.write(`${gate}.exit`, "release");
+      await Promise.allSettled([work, files.close()]);
+    }
+    await rm(directory, { recursive: true });
+  },
+);
 
 test("cancellation after an HTTP receipt does not terminate or retract its actor outcome", async () => {
   const directory = await mkdtemp(
@@ -131,7 +138,9 @@ test("HTTP uploads share the two-child limit and shutdown observes outstanding r
   const directory = await mkdtemp(join(tmpdir(), "turso-http-owner-capacity-"));
   const gates = [join(directory, "first"), join(directory, "second")];
   const files = owner();
-  const work = gates.map((gate) => files.put(input(gate)));
+  const work = gates.map((gate, index) =>
+    index === 0 ? files.put(input(gate)) : files.post(input(gate)),
+  );
   try {
     await Promise.all(
       gates.map((gate) => until(() => Bun.file(`${gate}.entered`).exists())),
@@ -176,7 +185,7 @@ test("missing or malformed HTTP receipts fence reuse even after cancellation", a
     const gate = join(directory, "upload");
     const files = owner();
     const caller = new AbortController();
-    const work = files.put(input(gate, mode), caller.signal);
+    const work = files.post(input(gate, mode), caller.signal);
     const rejected = assert.rejects(work);
     try {
       await until(() => Bun.file(`${gate}.entered`).exists());
@@ -198,25 +207,31 @@ test("missing or malformed HTTP receipts fence reuse even after cancellation", a
   }
 });
 
-test("HTTP ownership requires provisioning and pre-aborts without admission", async () => {
-  const files = owner();
-  const missing = new FileProcessOwner({
-    executable: process.execPath,
-    uploadUrl: peer,
-    downloadUrl: peer,
-  });
-  const caller = new AbortController();
-  const primary = new Error("pre-abort");
-  caller.abort(primary);
-  try {
-    await assert.rejects(missing.put(input("/unused")), /not provisioned/);
-    await assert.rejects(
-      files.put(input("/unused"), caller.signal),
-      (error: unknown) => error === primary,
-    );
-    expect(files.stats().children).toBe(0);
-  } finally {
-    await files.close();
-    await missing.close();
-  }
-});
+test.each(methods)(
+  "HTTP %s ownership requires provisioning and pre-aborts without admission",
+  async (method) => {
+    const files = owner();
+    const missing = new FileProcessOwner({
+      executable: process.execPath,
+      uploadUrl: peer,
+      downloadUrl: peer,
+    });
+    const caller = new AbortController();
+    const primary = new Error("pre-abort");
+    caller.abort(primary);
+    try {
+      await assert.rejects(
+        missing[method](input("/unused")),
+        /not provisioned/,
+      );
+      await assert.rejects(
+        files[method](input("/unused"), caller.signal),
+        (error: unknown) => error === primary,
+      );
+      expect(files.stats().children).toBe(0);
+    } finally {
+      await files.close();
+      await missing.close();
+    }
+  },
+);

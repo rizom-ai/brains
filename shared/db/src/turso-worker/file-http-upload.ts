@@ -8,13 +8,18 @@ import { blobFactsSchema, type BlobFacts } from "./blob-protocol";
 import { STAGE_CHUNK_BYTES } from "./binary-protocol";
 import { withFileSource, type FileChunkSource } from "./file-source";
 
-export interface FileHttpPutInput {
+export interface FileHttpUploadInput {
   sourceFile: string;
   facts: BlobFacts;
   url: string;
   headers: Record<string, string>;
 }
-export interface FileHttpPutResult extends BlobFacts {
+export type FileHttpMethod = "PUT" | "POST";
+export interface FileHttpUploadRequest {
+  method: FileHttpMethod;
+  input: FileHttpUploadInput;
+}
+export interface FileHttpUploadResult extends BlobFacts {
   statusCode: number;
 }
 export const fileHttpStatusSchema: z.ZodNumber = z
@@ -31,76 +36,97 @@ const reservedHeaders = new Set([
   "expect",
   "upgrade",
 ]);
-export const fileHttpPutSchema: z.ZodType<FileHttpPutInput> = z.strictObject({
-  sourceFile: z
-    .string()
-    .min(1)
-    .max(4096)
-    .refine((path) => isAbsolute(path) && !path.includes("\0")),
-  facts: blobFactsSchema,
-  url: remoteUrlSchema,
-  headers: z
-    .record(
-      z
-        .string()
-        .min(1)
-        .max(64)
-        .regex(/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/),
-      z
-        .string()
-        .max(4096)
-        .refine((value) =>
-          [...value].every((character) => {
-            const code = character.charCodeAt(0);
-            return code === 9 || (code >= 32 && code !== 127 && code <= 255);
-          }),
-        ),
-    )
-    .refine((headers) => {
-      const entries = Object.entries(headers);
-      const names = entries.map(([name]) => name.toLowerCase());
-      return (
-        entries.length <= 16 &&
-        new Set(names).size === names.length &&
-        !names.some((name) => reservedHeaders.has(name)) &&
-        entries.reduce(
-          (size, [name, value]) => size + name.length + value.length,
-          0,
-        ) <= 8192
-      );
-    }, "HTTP upload headers exceed their bounds or override transport framing"),
-});
+export const fileHttpUploadSchema: z.ZodType<FileHttpUploadInput> =
+  z.strictObject({
+    sourceFile: z
+      .string()
+      .min(1)
+      .max(4096)
+      .refine((path) => isAbsolute(path) && !path.includes("\0")),
+    facts: blobFactsSchema,
+    url: remoteUrlSchema,
+    headers: z
+      .record(
+        z
+          .string()
+          .min(1)
+          .max(64)
+          .regex(/^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/),
+        z
+          .string()
+          .max(4096)
+          .refine((value) =>
+            [...value].every((character) => {
+              const code = character.charCodeAt(0);
+              return code === 9 || (code >= 32 && code !== 127 && code <= 255);
+            }),
+          ),
+      )
+      .refine((headers) => {
+        const entries = Object.entries(headers);
+        const names = entries.map(([name]) => name.toLowerCase());
+        return (
+          entries.length <= 16 &&
+          new Set(names).size === names.length &&
+          !names.some((name) => reservedHeaders.has(name)) &&
+          entries.reduce(
+            (size, [name, value]) => size + name.length + value.length,
+            0,
+          ) <= 8192
+        );
+      }, "HTTP upload headers exceed their bounds or override transport framing"),
+  });
 
-/** Actor-only, single-attempt HTTP(S) PUT. The caller admits the actor before
+export const fileHttpUploadRequestSchema: z.ZodType<FileHttpUploadRequest> =
+  z.strictObject({
+    method: z.enum(["PUT", "POST"]),
+    input: fileHttpUploadSchema,
+  });
+
+export function putFile(
+  input: FileHttpUploadInput,
+  signal?: AbortSignal,
+): Promise<FileHttpUploadResult> {
+  return uploadHttpFile({ method: "PUT", input }, signal);
+}
+export function postFile(
+  input: FileHttpUploadInput,
+  signal?: AbortSignal,
+): Promise<FileHttpUploadResult> {
+  return uploadHttpFile({ method: "POST", input }, signal);
+}
+
+/** Actor-only, single-attempt HTTP(S) PUT or POST. The caller admits the actor before
  * invocation and owns the file through settlement. One serial <=32 KiB write
  * credit; Node/TLS/kernel buffering and RSS are not established by this bound.
  * Status is metadata, not permission to replay: redirects are returned, never
  * followed. Private/loopback destinations remain reachable. Cancellation or a
  * digest failure cannot retract bytes already submitted to the remote server.
  */
-export async function putFile(
-  input: FileHttpPutInput,
+export async function uploadHttpFile(
+  input: FileHttpUploadRequest,
   signal?: AbortSignal,
-): Promise<FileHttpPutResult> {
+): Promise<FileHttpUploadResult> {
   signal?.throwIfAborted();
-  const options = fileHttpPutSchema.parse(input);
+  const { input: options, method } = fileHttpUploadRequestSchema.parse(input);
   return withFileSource(
     { path: options.sourceFile, sizeBytes: options.facts.sizeBytes },
-    (source) => transfer(options, source, signal),
+    (source) => transfer(options, source, method, signal),
   );
 }
 
 async function transfer(
-  options: FileHttpPutInput,
+  options: FileHttpUploadInput,
   source: FileChunkSource,
+  method: FileHttpMethod,
   signal?: AbortSignal,
-): Promise<FileHttpPutResult> {
+): Promise<FileHttpUploadResult> {
   signal?.throwIfAborted();
   const url = new URL(options.url);
   const request = (url.protocol === "https:" ? httpsRequest : httpRequest)(
     url,
     {
-      method: "PUT",
+      method,
       agent: false,
       headers: {
         ...options.headers,
@@ -120,7 +146,7 @@ async function transfer(
     if (!errors.includes(error)) errors.push(error);
   };
   let response: IncomingMessage | undefined;
-  let result: FileHttpPutResult | undefined;
+  let result: FileHttpUploadResult | undefined;
   const failed = (error: Error): void => {
     remember(error);
     interrupted.reject(error);

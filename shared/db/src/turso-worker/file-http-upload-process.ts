@@ -1,5 +1,8 @@
 // Bulk HTTP I/O and hashing belong in this actor, never the controller.
-import { fileHttpPutSchema, putFile } from "./file-http-put";
+import {
+  fileHttpUploadRequestSchema,
+  uploadHttpFile,
+} from "./file-http-upload";
 import { serializeError } from "./error-protocol";
 import { z } from "@brains/utils/zod";
 
@@ -34,8 +37,8 @@ process.on("message", (input: unknown) => {
     sidecarUrl: import.meta.url,
   });
   void (async (): Promise<void> => {
-    const result = await putFile(
-      fileHttpPutSchema.parse(input),
+    const result = await uploadHttpFile(
+      fileHttpUploadRequestSchema.parse(input),
       cancellation.signal,
     );
     // Do not retract an acknowledged receipt because cancellation arrived late.

@@ -498,7 +498,7 @@ plugins:
       import.meta.url,
     ),
     httpUploadUrl: new URL(
-      "../../shared/db/src/turso-worker/file-http-put-process.ts",
+      "../../shared/db/src/turso-worker/file-http-upload-process.ts",
       import.meta.url,
     ),
     inspectionUploadUrls: {
