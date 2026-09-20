@@ -29,6 +29,14 @@ export {
 } from "./entity-id-path";
 export { EntityRegistry } from "./entityRegistry";
 export {
+  entityGroupingSchema,
+  type EntityGrouping,
+  type QueryGroupingCatalogRequest,
+  type QueryGroupingMembersRequest,
+  type EntityGroupingCatalog,
+} from "./entity-grouping";
+export type { EntityGroupingMembers } from "./types";
+export {
   entityWriteConditionSchema,
   EntityWriteConflictError,
   type EntityWriteCondition,
@@ -208,6 +216,7 @@ export {
   type PublishBoundaryState,
 } from "./publish-policy";
 
+export { preserveSourceFrontmatter } from "./frontmatter-extensions";
 export {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,

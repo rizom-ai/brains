@@ -10,7 +10,14 @@ import type {
   RuntimeOperatorActionControl,
   RuntimeOperatorLaunchIntent,
   EntityIdPath,
+  EntityGrouping,
 } from "@brains/plugins";
+import { StudioGroupingView } from "./studio-groupings";
+import {
+  groupingQuery,
+  groupingSearch,
+  groupingReturnTarget,
+} from "./grouping-url-query";
 import type { AuthAccountRole } from "@brains/auth-service/account-contracts";
 import { isPlainRecord } from "@brains/utils/predicates";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -29,6 +36,7 @@ import {
 } from "react";
 import {
   studioCollectionPath,
+  studioGroupingPath,
   studioCreatePath,
   studioEntityPath,
   studioWorkspacePath,
@@ -151,6 +159,7 @@ function historyStateRecord(): Record<string, unknown> {
 
 const EMPTY_AGENT_TARGETS: AgentTarget[] = [];
 const EMPTY_WORKSPACES: StudioWorkspaceInfo[] = [];
+const EMPTY_GROUPINGS: EntityGrouping[] = [];
 const EMPTY_WORKSPACE_QUERY: StudioWorkspaceQuery = {};
 
 const ACCOUNT_ROLES: readonly AuthAccountRole[] = [
@@ -272,6 +281,17 @@ export function App(): ReactElement {
   const api = useStudioApi();
   const navigationQuery = useQuery(navigationQueryOptions(api));
   const types = navigationQuery.data?.types ?? null;
+  const groupings = navigationQuery.data?.groupings ?? EMPTY_GROUPINGS;
+  const activeGrouping =
+    routeTarget.kind === "grouping"
+      ? groupings.find((grouping) => grouping.key === routeTarget.grouping)
+      : undefined;
+  const groupQuery = useMemo(() => groupingQuery(routeSearch), [routeSearch]);
+  const groupReturn =
+    routeTarget.kind === "entity"
+      ? groupingReturnTarget(routeState, studioBasePath, groupings)
+      : null;
+  const groupReturnPath = groupReturn?.path;
   const activeType = types?.find((info) => info.entityType === entityType);
   const activeCapabilities = activeType?.capabilities;
   const entityCollectionQuery = useMemo(
@@ -463,6 +483,16 @@ export function App(): ReactElement {
       return;
     }
 
+    if (routeTarget.kind === "grouping") {
+      openRequestId.current += 1;
+      setActiveWorkspaceId(null);
+      setEntityType(null);
+      dispatchEditor({ type: "collectionChanged" });
+      if (!groupings.some((grouping) => grouping.key === routeTarget.grouping))
+        setLoadError("Collection unavailable for this account.");
+      return;
+    }
+
     if (routeTarget.kind === "workspace") {
       const workspace = workspaces.find(
         (entry) => entry.id === routeTarget.workspaceId,
@@ -520,6 +550,7 @@ export function App(): ReactElement {
     studioBasePath,
     types,
     workspaces,
+    groupings,
   ]);
 
   // After a save, poll the pipeline until the auto-commit lands. Every poll
@@ -546,6 +577,7 @@ export function App(): ReactElement {
     if (
       !entityType ||
       routeTarget.kind === "workspace" ||
+      routeTarget.kind === "grouping" ||
       routeTarget.kind === "not-found"
     ) {
       return;
@@ -619,11 +651,16 @@ export function App(): ReactElement {
               if (!active || requestId !== openRequestId.current) return;
               const document = createEditorDocument(entity);
               const pending = pendingOpenState.current;
+              const canonicalPath = studioEntityPath(
+                studioBasePath,
+                entityType,
+                routeEntityId,
+              );
               const nextSave: SaveState =
-                pending?.pathname === currentStudioPathname
+                pending?.pathname === canonicalPath
                   ? pending.save
                   : { kind: "idle" };
-              if (pending?.pathname === currentStudioPathname) {
+              if (pending?.pathname === canonicalPath) {
                 pendingOpenState.current = null;
               }
               dispatchEditor({
@@ -687,7 +724,11 @@ export function App(): ReactElement {
     (id: string, nextState: SaveState = { kind: "idle" }): void => {
       if (!entityType) return;
       const pathname = studioEntityPath(studioBasePath, entityType, id);
-      if (pathname !== currentStudioPathname) {
+      const sameEntity =
+        routeTarget.kind === "entity" &&
+        routeTarget.entityType === entityType &&
+        routeTarget.id === id;
+      if (!sameEntity) {
         pendingOpenState.current = { pathname, save: nextState };
         const collectionPath = `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`;
         const replaceCreation = createMode && nextState.kind === "saved";
@@ -734,6 +775,7 @@ export function App(): ReactElement {
     [
       studioBasePath,
       currentStudioPathname,
+      routeTarget,
       createMode,
       entityType,
       entityCollectionQuery,
@@ -945,6 +987,11 @@ export function App(): ReactElement {
   ]);
 
   const backToList = useCallback((): void => {
+    if (groupReturnPath) {
+      if (router.history.canGoBack()) router.history.back();
+      else router.history.replace(groupReturnPath);
+      return;
+    }
     if (!entityType) return;
     const collectionPath = `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`;
     const historyState: unknown = router.history.location.state;
@@ -959,7 +1006,13 @@ export function App(): ReactElement {
       return;
     }
     router.history.replace(collectionPath);
-  }, [studioBasePath, entityType, entityCollectionQuery, router.history]);
+  }, [
+    studioBasePath,
+    entityType,
+    entityCollectionQuery,
+    router.history,
+    groupReturnPath,
+  ]);
 
   const runFieldAssist = useCallback(
     (variant: FieldAssistVariant, field: string): void => {
@@ -1045,6 +1098,7 @@ export function App(): ReactElement {
     saveEntityMutation.mutate(input, {
       onSuccess: async (result) => {
         await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["studio", "groupings"] }),
           queryClient.invalidateQueries({
             queryKey: studioKeys.entities(entityType),
           }),
@@ -1124,6 +1178,9 @@ export function App(): ReactElement {
           });
           await Promise.all([
             queryClient.invalidateQueries({
+              queryKey: ["studio", "groupings"],
+            }),
+            queryClient.invalidateQueries({
               queryKey: studioKeys.entities(entityType),
             }),
             queryClient.invalidateQueries({
@@ -1134,7 +1191,8 @@ export function App(): ReactElement {
             }),
           ]);
           router.history.replace(
-            `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`,
+            groupReturnPath ??
+              `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`,
             undefined,
             { ignoreBlocker: true },
           );
@@ -1156,6 +1214,8 @@ export function App(): ReactElement {
     queryClient,
     deleteEntityMutation,
     router.history,
+    groupReturnPath,
+    entityCollectionQuery,
   ]);
 
   const performPublishingAction = useCallback(
@@ -1403,7 +1463,11 @@ export function App(): ReactElement {
   ) {
     return <StudioAppStatus message="Loading…" />;
   }
-  if (!activeWorkspaceId && (!entityType || (!schema && !visibleLoadError))) {
+  if (
+    !activeGrouping &&
+    !activeWorkspaceId &&
+    (!entityType || (!schema && !visibleLoadError))
+  ) {
     return (
       <StudioAppStatus
         message={
@@ -1420,6 +1484,38 @@ export function App(): ReactElement {
 
   return (
     <StudioAppView
+      groupings={{
+        items: groupings,
+        active: activeGrouping?.key ?? groupReturn?.grouping ?? null,
+        onSelect: (key) =>
+          router.history.push(studioGroupingPath(studioBasePath, key)),
+      }}
+      groupReturnLabel={groupReturn?.label}
+      groupingView={
+        activeGrouping ? (
+          <StudioGroupingView
+            grouping={activeGrouping}
+            types={types}
+            query={groupQuery}
+            onChange={(next) => {
+              const href = `${studioGroupingPath(studioBasePath, activeGrouping.key)}${groupingSearch(next)}`;
+              router.history[
+                next.value !== groupQuery.value ||
+                next.offset !== groupQuery.offset
+                  ? "push"
+                  : "replace"
+              ](href);
+            }}
+            onOpen={(nextType, id) => {
+              const pathname = studioEntityPath(studioBasePath, nextType, id);
+              pendingOpenState.current = { pathname, save: { kind: "idle" } };
+              router.history.push(pathname, {
+                studioGroupingPath: `${studioGroupingPath(studioBasePath, activeGrouping.key)}${groupingSearch(groupQuery)}`,
+              });
+            }}
+          />
+        ) : null
+      }
       activeWorkspaceId={activeWorkspaceId}
       types={types}
       workspaces={workspaces}

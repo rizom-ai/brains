@@ -1,5 +1,11 @@
 import type { AssetRef, AssetStat, AssetVerification } from "@brains/assets";
+import type {
+  QueryGroupingCatalogRequest,
+  QueryGroupingMembersRequest,
+  EntityGroupingCatalog,
+} from "./entity-grouping";
 import { SHELL_CHANNELS } from "@brains/contracts";
+import { reprojectGroupings } from "./grouping-reprojection";
 import type { Client } from "@libsql/client";
 import { applySqlitePragmas } from "@brains/db";
 import { createEntityDatabase, ensureFtsTable, type EntityDB } from "./db";
@@ -31,6 +37,7 @@ import type {
   ListEntitiesRequest,
   QueryEntityHierarchyRequest,
   EntityHierarchyPage,
+  EntityGroupingMembers,
   CountEntitiesRequest,
   DeleteEntityRequest,
   EntitySearchRequest,
@@ -110,6 +117,8 @@ export class EntityService implements IEntityService {
   // Assigned inside the constructor's try block: null until that succeeds, so
   // initialize() reports the failure instead of awaiting undefined.
   private dbInitPromise: Promise<void> | null = null;
+  private groupingReprojection: Promise<void> | undefined;
+  private groupingsReady = false;
   private entityRegistry: IEntityRegistry;
   private logger: Logger;
   private jobQueueService: IJobQueueService;
@@ -222,6 +231,7 @@ export class EntityService implements IEntityService {
       );
       this.entityQueries = new EntityQueries({
         db: this.db,
+        entityRegistry: this.entityRegistry,
         serializer: this.entitySerializer,
         logger: this.logger,
         embeddingDb: this.embeddingDb,
@@ -727,6 +737,40 @@ export class EntityService implements IEntityService {
     request.signal?.throwIfAborted();
     await this.initialize();
     return this.entityQueries.queryEntityHierarchy(request);
+  }
+
+  public areGroupingsReady(): boolean {
+    return this.groupingsReady;
+  }
+
+  public reprojectRegisteredGroupings(): Promise<void> {
+    if (this.groupingReprojection) return this.groupingReprojection;
+    this.groupingsReady = false;
+    this.groupingReprojection = this.initialize()
+      .then(() => reprojectGroupings(this.db, this.entityRegistry))
+      .then(() => {
+        this.groupingsReady = true;
+      })
+      .finally(() => {
+        this.groupingReprojection = undefined;
+      });
+    return this.groupingReprojection;
+  }
+
+  public async queryGroupingCatalog(
+    request: QueryGroupingCatalogRequest,
+  ): Promise<EntityGroupingCatalog> {
+    request.signal?.throwIfAborted();
+    await this.initialize();
+    return this.entityQueries.queryGroupingCatalog(request);
+  }
+
+  public async queryGroupingMembers(
+    request: QueryGroupingMembersRequest,
+  ): Promise<EntityGroupingMembers> {
+    request.signal?.throwIfAborted();
+    await this.initialize();
+    return this.entityQueries.queryGroupingMembers(request);
   }
 
   public async countEntities(request: CountEntitiesRequest): Promise<number> {

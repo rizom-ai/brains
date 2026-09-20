@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import type { GroupingNavigation } from "./grouping-url-query";
 import * as stylex from "@stylexjs/stylex";
 import { StudioSystemFields } from "./studio-system-fields";
 import { systemEditorCopy } from "./studio-system-presentation";
@@ -142,6 +143,9 @@ const MOBILE_EDITOR_PANES: readonly MobileEditorPane[] = [
 ];
 
 export interface StudioAppViewProps {
+  groupings?: GroupingNavigation | undefined;
+  groupingView?: ReactNode;
+  groupReturnLabel?: string | undefined;
   activeWorkspaceId: string | null;
   types: EntityTypeInfo[];
   workspaces: StudioWorkspaceInfo[];
@@ -379,8 +383,12 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
     entitySchema.hasBody,
   );
   const selectedEntityType = entityType ?? "";
+  const groupingFields = (props.groupings?.items ?? [])
+    .filter((grouping) => grouping.types.includes(selectedEntityType))
+    .map((grouping) => grouping.field);
   const systemDesign = systemEditorCopy(selectedEntityType);
-  const editing = !activeWorkspaceId && mode.kind !== "browse";
+  const editing =
+    !props.groupingView && !activeWorkspaceId && mode.kind !== "browse";
   const canCreate =
     activeType?.capabilities.canCreate === true &&
     (entityType !== "note" ||
@@ -510,15 +518,29 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
       )}
       data-studio-shell=""
       data-view={
-        activeWorkspaceId ? "workspace" : editing ? "editor" : "listing"
+        props.groupingView
+          ? "grouping"
+          : activeWorkspaceId
+            ? "workspace"
+            : editing
+              ? "editor"
+              : "listing"
       }
     >
       <StudioChrome
-        contextLabel={collectionLabel}
+        contextLabel={
+          props.groupReturnLabel ??
+          props.groupings?.items.find(
+            (grouping) => grouping.key === props.groupings?.active,
+          )?.label ??
+          collectionLabel
+        }
         navigation={{
+          groupings: props.groupings,
           types,
           workspaces,
-          activeEntityType: activeWorkspaceId ? null : entityType,
+          activeEntityType:
+            activeWorkspaceId || props.groupings?.active ? null : entityType,
           activeWorkspaceId,
           workspaceBadges,
           selectEntityType,
@@ -537,8 +559,11 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
         <aside className={navClass("rail", nav.rail)}>
           <TypeSwitcher
             renderMode="desktop"
+            groupings={props.groupings}
             types={types}
-            active={activeWorkspaceId ? null : entityType}
+            active={
+              activeWorkspaceId || props.groupings?.active ? null : entityType
+            }
             onSelect={selectEntityType}
             workspaces={workspaces}
             activeWorkspace={activeWorkspaceId}
@@ -546,25 +571,89 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
             onSelectWorkspace={selectWorkspace}
           />
         </aside>
-        {activeWorkspaceId ? (
-          workspaceError && !declarativeWorkspaceData ? (
-            <main className={workspaceClassName("")}>
-              <StudioStatus tone="error">
-                {workspaceError}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={props.onRetryRead}
-                >
-                  Retry
-                </Button>
-              </StudioStatus>
-            </main>
-          ) : declarativeWorkspaceData && declarativeHead ? (
-            <div className={workspaceClassName("studio-workspace-frame")}>
-              {workspaceError && (
+        {props.groupingView ??
+          (activeWorkspaceId ? (
+            workspaceError && !declarativeWorkspaceData ? (
+              <main className={workspaceClassName("")}>
                 <StudioStatus tone="error">
-                  Showing previously loaded content. {workspaceError}
+                  {workspaceError}
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={props.onRetryRead}
+                  >
+                    Retry
+                  </Button>
+                </StudioStatus>
+              </main>
+            ) : declarativeWorkspaceData && declarativeHead ? (
+              <div className={workspaceClassName("studio-workspace-frame")}>
+                {workspaceError && (
+                  <StudioStatus tone="error">
+                    Showing previously loaded content. {workspaceError}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={props.onRetryRead}
+                    >
+                      Retry
+                    </Button>
+                  </StudioStatus>
+                )}
+                <StudioPageHead
+                  model={declarativeHead}
+                  {...(declarativeHead.primaryAction
+                    ? {
+                        action: (
+                          <OperatorActionButton
+                            action={declarativeHead.primaryAction}
+                            primary
+                            onAction={performDeclarativeAction}
+                            components={STUDIO_OPERATOR_COMPONENTS}
+                          />
+                        ),
+                      }
+                    : {})}
+                />
+                <OperatorViewRenderer
+                  key={activeWorkspaceId}
+                  data={declarativeWorkspaceData}
+                  components={STUDIO_OPERATOR_COMPONENTS}
+                  renderHead={false}
+                  onOpenEntity={openWorkspaceEntity}
+                  onLaunch={openWorkspaceLaunch}
+                  onAction={performDeclarativeAction}
+                  query={workspaceQuery}
+                  {...(activeWorkspaceId
+                    ? {
+                        onQueryChange: (query: StudioWorkspaceQuery) =>
+                          onWorkspaceQueryChange(
+                            activeWorkspaceId,
+                            query,
+                            query,
+                          ),
+                      }
+                    : {})}
+                />
+              </div>
+            ) : null
+          ) : !editing ? (
+            <main
+              className={editorClass(
+                "",
+                library.listing,
+                headStyles.inset,
+                canCreate && hierarchy.withMobileBar,
+              )}
+              data-studio-library=""
+              aria-busy={entityListLoading}
+            >
+              {props.readError && (
+                <StudioStatus tone="error">
+                  {entities?.length
+                    ? "Showing previously loaded entries. "
+                    : ""}
+                  {props.readError}
                   <Button
                     type="button"
                     variant="ghost"
@@ -575,733 +664,708 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
                 </StudioStatus>
               )}
               <StudioPageHead
-                model={declarativeHead}
-                {...(declarativeHead.primaryAction
-                  ? {
-                      action: (
-                        <OperatorActionButton
-                          action={declarativeHead.primaryAction}
-                          primary
-                          onAction={performDeclarativeAction}
-                          components={STUDIO_OPERATOR_COMPONENTS}
-                        />
-                      ),
-                    }
-                  : {})}
+                model={listingHead}
+                action={
+                  (!systemDesign || canCreate) && (
+                    <Button
+                      type="button"
+                      disabled={!canCreate || !schema}
+                      data-studio-library-new=""
+                      xstyle={hierarchy.desktopCreateAction}
+                      onClick={startCreate}
+                    >
+                      New {entryLabel.toLowerCase()}
+                    </Button>
+                  )
+                }
               />
-              <OperatorViewRenderer
-                key={activeWorkspaceId}
-                data={declarativeWorkspaceData}
-                components={STUDIO_OPERATOR_COMPONENTS}
-                renderHead={false}
-                onOpenEntity={openWorkspaceEntity}
-                onLaunch={openWorkspaceLaunch}
-                onAction={performDeclarativeAction}
-                query={workspaceQuery}
-                {...(activeWorkspaceId
-                  ? {
-                      onQueryChange: (query: StudioWorkspaceQuery) =>
-                        onWorkspaceQueryChange(activeWorkspaceId, query, query),
-                    }
-                  : {})}
-              />
-            </div>
-          ) : null
-        ) : !editing ? (
-          <main
-            className={editorClass(
-              "",
-              library.listing,
-              headStyles.inset,
-              canCreate && hierarchy.withMobileBar,
-            )}
-            data-studio-library=""
-            aria-busy={entityListLoading}
-          >
-            {props.readError && (
-              <StudioStatus tone="error">
-                {entities?.length ? "Showing previously loaded entries. " : ""}
-                {props.readError}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={props.onRetryRead}
+              {systemDesign && (
+                <p
+                  data-studio-system-intro=""
+                  {...stylex.props(systemFieldStyles.collectionIntro)}
                 >
-                  Retry
-                </Button>
-              </StudioStatus>
-            )}
-            <StudioPageHead
-              model={listingHead}
-              action={
-                (!systemDesign || canCreate) && (
-                  <Button
-                    type="button"
-                    disabled={!canCreate || !schema}
-                    data-studio-library-new=""
-                    xstyle={hierarchy.desktopCreateAction}
-                    onClick={startCreate}
-                  >
-                    New {entryLabel.toLowerCase()}
-                  </Button>
-                )
-              }
-            />
-            {systemDesign && (
-              <p
-                data-studio-system-intro=""
-                {...stylex.props(systemFieldStyles.collectionIntro)}
-              >
-                {systemDesign.intro}
-              </p>
-            )}
-            <StudioFolderTrail
-              kind={hierarchyKind}
-              collectionLabel={collectionLabel}
-              collectionPath={props.collectionPath}
-              query={props.collectionQuery}
-              onNavigate={props.selectFolder}
-            />
-            {!entitySchema.isSingleton && (
-              <StudioCollectionControls
+                  {systemDesign.intro}
+                </p>
+              )}
+              <StudioFolderTrail
                 kind={hierarchyKind}
-                query={props.collectionQuery}
-                fields={entitySchema.fields}
-                total={entityTotal}
-                onChange={props.onCollectionQueryChange}
-              />
-            )}
-            {!entityListLoading && (
-              <StudioFolderRows
-                kind={hierarchyKind}
-                folders={props.folders}
+                collectionLabel={collectionLabel}
                 collectionPath={props.collectionPath}
                 query={props.collectionQuery}
                 onNavigate={props.selectFolder}
               />
-            )}
-            {props.folders.length > 0 && entityTotal > 0 && (
-              <div className={editorClass("", hierarchy.label)}>
-                <span>Entries here</span>
-                <span>{entityTotal}</span>
-              </div>
-            )}
-            {!entitySchema.isSingleton && entityTotal > 0 && (
-              <StudioCollectionPager
-                label={`${activeType?.label ?? "Entity"} pagination`}
-                offset={entityOffset}
-                count={Math.max(0, pageEnd - entityOffset)}
-                total={entityTotal}
-                loading={entityListLoading}
-                hasNext={entityOffset + entityLimit < entityTotal}
-                onPrevious={() =>
-                  changeEntityPage(Math.max(0, entityOffset - entityLimit))
-                }
-                onNext={() => changeEntityPage(entityOffset + entityLimit)}
-              />
-            )}
-            {entityListLoading && (
-              <StudioStatus className={editorClass("", library.empty)}>
-                Loading entries…
-              </StudioStatus>
-            )}
-            {!entityListLoading &&
-              (entities ?? []).map((entity, index) => (
-                <button
-                  type="button"
-                  key={entity.id}
-                  className={editorClass(
-                    "",
-                    library.row,
-                    editorStyles.listingRow,
-                    systemDesign && systemFieldStyles.collectionRow,
-                  )}
-                  data-studio-record=""
-                  onClick={() => openEntity(entity.id)}
-                >
-                  {!systemDesign && (
-                    <span className={editorClass("", library.index)}>
-                      {String(entityOffset + index + 1).padStart(2, "0")}
-                    </span>
-                  )}
-                  <span
-                    className={editorClass(
-                      "",
-                      library.title,
-                      systemDesign && systemFieldStyles.collectionTitle,
-                    )}
-                    title={entity.id}
-                  >
-                    {entityTitle(entity, entity.path?.at(-1))}
-                    {(props.collectionQuery.q ||
-                      props.collectionQuery.scope === "collection") &&
-                      entity.path &&
-                      entity.path.length > 1 && (
-                        <span className={editorClass("", hierarchy.context)}>
-                          {entity.path
-                            .slice(0, -1)
-                            .map(folderLabel)
-                            .join(" / ")}
-                        </span>
-                      )}
-                    {systemDesign && (
-                      <span {...stylex.props(systemFieldStyles.collectionMeta)}>
-                        {entryLabel} ·{" "}
-                        <time dateTime={entity.updated} title={entity.updated}>
-                          {formatUpdated(entity.updated)}
-                        </time>
-                      </span>
-                    )}
-                    {typeHasPublicationField(entitySchema.fields) && (
-                      <span
-                        className={editorClass(
-                          "studio-publication-state",
-                          editorStyles.publication,
-                        )}
-                      >
-                        {entityPublicationState(entity)}
-                      </span>
-                    )}
-                  </span>
-                  {systemDesign ? (
-                    <span aria-hidden="true">→</span>
-                  ) : (
-                    <time
-                      className={editorClass("", library.updated)}
-                      dateTime={entity.updated}
-                      title={entity.updated}
-                    >
-                      {formatUpdated(entity.updated)}
-                    </time>
-                  )}
-                </button>
-              ))}
-            {!props.readError &&
-              !entityListLoading &&
-              entities?.length === 0 &&
-              props.folders.length === 0 && (
+              {!entitySchema.isSingleton && (
+                <StudioCollectionControls
+                  kind={hierarchyKind}
+                  query={props.collectionQuery}
+                  fields={entitySchema.fields}
+                  total={entityTotal}
+                  onChange={props.onCollectionQueryChange}
+                />
+              )}
+              {!entityListLoading && (
+                <StudioFolderRows
+                  kind={hierarchyKind}
+                  folders={props.folders}
+                  collectionPath={props.collectionPath}
+                  query={props.collectionQuery}
+                  onNavigate={props.selectFolder}
+                />
+              )}
+              {props.folders.length > 0 && entityTotal > 0 && (
+                <div className={editorClass("", hierarchy.label)}>
+                  <span>Entries here</span>
+                  <span>{entityTotal}</span>
+                </div>
+              )}
+              {!entitySchema.isSingleton && entityTotal > 0 && (
+                <StudioCollectionPager
+                  label={`${activeType?.label ?? "Entity"} pagination`}
+                  offset={entityOffset}
+                  count={Math.max(0, pageEnd - entityOffset)}
+                  total={entityTotal}
+                  loading={entityListLoading}
+                  hasNext={entityOffset + entityLimit < entityTotal}
+                  onPrevious={() =>
+                    changeEntityPage(Math.max(0, entityOffset - entityLimit))
+                  }
+                  onNext={() => changeEntityPage(entityOffset + entityLimit)}
+                />
+              )}
+              {entityListLoading && (
                 <StudioStatus className={editorClass("", library.empty)}>
-                  {props.collectionQuery.q ||
-                  props.collectionQuery.status ||
-                  props.collectionQuery.visibility !== "all"
-                    ? "No entries match these filters. Clear or change the filters to try again."
-                    : canCreate
-                      ? "Nothing here yet — start the first entry."
-                      : "No entries are available in this collection."}
-                  {collectionFiltered &&
-                    props.collectionQuery.prefix &&
-                    props.collectionQuery.scope === "folder" && (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() =>
-                          props.onCollectionQueryChange({
-                            ...props.collectionQuery,
-                            scope: "collection",
-                            offset: 0,
-                          })
-                        }
-                      >
-                        Search whole collection
-                      </Button>
-                    )}
+                  Loading entries…
                 </StudioStatus>
               )}
-            {canCreate && (
-              <div
-                data-studio-folder-action
-                className={editorClass("", hierarchy.mobileBar)}
-              >
-                <span>
-                  Creating in <strong>{folderContext}</strong>
-                </span>
-                <Button type="button" onClick={startCreate} disabled={!schema}>
-                  New {entryLabel.toLowerCase()}
-                </Button>
-              </div>
-            )}
-          </main>
-        ) : (
-          <form
-            role="main"
-            aria-label="Document editor"
-            className={editorClass(
-              "",
-              layout.editor,
-              presentation !== "split" && contentLayout.editor,
-            )}
-            data-studio-editor=""
-            data-editor-presentation={presentation}
-            data-mobile-pane={presentation === "split" ? mobilePane : undefined}
-            onInvalidCapture={(event) => {
-              revealStudioProperties(event.currentTarget);
-              if (mobilePane === "details") return;
-              event.preventDefault();
-              const first = event.currentTarget.querySelector<
-                HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-              >("input:invalid, select:invalid, textarea:invalid");
-              if (event.target !== first) return;
-              setMobilePane("details");
-              requestAnimationFrame(() => {
-                if (first.isConnected) {
-                  first.focus();
-                  first.reportValidity();
-                }
-              });
-            }}
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (canEdit && !destinationBlocked && saveState.kind !== "saving")
-                save();
-            }}
-            onKeyDown={(event) => {
-              if (
-                (event.ctrlKey || event.metaKey) &&
-                !event.altKey &&
-                !event.shiftKey &&
-                event.key.toLowerCase() === "s"
-              ) {
-                if (
-                  event.target instanceof HTMLElement &&
-                  event.target.closest('[role="dialog"], [role="alertdialog"]')
-                )
-                  return;
-                event.preventDefault();
-                if (canEdit && saveState.kind !== "saving")
-                  event.currentTarget.requestSubmit();
-              }
-            }}
-          >
-            <StudioPageHead
-              model={editorHead}
-              appearance="document"
-              navigation={
-                !entitySchema.isSingleton ? (
+              {!entityListLoading &&
+                (entities ?? []).map((entity, index) => (
+                  <button
+                    type="button"
+                    key={entity.id}
+                    className={editorClass(
+                      "",
+                      library.row,
+                      editorStyles.listingRow,
+                      systemDesign && systemFieldStyles.collectionRow,
+                    )}
+                    data-studio-record=""
+                    onClick={() => openEntity(entity.id)}
+                  >
+                    {!systemDesign && (
+                      <span className={editorClass("", library.index)}>
+                        {String(entityOffset + index + 1).padStart(2, "0")}
+                      </span>
+                    )}
+                    <span
+                      className={editorClass(
+                        "",
+                        library.title,
+                        systemDesign && systemFieldStyles.collectionTitle,
+                      )}
+                      title={entity.id}
+                    >
+                      {entityTitle(entity, entity.path?.at(-1))}
+                      {(props.collectionQuery.q ||
+                        props.collectionQuery.scope === "collection") &&
+                        entity.path &&
+                        entity.path.length > 1 && (
+                          <span className={editorClass("", hierarchy.context)}>
+                            {entity.path
+                              .slice(0, -1)
+                              .map(folderLabel)
+                              .join(" / ")}
+                          </span>
+                        )}
+                      {systemDesign && (
+                        <span
+                          {...stylex.props(systemFieldStyles.collectionMeta)}
+                        >
+                          {entryLabel} ·{" "}
+                          <time
+                            dateTime={entity.updated}
+                            title={entity.updated}
+                          >
+                            {formatUpdated(entity.updated)}
+                          </time>
+                        </span>
+                      )}
+                      {typeHasPublicationField(entitySchema.fields) && (
+                        <span
+                          className={editorClass(
+                            "studio-publication-state",
+                            editorStyles.publication,
+                          )}
+                        >
+                          {entityPublicationState(entity)}
+                        </span>
+                      )}
+                    </span>
+                    {systemDesign ? (
+                      <span aria-hidden="true">→</span>
+                    ) : (
+                      <time
+                        className={editorClass("", library.updated)}
+                        dateTime={entity.updated}
+                        title={entity.updated}
+                      >
+                        {formatUpdated(entity.updated)}
+                      </time>
+                    )}
+                  </button>
+                ))}
+              {!props.readError &&
+                !entityListLoading &&
+                entities?.length === 0 &&
+                props.folders.length === 0 && (
+                  <StudioStatus className={editorClass("", library.empty)}>
+                    {props.collectionQuery.q ||
+                    props.collectionQuery.status ||
+                    props.collectionQuery.visibility !== "all"
+                      ? "No entries match these filters. Clear or change the filters to try again."
+                      : canCreate
+                        ? "Nothing here yet — start the first entry."
+                        : "No entries are available in this collection."}
+                    {collectionFiltered &&
+                      props.collectionQuery.prefix &&
+                      props.collectionQuery.scope === "folder" && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() =>
+                            props.onCollectionQueryChange({
+                              ...props.collectionQuery,
+                              scope: "collection",
+                              offset: 0,
+                            })
+                          }
+                        >
+                          Search whole collection
+                        </Button>
+                      )}
+                  </StudioStatus>
+                )}
+              {canCreate && (
+                <div
+                  data-studio-folder-action
+                  className={editorClass("", hierarchy.mobileBar)}
+                >
+                  <span>
+                    Creating in <strong>{folderContext}</strong>
+                  </span>
                   <Button
                     type="button"
-                    variant="ghost"
-                    onClick={backToList}
-                    aria-label={`Back to ${collectionLabel}`}
+                    onClick={startCreate}
+                    disabled={!schema}
                   >
-                    <span aria-hidden="true">←</span> Back to {collectionLabel}
+                    New {entryLabel.toLowerCase()}
                   </Button>
-                ) : undefined
-              }
-              action={
-                canEdit || presentation === "split" ? (
-                  <Button
-                    type="submit"
-                    className="studio-editor-head-save"
-                    variant={hasUnsavedChanges ? "default" : "outline"}
-                    title="Save changes (Ctrl+S or ⌘S)"
-                    aria-keyshortcuts="Control+s Meta+s"
-                    disabled={
-                      !canEdit ||
-                      destinationBlocked ||
-                      saveState.kind === "saving"
-                    }
-                  >
-                    {saveState.kind === "saving" ? "Saving…" : "Save changes"}
-                  </Button>
-                ) : undefined
-              }
-            />
-            <StudioCreationLayout
-              active={namedCreate}
-              split={presentation === "split"}
-            >
-              {namedCreate && (
-                <div
-                  className={editorClass(
-                    "",
-                    headStyles.inset,
-                    hierarchy.destinationFrame,
-                  )}
-                >
-                  <StudioFolderTrail
-                    kind={hierarchyKind}
-                    collectionLabel={collectionLabel}
-                    collectionPath={props.collectionPath}
-                    query={{
-                      ...props.collectionQuery,
-                      prefix: mode.prefix ?? null,
-                    }}
-                    onNavigate={props.selectFolder}
-                    fixed
-                  />
-                  <StudioDestination
-                    kind={hierarchyKind}
-                    segment={mode.segment ?? ""}
-                    onSegmentChange={(segment) =>
-                      dispatchEditor({ type: "segmentChanged", segment })
-                    }
-                    preview={props.creationDestination.data}
-                    pending={props.creationDestination.pending}
-                    error={props.creationDestination.error}
-                    issues={
-                      saveState.kind === "error" ? saveState.issues : undefined
-                    }
-                  />
                 </div>
               )}
-              {presentation === "split" && (
-                <div
-                  className={editorClass(
-                    "studio-mobile-tabs",
-                    editorStyles.mobileModes,
-                  )}
-                >
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        type="button"
-                        aria-label="Editor view"
-                        className={editorClass(
-                          "",
-                          editorStyles.paneTrigger,
-                          typographyStyles.eyebrow,
-                        )}
-                      >
-                        {mobilePane === "details"
-                          ? "Properties"
-                          : mobilePane === "write"
-                            ? "Source"
-                            : "Preview"}
-                        <span aria-hidden="true">⌄</span>
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start">
-                      {MOBILE_EDITOR_PANES.map((pane) => (
-                        <DropdownMenuItem
-                          key={pane}
-                          disabled={pane !== "details" && !entitySchema.hasBody}
-                          onSelect={() => {
-                            setMobilePane(pane);
-                            if (pane === "write") setBodyMode("source");
-                            if (pane === "preview") setBodyMode("preview");
-                          }}
+            </main>
+          ) : (
+            <form
+              role="main"
+              aria-label="Document editor"
+              className={editorClass(
+                "",
+                layout.editor,
+                presentation !== "split" && contentLayout.editor,
+              )}
+              data-studio-editor=""
+              data-editor-presentation={presentation}
+              data-mobile-pane={
+                presentation === "split" ? mobilePane : undefined
+              }
+              onInvalidCapture={(event) => {
+                revealStudioProperties(event.currentTarget);
+                if (mobilePane === "details") return;
+                event.preventDefault();
+                const first = event.currentTarget.querySelector<
+                  HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+                >("input:invalid, select:invalid, textarea:invalid");
+                if (event.target !== first) return;
+                setMobilePane("details");
+                requestAnimationFrame(() => {
+                  if (first.isConnected) {
+                    first.focus();
+                    first.reportValidity();
+                  }
+                });
+              }}
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (
+                  canEdit &&
+                  !destinationBlocked &&
+                  saveState.kind !== "saving"
+                )
+                  save();
+              }}
+              onKeyDown={(event) => {
+                if (
+                  (event.ctrlKey || event.metaKey) &&
+                  !event.altKey &&
+                  !event.shiftKey &&
+                  event.key.toLowerCase() === "s"
+                ) {
+                  if (
+                    event.target instanceof HTMLElement &&
+                    event.target.closest(
+                      '[role="dialog"], [role="alertdialog"]',
+                    )
+                  )
+                    return;
+                  event.preventDefault();
+                  if (canEdit && saveState.kind !== "saving")
+                    event.currentTarget.requestSubmit();
+                }
+              }}
+            >
+              <StudioPageHead
+                model={editorHead}
+                appearance="document"
+                navigation={
+                  !entitySchema.isSingleton ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={backToList}
+                      aria-label={`Back to ${props.groupReturnLabel ?? collectionLabel}`}
+                    >
+                      <span aria-hidden="true">←</span> Back to{" "}
+                      {props.groupReturnLabel ?? collectionLabel}
+                    </Button>
+                  ) : undefined
+                }
+                action={
+                  canEdit || presentation === "split" ? (
+                    <Button
+                      type="submit"
+                      className="studio-editor-head-save"
+                      variant={hasUnsavedChanges ? "default" : "outline"}
+                      title="Save changes (Ctrl+S or ⌘S)"
+                      aria-keyshortcuts="Control+s Meta+s"
+                      disabled={
+                        !canEdit ||
+                        destinationBlocked ||
+                        saveState.kind === "saving"
+                      }
+                    >
+                      {saveState.kind === "saving" ? "Saving…" : "Save changes"}
+                    </Button>
+                  ) : undefined
+                }
+              />
+              <StudioCreationLayout
+                active={namedCreate}
+                split={presentation === "split"}
+              >
+                {namedCreate && (
+                  <div
+                    className={editorClass(
+                      "",
+                      headStyles.inset,
+                      hierarchy.destinationFrame,
+                    )}
+                  >
+                    <StudioFolderTrail
+                      kind={hierarchyKind}
+                      collectionLabel={collectionLabel}
+                      collectionPath={props.collectionPath}
+                      query={{
+                        ...props.collectionQuery,
+                        prefix: mode.prefix ?? null,
+                      }}
+                      onNavigate={props.selectFolder}
+                      fixed
+                    />
+                    <StudioDestination
+                      kind={hierarchyKind}
+                      segment={mode.segment ?? ""}
+                      onSegmentChange={(segment) =>
+                        dispatchEditor({ type: "segmentChanged", segment })
+                      }
+                      preview={props.creationDestination.data}
+                      pending={props.creationDestination.pending}
+                      error={props.creationDestination.error}
+                      issues={
+                        saveState.kind === "error"
+                          ? saveState.issues
+                          : undefined
+                      }
+                    />
+                  </div>
+                )}
+                {presentation === "split" && (
+                  <div
+                    className={editorClass(
+                      "studio-mobile-tabs",
+                      editorStyles.mobileModes,
+                    )}
+                  >
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          aria-label="Editor view"
+                          className={editorClass(
+                            "",
+                            editorStyles.paneTrigger,
+                            typographyStyles.eyebrow,
+                          )}
                         >
-                          {pane === "details"
+                          {mobilePane === "details"
                             ? "Properties"
-                            : pane === "write"
+                            : mobilePane === "write"
                               ? "Source"
                               : "Preview"}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              )}
-              <StudioEditorContent presentation={presentation}>
-                {systemDesign && (
-                  <p
-                    data-studio-system-intro=""
-                    {...stylex.props(systemFieldStyles.intro)}
-                  >
-                    {systemDesign.intro}
-                  </p>
+                          <span aria-hidden="true">⌄</span>
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="start">
+                        {MOBILE_EDITOR_PANES.map((pane) => (
+                          <DropdownMenuItem
+                            key={pane}
+                            disabled={
+                              pane !== "details" && !entitySchema.hasBody
+                            }
+                            onSelect={() => {
+                              setMobilePane(pane);
+                              if (pane === "write") setBodyMode("source");
+                              if (pane === "preview") setBodyMode("preview");
+                            }}
+                          >
+                            {pane === "details"
+                              ? "Properties"
+                              : pane === "write"
+                                ? "Source"
+                                : "Preview"}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 )}
-                <StudioEditorProperties
-                  key={`${selectedEntityType}:${mode.kind === "edit" ? mode.entity.id : "create"}`}
-                  presentation={presentation}
-                  summaryDescription={
-                    systemDesign
-                      ? entitySchema.fields
-                          .slice(0, 3)
-                          .map((field) => field.label)
-                          .join(" · ")
-                      : undefined
-                  }
-                  reveal={
-                    (presentation === "document" && !editor.body.trim()) ||
-                    (fieldIssues?.length ?? 0) > 0
-                  }
-                >
-                  {presentation !== "document" && !systemDesign && (
-                    <div
-                      className={editorClass("", editorStyles.propertiesHead)}
+                <StudioEditorContent presentation={presentation}>
+                  {systemDesign && (
+                    <p
+                      data-studio-system-intro=""
+                      {...stylex.props(systemFieldStyles.intro)}
                     >
-                      <h2
-                        className={editorClass(
-                          "",
-                          editorStyles.propertiesLabel,
-                          typographyStyles.eyebrow,
-                        )}
+                      {systemDesign.intro}
+                    </p>
+                  )}
+                  <StudioEditorProperties
+                    key={`${selectedEntityType}:${mode.kind === "edit" ? mode.entity.id : "create"}`}
+                    presentation={presentation}
+                    summaryDescription={
+                      systemDesign
+                        ? entitySchema.fields
+                            .slice(0, 3)
+                            .map((field) => field.label)
+                            .join(" · ")
+                        : undefined
+                    }
+                    reveal={
+                      (presentation === "document" && !editor.body.trim()) ||
+                      (fieldIssues?.length ?? 0) > 0
+                    }
+                  >
+                    {presentation !== "document" && !systemDesign && (
+                      <div
+                        className={editorClass("", editorStyles.propertiesHead)}
                       >
-                        Properties
-                      </h2>
-                      {mode.kind === "create" || publicationState ? (
-                        <span
+                        <h2
                           className={editorClass(
                             "",
                             editorStyles.propertiesLabel,
                             typographyStyles.eyebrow,
                           )}
                         >
-                          {mode.kind === "create" ? "New" : publicationState}
-                        </span>
-                      ) : null}
-                    </div>
-                  )}
-                  <fieldset
-                    className={editorClass("", layout.fields)}
-                    disabled={!canEdit}
-                  >
-                    {systemDesign ? (
-                      <StudioSystemFields
-                        fields={entitySchema.fields}
-                        draft={draft}
-                        title={
-                          presentation === "document"
-                            ? ""
-                            : systemDesign.fieldsTitle
-                        }
-                        readOnly={!canEdit}
-                        issues={fieldIssues}
-                        onChange={(descriptor, raw) =>
-                          dispatchEditor({
-                            type: "fieldChanged",
-                            descriptor,
-                            raw,
-                          })
-                        }
-                        renderAssist={
-                          canAssist &&
-                          entitySchema.hasBody &&
-                          body.trim().length > 0
-                            ? (descriptor): ReactElement => (
-                                <FieldAssistControls
-                                  descriptor={descriptor}
-                                  state={fieldAssistState}
-                                  onRun={runFieldAssist}
-                                  onApply={applyFieldAssist}
-                                  onDiscard={() =>
-                                    setFieldAssistState({ kind: "idle" })
-                                  }
-                                />
-                              )
-                            : undefined
-                        }
-                      />
-                    ) : (
-                      entitySchema.fields
-                        .filter((descriptor) =>
-                          isFieldVisible(descriptor, draft),
-                        )
-                        .map((descriptor) => (
-                          <div
-                            key={`${selectedEntityType}:${mode.kind === "edit" ? mode.entity.id : "create"}:${descriptor.name}`}
-                            data-studio-field-assist=""
-                          >
-                            <Field
-                              descriptor={descriptor}
-                              issues={fieldIssues}
-                              value={draft[descriptor.name]}
-                              onChange={(raw) =>
-                                dispatchEditor({
-                                  type: "fieldChanged",
-                                  descriptor,
-                                  raw,
-                                })
-                              }
-                            />
-                            {canAssist &&
-                              entitySchema.hasBody &&
-                              body.trim().length > 0 && (
-                                <FieldAssistControls
-                                  descriptor={descriptor}
-                                  state={fieldAssistState}
-                                  onRun={runFieldAssist}
-                                  onApply={applyFieldAssist}
-                                  onDiscard={() =>
-                                    setFieldAssistState({ kind: "idle" })
-                                  }
-                                />
-                              )}
-                          </div>
-                        ))
-                    )}
-                    {entitySchema.format === "raw" && (
-                      <StudioStatus>
-                        This type is raw markdown — the whole document is the
-                        body.
-                      </StudioStatus>
-                    )}
-                  </fieldset>
-                  {publicationWorkspace &&
-                    mode.kind === "edit" &&
-                    canPublish && (
-                      <PublicationActions
-                        entityType={selectedEntityType}
-                        entityId={mode.entity.id}
-                        title={entityTitle(mode.entity)}
-                        status={
-                          typeof mode.entity.frontmatter["status"] === "string"
-                            ? mode.entity.frontmatter["status"]
-                            : "draft"
-                        }
-                        unsaved={hasUnsavedChanges}
-                        onAction={performPublishingAction}
-                      />
-                    )}
-                </StudioEditorProperties>
-                {entitySchema.hasBody && (
-                  <section
-                    className={editorClass(
-                      "",
-                      layout.manuscript,
-                      presentation !== "split" && contentLayout.manuscript,
-                    )}
-                  >
-                    {systemDesign && (
-                      <header {...stylex.props(systemFieldStyles.bodyHeading)}>
-                        <h2
-                          {...stylex.props(typographyStyles.secondaryDisplay)}
-                        >
-                          {systemDesign.bodyTitle}
+                          Properties
                         </h2>
-                        <p {...stylex.props(systemFieldStyles.description)}>
-                          {systemDesign.bodyDescription}
-                        </p>
-                      </header>
+                        {mode.kind === "create" || publicationState ? (
+                          <span
+                            className={editorClass(
+                              "",
+                              editorStyles.propertiesLabel,
+                              typographyStyles.eyebrow,
+                            )}
+                          >
+                            {mode.kind === "create" ? "New" : publicationState}
+                          </span>
+                        ) : null}
+                      </div>
                     )}
-                    <BodyEditor
-                      value={body}
-                      mode={bodyMode}
-                      singlePane={presentation !== "split"}
-                      onChange={(nextBody) =>
-                        dispatchEditor({ type: "bodyChanged", body: nextBody })
-                      }
-                      onModeChange={setBodyMode}
-                      readOnly={!canEdit}
-                      {...(mode.kind === "edit" && canAssist
-                        ? {
-                            assist: {
-                              entityType: selectedEntityType,
-                              entityId: mode.entity.id,
-                              agents: agentTargets,
-                            },
-                          }
-                        : {})}
-                    />
-                  </section>
-                )}
-              </StudioEditorContent>
-            </StudioCreationLayout>
-            <footer
-              className={editorClass(
-                "",
-                editorStyles.pipeline,
-                layout.pipeline,
-              )}
-              data-studio-save-bar=""
-            >
-              <div>
-                <span
-                  role="status"
-                  aria-live="polite"
-                  title="Saved means stored in this Brain. File export and Git synchronization are separate."
-                >
-                  {!canEdit && presentation !== "split"
-                    ? "Read-only"
-                    : editorSaveLabel(saveState, hasUnsavedChanges)}
-                </span>
-                {props.readError && (
-                  <StudioStatus tone="error">
-                    Your draft is unchanged. {props.readError}
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={props.onRetryRead}
+                    <fieldset
+                      className={editorClass("", layout.fields)}
+                      disabled={!canEdit}
                     >
-                      Retry
-                    </Button>
-                  </StudioStatus>
-                )}
-                {syncStatus?.directorySync && (
-                  <details>
-                    <summary>Sync details</summary>
-                    <PipelineStations
-                      view={derivePipeline({
-                        save: saveState,
-                        git: syncStatus.git,
-                        baselineCommit,
-                      })}
-                      gitConfigured={syncStatus.git !== null}
-                    />
-                  </details>
-                )}
-                <SaveStateNotice
-                  // The strip already narrates a successful save; the text
-                  // notice stays for conflicts, errors, and no-op saves
-                  // (which the strip cannot distinguish from a real write).
-                  state={
-                    syncStatus?.directorySync &&
-                    saveState.kind === "saved" &&
-                    !saveState.noop
-                      ? { kind: "idle" }
-                      : saveState
-                  }
-                  conflictActions={
-                    mode.kind === "edit" ? (
-                      <StudioConflictRecovery
-                        key={`${mode.entity.entityType}:${mode.entity.id}`}
-                        entity={mode.entity}
-                        draft={draft}
-                        body={body}
-                        onUseLatest={(entity) =>
+                      {systemDesign ? (
+                        <StudioSystemFields
+                          literalFields={groupingFields}
+                          fields={entitySchema.fields}
+                          draft={draft}
+                          title={
+                            presentation === "document"
+                              ? ""
+                              : systemDesign.fieldsTitle
+                          }
+                          readOnly={!canEdit}
+                          issues={fieldIssues}
+                          onChange={(descriptor, raw) =>
+                            dispatchEditor({
+                              type: "fieldChanged",
+                              descriptor,
+                              raw,
+                            })
+                          }
+                          renderAssist={
+                            canAssist &&
+                            entitySchema.hasBody &&
+                            body.trim().length > 0
+                              ? (descriptor): ReactElement => (
+                                  <FieldAssistControls
+                                    descriptor={descriptor}
+                                    state={fieldAssistState}
+                                    onRun={runFieldAssist}
+                                    onApply={applyFieldAssist}
+                                    onDiscard={() =>
+                                      setFieldAssistState({ kind: "idle" })
+                                    }
+                                  />
+                                )
+                              : undefined
+                          }
+                        />
+                      ) : (
+                        entitySchema.fields
+                          .filter((descriptor) =>
+                            isFieldVisible(descriptor, draft),
+                          )
+                          .map((descriptor) => (
+                            <div
+                              key={`${selectedEntityType}:${mode.kind === "edit" ? mode.entity.id : "create"}:${descriptor.name}`}
+                              data-studio-field-assist=""
+                            >
+                              <Field
+                                literalList={groupingFields.includes(
+                                  descriptor.name,
+                                )}
+                                descriptor={descriptor}
+                                issues={fieldIssues}
+                                value={draft[descriptor.name]}
+                                onChange={(raw) =>
+                                  dispatchEditor({
+                                    type: "fieldChanged",
+                                    descriptor,
+                                    raw,
+                                  })
+                                }
+                              />
+                              {canAssist &&
+                                entitySchema.hasBody &&
+                                body.trim().length > 0 && (
+                                  <FieldAssistControls
+                                    descriptor={descriptor}
+                                    state={fieldAssistState}
+                                    onRun={runFieldAssist}
+                                    onApply={applyFieldAssist}
+                                    onDiscard={() =>
+                                      setFieldAssistState({ kind: "idle" })
+                                    }
+                                  />
+                                )}
+                            </div>
+                          ))
+                      )}
+                      {entitySchema.format === "raw" && (
+                        <StudioStatus>
+                          This type is raw markdown — the whole document is the
+                          body.
+                        </StudioStatus>
+                      )}
+                    </fieldset>
+                    {publicationWorkspace &&
+                      mode.kind === "edit" &&
+                      canPublish && (
+                        <PublicationActions
+                          entityType={selectedEntityType}
+                          entityId={mode.entity.id}
+                          title={entityTitle(mode.entity)}
+                          status={
+                            typeof mode.entity.frontmatter["status"] ===
+                            "string"
+                              ? mode.entity.frontmatter["status"]
+                              : "draft"
+                          }
+                          unsaved={hasUnsavedChanges}
+                          onAction={performPublishingAction}
+                        />
+                      )}
+                  </StudioEditorProperties>
+                  {entitySchema.hasBody && (
+                    <section
+                      className={editorClass(
+                        "",
+                        layout.manuscript,
+                        presentation !== "split" && contentLayout.manuscript,
+                      )}
+                    >
+                      {systemDesign && (
+                        <header
+                          {...stylex.props(systemFieldStyles.bodyHeading)}
+                        >
+                          <h2
+                            {...stylex.props(typographyStyles.secondaryDisplay)}
+                          >
+                            {systemDesign.bodyTitle}
+                          </h2>
+                          <p {...stylex.props(systemFieldStyles.description)}>
+                            {systemDesign.bodyDescription}
+                          </p>
+                        </header>
+                      )}
+                      <BodyEditor
+                        value={body}
+                        mode={bodyMode}
+                        singlePane={presentation !== "split"}
+                        onChange={(nextBody) =>
                           dispatchEditor({
-                            type: "documentOpened",
-                            document: createEditorDocument(entity),
+                            type: "bodyChanged",
+                            body: nextBody,
                           })
                         }
+                        onModeChange={setBodyMode}
+                        readOnly={!canEdit}
+                        {...(mode.kind === "edit" && canAssist
+                          ? {
+                              assist: {
+                                entityType: selectedEntityType,
+                                entityId: mode.entity.id,
+                                agents: agentTargets,
+                              },
+                            }
+                          : {})}
                       />
-                    ) : undefined
-                  }
-                />
-              </div>
-              <span className={editorClass("", layout.spacer)} />
-              {mode.kind === "edit" &&
-                !entitySchema.isSingleton &&
-                canDelete && (
-                  <>
-                    <span className={editorClass("", layout.desktop)}>
+                    </section>
+                  )}
+                </StudioEditorContent>
+              </StudioCreationLayout>
+              <footer
+                className={editorClass(
+                  "",
+                  editorStyles.pipeline,
+                  layout.pipeline,
+                )}
+                data-studio-save-bar=""
+              >
+                <div>
+                  <span
+                    role="status"
+                    aria-live="polite"
+                    title="Saved means stored in this Brain. File export and Git synchronization are separate."
+                  >
+                    {!canEdit && presentation !== "split"
+                      ? "Read-only"
+                      : editorSaveLabel(saveState, hasUnsavedChanges)}
+                  </span>
+                  {props.readError && (
+                    <StudioStatus tone="error">
+                      Your draft is unchanged. {props.readError}
                       <Button
                         type="button"
-                        variant="danger"
-                        xstyle={layout.danger}
-                        onClick={() =>
-                          dispatchEditor({ type: "deleteRequested" })
-                        }
+                        variant="ghost"
+                        onClick={props.onRetryRead}
                       >
-                        Delete
+                        Retry
                       </Button>
-                    </span>
-                    <span className={editorClass("", layout.more)}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          className={buttonClassName("ghost", "icon")}
-                          aria-label="More document actions"
+                    </StudioStatus>
+                  )}
+                  {syncStatus?.directorySync && (
+                    <details>
+                      <summary>Sync details</summary>
+                      <PipelineStations
+                        view={derivePipeline({
+                          save: saveState,
+                          git: syncStatus.git,
+                          baselineCommit,
+                        })}
+                        gitConfigured={syncStatus.git !== null}
+                      />
+                    </details>
+                  )}
+                  <SaveStateNotice
+                    // The strip already narrates a successful save; the text
+                    // notice stays for conflicts, errors, and no-op saves
+                    // (which the strip cannot distinguish from a real write).
+                    state={
+                      syncStatus?.directorySync &&
+                      saveState.kind === "saved" &&
+                      !saveState.noop
+                        ? { kind: "idle" }
+                        : saveState
+                    }
+                    conflictActions={
+                      mode.kind === "edit" ? (
+                        <StudioConflictRecovery
+                          key={`${mode.entity.entityType}:${mode.entity.id}`}
+                          entity={mode.entity}
+                          draft={draft}
+                          body={body}
+                          onUseLatest={(entity) =>
+                            dispatchEditor({
+                              type: "documentOpened",
+                              document: createEditorDocument(entity),
+                            })
+                          }
+                        />
+                      ) : undefined
+                    }
+                  />
+                </div>
+                <span className={editorClass("", layout.spacer)} />
+                {mode.kind === "edit" &&
+                  !entitySchema.isSingleton &&
+                  canDelete && (
+                    <>
+                      <span className={editorClass("", layout.desktop)}>
+                        <Button
+                          type="button"
+                          variant="danger"
+                          xstyle={layout.danger}
+                          onClick={() =>
+                            dispatchEditor({ type: "deleteRequested" })
+                          }
                         >
-                          •••
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            variant="destructive"
-                            onSelect={() =>
-                              dispatchEditor({ type: "deleteRequested" })
-                            }
+                          Delete
+                        </Button>
+                      </span>
+                      <span className={editorClass("", layout.more)}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger
+                            className={buttonClassName("ghost", "icon")}
+                            aria-label="More document actions"
                           >
-                            Delete entry
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </span>
-                  </>
-                )}
-            </footer>
-          </form>
-        )}
+                            •••
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onSelect={() =>
+                                dispatchEditor({ type: "deleteRequested" })
+                              }
+                            >
+                              Delete entry
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </span>
+                    </>
+                  )}
+              </footer>
+            </form>
+          ))}
       </div>
       {deleteOpen && mode.kind === "edit" && canDelete && (
         <DeleteDialog

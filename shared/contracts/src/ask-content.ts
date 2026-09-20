@@ -1,4 +1,4 @@
-import { parseMarkdown } from "@brains/utils/markdown";
+import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
 
 /** Authored presentation only. Never permissions, policy, prompts or model instructions. */

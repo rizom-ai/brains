@@ -3,7 +3,12 @@ import type {
   UserPermissionLevel,
   EntityIdPath,
   EntityIdPathInput,
+  EntityGrouping,
 } from "@brains/plugins";
+import {
+  studioGroupingQuerySchema,
+  type StudioGroupingQuery,
+} from "../../src/grouping-query";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import {
   studioCollectionQuerySchema,
@@ -56,6 +61,7 @@ export interface StudioWorkspaceInfo {
 }
 
 export interface StudioNavigation {
+  groupings: EntityGrouping[];
   types: EntityTypeInfo[];
   workspaces: StudioWorkspaceInfo[];
 }
@@ -191,14 +197,34 @@ export interface ValidationIssue {
   message: string;
 }
 
+export type GroupingPage =
+  | {
+      kind: "catalog";
+      values: Array<{ value: string; count: number }>;
+      total: number;
+    }
+  | { kind: "members"; entities: EntitySummary[]; total: number };
+
 export class ApiError extends Error {
   readonly status: number;
   readonly issues: ValidationIssue[];
+  readonly code: string | undefined;
+  readonly retryAfterMs: number | undefined;
 
-  constructor(status: number, message: string, issues: ValidationIssue[] = []) {
+  constructor(
+    status: number,
+    message: string,
+    issues: ValidationIssue[] = [],
+    details: {
+      code?: string | undefined;
+      retryAfterMs?: number | undefined;
+    } = {},
+  ) {
     super(message);
     this.status = status;
     this.issues = issues;
+    this.code = details.code;
+    this.retryAfterMs = details.retryAfterMs;
   }
 }
 
@@ -211,9 +237,10 @@ export function studioApiPath(suffix: string, routePath: string): string {
 function apiErrorPayload(payload: unknown): {
   error: string | undefined;
   issues: ValidationIssue[];
+  code: string | undefined;
 } {
   if (typeof payload !== "object" || payload === null) {
-    return { error: undefined, issues: [] };
+    return { error: undefined, issues: [], code: undefined };
   }
   const error =
     "error" in payload && typeof payload.error === "string"
@@ -229,7 +256,14 @@ function apiErrorPayload(payload: unknown): {
             typeof issue.message === "string",
         )
       : [];
-  return { error, issues };
+  return {
+    error,
+    issues,
+    code:
+      "code" in payload && typeof payload.code === "string"
+        ? payload.code
+        : undefined,
+  };
 }
 
 export type FieldAssistResponse =
@@ -284,6 +318,12 @@ export class StudioApi {
         response.status,
         details.error ?? response.statusText,
         details.issues,
+        {
+          code: details.code,
+          retryAfterMs: response.headers.has("Retry-After")
+            ? Number(response.headers.get("Retry-After")) * 1000
+            : undefined,
+        },
       );
     }
     return payload;
@@ -293,8 +333,42 @@ export class StudioApi {
     const response = await this.requestJson<{
       types: EntityTypeInfo[];
       workspaces?: StudioWorkspaceInfo[];
+      groupings: EntityGrouping[];
     }>(this.path("types"));
-    return { types: response.types, workspaces: response.workspaces ?? [] };
+    return {
+      types: response.types,
+      workspaces: response.workspaces ?? [],
+      groupings: response.groupings,
+    };
+  }
+
+  async fetchGrouping(
+    grouping: string,
+    query: StudioGroupingQuery,
+    signal: AbortSignal,
+  ): Promise<GroupingPage> {
+    const input = studioGroupingQuerySchema.parse(query);
+    const params = new URLSearchParams({
+      grouping,
+      offset: String(input.offset),
+      limit: String(input.limit),
+    });
+    if (input.type) params.set("type", input.type);
+    if (input.value === null) {
+      const result = await this.requestJson<{
+        values: Array<{ value: string; count: number }>;
+        total: number;
+      }>(this.path(`groups/catalog?${params}`), { signal });
+      return { kind: "catalog", values: result.values, total: result.total };
+    }
+    params.set("value", input.value);
+    params.set("q", input.q);
+    params.set("sort", input.sort);
+    const result = await this.requestJson<{
+      entities: EntitySummary[];
+      total: number;
+    }>(this.path(`groups/members?${params}`), { signal });
+    return { kind: "members", entities: result.entities, total: result.total };
   }
 
   async fetchTypes(): Promise<EntityTypeInfo[]> {

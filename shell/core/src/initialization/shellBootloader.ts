@@ -250,6 +250,7 @@ export class ShellBootloader {
 
       const backfillResult =
         await this.services.entityService.backfillMissingEmbeddings();
+      await this.services.entityService.reprojectRegisteredGroupings();
       this.services.logger.debug("Queued missing embedding backfill jobs", {
         queued: backfillResult.queued,
         skipped: backfillResult.skipped,

@@ -1,6 +1,8 @@
 /** @jsxImportSource react */
+import type { GroupingNavigation } from "./grouping-url-query";
 import * as stylex from "@stylexjs/stylex";
 import { fieldStyles as f } from "./studio-fields.styles";
+import { groupingValueLabel } from "./grouping-value";
 import { typographyStyles } from "./studio-typography.styles";
 import { StudioStatus } from "./studio-status";
 import {
@@ -224,10 +226,15 @@ interface MobileNavigationGroupModel {
 
 const MOBILE_TYPE_PREFIX = "type:";
 const MOBILE_WORKSPACE_PREFIX = "workspace:";
+const MOBILE_GROUPING_PREFIX = "group:";
 
 export function studioMobileSelection(
   value: string,
-): { kind: "type" | "workspace"; id: string } | null {
+): { kind: "type" | "workspace" | "grouping"; id: string } | null {
+  if (value.startsWith(MOBILE_GROUPING_PREFIX)) {
+    const id = value.slice(MOBILE_GROUPING_PREFIX.length);
+    return id ? { kind: "grouping", id } : null;
+  }
   if (value.startsWith(MOBILE_TYPE_PREFIX)) {
     const id = value.slice(MOBILE_TYPE_PREFIX.length);
     return id.length > 0 ? { kind: "type", id } : null;
@@ -399,6 +406,7 @@ export function StudioBrowseDestinations(props: {
 }
 
 export function TypeSwitcher(props: {
+  groupings?: GroupingNavigation | undefined;
   types: EntityTypeInfo[];
   active: string | null;
   onSelect: (entityType: string) => void;
@@ -442,8 +450,12 @@ export function TypeSwitcher(props: {
     })),
     ...groups.filter((group) => group.label === "Site"),
   ].filter((group) => group.types.length > 0);
-  const currentArea = studioArea(props.active, props.activeWorkspace ?? null);
-  const destination = props.activeWorkspace ?? props.active;
+  const currentArea = props.groupings?.active
+    ? "library"
+    : studioArea(props.active, props.activeWorkspace ?? null);
+  const destination = props.groupings?.active
+    ? `${MOBILE_GROUPING_PREFIX}${props.groupings.active}`
+    : (props.activeWorkspace ?? props.active);
   // Browsing does not navigate or discard drafts. A changed destination,
   // including Back/Forward, restores its owning area.
   const [browsingArea, setBrowsingArea] = useState<StudioArea | null>(null);
@@ -522,9 +534,15 @@ export function TypeSwitcher(props: {
     {
       area: "library",
       label: "Library",
-      options: primaryTypeGroups.flatMap((group) =>
-        group.types.map(mobileTypeOption),
-      ),
+      options: [
+        ...primaryTypeGroups.flatMap((group) =>
+          group.types.map(mobileTypeOption),
+        ),
+        ...(props.groupings?.items ?? []).map((grouping) => ({
+          value: `${MOBILE_GROUPING_PREFIX}${grouping.key}`,
+          label: grouping.label,
+        })),
+      ],
     },
     ...(operationWorkspaces.length > 0
       ? [
@@ -557,15 +575,21 @@ export function TypeSwitcher(props: {
       ),
     },
   ];
-  const activeMobileView = props.active
-    ? `${MOBILE_TYPE_PREFIX}${props.active}`
-    : props.activeWorkspace
-      ? `${MOBILE_WORKSPACE_PREFIX}${props.activeWorkspace}`
-      : "";
+  const activeMobileView = props.groupings?.active
+    ? `${MOBILE_GROUPING_PREFIX}${props.groupings.active}`
+    : props.active
+      ? `${MOBILE_TYPE_PREFIX}${props.active}`
+      : props.activeWorkspace
+        ? `${MOBILE_WORKSPACE_PREFIX}${props.activeWorkspace}`
+        : "";
   const [mobileFilter, setMobileFilter] = useState("");
   const [browseOpen, setBrowseOpen] = useState(false);
   const selectMobileView = (value: string): void => {
     const selection = studioMobileSelection(value);
+    if (selection?.kind === "grouping") {
+      props.groupings?.onSelect(selection.id);
+      return;
+    }
     if (selection?.kind === "type") {
       props.onSelect(selection.id);
       return;
@@ -676,7 +700,9 @@ export function TypeSwitcher(props: {
       id: "library",
       index: "02",
       label: "Library",
-      available: primaryTypeGroups.length > 0,
+      available:
+        primaryTypeGroups.length > 0 ||
+        (props.groupings?.items.length ?? 0) > 0,
     },
     {
       id: "work",
@@ -923,9 +949,53 @@ export function TypeSwitcher(props: {
                 </h2>
               </header>
               <div className={navClass("studio-leaf-scroll", nav.leafScroll)}>
-                {activeArea === "library"
-                  ? primaryTypeGroups.map(renderGroup)
-                  : null}
+                {activeArea === "library" ? (
+                  <>
+                    {primaryTypeGroups.map(renderGroup)}
+                    {(props.groupings?.items.length ?? 0) > 0 && (
+                      <section
+                        className={navClass("studio-leaf-group", nav.leafGroup)}
+                      >
+                        <div
+                          className={navClass(
+                            "studio-leaf-label",
+                            nav.leafLabel,
+                            typographyStyles.eyebrow,
+                          )}
+                        >
+                          Groupings
+                        </div>
+                        <ul className={navClass("", nav.list)}>
+                          {props.groupings?.items.map((grouping) => (
+                            <li key={grouping.key}>
+                              <button
+                                type="button"
+                                className={navClass(
+                                  grouping.key === props.groupings?.active
+                                    ? "studio-leaf-link active"
+                                    : "studio-leaf-link",
+                                  nav.leafLink,
+                                  grouping.key === props.groupings?.active &&
+                                    nav.leafActive,
+                                )}
+                                aria-current={
+                                  grouping.key === props.groupings?.active
+                                    ? "page"
+                                    : undefined
+                                }
+                                onClick={() =>
+                                  props.groupings?.onSelect(grouping.key)
+                                }
+                              >
+                                {grouping.label}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    )}
+                  </>
+                ) : null}
                 {activeArea === "work" && operationWorkspaces.length > 0 ? (
                   <section
                     className={navClass("studio-leaf-group", nav.leafGroup)}
@@ -1092,13 +1162,16 @@ function StringListField(props: {
   descriptor: FieldDescriptor;
   value: unknown;
   onChange: (raw: string[]) => void;
+  literalList?: boolean | undefined;
 }): ReactElement {
   const [pending, setPending] = useState("");
+  const helpId = useId();
+  const literal = props.literalList === true;
   const values = Array.isArray(props.value)
     ? props.value.filter((item): item is string => typeof item === "string")
     : [];
   const add = (): void => {
-    const next = pending.trim();
+    const next = literal ? pending : pending.trim();
     if (next && !values.includes(next)) props.onChange([...values, next]);
     setPending("");
   };
@@ -1107,18 +1180,18 @@ function StringListField(props: {
     <div {...stylex.props(f.field)} data-studio-field="tags">
       <span {...stylex.props(f.label)}>
         {props.descriptor.label}
-        <em {...stylex.props(f.kind)}>tags</em>
+        <em {...stylex.props(f.kind)}>{literal ? "values" : "tags"}</em>
       </span>
       <div {...stylex.props(f.tags)}>
         {values.map((value) => (
           <span {...stylex.props(f.tag)} key={value}>
-            {value}
+            {literal ? groupingValueLabel(value) : value}
             <Button
               type="button"
               variant="ghost"
               size="icon-xs"
               xstyle={f.tagButton}
-              aria-label={`Remove ${value}`}
+              aria-label={`Remove ${literal ? groupingValueLabel(value) : value}`}
               onClick={() =>
                 props.onChange(values.filter((item) => item !== value))
               }
@@ -1129,14 +1202,16 @@ function StringListField(props: {
         ))}
         <span {...stylex.props(f.tag, f.tagAdd)}>
           <Input
-            xstyle={f.tagInput}
+            xstyle={[f.tagInput, literal && f.literalInput]}
             type="text"
             value={pending}
-            aria-label={`Add ${props.descriptor.label.toLowerCase()} tag`}
-            placeholder="Add tag"
+            aria-label={`Add ${props.descriptor.label.toLowerCase()} ${literal ? "value" : "tag"}`}
+            aria-describedby={literal ? helpId : undefined}
+            placeholder={literal ? "Add value" : "Add tag"}
             onChange={(event) => setPending(event.currentTarget.value)}
             onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === ",") {
+              if (literal && event.nativeEvent.isComposing) return;
+              if (event.key === "Enter" || (!literal && event.key === ",")) {
                 event.preventDefault();
                 add();
               }
@@ -1147,13 +1222,26 @@ function StringListField(props: {
             variant="ghost"
             size="icon-xs"
             xstyle={f.tagButton}
-            aria-label="Add tag"
+            aria-label={literal ? "Add value" : "Add tag"}
             onClick={add}
           >
             +
           </Button>
         </span>
       </div>
+      {literal && (
+        <span id={helpId} {...stylex.props(f.listHelp)}>
+          Enter or + adds one value. Commas and spaces are literal.
+          {(pending !== pending.trim() ||
+            values.some((value) => value !== value.trim())) && (
+            <strong>
+              {" "}
+              Surrounding whitespace is preserved and creates a different
+              collection.
+            </strong>
+          )}
+        </span>
+      )}
     </div>
   );
 }
@@ -1254,6 +1342,7 @@ export function FieldAssistControls(props: {
 }
 
 export function Field(props: {
+  literalList?: boolean | undefined;
   descriptor: FieldDescriptor;
   value: unknown;
   onChange: (raw: unknown) => void;
@@ -1292,6 +1381,7 @@ export function Field(props: {
       }
     >
       <FieldControl
+        literalList={props.literalList}
         descriptor={props.descriptor}
         value={props.value}
         onChange={props.onChange}
@@ -1315,6 +1405,7 @@ export function Field(props: {
 }
 
 function FieldControl(props: {
+  literalList?: boolean | undefined;
   descriptor: FieldDescriptor;
   value: unknown;
   onChange: (raw: unknown) => void;
@@ -1397,6 +1488,7 @@ function FieldControl(props: {
   if (descriptor.widget === "list" && descriptor.field?.widget === "string") {
     return (
       <StringListField
+        literalList={props.literalList}
         descriptor={descriptor}
         value={value}
         onChange={onChange}

@@ -27,6 +27,7 @@ import {
 import type { StudioWorkspaceRegistry } from "./workspace-registry";
 import { getErrorMessage } from "@brains/utils/error";
 import { jsonResponse } from "./editor-response";
+import { handleGroupingRead, studioGroupDescriptors } from "./editor-groupings";
 import {
   handleCreateEntity,
   handleDeleteEntity,
@@ -320,6 +321,13 @@ export function createEditorRoutes(
       handler: serveShell,
     },
     {
+      path: `${normalizedBase}/groups`,
+      match: "prefix",
+      method: "GET",
+      public: true,
+      handler: serveShell,
+    },
+    {
       path: `${normalizedBase}/workspaces`,
       match: "prefix",
       method: "GET",
@@ -393,6 +401,16 @@ export function createEditorRoutes(
         return handlePreviewDestination(getContext(), request, access);
       },
     },
+    ...(["catalog", "members"] as const).map((mode): WebRouteDefinition => ({
+      path: apiPath(`groups/${mode}`),
+      method: "GET",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const access = await requireTrustedAccess(request);
+        if (access instanceof Response) return access;
+        return handleGroupingRead(getContext(), request, access, mode);
+      },
+    })),
     {
       path: apiPath("hierarchy"),
       method: "GET",
@@ -614,7 +632,11 @@ async function handleListTypes(
       left.priority - right.priority || left.id.localeCompare(right.id),
   );
 
-  return jsonResponse({ types, workspaces });
+  const groupings = studioGroupDescriptors(
+    context.entities.getGroupings(),
+    new Set(types.map((type) => type.entityType)),
+  );
+  return jsonResponse({ types, workspaces, groupings });
 }
 
 async function handleGetWorkspace(
@@ -737,7 +759,7 @@ async function handleGetSchema(
   }
 
   const adapter = context.entities.getAdapter(entityType);
-  const raw = isRawEntityType(entityType);
+  const raw = isRawEntityType(entityType, context.entities.getGroupings());
   // Raw types edit the whole document as body; their domain frontmatter
   // bookkeeping must not surface. Visibility is system-owned and applies to
   // every entity type independently of its markdown representation.

@@ -60,6 +60,8 @@
 + studio|handler|GET|/cms|prefix|true
 + studio|handler|GET|/studio/api/agents|exact|true
 + studio|handler|GET|/studio/api/entities|exact|true
++ studio|handler|GET|/studio/api/groups/catalog|exact|true
++ studio|handler|GET|/studio/api/groups/members|exact|true
 + studio|handler|GET|/studio/api/hierarchy|exact|true
 + studio|handler|GET|/studio/api/schema|exact|true
 + studio|handler|GET|/studio/api/sync-status|exact|true
@@ -67,6 +69,7 @@
 + studio|handler|GET|/studio/api/workspace|exact|true
 + studio|handler|GET|/studio/assets|prefix|true
 + studio|handler|GET|/studio/entities|prefix|true
++ studio|handler|GET|/studio/groups|prefix|true
 + studio|handler|GET|/studio/workspaces|prefix|true
 + studio|handler|GET|/studio|exact|true
 + studio|handler|POST|/studio/api/ask-agent|exact|true

@@ -15,6 +15,7 @@ import {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
   STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
   ServicePlugin,
+  entityGroupingSchema,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { StudioEntityDisplayMap } from "./config";
@@ -56,9 +57,11 @@ const entityDisplaySchema: z.ZodRecord<
 
 const studioPluginConfigSchema: z.ZodObject<{
   entityDisplay: z.ZodOptional<typeof entityDisplaySchema>;
+  groupings: z.ZodDefault<z.ZodArray<typeof entityGroupingSchema>>;
   routePath: z.ZodDefault<z.ZodString>;
 }> = z.object({
   entityDisplay: entityDisplaySchema.optional(),
+  groupings: z.array(entityGroupingSchema).max(20).default([]),
   routePath: z
     .string()
     .default("/studio")
@@ -138,6 +141,14 @@ export class StudioPlugin extends ServicePlugin<
 
   constructor(config: StudioPluginConfigInput = {}) {
     super("studio", packageJson, config, studioPluginConfigSchema);
+  }
+
+  protected override async onRegistrationComplete(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    context.entities.validateGroupings(this.config.groupings);
+    for (const grouping of this.config.groupings)
+      context.entities.registerGrouping(grouping);
   }
 
   protected override async onRegister(

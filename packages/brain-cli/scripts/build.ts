@@ -252,11 +252,14 @@ const libraryEntries = [
 ] as const;
 
 async function bundleLibraries(): Promise<void> {
-  // Build public subpaths together so shared runtime code (including Effect)
-  // is emitted once instead of copied into every independently built bundle.
+  // Share server runtime code (including Effect) across server subpaths.
+  // Chat is a browser contract: sharing its chunks with server entrypoints can
+  // leak Node-only imports into consumers even when its own source is pure.
   rmSync(join(outdir, "chunks"), { recursive: true, force: true });
   const result = await Bun.build({
-    entrypoints: libraryEntries.map((entry) => entry.source),
+    entrypoints: libraryEntries
+      .filter((entry) => entry.name !== "chat")
+      .map((entry) => entry.source),
     outdir,
     target: "bun",
     format: "esm",
@@ -278,7 +281,25 @@ async function bundleLibraries(): Promise<void> {
     }
     process.exit(1);
   }
-  for (const output of result.outputs) {
+  const browserResult = await Bun.build({
+    entrypoints: libraryEntries
+      .filter((entry) => entry.name === "chat")
+      .map((entry) => entry.source),
+    outdir,
+    target: "browser",
+    format: "esm",
+    minify: true,
+    splitting: false,
+    sourcemap: "linked",
+    external: sharedExternals,
+    naming: "[name].js",
+  });
+  if (!browserResult.success) {
+    console.error("Public browser contract bundle build failed:");
+    for (const log of browserResult.logs) console.error(log);
+    process.exit(1);
+  }
+  for (const output of [...result.outputs, ...browserResult.outputs]) {
     if (output.path.endsWith(".js")) {
       assertProductionReactBundle(await output.text(), output.path);
     }

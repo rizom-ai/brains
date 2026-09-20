@@ -11,6 +11,7 @@ import {
 import type { FieldDescriptor, ValidationIssue } from "./api";
 import { applyFieldChange } from "./editor-workflow";
 import { Field, isFieldVisible } from "./entity-fields";
+import { groupingValueLabel } from "./grouping-value";
 import { isRecord } from "@brains/utils/is-record";
 import { StudioStatus } from "./studio-status";
 import { systemFieldStyles as s } from "./studio-system-fields.styles";
@@ -33,10 +34,14 @@ function presentedField(field: FieldDescriptor): FieldDescriptor {
 export function SystemReadOnlyValue({
   value,
   fields,
+  literalStrings,
 }: {
+  literalStrings?: boolean | undefined;
   value: unknown;
   fields?: FieldDescriptor[] | undefined;
 }): ReactElement {
+  if (literalStrings && typeof value === "string")
+    return <span>{groupingValueLabel(value)}</span>;
   if (value === undefined || value === null || value === "")
     return <span>Not set</span>;
   if (Array.isArray(value))
@@ -44,7 +49,11 @@ export function SystemReadOnlyValue({
       <ul {...stylex.props(s.list)}>
         {value.map((item, index) => (
           <li key={index}>
-            <SystemReadOnlyValue value={item} fields={fields} />
+            <SystemReadOnlyValue
+              value={item}
+              fields={fields}
+              literalStrings={literalStrings}
+            />
           </li>
         ))}
       </ul>
@@ -83,6 +92,7 @@ export function SystemReadOnlyValue({
 }
 
 export function StudioSystemFields(props: {
+  literalFields?: readonly string[] | undefined;
   fields: FieldDescriptor[];
   draft: Record<string, unknown>;
   title: string;
@@ -110,6 +120,7 @@ export function StudioSystemFields(props: {
                 <dt {...stylex.props(s.term)}>{field.label}</dt>
                 <dd {...stylex.props(s.value)}>
                   <SystemReadOnlyValue
+                    literalStrings={props.literalFields?.includes(field.name)}
                     value={props.draft[field.name]}
                     fields={field.fields}
                   />
@@ -128,6 +139,7 @@ export function StudioSystemFields(props: {
   const access = fields.filter((field) => field.name === "visibility");
   const render = (field: FieldDescriptor): ReactElement => (
     <SystemField
+      literalList={props.literalFields?.includes(field.name)}
       key={field.name}
       descriptor={field}
       value={props.draft[field.name]}
@@ -161,6 +173,7 @@ export function StudioSystemFields(props: {
 }
 
 function SystemField(props: {
+  literalList?: boolean | undefined;
   descriptor: FieldDescriptor;
   value: unknown;
   issues?: ValidationIssue[] | undefined;
@@ -185,6 +198,7 @@ function SystemField(props: {
       data-studio-field-assist=""
     >
       <Field
+        literalList={props.literalList}
         descriptor={descriptor}
         value={props.value}
         issues={props.issues}

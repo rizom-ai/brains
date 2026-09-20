@@ -7,6 +7,7 @@ import {
 import {
   canWriteVisibility,
   generateMarkdownWithFrontmatter,
+  preserveSourceFrontmatter,
   getPublishBoundaryState,
   entityIdPathSchema,
 } from "@brains/plugins";
@@ -36,7 +37,7 @@ import {
 } from "./collection-query";
 
 /** Entity adapters own title derivation; Studio must not reinterpret source. */
-function entityDisplayTitle(
+export function entityDisplayTitle(
   context: ServicePluginContext,
   entity: BaseEntity,
 ): string | undefined {
@@ -197,6 +198,7 @@ export async function handleGetEntities(
     const { frontmatter, body } = splitEntityContent(
       entityType,
       entity.content,
+      context,
     );
     return jsonResponse({
       entity: {
@@ -252,7 +254,11 @@ export async function handleGetEntities(
   return jsonResponse({
     total,
     entities: entities.map((entity) => {
-      const { frontmatter } = splitEntityContent(entityType, entity.content);
+      const { frontmatter } = splitEntityContent(
+        entityType,
+        entity.content,
+        context,
+      );
       return {
         id: entity.id,
         entityType: entity.entityType,
@@ -313,7 +319,8 @@ export async function handleGetEntityHierarchy(
         entityType: entity.entityType,
         path,
         frontmatter: {
-          ...splitEntityContent(entityType, entity.content).frontmatter,
+          ...splitEntityContent(entityType, entity.content, context)
+            .frontmatter,
           visibility: entity.visibility,
         },
         displayTitle: entityDisplayTitle(context, entity),
@@ -362,7 +369,7 @@ export async function handleUpdateEntity(
   );
   if (bodyError) return bodyError;
 
-  const raw = isRawEntityType(entityType);
+  const raw = isRawEntityType(entityType, context.entities.getGroupings());
   const domainFrontmatter = stripStudioPolicyMetadata(payload.frontmatter);
   if (raw && Object.keys(domainFrontmatter).length > 0) {
     return jsonResponse(
@@ -394,24 +401,36 @@ export async function handleUpdateEntity(
   }
 
   const body =
-    payload.body ?? splitEntityContent(entityType, existing.content).body;
+    payload.body ??
+    splitEntityContent(entityType, existing.content, context).body;
+  const claimedFields = Object.fromEntries(
+    Object.entries(frontmatter.data).filter(([key]) =>
+      Object.hasOwn(schema.shape, key),
+    ),
+  );
   const content = raw
     ? body
-    : generateMarkdownWithFrontmatter(
-        body,
-        withStudioVisibility(frontmatter.data, visibility.visibility),
+    : preserveSourceFrontmatter(
+        existing.content,
+        generateMarkdownWithFrontmatter(
+          body,
+          withStudioVisibility(claimedFields, visibility.visibility),
+        ),
+        schema,
+        [],
       );
 
   // Re-derive adapter fields (metadata, visibility, etc.) from the finalized
   // content before applying policy. Incoming form data is never the authority.
-  const parsed = context.entities.getAdapter(entityType)?.fromMarkdown(content);
+  const parsed = deserializeStudioEntity(context, entityType, content);
+  if (parsed instanceof Response) return parsed;
   const entity: BaseEntity = {
     ...existing,
     ...parsed,
     id: existing.id,
     entityType: existing.entityType,
     content,
-    metadata: stripStudioPolicyMetadata(parsed?.metadata ?? existing.metadata),
+    metadata: stripStudioPolicyMetadata(parsed.metadata ?? existing.metadata),
     visibility: visibility.visibility,
   };
 
@@ -518,6 +537,23 @@ export async function handleUpdateEntity(
   });
 }
 
+function deserializeStudioEntity(
+  context: ServicePluginContext,
+  entityType: string,
+  content: string,
+): Partial<BaseEntity> | Response {
+  try {
+    return context.entityService.deserializeEntity(content, entityType);
+  } catch (error) {
+    if (error instanceof z.ZodError)
+      return jsonResponse(
+        { error: "Invalid frontmatter", issues: error.issues },
+        400,
+      );
+    throw error;
+  }
+}
+
 function prepareStudioCreation(
   context: ServicePluginContext,
   payload: z.infer<typeof createEntityPayloadSchema>,
@@ -535,7 +571,7 @@ function prepareStudioCreation(
     payload.body,
   );
   if (bodyError) return bodyError;
-  const raw = isRawEntityType(entityType);
+  const raw = isRawEntityType(entityType, context.entities.getGroupings());
   const domainFrontmatter = stripStudioPolicyMetadata(payload.frontmatter);
   if (raw && Object.keys(domainFrontmatter).length > 0)
     return jsonResponse(
@@ -559,15 +595,23 @@ function prepareStudioCreation(
     ? (payload.body ?? "")
     : generateMarkdownWithFrontmatter(
         payload.body ?? "",
-        withStudioVisibility(frontmatter.data, visibility.visibility),
+        withStudioVisibility(
+          Object.fromEntries(
+            Object.entries(frontmatter.data).filter(([key]) =>
+              Object.hasOwn(schema.shape, key),
+            ),
+          ),
+          visibility.visibility,
+        ),
       );
-  const parsed = context.entities.getAdapter(entityType)?.fromMarkdown(content);
+  const parsed = deserializeStudioEntity(context, entityType, content);
+  if (parsed instanceof Response) return parsed;
   return {
     ...parsed,
     ...(payload.idPath && { id: encodeEntityIdPath(payload.idPath) }),
     entityType,
     content,
-    metadata: stripStudioPolicyMetadata(parsed?.metadata ?? {}),
+    metadata: stripStudioPolicyMetadata(parsed.metadata ?? {}),
     visibility: visibility.visibility,
   };
 }

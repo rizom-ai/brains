@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import { migrateConversations } from "@brains/conversation-service/migrate";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import {
@@ -159,9 +159,28 @@ describe("supervised runtime process roles", () => {
       { processRole: "web" },
     );
     shells.push(shell);
-
+    const order: string[] = [];
+    spyOn(
+      shell.getEntityService(),
+      "backfillMissingEmbeddings",
+    ).mockImplementation(async () => {
+      order.push("embeddings");
+      return { queued: 0, skipped: 0 };
+    });
+    const original = shell
+      .getEntityService()
+      .reprojectRegisteredGroupings.bind(shell.getEntityService());
+    spyOn(
+      shell.getEntityService(),
+      "reprojectRegisteredGroupings",
+    ).mockImplementation(async () => {
+      order.push("groupings");
+      await original();
+    });
     await shell.initialize();
 
+    expect(order).toEqual(["embeddings", "groupings"]);
+    expect(shell.getEntityService().areGroupingsReady()).toBe(true);
     expect(shell.isInitialized()).toBe(true);
     expect(workerStarted).toBe(false);
     expect(
@@ -223,8 +242,12 @@ describe("supervised runtime process roles", () => {
       { processRole: "worker" },
     );
     shells.push(shell);
-
+    const reproject = spyOn(
+      shell.getEntityService(),
+      "reprojectRegisteredGroupings",
+    );
     await shell.initialize();
+    expect(reproject).not.toHaveBeenCalled();
 
     const registrations = shell
       .getJobQueueService()
@@ -244,4 +267,39 @@ describe("supervised runtime process roles", () => {
     expect(executionPlugin.readyCalled).toBe(false);
     expect(workerStarted).toBe(true);
   });
+
+  it.each([
+    { name: "combined", mode: undefined, expected: 1 },
+    { name: "registration only", mode: "register-only", expected: 0 },
+    { name: "startup check", mode: "startup-check", expected: 0 },
+  ] as const)(
+    "runs grouping initialization only in normal serving boots: $name",
+    async ({ mode, expected }) => {
+      const directory = await createTestDirectory();
+      cleanups.push(directory.cleanup);
+      await Promise.all([
+        migrateEntities({ url: `file:${directory.dir}/test.db` }),
+        migrateJobQueue({ url: `file:${directory.dir}/test-jobs.db` }),
+        migrateConversations({ url: `file:${directory.dir}/test-conv.db` }),
+        migrateRuntimeState({
+          url: `file:${directory.dir}/test-runtime-state.db`,
+        }),
+      ]);
+      const shell = Shell.createFresh(
+        createTestShellConfig(directory.dir, { plugins: [] }),
+        {
+          logger: createSilentLogger(),
+          jobQueueWorker: createTrackingWorker(() => {}),
+        },
+      );
+      shells.push(shell);
+      const reproject = spyOn(
+        shell.getEntityService(),
+        "reprojectRegisteredGroupings",
+      );
+      await shell.initialize(mode ? { mode } : undefined);
+      expect(reproject).toHaveBeenCalledTimes(expected);
+      expect(shell.getEntityService().areGroupingsReady()).toBe(expected === 1);
+    },
+  );
 });

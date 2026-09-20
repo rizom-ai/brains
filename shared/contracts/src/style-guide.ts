@@ -1,4 +1,4 @@
-import { parseMarkdown } from "@brains/utils/markdown";
+import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
 
 export interface StyleGuideMessaging {

@@ -654,7 +654,14 @@ export class EntityMutations {
     // `seriesName` field that drives the series projection). Without this,
     // every delete forces subscribers into a full resync because they can't
     // tell whether the deleted entity was relevant to them.
-    const priorData = await this.entityQueries.getEntityData(entityType, id);
+    // Authorization belongs to the calling capability. This internal mutation
+    // must find the admitted row at every visibility tier, not silently turn a
+    // shared/restricted deletion into a public-scoped lookup miss.
+    const priorData = await this.entityQueries.getEntityData(
+      entityType,
+      id,
+      "restricted",
+    );
     const prior = priorData
       ? ((await this.entitySerializer.convertToEntity(priorData)) ?? undefined)
       : undefined;

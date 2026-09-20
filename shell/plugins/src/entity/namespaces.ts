@@ -6,6 +6,7 @@ import type {
   UploadSaveHandlerRegistration,
   EntityAdapter,
   EntityTypeConfig,
+  EntityGrouping,
   IEntitiesNamespace,
   IEntityService,
 } from "@brains/entity-service";
@@ -36,6 +37,11 @@ export function createEntitiesNamespace(shell: IShell): IEntitiesNamespace {
   const dataSourceRegistry = shell.getDataSourceRegistry();
 
   return {
+    validateGroupings: (groupings: readonly EntityGrouping[]): void =>
+      entityRegistry.validateGroupings(groupings),
+    registerGrouping: (grouping: EntityGrouping): void =>
+      entityRegistry.registerGrouping(grouping),
+    getGroupings: (): EntityGrouping[] => entityRegistry.getGroupings(),
     register: <T extends BaseEntity>(
       entityType: string,
       schema: EntitySchema<T>,

@@ -1,4 +1,10 @@
 import type { PreparedAsset } from "@brains/assets";
+import type {
+  EntityGrouping,
+  EntityGroupingCatalog,
+  QueryGroupingCatalogRequest,
+  QueryGroupingMembersRequest,
+} from "./entity-grouping";
 import type { EntityIdPath, EntityIdPathInput } from "./entity-id-path";
 import type {
   ActorRef,
@@ -900,6 +906,13 @@ export interface ICoreEntityService {
     request: QueryEntityHierarchyRequest,
   ): Promise<EntityHierarchyPage>;
 
+  queryGroupingCatalog(
+    request: QueryGroupingCatalogRequest,
+  ): Promise<EntityGroupingCatalog>;
+  queryGroupingMembers(
+    request: QueryGroupingMembersRequest,
+  ): Promise<EntityGroupingMembers>;
+
   search(request: EntitySearchRequest): Promise<SearchResult<BaseEntity>[]>;
   search<T extends BaseEntity>(
     request: EntitySearchRequest,
@@ -938,10 +951,19 @@ export interface ICoreEntityService {
   getWeightMap(): Record<string, number>;
 }
 
+/** One visibility-scoped, mixed-type member page. */
+export interface EntityGroupingMembers {
+  entities: BaseEntity[];
+  total: number;
+}
+
 /**
  * Entity service interface for managing brain entities
  */
 export interface IEntitiesNamespace {
+  validateGroupings(groupings: readonly EntityGrouping[]): void;
+  registerGrouping(grouping: EntityGrouping): void;
+  getGroupings(): EntityGrouping[];
   /** Register a new entity type with schema and adapter */
   register<TEntity extends BaseEntity>(
     entityType: string,
@@ -1080,6 +1102,8 @@ export interface SettleDurableBulkMutationChildInput {
  * methods (like the schema-taking reads) down to one signature.
  */
 export interface EntityServiceClient extends ICoreEntityService {
+  /** Local admission state; grouping endpoints must not serve partial bootstrap results. */
+  areGroupingsReady(): boolean;
   /** Internal source-authority check used by persistence integrations. */
   isProjectionOwnedEntity(
     request: ProjectionOwnedEntityRequest,
@@ -1158,6 +1182,8 @@ export type DurableBulkMutationCoordinator = Pick<
 >;
 
 export interface EntityService extends EntityServiceClient {
+  /** Normal web/combined boot only, after initial sync; not an ordinary mutation. */
+  reprojectRegisteredGroupings(): Promise<void>;
   /** Visibility-scoped entity and the revision derived from its stored row. */
   getEntityWriteSnapshot(
     request: GetEntityRequest,
@@ -1240,6 +1266,19 @@ export interface EntityRegistry {
     type: string,
     extension: z.ZodObject<z.ZodRawShape>,
   ): void;
+
+  validateGroupings(groupings: readonly EntityGrouping[]): void;
+  registerGrouping(grouping: EntityGrouping): void;
+  getGrouping(key: string): EntityGrouping;
+  getGroupings(): EntityGrouping[];
+  projectMetadata(
+    type: string,
+    content: string,
+    metadata: Record<string, unknown>,
+  ): Record<string, unknown>;
+
+  /** Registered extension contracts, including their refinements. */
+  getFrontmatterExtensions(type: string): readonly FrontmatterSchema[];
 
   /**
    * Get the effective frontmatter schema for an entity type,

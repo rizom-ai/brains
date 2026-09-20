@@ -815,7 +815,7 @@ describe("AgentDiscoveryPlugin", () => {
       ]),
     );
 
-    if (authPlugin.shutdown) await authPlugin.shutdown();
+    await authPlugin.shutdown();
     await harness.reset();
   });
 
@@ -866,7 +866,7 @@ describe("AgentDiscoveryPlugin", () => {
     });
     expect(await activeAuth.getA2APeerTrust("trust.example")).toBeUndefined();
 
-    if (authPlugin.shutdown) await authPlugin.shutdown();
+    await authPlugin.shutdown();
     await harness.reset();
   });
 

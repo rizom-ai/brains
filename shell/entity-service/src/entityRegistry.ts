@@ -1,5 +1,23 @@
 import type { Logger } from "@brains/utils/logger";
 import { baseEntitySchema, contentVisibilitySchema } from "./types";
+import { projectFrontmatterExtensions } from "./frontmatter-extensions";
+import { z } from "@brains/utils/zod";
+import {
+  getArrayElement,
+  getObjectShape,
+  readEnumValues,
+  readLiteralValue,
+  unwrapField,
+} from "@brains/utils/zod-introspect";
+import {
+  parseMarkdownWithFrontmatter,
+  stripSystemVisibility,
+} from "./frontmatter";
+import {
+  entityGroupingSchema,
+  GROUPING_RESERVED_FIELDS,
+  type EntityGrouping,
+} from "./entity-grouping";
 import type {
   BaseEntity,
   CreateInterceptor,
@@ -24,6 +42,7 @@ export class EntityRegistry implements IEntityRegistry {
   private persistValidators = new Map<string, PersistValidator>();
   private frontmatterExtensions = new Map<string, FrontmatterSchema[]>();
   private logger: Logger;
+  private groupings = new Map<string, EntityGrouping>();
 
   public static createFresh(logger: Logger): EntityRegistry {
     return new EntityRegistry(logger);
@@ -133,7 +152,7 @@ export class EntityRegistry implements IEntityRegistry {
    */
   validateEntity(type: string, entity: unknown): BaseEntity {
     const schema = this.getSchema(type);
-    const parsed = schema.parse(this.normalizePolicyFields(entity));
+    const parsed = schema.parse(this.normalizePolicyFields(entity, type));
     const base = baseEntitySchema.parse(parsed);
     const parsedFields =
       parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
@@ -147,12 +166,12 @@ export class EntityRegistry implements IEntityRegistry {
       created: base.created,
       updated: base.updated,
       visibility: base.visibility,
-      metadata: base.metadata,
+      metadata: this.projectMetadata(type, base.content, base.metadata),
       contentHash: base.contentHash,
     };
   }
 
-  private normalizePolicyFields(entity: unknown): unknown {
+  private normalizePolicyFields(entity: unknown, type: string): unknown {
     if (
       entity === null ||
       typeof entity !== "object" ||
@@ -165,6 +184,24 @@ export class EntityRegistry implements IEntityRegistry {
     normalized["visibility"] = contentVisibilitySchema.parse(
       normalized["visibility"],
     );
+    const metadata = normalized["metadata"];
+    const ownerMetadata = getObjectShape(
+      unwrapField(getObjectShape(this.getSchema(type))?.["metadata"]).inner,
+    );
+    if (
+      ownerMetadata &&
+      metadata &&
+      typeof metadata === "object" &&
+      !Array.isArray(metadata)
+    ) {
+      const owned = Object.fromEntries(Object.entries(metadata));
+      for (const extension of this.getFrontmatterExtensions(type)) {
+        for (const key of Object.keys(extension.shape)) {
+          if (!Object.hasOwn(ownerMetadata, key)) delete owned[key];
+        }
+      }
+      normalized["metadata"] = owned;
+    }
     return normalized;
   }
 
@@ -252,11 +289,151 @@ export class EntityRegistry implements IEntityRegistry {
       );
     }
 
+    for (const grouping of this.groupings.values()) {
+      if (
+        grouping.types.includes(type) &&
+        Object.hasOwn(extension.shape, grouping.field) &&
+        extension.shape[grouping.field] !==
+          this.getEffectiveFrontmatterSchema(type)?.shape[grouping.field]
+      ) {
+        throw new Error(
+          `Cannot replace registered grouping field ${type}.${grouping.field}`,
+        );
+      }
+    }
     const existing = this.frontmatterExtensions.get(type) ?? [];
     existing.push(extension);
     this.frontmatterExtensions.set(type, existing);
 
     this.logger.debug(`Extended frontmatter schema for entity type: ${type}`);
+  }
+
+  /** Validate a whole configuration without publishing partial extensions. */
+  validateGroupings(groupings: readonly EntityGrouping[]): void {
+    const staged = new EntityRegistry(this.logger.child("GroupingValidation"));
+    staged.entitySchemas = this.entitySchemas;
+    staged.entityAdapters = this.entityAdapters;
+    staged.entityConfigs = this.entityConfigs;
+    staged.frontmatterExtensions = new Map(
+      [...this.frontmatterExtensions].map(([type, schemas]) => [
+        type,
+        [...schemas],
+      ]),
+    );
+    staged.groupings = new Map(this.groupings);
+    for (const grouping of groupings) staged.registerGrouping(grouping);
+  }
+
+  registerGrouping(input: EntityGrouping): void {
+    const grouping = entityGroupingSchema.parse(input);
+    if (this.groupings.has(grouping.key))
+      throw new Error(`Duplicate entity grouping: ${grouping.key}`);
+    if (GROUPING_RESERVED_FIELDS.has(grouping.field))
+      throw new Error("Grouping field is reserved");
+    const additions: string[] = [];
+    // Validate every contributor before applying any schema extension.
+    for (const type of grouping.types) {
+      const schema = this.getEffectiveFrontmatterSchema(type);
+      if (
+        !this.hasEntityType(type) ||
+        !schema ||
+        this.getEntityTypeConfig(type).binaryStorage === "asset"
+      ) {
+        throw new Error(
+          `Grouping requires a registered frontmatter entity type: ${type}`,
+        );
+      }
+      const field = schema.shape[grouping.field];
+      const ownerField =
+        this.entityAdapters.get(type)?.frontmatterSchema?.shape[grouping.field];
+      if (ownerField && ownerField !== field) {
+        throw new Error(
+          `Grouping field overrides an owner contract: ${type}.${grouping.field}`,
+        );
+      }
+      const metadataField = getObjectShape(
+        unwrapField(getObjectShape(this.getSchema(type))?.["metadata"]).inner,
+      )?.[grouping.field];
+      if (!field) {
+        if (metadataField)
+          throw new Error(
+            `Grouping conflicts with metadata field ${type}.${grouping.field}`,
+          );
+        additions.push(type);
+        continue;
+      }
+      const element = getArrayElement(unwrapField(field).inner);
+      const inner = unwrapField(element).inner;
+      if (
+        element !== inner ||
+        (!(inner instanceof z.ZodString) &&
+          !readEnumValues(inner) &&
+          typeof readLiteralValue(inner) !== "string")
+      ) {
+        throw new Error(
+          `Grouping field must be a string list: ${type}.${grouping.field}`,
+        );
+      }
+      if (metadataField && metadataField !== field) {
+        throw new Error(
+          `Cannot establish a shared frontmatter/metadata contract for ${type}.${grouping.field}`,
+        );
+      }
+    }
+    for (const type of additions) {
+      this.extendFrontmatterSchema(
+        type,
+        z.object({ [grouping.field]: z.array(z.string()).optional() }),
+      );
+    }
+    this.groupings.set(grouping.key, grouping);
+  }
+
+  getGrouping(key: string): EntityGrouping {
+    const grouping = this.groupings.get(key);
+    if (!grouping) throw new Error("Unknown entity grouping");
+    return { ...grouping, types: [...grouping.types] };
+  }
+
+  getGroupings(): EntityGrouping[] {
+    return [...this.groupings.keys()].map((key) => this.getGrouping(key));
+  }
+
+  projectMetadata(
+    type: string,
+    content: string,
+    metadata: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const projected = projectFrontmatterExtensions(
+      content,
+      metadata,
+      this.getFrontmatterExtensions(type),
+    );
+    const fields = new Set(
+      [...this.groupings.values()]
+        .filter((grouping) => grouping.types.includes(type))
+        .map((grouping) => grouping.field),
+    );
+    if (fields.size === 0) return projected;
+    const schema = this.getEffectiveFrontmatterSchema(type);
+    if (!schema)
+      throw new Error("Grouping contributor lost its frontmatter schema");
+    const source = parseMarkdownWithFrontmatter(
+      content,
+      z.record(z.string(), z.unknown()),
+    ).metadata;
+    const validated = schema.parse(stripSystemVisibility(source));
+    const result = { ...projected };
+    for (const field of fields) {
+      delete result[field];
+      if (Object.hasOwn(source, field) && validated[field] !== undefined)
+        result[field] = validated[field];
+    }
+    return result;
+  }
+
+  getFrontmatterExtensions(type: string): readonly FrontmatterSchema[] {
+    return [...(this.frontmatterExtensions.get(type) ?? [])];
   }
 
   /**
@@ -289,7 +466,7 @@ export class EntityRegistry implements IEntityRegistry {
 
     let merged = baseSchema;
     for (const ext of extensions) {
-      merged = merged.extend(ext.shape);
+      merged = merged.safeExtend(ext.shape);
     }
     return merged.superRefine((value, context) => {
       for (const extension of extensions) {

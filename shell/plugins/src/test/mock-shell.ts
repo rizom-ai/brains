@@ -692,7 +692,10 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getEntityTypes: () => Array.from(entityTypes),
     hasEntityType: (type: string) => entityTypes.has(type),
     serializeEntity: (entity: BaseEntity) => JSON.stringify(entity),
-    deserializeEntity: (markdown: string) => ({ content: markdown }),
+    deserializeEntity: (markdown: string, entityType: string) =>
+      entityAdapters.get(entityType)?.fromMarkdown(markdown) ?? {
+        content: markdown,
+      },
     getAsyncJobStatus: async () => ({ status: "completed" as const }),
     upsertEntity: async <T extends BaseEntity>(
       request: UpsertEntityRequest<T>,
@@ -818,10 +821,22 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       fencedCallbacks: 0,
       releasedDurableRoots: 0,
     }),
+    areGroupingsReady: () => true,
+    reprojectRegisteredGroupings: async (): Promise<void> => {},
     // Hierarchy grouping is tested against SQLite, not duplicated in this fake.
     queryEntityHierarchy: async (): Promise<never> => {
       throw new Error(
         "createMockShell: inject an entity service for hierarchy queries",
+      );
+    },
+    queryGroupingCatalog: async (): Promise<never> => {
+      throw new Error(
+        "createMockShell: inject an entity service for grouping queries",
+      );
+    },
+    queryGroupingMembers: async (): Promise<never> => {
+      throw new Error(
+        "createMockShell: inject an entity service for grouping queries",
       );
     },
     // Projection storage is database-backed and cannot be faked usefully. Fail
@@ -903,6 +918,19 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getPersistValidator: () => undefined,
     extendFrontmatterSchema: (): void => {},
     getEffectiveFrontmatterSchema: () => undefined,
+    getFrontmatterExtensions: () => [],
+    getGroupings: () => [],
+    validateGroupings: (groupings): void => {
+      if (groupings.length > 0)
+        throw new Error("createMockShell: grouping registry is not mocked");
+    },
+    getGrouping: (): never => {
+      throw new Error("createMockShell: grouping registry is not mocked");
+    },
+    registerGrouping: (): never => {
+      throw new Error("createMockShell: grouping registry is not mocked");
+    },
+    projectMetadata: (_type, _content, metadata) => metadata,
   };
 
   // --- In-memory job queue state ---

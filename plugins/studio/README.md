@@ -12,7 +12,7 @@
 
 ## Query and mutation conventions
 
-All server-state keys come from `ui-react/src/queries.ts`:
+Entity/workspace keys come from `ui-react/src/queries.ts`; grouping keys in `grouping-queries.ts` additionally isolate API instances:
 
 ```ts
 studioKeys.navigation();
@@ -26,10 +26,10 @@ studioKeys.syncStatus();
 studioKeys.agentTargets();
 ```
 
-Transport calls belong in `api.ts`; query and mutation wrappers belong in `queries.ts` and `mutations.ts`. Invalidation must be targeted:
+Transport calls belong in `api.ts`; query wrappers belong in `queries.ts` and `grouping-queries.ts`, and mutation wrappers in `mutations.ts`. Invalidation must be targeted:
 
-- saves refresh the affected list and sync status, creation also refreshes navigation counts, then the saved detail reopens with its fresh content hash;
-- deletes remove the affected detail and refresh its list, navigation counts, and sync status;
+- saves refresh the affected list, grouping catalogs/member pages, and sync status, creation also refreshes navigation counts, then the saved detail reopens with its fresh content hash;
+- deletes remove the affected detail and refresh its list, grouping catalogs/member pages, navigation counts, and sync status;
 - image uploads refresh only image-list, navigation-count, and sync-status data;
 - declarative workspace actions refresh only their workspace snapshot and any badge-bearing navigation;
 - sync polling invalidates only `studioKeys.syncStatus()`.
@@ -64,6 +64,32 @@ entity availability, and create-policy checks. Studio also owns the registered *
 entity** target, so the Inbox renderer never constructs entity URLs itself.
 
 Workspace definitions may opt into host-owned stable URL filters with a typed query schema. Query-backed tabs use their declared tab-block query key, so selection, refresh, and Back/Forward agree while providers load only the active tab; switching tabs resets the prior tab's filters and detail state instead of leaking them into the next concern. The Studio hydrates declared filters from the raw search string, validates them on the server, and replaces their canonical URL without guessing provider semantics. Paging remains transient request state, so reload starts from the first page. Serializable workspace aliases preserve retired deep links by replacing the workspace id and merging bounded canonical query state. Workspaces without a query declaration ignore URL search entirely.
+
+## Virtual collections
+
+Studio configuration can declare multiple cross-type groupings:
+
+```yaml
+groupings:
+  - key: clients
+    label: Clients
+    field: clients
+    types: [note, post]
+  - key: projects
+    label: Projects
+    field: projects
+    types: [note, post]
+```
+
+Each declaration extends participating types' effective frontmatter schema with an optional string list (or reuses a compatible owner field without weakening its constraints). One entity may have multiple values in each field. Membership is authored in Markdown, not inferred from IDs; no collection entity, file copy, rename, or move is created. Invalid declarations and incompatible/reserved field collisions fail registration.
+
+Each grouping has one Library navigation entry. `{routePath}/groups/clients` lists readable values and counts; `?value=Acme` lists mixed-type members, with `type`, `q`, `sort`, `offset`, and `limit` filters. Matching uses exact stored values. The ordinary editor retains its permissions and returns to the selected grouping. Group views have no creation, collection rename, or collection deletion action.
+
+Grouping Properties use literal value inputs: Enter or the Add (+) button adds one value; commas and surrounding spaces are preserved. A whitespace warning explains that those spaces create a distinct collection. Empty, whitespace-sensitive, and control-containing existing values use quoted/escaped display labels in Properties and collection navigation; stored values and URLs remain exact. An untouched blank input adds nothing. Ordinary tag fields retain comma submission and trimming.
+
+Every Note uses the normal frontmatter/Properties editor while `note` participates in any grouping, including Notes with no membership. Without participation, Notes retain whole-document Markdown editing. Removing a declaration removes the view, not its saved fields. Ordinary Properties saves and exports preserve existing unclaimed, non-policy frontmatter without accepting arbitrary new form keys; explicit full-source omission remains a deletion.
+
+Entity-service silently reprojects existing membership during normal serving startup. Authorized group reads return `503 groupings_initializing` until the complete pass succeeds. Only this response retries automatically, with capped delays and a 90-second wait budget; other failures and timeouts offer explicit Retry. No partial catalog is treated as an empty success.
 
 ## Account and split assets
 

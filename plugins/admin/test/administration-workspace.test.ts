@@ -14,7 +14,7 @@ import {
 const authPlugins: AuthServicePlugin[] = [];
 
 afterEach(async () => {
-  for (const plugin of authPlugins.splice(0)) await plugin.shutdown?.();
+  for (const plugin of authPlugins.splice(0)) await plugin.shutdown();
 });
 
 function actorFor(
