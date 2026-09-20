@@ -15,6 +15,7 @@ import { useGuestConversations } from "./use-guest-conversations";
 import { useGuestSession } from "./use-guest-session";
 import { useGuestTranscript } from "./use-guest-transcript";
 import { useGuestSend } from "./use-guest-send";
+import { useGuestHistoryCheck } from "./use-guest-history-check";
 
 const incompleteHistoryNotice =
   "History loaded. The previous answer may still be running or incomplete. Nothing has been replayed; you can reload history later.";
@@ -106,6 +107,16 @@ export function GuestApp({
   function closeConversationMenu(): void {
     if (conversationMenu.current) conversationMenu.current.open = false;
   }
+
+  const { check: checkBoxHistory } = useGuestHistoryCheck({
+    client,
+    gate,
+    conversationId: id,
+    pending,
+    clearPending: (): void => setPending(undefined),
+    showHistory,
+    restoredQuestion,
+  });
 
   const restoreFocus = useRef(!!box);
 
@@ -219,65 +230,6 @@ export function GuestApp({
         setStatus(
           "Deletion could not be confirmed. Your visible conversation is preserved.",
         );
-      },
-    );
-  }
-
-  async function checkBoxHistory(): Promise<void> {
-    if (!id) return;
-    setBoxNotice(undefined);
-    await gate.run(
-      async (): Promise<void> => {
-        const submissionId = pending?.messages[0]?.id;
-        const checked = submissionId
-          ? await client.getGuestHistory(id, submissionId)
-          : undefined;
-        const history = checked?.messages ?? (await client.getMessages(id));
-        if (!mounted.current) return;
-        // Count/text matching cannot identify a submission across tabs. Only an
-        // exact receipt, or a stable restored server message ID, can confirm it.
-        const restoredIndex = history.findIndex(
-          (message) =>
-            message.id === restoredQuestion.current && message.role === "user",
-        );
-        const completed = checked
-          ? checked.submission?.conversationId === id &&
-            checked.submission.state === "completed"
-          : restoredIndex >= 0 &&
-            history[restoredIndex + 1]?.role === "assistant";
-        if (
-          completed &&
-          history.some(
-            (message) => message.role === "assistant" && message.content.trim(),
-          )
-        ) {
-          setMessages(history);
-          setPending(undefined);
-          if (history.at(-1)?.role === "user") {
-            restoredQuestion.current = history.at(-1)?.id;
-            setBoxState("incomplete");
-          } else setBoxState("complete");
-        } else if (
-          checked?.submission?.conversationId === id &&
-          ["failed", "interrupted"].includes(checked.submission.state)
-        ) {
-          setPending(undefined);
-          setBoxState("ended");
-        } else {
-          setBoxNotice(
-            completed
-              ? "The request completed, but its answer is not available in history. Your visible text is preserved."
-              : "No complete answer is confirmed yet. Your question has not been sent again.",
-          );
-        }
-      },
-      (): void => {
-        // Treat failed/cancelled history checks as inconclusive, never as proof
-        // that replay is safe. Preserve visible text and hide raw transport errors.
-        if (mounted.current)
-          setBoxNotice(
-            "We couldn’t check the answer. Your visible text is unchanged; nothing was sent again.",
-          );
       },
     );
   }
