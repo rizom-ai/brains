@@ -1,3 +1,8 @@
+import {
+  createImageFileActors,
+  imageSource,
+} from "./helpers/image-file-actors";
+import type { EntityFileAssets } from "@brains/entity-service";
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
 import { promises as fs, mkdtempSync } from "fs";
 import { join } from "path";
@@ -22,14 +27,17 @@ async function pastFilesystemMtimeGranularity(): Promise<void> {
 describe("ImageOptimizer", () => {
   const logger = createSilentLogger();
   let imagesDir: string;
+  let actors: EntityFileAssets;
 
   beforeEach(async () => {
+    actors = createImageFileActors();
     const testDir = mkdtempSync(join(tmpdir(), "image-optimizer-test-"));
     imagesDir = join(testDir, "images");
     await fs.mkdir(imagesDir, { recursive: true });
   });
 
   afterEach(async () => {
+    await actors.close();
     try {
       // imagesDir is <testDir>/images, go up one level to clean everything
       await fs.rm(join(imagesDir, ".."), { recursive: true, force: true });
@@ -41,9 +49,13 @@ describe("ImageOptimizer", () => {
   describe("optimize", () => {
     test("should create WebP variants for a large image", async () => {
       const buffer = await createTestPng(2000, 1000);
-      const optimizer = new ImageOptimizer(imagesDir, logger);
+      const optimizer = new ImageOptimizer(imagesDir, logger, actors);
 
-      const result = await optimizer.optimize(buffer, "/images/photo.png");
+      const result = await optimizer.optimize(
+        await imageSource(join(imagesDir, "..", "input"), buffer),
+        "/images/photo.png",
+        new AbortController().signal,
+      );
 
       expect(result).not.toBeNull();
       if (!result) return;
@@ -85,9 +97,13 @@ describe("ImageOptimizer", () => {
 
     test("should skip variants larger than source width", async () => {
       const buffer = await createTestPng(800, 600);
-      const optimizer = new ImageOptimizer(imagesDir, logger);
+      const optimizer = new ImageOptimizer(imagesDir, logger, actors);
 
-      const result = await optimizer.optimize(buffer, "/images/small.png");
+      const result = await optimizer.optimize(
+        await imageSource(join(imagesDir, "..", "input"), buffer),
+        "/images/small.png",
+        new AbortController().signal,
+      );
 
       expect(result).not.toBeNull();
       if (!result) return;
@@ -106,19 +122,27 @@ describe("ImageOptimizer", () => {
 
     test("should return null for images smaller than all variants", async () => {
       const buffer = await createTestPng(100, 100);
-      const optimizer = new ImageOptimizer(imagesDir, logger);
+      const optimizer = new ImageOptimizer(imagesDir, logger, actors);
 
-      const result = await optimizer.optimize(buffer, "/images/tiny.png");
+      const result = await optimizer.optimize(
+        await imageSource(join(imagesDir, "..", "input"), buffer),
+        "/images/tiny.png",
+        new AbortController().signal,
+      );
 
       expect(result).toBeNull();
     });
 
     test("should use filesystem cache on second call", async () => {
       const buffer = await createTestPng(2000, 1000);
-      const optimizer = new ImageOptimizer(imagesDir, logger);
+      const optimizer = new ImageOptimizer(imagesDir, logger, actors);
 
       // First call creates files
-      const result1 = await optimizer.optimize(buffer, "/images/photo.png");
+      const result1 = await optimizer.optimize(
+        await imageSource(join(imagesDir, "..", "input"), buffer),
+        "/images/photo.png",
+        new AbortController().signal,
+      );
       expect(result1).not.toBeNull();
       if (!result1) return;
 
@@ -133,7 +157,11 @@ describe("ImageOptimizer", () => {
       await pastFilesystemMtimeGranularity();
 
       // Second call should use cache
-      const result2 = await optimizer.optimize(buffer, "/images/photo.png");
+      const result2 = await optimizer.optimize(
+        await imageSource(join(imagesDir, "..", "input"), buffer),
+        "/images/photo.png",
+        new AbortController().signal,
+      );
       expect(result2).not.toBeNull();
       if (!result2) return;
       expect(result2.srcset).toBe(result1.srcset);
@@ -149,9 +177,13 @@ describe("ImageOptimizer", () => {
 
     test("should produce valid WebP files", async () => {
       const buffer = await createTestPng(1000, 500);
-      const optimizer = new ImageOptimizer(imagesDir, logger);
+      const optimizer = new ImageOptimizer(imagesDir, logger, actors);
 
-      await optimizer.optimize(buffer, "/images/test.png");
+      await optimizer.optimize(
+        await imageSource(join(imagesDir, "..", "input"), buffer),
+        "/images/test.png",
+        new AbortController().signal,
+      );
 
       const files = await fs.readdir(imagesDir);
       for (const f of files.filter((name) => name.endsWith(".webp"))) {
@@ -173,8 +205,10 @@ describe("ImageOptimizer", () => {
       await fs.writeFile(join(imagesDir, "photo.png"), png);
       await fs.writeFile(join(imagesDir, "banner.jpeg"), jpeg);
 
-      const optimizer = new ImageOptimizer(imagesDir, logger);
-      const variantsMap = await optimizer.optimizeAll();
+      const optimizer = new ImageOptimizer(imagesDir, logger, actors);
+      const variantsMap = await optimizer.optimizeAll(
+        new AbortController().signal,
+      );
 
       expect(Object.keys(variantsMap)).toHaveLength(2);
       expect(variantsMap["/images/photo.png"]).toBeDefined();
@@ -185,22 +219,32 @@ describe("ImageOptimizer", () => {
       const png = await createTestPng(1000, 500);
       await fs.writeFile(join(imagesDir, "already.webp"), png);
 
-      const optimizer = new ImageOptimizer(imagesDir, logger);
-      const variantsMap = await optimizer.optimizeAll();
+      const optimizer = new ImageOptimizer(imagesDir, logger, actors);
+      const variantsMap = await optimizer.optimizeAll(
+        new AbortController().signal,
+      );
 
       expect(Object.keys(variantsMap)).toHaveLength(0);
     });
 
     test("should return empty map for empty directory", async () => {
-      const optimizer = new ImageOptimizer(imagesDir, logger);
-      const variantsMap = await optimizer.optimizeAll();
+      const optimizer = new ImageOptimizer(imagesDir, logger, actors);
+      const variantsMap = await optimizer.optimizeAll(
+        new AbortController().signal,
+      );
 
       expect(Object.keys(variantsMap)).toHaveLength(0);
     });
 
     test("should return empty map for non-existent directory", async () => {
-      const optimizer = new ImageOptimizer("/tmp/does-not-exist", logger);
-      const variantsMap = await optimizer.optimizeAll();
+      const optimizer = new ImageOptimizer(
+        "/tmp/does-not-exist",
+        logger,
+        actors,
+      );
+      const variantsMap = await optimizer.optimizeAll(
+        new AbortController().signal,
+      );
 
       expect(Object.keys(variantsMap)).toHaveLength(0);
     });

@@ -1,3 +1,10 @@
+export { optimizeImageFile } from "./responsive-image";
+export type {
+  ResponsiveImageRequest,
+  ResponsiveImageManifest,
+  ResponsiveImageVariant,
+} from "./responsive-image-contract";
+
 // Image entity schemas and types
 export {
   imageSchema,

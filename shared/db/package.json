@@ -26,7 +26,8 @@
     "./file-capture-process": "./src/turso-worker/file-capture-process.ts",
     "./file-upload": "./src/turso-worker/file-upload.ts",
     "./file-fetch": "./src/turso-worker/file-fetch.ts",
-    "./file-produce": "./src/turso-worker/file-produce.ts"
+    "./file-produce": "./src/turso-worker/file-produce.ts",
+    "./file-source": "./src/turso-worker/file-source.ts"
   },
   "main": "./src/index.ts",
   "private": true,

@@ -37,6 +37,7 @@
     "./hash": "./src/hash.ts",
     "./http-response": "./src/http-response.ts",
     "./bounded-json-response": "./src/bounded-json-response.ts",
+    "./bounded-json-file": "./src/bounded-json-file.ts",
     "./http-utils": "./src/http-utils.ts",
     "./id": "./src/id.ts",
     "./logger": "./src/logger.ts",

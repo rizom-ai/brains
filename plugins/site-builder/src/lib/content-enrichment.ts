@@ -1,9 +1,7 @@
 import {
-  createDataUrl,
   extractCoverImageId,
   extractOgImageId,
-  isAssetImageContent,
-  resolveImageBytes,
+  extractMarkdownImages,
 } from "@brains/image";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import { getErrorMessage } from "@brains/utils/error";
@@ -32,26 +30,6 @@ const entityWithSlugSchema: z.ZodObject<
 });
 
 type EntityWithSlug = z.output<typeof entityWithSlugSchema>;
-
-const imageEntitySchema: z.ZodObject<
-  {
-    content: z.ZodString;
-    metadata: z.ZodObject<
-      {
-        width: z.ZodOptional<z.ZodNumber>;
-        height: z.ZodOptional<z.ZodNumber>;
-      },
-      z.core.$loose
-    >;
-  },
-  z.core.$loose
-> = z.looseObject({
-  content: z.string(),
-  metadata: z.looseObject({
-    width: z.number().optional(),
-    height: z.number().optional(),
-  }),
-});
 
 // Type for enriched entity with url, typeLabel, listUrl, and listLabel
 export interface EnrichedEntity extends EntityWithSlug {
@@ -136,14 +114,15 @@ export async function enrichWithUrls(
   const listUrl = `/${pluralName}`;
   const listLabel = pluralName.charAt(0).toUpperCase() + pluralName.slice(1);
 
-  // Resolve cover image: prefer pre-optimized build image, fall back to data URL
+  // Resolve only the file-backed build map. Missing entries never materialize
+  // entity bytes or inline URLs in the controller during enrichment.
   const coverImageId = extractCoverImageId(entity);
-  const coverImageFields = await resolveImageFields(coverImageId, options);
+  const coverImageFields = resolveImageFields(coverImageId, options);
 
   const explicitOgImageId = extractOgImageId(entity);
   const coverImageUrl = coverImageFields.coverImageUrl;
   const ogImage = explicitOgImageId
-    ? await resolveImageForHead(explicitOgImageId, options)
+    ? resolveImageForHead(explicitOgImageId, options)
     : coverImageUrl && !coverImageUrl.startsWith("data:")
       ? toAbsoluteUrl(coverImageUrl, options.siteUrl)
       : undefined;
@@ -162,10 +141,10 @@ export async function enrichWithUrls(
   return enrichedEntity;
 }
 
-async function resolveImageFields(
+function resolveImageFields(
   imageId: string | undefined,
   options: ContentEnrichmentOptions,
-): Promise<Partial<EnrichedEntity>> {
+): Partial<EnrichedEntity> {
   const preResolved = imageId
     ? options.imageBuildService?.get(imageId)
     : undefined;
@@ -181,85 +160,24 @@ async function resolveImageFields(
     };
   }
 
-  const image = await resolveCoverImage(
-    imageId,
-    options.pipelineContext.services.entityService,
-  );
-  if (!image) return {};
-  return {
-    coverImageUrl: image.url,
-    ...(image.width && { coverImageWidth: image.width }),
-    ...(image.height && { coverImageHeight: image.height }),
-  };
+  return {};
 }
 
-async function resolveImageForHead(
+function resolveImageForHead(
   imageId: string | undefined,
   options: ContentEnrichmentOptions,
-): Promise<string | undefined> {
+): string | undefined {
   if (!imageId) return undefined;
   const preResolved = options.imageBuildService?.get(imageId);
-  if (preResolved) return toAbsoluteUrl(preResolved.src, options.siteUrl);
-
-  const image = await resolveCoverImage(
-    imageId,
-    options.pipelineContext.services.entityService,
-  );
-  if (!image) return undefined;
-  // A data: URL is unusable as an og:image/twitter:image — social crawlers
-  // reject it — so omit the head image rather than emit broken metadata. The
-  // pre-resolved branch above returns a real optimized file URL.
-  if (image.url.startsWith("data:")) return undefined;
-  return toAbsoluteUrl(image.url, options.siteUrl);
+  return preResolved
+    ? toAbsoluteUrl(preResolved.src, options.siteUrl)
+    : undefined;
 }
 
 function toAbsoluteUrl(url: string, siteUrl: string | undefined): string {
   if (/^https?:\/\//i.test(url) || url.startsWith("data:")) return url;
   if (!siteUrl) return url;
   return `${siteUrl.replace(/\/$/, "")}/${url.replace(/^\//, "")}`;
-}
-
-async function resolveCoverImage(
-  imageId: string | undefined,
-  entityService: ServiceEntityService,
-): Promise<
-  | {
-      url: string;
-      width?: number;
-      height?: number;
-    }
-  | undefined
-> {
-  if (!imageId) return undefined;
-
-  const image = await entityService.getEntity({
-    entityType: "image",
-    id: imageId,
-  });
-  const imageCheck = imageEntitySchema.safeParse(image);
-  if (!imageCheck.success) return undefined;
-
-  if (isAssetImageContent(imageCheck.data.content)) {
-    const resolved = await resolveImageBytes(imageCheck.data, entityService);
-    return {
-      url: createDataUrl(
-        Buffer.from(resolved.bytes).toString("base64"),
-        resolved.format,
-      ),
-      width: resolved.width,
-      height: resolved.height,
-    };
-  }
-
-  return {
-    url: imageCheck.data.content,
-    ...(imageCheck.data.metadata.width && {
-      width: imageCheck.data.metadata.width,
-    }),
-    ...(imageCheck.data.metadata.height && {
-      height: imageCheck.data.metadata.height,
-    }),
-  };
 }
 
 /**
@@ -281,6 +199,12 @@ export async function collectAllImageIds(
       const entities = await entityService.listEntities({ entityType });
 
       for (const entity of entities) {
+        if (entity.content.includes("entity://image/")) {
+          for (const image of extractMarkdownImages(entity.content)) {
+            const match = /^entity:\/\/image\/(.+)$/.exec(image.url);
+            if (match?.[1]) imageIds.add(match[1]);
+          }
+        }
         const coverImageId = extractCoverImageId(entity);
         if (coverImageId) {
           imageIds.add(coverImageId);

@@ -2,6 +2,7 @@
 // Not auto-discovered by test:scripts; not a normal CLI startup acceptance gate.
 import { test, spyOn } from "bun:test";
 import { generateCanonicalAIImage } from "./turso-canonical-ai-image";
+import { prepareCanonicalSiteImage } from "./turso-canonical-site-image";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { mkdtemp, writeFile, mkdir, copyFile } from "node:fs/promises";
@@ -64,7 +65,7 @@ const SHA = "6bc5839d31ffd66263d28992f1186b33312444ffb4e2b1aab184df47e9c3b149";
 // Run the same canonical lifecycle for each PDF provider or preview case without
 // adding a second serial browser lifecycle to the default five-second test.
 const imageKind = z
-  .enum(["og", "ai"])
+  .enum(["og", "ai", "site", "site-cache"])
   .parse(process.env["TURSO_CANONICAL_IMAGE_KIND"] ?? "og");
 const pdfKind = z
   .enum(["printable", "carousel", "preview"])
@@ -112,6 +113,12 @@ async function renderCanonicalFile(
     });
   const renderImage = async (): Promise<AssetRecord> => {
     if (imageKind === "ai") return generateCanonicalAIImage(app);
+    if (imageKind === "site" || imageKind === "site-cache")
+      return prepareCanonicalSiteImage(
+        app,
+        directory,
+        imageKind === "site-cache",
+      );
     const handler = shell
       .getJobQueueService()
       .getHandler("image:image-render-source");
@@ -189,9 +196,9 @@ async function renderCanonicalFile(
   // admission. Both share the unchanged persistence budget; join both outcomes.
   const outcomes = await Promise.allSettled([
     renderImage(),
-    // AI is a separate matrix case: do not add a third concurrent ingress to
+    // AI/site are separate matrix cases: do not add concurrent ingress to
     // the unchanged two-slot persistence budget. OG cases retain PDF coverage.
-    imageKind === "ai"
+    imageKind !== "og"
       ? Promise.resolve()
       : renderCanonicalPrintable(printableApp, directory),
   ]);
@@ -406,7 +413,7 @@ test("canonical App binds a real file claim in its entity transaction and downlo
     join(tmpdir(), "turso-canonical-publication-"),
   );
   console.error(
-    `[canonical-publication] retained fixture: ${directory}; ${imageKind === "ai" ? "AI image case (PDF matrix is separate)" : `PDF case: ${pdfKind}`}`,
+    `[canonical-publication] retained fixture: ${directory}; ${imageKind !== "og" ? `${imageKind} image case (PDF matrix is separate)` : `PDF case: ${pdfKind}`}`,
   );
   const sourceFile = join(directory, "canonical.png");
   // Exact canonical fixture generation only. The publication carries no bytes.
@@ -491,6 +498,10 @@ plugins:
   const app = createApp();
   const fileActors = {
     producerUrls: {
+      "responsive-image": new URL(
+        "../../shared/image/src/responsive-image-process.ts",
+        import.meta.url,
+      ),
       "ai-image": new URL(
         "../../shell/ai-service/test/fixtures/image-generation-actor.ts",
         import.meta.url,

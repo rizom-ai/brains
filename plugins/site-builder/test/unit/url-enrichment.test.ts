@@ -1,7 +1,10 @@
 import { createTestEntity } from "@brains/entity-service/test";
 import { createMockServicePluginContext } from "@brains/plugins/test";
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
-import { enrichWithUrls } from "../../src/lib/content-enrichment";
+import {
+  enrichWithUrls,
+  collectAllImageIds,
+} from "../../src/lib/content-enrichment";
 import { createSiteBuilderServices } from "../test-helpers";
 import type { EntityDisplayMap } from "../../src/config";
 import { createSilentLogger } from "@brains/test-utils";
@@ -44,6 +47,24 @@ describe("SiteBuilder - URL Enrichment", () => {
   beforeEach(() => {
     mockContext = createMockServicePluginContext({ logger });
     EntityUrlGenerator.getInstance().configure(entityDisplay);
+  });
+
+  it("prepares markdown image references as well as cover/OG references, excluding code examples", async () => {
+    spyOn(mockContext.entityService, "getEntityTypes").mockReturnValue([
+      "post",
+      "image",
+    ]);
+    spyOn(mockContext.entityService, "listEntities").mockResolvedValue([
+      createTestEntity("post", {
+        content:
+          "---\ncoverImageId: cover\nogImageId: og\n---\n![Inline](entity://image/inline)\n![Duplicate](entity://image/cover)\n\n```md\n![Example](entity://image/not-rendered)\n```",
+      }),
+    ]);
+    expect(
+      (await collectAllImageIds(mockContext.entityService, logger)).sort(),
+    ).toEqual(["cover", "inline", "og"]);
+    expect(mockContext.entityService.listEntities).toHaveBeenCalledTimes(1);
+    expect(mockContext.entityService.getEntity).not.toHaveBeenCalled();
   });
 
   describe("enrichWithUrls", () => {
@@ -254,7 +275,7 @@ describe("SiteBuilder - URL Enrichment", () => {
       expect(result.typeLabel).toBe("Post");
     });
 
-    it("should resolve coverImageUrl from entity content frontmatter", async () => {
+    it("omits an unprepared inline cover without reading binary content", async () => {
       // Entity with coverImageId in frontmatter
       const content = `---
 title: Test Project
@@ -289,20 +310,17 @@ coverImageId: project-cover-image
 
       const result = z
         .object({
-          coverImageUrl: z.string(),
-          coverImageWidth: z.number(),
-          coverImageHeight: z.number(),
+          coverImageUrl: z.never().optional(),
           url: z.string(),
         })
         .parse(await enrich(entity));
 
-      expect(result.coverImageUrl).toBe("data:image/png;base64,abc123");
-      expect(result.coverImageWidth).toBe(800);
-      expect(result.coverImageHeight).toBe(600);
+      expect(result.coverImageUrl).toBeUndefined();
       expect(result.url).toBe("/projects/test-project");
+      expect(mockContext.entityService.getEntity).not.toHaveBeenCalled();
     });
 
-    it("should explicitly resolve an asset-backed cover image without a build image", async () => {
+    it("never buffers an asset-backed cover when the build image is missing", async () => {
       const bytes = Buffer.from(
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
         "base64",
@@ -341,18 +359,13 @@ coverImageId: asset-cover
 
       const result = z
         .object({
-          coverImageUrl: z.string(),
-          coverImageWidth: z.number(),
-          coverImageHeight: z.number(),
+          coverImageUrl: z.never().optional(),
         })
         .parse(await enrich(entity));
 
-      expect(result.coverImageUrl).toBe(
-        `data:image/png;base64,${bytes.toString("base64")}`,
-      );
-      expect(result.coverImageWidth).toBe(1);
-      expect(result.coverImageHeight).toBe(1);
-      expect(readAsset).toHaveBeenCalledTimes(1);
+      expect(result.coverImageUrl).toBeUndefined();
+      expect(readAsset).not.toHaveBeenCalled();
+      expect(mockContext.entityService.getEntity).not.toHaveBeenCalled();
     });
 
     it("should resolve absolute ogImageUrl from ogImageId before coverImageId", async () => {
@@ -455,9 +468,8 @@ coverImageId: cover-image
     });
 
     it("should omit ogImageUrl when it would only resolve to a data URL", async () => {
-      // No imageBuildService → the head image falls back to direct resolution,
-      // which yields a data: URL. A data URI is unusable as an og:image (social
-      // crawlers reject it), so ogImageUrl must be omitted rather than emitted.
+      // No imageBuildService: enrichment must not resolve bytes or inline URLs.
+      // Only a prepared, file-backed URL is usable as an OG image.
       const content = `---
 title: Test Post
 slug: test-post

@@ -1,286 +1,336 @@
 import { createMockEntityService } from "@brains/entity-service/test";
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import type {
+  BaseEntity,
+  EntityFileAssets,
+  EntityVerifiedFileSource,
+  EntityFileProductionOptions,
+} from "@brains/entity-service";
+import type { AssetRef } from "@brains/assets";
+import { imageAdapter, prepareImageAsset } from "@brains/image";
+import { describe, test, expect, beforeEach, afterEach, spyOn } from "bun:test";
+import assert from "node:assert/strict";
 import { markdownToHtml } from "@brains/ui-library";
-import { promises as fs, mkdtempSync } from "fs";
-import { join } from "path";
-import { tmpdir } from "os";
+import { mkdtemp, mkdir, readFile, writeFile, rm } from "node:fs/promises";
+import { join, basename } from "node:path";
+import { tmpdir } from "node:os";
 import { ImageBuildService } from "../src/image-build-service";
 import { createTestPng } from "./helpers/test-png";
+import { createImageFileActors } from "./helpers/image-file-actors";
 import { createSilentLogger } from "@brains/test-utils";
 
-/** Create a real PNG as a base64 data URL */
-async function createTestDataUrl(
-  width: number,
-  height: number,
-): Promise<string> {
-  const buffer = await createTestPng(width, height);
-  return `data:image/png;base64,${buffer.toString("base64")}`;
-}
-
-describe("ImageBuildService", () => {
+describe("ImageBuildService owned files", () => {
   const logger = createSilentLogger();
-  let outputDir: string;
+  let directory: string;
   let imagesDir: string;
-
+  let files: EntityFileAssets;
+  let entities: Map<string, BaseEntity>;
+  let assets: Map<AssetRef, Uint8Array>;
+  let service: ReturnType<typeof createMockEntityService>;
   beforeEach(async () => {
-    outputDir = mkdtempSync(join(tmpdir(), "image-build-service-test-"));
-    imagesDir = join(outputDir, "images");
-    await fs.mkdir(imagesDir, { recursive: true });
+    directory = await mkdtemp(join(tmpdir(), "site-image-files-"));
+    imagesDir = join(directory, "images");
+    await mkdir(imagesDir);
+    entities = new Map();
+    assets = new Map();
+    files = createImageFileActors((ref) => assets.get(ref));
+    service = createMockEntityService({
+      getEntityImpl: async ({ id }) => entities.get(id) ?? null,
+    });
+    service.fileAssets = files;
+    spyOn(service, "statAsset").mockImplementation(async (ref) => {
+      const bytes = assets.get(ref);
+      return bytes ? { ref, sizeBytes: bytes.length } : null;
+    });
+    spyOn(service, "readAsset").mockImplementation(async (): Promise<never> => {
+      throw new Error("Controller image buffering is forbidden");
+    });
   });
-
   afterEach(async () => {
-    try {
-      await fs.rm(outputDir, { recursive: true, force: true });
-    } catch {
-      // ignore
-    }
+    await files.close();
+    await rm(directory, { recursive: true });
+  });
+  async function addImage(
+    id: string,
+    width: number,
+    height: number,
+  ): Promise<{ bytes: Uint8Array; ref: AssetRef; filename: string }> {
+    const bytes = await createTestPng(width, height);
+    const prepared = prepareImageAsset(bytes);
+    const image = imageAdapter.createImageEntity({
+      facts: prepared.facts,
+      title: id,
+      status: "draft",
+    });
+    entities.set(id, {
+      ...image,
+      id,
+      visibility: "public",
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+      contentHash: "fixture",
+    });
+    assets.set(prepared.asset.ref, bytes);
+    return {
+      bytes,
+      ref: prepared.asset.ref,
+      filename: `${prepared.facts.digest}.${prepared.facts.format}`,
+    };
+  }
+  function builder(): ImageBuildService {
+    return new ImageBuildService(service, logger, imagesDir);
+  }
+
+  test("resolves asset references through native derivatives without controller reads", async () => {
+    await addImage("cover-photo", 2000, 1000);
+    const build = builder();
+    await build.resolveAll(["cover-photo"], new AbortController().signal);
+    expect(build.get("cover-photo")).toMatchObject({
+      src: expect.stringContaining("960w.webp"),
+      srcset: expect.stringContaining("1920w"),
+      width: 960,
+      height: 480,
+    });
+    expect(service.readAsset).not.toHaveBeenCalled();
   });
 
-  test("should resolve image entity to optimized WebP", async () => {
-    const dataUrl = await createTestDataUrl(2000, 1000);
-
-    const mockEntityService = createMockEntityService({
-      returns: {
-        getEntity: {
-          id: "cover-photo",
-          entityType: "image",
-          content: dataUrl,
-          visibility: "public",
-          metadata: { format: "png", width: 2000, height: 1000 },
-          created: new Date().toISOString(),
-          updated: new Date().toISOString(),
-          contentHash: "abc123",
-        },
-      },
-    });
-
-    const service = new ImageBuildService(mockEntityService, logger, imagesDir);
-    await service.resolveAll(["cover-photo"], new AbortController().signal);
-
-    const resolved = service.get("cover-photo");
-    expect(resolved).toBeDefined();
-    if (!resolved) return;
-
-    expect(resolved.src).toContain(".webp");
-    expect(resolved.srcset).toBeDefined();
-    expect(resolved.srcset).toContain("480w");
-    expect(resolved.srcset).toContain("960w");
-    expect(resolved.width).toBe(960);
-    expect(resolved.height).toBe(480);
-  });
-
-  test("should resolve SQLite-backed image bytes", async () => {
-    const bytes = await createTestPng(100, 100);
-    const mockEntityService = createMockEntityService({
-      returns: {
-        getEntity: {
-          id: "asset-icon",
-          entityType: "image",
-          content: `asset://sha256/${"a".repeat(64)}`,
-          visibility: "public",
-          metadata: {
-            format: "png",
-            mediaType: "image/png",
-            sizeBytes: bytes.byteLength,
-            width: 100,
-            height: 100,
-          },
-          created: new Date().toISOString(),
-          updated: new Date().toISOString(),
-          contentHash: "asset-icon-hash",
-        },
-        readAsset: bytes,
-      },
-    });
-
-    const service = new ImageBuildService(mockEntityService, logger, imagesDir);
-    await service.resolveAll(["asset-icon"], new AbortController().signal);
-
-    expect(service.get("asset-icon")).toMatchObject({
-      src: "/images/asset-icon.png",
+  test("retains a verified original for small images with no upscaled variants", async () => {
+    const image = await addImage("icon", 100, 100);
+    const build = builder();
+    await build.resolveAll(["icon"], new AbortController().signal);
+    expect(build.get("icon")).toEqual({
+      src: `/images/${image.filename}`,
       width: 100,
       height: 100,
     });
-    expect([...(await fs.readFile(join(imagesDir, "asset-icon.png")))]).toEqual(
-      [...bytes],
-    );
-  });
-
-  test("rejects an already cancelled image batch before entity reads", async () => {
-    const mockEntityService = createMockEntityService();
-    const service = new ImageBuildService(mockEntityService, logger, imagesDir);
-    const controller = new AbortController();
-    controller.abort(new Error("cancel image preparation"));
-
     expect(
-      service.resolveAll(["cover-photo"], controller.signal),
-    ).rejects.toThrow("cancel image preparation");
+      new Uint8Array(await readFile(join(imagesDir, image.filename))),
+    ).toEqual(new Uint8Array(image.bytes));
+    expect(service.readAsset).not.toHaveBeenCalled();
   });
 
-  test("should return original URL for small images that cannot be optimized", async () => {
-    const dataUrl = await createTestDataUrl(100, 100);
-
-    const mockEntityService = createMockEntityService({
-      returns: {
-        getEntity: {
-          id: "tiny-icon",
-          entityType: "image",
-          content: dataUrl,
-          visibility: "public",
-          metadata: { format: "png", width: 100, height: 100 },
-          created: new Date().toISOString(),
-          updated: new Date().toISOString(),
-          contentHash: "tiny",
-        },
+  test("inspects originals rather than trusting model MIME or dimensions", async () => {
+    const image = await addImage("inspected", 100, 100);
+    const entity = entities.get("inspected");
+    assert.ok(entity);
+    entities.set("inspected", {
+      ...entity,
+      metadata: {
+        ...entity.metadata,
+        format: "jpeg",
+        mediaType: "image/jpeg",
+        width: 9,
+        height: 9,
       },
     });
-
-    const service = new ImageBuildService(mockEntityService, logger, imagesDir);
-    await service.resolveAll(["tiny-icon"], new AbortController().signal);
-
-    const resolved = service.get("tiny-icon");
-    expect(resolved).toBeDefined();
-    if (!resolved) return;
-
-    expect(resolved.src).toBe("/images/tiny-icon.png");
-    expect(resolved.srcset).toBeUndefined();
+    const build = builder();
+    await build.resolveAll(["inspected"], new AbortController().signal);
+    expect(build.get("inspected")).toEqual({
+      src: `/images/${image.filename}`,
+      width: 100,
+      height: 100,
+    });
   });
 
-  test("should return undefined for missing image entities", async () => {
-    const mockEntityService = createMockEntityService({
-      returns: { getEntity: null },
+  test("failed inspection never publishes an original or starts optimization", async () => {
+    const image = await addImage("invalid", 100, 100);
+    spyOn(files, "inspect").mockRejectedValue(
+      new Error("Invalid image signature"),
+    );
+    const download = spyOn(files, "download");
+    const produce = spyOn(files, "withProducedFile");
+    const build = builder();
+    await build.resolveAll(["invalid"], new AbortController().signal);
+    expect(build.get("invalid")).toBeUndefined();
+    expect(download).not.toHaveBeenCalled();
+    expect(produce).not.toHaveBeenCalled();
+    await assert.rejects(readFile(join(imagesDir, image.filename)), {
+      code: "ENOENT",
     });
-
-    const service = new ImageBuildService(mockEntityService, logger, imagesDir);
-    await service.resolveAll(["missing-id"], new AbortController().signal);
-
-    expect(service.get("missing-id")).toBeUndefined();
   });
 
-  test("should deduplicate image IDs", async () => {
-    const dataUrl = await createTestDataUrl(1000, 500);
+  test("changed content publishes a distinct original URL without overwriting the old file", async () => {
+    const original = await addImage("icon", 100, 100);
+    const build = builder();
+    await build.resolveAll(["icon"], new AbortController().signal);
+    const changed = await addImage("icon", 120, 120);
+    await build.resolveAll(["icon"], new AbortController().signal);
+    expect(changed.filename).not.toBe(original.filename);
+    expect(build.get("icon")?.src).toBe(`/images/${changed.filename}`);
+    expect(
+      new Uint8Array(await readFile(join(imagesDir, original.filename))),
+    ).toEqual(new Uint8Array(original.bytes));
+    expect(
+      new Uint8Array(await readFile(join(imagesDir, changed.filename))),
+    ).toEqual(new Uint8Array(changed.bytes));
+  });
 
-    const mockEntityService = createMockEntityService({
-      returns: {
-        getEntity: {
-          id: "shared",
-          entityType: "image",
-          content: dataUrl,
-          visibility: "public",
-          metadata: { format: "png" },
-          created: new Date().toISOString(),
-          updated: new Date().toISOString(),
-          contentHash: "hash",
-        },
-      },
+  test("verifies existing originals rather than trusting their digest-derived names", async () => {
+    const image = await addImage("icon", 100, 100);
+    await builder().resolveAll(["icon"], new AbortController().signal);
+    const path = join(imagesDir, image.filename);
+    const corrupt = new Uint8Array(image.bytes);
+    corrupt[corrupt.length - 1] = 42;
+    await writeFile(path, corrupt);
+    const build = builder();
+    await build.resolveAll(["icon"], new AbortController().signal);
+    expect(build.get("icon")).toBeUndefined();
+    expect(new Uint8Array(await readFile(path))).toEqual(corrupt);
+  });
+
+  test("reuses verified originals without an overwrite attempt", async () => {
+    await addImage("icon", 100, 100);
+    const download = spyOn(files, "download");
+    await builder().resolveAll(["icon"], new AbortController().signal);
+    const fingerprint = spyOn(files, "fingerprint");
+    await builder().resolveAll(["icon"], new AbortController().signal);
+    expect(download).toHaveBeenCalledTimes(1);
+    expect(fingerprint).toHaveBeenCalledTimes(1);
+  });
+
+  test("requires file provisioning without falling back to buffered reads", async () => {
+    delete service.fileAssets;
+    await assert.rejects(
+      builder().resolveAll(["image"], new AbortController().signal),
+      /not provisioned/,
+    );
+    expect(service.getEntity).not.toHaveBeenCalled();
+    expect(service.readAsset).not.toHaveBeenCalled();
+  });
+
+  test("rejects pre-abort before entity reads and skips missing entities", async () => {
+    const caller = new AbortController();
+    const reason = new Error("cancel image preparation");
+    caller.abort(reason);
+    await assert.rejects(
+      builder().resolveAll(["image"], caller.signal),
+      (error: unknown) => error === reason,
+    );
+    expect(service.getEntity).not.toHaveBeenCalled();
+    const build = builder();
+    await build.resolveAll(["missing"], new AbortController().signal);
+    expect(build.get("missing")).toBeUndefined();
+  });
+
+  test("cancellation after original publication prevents production and preserves the file", async () => {
+    const image = await addImage("cancelled", 1000, 500);
+    const caller = new AbortController();
+    const reason = new Error("stop after original acknowledgement");
+    const download = files.download.bind(files);
+    spyOn(files, "download").mockImplementation(async (input, options) => {
+      const receipt = await download(input, options);
+      caller.abort(reason);
+      return receipt;
     });
+    const produce = spyOn(files, "withProducedFile");
+    const build = builder();
+    await assert.rejects(
+      build.resolveAll(["cancelled"], caller.signal),
+      (error: unknown) => error === reason,
+    );
+    expect(produce).not.toHaveBeenCalled();
+    expect(build.get("cancelled")).toBeUndefined();
+    expect(
+      new Uint8Array(await readFile(join(imagesDir, image.filename))),
+    ).toEqual(new Uint8Array(image.bytes));
+  });
 
-    const service = new ImageBuildService(mockEntityService, logger, imagesDir);
-    await service.resolveAll(
+  test("serializes real producers instead of overflowing the shared bulk reservation", async () => {
+    for (const width of [600, 700, 800, 900])
+      await addImage(String(width), width, 100);
+    const native = files.withProducedFile?.bind(files);
+    assert.ok(native);
+    let active = 0;
+    let maximum = 0;
+    files.withProducedFile = async <T>(
+      source: string | undefined,
+      use: (file: EntityVerifiedFileSource, signal: AbortSignal) => Promise<T>,
+      options?: EntityFileProductionOptions,
+    ): Promise<T> => {
+      active++;
+      maximum = Math.max(maximum, active);
+      try {
+        return await native(source, use, options);
+      } finally {
+        active--;
+      }
+    };
+    const build = builder();
+    await build.resolveAll(
+      ["600", "700", "800", "900"],
+      new AbortController().signal,
+    );
+    expect(Object.keys(build.getMap())).toHaveLength(4);
+    expect(
+      Object.values(build.getMap()).every((image) =>
+        image.src.endsWith(".webp"),
+      ),
+    ).toBe(true);
+    expect(maximum).toBe(1);
+    expect(active).toBe(0);
+  });
+
+  test("does not materialize legacy inline images as a fallback", async () => {
+    const image = await addImage("inline", 100, 100);
+    const entity = entities.get("inline");
+    assert.ok(entity);
+    entities.set("inline", {
+      ...entity,
+      content: `data:image/png;base64,${Buffer.from(image.bytes).toString("base64")}`,
+    });
+    const download = spyOn(files, "download");
+    const build = builder();
+    await assert.rejects(
+      build.resolveAll(["inline"], new AbortController().signal),
+      /require asset migration/,
+    );
+    expect(build.get("inline")).toBeUndefined();
+    expect(download).not.toHaveBeenCalled();
+    expect(service.readAsset).not.toHaveBeenCalled();
+  });
+
+  test("deduplicates IDs and exposes the complete resolved image map", async () => {
+    await addImage("shared", 1000, 500);
+    const build = builder();
+    await build.resolveAll(
       ["shared", "shared", "shared"],
       new AbortController().signal,
     );
-
-    // Only one entry in the map — deduplication worked
-    expect(Object.keys(service.getMap())).toHaveLength(1);
+    expect(service.getEntity).toHaveBeenCalledTimes(1);
+    expect(Object.keys(build.getMap())).toEqual(["shared"]);
   });
 
-  test("should provide full image map via getMap()", async () => {
-    const dataUrl = await createTestDataUrl(1000, 500);
-
-    const mockEntityService = createMockEntityService({
-      returns: {
-        getEntity: {
-          id: "test",
-          entityType: "image",
-          content: dataUrl,
-          visibility: "public",
-          metadata: { format: "png", width: 1000, height: 500 },
-          created: new Date().toISOString(),
-          updated: new Date().toISOString(),
-          contentHash: "hash",
-        },
-      },
+  test("renders entity image references with responsive source metadata", async () => {
+    await addImage("photo", 2000, 1000);
+    const build = builder();
+    await build.resolveAll(["photo"], new AbortController().signal);
+    const html = markdownToHtml("![Alt](entity://image/photo)", {
+      imageRenderer: build.createImageRenderer(),
     });
-
-    const service = new ImageBuildService(mockEntityService, logger, imagesDir);
-    await service.resolveAll(["test"], new AbortController().signal);
-
-    const map = service.getMap();
-    expect(Object.keys(map)).toHaveLength(1);
-    expect(map["test"]).toBeDefined();
+    expect(html).toContain(".webp");
+    expect(html).toContain("srcset=");
+    expect(html).toContain('alt="Alt"');
+    expect(html).toContain('loading="lazy"');
+    expect(html).toContain('decoding="async"');
+    const src = build.get("photo")?.src;
+    assert.ok(src);
+    expect(
+      (
+        await new Bun.Image(
+          await readFile(join(imagesDir, basename(src))),
+        ).metadata()
+      ).format,
+    ).toBe("webp");
   });
 
-  describe("createImageRenderer", () => {
-    test("should resolve entity://image refs in markdownToHtml", async () => {
-      const dataUrl = await createTestDataUrl(2000, 1000);
-
-      const mockEntityService = createMockEntityService({
-        returns: {
-          getEntity: {
-            id: "photo",
-            entityType: "image",
-            content: dataUrl,
-            visibility: "public",
-            metadata: { format: "png", width: 2000, height: 1000 },
-            created: new Date().toISOString(),
-            updated: new Date().toISOString(),
-            contentHash: "abc",
-          },
-        },
-      });
-
-      const service = new ImageBuildService(
-        mockEntityService,
-        logger,
-        imagesDir,
-      );
-      await service.resolveAll(["photo"], new AbortController().signal);
-
-      const renderer = service.createImageRenderer();
-      const html = markdownToHtml("![Alt](entity://image/photo)", {
-        imageRenderer: renderer,
-      });
-
-      expect(html).toContain(".webp");
-      expect(html).toContain("srcset=");
-      expect(html).toContain('alt="Alt"');
-      expect(html).toContain('loading="lazy"');
-      expect(html).toContain('decoding="async"');
-    });
-
-    test("should fall back to default rendering for non-entity images", async () => {
-      const mockEntityService = createMockEntityService();
-      const service = new ImageBuildService(
-        mockEntityService,
-        logger,
-        imagesDir,
-      );
-
-      const renderer = service.createImageRenderer();
-      const html = markdownToHtml("![Photo](https://example.com/img.png)", {
-        imageRenderer: renderer,
-      });
-
-      expect(html).toContain('src="https://example.com/img.png"');
-      expect(html).not.toContain("srcset");
-    });
-
-    test("should fall back for unresolved entity://image refs", async () => {
-      const mockEntityService = createMockEntityService();
-      const service = new ImageBuildService(
-        mockEntityService,
-        logger,
-        imagesDir,
-      );
-
-      const renderer = service.createImageRenderer();
-      const html = markdownToHtml("![Missing](entity://image/unknown)", {
-        imageRenderer: renderer,
-      });
-
-      // Returns undefined → marked uses its default rendering
-      expect(html).toContain("entity://image/unknown");
-    });
+  test("leaves non-entity and unresolved image references to the renderer", () => {
+    const imageRenderer = builder().createImageRenderer();
+    expect(
+      markdownToHtml("![Photo](https://example.com/img.png)", {
+        imageRenderer,
+      }),
+    ).toContain('src="https://example.com/img.png"');
+    expect(
+      markdownToHtml("![Missing](entity://image/unknown)", { imageRenderer }),
+    ).toContain("entity://image/unknown");
   });
 });

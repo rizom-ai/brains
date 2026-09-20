@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
+import { readFile, mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import type { App } from "@brains/app";
 import { imageSchema } from "@brains/image";
 import {
@@ -10,17 +11,60 @@ import {
 } from "@brains/assets";
 import { CallbackProgressReporter } from "@brains/utils/progress";
 
+interface CanonicalImageDimensions {
+  width: number;
+  height: number;
+  cacheDirectory?: string;
+}
+
 /** Real canonical handler, SDK actor, inspected upload and atomic publication.
  * Only the explicit test artifact's provider endpoint points to this fixture.
  */
-export async function generateCanonicalAIImage(app: App): Promise<AssetRecord> {
+export async function generateCanonicalAIImage(
+  app: App,
+  dimensions: CanonicalImageDimensions = { width: 1, height: 1 },
+): Promise<AssetRecord> {
   const bytes = Buffer.alloc(256 * 1024 + 7);
-  Buffer.from(
+  const pixel = Buffer.from(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
     "base64",
-  ).copy(bytes);
+  );
+  // Fixture generation only; production decoding/encoding stays actor-local.
+  const source =
+    dimensions.width === 1 && dimensions.height === 1
+      ? pixel
+      : Buffer.from(
+          await new Bun.Image(pixel)
+            .resize(dimensions.width, dimensions.height)
+            .png()
+            .bytes(),
+        );
+  source.copy(bytes);
   bytes[bytes.length - 1] = 42; // Distinct from the canonical cover asset.
   const digest = createHash("sha256").update(bytes).digest("hex");
+  if (dimensions.cacheDirectory) {
+    // Seed a previous-build fixture independently of production file consumers.
+    await mkdir(dimensions.cacheDirectory, { recursive: true });
+    await writeFile(join(dimensions.cacheDirectory, `${digest}.png`), bytes, {
+      flag: "wx",
+    });
+    for (const width of [480, 960, 1920].filter(
+      (value) => value <= dimensions.width,
+    )) {
+      const variant = await new Bun.Image(bytes)
+        .resize(width, undefined, { withoutEnlargement: true })
+        .webp({ quality: 80 })
+        .bytes();
+      await writeFile(
+        join(
+          dimensions.cacheDirectory,
+          `${digest.slice(0, 16)}-${width}w.webp`,
+        ),
+        variant,
+        { flag: "wx" },
+      );
+    }
+  }
   let requests = 0;
   let actorPid = 0;
   const peer = Bun.serve({
@@ -82,8 +126,8 @@ export async function generateCanonicalAIImage(app: App): Promise<AssetRecord> {
       }),
     );
     assert.equal(image.metadata.attachmentType, "generated");
-    assert.equal(image.metadata.width, 1);
-    assert.equal(image.metadata.height, 1);
+    assert.equal(image.metadata.width, dimensions.width);
+    assert.equal(image.metadata.height, dimensions.height);
     const ref = parseAssetRef(image.content);
     assert.ok(ref);
     const record = await entities.statAsset(ref);
