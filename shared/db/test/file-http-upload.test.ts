@@ -45,6 +45,278 @@ test("HTTP actor requests require an explicit supported method and bounded input
   ).toBe(false);
 });
 
+test("real multipart actor streams the file and returns only selected bounded receipt fields", async () => {
+  const received = Promise.withResolvers<{
+    bytes: Buffer;
+    contentType: string;
+    length: string | undefined;
+  }>();
+  const setup = await fixture((request, response) => {
+    const chunks: Buffer[] = [];
+    request.on("data", (chunk: Buffer) => chunks.push(chunk));
+    request.on("end", () => {
+      received.resolve({
+        bytes: Buffer.concat(chunks),
+        contentType: request.headers["content-type"] ?? "",
+        length: request.headers["content-length"],
+      });
+      response.end(
+        JSON.stringify({
+          id: "123",
+          channel_id: "456",
+          attachments: [{ id: "789", size: setup.bytes.length }],
+          content: "not returned to the owner",
+        }),
+      );
+    });
+  });
+  const actorUrl = new URL(
+    "../src/turso-worker/file-http-upload-process.ts",
+    import.meta.url,
+  );
+  const files = new FileProcessOwner({
+    executable: process.execPath,
+    uploadUrl: actorUrl,
+    downloadUrl: actorUrl,
+    httpUploadUrl: actorUrl,
+  });
+  try {
+    const result = await files.post({
+      ...setup.input,
+      headers: { authorization: "Bot fixture" },
+      multipart: {
+        fieldName: "files[0]",
+        filename: "résumé.png",
+        mimeType: "image/png",
+        fields: {
+          payload_json: JSON.stringify({
+            attachments: [{ id: 0, filename: "résumé.png" }],
+          }),
+        },
+      },
+      responseMetadata: {
+        messageId: ["id"],
+        channelId: ["channel_id"],
+        attachmentCount: ["attachments", "length"],
+        attachmentSize: ["attachments", 0, "size"],
+      },
+    });
+    expect(result).toEqual({
+      ...setup.input.facts,
+      statusCode: 200,
+      responseMetadata: {
+        messageId: "123",
+        channelId: "456",
+        attachmentCount: 1,
+        attachmentSize: setup.bytes.length,
+      },
+    });
+    const wire = await received.promise;
+    expect(wire.length).toBe(String(wire.bytes.length));
+    const form = await new Request("http://fixture", {
+      method: "POST",
+      body: new Uint8Array(wire.bytes),
+      headers: { "content-type": wire.contentType },
+    }).formData();
+    expect(form.get("payload_json")).toBe(
+      JSON.stringify({ attachments: [{ id: 0, filename: "résumé.png" }] }),
+    );
+    const file = form.get("files[0]");
+    assert.ok(file instanceof File);
+    expect(file.name).toBe("résumé.png");
+    expect(file.type).toBe("image/png");
+    expect(new Uint8Array(await file.arrayBuffer())).toEqual(
+      new Uint8Array(setup.bytes),
+    );
+    expect(files.stats()).toEqual({
+      children: 0,
+      terminalChildren: 0,
+      fenced: false,
+    });
+  } finally {
+    await files.close();
+    await setup.close();
+  }
+});
+
+test.each([
+  "oversized",
+  "declared-oversized",
+  "invalid-utf8",
+  "invalid-json",
+  "missing",
+  "nonscalar",
+  "long-scalar",
+] as const)("selected HTTP JSON rejects %s without replay", async (kind) => {
+  let requests = 0;
+  const setup = await fixture((request, response) => {
+    requests++;
+    request.resume();
+    request.on("end", () => {
+      if (kind === "declared-oversized")
+        response.writeHead(200, { "content-length": "65537" }).end();
+      else if (kind === "oversized") {
+        response.writeHead(200, { "transfer-encoding": "chunked" });
+        response.end("x".repeat(65537));
+      } else if (kind === "invalid-utf8") response.end(Buffer.from([0xff]));
+      else if (kind === "invalid-json") response.end("not JSON");
+      else if (kind === "missing") response.end("{}");
+      else if (kind === "nonscalar") response.end('{"id":{}}');
+      else response.end(JSON.stringify({ id: "x".repeat(1025) }));
+    });
+  });
+  try {
+    await assert.rejects(
+      postFile({ ...setup.input, responseMetadata: { id: ["id"] } }),
+      (error: unknown) => {
+        const primary: unknown =
+          error instanceof AggregateError ? error.cause : error;
+        assert.ok(primary instanceof Error);
+        if (kind === "oversized" || kind === "declared-oversized")
+          expect(primary.message).toBe(
+            "HTTP metadata response exceeds its byte limit",
+          );
+        else if (kind === "invalid-utf8")
+          expect(primary.name).toBe("TypeError");
+        else if (kind === "invalid-json")
+          expect(primary.name).toBe("SyntaxError");
+        else if (kind === "missing")
+          expect(primary.message).toBe(
+            "HTTP metadata response is missing a selected field",
+          );
+        else expect(primary.name).toBe("ZodError");
+        return true;
+      },
+    );
+    expect(requests).toBe(1);
+  } finally {
+    await setup.close();
+  }
+});
+
+test("real metadata response cancellation joins socket retirement and actual actor exit", async () => {
+  const entered = Promise.withResolvers<void>();
+  const closed = Promise.withResolvers<void>();
+  const setup = await fixture((request, response) => {
+    request.socket.once("close", () => closed.resolve());
+    request.resume();
+    request.on("end", () => {
+      response.writeHead(200).write('{"id":');
+      entered.resolve();
+    });
+  });
+  const actorUrl = new URL(
+    "../src/turso-worker/file-http-upload-process.ts",
+    import.meta.url,
+  );
+  const files = new FileProcessOwner({
+    executable: process.execPath,
+    uploadUrl: actorUrl,
+    downloadUrl: actorUrl,
+    httpUploadUrl: actorUrl,
+  });
+  const caller = new AbortController();
+  const primary = new Error("cancel metadata wait");
+  const work = files.post(
+    { ...setup.input, responseMetadata: { id: ["id"] } },
+    caller.signal,
+  );
+  const rejected = assert.rejects(
+    work,
+    (error: unknown) =>
+      error === primary ||
+      (error instanceof AggregateError && error.cause === primary),
+  );
+  try {
+    await Promise.race([entered.promise, work]);
+    caller.abort(primary);
+    await rejected;
+    await closed.promise;
+    expect(files.stats()).toEqual({
+      children: 0,
+      terminalChildren: 0,
+      fenced: false,
+    });
+  } finally {
+    caller.abort(primary);
+    await Promise.allSettled([work, files.close()]);
+    await setup.close();
+  }
+});
+
+test("selected JSON error statuses are returned without reading a response body or following redirects", async () => {
+  let requests = 0;
+  const setup = await fixture((request, response) => {
+    requests++;
+    request.resume();
+    request.on("end", () =>
+      response
+        .writeHead(307, { location: "/replay", "content-length": "9999999" })
+        .end(),
+    );
+  });
+  try {
+    expect(
+      await postFile({ ...setup.input, responseMetadata: { id: ["id"] } }),
+    ).toEqual({ ...setup.input.facts, statusCode: 307 });
+    expect(requests).toBe(1);
+  } finally {
+    await setup.close();
+  }
+});
+
+test("multipart and receipt metadata cannot override framing or exceed the existing scalar envelope", () => {
+  const input = {
+    sourceFile: "/unused",
+    facts: { sizeBytes: 1, sha256: "a".repeat(64) },
+    url: "http://127.0.0.1/upload",
+    headers: {},
+  };
+  const multipart = {
+    fieldName: "files[0]",
+    filename: "source.png",
+    mimeType: "image/png",
+    fields: {},
+  };
+  const invalid: unknown[] = [
+    { ...input, multipart, headers: { "Content-Type": "malicious" } },
+    { ...input, multipart: { ...multipart, filename: "x\r\nInjected: bad" } },
+    { ...input, multipart: { ...multipart, fieldName: 'x"' } },
+    {
+      ...input,
+      multipart: { ...multipart, fields: { "files[0]": "collision" } },
+    },
+    {
+      ...input,
+      multipart: { ...multipart, fields: { data: "x".repeat(16385) } },
+    },
+    { ...input, responseMetadata: { statusCode: ["id"] } },
+    { ...input, responseMetadata: { id: ["constructor"] } },
+    {
+      ...input,
+      responseMetadata: { id: Array.from({ length: 9 }, () => "nested") },
+    },
+    { ...input, responseMetadata: { id: [-1] } },
+    {
+      ...input,
+      responseMetadata: Object.fromEntries(
+        Array.from({ length: 16 }, (_, index) => [`field${index}`, ["id"]]),
+      ),
+    },
+  ];
+  for (const value of invalid)
+    expect(
+      fileHttpUploadRequestSchema.safeParse({ method: "POST", input: value })
+        .success,
+    ).toBe(false);
+  expect(
+    fileHttpUploadRequestSchema.safeParse({
+      method: "POST",
+      input: { ...input, multipart, responseMetadata: { id: ["id"] } },
+    }).success,
+  ).toBe(true);
+});
+
 interface Fixture {
   input: FileHttpUploadInput;
   bytes: Buffer;

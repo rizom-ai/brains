@@ -9,14 +9,18 @@ import { fileFetchSchema, type FileFetchInput } from "./file-fetch";
 import { fileProduceSchema, type FileProduceInput } from "./file-produce";
 import {
   fileHttpUploadSchema,
-  fileHttpStatusSchema,
+  parseHttpUploadDetails,
   type FileHttpUploadInput,
   type FileHttpUploadResult,
   type FileHttpUploadRequest,
   type FileHttpMethod,
 } from "./file-http-upload";
 
-const httpDetailsSchema = z.strictObject({ statusCode: fileHttpStatusSchema });
+export type {
+  FileHttpMultipart,
+  FileHttpMetadata,
+  FileHttpMetadataSelection,
+} from "./file-http-metadata";
 
 export type { FileUploadInput } from "./file-upload";
 export type { FileDownloadInput } from "./file-download";
@@ -305,7 +309,7 @@ export class FileProcessOwner {
     return {
       sizeBytes: result.sizeBytes,
       sha256: result.sha256,
-      ...httpDetailsSchema.parse(result.details),
+      ...parseHttpUploadDetails(options, result.details),
     };
   }
   private fence(error: unknown): void {
@@ -391,7 +395,11 @@ export class FileProcessOwner {
                   throw new Error(
                     "File actor completion does not match its request",
                   );
-                if (observeHttp) httpDetailsSchema.parse(message.details);
+                if (observeHttp) {
+                  if (!("method" in input))
+                    throw new Error("HTTP upload has no method");
+                  parseHttpUploadDetails(input.input, message.details);
+                }
                 state.facts = {
                   sizeBytes: message.sizeBytes,
                   sha256: message.sha256,

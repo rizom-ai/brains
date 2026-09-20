@@ -40,7 +40,11 @@ test.each(methods)(
     const files = owner();
     const caller = new AbortController();
     let settled = false;
-    const work = files[method](input(gate), caller.signal).finally(() => {
+    const request = {
+      ...input(gate),
+      ...(method === "post" && { responseMetadata: { messageId: ["id"] } }),
+    };
+    const work = files[method](request, caller.signal).finally(() => {
       settled = true;
     });
     try {
@@ -61,7 +65,13 @@ test.each(methods)(
       expect(closed).toBe(false);
       expect(files.stats().children).toBe(1);
       await Bun.write(`${gate}.exit`, "release");
-      expect(await work).toEqual({ ...input(gate).facts, statusCode: 201 });
+      expect(await work).toEqual({
+        ...input(gate).facts,
+        statusCode: 201,
+        ...(method === "post" && {
+          responseMetadata: { messageId: "receipt" },
+        }),
+      });
       await closing;
       expect(files.stats().children).toBe(0);
     } finally {
@@ -178,14 +188,28 @@ test("HTTP uploads share the two-child limit and shutdown observes outstanding r
 });
 
 test("missing or malformed HTTP receipts fence reuse even after cancellation", async () => {
-  for (const mode of ["missing", "malformed"]) {
+  for (const mode of [
+    "missing",
+    "malformed",
+    "metadata-missing",
+    "metadata-extra",
+    "metadata-oversized",
+  ]) {
     const directory = await mkdtemp(
       join(tmpdir(), "turso-http-owner-uncertain-"),
     );
     const gate = join(directory, "upload");
     const files = owner();
     const caller = new AbortController();
-    const work = files.post(input(gate, mode), caller.signal);
+    const work = files.post(
+      {
+        ...input(gate, mode),
+        ...(mode.startsWith("metadata-") && {
+          responseMetadata: { messageId: ["id"] },
+        }),
+      },
+      caller.signal,
+    );
     const rejected = assert.rejects(work);
     try {
       await until(() => Bun.file(`${gate}.entered`).exists());

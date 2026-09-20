@@ -7,12 +7,24 @@ import { remoteUrlSchema } from "./file-fetch";
 import { blobFactsSchema, type BlobFacts } from "./blob-protocol";
 import { STAGE_CHUNK_BYTES } from "./binary-protocol";
 import { withFileSource, type FileChunkSource } from "./file-source";
+import {
+  createMultipartFraming,
+  fileHttpMultipartSchema,
+  fileHttpMetadataSelectionSchema,
+  fileHttpMetadataValueSchema,
+  readHttpMetadata,
+  type FileHttpMultipart,
+  type FileHttpMetadataSelection,
+  type FileHttpMetadata,
+} from "./file-http-metadata";
 
 export interface FileHttpUploadInput {
   sourceFile: string;
   facts: BlobFacts;
   url: string;
   headers: Record<string, string>;
+  multipart?: FileHttpMultipart | undefined;
+  responseMetadata?: FileHttpMetadataSelection | undefined;
 }
 export type FileHttpMethod = "PUT" | "POST";
 export interface FileHttpUploadRequest {
@@ -21,6 +33,7 @@ export interface FileHttpUploadRequest {
 }
 export interface FileHttpUploadResult extends BlobFacts {
   statusCode: number;
+  responseMetadata?: FileHttpMetadata | undefined;
 }
 export const fileHttpStatusSchema: z.ZodNumber = z
   .number()
@@ -36,8 +49,8 @@ const reservedHeaders = new Set([
   "expect",
   "upgrade",
 ]);
-export const fileHttpUploadSchema: z.ZodType<FileHttpUploadInput> =
-  z.strictObject({
+export const fileHttpUploadSchema: z.ZodType<FileHttpUploadInput> = z
+  .strictObject({
     sourceFile: z
       .string()
       .min(1)
@@ -45,6 +58,8 @@ export const fileHttpUploadSchema: z.ZodType<FileHttpUploadInput> =
       .refine((path) => isAbsolute(path) && !path.includes("\0")),
     facts: blobFactsSchema,
     url: remoteUrlSchema,
+    multipart: fileHttpMultipartSchema.optional(),
+    responseMetadata: fileHttpMetadataSelectionSchema.optional(),
     headers: z
       .record(
         z
@@ -75,7 +90,51 @@ export const fileHttpUploadSchema: z.ZodType<FileHttpUploadInput> =
           ) <= 8192
         );
       }, "HTTP upload headers exceed their bounds or override transport framing"),
-  });
+  })
+  .refine(
+    (input) =>
+      !input.multipart ||
+      !Object.keys(input.headers).some(
+        (key) => key.toLowerCase() === "content-type",
+      ),
+    "Multipart content-type belongs to the actor",
+  )
+  .refine(
+    (input) =>
+      !input.responseMetadata ||
+      !Object.keys(input.headers).some(
+        (key) => key.toLowerCase() === "accept-encoding",
+      ),
+    "Selected JSON response encoding belongs to the actor",
+  );
+
+/** Validate exactly the requested bounded scalar receipt, including in the owner. */
+export function parseHttpUploadDetails(
+  input: FileHttpUploadInput,
+  details: unknown,
+): Pick<FileHttpUploadResult, "statusCode" | "responseMetadata"> {
+  const values = z
+    .record(z.string().max(64), fileHttpMetadataValueSchema)
+    .parse(details);
+  const statusCode = fileHttpStatusSchema.parse(values["statusCode"]);
+  const keys =
+    statusCode < 300 && input.responseMetadata
+      ? Object.keys(input.responseMetadata)
+      : [];
+  if (
+    Object.keys(values).length !== keys.length + 1 ||
+    keys.some((key) => !Object.hasOwn(values, key))
+  )
+    throw new Error("HTTP upload metadata receipt does not match its request");
+  return {
+    statusCode,
+    ...(keys.length > 0 && {
+      responseMetadata: Object.fromEntries(
+        Object.entries(values).filter(([key]) => key !== "statusCode"),
+      ),
+    }),
+  };
+}
 
 export const fileHttpUploadRequestSchema: z.ZodType<FileHttpUploadRequest> =
   z.strictObject({
@@ -123,6 +182,12 @@ async function transfer(
 ): Promise<FileHttpUploadResult> {
   signal?.throwIfAborted();
   const url = new URL(options.url);
+  const framing = options.multipart
+    ? createMultipartFraming(options.multipart)
+    : undefined;
+  const wireSize =
+    options.facts.sizeBytes +
+    (framing ? framing.prefix.byteLength + framing.suffix.byteLength : 0);
   const request = (url.protocol === "https:" ? httpsRequest : httpRequest)(
     url,
     {
@@ -130,7 +195,9 @@ async function transfer(
       agent: false,
       headers: {
         ...options.headers,
-        "content-length": String(options.facts.sizeBytes),
+        "content-length": String(wireSize),
+        ...(framing && { "content-type": framing.contentType }),
+        ...(options.responseMetadata && { "accept-encoding": "identity" }),
       },
     },
   );
@@ -192,6 +259,16 @@ async function transfer(
     signal?.throwIfAborted();
     const bytes = new Uint8Array(STAGE_CHUNK_BYTES);
     const hash = createHash("sha256");
+    const write = async (chunk: Uint8Array): Promise<void> => {
+      signal?.throwIfAborted();
+      await Promise.race([
+        new Promise<void>((resolve, reject) =>
+          request.write(chunk, (error) => (error ? reject(error) : resolve())),
+        ),
+        interrupted.promise,
+      ]);
+    };
+    if (framing) await write(framing.prefix);
     let sent = 0;
     while (sent < options.facts.sizeBytes) {
       signal?.throwIfAborted();
@@ -202,14 +279,10 @@ async function transfer(
       await source.readInto(view);
       signal?.throwIfAborted();
       hash.update(view);
-      await Promise.race([
-        new Promise<void>((resolve, reject) =>
-          request.write(view, (error) => (error ? reject(error) : resolve())),
-        ),
-        interrupted.promise,
-      ]);
+      await write(view);
       sent += view.length;
     }
+    if (framing) await write(framing.suffix);
     await Promise.race([
       new Promise<void>((resolve) => request.end(resolve)),
       interrupted.promise,
@@ -224,12 +297,20 @@ async function transfer(
       interrupted.promise,
     ]);
     const statusCode = fileHttpStatusSchema.parse(received.statusCode);
-    result = { ...options.facts, statusCode };
+    const responseMetadata =
+      options.responseMetadata && statusCode < 300
+        ? await readHttpMetadata(received, options.responseMetadata)
+        : undefined;
+    result = {
+      ...options.facts,
+      statusCode,
+      ...(responseMetadata && { responseMetadata }),
+    };
   } catch (error) {
     remember(error);
   }
-  // No response body is needed for a PUT receipt. Retire it rather than buffering
-  // an unbounded remote body, and join request, response and actual socket close.
+  // Unselected/error bodies are discarded; selected success JSON is bounded and
+  // projected in this actor. Join request, response and actual socket close.
   for (const resource of [response, request]) {
     try {
       resource?.destroy();

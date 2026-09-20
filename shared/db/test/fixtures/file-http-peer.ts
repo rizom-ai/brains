@@ -32,7 +32,18 @@ process.on("message", (value: unknown) => {
         kind: "consumed",
         pid: process.pid,
         ...input.facts,
-        details: { statusCode: mode === "/malformed" ? "201" : 201 },
+        details: {
+          statusCode: mode === "/malformed" ? "201" : 201,
+          ...(input.responseMetadata &&
+            mode !== "/metadata-missing" &&
+            Object.fromEntries(
+              Object.keys(input.responseMetadata).map((key) => [
+                key,
+                mode === "/metadata-oversized" ? "x".repeat(1025) : "receipt",
+              ]),
+            )),
+          ...(mode === "/metadata-extra" && { extra: "unexpected" }),
+        },
       });
     }
     while (!(await Bun.file(`${path}.exit`).exists())) await Bun.sleep(5);

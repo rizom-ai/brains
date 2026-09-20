@@ -48,7 +48,7 @@ process.on("message", (input: unknown) => {
         pid: process.pid,
         sizeBytes: result.sizeBytes,
         sha256: result.sha256,
-        details: { statusCode: result.statusCode },
+        details: { statusCode: result.statusCode, ...result.responseMetadata },
       });
   })().then(
     () => {
