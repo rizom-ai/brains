@@ -15,24 +15,27 @@ import {
   ProjectionBatchCoordinator,
   type ProjectionBatchDiagnostics,
 } from "./projection-batch-coordinator";
+import { ProjectionRuleCoordinator } from "./projection-rule-coordinator";
+export type {
+  ApplyProjectionRuleResultInput,
+  GetProjectionRuleMemoInput,
+  ProjectionRuleMemoValue,
+  ProjectionWaveRuleInput,
+} from "./projection-rule-contracts";
+import type {
+  ApplyProjectionRuleResultInput,
+  GetProjectionRuleMemoInput,
+  ProjectionRuleMemoValue,
+  ProjectionWaveRuleInput,
+} from "./projection-rule-contracts";
 import { ProjectionWaveCoordinator } from "./projection-wave-coordinator";
 import {
-  ProjectionWriteIntentSchema,
-  type ProjectionWriteIntent,
-} from "./projection-contracts";
-import {
-  parseJobId,
-  parseRuleId,
-  parseWaveId,
-  parseWaveTimestamp,
-  ruleReportEffect,
   coalesceLatestInputs,
   type ClaimProjectionWaveInput,
   type ProjectionIncidentDiagnostics,
   type ProjectionIncidentInput,
 } from "./projection-wave-contracts";
 import {
-  canonicalProjectionJson,
   ProjectionWriteIntentApplier,
   type ProjectionEntityStoragePolicy,
 } from "./projection-write-intent-applier";
@@ -43,11 +46,7 @@ import {
 import {
   projectionDirtyInputs,
   projectionEntityOwners,
-  projectionRuleMemos,
-  projectionWaveRules,
-  type ProjectionChangedTarget,
   type ProjectionDirtyInput,
-  type ProjectionRuleMemo,
   type ProjectionWave,
   type ProjectionWaveInput,
   type ProjectionWaveRule,
@@ -61,28 +60,9 @@ const dirtyInputSchema = z.strictObject({
   markedAt: z.number().int().nonnegative(),
 });
 
-const memoKeySchema = z.strictObject({
-  ruleId: z.string().trim().min(1),
-  ruleVersion: z.string().trim().min(1),
-  inputFingerprint: z.string().trim().min(1),
-});
-
 const projectionOwnedEntitySchema = z.strictObject({
   entityType: z.string().trim().min(1),
   id: z.string().trim().min(1),
-});
-
-const waveRuleInputSchema = z.strictObject({
-  ruleId: z.string().trim().min(1),
-  targetType: z.string().trim().min(1),
-  level: z.number().int().nonnegative(),
-});
-
-const changedTargetSchema = z.strictObject({
-  entityType: z.string().trim().min(1),
-  entityId: z.string().trim().min(1),
-  operation: z.enum(["upsert", "delete"]),
-  contentHash: z.string().min(1).optional(),
 });
 
 export type {
@@ -112,44 +92,9 @@ export interface MarkProjectionDirtyInput {
   markedAt: number;
 }
 
-export interface GetProjectionRuleMemoInput {
-  ruleId: string;
-  ruleVersion: string;
-  inputFingerprint: string;
-}
-
 export interface ProjectionOwnedEntityInput {
   entityType: string;
   id: string;
-}
-
-export interface ProjectionWaveRuleInput {
-  ruleId: string;
-  targetType: string;
-  level: number;
-}
-
-export interface ApplyProjectionRuleResultInput {
-  waveId: string;
-  ruleId: string;
-  ruleVersion: string;
-  inputFingerprint: string;
-  writeIntents: readonly ProjectionWriteIntent[];
-  completedAt: number;
-}
-
-export interface ProjectionRuleMemoValue extends Omit<
-  ProjectionRuleMemo,
-  "writeIntents"
-> {
-  writeIntents: ProjectionWriteIntent[];
-}
-
-function parseWaveRule(rule: ProjectionWaveRule): ProjectionWaveRule {
-  const changedTargets: ProjectionChangedTarget[] = z
-    .array(changedTargetSchema)
-    .parse(rule.changedTargets);
-  return { ...rule, changedTargets };
 }
 
 export type {
@@ -166,6 +111,7 @@ export class ProjectionStore {
   private readonly transactions: ProjectionTransactionRunner;
   private readonly batches: ProjectionBatchCoordinator;
   private readonly waves: ProjectionWaveCoordinator;
+  private readonly rules: ProjectionRuleCoordinator;
 
   constructor(
     db: EntityDB,
@@ -193,6 +139,13 @@ export class ProjectionStore {
       entityExportStore: new EntityExportStore(db, now),
       ...(mutationAdmission && { mutationAdmission }),
       ...(storagePolicy && { storagePolicy }),
+    });
+    this.rules = new ProjectionRuleCoordinator({
+      db,
+      transactions: this.transactions,
+      batches: this.batches,
+      waves: this.waves,
+      writeIntentApplier: this.writeIntentApplier,
     });
   }
 
@@ -402,244 +355,41 @@ export class ProjectionStore {
     return this.waves.getUnresolvedProjectionIncidentDiagnostics(limit);
   }
 
-  public async putWaveRules(
+  public putWaveRules(
     waveId: string,
     rules: readonly ProjectionWaveRuleInput[],
   ): Promise<void> {
-    const parsedWaveId = parseWaveId(waveId);
-    const parsedRules = z.array(waveRuleInputSchema).min(1).parse(rules);
-    const values: Array<typeof projectionWaveRules.$inferInsert> =
-      parsedRules.map((rule) => ({
-        waveId: parsedWaveId,
-        ruleId: rule.ruleId,
-        targetType: rule.targetType,
-        level: rule.level,
-        status: "pending",
-        changedTargets: [],
-      }));
-    await this.db.insert(projectionWaveRules).values(values);
+    return this.rules.putWaveRules(waveId, rules);
   }
 
-  public async listWaveRules(waveId: string): Promise<ProjectionWaveRule[]> {
-    const rows = await this.db
-      .select()
-      .from(projectionWaveRules)
-      .where(eq(projectionWaveRules.waveId, waveId))
-      .orderBy(asc(projectionWaveRules.level), asc(projectionWaveRules.ruleId));
-    return rows.map(parseWaveRule);
+  public listWaveRules(waveId: string): Promise<ProjectionWaveRule[]> {
+    return this.rules.listWaveRules(waveId);
   }
 
-  public async queueWaveRule(
+  public queueWaveRule(
     waveId: string,
     ruleId: string,
     jobId: string,
   ): Promise<ProjectionWaveRule> {
-    const parsedWaveId = parseWaveId(waveId);
-    const parsedRuleId = parseRuleId(ruleId);
-    const parsedJobId = parseJobId(jobId);
-    const updated = await this.db
-      .update(projectionWaveRules)
-      .set({ status: "queued", jobId: parsedJobId })
-      .where(
-        and(
-          eq(projectionWaveRules.waveId, parsedWaveId),
-          eq(projectionWaveRules.ruleId, parsedRuleId),
-          eq(projectionWaveRules.status, "pending"),
-        ),
-      )
-      .returning();
-    const queued = updated[0];
-    if (queued) return parseWaveRule(queued);
-
-    const current = await this.getWaveRule(parsedWaveId, parsedRuleId);
-    if (
-      current?.status === "completed" ||
-      (current?.status === "queued" && current.jobId === parsedJobId)
-    ) {
-      return current;
-    }
-    throw new Error(
-      `Projection rule "${parsedRuleId}" is not pending for wave "${parsedWaveId}"`,
-    );
+    return this.rules.queueWaveRule(waveId, ruleId, jobId);
   }
 
-  public async getWaveRule(
+  public getWaveRule(
     waveId: string,
     ruleId: string,
   ): Promise<ProjectionWaveRule | null> {
-    const rows = await this.db
-      .select()
-      .from(projectionWaveRules)
-      .where(
-        and(
-          eq(projectionWaveRules.waveId, waveId),
-          eq(projectionWaveRules.ruleId, ruleId),
-        ),
-      )
-      .limit(1);
-    const rule = rows[0];
-    return rule ? parseWaveRule(rule) : null;
+    return this.rules.getWaveRule(waveId, ruleId);
   }
 
-  public async applyRuleResult(
+  public applyRuleResult(
     input: ApplyProjectionRuleResultInput,
   ): Promise<ProjectionWaveRule | null> {
-    const waveId = parseWaveId(input.waveId);
-    const key = memoKeySchema.parse({
-      ruleId: input.ruleId,
-      ruleVersion: input.ruleVersion,
-      inputFingerprint: input.inputFingerprint,
-    });
-    const writeIntents = z
-      .array(ProjectionWriteIntentSchema)
-      .parse(input.writeIntents);
-    const completedAt = parseWaveTimestamp(input.completedAt);
-
-    return this.transactions.run(async (transaction) => {
-      const ruleRows = await transaction
-        .select()
-        .from(projectionWaveRules)
-        .where(
-          and(
-            eq(projectionWaveRules.waveId, waveId),
-            eq(projectionWaveRules.ruleId, key.ruleId),
-          ),
-        )
-        .limit(1);
-      const currentRule = ruleRows[0];
-      if (!currentRule) {
-        throw new Error(
-          `Projection rule "${key.ruleId}" is not scheduled for wave "${waveId}"`,
-        );
-      }
-
-      const wave = await this.waves.requireWave(transaction, waveId);
-      const effect = ruleReportEffect(wave.status);
-      if (effect.kind === "decline") return null;
-      if (effect.kind === "refuse") {
-        throw new Error(`Projection wave "${waveId}" ${effect.reason}`);
-      }
-      const admissionEpoch = await this.batches.getAdmissionEpoch(transaction);
-      if (wave.admissionEpoch !== admissionEpoch) {
-        await this.waves.supersedeWaveInTransaction(
-          transaction,
-          wave,
-          completedAt,
-        );
-        return null;
-      }
-
-      for (const intent of writeIntents) {
-        const intentType =
-          intent.operation === "upsert"
-            ? intent.entity.entityType
-            : intent.entityType;
-        if (intentType !== currentRule.targetType) {
-          throw new Error(
-            `Projection rule "${key.ruleId}" cannot write entity type "${intentType}"`,
-          );
-        }
-      }
-      if (currentRule.status === "completed") {
-        if (currentRule.inputFingerprint !== key.inputFingerprint) {
-          throw new Error(
-            `Projection rule "${key.ruleId}" already completed with another input`,
-          );
-        }
-        return parseWaveRule(currentRule);
-      }
-      if (currentRule.status === "failed") {
-        throw new Error(
-          `Projection rule "${key.ruleId}" already failed for wave "${waveId}"`,
-        );
-      }
-
-      const memoRows = await transaction
-        .select()
-        .from(projectionRuleMemos)
-        .where(
-          and(
-            eq(projectionRuleMemos.ruleId, key.ruleId),
-            eq(projectionRuleMemos.ruleVersion, key.ruleVersion),
-            eq(projectionRuleMemos.inputFingerprint, key.inputFingerprint),
-          ),
-        )
-        .limit(1);
-      const existingMemo = memoRows[0];
-      if (
-        existingMemo &&
-        canonicalProjectionJson(existingMemo.writeIntents) !==
-          canonicalProjectionJson(writeIntents)
-      ) {
-        throw new Error(
-          `Projection memo conflict for rule "${key.ruleId}" and fingerprint "${key.inputFingerprint}"`,
-        );
-      }
-      if (!existingMemo) {
-        await transaction.insert(projectionRuleMemos).values({
-          ...key,
-          writeIntents,
-          createdAt: completedAt,
-        });
-      }
-
-      const changedTargets: ProjectionChangedTarget[] = [];
-      for (const intent of writeIntents) {
-        const target = await this.writeIntentApplier.apply(
-          transaction,
-          intent,
-          completedAt,
-          key,
-        );
-        if (target) changedTargets.push(target);
-      }
-
-      const updatedRules = await transaction
-        .update(projectionWaveRules)
-        .set({
-          status: "completed",
-          inputFingerprint: key.inputFingerprint,
-          changedTargets,
-        })
-        .where(
-          and(
-            eq(projectionWaveRules.waveId, waveId),
-            eq(projectionWaveRules.ruleId, key.ruleId),
-          ),
-        )
-        .returning();
-      const updatedRule = updatedRules[0];
-      if (!updatedRule) {
-        throw new Error(
-          `Failed to complete projection rule "${key.ruleId}" for wave "${waveId}"`,
-        );
-      }
-      return parseWaveRule(updatedRule);
-    });
+    return this.rules.applyRuleResult(input);
   }
 
-  public async getRuleMemo(
+  public getRuleMemo(
     input: GetProjectionRuleMemoInput,
   ): Promise<ProjectionRuleMemoValue | null> {
-    const key = memoKeySchema.parse(input);
-    const rows = await this.db
-      .select()
-      .from(projectionRuleMemos)
-      .where(
-        and(
-          eq(projectionRuleMemos.ruleId, key.ruleId),
-          eq(projectionRuleMemos.ruleVersion, key.ruleVersion),
-          eq(projectionRuleMemos.inputFingerprint, key.inputFingerprint),
-        ),
-      )
-      .limit(1);
-    const memo = rows[0];
-    if (!memo) return null;
-    return {
-      ...memo,
-      writeIntents: z
-        .array(ProjectionWriteIntentSchema)
-        .parse(memo.writeIntents),
-    };
+    return this.rules.getRuleMemo(input);
   }
 }
