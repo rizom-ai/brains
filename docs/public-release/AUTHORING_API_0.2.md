@@ -239,7 +239,7 @@ The brain's house style is a singleton entity. Packages that generate prose or i
 
 ## `@rizom/brain/services`
 
-The MCP server defaults to **basic mode**, whose built-in tools are `chat` and `confirm`. A tool's direct exposure is a separate setting: ordinary tools default to debug-only unless explicitly opted into basic exposure; being read-only does not opt them in. In basic mode, clients ask `chat` to search or retrieve content through the brain. Internal agent availability remains separate. Enabling debug mode requires Admin access, and individual tool permissions still apply.
+The MCP server defaults to **basic mode**, exposing `chat`, `confirm`, and eligible read-only tools subject to caller permissions. A tool's direct exposure is a separate setting: unless explicitly overridden, read-only tools receive basic exposure and mutating/external tools remain debug-only. Internal agent availability remains separate. Enabling debug mode requires Admin access, and individual tool permissions still apply.
 
 Definitions and schema vocabulary:
 

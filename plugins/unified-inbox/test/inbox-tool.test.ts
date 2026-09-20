@@ -293,22 +293,20 @@ describe("inbox_list tool", () => {
       mcpService.registerTool(plugin.id, registered);
     }
 
-    // Basic mode offers conversational entrypoints, not raw inbox reads.
-    expect(await listToolNames(mcpService, "admin")).not.toContain(
-      "unified-inbox_list",
-    );
-    mcpService.setProtocolMode("debug");
-    // Both halves, so the absence below is evidence of the permission and
-    // not of an empty server.
-    expect(await listToolNames(mcpService, "admin")).toContain(
-      "unified-inbox_list",
-    );
-    expect(await listToolNames(mcpService, "trusted")).not.toContain(
-      "unified-inbox_list",
-    );
-    expect(await listToolNames(mcpService, "public")).not.toContain(
-      "unified-inbox_list",
-    );
+    // Read-only exposure is available in basic mode again, but the Inbox
+    // tool's Admin permission remains mandatory in either mode.
+    for (const mode of ["basic", "debug"] as const) {
+      mcpService.setProtocolMode(mode);
+      expect(await listToolNames(mcpService, "admin")).toContain(
+        "unified-inbox_list",
+      );
+      expect(await listToolNames(mcpService, "trusted")).not.toContain(
+        "unified-inbox_list",
+      );
+      expect(await listToolNames(mcpService, "public")).not.toContain(
+        "unified-inbox_list",
+      );
+    }
     expect(reads).toBe(0);
   });
 });

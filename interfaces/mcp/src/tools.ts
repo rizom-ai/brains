@@ -51,7 +51,7 @@ export function createMCPTools(): ServiceToolDefinition[] {
     defineTool({
       name: "chat",
       description:
-        "Talk to the brain for any request, including searching or retrieving content, reasoning across content, and creating, updating, or deleting content.",
+        "Talk to the brain to make changes or get reasoned answers. Use this for any create/update/delete request or questions requiring reasoning across content. For simple lookups, use search/get/list directly.",
       input: z.object({
         message: z.string().min(1),
         conversationId: z

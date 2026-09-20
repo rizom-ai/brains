@@ -5,6 +5,7 @@ import {
   failureEffect,
   parseWaveId,
   parseWaveTimestamp,
+  ruleReportEffect,
   supersessionEffect,
   type ProjectionWaveStatus,
 } from "../src/projection-wave-contracts";
@@ -115,5 +116,26 @@ describe("supersessionEffect", () => {
     // Not a refusal: the caller asks "is this stale?" and the answer is no.
     expect(supersessionEffect("completed")).toEqual({ kind: "decline" });
     expect(supersessionEffect("failed")).toEqual({ kind: "decline" });
+  });
+});
+
+describe("ruleReportEffect", () => {
+  it("accepts a report into a running wave", () => {
+    expect(ruleReportEffect("running")).toEqual({ kind: "apply" });
+  });
+
+  it("drops a report into a superseded wave without complaining", () => {
+    // The wave's work is stale and its inputs were requeued; a rule finishing
+    // late has nothing to report into, and that is not the rule's fault.
+    expect(ruleReportEffect("superseded")).toEqual({ kind: "decline" });
+  });
+
+  it("refuses a report into a wave that already finished", () => {
+    for (const status of ["completed", "failed"] as const) {
+      expect(ruleReportEffect(status)).toEqual({
+        kind: "refuse",
+        reason: "is not running",
+      });
+    }
   });
 });

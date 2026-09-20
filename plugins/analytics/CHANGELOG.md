@@ -1,5 +1,27 @@
 # @brains/analytics
 
+## 0.2.0-alpha.399
+
+### Minor Changes
+
+- [#325](https://github.com/rizom-ai/brains/pull/325) [`4098f79`](https://github.com/rizom-ai/brains/commit/4098f79a6fe6c81a67fa6f8398680ecea0bde0e6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restore read-only tools to the MCP basic protocol surface while chat-only behavior receives canonical acceptance and behavioral-eval coverage. Omitted `directMcpExposure` once again derives from `sideEffects`, Cloudflare analytics query is available in basic mode, and debug mode remains unchanged.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.399
+  - @brains/contracts@0.2.0-alpha.399
+  - @brains/utils@0.2.0-alpha.399
+
+## 0.2.0-alpha.398
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.398
+  - @brains/utils@0.2.0-alpha.398
+  - @brains/plugins@0.2.0-alpha.398
+
 ## 0.2.0-alpha.397
 
 ### Minor Changes

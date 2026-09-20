@@ -282,7 +282,6 @@ describe("MCPService", () => {
         },
         visibility: "admin",
         sideEffects: "none",
-        directMcpExposure: "basic",
         handler: async () => ({ success: true, data: "ok" }),
       };
 
@@ -337,7 +336,6 @@ describe("MCPService", () => {
         inputSchema: {},
         visibility: "admin",
         sideEffects: "none",
-        directMcpExposure: "basic",
         handler: async () => ({ success: true, data: "ok" }),
       };
 
@@ -749,33 +747,22 @@ describe("MCPService", () => {
         handler: async () => ({ success: true, data: {} }),
       };
 
-      const optInTool: Tool = {
-        name: "surface_opt_in",
-        description: "Explicitly basic-exposed adapter",
-        inputSchema: {},
-        visibility: "public",
-        sideEffects: "none",
-        directMcpExposure: "basic",
-        handler: async () => ({ success: true, data: {} }),
-      };
-
       mcpService.registerTool("plugin", readTool);
       mcpService.registerTool("plugin", writeTool);
       mcpService.registerTool("plugin", agentOnlyTool);
-      mcpService.registerTool("plugin", optInTool);
 
       expect(
         mcpService
           .listProtocolToolsForPermissionLevel("trusted", "basic")
           .map((entry) => entry.tool.name),
-      ).toEqual(["surface_opt_in"]);
+      ).toEqual(["surface_search"]);
       expect(
         mcpService
           .listProtocolToolsForPermissionLevel("trusted", "debug")
           .map((entry) => entry.tool.name),
-      ).toEqual(["surface_search", "surface_create", "surface_opt_in"]);
+      ).toEqual(["surface_search", "surface_create"]);
       expect(listProtocolToolNames(mcpService.getMcpServer())).toEqual([
-        "surface_opt_in",
+        "surface_search",
       ]);
     });
 
@@ -822,7 +809,7 @@ describe("MCPService", () => {
   });
 
   describe("createMcpServer", () => {
-    it("should expose only chat and confirm in basic mode at every permission level", () => {
+    it("should expose only read-only tools plus chat and confirm in basic mode", () => {
       const readTool: Tool = {
         name: "search",
         description: "Search entities",
@@ -869,33 +856,23 @@ describe("MCPService", () => {
       mcpService.registerTool("mcp", chatTool);
       mcpService.registerTool("mcp", confirmTool);
 
-      for (const permissionLevel of ["public", "trusted", "admin"] as const) {
-        expect(
-          listProtocolToolNames(mcpService.createMcpServer(permissionLevel)),
-        ).toEqual(["chat", "confirm"]);
-      }
       expect(
-        getProtocolToolAnnotations(mcpService.getMcpServer(), "chat"),
-      ).toEqual({
-        readOnlyHint: false,
-        destructiveHint: true,
-        idempotentHint: false,
-        openWorldHint: false,
-      });
-
-      mcpService.setProtocolMode("debug");
-      expect(listProtocolToolNames(mcpService.getMcpServer())).toEqual([
-        "search",
-        "entity_create",
-        "chat",
-        "confirm",
-      ]);
+        listProtocolToolNames(mcpService.createMcpServer("admin")),
+      ).toEqual(["search", "chat", "confirm"]);
       expect(
         getProtocolToolAnnotations(mcpService.getMcpServer(), "search"),
       ).toEqual({
         readOnlyHint: true,
         destructiveHint: false,
         idempotentHint: true,
+        openWorldHint: false,
+      });
+      expect(
+        getProtocolToolAnnotations(mcpService.getMcpServer(), "chat"),
+      ).toEqual({
+        readOnlyHint: false,
+        destructiveHint: true,
+        idempotentHint: false,
         openWorldHint: false,
       });
     });
@@ -957,9 +934,19 @@ describe("MCPService", () => {
       try {
         const tools = await client.listTools();
         expect(tools.tools.map((tool) => tool.name)).toEqual([
+          "client_search",
           "chat",
           "confirm",
         ]);
+        expect(
+          tools.tools.find((tool) => tool.name === "client_search")
+            ?.annotations,
+        ).toEqual({
+          readOnlyHint: true,
+          destructiveHint: false,
+          idempotentHint: true,
+          openWorldHint: false,
+        });
         expect(
           tools.tools.find((tool) => tool.name === "chat")?.annotations,
         ).toEqual({
@@ -981,7 +968,6 @@ describe("MCPService", () => {
         inputSchema: { input: z.string() },
         visibility: "public",
         sideEffects: "none",
-        directMcpExposure: "basic",
         handler: async () => ({ success: true, data: "ok" }),
       };
 
@@ -1035,7 +1021,6 @@ describe("MCPService", () => {
         inputSchema: {},
         visibility: "public",
         sideEffects: "none",
-        directMcpExposure: "basic",
         handler: async () => ({ success: true, data: [] }),
       };
       const resource: Resource = {
