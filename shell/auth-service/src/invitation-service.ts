@@ -8,7 +8,7 @@ import type {
 import { sha256Hex } from "@brains/utils/hash";
 import { createPrefixedId } from "@brains/utils/id";
 import { KeyedSingleFlight, SingleFlight } from "@brains/utils/serial-queue";
-import { and, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, lte, sql } from "drizzle-orm";
 import type { AuthSetupDeliveryInput } from "./admin-contracts";
 import type { AuthAuditStore } from "./audit-store";
 import { hashIdentityKey, normalizeIdentityKey } from "./identity-store";
@@ -20,6 +20,12 @@ import {
 } from "./invitation-schema";
 import { absoluteUrl } from "./issuer";
 import { InvitationChannels } from "./invitation-channels";
+import {
+  isInterruptedDelivery,
+  selectInterruptedDeliveries,
+  staleDeliveryCutoff,
+  type InterruptedDeliveryCandidate,
+} from "./invitation-recovery";
 import type { AuthRuntimeDB } from "./runtime-db";
 import {
   authIdentities,
@@ -83,15 +89,6 @@ interface CreatedInvitation {
   setupToken: string;
   expiresAt: number;
   deliveryMode: "automatic" | "manual";
-}
-
-interface InterruptedDeliveryCandidate {
-  attemptId: string;
-  attemptState: "queued" | "sending";
-  invitationId: string;
-  providerId: string;
-  queuedAt: number;
-  startedAt: number | null;
 }
 
 export class AuthInvitationService {
@@ -428,36 +425,8 @@ export class AuthInvitationService {
   private async recoverInterruptedDeliveriesInternal(
     now: number,
   ): Promise<number> {
-    const staleBefore = now - this.deliveryRecoveryStaleMs;
-    const candidates = await this.db
-      .select({
-        attemptId: authInvitationDeliveryAttempts.id,
-        attemptState: authInvitationDeliveryAttempts.state,
-        invitationId: authInvitationDeliveryAttempts.invitationId,
-        providerId: authInvitationDeliveryAttempts.providerId,
-        queuedAt: authInvitationDeliveryAttempts.queuedAt,
-        startedAt: authInvitationDeliveryAttempts.startedAt,
-      })
-      .from(authInvitationDeliveryAttempts)
-      .innerJoin(
-        authInvitations,
-        eq(authInvitations.id, authInvitationDeliveryAttempts.invitationId),
-      )
-      .where(
-        and(
-          inArray(authInvitations.state, ["pending", "sending"]),
-          or(
-            and(
-              eq(authInvitationDeliveryAttempts.state, "queued"),
-              lte(authInvitationDeliveryAttempts.queuedAt, staleBefore),
-            ),
-            and(
-              eq(authInvitationDeliveryAttempts.state, "sending"),
-              lte(authInvitationDeliveryAttempts.startedAt, staleBefore),
-            ),
-          ),
-        ),
-      );
+    const staleBefore = staleDeliveryCutoff(now, this.deliveryRecoveryStaleMs);
+    const candidates = await selectInterruptedDeliveries(this.db, staleBefore);
 
     let recoveredCount = 0;
     for (const candidate of candidates) {
@@ -877,13 +846,9 @@ export class AuthInvitationService {
         .from(authInvitationDeliveryAttempts)
         .where(eq(authInvitationDeliveryAttempts.id, candidate.attemptId))
         .limit(1);
-      if (
-        !attempt ||
-        (attempt.state !== "queued" && attempt.state !== "sending") ||
-        (attempt.state === "queued"
-          ? attempt.queuedAt > staleBefore
-          : attempt.startedAt === null || attempt.startedAt > staleBefore)
-      ) {
+      // Re-asked inside the transaction: a candidate can progress between
+      // being selected and being claimed here.
+      if (!attempt || !isInterruptedDelivery(attempt, staleBefore)) {
         return undefined;
       }
       const [invitation] = await tx
