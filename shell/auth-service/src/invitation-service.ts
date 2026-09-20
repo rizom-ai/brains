@@ -7,6 +7,7 @@ import type {
 } from "@brains/plugins";
 import { sha256Hex } from "@brains/utils/hash";
 import { createPrefixedId } from "@brains/utils/id";
+import { KeyedSingleFlight, SingleFlight } from "@brains/utils/serial-queue";
 import { and, eq, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import type { AuthSetupDeliveryInput } from "./admin-contracts";
 import type { AuthAuditStore } from "./audit-store";
@@ -102,15 +103,10 @@ export class AuthInvitationService {
     ((channelType: string) => ChannelDeliveryProvider | undefined) | undefined;
   private readonly getChannelDescriptor:
     ((channelType: string) => ChannelDescriptor | undefined) | undefined;
-  private readonly creations = new Map<
-    string,
-    Promise<CreateInvitationResult>
-  >();
-  private readonly manualConfirmations = new Map<
-    string,
-    Promise<AuthInvitation>
-  >();
-  private recovery: Promise<number> | undefined;
+  private readonly creations = new KeyedSingleFlight<CreateInvitationResult>();
+  private readonly manualConfirmations =
+    new KeyedSingleFlight<AuthInvitation>();
+  private readonly recovery = new SingleFlight<number>();
 
   constructor(options: AuthInvitationServiceOptions) {
     this.db = options.db;
@@ -128,16 +124,9 @@ export class AuthInvitationService {
 
   create(input: CreateInvitationInput): Promise<CreateInvitationResult> {
     const keyHash = invitationIdempotencyKeyHash(input.idempotencyKey);
-    const active = this.creations.get(keyHash);
-    if (active) return active;
-
-    const creation = this.createOrReplay(input, keyHash).finally(() => {
-      if (this.creations.get(keyHash) === creation) {
-        this.creations.delete(keyHash);
-      }
-    });
-    this.creations.set(keyHash, creation);
-    return creation;
+    return this.creations.run(keyHash, () =>
+      this.createOrReplay(input, keyHash),
+    );
   }
 
   async resend(
@@ -287,19 +276,13 @@ export class AuthInvitationService {
     actorUserId: string,
   ): Promise<AuthInvitation> {
     const key = `${invitationId}:${deliveryAttemptId}:${actorUserId}`;
-    const active = this.manualConfirmations.get(key);
-    if (active) return active;
-    const confirmation = this.confirmManualDeliveryInternal(
-      invitationId,
-      deliveryAttemptId,
-      actorUserId,
-    ).finally(() => {
-      if (this.manualConfirmations.get(key) === confirmation) {
-        this.manualConfirmations.delete(key);
-      }
-    });
-    this.manualConfirmations.set(key, confirmation);
-    return confirmation;
+    return this.manualConfirmations.run(key, () =>
+      this.confirmManualDeliveryInternal(
+        invitationId,
+        deliveryAttemptId,
+        actorUserId,
+      ),
+    );
   }
 
   private async confirmManualDeliveryInternal(
@@ -432,15 +415,9 @@ export class AuthInvitationService {
   }
 
   recoverInterruptedDeliveries(now: number = Date.now()): Promise<number> {
-    if (this.recovery) return this.recovery;
-
-    const recovery = this.recoverInterruptedDeliveriesInternal(now).finally(
-      () => {
-        if (this.recovery === recovery) this.recovery = undefined;
-      },
+    return this.recovery.run(() =>
+      this.recoverInterruptedDeliveriesInternal(now),
     );
-    this.recovery = recovery;
-    return recovery;
   }
 
   private async recoverInterruptedDeliveriesInternal(

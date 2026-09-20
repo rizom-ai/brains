@@ -1,5 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { KeyedSerialQueue, SerialQueue } from "./serial-queue";
+import { caughtError } from "@brains/test-utils";
+import {
+  KeyedSerialQueue,
+  KeyedSingleFlight,
+  SerialQueue,
+  SingleFlight,
+} from "./serial-queue";
 
 function deferred(): { promise: Promise<void>; resolve: () => void } {
   let resolve = (): void => {};
@@ -162,5 +168,135 @@ describe("KeyedSerialQueue", () => {
       .run("a", () => Promise.reject(new Error("boom")))
       .catch(() => {});
     expect(queue.run("a", () => Promise.resolve(7))).resolves.toBe(7);
+  });
+});
+
+describe("KeyedSingleFlight", () => {
+  it("joins a call in flight instead of running the work twice", async () => {
+    const flight = new KeyedSingleFlight<string>();
+    let runs = 0;
+    const gate = deferred();
+    const work = async (): Promise<string> => {
+      runs += 1;
+      await gate.promise;
+      return "once";
+    };
+
+    const first = flight.run("k", work);
+    const second = flight.run("k", work);
+    gate.resolve();
+
+    expect(await first).toBe("once");
+    expect(await second).toBe("once");
+    expect(runs).toBe(1);
+  });
+
+  it("keeps separate keys separate", async () => {
+    const flight = new KeyedSingleFlight<string>();
+    let runs = 0;
+    const work = async (): Promise<string> => {
+      runs += 1;
+      return "done";
+    };
+
+    await Promise.all([flight.run("a", work), flight.run("b", work)]);
+
+    expect(runs).toBe(2);
+  });
+
+  it("releases the key once the work settles, so a later call runs again", async () => {
+    const flight = new KeyedSingleFlight<string>();
+    let runs = 0;
+    const work = async (): Promise<string> => {
+      runs += 1;
+      return "done";
+    };
+
+    await flight.run("k", work);
+    await flight.run("k", work);
+
+    expect(runs).toBe(2);
+  });
+
+  it("releases the key when the work rejects, and reports the rejection", async () => {
+    const flight = new KeyedSingleFlight<string>();
+    const failing = (): Promise<string> =>
+      Promise.reject(new Error("unavailable"));
+
+    let thrown: unknown;
+    try {
+      await flight.run("k", failing);
+    } catch (cause) {
+      thrown = cause;
+    }
+    expect(caughtError(thrown).message).toBe("unavailable");
+
+    // The key is free again rather than pinned to a rejected promise.
+    expect(await flight.run("k", async () => "recovered")).toBe("recovered");
+  });
+
+  it("does not let an earlier call's completion evict a later one", async () => {
+    const flight = new KeyedSingleFlight<string>();
+    const first = deferred();
+    let runs = 0;
+
+    const one = flight.run("k", async (): Promise<string> => {
+      runs += 1;
+      await first.promise;
+      return "first";
+    });
+    first.resolve();
+    await one;
+
+    // The first has settled and released the key; a second call takes it.
+    const second = deferred();
+    const two = flight.run("k", async (): Promise<string> => {
+      runs += 1;
+      await second.promise;
+      return "second";
+    });
+    // A third joins the second, not a stale entry from the first.
+    const three = flight.run("k", async (): Promise<string> => {
+      runs += 1;
+      return "third";
+    });
+    second.resolve();
+
+    expect(await two).toBe("second");
+    expect(await three).toBe("second");
+    expect(runs).toBe(2);
+  });
+});
+
+describe("SingleFlight", () => {
+  it("joins the one call in flight", async () => {
+    const flight = new SingleFlight<number>();
+    let runs = 0;
+    const gate = deferred();
+    const work = async (): Promise<number> => {
+      runs += 1;
+      await gate.promise;
+      return 7;
+    };
+
+    const first = flight.run(work);
+    const second = flight.run(work);
+    gate.resolve();
+
+    expect(await first).toBe(7);
+    expect(await second).toBe(7);
+    expect(runs).toBe(1);
+  });
+
+  it("runs again once the previous call has settled", async () => {
+    const flight = new SingleFlight<number>();
+    let runs = 0;
+    const work = async (): Promise<number> => {
+      runs += 1;
+      return runs;
+    };
+
+    expect(await flight.run(work)).toBe(1);
+    expect(await flight.run(work)).toBe(2);
   });
 });
