@@ -453,6 +453,7 @@
       "name": "@brains/chat",
       "version": "0.2.0-alpha.373",
       "dependencies": {
+        "@brains/assets": "workspace:*",
         "@brains/auth-service": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/plugins": "workspace:*",

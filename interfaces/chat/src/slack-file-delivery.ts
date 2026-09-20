@@ -2,6 +2,7 @@ import { isAbsolute } from "node:path";
 import type { EntityServiceClient } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { CHAT_NATIVE_ARTIFACT_MAX_BYTES } from "./artifact-limits";
+import type { FileDeliveryAdapter } from "./file-delivery";
 
 type PostFile = NonNullable<EntityServiceClient["fileAssets"]>["postHttp"];
 export interface SlackFileDeliveryInput {
@@ -27,6 +28,32 @@ export interface SlackUploadCompletion {
 }
 export interface SlackFileDeliveryReceipt {
   fileId: string;
+}
+export interface SlackFileDeliveryTarget {
+  channelId: string;
+  threadTs?: string | undefined;
+}
+/** Bind Slack routing and transport details behind the shared delivery contract. */
+export function createSlackFileDeliveryAdapter(
+  target: SlackFileDeliveryTarget,
+  deps: SlackFileDeliveryDeps,
+): FileDeliveryAdapter<SlackFileDeliveryReceipt> {
+  const { channelId, threadTs } = target;
+  return {
+    deliver: (file, signal): Promise<SlackFileDeliveryReceipt> =>
+      deliverSlackFile(
+        {
+          sourceFile: file.sourceFile,
+          sizeBytes: file.sizeBytes,
+          sha256: file.sha256,
+          filename: file.filename,
+          channelId,
+          ...(threadTs !== undefined && { threadTs }),
+        },
+        deps,
+        signal,
+      ),
+  };
 }
 /** Metadata collaborators must be single-attempt, bounded API calls and join
  * their submitted outcomes. Do not inject the SDK's buffered uploadV2 helper.
