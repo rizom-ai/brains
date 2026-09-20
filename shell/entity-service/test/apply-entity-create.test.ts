@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, spyOn, test } from "bun:test";
 import type {
   BaseEntity,
   CreateEntityRequest,
@@ -59,6 +59,26 @@ function store(registered = true): {
  * guards and the write.
  */
 describe("creating an entity on somebody's behalf", () => {
+  for (const permission of ["public", "trusted", "admin"] as const) {
+    test(`rejects a mismatched type before any authorization or write (${permission})`, async () => {
+      const holder = store();
+      const registered = spyOn(holder.services.registry, "isRegistered");
+      const allowed = spyOn(holder.services, "assertAllowed");
+      const outcome = await applyEntityCreate(
+        holder.services,
+        {
+          entityType: "note",
+          entity: draft({ entityType: "protected-type" }),
+        },
+        { permission },
+      ).catch((error: unknown) => error);
+      expect(outcome).toMatchObject({ name: "ZodError" });
+      expect(registered).not.toHaveBeenCalled();
+      expect(allowed).not.toHaveBeenCalled();
+      expect(holder.created).toEqual([]);
+    });
+  }
+
   test("stores the entity the caller assembled", async () => {
     const holder = store();
 

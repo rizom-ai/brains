@@ -13,6 +13,10 @@ import type { SqliteAssetRepository } from "./sqlite-asset-repository";
 
 type EntityTransaction = Parameters<Parameters<EntityDB["transaction"]>[0]>[0];
 
+// Leave room for the type predicate even with SQLite's conservative
+// 999-variable limit, rather than relying on a build-specific higher limit.
+const WRITE_TARGET_QUERY_BATCH_SIZE = 500;
+
 export interface ProjectionEntityStoragePolicy {
   assetRepository: SqliteAssetRepository;
   isAssetBacked(entityType: string): boolean;
@@ -69,7 +73,7 @@ export class ProjectionWriteIntentApplier {
     this.storagePolicy = options.storagePolicy;
   }
 
-  /** Apply a batch with one target lookup, retaining sequential intent semantics. */
+  /** Prefetch targets in bounded batches, retaining sequential intent semantics. */
   public async applyAll(
     transaction: EntityTransaction,
     writeIntents: readonly ProjectionWriteIntent[],
@@ -127,25 +131,36 @@ export class ProjectionWriteIntentApplier {
         ),
       ),
     ];
-    const rows = await transaction
-      .select({
-        id: entities.id,
-        entityType: entities.entityType,
-        content: entities.content,
-        contentHash: entities.contentHash,
-        metadata: entities.metadata,
-        visibility: entities.visibility,
-      })
-      .from(entities)
-      .where(
-        and(eq(entities.entityType, entityType), inArray(entities.id, ids)),
-      );
-    return new Map(
-      rows.map(({ id, entityType: rowType, ...entity }) => [
-        projectionTargetKey(rowType, id),
-        entity,
-      ]),
-    );
+    const targets = new Map<string, ExistingProjectionTarget>();
+    for (
+      let offset = 0;
+      offset < ids.length;
+      offset += WRITE_TARGET_QUERY_BATCH_SIZE
+    ) {
+      const rows = await transaction
+        .select({
+          id: entities.id,
+          entityType: entities.entityType,
+          content: entities.content,
+          contentHash: entities.contentHash,
+          metadata: entities.metadata,
+          visibility: entities.visibility,
+        })
+        .from(entities)
+        .where(
+          and(
+            eq(entities.entityType, entityType),
+            inArray(
+              entities.id,
+              ids.slice(offset, offset + WRITE_TARGET_QUERY_BATCH_SIZE),
+            ),
+          ),
+        );
+      for (const { id, entityType: rowType, ...entity } of rows) {
+        targets.set(projectionTargetKey(rowType, id), entity);
+      }
+    }
+    return targets;
   }
 
   private async apply(

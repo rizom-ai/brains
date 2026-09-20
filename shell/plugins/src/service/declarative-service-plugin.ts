@@ -822,6 +822,7 @@ class DeclarativeServicePlugin<
             context.entityService,
             this.ownedTypeNames(),
             this.publicId,
+            visibilityScope,
           ),
           visibilityScope,
         }),

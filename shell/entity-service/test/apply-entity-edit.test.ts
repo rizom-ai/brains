@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, spyOn, test } from "bun:test";
 import type {
   BaseEntity,
   EntityMutationResult,
@@ -104,6 +104,31 @@ function edit(overrides: Partial<EntityEditRequest> = {}): EntityEditRequest {
  * both did all five, separately.
  */
 describe("applying an edit to an entity", () => {
+  for (const permission of ["public", "trusted", "admin"] as const) {
+    for (const mismatch of [
+      { entityType: "protected-type" },
+      { id: "another-record" },
+      { entityType: "protected-type", id: "another-record" },
+    ]) {
+      test(`rejects mismatched identity ${JSON.stringify(mismatch)} before reading (${permission})`, async () => {
+        const store = storeHolding(post());
+        const read = spyOn(store.services.entities, "getEntity");
+        const config = spyOn(store.services.registry, "getEntityTypeConfig");
+        const allowed = spyOn(store.services, "assertAllowed");
+        const outcome = await applyEntityEdit(
+          store.services,
+          edit({ next: post(mismatch) }),
+          { permission },
+        ).catch((error: unknown) => error);
+        expect(outcome).toMatchObject({ name: "ZodError" });
+        expect(read).not.toHaveBeenCalled();
+        expect(config).not.toHaveBeenCalled();
+        expect(allowed).not.toHaveBeenCalled();
+        expect(store.written).toEqual([]);
+      });
+    }
+  }
+
   test("writes the entity the caller handed over, whole", async () => {
     const store = storeHolding(post());
 

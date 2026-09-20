@@ -914,7 +914,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
     for (const [insightId, handler] of Object.entries(this.insights ?? {})) {
       context.insights.register(insightId, async (_service, visibilityScope) =>
         handler({
-          entities: this.entityAccess(context),
+          entities: this.entityAccess(context, visibilityScope),
           visibilityScope,
         }),
       );

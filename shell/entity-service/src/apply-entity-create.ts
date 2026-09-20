@@ -1,4 +1,5 @@
 import { getErrorMessage } from "@brains/utils/error";
+import { z } from "@brains/utils/zod";
 import {
   encodeEntityIdPath,
   entityIdPathSchema,
@@ -16,6 +17,7 @@ import { canWriteVisibility, normalizeContentVisibility } from "./visibility";
 /** An entity somebody assembled and wants stored. */
 export interface EntityCreateRequest {
   readonly entityType: string;
+  /** Its entityType must match the authorized type above. */
   readonly entity: EntityInput<BaseEntity>;
   /** Explicit destinations are validated and created only if absent. */
   readonly idPath?: EntityIdPathInput | undefined;
@@ -64,6 +66,8 @@ export async function applyEntityCreate(
   request: EntityCreateRequest,
   caller: EntityEditCaller,
 ): Promise<EntityCreateOutcome> {
+  // The resource being authorized must be the resource being persisted.
+  z.object({ entityType: z.literal(request.entityType) }).parse(request.entity);
   if (!services.registry.isRegistered(request.entityType)) {
     return {
       kind: "denied",

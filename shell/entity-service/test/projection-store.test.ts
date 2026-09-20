@@ -1111,6 +1111,95 @@ describe("ProjectionStore", () => {
     expect(targetReads).toHaveLength(1);
   });
 
+  it("chunks target prefetch beyond SQLite's variable limit and retains sequential intents", async () => {
+    const targetReadBindings: number[] = [];
+    const loggedDb = drizzle(connection.client, {
+      logger: {
+        logQuery(query, params): void {
+          if (
+            /^select\b/i.test(query.trim()) &&
+            /\bfrom\s+["`]?entities["`]?\b/i.test(query)
+          ) {
+            targetReadBindings.push(params.length);
+          }
+        },
+      },
+    });
+    const loggedStore = new ProjectionStore(loggedDb);
+    // libsql permits 32,766 variables; the type predicate needs one too.
+    const ids = Array.from({ length: 32_766 }, (_, index) => `bulk-${index}`);
+    const lastId = ids.at(-1);
+    if (!lastId) throw new Error("Missing bulk test target");
+    await loggedDb.insert(entities).values({
+      id: lastId,
+      entityType: "topic",
+      content: "old",
+      contentHash: "old-hash",
+      visibility: "public",
+      metadata: {},
+      created: 1,
+      updated: 1,
+    });
+    await loggedStore.markDirty({
+      sourceType: "document",
+      sourceId: "bulk-source",
+      revision: "v1",
+      operation: "upsert",
+      markedAt: 10,
+    });
+    await loggedStore.claimPendingWave({
+      waveId: "wave-large",
+      graphFingerprint: "graph-1",
+      startedAt: 20,
+    });
+    await loggedStore.putWaveRules("wave-large", [
+      { ruleId: "topics", targetType: "topic", level: 0 },
+    ]);
+    const replacement: ProjectionWriteIntent = {
+      operation: "upsert",
+      entity: {
+        id: lastId,
+        entityType: "topic",
+        content: "new",
+        metadata: {},
+        visibility: "public",
+      },
+    };
+    const result = await loggedStore.applyRuleResult({
+      waveId: "wave-large",
+      ruleId: "topics",
+      ruleVersion: "1",
+      inputFingerprint: "large-input",
+      completedAt: 30,
+      writeIntents: [
+        ...ids.map((id): ProjectionWriteIntent => ({
+          operation: "delete",
+          entityType: "topic",
+          id,
+        })),
+        replacement,
+        replacement,
+        { operation: "delete", entityType: "topic", id: lastId },
+      ],
+    });
+    expect(result?.status).toBe("completed");
+    expect(result?.changedTargets).toEqual([
+      { entityType: "topic", entityId: lastId, operation: "delete" },
+      expect.objectContaining({
+        entityType: "topic",
+        entityId: lastId,
+        operation: "upsert",
+      }),
+      { entityType: "topic", entityId: lastId, operation: "delete" },
+    ]);
+    expect(targetReadBindings.length).toBeGreaterThan(1);
+    expect(targetReadBindings.every((count) => count <= 999)).toBe(true);
+    expect(targetReadBindings.reduce((sum, count) => sum + count - 1, 0)).toBe(
+      ids.length,
+    );
+    expect(await loggedDb.select().from(entities)).toEqual([]);
+  }, 20_000);
+
   it("tracks current projection ownership across upsert and delete intents", async () => {
     await store.markDirty({
       sourceType: "document",

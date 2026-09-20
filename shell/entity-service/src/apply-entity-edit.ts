@@ -1,4 +1,5 @@
 import { getErrorMessage } from "@brains/utils/error";
+import { z } from "@brains/utils/zod";
 import { getPublishBoundaryState } from "./publish-policy";
 import type {
   BaseEntity,
@@ -29,6 +30,7 @@ export type EntityEditAction = "update" | "publish";
 export interface EntityEditRequest {
   readonly entityType: string;
   readonly id: string;
+  /** Its entityType and id must match the authorized target above. */
   readonly next: BaseEntity;
   /**
    * The version the caller reviewed. Another writer — an agent, a git
@@ -90,6 +92,12 @@ export async function applyEntityEdit(
   request: EntityEditRequest,
   caller: EntityEditCaller,
 ): Promise<EntityEditOutcome> {
+  // Validate before reads as well: visibility/conflict checks must concern
+  // the same resource as the eventual policy decision and write.
+  z.object({
+    entityType: z.literal(request.entityType),
+    id: z.literal(request.id),
+  }).parse(request.next);
   const existing = await services.entities.getEntity({
     entityType: request.entityType,
     id: request.id,
