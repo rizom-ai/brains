@@ -31,7 +31,10 @@ import {
   type AssetRecord,
 } from "@brains/assets";
 import { imageSchema, imageAdapter } from "@brains/image";
-import { pdfInspectionDetailsSchema } from "@brains/document";
+import {
+  documentAssetFactsFromInspection,
+  assertDocumentFileMatches,
+} from "@brains/document";
 import { withPreviewPdfFile } from "@brains/media-page-composer";
 import type {
   AttachmentResolveRequest,
@@ -332,11 +335,18 @@ async function renderCanonicalPrintable(
           { sizeBytes: inspected.sizeBytes, sha256: inspected.sha256 },
           facts,
         );
-        const details = pdfInspectionDetailsSchema.parse(inspected.details);
-        assert.equal(details.mimeType, "application/pdf");
-        assert.ok(details.pageCount > 0);
+        const documentFacts = documentAssetFactsFromInspection(inspected, {
+          maxBytes: 25 * 1024 * 1024,
+          maxPageCount: 20,
+        });
+        assertDocumentFileMatches(documentFacts, {
+          ...facts,
+          mimeType: file.mimeType,
+        });
+        assert.equal(documentFacts.ref, `asset://sha256/${file.sha256}`);
+        assert.ok(documentFacts.pageCount > 0);
         if (pdfKind === "carousel" || pdfKind === "preview")
-          assert.equal(details.pageCount, 2);
+          assert.equal(documentFacts.pageCount, 2);
         assert.deepEqual(checks[1].value, { ...facts, statusCode: 201 });
         assert.deepEqual(received.facts, facts);
         assert.equal(received.requests, 1);

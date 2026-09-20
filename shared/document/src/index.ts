@@ -1,4 +1,13 @@
 export {
+  documentAssetFactsSchema,
+  documentFileLimitsSchema,
+  documentAssetFactsFromInspection,
+  assertDocumentFileMatches,
+  type DocumentAssetFacts,
+  type DocumentFileLimits,
+  type DocumentFileDescriptor,
+} from "./document-file-asset";
+export {
   pdfInspectionDetailsSchema,
   type PdfInspectionDetails,
 } from "./file-inspection";

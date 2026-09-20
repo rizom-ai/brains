@@ -3,6 +3,7 @@
   "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.373",
   "dependencies": {
+    "@brains/assets": "workspace:*",
     "@brains/db": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/utils": "workspace:*",
