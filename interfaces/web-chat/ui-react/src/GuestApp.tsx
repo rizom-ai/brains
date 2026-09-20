@@ -17,6 +17,7 @@ import { createWebChatClient } from "./web-chat-client";
 import { openGuestBrowserSession } from "./guest-session";
 import { useGuestGate } from "./use-guest-gate";
 import { useGuestConversations } from "./use-guest-conversations";
+import { useGuestSession } from "./use-guest-session";
 
 const incompleteHistoryNotice =
   "History loaded. The previous answer may still be running or incomplete. Nothing has been replayed; you can reload history later.";
@@ -37,7 +38,18 @@ export function GuestApp({
   siteLabel?: string;
 }): ReactElement {
   const [client] = useState(() => suppliedClient ?? createWebChatClient());
-  const [session, setSession] = useState<GuestChatSessionResponse>();
+  const {
+    session,
+    expired,
+    canSend,
+    open: openSession,
+    hasElapsed,
+    markExpired,
+    clearExpired,
+  } = useGuestSession({
+    open: (signal): Promise<GuestChatSessionResponse> =>
+      openGuestBrowserSession(client, signal),
+  });
   const {
     id,
     conversations,
@@ -65,7 +77,6 @@ export function GuestApp({
   } = gate;
   const [pending, setPending] = useState<ChatMessageRequest>();
   const [deleting, setDeleting] = useState(false);
-  const [expired, setExpired] = useState(false);
   const controller = useRef<AbortController | undefined>(undefined);
   const textarea = useRef<HTMLTextAreaElement>(null);
   const transcript = useRef<HTMLDivElement>(null);
@@ -98,9 +109,8 @@ export function GuestApp({
     const lifetime = new AbortController();
     void gate.runBoot(async (): Promise<void> => {
       try {
-        const opened = await openGuestBrowserSession(client, lifetime.signal);
+        const opened = await openSession(lifetime.signal);
         lifetime.signal.throwIfAborted();
-        setSession(opened);
         setBoxState(opened.canSend ? "ready" : "unavailable");
         const locator = adoptSavedConversation();
         if (locator) {
@@ -177,12 +187,12 @@ export function GuestApp({
   }
 
   async function send(retry?: ChatMessageRequest): Promise<void> {
-    if (gate.locked() || !session?.canSend) return;
+    if (gate.locked() || !canSend || !session) return;
     // The cookie may have changed since an ambiguous first send. Without a
     // server locator, replaying its ID could create a turn for another visitor.
     if (retry && !retry.id) return;
-    if (Date.now() >= session.expiresAt) {
-      setExpired(true);
+    if (hasElapsed()) {
+      markExpired();
       setBoxState("expired");
       setStatus(
         "Your visitor session has expired. Reload to begin a new session.",
@@ -410,10 +420,9 @@ export function GuestApp({
     let canSendNow = false;
     await gate.run(async (): Promise<void> => {
       try {
-        const opened = await openGuestBrowserSession(client, abort.signal);
+        const opened = await openSession(abort.signal);
         abort.signal.throwIfAborted();
         if (!mounted.current) return;
-        setSession(opened);
         if (!opened.canSend) {
           setBoxNotice(
             "Chat is still unavailable. Your question has not been sent.",
@@ -427,7 +436,7 @@ export function GuestApp({
           setPending(undefined);
           clearConversation();
           restoredQuestion.current = undefined;
-          setExpired(false);
+          clearExpired();
         }
         setBoxState(
           pending && !fresh
@@ -475,8 +484,7 @@ export function GuestApp({
         actionNotice={boxNotice}
         submitOnReady={initialSubmit}
         canSend={
-          !!session?.canSend &&
-          !expired &&
+          canSend &&
           !pending &&
           ["ready", "complete", "ended"].includes(boxState)
         }
