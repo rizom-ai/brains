@@ -82,9 +82,9 @@ function getChatContext(
 /**
  * Create MCP interface tools.
  *
- * The MCP interface owns the conversational adapters that route basic-mode
- * reads, mutations, and reasoned requests through the brain agent. Debug mode
- * may separately expose raw system tools to Admin operators.
+ * Query tools are provided by the system plugin. The MCP interface owns the
+ * command-side chat adapter that routes mutations/reasoned requests through the
+ * brain agent instead of exposing raw write tools to external clients.
  */
 export function createMCPTools(
   _pluginId: string,
@@ -94,7 +94,7 @@ export function createMCPTools(
     {
       name: "chat",
       description:
-        "Talk to the brain for any request, including searching or retrieving content, reasoning across content, and creating, updating, or deleting content.",
+        "Talk to the brain to make changes or get reasoned answers. Use this for any create/update/delete request or questions requiring reasoning across content. For simple lookups, use search/get/list directly.",
       inputSchema: chatInputSchema.shape,
       visibility: "public",
       sideEffects: "writes",
