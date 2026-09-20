@@ -381,6 +381,7 @@
     "core--ops-upgrade-app-token",
     "core--ops-upgrade-path",
     "core--ops-upgrade-private-key-preflight",
+    "core--pilot-user-offboarding",
     "core--prepare-canonical-crossover",
     "core--preserve-opaque-detail-identity",
     "core--preserve-visibility-on-content-replacement",

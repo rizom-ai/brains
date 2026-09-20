@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.398
+
+### Minor Changes
+
+- [#323](https://github.com/rizom-ai/brains/pull/323) [`972e900`](https://github.com/rizom-ai/brains/commit/972e900adedb251ee22e3d6b1184ebd822e42234) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add an explicit, dry-run-first `user:offboard` command and scaffolded Offboard workflow that archive pilot content repositories, remove managed DNS, destroy dedicated servers, and commit desired-state removal with exact batch confirmation.
+
 ## 0.2.0-alpha.397
 
 ## 0.2.0-alpha.396
