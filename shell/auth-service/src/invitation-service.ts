@@ -7,7 +7,7 @@ import type {
 } from "@brains/plugins";
 import { createPrefixedId } from "@brains/utils/id";
 import { KeyedSingleFlight, SingleFlight } from "@brains/utils/serial-queue";
-import { and, eq, inArray, isNull, lte, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, lte } from "drizzle-orm";
 import type { AuthAuditStore } from "./audit-store";
 import {
   authInvitationDeliveryAttempts,
@@ -18,6 +18,11 @@ import {
 import { absoluteUrl } from "./issuer";
 import { InvitationChannels } from "./invitation-channels";
 import { invitationIdempotencyKeyHash } from "./invitation-keys";
+import {
+  listDeliveryAttempts,
+  listInvitations,
+  listInvitationsWithSetupExpirations,
+} from "./invitation-queries";
 import {
   createDurableInvitation,
   findByIdempotencyKey,
@@ -494,51 +499,25 @@ export class AuthInvitationService {
     return cancelled;
   }
 
+  /** Reconciles expired invitations first, so the list never shows a dead link as pending. */
   async list(): Promise<AuthInvitation[]> {
     await this.reconcileExpired();
-    return this.db
-      .select()
-      .from(authInvitations)
-      .orderBy(authInvitations.createdAt, sql`rowid`);
+    return listInvitations(this.db);
   }
 
+  /** As {@link list}, with the expiry of each invitation's current setup link. */
   async listWithCurrentSetupExpirations(): Promise<{
     invitations: AuthInvitation[];
     expirations: Map<string, number>;
   }> {
     await this.reconcileExpired();
-    const [invitations, expirationRows] = await Promise.all([
-      this.db
-        .select()
-        .from(authInvitations)
-        .orderBy(authInvitations.createdAt, sql`rowid`),
-      this.db
-        .select({
-          invitationId: authInvitations.id,
-          expiresAt: setupTokens.expiresAt,
-        })
-        .from(authInvitations)
-        .innerJoin(
-          setupTokens,
-          eq(setupTokens.tokenHash, authInvitations.currentSetupTokenHash),
-        ),
-    ]);
-    return {
-      invitations,
-      expirations: new Map(
-        expirationRows.map((row) => [row.invitationId, row.expiresAt * 1_000]),
-      ),
-    };
+    return listInvitationsWithSetupExpirations(this.db);
   }
 
   listDeliveryAttempts(
     invitationId: string,
   ): Promise<AuthInvitationDeliveryAttempt[]> {
-    return this.db
-      .select()
-      .from(authInvitationDeliveryAttempts)
-      .where(eq(authInvitationDeliveryAttempts.invitationId, invitationId))
-      .orderBy(authInvitationDeliveryAttempts.queuedAt, sql`rowid`);
+    return listDeliveryAttempts(this.db, invitationId);
   }
 
   private async reconcileExpired(): Promise<void> {
