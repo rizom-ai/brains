@@ -147,6 +147,7 @@ These reduce drag or preserve future options; they are not product bets and do n
 
 Active cleanup and infrastructure plans:
 
+- [mock-shell-split.md](./plans/mock-shell-split.md) — split the 1350-line `createMockShell` closure into one double per service so each can be reviewed against its interface.
 - [durable-binary-assets.md](./plans/durable-binary-assets.md) — move image bytes into same-database content-addressed BLOB storage, then validate a production cutover.
 - [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — parallelize multi-model eval subprocesses.
 - [http-route-registry-hardening.md](./plans/http-route-registry-hardening.md) — continue security, matching, advertising, and cleanup beyond the shipped normalized registry.
