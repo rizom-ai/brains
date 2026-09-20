@@ -18,6 +18,7 @@ import { openGuestBrowserSession } from "./guest-session";
 import { useGuestGate } from "./use-guest-gate";
 import { useGuestConversations } from "./use-guest-conversations";
 import { useGuestSession } from "./use-guest-session";
+import { useGuestTranscript } from "./use-guest-transcript";
 
 const incompleteHistoryNotice =
   "History loaded. The previous answer may still be running or incomplete. Nothing has been replayed; you can reload history later.";
@@ -60,10 +61,18 @@ export function GuestApp({
     forget: forgetConversation,
     isSaved: isSavedConversation,
   } = useGuestConversations();
-  const [messages, setMessages] = useState<ChatHistoryMessage[]>([]);
+  const {
+    messages,
+    earlier,
+    setMessages,
+    show: showHistory,
+    setAside: setTurnsAside,
+    clear: clearTranscript,
+    restoredQuestion,
+    transcriptRef,
+    followTranscript,
+  } = useGuestTranscript({ box: !!box });
   const [draft, setDraft] = useState(initialDraft);
-  const [earlier, setEarlier] = useState<ChatHistoryMessage[]>([]);
-  const restoredQuestion = useRef<string | undefined>(undefined);
   const gate = useGuestGate();
   const {
     busy,
@@ -79,19 +88,10 @@ export function GuestApp({
   const [deleting, setDeleting] = useState(false);
   const controller = useRef<AbortController | undefined>(undefined);
   const textarea = useRef<HTMLTextAreaElement>(null);
-  const transcript = useRef<HTMLDivElement>(null);
   const conversationMenu = useRef<HTMLDetailsElement>(null);
   function closeConversationMenu(): void {
     if (conversationMenu.current) conversationMenu.current.open = false;
   }
-  const followTranscript = useRef(true);
-
-  useEffect(() => {
-    if (box || !transcript.current) return;
-    if (!messages.length) followTranscript.current = true;
-    if (followTranscript.current)
-      transcript.current.scrollTop = transcript.current.scrollHeight;
-  }, [box, messages]);
 
   const restoreFocus = useRef(!!box);
 
@@ -129,7 +129,7 @@ export function GuestApp({
             throw error;
           }
           lifetime.signal.throwIfAborted();
-          setMessages(history);
+          showHistory(history);
           restoredQuestion.current = history
             .filter((message) => message.role === "user")
             .at(-1)?.id;
@@ -168,7 +168,7 @@ export function GuestApp({
       async (): Promise<void> => {
         const history = await client.getMessages(locator);
         remember(locator);
-        setMessages(history);
+        showHistory(history);
         setPending(undefined);
         setDeleting(false);
         setStatus(
@@ -337,7 +337,7 @@ export function GuestApp({
         const result = await client.deleteSession(id);
         if (!result.deleted) throw new Error("Deletion not acknowledged");
         forgetConversation(id);
-        setMessages([]);
+        clearTranscript();
         setPending(undefined);
         setDeleting(false);
         setStatus(
@@ -431,11 +431,9 @@ export function GuestApp({
         }
         if (fresh) {
           // Change only the local selection. Never delete, refund, or replay.
-          setEarlier((previous) => [...previous, ...messages]);
-          setMessages([]);
+          setTurnsAside();
           setPending(undefined);
           clearConversation();
-          restoredQuestion.current = undefined;
           clearExpired();
         }
         setBoxState(
@@ -524,7 +522,7 @@ export function GuestApp({
       pending={pending}
       deleting={deleting}
       expired={expired}
-      transcriptRef={transcript}
+      transcriptRef={transcriptRef}
       textareaRef={textarea}
       conversationMenuRef={conversationMenu}
       followTranscript={followTranscript}
@@ -535,7 +533,7 @@ export function GuestApp({
       onNewConversation={(): void => {
         closeConversationMenu();
         clearConversation();
-        setMessages([]);
+        clearTranscript();
         setPending(undefined);
         setDeleting(false);
         setStatus(
