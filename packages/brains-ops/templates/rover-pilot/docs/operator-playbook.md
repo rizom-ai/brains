@@ -11,6 +11,7 @@ Treat these as checked-in deploy artifacts in the pilot repo:
 - `.github/workflows/deploy.yml`
 - `.github/workflows/directory-sync-stress.yml`
 - `.github/workflows/health-watchdog-smoke.yml`
+- `.github/workflows/offboard.yml`
 - `.github/workflows/reconcile.yml`
 
 `.env.schema` is the single source of truth for required and sensitive deploy vars.
@@ -179,6 +180,38 @@ For a new pilot user, the operator bootstrap order is:
 The shared cert bootstrap writes local cert artifacts under `.brains-ops/certs/shared/`, which stays repo-local and ignored by git.
 
 Preview hosts use the shape `<handle>-preview.rizom.ai`, so one wildcard origin cert for `*.rizom.ai` covers both the primary and preview hosts for every pilot user.
+
+## Pilot user offboarding
+
+Use the manual **Offboard** workflow for explicit pilot retirement. It is the only
+supported path that removes both checked-in desired state and provider resources.
+Normal reconcile/deploy changes never imply destruction.
+
+1. Enter a comma-separated handle list. The command sorts and deduplicates it.
+2. Run with `apply: false` and review the exact servers, DNS records, and content
+   repositories in the plan.
+3. Enter the canonical confirmation printed by the dry run, for example
+   `sunset:alice,bob`.
+4. Rerun with `apply: true`.
+5. Verify the workflow's bot commit removes user YAML, encrypted secrets, generated
+   user directories, cohort membership, and rows from `views/users.md`.
+
+The apply path archives each private content repository, deletes the user's main and
+preview DNS records, destroys the dedicated Hetzner server, and removes desired state.
+Custom-domain users also lose their managed `www` record. The operation is idempotent,
+but it deliberately creates **no runtime backup**; obtain separate owner approval and
+backup state before apply when retention is required.
+
+The equivalent operator-local commands are:
+
+```sh
+bunx brains-ops user:offboard . alice bob
+bunx brains-ops user:offboard . alice bob \
+  --apply --confirm sunset:alice,bob
+```
+
+The deploy handle resolver ignores deleted users, so the generated-file deletions in
+the offboarding commit cannot route those handles back through onboarding/deploy.
 
 ## Upgrading operator behavior
 
