@@ -108,6 +108,7 @@ type SuccessCriteriaSchema = z.ZodObject<{
   expectedTools: z.ZodOptional<z.ZodArray<ExpectedToolCallSchema>>;
   expectedAnyTool: z.ZodOptional<z.ZodArray<ExpectedAnyToolCallSchema>>;
   toolCountRange: z.ZodOptional<ToolCountRangeSchema>;
+  responseEquals: z.ZodOptional<z.ZodString>;
   responseContains: z.ZodOptional<z.ZodArray<z.ZodString>>;
   responseContainsAny: z.ZodOptional<z.ZodArray<z.ZodArray<z.ZodString>>>;
   responseNotContains: z.ZodOptional<z.ZodArray<z.ZodString>>;
@@ -126,6 +127,7 @@ export const successCriteriaSchema: SuccessCriteriaSchema = z.object({
   toolCountRange: toolCountRangeSchema.optional(),
 
   // Response-based criteria
+  responseEquals: z.string().optional(),
   responseContains: z.array(z.string()).optional(),
   responseContainsAny: z.array(z.array(z.string()).min(1)).optional(),
   responseNotContains: z.array(z.string()).optional(),

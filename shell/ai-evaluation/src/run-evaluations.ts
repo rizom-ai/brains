@@ -57,6 +57,7 @@ export async function main(): Promise<void> {
     testType,
     toolCoverage,
     toolSurface,
+    mcpBasic,
     remoteUrl,
     authToken,
     compareAgainst,
@@ -64,7 +65,15 @@ export async function main(): Promise<void> {
   } = parseCliOptions(args);
 
   try {
-    const evalConfigResult = await loadEvalConfig({ suite, tags });
+    if (mcpBasic && remoteUrl) {
+      throw new Error("--mcp-basic cannot be combined with --url");
+    }
+
+    const evalConfigResult = await loadEvalConfig({
+      suite,
+      tags,
+      mcpBasic,
+    });
     const {
       config,
       testCasesDirs,
@@ -135,6 +144,7 @@ export async function main(): Promise<void> {
         testType,
         remoteUrl,
         authToken,
+        mcpBasic,
         resolveConfig: freshResolve,
         runEvaluationsCollect,
       });
@@ -156,6 +166,7 @@ export async function main(): Promise<void> {
       testType,
       remoteUrl,
       authToken,
+      mcpBasic,
       compareAgainst,
       saveBaseline,
       runEvaluations,

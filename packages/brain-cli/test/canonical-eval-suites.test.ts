@@ -62,7 +62,7 @@ const expectedMembers: Record<SuiteName, string> = {
   team: "a2a admin agents analytics ask-content auth-service chat conversation-memory dashboard directory-sync docs document email image link mcp note notifications onboarding playbook playbooks profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
 };
 const expectedCaseCounts: Record<SuiteName, number> = {
-  headless: 17,
+  headless: 19,
   personal: 20,
   professional: 85,
   team: 38,
@@ -106,6 +106,7 @@ function createSuiteApp(
   name: SuiteName,
   selection: EvalSelection,
   seedDirectory: string,
+  includeMcp = false,
 ): { app: App; evalHandlers: EvalHandlerRegistry } {
   const directory = createTempDirectory(name);
   const basePlugins = rawManifest.plugins;
@@ -124,20 +125,31 @@ function createSuiteApp(
     },
   };
   const evalHandlers = EvalHandlerRegistry.createFresh();
-  const resolved = resolve(
-    canonicalBrain,
-    { AI_API_KEY: "placeholder-canonical-eval-test" },
-    {
-      bundleContract: rawManifest.bundleContract,
-      anchor: selection.anchor ?? rawManifest.anchor,
-      kind: selection.kind ?? rawManifest.kind,
-      bundles: selection.bundles,
-      ...(selection.add ? { add: selection.add } : {}),
-      ...(selection.remove ? { remove: selection.remove } : {}),
-      mode: "eval",
-      plugins,
-    },
-  );
+  const environment = { AI_API_KEY: "placeholder-canonical-eval-test" };
+  const overrides = {
+    bundleContract: rawManifest.bundleContract,
+    anchor: selection.anchor ?? rawManifest.anchor,
+    kind: selection.kind ?? rawManifest.kind,
+    bundles: selection.bundles,
+    ...(selection.add ? { add: selection.add } : {}),
+    ...(selection.remove ? { remove: selection.remove } : {}),
+    plugins,
+  };
+  const resolvedEval = resolve(canonicalBrain, environment, {
+    ...overrides,
+    mode: "eval",
+  });
+  const regularMcp = includeMcp
+    ? resolve(canonicalBrain, environment, overrides).plugins?.find(
+        ({ id }) => id === "mcp",
+      )
+    : undefined;
+  const resolved = regularMcp
+    ? {
+        ...resolvedEval,
+        plugins: [...(resolvedEval.plugins ?? []), regularMcp],
+      }
+    : resolvedEval;
 
   return {
     app: App.create({
@@ -239,7 +251,7 @@ describe("canonical eval recipe ladder", () => {
       directory: testCasesDirectory,
       recursive: true,
     }).loadTestCases();
-    expect(testCases.length).toBe(194);
+    expect(testCases.length).toBe(196);
     for (const testCase of testCases) {
       expect(
         testCase.tags?.filter(
@@ -323,6 +335,46 @@ describe("canonical eval recipe ladder", () => {
       } finally {
         await app.stop();
       }
+    }
+  }, 120_000);
+
+  test("exposes chat-only basic MCP at every canonical permission level", async () => {
+    const selection = suiteSelection("headless");
+    const { app } = createSuiteApp(
+      "headless",
+      selection,
+      seedContentPath(selection),
+      true,
+    );
+
+    try {
+      await app.initialize();
+      const mcpService = app.getShell().getMCPService();
+
+      for (const level of ["public", "trusted", "admin"] as const) {
+        expect(
+          mcpService
+            .listProtocolToolsForPermissionLevel(level, "basic")
+            .map(({ tool }) => tool.name)
+            .sort(),
+        ).toEqual(["chat", "confirm"]);
+      }
+
+      const adminDebugTools = mcpService
+        .listProtocolToolsForPermissionLevel("admin", "debug")
+        .map(({ tool }) => tool.name);
+      for (const toolName of [
+        "chat",
+        "confirm",
+        "system_search",
+        "system_get",
+        "system_list",
+        "system_create",
+      ]) {
+        expect(adminDebugTools).toContain(toolName);
+      }
+    } finally {
+      await app.stop();
     }
   }, 120_000);
 
