@@ -1,3 +1,4 @@
+import { studioAssetManifestSchema } from "../src/ui-assets";
 import {
   createMockShell,
   createTempDataDir,
@@ -349,10 +350,15 @@ describe("Studio active-session gate inversion", () => {
   it("keeps only static assets and legacy redirects as anonymous non-data exceptions", async () => {
     const { plugin } = await setup();
 
-    const asset = await findRoute(plugin, "/studio/assets").handler(
-      request("/studio/assets/app.js"),
+    const manifest = studioAssetManifestSchema.parse(
+      await Bun.file(
+        new URL("../dist/ui/studio-asset-manifest.json", import.meta.url),
+      ).json(),
     );
-    expect([200, 404]).toContain(asset.status);
+    const asset = await findRoute(plugin, "/studio/assets").handler(
+      request(`/studio/assets/${manifest.entrypoints.script}`),
+    );
+    expect(asset.status).toBe(200);
 
     const redirect = await findRoute(plugin, "/cms").handler(
       request("/cms/entities/note/example?view=edit"),
