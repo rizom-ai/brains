@@ -198,7 +198,7 @@ export interface Tool<TOutput = ToolResponse> {
   sideEffects?: ToolSideEffects;
   /** Whether the LLM agent may receive this tool in its callable tool set. Defaults to true. */
   agentTool?: boolean;
-  /** Direct external MCP protocol exposure. Defaults to debug; basic exposure requires an explicit opt-in. */
+  /** Direct external MCP protocol exposure. Defaults from sideEffects: read-only tools are basic, mutating/external tools are debug-only. */
   directMcpExposure?: DirectMcpExposure;
   /** MCP protocol annotations advertised to external clients. Derived from sideEffects when omitted. */
   annotations?: ToolAnnotations;
