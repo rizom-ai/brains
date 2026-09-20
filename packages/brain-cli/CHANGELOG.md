@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.395
+
+### Patch Changes
+
+- [#304](https://github.com/rizom-ai/brains/pull/304) [`18aec18`](https://github.com/rizom-ai/brains/commit/18aec1819582a18a5e4c7b5bb19393186e5a0d11) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Use manifest-selected, content-hashed Studio JavaScript and CSS entry URLs so browser caching cannot mask new releases. Keep authenticated shells uncached, serve immutable public assets only from the validated manifest, and offer explicit draft-loss confirmation rather than automatically reloading when an Account or Chat chunk cannot load.
+
 ## 0.2.0-alpha.394
 
 ### Patch Changes

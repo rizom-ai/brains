@@ -1,5 +1,19 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.395
+
+### Patch Changes
+
+- [#305](https://github.com/rizom-ai/brains/pull/305) [`5d0a6fa`](https://github.com/rizom-ai/brains/commit/5d0a6faf3dfc5b5adbda3038862e2c665194b762) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Separate projection-batch admission, fencing, recovery, and diagnostics from projection-wave persistence while preserving their shared serialized transaction boundary.
+
+- Updated dependencies []:
+  - @brains/assets@0.2.0-alpha.395
+  - @brains/content-formatters@0.2.0-alpha.395
+  - @brains/contracts@0.2.0-alpha.395
+  - @brains/db@0.2.0-alpha.395
+  - @brains/utils@0.2.0-alpha.395
+  - @brains/job-queue@0.2.0-alpha.395
+
 ## 0.2.0-alpha.394
 
 ### Patch Changes
