@@ -22,6 +22,15 @@ const appEntrypoint = join(
   "canonical-headless-app.ts",
 );
 
+const VERBATIM_NOTE_BODY = `# Verbatim MCP Note
+
+Keep **bold text**, \`inline code\`, and punctuation: alpha / beta.
+
+- First item
+- Second item — with an em dash
+
+Final checksum: MCP-VERBATIM-7F3A.`;
+
 function textContent(result: unknown): string {
   if (!isRecord(result) || !Array.isArray(result["content"])) return "";
   return result["content"]
@@ -48,7 +57,7 @@ function successData(result: unknown): Record<string, unknown> {
 }
 
 describe("canonical headless walking skeleton", () => {
-  test("reads seeded content through canonical chat-only stdio MCP", async () => {
+  test("hands seeded note content verbatim through canonical chat-only stdio MCP", async () => {
     const instanceDirectory = mkdtempSync(
       join(tmpdir(), "brain-canonical-basic-mcp-"),
     );
@@ -61,7 +70,7 @@ title: Headless Proof
 status: draft
 ---
 
-A headless brain imported this note before serving its first MCP request.
+${VERBATIM_NOTE_BODY}
 `,
     );
     writeFileSync(
@@ -108,26 +117,36 @@ plugins:
         "confirm",
       ]);
 
-      let responseText = "";
+      let responseData: Record<string, unknown> = {};
       await waitUntil(
         async () => {
           const response = await client.callTool({
             name: "chat",
             arguments: {
-              message: "Retrieve the seeded note with id headless-proof.",
+              message:
+                "Retrieve the seeded note with id headless-proof and return its body verbatim.",
               conversationId: "seeded-read",
             },
           });
           expect(response.isError).not.toBe(true);
-          responseText = textContent(response);
-          return !responseText.includes("knowledge base ready");
+          responseData = successData(response);
+          return !String(responseData["text"]).includes("knowledge base ready");
         },
         "the seeded brain to answer through basic MCP chat",
         { timeoutMs: 20_000, intervalMs: 100 },
       );
-      expect(responseText).toContain(
-        "A headless brain imported this note before serving its first MCP request.",
-      );
+      expect(responseData["text"]).toBe(VERBATIM_NOTE_BODY);
+      expect(responseData["toolResults"]).toEqual([
+        expect.objectContaining({
+          toolName: "system_get",
+          args: { entityType: "note", id: "headless-proof" },
+          data: {
+            entity: expect.objectContaining({
+              content: VERBATIM_NOTE_BODY,
+            }),
+          },
+        }),
+      ]);
     } finally {
       if (connected) await client.close();
       else await transport.close();

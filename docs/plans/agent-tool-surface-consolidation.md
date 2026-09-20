@@ -91,11 +91,12 @@ Before removing raw read tools from MCP basic mode:
 
 - [x] snapshot the actual canonical basic and debug protocol surfaces at Public, Trusted, and Admin permissions;
 - [x] boot a canonical brain through basic stdio MCP and prove a seeded read succeeds through `chat` while raw tools are absent;
+- [x] prove the MCP `chat` payload preserves the retrieved note body exactly in both agent text and structured `toolResults`;
 - [x] exercise a write, confirmation, and read-back entirely through `chat` and `confirm`;
 - [x] cover authenticated HTTP permission propagation alongside the canonical basic-mode surface checks; and
-- [ ] run the affected read, write, confirmation, and follow-up behavioral evals plus the nominated full release-candidate suite with release credentials.
+- [ ] run the affected read, verbatim-note, write, confirmation, and follow-up behavioral evals plus the nominated full release-candidate suite with release credentials.
 
-The eval runner now supports `--mcp-basic`, which restores the eval-disabled MCP interface, rejects any surface beyond `chat` and `confirm`, and routes every selected case through the real protocol adapter. The canonical write/confirm/read-back case is `mcp-basic-write-confirm-read-back`.
+The eval runner now supports `--mcp-basic`, which restores the eval-disabled MCP interface, rejects any surface beyond `chat` and `confirm`, and routes every selected case through the real protocol adapter. The canonical protocol cases are `mcp-basic-verbatim-note` and `mcp-basic-write-confirm-read-back`; the verbatim case uses a byte-for-byte response criterion rather than a case-insensitive substring check.
 
 Do not merge or ship the chat-only default until the remaining live-model eval gate is green.
 

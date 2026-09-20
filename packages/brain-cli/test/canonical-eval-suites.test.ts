@@ -62,7 +62,7 @@ const expectedMembers: Record<SuiteName, string> = {
   team: "a2a admin agents analytics ask-content auth-service chat conversation-memory dashboard directory-sync docs document email image link mcp note notifications onboarding playbook playbooks profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
 };
 const expectedCaseCounts: Record<SuiteName, number> = {
-  headless: 18,
+  headless: 19,
   personal: 20,
   professional: 85,
   team: 38,
@@ -251,7 +251,7 @@ describe("canonical eval recipe ladder", () => {
       directory: testCasesDirectory,
       recursive: true,
     }).loadTestCases();
-    expect(testCases.length).toBe(195);
+    expect(testCases.length).toBe(196);
     for (const testCase of testCases) {
       expect(
         testCase.tags?.filter(

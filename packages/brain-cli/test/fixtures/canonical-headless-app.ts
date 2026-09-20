@@ -17,6 +17,15 @@ import {
   MockLoadTracker,
 } from "../helpers/mocked-ai-load-services";
 
+const VERBATIM_NOTE_BODY = `# Verbatim MCP Note
+
+Keep **bold text**, \`inline code\`, and punctuation: alpha / beta.
+
+- First item
+- Second item — with an em dash
+
+Final checksum: MCP-VERBATIM-7F3A.`;
+
 const cwd = process.cwd();
 const overrides = parseInstanceOverrides(
   readFileSync(join(cwd, "brain.yaml"), "utf8"),
@@ -104,9 +113,7 @@ function createScriptedModel(
             entityType: "note",
             id: "headless-proof",
           }),
-          textResponse(
-            "A headless brain imported this note before serving its first MCP request.",
-          ),
+          textResponse(VERBATIM_NOTE_BODY),
         ]
       : scenario === "write-confirm-read"
         ? [
