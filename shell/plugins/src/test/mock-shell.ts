@@ -50,17 +50,14 @@ import type { DefaultQueryResponse } from "@brains/contracts";
 import { defaultQueryResponseSchema } from "@brains/contracts";
 import {
   type IEntityService,
-  type IEntityRegistry,
   type BaseEntity,
   type DataSourceRegistry,
   type DataSource,
-  type EntityAdapter,
   type DataSourceCapabilities,
-  type UploadSaveHandlerRegistration,
-  type CreateInterceptor,
 } from "@brains/entity-service";
 import { createMockEntityStore } from "./mock-entity-store";
 import { createMockMessageBus } from "./mock-message-bus";
+import { createMockEntityRegistry } from "./mock-entity-registry";
 import { createMockEntityService } from "./mock-entity-service";
 import type {
   IJobQueueService,
@@ -281,13 +278,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   // alias into it rather than copying it, so all three still see one set of
   // entities.
   const entityStore = createMockEntityStore();
-  const {
-    entities,
-    types: entityTypes,
-    adapters: entityAdapters,
-    typeConfigs: entityTypeConfigs,
-  } = entityStore;
-  const getEntityTypeConfig = entityStore.typeConfig;
+  const { entities, types: entityTypes } = entityStore;
   const templates = new Map<string, Template>();
   const dataSources = new Map<string, DataSource>();
   const plugins = new Map<string, Plugin>();
@@ -308,69 +299,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   const entityService = options.entityService ?? defaultEntityService;
 
   // --- Entity Registry ---
-  const createInterceptors = new Map<string, CreateInterceptor>();
-  const uploadSaveHandlers: UploadSaveHandlerRegistration[] = [];
-
-  const entityRegistry: IEntityRegistry = {
-    registerEntityType: (type, _schema, adapter, config) => {
-      entityTypes.add(type);
-      entityAdapters.set(type, adapter);
-      entityTypeConfigs.set(type, config ?? {});
-    },
-    unregisterEntityType: (type): void => {
-      entityTypes.delete(type);
-      entityAdapters.delete(type);
-      entityTypeConfigs.delete(type);
-      createInterceptors.delete(type);
-    },
-    getSchema: (): never => {
-      throw new Error("Not implemented");
-    },
-    getAdapter: <
-      TEntity extends BaseEntity<TMetadata>,
-      TMetadata = Record<string, unknown>,
-    >(
-      type: string,
-    ): EntityAdapter<TEntity, TMetadata> => {
-      const adapter = entityAdapters.get(type);
-      if (!adapter) {
-        throw new Error(`No adapter registered for entity type: ${type}`);
-      }
-      // A heterogeneous registry cannot prove the stored adapter matches the
-      // caller-chosen T; the real EntityRegistry asserts at exactly this point
-      // for the same reason.
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see the comment above
-      return adapter as EntityAdapter<TEntity, TMetadata>;
-    },
-    hasEntityType: (type: string) => entityTypes.has(type),
-    validateEntity: (type: string, entity: unknown): BaseEntity => {
-      const adapter = entityAdapters.get(type);
-      if (adapter) return adapter.schema.parse(entity);
-      throw new Error(`No schema registered for entity type: ${type}`);
-    },
-    getAllEntityTypes: () => Array.from(entityTypes),
-    getEntityTypeConfig,
-    getWeightMap: () => ({}),
-    registerCreateInterceptor: (type, interceptor) => {
-      createInterceptors.set(type, interceptor);
-    },
-    getCreateInterceptor: (type) => createInterceptors.get(type),
-    registerUploadSaveHandler: (registration): void => {
-      uploadSaveHandlers.push(registration);
-    },
-    getUploadSaveHandler: (mediaType) =>
-      uploadSaveHandlers.find((registration) =>
-        registration.mediaTypes.some((pattern) =>
-          pattern.endsWith("/*")
-            ? mediaType.startsWith(pattern.slice(0, -1))
-            : mediaType === pattern,
-        ),
-      ),
-    registerPersistValidator: (): void => {},
-    getPersistValidator: () => undefined,
-    extendFrontmatterSchema: (): void => {},
-    getEffectiveFrontmatterSchema: () => undefined,
-  };
+  const entityRegistry = createMockEntityRegistry(entityStore);
 
   // --- In-memory job queue state ---
   // Enqueued jobs are remembered so status reads see what writes created; a
