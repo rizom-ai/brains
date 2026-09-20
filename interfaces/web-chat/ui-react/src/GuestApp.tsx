@@ -16,43 +16,10 @@ import { GuestBox } from "./GuestBox";
 import { createWebChatClient } from "./web-chat-client";
 import { openGuestBrowserSession } from "./guest-session";
 import { useGuestGate } from "./use-guest-gate";
+import { useGuestConversations } from "./use-guest-conversations";
 
-const locatorKey = "brain-ask-conversation";
 const incompleteHistoryNotice =
   "History loaded. The previous answer may still be running or incomplete. Nothing has been replayed; you can reload history later.";
-function savedConversations(add?: string, remove?: string): string[] {
-  try {
-    const value: unknown = JSON.parse(
-      sessionStorage.getItem(`${locatorKey}-list`) ?? "[]",
-    );
-    const ids = Array.isArray(value)
-      ? value.filter(
-          (id): id is string =>
-            typeof id === "string" &&
-            /^guest-[a-f0-9]{64}$/.test(id) &&
-            id !== remove,
-        )
-      : [];
-    if (add && !ids.includes(add)) ids.push(add);
-    sessionStorage.setItem(`${locatorKey}-list`, JSON.stringify(ids));
-    return ids;
-  } catch {
-    // Conversation locators are optional; transcripts never enter browser storage.
-    return add ? [add] : [];
-  }
-}
-function savedLocator(value?: string): string | undefined {
-  try {
-    if (value !== undefined) {
-      if (value) sessionStorage.setItem(locatorKey, value);
-      else sessionStorage.removeItem(locatorKey);
-    }
-    return sessionStorage.getItem(locatorKey) ?? undefined;
-  } catch {
-    // Storage can be disabled. Never fall back to persisting transcript text.
-    return undefined;
-  }
-}
 
 export function GuestApp({
   client: suppliedClient,
@@ -71,7 +38,16 @@ export function GuestApp({
 }): ReactElement {
   const [client] = useState(() => suppliedClient ?? createWebChatClient());
   const [session, setSession] = useState<GuestChatSessionResponse>();
-  const [id, setId] = useState<string>();
+  const {
+    id,
+    conversations,
+    adopt: adoptSavedConversation,
+    remember,
+    note: noteConversation,
+    clear: clearConversation,
+    forget: forgetConversation,
+    isSaved: isSavedConversation,
+  } = useGuestConversations();
   const [messages, setMessages] = useState<ChatHistoryMessage[]>([]);
   const [draft, setDraft] = useState(initialDraft);
   const [earlier, setEarlier] = useState<ChatHistoryMessage[]>([]);
@@ -87,7 +63,6 @@ export function GuestApp({
     setBoxNotice,
     mounted,
   } = gate;
-  const [conversations, setConversations] = useState<string[]>([]);
   const [pending, setPending] = useState<ChatMessageRequest>();
   const [deleting, setDeleting] = useState(false);
   const [expired, setExpired] = useState(false);
@@ -127,10 +102,8 @@ export function GuestApp({
         lifetime.signal.throwIfAborted();
         setSession(opened);
         setBoxState(opened.canSend ? "ready" : "unavailable");
-        setConversations(savedConversations());
-        const locator = savedLocator();
+        const locator = adoptSavedConversation();
         if (locator) {
-          setId(locator);
           let history: ChatHistoryMessage[];
           try {
             history = await client.getMessages(locator);
@@ -150,7 +123,7 @@ export function GuestApp({
           restoredQuestion.current = history
             .filter((message) => message.role === "user")
             .at(-1)?.id;
-          setConversations(savedConversations(locator));
+          noteConversation(locator);
           if (history.at(-1)?.role === "user") {
             setBoxState("incomplete");
             setStatus(incompleteHistoryNotice);
@@ -178,12 +151,6 @@ export function GuestApp({
       controller.current?.abort();
     };
   }, [client, box]);
-
-  function remember(locator: string): void {
-    setId(locator);
-    savedLocator(locator);
-    setConversations(savedConversations(locator));
-  }
 
   async function restore(locator: string): Promise<void> {
     if (!locator) return;
@@ -359,9 +326,7 @@ export function GuestApp({
       async (): Promise<void> => {
         const result = await client.deleteSession(id);
         if (!result.deleted) throw new Error("Deletion not acknowledged");
-        savedLocator("");
-        setConversations(savedConversations(undefined, id));
-        setId(undefined);
+        forgetConversation(id);
         setMessages([]);
         setPending(undefined);
         setDeleting(false);
@@ -460,8 +425,7 @@ export function GuestApp({
           setEarlier((previous) => [...previous, ...messages]);
           setMessages([]);
           setPending(undefined);
-          setId(undefined);
-          savedLocator("");
+          clearConversation();
           restoredQuestion.current = undefined;
           setExpired(false);
         }
@@ -520,7 +484,7 @@ export function GuestApp({
         canContinue={
           !busy &&
           !!id &&
-          savedLocator() === id &&
+          isSavedConversation(id) &&
           !["history-unavailable", "expired"].includes(boxState)
         }
         onSend={(): void => {
@@ -562,8 +526,7 @@ export function GuestApp({
       }}
       onNewConversation={(): void => {
         closeConversationMenu();
-        savedLocator("");
-        setId(undefined);
+        clearConversation();
         setMessages([]);
         setPending(undefined);
         setDeleting(false);
