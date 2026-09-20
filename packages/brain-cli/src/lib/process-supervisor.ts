@@ -13,6 +13,11 @@ import {
   type SpawnedProcess,
   type SpawnImpl,
 } from "./spawn-bun-runner";
+import {
+  attemptsWithinWindow,
+  isRestartBudgetExhausted,
+  restartDelayMs,
+} from "./worker-restart-policy";
 
 export type BrainChildRole = "web" | "worker";
 
@@ -579,14 +584,20 @@ function runRuntimeSupervisor(
       }
 
       const now = options.clock.now();
-      while (
-        workerAttempts.length > 0 &&
-        now - (workerAttempts[0] ?? now) >= options.workerRestartWindowMs
-      ) {
-        workerAttempts.shift();
-      }
+      const recent = attemptsWithinWindow(
+        workerAttempts,
+        now,
+        options.workerRestartWindowMs,
+      );
+      workerAttempts.length = 0;
+      workerAttempts.push(...recent);
 
-      if (workerAttempts.length >= options.workerRestartBudget) {
+      if (
+        isRestartBudgetExhausted(
+          workerAttempts.length,
+          options.workerRestartBudget,
+        )
+      ) {
         options.reportIncident({
           type: "worker-supervision-exhausted",
           attempts: workerAttempts.length,
@@ -603,11 +614,10 @@ function runRuntimeSupervisor(
         return;
       }
 
-      const delayMs =
-        consecutiveWorkerFailures === 0
-          ? 0
-          : options.workerRestartBaseMs *
-            2 ** Math.min(consecutiveWorkerFailures - 1, 10);
+      const delayMs = restartDelayMs(
+        consecutiveWorkerFailures,
+        options.workerRestartBaseMs,
+      );
       if (delayMs === 0) {
         spawnChild("worker");
         return;
