@@ -148,6 +148,10 @@ describe("@rizom/brain package metadata", () => {
     expect(buildScript).toContain(
       'cpSync(webChatUiStylesheetPath, join(bundledWebChatUiDir, "app.css"))',
     );
+    expect(buildScript).toContain("join(webChatUiDirectory, asset)");
+    expect(buildScript).not.toContain(
+      'join(webChatPackageDir, "dist", "ui", asset)',
+    );
     expect(buildScript).toContain(
       "cpSync(studioUiDirectory, bundledWebChatUiDir, { recursive: true })",
     );

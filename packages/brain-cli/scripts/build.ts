@@ -416,10 +416,7 @@ for (const asset of [
   "dashboard.js",
   "dashboard.css",
 ]) {
-  cpSync(
-    join(webChatPackageDir, "dist", "ui", asset),
-    join(bundledWebChatUiDir, asset),
-  );
+  cpSync(join(webChatUiDirectory, asset), join(bundledWebChatUiDir, asset));
 }
 const webChatSourceMapPath = `${webChatUiAssetPath}.map`;
 if (existsSync(webChatSourceMapPath)) {
