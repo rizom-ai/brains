@@ -1,5 +1,4 @@
 import { describe, expect, it } from "bun:test";
-import { caughtError } from "@brains/test-utils";
 import {
   KeyedSerialQueue,
   KeyedSingleFlight,
@@ -229,7 +228,8 @@ describe("KeyedSingleFlight", () => {
     } catch (cause) {
       thrown = cause;
     }
-    expect(caughtError(thrown).message).toBe("unavailable");
+    if (!(thrown instanceof Error)) throw new Error("expected an Error");
+    expect(thrown.message).toBe("unavailable");
 
     // The key is free again rather than pinned to a rejected promise.
     expect(await flight.run("k", async () => "recovered")).toBe("recovered");
