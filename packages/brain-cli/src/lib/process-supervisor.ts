@@ -14,6 +14,10 @@ import {
   type SpawnImpl,
 } from "./spawn-bun-runner";
 import {
+  brokerReplacementStep,
+  isProcessGroupAbsent,
+} from "./broker-group-policy";
+import {
   attemptsWithinWindow,
   isRestartBudgetExhausted,
   restartDelayMs,
@@ -146,15 +150,6 @@ function readHeartbeat(value: unknown): Heartbeat | undefined {
 }
 
 /** ESRCH is the only answer that means "gone". */
-function isNoSuchProcess(error: unknown): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    error.code === "ESRCH"
-  );
-}
-
 function hasMessageType(value: unknown, type: string): boolean {
   return (
     typeof value === "object" &&
@@ -466,15 +461,6 @@ function runRuntimeSupervisor(
      * "gone" — is not proof, and the absence of proof is what forbids a
      * replacement rather than merely delaying one.
      */
-    const groupIsAbsent = (pid: number): boolean => {
-      try {
-        options.processImpl.kill(-pid, 0);
-        return false;
-      } catch (error) {
-        return isNoSuchProcess(error);
-      }
-    };
-
     /**
      * Replace the owner only after proving the old group absent.
      *
@@ -486,7 +472,16 @@ function runRuntimeSupervisor(
     const replaceBrokerWhenGroupIsGone = (pid: number, attempt = 1): void => {
       if (settled || parentShutdownRequested || finalResult) return;
 
-      if (groupIsAbsent(pid)) {
+      const step = brokerReplacementStep(
+        isProcessGroupAbsent(
+          (target, signal) => options.processImpl.kill(target, signal),
+          pid,
+        ),
+        attempt,
+        options.brokerGroupProbeAttempts,
+      );
+
+      if (step.kind === "replace") {
         options.reportIncident({
           type: "git-broker-group-absent",
           attempts: attempt,
@@ -497,7 +492,7 @@ function runRuntimeSupervisor(
         return;
       }
 
-      if (attempt >= options.brokerGroupProbeAttempts) {
+      if (step.kind === "give-up") {
         options.reportIncident({
           type: "git-broker-group-absence-unproven",
           attempts: attempt,
