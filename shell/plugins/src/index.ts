@@ -192,8 +192,14 @@ export {
   type RuntimeUploadStoreOptions,
   type SaveRuntimeUploadInput,
   type SaveRuntimeUploadFileInput,
+  type RuntimeUploadFileDescription,
   AcknowledgedRuntimeUploadError,
 } from "./service/upload-registry";
+export {
+  captureRuntimeUpload,
+  type CaptureRuntimeUploadInput,
+  type CaptureRuntimeUploadSource,
+} from "./service/capture-runtime-upload";
 export type {
   BasePluginContext,
   IMessagingNamespace,

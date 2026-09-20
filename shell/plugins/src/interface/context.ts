@@ -36,13 +36,13 @@ import type { IMessageBus } from "@brains/messaging-service";
 import type { ToolInfo } from "@brains/mcp-service";
 import type { EntityFileAssets } from "@brains/entity-service";
 
-/** Trusted outbound file I/O, separate from the read-only entity contract.
- * Callers authorize the entity and retain its file loan through settlement.
+/** Trusted file transport I/O, separate from the read-only entity contract.
+ * Callers authorize source/entity access and retain file loans through settlement.
  * No publication, provisioning or owner-shutdown capability is exposed here.
  */
 export type InterfaceFileTransfers = Pick<
   EntityFileAssets,
-  "putHttp" | "postHttp"
+  "putHttp" | "postHttp" | "withCapturedFile"
 >;
 
 /**
@@ -255,6 +255,9 @@ export function createInterfacePluginContext(
       return {
         putHttp: (input, options) => files.putHttp(input, options),
         postHttp: (input, options) => files.postHttp(input, options),
+        ...(files.withCapturedFile && {
+          withCapturedFile: files.withCapturedFile.bind(files),
+        }),
       };
     },
 

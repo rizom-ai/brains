@@ -2,7 +2,11 @@ import { isAbsolute, join } from "node:path";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { assetRefSchema, type AssetRef } from "@brains/assets";
-import { remoteUrlSchema } from "@brains/db/file-fetch";
+import {
+  remoteUrlSchema,
+  fileFetchSourceSchema,
+  type FileFetchSource,
+} from "@brains/db/file-fetch";
 import { fileProducePathSchema } from "@brains/db/file-produce";
 import { z } from "@brains/utils/zod";
 import {
@@ -15,6 +19,7 @@ import {
   type FileInspectionResult,
   type FileHttpUploadInput,
   type FileHttpUploadResult,
+  type FileCaptureDetails,
 } from "@brains/db/file-process-owner";
 import type {
   EntityBinaryClient,
@@ -31,6 +36,11 @@ export interface EntityFileSource {
 }
 export interface EntityVerifiedFileSource extends EntityFileSource {
   sha256: string;
+}
+export type EntityFileCaptureInput = FileFetchSource;
+export interface EntityCapturedFileSource extends EntityVerifiedFileSource {
+  /** Untrusted server MIME hint; promotion must inspect actual bytes. */
+  details: FileCaptureDetails;
 }
 export interface EntityFileInspectionOptions extends EntityBinaryRequestOptions {
   /** Select an explicitly provisioned inspection artifact. No default fallback. */
@@ -51,6 +61,14 @@ export interface EntityFileReader {
   ): Promise<T>;
 }
 export interface EntityFileAssets extends EntityFileReader {
+  /** Optional ingress capability with explicit actor provisioning, no fallback.
+   * Await capture/retention within this scope; failed staging is retained.
+   */
+  withCapturedFile?<T>(
+    input: EntityFileCaptureInput,
+    use: (file: EntityCapturedFileSource, signal: AbortSignal) => Promise<T>,
+    options?: EntityBinaryRequestOptions,
+  ): Promise<T>;
   /** Single-attempt owned HTTP PUT. Keep the source borrowed through settlement.
    * Status is observed through actor exit; cancellation cannot retract it.
    * No redirect/retry or buffered fallback. Callers interpret the returned status.
@@ -59,8 +77,8 @@ export interface EntityFileAssets extends EntityFileReader {
     input: FileHttpUploadInput,
     options?: EntityBinaryRequestOptions,
   ): Promise<FileHttpUploadResult>;
-  /** Single-attempt raw-file POST with the same ownership and no-replay rules
-   * as PUT. This is not multipart encoding or platform publication.
+  /** Single-attempt POST with the same ownership and no-replay rules as PUT.
+   * Optional multipart framing/receipt projection runs in the owned actor.
    */
   postHttp(
     input: FileHttpUploadInput,
@@ -189,6 +207,27 @@ export class EntityFileRuntime implements EntityFileAssets {
       );
       signal.throwIfAborted();
       const result = await use({ sourceFile, ...facts }, signal);
+      await rm(directory, { recursive: true });
+      return result;
+    }, options?.signal);
+  }
+  public withCapturedFile<T>(
+    input: EntityFileCaptureInput,
+    use: (file: EntityCapturedFileSource, signal: AbortSignal) => Promise<T>,
+    options?: EntityBinaryRequestOptions,
+  ): Promise<T> {
+    return this.run(async (signal): Promise<T> => {
+      const source = fileFetchSourceSchema.parse(input);
+      signal.throwIfAborted();
+      const directory = await mkdtemp(join(tmpdir(), "turso-captured-file-"));
+      const sourceFile = join(directory, "verified");
+      const facts = await this.actors.capture(
+        { ...source, outputFile: sourceFile },
+        signal,
+      );
+      signal.throwIfAborted();
+      const result = await use({ sourceFile, ...facts }, signal);
+      // A completed retention/publication must not be retracted by late abort.
       await rm(directory, { recursive: true });
       return result;
     }, options?.signal);

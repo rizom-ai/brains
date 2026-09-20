@@ -33,6 +33,8 @@ export type {
   EntityFileReader,
   EntityFileSource,
   EntityVerifiedFileSource,
+  EntityCapturedFileSource,
+  EntityFileCaptureInput,
 } from "./entity-file-runtime";
 export type {
   EntityFilePublicationInput,

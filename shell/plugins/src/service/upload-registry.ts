@@ -79,12 +79,14 @@ export interface SaveRuntimeUploadInput {
   metadata?: Record<string, unknown> | undefined;
 }
 
-export interface SaveRuntimeUploadFileInput {
-  sourceFile: string;
-  sizeBytes: number;
+export interface RuntimeUploadFileDescription {
   filename: string;
   mediaType: string;
   metadata?: JsonObject | undefined;
+}
+export interface SaveRuntimeUploadFileInput extends RuntimeUploadFileDescription {
+  sourceFile: string;
+  sizeBytes: number;
 }
 
 /** Publication is known even when subsequent retirement fails. */
@@ -97,17 +99,22 @@ export class AcknowledgedRuntimeUploadError extends Error {
   }
 }
 
-const saveFileSchema: z.ZodType<SaveRuntimeUploadFileInput> = z.strictObject({
-  sourceFile: z
-    .string()
-    .min(1)
-    .max(4096)
-    .refine((value) => isAbsolute(value) && !value.includes("\0")),
-  sizeBytes: z.number().int().nonnegative().max(MAX_ASSET_BYTES),
+const descriptionSchema = z.strictObject({
   filename: z.string().min(1).max(255),
   mediaType: z.string().min(1).max(128),
   metadata: jsonObjectSchema.optional(),
 });
+export const runtimeUploadFileDescriptionSchema: z.ZodType<RuntimeUploadFileDescription> =
+  descriptionSchema;
+const saveFileSchema: z.ZodType<SaveRuntimeUploadFileInput> =
+  descriptionSchema.extend({
+    sourceFile: z
+      .string()
+      .min(1)
+      .max(4096)
+      .refine((value) => isAbsolute(value) && !value.includes("\0")),
+    sizeBytes: z.number().int().nonnegative().max(MAX_ASSET_BYTES),
+  });
 
 export interface ResolvedRuntimeUpload {
   record: RuntimeUploadRecord;

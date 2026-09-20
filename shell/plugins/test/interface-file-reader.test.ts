@@ -98,11 +98,11 @@ test("an existing interface context borrows through the provisioned owner until 
   expect(calls).toBe(1);
 });
 
-test("interface transports bind only outbound methods and observe late provisioning without changing owner identity", async () => {
+test("interface transports bind only transport methods and observe late provisioning without changing owner identity", async () => {
   const shell = createMockShell();
   const context = createMessageInterfacePluginContext(shell, "chat");
   expectTypeOf<keyof NonNullable<typeof context.fileTransfers>>().toEqualTypeOf<
-    "putHttp" | "postHttp"
+    "putHttp" | "postHttp" | "withCapturedFile"
   >();
   expect(context.fileTransfers).toBeUndefined();
   const files = provision(unexpected);
@@ -151,6 +151,58 @@ test("interface transports bind only outbound methods and observe late provision
   const put = context.fileTransfers.putHttp;
   assert.ok(put);
   await assert.rejects(put(request), (error: unknown) => error === failure);
+});
+
+test("interface capture binding borrows through the existing runtime with no publication authority", async () => {
+  const shell = createMockShell();
+  const context = createMessageInterfacePluginContext(shell, "chat");
+  const files = provision(unexpected);
+  const input = {
+    url: "http://127.0.0.1/file",
+    authorization: "Bearer fixture",
+    maxBytes: 7,
+  };
+  const options = { signal: new AbortController().signal };
+  const owner = new AbortController();
+  const capture: NonNullable<EntityFileAssets["withCapturedFile"]> = async (
+    received,
+    use,
+    receivedOptions,
+  ) => {
+    expect(received).toBe(input);
+    expect(receivedOptions).toBe(options);
+    return use(
+      { ...file, details: { mediaType: "application/pdf" } },
+      owner.signal,
+    );
+  };
+  files.withCapturedFile = capture;
+  shell.getEntityService().fileAssets = files;
+  const bound = context.fileTransfers?.withCapturedFile;
+  assert.ok(bound);
+  const result = { id: "retained" };
+  expect(
+    await bound(
+      input,
+      async (source, signal) => {
+        expect(source.sourceFile).toBe(file.sourceFile);
+        expect(signal).toBe(owner.signal);
+        return result;
+      },
+      options,
+    ),
+  ).toBe(result);
+  const primary = new Error("retention failed");
+  await assert.rejects(
+    bound(
+      input,
+      async () => {
+        throw primary;
+      },
+      options,
+    ),
+    (error: unknown) => error === primary,
+  );
 });
 
 test("interface loans propagate the exact consumer failure without replay", async () => {

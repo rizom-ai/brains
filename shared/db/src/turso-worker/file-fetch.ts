@@ -3,6 +3,7 @@ import { request as httpsRequest } from "node:https";
 import { createHash } from "node:crypto";
 import { createGunzip, createInflate, createBrotliDecompress } from "node:zlib";
 import type { Readable } from "node:stream";
+import type { Socket } from "node:net";
 import { isAbsolute } from "node:path";
 import { z } from "@brains/utils/zod";
 import { withFileTarget } from "./file-target";
@@ -22,16 +23,30 @@ export const remoteUrlSchema: z.ZodType<string> = z
       !url.password
     );
   });
-export const fileFetchSchema: z.ZodType<FileFetchInput> = z.strictObject({
+const sourceSchema = z.strictObject({
   url: remoteUrlSchema,
+  authorization: z
+    .string()
+    .min(1)
+    .max(4096)
+    .regex(/^[\x20-\x7e]+$/)
+    .optional(),
+  maxBytes: z.number().int().positive().max(STAGE_BUDGET_BYTES).optional(),
+});
+export const fileFetchSourceSchema: z.ZodType<FileFetchSource> = sourceSchema;
+export const fileFetchSchema: z.ZodType<FileFetchInput> = sourceSchema.extend({
   outputFile: z
     .string()
     .min(1)
     .max(4096)
     .refine((path) => isAbsolute(path) && !path.includes("\0")),
 });
-export interface FileFetchInput {
+export interface FileFetchSource {
   url: string;
+  authorization?: string | undefined;
+  maxBytes?: number | undefined;
+}
+export interface FileFetchInput extends FileFetchSource {
   outputFile: string;
 }
 export interface FileFetchObserver<T> {
@@ -75,6 +90,8 @@ export async function fetchFile<T>(
 ): Promise<BlobFacts & { details: T }> {
   const options = fileFetchSchema.parse(input);
   let url = new URL(options.url).href;
+  let authorization = options.authorization;
+  const maxBytes = options.maxBytes ?? STAGE_BUDGET_BYTES;
   for (let redirects = 0; redirects <= 20; redirects++) {
     signal?.throwIfAborted();
     const request = (url.startsWith("https:") ? httpsRequest : httpRequest)(
@@ -82,12 +99,24 @@ export async function fetchFile<T>(
       {
         agent: false,
         signal,
-        headers: { "accept-encoding": "gzip, deflate, br" },
+        headers: {
+          "accept-encoding": "gzip, deflate, br",
+          ...(authorization !== undefined && { authorization }),
+        },
       },
     );
     const closed = new Promise<void>((resolve) =>
       request.once("close", resolve),
     );
+    const retirements: Promise<void>[] = [closed];
+    const joinClose = (resource: Readable | Socket): void => {
+      retirements.push(
+        resource.closed
+          ? Promise.resolve()
+          : new Promise<void>((resolve) => resource.once("close", resolve)),
+      );
+    };
+    request.once("socket", joinClose);
     let failure: unknown;
     const failed = (error: Error): void => {
       failure ??= error;
@@ -107,6 +136,7 @@ export async function fetchFile<T>(
       });
       request.end();
       response = await incoming;
+      joinClose(response);
       response.on("error", failed);
       const status = response.statusCode ?? 0;
       if (
@@ -114,10 +144,15 @@ export async function fetchFile<T>(
         response.headers.location
       ) {
         if (redirects === 20)
-          throw new Error("Image fetch exceeded redirect limit");
-        url = remoteUrlSchema.parse(
+          throw new Error("File fetch exceeded redirect limit");
+        const next = remoteUrlSchema.parse(
           new URL(response.headers.location, url).href,
         );
+        // Never restore credentials after crossing an origin, even on a bounce
+        // back to the initial host. URL reachability policy is otherwise unchanged.
+        if (new URL(next).origin !== new URL(url).origin)
+          authorization = undefined;
+        url = next;
       } else {
         if (status < 200 || status >= 300)
           throw new Error(`Failed to fetch: ${status}`);
@@ -127,9 +162,9 @@ export async function fetchFile<T>(
         const length = response.headers["content-length"];
         if (
           length !== undefined &&
-          (!/^\d+$/.test(length) || Number(length) > STAGE_BUDGET_BYTES)
+          (!/^\d+$/.test(length) || Number(length) > maxBytes)
         )
-          throw new Error("Image exceeds its size limit");
+          throw new Error("File exceeds its size limit");
         const encoding = response.headers["content-encoding"]?.toLowerCase();
         const decoder =
           encoding === "gzip"
@@ -140,16 +175,17 @@ export async function fetchFile<T>(
                 ? createBrotliDecompress()
                 : undefined;
         if (encoding && encoding !== "identity" && !decoder)
-          throw new Error("Unsupported image content encoding");
+          throw new Error("Unsupported file content encoding");
         body = decoder ?? response;
         body.on("error", failed);
         if (decoder) {
+          joinClose(decoder);
           response.on("error", (error) => decoder.destroy(error));
           response.pipe(decoder);
         }
         const stream = body;
         result = await withFileTarget(
-          { path: options.outputFile, maxBytes: STAGE_BUDGET_BYTES },
+          { path: options.outputFile, maxBytes },
           async (target) => {
             let sizeBytes = 0;
             const hash = createHash("sha256");
@@ -157,7 +193,7 @@ export async function fetchFile<T>(
               signal?.throwIfAborted();
               if (failure !== undefined) throw failure;
               if (stream.destroyed)
-                throw new Error("Image response ended prematurely");
+                throw new Error("File response ended prematurely");
               const bytes: unknown = stream.read(
                 Math.min(
                   STAGE_CHUNK_BYTES,
@@ -169,9 +205,9 @@ export async function fetchFile<T>(
                 continue;
               }
               if (!Buffer.isBuffer(bytes) || bytes.length > STAGE_CHUNK_BYTES)
-                throw new Error("Image fetch exceeded read credit");
-              if (bytes.length > STAGE_BUDGET_BYTES - sizeBytes)
-                throw new Error("Image exceeds its size limit");
+                throw new Error("File fetch exceeded read credit");
+              if (bytes.length > maxBytes - sizeBytes)
+                throw new Error("File exceeds its size limit");
               observer.observe(bytes);
               hash.update(bytes);
               await target.write(bytes);
@@ -199,16 +235,16 @@ export async function fetchFile<T>(
         remember(error);
       }
     }
-    await closed;
+    await Promise.all(retirements);
     if (result && failure !== undefined) remember(failure);
     if (errors.length === 1) throw errors[0];
     if (errors.length > 1)
       throw new AggregateError(
         errors,
-        "Image fetch and transport retirement failed",
+        "File fetch and transport retirement failed",
         { cause: errors[0] },
       );
     if (result) return result;
   }
-  throw new Error("Image fetch exceeded redirect limit");
+  throw new Error("File fetch exceeded redirect limit");
 }

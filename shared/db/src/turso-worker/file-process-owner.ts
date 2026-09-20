@@ -6,6 +6,11 @@ import { fileDownloadSchema, type FileDownloadInput } from "./file-download";
 import { blobFactsSchema, type BlobFacts } from "./blob-protocol";
 import { errorSchema, deserializeError } from "./error-protocol";
 import { fileFetchSchema, type FileFetchInput } from "./file-fetch";
+import {
+  fileCaptureDetailsSchema,
+  type FileCaptureResult,
+} from "./file-capture";
+export type { FileCaptureDetails, FileCaptureResult } from "./file-capture";
 import { fileProduceSchema, type FileProduceInput } from "./file-produce";
 import {
   fileHttpUploadSchema,
@@ -80,6 +85,7 @@ export interface FileProcessOwnerOptions {
   /** Explicit named inspection artifacts; selection never falls back to the default. */
   inspectionUploadUrls?: Readonly<Record<string, URL>>;
   remoteDownloadUrl?: URL;
+  captureUrl?: URL;
   producerUrl?: URL;
   httpUploadUrl?: URL;
 }
@@ -114,6 +120,7 @@ export class FileProcessOwner {
   private readonly inspectionPath: string | undefined;
   private readonly inspectionPaths = new Map<string, string>();
   private readonly remotePath: string | undefined;
+  private readonly capturePath: string | undefined;
   private readonly producerPath: string | undefined;
   private readonly httpUploadPath: string | undefined;
   private producing = false;
@@ -138,6 +145,9 @@ export class FileProcessOwner {
       : undefined;
     this.producerPath = options.producerUrl
       ? actorPath(options.producerUrl)
+      : undefined;
+    this.capturePath = options.captureUrl
+      ? actorPath(options.captureUrl)
       : undefined;
     this.remotePath = options.remoteDownloadUrl
       ? actorPath(options.remoteDownloadUrl)
@@ -227,20 +237,51 @@ export class FileProcessOwner {
     }
     return { ...result, details: result.details };
   }
+  public async capture(
+    input: FileFetchInput,
+    signal?: AbortSignal,
+  ): Promise<FileCaptureResult> {
+    if (!this.capturePath)
+      throw new Error("File capture actor is not provisioned");
+    const options = fileFetchSchema.parse(input);
+    const result = await this.run(
+      this.capturePath,
+      "consumed",
+      options,
+      undefined,
+      undefined,
+      signal,
+    );
+    try {
+      if (options.maxBytes !== undefined && result.sizeBytes > options.maxBytes)
+        throw new Error("File capture receipt exceeds its size limit");
+      const details = fileCaptureDetailsSchema.parse(result.details);
+      return { sizeBytes: result.sizeBytes, sha256: result.sha256, details };
+    } catch (error) {
+      this.fence(error);
+      throw error;
+    }
+  }
   public async fetch(
     input: FileFetchInput,
     signal?: AbortSignal,
   ): Promise<FileInspectionResult> {
     if (!this.remotePath)
       throw new Error("Remote image actor is not provisioned");
+    const options = fileFetchSchema.parse(input);
     const result = await this.run(
       this.remotePath,
       "consumed",
-      fileFetchSchema.parse(input),
+      options,
       undefined,
       undefined,
       signal,
     );
+    if (options.maxBytes !== undefined && result.sizeBytes > options.maxBytes) {
+      const error = new Error("Remote image receipt exceeds its size limit");
+      this.fence(error);
+      throw error;
+    }
     if (!result.details) {
       const error = new Error("Remote image actor returned no metadata");
       this.fence(error);
