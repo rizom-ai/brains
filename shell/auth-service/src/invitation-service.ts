@@ -19,6 +19,7 @@ import {
   type AuthInvitationDeliveryAttempt,
 } from "./invitation-schema";
 import { absoluteUrl } from "./issuer";
+import { InvitationChannels } from "./invitation-channels";
 import type { AuthRuntimeDB } from "./runtime-db";
 import {
   authIdentities,
@@ -99,10 +100,7 @@ export class AuthInvitationService {
   private readonly setupTokenTtlSeconds: number;
   private readonly audit: AuthAuditStore;
   private readonly deliveryRecoveryStaleMs: number;
-  private readonly getDeliveryProvider:
-    ((channelType: string) => ChannelDeliveryProvider | undefined) | undefined;
-  private readonly getChannelDescriptor:
-    ((channelType: string) => ChannelDescriptor | undefined) | undefined;
+  private readonly channels: InvitationChannels;
   private readonly creations = new KeyedSingleFlight<CreateInvitationResult>();
   private readonly manualConfirmations =
     new KeyedSingleFlight<AuthInvitation>();
@@ -118,8 +116,15 @@ export class AuthInvitationService {
       options.deliveryRecoveryStaleMs ??
         DEFAULT_INVITATION_DELIVERY_RECOVERY_STALE_MS,
     );
-    this.getDeliveryProvider = options.getDeliveryProvider;
-    this.getChannelDescriptor = options.getChannelDescriptor;
+    this.channels = new InvitationChannels({
+      issuer: options.issuer,
+      ...(options.getDeliveryProvider
+        ? { getDeliveryProvider: options.getDeliveryProvider }
+        : {}),
+      ...(options.getChannelDescriptor
+        ? { getChannelDescriptor: options.getChannelDescriptor }
+        : {}),
+    });
   }
 
   create(input: CreateInvitationInput): Promise<CreateInvitationResult> {
@@ -134,7 +139,7 @@ export class AuthInvitationService {
     actorUserId: string,
   ): Promise<CreateInvitationResult> {
     const delivery = await this.getInvitationDelivery(invitationId);
-    await this.ensureDeliveryModeAvailable(
+    await this.channels.ensureModeAvailable(
       delivery.channelType,
       delivery.deliveryMode,
     );
@@ -462,7 +467,7 @@ export class AuthInvitationService {
       ) {
         continue;
       }
-      if (!(await this.deliveryAvailable(candidate.providerId))) continue;
+      if (!(await this.channels.available(candidate.providerId))) continue;
       const interruptedCandidate: InterruptedDeliveryCandidate = {
         ...candidate,
         attemptState: candidate.attemptState,
@@ -653,8 +658,8 @@ export class AuthInvitationService {
     const existing = await this.getByIdempotencyKey(keyHash);
     if (existing) return existing;
     const deliveryMode = input.delivery.mode ?? "automatic";
-    await this.ensureDeliveryModeAvailable(input.delivery.type, deliveryMode);
-    this.validateDeliverySubject(input.delivery.type, input.delivery.subject);
+    await this.channels.ensureModeAvailable(input.delivery.type, deliveryMode);
+    this.channels.validateSubject(input.delivery.type, input.delivery.subject);
 
     let created: CreatedInvitation;
     try {
@@ -1042,7 +1047,13 @@ export class AuthInvitationService {
     });
     if (!started) return this.requireInvitation(created.invitation.id);
 
-    const result = await this.deliverWithProvider(created);
+    const result = await this.channels.send({
+      providerId: created.attempt.providerId,
+      recipient: created.recipient,
+      setupToken: created.setupToken,
+      expiresAtSeconds: created.expiresAt,
+      idempotencyKey: created.attempt.id,
+    });
     const completedAt = Date.now();
 
     if (result.status === "sent") {
@@ -1149,70 +1160,6 @@ export class AuthInvitationService {
     }
 
     return this.requireInvitation(created.invitation.id);
-  }
-
-  private deliverWithProvider(
-    created: CreatedInvitation,
-  ): Promise<InvitationDeliveryResult> {
-    const provider = this.getDeliveryProvider?.(created.attempt.providerId);
-    if (!provider) {
-      return Promise.resolve({
-        status: "failed",
-        failureCode: "delivery_provider_unavailable",
-      });
-    }
-    const setupUrl = invitationSetupUrl(this.issuer, created.setupToken);
-    return provider.send({
-      recipient: created.recipient,
-      subject: `Join ${new URL(this.issuer).hostname}`,
-      text: [
-        "You have been invited to access this brain.",
-        "",
-        `Set up your passkey: ${setupUrl}`,
-        "",
-        `This single-use link expires at ${new Date(created.expiresAt * 1000).toISOString()}.`,
-      ].join("\n"),
-      idempotencyKey: created.attempt.id,
-    });
-  }
-
-  private async ensureDeliveryModeAvailable(
-    channelType: string,
-    deliveryMode: "automatic" | "manual",
-  ): Promise<void> {
-    const descriptor = this.getChannelDescriptor?.(channelType);
-    if (this.getChannelDescriptor && !descriptor) {
-      throw new Error(`Invitation channel is not registered: "${channelType}"`);
-    }
-    if (deliveryMode === "manual") {
-      if (descriptor?.manualDelivery === true) return;
-      throw new Error(
-        `Manual invitation delivery is unavailable for channel: "${channelType}"`,
-      );
-    }
-    if (await this.deliveryAvailable(channelType)) return;
-    throw new Error("Invitation delivery provider is unavailable");
-  }
-
-  private validateDeliverySubject(channelType: string, subject: string): void {
-    const pattern = this.getChannelDescriptor?.(channelType)?.subjectPattern;
-    if (
-      pattern &&
-      !new RegExp(pattern.source, pattern.flags).test(subject.trim())
-    ) {
-      throw new Error(
-        `Invitation delivery subject is invalid for channel: "${channelType}"`,
-      );
-    }
-  }
-
-  private async deliveryAvailable(providerId: string): Promise<boolean> {
-    try {
-      const provider = this.getDeliveryProvider?.(providerId);
-      return provider ? await provider.isAvailable() : false;
-    } catch {
-      return false;
-    }
   }
 
   private async getInvitationDelivery(invitationId: string): Promise<{
