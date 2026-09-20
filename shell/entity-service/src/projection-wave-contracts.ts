@@ -1,4 +1,72 @@
 import { z } from "@brains/utils/zod";
+import type {
+  ProjectionDirtyInput,
+  ProjectionIncident,
+  ProjectionWave,
+} from "./schema/projection-state";
+
+const projectionIncidentInputSchema = z.strictObject({
+  waveId: z.string().trim().min(1),
+  ruleId: z.string().trim().min(1),
+  jobId: z.string().trim().min(1).nullable(),
+  failureReason: z.string().trim().min(1).max(500),
+  failedAt: z.number().int().nonnegative(),
+});
+
+export function parseProjectionIncidentInput(
+  input: unknown,
+): ProjectionIncidentInput {
+  return projectionIncidentInputSchema.parse(input);
+}
+
+export interface ProjectionIncidentDiagnostics {
+  total: number;
+  incidents: ProjectionIncident[];
+}
+
+export interface ClaimProjectionWaveInput {
+  waveId: string;
+  graphFingerprint: string;
+  startedAt: number;
+}
+
+export interface ProjectionIncidentInput {
+  waveId: string;
+  ruleId: string;
+  jobId: string | null;
+  failureReason: string;
+  failedAt: number;
+}
+
+/** A failed or superseded wave, with the generation recovery should resume from. */
+export interface FailedProjectionWave {
+  wave: ProjectionWave;
+  recoveryGeneration: number;
+}
+
+export function inputKey(
+  input: Pick<ProjectionDirtyInput, "sourceType" | "sourceId">,
+): string {
+  return `${input.sourceType}\u0000${input.sourceId}`;
+}
+
+/**
+ * One entry per source, keeping the newest, ordered by generation.
+ *
+ * A source dirtied repeatedly before a wave claims it only needs its latest
+ * revision projected; the earlier ones describe states no longer on disk.
+ */
+export function coalesceLatestInputs(
+  inputs: readonly ProjectionDirtyInput[],
+): ProjectionDirtyInput[] {
+  const latestBySource = new Map<string, ProjectionDirtyInput>();
+  for (const input of inputs) {
+    latestBySource.set(inputKey(input), input);
+  }
+  return [...latestBySource.values()].sort(
+    (left, right) => left.generation - right.generation,
+  );
+}
 
 /**
  * A projection wave's place in its lifecycle.
@@ -93,5 +161,20 @@ export function supersessionEffect(
 ): WaveTransition {
   if (status === "superseded") return { kind: "settled" };
   if (status !== "running") return { kind: "decline" };
+  return { kind: "apply" };
+}
+
+/**
+ * Whether a rule may still report its result into this wave.
+ *
+ * A superseded wave is declined rather than refused: its work is stale and its
+ * inputs were requeued, so a rule finishing late has nothing to report into,
+ * and that is not the rule's fault. A wave that completed or failed is a
+ * refusal — the rule is reporting into something that has already been
+ * accounted for.
+ */
+export function ruleReportEffect(status: ProjectionWaveStatus): WaveTransition {
+  if (status === "superseded") return { kind: "decline" };
+  if (status !== "running") return { kind: "refuse", reason: "is not running" };
   return { kind: "apply" };
 }
