@@ -1,7 +1,7 @@
 {
   "name": "@brains/ask-content",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.398",
+  "version": "0.2.0-alpha.399",
   "description": "Authored singleton presentation shared by public Ask surfaces",
   "dependencies": {
     "@brains/contracts": "workspace:*",
