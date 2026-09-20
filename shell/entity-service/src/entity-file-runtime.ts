@@ -59,6 +59,13 @@ export interface EntityFileAssets extends EntityFileReader {
     input: FileHttpUploadInput,
     options?: EntityBinaryRequestOptions,
   ): Promise<FileHttpUploadResult>;
+  /** Single-attempt raw-file POST with the same ownership and no-replay rules
+   * as PUT. This is not multipart encoding or platform publication.
+   */
+  postHttp(
+    input: FileHttpUploadInput,
+    options?: EntityBinaryRequestOptions,
+  ): Promise<FileHttpUploadResult>;
   /** Lend actor-produced output after actual Bun exit. Failed staging is retained.
    * Caller keeps the input directory alive through settlement and joins consumers.
    * The producer artifact is explicitly provisioned; no controller byte fallback.
@@ -248,6 +255,15 @@ export class EntityFileRuntime implements EntityFileAssets {
   ): Promise<FileHttpUploadResult> {
     return this.run(
       (signal) => this.actors.put(input, signal),
+      options?.signal,
+    );
+  }
+  public postHttp(
+    input: FileHttpUploadInput,
+    options?: EntityBinaryRequestOptions,
+  ): Promise<FileHttpUploadResult> {
+    return this.run(
+      (signal) => this.actors.post(input, signal),
       options?.signal,
     );
   }

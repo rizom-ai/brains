@@ -57,6 +57,7 @@ async function setup(
     publish: unexpected,
     fingerprint: unexpected,
     putHttp: unexpected,
+    postHttp: unexpected,
     withAssetFile: unexpected,
     download: unexpected,
     close: async (): Promise<void> => undefined,

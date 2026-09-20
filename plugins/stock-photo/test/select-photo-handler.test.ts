@@ -28,6 +28,7 @@ function createFiles(): Files {
     inspect: unused,
     fingerprint: unused,
     putHttp: unused,
+    postHttp: unused,
     withAssetFile: unused,
     download: unused,
     publish: mock(

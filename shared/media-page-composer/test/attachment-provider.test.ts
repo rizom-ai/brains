@@ -138,6 +138,7 @@ function setup(
       );
     },
     putHttp: unexpected,
+    postHttp: unexpected,
     withAssetFile: unexpected,
     inspect: unexpected,
     publish: unexpected,

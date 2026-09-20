@@ -213,6 +213,7 @@ async function renderCanonicalPrintable(
   const reads = spyOn(service, "readAsset").mockImplementation(forbidden);
   const buffered = spyOn(attachments, "resolve").mockImplementation(forbidden);
   const producer = spyOn(files, "withProducedFile");
+  const uploadMethod = pdfKind === "preview" ? "POST" : "PUT";
   const received: {
     facts?: { sizeBytes: number; sha256: string };
     requests: number;
@@ -230,7 +231,7 @@ async function renderCanonicalPrintable(
         );
       }
       received.requests++;
-      assert.equal(request.method, "PUT");
+      assert.equal(request.method, uploadMethod);
       assert.equal(request.headers.get("content-type"), "application/pdf");
       assert.ok(request.body);
       // Independent receiving-server fixture, not a production controller reader.
@@ -303,12 +304,12 @@ async function renderCanonicalPrintable(
             file.source.sizeBytes <= 25 * 1024 * 1024,
         );
         const facts = { sizeBytes: file.source.sizeBytes, sha256: file.sha256 };
-        // Independent fixture checks of the borrowed producer output. The PUT
+        // Independent fixture checks of the borrowed producer output. The upload
         // goes only to the test receiver, not a public publishing provider.
         // Join both before accepting either receipt or releasing the file.
         const checks = await Promise.allSettled([
           files.inspect(file.source, { signal, inspector: "pdf" }),
-          files.putHttp(
+          files[uploadMethod === "POST" ? "postHttp" : "putHttp"](
             {
               sourceFile: file.source.sourceFile,
               facts,

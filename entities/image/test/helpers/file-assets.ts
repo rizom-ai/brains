@@ -35,6 +35,9 @@ export function mockImageFileAssets(service: EntityServiceClient): Files {
     fingerprint: async (): Promise<never> => {
       throw new Error("Unexpected fingerprint");
     },
+    postHttp: async (): Promise<never> => {
+      throw new Error("Unexpected HTTP POST upload");
+    },
     putHttp: async (): Promise<never> => {
       throw new Error("Unexpected HTTP upload");
     },

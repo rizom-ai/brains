@@ -19,6 +19,7 @@ function provision(
   return {
     withAssetFile,
     putHttp: unexpected,
+    postHttp: unexpected,
     inspect: unexpected,
     fingerprint: unexpected,
     publish: unexpected,

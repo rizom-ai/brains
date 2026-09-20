@@ -53,147 +53,162 @@ function runtime(
     ),
   });
 }
-test("HTTP upload keeps its borrowed file alive through shutdown and acknowledged retirement", async () => {
-  const files = runtime(async (): Promise<never> => {
-    throw new Error("Unexpected native control");
-  });
-  const entered = Promise.withResolvers<void>();
-  const release = Promise.withResolvers<void>();
-  let path = "";
-  const download = spyOn(
-    EntityBinaryClient.prototype,
-    "downloadFile",
-  ).mockImplementation(async (request) => {
-    path = request.outputFile;
-    await Bun.write(path, "fixture");
-    return { sizeBytes: 7, sha256: "a".repeat(64) };
-  });
-  const put = spyOn(FileProcessOwner.prototype, "put").mockImplementation(
-    async (request, signal) => {
-      expect(request.sourceFile).toBe(path);
-      entered.resolve();
-      await release.promise;
-      expect(signal?.aborted).toBe(true);
-      expect(await Bun.file(path).exists()).toBe(true);
-      return { ...request.facts, statusCode: 201 };
-    },
-  );
-  const work = files.withAssetFile(
-    `asset://sha256/${"a".repeat(64)}`,
-    async (file, signal) =>
-      files.putHttp(
-        {
-          sourceFile: file.sourceFile,
-          facts: { sizeBytes: file.sizeBytes, sha256: file.sha256 },
+test.each(["put", "post"] as const)(
+  "HTTP %s keeps its borrowed file alive through shutdown and acknowledged retirement",
+  async (actor) => {
+    const operation = actor === "put" ? "putHttp" : "postHttp";
+    const files = runtime(async (): Promise<never> => {
+      throw new Error("Unexpected native control");
+    });
+    const entered = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    let path = "";
+    const download = spyOn(
+      EntityBinaryClient.prototype,
+      "downloadFile",
+    ).mockImplementation(async (request) => {
+      path = request.outputFile;
+      await Bun.write(path, "fixture");
+      return { sizeBytes: 7, sha256: "a".repeat(64) };
+    });
+    const put = spyOn(FileProcessOwner.prototype, actor).mockImplementation(
+      async (request, signal) => {
+        expect(request.sourceFile).toBe(path);
+        entered.resolve();
+        await release.promise;
+        expect(signal?.aborted).toBe(true);
+        expect(await Bun.file(path).exists()).toBe(true);
+        return { ...request.facts, statusCode: 201 };
+      },
+    );
+    const work = files.withAssetFile(
+      `asset://sha256/${"a".repeat(64)}`,
+      async (file, signal) =>
+        files[operation](
+          {
+            sourceFile: file.sourceFile,
+            facts: { sizeBytes: file.sizeBytes, sha256: file.sha256 },
+            url: "http://127.0.0.1/upload",
+            headers: {},
+          },
+          { signal },
+        ),
+    );
+    try {
+      await entered.promise;
+      let closed = false;
+      const closing = files.close().then(() => {
+        closed = true;
+      });
+      await assert.rejects(
+        files[operation]({
+          sourceFile: path,
+          facts: { sizeBytes: 7, sha256: "a".repeat(64) },
           url: "http://127.0.0.1/upload",
           headers: {},
-        },
-        { signal },
-      ),
-  );
-  try {
-    await entered.promise;
-    let closed = false;
-    const closing = files.close().then(() => {
-      closed = true;
+        }),
+        /closing/,
+      );
+      expect(closed).toBe(false);
+      expect(await Bun.file(path).exists()).toBe(true);
+      release.resolve();
+      expect((await work).statusCode).toBe(201);
+      await closing;
+      expect(await Bun.file(path).exists()).toBe(false);
+      expect(put).toHaveBeenCalledTimes(1);
+    } finally {
+      release.resolve();
+      await Promise.allSettled([work, files.close()]);
+      put.mockRestore();
+      download.mockRestore();
+    }
+  },
+);
+
+test.each(["put", "post"] as const)(
+  "failed HTTP %s preserves its cause graph and retains the borrowed source without replay",
+  async (actor) => {
+    const operation = actor === "put" ? "putHttp" : "postHttp";
+    const files = runtime(async (): Promise<never> => {
+      throw new Error("Unexpected native control");
     });
-    await assert.rejects(
-      files.putHttp({
-        sourceFile: path,
-        facts: { sizeBytes: 7, sha256: "a".repeat(64) },
-        url: "http://127.0.0.1/upload",
-        headers: {},
-      }),
-      /closing/,
+    const primary = new Error("remote outcome uncertain");
+    const cleanup = new Error("actor retirement failed");
+    const failure = new AggregateError(
+      [primary, cleanup],
+      "HTTP upload failed",
+      {
+        cause: primary,
+      },
     );
-    expect(closed).toBe(false);
-    expect(await Bun.file(path).exists()).toBe(true);
-    release.resolve();
-    expect((await work).statusCode).toBe(201);
-    await closing;
-    expect(await Bun.file(path).exists()).toBe(false);
-    expect(put).toHaveBeenCalledTimes(1);
-  } finally {
-    release.resolve();
-    await Promise.allSettled([work, files.close()]);
-    put.mockRestore();
-    download.mockRestore();
-  }
-});
+    let path = "";
+    const download = spyOn(
+      EntityBinaryClient.prototype,
+      "downloadFile",
+    ).mockImplementation(async (request) => {
+      path = request.outputFile;
+      await Bun.write(path, "fixture");
+      return { sizeBytes: 7, sha256: "a".repeat(64) };
+    });
+    const put = spyOn(FileProcessOwner.prototype, actor).mockRejectedValue(
+      failure,
+    );
+    try {
+      await assert.rejects(
+        files.withAssetFile(
+          `asset://sha256/${"a".repeat(64)}`,
+          async (file, signal) =>
+            files[operation](
+              {
+                sourceFile: file.sourceFile,
+                facts: { sizeBytes: file.sizeBytes, sha256: file.sha256 },
+                url: "http://127.0.0.1/upload",
+                headers: {},
+              },
+              { signal },
+            ),
+        ),
+        (error: unknown) => error === failure,
+      );
+      expect(await Bun.file(path).exists()).toBe(true);
+      expect(put).toHaveBeenCalledTimes(1);
+    } finally {
+      await files.close();
+      put.mockRestore();
+      download.mockRestore();
+    }
+  },
+);
 
-test("failed HTTP upload preserves its cause graph and retains the borrowed source without replay", async () => {
-  const files = runtime(async (): Promise<never> => {
-    throw new Error("Unexpected native control");
-  });
-  const primary = new Error("remote outcome uncertain");
-  const cleanup = new Error("actor retirement failed");
-  const failure = new AggregateError([primary, cleanup], "HTTP upload failed", {
-    cause: primary,
-  });
-  let path = "";
-  const download = spyOn(
-    EntityBinaryClient.prototype,
-    "downloadFile",
-  ).mockImplementation(async (request) => {
-    path = request.outputFile;
-    await Bun.write(path, "fixture");
-    return { sizeBytes: 7, sha256: "a".repeat(64) };
-  });
-  const put = spyOn(FileProcessOwner.prototype, "put").mockRejectedValue(
-    failure,
-  );
-  try {
-    await assert.rejects(
-      files.withAssetFile(
-        `asset://sha256/${"a".repeat(64)}`,
-        async (file, signal) =>
-          files.putHttp(
-            {
-              sourceFile: file.sourceFile,
-              facts: { sizeBytes: file.sizeBytes, sha256: file.sha256 },
-              url: "http://127.0.0.1/upload",
-              headers: {},
-            },
-            { signal },
-          ),
-      ),
-      (error: unknown) => error === failure,
-    );
-    expect(await Bun.file(path).exists()).toBe(true);
-    expect(put).toHaveBeenCalledTimes(1);
-  } finally {
-    await files.close();
-    put.mockRestore();
-    download.mockRestore();
-  }
-});
-
-test("HTTP capability rejects pre-abort and missing provisioning without native authority", async () => {
-  let calls = 0;
-  const files = runtime(async (): Promise<never> => {
-    calls++;
-    throw new Error("Unexpected native control");
-  });
-  const request = {
-    sourceFile: "/unused",
-    facts: { sizeBytes: 1, sha256: "a".repeat(64) },
-    url: "http://127.0.0.1/upload",
-    headers: {},
-  };
-  const abort = new AbortController();
-  const primary = new Error("pre-abort");
-  abort.abort(primary);
-  try {
-    await assert.rejects(
-      files.putHttp(request, { signal: abort.signal }),
-      (error: unknown) => error === primary,
-    );
-    await assert.rejects(files.putHttp(request), /not provisioned/);
-    expect(calls).toBe(0);
-  } finally {
-    await files.close();
-  }
-});
+test.each(["putHttp", "postHttp"] as const)(
+  "HTTP %s rejects pre-abort and missing provisioning without native authority",
+  async (operation) => {
+    let calls = 0;
+    const files = runtime(async (): Promise<never> => {
+      calls++;
+      throw new Error("Unexpected native control");
+    });
+    const request = {
+      sourceFile: "/unused",
+      facts: { sizeBytes: 1, sha256: "a".repeat(64) },
+      url: "http://127.0.0.1/upload",
+      headers: {},
+    };
+    const abort = new AbortController();
+    const primary = new Error("pre-abort");
+    abort.abort(primary);
+    try {
+      await assert.rejects(
+        files[operation](request, { signal: abort.signal }),
+        (error: unknown) => error === primary,
+      );
+      await assert.rejects(files[operation](request), /not provisioned/);
+      expect(calls).toBe(0);
+    } finally {
+      await files.close();
+    }
+  },
+);
 
 test("read-only asset loans retain failures and join borrowers during owner shutdown", async () => {
   const files = runtime(async (): Promise<never> => {
@@ -383,6 +398,17 @@ test("borrowed assets hold the existing sixteen operation slots until consumers 
       ),
       /admission capacity/,
     );
+    for (const operation of ["putHttp", "postHttp"] as const) {
+      await assert.rejects(
+        files[operation]({
+          sourceFile: "/unused",
+          facts: { sizeBytes: 1, sha256: "a".repeat(64) },
+          url: "http://127.0.0.1/upload",
+          headers: {},
+        }),
+        /admission capacity/,
+      );
+    }
     expect(download).toHaveBeenCalledTimes(16);
   } finally {
     release.resolve();
