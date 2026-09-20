@@ -7,7 +7,7 @@ import {
   DialogPortal,
   DialogTrigger,
 } from "@brains/app-ui-react";
-import { useId, useState, type ReactElement, type ReactNode } from "react";
+import { useState, type ReactElement, type ReactNode } from "react";
 import {
   useStudioNavigationCollapsed,
   setStudioNavigationCollapsed,
@@ -15,6 +15,7 @@ import {
 import { Dialog as DialogPrimitive, VisuallyHidden } from "radix-ui";
 import type { StudioWorkspaceInfo, EntityTypeInfo } from "./api";
 import { StudioSearchField } from "./studio-search-field";
+import { useNavigationTree } from "./use-navigation-tree";
 import {
   navigationClassName as navClass,
   navigationStyles as nav,
@@ -92,7 +93,7 @@ function studioTypeGroup(
   return "Content";
 }
 
-type StudioArea =
+export type StudioArea =
   "overview" | "chat" | "library" | "work" | "administration" | "system";
 
 const areaMarks: Record<StudioArea, string> = {
@@ -380,43 +381,18 @@ export function TypeSwitcher(props: {
   ].filter((group) => group.types.length > 0);
   const currentArea = studioArea(props.active, props.activeWorkspace ?? null);
   const destination = props.activeWorkspace ?? props.active;
-  // Browsing does not navigate or discard drafts. A changed destination,
-  // including Back/Forward, restores its owning area.
-  const [browsingArea, setBrowsingArea] = useState<StudioArea | null>(null);
-  const [lastDestination, setLastDestination] = useState(destination);
-  if (destination !== lastDestination) {
-    setLastDestination(destination);
-    setBrowsingArea(null);
-  }
-  const activeArea = browsingArea ?? currentArea;
-  const leafOpen =
-    activeArea === "library" ||
-    activeArea === "work" ||
-    activeArea === "system";
-  const leafId = useId();
-  const selectArea = (area: StudioArea): void => {
-    const destinationWorkspace = [
-      overviewWorkspace,
-      chatWorkspace,
-      administrationWorkspace,
-    ].find((workspace) => workspace && studioArea(null, workspace.id) === area);
-    if (destinationWorkspace) {
-      if (destinationWorkspace.id === props.activeWorkspace)
-        setBrowsingArea(null);
-      else props.onSelectWorkspace?.(destinationWorkspace.id);
-    } else {
-      setStudioNavigationCollapsed(false);
-      setBrowsingArea(area);
-    }
-  };
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(
-    currentArea ? { [currentArea]: true } : {},
-  );
-  const toggleGroup = (area: string, open: boolean): void => {
-    setOpenGroups((previous) =>
-      previous[area] === open ? previous : { ...previous, [area]: open },
-    );
-  };
+  const { activeArea, leafOpen, leafId, selectArea, openGroups, toggleGroup } =
+    useNavigationTree({
+      currentArea,
+      destination,
+      activeWorkspace: props.activeWorkspace,
+      areaWorkspaces: [
+        overviewWorkspace,
+        chatWorkspace,
+        administrationWorkspace,
+      ],
+      onSelectWorkspace: props.onSelectWorkspace,
+    });
   const mobileTypeOption = (info: EntityTypeInfo): MobileNavigationOption => ({
     value: `${MOBILE_TYPE_PREFIX}${info.entityType}`,
     label: navigationTypeLabel(info),
