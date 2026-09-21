@@ -442,6 +442,23 @@ Key frontmatter:
 - `buttondownId`
 - `sourceEntityType`
 
+## Private operational entities
+
+### `contact-request`
+
+`contact-request` records are created only by the explicitly configured, default-off `@brains/contact` capability. They are always `restricted`, excluded from embeddings, full-text search, and projection inputs, and shown only through the Admin-only contact Inbox source. Submitted name, email, and message stay in the Markdown body/frontmatter rather than query metadata.
+
+Key frontmatter:
+
+- `name`
+- `email`
+- `receivedAt`
+- `expiresAt`
+- `status` (`new` or `handled`)
+- `notification` (`pending`, `sent`, or `failed`)
+
+The configured retention period must be finite and no longer than 90 days. Startup and recurring maintenance recover pending notification jobs and delete expired records; deployment-specific retention, backup privacy, proxy policy, limits, publication, and enablement require separate approval.
+
 ## Agent directory entities
 
 ### `agent`

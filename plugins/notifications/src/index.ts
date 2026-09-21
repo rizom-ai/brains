@@ -57,48 +57,49 @@ export class NotificationsPlugin extends ServicePlugin<
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
-    context.messaging.subscribe<SendNotificationInput, SendNotificationResult>(
-      NOTIFICATIONS_SEND,
-      async (message) => {
-        const input = sendNotificationSchema.parse(message.payload);
-        const recipient = input.recipient ?? this.config.defaultRecipient;
-        if (!recipient) {
-          context.logger.warn("Notification has no recipient");
-          return { success: false, error: "Notification recipient missing" };
-        }
+    // Durable jobs need the same internal transport resolution in worker roles.
+    context.messaging.subscribeExecution<
+      SendNotificationInput,
+      SendNotificationResult
+    >(NOTIFICATIONS_SEND, async (message) => {
+      const input = sendNotificationSchema.parse(message.payload);
+      const recipient = input.recipient ?? this.config.defaultRecipient;
+      if (!recipient) {
+        context.logger.warn("Notification has no recipient");
+        return { success: false, error: "Notification recipient missing" };
+      }
 
-        // Resolve a transport by the recipient's channel type. This plugin
-        // never names a transport, so a new one becomes available by
-        // registering a delivery provider — no change here.
-        const provider = context.channels.getDeliveryProvider(recipient.type);
-        if (!provider || !(await provider.isAvailable())) {
-          context.logger.warn("Notification has no available transport", {
-            channelType: recipient.type,
-          });
-          return { success: false, error: "Notification transport missing" };
-        }
-
-        const result = await provider.send({
-          recipient: recipient.address,
-          subject: input.title,
-          text: input.body,
-          ...(input.html ? { html: input.html } : {}),
-          sensitivity: input.sensitivity,
-          // Providers dedupe on this, so mint one when the caller has no
-          // natural key rather than leaving retries to double-send.
-          idempotencyKey: input.idempotencyKey ?? crypto.randomUUID(),
+      // Resolve a transport by the recipient's channel type. This plugin
+      // never names a transport, so a new one becomes available by
+      // registering a delivery provider — no change here.
+      const provider = context.channels.getDeliveryProvider(recipient.type);
+      if (!provider || !(await provider.isAvailable())) {
+        context.logger.warn("Notification has no available transport", {
+          channelType: recipient.type,
         });
+        return { success: false, error: "Notification transport missing" };
+      }
 
-        if (result.status !== "sent") {
-          return { success: false, error: "Notification delivery failed" };
-        }
+      const result = await provider.send({
+        recipient: recipient.address,
+        subject: input.title,
+        text: input.body,
+        ...(input.html ? { html: input.html } : {}),
+        sensitivity: input.sensitivity,
+        // Providers dedupe on this, so mint one when the caller has no
+        // natural key rather than leaving retries to double-send.
+        idempotencyKey: input.idempotencyKey ?? crypto.randomUUID(),
+      });
 
-        const data: SendNotificationResult = result.providerDeliveryId
-          ? { status: "sent", deliveryId: result.providerDeliveryId }
-          : { status: "sent" };
-        return { success: true, data };
-      },
-    );
+      if (result.status !== "sent") {
+        return { success: false, error: "Notification delivery failed" };
+      }
+
+      const data: SendNotificationResult = result.providerDeliveryId
+        ? { status: "sent", deliveryId: result.providerDeliveryId }
+        : { status: "sent" };
+      return { success: true, data };
+    });
   }
 }
 

@@ -47,6 +47,7 @@
     "@brains/blog": "workspace:*",
     "@brains/build-tools": "workspace:*",
     "@brains/chat": "workspace:*",
+    "@brains/contact": "workspace:*",
     "@brains/content-formatters": "workspace:*",
     "@brains/content-pipeline": "workspace:*",
     "@brains/contracts": "workspace:*",

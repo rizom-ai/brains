@@ -23,6 +23,7 @@ const expectedCatalogIds = [
   "assessment",
   "auth-service",
   "notifications",
+  "contact",
   "playbook",
   "playbooks",
   "onboarding",
@@ -104,6 +105,29 @@ describe("canonical brain core", () => {
     expect(canonicalBrain.site).toBeUndefined();
     expect(canonicalBrain.theme).toBeUndefined();
     expect(canonicalBrain.agentInstructions).toBeUndefined();
+  });
+
+  test("offers contact only through explicit addition, with intake still default-off", () => {
+    expect(
+      canonicalBrain.bundles?.some((bundle) =>
+        bundle.members.includes("contact"),
+      ),
+    ).toBe(false);
+    const plugins =
+      resolve(
+        canonicalBrain,
+        {},
+        { bundleContract, bundles: ["core"], add: ["contact"] },
+      ).plugins ?? [];
+    expect(plugins.map((plugin) => plugin.id)).toContain("contact-request");
+    const contact = plugins.find((plugin) => plugin.id === "contact");
+    expect(contact).toBeDefined();
+    if (
+      contact &&
+      "getWebRoutes" in contact &&
+      typeof contact.getWebRoutes === "function"
+    )
+      expect(contact.getWebRoutes()).toEqual([]);
   });
 
   test("is the sole bundled definition", () => {
