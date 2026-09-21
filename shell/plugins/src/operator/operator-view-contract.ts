@@ -223,32 +223,83 @@ export interface OperatorFlowBlock {
   readonly steps: readonly OperatorFlowStep[];
 }
 
-export interface OperatorMeterItem {
-  readonly id: string;
-  readonly label: string;
-  readonly value: number;
-  readonly max?: number | undefined;
-  readonly unit?: string | undefined;
-  readonly tone?: OperatorTone | undefined;
-}
+export const operatorMeterItemSchema: z.ZodObject<
+  {
+    id: z.ZodString;
+    label: z.ZodString;
+    value: z.ZodNumber;
+    max: z.ZodOptional<z.ZodNumber>;
+    unit: z.ZodOptional<z.ZodString>;
+    tone: z.ZodOptional<typeof operatorToneSchema>;
+  },
+  z.core.$strict
+> = z
+  .object({
+    id: operatorIdentifierSchema,
+    label: operatorLabelSchema,
+    value: z.number().finite().nonnegative(),
+    max: z.number().finite().positive().optional(),
+    unit: operatorLabelSchema.optional(),
+    tone: operatorToneSchema.optional(),
+  })
+  .strict()
+  .superRefine((item, context) => {
+    // The one rule here that relates two fields, so no type can carry it.
+    if (item.max !== undefined && item.value > item.max) {
+      context.addIssue({
+        code: "custom",
+        message: "Meter value cannot exceed its maximum",
+        path: ["value"],
+      });
+    }
+  });
+export type OperatorMeterItem = z.output<typeof operatorMeterItemSchema>;
 
-export interface OperatorMeterBlock {
-  readonly type: "meters";
-  readonly id: string;
-  readonly items: readonly OperatorMeterItem[];
-}
+export const operatorMeterBlockSchema: z.ZodObject<
+  {
+    type: z.ZodLiteral<"meters">;
+    id: z.ZodString;
+    items: z.ZodReadonly<z.ZodArray<typeof operatorMeterItemSchema>>;
+  },
+  z.core.$strict
+> = z
+  .object({
+    type: z.literal("meters"),
+    id: operatorIdentifierSchema,
+    items: z.array(operatorMeterItemSchema).max(30).readonly(),
+  })
+  .strict();
+export type OperatorMeterBlock = z.output<typeof operatorMeterBlockSchema>;
 
-export interface OperatorProgressBlock {
-  readonly type: "progress";
-  readonly id: string;
-  readonly label: string;
-  readonly state: string;
-  readonly detail?: string | undefined;
-  readonly startedAt?: string | undefined;
-  readonly updatedAt?: string | undefined;
-  readonly progress?: number | undefined;
-  readonly tone?: OperatorTone | undefined;
-}
+export const operatorProgressBlockSchema: z.ZodObject<
+  {
+    type: z.ZodLiteral<"progress">;
+    id: z.ZodString;
+    label: z.ZodString;
+    state: z.ZodString;
+    detail: z.ZodOptional<z.ZodString>;
+    startedAt: z.ZodOptional<z.ZodString>;
+    updatedAt: z.ZodOptional<z.ZodString>;
+    progress: z.ZodOptional<z.ZodNumber>;
+    tone: z.ZodOptional<typeof operatorToneSchema>;
+  },
+  z.core.$strict
+> = z
+  .object({
+    type: z.literal("progress"),
+    id: operatorIdentifierSchema,
+    label: operatorLabelSchema,
+    state: operatorLabelSchema,
+    detail: operatorTextSchema.optional(),
+    startedAt: z.string().datetime().optional(),
+    updatedAt: z.string().datetime().optional(),
+    progress: operatorCoordinateSchema.optional(),
+    tone: operatorToneSchema.optional(),
+  })
+  .strict();
+export type OperatorProgressBlock = z.output<
+  typeof operatorProgressBlockSchema
+>;
 
 export interface OperatorQueryOption {
   readonly value: string;

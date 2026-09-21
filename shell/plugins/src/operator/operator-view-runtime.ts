@@ -7,6 +7,8 @@ import type {
 } from "./operator-view-contract";
 import {
   operatorCoordinateSchema,
+  operatorMeterBlockSchema,
+  operatorProgressBlockSchema,
   operatorKeyValuesBlockSchema,
   operatorNoticeBlockSchema,
   operatorScalarSchema,
@@ -911,45 +913,8 @@ const flowBlockSchema = z
     steps: z.array(flowStepSchema).min(2).max(20),
   })
   .strict();
-const meterItemSchema = z
-  .object({
-    id: identifierSchema,
-    label: labelSchema,
-    value: z.number().finite().nonnegative(),
-    max: z.number().finite().positive().optional(),
-    unit: labelSchema.optional(),
-    tone: toneSchema.optional(),
-  })
-  .strict()
-  .superRefine((item, context) => {
-    if (item.max !== undefined && item.value > item.max) {
-      context.addIssue({
-        code: "custom",
-        message: "Meter value cannot exceed its maximum",
-        path: ["value"],
-      });
-    }
-  });
-const meterBlockSchema = z
-  .object({
-    type: z.literal("meters"),
-    id: identifierSchema,
-    items: z.array(meterItemSchema).max(30),
-  })
-  .strict();
-const progressBlockSchema = z
-  .object({
-    type: z.literal("progress"),
-    id: identifierSchema,
-    label: labelSchema,
-    state: labelSchema,
-    detail: textSchema.optional(),
-    startedAt: z.string().datetime().optional(),
-    updatedAt: z.string().datetime().optional(),
-    progress: z.number().finite().min(0).max(1).optional(),
-    tone: toneSchema.optional(),
-  })
-  .strict();
+const meterBlockSchema = operatorMeterBlockSchema;
+const progressBlockSchema = operatorProgressBlockSchema;
 
 const queryKeySchema = z
   .string()

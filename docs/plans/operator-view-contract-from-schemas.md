@@ -71,7 +71,7 @@ limits stay in the value alone — and `tsc` checks it against the schema on
 every build, which an interface in another file never was.
 
 **The bounds become reachable rather than visible.** They are readable beside
-the shape in the file an author already opens, and once slice 5 exports the
+the shape in the file an author already opens, and once slice 6 exports the
 view schema an author can `safeParse` their view in their own tests instead
 of learning the limit from a rejected view in production. That is the actual
 remedy for shipping-then-finding-out, and it was not in this plan before.
@@ -102,19 +102,24 @@ surface does not. Slice 1 is the second kind.
    item schema carries a `superRefine`, and whether that survives an
    `isolatedDeclarations` annotation is its own question.
 
-3. **Meters and progress, then the `Runtime*` leaf types.** The two blocks
-   slice 2 held back, and then the runtime's parallel set: they are the
-   parsed shape of the same schemas, so they become `z.output` of them
-   rather than a second derivation. If a pair turns out to differ for a real
-   reason, that reason gets written down and the pair stays split — but a
-   difference nobody can name is duplication.
+3. **Meters and progress.** ✅ Shipped. The `superRefine` that slice 2
+   flagged as an open question is not one: in Zod 4 it returns the same
+   `ZodObject`, so the annotation is unchanged by it and the cross-field rule
+   moves intact. Progress now uses `operatorCoordinateSchema` rather than
+   respelling the same unit interval.
 
-4. **Derive the composite blocks.** Group, flow, collection, columns, region,
+4. **The `Runtime*` leaf types.** The runtime's parallel set is the parsed
+   shape of the same schemas, so they become `z.output` of them rather than
+   a second derivation. If a pair turns out to differ for a real reason, that
+   reason gets written down and the pair stays split — but a difference
+   nobody can name is duplication.
+
+5. **Derive the composite blocks.** Group, flow, collection, columns, region,
    card, tabs — the ones that nest. These need the schemas to be recursive,
    which is where this could become hard; if `z.lazy` makes the derived types
    unusable for authors, stop and report rather than shipping worse types.
 
-5. **Derive the panel and view**, the top-level shapes, and confirm the 22
+6. **Derive the panel and view**, the top-level shapes, and confirm the 22
    names `public/service-definition.ts` exports still resolve to types with
    the same members. Then export the view schema itself from that module —
    the one addition to the public surface this plan makes, and the one that
@@ -132,11 +137,11 @@ arch:check`, and both format lanes.
   as the gate. There are none; there is no fixtures directory. The 59
   consumers and the full workspace run are the gate, and they are a stronger
   one.
-- After slice 5: one declaration per block, and the bounds visible to anyone
+- After slice 6: one declaration per block, and the bounds visible to anyone
   reading the type.
 
 ## Risk
 
-Slice 4 is where this can fail. If recursive schemas cannot produce
-author-usable types, the honest outcome is slices 1–3 plus a note, not a
+Slice 5 is where this can fail. If recursive schemas cannot produce
+author-usable types, the honest outcome is slices 1–4 plus a note, not a
 worse contract than we started with.
