@@ -7,9 +7,14 @@ import type {
 } from "./operator-view-contract";
 import {
   operatorCoordinateSchema,
+  operatorKeyValuesBlockSchema,
+  operatorNoticeBlockSchema,
+  operatorScalarSchema,
+  operatorStatsBlockSchema,
+  operatorTextBlockSchema,
+  operatorToneSchema,
   operatorIdentifierSchema,
   operatorLabelSchema,
-  operatorLongTextSchema,
   operatorRowIdentifierSchema,
   operatorShortTextSchema,
   operatorTextSchema,
@@ -684,14 +689,8 @@ const rowIdentifierSchema = operatorRowIdentifierSchema;
 const labelSchema = operatorLabelSchema;
 const shortTextSchema = operatorShortTextSchema;
 const textSchema = operatorTextSchema;
-const longTextSchema = operatorLongTextSchema;
-const toneSchema = z.enum(["good", "warn", "neutral", "error"]);
-const scalarSchema = z.union([
-  z.string().max(2_000),
-  z.number().finite(),
-  z.boolean(),
-  z.null(),
-]);
+const toneSchema = operatorToneSchema;
+const scalarSchema = operatorScalarSchema;
 
 const safeExternalUrlSchema = z
   .string()
@@ -871,57 +870,12 @@ const linkTargetSchema: z.ZodType<RuntimeOperatorLinkTarget, unknown> = z.union(
   ],
 );
 
-const statItemSchema = z
-  .object({
-    label: labelSchema,
-    value: z.union([z.string().max(500), z.number().finite()]),
-    /** What the number counts, under the value. */
-    caption: shortTextSchema.optional(),
-    tone: toneSchema.optional(),
-  })
-  .strict();
-
-const keyValueItemSchema = z
-  .object({ label: labelSchema, value: scalarSchema })
-  .strict();
-
-const statsBlockSchema = z
-  .object({
-    type: z.literal("stats"),
-    id: identifierSchema.optional(),
-    items: z.array(statItemSchema).max(20),
-  })
-  .strict();
-
-const keyValuesBlockSchema = z
-  .object({
-    type: z.literal("key-values"),
-    id: identifierSchema.optional(),
-    items: z.array(keyValueItemSchema).max(40),
-  })
-  .strict();
-
-const noticeBlockSchema = z
-  .object({
-    type: z.literal("notice"),
-    id: identifierSchema.optional(),
-    title: labelSchema.optional(),
-    text: textSchema,
-    // Diagnostics use the same bounded, complete source text as text blocks.
-    details: z.array(longTextSchema).max(50).optional(),
-    tone: toneSchema.optional(),
-  })
-  .strict();
-
-const textBlockSchema = z
-  .object({
-    type: z.literal("text"),
-    id: identifierSchema.optional(),
-    label: labelSchema.optional(),
-    text: longTextSchema,
-    truncated: z.boolean().optional(),
-  })
-  .strict();
+// The leaf blocks are defined with the contract they belong to; these are
+// the short names the composites below read by.
+const statsBlockSchema = operatorStatsBlockSchema;
+const keyValuesBlockSchema = operatorKeyValuesBlockSchema;
+const noticeBlockSchema = operatorNoticeBlockSchema;
+const textBlockSchema = operatorTextBlockSchema;
 
 const groupItemSchema = z
   .object({

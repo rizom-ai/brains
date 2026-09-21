@@ -61,51 +61,137 @@ export const operatorCoordinateSchema: z.ZodNumber = z
   .min(0)
   .max(1);
 
-export type OperatorTone = "good" | "warn" | "neutral" | "error";
-export type OperatorScalar = string | number | boolean | null;
+/**
+ * Tone and scalar, and the leaf blocks built from them.
+ *
+ * Each type below is the output of the schema beside it rather than a second
+ * declaration of the same shape. The annotation `--isolatedDeclarations`
+ * requires names the Zod kinds, not the bounds, so a limit still lives in
+ * exactly one place — and an author can import the schema to check against it
+ * rather than learning the limit from a rejected view.
+ */
 
-export interface OperatorStatItem {
-  readonly label: string;
-  readonly value: string | number;
-  /** What the number counts, under the value. */
-  readonly caption?: string | undefined;
-  readonly tone?: OperatorTone | undefined;
-}
+export const operatorToneSchema: z.ZodEnum<{
+  good: "good";
+  warn: "warn";
+  neutral: "neutral";
+  error: "error";
+}> = z.enum(["good", "warn", "neutral", "error"]);
+export type OperatorTone = z.output<typeof operatorToneSchema>;
 
-export interface OperatorStatsBlock {
-  readonly type: "stats";
-  readonly id?: string | undefined;
-  readonly items: readonly OperatorStatItem[];
-}
+export const operatorScalarSchema: z.ZodUnion<
+  readonly [z.ZodString, z.ZodNumber, z.ZodBoolean, z.ZodNull]
+> = z.union([
+  z.string().max(2_000),
+  z.number().finite(),
+  z.boolean(),
+  z.null(),
+]);
+export type OperatorScalar = z.output<typeof operatorScalarSchema>;
 
-export interface OperatorKeyValueItem {
-  readonly label: string;
-  readonly value: OperatorScalar;
-}
+export const operatorStatItemSchema: z.ZodObject<
+  {
+    label: z.ZodString;
+    value: z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>;
+    caption: z.ZodOptional<z.ZodString>;
+    tone: z.ZodOptional<typeof operatorToneSchema>;
+  },
+  z.core.$strict
+> = z
+  .object({
+    label: operatorLabelSchema,
+    value: z.union([z.string().max(500), z.number().finite()]),
+    /** What the number counts, under the value. */
+    caption: operatorShortTextSchema.optional(),
+    tone: operatorToneSchema.optional(),
+  })
+  .strict();
+export type OperatorStatItem = z.output<typeof operatorStatItemSchema>;
 
-export interface OperatorKeyValuesBlock {
-  readonly type: "key-values";
-  readonly id?: string | undefined;
-  readonly items: readonly OperatorKeyValueItem[];
-}
+export const operatorStatsBlockSchema: z.ZodObject<
+  {
+    type: z.ZodLiteral<"stats">;
+    id: z.ZodOptional<z.ZodString>;
+    items: z.ZodReadonly<z.ZodArray<typeof operatorStatItemSchema>>;
+  },
+  z.core.$strict
+> = z
+  .object({
+    type: z.literal("stats"),
+    id: operatorIdentifierSchema.optional(),
+    items: z.array(operatorStatItemSchema).max(20).readonly(),
+  })
+  .strict();
+export type OperatorStatsBlock = z.output<typeof operatorStatsBlockSchema>;
 
-export interface OperatorNoticeBlock {
-  readonly type: "notice";
-  readonly id?: string | undefined;
-  readonly title?: string | undefined;
-  readonly text: string;
-  /** Complete supporting records, disclosed without repeating the notice heading. */
-  readonly details?: readonly string[] | undefined;
-  readonly tone?: OperatorTone | undefined;
-}
+export const operatorKeyValueItemSchema: z.ZodObject<
+  { label: z.ZodString; value: typeof operatorScalarSchema },
+  z.core.$strict
+> = z
+  .object({ label: operatorLabelSchema, value: operatorScalarSchema })
+  .strict();
+export type OperatorKeyValueItem = z.output<typeof operatorKeyValueItemSchema>;
 
-export interface OperatorTextBlock {
-  readonly type: "text";
-  readonly id?: string | undefined;
-  readonly label?: string | undefined;
-  readonly text: string;
-  readonly truncated?: boolean | undefined;
-}
+export const operatorKeyValuesBlockSchema: z.ZodObject<
+  {
+    type: z.ZodLiteral<"key-values">;
+    id: z.ZodOptional<z.ZodString>;
+    items: z.ZodReadonly<z.ZodArray<typeof operatorKeyValueItemSchema>>;
+  },
+  z.core.$strict
+> = z
+  .object({
+    type: z.literal("key-values"),
+    id: operatorIdentifierSchema.optional(),
+    items: z.array(operatorKeyValueItemSchema).max(40).readonly(),
+  })
+  .strict();
+export type OperatorKeyValuesBlock = z.output<
+  typeof operatorKeyValuesBlockSchema
+>;
+
+export const operatorNoticeBlockSchema: z.ZodObject<
+  {
+    type: z.ZodLiteral<"notice">;
+    id: z.ZodOptional<z.ZodString>;
+    title: z.ZodOptional<z.ZodString>;
+    text: z.ZodString;
+    details: z.ZodOptional<z.ZodReadonly<z.ZodArray<z.ZodString>>>;
+    tone: z.ZodOptional<typeof operatorToneSchema>;
+  },
+  z.core.$strict
+> = z
+  .object({
+    type: z.literal("notice"),
+    id: operatorIdentifierSchema.optional(),
+    title: operatorLabelSchema.optional(),
+    text: operatorTextSchema,
+    /** Complete supporting records, disclosed without repeating the heading. */
+    details: z.array(operatorLongTextSchema).max(50).readonly().optional(),
+    tone: operatorToneSchema.optional(),
+  })
+  .strict();
+export type OperatorNoticeBlock = z.output<typeof operatorNoticeBlockSchema>;
+
+export const operatorTextBlockSchema: z.ZodObject<
+  {
+    type: z.ZodLiteral<"text">;
+    id: z.ZodOptional<z.ZodString>;
+    label: z.ZodOptional<z.ZodString>;
+    text: z.ZodString;
+    truncated: z.ZodOptional<z.ZodBoolean>;
+  },
+  z.core.$strict
+> = z
+  .object({
+    type: z.literal("text"),
+    id: operatorIdentifierSchema.optional(),
+    label: operatorLabelSchema.optional(),
+    text: operatorLongTextSchema,
+    truncated: z.boolean().optional(),
+  })
+  .strict();
+export type OperatorTextBlock = z.output<typeof operatorTextBlockSchema>;
 
 export interface OperatorGroupItem {
   readonly id: string;
