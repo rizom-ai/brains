@@ -126,7 +126,7 @@ describe("SourceImageRenderJobHandler", () => {
       imageId: request.imageId,
       reused: false,
     });
-    expect(context.attachments.resolve).not.toHaveBeenCalled();
+    expect("resolve" in context.attachments).toBe(false);
     expect(files.inspect).toHaveBeenCalledWith(source, { signal });
     expect(files.publish).toHaveBeenCalledWith(
       {

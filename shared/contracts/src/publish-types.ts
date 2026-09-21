@@ -4,24 +4,21 @@ export interface PublishResult {
   metadata?: Record<string, unknown>;
 }
 
+/** A borrowed, verified file. Publishers must settle inside its provider's
+ * scope and observe cancellation before submitting a subsequent stage. */
 export interface PublishImageData {
-  data: Buffer;
+  sourceFile: string;
+  sizeBytes: number;
+  sha256: string;
   mimeType: string;
+  signal: AbortSignal;
 }
 
-export type PublishMediaData =
-  | {
-      type: "document";
-      data: Buffer;
-      mimeType: "application/pdf";
-      filename: string;
-    }
-  | {
-      type: "image";
-      data: Buffer;
-      mimeType: "image/png";
-      filename: string;
-    };
+export type PublishMediaData = PublishImageData &
+  (
+    | { type: "document"; mimeType: "application/pdf"; filename: string }
+    | { type: "image"; mimeType: "image/png"; filename: string }
+  );
 
 export interface PublishProvider {
   name: string;

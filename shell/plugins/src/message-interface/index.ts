@@ -3,8 +3,6 @@ export {
   type EditMessageRequest,
   type MessageInterfaceOutput,
   type MessageJobTrackingInfo,
-  type NativeArtifactDelivery,
-  type NativeArtifactFile,
   type SendMessageToChannelRequest,
   type SendMessageWithIdRequest,
   urlCaptureConfigSchema,
@@ -112,14 +110,10 @@ export {
 
 export {
   getArtifactEntityFilename,
-  parseArtifactDataUrl,
-  resolveArtifactEntityData,
   resolveArtifactEntityRefFromCard,
   resolveArtifactEntityRefFromUrl,
-  type ArtifactAssetReader,
   type ArtifactEntityRef,
   type ArtifactEntityType,
-  type ParsedArtifactDataUrl,
 } from "./artifact-entity";
 
 export {

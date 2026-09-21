@@ -974,6 +974,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
     request: Request,
   ): Promise<Response> {
     return handleDocumentAttachmentRouteRequest(request, {
+      fileTransfers: this.getContext().fileTransfers,
+      onRetirementError: (error): void =>
+        this.logger.warn("Document response retirement failed", { error }),
       resolvePermissionLevel: (nextRequest) =>
         this.resolveAttachmentPermissionLevel(nextRequest),
       createAuthLoginRequiredResponse: (nextRequest) =>
@@ -986,6 +989,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
     request: Request,
   ): Promise<Response> {
     return handleImageAttachmentRouteRequest(request, {
+      fileTransfers: this.getContext().fileTransfers,
+      onRetirementError: (error): void =>
+        this.logger.warn("Image response retirement failed", { error }),
       resolvePermissionLevel: (nextRequest) =>
         this.resolveAttachmentPermissionLevel(nextRequest),
       createAuthLoginRequiredResponse: (nextRequest) =>

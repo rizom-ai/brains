@@ -1,7 +1,10 @@
 import { describe, expect, it, spyOn } from "bun:test";
+import { readFile } from "node:fs/promises";
 import { createTempDir } from "@brains/test-utils";
 import { createPluginHarness } from "@brains/plugins/test";
 import { DocumentPlugin, documentPlugin } from "../src";
+import { prepareAsset } from "@brains/assets";
+import { installDocumentFileFixture } from "./helpers/file-fixture";
 
 describe("DocumentPlugin", () => {
   it("registers the document entity type", () => {
@@ -9,6 +12,18 @@ describe("DocumentPlugin", () => {
 
     expect(plugin.entityType).toBe("document");
     expect(plugin.adapter.entityType).toBe("document");
+  });
+
+  it("registers canonical asset storage rather than wrapping PDF references in markdown", async () => {
+    const harness = createPluginHarness<DocumentPlugin>();
+    await harness.installPlugin(new DocumentPlugin());
+    expect(
+      harness.getEntityRegistry().getEntityTypeConfig("document"),
+    ).toMatchObject({
+      binaryStorage: "asset",
+      embeddable: false,
+      fullTextSearchable: false,
+    });
   });
 
   it("factory returns a plugin", () => {
@@ -132,6 +147,24 @@ describe("DocumentPlugin", () => {
       mediaType: "application/pdf",
       content: Buffer.from("%PDF-1.4\n%EOF\n"),
     });
+    const fixture = installDocumentFileFixture({
+      entityService: harness.getEntityService(),
+    });
+    const files = harness.getEntityService().fileAssets;
+    if (!files) throw new Error("Fixture file capabilities missing");
+    const inspect = files.inspect;
+    files.inspect = async (source, options): ReturnType<typeof inspect> => {
+      fixture.registerSource(
+        source.sourceFile,
+        await readFile(source.sourceFile),
+      );
+      return inspect(source, options);
+    };
+    const read = spyOn(store, "read").mockImplementation(
+      async (): Promise<never> => {
+        throw new Error("Buffered upload read forbidden");
+      },
+    );
     const createSpy = spyOn(harness.getEntityService(), "createEntity");
     const registration = harness
       .getEntityRegistry()
@@ -175,7 +208,7 @@ describe("DocumentPlugin", () => {
       visibilityScope: "shared",
     });
     expect(entity?.content).toBe(
-      `data:application/pdf;base64,${Buffer.from("%PDF-1.4\n%EOF\n").toString("base64")}`,
+      prepareAsset(Buffer.from("%PDF-1.4\n%EOF\n")).ref,
     );
     expect(entity?.metadata).toMatchObject({
       title: "Brief",
@@ -184,6 +217,10 @@ describe("DocumentPlugin", () => {
       attachmentType: "uploaded",
     });
     expect(entity?.visibility).toBe("shared");
+    expect(read).not.toHaveBeenCalled();
+    expect(
+      harness.getEntityService().fileAssets?.publish,
+    ).toHaveBeenCalledTimes(1);
     expect(createSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         options: expect.objectContaining({
@@ -254,8 +291,10 @@ describe("DocumentPlugin", () => {
       {
         id: "existing-printable",
         entityType: "document",
-        content: "data:application/pdf;base64,JVBERi0=",
+        content: prepareAsset(Buffer.from("%PDF-")).ref,
         metadata: {
+          sizeBytes: 5,
+          pageCount: 0,
           filename: "post-printable.pdf",
           mimeType: "application/pdf",
           dedupKey: "printable:post:post-1:resolved-attachment:source-hash",

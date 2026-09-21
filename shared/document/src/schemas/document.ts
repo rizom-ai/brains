@@ -1,4 +1,5 @@
 import { baseEntityParserSchema } from "@brains/entity-service";
+import { assetRefSchema, MAX_ASSET_BYTES } from "@brains/assets";
 import { z } from "@brains/utils/zod";
 
 export const documentMimeTypeSchema: z.ZodLiteral<"application/pdf"> =
@@ -21,6 +22,7 @@ type DocumentMetadataSchema = z.ZodObject<{
   mimeType: typeof documentMimeTypeSchema;
   filename: z.ZodString;
   pageCount: z.ZodOptional<z.ZodNumber>;
+  sizeBytes: z.ZodOptional<z.ZodNumber>;
   status: z.ZodOptional<typeof documentIngestionStatusSchema>;
   processingJobId: z.ZodOptional<z.ZodString>;
   processingError: z.ZodOptional<z.ZodString>;
@@ -38,6 +40,7 @@ export const documentMetadataSchema: DocumentMetadataSchema = z.object({
   mimeType: documentMimeTypeSchema,
   filename: z.string().min(1),
   pageCount: z.number().int().min(0).optional(),
+  sizeBytes: z.number().int().positive().max(MAX_ASSET_BYTES).optional(),
   status: documentIngestionStatusSchema.optional(),
   processingJobId: z.string().optional(),
   processingError: z.string().optional(),
@@ -58,10 +61,41 @@ export const documentSchema: ReturnType<
     content: z.ZodString;
     metadata: DocumentMetadataSchema;
   }>
-> = baseEntityParserSchema.extend({
-  entityType: z.literal("document"),
-  content: z.string().regex(/^data:application\/pdf;base64,.+$/),
-  metadata: documentMetadataSchema,
-});
+> = baseEntityParserSchema
+  .extend({
+    entityType: z.literal("document"),
+    content: z.string(),
+    metadata: documentMetadataSchema,
+  })
+  .superRefine((document, context) => {
+    if (!document.content) {
+      if (
+        document.metadata.status !== "pending" &&
+        document.metadata.status !== "failed"
+      ) {
+        context.addIssue({
+          code: "custom",
+          path: ["content"],
+          message: "Only pending or failed documents may have empty content",
+        });
+      }
+      return;
+    }
+    if (!assetRefSchema.safeParse(document.content).success) {
+      context.addIssue({
+        code: "custom",
+        path: ["content"],
+        message: "Document content must be a SHA-256 asset reference",
+      });
+    }
+    for (const fact of ["sizeBytes", "pageCount"] as const) {
+      if (document.metadata[fact] === undefined)
+        context.addIssue({
+          code: "custom",
+          path: ["metadata", fact],
+          message: `Asset-backed documents require ${fact}`,
+        });
+    }
+  });
 
 export type DocumentEntity = z.output<typeof documentSchema>;

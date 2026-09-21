@@ -390,7 +390,7 @@ Post body`,
         .getMockShell()
         .getAttachmentRegistry()
         .register("post", "og-image", {
-          resolve: () => undefined,
+          withFile: async (): Promise<undefined> => undefined,
         });
       await localHarness.sendMessage(PUBLISH_ASSET_MESSAGES.REGISTER, {
         entityType: "post",
@@ -606,7 +606,7 @@ Post body`,
         .getMockShell()
         .getAttachmentRegistry()
         .register("post", "og-image", {
-          resolve: () => undefined,
+          withFile: async (): Promise<undefined> => undefined,
         });
       await localHarness.sendMessage(PUBLISH_ASSET_MESSAGES.REGISTER, {
         entityType: "post",

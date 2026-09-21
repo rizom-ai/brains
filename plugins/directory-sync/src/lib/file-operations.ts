@@ -1,11 +1,12 @@
-import { createAssetRef } from "@brains/assets";
+import { createAssetRef, MAX_ASSET_BYTES } from "@brains/assets";
+import { documentAssetFactsFromInspection } from "@brains/document";
+import { readBoundedJsonFile } from "@brains/utils/bounded-json-file";
 import type { BaseEntity, EntityServiceClient } from "@brains/plugins";
-import { basename, dirname, extname } from "path";
+import { basename, dirname } from "path";
 import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
 import { IMAGE_EXTENSIONS, isImageFile } from "./image-file-utils";
 import {
   DOCUMENT_SIDECAR_SUFFIX,
-  getDocumentMimeTypeForExtension,
   getDocumentSidecarPath,
   isDocumentFile,
   isDocumentSidecarFile,
@@ -29,7 +30,7 @@ import { pathExists } from "./fs-utils";
 import { OversizedFileError } from "./oversized-file-error";
 import type { PendingDeleteTarget } from "./pending-delete-registry";
 import { imageAssetFactsSchema } from "@brains/image";
-import { exportImageFile } from "./image-file-export";
+import { exportBinaryFile } from "./binary-file-export";
 
 export { IMAGE_EXTENSIONS, isImageFile } from "./image-file-utils";
 export { DOCUMENT_EXTENSIONS, isDocumentFile } from "./document-file-utils";
@@ -40,11 +41,6 @@ export type FileOperationsEntityService = Pick<
 >;
 
 const sidecarMetadataSchema = z.record(z.string(), z.unknown());
-
-function decodeDocumentContent(content: string): Buffer {
-  const match = content.match(/^data:application\/pdf;base64,(.+)$/i);
-  return Buffer.from(match?.[1] ?? content, "base64");
-}
 
 function getComparableImageRef(content: string): string | undefined {
   const normalized = content.trim();
@@ -127,10 +123,23 @@ export class FileOperations {
         sizeBytes: facts.sizeBytes,
       };
     } else if (isDocumentFile(filePath)) {
-      const buffer = await readFile(fullPath);
-      const mimeType = getDocumentMimeTypeForExtension(extname(filePath));
-      content = `data:${mimeType};base64,${buffer.toString("base64")}`;
-      metadata = await this.readDocumentSidecar(fullPath, filePath);
+      const files = this.entityService.fileAssets;
+      if (!files) throw new Error("Document file ingress is not provisioned");
+      fileAsset = { sourceFile: fullPath, sizeBytes: stats.size };
+      const facts = documentAssetFactsFromInspection(
+        await files.inspect(fileAsset, { inspector: "pdf" }),
+        {
+          maxBytes: Math.min(maxBytes ?? MAX_ASSET_BYTES, MAX_ASSET_BYTES),
+          maxPageCount: Number.MAX_SAFE_INTEGER,
+        },
+      );
+      content = facts.ref;
+      metadata = {
+        ...(await this.readDocumentSidecar(fullPath, filePath)),
+        mimeType: facts.mimeType,
+        sizeBytes: facts.sizeBytes,
+        pageCount: facts.pageCount,
+      };
     } else {
       content = await readFile(fullPath, "utf-8");
     }
@@ -170,8 +179,10 @@ export class FileOperations {
     }
 
     try {
-      const raw = await readFile(sidecarPath, "utf-8");
-      const parsed = sidecarMetadataSchema.safeParse(JSON.parse(raw));
+      const raw = await readBoundedJsonFile(sidecarPath, {
+        maxBytes: 64 * 1024,
+      });
+      const parsed = sidecarMetadataSchema.safeParse(raw);
       return { ...defaults, ...(parsed.success ? parsed.data : {}) };
     } catch {
       // Corrupt sidecar shouldn't block import; the schema will still pass
@@ -193,7 +204,7 @@ export class FileOperations {
       const files = this.entityService.fileAssets;
       if (!files) throw new Error("Image file export is not provisioned");
       await this.ensureEntityDirectory(entity, filePath);
-      await exportImageFile(
+      await exportBinaryFile(
         files,
         filePath,
         entity.content,
@@ -203,31 +214,25 @@ export class FileOperations {
       return;
     }
     if (isDocument) {
-      const contentToWrite = decodeDocumentContent(entity.content);
-
-      let binaryUnchanged = false;
-      if (await pathExists(filePath)) {
-        const currentContent = await readFile(filePath);
-        const currentHash = computeContentHash(
-          currentContent.toString("base64"),
-        );
-        const newHash = computeContentHash(contentToWrite.toString("base64"));
-
-        if (currentHash === newHash) {
-          binaryUnchanged = true;
-        }
-      }
-
-      if (!binaryUnchanged) {
-        await this.ensureEntityDirectory(entity, filePath);
-        await writeFile(filePath, contentToWrite);
-      }
-
-      await this.writeDocumentSidecar(entity, filePath);
-
-      if (binaryUnchanged) {
+      // Placeholders have no PDF bytes to export and must never replace a
+      // previously published file with invented or empty content.
+      if (
+        entity.content === "" &&
+        (entity.metadata["status"] === "pending" ||
+          entity.metadata["status"] === "failed")
+      )
         return;
-      }
+      const files = this.entityService.fileAssets;
+      if (!files) throw new Error("Document file export is not provisioned");
+      await this.ensureEntityDirectory(entity, filePath);
+      await exportBinaryFile(
+        files,
+        filePath,
+        entity.content,
+        new Date(entity.updated),
+      );
+      await this.writeDocumentSidecar(entity, filePath);
+      return;
     } else {
       const contentToWrite = this.entityService.serializeEntity(entity);
 
@@ -287,7 +292,7 @@ export class FileOperations {
    * Persist document metadata that does not survive in the PDF bytes
    * (filename, page count, dedup key, source provenance) in a sidecar JSON
    * file. `mimeType` is omitted because it is implicit in the .pdf extension
-   * and would be regenerated from the data URL on read.
+   * and is verified by native file inspection on read.
    */
   private async writeDocumentSidecar(
     entity: BaseEntity,

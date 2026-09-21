@@ -120,7 +120,7 @@ describe("ChatInterface artifacts", () => {
     );
   });
 
-  it("posts native Slack files for trusted generated artifacts", async () => {
+  it("does not fall back to Slack SDK bytes for unmigrated documents", async () => {
     suite.harness.addEntities([
       {
         id: "deck-slack-native",
@@ -168,22 +168,14 @@ describe("ChatInterface artifacts", () => {
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
 
-    expect(thread.post).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        markdown: "Generated the deck.",
-        files: [
-          expect.objectContaining({
-            filename: "deck-carousel.pdf",
-            mimeType: "application/pdf",
-          }),
-        ],
-      }),
+    expect(thread.post).toHaveBeenNthCalledWith(1, "Generated the deck.");
+    expect(thread.post).not.toHaveBeenCalledWith(
+      expect.objectContaining({ files: expect.anything() }),
     );
-    expect(thread.post).toHaveBeenCalledTimes(1);
+    expect(thread.post).toHaveBeenCalledTimes(2);
   });
 
-  it("posts native Discord files for trusted generated document artifacts", async () => {
+  it("does not fall back to Discord SDK bytes for unmigrated documents", async () => {
     suite.harness.addEntities([
       {
         id: "deck-native",
@@ -225,17 +217,9 @@ describe("ChatInterface artifacts", () => {
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
 
-    expect(thread.post).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        markdown: "Generated the deck.",
-        files: [
-          expect.objectContaining({
-            filename: "native-deck.pdf",
-            mimeType: "application/pdf",
-          }),
-        ],
-      }),
+    expect(thread.post).toHaveBeenNthCalledWith(1, "Generated the deck.");
+    expect(thread.post).not.toHaveBeenCalledWith(
+      expect.objectContaining({ files: expect.anything() }),
     );
     expect(thread.post).toHaveBeenNthCalledWith(
       2,
@@ -250,7 +234,7 @@ describe("ChatInterface artifacts", () => {
     );
   });
 
-  it("posts native Discord image files resolved from artifact URLs", async () => {
+  it("keeps unprovisioned image artifacts as cards rather than SDK byte uploads", async () => {
     suite.harness.addEntities([
       {
         id: "image-native",
@@ -288,15 +272,14 @@ describe("ChatInterface artifacts", () => {
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
 
+    expect(thread.post).toHaveBeenNthCalledWith(1, "Generated the image.");
     expect(thread.post).toHaveBeenCalledWith(
       expect.objectContaining({
-        files: [
-          expect.objectContaining({
-            filename: "native-image.png",
-            mimeType: "image/png",
-          }),
-        ],
+        card: expect.objectContaining({ title: "Native image" }),
       }),
+    );
+    expect(thread.post).not.toHaveBeenCalledWith(
+      expect.objectContaining({ files: expect.anything() }),
     );
   });
 

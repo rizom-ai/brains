@@ -1,944 +1,471 @@
-import { beforeEach, describe, expect, it, spyOn, mock } from "bun:test";
+import { beforeEach, describe, expect, it, spyOn } from "bun:test";
 import assert from "node:assert/strict";
 import {
   CallbackProgressReporter,
   type ProgressReporter,
 } from "@brains/utils/progress";
 import {
-  BaseEntityAdapter,
   baseEntitySchema,
   createMockShell,
   createServicePluginContext,
-  emptyFrontmatterSchema,
   type BaseEntity,
+  type EntityAdapter,
   type ServicePluginContext,
 } from "@brains/plugins/test";
-import { createMockLogger, createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger, createMockLogger } from "@brains/test-utils";
 import {
-  createPdfDataUrl,
   documentAdapter,
   documentSchema,
+  type DocumentEntity,
 } from "@brains/document";
+import { prepareAsset } from "@brains/assets";
+import { parseMarkdown } from "@brains/utils/markdown";
 import {
   DocumentGenerationJobHandler,
   getDocumentId,
+  type DocumentGenerationJobData,
 } from "../../src/handlers/documentGenerationHandler";
+import {
+  installDocumentFileFixture,
+  fixturePdf,
+  type DocumentFileFixture,
+} from "../helpers/file-fixture";
 
-const socialPostStubSchema = baseEntitySchema;
-
-type SocialPostStub = BaseEntity;
-
-class SocialPostStubAdapter extends BaseEntityAdapter<SocialPostStub> {
-  constructor() {
-    super({
-      entityType: "social-post",
-      purpose: "Test entity for unit tests.",
-      schema: socialPostStubSchema,
-      frontmatterSchema: emptyFrontmatterSchema,
-    });
-  }
-
-  public fromMarkdown(content: string): Partial<SocialPostStub> {
-    return { entityType: "social-post", content };
-  }
+function adapter(entityType: string): EntityAdapter<BaseEntity> {
+  return {
+    entityType,
+    purpose: "Fixture",
+    schema: baseEntitySchema,
+    toMarkdown: (entity) => entity.content,
+    fromMarkdown: (content) => ({ content }),
+    extractMetadata: (entity) => entity.metadata,
+    parseFrontMatter: (_content, schema) => schema.parse({}),
+    generateFrontMatter: () => "",
+    getBodyTemplate: () => "",
+  };
 }
-
-const pdfBuffer = Buffer.from("%PDF-1.7\n%carousel");
-
-function progressReporter(): ProgressReporter {
-  const reporter = CallbackProgressReporter.from(async () => undefined);
-  if (!reporter) throw new Error("Failed to create progress reporter");
-  return reporter;
+function progress(failure?: Error): ProgressReporter {
+  const value = CallbackProgressReporter.from(async (event) => {
+    if (event.progress === 100 && failure) throw failure;
+  });
+  assert.ok(value);
+  return value;
 }
+const base: DocumentGenerationJobData = {
+  renderUrl: "http://127.0.0.1/preview",
+  sourceEntityType: "deck",
+  sourceEntityId: "deck-1",
+  attachmentType: "carousel",
+  documentId: "generated",
+  dedupKey: "fixture-key",
+};
 
-function expectErrorMessage(error: unknown, message: string): void {
-  if (!(error instanceof Error)) {
-    throw new Error("Expected an Error to be thrown");
-  }
-  expect(error.message).toContain(message);
-}
-
-describe("DocumentGenerationJobHandler", () => {
+describe("document file generation", () => {
   let context: ServicePluginContext;
-
-  beforeEach((): void => {
+  let fixture: DocumentFileFixture;
+  let handler: DocumentGenerationJobHandler;
+  beforeEach(() => {
     const shell = createMockShell({ logger: createSilentLogger() });
+    context = createServicePluginContext(shell, "document");
     shell
       .getEntityRegistry()
       .registerEntityType("document", documentSchema, documentAdapter);
-    shell
-      .getEntityRegistry()
-      .registerEntityType(
-        "social-post",
-        socialPostStubSchema,
-        new SocialPostStubAdapter(),
-      );
-    context = createServicePluginContext(shell, "document");
+    for (const type of ["deck", "social-post"])
+      shell
+        .getEntityRegistry()
+        .registerEntityType(type, baseEntitySchema, adapter(type));
+    fixture = installDocumentFileFixture(context);
+    handler = new DocumentGenerationJobHandler(createSilentLogger(), context, {
+      withPreviewPdfFile: fixture.preview,
+    });
   });
-
-  const publicationRequest = {
-    renderUrl: "http://localhost/printable",
-    sourceEntityType: "social-post",
-    sourceEntityId: "post-1",
-    attachmentType: "carousel",
-    documentId: "publication-document",
-    filename: "publication-document.pdf",
-    dedupKey: "publication-key",
-  };
-
-  async function seedPublicationDocument(
-    status: "pending" | "draft" = "pending",
-  ): Promise<void> {
+  const run = (
+    data: DocumentGenerationJobData = base,
+    reporter = progress(),
+    signal = new AbortController().signal,
+  ): ReturnType<DocumentGenerationJobHandler["process"]> =>
+    handler.process(data, "job", reporter, signal);
+  const stored = (id = "generated"): Promise<DocumentEntity | null> =>
+    context.entityService.getEntity(
+      { entityType: "document", id },
+      documentSchema,
+    );
+  async function pending(): Promise<void> {
     await context.entityService.createEntity({
       entity: {
-        ...documentAdapter.createDocumentEntity({
-          dataUrl: createPdfDataUrl(pdfBuffer),
-          filename: publicationRequest.filename,
-          status,
-          dedupKey: publicationRequest.dedupKey,
+        id: "generated",
+        ...documentAdapter.createPendingDocumentEntity({
+          filename: "pending.pdf",
         }),
-        id: publicationRequest.documentId,
       },
     });
   }
-
+  async function target(content = "Body"): Promise<void> {
+    await context.entityService.createEntity({
+      entity: {
+        id: "target",
+        entityType: "social-post",
+        content,
+        metadata: {},
+      },
+    });
+  }
+  function sourceProvider(): void {
+    context.attachments.register("deck", "carousel", {
+      withFile: async (_request, use, options): ReturnType<typeof use> => {
+        fixture.state.held++;
+        try {
+          return await use(
+            fixture.attachment(),
+            options?.signal ?? new AbortController().signal,
+          );
+        } finally {
+          fixture.state.held--;
+        }
+      },
+    });
+  }
+  it("renders, inspects and atomically publishes a reference, with zero pages remaining unknown", async () => {
+    const result = await run({ ...base, pageCount: 7, title: "Carousel" });
+    expect(result).toEqual({
+      success: true,
+      documentId: "generated",
+      reused: false,
+    });
+    expect((await stored())?.content).toBe(prepareAsset(fixturePdf).ref);
+    expect((await stored())?.metadata).toMatchObject({
+      status: "draft",
+      pageCount: 0,
+      sizeBytes: fixturePdf.length,
+      title: "Carousel",
+      filename: "generated.pdf",
+      sourceEntityType: "deck",
+      sourceEntityId: "deck-1",
+      attachmentType: "carousel",
+      dedupKey: "fixture-key",
+    });
+    expect(context.entityService.fileAssets?.publish).toHaveBeenCalledTimes(1);
+    expect(fixture.state.held).toBe(0);
+  });
+  it("replaces a pending placeholder with the inspected asset", async () => {
+    await pending();
+    expect((await stored())?.content).toBe("");
+    await run();
+    expect((await stored())?.metadata.status).toBe("draft");
+    expect((await stored())?.content).toBe(prepareAsset(fixturePdf).ref);
+  });
+  it("marks a pending document failed when rendering fails", async () => {
+    await pending();
+    const error = new Error("render failed");
+    fixture.state.renderError = error;
+    await assert.rejects(run(), (received: unknown) => received === error);
+    expect((await stored())?.metadata).toMatchObject({
+      status: "failed",
+      processingError: "render failed",
+    });
+    expect((await stored())?.content).toBe("");
+  });
+  for (const committed of [false, true]) {
+    it(`never follows an unavailable publication outcome with a failed mutation (committed=${committed})`, async () => {
+      await pending();
+      const error = new Error("publication reply unavailable");
+      fixture.state.publicationError = error;
+      fixture.state.publicationCommitted = committed;
+      const updates = spyOn(context.entityService, "updateEntity");
+      await assert.rejects(run(), (received: unknown) => received === error);
+      expect((await stored())?.metadata.status).toBe(
+        committed ? "draft" : "pending",
+      );
+      expect((await stored())?.metadata.processingError).toBeUndefined();
+      expect(updates).toHaveBeenCalledTimes(committed ? 1 : 0);
+    });
+  }
   it("does not mark a saved document failed when target linkage fails", async () => {
-    await seedPublicationDocument();
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      { renderPdf: async (): Promise<Buffer> => pdfBuffer },
-    );
+    await pending();
     await assert.rejects(
-      handler.process(
-        {
-          ...publicationRequest,
-          targetEntityType: "social-post",
-          targetEntityId: "missing",
-        },
-        "job",
-        progressReporter(),
-      ),
+      run({
+        ...base,
+        targetEntityType: "social-post",
+        targetEntityId: "missing",
+      }),
       /Target entity not found/,
     );
-    const stored = await context.entityService.getEntity({
-      entityType: "document",
-      id: publicationRequest.documentId,
-    });
-    expect(stored?.metadata["status"]).toBe("draft");
-    expect(stored?.metadata["processingError"]).toBeUndefined();
-    expect(stored?.content).toBe(createPdfDataUrl(pdfBuffer));
+    expect((await stored())?.metadata.status).toBe("draft");
+    expect((await stored())?.metadata.processingError).toBeUndefined();
   });
-
   it("preserves a saved document when final progress fails", async () => {
-    await seedPublicationDocument();
-    const primary = new Error("progress delivery failed");
-    const reporter = CallbackProgressReporter.from(async (event) => {
-      if (event.progress === 100) throw primary;
-    });
-    assert.ok(reporter);
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      { renderPdf: async (): Promise<Buffer> => pdfBuffer },
-    );
+    await pending();
+    const error = new Error("progress failed");
     await assert.rejects(
-      handler.process(publicationRequest, "job", reporter),
-      (error: unknown) => error === primary,
+      run(base, progress(error)),
+      (received: unknown) => received === error,
     );
-    const stored = await context.entityService.getEntity({
-      entityType: "document",
-      id: publicationRequest.documentId,
-    });
-    expect(stored?.metadata["status"]).toBe("draft");
-    expect(stored?.metadata["processingError"]).toBeUndefined();
+    expect((await stored())?.metadata.status).toBe("draft");
+    expect(fixture.state.held).toBe(0);
   });
-
-  it("never follows an unavailable save outcome with a failed-placeholder mutation", async () => {
-    await seedPublicationDocument();
-    const primary = new Error("save outcome unavailable");
-    const update = spyOn(
-      context.entityService,
-      "updateEntity",
-    ).mockRejectedValue(primary);
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      { renderPdf: async (): Promise<Buffer> => pdfBuffer },
-    );
-    await assert.rejects(
-      handler.process(publicationRequest, "job", progressReporter()),
-      (error: unknown) => error === primary,
-    );
-    expect(update).toHaveBeenCalledTimes(1);
-  });
-
-  it("retains distinct rendering and failed-placeholder update causes", async () => {
-    await seedPublicationDocument();
-    const primary = new Error("render failed"),
-      secondary = new Error("failed-placeholder update failed");
-    const update = spyOn(
-      context.entityService,
-      "updateEntity",
-    ).mockRejectedValue(secondary);
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      {
-        renderPdf: async (): Promise<never> => {
-          throw primary;
-        },
-      },
-    );
-    await assert.rejects(
-      handler.process(publicationRequest, "job", progressReporter()),
-      (error: unknown) => {
+  for (const same of [false, true]) {
+    it(`preserves rendering and pending-update errors without duplicating identity (same=${same})`, async () => {
+      await pending();
+      const primary = new Error("render failed");
+      const secondary = same ? primary : new Error("failure update failed");
+      fixture.state.renderError = primary;
+      spyOn(context.entityService, "updateEntity").mockRejectedValue(secondary);
+      await assert.rejects(run(), (error: unknown) => {
+        if (same) {
+          expect(error).toBe(primary);
+          return true;
+        }
         assert.ok(error instanceof AggregateError);
         expect(error.errors).toEqual([primary, secondary]);
         expect(error.cause).toBe(primary);
         return true;
-      },
-    );
-    expect(update).toHaveBeenCalledTimes(1);
-  });
-
-  it("does not wrap the same rendering and failed-update error twice", async () => {
-    await seedPublicationDocument();
-    const primary = new Error("shared failure");
-    const update = spyOn(
-      context.entityService,
-      "updateEntity",
-    ).mockRejectedValue(primary);
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      {
-        renderPdf: async (): Promise<never> => {
-          throw primary;
-        },
-      },
-    );
-    await assert.rejects(
-      handler.process(publicationRequest, "job", progressReporter()),
-      (error: unknown) => error === primary,
-    );
-    expect(update).toHaveBeenCalledTimes(1);
-  });
-
-  it("does not rerender or fail a reused document after target failure", async () => {
-    await seedPublicationDocument("draft");
-    const renderPdf = mock(async (): Promise<never> => {
-      throw new Error("Unexpected render");
+      });
     });
-    const update = spyOn(context.entityService, "updateEntity");
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      { renderPdf },
-    );
+  }
+  it("reuses a matching artifact without rendering or failing it after target failure", async () => {
+    await fixture.seed("generated", { dedupKey: "fixture-key" });
+    expect((await run()).reused).toBe(true);
     await assert.rejects(
-      handler.process(
-        {
-          ...publicationRequest,
-          targetEntityType: "social-post",
-          targetEntityId: "missing",
-        },
-        "job",
-        progressReporter(),
-      ),
+      run({
+        ...base,
+        targetEntityType: "social-post",
+        targetEntityId: "missing",
+      }),
       /Target entity not found/,
     );
-    expect(renderPdf).not.toHaveBeenCalled();
-    expect(update).not.toHaveBeenCalled();
+    expect(fixture.state.renders).toBe(0);
+    expect((await stored())?.metadata.status).toBe("draft");
   });
-
-  it("renders and stores a generated PDF document", async () => {
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      { renderPdf: async (): Promise<Buffer> => pdfBuffer },
-    );
-
-    const result = await handler.process(
-      {
-        renderUrl: "http://localhost/_media/carousel/template/post-1",
-        sourceEntityType: "social-post",
-        sourceEntityId: "post-1",
-        attachmentType: "carousel",
-        filename: "carousel.pdf",
-        pageCount: 3,
-        maxPageCount: 10,
-        maxBytes: 1024,
-        timeoutMs: 1000,
-      },
-      "job-1",
-      progressReporter(),
-    );
-
-    expect(result).toEqual({
-      success: true,
-      documentId: "carousel",
-      reused: false,
-    });
-
-    const document = await context.entityService.getEntity({
-      entityType: "document",
-      id: "carousel",
-    });
-    expect(document?.content).toBe(createPdfDataUrl(pdfBuffer));
-    expect(document?.metadata).toMatchObject({
-      mimeType: "application/pdf",
-      filename: "carousel.pdf",
-      pageCount: 3,
-      sourceEntityType: "social-post",
-      sourceEntityId: "post-1",
-      attachmentType: "carousel",
-    });
+  it("honors an explicitly requested identity despite a different deduped document", async () => {
+    await fixture.seed("older", { dedupKey: "fixture-key" });
+    expect((await run()).documentId).toBe("generated");
+    expect(await stored("older")).not.toBeNull();
+    expect(fixture.state.renders).toBe(1);
   });
-
-  it("updates an existing pending document when generation completes", async () => {
-    await context.entityService.createEntity({
-      entity: {
-        id: "carousel",
-        entityType: "document",
-        content: createPdfDataUrl(Buffer.from("%PDF-1.4\n%pending")),
-        metadata: {
-          title: "carousel",
-          mimeType: "application/pdf",
-          filename: "carousel.pdf",
-          status: "pending",
-          sourceEntityType: "social-post",
-          sourceEntityId: "post-1",
-          attachmentType: "carousel",
-        },
-      },
-    });
-
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      { renderPdf: async (): Promise<Buffer> => pdfBuffer },
-    );
-
-    await handler.process(
-      {
-        renderUrl: "http://localhost/_media/carousel/template/post-1",
-        sourceEntityType: "social-post",
-        sourceEntityId: "post-1",
-        attachmentType: "carousel",
-        filename: "carousel.pdf",
-      },
-      "job-1",
-      progressReporter(),
-    );
-
-    const document = await context.entityService.getEntity({
-      entityType: "document",
-      id: "carousel",
-    });
-    expect(document?.content).toBe(createPdfDataUrl(pdfBuffer));
-    expect(document?.metadata).toMatchObject({
-      status: "draft",
-      filename: "carousel.pdf",
-      sourceEntityType: "social-post",
-      sourceEntityId: "post-1",
-      attachmentType: "carousel",
-    });
-  });
-
-  it("marks a pending document failed when generation fails", async () => {
-    await context.entityService.createEntity({
-      entity: {
-        id: "carousel",
-        entityType: "document",
-        content: createPdfDataUrl(Buffer.from("%PDF-1.4\n%pending")),
-        metadata: {
-          title: "carousel",
-          mimeType: "application/pdf",
-          filename: "carousel.pdf",
-          status: "pending",
-        },
-      },
-    });
-
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      {
-        renderPdf: async (): Promise<Buffer> => {
-          throw new Error("render failed");
-        },
-      },
-    );
-
-    try {
-      await handler.process(
-        {
-          renderUrl: "http://localhost/_media/carousel/template/post-1",
-          sourceEntityType: "social-post",
-          sourceEntityId: "post-1",
-          attachmentType: "carousel",
-          filename: "carousel.pdf",
-        },
-        "job-1",
-        progressReporter(),
-      );
-    } catch (error) {
-      expectErrorMessage(error, "render failed");
-    }
-
-    const document = await context.entityService.getEntity({
-      entityType: "document",
-      id: "carousel",
-    });
-    expect(document?.metadata).toMatchObject({
-      status: "failed",
-      processingError: expect.stringContaining("render failed"),
-    });
-  });
-
-  it("reuses an existing document with the same dedup key", async () => {
-    await context.entityService.createEntity({
-      entity: {
-        id: "existing-doc",
-        entityType: "document",
-        content: createPdfDataUrl(pdfBuffer),
-        metadata: {
-          mimeType: "application/pdf",
-          filename: "existing.pdf",
-          dedupKey: "same-key",
-        },
-      },
-    });
-
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      {
-        renderPdf: async (): Promise<Buffer> => {
-          throw new Error("should not render");
-        },
-      },
-    );
-
-    const result = await handler.process(
-      {
-        renderUrl: "http://localhost/_media/carousel/template/post-1",
-        sourceEntityType: "social-post",
-        sourceEntityId: "post-1",
-        attachmentType: "carousel",
-        dedupKey: "same-key",
-      },
-      "job-1",
-      progressReporter(),
-    );
-
-    expect(result).toEqual({
-      success: true,
-      documentId: "existing-doc",
-      reused: true,
-    });
-  });
-
-  it("creates the requested document id when a different deduped document exists", async () => {
-    await context.entityService.createEntity({
-      entity: {
-        id: "existing-doc",
-        entityType: "document",
-        content: createPdfDataUrl(pdfBuffer),
-        metadata: {
-          mimeType: "application/pdf",
-          filename: "existing.pdf",
-          dedupKey: "same-key",
-        },
-      },
-    });
-
-    const requestedPdf = Buffer.from("%PDF-1.7\n%requested");
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      { renderPdf: async (): Promise<Buffer> => requestedPdf },
-    );
-
-    const result = await handler.process(
-      {
-        renderUrl: "http://localhost/_media/carousel/template/post-1",
-        sourceEntityType: "social-post",
-        sourceEntityId: "post-1",
-        attachmentType: "carousel",
-        dedupKey: "same-key",
-        documentId: "requested-carousel",
-        filename: "requested-carousel.pdf",
-      },
-      "job-1",
-      progressReporter(),
-    );
-
-    expect(result).toEqual({
-      success: true,
-      documentId: "requested-carousel",
-      reused: false,
-    });
-    const requested = await context.entityService.getEntity({
-      entityType: "document",
-      id: "requested-carousel",
-    });
-    expect(requested?.content).toBe(createPdfDataUrl(requestedPdf));
-
-    const existing = await context.entityService.getEntity({
-      entityType: "document",
-      id: "existing-doc",
-    });
-    expect(existing?.content).toBe(createPdfDataUrl(pdfBuffer));
-  });
-
-  it("attaches a reused deduped document to the requested target", async () => {
-    await context.entityService.createEntity({
-      entity: {
-        id: "existing-doc",
-        entityType: "document",
-        content: createPdfDataUrl(pdfBuffer),
-        metadata: {
-          mimeType: "application/pdf",
-          filename: "existing.pdf",
-          sourceEntityType: "social-post",
-          sourceEntityId: "post-1",
-          attachmentType: "carousel",
-          dedupKey: "same-key",
-        },
-      },
-    });
-    await context.entityService.createEntity({
-      entity: {
-        id: "post-1",
-        entityType: "social-post",
-        content: `---\ntitle: Test\n---\nPost body`,
-        metadata: { title: "Test" },
-      },
-    });
-
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      {
-        renderPdf: async (): Promise<Buffer> => {
-          throw new Error("should not render");
-        },
-      },
-    );
-
-    const result = await handler.process(
-      {
-        renderUrl: "http://localhost/_media/carousel/template/post-1",
-        sourceEntityType: "social-post",
-        sourceEntityId: "post-1",
-        attachmentType: "carousel",
-        dedupKey: "same-key",
-        targetEntityType: "social-post",
-        targetEntityId: "post-1",
-      },
-      "job-1",
-      progressReporter(),
-    );
-
-    expect(result).toEqual({
-      success: true,
-      documentId: "existing-doc",
-      reused: true,
-    });
-    const post = await context.entityService.getEntity({
+  it("attaches a reused document to its target", async () => {
+    await fixture.seed("generated", { dedupKey: "fixture-key" });
+    await target();
+    expect(
+      (
+        await run({
+          ...base,
+          targetEntityType: "social-post",
+          targetEntityId: "target",
+        })
+      ).reused,
+    ).toBe(true);
+    const entity = await context.entityService.getEntity({
       entityType: "social-post",
-      id: "post-1",
+      id: "target",
     });
-    expect(post?.content).toContain("id: existing-doc");
+    assert.ok(entity);
+    expect(parseMarkdown(entity.content).frontmatter["documents"]).toEqual([
+      { id: "generated" },
+    ]);
+    expect(fixture.state.renders).toBe(0);
   });
-
-  it("replace true bypasses dedup and keeps the previous document artifact", async () => {
+  it("replace bypasses dedup without deleting the previous artifact", async () => {
+    await fixture.seed("older", { dedupKey: "fixture-key" });
+    await run({ ...base, replace: true });
+    expect(await stored("older")).not.toBeNull();
+    expect(await stored()).not.toBeNull();
+    expect(fixture.state.renders).toBe(1);
+  });
+  it("freezes a source attachment inside its file scope", async () => {
+    sourceProvider();
+    await run({ ...base, renderUrl: undefined });
+    expect((await stored())?.metadata.filename).toBe("source.pdf");
+    expect(fixture.state.renders).toBe(0);
+    expect(fixture.state.held).toBe(0);
+  });
+  it("keys source-derived artifacts on the current source content hash", async () => {
     await context.entityService.createEntity({
       entity: {
-        id: "existing-doc",
-        entityType: "document",
-        content: createPdfDataUrl(pdfBuffer),
-        metadata: {
-          mimeType: "application/pdf",
-          filename: "existing.pdf",
-          sourceEntityType: "social-post",
-          sourceEntityId: "post-1",
-          attachmentType: "carousel",
-          dedupKey: "same-key",
-        },
+        id: "deck-1",
+        entityType: "deck",
+        content: "first",
+        metadata: {},
       },
     });
-
-    const replacementPdf = Buffer.from("%PDF-1.7\n%replacement");
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      { renderPdf: async (): Promise<Buffer> => replacementPdf },
-    );
-
-    const result = await handler.process(
-      {
-        renderUrl: "http://localhost/_media/carousel/template/post-1",
-        sourceEntityType: "social-post",
-        sourceEntityId: "post-1",
-        attachmentType: "carousel",
-        dedupKey: "same-key",
-        replace: true,
-      },
-      "job-1",
-      progressReporter(),
-    );
-
-    expect(result.success).toBe(true);
-    expect(result.reused).toBe(false);
-    expect(result.documentId).not.toBe("existing-doc");
-
-    const existing = await context.entityService.getEntity({
-      entityType: "document",
-      id: "existing-doc",
-    });
-    expect(existing?.content).toBe(createPdfDataUrl(pdfBuffer));
-
-    const replacement = await context.entityService.getEntity({
-      entityType: "document",
-      id: result.documentId,
-    });
-    expect(replacement?.content).toBe(createPdfDataUrl(replacementPdf));
-  });
-
-  it("freezes a source-derived document attachment into a document entity", async () => {
-    context.attachments.register("social-post", "carousel", {
-      resolve: async () => ({
-        type: "document",
-        data: pdfBuffer,
-        mimeType: "application/pdf",
-        filename: "from-provider.pdf",
-      }),
-    });
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      {
-        renderPdf: async (): Promise<Buffer> => {
-          throw new Error("should resolve attachment instead of render URL");
-        },
-      },
-    );
-
-    const result = await handler.process(
-      {
-        sourceEntityType: "social-post",
-        sourceEntityId: "post-1",
-        attachmentType: "carousel",
-        documentId: "frozen-carousel",
-      },
-      "job-1",
-      progressReporter(),
-    );
-
-    expect(result).toEqual({
-      success: true,
-      documentId: "frozen-carousel",
-      reused: false,
-    });
-
-    const document = await context.entityService.getEntity({
-      entityType: "document",
-      id: "frozen-carousel",
-    });
-    expect(document?.content).toBe(createPdfDataUrl(pdfBuffer));
-    expect(document?.metadata).toMatchObject({
-      filename: "from-provider.pdf",
-      attachmentType: "carousel",
-      sourceEntityType: "social-post",
-      sourceEntityId: "post-1",
-    });
-  });
-
-  it("includes the source content hash in attachment-derived dedup keys", async () => {
-    await context.entityService.createEntity({
-      entity: {
-        id: "post-1",
-        entityType: "social-post",
-        content: `---\ntitle: Test\n---\nPost body`,
-        metadata: { title: "Test" },
-      },
-    });
-    context.attachments.register("social-post", "carousel", {
-      resolve: async () => ({
-        type: "document",
-        data: pdfBuffer,
-        mimeType: "application/pdf",
-        filename: "from-provider.pdf",
-      }),
-    });
-    const source = await context.entityService.getEntity({
-      entityType: "social-post",
-      id: "post-1",
-    });
-    if (!source) throw new Error("source not created");
-
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      {
-        renderPdf: async (): Promise<Buffer> => {
-          throw new Error("should resolve attachment instead of render URL");
-        },
-      },
-    );
-
-    await handler.process(
-      {
-        sourceEntityType: "social-post",
-        sourceEntityId: "post-1",
-        attachmentType: "carousel",
-        documentId: "source-hash-doc",
-      },
-      "job-1",
-      progressReporter(),
-    );
-
-    const document = await context.entityService.getEntity({
-      entityType: "document",
-      id: "source-hash-doc",
-    });
-    expect(document?.metadata["dedupKey"]).toContain(source.contentHash);
-  });
-
-  it("bounds generated document ids while keeping content-hash variants distinct", () => {
-    const data = {
-      sourceEntityType: "post",
-      sourceEntityId: "align-the-misaligned",
-      attachmentType: "printable",
+    sourceProvider();
+    const input = {
+      ...base,
+      renderUrl: undefined,
+      documentId: undefined,
+      dedupKey: undefined,
     };
-    const longHashA = "a".repeat(64);
-    const longHashB = "b".repeat(64);
-
-    const idA = getDocumentId(
-      data,
-      `printable:post:align-the-misaligned:resolved-attachment:${longHashA}`,
-    );
-    const idB = getDocumentId(
-      data,
-      `printable:post:align-the-misaligned:resolved-attachment:${longHashB}`,
-    );
-
-    expect(idA.length).toBeLessThanOrEqual(80);
-    expect(idA).toMatch(/^printable-post-align-the-misaligned/);
-    expect(idA).not.toContain(longHashA);
-    expect(idB.length).toBeLessThanOrEqual(80);
-    expect(idB).not.toBe(idA);
-  });
-
-  it("attaches the generated document to a target social post documents field", async () => {
-    await context.entityService.createEntity({
-      entity: {
-        id: "post-1",
-        entityType: "social-post",
-        content: `---\ntitle: Test\nplatform: linkedin\nstatus: draft\n---\nPost body`,
-        metadata: { title: "Test", platform: "linkedin", status: "draft" },
-      },
+    const first = await run(input);
+    const deck = await context.entityService.getEntity({
+      entityType: "deck",
+      id: "deck-1",
     });
-
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      { renderPdf: async (): Promise<Buffer> => pdfBuffer },
-    );
-
-    await handler.process(
-      {
-        renderUrl: "http://localhost/_media/carousel/template/post-1",
-        sourceEntityType: "social-post",
-        sourceEntityId: "post-1",
-        attachmentType: "carousel",
-        documentId: "carousel-pdf",
-        targetEntityType: "social-post",
-        targetEntityId: "post-1",
-      },
-      "job-1",
-      progressReporter(),
-    );
-
-    const post = await context.entityService.getEntity({
+    assert.ok(deck);
+    await context.entityService.updateEntity({
+      entity: { ...deck, content: "second" },
+    });
+    const second = await run(input);
+    expect(second.documentId).not.toBe(first.documentId);
+    expect(await stored(first.documentId)).not.toBeNull();
+  });
+  it("bounds ids while keeping content-hash variants distinct", () => {
+    const input = {
+      ...base,
+      documentId: undefined,
+      filename: undefined,
+      sourceEntityId: "source-".repeat(80),
+    };
+    const first = getDocumentId(input, `${"long-".repeat(80)}hash-one`);
+    const second = getDocumentId(input, `${"long-".repeat(80)}hash-two`);
+    expect(first.length).toBeLessThanOrEqual(80);
+    expect(second.length).toBeLessThanOrEqual(80);
+    expect(first).not.toBe(second);
+  });
+  it("adds a generated reference and replaces only references for the same source attachment", async () => {
+    await fixture.seed("old-same", {
+      sourceEntityType: "deck",
+      sourceEntityId: "deck-1",
+      attachmentType: "carousel",
+    });
+    await fixture.seed("other", {
+      sourceEntityType: "deck",
+      sourceEntityId: "deck-2",
+      attachmentType: "carousel",
+    });
+    await target("---\ndocuments:\n  - id: old-same\n  - id: other\n---\nBody");
+    await run({
+      ...base,
+      replace: true,
+      targetEntityType: "social-post",
+      targetEntityId: "target",
+    });
+    const entity = await context.entityService.getEntity({
       entityType: "social-post",
-      id: "post-1",
+      id: "target",
     });
-    expect(post?.content).toContain("documents:");
-    expect(post?.content).toContain("id: carousel-pdf");
+    assert.ok(entity);
+    expect(parseMarkdown(entity.content).frontmatter["documents"]).toEqual([
+      { id: "other" },
+      { id: "generated" },
+    ]);
+    expect(await stored("old-same")).not.toBeNull();
   });
-
-  it("replace true repoints target document references for the same source attachment", async () => {
-    await context.entityService.createEntity({
-      entity: {
-        id: "old-carousel",
-        entityType: "document",
-        content: createPdfDataUrl(pdfBuffer),
-        metadata: {
-          mimeType: "application/pdf",
-          filename: "old.pdf",
-          sourceEntityType: "deck",
-          sourceEntityId: "deck-1",
-          attachmentType: "carousel",
-          dedupKey: "old-key",
-        },
-      },
-    });
-    await context.entityService.createEntity({
-      entity: {
-        id: "unrelated-doc",
-        entityType: "document",
-        content: createPdfDataUrl(pdfBuffer),
-        metadata: {
-          mimeType: "application/pdf",
-          filename: "unrelated.pdf",
-          sourceEntityType: "deck",
-          sourceEntityId: "other-deck",
-          attachmentType: "carousel",
-        },
-      },
-    });
-    await context.entityService.createEntity({
-      entity: {
-        id: "post-1",
-        entityType: "social-post",
-        content: `---\ntitle: Test\ndocuments:\n  - id: old-carousel\n  - id: unrelated-doc\n---\nPost body`,
-        metadata: { title: "Test" },
-      },
-    });
-
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      { renderPdf: async (): Promise<Buffer> => Buffer.from("%PDF-new") },
-    );
-
-    const result = await handler.process(
-      {
-        renderUrl: "http://localhost/_media/carousel/deck-1",
-        sourceEntityType: "deck",
-        sourceEntityId: "deck-1",
-        attachmentType: "carousel",
-        dedupKey: "old-key",
-        replace: true,
-        targetEntityType: "social-post",
-        targetEntityId: "post-1",
-      },
-      "job-1",
-      progressReporter(),
-    );
-
-    const post = await context.entityService.getEntity({
-      entityType: "social-post",
-      id: "post-1",
-    });
-    expect(post?.content).not.toContain("id: old-carousel");
-    expect(post?.content).toContain("id: unrelated-doc");
-    expect(post?.content).toContain(`id: ${result.documentId}`);
-  });
-
-  it("warns when multiple documents share a dedup key and reuses the first", async () => {
-    for (const id of ["dup-a", "dup-b"]) {
-      await context.entityService.createEntity({
-        entity: {
-          id,
-          entityType: "document",
-          content: createPdfDataUrl(pdfBuffer),
-          metadata: {
-            mimeType: "application/pdf",
-            filename: `${id}.pdf`,
-            dedupKey: "shared-key",
-          },
-        },
-      });
-    }
-
+  it("warns about duplicate dedup keys and reuses the first matching artifact", async () => {
+    await fixture.seed("first", { dedupKey: "fixture-key" });
+    await fixture.seed("second", { dedupKey: "fixture-key" });
     const logger = createMockLogger();
-    const handler = new DocumentGenerationJobHandler(logger, context, {
-      renderPdf: async (): Promise<Buffer> => {
-        throw new Error("should not render");
-      },
+    handler = new DocumentGenerationJobHandler(logger, context, {
+      withPreviewPdfFile: fixture.preview,
     });
-
-    const result = await handler.process(
-      {
-        renderUrl: "http://localhost/_media/carousel/template/post-1",
-        sourceEntityType: "social-post",
-        sourceEntityId: "post-1",
-        attachmentType: "carousel",
-        dedupKey: "shared-key",
-      },
-      "job-1",
-      progressReporter(),
-    );
-
-    expect(result).toMatchObject({ success: true, reused: true });
+    const result = await run({ ...base, documentId: undefined });
+    expect(result.documentId).toBe("first");
     expect(logger.warn).toHaveBeenCalled();
+    expect(fixture.state.renders).toBe(0);
   });
-
-  it("rejects jobs exceeding the max page count before rendering", async () => {
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      {
-        renderPdf: async (): Promise<Buffer> => {
-          throw new Error("should not render");
-        },
-      },
-    );
-
-    try {
-      await handler.process(
-        {
-          renderUrl: "http://localhost/_media/carousel/template/post-1",
-          sourceEntityType: "social-post",
-          sourceEntityId: "post-1",
-          attachmentType: "carousel",
-          pageCount: 21,
-          maxPageCount: 20,
-        },
-        "job-1",
-        progressReporter(),
-      );
-      throw new Error("Expected handler to reject");
-    } catch (error) {
-      expectErrorMessage(error, "Refusing to render 21 page PDF");
-    }
+  it("rejects declared page limits before rendering", async () => {
+    await assert.rejects(run({ ...base, pageCount: 21 }), /maxPageCount=20/);
+    expect(fixture.state.renders).toBe(0);
   });
-
-  it("rejects rendered PDFs that exceed the max page count even when pageCount is not declared", async () => {
-    const oversizedPdf = Buffer.from(
-      `%PDF-1.7\n${"\n/Type /Pages /Count 30\n".repeat(1)}%%EOF`,
+  it("enforces independently inspected page and byte limits", async () => {
+    fixture.state.pdf = new TextEncoder().encode(
+      "%PDF-1.7\n/Type /Pages /Count 21\n%%EOF",
     );
-    const handler = new DocumentGenerationJobHandler(
-      createSilentLogger(),
-      context,
-      { renderPdf: async (): Promise<Buffer> => oversizedPdf },
-    );
-
-    try {
-      await handler.process(
-        {
-          renderUrl: "http://localhost/_media/carousel/template/post-1",
-          sourceEntityType: "social-post",
-          sourceEntityId: "post-1",
-          attachmentType: "carousel",
-          maxPageCount: 20,
-        },
-        "job-1",
-        progressReporter(),
-      );
-      throw new Error("Expected handler to reject");
-    } catch (error) {
-      expectErrorMessage(error, "Rendered PDF has 30 pages");
-    }
-
-    const stored = await context.entityService.listEntities({
-      entityType: "document",
+    await assert.rejects(run(), /21 pages/);
+    expect(context.entityService.fileAssets?.publish).not.toHaveBeenCalled();
+    fixture.state.pdf = fixturePdf;
+    await assert.rejects(run({ ...base, maxBytes: 1 }), /maxBytes=1/);
+    expect(context.entityService.fileAssets?.publish).not.toHaveBeenCalled();
+  });
+  it("does not mark pending content failed when the borrowed file owner cancels", async () => {
+    await pending();
+    const owner = new AbortController();
+    const reason = new Error("producer owner closed");
+    const files = context.entityService.fileAssets;
+    assert.ok(files);
+    files.inspect = async (): Promise<never> => {
+      owner.abort(reason);
+      throw reason;
+    };
+    handler = new DocumentGenerationJobHandler(createSilentLogger(), context, {
+      withPreviewPdfFile: async (
+        input,
+        transfers,
+        use,
+        options,
+      ): ReturnType<typeof use> =>
+        fixture.preview(
+          input,
+          transfers,
+          (file) => use(file, owner.signal),
+          options,
+        ),
     });
-    expect(stored).toHaveLength(0);
+    await assert.rejects(run(), (error: unknown) => error === reason);
+    expect((await stored())?.metadata.status).toBe("pending");
+    expect(files.publish).not.toHaveBeenCalled();
+    expect(fixture.state.held).toBe(0);
+  });
+
+  it("preserves an acknowledged save and prevents target admission after cancellation", async () => {
+    await pending();
+    const abort = new AbortController();
+    const files = context.entityService.fileAssets;
+    assert.ok(files);
+    const publish = files.publish;
+    files.publish = async (input, options): ReturnType<typeof publish> => {
+      const outcome = await publish(input, options);
+      abort.abort(new Error("cancel after save"));
+      return outcome;
+    };
+    const result = await run(
+      { ...base, targetEntityType: "social-post", targetEntityId: "missing" },
+      progress(),
+      abort.signal,
+    );
+    expect(result).toEqual({
+      success: true,
+      documentId: "generated",
+      reused: false,
+      warning: "Document saved; target update cancelled",
+    });
+    expect((await stored())?.metadata.status).toBe("draft");
+    expect(fixture.state.held).toBe(0);
+  });
+
+  it("retains a saved artifact when source retirement fails after acknowledgement", async () => {
+    await pending();
+    const error = new Error("source retirement failed");
+    fixture.state.cleanupError = error;
+    await assert.rejects(run(), (received: unknown) => received === error);
+    expect((await stored())?.metadata.status).toBe("draft");
+    expect((await stored())?.metadata.processingError).toBeUndefined();
+    expect(context.entityService.fileAssets?.publish).toHaveBeenCalledTimes(1);
+    expect(fixture.state.held).toBe(0);
+  });
+
+  it("rejects a mismatched inspection receipt before publication", async () => {
+    await pending();
+    const files = context.entityService.fileAssets;
+    assert.ok(files);
+    const inspect = files.inspect;
+    files.inspect = async (source, options): ReturnType<typeof inspect> => ({
+      ...(await inspect(source, options)),
+      sha256: "0".repeat(64),
+    });
+    await assert.rejects(run(), /does not match/);
+    expect(files.publish).not.toHaveBeenCalled();
+    expect((await stored())?.metadata.status).toBe("failed");
+  });
+
+  it("cancellation before work does not render or mark a pending entity failed", async () => {
+    await pending();
+    const cancel = new AbortController();
+    const reason = new Error("cancelled");
+    cancel.abort(reason);
+    await assert.rejects(
+      run(base, progress(), cancel.signal),
+      (error: unknown) => error === reason,
+    );
+    expect(fixture.state.renders).toBe(0);
+    expect((await stored())?.metadata.status).toBe("pending");
   });
 });

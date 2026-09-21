@@ -6,7 +6,6 @@ export {
   type DocumentGenerationHandlerDeps,
   type DocumentGenerationJobData,
   type DocumentGenerationResult,
-  type RenderPdf,
 } from "./handlers/documentGenerationHandler";
 export {
   DocumentAdapter,
@@ -14,12 +13,9 @@ export {
   documentMimeTypeSchema,
   documentMetadataSchema,
   documentSchema,
-  createPdfDataUrl,
-  isPdfDataUrl,
-  parseDocumentDataUrl,
   type CreateDocumentInput,
+  type CreatePendingDocumentInput,
   type DocumentEntity,
   type DocumentMetadata,
   type DocumentMimeType,
-  type ParsedDocumentDataUrl,
 } from "@brains/document";

@@ -2,6 +2,7 @@
 // Not auto-discovered by test:scripts; not a normal CLI startup acceptance gate.
 import { test, spyOn } from "bun:test";
 import { generateCanonicalAIImage } from "./turso-canonical-ai-image";
+import { publishCanonicalDocument } from "./turso-canonical-document-publication";
 import { prepareCanonicalSiteImage } from "./turso-canonical-site-image";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -36,6 +37,7 @@ import { imageSchema, imageAdapter } from "@brains/image";
 import {
   documentAssetFactsFromInspection,
   assertDocumentFileMatches,
+  documentSchema,
 } from "@brains/document";
 import { withPreviewPdfFile } from "@brains/media-page-composer";
 import type {
@@ -127,11 +129,7 @@ async function renderCanonicalFile(
       async (): Promise<void> => undefined,
     );
     assert.ok(reporter);
-    const buffered = spyOn(attachments, "resolve").mockImplementation(
-      async (): Promise<never> => {
-        throw new Error("Controller attachment buffering is forbidden");
-      },
-    );
+    assert.equal("resolve" in attachments, false);
     const reads = spyOn(service, "readAsset").mockImplementation(
       async (): Promise<never> => {
         throw new Error("Controller image buffering is forbidden");
@@ -160,10 +158,8 @@ async function renderCanonicalFile(
       assert.equal(producer.mock.calls.length, 1);
       assert.equal(download.mock.calls.length, 1);
       assert.equal(download.mock.calls[0]?.[0].ref, createAssetRef(SHA));
-      assert.equal(buffered.mock.calls.length, 0);
       assert.equal(reads.mock.calls.length, 0);
     } finally {
-      buffered.mockRestore();
       reads.mockRestore();
       producer.mockRestore();
       download.mockRestore();
@@ -200,7 +196,7 @@ async function renderCanonicalFile(
     // the unchanged two-slot persistence budget. OG cases retain PDF coverage.
     imageKind !== "og"
       ? Promise.resolve()
-      : renderCanonicalPrintable(printableApp, directory),
+      : renderCanonicalPrintable(printableApp, directory, app),
   ]);
   const errors = outcomes.flatMap((outcome) =>
     outcome.status === "rejected" ? [outcome.reason] : [],
@@ -222,6 +218,7 @@ async function renderCanonicalFile(
 async function renderCanonicalPrintable(
   app: App,
   directory: string,
+  workerApp: App,
 ): Promise<void> {
   const service = app.getShell().getEntityService();
   const files = service.fileAssets;
@@ -231,7 +228,7 @@ async function renderCanonicalPrintable(
     throw new Error("Controller PDF buffering is forbidden");
   };
   const reads = spyOn(service, "readAsset").mockImplementation(forbidden);
-  const buffered = spyOn(attachments, "resolve").mockImplementation(forbidden);
+  assert.equal("resolve" in attachments, false);
   const producer = spyOn(files, "withProducedFile");
   const uploadMethod = pdfKind === "preview" ? "POST" : "PUT";
   const received: {
@@ -371,6 +368,7 @@ async function renderCanonicalPrintable(
         assert.deepEqual(checks[1].value, { ...facts, statusCode: 201 });
         assert.deepEqual(received.facts, facts);
         assert.equal(received.requests, 1);
+        await publishCanonicalDocument(workerApp, file, signal);
         return file.filename;
       },
     );
@@ -399,10 +397,8 @@ async function renderCanonicalPrintable(
     );
     assert.equal(producer.mock.calls.length, 1);
     assert.equal(reads.mock.calls.length, 0);
-    assert.equal(buffered.mock.calls.length, 0);
   } finally {
     reads.mockRestore();
-    buffered.mockRestore();
     producer.mockRestore();
     await uploadServer.stop(true);
   }
@@ -1012,7 +1008,32 @@ plugins:
     assert.equal(renderedImage.content, rendered.record.ref);
     assert.equal(renderedImage.metadata.width, imageKind === "ai" ? 1 : 1200);
     assert.equal(renderedImage.metadata.height, imageKind === "ai" ? 1 : 630);
+    const documentDownloads: Array<{
+      record: AssetRecord;
+      outputFile: string;
+    }> = [];
+    if (imageKind === "og") {
+      const document = documentSchema.parse(
+        await owner.getEntityRaw({
+          entityType: "document",
+          id: "canonical-rendered-document",
+          visibilityScope: "restricted",
+        }),
+      );
+      assert.ok(document.metadata.sizeBytes);
+      assert.equal(document.metadata.status, "draft");
+      const ref = parseAssetRef(document.content);
+      documentDownloads.push({
+        record: {
+          ref,
+          digest: getAssetDigest(ref),
+          sizeBytes: document.metadata.sizeBytes,
+        },
+        outputFile: join(directory, "reopened-rendered.pdf"),
+      });
+    }
     await exerciseCanonicalRestartDownloads(binding, endpoint, [
+      ...documentDownloads,
       {
         record: rendered.record,
         outputFile: join(directory, "reopened-rendered.png"),
@@ -1026,7 +1047,7 @@ plugins:
       dirty: 0,
     });
     console.error(
-      "[canonical-publication] full image download after joined-owner restart passed; not main-file-only restore or installed startup acceptance",
+      `[canonical-publication] full ${imageKind === "og" ? "image and PDF" : "image"} download after joined-owner restart passed; not main-file-only restore or installed startup acceptance`,
     );
   } finally {
     await restarted.stop();

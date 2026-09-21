@@ -110,10 +110,7 @@ describe("Deck carousel attachment provider", () => {
     expect(
       await Bun.file(join(pages[0].directory, "index.html")).exists(),
     ).toBe(false);
-    await assert.rejects(
-      context.attachments.resolve(request),
-      /does not support buffered resolution/,
-    );
+    expect("resolve" in context.attachments).toBe(false);
   });
   it("accepts twenty slides but refuses twenty-one before theme or producer acquisition", async () => {
     for (const count of [20, 21]) {

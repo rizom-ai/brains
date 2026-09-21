@@ -8,6 +8,12 @@ import type {
   PublishMediaData,
 } from "@brains/contracts";
 import type { LinkedinConfig } from "../config";
+import type { EntityServiceClient } from "@brains/plugins";
+import { readBoundedJsonResponse } from "@brains/utils/bounded-json-response";
+export type LinkedInFileTransfers = Pick<
+  NonNullable<EntityServiceClient["fileAssets"]>,
+  "putHttp"
+>;
 
 /**
  * External HTTP dependency for the LinkedIn client.
@@ -16,6 +22,7 @@ import type { LinkedinConfig } from "../config";
  */
 export interface LinkedInClientDeps {
   fetch?: FetchLike;
+  getFileTransfers?: () => LinkedInFileTransfers | undefined;
 }
 
 const ERROR_BODY_MAX_LENGTH = 200;
@@ -27,9 +34,55 @@ const LINKEDIN_MEDIA_UPLOAD_REQUEST_KEY =
  * thrown errors. LinkedIn occasionally echoes scopes / auth context back in
  * error bodies, and unbounded bodies can flood logs.
  */
-function summarizeApiError(text: string): string {
-  if (text.length <= ERROR_BODY_MAX_LENGTH) return text;
-  return `${text.slice(0, ERROR_BODY_MAX_LENGTH)}… (truncated, ${text.length} bytes)`;
+async function summarizeApiError(response: Response): Promise<string> {
+  const reader = response.body?.getReader();
+  if (!reader) return "";
+  const errors: unknown[] = [];
+  const remember = (error: unknown): void => {
+    if (!errors.includes(error)) errors.push(error);
+  };
+  const decoder = new TextDecoder();
+  let text = "";
+  let remaining = ERROR_BODY_MAX_LENGTH * 4 + 1;
+  let drained = false;
+  try {
+    while (remaining > 0) {
+      const chunk = await reader.read();
+      if (chunk.done) {
+        drained = true;
+        break;
+      }
+      const prefix = chunk.value.subarray(0, remaining);
+      remaining -= prefix.byteLength;
+      text += decoder.decode(prefix, { stream: true });
+    }
+    text += decoder.decode();
+  } catch (error) {
+    remember(error);
+  } finally {
+    if (!drained) {
+      try {
+        await reader.cancel(errors[0]);
+      } catch (error) {
+        remember(error);
+      }
+    }
+    try {
+      reader.releaseLock();
+    } catch (error) {
+      remember(error);
+    }
+  }
+  if (errors.length === 1) throw errors[0];
+  if (errors.length > 1)
+    throw new AggregateError(
+      errors,
+      "LinkedIn error response and retirement failed",
+      { cause: errors[0] },
+    );
+  return !drained || text.length > ERROR_BODY_MAX_LENGTH
+    ? `${text.slice(0, ERROR_BODY_MAX_LENGTH)}… (truncated)`
+    : text;
 }
 
 const linkedInUserInfoSchema = z.looseObject({
@@ -125,6 +178,8 @@ export class LinkedInClient implements PublishProvider {
   private readonly apiBaseUrl = "https://api.linkedin.com/v2";
   private readonly restApiBaseUrl = "https://api.linkedin.com/rest";
   private readonly fetch: FetchLike;
+  private readonly getFileTransfers:
+    (() => LinkedInFileTransfers | undefined) | undefined;
   private cachedUserId: string | null = null;
 
   constructor(
@@ -135,6 +190,7 @@ export class LinkedInClient implements PublishProvider {
     this.config = config;
     this.logger = logger;
     this.fetch = deps.fetch ?? globalThis.fetch.bind(globalThis);
+    this.getFileTransfers = deps.getFileTransfers;
   }
 
   /**
@@ -152,8 +208,17 @@ export class LinkedInClient implements PublishProvider {
       throw new Error("LinkedIn access token not configured");
     }
 
+    const signals = [
+      imageData?.signal,
+      ...(documentData ?? []).map((file) => file.signal),
+    ].filter((signal): signal is AbortSignal => signal !== undefined);
+    const signal = AbortSignal.any(signals);
+    signal.throwIfAborted();
+    if ((imageData || documentData?.length) && !this.getFileTransfers?.())
+      throw new Error("LinkedIn file uploads are not provisioned");
     // Get author URN (organization or personal)
-    const author = await this.getAuthor();
+    const author = await this.getAuthor(signal);
+    signal.throwIfAborted();
 
     const documentAttachment = documentData?.[0];
     if (documentData && documentData.length > 1) {
@@ -168,15 +233,20 @@ export class LinkedInClient implements PublishProvider {
       // so a silent text-only fallback would publish something the caller never
       // asked for. Native document posts use LinkedIn's versioned /rest APIs;
       // keep UGC Posts below for text/image publishing.
-      const documentUrn = await this.uploadDocument(author, documentAttachment);
+      const documentUrn = await this.uploadDocument(
+        author,
+        documentAttachment,
+        signal,
+      );
       return this.publishDocumentPost(
         author,
         content,
         documentUrn,
         documentAttachment.filename,
+        signal,
       );
     } else if (imageData) {
-      const assetUrn = await this.uploadImage(author, imageData);
+      const assetUrn = await this.uploadImage(author, imageData, signal);
       if (assetUrn) {
         mediaAsset = { category: "IMAGE", urn: assetUrn };
       }
@@ -193,7 +263,9 @@ export class LinkedInClient implements PublishProvider {
       }),
     };
 
+    signal.throwIfAborted();
     const response = await this.fetch(`${this.apiBaseUrl}/ugcPosts`, {
+      signal,
       method: "POST",
       headers: {
         Authorization: `Bearer ${this.config.accessToken}`,
@@ -213,7 +285,7 @@ export class LinkedInClient implements PublishProvider {
     });
 
     if (!response.ok) {
-      const errorText = summarizeApiError(await response.text());
+      const errorText = await summarizeApiError(response);
       this.logger.error("LinkedIn API error", {
         status: response.status,
         error: errorText,
@@ -233,6 +305,24 @@ export class LinkedInClient implements PublishProvider {
     if (postId) {
       result.url = `https://www.linkedin.com/feed/update/${postId}`;
     }
+    return this.settleAcknowledgedResponse(response, result);
+  }
+
+  private async settleAcknowledgedResponse(
+    response: Response,
+    result: PublishResult,
+  ): Promise<PublishResult> {
+    try {
+      await response.body?.cancel();
+    } catch (error) {
+      // The successful POST is already acknowledged. Retain its receipt, never
+      // replay it because an unused metadata response failed retirement.
+      this.logger.warn(
+        "LinkedIn post acknowledged but response retirement failed",
+        { result, error },
+      );
+      result.metadata = { ...result.metadata, responseRetirementFailed: true };
+    }
     return result;
   }
 
@@ -251,82 +341,84 @@ export class LinkedInClient implements PublishProvider {
 
   /**
    * Upload an image to LinkedIn and return the asset URN
-   * Returns null if upload fails (allows graceful fallback to text-only)
+   * Explicit negative receipts allow text-only fallback. Transport, cancellation
+   * and retirement failures propagate unchanged; uncertain sends are not retried.
    */
   private async uploadImage(
     author: string,
     imageData: PublishImageData,
+    signal: AbortSignal,
   ): Promise<string | null> {
-    try {
-      // Step 1: Register the upload
-      const registerResponse = await this.fetch(
-        `${this.apiBaseUrl}/assets?action=registerUpload`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${this.config.accessToken}`,
-            "Content-Type": "application/json",
-            "X-Restli-Protocol-Version": "2.0.0",
-          },
-          body: JSON.stringify({
-            registerUploadRequest: {
-              recipes: ["urn:li:digitalmediaRecipe:feedshare-image"],
-              owner: author,
-              serviceRelationships: [
-                {
-                  relationshipType: "OWNER",
-                  identifier: "urn:li:userGeneratedContent",
-                },
-              ],
-            },
-          }),
+    signal.throwIfAborted();
+    // Step 1: Register the upload
+    const registerResponse = await this.fetch(
+      `${this.apiBaseUrl}/assets?action=registerUpload`,
+      {
+        signal,
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.config.accessToken}`,
+          "Content-Type": "application/json",
+          "X-Restli-Protocol-Version": "2.0.0",
         },
-      );
+        body: JSON.stringify({
+          registerUploadRequest: {
+            recipes: ["urn:li:digitalmediaRecipe:feedshare-image"],
+            owner: author,
+            serviceRelationships: [
+              {
+                relationshipType: "OWNER",
+                identifier: "urn:li:userGeneratedContent",
+              },
+            ],
+          },
+        }),
+      },
+    );
 
-      if (!registerResponse.ok) {
-        const errorText = summarizeApiError(await registerResponse.text());
-        this.logger.warn("LinkedIn image upload registration failed", {
-          status: registerResponse.status,
-          error: errorText,
-        });
-        return null;
-      }
+    if (!registerResponse.ok) {
+      const errorText = await summarizeApiError(registerResponse);
+      this.logger.warn("LinkedIn image upload registration failed", {
+        status: registerResponse.status,
+        error: errorText,
+      });
+      return null;
+    }
 
-      const uploadInfo = parseUploadInfo(await registerResponse.json());
-      if (!uploadInfo) {
-        this.logger.warn("LinkedIn image upload registration was malformed");
-        return null;
-      }
+    const uploadInfo = parseUploadInfo(
+      await readBoundedJsonResponse(registerResponse, 64 * 1024),
+    );
+    if (!uploadInfo) {
+      this.logger.warn("LinkedIn image upload registration was malformed");
+      return null;
+    }
 
-      const { uploadUrl, assetUrn } = uploadInfo;
+    const { uploadUrl, assetUrn } = uploadInfo;
 
-      // Step 2: Upload the binary image data
-      // Create Uint8Array view for fetch compatibility (works in Node, Bun, browser)
-      const uploadResponse = await this.fetch(uploadUrl, {
-        method: "PUT",
+    const files = this.getFileTransfers?.();
+    if (!files) throw new Error("LinkedIn file uploads are not provisioned");
+    const uploadResponse = await files.putHttp(
+      {
+        sourceFile: imageData.sourceFile,
+        facts: { sizeBytes: imageData.sizeBytes, sha256: imageData.sha256 },
+        url: uploadUrl,
         headers: {
           Authorization: `Bearer ${this.config.accessToken}`,
           "Content-Type": imageData.mimeType,
         },
-        body: new Uint8Array(imageData.data),
+      },
+      { signal },
+    );
+
+    if (uploadResponse.statusCode < 200 || uploadResponse.statusCode >= 300) {
+      this.logger.warn("LinkedIn image binary upload failed", {
+        status: uploadResponse.statusCode,
       });
-
-      if (!uploadResponse.ok) {
-        this.logger.warn("LinkedIn image binary upload failed", {
-          status: uploadResponse.status,
-        });
-        return null;
-      }
-
-      this.logger.info("LinkedIn image uploaded", { assetUrn });
-      return assetUrn;
-    } catch (error) {
-      // Deliberately unlike a document upload, which throws: a post that lost
-      // its image is still the text the author wrote, and publishing it beats
-      // failing the whole post. The text-only fallback has its own test.
-      this.logger.warn("LinkedIn image upload error", { error });
       return null;
     }
+
+    this.logger.info("LinkedIn image uploaded", { assetUrn });
+    return assetUrn;
   }
 
   /**
@@ -337,10 +429,15 @@ export class LinkedInClient implements PublishProvider {
   private async uploadDocument(
     author: string,
     documentData: PublishMediaData,
+    signal: AbortSignal,
   ): Promise<string> {
+    signal.throwIfAborted();
+    if (documentData.type !== "document")
+      throw new Error("LinkedIn document upload requires a PDF");
     const registerResponse = await this.fetch(
       `${this.restApiBaseUrl}/documents?action=initializeUpload`,
       {
+        signal,
         method: "POST",
         headers: this.getRestHeaders(),
         body: JSON.stringify({
@@ -352,29 +449,40 @@ export class LinkedInClient implements PublishProvider {
     );
 
     if (!registerResponse.ok) {
-      const errorText = summarizeApiError(await registerResponse.text());
+      const errorText = await summarizeApiError(registerResponse);
       throw new Error(
         `LinkedIn document upload initialization failed: ${registerResponse.status} - ${errorText}`,
       );
     }
 
-    const uploadInfo = parseDocumentUploadInfo(await registerResponse.json());
+    const uploadInfo = parseDocumentUploadInfo(
+      await readBoundedJsonResponse(registerResponse, 64 * 1024),
+    );
     if (!uploadInfo) {
       throw new Error("LinkedIn document upload initialization was malformed");
     }
 
-    const uploadResponse = await this.fetch(uploadInfo.uploadUrl, {
-      method: "PUT",
-      headers: {
-        Authorization: `Bearer ${this.config.accessToken}`,
-        "Content-Type": documentData.mimeType,
+    const files = this.getFileTransfers?.();
+    if (!files) throw new Error("LinkedIn file uploads are not provisioned");
+    const uploadResponse = await files.putHttp(
+      {
+        sourceFile: documentData.sourceFile,
+        facts: {
+          sizeBytes: documentData.sizeBytes,
+          sha256: documentData.sha256,
+        },
+        url: uploadInfo.uploadUrl,
+        headers: {
+          Authorization: `Bearer ${this.config.accessToken}`,
+          "Content-Type": documentData.mimeType,
+        },
       },
-      body: new Uint8Array(documentData.data),
-    });
+      { signal },
+    );
 
-    if (!uploadResponse.ok) {
+    if (uploadResponse.statusCode < 200 || uploadResponse.statusCode >= 300) {
       throw new Error(
-        `LinkedIn document binary upload failed: ${uploadResponse.status}`,
+        `LinkedIn document binary upload failed: ${uploadResponse.statusCode}`,
       );
     }
 
@@ -393,8 +501,11 @@ export class LinkedInClient implements PublishProvider {
     content: string,
     documentUrn: string,
     title: string,
+    signal: AbortSignal,
   ): Promise<PublishResult> {
+    signal.throwIfAborted();
     const response = await this.fetch(`${this.restApiBaseUrl}/posts`, {
+      signal,
       method: "POST",
       headers: this.getRestHeaders(),
       body: JSON.stringify({
@@ -418,7 +529,7 @@ export class LinkedInClient implements PublishProvider {
     });
 
     if (!response.ok) {
-      const errorText = summarizeApiError(await response.text());
+      const errorText = await summarizeApiError(response);
       this.logger.error("LinkedIn document post API error", {
         status: response.status,
         error: errorText,
@@ -438,7 +549,7 @@ export class LinkedInClient implements PublishProvider {
     if (postId) {
       result.url = `https://www.linkedin.com/feed/update/${postId}`;
     }
-    return result;
+    return this.settleAcknowledgedResponse(response, result);
   }
 
   /**
@@ -459,6 +570,7 @@ export class LinkedInClient implements PublishProvider {
             },
           },
         );
+        await response.body?.cancel();
         return response.ok;
       }
 
@@ -475,18 +587,19 @@ export class LinkedInClient implements PublishProvider {
    * Get the author URN for posting.
    * Returns organization URN if organizationId is configured, otherwise personal URN.
    */
-  private async getAuthor(): Promise<string> {
+  private async getAuthor(signal?: AbortSignal): Promise<string> {
     if (this.config.organizationId) {
       return `urn:li:organization:${this.config.organizationId}`;
     }
-    return this.getUserId();
+    return this.getUserId(signal);
   }
 
   /**
    * Get the current user's LinkedIn ID (URN)
    * Tries /v2/userinfo first (requires openid scope), falls back to /v2/me
    */
-  private async getUserId(): Promise<string> {
+  private async getUserId(signal?: AbortSignal): Promise<string> {
+    signal?.throwIfAborted();
     if (this.cachedUserId) {
       return this.cachedUserId;
     }
@@ -500,6 +613,7 @@ export class LinkedInClient implements PublishProvider {
       const userinfoResponse = await this.fetch(
         "https://api.linkedin.com/v2/userinfo",
         {
+          ...(signal && { signal }),
           headers: {
             Authorization: `Bearer ${this.config.accessToken}`,
           },
@@ -508,32 +622,38 @@ export class LinkedInClient implements PublishProvider {
 
       if (userinfoResponse.ok) {
         const parsedUserInfo = linkedInUserInfoSchema.safeParse(
-          await userinfoResponse.json(),
+          await readBoundedJsonResponse(userinfoResponse, 64 * 1024),
         );
         if (parsedUserInfo.success) {
           this.cachedUserId = `urn:li:person:${parsedUserInfo.data.sub}`;
           return this.cachedUserId;
         }
-      }
-    } catch {
-      // Fall through to /v2/me
+      } else await userinfoResponse.body?.cancel();
+    } catch (error) {
+      if (signal?.aborted) throw error;
+      // OpenID is optional; the authenticated /me endpoint can still work.
+      this.logger.debug("LinkedIn OpenID lookup unavailable", { error });
     }
 
+    signal?.throwIfAborted();
     // Fall back to /v2/me endpoint (works with w_member_social)
     const meResponse = await this.fetch("https://api.linkedin.com/v2/me", {
+      ...(signal && { signal }),
       headers: {
         Authorization: `Bearer ${this.config.accessToken}`,
       },
     });
 
     if (!meResponse.ok) {
-      const errorText = summarizeApiError(await meResponse.text());
+      const errorText = await summarizeApiError(meResponse);
       throw new Error(
         `Failed to get LinkedIn user ID: ${meResponse.status} - ${errorText}`,
       );
     }
 
-    const meData = linkedInMeSchema.parse(await meResponse.json());
+    const meData = linkedInMeSchema.parse(
+      await readBoundedJsonResponse(meResponse, 64 * 1024),
+    );
     this.cachedUserId = `urn:li:person:${meData.id}`;
     return this.cachedUserId;
   }

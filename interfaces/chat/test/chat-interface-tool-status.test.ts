@@ -332,7 +332,7 @@ describe("ChatInterface tool status and progress", () => {
     );
   });
 
-  it("uploads tracked Slack image artifacts when async jobs complete", async () => {
+  it("does not revive buffered Slack uploads when an unmigrated image job completes", async () => {
     suite.harness.addEntities([
       {
         id: "async-slack-image",
@@ -410,16 +410,10 @@ describe("ChatInterface tool status and progress", () => {
       },
     });
 
-    expect(thread.post).toHaveBeenCalledWith({
-      raw: "",
-      files: [
-        expect.objectContaining({
-          data: expect.any(ArrayBuffer),
-          filename: "async-slack-image.png",
-          mimeType: "image/png",
-        }),
-      ],
-    });
+    expect(thread.post).not.toHaveBeenCalledWith(
+      expect.objectContaining({ files: expect.anything() }),
+    );
+    expect(sentMessage.edit).toHaveBeenCalled();
   });
 
   it("edits tracked Discord agent responses for async job progress", async () => {

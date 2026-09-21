@@ -52,7 +52,7 @@ async function sync(path: string, directory = false): Promise<void> {
     errors.push(error);
   }
   if (errors.length)
-    throw new AggregateError(errors, "Image export sync/close failed", {
+    throw new AggregateError(errors, "Binary export sync/close failed", {
       cause: errors[0],
     });
 }
@@ -62,7 +62,7 @@ async function sync(path: string, directory = false): Promise<void> {
  * the prior inode link remain for recovery; published replacements are never
  * rolled back after a failed acknowledgement.
  */
-export async function exportImageFile(
+export async function exportBinaryFile(
   files: Files,
   path: string,
   content: string,
@@ -70,7 +70,7 @@ export async function exportImageFile(
 ): Promise<boolean> {
   const ref = assetRefSchema.parse(content);
   if (!Number.isFinite(updated.getTime()))
-    throw new Error("Invalid image export timestamp");
+    throw new Error("Invalid binary export timestamp");
   const directory = dirname(path);
   const staging = await mkdtemp(join(directory, ".turso-export-"));
   await sync(directory, true);
@@ -78,17 +78,17 @@ export async function exportImageFile(
   const previous = join(staging, "previous");
   const facts = await files.download({ ref, outputFile: verified });
   if (facts.sha256 !== getAssetDigest(ref))
-    throw new Error("Image export receipt mismatch");
+    throw new Error("Binary export receipt mismatch");
   const existing = await inspectPath(path);
   if (existing && !existing.isFile())
-    throw new Error("Image export destination is not a regular file");
+    throw new Error("Binary export destination is not a regular file");
   if (existing?.size === BigInt(facts.sizeBytes)) {
     const current = await files.fingerprint({
       sourceFile: path,
       sizeBytes: facts.sizeBytes,
     });
     if (!sameFile(existing, await inspectPath(path)))
-      throw new Error("Image export destination changed during comparison");
+      throw new Error("Binary export destination changed during comparison");
     if (
       current.sha256 === facts.sha256 &&
       current.sizeBytes === facts.sizeBytes
@@ -103,7 +103,7 @@ export async function exportImageFile(
   await sync(verified);
   if (existing) {
     if (!sameFile(existing, await inspectPath(path)))
-      throw new Error("Image export destination changed before replacement");
+      throw new Error("Binary export destination changed before replacement");
     await link(path, previous);
     // link changes ctime; compare identity/size/mtime, not the pre-link ctime.
     const saved = await lstat(previous, { bigint: true });
@@ -114,7 +114,7 @@ export async function exportImageFile(
       saved.size !== existing.size ||
       saved.mtimeNs !== existing.mtimeNs
     )
-      throw new Error("Image export destination changed before preservation");
+      throw new Error("Binary export destination changed before preservation");
     await sync(staging, true);
     await rename(verified, path);
   } else {

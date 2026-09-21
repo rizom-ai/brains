@@ -2109,7 +2109,7 @@ A saved research link.`;
   it("should reject attachment generation when the source entity does not exist before confirmation", async () => {
     services.attachments.register("deck", "carousel", {
       metadata: { outputEntityType: "document" },
-      resolve: () => undefined,
+      withFile: async (): Promise<undefined> => undefined,
     });
 
     const result = await execGenerateRaw({
@@ -2174,7 +2174,7 @@ A saved research link.`;
       },
     ]);
     services.attachments.register("deck", "carousel", {
-      resolve: () => undefined,
+      withFile: async (): Promise<undefined> => undefined,
     });
 
     const result = await execGenerateRaw({
@@ -2230,7 +2230,7 @@ A saved research link.`;
     ]);
     services.attachments.register("post", "printable", {
       metadata: { outputEntityType: "document" },
-      resolve: () => undefined,
+      withFile: async (): Promise<undefined> => undefined,
     });
     let capturedInput: CreateInput | undefined;
     services.entityRegistry.registerCreateInterceptor(
@@ -2313,7 +2313,7 @@ A saved research link.`;
     ]);
     services.attachments.register("deck", "carousel", {
       metadata: { outputEntityType: "document" },
-      resolve: () => undefined,
+      withFile: async (): Promise<undefined> => undefined,
     });
 
     let capturedInput: CreateInput | undefined;

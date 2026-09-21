@@ -5,13 +5,15 @@ import {
   type DocumentMetadata,
   type DocumentIngestionStatus,
 } from "../schemas/document";
-import { parseDocumentDataUrl } from "../lib/document-utils";
+import { assetRefSchema } from "@brains/assets";
+import {
+  documentAssetFactsSchema,
+  type DocumentAssetFacts,
+} from "../document-file-asset";
 
-export interface CreateDocumentInput {
-  dataUrl: string;
+interface DocumentDescription {
   filename: string;
   title?: string;
-  pageCount?: number;
   status?: DocumentIngestionStatus;
   sourceEntityType?: string;
   sourceEntityId?: string;
@@ -20,6 +22,13 @@ export interface CreateDocumentInput {
   sourceMediaType?: string;
   attachmentType?: string;
   dedupKey?: string;
+}
+
+export interface CreateDocumentInput extends DocumentDescription {
+  facts: DocumentAssetFacts;
+}
+export interface CreatePendingDocumentInput extends DocumentDescription {
+  status?: "pending" | "failed";
 }
 
 export class DocumentAdapter implements EntityAdapter<
@@ -36,11 +45,9 @@ export class DocumentAdapter implements EntityAdapter<
   }
 
   public fromMarkdown(content: string): Partial<DocumentEntity> {
-    // Validates the data URL shape; metadata (filename, mimeType, pageCount,
-    // dedupKey, source provenance) is supplied by directory-sync via the
-    // sidecar JSON / path-derived defaults and merged in by the import
-    // pipeline. The adapter cannot synthesize a valid filename on its own.
-    parseDocumentDataUrl(content);
+    // Pending/failed placeholders are empty; the combined entity schema checks
+    // their status after sidecar metadata is merged. Inline PDFs are not accepted.
+    if (content) assetRefSchema.parse(content);
 
     return {
       entityType: "document",
@@ -70,15 +77,31 @@ export class DocumentAdapter implements EntityAdapter<
   public createDocumentEntity(
     input: CreateDocumentInput,
   ): Pick<DocumentEntity, "entityType" | "content" | "metadata"> {
-    const { dataUrl, ...metadataInput } = input;
-    const { mimeType } = parseDocumentDataUrl(dataUrl);
-
+    const { facts: declared, ...metadataInput } = input;
+    const facts = documentAssetFactsSchema.parse(declared);
     return {
       entityType: "document",
-      content: dataUrl,
+      content: facts.ref,
       metadata: {
-        mimeType,
         ...metadataInput,
+        mimeType: facts.mimeType,
+        sizeBytes: facts.sizeBytes,
+        pageCount: facts.pageCount,
+        status: input.status ?? "draft",
+      },
+    };
+  }
+
+  public createPendingDocumentEntity(
+    input: CreatePendingDocumentInput,
+  ): Pick<DocumentEntity, "entityType" | "content" | "metadata"> {
+    return {
+      entityType: "document",
+      content: "",
+      metadata: {
+        ...input,
+        mimeType: "application/pdf",
+        status: input.status ?? "pending",
       },
     };
   }

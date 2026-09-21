@@ -1,18 +1,16 @@
-import { resolveImageBytes } from "@brains/image";
-import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import type { ServicePluginContext } from "@brains/plugins";
+import {
+  parseMarkdownWithFrontmatter,
+  withPublishFiles,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import type { BaseEntity } from "@brains/plugins";
 import type { PublishImageData, PublishMediaData } from "@brains/contracts";
 import type { PublishableMetadata } from "../schemas/publishable";
 
 type PublishableEntity = BaseEntity<PublishableMetadata>;
-
-const publishDocumentReferenceSchema = z.object({
-  id: z.string().min(1),
-});
-
+const publishDocumentReferenceSchema = z.object({ id: z.string().min(1) });
 type PublishDocumentReference = z.output<typeof publishDocumentReferenceSchema>;
-
 interface ParsedPublishContent {
   bodyContent: string;
   coverImageId?: string;
@@ -20,66 +18,35 @@ interface ParsedPublishContent {
   sourceEntityType?: string;
   sourceEntityId?: string;
 }
-
 export interface PreparedPublishContent {
   bodyContent: string;
   imageData?: PublishImageData;
   documentData?: PublishMediaData[];
 }
 
-/** Consume prepared content before its scope settles. Provider publication and
- * its durable state acknowledgement must be awaited inside the consumer.
+/** All native loans encompass provider publication AND durable acknowledgement.
+ * Acquisition is serial and capped below the existing sixteen-operation budget.
  */
 export async function withPublishContent<T>(
   context: ServicePluginContext,
   entity: PublishableEntity,
   use: (content: PreparedPublishContent) => Promise<T>,
 ): Promise<T> {
-  const {
-    bodyContent,
-    coverImageId,
-    documents,
-    sourceEntityType,
-    sourceEntityId,
-  } = parsePublishContent(entity.content);
-  const imageData = coverImageId
-    ? await fetchPublishImageData(context, coverImageId)
-    : undefined;
-
-  // Explicit documents[] wins when it yields any data; otherwise fall through
-  // to source-derived attachment resolution. An empty `documents: []` array,
-  // or one whose entries all fail to fetch, should not silently suppress a
-  // valid source-derived attachment.
-  let documentData: PublishMediaData[] | undefined;
-  if (documents && documents.length > 0) {
-    const fetched = await fetchPublishDocumentData(context, documents);
-    if (fetched.length > 0) {
-      documentData = fetched;
-    }
-  }
-  documentData ??= await resolveSourceAttachmentData(
-    context,
-    sourceEntityType,
-    sourceEntityId,
+  const parsed = parsePublishContent(entity.content);
+  return withPublishFiles(
+    {
+      entityService: context.entityService,
+      withAttachmentFile: context.attachments.withFile,
+      missingDocuments: "source",
+    },
+    parsed,
+    (files) => use({ bodyContent: parsed.bodyContent, ...files }),
   );
-
-  const prepared: PreparedPublishContent = { bodyContent };
-  if (imageData) {
-    prepared.imageData = imageData;
-  }
-  if (documentData && documentData.length > 0) {
-    prepared.documentData = documentData;
-  }
-  return use(prepared);
 }
 
 function parsePublishContent(content: string): ParsedPublishContent {
-  // Only the frontmatter parse is tolerated, and only because gray-matter
-  // raises on malformed YAML: a body whose frontmatter block will not parse
-  // carries nothing we can use, so it publishes verbatim. The field reads
-  // below work on already-parsed data, so a fault there is a bug — not a
-  // reason to quietly publish the post with its frontmatter still visible and
-  // its cover image and attachments dropped.
+  // Malformed YAML cannot supply usable references. Publish that body verbatim;
+  // faults after parsing must not silently drop requested images/documents.
   let parsed;
   try {
     parsed = parseMarkdownWithFrontmatter(
@@ -89,16 +56,12 @@ function parsePublishContent(content: string): ParsedPublishContent {
   } catch {
     return { bodyContent: content };
   }
-
-  const rawCoverImageId = parsed.metadata["coverImageId"];
-  const coverImageId =
-    typeof rawCoverImageId === "string" ? rawCoverImageId : undefined;
+  const coverImageId = parseStringField(parsed.metadata["coverImageId"]);
   const documents = parseDocumentReferences(parsed.metadata["documents"]);
   const sourceEntityType = parseStringField(
     parsed.metadata["sourceEntityType"],
   );
   const sourceEntityId = parseStringField(parsed.metadata["sourceEntityId"]);
-
   return {
     bodyContent: parsed.content,
     ...(coverImageId && { coverImageId }),
@@ -107,7 +70,6 @@ function parsePublishContent(content: string): ParsedPublishContent {
     ...(sourceEntityId && { sourceEntityId }),
   };
 }
-
 function parseDocumentReferences(value: unknown): PublishDocumentReference[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((item) => {
@@ -115,95 +77,6 @@ function parseDocumentReferences(value: unknown): PublishDocumentReference[] {
     return result.success ? [result.data] : [];
   });
 }
-
 function parseStringField(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
-}
-
-async function resolveSourceAttachmentData(
-  context: ServicePluginContext,
-  sourceEntityType: string | undefined,
-  sourceEntityId: string | undefined,
-): Promise<PublishMediaData[] | undefined> {
-  if (!sourceEntityType || !sourceEntityId) {
-    return undefined;
-  }
-
-  const attachment = await context.attachments.resolve({
-    sourceEntityType,
-    sourceEntityId,
-    attachmentType: "carousel",
-  });
-
-  return attachment ? [attachment] : undefined;
-}
-
-async function fetchPublishImageData(
-  context: ServicePluginContext,
-  coverImageId: string,
-): Promise<PublishImageData | undefined> {
-  const image = await context.entityService.getEntity({
-    entityType: "image",
-    id: coverImageId,
-  });
-  if (!image?.content) return undefined;
-
-  try {
-    const resolved = await resolveImageBytes(image, context.entityService);
-    return {
-      data: Buffer.from(resolved.bytes),
-      mimeType: resolved.mediaType,
-    };
-  } catch {
-    return undefined;
-  }
-}
-
-async function fetchPublishDocumentData(
-  context: ServicePluginContext,
-  documents: PublishDocumentReference[],
-): Promise<PublishMediaData[]> {
-  const results = await Promise.all(
-    documents.map((item) => fetchPublishDocumentItem(context, item)),
-  );
-  return results.filter((item): item is PublishMediaData => item !== undefined);
-}
-
-async function fetchPublishDocumentItem(
-  context: ServicePluginContext,
-  reference: PublishDocumentReference,
-): Promise<PublishMediaData | undefined> {
-  const entity = await context.entityService.getEntity({
-    entityType: "document",
-    id: reference.id,
-  });
-  if (!entity?.content) return undefined;
-
-  const parsed = parseBase64DataUrl(entity.content);
-  if (parsed?.mimeType !== "application/pdf") return undefined;
-
-  return {
-    type: "document",
-    data: parsed.data,
-    mimeType: "application/pdf",
-    filename: getFilename(entity, reference.id),
-  };
-}
-
-function parseBase64DataUrl(
-  content: string,
-): { mimeType: string; data: Buffer } | undefined {
-  const match = content.match(/^data:([^;]+);base64,(.+)$/);
-  if (!match?.[1] || !match[2]) return undefined;
-  return {
-    mimeType: match[1],
-    data: Buffer.from(match[2], "base64"),
-  };
-}
-
-function getFilename(entity: BaseEntity, fallbackId: string): string {
-  const filename = entity.metadata["filename"];
-  return typeof filename === "string" && filename.length > 0
-    ? filename
-    : `${fallbackId}.pdf`;
 }

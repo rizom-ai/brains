@@ -1,7 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
   getArtifactEntityFilename,
-  parseArtifactDataUrl,
   resolveArtifactEntityRefFromCard,
   resolveArtifactEntityRefFromUrl,
 } from "../../src/message-interface/artifact-entity";
@@ -39,28 +38,6 @@ describe("artifact entity helpers", () => {
     expect(
       resolveArtifactEntityRefFromUrl("/api/chat/attachments/image"),
     ).toBeUndefined();
-  });
-
-  it("parses generated artifact data URLs", () => {
-    const parsed = parseArtifactDataUrl(
-      "document",
-      `data:application/pdf;base64,${Buffer.from("pdf").toString("base64")}`,
-    );
-
-    expect(parsed?.mimeType).toBe("application/pdf");
-    expect(Buffer.from(parsed?.data ?? new ArrayBuffer(0)).toString()).toBe(
-      "pdf",
-    );
-  });
-
-  it("rejects mismatched artifact media types", () => {
-    expect(
-      parseArtifactDataUrl(
-        "document",
-        `data:image/png;base64,${Buffer.from("png").toString("base64")}`,
-      ),
-    ).toBeUndefined();
-    expect(parseArtifactDataUrl("image", "not a data url")).toBeUndefined();
   });
 
   it("derives artifact filenames from metadata or media type", () => {

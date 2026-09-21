@@ -1,22 +1,21 @@
-import type { AssetRef } from "@brains/assets";
-import { resolveImageBytes } from "@brains/image";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
-import type {
-  PublishProvider,
-  PublishImageData,
-  PublishMediaData,
+import {
+  PUBLISH_CHANNELS,
+  type PublishProvider,
+  type PublishResult,
 } from "@brains/contracts";
 import type {
-  AttachmentResolveRequest,
+  AttachmentFileResolver,
   MessageSender,
-  BaseEntity,
-  EntitySchema,
+  EntityServiceClient,
   EntityPluginContext,
   ToolContext,
 } from "@brains/plugins";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import { PUBLISH_CHANNELS } from "@brains/contracts";
+import {
+  parseMarkdownWithFrontmatter,
+  withPublishFiles,
+} from "@brains/plugins";
 import type { SocialPostFrontmatter } from "../schemas/social-post";
 import {
   socialPostFrontmatterSchema,
@@ -34,86 +33,55 @@ export interface PublishExecutePayload {
     authorization?: "user" | "system";
   };
 }
-
-export type ResolveAttachmentFn = (
-  request: AttachmentResolveRequest,
-) => Promise<PublishMediaData | undefined>;
-
-export interface PublishExecuteEntityService {
-  getEntity(request: {
-    entityType: string;
-    id: string;
-  }): Promise<BaseEntity | null>;
-  getEntity<T extends BaseEntity>(
-    request: { entityType: string; id: string },
-    schema: EntitySchema<T>,
-  ): Promise<T | null>;
-  readAsset(ref: AssetRef): Promise<Uint8Array>;
-  updateEntity(request: { entity: BaseEntity }): Promise<unknown>;
-}
-
+export type PublishExecuteEntityService = Pick<
+  EntityServiceClient,
+  "getEntity" | "statAsset" | "fileAssets" | "updateEntity"
+>;
 export interface PublishExecuteHandlerConfig {
   sendMessage: MessageSender;
   logger: Logger;
   entityService: PublishExecuteEntityService;
   providers: Map<string, PublishProvider>;
   permissions: EntityPluginContext["permissions"];
-  /**
-   * Optional attachment resolver. When set, posts with `sourceEntityType` /
-   * `sourceEntityId` but no explicit `documents[]` will ask the registry for
-   * `attachmentType: "carousel"` and use the result as the published document.
-   */
-  resolveAttachment?: ResolveAttachmentFn;
+  withAttachmentFile?: AttachmentFileResolver;
 }
 
-/**
- * Handles publish:execute messages from the publish-service scheduler.
- * This replaces the job-based publishing with message-driven publishing.
+/** Message-driven publication. Claims prevent in-process replay, not durable
+ * exactly-once delivery. Uncertain external sends require reconciliation.
  */
 export class PublishExecuteHandler {
-  private sendMessage: MessageSender;
-  private logger: Logger;
-  private entityService: PublishExecuteEntityService;
-  private providers: Map<string, PublishProvider>;
-  private permissions: EntityPluginContext["permissions"];
-  private resolveAttachment: ResolveAttachmentFn | undefined;
-
+  private readonly config: PublishExecuteHandlerConfig;
+  private readonly enteredAttempts = new Set<string>();
+  private readonly activeEntities = new Set<string>();
   constructor(config: PublishExecuteHandlerConfig) {
-    this.sendMessage = config.sendMessage;
-    this.logger = config.logger;
-    this.entityService = config.entityService;
-    this.providers = config.providers;
-    this.permissions = config.permissions;
-    this.resolveAttachment = config.resolveAttachment;
+    this.config = config;
   }
 
-  /**
-   * Handle a publish:execute message
-   */
   async handle(payload: PublishExecutePayload): Promise<void> {
     const { entityType, entityId } = payload;
-
-    // Only handle social-post entities
-    if (entityType !== "social-post") {
-      return;
-    }
-
-    this.permissions.assertEntityActionAllowed(
+    if (entityType !== "social-post") return;
+    const { permissions, entityService, logger, providers } = this.config;
+    permissions.assertEntityActionAllowed(
       entityType,
       "publish",
       payload.authContext ?? { userPermissionLevel: "admin" },
     );
-
-    this.logger.debug("Handling publish:execute", { entityId });
-
+    if (this.activeEntities.has(entityId)) {
+      logger.warn("Publish request is already active", { entityId });
+      return;
+    }
+    this.activeEntities.add(entityId);
+    const state: {
+      entered: boolean;
+      published: boolean;
+      result?: PublishResult;
+    } = { entered: false, published: false };
     try {
-      // Fetch the entity
-      const entity = await this.entityService.getEntity(
-        { entityType: "social-post", id: entityId },
+      const post = await entityService.getEntity(
+        { entityType, id: entityId },
         socialPostSchema,
       );
-
-      if (!entity) {
+      if (!post) {
         await this.reportFailure(
           entityType,
           entityId,
@@ -121,19 +89,9 @@ export class PublishExecuteHandler {
         );
         return;
       }
-
-      const post = entity;
-
-      // Skip if already published
-      if (post.metadata.status === "published") {
-        this.logger.debug("Post already published, skipping", { entityId });
-        return;
-      }
-
-      // Get the provider for this platform
+      if (post.metadata.status === "published") return;
       const platform = post.metadata.platform;
-      const provider = this.providers.get(platform);
-
+      const provider = providers.get(platform);
       if (!provider) {
         await this.reportFailure(
           entityType,
@@ -142,284 +100,161 @@ export class PublishExecuteHandler {
         );
         return;
       }
-
-      // Parse the content
       const parsed = parseMarkdownWithFrontmatter(
         post.content,
         socialPostFrontmatterSchema,
       );
-
-      // Fetch image data if coverImageId is present
-      let imageData: PublishImageData | undefined;
-      if (parsed.metadata.coverImageId) {
-        imageData = await this.fetchImageData(parsed.metadata.coverImageId);
-      }
-
-      const requestedDocuments = parsed.metadata.documents ?? [];
-      const explicitDocumentData =
-        await this.fetchDocumentData(requestedDocuments);
-
-      // Attempt to publish
       try {
-        // If the post explicitly references documents but none could be
-        // fetched, refuse to silently degrade to a text-only post — that
-        // would mislead the user about what was published. Throw here so
-        // the existing failed-publish path marks the entity as failed.
-        if (
-          requestedDocuments.length > 0 &&
-          explicitDocumentData.length === 0
-        ) {
-          throw new Error(
-            `Refusing to publish: ${requestedDocuments.length} document(s) referenced but none could be fetched`,
-          );
-        }
-
-        // When no explicit documents are referenced, try to resolve a
-        // source-derived attachment (e.g. a deck-owned carousel).
-        const sourceDocumentData =
-          requestedDocuments.length === 0
-            ? await this.resolveSourceAttachment(parsed.metadata)
-            : [];
-
-        const documentData =
-          explicitDocumentData.length > 0
-            ? explicitDocumentData
-            : sourceDocumentData;
-
-        const result = documentData.length
-          ? await provider.publish(
+        await withPublishFiles(
+          {
+            entityService,
+            withAttachmentFile: this.config.withAttachmentFile,
+            missingDocuments: "error",
+          },
+          parsed.metadata,
+          async (files): Promise<void> => {
+            const key = `${entityId}:${post.contentHash}`;
+            if (this.enteredAttempts.has(key)) {
+              state.entered = true;
+              throw new Error(
+                "Publish attempt already entered; reconcile its outcome before a new request",
+              );
+            }
+            files.imageData?.signal.throwIfAborted();
+            for (const file of files.documentData ?? [])
+              file.signal.throwIfAborted();
+            if (this.enteredAttempts.size >= 1024)
+              throw new Error(
+                "Unreconciled publication attempt capacity exceeded",
+              );
+            this.enteredAttempts.add(key);
+            state.entered = true;
+            const result = await provider.publish(
               parsed.content,
               post.metadata,
-              imageData,
-              documentData,
-            )
-          : await provider.publish(parsed.content, post.metadata, imageData);
-
-        // Update entity as published
-        const publishedAt = new Date().toISOString();
-        const platformPostId = result.id || undefined;
-        const updatedFrontmatter: SocialPostFrontmatter = {
-          ...parsed.metadata,
-          status: "published",
-          publishedAt,
-          ...(platformPostId && { platformPostId }),
-        };
-        const updatedContent = socialPostAdapter.createPostContent(
-          updatedFrontmatter,
-          parsed.content,
-        );
-
-        await this.entityService.updateEntity({
-          entity: {
-            ...post,
-            content: updatedContent,
-            metadata: {
-              ...post.metadata,
+              files.imageData,
+              files.documentData,
+            );
+            state.result = result;
+            // Cancellation cannot retract the external acknowledgement. Persist it
+            // inside the file scopes, without starting another external send.
+            const publishedAt = new Date().toISOString();
+            const platformPostId = result.id || undefined;
+            const frontmatter: SocialPostFrontmatter = {
+              ...parsed.metadata,
               status: "published",
               publishedAt,
+              ...(platformPostId && { platformPostId }),
+            };
+            const acknowledgement = await entityService.updateEntity({
+              entity: {
+                ...post,
+                content: socialPostAdapter.createPostContent(
+                  frontmatter,
+                  parsed.content,
+                ),
+                metadata: {
+                  ...post.metadata,
+                  status: "published",
+                  publishedAt,
+                  platformPostId,
+                },
+              },
+            });
+            if (acknowledgement.skipped)
+              throw new Error(
+                "External publication acknowledged but local status update was skipped; reconcile before retrying",
+              );
+            state.published = true;
+            this.enteredAttempts.delete(key);
+            await this.reportSuccess(entityType, entityId, result.id);
+            logger.info(`Post published successfully: ${entityId}`, {
+              platform,
               platformPostId,
-            },
+            });
           },
-        });
-
-        // Report success
-        await this.reportSuccess(entityType, entityId, result.id);
-
-        this.logger.info(`Post published successfully: ${entityId}`, {
-          platform,
-          platformPostId,
-        });
-      } catch (publishError) {
-        const errorMessage = getErrorMessage(publishError);
-
-        // Update entity with error status (retry tracking is handled by RetryTracker)
-        const updatedFrontmatter: SocialPostFrontmatter = {
-          ...parsed.metadata,
-          status: "failed",
-        };
-        const updatedContent = socialPostAdapter.createPostContent(
-          updatedFrontmatter,
-          parsed.content,
         );
-
-        await this.entityService.updateEntity({
-          entity: {
-            ...post,
-            content: updatedContent,
-            metadata: {
-              ...post.metadata,
+      } catch (error) {
+        if (state.published) {
+          logger.warn(
+            "Post published but notification or file retirement failed",
+            { entityId, result: state.result, error },
+          );
+          return;
+        }
+        if (!state.entered) {
+          let updateFailure: { error: unknown } | undefined;
+          try {
+            const frontmatter: SocialPostFrontmatter = {
+              ...parsed.metadata,
               status: "failed",
-            },
-          },
-        });
-
-        // Report failure
-        await this.reportFailure(entityType, entityId, errorMessage);
-
-        this.logger.error(`Post publish failed: ${entityId}`, {
-          platform,
-          error: errorMessage,
-        });
+            };
+            await entityService.updateEntity({
+              entity: {
+                ...post,
+                content: socialPostAdapter.createPostContent(
+                  frontmatter,
+                  parsed.content,
+                ),
+                metadata: { ...post.metadata, status: "failed" },
+              },
+            });
+          } catch (updateError) {
+            updateFailure = { error: updateError };
+          }
+          if (updateFailure && !Object.is(error, updateFailure.error))
+            throw new AggregateError(
+              [error, updateFailure.error],
+              "Publication preparation and failure update failed",
+              { cause: error },
+            );
+        }
+        throw error;
       }
     } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      this.logger.error("Unexpected error in publish handler", {
+      logger.error("Publish handler failed; no automatic replay", {
         entityId,
-        error: errorMessage,
+        result: state.result,
+        entered: state.entered,
+        error,
       });
-      await this.reportFailure(entityType, entityId, errorMessage);
+      let reportingFailure: { error: unknown } | undefined;
+      try {
+        await this.reportFailure(entityType, entityId, getErrorMessage(error));
+      } catch (reportError) {
+        reportingFailure = { error: reportError };
+      }
+      if (reportingFailure) {
+        if (!Object.is(error, reportingFailure.error))
+          throw new AggregateError(
+            [error, reportingFailure.error],
+            "Publication and failure reporting failed",
+            { cause: error },
+          );
+        throw error;
+      }
+    } finally {
+      this.activeEntities.delete(entityId);
     }
   }
-
-  /**
-   * Report successful publish to the publish-service
-   */
   private async reportSuccess(
     entityType: string,
     entityId: string,
     platformPostId: string,
   ): Promise<void> {
-    await this.sendMessage({
+    await this.config.sendMessage({
       type: PUBLISH_CHANNELS.reportSuccess,
-      payload: {
-        entityType,
-        entityId,
-        result: { id: platformPostId },
-      },
+      payload: { entityType, entityId, result: { id: platformPostId } },
     });
   }
-
-  /**
-   * Report failed publish to the publish-pipeline
-   */
   private async reportFailure(
     entityType: string,
     entityId: string,
     error: string,
   ): Promise<void> {
-    await this.sendMessage({
+    await this.config.sendMessage({
       type: PUBLISH_CHANNELS.reportFailure,
-      payload: {
-        entityType,
-        entityId,
-        error,
-      },
+      payload: { entityType, entityId, error, willRetry: false },
     });
-  }
-
-  /**
-   * Resolve a source-derived carousel attachment when the post carries
-   * `sourceEntityType` / `sourceEntityId` and an attachment provider is
-   * registered for that source.
-   */
-  private async resolveSourceAttachment(metadata: {
-    sourceEntityType?: string | undefined;
-    sourceEntityId?: string | undefined;
-  }): Promise<PublishMediaData[]> {
-    if (
-      !this.resolveAttachment ||
-      !metadata.sourceEntityType ||
-      !metadata.sourceEntityId
-    ) {
-      return [];
-    }
-
-    const attachment = await this.resolveAttachment({
-      sourceEntityType: metadata.sourceEntityType,
-      sourceEntityId: metadata.sourceEntityId,
-      attachmentType: "carousel",
-    });
-    return attachment ? [attachment] : [];
-  }
-
-  /**
-   * Fetch document entities and extract binary PDF data for publishing
-   */
-  private async fetchDocumentData(
-    documents: Array<{ id: string }> | undefined,
-  ): Promise<PublishMediaData[]> {
-    if (!documents?.length) {
-      return [];
-    }
-
-    const result: PublishMediaData[] = [];
-    for (const documentRef of documents) {
-      const documentData = await this.fetchSingleDocumentData(documentRef.id);
-      if (documentData) {
-        result.push(documentData);
-      }
-    }
-    return result;
-  }
-
-  private async fetchSingleDocumentData(
-    documentId: string,
-  ): Promise<PublishMediaData | undefined> {
-    try {
-      const document = await this.entityService.getEntity({
-        entityType: "document",
-        id: documentId,
-      });
-
-      if (!document) {
-        this.logger.warn("Document not found", { documentId });
-        return undefined;
-      }
-
-      const match = document.content.match(
-        /^data:application\/pdf;base64,(.+)$/,
-      );
-      if (!match?.[1]) {
-        this.logger.warn("Invalid document data URL format", { documentId });
-        return undefined;
-      }
-
-      const filename =
-        typeof document.metadata["filename"] === "string"
-          ? document.metadata["filename"]
-          : `${documentId}.pdf`;
-
-      return {
-        type: "document",
-        data: Buffer.from(match[1], "base64"),
-        mimeType: "application/pdf",
-        filename,
-      };
-    } catch (error) {
-      // The document is an optional attachment. Publishing the post without
-      // it beats failing a post whose text is ready to go.
-      this.logger.warn("Failed to fetch document", { documentId, error });
-      return undefined;
-    }
-  }
-
-  /**
-   * Fetch image entity and extract binary data for publishing
-   */
-  private async fetchImageData(
-    imageId: string,
-  ): Promise<PublishImageData | undefined> {
-    try {
-      const image = await this.entityService.getEntity({
-        entityType: "image",
-        id: imageId,
-      });
-
-      if (!image) {
-        this.logger.warn("Cover image not found", { imageId });
-        return undefined;
-      }
-
-      const resolved = await resolveImageBytes(image, this.entityService);
-      return {
-        data: Buffer.from(resolved.bytes),
-        mimeType: resolved.mediaType,
-      };
-    } catch (error) {
-      // The cover image is an optional attachment, and the post reads without
-      // it. Same call as the document above.
-      this.logger.warn("Failed to fetch cover image", { imageId, error });
-      return undefined;
-    }
   }
 }

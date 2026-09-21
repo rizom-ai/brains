@@ -4,9 +4,10 @@
   "version": "0.2.0-alpha.373",
   "description": "Document entity type for generated PDFs and publishable document attachments",
   "dependencies": {
+    "@brains/assets": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/document": "workspace:*",
-    "@brains/media-renderer": "workspace:*",
+    "@brains/media-page-composer": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*"
   },

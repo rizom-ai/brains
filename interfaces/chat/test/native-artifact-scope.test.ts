@@ -109,7 +109,7 @@ test("serial native sends retain acknowledged cards and stop after uncertainty w
       "trusted",
       async (delivery) => {
         scope = delivery;
-        expect(delivery.files).toEqual([]);
+        expect("files" in delivery).toBe(false);
         assert.ok(delivery.sendFiles);
         await delivery.sendFiles((id) => {
           attempts.push(id);

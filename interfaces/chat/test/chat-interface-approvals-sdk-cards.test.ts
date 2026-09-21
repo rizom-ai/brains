@@ -469,7 +469,7 @@ describe("ChatInterface SDK card approvals", () => {
     );
   });
 
-  it("posts native Discord files for trusted artifacts returned by confirmations", async () => {
+  it("does not buffer unmigrated documents returned by trusted confirmations", async () => {
     suite.harness.addEntities([
       {
         id: "confirmed-deck",
@@ -522,14 +522,15 @@ describe("ChatInterface SDK card approvals", () => {
     await chat?.handlers.mentions[0]?.(thread, createMessage({ text: "yes" }));
 
     expect(thread.post).toHaveBeenCalledWith(
+      expect.objectContaining({ fallbackText: "Approved · Deck generated." }),
+    );
+    expect(thread.post).toHaveBeenCalledWith(
       expect.objectContaining({
-        files: [
-          expect.objectContaining({
-            filename: "confirmed-deck.pdf",
-            mimeType: "application/pdf",
-          }),
-        ],
+        card: expect.objectContaining({ title: "Confirmed deck" }),
       }),
+    );
+    expect(thread.post).not.toHaveBeenCalledWith(
+      expect.objectContaining({ files: expect.anything() }),
     );
   });
 

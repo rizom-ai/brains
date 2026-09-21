@@ -20,7 +20,7 @@ import type { BaseEntity } from "@brains/plugins";
 import type { FileOperationsEntityService } from "../src/lib/file-operations";
 import {
   TINY_PDF_BYTES,
-  TINY_PDF_DATA_URL,
+  TINY_PDF_ASSET_REF,
   TINY_PNG_BYTES,
   TINY_PNG_DATA_URL,
 } from "./fixtures";
@@ -49,7 +49,7 @@ describe("FileOperations", () => {
         `# ${entity.id}\n\n${entity.content}`,
       hasEntityType: (): boolean => true,
       readAsset: async (ref): Promise<Uint8Array> => {
-        for (const bytes of [TINY_PNG_BYTES, TINY_JPEG_BYTES])
+        for (const bytes of [TINY_PNG_BYTES, TINY_JPEG_BYTES, TINY_PDF_BYTES])
           if (prepareAsset(bytes).ref === ref) return bytes;
         throw new Error("asset read not configured");
       },
@@ -547,7 +547,7 @@ describe("FileOperations", () => {
   });
 
   describe("Document File Support", () => {
-    it("should read PDF files from document/ directory as base64 data URLs", async () => {
+    it("reads PDF paths through native inspection and returns only asset facts", async () => {
       mkdirSync(join(testDir, "document"), { recursive: true });
       const documentPath = join(testDir, "document", "carousel.pdf");
       writeFileSync(documentPath, TINY_PDF_BYTES);
@@ -556,13 +556,17 @@ describe("FileOperations", () => {
 
       expect(entity.entityType).toBe("document");
       expect(entity.id).toBe("carousel");
-      expect(entity.content).toBe(TINY_PDF_DATA_URL);
+      expect(entity.content).toBe(TINY_PDF_ASSET_REF);
+      expect(entity.fileAsset).toEqual({
+        sourceFile: documentPath,
+        sizeBytes: TINY_PDF_BYTES.length,
+      });
     });
 
     it("should write document entities as binary PDF files in document/ directory", async () => {
       const entity = createTestEntity("document", {
         id: "carousel",
-        content: TINY_PDF_DATA_URL,
+        content: TINY_PDF_ASSET_REF,
         metadata: { mimeType: "application/pdf", filename: "carousel.pdf" },
       });
 
@@ -592,7 +596,7 @@ describe("FileOperations", () => {
     it("should roundtrip document entities correctly", async () => {
       const entity = createTestEntity("document", {
         id: "roundtrip-carousel",
-        content: TINY_PDF_DATA_URL,
+        content: TINY_PDF_ASSET_REF,
         metadata: { mimeType: "application/pdf", filename: "carousel.pdf" },
       });
 
@@ -604,13 +608,13 @@ describe("FileOperations", () => {
 
       expect(readEntity.id).toBe("roundtrip-carousel");
       expect(readEntity.entityType).toBe("document");
-      expect(readEntity.content).toBe(TINY_PDF_DATA_URL);
+      expect(readEntity.content).toBe(TINY_PDF_ASSET_REF);
     });
 
     it("should persist document metadata in a sidecar JSON file", async () => {
       const entity = createTestEntity("document", {
         id: "carousel-with-metadata",
-        content: TINY_PDF_DATA_URL,
+        content: TINY_PDF_ASSET_REF,
         metadata: {
           mimeType: "application/pdf",
           filename: "carousel.pdf",
@@ -641,7 +645,12 @@ describe("FileOperations", () => {
       writeFileSync(join(testDir, "document", "carousel.pdf"), TINY_PDF_BYTES);
       writeFileSync(
         join(testDir, "document", "carousel.pdf.meta.json"),
-        JSON.stringify({ pageCount: 3, dedupKey: "carousel:post-1" }),
+        JSON.stringify({
+          pageCount: 3,
+          sizeBytes: 1,
+          mimeType: "image/png",
+          dedupKey: "carousel:post-1",
+        }),
       );
 
       const entity = await fileOps.readEntity("document/carousel.pdf");
@@ -649,7 +658,8 @@ describe("FileOperations", () => {
       expect(entity.metadata).toEqual({
         mimeType: "application/pdf",
         filename: "carousel.pdf",
-        pageCount: 3,
+        sizeBytes: TINY_PDF_BYTES.length,
+        pageCount: 0,
         dedupKey: "carousel:post-1",
       });
     });
@@ -657,7 +667,7 @@ describe("FileOperations", () => {
     it("should round-trip the full document metadata via write+read", async () => {
       const entity = createTestEntity("document", {
         id: "full-roundtrip",
-        content: TINY_PDF_DATA_URL,
+        content: TINY_PDF_ASSET_REF,
         metadata: {
           mimeType: "application/pdf",
           filename: "original-name.pdf",
@@ -677,7 +687,8 @@ describe("FileOperations", () => {
       expect(readEntity.metadata).toEqual({
         mimeType: "application/pdf",
         filename: "original-name.pdf",
-        pageCount: 7,
+        sizeBytes: TINY_PDF_BYTES.length,
+        pageCount: 0,
         sourceEntityType: "social-post",
         sourceEntityId: "post-1",
         attachmentType: "carousel",
@@ -697,7 +708,52 @@ describe("FileOperations", () => {
       expect(entity.metadata).toEqual({
         mimeType: "application/pdf",
         filename: "hand-placed.pdf",
+        sizeBytes: TINY_PDF_BYTES.length,
+        pageCount: 0,
       });
+    });
+
+    it("does not let an oversized sidecar override measured PDF facts", async () => {
+      mkdirSync(join(testDir, "document"), { recursive: true });
+      writeFileSync(join(testDir, "document", "bounded.pdf"), TINY_PDF_BYTES);
+      writeFileSync(
+        join(testDir, "document", "bounded.pdf.meta.json"),
+        JSON.stringify({ title: "x".repeat(65536), filename: "forged.pdf" }),
+      );
+      const entity = await fileOps.readEntity("document/bounded.pdf");
+      expect(entity.metadata).toEqual({
+        filename: "bounded.pdf",
+        mimeType: "application/pdf",
+        sizeBytes: TINY_PDF_BYTES.length,
+        pageCount: 0,
+      });
+    });
+
+    it("never exports placeholders or decodes inline PDFs over an existing artifact", async () => {
+      mkdirSync(join(testDir, "document"), { recursive: true });
+      const path = join(testDir, "document", "retained.pdf");
+      writeFileSync(path, TINY_PDF_BYTES);
+      for (const status of ["pending", "failed"]) {
+        await fileOps.writeEntity(
+          createTestEntity("document", {
+            id: "retained",
+            content: "",
+            metadata: { filename: "retained.pdf", status },
+          }),
+        );
+        expect(readFileSync(path).equals(TINY_PDF_BYTES)).toBe(true);
+      }
+      await assert.rejects(
+        fileOps.writeEntity(
+          createTestEntity("document", {
+            id: "retained",
+            content: `data:application/pdf;base64,${TINY_PDF_BYTES.toString("base64")}`,
+            metadata: { filename: "retained.pdf" },
+          }),
+        ),
+      );
+      expect(readFileSync(path).equals(TINY_PDF_BYTES)).toBe(true);
+      expect(existsSync(`${path}.meta.json`)).toBe(false);
     });
 
     it("should exclude sidecar JSON files from sync file discovery", async () => {

@@ -6,6 +6,8 @@ import type { AuthPrincipal } from "@brains/auth-service";
 import { coerceConversationMetadata } from "@brains/plugins";
 import { readChatProtocolEvents } from "@brains/contracts/chat";
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
+import { prepareAsset } from "@brains/assets";
+import { installAttachmentFileFixture } from "./attachment-file-fixture";
 import type {
   IAgentService,
   IConversationService,
@@ -312,8 +314,10 @@ function requireRoute(
 
 describe("WebChatInterface", () => {
   let harness: PluginTestHarness<WebChatInterface>;
+  let closeFiles: (() => Promise<void>) | undefined;
 
   beforeEach(() => {
+    closeFiles = undefined;
     harness = createPluginHarness<WebChatInterface>();
     const conversations: Conversation[] = [];
     harness.getMockShell().setConversationService(
@@ -337,7 +341,11 @@ describe("WebChatInterface", () => {
   });
 
   afterEach(async () => {
-    await harness.reset();
+    try {
+      await harness.reset();
+    } finally {
+      await closeFiles?.();
+    }
   });
 
   it("registers as the web-chat interface", async () => {
@@ -2412,17 +2420,24 @@ describe("WebChatInterface", () => {
 
   it("serves generated PDF document attachments to Admins", async () => {
     const plugin = adminPlugin();
-    harness.addEntities([
-      {
+    const bytes = Buffer.from("%PDF-1.7");
+    const preparedAsset = prepareAsset(bytes);
+    const service = harness.getEntityService();
+    await service.createEntity({
+      entity: {
         id: "deck-carousel",
         entityType: "document",
-        content: "data:application/pdf;base64,JVBERi0xLjc=",
+        content: preparedAsset.ref,
         metadata: {
           filename: "deck-carousel.pdf",
           mimeType: "application/pdf",
+          sizeBytes: bytes.length,
+          pageCount: 0,
         },
       },
-    ]);
+      preparedAsset,
+    });
+    closeFiles = await installAttachmentFileFixture(service, bytes);
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/attachments/document", "GET");
 
@@ -2496,6 +2511,10 @@ describe("WebChatInterface", () => {
         },
         preparedAsset: { ref, digest, sizeBytes: bytes.byteLength, bytes },
       });
+    closeFiles = await installAttachmentFileFixture(
+      harness.getEntityService(),
+      bytes,
+    );
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/attachments/image", "GET");
 

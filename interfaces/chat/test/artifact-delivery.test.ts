@@ -19,7 +19,7 @@ test("artifact delivery awaits the consumer even with no context or cards", asyn
   let settled = false;
   const work = resolver
     .withFiles(undefined, "public", async (delivery) => {
-      expect(delivery.files).toEqual([]);
+      expect("files" in delivery).toBe(false);
       expect(delivery.deniedCardIds.size).toBe(0);
       expect(delivery.deliveredCardIds.size).toBe(0);
       entered.resolve();
@@ -38,7 +38,7 @@ test("artifact delivery awaits the consumer even with no context or cards", asyn
   expect(await work).toBe(result);
 });
 
-test("resolved artifacts are consumed once and send failures are not retried or suppressed", async () => {
+test("unprovisioned artifacts never buffer and consumer failures are not retried", async () => {
   const shell = createMockShell();
   const context = createInterfacePluginContext(shell, "chat");
   await shell.getEntityService().createEntity({
@@ -46,7 +46,7 @@ test("resolved artifacts are consumed once and send failures are not retried or 
       id: "pdf",
       entityType: "document",
       visibility: "public",
-      content: `data:application/pdf;base64,${Buffer.from("%PDF-1.7").toString("base64")}`,
+      content: `asset://sha256/${"a".repeat(64)}`,
       metadata: { filename: "artifact.pdf", status: "draft" },
     },
   });
@@ -67,19 +67,24 @@ test("resolved artifacts are consumed once and send failures are not retried or 
       },
     },
   ];
-  const primary = new Error("SDK send failed");
+  const readAsset = mock(async (): Promise<never> => {
+    throw new Error("Buffered read forbidden");
+  });
+  shell.getEntityService().readAsset = readAsset;
+  const primary = new Error("Consumer failed");
   let consumed = 0;
   await assert.rejects(
     resolver.withFiles(cards, "trusted", async (delivery) => {
       consumed++;
-      expect(delivery.files).toHaveLength(1);
-      expect(delivery.files[0]?.filename).toBe("artifact.pdf");
-      expect([...delivery.deliveredCardIds]).toEqual(["card"]);
+      expect("files" in delivery).toBe(false);
+      expect(delivery.sendFiles).toBeUndefined();
+      expect([...delivery.deliveredCardIds]).toEqual([]);
       throw primary;
     }),
     (error: unknown) => error === primary,
   );
   expect(consumed).toBe(1);
+  expect(readAsset).not.toHaveBeenCalled();
   expect(debug).not.toHaveBeenCalled();
 });
 

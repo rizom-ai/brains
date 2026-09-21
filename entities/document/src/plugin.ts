@@ -10,10 +10,12 @@ import type {
 } from "@brains/plugins";
 import { createPendingEntity, ServicePlugin } from "@brains/plugins";
 import { slugify } from "@brains/utils/string-utils";
+import { MAX_ASSET_BYTES } from "@brains/assets";
 import { z } from "@brains/utils/zod";
 import {
   documentAdapter,
   documentSchema,
+  documentAssetFactsFromInspection,
   type DocumentAdapter,
   type DocumentEntity,
 } from "@brains/document";
@@ -24,10 +26,6 @@ import {
 } from "./handlers/documentGenerationHandler";
 import packageJson from "../package.json";
 
-const PENDING_PDF_DATA_URL = `data:application/pdf;base64,${Buffer.from(
-  "%PDF-1.4\n% Pending document placeholder\n%%EOF\n",
-).toString("base64")}`;
-
 type DocumentPluginConfig = Record<string, never>;
 type DocumentPluginConfigInput = Record<string, unknown>;
 
@@ -36,6 +34,7 @@ function createAttributionJobOptions(
 ): JobOptions {
   return {
     source: "document",
+    maxRetries: 0,
     metadata: {
       operationType: "content_operations",
       interfaceType: executionContext.interfaceType,
@@ -69,10 +68,6 @@ function getUploadTitle(input: CreateInput, filename: string): string {
   if (title) return title;
   const withoutExt = filename.replace(/\.[^.]+$/, "").trim();
   return withoutExt || filename;
-}
-
-function toDataUrl(mediaType: string, content: Buffer): string {
-  return `data:${mediaType};base64,${content.toString("base64")}`;
 }
 
 function buildUploadedDocumentAttachment(input: {
@@ -123,6 +118,8 @@ export class DocumentPlugin extends ServicePlugin<
     this.pluginContext = context;
     context.entities.register(this.entityType, this.schema, this.adapter, {
       embeddable: false,
+      fullTextSearchable: false,
+      binaryStorage: "asset",
       projectionSource: false,
       projectionSourceRole: "excluded",
     });
@@ -263,11 +260,11 @@ export class DocumentPlugin extends ServicePlugin<
       };
     }
 
-    let upload;
+    const store = context.uploads.scoped(webChatUploadsScope);
     try {
-      upload = await context.uploads
-        .scoped(webChatUploadsScope)
-        .read(uploadRef.id);
+      // An inaccessible upload remains a not-found response; native inspection
+      // and publication failures below must retain their original causes.
+      await store.readRecord(uploadRef.id);
     } catch {
       return {
         kind: "handled",
@@ -275,74 +272,98 @@ export class DocumentPlugin extends ServicePlugin<
       };
     }
 
-    if (upload.record.mediaType !== "application/pdf") {
-      return {
-        kind: "handled",
-        result: {
-          success: false,
-          error: "Only PDF uploads can be promoted to document entities",
-        },
-      };
-    }
+    return store.withFile(
+      uploadRef.id,
+      async (upload): Promise<CreateInterceptionResult> => {
+        if (upload.record.mediaType !== "application/pdf") {
+          return {
+            kind: "handled",
+            result: {
+              success: false,
+              error: "Only PDF uploads can be promoted to document entities",
+            },
+          };
+        }
 
-    const title = getUploadTitle(input, upload.record.filename);
-    const id = slugify(title);
-    if (!id) {
-      return {
-        kind: "handled",
-        result: {
-          success: false,
-          error:
-            "Could not derive a document id from the uploaded filename. Provide a title.",
-        },
-      };
-    }
+        const title = getUploadTitle(input, upload.record.filename);
+        const id = slugify(title);
+        if (!id) {
+          return {
+            kind: "handled",
+            result: {
+              success: false,
+              error:
+                "Could not derive a document id from the uploaded filename. Provide a title.",
+            },
+          };
+        }
 
-    const now = new Date().toISOString();
-    const documentEntity = documentAdapter.createDocumentEntity({
-      dataUrl: toDataUrl(upload.record.mediaType, upload.content),
-      filename: upload.record.filename,
-      title,
-      status: "draft",
-      sourceUploadId: uploadRef.id,
-      sourceFilename: upload.record.filename,
-      sourceMediaType: upload.record.mediaType,
-      attachmentType: "uploaded",
-      dedupKey: `upload:${uploadRef.kind}:${uploadRef.id}`,
-    });
-    const result = await context.entityService.createEntity({
-      entity: {
-        id,
-        ...documentEntity,
-        ...(input.visibility !== undefined
-          ? { visibility: input.visibility }
-          : {}),
-        created: now,
-        updated: now,
-      },
-      options: {
-        deduplicateId: true,
-        eventContext: {
-          actor: executionContext.actor,
-          interfaceType: executionContext.interfaceType,
-        },
-      },
-    });
+        const files = context.entityService.fileAssets;
+        if (!files)
+          throw new Error(
+            "Uploaded document file publication is not provisioned",
+          );
+        const source = {
+          sourceFile: upload.sourceFile,
+          sizeBytes: upload.record.sizeBytes,
+        };
+        const facts = documentAssetFactsFromInspection(
+          await files.inspect(source, { inspector: "pdf" }),
+          { maxBytes: MAX_ASSET_BYTES, maxPageCount: Number.MAX_SAFE_INTEGER },
+        );
+        const now = new Date().toISOString();
+        const documentEntity = documentAdapter.createDocumentEntity({
+          facts,
+          filename: upload.record.filename,
+          title,
+          status: "draft",
+          sourceUploadId: uploadRef.id,
+          sourceFilename: upload.record.filename,
+          sourceMediaType: upload.record.mediaType,
+          attachmentType: "uploaded",
+          dedupKey: `upload:${uploadRef.kind}:${uploadRef.id}`,
+        });
+        const result = await files.publish({
+          ...source,
+          publication: {
+            operation: "createEntity",
+            request: {
+              entity: {
+                id,
+                ...documentEntity,
+                ...(input.visibility !== undefined
+                  ? { visibility: input.visibility }
+                  : {}),
+                created: now,
+                updated: now,
+              },
+              options: {
+                deduplicateId: true,
+                eventContext: {
+                  actor: executionContext.actor,
+                  interfaceType: executionContext.interfaceType,
+                },
+              },
+            },
+          },
+        });
 
-    return {
-      kind: "handled",
-      result: {
-        success: true,
-        data: {
-          entityId: result.entityId,
-          status: "created",
-          attachment: buildUploadedDocumentAttachment({
-            entityId: result.entityId,
-            filename: upload.record.filename,
-          }),
-        },
+        return {
+          kind: "handled",
+          result: {
+            success: true,
+            data: {
+              entityId: result.entityId,
+              status: "created",
+              attachment: buildUploadedDocumentAttachment({
+                entityId: result.entityId,
+                filename: upload.record.filename,
+              }),
+            },
+          },
+        };
       },
-    };
+    );
   }
 
   private async createPendingDocument(
@@ -359,8 +380,7 @@ export class DocumentPlugin extends ServicePlugin<
     executionContext: CreateExecutionContext,
   ): Promise<void> {
     const now = new Date().toISOString();
-    const entityData = documentAdapter.createDocumentEntity({
-      dataUrl: PENDING_PDF_DATA_URL,
+    const entityData = documentAdapter.createPendingDocumentEntity({
       filename: input.filename,
       title: input.title,
       status: "pending",

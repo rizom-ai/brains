@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
-import type { PublishMediaData, PublishProvider } from "@brains/contracts";
+import type { PublishProvider } from "@brains/contracts";
 import {
   PublishExecuteHandler,
   type PublishExecuteEntityService,
   type PublishExecuteHandlerConfig,
 } from "../../src/handlers/publishExecuteHandler";
-import type { BaseEntity } from "@brains/plugins";
+import type { BaseEntity, AttachmentFileResolver } from "@brains/plugins";
 import type { SocialPost } from "../../src/schemas/social-post";
 import { createMockLogger, createMockMessageSender } from "@brains/test-utils";
 import { getErrorMessage } from "@brains/utils/error";
@@ -18,15 +18,59 @@ class TestEntityService implements PublishExecuteEntityService {
     id: string;
   }) => Promise<BaseEntity | null> = async () => null;
 
+  public loans = 0;
   public readonly updateEntity = mock(
-    async (_request: { entity: BaseEntity }): Promise<void> => {},
+    async (request: {
+      entity: BaseEntity;
+    }): Promise<
+      Awaited<ReturnType<PublishExecuteEntityService["updateEntity"]>>
+    > => ({ entityId: request.entity.id, jobId: "fixture", skipped: false }),
   );
-
-  public async readAsset(
-    _ref: Parameters<PublishExecuteEntityService["readAsset"]>[0],
-  ): Promise<Uint8Array> {
-    return Buffer.from(TINY_PNG_BASE64, "base64");
+  public async statAsset(
+    ref: Parameters<PublishExecuteEntityService["statAsset"]>[0],
+  ): ReturnType<PublishExecuteEntityService["statAsset"]> {
+    return {
+      ref,
+      sizeBytes: ref.endsWith("a".repeat(64))
+        ? Buffer.from(TINY_PNG_BASE64, "base64").length
+        : 15,
+    };
   }
+  public readonly fileAssets: NonNullable<
+    PublishExecuteEntityService["fileAssets"]
+  > = {
+    withAssetFile: async (ref, use, options) => {
+      const stat = await this.statAsset(ref);
+      if (!stat) throw new Error("Missing fixture asset");
+      this.loans++;
+      try {
+        return await use(
+          {
+            sourceFile: `/fixture/${ref.slice(-64)}`,
+            sizeBytes: stat.sizeBytes,
+            sha256: ref.slice(-64),
+          },
+          options?.signal ?? new AbortController().signal,
+        );
+      } finally {
+        this.loans--;
+      }
+    },
+    inspect: async (source, options) => ({
+      sizeBytes: source.sizeBytes,
+      sha256: source.sourceFile.slice(-64),
+      details:
+        options?.inspector === "pdf"
+          ? { mimeType: "application/pdf", pageCount: 0 }
+          : { mediaType: "image/png", width: 1, height: 1 },
+    }),
+    publish: unexpected,
+    fingerprint: unexpected,
+    download: unexpected,
+    putHttp: unexpected,
+    postHttp: unexpected,
+    close: async (): Promise<void> => undefined,
+  };
 
   public setGetEntityResult(entity: BaseEntity | null): void {
     this.getEntityHandler = async (): Promise<BaseEntity | null> => entity;
@@ -58,13 +102,16 @@ class TestEntityService implements PublishExecuteEntityService {
   }
 }
 
+function unexpected(): never {
+  throw new Error("Unexpected fixture operation");
+}
+
 function createMockEntityService(): TestEntityService {
   return new TestEntityService();
 }
 
 const TINY_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-const TINY_PDF_BASE64 = Buffer.from("%PDF-1.4\n%%EOF\n").toString("base64");
 
 const samplePost: SocialPost = {
   id: "post-1",
@@ -178,8 +225,10 @@ const sampleDocument: BaseEntity = {
   id: "carousel-pdf",
   entityType: "document",
   visibility: "public",
-  content: `data:application/pdf;base64,${TINY_PDF_BASE64}`,
+  content: `asset://sha256/${"b".repeat(64)}`,
   metadata: {
+    sizeBytes: 15,
+    pageCount: 0,
     mimeType: "application/pdf",
     filename: "carousel.pdf",
   },
@@ -225,9 +274,7 @@ describe("PublishExecuteHandler", () => {
   });
 
   function createHandlerWithAttachments(
-    resolveAttachment: NonNullable<
-      PublishExecuteHandlerConfig["resolveAttachment"]
-    >,
+    withAttachmentFile: AttachmentFileResolver,
   ): PublishExecuteHandler {
     const config: PublishExecuteHandlerConfig = {
       sendMessage: (request) => messageSender.sendMessage(request),
@@ -235,7 +282,7 @@ describe("PublishExecuteHandler", () => {
       entityService,
       providers,
       permissions,
-      resolveAttachment,
+      withAttachmentFile,
     };
     return new PublishExecuteHandler(config);
   }
@@ -377,7 +424,7 @@ describe("PublishExecuteHandler", () => {
       });
     });
 
-    it("should update entity status to failed after provider error", async () => {
+    it("does not overwrite local status after an uncertain provider send", async () => {
       entityService.setGetEntityResult(samplePost);
       linkedinProvider.publish = mock(() =>
         Promise.reject(new Error("API error")),
@@ -388,14 +435,67 @@ describe("PublishExecuteHandler", () => {
         entityId: "post-1",
       });
 
-      expect(entityService.updateEntity).toHaveBeenCalledWith({
-        entity: expect.objectContaining({
-          id: "post-1",
-          metadata: expect.objectContaining({
-            status: "failed",
-          }),
-        }),
+      expect(entityService.updateEntity).not.toHaveBeenCalled();
+      await handler.handle({ entityType: "social-post", entityId: "post-1" });
+      expect(linkedinProvider.publish).toHaveBeenCalledTimes(1);
+    });
+
+    for (const failure of ["rejected", "skipped"]) {
+      it(`never replays an acknowledged send after a ${failure} local update`, async () => {
+        entityService.setGetEntityResult(samplePost);
+        if (failure === "rejected")
+          entityService.updateEntity.mockRejectedValue(
+            new Error("status outcome unavailable"),
+          );
+        else
+          entityService.updateEntity.mockResolvedValue({
+            entityId: samplePost.id,
+            jobId: "",
+            skipped: true,
+          });
+        await handler.handle({
+          entityType: "social-post",
+          entityId: samplePost.id,
+        });
+        await handler.handle({
+          entityType: "social-post",
+          entityId: samplePost.id,
+        });
+        expect(linkedinProvider.publish).toHaveBeenCalledTimes(1);
+        expect(entityService.updateEntity).toHaveBeenCalledTimes(1);
+        expect(messageSender.sendMessage).toHaveBeenCalledWith({
+          type: "publish:report:failure",
+          payload: expect.objectContaining({ willRetry: false }),
+        });
       });
+    }
+
+    it("keeps file loans through external and durable acknowledgement", async () => {
+      entityService.setGetEntityHandler(async (request) =>
+        request.entityType === "social-post"
+          ? samplePostWithDocument
+          : sampleDocument,
+      );
+      linkedinProvider.publish = mock(async () => {
+        expect(entityService.loans).toBe(1);
+        return { id: "ack" };
+      });
+      entityService.updateEntity.mockImplementation(async (request) => {
+        expect(entityService.loans).toBe(1);
+        expect(request.entity.metadata["platformPostId"]).toBe("ack");
+        return {
+          entityId: request.entity.id,
+          jobId: "ack-job",
+          skipped: false,
+        };
+      });
+      await handler.handle({
+        entityType: "social-post",
+        entityId: samplePostWithDocument.id,
+      });
+      expect(entityService.loans).toBe(0);
+      expect(linkedinProvider.publish).toHaveBeenCalledTimes(1);
+      expect(entityService.updateEntity).toHaveBeenCalledTimes(1);
     });
 
     it("should skip already published posts", async () => {
@@ -434,9 +534,11 @@ describe("PublishExecuteHandler", () => {
         "This is a post with an image.",
         expect.any(Object),
         expect.objectContaining({
-          data: expect.any(Buffer),
+          sourceFile: expect.any(String),
+          sha256: "a".repeat(64),
           mimeType: "image/png",
         }),
+        undefined,
       );
     });
 
@@ -466,7 +568,8 @@ describe("PublishExecuteHandler", () => {
         [
           expect.objectContaining({
             type: "document",
-            data: expect.any(Buffer),
+            sourceFile: expect.any(String),
+            sha256: "b".repeat(64),
             mimeType: "application/pdf",
             filename: "carousel.pdf",
           }),
@@ -474,7 +577,7 @@ describe("PublishExecuteHandler", () => {
       );
     });
 
-    it("should publish without image if image entity not found", async () => {
+    it("publishes text-only when the optional image entity does not exist", async () => {
       entityService.setGetEntityHandler(async (request) => {
         if (request.entityType === "social-post") {
           return samplePostWithImage;
@@ -491,19 +594,41 @@ describe("PublishExecuteHandler", () => {
         "This is a post with an image.",
         expect.any(Object),
         undefined,
+        undefined,
       );
-      expect(logger.warn).toHaveBeenCalled();
     });
 
     it("should resolve source-derived carousel attachment when no documents are set", async () => {
       entityService.setGetEntityResult(samplePostWithSource);
-      const carouselPdf: PublishMediaData = {
+      const carouselPdf = {
+        sourceFile: `/fixture/${"b".repeat(64)}`,
+        sizeBytes: 15,
+        sha256: "b".repeat(64),
         type: "document",
-        data: Buffer.from("%PDF-carousel"),
         mimeType: "application/pdf",
         filename: "deck-carousel.pdf",
       };
-      const resolveAttachment = mock(() => Promise.resolve(carouselPdf));
+      const attachmentCalls = mock((..._args: unknown[]): void => undefined);
+      const resolveAttachment: AttachmentFileResolver = async (
+        request,
+        use,
+        options,
+      ) => {
+        attachmentCalls(request, use, options);
+        return use(
+          {
+            type: "document",
+            mimeType: "application/pdf",
+            filename: carouselPdf.filename,
+            sha256: carouselPdf.sha256,
+            source: {
+              sourceFile: carouselPdf.sourceFile,
+              sizeBytes: carouselPdf.sizeBytes,
+            },
+          },
+          options?.signal ?? new AbortController().signal,
+        );
+      };
 
       const handlerWithAttachments =
         createHandlerWithAttachments(resolveAttachment);
@@ -513,16 +638,20 @@ describe("PublishExecuteHandler", () => {
         entityId: "post-4",
       });
 
-      expect(resolveAttachment).toHaveBeenCalledWith({
-        sourceEntityType: "deck",
-        sourceEntityId: "deck-1",
-        attachmentType: "carousel",
-      });
+      expect(attachmentCalls).toHaveBeenCalledWith(
+        {
+          sourceEntityType: "deck",
+          sourceEntityId: "deck-1",
+          attachmentType: "carousel",
+        },
+        expect.any(Function),
+        expect.anything(),
+      );
       expect(linkedinProvider.publish).toHaveBeenCalledWith(
         "Carousel from source deck.",
         expect.any(Object),
         undefined,
-        [carouselPdf],
+        [expect.objectContaining(carouselPdf)],
       );
     });
 
@@ -542,6 +671,7 @@ describe("PublishExecuteHandler", () => {
       expect(linkedinProvider.publish).toHaveBeenCalledWith(
         "Carousel from source deck.",
         expect.any(Object),
+        undefined,
         undefined,
       );
     });
@@ -608,6 +738,7 @@ Post with both explicit doc and source.`,
       expect(linkedinProvider.publish).toHaveBeenCalledWith(
         "This is a test post for LinkedIn.",
         expect.any(Object),
+        undefined,
         undefined,
       );
     });

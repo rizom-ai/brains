@@ -1,11 +1,15 @@
 import { createHash } from "node:crypto";
-import type { ServicePluginContext } from "@brains/plugins";
+import type {
+  ServicePluginContext,
+  AttachmentFile,
+  AttachmentFileConsumer,
+} from "@brains/plugins";
 import {
   BaseJobHandler,
   failPendingEntity,
   saveProcessedEntity,
 } from "@brains/plugins";
-import type { PublishMediaData } from "@brains/contracts";
+import { MAX_ASSET_BYTES } from "@brains/assets";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import { parseMarkdown, updateFrontmatterField } from "@brains/utils/markdown";
@@ -13,14 +17,13 @@ import type { ProgressReporter } from "@brains/utils/progress";
 import { slugify } from "@brains/utils/string-utils";
 import { z } from "@brains/utils/zod";
 import {
-  countPdfPages,
-  createPdfDataUrl,
+  documentAssetFactsFromInspection,
+  assertDocumentFileMatches,
   documentAdapter,
   documentSchema,
   type DocumentEntity,
 } from "@brains/document";
-import { renderPdf as defaultRenderPdf } from "@brains/media-renderer";
-import type { PdfRenderOptions } from "@brains/media-renderer";
+import { withPreviewPdfFile } from "@brains/media-page-composer";
 
 const DEFAULT_MAX_BYTES = 25 * 1024 * 1024;
 const DEFAULT_MAX_PAGE_COUNT = 20;
@@ -59,7 +62,7 @@ const documentGenerationJobSchemaShape: {
   replace: z.boolean().optional(),
   pageCount: z.number().int().min(0).optional(),
   maxPageCount: z.number().int().positive().optional(),
-  maxBytes: z.number().int().positive().optional(),
+  maxBytes: z.number().int().positive().max(MAX_ASSET_BYTES).optional(),
   timeoutMs: z.number().int().positive().optional(),
   width: z.union([z.string(), z.number()]).optional(),
   height: z.union([z.string(), z.number()]).optional(),
@@ -97,15 +100,11 @@ export interface DocumentGenerationResult {
   success: true;
   documentId: string;
   reused: boolean;
+  warning?: string;
 }
 
-export type RenderPdf = (
-  url: string,
-  options?: PdfRenderOptions,
-) => Promise<Buffer>;
-
 export interface DocumentGenerationHandlerDeps {
-  renderPdf?: RenderPdf;
+  withPreviewPdfFile?: typeof withPreviewPdfFile;
 }
 
 export class DocumentGenerationJobHandler extends BaseJobHandler<
@@ -115,13 +114,16 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
 > {
   private readonly context: Pick<
     ServicePluginContext,
-    "entityService" | "attachments"
+    "entityService" | "attachments" | "jobs"
   >;
-  private readonly renderPdf: RenderPdf;
+  private readonly withPreviewPdf: typeof withPreviewPdfFile;
 
   constructor(
     logger: Logger,
-    context: Pick<ServicePluginContext, "entityService" | "attachments">,
+    context: Pick<
+      ServicePluginContext,
+      "entityService" | "attachments" | "jobs"
+    >,
     deps: DocumentGenerationHandlerDeps = {},
   ) {
     super(logger, {
@@ -129,7 +131,7 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
       jobTypeName: "document-generate",
     });
     this.context = context;
-    this.renderPdf = deps.renderPdf ?? defaultRenderPdf;
+    this.withPreviewPdf = deps.withPreviewPdfFile ?? withPreviewPdfFile;
   }
 
   /**
@@ -165,7 +167,15 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
     data: DocumentGenerationJobData,
     jobId: string,
     progressReporter: ProgressReporter,
+    signal: AbortSignal,
   ): Promise<DocumentGenerationResult> {
+    signal.throwIfAborted();
+    const attempt = await this.context.jobs.getStatus(jobId);
+    signal.throwIfAborted();
+    if (attempt && attempt.retryCount > 0)
+      throw new Error(
+        "Document generation cannot be automatically replayed; create a new request",
+      );
     this.logger.debug("Starting document generation job", {
       jobId,
       sourceEntityType: data.sourceEntityType,
@@ -184,6 +194,7 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
     }
 
     const dedupKey = await this.getDedupKey(data);
+    signal.throwIfAborted();
     const documentId = getDocumentId(data, dedupKey);
     const hasRequestedDocumentIdentity =
       data.documentId !== undefined || data.filename !== undefined;
@@ -197,17 +208,26 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
         (!hasRequestedDocumentIdentity || existing.id === documentId)
       ) {
         if (data.targetEntityType && data.targetEntityId) {
-          await this.attachDocumentToTarget(
+          const attached = await this.attachDocumentToTarget(
             data.targetEntityType,
             data.targetEntityId,
             existing.id,
             data,
+            signal,
           );
+          if (!attached)
+            return {
+              success: true,
+              documentId: existing.id,
+              reused: true,
+              warning: "Document reused; target update cancelled",
+            };
         }
-        await this.reportProgress(progressReporter, {
-          progress: 100,
-          message: "Reusing existing generated document",
-        });
+        if (!signal.aborted)
+          await this.reportProgress(progressReporter, {
+            progress: 100,
+            message: "Reusing existing generated document",
+          });
         return { success: true, documentId: existing.id, reused: true };
       }
     }
@@ -217,88 +237,112 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
       message: "Rendering PDF document",
     });
 
-    const state: { publicationEntered: boolean } = {
-      publicationEntered: false,
-    };
+    const state: { publicationEntered: boolean; borrowedSignal?: AbortSignal } =
+      {
+        publicationEntered: false,
+      };
     try {
-      const attachment = await this.resolveDocumentAttachment(
+      const files = this.context.entityService.fileAssets;
+      if (!files)
+        throw new Error("Document file publication is not provisioned");
+      return await this.withDocumentAttachment(
         data,
         documentId,
-        {
-          timeoutMs,
-          maxBytes,
+        { timeoutMs, maxBytes },
+        async (
+          attachment,
+          transferSignal,
+        ): Promise<DocumentGenerationResult> => {
+          state.borrowedSignal = transferSignal;
+          transferSignal.throwIfAborted();
+          if (attachment.type !== "document")
+            throw new Error(
+              `Attachment provider returned ${attachment.type}; expected document`,
+            );
+          const inspection = await files.inspect(attachment.source, {
+            inspector: "pdf",
+            signal: transferSignal,
+          });
+          transferSignal.throwIfAborted();
+          const facts = documentAssetFactsFromInspection(inspection, {
+            maxBytes,
+            maxPageCount,
+          });
+          assertDocumentFileMatches(facts, {
+            sizeBytes: attachment.source.sizeBytes,
+            sha256: attachment.sha256,
+            mimeType: attachment.mimeType,
+          });
+
+          await this.reportProgress(progressReporter, {
+            progress: 70,
+            message: "Storing PDF document",
+          });
+
+          const filename =
+            data.filename ??
+            (data.renderUrl === undefined
+              ? attachment.filename
+              : `${documentId}.pdf`);
+          const entityData = documentAdapter.createDocumentEntity({
+            facts,
+            filename,
+            ...(data.title && { title: data.title }),
+            status: "draft",
+            sourceEntityType: data.sourceEntityType,
+            sourceEntityId: data.sourceEntityId,
+            attachmentType: data.attachmentType,
+            dedupKey,
+          });
+
+          // A save can commit without returning its acknowledgement. Once entered,
+          // neither reply uncertainty nor target/progress failure permits a second
+          // mutation marking this document failed.
+          transferSignal.throwIfAborted();
+          state.publicationEntered = true;
+          await saveProcessedEntity({
+            entityService: this.context.entityService,
+            entity: {
+              ...entityData,
+              id: documentId,
+            },
+            fileAsset: attachment.source,
+            signal: transferSignal,
+          });
+
+          if (data.targetEntityType && data.targetEntityId) {
+            const attached = await this.attachDocumentToTarget(
+              data.targetEntityType,
+              data.targetEntityId,
+              documentId,
+              data,
+              transferSignal,
+            );
+            if (!attached)
+              return {
+                success: true,
+                documentId,
+                reused: false,
+                warning: "Document saved; target update cancelled",
+              };
+          }
+
+          if (!transferSignal.aborted)
+            await this.reportProgress(progressReporter, {
+              progress: 100,
+              message: "PDF document generation complete",
+            });
+
+          return { success: true, documentId, reused: false };
         },
+        signal,
       );
-      const pdf = attachment.data;
-      if (pdf.byteLength > maxBytes) {
-        throw new Error(
-          `Rendered PDF exceeds maxBytes=${maxBytes}: ${pdf.byteLength} bytes`,
-        );
-      }
-
-      const measuredPageCount = countPdfPages(pdf);
-      if (measuredPageCount > maxPageCount) {
-        throw new Error(
-          `Rendered PDF has ${measuredPageCount} pages, exceeding maxPageCount=${maxPageCount}`,
-        );
-      }
-      const pageCount =
-        measuredPageCount > 0 ? measuredPageCount : data.pageCount;
-
-      await this.reportProgress(progressReporter, {
-        progress: 70,
-        message: "Storing PDF document",
-      });
-
-      const filename =
-        data.filename ??
-        (data.renderUrl === undefined
-          ? attachment.filename
-          : `${documentId}.pdf`);
-      const entityData = documentAdapter.createDocumentEntity({
-        dataUrl: createPdfDataUrl(pdf),
-        filename,
-        ...(data.title && { title: data.title }),
-        ...(pageCount !== undefined && { pageCount }),
-        status: "draft",
-        sourceEntityType: data.sourceEntityType,
-        sourceEntityId: data.sourceEntityId,
-        attachmentType: data.attachmentType,
-        dedupKey,
-      });
-
-      // A save can commit without returning its acknowledgement. Once entered,
-      // neither reply uncertainty nor target/progress failure permits a second
-      // mutation marking this document failed.
-      state.publicationEntered = true;
-      await saveProcessedEntity({
-        entityService: this.context.entityService,
-        entity: {
-          ...entityData,
-          id: documentId,
-        },
-      });
-
-      if (data.targetEntityType && data.targetEntityId) {
-        await this.attachDocumentToTarget(
-          data.targetEntityType,
-          data.targetEntityId,
-          documentId,
-          data,
-        );
-      }
-
-      await this.reportProgress(progressReporter, {
-        progress: 100,
-        message: "PDF document generation complete",
-      });
-
-      return { success: true, documentId, reused: false };
     } catch (error) {
+      if (signal.aborted || state.borrowedSignal?.aborted) throw error;
       const errorMessage = getErrorMessage(error);
       this.logger.error("Document generation failed", {
         jobId,
-        error: errorMessage,
+        error,
       });
       const failures: unknown[] = [];
       if (!state.publicationEntered) {
@@ -323,44 +367,54 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
     }
   }
 
-  private async resolveDocumentAttachment(
+  private async withDocumentAttachment(
     data: DocumentGenerationJobData,
     documentId: string,
     limits: { timeoutMs: number; maxBytes: number },
-  ): Promise<PublishMediaData> {
+    use: AttachmentFileConsumer<DocumentGenerationResult>,
+    signal: AbortSignal,
+  ): Promise<DocumentGenerationResult> {
+    signal.throwIfAborted();
     if (data.renderUrl !== undefined) {
-      return {
-        type: "document",
-        data: await this.renderPdf(data.renderUrl, {
-          timeoutMs: limits.timeoutMs,
-          maxBytes: limits.maxBytes,
-          printBackground: true,
-          preferCSSPageSize: true,
+      const files = this.context.entityService.fileAssets;
+      if (!files)
+        throw new Error("Preview PDF file rendering is not provisioned");
+      return this.withPreviewPdf(
+        {
+          url: data.renderUrl,
+          ...limits,
           ...(data.width !== undefined && { width: data.width }),
           ...(data.height !== undefined && { height: data.height }),
           ...(data.format !== undefined && { format: data.format }),
-        }),
-        mimeType: "application/pdf",
-        filename: data.filename ?? `${documentId}.pdf`,
-      };
+        },
+        files,
+        (file, ownedSignal) => {
+          const attachment: AttachmentFile = {
+            type: "document",
+            mimeType: "application/pdf",
+            source: { sourceFile: file.sourceFile, sizeBytes: file.sizeBytes },
+            sha256: file.sha256,
+            filename: data.filename ?? `${documentId}.pdf`,
+          };
+          return use(attachment, ownedSignal);
+        },
+        { signal },
+      );
     }
-
-    const attachment = await this.context.attachments.resolve({
-      sourceEntityType: data.sourceEntityType,
-      sourceEntityId: data.sourceEntityId,
-      attachmentType: data.attachmentType,
-    });
-    if (!attachment) {
+    const result = await this.context.attachments.withFile(
+      {
+        sourceEntityType: data.sourceEntityType,
+        sourceEntityId: data.sourceEntityId,
+        attachmentType: data.attachmentType,
+      },
+      use,
+      { signal },
+    );
+    if (result === undefined)
       throw new Error(
         `No attachment provider found for ${data.sourceEntityType}/${data.attachmentType}`,
       );
-    }
-    if (attachment.type !== "document") {
-      throw new Error(
-        `Attachment provider returned ${attachment.type}; expected document`,
-      );
-    }
-    return attachment;
+    return result;
   }
 
   private async findDocumentByDedupKey(
@@ -399,7 +453,10 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
     entityId: string,
     documentId: string,
     data: DocumentGenerationJobData,
-  ): Promise<void> {
+    signal: AbortSignal,
+  ): Promise<boolean> {
+    const cancelled = (): boolean => signal.aborted;
+    if (cancelled()) return false;
     const target = await this.context.entityService.getEntity({
       entityType,
       id: entityId,
@@ -408,6 +465,7 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
       throw new Error(`Target entity not found: ${entityType}/${entityId}`);
     }
 
+    if (cancelled()) return false;
     const { frontmatter } = parseMarkdown(target.content);
     const existingDocuments = Array.isArray(frontmatter["documents"])
       ? frontmatter["documents"].filter(isDocumentReference)
@@ -418,6 +476,7 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
           existingDocuments,
           documentId,
           data,
+          signal,
         )
       : existingDocuments;
 
@@ -425,21 +484,25 @@ export class DocumentGenerationJobHandler extends BaseJobHandler<
       ? activeDocuments
       : [...activeDocuments, { id: documentId }];
 
+    if (cancelled()) return false;
     await this.context.entityService.updateEntity({
       entity: {
         ...target,
         content: updateFrontmatterField(target.content, "documents", documents),
       },
     });
+    return true;
   }
 
   private async removeReferencesForSameSourceAttachment(
     references: Array<{ id: string }>,
     documentId: string,
     data: DocumentGenerationJobData,
+    signal: AbortSignal,
   ): Promise<Array<{ id: string }>> {
     const filtered: Array<{ id: string }> = [];
     for (const reference of references) {
+      if (signal.aborted) return references;
       if (reference.id === documentId) {
         filtered.push(reference);
         continue;

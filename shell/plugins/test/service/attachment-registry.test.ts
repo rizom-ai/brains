@@ -6,20 +6,13 @@ import {
   type AttachmentFile,
   type AttachmentFileConsumer,
 } from "../../src/service/attachment-file";
-import type { PublishMediaData } from "@brains/contracts";
 import { createSilentLogger } from "@brains/test-utils";
-import { AttachmentRegistry } from "../../src/service/attachment-registry";
+import {
+  AttachmentRegistry,
+  type FileAttachmentProvider,
+} from "../../src/service/attachment-registry";
 import { createEntityPluginContext } from "../../src/entity/context";
 import { createServicePluginContext } from "../../src/service/context";
-
-function createPdfAttachment(filename: string): PublishMediaData {
-  return {
-    type: "document",
-    data: Buffer.from("pdf"),
-    mimeType: "application/pdf",
-    filename,
-  };
-}
 
 const fileRequest = {
   sourceEntityType: "post",
@@ -34,25 +27,21 @@ const file: AttachmentFile = {
   source: { sourceFile: "/trusted/og.png", sizeBytes: 123 },
 };
 const signal = new AbortController().signal;
-const buffered = (): never => {
-  throw new Error("Buffered resolution forbidden");
-};
+function provider(): FileAttachmentProvider {
+  return {
+    withFile: async (_request, use, options): ReturnType<typeof use> =>
+      use(file, options?.signal ?? signal),
+  };
+}
 
 describe("AttachmentRegistry", () => {
-  it("never falls back to buffered resolution and validates file bounds", async () => {
+  it("has no buffered resolver and validates file descriptors without payloads", () => {
     const registry = AttachmentRegistry.createFresh();
-    const resolve = mock(buffered);
-    registry.register("post", "og-image", { resolve });
-    await assert.rejects(
-      registry.withFile(fileRequest, async (): Promise<void> => undefined),
-      /does not support file handoff/,
-    );
-    expect(resolve).not.toHaveBeenCalled();
-    for (const sha256 of [undefined, "a".repeat(63), "g".repeat(64)]) {
+    expect("resolve" in registry).toBe(false);
+    for (const sha256 of [undefined, "a".repeat(63), "g".repeat(64)])
       expect(attachmentFileSchema.safeParse({ ...file, sha256 }).success).toBe(
         false,
       );
-    }
     expect(
       attachmentFileSchema.safeParse({
         ...file,
@@ -70,11 +59,10 @@ describe("AttachmentRegistry", () => {
         .success,
     ).toBe(false);
   });
-
   it("rejects pre-cancelled admission without invoking the provider", async () => {
     const registry = AttachmentRegistry.createFresh();
-    const provider = mock(async (): Promise<undefined> => undefined);
-    registry.register("post", "og-image", { withFile: provider });
+    const withFile = mock(async (): Promise<undefined> => undefined);
+    registry.register("post", "og-image", { withFile });
     const caller = new AbortController();
     const primary = new Error("file request cancelled");
     caller.abort(primary);
@@ -84,9 +72,8 @@ describe("AttachmentRegistry", () => {
       }),
       (error: unknown) => error === primary,
     );
-    expect(provider).not.toHaveBeenCalled();
+    expect(withFile).not.toHaveBeenCalled();
   });
-
   it("allows only one consumer admission even if the provider handles the duplicate error", async () => {
     const registry = AttachmentRegistry.createFresh();
     registry.register("post", "og-image", {
@@ -103,7 +90,6 @@ describe("AttachmentRegistry", () => {
     );
     expect(consume).toHaveBeenCalledTimes(1);
   });
-
   it("rejects byte-bearing descriptors without reading their payload", async () => {
     const registry = AttachmentRegistry.createFresh();
     let reads = 0;
@@ -115,7 +101,6 @@ describe("AttachmentRegistry", () => {
       },
     };
     registry.register("post", "og-image", {
-      resolve: buffered,
       withFile: async (_request, use): ReturnType<typeof use> =>
         use(dirty, signal),
     });
@@ -124,13 +109,11 @@ describe("AttachmentRegistry", () => {
     expect(consume).not.toHaveBeenCalled();
     expect(reads).toBe(0);
   });
-
   it("joins the consumer even when a provider returns prematurely", async () => {
     const registry = AttachmentRegistry.createFresh();
     const entered = Promise.withResolvers<void>();
     const release = Promise.withResolvers<void>();
     registry.register("post", "og-image", {
-      resolve: buffered,
       withFile: async (_request, use): Promise<undefined> => {
         void use(file, signal);
         return undefined;
@@ -155,15 +138,13 @@ describe("AttachmentRegistry", () => {
       await rejected;
     }
   });
-
   it("preserves consumer failure and subsequent provider cleanup failure", async () => {
     const registry = AttachmentRegistry.createFresh();
     const primary = new Error("consumer failed");
     const secondary = new Error("provider cleanup failed");
     registry.register("post", "og-image", {
-      resolve: buffered,
       withFile: async (_request, use): Promise<never> => {
-        // Fault injection: the provider masks the consumer error during cleanup.
+        // Fault injection: a broken provider masks the consumer failure in cleanup.
         await use(file, signal).catch(() => undefined);
         throw secondary;
       },
@@ -180,12 +161,10 @@ describe("AttachmentRegistry", () => {
       },
     );
   });
-
   it("closes callback admission after provider settlement", async () => {
     const registry = AttachmentRegistry.createFresh();
     let late: AttachmentFileConsumer<unknown> | undefined;
     registry.register("post", "og-image", {
-      resolve: buffered,
       withFile: async (_request, use): Promise<undefined> => {
         late = use;
         return undefined;
@@ -197,68 +176,44 @@ describe("AttachmentRegistry", () => {
     await assert.rejects(late(file, signal), /closed or already entered/);
     expect(consume).not.toHaveBeenCalled();
   });
-
-  it("resolves a registered source attachment provider", async () => {
+  it("forwards the source request and returns the consumer result", async () => {
     const registry = AttachmentRegistry.createFresh();
-    const attachment = createPdfAttachment("deck-carousel.pdf");
-
-    registry.register("deck", "carousel", {
-      resolve: (request) => {
-        expect(request.sourceEntityType).toBe("deck");
-        expect(request.sourceEntityId).toBe("deck-1");
-        expect(request.attachmentType).toBe("carousel");
-        return attachment;
+    registry.register("post", "og-image", {
+      withFile: async (request, use): ReturnType<typeof use> => {
+        expect(request).toEqual(fileRequest);
+        return use(file, signal);
       },
     });
-
-    const result = await registry.resolve({
-      sourceEntityType: "deck",
-      sourceEntityId: "deck-1",
-      attachmentType: "carousel",
-    });
-
-    expect(result).toEqual(attachment);
+    expect(
+      await registry.withFile(
+        fileRequest,
+        async (received): Promise<string> => received.filename,
+      ),
+    ).toBe("og.png");
   });
-
-  it("returns undefined when no provider exists", async () => {
-    const registry = AttachmentRegistry.createFresh();
-
-    const result = await registry.resolve({
-      sourceEntityType: "deck",
-      sourceEntityId: "deck-1",
-      attachmentType: "carousel",
-    });
-
-    expect(result).toBeUndefined();
+  it("returns undefined without entering a consumer when no provider exists", async () => {
+    const consume = mock(async (): Promise<void> => undefined);
+    expect(
+      await AttachmentRegistry.createFresh().withFile(fileRequest, consume),
+    ).toBeUndefined();
+    expect(consume).not.toHaveBeenCalled();
   });
-
-  it("unregisters providers using the returned cleanup function", () => {
+  it("unregisters providers and exposes optional capability metadata", () => {
     const registry = AttachmentRegistry.createFresh();
-    const unregister = registry.register("deck", "carousel", {
-      resolve: () => createPdfAttachment("deck-carousel.pdf"),
+    const unregister = registry.register("post", "og-image", {
+      ...provider(),
+      metadata: { outputEntityType: "image", targetField: "ogImageId" },
     });
-
-    expect(registry.has("deck", "carousel")).toBe(true);
+    registry.register("post", "other", provider());
+    expect(registry.has("post", "og-image")).toBe(true);
+    expect(registry.getMetadata("post", "og-image")).toEqual({
+      outputEntityType: "image",
+      targetField: "ogImageId",
+    });
+    expect(registry.getMetadata("post", "other")).toBeUndefined();
+    expect(registry.getMetadata("missing", "other")).toBeUndefined();
     unregister();
-    expect(registry.has("deck", "carousel")).toBe(false);
-  });
-
-  it("returns optional provider metadata when declared", () => {
-    const registry = AttachmentRegistry.createFresh();
-
-    registry.register("deck", "carousel", {
-      metadata: { outputEntityType: "document" },
-      resolve: () => createPdfAttachment("deck-carousel.pdf"),
-    });
-    registry.register("post", "legacy", {
-      resolve: () => createPdfAttachment("legacy.pdf"),
-    });
-
-    expect(registry.getMetadata("deck", "carousel")).toEqual({
-      outputEntityType: "document",
-    });
-    expect(registry.getMetadata("post", "legacy")).toBeUndefined();
-    expect(registry.getMetadata("missing", "carousel")).toBeUndefined();
+    expect(registry.has("post", "og-image")).toBe(false);
   });
 });
 
@@ -267,7 +222,7 @@ describe("plugin context attachments namespace", () => {
     ["entity", createEntityPluginContext],
     ["service", createServicePluginContext],
   ] as const) {
-    it(`${label} context joins file use and producer cleanup without retracting late-cancelled results`, async () => {
+    it(`${label} context joins file use and cleanup without retracting late-cancelled results`, async () => {
       const context = createContext(
         createMockShell({ logger: createSilentLogger() }),
         "file-plugin",
@@ -278,6 +233,7 @@ describe("plugin context attachments namespace", () => {
       const releaseCleanup = Promise.withResolvers<void>();
       const caller = new AbortController();
       context.attachments.register("post", "og-image", {
+        metadata: { outputEntityType: "image" },
         withFile: async (_request, use, options): ReturnType<typeof use> => {
           assert.ok(options?.signal);
           const result = await use(file, options.signal);
@@ -286,10 +242,11 @@ describe("plugin context attachments namespace", () => {
           return result;
         },
       });
-      await assert.rejects(
-        context.attachments.resolve(fileRequest),
-        /does not support buffered resolution/,
-      );
+      expect("resolve" in context.attachments).toBe(false);
+      expect(context.attachments.hasProvider("post", "og-image")).toBe(true);
+      expect(
+        context.attachments.getProviderMetadata("post", "og-image"),
+      ).toEqual({ outputEntityType: "image" });
       let settled = false;
       const work = context.attachments
         .withFile(
@@ -320,49 +277,4 @@ describe("plugin context attachments namespace", () => {
       expect(await work).toBe("publication acknowledged");
     });
   }
-
-  it("registers and resolves attachments through service plugin context", async () => {
-    const shell = createMockShell({ logger: createSilentLogger() });
-    const context = createServicePluginContext(shell, "test-plugin");
-    const attachment = createPdfAttachment("deck-carousel.pdf");
-
-    context.attachments.register("deck", "carousel", {
-      resolve: () => attachment,
-    });
-
-    expect(context.attachments.hasProvider("deck", "carousel")).toBe(true);
-    expect(
-      context.attachments.getProviderMetadata("deck", "carousel"),
-    ).toBeUndefined();
-    const result = await context.attachments.resolve({
-      sourceEntityType: "deck",
-      sourceEntityId: "deck-1",
-      attachmentType: "carousel",
-    });
-
-    expect(result).toEqual(attachment);
-  });
-
-  it("registers and resolves attachments through entity plugin context", async () => {
-    const shell = createMockShell({ logger: createSilentLogger() });
-    const context = createEntityPluginContext(shell, "decks");
-    const attachment = createPdfAttachment("deck-carousel.pdf");
-
-    context.attachments.register("deck", "carousel", {
-      metadata: { outputEntityType: "document" },
-      resolve: () => attachment,
-    });
-
-    expect(context.attachments.hasProvider("deck", "carousel")).toBe(true);
-    expect(context.attachments.getProviderMetadata("deck", "carousel")).toEqual(
-      { outputEntityType: "document" },
-    );
-    const result = await context.attachments.resolve({
-      sourceEntityType: "deck",
-      sourceEntityId: "deck-1",
-      attachmentType: "carousel",
-    });
-
-    expect(result).toEqual(attachment);
-  });
 });

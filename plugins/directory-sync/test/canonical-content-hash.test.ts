@@ -8,7 +8,9 @@ import type { BaseEntity } from "@brains/plugins";
 import { baseEntitySchema } from "@brains/plugins";
 import { createSilentLogger } from "@brains/test-utils";
 import { computeContentHash } from "@brains/utils/hash";
-import { TINY_PDF_BYTES } from "./fixtures";
+import { TINY_PDF_BYTES, TINY_PDF_ASSET_REF } from "./fixtures";
+import { mockFileAssets } from "./helpers/file-assets";
+import { prepareAsset } from "@brains/assets";
 
 /**
  * Regression tests: contentHash should be hash of canonical (serialized) form,
@@ -156,20 +158,21 @@ describe("contentHash regression: canonical form, not raw content", () => {
       `${JSON.stringify({ filename: "report.pdf", pageCount: 1 })}\n`,
     );
 
-    const dataUrl = `data:application/pdf;base64,${TINY_PDF_BYTES.toString("base64")}`;
+    const ref = TINY_PDF_ASSET_REF;
     const existing: BaseEntity = {
       id: "report",
       entityType: "document",
-      content: dataUrl,
+      content: ref,
       visibility: "public",
       metadata: {
         mimeType: "application/pdf",
         filename: "report.pdf",
-        pageCount: 1,
+        pageCount: 0,
+        sizeBytes: TINY_PDF_BYTES.length,
       },
       created: "2026-01-01T00:00:00.000Z",
       updated: "2026-01-01T00:00:00.000Z",
-      contentHash: computeContentHash(dataUrl),
+      contentHash: computeContentHash(ref),
     };
     const documentService = createMockEntityService({
       entityTypes: ["document"],
@@ -180,8 +183,20 @@ describe("contentHash regression: canonical form, not raw content", () => {
     const deserialize = spyOn(
       documentService,
       "deserializeEntity",
-    ).mockReturnValue({ entityType: "document", content: dataUrl });
+    ).mockReturnValue({ entityType: "document", content: ref });
     const upsert = spyOn(documentService, "upsertEntity");
+    documentService.fileAssets = mockFileAssets(
+      async ({
+        publication,
+      }): Promise<Awaited<ReturnType<typeof documentService.upsertEntity>>> => {
+        if (publication.operation !== "upsertEntity")
+          throw new Error("Unexpected fixture publication");
+        return documentService.upsertEntity({
+          ...publication.request,
+          preparedAsset: prepareAsset(TINY_PDF_BYTES),
+        });
+      },
+    );
     const dirSync = new DirectorySync({
       syncPath: testDir,
       entityService: documentService,
@@ -195,7 +210,7 @@ describe("contentHash regression: canonical form, not raw content", () => {
 
     writeFileSync(
       sidecarPath,
-      `${JSON.stringify({ filename: "report.pdf", pageCount: 2 })}\n`,
+      `${JSON.stringify({ filename: "report.pdf", pageCount: 2, title: "Updated report" })}\n`,
     );
     const metadataChanged = await dirSync.importEntities([
       "document/report.pdf",

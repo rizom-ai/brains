@@ -27,14 +27,9 @@ export {
   DocumentAdapter,
   documentAdapter,
   type CreateDocumentInput,
+  type CreatePendingDocumentInput,
 } from "./adapters/document-adapter";
-export {
-  countPdfPages,
-  createPdfDataUrl,
-  isPdfDataUrl,
-  parseDocumentDataUrl,
-  type ParsedDocumentDataUrl,
-} from "./lib/document-utils";
+export { countPdfPages } from "./lib/document-utils";
 export {
   defaultPdfMarkdownMaxBytes,
   defaultPdfMarkdownMaxPages,

@@ -276,12 +276,13 @@ describe("Image Import - Regression Tests", () => {
       expect(capturedMetadata).toEqual({
         mimeType: "application/pdf",
         filename: "carousel.pdf",
-        pageCount: 4,
+        pageCount: 0,
+        sizeBytes: TINY_PDF_BYTES.length,
         dedupKey: "carousel:post-1",
       });
     });
 
-    it("should convert binary PDFs to application/pdf data URLs when importing", async () => {
+    it("publishes imported PDF bytes with a durable asset reference", async () => {
       mkdirSync(join(testDir, "document"), { recursive: true });
       writeFileSync(join(testDir, "document", "carousel.pdf"), TINY_PDF_BYTES);
 
@@ -310,7 +311,7 @@ describe("Image Import - Regression Tests", () => {
         entityType: "document",
         id: "carousel",
       });
-      expect(capturedContent).toMatch(/^data:application\/pdf;base64,/);
+      expect(capturedContent).toBe(prepareAsset(TINY_PDF_BYTES).ref);
     });
   });
 });

@@ -1,4 +1,3 @@
-import type { PublishMediaData } from "@brains/contracts";
 import {
   consumeAttachmentFile,
   type AttachmentFileResolver,
@@ -21,16 +20,7 @@ export interface FileAttachmentProvider {
   metadata?: AttachmentProviderMetadata;
   withFile: AttachmentFileResolver;
 }
-export type AttachmentProviderRegistration =
-  AttachmentProvider | FileAttachmentProvider;
-
-export interface AttachmentProvider {
-  metadata?: AttachmentProviderMetadata;
-  withFile?: AttachmentFileResolver;
-  resolve(
-    request: AttachmentResolveRequest,
-  ): Promise<PublishMediaData | undefined> | PublishMediaData | undefined;
-}
+export type AttachmentProviderRegistration = FileAttachmentProvider;
 
 /**
  * Attachment namespace — source-derived publish artifacts.
@@ -45,11 +35,6 @@ export interface IAttachmentsNamespace {
     attachmentType: string,
     provider: AttachmentProviderRegistration,
   ) => () => void;
-
-  /** Resolve a source-derived attachment if a provider is available. */
-  resolve: (
-    request: AttachmentResolveRequest,
-  ) => Promise<PublishMediaData | undefined>;
 
   /** Check whether a provider exists for the requested source/attachment type. */
   hasProvider: (sourceEntityType: string, attachmentType: string) => boolean;
@@ -76,11 +61,6 @@ export function createAttachmentsNamespace(
       provider: AttachmentProviderRegistration,
     ): (() => void) => {
       return registry.register(sourceEntityType, attachmentType, provider);
-    },
-    resolve: (
-      request: AttachmentResolveRequest,
-    ): Promise<PublishMediaData | undefined> => {
-      return registry.resolve(request);
     },
     hasProvider: (
       sourceEntityType: string,
@@ -131,27 +111,12 @@ export class AttachmentRegistry {
     options?.signal?.throwIfAborted();
     const provider = this.get(request.sourceEntityType, request.attachmentType);
     if (!provider) return undefined;
-    if (!provider.withFile)
-      throw new Error("Attachment provider does not support file handoff");
     return consumeAttachmentFile(
       provider.withFile.bind(provider),
       request,
       use,
       options,
     );
-  }
-
-  public async resolve(
-    request: AttachmentResolveRequest,
-  ): Promise<PublishMediaData | undefined> {
-    const provider = this.get(request.sourceEntityType, request.attachmentType);
-    if (!provider) return undefined;
-    if (!("resolve" in provider)) {
-      throw new Error(
-        "Attachment provider does not support buffered resolution",
-      );
-    }
-    return provider.resolve(request);
   }
 
   public get(

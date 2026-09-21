@@ -435,7 +435,7 @@ describe("Plugin shutdown lifecycle", () => {
           name: "Failed source",
         });
         shell.getAttachmentRegistry().register("failed-entity", "preview", {
-          resolve: () => undefined,
+          withFile: async (): Promise<undefined> => undefined,
         });
         shell
           .getInsightsRegistry()

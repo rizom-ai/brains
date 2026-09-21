@@ -165,7 +165,6 @@ export type {
 export {
   AttachmentRegistry,
   createAttachmentsNamespace,
-  type AttachmentProvider,
   type AttachmentProviderMetadata,
   type AttachmentProviderRegistration,
   type FileAttachmentProvider,
@@ -195,6 +194,16 @@ export {
   type RuntimeUploadFileDescription,
   AcknowledgedRuntimeUploadError,
 } from "./service/upload-registry";
+export {
+  createFileResponse,
+  type FileResponseOptions,
+} from "./service/file-response";
+export {
+  withPublishFiles,
+  type PublishFileReferences,
+  type ScopedPublishFiles,
+  type PublishFileScopeDependencies,
+} from "./service/with-publish-files";
 export {
   captureRuntimeUpload,
   type CaptureRuntimeUploadInput,
@@ -650,8 +659,6 @@ export {
   type MessageJobTrackingInfo,
   type MessageProgressDisplay,
   type MessageSourceInput,
-  type NativeArtifactDelivery,
-  type NativeArtifactFile,
   type MessageUploadAttachmentRestorer,
   type MessageUploadContinuityOptions,
   type MessageUploadConversationLoader,
@@ -674,8 +681,6 @@ export {
   formatByteSize,
   getArtifactEntityFilename,
   getConfirmationResultTitle,
-  parseArtifactDataUrl,
-  resolveArtifactEntityData,
   resolveArtifactEntityRefFromCard,
   resolveArtifactEntityRefFromUrl,
   formatConfirmationResult,
@@ -721,7 +726,6 @@ export {
   urlCaptureConfigSchema,
   validateMessageUpload,
   validateTextUpload,
-  type ArtifactAssetReader,
   type ArtifactCardState,
   type ArtifactDisplay,
   type ArtifactEntityRef,
@@ -744,7 +748,6 @@ export {
   type MessageUploadValidationResult,
   type PendingApprovalMessageLoader,
   type PendingApprovalTrackerOptions,
-  type ParsedArtifactDataUrl,
   type SelectPriorUploadsInput,
   type StoredMessageAttachment,
   type StructuredCardFallbackOptions,

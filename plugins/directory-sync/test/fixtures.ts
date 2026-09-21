@@ -5,6 +5,7 @@
  * used across multiple test files.
  */
 import { mock } from "bun:test";
+import { prepareAsset, type AssetRef } from "@brains/assets";
 import type { BaseEntity } from "@brains/plugins/test";
 import {
   BaseEntityAdapter,
@@ -46,8 +47,8 @@ export const TINY_PDF_BASE64: string = Buffer.from(
 /** Minimal PDF-like content as raw bytes. */
 export const TINY_PDF_BYTES: Buffer = Buffer.from(TINY_PDF_BASE64, "base64");
 
-/** Minimal PDF-like content as a data URL (used by document entity content). */
-export const TINY_PDF_DATA_URL: string = `data:application/pdf;base64,${TINY_PDF_BASE64}`;
+/** Content-addressed fixture PDF identity; bytes belong to the asset store. */
+export const TINY_PDF_ASSET_REF: AssetRef = prepareAsset(TINY_PDF_BYTES).ref;
 
 // ---------------------------------------------------------------------------
 // Empty result factories

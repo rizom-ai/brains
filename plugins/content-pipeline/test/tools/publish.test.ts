@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
+import { prepareAsset } from "@brains/assets";
 import { createPublishTool, publishInputSchema } from "../../src/tools/publish";
 import { ProviderRegistry } from "../../src/provider-registry";
 import type { PublishProvider } from "@brains/contracts";
@@ -540,16 +541,52 @@ This is the actual post content.`,
       const linkedinProvider = createMockProvider("linkedin");
       providerRegistry.register("social-post", linkedinProvider);
 
-      // Create an image entity
+      const asset = prepareAsset(Buffer.from("fixture-image"));
+      const unexpected = (): never => {
+        throw new Error("Unexpected buffered/transport operation");
+      };
+      context.entityService.readAsset = unexpected;
+      context.entityService.fileAssets = {
+        withAssetFile: async (ref, use, options): ReturnType<typeof use> => {
+          expect(ref).toBe(asset.ref);
+          return use(
+            {
+              sourceFile: "/fixture/image.png",
+              sizeBytes: asset.sizeBytes,
+              sha256: asset.digest,
+            },
+            options?.signal ?? new AbortController().signal,
+          );
+        },
+        inspect: async (): Promise<{
+          sizeBytes: number;
+          sha256: string;
+          details: { mediaType: string };
+        }> => ({
+          sizeBytes: asset.sizeBytes,
+          sha256: asset.digest,
+          details: { mediaType: "image/png" },
+        }),
+        publish: unexpected,
+        fingerprint: unexpected,
+        download: unexpected,
+        putHttp: unexpected,
+        postHttp: unexpected,
+        close: async (): Promise<void> => undefined,
+      };
       await context.entityService.createEntity({
         entity: {
           id: "test-cover-image",
           entityType: "image",
           visibility: "public",
-          content:
-            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-          metadata: { slug: "test-cover-image" },
+          content: asset.ref,
+          metadata: {
+            slug: "test-cover-image",
+            mediaType: "image/png",
+            sizeBytes: asset.sizeBytes,
+          },
         },
+        preparedAsset: asset,
       });
 
       // Create post with coverImageId in frontmatter
@@ -585,6 +622,8 @@ Post content with an image.`,
         expect.anything(),
         expect.objectContaining({
           mimeType: "image/png",
+          sourceFile: "/fixture/image.png",
+          sha256: asset.digest,
         }),
         undefined,
       );

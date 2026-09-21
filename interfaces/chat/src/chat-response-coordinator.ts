@@ -17,19 +17,13 @@ import {
   type StructuredChatCard,
   type UserPermissionLevel,
 } from "@brains/plugins";
-import type { FileUpload, SentMessage } from "chat";
 import { ApprovalCardTracker } from "./approval-card-tracker";
 import {
   ArtifactDeliveryResolver,
   type ArtifactDelivery,
 } from "./artifact-delivery";
 import { ChatCardBuilder } from "./chat-cards";
-import { chunkForChannel } from "./chat-platform";
-import {
-  formatChatNoticePayload,
-  toChatCardOutput,
-  toPlatformPostOutput,
-} from "./chat-output";
+import { formatChatNoticePayload, toPlatformPostOutput } from "./chat-output";
 import type { ThreadRegistry } from "./thread-registry";
 import type { ChatThread } from "./types";
 import type { FileDeliveryAdapter } from "./file-delivery";
@@ -319,17 +313,13 @@ export class ChatResponseCoordinator {
       Boolean(confirmations?.length) &&
       GENERIC_APPROVAL_TEXT.test(input.response.text.trim());
     const suppressQueuedConfirmationResult =
-      isSlack &&
-      Boolean(input.confirmation) &&
-      hasQueuedArtifact &&
-      artifactDelivery.files.length === 0;
+      isSlack && Boolean(input.confirmation) && hasQueuedArtifact;
     const suppressResolvedNativeConfirmation =
       isSlack &&
       resolvedNativeApproval &&
       !confirmations?.length &&
       !hasArtifact &&
-      !hasDeniedArtifact &&
-      artifactDelivery.files.length === 0;
+      !hasDeniedArtifact;
     const suppressConfirmationResult =
       suppressQueuedConfirmationResult || suppressResolvedNativeConfirmation;
     const suppressPrimaryMessage =
@@ -348,11 +338,9 @@ export class ChatResponseCoordinator {
       : this.formatAgentResponseText(plan, artifactDelivery.deniedCardIds);
     const messageId = suppressPrimaryMessage
       ? undefined
-      : await this.sendAgentResponseWithFiles({
-          thread: input.thread,
+      : await this.deps.sendMessageWithId({
           channelId: input.channelId,
           message,
-          files: artifactDelivery.files,
         });
     // The primary message is already acknowledged even if file delivery fails.
     if (messageId) {
@@ -427,16 +415,6 @@ export class ChatResponseCoordinator {
           delivery.userPermissionLevel,
           async (resolved): Promise<void> => {
             await resolved.sendFiles?.();
-            if (resolved.files.length === 0) return;
-            const sent = await thread.post(
-              thread.adapter.name === "slack"
-                ? { raw: "", files: resolved.files }
-                : {
-                    markdown: `Generated artifact ready: ${resolved.files.map((file) => file.filename).join(", ")}`,
-                    files: resolved.files,
-                  },
-            );
-            this.deps.threadRegistry.trackMessage(delivery.channelId, sent);
           },
           this.deps.getFileDeliveryAdapter?.(thread),
         );
@@ -554,50 +532,6 @@ export class ChatResponseCoordinator {
       },
       fallbackText: result.parts.join("\n\n"),
     };
-  }
-
-  private async sendAgentResponseWithFiles(input: {
-    thread: ChatThread;
-    channelId: string;
-    message: MessageInterfaceOutput;
-    files: FileUpload[];
-  }): Promise<string | undefined> {
-    if (input.files.length === 0) {
-      return this.deps.sendMessageWithId({
-        channelId: input.channelId,
-        message: input.message,
-      });
-    }
-
-    const cardOutput = toChatCardOutput(input.message);
-    if (cardOutput) {
-      const sent = await input.thread.post({
-        ...cardOutput,
-        files: input.files,
-      });
-      this.deps.threadRegistry.trackMessage(input.channelId, sent);
-      return sent.id;
-    }
-
-    const text =
-      typeof input.message === "string"
-        ? input.message
-        : "Generated artifacts attached.";
-    const chunks = chunkForChannel(input.channelId, text);
-    let lastSent: SentMessage | undefined;
-    for (const [index, chunk] of chunks.entries()) {
-      const isLastChunk = index === chunks.length - 1;
-      lastSent = await input.thread.post(
-        isLastChunk
-          ? {
-              markdown: chunk || "Generated artifacts attached.",
-              files: input.files,
-            }
-          : chunk,
-      );
-      this.deps.threadRegistry.trackMessage(input.channelId, lastSent);
-    }
-    return lastSent?.id;
   }
 
   private async sendArtifactCards(

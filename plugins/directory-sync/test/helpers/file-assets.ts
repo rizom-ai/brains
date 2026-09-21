@@ -1,4 +1,5 @@
 import { readFile, writeFile } from "node:fs/promises";
+import { countPdfPages } from "@brains/document";
 import {
   prepareAsset,
   type AssetRef,
@@ -59,7 +60,19 @@ export function mockFileAssets(
   read?: (ref: AssetRef) => Promise<Uint8Array>,
 ): Files {
   return {
-    inspect: async ({ sourceFile }): ReturnType<Files["inspect"]> => {
+    inspect: async ({ sourceFile }, options): ReturnType<Files["inspect"]> => {
+      if (options?.inspector === "pdf") {
+        const bytes = await readFile(sourceFile);
+        const asset = prepareAsset(bytes);
+        return {
+          sizeBytes: asset.sizeBytes,
+          sha256: asset.digest,
+          details: {
+            mimeType: "application/pdf",
+            pageCount: countPdfPages(bytes),
+          },
+        };
+      }
       const { facts } = prepareImageAsset(
         await readFile(sourceFile),
         getMimeTypeForExtension(extname(sourceFile)),

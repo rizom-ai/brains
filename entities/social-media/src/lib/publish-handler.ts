@@ -49,7 +49,7 @@ export function subscribeToPublishExecute(
     entityService: context.entityService,
     providers,
     permissions: context.permissions,
-    resolveAttachment: context.attachments.resolve,
+    withAttachmentFile: context.attachments.withFile,
   });
 
   context.messaging.subscribe<PublishExecutePayload, { success: boolean }>(

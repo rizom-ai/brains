@@ -4,7 +4,7 @@ import * as fs from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { prepareAsset } from "@brains/assets";
-import { exportImageFile } from "../src/lib/image-file-export";
+import { exportBinaryFile } from "../src/lib/binary-file-export";
 import { mockFileAssets } from "./helpers/file-assets";
 const bytes = Buffer.from("new");
 const asset = prepareAsset(bytes);
@@ -34,7 +34,7 @@ test("export preserves the old inode until verified download completes, then rep
     await release.promise;
     return bytes;
   });
-  const pending = exportImageFile(files, path, asset.ref, date);
+  const pending = exportBinaryFile(files, path, asset.ref, date);
   try {
     await ready.promise;
     expect(await fs.readFile(path, "utf8")).toBe("old");
@@ -52,7 +52,7 @@ test("unchanged images retain their inode and timestamp after actor comparison",
   await fs.writeFile(path, bytes);
   const original = await fs.stat(path);
   const files = mockFileAssets(undefined, async () => bytes);
-  expect(await exportImageFile(files, path, asset.ref, date)).toBe(false);
+  expect(await exportBinaryFile(files, path, asset.ref, date)).toBe(false);
   const current = await fs.stat(path);
   expect(current.ino).toBe(original.ino);
   expect(current.mtimeMs).toBe(original.mtimeMs);
@@ -67,7 +67,7 @@ test("unacknowledged private downloads preserve old output and failed staging", 
     throw failure;
   };
   await assert.rejects(
-    exportImageFile(files, path, asset.ref, date),
+    exportBinaryFile(files, path, asset.ref, date),
     (error: unknown) => error === failure,
   );
   expect(await fs.readFile(path, "utf8")).toBe("old");
@@ -80,7 +80,7 @@ test("exports do not follow destination symlinks", async () => {
   await fs.writeFile(target, "old");
   await fs.symlink(target, path);
   await assert.rejects(
-    exportImageFile(
+    exportBinaryFile(
       mockFileAssets(undefined, async () => bytes),
       path,
       asset.ref,
@@ -101,7 +101,7 @@ test("observed concurrent destination changes abort replacement and retain stagi
     return result;
   };
   await assert.rejects(
-    exportImageFile(files, path, asset.ref, date),
+    exportBinaryFile(files, path, asset.ref, date),
     /changed during comparison/,
   );
   expect(await fs.readFile(path, "utf8")).toBe("concurrent edit");
@@ -119,7 +119,7 @@ test("first exports refuse a destination created during publication", async () =
   );
   try {
     await assert.rejects(
-      exportImageFile(
+      exportBinaryFile(
         mockFileAssets(undefined, async () => bytes),
         path,
         asset.ref,
@@ -148,7 +148,7 @@ test("uncertain rename outcomes never retract new output and retain the previous
   );
   try {
     await assert.rejects(
-      exportImageFile(
+      exportBinaryFile(
         mockFileAssets(undefined, async () => bytes),
         path,
         asset.ref,

@@ -1,14 +1,11 @@
 import {
   canReceiveNativeArtifactFile,
-  getArtifactEntityFilename,
-  resolveArtifactEntityData,
   resolveArtifactEntityRefFromCard,
   resolveMessageArtifactAccess,
   type InterfacePluginContext,
   type StructuredChatCard,
   type UserPermissionLevel,
 } from "@brains/plugins";
-import type { FileUpload } from "chat";
 import {
   deliverArtifactFile,
   AcknowledgedFileDeliveryError,
@@ -16,7 +13,6 @@ import {
   type FileDeliveryRequest,
 } from "./file-delivery";
 
-import { CHAT_NATIVE_ARTIFACT_MAX_BYTES } from "./artifact-limits";
 const NON_DELIVERABLE_ARTIFACT_STATUSES = new Set([
   "pending",
   "generating",
@@ -25,7 +21,6 @@ const NON_DELIVERABLE_ARTIFACT_STATUSES = new Set([
 ]);
 
 export interface ArtifactDelivery {
-  files: FileUpload[];
   deniedCardIds: Set<string>;
   deliveredCardIds: Set<string>;
   /** Invoke once after the primary message; the enclosing scope joins it. */
@@ -37,7 +32,6 @@ interface NativeArtifactRequest {
 }
 interface ArtifactCardDelivery {
   fileRequest?: FileDeliveryRequest;
-  file?: FileUpload;
   denied?: boolean;
 }
 
@@ -70,13 +64,12 @@ export class ArtifactDeliveryResolver {
     use: (delivery: ArtifactDelivery) => Promise<T>,
     adapter?: FileDeliveryAdapter<unknown>,
   ): Promise<T> {
-    const files: FileUpload[] = [];
     const deniedCardIds = new Set<string>();
     const deliveredCardIds = new Set<string>();
     const native: NativeArtifactRequest[] = [];
     const context = this.deps.getContext();
     if (!cards || !context) {
-      return use({ files, deniedCardIds, deliveredCardIds });
+      return use({ deniedCardIds, deliveredCardIds });
     }
 
     for (const card of cards) {
@@ -102,14 +95,10 @@ export class ArtifactDeliveryResolver {
       if (resolved?.fileRequest)
         native.push({ cardId: card.id, request: resolved.fileRequest });
       if (resolved?.denied) deniedCardIds.add(card.id);
-      if (resolved?.file) {
-        files.push(resolved.file);
-        deliveredCardIds.add(card.id);
-      }
     }
     // A send failure is not a missing attachment. Keep consumption outside
     // optional-resolution catches and never retry the consumer.
-    const delivery = { files, deniedCardIds, deliveredCardIds };
+    const delivery = { deniedCardIds, deliveredCardIds };
     if (!adapter || native.length === 0) return use(delivery);
     return this.consumeNative(
       delivery,
@@ -234,34 +223,7 @@ export class ArtifactDeliveryResolver {
       };
     }
 
-    const parsed = await resolveArtifactEntityData(
-      entityRef.entityType,
-      entity.content,
-      entity.metadata,
-      context.entityService,
-    );
-    if (!parsed) return {};
-    if (parsed.data.byteLength > CHAT_NATIVE_ARTIFACT_MAX_BYTES) {
-      this.deps.logger.debug("Skipping oversized chat artifact upload", {
-        cardId: card.id,
-        sizeBytes: parsed.data.byteLength,
-      });
-      return {};
-    }
-
-    return {
-      file: {
-        data: parsed.data,
-        filename:
-          card.attachment.filename ??
-          getArtifactEntityFilename(
-            entity.metadata,
-            entityRef.id,
-            entityRef.entityType,
-            parsed.mimeType,
-          ),
-        mimeType: parsed.mimeType,
-      },
-    };
+    // No SDK-buffer route for missing native transport or unmigrated content.
+    return {};
   }
 }

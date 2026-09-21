@@ -18,6 +18,7 @@ import type { PublishProvider } from "@brains/contracts";
 import {
   createLinkedInProvider,
   type LinkedInClientDeps,
+  type LinkedInFileTransfers,
 } from "./lib/linkedin-client";
 import { getTemplates } from "./lib/register-templates";
 import { registerEvalHandlers } from "./lib/eval-handlers";
@@ -89,7 +90,7 @@ export class SocialMediaPlugin extends EntityPlugin<
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
-    this.initializeProviders();
+    this.initializeProviders(context);
 
     registerWithPublishPipeline(context, this.providers, this.logger);
     subscribeToPublishExecute(context, this.providers, this.logger);
@@ -113,12 +114,18 @@ export class SocialMediaPlugin extends EntityPlugin<
     this.unregisterAtprotoProjection = undefined;
   }
 
-  private initializeProviders(): void {
+  private initializeProviders(context: EntityPluginContext): void {
     if (this.config.linkedin?.accessToken) {
       const linkedinProvider = createLinkedInProvider(
         this.config.linkedin,
         this.logger.child("LinkedInClient"),
-        this.deps,
+        {
+          ...this.deps,
+          getFileTransfers:
+            this.deps.getFileTransfers ??
+            ((): LinkedInFileTransfers | undefined =>
+              context.entityService.fileAssets),
+        },
       );
       this.providers.set("linkedin", linkedinProvider);
       this.logger.info("LinkedIn provider initialized");
