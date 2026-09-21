@@ -32,8 +32,6 @@ import type {
   InteractionInfo,
   InteractionInfoInput,
   IDaemonRegistry,
-  IInsightsRegistry,
-  InsightHandler,
 } from "../index";
 import type { RegisteredHttpRoute } from "../types/http-routes";
 import type { Template } from "@brains/templates";
@@ -47,6 +45,8 @@ import { createMockMessageBus } from "./mock-message-bus";
 import { createMockEntityRegistry } from "./mock-entity-registry";
 import { createMockJobQueue } from "./mock-job-queue";
 import { createMockContentServices } from "./mock-content";
+import { createMockDaemonRegistry } from "./mock-daemon-registry";
+import { createMockInsightsRegistry } from "./mock-insights-registry";
 import { createMockEntityService } from "./mock-entity-service";
 import type {
   IRuntimeStateNamespace,
@@ -295,98 +295,13 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
 
   // --- Daemon Registry ---
   // --- Insights Registry ---
-  const insightHandlers = new Map<string, InsightHandler>();
-  const insightsRegistry: IInsightsRegistry = {
-    register: (type: string, handler: InsightHandler) => {
-      insightHandlers.set(type, handler);
-    },
-    unregister: (type: string) => {
-      insightHandlers.delete(type);
-    },
-    getTypes: () => Array.from(insightHandlers.keys()),
-    get: async (type: string, es, visibilityScope) => {
-      const handler = insightHandlers.get(type);
-      if (!handler)
-        throw new Error(
-          `Unknown insight type: ${type}. Available: ${Array.from(insightHandlers.keys()).join(", ")}`,
-        );
-      return handler(es, visibilityScope);
-    },
-  };
+  // --- Daemon and Insights registries ---
+  const insightsRegistry = createMockInsightsRegistry();
+  const daemonRegistry = createMockDaemonRegistry();
 
-  const daemons = new Map<
-    string,
-    {
-      name: string;
-      daemon: Daemon;
-      pluginId: string;
-      status: "stopped" | "starting" | "running" | "stopping" | "error";
-    }
-  >();
-
+  // Advertised by the shell itself, not by either registry.
   const endpoints: EndpointInfo[] = [];
   const interactions: InteractionInfo[] = [];
-
-  const daemonRegistry: IDaemonRegistry = {
-    register: (name, daemon, pluginId) => {
-      daemons.set(name, { name, daemon, pluginId, status: "stopped" });
-    },
-    has: (name) => daemons.has(name),
-    get: (name) => daemons.get(name),
-    start: async (name) => {
-      const info = daemons.get(name);
-      if (!info) return;
-      info.status = "starting";
-      await info.daemon.start();
-      info.status = "running";
-    },
-    stop: async (name) => {
-      const info = daemons.get(name);
-      if (!info) return;
-      info.status = "stopping";
-      await info.daemon.stop();
-      info.status = "stopped";
-    },
-    checkHealth: async (name) => {
-      const info = daemons.get(name);
-      if (!info?.daemon.healthCheck) return undefined;
-      return info.daemon.healthCheck();
-    },
-    getByPlugin: (pluginId) =>
-      Array.from(daemons.values()).filter((info) => info.pluginId === pluginId),
-    getAll: () => Array.from(daemons.keys()),
-    getAllInfo: () => Array.from(daemons.values()),
-    getStatuses: async () =>
-      Array.from(daemons.values()).map((info) => ({
-        name: info.name,
-        pluginId: info.pluginId,
-        status: info.status,
-      })),
-    unregister: async (name) => {
-      daemons.delete(name);
-    },
-    startPlugin: async (pluginId) => {
-      for (const info of daemons.values()) {
-        if (info.pluginId === pluginId) {
-          info.status = "starting";
-          await info.daemon.start();
-          info.status = "running";
-        }
-      }
-    },
-    stopPlugin: async (pluginId) => {
-      for (const info of daemons.values()) {
-        if (info.pluginId === pluginId) {
-          info.status = "stopping";
-          await info.daemon.stop();
-          info.status = "stopped";
-        }
-      }
-    },
-    clear: async () => {
-      daemons.clear();
-    },
-  };
 
   // --- The MockShell object ---
   const getPluginHttpRoutes = (): readonly RegisteredHttpRoute[] => {
