@@ -504,6 +504,30 @@ interface OperatorActionControlBase<
     WorkspaceActionResultDefinition<TDefinition["output"]> | undefined;
 }
 
+/**
+ * Where deriving from the schemas stops, and why.
+ *
+ * Everything above this point — the bounds and the leaf blocks — is the
+ * output of the schema that validates it. Everything below is generic over a
+ * plugin's own action definitions and stays hand-written.
+ *
+ * `OperatorActionControl` is the reason. It is a distributive conditional
+ * type that reads `WorkspaceActionInput<TDefinition>`, so an action block's
+ * `input` is checked against the schema of the very action it names, and it
+ * makes `input` and `form` mutually exclusive in the same step. A Zod schema
+ * validates one concrete shape and cannot be generic over types a plugin
+ * brings with it, so deriving these would replace that check with an opaque
+ * record — strictly worse than what is here.
+ *
+ * `test/operator-view-action-typing.test.ts` holds that reason to account:
+ * its compiler errors stop appearing if this generic is ever flattened.
+ *
+ * Authors are not left to find bounds by being rejected in production.
+ * `safeParseRuntimeStudioOperatorView` and `safeParseRuntimeDashboardWidgetData`
+ * are exported for exactly this, and plugins already call them from their own
+ * tests.
+ */
+
 export type OperatorActionControl<
   TDefinition extends AnyWorkspaceActionDefinition =
     AnyWorkspaceActionDefinition,
