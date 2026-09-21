@@ -279,6 +279,64 @@ export function validateMessageUpload(
   };
 }
 
+export type ValidatedUploadFacts = Omit<ValidatedMessageUpload, "text">;
+export interface ValidateUploadFactsInput {
+  filename: string;
+  mediaType: string | undefined;
+  sizeBytes: number;
+  binaryMediaType?: string | undefined;
+  validText: boolean;
+}
+/** Apply the existing declaration/size/signature policy to native inspection
+ * facts. A caller must validate the actor receipt before using these facts. */
+export function validateMessageUploadFacts(
+  input: ValidateUploadFactsInput,
+): ValidatedUploadFacts | InvalidUpload {
+  const filename = sanitizeUploadFilename(input.filename);
+  const mediaType = normalizeMessageUploadMediaType(filename, input.mediaType);
+  const text = isUploadableTextFile(filename, mediaType);
+  if (!text && !isUploadableBinaryFile(filename, mediaType))
+    return {
+      ok: false,
+      code: "unsupported_type",
+      message: `Unsupported file upload type: ${filename}`,
+    };
+  if (
+    !Number.isSafeInteger(input.sizeBytes) ||
+    input.sizeBytes < 0 ||
+    !(text
+      ? isTextUploadSizeAllowed(input.sizeBytes)
+      : isMessageUploadSizeAllowed(input.sizeBytes))
+  )
+    return {
+      ok: false,
+      code: "file_too_large",
+      message: `File upload too large: ${filename}`,
+    };
+  if (text ? !input.validText : input.binaryMediaType !== mediaType)
+    return {
+      ok: false,
+      code: text ? "binary_content" : "unsupported_type",
+      message: `Unsupported file upload type: ${filename}`,
+    };
+  return {
+    ok: true,
+    kind: text ? "text" : "file",
+    filename,
+    mediaType,
+    sizeBytes: input.sizeBytes,
+  };
+}
+
+/** The same small signature checks used by the byte-based policy. */
+export function detectMessageUploadSignature(
+  prefix: Uint8Array,
+): string | undefined {
+  for (const mediaType of binaryMimeTypes)
+    if (hasExpectedBinarySignature(prefix, mediaType)) return mediaType;
+  return undefined;
+}
+
 function getLowercaseExtension(filename: string): string {
   const dotIndex = filename.lastIndexOf(".");
   return dotIndex >= 0 ? filename.slice(dotIndex).toLowerCase() : "";

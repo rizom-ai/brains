@@ -42,7 +42,7 @@ import type { EntityFileAssets } from "@brains/entity-service";
  */
 export type InterfaceFileTransfers = Pick<
   EntityFileAssets,
-  "putHttp" | "postHttp" | "withCapturedFile"
+  "putHttp" | "postHttp" | "withCapturedFile" | "inspect"
 >;
 
 /**
@@ -253,6 +253,7 @@ export function createInterfacePluginContext(
       const files = shell.getEntityService().fileAssets;
       if (!files) return undefined;
       return {
+        inspect: (input, options) => files.inspect(input, options),
         putHttp: (input, options) => files.putHttp(input, options),
         postHttp: (input, options) => files.postHttp(input, options),
         ...(files.withCapturedFile && {

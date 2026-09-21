@@ -2680,6 +2680,10 @@ describe("WebChatInterface", () => {
   });
 
   it("serves stored multipart text uploads to Admins", async () => {
+    closeFiles = await installAttachmentFileFixture(
+      harness.getEntityService(),
+      new TextEncoder().encode("# Downloadable"),
+    );
     const plugin = adminPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
@@ -2715,6 +2719,10 @@ describe("WebChatInterface", () => {
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
     const downloadRoute = getRoute(plugin, "/api/chat/uploads", "GET");
     const image = pngBytes();
+    closeFiles = await installAttachmentFileFixture(
+      harness.getEntityService(),
+      image,
+    );
     const form = new FormData();
     form.set("file", new File([image], "robot.png", { type: "image/png" }));
 

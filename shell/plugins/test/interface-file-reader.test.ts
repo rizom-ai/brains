@@ -102,7 +102,7 @@ test("interface transports bind only transport methods and observe late provisio
   const shell = createMockShell();
   const context = createMessageInterfacePluginContext(shell, "chat");
   expectTypeOf<keyof NonNullable<typeof context.fileTransfers>>().toEqualTypeOf<
-    "putHttp" | "postHttp" | "withCapturedFile"
+    "putHttp" | "postHttp" | "withCapturedFile" | "inspect"
   >();
   expect(context.fileTransfers).toBeUndefined();
   const files = provision(unexpected);
@@ -129,7 +129,30 @@ test("interface transports bind only transport methods and observe late provisio
     await release.promise;
     return receipt;
   };
+  const inspection = {
+    sizeBytes: file.sizeBytes,
+    sha256: file.sha256,
+    details: { validText: true },
+  };
+  const inspectionInput = {
+    sourceFile: file.sourceFile,
+    sizeBytes: file.sizeBytes,
+  };
+  const inspectionOptions = { ...options, inspector: "message-upload" };
+  files.inspect = async function (
+    this: EntityFileAssets,
+    input,
+    receivedOptions,
+  ): Promise<typeof inspection> {
+    expect(this).toBe(files);
+    expect(input).toBe(inspectionInput);
+    expect(receivedOptions).toBe(inspectionOptions);
+    return inspection;
+  };
   shell.getEntityService().fileAssets = files;
+  expect(
+    await context.fileTransfers?.inspect(inspectionInput, inspectionOptions),
+  ).toBe(inspection);
   const send = context.fileTransfers?.postHttp;
   assert.ok(send);
   let settled = false;

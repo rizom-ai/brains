@@ -533,6 +533,10 @@ plugins:
       import.meta.url,
     ),
     inspectionUploadUrls: {
+      "message-upload": new URL(
+        "../../shell/plugins/src/message-interface/upload-inspection-process.ts",
+        import.meta.url,
+      ),
       pdf: new URL(
         "../../shared/document/src/file-inspection-process.ts",
         import.meta.url,

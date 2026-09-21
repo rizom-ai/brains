@@ -1,4 +1,5 @@
-import { mkdtemp, writeFile, rm } from "node:fs/promises";
+import { mkdtemp, writeFile, readFile, rm } from "node:fs/promises";
+import { UploadInspection } from "@brains/plugins/message-interface/upload-inspection";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { prepareAsset } from "@brains/assets";
@@ -9,7 +10,8 @@ import {
 } from "@brains/entity-service";
 
 /** Real native HTTP sender; a fixture-owned file stands in for a downloaded
- * asset loan. Database download verification is covered by its own tests. */
+ * asset loan; inspection is an explicit unit substitute. Database download
+ * verification and the native inspector are covered separately. */
 export async function installAttachmentFileFixture(
   service: Pick<EntityServiceClient, "fileAssets">,
   bytes: Uint8Array,
@@ -52,7 +54,30 @@ export async function installAttachmentFileFixture(
     },
     putHttp: (input, options): ReturnType<EntityFileRuntime["putHttp"]> =>
       runtime.putHttp(input, options),
-    inspect: unexpected,
+    inspect: async (
+      source,
+      options,
+    ): ReturnType<EntityFileRuntime["inspect"]> => {
+      if (options?.inspector !== "message-upload") unexpected();
+      const bytes = await readFile(source.sourceFile);
+      if (source.sizeBytes !== bytes.length)
+        throw new Error("Fixture source size mismatch");
+      const inspection = new UploadInspection(bytes.length);
+      for (let offset = 0; offset < bytes.length; offset += 32768)
+        inspection.observe(bytes.subarray(offset, offset + 32768));
+      const facts = prepareAsset(bytes);
+      const details = inspection.finish();
+      return {
+        sizeBytes: facts.sizeBytes,
+        sha256: facts.digest,
+        details: {
+          validText: details.validText,
+          ...(details.binaryMediaType && {
+            binaryMediaType: details.binaryMediaType,
+          }),
+        },
+      };
+    },
     publish: unexpected,
     fingerprint: unexpected,
     download: unexpected,

@@ -133,14 +133,23 @@ export async function generateCanonicalAIImage(
     const record = await entities.statAsset(ref);
     assert.deepEqual(record, { ref, sizeBytes: bytes.length });
     assert.equal(ref, createAssetRef(digest));
-    assert.ok(entities.fileAssets);
-    await entities.fileAssets.withAssetFile(
-      ref,
-      async (file): Promise<void> => {
-        assert.equal(file.sha256, digest);
-        assert.deepEqual(await readFile(file.sourceFile), bytes);
-      },
-    );
+    const files = entities.fileAssets;
+    assert.ok(files);
+    await files.withAssetFile(ref, async (file, signal): Promise<void> => {
+      if (dimensions.width === 1 && dimensions.height === 1) {
+        const inspection = await files.inspect(
+          { sourceFile: file.sourceFile, sizeBytes: file.sizeBytes },
+          { signal, inspector: "message-upload" },
+        );
+        assert.deepEqual(inspection, {
+          sizeBytes: bytes.length,
+          sha256: digest,
+          details: { binaryMediaType: "image/png", validText: false },
+        });
+      }
+      assert.equal(file.sha256, digest);
+      assert.deepEqual(await readFile(file.sourceFile), bytes);
+    });
     const target = await entities.getEntity({
       entityType: "post",
       id: "render-source",

@@ -1,7 +1,9 @@
 import { chatUploadResponseSchema } from "@brains/contracts/chat";
 import {
   RuntimeUploadStoreError,
+  createFileResponse,
   formatContentDispositionHeader,
+  type InterfacePluginContext,
   type ChatAttachment,
   type ResolvedRuntimeUpload,
   type RuntimeUploadRecord,
@@ -15,6 +17,8 @@ import {
   type ValidatedWebChatUpload,
 } from "./upload-policy";
 import { webChatUploadRefKind } from "./upload-store";
+import { uploadInspectionDetailsSchema } from "@brains/plugins/message-interface/upload-inspection";
+import { validateMessageUploadFacts } from "@brains/plugins/message-interface/upload-policy";
 
 const webChatUploadFormField = "file";
 /* Extra slack over the text-file size limit to cover the multipart envelope
@@ -82,9 +86,15 @@ export async function handleUploadRequest(
   );
 }
 
+interface UploadDownloadHandlerDeps extends UploadHandlerDeps {
+  fileTransfers: InterfacePluginContext["fileTransfers"];
+  onRetirementError: (error: unknown) => void;
+}
+class UploadDownloadPolicyError extends Error {}
+
 export async function handleUploadDownloadRequest(
   request: Request,
-  deps: UploadHandlerDeps,
+  deps: UploadDownloadHandlerDeps,
 ): Promise<Response> {
   if (!(await deps.resolveAuthSession(request))) {
     return new Response("Forbidden", { status: 403 });
@@ -95,27 +105,84 @@ export async function handleUploadDownloadRequest(
     return new Response("Missing upload id", { status: 400 });
   }
 
-  const resolved = await readStoredUpload(uploadId, deps.getUploadStore());
-  if (resolved instanceof Response) return resolved;
-  const { record, content } = resolved;
-
-  const validated = validateStoredUpload(record, content);
-  if (validated instanceof Response) return validated;
-
-  const disposition = new URL(request.url).searchParams.has("download")
-    ? "attachment"
-    : "inline";
-  const body = new Uint8Array(content).buffer;
-  return new Response(body, {
-    headers: {
-      "Content-Type": record.mediaType,
-      "Content-Length": String(content.byteLength),
-      "Content-Disposition": formatContentDispositionHeader({
-        disposition,
+  request.signal.throwIfAborted();
+  const headers = new Headers();
+  const store = deps.getUploadStore();
+  try {
+    await store.readRecord(uploadId);
+  } catch (error) {
+    if (error instanceof RuntimeUploadStoreError)
+      return uploadStoreErrorToResponse(error);
+    throw error;
+  }
+  request.signal.throwIfAborted();
+  const files = deps.fileTransfers;
+  if (!files) throw new Error("Upload file delivery is not provisioned");
+  const withValidatedFile = async <T>(
+    use: (
+      file: { sourceFile: string; sizeBytes: number; sha256: string },
+      signal: AbortSignal,
+    ) => Promise<T>,
+    signal: AbortSignal,
+  ): Promise<T> =>
+    store.withFile(uploadId, async ({ record, sourceFile }): Promise<T> => {
+      signal.throwIfAborted();
+      const inspection = await files.inspect(
+        { sourceFile, sizeBytes: record.sizeBytes },
+        { signal, inspector: "message-upload" },
+      );
+      signal.throwIfAborted();
+      if (inspection.sizeBytes !== record.sizeBytes)
+        throw new Error("Upload inspection size does not match its record");
+      const details = uploadInspectionDetailsSchema.parse(inspection.details);
+      const validated = validateMessageUploadFacts({
         filename: record.filename,
-      }),
-    },
-  });
+        mediaType: record.mediaType,
+        sizeBytes: inspection.sizeBytes,
+        ...details,
+      });
+      if (!validated.ok) throw new UploadDownloadPolicyError(validated.message);
+      headers.set("Content-Type", validated.mediaType);
+      headers.set("Content-Length", String(inspection.sizeBytes));
+      headers.set("X-Content-Type-Options", "nosniff");
+      headers.set(
+        "Content-Disposition",
+        formatContentDispositionHeader({
+          disposition: new URL(request.url).searchParams.has("download")
+            ? "attachment"
+            : "inline",
+          filename: validated.filename,
+        }),
+      );
+      return use(
+        {
+          sourceFile,
+          sizeBytes: inspection.sizeBytes,
+          sha256: inspection.sha256,
+        },
+        signal,
+      );
+    });
+  try {
+    if (request.method === "HEAD")
+      return await withValidatedFile(
+        async (): Promise<Response> => new Response(null, { headers }),
+        request.signal,
+      );
+    return await createFileResponse({
+      headers,
+      signal: request.signal,
+      files,
+      withFile: withValidatedFile,
+      onRetirementError: deps.onRetirementError,
+    });
+  } catch (error) {
+    if (error instanceof RuntimeUploadStoreError)
+      return uploadStoreErrorToResponse(error);
+    if (error instanceof UploadDownloadPolicyError)
+      return new Response(error.message, { status: 400 });
+    throw error;
+  }
 }
 
 export function resolveInlineUploadPart(file: {
