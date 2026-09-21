@@ -6,6 +6,15 @@ import type {
   WorkspaceActionFormFieldDefinition,
 } from "./operator-view-contract";
 import {
+  operatorCoordinateSchema,
+  operatorIdentifierSchema,
+  operatorLabelSchema,
+  operatorLongTextSchema,
+  operatorRowIdentifierSchema,
+  operatorShortTextSchema,
+  operatorTextSchema,
+} from "./operator-view-contract";
+import {
   operatorFieldControlSchema,
   type OperatorFieldControl,
 } from "./operator-field-contract";
@@ -668,17 +677,14 @@ export type RuntimeOperatorParseResult<T> =
       readonly issues: readonly RuntimeOperatorValidationIssue[];
     };
 
-const identifierSchema = z.string().trim().min(1).max(120);
-/**
- * Row identity is opaque data, not an authored name: a collection row may be
- * keyed by a composite source identity, so it is bounded more loosely than the
- * identifiers an author chooses.
- */
-const rowIdentifierSchema = z.string().trim().min(1).max(400);
-const labelSchema = z.string().trim().min(1).max(160);
-const shortTextSchema = z.string().max(500);
-const textSchema = z.string().max(4_000);
-const longTextSchema = z.string().max(100_000);
+// The bounds live with the contract they bound; these are the short names
+// the validation below reads by.
+const identifierSchema = operatorIdentifierSchema;
+const rowIdentifierSchema = operatorRowIdentifierSchema;
+const labelSchema = operatorLabelSchema;
+const shortTextSchema = operatorShortTextSchema;
+const textSchema = operatorTextSchema;
+const longTextSchema = operatorLongTextSchema;
 const toneSchema = z.enum(["good", "warn", "neutral", "error"]);
 const scalarSchema = z.union([
   z.string().max(2_000),
@@ -1343,7 +1349,7 @@ const spatialRelationshipSchema = z
     tone: toneSchema.optional(),
   })
   .strict();
-const coordinateSchema = z.number().finite().min(0).max(1);
+const coordinateSchema = operatorCoordinateSchema;
 const cartesianPointSchema = z
   .object({
     id: identifierSchema,

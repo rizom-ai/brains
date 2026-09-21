@@ -1,4 +1,4 @@
-import type { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod";
 import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import { assertIdentifier } from "../package-definition";
 import { assertText } from "./contract-assertions";
@@ -11,6 +11,55 @@ import type {
   AnyWorkspaceActionDefinition,
   WorkspaceActionInput,
 } from "./workspace-action-definition-contract";
+
+/**
+ * The bounds every operator view is measured against.
+ *
+ * These are the contract, not an implementation detail of validating it. An
+ * author reading `readonly title?: string` cannot see that the string is
+ * trimmed and capped at 160 characters; they find out when the runtime
+ * rejects a view, which for an outside plugin is after they have shipped.
+ */
+
+/** An identifier an author chooses: trimmed, 1–120 characters. */
+export const operatorIdentifierSchema: z.ZodString = z
+  .string()
+  .trim()
+  .min(1)
+  .max(120);
+
+/**
+ * Row identity is opaque data, not an authored name: a collection row may be
+ * keyed by a composite source identity, so it is bounded more loosely than the
+ * identifiers an author chooses.
+ */
+export const operatorRowIdentifierSchema: z.ZodString = z
+  .string()
+  .trim()
+  .min(1)
+  .max(400);
+
+/** A visible name: trimmed, 1–160 characters. */
+export const operatorLabelSchema: z.ZodString = z
+  .string()
+  .trim()
+  .min(1)
+  .max(160);
+
+/**
+ * Body text, in three sizes. Unlike identifiers and labels these are content
+ * rather than names, so they are neither trimmed nor required to be non-empty.
+ */
+export const operatorShortTextSchema: z.ZodString = z.string().max(500);
+export const operatorTextSchema: z.ZodString = z.string().max(4_000);
+export const operatorLongTextSchema: z.ZodString = z.string().max(100_000);
+
+/** A position within a view, as a fraction of its extent. */
+export const operatorCoordinateSchema: z.ZodNumber = z
+  .number()
+  .finite()
+  .min(0)
+  .max(1);
 
 export type OperatorTone = "good" | "warn" | "neutral" | "error";
 export type OperatorScalar = string | number | boolean | null;
