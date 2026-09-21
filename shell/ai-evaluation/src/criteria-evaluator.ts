@@ -38,6 +38,7 @@ export function evaluateCriteria(
     ...evaluateExpectedTools(criteria, toolCalls),
     ...evaluateExpectedAnyTool(criteria, toolCalls),
     ...evaluateToolCountRange(criteria, toolCalls),
+    ...evaluateResponseEquals(criteria, response.text),
     ...evaluateResponseContains(criteria, response.text),
     ...evaluateResponseContainsAny(criteria, response.text),
     ...evaluateResponseNotContains(criteria, response.text),
@@ -484,6 +485,26 @@ function evaluateToolCountRange(
   }
 
   return results;
+}
+
+function evaluateResponseEquals(
+  criteria: SuccessCriteria,
+  responseText: string,
+): CriteriaEvaluationResult[] {
+  if (criteria.responseEquals === undefined) return [];
+
+  const passed = responseText === criteria.responseEquals;
+  return [
+    {
+      criterion: "responseEquals",
+      expected: criteria.responseEquals,
+      actual: responseText,
+      ...(passed
+        ? {}
+        : { message: "Response does not exactly match expected text" }),
+      passed,
+    },
+  ];
 }
 
 function evaluateResponseContains(

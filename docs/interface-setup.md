@@ -63,7 +63,7 @@ Use `admin` access for identities that can administer the brain. Configure `anch
 
 ## MCP
 
-MCP is the main assistant/tooling interface. It exposes raw read tools and agent-gated command tools to MCP clients.
+MCP is the main assistant/tooling interface. Its default surface routes clients through the brain agent; an Admin-only debug mode exposes raw tools for operator inspection.
 
 ### HTTP MCP
 
@@ -105,15 +105,14 @@ plugins:
 
 ### MCP tool modes
 
-MCP defaults to `basic` mode. In `basic`, clients see:
+MCP defaults to `basic` mode. In `basic`, clients see only:
 
-- raw read-only query tools such as `system_search`, `system_get`, `system_list`, and `system_job_status`
-- `chat` for commands, writes, and reasoning requests that should run through the brain agent
+- `chat` for reads, commands, writes, and reasoning requests routed through the brain agent
 - `confirm` for approving or denying pending actions returned by `chat`
 
-Raw write tools are not advertised in `basic`. After a write, `chat`/`confirm` responses may include `toolResults` and `readYourWrites` handles with entity IDs and job IDs; use `system_get` or `system_job_status` to observe those results.
+Raw tools are not advertised in `basic`. After a write, `chat`/`confirm` responses may include `toolResults` and `readYourWrites` handles with entity IDs and job IDs; ask through `chat` to observe those results.
 
-Use `debug` mode only for local/operator inspection when you intentionally need raw tool access. It requires `admin` permissions and is refused for unauthenticated HTTP.
+Use `debug` mode only for local/operator inspection when you intentionally need raw tool access such as `system_search`, `system_get`, `system_list`, or `system_job_status`. It requires `admin` permissions and is refused for unauthenticated HTTP.
 
 ```yaml
 plugins:

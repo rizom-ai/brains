@@ -13,7 +13,7 @@ This package provides transport protocols (stdio and HTTP) for the Model Context
 - **Transport-specific logging**: stderr for STDIO, console for HTTP
 - **Session management**: For HTTP connections
 - **Transport-based permissions**: Automatic permission level based on transport type
-- **CQRS tool exposure**: Raw read tools stay composable; mutations route through agent-backed `chat`/`confirm`
+- **Conversational basic mode**: Reads and mutations route through agent-backed `mcp_chat`/`mcp_confirm`; raw tools default to debug-only
 
 ## Installation
 
@@ -31,7 +31,7 @@ import { MCPInterface } from "@brains/mcp";
 // For STDIO transport
 const stdioInterface = new MCPInterface({
   transport: "stdio",
-  mode: "basic", // default: read-only query tools + chat/confirm
+  mode: "basic", // default: chat/confirm only
 });
 
 // For authenticated HTTP transport
@@ -150,20 +150,20 @@ interface MCPConfig {
 }
 ```
 
-`basic` mode is the default and is suitable for remote callers. It exposes raw
-read-only query tools plus:
+`basic` mode is the default and is suitable for remote callers. Its built-in
+conversational adapters use these protocol names:
 
-- `chat` — routes commands/reasoned requests through the brain agent
-- `confirm` — resolves pending confirmations returned by `chat`
+- `mcp_chat` — routes commands/reasoned requests through the brain agent
+- `mcp_confirm` — resolves pending confirmations returned by `mcp_chat`
 
-Use raw query tools such as `search`, `get`, `list`, and `job_status` for cheap
-structured reads. Use `chat` for any create/update/delete request so the brain's
-system prompt, permissions, and confirmation flow stay in the loop. Successful
-`chat`/`confirm` responses include the agent text and may include `toolResults`
-and `readYourWrites` handles with entity IDs and job IDs to fetch or poll. For
-non-public saves, ask for team/shared visibility or private/Admin-only
+Every request — reads included — goes through `mcp_chat` so the brain's system
+prompt, context, permissions, and confirmation flow stay in the loop. Successful
+`mcp_chat`/`mcp_confirm` responses include the agent text and may include `toolResults`
+and `readYourWrites` handles with entity IDs and job IDs. In basic mode, ask
+through `mcp_chat` to retrieve or poll those results. For non-public saves, ask for
+team/shared visibility or private/Admin-only
 visibility explicitly; the agent maps those requests to the canonical
-`system_create.visibility` field while basic mode continues to hide raw writes.
+`system_create.visibility` field while basic mode continues to hide raw tools.
 
 `debug` mode preserves raw tool exposure for local inspection. It requires
 `admin` permissions and is refused for unauthenticated HTTP transport.
@@ -245,14 +245,16 @@ describe("StreamableHTTPServer", () => {
 
 ## MCP Tools
 
-In `basic` mode, the interface exposes raw read-only query tools from the shell
-plus the MCP interface tools:
+In `basic` mode, the interface exposes its conversational tools:
 
-- `chat` - Route commands and reasoned requests through the brain agent
-- `confirm` - Confirm or deny a pending action returned by `chat`
+- `mcp_chat` - Route commands and reasoned requests through the brain agent
+- `mcp_confirm` - Confirm or deny a pending action returned by `mcp_chat`
 
-Raw write tools are not advertised in `basic` mode. Use `debug` mode only for
-local/operator inspection when you intentionally need raw tool access.
+Ordinary tools — reads and writes alike — default to debug-only unless explicitly
+opted into basic exposure. Agent availability is independent of direct exposure. Use
+`debug` mode only for local/operator inspection when you intentionally need raw
+tool access (raw reads such as `system_search`, `system_get`, `system_list`, and
+`system_job_status` included).
 
 ## Exports
 

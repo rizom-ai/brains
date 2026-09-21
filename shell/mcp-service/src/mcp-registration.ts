@@ -78,10 +78,7 @@ export function canExposeTool(
 }
 
 function getDirectMcpExposure(tool: Tool): DirectMcpExposure {
-  if (tool.directMcpExposure !== undefined) {
-    return tool.directMcpExposure;
-  }
-  return isReadOnlyTool(tool) ? "basic" : "debug";
+  return tool.directMcpExposure ?? "debug";
 }
 
 export function canExposeToolToAgent(
@@ -186,10 +183,6 @@ export function getToolAnnotations(tool: Tool): ToolAnnotations | undefined {
   }
 
   return undefined;
-}
-
-export function isReadOnlyTool(tool: Tool): boolean {
-  return getToolAnnotations(tool)?.readOnlyHint === true;
 }
 
 export function serializeMessageResponse(response: MessageResponse): string {

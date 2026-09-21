@@ -293,13 +293,13 @@ describe("inbox_list tool", () => {
       mcpService.registerTool(plugin.id, registered);
     }
 
-    // Read-only exposure is available in basic mode again, but the Inbox
-    // tool's Admin permission remains mandatory in either mode.
+    // Basic clients use chat; raw Inbox access is debug-only and still
+    // requires the tool's Admin permission.
     for (const mode of ["basic", "debug"] as const) {
       mcpService.setProtocolMode(mode);
-      expect(await listToolNames(mcpService, "admin")).toContain(
-        "unified-inbox_list",
-      );
+      const adminTools = await listToolNames(mcpService, "admin");
+      if (mode === "debug") expect(adminTools).toContain("unified-inbox_list");
+      else expect(adminTools).not.toContain("unified-inbox_list");
       expect(await listToolNames(mcpService, "trusted")).not.toContain(
         "unified-inbox_list",
       );

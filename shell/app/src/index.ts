@@ -1,4 +1,4 @@
-export { App } from "./app";
+export { App, buildShellConfig } from "./app";
 export { defineConfig } from "./config";
 export { handleCLI } from "./cli";
 export {

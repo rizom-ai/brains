@@ -1,5 +1,69 @@
+import type {
+  AIGenerationSchema,
+  AgentResponse,
+  IAgentService,
+  ImageGenerationOptions,
+  ImageGenerationResult,
+  JudgeInput,
+} from "@brains/ai-service";
+import type { DefaultQueryResponse } from "@brains/contracts";
+import { defaultQueryResponseSchema } from "@brains/contracts";
+import type { IConversationService } from "@brains/conversation-service";
+import { type BaseEntity, type IEntityService } from "@brains/entity-service";
+import {
+  AnchorProfileAdapter,
+  BrainCharacterAdapter,
+  ProfileKindRegistry,
+  type AnchorProfile,
+  type BrainCharacter,
+} from "@brains/identity-service";
+import type {
+  IRuntimeStateNamespace,
+  IRuntimeStateStore,
+  RuntimeStateRecordValue,
+  RuntimeStateScopeOptions,
+} from "@brains/runtime-state";
+import { prepareRuntimeStateValue } from "@brains/runtime-state";
+import {
+  InMemoryTemplateRegistry,
+  PermissionService,
+  RenderService,
+  type Template,
+} from "@brains/templates";
+import { createSilentLogger } from "@brains/test-utils";
+import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import { searchFixtureEntities } from "./entity-search";
+import { isDeepStrictEqual } from "node:util";
+import {
+  createProjectionExecutionReader,
+  createProjectionInputReader,
+} from "../entity/projection-rule";
+import type {
+  ContentGenerationConfig,
+  Daemon,
+  EndpointInfo,
+  EndpointInfoInput,
+  EvalHandler,
+  IDaemonRegistry,
+  IMCPTransport,
+  IShell,
+  InteractionInfo,
+  InteractionInfoInput,
+  Plugin,
+  ProjectionRule,
+  ProjectionWaveInput,
+  ProjectionWriteIntent,
+  Prompt,
+  QueryContext,
+  RegisteredApiRoute,
+  RegisteredWebRoute,
+  Resource,
+  ResourceTemplate,
+  RuntimeAppInfo,
+  RuntimeReadiness,
+  Tool,
+  ToolInfo,
+} from "../index";
 import {
   AccountSettingsRegistry,
   AttachmentRegistry,
@@ -13,113 +77,15 @@ import {
   createRuntimeUploadsNamespace,
 } from "../index";
 import { bindHttpRouteSnapshot } from "../internal/http-route-snapshot";
-import type {
-  IShell,
-  Plugin,
-  Tool,
-  Resource,
-  ResourceTemplate,
-  Prompt,
-  ContentGenerationConfig,
-  QueryContext,
-  EvalHandler,
-  RegisteredApiRoute,
-  RegisteredWebRoute,
-  ToolInfo,
-  IMCPTransport,
-  RuntimeAppInfo,
-  RuntimeReadiness,
-  Daemon,
-  EndpointInfo,
-  EndpointInfoInput,
-  InteractionInfo,
-  InteractionInfoInput,
-  IDaemonRegistry,
-  IInsightsRegistry,
-  InsightHandler,
-  ProjectionRule,
-  ProjectionWaveInput,
-  ProjectionWriteIntent,
-} from "../index";
 import type { RegisteredHttpRoute } from "../types/http-routes";
-import {
-  createProjectionInputReader,
-  createProjectionExecutionReader,
-} from "../entity/projection-rule";
-import {
-  InMemoryTemplateRegistry,
-  RenderService,
-  type Template,
-} from "@brains/templates";
-import { PermissionService } from "@brains/templates";
-import { MessageBus } from "@brains/messaging-service";
-import {
-  authorizeGenerationWrite,
-  planContentGeneration,
-  submitContentGeneration,
-  GenerationAuthorizer,
-} from "@brains/content-service";
-import type { IContentService, ContentTemplate } from "@brains/content-service";
-import type { Logger } from "@brains/utils/logger";
-import type { DefaultQueryResponse } from "@brains/contracts";
-import { defaultQueryResponseSchema, toSdkError } from "@brains/contracts";
-import {
-  getVisibleContentVisibilities,
-  normalizeContentVisibility,
-  copyEntityTypeConfig,
-  type IEntityService,
-  type IEntityRegistry,
-  type BaseEntity,
-  type DataSourceRegistry,
-  type DataSource,
-  type EntityAdapter,
-  type DataSourceCapabilities,
-  type UploadSaveHandlerRegistration,
-  type CreateEntityRequest,
-  type UpdateEntityRequest,
-  type UpsertEntityRequest,
-  type EntitySchema,
-  type GetEntityRequest,
-  type ListEntitiesRequest,
-  type EntitySearchRequest,
-  type SearchResult,
-  type EntityMutationResult,
-  type EntityExportIntent,
-  type CreateInterceptor,
-} from "@brains/entity-service";
-import { computeContentHash } from "@brains/utils/hash";
-import type {
-  IJobQueueService,
-  IJobsNamespace,
-  JobInfo,
-  JobQueueEnqueueRequest,
-  JobHandler,
-} from "@brains/job-queue";
-import { prepareRuntimeStateValue } from "@brains/runtime-state";
-import { isDeepStrictEqual } from "node:util";
-import type {
-  IRuntimeStateNamespace,
-  IRuntimeStateStore,
-  RuntimeStateRecordValue,
-  RuntimeStateScopeOptions,
-} from "@brains/runtime-state";
-import type { IConversationService } from "@brains/conversation-service";
-import {
-  AnchorProfileAdapter,
-  BrainCharacterAdapter,
-  ProfileKindRegistry,
-  type BrainCharacter,
-  type AnchorProfile,
-} from "@brains/identity-service";
-import type {
-  AgentResponse,
-  IAgentService,
-  ImageGenerationOptions,
-  ImageGenerationResult,
-  JudgeInput,
-  AIGenerationSchema,
-} from "@brains/ai-service";
-import { createSilentLogger } from "@brains/test-utils";
+import { createMockContentServices } from "./mock-content";
+import { createMockDaemonRegistry } from "./mock-daemon-registry";
+import { createMockEntityRegistry } from "./mock-entity-registry";
+import { createMockEntityService } from "./mock-entity-service";
+import { createMockEntityStore } from "./mock-entity-store";
+import { createMockInsightsRegistry } from "./mock-insights-registry";
+import { createMockJobQueue } from "./mock-job-queue";
+import { createMockMessageBus } from "./mock-message-bus";
 
 /**
  * MockShell type — IShell plus test helper methods.
@@ -312,84 +278,13 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   const accountSettingsRegistry = new AccountSettingsRegistry();
 
   // Stateful backing stores
-  const entities = new Map<string, BaseEntity>();
-  const entityExportIntents = new Map<string, EntityExportIntent>();
-  let entityExportRevision = 0;
-  const exportKey = (entityType: string, entityId: string): string =>
-    `${entityType}\u0000${entityId}`;
-  const updateEntityExportIntent = (
-    entityType: string,
-    entityId: string,
-    operation: "upsert" | "delete",
-    persistenceOrigin?: "ordinary" | "directory-sync",
-  ): void => {
-    const key = exportKey(entityType, entityId);
-    if (persistenceOrigin === "directory-sync") {
-      entityExportIntents.delete(key);
-      return;
-    }
-    entityExportRevision += 1;
-    entityExportIntents.set(key, {
-      entityType,
-      entityId,
-      operation,
-      revision: `mock-export-${entityExportRevision}`,
-      markedAt: entityExportRevision,
-    });
-  };
-  const entityTypes = new Set<string>();
-  const entityAdapters = new Map<string, EntityAdapter<BaseEntity>>();
-  const entityTypeConfigs = new Map<
-    string,
-    Parameters<IEntityRegistry["registerEntityType"]>[3]
-  >();
-  const getEntityTypeConfig = (
-    type: string,
-  ): NonNullable<Parameters<IEntityRegistry["registerEntityType"]>[3]> =>
-    copyEntityTypeConfig(entityTypeConfigs.get(type) ?? {});
-
-  // Keep the same materialized view real EntityService reads reconstruct:
-  // encode for the storage hash, then decode the body through its adapter.
-  // The encoded envelope is not the content an author reads. Metadata remains
-  // authoritative separately, just as in EntitySerializer.reconstructEntity.
-  const materializeViaAdapter = (
-    entity: BaseEntity,
-  ): {
-    content: string;
-    metadata: Record<string, unknown>;
-    contentHash: string;
-  } => {
-    const adapter = entityAdapters.get(entity.entityType);
-    // Fall back to verbatim when no real adapter is registered.
-    // Some tests register entity types with a stub (`{} as never`) to
-    // satisfy the registry signature without caring about serialization.
-    if (typeof adapter?.toMarkdown !== "function") {
-      return {
-        content: entity.content,
-        metadata: entity.metadata,
-        contentHash: computeContentHash(entity.content),
-      };
-    }
-    // Production validates before serialization. Persist defaults/coercions
-    // now rather than regenerating or applying them only on author reads.
-    const normalized = adapter.schema.parse(entity);
-    const markdown = adapter.toMarkdown(normalized);
-    const decoded =
-      typeof adapter.fromMarkdown === "function"
-        ? adapter.fromMarkdown(markdown)
-        : {};
-    return {
-      content: decoded.content ?? markdown,
-      metadata: adapter.extractMetadata(normalized),
-      contentHash: computeContentHash(markdown),
-    };
-  };
+  const entityStore = createMockEntityStore();
+  const { entities, types: entityTypes } = entityStore;
   const templates = InMemoryTemplateRegistry.createFresh();
   // Keep declaration identity, rather than guessing a namespace from a name.
   // Weak keys retain correct metadata when registration rollback restores an
   // earlier template; reset replaces this entire shell.
   const templateLocalNames = new WeakMap<Template, Map<string, string>>();
-  const dataSources = new Map<string, DataSource>();
   const plugins = new Map<string, Plugin>();
 
   let agentService: IAgentService =
@@ -399,528 +294,15 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
 
   // Messaging is in-memory already. Reuse its actual dispatch and coded
   // response handling instead of teaching the harness a second protocol.
-  const messageBus = MessageBus.createFresh(logger);
+  const messageBus = createMockMessageBus(logger);
 
-  // --- Entity Service (stateful) ---
-  // Overloaded like the real service: without a schema reads return the
-  // stored BaseEntity view; with one they parse, so T is proven not asserted.
-  async function getEntityFake(
-    request: GetEntityRequest,
-  ): Promise<BaseEntity | null>;
-  async function getEntityFake<T extends BaseEntity>(
-    request: GetEntityRequest,
-    schema: EntitySchema<T>,
-  ): Promise<T | null>;
-  async function getEntityFake(
-    request: GetEntityRequest,
-    schema?: EntitySchema<BaseEntity>,
-  ): Promise<BaseEntity | null> {
-    const entity = entities.get(request.id);
-    if (entity?.entityType !== request.entityType) return null;
-    const visible =
-      request.visibilityScope === undefined ||
-      getVisibleContentVisibilities(request.visibilityScope).includes(
-        entity.visibility,
-      );
-    if (!visible) return null;
-    return schema ? schema.parse(entity) : entity;
-  }
-
-  // Mirrors the real query layer's ORDER BY: system fields come from the
-  // entity, everything else from metadata; NULLs sort smallest (SQLite),
-  // and nullsFirst forces them ahead regardless of direction.
-  function sortFieldValue(entity: BaseEntity, field: string): unknown {
-    if (field === "id" || field === "created" || field === "updated") {
-      return entity[field];
-    }
-    return entity.metadata[field];
-  }
-
-  function compareBySortFields(
-    left: BaseEntity,
-    right: BaseEntity,
-    sortFields: NonNullable<
-      NonNullable<ListEntitiesRequest["options"]>["sortFields"]
-    >,
-  ): number {
-    for (const { field, direction, nullsFirst } of sortFields) {
-      const a = sortFieldValue(left, field);
-      const b = sortFieldValue(right, field);
-      const aNull = a === null || a === undefined;
-      const bNull = b === null || b === undefined;
-      if (aNull || bNull) {
-        if (aNull && bNull) continue;
-        if (nullsFirst) return aNull ? -1 : 1;
-        // SQLite: NULL is smaller than every value.
-        const nullCmp = aNull ? -1 : 1;
-        if (direction === "desc") return -nullCmp;
-        return nullCmp;
-      }
-      const cmp =
-        typeof a === "number" && typeof b === "number"
-          ? a - b
-          : String(a) < String(b)
-            ? -1
-            : String(a) > String(b)
-              ? 1
-              : 0;
-      if (cmp !== 0) return direction === "desc" ? -cmp : cmp;
-    }
-    return 0;
-  }
-
-  function filterEntitiesFake(request: ListEntitiesRequest): BaseEntity[] {
-    const scope = request.options?.filter?.visibilityScope;
-    const visible = scope
-      ? new Set(getVisibleContentVisibilities(scope))
-      : null;
-    let results = Array.from(entities.values()).filter(
-      (e) =>
-        e.entityType === request.entityType &&
-        (visible === null || visible.has(e.visibility)),
-    );
-    const exactVisibility = request.options?.filter?.visibility;
-    if (exactVisibility)
-      results = results.filter(
-        (entity) => entity.visibility === exactVisibility,
-      );
-    const contentContains = request.options?.filter?.contentContains
-      ?.trim()
-      .toLowerCase();
-    if (contentContains)
-      results = results.filter((entity) =>
-        entity.content.toLowerCase().includes(contentContains),
-      );
-    if (request.options?.publishedOnly) {
-      results = results.filter((e) => e.metadata["status"] === "published");
-    }
-    if (request.options?.filter?.metadata) {
-      const filterEntries = Object.entries(request.options.filter.metadata);
-      results = results.filter((e) =>
-        filterEntries.every(([key, value]) => e.metadata[key] === value),
-      );
-    }
-    return results;
-  }
-
-  async function listEntitiesFake(
-    request: ListEntitiesRequest,
-  ): Promise<BaseEntity[]>;
-  async function listEntitiesFake<T extends BaseEntity>(
-    request: ListEntitiesRequest,
-    schema: EntitySchema<T>,
-  ): Promise<T[]>;
-  async function listEntitiesFake(
-    request: ListEntitiesRequest,
-    schema?: EntitySchema<BaseEntity>,
-  ): Promise<BaseEntity[]> {
-    const sortFields = request.options?.sortFields ?? [
-      { field: "updated", direction: "desc" as const },
-    ];
-    const offset = request.options?.offset ?? 0;
-    const limit = request.options?.limit;
-    const results = filterEntitiesFake(request)
-      .sort((left, right) => compareBySortFields(left, right, sortFields))
-      .slice(offset, limit === undefined ? undefined : offset + limit);
-    return schema ? results.map((entity) => schema.parse(entity)) : results;
-  }
-
-  async function searchFake(
-    request: EntitySearchRequest,
-  ): Promise<SearchResult[]>;
-  async function searchFake<T extends BaseEntity>(
-    request: EntitySearchRequest,
-    schema: EntitySchema<T>,
-  ): Promise<SearchResult<T>[]>;
-  async function searchFake(
-    request: EntitySearchRequest,
-    schema?: EntitySchema<BaseEntity>,
-  ): Promise<SearchResult[]> {
-    const results = searchFixtureEntities([...entities.values()], request);
-    return schema
-      ? results.map((result) => ({
-          ...result,
-          entity: schema.parse(result.entity),
-        }))
-      : results;
-  }
-
-  const defaultEntityService: IEntityService = {
-    createEntity: async <T extends BaseEntity>(
-      request: CreateEntityRequest<T>,
-    ): Promise<EntityMutationResult> => {
-      // `EntityInput<T>` leaves id, timestamps and contentHash to the service,
-      // so the fake fills them the way the real one does rather than assuming
-      // the caller passed a complete entity.
-      const input = request.entity;
-      const now = new Date().toISOString();
-      const id = input.id ?? `entity-${Date.now()}`;
-      const entity: BaseEntity = {
-        ...input,
-        id,
-        visibility: normalizeContentVisibility(input.visibility),
-        created: input.created ?? now,
-        updated: input.updated ?? now,
-        content: input.content,
-        metadata: input.metadata,
-        entityType: input.entityType,
-        contentHash: "",
-      };
-      entityTypes.add(entity.entityType);
-      const materialized = materializeViaAdapter(entity);
-      entities.set(id, { ...entity, ...materialized });
-      updateEntityExportIntent(
-        entity.entityType,
-        id,
-        "upsert",
-        request.options?.persistenceOrigin,
-      );
-      return { entityId: id, jobId: `job-${id}`, skipped: false };
-    },
-    createEntityFromMarkdown: async (request: {
-      input: { entityType: string; id: string; markdown: string };
-    }): Promise<EntityMutationResult> => {
-      const adapter = entityAdapters.get(request.input.entityType);
-      const parsed = adapter?.fromMarkdown(request.input.markdown) ?? {
-        entityType: request.input.entityType,
-        content: request.input.markdown,
-        metadata: {},
-      };
-      const now = new Date().toISOString();
-      const entity: BaseEntity = {
-        ...parsed,
-        id: request.input.id,
-        entityType: request.input.entityType,
-        content: parsed.content ?? request.input.markdown,
-        metadata: parsed.metadata ?? {},
-        visibility: "public" as const,
-        created: now,
-        updated: now,
-        contentHash: computeContentHash(
-          parsed.content ?? request.input.markdown,
-        ),
-      };
-      return defaultEntityService.createEntity({ entity });
-    },
-    updateEntity: async <T extends BaseEntity>(
-      request: UpdateEntityRequest<T>,
-    ): Promise<EntityMutationResult> => {
-      const entity = request.entity;
-      if (!entity.id) throw new Error("Entity must have an id");
-      const { content, metadata, contentHash } = materializeViaAdapter(entity);
-      // Mirror the real entity service: a byte-identical write is skipped —
-      // no store, no event, no job.
-      const existing = entities.get(entity.id);
-      if (
-        request.options?.expectedContentHash !== undefined &&
-        existing?.contentHash !== request.options.expectedContentHash
-      ) {
-        return {
-          entityId: entity.id,
-          jobId: "",
-          skipped: true,
-          skipReason: "content-conflict" as const,
-        };
-      }
-      if (
-        existing?.contentHash === contentHash &&
-        existing.visibility === entity.visibility &&
-        JSON.stringify(existing.metadata) === JSON.stringify(metadata)
-      ) {
-        updateEntityExportIntent(
-          entity.entityType,
-          entity.id,
-          "upsert",
-          request.options?.persistenceOrigin,
-        );
-        return { entityId: entity.id, jobId: "", skipped: true };
-      }
-      entities.set(entity.id, {
-        ...entity,
-        content,
-        metadata,
-        contentHash,
-      });
-      updateEntityExportIntent(
-        entity.entityType,
-        entity.id,
-        "upsert",
-        request.options?.persistenceOrigin,
-      );
-      return { entityId: entity.id, jobId: `job-${entity.id}`, skipped: false };
-    },
-    deleteEntity: async (request: {
-      entityType: string;
-      id: string;
-      options?: { persistenceOrigin?: "ordinary" | "directory-sync" };
-    }): Promise<boolean> => {
-      entities.delete(request.id);
-      updateEntityExportIntent(
-        request.entityType,
-        request.id,
-        "delete",
-        request.options?.persistenceOrigin,
-      );
-      return true;
-    },
-    getEntity: getEntityFake,
-    getEntities: async (request: {
-      entityType: string;
-      ids: readonly string[];
-      visibilityScope?: BaseEntity["visibility"];
-    }): Promise<BaseEntity[]> => {
-      const visible = request.visibilityScope
-        ? new Set(getVisibleContentVisibilities(request.visibilityScope))
-        : null;
-      return [...new Set(request.ids)].flatMap((id): BaseEntity[] => {
-        const entity = entities.get(id);
-        return entity?.entityType === request.entityType &&
-          (visible === null || visible.has(entity.visibility))
-          ? [entity]
-          : [];
-      });
-    },
-    listEntities: listEntitiesFake,
-    search: searchFake,
-    searchWithDistances: async () => [],
-    getEntityTypes: () => Array.from(entityTypes),
-    hasEntityType: (type: string) => entityTypes.has(type),
-    serializeEntity: (entity: BaseEntity) => JSON.stringify(entity),
-    deserializeEntity: (markdown: string) => ({ content: markdown }),
-    getAsyncJobStatus: async () => ({ status: "completed" as const }),
-    upsertEntity: async <T extends BaseEntity>(
-      request: UpsertEntityRequest<T>,
-    ): Promise<EntityMutationResult & { created: boolean }> => {
-      const entity = request.entity;
-      entityTypes.add(entity.entityType);
-      const id = entity.id || `entity-${Date.now()}`;
-      const exists = entities.has(id);
-      const materialized = materializeViaAdapter({ ...entity, id });
-      entities.set(id, { ...entity, id, ...materialized });
-      updateEntityExportIntent(
-        entity.entityType,
-        id,
-        "upsert",
-        request.options?.persistenceOrigin,
-      );
-      return {
-        entityId: id,
-        jobId: `job-${id}`,
-        created: !exists,
-        skipped: false,
-      };
-    },
-    getEntityTypeConfig,
-    isProjectionOwnedEntity: async () => false,
-    listPendingEntityExports: async () =>
-      [...entityExportIntents.values()].sort(
-        (left, right) => left.markedAt - right.markedAt,
-      ),
-    hasPendingEntityExports: async () => entityExportIntents.size > 0,
-    acknowledgeEntityExports: async (request): Promise<number> => {
-      let acknowledged = 0;
-      for (const intent of request.intents) {
-        const key = exportKey(intent.entityType, intent.entityId);
-        if (entityExportIntents.get(key)?.revision !== intent.revision)
-          continue;
-        entityExportIntents.delete(key);
-        acknowledged += 1;
-      }
-      return acknowledged;
-    },
-    getWeightMap: () => ({}),
-    countEntities: async (request) => filterEntitiesFake(request).length,
-    getEntityCounts: async (
-      visibilityScope?: BaseEntity["visibility"],
-    ): Promise<Array<{ entityType: string; count: number }>> => {
-      const visible = visibilityScope
-        ? new Set(getVisibleContentVisibilities(visibilityScope))
-        : null;
-      const counts = new Map<string, number>();
-      for (const entity of entities.values()) {
-        if (visible !== null && !visible.has(entity.visibility)) continue;
-        counts.set(entity.entityType, (counts.get(entity.entityType) ?? 0) + 1);
-      }
-      return Array.from(counts.entries()).map(([entityType, count]) => ({
-        entityType,
-        count,
-      }));
-    },
-
-    // The fake has no unresolved asset references; raw and resolved reads
-    // share the materialized entity view.
-    getEntityRaw: getEntityFake,
-    getEntityWriteSnapshot: async (
-      request,
-    ): ReturnType<IEntityService["getEntityWriteSnapshot"]> => {
-      const entity = await getEntityFake(request);
-      return entity ? { entity, revision: "mock-revision" } : null;
-    },
-
-    // Embeddings and projections are not modelled: the fake has no vectors, so
-    // it reports an empty, ready index rather than pretending to search one.
-    storeEmbedding: async (): Promise<void> => {},
-    countEmbeddings: async (): Promise<number> => 0,
-    backfillMissingEmbeddings: async () => ({ queued: 0, skipped: 0 }),
-    isIndexReady: (): boolean => true,
-    awaitIndexReady: async () => ({
-      ready: true,
-      degraded: false,
-      activeEmbeddingJobs: 0,
-      missingEmbeddings: 0,
-      staleEmbeddings: 0,
-      failedEmbeddings: 0,
-      embeddableEntities: 0,
-      embeddedEntities: 0,
-    }),
-    projectSemanticSpace: async () => ({
-      origin: { kind: "centroid" as const },
-      points: [],
-      neighbors: [],
-      distanceRange: { min: 0, max: 0 },
-    }),
-
-    reconcileProjectionTargets: async (): Promise<void> => {},
-    setProjectionWakeup: () => (): void => {},
-    runBulkMutation: async <TResult>(
-      _input: { source: string; operationId: string },
-      mutation: () => Promise<TResult>,
-    ): Promise<TResult> => mutation(),
-    prepareDurableBulkMutation: async (): Promise<void> => {},
-    finalizeDurableBulkMutationEnqueue: async (): Promise<void> => {},
-    failDurableBulkMutationEnqueue: async (): Promise<void> => {},
-    runDurableBulkMutationChild: async <TResult>(
-      _input: {
-        source: string;
-        operationId: string;
-        rootJobId: string;
-        childKey: string;
-        expectedChildren: number;
-        jobId: string;
-      },
-      mutation: () => Promise<TResult>,
-    ): Promise<TResult> => mutation(),
-    settleDurableBulkMutationChild: async () => true,
-    recoverProjectionBatches: async () => ({
-      fencedCallbacks: 0,
-      releasedDurableRoots: 0,
-    }),
-    // Hierarchy grouping is tested against SQLite, not duplicated in this fake.
-    queryEntityHierarchy: async (): Promise<never> => {
-      throw new Error(
-        "createMockShell: inject an entity service for hierarchy queries",
-      );
-    },
-    // Projection storage is database-backed and cannot be faked usefully. Fail
-    // loudly rather than hand back an empty stand-in, which would make a test
-    // asserting projection behaviour silently meaningless.
-    getProjectionStore: (): never => {
-      throw new Error(
-        "createMockShell: getProjectionStore is not mocked; use a real entity service for projection tests",
-      );
-    },
-
-    initialize: async (): Promise<void> => {},
-  } satisfies IEntityService;
+  const defaultEntityService = createMockEntityService(entityStore);
 
   // Tests that want canned reads rather than the stateful fake can inject
   // their own; everything built from this shell then sees the same service.
   const entityService = options.entityService ?? defaultEntityService;
 
-  // --- Entity Registry ---
-  const createInterceptors = new Map<string, CreateInterceptor>();
-  const uploadSaveHandlers: UploadSaveHandlerRegistration[] = [];
-  const stewardshipClaims = new Map<string, string>();
-
-  const entityRegistry: IEntityRegistry = {
-    registerEntityType: (type, _schema, adapter, config) => {
-      const registeredConfig = copyEntityTypeConfig(config ?? {});
-      entityTypes.add(type);
-      entityAdapters.set(type, adapter);
-      entityTypeConfigs.set(type, registeredConfig);
-    },
-    unregisterEntityType: (type): void => {
-      stewardshipClaims.delete(type);
-      entityTypes.delete(type);
-      entityAdapters.delete(type);
-      entityTypeConfigs.delete(type);
-      createInterceptors.delete(type);
-    },
-    getSchema: (): never => {
-      throw new Error("Not implemented");
-    },
-    getAdapter: <
-      TEntity extends BaseEntity<TMetadata>,
-      TMetadata = Record<string, unknown>,
-    >(
-      type: string,
-    ): EntityAdapter<TEntity, TMetadata> => {
-      const adapter = entityAdapters.get(type);
-      if (!adapter) {
-        throw new Error(`No adapter registered for entity type: ${type}`);
-      }
-      // A heterogeneous registry cannot prove the stored adapter matches the
-      // caller-chosen T; the real EntityRegistry asserts at exactly this point
-      // for the same reason.
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see the comment above
-      return adapter as EntityAdapter<TEntity, TMetadata>;
-    },
-    hasEntityType: (type: string) => entityTypes.has(type),
-    claimEntityStewardship: (entityType: string, ownerLabel: string): void => {
-      if (!entityTypes.has(entityType)) {
-        throw new Error(
-          `"${ownerLabel}" cannot steward "${entityType}": the type is not registered`,
-        );
-      }
-      const existing = stewardshipClaims.get(entityType);
-      if (existing !== undefined && existing !== ownerLabel) {
-        throw new Error(
-          `"${ownerLabel}" cannot steward "${entityType}": "${existing}" already stewards it`,
-        );
-      }
-      stewardshipClaims.set(entityType, ownerLabel);
-    },
-    releaseEntityStewardship: (
-      entityType: string,
-      ownerLabel: string,
-    ): void => {
-      if (stewardshipClaims.get(entityType) === ownerLabel) {
-        stewardshipClaims.delete(entityType);
-      }
-    },
-    validateEntity: (type: string, entity: unknown): BaseEntity => {
-      const adapter = entityAdapters.get(type);
-      if (adapter) return adapter.schema.parse(entity);
-      throw new Error(`No schema registered for entity type: ${type}`);
-    },
-    getAllEntityTypes: () => Array.from(entityTypes),
-    getEntityTypeConfig,
-    getWeightMap: () => ({}),
-    registerCreateInterceptor: (type, interceptor) => {
-      createInterceptors.set(type, interceptor);
-    },
-    getCreateInterceptor: (type) => createInterceptors.get(type),
-    registerUploadSaveHandler: (registration): void => {
-      const kept = uploadSaveHandlers.filter(
-        (existing) => existing.entityType !== registration.entityType,
-      );
-      uploadSaveHandlers.splice(0, uploadSaveHandlers.length, ...kept);
-      uploadSaveHandlers.push(registration);
-    },
-    getUploadSaveHandler: (mediaType) =>
-      uploadSaveHandlers.find((registration) =>
-        registration.mediaTypes.some((pattern) =>
-          pattern.endsWith("/*")
-            ? mediaType.startsWith(pattern.slice(0, -1))
-            : mediaType === pattern,
-        ),
-      ),
-    registerPersistValidator: (): void => {},
-    getPersistValidator: () => undefined,
-    extendFrontmatterSchema: (): void => {},
-    getEffectiveFrontmatterSchema: (type: string) =>
-      entityAdapters.get(type)?.frontmatterSchema,
-  };
+  const entityRegistry = createMockEntityRegistry(entityStore);
 
   // The shell registers its own identity types before any plugin runs, so a
   // mock without them lets a plugin pass here and fail against a real brain.
@@ -937,334 +319,18 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     brainCharacterAdapter,
   );
 
-  // --- In-memory job queue state ---
-  // Enqueued jobs are remembered so status reads see what writes created; a
-  // fake queue that forgets its own enqueues makes reconciliation code treat
-  // every fresh job as pruned.
-  const enqueuedJobs = new Map<string, JobInfo>();
-  let enqueuedJobCount = 0;
+  const { jobs, jobQueueService } = createMockJobQueue();
 
-  function recordEnqueuedJob(request: JobQueueEnqueueRequest): string {
-    // The real queue skips an enqueue whose key already has a job waiting, and
-    // hands back the waiting job's id. A fake that queued both would let a
-    // declaration pass here and stack duplicate work against a real brain.
-    const dedupeKey = request.options?.deduplicationKey;
-    if (request.options?.deduplication === "skip" && dedupeKey !== undefined) {
-      const waiting = [...enqueuedJobs.values()].find(
-        (job) =>
-          job.status === "pending" &&
-          job.type === request.type &&
-          job.metadata["deduplicationKey"] === dedupeKey,
-      );
-      if (waiting) return waiting.id;
-    }
-    const data = JSON.stringify(request.data);
-    if (!data)
-      throw new Error(
-        `Job data must be JSON-serializable for type: ${request.type}`,
-      );
-    const id = `job-${++enqueuedJobCount}`;
-    const now = Date.now();
-    enqueuedJobs.set(id, {
-      id,
-      type: request.type,
-      data,
-      status: "pending",
-      source: request.options?.source ?? null,
-      priority: 0,
-      retryCount: 0,
-      maxRetries: request.options?.maxRetries ?? 3,
-      lastError: null,
-      createdAt: now,
-      scheduledFor: now,
-      startedAt: null,
-      completedAt: null,
-      attemptId: null,
-      workerSlotId: null,
-      workerSessionId: null,
-      leaseExpiresAt: null,
-      attemptHeartbeatAt: null,
-      runtimeUpdatedAt: now,
-      metadata: {
-        operationType: "data_processing",
-        ...(dedupeKey !== undefined ? { deduplicationKey: dedupeKey } : {}),
-        // The real queue keeps the metadata the enqueue arrived with — which
-        // by this point carries the enqueuing tool's caller, so a job can say
-        // who it works for. A fake that dropped it would let a handler pass
-        // here and refuse against a real brain.
-        ...(request.options?.metadata ?? {}),
-        rootJobId: request.options?.rootJobId ?? id,
-      },
-      progress: null,
-      result: null,
-    });
-    return id;
-  }
+  const { contentService, dataSourceRegistry } = createMockContentServices({
+    templates,
+    entityService,
+    getPermissionService: () => shell.getPermissionService(),
+  });
 
-  function listQueuedJobs(types?: string[]): JobInfo[] {
-    return [...enqueuedJobs.values()].filter(
-      (job) => !types || types.length === 0 || types.includes(job.type),
-    );
-  }
-
-  // --- Jobs namespace ---
-  const jobs: IJobsNamespace = {
-    // A batch is its operations filed under one root, as the real queue files them.
-    enqueueBatch: async (operations, options, batchId) => {
-      for (const operation of operations) {
-        recordEnqueuedJob({
-          type: operation.type,
-          data: operation.data,
-          options: {
-            ...options,
-            rootJobId: batchId,
-            ...(operation.maxRetries !== undefined
-              ? { maxRetries: operation.maxRetries }
-              : {}),
-          },
-        });
-      }
-      return batchId;
-    },
-    getActiveBatches: async () => [],
-    getBatchStatus: async (batchId: string) => {
-      const children = [...enqueuedJobs.values()].filter(
-        (job) => job.metadata["rootJobId"] === batchId,
-      );
-      const completed = children.filter(
-        (job) => job.status === "completed",
-      ).length;
-      const failed = children.filter((job) => job.status === "failed").length;
-      const settled = completed + failed === children.length;
-      return {
-        batchId,
-        totalOperations: children.length,
-        completedOperations: completed,
-        failedOperations: failed,
-        errors: children.flatMap((job) =>
-          job.status === "failed"
-            ? [toSdkError({ code: job.lastErrorCode }).toJSON()]
-            : [],
-        ),
-        status: settled
-          ? failed > 0
-            ? ("failed" as const)
-            : ("completed" as const)
-          : children.some((job) => job.status === "processing")
-            ? ("processing" as const)
-            : ("pending" as const),
-      };
-    },
-    getActiveJobs: async (types) =>
-      listQueuedJobs(types).filter(
-        (job) => job.status === "pending" || job.status === "processing",
-      ),
-    getRecentJobs: async (types, limit = 20) =>
-      listQueuedJobs(types)
-        .sort((a, b) => b.createdAt - a.createdAt)
-        .slice(0, limit),
-    getStatus: async (jobId) => enqueuedJobs.get(jobId) ?? null,
-  };
-
-  // --- Content Service ---
-  // The real service narrows registered templates before handing them out, so
-  // the fake does the same. Returning the raw Template would give tests fields
-  // (layout, and anything else Template carries) that production never exposes.
-  const toContentTemplate = (template: Template): ContentTemplate<unknown> => {
-    const contentTemplate: ContentTemplate<unknown> = {
-      name: template.name,
-      description: template.description,
-      schema: template.schema,
-      requiredPermission: template.requiredPermission,
-    };
-    if (template.basePrompt) contentTemplate.basePrompt = template.basePrompt;
-    if (template.formatter) contentTemplate.formatter = template.formatter;
-    if (template.dataSourceId) {
-      contentTemplate.dataSourceId = template.dataSourceId;
-    }
-    return contentTemplate;
-  };
-
-  const generationAuthorizer = (): GenerationAuthorizer =>
-    new GenerationAuthorizer(shell.getPermissionService(), async () => null);
-  const contentService: IContentService = {
-    submitGeneration: (request, binding, signal) =>
-      submitContentGeneration(contentService, request, binding, signal),
-    // Delegate to the runtime routine so the fake enforces production policy.
-    authorizeGenerationWrite: (data, persisted) =>
-      authorizeGenerationWrite(
-        {
-          authorizer: generationAuthorizer(),
-          templateRegistry: { get: (name) => templates.get(name) },
-          entityService,
-        },
-        data,
-        persisted,
-      ),
-    planGeneration: (request, signal) =>
-      planContentGeneration(
-        {
-          entityService,
-          authorizer: generationAuthorizer(),
-          templateRegistry: { get: (name) => templates.get(name) },
-        },
-        request,
-        signal,
-      ),
-    generateContent: async (
-      templateName: string,
-      context?: Record<string, unknown>,
-    ) => ({
-      message: `Generated content for ${templateName}`,
-      summary: "Test summary",
-      description: "Mock generated description for testing",
-      topics: [],
-      sources: [],
-      ...context,
-    }),
-    formatContent: <T = unknown>(_templateName: string, data: T) =>
-      `Formatted: ${JSON.stringify(data)}`,
-    parseContent: (_templateName: string, content: string): unknown => ({
-      parsed: content,
-    }),
-    getTemplate: (name: string): ContentTemplate<unknown> | null => {
-      const template = templates.get(name);
-      return template ? toContentTemplate(template) : null;
-    },
-    listTemplates: (): ContentTemplate<unknown>[] =>
-      templates.list().map(toContentTemplate),
-    // No data sources are wired into the fake, so nothing resolves.
-    resolveContent: async <T = unknown>(): Promise<T | null> => null,
-  } satisfies IContentService;
-
-  // --- DataSource Registry ---
-  const dataSourceRegistry: DataSourceRegistry = {
-    register: (dataSource: DataSource): void => {
-      if ("id" in dataSource && typeof dataSource.id === "string") {
-        dataSources.set(dataSource.id, dataSource);
-      }
-    },
-    get: (id: string): DataSource | undefined => dataSources.get(id),
-    has: (id: string): boolean => dataSources.has(id),
-    list: (): DataSource[] => Array.from(dataSources.values()),
-    getIds: (): string[] => Array.from(dataSources.keys()),
-    getByCapability: (capability: keyof DataSourceCapabilities): DataSource[] =>
-      Array.from(dataSources.values()).filter((dataSource) => {
-        switch (capability) {
-          case "canFetch":
-            return Boolean(dataSource.fetch);
-          case "canGenerate":
-            return Boolean(dataSource.generate);
-          case "canTransform":
-            return Boolean(dataSource.transform);
-        }
-      }),
-    find: (predicate: (dataSource: DataSource) => boolean): DataSource[] =>
-      Array.from(dataSources.values()).filter(predicate),
-    clear: (): void => {
-      dataSources.clear();
-    },
-    unregister: (id: string): void => {
-      dataSources.delete(id);
-    },
-  };
-
-  // Only the nominal private-field gap remains; the shape is checked above.
-
-  // --- Daemon Registry ---
-  // --- Insights Registry ---
-  const insightHandlers = new Map<string, InsightHandler>();
-  const insightsRegistry: IInsightsRegistry = {
-    register: (type: string, handler: InsightHandler) => {
-      insightHandlers.set(type, handler);
-    },
-    unregister: (type: string) => {
-      insightHandlers.delete(type);
-    },
-    getTypes: () => Array.from(insightHandlers.keys()),
-    get: async (type: string, es, visibilityScope) => {
-      const handler = insightHandlers.get(type);
-      if (!handler)
-        throw new Error(
-          `Unknown insight type: ${type}. Available: ${Array.from(insightHandlers.keys()).join(", ")}`,
-        );
-      return handler(es, visibilityScope);
-    },
-  };
-
-  const daemons = new Map<
-    string,
-    {
-      name: string;
-      daemon: Daemon;
-      pluginId: string;
-      status: "stopped" | "starting" | "running" | "stopping" | "error";
-    }
-  >();
-
+  const insightsRegistry = createMockInsightsRegistry();
+  const daemonRegistry = createMockDaemonRegistry();
   const endpoints: EndpointInfo[] = [];
   const interactions: InteractionInfo[] = [];
-
-  const daemonRegistry: IDaemonRegistry = {
-    register: (name, daemon, pluginId) => {
-      daemons.set(name, { name, daemon, pluginId, status: "stopped" });
-    },
-    has: (name) => daemons.has(name),
-    get: (name) => daemons.get(name),
-    start: async (name) => {
-      const info = daemons.get(name);
-      if (!info) return;
-      info.status = "starting";
-      await info.daemon.start();
-      info.status = "running";
-    },
-    stop: async (name) => {
-      const info = daemons.get(name);
-      if (!info) return;
-      info.status = "stopping";
-      await info.daemon.stop();
-      info.status = "stopped";
-    },
-    checkHealth: async (name) => {
-      const info = daemons.get(name);
-      if (!info?.daemon.healthCheck) return undefined;
-      return info.daemon.healthCheck();
-    },
-    getByPlugin: (pluginId) =>
-      Array.from(daemons.values()).filter((info) => info.pluginId === pluginId),
-    getAll: () => Array.from(daemons.keys()),
-    getAllInfo: () => Array.from(daemons.values()),
-    getStatuses: async () =>
-      Array.from(daemons.values()).map((info) => ({
-        name: info.name,
-        pluginId: info.pluginId,
-        status: info.status,
-      })),
-    unregister: async (name) => {
-      daemons.delete(name);
-    },
-    startPlugin: async (pluginId) => {
-      for (const info of daemons.values()) {
-        if (info.pluginId === pluginId) {
-          info.status = "starting";
-          await info.daemon.start();
-          info.status = "running";
-        }
-      }
-    },
-    stopPlugin: async (pluginId) => {
-      for (const info of daemons.values()) {
-        if (info.pluginId === pluginId) {
-          info.status = "stopping";
-          await info.daemon.stop();
-          info.status = "stopped";
-        }
-      }
-    },
-    clear: async () => {
-      daemons.clear();
-    },
-  };
 
   // --- The MockShell object ---
   const getPluginHttpRoutes = (): readonly RegisteredHttpRoute[] => {
@@ -1295,86 +361,6 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       }
     }
     return routes;
-  };
-
-  const jobHandlers = new Map<
-    string,
-    { handler: JobHandler; pluginId: string | undefined }
-  >();
-  const jobQueueService: IJobQueueService = {
-    enqueue: async (request) => recordEnqueuedJob(request),
-    // The real service reports whether the job was still claimable; the fake
-    // has no attempt bookkeeping, so it reports success.
-    complete: async () => true,
-    fail: async () => true,
-    update: async () => true,
-    getStatus: async (jobId) => enqueuedJobs.get(jobId) ?? null,
-    getJobsByRootJobId: async (rootJobId) =>
-      listQueuedJobs().filter((job) => job.metadata.rootJobId === rootJobId),
-    getStats: async () => ({
-      pending: 0,
-      processing: 0,
-      failed: 0,
-      completed: 0,
-      total: 0,
-    }),
-    cleanup: async () => 0,
-    getRuntimeUpdates: async () => [],
-    registerHandler: (type, handler, pluginId) => {
-      jobHandlers.set(type, { handler, pluginId });
-    },
-    unregisterHandler: (type) => {
-      jobHandlers.delete(type);
-    },
-    unregisterPluginHandlers: (pluginId) => {
-      for (const [type, registration] of jobHandlers) {
-        if (registration.pluginId === pluginId) jobHandlers.delete(type);
-      }
-    },
-    getRegisteredTypes: () => [...jobHandlers.keys()],
-    getHandler: (type) => jobHandlers.get(type)?.handler,
-    getValidator: (type) => jobHandlers.get(type)?.handler,
-    finalizeHandlerRegistrations: () =>
-      [...jobHandlers].map(([type, { pluginId }]) => ({ type, pluginId })),
-    getExecutionRegistrations: () =>
-      [...jobHandlers].map(([type, { pluginId }]) => ({ type, pluginId })),
-    getActiveJobs: async (types) =>
-      listQueuedJobs(types).filter(
-        (job) => job.status === "pending" || job.status === "processing",
-      ),
-    getRecentJobs: async (types, limit = 20) =>
-      listQueuedJobs(types)
-        .sort((a, b) => b.createdAt - a.createdAt)
-        .slice(0, limit),
-    getFailedJobs: async () => [],
-    getStatusByEntityId: async () => null,
-    getDiagnostics: async () => ({
-      totals: { pending: 0, processing: 0, failed: 0, completed: 0 },
-      byType: [],
-      oldestPendingAgeMs: null,
-      duePending: 0,
-      oldestDuePendingAgeMs: null,
-      latestClaimAgeMs: null,
-      oldestProcessingAgeMs: null,
-      staleLeaseCount: 0,
-      workerSessions: {
-        total: 0,
-        active: 0,
-        stale: 0,
-        latestHeartbeatAgeMs: null,
-      },
-    }),
-    // No worker loop is modelled: nothing is ever dequeued, so lease and
-    // session calls are inert rather than pretending to hold a claim.
-    dequeue: async () => null,
-    startWorkerSession: async () => {},
-    heartbeatWorkerSession: async () => true,
-    endWorkerSession: async () => true,
-    renewAttemptLease: async () => true,
-    recordAttemptProgress: async () => true,
-    // Idle by construction, for the same reason: nothing is ever dequeued.
-    waitForIdle: async () => {},
-    close: () => {},
   };
 
   const renderService = RenderService.createFresh(templates);

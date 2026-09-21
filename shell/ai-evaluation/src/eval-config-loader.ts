@@ -46,6 +46,8 @@ export interface LoadEvalConfigOptions {
   suite?: string | undefined;
   /** CLI tag override; takes precedence over selected suite `tags:`. */
   tags?: string[] | undefined;
+  /** Restore the MCP interface normally excluded from eval compositions. */
+  mcpBasic?: boolean | undefined;
 }
 
 export async function loadEvalConfig(
@@ -123,7 +125,12 @@ async function loadBrainEvalConfigIfPresent(
       parseBrainEvalOverrides(content),
       evalSelection,
     );
-    return resolveConfig(brainModule.default, process.env, freshOverrides);
+    return resolveEvalConfig(
+      brainModule.default,
+      process.env,
+      freshOverrides,
+      options.mcpBasic ?? false,
+    );
   };
 
   return {
@@ -134,6 +141,38 @@ async function loadBrainEvalConfigIfPresent(
     ...(judge ? { judge } : {}),
     ...(evalSelection.tags?.length ? { tags: evalSelection.tags } : {}),
     resolveConfig: freshResolve,
+  };
+}
+
+function resolveEvalConfig(
+  brainDefinition: Parameters<typeof resolveConfig>[0],
+  env: NodeJS.ProcessEnv,
+  overrides: InstanceOverrides,
+  includeMcp: boolean,
+): AppConfig {
+  const evalConfig = resolveConfig(brainDefinition, env, overrides);
+  if (
+    !includeMcp ||
+    evalConfig.plugins?.some(({ id }) => id === "@brains/mcp:mcp")
+  ) {
+    return evalConfig;
+  }
+
+  const regularOverrides = { ...overrides };
+  delete regularOverrides.mode;
+  const regularConfig = resolveConfig(brainDefinition, env, regularOverrides);
+  const mcpPlugin = regularConfig.plugins?.find(
+    ({ id }) => id === "@brains/mcp:mcp",
+  );
+  if (!mcpPlugin) {
+    throw new Error(
+      "--mcp-basic requires an MCP interface in the selected brain composition.",
+    );
+  }
+
+  return {
+    ...evalConfig,
+    plugins: [...(evalConfig.plugins ?? []), mcpPlugin],
   };
 }
 
