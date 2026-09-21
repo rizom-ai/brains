@@ -22,6 +22,50 @@ const common = {
   onOpen: (): void => {},
   onRetry: (): void => {},
 };
+test("stray markers follow the fresh scoped descriptor without changing rows or counts", () => {
+  const render = (values: string[]): string =>
+    renderToStaticMarkup(
+      <StudioGroupingContent
+        {...common}
+        page={{
+          kind: "catalog",
+          grouping: {
+            ...common.grouping,
+            vocabulary: { multiple: true, values },
+          },
+          values: [{ value: "Gamma", count: 2 }],
+          total: 1,
+        }}
+      />,
+    );
+  const closed = render(["Acme"]);
+  expect(closed).toContain("Gamma");
+  expect(closed).toContain("not in list");
+  expect(closed).toContain("2 entries");
+  const admitted = render(["Acme", "Gamma"]);
+  expect(admitted).not.toContain("not in list");
+  expect(admitted).toContain("Gamma");
+  expect(admitted).toContain("2 entries");
+  const members = renderToStaticMarkup(
+    <StudioGroupingContent
+      {...common}
+      query={groupingQuery("?value=Gamma")}
+      page={{
+        kind: "members",
+        grouping: {
+          ...common.grouping,
+          vocabulary: { multiple: true, values: ["Acme"] },
+        },
+        entities: [],
+        total: 0,
+      }}
+    />,
+  );
+  // Secondary metadata is hidden on phones; keep this warning in the
+  // always-visible primary item alongside the count.
+  expect(members).toContain(">0 entries · not in list</span>");
+});
+
 test("navigation has one grouping destination, distinct from a type with the same key", () => {
   expect(studioMobileSelection("group:post")).toEqual({
     kind: "grouping",

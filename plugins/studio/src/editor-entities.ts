@@ -31,6 +31,8 @@ import {
   type EditorRouteOptions,
 } from "./editor-contracts";
 import { jsonResponse } from "./editor-response";
+import { editorValidationResponse } from "./editor-validation";
+import { GROUPING_VOCABULARY_TYPE } from "./grouping-vocabulary-contract";
 import {
   studioCollectionQuerySchema,
   studioCollectionQueryFromParams,
@@ -516,10 +518,17 @@ export async function handleUpdateEntity(
     return persistenceDenied;
   }
 
-  const result = await context.entityService.updateEntity({
-    entity,
-    options: studioMutationOptions(access),
-  });
+  let result;
+  try {
+    result = await context.entityService.updateEntity({
+      entity,
+      options: studioMutationOptions(access),
+    });
+  } catch (error) {
+    const invalid = editorValidationResponse(error);
+    if (invalid) return invalid;
+    throw error;
+  }
   await recordStudioMutationAudit(
     recordAuditEvent,
     access,
@@ -545,11 +554,8 @@ function deserializeStudioEntity(
   try {
     return context.entityService.deserializeEntity(content, entityType);
   } catch (error) {
-    if (error instanceof z.ZodError)
-      return jsonResponse(
-        { error: "Invalid frontmatter", issues: error.issues },
-        400,
-      );
+    const invalid = editorValidationResponse(error);
+    if (invalid) return invalid;
     throw error;
   }
 }
@@ -580,7 +586,10 @@ function prepareStudioCreation(
       },
       400,
     );
-  const visibility = resolveStudioVisibility(payload.frontmatter, "public");
+  const visibility = resolveStudioVisibility(
+    payload.frontmatter,
+    entityType === GROUPING_VOCABULARY_TYPE ? "shared" : "public",
+  );
   if (!visibility.success) return visibility.response;
   // System visibility is validated separately, never by a strict domain schema.
   const frontmatter = raw
@@ -745,6 +754,8 @@ export async function handleCreateEntity(
       },
     });
   } catch (error) {
+    const invalid = editorValidationResponse(error);
+    if (invalid) return invalid;
     // The packed plugin and source runtime can carry separate class copies.
     // Match the entity-service error's stable name, not constructor identity.
     if (error instanceof Error && error.name === "EntityWriteConflictError")

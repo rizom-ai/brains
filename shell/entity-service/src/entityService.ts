@@ -71,7 +71,7 @@ import { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 import { EntitySearch } from "./entity-search";
 import { EntitySerializer } from "./entity-serializer";
 import { EntityQueries } from "./entity-queries";
-import { EntityMutations } from "./entity-mutations";
+import { EntityMutations, validatePersist } from "./entity-mutations";
 import { ProjectionStore } from "./projection-store";
 import { EntityExportStore } from "./entity-export-store";
 import { SqliteAssetRepository } from "./sqlite-asset-repository";
@@ -190,6 +190,21 @@ export class EntityService implements IEntityService {
       options.projectionNow ?? Date.now,
       {
         assetRepository: this.assetRepository,
+        prepareEntity: async (entity, operation): Promise<BaseEntity> => {
+          // Projection intents carry stored rows, not the adapter's typed
+          // top-level fields. Restore those for validation but retain the
+          // full persisted source and authoritative row identity/policy.
+          const parsed = this.entitySerializer.deserializeEntity(
+            entity.content,
+            entity.entityType,
+          );
+          const validated = options.entityRegistry.validateEntity(
+            entity.entityType,
+            { ...parsed, ...entity.metadata, ...entity },
+          );
+          await validatePersist(options.entityRegistry, validated, operation);
+          return validated;
+        },
         isAssetBacked: (entityType): boolean =>
           options.entityRegistry.getEntityTypeConfig(entityType)
             .binaryStorage === "asset",

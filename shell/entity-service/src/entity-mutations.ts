@@ -46,6 +46,22 @@ import {
   type EntityWritePrecondition,
 } from "./entity-write-state";
 import { entityRevision, stableJson } from "./entity-revision";
+import { toEntityValidationError } from "./errors";
+
+/** Shared by ordinary mutations and atomic projection upserts. */
+export async function validatePersist(
+  registry: EntityRegistry,
+  entity: BaseEntity,
+  operation: "create" | "update",
+): Promise<void> {
+  try {
+    await registry.getPersistValidator(entity.entityType)?.(entity, {
+      operation,
+    });
+  } catch (error) {
+    throw toEntityValidationError(entity.entityType, error, "persist") ?? error;
+  }
+}
 
 function isUniqueConstraintError(error: unknown): boolean {
   // Drizzle wraps the LibsqlError, so walk the cause chain
@@ -183,12 +199,7 @@ export class EntityMutations {
       entityWithDefaults,
     );
 
-    const persistValidator = this.entityRegistry.getPersistValidator(
-      validatedEntity.entityType,
-    );
-    if (persistValidator) {
-      await persistValidator(validatedEntity, { operation: "create" });
-    }
+    await validatePersist(this.entityRegistry, validatedEntity, "create");
     options?.signal?.throwIfAborted();
 
     // Prepare entity for storage
@@ -354,12 +365,7 @@ export class EntityMutations {
       updatedEntity,
     );
 
-    const persistValidator = this.entityRegistry.getPersistValidator(
-      validatedEntity.entityType,
-    );
-    if (persistValidator) {
-      await persistValidator(validatedEntity, { operation: "update" });
-    }
+    await validatePersist(this.entityRegistry, validatedEntity, "update");
     options?.signal?.throwIfAborted();
 
     const { markdown, metadata } =

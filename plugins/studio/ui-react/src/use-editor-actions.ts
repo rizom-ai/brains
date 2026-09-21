@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { studioCollectionPath } from "../../src/studio-paths";
+import { GROUPING_VOCABULARY_TYPE } from "../../src/grouping-vocabulary-contract";
 import type { StudioCollectionQuery } from "../../src/collection-query";
 import { type MobileEditorPane } from "./app-view";
 import { ApiError, type FieldAssistResponse } from "./api";
@@ -216,7 +217,7 @@ export function useEditorActions(input: EditorActionsInput): EditorActions {
           queryClient.invalidateQueries({
             queryKey: studioKeys.syncStatus(),
           }),
-          ...(mode.kind === "create"
+          ...(mode.kind === "create" || entityType === GROUPING_VOCABULARY_TYPE
             ? [
                 queryClient.invalidateQueries({
                   queryKey: studioKeys.navigation(),

@@ -9,6 +9,7 @@ import type { Logger } from "@brains/utils/logger";
 import type { ProgressReporter } from "@brains/utils/progress";
 import type {
   CleanupResult,
+  DirectoryProjectionBatchRef,
   DirectorySyncStatus,
   ExportResult,
   IDirectorySync,
@@ -187,15 +188,19 @@ export class DirectorySync implements IDirectorySync {
     paths: string[] | undefined,
     reporter: ProgressReporter,
     batchSize: number,
+    projectionBatch?: DirectoryProjectionBatchRef,
   ): Promise<ImportResult> {
-    return this.runBulkMutation("import", () =>
-      importDirectoryEntitiesWithProgress(
-        this.progressOperations,
-        paths,
-        reporter,
-        batchSize,
-        this.importEntitiesUnbatched.bind(this),
-      ),
+    return this.runBulkMutation(
+      "import",
+      () =>
+        importDirectoryEntitiesWithProgress(
+          this.progressOperations,
+          paths,
+          reporter,
+          batchSize,
+          this.importEntitiesUnbatched.bind(this),
+        ),
+      projectionBatch,
     );
   }
 
@@ -220,9 +225,13 @@ export class DirectorySync implements IDirectorySync {
     );
   }
 
-  async removeOrphanedEntities(): Promise<CleanupResult> {
-    return this.runBulkMutation("cleanup", () =>
-      this.removeOrphanedEntitiesUnbatched(),
+  async removeOrphanedEntities(
+    projectionBatch?: DirectoryProjectionBatchRef,
+  ): Promise<CleanupResult> {
+    return this.runBulkMutation(
+      "cleanup",
+      () => this.removeOrphanedEntitiesUnbatched(),
+      projectionBatch,
     );
   }
 
@@ -243,11 +252,15 @@ export class DirectorySync implements IDirectorySync {
   private runBulkMutation<TResult>(
     operation: string,
     mutation: () => Promise<TResult>,
+    projectionBatch?: DirectoryProjectionBatchRef,
   ): Promise<TResult> {
     return this.entityService.runBulkMutation(
       {
         source: "directory-sync",
-        operationId: `${operation}:${createId()}`,
+        // A job already owns a durable child scope. Join its exact identity;
+        // do not open an unrelated callback batch or bypass the fence.
+        operationId:
+          projectionBatch?.operationId ?? `${operation}:${createId()}`,
       },
       mutation,
     );

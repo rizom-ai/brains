@@ -256,9 +256,15 @@ test.each(["", "?value=Acme"])(
   },
 );
 
-test.each(["read", "save", "delete"] as const)(
-  "a direct member link initializes, opens its ordinary editor, and returns with refreshed membership (%s)",
-  async (action) => {
+test.each([
+  ["read", null],
+  ["save", null],
+  ["delete", null],
+  ["save", false],
+  ["save", true],
+] as const)(
+  "a direct member link initializes, opens its ordinary editor, and returns with refreshed membership (%s, multiple=%s)",
+  async (action, multiple) => {
     const writable = action !== "read";
     const path =
       "/studio/groups/clients?value=Acme&type=post&sort=created-asc&limit=10";
@@ -300,6 +306,9 @@ test.each(["read", "save", "delete"] as const)(
                 label: "Clients",
                 field: "clients",
                 types: ["post"],
+                ...(multiple !== null && {
+                  vocabulary: { multiple, values: ["Acme", "Beta"] },
+                }),
               },
             ],
           });
@@ -448,9 +457,22 @@ test.each(["read", "save", "delete"] as const)(
       await act(async () => confirm?.click());
       await waitFor(() => !member && history.location.href === path);
     } else if (action === "save") {
-      expect(
-        document.querySelector('[aria-label="Add clients value"]'),
-      ).not.toBeNull();
+      if (multiple === null)
+        expect(
+          document.querySelector('[aria-label="Add clients value"]'),
+        ).not.toBeNull();
+      else if (multiple)
+        expect(
+          document.querySelectorAll(
+            '[data-studio-field="grouping-choice"] input[type="checkbox"]',
+          ),
+        ).toHaveLength(2);
+      else
+        expect(
+          document.querySelector(
+            '[data-studio-field="grouping-choice"] select',
+          ),
+        ).not.toBeNull();
       const remove = document.querySelector<HTMLButtonElement>(
         '[aria-label="Remove Acme"]',
       );

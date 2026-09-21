@@ -722,10 +722,10 @@ html {
 .x1oagamk:not(#\\#):not(#\\#){transition:background-color .12s ease,border-color .12s ease}
 .x1p5amsn:not(#\\#):not(#\\#){transition:border-color .12s ease,box-shadow .12s ease}
 .x1gt6r2q:not(#\\#):not(#\\#){transition:transform .12s ease,background-color .12s ease}
-.xpc9js7:hover:not(:disabled):not(#\\#):not(#\\#){border-color:var(--console-accent-dim)}
 .x16yjenj:is([data-state='checked']):not(#\\#):not(#\\#){border-color:var(--console-accent)}
 .x1iom3s4:focus-visible:not(#\\#):not(#\\#){border-color:var(--console-accent)}
 .x6cfppn:is([data-status=active] > *, [data-status=complete] > *):not(#\\#):not(#\\#){border-color:var(--console-accent)}
+.xliqn1l:hover:not(:disabled):not(#\\#):not(#\\#){border-color:var(--console-accent)}
 .xu3iebo:is([data-tone="error"] > *):not(#\\#):not(#\\#){border-color:var(--console-err)}
 .xym8ms8:is([data-status=failed] > *):not(#\\#):not(#\\#){border-color:var(--console-err)}
 .xjgjgpo:is([data-tone="good"] > *):not(#\\#):not(#\\#){border-color:var(--console-ok)}
@@ -1157,9 +1157,9 @@ html {
 .xat1s67.xat1s67:where(.x-default-marker:hover *):not(#\\#):not(#\\#):not(#\\#){color:var(--console-accent)}
 .xozkggm.xozkggm:where(.x-default-marker:hover *):not(#\\#):not(#\\#):not(#\\#){transform:translate(2px,-1px)}
 .x156vuz7:is([aria-selected="true"],[aria-pressed="true"]):not(#\\#):not(#\\#):not(#\\#){background-color:color-mix(in srgb,var(--console-card-soft) 55%,transparent)}
-.xenc7ac:hover:not(:disabled):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-accent-dim)}
 .x1n1caiv:is([data-state='checked']):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-accent)}
 .xn4j7m4:is([data-status=active] > *, [data-status=complete] > *):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-accent)}
+.xvs6z26:hover:not(:disabled):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-accent)}
 .x1b32d6n:is([aria-current="true"]):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-card)}
 .x1amwds0:is([data-status=failed] > *):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-err)}
 .x1bguay0:is([data-state='checked']):not(#\\#):not(#\\#):not(#\\#){background-color:var(--console-on-accent)}

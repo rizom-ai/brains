@@ -1,9 +1,9 @@
 import { groupingValueLabel } from "./grouping-value";
 import { isPlainRecord } from "@brains/utils/predicates";
-import type { EntityGrouping } from "@brains/plugins";
+import type { StudioGrouping } from "../../src/grouping-vocabulary-contract";
 
 export interface GroupingNavigation {
-  items: readonly EntityGrouping[];
+  items: readonly StudioGrouping[];
   active: string | null;
   onSelect: (key: string) => void;
 }

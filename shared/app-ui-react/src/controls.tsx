@@ -80,8 +80,9 @@ const styles = stylex.create({
       },
     },
     ":hover:not(:disabled)": {
-      backgroundColor: "var(--console-accent-dim)",
-      borderColor: "var(--console-accent-dim)",
+      // Retain the contrast-tested paint pair; the lift signals hover.
+      backgroundColor: "var(--console-accent)",
+      borderColor: "var(--console-accent)",
     },
     ":disabled": {
       backgroundColor: "var(--console-card-soft)",

@@ -3,7 +3,8 @@ import { groupingValueLabel } from "./grouping-value";
 import { useEffect, useMemo, useState, type ReactElement } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button, NativeSelect } from "@brains/app-ui-react";
-import type { EntityGrouping } from "@brains/plugins";
+import type { StudioGrouping } from "../../src/grouping-vocabulary-contract";
+import { GroupingValue } from "./grouping-vocabulary-fields";
 import { formatLabel } from "@brains/utils/string-utils";
 import {
   studioGroupingQuerySchema,
@@ -40,7 +41,7 @@ export interface GroupingChangeOptions {
 }
 
 interface GroupingViewProps {
-  grouping: EntityGrouping;
+  grouping: StudioGrouping;
   /** Studio's base path, so each group row can carry a real href. */
   basePath: string;
   types: EntityTypeInfo[];
@@ -99,12 +100,13 @@ export function StudioGroupingContent(
     onRetry: () => void;
   },
 ): ReactElement {
-  const { grouping, query } = props;
+  const { query } = props;
+  const blocked = props.loading || props.initializing || props.error !== null;
+  const page = blocked ? null : props.page;
+  const grouping = page?.grouping ?? props.grouping;
   const catalog = query.value === null;
   const title =
     query.value === null ? grouping.label : groupingValueLabel(query.value);
-  const blocked = props.loading || props.initializing || props.error !== null;
-  const page = blocked ? null : props.page;
   const total = page?.total ?? 0;
   const [search, setSearch] = useState(query.q);
   useEffect(() => {
@@ -128,6 +130,12 @@ export function StudioGroupingContent(
   const filtered = Boolean(
     query.type || query.q || query.sort !== "updated-desc",
   );
+  const membershipWarning =
+    query.value !== null &&
+    grouping.vocabulary &&
+    !grouping.vocabulary.values.includes(query.value)
+      ? " · not in list"
+      : "";
   const groupHref = (value: string): string =>
     `${studioGroupingPath(props.basePath, grouping.key)}${groupingSearch(
       studioGroupingQuerySchema.parse({ value }),
@@ -152,7 +160,7 @@ export function StudioGroupingContent(
                   total,
                   catalog ? "group" : "entry",
                   catalog ? "groups" : "entries",
-                )}`,
+                )}${membershipWarning}`,
               ]
             : [],
           totals: [],
@@ -173,8 +181,10 @@ export function StudioGroupingContent(
       />
       {catalog ? (
         <p className={editorClassName("", groupingStyles.hint)}>
-          Content grouped by its {grouping.label} property. An entry can belong
-          to more than one group.
+          Content grouped by its {grouping.label} property.{" "}
+          {grouping.vocabulary?.multiple === false
+            ? "New saves may carry at most one value; existing memberships are preserved."
+            : "An entry can belong to more than one group."}
         </p>
       ) : (
         <StudioCollectionBar
@@ -299,7 +309,10 @@ export function StudioGroupingContent(
                   {String(query.offset + index + 1).padStart(2, "0")}
                 </span>
                 <span className={editorClassName("", libraryStyles.title)}>
-                  {groupingValueLabel(entry.value)}
+                  <GroupingValue
+                    value={entry.value}
+                    vocabulary={grouping.vocabulary}
+                  />
                 </span>
                 <span className={editorClassName("", libraryStyles.updated)}>
                   {entry.count} {countLabel(entry.count, "entry", "entries")} →

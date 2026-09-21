@@ -10,6 +10,8 @@ import { StudioApiProvider } from "./studio-api-context";
 import { createStudioQueryClient } from "./query-client";
 import { useGroupingSuggestions } from "./use-grouping-suggestions";
 
+import type { StudioGrouping } from "../../src/grouping-vocabulary-contract";
+
 const groupings = [
   { key: "clients", label: "Clients", field: "clients", types: ["note"] },
 ];
@@ -33,16 +35,23 @@ afterEach(async () => {
   windowInstance.close();
   restoreGlobals();
 });
-function Probe(): ReactElement {
-  suggestions = useGroupingSuggestions(groupings);
+function Probe({
+  declarations,
+}: {
+  declarations: readonly StudioGrouping[];
+}): ReactElement {
+  suggestions = useGroupingSuggestions(declarations);
   return <pre>{JSON.stringify(suggestions)}</pre>;
 }
-async function render(api: StudioApi): Promise<void> {
+async function render(
+  api: StudioApi,
+  declarations: readonly StudioGrouping[] = groupings,
+): Promise<void> {
   await act(async () => {
     root.render(
       <QueryClientProvider client={client}>
         <StudioApiProvider api={api}>
-          <Probe />
+          <Probe declarations={declarations} />
         </StudioApiProvider>
       </QueryClientProvider>,
     );
@@ -93,6 +102,34 @@ test.each([401, 403])(
     expect(suggestions).toEqual({ clients: ["Public client"] });
   },
 );
+
+test("closed groupings neither fetch nor retain open catalog suggestions", async () => {
+  let requests = 0;
+  const api = new StudioApi({
+    basePath: "/studio",
+    fetch: async (): Promise<Response> => {
+      requests++;
+      return Response.json({
+        values: [{ value: "Stray", count: 1 }],
+        total: 1,
+      });
+    },
+  });
+  await render(api);
+  await settle();
+  expect(suggestions).toEqual({ clients: ["Stray"] });
+  const before = requests;
+  await render(
+    api,
+    groupings.map((grouping) => ({
+      ...grouping,
+      vocabulary: { multiple: true, values: ["Acme"] },
+    })),
+  );
+  await settle();
+  expect(requests).toBe(before);
+  expect(suggestions).toEqual({});
+});
 
 test("does not reuse another API session's cached suggestions", async () => {
   const api = (value: string): StudioApi =>

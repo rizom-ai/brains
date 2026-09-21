@@ -3,7 +3,12 @@
 "@brains/plugins": patch
 "@brains/core": patch
 "@brains/studio": patch
+"@brains/directory-sync": patch
+"@brains/app-ui-react": patch
+"@rizom/brain": patch
 ---
+
+Add admin-managed grouping vocabularies in Studio's System → Structure area. Admins can close a grouping to an exact list of values and choose single or multiple membership without restarting. Trusted editors choose from dropdowns or checkboxes; open groupings keep literal input. Create/update persistence enforces closed lists across Studio, tools, MCP, imports and derived projection upserts. Projection refusals roll back the entire rule result, including export intents and ownership. Queued directory imports and cleanup retain their durable batch identity through the active-service facade rather than attempting to open unrelated nested batches. Policy-refused imports fail without quarantining valid source. Existing out-of-list values stay visible and marked, never rewritten. Persist validators compose with owner constraints instead of replacing them. Validation field issues survive separate runtime/plugin module copies. Primary buttons retain their contrast-tested colors on hover, and membership warnings stay visible on phones.
 
 Add configurable, visibility-scoped virtual collections across entity types, with source-authoritative frontmatter membership, startup reprojection, and Studio browsing and editor return navigation. Multiple grouping fields and multiple values per field are supported without copying entities or changing file placement.
 

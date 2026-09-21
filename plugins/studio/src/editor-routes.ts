@@ -29,6 +29,8 @@ import type { StudioWorkspaceRegistry } from "./workspace-registry";
 import { getErrorMessage } from "@brains/utils/error";
 import { jsonResponse } from "./editor-response";
 import { handleGroupingRead, studioGroupDescriptors } from "./editor-groupings";
+import { readGroupingVocabularies } from "./grouping-vocabulary";
+import { GROUPING_VOCABULARY_TYPE } from "./grouping-vocabulary-contract";
 import {
   handleCreateEntity,
   handleDeleteEntity,
@@ -639,6 +641,7 @@ async function handleListTypes(
   const groupings = studioGroupDescriptors(
     context.entities.getGroupings(),
     new Set(types.map((type) => type.entityType)),
+    await readGroupingVocabularies(context, access.visibilityScope),
   );
   return jsonResponse({ types, workspaces, groupings });
 }
@@ -777,9 +780,11 @@ async function handleGetSchema(
     label: "Visibility",
     widget: "select",
     required: true,
-    default: "public",
-    options: CONTENT_VISIBILITIES.filter((visibility) =>
-      canWriteVisibility(access.permissionLevel, visibility),
+    default: entityType === GROUPING_VOCABULARY_TYPE ? "shared" : "public",
+    options: CONTENT_VISIBILITIES.filter(
+      (visibility) =>
+        canWriteVisibility(access.permissionLevel, visibility) &&
+        (entityType !== GROUPING_VOCABULARY_TYPE || visibility !== "public"),
     ),
   };
   const fields = [...domainFields, visibilityField];

@@ -3,6 +3,8 @@ import { datetimeLocalValue, errorMessage } from "./ui-utils";
 import * as stylex from "@stylexjs/stylex";
 import { fieldStyles as f } from "./studio-fields.styles";
 import { groupingValueLabel } from "./grouping-value";
+import type { GroupingVocabulary } from "../../src/grouping-vocabulary-contract";
+import { ClosedGroupingField } from "./grouping-vocabulary-fields";
 import { StudioStatus } from "./studio-status";
 import {
   Button,
@@ -389,6 +391,7 @@ export function FieldAssistControls(props: {
 }
 
 export function Field(props: {
+  vocabulary?: GroupingVocabulary | undefined;
   literalList?: boolean | undefined;
   suggestions?: readonly string[] | undefined;
   descriptor: FieldDescriptor;
@@ -429,6 +432,7 @@ export function Field(props: {
       }
     >
       <FieldControl
+        vocabulary={props.vocabulary}
         literalList={props.literalList}
         suggestions={props.suggestions}
         descriptor={props.descriptor}
@@ -454,6 +458,7 @@ export function Field(props: {
 }
 
 function FieldControl(props: {
+  vocabulary?: GroupingVocabulary | undefined;
   literalList?: boolean | undefined;
   suggestions?: readonly string[] | undefined;
   descriptor: FieldDescriptor;
@@ -536,6 +541,16 @@ function FieldControl(props: {
   }
 
   if (descriptor.widget === "list" && descriptor.field?.widget === "string") {
+    if (props.vocabulary)
+      return (
+        <ClosedGroupingField
+          descriptor={descriptor}
+          vocabulary={props.vocabulary}
+          value={value}
+          onChange={onChange}
+          errorId={errorId}
+        />
+      );
     return (
       <StringListField
         literalList={props.literalList}

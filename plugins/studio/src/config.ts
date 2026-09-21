@@ -86,6 +86,11 @@ export function entityTypeLabels(
   entityType: string,
   display?: EntityDisplayLabel,
 ): { label: string; pluralLabel: string } {
+  if (entityType === "grouping-vocabulary")
+    return {
+      label: display?.label ?? "Groupings",
+      pluralLabel: display?.pluralName ?? "Groupings",
+    };
   const defaultLabel =
     entityType === NOTE_ENTITY_TYPE ? "Note" : formatLabel(entityType);
   const label = display?.label ?? defaultLabel;

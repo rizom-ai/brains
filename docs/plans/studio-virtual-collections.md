@@ -4,7 +4,7 @@ Last updated: 2026-09-20
 
 ## Status
 
-**Implementation and local acceptance complete; prepared for PR review. Not released or deployed.**
+**Foundation implementation and local acceptance complete. PR #302 now continues into [grouping vocabularies](./studio-grouping-vocabularies.md) in the same branch/worktree; this foundation no longer lands separately. Not released or deployed.**
 
 Implementation worktree: `studio-virtual-collections-implementation`, branch `feat/studio-virtual-collections`. The original planning worktree is unchanged.
 

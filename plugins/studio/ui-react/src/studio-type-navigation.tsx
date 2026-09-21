@@ -24,6 +24,7 @@ import { STUDIO_CHAT_WORKSPACE_ID } from "../../src/chat-workspace";
 import { STUDIO_ACCOUNT_WORKSPACE_ID } from "../../src/account-workspace";
 
 function navigationTypeLabel(info: EntityTypeInfo): string {
+  if (info.entityType === "grouping-vocabulary") return "Groupings";
   return info.isSingleton && info.entityType !== "settings"
     ? singularLabel(info.label)
     : info.label;
@@ -45,6 +46,7 @@ const SITE_ENTITY_TYPES = new Set([
 // Brain machinery: operator-editable, but not authored content. These live
 // in their own rail group so a full brain doesn't flood "Content".
 const SYSTEM_TYPE_GROUPS = [
+  { label: "Structure", presentation: "form", types: ["grouping-vocabulary"] },
   {
     label: "Identity",
     presentation: "form",

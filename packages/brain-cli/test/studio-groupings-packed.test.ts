@@ -131,6 +131,56 @@ test("packed Studio config and field tools preserve multiple runtime grouping ex
     });
     expect(removed).not.toContain("clients:");
     expect(removed).toContain("Launch");
+    await tool(
+      "system_create",
+      {
+        entityType: "grouping-vocabulary",
+        title: "Grouping vocabulary",
+        source: {
+          kind: "text",
+          content:
+            "---\nvisibility: shared\ngroupings:\n  clients:\n    multiple: false\n    values: [Acme, Beta]\n---\n",
+        },
+      },
+      true,
+    );
+    const refused = startCommand(
+      [
+        "bun",
+        "run",
+        "brain",
+        "tool",
+        "system_update",
+        JSON.stringify({
+          entityType: "note",
+          id: "packed-member",
+          fields: { clients: ["Gamma"] },
+        }),
+        "--yes",
+      ],
+      consumer,
+      { env },
+    );
+    const refusal = await refused.completed;
+    expect(refusal.exitCode).toBe(1);
+    expect(refusal.stdout + refusal.stderr).toContain(
+      "choose values from the configured list",
+    );
+    const afterRefusal = await tool("system_get", {
+      entityType: "note",
+      id: "packed-member",
+    });
+    expect(afterRefusal).not.toContain("Gamma");
+    const allowed = await tool(
+      "system_update",
+      {
+        entityType: "note",
+        id: "packed-member",
+        fields: { clients: ["Beta"] },
+      },
+      true,
+    );
+    expect(allowed).toContain('"updated": "packed-member"');
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

@@ -3,12 +3,12 @@ import type {
   UserPermissionLevel,
   EntityIdPath,
   EntityIdPathInput,
-  EntityGrouping,
 } from "@brains/plugins";
 import {
   studioGroupingQuerySchema,
   type StudioGroupingQuery,
 } from "../../src/grouping-query";
+import type { StudioGrouping } from "../../src/grouping-vocabulary-contract";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import {
   studioCollectionQuerySchema,
@@ -61,7 +61,7 @@ export interface StudioWorkspaceInfo {
 }
 
 export interface StudioNavigation {
-  groupings: EntityGrouping[];
+  groupings: StudioGrouping[];
   types: EntityTypeInfo[];
   workspaces: StudioWorkspaceInfo[];
 }
@@ -197,13 +197,14 @@ export interface ValidationIssue {
   message: string;
 }
 
-export type GroupingPage =
+export type GroupingPage = { grouping?: StudioGrouping } & (
   | {
       kind: "catalog";
       values: Array<{ value: string; count: number }>;
       total: number;
     }
-  | { kind: "members"; entities: EntitySummary[]; total: number };
+  | { kind: "members"; entities: EntitySummary[]; total: number }
+);
 
 export class ApiError extends Error {
   readonly status: number;
@@ -333,7 +334,7 @@ export class StudioApi {
     const response = await this.requestJson<{
       types: EntityTypeInfo[];
       workspaces?: StudioWorkspaceInfo[];
-      groupings?: EntityGrouping[];
+      groupings?: StudioGrouping[];
     }>(this.path("types"));
     return {
       types: response.types,
@@ -357,10 +358,16 @@ export class StudioApi {
     if (input.type) params.set("type", input.type);
     if (input.value === null) {
       const result = await this.requestJson<{
+        grouping: StudioGrouping;
         values: Array<{ value: string; count: number }>;
         total: number;
       }>(this.path(`groups/catalog?${params}`), { signal });
-      return { kind: "catalog", values: result.values, total: result.total };
+      return {
+        kind: "catalog",
+        values: result.values,
+        total: result.total,
+        grouping: result.grouping,
+      };
     }
     params.set("value", input.value);
     params.set("q", input.q);
@@ -368,8 +375,14 @@ export class StudioApi {
     const result = await this.requestJson<{
       entities: EntitySummary[];
       total: number;
+      grouping: StudioGrouping;
     }>(this.path(`groups/members?${params}`), { signal });
-    return { kind: "members", entities: result.entities, total: result.total };
+    return {
+      kind: "members",
+      entities: result.entities,
+      total: result.total,
+      grouping: result.grouping,
+    };
   }
 
   async fetchTypes(): Promise<EntityTypeInfo[]> {

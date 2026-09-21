@@ -57,6 +57,19 @@ export const webBundle: CapabilityBundleDefinition = defineBundle({
       member: "mcp",
       config: { rules: [{ pattern: "mcp:http", level: "public" }] },
     },
+    {
+      member: "studio",
+      config: {
+        entityActions: {
+          "grouping-vocabulary": {
+            create: "admin",
+            update: "admin",
+            delete: "admin",
+            publish: "never",
+          },
+        },
+      },
+    },
   ],
   evalDisable: ["webserver", "dashboard"],
 });

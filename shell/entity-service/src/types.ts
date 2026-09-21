@@ -431,7 +431,9 @@ export interface UploadSaveHandlerRegistration {
 /**
  * Called before an entity is persisted (on create or update). Throws to reject
  * the write with an operator-facing error. Use this for cross-entity invariants
- * the per-entity Zod schema cannot express.
+ * the per-entity Zod schema cannot express. Includes projection upserts, which
+ * validate inside their transaction. Read-only lookups are allowed; mutations
+ * and external effects are not.
  */
 export type PersistValidator<T extends BaseEntity = BaseEntity> = (
   entity: T,

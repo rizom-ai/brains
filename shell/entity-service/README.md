@@ -116,6 +116,12 @@ components containing the identity separator are rejected. New-path authoring st
 the stricter `entityIdPathSchema`. Derived paths are returned outside entity data: neither
 stored IDs nor metadata are modified. Filesystem placement remains directory-sync's job.
 
+## Cross-entity persistence validation
+
+`registerPersistValidator` composes validators in registration order rather than replacing the entity owner's constraint. Ordinary create/update paths and projection upserts run them after schema validation and source projection, before persistence. Projection upserts restore adapter-owned fields for validation while retaining the full stored source and row identity. They validate inside the admitted rule transaction: a refusal rolls back all entities, ownership claims, export intents and memo changes in that result. Completed rule reports remain idempotent. Validators may perform read-only lookups but must not mutate entities or trigger external effects. Validation failures retain their original field issues in an `EntityValidationError` with `phase: "persist"`; schema failures retain `phase: "schema"`. Consumers can distinguish a valid document refused by current policy from structurally invalid source. Directory-sync leaves policy-refused files in place for retry instead of quarantining them.
+
+Studio uses this boundary for its admin-authored grouping-vocabulary singleton. Vocabulary and cardinality changes affect the next write, including tool and import writes, without changing fixed type schemas or rewriting previously stored content. Reads and startup reprojection remain unconstrained so stray memberships stay visible.
+
 ## Grouping queries (internal client)
 
 A grouping is a declared dimension — Clients, Projects — resolved from one

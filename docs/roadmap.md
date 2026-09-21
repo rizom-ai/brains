@@ -119,7 +119,8 @@ Plans:
 
 - [public-ask.md](./plans/public-ask.md) — complete live visitor acceptance and obtain separate production policy/publication approval.
 - [studio-ux-improvements.md](./plans/studio-ux-improvements.md) — the remaining reviewed presentation, accessibility, and optional draft-recovery decisions after the shipped UX batches.
-- [studio-virtual-collections.md](./plans/studio-virtual-collections.md) — draft follow-up to shipped hierarchy: declared, metadata-derived collections across entity types, starting with Clients; reuse ordinary editing and defer creation within virtual collections.
+- [studio-virtual-collections.md](./plans/studio-virtual-collections.md) — implemented foundation for source-backed collections across entity types; PR #302 now continues into grouping vocabularies rather than landing separately.
+- [studio-grouping-vocabularies.md](./plans/studio-grouping-vocabularies.md) — implemented and locally validated in PR #302: admin-defined value lists/cardinality, system editing without a restart, shared enforcement including projection writes, select/checkbox controls, visible strays, and canonical import refusal/retry; awaiting merge and release.
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — optional network-first installable shell without an offline-authoring claim.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy for deeper Chat SDK semantic alignment.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked transport-neutral structured forms.

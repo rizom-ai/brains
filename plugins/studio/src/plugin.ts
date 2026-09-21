@@ -27,6 +27,10 @@ import {
 } from "./studio-paths";
 import { createStudioCreatePrefillState } from "./create-prefill-contract";
 import { createEditorRoutes } from "./editor-routes";
+import {
+  registerGroupingVocabulary,
+  registerGroupingVocabularyValidators,
+} from "./grouping-vocabulary";
 import { StudioWorkspaceRegistry } from "./workspace-registry";
 import packageJson from "../package.json";
 import { getErrorMessage } from "@brains/utils/error";
@@ -149,12 +153,14 @@ export class StudioPlugin extends ServicePlugin<
     context.entities.validateGroupings(this.config.groupings);
     for (const grouping of this.config.groupings)
       context.entities.registerGrouping(grouping);
+    registerGroupingVocabularyValidators(context);
   }
 
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
+    registerGroupingVocabulary(context);
     context.endpoints.register({
       label: "Studio",
       url: this.config.routePath,

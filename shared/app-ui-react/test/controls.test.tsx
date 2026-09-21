@@ -1,6 +1,7 @@
 /** @jsxImportSource react */
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { act } from "react";
+import { readFileSync } from "node:fs";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
@@ -63,6 +64,21 @@ describe("app control vocabulary", () => {
     expect(html).toContain('data-slot="switch"');
     expect(html).toContain('data-slot="button"');
     expect(html).not.toContain("@stylexjs");
+  });
+
+  it("retains the accent/on-accent paint pair on primary hover", () => {
+    const source = readFileSync(
+      new URL("../src/controls.tsx", import.meta.url),
+      "utf8",
+    );
+    const primary = source.slice(
+      source.indexOf("  primary: {"),
+      source.indexOf("  secondary: {"),
+    );
+    // The dim accent blends toward the page, dropping paper hover contrast
+    // below 4.5:1. Browser acceptance exercises the actual hovered control.
+    expect(primary).not.toContain('"var(--console-accent-dim)"');
+    expect(primary).toContain('color: "var(--console-on-accent)"');
   });
 
   it("keeps disabled primary actions inert until the caller enables them", async () => {

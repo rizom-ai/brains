@@ -14,6 +14,11 @@ import type { StudioRequestAccess } from "./editor-contracts";
 import { splitEntityContent } from "./editor-content";
 import { entityDisplayTitle } from "./editor-entities";
 import { jsonResponse } from "./editor-response";
+import { readGroupingVocabularies } from "./grouping-vocabulary";
+import type {
+  GroupingVocabularyFrontmatter,
+  StudioGrouping,
+} from "./grouping-vocabulary-contract";
 
 const querySchema = z.object({
   grouping: groupingKeySchema,
@@ -39,12 +44,19 @@ const querySchema = z.object({
 export function studioGroupDescriptors(
   groupings: EntityGrouping[],
   admitted: ReadonlySet<string>,
-): EntityGrouping[] {
+  vocabularies: GroupingVocabularyFrontmatter["groupings"] = {},
+): StudioGrouping[] {
   return groupings
-    .map((grouping) => ({
-      ...grouping,
-      types: grouping.types.filter((type) => admitted.has(type)),
-    }))
+    .map((grouping) => {
+      const vocabulary = Object.hasOwn(vocabularies, grouping.key)
+        ? vocabularies[grouping.key]
+        : undefined;
+      return {
+        ...grouping,
+        ...(vocabulary && { vocabulary }),
+        types: grouping.types.filter((type) => admitted.has(type)),
+      };
+    })
     .filter((grouping) => grouping.types.length > 0);
 }
 
@@ -77,6 +89,14 @@ export async function handleGroupingRead(
     response.headers.set("Retry-After", "1");
     return response;
   }
+  const vocabularies = await readGroupingVocabularies(
+    context,
+    access.visibilityScope,
+  );
+  const vocabulary = Object.hasOwn(vocabularies, grouping.key)
+    ? vocabularies[grouping.key]
+    : undefined;
+  if (vocabulary) descriptor.vocabulary = vocabulary;
   const input = {
     grouping: grouping.key,
     entityTypes: descriptor.types.filter(

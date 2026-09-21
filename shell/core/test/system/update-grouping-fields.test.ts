@@ -52,6 +52,7 @@ async function fixture(
   lateRegistration = false,
 ): Promise<{
   service: EntityService;
+  registry: EntityRegistry;
   exec: (
     input: Record<string, unknown>,
   ) => ReturnType<ReturnType<typeof createEntityUpdateTool>["handler"]>;
@@ -108,6 +109,7 @@ async function fixture(
   if (lateRegistration) register();
   return {
     service,
+    registry,
     exec: (input) =>
       tool.handler(input, {
         interfaceType: "test",
@@ -191,6 +193,36 @@ test("extension updates confirm source values and persist through owner strippin
     "clients: (absent)",
   );
 });
+test("a persist policy changed after confirmation preparation refuses the tool write without changing source", async () => {
+  const { service, registry, exec } = await fixture(["Acme"]);
+  const original = await service.getEntity({ entityType: "entry", id: "same" });
+  const proposed = confirmation.parse(
+    await exec({
+      entityType: "entry",
+      id: "same",
+      fields: { clients: ["Beta"] },
+    }),
+  );
+  registry.registerPersistValidator("entry", async () => {
+    throw new z.ZodError([
+      {
+        code: "custom",
+        path: ["clients"],
+        message: "Clients: choose values from the configured list.",
+      },
+    ]);
+  });
+  expect(await exec(proposed.args)).toMatchObject({
+    success: false,
+    error: expect.stringContaining(
+      "Clients: choose values from the configured list.",
+    ),
+  });
+  expect(await service.getEntity({ entityType: "entry", id: "same" })).toEqual(
+    original,
+  );
+});
+
 test.each([null, "Acme", { name: "Acme" }, [3]])(
   "confirmation distinguishes malformed persisted values from absence: %j",
   async (oldValue) => {

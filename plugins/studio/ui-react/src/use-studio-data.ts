@@ -1,10 +1,7 @@
-import type {
-  EntityGrouping,
-  EntityIdPath,
-  RuntimeStudioWorkspaceData,
-} from "@brains/plugins";
+import type { EntityIdPath, RuntimeStudioWorkspaceData } from "@brains/plugins";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
+import type { StudioGrouping } from "../../src/grouping-vocabulary-contract";
 import type { StudioCollectionQuery } from "../../src/collection-query";
 import { STUDIO_ACCOUNT_WORKSPACE_RENDERER } from "../../src/account-workspace";
 import { STUDIO_CHAT_WORKSPACE_RENDERER } from "../../src/chat-workspace";
@@ -50,7 +47,7 @@ import type {
 import type { EditorWorkflowState } from "./editor-workflow";
 import type { StudioApi } from "./api";
 
-const EMPTY_GROUPINGS: EntityGrouping[] = [];
+const EMPTY_GROUPINGS: StudioGrouping[] = [];
 const EMPTY_AGENT_TARGETS: AgentTarget[] = [];
 const EMPTY_WORKSPACES: StudioWorkspaceInfo[] = [];
 const EMPTY_WORKSPACE_QUERY: StudioWorkspaceQuery = {};
@@ -73,7 +70,7 @@ export interface StudioDataInput {
 export interface StudioData {
   navigationQuery: UseQueryResult<StudioNavigation, Error>;
   types: EntityTypeInfo[] | null;
-  groupings: EntityGrouping[];
+  groupings: StudioGrouping[];
   activeType: EntityTypeInfo | undefined;
   activeCapabilities: StudioTypeCapabilities | undefined;
   entityCollectionQuery: StudioCollectionQuery;

@@ -264,7 +264,16 @@ export class EntityRegistry implements IEntityRegistry {
   }
 
   registerPersistValidator(type: string, validator: PersistValidator): void {
-    this.persistValidators.set(type, validator);
+    const existing = this.persistValidators.get(type);
+    this.persistValidators.set(
+      type,
+      existing
+        ? async (entity, context): Promise<void> => {
+            await existing(entity, context);
+            await validator(entity, context);
+          }
+        : validator,
+    );
   }
 
   getPersistValidator(type: string): PersistValidator | undefined {

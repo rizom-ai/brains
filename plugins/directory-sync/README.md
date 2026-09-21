@@ -103,6 +103,8 @@ brain tool directory_sync '{"action":"history","entityType":"post","id":"my-firs
 
 `directory_sync` action `sync` pulls from git when configured, imports changed files, and lets auto-export/auto-commit handle entity changes. Action `status` reports sync and git state. Action `history` reads git history for synced files when git is configured.
 
+Queued import and cleanup jobs preserve their durable projection-batch identity through the active-service facade; nested work still must match that identity. A live persist policy (such as a closed grouping vocabulary) can refuse otherwise valid Markdown. That import is reported as failed without moving the file into quarantine, so an explicit retry can succeed after the policy changes. Structural validation failures retain the existing quarantine behavior.
+
 ## Optional Studio workspace
 
 When `@brains/studio` is installed, directory-sync registers an **Operations → Sync**

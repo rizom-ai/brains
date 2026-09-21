@@ -1,9 +1,12 @@
 import { useMemo } from "react";
 import { useQueries } from "@tanstack/react-query";
-import type { EntityGrouping } from "@brains/plugins";
+import type { StudioGrouping } from "../../src/grouping-vocabulary-contract";
 import { studioGroupingQuerySchema } from "../../src/grouping-query";
 import { useStudioApi } from "./studio-api-context";
 import { groupingQueryOptions } from "./grouping-queries";
+
+/** The first catalog page: the same key the browse view uses, so it is shared. */
+const CATALOG_QUERY = studioGroupingQuerySchema.parse({});
 
 /**
  * Existing values for each grouping a type participates in, keyed by field.
@@ -14,18 +17,26 @@ import { groupingQueryOptions } from "./grouping-queries";
  * offers nothing, and typing a new value stays possible.
  */
 export function useGroupingSuggestions(
-  groupings: readonly EntityGrouping[],
+  groupings: readonly StudioGrouping[],
 ): Record<string, readonly string[]> {
   const api = useStudioApi();
-  const catalog = studioGroupingQuerySchema.parse({});
-  const results = useQueries({
-    queries: groupings.map((grouping) =>
-      groupingQueryOptions(api, grouping.key, catalog),
-    ),
-  });
+  const openGroupings = useMemo(
+    () => groupings.filter((grouping) => !grouping.vocabulary),
+    [groupings],
+  );
+  // One options instance per API and declaration set, as grouping-queries
+  // documents: the initialization retry keeps its deadline in that instance.
+  const queries = useMemo(
+    () =>
+      openGroupings.map((grouping) =>
+        groupingQueryOptions(api, grouping.key, CATALOG_QUERY),
+      ),
+    [api, openGroupings],
+  );
+  const results = useQueries({ queries });
   const suggestions: Record<string, readonly string[]> = {};
   results.forEach((result, index) => {
-    const grouping = groupings[index];
+    const grouping = openGroupings[index];
     // A failed refetch retains React Query's old data, including values the
     // current session may no longer read. Offer only successful results.
     if (grouping && result.isSuccess && result.data.kind === "catalog")

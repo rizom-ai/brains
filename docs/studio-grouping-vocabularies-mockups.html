@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en" data-climate="paper">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Studio · Grouping vocabularies · Design review</title>
+    <style>
+      :root {
+        --bg: #faf4e6;
+        --panel: #f0e8d4;
+        --ink: #181227;
+        --dim: #605876;
+        --rule: #d8cfbe;
+        --accent: #b8420d;
+        --on: #fff8ec;
+        --ui: "IBM Plex Sans", sans-serif;
+        --display: "Fraunces", Georgia, serif;
+        --mono: "JetBrains Mono", monospace;
+        color-scheme: light;
+      }
+      [data-climate="instrument"] {
+        --bg: #15122c;
+        --panel: #201a3f;
+        --ink: #fff8f0;
+        --dim: #bcb2cd;
+        --rule: #3c3454;
+        --accent: #fe8b3e;
+        --on: #19112b;
+        color-scheme: dark;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 15px/1.55 var(--ui);
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+        color: inherit;
+      }
+      button,
+      select,
+      input[type="text"] {
+        border: 1px solid var(--rule);
+        border-radius: 4px;
+        background: var(--bg);
+        padding: 9px 13px;
+        min-height: 42px;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      a:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+      }
+      a {
+        color: var(--accent);
+      }
+      header {
+        height: 58px;
+        border-bottom: 1px solid var(--rule);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 24px;
+        gap: 12px;
+      }
+      .brand,
+      .eyebrow,
+      .badge {
+        font: 11px/1.5 var(--mono);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      .seal {
+        border: 1px solid var(--accent);
+        color: var(--accent);
+        padding: 5px;
+        margin-right: 12px;
+      }
+      .shell {
+        display: grid;
+        grid-template-columns: 210px minmax(0, 1fr);
+        min-height: calc(100vh - 58px);
+      }
+      nav {
+        background: var(--panel);
+        border-right: 1px solid var(--rule);
+        padding: 34px 20px;
+      }
+      nav p {
+        padding: 10px 12px;
+        margin: 2px 0;
+      }
+      nav .active {
+        background: var(--bg);
+        border-left: 2px solid var(--accent);
+      }
+      nav .eyebrow {
+        margin-top: 28px;
+        color: var(--dim);
+      }
+      main {
+        width: 100%;
+        max-width: 1140px;
+        padding: 44px 52px 72px;
+      }
+      .head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+      }
+      h1 {
+        font: 500 40px/1.15 var(--display);
+        margin: 8px 0 12px;
+      }
+      h2 {
+        font: 500 24px/1.2 var(--display);
+        margin: 0;
+      }
+      p {
+        margin: 10px 0;
+      }
+      .muted {
+        color: var(--dim);
+      }
+      .intro {
+        max-width: 68ch;
+        margin-bottom: 32px;
+      }
+      .primary {
+        background: var(--accent);
+        color: var(--on);
+        border-color: var(--accent);
+      }
+      .section {
+        border-top: 1px solid var(--rule);
+        padding: 24px 0;
+      }
+      .section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 18px 0;
+      }
+      .chip {
+        border: 1px solid var(--rule);
+        padding: 5px 10px;
+        border-radius: 3px;
+        display: inline-flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .chip button {
+        border: 0;
+        padding: 0;
+        min-height: 28px;
+        background: none;
+      }
+      .entry {
+        display: flex;
+        gap: 8px;
+        max-width: 450px;
+      }
+      .entry input {
+        min-width: 0;
+        flex: 1;
+      }
+      .switch {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 18px 0;
+      }
+      input[type="checkbox"] {
+        accent-color: var(--accent);
+        width: 18px;
+        height: 18px;
+      }
+      .remove {
+        color: var(--accent);
+        background: none;
+      }
+      .note {
+        font-size: 13px;
+        color: var(--dim);
+      }
+      .properties {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 28px;
+        border-block: 1px solid var(--rule);
+        padding: 24px 0;
+        margin: 30px 0;
+      }
+      .property {
+        min-width: 0;
+      }
+      .property > label,
+      .property > legend {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 12px;
+      }
+      .property select {
+        width: 100%;
+      }
+      .property fieldset {
+        border: 0;
+        margin: 0;
+        padding: 0;
+      }
+      .check {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin: 8px 0;
+        min-height: 32px;
+      }
+      .badge {
+        display: inline-block;
+        padding: 3px 6px;
+        border: 1px solid var(--accent);
+        color: var(--accent);
+        font-size: 10px;
+      }
+      .warning {
+        padding: 14px 16px;
+        border-left: 3px solid var(--accent);
+        background: var(--panel);
+        margin: 22px 0;
+      }
+      .body-copy {
+        max-width: 65ch;
+      }
+      .body-copy h2 {
+        margin-top: 28px;
+      }
+      .review {
+        border-top: 1px solid var(--rule);
+        padding: 20px 24px;
+        font-size: 12px;
+        color: var(--dim);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+      }
+      .review select {
+        font-size: 12px;
+      }
+      .read-only .entry,
+      .read-only .remove,
+      .read-only .chip button {
+        display: none;
+      }
+      .read-only .switch input {
+        pointer-events: none;
+      }
+      .read-only .chip {
+        border: 0;
+        padding-left: 0;
+      }
+      .read-only .chips {
+        margin: 14px 0;
+      }
+      .read-only .primary {
+        display: none;
+      }
+      @media (max-width: 650px) {
+        header {
+          padding: 0 16px;
+        }
+        .shell {
+          display: block;
+        }
+        nav {
+          display: none;
+        }
+        main {
+          padding: 28px 20px 48px;
+        }
+        h1 {
+          font-size: 32px;
+        }
+        .head {
+          align-items: flex-start;
+        }
+        .head button {
+          white-space: nowrap;
+        }
+        .properties {
+          grid-template-columns: 1fr;
+          gap: 24px;
+        }
+        .intro {
+          margin-bottom: 24px;
+        }
+        .section {
+          padding: 22px 0;
+        }
+        .review {
+          padding: 16px 20px;
+        }
+        .brand:last-child {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand"><span class="seal">R</span> Studio / Fieldwork</div>
+      <span class="brand" id="role">Admin · Shared</span>
+    </header>
+    <div class="shell">
+      <nav aria-label="Studio">
+        <p>Overview</p>
+        <p>Chat</p>
+        <p>Library</p>
+        <p class="active">System</p>
+        <p class="eyebrow">Structure</p>
+        <p class="active">Groupings</p>
+      </nav>
+      <main id="main"></main>
+    </div>
+    <footer class="review">
+      <label
+        >State
+        <select id="state">
+          <option value="admin">Admin form</option>
+          <option value="reader">Read-only form</option>
+          <option value="editor">Editor controls</option>
+          <option value="refused">Refused save / stray value</option>
+        </select></label
+      ><label
+        >Climate
+        <select id="climate">
+          <option>paper</option>
+          <option>instrument</option>
+        </select></label
+      ><span
+        >Design prototype · presence of a list closes a grouping; no separate
+        switch.</span
+      >
+    </footer>
+    <script>
+      const params = new URLSearchParams(location.search);
+      const state = params.get("state") || "admin";
+      const climate = params.get("climate") || "paper";
+      document.documentElement.dataset.climate = climate;
+      document.querySelector("#state").value = state;
+      document.querySelector("#climate").value = climate;
+      for (const id of ["state", "climate"])
+        document.getElementById(id).addEventListener("change", (e) => {
+          params.set(id, e.target.value);
+          location.search = params.toString();
+        });
+      const reader = state === "reader";
+      const editing = state === "editor" || state === "refused";
+      const refused = state === "refused";
+      document.getElementById("role").textContent = reader
+        ? "Trusted editor · Read only"
+        : "Admin · Shared";
+      const chip = (value) =>
+        `<span class="chip">${value}<button type="button" aria-label="Remove ${value}">×</button></span>`;
+      const vocabulary = (name, values, multiple) =>
+        `<section class="section"><div class="section-head"><h2>${name}</h2><span class="badge">Closed</span></div><p class="note">${multiple ? "Choose one or several values" : "Choose at most one value"} per entry. Matching is exact.</p><div class="chips">${values.map(chip).join("")}</div><div class="entry"><input type="text" aria-label="New ${name} value" placeholder="New value"><button type="button">Add</button></div><label class="switch"><input type="checkbox" ${multiple ? "checked" : ""} ${reader ? "disabled" : ""}>Allow multiple values</label><button class="remove" type="button">Remove list</button></section>`;
+      document.getElementById("main").innerHTML = editing
+        ? `<div class="eyebrow">Note / Properties</div><div class="head"><h1>Launch brief</h1><button class="primary" type="button">Save changes</button></div><p class="muted">The next chapter for Acme.</p>${refused ? '<div class="warning" role="alert"><strong>Changes not saved.</strong><br>Clients: choose values from the configured list. Your draft is unchanged.</div>' : ""}<div class="properties"><div class="property"><label for="clients">Clients</label><select id="clients"><option>${refused ? "Gamma — not in list" : "Acme"}</option><option>—</option><option>Beta</option></select><p class="note">Choose at most one.</p>${refused ? '<div class="chips"><span class="chip">Gamma <span class="badge">not in list</span></span></div>' : ""}</div><div class="property"><label>Projects</label><fieldset aria-label="Projects"><label class="check"><input type="checkbox" checked>Launch</label><label class="check"><input type="checkbox">Rebrand</label><label class="check"><input type="checkbox">Research</label></fieldset><p class="note">Choose any that apply.</p></div><div class="property"><label for="areas">Areas <small class="muted">open</small></label><div class="chips">${chip("Field notes")}</div><div class="entry"><input id="areas" type="text" placeholder="Add a value"><button type="button">Add</button></div><p class="note">Enter or Add. Commas and spaces are kept.</p></div></div><article class="body-copy"><h2>A clearer starting point</h2><p>Map what we know, name the questions, and leave room for what emerges. The brief is a shared point of departure, not a fixed destination.</p></article>`
+        : `<div class="${reader ? "read-only" : ""}"><div class="eyebrow">System / Structure</div><div class="head"><h1>Groupings</h1>${reader ? '<span class="badge">Read only</span>' : '<button class="primary" type="button">Save changes</button>'}</div><p class="intro muted">Define the values editors can choose, and whether each entry may carry one or several. Lists apply to future saves; existing content is never rewritten.</p>${reader ? '<div class="warning">You can use these lists. Only administrators can change them.</div>' : ""}${vocabulary("Clients", ["Acme", "Beta"], false)}${vocabulary("Projects", ["Launch", "Rebrand", "Research"], true)}<section class="section"><div class="section-head"><h2>Areas</h2><span class="muted">Open</span></div><p class="note">Editors may enter any value.</p>${reader ? "" : '<button type="button">Define allowed values</button>'}</section><p class="note">Removing a list reopens the grouping. Renaming a listed value does not rename memberships.</p></div>`;
+    </script>
+  </body>
+</html>

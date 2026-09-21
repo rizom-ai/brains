@@ -1,6 +1,8 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
 import { StudioSystemFields } from "./studio-system-fields";
+import { StudioVocabularyEditor } from "./studio-vocabulary-editor";
+import { GROUPING_VOCABULARY_TYPE } from "../../src/grouping-vocabulary-contract";
 import { systemFieldStyles } from "./studio-system-fields.styles";
 import {
   Button,
@@ -83,6 +85,7 @@ export function StudioEditorPane(
     presentation,
     selectedEntityType,
     groupingFields,
+    groupingVocabularies,
     systemDesign,
     canEdit,
     namedCreate,
@@ -319,39 +322,71 @@ export function StudioEditorPane(
               disabled={!canEdit}
             >
               {systemDesign ? (
-                <StudioSystemFields
-                  literalFields={groupingFields}
-                  suggestions={props.groupingSuggestions}
-                  fields={entitySchema.fields}
-                  draft={draft}
-                  title={
-                    presentation === "document" ? "" : systemDesign.fieldsTitle
-                  }
-                  readOnly={!canEdit}
-                  issues={fieldIssues}
-                  onChange={(descriptor, raw) =>
-                    dispatchEditor({
-                      type: "fieldChanged",
-                      descriptor,
-                      raw,
-                    })
-                  }
-                  renderAssist={
-                    canAssist && entitySchema.hasBody && body.trim().length > 0
-                      ? (descriptor): ReactElement => (
-                          <FieldAssistControls
-                            descriptor={descriptor}
-                            state={fieldAssistState}
-                            onRun={runFieldAssist}
-                            onApply={applyFieldAssist}
-                            onDiscard={() =>
-                              setFieldAssistState({ kind: "idle" })
-                            }
-                          />
-                        )
-                      : undefined
-                  }
-                />
+                <>
+                  {selectedEntityType === GROUPING_VOCABULARY_TYPE && (
+                    <StudioVocabularyEditor
+                      groupings={props.groupings?.items ?? []}
+                      value={draft["groupings"]}
+                      readOnly={!canEdit}
+                      issues={fieldIssues}
+                      onChange={(raw) =>
+                        dispatchEditor({
+                          type: "fieldChanged",
+                          descriptor: {
+                            name: "groupings",
+                            label: "Groupings",
+                            widget: "object",
+                          },
+                          raw,
+                        })
+                      }
+                    />
+                  )}
+                  <StudioSystemFields
+                    vocabularies={groupingVocabularies}
+                    literalFields={groupingFields}
+                    suggestions={props.groupingSuggestions}
+                    fields={
+                      selectedEntityType === GROUPING_VOCABULARY_TYPE
+                        ? entitySchema.fields.filter(
+                            (field) => field.name !== "groupings",
+                          )
+                        : entitySchema.fields
+                    }
+                    draft={draft}
+                    title={
+                      presentation === "document"
+                        ? ""
+                        : systemDesign.fieldsTitle
+                    }
+                    readOnly={!canEdit}
+                    issues={fieldIssues}
+                    onChange={(descriptor, raw) =>
+                      dispatchEditor({
+                        type: "fieldChanged",
+                        descriptor,
+                        raw,
+                      })
+                    }
+                    renderAssist={
+                      canAssist &&
+                      entitySchema.hasBody &&
+                      body.trim().length > 0
+                        ? (descriptor): ReactElement => (
+                            <FieldAssistControls
+                              descriptor={descriptor}
+                              state={fieldAssistState}
+                              onRun={runFieldAssist}
+                              onApply={applyFieldAssist}
+                              onDiscard={() =>
+                                setFieldAssistState({ kind: "idle" })
+                              }
+                            />
+                          )
+                        : undefined
+                    }
+                  />
+                </>
               ) : (
                 entitySchema.fields
                   .filter((descriptor) => isFieldVisible(descriptor, draft))
@@ -361,6 +396,7 @@ export function StudioEditorPane(
                       data-studio-field-assist=""
                     >
                       <Field
+                        vocabulary={groupingVocabularies[descriptor.name]}
                         literalList={groupingFields.includes(descriptor.name)}
                         suggestions={
                           props.groupingSuggestions?.[descriptor.name]

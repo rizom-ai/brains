@@ -43,6 +43,8 @@ export function workspaceRailBadges(
 }
 
 /** Everything StudioAppView derives from its props before rendering. */
+import type { GroupingVocabulary } from "../../src/grouping-vocabulary-contract";
+
 export interface StudioAppModel {
   activeType: EntityTypeInfo | undefined;
   activeWorkspace: StudioWorkspaceInfo | undefined;
@@ -50,6 +52,7 @@ export interface StudioAppModel {
   presentation: StudioEditorPresentation;
   selectedEntityType: string;
   groupingFields: string[];
+  groupingVocabularies: Record<string, GroupingVocabulary>;
   systemDesign: SystemEditorCopy | undefined;
   editing: boolean;
   canCreate: boolean;
@@ -108,9 +111,15 @@ export function deriveStudioAppModel(
     entitySchema.hasBody,
   );
   const selectedEntityType = entityType ?? "";
-  const groupingFields = (props.groupings?.items ?? [])
-    .filter((grouping) => grouping.types.includes(selectedEntityType))
-    .map((grouping) => grouping.field);
+  const editorGroupings = (props.groupings?.items ?? []).filter((grouping) =>
+    grouping.types.includes(selectedEntityType),
+  );
+  const groupingFields = editorGroupings.map((grouping) => grouping.field);
+  const groupingVocabularies = Object.fromEntries(
+    editorGroupings.flatMap((grouping) =>
+      grouping.vocabulary ? [[grouping.field, grouping.vocabulary]] : [],
+    ),
+  );
   const systemDesign = systemEditorCopy(selectedEntityType);
   const editing =
     !props.groupingView && !activeWorkspaceId && mode.kind !== "browse";
@@ -155,6 +164,7 @@ export function deriveStudioAppModel(
         : (activeType?.label ?? entityType);
   const collectionLabel =
     activeWorkspace?.label ??
+    systemDesign?.title ??
     (activeType?.isSingleton
       ? singularLabel(activeType.label)
       : activeType?.label) ??
@@ -218,7 +228,7 @@ export function deriveStudioAppModel(
       ? `${studioArea(entityType, null)} / singleton`
       : collectionLabel,
     access: studioAccessRequirement("trusted"),
-    title: heading ?? "Editor",
+    title: systemDesign?.title ?? heading ?? "Editor",
     metadata:
       mode.kind === "create"
         ? [`${entryLabel} · new`]
@@ -241,6 +251,7 @@ export function deriveStudioAppModel(
     presentation,
     selectedEntityType,
     groupingFields,
+    groupingVocabularies,
     systemDesign,
     editing,
     canCreate,

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import { PermissionService } from "@brains/templates";
 import { studioPlugin } from "@brains/studio";
-import { DirectorySync } from "@brains/directory-sync";
+import { DirectorySync, type ImportResult } from "@brains/directory-sync";
 import { AuthServicePlugin } from "@brains/auth-service";
 import { z } from "@brains/utils/zod";
 
@@ -13,12 +13,21 @@ const editorEntitySchema = z.object({
   }),
 });
 import { readFile, writeFile } from "node:fs/promises";
-import { EntityRegistry, EntityService } from "@brains/entity-service";
+import {
+  EntityRegistry,
+  EntityService,
+  ProjectionJsonObjectSchema,
+  type ProjectionWriteIntent,
+} from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { noteAdapter, noteSchema } from "@brains/note";
 import { blogPostAdapter, blogPostSchema } from "@brains/blog";
 import { createMockShell } from "@brains/plugins/test";
-import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createTestDirectory,
+  createMockProgressReporter,
+} from "@brains/test-utils";
 
 const clients = {
   key: "clients",
@@ -92,6 +101,12 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     spyOn(shell, "getPermissionService").mockReturnValue(
       new PermissionService({
         entityActions: {
+          "grouping-vocabulary": {
+            create: "admin",
+            update: "admin",
+            delete: "admin",
+            publish: "never",
+          },
           "*": {
             create: adminWrites ? "admin" : "trusted",
             update: adminWrites ? "admin" : "trusted",
@@ -120,6 +135,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     }
     const plugin = studioPlugin();
     await plugin.register(shell);
+    await plugin.finalizeRegistration();
     const routes = plugin.getWebRoutes();
     return async (method, path, body, role = "trusted"): Promise<Response> => {
       const route = routes.find(
@@ -298,6 +314,339 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       await service.getEntity({ entityType: "note", id: "same" }),
     ).not.toBeNull();
   });
+  test.each(["note", "post"])(
+    "closed vocabularies govern real %s writes without rewriting old content",
+    async (entityType) => {
+      const directory = await createTestDirectory();
+      cleanups.push(directory.cleanup);
+      const service = await open(directory.dir, true);
+      const request = await editor(service);
+      const frontmatter = {
+        title: "Example",
+        clients: ["Gamma"],
+        ...(entityType === "post" && {
+          status: "draft",
+          slug: "example",
+          excerpt: "Example",
+          author: "Tester",
+        }),
+      };
+      expect(
+        (
+          await request("POST", "entities", {
+            entityType,
+            idPath: ["old"],
+            frontmatter,
+            body: "Body",
+          })
+        ).status,
+      ).toBe(201);
+      const original = await service.getEntity({ entityType, id: "old" });
+      if (!original) throw new Error("Missing original");
+      const vocabulary = {
+        groupings: { clients: { multiple: true, values: ["Acme", "Beta"] } },
+        visibility: "shared",
+      };
+      expect(
+        (
+          await request(
+            "POST",
+            "entities",
+            { entityType: "grouping-vocabulary", frontmatter: vocabulary },
+            "trusted",
+          )
+        ).status,
+      ).toBe(403);
+      const created = await request(
+        "POST",
+        "entities",
+        { entityType: "grouping-vocabulary", frontmatter: vocabulary },
+        "admin",
+      );
+      expect(created.status).toBe(201);
+      expect(await created.json()).toMatchObject({
+        entityId: "grouping-vocabulary",
+      });
+      expect(await (await request("GET", "types")).json()).toMatchObject({
+        groupings: [{ ...clients, vocabulary: vocabulary.groupings.clients }],
+      });
+      expect(await service.getEntity({ entityType, id: "old" })).toEqual(
+        original,
+      );
+      await service.reprojectRegisteredGroupings();
+      expect((await service.queryGroupingCatalog(query)).values).toEqual([
+        { value: "Gamma", count: 1 },
+      ]);
+      expect(
+        (
+          await request(
+            "GET",
+            "entities?type=grouping-vocabulary&id=grouping-vocabulary",
+            undefined,
+            "public",
+          )
+        ).status,
+      ).toBe(403);
+      expect(await (await request("GET", "types")).json()).toMatchObject({
+        types: expect.arrayContaining([
+          expect.objectContaining({
+            entityType: "grouping-vocabulary",
+            isSingleton: true,
+            capabilities: expect.objectContaining({
+              canRead: true,
+              canCreate: false,
+              canUpdate: false,
+              canDelete: false,
+              canPublish: false,
+            }),
+          }),
+        ]),
+      });
+      const deniedUpdate = await request("PUT", "entities", {
+        entityType,
+        id: "old",
+        frontmatter,
+        body: "Changed",
+      });
+      expect(deniedUpdate.status).toBe(400);
+      expect(await deniedUpdate.json()).toMatchObject({
+        issues: expect.arrayContaining([
+          expect.objectContaining({ path: ["clients"] }),
+        ]),
+      });
+      const deniedCreate = await request("POST", "entities", {
+        entityType,
+        idPath: ["new"],
+        frontmatter,
+        body: "Body",
+      });
+      expect(deniedCreate.status).toBe(400);
+      expect(await deniedCreate.json()).toMatchObject({
+        issues: expect.arrayContaining([
+          expect.objectContaining({ path: ["clients"] }),
+        ]),
+      });
+      const persistError = await service
+        .updateEntity({
+          entity: { ...original, content: original.content + "\nChanged" },
+        })
+        .catch((cause: unknown) => cause);
+      expect(persistError).toMatchObject({
+        message: expect.stringContaining("Clients"),
+      });
+      expect(await service.getEntity({ entityType, id: "old" })).toEqual(
+        original,
+      );
+      expect(
+        (
+          await request("PUT", "entities", {
+            entityType,
+            id: "old",
+            frontmatter: { ...frontmatter, clients: ["Acme", "Beta"] },
+            body: "Changed",
+          })
+        ).status,
+      ).toBe(200);
+      expect(
+        (
+          await request(
+            "PUT",
+            "entities",
+            {
+              entityType: "grouping-vocabulary",
+              id: "grouping-vocabulary",
+              frontmatter: vocabulary,
+            },
+            "trusted",
+          )
+        ).status,
+      ).toBe(403);
+      const beforeCardinality = await service.getEntity({
+        entityType,
+        id: "old",
+      });
+      expect(
+        (
+          await request(
+            "PUT",
+            "entities",
+            {
+              entityType: "grouping-vocabulary",
+              id: "grouping-vocabulary",
+              frontmatter: {
+                groupings: {
+                  clients: { multiple: false, values: ["Acme", "Beta"] },
+                },
+                visibility: "restricted",
+              },
+            },
+            "admin",
+          )
+        ).status,
+      ).toBe(200);
+      expect(await service.getEntity({ entityType, id: "old" })).toEqual(
+        beforeCardinality,
+      );
+      // Descriptor visibility must never weaken enforcement at internal scope.
+      expect(await (await request("GET", "types")).json()).toMatchObject({
+        groupings: [clients],
+      });
+      expect(
+        JSON.stringify(await (await request("GET", "types")).json()),
+      ).not.toContain('"vocabulary"');
+      const cardinality = await request("PUT", "entities", {
+        entityType,
+        id: "old",
+        frontmatter: { ...frontmatter, clients: ["Acme", "Beta"] },
+        body: "Changed again",
+      });
+      expect(cardinality.status).toBe(400);
+      expect(await cardinality.json()).toMatchObject({
+        issues: [
+          {
+            path: ["clients"],
+            message: expect.stringContaining("at most one"),
+          },
+        ],
+      });
+      expect(
+        (
+          await request("PUT", "entities", {
+            entityType,
+            id: "old",
+            frontmatter: { ...frontmatter, clients: ["Acme"] },
+            body: "One value",
+          })
+        ).status,
+      ).toBe(200);
+      const internalRefusal = await request("PUT", "entities", {
+        entityType,
+        id: "old",
+        frontmatter,
+        body: "Invalid",
+      });
+      expect(internalRefusal.status).toBe(400);
+      expect(
+        (
+          await request(
+            "PUT",
+            "entities",
+            {
+              entityType: "grouping-vocabulary",
+              id: "grouping-vocabulary",
+              frontmatter: { groupings: {}, visibility: "shared" },
+            },
+            "admin",
+          )
+        ).status,
+      ).toBe(200);
+      expect(
+        (
+          await request("PUT", "entities", {
+            entityType,
+            id: "old",
+            frontmatter,
+            body: "Entry removed",
+          })
+        ).status,
+      ).toBe(200);
+      expect(
+        (
+          await request(
+            "DELETE",
+            "entities?type=grouping-vocabulary&id=grouping-vocabulary",
+            { confirmed: true },
+            "admin",
+          )
+        ).status,
+      ).toBe(200);
+      expect(
+        (
+          await request("PUT", "entities", {
+            entityType,
+            id: "old",
+            frontmatter,
+            body: "Reopened",
+          })
+        ).status,
+      ).toBe(200);
+    },
+  );
+
+  test("prototype-named grouping keys remain open until their own vocabulary exists", async () => {
+    const directory = await createTestDirectory();
+    cleanups.push(directory.cleanup);
+    const service = await open(directory.dir, true);
+    registries.get(service)?.registerGrouping({
+      key: "constructor",
+      field: "projects",
+      label: "Projects",
+      types: ["note"],
+    });
+    const request = await editor(service);
+    const input = {
+      entityType: "note",
+      frontmatter: { title: "Project", projects: ["Other"] },
+      body: "Body",
+    };
+    expect((await request("POST", "entities", input)).status).toBe(201);
+    expect(
+      JSON.stringify(await (await request("GET", "types")).json()),
+    ).not.toContain('"vocabulary"');
+    expect(
+      (
+        await request(
+          "POST",
+          "entities",
+          {
+            entityType: "grouping-vocabulary",
+            frontmatter: {
+              groupings: {
+                constructor: { multiple: true, values: ["Launch"] },
+              },
+            },
+          },
+          "admin",
+        )
+      ).status,
+    ).toBe(201);
+    expect((await request("POST", "entities", input)).status).toBe(400);
+  });
+
+  test("vocabulary saves reject undeclared keys, duplicate or empty values, and empty lists", async () => {
+    const directory = await createTestDirectory();
+    cleanups.push(directory.cleanup);
+    const service = await open(directory.dir, true);
+    const request = await editor(service);
+    for (const groupings of [
+      { typo: { multiple: true, values: ["Acme"] } },
+      { clients: { multiple: true, values: ["Acme", "Acme"] } },
+      { clients: { multiple: true, values: [""] } },
+      { clients: { multiple: true, values: [] } },
+    ]) {
+      const response = await request(
+        "POST",
+        "entities",
+        {
+          entityType: "grouping-vocabulary",
+          frontmatter: { groupings, visibility: "shared" },
+        },
+        "admin",
+      );
+      expect(response.status).toBe(400);
+      expect(await response.json()).toMatchObject({
+        issues: expect.any(Array),
+      });
+    }
+    expect(
+      await service.getEntity({
+        entityType: "grouping-vocabulary",
+        id: "grouping-vocabulary",
+        visibilityScope: "restricted",
+      }),
+    ).toBeNull();
+  });
+
   test("Studio enables multiple Properties on every participating Note and preserves fields across disable/re-enable", async () => {
     const directory = await createTestDirectory();
     cleanups.push(directory.cleanup);
@@ -468,6 +817,327 @@ describe("Clients through the real Note and BlogPost adapters", () => {
         .total,
     ).toBe(1);
   });
+  test.each(["note", "post"])(
+    "projection writes enforce live vocabularies atomically for %s",
+    async (entityType) => {
+      const directory = await createTestDirectory();
+      cleanups.push(directory.cleanup);
+      const service = await open(directory.dir, true);
+      const request = await editor(service);
+      async function vocabulary(
+        values: string[],
+        method: "POST" | "PUT",
+      ): Promise<void> {
+        const response = await request(
+          method,
+          "entities",
+          {
+            entityType: "grouping-vocabulary",
+            id: "grouping-vocabulary",
+            frontmatter: {
+              visibility: "shared",
+              groupings: { clients: { multiple: false, values } },
+            },
+          },
+          "admin",
+        );
+        expect(response.status).toBe(method === "POST" ? 201 : 200);
+      }
+      await vocabulary(["Acme"], "POST");
+      const store = service.getProjectionStore();
+      async function wave(waveId: string): Promise<void> {
+        await store.markDirty({
+          sourceType: "note",
+          sourceId: "source",
+          revision: waveId,
+          operation: "upsert",
+          markedAt: Date.now(),
+        });
+        await store.claimPendingWave({
+          waveId,
+          graphFingerprint: "test-graph",
+          startedAt: Date.now(),
+        });
+        await store.putWaveRules(waveId, [
+          { ruleId: "test-rule", targetType: entityType, level: 0 },
+        ]);
+      }
+      function intent(id: string, values: string[]): ProjectionWriteIntent {
+        const content = `---\ntitle: ${id}\n${entityType === "post" ? `status: draft\nslug: ${id}\nexcerpt: Projection\nauthor: Fixture\n` : ""}clients: ${JSON.stringify(values)}\n---\n\nBody`;
+        const metadata: Record<string, unknown> = {
+          ...service.deserializeEntity(content, entityType).metadata,
+          clients: ["Acme"],
+        };
+        return {
+          operation: "upsert",
+          entity: {
+            id,
+            entityType,
+            content,
+            visibility: "shared",
+            // Deliberately disagree with source: projection metadata is not
+            // authority for grouping membership or vocabulary admission.
+            metadata: ProjectionJsonObjectSchema.parse(
+              Object.fromEntries(
+                Object.entries(metadata).filter(
+                  ([, value]) => value !== undefined,
+                ),
+              ),
+            ),
+          },
+        };
+      }
+      await wave("vocabulary-wave");
+      const input = {
+        waveId: "vocabulary-wave",
+        ruleId: "test-rule",
+        ruleVersion: "1",
+        inputFingerprint: "input-1",
+        completedAt: Date.now(),
+        writeIntents: [
+          intent("projected-valid", ["Acme"]),
+          intent("projected-stray", ["Gamma"]),
+        ],
+      };
+      expect(
+        await store.applyRuleResult(input).catch((error: unknown) => error),
+      ).toMatchObject({
+        name: "EntityValidationError",
+        phase: "persist",
+      });
+      for (const id of ["projected-valid", "projected-stray"]) {
+        expect(
+          await service.getEntity({
+            entityType,
+            id,
+            visibilityScope: "shared",
+          }),
+        ).toBeNull();
+        expect(await store.isProjectionOwnedEntity({ entityType, id })).toBe(
+          false,
+        );
+      }
+      expect(
+        await store.getRuleMemo({
+          ruleId: input.ruleId,
+          ruleVersion: input.ruleVersion,
+          inputFingerprint: input.inputFingerprint,
+        }),
+      ).toBeNull();
+      expect(
+        (await service.listPendingEntityExports()).filter(
+          (entry) => entry.entityType === entityType,
+        ),
+      ).toEqual([]);
+      expect(await store.getWaveRule(input.waveId, input.ruleId)).toMatchObject(
+        { status: "pending" },
+      );
+      await vocabulary(["Acme", "Gamma"], "PUT");
+      expect(await store.applyRuleResult(input)).toMatchObject({
+        status: "completed",
+      });
+      expect(
+        (
+          await service.queryGroupingCatalog({
+            ...query,
+            visibilityScope: "shared",
+          })
+        ).values,
+      ).toEqual([
+        { value: "Acme", count: 1 },
+        { value: "Gamma", count: 1 },
+      ]);
+      const before = await service.getEntity({
+        entityType,
+        id: "projected-stray",
+        visibilityScope: "shared",
+      });
+      expect(before).not.toBeNull();
+      await vocabulary(["Acme"], "PUT");
+      // Completed reports remain idempotent; they do not try to persist again.
+      expect(await store.applyRuleResult(input)).toMatchObject({
+        status: "completed",
+      });
+      await store.completeWave(input.waveId, Date.now());
+      await wave("vocabulary-update");
+      const update = {
+        ...input,
+        waveId: "vocabulary-update",
+        inputFingerprint: "input-2",
+        writeIntents: [intent("projected-stray", ["Gamma"])],
+      };
+      expect(
+        await store.applyRuleResult(update).catch((error: unknown) => error),
+      ).toMatchObject({
+        phase: "persist",
+      });
+      expect(
+        await service.getEntity({
+          entityType,
+          id: "projected-stray",
+          visibilityScope: "shared",
+        }),
+      ).toEqual(before);
+      await vocabulary(["Acme", "Gamma"], "PUT");
+      expect(
+        await store
+          .applyRuleResult({
+            ...update,
+            writeIntents: [intent("projected-stray", ["Acme", "Gamma"])],
+          })
+          .catch((error: unknown) => error),
+      ).toMatchObject({
+        phase: "persist",
+        message: expect.stringContaining("choose at most one value"),
+      });
+      expect(
+        await service.getEntity({
+          entityType,
+          id: "projected-stray",
+          visibilityScope: "shared",
+        }),
+      ).toEqual(before);
+      expect(
+        await store.getRuleMemo({
+          ruleId: update.ruleId,
+          ruleVersion: update.ruleVersion,
+          inputFingerprint: update.inputFingerprint,
+        }),
+      ).toBeNull();
+    },
+  );
+
+  test("directory-sync refuses an unlisted imported value and succeeds after reopening", async () => {
+    const source = await createTestDirectory();
+    const target = await createTestDirectory();
+    cleanups.push(source.cleanup, target.cleanup);
+    const original = await open(source.dir, true);
+    const syncPath = `${source.dir}/content`;
+    const exporter = new DirectorySync({
+      syncPath,
+      entityService: original,
+      logger: createSilentLogger(),
+      autoSync: false,
+    });
+    await exporter.initialize();
+    const content = "---\ntitle: Imported\nclients: [Gamma]\n---\n\nBody";
+    await original.createEntity({
+      entity: {
+        ...original.deserializeEntity(content, "note"),
+        entityType: "note",
+        id: "imported",
+        content,
+        metadata: { title: "Imported" },
+      },
+    });
+    const entity = await original.getEntity({
+      entityType: "note",
+      id: "imported",
+    });
+    if (!entity) throw new Error("Missing export entity");
+    await exporter.fileOps.writeEntity(entity);
+    const service = await open(target.dir, true);
+    const request = await editor(service);
+    expect(
+      (
+        await request(
+          "POST",
+          "entities",
+          {
+            entityType: "grouping-vocabulary",
+            frontmatter: {
+              groupings: { clients: { multiple: true, values: ["Acme"] } },
+              visibility: "shared",
+            },
+          },
+          "admin",
+        )
+      ).status,
+    ).toBe(201);
+    const importer = new DirectorySync({
+      syncPath,
+      entityService: service,
+      logger: createSilentLogger(),
+      autoSync: false,
+      deleteOnFileRemoval: false,
+    });
+    async function queuedImport(operationId: string): Promise<ImportResult> {
+      const batch = {
+        operationId,
+        rootJobId: operationId,
+        expectedChildren: 2,
+      };
+      await service.prepareDurableBulkMutation({
+        source: "directory-sync",
+        ...batch,
+      });
+      await service.finalizeDurableBulkMutationEnqueue(operationId);
+      const importRef = { ...batch, childKey: "0:directory-import" };
+      const imported = await service.runDurableBulkMutationChild(
+        {
+          source: "directory-sync",
+          ...importRef,
+          jobId: `${operationId}:import`,
+        },
+        () =>
+          importer.importEntitiesWithProgress(
+            undefined,
+            createMockProgressReporter(),
+            100,
+            importRef,
+          ),
+      );
+      await service.settleDurableBulkMutationChild({
+        operationId,
+        childKey: importRef.childKey,
+        jobId: `${operationId}:import`,
+        outcome: "completed",
+      });
+      const cleanupRef = { ...batch, childKey: "1:directory-cleanup" };
+      await service.runDurableBulkMutationChild(
+        {
+          source: "directory-sync",
+          ...cleanupRef,
+          jobId: `${operationId}:cleanup`,
+        },
+        () => importer.removeOrphanedEntities(cleanupRef),
+      );
+      await service.settleDurableBulkMutationChild({
+        operationId,
+        childKey: cleanupRef.childKey,
+        jobId: `${operationId}:cleanup`,
+        outcome: "completed",
+      });
+      expect(
+        await service.getProjectionStore().getProjectionBatchDiagnostics(),
+      ).toMatchObject({ preparing: 0, open: 0 });
+      return imported;
+    }
+    const refused = await queuedImport("refused-import");
+    expect(refused).toMatchObject({ imported: 0, failed: 1 });
+    expect(JSON.stringify(refused.errors)).toContain("Clients");
+    expect(
+      await service.getEntity({ entityType: "note", id: "imported" }),
+    ).toBeNull();
+    expect(
+      (
+        await request(
+          "DELETE",
+          "entities?type=grouping-vocabulary&id=grouping-vocabulary",
+          { confirmed: true },
+          "admin",
+        )
+      ).status,
+    ).toBe(200);
+    expect(await queuedImport("reopened-import")).toMatchObject({
+      imported: 1,
+      failed: 0,
+    });
+    expect((await service.queryGroupingCatalog(query)).values).toEqual([
+      { value: "Gamma", count: 1 },
+    ]);
+  });
+
   test("real directory-sync exports one file per identity and reimports exact multi-membership", async () => {
     const source = await createTestDirectory();
     cleanups.push(source.cleanup);
