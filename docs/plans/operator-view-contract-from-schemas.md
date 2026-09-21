@@ -51,6 +51,36 @@ The repository already holds the rule this breaks: derive types with
 `z.output`, never hand-write a parallel type beside a schema. This is that
 violation at 147×.
 
+## What deriving can and cannot fix
+
+Proven with a throwaway probe before slice 2, because it changes what this
+plan is worth:
+
+**A derived type does not carry its bounds.** `z.output` of
+`z.string().max(160)` is `string`. Zod erases refinements, so an author
+hovering the derived type sees exactly what they saw before. This plan's
+original promise — "the bounds visible to anyone reading the type" — is not
+achievable, and no arrangement of `z.output` makes it achievable.
+
+What deriving does fix is real but different: three declarations collapse to
+one, and the remaining duplication becomes un-driftable. Under
+`--isolatedDeclarations` an exported derived type drags its schema into the
+`.d.ts`, so each schema needs an explicit `z.ZodObject<{…}, z.core.$strict>`
+annotation. That annotation names the Zod _kinds_ and never the bounds — the
+limits stay in the value alone — and `tsc` checks it against the schema on
+every build, which an interface in another file never was.
+
+**The bounds become reachable rather than visible.** They are readable beside
+the shape in the file an author already opens, and once slice 5 exports the
+view schema an author can `safeParse` their view in their own tests instead
+of learning the limit from a rejected view in production. That is the actual
+remedy for shipping-then-finding-out, and it was not in this plan before.
+
+Two mechanics also settled by the probe: `.readonly()` on the arrays and the
+object preserves the contract's `readonly` exactly — assignability holds in
+both directions against the hand-written interface — and `.strict()` requires
+`z.core.$strict` as the annotation's second parameter.
+
 ## Slices
 
 One PR each. A slice that changes what `public/service-definition.ts`
@@ -64,17 +94,20 @@ surface does not. Slice 1 is the second kind.
    shapes they bound, and the runtime aliases them under its short local
    names. Six tests state each limit. No type changed.
 
-2. **Derive the leaf blocks' contract types.** Notice, text, facts, stats,
-   progress — the blocks with no nested blocks. Each interface becomes
-   `z.output<typeof xSchema>` and the hand-written one is deleted. This
-   requires the leaf schemas to move to the contract module alongside the
-   bounds, which is the same move slice 1 made, one layer up.
+2. **Derive the leaf blocks' contract types.** ✅ Shipped. Tone, scalar,
+   stats, key-values, notice and text — the blocks with no nested blocks —
+   now live in the contract module as annotated schemas, and their six
+   interfaces are `z.output` of them. The runtime aliases each under its
+   short local name. Meters and progress are held back to slice 3: their
+   item schema carries a `superRefine`, and whether that survives an
+   `isolatedDeclarations` annotation is its own question.
 
-3. **Collapse the `Runtime*` leaf types onto the same source.** They are the
-   parsed shape of the schemas the previous slice moved, so they become
-   `z.output` of those schemas too rather than a second derivation. If a pair
-   turns out to differ for a real reason, that reason gets written down and
-   the pair stays split — but a difference nobody can name is duplication.
+3. **Meters and progress, then the `Runtime*` leaf types.** The two blocks
+   slice 2 held back, and then the runtime's parallel set: they are the
+   parsed shape of the same schemas, so they become `z.output` of them
+   rather than a second derivation. If a pair turns out to differ for a real
+   reason, that reason gets written down and the pair stays split — but a
+   difference nobody can name is duplication.
 
 4. **Derive the composite blocks.** Group, flow, collection, columns, region,
    card, tabs — the ones that nest. These need the schemas to be recursive,
@@ -83,7 +116,10 @@ surface does not. Slice 1 is the second kind.
 
 5. **Derive the panel and view**, the top-level shapes, and confirm the 22
    names `public/service-definition.ts` exports still resolve to types with
-   the same members.
+   the same members. Then export the view schema itself from that module —
+   the one addition to the public surface this plan makes, and the one that
+   lets an author check a view before shipping it. That slice carries a
+   changeset; the earlier ones do not.
 
 ## Validation
 
