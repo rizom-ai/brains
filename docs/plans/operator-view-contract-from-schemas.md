@@ -108,11 +108,11 @@ surface does not. Slice 1 is the second kind.
    moves intact. Progress now uses `operatorCoordinateSchema` rather than
    respelling the same unit interval.
 
-4. **The `Runtime*` leaf types.** The runtime's parallel set is the parsed
-   shape of the same schemas, so they become `z.output` of them rather than
-   a second derivation. If a pair turns out to differ for a real reason, that
-   reason gets written down and the pair stays split — but a difference
-   nobody can name is duplication.
+4. **The `Runtime*` leaf types.** ✅ Shipped. All eleven were identical to
+   their contract counterparts field for field, so each became a name for
+   that type rather than a second declaration. No pair differed, so none had
+   to be argued for. The names stay exported and nothing that renders a view
+   was touched.
 
 5. **Derive the composite blocks.** Group, flow, collection, columns, region,
    card, tabs — the ones that nest. These need the schemas to be recursive,

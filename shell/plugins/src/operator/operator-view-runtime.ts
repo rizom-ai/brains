@@ -3,6 +3,17 @@ import type { UserPermissionLevel } from "@brains/templates";
 import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import type {
   OperatorEntityCatalogDefinition,
+  OperatorKeyValueItem,
+  OperatorKeyValuesBlock,
+  OperatorMeterBlock,
+  OperatorMeterItem,
+  OperatorNoticeBlock,
+  OperatorProgressBlock,
+  OperatorScalar,
+  OperatorStatItem,
+  OperatorStatsBlock,
+  OperatorTextBlock,
+  OperatorTone,
   WorkspaceActionFormFieldDefinition,
 } from "./operator-view-contract";
 import {
@@ -36,8 +47,11 @@ import {
 } from "@brains/utils/zod-introspect";
 import { definedFields } from "@brains/utils/strip-undefined";
 
-export type RuntimeOperatorScalar = string | number | boolean | null;
-export type RuntimeOperatorTone = "good" | "warn" | "neutral" | "error";
+// The renderer's names for the contract's types. A plugin authors an
+// OperatorStatsBlock and studio renders a RuntimeOperatorStatsBlock; they
+// were two hand-written interfaces that happened to agree, and are now one.
+export type RuntimeOperatorScalar = OperatorScalar;
+export type RuntimeOperatorTone = OperatorTone;
 
 export type RuntimeOperatorLaunchIntent =
   | { readonly target: "account-settings" }
@@ -96,46 +110,12 @@ export type RuntimeOperatorLinkTarget =
       readonly itemId: string;
     };
 
-export interface RuntimeOperatorStatItem {
-  readonly label: string;
-  readonly value: string | number;
-  readonly caption?: string | undefined;
-  readonly tone?: RuntimeOperatorTone | undefined;
-}
-
-export interface RuntimeOperatorStatsBlock {
-  readonly type: "stats";
-  readonly id?: string | undefined;
-  readonly items: readonly RuntimeOperatorStatItem[];
-}
-
-export interface RuntimeOperatorKeyValueItem {
-  readonly label: string;
-  readonly value: RuntimeOperatorScalar;
-}
-
-export interface RuntimeOperatorKeyValuesBlock {
-  readonly type: "key-values";
-  readonly id?: string | undefined;
-  readonly items: readonly RuntimeOperatorKeyValueItem[];
-}
-
-export interface RuntimeOperatorNoticeBlock {
-  readonly type: "notice";
-  readonly id?: string | undefined;
-  readonly title?: string | undefined;
-  readonly text: string;
-  readonly details?: readonly string[] | undefined;
-  readonly tone?: RuntimeOperatorTone | undefined;
-}
-
-export interface RuntimeOperatorTextBlock {
-  readonly type: "text";
-  readonly id?: string | undefined;
-  readonly label?: string | undefined;
-  readonly text: string;
-  readonly truncated?: boolean | undefined;
-}
+export type RuntimeOperatorStatItem = OperatorStatItem;
+export type RuntimeOperatorStatsBlock = OperatorStatsBlock;
+export type RuntimeOperatorKeyValueItem = OperatorKeyValueItem;
+export type RuntimeOperatorKeyValuesBlock = OperatorKeyValuesBlock;
+export type RuntimeOperatorNoticeBlock = OperatorNoticeBlock;
+export type RuntimeOperatorTextBlock = OperatorTextBlock;
 
 export interface RuntimeOperatorGroupItem {
   readonly id: string;
@@ -167,32 +147,9 @@ export interface RuntimeOperatorFlowBlock {
   readonly steps: readonly RuntimeOperatorFlowStep[];
 }
 
-export interface RuntimeOperatorMeterItem {
-  readonly id: string;
-  readonly label: string;
-  readonly value: number;
-  readonly max?: number | undefined;
-  readonly unit?: string | undefined;
-  readonly tone?: RuntimeOperatorTone | undefined;
-}
-
-export interface RuntimeOperatorMeterBlock {
-  readonly type: "meters";
-  readonly id: string;
-  readonly items: readonly RuntimeOperatorMeterItem[];
-}
-
-export interface RuntimeOperatorProgressBlock {
-  readonly type: "progress";
-  readonly id: string;
-  readonly label: string;
-  readonly state: string;
-  readonly detail?: string | undefined;
-  readonly startedAt?: string | undefined;
-  readonly updatedAt?: string | undefined;
-  readonly progress?: number | undefined;
-  readonly tone?: RuntimeOperatorTone | undefined;
-}
+export type RuntimeOperatorMeterItem = OperatorMeterItem;
+export type RuntimeOperatorMeterBlock = OperatorMeterBlock;
+export type RuntimeOperatorProgressBlock = OperatorProgressBlock;
 
 export interface RuntimeOperatorQueryOption {
   readonly value: string;
