@@ -1,40 +1,27 @@
 {
-  "name": "@brains/site-professional",
+  "name": "@brains/contact",
   "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.400",
-  "description": "Professional site composition package",
+  "description": "Private contact intake for a Brain's public pages",
   "dependencies": {
-    "@brains/blog": "workspace:*",
-    "@brains/content-formatters": "workspace:*",
+    "@brains/console-theme": "workspace:*",
     "@brains/contracts": "workspace:*",
-    "@brains/decks": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/profile": "workspace:*",
-    "@brains/site-composition": "workspace:*",
-    "@brains/site-engine": "workspace:*",
-    "@brains/site-info": "workspace:*",
-    "@brains/templates": "workspace:*",
-    "@brains/ui-library": "workspace:*",
-    "@brains/utils": "workspace:*",
-    "react": "^19.2.7"
+    "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/notifications": "workspace:*",
+    "@brains/runtime-state": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.0.3",
     "bun-types": "^1.4.0",
     "eslint": "^10.5.0",
-    "react-dom": "^19.2.7",
     "typescript": "^7.0.2"
   },
   "exports": {
     ".": "./src/index.ts"
   },
-  "files": [
-    "src"
-  ],
   "private": true,
   "scripts": {
     "lint": "eslint . --max-warnings 0",
