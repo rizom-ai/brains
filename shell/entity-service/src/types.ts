@@ -619,6 +619,18 @@ export interface EntityTypeConfig {
   fullTextSearchable?: boolean;
   /** Durable binary storage policy. Absence means inline/text storage. */
   binaryStorage?: "asset";
+  /**
+   * The type's own minimum action policy, from whoever registers it. It applies
+   * when the instance policy names no rule for this type, so a type that must
+   * be admin-only cannot be left open by assembling a brain without the
+   * bundle that carries its rule. An explicit instance entry still overrides.
+   */
+  actionPolicy?: Partial<
+    Record<
+      "create" | "update" | "delete" | "extract" | "publish",
+      "never" | "admin" | "trusted" | "public"
+    >
+  >;
   /** Whether this entity type may be used as source material for derived projections (default: true).
    *  Set to false for projection outputs that would create feedback loops. */
   projectionSource?: boolean;

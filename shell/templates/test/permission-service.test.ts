@@ -5,6 +5,7 @@ import {
   UserPermissionLevelSchema,
 } from "../src/permission-service";
 import type {
+  EntityActionPolicyRule,
   PermissionConfig,
   UserPermissionLevel,
   WithVisibility,
@@ -817,5 +818,51 @@ describe("PermissionService", () => {
         "Publishing `summary` requires Admin permission; your current permission is Trusted.",
       );
     });
+  });
+});
+
+describe("entity action floors", () => {
+  const floor = (entityType: string): EntityActionPolicyRule | undefined =>
+    entityType === "vocabulary"
+      ? { create: "admin" as const, update: "admin" as const }
+      : undefined;
+
+  it("applies a type's floor when no instance policy names the type", () => {
+    const service = new PermissionService({}, { entityActionFloor: floor });
+    expect(
+      service.canPerformEntityAction("trusted", "vocabulary", "update"),
+    ).toBe(false);
+    expect(
+      service.canPerformEntityAction("admin", "vocabulary", "update"),
+    ).toBe(true);
+    // A type without a floor and without policy stays unconstrained.
+    expect(service.canPerformEntityAction("trusted", "note", "update")).toBe(
+      true,
+    );
+  });
+
+  it("outranks the wildcard default but yields to an explicit policy for the type", () => {
+    const service = new PermissionService(
+      { entityActions: { "*": { update: "trusted" } } },
+      { entityActionFloor: floor },
+    );
+    expect(service.getEntityActionRequiredLevel("vocabulary", "update")).toBe(
+      "admin",
+    );
+    expect(service.getEntityActionRequiredLevel("note", "update")).toBe(
+      "trusted",
+    );
+
+    const overridden = new PermissionService(
+      { entityActions: { vocabulary: { update: "trusted" } } },
+      { entityActionFloor: floor },
+    );
+    expect(
+      overridden.canPerformEntityAction("trusted", "vocabulary", "update"),
+    ).toBe(true);
+    // Actions the override does not mention keep the floor.
+    expect(
+      overridden.canPerformEntityAction("trusted", "vocabulary", "create"),
+    ).toBe(false);
   });
 });

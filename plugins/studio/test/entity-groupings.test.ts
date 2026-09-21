@@ -230,3 +230,31 @@ describe("Studio grouping read admission", () => {
     ).toBe(400);
   });
 });
+
+describe("Studio grouping vocabulary surface", () => {
+  const fieldNames = z.object({
+    fields: z.array(z.object({ name: z.string() })),
+  });
+
+  test("the vocabulary schema offers no visibility control; it is always shared", async () => {
+    const { shell, routes } = fixture("trusted");
+    shell
+      .getEntityRegistry()
+      .registerEntityType(
+        "grouping-vocabulary",
+        baseEntitySchema,
+        new Adapter("grouping-vocabulary"),
+      );
+    const response = await get(routes, "schema?type=grouping-vocabulary");
+    expect(response.status).toBe(200);
+    const vocabulary = fieldNames.parse(await response.json());
+    expect(vocabulary.fields.map((field) => field.name)).not.toContain(
+      "visibility",
+    );
+    // Ordinary types keep the control.
+    const note = fieldNames.parse(
+      await (await get(routes, "schema?type=note")).json(),
+    );
+    expect(note.fields.map((field) => field.name)).toContain("visibility");
+  });
+});

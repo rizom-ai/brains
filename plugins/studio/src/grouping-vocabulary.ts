@@ -1,4 +1,8 @@
-import type { ContentVisibility, ServicePluginContext } from "@brains/plugins";
+import {
+  internalFullScope,
+  type ContentVisibility,
+  type ServicePluginContext,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
   groupingVocabularyAdapter,
@@ -9,7 +13,14 @@ import {
   type GroupingVocabularyFrontmatter,
 } from "./grouping-vocabulary-contract";
 
-/** No cache: workers and imports must observe the current policy as well. */
+/**
+ * No cache: workers and imports must observe the current policy as well.
+ *
+ * A stored document whose content no longer satisfies its own schema cannot be
+ * reconstructed, so it reads as absent and its groupings reopen. That is the
+ * general behaviour of every entity read here, and it fails open by design:
+ * a policy nobody can read cannot be one nobody can write against.
+ */
 export async function readGroupingVocabularies(
   context: ServicePluginContext,
   visibilityScope: ContentVisibility,
@@ -29,7 +40,18 @@ export function registerGroupingVocabulary(
     GROUPING_VOCABULARY_TYPE,
     groupingVocabularyEntitySchema,
     groupingVocabularyAdapter,
-    { embeddable: false, projectionSource: false },
+    {
+      embeddable: false,
+      projectionSource: false,
+      // The type's own floor: this document decides what editors may choose,
+      // so it is admin-only even without the canonical bundle's rule.
+      actionPolicy: {
+        create: "admin",
+        update: "admin",
+        delete: "admin",
+        publish: "never",
+      },
+    },
   );
   context.entities.registerPersistValidator(
     GROUPING_VOCABULARY_TYPE,
@@ -47,12 +69,14 @@ export function registerGroupingVocabulary(
             message: `Unknown grouping: ${key}`,
           });
       }
-      if (entity.visibility === "public")
+      // Exactly shared: public would expose it, and restricted would let an
+      // admin enforce a list the trusted editors it constrains cannot read.
+      if (entity.visibility !== "shared")
         issues.push({
           code: "custom",
           path: ["visibility"],
           message:
-            "Grouping vocabularies must not be public. Use shared visibility for trusted editors.",
+            "Grouping vocabularies are always shared, so the editors they constrain can read them.",
         });
       if (issues.length) throw new z.ZodError(issues);
     },
@@ -71,7 +95,7 @@ export function registerGroupingVocabularyValidators(
     context.entities.registerPersistValidator(type, async (entity) => {
       const vocabularies = await readGroupingVocabularies(
         context,
-        "restricted",
+        internalFullScope("enforce the current vocabulary on every writer"),
       );
       const issues: z.core.$ZodIssue[] = [];
       for (const grouping of groupings) {

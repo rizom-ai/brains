@@ -780,14 +780,18 @@ async function handleGetSchema(
     label: "Visibility",
     widget: "select",
     required: true,
-    default: entityType === GROUPING_VOCABULARY_TYPE ? "shared" : "public",
-    options: CONTENT_VISIBILITIES.filter(
-      (visibility) =>
-        canWriteVisibility(access.permissionLevel, visibility) &&
-        (entityType !== GROUPING_VOCABULARY_TYPE || visibility !== "public"),
+    default: "public",
+    options: CONTENT_VISIBILITIES.filter((visibility) =>
+      canWriteVisibility(access.permissionLevel, visibility),
     ),
   };
-  const fields = [...domainFields, visibilityField];
+  // The vocabulary has exactly one workable visibility: the editors it
+  // constrains must be able to read it. Offering a choice invites a list
+  // that silently refuses saves nobody can explain.
+  const fields =
+    entityType === GROUPING_VOCABULARY_TYPE
+      ? domainFields
+      : [...domainFields, visibilityField];
 
   return jsonResponse({
     entityType,

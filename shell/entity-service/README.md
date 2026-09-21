@@ -120,6 +120,10 @@ stored IDs nor metadata are modified. Filesystem placement remains directory-syn
 
 `registerPersistValidator` composes validators in registration order rather than replacing the entity owner's constraint. Ordinary create/update paths and projection upserts run them after schema validation and source projection, before persistence. Projection upserts restore adapter-owned fields for validation while retaining the full stored source and row identity. They validate inside the admitted rule transaction: a refusal rolls back all entities, ownership claims, export intents and memo changes in that result. Completed rule reports remain idempotent. Validators may perform read-only lookups but must not mutate entities or trigger external effects. Validation failures retain their original field issues in an `EntityValidationError` with `phase: "persist"`; schema failures retain `phase: "schema"`. Consumers can distinguish a valid document refused by current policy from structurally invalid source. Directory-sync leaves policy-refused files in place for retry instead of quarantining them.
 
+A registered type may also carry its own `actionPolicy` in `EntityTypeConfig`. That is the type's floor: it applies when the instance policy names no rule for the type, so a type that must be admin-only cannot be left open by assembling a brain without the bundle that carries its rule. A wildcard default never named the type and does not outrank the floor; an explicit entry for the type does, action by action.
+
+A stored document whose content no longer satisfies its own schema cannot be reconstructed, so every read treats it as absent. Policies built on such a document fail open rather than refusing writes behind something only an administrator could repair.
+
 Studio uses this boundary for its admin-authored grouping-vocabulary singleton. Vocabulary and cardinality changes affect the next write, including tool and import writes, without changing fixed type schemas or rewriting previously stored content. Reads and startup reprojection remain unconstrained so stray memberships stay visible.
 
 ## Grouping queries (internal client)

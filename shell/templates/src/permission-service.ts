@@ -175,6 +175,15 @@ interface SharedSpaceContext extends PermissionLookupContext {
 export interface PermissionServiceOptions {
   /** Shared conversation space selectors, e.g. discord:123 or discord:project-* */
   spaces?: string[];
+  /**
+   * A type's own minimum, from whoever registered it. It applies when the
+   * instance policy says nothing about that type, so a brain assembled without
+   * the canonical bundle cannot silently leave an admin-only type open. An
+   * explicit entry for the type still wins, action by action.
+   */
+  entityActionFloor?: (
+    entityType: string,
+  ) => EntityActionPolicyRule | undefined;
 }
 
 /**
@@ -190,6 +199,7 @@ export class PermissionService {
   private rules: PermissionRule[];
   private spaces: string[];
   private entityActions?: EntityActionPolicyConfig;
+  private readonly entityActionFloor?: PermissionServiceOptions["entityActionFloor"];
 
   constructor(
     config: PermissionConfig,
@@ -209,6 +219,7 @@ export class PermissionService {
     );
     this.rules = config.rules ?? [];
     this.spaces = options.spaces ?? [];
+    this.entityActionFloor = options.entityActionFloor;
     if (config.entityActions) {
       this.entityActions = entityActionPolicyConfigSchema.parse(
         config.entityActions,
@@ -303,10 +314,14 @@ export class PermissionService {
   getResolvedEntityActionPolicy(
     entityType: string,
   ): EntityActionPolicyRule | undefined {
-    if (!this.entityActions) return undefined;
+    const floor = this.entityActionFloor?.(entityType);
+    if (!this.entityActions) return floor;
 
+    // The type's own floor outranks a wildcard default, since the wildcard
+    // never named this type; an explicit entry for it is a deliberate override.
     const policy = {
       ...(this.entityActions["*"] ?? {}),
+      ...(floor ?? {}),
       ...(this.entityActions[entityType] ?? {}),
     };
 

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, spyOn, test } from "bun:test";
+import { Database } from "bun:sqlite";
 import { PermissionService } from "@brains/templates";
 import { studioPlugin } from "@brains/studio";
 import { DirectorySync, type ImportResult } from "@brains/directory-sync";
@@ -465,6 +466,27 @@ describe("Clients through the real Note and BlogPost adapters", () => {
         entityType,
         id: "old",
       });
+      const single = {
+        groupings: { clients: { multiple: false, values: ["Acme", "Beta"] } },
+      };
+      // A list the constrained editors cannot read would refuse their saves
+      // while showing them nothing to choose from, so it is refused outright.
+      const hidden = await request(
+        "PUT",
+        "entities",
+        {
+          entityType: "grouping-vocabulary",
+          id: "grouping-vocabulary",
+          frontmatter: { ...single, visibility: "restricted" },
+        },
+        "admin",
+      );
+      expect(hidden.status).toBe(400);
+      expect(await hidden.json()).toMatchObject({
+        issues: expect.arrayContaining([
+          expect.objectContaining({ path: ["visibility"] }),
+        ]),
+      });
       expect(
         (
           await request(
@@ -473,12 +495,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
             {
               entityType: "grouping-vocabulary",
               id: "grouping-vocabulary",
-              frontmatter: {
-                groupings: {
-                  clients: { multiple: false, values: ["Acme", "Beta"] },
-                },
-                visibility: "restricted",
-              },
+              frontmatter: { ...single, visibility: "shared" },
             },
             "admin",
           )
@@ -487,13 +504,10 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       expect(await service.getEntity({ entityType, id: "old" })).toEqual(
         beforeCardinality,
       );
-      // Descriptor visibility must never weaken enforcement at internal scope.
+      // The editors a vocabulary constrains can always read it.
       expect(await (await request("GET", "types")).json()).toMatchObject({
-        groupings: [clients],
+        groupings: [{ ...clients, vocabulary: single.groupings.clients }],
       });
-      expect(
-        JSON.stringify(await (await request("GET", "types")).json()),
-      ).not.toContain('"vocabulary"');
       const cardinality = await request("PUT", "entities", {
         entityType,
         id: "old",
@@ -611,6 +625,79 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       ).status,
     ).toBe(201);
     expect((await request("POST", "entities", input)).status).toBe(400);
+  });
+
+  test("a vocabulary hidden from editors cannot constrain them", async () => {
+    const directory = await createTestDirectory();
+    cleanups.push(directory.cleanup);
+    const service = await open(directory.dir, true);
+    const request = await editor(service);
+    // Restricted would let an admin enforce a list trusted editors cannot read.
+    const response = await request(
+      "POST",
+      "entities",
+      {
+        entityType: "grouping-vocabulary",
+        frontmatter: {
+          groupings: { clients: { multiple: true, values: ["Acme"] } },
+          visibility: "restricted",
+        },
+      },
+      "admin",
+    );
+    expect(response.status).toBe(400);
+    expect(
+      await service.getEntity({
+        entityType: "grouping-vocabulary",
+        id: "grouping-vocabulary",
+        visibilityScope: "restricted",
+      }),
+    ).toBeNull();
+  });
+
+  test("an unreadable vocabulary reopens its grouping instead of wedging saves", async () => {
+    const directory = await createTestDirectory();
+    cleanups.push(directory.cleanup);
+    const service = await open(directory.dir, true);
+    const request = await editor(service);
+    expect(
+      (
+        await request(
+          "POST",
+          "entities",
+          {
+            entityType: "grouping-vocabulary",
+            frontmatter: {
+              groupings: { clients: { multiple: true, values: ["Acme"] } },
+            },
+          },
+          "admin",
+        )
+      ).status,
+    ).toBe(201);
+    // Corrupt the stored row directly: every write path validates, so this
+    // stands in for a hand-edited file or a schema change under stored data.
+    const db = new Database(`${directory.dir}/entities.db`);
+    db.run("UPDATE entities SET content = ? WHERE id = 'grouping-vocabulary'", [
+      "---\ngroupings: 42\n---\n",
+    ]);
+    db.close();
+    // A document that cannot be reconstructed reads as absent, so the grouping
+    // reopens rather than refusing every membership write behind a document
+    // only an administrator could repair.
+    expect(
+      (
+        await request("POST", "entities", {
+          entityType: "note",
+          idPath: ["unlisted"],
+          frontmatter: { title: "Brief", clients: ["Gamma"] },
+          body: "Body",
+        })
+      ).status,
+    ).toBe(201);
+    expect(
+      JSON.stringify(await (await request("GET", "types")).json()),
+    ).not.toContain('"vocabulary"');
   });
 
   test("vocabulary saves reject undeclared keys, duplicate or empty values, and empty lists", async () => {
