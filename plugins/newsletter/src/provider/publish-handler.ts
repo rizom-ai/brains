@@ -1,7 +1,8 @@
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type { ICoreEntityService } from "@brains/plugins";
-import type { ButtondownClient } from "./lib/buttondown-client";
+import type { NewsletterDeliveryProvider } from "./contracts";
+import { blogPostSourceSchema } from "./types";
 
 /**
  * Payload from publish:completed message
@@ -19,11 +20,9 @@ export interface PublishCompletedPayload {
  * Result of handling publish completed event
  */
 export type PublishHandlerResult =
-  | { success: true; emailId: string }
+  | { success: true; deliveryId: string }
   | { success: true; skipped: true; reason: string }
   | { success: false; error: string };
-
-import { blogPostSourceSchema } from "./types";
 
 /**
  * Handle publish:completed message to auto-send newsletter
@@ -33,7 +32,7 @@ import { blogPostSourceSchema } from "./types";
  */
 export async function handlePublishCompleted(
   payload: PublishCompletedPayload,
-  client: ButtondownClient,
+  provider: NewsletterDeliveryProvider,
   entityService: ICoreEntityService,
   logger: Logger,
 ): Promise<PublishHandlerResult> {
@@ -68,20 +67,19 @@ export async function handlePublishCompleted(
   });
 
   try {
-    const email = await client.createEmail({
+    const delivery = await provider.publish(post.content, {
       subject: post.metadata.title,
-      body: post.content,
-      status: "about_to_send",
     });
 
     logger.info("Newsletter sent for post", {
       postId: post.id,
-      emailId: email.id,
+      provider: provider.name,
+      deliveryId: delivery.id,
     });
 
     return {
       success: true,
-      emailId: email.id,
+      deliveryId: delivery.id,
     };
   } catch (error) {
     const msg = getErrorMessage(error);

@@ -3,10 +3,8 @@ import { describe, it, expect, spyOn } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
 import { createSilentLogger } from "@brains/test-utils";
 import { createPluginHarness } from "@brains/plugins/test";
-import {
-  ButtondownClient,
-  type ButtondownFetch,
-} from "../src/provider/lib/buttondown-client";
+import { ButtondownNewsletterProvider } from "../src/provider/buttondown-provider";
+import type { ButtondownFetch } from "../src/provider/lib/buttondown-client";
 import { ButtondownPlugin } from "../src/provider/plugin";
 import { z } from "@brains/utils/zod";
 
@@ -66,7 +64,7 @@ describe("Newsletter Auto-Send on Publish", () => {
           entityId: "post-1",
           result: { id: "post-1" },
         },
-        new ButtondownClient(
+        new ButtondownNewsletterProvider(
           { apiKey: "test-key", doubleOptIn: true },
           mockLogger,
           { fetch: delegatingFetch },
@@ -76,8 +74,8 @@ describe("Newsletter Auto-Send on Publish", () => {
       );
 
       expect(result.success).toBe(true);
-      if (result.success && "emailId" in result) {
-        expect(result.emailId).toBe("email-123");
+      if (result.success && "deliveryId" in result) {
+        expect(result.deliveryId).toBe("email-123");
       }
       expect(capturedEmailBody).toContain("My Blog Post");
       expect(capturedEmailBody).toContain("about_to_send");
@@ -95,7 +93,7 @@ describe("Newsletter Auto-Send on Publish", () => {
           entityId: "deck-1",
           result: { id: "deck-1" },
         },
-        new ButtondownClient(
+        new ButtondownNewsletterProvider(
           { apiKey: "test-key", doubleOptIn: true },
           mockLogger,
           { fetch: delegatingFetch },
@@ -123,7 +121,7 @@ describe("Newsletter Auto-Send on Publish", () => {
           entityId: "non-existent",
           result: { id: "non-existent" },
         },
-        new ButtondownClient(
+        new ButtondownNewsletterProvider(
           { apiKey: "test-key", doubleOptIn: true },
           mockLogger,
           { fetch: delegatingFetch },
@@ -168,7 +166,7 @@ describe("Newsletter Auto-Send on Publish", () => {
           entityId: "post-1",
           result: { id: "post-1" },
         },
-        new ButtondownClient(
+        new ButtondownNewsletterProvider(
           { apiKey: "test-key", doubleOptIn: true },
           mockLogger,
           { fetch: delegatingFetch },
