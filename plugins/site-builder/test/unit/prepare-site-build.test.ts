@@ -1,5 +1,6 @@
 import { createMockServicePluginContext } from "@brains/plugins/test";
-import { afterEach, describe, expect, it, mock } from "bun:test";
+import assert from "node:assert/strict";
+import { describe, expect, it, mock } from "bun:test";
 import type { RouteDefinition } from "@brains/site-composition";
 import {
   RouteRegistry,
@@ -11,9 +12,6 @@ import {
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
 import { createElement as h, type ReactElement } from "react";
-import { promises as fs } from "fs";
-import { tmpdir } from "os";
-import { join } from "path";
 import type { BuildPipelineContext } from "../../src/lib/build-pipeline-context";
 import { prepareSiteBuild } from "../../src/lib/prepare-site-build";
 import { createSiteBuilderServices } from "../test-helpers";
@@ -103,17 +101,6 @@ function createRoute(content: unknown): RouteDefinition {
 }
 
 describe("prepareSiteBuild", () => {
-  const testDirectories: string[] = [];
-  const missingPublicDir = join(tmpdir(), "site-builder-missing-public-assets");
-
-  afterEach(async () => {
-    await Promise.all(
-      testDirectories
-        .splice(0)
-        .map((directory) => fs.rm(directory, { recursive: true, force: true })),
-    );
-  });
-
   it("creates a frozen, serializable snapshot with resolved route metadata and assets", async () => {
     const routes = [createRoute({ heading: "Prepared heading" })];
     const pipelineContext = createPipelineContext(routes);
@@ -122,7 +109,7 @@ describe("prepareSiteBuild", () => {
       buildId: "prepared-build",
       preparedAt: "2026-07-22T00:00:00.000Z",
       routes,
-      publicDir: missingPublicDir,
+      publicAssets: {},
       signal: new AbortController().signal,
       parsedOptions: {
         environment: "preview",
@@ -205,7 +192,7 @@ describe("prepareSiteBuild", () => {
       buildId: "undefined-content-build",
       preparedAt: "2026-07-22T00:00:00.000Z",
       routes,
-      publicDir: missingPublicDir,
+      publicAssets: {},
       signal: new AbortController().signal,
       parsedOptions: {
         environment: "preview",
@@ -244,7 +231,7 @@ describe("prepareSiteBuild", () => {
       buildId: "unsupported-content-build",
       preparedAt: "2026-07-22T00:00:00.000Z",
       routes,
-      publicDir: missingPublicDir,
+      publicAssets: {},
       signal: new AbortController().signal,
       parsedOptions: {
         environment: "preview",
@@ -277,7 +264,7 @@ describe("prepareSiteBuild", () => {
       buildId: "invalid-content-build",
       preparedAt: "2026-07-22T00:00:00.000Z",
       routes,
-      publicDir: missingPublicDir,
+      publicAssets: {},
       signal: new AbortController().signal,
       parsedOptions: {
         environment: "production",
@@ -323,7 +310,7 @@ describe("prepareSiteBuild", () => {
       buildId: "resolution-failure-build",
       preparedAt: "2026-07-22T00:00:00.000Z",
       routes: [route],
-      publicDir: missingPublicDir,
+      publicAssets: {},
       signal: new AbortController().signal,
       parsedOptions: {
         environment: "production",
@@ -350,20 +337,18 @@ describe("prepareSiteBuild", () => {
     ]);
   });
 
-  it("snapshots binary public assets and reports inline overrides", async () => {
-    const testDir = await fs.mkdtemp(join(tmpdir(), "prepared-public-assets-"));
-    testDirectories.push(testDir);
-    const publicDir = join(testDir, "public");
-    await fs.mkdir(join(publicDir, "icons"), { recursive: true });
-    await fs.writeFile(join(publicDir, "favicon.bin"), Buffer.from([0, 1, 2]));
-    await fs.writeFile(join(publicDir, "icons", "mark.svg"), "<svg />");
+  it("snapshots public asset facts and reports inline overrides", async () => {
+    const publicAssets = {
+      "favicon.bin": { sizeBytes: 3, sha256: "a".repeat(64) },
+      "icons/mark.svg": { sizeBytes: 7, sha256: "b".repeat(64) },
+    };
     const pipelineContext = createPipelineContext([]);
 
     const result = await prepareSiteBuild({
       buildId: "public-assets-build",
       preparedAt: "2026-07-22T00:00:00.000Z",
       routes: [],
-      publicDir,
+      publicAssets,
       signal: new AbortController().signal,
       parsedOptions: {
         environment: "preview",
@@ -383,10 +368,8 @@ describe("prepareSiteBuild", () => {
       },
     });
 
-    expect(result.preparedBuild.publicAssets).toEqual({
-      "favicon.bin": "AAEC",
-      "icons/mark.svg": Buffer.from("<svg />").toString("base64"),
-    });
+    expect(result.preparedBuild.publicAssets).toEqual(publicAssets);
+    expect(Object.isFrozen(result.preparedBuild.publicAssets)).toBe(true);
     expect(result.diagnostics).toEqual([
       expect.objectContaining({
         severity: "warning",
@@ -396,18 +379,12 @@ describe("prepareSiteBuild", () => {
     ]);
   });
 
-  it("reports public asset snapshot failures before rendering", async () => {
-    const testDir = await fs.mkdtemp(join(tmpdir(), "unsafe-public-assets-"));
-    testDirectories.push(testDir);
-    const publicDir = join(testDir, "public");
-    await fs.mkdir(publicDir);
-    await fs.symlink("../outside.txt", join(publicDir, "linked.txt"));
-
-    const result = await prepareSiteBuild({
+  it("rejects unsafe public asset metadata before preparing routes", async () => {
+    const result = prepareSiteBuild({
       buildId: "invalid-public-assets-build",
       preparedAt: "2026-07-22T00:00:00.000Z",
       routes: [],
-      publicDir,
+      publicAssets: { "../outside": { sizeBytes: 1, sha256: "a".repeat(64) } },
       signal: new AbortController().signal,
       parsedOptions: {
         environment: "preview",
@@ -425,14 +402,6 @@ describe("prepareSiteBuild", () => {
       },
     });
 
-    expect(result.preparedBuild.publicAssets).toEqual({});
-    expect(result.diagnostics).toEqual([
-      expect.objectContaining({
-        severity: "error",
-        code: "public-asset-snapshot-failed",
-        message: expect.stringContaining("cannot be a symbolic link"),
-        path: publicDir,
-      }),
-    ]);
+    await assert.rejects(result);
   });
 });

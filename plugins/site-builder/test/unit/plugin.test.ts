@@ -3,6 +3,7 @@ import { expectDefined } from "@brains/utils/expect-defined";
 import { createTempDataDir } from "@brains/plugins/test";
 import { waitUntil } from "@brains/test-utils";
 import { SiteBuilderPlugin } from "../../src/plugin";
+import { createPublicAssetRuntime } from "../public-asset-runtime";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import {
@@ -137,6 +138,8 @@ describe("SiteBuilderPlugin", () => {
   });
 
   it("uses the shell-owned profile exposed by the plugin context", async () => {
+    const files = createPublicAssetRuntime();
+    harness.getMockShell().getEntityService().fileAssets = files;
     const testDir = await mkdtemp(
       join(process.cwd(), ".site-builder-profile-"),
     );
@@ -196,6 +199,7 @@ describe("SiteBuilderPlugin", () => {
         profileUrl,
       );
     } finally {
+      await files.close();
       await rm(testDir, { recursive: true, force: true });
     }
   });

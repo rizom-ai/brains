@@ -6,6 +6,7 @@
   "dependencies": {
     "@brains/assets": "workspace:*",
     "@brains/contracts": "workspace:*",
+    "@brains/db": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/site-composition": "workspace:*",
@@ -24,7 +25,8 @@
     "typescript": "^7.0.2"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./public-asset-process": "./src/public-asset-process.ts"
   },
   "files": [
     "src"

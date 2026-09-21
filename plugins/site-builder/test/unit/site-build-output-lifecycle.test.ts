@@ -4,6 +4,7 @@ import {
   type PreparedSiteBuild,
 } from "@brains/site-engine";
 import { createSilentLogger } from "@brains/test-utils";
+import { fingerprintArtifactFixture } from "../public-asset-runtime";
 import { promises as fs } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -40,7 +41,9 @@ function createPreparedBuild(buildId: string): PreparedSiteBuild {
     ],
     images: {},
     staticAssets: { "/assets/site.txt": "site asset" },
-    publicAssets: { "public-logo.bin": "AAECAw==" },
+    publicAssets: {
+      "public-logo.bin": { sizeBytes: 4, sha256: "a".repeat(64) },
+    },
     globalHeadScripts: [],
   };
 }
@@ -73,7 +76,10 @@ describe("TransactionalSiteBuildOutput", () => {
   beforeEach(async () => {
     testDir = await fs.mkdtemp(join(tmpdir(), "site-output-lifecycle-"));
     outputDir = join(testDir, "site-preview");
-    lifecycle = new TransactionalSiteBuildOutput(createSilentLogger());
+    lifecycle = new TransactionalSiteBuildOutput(
+      createSilentLogger(),
+      fingerprintArtifactFixture,
+    );
   });
 
   afterEach(async () => {
@@ -265,6 +271,7 @@ describe("TransactionalSiteBuildOutput", () => {
     ]);
     lifecycle = new TransactionalSiteBuildOutput(
       createSilentLogger(),
+      fingerprintArtifactFixture,
       3,
       1_000,
     );
@@ -299,6 +306,7 @@ describe("TransactionalSiteBuildOutput", () => {
     };
     const retainingLifecycle = new TransactionalSiteBuildOutput(
       createSilentLogger(),
+      fingerprintArtifactFixture,
       1,
       1_000,
       failingStatFs,
@@ -428,6 +436,7 @@ describe("TransactionalSiteBuildOutput", () => {
     };
     const failingLifecycle = new TransactionalSiteBuildOutput(
       createSilentLogger(),
+      fingerprintArtifactFixture,
       3,
       60 * 60 * 1_000,
       failingRenameFs,
@@ -473,6 +482,7 @@ describe("TransactionalSiteBuildOutput", () => {
     };
     const misreportingLifecycle = new TransactionalSiteBuildOutput(
       createSilentLogger(),
+      fingerprintArtifactFixture,
       3,
       60 * 60 * 1_000,
       misreportingFs,

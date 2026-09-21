@@ -1,4 +1,7 @@
-import type { PreparedSiteBuild } from "@brains/site-engine";
+import type {
+  PreparedSiteBuild,
+  PublicAssetStageWriter,
+} from "@brains/site-engine";
 import type { SiteBuilderOptions } from "../types/site-builder-types";
 import type { BuildContext } from "./static-site-builder";
 import type { BuildPipelineContext } from "./build-pipeline-context";
@@ -8,6 +11,7 @@ export interface CreateBuildContextOptions {
   layouts: SiteBuilderOptions["layouts"];
   slots: SiteBuilderOptions["slots"];
   pipelineContext: BuildPipelineContext;
+  copyPublicAssetsToStage?: PublicAssetStageWriter;
 }
 
 /** Attach renderer-only component bindings to a serializable build snapshot. */
@@ -35,6 +39,9 @@ export function createBuildContext(
     preparedBuild: options.preparedBuild,
     viewTemplates,
     layouts: options.layouts,
+    ...(options.copyPublicAssetsToStage && {
+      copyPublicAssetsToStage: options.copyPublicAssetsToStage,
+    }),
     ...(options.slots && { slots: options.slots }),
   };
 }

@@ -5,6 +5,7 @@ import type {
 } from "@brains/site-composition";
 import {
   collectRouteAssets,
+  publicAssetMapSchema,
   collectRouteScripts,
   createPreparedSiteBuildSnapshot,
   jsonObjectSchema,
@@ -12,6 +13,7 @@ import {
   type PreparedRoute,
   type PreparedSection,
   type PreparedSiteBuild,
+  type PublicAssetMap,
   type SiteImageLookup,
   type SiteImageMap,
 } from "@brains/site-engine";
@@ -26,7 +28,6 @@ import { buildSiteLayoutInfo } from "./build-site-layout-info";
 import type { BuildPipelineContext } from "./build-pipeline-context";
 import { resolveSiteSectionContent } from "./content-resolver";
 import type { SiteViewTemplate } from "./site-view-template";
-import { snapshotPublicAssets } from "./snapshot-public-assets";
 
 const sectionContentSchema = z.record(z.string(), z.unknown());
 
@@ -42,7 +43,7 @@ export interface PrepareSiteBuildOptions {
   pipelineContext: BuildPipelineContext;
   imageBuildService: SiteImageLookup & { getMap(): SiteImageMap };
   siteMetadata: SiteMetadata;
-  publicDir: string;
+  publicAssets: PublicAssetMap;
   signal: AbortSignal;
 }
 
@@ -65,23 +66,7 @@ export async function prepareSiteBuild(
     options.pipelineContext.services.getViewTemplate(name);
   const publishedOnly = options.parsedOptions.environment === "production";
   const diagnostics: SiteBuildDiagnostic[] = [];
-  let publicAssets: Record<string, string> = {};
-  try {
-    publicAssets = await snapshotPublicAssets(
-      options.publicDir,
-      options.signal,
-    );
-  } catch (error) {
-    options.signal.throwIfAborted();
-    const diagnostic: SiteBuildDiagnostic = {
-      severity: "error",
-      code: "public-asset-snapshot-failed",
-      message: `Failed to snapshot app public assets: ${getErrorMessage(error)}`,
-      path: options.publicDir,
-    };
-    options.pipelineContext.logger.error(diagnostic.message, { error });
-    diagnostics.push(diagnostic);
-  }
+  const publicAssets = publicAssetMapSchema.parse(options.publicAssets);
 
   const limit = pLimit(4);
   const settledRouteResults = await Promise.allSettled(

@@ -3,6 +3,7 @@ import type { ProgressNotification } from "@brains/utils/progress";
 import type { LayoutComponent, LayoutSlots } from "./layout-contracts";
 import type { CSSProcessor } from "./css-processor";
 import type { PreparedSiteBuild } from "./prepared-site-build";
+import type { PublicAssetStageWriter } from "./public-assets";
 
 /**
  * Renderer context containing a serializable build snapshot plus renderer-only
@@ -12,6 +13,8 @@ export interface SiteBuildContext<TViewTemplate = unknown> {
   preparedBuild: PreparedSiteBuild;
   viewTemplates: Record<string, TViewTemplate>;
   layouts: Record<string, LayoutComponent>;
+  /** Scoped native copy capability; destination must be unpublished staging. */
+  copyPublicAssetsToStage?: PublicAssetStageWriter;
   /** Optional UI slot registry for plugin-registered components. */
   slots?: LayoutSlots;
 }

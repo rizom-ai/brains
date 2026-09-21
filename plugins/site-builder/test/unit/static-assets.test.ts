@@ -1,4 +1,5 @@
 import { describe, test, expect, spyOn } from "bun:test";
+import assert from "node:assert/strict";
 import {
   writeInlineStaticAssets,
   writePublicAssets,
@@ -10,50 +11,54 @@ describe("ReactBuilder - Snapshotted Public Assets", () => {
   const outputDir = "/tmp/output";
   const logger = createSilentLogger();
 
-  test("writes nested binary assets from the prepared snapshot", async () => {
-    const writes: Array<[string, Uint8Array]> = [];
-    // spyOn types the stub by the member it replaces and restores it itself,
-    // so neither the signature nor the teardown is asserted into place.
-    const mkdir = spyOn(fs, "mkdir").mockResolvedValue(undefined);
-    const writeFile = spyOn(fs, "writeFile").mockImplementation(
-      async (path, content) => {
-        if (!(content instanceof Uint8Array)) {
-          throw new Error("Expected binary asset content");
-        }
-        writes.push([String(path), content]);
+  test("joins the injected native writer instead of decoding or writing binary bytes", async () => {
+    const entered = Promise.withResolvers<void>();
+    const release = Promise.withResolvers<void>();
+    const signal = new AbortController().signal;
+    let finished = false;
+    const work = writePublicAssets(
+      { "icons/favicon.bin": { sizeBytes: 4, sha256: "a".repeat(64) } },
+      signal,
+      outputDir,
+      logger,
+      async (directory, current): Promise<void> => {
+        expect(directory).toBe(outputDir);
+        expect(current).toBe(signal);
+        entered.resolve();
+        await release.promise;
       },
-    );
-
-    try {
-      await writePublicAssets(
-        {
-          "icons/favicon.bin": Buffer.from([0, 1, 2, 3]).toString("base64"),
-        },
-        new AbortController().signal,
-        outputDir,
-        logger,
-      );
-
-      expect(writes).toHaveLength(1);
-      expect(writes[0]?.[0]).toBe("/tmp/output/icons/favicon.bin");
-      expect(
-        Buffer.from(writes[0]?.[1] ?? []).equals(Buffer.from([0, 1, 2, 3])),
-      ).toBe(true);
-    } finally {
-      mkdir.mockRestore();
-      writeFile.mockRestore();
-    }
+    ).then(() => {
+      finished = true;
+    });
+    await entered.promise;
+    expect(finished).toBe(false);
+    release.resolve();
+    await work;
+    expect(finished).toBe(true);
   });
 
-  test("rejects snapshotted paths that escape output", async () => {
-    expect(
+  test("requires a stage capability for nonempty snapshots", async () => {
+    await assert.rejects(
       writePublicAssets(
-        { "../outside.bin": "AA==" },
+        { "file.bin": { sizeBytes: 1, sha256: "a".repeat(64) } },
         new AbortController().signal,
         outputDir,
         logger,
       ),
-    ).rejects.toThrow("path contains a .. segment");
+      /not provisioned/,
+    );
+  });
+
+  test("rejects snapshotted paths that escape output", async () => {
+    await assert.rejects(
+      writePublicAssets(
+        { "../outside.bin": { sizeBytes: 1, sha256: "a".repeat(64) } },
+        new AbortController().signal,
+        outputDir,
+        logger,
+      ),
+      /path contains a \.\. segment/,
+    );
   });
 });
 

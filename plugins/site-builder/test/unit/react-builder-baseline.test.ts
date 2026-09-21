@@ -270,10 +270,19 @@ describe("ReactBuilder behavioral baseline", () => {
         "/assets/site.txt": "site asset",
       },
       publicAssets: {
-        "public/fixture.bin": Buffer.from([0, 1, 2, 3]).toString("base64"),
+        "public/fixture.bin": { sizeBytes: 4, sha256: "a".repeat(64) },
       },
     });
 
+    // Renderer fixture collaborator; owned native capture/copy is covered
+    // separately, without exposing file bytes in the prepared snapshot.
+    context.copyPublicAssetsToStage = async (directory): Promise<void> => {
+      await fs.mkdir(join(directory, "public"), { recursive: true });
+      await fs.writeFile(
+        join(directory, "public", "fixture.bin"),
+        new Uint8Array([0, 1, 2, 3]),
+      );
+    };
     const progress: string[] = [];
     const builder = createReactBuilder({
       logger: createSilentLogger(),

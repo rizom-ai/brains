@@ -1,5 +1,9 @@
 import { SITE_CHANNELS } from "@brains/contracts";
 import { EntityUrlGenerator } from "@brains/site-composition";
+import {
+  withPublicAssetSnapshot,
+  fingerprintSiteFile,
+} from "@brains/site-engine";
 import type { ProgressCallback } from "@brains/utils/progress";
 import { CallbackProgressReporter } from "@brains/utils/progress";
 import { getErrorMessage } from "@brains/utils/error";
@@ -45,6 +49,8 @@ export interface RunSiteBuildOptions {
   pipelineContext: BuildPipelineContext;
   staticSiteBuilderFactory: StaticSiteBuilderFactory;
   outputLifecycle?: SiteBuildOutputLifecycle | undefined;
+  /** App-owned source directory; injectable without changing process cwd. */
+  publicDir?: string;
   signal: AbortSignal;
 }
 
@@ -58,272 +64,318 @@ export async function runSiteBuild(
   const diagnostics: SiteBuildDiagnostic[] = [];
   const outputLifecycle =
     options.outputLifecycle ??
-    new TransactionalSiteBuildOutput(options.pipelineContext.logger);
+    new TransactionalSiteBuildOutput(options.pipelineContext.logger, (source) =>
+      fingerprintSiteFile(
+        options.pipelineContext.services.entityService.fileAssets,
+        source,
+        { signal: options.signal },
+      ),
+    );
   let outputTarget: SiteBuildOutputTarget | undefined;
-  let failureCode: SiteBuildDiagnosticCode = "build-failed";
-  let commitStarted = false;
+  const stage: {
+    failureCode: SiteBuildDiagnosticCode;
+    commitStarted: boolean;
+  } = {
+    failureCode: "build-failed",
+    commitStarted: false,
+  };
+  let acknowledged: BuildResult | undefined;
 
   try {
     options.signal.throwIfAborted();
-    await reporter?.report({
-      message: "Starting site build",
-      progress: 0,
-      total: 100,
-    });
+    stage.failureCode = "public-asset-snapshot-failed";
+    return await withPublicAssetSnapshot(
+      options.publicDir ?? join(process.cwd(), "public"),
+      options.pipelineContext.services.entityService.fileAssets,
+      async (publicAssets, signal): Promise<BuildResult> => {
+        options = { ...options, signal };
+        stage.failureCode = "build-failed";
+        await reporter?.report({
+          message: "Starting site build",
+          progress: 0,
+          total: 100,
+        });
 
-    await reporter?.report({
-      message: "Generating dynamic routes",
-      progress: 10,
-      total: 100,
-    });
-    options.signal.throwIfAborted();
+        await reporter?.report({
+          message: "Generating dynamic routes",
+          progress: 10,
+          total: 100,
+        });
+        options.signal.throwIfAborted();
 
-    await generateSiteRoutes({
-      pipelineContext: options.pipelineContext,
-      publishedOnly: parsedOptions.environment === "production",
-    });
-    options.signal.throwIfAborted();
+        await generateSiteRoutes({
+          pipelineContext: options.pipelineContext,
+          publishedOnly: parsedOptions.environment === "production",
+        });
+        options.signal.throwIfAborted();
 
-    const buildRoutes = collectBuildRoutes(
-      options.pipelineContext.routeRegistry,
-    );
-    warnings.push(...buildRoutes.warnings);
-    const { routes } = buildRoutes;
+        const buildRoutes = collectBuildRoutes(
+          options.pipelineContext.routeRegistry,
+        );
+        warnings.push(...buildRoutes.warnings);
+        const { routes } = buildRoutes;
 
-    // One resolution for every consumer of the public URL. Staged SEO files
-    // used to fall back to `siteConfig.url` while the staging payload passed
-    // `siteUrl` straight through, so a site configured only through
-    // `siteConfig` published a correct sitemap next to a placeholder feed.
-    const baseUrl =
-      options.buildOptions.siteUrl ?? parsedOptions.siteConfig.url;
+        // One resolution for every consumer of the public URL. Staged SEO files
+        // used to fall back to `siteConfig.url` while the staging payload passed
+        // `siteUrl` straight through, so a site configured only through
+        // `siteConfig` published a correct sitemap next to a placeholder feed.
+        const baseUrl =
+          options.buildOptions.siteUrl ?? parsedOptions.siteConfig.url;
 
-    const preflight = preflightSiteBuild({
-      routes,
-      layouts: parsedOptions.layouts,
-      getViewTemplate: options.pipelineContext.services.getViewTemplate,
-      environment: parsedOptions.environment,
-      siteUrl: baseUrl,
-      staticAssets: options.buildOptions.staticAssets,
-    });
-    diagnostics.push(...preflight.diagnostics);
-    warnings.push(...preflight.warnings.map(formatSiteBuildDiagnostic));
-
-    if (preflight.errors.length > 0) {
-      return createFailedBuildResult({
-        outputDir: parsedOptions.outputDir,
-        errorMessages: preflight.errors.map(formatSiteBuildDiagnostic),
-        diagnostics,
-      });
-    }
-
-    await reporter?.report({
-      message: `Preparing ${routes.length} routes`,
-      progress: 20,
-      total: 100,
-    });
-
-    await reporter?.report({
-      message: "Resolving images",
-      progress: 25,
-      total: 100,
-    });
-
-    const imageBuildService = await prepareSiteImages({
-      pipelineContext: options.pipelineContext,
-      sharedImagesDir: parsedOptions.sharedImagesDir,
-      signal: options.signal,
-    });
-    const preparation = await prepareSiteBuild({
-      buildId: randomUUID(),
-      preparedAt: new Date().toISOString(),
-      routes,
-      parsedOptions,
-      buildOptions: options.buildOptions,
-      pipelineContext: options.pipelineContext,
-      imageBuildService,
-      siteMetadata: parsedOptions.siteConfig,
-      publicDir: join(process.cwd(), "public"),
-      signal: options.signal,
-    });
-    diagnostics.push(...preparation.diagnostics);
-    const preparationWarnings = preparation.diagnostics.filter(
-      (diagnostic) => diagnostic.severity === "warning",
-    );
-    warnings.push(...preparationWarnings.map(formatSiteBuildDiagnostic));
-    const preparationErrors = preparation.diagnostics.filter(
-      (diagnostic) => diagnostic.severity === "error",
-    );
-    if (preparationErrors.length > 0) {
-      return createFailedBuildResult({
-        outputDir: parsedOptions.outputDir,
-        errorMessages: preparationErrors.map(formatSiteBuildDiagnostic),
-        diagnostics,
-      });
-    }
-
-    options.signal.throwIfAborted();
-    const inputFingerprint = computeSiteInputFingerprint({
-      preparedBuild: preparation.preparedBuild,
-      layouts: parsedOptions.layouts,
-      getViewTemplate: options.pipelineContext.services.getViewTemplate,
-      staticSiteBuilderFactory: options.staticSiteBuilderFactory,
-      sendMessage: options.pipelineContext.services.sendMessage,
-    });
-    const currentManifest = await outputLifecycle.getCurrentManifest?.(
-      parsedOptions.outputDir,
-    );
-    options.signal.throwIfAborted();
-    if (currentManifest?.inputFingerprint === inputFingerprint) {
-      options.pipelineContext.logger.info(
-        "Skipping site render because inputs are unchanged",
-        {
+        const preflight = preflightSiteBuild({
+          routes,
+          layouts: parsedOptions.layouts,
+          getViewTemplate: options.pipelineContext.services.getViewTemplate,
           environment: parsedOptions.environment,
+          siteUrl: baseUrl,
+          staticAssets: options.buildOptions.staticAssets,
+        });
+        diagnostics.push(...preflight.diagnostics);
+        warnings.push(...preflight.warnings.map(formatSiteBuildDiagnostic));
+
+        if (preflight.errors.length > 0) {
+          return createFailedBuildResult({
+            outputDir: parsedOptions.outputDir,
+            errorMessages: preflight.errors.map(formatSiteBuildDiagnostic),
+            diagnostics,
+          });
+        }
+
+        await reporter?.report({
+          message: `Preparing ${routes.length} routes`,
+          progress: 20,
+          total: 100,
+        });
+
+        await reporter?.report({
+          message: "Resolving images",
+          progress: 25,
+          total: 100,
+        });
+
+        const imageBuildService = await prepareSiteImages({
+          pipelineContext: options.pipelineContext,
+          sharedImagesDir: parsedOptions.sharedImagesDir,
+          signal: options.signal,
+        });
+        const preparation = await prepareSiteBuild({
+          buildId: randomUUID(),
+          preparedAt: new Date().toISOString(),
+          routes,
+          parsedOptions,
+          buildOptions: options.buildOptions,
+          pipelineContext: options.pipelineContext,
+          imageBuildService,
+          siteMetadata: parsedOptions.siteConfig,
+          publicAssets: publicAssets.files,
+          signal: options.signal,
+        });
+        diagnostics.push(...preparation.diagnostics);
+        const preparationWarnings = preparation.diagnostics.filter(
+          (diagnostic) => diagnostic.severity === "warning",
+        );
+        warnings.push(...preparationWarnings.map(formatSiteBuildDiagnostic));
+        const preparationErrors = preparation.diagnostics.filter(
+          (diagnostic) => diagnostic.severity === "error",
+        );
+        if (preparationErrors.length > 0) {
+          return createFailedBuildResult({
+            outputDir: parsedOptions.outputDir,
+            errorMessages: preparationErrors.map(formatSiteBuildDiagnostic),
+            diagnostics,
+          });
+        }
+
+        options.signal.throwIfAborted();
+        const inputFingerprint = computeSiteInputFingerprint({
+          preparedBuild: preparation.preparedBuild,
+          layouts: parsedOptions.layouts,
+          getViewTemplate: options.pipelineContext.services.getViewTemplate,
+          staticSiteBuilderFactory: options.staticSiteBuilderFactory,
+          sendMessage: options.pipelineContext.services.sendMessage,
+        });
+        const currentManifest = await outputLifecycle.getCurrentManifest?.(
+          parsedOptions.outputDir,
+        );
+        options.signal.throwIfAborted();
+        if (currentManifest?.inputFingerprint === inputFingerprint) {
+          options.pipelineContext.logger.info(
+            "Skipping site render because inputs are unchanged",
+            {
+              environment: parsedOptions.environment,
+              inputFingerprint,
+            },
+          );
+          await reporter?.report({
+            message: "Site inputs unchanged",
+            progress: 100,
+            total: 100,
+          });
+          acknowledged = createSuccessfulBuildResult({
+            outputDir: parsedOptions.outputDir,
+            filesGenerated: currentManifest.files.length + 1,
+            routesBuilt: routes.length,
+            warnings,
+            diagnostics,
+            skipped: true,
+          });
+          return acknowledged;
+        }
+
+        const buildContext = createBuildContext({
+          copyPublicAssetsToStage: publicAssets.copyToStage,
+          preparedBuild: preparation.preparedBuild,
+          layouts: parsedOptions.layouts,
+          slots: options.buildOptions.slots,
+          pipelineContext: options.pipelineContext,
+        });
+        outputTarget = await outputLifecycle.begin({
+          outputDir: parsedOptions.outputDir,
+          environment: parsedOptions.environment,
+          buildId: preparation.preparedBuild.buildId,
+          configuredWorkingDir: parsedOptions.workingDir,
+        });
+        options.signal.throwIfAborted();
+        const staticSiteBuilder = await createStaticSiteBuilder({
+          logger: options.pipelineContext.logger,
+          outputDir: outputTarget.generationDir,
+          workingDir: outputTarget.workingDir,
+          cleanBeforeBuild: parsedOptions.cleanBeforeBuild,
+          staticSiteBuilderFactory: options.staticSiteBuilderFactory,
+          signal: options.signal,
+        });
+        options.signal.throwIfAborted();
+
+        await reporter?.report({
+          message: "Preparing site extension artifacts",
+          progress: 82,
+          total: 100,
+        });
+        const stagingFailures: string[] = [];
+        const stagingPayload: SiteBuildStagingPayload = {
+          outputDir: outputTarget.generationDir,
+          environment: preparation.preparedBuild.environment,
+          routesBuilt: preparation.preparedBuild.routes.length,
+          siteConfig: {
+            ...preparation.preparedBuild.site,
+            url: baseUrl,
+          },
+          generateEntityUrl: (entityType, slug) =>
+            EntityUrlGenerator.getInstance().generateUrl(entityType, slug),
+          reportFailure: (detail) => {
+            stagingFailures.push(detail);
+          },
+        };
+        await options.pipelineContext.services.sendMessage({
+          type: SITE_CHANNELS.buildStaging,
+          payload: stagingPayload,
+          broadcast: true,
+        });
+        options.signal.throwIfAborted();
+        if (stagingFailures.length > 0) {
+          stage.failureCode = "staged-artifact-failed";
+          throw new Error(stagingFailures.join("; "));
+        }
+
+        await runStaticSiteBuild({
+          staticSiteBuilder,
+          buildContext,
+          reporter,
+          signal: options.signal,
+        });
+
+        await reporter?.report({
+          message: "Generating SEO artifacts",
+          progress: 96,
+          total: 100,
+        });
+        await writeSiteBuildSeoFiles({
+          outputDir: outputTarget.generationDir,
+          preparedBuild: preparation.preparedBuild,
+          logger: options.pipelineContext.logger,
+          siteUrl: baseUrl,
+          signal: options.signal,
+        });
+
+        await reporter?.report({
+          message: "Validating and publishing site generation",
+          progress: 97,
+          total: 100,
+        });
+        options.signal.throwIfAborted();
+        // Everything above writes into staging; only from here can a failure have
+        // touched the active output pointer.
+        stage.failureCode = "output-commit-failed";
+        stage.commitStarted = true;
+        const commitResult = await outputLifecycle.commit({
+          target: outputTarget,
+          preparedBuild: preparation.preparedBuild,
           inputFingerprint,
-        },
-      );
-      await reporter?.report({
-        message: "Site inputs unchanged",
-        progress: 100,
-        total: 100,
-      });
-      return createSuccessfulBuildResult({
-        outputDir: parsedOptions.outputDir,
-        filesGenerated: currentManifest.files.length + 1,
-        routesBuilt: routes.length,
-        warnings,
-        diagnostics,
-        skipped: true,
-      });
-    }
+          warnings,
+        });
+        outputTarget = undefined;
 
-    const buildContext = createBuildContext({
-      preparedBuild: preparation.preparedBuild,
-      layouts: parsedOptions.layouts,
-      slots: options.buildOptions.slots,
-      pipelineContext: options.pipelineContext,
-    });
-    outputTarget = await outputLifecycle.begin({
-      outputDir: parsedOptions.outputDir,
-      environment: parsedOptions.environment,
-      buildId: preparation.preparedBuild.buildId,
-      configuredWorkingDir: parsedOptions.workingDir,
-    });
-    options.signal.throwIfAborted();
-    const staticSiteBuilder = await createStaticSiteBuilder({
-      logger: options.pipelineContext.logger,
-      outputDir: outputTarget.generationDir,
-      workingDir: outputTarget.workingDir,
-      cleanBeforeBuild: parsedOptions.cleanBeforeBuild,
-      staticSiteBuilderFactory: options.staticSiteBuilderFactory,
-      signal: options.signal,
-    });
-    options.signal.throwIfAborted();
+        await reporter
+          ?.report({
+            message: "Site build complete",
+            progress: 100,
+            total: 100,
+          })
+          .catch(() => {
+            // Publication has committed; progress delivery must not change success.
+          });
 
-    await reporter?.report({
-      message: "Preparing site extension artifacts",
-      progress: 82,
-      total: 100,
-    });
-    const stagingFailures: string[] = [];
-    const stagingPayload: SiteBuildStagingPayload = {
-      outputDir: outputTarget.generationDir,
-      environment: preparation.preparedBuild.environment,
-      routesBuilt: preparation.preparedBuild.routes.length,
-      siteConfig: {
-        ...preparation.preparedBuild.site,
-        url: baseUrl,
+        acknowledged = createSuccessfulBuildResult({
+          outputDir: parsedOptions.outputDir,
+          filesGenerated: commitResult.filesGenerated,
+          routesBuilt: routes.length,
+          warnings,
+          diagnostics,
+        });
+        return acknowledged;
       },
-      generateEntityUrl: (entityType, slug) =>
-        EntityUrlGenerator.getInstance().generateUrl(entityType, slug),
-      reportFailure: (detail) => {
-        stagingFailures.push(detail);
-      },
-    };
-    await options.pipelineContext.services.sendMessage({
-      type: SITE_CHANNELS.buildStaging,
-      payload: stagingPayload,
-      broadcast: true,
-    });
-    options.signal.throwIfAborted();
-    if (stagingFailures.length > 0) {
-      failureCode = "staged-artifact-failed";
-      throw new Error(stagingFailures.join("; "));
-    }
-
-    await runStaticSiteBuild({
-      staticSiteBuilder,
-      buildContext,
-      reporter,
-      signal: options.signal,
-    });
-
-    await reporter?.report({
-      message: "Generating SEO artifacts",
-      progress: 96,
-      total: 100,
-    });
-    await writeSiteBuildSeoFiles({
-      outputDir: outputTarget.generationDir,
-      preparedBuild: preparation.preparedBuild,
-      logger: options.pipelineContext.logger,
-      siteUrl: baseUrl,
-      signal: options.signal,
-    });
-
-    await reporter?.report({
-      message: "Validating and publishing site generation",
-      progress: 97,
-      total: 100,
-    });
-    options.signal.throwIfAborted();
-    // Everything above writes into staging; only from here can a failure have
-    // touched the active output pointer.
-    failureCode = "output-commit-failed";
-    commitStarted = true;
-    const commitResult = await outputLifecycle.commit({
-      target: outputTarget,
-      preparedBuild: preparation.preparedBuild,
-      inputFingerprint,
-      warnings,
-    });
-    outputTarget = undefined;
-
-    await reporter
-      ?.report({
-        message: "Site build complete",
-        progress: 100,
-        total: 100,
-      })
-      .catch(() => {
-        // Publication has committed; progress delivery must not change success.
-      });
-
-    return createSuccessfulBuildResult({
-      outputDir: parsedOptions.outputDir,
-      filesGenerated: commitResult.filesGenerated,
-      routesBuilt: routes.length,
-      warnings,
-      diagnostics,
-    });
+      { signal: options.signal },
+    );
   } catch (error) {
+    if (acknowledged) {
+      // Completed publication (or an acknowledged unchanged generation) is not
+      // retracted by file retirement. Report the full cause and an explicit
+      // warning rather than scheduling a replay of the staging hooks.
+      const warning =
+        "Site output acknowledged but public asset retirement failed";
+      options.pipelineContext.logger.error(warning, { error });
+      return {
+        ...acknowledged,
+        warnings: [...(acknowledged.warnings ?? []), warning],
+      };
+    }
+    let failure = error;
     if (outputTarget) {
       try {
         await outputLifecycle.abort(outputTarget);
       } catch (abortError) {
+        if (abortError !== error)
+          failure = new AggregateError(
+            [error, abortError],
+            "Site build and output retirement failed",
+            { cause: error },
+          );
         options.pipelineContext.logger.warn(
           "Failed to clean aborted site build output",
           { error: abortError },
         );
       }
     }
-    if (options.signal.aborted && !commitStarted) {
+    if (options.signal.aborted && !stage.commitStarted) {
       const reason = getErrorMessage(options.signal.reason ?? error);
       const diagnostic: SiteBuildDiagnostic = {
         severity: "error",
         code: "build-cancelled",
         message: `Site build cancelled: ${reason}`,
       };
-      options.pipelineContext.logger.info(diagnostic.message);
+      options.pipelineContext.logger.info(diagnostic.message, {
+        error: failure,
+      });
       return createCancelledBuildResult({
         outputDir: parsedOptions.outputDir,
         message: formatSiteBuildDiagnostic(diagnostic),
@@ -331,20 +383,22 @@ export async function runSiteBuild(
       });
     }
     const messagePrefix =
-      failureCode === "output-commit-failed"
+      stage.failureCode === "output-commit-failed"
         ? "Site output commit failed"
-        : failureCode === "staged-artifact-failed"
+        : stage.failureCode === "staged-artifact-failed"
           ? "Staged site artifact failed"
-          : "Site build process failed";
+          : stage.failureCode === "public-asset-snapshot-failed"
+            ? "Public asset snapshot failed"
+            : "Site build process failed";
     const diagnostic: SiteBuildDiagnostic = {
       severity: "error",
-      code: failureCode,
-      message: `${messagePrefix}: ${getErrorMessage(error)}`,
+      code: stage.failureCode,
+      message: `${messagePrefix}: ${getErrorMessage(failure)}`,
     };
     const buildError = new Error(diagnostic.message);
     options.pipelineContext.logger.error("Site build failed", {
       error: buildError,
-      originalError: error,
+      originalError: failure,
     });
 
     return createFailedBuildResult({

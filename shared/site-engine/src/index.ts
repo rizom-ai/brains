@@ -1,3 +1,19 @@
+export {
+  fingerprintSiteFile,
+  type SiteArtifactFingerprint,
+} from "./site-file-fingerprint";
+export {
+  withPublicAssetSnapshot,
+  type ScopedPublicAssets,
+  type PublicAssetStageWriter,
+  type PublicAssetSnapshotOptions,
+} from "./public-assets";
+export {
+  publicAssetMapSchema,
+  MAX_PUBLIC_ASSET_SNAPSHOT_BYTES,
+  type PublicAssetMap,
+  type PublicAssetFacts,
+} from "./public-asset-contract";
 export { TailwindCSSProcessor } from "./css-processor";
 export type { CSSProcessor } from "./css-processor";
 export { UISlotRegistry } from "./ui-slot-registry";

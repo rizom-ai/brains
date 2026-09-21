@@ -1,4 +1,18 @@
 import { createMockServicePluginContext } from "@brains/plugins/test";
+import { afterEach } from "bun:test";
+import { createPublicAssetRuntime } from "./public-asset-runtime";
+
+const fileRuntimes: ReturnType<typeof createPublicAssetRuntime>[] = [];
+afterEach(async () => {
+  const outcomes = await Promise.allSettled(
+    fileRuntimes.splice(0).map((runtime) => runtime.close()),
+  );
+  const errors = outcomes.flatMap((outcome) =>
+    outcome.status === "rejected" ? [outcome.reason] : [],
+  );
+  if (errors.length)
+    throw new AggregateError(errors, "Fixture file runtimes failed to close");
+});
 import { createSilentLogger } from "@brains/test-utils";
 import { RouteRegistry } from "@brains/site-engine";
 import type {
@@ -35,6 +49,9 @@ export function createTestPipelineContext(
 ): TestPipelineContext {
   const logger = createSilentLogger();
   const context = createMockServicePluginContext({ logger });
+  const files = createPublicAssetRuntime();
+  fileRuntimes.push(files);
+  context.entityService.fileAssets = files;
   const routeRegistry = new RouteRegistry(logger);
   routes.forEach((route) => {
     routeRegistry.register(route);

@@ -1,11 +1,22 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFile, readdir, stat } from "node:fs/promises";
+import {
+  readFile,
+  readdir,
+  stat,
+  mkdir,
+  writeFile,
+  rm,
+} from "node:fs/promises";
 import { join } from "node:path";
 import { spyOn } from "bun:test";
 import type { App } from "@brains/app";
 import type { AssetRecord } from "@brains/assets";
-import { ImageBuildService } from "@brains/site-engine";
+import {
+  ImageBuildService,
+  withPublicAssetSnapshot,
+  fingerprintSiteFile,
+} from "@brains/site-engine";
 import { createSilentLogger } from "@brains/test-utils";
 import { generateCanonicalAIImage } from "./turso-canonical-ai-image";
 
@@ -83,6 +94,41 @@ export async function prepareCanonicalSiteImage(
         entry.mtime,
       );
     assert.equal(reads.mock.calls.length, 0);
+    // Public/static binary processing on this same explicitly provisioned
+    // runtime. This is a stage integration, not an installed site rebuild.
+    const publicDir = join(directory, "public-fixture");
+    const stage = join(directory, "public-generation");
+    const bytes = new Uint8Array(64 * 1024 + 3).fill(51);
+    await mkdir(publicDir);
+    await mkdir(stage);
+    await writeFile(join(publicDir, "file.bin"), bytes);
+    await withPublicAssetSnapshot(
+      publicDir,
+      files,
+      async (snapshot, signal): Promise<void> => {
+        assert.equal(snapshot.files["file.bin"]?.sizeBytes, bytes.length);
+        await rm(publicDir, { recursive: true });
+        await snapshot.copyToStage(stage, signal);
+        assert.deepEqual(
+          new Uint8Array(await readFile(join(stage, "file.bin"))),
+          bytes,
+        );
+      },
+    );
+    assert.equal(production.mock.calls.length, 3);
+    assert.equal(production.mock.calls[1]?.[2]?.producer, "site-public-assets");
+    assert.equal(production.mock.calls[2]?.[2]?.metadata?.["mode"], "copy");
+    assert.deepEqual(
+      await fingerprintSiteFile(files, {
+        sourceFile: join(stage, "file.bin"),
+        sizeBytes: bytes.length,
+      }),
+      {
+        sizeBytes: bytes.length,
+        sha256: createHash("sha256").update(bytes).digest("hex"),
+      },
+    );
+    assert.equal(production.mock.calls.length, 4);
     return record;
   } finally {
     reads.mockRestore();

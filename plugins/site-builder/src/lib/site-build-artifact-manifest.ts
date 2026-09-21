@@ -4,9 +4,9 @@ import {
   type SiteBuildArtifactFile,
   type SiteBuildArtifactKind,
   type SiteBuildArtifactManifest,
+  type SiteArtifactFingerprint,
 } from "@brains/site-engine";
 import { SITE_BUILD_MANIFEST_FILE } from "@brains/contracts";
-import { createHash } from "crypto";
 import { promises as fs } from "fs";
 import { dirname, join, relative, sep } from "path";
 import { resolveSafeOutputFile } from "./output-path";
@@ -18,6 +18,7 @@ export interface CreateSiteBuildArtifactManifestOptions {
   preparedBuild: PreparedSiteBuild;
   inputFingerprint?: string | undefined;
   warnings: string[];
+  fingerprint: SiteArtifactFingerprint;
 }
 
 export async function createSiteBuildArtifactManifest(
@@ -34,7 +35,10 @@ export async function createSiteBuildArtifactManifest(
     .sort();
   const publicAssets = Object.keys(options.preparedBuild.publicAssets).sort();
   const staticAssetFiles = new Set(staticAssets);
-  const files = await listArtifactFiles(options.generationDir);
+  const files = await listArtifactFiles(
+    options.generationDir,
+    options.fingerprint,
+  );
   const filePaths = new Set(files.map((file) => file.path));
 
   for (const route of routes) {
@@ -135,6 +139,7 @@ function classifyArtifact(
 
 async function listArtifactFiles(
   generationDir: string,
+  fingerprint: SiteArtifactFingerprint,
   directory = generationDir,
 ): Promise<Array<{ path: string; size: number; sha256: string }>> {
   const entries = await fs.readdir(directory, { withFileTypes: true });
@@ -149,18 +154,24 @@ async function listArtifactFiles(
       );
     }
     if (entry.isDirectory()) {
-      files.push(...(await listArtifactFiles(generationDir, fullPath)));
+      files.push(
+        ...(await listArtifactFiles(generationDir, fingerprint, fullPath)),
+      );
       continue;
     }
     if (!entry.isFile()) continue;
     const path = relative(generationDir, fullPath).split(sep).join("/");
     if (path === SITE_BUILD_MANIFEST_FILE) continue;
-    const content = await fs.readFile(fullPath);
-    files.push({
-      path,
-      size: content.byteLength,
-      sha256: createHash("sha256").update(content).digest("hex"),
+    const stat = await fs.lstat(fullPath);
+    if (!stat.isFile())
+      throw new Error("Site artifact is no longer a regular file");
+    const facts = await fingerprint({
+      sourceFile: fullPath,
+      sizeBytes: stat.size,
     });
+    if (facts.sizeBytes !== stat.size)
+      throw new Error("Site artifact fingerprint size mismatch");
+    files.push({ path, size: facts.sizeBytes, sha256: facts.sha256 });
   }
 
   return files;

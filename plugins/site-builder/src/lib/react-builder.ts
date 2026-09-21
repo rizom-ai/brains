@@ -24,6 +24,8 @@ import {
   type CSSProcessor,
   type PreparedRoute,
   type PreparedSiteBuild,
+  type PublicAssetMap,
+  type PublicAssetStageWriter,
 } from "@brains/site-engine";
 import { pLimit } from "@brains/utils/p-limit";
 // Import base CSS as text so it's inlined in the bundle (avoids __dirname issues)
@@ -91,7 +93,13 @@ export class ReactBuilder implements StaticSiteBuilder {
 
     // Write app public files captured during build preparation.
     reportProgress("Copying static assets");
-    await this.writePublicAssets(preparedBuild.publicAssets, signal);
+    await writePublicAssets(
+      preparedBuild.publicAssets,
+      signal,
+      this.outputDir,
+      this.logger,
+      context.copyPublicAssetsToStage,
+    );
 
     // Write inline static assets: files declared by templates in use on the
     // built routes (e.g. the file behind a runtimeScripts src), merged with
@@ -315,13 +323,6 @@ export class ReactBuilder implements StaticSiteBuilder {
     this.logger.debug("CSS processed successfully with font imports");
   }
 
-  private async writePublicAssets(
-    assets: Record<string, string>,
-    signal: AbortSignal,
-  ): Promise<void> {
-    return writePublicAssets(assets, signal, this.outputDir, this.logger);
-  }
-
   private async writeInlineStaticAssets(
     assets: Record<string, string> | undefined,
     signal: AbortSignal,
@@ -339,25 +340,21 @@ export class ReactBuilder implements StaticSiteBuilder {
  * deserve testing directly rather than through a whole build.
  */
 export async function writePublicAssets(
-  assets: Record<string, string>,
+  assets: PublicAssetMap,
   signal: AbortSignal,
   outputDir: string,
   logger: Logger,
+  copyToStage?: PublicAssetStageWriter,
 ): Promise<void> {
   signal.throwIfAborted();
-  const entries = Object.entries(assets);
-  if (entries.length === 0) return;
-
-  logger.debug(`Writing ${entries.length} snapshotted public asset(s)`);
-  for (const [assetPath, contentBase64] of entries) {
-    signal.throwIfAborted();
-    const destPath = resolveSafeOutputFile(outputDir, assetPath);
-    await fs.mkdir(dirname(destPath), { recursive: true });
-    await fs.writeFile(destPath, Buffer.from(contentBase64, "base64"), {
-      signal,
-    });
-    logger.debug(`Wrote public asset: ${assetPath}`);
-  }
+  const paths = Object.keys(assets);
+  if (paths.length === 0) return;
+  for (const path of paths) resolveSafeOutputFile(outputDir, path);
+  if (!copyToStage)
+    throw new Error("Public asset stage writer is not provisioned");
+  logger.debug(`Writing ${paths.length} snapshotted public asset(s)`);
+  await copyToStage(outputDir, signal);
+  signal.throwIfAborted();
 }
 
 /**

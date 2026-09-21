@@ -2,6 +2,7 @@ import {
   siteBuildArtifactManifestSchema,
   type PreparedSiteBuild,
   type SiteBuildArtifactManifest,
+  type SiteArtifactFingerprint,
 } from "@brains/site-engine";
 import type { Logger } from "@brains/utils/logger";
 import { isErrnoException } from "@brains/utils/predicates";
@@ -112,14 +113,17 @@ export class TransactionalSiteBuildOutput implements SiteBuildOutputLifecycle {
   private readonly retainedGenerations: number;
   private readonly staleGenerationAgeMs: number;
   private readonly fs: SiteBuildOutputFs;
+  private readonly fingerprint: SiteArtifactFingerprint;
 
   constructor(
     logger: Logger,
+    fingerprint: SiteArtifactFingerprint,
     retainedGenerations: number = 3,
     staleGenerationAgeMs: number = 24 * 60 * 60 * 1_000,
     fs: SiteBuildOutputFs = nodeSiteBuildOutputFs,
   ) {
     this.logger = logger.child("SiteBuildOutput");
+    this.fingerprint = fingerprint;
     this.retainedGenerations = Math.max(1, retainedGenerations);
     this.staleGenerationAgeMs = Math.max(0, staleGenerationAgeMs);
     this.fs = fs;
@@ -192,6 +196,7 @@ export class TransactionalSiteBuildOutput implements SiteBuildOutputLifecycle {
     options: CommitSiteBuildOutputOptions,
   ): Promise<SiteBuildOutputCommitResult> {
     const manifest = await createSiteBuildArtifactManifest({
+      fingerprint: this.fingerprint,
       generationDir: options.target.generationDir,
       preparedBuild: options.preparedBuild,
       inputFingerprint: options.inputFingerprint,

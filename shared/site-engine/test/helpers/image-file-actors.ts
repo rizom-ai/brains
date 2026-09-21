@@ -39,7 +39,12 @@ export function createImageFileActors(
       uploadUrl: actor,
       downloadUrl: actor,
       inspectionUploadUrl: actor,
-      producerUrls: { "responsive-image": actor },
+      producerUrls: {
+        "responsive-image": actor,
+        "site-public-assets": new URL(
+          import.meta.resolve("@brains/site-engine/public-asset-process"),
+        ),
+      },
     },
   );
   return {

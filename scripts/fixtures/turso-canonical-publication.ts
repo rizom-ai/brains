@@ -498,6 +498,10 @@ plugins:
   const app = createApp();
   const fileActors = {
     producerUrls: {
+      "site-public-assets": new URL(
+        "../../shared/site-engine/src/public-asset-process.ts",
+        import.meta.url,
+      ),
       "responsive-image": new URL(
         "../../shared/image/src/responsive-image-process.ts",
         import.meta.url,

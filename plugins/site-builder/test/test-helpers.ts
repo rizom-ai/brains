@@ -22,6 +22,7 @@ import {
   type LayoutComponent,
   type LayoutSlots,
   type SiteImageMap,
+  type PublicAssetMap,
 } from "@brains/site-engine";
 
 type SiteBuilderConfigOverrides = Partial<SiteBuilderConfig>;
@@ -42,7 +43,7 @@ interface CreateRendererTestContextOptions {
   themeCSS?: string;
   headScripts?: string[];
   staticAssets?: Record<string, string>;
-  publicAssets?: Record<string, string>;
+  publicAssets?: PublicAssetMap;
   images?: SiteImageMap;
   slots?: LayoutSlots;
 }
@@ -61,7 +62,7 @@ export interface RendererTestSourceContext {
   themeCSS?: string;
   headScripts?: string[];
   staticAssets?: Record<string, string>;
-  publicAssets?: Record<string, string>;
+  publicAssets?: PublicAssetMap;
   images?: SiteImageMap;
   slots?: LayoutSlots;
 }

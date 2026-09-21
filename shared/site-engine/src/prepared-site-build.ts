@@ -6,6 +6,7 @@ import {
   type JsonValue,
 } from "@brains/contracts";
 import { resolvedSiteImageSchema } from "./site-image-contracts";
+import { publicAssetMapSchema } from "./public-asset-contract";
 
 export type { JsonObject, JsonValue } from "@brains/contracts";
 
@@ -62,7 +63,7 @@ export const preparedSiteBuildSchema: z.ZodObject<{
   themeCSS: z.ZodOptional<z.ZodString>;
   images: z.ZodRecord<z.ZodString, typeof resolvedSiteImageSchema>;
   staticAssets: z.ZodRecord<z.ZodString, z.ZodString>;
-  publicAssets: z.ZodRecord<z.ZodString, z.ZodString>;
+  publicAssets: typeof publicAssetMapSchema;
   globalHeadScripts: z.ZodArray<z.ZodString>;
 }> = z.object({
   buildId: z.string().min(1),
@@ -73,8 +74,8 @@ export const preparedSiteBuildSchema: z.ZodObject<{
   themeCSS: z.string().optional(),
   images: z.record(z.string(), resolvedSiteImageSchema),
   staticAssets: z.record(z.string(), z.string()),
-  /** App public files keyed by output path with base64-encoded contents. */
-  publicAssets: z.record(z.string(), z.string()),
+  /** Stable facts only; a separate scoped capability owns the captured files. */
+  publicAssets: publicAssetMapSchema,
   globalHeadScripts: z.array(z.string()),
 });
 
