@@ -1,5 +1,18 @@
 # @brains/link
 
+## 0.2.0-alpha.402
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.402
+  - @brains/content-formatters@0.2.0-alpha.402
+  - @brains/contracts@0.2.0-alpha.402
+  - @brains/ui-library@0.2.0-alpha.402
+  - @brains/utils@0.2.0-alpha.402
+  - @brains/plugins@0.2.0-alpha.402
+  - @brains/templates@0.2.0-alpha.402
+
 ## 0.2.0-alpha.401
 
 ### Patch Changes
