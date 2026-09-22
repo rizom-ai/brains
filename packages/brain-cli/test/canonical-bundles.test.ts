@@ -336,7 +336,6 @@ describe("canonical bundle taxonomy", () => {
           },
         },
       },
-      newsletter: { doubleOptIn: true },
     });
     expect(resolution.permissionContributions).toEqual(channelPermissions);
     expect(resolution.agentInstructions).toEqual(publishingAgentInstructions);

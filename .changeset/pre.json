@@ -126,7 +126,8 @@
     "@brains/operator-view-react": "0.2.0-alpha.313",
     "@brains/assets": "0.2.0-alpha.336",
     "@brains/app-ui-react": "0.2.0-alpha.347",
-    "@brains/ask-content": "0.2.0-alpha.388"
+    "@brains/ask-content": "0.2.0-alpha.388",
+    "@brains/contact": "0.2.0-alpha.400"
   },
   "changesets": [
     "a2a-agent-call-instruction-cleanup",
@@ -277,6 +278,7 @@
     "core--cms-visibility-roundtrip",
     "core--console-strip-single-implementation",
     "core--console-surfaces-out-of-theme",
+    "core--contact-intake",
     "core--context-extends-published-surface",
     "core--contracts-channel-ownership",
     "core--cross-process-durable-work",
@@ -337,6 +339,7 @@
     "core--git-execution-broker-recovery-fixes",
     "core--git-execution-broker",
     "core--guest-admission-uncertain-signal",
+    "core--guest-elapsed-deadline",
     "core--health-probe-and-declared-type-message",
     "core--health-watchdog-container-scope",
     "core--health-watchdog-deployment-smoke",

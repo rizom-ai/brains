@@ -125,6 +125,8 @@ export interface EntityDefinitionConfig {
   // EntityTypeConfig, which declares them the same way.
   readonly weight?: number;
   readonly embeddable?: boolean;
+  /** Private operational records must also opt out of lexical indexing. */
+  readonly fullTextSearchable?: boolean;
   readonly projectionSource?: boolean;
   readonly projectionSourceRole?: ProjectionSourceRole;
   /** Which statuses count as publishable for this type. */
@@ -190,6 +192,13 @@ export interface EntityDefinition<
     readonly metadata: z.output<TMetadataSchema>;
   }): string | undefined;
   readonly config?: EntityDefinitionConfig | undefined;
+  /** Persistence invariant, including entity-only installs. Named consumer: Contact. */
+  readonly validatePersist?:
+    | ((entity: {
+        readonly content: string;
+        readonly visibility: EntityVisibility;
+      }) => void | Promise<void>)
+    | undefined;
   /**
    * Who may do what to this type, when the default is not right.
    *

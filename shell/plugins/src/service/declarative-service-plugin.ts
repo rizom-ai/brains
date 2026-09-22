@@ -423,7 +423,11 @@ class DeclarativeServicePlugin<
     this.publicId = definition.id;
     this.scope = scope;
     if (definition.dependsOn) {
-      this.dependencies = [...definition.dependsOn];
+      this.dependencies = [
+        ...(typeof definition.dependsOn === "function"
+          ? definition.dependsOn(config)
+          : definition.dependsOn),
+      ];
     }
   }
 
@@ -454,23 +458,25 @@ class DeclarativeServicePlugin<
   }
 
   public override getWebRoutes(): WebRouteDefinition[] {
+    if (!this.definition.routes) return [];
+    const state = this.requireState();
+    if (this.getContext().executionOnly) return [];
     // Built from what this instance set up, so a route answers with its own
     // plugin's state rather than whatever the definition happened to hold
     // last. Registration has run by the time anything asks: the production
     // collector iterates registered plugins.
-    const routeDefinitions =
-      this.definition.routes?.({
-        config: this.config,
-        state: this.requireState(),
-        jobs: this.jobs(),
-        entities: createAuthoringEntityReader(
-          createJobEntityAccess(
-            this.getContext().entityService,
-            this.ownedTypeNames(),
-            this.id,
-          ),
+    const routeDefinitions = this.definition.routes({
+      config: this.config,
+      state,
+      jobs: this.jobs(),
+      entities: createAuthoringEntityReader(
+        createJobEntityAccess(
+          this.getContext().entityService,
+          this.ownedTypeNames(),
+          this.id,
         ),
-      }) ?? [];
+      ),
+    });
     return routeDefinitions.map((route) =>
       createRuntimeRoute(route, {
         declarationId: this.definition.id,
@@ -497,6 +503,7 @@ class DeclarativeServicePlugin<
   protected override async onReady(
     context: ServicePluginContext,
   ): Promise<void> {
+    if (context.executionOnly) return;
     const seeds =
       this.definition.seeds?.({
         config: this.config,

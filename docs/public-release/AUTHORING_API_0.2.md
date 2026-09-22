@@ -199,7 +199,13 @@ Note preserves authored titles and limits first-body-line fallbacks to 80 Unicod
 
 `defineEntity.singleton: true` constrains the record ID to its entity type and marks the type as a singleton for file collections. `markdown.frontmatter` optionally describes authored file fields separately from indexed metadata; otherwise the metadata schema is used. Ask content consumes both: bounded welcome/topic fields remain in markdown while indexed metadata stays empty.
 
-`EntityDefinitionConfig` is the optional `config` slot on `defineEntity`. It carries deliberate opt-outs — `embeddable`, `projectionSource`, `projectionSourceRole`, `weight` — for entity types that are system configuration rather than user content. Omitted fields keep the runtime defaults.
+`EntityDefinitionConfig` is the optional `config` slot on `defineEntity`. It carries deliberate opt-outs — `embeddable`, `fullTextSearchable`, `projectionSource`, `projectionSourceRole`, `weight` — for entity types that are system configuration rather than user content. Omitted fields keep the runtime defaults.
+
+An entity may declare `validatePersist({ content, visibility })` to enforce a persistence invariant even when installed without a service. The callback receives a frozen, detached view; throwing rejects the write. Contact uses this to require restricted visibility and validate private Markdown without exposing submitted details in errors. Registered Markdown parsers strip the system-owned visibility envelope before domain validation and return sanitized coded failures rather than raw YAML errors containing source buffers.
+
+Owned service setup/ready entity access accepts `create(entity, { conditionalWrite: { expectedRevision: null }, signal, beforeWrite })` for atomic create-if-absent and `update(entity, { expectedContentHash, signal })` for conditional updates. Ownership is checked first; these options grant no foreign writes, attribution overrides, or revision-based replacement. The before-write guard receives a detached, outer-frozen snapshot and cannot patch the canonical write. They are not additional options on definition-typed callback entity access.
+
+Service `dependsOn` may derive its dependency list from parsed config, keeping optional integrations genuinely optional. Request subscriptions may explicitly declare `execution: "all-roles"` when job workers must answer them (Notifications); ordinary subscriptions remain scheduler-only. Workers do not run service ready hooks or expose declared HTTP routes. Recurring-check execution definitions remain available to workers; scheduler-owned maintenance instead uses an owned lifecycle that cancels and drains before shutdown.
 
 `frontmatterInContent` builds the markdown codec for a type whose files keep
 their own frontmatter — one synced to disk and edited there, where the header

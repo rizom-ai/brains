@@ -35,10 +35,6 @@ export const publishingBundleConfig: BundleConfigContribution[] = [
       },
     },
   },
-  {
-    member: "newsletter",
-    value: { doubleOptIn: true },
-  },
 ];
 
 export const publishingAgentInstructions: string[] = [

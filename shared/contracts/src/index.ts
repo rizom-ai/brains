@@ -225,3 +225,4 @@ export {
   type SendNotificationResult,
 } from "./notification";
 export type { ConsoleSurface, SurfacePermissionLevel } from "./console";
+export { inboxWorkspaceRequest } from "./inbox-workspace";

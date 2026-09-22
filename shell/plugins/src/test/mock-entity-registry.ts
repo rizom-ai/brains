@@ -29,6 +29,7 @@ export function createMockEntityRegistry(
       store.types.delete(type);
       store.adapters.delete(type);
       store.typeConfigs.delete(type);
+      store.persistValidators.delete(type);
       createInterceptors.delete(type);
     },
     getSchema: (): never => {
@@ -100,8 +101,10 @@ export function createMockEntityRegistry(
             : mediaType === pattern,
         ),
       ),
-    registerPersistValidator: (): void => {},
-    getPersistValidator: () => undefined,
+    registerPersistValidator: (type, validator): void => {
+      store.persistValidators.set(type, validator);
+    },
+    getPersistValidator: (type) => store.persistValidators.get(type),
     extendFrontmatterSchema: (): void => {},
     getEffectiveFrontmatterSchema: (type: string) =>
       store.adapters.get(type)?.frontmatterSchema,

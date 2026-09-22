@@ -62,7 +62,7 @@ describe("two instances of one newsletter definition", () => {
     ): Promise<Plugin> => {
       const plugins = instantiatePluginPackageDefinition(
         definition,
-        { apiKey },
+        { provider: { type: "buttondown", apiKey } },
         PACKAGE_METADATA,
       );
       const entity = plugins.find(({ type }) => type === "entity");

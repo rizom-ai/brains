@@ -18,7 +18,7 @@ export const PACKAGE_METADATA: { name: string; version: string } = {
   version: packageJson.version,
 };
 
-export const SERVICE_PLUGIN_ID: string = `${packageJson.name}:buttondown`;
+export const SERVICE_PLUGIN_ID: string = `${packageJson.name}:delivery`;
 export const ENTITY_PLUGIN_ID: string = `${packageJson.name}:newsletter`;
 
 /**

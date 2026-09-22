@@ -5,7 +5,7 @@ import { createTestEntity } from "@brains/entity-service/test";
 import { createSilentLogger } from "@brains/test-utils";
 import { expectDefined } from "@brains/utils/expect-defined";
 import { z } from "@brains/utils/zod";
-import { ButtondownClient } from "../src/lib/buttondown-client";
+import { ButtondownNewsletterProvider } from "../src/buttondown-provider";
 import {
   handlePublishCompleted,
   type PublishCompletedPayload,
@@ -33,10 +33,14 @@ describe("auto-send on publish", () => {
   const network = stubbableFetch();
 
   describe("handlePublishCompleted", () => {
-    const client = (): ButtondownClient =>
-      new ButtondownClient({ apiKey: "test-key", doubleOptIn: true }, logger, {
-        fetch: network.fetch,
-      });
+    const client = (): ButtondownNewsletterProvider =>
+      new ButtondownNewsletterProvider(
+        { apiKey: "test-key", doubleOptIn: true },
+        logger,
+        {
+          fetch: network.fetch,
+        },
+      );
     const payload = (
       entityType: string,
       entityId: string,
@@ -127,7 +131,10 @@ describe("auto-send on publish", () => {
     it("propagates a failed send to the bus response", async () => {
       await installNewsletter(
         harness,
-        { apiKey: "test-key", autoSendOnPublish: true },
+        {
+          provider: { type: "buttondown", apiKey: "test-key" },
+          autoSendOnPublish: true,
+        },
         { fetch: network.fetch },
       );
 
@@ -158,7 +165,10 @@ describe("auto-send on publish", () => {
       );
       await installNewsletter(
         harness,
-        { apiKey: "test-key", autoSendOnPublish: true },
+        {
+          provider: { type: "buttondown", apiKey: "test-key" },
+          autoSendOnPublish: true,
+        },
         { fetch: network.fetch },
       );
       harness.addEntities([publishedPost("post-7", "Hello")]);
@@ -180,7 +190,7 @@ describe("auto-send on publish", () => {
       });
       await installNewsletter(
         harness,
-        { apiKey: "test-key" },
+        { provider: { type: "buttondown", apiKey: "test-key" } },
         { fetch: network.fetch },
       );
       harness.addEntities([publishedPost("post-1", "Hello")]);

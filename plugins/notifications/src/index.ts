@@ -55,6 +55,7 @@ const notificationsPackage: ServicePackageDefinition<
   {
     subscriptions: ({ config, state }) => [
       defineSubscription({
+        execution: "all-roles",
         topic: NOTIFICATIONS_SEND,
         payload: sendNotificationSchema,
         // Throwing is how a subscription reports a failed response; returning

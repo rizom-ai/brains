@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { PUBLISH_CHANNELS } from "@brains/contracts";
+import { renderNewsletterEmail } from "../src/email-renderer";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import type { PublishProvider } from "@brains/sdk/services";
 import { createPluginHarness } from "@brains/plugins/test";
@@ -44,7 +45,7 @@ describe("Buttondown publish provider", () => {
     });
     await installNewsletter(
       harness,
-      { apiKey: "test-key" },
+      { provider: { type: "buttondown", apiKey: "test-key" } },
       { fetch: network.fetch },
     );
     await harness.sendMessage(
@@ -80,7 +81,7 @@ describe("Buttondown publish provider", () => {
         url: "https://api.buttondown.email/v1/emails",
         body: {
           subject: "Issue 7",
-          body: "Hello subscribers",
+          body: `<!-- buttondown-editor-mode: fancy -->\n${renderNewsletterEmail({ subject: "Issue 7", content: "Hello subscribers" }).html}`,
           status: "about_to_send",
         },
       },

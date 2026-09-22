@@ -1,7 +1,7 @@
 import { baseEntityParserSchema, z } from "@brains/sdk/entities";
 import type { LoggerContract, SdkErrorCode } from "@brains/sdk/services";
 import { getErrorMessage } from "@brains/utils/error";
-import type { ButtondownClient } from "./buttondown-client";
+import type { NewsletterDeliveryProvider } from "../contracts";
 
 /** What the publish pipeline announces when something has gone out. */
 export const publishCompletedSchema: z.ZodObject<{
@@ -47,7 +47,7 @@ export type PublishHandlerResult =
  */
 export async function handlePublishCompleted(
   payload: PublishCompletedPayload,
-  client: ButtondownClient,
+  provider: NewsletterDeliveryProvider,
   entities: PublishedEntityReader,
   logger: LoggerContract,
 ): Promise<PublishHandlerResult> {
@@ -81,10 +81,11 @@ export async function handlePublishCompleted(
   });
 
   try {
-    const email = await client.createEmail({
+    const email = await provider.publish(post.data.content, {
       subject: post.data.metadata.title,
-      body: post.data.content,
-      status: "about_to_send",
+      ...(post.data.metadata.excerpt
+        ? { previewText: post.data.metadata.excerpt }
+        : {}),
     });
     logger.info("Newsletter sent for post", {
       postId: post.data.id,

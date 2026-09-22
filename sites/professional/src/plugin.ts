@@ -5,6 +5,8 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
+import { homepageOpeningSchema } from "./schemas/homepage-opening";
+import { loadHomepageOpening } from "./datasources/homepage-opening";
 import { blogViewSchema } from "@brains/blog";
 import { deckViewSchema } from "@brains/decks";
 import { aboutHighlightsSchema, professionalProfileSchema } from "./schemas";
@@ -83,6 +85,10 @@ export class ProfessionalSitePlugin extends ServicePlugin<
     const homepageDataSource = new HomepageListDataSource(
       postsListUrl,
       decksListUrl,
+      this.config.homepageOpening
+        ? (buildContext): ReturnType<typeof loadHomepageOpening> =>
+            loadHomepageOpening(buildContext, context)
+        : undefined,
     );
     context.entities.registerDataSource(homepageDataSource);
 
@@ -94,12 +100,25 @@ export class ProfessionalSitePlugin extends ServicePlugin<
     // Schema validates with optional url/typeLabel, site-builder enriches before rendering
     const homepageListSchema = z.object({
       profile: professionalProfileSchema,
+      homepageOpening: z.boolean().default(false),
+      opening: homepageOpeningSchema,
       posts: z.array(blogPostSchema),
       decks: z.array(deckSchema),
       postsListUrl: z.string(),
       decksListUrl: z.string(),
       cta: siteInfoCTASchema,
       sections: z.record(z.string(), homepageSectionSchema),
+    });
+
+    const enrichedLinks = {
+      url: z.string(),
+      typeLabel: z.string(),
+      listUrl: z.string(),
+      listLabel: z.string(),
+    };
+    const homepageRenderSchema = homepageListSchema.extend({
+      posts: z.array(blogPostSchema.extend(enrichedLinks)),
+      decks: z.array(deckSchema.extend(enrichedLinks)),
     });
 
     // About page schema
@@ -122,6 +141,7 @@ export class ProfessionalSitePlugin extends ServicePlugin<
         requiredPermission: "public",
         layout: {
           component: HomepageListLayout,
+          renderSchema: homepageRenderSchema,
         },
       }),
       about: createTemplate<z.infer<typeof aboutPageSchema>, AboutPageData>({

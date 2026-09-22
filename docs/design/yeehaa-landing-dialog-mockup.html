@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<title>yeehaa.io landing as a conversation — design study</title>
+<style>
+@import url("https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap");
+/*
+  Design study for docs/plans/public-ask.md, Slice A (authored opening turn) and Slice B (escalation).
+  Tokens, type and section structure copied from the live yeehaa.io stylesheet (2026-09-20).
+  Static: no requests beyond fonts, no storage, no generation. The composer does nothing.
+*/
+:root{
+  --paper:#f4ede0; --paper-soft:#faf4e6; --paper-muted:#ebe2cb; --paper-deep:#e3d9bf;
+  --ink:#18132a; --ink-muted:#443c54; --ink-subtle:#756c80;
+  --accent:#b8410c; --accent-dark:#923208; --accent-light:#ff8b3d;
+  --border:#ddd2c4; --rule:rgb(24 19 42 / .07); --rule-strong:rgb(24 19 42 / .14);
+  --halo:rgb(184 65 12 / .08); --field:#faf4e6;
+  --heading:"Fraunces",Georgia,serif; --sans:"Barlow",ui-sans-serif,system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+[data-theme="dark"]{
+  --paper:#0a0819; --paper-soft:#14112b; --paper-muted:#1b1638; --paper-deep:#05040f;
+  --ink:#faf4e6; --ink-muted:rgb(251 247 239 / .68); --ink-subtle:rgb(251 247 239 / .46);
+  --accent:#ff8b3d; --accent-dark:#b8410c; --accent-light:#ffa46a;
+  --border:rgb(255 255 255 / .12); --rule:rgb(250 244 230 / .07); --rule-strong:rgb(250 244 230 / .14);
+  --halo:rgb(255 139 61 / .09); --field:#14112b;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:#cfc6b4;color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5}
+[data-theme="dark"] body{background:#000}
+
+/* ---- study chrome ---- */
+.study{max-width:1260px;margin:0 auto;padding:36px 24px 80px}
+.study-head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:22px}
+.study-head h1{font:500 11.5px var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--ink-muted);margin:0 0 6px}
+.study-head p{margin:0;font-size:13px;color:var(--ink-subtle);max-width:72ch}
+.study-controls{display:flex;gap:8px;flex-wrap:wrap}
+.study-controls button{font:500 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:7px 11px;border:1px solid var(--rule-strong);background:var(--paper-soft);color:var(--ink);border-radius:4px;cursor:pointer}
+.study-controls button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.frame-label{font:500 11px var(--mono);color:var(--ink-subtle);margin:0 0 10px;letter-spacing:.12em;text-transform:uppercase}
+.frame{background:var(--paper);border:1px solid var(--border);overflow:hidden}
+.frame.phone{width:390px;max-width:100%}
+.frames{display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:28px;align-items:start}
+@media (max-width:1000px){.frames{grid-template-columns:1fr}}
+
+/* ---- shared type from the live site ---- */
+.mono{font-family:var(--mono);font-weight:500;font-size:.7rem;letter-spacing:.22em;text-transform:uppercase}
+.eyebrow{display:block;color:var(--accent)}
+.eyebrow.dash::before{content:"";display:inline-block;width:14px;height:1px;background:currentColor;vertical-align:middle;margin-right:10px}
+.nav-link{font-family:var(--mono);font-weight:500;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-muted);text-decoration:none}
+.mlink{font-family:var(--mono);font-weight:500;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);text-decoration:none}
+.mlink::after{content:" →"}
+
+/* ---- header ---- */
+.site-header{display:flex;align-items:center;justify-content:space-between;padding:14px 48px;background:var(--paper);border-bottom:1px solid var(--rule)}
+.site-header .brand{font:400 1.05rem var(--heading);font-variation-settings:"SOFT" 30,"opsz" 24;color:var(--ink);text-decoration:none;letter-spacing:-.01em}
+.site-header nav{display:flex;gap:22px;align-items:center}
+.site-header .toggle{width:26px;height:26px;border-radius:50%;background:var(--paper-muted);display:grid;place-items:center;font-size:11px;color:var(--ink-muted);margin-left:18px}
+.phone .site-header{padding:14px 20px}
+.phone .site-header nav a{display:none}
+.phone .site-header .toggle{margin-left:0}
+
+/* ---- hero: the conversation ---- */
+.hero{position:relative;background:var(--paper);padding:88px 48px 72px;border-bottom:1px solid var(--rule);overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;background:radial-gradient(60% 70% at 80% 20%,var(--halo),transparent 70%);pointer-events:none}
+.hero>*{position:relative}
+.phone .hero{padding:44px 20px 40px}
+.hero-inner{max-width:72rem;margin:0 auto}
+.hero h1{font-family:var(--heading);font-weight:400;font-variation-settings:"SOFT" 30,"opsz" 144;font-size:clamp(2.6rem,7vw,5.5rem);line-height:1.02;letter-spacing:-.025em;color:var(--ink);margin:14px 0 22px;max-width:14ch}
+.hero h1 em{font-style:italic;color:var(--accent);font-variation-settings:"SOFT" 80,"opsz" 144}
+.phone .hero h1{font-size:2.7rem;margin:12px 0 16px}
+.turn-me{max-width:34rem}
+.turn-me p{font-family:var(--heading);font-weight:300;font-variation-settings:"opsz" 24;font-size:1.4rem;line-height:1.5;color:var(--ink-muted);margin:0 0 .85em}
+.turn-me p:last-of-type{margin-bottom:0}
+.turn-me p em{font-style:italic;color:var(--accent);font-variation-settings:"SOFT" 50,"opsz" 24}
+.phone .turn-me p{font-size:1.18rem}
+.sign{margin-top:16px;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.sign .who{font-family:var(--heading);font-style:italic;font-weight:300;font-variation-settings:"opsz" 18,"SOFT" 50;font-size:.95rem;color:var(--ink-subtle)}
+.sign .tag{font-family:var(--mono);font-weight:500;font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-subtle)}
+
+.replies{margin-top:34px;display:flex;flex-direction:column;gap:11px}
+.phone .replies{margin-top:26px}
+.replies .mlink.talk{color:var(--ink)}
+.replies .mlink.talk::after{color:var(--accent)}
+
+.composer{margin-top:34px;max-width:44rem;display:flex;align-items:flex-end;gap:18px;border-bottom:1px solid var(--rule-strong);padding-bottom:12px}
+.phone .composer{margin-top:26px}
+.composer .ph{flex:1;font-family:var(--heading);font-weight:300;font-variation-settings:"opsz" 24;font-size:1.15rem;color:var(--ink-subtle);font-style:italic}
+.phone .composer .ph{font-size:1.02rem}
+.composer .send{font-family:var(--mono);font-weight:500;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);white-space:nowrap}
+.disclosure{margin-top:14px;display:flex;flex-wrap:wrap;gap:6px 22px;font-family:var(--mono);font-weight:400;font-size:.64rem;letter-spacing:.06em;color:var(--ink-subtle)}
+.disclosure a{color:inherit;text-decoration:underline;text-underline-offset:3px}
+
+/* the running conversation (state 2) sits in the same left-rail structure as the lists */
+.thread{max-width:72rem;margin:0 auto;padding-top:44px}
+.phone .thread{padding-top:30px}
+.entry{display:grid;grid-template-columns:11rem minmax(0,1fr);gap:0 2.5rem;padding:26px 0;border-top:1px solid var(--rule)}
+.phone .entry{grid-template-columns:1fr;gap:10px}
+.entry .rail{font-family:var(--mono);font-weight:500;font-size:.7rem;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-subtle);padding-top:4px}
+.entry .rail b{display:block;color:var(--accent);font-weight:500}
+.entry .rail span{display:block;margin-top:6px;font-size:.62rem;letter-spacing:.1em}
+.entry .text{max-width:42rem}
+.entry.visitor .text{font-family:var(--heading);font-weight:300;font-variation-settings:"opsz" 24;font-size:1.25rem;line-height:1.45;color:var(--ink)}
+.phone .entry.visitor .text{font-size:1.1rem}
+.entry.brain .text p{font-family:var(--sans);font-weight:400;font-size:.98rem;line-height:1.6;color:var(--ink-muted);margin:0 0 .85em}
+.entry.brain .text p:last-child{margin-bottom:0}
+.source{margin-top:14px;display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.source .k{font-family:var(--mono);font-weight:500;font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+.source .t{font-family:var(--heading);font-weight:400;font-variation-settings:"SOFT" 30,"opsz" 48;font-size:1.25rem;color:var(--ink);text-decoration:none;letter-spacing:-.01em}
+.source .d{font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-subtle)}
+
+.escalate{margin-top:26px;border:1px solid var(--rule-strong);padding:22px 24px 20px;max-width:34rem;background:var(--paper-soft)}
+.phone .escalate{padding:18px}
+.escalate .k{display:block;color:var(--accent);margin-bottom:10px}
+.escalate p{font-family:var(--heading);font-weight:300;font-variation-settings:"opsz" 18;font-size:1.02rem;line-height:1.5;color:var(--ink-muted);margin:0 0 18px}
+.escalate .row{display:grid;grid-template-columns:1fr 1fr;gap:18px 22px}
+.phone .escalate .row{grid-template-columns:1fr;gap:16px}
+.field{display:grid;gap:6px}
+.field label{font-family:var(--mono);font-weight:500;font-size:.6rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-subtle)}
+.field .in{border-bottom:1px solid var(--rule-strong);padding:6px 0 8px;font-family:var(--sans);font-size:.95rem;color:var(--ink-subtle);min-height:30px}
+.field.wide{grid-column:1/-1}
+.field.wide .in{min-height:52px}
+.escalate .actions{margin-top:22px;display:flex;justify-content:space-between;align-items:baseline;gap:14px;flex-wrap:wrap}
+.escalate .actions .note{font-family:var(--mono);font-size:.6rem;letter-spacing:.06em;color:var(--ink-subtle)}
+
+/* ---- numbered sections, as on the live site ---- */
+.section{padding:80px 48px;border-bottom:1px solid var(--rule)}
+.phone .section{padding:48px 20px}
+.section-inner{max-width:72rem;margin:0 auto;display:grid;grid-template-columns:11rem minmax(0,1fr);gap:0 2.5rem}
+.phone .section-inner{grid-template-columns:1fr;gap:26px}
+.section h2{font-family:var(--heading);font-weight:400;font-variation-settings:"opsz" 48,"SOFT" 30;font-size:clamp(1.75rem,2.6vw,2.1rem);line-height:1.05;letter-spacing:-.015em;color:var(--ink);margin:0}
+.section .sub{font-family:var(--heading);font-style:italic;font-weight:300;font-variation-settings:"opsz" 18,"SOFT" 50;font-size:.95rem;line-height:1.5;color:var(--ink-subtle);margin:12px 0 0;max-width:22ch}
+.list{border-left:1px solid var(--rule);padding-left:2.5rem}
+.phone .list{border-left:0;padding-left:0}
+.item{padding:0 0 30px;margin-bottom:30px;border-bottom:1px solid var(--rule);text-decoration:none;color:inherit;display:block;max-width:44rem}
+.item:last-of-type{border-bottom:0;margin-bottom:8px}
+.item h3{font-family:var(--heading);font-weight:400;font-variation-settings:"opsz" 96,"SOFT" 30;font-size:clamp(1.75rem,3.2vw,2.65rem);line-height:1.05;letter-spacing:-.018em;color:var(--ink);margin:12px 0 8px}
+.phone .item h3{font-size:1.75rem}
+.item .date{font-family:var(--mono);font-weight:500;font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-subtle)}
+.item p{font-family:var(--sans);font-size:.88rem;line-height:1.55;color:var(--ink-muted);margin:12px 0 0}
+
+.site-footer{background:var(--paper-soft);border-top:1px solid var(--rule);padding:32px 48px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:14px 24px;align-items:center}
+.phone .site-footer{padding:26px 20px}
+.site-footer .b{font:400 1rem var(--heading);font-variation-settings:"SOFT" 30,"opsz" 24;color:var(--ink)}
+.site-footer .s{font-size:.75rem;color:var(--ink-subtle)}
+.site-footer nav{display:flex;gap:18px;flex-wrap:wrap}
+
+.hidden{display:none !important}
+</style>
+</head>
+<body>
+<div class="study">
+  <div class="study-head">
+    <div>
+      <h1>yeehaa.io · landing as a conversation</h1>
+      <p>Design study for the public-ask plan, Slices A and B, built on the live site's tokens and section structure. The first turn is authored copy from the site's content repo. Nothing here sends or generates anything.</p>
+    </div>
+    <div class="study-controls">
+      <button id="stateA" aria-pressed="true">1 · landing</button>
+      <button id="stateB" aria-pressed="false">2 · after a question</button>
+      <button id="themeBtn" aria-pressed="false">dark</button>
+    </div>
+  </div>
+
+  <div class="frames">
+  <div>
+  <div class="frame-label">Desktop</div>
+  <div class="frame" id="desktop">
+    <header class="site-header">
+      <a class="brand" href="#">Yeehaa</a>
+      <nav><a class="nav-link" href="#">Essays</a><a class="nav-link" href="#">Projects</a><a class="nav-link" href="#">Presentations</a><a class="nav-link" href="#">Agents</a><a class="nav-link" href="#">About</a><span class="toggle">☼</span></nav>
+    </header>
+
+    <section class="hero" aria-label="A note from yeehaa, and a place to reply">
+      <div class="hero-inner">
+        <span class="mono eyebrow dash">Yeehaa</span>
+        <h1>AI that <em>stays yours</em></h1>
+
+        <!-- Slice A: authored opening turn. Rendered from site content, never generated. -->
+        <div class="turn-me">
+          <p>I work on how organizations hold what they know, and what happens to that now that AI can read all of it.</p>
+          <p>Most of what's on offer moves your knowledge onto a platform and rents you back a smarter version. I think it should stay where it was made, and the tools should come to it. That's what I'm building with <em>Rizom</em>.</p>
+          <p>This page is my brain, not a chatbot. It answers from my notes and essays. Ask it about the work, or ask to talk to me and I'll get the message.</p>
+          <div class="sign"><span class="who">— Jan Hein</span><span class="tag">written, not generated</span></div>
+        </div>
+
+        <!-- Suggested replies: fill the composer, never submit -->
+        <div class="replies state-a">
+          <a class="mlink" href="#">What does “stays yours” mean in practice</a>
+          <a class="mlink" href="#">Who is Rizom for</a>
+          <a class="mlink" href="#">What did you build at Lefthoek</a>
+          <a class="mlink talk" href="#">I'd like to talk to you</a>
+        </div>
+
+        <!-- State 2: the thread continues below the note, in the site's rail layout -->
+        <div class="thread state-b hidden">
+          <div class="entry visitor">
+            <div class="rail"><b>You</b><span>just now</span></div>
+            <div class="text">We're a research network with fifteen years of reports and mailing lists. What would “stays ours” actually look like for us?</div>
+          </div>
+          <div class="entry brain">
+            <div class="rail"><b>Yeehaa's brain</b><span>from public notes</span></div>
+            <div class="text">
+              <p>For a network like yours it means three things. The reports and list archives are imported into a knowledge base you run, on your own domain, with the originals kept as files you can walk away with. Agents that answer questions or draft summaries read from that base and nothing else. And membership is yours to define: who can ask, who can add, who can see what.</p>
+              <p>Jan Hein wrote about the first two in the essay below. I don't have public notes on pricing or a rollout for a network your size. If you want that, ask him directly.</p>
+              <div class="source"><span class="k">Essay</span><a class="t" href="#">Hiding in Plain Sight</a><span class="d">June 3, 2026</span></div>
+
+              <!-- Slice B: visitor-initiated escalation. A bounded write to the owner's inbox, nothing into the brain. -->
+              <div class="escalate">
+                <span class="mono k">Talk to Jan Hein</span>
+                <p>This goes to his inbox with a link to this conversation. He replies by email or suggests a call. Nothing here is added to the brain.</p>
+                <div class="row">
+                  <div class="field"><label>Name</label><div class="in"></div></div>
+                  <div class="field"><label>Email</label><div class="in"></div></div>
+                  <div class="field wide"><label>Anything he should know first · optional</label><div class="in"></div></div>
+                </div>
+                <div class="actions"><a class="mlink" href="#">Send to Jan Hein</a><span class="note">one request per conversation · kept as long as the conversation</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="composer">
+          <span class="ph state-a">Ask about the work, or ask to talk to me</span>
+          <span class="ph state-b hidden">Reply</span>
+          <span class="send">Ask →</span>
+        </div>
+        <div class="disclosure">
+          <span>Replies come from a brain that reads only public notes</span>
+          <span>Conversations are private to you and expire</span>
+          <a href="#">Privacy and limits</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-inner">
+        <div>
+          <span class="mono eyebrow">01</span>
+          <h2>Essays</h2>
+          <p class="sub">On institutions, trust, and what our tools do to both.</p>
+        </div>
+        <div class="list">
+          <a class="item" href="#"><span class="mono eyebrow">004 · New institutions</span><h3>A Colleague Without Context</h3><span class="date">June 24, 2026</span><p>Organizations want AI to provide the leverage of a machine, the judgment of a colleague, and the accountability of neither. But AI does not multiply intelligence in the abstract. It multiplies the institution it enters.</p></a>
+          <a class="item" href="#"><span class="mono eyebrow">003 · New institutions</span><h3>Hiding in Plain Sight</h3><span class="date">June 3, 2026</span><p>Modern institutions hardly ever suffer from a lack of information. They suffer from a surplus of traces that no longer add up to memory.</p></a>
+          <a class="item" href="#"><span class="mono eyebrow">001 · New institutions</span><h3>Urging New Institutions</h3><span class="date">December 2, 2025</span><p>Institutions don't protect democracy, social contracts do. This article introduces a series on rebuilding civil societies with decentralized tools, grounded in aligned values and functioning social contracts.</p></a>
+          <a class="mlink" href="#">View all essays</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-inner">
+        <div>
+          <span class="mono eyebrow">02</span>
+          <h2>Presentations</h2>
+          <p class="sub">Arguments made out loud.</p>
+        </div>
+        <div class="list">
+          <a class="item" href="#"><h3>Organizations as Living Systems</h3><span class="date">April 27, 2026</span><p>A provocative but hopeful talk on why AI is forcing organizations to stop behaving like machines and start evolving as living systems.</p></a>
+          <a class="mlink" href="#">View all presentations</a>
+        </div>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <div><div class="b">Yeehaa</div><div class="s">Jan Hein Hoogstad</div></div>
+      <nav><a class="nav-link" href="#">Essays</a><a class="nav-link" href="#">Projects</a><a class="nav-link" href="#">About</a><a class="nav-link" href="#">Privacy</a></nav>
+      <div class="s">© 2026</div>
+    </footer>
+  </div>
+  </div>
+
+  <div>
+  <div class="frame-label">Phone · 390</div>
+  <div class="frame phone" id="phone"></div>
+  </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var desk=document.getElementById('desktop'),phone=document.getElementById('phone');
+  phone.innerHTML=desk.innerHTML;
+  var a=document.getElementById('stateA'),b=document.getElementById('stateB'),t=document.getElementById('themeBtn');
+  function setState(which){
+    document.querySelectorAll('.state-a').forEach(function(el){el.classList.toggle('hidden',which!=='a')});
+    document.querySelectorAll('.state-b').forEach(function(el){el.classList.toggle('hidden',which!=='b')});
+    a.setAttribute('aria-pressed',String(which==='a'));b.setAttribute('aria-pressed',String(which==='b'));
+  }
+  a.addEventListener('click',function(){setState('a')});
+  b.addEventListener('click',function(){setState('b')});
+  t.addEventListener('click',function(){
+    var dark=document.documentElement.getAttribute('data-theme')==='dark';
+    document.documentElement.setAttribute('data-theme',dark?'light':'dark');
+    t.setAttribute('aria-pressed',String(!dark));
+  });
+})();
+</script>
+</body>
+</html>

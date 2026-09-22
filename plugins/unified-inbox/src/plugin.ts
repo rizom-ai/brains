@@ -1,9 +1,11 @@
 import {
   defineServicePlugin,
+  defineSubscription,
   z,
   type ServicePackageDefinition,
 } from "@brains/sdk/services";
 import { defineDataSource } from "@brains/sdk/entities";
+import { inboxWorkspaceRequest } from "@brains/contracts";
 import { InboxDataSource } from "./inbox-datasource";
 import { InboxOperatorService } from "./operator-service";
 import { unifiedInboxDigestCheck } from "./digest";
@@ -54,6 +56,13 @@ const unifiedInboxPackage: ServicePackageDefinition<
         name: "Unified Inbox DataSource",
         description: "Aggregates live source-owned operator attention",
         fetch: async () => state.dataSource.getInboxData(),
+      }),
+    ],
+
+    subscriptions: ({ workspaceUrl }) => [
+      defineSubscription({
+        ...inboxWorkspaceRequest,
+        handle: () => ({ href: workspaceUrl("inbox") }),
       }),
     ],
 

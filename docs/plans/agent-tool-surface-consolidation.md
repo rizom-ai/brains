@@ -36,7 +36,7 @@ Reduce model context without hiding useful capability, weakening authorization, 
 - Playbook lifecycle actions use `playbook_manage`.
 - Directory synchronization, status, and history use `directory_sync` with composition-aware variants.
 - Publication queueing and direct publication use `publishing_manage`, retaining confirmation and target-reuse rules.
-- Configured Buttondown subscriber actions use `newsletter_subscribers`.
+- Configured newsletter provider subscriber actions use `delivery_subscribers` in the declarative SDK.
 - Stock-photo search and selection remain separate because selection must bind prior provider metadata.
 - Cloudflare's raw query remains available only to Admin debug-MCP clients.
 - Passkey setup URL retrieval is agent-visible only while setup is incomplete.

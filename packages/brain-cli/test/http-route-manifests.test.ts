@@ -248,17 +248,34 @@ describe("canonical HTTP route manifests", () => {
     );
   });
 
-  test("records the configured newsletter subscribe route without making it a public fixture", async () => {
-    expect(
-      routeManifest(
-        await registered(
-          instantiatePluginPackageDefinition(
-            newsletterPackage,
-            { apiKey: "fixture-api-key" },
-            { name: "@brains/newsletter", version: "0.0.0-test" },
+  test.each([
+    {
+      fixture: "newsletter",
+      provider: { type: "buttondown", apiKey: "fixture-api-key" },
+    },
+    {
+      fixture: "newsletter-resend",
+      provider: {
+        type: "resend",
+        apiKey: "fixture-api-key",
+        segmentId: "fixture-segment",
+        from: "Newsletter <newsletter@example.com>",
+      },
+    },
+  ] as const)(
+    "records the configured $fixture subscribe route",
+    async ({ fixture, provider }) => {
+      expect(
+        routeManifest(
+          await registered(
+            instantiatePluginPackageDefinition(
+              newsletterPackage,
+              { provider },
+              { name: "@brains/newsletter", version: "0.0.0-test" },
+            ),
           ),
         ),
-      ),
-    ).toEqual(readExpected("newsletter"));
-  });
+      ).toEqual(readExpected(fixture));
+    },
+  );
 });

@@ -13,12 +13,12 @@ Coverage checks compare eval assertions against Admin-visible agent tools. Direc
 
 Canonical replacements for removed legacy registered tool names:
 
-| Prior namespace                       | Canonical tool           |
-| ------------------------------------- | ------------------------ |
-| Playbook lifecycle/status/event tools | `playbooks_manage`       |
-| Directory sync/status/history tools   | `directory_sync`         |
-| Publishing queue/publish tools        | `publishing_manage`      |
-| Buttondown subscriber tools           | `buttondown_subscribers` |
+| Prior namespace                       | Canonical tool         |
+| ------------------------------------- | ---------------------- |
+| Playbook lifecycle/status/event tools | `playbooks_manage`     |
+| Directory sync/status/history tools   | `directory_sync`       |
+| Publishing queue/publish tools        | `publishing_manage`    |
+| Newsletter provider subscriber tools  | `delivery_subscribers` |
 
 Maintenance operations `content-pipeline_ensure-assets` and `obsidian-vault_sync-templates` now run through lifecycle/direct service paths instead of the agent or direct-MCP tool registry.
 

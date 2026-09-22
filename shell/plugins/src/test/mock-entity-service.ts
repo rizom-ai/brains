@@ -1,5 +1,6 @@
 import {
   getVisibleContentVisibilities,
+  EntityWriteConflictError,
   normalizeContentVisibility,
   type BaseEntity,
   type CreateEntityRequest,
@@ -175,6 +176,7 @@ export function createMockEntityService(
       // `EntityInput<T>` leaves id, timestamps and contentHash to the service,
       // so the fake fills them the way the real one does rather than assuming
       // the caller passed a complete entity.
+      request.options?.signal?.throwIfAborted();
       const input = request.entity;
       const now = new Date().toISOString();
       const id = input.id ?? `entity-${Date.now()}`;
@@ -191,6 +193,26 @@ export function createMockEntityService(
       };
       store.types.add(entity.entityType);
       const materialized = store.materialize(entity);
+      await store.persistValidators.get(entity.entityType)?.(entity, {
+        operation: "create",
+      });
+      request.options?.signal?.throwIfAborted();
+      await request.options?.beforeWrite?.({
+        ...entity,
+        ...materialized,
+        content:
+          store.adapters.get(entity.entityType)?.toMarkdown(entity) ??
+          entity.content,
+      });
+      request.options?.signal?.throwIfAborted();
+      // Check after asynchronous guards, with no yield before the write.
+      const condition = request.options?.conditionalWrite;
+      if (
+        condition &&
+        (condition.expectedRevision !== null || store.entities.has(id))
+      ) {
+        throw new EntityWriteConflictError(entity.entityType, id);
+      }
       store.entities.set(id, { ...entity, ...materialized });
       store.markExportIntent(
         entity.entityType,
@@ -228,9 +250,23 @@ export function createMockEntityService(
     updateEntity: async <T extends BaseEntity>(
       request: UpdateEntityRequest<T>,
     ): Promise<EntityMutationResult> => {
+      request.options?.signal?.throwIfAborted();
       const entity = request.entity;
       if (!entity.id) throw new Error("Entity must have an id");
       const { content, metadata, contentHash } = store.materialize(entity);
+      await store.persistValidators.get(entity.entityType)?.(entity, {
+        operation: "update",
+      });
+      request.options?.signal?.throwIfAborted();
+      await request.options?.beforeWrite?.({
+        ...entity,
+        metadata,
+        contentHash,
+        content:
+          store.adapters.get(entity.entityType)?.toMarkdown(entity) ??
+          entity.content,
+      });
+      request.options?.signal?.throwIfAborted();
       // Mirror the real entity service: a byte-identical write is skipped —
       // no store, no event, no job.
       const existing = store.entities.get(entity.id);

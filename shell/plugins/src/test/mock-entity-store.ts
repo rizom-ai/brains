@@ -5,6 +5,7 @@ import {
   type EntityAdapter,
   type EntityExportIntent,
   type IEntityRegistry,
+  type PersistValidator,
 } from "@brains/entity-service";
 
 type EntityTypeConfig = NonNullable<
@@ -21,6 +22,7 @@ type EntityTypeConfig = NonNullable<
  */
 export interface MockEntityStore {
   readonly entities: Map<string, BaseEntity>;
+  readonly persistValidators: Map<string, PersistValidator>;
   readonly exportIntents: Map<string, EntityExportIntent>;
   readonly types: Set<string>;
   readonly adapters: Map<string, EntityAdapter<BaseEntity>>;
@@ -62,6 +64,7 @@ export function createMockEntityStore(): MockEntityStore {
 
   return {
     entities,
+    persistValidators: new Map(),
     exportIntents,
     types,
     adapters,

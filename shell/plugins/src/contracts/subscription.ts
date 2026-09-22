@@ -85,6 +85,8 @@ export interface SubscriptionDefinition<
    * are never fed back into the schema as though they were fresh inputs.
    */
   readonly response?: TResponseSchema | undefined;
+  /** Opt-in internal request handling in workers too. Named consumer: Notifications. */
+  readonly execution?: "all-roles" | undefined;
   handle(context: {
     readonly payload: z.output<TPayloadSchema>;
     /**

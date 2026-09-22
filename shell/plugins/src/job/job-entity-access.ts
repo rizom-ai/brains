@@ -227,9 +227,28 @@ export function createJobEntityAccess(
     search: searchScoped,
     create: <T extends BaseEntity>(
       entity: EntityInput<T>,
+      options?: Parameters<JobEntityAccess["create"]>[1],
     ): Promise<EntityMutationResult> => {
       assertOwned(entity.entityType);
-      return entityService.createEntity({ entity });
+      const beforeWrite = options?.beforeWrite;
+      return entityService.createEntity({
+        entity,
+        options: {
+          ...(options?.signal ? { signal: options.signal } : {}),
+          ...(beforeWrite
+            ? {
+                beforeWrite: async (
+                  stored: Readonly<BaseEntity>,
+                ): Promise<void> => {
+                  await beforeWrite(Object.freeze(structuredClone(stored)));
+                },
+              }
+            : {}),
+          ...(options?.conditionalWrite
+            ? { conditionalWrite: { expectedRevision: null } }
+            : {}),
+        },
+      });
     },
     delete: async (entityType: string, id: string): Promise<boolean> => {
       assertOwned(entityType);
@@ -237,9 +256,16 @@ export function createJobEntityAccess(
     },
     update: <T extends BaseEntity>(
       entity: T,
+      options?: Parameters<JobEntityAccess["update"]>[1],
     ): Promise<EntityMutationResult> => {
       assertOwned(entity.entityType);
-      return entityService.updateEntity({ entity });
+      return entityService.updateEntity({
+        entity,
+        options: {
+          ...(options?.signal ? { signal: options.signal } : {}),
+          expectedContentHash: options?.expectedContentHash,
+        },
+      });
     },
     createPending: async <T extends BaseEntity>(
       entity: EntityInput<T> & { readonly id: string },

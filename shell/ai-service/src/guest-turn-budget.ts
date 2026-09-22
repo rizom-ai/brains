@@ -49,6 +49,16 @@ function serialize(value: unknown): string {
   }
 }
 
+/** Monotonic progress resists wall-clock rollback; wall elapsed time also catches
+ * suspend/resume on platforms whose monotonic clock pauses during system sleep.
+ */
+function elapsedClock(): () => number {
+  const monotonicStart = performance.now();
+  const wallStart = Date.now();
+  return (): number =>
+    Math.max(performance.now() - monotonicStart, Date.now() - wallStart);
+}
+
 /** Per-turn, never shared across concurrent conversations. No expiry-based refunds. */
 export class GuestTurnBudget {
   readonly policy: GuestExecutionPolicy;
@@ -56,6 +66,9 @@ export class GuestTurnBudget {
   private readonly accounting: GuestExecutionAccounting;
   private readonly timer: ReturnType<typeof setTimeout>;
   private readonly cancellation: AbortController;
+  private readonly clock: () => number;
+  private readonly deadlineAt: number;
+  private lastClock: number;
   private remainingCost: number;
   private remainingOutput: number;
   private modelCalls = 0;
@@ -67,12 +80,19 @@ export class GuestTurnBudget {
     policy: GuestExecutionPolicy,
     accounting?: GuestExecutionAccounting,
     signal?: AbortSignal,
+    clock: () => number = elapsedClock(),
   ) {
     const parsed = guestExecutionPolicySchema.safeParse(policy);
     if (!parsed.success) throw new Error("Guest execution limits required");
     if (!accounting) throw new Error("Guest accounting unavailable");
     this.policy = parsed.data;
     this.accounting = accounting;
+    this.clock = clock;
+    this.lastClock = this.readClock();
+    this.deadlineAt =
+      this.lastClock + this.policy.limits.requestTimeoutSeconds * 1000;
+    if (this.deadlineAt > Number.MAX_SAFE_INTEGER)
+      throw new Error("Guest execution clock unavailable");
     this.remainingCost = this.policy.maxCostMicroUsd;
     this.remainingOutput = this.policy.limits.outputTokens;
     const deadline = new AbortController();
@@ -96,6 +116,7 @@ export class GuestTurnBudget {
   }
 
   exhausted(): boolean {
+    this.checkDeadline();
     return (
       this.closed ||
       this.signal.aborted ||
@@ -236,8 +257,41 @@ export class GuestTurnBudget {
   }
 
   private assertLive(): void {
+    this.checkDeadline();
     this.signal.throwIfAborted();
     if (this.closed) throw new Error("Guest budget closed");
+  }
+
+  private readClock(): number {
+    let now: number;
+    try {
+      now = this.clock();
+    } catch {
+      // Clock adapters may throw private backend details. Never retain them.
+      throw new Error("Guest execution clock unavailable");
+    }
+    if (!Number.isFinite(now) || now < 0 || now > Number.MAX_SAFE_INTEGER)
+      throw new Error("Guest execution clock unavailable");
+    return now;
+  }
+
+  private checkDeadline(): void {
+    if (this.closed || this.signal.aborted) return;
+    let now: number;
+    try {
+      now = this.readClock();
+    } catch {
+      // A missing clock is not extra execution time; request cancellation.
+      this.cancellation.abort(new Error("Guest execution clock unavailable"));
+      return;
+    }
+    if (now < this.lastClock) {
+      this.cancellation.abort(new Error("Guest execution clock unavailable"));
+      return;
+    }
+    this.lastClock = now;
+    if (now >= this.deadlineAt)
+      this.cancellation.abort(new Error("Guest request deadline exceeded"));
   }
 
   private charge(cost: number): void {

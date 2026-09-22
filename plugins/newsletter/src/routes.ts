@@ -1,6 +1,6 @@
 import { z } from "@brains/sdk/services";
 import { getErrorMessage } from "@brains/utils/error";
-import type { ButtondownClient } from "./lib/buttondown-client";
+import type { NewsletterDeliveryProvider } from "./contracts";
 import { subscribe } from "./tools";
 
 export const SUBSCRIBE_PATH = "/api/newsletter/subscribe";
@@ -50,7 +50,7 @@ const redirect = (location: string): Response =>
  */
 export async function handleSubscribe(
   request: Request,
-  client: ButtondownClient | undefined,
+  client: NewsletterDeliveryProvider | undefined,
 ): Promise<Response> {
   const wantsJson = (request.headers.get("accept") ?? "").includes(
     "application/json",

@@ -1,5 +1,15 @@
 # @rizom/brain
 
+## 0.2.0-alpha.401
+
+### Minor Changes
+
+- [#351](https://github.com/rizom-ai/brains/pull/351) [`8458106`](https://github.com/rizom-ai/brains/commit/845810658c7a7424f366e2553cd5289c100b2b82) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add a default-off contact capability for explicitly configured brains. Contact requests are stored as restricted, non-indexed Markdown records behind bounded public form admission, recovered through durable notification delivery, exposed only in the authenticated Inbox, and removed by bounded retention maintenance. Professional sites can opt into an authored contact-first homepage opening when the matching public form is available.
+
+### Patch Changes
+
+- [#350](https://github.com/rizom-ai/brains/pull/350) [`4692154`](https://github.com/rizom-ai/brains/commit/46921546f52da55ec039ea222ccb7ff1ebb0057f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fail closed when a guest request crosses its elapsed-time deadline even if the event-loop timer has not run yet or the host resumes after sleep. Invalid or regressing clock readings now cancel guest execution without exposing backend details.
+
 ## 0.2.0-alpha.400
 
 ## 0.2.0-alpha.399

@@ -1056,7 +1056,11 @@ interface ServiceDefinitionHeader<
    * this names them. Named consumer: @brains/onboarding, which seeds
    * playbooks.
    */
-  readonly dependsOn?: readonly string[] | undefined;
+  /** Config-dependent ordering for optional integrations, e.g. Contact intake. */
+  readonly dependsOn?:
+    | readonly string[]
+    | ((config: z.output<TConfigSchema>) => readonly string[])
+    | undefined;
   readonly projections?: readonly ProjectionDefinition[] | undefined;
   /**
    * What the service holds while it runs, built once at registration.

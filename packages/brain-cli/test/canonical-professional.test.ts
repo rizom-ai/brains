@@ -123,10 +123,8 @@ describe("canonical professional posture", () => {
       },
     });
     expect(
-      pluginConfig(resolved, "@brains/newsletter:buttondown"),
-    ).toMatchObject({
-      doubleOptIn: true,
-    });
+      pluginConfig(resolved, "@brains/newsletter:delivery"),
+    ).not.toHaveProperty("provider");
     expect(pluginIds(resolved)).toContain("@brains/atproto:atproto");
     expect(pluginIds(resolved)).toContain(
       "@brains/atproto-registry:atproto-registry",

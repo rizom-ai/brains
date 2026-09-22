@@ -1,3 +1,4 @@
+import type { NewsletterConfigInput } from "../src";
 import { afterEach, describe, expect, it } from "bun:test";
 import type { PluginCapabilities } from "@brains/plugins";
 import {
@@ -14,9 +15,9 @@ import {
   stubbableFetch,
 } from "./helpers/install";
 
-const TOOL = "buttondown_subscribers";
+const TOOL = "delivery_subscribers";
 
-describe("buttondown_subscribers", () => {
+describe("delivery_subscribers", () => {
   const harness = createPluginHarness({
     logger: createSilentLogger("newsletter-tools-test"),
   });
@@ -27,7 +28,9 @@ describe("buttondown_subscribers", () => {
   });
 
   async function install(
-    config: { apiKey?: string } = { apiKey: "test-key" },
+    config: NewsletterConfigInput = {
+      provider: { type: "buttondown", apiKey: "test-key" },
+    },
   ): Promise<PluginCapabilities> {
     const { capabilities } = await installNewsletter(harness, config, {
       fetch: network.fetch,

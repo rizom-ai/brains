@@ -1,4 +1,5 @@
 import { createRequester } from "../internal/requester";
+import { toSdkError } from "@brains/contracts";
 import {
   ProjectionJsonObjectSchema,
   copyEntityTypeConfig,
@@ -270,6 +271,24 @@ function scopedTemplateName(
   return `${pluginId}:${localName}`;
 }
 
+function readEntityMarkdown<T>(
+  markdown: string,
+  read: (parsed: {
+    content: string;
+    frontmatter: Record<string, unknown>;
+  }) => T,
+): T {
+  try {
+    const parsed = parseMarkdownWithFrontmatter(markdown, rawFrontmatterSchema);
+    // Visibility belongs to the storage envelope, never a strict domain schema.
+    const { visibility: _visibility, ...frontmatter } = parsed.metadata;
+    return read({ content: parsed.content, frontmatter });
+  } catch (cause) {
+    // YAML errors retain source buffers; private authored content must not leak.
+    throw toSdkError(cause, "invalid_input");
+  }
+}
+
 function entityAdapter(
   definition: AnyEntityDefinition,
 ): EntityAdapter<EntityOf<EntityDefinitionShape>, Record<string, unknown>> {
@@ -297,20 +316,12 @@ function entityAdapter(
      * disappearing.
      */
     fromMarkdown(markdown): Partial<EntityOf<EntityDefinitionShape>> {
-      const parsed = parseMarkdownWithFrontmatter(
-        markdown,
-        rawFrontmatterSchema,
-      );
-      const decoded = definition.markdown
-        ? definition.markdown.decode({
-            content: parsed.content,
-            frontmatter: parsed.metadata,
-          })
-        : { content: parsed.content, metadata: parsed.metadata };
-      return {
-        content: decoded.content,
-        metadata: decoded.metadata,
-      };
+      return readEntityMarkdown(markdown, (parsed) => {
+        const decoded = definition.markdown
+          ? definition.markdown.decode(parsed)
+          : { content: parsed.content, metadata: parsed.frontmatter };
+        return { content: decoded.content, metadata: decoded.metadata };
+      });
     },
     extractMetadata: (entity) => entity.metadata,
     displayTitle: (entity) =>
@@ -323,7 +334,9 @@ function entityAdapter(
         ),
       }),
     parseFrontMatter: (markdown, schemaToParse) =>
-      parseMarkdownWithFrontmatter(markdown, schemaToParse).metadata,
+      readEntityMarkdown(markdown, ({ frontmatter }) =>
+        schemaToParse.parse(frontmatter),
+      ),
     generateFrontMatter(entity): string {
       return generateFrontmatter(encodeParts(definition, entity).frontmatter);
     },
@@ -452,6 +465,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   private readonly scope: (localId: string) => string;
   private readonly entityTypeConfig: EntityTypeConfig | undefined;
   private readonly seed: AnyEntityDefinition["seed"];
+  private readonly validatePersist: AnyEntityDefinition["validatePersist"];
   private readonly templates: AnyEntityDefinition["templates"];
   private readonly dataSources: AnyEntityDefinition["dataSources"];
   private readonly attachments: AnyEntityDefinition["attachments"];
@@ -515,6 +529,7 @@ class DeclarativeEntityPlugin extends EntityPlugin<
         ? undefined
         : copyEntityTypeConfig(entityConfig);
     this.seed = definition.seed;
+    this.validatePersist = definition.validatePersist;
     this.templates = definition.templates;
     this.dataSources = definition.dataSources;
     this.attachments = definition.attachments;
@@ -591,6 +606,20 @@ class DeclarativeEntityPlugin extends EntityPlugin<
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    const validatePersist = this.validatePersist;
+    if (validatePersist) {
+      context.entities.registerPersistValidator(
+        this.entityType,
+        async (entity) => {
+          await validatePersist(
+            Object.freeze({
+              content: entity.content,
+              visibility: entity.visibility,
+            }),
+          );
+        },
+      );
+    }
     if (this.create) {
       const routing = this.create;
       const interceptCreate: CreateInterceptor = async (

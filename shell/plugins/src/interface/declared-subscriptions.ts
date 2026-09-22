@@ -41,7 +41,11 @@ export function registerDeclaredSubscriptions(input: {
       );
     }
     topics.add(subscription.topic);
-    context.messaging.subscribe(subscription.topic, async (message) => {
+    const subscribe =
+      subscription.execution === "all-roles"
+        ? context.messaging.subscribeExecution
+        : context.messaging.subscribe;
+    subscribe(subscription.topic, async (message) => {
       let fallback: SdkErrorCode = "invalid_input";
       try {
         const payload = subscription.payload.parse(message.payload);

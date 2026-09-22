@@ -4,7 +4,7 @@ import {
   z,
   type AnyServiceToolDefinition,
 } from "@brains/sdk/services";
-import type { ButtondownClient } from "./lib/buttondown-client";
+import type { NewsletterDeliveryProvider } from "./contracts";
 
 const toolEmailSchema = z.email({ pattern: z.regexes.html5Email });
 
@@ -82,7 +82,7 @@ export type SubscribedResult = z.output<typeof subscribedSchema>;
 
 /** Add one address, reporting whether it was already on the list. */
 export async function subscribe(
-  client: ButtondownClient,
+  client: NewsletterDeliveryProvider,
   input: {
     email: string;
     name?: string | undefined;
@@ -94,11 +94,11 @@ export async function subscribe(
     ...(input.name && { name: input.name }),
     ...(input.tags && { tags: input.tags }),
   });
-  const alreadySubscribed = subscriber.subscriber_type === "already_subscribed";
+  const alreadySubscribed = subscriber.status === "already_subscribed";
   return {
     subscriberId: subscriber.id,
     email: subscriber.email,
-    status: subscriber.subscriber_type,
+    status: subscriber.status,
     message: alreadySubscribed ? "already_subscribed" : "subscribed",
   };
 }
@@ -109,7 +109,7 @@ export async function subscribe(
  * could only answer "not configured".
  */
 export function subscribersTool(
-  client: ButtondownClient,
+  client: NewsletterDeliveryProvider,
 ): AnyServiceToolDefinition {
   return defineTool({
     name: "subscribers",
@@ -146,14 +146,7 @@ export function subscribersTool(
             ...(input.type && { type: input.type }),
             ...(input.limit && { limit: input.limit }),
           });
-          return {
-            subscribers: result.results.map((subscriber) => ({
-              id: subscriber.id,
-              email: subscriber.email,
-              status: subscriber.subscriber_type,
-            })),
-            count: result.count,
-          };
+          return result;
         }
       }
     },

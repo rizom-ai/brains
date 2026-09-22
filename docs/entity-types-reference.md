@@ -430,7 +430,7 @@ For LinkedIn, social posts support text-only posts, image posts via `coverImageI
 
 ### `newsletter`
 
-Newsletter entities store email drafts and delivery metadata. The entity type is declared by the `@brains/newsletter` service package (`plugins/newsletter`) alongside the generation and Buttondown send workflows.
+Newsletter entities store email drafts and delivery metadata. The entity type is declared by the `@brains/newsletter` service package (`plugins/newsletter`) alongside generation and selectable Buttondown or Resend delivery workflows. Resend delivery uses Contacts assigned to a configured Segment and sends through Broadcasts.
 
 Key frontmatter:
 
@@ -440,7 +440,41 @@ Key frontmatter:
 - `scheduledFor`
 - `sentAt`
 - `buttondownId`
+- `resendBroadcastId`
 - `sourceEntityType`
+
+A brain selects at most one delivery provider. Resend configuration requires an API key, a Segment ID, and a verified sender; Buttondown configuration may enable its native double opt-in behavior. With no provider configured, newsletter drafts and generation remain available while subscriber tools, signup UI, and external publishing stay disabled.
+
+```yaml
+plugins:
+  newsletter:
+    provider:
+      type: resend
+      apiKey: "${RESEND_API_KEY}"
+      segmentId: "${RESEND_NEWSLETTER_SEGMENT_ID}"
+      from: "Newsletter <newsletter@example.com>"
+```
+
+Optional `replyTo` and `topicId` fields belong inside `provider`. Both providers use the declarative `/api/newsletter/subscribe` form route and the `delivery_subscribers` management tool.
+
+Use `type: "buttondown"` with `apiKey` and optional `doubleOptIn` for Buttondown. The previous flat `{ apiKey, doubleOptIn }` newsletter configuration is not accepted.
+
+## Private operational entities
+
+### `contact-request`
+
+`contact-request` records are created only by the explicitly configured, default-off `@brains/contact` capability. They are always `restricted`, excluded from embeddings, full-text search, and projection inputs, and shown only through the Admin-only contact Inbox source. Submitted name, email, and message stay in the Markdown body/frontmatter rather than query metadata.
+
+Key frontmatter:
+
+- `name`
+- `email`
+- `receivedAt`
+- `expiresAt`
+- `status` (`new` or `handled`)
+- `notification` (`pending`, `sent`, or `failed`)
+
+The configured retention period must be finite and no longer than 90 days. Startup and recurring maintenance recover pending notification jobs and delete expired records; deployment-specific retention, backup privacy, proxy policy, limits, publication, and enablement require separate approval.
 
 ## Agent directory entities
 

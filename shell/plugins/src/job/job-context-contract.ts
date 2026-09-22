@@ -2,6 +2,8 @@ import type {
   BaseEntity,
   ContentVisibility,
   CreateInput,
+  CreateEntityOptions,
+  UpdateEntityOptions,
   CreateResult,
   EntityInput,
   EntityMutationResult,
@@ -168,8 +170,16 @@ export interface JobEntityAccess {
   ): Promise<EntityOf<TDefinition> | null>;
   create<T extends BaseEntity>(
     entity: EntityInput<T>,
+    options?: Pick<CreateEntityOptions, "signal" | "beforeWrite"> & {
+      /** Atomic create-if-absent, never revision-based replacement. */
+      readonly conditionalWrite?: { readonly expectedRevision: null };
+    },
   ): Promise<EntityMutationResult>;
-  update<T extends BaseEntity>(entity: T): Promise<EntityMutationResult>;
+  /** Conditional owned writes. Named consumer: bounded Contact intake/delivery. */
+  update<T extends BaseEntity>(
+    entity: T,
+    options?: Pick<UpdateEntityOptions, "signal" | "expectedContentHash">,
+  ): Promise<EntityMutationResult>;
   /**
    * Remove one of this package's own entities.
    *

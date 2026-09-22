@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   - playbook lifecycle actions now use `playbook_manage`;
   - directory sync/status/history actions now use `directory_sync`;
   - publishing queue and publish actions now use `publishing_manage`;
-  - Buttondown subscriber subscribe/unsubscribe/list actions now use `newsletter_subscribers`.
+  - Newsletter provider subscribe/unsubscribe/list actions use `delivery_subscribers` in the declarative SDK.
 - Split internal tool registration from agent and direct-MCP exposure using `agentTool` and `directMcpExposure` metadata. MCP `chat` and `confirm` are direct-MCP tools only, and direct MCP basic/debug exposure is now evaluated independently from the agent tool set. Rover preset agent-tool snapshots are documented in [Rover agent tool surface](../rover-agent-tool-surface.md).
 - Changed MCP `basic` mode to advertise only `chat` and `confirm`, ensuring reads and writes use the brain's system prompt and context. Raw tools now default to the Admin-only `debug` surface unless they explicitly opt into `basic`; debug behavior is otherwise unchanged.
 - Cloudflare `analytics_query` remains available to Admin operators through debug MCP but is no longer exposed as an agent tool; aggregate traffic questions should route through the system analytics/insights surface until the typed `system_analytics` replacement lands.

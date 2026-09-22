@@ -1,3 +1,4 @@
+import type { NewsletterConfigInput } from "../src";
 import { afterEach, describe, expect, it } from "bun:test";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import {
@@ -123,7 +124,7 @@ describe("newsletter package", () => {
 
   describe("publish provider", () => {
     async function registrations(
-      config: { apiKey?: string } = {},
+      config: NewsletterConfigInput = {},
     ): Promise<Array<{ type: string; payload: unknown }>> {
       const messages: Array<{ type: string; payload: unknown }> = [];
       harness.subscribe("publish:register", async (msg) => {
@@ -141,7 +142,9 @@ describe("newsletter package", () => {
     }
 
     it("announces Buttondown as the newsletter publisher once configured", async () => {
-      const messages = await registrations({ apiKey: "test-key" });
+      const messages = await registrations({
+        provider: { type: "buttondown", apiKey: "test-key" },
+      });
 
       expect(messages).toHaveLength(1);
       expect(messages[0]?.payload).toMatchObject({
@@ -161,7 +164,7 @@ describe("newsletter package", () => {
 
   describe("signup slot", () => {
     async function slotRegistrations(
-      config: { apiKey?: string } = {},
+      config: NewsletterConfigInput = {},
     ): Promise<unknown[]> {
       const registered: unknown[] = [];
       harness.subscribe(SITE_BUILDER_CHANNELS.slotRegister, async (msg) => {
@@ -175,12 +178,14 @@ describe("newsletter package", () => {
     }
 
     it("offers the footer signup form to the site once Buttondown is configured", async () => {
-      const registered = await slotRegistrations({ apiKey: "test-key" });
+      const registered = await slotRegistrations({
+        provider: { type: "buttondown", apiKey: "test-key" },
+      });
 
       expect(registered).toHaveLength(1);
       expect(registered[0]).toMatchObject({
         slotName: "footer-top",
-        pluginId: "buttondown",
+        pluginId: "delivery",
       });
       const payload = registered[0];
       const render =

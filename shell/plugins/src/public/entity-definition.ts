@@ -72,6 +72,10 @@ export function defineEntity<
     EntityDefinition<TType, TMetadataSchema>["displayTitle"]
   >;
   readonly config?: EntityDefinitionConfig | undefined;
+  readonly validatePersist?: EntityDefinition<
+    TType,
+    TMetadataSchema
+  >["validatePersist"];
   readonly actions?: EntityActionPolicyRule | undefined;
   readonly coverImage?: boolean | undefined;
   readonly checks?: readonly EntityCheckDeclaration[] | undefined;

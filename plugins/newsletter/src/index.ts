@@ -6,18 +6,16 @@ import {
   defineSubscription,
   verbatim,
   type LoggerContract,
-  type PublishProvider,
-  type PublishResult,
   type ServicePackageDefinition,
 } from "@brains/sdk/services";
 import { NewsletterSignup } from "@rizom/brain-ui";
 import { createElement as h } from "react";
 import { newsletterConfigSchema } from "./config";
 import { newsletterEntity } from "./entity";
-import {
-  ButtondownClient,
-  type ButtondownFetch,
-} from "./lib/buttondown-client";
+import type { ButtondownFetch } from "./lib/buttondown-client";
+import { ButtondownNewsletterProvider } from "./buttondown-provider";
+import { ResendNewsletterProvider } from "./resend/resend-provider";
+import type { NewsletterDeliveryProvider } from "./contracts";
 import {
   handlePublishCompleted,
   publishCompletedSchema,
@@ -25,102 +23,71 @@ import {
 import { handleSubscribe, SUBSCRIBE_PATH } from "./routes";
 import { subscribersTool } from "./tools";
 
-/**
- * The newsletter package: an issue is an entity the brain writes; sending it,
- * managing who receives it, and taking signups is Buttondown's work and
- * belongs to the service half.
- *
- * Nothing here runs without an API key. Without one the service declares no
- * tool, no route, no publisher and no signup form, so a brain that does not
- * send newsletters carries only the entity type.
- */
-
-/**
- * What this package reaches Buttondown through, for a test to supply.
- * Production passes nothing and the client uses the global fetch.
- */
+/** Tests supply transport; production uses global fetch. */
 export interface NewsletterDependencies {
   readonly fetch?: ButtondownFetch | undefined;
 }
-
 interface NewsletterState {
-  readonly client: ButtondownClient | undefined;
+  readonly provider: NewsletterDeliveryProvider | undefined;
   readonly logger: LoggerContract;
 }
 
-/** Publishing an issue is sending it. */
-function buttondownProvider(client: ButtondownClient): PublishProvider {
-  return {
-    name: "buttondown",
-    publish: async (content, metadata): Promise<PublishResult> => {
-      const subject =
-        typeof metadata["subject"] === "string" ? metadata["subject"] : "";
-      const email = await client.createEmail({
-        subject,
-        body: content,
-        status: "about_to_send",
-      });
-      return { id: email.id };
-    },
-  };
-}
-
+/** Declarative entity plus optional, provider-neutral delivery service. */
 export function newsletterService(
   dependencies: NewsletterDependencies = {},
 ): ServicePackageDefinition<typeof newsletterConfigSchema> {
   return defineServicePlugin(
     {
-      id: "buttondown",
+      id: "delivery",
       config: newsletterConfigSchema,
       entities: [newsletterEntity],
-
-      setup: ({ config, logger }): NewsletterState => ({
-        client: config.apiKey
-          ? new ButtondownClient(
-              { apiKey: config.apiKey, doubleOptIn: config.doubleOptIn },
-              logger,
-              { fetch: dependencies.fetch },
-            )
-          : undefined,
-        logger,
-      }),
+      setup: ({ config, logger }): NewsletterState => {
+        const provider = config.provider;
+        return {
+          provider:
+            provider?.type === "buttondown"
+              ? new ButtondownNewsletterProvider(provider, logger, dependencies)
+              : provider?.type === "resend"
+                ? new ResendNewsletterProvider(provider, logger, dependencies)
+                : undefined,
+          logger,
+        };
+      },
     },
     {
       tools: ({ state }) =>
-        state.client ? [subscribersTool(state.client)] : [],
-
-      routes: ({ config, state }) =>
-        config.apiKey
+        state.provider ? [subscribersTool(state.provider)] : [],
+      routes: ({ state }) =>
+        state.provider
           ? [
               defineRoute({
                 method: "POST",
                 path: SUBSCRIBE_PATH,
                 security: { kind: "public" },
                 response: verbatim,
-                handle: ({ request }) => handleSubscribe(request, state.client),
+                handle: ({ request }) =>
+                  handleSubscribe(request, state.provider),
               }),
             ]
           : [],
-
-      // A published post goes out to subscribers, when the operator asked for
-      // that. Throwing is how the handler reports a failed send to the bus.
       subscriptions: ({ config, state }) =>
-        config.autoSendOnPublish && state.client
+        config.autoSendOnPublish && state.provider
           ? [
               defineSubscription({
                 topic: PUBLISH_CHANNELS.completed,
                 payload: publishCompletedSchema,
                 handle: async ({ payload, entities }) => {
-                  const client = state.client;
-                  if (!client) throw new Error("Buttondown is not configured");
+                  const provider = state.provider;
+                  if (!provider)
+                    throw new Error("Newsletter is not configured");
                   const result = await handlePublishCompleted(
                     payload,
-                    client,
+                    provider,
                     entities,
                     state.logger,
                   );
                   if (!result.success) {
-                    state.logger.error("Buttondown auto-send failed", {
+                    state.logger.error("Newsletter auto-send failed", {
                       entityId: payload.entityId,
                       error: result.error,
                     });
@@ -135,42 +102,46 @@ export function newsletterService(
               }),
             ]
           : [],
-
       publish: ({ state }) =>
-        state.client
+        state.provider
           ? [
               {
                 entityType: "newsletter",
-                provider: buttondownProvider(state.client),
-                resultIdField: "buttondownId",
+                provider: state.provider,
+                resultIdField:
+                  state.provider.name === "resend"
+                    ? "resendBroadcastId"
+                    : "buttondownId",
                 timestampField: "sentAt",
               },
             ]
           : [],
-
-      // The signup form in the site footer, offered once every plugin has
-      // registered so the site builder is listening for slots.
-      ready: async ({ config, messaging }) => {
-        if (!config.apiKey) return;
+      ready: async ({ state, messaging }) => {
+        if (!state.provider) return;
         await messaging.request({
           type: SITE_BUILDER_CHANNELS.slotRegister,
           payload: {
-            pluginId: "buttondown",
+            pluginId: "delivery",
             slotName: "footer-top",
-            render: () => h(NewsletterSignup, { variant: "inline" }),
+            render: () =>
+              h(NewsletterSignup, {
+                variant: "inline",
+                action: SUBSCRIBE_PATH,
+                successMessage:
+                  state.provider?.name === "resend"
+                    ? "You are subscribed."
+                    : "Check your email to confirm your subscription.",
+              }),
           },
         });
       },
     },
   );
 }
-
 const newsletterPackage: ServicePackageDefinition<
   typeof newsletterConfigSchema
 > = newsletterService();
-
 export default newsletterPackage;
-
 export { newsletterEntity } from "./entity";
 export {
   newsletterConfigSchema,
@@ -203,3 +174,26 @@ export type {
   EmailStatus,
   CreateEmailInput,
 } from "./lib/buttondown-client";
+export { ButtondownNewsletterProvider } from "./buttondown-provider";
+export { ResendNewsletterProvider } from "./resend/resend-provider";
+export { ResendNewsletterClient, ResendApiError } from "./resend/resend-client";
+export { renderNewsletterEmail } from "./email-renderer";
+export type {
+  NewsletterDeliveryProvider,
+  NewsletterSubscriber,
+  NewsletterSubscriberList,
+  NewsletterSubscriberListInput,
+  NewsletterSubscriberStatus,
+  NewsletterSubscribeInput,
+} from "./contracts";
+export type {
+  ResendClientConfig,
+  ResendContact,
+  ResendContactList,
+  ResendBroadcast,
+  ResendBroadcastInput,
+} from "./resend/resend-client";
+export type {
+  RenderNewsletterEmailInput,
+  RenderedNewsletterEmail,
+} from "./email-renderer";

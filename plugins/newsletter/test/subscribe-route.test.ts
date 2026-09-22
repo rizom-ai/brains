@@ -1,3 +1,4 @@
+import type { NewsletterConfigInput } from "../src";
 import { afterEach, describe, expect, it } from "bun:test";
 import type { WebRouteDefinition } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
@@ -27,7 +28,9 @@ describe("POST /api/newsletter/subscribe", () => {
   });
 
   async function subscribeRoute(
-    config: { apiKey?: string } = { apiKey: "test-key" },
+    config: NewsletterConfigInput = {
+      provider: { type: "buttondown", apiKey: "test-key" },
+    },
   ): Promise<WebRouteDefinition | undefined> {
     const { service } = await installNewsletter(harness, config, {
       fetch: network.fetch,

@@ -23,6 +23,7 @@ import blogPackage from "@brains/blog";
 import chatPackage, { chatConfigFromEnv } from "@brains/chat";
 import studioPackage from "@brains/studio";
 import contentPipelinePackage from "@brains/content-pipeline";
+import contactPackage from "@brains/contact";
 import conversationMemoryPackage from "@brains/conversation-memory";
 import dashboardPackage from "@brains/dashboard";
 import decksPackage from "@brains/decks";
@@ -182,6 +183,7 @@ export const canonicalBrain: BrainDefinition = defineBrain({
       notificationsPackage,
     ),
 
+    packageCapability("contact", "@brains/contact", contactPackage),
     packageCapability("playbooks", "@brains/playbooks", playbooksPackage),
     packageCapability("onboarding", "@brains/onboarding", onboardingPackage),
     packageCapability("studio", "@brains/studio", studioPackage),

@@ -1,19 +1,64 @@
 import { z } from "@brains/sdk/services";
 
-/**
- * One brain.yaml block configures the whole package: the Buttondown
- * credentials the service sends with, and how it behaves once it has them.
- */
-export const newsletterConfigSchema: z.ZodObject<{
-  apiKey: z.ZodOptional<z.ZodString>;
+type ButtondownNewsletterProviderConfigSchema = z.ZodObject<{
+  type: z.ZodLiteral<"buttondown">;
+  apiKey: z.ZodString;
   doubleOptIn: z.ZodDefault<z.ZodBoolean>;
+}>;
+
+const buttondownNewsletterProviderConfigSchema: ButtondownNewsletterProviderConfigSchema =
+  z.strictObject({
+    type: z.literal("buttondown"),
+    apiKey: z.string().trim().min(1).describe("Buttondown API key"),
+    doubleOptIn: z
+      .boolean()
+      .default(true)
+      .describe("Require email confirmation for new subscribers"),
+  });
+
+type ResendNewsletterProviderConfigSchema = z.ZodObject<{
+  type: z.ZodLiteral<"resend">;
+  apiKey: z.ZodString;
+  segmentId: z.ZodString;
+  from: z.ZodString;
+  replyTo: z.ZodOptional<z.ZodString>;
+  topicId: z.ZodOptional<z.ZodString>;
+}>;
+
+const resendNewsletterProviderConfigSchema: ResendNewsletterProviderConfigSchema =
+  z.strictObject({
+    type: z.literal("resend"),
+    apiKey: z.string().trim().min(1).describe("Resend API key"),
+    segmentId: z
+      .string()
+      .trim()
+      .min(1)
+      .describe("Resend newsletter Segment ID"),
+    from: z.string().trim().min(1).describe("Verified Resend sender"),
+    replyTo: z.string().trim().min(1).optional(),
+    topicId: z.string().trim().min(1).optional(),
+  });
+
+type NewsletterProviderConfigSchema = z.ZodDiscriminatedUnion<
+  [
+    ButtondownNewsletterProviderConfigSchema,
+    ResendNewsletterProviderConfigSchema,
+  ]
+>;
+
+const newsletterProviderConfigSchema: NewsletterProviderConfigSchema =
+  z.discriminatedUnion("type", [
+    buttondownNewsletterProviderConfigSchema,
+    resendNewsletterProviderConfigSchema,
+  ]);
+
+type NewsletterConfigSchema = z.ZodObject<{
+  provider: z.ZodOptional<NewsletterProviderConfigSchema>;
   autoSendOnPublish: z.ZodDefault<z.ZodBoolean>;
-}> = z.object({
-  apiKey: z.string().optional().describe("Buttondown API key"),
-  doubleOptIn: z
-    .boolean()
-    .default(true)
-    .describe("Require email confirmation for new subscribers"),
+}>;
+
+export const newsletterConfigSchema: NewsletterConfigSchema = z.strictObject({
+  provider: newsletterProviderConfigSchema.optional(),
   autoSendOnPublish: z
     .boolean()
     .default(false)
