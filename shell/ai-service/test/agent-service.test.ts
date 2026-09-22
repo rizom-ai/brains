@@ -2,6 +2,7 @@ import { createMockMCPService } from "@brains/mcp-service/test";
 import { describe, expect, it, beforeEach, mock, afterEach } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
 import { AgentService } from "../src/agent-service";
+import { fileModelReference } from "../src/file-model";
 import type { AgentResponse } from "../src";
 import { createSilentLogger, waitUntil } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
@@ -88,7 +89,6 @@ function createUploadAttachmentResolver(
       kind: "file" as const,
       filename: record.filename,
       mediaType: record.mediaType,
-      data: new Uint8Array([1, 2, 3, 4]),
       sizeBytes: 4,
       source,
     };
@@ -684,7 +684,6 @@ describe("AgentService", () => {
             kind: "file",
             filename: "robot.png",
             mediaType: "image/png",
-            data: imageBytes,
             sizeBytes: imageBytes.byteLength,
             source: { kind: "upload", id: "upload-123" },
           },
@@ -707,7 +706,7 @@ describe("AgentService", () => {
           },
           {
             type: "file",
-            data: imageBytes,
+            data: fileModelReference({ kind: "upload", id: "upload-123" }),
             mediaType: "image/png",
             filename: "robot.png",
           },
@@ -780,7 +779,6 @@ describe("AgentService", () => {
         kind: "file" as const,
         filename: "robot.png",
         mediaType: "image/png",
-        data: imageBytes,
         sizeBytes: imageBytes.byteLength,
         source: { kind: "upload", id: "upload-123" },
       }));
@@ -815,7 +813,7 @@ describe("AgentService", () => {
           },
           {
             type: "file",
-            data: imageBytes,
+            data: fileModelReference({ kind: "upload", id: "upload-123" }),
             mediaType: "image/png",
             filename: "robot.png",
           },
@@ -924,7 +922,6 @@ describe("AgentService", () => {
           kind: "file" as const,
           filename: "distributed-systems-primer.pdf",
           mediaType: "application/pdf",
-          data: pdfBytes,
           sizeBytes: pdfBytes.byteLength,
           source,
         };
@@ -963,7 +960,7 @@ describe("AgentService", () => {
           },
           {
             type: "file",
-            data: pdfBytes,
+            data: fileModelReference({ kind: "upload", id: "upload-pdf" }),
             mediaType: "application/pdf",
             filename: "distributed-systems-primer.pdf",
           },
@@ -1338,7 +1335,6 @@ describe("AgentService", () => {
             kind: "file",
             filename: "brief.pdf",
             mediaType: "application/pdf",
-            data: pdfBytes,
             sizeBytes: pdfBytes.byteLength,
             source: { kind: "upload", id: "upload-123" },
           },
@@ -1419,7 +1415,6 @@ describe("AgentService", () => {
             kind: "file",
             filename: "robot.png",
             mediaType: "image/png",
-            data: imageBytes,
             sizeBytes: imageBytes.byteLength,
             source: { kind: "upload", id: "upload-image" },
           },
@@ -2195,7 +2190,6 @@ describe("AgentService", () => {
         kind: "file" as const,
         filename: "brief.pdf",
         mediaType: "application/pdf",
-        data: pdfBytes,
         sizeBytes: pdfBytes.byteLength,
         source: { kind: "upload" as const, id: "upload-pdf" },
       }));
@@ -2217,7 +2211,6 @@ describe("AgentService", () => {
               kind: "file",
               filename: "brief.pdf",
               mediaType: "application/pdf",
-              data: pdfBytes,
               sizeBytes: pdfBytes.byteLength,
               source: { kind: "upload", id: "upload-pdf" },
             },
@@ -2243,7 +2236,7 @@ describe("AgentService", () => {
           },
           {
             type: "file",
-            data: pdfBytes,
+            data: fileModelReference({ kind: "upload", id: "upload-pdf" }),
             mediaType: "application/pdf",
             filename: "brief.pdf",
           },
@@ -4100,7 +4093,7 @@ describe("AgentService", () => {
             kind: "file",
             filename: "image.png",
             mediaType: "image/png",
-            data: new Uint8Array([1, 2, 3]),
+            source: { kind: "upload", id: "image-fixture" },
             sizeBytes: 3,
           },
         ],

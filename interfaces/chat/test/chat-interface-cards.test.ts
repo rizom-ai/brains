@@ -1,4 +1,8 @@
-import { describe, it, expect, mock } from "bun:test";
+import { describe, it, expect, mock, beforeEach, afterEach } from "bun:test";
+import {
+  installUploadFileFixture,
+  type UploadFileFixture,
+} from "./harness/upload-file-fixture";
 import { PermissionService, createPluginHarness } from "@brains/plugins/test";
 import { PromptActionStore } from "../src/prompt-action-store";
 import {
@@ -19,6 +23,15 @@ import type { ChatInterfaceInstance } from "./harness/chat-interface-harness";
 
 describe("ChatInterface cards and suggested actions", () => {
   const suite = setupChatInterfaceTest();
+  let files: UploadFileFixture;
+  beforeEach(() => {
+    files = installUploadFileFixture(
+      suite.harness.getMockShell().getEntityService(),
+    );
+  });
+  afterEach(async () => {
+    await files.close();
+  });
 
   it("renders event actions as unavailable disabled Discord buttons", async () => {
     suite.agentService.chat.mockResolvedValueOnce({
@@ -238,7 +251,10 @@ describe("ChatInterface cards and suggested actions", () => {
             name: "a-campus-that-remembers.pdf",
             mimeType: "application/pdf",
             size: pdf.byteLength,
-            fetchData: mock(() => Promise.resolve(pdf)),
+            url: files.source(pdf),
+            fetchData: mock(() => {
+              throw new Error("SDK byte download forbidden");
+            }),
           },
         ],
       }),
@@ -310,7 +326,7 @@ describe("ChatInterface cards and suggested actions", () => {
           expect.objectContaining({
             kind: "file",
             filename: "a-campus-that-remembers.pdf",
-            data: pdf,
+            sizeBytes: pdf.byteLength,
             source: expect.objectContaining({ kind: "upload" }),
           }),
         ],
@@ -384,7 +400,10 @@ describe("ChatInterface cards and suggested actions", () => {
             name: "private.png",
             mimeType: "image/png",
             size: image.byteLength,
-            fetchData: mock(() => Promise.resolve(image)),
+            url: files.source(image),
+            fetchData: mock(() => {
+              throw new Error("SDK byte download forbidden");
+            }),
           },
         ],
       }),

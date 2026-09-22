@@ -9,12 +9,10 @@ import {
 } from "@brains/contracts/chat";
 import {
   type ChatAttachment,
+  type InterfacePluginContext,
   type ScopedRuntimeUploadStore,
 } from "@brains/plugins";
-import {
-  resolveInlineUploadPart as resolveInlineUploadFilePart,
-  resolveReferencedUpload as resolveReferencedUploadPart,
-} from "./upload-handlers";
+import { resolveReferencedUpload as resolveReferencedUploadPart } from "./upload-handlers";
 
 export type ApprovalResponse = ChatApprovalResponse;
 export type ChatRequest = ChatMessageRequest;
@@ -31,6 +29,8 @@ export interface ParsedUserInput {
 
 interface ChatInputDeps {
   uploadStore: ScopedRuntimeUploadStore;
+  fileTransfers: InterfacePluginContext["fileTransfers"];
+  signal: AbortSignal;
 }
 
 export async function extractLastUserInput(
@@ -53,10 +53,9 @@ export async function extractLastUserInput(
 
     const parsedFile = chatFilePartSchema.safeParse(part);
     if (parsedFile.success) {
-      const attachment = resolveInlineUploadFilePart(parsedFile.data);
-      if (attachment instanceof Response) return attachment;
-      attachments.push(attachment);
-      continue;
+      return new Response("Inline file inputs require upload references", {
+        status: 400,
+      });
     }
 
     const parsedUploadRef = chatUploadPartSchema.safeParse(part);
@@ -64,6 +63,8 @@ export async function extractLastUserInput(
       const attachment = await resolveReferencedUploadPart(
         parsedUploadRef.data.data.ref.id,
         deps.uploadStore,
+        deps.fileTransfers,
+        deps.signal,
       );
       if (attachment instanceof Response) return attachment;
       attachments.push(attachment);

@@ -208,9 +208,20 @@ export class ChatInterface extends MessageInterfacePlugin<
         : undefined,
     getThreadIdParts,
     logger: this.logger,
-    // Read at download time, after the constructor has stored the deps.
-    fetch: (input, init): Promise<Response> =>
-      (this.deps.fetch ?? fetch)(input, init),
+    getFileTransfers: (): InterfacePluginContext["fileTransfers"] =>
+      this.context?.fileTransfers,
+    getDownloadSource: (
+      platform,
+      attachment,
+    ): { url: string; authorization?: string } => {
+      const url = attachment.fetchMetadata?.["url"] ?? attachment.url;
+      if (!url) throw new Error("Chat attachment has no native download URL");
+      if (platform !== "slack") return { url };
+      const token = this.config.adapters.slack?.botToken;
+      if (!token)
+        throw new Error("Slack upload capture has no configured token");
+      return { url, authorization: `Bearer ${token}` };
+    },
   });
   private readonly turnController: ChatTurnController;
   private readonly gatewayLoop: DiscordGatewayLoop;
@@ -340,12 +351,14 @@ export class ChatInterface extends MessageInterfacePlugin<
 
     return {
       start: async (): Promise<void> => {
+        this.chatInputBuilder.start();
         await this.chatApp.initialize();
         this.chatAppRunning = true;
         if (discordEnabled) this.gatewayLoop.start();
         if (slackSocketEnabled) this.slackSocketLoop.start();
       },
       stop: async (): Promise<void> => {
+        await this.chatInputBuilder.stop();
         await this.gatewayLoop.stop();
         await this.slackSocketLoop.stop();
         this.threadRegistry.clear();

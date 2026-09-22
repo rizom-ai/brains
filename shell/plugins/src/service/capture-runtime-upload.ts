@@ -14,6 +14,15 @@ import {
   type ScopedRuntimeUploadStore,
 } from "./upload-registry";
 
+export class RetainedUploadBatchError extends Error {
+  public readonly records: readonly RuntimeUploadRecord[];
+  constructor(records: RuntimeUploadRecord[], cause: unknown) {
+    super("Upload batch failed after retaining files", { cause });
+    this.name = "RetainedUploadBatchError";
+    this.records = [...records];
+  }
+}
+
 export interface CaptureRuntimeUploadSource extends EntityFileCaptureInput {
   maxBytes: number;
 }

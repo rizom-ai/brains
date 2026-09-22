@@ -345,7 +345,6 @@ describe("resolveConversationUploadContinuity", () => {
       kind: "file" as const,
       filename: "brief.pdf",
       mediaType: "application/pdf",
-      data: new Uint8Array([1, 2, 3]),
       sizeBytes: 3,
       source: {
         kind: "upload",
@@ -518,7 +517,6 @@ describe("buildMessageWithAttachments", () => {
         kind: "file",
         filename: "brief.pdf",
         mediaType: "application/pdf",
-        data: new Uint8Array([1, 2, 3]),
         sizeBytes: 3,
         source: {
           kind: "upload",
@@ -536,7 +534,9 @@ describe("buildMessageWithAttachments", () => {
       },
       {
         type: "file",
-        data: new Uint8Array([1, 2, 3]),
+        data: new URL(
+          `brains-upload:${encodeURIComponent(JSON.stringify({ kind: "upload", id: "upload-00000000-0000-4000-8000-000000000401" }))}`,
+        ),
         mediaType: "application/pdf",
         filename: "brief.pdf",
       },

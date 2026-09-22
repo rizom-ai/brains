@@ -372,6 +372,8 @@ export class ChatTurnController {
     const pluginContext = this.deps.host.getContext();
     if (!pluginContext) return;
 
+    const inputSignal = this.deps.chatInputBuilder.signal;
+    inputSignal.throwIfAborted();
     this.deps.threadRegistry.set(thread);
     const conversationId = getChatConversationId(platform, thread.id);
     const channelId = thread.id;
@@ -389,6 +391,7 @@ export class ChatTurnController {
       thread,
       message,
       userPermissionLevel,
+      inputSignal,
     );
     const sameTurnUploads = [...agentInput.attachments];
     await this.deps.uploadCoordinator.attachPriorUploads(
@@ -397,7 +400,9 @@ export class ChatTurnController {
       agentInput,
       userPermissionLevel,
     );
+    agentInput.signal.throwIfAborted();
     await this.postUploadNotices(thread, agentInput.notices);
+    agentInput.signal.throwIfAborted();
     if (!agentInput.message && agentInput.attachments.length === 0) return;
     this.deps.uploadCoordinator.remember(
       platform,
@@ -413,10 +418,12 @@ export class ChatTurnController {
         const currentContext = this.deps.host.getContext();
         if (!currentContext) return;
 
+        agentInput.signal.throwIfAborted();
         const pendingApprovalIds =
           await this.deps.responseCoordinator.getPendingApprovalIds(
             conversationId,
           );
+        agentInput.signal.throwIfAborted();
         if (pendingApprovalIds.size > 0) {
           const handledConfirmation =
             await this.deps.responseCoordinator.handleConfirmationResponse({
@@ -437,10 +444,15 @@ export class ChatTurnController {
           if (handledConfirmation) return;
         }
 
+        agentInput.signal.throwIfAborted();
         const coalescedInput = buildChatCoalescedAgentInput(
           agentInput.message,
           context,
         );
+        const attachmentSignal: [] | [AbortSignal] = agentInput.attachments
+          .length
+          ? [agentInput.signal]
+          : [];
         const response = await currentContext.agent.chat(
           coalescedInput.message,
           conversationId,
@@ -461,6 +473,7 @@ export class ChatTurnController {
               ? { attachments: agentInput.attachments }
               : {}),
           },
+          ...attachmentSignal,
         );
 
         await this.deps.responseCoordinator.renderAgentResponse({

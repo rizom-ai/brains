@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, mock, type Mock } from "bun:test";
+import assert from "node:assert/strict";
 
 import { TestRunner } from "../src/test-runner";
 import type { TestCase } from "../src/schemas";
@@ -216,7 +217,28 @@ describe("TestRunner", () => {
       });
     });
 
-    it("should pass native turn attachments to chat", async () => {
+    it("should retain generated file fixtures and pass only references to chat", async () => {
+      const save = mock(async (): Promise<RuntimeUploadRecord> => ({
+        id: "upload-fixture",
+        ref: { kind: "upload", id: "upload-fixture" },
+        filename: "robot.png",
+        mediaType: "image/png",
+        sizeBytes: 4,
+        createdAt: new Date().toISOString(),
+      }));
+      testRunner = TestRunner.createFresh(mockAgentService, undefined, {
+        scoped: (): ScopedRuntimeUploadStore => ({
+          save,
+          saveFile: notStubbed("saveFile"),
+          read: notStubbed("read"),
+          withFile: notStubbed("withFile"),
+          readRecord: notStubbed("readRecord"),
+          toResponseBody: notStubbed("toResponseBody"),
+          prune: notStubbed("prune"),
+          getUploadDir: notStubbed("getUploadDir"),
+          remove: notStubbed("remove"),
+        }),
+      });
       const testCase: TestCase = {
         id: "test-turn-attachments",
         name: "Turn Attachment Test",
@@ -250,11 +272,37 @@ describe("TestRunner", () => {
             kind: "file",
             filename: "robot.png",
             mediaType: "image/png",
-            data: new Uint8Array([0x89, 0x50, 0x4e, 0x47]),
+            source: { kind: "upload", id: "upload-fixture" },
             sizeBytes: 4,
           },
         ],
       });
+    });
+
+    it("rejects file fixtures without retained-upload provisioning", async () => {
+      await assert.rejects(
+        testRunner.runTest({
+          id: "unprovisioned-file",
+          name: "Unprovisioned file",
+          type: "response_quality",
+          turns: [
+            {
+              userMessage: "Describe",
+              attachments: [
+                {
+                  kind: "file",
+                  filename: "robot.png",
+                  mediaType: "image/png",
+                  dataBase64: "iVBORw==",
+                },
+              ],
+            },
+          ],
+          successCriteria: {},
+        }),
+        /File evaluation fixtures require runtime upload storage/,
+      );
+      expect(mockAgentService.chat).not.toHaveBeenCalled();
     });
 
     it("should seed source-backed eval attachments into runtime upload storage", async () => {

@@ -91,3 +91,13 @@ export type {
   ToolCompletionEvent,
   ToolEventEmitter,
 } from "./tool-events";
+
+export {
+  createFileModel,
+  fileModelReference,
+  AcknowledgedFileModelError,
+  type FileModelDependencies,
+  type FileModelReference,
+} from "./file-model";
+export type { FileModelBinding } from "./file-model-native";
+export { ReceivedFileModelResponseError } from "./file-model-relay";

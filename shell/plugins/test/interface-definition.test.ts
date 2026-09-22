@@ -1,5 +1,7 @@
 import { describe, expect, expectTypeOf, it, mock } from "bun:test";
 import { PermissionService } from "@brains/templates";
+import { createHash } from "node:crypto";
+import type { EntityFileAssets } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 import { createPluginHarness } from "../src/test/harness";
 import {
@@ -443,7 +445,7 @@ describe("declarative message interfaces", () => {
       {
         name: "saved.txt",
         mediaType: "text/plain",
-        url: "data:text/plain,saved%20attachment",
+        url: "https://provider.test/attachment",
       },
     ]);
     const definition = defineMessageInterface({
@@ -479,6 +481,53 @@ describe("declarative message interfaces", () => {
     });
 
     const harness = createPluginHarness();
+    // Explicit native-I/O substitute; the declarative caller receives only a loan.
+    const fixtureBytes = Buffer.from("saved attachment");
+    const sha256 = createHash("sha256").update(fixtureBytes).digest("hex");
+    const fixtureStore = harness
+      .getMockShell()
+      .getRuntimeUploadRegistry()
+      .scoped({ namespace: "unit-source", refKind: "fixture", routePath: "" });
+    const fixtureRecord = await fixtureStore.save({
+      filename: "source",
+      mediaType: "text/plain",
+      content: fixtureBytes,
+    });
+    const unexpected = (): never => {
+      throw new Error("Unexpected fixture file operation");
+    };
+    harness.getMockShell().getEntityService().fileAssets = {
+      withCapturedFile: async (
+        source,
+        use,
+        options,
+      ): ReturnType<typeof use> => {
+        expect(source.url).toBe("https://provider.test/attachment");
+        return fixtureStore.withFile(fixtureRecord.ref.id, ({ sourceFile }) =>
+          use(
+            {
+              sourceFile,
+              sizeBytes: fixtureBytes.length,
+              sha256,
+              details: { mediaType: "text/plain" },
+            },
+            options?.signal ?? new AbortController().signal,
+          ),
+        );
+      },
+      inspect: async (): ReturnType<EntityFileAssets["inspect"]> => ({
+        sizeBytes: fixtureBytes.length,
+        sha256,
+        details: { validText: true },
+      }),
+      publish: unexpected,
+      withAssetFile: unexpected,
+      download: unexpected,
+      fingerprint: unexpected,
+      putHttp: unexpected,
+      postHttp: unexpected,
+      close: async (): Promise<void> => {},
+    };
     harness.setPermissionService(
       new PermissionService({
         admins: ["campfire:reader-1"],
@@ -525,9 +574,9 @@ describe("declarative message interfaces", () => {
         isAnchor: true,
         attachments: [
           expect.objectContaining({
-            kind: "text",
+            kind: "file",
             filename: "saved.txt",
-            content: "saved attachment",
+            source: { kind: "upload", id: expect.stringMatching(/^upload-/) },
           }),
         ],
       }),

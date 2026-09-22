@@ -203,9 +203,9 @@ export interface FileChatAttachment {
   kind: "file";
   filename: string;
   mediaType: string;
-  data: Uint8Array;
   sizeBytes?: number | undefined;
-  source?: ChatAttachmentSource | undefined;
+  /** Authorized runtime upload reference; bytes remain with the owned model actor. */
+  source: ChatAttachmentSource;
 }
 
 export type ChatAttachment = TextChatAttachment | FileChatAttachment;

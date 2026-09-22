@@ -10,18 +10,14 @@ import {
   formatContentDispositionHeader,
   type InterfacePluginContext,
   type ChatAttachment,
-  type ResolvedRuntimeUpload,
   type RuntimeUploadRecord,
   type ScopedRuntimeUploadStore,
 } from "@brains/plugins";
 import {
-  defaultWebChatUploadFilename,
   sanitizeUploadFilename,
-  validateWebChatUpload,
   webChatUploadMaxBytes,
   webChatTextUploadMaxBytes,
   normalizeWebChatUploadMediaType,
-  type ValidatedWebChatUpload,
 } from "./upload-policy";
 import { webChatUploadRefKind } from "./upload-store";
 import { uploadInspectionDetailsSchema } from "@brains/plugins/message-interface/upload-inspection";
@@ -237,103 +233,50 @@ export async function handleUploadDownloadRequest(
   }
 }
 
-export function resolveInlineUploadPart(file: {
-  filename?: string | undefined;
-  mediaType?: string | undefined;
-  url: string;
-}): ChatAttachment | Response {
-  const filename = sanitizeUploadFilename(
-    file.filename ?? defaultWebChatUploadFilename,
-  );
-  const decoded = decodeUploadedDataUrl(file.url);
-  if (!decoded) {
-    return new Response(`Unsupported file upload URL: ${filename}`, {
-      status: 400,
-    });
-  }
-
-  const validated = validateWebChatUpload({
-    filename,
-    mediaType: file.mediaType,
-    content: decoded.buffer,
-  });
-  if (!validated.ok) {
-    return new Response(validated.message, { status: 400 });
-  }
-
-  return toChatAttachment(validated, decoded.buffer);
-}
-
 export async function resolveReferencedUpload(
   uploadId: string,
   uploadStore: ScopedRuntimeUploadStore,
+  files: InterfacePluginContext["fileTransfers"],
+  signal: AbortSignal,
 ): Promise<ChatAttachment | Response> {
-  const resolved = await readStoredUpload(uploadId, uploadStore);
-  if (resolved instanceof Response) return resolved;
-
-  const { record, content } = resolved;
-  const validated = validateStoredUpload(record, content);
-  if (validated instanceof Response) return validated;
-
-  return toChatAttachment(validated, content, {
-    kind: webChatUploadRefKind,
-    id: uploadId,
-  });
-}
-
-async function readStoredUpload(
-  uploadId: string,
-  uploadStore: ScopedRuntimeUploadStore,
-): Promise<ResolvedRuntimeUpload | Response> {
+  signal.throwIfAborted();
   try {
-    return await uploadStore.read(uploadId);
+    await uploadStore.readRecord(uploadId);
+    signal.throwIfAborted();
+    if (!files) throw new Error("Upload inspection is not provisioned");
+    return await uploadStore.withFile(
+      uploadId,
+      async ({ record, sourceFile }): Promise<ChatAttachment | Response> => {
+        const facts = await files.inspect(
+          { sourceFile, sizeBytes: record.sizeBytes },
+          { inspector: "message-upload", signal },
+        );
+        signal.throwIfAborted();
+        if (facts.sizeBytes !== record.sizeBytes)
+          throw new Error("Upload inspection size does not match its record");
+        const details = uploadInspectionDetailsSchema.parse(facts.details);
+        const validated = validateMessageUploadFacts({
+          filename: record.filename,
+          mediaType: record.mediaType,
+          sizeBytes: facts.sizeBytes,
+          ...details,
+        });
+        if (!validated.ok)
+          return new Response(validated.message, { status: 400 });
+        return {
+          kind: "file",
+          filename: validated.filename,
+          mediaType: validated.mediaType,
+          sizeBytes: facts.sizeBytes,
+          source: { kind: webChatUploadRefKind, id: uploadId },
+        };
+      },
+    );
   } catch (error) {
-    if (error instanceof RuntimeUploadStoreError) {
+    if (error instanceof RuntimeUploadStoreError)
       return uploadStoreErrorToResponse(error);
-    }
     throw error;
   }
-}
-
-function validateStoredUpload(
-  record: RuntimeUploadRecord,
-  content: Buffer,
-): ValidatedWebChatUpload | Response {
-  const validated = validateWebChatUpload({
-    filename: record.filename,
-    mediaType: record.mediaType,
-    content,
-  });
-  if (!validated.ok) {
-    return new Response(validated.message, { status: 400 });
-  }
-  return validated;
-}
-
-function toChatAttachment(
-  upload: ValidatedWebChatUpload,
-  content: Uint8Array,
-  source?: ChatAttachment["source"],
-): ChatAttachment {
-  if (upload.kind === "text") {
-    return {
-      kind: "text",
-      filename: upload.filename,
-      mediaType: upload.mediaType,
-      content: upload.text,
-      sizeBytes: upload.sizeBytes,
-      ...(source !== undefined ? { source } : {}),
-    };
-  }
-
-  return {
-    kind: "file",
-    filename: upload.filename,
-    mediaType: upload.mediaType,
-    data: new Uint8Array(content),
-    sizeBytes: upload.sizeBytes,
-    ...(source !== undefined ? { source } : {}),
-  };
 }
 
 function uploadStoreErrorToResponse(error: RuntimeUploadStoreError): Response {
@@ -344,25 +287,5 @@ function uploadStoreErrorToResponse(error: RuntimeUploadStoreError): Response {
       return new Response("Invalid upload metadata", { status: 500 });
     case "not_found":
       return new Response("Upload not found", { status: 404 });
-  }
-}
-
-function decodeUploadedDataUrl(
-  url: string,
-): { buffer: Buffer; byteLength: number } | null {
-  const match = /^data:[^,]*,(.*)$/s.exec(url);
-  if (!match) return null;
-
-  const metadata = url.slice(5, url.indexOf(","));
-  const isBase64 = metadata
-    .split(";")
-    .some((part) => part.toLowerCase() === "base64");
-  try {
-    const buffer = isBase64
-      ? Buffer.from(match[1] ?? "", "base64")
-      : Buffer.from(decodeURIComponent(match[1] ?? ""), "utf8");
-    return { buffer, byteLength: buffer.byteLength };
-  } catch {
-    return null;
   }
 }

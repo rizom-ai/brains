@@ -206,6 +206,7 @@ export {
 } from "./service/with-publish-files";
 export {
   captureRuntimeUpload,
+  RetainedUploadBatchError,
   type CaptureRuntimeUploadInput,
   type CaptureRuntimeUploadSource,
   type CaptureRuntimeUploadOptions,

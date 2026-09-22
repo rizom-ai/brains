@@ -124,8 +124,12 @@ export class ChatUploadCoordinator {
             ? this.getCanonicalStore()
             : this.getPlatformStore(platform);
         if (!uploadStore) throw new Error("Chat upload store unavailable");
+        if (sourceKind === canonicalChatUploadRefKind)
+          return chatAttachmentFromStoredUpload(
+            await uploadStore.readRecord(uploadId),
+          );
         const resolved = await uploadStore.read(uploadId);
-        if (sourceKind !== canonicalChatUploadRefKind) {
+        {
           const canonicalStore = this.getCanonicalStore();
           if (!canonicalStore) throw new Error("Chat upload store unavailable");
           const canonical = await canonicalStore.save({
@@ -136,19 +140,8 @@ export class ChatUploadCoordinator {
               ? { metadata: resolved.record.metadata }
               : {}),
           });
-          return chatAttachmentFromStoredUpload(
-            canonical.filename,
-            canonical.mediaType,
-            resolved.content,
-            canonical.ref,
-          );
+          return chatAttachmentFromStoredUpload(canonical);
         }
-        return chatAttachmentFromStoredUpload(
-          resolved.record.filename,
-          resolved.record.mediaType,
-          resolved.content,
-          resolved.record.ref,
-        );
       },
       onLoadError: (error, conversationId): void => {
         this.deps.logger.debug("Failed to load prior chat uploads", {

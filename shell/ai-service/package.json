@@ -33,7 +33,8 @@
     },
     "./test": "./src/test/index.ts",
     "./env-schema": "./src/env-schema.ts",
-    "./image-generation-process": "./src/image-generation-process.ts"
+    "./image-generation-process": "./src/image-generation-process.ts",
+    "./file-model-process": "./src/file-model-process.ts"
   },
   "files": [
     "src"

@@ -722,6 +722,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
     const userInput =
       approvalResponses.length === 0
         ? await extractLastUserInput(parsed.data, {
+            fileTransfers: this.getContext().fileTransfers,
+            signal: request.signal,
             uploadStore: this.getContext().uploads.scoped(
               createWebChatUploadStoreScope(),
             ),

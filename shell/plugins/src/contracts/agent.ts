@@ -64,23 +64,21 @@ export const TextChatAttachmentSchema: z.ZodObject<{
   source: ChatAttachmentSourceSchema.optional(),
 });
 
-const fileAttachmentDataSchema: z.ZodCustom<Uint8Array, Uint8Array> =
-  z.custom<Uint8Array>((value) => value instanceof Uint8Array);
-
-export const FileChatAttachmentSchema: z.ZodObject<{
-  kind: z.ZodLiteral<"file">;
-  filename: z.ZodString;
-  mediaType: z.ZodString;
-  data: typeof fileAttachmentDataSchema;
-  sizeBytes: z.ZodOptional<z.ZodNumber>;
-  source: z.ZodOptional<typeof ChatAttachmentSourceSchema>;
-}> = z.object({
+export const FileChatAttachmentSchema: z.ZodObject<
+  {
+    kind: z.ZodLiteral<"file">;
+    filename: z.ZodString;
+    mediaType: z.ZodString;
+    sizeBytes: z.ZodOptional<z.ZodNumber>;
+    source: typeof ChatAttachmentSourceSchema;
+  },
+  z.core.$strict
+> = z.strictObject({
   kind: z.literal("file"),
   filename: z.string().min(1),
   mediaType: z.string().min(1),
-  data: fileAttachmentDataSchema,
   sizeBytes: z.number().nonnegative().optional(),
-  source: ChatAttachmentSourceSchema.optional(),
+  source: ChatAttachmentSourceSchema,
 });
 
 export const ChatAttachmentSchema: z.ZodDiscriminatedUnion<

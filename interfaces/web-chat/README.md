@@ -42,7 +42,10 @@ The runtime must explicitly provision capture and the `message-upload` inspector
 The controller forwards an opaque body through an authenticated single-use relay;
 inspection precedes file retention. A durable upload acknowledgement survives
 capture retirement faults without replay. Downloads use scoped native delivery,
-not buffered upload reads. AI attachment consumption is a separate migration.
+not buffered upload reads. Chat inputs carry `data-upload` references; inline file
+parts are rejected. Attachment-bearing AI calls require the explicitly provisioned
+`file-model` producer, which consumes inspected upload loans outside the controller.
+There is no SDK byte fallback when that producer is unavailable.
 
 ## Build
 

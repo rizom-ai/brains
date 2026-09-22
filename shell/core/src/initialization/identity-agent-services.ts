@@ -2,6 +2,7 @@ import {
   AgentService,
   createBrainAgentId,
   createBrainAgentFactory,
+  createFileModel,
   createOpenAiGuestProfile,
   openAiGuestEmbeddingModel,
   openAiGuestEmbeddingDimensions,
@@ -31,7 +32,7 @@ import {
 } from "@brains/identity-service";
 import type { IMCPService } from "@brains/mcp-service";
 import type {
-  ResolvedRuntimeUpload,
+  RuntimeUploadRecord,
   RuntimeUploadRegistry,
 } from "@brains/plugins";
 import { type IMessageBus, type MessageBus } from "@brains/messaging-service";
@@ -39,6 +40,7 @@ import type { Logger } from "@brains/utils/logger";
 import type { ShellConfig } from "../config";
 import { SHELL_ENTITY_TYPES } from "../constants";
 import { getErrorMessage } from "@brains/utils/error";
+import { createAgentUploadFiles } from "./agent-upload-files";
 
 export interface IdentityAndAgentServices {
   identityService: BrainCharacterService;
@@ -112,7 +114,7 @@ async function resolveRuntimeUploadAttachment(
       refKind: source.kind,
       routePath: "",
     });
-    return toChatAttachment(await store.read(source.id), source);
+    return toChatAttachment(await store.readRecord(source.id), source);
   } catch (error) {
     // A prior upload may legitimately be gone by now. Skipping it keeps the
     // rest of the conversation's attachments intact.
@@ -130,34 +132,16 @@ function getRuntimeUploadNamespace(refKind: string): string | null {
 }
 
 function toChatAttachment(
-  resolved: ResolvedRuntimeUpload,
+  record: RuntimeUploadRecord,
   source: ChatAttachmentSource,
 ): ChatAttachment {
-  const { record, content } = resolved;
-  if (isTextUpload(record.mediaType)) {
-    return {
-      kind: "text",
-      filename: record.filename,
-      mediaType: record.mediaType,
-      content: new TextDecoder("utf-8").decode(content).replace(/^\uFEFF/, ""),
-      sizeBytes: record.sizeBytes,
-      source,
-    };
-  }
-
   return {
     kind: "file",
     filename: record.filename,
     mediaType: record.mediaType,
-    data: new Uint8Array(content),
     sizeBytes: record.sizeBytes,
     source,
   };
-}
-
-function isTextUpload(mediaType: string): boolean {
-  const normalized = mediaType.toLowerCase();
-  return normalized.startsWith("text/") || normalized === "application/json";
 }
 
 export function initializeIdentityAndAgentServices(
@@ -238,7 +222,11 @@ export function initializeIdentityAndAgentServices(
       : undefined;
   const agentFactory = createBrainAgentFactory({
     ...(guestProfile ? { guestProfile } : {}),
-    model: aiService.getModel(),
+    model: createFileModel(
+      aiService.getModel(),
+      aiConfig,
+      createAgentUploadFiles(entityService, runtimeUploadRegistry),
+    ),
     modelId: aiService.getConfig().model,
     webSearch: aiService.getConfig().webSearch,
     temperature: aiService.getConfig().temperature,

@@ -24,7 +24,7 @@ function fileAttachment(filename: string, mediaType: string): ChatAttachment {
     kind: "file",
     filename,
     mediaType,
-    data: new Uint8Array([1, 2, 3]),
+    source: { kind: "upload", id: filename },
     sizeBytes: 3,
   };
 }

@@ -14,6 +14,7 @@ import { StockPhotoPlugin } from "@brains/stock-photo";
 import { RuntimeUploadStore } from "../../shell/plugins/src/service/upload-registry";
 import { webChatUploadsScope } from "../../entities/image/src/lib/upload-promotion";
 import { captureCanonicalUpload } from "./turso-canonical-upload-capture";
+import { consumeCanonicalUpload } from "./turso-canonical-file-model";
 import { importCanonicalNote } from "./turso-canonical-note-import";
 import { FrontmatterImageConverter } from "../../plugins/directory-sync/src/lib/frontmatter-image-converter";
 import { DirectorySync } from "../../plugins/directory-sync/src/lib/directory-sync";
@@ -496,6 +497,10 @@ plugins:
   const app = createApp();
   const fileActors = {
     producerUrls: {
+      "file-model": new URL(
+        "../../shell/ai-service/test/fixtures/file-model-stream-actor.ts",
+        import.meta.url,
+      ),
       "upload-markdown": new URL(
         "../../shared/document/src/upload-markdown-process.ts",
         import.meta.url,
@@ -709,6 +714,12 @@ plugins:
             mediaType: "image/png",
             content: bytes,
           });
+    if (imageKind === "ai")
+      await consumeCanonicalUpload(
+        owner,
+        app.getShell().getRuntimeUploadRegistry(),
+        uploaded,
+      );
     await owner.createEntity({
       entity: {
         ...imageAdapter.createPendingImageEntity({

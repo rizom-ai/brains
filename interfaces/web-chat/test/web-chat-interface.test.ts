@@ -2870,7 +2870,7 @@ describe("WebChatInterface", () => {
     );
   });
 
-  it("passes durable upload refs to the agent as native text attachments", async () => {
+  it("passes durable text upload refs without materializing their contents", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
     const plugin = adminPlugin();
@@ -2907,10 +2907,9 @@ describe("WebChatInterface", () => {
     expect(agent.chatCalls[0]?.message).toBe("Summarize this");
     expect(agent.chatCalls[0]?.context?.attachments).toEqual([
       {
-        kind: "text",
+        kind: "file",
         filename: "durable-notes.md",
         mediaType: "text/markdown",
-        content: "# Durable Notes",
         sizeBytes: 15,
         source: { kind: "upload", id: upload.ref.id },
       },
@@ -2956,7 +2955,6 @@ describe("WebChatInterface", () => {
         kind: "file",
         filename: "robot.png",
         mediaType: "image/png",
-        data: image,
         sizeBytes: image.byteLength,
         source: { kind: "upload", id: upload.ref.id },
       },
@@ -3427,7 +3425,7 @@ describe("WebChatInterface", () => {
     expect(agent.chatCalls[0]?.context?.channelName).toBe("Web Chat");
   });
 
-  it("passes inline uploaded text file content to the agent as native attachments", async () => {
+  it("rejects inline text file inputs in favor of upload references", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
     const plugin = adminPlugin();
@@ -3458,21 +3456,14 @@ describe("WebChatInterface", () => {
       }),
     );
 
-    expect(response?.status).toBe(200);
-    expect(agent.chatCalls).toHaveLength(1);
-    expect(agent.chatCalls[0]?.message).toBe("Summarize this");
-    expect(agent.chatCalls[0]?.context?.attachments).toEqual([
-      {
-        kind: "text",
-        filename: "meeting-notes.md",
-        mediaType: "text/markdown",
-        content: "# Notes\n\n- Ship uploads",
-        sizeBytes: 23,
-      },
-    ]);
+    expect(response?.status).toBe(400);
+    expect(await response?.text()).toBe(
+      "Inline file inputs require upload references",
+    );
+    expect(agent.chatCalls).toHaveLength(0);
   });
 
-  it("passes inline uploaded image file parts to the agent as native file attachments", async () => {
+  it("rejects inline image inputs without entering the agent", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
     const plugin = adminPlugin();
@@ -3504,16 +3495,11 @@ describe("WebChatInterface", () => {
       }),
     );
 
-    expect(response?.status).toBe(200);
-    expect(agent.chatCalls[0]?.context?.attachments).toEqual([
-      {
-        kind: "file",
-        filename: "diagram.png",
-        mediaType: "image/png",
-        data: image,
-        sizeBytes: image.byteLength,
-      },
-    ]);
+    expect(response?.status).toBe(400);
+    expect(await response?.text()).toBe(
+      "Inline file inputs require upload references",
+    );
+    expect(agent.chatCalls).toHaveLength(0);
   });
 
   it("rejects unsupported uploaded file types", async () => {
@@ -3548,7 +3534,9 @@ describe("WebChatInterface", () => {
     );
 
     expect(response?.status).toBe(400);
-    expect(await response?.text()).toContain("Unsupported file upload type");
+    expect(await response?.text()).toBe(
+      "Inline file inputs require upload references",
+    );
     expect(agent.chatCalls).toHaveLength(0);
   });
 
@@ -3588,11 +3576,13 @@ describe("WebChatInterface", () => {
     );
 
     expect(response?.status).toBe(400);
-    expect(await response?.text()).toContain("Unsupported file upload type");
+    expect(await response?.text()).toBe(
+      "Inline file inputs require upload references",
+    );
     expect(agent.chatCalls).toHaveLength(0);
   });
 
-  it("rejects oversized uploaded text files", async () => {
+  it("rejects oversized inline text files without decoding them", async () => {
     const agent = createSpyAgentService();
     harness.setAgentService(agent);
     const plugin = adminPlugin();
@@ -3623,7 +3613,9 @@ describe("WebChatInterface", () => {
     );
 
     expect(response?.status).toBe(400);
-    expect(await response?.text()).toContain("File upload too large");
+    expect(await response?.text()).toBe(
+      "Inline file inputs require upload references",
+    );
     expect(agent.chatCalls).toHaveLength(0);
   });
 

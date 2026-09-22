@@ -1,4 +1,15 @@
-import { createExternalActorId } from "@brains/contracts";
+import { createExternalActorId, type JsonObject } from "@brains/contracts";
+import { MAX_ASSET_BYTES } from "@brains/assets";
+import {
+  captureRuntimeUpload,
+  RetainedUploadBatchError,
+} from "../service/capture-runtime-upload";
+import type { RuntimeUploadRecord } from "../service/upload-registry";
+import { uploadInspectionDetailsSchema } from "./upload-inspection";
+import {
+  isUploadableBinaryFile,
+  normalizeMessageUploadMediaType,
+} from "./upload-policy";
 import { emptyPluginState } from "../base/empty-state";
 import type { ChatAttachment } from "../contracts/agent";
 import type {
@@ -39,29 +50,59 @@ function normalizedOutput(message: MessageInterfaceOutput): MessageOutput {
 async function attachmentFrom(
   attachment: InboundMessageAttachment,
   signal: AbortSignal,
+  context: Pick<MessageInterfacePluginContext, "uploads" | "fileTransfers">,
+  metadata: JsonObject,
+  retained: RuntimeUploadRecord[],
 ): Promise<ChatAttachment> {
-  const response = await fetch(attachment.url, { signal });
-  if (!response.ok) {
-    throw new Error(
-      `Attachment "${attachment.name}" could not be downloaded (${response.status})`,
-    );
-  }
-  const data = new Uint8Array(await response.arrayBuffer());
-  if (attachment.mediaType.startsWith("text/")) {
-    return {
-      kind: "text",
+  signal.throwIfAborted();
+  const files = context.fileTransfers;
+  if (!files) throw new Error("Message attachment capture is not provisioned");
+  const store = context.uploads.scoped({
+    namespace: "upload",
+    refKind: "upload",
+    routePath: "",
+  });
+  const record = await captureRuntimeUpload(
+    {
       filename: attachment.name,
       mediaType: attachment.mediaType,
-      content: new TextDecoder().decode(data),
-      sizeBytes: data.byteLength,
-    };
-  }
+      metadata,
+      source: { url: attachment.url, maxBytes: MAX_ASSET_BYTES },
+    },
+    files,
+    store,
+    {
+      signal,
+      validateFile: async (file, borrowed) => {
+        const facts = await files.inspect(
+          { sourceFile: file.sourceFile, sizeBytes: file.sizeBytes },
+          { inspector: "message-upload", signal: borrowed },
+        );
+        borrowed.throwIfAborted();
+        if (facts.sizeBytes !== file.sizeBytes || facts.sha256 !== file.sha256)
+          throw new Error("Message attachment changed before inspection");
+        const details = uploadInspectionDetailsSchema.parse(facts.details);
+        const mediaType = normalizeMessageUploadMediaType(
+          attachment.name,
+          attachment.mediaType,
+        );
+        if (
+          isUploadableBinaryFile(attachment.name, mediaType) &&
+          details.binaryMediaType !== mediaType
+        )
+          throw new Error(
+            "Message attachment signature does not match its declared type",
+          );
+      },
+    },
+  );
+  retained.push(record);
   return {
     kind: "file",
-    filename: attachment.name,
-    mediaType: attachment.mediaType,
-    data,
-    sizeBytes: data.byteLength,
+    filename: record.filename,
+    mediaType: record.mediaType,
+    sizeBytes: record.sizeBytes,
+    source: record.ref,
   };
 }
 
@@ -348,11 +389,38 @@ class DeclarativeMessageInterfacePlugin<
       .filter((part): part is string => part !== undefined)
       .join(":");
     const attachments: ChatAttachment[] = [];
-    if (input.attachments) {
-      const pending = await input.attachments();
-      for (const attachment of pending) {
-        attachments.push(await attachmentFrom(attachment, signal));
+    const retained: RuntimeUploadRecord[] = [];
+    try {
+      signal.throwIfAborted();
+      if (input.attachments) {
+        const pending = await input.attachments();
+        for (const attachment of pending) {
+          attachments.push(
+            await attachmentFrom(
+              attachment,
+              signal,
+              context,
+              {
+                interfaceType,
+                conversationId,
+                channelId: input.channel.id,
+                uploaderId: input.sender.id,
+                ...(input.channel.threadId
+                  ? { threadId: input.channel.threadId }
+                  : {}),
+                ...(input.sender.displayName
+                  ? { uploaderUsername: input.sender.displayName }
+                  : {}),
+              },
+              retained,
+            ),
+          );
+        }
       }
+      signal.throwIfAborted();
+    } catch (error) {
+      if (retained.length) throw new RetainedUploadBatchError(retained, error);
+      throw error;
     }
 
     this.startProcessingInput(input.channel.id);

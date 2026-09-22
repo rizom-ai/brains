@@ -45,8 +45,8 @@ export interface SlackChatAdapter extends Adapter {
  */
 export type ChatUploadReader = Pick<ScopedRuntimeUploadStore, "read">;
 
-/** The upload surface the input builder uses: it also stores what it receives. */
-export type ChatUploadStore = Pick<ScopedRuntimeUploadStore, "read" | "save">;
+/** Ingress retains only admitted, inspected file loans. */
+export type ChatUploadStore = Pick<ScopedRuntimeUploadStore, "saveFile">;
 
 export interface ChatAdapterMap {
   discord?: DiscordChatAdapter;

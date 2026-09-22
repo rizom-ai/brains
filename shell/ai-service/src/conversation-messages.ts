@@ -3,6 +3,7 @@ import type { Message } from "@brains/conversation-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { ModelMessage, UserContent } from "ai";
 import type { ChatAttachment } from "./agent-types";
+import { fileModelReference } from "./file-model";
 import {
   agentContactCandidateSchema,
   buildAgentContactCandidateContext,
@@ -329,7 +330,7 @@ export function buildMessageWithAttachments(
     ...(text.length > 0 ? [{ type: "text" as const, text }] : []),
     ...fileAttachments.map((attachment) => ({
       type: "file" as const,
-      data: attachment.data,
+      data: fileModelReference(attachment.source),
       mediaType: attachment.mediaType,
       filename: attachment.filename,
     })),

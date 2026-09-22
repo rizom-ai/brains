@@ -73,7 +73,7 @@ describe("public agent contracts", () => {
     });
   });
 
-  it("accepts native file attachments in chat context", () => {
+  it("accepts scoped file references in chat context", () => {
     const imageBytes = new Uint8Array([137, 80, 78, 71]);
     expect(
       ChatContextSchema.parse({
@@ -82,7 +82,6 @@ describe("public agent contracts", () => {
             kind: "file",
             filename: "robot.png",
             mediaType: "image/png",
-            data: imageBytes,
             sizeBytes: imageBytes.byteLength,
             source: { kind: "upload", id: "upload-123" },
           },
@@ -94,12 +93,34 @@ describe("public agent contracts", () => {
           kind: "file",
           filename: "robot.png",
           mediaType: "image/png",
-          data: imageBytes,
           sizeBytes: imageBytes.byteLength,
           source: { kind: "upload", id: "upload-123" },
         },
       ],
     });
+  });
+
+  it("rejects inline binary attachment payloads even alongside a valid ref", () => {
+    expect(() =>
+      ChatContextSchema.parse({
+        attachments: [
+          {
+            kind: "file",
+            filename: "image.png",
+            mediaType: "image/png",
+            data: new Uint8Array([1]),
+            source: { kind: "upload", id: "fixture" },
+          },
+        ],
+      }),
+    ).toThrow();
+    expect(() =>
+      ChatContextSchema.parse({
+        attachments: [
+          { kind: "file", filename: "image.png", mediaType: "image/png" },
+        ],
+      }),
+    ).toThrow();
   });
 
   it("forwards native attachments and cancellation through the public agent namespace", async () => {

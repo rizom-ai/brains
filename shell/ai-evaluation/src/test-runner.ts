@@ -22,7 +22,6 @@ import {
   evaluateQualityThresholds,
 } from "./criteria-evaluator";
 import { isRecord } from "@brains/utils/is-record";
-import { definedFields } from "@brains/utils/strip-undefined";
 
 type ChatAttachment = NonNullable<ChatContext["attachments"]>[number];
 type AgentResponseCard = NonNullable<AgentResponse["cards"]>[number];
@@ -122,11 +121,12 @@ export class TestRunner implements ITestRunner {
     for (let i = 0; i < testCase.turns.length; i++) {
       const turn = testCase.turns[i];
       if (!turn) continue;
-      const attachments = this.buildTurnAttachments(turn, previousAttachments);
-      if (turn.attachments !== undefined) {
-        await this.seedRuntimeUploads(turn.attachments);
-        previousAttachments = attachments;
-      }
+      const fixtures = await this.seedRuntimeUploads(turn.attachments ?? []);
+      const attachments = this.buildTurnAttachments(
+        { ...turn, attachments: fixtures },
+        previousAttachments,
+      );
+      if (turn.attachments !== undefined) previousAttachments = attachments;
 
       collector.startTurn();
       let response: AgentResponse;
@@ -366,41 +366,65 @@ export class TestRunner implements ITestRunner {
       };
     }
 
-    const data = new Uint8Array(Buffer.from(attachment.dataBase64, "base64"));
+    if (!attachment.source)
+      throw new Error("File evaluation fixture was not retained");
     return {
       kind: "file",
       filename: attachment.filename,
       mediaType: attachment.mediaType,
-      data,
-      sizeBytes: attachment.sizeBytes ?? data.byteLength,
-      ...definedFields({ source: attachment.source }),
+      ...(attachment.sizeBytes !== undefined
+        ? { sizeBytes: attachment.sizeBytes }
+        : {}),
+      source: attachment.source,
     };
   }
 
+  /** Evaluation fixture generation only, never an ingress or model-byte fallback.
+   * Synthetic base64 fixtures are retained before invoking the reference-only agent. */
   private async seedRuntimeUploads(
     attachments: EvalAttachment[],
-  ): Promise<void> {
-    if (!this.runtimeUploads) return;
-
+  ): Promise<EvalAttachment[]> {
+    const seeded: EvalAttachment[] = [];
     for (const attachment of attachments) {
+      if (!this.runtimeUploads) {
+        if (attachment.kind === "file")
+          throw new Error(
+            "File evaluation fixtures require runtime upload storage",
+          );
+        seeded.push(attachment);
+        continue;
+      }
       const source = attachment.source;
-      if (!source) continue;
-      const namespace = getRuntimeUploadNamespace(source.kind);
-      if (!namespace) continue;
-
-      await this.runtimeUploads
+      const namespace = source
+        ? getRuntimeUploadNamespace(source.kind)
+        : attachment.kind === "file"
+          ? "upload"
+          : undefined;
+      if (!namespace) {
+        if (attachment.kind === "file")
+          throw new Error("Unsupported evaluation upload namespace");
+        seeded.push(attachment);
+        continue;
+      }
+      const record = await this.runtimeUploads
         .scoped({
           namespace,
-          refKind: source.kind,
+          refKind: source?.kind ?? "upload",
           routePath: "",
-          createId: () => source.id,
+          ...(source ? { createId: (): string => source.id } : {}),
         })
         .save({
           filename: attachment.filename,
           mediaType: attachment.mediaType,
           content: toAttachmentContent(attachment),
         });
+      seeded.push(
+        attachment.kind === "file"
+          ? { ...attachment, source: record.ref, sizeBytes: record.sizeBytes }
+          : attachment,
+      );
     }
+    return seeded;
   }
 
   private buildTurnChatContext(
