@@ -157,7 +157,7 @@ Returns pageviews, visitors, top pages, referrers, devices, and countries.`,
       {
         sideEffects: "none",
         agentTool: false,
-        directMcpExposure: "basic",
+        directMcpExposure: "debug",
       },
     ),
   );

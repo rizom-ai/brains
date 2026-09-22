@@ -170,10 +170,11 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 | `plugins/atproto`          | AT Protocol identity, publishing, discovery, feeds                                                 |
 | `plugins/atproto-registry` | Canonical Rizom AT Protocol lexicon registry                                                       |
 | `plugins/content-pipeline` | Publishing queue, scheduling, retries                                                              |
+| `plugins/contact`          | Default-off bounded public contact intake with restricted Inbox records and durable notification   |
 | `plugins/dashboard`        | Dashboard widgets and UI slots                                                                     |
 | `plugins/directory-sync`   | File sync + git operations                                                                         |
 | `plugins/email-workflows`  | Restricted mail triage, Inbox detail, and a dormant tested reply backend                           |
-| `plugins/newsletter`       | Compound newsletter entity and Buttondown service capability                                       |
+| `plugins/newsletter`       | Compound newsletter entity with selectable Buttondown or Resend delivery                           |
 | `plugins/notifications`    | Notification routing for transactional and administrative messages                                 |
 | `plugins/obsidian-vault`   | Obsidian export/templates                                                                          |
 | `plugins/site-builder`     | Static site build orchestration                                                                    |

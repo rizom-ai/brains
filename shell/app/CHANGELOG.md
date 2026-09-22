@@ -1,5 +1,45 @@
 # @brains/app
 
+## 0.2.0-alpha.401
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/chat-repl@0.2.0-alpha.401
+  - @brains/contracts@0.2.0-alpha.401
+  - @brains/site-composition@0.2.0-alpha.401
+  - @brains/theme-base@0.2.0-alpha.401
+  - @brains/utils@0.2.0-alpha.401
+  - @brains/conversation-service@0.2.0-alpha.401
+  - @brains/core@0.2.0-alpha.401
+  - @brains/entity-service@0.2.0-alpha.401
+  - @brains/job-queue@0.2.0-alpha.401
+  - @brains/mcp-service@0.2.0-alpha.401
+  - @brains/plugins@0.2.0-alpha.401
+  - @brains/runtime-state@0.2.0-alpha.401
+  - @brains/templates@0.2.0-alpha.401
+
+## 0.2.0-alpha.400
+
+### Patch Changes
+
+- [#328](https://github.com/rizom-ai/brains/pull/328) [`93868fa`](https://github.com/rizom-ai/brains/commit/93868faeb036121b3ed0e6b79055906c17b164e1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Certify the MCP basic protocol as a chat-only teammate surface after adding canonical protocol acceptance and a behavioral-eval path. Basic mode advertises only `chat` and `confirm` at every permission level; raw reads and writes remain available to Admin operators in debug mode. The eval runner can now execute selected agent cases through the real basic MCP protocol, including confirmation and follow-up turns.
+
+- Updated dependencies [[`93868fa`](https://github.com/rizom-ai/brains/commit/93868faeb036121b3ed0e6b79055906c17b164e1)]:
+  - @brains/mcp-service@0.2.0-alpha.400
+  - @brains/core@0.2.0-alpha.400
+  - @brains/job-queue@0.2.0-alpha.400
+  - @brains/plugins@0.2.0-alpha.400
+  - @brains/chat-repl@0.2.0-alpha.400
+  - @brains/entity-service@0.2.0-alpha.400
+  - @brains/contracts@0.2.0-alpha.400
+  - @brains/site-composition@0.2.0-alpha.400
+  - @brains/theme-base@0.2.0-alpha.400
+  - @brains/utils@0.2.0-alpha.400
+  - @brains/conversation-service@0.2.0-alpha.400
+  - @brains/runtime-state@0.2.0-alpha.400
+  - @brains/templates@0.2.0-alpha.400
+
 ## 0.2.0-alpha.399
 
 ### Patch Changes

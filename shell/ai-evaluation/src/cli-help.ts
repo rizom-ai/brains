@@ -12,6 +12,7 @@ Options:
   --suite <name>      Run an eval suite from brain.eval.yaml
   --url <url>         Run against a remote brain instance
   --token <token>     Auth token for remote instance
+  --mcp-basic         Run agent cases through basic MCP chat/confirm
   --compare [name]    Compare with previous run or named baseline
   --baseline <name>   Save results as a named baseline
   --skip-llm-judge    Skip LLM quality scoring (faster)
@@ -39,6 +40,7 @@ Examples:
   bun run eval --suite core --tool-surface  Inspect tool surfaces
   bun run eval --type plugin                Run only plugin tests
   bun run eval --type agent                 Run only agent tests
+  bun run eval --mcp-basic --test <ids>      Evaluate through basic MCP
   bun run eval --skip-llm-judge             Skip LLM judge for speed
   bun run eval --url http://localhost:8080  Run against remote instance
 `);

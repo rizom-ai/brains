@@ -86,6 +86,29 @@ describe("NotificationsPlugin", () => {
     ]);
   });
 
+  it("keeps internal delivery available to execution-only workers", async () => {
+    const harness = createPluginHarness<NotificationsPlugin>();
+    const sent = installEmailProvider(harness, async () => ({
+      status: "sent",
+    }));
+    await new NotificationsPlugin({
+      defaultRecipient: { type: "email", address: "operator@example.com" },
+    }).register(harness.getMockShell(), { executionOnly: true });
+    harness.getMockShell().getChannelRegistry().finalize();
+    const result = await harness.sendMessage<unknown, SendNotificationResult>(
+      NOTIFICATIONS_SEND,
+      {
+        title: "Contact request",
+        body: "Open the authenticated Inbox.",
+        sensitivity: "secret",
+        idempotencyKey: "contact-notification:test",
+      },
+    );
+    expect(result).toEqual({ status: "sent" });
+    expect(sent).toHaveLength(1);
+    expect(sent[0]?.idempotencyKey).toBe("contact-notification:test");
+  });
+
   it("uses the configured default recipient when the message omits one", async () => {
     const harness = createPluginHarness<NotificationsPlugin>();
     const sent = installEmailProvider(harness, async () => ({

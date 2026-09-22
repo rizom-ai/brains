@@ -646,6 +646,7 @@
         "@brains/blog": "workspace:*",
         "@brains/build-tools": "workspace:*",
         "@brains/chat": "workspace:*",
+        "@brains/contact": "workspace:*",
         "@brains/content-formatters": "workspace:*",
         "@brains/content-pipeline": "workspace:*",
         "@brains/contracts": "workspace:*",
@@ -850,6 +851,26 @@
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.4.0",
+        "bun-types": "^1.4.0",
+        "eslint": "^10.5.0",
+        "typescript": "^7.0.2",
+      },
+    },
+    "plugins/contact": {
+      "name": "@brains/contact",
+      "version": "0.2.0-alpha.400",
+      "dependencies": {
+        "@brains/console-theme": "workspace:*",
+        "@brains/contracts": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/notifications": "workspace:*",
+        "@brains/runtime-state": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.4.0",
         "bun-types": "^1.4.0",
@@ -1643,6 +1664,8 @@
         "@brains/plugins": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
+        "@modelcontextprotocol/client": "^2.0.0",
+        "@modelcontextprotocol/server": "^2.0.0",
         "chalk": "^5.4.1",
         "dotenv": "^17.4.2",
         "yaml": "^2.9.0",
@@ -2077,6 +2100,7 @@
       "dependencies": {
         "@brains/blog": "workspace:*",
         "@brains/content-formatters": "workspace:*",
+        "@brains/contracts": "workspace:*",
         "@brains/decks": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/profile": "workspace:*",
@@ -2093,8 +2117,10 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "^1.4.0",
         "@types/react": "^19.2.17",
+        "@types/react-dom": "^19.0.3",
         "bun-types": "^1.4.0",
         "eslint": "^10.5.0",
+        "react-dom": "^19.2.7",
         "typescript": "^7.0.2",
       },
     },
@@ -2255,6 +2281,8 @@
     "@brains/chat-repl": ["@brains/chat-repl@workspace:interfaces/chat-repl"],
 
     "@brains/console-theme": ["@brains/console-theme@workspace:shared/console-theme"],
+
+    "@brains/contact": ["@brains/contact@workspace:plugins/contact"],
 
     "@brains/content-formatters": ["@brains/content-formatters@workspace:shared/content-formatters"],
 

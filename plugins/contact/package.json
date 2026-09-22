@@ -1,0 +1,33 @@
+{
+  "name": "@brains/contact",
+  "license": "AGPL-3.0-only",
+  "version": "0.2.0-alpha.401",
+  "description": "Private contact intake for a Brain's public pages",
+  "dependencies": {
+    "@brains/console-theme": "workspace:*",
+    "@brains/contracts": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/notifications": "workspace:*",
+    "@brains/runtime-state": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "^1.4.0",
+    "bun-types": "^1.4.0",
+    "eslint": "^10.5.0",
+    "typescript": "^7.0.2"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module"
+}

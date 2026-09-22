@@ -31,7 +31,7 @@ describe("unified inbox headless reader", () => {
       shell.getMessageBus(),
       shell.getLogger(),
     );
-    mcpService.setProtocolMode("basic");
+    mcpService.setProtocolMode("debug");
     for (const tool of capabilities.tools) {
       mcpService.registerTool(plugin.id, tool);
     }

@@ -1,3 +1,4 @@
+import type { HomepageOpeningData } from "./homepage-opening";
 import { fetchAnchorProfileData } from "@brains/profile";
 import type {
   BaseDataSourceContext,
@@ -42,6 +43,8 @@ interface HomepageDataSourceOutput {
   decksListUrl: string;
   cta: SiteInfoCTA;
   sections: HomepageSections;
+  opening?: HomepageOpeningData | null;
+  homepageOpening?: boolean;
 }
 
 /**
@@ -56,7 +59,18 @@ export class HomepageListDataSource implements DataSource {
   public readonly description =
     "Fetches profile, blog posts, and presentation decks for homepage";
 
-  constructor(postsListUrl: string, decksListUrl: string) {
+  private readonly loadOpening:
+    | ((context: BaseDataSourceContext) => Promise<HomepageOpeningData | null>)
+    | undefined;
+
+  constructor(
+    postsListUrl: string,
+    decksListUrl: string,
+    loadOpening?: (
+      context: BaseDataSourceContext,
+    ) => Promise<HomepageOpeningData | null>,
+  ) {
+    this.loadOpening = loadOpening;
     this.postsListUrl = postsListUrl;
     this.decksListUrl = decksListUrl;
   }
@@ -97,6 +111,9 @@ export class HomepageListDataSource implements DataSource {
       decksListUrl: this.decksListUrl,
       cta: requireCta(siteInfo.cta),
       sections: siteInfo.sections ?? {},
+      ...(this.loadOpening
+        ? { homepageOpening: true, opening: await this.loadOpening(context) }
+        : {}),
     };
 
     return outputSchema.parse(data);

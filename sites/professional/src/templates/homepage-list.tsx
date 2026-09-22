@@ -1,4 +1,6 @@
 import type { JSX, ReactNode } from "react";
+import type { HomepageOpeningContent } from "../schemas/homepage-opening";
+import { HomepageOpening } from "./homepage-opening";
 import type { ProfessionalProfile } from "../schemas";
 import type { BlogPostView } from "@brains/blog";
 import type { DeckView } from "@brains/decks";
@@ -32,6 +34,9 @@ export interface HomepageListData {
   decksListUrl: string;
   cta: SiteInfoCTA;
   sections: HomepageSections;
+  /** Placement is separate from copy availability; never synthesize absent copy. */
+  homepageOpening?: boolean | undefined;
+  opening?: HomepageOpeningContent | null | undefined;
 }
 
 const GRID_CLS =
@@ -77,6 +82,8 @@ export const HomepageListLayout = ({
   decksListUrl,
   cta,
   sections,
+  opening,
+  homepageOpening = false,
 }: HomepageListData): JSX.Element => {
   // Use tagline if non-empty (empty string counts as absent), fall back to
   // description
@@ -126,30 +133,38 @@ export const HomepageListLayout = ({
     <>
       <Head title={title} description={description} ogType="website" />
       <div className="homepage-list bg-theme">
-        {/* Hero Section — restrained editorial */}
-        <header className="hero-bg-pattern relative w-full px-6 md:px-12 pt-28 pb-24 md:pt-28 md:pb-24 overflow-hidden border-b border-rule">
-          <div className="relative z-10 max-w-6xl mx-auto w-full">
-            {profile.name && (
-              <div className="flex items-center gap-[0.6rem] mb-6 font-mono text-[0.7rem] font-medium uppercase tracking-[0.22em] text-accent">
-                <span className="w-[18px] h-px bg-accent" aria-hidden="true" />
-                <span>{profile.name}</span>
-              </div>
-            )}
-            {tagline && (
-              <h1 className="font-heading text-[clamp(2.75rem,6.5vw,5.5rem)] font-normal text-heading leading-[1.02] tracking-[-0.025em] max-w-[18ch] [font-variation-settings:'opsz'_144,'SOFT'_30]">
-                {renderHighlightedText(
-                  tagline,
-                  "italic font-normal text-accent [font-variation-settings:'opsz'_144,'SOFT'_80]",
-                )}
-              </h1>
-            )}
-            {profile.intro && (
-              <p className="font-heading font-light text-[clamp(1.1rem,1.8vw,1.4rem)] leading-[1.5] text-theme-muted max-w-[42ch] mt-8 [font-variation-settings:'opsz'_24]">
-                {renderHighlightedText(profile.intro, "italic text-accent")}
-              </p>
-            )}
-          </div>
-        </header>
+        {homepageOpening ? (
+          opening ? (
+            <HomepageOpening content={opening} owner={profile.name} />
+          ) : null
+        ) : (
+          <header className="hero-bg-pattern relative w-full px-6 md:px-12 pt-28 pb-24 md:pt-28 md:pb-24 overflow-hidden border-b border-rule">
+            <div className="relative z-10 max-w-6xl mx-auto w-full">
+              {profile.name && (
+                <div className="flex items-center gap-[0.6rem] mb-6 font-mono text-[0.7rem] font-medium uppercase tracking-[0.22em] text-accent">
+                  <span
+                    className="w-[18px] h-px bg-accent"
+                    aria-hidden="true"
+                  />
+                  <span>{profile.name}</span>
+                </div>
+              )}
+              {tagline && (
+                <h1 className="font-heading text-[clamp(2.75rem,6.5vw,5.5rem)] font-normal text-heading leading-[1.02] tracking-[-0.025em] max-w-[18ch] [font-variation-settings:'opsz'_144,'SOFT'_30]">
+                  {renderHighlightedText(
+                    tagline,
+                    "italic font-normal text-accent [font-variation-settings:'opsz'_144,'SOFT'_80]",
+                  )}
+                </h1>
+              )}
+              {profile.intro && (
+                <p className="font-heading font-light text-[clamp(1.1rem,1.8vw,1.4rem)] leading-[1.5] text-theme-muted max-w-[42ch] mt-8 [font-variation-settings:'opsz'_24]">
+                  {renderHighlightedText(profile.intro, "italic text-accent")}
+                </p>
+              )}
+            </div>
+          </header>
+        )}
 
         <EditorialRow
           number="01"

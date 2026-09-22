@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-09-13
+Last updated: 2026-09-21
 
 This is the public-facing view of where `brains` is headed. It records product direction and release readiness; implementation detail belongs in the active plans under [`docs/plans`](./plans/README.md).
 
@@ -10,7 +10,7 @@ This is the public-facing view of where `brains` is headed. It records product d
 
 The remaining `v0.2.0` work is release certification rather than another product-model migration: integrate the intended public-authoring boundary, publish one final alpha, run the complete registry/packed/live/eval evidence against that exact source, prove the candidate on approved canaries and `yeehaa.io`, and obtain explicit authorization before stable publication.
 
-Public `/ask` is a separate product rollout, not a stable-release gate. Its guest runtime and Brain-page integration are published and deployed to the Rizom preview path with admission default-off. Production guest enablement, a fresh paid live acceptance run, and production-page publication remain unapproved.
+Public Ask is a separate product rollout, not a stable-release gate. Its guest runtime, shared authored content and Dashboard tab are published and deployed to the Rizom preview path with admission default-off. Guest admission is per deployment, so no site inherits another's authorization, allowance or spend. Production guest enablement, a fresh paid live acceptance run, and production-page publication remain unapproved everywhere, and an owner-facing usage record and monitor are now a precondition for opening any of them.
 
 What exists today:
 
@@ -41,13 +41,13 @@ Collective-posture field validation, Public Ask launch, opportunity prioritizati
 
 An existing worktree does not automatically outrank release work.
 
-| Priority | Outcome                              | Current execution                                                                                                                                                                          |
-| -------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **P0**   | Freeze the public authoring boundary | Finish review and integration of `work/plugin-api-boundaries`; preserve the declarative outside-author path and do not retain superseded alpha APIs.                                       |
-| **P0**   | Nominate and release stable `v0.2.0` | Publish one final alpha, rerun exact registry/packed/live/eval evidence, certify canaries and `yeehaa.io`, then request explicit stable-release authorization.                             |
-| **P1**   | Prove Public Ask                     | Rebuild and inspect the deployed preview, then—only with fresh approval—verify a real public-source question, follow-up, history, and owned deletion. Keep production guest admission off. |
-| **P2**   | General content generation           | Shipped in PR #252 (Brain 0.2.0-alpha.379) and verified on smoke; the default site carries a generated section. Studio hierarchy shipped separately in PR #267 (Brain 0.2.0-alpha.388).    |
-| **P2**   | Opportunity-prioritization dogfood   | Finish the single-entity opportunity rework, composition, eval hardening, and focused operator surface without adding it to a default bundle.                                              |
+| Priority | Outcome                              | Current execution                                                                                                                                                                               |
+| -------- | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **P0**   | Freeze the public authoring boundary | Finish review and integration of `work/plugin-api-boundaries`; preserve the declarative outside-author path and do not retain superseded alpha APIs.                                            |
+| **P0**   | Nominate and release stable `v0.2.0` | Publish one final alpha, rerun exact registry/packed/live/eval evidence, certify canaries and `yeehaa.io`, then request explicit stable-release authorization.                                  |
+| **P1**   | Make Public Ask observable           | Record guest requests, denials and settled spend durably, then surface them in an admin Studio workspace with a reachable kill switch. Keep production guest admission off on every deployment. |
+| **P2**   | General content generation           | Shipped in PR #252 (Brain 0.2.0-alpha.379) and verified on smoke; the default site carries a generated section. Studio hierarchy shipped separately in PR #267 (Brain 0.2.0-alpha.388).         |
+| **P2**   | Opportunity-prioritization dogfood   | Finish the single-entity opportunity rework, composition, eval hardening, and focused operator surface without adding it to a default bundle.                                                   |
 
 Everything marked parked, proposed, or exploratory below is demand-gated. New work should not preempt P0 without an explicit roadmap change.
 
@@ -78,6 +78,7 @@ The personal-publishing posture remains the public reference. Product improvemen
 Plans:
 
 - [web-search-tool.md](./plans/web-search-tool.md) — provider-neutral, permission-gated, audited web search.
+- [newsletter-resend-provider.md](./plans/newsletter-resend-provider.md) — add Resend as a selectable newsletter provider behind shared rendering, subscriber, signup, and publishing contracts while retaining Buttondown.
 - [system-analytics-tool.md](./plans/system-analytics-tool.md) — one extensible typed analytics/reporting surface.
 - [agent-tool-surface-consolidation.md](./plans/agent-tool-surface-consolidation.md) — keep agent, protocol, and CLI exposure distinct and finish the measured tool-surface/eval closeout.
 
@@ -117,7 +118,7 @@ Discord, Slack, standalone `/ask`, native Studio Chat, and the shared Chat proto
 
 Plans:
 
-- [public-ask.md](./plans/public-ask.md) — complete live visitor acceptance and obtain separate production policy/publication approval.
+- [public-ask.md](./plans/public-ask.md) — the whole Ask surface: record and display guest usage before any deployment opens production guest access, then take each site through its own content, door and enablement decisions.
 - [studio-ux-improvements.md](./plans/studio-ux-improvements.md) — the remaining reviewed presentation, accessibility, and optional draft-recovery decisions after the shipped UX batches.
 - [studio-virtual-collections.md](./plans/studio-virtual-collections.md) — implemented foundation for source-backed collections across entity types; PR #302 now continues into grouping vocabularies rather than landing separately.
 - [studio-grouping-vocabularies.md](./plans/studio-grouping-vocabularies.md) — implemented and locally validated in PR #302: admin-defined value lists/cardinality, system editing without a restart, shared enforcement including projection writes, select/checkbox controls, visible strays, and canonical import refusal/retry; awaiting merge and release.

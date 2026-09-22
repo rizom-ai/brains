@@ -30,6 +30,7 @@ describe("cli options", () => {
       "--verbose",
       "--tool-coverage",
       "--tool-surface",
+      "--mcp-basic",
       "--suite",
       "personal",
       "--tags",
@@ -55,6 +56,7 @@ describe("cli options", () => {
       verbose: true,
       toolCoverage: true,
       toolSurface: true,
+      mcpBasic: true,
       suite: "personal",
       tags: ["core", "smoke"],
       testCaseIds: ["a", "b"],
@@ -79,6 +81,7 @@ describe("cli options", () => {
     expect(options.verbose).toBe(true);
     expect(options.toolCoverage).toBe(false);
     expect(options.toolSurface).toBe(false);
+    expect(options.mcpBasic).toBe(false);
     expect(options.testCaseIds).toEqual(["fallback"]);
     expect(options.compareAgainst).toBe("");
   });

@@ -1,11 +1,12 @@
 {
   "name": "@brains/site-professional",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.399",
+  "version": "0.2.0-alpha.401",
   "description": "Professional site composition package",
   "dependencies": {
     "@brains/blog": "workspace:*",
     "@brains/content-formatters": "workspace:*",
+    "@brains/contracts": "workspace:*",
     "@brains/decks": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/profile": "workspace:*",
@@ -22,8 +23,10 @@
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.4.0",
     "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.0.3",
     "bun-types": "^1.4.0",
     "eslint": "^10.5.0",
+    "react-dom": "^19.2.7",
     "typescript": "^7.0.2"
   },
   "exports": {

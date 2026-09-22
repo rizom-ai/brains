@@ -1,4 +1,4 @@
-import type { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod";
 import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import { assertIdentifier } from "../package-definition";
 import { assertText } from "./contract-assertions";
@@ -12,51 +12,186 @@ import type {
   WorkspaceActionInput,
 } from "./workspace-action-definition-contract";
 
-export type OperatorTone = "good" | "warn" | "neutral" | "error";
-export type OperatorScalar = string | number | boolean | null;
+/**
+ * The bounds every operator view is measured against.
+ *
+ * These are the contract, not an implementation detail of validating it. An
+ * author reading `readonly title?: string` cannot see that the string is
+ * trimmed and capped at 160 characters; they find out when the runtime
+ * rejects a view, which for an outside plugin is after they have shipped.
+ */
 
-export interface OperatorStatItem {
-  readonly label: string;
-  readonly value: string | number;
-  /** What the number counts, under the value. */
-  readonly caption?: string | undefined;
-  readonly tone?: OperatorTone | undefined;
-}
+/** An identifier an author chooses: trimmed, 1–120 characters. */
+export const operatorIdentifierSchema: z.ZodString = z
+  .string()
+  .trim()
+  .min(1)
+  .max(120);
 
-export interface OperatorStatsBlock {
-  readonly type: "stats";
-  readonly id?: string | undefined;
-  readonly items: readonly OperatorStatItem[];
-}
+/**
+ * Row identity is opaque data, not an authored name: a collection row may be
+ * keyed by a composite source identity, so it is bounded more loosely than the
+ * identifiers an author chooses.
+ */
+export const operatorRowIdentifierSchema: z.ZodString = z
+  .string()
+  .trim()
+  .min(1)
+  .max(400);
 
-export interface OperatorKeyValueItem {
-  readonly label: string;
-  readonly value: OperatorScalar;
-}
+/** A visible name: trimmed, 1–160 characters. */
+export const operatorLabelSchema: z.ZodString = z
+  .string()
+  .trim()
+  .min(1)
+  .max(160);
 
-export interface OperatorKeyValuesBlock {
-  readonly type: "key-values";
-  readonly id?: string | undefined;
-  readonly items: readonly OperatorKeyValueItem[];
-}
+/**
+ * Body text, in three sizes. Unlike identifiers and labels these are content
+ * rather than names, so they are neither trimmed nor required to be non-empty.
+ */
+export const operatorShortTextSchema: z.ZodString = z.string().max(500);
+export const operatorTextSchema: z.ZodString = z.string().max(4_000);
+export const operatorLongTextSchema: z.ZodString = z.string().max(100_000);
 
-export interface OperatorNoticeBlock {
-  readonly type: "notice";
-  readonly id?: string | undefined;
-  readonly title?: string | undefined;
-  readonly text: string;
-  /** Complete supporting records, disclosed without repeating the notice heading. */
-  readonly details?: readonly string[] | undefined;
-  readonly tone?: OperatorTone | undefined;
-}
+/** A position within a view, as a fraction of its extent. */
+export const operatorCoordinateSchema: z.ZodNumber = z
+  .number()
+  .finite()
+  .min(0)
+  .max(1);
 
-export interface OperatorTextBlock {
-  readonly type: "text";
-  readonly id?: string | undefined;
-  readonly label?: string | undefined;
-  readonly text: string;
-  readonly truncated?: boolean | undefined;
-}
+/**
+ * Tone and scalar, and the leaf blocks built from them.
+ *
+ * Each type below is the output of the schema beside it rather than a second
+ * declaration of the same shape. The annotation `--isolatedDeclarations`
+ * requires names the Zod kinds, not the bounds, so a limit still lives in
+ * exactly one place — and an author can import the schema to check against it
+ * rather than learning the limit from a rejected view.
+ */
+
+export const operatorToneSchema: z.ZodEnum<{
+  good: "good";
+  warn: "warn";
+  neutral: "neutral";
+  error: "error";
+}> = z.enum(["good", "warn", "neutral", "error"]);
+export type OperatorTone = z.output<typeof operatorToneSchema>;
+
+export const operatorScalarSchema: z.ZodUnion<
+  readonly [z.ZodString, z.ZodNumber, z.ZodBoolean, z.ZodNull]
+> = z.union([
+  z.string().max(2_000),
+  z.number().finite(),
+  z.boolean(),
+  z.null(),
+]);
+export type OperatorScalar = z.output<typeof operatorScalarSchema>;
+
+export const operatorStatItemSchema: z.ZodObject<
+  {
+    label: z.ZodString;
+    value: z.ZodUnion<readonly [z.ZodString, z.ZodNumber]>;
+    caption: z.ZodOptional<z.ZodString>;
+    tone: z.ZodOptional<typeof operatorToneSchema>;
+  },
+  z.core.$strict
+> = z
+  .object({
+    label: operatorLabelSchema,
+    value: z.union([z.string().max(500), z.number().finite()]),
+    /** What the number counts, under the value. */
+    caption: operatorShortTextSchema.optional(),
+    tone: operatorToneSchema.optional(),
+  })
+  .strict();
+export type OperatorStatItem = z.output<typeof operatorStatItemSchema>;
+
+export const operatorStatsBlockSchema: z.ZodObject<
+  {
+    type: z.ZodLiteral<"stats">;
+    id: z.ZodOptional<z.ZodString>;
+    items: z.ZodReadonly<z.ZodArray<typeof operatorStatItemSchema>>;
+  },
+  z.core.$strict
+> = z
+  .object({
+    type: z.literal("stats"),
+    id: operatorIdentifierSchema.optional(),
+    items: z.array(operatorStatItemSchema).max(20).readonly(),
+  })
+  .strict();
+export type OperatorStatsBlock = z.output<typeof operatorStatsBlockSchema>;
+
+export const operatorKeyValueItemSchema: z.ZodObject<
+  { label: z.ZodString; value: typeof operatorScalarSchema },
+  z.core.$strict
+> = z
+  .object({ label: operatorLabelSchema, value: operatorScalarSchema })
+  .strict();
+export type OperatorKeyValueItem = z.output<typeof operatorKeyValueItemSchema>;
+
+export const operatorKeyValuesBlockSchema: z.ZodObject<
+  {
+    type: z.ZodLiteral<"key-values">;
+    id: z.ZodOptional<z.ZodString>;
+    items: z.ZodReadonly<z.ZodArray<typeof operatorKeyValueItemSchema>>;
+  },
+  z.core.$strict
+> = z
+  .object({
+    type: z.literal("key-values"),
+    id: operatorIdentifierSchema.optional(),
+    items: z.array(operatorKeyValueItemSchema).max(40).readonly(),
+  })
+  .strict();
+export type OperatorKeyValuesBlock = z.output<
+  typeof operatorKeyValuesBlockSchema
+>;
+
+export const operatorNoticeBlockSchema: z.ZodObject<
+  {
+    type: z.ZodLiteral<"notice">;
+    id: z.ZodOptional<z.ZodString>;
+    title: z.ZodOptional<z.ZodString>;
+    text: z.ZodString;
+    details: z.ZodOptional<z.ZodReadonly<z.ZodArray<z.ZodString>>>;
+    tone: z.ZodOptional<typeof operatorToneSchema>;
+  },
+  z.core.$strict
+> = z
+  .object({
+    type: z.literal("notice"),
+    id: operatorIdentifierSchema.optional(),
+    title: operatorLabelSchema.optional(),
+    text: operatorTextSchema,
+    /** Complete supporting records, disclosed without repeating the heading. */
+    details: z.array(operatorLongTextSchema).max(50).readonly().optional(),
+    tone: operatorToneSchema.optional(),
+  })
+  .strict();
+export type OperatorNoticeBlock = z.output<typeof operatorNoticeBlockSchema>;
+
+export const operatorTextBlockSchema: z.ZodObject<
+  {
+    type: z.ZodLiteral<"text">;
+    id: z.ZodOptional<z.ZodString>;
+    label: z.ZodOptional<z.ZodString>;
+    text: z.ZodString;
+    truncated: z.ZodOptional<z.ZodBoolean>;
+  },
+  z.core.$strict
+> = z
+  .object({
+    type: z.literal("text"),
+    id: operatorIdentifierSchema.optional(),
+    label: operatorLabelSchema.optional(),
+    text: operatorLongTextSchema,
+    truncated: z.boolean().optional(),
+  })
+  .strict();
+export type OperatorTextBlock = z.output<typeof operatorTextBlockSchema>;
 
 export interface OperatorGroupItem {
   readonly id: string;
@@ -88,32 +223,83 @@ export interface OperatorFlowBlock {
   readonly steps: readonly OperatorFlowStep[];
 }
 
-export interface OperatorMeterItem {
-  readonly id: string;
-  readonly label: string;
-  readonly value: number;
-  readonly max?: number | undefined;
-  readonly unit?: string | undefined;
-  readonly tone?: OperatorTone | undefined;
-}
+export const operatorMeterItemSchema: z.ZodObject<
+  {
+    id: z.ZodString;
+    label: z.ZodString;
+    value: z.ZodNumber;
+    max: z.ZodOptional<z.ZodNumber>;
+    unit: z.ZodOptional<z.ZodString>;
+    tone: z.ZodOptional<typeof operatorToneSchema>;
+  },
+  z.core.$strict
+> = z
+  .object({
+    id: operatorIdentifierSchema,
+    label: operatorLabelSchema,
+    value: z.number().finite().nonnegative(),
+    max: z.number().finite().positive().optional(),
+    unit: operatorLabelSchema.optional(),
+    tone: operatorToneSchema.optional(),
+  })
+  .strict()
+  .superRefine((item, context) => {
+    // The one rule here that relates two fields, so no type can carry it.
+    if (item.max !== undefined && item.value > item.max) {
+      context.addIssue({
+        code: "custom",
+        message: "Meter value cannot exceed its maximum",
+        path: ["value"],
+      });
+    }
+  });
+export type OperatorMeterItem = z.output<typeof operatorMeterItemSchema>;
 
-export interface OperatorMeterBlock {
-  readonly type: "meters";
-  readonly id: string;
-  readonly items: readonly OperatorMeterItem[];
-}
+export const operatorMeterBlockSchema: z.ZodObject<
+  {
+    type: z.ZodLiteral<"meters">;
+    id: z.ZodString;
+    items: z.ZodReadonly<z.ZodArray<typeof operatorMeterItemSchema>>;
+  },
+  z.core.$strict
+> = z
+  .object({
+    type: z.literal("meters"),
+    id: operatorIdentifierSchema,
+    items: z.array(operatorMeterItemSchema).max(30).readonly(),
+  })
+  .strict();
+export type OperatorMeterBlock = z.output<typeof operatorMeterBlockSchema>;
 
-export interface OperatorProgressBlock {
-  readonly type: "progress";
-  readonly id: string;
-  readonly label: string;
-  readonly state: string;
-  readonly detail?: string | undefined;
-  readonly startedAt?: string | undefined;
-  readonly updatedAt?: string | undefined;
-  readonly progress?: number | undefined;
-  readonly tone?: OperatorTone | undefined;
-}
+export const operatorProgressBlockSchema: z.ZodObject<
+  {
+    type: z.ZodLiteral<"progress">;
+    id: z.ZodString;
+    label: z.ZodString;
+    state: z.ZodString;
+    detail: z.ZodOptional<z.ZodString>;
+    startedAt: z.ZodOptional<z.ZodString>;
+    updatedAt: z.ZodOptional<z.ZodString>;
+    progress: z.ZodOptional<z.ZodNumber>;
+    tone: z.ZodOptional<typeof operatorToneSchema>;
+  },
+  z.core.$strict
+> = z
+  .object({
+    type: z.literal("progress"),
+    id: operatorIdentifierSchema,
+    label: operatorLabelSchema,
+    state: operatorLabelSchema,
+    detail: operatorTextSchema.optional(),
+    startedAt: z.string().datetime().optional(),
+    updatedAt: z.string().datetime().optional(),
+    progress: operatorCoordinateSchema.optional(),
+    tone: operatorToneSchema.optional(),
+  })
+  .strict();
+export type OperatorProgressBlock = z.output<
+  typeof operatorProgressBlockSchema
+>;
 
 export interface OperatorQueryOption {
   readonly value: string;
@@ -317,6 +503,30 @@ interface OperatorActionControlBase<
   readonly result?:
     WorkspaceActionResultDefinition<TDefinition["output"]> | undefined;
 }
+
+/**
+ * Where deriving from the schemas stops, and why.
+ *
+ * Everything above this point — the bounds and the leaf blocks — is the
+ * output of the schema that validates it. Everything below is generic over a
+ * plugin's own action definitions and stays hand-written.
+ *
+ * `OperatorActionControl` is the reason. It is a distributive conditional
+ * type that reads `WorkspaceActionInput<TDefinition>`, so an action block's
+ * `input` is checked against the schema of the very action it names, and it
+ * makes `input` and `form` mutually exclusive in the same step. A Zod schema
+ * validates one concrete shape and cannot be generic over types a plugin
+ * brings with it, so deriving these would replace that check with an opaque
+ * record — strictly worse than what is here.
+ *
+ * `test/operator-view-action-typing.test.ts` holds that reason to account:
+ * its compiler errors stop appearing if this generic is ever flattened.
+ *
+ * Authors are not left to find bounds by being rejected in production.
+ * `safeParseRuntimeStudioOperatorView` and `safeParseRuntimeDashboardWidgetData`
+ * are exported for exactly this, and plugins already call them from their own
+ * tests.
+ */
 
 export type OperatorActionControl<
   TDefinition extends AnyWorkspaceActionDefinition =

@@ -1,13 +1,8 @@
 import type { Tool, ToolResult } from "@brains/plugins";
 import { createTool, toolSuccess, toolError } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
-import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
-import {
-  ButtondownClient,
-  type ButtondownClientDeps,
-  type ButtondownConfig,
-} from "../lib/buttondown-client";
+import type { NewsletterDeliveryProvider } from "../contracts";
 
 const toolEmailSchema = z.string().email({ pattern: z.regexes.html5Email });
 
@@ -39,7 +34,10 @@ export const subscribersInputSchema: z.ZodObject<{
     .optional()
     .describe("Email address for subscribe or unsubscribe"),
   name: z.string().optional().describe("Subscriber name for subscribe"),
-  tags: z.array(z.string()).optional().describe("Tags to apply for subscribe"),
+  tags: z
+    .array(z.string())
+    .optional()
+    .describe("Provider-supported subscriber tags for subscribe"),
   type: z
     .enum(["unactivated", "regular", "unsubscribed"])
     .optional()
@@ -51,13 +49,14 @@ export type SubscribersInput = z.output<typeof subscribersInputSchema>;
 export type SubscribersSchemaInput = z.input<typeof subscribersInputSchema>;
 export type SubscriberAction = SubscribersInput["action"];
 
-export function createButtondownTools(
-  config: ButtondownConfig,
-  logger: Logger,
-  deps: ButtondownClientDeps = {},
-): Tool[] {
-  const client = new ButtondownClient(config, logger, deps);
+const newsletterSignupInputSchema = z.object({
+  email: toolEmailSchema.describe("Email address to subscribe"),
+  name: z.string().optional().describe("Subscriber name"),
+});
 
+export function createNewsletterSubscriberTools(
+  provider: NewsletterDeliveryProvider,
+): Tool[] {
   return [
     createTool(
       "newsletter",
@@ -65,45 +64,57 @@ export function createButtondownTools(
       "Manage newsletter subscribers with an action discriminator. Use action=subscribe to add an email, action=unsubscribe to remove an email, and action=list to list subscribers with optional status filtering.",
       subscribersInputSchema,
       async (input): Promise<ToolResult> =>
-        handleSubscriberAction(client, input),
+        handleSubscriberAction(provider, input),
       { sideEffects: "external" },
+    ),
+    createTool(
+      "newsletter",
+      "signup",
+      "Subscribe one address from the public newsletter signup form.",
+      newsletterSignupInputSchema,
+      async (input): Promise<ToolResult> => subscribe(provider, input),
+      {
+        visibility: "public",
+        sideEffects: "external",
+        agentTool: false,
+        directMcpExposure: "none",
+      },
     ),
   ];
 }
 
 async function handleSubscriberAction(
-  client: ButtondownClient,
+  provider: NewsletterDeliveryProvider,
   input: SubscribersInput,
 ): Promise<ToolResult> {
   switch (input.action) {
     case "subscribe":
-      return subscribe(client, input);
+      return subscribe(provider, input);
     case "unsubscribe":
-      return unsubscribe(client, input);
+      return unsubscribe(provider, input);
     case "list":
-      return listSubscribers(client, input);
+      return listSubscribers(provider, input);
   }
 }
 
 async function subscribe(
-  client: ButtondownClient,
-  input: SubscribersInput,
+  provider: NewsletterDeliveryProvider,
+  input: Pick<SubscribersInput, "email" | "name" | "tags">,
 ): Promise<ToolResult> {
   if (!input.email) return toolError("email is required for subscribe action");
 
   try {
-    const subscriber = await client.createSubscriber({
+    const subscriber = await provider.createSubscriber({
       email: input.email,
       ...(input.name && { name: input.name }),
       ...(input.tags && { tags: input.tags }),
     });
-    const isAlreadySubscribed =
-      subscriber.subscriber_type === "already_subscribed";
+    const isAlreadySubscribed = subscriber.status === "already_subscribed";
     return toolSuccess(
       {
         subscriberId: subscriber.id,
         email: subscriber.email,
-        status: subscriber.subscriber_type,
+        status: subscriber.status,
         message: isAlreadySubscribed ? "already_subscribed" : "subscribed",
       },
       isAlreadySubscribed
@@ -116,14 +127,14 @@ async function subscribe(
 }
 
 async function unsubscribe(
-  client: ButtondownClient,
+  provider: NewsletterDeliveryProvider,
   input: SubscribersInput,
 ): Promise<ToolResult> {
   if (!input.email)
     return toolError("email is required for unsubscribe action");
 
   try {
-    await client.unsubscribe(input.email);
+    await provider.unsubscribe(input.email);
     return toolSuccess(
       { email: input.email },
       `Unsubscribed ${input.email} successfully`,
@@ -134,20 +145,20 @@ async function unsubscribe(
 }
 
 async function listSubscribers(
-  client: ButtondownClient,
+  provider: NewsletterDeliveryProvider,
   input: SubscribersInput,
 ): Promise<ToolResult> {
   try {
-    const result = await client.listSubscribers({
+    const result = await provider.listSubscribers({
       ...(input.type && { type: input.type }),
       ...(input.limit && { limit: input.limit }),
     });
     return toolSuccess(
       {
-        subscribers: result.results.map((subscriber) => ({
+        subscribers: result.subscribers.map((subscriber) => ({
           id: subscriber.id,
           email: subscriber.email,
-          status: subscriber.subscriber_type,
+          status: subscriber.status,
         })),
         count: result.count,
       },

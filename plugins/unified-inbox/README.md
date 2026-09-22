@@ -52,8 +52,9 @@ Inbox item, while checks with `includeInInbox: false` remain channel-only. The d
 digest uses that channel-only mode so it never projects a summary of the Inbox back into
 itself.
 
-`inbox_list` is directly available to Admin MCP clients in basic mode, including stdio
-brains with no webserver, Studio, or Dashboard. It returns source metadata and only the
+`inbox_list` is directly available to Admin MCP clients in debug mode, including stdio
+brains with no webserver, Studio, or Dashboard. Basic-mode clients retrieve Inbox content
+through `chat`. The raw tool returns source metadata and only the
 content-safe `title`, `summary`, `contact`, `receivedAt`, and `urgency` item fields. Item
 IDs, source-entity references, resolution actions, source detail, private source locators,
 and item facet values are omitted. Source-declared facets can still filter the headless
