@@ -372,13 +372,15 @@ export class StudioApi {
   }
 
   async uploadFile(file: File): Promise<{ entityId: string; jobId?: string }> {
-    const form = new FormData();
-    form.set("file", file);
     return this.requestJson<{ entityId: string; jobId?: string }>(
       this.path("upload"),
       {
         method: "POST",
-        body: form,
+        headers: {
+          "Content-Type": file.type || "application/octet-stream",
+          "X-Upload-Filename": encodeURIComponent(file.name),
+        },
+        body: file,
       },
     );
   }

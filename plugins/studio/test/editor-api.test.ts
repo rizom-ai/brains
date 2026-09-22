@@ -15,6 +15,7 @@ import { BaseEntityAdapter, baseEntitySchema } from "@brains/plugins";
 
 import { z } from "@brains/utils/zod";
 import { studioPlugin, type StudioPlugin } from "../src";
+import { provisionUploadCapture } from "./upload-file-fixture";
 
 const postFrontmatterSchema = z.object({
   title: z.string(),
@@ -127,6 +128,7 @@ class TestAdapter extends BaseEntityAdapter<BaseEntity> {
 
 function createEditorTestShell(): MockShell {
   const shell = createMockShell({ domain: "yeehaa.io" });
+  provisionUploadCapture(shell.getEntityService());
   shell.getMessageBus().subscribe("git-sync:get-repo-info", async () => ({
     success: true,
     data: { repo: "owner/repo", branch: "main" },
@@ -255,14 +257,19 @@ function apiRequest(
 function uploadRequest(
   options: { cookie?: string; file?: File } = {},
 ): Request {
-  const form = new FormData();
-  if (options.file) form.set("file", options.file);
-  return new Request("https://yeehaa.io/studio/api/upload", {
-    method: "POST",
-    headers: options.cookie
+  const headers = new Headers(
+    options.cookie
       ? { Cookie: options.cookie, Origin: "https://yeehaa.io" }
       : {},
-    body: form,
+  );
+  if (options.file) {
+    headers.set("X-Upload-Filename", encodeURIComponent(options.file.name));
+    headers.set("Content-Type", options.file.type);
+  }
+  return new Request("https://yeehaa.io/studio/api/upload", {
+    method: "POST",
+    headers,
+    ...(options.file && { body: options.file }),
   });
 }
 

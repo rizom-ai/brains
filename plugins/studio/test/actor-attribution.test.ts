@@ -16,6 +16,7 @@ import { PermissionService } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import { createEditorRoutes } from "../src/editor-routes";
 import { StudioWorkspaceRegistry } from "../src/workspace-registry";
+import { provisionUploadCapture } from "./upload-file-fixture";
 
 const frontmatterSchema = z.object({ title: z.string() });
 
@@ -202,19 +203,17 @@ describe("Studio mutation actor attribution", () => {
         };
       },
     });
-    const form = new FormData();
-    form.set(
-      "file",
-      new File([new Uint8Array([1, 2, 3])], "image.png", {
-        type: "image/png",
-      }),
-    );
+    provisionUploadCapture(shell.getEntityService());
 
     const response = await route(routes, "/studio/api/upload", "POST").handler(
       new Request("https://yeehaa.io/studio/api/upload", {
         method: "POST",
-        headers: { Origin: "https://yeehaa.io" },
-        body: form,
+        headers: {
+          Origin: "https://yeehaa.io",
+          "Content-Type": "image/png",
+          "X-Upload-Filename": "image.png",
+        },
+        body: new Uint8Array([1, 2, 3]),
       }),
     );
 

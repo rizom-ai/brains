@@ -2,6 +2,8 @@ import { join } from "node:path";
 import { readdir } from "node:fs/promises";
 import { createMockShell, createTempDataDir } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
+import assert from "node:assert/strict";
+import { AcknowledgedRuntimeUploadError } from "@brains/plugins";
 import type {
   AppendAuthAuditEventInput,
   AuthPrincipal,
@@ -16,6 +18,7 @@ import { PermissionService } from "@brains/templates";
 import { z } from "@brains/utils/zod";
 import { createEditorRoutes } from "../src/editor-routes";
 import { StudioWorkspaceRegistry } from "../src/workspace-registry";
+import { provisionUploadCapture } from "./upload-file-fixture";
 
 const trustedPrincipal: AuthPrincipal = {
   userId: "usr_uploader",
@@ -36,6 +39,7 @@ async function setup(): Promise<{
 }> {
   const dataDir = await createTempDataDir("brains-studio-upload-policy-");
   const shell = createMockShell({ domain: "yeehaa.io", dataDir });
+  provisionUploadCapture(shell.getEntityService());
   const permissions = new PermissionService({
     entityActions: {
       "*": { create: "admin" },
@@ -64,18 +68,22 @@ async function setup(): Promise<{
 }
 
 function uploadRequest(): Request {
-  const form = new FormData();
-  form.set(
-    "file",
-    new File([new Uint8Array([1, 2, 3])], "image.png", {
-      type: "image/png",
-    }),
-  );
-  return new Request("https://yeehaa.io/studio/api/upload", {
+  const request = new Request("https://yeehaa.io/studio/api/upload", {
     method: "POST",
-    headers: { Origin: "https://yeehaa.io" },
-    body: form,
+    headers: {
+      Origin: "https://yeehaa.io",
+      "Content-Type": "image/png",
+      "X-Upload-Filename": "image.png",
+    },
+    body: new Uint8Array([1, 2, 3]),
   });
+  const forbidden = async (): Promise<never> => {
+    throw new Error("Controller payload materialization forbidden");
+  };
+  request.formData = forbidden;
+  request.arrayBuffer = forbidden;
+  request.blob = forbidden;
+  return request;
 }
 
 async function temporaryUploads(dataDir: string): Promise<string[]> {
@@ -83,6 +91,71 @@ async function temporaryUploads(dataDir: string): Promise<string[]> {
 }
 
 describe("Studio upload policy", () => {
+  it("does not promote an acknowledged capture after retirement failure", async () => {
+    const fixture = await setup();
+    let promotions = 0;
+    fixture.shell.getEntityRegistry().registerUploadSaveHandler({
+      entityType: "image",
+      mediaTypes: ["image/*"],
+      handler: async () => {
+        promotions++;
+        return {
+          success: true,
+          data: { entityId: "image-1", status: "created" },
+        };
+      },
+    });
+    const files = fixture.shell.getEntityService().fileAssets;
+    const capture = files?.withCapturedFile;
+    if (!files || !capture) throw new Error("Missing capture fixture");
+    const failure = new Error("Native capture retirement failed");
+    files.withCapturedFile = async (
+      input,
+      use,
+      options,
+    ): ReturnType<typeof use> => {
+      await capture(input, use, options);
+      throw failure;
+    };
+    await assert.rejects(
+      async (): Promise<Response> =>
+        fixture.uploadRoute.handler(uploadRequest()),
+      (error: unknown) => {
+        expect(error).toBeInstanceOf(AcknowledgedRuntimeUploadError);
+        if (!(error instanceof AcknowledgedRuntimeUploadError)) return false;
+        expect(error.cause).toBe(failure);
+        expect(error.record.sizeBytes).toBe(3);
+        return true;
+      },
+    );
+    expect(promotions).toBe(0);
+    expect(await temporaryUploads(fixture.dataDir)).toHaveLength(1);
+    expect(fixture.auditEvents).toEqual([]);
+  });
+
+  it("fails closed without capture provisioning", async () => {
+    const fixture = await setup();
+    delete fixture.shell.getEntityService().fileAssets;
+    let promotions = 0;
+    fixture.shell.getEntityRegistry().registerUploadSaveHandler({
+      entityType: "image",
+      mediaTypes: ["image/*"],
+      handler: async () => {
+        promotions++;
+        return {
+          success: true,
+          data: { entityId: "image-1", status: "created" },
+        };
+      },
+    });
+    await assert.rejects(
+      async (): Promise<Response> =>
+        fixture.uploadRoute.handler(uploadRequest()),
+      /not provisioned/,
+    );
+    expect(promotions).toBe(0);
+    expect(await temporaryUploads(fixture.dataDir)).toEqual([]);
+  });
   it("enforces the handler target create policy before promotion", async () => {
     const fixture = await setup();
     let promotions = 0;
@@ -161,7 +234,7 @@ describe("Studio upload policy", () => {
     ]);
   });
 
-  it("cleans temporary bytes when promotion fails or throws", async () => {
+  it("retains recovery bytes when promotion fails or its outcome is unknown", async () => {
     const failures: readonly ("result" | "throw")[] = ["result", "throw"];
     for (const failure of failures) {
       const fixture = await setup();
@@ -180,7 +253,7 @@ describe("Studio upload policy", () => {
 
       expect(response.status).toBe(502);
       expect(promotions).toBe(1);
-      expect(await temporaryUploads(fixture.dataDir)).toEqual([]);
+      expect(await temporaryUploads(fixture.dataDir)).toHaveLength(1);
     }
   });
 });

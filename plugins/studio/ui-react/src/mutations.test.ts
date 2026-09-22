@@ -96,27 +96,27 @@ describe("declarative Studio workspace mutation", () => {
 });
 
 describe("Studio upload mutation", () => {
-  it("posts the selected file once as multipart form data", async () => {
+  it("posts the selected file once as a raw body with filename metadata", async () => {
     let requests = 0;
     let method: string | undefined;
     let body: BodyInit | null | undefined;
+    let headers: HeadersInit | undefined;
     stubFetch(async (_url, options) => {
       requests += 1;
       method = options.method;
       body = options.body;
+      headers = options.headers;
       return Response.json({ entityId: "image-cover", jobId: "job-upload" });
     });
     const file = new File(["pixels"], "cover.png", { type: "image/png" });
 
     const result = await uploadImage(studioApi, file);
 
-    if (!(body instanceof FormData)) throw new Error("Expected FormData body");
-    const uploaded = body.get("file");
-    if (!(uploaded instanceof File)) throw new Error("Expected uploaded file");
+    expect(body).toBe(file);
     expect(method).toBe("POST");
-    expect(uploaded.name).toBe("cover.png");
-    expect(uploaded.type).toBe("image/png");
-    expect(await uploaded.text()).toBe("pixels");
+    expect(new Headers(headers).get("X-Upload-Filename")).toBe("cover.png");
+    expect(new Headers(headers).get("Content-Type")).toBe("image/png");
+    expect(await file.text()).toBe("pixels");
     expect(result).toEqual({ entityId: "image-cover", jobId: "job-upload" });
     expect(requests).toBe(1);
   });

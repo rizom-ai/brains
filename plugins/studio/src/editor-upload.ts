@@ -1,4 +1,8 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import {
+  captureRequestUpload,
+  AcknowledgedRuntimeUploadError,
+  type ServicePluginContext,
+} from "@brains/plugins";
 import {
   recordStudioMutationAudit,
   requireEntityAction,
@@ -9,7 +13,6 @@ import type {
 } from "./editor-contracts";
 import { jsonResponse } from "./editor-response";
 
-const UPLOAD_FORM_FIELD = "file";
 const UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
 
 export async function handleUpload(
@@ -19,33 +22,39 @@ export async function handleUpload(
   access: StudioRequestAccess,
   recordAuditEvent: EditorRouteOptions["recordAuditEvent"],
 ): Promise<Response> {
+  request.signal.throwIfAborted();
   const declaredSize = Number(request.headers.get("content-length"));
-  if (Number.isFinite(declaredSize) && declaredSize > UPLOAD_MAX_BYTES) {
+  if (
+    !Number.isSafeInteger(declaredSize) ||
+    declaredSize < 0 ||
+    declaredSize > UPLOAD_MAX_BYTES
+  )
     return jsonResponse({ error: "Upload too large" }, 400);
-  }
-
-  let form: FormData;
+  const encodedFilename = request.headers.get("X-Upload-Filename");
+  if (encodedFilename === null || encodedFilename.length > 3072)
+    return jsonResponse({ error: "Missing or invalid upload filename" }, 400);
+  let filename: string;
   try {
-    form = await request.formData();
+    filename = decodeURIComponent(encodedFilename);
   } catch {
-    return jsonResponse({ error: "Invalid multipart upload" }, 400);
+    return jsonResponse({ error: "Invalid upload filename encoding" }, 400);
   }
-
-  const file = form.get(UPLOAD_FORM_FIELD);
-  if (!(file instanceof File)) {
-    return jsonResponse({ error: "Missing upload file" }, 400);
-  }
-  if (file.size > UPLOAD_MAX_BYTES) {
-    return jsonResponse({ error: "Upload too large" }, 400);
-  }
-
-  const registration = context.entities.getUploadSaveHandler(file.type);
-  if (!registration) {
+  if (!filename || filename.length > 255)
+    return jsonResponse({ error: "Invalid upload filename" }, 400);
+  const mediaType =
+    request.headers
+      .get("Content-Type")
+      ?.split(";", 1)[0]
+      ?.trim()
+      .toLowerCase() ?? "application/octet-stream";
+  if (mediaType.length > 128 || mediaType === "multipart/form-data")
+    return jsonResponse({ error: "Unsupported upload type" }, 415);
+  const registration = context.entities.getUploadSaveHandler(mediaType);
+  if (!registration)
     return jsonResponse(
-      { error: `No handler accepts uploads of type ${file.type}` },
+      { error: `No handler accepts uploads of type ${mediaType}` },
       415,
     );
-  }
   const actionError = requireEntityAction(
     context,
     registration.entityType,
@@ -64,38 +73,63 @@ export async function handleUpload(
     );
     return actionError;
   }
-
+  const files = context.entityService.fileAssets;
+  if (!files) throw new Error("Studio upload capture is not provisioned");
   const store = context.uploads.scoped({
     namespace: "upload",
     refKind: "upload",
     routePath,
   });
-  const record = await store.save({
-    filename: file.name,
-    mediaType: file.type,
-    content: Buffer.from(await file.arrayBuffer()),
+  // Retain the native capture before invoking the registered entity handler.
+  // That handler owns content inspection/publication, not the MIME declaration.
+  const record = await captureRequestUpload(
+    request,
+    { filename, mediaType, maxBytes: UPLOAD_MAX_BYTES },
+    files,
+    store,
+  ).catch((error: unknown) => {
+    if (
+      error instanceof Error &&
+      Object.getOwnPropertyDescriptor(error, "code")?.value ===
+        "FILE_SIZE_LIMIT"
+    )
+      return undefined;
+    throw error; // Includes acknowledged captures: never start a later stage after retirement failure.
   });
+  if (!record) return jsonResponse({ error: "Upload too large" }, 400);
+  if (request.signal.aborted)
+    throw new AcknowledgedRuntimeUploadError(record, request.signal.reason);
 
   let result: Awaited<ReturnType<typeof registration.handler>>;
   try {
     result = await registration.handler(
       { upload: { kind: "upload", id: record.id } },
-      {
-        interfaceType: "studio",
-        actor: access.actor,
-      },
+      { interfaceType: "studio", actor: access.actor },
     );
-  } catch {
-    // The staged upload is discarded and the caller told the promotion
-    // failed. The reason stays server-side rather than in the response.
-    await store.remove(record.id);
-    return jsonResponse({ error: "Upload promotion failed" }, 502);
+  } catch (error) {
+    // Submission may have succeeded. Keep recovery evidence and never replay.
+    try {
+      context.logger.error("Studio upload promotion outcome unknown", {
+        uploadId: record.id,
+        error,
+      });
+    } catch (reportingError) {
+      throw new AcknowledgedRuntimeUploadError(
+        record,
+        new AggregateError(
+          [error, reportingError],
+          "Studio upload promotion and reporting failed",
+          { cause: error },
+        ),
+      );
+    }
+    return jsonResponse(
+      { error: "Upload promotion failed", upload: record.ref },
+      502,
+    );
   }
-
-  if (!result.success) {
-    await store.remove(record.id);
-    return jsonResponse({ error: result.error }, 502);
-  }
+  if (!result.success)
+    return jsonResponse({ error: result.error, upload: record.ref }, 502);
   await recordStudioMutationAudit(
     recordAuditEvent,
     access,
