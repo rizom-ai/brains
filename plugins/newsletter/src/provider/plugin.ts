@@ -4,20 +4,12 @@ import type {
   ApiRouteDefinition,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { BUTTONDOWN_CHANNELS } from "../buttondown-channels";
-import { PUBLISH_CHANNELS } from "@brains/contracts";
-import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
-import {
-  ButtondownClient,
-  type ButtondownClientDeps,
-} from "./lib/buttondown-client";
-import { createButtondownTools } from "./tools";
-import {
-  handlePublishCompleted,
-  type PublishCompletedPayload,
-} from "./publish-handler";
 import packageJson from "../../package.json";
+import { ButtondownNewsletterProvider } from "./buttondown-provider";
+import type { ButtondownClientDeps } from "./lib/buttondown-client";
+import { registerNewsletterProvider } from "./register-provider";
+import { createNewsletterSubscriberTools } from "./tools";
 
 type ButtondownPluginConfigSchema = z.ZodObject<{
   apiKey: z.ZodOptional<z.ZodString>;
@@ -37,18 +29,17 @@ const buttondownConfigSchema: ButtondownPluginConfigSchema = z.object({
     .describe("Automatically send newsletter when a blog post is published"),
 });
 
-type ButtondownPluginConfig = z.output<typeof buttondownConfigSchema>;
-type ButtondownPluginConfigInput = z.input<typeof buttondownConfigSchema>;
+export type ButtondownPluginConfig = z.output<typeof buttondownConfigSchema>;
+export type ButtondownPluginConfigInput = z.input<
+  typeof buttondownConfigSchema
+>;
 
-/**
- * Buttondown integration plugin — subscriber management and API routes.
- * Newsletter entity management is in this package's entity module.
- */
+/** Buttondown newsletter delivery and subscriber integration. */
 export class ButtondownPlugin extends ServicePlugin<
   ButtondownPluginConfig,
   ButtondownPluginConfigInput
 > {
-  private deps: ButtondownClientDeps;
+  private readonly deps: ButtondownClientDeps;
 
   constructor(
     config: ButtondownPluginConfigInput = {},
@@ -61,73 +52,28 @@ export class ButtondownPlugin extends ServicePlugin<
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
-    // Respond to "are you configured?" messages from newsletter entity plugin
-    context.messaging.subscribe(BUTTONDOWN_CHANNELS.isConfigured, async () => {
-      return { success: !!this.config.apiKey };
-    });
+    const provider = this.createProvider();
+    if (!provider) return;
 
-    // Handle BUTTONDOWN_CHANNELS.send messages from newsletter publish pipeline
-    if (this.config.apiKey) {
-      const client = new ButtondownClient(
-        { apiKey: this.config.apiKey, doubleOptIn: this.config.doubleOptIn },
-        this.logger,
-        this.deps,
-      );
-
-      context.messaging.subscribe<
-        { entityId: string; subject: string; content: string },
-        { emailId?: string }
-      >(BUTTONDOWN_CHANNELS.send, async (msg) => {
-        try {
-          const email = await client.createEmail({
-            subject: msg.payload.subject,
-            body: msg.payload.content,
-            status: "about_to_send",
-          });
-          return { success: true, data: { emailId: email.id } };
-        } catch (error) {
-          this.logger.error("Buttondown send failed", {
-            error: getErrorMessage(error),
-          });
-          return { success: false };
-        }
-      });
-
-      // Auto-send newsletter on blog publish
-      if (this.config.autoSendOnPublish) {
-        context.messaging.subscribe<PublishCompletedPayload>(
-          PUBLISH_CHANNELS.completed,
-          async (msg) => {
-            const result = await handlePublishCompleted(
-              msg.payload,
-              client,
-              context.entityService,
-              this.logger,
-            );
-            if (!result.success) {
-              // Broadcast delivery discards handler responses, so log the
-              // failure here in addition to returning it
-              this.logger.error("Buttondown auto-send failed", {
-                entityId: msg.payload.entityId,
-                error: result.error,
-              });
-              return { success: false, error: result.error };
-            }
-            return { success: true };
-          },
-        );
-        this.logger.info("Buttondown auto-send on publish enabled");
-      }
-    }
+    registerNewsletterProvider(
+      context,
+      provider,
+      {
+        pluginId: this.id,
+        publishResultIdField: "buttondownId",
+        signupAction: "/api/buttondown/subscribe",
+        signupSuccessMessage: this.config.doubleOptIn
+          ? "Check your email to confirm your subscription."
+          : "You are subscribed.",
+        autoSendOnPublish: this.config.autoSendOnPublish,
+      },
+      this.logger,
+    );
   }
 
   protected override async getTools(): Promise<Tool[]> {
-    if (!this.config.apiKey) return [];
-    return createButtondownTools(
-      { apiKey: this.config.apiKey, doubleOptIn: this.config.doubleOptIn },
-      this.logger,
-      this.deps,
-    );
+    const provider = this.createProvider();
+    return provider ? createNewsletterSubscriberTools(provider) : [];
   }
 
   override getApiRoutes(): ApiRouteDefinition[] {
@@ -136,12 +82,24 @@ export class ButtondownPlugin extends ServicePlugin<
       {
         path: "/subscribe",
         method: "POST",
-        tool: "newsletter_subscribers",
+        tool: "newsletter_signup",
         public: true,
         successRedirect: "/subscribe/thanks",
         errorRedirect: "/subscribe/error",
       },
     ];
+  }
+
+  private createProvider(): ButtondownNewsletterProvider | undefined {
+    if (!this.config.apiKey) return undefined;
+    return new ButtondownNewsletterProvider(
+      {
+        apiKey: this.config.apiKey,
+        doubleOptIn: this.config.doubleOptIn,
+      },
+      this.logger,
+      this.deps,
+    );
   }
 }
 

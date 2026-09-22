@@ -2,7 +2,7 @@
   "name": "@brains/newsletter",
   "license": "AGPL-3.0-only",
   "version": "0.2.0-alpha.401",
-  "description": "Newsletter composite — bundles the newsletter entity with the buttondown service plugin",
+  "description": "Newsletter composite with selectable Buttondown and Resend delivery providers",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/plugins": "workspace:*",
