@@ -254,11 +254,11 @@ export class DirectorySync implements IDirectorySync {
     mutation: () => Promise<TResult>,
     projectionBatch?: DirectoryProjectionBatchRef,
   ): Promise<TResult> {
+    // Durable job handlers already entered this root's scope. Reuse its
+    // identity so the coordinator can join it without weakening its fence.
     return this.entityService.runBulkMutation(
       {
         source: "directory-sync",
-        // A job already owns a durable child scope. Join its exact identity;
-        // do not open an unrelated callback batch or bypass the fence.
         operationId:
           projectionBatch?.operationId ?? `${operation}:${createId()}`,
       },
