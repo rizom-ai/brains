@@ -279,7 +279,10 @@ export function createMockEntityService(
     getEntityTypes: () => Array.from(store.types),
     hasEntityType: (type: string) => store.types.has(type),
     serializeEntity: (entity: BaseEntity) => JSON.stringify(entity),
-    deserializeEntity: (markdown: string) => ({ content: markdown }),
+    deserializeEntity: (markdown: string, entityType: string) =>
+      store.adapters.get(entityType)?.fromMarkdown(markdown) ?? {
+        content: markdown,
+      },
     getAsyncJobStatus: async () => ({ status: "completed" as const }),
     upsertEntity: async <T extends BaseEntity>(
       request: UpsertEntityRequest<T>,

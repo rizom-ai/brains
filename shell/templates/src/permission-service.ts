@@ -176,10 +176,10 @@ export interface PermissionServiceOptions {
   /** Shared conversation space selectors, e.g. discord:123 or discord:project-* */
   spaces?: string[];
   /**
-   * A type's own minimum, from whoever registered it. It applies when the
-   * instance policy says nothing about that type, so a brain assembled without
-   * the canonical bundle cannot silently leave an admin-only type open. An
-   * explicit entry for the type still wins, action by action.
+   * A type's own minimum, from whoever registered it. It tightens wildcard
+   * defaults without relaxing stricter rules, including `never`, so a brain
+   * assembled without the canonical bundle cannot leave an admin-only type
+   * open. An explicit entry for the type still wins, action by action.
    */
   entityActionFloor?: (
     entityType: string,
@@ -315,17 +315,28 @@ export class PermissionService {
     entityType: string,
   ): EntityActionPolicyRule | undefined {
     const floor = this.entityActionFloor?.(entityType);
-    if (!this.entityActions) return floor;
-
-    // The type's own floor outranks a wildcard default, since the wildcard
-    // never named this type; an explicit entry for it is a deliberate override.
-    const policy = {
-      ...(this.entityActions["*"] ?? {}),
-      ...(floor ?? {}),
-      ...(this.entityActions[entityType] ?? {}),
+    const policy: EntityActionPolicyRule = {
+      ...this.entityActions?.["*"],
     };
 
-    return Object.keys(policy).length > 0 ? policy : undefined;
+    // A floor can tighten the wildcard, but cannot relax a stricter rule.
+    for (const action of EntityActionSchema.options) {
+      const minimum = floor?.[action];
+      const required = policy[action];
+      if (
+        minimum &&
+        required !== "never" &&
+        (minimum === "never" ||
+          !required ||
+          this.hasPermission(minimum, required))
+      ) {
+        policy[action] = minimum;
+      }
+    }
+
+    // Only an explicit per-type entry deliberately overrides the minimum.
+    const resolved = { ...policy, ...this.entityActions?.[entityType] };
+    return Object.keys(resolved).length > 0 ? resolved : undefined;
   }
 
   getEntityActionRequiredLevel(

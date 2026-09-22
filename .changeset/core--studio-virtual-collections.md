@@ -2,13 +2,14 @@
 "@brains/entity-service": patch
 "@brains/plugins": patch
 "@brains/core": patch
+"@brains/templates": patch
 "@brains/studio": patch
 "@brains/directory-sync": patch
 "@brains/app-ui-react": patch
 "@rizom/brain": patch
 ---
 
-A registered entity type can now carry its own `actionPolicy` floor, applied when the instance policy names no rule for that type, so an admin-only type stays admin-only in a brain assembled without the bundle carrying its rule; an explicit per-type entry still overrides it. Primary buttons keep a visible hover cue when motion is reduced.
+A registered entity type can now carry its own `actionPolicy` floor, so an admin-only type stays admin-only in a brain assembled without the bundle carrying its rule. Each action preserves the stricter of the type's minimum and the wildcard policy, including `never`; an explicit per-type entry still overrides the result. Primary buttons keep a visible hover cue when motion is reduced. System forms omit empty field sections, including the Groupings reader's empty Access section.
 
 Add admin-managed grouping vocabularies in Studio's System → Structure area. Admins can close a grouping to an exact list of values and choose single or multiple membership without restarting. Trusted editors choose from dropdowns or checkboxes; open groupings keep literal input. The vocabulary is always shared so the editors it constrains can read it. Create/update persistence enforces closed lists across Studio, tools, MCP, imports and derived projection upserts. Projection refusals roll back the entire rule result, including export intents and ownership. Queued directory imports and cleanup retain their durable batch identity through the active-service facade rather than attempting to open unrelated nested batches. Policy-refused imports fail without quarantining valid source. Existing out-of-list values stay visible and marked, never rewritten. Persist validators compose with owner constraints instead of replacing them. Validation field issues survive separate runtime/plugin module copies. Primary buttons retain their contrast-tested colors on hover, and membership warnings stay visible on phones.
 

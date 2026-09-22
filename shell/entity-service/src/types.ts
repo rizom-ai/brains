@@ -620,10 +620,10 @@ export interface EntityTypeConfig {
   /** Durable binary storage policy. Absence means inline/text storage. */
   binaryStorage?: "asset";
   /**
-   * The type's own minimum action policy, from whoever registers it. It applies
-   * when the instance policy names no rule for this type, so a type that must
-   * be admin-only cannot be left open by assembling a brain without the
-   * bundle that carries its rule. An explicit instance entry still overrides.
+   * The type's own minimum action policy, from whoever registers it. It
+   * tightens wildcard defaults without relaxing stricter rules, including
+   * `never`, so an admin-only type stays protected without its bundle's rule.
+   * An explicit per-type instance entry still overrides, action by action.
    */
   actionPolicy?: Partial<
     Record<

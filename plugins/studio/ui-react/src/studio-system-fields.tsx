@@ -106,34 +106,33 @@ export function StudioSystemFields(props: {
   issues?: ValidationIssue[] | undefined;
   onChange: (descriptor: FieldDescriptor, value: unknown) => void;
   renderAssist?: ((descriptor: FieldDescriptor) => ReactNode) | undefined;
-}): ReactElement {
-  const fields = props.fields.filter((field) =>
-    isFieldVisible(field, props.draft),
+}): ReactElement | null {
+  const fields = props.fields.filter(
+    (field) =>
+      isFieldVisible(field, props.draft) &&
+      (!props.readOnly ||
+        props.draft[field.name] !== undefined ||
+        field.required !== false),
   );
+  if (fields.length === 0) return null;
   if (props.readOnly)
     return (
       <div data-studio-system-fields="" {...stylex.props(s.root)}>
         {props.title && <h2 {...stylex.props(s.heading)}>{props.title}</h2>}
         <dl {...stylex.props(s.profile)}>
-          {fields
-            .filter(
-              (field) =>
-                props.draft[field.name] !== undefined ||
-                field.required !== false,
-            )
-            .map((field) => (
-              <div key={field.name} {...stylex.props(s.row)}>
-                <dt {...stylex.props(s.term)}>{field.label}</dt>
-                <dd {...stylex.props(s.value)}>
-                  <SystemReadOnlyValue
-                    vocabulary={props.vocabularies?.[field.name]}
-                    literalStrings={props.literalFields?.includes(field.name)}
-                    value={props.draft[field.name]}
-                    fields={field.fields}
-                  />
-                </dd>
-              </div>
-            ))}
+          {fields.map((field) => (
+            <div key={field.name} {...stylex.props(s.row)}>
+              <dt {...stylex.props(s.term)}>{field.label}</dt>
+              <dd {...stylex.props(s.value)}>
+                <SystemReadOnlyValue
+                  vocabulary={props.vocabularies?.[field.name]}
+                  literalStrings={props.literalFields?.includes(field.name)}
+                  value={props.draft[field.name]}
+                  fields={field.fields}
+                />
+              </dd>
+            </div>
+          ))}
         </dl>
       </div>
     );

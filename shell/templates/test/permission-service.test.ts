@@ -841,7 +841,70 @@ describe("entity action floors", () => {
     );
   });
 
-  it("outranks the wildcard default but yields to an explicit policy for the type", () => {
+  for (const action of [
+    "create",
+    "update",
+    "delete",
+    "extract",
+    "publish",
+  ] as const) {
+    it(`preserves a wildcard denial for ${action}`, () => {
+      const service = new PermissionService(
+        { entityActions: { "*": { [action]: "never" } } },
+        {
+          entityActionFloor: (): EntityActionPolicyRule => ({
+            [action]: "admin",
+          }),
+        },
+      );
+      expect(service.getEntityActionRequiredLevel("vocabulary", action)).toBe(
+        "never",
+      );
+      expect(
+        service.canPerformEntityAction("admin", "vocabulary", action),
+      ).toBe(false);
+      expect(() =>
+        service.assertEntityActionAllowed("vocabulary", action, "admin"),
+      ).toThrow("is not allowed through system tools");
+    });
+
+    it(`preserves a stricter wildcard role for ${action}`, () => {
+      const service = new PermissionService(
+        { entityActions: { "*": { [action]: "admin" } } },
+        {
+          entityActionFloor: (): EntityActionPolicyRule => ({
+            [action]: "trusted",
+          }),
+        },
+      );
+      expect(service.getEntityActionRequiredLevel("vocabulary", action)).toBe(
+        "admin",
+      );
+      expect(
+        service.canPerformEntityAction("trusted", "vocabulary", action),
+      ).toBe(false);
+      expect(
+        service.canPerformEntityAction("admin", "vocabulary", action),
+      ).toBe(true);
+      expect(() =>
+        service.assertEntityActionAllowed("vocabulary", action, "trusted"),
+      ).toThrow("requires Admin permission");
+    });
+  }
+
+  it("keeps a type's never floor against a looser wildcard", () => {
+    const service = new PermissionService(
+      { entityActions: { "*": { publish: "admin" } } },
+      {
+        entityActionFloor: (): EntityActionPolicyRule => ({ publish: "never" }),
+      },
+    );
+    expect(
+      service.canPerformEntityAction("admin", "vocabulary", "publish"),
+    ).toBe(false);
+  });
+
+  it("tightens a looser wildcard but yields to an explicit policy for the type", () => {
     const service = new PermissionService(
       { entityActions: { "*": { update: "trusted" } } },
       { entityActionFloor: floor },
@@ -854,7 +917,12 @@ describe("entity action floors", () => {
     );
 
     const overridden = new PermissionService(
-      { entityActions: { vocabulary: { update: "trusted" } } },
+      {
+        entityActions: {
+          "*": { update: "never" },
+          vocabulary: { update: "trusted" },
+        },
+      },
       { entityActionFloor: floor },
     );
     expect(

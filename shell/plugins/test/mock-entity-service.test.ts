@@ -158,6 +158,27 @@ describe("createMockEntityService", () => {
     expect(store.entities.get(entityId)?.content).toBe("rebuilt");
   });
 
+  it("deserializes with the registered adapter and preserves unregistered source", () => {
+    const { store, service } = serviceWithStore();
+    const markdown = "---\nstatus: published\n---\nBody";
+    expect(service.deserializeEntity(markdown, "note")).toEqual({
+      content: markdown,
+    });
+    store.adapters.set(
+      "note",
+      noteAdapter({
+        fromMarkdown: (content): Partial<BaseEntity> => ({
+          content,
+          metadata: { status: "published" },
+        }),
+      }),
+    );
+    expect(service.deserializeEntity(markdown, "note")).toEqual({
+      content: markdown,
+      metadata: { status: "published" },
+    });
+  });
+
   it("refuses the projection store rather than faking one", () => {
     const { service } = serviceWithStore();
     // An empty stand-in would make a projection test silently meaningless.
