@@ -59,6 +59,7 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
             data.paths,
             progressReporter,
             data.batchSize ?? 100,
+            data.projectionBatch,
           );
 
           this.logger.debug("Directory import job completed", {

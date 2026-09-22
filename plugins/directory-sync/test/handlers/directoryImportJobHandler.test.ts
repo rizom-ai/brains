@@ -119,6 +119,7 @@ describe("DirectoryImportJobHandler", () => {
         ["/path/to/series.md"],
         reporter,
         25,
+        undefined,
       );
     });
 
