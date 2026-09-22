@@ -13,7 +13,7 @@ import type {
   PullResult,
   RawEntity,
 } from "./results";
-import type { JobRequest } from "./jobs";
+import type { DirectoryProjectionBatchRef, JobRequest } from "./jobs";
 
 /**
  * Interface for file operations used by handlers
@@ -48,6 +48,7 @@ export interface IDirectorySync {
     paths: string[] | undefined,
     reporter: ProgressReporter,
     batchSize: number,
+    projectionBatch?: DirectoryProjectionBatchRef,
   ): Promise<ImportResult>;
   exportEntitiesWithProgress(
     entityTypes: string[] | undefined,
@@ -55,7 +56,9 @@ export interface IDirectorySync {
     batchSize: number,
   ): Promise<ExportResult>;
   importEntities(paths?: string[]): Promise<ImportResult>;
-  removeOrphanedEntities(): Promise<CleanupResult>;
+  removeOrphanedEntities(
+    projectionBatch?: DirectoryProjectionBatchRef,
+  ): Promise<CleanupResult>;
   readonly fileOps: IFileOperations;
   readonly shouldDeleteOnFileRemoval: boolean;
   getAllMarkdownFiles(): Promise<string[]>;
