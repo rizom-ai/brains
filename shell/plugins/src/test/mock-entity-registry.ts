@@ -79,6 +79,22 @@ export function createMockEntityRegistry(
     getPersistValidator: () => undefined,
     extendFrontmatterSchema: (): void => {},
     getEffectiveFrontmatterSchema: () => undefined,
+    getFrontmatterExtensions: () => [],
+    getGroupings: () => [],
+    validateGroupings: (groupings): void => {
+      if (groupings.length > 0)
+        throw new Error("createMockShell: grouping registry is not mocked");
+    },
+    getGrouping: (): never => {
+      throw new Error("createMockShell: grouping registry is not mocked");
+    },
+    registerGrouping: (): never => {
+      throw new Error("createMockShell: grouping registry is not mocked");
+    },
+    projectMetadata: (_type, _content, metadata) => metadata,
+    projectStoredMetadata: (_type, _content, metadata) => metadata,
+    groupingFields: (): string[] => [],
+    isGroupingContributor: (): boolean => false,
   };
 
   return registry;

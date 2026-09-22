@@ -114,6 +114,45 @@ function viewProps(
 }
 
 describe("deriveStudioAppModel", () => {
+  it("scopes literal grouping fields to the participating entity type", () => {
+    const props = viewProps({
+      groupings: {
+        items: [
+          {
+            key: "clients",
+            label: "Clients",
+            field: "clients",
+            types: ["note", "post"],
+          },
+          {
+            key: "projects",
+            label: "Projects",
+            field: "projects",
+            types: ["post"],
+          },
+        ],
+        active: null,
+        onSelect: (): void => undefined,
+      },
+    });
+    expect(deriveStudioAppModel(props).groupingFields).toEqual(["clients"]);
+    expect(
+      deriveStudioAppModel({ ...props, entityType: "post" }).groupingFields,
+    ).toEqual(["clients", "projects"]);
+    expect(
+      deriveStudioAppModel({ ...props, entityType: "image" }).groupingFields,
+    ).toEqual([]);
+  });
+
+  it("does not show the outgoing editor while entering a grouping", () => {
+    const props = viewProps({
+      editor: { ...initialEditorWorkflowState, mode: { kind: "create" } },
+    });
+    expect(deriveStudioAppModel(props).editing).toBe(true);
+    expect(
+      deriveStudioAppModel({ ...props, groupingView: "Clients" }).editing,
+    ).toBe(false);
+  });
   it("counts entities in the listing head and marks filtered results", () => {
     const plain = deriveStudioAppModel(viewProps({ entityTotal: 3 }));
     const filtered = deriveStudioAppModel(

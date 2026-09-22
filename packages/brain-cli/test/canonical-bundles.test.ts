@@ -190,6 +190,20 @@ const webPermission: ResolvedBundlePermissionContribution = {
 const channelPermissions: ResolvedBundlePermissionContribution[] = [
   webPermission,
   {
+    bundleId: "web",
+    member: "studio",
+    config: {
+      entityActions: {
+        "grouping-vocabulary": {
+          create: "admin",
+          update: "admin",
+          delete: "admin",
+          publish: "never",
+        },
+      },
+    },
+  },
+  {
     bundleId: "chat",
     member: "chat",
     config: { rules: [{ pattern: "discord:*", level: "public" }] },
@@ -384,6 +398,14 @@ describe("canonical bundle taxonomy", () => {
     const personal = resolve(canonicalBrain, {}, targetRecipes.personal);
     expect(pluginConfig(personal, "mcp")?.["transport"]).toBe("http");
     expect(permissionLevel(personal, "mcp:http")).toBe("public");
+    expect(
+      personal.permissions?.entityActions?.["grouping-vocabulary"],
+    ).toEqual({
+      create: "admin",
+      update: "admin",
+      delete: "admin",
+      publish: "never",
+    });
 
     const team = resolve(canonicalBrain, {}, targetRecipes.team);
     expect(permissionLevel(team, "mcp:http")).toBe("admin");

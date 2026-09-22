@@ -6,6 +6,7 @@ import {
   setStudioNavigationCollapsed,
 } from "./studio-navigation-state";
 import type { StudioWorkspaceInfo, EntityTypeInfo } from "./api";
+import type { GroupingNavigation } from "./grouping-url-query";
 import {
   studioArea,
   studioTypeGroup,
@@ -19,7 +20,11 @@ export {
   studioMobileSelection,
 } from "./studio-navigation-parts";
 export type { MobileNavigationOption } from "./studio-navigation-parts";
-import { navigationTypeLabel, workspaceBadge } from "./studio-navigation-parts";
+import {
+  MOBILE_GROUPING_PREFIX,
+  navigationTypeLabel,
+  workspaceBadge,
+} from "./studio-navigation-parts";
 import { MobileNavigation } from "./studio-mobile-navigation";
 import { useNavigationTree } from "./use-navigation-tree";
 import {
@@ -84,6 +89,7 @@ function StudioAreaMark({ area }: { area: StudioArea }): ReactElement {
  */
 
 export function TypeSwitcher(props: {
+  groupings?: GroupingNavigation | undefined;
   types: EntityTypeInfo[];
   active: string | null;
   onSelect: (entityType: string) => void;
@@ -127,8 +133,12 @@ export function TypeSwitcher(props: {
     })),
     ...groups.filter((group) => group.label === "Site"),
   ].filter((group) => group.types.length > 0);
-  const currentArea = studioArea(props.active, props.activeWorkspace ?? null);
-  const destination = props.activeWorkspace ?? props.active;
+  const currentArea = props.groupings?.active
+    ? "library"
+    : studioArea(props.active, props.activeWorkspace ?? null);
+  const destination = props.groupings?.active
+    ? `${MOBILE_GROUPING_PREFIX}${props.groupings.active}`
+    : (props.activeWorkspace ?? props.active);
   const tree = useNavigationTree({
     currentArea,
     destination,
@@ -236,7 +246,9 @@ export function TypeSwitcher(props: {
       id: "library",
       index: "02",
       label: "Library",
-      available: primaryTypeGroups.length > 0,
+      available:
+        primaryTypeGroups.length > 0 ||
+        (props.groupings?.items.length ?? 0) > 0,
     },
     {
       id: "work",
@@ -266,6 +278,7 @@ export function TypeSwitcher(props: {
           types={props.types}
           active={props.active}
           onSelect={props.onSelect}
+          groupings={props.groupings}
           activeWorkspace={props.activeWorkspace}
           workspaceBadges={props.workspaceBadges}
           onSelectWorkspace={props.onSelectWorkspace}
@@ -428,9 +441,53 @@ export function TypeSwitcher(props: {
                 </h2>
               </header>
               <div className={navClass("studio-leaf-scroll", nav.leafScroll)}>
-                {activeArea === "library"
-                  ? primaryTypeGroups.map(renderGroup)
-                  : null}
+                {activeArea === "library" ? (
+                  <>
+                    {primaryTypeGroups.map(renderGroup)}
+                    {(props.groupings?.items.length ?? 0) > 0 ? (
+                      <section
+                        className={navClass("studio-leaf-group", nav.leafGroup)}
+                      >
+                        <div
+                          className={navClass(
+                            "studio-leaf-label",
+                            nav.leafLabel,
+                            typographyStyles.eyebrow,
+                          )}
+                        >
+                          Groupings
+                        </div>
+                        <ul className={navClass("", nav.list)}>
+                          {props.groupings?.items.map((grouping) => (
+                            <li key={grouping.key}>
+                              <button
+                                type="button"
+                                className={navClass(
+                                  grouping.key === props.groupings?.active
+                                    ? "studio-leaf-link active"
+                                    : "studio-leaf-link",
+                                  nav.leafLink,
+                                  grouping.key === props.groupings?.active &&
+                                    nav.leafActive,
+                                )}
+                                aria-current={
+                                  grouping.key === props.groupings?.active
+                                    ? "page"
+                                    : undefined
+                                }
+                                onClick={() =>
+                                  props.groupings?.onSelect(grouping.key)
+                                }
+                              >
+                                {grouping.label}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </section>
+                    ) : null}
+                  </>
+                ) : null}
                 {activeArea === "work" && operationWorkspaces.length > 0 ? (
                   <section
                     className={navClass("studio-leaf-group", nav.leafGroup)}

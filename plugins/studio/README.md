@@ -12,7 +12,7 @@
 
 ## Query and mutation conventions
 
-All server-state keys come from `ui-react/src/queries.ts`:
+Entity/workspace keys come from `ui-react/src/queries.ts`; grouping keys in `grouping-queries.ts` additionally isolate API instances:
 
 ```ts
 studioKeys.navigation();
@@ -26,10 +26,10 @@ studioKeys.syncStatus();
 studioKeys.agentTargets();
 ```
 
-Transport calls belong in `api.ts`; query and mutation wrappers belong in `queries.ts` and `mutations.ts`. Invalidation must be targeted:
+Transport calls belong in `api.ts`; query wrappers belong in `queries.ts` and `grouping-queries.ts`, and mutation wrappers in `mutations.ts`. Invalidation must be targeted:
 
-- saves refresh the affected list and sync status, creation also refreshes navigation counts, then the saved detail reopens with its fresh content hash;
-- deletes remove the affected detail and refresh its list, navigation counts, and sync status;
+- saves refresh the affected list, grouping catalogs/member pages, and sync status, creation also refreshes navigation counts, then the saved detail reopens with its fresh content hash;
+- deletes remove the affected detail and refresh its list, grouping catalogs/member pages, navigation counts, and sync status;
 - image uploads refresh only image-list, navigation-count, and sync-status data;
 - declarative workspace actions refresh only their workspace snapshot and any badge-bearing navigation;
 - sync polling invalidates only `studioKeys.syncStatus()`.
@@ -64,6 +64,40 @@ entity availability, and create-policy checks. Studio also owns the registered *
 entity** target, so the Inbox renderer never constructs entity URLs itself.
 
 Workspace definitions may opt into host-owned stable URL filters with a typed query schema. Query-backed tabs use their declared tab-block query key, so selection, refresh, and Back/Forward agree while providers load only the active tab; switching tabs resets the prior tab's filters and detail state instead of leaking them into the next concern. The Studio hydrates declared filters from the raw search string, validates them on the server, and replaces their canonical URL without guessing provider semantics. Paging remains transient request state, so reload starts from the first page. Serializable workspace aliases preserve retired deep links by replacing the workspace id and merging bounded canonical query state. Workspaces without a query declaration ignore URL search entirely.
+
+## Virtual collections
+
+Studio configuration can declare multiple cross-type groupings:
+
+```yaml
+groupings:
+  - key: clients
+    label: Clients
+    field: clients
+    types: [note, post]
+  - key: projects
+    label: Projects
+    field: projects
+    types: [note, post]
+```
+
+Each declaration extends participating types' effective frontmatter schema with an optional string list (or reuses a compatible owner field without weakening its constraints). Check-free list contracts may be declared independently; runtime checks and unsupported wrappers require shared schema/check identity, since JSON Schema cannot establish their equivalence. One entity may have multiple values in each field. Membership is authored in Markdown, not inferred from IDs; no collection entity, file copy, rename, or move is created. Invalid declarations and incompatible/reserved field collisions fail registration.
+
+Each grouping has one Library navigation entry under Groupings. `{routePath}/groups/clients` lists readable values and counts; `?value=Acme` lists mixed-type members, with `type`, `q`, `sort`, `offset`, and `limit` filters. Matching uses exact stored values, while the catalog orders them case-insensitively so related spellings read together. Studio calls these groups and entries; "collection" stays with entity types. Each group row is a link, so it opens in a new tab like any other destination, and a correction Studio makes itself — clamping an out-of-range page, or a debounced search — replaces the URL instead of adding a Back step. The ordinary editor retains its permissions and returns to the selected grouping. Group views have no creation, rename, or deletion action.
+
+Open grouping Properties use literal value inputs: Enter or the Add (+) button adds one value; commas and surrounding spaces are preserved. A whitespace warning explains that those spaces create a distinct group. Because matching is exact, the input also offers the values that already exist, so one group does not fragment into several spellings; typing a new value stays possible. Labels stay readable: only what a reader could not otherwise see is marked — spaces at either end or repeated, shown as a middle dot, and control, format or exotic whitespace characters, shown as escapes. The empty value is labelled `(empty)`; that literal authored name is escaped so the two remain distinguishable. Suggestions disappear after a failed refetch, including access denial, rather than retaining previously readable catalog values. Stored values and URLs remain exact. An untouched blank input adds nothing. A composing IME never submits on Enter. Ordinary tag fields retain comma submission and trimming.
+
+Every Note uses the normal frontmatter/Properties editor while `note` participates in any grouping, including Notes with no membership. Without participation, Notes retain whole-document Markdown editing. Removing a declaration removes the view, not its saved fields. Ordinary Properties saves and exports preserve existing unclaimed, non-policy frontmatter without accepting arbitrary new form keys; explicit full-source omission remains a deletion.
+
+### Admin-managed vocabularies
+
+**System → Structure → Groupings** edits the `grouping-vocabulary` singleton as Markdown. Each entry under `groupings` declares `multiple` and a nonempty, exact-value `values` list. Presence closes that grouping; removing the entry reopens it. Unknown grouping keys, duplicate values, empty values, and empty lists are rejected. The type carries its own admin floor for create, update and delete and never permits publication, so a brain assembled without the canonical bundle's matching rule is still admin-only. Stricter wildcard restrictions, including `never`, are preserved; an explicit instance policy for the type still overrides it. The document is always shared: public would expose it, and restricted would let an administrator enforce a list the trusted editors it constrains cannot read, so its schema offers no visibility control and any other visibility is refused.
+
+Trusted editors read the document but cannot change it under that policy. Closed single-valued fields use a dropdown (blank clears to `[]`); closed multi-valued fields use checkboxes. Open fields retain literal inputs and catalog suggestions. All shapes still persist lists in frontmatter. Values outside a vocabulary remain visible with a **not in list** marker; neither closing a list nor changing cardinality rewrites old memberships. Such entries must be corrected before their next save.
+
+Persist validators read the current singleton at internal full scope on each create/update, without a cache. Studio, field-update tools, MCP writes, directory-sync imports and derived projection upserts therefore share the constraint. Projection refusals roll back the entire rule result; the metadata supplied by a rule cannot override source membership. A Studio refusal returns field issues and keeps the draft. Policy-refused imports fail without moving valid Markdown into quarantine and can be retried after reopening. Scoped descriptors omit vocabularies a caller cannot read; that never weakens write enforcement. Saving or deleting the vocabulary refreshes navigation descriptors and grouping pages in the current editor session; this is not cross-session push synchronization.
+
+Entity-service silently reprojects existing membership during every normal serving startup. Unchanged declarations alone cannot justify skipping source validation: register-only writers may have run with grouping disabled, or field constraints may have changed. Authorized group reads return `503 groupings_initializing` until the complete pass succeeds. Only this response retries automatically, with capped delays and a 90-second wait budget; other failures and timeouts offer explicit Retry. No partial catalog is treated as an empty success.
 
 ## Account and split assets
 

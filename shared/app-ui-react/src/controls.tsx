@@ -79,9 +79,20 @@ const styles = stylex.create({
         "@media (prefers-reduced-motion: reduce)": "none",
       },
     },
+    // The lift signals hover, but reduced motion removes it and the paint pair
+    // is contrast-tested and must not change. An outline carries the cue there.
+    outline: {
+      default: "none",
+      ":hover:not(:disabled)": {
+        default: "none",
+        "@media (prefers-reduced-motion: reduce)":
+          "2px solid var(--console-on-accent)",
+      },
+    },
+    outlineOffset: "-4px",
     ":hover:not(:disabled)": {
-      backgroundColor: "var(--console-accent-dim)",
-      borderColor: "var(--console-accent-dim)",
+      backgroundColor: "var(--console-accent)",
+      borderColor: "var(--console-accent)",
     },
     ":disabled": {
       backgroundColor: "var(--console-card-soft)",

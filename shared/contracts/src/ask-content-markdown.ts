@@ -1,4 +1,4 @@
-import { parseMarkdown } from "@brains/utils/markdown";
+import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 import {
   askContentFrontmatterSchema,
   askContentSchema,

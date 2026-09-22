@@ -170,15 +170,29 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
       )}
       data-studio-shell=""
       data-view={
-        activeWorkspaceId ? "workspace" : editing ? "editor" : "listing"
+        props.groupingView
+          ? "grouping"
+          : activeWorkspaceId
+            ? "workspace"
+            : editing
+              ? "editor"
+              : "listing"
       }
     >
       <StudioChrome
-        contextLabel={collectionLabel}
+        contextLabel={
+          props.groupReturnLabel ??
+          props.groupings?.items.find(
+            (grouping) => grouping.key === props.groupings?.active,
+          )?.label ??
+          collectionLabel
+        }
         navigation={{
+          groupings: props.groupings,
           types,
           workspaces,
-          activeEntityType: activeWorkspaceId ? null : entityType,
+          activeEntityType:
+            activeWorkspaceId || props.groupings?.active ? null : entityType,
           activeWorkspaceId,
           workspaceBadges,
           selectEntityType,
@@ -197,8 +211,11 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
         <aside className={navClass("rail", nav.rail)}>
           <TypeSwitcher
             renderMode="desktop"
+            groupings={props.groupings}
             types={types}
-            active={activeWorkspaceId ? null : entityType}
+            active={
+              activeWorkspaceId || props.groupings?.active ? null : entityType
+            }
             onSelect={selectEntityType}
             workspaces={workspaces}
             activeWorkspace={activeWorkspaceId}
@@ -206,13 +223,14 @@ export function StudioAppView(props: StudioAppViewProps): ReactElement {
             onSelectWorkspace={selectWorkspace}
           />
         </aside>
-        {activeWorkspaceId ? (
-          <StudioWorkspacePane {...props} model={model} />
-        ) : !editing ? (
-          <StudioLibraryPane {...props} model={model} />
-        ) : (
-          <StudioEditorPane {...props} model={model} />
-        )}
+        {props.groupingView ??
+          (activeWorkspaceId ? (
+            <StudioWorkspacePane {...props} model={model} />
+          ) : !editing ? (
+            <StudioLibraryPane {...props} model={model} />
+          ) : (
+            <StudioEditorPane {...props} model={model} />
+          ))}
       </div>
       {deleteOpen && mode.kind === "edit" && canDelete && (
         <DeleteDialog

@@ -279,7 +279,10 @@ export function createMockEntityService(
     getEntityTypes: () => Array.from(store.types),
     hasEntityType: (type: string) => store.types.has(type),
     serializeEntity: (entity: BaseEntity) => JSON.stringify(entity),
-    deserializeEntity: (markdown: string) => ({ content: markdown }),
+    deserializeEntity: (markdown: string, entityType: string) =>
+      store.adapters.get(entityType)?.fromMarkdown(markdown) ?? {
+        content: markdown,
+      },
     getAsyncJobStatus: async () => ({ status: "completed" as const }),
     upsertEntity: async <T extends BaseEntity>(
       request: UpsertEntityRequest<T>,
@@ -405,10 +408,22 @@ export function createMockEntityService(
       fencedCallbacks: 0,
       releasedDurableRoots: 0,
     }),
+    areGroupingsReady: () => true,
+    reprojectRegisteredGroupings: async (): Promise<void> => {},
     // Hierarchy grouping is tested against SQLite, not duplicated in this fake.
     queryEntityHierarchy: async (): Promise<never> => {
       throw new Error(
         "createMockShell: inject an entity service for hierarchy queries",
+      );
+    },
+    queryGroupingCatalog: async (): Promise<never> => {
+      throw new Error(
+        "createMockShell: inject an entity service for grouping queries",
+      );
+    },
+    queryGroupingMembers: async (): Promise<never> => {
+      throw new Error(
+        "createMockShell: inject an entity service for grouping queries",
       );
     },
     // Projection storage is database-backed and cannot be faked usefully. Fail

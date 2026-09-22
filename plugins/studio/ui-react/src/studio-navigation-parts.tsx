@@ -20,6 +20,7 @@ export function workspaceBadge(
 }
 
 export function navigationTypeLabel(info: EntityTypeInfo): string {
+  if (info.entityType === "grouping-vocabulary") return "Groupings";
   return info.isSingleton && info.entityType !== "settings"
     ? singularLabel(info.label)
     : info.label;
@@ -41,13 +42,19 @@ export interface MobileNavigationGroupModel {
   options: MobileNavigationOption[];
 }
 
+export const MOBILE_GROUPING_PREFIX: string = "group:";
+
 export const MOBILE_TYPE_PREFIX: string = "type:";
 
 export const MOBILE_WORKSPACE_PREFIX: string = "workspace:";
 
 export function studioMobileSelection(
   value: string,
-): { kind: "type" | "workspace"; id: string } | null {
+): { kind: "type" | "workspace" | "grouping"; id: string } | null {
+  if (value.startsWith(MOBILE_GROUPING_PREFIX)) {
+    const id = value.slice(MOBILE_GROUPING_PREFIX.length);
+    return id.length > 0 ? { kind: "grouping", id } : null;
+  }
   if (value.startsWith(MOBILE_TYPE_PREFIX)) {
     const id = value.slice(MOBILE_TYPE_PREFIX.length);
     return id.length > 0 ? { kind: "type", id } : null;

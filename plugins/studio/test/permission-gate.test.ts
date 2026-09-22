@@ -111,6 +111,14 @@ function apiRouteRequests(): RouteRequest[] {
         }),
     },
     {
+      routePath: "/studio/api/groups/catalog",
+      request: (cookie) => request("/studio/api/groups/catalog", { cookie }),
+    },
+    {
+      routePath: "/studio/api/groups/members",
+      request: (cookie) => request("/studio/api/groups/members", { cookie }),
+    },
+    {
       routePath: "/studio/api/hierarchy",
       request: (cookie) => request("/studio/api/hierarchy", { cookie }),
     },
@@ -310,6 +318,7 @@ describe("Studio active-session gate inversion", () => {
       if (routeCase.routePath === "/studio/api/types") {
         expect(publicResponse.status).toBe(200);
         expect(await publicResponse.json()).toEqual({
+          groupings: [],
           types: [],
           workspaces: [
             {
@@ -376,6 +385,10 @@ describe("Studio active-session gate inversion", () => {
       {
         routePath: "/studio/entities",
         requestPath: "/studio/entities/post/shared-draft",
+      },
+      {
+        routePath: "/studio/groups",
+        requestPath: "/studio/groups/clients?value=Acme",
       },
       {
         routePath: "/studio/workspaces",

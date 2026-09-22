@@ -106,6 +106,7 @@ async function renderEffects(
       workspaces: [],
       activeType: undefined,
       activeWorkspace: undefined,
+      groupings: [],
       entityCollectionQuery: studioCollectionQuerySchema.parse({}),
       entityListOffset: 0,
       entityListTotal: undefined,
@@ -148,6 +149,32 @@ async function renderEffects(
 }
 
 describe("useStudioRouteEffects", () => {
+  it.each([true, false])(
+    "resolves grouping admission (%s), clearing stale workspace/type selection",
+    async (admitted) => {
+      const harness = await renderEffects({
+        routeTarget: { kind: "grouping", grouping: "clients" },
+        activeWorkspaceId: "inbox",
+        entityType: "note",
+        groupings: admitted
+          ? [
+              {
+                key: "clients",
+                label: "Clients",
+                field: "clients",
+                types: ["note"],
+              },
+            ]
+          : [],
+      });
+      expect(harness.activeWorkspaceIds.at(-1)).toBeNull();
+      expect(harness.entityTypes.at(-1)).toBeNull();
+      expect(harness.supersedes).toBe(1);
+      expect(harness.loadErrors.at(-1)).toBe(
+        admitted ? null : "Collection unavailable for this account.",
+      );
+    },
+  );
   it("resolves a collection route to its entity type", async () => {
     const harness = await renderEffects({
       routeTarget: { kind: "collection", entityType: "note" },

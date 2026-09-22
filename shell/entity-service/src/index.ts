@@ -29,6 +29,21 @@ export {
 } from "./entity-id-path";
 export { EntityRegistry } from "./entityRegistry";
 export {
+  entityGroupingSchema,
+  groupingSortSchema,
+  groupingKeySchema,
+  groupingValueSchema,
+  groupingSearchSchema,
+  GROUPING_PAGE_LIMIT,
+  GROUPING_MAX_PAGE_LIMIT,
+  type EntityGrouping,
+  type GroupingSort,
+  type QueryGroupingCatalogRequest,
+  type QueryGroupingMembersRequest,
+  type EntityGroupingCatalog,
+} from "./entity-grouping";
+export type { EntityGroupingMembers } from "./types";
+export {
   entityWriteConditionSchema,
   EntityWriteConflictError,
   type EntityWriteCondition,
@@ -208,6 +223,7 @@ export {
   type PublishBoundaryState,
 } from "./publish-policy";
 
+export { preserveSourceFrontmatter } from "./frontmatter-extensions";
 export {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,

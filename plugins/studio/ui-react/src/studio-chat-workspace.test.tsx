@@ -13,7 +13,8 @@ import { createRoot, type Root } from "react-dom/client";
 import { AppFetchProvider, type AppFetch } from "@brains/app-ui-react";
 import { StudioChatWorkspace } from "./studio-chat-workspace";
 import type { ChatCard } from "@brains/contracts/chat";
-import { StudioChatDraftStore, studioChatDraftKey } from "./studio-chat-drafts";
+import { StudioChatDraftStore } from "./studio-chat-drafts";
+import { studioChatDraftKey } from "./studio-chat-draft-key";
 
 /** The transport the mounted workspace is given; each test may replace it. */
 let restoreGlobals: RestoreGlobals;

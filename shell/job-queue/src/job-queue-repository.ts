@@ -139,63 +139,78 @@ export class JobQueueRepository {
   ): Promise<EnqueueDecision> {
     return writeTransactions.run(this.databaseUrl, async () => {
       const deadline = Date.now() + this.writeRetryBudgetMs;
-      let commitAttempt = 1;
+      return this.attemptEnqueue(request, deadline, 1);
+    });
+  }
 
-      for (;;) {
-        const transaction = await this.acquireWriteTransaction(
-          request,
-          deadline,
-        );
-        const insertPreparation = { prepared: false };
-        let commitStarted = false;
+  /**
+   * One complete transaction per step. A failed COMMIT can leave libSQL with a
+   * statement in progress, so a conflict retries the whole transaction rather
+   * than reusing a poisoned one; the previous one is always closed first.
+   */
+  private async attemptEnqueue(
+    request: AtomicEnqueueRequest,
+    deadline: number,
+    commitAttempt: number,
+  ): Promise<EnqueueDecision> {
+    const outcome = await this.runEnqueueTransaction(
+      request,
+      deadline,
+      commitAttempt,
+    );
+    if (outcome.retry)
+      return this.attemptEnqueue(request, deadline, commitAttempt + 1);
+    return outcome.decision;
+  }
 
+  private async runEnqueueTransaction(
+    request: AtomicEnqueueRequest,
+    deadline: number,
+    commitAttempt: number,
+  ): Promise<{ retry: true } | { retry: false; decision: EnqueueDecision }> {
+    const transaction = await this.acquireWriteTransaction(request, deadline);
+    const insertPreparation = { prepared: false };
+    let commitStarted = false;
+
+    try {
+      const decision = await this.decideEnqueue(transaction, request, () => {
+        insertPreparation.prepared = true;
+      });
+      commitStarted = true;
+      await transaction.commit();
+      return { retry: false, decision };
+    } catch (error) {
+      const retryCommit =
+        commitStarted &&
+        this.isSerializationConflict(error) &&
+        !transaction.closed;
+      let rollbackSucceeded = true;
+
+      if (!transaction.closed) {
         try {
-          const decision = await this.decideEnqueue(
-            transaction,
-            request,
-            () => {
-              insertPreparation.prepared = true;
-            },
-          );
-          commitStarted = true;
-          await transaction.commit();
-          return decision;
-        } catch (error) {
-          // libSQL can leave a failed COMMIT with a statement in progress, so
-          // retry the complete transaction rather than reusing a poisoned one.
-          const retryCommit =
-            commitStarted &&
-            this.isSerializationConflict(error) &&
-            !transaction.closed;
-          let rollbackSucceeded = true;
-
-          if (!transaction.closed) {
-            try {
-              await transaction.rollback();
-            } catch (rollbackError) {
-              rollbackSucceeded = false;
-              this.logger.error("Failed to roll back atomic enqueue", {
-                type: request.jobData.type,
-                rollbackError,
-              });
-            }
-          }
-          if (insertPreparation.prepared) request.onInsertRollback?.();
-          if (!retryCommit || !rollbackSucceeded) throw error;
-
-          await this.waitForConflictRetry(
-            "commit",
-            request,
-            deadline,
-            commitAttempt,
-            error,
-          );
-          commitAttempt++;
-        } finally {
-          transaction.close();
+          await transaction.rollback();
+        } catch (rollbackError) {
+          rollbackSucceeded = false;
+          this.logger.error("Failed to roll back atomic enqueue", {
+            type: request.jobData.type,
+            rollbackError,
+          });
         }
       }
-    });
+      if (insertPreparation.prepared) request.onInsertRollback?.();
+      if (!retryCommit || !rollbackSucceeded) throw error;
+
+      await this.waitForConflictRetry(
+        "commit",
+        request,
+        deadline,
+        commitAttempt,
+        error,
+      );
+      return { retry: true };
+    } finally {
+      transaction.close();
+    }
   }
 
   private async decideEnqueue(

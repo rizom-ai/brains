@@ -2,6 +2,9 @@
 import { datetimeLocalValue, errorMessage } from "./ui-utils";
 import * as stylex from "@stylexjs/stylex";
 import { fieldStyles as f } from "./studio-fields.styles";
+import { groupingValueLabel } from "./grouping-value";
+import type { GroupingVocabulary } from "../../src/grouping-vocabulary-contract";
+import { ClosedGroupingField } from "./grouping-vocabulary-fields";
 import { StudioStatus } from "./studio-status";
 import {
   Button,
@@ -193,13 +196,22 @@ function StringListField(props: {
   descriptor: FieldDescriptor;
   value: unknown;
   onChange: (raw: string[]) => void;
+  literalList?: boolean | undefined;
+  suggestions?: readonly string[] | undefined;
 }): ReactElement {
   const [pending, setPending] = useState("");
+  const helpId = useId();
+  const listId = useId();
+  const literal = props.literalList === true;
+  // Offer values that already exist, so exact matching does not fragment.
+  const suggestions = (props.suggestions ?? []).filter(
+    (value) => !(Array.isArray(props.value) ? props.value : []).includes(value),
+  );
   const values = Array.isArray(props.value)
     ? props.value.filter((item): item is string => typeof item === "string")
     : [];
   const add = (): void => {
-    const next = pending.trim();
+    const next = literal ? pending : pending.trim();
     if (next && !values.includes(next)) props.onChange([...values, next]);
     setPending("");
   };
@@ -208,18 +220,18 @@ function StringListField(props: {
     <div {...stylex.props(f.field)} data-studio-field="tags">
       <span {...stylex.props(f.label)}>
         {props.descriptor.label}
-        <em {...stylex.props(f.kind)}>tags</em>
+        <em {...stylex.props(f.kind)}>{literal ? "values" : "tags"}</em>
       </span>
       <div {...stylex.props(f.tags)}>
         {values.map((value) => (
           <span {...stylex.props(f.tag)} key={value}>
-            {value}
+            {literal ? groupingValueLabel(value) : value}
             <Button
               type="button"
               variant="ghost"
               size="icon-xs"
               xstyle={f.tagButton}
-              aria-label={`Remove ${value}`}
+              aria-label={`Remove ${literal ? groupingValueLabel(value) : value}`}
               onClick={() =>
                 props.onChange(values.filter((item) => item !== value))
               }
@@ -230,14 +242,19 @@ function StringListField(props: {
         ))}
         <span {...stylex.props(f.tag, f.tagAdd)}>
           <Input
-            xstyle={f.tagInput}
+            xstyle={[f.tagInput, literal && f.literalInput]}
             type="text"
             value={pending}
-            aria-label={`Add ${props.descriptor.label.toLowerCase()} tag`}
-            placeholder="Add tag"
+            list={suggestions.length > 0 ? listId : undefined}
+            aria-label={`Add ${props.descriptor.label.toLowerCase()} ${literal ? "value" : "tag"}`}
+            aria-describedby={literal ? helpId : undefined}
+            placeholder={literal ? "Add value" : "Add tag"}
             onChange={(event) => setPending(event.currentTarget.value)}
             onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === ",") {
+              // A composing IME sends Enter to accept a candidate, never to
+              // submit. This is true of ordinary tags as much as literal values.
+              if (event.nativeEvent.isComposing) return;
+              if (event.key === "Enter" || (!literal && event.key === ",")) {
                 event.preventDefault();
                 add();
               }
@@ -248,13 +265,32 @@ function StringListField(props: {
             variant="ghost"
             size="icon-xs"
             xstyle={f.tagButton}
-            aria-label="Add tag"
+            aria-label={literal ? "Add value" : "Add tag"}
             onClick={add}
           >
             +
           </Button>
         </span>
+        {suggestions.length > 0 && (
+          <datalist id={listId}>
+            {suggestions.map((value) => (
+              <option key={value} value={value} />
+            ))}
+          </datalist>
+        )}
       </div>
+      {literal && (
+        <span id={helpId} {...stylex.props(f.listHelp)}>
+          Enter or + adds one value. Commas and spaces are literal.
+          {(pending !== pending.trim() ||
+            values.some((value) => value !== value.trim())) && (
+            <strong>
+              {" "}
+              Surrounding whitespace is preserved and creates a different group.
+            </strong>
+          )}
+        </span>
+      )}
     </div>
   );
 }
@@ -355,6 +391,9 @@ export function FieldAssistControls(props: {
 }
 
 export function Field(props: {
+  vocabulary?: GroupingVocabulary | undefined;
+  literalList?: boolean | undefined;
+  suggestions?: readonly string[] | undefined;
   descriptor: FieldDescriptor;
   value: unknown;
   onChange: (raw: unknown) => void;
@@ -393,6 +432,9 @@ export function Field(props: {
       }
     >
       <FieldControl
+        vocabulary={props.vocabulary}
+        literalList={props.literalList}
+        suggestions={props.suggestions}
         descriptor={props.descriptor}
         value={props.value}
         onChange={props.onChange}
@@ -416,6 +458,9 @@ export function Field(props: {
 }
 
 function FieldControl(props: {
+  vocabulary?: GroupingVocabulary | undefined;
+  literalList?: boolean | undefined;
+  suggestions?: readonly string[] | undefined;
   descriptor: FieldDescriptor;
   value: unknown;
   onChange: (raw: unknown) => void;
@@ -496,8 +541,20 @@ function FieldControl(props: {
   }
 
   if (descriptor.widget === "list" && descriptor.field?.widget === "string") {
+    if (props.vocabulary)
+      return (
+        <ClosedGroupingField
+          descriptor={descriptor}
+          vocabulary={props.vocabulary}
+          value={value}
+          onChange={onChange}
+          errorId={errorId}
+        />
+      );
     return (
       <StringListField
+        literalList={props.literalList}
+        suggestions={props.suggestions}
         descriptor={descriptor}
         value={value}
         onChange={onChange}

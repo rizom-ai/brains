@@ -173,7 +173,7 @@ describe("contact runtime", () => {
     expect(records[0]?.metadata.notification).toBe("sent");
     expect(f.checks[0]?.cadence).toBe("daily");
     expect(f.plugin.getWebRoutes().every((r) => r.preview)).toBe(true);
-    await f.plugin.shutdown?.();
+    await f.plugin.shutdown();
     expect(
       (
         await route?.handler(new Request(`${origin}/contact`), {
@@ -243,7 +243,7 @@ describe("contact runtime", () => {
       ).toBe("skipped");
       expect(f.sent).toEqual([]);
     } finally {
-      await f?.plugin.shutdown?.();
+      await f?.plugin.shutdown();
       setSystemTime();
     }
   });
@@ -254,7 +254,7 @@ describe("contact runtime", () => {
     expect(f.plugin.getWebRoutes()).toEqual([]);
     expect(f.checks).toEqual([]);
     expect(f.handlers.has("contact:notify")).toBe(true);
-    await f.plugin.shutdown?.();
+    await f.plugin.shutdown();
   });
   it("fails closed on startup without the configured authenticated Inbox destination", async () => {
     const f = await setup();
@@ -262,7 +262,7 @@ describe("contact runtime", () => {
     expect(await f.plugin.ready().catch((error: unknown) => error)).toEqual(
       new Error("Contact Inbox unavailable"),
     );
-    await f.plugin.shutdown?.();
+    await f.plugin.shutdown();
   });
   it("recovers enqueue failures on recurring maintenance and reports sanitized health", async () => {
     const f = await setup();
@@ -282,7 +282,7 @@ describe("contact runtime", () => {
     await check.run({ signal: new AbortController().signal });
     expect(await queue.getActiveJobs()).toHaveLength(1);
     const remove = mock(async () => {});
-    await f.plugin.shutdown?.();
+    await f.plugin.shutdown();
     expect(
       await check
         .run({ signal: new AbortController().signal })

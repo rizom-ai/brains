@@ -21,7 +21,7 @@ afterEach(async () => {
     await plugin.shutdown?.();
   }
   for (const plugin of authPlugins.splice(0).reverse()) {
-    await plugin.shutdown?.();
+    await plugin.shutdown();
   }
 });
 

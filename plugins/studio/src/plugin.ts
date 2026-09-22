@@ -15,6 +15,7 @@ import {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
   STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
   ServicePlugin,
+  entityGroupingSchema,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { StudioEntityDisplayMap } from "./config";
@@ -26,6 +27,10 @@ import {
 } from "./studio-paths";
 import { createStudioCreatePrefillState } from "./create-prefill-contract";
 import { createEditorRoutes } from "./editor-routes";
+import {
+  registerGroupingVocabulary,
+  registerGroupingVocabularyValidators,
+} from "./grouping-vocabulary";
 import { StudioWorkspaceRegistry } from "./workspace-registry";
 import packageJson from "../package.json";
 import { getErrorMessage } from "@brains/utils/error";
@@ -56,9 +61,11 @@ const entityDisplaySchema: z.ZodRecord<
 
 const studioPluginConfigSchema: z.ZodObject<{
   entityDisplay: z.ZodOptional<typeof entityDisplaySchema>;
+  groupings: z.ZodDefault<z.ZodArray<typeof entityGroupingSchema>>;
   routePath: z.ZodDefault<z.ZodString>;
 }> = z.object({
   entityDisplay: entityDisplaySchema.optional(),
+  groupings: z.array(entityGroupingSchema).max(20).default([]),
   routePath: z
     .string()
     .default("/studio")
@@ -140,10 +147,20 @@ export class StudioPlugin extends ServicePlugin<
     super("studio", packageJson, config, studioPluginConfigSchema);
   }
 
+  protected override async onRegistrationComplete(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    context.entities.validateGroupings(this.config.groupings);
+    for (const grouping of this.config.groupings)
+      context.entities.registerGrouping(grouping);
+    registerGroupingVocabularyValidators(context);
+  }
+
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
+    registerGroupingVocabulary(context);
     context.endpoints.register({
       label: "Studio",
       url: this.config.routePath,

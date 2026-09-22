@@ -1,3 +1,4 @@
+import type { ServicePluginContext } from "@brains/plugins";
 import { formatLabel, pluralize } from "@brains/utils/string-utils";
 import {
   getArrayElement,
@@ -63,11 +64,18 @@ function pluralizeLabel(label: string): string {
 }
 
 /**
- * Base notes are raw Markdown: no frontmatter form, and a leading `---`
- * is a horizontal rule, not a YAML delimiter.
+ * Notes use whole-document editing unless their type participates in a
+ * registered grouping. Participation exposes the effective Properties schema
+ * for every note, including notes with no membership yet.
  */
-export function isRawEntityType(entityType: string): boolean {
-  return entityType === NOTE_ENTITY_TYPE;
+export function isRawEntityType(
+  entityType: string,
+  entities: Pick<ServicePluginContext["entities"], "isGroupingContributor">,
+): boolean {
+  return (
+    entityType === NOTE_ENTITY_TYPE &&
+    !entities.isGroupingContributor(entityType)
+  );
 }
 
 /**
@@ -78,6 +86,11 @@ export function entityTypeLabels(
   entityType: string,
   display?: EntityDisplayLabel,
 ): { label: string; pluralLabel: string } {
+  if (entityType === "grouping-vocabulary")
+    return {
+      label: display?.label ?? "Groupings",
+      pluralLabel: display?.pluralName ?? "Groupings",
+    };
   const defaultLabel =
     entityType === NOTE_ENTITY_TYPE ? "Note" : formatLabel(entityType);
   const label = display?.label ?? defaultLabel;

@@ -8,12 +8,14 @@ import {
 } from "@brains/app-ui-react";
 import { Dialog as DialogPrimitive, VisuallyHidden } from "radix-ui";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
+import type { GroupingNavigation } from "./grouping-url-query";
 import {
   navigationClassName as navClass,
   navigationStyles as nav,
 } from "./studio-navigation.styles";
 import { typographyStyles } from "./studio-typography.styles";
 import {
+  MOBILE_GROUPING_PREFIX,
   MOBILE_TYPE_PREFIX,
   MOBILE_WORKSPACE_PREFIX,
   StudioBrowseDestinations,
@@ -27,6 +29,7 @@ export interface MobileNavigationProps {
   types: EntityTypeInfo[];
   active: string | null;
   onSelect: (entityType: string) => void;
+  groupings?: GroupingNavigation | undefined;
   activeWorkspace?: string | null | undefined;
   workspaceBadges?: Record<string, number> | undefined;
   onSelectWorkspace?: ((workspaceId: string) => void) | undefined;
@@ -102,9 +105,15 @@ export function MobileNavigation(props: MobileNavigationProps): ReactElement {
     {
       area: "library",
       label: "Library",
-      options: primaryTypeGroups.flatMap((group) =>
-        group.types.map(mobileTypeOption),
-      ),
+      options: [
+        ...primaryTypeGroups.flatMap((group) =>
+          group.types.map(mobileTypeOption),
+        ),
+        ...(props.groupings?.items ?? []).map((grouping) => ({
+          value: `${MOBILE_GROUPING_PREFIX}${grouping.key}`,
+          label: grouping.label,
+        })),
+      ],
     },
     ...(operationWorkspaces.length > 0
       ? [
@@ -137,15 +146,21 @@ export function MobileNavigation(props: MobileNavigationProps): ReactElement {
       ),
     },
   ];
-  const activeMobileView = props.active
-    ? `${MOBILE_TYPE_PREFIX}${props.active}`
-    : props.activeWorkspace
-      ? `${MOBILE_WORKSPACE_PREFIX}${props.activeWorkspace}`
-      : "";
+  const activeMobileView = props.groupings?.active
+    ? `${MOBILE_GROUPING_PREFIX}${props.groupings.active}`
+    : props.active
+      ? `${MOBILE_TYPE_PREFIX}${props.active}`
+      : props.activeWorkspace
+        ? `${MOBILE_WORKSPACE_PREFIX}${props.activeWorkspace}`
+        : "";
   const [mobileFilter, setMobileFilter] = useState("");
   const [browseOpen, setBrowseOpen] = useState(false);
   const selectMobileView = (value: string): void => {
     const selection = studioMobileSelection(value);
+    if (selection?.kind === "grouping") {
+      props.groupings?.onSelect(selection.id);
+      return;
+    }
     if (selection?.kind === "type") {
       props.onSelect(selection.id);
       return;

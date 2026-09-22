@@ -16,7 +16,10 @@ import { collectionSearch } from "./collection-url-query";
 import type { Dispatch, SetStateAction } from "react";
 import type { QueryClient } from "@tanstack/react-query";
 import type { RouterHistory } from "@tanstack/react-router";
-import type { RuntimeStudioWorkspaceData } from "@brains/plugins";
+import type {
+  EntityGrouping,
+  RuntimeStudioWorkspaceData,
+} from "@brains/plugins";
 import type { StudioPathTarget } from "../../src/studio-paths";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
 import type { StudioWorkspaceQuery } from "./queries";
@@ -31,6 +34,7 @@ export interface StudioRouteEffectsInput {
   entityType: string | null;
   activeWorkspaceId: string | null;
   types: EntityTypeInfo[] | null;
+  groupings: EntityGrouping[];
   workspaces: StudioWorkspaceInfo[];
   activeType: EntityTypeInfo | undefined;
   activeWorkspace: StudioWorkspaceInfo | undefined;
@@ -62,6 +66,7 @@ export function useStudioRouteEffects(input: StudioRouteEffectsInput): void {
     entityType,
     activeWorkspaceId,
     types,
+    groupings,
     workspaces,
     activeType,
     activeWorkspace,
@@ -157,6 +162,15 @@ export function useStudioRouteEffects(input: StudioRouteEffectsInput): void {
       return;
     }
 
+    if (routeTarget.kind === "grouping") {
+      supersedeOpen();
+      setActiveWorkspaceId(null);
+      setEntityType(null);
+      if (!groupings.some((grouping) => grouping.key === routeTarget.grouping))
+        setLoadError("Collection unavailable for this account.");
+      return;
+    }
+
     if (routeTarget.kind === "workspace") {
       const workspace = workspaces.find(
         (entry) => entry.id === routeTarget.workspaceId,
@@ -207,5 +221,13 @@ export function useStudioRouteEffects(input: StudioRouteEffectsInput): void {
 
     setActiveWorkspaceId(null);
     setEntityType(nextType);
-  }, [routeSearch, routeTarget, history, studioBasePath, types, workspaces]);
+  }, [
+    routeSearch,
+    routeTarget,
+    history,
+    studioBasePath,
+    types,
+    groupings,
+    workspaces,
+  ]);
 }

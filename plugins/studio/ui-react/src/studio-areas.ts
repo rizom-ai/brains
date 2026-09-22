@@ -17,6 +17,7 @@ export const SITE_ENTITY_TYPES: Set<string> = new Set([
 ]);
 
 export const SYSTEM_TYPE_GROUPS = [
+  { label: "Structure", presentation: "form", types: ["grouping-vocabulary"] },
   {
     label: "Identity",
     presentation: "form",
