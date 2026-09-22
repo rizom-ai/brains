@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, expect, test } from "bun:test";
 import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
 import { Window } from "happy-dom";
-import { readFileSync } from "node:fs";
+import { studioAssetManifestSchema } from "../../src/ui-assets";
 import { act, useState, type ReactElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Field } from "./entity-fields";
@@ -148,11 +148,18 @@ test("read-only system grouping values retain visible empty/whitespace boundarie
   ).toEqual(["(empty)", MARK + "Acme" + MARK]);
 });
 test("literal Add control stays stationary when the input loses focus", async () => {
-  const style = document.createElement("style");
-  style.textContent = readFileSync(
-    new URL("../../dist/ui/studio-app.css", import.meta.url),
-    "utf8",
+  const manifest = studioAssetManifestSchema.parse(
+    await Bun.file(
+      new URL("../../dist/ui/studio-asset-manifest.json", import.meta.url),
+    ).json(),
   );
+  const style = document.createElement("style");
+  style.textContent = await Bun.file(
+    new URL(
+      `../../dist/ui/${manifest.entrypoints.stylesheet}`,
+      import.meta.url,
+    ),
+  ).text();
   document.head.append(style);
   await act(async () => root.render(<Fixture />));
   const node = await input("Acme, Inc.");
