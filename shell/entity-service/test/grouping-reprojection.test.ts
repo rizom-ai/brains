@@ -8,12 +8,15 @@ import {
   test,
 } from "bun:test";
 import { Database } from "bun:sqlite";
+import { createClient } from "@libsql/client";
+import { drizzle } from "drizzle-orm/libsql";
 import { fileURLToPath } from "node:url";
 import { computeContentHash } from "@brains/utils/hash";
 import { z } from "@brains/utils/zod";
 import { createSilentLogger } from "@brains/test-utils";
 import { EntityService } from "../src/entityService";
 import { EntityRegistry } from "../src/entityRegistry";
+import { reprojectGroupings } from "../src/grouping-reprojection";
 import { mockEmbeddingService } from "./helpers/mock-services";
 import {
   minimalTestAdapter,
@@ -303,6 +306,106 @@ describe("grouping startup reprojection", () => {
     await ctx.entityService.reprojectRegisteredGroupings();
     expect(db.query("SELECT id FROM entities").all()).toEqual([]);
   });
+  test("rechecks every prepared row and preserves unchanged-hash edits and sibling deletions", async () => {
+    await seed("a");
+    await seed("b");
+    await seed("c");
+    ctx.entityRegistry.registerGrouping(grouping);
+    const original = ctx.entityRegistry.projectStoredMetadata.bind(
+      ctx.entityRegistry,
+    );
+    let projections = 0;
+    spyOn(ctx.entityRegistry, "projectStoredMetadata").mockImplementation(
+      (...args) => {
+        if (++projections === 2) {
+          // The first row is already prepared, but neither its hash nor its
+          // metadata reveals this out-of-band source edit.
+          db.run("UPDATE entities SET content = ? WHERE id = 'a'", [
+            content("[Beta]"),
+          ]);
+          db.run("DELETE FROM entities WHERE id = 'b'");
+        }
+        return original(...args);
+      },
+    );
+    await ctx.entityService.reprojectRegisteredGroupings();
+    expect(ctx.entityService.areGroupingsReady()).toBe(true);
+    expect(db.query("SELECT id FROM entities ORDER BY id").all()).toEqual([
+      { id: "a" },
+      { id: "c" },
+    ]);
+    expect(
+      (await ctx.entityService.queryGroupingCatalog(query)).values,
+    ).toEqual([
+      { value: "Acme", count: 1 },
+      { value: "Beta", count: 1 },
+    ]);
+  });
+
+  test("commits bounded pages rather than one transaction per entity", async () => {
+    const source = content("[Acme]");
+    const insert = db.prepare(
+      "INSERT INTO entities (id, entityType, content, contentHash, metadata, visibility, created, updated) VALUES (?, 'test', ?, ?, '{}', 'public', 0, 0)",
+    );
+    db.transaction(() => {
+      for (let index = 0; index < 401; index++)
+        insert.run(
+          String(index).padStart(4, "0"),
+          source,
+          computeContentHash(source),
+        );
+    })();
+    ctx.entityRegistry.registerGrouping(grouping);
+    const client = createClient({ url: ctx.dbConfig.url });
+    try {
+      const connection = drizzle(client);
+      const transactions = spyOn(connection, "transaction");
+      await reprojectGroupings(connection, ctx.entityRegistry);
+      expect(transactions).toHaveBeenCalledTimes(3);
+      expect(
+        db
+          .query(
+            "SELECT count(*) AS count FROM entities WHERE json_extract(metadata, '$.clients[0]') = 'Acme'",
+          )
+          .get(),
+      ).toEqual({ count: 401 });
+      transactions.mockClear();
+      await reprojectGroupings(connection, ctx.entityRegistry);
+      expect(transactions).not.toHaveBeenCalled();
+    } finally {
+      client.close();
+    }
+  });
+
+  test("rolls back a failed page and leaves startup retryable", async () => {
+    await seed("a");
+    await seed("b");
+    const before = db
+      .query("SELECT id, metadata FROM entities ORDER BY id")
+      .all();
+    ctx.entityRegistry.registerGrouping(grouping);
+    db.run(
+      "CREATE TRIGGER refuse_projection BEFORE UPDATE OF metadata ON entities WHEN NEW.id = 'b' BEGIN SELECT RAISE(ABORT, 'projection refused'); END",
+    );
+    const failure = await ctx.entityService
+      .reprojectRegisteredGroupings()
+      .catch((cause: unknown) => cause);
+    expect(failure).toBeInstanceOf(Error);
+    expect(failure).toMatchObject({
+      message: expect.stringContaining("Failed query"),
+    });
+    expect(ctx.entityService.areGroupingsReady()).toBe(false);
+    expect(
+      db.query("SELECT id, metadata FROM entities ORDER BY id").all(),
+    ).toEqual(before);
+    db.run("DROP TRIGGER refuse_projection");
+    await ctx.entityService.reprojectRegisteredGroupings();
+    expect(ctx.entityService.areGroupingsReady()).toBe(true);
+    expect(
+      (await ctx.entityService.queryGroupingCatalog(query)).values,
+    ).toEqual([{ value: "Acme", count: 2 }]);
+  });
+
   test("bounded conflict exhaustion leaves reads unready", async () => {
     await seed("entry");
     ctx.entityRegistry.registerGrouping(grouping);

@@ -150,7 +150,11 @@ Membership is a projection of authored frontmatter, never an independent store.
 Ordinary writes maintain it. `reprojectRegisteredGroupings()` bootstraps rows
 whose stored content already carries membership, in keyset pages, writing only
 metadata: it leaves `updated`, source Markdown, identities and file paths alone
-and emits no events or export intents. Each registered field is validated
+and emits no events or export intents. Each page prepares at most 200 updates
+before taking the writer lock and commits them in one transaction, checking
+each row's revision and source again inside it. Conflicts retry independently
+against fresh rows with the same four-attempt budget; deleted rows are never
+recreated. A failed page rolls back, and unchanged pages perform no writes. Each registered field is validated
 against its own schema entry, so frontmatter the entity owner rejects elsewhere
 in the document never removes an entity from its collections; a field whose own
 value is invalid is left unprojected and unrepaired. Every serving start runs

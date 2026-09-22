@@ -33,6 +33,12 @@ interface RowTarget {
   destination: SQL | undefined;
   fields: ReadonlySet<string>;
 }
+interface ProjectionWrite {
+  target: RowTarget;
+  row: ProjectionRow;
+  content: string;
+  metadata: Record<string, unknown>;
+}
 
 /** Metadata-only bootstrap. Never calls ordinary mutations or export/event paths. */
 export async function reprojectGroupings(
@@ -68,10 +74,7 @@ async function reprojectPage(
     .where(and(inArray(entities.entityType, [...fields.keys()]), after(cursor)))
     .orderBy(asc(entities.entityType), asc(entities.id))
     .limit(PAGE_SIZE);
-  for (const row of rows) {
-    const type = decoder.decode(row.entityType);
-    await reprojectRow(db, registry, row, fields.get(type) ?? new Set());
-  }
+  await reprojectRows(db, registry, rows, fields);
   const tail = rows.at(-1);
   if (!tail || rows.length < PAGE_SIZE) return;
   return reprojectPage(db, registry, fields, {
@@ -88,26 +91,46 @@ function after(cursor: Cursor | undefined): SQL | undefined {
   );
 }
 
-async function reprojectRow(
+async function reprojectRows(
   db: EntityDB,
   registry: EntityRegistry,
-  initial: ProjectionRow,
-  fields: ReadonlySet<string>,
+  rows: ProjectionRow[],
+  fields: ReadonlyMap<string, ReadonlySet<string>>,
 ): Promise<void> {
-  const type = decoder.decode(initial.entityType);
-  const id = decoder.decode(initial.id);
-  return attemptRow(
-    db,
-    registry,
-    {
-      type,
-      id,
-      destination: and(eq(entities.entityType, type), eq(entities.id, id)),
-      fields,
-    },
-    initial,
-    MAX_ATTEMPTS,
-  );
+  // Parse before taking the writer lock. One bounded page shares a commit,
+  // avoiding a durable transaction for every entity on slower disks.
+  const writes = rows.flatMap((row): ProjectionWrite[] => {
+    const type = decoder.decode(row.entityType);
+    const id = decoder.decode(row.id);
+    const write = prepareWrite(
+      registry,
+      {
+        type,
+        id,
+        destination: and(eq(entities.entityType, type), eq(entities.id, id)),
+        fields: fields.get(type) ?? new Set(),
+      },
+      row,
+    );
+    return write ? [write] : [];
+  });
+  if (writes.length === 0) return;
+  const conflicts = await db.transaction(async (tx): Promise<RowTarget[]> => {
+    const conflicts: RowTarget[] = [];
+    for (const write of writes) {
+      if ((await commitProjection(tx, write)) === "conflict")
+        conflicts.push(write.target);
+    }
+    return conflicts;
+  });
+  // Retry only conflicted identities, outside the page transaction, against
+  // fresh source. The page attempt counts toward the same bounded budget.
+  for (const target of conflicts) {
+    const current = (
+      await db.select(columns).from(entities).where(target.destination).limit(1)
+    )[0];
+    await attemptRow(db, registry, target, current, MAX_ATTEMPTS - 1);
+  }
 }
 
 /** One revision-conditional write, retried against fresh state on conflict. */
@@ -123,6 +146,21 @@ async function attemptRow(
     throw new Error(
       "Grouping reprojection exceeded concurrent-write retry limit",
     );
+  const write = prepareWrite(registry, target, row);
+  if (!write) return;
+  const outcome = await db.transaction((tx) => commitProjection(tx, write));
+  if (outcome !== "conflict") return;
+  const current = (
+    await db.select(columns).from(entities).where(target.destination).limit(1)
+  )[0];
+  return attemptRow(db, registry, target, current, remaining - 1);
+}
+
+function prepareWrite(
+  registry: EntityRegistry,
+  target: RowTarget,
+  row: ProjectionRow,
+): ProjectionWrite | undefined {
   const content = decoder.decode(row.content);
   // Invalid persisted fields remain authored source, but cannot be indexed.
   // Only the offending field is skipped; its siblings still project.
@@ -136,26 +174,26 @@ async function attemptRow(
     delete metadata[field];
     if (Object.hasOwn(projected, field)) metadata[field] = projected[field];
   }
-  if (stableJson(metadata) === stableJson(row.metadata)) return;
-  const expectedRevision = entityRevision(row);
-  const outcome = await db.transaction(async (tx) => {
-    const current = (
-      await tx.select(columns).from(entities).where(target.destination).limit(1)
-    )[0];
-    if (!current) return "deleted";
-    // SQLite serializes writers inside this transaction. Include source too,
-    // so an out-of-band content edit with an unchanged hash cannot win a race.
-    if (
-      entityRevision(current) !== expectedRevision ||
-      decoder.decode(current.content) !== content
-    )
-      return "conflict";
-    await tx.update(entities).set({ metadata }).where(target.destination);
-    return "updated";
-  });
-  if (outcome !== "conflict") return;
+  if (stableJson(metadata) === stableJson(row.metadata)) return undefined;
+  return { target, row, content, metadata };
+}
+
+async function commitProjection(
+  db: Pick<EntityDB, "select" | "update">,
+  write: ProjectionWrite,
+): Promise<"deleted" | "conflict" | "updated"> {
+  const { target, row, content, metadata } = write;
   const current = (
     await db.select(columns).from(entities).where(target.destination).limit(1)
   )[0];
-  return attemptRow(db, registry, target, current, remaining - 1);
+  if (!current) return "deleted";
+  // SQLite serializes writers inside this transaction. Include source too,
+  // so an out-of-band content edit with an unchanged hash cannot win a race.
+  if (
+    entityRevision(current) !== entityRevision(row) ||
+    decoder.decode(current.content) !== content
+  )
+    return "conflict";
+  await db.update(entities).set({ metadata }).where(target.destination);
+  return "updated";
 }

@@ -18,7 +18,7 @@ export FONTCONFIG_FILE="$PWD/test/visual/console/fontconfig-rgb.conf"
 bun run visual:console --surface-prefix=studio- --a11y
 ```
 
-This keeps the host font discovery/configuration and overrides only `rgba`; it does not change application CSS, screenshot baselines, or comparison tolerances. Do not regenerate baselines to compensate for a local rasterization mismatch.
+CI uses this same Fontconfig file. It keeps the host font discovery/configuration and overrides only `rgba`; it does not change application CSS, screenshot baselines, or comparison tolerances. Do not regenerate baselines to compensate for a local rasterization mismatch.
 
 Additional matched-state checks use disposable source fixtures through the production workspace providers (not handwritten operator views):
 
