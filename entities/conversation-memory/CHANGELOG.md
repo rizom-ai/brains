@@ -1,5 +1,33 @@
 # @brains/conversation-memory
 
+## 0.2.0-alpha.403
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.403
+  - @brains/content-formatters@0.2.0-alpha.403
+  - @brains/contracts@0.2.0-alpha.403
+  - @brains/ui-library@0.2.0-alpha.403
+  - @brains/utils@0.2.0-alpha.403
+  - @brains/conversation-service@0.2.0-alpha.403
+  - @brains/plugins@0.2.0-alpha.403
+  - @brains/templates@0.2.0-alpha.403
+
+## 0.2.0-alpha.402
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.402
+  - @brains/content-formatters@0.2.0-alpha.402
+  - @brains/contracts@0.2.0-alpha.402
+  - @brains/ui-library@0.2.0-alpha.402
+  - @brains/utils@0.2.0-alpha.402
+  - @brains/conversation-service@0.2.0-alpha.402
+  - @brains/plugins@0.2.0-alpha.402
+  - @brains/templates@0.2.0-alpha.402
+
 ## 0.2.0-alpha.401
 
 ### Patch Changes

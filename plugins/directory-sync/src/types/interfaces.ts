@@ -15,6 +15,7 @@ import type {
   RawEntity,
 } from "./results";
 import type { JobRequest } from "./jobs";
+import type { DurableBulkMutationChildRef } from "@brains/sdk/entities";
 
 /**
  * Interface for file operations used by handlers
@@ -49,6 +50,7 @@ export interface IDirectorySync {
     paths: string[] | undefined,
     reporter: ProgressContract,
     batchSize: number,
+    projectionBatch?: DurableBulkMutationChildRef,
   ): Promise<ImportResult>;
   exportEntitiesWithProgress(
     entityTypes: string[] | undefined,
@@ -56,7 +58,9 @@ export interface IDirectorySync {
     batchSize: number,
   ): Promise<ExportResult>;
   importEntities(paths?: string[]): Promise<ImportResult>;
-  removeOrphanedEntities(): Promise<CleanupResult>;
+  removeOrphanedEntities(
+    projectionBatch?: DurableBulkMutationChildRef,
+  ): Promise<CleanupResult>;
   readonly fileOps: IFileOperations;
   readonly shouldDeleteOnFileRemoval: boolean;
   getAllMarkdownFiles(): Promise<string[]>;

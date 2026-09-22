@@ -1,5 +1,8 @@
 import type { DirectorySyncHost } from "../host";
-import type { BaseEntity } from "@brains/sdk/entities";
+import type {
+  BaseEntity,
+  DurableBulkMutationChildRef,
+} from "@brains/sdk/entities";
 import type { EntityMirrorClient } from "@brains/sdk/plugins";
 import { createId } from "@brains/utils/id";
 import type { BatchMetadata, BatchResult } from "../types";
@@ -185,15 +188,19 @@ export class DirectorySync implements IDirectorySync {
     paths: string[] | undefined,
     reporter: ProgressContract,
     batchSize: number,
+    projectionBatch?: DurableBulkMutationChildRef,
   ): Promise<ImportResult> {
-    return this.runBulkMutation("import", () =>
-      importDirectoryEntitiesWithProgress(
-        this.progressOperations,
-        paths,
-        reporter,
-        batchSize,
-        this.importEntitiesUnbatched.bind(this),
-      ),
+    return this.runBulkMutation(
+      "import",
+      () =>
+        importDirectoryEntitiesWithProgress(
+          this.progressOperations,
+          paths,
+          reporter,
+          batchSize,
+          this.importEntitiesUnbatched.bind(this),
+        ),
+      projectionBatch,
     );
   }
 
@@ -218,9 +225,13 @@ export class DirectorySync implements IDirectorySync {
     );
   }
 
-  async removeOrphanedEntities(): Promise<CleanupResult> {
-    return this.runBulkMutation("cleanup", () =>
-      this.removeOrphanedEntitiesUnbatched(),
+  async removeOrphanedEntities(
+    projectionBatch?: DurableBulkMutationChildRef,
+  ): Promise<CleanupResult> {
+    return this.runBulkMutation(
+      "cleanup",
+      () => this.removeOrphanedEntitiesUnbatched(),
+      projectionBatch,
     );
   }
 
@@ -241,11 +252,14 @@ export class DirectorySync implements IDirectorySync {
   private runBulkMutation<TResult>(
     operation: string,
     mutation: () => Promise<TResult>,
+    projectionBatch?: DurableBulkMutationChildRef,
   ): Promise<TResult> {
+    // Durable job handlers already entered this root's scope. Reuse its
+    // identity so the coordinator can join it without weakening its fence.
     return this.entityService.runBulkMutation(
       {
         source: "directory-sync",
-        operationId: `${operation}:${createId()}`,
+        operationId: projectionBatch?.rootJobId ?? `${operation}:${createId()}`,
       },
       mutation,
     );

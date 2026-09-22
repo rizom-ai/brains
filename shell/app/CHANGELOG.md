@@ -1,5 +1,43 @@
 # @brains/app
 
+## 0.2.0-alpha.403
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/chat-repl@0.2.0-alpha.403
+  - @brains/contracts@0.2.0-alpha.403
+  - @brains/site-composition@0.2.0-alpha.403
+  - @brains/theme-base@0.2.0-alpha.403
+  - @brains/utils@0.2.0-alpha.403
+  - @brains/conversation-service@0.2.0-alpha.403
+  - @brains/core@0.2.0-alpha.403
+  - @brains/entity-service@0.2.0-alpha.403
+  - @brains/job-queue@0.2.0-alpha.403
+  - @brains/mcp-service@0.2.0-alpha.403
+  - @brains/plugins@0.2.0-alpha.403
+  - @brains/runtime-state@0.2.0-alpha.403
+  - @brains/templates@0.2.0-alpha.403
+
+## 0.2.0-alpha.402
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/chat-repl@0.2.0-alpha.402
+  - @brains/contracts@0.2.0-alpha.402
+  - @brains/site-composition@0.2.0-alpha.402
+  - @brains/theme-base@0.2.0-alpha.402
+  - @brains/utils@0.2.0-alpha.402
+  - @brains/conversation-service@0.2.0-alpha.402
+  - @brains/core@0.2.0-alpha.402
+  - @brains/entity-service@0.2.0-alpha.402
+  - @brains/job-queue@0.2.0-alpha.402
+  - @brains/mcp-service@0.2.0-alpha.402
+  - @brains/plugins@0.2.0-alpha.402
+  - @brains/runtime-state@0.2.0-alpha.402
+  - @brains/templates@0.2.0-alpha.402
+
 ## 0.2.0-alpha.401
 
 ### Patch Changes

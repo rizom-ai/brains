@@ -38,7 +38,9 @@ export class DirectoryCleanupJobHandler {
           message: "Removing orphaned entities",
         });
 
-        const result = await this.directorySync.removeOrphanedEntities();
+        const result = await this.directorySync.removeOrphanedEntities(
+          data.projectionBatch,
+        );
 
         await progressReporter.report({
           progress: 100,
