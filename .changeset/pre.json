@@ -367,6 +367,7 @@
     "core--mcp-server-bundle-identity",
     "core--mcp-v2-stateless",
     "core--media-provider-factories",
+    "core--newsletter-resend-provider",
     "core--note-fallback-title-length",
     "core--oauth-client-metadata-claude-clients",
     "core--operational-health-semantics",

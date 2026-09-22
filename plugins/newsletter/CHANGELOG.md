@@ -1,5 +1,21 @@
 # @brains/newsletter
 
+## 0.2.0-alpha.402
+
+### Minor Changes
+
+- [#349](https://github.com/rizom-ai/brains/pull/349) [`f601b75`](https://github.com/rizom-ai/brains/commit/f601b7596f788dc23f6dc761893a0faa925d97f9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add Resend Contacts, Segments, and Broadcasts as a selectable newsletter delivery provider, move Buttondown onto the same provider-neutral publishing and subscriber seam, and render one shared HTML email body through both providers.
+
+  Newsletter configuration now uses a discriminated `provider` block. Provider-less configurations retain newsletter entities and generation without registering external publishing, subscriber tools, routes, or signup UI. Public signup routes now target a subscribe-only route tool instead of exposing the administrative subscriber action surface.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.402
+  - @brains/ui-library@0.2.0-alpha.402
+  - @brains/utils@0.2.0-alpha.402
+  - @brains/plugins@0.2.0-alpha.402
+
 ## 0.2.0-alpha.401
 
 ### Patch Changes

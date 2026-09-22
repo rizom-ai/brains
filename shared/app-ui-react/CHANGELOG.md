@@ -1,5 +1,7 @@
 # @brains/app-ui-react
 
+## 0.2.0-alpha.402
+
 ## 0.2.0-alpha.401
 
 ## 0.2.0-alpha.400
