@@ -194,6 +194,12 @@ export class EntityService implements IEntityService {
           // Projection intents carry stored rows, not the adapter's typed
           // top-level fields. Restore those for validation but retain the
           // full persisted source and authoritative row identity/policy.
+          //
+          // Metadata sits between the two: an adapter may declare a required
+          // top-level field its `fromMarkdown` does not reconstruct from
+          // content, such as a note's `tags`, and carry it in metadata
+          // instead. Without this, validating such a type would fail on a
+          // field the row actually holds.
           const parsed = this.entitySerializer.deserializeEntity(
             entity.content,
             entity.entityType,

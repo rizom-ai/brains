@@ -108,22 +108,27 @@ export function ClosedGroupingField(props: {
           ))}
         </NativeSelect>
       )}
+      {/* The select and checkboxes already show every listed value they
+          carry. Only a value the list no longer holds needs its own row,
+          with the one control that can remove it. */}
       <ul {...stylex.props(s.values)}>
-        {values.map((value, index) => (
-          <li key={`${index}:${value}`} {...stylex.props(f.tag)}>
-            <GroupingValue value={value} vocabulary={vocabulary} />
-            <button
-              type="button"
-              {...stylex.props(f.tagButton)}
-              aria-label={`Remove ${groupingValueLabel(value)}`}
-              onClick={() =>
-                props.onChange(values.filter((_, at) => at !== index))
-              }
-            >
-              ×
-            </button>
-          </li>
-        ))}
+        {values.map((value, index) =>
+          vocabulary.values.includes(value) ? null : (
+            <li key={`${index}:${value}`} {...stylex.props(f.tag)}>
+              <GroupingValue value={value} vocabulary={vocabulary} />
+              <button
+                type="button"
+                {...stylex.props(f.tagButton)}
+                aria-label={`Remove ${groupingValueLabel(value)}`}
+                onClick={() =>
+                  props.onChange(values.filter((_, at) => at !== index))
+                }
+              >
+                ×
+              </button>
+            </li>
+          ),
+        )}
       </ul>
       <p {...stylex.props(f.listHelp)}>
         {vocabulary.multiple

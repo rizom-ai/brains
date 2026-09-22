@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import { Database } from "bun:sqlite";
+import { computeContentHash } from "@brains/utils/hash";
 import { PermissionService } from "@brains/templates";
 import { studioPlugin } from "@brains/studio";
 import { DirectorySync, type ImportResult } from "@brains/directory-sync";
@@ -677,14 +678,17 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     ).toBe(201);
     // Corrupt the stored row directly: every write path validates, so this
     // stands in for a hand-edited file or a schema change under stored data.
+    // Content and hash always move together, so corrupt both: a stale hash
+    // would make the repair look like a no-op for reasons unrelated to this.
+    const corrupt = "---\ngroupings: 42\n---\n";
     const db = new Database(`${directory.dir}/entities.db`);
-    db.run("UPDATE entities SET content = ? WHERE id = 'grouping-vocabulary'", [
-      "---\ngroupings: 42\n---\n",
-    ]);
+    db.run(
+      "UPDATE entities SET content = ?, contentHash = ? WHERE id = 'grouping-vocabulary'",
+      [corrupt, computeContentHash(corrupt)],
+    );
     db.close();
-    // A document that cannot be reconstructed reads as absent, so the grouping
-    // reopens rather than refusing every membership write behind a document
-    // only an administrator could repair.
+    // Malformed content reopens the grouping rather than refusing every
+    // membership write behind a document nobody could reach.
     expect(
       (
         await request("POST", "entities", {
@@ -698,6 +702,53 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     expect(
       JSON.stringify(await (await request("GET", "types")).json()),
     ).not.toContain('"vocabulary"');
+    // A document whose whole purpose is to be edited must stay openable, or
+    // the only way to repair it is outside the application.
+    const opened = await request(
+      "GET",
+      "entities?type=grouping-vocabulary&id=grouping-vocabulary",
+      undefined,
+      "admin",
+    );
+    expect(opened.status).toBe(200);
+    expect(JSON.stringify(await opened.json())).toContain("42");
+    expect(
+      (
+        await request(
+          "PUT",
+          "entities",
+          {
+            entityType: "grouping-vocabulary",
+            id: "grouping-vocabulary",
+            frontmatter: {
+              groupings: { clients: { multiple: true, values: ["Acme"] } },
+            },
+          },
+          "admin",
+        )
+      ).status,
+    ).toBe(200);
+    // Repaired: the grouping closes again on the next write.
+    expect(
+      (
+        await request("POST", "entities", {
+          entityType: "note",
+          idPath: ["still-unlisted"],
+          frontmatter: { title: "Brief", clients: ["Gamma"] },
+          body: "Body",
+        })
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await request("POST", "entities", {
+          entityType: "note",
+          idPath: ["listed"],
+          frontmatter: { title: "Brief", clients: ["Acme"] },
+          body: "Body",
+        })
+      ).status,
+    ).toBe(201);
   });
 
   test("vocabulary saves reject undeclared keys, duplicate or empty values, and empty lists", async () => {

@@ -16,10 +16,9 @@ import {
 /**
  * No cache: workers and imports must observe the current policy as well.
  *
- * A stored document whose content no longer satisfies its own schema cannot be
- * reconstructed, so it reads as absent and its groupings reopen. That is the
- * general behaviour of every entity read here, and it fails open by design:
- * a policy nobody can read cannot be one nobody can write against.
+ * Stored content that no longer satisfies the schema declares no vocabularies,
+ * so its groupings reopen rather than refusing every membership write. The
+ * document itself stays readable and repairable in Studio.
  */
 export async function readGroupingVocabularies(
   context: ServicePluginContext,
@@ -30,7 +29,9 @@ export async function readGroupingVocabularies(
     id: GROUPING_VOCABULARY_TYPE,
     visibilityScope,
   });
-  return entity ? groupingVocabularyAdapter.read(entity.content).groupings : {};
+  return entity
+    ? groupingVocabularyAdapter.readStored(entity.content).groupings
+    : {};
 }
 
 export function registerGroupingVocabulary(

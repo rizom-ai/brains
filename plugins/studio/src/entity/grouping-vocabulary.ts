@@ -1,4 +1,5 @@
 import { BaseEntityAdapter, baseEntityParserSchema } from "@brains/plugins";
+import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
 import { z } from "@brains/utils/zod";
 
 import {
@@ -40,8 +41,13 @@ class GroupingVocabularyAdapter extends BaseEntityAdapter<
     });
   }
 
+  /**
+   * Reconstruction never validates. This document's whole purpose is to be
+   * edited, so content an administrator must repair has to stay openable;
+   * refusing to reconstruct it would leave no way to fix it in the app.
+   * Writes are validated by this type's persist validator instead.
+   */
   public fromMarkdown(content: string): Partial<VocabularyEntity> {
-    this.parseFrontmatter(content);
     return {
       id: GROUPING_VOCABULARY_TYPE,
       entityType: GROUPING_VOCABULARY_TYPE,
@@ -50,8 +56,17 @@ class GroupingVocabularyAdapter extends BaseEntityAdapter<
     };
   }
 
+  /** Strict: the write path rejects a document it cannot parse. */
   public read(content: string): GroupingVocabularyFrontmatter {
     return this.parseFrontmatter(content);
+  }
+
+  /** Tolerant: malformed stored content declares no vocabularies at all. */
+  public readStored(content: string): GroupingVocabularyFrontmatter {
+    const parsed = groupingVocabularyFrontmatterSchema.safeParse(
+      parseMarkdown(content).frontmatter,
+    );
+    return parsed.success ? parsed.data : { groupings: {} };
   }
 
   public override extractMetadata(_entity: VocabularyEntity): Metadata {

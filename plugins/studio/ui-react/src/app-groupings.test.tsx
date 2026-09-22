@@ -473,11 +473,32 @@ test.each([
             '[data-studio-field="grouping-choice"] select',
           ),
         ).not.toBeNull();
-      const remove = document.querySelector<HTMLButtonElement>(
-        '[aria-label="Remove Acme"]',
-      );
-      expect(remove).not.toBeNull();
-      await act(async () => remove?.click());
+      // Each shape removes a listed value through its own control: a closed
+      // list shows no separate chip for a value its control already carries.
+      if (multiple === null) {
+        const remove = document.querySelector<HTMLButtonElement>(
+          '[aria-label="Remove Acme"]',
+        );
+        expect(remove).not.toBeNull();
+        await act(async () => remove?.click());
+      } else if (multiple) {
+        const checked = document.querySelector<HTMLInputElement>(
+          '[data-studio-field="grouping-choice"] input[type="checkbox"]:checked',
+        );
+        expect(checked).not.toBeNull();
+        await act(async () => checked?.click());
+      } else {
+        const select = document.querySelector<HTMLSelectElement>(
+          '[data-studio-field="grouping-choice"] select',
+        );
+        expect(select).not.toBeNull();
+        await act(async () => {
+          if (select) {
+            select.value = "";
+            select.dispatchEvent(new Event("change", { bubbles: true }));
+          }
+        });
+      }
       const save = [...document.querySelectorAll("button")].find((button) =>
         button.textContent.includes("Save changes"),
       );
