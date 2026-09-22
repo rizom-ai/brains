@@ -94,7 +94,7 @@ Before removing raw read tools from MCP basic mode:
 - [x] cover authenticated HTTP permission propagation alongside the canonical basic-mode surface checks; and
 - [x] run the affected read, verbatim-note, write, confirmation, and follow-up behavioral evals plus the nominated full release-candidate suite with release credentials.
 
-The eval runner now supports `--mcp-basic`, which restores the eval-disabled MCP interface, rejects any surface beyond `chat` and `confirm`, and routes every selected case through the real protocol adapter. The canonical protocol cases are `mcp-basic-verbatim-note` and `mcp-basic-write-confirm-read-back`; the verbatim case uses a byte-for-byte response criterion rather than a case-insensitive substring check.
+The eval runner supports `--mcp-basic`, which restores the eval-disabled MCP interface and checks the exact conversational protocol surface (currently `mcp_chat` and `mcp_confirm`). It models anonymous MCP callers with explicit permission and anchor status; actor-specific turn contexts are rejected rather than silently evaluated as anonymous. Use direct evaluation without `--mcp-basic` for identity-scoped cases. Caller cancellation is forwarded to the protocol request for both chat and confirmation. The canonical protocol cases are `mcp-basic-verbatim-note` and `mcp-basic-write-confirm-read-back`; the verbatim case uses a byte-for-byte response criterion rather than a case-insensitive substring check. These implementation safeguards do not constitute a new live-provider run; the historical evidence below remains tied to its recorded source.
 
 ### MCP reintroduction evidence
 

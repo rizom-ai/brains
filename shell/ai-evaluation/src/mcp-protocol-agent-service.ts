@@ -122,12 +122,27 @@ export class MCPProtocolAgentService implements IAgentService {
     signal: AbortSignal | undefined,
   ): Promise<AgentResponse> {
     signal?.throwIfAborted();
+    if (context?.actor !== undefined) {
+      throw new Error(
+        "Basic MCP evaluation does not support actor-specific context; use direct evaluation for identity-scoped cases.",
+      );
+    }
     const permissionLevel = context?.userPermissionLevel ?? "public";
     const isAnchor = context?.isAnchor ?? false;
     const { client } = await this.getConnection(permissionLevel, isAnchor);
-    const result = await client.callTool({ name, arguments: args });
     signal?.throwIfAborted();
-    return protocolPayloadToAgentResponse(parseProtocolPayload(result));
+    try {
+      const result = await client.callTool(
+        { name, arguments: args },
+        signal ? { signal } : undefined,
+      );
+      signal?.throwIfAborted();
+      return protocolPayloadToAgentResponse(parseProtocolPayload(result));
+    } catch (error) {
+      // The MCP client may wrap cancellation; retain the caller's reason.
+      signal?.throwIfAborted();
+      throw error;
+    }
   }
 
   private getConnection(
