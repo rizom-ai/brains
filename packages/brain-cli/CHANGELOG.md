@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.403
+
+### Patch Changes
+
+- [#352](https://github.com/rizom-ai/brains/pull/352) [`d991409`](https://github.com/rizom-ai/brains/commit/d9914097d9c7a915e310b1d02062fc14472a4318) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix directory imports and orphan cleanup failing with “Projection batch cannot join active batch” when executed as children of a queued sync. Carry the durable root batch identity through the inner DirectorySync operations instead of generating a conflicting callback batch ID. Keep coordinator identity fencing and standalone callback batches unchanged.
+
 ## 0.2.0-alpha.402
 
 ### Minor Changes
