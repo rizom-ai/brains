@@ -1,8 +1,6 @@
-import {
-  formatContentDispositionHeader,
-  type IRuntimeStateNamespace,
-  type WebRouteDefinition,
-  RuntimeUploadStoreError,
+import type {
+  IRuntimeStateNamespace,
+  WebRouteDefinition,
 } from "@brains/plugins";
 import type {
   ActionEvent,
@@ -11,17 +9,13 @@ import type {
   MessageContext,
   Thread,
 } from "chat";
-import type { ChatWebhookMap, ChatUploadReader } from "./types";
-import type {
-  DiscordChatAdapterConfig,
-  SlackChatAdapterConfig,
-} from "./config";
-import type { ChatPlatform } from "./types";
+import type { ChatWebhookMap } from "./types";
+import type { SlackChatAdapterConfig } from "./config";
 
 /**
  * The slice of the Chat SDK app the interface drives. Handler registration
  * (the turn-routing binding) stays with the interface; this owns the HTTP
- * surface (webhook + upload routes) and initialize/shutdown.
+ * surface (webhook routes) and initialize/shutdown.
  *
  * Type-only "chat" imports here — this module pulls in no SDK at runtime, so it
  * (and its unit test) stay free of Chat SDK module mocks. Construction lives in
@@ -69,11 +63,7 @@ export interface ChatSdkApp {
 }
 
 interface ChatSdkAppHostDeps {
-  /** Configured adapters gate their corresponding upload routes. */
-  discord: DiscordChatAdapterConfig | undefined;
   slack: SlackChatAdapterConfig | undefined;
-  /** Lazy: runtime upload stores are only available once the plugin is registered. */
-  getUploadStore: (platform: ChatPlatform) => ChatUploadReader | undefined;
   /** Construct the Chat SDK app (see createChatSdkApp); injected so this stays SDK-free. */
   buildApp: (runtimeState: IRuntimeStateNamespace) => ChatSdkApp;
 }
@@ -138,75 +128,6 @@ export class ChatSdkAppHost {
           return this.app.webhooks.slack(request);
         },
       },
-      {
-        path: "/api/webhooks/chat/discord/uploads",
-        method: "GET",
-        public: true,
-        handler: async (request: Request): Promise<Response> =>
-          this.handleUploadRequest(request, "discord"),
-      },
-      {
-        path: "/api/webhooks/chat/slack/uploads",
-        method: "GET",
-        public: true,
-        handler: async (request: Request): Promise<Response> =>
-          this.handleUploadRequest(request, "slack"),
-      },
     ];
-  }
-
-  private async handleUploadRequest(
-    request: Request,
-    platform: ChatPlatform,
-  ): Promise<Response> {
-    if (!this.deps[platform]) {
-      const label = platform === "discord" ? "Discord" : "Slack";
-      return new Response(`${label} chat uploads not configured`, {
-        status: 404,
-      });
-    }
-
-    const uploadId = new URL(request.url).searchParams.get("id")?.trim();
-    if (!uploadId) {
-      return new Response("Missing upload id", { status: 400 });
-    }
-
-    const uploadStore = this.deps.getUploadStore(platform);
-    if (!uploadStore) {
-      // The adapter is configured but no store was registered for it. That is
-      // a gap on this side, not a request for something that does not exist.
-      return new Response("Chat upload storage unavailable", { status: 503 });
-    }
-
-    try {
-      const { record, content } = await uploadStore.read(uploadId);
-      const body = new Uint8Array(content).buffer;
-      return new Response(body, {
-        headers: {
-          "Content-Type": record.mediaType,
-          "Content-Length": String(content.byteLength),
-          "Cache-Control": "private, no-store",
-          "X-Content-Type-Options": "nosniff",
-          "Content-Disposition": formatContentDispositionHeader({
-            disposition: new URL(request.url).searchParams.has("download")
-              ? "attachment"
-              : "inline",
-            filename: record.filename,
-          }),
-        },
-      });
-    } catch (error) {
-      // A ref that does not resolve is genuinely absent. Stored metadata we
-      // cannot read, or a fault while building the response, is a failure on
-      // this side and saying "not found" would send the caller looking for a
-      // problem they do not have.
-      if (
-        error instanceof RuntimeUploadStoreError &&
-        error.code !== "invalid_metadata"
-      ) {
-        return new Response("Upload not found", { status: 404 });
-      }
-      return new Response("Upload could not be read", { status: 500 });
-    }
   }
 }

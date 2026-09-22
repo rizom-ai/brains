@@ -7,12 +7,10 @@ export type MessageUploadConversationLoader = (
 
 export type MessageUploadAttachmentRestorer = (
   uploadId: string,
-  sourceKind?: string,
 ) => Promise<ChatAttachment>;
 
 export interface MessageUploadContinuityOptions {
   sourceKind: string;
-  legacySourceKinds?: string[] | undefined;
   loadMessages: MessageUploadConversationLoader;
   restoreAttachment: MessageUploadAttachmentRestorer;
   maxRecent?: number | undefined;
@@ -83,20 +81,14 @@ export class MessageUploadContinuity {
     conversationId: string,
   ): Promise<ChatAttachment[]> {
     const messages = await this.loadMessages(conversationId);
-    const sourceKinds = [
-      this.options.sourceKind,
-      ...(this.options.legacySourceKinds ?? []),
-    ];
+    const uploadIds = collectUploadIdsFromStoredMessages(messages, {
+      sourceKind: this.options.sourceKind,
+      role: "user",
+    });
     const uploads: ChatAttachment[] = [];
-    for (const sourceKind of sourceKinds) {
-      const uploadIds = collectUploadIdsFromStoredMessages(messages, {
-        sourceKind,
-        role: "user",
-      });
-      for (const uploadId of uploadIds) {
-        const upload = await this.restoreAttachment(uploadId, sourceKind);
-        if (upload) uploads.push(upload);
-      }
+    for (const uploadId of uploadIds) {
+      const upload = await this.restoreAttachment(uploadId);
+      if (upload) uploads.push(upload);
     }
     return uploads;
   }
@@ -114,10 +106,9 @@ export class MessageUploadContinuity {
 
   private async restoreAttachment(
     uploadId: string,
-    sourceKind: string,
   ): Promise<ChatAttachment | undefined> {
     try {
-      return await this.options.restoreAttachment(uploadId, sourceKind);
+      return await this.options.restoreAttachment(uploadId);
     } catch (error) {
       this.options.onRestoreError?.(error, uploadId);
       return undefined;

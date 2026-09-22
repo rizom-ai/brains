@@ -43,7 +43,6 @@ export interface SlackChatAdapter extends Adapter {
  * meant a test fake had to assert it was one. Pick keeps the signature in step
  * with the real store.
  */
-export type ChatUploadReader = Pick<ScopedRuntimeUploadStore, "read">;
 
 /** Ingress retains only admitted, inspected file loans. */
 export type ChatUploadStore = Pick<ScopedRuntimeUploadStore, "saveFile">;

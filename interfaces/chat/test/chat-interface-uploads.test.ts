@@ -5,10 +5,7 @@ import {
   type IConversationService,
 } from "@brains/plugins";
 import assert from "node:assert/strict";
-import {
-  createCanonicalChatUploadStoreScope,
-  createDiscordChatUploadStoreScope,
-} from "../src/upload-store";
+import { createCanonicalChatUploadStoreScope } from "../src/upload-store";
 import {
   ChatInterface,
   MockChatSdk,
@@ -498,17 +495,24 @@ describe("ChatInterface scoped uploads", () => {
     },
   );
 
-  it.each([false, true])(
-    "restores stored upload refs after restart; platform store=%s",
-    async (platformStore) => {
+  it.each(["upload", "discord-chat-upload", "slack-chat-upload"])(
+    "restores only canonical refs after restart: %s",
+    async (sourceKind) => {
       trust("discord");
       const store = suite.harness
         .getMockShell()
         .getRuntimeUploadRegistry()
         .scoped(
-          platformStore
-            ? createDiscordChatUploadStoreScope()
-            : createCanonicalChatUploadStoreScope(),
+          sourceKind === "upload"
+            ? createCanonicalChatUploadStoreScope()
+            : {
+                namespace:
+                  sourceKind === "discord-chat-upload"
+                    ? "discord-chat"
+                    : "slack-chat",
+                refKind: sourceKind,
+                routePath: "",
+              },
         );
       const record = await store.save({
         filename: "stored-robot.png",
@@ -557,14 +561,20 @@ describe("ChatInterface scoped uploads", () => {
         createThread(),
         createMessage({ text: "describe stored-robot.png" }),
       );
-      expect(suite.agentService.chat.mock.calls[0]?.[2]?.attachments).toEqual([
-        expect.objectContaining({
-          kind: "file",
-          filename: "stored-robot.png",
-          mediaType: "image/png",
-          source: expect.objectContaining({ kind: "upload" }),
-        }),
-      ]);
+      const attachments =
+        suite.agentService.chat.mock.calls[0]?.[2]?.attachments;
+      if (sourceKind === "upload")
+        expect(attachments).toEqual([
+          expect.objectContaining({
+            kind: "file",
+            filename: "stored-robot.png",
+            mediaType: "image/png",
+            source: record.ref,
+          }),
+        ]);
+      else expect(attachments).toBeUndefined();
+      // Removing compatibility must not delete retained recovery data.
+      expect(await store.readRecord(record.id)).toEqual(record);
       expect(files.requests).toHaveLength(0);
     },
   );

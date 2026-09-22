@@ -291,10 +291,7 @@ export class ChatInterface extends MessageInterfacePlugin<
       logger: this.logger,
     });
     this.chatApp = new ChatSdkAppHost({
-      discord: this.config.adapters.discord,
       slack: this.config.adapters.slack,
-      getUploadStore: (platform): ScopedRuntimeUploadStore | undefined =>
-        this.uploadCoordinator.getPlatformStore(platform),
       buildApp: (runtimeState): ChatSdkApp =>
         createChatSdkApp({
           userName: this.config.userName,

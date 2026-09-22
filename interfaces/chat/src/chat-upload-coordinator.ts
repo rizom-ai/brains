@@ -12,10 +12,6 @@ import type { ChatPlatform } from "./types";
 import {
   canonicalChatUploadRefKind,
   createCanonicalChatUploadStoreScope,
-  createDiscordChatUploadStoreScope,
-  createSlackChatUploadStoreScope,
-  discordChatUploadRefKind,
-  slackChatUploadRefKind,
 } from "./upload-store";
 
 interface ChatUploadCoordinatorDeps {
@@ -27,8 +23,7 @@ interface ChatUploadCoordinatorDeps {
 
 /**
  * Owns upload-store selection and cross-turn upload continuity for every Chat
- * SDK platform. Platform upload stores remain isolated while restored
- * agent-facing attachments are migrated to canonical runtime upload refs.
+ * SDK platform. Only canonical runtime upload references are restored.
  */
 export class ChatUploadCoordinator {
   private readonly deps: ChatUploadCoordinatorDeps;
@@ -53,16 +48,6 @@ export class ChatUploadCoordinator {
     return this.deps
       .getContext()
       ?.uploads.scoped(createCanonicalChatUploadStoreScope());
-  }
-
-  getPlatformStore(
-    platform: ChatPlatform,
-  ): ScopedRuntimeUploadStore | undefined {
-    const scope =
-      platform === "discord"
-        ? createDiscordChatUploadStoreScope()
-        : createSlackChatUploadStoreScope();
-    return this.deps.getContext()?.uploads.scoped(scope);
   }
 
   async selectPriorUploads(input: {
@@ -103,11 +88,6 @@ export class ChatUploadCoordinator {
   private createContinuity(platform: ChatPlatform): MessageUploadContinuity {
     return new MessageUploadContinuity({
       sourceKind: canonicalChatUploadRefKind,
-      legacySourceKinds: [
-        platform === "discord"
-          ? discordChatUploadRefKind
-          : slackChatUploadRefKind,
-      ],
       loadMessages: async (conversationId): Promise<readonly unknown[]> => {
         return (
           (await this.deps
@@ -115,33 +95,10 @@ export class ChatUploadCoordinator {
             ?.conversations.getMessages(conversationId, { limit: 50 })) ?? []
         );
       },
-      restoreAttachment: async (
-        uploadId,
-        sourceKind,
-      ): Promise<ChatAttachment> => {
-        const uploadStore =
-          sourceKind === canonicalChatUploadRefKind
-            ? this.getCanonicalStore()
-            : this.getPlatformStore(platform);
-        if (!uploadStore) throw new Error("Chat upload store unavailable");
-        if (sourceKind === canonicalChatUploadRefKind)
-          return chatAttachmentFromStoredUpload(
-            await uploadStore.readRecord(uploadId),
-          );
-        const resolved = await uploadStore.read(uploadId);
-        {
-          const canonicalStore = this.getCanonicalStore();
-          if (!canonicalStore) throw new Error("Chat upload store unavailable");
-          const canonical = await canonicalStore.save({
-            filename: resolved.record.filename,
-            mediaType: resolved.record.mediaType,
-            content: resolved.content,
-            ...(resolved.record.metadata
-              ? { metadata: resolved.record.metadata }
-              : {}),
-          });
-          return chatAttachmentFromStoredUpload(canonical);
-        }
+      restoreAttachment: async (uploadId): Promise<ChatAttachment> => {
+        const store = this.getCanonicalStore();
+        if (!store) throw new Error("Chat upload store unavailable");
+        return chatAttachmentFromStoredUpload(await store.readRecord(uploadId));
       },
       onLoadError: (error, conversationId): void => {
         this.deps.logger.debug("Failed to load prior chat uploads", {
