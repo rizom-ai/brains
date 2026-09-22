@@ -14,6 +14,7 @@ import { StockPhotoPlugin } from "@brains/stock-photo";
 import { RuntimeUploadStore } from "../../shell/plugins/src/service/upload-registry";
 import { webChatUploadsScope } from "../../entities/image/src/lib/upload-promotion";
 import { captureCanonicalUpload } from "./turso-canonical-upload-capture";
+import { importCanonicalNote } from "./turso-canonical-note-import";
 import { FrontmatterImageConverter } from "../../plugins/directory-sync/src/lib/frontmatter-image-converter";
 import { DirectorySync } from "../../plugins/directory-sync/src/lib/directory-sync";
 import { tmpdir } from "node:os";
@@ -495,6 +496,10 @@ plugins:
   const app = createApp();
   const fileActors = {
     producerUrls: {
+      "upload-markdown": new URL(
+        "../../shared/document/src/upload-markdown-process.ts",
+        import.meta.url,
+      ),
       "site-public-assets": new URL(
         "../../shared/site-engine/src/public-asset-process.ts",
         import.meta.url,
@@ -891,6 +896,8 @@ plugins:
           assert.equal(promoted.content, record.ref);
           assert.equal(promoted.visibility, "shared");
           assert.equal(promoted.created, pendingUpload.created);
+          if (imageKind === "ai")
+            await importCanonicalNote(workerApp, directory);
         } finally {
           bufferedUpload.mockRestore();
         }
@@ -989,6 +996,16 @@ plugins:
       [],
     );
     const owner = restarted.getShell().getEntityService();
+    if (imageKind === "ai") {
+      const note = await owner.getEntity({
+        entityType: "note",
+        id: "canonical-extracted-note",
+        visibilityScope: "restricted",
+      });
+      assert.ok(note);
+      assert.match(note.content, /Native note extraction/);
+      assert.equal(note.visibility, "shared");
+    }
     for (const id of [
       "canonical-image",
       "deduplicated-image",

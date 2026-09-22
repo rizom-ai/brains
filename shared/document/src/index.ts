@@ -31,6 +31,10 @@ export {
 } from "./adapters/document-adapter";
 export { countPdfPages } from "./lib/document-utils";
 export {
+  withUploadMarkdown,
+  type UploadMarkdownRequest,
+} from "./upload-markdown";
+export {
   defaultPdfMarkdownMaxBytes,
   defaultPdfMarkdownMaxPages,
   extractPdfMarkdown,

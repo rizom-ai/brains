@@ -20,7 +20,8 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
-    "./file-inspection-process": "./src/file-inspection-process.ts"
+    "./file-inspection-process": "./src/file-inspection-process.ts",
+    "./upload-markdown-process": "./src/upload-markdown-process.ts"
   },
   "main": "./src/index.ts",
   "private": true,

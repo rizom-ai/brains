@@ -131,12 +131,14 @@ export class NotePlugin extends EntityPlugin<
       const stubEntity = await context.entityService.getEntity({
         entityType: "note",
         id: created.entityId,
+        visibilityScope: "restricted",
       });
       if (!stubEntity) {
         throw new Error("Created note import stub could not be read");
       }
       const jobId = await context.jobs.enqueue({
         type: "upload-import",
+        options: { maxRetries: 0 },
         data: {
           uploadId,
           entityId: created.entityId,

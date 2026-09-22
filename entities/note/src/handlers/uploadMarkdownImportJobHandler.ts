@@ -1,13 +1,12 @@
 import { BaseJobHandler, saveProcessedEntity } from "@brains/plugins";
 import type { EntityPluginContext } from "@brains/plugins";
-import { JobResult } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import { updateFrontmatterField } from "@brains/utils/markdown";
 import type { ProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import { noteAdapter } from "../adapters/note-adapter";
-import { extractMarkdownFromUpload } from "../lib/upload-markdown-import";
+import { withMarkdownFromUpload } from "../lib/upload-markdown-import";
 
 const webChatUploadsScope = {
   namespace: "upload",
@@ -31,9 +30,10 @@ export const uploadMarkdownImportJobSchema: z.ZodType<UploadMarkdownImportJobDat
     title: z.string().optional(),
   });
 
-export type UploadMarkdownImportJobResult =
-  | { entityId: string; status: "created" | "superseded" }
-  | { success: false; error: string };
+export interface UploadMarkdownImportJobResult {
+  entityId: string;
+  status: "created" | "superseded";
+}
 
 export class UploadMarkdownImportJobHandler extends BaseJobHandler<
   "upload-import",
@@ -53,70 +53,115 @@ export class UploadMarkdownImportJobHandler extends BaseJobHandler<
     data: UploadMarkdownImportJobData,
     _jobId: string,
     progressReporter: ProgressReporter,
+    signal?: AbortSignal,
   ): Promise<UploadMarkdownImportJobResult> {
+    const state: { submitted: boolean; borrowedSignal?: AbortSignal } = {
+      submitted: false,
+    };
     try {
+      if (!signal)
+        throw new Error("Upload import requires a cancellation signal");
+      signal.throwIfAborted();
       await this.reportProgress(progressReporter, {
         progress: 10,
         message: "Reading uploaded file",
       });
 
-      const upload = await this.context.uploads
+      const files = this.context.entityService.fileAssets;
+      if (!files?.withProducedFile)
+        throw new Error("Upload markdown extraction is not provisioned");
+      return await this.context.uploads
         .scoped(webChatUploadsScope)
-        .read(data.uploadId);
+        .withFile(
+          data.uploadId,
+          async (upload): Promise<UploadMarkdownImportJobResult> => {
+            await this.reportProgress(progressReporter, {
+              progress: 35,
+              message: "Extracting markdown from upload",
+            });
 
-      await this.reportProgress(progressReporter, {
-        progress: 35,
-        message: "Extracting markdown from upload",
-      });
+            return withMarkdownFromUpload(
+              {
+                upload,
+                files,
+                signal,
+                ...(data.title !== undefined ? { title: data.title } : {}),
+              },
+              async (
+                imported,
+                borrowedSignal,
+              ): Promise<UploadMarkdownImportJobResult> => {
+                state.borrowedSignal = borrowedSignal;
+                borrowedSignal.throwIfAborted();
 
-      const imported = await extractMarkdownFromUpload({
-        upload,
-        ...(data.title !== undefined ? { title: data.title } : {}),
-      });
+                await this.reportProgress(progressReporter, {
+                  progress: 80,
+                  message: "Saving imported note",
+                });
 
-      await this.reportProgress(progressReporter, {
-        progress: 80,
-        message: "Saving imported note",
-      });
+                const now = new Date().toISOString();
+                const entity = noteAdapter.fromMarkdown(imported.content);
+                borrowedSignal.throwIfAborted();
+                state.submitted = true;
+                const result = await saveProcessedEntity({
+                  signal: borrowedSignal,
+                  entityService: this.context.entityService,
+                  entity: {
+                    id: data.entityId,
+                    entityType: "note",
+                    content: imported.content,
+                    metadata: { title: imported.title, ...entity.metadata },
+                    created: now,
+                    updated: now,
+                  },
+                  ...(data.stubContentHash !== undefined
+                    ? { expectedContentHash: data.stubContentHash }
+                    : {}),
+                });
 
-      const now = new Date().toISOString();
-      const entity = noteAdapter.fromMarkdown(imported.content);
-      const result = await saveProcessedEntity({
-        entityService: this.context.entityService,
-        entity: {
-          id: data.entityId,
-          entityType: "note",
-          content: imported.content,
-          metadata: { title: imported.title, ...entity.metadata },
-          created: now,
-          updated: now,
-        },
-        ...(data.stubContentHash !== undefined
-          ? { expectedContentHash: data.stubContentHash }
-          : {}),
-      });
+                if (result.mutation.skipReason === "content-conflict") {
+                  await this.reportProgress(progressReporter, {
+                    progress: 100,
+                    message: "Upload import superseded by newer note content",
+                  });
+                  return { entityId: result.entityId, status: "superseded" };
+                }
 
-      if (result.mutation.skipReason === "content-conflict") {
-        await this.reportProgress(progressReporter, {
-          progress: 100,
-          message: "Upload import superseded by newer note content",
-        });
-        return { entityId: result.entityId, status: "superseded" };
-      }
+                await this.reportProgress(progressReporter, {
+                  progress: 100,
+                  message: "Upload imported as markdown note",
+                });
 
-      await this.reportProgress(progressReporter, {
-        progress: 100,
-        message: "Upload imported as markdown note",
-      });
-
-      return { entityId: result.entityId, status: "created" };
+                return { entityId: result.entityId, status: "created" };
+              },
+            );
+          },
+        );
     } catch (error) {
-      await this.markStubFailed(
-        data.entityId,
-        getErrorMessage(error),
-        data.stubContentHash,
-      );
-      return JobResult.failure(error);
+      const failures: unknown[] = [error];
+      if (
+        signal &&
+        !state.submitted &&
+        !signal.aborted &&
+        !state.borrowedSignal?.aborted
+      ) {
+        try {
+          await this.markStubFailed(
+            data.entityId,
+            getErrorMessage(error),
+            data.stubContentHash,
+          );
+        } catch (failure) {
+          if (!Object.is(failure, error)) failures.push(failure);
+        }
+      }
+      if (failures.length > 1)
+        throw new AggregateError(
+          failures,
+          "Upload extraction and pending failure update failed",
+          { cause: error },
+        );
+      throw error;
     }
   }
 
@@ -125,33 +170,27 @@ export class UploadMarkdownImportJobHandler extends BaseJobHandler<
     error: string,
     stubContentHash?: string,
   ): Promise<void> {
-    try {
-      const existing = await this.context.entityService.getEntity({
-        entityType: "note",
-        id: entityId,
-      });
-      if (!existing) return;
+    const existing = await this.context.entityService.getEntity({
+      entityType: "note",
+      id: entityId,
+      visibilityScope: "restricted",
+    });
+    if (!existing) return;
 
-      await this.context.entityService.updateEntity({
-        entity: {
-          ...existing,
-          content: updateFrontmatterField(
-            updateFrontmatterField(existing.content, "status", "failed"),
-            "error",
-            error,
-          ),
-          metadata: { ...existing.metadata, status: "failed", error },
-        },
-        ...(stubContentHash !== undefined
-          ? { options: { expectedContentHash: stubContentHash } }
-          : {}),
-      });
-    } catch (failure) {
-      this.logger.warn("Failed to mark import stub as failed", {
-        error: failure,
-        entityId,
-      });
-    }
+    await this.context.entityService.updateEntity({
+      entity: {
+        ...existing,
+        content: updateFrontmatterField(
+          updateFrontmatterField(existing.content, "status", "failed"),
+          "error",
+          error,
+        ),
+        metadata: { ...existing.metadata, status: "failed", error },
+      },
+      ...(stubContentHash !== undefined
+        ? { options: { expectedContentHash: stubContentHash } }
+        : {}),
+    });
   }
 
   protected override summarizeDataForLog(

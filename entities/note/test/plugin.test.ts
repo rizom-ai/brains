@@ -1,10 +1,12 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
+import assert from "node:assert/strict";
 import { createTempDir } from "@brains/test-utils";
 import { NotePlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import type { EntityMutationResult, JobHandler } from "@brains/plugins";
 import { CallbackProgressReporter } from "@brains/utils/progress";
+import { EntityFileRuntime, EntityBinaryClient } from "@brains/entity-service";
 
 const webChatOperatorContext = {
   interfaceType: "web-chat",
@@ -20,11 +22,36 @@ describe("NotePlugin", () => {
   let capabilities: PluginCapabilities;
   let enqueuedJobs: Array<{ type: string; data: unknown; options?: unknown }>;
   let registeredHandlers: Map<string, JobHandler>;
+  let files: EntityFileRuntime;
 
   beforeEach(async () => {
     harness = createPluginHarness({
       dataDir: await createTempDir("test-datadir-note-"),
     });
+    const unexpected = (): never => {
+      throw new Error("Unexpected native database operation");
+    };
+    const actor = new URL(
+      "../../../shared/document/src/upload-markdown-process.ts",
+      import.meta.url,
+    );
+    files = new EntityFileRuntime(
+      new EntityBinaryClient({
+        transport: {
+          control: unexpected,
+          publication: unexpected,
+          invalidate: unexpected,
+        },
+      }),
+      {
+        executable: process.execPath,
+        uploadUrl: actor,
+        downloadUrl: actor,
+        inspectionUploadUrl: actor,
+        producerUrls: { "upload-markdown": actor },
+      },
+    );
+    harness.getEntityService().fileAssets = files;
     enqueuedJobs = [];
     registeredHandlers = new Map();
 
@@ -47,6 +74,7 @@ describe("NotePlugin", () => {
   });
 
   afterEach(async () => {
+    await files.close();
     await harness.reset();
   });
 
@@ -88,6 +116,139 @@ describe("NotePlugin", () => {
   }
 
   describe("upload markdown imports", () => {
+    async function pendingImport(): Promise<{
+      uploadId: string;
+      entityId: string;
+      handler: JobHandler;
+    }> {
+      const store = harness.getEntityContext("test").uploads.scoped({
+        namespace: "upload",
+        refKind: "upload",
+        routePath: "/api/chat/uploads",
+      });
+      const upload = await store.save({
+        filename: "guarded.txt",
+        mediaType: "text/plain",
+        content: Buffer.from("Persisted once"),
+      });
+      const interceptor = harness
+        .getEntityRegistry()
+        .getCreateInterceptor("note");
+      if (!interceptor) throw new Error("Missing interceptor");
+      const result = await interceptor(
+        {
+          entityType: "note",
+          from: { kind: "upload", id: upload.id },
+          transform: "extract-markdown",
+        },
+        webChatOperatorContext,
+      );
+      if (result.kind !== "handled" || !result.result.success)
+        throw new Error("Missing pending import");
+      const handler = registeredHandlers.get("note:upload-import");
+      if (!handler) throw new Error("Missing handler");
+      const entityId = result.result.data.entityId;
+      if (!entityId) throw new Error("Missing pending entity id");
+      return {
+        uploadId: upload.id,
+        entityId,
+        handler,
+      };
+    }
+
+    it("does not rewrite a saved note after an uncertain mutation outcome", async () => {
+      const pending = await pendingImport();
+      const service = harness.getEntityService();
+      const update = service.updateEntity.bind(service);
+      const failure = new Error("mutation acknowledgement lost");
+      let calls = 0;
+      service.updateEntity = async (request): Promise<EntityMutationResult> => {
+        calls++;
+        await update(request);
+        throw failure;
+      };
+      const reporter = CallbackProgressReporter.from(
+        async (): Promise<void> => undefined,
+      );
+      if (!reporter) throw new Error("Missing reporter");
+      await assert.rejects(
+        pending.handler.process(
+          { uploadId: pending.uploadId, entityId: pending.entityId },
+          "uncertain-note",
+          reporter,
+          new AbortController().signal,
+        ),
+        (error: unknown) => error === failure,
+      );
+      expect(calls).toBe(1);
+      const stored = await service.getEntity({
+        entityType: "note",
+        id: pending.entityId,
+      });
+      expect(stored?.content).toContain("Persisted once");
+      expect(stored?.content).not.toContain("status: failed");
+      expect(enqueuedJobs[0]?.options).toMatchObject({ maxRetries: 0 });
+    });
+
+    it("preserves distinct extraction and pending-update failures", async () => {
+      const pending = await pendingImport();
+      const primary = new Error("extraction failed");
+      const cleanup = new Error("failure update failed");
+      files.withProducedFile = async (): Promise<never> => {
+        throw primary;
+      };
+      harness.getEntityService().updateEntity = async (): Promise<never> => {
+        throw cleanup;
+      };
+      const reporter = CallbackProgressReporter.from(
+        async (): Promise<void> => undefined,
+      );
+      if (!reporter) throw new Error("Missing reporter");
+      await assert.rejects(
+        pending.handler.process(
+          { uploadId: pending.uploadId, entityId: pending.entityId },
+          "failed-note",
+          reporter,
+          new AbortController().signal,
+        ),
+        (error: unknown) => {
+          expect(error).toBeInstanceOf(AggregateError);
+          if (!(error instanceof AggregateError)) return false;
+          expect(error.errors[0]).toBe(primary);
+          expect(error.errors[1]).toBe(cleanup);
+          expect(error.cause).toBe(primary);
+          return true;
+        },
+      );
+    });
+
+    it("pre-abort leaves the pending note untouched", async () => {
+      const pending = await pendingImport();
+      const service = harness.getEntityService();
+      const before = await service.getEntity({
+        entityType: "note",
+        id: pending.entityId,
+      });
+      const reporter = CallbackProgressReporter.from(
+        async (): Promise<void> => undefined,
+      );
+      if (!reporter) throw new Error("Missing reporter");
+      const failure = new Error("cancelled");
+      await assert.rejects(
+        pending.handler.process(
+          { uploadId: pending.uploadId, entityId: pending.entityId },
+          "cancelled-note",
+          reporter,
+          AbortSignal.abort(failure),
+        ),
+        (error: unknown) => error === failure,
+      );
+      expect(
+        (await service.getEntity({ entityType: "note", id: pending.entityId }))
+          ?.content,
+      ).toBe(before?.content);
+    });
+
     it("queues an uploaded text file import as a markdown note", async () => {
       const uploadStore = harness.getEntityContext("test").uploads.scoped({
         namespace: "upload",
@@ -485,13 +646,14 @@ describe("NotePlugin", () => {
       }
       const reporter = CallbackProgressReporter.from(async () => {});
       if (!reporter) throw new Error("progress reporter not created");
-      const jobResult = await handler.process(
-        { uploadId: "missing-upload", entityId: "doomed-import" },
-        "queued-note-job",
-        reporter,
-        new AbortController().signal,
+      await assert.rejects(
+        handler.process(
+          { uploadId: "missing-upload", entityId: "doomed-import" },
+          "queued-note-job",
+          reporter,
+          new AbortController().signal,
+        ),
       );
-      expect(jobResult).toMatchObject({ success: false });
 
       const entity = await harness.getEntityService().getEntity({
         entityType: "note",

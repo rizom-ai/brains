@@ -1,5 +1,5 @@
-import { extractPdfMarkdown } from "@brains/document";
-import type { ResolvedRuntimeUpload } from "@brains/plugins";
+import { withUploadMarkdown } from "@brains/document";
+import type { RuntimeUploadRecord, EntityPluginContext } from "@brains/plugins";
 import { slugify } from "@brains/utils/string-utils";
 
 const textUploadMediaTypes = new Set([
@@ -36,37 +36,38 @@ export interface MarkdownImportResult {
   content: string;
 }
 
-export async function extractMarkdownFromUpload(input: {
-  upload: ResolvedRuntimeUpload;
-  title?: string;
-}): Promise<MarkdownImportResult> {
+export async function withMarkdownFromUpload<T>(
+  input: {
+    upload: { record: RuntimeUploadRecord; sourceFile: string };
+    files: NonNullable<EntityPluginContext["entityService"]["fileAssets"]>;
+    signal: AbortSignal;
+    title?: string;
+  },
+  use: (result: MarkdownImportResult, signal: AbortSignal) => Promise<T>,
+): Promise<T> {
   const { id, title } = getMarkdownImportIdentity({
     filename: input.upload.record.filename,
     ...(input.title !== undefined ? { title: input.title } : {}),
   });
 
-  const markdown = await readUploadMarkdown(input.upload);
-  return {
-    id,
-    title,
-    content: withTitleFrontmatter(title, markdown),
-  };
-}
-
-async function readUploadMarkdown(
-  upload: ResolvedRuntimeUpload,
-): Promise<string> {
-  const mediaType = upload.record.mediaType.toLowerCase();
-  if (mediaType === "application/pdf") {
-    return extractPdfMarkdown(upload.content);
-  }
-
-  if (textUploadMediaTypes.has(mediaType)) {
-    return upload.content.toString("utf8");
-  }
-
-  throw new Error(
-    "Only text, JSON, and PDF uploads can be imported as markdown notes",
+  const mediaType = input.upload.record.mediaType.toLowerCase();
+  if (!isSupportedMarkdownUploadMediaType(mediaType))
+    throw new Error(
+      "Only text, JSON, and PDF uploads can be imported as markdown notes",
+    );
+  return withUploadMarkdown(
+    input.files,
+    {
+      sourceFile: input.upload.sourceFile,
+      sizeBytes: input.upload.record.sizeBytes,
+      mediaType,
+    },
+    async (markdown, signal): Promise<T> =>
+      use(
+        { id, title, content: withTitleFrontmatter(title, markdown) },
+        signal,
+      ),
+    { signal: input.signal },
   );
 }
 
