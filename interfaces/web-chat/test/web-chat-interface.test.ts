@@ -315,6 +315,25 @@ function requireRoute(
 describe("WebChatInterface", () => {
   let harness: PluginTestHarness<WebChatInterface>;
   let closeFiles: (() => Promise<void>) | undefined;
+  async function uploadRequest(
+    file: File,
+    declaredSize = file.size,
+    service = harness.getEntityService(),
+  ): Promise<Request> {
+    closeFiles ??= await installAttachmentFileFixture(
+      service,
+      new Uint8Array(),
+    );
+    return new Request("http://brain/api/chat/uploads", {
+      method: "POST",
+      headers: {
+        "Content-Type": file.type,
+        "X-Upload-Filename": encodeURIComponent(file.name),
+        "Content-Length": String(declaredSize),
+      },
+      body: file,
+    });
+  }
 
   beforeEach(() => {
     closeFiles = undefined;
@@ -2588,23 +2607,16 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(401);
   });
 
-  it("accepts Trusted multipart text uploads and returns a durable upload ref", async () => {
+  it("accepts Trusted raw text uploads and returns a durable upload ref", async () => {
     const plugin = trustedAuthPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
-    const form = new FormData();
-    form.set(
-      "file",
-      new File(["# Notes\n\nShip durable uploads"], "../notes.md", {
-        type: "text/markdown",
-      }),
-    );
-
     const response = await route?.handler(
-      new Request("http://brain/api/chat/uploads", {
-        method: "POST",
-        body: form,
-      }),
+      await uploadRequest(
+        new File(["# Notes\n\nShip durable uploads"], "../notes.md", {
+          type: "text/markdown",
+        }),
+      ),
     );
     const body = uploadResponseSchema.parse(await response?.json());
 
@@ -2637,7 +2649,7 @@ describe("WebChatInterface", () => {
     });
   });
 
-  it("stores multipart uploads in runtime data, not content brain-data", async () => {
+  it("stores raw uploads in runtime data, not content brain-data", async () => {
     const root = "/tmp/web-chat-file-upload-path-test";
     await rm(root, { recursive: true, force: true });
     const scopedHarness = createPluginHarness<WebChatInterface>({
@@ -2649,17 +2661,12 @@ describe("WebChatInterface", () => {
     );
     await scopedHarness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
-    const form = new FormData();
-    form.set(
-      "file",
-      new File(["# Runtime"], "runtime.md", { type: "text/markdown" }),
-    );
-
     const response = await route?.handler(
-      new Request("http://brain/api/chat/uploads", {
-        method: "POST",
-        body: form,
-      }),
+      await uploadRequest(
+        new File(["# Runtime"], "runtime.md", { type: "text/markdown" }),
+        9,
+        scopedHarness.getEntityService(),
+      ),
     );
     const body = uploadResponseSchema.parse(await response?.json());
 
@@ -2679,7 +2686,7 @@ describe("WebChatInterface", () => {
     await rm(root, { recursive: true, force: true });
   });
 
-  it("serves stored multipart text uploads to Admins", async () => {
+  it("serves stored raw text uploads to Admins", async () => {
     closeFiles = await installAttachmentFileFixture(
       harness.getEntityService(),
       new TextEncoder().encode("# Downloadable"),
@@ -2688,16 +2695,10 @@ describe("WebChatInterface", () => {
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
     const downloadRoute = getRoute(plugin, "/api/chat/uploads", "GET");
-    const form = new FormData();
-    form.set(
-      "file",
-      new File(["# Downloadable"], "notes.md", { type: "text/markdown" }),
-    );
     const uploadResponse = await route?.handler(
-      new Request("http://brain/api/chat/uploads", {
-        method: "POST",
-        body: form,
-      }),
+      await uploadRequest(
+        new File(["# Downloadable"], "notes.md", { type: "text/markdown" }),
+      ),
     );
     const upload = uploadResponseSchema.parse(await uploadResponse?.json());
 
@@ -2713,7 +2714,7 @@ describe("WebChatInterface", () => {
     expect(await response?.text()).toBe("# Downloadable");
   });
 
-  it("accepts and serves multipart image uploads to Admins", async () => {
+  it("accepts and serves raw image uploads to Admins", async () => {
     const plugin = adminPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
@@ -2723,14 +2724,10 @@ describe("WebChatInterface", () => {
       harness.getEntityService(),
       image,
     );
-    const form = new FormData();
-    form.set("file", new File([image], "robot.png", { type: "image/png" }));
-
     const uploadResponse = await route?.handler(
-      new Request("http://brain/api/chat/uploads", {
-        method: "POST",
-        body: form,
-      }),
+      await uploadRequest(
+        new File([image], "robot.png", { type: "image/png" }),
+      ),
     );
     const upload = uploadResponseSchema.parse(await uploadResponse?.json());
 
@@ -2770,81 +2767,56 @@ describe("WebChatInterface", () => {
     expect(response?.status).toBe(403);
   });
 
-  it("rejects multipart uploads from unauthenticated callers", async () => {
+  it("rejects raw uploads from unauthenticated callers", async () => {
     const plugin = new WebChatInterface();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
-    const form = new FormData();
-    form.set("file", new File(["hello"], "notes.txt", { type: "text/plain" }));
-
     const response = await route?.handler(
-      new Request("http://brain/api/chat/uploads", {
-        method: "POST",
-        body: form,
-      }),
+      await uploadRequest(
+        new File(["hello"], "notes.txt", { type: "text/plain" }),
+      ),
     );
 
     expect(response?.status).toBe(403);
   });
 
-  it("rejects unsupported multipart upload types", async () => {
+  it("rejects unsupported raw upload types", async () => {
     const plugin = adminPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
-    const form = new FormData();
-    form.set(
-      "file",
-      new File(["not text"], "image.png", { type: "image/png" }),
-    );
-
     const response = await route?.handler(
-      new Request("http://brain/api/chat/uploads", {
-        method: "POST",
-        body: form,
-      }),
+      await uploadRequest(
+        new File(["not text"], "image.png", { type: "image/png" }),
+      ),
     );
 
     expect(response?.status).toBe(400);
     expect(await response?.text()).toContain("Unsupported file upload type");
   });
 
-  it("rejects oversized multipart text uploads", async () => {
+  it("rejects oversized raw text uploads", async () => {
     const plugin = adminPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
-    const form = new FormData();
-    form.set(
-      "file",
-      new File(["x".repeat(100_001)], "large.txt", { type: "text/plain" }),
-    );
-
     const response = await route?.handler(
-      new Request("http://brain/api/chat/uploads", {
-        method: "POST",
-        body: form,
-      }),
+      await uploadRequest(
+        new File(["x".repeat(100_001)], "large.txt", { type: "text/plain" }),
+      ),
     );
 
     expect(response?.status).toBe(400);
     expect(await response?.text()).toContain("File upload too large");
   });
 
-  it("rejects oversized uploads via Content-Length before buffering", async () => {
+  it("rejects oversized uploads via Content-Length before capture", async () => {
     const plugin = adminPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
-    const form = new FormData();
-    form.set("file", new File(["small"], "notes.txt", { type: "text/plain" }));
-
     const response = await route?.handler(
-      new Request("http://brain/api/chat/uploads", {
-        method: "POST",
-        // Declared length far exceeds the upload limit + envelope slack, so the
-        // guard rejects before the multipart body is buffered. No filename is
-        // known yet, so the message carries no filename suffix.
-        headers: { "content-length": "6000000" },
-        body: form,
-      }),
+      await uploadRequest(
+        new File(["small"], "notes.txt", { type: "text/plain" }),
+        6000000,
+      ),
     );
 
     expect(response?.status).toBe(400);
@@ -2855,19 +2827,12 @@ describe("WebChatInterface", () => {
     const plugin = adminPlugin();
     await harness.installPlugin(plugin);
     const route = getRoute(plugin, "/api/chat/uploads", "POST");
-    const form = new FormData();
-    form.set(
-      "file",
-      new File([new Uint8Array([0x68, 0x69, 0x00, 0xff])], "notes.txt", {
-        type: "text/plain",
-      }),
-    );
-
     const response = await route?.handler(
-      new Request("http://brain/api/chat/uploads", {
-        method: "POST",
-        body: form,
-      }),
+      await uploadRequest(
+        new File([new Uint8Array([0x68, 0x69, 0x00, 0xff])], "notes.txt", {
+          type: "text/plain",
+        }),
+      ),
     );
 
     expect(response?.status).toBe(400);
@@ -2890,16 +2855,10 @@ describe("WebChatInterface", () => {
     const staleAge = new Date(Date.now() - 48 * 60 * 60 * 1000);
     await utimes(staleDir, staleAge, staleAge);
 
-    const form = new FormData();
-    form.set(
-      "file",
-      new File(["# Fresh"], "fresh.md", { type: "text/markdown" }),
-    );
     const response = await route?.handler(
-      new Request("http://brain/api/chat/uploads", {
-        method: "POST",
-        body: form,
-      }),
+      await uploadRequest(
+        new File(["# Fresh"], "fresh.md", { type: "text/markdown" }),
+      ),
     );
     const body = uploadResponseSchema.parse(await response?.json());
 
@@ -2918,18 +2877,12 @@ describe("WebChatInterface", () => {
     await harness.installPlugin(plugin);
     const uploadRoute = getRoute(plugin, "/api/chat/uploads", "POST");
     const chatRoute = getRoute(plugin, "/api/chat", "POST");
-    const form = new FormData();
-    form.set(
-      "file",
-      new File(["# Durable Notes"], "durable-notes.md", {
-        type: "text/markdown",
-      }),
-    );
     const uploadResponse = await uploadRoute?.handler(
-      new Request("http://brain/api/chat/uploads", {
-        method: "POST",
-        body: form,
-      }),
+      await uploadRequest(
+        new File(["# Durable Notes"], "durable-notes.md", {
+          type: "text/markdown",
+        }),
+      ),
     );
     const upload = uploadResponseSchema.parse(await uploadResponse?.json());
 
@@ -2972,13 +2925,10 @@ describe("WebChatInterface", () => {
     const uploadRoute = getRoute(plugin, "/api/chat/uploads", "POST");
     const chatRoute = getRoute(plugin, "/api/chat", "POST");
     const image = pngBytes();
-    const form = new FormData();
-    form.set("file", new File([image], "robot.png", { type: "image/png" }));
     const uploadResponse = await uploadRoute?.handler(
-      new Request("http://brain/api/chat/uploads", {
-        method: "POST",
-        body: form,
-      }),
+      await uploadRequest(
+        new File([image], "robot.png", { type: "image/png" }),
+      ),
     );
     const upload = uploadResponseSchema.parse(await uploadResponse?.json());
 

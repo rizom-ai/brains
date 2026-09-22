@@ -35,6 +35,71 @@ const input = {
 };
 type Capture = NonNullable<EntityFileAssets["withCapturedFile"]>;
 
+test("capture validates inside the borrowed signal before saving and observes cancellation after validation", async () => {
+  const owner = new AbortController();
+  const failure = new Error("owner cancelled during validation");
+  const saveFile = mock(async () => record);
+  const capture: Capture = async (_source, use) => use(file, owner.signal);
+  const validateFile = mock(
+    async (
+      received: EntityCapturedFileSource,
+      signal: AbortSignal,
+    ): Promise<void> => {
+      expect(received).toBe(file);
+      expect(signal).toBe(owner.signal);
+      owner.abort(failure);
+    },
+  );
+  await assert.rejects(
+    captureRuntimeUpload(
+      input,
+      { withCapturedFile: capture },
+      { saveFile },
+      { validateFile },
+    ),
+    (error: unknown) => error === failure,
+  );
+  expect(validateFile).toHaveBeenCalledTimes(1);
+  expect(saveFile).not.toHaveBeenCalled();
+});
+
+test("capture preserves distinct validation and provider retirement failures without saving", async () => {
+  const primary = new Error("signature mismatch");
+  const cleanup = new Error("capture retirement failed");
+  const saveFile = mock(async () => record);
+  const capture: Capture = async (_source, use) => {
+    // A faulty provider masks its consumer's error; the guard must retain both.
+    return use(file, new AbortController().signal).then(
+      (): never => {
+        throw cleanup;
+      },
+      (): never => {
+        throw cleanup;
+      },
+    );
+  };
+  await assert.rejects(
+    captureRuntimeUpload(
+      input,
+      { withCapturedFile: capture },
+      { saveFile },
+      {
+        validateFile: async (): Promise<never> => {
+          throw primary;
+        },
+      },
+    ),
+    (error: unknown) => {
+      expect(error).toBeInstanceOf(AggregateError);
+      if (!(error instanceof AggregateError)) return false;
+      expect(error.errors).toContain(primary);
+      expect(error.errors).toContain(cleanup);
+      return true;
+    },
+  );
+  expect(saveFile).not.toHaveBeenCalled();
+});
+
 test("capture retains metadata inside its loan and returns the exact saved outcome", async () => {
   let active = false;
   const signal = new AbortController().signal;

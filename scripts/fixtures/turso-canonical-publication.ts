@@ -13,6 +13,7 @@ import { CallbackProgressReporter } from "@brains/utils/progress";
 import { StockPhotoPlugin } from "@brains/stock-photo";
 import { RuntimeUploadStore } from "../../shell/plugins/src/service/upload-registry";
 import { webChatUploadsScope } from "../../entities/image/src/lib/upload-promotion";
+import { captureCanonicalUpload } from "./turso-canonical-upload-capture";
 import { FrontmatterImageConverter } from "../../plugins/directory-sync/src/lib/frontmatter-image-converter";
 import { DirectorySync } from "../../plugins/directory-sync/src/lib/directory-sync";
 import { tmpdir } from "node:os";
@@ -528,6 +529,10 @@ plugins:
       "../../shared/image/src/file-inspection-process.ts",
       import.meta.url,
     ),
+    captureUrl: new URL(
+      "../../shared/db/src/turso-worker/file-capture-process.ts",
+      import.meta.url,
+    ),
     httpUploadUrl: new URL(
       "../../shared/db/src/turso-worker/file-http-upload-process.ts",
       import.meta.url,
@@ -690,11 +695,15 @@ plugins:
       .getShell()
       .getRuntimeUploadRegistry()
       .scoped(webChatUploadsScope);
-    const uploaded = await uploadStore.save({
-      filename: "promoted.png",
-      mediaType: "image/png",
-      content: bytes,
-    });
+    assert.ok(owner.fileAssets);
+    const uploaded =
+      imageKind === "ai"
+        ? await captureCanonicalUpload(owner.fileAssets, uploadStore, bytes)
+        : await uploadStore.save({
+            filename: "promoted.png",
+            mediaType: "image/png",
+            content: bytes,
+          });
     await owner.createEntity({
       entity: {
         ...imageAdapter.createPendingImageEntity({

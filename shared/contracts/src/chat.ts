@@ -9,6 +9,8 @@ export {
 
 export const CHAT_API_VERSION = 1 as const;
 export const DEFAULT_CHAT_API_PATH = "/api/chat" as const;
+/** Raw upload body metadata; the filename value is URI-component encoded. */
+export const CHAT_UPLOAD_FILENAME_HEADER = "X-Upload-Filename" as const;
 /** Server-owned conversation scope; never derive it from browser role claims. */
 export const guestInterfaceType = "web-chat-guest";
 
@@ -1586,15 +1588,18 @@ export function createChatClient(options: ChatClientOptions = {}): ChatClient {
         .min(1)
         .max(255)
         .parse(filename);
-      const form = new FormData();
-      form.set("file", file, normalizedFilename);
       return requestJson(
         "upload file",
         paths.uploads,
         chatUploadResponseSchema,
         {
           method: "POST",
-          body: form,
+          headers: {
+            "Content-Type": file.type || "application/octet-stream",
+            [CHAT_UPLOAD_FILENAME_HEADER]:
+              encodeURIComponent(normalizedFilename),
+          },
+          body: file,
         },
       );
     },

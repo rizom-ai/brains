@@ -553,6 +553,9 @@ export class WebChatInterface extends MessageInterfacePlugin<
 
   private async handleUploadRequest(request: Request): Promise<Response> {
     return handleUploadRouteRequest(request, {
+      fileTransfers: this.getContext().fileTransfers,
+      onRetirementError: (error): void =>
+        this.logger.warn("Upload saved but retirement failed", { error }),
       resolveAuthSession: this.resolveAuthSession,
       getUploadStore: () =>
         this.getContext().uploads.scoped(

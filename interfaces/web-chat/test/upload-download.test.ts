@@ -8,7 +8,12 @@ import type {
   EntityServiceClient,
   EntityFileAssets,
 } from "@brains/entity-service";
-import { handleUploadDownloadRequest } from "../src/upload-handlers";
+import {
+  handleUploadDownloadRequest,
+  handleUploadRequest,
+} from "../src/upload-handlers";
+import { chatUploadResponseSchema } from "@brains/contracts/chat";
+import { readFile } from "node:fs/promises";
 import { createWebChatUploadStoreScope } from "../src/upload-store";
 import { installAttachmentFileFixture } from "./attachment-file-fixture";
 
@@ -178,6 +183,198 @@ test("authorization and pre-abort precede inspection; missing provisioning canno
     expect(f.inspect).not.toHaveBeenCalled();
     expect(f.put).not.toHaveBeenCalled();
     expect(f.read).not.toHaveBeenCalled();
+  } finally {
+    await f.cleanup();
+  }
+});
+
+function incoming(
+  body: string,
+  filename = "notes.txt",
+  mediaType = "text/plain",
+): Request {
+  const request = new Request("http://brain/api/chat/uploads", {
+    method: "POST",
+    headers: {
+      "Content-Type": mediaType,
+      "X-Upload-Filename": encodeURIComponent(filename),
+    },
+    body,
+  });
+  const forbidden = async (): Promise<never> => {
+    throw new Error("Controller payload materialization forbidden");
+  };
+  request.arrayBuffer = forbidden;
+  request.formData = forbidden;
+  request.blob = forbidden;
+  request.text = forbidden;
+  return request;
+}
+
+test("raw ingress captures multiple credits natively, inspects before retention, and never materializes the request", async () => {
+  const f = await fixture("Seed");
+  f.store.save = async (): Promise<never> => {
+    throw new Error("Buffered retention forbidden");
+  };
+  const bytes = "x".repeat(32768 * 2) + "🎉";
+  try {
+    const response = await handleUploadRequest(incoming(bytes), f.deps);
+    expect(response.status).toBe(201);
+    const record = chatUploadResponseSchema.parse(await response.json());
+    expect(record.sizeBytes).toBe(Buffer.byteLength(bytes));
+    expect(record.filename).toBe("notes.txt");
+    expect(
+      await f.store.withFile(record.id, async ({ sourceFile }) =>
+        readFile(sourceFile, "utf8"),
+      ),
+    ).toBe(bytes);
+    expect(f.inspect).toHaveBeenCalledTimes(1);
+    expect(f.read).not.toHaveBeenCalled();
+    expect(f.errors).toEqual([]);
+  } finally {
+    await f.cleanup();
+  }
+});
+
+test("raw ingress crosses a real outer Bun server and preserves every byte", async () => {
+  const f = await fixture("Seed");
+  const peer = Bun.serve({
+    hostname: "127.0.0.1",
+    port: 0,
+    fetch: (request): Promise<Response> => handleUploadRequest(request, f.deps),
+  });
+  const text = "Native incoming body 🎉\n".repeat(2000);
+  try {
+    const response = await fetch(peer.url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain",
+        "X-Upload-Filename": "incoming.txt",
+      },
+      body: text,
+    });
+    expect(response.status).toBe(201);
+    const record = chatUploadResponseSchema.parse(await response.json());
+    expect(record.sizeBytes).toBe(Buffer.byteLength(text));
+    expect(
+      await f.store.withFile(record.id, async ({ sourceFile }) =>
+        readFile(sourceFile, "utf8"),
+      ),
+    ).toBe(text);
+    expect(f.errors).toEqual([]);
+  } finally {
+    await peer.stop(true);
+    await f.cleanup();
+  }
+});
+
+test("ingress relay rejects unauthorized and repeated consumers without saving twice", async () => {
+  const f = await fixture("Seed");
+  const files = f.deps.fileTransfers;
+  const capture = files?.withCapturedFile;
+  if (!files || !capture) throw new Error("Missing capture fixture");
+  const save = mock(f.store.saveFile.bind(f.store));
+  f.store.saveFile = save;
+  try {
+    await assert.rejects(
+      handleUploadRequest(incoming("Single consumer"), {
+        ...f.deps,
+        fileTransfers: {
+          ...files,
+          withCapturedFile: async (
+            input,
+            use,
+            options,
+          ): ReturnType<typeof use> => {
+            const unauthorized = await fetch(input.url);
+            expect(unauthorized.status).toBe(403);
+            return capture(
+              input,
+              async (file, signal): ReturnType<typeof use> => {
+                const repeated = await fetch(input.url, {
+                  headers: { authorization: input.authorization ?? "" },
+                });
+                expect(repeated.status).toBe(409);
+                return use(file, signal);
+              },
+              options,
+            );
+          },
+        },
+      }),
+      /closed or already entered/,
+    );
+    expect(save).not.toHaveBeenCalled();
+    expect(f.inspect).not.toHaveBeenCalled();
+  } finally {
+    await f.cleanup();
+  }
+});
+
+test("native ingress enforces the actual size without Content-Length before retention", async () => {
+  const f = await fixture("Seed");
+  const save = mock(f.store.saveFile.bind(f.store));
+  f.store.saveFile = save;
+  try {
+    const response = await handleUploadRequest(
+      incoming("x".repeat(100001)),
+      f.deps,
+    );
+    expect(response.status).toBe(400);
+    expect(await response.text()).toBe("File upload too large");
+    expect(save).not.toHaveBeenCalled();
+    expect(f.inspect).not.toHaveBeenCalled();
+  } finally {
+    await f.cleanup();
+  }
+});
+
+test("bad ingress signatures fail inspection before retention", async () => {
+  const f = await fixture("Seed");
+  const save = mock(f.store.saveFile.bind(f.store));
+  f.store.saveFile = save;
+  try {
+    const response = await handleUploadRequest(
+      incoming("%PDF-1.7", "image.png", "image/png"),
+      f.deps,
+    );
+    expect(response.status).toBe(400);
+    expect(save).not.toHaveBeenCalled();
+    expect(f.inspect).toHaveBeenCalledTimes(1);
+  } finally {
+    await f.cleanup();
+  }
+});
+
+test("acknowledged ingress survives late capture failure without replay", async () => {
+  const f = await fixture("Seed");
+  const files = f.deps.fileTransfers;
+  const capture = files?.withCapturedFile;
+  if (!files || !capture) throw new Error("Missing capture fixture");
+  const failure = new Error("capture retirement failed");
+  const save = mock(f.store.saveFile.bind(f.store));
+  f.store.saveFile = save;
+  try {
+    const response = await handleUploadRequest(incoming("Acknowledged"), {
+      ...f.deps,
+      fileTransfers: {
+        ...files,
+        withCapturedFile: async (
+          input,
+          use,
+          options,
+        ): ReturnType<typeof use> => {
+          await capture(input, use, options);
+          throw failure;
+        },
+      },
+    });
+    expect(response.status).toBe(201);
+    const record = chatUploadResponseSchema.parse(await response.json());
+    expect((await f.store.readRecord(record.id)).sizeBytes).toBe(12);
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(f.errors).toHaveLength(1);
+    expect(f.errors[0]).toMatchObject({ cause: failure });
   } finally {
     await f.cleanup();
   }

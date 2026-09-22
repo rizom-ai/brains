@@ -2,6 +2,7 @@ import { MAX_ASSET_BYTES } from "@brains/assets";
 import { z } from "@brains/utils/zod";
 import type {
   EntityFileAssets,
+  EntityCapturedFileSource,
   EntityFileCaptureInput,
   EntityBinaryRequestOptions,
 } from "@brains/entity-service";
@@ -19,6 +20,13 @@ export interface CaptureRuntimeUploadSource extends EntityFileCaptureInput {
 export interface CaptureRuntimeUploadInput extends RuntimeUploadFileDescription {
   source: CaptureRuntimeUploadSource;
 }
+export interface CaptureRuntimeUploadOptions extends EntityBinaryRequestOptions {
+  /** Runs inside the guarded loan, before retention, with the borrowed signal. */
+  validateFile?: (
+    file: EntityCapturedFileSource,
+    signal: AbortSignal,
+  ) => Promise<void>;
+}
 const captureLimitSchema = z.number().int().positive().max(MAX_ASSET_BYTES);
 
 /** Retain an owned download inside its loan, without reading payload bytes.
@@ -29,7 +37,7 @@ export async function captureRuntimeUpload(
   input: CaptureRuntimeUploadInput,
   files: Pick<EntityFileAssets, "withCapturedFile">,
   store: Pick<ScopedRuntimeUploadStore, "saveFile">,
-  options?: EntityBinaryRequestOptions,
+  options?: CaptureRuntimeUploadOptions,
 ): Promise<RuntimeUploadRecord> {
   options?.signal?.throwIfAborted();
   if (!files.withCapturedFile)
@@ -66,6 +74,8 @@ export async function captureRuntimeUpload(
         pending = (async (): Promise<RuntimeUploadRecord> => {
           signal.throwIfAborted();
           try {
+            await options?.validateFile?.(file, signal);
+            signal.throwIfAborted();
             saved = await store.saveFile({
               ...description,
               sourceFile: file.sourceFile,
@@ -81,7 +91,7 @@ export async function captureRuntimeUpload(
         void pending.catch(remember);
         return pending;
       },
-      options,
+      options?.signal ? { signal: options.signal } : undefined,
     );
   } catch (error) {
     remember(error);

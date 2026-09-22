@@ -407,10 +407,14 @@ describe("native Studio Chat workspace", () => {
     globalThis.fetch = Object.assign(
       async (input: RequestInfo | URL, init?: RequestInit) => {
         if (String(input) !== "/api/chat/uploads") return previous(input, init);
-        if (!(init?.body instanceof FormData))
-          throw new Error("Missing upload form");
-        const file = init.body.get("file");
-        if (!(file instanceof File)) throw new Error("Missing file");
+        if (!(init?.body instanceof Blob))
+          throw new Error("Missing raw upload body");
+        const encodedName = new Headers(init.headers).get("X-Upload-Filename");
+        if (!encodedName) throw new Error("Missing upload filename");
+        const file = {
+          name: decodeURIComponent(encodedName),
+          size: init.body.size,
+        };
         attempts.push(file.name);
         if (
           file.name === "retry.txt" &&

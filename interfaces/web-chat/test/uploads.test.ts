@@ -182,7 +182,7 @@ describe("web chat upload protocol", () => {
     ]);
   });
 
-  it("uploads file parts through the multipart endpoint", async () => {
+  it("uploads opaque file bodies with bounded filename and MIME metadata", async () => {
     const calls: Array<{
       input: RequestInfo | URL;
       init: RequestInit | undefined;
@@ -200,16 +200,12 @@ describe("web chat upload protocol", () => {
       }
       if (input === uploadEndpoint) {
         const body = init?.body;
-        if (!(body instanceof FormData)) {
-          throw new Error("Expected the upload body to be FormData");
-        }
-        const uploadFile = body.get("file");
-        if (!(uploadFile instanceof File)) {
-          throw new Error("Expected a file part named 'file'");
-        }
-        expect(uploadFile.name).toBe("notes.md");
-        expect(uploadFile.type).toBe("text/markdown");
-        expect(await uploadFile.text()).toBe("# Notes");
+        if (!(body instanceof Blob))
+          throw new Error("Expected an opaque file body");
+        const headers = new Headers(init?.headers);
+        expect(headers.get("X-Upload-Filename")).toBe("notes.md");
+        expect(headers.get("Content-Type")).toBe("text/markdown");
+        expect(await body.text()).toBe("# Notes");
         return Response.json(makeUploadResponse(), { status: 201 });
       }
       return new Response("not found", { status: 404 });

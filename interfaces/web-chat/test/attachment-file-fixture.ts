@@ -41,6 +41,10 @@ export async function installAttachmentFileFixture(
       downloadUrl: actor,
       inspectionUploadUrl: actor,
       httpUploadUrl: actor,
+      captureUrl: new URL(
+        "../../../shared/db/src/turso-worker/file-capture-process.ts",
+        import.meta.url,
+      ),
     },
   );
   service.fileAssets = {
@@ -52,6 +56,8 @@ export async function installAttachmentFileFixture(
         options?.signal ?? new AbortController().signal,
       );
     },
+    withCapturedFile: (input, use, options): ReturnType<typeof use> =>
+      runtime.withCapturedFile(input, use, options),
     putHttp: (input, options): ReturnType<EntityFileRuntime["putHttp"]> =>
       runtime.putHttp(input, options),
     inspect: async (

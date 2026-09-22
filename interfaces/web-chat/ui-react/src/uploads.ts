@@ -1,6 +1,7 @@
 import {
   chatUploadRefSchema,
   chatUploadResponseSchema,
+  CHAT_UPLOAD_FILENAME_HEADER,
   type ChatUploadRef,
   type ChatUploadResponse,
 } from "@brains/contracts/chat";
@@ -140,18 +141,14 @@ export async function uploadFilePart(
   }
 
   const blob = await blobResponse.blob();
-  const form = new FormData();
-  form.set(
-    "file",
-    new File([blob], filename, {
-      type: file.mediaType || blob.type || "application/octet-stream",
-    }),
-  );
-
   const uploadResponse = await fetchFn(uploadEndpoint, {
     method: "POST",
     credentials: "include",
-    body: form,
+    headers: {
+      "Content-Type": file.mediaType || blob.type || "application/octet-stream",
+      [CHAT_UPLOAD_FILENAME_HEADER]: encodeURIComponent(filename),
+    },
+    body: blob,
   });
   if (!uploadResponse.ok) {
     throw new Error(await uploadResponse.text());

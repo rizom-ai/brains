@@ -30,6 +30,20 @@ with `public: true`. It must remain disabled until guest identity, capability,
 rate, abuse, spend, retention, consent, deletion, and kill-switch policies are
 accepted and enforced server-side.
 
+## File uploads (0.3 candidate)
+
+Authenticated `POST /api/chat/uploads` accepts the file as the raw request body,
+with its media type in `Content-Type` and URI-component-encoded filename in
+`X-Upload-Filename`. Both Chat clients use this protocol; multipart input is not
+retained as a compatibility path. Text remains limited to 100,000 bytes and
+supported binary files to 5,000,000 bytes, measured during native capture.
+
+The runtime must explicitly provision capture and the `message-upload` inspector.
+The controller forwards an opaque body through an authenticated single-use relay;
+inspection precedes file retention. A durable upload acknowledgement survives
+capture retirement faults without replay. Downloads use scoped native delivery,
+not buffered upload reads. AI attachment consumption is a separate migration.
+
 ## Build
 
 `bun run build` invokes `scripts/build-ui.ts`, which owns the browser target, ESM output, minification, source maps, React deduplication, the `@/` alias, and compile-time StyleX extraction through `Bun.build`. It emits `app.js` plus static `app.css`; the browser receives no Babel plugin or runtime style injector. Web Chat has no second Vite build path.

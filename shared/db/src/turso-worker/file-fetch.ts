@@ -164,7 +164,9 @@ export async function fetchFile<T>(
           length !== undefined &&
           (!/^\d+$/.test(length) || Number(length) > maxBytes)
         )
-          throw new Error("File exceeds its size limit");
+          throw Object.assign(new Error("File exceeds its size limit"), {
+            code: "FILE_SIZE_LIMIT",
+          });
         const encoding = response.headers["content-encoding"]?.toLowerCase();
         const decoder =
           encoding === "gzip"
@@ -207,7 +209,9 @@ export async function fetchFile<T>(
               if (!Buffer.isBuffer(bytes) || bytes.length > STAGE_CHUNK_BYTES)
                 throw new Error("File fetch exceeded read credit");
               if (bytes.length > maxBytes - sizeBytes)
-                throw new Error("File exceeds its size limit");
+                throw Object.assign(new Error("File exceeds its size limit"), {
+                  code: "FILE_SIZE_LIMIT",
+                });
               observer.observe(bytes);
               hash.update(bytes);
               await target.write(bytes);

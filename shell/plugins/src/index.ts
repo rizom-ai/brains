@@ -208,7 +208,9 @@ export {
   captureRuntimeUpload,
   type CaptureRuntimeUploadInput,
   type CaptureRuntimeUploadSource,
+  type CaptureRuntimeUploadOptions,
 } from "./service/capture-runtime-upload";
+export { captureRequestUpload } from "./service/capture-request-upload";
 export type {
   BasePluginContext,
   IMessagingNamespace,

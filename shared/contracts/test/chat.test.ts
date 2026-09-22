@@ -304,6 +304,13 @@ describe("public headless Chat contract", () => {
         });
       }
       if (url === "/custom/chat/uploads" && method === "POST") {
+        const headers = new Headers(init?.headers);
+        expect(headers.get("X-Upload-Filename")).toBe("notes.md");
+        expect(headers.get("Content-Type")).toBe("text/markdown");
+        expect(init?.body).toBeInstanceOf(Blob);
+        if (!(init?.body instanceof Blob))
+          throw new Error("Expected raw upload body");
+        expect(await init.body.text()).toBe("# Notes");
         return Response.json({
           id: "upload-550e8400-e29b-41d4-a716-446655440000",
           ref: {
