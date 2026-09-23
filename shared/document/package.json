@@ -20,6 +20,7 @@
       "types": "./src/index.ts",
       "default": "./src/index.ts"
     },
+    "./extracted-text-file": "./src/extracted-text-file.ts",
     "./file-inspection-process": "./src/file-inspection-process.ts",
     "./upload-markdown-process": "./src/upload-markdown-process.ts"
   },

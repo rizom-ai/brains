@@ -164,7 +164,12 @@ export class EmailInterface extends MessageInterfacePlugin<
     super("email", packageJson, config, emailConfigSchema);
     this.fetchImpl = dependencies.fetchImpl ?? fetch;
     this.imapClientFactory =
-      dependencies.imapClientFactory ?? createInboundEmailClient;
+      dependencies.imapClientFactory ??
+      ((config): ReturnType<InboundEmailClientFactory> =>
+        createInboundEmailClient(
+          config,
+          () => this.getContext().fileTransfers,
+        ));
     this.inboundSleep = dependencies.inboundSleep;
   }
 

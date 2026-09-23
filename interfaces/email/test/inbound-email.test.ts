@@ -102,22 +102,31 @@ describe("IMAP transport safeguards", () => {
   });
 });
 
+import { parsedFixture } from "./helpers/parsed-message";
+
 async function fixtureMessage(
   uid: number,
   fixture: string,
   threadId?: string,
+  replaceSender = false,
 ): Promise<InboundEmailSourceMessage> {
   const source = new Uint8Array(
     await Bun.file(
       new URL(`fixtures/${fixture}`, import.meta.url),
     ).arrayBuffer(),
   );
-  return {
+  return parsedFixture({
     uid,
-    source,
+    source: replaceSender
+      ? Buffer.from(
+          Buffer.from(source)
+            .toString("utf8")
+            .replace("alice@example.com", "Alice@Example.COM"),
+        )
+      : source,
     receivedAt: mailboxReceivedAt,
     ...(threadId ? { threadId } : {}),
-  };
+  });
 }
 
 function expectLoggerNotToContain(
@@ -368,13 +377,13 @@ describe("inbound email intake", () => {
   });
 
   it("advances past an unparseable message so later mail can flow", async () => {
-    const poisonMessage: InboundEmailSourceMessage = {
+    const poisonMessage = await parsedFixture({
       uid: 1,
       source: new TextEncoder().encode(
         "Subject: Missing sender\r\n\r\nThis message cannot be parsed.",
       ),
       receivedAt: mailboxReceivedAt,
-    };
+    });
     const plainMessage = await fixtureMessage(2, "plain.eml");
     const requestedUids: number[] = [];
     const logger = createMockLogger();
@@ -506,17 +515,7 @@ describe("inbound email intake", () => {
   });
 
   it("normalizes and enriches known senders without exposing their raw address", async () => {
-    const fixture = await fixtureMessage(1, "plain.eml");
-    const messages = [
-      {
-        ...fixture,
-        source: Buffer.from(
-          Buffer.from(fixture.source)
-            .toString("utf8")
-            .replace("alice@example.com", "Alice@Example.COM"),
-        ),
-      },
-    ];
+    const messages = [await fixtureMessage(1, "plain.eml", undefined, true)];
     const requestedUids: number[] = [];
     const logger = createMockLogger();
     const harness = createPluginHarness<EmailInterface>({ logger });

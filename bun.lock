@@ -500,6 +500,8 @@
       "version": "0.2.0-alpha.373",
       "dependencies": {
         "@brains/contracts": "workspace:*",
+        "@brains/db": "workspace:*",
+        "@brains/document": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
         "imapflow": "^1.6.5",

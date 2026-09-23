@@ -1,13 +1,16 @@
+import {
+  readOwnedEmailSource,
+  MAX_EMAIL_SOURCE_BYTES,
+  type EmailSourceFiles,
+} from "./email-source";
 import type { EventEmitter } from "node:events";
 import { isIP } from "node:net";
 import type { ConnectionOptions } from "node:tls";
 import { ImapFlow } from "imapflow";
-import { simpleParser, type AddressObject, type HeaderLines } from "mailparser";
 import {
   EMAIL_INBOUND,
   inboundEmailSchema,
   type InboundEmail,
-  type InboundEmailAddress,
   type InboundEmailSender,
 } from "@brains/contracts";
 import type { IRuntimeStateStore, MessageSender } from "@brains/plugins";
@@ -44,9 +47,8 @@ export type EmailImapConfigInput = z.input<typeof emailImapConfigSchema>;
 
 export interface InboundEmailSourceMessage {
   uid: number;
-  source: Uint8Array;
-  receivedAt: Date;
-  threadId?: string | undefined;
+  sourceBytes: number;
+  email?: InboundEmail | undefined;
   sourceTruncated?: boolean | undefined;
 }
 
@@ -89,12 +91,46 @@ export async function connectImapWithIpv4TlsFallback<T>(
 
 export function createInboundEmailClient(
   config: EmailImapConfig,
+  getFiles: () => EmailSourceFiles | undefined,
+  createTransport: (
+    config: EmailImapConfig,
+    family?: 4,
+  ) => ImapFlow = createImapFlow,
 ): InboundEmailClient {
-  let client = createImapFlow(config);
+  let client = createTransport(config);
+  let selection: InboundEmailSelection | undefined;
+  let connectionSignal: AbortSignal | undefined;
+  const lifetime = new AbortController();
+  const pending = new Set<Promise<InboundEmailSourceMessage>>();
+  const read = (
+    uid: number,
+    maxBytes: number,
+    allowTruncated: boolean,
+    signal?: AbortSignal,
+  ): Promise<InboundEmailSourceMessage> => {
+    if (!selection || !connectionSignal)
+      return Promise.reject(new Error("Email mailbox has not been selected"));
+    const activeSignal = AbortSignal.any([
+      lifetime.signal,
+      connectionSignal,
+      ...(signal ? [signal] : []),
+    ]);
+    const operation = readOwnedEmailSource(
+      getFiles(),
+      { config, selection, uid, maxBytes, allowTruncated },
+      activeSignal,
+    ).finally(() => {
+      pending.delete(operation);
+    });
+    pending.add(operation);
+    return operation;
+  };
 
   return {
     connect: async (signal): Promise<void> => {
       signal.throwIfAborted();
+      lifetime.signal.throwIfAborted();
+      connectionSignal = signal;
       const abort = (): void => client.close();
       signal.addEventListener("abort", abort, { once: true });
       try {
@@ -103,7 +139,7 @@ export function createInboundEmailClient(
           async (family) => {
             if (family === 4) {
               client.close();
-              client = createImapFlow(config, family);
+              client = createTransport(config, family);
             }
             await client.connect();
             return client;
@@ -117,7 +153,8 @@ export function createInboundEmailClient(
     },
     selectMailbox: async (mailbox: string): Promise<string> => {
       const selected = await client.mailboxOpen(mailbox, { readOnly: true });
-      return selected.uidValidity.toString();
+      selection = { mailbox, uidValidity: selected.uidValidity.toString() };
+      return selection.uidValidity;
     },
     fetchMessages: async function* (
       afterUid: number,
@@ -126,9 +163,6 @@ export function createInboundEmailClient(
         `${afterUid}:*`,
         {
           uid: true,
-          source: true,
-          internalDate: true,
-          threadId: true,
         },
         { uid: true },
       );
@@ -136,15 +170,7 @@ export function createInboundEmailClient(
         // IMAP sequence ranges can include the last message when afterUid is
         // higher than the mailbox's current maximum UID.
         if (message.uid < afterUid) continue;
-        if (!message.source || !message.internalDate) {
-          throw new Error("Inbound email source was incomplete");
-        }
-        yield {
-          uid: message.uid,
-          source: message.source,
-          receivedAt: new Date(message.internalDate),
-          ...(message.threadId ? { threadId: message.threadId } : {}),
-        };
+        yield await read(message.uid, MAX_EMAIL_SOURCE_BYTES, false);
       }
     },
     fetchMessage: async (
@@ -152,41 +178,7 @@ export function createInboundEmailClient(
       maxBytes: number,
       signal: AbortSignal,
     ): Promise<InboundEmailSourceMessage | undefined> => {
-      if (signal.aborted) throw signal.reason;
-      const abort = (): void => client.close();
-      signal.addEventListener("abort", abort, { once: true });
-      try {
-        const message = await client.fetchOne(
-          String(uid),
-          {
-            uid: true,
-            source: { maxLength: maxBytes },
-            size: true,
-            internalDate: true,
-            threadId: true,
-          },
-          { uid: true },
-        );
-        if (
-          !message ||
-          message.uid !== uid ||
-          !message.source ||
-          !message.internalDate
-        ) {
-          return undefined;
-        }
-        return {
-          uid,
-          source: message.source,
-          receivedAt: new Date(message.internalDate),
-          ...(message.threadId ? { threadId: message.threadId } : {}),
-          ...(message.size !== undefined && message.source.length < message.size
-            ? { sourceTruncated: true }
-            : {}),
-        };
-      } finally {
-        signal.removeEventListener("abort", abort);
-      }
+      return read(uid, maxBytes, true, signal);
     },
     waitForChanges: (signal: AbortSignal): Promise<void> => {
       if (signal.aborted) return Promise.reject(signal.reason);
@@ -224,16 +216,30 @@ export function createInboundEmailClient(
       });
     },
     disconnect: async (): Promise<void> => {
-      if (client.usable) {
-        await client.logout();
-      } else {
-        client.close();
-      }
+      lifetime.abort(new Error("Email client disconnected"));
+      const results = await Promise.allSettled([
+        ...pending,
+        Promise.resolve().then(() => client.close()),
+      ]);
+      const errors = results.flatMap((result) =>
+        result.status === "rejected" &&
+        result.reason !== lifetime.signal.reason &&
+        result.reason !== connectionSignal?.reason
+          ? [result.reason]
+          : [],
+      );
+      if (errors.length === 1) throw errors[0];
+      if (errors.length)
+        throw new AggregateError(
+          errors,
+          "Email source operations and client retirement failed",
+          { cause: errors[0] },
+        );
     },
   };
 }
 
-function createImapFlow(config: EmailImapConfig, family?: 4): ImapFlow {
+export function createImapFlow(config: EmailImapConfig, family?: 4): ImapFlow {
   const tls: (ConnectionOptions & { family: 4 }) | undefined =
     family === 4 ? { family } : undefined;
   const client = new ImapFlow({
@@ -433,117 +439,13 @@ export async function intakeInboundEmail(
   return processed;
 }
 
+/** Bind native-parsed logical content to the controller's mailbox locator.
+ * Raw MIME parsing is confined to the email-source actor. */
 export async function parseInboundEmail(
   sourceMessage: InboundEmailSourceMessage,
   sourceRef: string,
 ): Promise<InboundEmail> {
-  const parsed = await simpleParser(Buffer.from(sourceMessage.source), {
-    skipImageLinks: true,
-  });
-  const from = firstAddress(parsed.from);
-  if (!from) {
-    throw new Error("Inbound email sender was missing");
-  }
-
-  const messageId = messageIdOrSynthetic(
-    parsed.messageId,
-    sourceMessage.source,
-  );
-  const replyTo = firstAddress(parsed.replyTo);
-  const references = normalizeReferences(parsed.references);
-  const html = typeof parsed.html === "string" ? parsed.html : undefined;
-  const email: InboundEmail = {
-    messageId,
-    sourceRef,
-    ...(sourceMessage.threadId ? { threadId: sourceMessage.threadId } : {}),
-    from,
-    ...(replyTo ? { replyTo } : {}),
-    to: addresses(parsed.to),
-    subject: parsed.subject ?? "",
-    receivedAt: sourceMessage.receivedAt.toISOString(),
-    text: parsed.text ?? "",
-    ...(html ? { html } : {}),
-    headers: {
-      ...optionalHeader(
-        parsed.headerLines,
-        "list-unsubscribe",
-        "listUnsubscribe",
-      ),
-      ...optionalHeader(parsed.headerLines, "auto-submitted", "autoSubmitted"),
-      ...optionalHeader(parsed.headerLines, "precedence", "precedence"),
-      ...(parsed.inReplyTo?.trim()
-        ? { inReplyTo: parsed.inReplyTo.trim() }
-        : {}),
-      ...(references.length > 0 ? { references } : {}),
-    },
-  };
-  return inboundEmailSchema.parse(email);
-}
-
-function messageIdOrSynthetic(
-  messageId: string | undefined,
-  source: Uint8Array,
-): string {
-  const normalized = messageId?.trim();
-  if (normalized) return normalized;
-  const sourceBase64 = Buffer.from(source).toString("base64");
-  return `<synthetic-${sha256Hex(sourceBase64)}@brains.local>`;
-}
-
-function addresses(
-  value: AddressObject | AddressObject[] | undefined,
-): InboundEmailAddress[] {
-  const addressObjects = value ? (Array.isArray(value) ? value : [value]) : [];
-  return addressObjects.flatMap((addressObject) =>
-    addressObject.value.flatMap((entry) => {
-      if (entry.group) {
-        return entry.group.flatMap((groupEntry) => toAddress(groupEntry));
-      }
-      return toAddress(entry);
-    }),
-  );
-}
-
-function firstAddress(
-  value: AddressObject | undefined,
-): InboundEmailAddress | undefined {
-  return addresses(value)[0];
-}
-
-function toAddress(value: {
-  address?: string | undefined;
-  name: string;
-}): InboundEmailAddress[] {
-  const address = value.address?.trim().toLowerCase();
-  if (!address) return [];
-  const name = value.name.trim();
-  return [{ address, ...(name ? { name } : {}) }];
-}
-
-function normalizeReferences(input: string | string[] | undefined): string[] {
-  return (typeof input === "string" ? [input] : (input ?? []))
-    .map((reference) => reference.trim())
-    .filter((reference) => reference.length > 0);
-}
-
-function optionalHeader(
-  headerLines: HeaderLines,
-  headerName: string,
-  key: "listUnsubscribe" | "autoSubmitted" | "precedence",
-): Partial<InboundEmail["headers"]> {
-  const line = headerLines.find(
-    (candidate) => candidate.key === headerName,
-  )?.line;
-  const separator = line?.indexOf(":") ?? -1;
-  const value = separator >= 0 ? line?.slice(separator + 1).trim() : undefined;
-  if (!value) return {};
-
-  switch (key) {
-    case "listUnsubscribe":
-      return { listUnsubscribe: value };
-    case "autoSubmitted":
-      return { autoSubmitted: value };
-    case "precedence":
-      return { precedence: value };
-  }
+  if (!sourceMessage.email)
+    throw new Error("Inbound email source could not be parsed");
+  return inboundEmailSchema.parse({ ...sourceMessage.email, sourceRef });
 }

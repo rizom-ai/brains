@@ -2,6 +2,7 @@ import { expect, expectTypeOf, test } from "bun:test";
 import assert from "node:assert/strict";
 import type {
   EntityFileAssets,
+  EntityFileProductionOptions,
   EntityFileReader,
   EntityVerifiedFileSource,
   EntityServiceClient,
@@ -98,11 +99,47 @@ test("an existing interface context borrows through the provisioned owner until 
   expect(calls).toBe(1);
 });
 
+test("interface native production is late-bound without exposing publication or owner shutdown", async () => {
+  const shell = createMockShell();
+  const context = createInterfacePluginContext(shell, "email");
+  const files = provision(unexpected);
+  shell.getEntityService().fileAssets = files;
+  expect(context.fileTransfers?.withProducedFile).toBeUndefined();
+  const signal = new AbortController().signal;
+  const options = {
+    producer: "email-source",
+    metadata: { request: "fixture" },
+    signal,
+  };
+  files.withProducedFile = async function <T>(
+    source: string | undefined,
+    use: (file: EntityVerifiedFileSource, signal: AbortSignal) => Promise<T>,
+    actual?: EntityFileProductionOptions,
+  ): Promise<T> {
+    expect(this).toBe(files);
+    expect(source).toBeUndefined();
+    expect(actual).toBe(options);
+    return use(file, signal);
+  };
+  const result = await context.fileTransfers?.withProducedFile?.(
+    undefined,
+    async (actual, callerSignal) => {
+      expect(actual).toBe(file);
+      expect(callerSignal).toBe(signal);
+      return "logical email";
+    },
+    options,
+  );
+  expect(result).toBe("logical email");
+  expect(context.fileTransfers).not.toHaveProperty("publish");
+  expect(context.fileTransfers).not.toHaveProperty("close");
+});
+
 test("interface transports bind only transport methods and observe late provisioning without changing owner identity", async () => {
   const shell = createMockShell();
   const context = createMessageInterfacePluginContext(shell, "chat");
   expectTypeOf<keyof NonNullable<typeof context.fileTransfers>>().toEqualTypeOf<
-    "putHttp" | "postHttp" | "withCapturedFile" | "inspect"
+    "putHttp" | "postHttp" | "withCapturedFile" | "withProducedFile" | "inspect"
   >();
   expect(context.fileTransfers).toBeUndefined();
   const files = provision(unexpected);

@@ -13,6 +13,7 @@ import {
   type InboundEmailSourceMessage,
 } from "../src";
 import { emailSourceLocatorSchema } from "../src/source-locator-store";
+import { parsedFixture } from "./helpers/parsed-message";
 import { readEmailSource } from "../src/source-reader";
 
 const recordedAt = new Date().toISOString();
@@ -28,7 +29,7 @@ const imapConfig: EmailImapConfig = {
 };
 
 async function sourceMessage(): Promise<InboundEmailSourceMessage> {
-  return {
+  return parsedFixture({
     uid: 7,
     source: new Uint8Array(
       await Bun.file(
@@ -36,7 +37,7 @@ async function sourceMessage(): Promise<InboundEmailSourceMessage> {
       ).arrayBuffer(),
     ),
     receivedAt: new Date("2026-04-15T09:00:00.000Z"),
-  };
+  });
 }
 
 function sourceClient(options: {
@@ -204,8 +205,7 @@ describe("email source read", () => {
         sourceClient({
           message: {
             uid: 7,
-            source: new Uint8Array(1024 * 1024 + 1),
-            receivedAt: new Date("2026-04-15T09:00:00.000Z"),
+            sourceBytes: 1024 * 1024 + 1,
           },
         }),
       locator,
@@ -214,17 +214,18 @@ describe("email source read", () => {
     expect(oversized).toEqual({ kind: "unavailable" });
 
     const body = "a".repeat(100_100);
+    const message = await parsedFixture({
+      uid: 7,
+      source: Buffer.from(
+        `From: Alice <alice@example.com>\r\nTo: Work <work@example.com>\r\nMessage-ID: <bounded@example.com>\r\nSubject: Bounded\r\n\r\n${body}`,
+      ),
+      receivedAt: new Date("2026-04-15T09:00:00.000Z"),
+    });
     const bounded = await readEmailSource(
       imapConfig,
       (): InboundEmailClient =>
         sourceClient({
-          message: {
-            uid: 7,
-            source: Buffer.from(
-              `From: Alice <alice@example.com>\r\nTo: Work <work@example.com>\r\nMessage-ID: <bounded@example.com>\r\nSubject: Bounded\r\n\r\n${body}`,
-            ),
-            receivedAt: new Date("2026-04-15T09:00:00.000Z"),
-          },
+          message,
         }),
       locator,
       AbortSignal.timeout(1_000),

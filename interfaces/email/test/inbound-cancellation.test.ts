@@ -1,3 +1,4 @@
+import { parsedFixture } from "./helpers/parsed-message";
 import { expect, test, mock } from "bun:test";
 import { createMockShell } from "@brains/plugins/test";
 import { createMockLogger } from "@brains/test-utils";
@@ -59,13 +60,13 @@ test.each(["sender", "publish"])(
     const selection = { mailbox: "INBOX", uidValidity: "1" };
     let nextMessage = false;
     let closed = false;
-    const source: InboundEmailSourceMessage = {
+    const source = await parsedFixture({
       uid: 7,
       receivedAt: new Date("2026-01-01T00:00:00Z"),
       source: new TextEncoder().encode(
         "From: sender@example.com\r\nTo: inbox@example.com\r\nSubject: Fixture\r\nMessage-ID: <fixture@example.com>\r\n\r\nBody",
       ),
-    };
+    });
     const client: InboundEmailClient = {
       connect: unexpected,
       selectMailbox: unexpected,

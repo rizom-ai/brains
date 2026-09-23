@@ -497,6 +497,10 @@ plugins:
   const app = createApp();
   const fileActors = {
     producerUrls: {
+      "email-source": new URL(
+        "../../interfaces/email/test/fixtures/email-source-actor.ts",
+        import.meta.url,
+      ),
       "file-model": new URL(
         "../../shell/ai-service/test/fixtures/file-model-stream-actor.ts",
         import.meta.url,

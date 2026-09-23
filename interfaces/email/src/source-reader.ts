@@ -35,10 +35,7 @@ export async function readEmailSource(
       MAX_SOURCE_BYTES,
       signal,
     );
-    if (
-      source?.uid !== locator.uid ||
-      source.source.byteLength > MAX_SOURCE_BYTES
-    ) {
+    if (source?.uid !== locator.uid || source.sourceBytes > MAX_SOURCE_BYTES) {
       return { kind: "unavailable" };
     }
     signal.throwIfAborted();
