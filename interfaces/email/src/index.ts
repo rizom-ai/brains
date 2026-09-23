@@ -175,8 +175,9 @@ export class EmailInterface extends MessageInterfacePlugin<
     const supervisor = new InboundEmailSupervisor({
       config,
       createClient: this.imapClientFactory,
-      intake: async (client, selection): Promise<number> =>
+      intake: async (client, selection, signal): Promise<number> =>
         intakeInboundEmail(client, selection, {
+          signal,
           cursor: this.getInboundCursor(),
           publish: this.getContext().messaging.send,
           resolveSender: async (

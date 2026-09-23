@@ -51,7 +51,7 @@ export interface InboundEmailSourceMessage {
 }
 
 export interface InboundEmailClient {
-  connect: () => Promise<void>;
+  connect: (signal: AbortSignal) => Promise<void>;
   /** Select a mailbox and return its IMAP UIDVALIDITY as a decimal string. */
   selectMailbox: (mailbox: string) => Promise<string>;
   fetchMessages: (afterUid: number) => AsyncIterable<InboundEmailSourceMessage>;
@@ -70,13 +70,20 @@ export type InboundEmailClientFactory = (
 
 export async function connectImapWithIpv4TlsFallback<T>(
   host: string,
-  connect: (family?: 4) => Promise<T>,
+  connect: (family: 4 | undefined) => Promise<T>,
+  signal: AbortSignal,
 ): Promise<T> {
+  signal.throwIfAborted();
   try {
-    return await connect();
+    const result = await connect(undefined);
+    signal.throwIfAborted();
+    return result;
   } catch (error) {
+    signal.throwIfAborted();
     if (!shouldRetryImapTlsOverIpv4(host, error)) throw error;
-    return connect(4);
+    const result = await connect(4);
+    signal.throwIfAborted();
+    return result;
   }
 }
 
@@ -86,18 +93,27 @@ export function createInboundEmailClient(
   let client = createImapFlow(config);
 
   return {
-    connect: async (): Promise<void> => {
-      client = await connectImapWithIpv4TlsFallback(
-        config.host,
-        async (family) => {
-          if (family === 4) {
-            client.close();
-            client = createImapFlow(config, family);
-          }
-          await client.connect();
-          return client;
-        },
-      );
+    connect: async (signal): Promise<void> => {
+      signal.throwIfAborted();
+      const abort = (): void => client.close();
+      signal.addEventListener("abort", abort, { once: true });
+      try {
+        client = await connectImapWithIpv4TlsFallback(
+          config.host,
+          async (family) => {
+            if (family === 4) {
+              client.close();
+              client = createImapFlow(config, family);
+            }
+            await client.connect();
+            return client;
+          },
+          signal,
+        );
+      } finally {
+        signal.removeEventListener("abort", abort);
+        if (signal.aborted) client.close();
+      }
     },
     selectMailbox: async (mailbox: string): Promise<string> => {
       const selected = await client.mailboxOpen(mailbox, { readOnly: true });
@@ -274,6 +290,7 @@ export function createInboundEmailSourceRef(
 }
 
 export interface InboundEmailIntakeDependencies {
+  signal: AbortSignal;
   cursor: IRuntimeStateStore<InboundEmailCursor>;
   publish: MessageSender;
   resolveSender?:
@@ -301,8 +318,11 @@ export async function intakeInboundEmail(
     recordSourceLocator,
     pruneSourceLocators,
     logger,
+    signal,
   } = dependencies;
+  signal.throwIfAborted();
   const storedCursor = await cursor.get("cursor");
+  signal.throwIfAborted();
   // A UID cursor is meaningful only within one mailbox generation; distinct
   // mailboxes can share a UIDVALIDITY value, so both fields gate reuse.
   const cursorMatches =
@@ -316,7 +336,9 @@ export async function intakeInboundEmail(
   let cursorUid = lastUid;
   let processed = 0;
 
+  signal.throwIfAborted();
   for await (const sourceMessage of client.fetchMessages(lastUid + 1)) {
+    signal.throwIfAborted();
     if (sourceMessage.uid <= cursorUid) continue;
     let email: InboundEmail;
     try {
@@ -325,6 +347,7 @@ export async function intakeInboundEmail(
         createInboundEmailSourceRef(selection, sourceMessage.uid),
       );
     } catch {
+      signal.throwIfAborted();
       logger.warn("Inbound email message could not be parsed", {
         uid: sourceMessage.uid,
       });
@@ -336,6 +359,7 @@ export async function intakeInboundEmail(
       continue;
     }
 
+    signal.throwIfAborted();
     if (recordSourceLocator) {
       try {
         await recordSourceLocator(
@@ -351,6 +375,7 @@ export async function intakeInboundEmail(
       }
     }
 
+    signal.throwIfAborted();
     if (resolveSender) {
       try {
         const sender = await resolveSender(email.from.address);
@@ -362,6 +387,7 @@ export async function intakeInboundEmail(
       }
     }
 
+    signal.throwIfAborted();
     let acknowledged = false;
     try {
       const response = await publish({
@@ -374,12 +400,15 @@ export async function intakeInboundEmail(
     }
 
     if (!acknowledged) {
+      signal.throwIfAborted();
       logger.warn("Inbound email event was not acknowledged", {
         messageKey: sha256Hex(email.messageId),
       });
       break;
     }
 
+    // A received acknowledgement must advance the durable cursor even when
+    // cancellation arrived during publication; stopping cannot retract it.
     await cursor.set("cursor", {
       ...selection,
       lastUid: sourceMessage.uid,
@@ -389,8 +418,10 @@ export async function intakeInboundEmail(
     logger.debug("Inbound email event published", {
       messageKey: sha256Hex(email.messageId),
     });
+    signal.throwIfAborted();
   }
 
+  signal.throwIfAborted();
   if (pruneSourceLocators) {
     try {
       await pruneSourceLocators();

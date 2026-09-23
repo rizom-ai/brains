@@ -9,19 +9,24 @@ import type { EmailSourceLocator } from "./source-locator-store";
 const MAX_SOURCE_BYTES = 1024 * 1024;
 const MAX_TEXT_LENGTH = 100_000;
 
+function isAborted(signal: AbortSignal): boolean {
+  return signal.aborted;
+}
+
 export async function readEmailSource(
   config: EmailImapConfig,
   createClient: (config: EmailImapConfig) => InboundEmailClient,
   locator: EmailSourceLocator,
   signal: AbortSignal,
 ): Promise<EmailSourceReadResponse> {
-  if (signal.aborted) return { kind: "unavailable" };
+  if (isAborted(signal)) return { kind: "unavailable" };
   const client = createClient(config);
-  let connected = false;
+  let result: EmailSourceReadResponse;
   try {
-    await client.connect();
-    connected = true;
+    await client.connect(signal);
+    signal.throwIfAborted();
     const uidValidity = await client.selectMailbox(locator.mailbox);
+    signal.throwIfAborted();
     if (uidValidity !== locator.uidValidity || !client.fetchMessage) {
       return { kind: "unavailable" };
     }
@@ -36,10 +41,12 @@ export async function readEmailSource(
     ) {
       return { kind: "unavailable" };
     }
+    signal.throwIfAborted();
     const email = await parseInboundEmail(source, locator.sourceRef);
+    signal.throwIfAborted();
     const truncated =
       source.sourceTruncated === true || email.text.length > MAX_TEXT_LENGTH;
-    return emailSourceReadResponseSchema.parse({
+    result = emailSourceReadResponseSchema.parse({
       kind: "available",
       message: {
         messageId: email.messageId,
@@ -59,13 +66,12 @@ export async function readEmailSource(
   } catch {
     return { kind: "unavailable" };
   } finally {
-    if (connected) {
-      try {
-        await client.disconnect();
-      } catch {
-        // The fixed unavailable outcome is handled by the caller; cleanup
-        // failures must not expose mailbox details.
-      }
+    try {
+      await client.disconnect();
+    } catch {
+      // No source delivery without retirement, and no mailbox details in errors.
+      result = { kind: "unavailable" };
     }
   }
+  return signal.aborted ? { kind: "unavailable" } : result;
 }

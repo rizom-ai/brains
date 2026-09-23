@@ -66,6 +66,7 @@ describe("IMAP transport safeguards", () => {
         }
         return "connected";
       },
+      new AbortController().signal,
     );
 
     expect(result).toBe("connected");
@@ -81,14 +82,22 @@ describe("IMAP transport safeguards", () => {
     });
 
     expect(
-      connectImapWithIpv4TlsFallback("imap.example.com", async () => {
-        throw connectionError;
-      }),
+      connectImapWithIpv4TlsFallback(
+        "imap.example.com",
+        async () => {
+          throw connectionError;
+        },
+        new AbortController().signal,
+      ),
     ).rejects.toBe(connectionError);
     expect(
-      connectImapWithIpv4TlsFallback("192.0.2.1", async () => {
-        throw certificateError;
-      }),
+      connectImapWithIpv4TlsFallback(
+        "192.0.2.1",
+        async () => {
+          throw certificateError;
+        },
+        new AbortController().signal,
+      ),
     ).rejects.toBe(certificateError);
   });
 });
@@ -222,6 +231,7 @@ describe("inbound email intake", () => {
       createFakeClient([message], [], "42"),
       { mailbox: "INBOX", uidValidity: "42" },
       {
+        signal: new AbortController().signal,
         cursor,
         recordSourceLocator: async (sourceRef, selection, uid) => {
           expect({ sourceRef, selection, uid }).toEqual({
@@ -467,6 +477,7 @@ describe("inbound email intake", () => {
       client,
       { mailbox: "INBOX", uidValidity: "1" },
       {
+        signal: new AbortController().signal,
         cursor,
         publish: async (request) => {
           received.push(inboundEmailSchema.parse(request.payload));
@@ -479,6 +490,7 @@ describe("inbound email intake", () => {
       client,
       { mailbox: "Archive", uidValidity: "1" },
       {
+        signal: new AbortController().signal,
         cursor,
         publish: async (request) => {
           received.push(inboundEmailSchema.parse(request.payload));
@@ -645,6 +657,7 @@ describe("inbound email intake", () => {
     const selection = { mailbox: "INBOX", uidValidity: "1" };
 
     await intakeInboundEmail(client, selection, {
+      signal: new AbortController().signal,
       cursor,
       publish: async () => ({
         success: false,
@@ -655,6 +668,7 @@ describe("inbound email intake", () => {
 
     const received: InboundEmail[] = [];
     await intakeInboundEmail(client, selection, {
+      signal: new AbortController().signal,
       cursor,
       publish: async (request) => {
         received.push(inboundEmailSchema.parse(request.payload));

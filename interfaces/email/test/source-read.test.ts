@@ -88,6 +88,47 @@ async function sendRead(
 }
 
 describe("email source read", () => {
+  it.each(["cancel-on-retirement", "retirement-failure", "connect-failure"])(
+    "withholds source content after %s and joins cleanup",
+    async (mode) => {
+      const abort = new AbortController();
+      const message = await sourceMessage();
+      const transport = sourceClient({ message });
+      let disconnected = false;
+      let fetched = false;
+      transport.connect = async (signal): Promise<void> => {
+        expect(signal).toBe(abort.signal);
+        if (mode === "connect-failure")
+          throw new Error("Private connection details");
+      };
+      transport.fetchMessage = async (): Promise<InboundEmailSourceMessage> => {
+        fetched = true;
+        return message;
+      };
+      transport.disconnect = async (): Promise<void> => {
+        disconnected = true;
+        if (mode === "cancel-on-retirement")
+          abort.abort(new Error("Read cancelled"));
+        if (mode === "retirement-failure")
+          throw new Error("Private retirement details");
+      };
+      const result = await readEmailSource(
+        imapConfig,
+        () => transport,
+        {
+          sourceRef: "fixture",
+          mailbox: "INBOX",
+          uidValidity: "42",
+          uid: 7,
+          recordedAt,
+        },
+        abort.signal,
+      );
+      expect(result).toEqual({ kind: "unavailable" });
+      expect(disconnected).toBe(true);
+      expect(fetched).toBe(mode !== "connect-failure");
+    },
+  );
   it("resolves a private locator for an Admin with bounded plain content", async () => {
     const message = await sourceMessage();
     let observedSignal: AbortSignal | undefined;
