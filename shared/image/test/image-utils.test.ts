@@ -1,11 +1,9 @@
-import { prepareAsset } from "@brains/assets";
-import { describe, expect, it, mock } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import {
   parseDataUrl,
   createDataUrl,
   detectImageFormat,
   isValidDataUrl,
-  resolveImageBytes,
 } from "../src/lib/image-utils";
 
 // Minimal 1x1 pixel PNG (base64)
@@ -85,65 +83,6 @@ describe("detectImageFormat", () => {
   it("should return null for unknown format", () => {
     const format = detectImageFormat("YWJjZGVm"); // "abcdef" in base64
     expect(format).toBeNull();
-  });
-});
-
-describe("resolveImageBytes", () => {
-  it("explicitly reads and validates asset-backed image bytes", async () => {
-    const bytes = Buffer.from(TINY_PNG_BASE64, "base64");
-    const prepared = prepareAsset(bytes);
-    const readAsset = mock(async () => prepared.bytes);
-
-    const result = await resolveImageBytes(
-      {
-        content: prepared.ref,
-        metadata: {
-          mediaType: "image/png",
-          sizeBytes: bytes.byteLength,
-        },
-      },
-      { readAsset },
-    );
-
-    expect(result).toMatchObject({
-      format: "png",
-      mediaType: "image/png",
-      sizeBytes: bytes.byteLength,
-      width: 1,
-      height: 1,
-    });
-    expect(result.bytes).toEqual(bytes);
-    expect(readAsset).toHaveBeenCalledWith(prepared.ref);
-  });
-
-  it("rejects asset bytes that conflict with entity metadata", async () => {
-    const bytes = Buffer.from(TINY_PNG_BASE64, "base64");
-    const prepared = prepareAsset(bytes);
-
-    expect(
-      resolveImageBytes(
-        {
-          content: prepared.ref,
-          metadata: {
-            mediaType: "image/jpeg",
-            sizeBytes: bytes.byteLength,
-          },
-        },
-        { readAsset: async () => bytes },
-      ),
-    ).rejects.toThrow("does not match image/png signature");
-    expect(
-      resolveImageBytes(
-        {
-          content: prepared.ref,
-          metadata: {
-            mediaType: "image/png",
-            sizeBytes: bytes.byteLength + 1,
-          },
-        },
-        { readAsset: async () => bytes },
-      ),
-    ).rejects.toThrow("size does not match");
   });
 });
 

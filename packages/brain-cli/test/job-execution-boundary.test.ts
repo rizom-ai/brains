@@ -1,11 +1,6 @@
 import { z } from "@brains/utils/zod";
 import { prepareAsset } from "@brains/assets";
-import {
-  imageAdapter,
-  imageSchema,
-  resolveImageBytes,
-  prepareImageAsset,
-} from "@brains/image";
+import { imageAdapter, imageSchema, prepareImageAsset } from "@brains/image";
 import { afterEach, describe, expect, it } from "bun:test";
 import defaultSite from "@brains/site-default";
 import {
@@ -540,11 +535,10 @@ describe("canonical durable job execution boundary", () => {
       actualDigest: asset.digest,
       valid: true,
     });
-    expect(
-      Buffer.from(
-        (await resolveImageBytes(persistedImage, workerEntities)).bytes,
-      ),
-    ).toEqual(bytes);
+    // Explicit byte comparison in the persistence fixture, not a display fallback.
+    expect(Buffer.from(await workerEntities.readAsset(asset.ref))).toEqual(
+      bytes,
+    );
     const missingAsset = prepareAsset(Buffer.from("missing")).ref;
     expect(await workerEntities.statAsset(missingAsset)).toBeNull();
     let missingAssetError: unknown;

@@ -198,6 +198,7 @@ export {
   createFileResponse,
   type FileResponseOptions,
 } from "./service/file-response";
+export { withPublishEntityFile } from "./service/publish-file-scope";
 export {
   withPublishFiles,
   type PublishFileReferences,

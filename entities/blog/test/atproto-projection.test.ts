@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
 import {
   createServicePluginContext,
   generateMarkdownWithFrontmatter,
@@ -10,7 +10,12 @@ import {
 } from "@brains/plugins/test";
 import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
 import { BlogPlugin } from "../src/plugin";
-import { createBlogAtprotoProjection } from "../src/atproto-projection";
+import type { PublishImageData } from "@brains/contracts";
+import type { AssetRef } from "@brains/assets";
+import {
+  AcknowledgedAtprotoCoverError,
+  createBlogAtprotoProjection,
+} from "../src/atproto-projection";
 import { createMockPost } from "./fixtures/blog-entities";
 
 const TINY_PNG_BASE64 =
@@ -55,7 +60,14 @@ describe("blog ATProto projection", () => {
     });
   });
 
-  it("includes a SQLite-backed cover image during dry-run without uploading a blob", async () => {
+  it.each([
+    "dry-run",
+    "live",
+    "retirement",
+    "cancelled",
+    "mismatch",
+    "non-public",
+  ])("publishes a scoped cover: %s", async (mode) => {
     const projection = createBlogAtprotoProjection();
     const entity = createMockPost(
       "post-1",
@@ -104,25 +116,145 @@ describe("blog ATProto projection", () => {
       preparedAsset: { ref, digest, sizeBytes: bytes.byteLength, bytes },
     });
     const context = createServicePluginContext(shell, "blog");
-
-    const record = await projection.buildRecord({
-      entity: postWithCover,
-      context,
-      config: {},
-      dryRun: true,
+    const storedImage = await context.entityService.getEntity({
+      entityType: "image",
+      id: "image-1",
     });
-
-    expect(record.coverImage).toEqual({
-      blob: {
-        $type: "blob",
-        ref: { $link: "dry-run" },
+    if (!storedImage) throw new Error("Missing fixture image");
+    const privateRead =
+      mode === "non-public"
+        ? spyOn(context.entityService, "getEntity").mockResolvedValue({
+            ...storedImage,
+            visibility: "restricted",
+          })
+        : undefined;
+    const unexpected = async (): Promise<never> => {
+      throw new Error("Unexpected file operation");
+    };
+    const readAsset = spyOn(
+      context.entityService,
+      "readAsset",
+    ).mockImplementation(unexpected);
+    const abort = new AbortController();
+    const failure = new Error("Source retirement failed");
+    let loans = 0;
+    const uploadBlob = mock(async (file: PublishImageData) => {
+      expect(loans).toBe(1);
+      expect(file).toEqual({
+        sourceFile: "/fixture/cover.png",
+        sizeBytes: bytes.byteLength,
+        sha256: digest,
         mimeType: "image/png",
-        size: bytes.byteLength,
-      },
-      alt: "Cover alt",
-      width: 1200,
-      height: 630,
+        signal: abort.signal,
+      });
+      return {
+        blob: {
+          $type: "blob" as const,
+          ref: { $link: "received-cid" },
+          mimeType: file.mimeType,
+          size: file.sizeBytes,
+        },
+      };
     });
+    context.entityService.fileAssets = {
+      withAssetFile: async <T>(
+        ref: AssetRef,
+        use: (
+          file: Omit<PublishImageData, "mimeType" | "signal">,
+          signal: AbortSignal,
+        ) => Promise<T>,
+      ): Promise<T> => {
+        expect(ref).toBe(`asset://sha256/${digest}`);
+        loans++;
+        try {
+          const result = await use(
+            {
+              sourceFile: "/fixture/cover.png",
+              sizeBytes: bytes.byteLength,
+              sha256: digest,
+            },
+            abort.signal,
+          );
+          if (mode === "retirement") throw failure;
+          if (mode === "cancelled") abort.abort(failure);
+          return result;
+        } finally {
+          loans--;
+        }
+      },
+      inspect: async (): Promise<{
+        sizeBytes: number;
+        sha256: string;
+        details: { mediaType: string; width: number; height: number };
+      }> => ({
+        sizeBytes: bytes.byteLength,
+        sha256: mode === "mismatch" ? "0".repeat(64) : digest,
+        details: { mediaType: "image/png", width: 1200, height: 630 },
+      }),
+      publish: unexpected,
+      fingerprint: unexpected,
+      download: unexpected,
+      putHttp: unexpected,
+      postHttp: unexpected,
+      close: async (): Promise<void> => undefined,
+    };
+
+    try {
+      const pending = projection.buildRecord({
+        entity: postWithCover,
+        context,
+        config: {},
+        dryRun: mode === "dry-run",
+        client: {
+          createSession: unexpected,
+          createRecord: unexpected,
+          uploadBlob,
+        },
+      });
+      if (mode === "retirement" || mode === "cancelled") {
+        await pending.then(unexpected, (error: unknown) => {
+          expect(error).toBeInstanceOf(AcknowledgedAtprotoCoverError);
+          if (!(error instanceof AcknowledgedAtprotoCoverError)) throw error;
+          expect(error.cause).toBe(failure);
+          expect(error.coverImage.blob.ref.$link).toBe("received-cid");
+        });
+      } else if (mode === "non-public") {
+        await pending.then(unexpected, (error: unknown): void => {
+          expect(error).toEqual(
+            new Error("Cannot publish non-public cover image: image-1"),
+          );
+        });
+      } else if (mode === "mismatch") {
+        await pending.then(unexpected, (error: unknown): void => {
+          expect(error).toEqual(
+            new Error("Publishing file changed after acquisition"),
+          );
+        });
+      } else {
+        const record = await pending;
+        expect(record.coverImage).toEqual({
+          blob: {
+            $type: "blob",
+            ref: { $link: mode === "dry-run" ? "dry-run" : "received-cid" },
+            mimeType: "image/png",
+            size: bytes.byteLength,
+          },
+          alt: "Cover alt",
+          width: 1200,
+          height: 630,
+        });
+      }
+      expect(loans).toBe(0);
+      expect(readAsset).not.toHaveBeenCalled();
+      expect(uploadBlob).toHaveBeenCalledTimes(
+        mode === "dry-run" || mode === "mismatch" || mode === "non-public"
+          ? 0
+          : 1,
+      );
+    } finally {
+      readAsset.mockRestore();
+      privateRead?.mockRestore();
+    }
   });
 
   it("stores the custom ATProto post URI in blog frontmatter after publish", async () => {

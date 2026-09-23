@@ -596,7 +596,7 @@ export class AtprotoPlugin extends ServicePlugin<
       );
     }
 
-    const client = this.createPdsClient(appPassword);
+    const client = this.createPdsClient(appPassword, context);
     const session = await client.createSession();
     const targetRepo = repo ?? session.did;
     const record = await projection.buildRecord({
@@ -931,7 +931,10 @@ export class AtprotoPlugin extends ServicePlugin<
     return true;
   }
 
-  private createPdsClient(appPassword: string): AtprotoPdsClientLike {
+  private createPdsClient(
+    appPassword: string,
+    context?: ServicePluginContext,
+  ): AtprotoPdsClientLike {
     if (this.deps.createPdsClient) {
       return this.deps.createPdsClient({
         pdsEndpoint: this.config.pdsEndpoint,
@@ -941,6 +944,7 @@ export class AtprotoPlugin extends ServicePlugin<
     }
 
     return new AtprotoPdsClient({
+      getFileTransfers: () => context?.entityService.fileAssets,
       pdsEndpoint: this.config.pdsEndpoint,
       identifier: this.config.identifier ?? "",
       appPassword,

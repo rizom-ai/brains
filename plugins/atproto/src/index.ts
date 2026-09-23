@@ -59,6 +59,7 @@ export {
 } from "./did";
 export {
   AtprotoPdsClient,
+  AcknowledgedAtprotoBlobError,
   type AtprotoPdsClientConfig,
   type AtprotoSession,
   type CreateRecordInput,

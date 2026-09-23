@@ -1,10 +1,11 @@
-import type { BaseEntity, IEntityService } from "@brains/entity-service";
+import type { BaseEntity, EntityServiceClient } from "@brains/entity-service";
+import type { PublishImageData } from "@brains/contracts";
 import type { AtprotoLexicon } from "./lexicon";
 import type { AtprotoBlobRef, AtprotoBrainPostRecord } from "./records";
 
 /**
  * Subset of the AT Protocol plugin config that entity projections may read when
- * building records. Projections do not authenticate or write, so PDS auth and
+ * building records. Projections delegate uploads to the provided client; PDS auth and
  * transport fields (identifier, endpoint, credentials, repo DID) are
  * intentionally excluded — they stay on the plugin's own config.
  */
@@ -44,22 +45,19 @@ export interface AtprotoPdsClientLike {
     collection: string;
     rkey: string;
   }): Promise<void>;
-  uploadBlob?(input: {
-    data: Buffer;
-    mimeType: string;
-  }): Promise<{ blob: AtprotoBlobRef }>;
+  uploadBlob?(input: PublishImageData): Promise<{ blob: AtprotoBlobRef }>;
 }
 
 /**
  * Structural view of the plugin context that AT Protocol projections receive.
- * Projections only read and update entities, so the contract exposes exactly
- * that capability instead of depending on the plugin framework's full
+ * Projections read/update entities and borrow inspected asset files, so the
+ * contract exposes those capabilities instead of the plugin framework's full
  * ServicePluginContext (which satisfies this interface structurally).
  */
 export interface AtprotoProjectionContext {
   entityService: Pick<
-    IEntityService,
-    "getEntity" | "readAsset" | "updateEntity"
+    EntityServiceClient,
+    "getEntity" | "statAsset" | "fileAssets" | "updateEntity"
   >;
 }
 

@@ -56,15 +56,8 @@ export {
   detectImageFormat,
   detectImageDimensions,
   inspectImageBytes,
-  resolveImageBytes,
   isAssetImageContent,
   isValidDataUrl,
   isHttpUrl,
-  fetchImageAsBase64,
 } from "./lib/image-utils";
-export type {
-  ParsedDataUrl,
-  InspectedImage,
-  ResolvedImageBytes,
-  ImageAssetReader,
-} from "./lib/image-utils";
+export type { ParsedDataUrl, InspectedImage } from "./lib/image-utils";

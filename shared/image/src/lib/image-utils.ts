@@ -1,5 +1,5 @@
 import { assetRefSchema, type AssetRef } from "@brains/assets";
-import { fetchAsBase64DataUrl, isHttpUrl } from "@brains/utils/http-utils";
+import { isHttpUrl } from "@brains/utils/http-utils";
 import type { ImageFormat, ImageMediaType } from "../schemas/image";
 
 const IMAGE_MEDIA_TYPES: Record<ImageFormat, ImageMediaType> = {
@@ -22,15 +22,6 @@ export interface InspectedImage {
   sizeBytes: number;
   width: number;
   height: number;
-}
-
-export interface ResolvedImageBytes extends InspectedImage {
-  bytes: Uint8Array;
-}
-
-/** Explicit asset read boundary used after entity visibility has been checked. */
-export interface ImageAssetReader {
-  readAsset(ref: AssetRef): Promise<Uint8Array>;
 }
 
 function normalizeDeclaredMediaType(value: string): ImageMediaType | undefined {
@@ -275,43 +266,6 @@ export function isValidDataUrl(value: string): boolean {
 }
 
 export { isHttpUrl };
-
-/** Fetch an image from URL as a provider-boundary data URL. */
-export async function fetchImageAsBase64(url: string): Promise<string> {
-  return fetchAsBase64DataUrl(url, "image/");
-}
-
-/**
- * Resolve either transitional inline content or a durable asset reference.
- * Accepts raw entity metadata so BaseEntity readers can call it directly;
- * declared media type and size are validated against the actual bytes.
- */
-export async function resolveImageBytes(
-  image: { content: string; metadata: Record<string, unknown> },
-  assets: ImageAssetReader,
-): Promise<ResolvedImageBytes> {
-  const assetRef = assetRefSchema.safeParse(image.content.trim());
-  if (assetRef.success) {
-    const declaredMediaType = image.metadata["mediaType"];
-    const declaredSize = image.metadata["sizeBytes"];
-    const bytes = await assets.readAsset(assetRef.data);
-    const inspected = inspectImageBytes(
-      bytes,
-      typeof declaredMediaType === "string" ? declaredMediaType : undefined,
-    );
-    if (
-      typeof declaredSize === "number" &&
-      declaredSize !== inspected.sizeBytes
-    ) {
-      throw new Error("Image asset size does not match entity metadata");
-    }
-    return { ...inspected, bytes };
-  }
-
-  const parsed = parseDataUrl(image.content);
-  const inspected = inspectImageBytes(parsed.bytes, parsed.mediaType);
-  return { ...inspected, bytes: parsed.bytes };
-}
 
 export function isAssetImageContent(content: string): content is AssetRef {
   return assetRefSchema.safeParse(content.trim()).success;

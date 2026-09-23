@@ -1,4 +1,7 @@
 import type { AtprotoBlobRef } from "@brains/atproto-contracts";
+import type { PublishImageData } from "@brains/contracts";
+import type { EntityServiceClient } from "@brains/plugins";
+import { readBoundedJsonResponse } from "@brains/utils/bounded-json-response";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import { z } from "@brains/utils/zod";
 
@@ -15,6 +18,9 @@ export interface AtprotoPdsClientConfig {
   appPassword: string;
   fetch?: FetchLike;
   requestTimeoutMs?: number;
+  getFileTransfers?: () =>
+    | Pick<NonNullable<EntityServiceClient["fileAssets"]>, "postHttp">
+    | undefined;
 }
 
 // Publishing runs on boot and shutdown-drain paths; an unresponsive PDS must
@@ -69,13 +75,19 @@ export interface DeleteRecordInput {
   rkey: string;
 }
 
-export interface UploadBlobInput {
-  data: Buffer;
-  mimeType: string;
-}
+export type UploadBlobInput = PublishImageData;
 
 export interface UploadBlobResult {
   blob: AtprotoBlobRef;
+}
+
+export class AcknowledgedAtprotoBlobError extends Error {
+  public readonly receipt: UploadBlobResult;
+  constructor(receipt: UploadBlobResult) {
+    super("AT Protocol blob receipt does not match the submitted file");
+    this.name = "AcknowledgedAtprotoBlobError";
+    this.receipt = receipt;
+  }
 }
 
 const atprotoErrorResponseSchema = z.looseObject({
@@ -102,7 +114,7 @@ const blobRefSchema = z
   .looseObject({
     $type: z.literal("blob").optional(),
     ref: z.looseObject({
-      $link: z.string(),
+      $link: z.string().min(1).max(1024),
     }),
     mimeType: z.string(),
     size: z.number().int().nonnegative(),
@@ -129,21 +141,25 @@ async function parseJsonResponse<T>(
   response: Response,
   schema: z.ZodType<T>,
 ): Promise<T> {
-  const text = await response.text();
-  const body = parseResponseBody(response, text);
+  if (!response.body) assertResponseOk(response, undefined);
+  let body: unknown;
+  try {
+    body = await readBoundedJsonResponse(
+      new Response(response.body, { headers: response.headers }),
+      64 * 1024,
+    );
+  } catch (error) {
+    if (error instanceof SyntaxError)
+      throw new Error(
+        response.ok
+          ? "Failed to parse JSON"
+          : `AT Protocol request failed with ${response.status}`,
+        { cause: error },
+      );
+    throw error;
+  }
   assertResponseOk(response, body);
   return schema.parse(body);
-}
-
-function parseResponseBody(response: Response, text: string): unknown {
-  try {
-    return text.length > 0 ? JSON.parse(text) : undefined;
-  } catch {
-    if (!response.ok) {
-      throw new Error(`AT Protocol request failed with ${response.status}`);
-    }
-    throw new Error("Failed to parse JSON");
-  }
 }
 
 function assertResponseOk(response: Response, body: unknown): void {
@@ -163,8 +179,13 @@ export class AtprotoPdsClient {
   private readonly appPassword: string;
   private readonly fetchFn: FetchLike;
   private session?: AtprotoSession;
+  private readonly getFileTransfers: AtprotoPdsClientConfig["getFileTransfers"];
+  private readonly requestTimeoutMs: number;
 
   constructor(config: AtprotoPdsClientConfig) {
+    this.getFileTransfers = config.getFileTransfers;
+    this.requestTimeoutMs =
+      config.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS;
     this.pdsEndpoint = trimEndpoint(config.pdsEndpoint);
     this.identifier = config.identifier;
     this.appPassword = config.appPassword;
@@ -174,12 +195,14 @@ export class AtprotoPdsClient {
     );
   }
 
-  async createSession(): Promise<AtprotoSession> {
+  async createSession(signal?: AbortSignal): Promise<AtprotoSession> {
+    signal?.throwIfAborted();
     const response = await this.fetchFn(
       `${this.pdsEndpoint}/xrpc/com.atproto.server.createSession`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        ...(signal && { signal }),
         body: JSON.stringify({
           identifier: this.identifier,
           password: this.appPassword,
@@ -268,32 +291,64 @@ export class AtprotoPdsClient {
         body: JSON.stringify(input),
       },
     );
-    const text = await response.text();
-    const body = parseResponseBody(response, text);
-    assertResponseOk(response, body);
+    if (response.ok) {
+      await response.body?.cancel();
+      return;
+    }
+    await parseJsonResponse(response, z.unknown());
   }
 
   async uploadBlob(input: UploadBlobInput): Promise<UploadBlobResult> {
-    const session = await this.getSession();
-    const response = await this.fetchFn(
-      `${this.pdsEndpoint}/xrpc/com.atproto.repo.uploadBlob`,
+    input.signal.throwIfAborted();
+    const files = this.getFileTransfers?.();
+    if (!files) throw new Error("AT Protocol file upload is not provisioned");
+    const session = await this.getSession(input.signal);
+    input.signal.throwIfAborted();
+    const response = await files.postHttp(
       {
-        method: "POST",
+        sourceFile: input.sourceFile,
+        facts: { sizeBytes: input.sizeBytes, sha256: input.sha256 },
+        url: `${this.pdsEndpoint}/xrpc/com.atproto.repo.uploadBlob`,
         headers: {
           Authorization: `Bearer ${session.accessJwt}`,
           "Content-Type": input.mimeType,
         },
-        body: new Blob([new Uint8Array(input.data)], {
-          type: input.mimeType,
-        }),
+        responseMetadata: {
+          link: ["blob", "ref", "$link"],
+          mimeType: ["blob", "mimeType"],
+          size: ["blob", "size"],
+        },
+      },
+      {
+        signal: AbortSignal.any([
+          input.signal,
+          AbortSignal.timeout(this.requestTimeoutMs),
+        ]),
       },
     );
-
-    return parseJsonResponse(response, uploadBlobResultSchema);
+    if (response.statusCode < 200 || response.statusCode >= 300)
+      throw new Error(
+        `AT Protocol blob upload failed with ${response.statusCode}`,
+      );
+    const metadata = response.responseMetadata;
+    const receipt = uploadBlobResultSchema.parse({
+      blob: {
+        $type: "blob",
+        ref: { $link: metadata?.["link"] },
+        mimeType: metadata?.["mimeType"],
+        size: metadata?.["size"],
+      },
+    });
+    if (
+      receipt.blob.size !== input.sizeBytes ||
+      receipt.blob.mimeType !== input.mimeType
+    )
+      throw new AcknowledgedAtprotoBlobError(receipt);
+    return receipt;
   }
 
-  private async getSession(): Promise<AtprotoSession> {
-    this.session ??= await this.createSession();
+  private async getSession(signal?: AbortSignal): Promise<AtprotoSession> {
+    this.session ??= await this.createSession(signal);
     return this.session;
   }
 }

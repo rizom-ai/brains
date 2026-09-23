@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it, mock } from "bun:test";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import { caughtError } from "@brains/test-utils";
 import { AtprotoPdsClient } from "../src";
@@ -289,31 +289,53 @@ describe("AtprotoPdsClient", () => {
       );
     };
 
+    const postHttp = mock(async () => ({
+      sizeBytes: 5,
+      sha256: "a".repeat(64),
+      statusCode: 200,
+      responseMetadata: { link: "blob-cid", mimeType: "text/plain", size: 5 },
+    }));
     const client = new AtprotoPdsClient({
       pdsEndpoint: "https://pds.example.com",
       identifier: "brain.example.com",
       appPassword: "secret",
       fetch: fetchMock,
+      getFileTransfers: (): { postHttp: typeof postHttp } => ({ postHttp }),
     });
 
     const result = await client.uploadBlob({
-      data: Buffer.from("hello"),
+      sourceFile: "/fixture/hello",
+      sizeBytes: 5,
+      sha256: "a".repeat(64),
+      signal: new AbortController().signal,
       mimeType: "text/plain",
     });
 
     expect(result.blob).toEqual({
+      $type: "blob",
       ref: { $link: "blob-cid" },
       mimeType: "text/plain",
       size: 5,
     });
-    expect(calls[1]?.url).toBe(
-      "https://pds.example.com/xrpc/com.atproto.repo.uploadBlob",
+    expect(calls).toHaveLength(1);
+    expect(postHttp).toHaveBeenCalledTimes(1);
+    expect(postHttp).toHaveBeenCalledWith(
+      {
+        sourceFile: "/fixture/hello",
+        facts: { sizeBytes: 5, sha256: "a".repeat(64) },
+        url: "https://pds.example.com/xrpc/com.atproto.repo.uploadBlob",
+        headers: {
+          Authorization: "Bearer access-token",
+          "Content-Type": "text/plain",
+        },
+        responseMetadata: {
+          link: ["blob", "ref", "$link"],
+          mimeType: ["blob", "mimeType"],
+          size: ["blob", "size"],
+        },
+      },
+      { signal: expect.any(AbortSignal) },
     );
-    expect(calls[1]?.init?.headers).toEqual({
-      Authorization: "Bearer access-token",
-      "Content-Type": "text/plain",
-    });
-    expect(calls[1]?.init?.body).toBeInstanceOf(Blob);
   });
 
   it("surfaces AT Protocol error messages", async () => {

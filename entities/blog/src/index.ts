@@ -13,6 +13,7 @@ export {
 export { blogPostAdapter, BlogPostAdapter } from "./adapters/blog-post-adapter";
 export { parsePostData } from "./datasources/parse-helpers";
 export {
+  AcknowledgedAtprotoCoverError,
   buildBlogAtprotoPostRecord,
   createBlogAtprotoProjection,
 } from "./atproto-projection";

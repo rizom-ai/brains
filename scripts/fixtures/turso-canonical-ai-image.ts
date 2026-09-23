@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { publishCanonicalAtprotoCover } from "./turso-canonical-atproto-cover";
 import { createHash } from "node:crypto";
 import { readFile, mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -157,6 +158,8 @@ export async function generateCanonicalAIImage(
     assert.ok(target);
     assert.match(target.content, /coverImageId: actor-rendered-image/);
     assert.ok(record);
+    if (dimensions.width === 1 && dimensions.height === 1)
+      await publishCanonicalAtprotoCover(app, target, digest, bytes.length);
     return { ref, digest, sizeBytes: bytes.length };
   } finally {
     await peer.stop(true);
