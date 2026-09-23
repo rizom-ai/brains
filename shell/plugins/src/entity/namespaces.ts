@@ -39,6 +39,8 @@ export function createEntitiesNamespace(shell: IShell): IEntitiesNamespace {
   return {
     validateGroupings: (groupings: readonly EntityGrouping[]): void =>
       entityRegistry.validateGroupings(groupings),
+    replaceGroupings: (groupings: readonly EntityGrouping[]): void =>
+      entityRegistry.replaceGroupings(groupings),
     registerGrouping: (grouping: EntityGrouping): void =>
       entityRegistry.registerGrouping(grouping),
     getGroupings: (): EntityGrouping[] => entityRegistry.getGroupings(),

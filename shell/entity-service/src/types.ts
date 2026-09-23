@@ -992,7 +992,10 @@ export interface EntityGroupingMembers {
  * Entity service interface for managing brain entities
  */
 export interface IEntitiesNamespace {
+  /** Preflight a complete replacement set without modifying active schemas. */
   validateGroupings(groupings: readonly EntityGrouping[]): void;
+  /** Atomically replace grouping declarations and only their owned fields. */
+  replaceGroupings(groupings: readonly EntityGrouping[]): void;
   registerGrouping(grouping: EntityGrouping): void;
   getGroupings(): EntityGrouping[];
   /** Whether this type participates in any declared grouping. */
@@ -1261,7 +1264,10 @@ export interface EntityRegistry {
     extension: z.ZodObject<z.ZodRawShape>,
   ): void;
 
+  /** Preflight a complete replacement set without modifying active schemas. */
   validateGroupings(groupings: readonly EntityGrouping[]): void;
+  /** Atomically replace grouping declarations and only their owned fields. */
+  replaceGroupings(groupings: readonly EntityGrouping[]): void;
   registerGrouping(grouping: EntityGrouping): void;
   getGrouping(key: string): EntityGrouping;
   getGroupings(): EntityGrouping[];

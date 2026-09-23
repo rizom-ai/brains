@@ -22,6 +22,27 @@ describe("groupings through the plugin context", () => {
     expect(register).toHaveBeenCalledWith(grouping);
     expect(context.entities.getGroupings()).toEqual([grouping]);
   });
+  test("forwards complete replacements, including removal, without swallowing validation errors", () => {
+    const shell = createMockShell();
+    const registry = shell.getEntityRegistry();
+    const context = createServicePluginContext(shell, "studio");
+    const groupings = [
+      { key: "areas", label: "Areas", field: "areas", types: ["note"] },
+    ];
+    const replace = spyOn(registry, "replaceGroupings").mockImplementation(
+      () => {},
+    );
+    context.entities.replaceGroupings(groupings);
+    context.entities.replaceGroupings([]);
+    expect(replace).toHaveBeenNthCalledWith(1, groupings);
+    expect(replace).toHaveBeenNthCalledWith(2, []);
+    replace.mockImplementation(() => {
+      throw new Error("Invalid grouping");
+    });
+    expect(() => context.entities.replaceGroupings(groupings)).toThrow(
+      "Invalid grouping",
+    );
+  });
   test("forwards both paginated reads without changing type admission or cancellation", async () => {
     const entityService = createMockEntityService({
       returns: {

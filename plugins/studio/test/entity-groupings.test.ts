@@ -100,6 +100,29 @@ describe("Studio grouping declarations", () => {
     expect(preflight).toHaveBeenCalledWith([grouping]);
     expect(register).toHaveBeenCalledWith(grouping);
   });
+  test("preflights the resulting set when other groupings are already registered", async () => {
+    const shell = createMockShell();
+    const existing = {
+      ...grouping,
+      key: "areas",
+      label: "Areas",
+      field: "areas",
+    };
+    spyOn(shell.getEntityRegistry(), "getGroupings").mockReturnValue([
+      existing,
+    ]);
+    const preflight = spyOn(
+      shell.getEntityRegistry(),
+      "validateGroupings",
+    ).mockImplementation(() => {});
+    spyOn(shell.getEntityRegistry(), "registerGrouping").mockImplementation(
+      () => {},
+    );
+    const plugin = studioPlugin({ groupings: [grouping] });
+    await plugin.register(shell);
+    await plugin.finalizeRegistration();
+    expect(preflight).toHaveBeenCalledWith([existing, grouping]);
+  });
   test("a failed preflight publishes no partial config", async () => {
     const shell = createMockShell();
     spyOn(shell.getEntityRegistry(), "validateGroupings").mockImplementation(

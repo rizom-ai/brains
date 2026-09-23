@@ -40,6 +40,8 @@ export class EntityRegistry implements IEntityRegistry {
   private uploadSaveHandlers: UploadSaveHandlerRegistration[] = [];
   private persistValidators = new Map<string, PersistValidator>();
   private frontmatterExtensions = new Map<string, FrontmatterSchema[]>();
+  /** Replaced with the grouping set; never owned by extendFrontmatterSchema. */
+  private groupingExtensions = new Map<string, FrontmatterSchema[]>();
   private logger: Logger;
   private groupings = new Map<string, EntityGrouping>();
 
@@ -91,6 +93,7 @@ export class EntityRegistry implements IEntityRegistry {
     this.createInterceptors.delete(type);
     this.persistValidators.delete(type);
     this.frontmatterExtensions.delete(type);
+    this.groupingExtensions.delete(type);
     this.uploadSaveHandlers = this.uploadSaveHandlers.filter(
       (registration) => registration.entityType !== type,
     );
@@ -316,8 +319,19 @@ export class EntityRegistry implements IEntityRegistry {
     this.logger.debug(`Extended frontmatter schema for entity type: ${type}`);
   }
 
-  /** Validate a whole configuration without publishing partial extensions. */
+  /** Validate a complete replacement set without changing the active schemas. */
   validateGroupings(groupings: readonly EntityGrouping[]): void {
+    this.stageGroupings(groupings);
+  }
+
+  /** Swap declarations and their fields only after the entire set validates. */
+  replaceGroupings(groupings: readonly EntityGrouping[]): void {
+    const staged = this.stageGroupings(groupings);
+    this.groupings = staged.groupings;
+    this.groupingExtensions = staged.groupingExtensions;
+  }
+
+  private stageGroupings(groupings: readonly EntityGrouping[]): EntityRegistry {
     const staged = new EntityRegistry(this.logger.child("GroupingValidation"));
     staged.entitySchemas = this.entitySchemas;
     staged.entityAdapters = this.entityAdapters;
@@ -328,8 +342,10 @@ export class EntityRegistry implements IEntityRegistry {
         [...schemas],
       ]),
     );
-    staged.groupings = new Map(this.groupings);
+    // Only permanent plugin extensions participate in the next set's base.
+    // Reusing old grouping extensions would keep removed fields alive.
     for (const grouping of groupings) staged.registerGrouping(grouping);
+    return staged;
   }
 
   registerGrouping(input: EntityGrouping): void {
@@ -391,10 +407,11 @@ export class EntityRegistry implements IEntityRegistry {
       }
     }
     for (const type of additions) {
-      this.extendFrontmatterSchema(
-        type,
+      const extensions = this.groupingExtensions.get(type) ?? [];
+      extensions.push(
         z.object({ [grouping.field]: z.array(z.string()).optional() }),
       );
+      this.groupingExtensions.set(type, extensions);
     }
     this.groupings.set(grouping.key, grouping);
   }
@@ -491,7 +508,10 @@ export class EntityRegistry implements IEntityRegistry {
   }
 
   getFrontmatterExtensions(type: string): readonly FrontmatterSchema[] {
-    return [...(this.frontmatterExtensions.get(type) ?? [])];
+    return [
+      ...(this.frontmatterExtensions.get(type) ?? []),
+      ...(this.groupingExtensions.get(type) ?? []),
+    ];
   }
 
   /**
@@ -517,8 +537,8 @@ export class EntityRegistry implements IEntityRegistry {
       return undefined;
     }
 
-    const extensions = this.frontmatterExtensions.get(type);
-    if (!extensions?.length) {
+    const extensions = this.getFrontmatterExtensions(type);
+    if (!extensions.length) {
       return baseSchema;
     }
 

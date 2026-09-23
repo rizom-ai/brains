@@ -159,6 +159,109 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       );
     };
   }
+  test("runtime replacement updates Studio schemas and preserves real Note/Post memberships without restarting", async () => {
+    const directory = await createTestDirectory();
+    cleanups.push(directory.cleanup);
+    const service = await open(directory.dir, false);
+    const registry = registries.get(service);
+    if (!registry) throw new Error("Missing registry");
+    const request = await editor(service);
+    const declaration = {
+      key: "areas",
+      label: "Areas",
+      field: "areas",
+      types: ["note", "post"],
+    };
+    const catalog = { grouping: "areas", entityTypes: ["note", "post"] };
+    const originals = new Map<string, string>();
+    for (const entityType of ["note", "post"]) {
+      const content = `---\ntitle: Existing ${entityType}\n${entityType === "post" ? "status: draft\nslug: runtime-entry\nexcerpt: Example\nauthor: Tester\n" : ""}areas: [Field notes]\nunclaimed: keep\n---\n\nBody`;
+      const parsed = service.deserializeEntity(content, entityType);
+      await service.createEntity({
+        entity: {
+          ...parsed,
+          metadata: parsed.metadata ?? {},
+          content,
+          entityType,
+          id: "runtime-entry",
+        },
+      });
+      const stored = await service.getEntity({
+        entityType,
+        id: "runtime-entry",
+      });
+      if (!stored) throw new Error("Missing entity");
+      originals.set(entityType, stored.content);
+    }
+    expect(
+      await (await request("GET", "schema?type=note")).json(),
+    ).toMatchObject({ format: "raw" });
+
+    registry.replaceGroupings([declaration]);
+    // This checkpoint exercises the existing pass explicitly. Definition-driven
+    // refresh and automatic reprojection are separate delivery steps.
+    await service.reprojectRegisteredGroupings();
+    expect(
+      await (await request("GET", "schema?type=note")).json(),
+    ).toMatchObject({
+      format: "frontmatter",
+      fields: expect.arrayContaining([
+        expect.objectContaining({ name: "areas", widget: "list" }),
+      ]),
+    });
+    expect(await (await request("GET", "types")).json()).toMatchObject({
+      groupings: [declaration],
+    });
+    expect((await service.queryGroupingCatalog(catalog)).values).toEqual([
+      { value: "Field notes", count: 2 },
+    ]);
+    for (const entityType of ["note", "post"]) {
+      expect(
+        (await service.getEntity({ entityType, id: "runtime-entry" }))?.content,
+      ).toBe(originals.get(entityType));
+    }
+
+    registry.replaceGroupings([]);
+    expect(await (await request("GET", "types")).json()).toMatchObject({
+      groupings: [],
+    });
+    expect(
+      await (await request("GET", "schema?type=note")).json(),
+    ).toMatchObject({ format: "raw" });
+    expect((await request("GET", "groups/catalog?grouping=areas")).status).toBe(
+      404,
+    );
+    for (const entityType of ["note", "post"]) {
+      const stored = await service.getEntity({
+        entityType,
+        id: "runtime-entry",
+      });
+      if (!stored) throw new Error("Missing entity after removal");
+      const original = originals.get(entityType);
+      if (original === undefined) throw new Error("Missing original source");
+      expect(stored.content).toBe(original);
+      await service.updateEntity({
+        entity: {
+          ...stored,
+          content: `${stored.content}\nEdited while unclaimed`,
+        },
+      });
+      const updated = await service.getEntity({
+        entityType,
+        id: "runtime-entry",
+      });
+      if (!updated) throw new Error("Missing updated entity");
+      const exported = service.serializeEntity(updated);
+      expect(exported).toContain("Field notes");
+      expect(exported).toContain("unclaimed: keep");
+    }
+
+    registry.replaceGroupings([declaration]);
+    await service.reprojectRegisteredGroupings();
+    expect((await service.queryGroupingCatalog(catalog)).values).toEqual([
+      { value: "Field notes", count: 2 },
+    ]);
+  });
   test.each(["role", "suspension", "revocation"] as const)(
     "an existing session loses grouping access after %s without changing its cookie",
     async (change) => {

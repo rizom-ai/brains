@@ -133,6 +133,16 @@ frontmatter field across a listed set of entity types. Callers never supply a
 field name or selector: `registerGrouping({ key, label, field, types })` records
 the declaration, and the two reads resolve it by key.
 
+`validateGroupings(next)` preflights a complete replacement set without changing
+active schemas. `replaceGroupings(next)` publishes that set and its schema
+extensions atomically after validation; failure leaves the old set intact.
+Grouping-owned extensions are separate from permanent plugin extensions, so
+removing a grouping removes only fields it introduced. Owner and plugin fields,
+including their refinements, remain. Both methods are available through the
+plugin context's `entities` namespace. Replacement is registry-only: it does not
+rewrite content, schedule reprojection or coordinate serving readiness. Callers
+must coordinate the existing reprojection pass before serving changed catalogs.
+
 `queryGroupingCatalog` returns each distinct value with the number of entities
 the caller may read. `queryGroupingMembers` returns one mixed-type page for a
 single value, with optional type, content-search and sort filters. Both

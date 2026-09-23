@@ -85,6 +85,10 @@ export function createMockEntityRegistry(
       if (groupings.length > 0)
         throw new Error("createMockShell: grouping registry is not mocked");
     },
+    replaceGroupings: (groupings): void => {
+      if (groupings.length > 0)
+        throw new Error("createMockShell: grouping registry is not mocked");
+    },
     getGrouping: (): never => {
       throw new Error("createMockShell: grouping registry is not mocked");
     },

@@ -150,7 +150,10 @@ export class StudioPlugin extends ServicePlugin<
   protected override async onRegistrationComplete(
     context: ServicePluginContext,
   ): Promise<void> {
-    context.entities.validateGroupings(this.config.groupings);
+    context.entities.validateGroupings([
+      ...context.entities.getGroupings(),
+      ...this.config.groupings,
+    ]);
     for (const grouping of this.config.groupings)
       context.entities.registerGrouping(grouping);
     registerGroupingVocabularyValidators(context);
