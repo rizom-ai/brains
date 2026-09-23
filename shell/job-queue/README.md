@@ -72,6 +72,17 @@ makes its attempts reclaimable. Attempts from another slot are reclaimed only
 after both the attempt lease and owner-session heartbeat expire. Reclaims count
 against the job's retry budget.
 
+Queue writes tolerate transient SQLite lock contention with asynchronous,
+jittered retries bounded by the repository's existing two-second write budget.
+This includes claims, progress, session/attempt heartbeats, and terminal updates,
+which can contend with an enqueue transaction even through the same libSQL
+client. Only statements rejected with SQLite busy/locked codes are retried;
+attempt/session fencing is checked again by each statement. These database
+retries do not invoke handlers or consume job retry counts. Other errors and
+exhausted lock budgets propagate normally; persistent contention is not silently
+ignored or repaired through automatic job replay. No synchronous SQLite busy
+wait, lease relaxation, schema change, or execution-deadline change is introduced.
+
 `JobQueueWorkerConfig` controls the lifecycle:
 
 - `workerSlotId` (or `BRAIN_JOB_WORKER_SLOT_ID`) identifies the stable worker;
