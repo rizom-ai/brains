@@ -17,6 +17,10 @@ Entity persistence, markdown serialization, embeddings, and search for Brain app
 - Optional structural event bus for entity lifecycle notifications
 - Atomic entity and embedding persistence in one database
 
+## Content reads (0.3)
+
+`getEntity` and `getEntityRaw` preserve durable markdown, including `entity://image/…` references. They do not fetch image entities or expand asset bytes into data URLs. Visibility, read budgets, cancellation and optional schema validation still apply. Rendering consumers resolve images explicitly through scoped file capabilities; site layouts consume the prepared image URLs from site enrichment.
+
 ## Basic usage
 
 ```typescript

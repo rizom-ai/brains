@@ -68,7 +68,6 @@ import {
   SqliteAssetRepository,
   type OwnedAssetPublication,
 } from "./sqlite-asset-repository";
-import { ContentResolver, shouldResolveContent } from "./lib/content-resolver";
 import { Cause, Effect, Exit } from "@brains/utils/effect";
 import { makeIndexReadinessPollingEffect } from "./index-readiness";
 
@@ -95,7 +94,6 @@ export interface EntityServiceOptions {
  * - EntityMutations: database write operations
  * - EntitySearch: vector similarity search
  * - EntitySerializer: markdown serialization
- * - ContentResolver: entity reference resolution
  */
 
 /**
@@ -125,7 +123,6 @@ export class EntityService implements IEntityService {
   private jobOutbox!: EntityJobOutbox;
   private readonly assetRepository: SqliteAssetRepository;
   private readonly entityExportStore: EntityExportStore;
-  private contentResolver: ContentResolver;
   private embeddingHandlerRegistered = false;
   private indexReady = false;
   private closePromise: Promise<void> | null = null;
@@ -272,7 +269,6 @@ export class EntityService implements IEntityService {
         embeddingsEnabled,
         embeddingDimensions: options.embeddingService.dimensions,
       });
-      this.contentResolver = new ContentResolver(this.logger);
 
       if (options.embeddingsEnabled ?? true) {
         const embeddingJobHandler = EmbeddingJobHandler.createFresh(
@@ -752,36 +748,15 @@ export class EntityService implements IEntityService {
   ): Promise<BaseEntity | null> {
     request.signal?.throwIfAborted();
     await this.initialize();
-    const { entityType, visibilityScope } = request;
     const entity = await this.getEntityRaw(request);
     if (!entity) {
       return null;
     }
 
-    // Bounded evidence reads never expand entity image references into extra reads.
-    const resolved = request.readBudget
-      ? entity
-      : await this.resolveEntityContent(entityType, entity, visibilityScope);
+    // Entity reads return durable markdown, never binary-expanded data URLs.
+    // Renderers resolve image references through their owned file capabilities.
     request.signal?.throwIfAborted();
-    return schema ? schema.parse(resolved) : resolved;
-  }
-
-  private async resolveEntityContent(
-    entityType: string,
-    entity: BaseEntity,
-    visibilityScope: ContentVisibility | undefined,
-  ): Promise<BaseEntity> {
-    if (shouldResolveContent(entityType) && entity.content) {
-      const result = await this.contentResolver.resolve(
-        entity.content,
-        this,
-        visibilityScope,
-      );
-      if (result.resolvedCount > 0) {
-        return { ...entity, content: result.content };
-      }
-    }
-    return entity;
+    return schema ? schema.parse(entity) : entity;
   }
 
   public async getEntityRaw(

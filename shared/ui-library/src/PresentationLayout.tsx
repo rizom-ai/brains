@@ -44,9 +44,15 @@ export const PresentationLayout = ({
   const slides = markdown.split(/^---$/gm).map((slide) => slide.trim());
 
   // Build slide HTML
-  const processedSlides = slides.map((slideContent) => {
+  const processedSlides = slides.map((slideContent, index) => {
     const { attributes, markdown: cleanMarkdown } =
       parseSlideDirectives(slideContent);
+    // Site enrichment supplies a URL from the verified native image build.
+    // Do not embed image bytes in datasource markdown or resolve assets here.
+    if (index === 0 && deck?.coverImageUrl) {
+      attributes["data-background-image"] = deck.coverImageUrl;
+      attributes["data-background-opacity"] = "0.4";
+    }
     const columns = splitColumns(cleanMarkdown);
 
     let htmlContent: string;

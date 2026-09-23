@@ -1,276 +1,54 @@
-import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import {
-  resolveImage,
-  resolveEntityCoverImage,
   extractCoverImageId,
   setCoverImageId,
   extractOgImageId,
   setOgImageId,
 } from "../src/lib/image-resolver";
-import type { Image } from "../src/schemas/image";
-import type { BaseEntity } from "@brains/entity-service";
 
-// Minimal 1x1 pixel PNG (base64)
-const TINY_PNG_BASE64 =
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-const TINY_PNG_DATA_URL = `data:image/png;base64,${TINY_PNG_BASE64}`;
-
-const mockImageEntity: Image = {
-  id: "hero-image",
-  entityType: "image",
-  content: TINY_PNG_DATA_URL,
-  visibility: "public",
-  metadata: {
-    title: "Hero Image",
-    alt: "A hero image for the blog",
-    format: "png",
-    width: 1,
-    height: 1,
-  },
-  created: new Date().toISOString(),
-  updated: new Date().toISOString(),
-  contentHash: "abc123",
-};
-
-describe("resolveImage", () => {
-  function imageService(): ReturnType<
-    ReturnType<typeof createMockShell>["getEntityService"]
-  > {
-    const shell = createMockShell();
-    shell.addEntities([mockImageEntity]);
-    return shell.getEntityService();
-  }
-
-  it("should resolve an existing image entity by ID", async () => {
-    const result = await resolveImage("hero-image", imageService());
-
-    expect(result).toBeDefined();
-    expect(result?.url).toBe(TINY_PNG_DATA_URL);
-    expect(result?.alt).toBe("A hero image for the blog");
-    expect(result?.title).toBe("Hero Image");
-    expect(result?.width).toBe(1);
-    expect(result?.height).toBe(1);
+describe("image reference frontmatter", () => {
+  it("extracts cover and OG references without resolving image bytes", () => {
+    const entity = {
+      content:
+        "---\ncoverImageId: hero-image\nogImageId: post-og-image\ntitle: Test\n---\n\n# Test Content",
+    };
+    expect(extractCoverImageId(entity)).toBe("hero-image");
+    expect(extractOgImageId(entity)).toBe("post-og-image");
   });
-
-  it("should return undefined for non-existent image", async () => {
-    const result = await resolveImage("non-existent", imageService());
-
-    expect(result).toBeUndefined();
+  it.each([
+    "---\ntitle: Test\n---\n\n# Content",
+    "# Just plain content",
+    "---\ninvalid yaml: [unclosed",
+    "---\ncoverImageId: 42\nogImageId: false\n---\nContent",
+  ])("does not invent image references: %s", (content) => {
+    expect(extractCoverImageId({ content })).toBeUndefined();
+    expect(extractOgImageId({ content })).toBeUndefined();
   });
-});
-
-// Helper to create mock entity with frontmatter
-function createMockEntity(content: string): BaseEntity {
-  return {
-    id: "test-entity-1",
-    entityType: "test",
-    content,
-    visibility: "public",
-    metadata: {},
-    created: new Date().toISOString(),
-    updated: new Date().toISOString(),
-    contentHash: "def456",
-  };
-}
-
-describe("extractCoverImageId", () => {
-  it("should extract coverImageId from frontmatter", () => {
-    const entity = createMockEntity(`---
-coverImageId: hero-image
-title: Test
----
-
-# Test Content`);
-
-    const result = extractCoverImageId(entity);
-
-    expect(result).toBe("hero-image");
-  });
-
-  it("should return undefined when no coverImageId in frontmatter", () => {
-    const entity = createMockEntity(`---
-title: Test
----
-
-# Test Content`);
-
-    const result = extractCoverImageId(entity);
-
-    expect(result).toBeUndefined();
-  });
-
-  it("should return undefined for content without frontmatter", () => {
-    const entity = createMockEntity("# Just plain content");
-
-    const result = extractCoverImageId(entity);
-
-    expect(result).toBeUndefined();
-  });
-
-  it("should handle invalid frontmatter gracefully", () => {
-    const entity = createMockEntity("---\ninvalid yaml: [unclosed");
-
-    const result = extractCoverImageId(entity);
-
-    expect(result).toBeUndefined();
-  });
-});
-
-describe("extractOgImageId", () => {
-  it("should extract ogImageId from frontmatter", () => {
-    const entity = createMockEntity(`---
-ogImageId: post-og-image
-title: Test
----
-
-# Test Content`);
-
-    const result = extractOgImageId(entity);
-
-    expect(result).toBe("post-og-image");
-  });
-
-  it("should return undefined when no ogImageId is present", () => {
-    const entity = createMockEntity(`---
-title: Test
----
-
-# Test Content`);
-
-    expect(extractOgImageId(entity)).toBeUndefined();
-  });
-});
-
-describe("setOgImageId", () => {
-  it("sets OG image ID on entity", () => {
-    const entity = createMockEntity(`---
-title: Test Post
----
-
-Content here`);
-
-    const result = setOgImageId(entity, "new-og-image");
-
-    expect(result.id).toBe("test-entity-1");
-    expect(extractOgImageId(result)).toBe("new-og-image");
-  });
-
-  it("removes OG image when null", () => {
-    const entity = createMockEntity(`---
-title: Test Post
-ogImageId: old-image
----
-
-Content here`);
-
-    const result = setOgImageId(entity, null);
-
-    expect(extractOgImageId(result)).toBeUndefined();
-  });
-});
-
-describe("setCoverImageId", () => {
-  it("sets cover image ID on entity", () => {
-    const entity = createMockEntity(`---
-title: Test Post
----
-
-Content here`);
-
-    const result = setCoverImageId(entity, "new-cover-image");
-
-    expect(result.id).toBe("test-entity-1");
-    expect(extractCoverImageId(result)).toBe("new-cover-image");
-  });
-
-  it("removes cover image when null", () => {
-    const entity = createMockEntity(`---
-title: Test Post
-coverImageId: old-image
----
-
-Content here`);
-
-    const result = setCoverImageId(entity, null);
-
-    expect(extractCoverImageId(result)).toBeUndefined();
-  });
-
-  it("preserves other entity properties", () => {
+  it("sets and removes cover references, preserving other entity properties", () => {
     const entity = {
       id: "test-123",
-      entityType: "blog",
-      content: `---
-title: Test
----
-
-Content`,
+      entityType: "post",
+      content: "---\ntitle: Test\n---\n\nContent",
       metadata: { slug: "test-post" },
     };
-
-    const result = setCoverImageId(entity, "cover-img");
-
-    expect(result.id).toBe("test-123");
-    expect(result.entityType).toBe("blog");
-    expect(result.metadata).toEqual({ slug: "test-post" });
+    const result = setCoverImageId(entity, "new-cover-image");
+    expect(extractCoverImageId(result)).toBe("new-cover-image");
+    expect(result.id).toBe(entity.id);
+    expect(result.entityType).toBe(entity.entityType);
+    expect(result.metadata).toEqual(entity.metadata);
+    expect(extractCoverImageId(entity)).toBeUndefined();
+    expect(extractCoverImageId(setCoverImageId(result, null))).toBeUndefined();
   });
-});
-
-describe("resolveEntityCoverImage", () => {
-  function imageService(): ReturnType<
-    ReturnType<typeof createMockShell>["getEntityService"]
-  > {
-    const shell = createMockShell();
-    shell.addEntities([mockImageEntity]);
-    return shell.getEntityService();
-  }
-
-  it("should resolve cover image from entity frontmatter", async () => {
-    const entity = createMockEntity(`---
-coverImageId: hero-image
----
-
-# Test`);
-
-    const result = await resolveEntityCoverImage(entity, imageService());
-
-    expect(result).not.toBeUndefined();
-    expect(result?.url).toBe(TINY_PNG_DATA_URL);
-    expect(result?.width).toBe(1);
-    expect(result?.height).toBe(1);
-  });
-
-  it("should return undefined when no coverImageId in frontmatter", async () => {
-    const entity = createMockEntity(`---
-title: Test
----
-
-# Test`);
-
-    const result = await resolveEntityCoverImage(entity, imageService());
-
-    expect(result).toBeUndefined();
-  });
-
-  it("should return undefined when image entity does not exist", async () => {
-    const entity = createMockEntity(`---
-coverImageId: non-existent-image
----
-
-# Test`);
-
-    // The seeded store has no entity under this id.
-    const result = await resolveEntityCoverImage(entity, imageService());
-
-    expect(result).toBeUndefined();
-  });
-
-  it("should return undefined for content without frontmatter", async () => {
-    const entity = createMockEntity("# Just plain content");
-
-    const result = await resolveEntityCoverImage(entity, imageService());
-
-    expect(result).toBeUndefined();
+  it("sets and removes OG references without disturbing the cover", () => {
+    const entity = {
+      id: "test-123",
+      content: "---\ntitle: Test\ncoverImageId: hero\n---\n\nContent",
+    };
+    const result = setOgImageId(entity, "new-og-image");
+    expect(result.id).toBe(entity.id);
+    expect(extractOgImageId(result)).toBe("new-og-image");
+    const removed = setOgImageId(result, null);
+    expect(extractOgImageId(removed)).toBeUndefined();
+    expect(extractCoverImageId(removed)).toBe("hero");
   });
 });

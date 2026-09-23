@@ -7,7 +7,6 @@ import {
 import { minimalTestAdapter, minimalTestSchema } from "./helpers/test-schemas";
 import { MOCK_DIMENSIONS } from "./helpers/mock-services";
 import { createEntityDatabase } from "../src/db";
-import { ContentResolver } from "../src/lib/content-resolver";
 
 const readBudget = { rows: 1, rowBytes: 1000, queryCharacters: 40 };
 describe("bounded entity reads", () => {
@@ -75,13 +74,13 @@ describe("bounded entity reads", () => {
       content: "![image](entity://image/large)",
     });
     await ctx.entityService.createEntity({ entity });
-    const resolver = spyOn(ContentResolver.prototype, "resolve");
+    const rawRead = spyOn(ctx.entityService, "getEntityRaw");
     const parser = spyOn(minimalTestAdapter, "fromMarkdown");
     try {
       const request = { entityType: "test", id: entity.id, readBudget };
       const bounded = await ctx.entityService.getEntity(request);
       expect(bounded?.content).toBe(entity.content);
-      expect(resolver).not.toHaveBeenCalled();
+      expect(rawRead).toHaveBeenCalledTimes(1);
       parser.mockClear();
       const signal = AbortSignal.abort();
       expect(
@@ -101,9 +100,12 @@ describe("bounded entity reads", () => {
       ).toBeNull();
       expect(parser).not.toHaveBeenCalled();
       await ctx.entityService.getEntity({ entityType: "test", id: entity.id });
-      expect(resolver).toHaveBeenCalledTimes(1);
+      expect(rawRead).toHaveBeenCalledTimes(2);
+      expect(
+        rawRead.mock.calls.every(([request]) => request.entityType === "test"),
+      ).toBe(true);
     } finally {
-      resolver.mockRestore();
+      rawRead.mockRestore();
       parser.mockRestore();
     }
   });

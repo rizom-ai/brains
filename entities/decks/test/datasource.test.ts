@@ -1,8 +1,8 @@
 import { createMockShell, type MockShell } from "@brains/plugins/test";
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { DeckDataSource } from "../src/datasources/deck-datasource";
 import type { DeckEntity } from "../src/schemas/deck";
-import type { BaseEntity, BaseDataSourceContext } from "@brains/plugins";
+import type { BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { createMockLogger } from "@brains/test-utils";
@@ -180,7 +180,7 @@ describe("DeckDataSource", () => {
       expect(result.markdown).toBe("# Test Deck\n\n---\n\n# Slide 2");
     });
 
-    it("should inject cover image directive when coverImageId exists", async () => {
+    it("keeps cover references metadata-only for renderer enrichment", async () => {
       const deck = createMockDeckEntity({
         id: "deck-with-cover",
         title: "Deck With Cover",
@@ -206,36 +206,24 @@ coverImageId: cover-img-1
         },
       });
 
-      const coverImageEntity: BaseEntity = {
-        id: "cover-img-1",
-        entityType: "image",
-        content:
-          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-        visibility: "public",
-        metadata: {
-          title: "Cover",
-          alt: "Cover image",
-          width: 1200,
-          height: 630,
-          format: "png",
-        },
-        created: new Date().toISOString(),
-        updated: new Date().toISOString(),
-        contentHash: "abc",
-      };
+      shell.addEntities([deck]);
+      const getEntity = spyOn(mockContext.entityService, "getEntity");
+      try {
+        const result = await datasource.fetch(
+          { entityType: "deck", query: { id: "deck-with-cover" } },
+          detailSchema,
+          mockContext,
+        );
 
-      shell.addEntities([deck, coverImageEntity]);
-
-      const result = await datasource.fetch(
-        { entityType: "deck", query: { id: "deck-with-cover" } },
-        detailSchema,
-        mockContext,
-      );
-
-      expect(result.markdown).toContain("<!-- .slide: data-background-image=");
-      expect(result.markdown).toContain("data-background-opacity=");
-      // Directive should be at the start
-      expect(result.markdown.startsWith("<!-- .slide:")).toBe(true);
+        expect(result.markdown).toBe("# Title Slide\n\n---\n\n# Slide 2");
+        expect(
+          getEntity.mock.calls.some(
+            ([request]) => request.entityType === "image",
+          ),
+        ).toBe(false);
+      } finally {
+        getEntity.mockRestore();
+      }
     });
 
     it("should not inject directive when no coverImageId", async () => {

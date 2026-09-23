@@ -807,7 +807,8 @@ export interface ICoreEntityService {
   readonly fileAssets?: EntityFileReader;
   // Read-only operations. Without a schema these return the registered
   // BaseEntity view; pass the entity schema you own to get a parsed,
-  // proven T instead of asserting one.
+  // proven T instead of asserting one. Content stays durable markdown;
+  // embedded image references never trigger implicit asset reads.
   getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
   getEntity<T extends BaseEntity>(
     request: GetEntityRequest,
@@ -815,8 +816,8 @@ export interface ICoreEntityService {
   ): Promise<T | null>;
 
   /**
-   * Get entity without content resolution (raw)
-   * Used internally to avoid recursion when resolving image references
+   * Storage read through the registered entity adapter, without reference expansion.
+   * Renderers resolve referenced assets explicitly under their own file loans.
    */
   getEntityRaw(request: GetEntityRawRequest): Promise<BaseEntity | null>;
   getEntityRaw<T extends BaseEntity>(

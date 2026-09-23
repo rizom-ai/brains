@@ -38,8 +38,6 @@ export type {
 
 // Image and frontmatter image-reference utilities
 export {
-  resolveImage,
-  resolveEntityCoverImage,
   extractCoverImageId,
   setCoverImageId,
   extractOgImageId,
