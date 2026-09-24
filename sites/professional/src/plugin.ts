@@ -7,6 +7,16 @@ import type {
 import { ServicePlugin } from "@brains/plugins";
 import { homepageOpeningSchema } from "./schemas/homepage-opening";
 import { loadHomepageOpening } from "./datasources/homepage-opening";
+import { loadHomepageAtlas } from "./datasources/homepage-atlas";
+import {
+  HOMEPAGE_ATLAS_SCRIPT,
+  HOMEPAGE_ATLAS_SCRIPT_PATH,
+} from "./templates/homepage-atlas-script";
+import {
+  atlasItemSchema,
+  atlasZoneSchema,
+  homepageAtlasSchema,
+} from "./schemas/homepage-atlas";
 import { blogViewSchema } from "@brains/blog";
 import { deckViewSchema } from "@brains/decks";
 import { aboutHighlightsSchema, professionalProfileSchema } from "./schemas";
@@ -89,6 +99,14 @@ export class ProfessionalSitePlugin extends ServicePlugin<
         ? (buildContext): ReturnType<typeof loadHomepageOpening> =>
             loadHomepageOpening(buildContext, context)
         : undefined,
+      (buildContext): ReturnType<typeof loadHomepageAtlas> =>
+        loadHomepageAtlas({
+          entityService: buildContext.entityService,
+          semantic: {
+            project: (request) =>
+              buildContext.entityService.projectSemanticSpace(request),
+          },
+        }),
     );
     context.entities.registerDataSource(homepageDataSource);
 
@@ -102,6 +120,7 @@ export class ProfessionalSitePlugin extends ServicePlugin<
       profile: professionalProfileSchema,
       homepageOpening: z.boolean().default(false),
       opening: homepageOpeningSchema,
+      atlas: homepageAtlasSchema,
       posts: z.array(blogPostSchema),
       decks: z.array(deckSchema),
       postsListUrl: z.string(),
@@ -119,6 +138,19 @@ export class ProfessionalSitePlugin extends ServicePlugin<
     const homepageRenderSchema = homepageListSchema.extend({
       posts: z.array(blogPostSchema.extend(enrichedLinks)),
       decks: z.array(deckSchema.extend(enrichedLinks)),
+      // Enrichment links only the types the site displays; others render unlinked.
+      atlas: z
+        .object({
+          zones: z.array(atlasZoneSchema),
+          items: z.array(
+            atlasItemSchema.extend({
+              url: z.string().optional(),
+              typeLabel: z.string().optional(),
+            }),
+          ),
+        })
+        .nullable()
+        .default(null),
     });
 
     // About page schema
@@ -139,6 +171,17 @@ export class ProfessionalSitePlugin extends ServicePlugin<
         schema: homepageListSchema,
         dataSourceId: "professional:homepage-list",
         requiredPermission: "public",
+        // Touch titles and motion pausing, shipped only to sites that opt into the atlas.
+        ...(this.config.homepageOpening
+          ? {
+              runtimeScripts: [
+                { src: HOMEPAGE_ATLAS_SCRIPT_PATH, defer: true },
+              ],
+              staticAssets: {
+                [HOMEPAGE_ATLAS_SCRIPT_PATH]: HOMEPAGE_ATLAS_SCRIPT,
+              },
+            }
+          : {}),
         layout: {
           component: HomepageListLayout,
           renderSchema: homepageRenderSchema,

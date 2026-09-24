@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-state="landing">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>yeehaa.io atlas study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;1,400&family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..600,0..100;1,9..144,300..500,0..100&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<!--
+  Design study for docs/plans/public-ask.md, yeehaa.io rollout.
+  The page is the brain: a full-screen atlas of everything published, drawn as live topographic contours
+  (the brain's knowledge-map language), with the conversation floating over it. Palette and type are the live
+  yeehaa.io tokens (Fraunces, Barlow, paper/ink/orange; night/orange in dark).
+  Items are the yeehaa rover's public corpus on 2026-09-24; their topic placement here is illustrative, the
+  real placement comes from the brain's topic proximity. The answer in state 2 is illustrative copy. Static.
+-->
+<style>
+:root{
+  --bg:#f4ede0; --bg-soft:#faf4e6; --ink:#18132a; --ink-2:#443c54; --ink-3:#756c80;
+  --accent:#b8410c; --accent-2:#923208; --on-accent:#faf4e6; --border:#ddd2c4;
+  --contour:24 19 42; --glow:184 65 12; --scrim:244 237 224; --boost:1;
+  --serif:"Fraunces",Georgia,serif; --sans:"Barlow",system-ui,sans-serif;
+  --col:min(40rem,44vw); --edge:clamp(1rem,3.2vw,3rem); --bar:2.4rem;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0a0819; --bg-soft:#15122c; --ink:#faf4e6; --ink-2:rgb(250 244 230 / .74); --ink-3:rgb(250 244 230 / .52);
+  --accent:#ff8b3d; --accent-2:#ffa46a; --on-accent:#140c05; --border:rgb(255 255 255 / .12);
+  --contour:255 164 106; --glow:255 139 61; --scrim:10 8 25; --boost:1.6;
+}}
+:root[data-theme="dark"]{
+  --bg:#0a0819; --bg-soft:#15122c; --ink:#faf4e6; --ink-2:rgb(250 244 230 / .74); --ink-3:rgb(250 244 230 / .52);
+  --accent:#ff8b3d; --accent-2:#ffa46a; --on-accent:#140c05; --border:rgb(255 255 255 / .12);
+  --contour:255 164 106; --glow:255 139 61; --scrim:10 8 25; --boost:1.6;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:400 1rem/1.5 var(--sans)}
+button{font:inherit;color:inherit}
+a{color:var(--accent);text-underline-offset:.18em}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:4px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+
+/* study controls, not part of the site */
+.study{height:var(--bar);display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:0 var(--edge);
+  background:#06050d;color:#d9d6e4;font:500 .78rem/1 var(--sans);overflow-x:auto;white-space:nowrap}
+.study span{color:#8e8aa0}
+.study div{display:flex;gap:.25rem}
+.study button{background:transparent;border:1px solid #2c2940;border-radius:999px;padding:.3rem .65rem;cursor:pointer}
+.study button[aria-pressed="true"]{background:#d9d6e4;color:#06050d;border-color:#d9d6e4}
+
+/* ---------- the app: atlas underneath, conversation over it ---------- */
+.app{position:relative;height:calc(100svh - var(--bar));min-height:40rem;overflow:hidden;isolation:isolate}
+.atlas{position:absolute;inset:0;z-index:0}
+.atlas canvas{position:absolute;inset:0;width:100%;height:100%}
+.grain{position:absolute;inset:0;pointer-events:none;opacity:.5;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .45 0 0 0 0 .38 0 0 0 0 .3 0 0 0 .18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+[data-theme="dark"] .grain{mix-blend-mode:screen;opacity:.18}
+.terrs,.nodes,.pins{position:absolute;inset:0;pointer-events:none}
+.pins{z-index:3}
+.terr{position:absolute;transform:translate(-50%,-50%);font:italic 400 1rem/1 var(--serif);font-variation-settings:"SOFT" 60,"opsz" 24;
+  letter-spacing:.03em;color:var(--ink-2);white-space:nowrap;text-shadow:0 0 .5rem var(--bg),0 0 .2rem var(--bg);transition:opacity .5s}
+.node{position:absolute;width:1.5rem;height:1.5rem;margin:-.75rem 0 0 -.75rem;padding:0;border:0;background:transparent;cursor:pointer;pointer-events:auto;display:grid;place-items:center}
+.node i{display:block;width:7px;height:7px;background:var(--ink);border-radius:50%;box-shadow:0 0 0 3px rgb(var(--scrim) / .9);transition:transform .3s,background .3s}
+.node.talk i{border-radius:1px;transform:rotate(45deg)}
+.node.project i{border-radius:1.5px;width:8px;height:8px}
+.node:hover i,.node:focus-visible i{background:var(--accent);transform:scale(1.5)}
+.node.talk:hover i,.node.talk:focus-visible i{transform:rotate(45deg) scale(1.5)}
+.tip{position:absolute;bottom:calc(100% + .35rem);left:50%;transform:translateX(-50%);min-width:max-content;max-width:16rem;padding:.45rem .65rem .5rem;
+  border-radius:8px;background:var(--bg-soft);border:1px solid var(--border);box-shadow:0 12px 30px -16px rgb(0 0 0 / .45);text-align:left;opacity:0;pointer-events:none;transition:opacity .2s}
+.tip b{display:block;font:500 .98rem/1.2 var(--serif);font-variation-settings:"opsz" 24;color:var(--ink)}
+.tip span{font-size:.78rem;color:var(--ink-3)}
+.tip em{font-style:normal;display:inline-grid;place-items:center;width:1.1rem;height:1.1rem;border-radius:50%;background:var(--accent);color:var(--on-accent);font:600 .7rem/1 var(--sans);margin-right:.35rem;vertical-align:.1em}
+.node:hover .tip,.node:focus-visible .tip{opacity:1}
+.pin{position:absolute;pointer-events:auto;transform:translate(-.35rem,-50%);display:flex;align-items:center;gap:.55rem;max-width:17rem;
+  background:rgb(var(--scrim) / .82);backdrop-filter:blur(6px);border:1px solid var(--border);border-radius:999px;padding:.45rem .9rem .5rem .5rem;
+  font:italic 400 1.02rem/1.25 var(--serif);font-variation-settings:"opsz" 24;color:var(--ink);cursor:pointer;text-align:left;
+  box-shadow:0 14px 34px -22px rgb(0 0 0 / .5);transition:transform .25s,border-color .25s}
+.pin::before{content:"";flex:none;width:.7rem;height:.7rem;border-radius:50%;background:var(--accent);box-shadow:0 0 0 .3rem rgb(var(--glow) / .18)}
+.pin:hover{border-color:var(--accent);transform:translate(-.35rem,-50%) translateY(-2px)}
+.atlas-foot{position:absolute;right:var(--edge);bottom:1.1rem;display:flex;align-items:center;gap:1.1rem;font-size:.85rem;color:var(--ink-3);
+  background:rgb(var(--scrim) / .7);backdrop-filter:blur(6px);padding:.4rem .8rem;border-radius:999px;pointer-events:auto}
+.legend{display:flex;gap:.8rem;align-items:center}
+.legend i{display:inline-block;width:7px;height:7px;background:var(--ink-2);margin-right:.35rem;vertical-align:.08em}
+.legend .e{border-radius:50%}.legend .t{transform:rotate(45deg)}.legend .p{border-radius:1.5px}
+.atlas-foot a{color:var(--ink-2)}
+
+/* cited sources: the map answers too */
+[data-state="answer"] .node:not(.cited),[data-state="handoff"] .node:not(.cited){opacity:.45}
+[data-state="answer"] .terr,[data-state="handoff"] .terr{opacity:.55}
+.node.cited i{transition-delay:.4s}
+[data-state="answer"] .node.cited i,[data-state="handoff"] .node.cited i{background:var(--accent);width:11px;height:11px;box-shadow:0 0 0 4px rgb(var(--scrim)),0 0 0 9px rgb(var(--glow) / .22),0 0 26px 8px rgb(var(--glow) / .25)}
+[data-state="answer"] .node.cited .tip,[data-state="handoff"] .node.cited .tip{opacity:1;transition-delay:.9s}
+.node.cited.below .tip{bottom:auto;top:calc(100% + .35rem)}
+.node.cited.right .tip{bottom:auto;top:50%;left:calc(100% + .4rem);transform:translateY(-50%)}
+
+/* chrome over the map */
+.top{position:absolute;inset:0 0 auto 0;z-index:3;display:flex;justify-content:space-between;align-items:center;padding:1.2rem var(--edge);pointer-events:none}
+.top>*{pointer-events:auto}
+.brand{font:500 1.35rem/1 var(--serif);font-variation-settings:"SOFT" 40,"opsz" 36;color:var(--ink);text-decoration:none;letter-spacing:-.01em}
+.nav{display:flex;align-items:center;gap:.2rem;background:rgb(var(--scrim) / .72);backdrop-filter:blur(6px);border:1px solid var(--border);border-radius:999px;padding:.25rem}
+.nav a{font:500 .95rem/1 var(--sans);color:var(--ink-2);text-decoration:none;padding:.5rem .8rem;border-radius:999px}
+.nav a:hover{background:var(--bg-soft);color:var(--ink)}
+.mode{width:2.1rem;height:2.1rem;border-radius:50%;border:0;background:transparent;display:grid;place-items:center;cursor:pointer}
+.mode svg{width:1rem;height:1rem;fill:var(--ink-2)}
+
+/* ---------- the conversation column ---------- */
+.convo{position:absolute;z-index:2;inset:0 auto 0 0;width:calc(var(--col) + 7rem);display:flex;flex-direction:column;
+  padding:5.4rem 7rem 1.4rem var(--edge);
+  background:linear-gradient(90deg,rgb(var(--scrim)) 0%,rgb(var(--scrim)) 72%,rgb(var(--scrim) / .82) 84%,rgb(var(--scrim) / 0) 100%)}
+.scroll{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;padding-right:.5rem;margin-right:-.5rem}
+.owner{padding-top:clamp(1rem,6vh,4rem)}
+.byline{display:flex;align-items:center;gap:.7rem;margin-bottom:1.5rem}
+.mark{flex:none;width:2.3rem;height:2.3rem;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font:500 .85rem/1 var(--serif);letter-spacing:.03em}
+.byline b{display:block;font:600 .98rem/1.2 var(--sans)}
+.byline div span{font-size:.85rem;color:var(--ink-3)}
+.owner h1{margin:0 0 1.4rem;font:400 clamp(2.8rem,5.2vw,4.9rem)/1 var(--serif);font-variation-settings:"SOFT" 50,"opsz" 96;letter-spacing:-.018em;text-wrap:balance}
+.owner p{margin:0 0 .8em;max-width:31rem;font:300 clamp(1.1rem,1.35vw,1.25rem)/1.55 var(--serif);font-variation-settings:"opsz" 24;color:var(--ink-2)}
+
+.dock{padding-top:1rem}
+.composer{display:flex;align-items:flex-end;gap:.6rem;background:var(--bg-soft);border:1px solid var(--border);border-radius:1.4rem;padding:.55rem .55rem .55rem 1.2rem;
+  box-shadow:0 26px 60px -34px rgb(24 19 42 / .55),0 2px 0 rgb(255 255 255 / .4) inset}
+.composer:focus-within{border-color:var(--accent);box-shadow:0 26px 60px -34px rgb(24 19 42 / .55),0 0 0 4px rgb(var(--glow) / .14)}
+.composer textarea{flex:1;min-width:0;border:0;background:transparent;resize:none;color:var(--ink);font:500 1.18rem/1.4 var(--sans);padding:.6rem 0;field-sizing:content;min-height:1.4em;max-height:7em}
+.composer textarea::placeholder{color:var(--ink-3)}
+.composer textarea:focus{outline:none}
+.send{flex:none;width:2.9rem;height:2.9rem;border-radius:50%;border:0;background:var(--accent);display:grid;place-items:center;cursor:pointer;transition:transform .2s,background .2s}
+.send svg{width:1.15rem;height:1.15rem;stroke:var(--on-accent);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.send:hover{background:var(--accent-2);transform:translateY(-1px)}
+.under{display:flex;flex-wrap:wrap;justify-content:space-between;gap:.4rem 1rem;margin:.75rem .3rem 0;font-size:.84rem;color:var(--ink-3)}
+.under a{color:var(--ink-3)}
+.under button{border:0;background:none;padding:0;color:var(--accent);font:italic 400 1rem/1.3 var(--serif);cursor:pointer}
+.mstarts{display:none}
+
+/* thread */
+.compact{display:flex;gap:.65rem;align-items:flex-start;padding:.9rem 0 1.2rem;border-bottom:1px solid var(--border);margin-bottom:1.4rem}
+.compact .mark{width:1.9rem;height:1.9rem;font-size:.72rem}
+.compact p{margin:0;font:300 1.02rem/1.45 var(--serif);color:var(--ink-2)}
+.compact b{font:600 .92rem/1 var(--sans);color:var(--ink);margin-right:.35rem}
+.msg{margin-bottom:1.4rem}
+.visitor{display:flex;justify-content:flex-end}
+.visitor p{margin:0;max-width:88%;background:var(--ink);color:var(--bg);border-radius:1.2rem 1.2rem .35rem 1.2rem;padding:.8rem 1.05rem;font:500 1.08rem/1.4 var(--sans)}
+.brainby{display:flex;align-items:center;gap:.5rem;margin:0 0 .6rem;font:600 .9rem/1.2 var(--sans)}
+.brainby svg{width:1.3rem;height:1.3rem}
+.brainby span{font-weight:400;color:var(--ink-3)}
+.brain p{margin:0 0 .8em;font:400 1.06rem/1.6 var(--sans);color:var(--ink-2)}
+.brain p i{font:italic 400 1.1em/1 var(--serif);color:var(--ink)}
+.cite{display:inline-grid;place-items:center;width:1.2rem;height:1.2rem;margin:0 .1rem 0 .2rem;border-radius:50%;background:var(--accent);color:var(--on-accent);font:600 .7rem/1 var(--sans);vertical-align:.15em;text-decoration:none}
+.sources{list-style:none;margin:1rem 0 0;padding:0;display:grid;gap:.1rem}
+.sources li{display:flex;align-items:baseline;gap:.65rem;padding:.5rem .7rem;margin:0 -.7rem;border-radius:.7rem}
+.sources li:hover{background:var(--bg-soft)}
+.sources .n{flex:none;display:inline-grid;place-items:center;width:1.2rem;height:1.2rem;border-radius:50%;border:1.5px solid var(--accent);color:var(--accent);font:600 .7rem/1 var(--sans);transform:translateY(-.1em)}
+.sources a{font:400 1.08rem/1.3 var(--serif);font-variation-settings:"opsz" 24;color:var(--ink);text-decoration:none}
+.sources span:last-child{margin-left:auto;font-size:.82rem;color:var(--ink-3);white-space:nowrap}
+.actions{margin-top:1rem}
+.chip{border:1px solid var(--border);background:var(--bg-soft);border-radius:999px;padding:.55rem 1rem;font:500 .95rem/1 var(--sans);cursor:pointer;color:var(--ink)}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.handoff{margin:.4rem 0 1.4rem;border-radius:1.2rem;background:var(--bg-soft);border:1px solid var(--border);padding:1.2rem 1.25rem 1.25rem}
+.handoff h2{margin:0 0 .3rem;font:500 1.35rem/1.2 var(--serif);font-variation-settings:"opsz" 36}
+.handoff p{margin:0 0 1rem;font-size:.95rem;color:var(--ink-2)}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
+.fields label{display:grid;gap:.3rem;font:500 .85rem/1.2 var(--sans);color:var(--ink-2)}
+.fields .wide{grid-column:1/-1}
+.fields input,.fields textarea,.sheet input,.sheet textarea{width:100%;min-width:0;border:1px solid var(--border);border-radius:.7rem;background:var(--bg);color:var(--ink);font:400 1rem/1.4 var(--sans);padding:.65rem .8rem}
+.fields textarea{min-height:4.5rem;resize:vertical}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:.6rem 1rem;margin-top:1rem}
+.primary{border:0;border-radius:999px;background:var(--accent);color:var(--on-accent);font:600 1rem/1 var(--sans);padding:.85rem 1.3rem;cursor:pointer;text-decoration:none;display:inline-block}
+.primary:hover{background:var(--accent-2)}
+.fine{margin:0;font-size:.82rem;color:var(--ink-3)}
+
+/* before chat is enabled */
+.door h2{margin:0 0 .25rem;font:500 1.5rem/1.2 var(--serif);font-variation-settings:"opsz" 36}
+.door ul{list-style:none;margin:.8rem 0 1.1rem;padding:0;display:grid;gap:.1rem}
+.door li a{display:block;padding:.45rem .7rem;margin:0 -.7rem;border-radius:.7rem;font:italic 400 1.1rem/1.3 var(--serif);color:var(--ink);text-decoration:none}
+.door li a:hover{background:var(--bg-soft);color:var(--accent)}
+
+/* links from the answer's sources to the map */
+.links{position:absolute;inset:0;pointer-events:none;width:100%;height:100%}
+.links path{fill:none;stroke:var(--accent);stroke-width:1.4;opacity:.85}
+.links circle{fill:var(--accent)}
+
+/* contact sheet */
+.sheet{position:absolute;z-index:4;top:0;right:0;bottom:0;width:min(33rem,100%);background:var(--bg-soft);border-left:1px solid var(--border);
+  padding:5.5rem clamp(1.25rem,3vw,2.5rem) 2rem;overflow-y:auto;transform:translateX(102%);transition:transform .45s cubic-bezier(.2,.8,.2,1)}
+[data-state="contact"] .sheet{transform:none;box-shadow:-40px 0 80px -40px rgb(0 0 0 / .45)}
+.veil{position:absolute;inset:0;z-index:3;background:rgb(var(--scrim) / .45);opacity:0;pointer-events:none;transition:opacity .4s}
+[data-state="contact"] .veil{opacity:1;pointer-events:auto}
+.sheet .close{position:absolute;top:1.3rem;right:1.3rem;width:2.4rem;height:2.4rem;border-radius:50%;border:1px solid var(--border);background:var(--bg);cursor:pointer;display:grid;place-items:center}
+.sheet .close svg{width:1rem;height:1rem;stroke:var(--ink-2);stroke-width:2;fill:none}
+.sheet h2{margin:0 0 .8rem;font:400 clamp(2.2rem,4vw,3rem)/1.05 var(--serif);font-variation-settings:"SOFT" 50,"opsz" 96;letter-spacing:-.015em}
+.sheet .intro{margin:0 0 1.5rem;font:300 1.15rem/1.5 var(--serif);font-variation-settings:"opsz" 24;color:var(--ink-2)}
+.sheet .topic{margin:0 0 1.2rem;display:inline-flex;align-items:center;gap:.5rem;border-radius:999px;background:rgb(var(--glow) / .12);color:var(--ink);padding:.4rem .85rem;font:italic 400 1rem/1.3 var(--serif)}
+.sheet form{display:grid;gap:.9rem}
+.sheet label{display:grid;gap:.35rem;font:500 .9rem/1.2 var(--sans);color:var(--ink-2)}
+.sheet label small{font-weight:400;color:var(--ink-3)}
+.sheet textarea{min-height:8rem;resize:vertical}
+.sheet .primary{justify-self:start;margin-top:.3rem}
+.sheet .fine{margin-top:1.2rem}
+
+/* state visibility */
+:root:not([data-state="landing"]) .s-landing,
+:root:not([data-state="answer"]):not([data-state="handoff"]) .s-thread,
+:root:not([data-state="answer"]) .s-answer,
+:root:not([data-state="handoff"]) .s-handoff,
+:root:not([data-state="door"]) .s-door,
+[data-state="door"] .s-chat{display:none}
+[data-state="answer"] .s-intro,[data-state="handoff"] .s-intro{display:none}
+
+/* ---------- phone ---------- */
+@media (max-width:860px){
+  .app{height:auto;min-height:0;overflow:visible;display:flex;flex-direction:column}
+  .atlas{position:relative;height:46svh;min-height:20rem;order:0;overflow:hidden}
+  .convo{position:relative;order:1;width:100%;padding:0 var(--edge) 0;background:var(--bg)}
+  .scroll{overflow:visible;margin:0;padding:0}
+  .owner{padding-top:1.6rem}
+  [data-state="door"] .dock{position:static;background:none}
+  .dock{position:sticky;bottom:0;padding:.8rem 0 calc(.9rem + env(safe-area-inset-bottom));background:linear-gradient(rgb(var(--scrim) / 0),rgb(var(--scrim)) 30%)}
+  .pins,.links,.nav a{display:none}
+  .nav{padding:.1rem}
+  .terr{font-size:.82rem}
+  .atlas-foot{left:var(--edge);right:auto;bottom:.8rem;font-size:.78rem;gap:.7rem}
+  .atlas-foot .caption{display:none}
+  .mstarts{display:grid;list-style:none;margin:1rem 0 0;padding:0;gap:.45rem}
+  .mstarts button{width:100%;text-align:left;border:1px solid var(--border);background:var(--bg-soft);border-radius:1rem;padding:.7rem .9rem;font:italic 400 1.02rem/1.3 var(--serif);cursor:pointer}
+  .fields{grid-template-columns:1fr}
+  .sheet{position:fixed}
+  .veil{position:fixed}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="study" role="region" aria-label="Study controls">
+  <span>yeehaa.io atlas study, static: nothing is sent</span>
+  <div role="group" aria-label="State">
+    <button data-set="state" data-value="landing" aria-pressed="true">1 Landing</button>
+    <button data-set="state" data-value="answer" aria-pressed="false">2 Answer</button>
+    <button data-set="state" data-value="handoff" aria-pressed="false">3 Talk to me</button>
+    <button data-set="state" data-value="door" aria-pressed="false">4 Before chat</button>
+    <button data-set="state" data-value="contact" aria-pressed="false">5 Contact</button>
+  </div>
+  <div role="group" aria-label="Theme">
+    <button data-set="theme" data-value="light" aria-pressed="true">Light</button>
+    <button data-set="theme" data-value="dark" aria-pressed="false">Dark</button>
+  </div>
+</div>
+
+<div class="app" id="app">
+  <section class="atlas" id="atlas" aria-label="Map of everything Jan Hein has published, placed by topic">
+    <canvas id="terrain" aria-hidden="true"></canvas>
+    <div class="grain" aria-hidden="true"></div>
+    <div class="terrs" id="terrs" aria-hidden="true"></div>
+    <svg class="links" id="links" aria-hidden="true"></svg>
+    <div class="nodes" id="nodes"></div>
+    <div class="atlas-foot">
+      <span class="caption">Everything published since 2013, placed by topic</span>
+      <span class="legend" aria-hidden="true"><span><i class="e"></i>Essay</span><span><i class="t"></i>Talk</span><span><i class="p"></i>Project</span></span>
+      <a href="#">List view</a>
+    </div>
+  </section>
+
+  <header class="top">
+    <a class="brand" href="#" data-go="landing">Yeehaa</a>
+    <nav class="nav" aria-label="Site">
+      <a href="#">Writing</a><a href="#">Talks</a><a href="#">Work</a><a href="#">About</a>
+      <button class="mode" type="button" data-toggle-theme aria-label="Switch light or dark"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1zm0 1.5v11a5.5 5.5 0 0 1 0-11z"/></svg></button>
+    </nav>
+  </header>
+
+  <section class="convo" id="talk" aria-label="Conversation">
+    <div class="scroll" id="scroll">
+      <article class="owner s-intro">
+        <div class="byline"><span class="mark" aria-hidden="true">JH</span><div><b>Jan Hein Hoogstad</b><span>Written by me, not generated</span></div></div>
+        <h1>Building something inhabitable.</h1>
+        <p class="s-chat">I work on how institutions hold what they know. Everything I’ve published is on this map. Ask it something: my brain answers from what I’ve written, shows you where, and says so when it doesn’t know.</p>
+        <p class="s-door">I work on how institutions hold what they know. Everything I’ve published is on this map. Wander it, or tell me what you’re working on.</p>
+        <ul class="mstarts s-landing" aria-label="Ways to start">
+          <li><button type="button" data-fill="Why do institutions forget?">Why do institutions forget?</button></li>
+          <li><button type="button" data-fill="What goes wrong when organisations bring in AI?">What goes wrong when organisations bring in AI?</button></li>
+          <li><button type="button" data-fill="What is Rizom, and who is it for?">What is Rizom, and who is it for?</button></li>
+        </ul>
+      </article>
+
+      <div class="s-thread">
+        <div class="compact"><span class="mark" aria-hidden="true">JH</span><p><b>Jan Hein</b>Building something inhabitable. I work on how institutions hold what they know.</p></div>
+        <div class="msg visitor"><p>We’re a research network with fifteen years of reports and mailing lists. Where would we even start?</p></div>
+        <div class="msg brain">
+          <p class="brainby"><svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="3" fill="var(--accent)"/><circle cx="10" cy="10" r="6.5" fill="none" stroke="var(--accent)" stroke-opacity=".45"/><circle cx="10" cy="10" r="9.3" fill="none" stroke="var(--accent)" stroke-opacity=".2"/></svg>Jan Hein’s brain <span>from his published work</span></p>
+          <p>He’d start with people, not the reports. In <i>Hiding in Plain Sight</i> he argues institutions rarely lack information; they have a surplus of traces that no longer add up to memory.<a class="cite" href="#s1">1</a> Fifteen years of reports is likely that surplus.</p>
+          <p>The first step is mapping who in the network knows what, and whose judgment settles which questions, before any software is involved.<a class="cite" href="#s2">2</a> Point an AI tool at the archive before that and it multiplies whatever confusion is already there.<a class="cite" href="#s3">3</a></p>
+          <p>There’s nothing public here on pricing or on networks your size. That one is for him.</p>
+          <ol class="sources" aria-label="Sources">
+            <li id="s1" data-n="1"><span class="n">1</span><a href="#">Hiding in Plain Sight</a><span>Essay, 2026</span></li>
+            <li id="s2" data-n="2"><span class="n">2</span><a href="#">Rizom Collective</a><span>Project, 2024</span></li>
+            <li id="s3" data-n="3"><span class="n">3</span><a href="#">A Colleague Without Context</a><span>Essay, 2026</span></li>
+          </ol>
+          <div class="actions s-answer"><button class="chip" type="button" data-go="handoff">Talk to Jan Hein about this</button></div>
+        </div>
+        <form class="handoff s-handoff" onsubmit="return false" aria-labelledby="ho-h">
+          <h2 id="ho-h">Send this conversation to Jan Hein</h2>
+          <p>It reaches his inbox with this conversation attached. He replies by email. Nothing you send is added to his notes.</p>
+          <div class="fields">
+            <label>Name<input autocomplete="name" value="Mara de Vries"></label>
+            <label>Email<input type="email" autocomplete="email" value="mara@example.org"></label>
+            <label class="wide">Anything he should know first<textarea placeholder="Optional">We plan next year’s budget in November.</textarea></label>
+          </div>
+          <div class="row"><button class="primary" type="submit">Send to Jan Hein</button><p class="fine">One per conversation. Kept as long as the conversation.</p></div>
+        </form>
+      </div>
+    </div>
+
+    <div class="dock">
+      <div class="s-chat">
+        <form class="composer" onsubmit="return false">
+          <label class="vh" for="q">Ask Jan Hein’s brain</label>
+          <textarea id="q" rows="1" placeholder="Ask about the work"></textarea>
+          <button class="send" type="submit" aria-label="Ask"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg></button>
+        </form>
+        <div class="under"><span>Answers only from what’s published here. Private to you, and it expires. <a href="#">Limits</a></span><button type="button" class="s-landing" data-fill="I’d like to talk to you.">Rather talk to me?</button></div>
+      </div>
+      <div class="door s-door">
+        <h2>Tell me where you’d start</h2>
+        <ul>
+          <li><a href="#" data-go="contact" data-topic="Someone who carries a lot is about to leave">Someone who carries a lot is about to leave</a></li>
+          <li><a href="#" data-go="contact" data-topic="Our AI tools don’t know what we know">Our AI tools don’t know what we know</a></li>
+          <li><a href="#" data-go="contact" data-topic="I’d like to build this with you">I’d like to build this with you</a></li>
+        </ul>
+        <a class="primary" href="#" data-go="contact">Write to me</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="pins s-landing" id="pins"></div>
+  <div class="veil" data-go="door"></div>
+
+  <aside class="sheet" aria-labelledby="sheet-h">
+    <button class="close" type="button" data-go="door" aria-label="Close"><svg viewBox="0 0 16 16"><path d="M3 3l10 10M13 3 3 13"/></svg></button>
+    <h2 id="sheet-h">Write to Jan Hein</h2>
+    <p class="intro">Tell me a little about your organisation and what’s on your mind. I read these myself and reply by email.</p>
+    <p class="topic" id="topic" hidden></p>
+    <form onsubmit="return false">
+      <label>Name<input autocomplete="name"></label>
+      <label>Email<input type="email" autocomplete="email"></label>
+      <label>What’s on your mind <small>Optional</small><textarea></textarea></label>
+      <button class="primary" type="submit">Send</button>
+    </form>
+    <p class="fine">Kept for 30 days, then deleted; backups may hold earlier copies. Nothing you write is added to my notes.</p>
+  </aside>
+</div>
+
+<script>
+(function(){
+  var root=document.documentElement, $=function(s){return document.querySelector(s)};
+  var atlas=$('#atlas'), cv=$('#terrain'), ctx=cv.getContext('2d'), nodesEl=$('#nodes'), terrsEl=$('#terrs'), pinsEl=$('#pins'), links=$('#links'), app=$('#app');
+  var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Territories: x as a fraction of width, y and spread as fractions of height.
+  var T=[
+    {id:'ni',label:'New institutions',x:.67,y:.36,s:.085,w:1.05,seed:.4},
+    {id:'ea',label:'Ecosystem architecture',x:.84,y:.62,s:.1,w:1.15,seed:1.9},
+    {id:'ag',label:'Agents and AI',x:.6,y:.7,s:.085,w:1,seed:3.1},
+    {id:'le',label:'Learning',x:.9,y:.33,s:.07,w:.85,seed:.9},
+    {id:'tv',label:'Trust and values',x:.745,y:.2,s:.06,w:.75,seed:2.4},
+    {id:'nw',label:'Networks',x:.51,y:.5,s:.05,w:.6,seed:5.2}
+  ];
+  var I=[
+    ['ni','essay','Urging New Institutions',2025],['ni','essay','Hiding in Plain Sight',2026,1],
+    ['ni','talk','Organizations as Living Systems',2026],['ni','essay','Reclaiming The Future',2024],
+    ['ea','essay','Across Space And Time',2024],['ea','essay','Practice Innovation',2024],['ea','essay','Global Village People',2024],['ea','essay','Foam Party',2024],
+    ['ea','essay','The Good Foot',2024],['ea','essay','The Practice Of Ecosystem Architecture',2024],['ea','essay','The Future of Work is Play',2025],
+    ['ea','talk','Good People Are Not Enough',2026],['ea','project','Rizom Collective',2024,2],
+    ['ag','essay','Agency Trumps Humanness',2020],['ag','essay','A Colleague Without Context',2026,3],['ag','talk','Have Your Agent Call My Agent',2026],['ag','project','Bots with an Attitude',2019],
+    ['ag','project','Lefthoek',2020],['ag','project','Varias',2022],['ag','project','Rizom Brains',2024],
+    ['le','essay','When All We Have is a Hammer',2013],['le','essay','Learning Apart Together',2020],['le','project','Offcourse',2013],
+    ['le','project','Offcourse Studio',2019],['le','project','Snowday',2022],
+    ['tv','essay','Fundamentals of Trust',2020],['tv','essay','Value Driven Development',2020],['tv','essay','False Media',2020],['tv','essay','Data Drive',2020],['tv','project','Public Badges',2019],
+    ['nw','project','Superconnectors',2021],['nw','essay','The Low End Theory',2021]
+  ].map(function(r){return {t:r[0],type:r[1],title:r[2],year:r[3],cite:r[4]||0}});
+  var PINS=[
+    {q:'Why do institutions forget?',x:.465,y:.3},
+    {q:'What goes wrong when organisations bring in AI?',x:.53,y:.85},
+    {q:'What is Rizom, and who is it for?',x:.77,y:.8}
+  ];
+  var kinds={essay:'Essay',talk:'Talk',project:'Project'};
+
+  // place items around their territory on a golden-angle spiral
+  T.forEach(function(t){
+    var arr=I.filter(function(i){return i.t===t.id});
+    arr.forEach(function(it,k){
+      var a=k*2.39996+t.seed, r=t.s*(.35+.95*Math.sqrt((k+.5)/arr.length));
+      it.dx=Math.cos(a)*r; it.dy=Math.sin(a)*r*.82; it.tt=t;
+    });
+  });
+
+  // DOM for territories, nodes, pins
+  T.forEach(function(t){var d=document.createElement('div');d.className='terr';d.textContent=t.label;terrsEl.appendChild(d);t.el=d});
+  I.forEach(function(it){
+    var b=document.createElement('button');b.type='button';b.className='node '+it.type+(it.cite?' cited':'');
+    b.setAttribute('aria-label',kinds[it.type]+', '+it.year+': '+it.title);
+    b.innerHTML='<i></i><span class="tip">'+(it.cite?'<em>'+it.cite+'</em>':'')+'<b></b><span>'+kinds[it.type]+', '+it.year+'</span></span>';
+    b.querySelector('b').textContent=it.title;
+    if(it.cite) b.dataset.cite=it.cite;
+    if(it.cite===1) b.classList.add('right');if(it.cite===3) b.classList.add('below');
+    nodesEl.appendChild(b);it.el=b;
+  });
+  PINS.forEach(function(p){var b=document.createElement('button');b.type='button';b.className='pin';b.textContent=p.q;
+    b.addEventListener('click',function(){var q=$('#q');q.value=p.q;q.focus()});pinsEl.appendChild(b);p.el=b});
+
+  var W=0,H=0,dpr=1,cell=7,gw=0,gh=0,base=null,view={s:1,ox:0,oy:0},anim=null,colors={c:'24 19 42',g:'184 65 12',b:1};
+  function tx(t){return isPhone()?.1+(t.x-.5)/.42*.8:t.x}
+  function wx(it){return tx(it.tt)*W+it.dx*H} function wy(it){return it.tt.y*H+it.dy*H}
+  function readColors(){var cs=getComputedStyle(root);colors.c=cs.getPropertyValue('--contour').trim();colors.g=cs.getPropertyValue('--glow').trim();colors.b=parseFloat(cs.getPropertyValue('--boost'))||1}
+  function isPhone(){return innerWidth<=860}
+
+  function computeBase(){
+    base=new Float32Array(gw*gh);
+    var ts=T.map(function(t){return [tx(t)*W,t.y*H,2*Math.pow(t.s*H,2),t.w]});
+    var is=I.map(function(it){return [wx(it),wy(it)]}), is2=2*Math.pow(.017*H,2);
+    for(var j=0;j<gh;j++){for(var i=0;i<gw;i++){
+      var x=(i*cell-view.ox)/view.s, y=(j*cell-view.oy)/view.s, f=0, k, dx, dy;
+      for(k=0;k<ts.length;k++){dx=x-ts[k][0];dy=y-ts[k][1];f+=ts[k][3]*Math.exp(-(dx*dx+dy*dy)/ts[k][2])}
+      for(k=0;k<is.length;k++){dx=x-is[k][0];dy=y-is[k][1];var d2=dx*dx+dy*dy;if(d2<is2*6)f+=.2*Math.exp(-d2/is2)}
+      base[j*gw+i]=f;
+    }}
+  }
+  var levels=[];for(var l=.07;l<1.9;l+=.075)levels.push(+l.toFixed(3));
+  function draw(time){
+    if(!window.d3||!base)return;
+    var vals=new Float32Array(gw*gh), tt=time*.00022;
+    for(var j=0;j<gh;j++){for(var i=0;i<gw;i++){
+      vals[j*gw+i]=base[j*gw+i]+.028*(Math.sin(i*.075+tt*2.2)*Math.cos(j*.09-tt*1.6)+.6*Math.sin((i+j)*.045-tt*1.2));
+    }}
+    var cs=d3.contours().size([gw,gh]).thresholds(levels)(vals);
+    ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);
+    ctx.setTransform(dpr*cell,0,0,dpr*cell,0,0);
+    var path=d3.geoPath(null,ctx), n=cs.length;
+    cs.forEach(function(c,k){
+      if(!c.coordinates.length)return;
+      ctx.beginPath();path(c);
+      var index=(k%4===3), a=Math.min(.9,(.07+.34*(k/n))*colors.b);
+      ctx.strokeStyle='rgb('+colors.c+' / '+Math.min(.95,index?a*1.7:a)+')';
+      ctx.lineWidth=(index?1.25:.7)/cell;ctx.stroke();
+    });
+  }
+  function layout(){
+    T.forEach(function(t){var sx=tx(t)*W*view.s+view.ox, sy=(t.y-t.s*1.5)*H*view.s+view.oy;t.el.style.left=sx+'px';t.el.style.top=sy+'px'});
+    I.forEach(function(it){it.el.style.left=(wx(it)*view.s+view.ox)+'px';it.el.style.top=(wy(it)*view.s+view.oy)+'px'});
+    PINS.forEach(function(p){p.el.style.left=(p.x*W*view.s+view.ox)+'px';p.el.style.top=(p.y*H*view.s+view.oy)+'px'});
+  }
+  function targetView(){
+    var st=root.dataset.state;
+    if(st!=='answer'&&st!=='handoff')return {s:1,ox:0,oy:0};
+    var cited=I.filter(function(i){return i.cite}), cx=0, cy=0;
+    cited.forEach(function(i){cx+=wx(i);cy+=wy(i)});cx/=cited.length;cy/=cited.length;
+    var s=isPhone()?1.3:1.28, fx=isPhone()?W*.5:W*.72, fy=H*.5;
+    return {s:s,ox:fx-cx*s,oy:fy-cy*s};
+  }
+  function resize(){
+    W=atlas.clientWidth;H=atlas.clientHeight;dpr=Math.min(2,devicePixelRatio||1);
+    cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);
+    gw=Math.ceil(W/cell)+2;gh=Math.ceil(H/cell)+2;
+    view=targetView();anim=null;computeBase();layout();draw(performance.now());drawLinks(false);
+  }
+  function animateTo(){
+    var to=targetView(), from={s:view.s,ox:view.ox,oy:view.oy};
+    links.innerHTML='';
+    if(reduce){view=to;computeBase();layout();draw(0);drawLinks(false);return}
+    anim={from:from,to:to,t0:performance.now(),d:1100};
+  }
+  var last=0;
+  function loop(now){
+    requestAnimationFrame(loop);
+    if(anim){
+      var p=Math.min(1,(now-anim.t0)/anim.d), e=p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;
+      view={s:anim.from.s+(anim.to.s-anim.from.s)*e,ox:anim.from.ox+(anim.to.ox-anim.from.ox)*e,oy:anim.from.oy+(anim.to.oy-anim.from.oy)*e};
+      computeBase();layout();
+      if(p===1){anim=null;drawLinks(true)}
+    }
+    if(reduce||now-last<40)return;last=now;draw(now);
+  }
+
+  // curved leaders from each source row to its place on the map
+  function drawLinks(animate){
+    links.innerHTML='';
+    var st=root.dataset.state;if((st!=='answer'&&st!=='handoff')||isPhone())return;
+    var ar=app.getBoundingClientRect(), tr=$('#talk').getBoundingClientRect(), sr=$('#scroll').getBoundingClientRect();
+    document.querySelectorAll('.sources li').forEach(function(li,k){
+      var r=li.getBoundingClientRect();if(r.bottom<sr.top||r.top>sr.bottom)return;
+      var node=nodesEl.querySelector('[data-cite="'+li.dataset.n+'"]');if(!node)return;
+      var nr=node.getBoundingClientRect();
+      var sx=tr.right-ar.left-70, sy=r.top+r.height/2-ar.top, ex=nr.left+nr.width/2-ar.left, ey=nr.top+nr.height/2-ar.top;
+      var p=document.createElementNS('http://www.w3.org/2000/svg','path');
+      p.setAttribute('d','M'+sx+' '+sy+' C'+(sx+140)+' '+sy+' '+(ex-160)+' '+ey+' '+(ex-9)+' '+ey);
+      var c=document.createElementNS('http://www.w3.org/2000/svg','circle');c.setAttribute('cx',sx);c.setAttribute('cy',sy);c.setAttribute('r',3);
+      links.appendChild(p);links.appendChild(c);
+      if(animate&&!reduce){var len=p.getTotalLength();p.style.strokeDasharray=len;p.style.strokeDashoffset=len;
+        p.getBoundingClientRect();p.style.transition='stroke-dashoffset .9s cubic-bezier(.3,.7,.2,1) '+(k*.14)+'s';p.style.strokeDashoffset=0}
+    });
+  }
+
+  function set(key,value){
+    root.setAttribute('data-'+key,value);
+    document.querySelectorAll('[data-set="'+key+'"]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.value===value))});
+    if(key==='theme'){readColors();draw(performance.now())}
+    if(key==='state'&&value!=='contact')animateTo();
+    if(key==='state'){var sc=$('#scroll');sc.scrollTop=value==='handoff'?sc.scrollHeight:0}
+  }
+  document.querySelectorAll('[data-set]').forEach(function(b){b.addEventListener('click',function(){set(b.dataset.set,b.dataset.value)})});
+  document.querySelectorAll('[data-toggle-theme]').forEach(function(b){b.addEventListener('click',function(){set('theme',root.dataset.theme==='dark'?'light':'dark')})});
+  document.querySelectorAll('[data-go]').forEach(function(a){a.addEventListener('click',function(e){
+    e.preventDefault();
+    var t=$('#topic');t.hidden=!a.dataset.topic;if(a.dataset.topic)t.textContent=a.dataset.topic;
+    set('state',a.dataset.go);
+  })});
+  document.querySelectorAll('[data-fill]').forEach(function(b){b.addEventListener('click',function(){var q=$('#q');q.value=b.dataset.fill;q.focus()})});
+  $('#scroll').addEventListener('scroll',function(){drawLinks(false)});
+  addEventListener('resize',resize);
+
+  var params=new URLSearchParams(location.search);
+  if(params.get('theme'))set('theme',params.get('theme'));
+  if(params.get('state')){root.dataset.state=params.get('state');document.querySelectorAll('[data-set="state"]').forEach(function(b){b.setAttribute('aria-pressed',String(b.dataset.value===params.get('state')))})}
+  if(root.dataset.state==='handoff')requestAnimationFrame(function(){var sc=$('#scroll');sc.scrollTop=sc.scrollHeight});
+  readColors();
+  (document.fonts?document.fonts.ready:Promise.resolve()).then(function(){resize();requestAnimationFrame(loop)});
+})();
+</script>
+</body>
+</html>

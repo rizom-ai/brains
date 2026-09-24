@@ -1,4 +1,5 @@
 import type { HomepageOpeningData } from "./homepage-opening";
+import type { HomepageAtlas } from "../schemas/homepage-atlas";
 import { fetchAnchorProfileData } from "@brains/profile";
 import type {
   BaseDataSourceContext,
@@ -44,6 +45,7 @@ interface HomepageDataSourceOutput {
   cta: SiteInfoCTA;
   sections: HomepageSections;
   opening?: HomepageOpeningData | null;
+  atlas?: HomepageAtlas | null;
   homepageOpening?: boolean;
 }
 
@@ -62,6 +64,9 @@ export class HomepageListDataSource implements DataSource {
   private readonly loadOpening:
     | ((context: BaseDataSourceContext) => Promise<HomepageOpeningData | null>)
     | undefined;
+  private readonly loadAtlas:
+    | ((context: BaseDataSourceContext) => Promise<HomepageAtlas | null>)
+    | undefined;
 
   constructor(
     postsListUrl: string,
@@ -69,10 +74,27 @@ export class HomepageListDataSource implements DataSource {
     loadOpening?: (
       context: BaseDataSourceContext,
     ) => Promise<HomepageOpeningData | null>,
+    loadAtlas?: (
+      context: BaseDataSourceContext,
+    ) => Promise<HomepageAtlas | null>,
   ) {
     this.loadOpening = loadOpening;
+    this.loadAtlas = loadAtlas;
     this.postsListUrl = postsListUrl;
     this.decksListUrl = decksListUrl;
+  }
+
+  /** The atlas is only worth projecting when the authored opening renders. */
+  private async loadPlacement(
+    context: BaseDataSourceContext,
+  ): Promise<
+    Pick<HomepageDataSourceOutput, "homepageOpening" | "opening" | "atlas">
+  > {
+    if (!this.loadOpening) return {};
+    const opening = await this.loadOpening(context);
+    const atlas =
+      opening && this.loadAtlas ? await this.loadAtlas(context) : null;
+    return { homepageOpening: true, opening, atlas };
   }
 
   /**
@@ -111,9 +133,7 @@ export class HomepageListDataSource implements DataSource {
       decksListUrl: this.decksListUrl,
       cta: requireCta(siteInfo.cta),
       sections: siteInfo.sections ?? {},
-      ...(this.loadOpening
-        ? { homepageOpening: true, opening: await this.loadOpening(context) }
-        : {}),
+      ...(await this.loadPlacement(context)),
     };
 
     return outputSchema.parse(data);

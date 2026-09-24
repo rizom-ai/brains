@@ -56,3 +56,31 @@ describe("professional site template schemas", () => {
     expect(result?.success).toBe(true);
   });
 });
+
+describe("professional site atlas script", () => {
+  async function homepageTemplate(
+    config: ConstructorParameters<typeof ProfessionalSitePlugin>[0],
+  ): Promise<
+    ReturnType<
+      ReturnType<
+        PluginTestHarness<ProfessionalSitePlugin>["getTemplates"]
+      >["get"]
+    >
+  > {
+    const harness = createPluginHarness<ProfessionalSitePlugin>({
+      dataDir: "/tmp/test-professional-site-atlas-script",
+    });
+    await harness.installPlugin(new ProfessionalSitePlugin(config));
+    return harness.getTemplates().get("professional-site:homepage-list");
+  }
+
+  it("ships the touch and motion script only to sites that opt into the atlas", async () => {
+    const atlas = await homepageTemplate({ homepageOpening: true });
+    const src = atlas?.runtimeScripts?.[0]?.src;
+    expect(src).toBe("/scripts/homepage-atlas.js");
+    expect(atlas?.staticAssets?.[src ?? ""]).toContain("data-atlas");
+
+    const plain = await homepageTemplate({});
+    expect(plain?.runtimeScripts ?? []).toEqual([]);
+  });
+});
