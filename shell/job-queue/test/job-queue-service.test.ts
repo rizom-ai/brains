@@ -849,23 +849,40 @@ describe("JobQueueService", () => {
       expect(job?.status).toBe("pending");
     });
     it("lists terminal and active children by durable root job ID", async () => {
-      const rootJobId = "directory-root-1";
-      const firstId = await service.enqueue({
-        type: "shell:embedding",
-        data: testEntity,
-        options: enqueueOpts({ rootJobId }),
-      });
-      const secondId = await service.enqueue({
-        type: "shell:embedding",
-        data: { ...testEntity, id: "test-root-child-2" },
-        options: enqueueOpts({ rootJobId }),
-      });
-      await service.complete(firstId, {});
+      const clock = spyOn(Date, "now").mockReturnValue(10_000);
+      try {
+        const rootJobId = "directory-root-1";
+        const firstId = await service.enqueue({
+          type: "shell:embedding",
+          data: testEntity,
+          options: enqueueOpts({ rootJobId }),
+        });
+        const secondId = await service.enqueue({
+          type: "shell:embedding",
+          data: { ...testEntity, id: "test-root-child-2" },
+          options: enqueueOpts({ rootJobId }),
+        });
+        await service.complete(firstId, {});
 
-      expect(
-        (await service.getJobsByRootJobId(rootJobId)).map(({ id }) => id),
-      ).toEqual([firstId, secondId]);
-      expect(await service.getJobsByRootJobId("another-root")).toEqual([]);
+        const children = await service.getJobsByRootJobId(rootJobId);
+        expect(children.map(({ createdAt }) => createdAt)).toEqual([
+          10_000, 10_000,
+        ]);
+        // Equal timestamps use the repository's ascending ID tie-breaker,
+        // not insertion order or locale-dependent string comparison.
+        expect(children.map(({ id }) => id)).toEqual(
+          [firstId, secondId].sort(),
+        );
+        expect(children.find(({ id }) => id === firstId)?.status).toBe(
+          "completed",
+        );
+        expect(children.find(({ id }) => id === secondId)?.status).toBe(
+          "pending",
+        );
+        expect(await service.getJobsByRootJobId("another-root")).toEqual([]);
+      } finally {
+        clock.mockRestore();
+      }
     });
 
     it("should get job status by entity ID for embedding jobs", async () => {

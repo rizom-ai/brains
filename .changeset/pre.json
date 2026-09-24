@@ -413,6 +413,7 @@
     "core--public-authoring-definitions",
     "core--public-plugin-surface-soundness",
     "core--quality-refactor-sweep",
+    "core--queue-write-contention",
     "core--react-renderer-consolidation",
     "core--reconcile-generated-deploy-scripts",
     "core--recurring-check-inbox-source",
