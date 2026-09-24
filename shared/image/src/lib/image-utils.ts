@@ -9,13 +9,6 @@ const IMAGE_MEDIA_TYPES: Record<ImageFormat, ImageMediaType> = {
   webp: "image/webp",
 };
 
-export interface ParsedDataUrl {
-  format: ImageFormat;
-  mediaType: ImageMediaType;
-  base64: string;
-  bytes: Uint8Array;
-}
-
 export interface InspectedImage {
   format: ImageFormat;
   mediaType: ImageMediaType;
@@ -38,63 +31,8 @@ function normalizeDeclaredMediaType(value: string): ImageMediaType | undefined {
   }
 }
 
-function toBytes(input: string | Uint8Array): Uint8Array {
-  return typeof input === "string" ? Buffer.from(input, "base64") : input;
-}
-
-/** Parse and strictly validate a supported raster image data URL. */
-export function tryParseDataUrl(dataUrl: string): ParsedDataUrl | null {
-  const match = dataUrl
-    .trim()
-    .match(
-      /^data:(image\/(?:png|jpeg|jpg|gif|webp));base64,([a-z0-9+/]+={0,2})$/i,
-    );
-  const declaredMediaType = match?.[1];
-  const base64 = match?.[2];
-  if (!declaredMediaType || !base64) return null;
-
-  const mediaType = normalizeDeclaredMediaType(declaredMediaType);
-  if (!mediaType) return null;
-
-  const bytes = Buffer.from(base64, "base64");
-  if (bytes.byteLength === 0) return null;
-
-  try {
-    const inspected = inspectImageBytes(bytes, mediaType);
-    return {
-      format: inspected.format,
-      mediaType: inspected.mediaType,
-      base64,
-      bytes,
-    };
-  } catch {
-    // Byte inspection rejects unsupported signatures, MIME mismatches and bad
-    // dimensions. For this non-throwing parser, each means an invalid data URL.
-    return null;
-  }
-}
-
-export function parseDataUrl(dataUrl: string): ParsedDataUrl {
-  const parsed = tryParseDataUrl(dataUrl);
-  if (!parsed) throw new Error("Invalid or unsupported image data URL");
-  return parsed;
-}
-
-export function createDataUrl(
-  base64: string,
-  format: ImageFormat | string,
-): string {
-  const normalizedFormat = format.toLowerCase();
-  const mimeFormat = normalizedFormat === "jpg" ? "jpeg" : normalizedFormat;
-  return `data:image/${mimeFormat};base64,${base64}`;
-}
-
-/** Detect a supported image format from binary signatures. */
-export function detectImageFormat(
-  input: string | Uint8Array,
-): ImageFormat | null {
-  const bytes = toBytes(input);
-
+/** Detect a supported image format from binary signatures in ingestion actors. */
+export function detectImageFormat(bytes: Uint8Array): ImageFormat | null {
   if (
     bytes.byteLength >= 8 &&
     bytes[0] === 0x89 &&
@@ -149,9 +87,8 @@ export function detectImageFormat(
 
 /** Extract dimensions from a bounded binary header. */
 export function detectImageDimensions(
-  input: string | Uint8Array,
+  bytes: Uint8Array,
 ): { width: number; height: number } | null {
-  const bytes = toBytes(input);
   const buffer = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const format = detectImageFormat(bytes);
 
@@ -259,10 +196,6 @@ export function inspectImageBytes(
     width: dimensions.width,
     height: dimensions.height,
   };
-}
-
-export function isValidDataUrl(value: string): boolean {
-  return tryParseDataUrl(value) !== null;
 }
 
 export { isHttpUrl };

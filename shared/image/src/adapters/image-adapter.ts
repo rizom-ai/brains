@@ -10,7 +10,6 @@ import {
   type ImageIngestionStatus,
   type ImageMetadata,
 } from "../schemas/image";
-import { inspectImageBytes, parseDataUrl } from "../lib/image-utils";
 import { parseMarkdown } from "@brains/utils/markdown";
 
 interface ImageProvenanceInput {
@@ -64,19 +63,9 @@ export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
       return { entityType: "image", content: normalized };
     }
 
-    const parsed = parseDataUrl(normalized);
-    const inspected = inspectImageBytes(parsed.bytes, parsed.mediaType);
-    return {
-      entityType: "image",
-      content: normalized,
-      metadata: {
-        format: inspected.format,
-        mediaType: inspected.mediaType,
-        sizeBytes: inspected.sizeBytes,
-        width: inspected.width,
-        height: inspected.height,
-      },
-    };
+    throw new Error(
+      "Image content requires a SHA-256 asset reference; inline images require offline migration",
+    );
   }
 
   public extractMetadata(entity: Image): ImageMetadata {

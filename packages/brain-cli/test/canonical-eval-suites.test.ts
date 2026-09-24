@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { App, resolve, resolveBundleSelection } from "@brains/app";
+import {
+  App,
+  resolve,
+  resolveBundleSelection,
+  type AppConfigInput,
+} from "@brains/app";
+import { Shell } from "@brains/core";
+import { assetRefSchema } from "@brains/assets";
+import { installEvalImageFiles } from "./helpers/eval-image-files";
 import { caughtError } from "@brains/test-utils";
 import {
   EvalHandlerRegistry,
@@ -102,11 +110,11 @@ function seededEntityTypes(seedDirectory: string): string[] {
   return [...new Set(types)].sort();
 }
 
-function createSuiteApp(
+async function createSuiteApp(
   name: SuiteName,
   selection: EvalSelection,
   seedDirectory: string,
-): { app: App; evalHandlers: EvalHandlerRegistry } {
+): Promise<{ app: App; evalHandlers: EvalHandlerRegistry }> {
   const directory = createTempDirectory(name);
   const basePlugins = rawManifest.plugins;
   const plugins = {
@@ -144,26 +152,37 @@ function createSuiteApp(
     },
   );
 
-  return {
-    app: App.create({
-      ...resolved,
-      database: undefined,
-      shellConfig: {
-        ...resolved.shellConfig,
-        database: { url: `file:${join(directory, "brain.db")}` },
-        jobQueueDatabase: { url: `file:${join(directory, "jobs.db")}` },
-        conversationDatabase: {
-          url: `file:${join(directory, "conversation.db")}`,
-        },
-        runtimeStateDatabase: {
-          url: `file:${join(directory, "runtime-state.db")}`,
-        },
-        dataDir: join(directory, "brain-data"),
-        evalHandlerRegistry: evalHandlers,
+  const config: AppConfigInput = {
+    ...resolved,
+    database: undefined,
+    shellConfig: {
+      ...resolved.shellConfig,
+      database: { url: `file:${join(directory, "brain.db")}` },
+      jobQueueDatabase: { url: `file:${join(directory, "jobs.db")}` },
+      conversationDatabase: {
+        url: `file:${join(directory, "conversation.db")}`,
       },
-    }),
-    evalHandlers,
+      runtimeStateDatabase: {
+        url: `file:${join(directory, "runtime-state.db")}`,
+      },
+      dataDir: join(directory, "brain-data"),
+      evalHandlerRegistry: evalHandlers,
+    },
   };
+  await App.create(config).migrate();
+  // Inject a real shell with a fixture-only file transport before seed import.
+  // Factory/default actor provisioning remains a separate acceptance gate.
+  const shell = Shell.createFresh({
+    ...config.shellConfig,
+    plugins: config.plugins,
+    ai: {
+      ...config.shellConfig?.ai,
+      apiKey: "placeholder-canonical-eval-test",
+      model: config.aiModel ?? "claude-haiku-4-5",
+    },
+  });
+  installEvalImageFiles(shell.getEntityService());
+  return { app: App.create(config, shell), evalHandlers };
 }
 
 function allCriteria(testCase: TestCase): SuccessCriteria[] {
@@ -258,7 +277,7 @@ describe("canonical eval recipe ladder", () => {
     for (const name of suiteNames) {
       const selection = suiteSelection(name);
       const seedDirectory = seedContentPath(selection);
-      const { app, evalHandlers } = createSuiteApp(
+      const { app, evalHandlers } = await createSuiteApp(
         name,
         selection,
         seedDirectory,
@@ -280,6 +299,17 @@ describe("canonical eval recipe ladder", () => {
             },
           });
           expect(imported.length).toBeGreaterThan(0);
+          if (entityType === "image") {
+            for (const image of imported) {
+              const ref = assetRefSchema.parse(image.content);
+              const asset = await entityService.statAsset(ref);
+              expect(asset?.ref).toBe(ref);
+              expect(asset?.sizeBytes).toBe(
+                z.number().parse(image.metadata["sizeBytes"]),
+              );
+              expect(asset?.sizeBytes).toBeGreaterThan(0);
+            }
+          }
         }
 
         const selectedTags = new Set(selection.tags ?? []);
@@ -335,7 +365,7 @@ describe("canonical eval recipe ladder", () => {
     mkdirSync(join(seedDirectory, "image"));
     writeFileSync(join(seedDirectory, "image", "not-in-core.md"), "# Image\n");
     const selection = suiteSelection("headless");
-    const { app } = createSuiteApp("headless", selection, seedDirectory);
+    const { app } = await createSuiteApp("headless", selection, seedDirectory);
     let initializationError: unknown;
     try {
       await app.initialize();

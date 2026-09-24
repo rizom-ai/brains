@@ -15,12 +15,14 @@ const ASSET_REF = IMAGE_FACTS.ref;
 const mockImageEntity: Image = {
   id: "img-123",
   entityType: "image",
-  content: TINY_PNG_DATA_URL,
+  content: ASSET_REF,
   visibility: "public",
   metadata: {
     title: "Test Image",
     alt: "A test image",
     format: "png",
+    mediaType: "image/png",
+    sizeBytes: TINY_PNG_BYTES.byteLength,
     width: 1,
     height: 1,
   },
@@ -73,7 +75,7 @@ describe("ImageAdapter", () => {
   describe("toMarkdown", () => {
     it("should return content as-is", () => {
       const result = imageAdapter.toMarkdown(mockImageEntity);
-      expect(result).toBe(TINY_PNG_DATA_URL);
+      expect(result).toBe(ASSET_REF);
     });
   });
 
@@ -88,20 +90,24 @@ describe("ImageAdapter", () => {
         imageAdapter.fromMarkdown("---\nvisibility: restricted\n---\n\n"),
       ).toEqual({ entityType: "image", content: "" });
     });
-    it("should parse base64 data URL and extract metadata", () => {
-      const result = imageAdapter.fromMarkdown(TINY_PNG_DATA_URL);
-      expect(result.entityType).toBe("image");
-      expect(result.content).toBe(TINY_PNG_DATA_URL);
-      expect(result.metadata?.format).toBe("png");
-      expect(result.metadata?.width).toBe(1);
-      expect(result.metadata?.height).toBe(1);
-    });
-
-    it("should not set title or alt from binary content", () => {
-      const result = imageAdapter.fromMarkdown(TINY_PNG_DATA_URL);
-      expect(result.metadata?.title).toBeUndefined();
-      expect(result.metadata?.alt).toBeUndefined();
-    });
+    it.each([
+      TINY_PNG_DATA_URL,
+      `---\nvisibility: restricted\n---\n\n${TINY_PNG_DATA_URL}`,
+      "data:image/png;base64,not-even-valid",
+      "https://example.com/image.png",
+      `data:image/png;base64,${"A".repeat(1024 * 1024)}`,
+    ])(
+      "rejects non-reference image content without byte decoding",
+      (content) => {
+        expect(() => imageAdapter.fromMarkdown(content)).toThrow(
+          "inline images require offline migration",
+        );
+        expect(
+          imageAdapter.schema.safeParse({ ...mockImageEntity, content })
+            .success,
+        ).toBe(false);
+      },
+    );
 
     it("should preserve an opaque asset reference without loading bytes", () => {
       expect(imageAdapter.fromMarkdown(ASSET_REF)).toEqual({

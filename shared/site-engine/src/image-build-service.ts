@@ -82,12 +82,12 @@ export class ImageBuildService {
       this.logger.warn("Image entity not found or has no content", { imageId });
       return;
     }
-    const image = imageSchema.parse(entity);
-    const parsed = assetRefSchema.safeParse(image.content.trim());
+    const parsed = assetRefSchema.safeParse(entity.content.trim());
     if (!parsed.success)
       throw new UnmigratedSiteImageError(
         "Inline site images require asset migration before building",
       );
+    const image = imageSchema.parse(entity);
     const ref = parsed.data;
     if (!image.metadata.format)
       throw new Error("Site image requires an inspected format");

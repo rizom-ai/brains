@@ -78,13 +78,8 @@ export const imageMetadataSchema: ImageMetadataSchema = z.object({
 
 export type ImageMetadata = z.output<typeof imageMetadataSchema>;
 
-const supportedInlineImageDataUrlPattern =
-  /^data:image\/(?:png|jpeg|jpg|gif|webp);base64,[a-z0-9+/]+={0,2}$/i;
-
-/**
- * Transitional image schema. Existing raster data URLs remain readable during
- * the cutover, while every newly completed image is stored as an asset ref.
- */
+/** Completed images use durable asset references. Inline image data is not a
+ * runtime representation; pre-cutover inline rows require offline migration. */
 export const imageSchema: ReturnType<
   typeof baseEntityParserSchema.extend<{
     entityType: z.ZodLiteral<"image">;
@@ -100,7 +95,6 @@ export const imageSchema: ReturnType<
   .superRefine((image, context) => {
     const content = image.content.trim();
     const isAsset = assetRefSchema.safeParse(content).success;
-    const isInlineDataUrl = supportedInlineImageDataUrlPattern.test(content);
     const isIncomplete =
       image.metadata.status === "pending" || image.metadata.status === "failed";
 
@@ -115,34 +109,31 @@ export const imageSchema: ReturnType<
       return;
     }
 
-    if (!isAsset && !isInlineDataUrl) {
+    if (!isAsset) {
       context.addIssue({
         code: "custom",
         path: ["content"],
         message:
-          "Image content must be a supported raster data URL or SHA-256 asset reference",
+          "Image content requires a SHA-256 asset reference; inline images require offline migration",
       });
       return;
     }
 
-    // Existing inline rows predate mediaType/sizeBytes, so require the complete
-    // binary fact set only after content crosses to the asset representation.
-    if (isAsset) {
-      const requiredFacts: Array<keyof ImageMetadata> = [
-        "format",
-        "mediaType",
-        "sizeBytes",
-        "width",
-        "height",
-      ];
-      for (const fact of requiredFacts) {
-        if (image.metadata[fact] === undefined) {
-          context.addIssue({
-            code: "custom",
-            path: ["metadata", fact],
-            message: `Asset-backed images require ${fact}`,
-          });
-        }
+    // Every completed image carries the complete inspected fact set.
+    const requiredFacts: Array<keyof ImageMetadata> = [
+      "format",
+      "mediaType",
+      "sizeBytes",
+      "width",
+      "height",
+    ];
+    for (const fact of requiredFacts) {
+      if (image.metadata[fact] === undefined) {
+        context.addIssue({
+          code: "custom",
+          path: ["metadata", fact],
+          message: `Asset-backed images require ${fact}`,
+        });
       }
     }
   });

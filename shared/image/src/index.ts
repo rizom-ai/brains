@@ -50,14 +50,10 @@ export type { ExtractedImage } from "./lib/markdown-images";
 
 // Image utilities
 export {
-  parseDataUrl,
-  tryParseDataUrl,
-  createDataUrl,
   detectImageFormat,
   detectImageDimensions,
   inspectImageBytes,
   isAssetImageContent,
-  isValidDataUrl,
   isHttpUrl,
 } from "./lib/image-utils";
-export type { ParsedDataUrl, InspectedImage } from "./lib/image-utils";
+export type { InspectedImage } from "./lib/image-utils";

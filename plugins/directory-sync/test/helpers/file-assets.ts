@@ -7,7 +7,7 @@ import {
 } from "@brains/assets";
 import { extname } from "node:path";
 import { getMimeTypeForExtension } from "../../src/lib/image-file-utils";
-import { prepareImageAsset, parseDataUrl } from "@brains/image";
+import { prepareImageAsset } from "@brains/image";
 import type { EntityServiceClient } from "@brains/plugins";
 type Files = NonNullable<EntityServiceClient["fileAssets"]>;
 /** Unit-only URL actor/native substitute. Fixtures may use data URLs; callers receive only file metadata. */
@@ -28,9 +28,20 @@ export function installRemoteFileAssets(
   files.withRemoteFile = async (url, use, options): ReturnType<typeof use> => {
     const signal = options?.signal ?? new AbortController().signal;
     signal.throwIfAborted();
-    const parsed = parseDataUrl(await fixture(url));
+    const match = (await fixture(url))
+      .trim()
+      .match(
+        /^data:(image\/(?:png|jpeg|jpg|gif|webp));base64,([a-z0-9+/]+={0,2})$/i,
+      );
+    const mediaType = match?.[1];
+    const base64 = match?.[2];
+    if (!mediaType || !base64)
+      throw new Error("Invalid fixture image data URL");
     signal.throwIfAborted();
-    const { asset, facts } = prepareImageAsset(parsed.bytes, parsed.mediaType);
+    const { asset, facts } = prepareImageAsset(
+      Buffer.from(base64, "base64"),
+      mediaType,
+    );
     const sourceFile = `/fixture/remote-${sequence++}`;
     assets.set(sourceFile, asset);
     try {
