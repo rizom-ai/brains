@@ -4,9 +4,13 @@ import { skill } from "../src/skill-entity";
 import { createSkillContent } from "../src/lib/directory-markdown";
 import type { SkillEntity, SkillMetadata } from "../src/schemas/skill";
 
-function markdown(): NonNullable<typeof skill.markdown> {
+function markdown(): Extract<
+  NonNullable<typeof skill.markdown>,
+  { decode: unknown }
+> {
   const codec = skill.markdown;
-  if (!codec) throw new Error("The skill type declares no markdown codec");
+  if (!codec?.decode)
+    throw new Error("The skill type declares no parsed markdown codec");
   return codec;
 }
 

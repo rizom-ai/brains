@@ -1,5 +1,20 @@
 # @brains/job-queue
 
+## 0.2.0-alpha.404
+
+### Patch Changes
+
+- Give every unbounded loop an explicit shape. Schema unwrapping, workspace version resolution, redirect following, job-drain polling, SQLite write retries and atomic enqueue retries now recurse once per step, so each step's exit condition sits in its own signature. Stream reading and checkpoint draining keep a loop, but one with a real condition in its head rather than an open `for (;;)` and an interior break.
+
+  Behaviour is unchanged: the same retry budgets, backoff, redirect limits and cursor advancement apply. The atomic enqueue retry now closes its failed transaction before opening the next one rather than after, which was already the intent.
+
+- Updated dependencies [[`18f2586`](https://github.com/rizom-ai/brains/commit/18f2586ba20a15400402d34d4289d6035c6f9e3b)]:
+  - @brains/utils@0.2.0-alpha.404
+  - @brains/contracts@0.2.0-alpha.404
+  - @brains/db@0.2.0-alpha.404
+  - @brains/mcp-service@0.2.0-alpha.404
+  - @brains/operation-context@0.2.0-alpha.404
+
 ## 0.2.0-alpha.403
 
 ### Patch Changes

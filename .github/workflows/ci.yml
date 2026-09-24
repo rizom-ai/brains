@@ -292,6 +292,8 @@ jobs:
       - name: Compare console baselines
         env:
           CONSOLE_CHROMIUM_PATH: ${{ steps.chrome.outputs.chrome-path }}
+          # Use the same reviewed RGB rendering as local baseline comparisons.
+          FONTCONFIG_FILE: ${{ github.workspace }}/test/visual/console/fontconfig-rgb.conf
         run: bun run visual:console
 
       - name: Upload failed console captures

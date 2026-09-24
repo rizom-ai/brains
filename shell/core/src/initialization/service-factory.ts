@@ -8,6 +8,7 @@ import {
 import {
   InMemoryDataSourceRegistry,
   EntityRegistry,
+  type EntityTypeConfig,
 } from "@brains/entity-service";
 import {
   EntityServiceTag,
@@ -104,7 +105,15 @@ export function createShellServices(options: {
     PluginManager.createFresh(logger, daemonRegistry);
   const permissionService =
     dependencies?.permissionService ??
-    new PermissionService(config.permissions, { spaces: config.spaces });
+    new PermissionService(config.permissions, {
+      spaces: config.spaces,
+      // A registered type's own minimum, so an admin-only type stays admin-only
+      // in a brain assembled without the bundle that carries its rule.
+      entityActionFloor: (
+        entityType: string,
+      ): EntityTypeConfig["actionPolicy"] =>
+        entityRegistry.getEntityTypeConfig(entityType).actionPolicy,
+    });
   const profileKindRegistry =
     dependencies?.profileKindRegistry ??
     new ProfileKindRegistry(config.profileKind);

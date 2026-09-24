@@ -95,6 +95,7 @@ describe("declared entity extensions", () => {
     const harness = createPluginHarness(
       options?.profileKind ? { profileKind: options.profileKind } : {},
     );
+    harness.getEntityRegistry().unregisterEntityType(SYSTEM_TYPE);
     harness
       .getEntityRegistry()
       .registerEntityType(SYSTEM_TYPE, baseEntitySchema, {
@@ -102,6 +103,7 @@ describe("declared entity extensions", () => {
         // The base schema is this type's schema: the lifecycle under test reads
         // no metadata, so there is nothing narrower to describe.
         schema: baseEntitySchema,
+        frontmatterSchema: z.object({}),
         purpose: "The anchor profile.",
         fromMarkdown: () => ({}),
         toMarkdown: (entity) => entity.content,

@@ -193,7 +193,7 @@ describe("contact runtime", () => {
       f.shell.getRecurringChecks("@brains/contact:contact").register,
     ).not.toHaveBeenCalled();
     expect(f.plugin.getWebRoutes().every((r) => r.preview)).toBe(true);
-    await f.plugin.shutdown?.();
+    await f.plugin.shutdown();
     expect(
       (
         await route?.handler(new Request(`${origin}/contact`), {
@@ -261,7 +261,7 @@ describe("contact runtime", () => {
       ).toBe("skipped");
       expect(f.sent).toEqual([]);
     } finally {
-      await f?.plugin.shutdown?.();
+      await f?.plugin.shutdown();
       setSystemTime();
     }
   });
@@ -286,7 +286,7 @@ describe("contact runtime", () => {
     });
     expect(result).toMatchObject({ success: true, data: { status: "sent" } });
     expect(f.sent).toHaveLength(1);
-    await f.plugin.shutdown?.();
+    await f.plugin.shutdown();
   });
   it.each([
     undefined,
@@ -301,7 +301,7 @@ describe("contact runtime", () => {
       expect(await f.plugin.ready().catch((error: unknown) => error)).toEqual(
         new Error("Contact Inbox unavailable"),
       );
-      await f.plugin.shutdown?.();
+      await f.plugin.shutdown();
     },
   );
   it("drains an in-flight retention read before shutdown completes", async () => {
@@ -329,7 +329,7 @@ describe("contact runtime", () => {
       const cycle = f.checks[0].run().catch((error: unknown) => error);
       await started.promise;
       let stopped = false;
-      const shutdown = f.plugin.shutdown?.().then(() => {
+      const shutdown = f.plugin.shutdown().then(() => {
         stopped = true;
       });
       await Promise.resolve();
@@ -341,7 +341,7 @@ describe("contact runtime", () => {
       expect(f.sent).toEqual([]);
     } finally {
       release.resolve();
-      await f.plugin.shutdown?.();
+      await f.plugin.shutdown();
     }
   });
 
@@ -363,7 +363,7 @@ describe("contact runtime", () => {
     await check.run();
     expect(await queue.getActiveJobs()).toHaveLength(1);
     const remove = mock(async () => {});
-    await f.plugin.shutdown?.();
+    await f.plugin.shutdown();
     expect(
       await check
         .run()

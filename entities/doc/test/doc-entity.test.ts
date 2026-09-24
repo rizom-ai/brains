@@ -22,7 +22,8 @@ const frontmatter = {
 };
 
 const codec = doc.markdown;
-if (!codec) throw new Error("Doc entity declares no markdown codec");
+if (!codec?.decode)
+  throw new Error("Doc entity declares no parsed markdown codec");
 
 async function install(): Promise<ReturnType<typeof createPluginHarness>> {
   bindPluginPackageMetadata(docPackage, PACKAGE_METADATA);

@@ -3,7 +3,10 @@ import { computeContentHash } from "@brains/utils/hash";
 import type { EntityDB } from "./db";
 import type { EntityExportStore } from "./entity-export-store";
 import type { EntityMutationAdmission } from "./mutation-admission";
-import type { ProjectionWriteIntent } from "./projection-contracts";
+import type {
+  ProjectionEntityWrite,
+  ProjectionWriteIntent,
+} from "./projection-contracts";
 import { entities } from "./schema/entities";
 import {
   projectionEntityOwners,
@@ -16,11 +19,27 @@ type EntityTransaction = Parameters<Parameters<EntityDB["transaction"]>[0]>[0];
 // Leave room for the type predicate even with SQLite's conservative
 // 999-variable limit, rather than relying on a build-specific higher limit.
 const WRITE_TARGET_QUERY_BATCH_SIZE = 500;
+/** Stored row plus timestamps, including schema-normalized owner metadata. */
+export interface ProjectionPersistEntity extends Omit<
+  ProjectionEntityWrite,
+  "metadata"
+> {
+  metadata: Record<string, unknown>;
+  contentHash: string;
+  created: string;
+  updated: string;
+}
 
 export interface ProjectionEntityStoragePolicy {
   assetRepository: SqliteAssetRepository;
   isAssetBacked(entityType: string): boolean;
   isFullTextSearchable(entityType: string): boolean;
+  /** Normalize source fields and check read-only persistence constraints
+   * inside the admitted transaction, before any upsert effects. */
+  prepareEntity?(
+    entity: ProjectionPersistEntity,
+    operation: "create" | "update",
+  ): Promise<ProjectionPersistEntity>;
 }
 
 export interface ProjectionWriteIntentOwner {
@@ -52,6 +71,7 @@ export function canonicalProjectionJson(value: unknown): string {
 }
 
 interface ExistingProjectionTarget {
+  readonly created: number;
   readonly content: string;
   readonly contentHash: string;
   readonly metadata: Record<string, unknown>;
@@ -99,17 +119,11 @@ export class ProjectionWriteIntentApplier {
         completedAt,
         key,
         existingTargets.get(targetKey),
+        (entity) => existingTargets.set(targetKey, entity),
       );
       if (target) changedTargets.push(target);
       if (intent.operation === "delete") {
         existingTargets.delete(targetKey);
-      } else {
-        existingTargets.set(targetKey, {
-          content: intent.entity.content,
-          contentHash: computeContentHash(intent.entity.content),
-          metadata: intent.entity.metadata,
-          visibility: intent.entity.visibility,
-        });
       }
     }
 
@@ -143,6 +157,7 @@ export class ProjectionWriteIntentApplier {
           entityType: entities.entityType,
           content: entities.content,
           contentHash: entities.contentHash,
+          created: entities.created,
           metadata: entities.metadata,
           visibility: entities.visibility,
         })
@@ -169,6 +184,7 @@ export class ProjectionWriteIntentApplier {
     changedAt: number,
     owner: ProjectionWriteIntentOwner,
     existing: ExistingProjectionTarget | undefined,
+    remember: (entity: ExistingProjectionTarget) => void,
   ): Promise<ProjectionChangedTarget | null> {
     const entityType =
       intent.operation === "upsert"
@@ -209,7 +225,30 @@ export class ProjectionWriteIntentApplier {
       return { entityType, entityId, operation: "delete" };
     }
 
-    const contentHash = computeContentHash(intent.entity.content);
+    const candidate: ProjectionPersistEntity = {
+      ...intent.entity,
+      contentHash: computeContentHash(intent.entity.content),
+      created: new Date(existing?.created ?? changedAt).toISOString(),
+      updated: new Date(changedAt).toISOString(),
+    };
+    const entity =
+      (await this.storagePolicy?.prepareEntity?.(
+        candidate,
+        existing ? "update" : "create",
+      )) ?? candidate;
+    if (entity.id !== entityId || entity.entityType !== entityType) {
+      throw new Error("Projection validation cannot change entity identity");
+    }
+    const contentHash = computeContentHash(entity.content);
+    // Subsequent intents must see the prepared row, not caller metadata. A
+    // later failure aborts this transaction and discards the entire local map.
+    remember({
+      content: entity.content,
+      contentHash,
+      created: existing?.created ?? changedAt,
+      metadata: entity.metadata,
+      visibility: entity.visibility,
+    });
     await transaction
       .insert(projectionEntityOwners)
       .values({
@@ -235,16 +274,16 @@ export class ProjectionWriteIntentApplier {
     if (this.storagePolicy?.isAssetBacked(entityType)) {
       await this.storagePolicy.assetRepository.bindEntityContent(
         transaction,
-        intent.entity.content,
+        entity.content,
       );
     }
 
     if (
       existing?.contentHash === contentHash &&
-      existing.content === intent.entity.content &&
-      existing.visibility === intent.entity.visibility &&
+      existing.content === entity.content &&
+      existing.visibility === entity.visibility &&
       canonicalProjectionJson(existing.metadata) ===
-        canonicalProjectionJson(intent.entity.metadata)
+        canonicalProjectionJson(entity.metadata)
     ) {
       if (this.storagePolicy?.isFullTextSearchable(entityType) === false) {
         await transaction.run(
@@ -264,10 +303,10 @@ export class ProjectionWriteIntentApplier {
       await transaction
         .update(entities)
         .set({
-          content: intent.entity.content,
+          content: entity.content,
           contentHash,
-          metadata: intent.entity.metadata,
-          visibility: intent.entity.visibility,
+          metadata: entity.metadata,
+          visibility: entity.visibility,
           updated: changedAt,
         })
         .where(
@@ -277,10 +316,10 @@ export class ProjectionWriteIntentApplier {
       await transaction.insert(entities).values({
         id: entityId,
         entityType,
-        content: intent.entity.content,
+        content: entity.content,
         contentHash,
-        metadata: intent.entity.metadata,
-        visibility: intent.entity.visibility,
+        metadata: entity.metadata,
+        visibility: entity.visibility,
         created: changedAt,
         updated: changedAt,
       });
@@ -291,7 +330,7 @@ export class ProjectionWriteIntentApplier {
     );
     if (this.storagePolicy?.isFullTextSearchable(entityType) !== false) {
       await transaction.run(
-        sql`INSERT INTO entity_fts (entity_id, entity_type, content) VALUES (${entityId}, ${entityType}, ${intent.entity.content})`,
+        sql`INSERT INTO entity_fts (entity_id, entity_type, content) VALUES (${entityId}, ${entityType}, ${entity.content})`,
       );
     }
     await this.entityExportStore.record(transaction, {

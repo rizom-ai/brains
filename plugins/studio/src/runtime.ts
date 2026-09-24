@@ -6,6 +6,7 @@ import type {
   IPluginsNamespace,
   LoggerContract,
   OperatorEntityWrites,
+  OperatorEntityGroupings,
   RuntimeReadiness,
   ServiceChannelReader,
   ServiceEntityShapes,
@@ -61,6 +62,7 @@ export interface StudioRuntime {
   readonly entities: StudioEntityReads;
   readonly shapes: ServiceEntityShapes;
   readonly operator: OperatorEntityWrites;
+  readonly groupings: OperatorEntityGroupings;
   readonly messaging: ServicePublisher;
   readonly judge: ServiceJudge;
   readonly identity: {

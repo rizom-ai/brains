@@ -1,6 +1,7 @@
 /** @jsxImportSource react */
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { act } from "react";
+import { readFileSync } from "node:fs";
 import { createRoot, type Root } from "react-dom/client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Window } from "happy-dom";
@@ -63,6 +64,43 @@ describe("app control vocabulary", () => {
     expect(html).toContain('data-slot="switch"');
     expect(html).toContain('data-slot="button"');
     expect(html).not.toContain("@stylexjs");
+  });
+
+  it("retains the accent/on-accent paint pair on primary hover", () => {
+    const source = readFileSync(
+      new URL("../src/controls.tsx", import.meta.url),
+      "utf8",
+    );
+    const primary = source.slice(
+      source.indexOf("  primary: {"),
+      source.indexOf("  secondary: {"),
+    );
+    // The dim accent blends toward the page, dropping paper hover contrast
+    // below 4.5:1. Browser acceptance exercises the actual hovered control.
+    expect(primary).not.toMatch(
+      /backgroundColor: "var\(--console-accent-dim\)"/,
+    );
+    expect(primary).not.toMatch(/borderColor: "var\(--console-accent-dim\)"/);
+    expect(primary).toContain('color: "var(--console-on-accent)"');
+  });
+
+  it("keeps a hover cue when motion is reduced and the lift is disabled", () => {
+    const source = readFileSync(
+      new URL("../src/controls.tsx", import.meta.url),
+      "utf8",
+    );
+    const primary = source.slice(
+      source.indexOf("  primary: {"),
+      source.indexOf("  secondary: {"),
+    );
+    // With the paint pair fixed and the lift removed under reduced motion,
+    // hover needs a cue that is neither colour-on-text nor movement.
+    const reducedMotion = "@media (prefers-reduced-motion: reduce)";
+    const outline = primary.slice(primary.indexOf("outline: {"));
+    expect(outline).toContain(':hover:not(:disabled)"');
+    expect(outline.slice(0, outline.indexOf("},\n    },"))).toContain(
+      reducedMotion,
+    );
   });
 
   it("keeps disabled primary actions inert until the caller enables them", async () => {

@@ -8,6 +8,7 @@ import {
   setupEntityService,
   type EntityServiceTestContext,
 } from "./helpers/setup-entity-service";
+import { internalFullScope } from "../src/internal-scope";
 import type { EntityEventBus, EntityMutationEventContext } from "../src/types";
 
 interface CapturedEntityPayload extends Record<string, unknown> {
@@ -49,6 +50,41 @@ describe("Immediate Entity Persistence", () => {
   afterEach(async () => {
     await ctx.cleanup();
   });
+
+  test.each(["public", "shared", "restricted"] as const)(
+    "deletes an admitted %s entity without an implicit public read filter",
+    async (visibility) => {
+      const result = await ctx.entityService.createEntity({
+        entity: {
+          ...createNoteInput({
+            title: "Delete",
+            content: "Delete body",
+            tags: [],
+          }),
+          visibility,
+        },
+      });
+      expect(
+        await ctx.entityService.deleteEntity({
+          entityType: "note",
+          id: result.entityId,
+        }),
+      ).toBe(true);
+      expect(
+        await ctx.entityService.getEntity({
+          entityType: "note",
+          id: result.entityId,
+          visibilityScope: internalFullScope("verify deletion at every tier"),
+        }),
+      ).toBeNull();
+      expect(
+        await ctx.entityService.deleteEntity({
+          entityType: "note",
+          id: result.entityId,
+        }),
+      ).toBe(false);
+    },
+  );
 
   describe("createEntity - immediate persistence", () => {
     test("entity should be readable immediately after createEntity returns", async () => {

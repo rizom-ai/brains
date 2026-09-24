@@ -32,6 +32,8 @@
 + @brains/studio:studio|handler|GET|/cms|prefix|true
 + @brains/studio:studio|handler|GET|/studio/api/agents|exact|true
 + @brains/studio:studio|handler|GET|/studio/api/entities|exact|true
++ @brains/studio:studio|handler|GET|/studio/api/groups/catalog|exact|true
++ @brains/studio:studio|handler|GET|/studio/api/groups/members|exact|true
 + @brains/studio:studio|handler|GET|/studio/api/hierarchy|exact|true
 + @brains/studio:studio|handler|GET|/studio/api/schema|exact|true
 + @brains/studio:studio|handler|GET|/studio/api/sync-status|exact|true
@@ -39,6 +41,7 @@
 + @brains/studio:studio|handler|GET|/studio/api/workspace|exact|true
 + @brains/studio:studio|handler|GET|/studio/assets|prefix|true
 + @brains/studio:studio|handler|GET|/studio/entities|prefix|true
++ @brains/studio:studio|handler|GET|/studio/groups|prefix|true
 + @brains/studio:studio|handler|GET|/studio/workspaces|prefix|true
 + @brains/studio:studio|handler|GET|/studio|exact|true
 + @brains/studio:studio|handler|POST|/studio/api/ask-agent|exact|true

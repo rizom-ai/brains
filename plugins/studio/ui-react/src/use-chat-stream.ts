@@ -17,10 +17,8 @@ import {
   type StudioChatApproval,
   type StudioChatStreamState,
 } from "./chat-workspace-model";
-import {
-  studioChatDraftKey,
-  type StudioChatDraftStore,
-} from "./studio-chat-drafts";
+import { type StudioChatDraftStore } from "./studio-chat-drafts";
+import { studioChatDraftKey } from "./studio-chat-draft-key";
 import {
   studioChatKeys,
   type ChatSuggestedAction,

@@ -11,9 +11,9 @@ import {
 import { chatClass, chatLayout } from "./studio-chat-layout.styles";
 import {
   StudioChatDraftStore,
-  studioChatDraftKey,
   type StudioChatNavigationState,
 } from "./studio-chat-drafts";
+import { studioChatDraftKey } from "./studio-chat-draft-key";
 import {
   createChatClient,
   type ChatSession,

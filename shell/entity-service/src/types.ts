@@ -1,4 +1,10 @@
 import type { PreparedAsset } from "@brains/assets";
+import type {
+  EntityGrouping,
+  EntityGroupingCatalog,
+  QueryGroupingCatalogRequest,
+  QueryGroupingMembersRequest,
+} from "./entity-grouping";
 import type { EntityIdPath, EntityIdPathInput } from "./entity-id-path";
 import type {
   ActorRef,
@@ -425,7 +431,9 @@ export interface UploadSaveHandlerRegistration {
 /**
  * Called before an entity is persisted (on create or update). Throws to reject
  * the write with an operator-facing error. Use this for cross-entity invariants
- * the per-entity Zod schema cannot express.
+ * the per-entity Zod schema cannot express. Includes projection upserts, which
+ * validate inside their transaction. Read-only lookups are allowed; mutations
+ * and external effects are not.
  */
 export type PersistValidator<T extends BaseEntity = BaseEntity> = (
   entity: T,
@@ -618,6 +626,18 @@ export interface EntityTypeConfig {
   fullTextSearchable?: boolean;
   /** Durable binary storage policy. Absence means inline/text storage. */
   binaryStorage?: "asset";
+  /**
+   * The type's own minimum action policy, from whoever registers it. It
+   * tightens wildcard defaults without relaxing stricter rules, including
+   * `never`, so an admin-only type stays protected without its bundle's rule.
+   * An explicit per-type instance entry still overrides, action by action.
+   */
+  actionPolicy?: Partial<
+    Record<
+      "create" | "update" | "delete" | "extract" | "publish",
+      "never" | "admin" | "trusted" | "public"
+    >
+  >;
   /** Whether this entity type may be used as source material for derived projections (default: true).
    *  Set to false for projection outputs that would create feedback loops. */
   projectionSource?: boolean;
@@ -941,6 +961,13 @@ export interface ICoreEntityService {
     request: QueryEntityHierarchyRequest,
   ): Promise<EntityHierarchyPage>;
 
+  queryGroupingCatalog(
+    request: QueryGroupingCatalogRequest,
+  ): Promise<EntityGroupingCatalog>;
+  queryGroupingMembers(
+    request: QueryGroupingMembersRequest,
+  ): Promise<EntityGroupingMembers>;
+
   search(request: EntitySearchRequest): Promise<SearchResult<BaseEntity>[]>;
   search<T extends BaseEntity>(
     request: EntitySearchRequest,
@@ -979,10 +1006,21 @@ export interface ICoreEntityService {
   getWeightMap(): Record<string, number>;
 }
 
+/** One visibility-scoped, mixed-type member page. */
+export interface EntityGroupingMembers {
+  entities: BaseEntity[];
+  total: number;
+}
+
 /**
  * Entity service interface for managing brain entities
  */
 export interface IEntitiesNamespace {
+  validateGroupings(groupings: readonly EntityGrouping[]): void;
+  registerGrouping(grouping: EntityGrouping): void;
+  getGroupings(): EntityGrouping[];
+  /** Whether this type participates in any declared grouping. */
+  isGroupingContributor(type: string): boolean;
   /** Register a new entity type with schema and adapter */
   register<TEntity extends BaseEntity>(
     entityType: string,
@@ -1098,6 +1136,8 @@ export interface IndexReadinessStatus extends EmbeddingIndexStats {
  * methods (like the schema-taking reads) down to one signature.
  */
 export interface EntityServiceClient extends ICoreEntityService {
+  /** Local admission state; grouping endpoints must not serve partial bootstrap results. */
+  areGroupingsReady(): boolean;
   /** Internal source-authority check used by persistence integrations. */
   isProjectionOwnedEntity(
     request: ProjectionOwnedEntityRequest,
@@ -1176,6 +1216,8 @@ export type DurableBulkMutationCoordinator = Pick<
 >;
 
 export interface EntityService extends EntityServiceClient {
+  /** Normal web/combined boot only, after initial sync; not an ordinary mutation. */
+  reprojectRegisteredGroupings(): Promise<void>;
   /** Visibility-scoped entity and the revision derived from its stored row. */
   getEntityWriteSnapshot(
     request: GetEntityRequest,
@@ -1270,6 +1312,27 @@ export interface EntityRegistry {
     type: string,
     extension: z.ZodObject<z.ZodRawShape>,
   ): void;
+
+  validateGroupings(groupings: readonly EntityGrouping[]): void;
+  registerGrouping(grouping: EntityGrouping): void;
+  getGrouping(key: string): EntityGrouping;
+  getGroupings(): EntityGrouping[];
+  projectMetadata(
+    type: string,
+    content: string,
+    metadata: Record<string, unknown>,
+  ): Record<string, unknown>;
+  /** Bootstrap projection: an invalid stored value is omitted, never fatal. */
+  projectStoredMetadata(
+    type: string,
+    content: string,
+    metadata: Record<string, unknown>,
+  ): Record<string, unknown>;
+  groupingFields(type: string): string[];
+  isGroupingContributor(type: string): boolean;
+
+  /** Registered extension contracts, including their refinements. */
+  getFrontmatterExtensions(type: string): readonly FrontmatterSchema[];
 
   /**
    * Get the effective frontmatter schema for an entity type,

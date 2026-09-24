@@ -1,4 +1,8 @@
-import { z } from "@brains/utils/zod";
+import {
+  z,
+  entityGroupingSchema,
+  type OperatorEntityGroupings,
+} from "@brains/sdk/services";
 import { formatLabel, pluralize } from "@brains/utils/string-utils";
 import { normalizeStudioBasePath } from "./studio-paths";
 import {
@@ -65,11 +69,15 @@ function pluralizeLabel(label: string): string {
 }
 
 /**
- * Base notes are raw Markdown: no frontmatter form, and a leading `---`
- * is a horizontal rule, not a YAML delimiter.
+ * Notes use whole-document editing unless their type participates in a
+ * registered grouping. Participation exposes the effective Properties schema
+ * for every note, including notes with no membership yet.
  */
-export function isRawEntityType(entityType: string): boolean {
-  return entityType === NOTE_ENTITY_TYPE;
+export function isRawEntityType(
+  entityType: string,
+  groupings: Pick<OperatorEntityGroupings, "contributes">,
+): boolean {
+  return entityType === NOTE_ENTITY_TYPE && !groupings.contributes(entityType);
 }
 
 /**
@@ -80,6 +88,11 @@ export function entityTypeLabels(
   entityType: string,
   display?: EntityDisplayLabel,
 ): { label: string; pluralLabel: string } {
+  if (entityType === "grouping-vocabulary")
+    return {
+      label: display?.label ?? "Groupings",
+      pluralLabel: display?.pluralName ?? "Groupings",
+    };
   const defaultLabel =
     entityType === NOTE_ENTITY_TYPE ? "Note" : formatLabel(entityType);
   const label = display?.label ?? defaultLabel;
@@ -193,9 +206,11 @@ const entityDisplaySchema: z.ZodRecord<
 
 export const studioConfigSchema: z.ZodObject<{
   entityDisplay: z.ZodOptional<typeof entityDisplaySchema>;
+  groupings: z.ZodDefault<z.ZodArray<typeof entityGroupingSchema>>;
   routePath: z.ZodDefault<z.ZodString>;
 }> = z.object({
   entityDisplay: entityDisplaySchema.optional(),
+  groupings: z.array(entityGroupingSchema).max(20).default([]),
   routePath: z
     .string()
     .default("/studio")

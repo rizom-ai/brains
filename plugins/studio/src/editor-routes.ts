@@ -28,6 +28,9 @@ import {
 } from "./chat-workspace";
 import type { StudioWorkspaceRegistry } from "./workspace-registry";
 import { jsonResponse } from "./editor-response";
+import { handleGroupingRead, studioGroupDescriptors } from "./editor-groupings";
+import { readGroupingVocabularies } from "./grouping-vocabulary";
+import { GROUPING_VOCABULARY_TYPE } from "./grouping-vocabulary-contract";
 import {
   handleCreateEntity,
   handleDeleteEntity,
@@ -345,6 +348,14 @@ export function createEditorRoutes(
     }),
     defineRoute({
       method: "GET",
+      path: `${normalizedBase}/groups`,
+      match: "prefix",
+      security: { kind: "public" },
+      response: verbatim,
+      handle: ({ request }) => serveShell(request),
+    }),
+    defineRoute({
+      method: "GET",
       path: `${normalizedBase}/workspaces`,
       match: "prefix",
       security: { kind: "public" },
@@ -384,6 +395,15 @@ export function createEditorRoutes(
       (request, access, s) =>
         handlePreviewDestination(s.runtime, request, access),
       { trusted: true, sameOrigin: "json" },
+    ),
+    ...(["catalog", "members"] as const).map((mode) =>
+      api(
+        "GET",
+        `groups/${mode}`,
+        (request, access, s) =>
+          handleGroupingRead(s.runtime, request, access, mode),
+        { trusted: true },
+      ),
     ),
     api(
       "GET",
@@ -530,7 +550,12 @@ async function handleListTypes(
       left.priority - right.priority || left.id.localeCompare(right.id),
   );
 
-  return jsonResponse({ types, workspaces });
+  const groupings = studioGroupDescriptors(
+    await runtime.groupings.definitions(access.caller),
+    new Set(types.map((type) => type.entityType)),
+    await readGroupingVocabularies(runtime, access.visibilityScope),
+  );
+  return jsonResponse({ types, workspaces, groupings });
 }
 
 async function handleGetWorkspace(
@@ -652,7 +677,7 @@ async function handleGetSchema(
     return jsonResponse({ error: `Unknown entity type: ${entityType}` }, 404);
   }
 
-  const raw = isRawEntityType(entityType);
+  const raw = isRawEntityType(entityType, runtime.groupings);
   // Raw types edit the whole document as body; their domain frontmatter
   // bookkeeping must not surface. Visibility is system-owned and applies to
   // every entity type independently of its markdown representation.
@@ -671,7 +696,13 @@ async function handleGetSchema(
       canWriteVisibility(access.permissionLevel, visibility),
     ),
   };
-  const fields = [...domainFields, visibilityField];
+  // The vocabulary has exactly one workable visibility: the editors it
+  // constrains must be able to read it. Offering a choice invites a list
+  // that silently refuses saves nobody can explain.
+  const fields =
+    entityType === GROUPING_VOCABULARY_TYPE
+      ? domainFields
+      : [...domainFields, visibilityField];
 
   return jsonResponse({
     entityType,

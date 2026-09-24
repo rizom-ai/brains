@@ -11,6 +11,8 @@ import {
 import type { FieldDescriptor, ValidationIssue } from "./api";
 import { applyFieldChange } from "./editor-workflow";
 import { Field, isFieldVisible } from "./entity-fields";
+import { GroupingValue } from "./grouping-vocabulary-fields";
+import type { GroupingVocabulary } from "../../src/grouping-vocabulary-contract";
 import { isRecord } from "@brains/utils/is-record";
 import { StudioStatus } from "./studio-status";
 import { systemFieldStyles as s } from "./studio-system-fields.styles";
@@ -33,10 +35,16 @@ function presentedField(field: FieldDescriptor): FieldDescriptor {
 export function SystemReadOnlyValue({
   value,
   fields,
+  literalStrings,
+  vocabulary,
 }: {
+  vocabulary?: GroupingVocabulary | undefined;
+  literalStrings?: boolean | undefined;
   value: unknown;
   fields?: FieldDescriptor[] | undefined;
 }): ReactElement {
+  if (literalStrings && typeof value === "string")
+    return <GroupingValue value={value} vocabulary={vocabulary} />;
   if (value === undefined || value === null || value === "")
     return <span>Not set</span>;
   if (Array.isArray(value))
@@ -44,7 +52,12 @@ export function SystemReadOnlyValue({
       <ul {...stylex.props(s.list)}>
         {value.map((item, index) => (
           <li key={index}>
-            <SystemReadOnlyValue value={item} fields={fields} />
+            <SystemReadOnlyValue
+              value={item}
+              fields={fields}
+              literalStrings={literalStrings}
+              vocabulary={vocabulary}
+            />
           </li>
         ))}
       </ul>
@@ -83,6 +96,9 @@ export function SystemReadOnlyValue({
 }
 
 export function StudioSystemFields(props: {
+  vocabularies?: Record<string, GroupingVocabulary> | undefined;
+  literalFields?: readonly string[] | undefined;
+  suggestions?: Record<string, readonly string[]> | undefined;
   fields: FieldDescriptor[];
   draft: Record<string, unknown>;
   title: string;
@@ -90,32 +106,33 @@ export function StudioSystemFields(props: {
   issues?: ValidationIssue[] | undefined;
   onChange: (descriptor: FieldDescriptor, value: unknown) => void;
   renderAssist?: ((descriptor: FieldDescriptor) => ReactNode) | undefined;
-}): ReactElement {
-  const fields = props.fields.filter((field) =>
-    isFieldVisible(field, props.draft),
+}): ReactElement | null {
+  const fields = props.fields.filter(
+    (field) =>
+      isFieldVisible(field, props.draft) &&
+      (!props.readOnly ||
+        props.draft[field.name] !== undefined ||
+        field.required !== false),
   );
+  if (fields.length === 0) return null;
   if (props.readOnly)
     return (
       <div data-studio-system-fields="" {...stylex.props(s.root)}>
         {props.title && <h2 {...stylex.props(s.heading)}>{props.title}</h2>}
         <dl {...stylex.props(s.profile)}>
-          {fields
-            .filter(
-              (field) =>
-                props.draft[field.name] !== undefined ||
-                field.required !== false,
-            )
-            .map((field) => (
-              <div key={field.name} {...stylex.props(s.row)}>
-                <dt {...stylex.props(s.term)}>{field.label}</dt>
-                <dd {...stylex.props(s.value)}>
-                  <SystemReadOnlyValue
-                    value={props.draft[field.name]}
-                    fields={field.fields}
-                  />
-                </dd>
-              </div>
-            ))}
+          {fields.map((field) => (
+            <div key={field.name} {...stylex.props(s.row)}>
+              <dt {...stylex.props(s.term)}>{field.label}</dt>
+              <dd {...stylex.props(s.value)}>
+                <SystemReadOnlyValue
+                  vocabulary={props.vocabularies?.[field.name]}
+                  literalStrings={props.literalFields?.includes(field.name)}
+                  value={props.draft[field.name]}
+                  fields={field.fields}
+                />
+              </dd>
+            </div>
+          ))}
         </dl>
       </div>
     );
@@ -128,6 +145,9 @@ export function StudioSystemFields(props: {
   const access = fields.filter((field) => field.name === "visibility");
   const render = (field: FieldDescriptor): ReactElement => (
     <SystemField
+      vocabulary={props.vocabularies?.[field.name]}
+      literalList={props.literalFields?.includes(field.name)}
+      suggestions={props.suggestions?.[field.name]}
       key={field.name}
       descriptor={field}
       value={props.draft[field.name]}
@@ -161,6 +181,9 @@ export function StudioSystemFields(props: {
 }
 
 function SystemField(props: {
+  vocabulary?: GroupingVocabulary | undefined;
+  literalList?: boolean | undefined;
+  suggestions?: readonly string[] | undefined;
   descriptor: FieldDescriptor;
   value: unknown;
   issues?: ValidationIssue[] | undefined;
@@ -185,6 +208,9 @@ function SystemField(props: {
       data-studio-field-assist=""
     >
       <Field
+        vocabulary={props.vocabulary}
+        literalList={props.literalList}
+        suggestions={props.suggestions}
         descriptor={descriptor}
         value={props.value}
         issues={props.issues}

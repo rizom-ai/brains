@@ -7,9 +7,13 @@ import {
 } from "../src/lib/agent-content";
 import type { AgentEntity, AgentMetadata } from "../src/schemas/agent";
 
-function markdown(): NonNullable<typeof agent.markdown> {
+function markdown(): Extract<
+  NonNullable<typeof agent.markdown>,
+  { decode: unknown }
+> {
   const codec = agent.markdown;
-  if (!codec) throw new Error("The agent type declares no markdown codec");
+  if (!codec?.decode)
+    throw new Error("The agent type declares no parsed markdown codec");
   return codec;
 }
 

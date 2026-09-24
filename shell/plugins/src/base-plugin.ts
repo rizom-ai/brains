@@ -335,10 +335,10 @@ export abstract class BasePlugin<
   }
 
   /**
-   * Optional shutdown method for cleanup
-   * Override this if your plugin needs cleanup
+   * Run cleanup through the lifecycle hook. Concrete plugins always expose
+   * shutdown; plugins without cleanup inherit the default no-op onShutdown.
    */
-  async shutdown?(): Promise<void> {
+  async shutdown(): Promise<void> {
     await this.onShutdown();
   }
 

@@ -15,7 +15,7 @@ import { seriesMetadataSchema } from "../src/schemas/series";
 const PACKAGE_METADATA = { name: "@brains/series", version: "0.0.0-test" };
 
 const codec = series.markdown;
-if (!codec) throw new Error("Series declares no markdown codec");
+if (!codec?.decode) throw new Error("Series declares no parsed markdown codec");
 
 const frontmatter = {
   title: "Building Brains",

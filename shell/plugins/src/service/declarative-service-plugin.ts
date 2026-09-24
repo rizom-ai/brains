@@ -47,6 +47,7 @@ import type { AccountSettingsRegistration } from "../operator/account-settings-r
 import { deriveConsoleSurfaces } from "../console-surfaces";
 import type { UserPermissionLevel } from "@brains/templates";
 import { createOperatorEntities } from "./operator-entities";
+import { createOperatorGroupings } from "./operator-groupings";
 import { createEntityMirror } from "./entity-mirror";
 import type { StaticSiteOutput } from "../contracts/http-host";
 import {
@@ -89,6 +90,7 @@ import {
 import type { WebRouteDefinition } from "../types/web-routes";
 import { ServicePlugin } from "./service-plugin";
 import type { ServicePluginContext } from "./context";
+import { registerDeclaredGroupings } from "./grouping-definition";
 import type {
   AnyServiceJobDefinition,
   AnyServiceToolDefinition,
@@ -697,6 +699,7 @@ class DeclarativeServicePlugin<
             resolve: context.templates.resolve,
             capabilities: (name) => context.templates.getCapabilities(name),
           },
+          entityGroupings: createOperatorGroupings(this.requireShell()),
           operatorEntities: createOperatorEntities(this.requireShell(), {
             interfaceType: this.definition.id,
           }),
@@ -1014,6 +1017,11 @@ class DeclarativeServicePlugin<
       );
     }
     const ownedTypes = this.ownedTypeNames();
+    const groupings = this.definition.groupings?.({
+      config: this.config,
+      state: this.requireState(),
+    });
+    if (groupings) registerDeclaredGroupings(groupings, context, ownedTypes);
     for (const extension of this.definition.entityExtensions?.({
       config: this.config,
       state: this.requireState(),

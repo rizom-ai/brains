@@ -184,7 +184,8 @@ Types:
 
 The runtime owns base entity fields, persistence, markdown validation, search indexing, projection scheduling, and worker execution.
 
-Advanced named consumer: Studio uses `encodeEntityIdPath`, `entityIdPathSchema`,
+Advanced named consumer: Studio uses `encodeEntityIdPath`, `decodeEntityIdPath`,
+`preserveSourceFrontmatter`, `entityIdPathSchema`,
 `EntityIdPath`, `EntityIdPathInput`, `QueryEntityHierarchyRequest`, and
 `EntityHierarchyPage`. Setup/job entity readers expose bounded `queryEntityHierarchy`
 reads, capped by their visibility scope. Operator creation accepts `idPath` and
@@ -391,6 +392,47 @@ Types:
 These operator schemas and executor bindings are the accepted public contract. The account-settings runtime provides encrypted auth-DB persistence, redacted Account forms, principal isolation, and runtime-owned account-daemon reconciliation. Dashboard widgets and Studio workspaces register through host-owned semantic renderers; callbacks receive the canonical caller, secret-redacted current-principal settings, visibility-scoped entities, typed jobs, and cancellation. Studio adds schema-validated query state, bounded host-rendered plain text, typed dynamic catalogs and launch intents, caller/input/revision/expiry/single-use prepared confirmations, schema-driven action forms, bounded ephemeral result presentation, bounded `card` and primary/aside `columns` composition, collection-owned query controls, source-declared compact table rows, and one explicit top-level primary action. Studio keeps unannotated tables in a bounded scrolling fallback and positions the single declared action in the desktop head or phone action bar without hoisting in-flow controls. Form fields must cover every non-pre-bound object input field, select controls have explicit options, secret inputs use password controls, and result declarations cover only scalar object outputs. Forms may opt into collapsed disclosure presentation, and a field label may declaratively follow every option of another select field. Sensitive results are held only in renderer-local state and are cleared on workspace refresh or navigation. Missing optional hosts leave declarations inert, and execution-only workers never bind or register operator callbacks. The packed operator fixture compiles Account settings, Dashboard, and Studio authoring together without browser UI code.
 
 Workspace action inputs are JSON-native wire values (`z.input`), not pre-transformed values. Views validate them but retain the original input for browser submission; admission parses each request once, and bound execute/prepare callbacks receive `z.output`. Defaults and input transforms are supported. A prepared action's revision recheck and execution share that request's parsed input; they do not apply its transforms again.
+
+### Source-backed collections
+
+Advanced named consumer: Studio uses `ServiceGroupingDeclaration`,
+`GroupingVocabularyValue`, `EntityGrouping`, `OperatorEntityGroupings`,
+`entityGroupingSchema`, `groupingKeySchema`, `groupingValueSchema`,
+`groupingSearchSchema`, `groupingSortSchema`, `GROUPING_PAGE_LIMIT`, and
+`GROUPING_MAX_PAGE_LIMIT`.
+
+Services may declare `groupings({ config, state })` with up to 20 validated
+`definitions` (`key`, `label`, source `field`, contributing `types`). An optional
+`vocabulary: { entity, read }` names an owned, registered singleton and a strict
+reader of **that singleton's content**, not a callback over foreign entities.
+The runtime enforces allowed values and cardinality against source-projected
+membership on every write, using the current registered groupings and uncached
+policy. Missing or malformed stored policy leaves groups open for repair.
+
+Vocabulary persistence requires shared visibility, the entity type as its
+singleton ID, known grouping keys, and registered admin/never floors for create,
+update and delete. Entity declarations expose `config.actionPolicy` and
+`hasBody`. An explicit type-owned deletion policy lets the operator obey caller
+policy for that singleton; other singletons retain unconditional protection.
+
+The setup capability `entityGroupings` provides `definitions(caller)`,
+`catalog(request, caller)` and `members(request, caller)`. These intersect
+registered, admitted and requested types; visibility comes from the caller, not
+request data. Pagination is bounded and reads honor cancellation. `ready()`
+reports projection readiness; `contributes(type)` is a static shape trait, not
+a membership read.
+
+An explicit `markdown.reconstruct(source)` codec can keep malformed stored
+configuration readable. It replaces parsed `decode` and requires
+`validatePersist`; it does not relax ordinary codecs or write validation.
+`frontmatterInContent` preserves unclaimed source fields, including explicit
+nulls, while indexed metadata remains authoritative for its own fields.
+
+Operator create/update can return `{ kind: "invalid", issues }`. Each issue has
+only a field `path` and validator-authored `message`: at most 50 issues, 32 path
+segments (256 characters per string segment), and 1024 characters per message.
+Inputs, native exception objects and original causes are not exposed. Other
+thrown failures use sanitized SDK codes, including conflict and cancellation.
 
 ### Content generation (implementation in progress)
 

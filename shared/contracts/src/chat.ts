@@ -1361,22 +1361,24 @@ export async function* readChatProtocolEvents(
     throw new ChatApiError("read stream", 502, "invalid-response");
   }
 
+  // Read through the reader rather than iterating the body: this contract also
+  // runs in browsers that do not async-iterate a ReadableStream.
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffered = "";
+  let finished = false;
   try {
-    for (;;) {
+    while (!finished) {
       const { value, done } = await reader.read();
+      finished = done;
       buffered += decoder.decode(value, { stream: !done });
-      let newline = buffered.indexOf("\n");
-      while (newline >= 0) {
-        const line = buffered.slice(0, newline);
-        buffered = buffered.slice(newline + 1);
+      // Everything before the last newline is a complete line; the tail is not.
+      const lines = buffered.split("\n");
+      buffered = lines.pop() ?? "";
+      for (const line of lines) {
         const event = parseChatProtocolLine(line);
         if (event) yield event;
-        newline = buffered.indexOf("\n");
       }
-      if (done) break;
     }
     if (buffered.length > 0) {
       const event = parseChatProtocolLine(buffered);

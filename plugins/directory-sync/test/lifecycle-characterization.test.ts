@@ -4,7 +4,6 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
-import type { Plugin } from "@brains/plugins";
 import { instantiate, SYNC_TOOL } from "./helpers/install";
 import { initializeDirectorySync } from "../src/lib/directory-lifecycle";
 
@@ -26,11 +25,11 @@ function deferred<T>(): Deferred<T> {
 
 describe("directory-sync lifecycle characterization", () => {
   const paths: string[] = [];
-  const plugins: Plugin[] = [];
+  const plugins: Array<ReturnType<typeof instantiate>["plugin"]> = [];
 
   afterEach(async () => {
     for (const plugin of plugins.splice(0).reverse()) {
-      await plugin.shutdown?.();
+      await plugin.shutdown();
     }
     for (const path of paths.splice(0).reverse()) {
       if (existsSync(path)) rmSync(path, { recursive: true, force: true });
@@ -94,7 +93,7 @@ describe("directory-sync lifecycle characterization", () => {
     await plugin.ready?.();
     expect((await directorySync.getStatus()).watching).toBe(true);
 
-    await plugin.shutdown?.();
+    await plugin.shutdown();
     expect((await directorySync.getStatus()).watching).toBe(false);
   });
 

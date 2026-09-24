@@ -103,7 +103,7 @@ async function resolveStudioAssistEntity(
     access,
   );
   if (denied) return denied;
-  const content = splitEntityContent(entityType, entity.content);
+  const content = splitEntityContent(entityType, entity.content, runtime);
   return { entity, ...content };
 }
 

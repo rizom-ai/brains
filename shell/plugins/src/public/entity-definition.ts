@@ -5,8 +5,7 @@ import type { ProjectionRule } from "../entity/projection-rule";
 import type { AnyDataSourceDeclaration } from "./entity-data-source";
 import { z } from "@brains/utils/zod";
 import { assertCanonicalEntityMetadata } from "../entity/entity-schema";
-import { generateMarkdownWithFrontmatter } from "@brains/entity-service";
-import { parseMarkdown } from "@brains/utils/markdown";
+import { generateMarkdown, parseMarkdown } from "@brains/utils/markdown";
 import { createEntityPackagePlugins } from "../entity/declarative-entity-plugin";
 import type {
   AnyEntityDefinition,
@@ -67,6 +66,7 @@ export function defineEntity<
   readonly metadata: TMetadataSchema;
   readonly metadataFrom?: ((stored: unknown) => unknown) | undefined;
   readonly singleton?: boolean | undefined;
+  readonly hasBody?: boolean | undefined;
   readonly markdown?: EntityMarkdownCodec<TMetadataSchema> | undefined;
   readonly displayTitle?: NonNullable<
     EntityDefinition<TType, TMetadataSchema>["displayTitle"]
@@ -254,7 +254,9 @@ export function frontmatterInContent<TMetadata extends Record<string, unknown>>(
 } {
   return {
     decode: ({ content, frontmatter }) => ({
-      content: generateMarkdownWithFrontmatter(content, { ...frontmatter }),
+      content: Object.keys(frontmatter).length
+        ? generateMarkdown({ ...frontmatter }, content)
+        : content,
       metadata: derive(frontmatter),
     }),
     encode: ({
@@ -265,11 +267,15 @@ export function frontmatterInContent<TMetadata extends Record<string, unknown>>(
       readonly frontmatter: Record<string, unknown>;
     } => {
       const parsed = parseMarkdown(content);
+      const fields = { ...parsed.frontmatter };
+      for (const [key, value] of Object.entries(metadata)) {
+        if (value === null || value === undefined) delete fields[key];
+        else fields[key] = value;
+      }
       return {
-        content: generateMarkdownWithFrontmatter(parsed.content, {
-          ...parsed.frontmatter,
-          ...metadata,
-        }),
+        content: Object.keys(fields).length
+          ? generateMarkdown(fields, parsed.content)
+          : parsed.content,
         // Already inside `content`; declaring it again would write it twice.
         frontmatter: {},
       };

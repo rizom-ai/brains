@@ -34,6 +34,21 @@ describe("DirectoryCleanupJobHandler", () => {
     expect(removeOrphanedEntitiesMock).toHaveBeenCalledTimes(1);
   });
 
+  it("forwards the durable child's exact batch identity to cleanup", async () => {
+    const projectionBatch = {
+      operationId: "root-1",
+      rootJobId: "root-1",
+      childKey: "1:directory-cleanup",
+      expectedChildren: 2,
+    };
+    await handler.process(
+      { projectionBatch },
+      "job-1",
+      createMockProgressReporter(),
+    );
+    expect(removeOrphanedEntitiesMock).toHaveBeenCalledWith(projectionBatch);
+  });
+
   it("should return cleanup result", async () => {
     const reporter = createMockProgressReporter();
     const result = await handler.process({}, "job-1", reporter);

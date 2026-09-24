@@ -284,7 +284,7 @@ describe("atproto service", () => {
       sender: "publish-service",
       broadcast: true,
     });
-    await plugin.shutdown?.();
+    await plugin.shutdown();
 
     expect(createPdsClient).not.toHaveBeenCalled();
   });

@@ -137,6 +137,8 @@ Some text
         getEntityRaw: mock(() => Promise.resolve(null)),
         listEntities: mock(() => Promise.resolve([])),
         queryEntityHierarchy: createMockEntityService().queryEntityHierarchy,
+        queryGroupingCatalog: createMockEntityService().queryGroupingCatalog,
+        queryGroupingMembers: createMockEntityService().queryGroupingMembers,
         search: mock(() => Promise.resolve([])),
         searchWithDistances: mock(() => Promise.resolve([])),
         projectSemanticSpace: mock(() =>

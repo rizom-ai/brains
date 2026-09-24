@@ -5,7 +5,18 @@ import type {
   EntityReadOptions,
   EntityHierarchyPage,
   QueryEntityHierarchyRequest,
+  EntityGroupingMembers,
+  EntityRegistry,
 } from "./types";
+import type {
+  QueryGroupingCatalogRequest,
+  QueryGroupingMembersRequest,
+  EntityGroupingCatalog,
+} from "./entity-grouping";
+import {
+  queryGroupingCatalogSchema,
+  queryGroupingMembersSchema,
+} from "./entity-grouping";
 import {
   decodeEntityIdPath,
   entityIdHierarchyExpressions,
@@ -129,12 +140,18 @@ const hierarchyRequestSchema = z.object({
 
 const MAX_HIERARCHY_FOLDERS = 1000;
 
+/** Case-insensitive substring match over stored content, used by every read. */
+function contentContainsCondition(term: string): SQL {
+  return sql`instr(lower(${entities.content}), lower(${term.trim()})) > 0`;
+}
+
 /**
  * EntityQueries handles database query operations for entities
  * Extracted from EntityService for single responsibility
  */
 export interface EntityQueryDeps {
   db: EntityDB;
+  entityRegistry: EntityRegistry;
   serializer: EntitySerializer;
   logger: Logger;
   /** Embedding DB for delete cascading (separate from entity DB). */
@@ -146,9 +163,11 @@ export class EntityQueries {
   private embeddingDb: EmbeddingDB;
   private serializer: EntitySerializer;
   private logger: Logger;
+  private entityRegistry: EntityRegistry;
 
   constructor(deps: EntityQueryDeps) {
     this.db = deps.db;
+    this.entityRegistry = deps.entityRegistry;
     this.embeddingDb = deps.embeddingDb;
     this.serializer = deps.serializer;
     this.logger = deps.logger.child("EntityQueries");
@@ -323,6 +342,110 @@ export class EntityQueries {
     return entityList;
   }
 
+  /** One catalog row per exact value; duplicate array elements never inflate counts. */
+  public async queryGroupingCatalog(
+    request: QueryGroupingCatalogRequest,
+  ): Promise<EntityGroupingCatalog> {
+    const input = queryGroupingCatalogSchema.parse(request);
+    input.signal?.throwIfAborted();
+    const { conditions, array } = this.groupingConditions(input);
+    const source = sql`(SELECT DISTINCT ${entities.entityType}, ${entities.id}, j.value AS value
+      FROM ${entities}, json_each(${array}) AS j
+      WHERE ${and(...conditions)} AND j.type = 'text') AS grouping_values`;
+    const counts = await this.db
+      .select({ total: sql<number>`COUNT(DISTINCT grouping_values.value)` })
+      .from(source);
+    input.signal?.throwIfAborted();
+    const rows = await this.db
+      .select({
+        value: sql<ArrayBuffer>`CAST(grouping_values.value AS BLOB)`,
+        count: sql<number>`COUNT(*)`,
+      })
+      .from(source)
+      .groupBy(sql`grouping_values.value`)
+      // Readers scan this list alphabetically; BINARY would file every
+      // capitalised value ahead of every lowercase one. Membership stays exact.
+      .orderBy(
+        sql`grouping_values.value COLLATE NOCASE ASC`,
+        sql`grouping_values.value COLLATE BINARY ASC`,
+      )
+      .limit(input.limit)
+      .offset(input.offset);
+    input.signal?.throwIfAborted();
+    const decoder = new TextDecoder("utf-8", { ignoreBOM: true });
+    return {
+      values: rows.map((row) => ({
+        value: decoder.decode(row.value),
+        count: Number(row.count),
+      })),
+      total: Number(counts[0]?.total ?? 0),
+    };
+  }
+
+  public async queryGroupingMembers(
+    request: QueryGroupingMembersRequest,
+  ): Promise<EntityGroupingMembers> {
+    const input = queryGroupingMembersSchema.parse(request);
+    input.signal?.throwIfAborted();
+    const { conditions, array } = this.groupingConditions(input);
+    conditions.push(
+      sql`EXISTS (SELECT 1 FROM json_each(${array}) AS j WHERE j.type = 'text' AND j.value = ${input.value})`,
+    );
+    if (input.q?.trim()) conditions.push(contentContainsCondition(input.q));
+    const where = and(...conditions);
+    const counts = await this.db
+      .select({ total: sql<number>`COUNT(*)` })
+      .from(entities)
+      .where(where);
+    input.signal?.throwIfAborted();
+    const column = input.sort.startsWith("created-")
+      ? entities.created
+      : entities.updated;
+    const order = input.sort.endsWith("-asc") ? asc(column) : desc(column);
+    const rows = await this.db
+      .select({
+        ...getTableColumns(entities),
+        id: sql<ArrayBuffer>`CAST(${entities.id} AS BLOB)`,
+      })
+      .from(entities)
+      .where(where)
+      .orderBy(order, asc(entities.entityType), asc(entities.id))
+      .limit(input.limit)
+      .offset(input.offset);
+    input.signal?.throwIfAborted();
+    const decoder = new TextDecoder("utf-8", { ignoreBOM: true });
+    const page: BaseEntity[] = [];
+    for (const row of rows) {
+      input.signal?.throwIfAborted();
+      const entity = await this.serializer.convertToEntity(
+        normalizeEntityRow({ ...row, id: decoder.decode(row.id) }),
+        false,
+      );
+      if (entity) page.push(entity);
+    }
+    input.signal?.throwIfAborted();
+    return { entities: page, total: Number(counts[0]?.total ?? 0) };
+  }
+
+  private groupingConditions(
+    input: z.output<typeof queryGroupingCatalogSchema>,
+  ): { conditions: SQL[]; array: SQL } {
+    const grouping = this.entityRegistry.getGrouping(input.grouping);
+    const admitted = new Set(input.entityTypes);
+    const types = grouping.types.filter((type) => admitted.has(type));
+    const conditions = [
+      inArray(entities.entityType, types),
+      inArray(
+        entities.visibility,
+        getVisibleContentVisibilities(input.visibilityScope ?? "public"),
+      ),
+    ];
+    const path = `$.${grouping.field}`;
+    // Protect json_each itself: scalar strings extracted from JSON aren't JSON documents.
+    const array = sql`CASE WHEN json_type(${entities.metadata}, ${path}) = 'array' THEN json_extract(${entities.metadata}, ${path}) ELSE '[]' END`;
+    return { conditions, array };
+  }
+
   /** Immediate folders are grouped in SQLite; only direct entries are paginated. */
   public async queryEntityHierarchy(
     request: QueryEntityHierarchyRequest,
@@ -462,9 +585,7 @@ export class EntityQueries {
 
     if (visibility) conditions.push(eq(entities.visibility, visibility));
     if (contentContains?.trim()) {
-      conditions.push(
-        sql`instr(lower(${entities.content}), lower(${contentContains.trim()})) > 0`,
-      );
+      conditions.push(contentContainsCondition(contentContains));
     }
 
     if (metadataFilter) {

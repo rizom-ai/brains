@@ -46,7 +46,7 @@ An existing worktree does not automatically outrank release work.
 | **P0**   | Freeze the public authoring boundary | Finish review and integration of `work/plugin-api-boundaries`; preserve the declarative outside-author path and do not retain superseded alpha APIs.                                            |
 | **P0**   | Nominate and release stable `v0.2.0` | Publish one final alpha, rerun exact registry/packed/live/eval evidence, certify canaries and `yeehaa.io`, then request explicit stable-release authorization.                                  |
 | **P1**   | Make Public Ask observable           | Record guest requests, denials and settled spend durably, then surface them in an admin Studio workspace with a reachable kill switch. Keep production guest admission off on every deployment. |
-| **P2**   | General content generation           | Shipped in PR #252 (Brain 0.2.0-alpha.379) and verified on smoke; the default site carries a generated section. Studio folders remain a demand-gated follow-up.                                 |
+| **P2**   | General content generation           | Shipped in PR #252 (Brain 0.2.0-alpha.379) and verified on smoke; the default site carries a generated section. Studio hierarchy shipped separately in PR #267 (Brain 0.2.0-alpha.388).         |
 | **P2**   | Opportunity-prioritization dogfood   | Finish the single-entity opportunity rework, composition, eval hardening, and focused operator surface without adding it to a default bundle.                                                   |
 
 Everything marked parked, proposed, or exploratory below is demand-gated. New work should not preempt P0 without an explicit roadmap change.
@@ -120,7 +120,8 @@ Plans:
 
 - [public-ask.md](./plans/public-ask.md) — the whole Ask surface: record and display guest usage before any deployment opens production guest access, then take each site through its own content, door and enablement decisions.
 - [studio-ux-improvements.md](./plans/studio-ux-improvements.md) — the remaining reviewed presentation, accessibility, and optional draft-recovery decisions after the shipped UX batches.
-- [studio-hierarchical-entity-navigation.md](./plans/studio-hierarchical-entity-navigation.md) — implemented on the feature branch, pending review: virtual folders, scoped search, and folder-aware creation over structured entity paths.
+- [studio-virtual-collections.md](./plans/studio-virtual-collections.md) — implemented foundation for source-backed collections across entity types; PR #302 now continues into grouping vocabularies rather than landing separately.
+- [studio-grouping-vocabularies.md](./plans/studio-grouping-vocabularies.md) — implemented and locally validated in PR #302: admin-defined value lists/cardinality, system editing without a restart, shared enforcement including projection writes, select/checkbox controls, visible strays, and canonical import refusal/retry; awaiting merge and release.
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — optional network-first installable shell without an offline-authoring claim.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy for deeper Chat SDK semantic alignment.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked transport-neutral structured forms.

@@ -268,7 +268,7 @@ describe("Plugin", () => {
       expect(status.recoveryPending).toBe(false);
 
       statusConnection.close();
-      await localPlugin.shutdown?.();
+      await localPlugin.shutdown();
       await localHarness.reset();
       await owner.stop();
       rmSync(root, { recursive: true, force: true });

@@ -2,7 +2,7 @@ import { createMockEntityService } from "@brains/entity-service/test";
 import { createEntityBulkCoordination } from "@brains/entity-service";
 import { createMockShell } from "@brains/plugins/test";
 import { hostFor } from "../helpers/install";
-import { describe, it, expect, mock } from "bun:test";
+import { describe, it, expect, mock, spyOn } from "bun:test";
 import { DirectoryImportJobHandler } from "../../src/handlers/directoryImportJobHandler";
 import {
   createSilentLogger,
@@ -77,10 +77,12 @@ describe("DirectoryImportJobHandler", () => {
           ),
         },
       };
+      const directory = createMockDirectorySync();
+      const imported = spyOn(directory, "importEntitiesWithProgress");
       const testHandler = new DirectoryImportJobHandler(
         createSilentLogger("test"),
         context,
-        createMockDirectorySync(),
+        directory,
       );
       const data = {
         paths: ["/path/to/series.md"],
@@ -91,8 +93,15 @@ describe("DirectoryImportJobHandler", () => {
         },
       };
 
-      await testHandler.process(data, "job-1", createMockProgressReporter());
+      const reporter = createMockProgressReporter();
+      await testHandler.process(data, "job-1", reporter);
       await testHandler.onTerminalSuccess(data, "job-1");
+      expect(imported).toHaveBeenCalledWith(
+        data.paths,
+        reporter,
+        100,
+        data.projectionBatch,
+      );
 
       expect(runChild).toHaveBeenCalledWith(
         {

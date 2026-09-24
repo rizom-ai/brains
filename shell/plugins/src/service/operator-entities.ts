@@ -1,3 +1,7 @@
+import {
+  operatorMutation,
+  type OperatorValidationFailure,
+} from "./operator-validation";
 import { getErrorMessage } from "@brains/utils/error";
 import {
   applyEntityCreate,
@@ -96,7 +100,7 @@ export interface OperatorEntityWrites {
   create(
     request: EntityCreateRequest,
     caller: InterfaceCaller,
-  ): Promise<EntityCreateOutcome>;
+  ): Promise<EntityCreateOutcome | OperatorValidationFailure>;
   /**
    * Write the entity as it should now be. What became of it comes back
    * described rather than thrown, because a console answers a conflict with
@@ -105,7 +109,7 @@ export interface OperatorEntityWrites {
   update(
     request: EntityEditRequest,
     caller: InterfaceCaller,
-  ): Promise<EntityEditOutcome>;
+  ): Promise<EntityEditOutcome | OperatorValidationFailure>;
   delete(
     request: EntityDeleteRequest,
     caller: InterfaceCaller,
@@ -171,29 +175,33 @@ export function createOperatorEntities(
     allows: (entityType, action, caller): boolean =>
       refusal(entityType, action, caller) === undefined,
     create: (request, caller) =>
-      applyEntityCreate(
-        {
-          entities: entityService,
-          registry: {
-            isRegistered: (entityType) => registry.hasEntityType(entityType),
+      operatorMutation(() =>
+        applyEntityCreate(
+          {
+            entities: entityService,
+            registry: {
+              isRegistered: (entityType) => registry.hasEntityType(entityType),
+            },
+            assertAllowed,
           },
-          assertAllowed,
-        },
-        request,
-        { permission: caller.permission },
+          request,
+          { permission: caller.permission },
+        ),
       ),
     update: (request, caller) =>
-      applyEntityEdit(
-        {
-          entities: entityService,
-          registry: {
-            getEntityTypeConfig: (entityType) =>
-              registry.getEntityTypeConfig(entityType),
+      operatorMutation(() =>
+        applyEntityEdit(
+          {
+            entities: entityService,
+            registry: {
+              getEntityTypeConfig: (entityType) =>
+                registry.getEntityTypeConfig(entityType),
+            },
+            assertAllowed,
           },
-          assertAllowed,
-        },
-        request,
-        { permission: caller.permission },
+          request,
+          { permission: caller.permission },
+        ),
       ),
     upload: async (request, caller): Promise<OperatorUploadOutcome> => {
       const registration = registry.getUploadSaveHandler(request.mediaType);
@@ -270,7 +278,12 @@ export function createOperatorEntities(
             // rather than throwing at a caller who named one.
             isSingleton: (entityType) =>
               registry.hasEntityType(entityType) &&
-              registry.getAdapter(entityType).isSingleton === true,
+              registry.getAdapter(entityType).isSingleton === true &&
+              // An explicit type-owned deletion policy (Studio vocabulary)
+              // opts into caller-policy-controlled deletion. Other singletons
+              // retain their unconditional protection.
+              registry.getEntityTypeConfig(entityType).actionPolicy?.delete ===
+                undefined,
           },
           assertAllowed,
         },

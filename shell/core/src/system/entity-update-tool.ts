@@ -1,5 +1,9 @@
 import { isDeepStrictEqual } from "node:util";
 import {
+  parseMarkdown,
+  updateFrontmatterField,
+} from "@brains/utils/markdown-frontmatter";
+import {
   applyEntityEdit,
   contentVisibilitySchema,
   extractVisibilityFromMarkdown,
@@ -29,13 +33,35 @@ const pendingApprovalForEntitySchema = z.looseObject({
   id: z.string(),
 });
 
-function currentFieldValue(entity: BaseEntity, key: string): unknown {
+function sourceFieldKeys(
+  entityType: string,
+  registry: SystemServices["entityRegistry"],
+): Set<string> {
+  return new Set([
+    ...registry
+      .getFrontmatterExtensions(entityType)
+      .flatMap((schema) => Object.keys(schema.shape)),
+    ...registry
+      .getGroupings()
+      .filter((grouping) => grouping.types.includes(entityType))
+      .map((grouping) => grouping.field),
+  ]);
+}
+
+function currentFieldValue(
+  entity: BaseEntity,
+  key: string,
+  sourceFields: ReadonlySet<string>,
+): unknown {
+  if (sourceFields.has(key))
+    return parseMarkdown(entity.content).frontmatter[key];
   return key === "visibility" ? entity.visibility : entity.metadata[key];
 }
 
 function applyFieldUpdates(
   entity: BaseEntity,
   fields: Record<string, unknown>,
+  registry: SystemServices["entityRegistry"],
 ): BaseEntity {
   const { visibility, coverImageId, ogImageId, ...metadataFields } = fields;
   const nextVisibility =
@@ -84,6 +110,19 @@ function applyFieldUpdates(
     }
   }
 
+  const sourceFields = sourceFieldKeys(entity.entityType, registry);
+  let authored = false;
+  for (const [key, value] of Object.entries(fields)) {
+    if (!sourceFields.has(key)) continue;
+    nextEntity.content = updateFrontmatterField(nextEntity.content, key, value);
+    authored = true;
+  }
+  if (authored)
+    nextEntity.metadata = registry.projectMetadata(
+      entity.entityType,
+      nextEntity.content,
+      nextMetadata,
+    );
   return nextEntity;
 }
 
@@ -134,6 +173,7 @@ function validateFieldUpdatePersistence(
   entity: BaseEntity,
   normalizedInput: { fields?: Record<string, unknown>; content?: string },
   entityRegistry: SystemServices["entityRegistry"],
+  entityService: SystemServices["entityService"],
 ): { success: false; error: string } | undefined {
   const fields = normalizedInput.fields;
   if (!fields) return undefined;
@@ -143,14 +183,53 @@ function validateFieldUpdatePersistence(
   );
   if (!frontmatterSchema) return undefined;
 
+  const sourceFields = sourceFieldKeys(entity.entityType, entityRegistry);
+  const authoredKeys = Object.keys(fields).filter((key) =>
+    sourceFields.has(key),
+  );
+  let updated: BaseEntity;
+  try {
+    updated = applyFieldUpdates(entity, fields, entityRegistry);
+    if (authoredKeys.length > 0) {
+      const validated = entityRegistry.validateEntity(
+        entity.entityType,
+        updated,
+      );
+      const markdown = entityService.serializeEntity(validated);
+      const source = parseMarkdown(markdown).frontmatter;
+      const metadata =
+        entityService.deserializeEntity(markdown, entity.entityType).metadata ??
+        {};
+      for (const key of authoredKeys) {
+        const expected = fields[key];
+        if (
+          expected === null
+            ? Object.hasOwn(source, key) || Object.hasOwn(metadata, key)
+            : !isDeepStrictEqual(source[key], expected) ||
+              !isDeepStrictEqual(metadata[key], expected)
+        ) {
+          return {
+            success: false,
+            error: `The requested ${key} value would not survive frontmatter persistence.`,
+          };
+        }
+      }
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: getErrorMessage(error, "Invalid field update"),
+    };
+  }
   const requested = Object.keys(fields).filter(
     (key) =>
-      !NON_METADATA_FIELD_KEYS.has(key) && key in frontmatterSchema.shape,
+      !sourceFields.has(key) &&
+      !NON_METADATA_FIELD_KEYS.has(key) &&
+      key in frontmatterSchema.shape,
   );
   if (requested.length === 0) return undefined;
 
   const adapter = entityRegistry.getAdapter(entity.entityType);
-  const updated = applyFieldUpdates(entity, fields);
   let persistedMetadata: Record<string, unknown>;
   try {
     persistedMetadata = adapter.extractMetadata(updated);
@@ -326,13 +405,28 @@ function getUpdatedStatus(
 function buildUpdateDiff(
   entity: BaseEntity,
   normalizedInput: { fields?: Record<string, unknown>; content?: string },
+  registry: SystemServices["entityRegistry"],
 ): string {
+  const sourceFields = sourceFieldKeys(entity.entityType, registry);
   if (normalizedInput.fields) {
     return Object.entries(normalizedInput.fields)
-      .map(
-        ([key, val]) =>
-          `${key}: ${String(currentFieldValue(entity, key) ?? "(empty)")} → ${String(val)}`,
-      )
+      .map(([key, val]) => {
+        const previous = currentFieldValue(entity, key, sourceFields);
+        if (!sourceFields.has(key))
+          return `${key}: ${String(previous ?? "(empty)")} → ${String(val)}`;
+        const fieldSchema = registry.getEffectiveFrontmatterSchema(
+          entity.entityType,
+        )?.shape[key];
+        const valid =
+          fieldSchema !== undefined &&
+          z.safeParse(fieldSchema, previous).success;
+        const before =
+          previous === undefined
+            ? "(absent)"
+            : `${JSON.stringify(previous)}${valid ? "" : " (invalid existing value)"}`;
+        const after = val === null ? "(removed)" : JSON.stringify(val);
+        return `${key}: ${before} → ${after}`;
+      })
       .join("\n");
   }
 
@@ -434,6 +528,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         entity,
         normalizedInput,
         entityRegistry,
+        entityService,
       );
       if (fieldPersistenceError) return fieldPersistenceError;
 
@@ -503,7 +598,11 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
                   extractVisibilityFromMarkdown(normalizedInput.content) ??
                   entity.visibility,
               }
-            : applyFieldUpdates(entity, normalizedInput.fields ?? {});
+            : applyFieldUpdates(
+                entity,
+                normalizedInput.fields ?? {},
+                entityRegistry,
+              );
 
         const eventContext = buildEntityMutationEventContext(context);
         let outcome;
@@ -556,7 +655,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       }
 
       const label = getEntityDisplayLabel(entity);
-      const diff = buildUpdateDiff(entity, normalizedInput);
+      const diff = buildUpdateDiff(entity, normalizedInput, entityRegistry);
       return {
         needsConfirmation: true,
         toolName: "system_update",

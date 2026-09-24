@@ -55,7 +55,7 @@ Until then, drafts remain in memory only. Do not infer approval from the shipped
 - Keep Studio's editorial language and shared page grammar; this is follow-through, not another redesign.
 - Preserve URL-backed collection/session state, permission-scoped server queries, and source-owned titles.
 - Do not move authorization, persistence, search, or entity hierarchy into browser components.
-- Structured folder navigation is separate and tracked in [studio-hierarchical-entity-navigation.md](./studio-hierarchical-entity-navigation.md).
+- Structured folder navigation has shipped; see the [Studio README](../../plugins/studio/README.md). Cross-type, metadata-derived grouping is separate and tracked in [studio-virtual-collections.md](./studio-virtual-collections.md).
 - Public guest Chat policy remains in [public-ask.md](./public-ask.md).
 
 ## Validation

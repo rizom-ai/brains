@@ -2,6 +2,13 @@
 // Plugin Framework Core
 // ============================================================================
 
+export type {
+  ServiceGroupingDeclaration,
+  GroupingVocabularyValue,
+} from "./service/grouping-definition";
+
+export type { OperatorEntityGroupings } from "./service/operator-groupings";
+
 // Base plugin classes
 export { ServicePlugin } from "./service/service-plugin";
 export {
@@ -599,6 +606,12 @@ export type {
   EntityBulkCoordination,
   DurableBulkMutationBatch,
   DurableBulkMutationChildRef,
+  EntityGrouping,
+  EntityGroupingCatalog,
+  EntityGroupingMembers,
+  GroupingSort,
+  QueryGroupingCatalogRequest,
+  QueryGroupingMembersRequest,
   DurableBulkMutationCoordinator,
   ProjectSemanticSpaceRequest,
   SemanticEntityReference,
@@ -619,6 +632,13 @@ export {
   baseEntityParserSchema,
   baseEntitySchema,
   entityIdPathSchema,
+  entityGroupingSchema,
+  groupingSortSchema,
+  groupingKeySchema,
+  groupingValueSchema,
+  groupingSearchSchema,
+  GROUPING_PAGE_LIMIT,
+  GROUPING_MAX_PAGE_LIMIT,
   EntityWriteConflictError,
   canWriteVisibility,
   contentVisibilitySchema,
@@ -630,6 +650,7 @@ export {
   findEntityByIdentifier,
   resolveEntityOrError,
   generateMarkdownWithFrontmatter,
+  preserveSourceFrontmatter,
   getPublishBoundaryState,
   parseMarkdownWithFrontmatter,
   EntityValidationError,

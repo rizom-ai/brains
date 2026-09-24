@@ -7,6 +7,12 @@ const entityTypeConfigSchema = z.object({
   embeddable: z.boolean().optional(),
   fullTextSearchable: z.boolean().optional(),
   binaryStorage: z.literal("asset").optional(),
+  actionPolicy: z
+    .partialRecord(
+      z.enum(["create", "update", "delete", "extract", "publish"]),
+      z.enum(["never", "admin", "trusted", "public"]),
+    )
+    .optional(),
   projectionSource: z.boolean().optional(),
   projectionSourceRole: z
     .enum([

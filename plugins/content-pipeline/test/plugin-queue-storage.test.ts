@@ -10,7 +10,7 @@ import { installPipeline, storedQueueFor } from "./helpers/install";
 
 describe("content pipeline queue storage integration", () => {
   let harness: PluginTestHarness<Plugin>;
-  let plugin: Plugin;
+  let plugin: Plugin & Required<Pick<Plugin, "shutdown">>;
   let queueManager: QueueManager;
 
   beforeEach(async () => {
@@ -35,7 +35,7 @@ describe("content pipeline queue storage integration", () => {
   });
 
   afterEach(async () => {
-    await plugin.shutdown?.();
+    await plugin.shutdown();
   });
 
   it("routes message mutations through durable queue storage", async () => {

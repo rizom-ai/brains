@@ -55,6 +55,7 @@ describe("createMockEntityStore", () => {
   it("materializes verbatim when no adapter is registered", () => {
     const store = createMockEntityStore();
     expect(store.materialize(noteEntity())).toEqual({
+      source: "# Note",
       content: "# Note",
       metadata: {},
       contentHash: computeContentHash("# Note"),
@@ -75,6 +76,7 @@ describe("createMockEntityStore", () => {
     );
 
     expect(store.materialize(noteEntity())).toEqual({
+      source: "from adapter",
       content: "from adapter decoded",
       metadata: { via: "adapter" },
       contentHash: computeContentHash("from adapter"),
@@ -162,6 +164,27 @@ describe("createMockEntityService", () => {
       entity: noteInput("hello"),
     });
     expect(store.entities.get(entityId)?.content).toBe("rebuilt");
+  });
+
+  it("deserializes with the registered adapter and preserves unregistered source", () => {
+    const { store, service } = serviceWithStore();
+    const markdown = "---\nstatus: published\n---\nBody";
+    expect(service.deserializeEntity(markdown, "note")).toEqual({
+      content: markdown,
+    });
+    store.adapters.set(
+      "note",
+      noteAdapter({
+        fromMarkdown: (content): Partial<BaseEntity> => ({
+          content,
+          metadata: { status: "published" },
+        }),
+      }),
+    );
+    expect(service.deserializeEntity(markdown, "note")).toEqual({
+      content: markdown,
+      metadata: { status: "published" },
+    });
   });
 
   it("refuses the projection store rather than faking one", () => {

@@ -34,7 +34,7 @@ function harnessWithSystemType(): ReturnType<typeof createPluginHarness> {
   const harness = createPluginHarness();
   harness
     .getEntityRegistry()
-    .registerEntityType(SYSTEM_TYPE, z.object({}), minimalAdapter());
+    .registerEntityType(SYSTEM_TYPE, baseEntitySchema, minimalAdapter());
   return harness;
 }
 

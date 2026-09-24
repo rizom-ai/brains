@@ -116,6 +116,53 @@ components containing the identity separator are rejected. New-path authoring st
 the stricter `entityIdPathSchema`. Derived paths are returned outside entity data: neither
 stored IDs nor metadata are modified. Filesystem placement remains directory-sync's job.
 
+## Cross-entity persistence validation
+
+`registerPersistValidator` composes validators in registration order rather than replacing the entity owner's constraint. Ordinary create/update paths and projection upserts run them after schema validation and source projection, before persistence. Projection upserts restore adapter-owned fields for validation while retaining the full stored source and row identity. They validate inside the admitted rule transaction: a refusal rolls back all entities, ownership claims, export intents and memo changes in that result. Completed rule reports remain idempotent. Validators may perform read-only lookups but must not mutate entities or trigger external effects. Validation failures retain their original field issues in an `EntityValidationError` with `phase: "persist"`; schema failures retain `phase: "schema"`. Consumers can distinguish a valid document refused by current policy from structurally invalid source. Directory-sync leaves policy-refused files in place for retry instead of quarantining them.
+
+A registered type may also carry its own `actionPolicy` in `EntityTypeConfig`. That is the type's floor: each action uses the stricter of the wildcard default and the type's minimum, with `never` forbidding every caller. This keeps an admin-only type protected without its bundle's rule while preserving stricter instance restrictions. An explicit entry for the type still overrides the result, action by action.
+
+A stored document whose content no longer satisfies its own schema cannot be reconstructed, so every read treats it as absent. Policies built on such a document fail open rather than refusing writes behind something only an administrator could repair.
+
+Studio uses this boundary for its admin-authored grouping-vocabulary singleton. Vocabulary and cardinality changes affect the next write, including tool and import writes, without changing fixed type schemas or rewriting previously stored content. Reads and startup reprojection remain unconstrained so stray memberships stay visible.
+
+## Grouping queries (internal client)
+
+A grouping is a declared dimension — Clients, Projects — resolved from one
+frontmatter field across a listed set of entity types. Callers never supply a
+field name or selector: `registerGrouping({ key, label, field, types })` records
+the declaration, and the two reads resolve it by key.
+
+`queryGroupingCatalog` returns each distinct value with the number of entities
+the caller may read. `queryGroupingMembers` returns one mixed-type page for a
+single value, with optional type, content-search and sort filters. Both
+intersect the caller's admitted types with the declaration's own, so neither
+side can widen the other, and both apply the caller's visibility scope. A value
+no readable entity carries does not appear, and a restricted member reveals
+nothing through counts, ordering or errors.
+
+Values match exactly as stored: no slugging, case folding or normalisation.
+The catalog orders values case-insensitively so related spellings read together,
+with the stored bytes breaking ties. Missing, empty or non-array fields mean no
+membership rather than a query error, and non-string elements are ignored.
+
+Membership is a projection of authored frontmatter, never an independent store.
+Ordinary writes maintain it. `reprojectRegisteredGroupings()` bootstraps rows
+whose stored content already carries membership, in keyset pages, writing only
+metadata: it leaves `updated`, source Markdown, identities and file paths alone
+and emits no events or export intents. Each page prepares at most 200 updates
+before taking the writer lock and commits them in one transaction, checking
+each row's revision and source again inside it. Conflicts retry independently
+against fresh rows with the same four-attempt budget; deleted rows are never
+recreated. A failed page rolls back, and unchanged pages perform no writes. Each registered field is validated
+against its own schema entry, so frontmatter the entity owner rejects elsewhere
+in the document never removes an entity from its collections; a field whose own
+value is invalid is left unprojected and unrepaired. Every serving start runs
+the bounded pass, including when declarations are unchanged: register-only
+writers with grouping disabled and changes to runtime field validators can
+otherwise leave a previously completed projection stale. No declaration-only
+completion cache or grouping-state migration is included.
+
 ## Conditional writes and recovery (internal runtime)
 
 `getEntityWriteSnapshot()` reads the raw entity and its opaque revision together, using

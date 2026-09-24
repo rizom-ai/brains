@@ -5,7 +5,8 @@ import { act, createElement, useRef } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
 import type { StudioChatHandoff } from "./operator-launch";
-import { StudioChatDraftStore, studioChatDraftKey } from "./studio-chat-drafts";
+import { StudioChatDraftStore } from "./studio-chat-drafts";
+import { studioChatDraftKey } from "./studio-chat-draft-key";
 import { useChatHandoff } from "./use-chat-handoff";
 
 let restoreGlobals: RestoreGlobals;

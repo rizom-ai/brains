@@ -6,6 +6,8 @@ import type {
   EntityWriteSnapshot,
   EntityHierarchyPage,
   QueryEntityHierarchyRequest,
+  EntityGroupingCatalog,
+  EntityGroupingMembers,
   SearchResult,
   ListOptions,
   IEntityService,
@@ -28,6 +30,8 @@ export interface MockEntityServiceReturns {
   deleteEntity?: boolean;
   listEntities?: BaseEntity[];
   queryEntityHierarchy?: EntityHierarchyPage;
+  queryGroupingCatalog?: EntityGroupingCatalog;
+  queryGroupingMembers?: EntityGroupingMembers;
   search?: SearchResult[];
   countEntities?: number;
 }
@@ -183,6 +187,8 @@ export function createMockEntityService(
     getEntityWriteSnapshot: mock(
       async () => returns.getEntityWriteSnapshot ?? null,
     ),
+    areGroupingsReady: mock(() => true),
+    reprojectRegisteredGroupings: mock(async () => {}),
     getEntity: genericSpy<IEntityService["getEntity"]>(getEntityMock),
     getEntities: getEntitiesMock,
     getEntityRaw: genericSpy<IEntityService["getEntityRaw"]>(getEntityRawMock),
@@ -198,6 +204,12 @@ export function createMockEntityService(
           offset: request.offset ?? 0,
           totalEntities: 0,
         },
+    ),
+    queryGroupingCatalog: mock(
+      async () => returns.queryGroupingCatalog ?? { values: [], total: 0 },
+    ),
+    queryGroupingMembers: mock(
+      async () => returns.queryGroupingMembers ?? { entities: [], total: 0 },
     ),
     search: genericSpy<IEntityService["search"]>(searchMock),
 

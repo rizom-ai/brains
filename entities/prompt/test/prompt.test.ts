@@ -17,9 +17,13 @@ function promptPlugins(): ReturnType<
 }
 
 /** The codec is part of the definition, so it is testable without a plugin. */
-function codec(): NonNullable<typeof prompt.markdown> {
+function codec(): Extract<
+  NonNullable<typeof prompt.markdown>,
+  { decode: unknown }
+> {
   const markdown = prompt.markdown;
-  if (!markdown) throw new Error("Prompt definition has no markdown codec");
+  if (!markdown?.decode)
+    throw new Error("Prompt definition has no parsed markdown codec");
   return markdown;
 }
 

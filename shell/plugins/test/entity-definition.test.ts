@@ -559,7 +559,7 @@ describe("entity package definitions", () => {
 
     // The runtime owns teardown, so the registry does not leak across
     // plugin lifecycles.
-    await plugin.shutdown?.();
+    await plugin.shutdown();
     expect(
       AtprotoProjectionRegistry.getInstance().get("guide"),
     ).toBeUndefined();
@@ -3064,7 +3064,7 @@ describe("entity package definitions", () => {
       }),
     ).toEqual(resolved);
 
-    await plugin.shutdown?.();
+    await plugin.shutdown();
     expect(attachments.hasProvider("guide", "printable")).toBe(false);
 
     await harness.reset();

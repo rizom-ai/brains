@@ -32,7 +32,7 @@ export type MockShell = ReturnType<typeof createMockShell>;
 export function instantiate(
   config: AtprotoConfigInput = {},
   deps: AtprotoServiceDeps = {},
-): Plugin {
+): Plugin & Required<Pick<Plugin, "shutdown">> {
   const definition = atprotoService(deps);
   bindPluginPackageMetadata(definition, PACKAGE_METADATA);
   const [plugin] = instantiatePluginPackageDefinition(
@@ -41,7 +41,9 @@ export function instantiate(
     PACKAGE_METADATA,
   );
   if (!plugin) throw new Error("AT Protocol service plugin was not created");
-  return plugin;
+  if (!plugin.shutdown)
+    throw new Error("AT Protocol service has no shutdown lifecycle");
+  return Object.assign(plugin, { shutdown: plugin.shutdown.bind(plugin) });
 }
 
 /**

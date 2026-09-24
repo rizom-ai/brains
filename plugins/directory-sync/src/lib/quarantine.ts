@@ -15,6 +15,15 @@ export class Quarantine {
   }
 
   isValidationError(error: unknown): boolean {
+    // A live cross-entity policy can refuse valid source. Leave that file in
+    // place so the next import can retry after the policy changes.
+    if (
+      error instanceof Error &&
+      error.name === "EntityValidationError" &&
+      "phase" in error &&
+      error.phase === "persist"
+    )
+      return false;
     return isEntityValidationError(error);
   }
 

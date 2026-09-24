@@ -1,5 +1,15 @@
 # @brains/utils
 
+## 0.2.0-alpha.404
+
+### Patch Changes
+
+- Give every unbounded loop an explicit shape. Schema unwrapping, workspace version resolution, redirect following, job-drain polling, SQLite write retries and atomic enqueue retries now recurse once per step, so each step's exit condition sits in its own signature. Stream reading and checkpoint draining keep a loop, but one with a real condition in its head rather than an open `for (;;)` and an interior break.
+
+  Behaviour is unchanged: the same retry budgets, backoff, redirect limits and cursor advancement apply. The atomic enqueue retry now closes its failed transaction before opening the next one rather than after, which was already the intent.
+
+- [#302](https://github.com/rizom-ai/brains/pull/302) [`18f2586`](https://github.com/rizom-ai/brains/commit/18f2586ba20a15400402d34d4289d6035c6f9e3b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Build the browser-safe Chat export separately from server library chunks. Server subpaths still share their runtime, while browser consumers no longer inherit Node-only imports through shared chunks. Keep frontmatter-only contract parsing independent of Markdown AST initialization, so the export also loads in headless runtimes without a DOM. Verify the exact packed export with the existing browser-build and headless canary.
+
 ## 0.2.0-alpha.403
 
 ## 0.2.0-alpha.402

@@ -51,7 +51,7 @@ export async function createAdministrationFixture(
   Date.now = (): number => now;
   const dispose = async (): Promise<void> => {
     try {
-      await auth.shutdown?.();
+      await auth.shutdown();
     } finally {
       Date.now = originalNow;
       await rm(directory, { recursive: true, force: true });

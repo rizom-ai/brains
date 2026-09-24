@@ -1,5 +1,11 @@
 import type { AssetRef, AssetStat, AssetVerification } from "@brains/assets";
+import type {
+  QueryGroupingCatalogRequest,
+  QueryGroupingMembersRequest,
+  EntityGroupingCatalog,
+} from "./entity-grouping";
 import { SHELL_CHANNELS } from "@brains/contracts";
+import { reprojectGroupings } from "./grouping-reprojection";
 import type { Client } from "@libsql/client";
 import { applySqlitePragmas } from "@brains/db";
 import { createEntityDatabase, ensureFtsTable, type EntityDB } from "./db";
@@ -32,6 +38,7 @@ import type {
   ListEntitiesRequest,
   QueryEntityHierarchyRequest,
   EntityHierarchyPage,
+  EntityGroupingMembers,
   CountEntitiesRequest,
   DeleteEntityRequest,
   EntitySearchRequest,
@@ -66,7 +73,7 @@ import { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 import { EntitySearch } from "./entity-search";
 import { EntitySerializer } from "./entity-serializer";
 import { EntityQueries } from "./entity-queries";
-import { EntityMutations } from "./entity-mutations";
+import { EntityMutations, validatePersist } from "./entity-mutations";
 import { ProjectionStore } from "./projection-store";
 import { EntityExportStore } from "./entity-export-store";
 import { SqliteAssetRepository } from "./sqlite-asset-repository";
@@ -112,6 +119,8 @@ export class EntityService implements IEntityService {
   // Assigned inside the constructor's try block: null until that succeeds, so
   // initialize() reports the failure instead of awaiting undefined.
   private dbInitPromise: Promise<void> | null = null;
+  private groupingReprojection: Promise<void> | undefined;
+  private groupingsReady = false;
   private entityRegistry: IEntityRegistry;
   private logger: Logger;
   private jobQueueService: IJobQueueService;
@@ -183,6 +192,27 @@ export class EntityService implements IEntityService {
       options.projectionNow ?? Date.now,
       {
         assetRepository: this.assetRepository,
+        prepareEntity: async (entity, operation): Promise<BaseEntity> => {
+          // Projection intents carry stored rows, not the adapter's typed
+          // top-level fields. Restore those for validation but retain the
+          // full persisted source and authoritative row identity/policy.
+          //
+          // Metadata sits between the two: an adapter may declare a required
+          // top-level field its `fromMarkdown` does not reconstruct from
+          // content, such as a note's `tags`, and carry it in metadata
+          // instead. Without this, validating such a type would fail on a
+          // field the row actually holds.
+          const parsed = this.entitySerializer.deserializeEntity(
+            entity.content,
+            entity.entityType,
+          );
+          const validated = options.entityRegistry.validateEntity(
+            entity.entityType,
+            { ...parsed, ...entity.metadata, ...entity },
+          );
+          await validatePersist(options.entityRegistry, validated, operation);
+          return validated;
+        },
         isAssetBacked: (entityType): boolean =>
           options.entityRegistry.getEntityTypeConfig(entityType)
             .binaryStorage === "asset",
@@ -224,6 +254,7 @@ export class EntityService implements IEntityService {
       );
       this.entityQueries = new EntityQueries({
         db: this.db,
+        entityRegistry: this.entityRegistry,
         serializer: this.entitySerializer,
         logger: this.logger,
         embeddingDb: this.embeddingDb,
@@ -758,6 +789,40 @@ export class EntityService implements IEntityService {
     request.signal?.throwIfAborted();
     await this.initialize();
     return this.entityQueries.queryEntityHierarchy(request);
+  }
+
+  public areGroupingsReady(): boolean {
+    return this.groupingsReady;
+  }
+
+  public reprojectRegisteredGroupings(): Promise<void> {
+    if (this.groupingReprojection) return this.groupingReprojection;
+    this.groupingsReady = false;
+    this.groupingReprojection = this.initialize()
+      .then(() => reprojectGroupings(this.db, this.entityRegistry))
+      .then(() => {
+        this.groupingsReady = true;
+      })
+      .finally(() => {
+        this.groupingReprojection = undefined;
+      });
+    return this.groupingReprojection;
+  }
+
+  public async queryGroupingCatalog(
+    request: QueryGroupingCatalogRequest,
+  ): Promise<EntityGroupingCatalog> {
+    request.signal?.throwIfAborted();
+    await this.initialize();
+    return this.entityQueries.queryGroupingCatalog(request);
+  }
+
+  public async queryGroupingMembers(
+    request: QueryGroupingMembersRequest,
+  ): Promise<EntityGroupingMembers> {
+    request.signal?.throwIfAborted();
+    await this.initialize();
+    return this.entityQueries.queryGroupingMembers(request);
   }
 
   public async countEntities(request: CountEntitiesRequest): Promise<number> {

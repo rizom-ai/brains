@@ -1,3 +1,4 @@
+import { createFixtureGroupingQueries } from "./entity-groupings";
 import {
   getVisibleContentVisibilities,
   EntityWriteConflictError,
@@ -192,10 +193,13 @@ export function createMockEntityService(
         contentHash: "",
       };
       store.types.add(entity.entityType);
-      const materialized = store.materialize(entity);
-      await store.persistValidators.get(entity.entityType)?.(entity, {
-        operation: "create",
-      });
+      const { source, ...materialized } = store.materialize(entity);
+      await store.persistValidators.get(entity.entityType)?.(
+        { ...entity, metadata: materialized.metadata },
+        {
+          operation: "create",
+        },
+      );
       request.options?.signal?.throwIfAborted();
       await request.options?.beforeWrite?.({
         ...entity,
@@ -213,6 +217,7 @@ export function createMockEntityService(
       ) {
         throw new EntityWriteConflictError(entity.entityType, id);
       }
+      store.sources.set(id, source);
       store.entities.set(id, { ...entity, ...materialized });
       store.markExportIntent(
         entity.entityType,
@@ -253,10 +258,14 @@ export function createMockEntityService(
       request.options?.signal?.throwIfAborted();
       const entity = request.entity;
       if (!entity.id) throw new Error("Entity must have an id");
-      const { content, metadata, contentHash } = store.materialize(entity);
-      await store.persistValidators.get(entity.entityType)?.(entity, {
-        operation: "update",
-      });
+      const { source, content, metadata, contentHash } =
+        store.materialize(entity);
+      await store.persistValidators.get(entity.entityType)?.(
+        { ...entity, metadata },
+        {
+          operation: "update",
+        },
+      );
       request.options?.signal?.throwIfAborted();
       await request.options?.beforeWrite?.({
         ...entity,
@@ -294,6 +303,7 @@ export function createMockEntityService(
         );
         return { entityId: entity.id, jobId: "", skipped: true };
       }
+      store.sources.set(entity.id, source);
       store.entities.set(entity.id, {
         ...entity,
         content,
@@ -313,6 +323,7 @@ export function createMockEntityService(
       id: string;
       options?: { persistenceOrigin?: "ordinary" | "directory-sync" };
     }): Promise<boolean> => {
+      store.sources.delete(request.id);
       store.entities.delete(request.id);
       store.markExportIntent(
         request.entityType,
@@ -345,7 +356,10 @@ export function createMockEntityService(
     getEntityTypes: () => Array.from(store.types),
     hasEntityType: (type: string) => store.types.has(type),
     serializeEntity: (entity: BaseEntity) => JSON.stringify(entity),
-    deserializeEntity: (markdown: string) => ({ content: markdown }),
+    deserializeEntity: (markdown: string, entityType: string) =>
+      store.adapters.get(entityType)?.fromMarkdown(markdown) ?? {
+        content: markdown,
+      },
     getAsyncJobStatus: async () => ({ status: "completed" as const }),
     upsertEntity: async <T extends BaseEntity>(
       request: UpsertEntityRequest<T>,
@@ -354,7 +368,12 @@ export function createMockEntityService(
       store.types.add(entity.entityType);
       const id = entity.id || `entity-${Date.now()}`;
       const exists = store.entities.has(id);
-      const materialized = store.materialize({ ...entity, id });
+      const { source, ...materialized } = store.materialize({ ...entity, id });
+      await store.persistValidators.get(entity.entityType)?.(
+        { ...entity, id, metadata: materialized.metadata },
+        { operation: exists ? "update" : "create" },
+      );
+      store.sources.set(id, source);
       store.entities.set(id, { ...entity, id, ...materialized });
       store.markExportIntent(
         entity.entityType,
@@ -464,12 +483,15 @@ export function createMockEntityService(
       fencedCallbacks: 0,
       releasedDurableRoots: 0,
     }),
+    areGroupingsReady: () => true,
+    ...createFixtureGroupingQueries(store),
     // Hierarchy grouping is tested against SQLite, not duplicated in this fake.
     queryEntityHierarchy: async (): Promise<never> => {
       throw new Error(
         "createMockShell: inject an entity service for hierarchy queries",
       );
     },
+
     // Projection storage is database-backed and cannot be faked usefully. Fail
     // loudly rather than hand back an empty stand-in, which would make a test
     // asserting projection behaviour silently meaningless.

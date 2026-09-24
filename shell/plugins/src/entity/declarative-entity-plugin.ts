@@ -293,12 +293,20 @@ function entityAdapter(
   definition: AnyEntityDefinition,
 ): EntityAdapter<EntityOf<EntityDefinitionShape>, Record<string, unknown>> {
   const schema = entitySchema(definition);
+  if (definition.markdown?.reconstruct && !definition.validatePersist) {
+    throw new Error(
+      "Repairable Markdown requires an entity persistence validator",
+    );
+  }
   return {
     entityType: definition.type,
     purpose: definition.purpose,
     schema,
     frontmatterSchema: definition.markdown?.frontmatter ?? definition.metadata,
     ...(definition.singleton === true ? { isSingleton: true } : {}),
+    ...(definition.hasBody !== undefined
+      ? { hasBody: definition.hasBody }
+      : {}),
     toMarkdown(entity): string {
       return encodeEntityMarkdown(definition, entity);
     },
@@ -316,9 +324,17 @@ function entityAdapter(
      * disappearing.
      */
     fromMarkdown(markdown): Partial<EntityOf<EntityDefinitionShape>> {
+      const codec = definition.markdown;
+      if (codec?.reconstruct) {
+        try {
+          return codec.reconstruct(markdown);
+        } catch (cause) {
+          throw toSdkError(cause, "invalid_input");
+        }
+      }
       return readEntityMarkdown(markdown, (parsed) => {
-        const decoded = definition.markdown
-          ? definition.markdown.decode(parsed)
+        const decoded = codec
+          ? codec.decode(parsed)
           : { content: parsed.content, metadata: parsed.frontmatter };
         return { content: decoded.content, metadata: decoded.metadata };
       });

@@ -1,6 +1,11 @@
 /** Declarative public entity authoring surface. */
 // Structured destination and folder reads. Named consumer: Studio.
-export { encodeEntityIdPath, entityIdPathSchema } from "@brains/entity-service";
+export {
+  encodeEntityIdPath,
+  decodeEntityIdPath,
+  entityIdPathSchema,
+  preserveSourceFrontmatter,
+} from "@brains/entity-service";
 export type {
   EntityIdPath,
   EntityIdPathInput,

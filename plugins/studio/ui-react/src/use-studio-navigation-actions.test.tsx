@@ -86,6 +86,7 @@ async function renderActions(
       routeSearch: "",
       entityType: "note",
       entityCollectionQuery: studioCollectionQuerySchema.parse({}),
+      groupReturnPath: undefined,
       workspaces: [],
       schema: noteSchema,
       activeCapabilities: capabilities,
@@ -114,6 +115,16 @@ async function renderActions(
 }
 
 describe("useStudioNavigationActions", () => {
+  it("returns a deep-linked editor to its exact filtered grouping", async () => {
+    const groupReturnPath =
+      "/studio/groups/clients?value=%20Acme%20&type=note&q=brief&offset=50";
+    const harness = await renderActions(
+      { groupReturnPath },
+      "/studio/entities/note/n1",
+    );
+    await act(async () => harness.actions().backToList());
+    expect(harness.history.location.href).toBe(groupReturnPath);
+  });
   it("routes rail selections to collection and workspace paths", async () => {
     const harness = await renderActions();
 

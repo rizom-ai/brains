@@ -4,6 +4,7 @@ import { parseMarkdownWithFrontmatter } from "@brains/sdk/entities";
 import type { ServiceEntityShapes } from "@brains/sdk/services";
 import { z } from "@brains/utils/zod";
 import { isRawEntityType } from "./config";
+import type { StudioRuntime } from "./runtime";
 import { jsonResponse } from "./editor-response";
 
 /**
@@ -66,13 +67,14 @@ export function rejectBodyForBodylessType(
 export function splitEntityContent(
   entityType: string,
   content: string,
+  context: Pick<StudioRuntime, "groupings">,
 ): {
   frontmatter: Record<string, unknown>;
   body: string;
 } {
-  // Raw types never carry frontmatter — a leading `---` is a horizontal
-  // rule and must not be parsed as a YAML delimiter.
-  if (isRawEntityType(entityType)) {
+  // Without grouping participation, retain whole-document note editing,
+  // including any authored frontmatter or leading Markdown horizontal rule.
+  if (isRawEntityType(entityType, context.groupings)) {
     return { frontmatter: {}, body: content };
   }
   try {

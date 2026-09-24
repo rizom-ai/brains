@@ -27,12 +27,31 @@ export function instantiate(
 ): Plugin {
   const definition = studioService(deps);
   bindPluginPackageMetadata(definition, PACKAGE_METADATA);
-  const [plugin] = instantiatePluginPackageDefinition(
+  const [plugin, ...entities] = instantiatePluginPackageDefinition(
     definition,
     config,
     PACKAGE_METADATA,
   );
   if (!plugin) throw new Error("Studio plugin was not created");
+  const register = plugin.register.bind(plugin);
+  plugin.register = async (shell, options): ReturnType<Plugin["register"]> => {
+    const capabilities = await register(shell, options);
+    for (const entity of entities) await entity.register(shell, options);
+    return capabilities;
+  };
+  const finalize = plugin.finalizeRegistration?.bind(plugin);
+  plugin.finalizeRegistration = async (): Promise<void> => {
+    await finalize?.();
+    for (const entity of entities) await entity.finalizeRegistration?.();
+  };
+  const shutdown = plugin.shutdown?.bind(plugin);
+  plugin.shutdown = async (): Promise<void> => {
+    try {
+      await shutdown?.();
+    } finally {
+      for (const entity of [...entities].reverse()) await entity.shutdown?.();
+    }
+  };
   return plugin;
 }
 

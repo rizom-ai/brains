@@ -49,6 +49,7 @@ export interface StudioNavigationActionsInput {
   routeSearch: string;
   entityType: string | null;
   entityCollectionQuery: StudioCollectionQuery;
+  groupReturnPath: string | undefined;
   workspaces: StudioWorkspaceInfo[];
   schema: TypeSchema | null;
   activeCapabilities: StudioTypeCapabilities | undefined;
@@ -93,6 +94,7 @@ export function useStudioNavigationActions(
     routeSearch,
     entityType,
     entityCollectionQuery,
+    groupReturnPath,
     workspaces,
     schema,
     activeCapabilities,
@@ -303,6 +305,11 @@ export function useStudioNavigationActions(
   ]);
 
   const backToList = useCallback((): void => {
+    if (groupReturnPath) {
+      if (history.canGoBack()) history.back();
+      else history.replace(groupReturnPath);
+      return;
+    }
     if (!entityType) return;
     const collectionPath = `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`;
     const historyState: unknown = history.location.state;
@@ -317,7 +324,13 @@ export function useStudioNavigationActions(
       return;
     }
     history.replace(collectionPath);
-  }, [studioBasePath, entityType, entityCollectionQuery, history]);
+  }, [
+    studioBasePath,
+    entityType,
+    entityCollectionQuery,
+    history,
+    groupReturnPath,
+  ]);
   const changeWorkspaceQuery = useCallback(
     (
       workspaceId: string,

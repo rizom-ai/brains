@@ -39,6 +39,10 @@ import {
   createStudioOverviewWorkspace,
 } from "./overview-workspace";
 import type { StudioRuntime } from "./runtime";
+import {
+  groupingVocabulary,
+  readGroupingVocabulary,
+} from "./entity/grouping-vocabulary";
 
 /** What Studio holds while it runs. */
 export interface StudioState {
@@ -148,7 +152,7 @@ function entityBacklink(entityType: string, entityId: string): string {
  * First-party Studio: a React app served at `routePath`, gated on the
  * signed-in session, whose reads and writes go through the runtime as the
  * person using it. It hosts the workspaces other packages declare and edits
- * every entity type, owning none of them.
+ * every entity type, owning only its grouping-vocabulary configuration.
  */
 export function studioService(
   deps: StudioDeps = {},
@@ -157,12 +161,14 @@ export function studioService(
     {
       id: "studio",
       config: studioConfigSchema,
+      entities: [groupingVocabulary],
 
       setup: ({
         config,
         entities,
         entityShapes,
         operatorEntities,
+        entityGroupings,
         messaging,
         judge,
         identity,
@@ -181,6 +187,7 @@ export function studioService(
           entities,
           shapes: entityShapes,
           operator: operatorEntities,
+          groupings: entityGroupings,
           messaging,
           judge,
           identity,
@@ -281,6 +288,14 @@ export function studioService(
 
       // Workspaces and overview contributions arrive from the packages that
       // declared them; entity and job activity arrives from the runtime.
+      groupings: ({ config }) => ({
+        definitions: config.groupings,
+        vocabulary: {
+          entity: groupingVocabulary,
+          read: (content) => readGroupingVocabulary(content).groupings,
+        },
+      }),
+
       subscriptions: ({ config, state }) => [
         defineSubscription({
           topic: STUDIO_WORKSPACE_REGISTER_MESSAGE,

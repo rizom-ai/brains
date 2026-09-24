@@ -7,6 +7,8 @@ import {
   type ProjectionWriteIntent,
 } from "../src";
 import { retrySqliteWrite } from "../src/projection-store";
+import { SqliteAssetRepository } from "../src/sqlite-asset-repository";
+import type { ProjectionPersistEntity } from "../src/projection-write-intent-applier";
 import { createEntityDatabase } from "../src/db";
 import { entities, type InsertEntity } from "../src/schema/entities";
 import { entityExportIntents } from "../src/schema/entity-export-state";
@@ -1040,6 +1042,81 @@ describe("ProjectionStore", () => {
       }),
     );
     expect(await store.getActiveWave()).toBeNull();
+  });
+
+  it("sequential intents observe prepared metadata and the original creation time", async () => {
+    const created: string[] = [];
+    let writes = 0;
+    const preparedStore = new ProjectionStore(
+      connection.db,
+      {
+        assertMutationAdmission: async (): Promise<void> => {
+          writes++;
+        },
+      },
+      () => 30,
+      {
+        assetRepository: new SqliteAssetRepository(connection.db),
+        isAssetBacked: (): boolean => false,
+        isFullTextSearchable: (): boolean => true,
+        prepareEntity: async (entity): Promise<ProjectionPersistEntity> => {
+          created.push(entity.created);
+          return { ...entity, metadata: { normalized: true } };
+        },
+      },
+    );
+    await connection.db.insert(entities).values({
+      id: "prepared",
+      entityType: "topic",
+      content: "old",
+      contentHash: "old",
+      visibility: "public",
+      metadata: {},
+      created: 1,
+      updated: 1,
+    });
+    await preparedStore.markDirty({
+      sourceType: "document",
+      sourceId: "source",
+      revision: "r",
+      operation: "upsert",
+      markedAt: 10,
+    });
+    await preparedStore.claimPendingWave({
+      waveId: "prepared-wave",
+      graphFingerprint: "g",
+      startedAt: 20,
+    });
+    await preparedStore.putWaveRules("prepared-wave", [
+      { ruleId: "topics", targetType: "topic", level: 0 },
+    ]);
+    await preparedStore.applyRuleResult({
+      waveId: "prepared-wave",
+      ruleId: "topics",
+      ruleVersion: "1",
+      inputFingerprint: "i",
+      completedAt: 30,
+      writeIntents: [1, 2].map((raw) => ({
+        operation: "upsert",
+        entity: {
+          id: "prepared",
+          entityType: "topic",
+          content: "new",
+          metadata: { raw },
+          visibility: "public",
+        },
+      })),
+    });
+    expect(created).toEqual([
+      new Date(1).toISOString(),
+      new Date(1).toISOString(),
+    ]);
+    expect(writes).toBe(1);
+    expect((await connection.db.select().from(entities))[0]).toMatchObject({
+      metadata: { normalized: true },
+      created: 1,
+      updated: 30,
+    });
   });
 
   it("prefetches 50 existing write targets with one entity query", async () => {

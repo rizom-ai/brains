@@ -45,7 +45,7 @@ export function scopedStateNamespace(namespace: string): string {
 export const SYNC_TOOL = "directory-sync_sync";
 
 export interface InstantiatedDirectorySync {
-  readonly plugin: Plugin;
+  readonly plugin: Plugin & Required<Pick<Plugin, "shutdown">>;
   /** What setup built, once it has run. */
   readonly state: () => DirectorySyncState;
 }
@@ -70,8 +70,10 @@ export function instantiate(
     PACKAGE_METADATA,
   );
   if (!plugin) throw new Error("Directory sync plugin was not created");
+  if (!plugin.shutdown)
+    throw new Error("Directory sync service has no shutdown lifecycle");
   return {
-    plugin,
+    plugin: Object.assign(plugin, { shutdown: plugin.shutdown.bind(plugin) }),
     state: (): DirectorySyncState => {
       if (!captured) throw new Error("Directory sync was not set up");
       return captured;

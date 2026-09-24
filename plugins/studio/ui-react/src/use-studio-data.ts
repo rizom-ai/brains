@@ -1,6 +1,7 @@
 import type { EntityIdPath, RuntimeStudioWorkspaceData } from "@brains/plugins";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
+import type { StudioGrouping } from "../../src/grouping-vocabulary-contract";
 import type { StudioCollectionQuery } from "../../src/collection-query";
 import { STUDIO_ACCOUNT_WORKSPACE_RENDERER } from "../../src/account-workspace";
 import { STUDIO_CHAT_WORKSPACE_RENDERER } from "../../src/chat-workspace";
@@ -46,6 +47,7 @@ import type {
 import type { EditorWorkflowState } from "./editor-workflow";
 import type { StudioApi } from "./api";
 
+const EMPTY_GROUPINGS: StudioGrouping[] = [];
 const EMPTY_AGENT_TARGETS: AgentTarget[] = [];
 const EMPTY_WORKSPACES: StudioWorkspaceInfo[] = [];
 const EMPTY_WORKSPACE_QUERY: StudioWorkspaceQuery = {};
@@ -68,6 +70,7 @@ export interface StudioDataInput {
 export interface StudioData {
   navigationQuery: UseQueryResult<StudioNavigation, Error>;
   types: EntityTypeInfo[] | null;
+  groupings: StudioGrouping[];
   activeType: EntityTypeInfo | undefined;
   activeCapabilities: StudioTypeCapabilities | undefined;
   entityCollectionQuery: StudioCollectionQuery;
@@ -128,6 +131,7 @@ export function useStudioData(input: StudioDataInput): StudioData {
   const { mode, draft, body } = editor;
   const navigationQuery = useQuery(navigationQueryOptions(api));
   const types = navigationQuery.data?.types ?? null;
+  const groupings = navigationQuery.data?.groupings ?? EMPTY_GROUPINGS;
   const activeType = types?.find((info) => info.entityType === entityType);
   const activeCapabilities = activeType?.capabilities;
   const entityCollectionQuery = useMemo(
@@ -240,6 +244,7 @@ export function useStudioData(input: StudioDataInput): StudioData {
   return {
     navigationQuery,
     types,
+    groupings,
     activeType,
     activeCapabilities,
     entityCollectionQuery,

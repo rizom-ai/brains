@@ -120,7 +120,7 @@ describe("the inbound trust tool", () => {
       ]),
     );
 
-    if (authPlugin.shutdown) await authPlugin.shutdown();
+    await authPlugin.shutdown();
     await harness.reset();
   });
 
@@ -171,7 +171,7 @@ describe("the inbound trust tool", () => {
     });
     expect(await activeAuth.getA2APeerTrust("trust.example")).toBeUndefined();
 
-    if (authPlugin.shutdown) await authPlugin.shutdown();
+    await authPlugin.shutdown();
     await harness.reset();
   });
 });

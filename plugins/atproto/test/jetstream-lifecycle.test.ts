@@ -41,7 +41,7 @@ describe("ATProto Jetstream lifecycle", () => {
     await plugin.ready?.();
 
     expect(sockets).toHaveLength(0);
-    await plugin.shutdown?.();
+    await plugin.shutdown();
   });
 
   it("opens one opted-in socket only on a full boot and closes it on shutdown", async () => {
@@ -69,7 +69,7 @@ describe("ATProto Jetstream lifecycle", () => {
     expect(sockets).toHaveLength(1);
     expect(urls[0]).toContain("wantedCollections=ai.rizom.brain.card");
 
-    await plugin.shutdown?.();
+    await plugin.shutdown();
     expect(sockets[0]?.closed).toBe(true);
   });
 });

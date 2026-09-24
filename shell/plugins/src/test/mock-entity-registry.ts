@@ -20,11 +20,18 @@ export function createMockEntityRegistry(
   const entityRegistry: IEntityRegistry = {
     registerEntityType: (type, _schema, adapter, config) => {
       const registeredConfig = copyEntityTypeConfig(config ?? {});
+      store.registry.registerEntityType(
+        type,
+        _schema,
+        adapter,
+        registeredConfig,
+      );
       store.types.add(type);
       store.adapters.set(type, adapter);
       store.typeConfigs.set(type, registeredConfig);
     },
     unregisterEntityType: (type): void => {
+      store.registry.unregisterEntityType(type);
       stewardshipClaims.delete(type);
       store.types.delete(type);
       store.adapters.delete(type);
@@ -32,9 +39,7 @@ export function createMockEntityRegistry(
       store.persistValidators.delete(type);
       createInterceptors.delete(type);
     },
-    getSchema: (): never => {
-      throw new Error("Not implemented");
-    },
+    getSchema: (type) => store.registry.getSchema(type),
     getAdapter: <
       TEntity extends BaseEntity<TMetadata>,
       TMetadata = Record<string, unknown>,
@@ -76,7 +81,7 @@ export function createMockEntityRegistry(
     },
     validateEntity: (type: string, entity: unknown): BaseEntity => {
       const adapter = store.adapters.get(type);
-      if (adapter) return adapter.schema.parse(entity);
+      if (adapter) return store.registry.validateEntity(type, entity);
       throw new Error(`No schema registered for entity type: ${type}`);
     },
     getAllEntityTypes: () => Array.from(store.types),
@@ -102,12 +107,28 @@ export function createMockEntityRegistry(
         ),
       ),
     registerPersistValidator: (type, validator): void => {
-      store.persistValidators.set(type, validator);
+      store.registry.registerPersistValidator(type, validator);
+      const combined = store.registry.getPersistValidator(type);
+      if (combined) store.persistValidators.set(type, combined);
     },
     getPersistValidator: (type) => store.persistValidators.get(type),
-    extendFrontmatterSchema: (): void => {},
-    getEffectiveFrontmatterSchema: (type: string) =>
-      store.adapters.get(type)?.frontmatterSchema,
+    extendFrontmatterSchema: (type, extension) =>
+      store.registry.extendFrontmatterSchema(type, extension),
+    getEffectiveFrontmatterSchema: (type) =>
+      store.registry.getEffectiveFrontmatterSchema(type),
+    getFrontmatterExtensions: (type) =>
+      store.registry.getFrontmatterExtensions(type),
+    getGroupings: () => store.registry.getGroupings(),
+    validateGroupings: (groupings) =>
+      store.registry.validateGroupings(groupings),
+    getGrouping: (key) => store.registry.getGrouping(key),
+    registerGrouping: (grouping) => store.registry.registerGrouping(grouping),
+    projectMetadata: (type, content, metadata) =>
+      store.registry.projectMetadata(type, content, metadata),
+    projectStoredMetadata: (type, content, metadata) =>
+      store.registry.projectStoredMetadata(type, content, metadata),
+    groupingFields: (type) => store.registry.groupingFields(type),
+    isGroupingContributor: (type) => store.registry.isGroupingContributor(type),
   };
 
   return entityRegistry;

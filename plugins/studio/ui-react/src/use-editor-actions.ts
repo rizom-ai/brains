@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { studioCollectionPath } from "../../src/studio-paths";
+import { GROUPING_VOCABULARY_TYPE } from "../../src/grouping-vocabulary-contract";
 import type { StudioCollectionQuery } from "../../src/collection-query";
 import { type MobileEditorPane } from "./app-view";
 import { ApiError, type FieldAssistResponse } from "./api";
@@ -42,6 +43,7 @@ export interface EditorActionsInput {
   studioBasePath: string;
   entityType: string | null;
   entityCollectionQuery: StudioCollectionQuery;
+  groupReturnPath: string | undefined;
   activeCapabilities: StudioTypeCapabilities | undefined;
   schema: TypeSchema | null;
   editor: EditorWorkflowState;
@@ -85,6 +87,7 @@ export function useEditorActions(input: EditorActionsInput): EditorActions {
     studioBasePath,
     entityType,
     entityCollectionQuery,
+    groupReturnPath,
     activeCapabilities,
     schema,
     editor,
@@ -207,13 +210,14 @@ export function useEditorActions(input: EditorActionsInput): EditorActions {
     saveEntityMutation.mutate(input, {
       onSuccess: async (result) => {
         await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ["studio", "groupings"] }),
           queryClient.invalidateQueries({
             queryKey: studioKeys.entities(entityType),
           }),
           queryClient.invalidateQueries({
             queryKey: studioKeys.syncStatus(),
           }),
-          ...(mode.kind === "create"
+          ...(mode.kind === "create" || entityType === GROUPING_VOCABULARY_TYPE
             ? [
                 queryClient.invalidateQueries({
                   queryKey: studioKeys.navigation(),
@@ -286,6 +290,9 @@ export function useEditorActions(input: EditorActionsInput): EditorActions {
           });
           await Promise.all([
             queryClient.invalidateQueries({
+              queryKey: ["studio", "groupings"],
+            }),
+            queryClient.invalidateQueries({
               queryKey: studioKeys.entities(entityType),
             }),
             queryClient.invalidateQueries({
@@ -296,7 +303,8 @@ export function useEditorActions(input: EditorActionsInput): EditorActions {
             }),
           ]);
           history.replace(
-            `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`,
+            groupReturnPath ??
+              `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`,
             undefined,
             { ignoreBlocker: true },
           );
@@ -318,6 +326,8 @@ export function useEditorActions(input: EditorActionsInput): EditorActions {
     queryClient,
     deleteEntityMutation,
     history,
+    groupReturnPath,
+    entityCollectionQuery,
   ]);
 
   return { runFieldAssist, applyFieldAssist, save, remove, baselineCommit };

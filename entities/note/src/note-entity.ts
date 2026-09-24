@@ -7,6 +7,7 @@ import {
   type EntityGenerationJobDeclaration,
   type EntityGenerationResult,
 } from "@brains/sdk/entities";
+import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
 import { slugify } from "@brains/utils/string-utils";
 import { createNoteAtprotoProjection } from "./atproto-projection";
 import {
@@ -64,12 +65,22 @@ export const note: EntityDefinition<"note", typeof noteMetadataSchema> =
       return titleFromBody(parsed.content);
     },
     markdown: {
+      frontmatter: noteFrontmatterSchema,
       decode: ({ content, frontmatter }) => {
         const parsed = noteFrontmatterSchema.safeParse(frontmatter);
         const fields = parsed.success ? parsed.data : {};
         const title = fields.title?.trim();
+        const {
+          title: _title,
+          status: _status,
+          error: _error,
+          visibility: _visibility,
+          ...unclaimed
+        } = frontmatter;
         return {
-          content,
+          content: Object.keys(unclaimed).length
+            ? generateMarkdown(unclaimed, content)
+            : content,
           metadata: {
             title: title?.length ? title : titleFromBody(content),
             ...(fields.status ? { status: fields.status } : {}),
@@ -77,16 +88,33 @@ export const note: EntityDefinition<"note", typeof noteMetadataSchema> =
           },
         };
       },
-      encode: ({ content, metadata }) => ({
-        content,
-        frontmatter: {
-          ...(titleNeedsStoring(content, metadata.title)
+      encode: ({ content, metadata }) => {
+        const parsed = parseMarkdown(content);
+        const {
+          title: _title,
+          status: _status,
+          error: _error,
+          visibility: _visibility,
+          ...unclaimed
+        } = parsed.frontmatter;
+        const body = Object.keys(parsed.frontmatter).length
+          ? parsed.content
+          : content;
+        const fields = {
+          ...unclaimed,
+          ...(titleNeedsStoring(body, metadata.title)
             ? { title: metadata.title }
             : {}),
           ...(metadata.status ? { status: metadata.status } : {}),
           ...(metadata.error ? { error: metadata.error } : {}),
-        },
-      }),
+        };
+        return {
+          content: Object.keys(fields).length
+            ? generateMarkdown(fields, body)
+            : body,
+          frontmatter: {},
+        };
+      },
     },
     stub: ({ title }) => ({
       content: `---\ntitle: ${title}\nstatus: generating\n---\n`,

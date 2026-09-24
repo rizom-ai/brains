@@ -17,7 +17,7 @@ const authPlugins: AuthServicePlugin[] = [];
 
 afterEach(async () => {
   setSystemTime();
-  for (const plugin of authPlugins.splice(0)) await plugin.shutdown?.();
+  for (const plugin of authPlugins.splice(0)) await plugin.shutdown();
 });
 
 function actorFor(

@@ -33,6 +33,13 @@ The read-only `sync:path:request` message previews placement from an entity type
 
 Before writes or deletion, a pure guard checks strict ID segments, flat-only notes, and identity round-trip. Historical invalid IDs raise `EntityPlacementError`; manual export reports failure and orphan cleanup keeps their database rows. Durable refusals are recorded as standing `placement` issues before acknowledgement. These issues clear when the entity exports or its delete intent is processed, not on unrelated successful exports.
 
+Virtual-collection membership does not affect placement. A grouping field such
+as `clients` is ordinary frontmatter: adding or removing a value never renames
+an entity, moves a file, creates a directory, or changes export admission, and
+an entity in several collections still has one stored identity and one export
+destination. Export preserves unclaimed frontmatter keys, so membership
+survives an export and reimport even when no grouping is currently declared.
+
 No IDs are rewritten and no files are moved or migrated. Old-layout files require operator review; discovery and import interpretation are unchanged. The [golden inventory](test/entity-placement-golden.test.ts) records the seven changed path expectations. Its IDs are synthetic regression inputs, not an inventory of production notes.
 
 ## Typical brain.yaml config
@@ -95,6 +102,8 @@ brain tool directory_sync '{"action":"history","entityType":"post","id":"my-firs
 ```
 
 `directory_sync` action `sync` pulls from git when configured, imports changed files, and lets auto-export/auto-commit handle entity changes. Action `status` reports sync and git state. Action `history` reads git history for synced files when git is configured.
+
+Queued import and cleanup jobs preserve their durable projection-batch identity through the active-service facade; nested work still must match that identity. A live persist policy (such as a closed grouping vocabulary) can refuse otherwise valid Markdown. That import is reported as failed without moving the file into quarantine, so an explicit retry can succeed after the policy changes. Structural validation failures retain the existing quarantine behavior.
 
 ## Optional Studio workspace
 

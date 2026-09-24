@@ -408,7 +408,7 @@ describe("EntityService", (): void => {
             id: "owned-note",
             entityType: "note",
             content: "# Test Note\n\nProjection-owned note",
-            metadata: {},
+            metadata: { tags: [] },
             visibility: "public",
           },
         },
@@ -427,6 +427,7 @@ describe("EntityService", (): void => {
       entity: createNote({
         id: "owned-note",
         content: "Projection-owned note",
+        metadata: { tags: [] },
       }),
     });
 

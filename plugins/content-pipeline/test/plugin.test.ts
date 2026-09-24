@@ -65,7 +65,7 @@ function jobQueueWithSpiedEnqueue(): {
 
 describe("content pipeline service", () => {
   let harness: PluginTestHarness<Plugin>;
-  let plugin: Plugin;
+  let plugin: Plugin & Required<Pick<Plugin, "shutdown">>;
   let queueManager: QueueManager;
   let providerRegistry: ProviderRegistry;
   let publishAssetRegistry: PublishAssetRegistry;
@@ -77,7 +77,7 @@ describe("content pipeline service", () => {
   });
 
   afterEach(async () => {
-    await plugin.shutdown?.();
+    await plugin.shutdown();
   });
 
   describe("initialization", () => {
@@ -134,7 +134,7 @@ describe("content pipeline service", () => {
 
       const queue = await local.queueManager.list("social-post");
       expect(queue.length).toBe(0);
-      await localPlugin.shutdown?.();
+      await localPlugin.shutdown();
     });
 
     it("stores queue add authorization context", async () => {
@@ -370,7 +370,7 @@ Post body`,
           }),
         }),
       );
-      await localPlugin.shutdown?.();
+      await localPlugin.shutdown();
     });
 
     it("requires publish permission for direct publish messages", async () => {
@@ -402,7 +402,7 @@ Post body`,
       });
 
       expect(executePayloads).toEqual([]);
-      await localPlugin.shutdown?.();
+      await localPlugin.shutdown();
     });
   });
 
@@ -566,7 +566,7 @@ Body`,
           type: "image:image-render-source",
         }),
       );
-      await localPlugin.shutdown?.();
+      await localPlugin.shutdown();
     });
   });
 

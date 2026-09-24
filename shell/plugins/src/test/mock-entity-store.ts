@@ -1,6 +1,8 @@
+import { createSilentLogger } from "@brains/test-utils";
 import { computeContentHash } from "@brains/utils/hash";
 import {
   copyEntityTypeConfig,
+  EntityRegistry,
   type BaseEntity,
   type EntityAdapter,
   type EntityExportIntent,
@@ -21,7 +23,9 @@ type EntityTypeConfig = NonNullable<
  * what makes it visible that they are the same store, not copies of it.
  */
 export interface MockEntityStore {
+  readonly registry: EntityRegistry;
   readonly entities: Map<string, BaseEntity>;
+  readonly sources: Map<string, string>;
   readonly persistValidators: Map<string, PersistValidator>;
   readonly exportIntents: Map<string, EntityExportIntent>;
   readonly types: Set<string>;
@@ -34,6 +38,7 @@ export interface MockEntityStore {
    * Canonical metadata remains separate from the markdown envelope.
    */
   materialize(entity: BaseEntity): {
+    source: string;
     content: string;
     metadata: Record<string, unknown>;
     contentHash: string;
@@ -56,6 +61,9 @@ export function createMockEntityStore(): MockEntityStore {
   const adapters = new Map<string, EntityAdapter<BaseEntity>>();
   const typeConfigs = new Map<string, EntityTypeConfig | undefined>();
   let revision = 0;
+  const registry = EntityRegistry.createFresh(
+    createSilentLogger("MockEntityRegistry"),
+  );
 
   // A separator no entity type or id can contain, so the two parts of the key
   // can never run together into a different pair's key.
@@ -63,7 +71,9 @@ export function createMockEntityStore(): MockEntityStore {
     `${entityType}\u0000${entityId}`;
 
   return {
+    registry,
     entities,
+    sources: new Map(),
     persistValidators: new Map(),
     exportIntents,
     types,
@@ -80,18 +90,22 @@ export function createMockEntityStore(): MockEntityStore {
       // Name-only fixture types have no adapter to reconstruct their body.
       if (typeof adapter?.toMarkdown !== "function") {
         return {
+          source: entity.content,
           content: entity.content,
           metadata: entity.metadata,
           contentHash: computeContentHash(entity.content),
         };
       }
-      const normalized = adapter.schema.parse(entity);
+      const normalized = registry.hasEntityType(entity.entityType)
+        ? registry.validateEntity(entity.entityType, entity)
+        : adapter.schema.parse(entity);
       const markdown = adapter.toMarkdown(normalized);
       const decoded =
         typeof adapter.fromMarkdown === "function"
           ? adapter.fromMarkdown(markdown)
           : {};
       return {
+        source: markdown,
         content: decoded.content ?? markdown,
         metadata: adapter.extractMetadata(normalized),
         contentHash: computeContentHash(markdown),

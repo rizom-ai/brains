@@ -174,7 +174,7 @@ export function runtimeFor(
 }
 
 export interface InstalledPipeline {
-  readonly plugin: Plugin;
+  readonly plugin: Plugin & Required<Pick<Plugin, "shutdown">>;
   readonly capabilities: PluginCapabilities;
   readonly queueManager: QueueManager;
   readonly providerRegistry: ProviderRegistry;
@@ -226,9 +226,11 @@ export async function installPipeline(
     PACKAGE_METADATA,
   );
   if (!plugin) throw new Error("Content pipeline plugin was not created");
+  if (!plugin.shutdown)
+    throw new Error("Publishing service has no shutdown lifecycle");
   const capabilities = await harness.installPlugin(plugin);
   return {
-    plugin,
+    plugin: Object.assign(plugin, { shutdown: plugin.shutdown.bind(plugin) }),
     capabilities,
     queueManager,
     providerRegistry,

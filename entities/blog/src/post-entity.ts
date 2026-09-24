@@ -50,23 +50,26 @@ export const post: EntityDefinition<"post", typeof blogPostMetadataSchema> =
     // write. Spelled out by hand this dropped them — decode returned the body
     // without its frontmatter and encode re-emitted only the indexed fields,
     // so a seeded post failed to parse for want of its own excerpt.
-    markdown: frontmatterInContent((frontmatter) => {
-      const parsed = blogPostFrontmatterSchema.parse(frontmatter);
-      return {
-        title: parsed.title,
-        slug: parsed.slug ?? slugify(parsed.title),
-        status: parsed.status,
-        ...(parsed.publishedAt === undefined
-          ? {}
-          : { publishedAt: parsed.publishedAt }),
-        ...(parsed.seriesName === undefined
-          ? {}
-          : { seriesName: parsed.seriesName }),
-        ...(parsed.seriesIndex === undefined
-          ? {}
-          : { seriesIndex: parsed.seriesIndex }),
-      };
-    }),
+    markdown: {
+      frontmatter: blogPostFrontmatterSchema,
+      ...frontmatterInContent((frontmatter) => {
+        const parsed = blogPostFrontmatterSchema.parse(frontmatter);
+        return {
+          title: parsed.title,
+          slug: parsed.slug ?? slugify(parsed.title),
+          status: parsed.status,
+          ...(parsed.publishedAt === undefined
+            ? {}
+            : { publishedAt: parsed.publishedAt }),
+          ...(parsed.seriesName === undefined
+            ? {}
+            : { seriesName: parsed.seriesName }),
+          ...(parsed.seriesIndex === undefined
+            ? {}
+            : { seriesIndex: parsed.seriesIndex }),
+        };
+      }),
+    },
     // What system_generate persists before the writing starts, so an author
     // sees the post appear immediately rather than after the AI finishes.
     // Excerpt and author are empty rather than absent: they live in the

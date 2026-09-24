@@ -16,12 +16,6 @@ export function shouldBlockChatNavigation(
   return state.busy || (state.hasDraft && nextPath !== STUDIO_CHAT_ROUTE_PATH);
 }
 const EMPTY: StudioChatDraft = { text: "", uploads: [] };
-export function studioChatDraftKey(
-  apiPath: string | undefined,
-  sessionId: string | null,
-): string {
-  return JSON.stringify([apiPath ?? "/api/chat", sessionId]);
-}
 
 /** Private to one mounted Studio app. Never writes prompts or upload references to storage. */
 export class StudioChatDraftStore {

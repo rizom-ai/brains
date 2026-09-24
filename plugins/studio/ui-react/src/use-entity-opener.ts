@@ -105,6 +105,10 @@ export function useEntityOpener(input: EntityOpenerInput): EntityOpener {
   selectedEntityTypeRef.current = entityType;
 
   useEffect(() => {
+    if (routeTarget.kind === "grouping") {
+      dispatchEditor({ type: "collectionChanged" });
+      return;
+    }
     if (
       !entityType ||
       routeTarget.kind === "workspace" ||
@@ -181,11 +185,16 @@ export function useEntityOpener(input: EntityOpenerInput): EntityOpener {
               if (!active || requestId !== openRequestId.current) return;
               const document = createEditorDocument(entity);
               const pending = pendingOpenState.current;
+              const canonicalPath = studioEntityPath(
+                studioBasePath,
+                entityType,
+                routeEntityId,
+              );
               const nextSave: SaveState =
-                pending?.pathname === currentStudioPathname
+                pending?.pathname === canonicalPath
                   ? pending.save
                   : { kind: "idle" };
-              if (pending?.pathname === currentStudioPathname) {
+              if (pending?.pathname === canonicalPath) {
                 pendingOpenState.current = null;
               }
               dispatchEditor({
@@ -249,7 +258,11 @@ export function useEntityOpener(input: EntityOpenerInput): EntityOpener {
     (id: string, nextState: SaveState = { kind: "idle" }): void => {
       if (!entityType) return;
       const pathname = studioEntityPath(studioBasePath, entityType, id);
-      if (pathname !== currentStudioPathname) {
+      const sameEntity =
+        routeTarget.kind === "entity" &&
+        routeTarget.entityType === entityType &&
+        routeTarget.id === id;
+      if (!sameEntity) {
         pendingOpenState.current = { pathname, save: nextState };
         const collectionPath = `${studioCollectionPath(studioBasePath, entityType)}${collectionSearch(entityCollectionQuery)}`;
         const replaceCreation = createMode && nextState.kind === "saved";
@@ -296,6 +309,7 @@ export function useEntityOpener(input: EntityOpenerInput): EntityOpener {
     [
       studioBasePath,
       currentStudioPathname,
+      routeTarget,
       createMode,
       entityType,
       entityCollectionQuery,

@@ -1,5 +1,6 @@
 import {
   generateMarkdownWithFrontmatter,
+  preserveSourceFrontmatter,
   encodeEntityIdPath,
   entityIdPathSchema,
   canWriteVisibility,
@@ -35,7 +36,9 @@ import type {
   StudioRequestAccess,
 } from "./editor-contracts";
 import { jsonResponse } from "./editor-response";
+import { editorValidationResponse } from "./editor-validation";
 import type { StudioRuntime } from "./runtime";
+import { GROUPING_VOCABULARY_TYPE } from "./grouping-vocabulary-contract";
 import {
   studioCollectionQuerySchema,
   studioCollectionQueryFromParams,
@@ -219,7 +222,8 @@ export async function handleGetEntityHierarchy(
         entityType: entity.entityType,
         path,
         frontmatter: {
-          ...splitEntityContent(entityType, entity.content).frontmatter,
+          ...splitEntityContent(entityType, entity.content, runtime)
+            .frontmatter,
           visibility: entity.visibility,
         },
         displayTitle: runtime.shapes.displayTitle(entity),
@@ -264,6 +268,7 @@ export async function handleGetEntities(
     const { frontmatter, body } = splitEntityContent(
       entityType,
       entity.content,
+      runtime,
     );
     return jsonResponse({
       entity: {
@@ -321,7 +326,7 @@ export async function handleGetEntities(
       id: entity.id,
       entityType: entity.entityType,
       frontmatter: {
-        ...splitEntityContent(entityType, entity.content).frontmatter,
+        ...splitEntityContent(entityType, entity.content, runtime).frontmatter,
         visibility: entity.visibility,
       },
       updated: entity.updated,
@@ -357,7 +362,7 @@ function assembleEntity(
     return jsonResponse({ error: `Unknown entity type: ${entityType}` }, 404);
   }
 
-  const raw = isRawEntityType(entityType);
+  const raw = isRawEntityType(entityType, runtime.groupings);
   const domainFrontmatter = stripStudioPolicyMetadata(payload.frontmatter);
   if (raw && Object.keys(domainFrontmatter).length > 0) {
     return jsonResponse(
@@ -370,7 +375,8 @@ function assembleEntity(
 
   const visibility = resolveStudioVisibility(
     payload.frontmatter,
-    existing?.visibility ?? "public",
+    existing?.visibility ??
+      (entityType === GROUPING_VOCABULARY_TYPE ? "shared" : "public"),
   );
   if (!visibility.success) return visibility.response;
 
@@ -390,12 +396,24 @@ function assembleEntity(
 
   const body =
     payload.body ??
-    (existing ? splitEntityContent(entityType, existing.content).body : "");
+    (existing
+      ? splitEntityContent(entityType, existing.content, runtime).body
+      : "");
+  const claimedFields = Object.fromEntries(
+    Object.entries(frontmatter.data).filter(([key]) =>
+      Object.hasOwn(schema.shape, key),
+    ),
+  );
   const content = raw
     ? body
-    : generateMarkdownWithFrontmatter(
-        body,
-        withStudioVisibility(frontmatter.data, visibility.visibility),
+    : preserveSourceFrontmatter(
+        existing?.content ?? "",
+        generateMarkdownWithFrontmatter(
+          body,
+          withStudioVisibility(claimedFields, visibility.visibility),
+        ),
+        schema,
+        [],
       );
 
   const parsed = runtime.shapes.parse(entityType, content);
@@ -409,7 +427,11 @@ function assembleEntity(
         parsed?.metadata ?? existing?.metadata ?? {},
       ),
       visibility: visibility.visibility,
-      ...(existing ? { id: existing.id } : {}),
+      ...(existing
+        ? { id: existing.id }
+        : entityType === GROUPING_VOCABULARY_TYPE
+          ? { id: GROUPING_VOCABULARY_TYPE }
+          : {}),
     },
   };
 }
@@ -481,6 +503,11 @@ export async function handleUpdateEntity(
   switch (outcome.kind) {
     case "not-found":
       return jsonResponse({ error: `Entity not found: ${id}` }, 404);
+    case "invalid":
+      return (
+        editorValidationResponse(outcome) ??
+        jsonResponse({ error: "Invalid validation result" }, 500)
+      );
     case "conflict":
       return jsonResponse(
         {
@@ -630,7 +657,7 @@ export async function handleCreateEntity(
     );
   } catch (error) {
     // Runtime and packed package can have different constructor identities.
-    if (error instanceof Error && error.name === "EntityWriteConflictError") {
+    if (error instanceof SdkError && error.code === "conflict") {
       return jsonResponse(
         {
           error: "An entry already exists at this destination.",
@@ -645,6 +672,11 @@ export async function handleCreateEntity(
   }
 
   switch (outcome.kind) {
+    case "invalid":
+      return (
+        editorValidationResponse(outcome) ??
+        jsonResponse({ error: "Invalid validation result" }, 500)
+      );
     case "denied":
       await recordStudioMutationAudit(
         recordAuditEvent,

@@ -4,7 +4,8 @@ import type {
   RuntimeOperatorLaunchIntent,
   EntityIdPath,
 } from "@brains/plugins";
-import type { Dispatch, SetStateAction } from "react";
+import type { Dispatch, ReactNode, SetStateAction } from "react";
+import type { GroupingNavigation } from "./grouping-url-query";
 import type {
   AgentTarget,
   StudioWorkspaceInfo,
@@ -29,6 +30,11 @@ import type { StudioCollectionQuery } from "../../src/collection-query";
 export type MobileEditorPane = "details" | "write" | "preview";
 
 export interface StudioAppViewProps {
+  groupings?: GroupingNavigation | undefined;
+  groupingView?: ReactNode;
+  groupReturnLabel?: string | undefined;
+  /** Existing values per grouping field, offered while editing membership. */
+  groupingSuggestions?: Record<string, readonly string[]> | undefined;
   activeWorkspaceId: string | null;
   types: EntityTypeInfo[];
   workspaces: StudioWorkspaceInfo[];

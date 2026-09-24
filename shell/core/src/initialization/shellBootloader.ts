@@ -289,6 +289,8 @@ export class ShellBootloader {
         queued: backfillResult.queued,
         skipped: backfillResult.skipped,
       });
+      // Existing membership becomes queryable before grouping reads are admitted.
+      await this.services.entityService.reprojectRegisteredGroupings();
     }
 
     await this.prepareReadyState();

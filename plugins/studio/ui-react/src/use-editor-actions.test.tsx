@@ -187,6 +187,7 @@ async function renderActions(
       studioBasePath: "/studio",
       entityType: "note",
       entityCollectionQuery: studioCollectionQuerySchema.parse({}),
+      groupReturnPath: undefined,
       activeCapabilities: capabilities,
       schema: noteSchema,
       editor: editing(openNote),
@@ -233,6 +234,15 @@ async function settle(): Promise<void> {
 }
 
 describe("useEditorActions", () => {
+  it("returns to the exact grouping after deleting a member", async () => {
+    const groupReturnPath =
+      "/studio/groups/clients?value=%20Acme%20&type=note&q=brief&offset=50";
+    const harness = await renderActions({ groupReturnPath });
+    await act(async () => harness.actions().remove());
+    await settle();
+    expect(harness.deletes).toEqual([{ entityType: "note", id: "n1" }]);
+    expect(harness.history.location.href).toBe(groupReturnPath);
+  });
   it("saves an open entity as an update against its content hash and reopens it", async () => {
     const harness = await renderActions();
 

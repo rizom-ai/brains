@@ -172,7 +172,21 @@ export type { AnchorProfile, BrainCharacter } from "@brains/plugins";
 
 // Extending an entity type this package stewards, and validating what is
 // persisted to it. Named consumer: @brains/profile.
-export type { ServiceEntityExtension } from "@brains/plugins";
+export type {
+  ServiceEntityExtension,
+  ServiceGroupingDeclaration,
+  GroupingVocabularyValue,
+  EntityGrouping,
+} from "@brains/plugins";
+export {
+  entityGroupingSchema,
+  groupingKeySchema,
+  groupingValueSchema,
+  groupingSearchSchema,
+  groupingSortSchema,
+  GROUPING_PAGE_LIMIT,
+  GROUPING_MAX_PAGE_LIMIT,
+} from "@brains/plugins";
 
 // Insights. A service that contributes an insight authors the handler the
 // `insights` slot returns; the context hands it scoped reads and the
@@ -274,6 +288,7 @@ export type {
   IPluginsNamespace,
   InterfaceCaller,
   OperatorEntityWrites,
+  OperatorEntityGroupings,
   OperatorUploadOutcome,
   OperatorUploadRequest,
   RuntimeReadiness,

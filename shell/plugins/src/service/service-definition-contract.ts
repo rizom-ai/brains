@@ -1,3 +1,4 @@
+import type { ServiceGroupingDeclaration } from "./grouping-definition";
 import type { SchemaReturn } from "../internal/schema-return";
 import type { SdkError, SdkErrorCode, SdkErrorData } from "@brains/contracts";
 import type {
@@ -205,6 +206,7 @@ import type {
   SurfacePermissionLevel,
 } from "../console-surfaces";
 import type { ServicePublishingAccess } from "./publish-delegation-registry";
+import type { OperatorEntityGroupings } from "./operator-groupings";
 import type { OperatorEntityWrites } from "./operator-entities";
 import type { RuntimeReadiness } from "../contracts/runtime-health";
 import type { EntityDisplayEntry } from "@brains/site-composition";
@@ -1197,6 +1199,7 @@ interface ServiceDefinitionHeader<
          * Named consumer: @brains/studio.
          */
         readonly operatorEntities: OperatorEntityWrites;
+        readonly entityGroupings: OperatorEntityGroupings;
         /**
          * What shape each entity type takes. Offered here as well as to
          * `ready`, because an editor reads shapes inside route handlers.
@@ -1395,6 +1398,13 @@ interface ServiceDefinitionBehavior<
    * Named consumer: @brains/profile, which extends anchor-profile with the
    * base profile fields and the selected kind's fields.
    */
+  readonly groupings?:
+    | ((context: {
+        readonly config: z.output<TConfigSchema>;
+        readonly state: TState;
+      }) => ServiceGroupingDeclaration)
+    | undefined;
+
   readonly entityExtensions?:
     | ((context: {
         readonly config: z.output<TConfigSchema>;

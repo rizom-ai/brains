@@ -47,9 +47,9 @@ export async function retrySqliteWrite<TResult>(
       new Promise((resolve) => setTimeout(resolve, delayMs)));
   const random = options.random ?? Math.random;
   const deadline = now() + retryBudgetMs;
-  let attempt = 1;
 
-  for (;;) {
+  /** One attempt per step, backing off until the budget would be overrun. */
+  const attemptWrite = async (attempt: number): Promise<TResult> => {
     try {
       return await write();
     } catch (error) {
@@ -61,9 +61,10 @@ export async function retrySqliteWrite<TResult>(
       const delay = backoff / 2 + random() * (backoff / 2);
       if (now() + delay >= deadline) throw error;
       await sleep(delay);
-      attempt += 1;
+      return attemptWrite(attempt + 1);
     }
-  }
+  };
+  return attemptWrite(1);
 }
 
 /** Serializes transactions that coordinate projection state in one database. */

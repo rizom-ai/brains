@@ -91,9 +91,28 @@ export interface EncodedEntityMarkdown {
   readonly frontmatter: Record<string, unknown>;
 }
 
-export interface EntityMarkdownCodec<
-  TMetadataSchema extends EntityMetadataSchema,
-> {
+interface EntityMarkdownEncoding<TMetadataSchema extends EntityMetadataSchema> {
+  encode(
+    input: EntityMarkdownDocument<z.output<TMetadataSchema>>,
+  ): EncodedEntityMarkdown;
+}
+
+/** Parsing is strict by default; repairable configuration explicitly reconstructs source. */
+export type EntityMarkdownCodec<TMetadataSchema extends EntityMetadataSchema> =
+  EntityMarkdownEncoding<TMetadataSchema> & {
+    readonly frontmatter?: z.ZodObject<z.ZodRawShape> | undefined;
+  } & (
+      | ParsedEntityMarkdown<TMetadataSchema>
+      | {
+          /** Named consumer: Studio vocabulary. Writes still require persist validation. */
+          reconstruct(
+            source: string,
+          ): EntityMarkdownDocument<Partial<z.input<TMetadataSchema>>>;
+          readonly decode?: never;
+        }
+    );
+
+interface ParsedEntityMarkdown<TMetadataSchema extends EntityMetadataSchema> {
   /** Authored file fields when they differ from indexed metadata. Named consumer: Ask content. */
   readonly frontmatter?: z.ZodObject<z.ZodRawShape> | undefined;
   /**
@@ -107,9 +126,7 @@ export interface EntityMarkdownCodec<
     readonly content: string;
     readonly frontmatter: Readonly<Record<string, unknown>>;
   }): EntityMarkdownDocument<Partial<z.input<TMetadataSchema>>>;
-  encode(
-    input: EntityMarkdownDocument<z.output<TMetadataSchema>>,
-  ): EncodedEntityMarkdown;
+  readonly reconstruct?: never;
 }
 
 /**
@@ -127,6 +144,13 @@ export interface EntityDefinitionConfig {
   readonly embeddable?: boolean;
   /** Private operational records must also opt out of lexical indexing. */
   readonly fullTextSearchable?: boolean;
+  /** Minimum policy owned by this type; never grants another type's write authority. */
+  readonly actionPolicy?: Partial<
+    Record<
+      "create" | "update" | "delete" | "extract" | "publish",
+      "never" | "admin" | "trusted" | "public"
+    >
+  >;
   readonly projectionSource?: boolean;
   readonly projectionSourceRole?: ProjectionSourceRole;
   /** Which statuses count as publishable for this type. */
@@ -185,6 +209,7 @@ export interface EntityDefinition<
   readonly metadataFrom?: ((stored: unknown) => unknown) | undefined;
   /** One authored file, identified by the entity type. Named consumer: Ask content. */
   readonly singleton?: boolean | undefined;
+  readonly hasBody?: boolean | undefined;
   readonly markdown?: EntityMarkdownCodec<TMetadataSchema> | undefined;
   /** A source-derived display label; reading it never writes the stored record. Named consumer: Note. */
   displayTitle?(entity: {

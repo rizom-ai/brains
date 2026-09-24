@@ -393,7 +393,14 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getConversationService: () => conversationService,
     getMCPService: () => mcpTransport,
     listToolsForPermissionLevel: (_level: unknown): ToolInfo[] => [],
-    getPermissionService: () => new PermissionService({}),
+    getPermissionService: () =>
+      new PermissionService(
+        {},
+        {
+          entityActionFloor: (type) =>
+            entityStore.typeConfig(type).actionPolicy,
+        },
+      ),
     getDataSourceRegistry: () => dataSourceRegistry,
     getAgentService: () => agentService,
 
