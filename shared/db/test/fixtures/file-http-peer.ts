@@ -39,7 +39,11 @@ process.on("message", (value: unknown) => {
             Object.fromEntries(
               Object.keys(input.responseMetadata).map((key) => [
                 key,
-                mode === "/metadata-oversized" ? "x".repeat(1025) : "receipt",
+                mode === "/metadata-total"
+                  ? "\u0000".repeat(1024)
+                  : mode === "/metadata-oversized"
+                    ? "x".repeat(1025)
+                    : "receipt",
               ]),
             )),
           ...(mode === "/metadata-extra" && { extra: "unexpected" }),

@@ -197,6 +197,7 @@ test("missing or malformed HTTP receipts fence reuse even after cancellation", a
     "metadata-missing",
     "metadata-extra",
     "metadata-oversized",
+    "metadata-total",
   ]) {
     const directory = await mkdtemp(
       join(tmpdir(), "turso-http-owner-uncertain-"),
@@ -208,7 +209,15 @@ test("missing or malformed HTTP receipts fence reuse even after cancellation", a
       {
         ...input(gate, mode),
         ...(mode.startsWith("metadata-") && {
-          responseMetadata: { messageId: ["id"] },
+          responseMetadata:
+            mode === "metadata-total"
+              ? Object.fromEntries(
+                  Array.from({ length: 15 }, (_, index) => [
+                    `field${index}`,
+                    ["id"],
+                  ]),
+                )
+              : { messageId: ["id"] },
         }),
       },
       caller.signal,

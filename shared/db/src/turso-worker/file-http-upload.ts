@@ -40,6 +40,7 @@ export const fileHttpStatusSchema: z.ZodNumber = z
   .int()
   .min(200)
   .max(599);
+const MAX_HTTP_METADATA_BYTES = 64 * 1024;
 const reservedHeaders = new Set([
   "content-length",
   "transfer-encoding",
@@ -106,6 +107,12 @@ export const fileHttpUploadSchema: z.ZodType<FileHttpUploadInput> = z
         (key) => key.toLowerCase() === "accept-encoding",
       ),
     "Selected JSON response encoding belongs to the actor",
+  )
+  .refine(
+    (input) =>
+      Buffer.byteLength(JSON.stringify({ method: "POST", input }), "utf8") <=
+      MAX_HTTP_METADATA_BYTES,
+    "HTTP upload request exceeds its metadata limit",
   );
 
 /** Validate exactly the requested bounded scalar receipt, including in the owner. */
@@ -126,6 +133,20 @@ export function parseHttpUploadDetails(
     keys.some((key) => !Object.hasOwn(values, key))
   )
     throw new Error("HTTP upload metadata receipt does not match its request");
+  // Reserve the complete IPC envelope, not just individual scalar lengths.
+  // Safe-integer placeholders bound every admitted PID and file size.
+  const envelope = {
+    kind: "consumed",
+    pid: Number.MAX_SAFE_INTEGER,
+    sizeBytes: Number.MAX_SAFE_INTEGER,
+    sha256: "0".repeat(64),
+    details: values,
+  };
+  if (
+    Buffer.byteLength(JSON.stringify(envelope), "utf8") >
+    MAX_HTTP_METADATA_BYTES
+  )
+    throw new Error("HTTP upload completion exceeds its metadata limit");
   return {
     statusCode,
     ...(keys.length > 0 && {
@@ -303,8 +324,7 @@ async function transfer(
         : undefined;
     result = {
       ...options.facts,
-      statusCode,
-      ...(responseMetadata && { responseMetadata }),
+      ...parseHttpUploadDetails(options, { statusCode, ...responseMetadata }),
     };
   } catch (error) {
     remember(error);

@@ -14,6 +14,7 @@ import {
   putFile,
   postFile,
   fileHttpUploadRequestSchema,
+  parseHttpUploadDetails,
   type FileHttpUploadInput,
 } from "../src/turso-worker/file-http-upload";
 
@@ -44,6 +45,151 @@ test("HTTP actor requests require an explicit supported method and bounded input
     }).success,
   ).toBe(false);
 });
+
+test.each(["put", "post"] as const)(
+  "HTTP %s rejects oversized request metadata before admission or source access",
+  async (method) => {
+    const actorUrl = new URL(
+      "../src/turso-worker/file-http-upload-process.ts",
+      import.meta.url,
+    );
+    const files = new FileProcessOwner({
+      executable: process.execPath,
+      uploadUrl: actorUrl,
+      downloadUrl: actorUrl,
+      httpUploadUrl: actorUrl,
+    });
+    const input: FileHttpUploadInput = {
+      sourceFile: "/unused",
+      url: "http://127.0.0.1/upload",
+      headers: {},
+      facts: { sizeBytes: 1, sha256: "a".repeat(64) },
+      multipart: {
+        fieldName: "file",
+        filename: "file.bin",
+        mimeType: "application/octet-stream",
+        fields: { description: "\u0000".repeat(12 * 1024) },
+      },
+    };
+    try {
+      await assert.rejects(
+        files[method](input),
+        /HTTP upload request exceeds its metadata limit/,
+      );
+      await assert.rejects(
+        (method === "put" ? putFile : postFile)(input),
+        /HTTP upload request exceeds its metadata limit/,
+      );
+      expect(files.stats()).toEqual({
+        children: 0,
+        terminalChildren: 0,
+        fenced: false,
+      });
+    } finally {
+      await files.close();
+    }
+  },
+);
+
+test("HTTP receipt bounds include escaped UTF-8 values and the full completion envelope", () => {
+  const responseMetadata: NonNullable<FileHttpUploadInput["responseMetadata"]> =
+    {};
+  const details: Record<string, string | number> = { statusCode: 201 };
+  const input: FileHttpUploadInput = {
+    sourceFile: "/unused",
+    url: "http://127.0.0.1/upload",
+    headers: {},
+    facts: { sizeBytes: 1, sha256: "a".repeat(64) },
+    responseMetadata,
+  };
+  for (let index = 0; index < 15; index++) {
+    responseMetadata[`field${index}`] = ["id"];
+    details[`field${index}`] = "🔥".repeat(512);
+  }
+  expect(
+    Object.keys(parseHttpUploadDetails(input, details).responseMetadata ?? {}),
+  ).toHaveLength(15);
+  for (let index = 0; index < 15; index++)
+    details[`field${index}`] = "\u0000".repeat(1024);
+  expect(() => parseHttpUploadDetails(input, details)).toThrow(
+    "HTTP upload completion exceeds its metadata limit",
+  );
+  for (let index = 10; index < 15; index++) {
+    delete responseMetadata[`field${index}`];
+    delete details[`field${index}`];
+  }
+  expect(
+    Object.keys(parseHttpUploadDetails(input, details).responseMetadata ?? {}),
+  ).toHaveLength(10);
+  responseMetadata["tail"] = ["id"];
+  details["tail"] = "";
+  const remaining = 64 * 1024 - Buffer.byteLength(JSON.stringify(details)) - 32;
+  details["tail"] = "\u0000".repeat(Math.floor(remaining / 6));
+  expect(Buffer.byteLength(JSON.stringify(details))).toBeLessThan(64 * 1024);
+  expect(() => parseHttpUploadDetails(input, details)).toThrow(
+    "HTTP upload completion exceeds its metadata limit",
+  );
+});
+
+test.each(["put", "post"] as const)(
+  "real HTTP %s actor rejects projection amplification without sending an oversized completion or replaying",
+  async (method) => {
+    let requests = 0;
+    const setup = await fixture((request, response) => {
+      requests++;
+      request.resume();
+      request.on("end", () =>
+        response
+          .writeHead(201)
+          .end(JSON.stringify({ id: "\u0000".repeat(1024) })),
+      );
+    });
+    const actorUrl = new URL(
+      "../src/turso-worker/file-http-upload-process.ts",
+      import.meta.url,
+    );
+    const files = new FileProcessOwner({
+      executable: process.execPath,
+      uploadUrl: actorUrl,
+      downloadUrl: actorUrl,
+      httpUploadUrl: actorUrl,
+    });
+    try {
+      const responseMetadata: NonNullable<
+        FileHttpUploadInput["responseMetadata"]
+      > = {};
+      for (let index = 0; index < 10; index++)
+        responseMetadata[`field${index}`] = ["id"];
+      const accepted = await files[method]({
+        ...setup.input,
+        responseMetadata,
+      });
+      expect(Object.keys(accepted.responseMetadata ?? {})).toHaveLength(10);
+      expect(accepted.responseMetadata?.["field9"]).toBe("\u0000".repeat(1024));
+      expect(Buffer.byteLength(JSON.stringify(accepted))).toBeLessThan(
+        64 * 1024,
+      );
+      expect(requests).toBe(1);
+      for (let index = 10; index < 15; index++)
+        responseMetadata[`field${index}`] = ["id"];
+      await assert.rejects(
+        files[method]({ ...setup.input, responseMetadata }),
+        /HTTP upload completion exceeds its metadata limit/,
+      );
+      expect(requests).toBe(2);
+      // A clean failed terminal message, not an oversized consumed message that
+      // would poison the owner. The remote submission is not replayed.
+      expect(files.stats()).toEqual({
+        children: 0,
+        terminalChildren: 0,
+        fenced: false,
+      });
+    } finally {
+      await files.close();
+      await setup.close();
+    }
+  },
+);
 
 test("real multipart actor streams the file and returns only selected bounded receipt fields", async () => {
   const received = Promise.withResolvers<{
