@@ -1,7 +1,7 @@
 import {
   extractCoverImageId,
   extractOgImageId,
-  extractMarkdownImages,
+  mapMarkdownImageUrls,
 } from "@brains/image";
 import { EntityUrlGenerator } from "@brains/site-composition";
 import { getErrorMessage } from "@brains/utils/error";
@@ -181,7 +181,8 @@ function toAbsoluteUrl(url: string, siteUrl: string | undefined): string {
 }
 
 /**
- * Scan all entities for coverImageId references to pre-resolve before rendering.
+ * Discover rendered Markdown images (including reference-style images) and
+ * cover/OG references without loading image entities or bytes.
  */
 export async function collectAllImageIds(
   entityService: ServiceEntityService,
@@ -200,10 +201,11 @@ export async function collectAllImageIds(
 
       for (const entity of entities) {
         if (entity.content.includes("entity://image/")) {
-          for (const image of extractMarkdownImages(entity.content)) {
-            const match = /^entity:\/\/image\/(.+)$/.exec(image.url);
+          mapMarkdownImageUrls(entity.content, (url) => {
+            const match = /^entity:\/\/image\/(.+)$/.exec(url);
             if (match?.[1]) imageIds.add(match[1]);
-          }
+            return url;
+          });
         }
         const coverImageId = extractCoverImageId(entity);
         if (coverImageId) {
