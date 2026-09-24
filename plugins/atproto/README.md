@@ -93,6 +93,12 @@ A PDS outage never fails the local publish/update/delete operation. Failures are
 
 The internal `publishBrainCard`, `publishEntity`, `publishPost`, and `validatePdsCredentials` methods remain available to trusted runtime code and tests. `discoverBrainCards` likewise remains an internal bounded discovery operation: it accepts at most 50 repo DIDs/handles, validates `ai.rizom.brain.card/self`, deduplicates within a batch, and emits discovery events for reviewable agent-directory candidates.
 
+## Post body images
+
+Public `entity://image/…` destinations in Markdown images (inline or reference-style) are uploaded sequentially through the same inspected file-loan/native POST boundary as covers. The projected body uses credential-free PDS blob download URLs, and the record's `images` array includes the corresponding blob references. Durable local markdown is unchanged. A matching body receipt can also supply the cover blob, but only after inspecting the cover source again and matching its digest, size and MIME; a changed source uploads independently. Code, ordinary links, raw HTML and external image URLs are not rewritten.
+
+Posts allow eight distinct body image entities and 32 occurrences, in addition to the cover. All body image entities must exist and be public before uploading starts. Inline data URLs are rejected. Body text is bounded to 100,000 UTF-8 bytes before and after rewriting; download URLs are bounded to 4 KiB. Dry runs inspect without uploading. An acknowledged prefix is retained in `AcknowledgedAtprotoPostImagesError` if a later upload, URL resolution, cancellation, retirement or cover-preparation stage fails; it is not permission to replay or publish a partial record. Direct callers receive these structured errors; the existing ambient failure event currently reports only the error message, so bounded receipt reporting there remains migration work. Default actor provisioning and real-PDS acceptance remain separate gates.
+
 ## Jetstream discovery
 
 Jetstream is used only as an untrusted repo-DID signal. Matching create/update events for `ai.rizom.brain.card/self` trigger a credential-free authoritative `getRecord` against the repo's resolved PDS; the event's embedded record is ignored. Discovery validates federation-only cards by requiring `brain.did` to equal the returned AT URI repo. Creating a callable agent-directory candidate additionally requires HTTPS `siteUrl`; web-channel cards must still align that URL, their `did:web` hostname/document, and the repo binding.

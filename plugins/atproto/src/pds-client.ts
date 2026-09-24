@@ -347,6 +347,27 @@ export class AtprotoPdsClient {
     return receipt;
   }
 
+  async getBlobUrl(blob: AtprotoBlobRef, signal: AbortSignal): Promise<string> {
+    signal.throwIfAborted();
+    const endpoint = new URL(this.pdsEndpoint);
+    if (
+      !["http:", "https:"].includes(endpoint.protocol) ||
+      endpoint.username ||
+      endpoint.password ||
+      endpoint.search ||
+      endpoint.hash
+    )
+      throw new Error(
+        "AT Protocol public blob URL requires a credential-free HTTP endpoint",
+      );
+    const session = await this.getSession(signal);
+    signal.throwIfAborted();
+    const url = new URL(`${this.pdsEndpoint}/xrpc/com.atproto.sync.getBlob`);
+    url.searchParams.set("did", session.did);
+    url.searchParams.set("cid", blob.ref.$link);
+    return url.href;
+  }
+
   private async getSession(signal?: AbortSignal): Promise<AtprotoSession> {
     this.session ??= await this.createSession(signal);
     return this.session;

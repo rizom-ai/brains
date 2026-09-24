@@ -12,6 +12,11 @@ import type {
   AtprotoProjectionContext,
 } from "@brains/atproto-contracts";
 import { blogPostAdapter } from "./adapters/blog-post-adapter";
+import {
+  prepareAtprotoBodyImages,
+  AcknowledgedAtprotoPostImagesError,
+  type AtprotoBodyImageReceipt,
+} from "./atproto-body-images";
 import { blogPostFrontmatterSchema } from "./schemas/blog-post";
 
 type BlogAtprotoCoverImage = NonNullable<AtprotoBrainPostRecord["coverImage"]>;
@@ -30,6 +35,7 @@ async function uploadCoverImage(
   entity: BaseEntity,
   client: AtprotoPdsClientLike | undefined,
   dryRun: boolean,
+  bodyReceipts: readonly AtprotoBodyImageReceipt[],
 ): Promise<BlogAtprotoCoverImage | undefined> {
   const parsed = parseMarkdownWithFrontmatter(
     entity.content,
@@ -62,6 +68,13 @@ async function uploadCoverImage(
       async (file) => {
         loanSignal = file.signal;
         file.signal.throwIfAborted();
+        const prior = bodyReceipts.find(
+          (receipt) =>
+            receipt.imageId === coverImageId &&
+            receipt.sha256 === file.sha256 &&
+            receipt.blob.size === file.sizeBytes &&
+            receipt.blob.mimeType === file.mimeType,
+        );
         const blob = dryRun
           ? {
               $type: "blob" as const,
@@ -69,7 +82,7 @@ async function uploadCoverImage(
               mimeType: file.mimeType,
               size: file.sizeBytes,
             }
-          : (await client?.uploadBlob?.(file))?.blob;
+          : (prior?.blob ?? (await client?.uploadBlob?.(file))?.blob);
         if (!blob)
           throw new Error("AT Protocol blob upload returned no receipt");
         const metadata = image.metadata;
@@ -118,13 +131,32 @@ export async function buildBlogAtprotoPostRecord({
     blogPostFrontmatterSchema,
   );
   const frontmatter = parsed.metadata;
-  const coverImage = await uploadCoverImage(context, entity, client, dryRun);
+  const prepared = await prepareAtprotoBodyImages(parsed.content, {
+    context,
+    ...(client && { client }),
+    dryRun,
+  });
+  let coverImage: BlogAtprotoCoverImage | undefined;
+  try {
+    coverImage = await uploadCoverImage(
+      context,
+      entity,
+      client,
+      dryRun,
+      prepared.receipts,
+    );
+  } catch (error) {
+    if (prepared.receipts.length)
+      throw new AcknowledgedAtprotoPostImagesError(prepared.receipts, error);
+    throw error;
+  }
 
   return {
     $type: "ai.rizom.brain.post",
     title: frontmatter.title,
     summary: frontmatter.excerpt,
-    body: parsed.content,
+    body: prepared.body,
+    ...(prepared.images.length && { images: prepared.images }),
     format: "text/markdown",
     ...(config.brainDid && { brainDid: config.brainDid }),
     ...(config.anchorDid && { anchorDid: config.anchorDid }),

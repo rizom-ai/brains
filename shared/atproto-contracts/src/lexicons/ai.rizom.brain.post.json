@@ -43,6 +43,11 @@
             },
             "maxLength": 50
           },
+          "images": {
+            "type": "array",
+            "maxLength": 8,
+            "items": { "type": "ref", "ref": "#bodyImage" }
+          },
           "coverImage": {
             "type": "ref",
             "ref": "#coverImage"
@@ -70,6 +75,15 @@
             "format": "datetime"
           }
         }
+      }
+    },
+    "bodyImage": {
+      "type": "object",
+      "description": "A retained blob whose public URL is used by a markdown body image.",
+      "required": ["url", "blob"],
+      "properties": {
+        "url": { "type": "string", "format": "uri", "maxLength": 4096 },
+        "blob": { "type": "blob" }
       }
     },
     "coverImage": {

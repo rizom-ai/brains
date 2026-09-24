@@ -17,6 +17,10 @@ export {
   buildBlogAtprotoPostRecord,
   createBlogAtprotoProjection,
 } from "./atproto-projection";
+export {
+  AcknowledgedAtprotoPostImagesError,
+  type AtprotoBodyImageReceipt,
+} from "./atproto-body-images";
 export { BlogListTemplate, type BlogListProps } from "./templates/blog-list";
 export { BlogPostTemplate, type BlogPostProps } from "./templates/blog-post";
 export {

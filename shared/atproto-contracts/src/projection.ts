@@ -46,6 +46,8 @@ export interface AtprotoPdsClientLike {
     rkey: string;
   }): Promise<void>;
   uploadBlob?(input: PublishImageData): Promise<{ blob: AtprotoBlobRef }>;
+  /** Public download location for an uploaded blob, without session credentials. */
+  getBlobUrl?(blob: AtprotoBlobRef, signal: AbortSignal): Promise<string>;
 }
 
 /**

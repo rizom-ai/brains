@@ -100,6 +100,8 @@ export interface AtprotoBrainPostRecord extends Record<string, unknown> {
   anchorDid?: string;
   canonicalUrl?: string;
   topics?: string[];
+  /** Blobs retained by the record for image URLs used in the markdown body. */
+  images?: Array<{ url: string; blob: AtprotoBlobRef }>;
   coverImage?: {
     blob: AtprotoBlobRef;
     alt?: string;
