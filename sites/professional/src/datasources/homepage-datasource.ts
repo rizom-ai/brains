@@ -1,5 +1,5 @@
 import type { HomepageOpeningData } from "./homepage-opening";
-import type { HomepageAtlas } from "../schemas/homepage-atlas";
+import type { HomepageAtlasData } from "../schemas/homepage-atlas";
 import { fetchAnchorProfileData } from "@brains/profile";
 import type {
   BaseDataSourceContext,
@@ -45,7 +45,7 @@ interface HomepageDataSourceOutput {
   cta: SiteInfoCTA;
   sections: HomepageSections;
   opening?: HomepageOpeningData | null;
-  atlas?: HomepageAtlas | null;
+  atlas?: HomepageAtlasData | null;
   homepageOpening?: boolean;
 }
 
@@ -65,7 +65,7 @@ export class HomepageListDataSource implements DataSource {
     | ((context: BaseDataSourceContext) => Promise<HomepageOpeningData | null>)
     | undefined;
   private readonly loadAtlas:
-    | ((context: BaseDataSourceContext) => Promise<HomepageAtlas | null>)
+    | ((context: BaseDataSourceContext) => Promise<HomepageAtlasData | null>)
     | undefined;
 
   constructor(
@@ -76,7 +76,7 @@ export class HomepageListDataSource implements DataSource {
     ) => Promise<HomepageOpeningData | null>,
     loadAtlas?: (
       context: BaseDataSourceContext,
-    ) => Promise<HomepageAtlas | null>,
+    ) => Promise<HomepageAtlasData | null>,
   ) {
     this.loadOpening = loadOpening;
     this.loadAtlas = loadAtlas;

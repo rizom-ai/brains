@@ -8,7 +8,7 @@ import {
   atlasEntityTypeSchema,
   type AtlasItem,
   type AtlasZone,
-  type HomepageAtlas,
+  type HomepageAtlasData,
 } from "../schemas/homepage-atlas";
 
 /** The projection plus the build's scoped entity reads; nothing else. */
@@ -64,7 +64,7 @@ function fitToUnit(
  */
 export async function loadHomepageAtlas(
   source: AtlasSource,
-): Promise<HomepageAtlas | null> {
+): Promise<HomepageAtlasData | null> {
   try {
     const [map, listed] = await Promise.all([
       buildKnowledgeMapData(source),
@@ -97,6 +97,8 @@ export async function loadHomepageAtlas(
           x: point.x,
           y: point.y,
           zoneId: point.zoneId,
+          url: null,
+          typeLabel: null,
         },
       ];
     });

@@ -1,7 +1,7 @@
 import type { JSX, ReactNode } from "react";
 import type { HomepageOpeningContent } from "../schemas/homepage-opening";
 import { HomepageAtlas } from "./homepage-atlas";
-import type { HomepageAtlasView } from "../schemas/homepage-atlas";
+import type { HomepageAtlasData } from "../schemas/homepage-atlas";
 import type { ProfessionalProfile } from "../schemas";
 import type { BlogPostView } from "@brains/blog";
 import type { DeckView } from "@brains/decks";
@@ -39,7 +39,7 @@ export interface HomepageListData {
   homepageOpening?: boolean | undefined;
   opening?: HomepageOpeningContent | null | undefined;
   /** Published work placed by topic; absent without embeddings or published items. */
-  atlas?: HomepageAtlasView | null | undefined;
+  atlas?: HomepageAtlasData | null | undefined;
 }
 
 const GRID_CLS =

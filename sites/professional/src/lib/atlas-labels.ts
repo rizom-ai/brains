@@ -3,15 +3,19 @@ import { atlasPosition, zoneSpread } from "./atlas-terrain";
 /**
  * Territory label placement in the map's percentage space. Labels are
  * anchored at their bottom edge; widths are estimated from the name at the
- * desktop label size, which is enough to keep text off marks and off each
- * other. Larger territories choose first.
+ * phone label size, where a character takes the most of the map's width,
+ * so text stays off marks and off each other at every width. Larger
+ * territories choose first.
  */
-const CHAR_WIDTH = 1.05;
+const CHAR_WIDTH = 1.7;
 const LABEL_HEIGHT = 3.2;
 const GAP = 3.5;
+/** A mark needs this much room under a label's baseline: its glyph plus a visible gap. */
+const CLEARANCE = 2.5;
 const STEP = 3;
 const ATTEMPTS = 6;
-const MAP_TOP = 4;
+/** A label is anchored by its bottom edge; leave room for its height and ascenders on a short phone map. */
+const MAP_TOP = 7;
 const MAP_BOTTOM = 96;
 
 interface LabelZone {
@@ -37,7 +41,7 @@ function overlapsMark(box: LabelBox, mark: LabelMark): boolean {
   return (
     Math.abs(atlasPosition(mark.x) - box.x) <= box.halfWidth &&
     markY >= box.bottom - LABEL_HEIGHT - 1 &&
-    markY <= box.bottom + 1
+    markY <= box.bottom + CLEARANCE
   );
 }
 

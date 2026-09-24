@@ -25,6 +25,8 @@ export const atlasZoneSchema: z.ZodObject<{
 /**
  * An entity-shaped mark: `entityType`, `content` and `metadata.slug` let
  * site-builder enrichment add its URL and type label, as for posts and decks.
+ * The build re-validates enriched data with this schema, so the enrichment
+ * fields are declared here; types the site does not display stay unlinked.
  */
 export const atlasItemSchema: z.ZodObject<{
   id: z.ZodString;
@@ -36,6 +38,8 @@ export const atlasItemSchema: z.ZodObject<{
   x: z.ZodNumber;
   y: z.ZodNumber;
   zoneId: z.ZodNullable<z.ZodString>;
+  url: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  typeLabel: z.ZodDefault<z.ZodNullable<z.ZodString>>;
 }> = z.object({
   id: z.string(),
   entityType: atlasEntityTypeSchema,
@@ -46,6 +50,9 @@ export const atlasItemSchema: z.ZodObject<{
   x: z.number().min(0).max(1),
   y: z.number().min(0).max(1),
   zoneId: z.string().nullable(),
+  // Null until enrichment links it; JSON has no undefined.
+  url: z.string().nullable().default(null),
+  typeLabel: z.string().nullable().default(null),
 });
 
 export const homepageAtlasSchema: z.ZodDefault<
@@ -62,14 +69,6 @@ export const homepageAtlasSchema: z.ZodDefault<
 
 export type AtlasZone = z.output<typeof atlasZoneSchema>;
 export type AtlasItem = z.output<typeof atlasItemSchema>;
-export type HomepageAtlas = NonNullable<z.output<typeof homepageAtlasSchema>>;
-
-/** Enrichment adds links only for types the site displays; a mark without one renders unlinked. */
-export type AtlasItemView = AtlasItem & {
-  url?: string | undefined;
-  typeLabel?: string | undefined;
-};
-export interface HomepageAtlasView {
-  zones: AtlasZone[];
-  items: AtlasItemView[];
-}
+export type HomepageAtlasData = NonNullable<
+  z.output<typeof homepageAtlasSchema>
+>;

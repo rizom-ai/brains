@@ -12,11 +12,7 @@ import {
   HOMEPAGE_ATLAS_SCRIPT,
   HOMEPAGE_ATLAS_SCRIPT_PATH,
 } from "./templates/homepage-atlas-script";
-import {
-  atlasItemSchema,
-  atlasZoneSchema,
-  homepageAtlasSchema,
-} from "./schemas/homepage-atlas";
+import { homepageAtlasSchema } from "./schemas/homepage-atlas";
 import { blogViewSchema } from "@brains/blog";
 import { deckViewSchema } from "@brains/decks";
 import { aboutHighlightsSchema, professionalProfileSchema } from "./schemas";
@@ -138,19 +134,6 @@ export class ProfessionalSitePlugin extends ServicePlugin<
     const homepageRenderSchema = homepageListSchema.extend({
       posts: z.array(blogPostSchema.extend(enrichedLinks)),
       decks: z.array(deckSchema.extend(enrichedLinks)),
-      // Enrichment links only the types the site displays; others render unlinked.
-      atlas: z
-        .object({
-          zones: z.array(atlasZoneSchema),
-          items: z.array(
-            atlasItemSchema.extend({
-              url: z.string().optional(),
-              typeLabel: z.string().optional(),
-            }),
-          ),
-        })
-        .nullable()
-        .default(null),
     });
 
     // About page schema

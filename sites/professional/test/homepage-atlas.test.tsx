@@ -7,7 +7,7 @@ import {
   type HomepageListData,
 } from "../src/templates/homepage-list";
 import { professionalProfileSchema } from "../src/schemas";
-import type { HomepageAtlasView } from "../src/schemas/homepage-atlas";
+import type { HomepageAtlasData } from "../src/schemas/homepage-atlas";
 import { homepageAtlasStyles } from "../src/templates/homepage-atlas-styles";
 
 function entity(
@@ -137,7 +137,7 @@ describe("homepage atlas data", () => {
   });
 });
 
-const atlas: HomepageAtlasView = {
+const atlas: HomepageAtlasData = {
   zones: [
     {
       id: "institutions",
@@ -212,6 +212,11 @@ const page: HomepageListData = {
     introduction: "I work on how institutions hold what they know.",
     topics: ["Someone who carries a lot is about to leave"],
     contactUrl: "https://yeehaa.test/contact",
+    topicsHeading: "Pick a thread",
+    contactLabel: "Write to me",
+    contactNote: "I read these myself.",
+    attribution: "In my own words",
+    mapCaption: "My published work, by topic",
   },
 };
 
@@ -299,5 +304,52 @@ describe("atlas hover on touch screens", () => {
       const first = homepageAtlasStyles.indexOf(rule);
       expect(first).toBeGreaterThan(hoverBlock);
     }
+  });
+});
+
+describe("atlas copy", () => {
+  it("uses the words the owner wrote around the door and the map", () => {
+    const html = renderToStaticMarkup(
+      <HomepageListLayout {...page} atlas={atlas} />,
+    );
+    for (const words of [
+      "Pick a thread",
+      "Write to me",
+      "I read these myself.",
+      "In my own words",
+      "My published work, by topic",
+    ]) {
+      expect(html).toContain(words);
+    }
+  });
+
+  it("leaves out words nobody wrote and names the button plainly", () => {
+    const opening = {
+      ...page.opening,
+      title: "Building something inhabitable.",
+      introduction: null,
+      topics: [],
+      contactUrl: "https://yeehaa.test/contact",
+      topicsHeading: null,
+      contactLabel: null,
+      contactNote: null,
+      attribution: null,
+      mapCaption: null,
+    };
+    const html = renderToStaticMarkup(
+      <HomepageListLayout {...page} opening={opening} atlas={atlas} />,
+    );
+    for (const fixed of [
+      "Where would you start?",
+      "Let’s talk",
+      "A private note to the owner",
+      "Written, not generated",
+      "Everything published here",
+    ]) {
+      expect(html).not.toContain(fixed);
+    }
+    expect(html).toContain('href="https://yeehaa.test/contact">Contact</a>');
+    expect(html).not.toContain('class="atlas__caption"');
+    expect(html).not.toContain('class="atlas__note"');
   });
 });

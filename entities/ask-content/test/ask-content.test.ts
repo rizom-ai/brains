@@ -25,6 +25,27 @@ describe("Ask content entity", () => {
       "ask-content",
     );
   });
+  test("round trips the page copy around the conversation", () => {
+    const page = {
+      topicsHeading: "Where would you start?",
+      contactLabel: "Let’s talk",
+      contactNote: "A private note. No account needed.",
+      attribution: "Written, not generated",
+      mapCaption: "Everything published here, placed by topic",
+    };
+    const markdown = askContentAdapter.createContent(page, "Welcome copy.");
+    expect(askContentAdapter.parseContent(markdown)).toEqual({
+      ...page,
+      introduction: "Welcome copy.",
+    });
+  });
+  test("bounds the page copy", () => {
+    expect(() =>
+      askContentAdapter.parseContent(
+        askContentAdapter.createContent({ contactLabel: "x".repeat(81) }),
+      ),
+    ).toThrow();
+  });
   test("does not manufacture a welcome", () => {
     expect(
       askContentAdapter.parseContent(askContentAdapter.createContent({})),

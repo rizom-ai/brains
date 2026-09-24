@@ -1,7 +1,7 @@
 import type { JSX } from "react";
 import { MarkdownContent, renderHighlightedText } from "@brains/ui-library";
 import type { HomepageOpeningContent } from "../schemas/homepage-opening";
-import type { HomepageAtlasView } from "../schemas/homepage-atlas";
+import type { HomepageAtlasData } from "../schemas/homepage-atlas";
 import { atlasPosition, buildAtlasTerrain } from "../lib/atlas-terrain";
 import { layoutZoneLabels } from "../lib/atlas-labels";
 import { homepageAtlasStyles } from "./homepage-atlas-styles";
@@ -24,7 +24,13 @@ function edgeClass(x: number): string {
   return "";
 }
 
-function AtlasMap({ atlas }: { atlas: HomepageAtlasView }): JSX.Element {
+function AtlasMap({
+  atlas,
+  caption,
+}: {
+  atlas: HomepageAtlasData;
+  caption: string | null;
+}): JSX.Element {
   const contours = buildAtlasTerrain(atlas);
   const labelTops = layoutZoneLabels(atlas.zones, atlas.items);
   const legend = KIND_ORDER.flatMap((kind) => {
@@ -38,7 +44,7 @@ function AtlasMap({ atlas }: { atlas: HomepageAtlasView }): JSX.Element {
     <div
       className="atlas__map"
       role="group"
-      aria-label="Everything published here, placed by topic"
+      aria-label={caption ?? "Map of published work"}
     >
       <div className="atlas__field" data-atlas-field="">
         <svg
@@ -73,7 +79,7 @@ function AtlasMap({ atlas }: { atlas: HomepageAtlasView }): JSX.Element {
             aria-hidden="true"
             style={{
               left: `${atlasPosition(zone.x)}%`,
-              top: `${labelTops[zone.id] ?? 4}%`,
+              top: `${labelTops[zone.id] ?? 7}%`,
             }}
           >
             {zone.name}
@@ -111,9 +117,7 @@ function AtlasMap({ atlas }: { atlas: HomepageAtlasView }): JSX.Element {
         </ul>
       </div>
       <p className="atlas__legend">
-        <span className="atlas__caption">
-          Everything published here, placed by topic
-        </span>
+        {caption && <span className="atlas__caption">{caption}</span>}
         {legend.map(({ kind, label }) => (
           <span key={kind} className={`atlas__key--${kind}`}>
             <i aria-hidden="true" />
@@ -128,7 +132,9 @@ function AtlasMap({ atlas }: { atlas: HomepageAtlasView }): JSX.Element {
 /**
  * The homepage as the Brain itself: everything published, placed by topic
  * on build-time topographic terrain, with the owner's authored opening and
- * a working door to the contact form floating over it. No scripts. The
+ * a working door to the contact form floating over it. Every word on the
+ * page comes from the authored Ask content; what is not written is left
+ * out, and the contact action falls back to a plain label. No scripts. The
  * conversation comes first in the document so keyboard and screen-reader
  * users reach the opening and the door before the map's links.
  */
@@ -138,7 +144,7 @@ export function HomepageAtlas({
   owner,
 }: {
   opening: HomepageOpeningContent;
-  atlas: HomepageAtlasView | null;
+  atlas: HomepageAtlasData | null;
   owner: string;
 }): JSX.Element {
   return (
@@ -156,7 +162,7 @@ export function HomepageAtlas({
             </span>
             <span>
               <b>{owner}</b>
-              <small>Written, not generated</small>
+              {opening.attribution && <small>{opening.attribution}</small>}
             </span>
           </p>
         )}
@@ -170,7 +176,7 @@ export function HomepageAtlas({
           />
         )}
         <div className="atlas__door">
-          <h2>Where would you start?</h2>
+          {opening.topicsHeading && <h2>{opening.topicsHeading}</h2>}
           {opening.topics.length > 0 && (
             <ul className="atlas__topics" aria-label="Conversation topics">
               {opening.topics.map((topic, index) => (
@@ -181,14 +187,14 @@ export function HomepageAtlas({
             </ul>
           )}
           <a className="atlas__contact" href={opening.contactUrl}>
-            Let’s talk
+            {opening.contactLabel ?? "Contact"}
           </a>
-          <p className="atlas__note">
-            A private note to the owner. No account needed.
-          </p>
+          {opening.contactNote && (
+            <p className="atlas__note">{opening.contactNote}</p>
+          )}
         </div>
       </div>
-      {atlas && <AtlasMap atlas={atlas} />}
+      {atlas && <AtlasMap atlas={atlas} caption={opening.mapCaption} />}
     </section>
   );
 }
