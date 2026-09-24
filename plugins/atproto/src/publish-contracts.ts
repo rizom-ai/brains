@@ -1,4 +1,9 @@
-import type { AtprotoProjectedPostRecord } from "@brains/atproto-contracts";
+import {
+  atprotoBlobEvidenceSchema,
+  type AtprotoProjectedPostRecord,
+  type AtprotoBlobEvidence,
+} from "@brains/atproto-contracts";
+import { z } from "@brains/utils/zod";
 import type { BrainCardRecord } from "./records";
 
 export interface PublishBrainCardOptions {
@@ -72,6 +77,16 @@ export interface AtprotoPublishFailedPayload {
   entityId: string;
   collection: string;
   error: string;
+  recovery?: AtprotoBlobEvidence | undefined;
 }
+export const atprotoPublishFailedPayloadSchema: z.ZodType<AtprotoPublishFailedPayload> =
+  z.strictObject({
+    operation: z.enum(["publish-card", "upsert-record", "delete-record"]),
+    entityType: z.string().max(256),
+    entityId: z.string().max(1024),
+    collection: z.string().max(256),
+    error: z.string().max(1024),
+    recovery: atprotoBlobEvidenceSchema.optional(),
+  });
 
 export const ATPROTO_PUBLISH_FAILED = "atproto:publish:failed";

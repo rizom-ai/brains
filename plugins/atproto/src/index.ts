@@ -16,6 +16,7 @@ export {
   type DiscoverBrainCardResult,
   type DiscoverBrainCardsResult,
 } from "./plugin";
+export { atprotoPublishFailedPayloadSchema } from "./publish-contracts";
 export {
   atprotoConfigSchema,
   atprotoJetstreamConfigSchema,

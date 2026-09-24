@@ -8,7 +8,10 @@ import {
   createMockShell,
   createPluginHarness,
 } from "@brains/plugins/test";
-import { AtprotoProjectionRegistry } from "@brains/atproto-contracts";
+import {
+  AtprotoProjectionRegistry,
+  collectAtprotoBlobEvidence,
+} from "@brains/atproto-contracts";
 import { BlogPlugin } from "../src/plugin";
 import type { PublishImageData } from "@brains/contracts";
 import type { AssetRef } from "@brains/assets";
@@ -215,6 +218,11 @@ describe("blog ATProto projection", () => {
         await pending.then(unexpected, (error: unknown) => {
           expect(error).toBeInstanceOf(AcknowledgedAtprotoCoverError);
           if (!(error instanceof AcknowledgedAtprotoCoverError)) throw error;
+          const recovery = collectAtprotoBlobEvidence(error);
+          expect(recovery?.nodes[0]?.stage).toBe("cover");
+          expect(recovery?.nodes[0]?.receipts?.[0]?.blob.ref.$link).toBe(
+            "received-cid",
+          );
           expect(error.cause).toBe(failure);
           expect(error.coverImage.blob.ref.$link).toBe("received-cid");
         });

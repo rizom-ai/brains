@@ -1,4 +1,10 @@
 export {
+  AtprotoBlobEvidenceError,
+  collectAtprotoBlobEvidence,
+  atprotoBlobEvidenceSchema,
+  type AtprotoBlobEvidence,
+} from "./blob-evidence";
+export {
   canonicalAtprotoLexiconMetadata,
   canonicalAtprotoLexicons,
   getCanonicalAtprotoLexicon,

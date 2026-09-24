@@ -1,6 +1,7 @@
 import { expect, it } from "bun:test";
 import assert from "node:assert/strict";
 import { getAssetDigest } from "@brains/assets";
+import { collectAtprotoBlobEvidence } from "@brains/atproto-contracts";
 import type {
   AtprotoProjectionContext,
   AtprotoPdsClientLike,
@@ -238,6 +239,10 @@ it.each(["retirement", "cancelled", "url-failure", "second-failure"])(
         if (!(error instanceof AcknowledgedAtprotoPostImagesError))
           return false;
         expect(error.receipts[0]?.blob.ref.$link).toBe("cid-1");
+        const recovery = collectAtprotoBlobEvidence(error);
+        expect(recovery?.nodes[0]?.stage).toBe("body-images");
+        expect(recovery?.nodes[0]?.receipts?.[0]?.imageId).toBe("a");
+        expect(JSON.stringify(recovery)).not.toContain("https://pds.example");
         expect(error.cause).toBeInstanceOf(Error);
         return true;
       },

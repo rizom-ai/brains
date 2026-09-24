@@ -3,7 +3,10 @@ import {
   parseMarkdownWithFrontmatter,
   withPublishEntityFile,
 } from "@brains/plugins";
-import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
+import {
+  canonicalAtprotoLexicons,
+  AtprotoBlobEvidenceError,
+} from "@brains/atproto-contracts";
 import type {
   AtprotoPdsClientLike,
   AtprotoBrainPostRecord,
@@ -21,10 +24,15 @@ import { blogPostFrontmatterSchema } from "./schemas/blog-post";
 
 type BlogAtprotoCoverImage = NonNullable<AtprotoBrainPostRecord["coverImage"]>;
 
-export class AcknowledgedAtprotoCoverError extends Error {
+export class AcknowledgedAtprotoCoverError extends AtprotoBlobEvidenceError {
   public readonly coverImage: BlogAtprotoCoverImage;
   constructor(coverImage: BlogAtprotoCoverImage, cause: unknown) {
-    super("AT Protocol cover uploaded but source retirement failed", { cause });
+    super(
+      "AT Protocol cover uploaded but source retirement failed",
+      "cover",
+      [{ blob: coverImage.blob }],
+      { cause },
+    );
     this.name = "AcknowledgedAtprotoCoverError";
     this.coverImage = coverImage;
   }

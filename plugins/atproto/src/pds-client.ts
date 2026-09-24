@@ -1,4 +1,7 @@
-import type { AtprotoBlobRef } from "@brains/atproto-contracts";
+import {
+  AtprotoBlobEvidenceError,
+  type AtprotoBlobRef,
+} from "@brains/atproto-contracts";
 import type { PublishImageData } from "@brains/contracts";
 import type { EntityServiceClient } from "@brains/plugins";
 import { readBoundedJsonResponse } from "@brains/utils/bounded-json-response";
@@ -81,10 +84,14 @@ export interface UploadBlobResult {
   blob: AtprotoBlobRef;
 }
 
-export class AcknowledgedAtprotoBlobError extends Error {
+export class AcknowledgedAtprotoBlobError extends AtprotoBlobEvidenceError {
   public readonly receipt: UploadBlobResult;
   constructor(receipt: UploadBlobResult) {
-    super("AT Protocol blob receipt does not match the submitted file");
+    super(
+      "AT Protocol blob receipt does not match the submitted file",
+      "blob-receipt",
+      [receipt],
+    );
     this.name = "AcknowledgedAtprotoBlobError";
     this.receipt = receipt;
   }

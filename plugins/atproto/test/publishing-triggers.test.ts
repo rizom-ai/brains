@@ -3,9 +3,12 @@ import { describe, expect, it, mock } from "bun:test";
 import { SYSTEM_CHANNELS, type BaseEntity } from "@brains/plugins";
 import { waitUntil } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
+import { AtprotoBlobEvidenceError } from "@brains/atproto-contracts";
 import {
   ATPROTO_PUBLISH_FAILED,
   AtprotoPlugin,
+  AcknowledgedAtprotoBlobError,
+  atprotoPublishFailedPayloadSchema,
   AtprotoProjectionRegistry,
   listCanonicalAtprotoLexicons,
   type AtprotoLexicon,
@@ -82,18 +85,21 @@ function createLexicon(id: string): AtprotoLexicon {
   };
 }
 
-function createRegistry(): AtprotoProjectionRegistry {
+function createRegistry(buildError?: Error): AtprotoProjectionRegistry {
   const registry = AtprotoProjectionRegistry.createFresh();
   registry.register({
     entityType: "note",
     collection: "ai.rizom.brain.note",
     lexicon: createLexicon("ai.rizom.brain.note"),
     validate: false,
-    buildRecord: async ({ entity }) => ({
-      $type: "ai.rizom.brain.note",
-      title: String(entity.metadata["title"]),
-      createdAt: entity.created,
-    }),
+    buildRecord: async ({ entity }) => {
+      if (buildError) throw buildError;
+      return {
+        $type: "ai.rizom.brain.note",
+        title: String(entity.metadata["title"]),
+        createdAt: entity.created,
+      };
+    },
   });
   return registry;
 }
@@ -658,6 +664,58 @@ describe("AT Protocol ambient publishing triggers", () => {
     releaseUpserts();
     await plugin.shutdown?.();
     expect(putRecord).toHaveBeenCalledTimes(2);
+  });
+
+  it("carries acknowledged prefixes through the real ambient trigger without writing a partial record", async () => {
+    const blob = {
+      ref: { $link: "received-cid" },
+      mimeType: "image/png",
+      size: 70,
+    };
+    const failure = new AtprotoBlobEvidenceError(
+      "private transport detail",
+      "body-images",
+      [{ blob, imageId: "public-image" }],
+      {
+        cause: new AggregateError(
+          [
+            new AcknowledgedAtprotoBlobError({ blob }),
+            new Error("private retirement detail"),
+          ],
+          "two failures",
+        ),
+      },
+    );
+    const client = createClientMocks();
+    const plugin = createConfiguredPlugin(
+      createRegistry(failure),
+      client.client,
+    );
+    const shell = createMockShell({ domain: "brain.example.com" });
+    shell.addEntities([createEntity()]);
+    const failures: unknown[] = [];
+    shell.getMessageBus().subscribe(ATPROTO_PUBLISH_FAILED, async (message) => {
+      failures.push(message.payload);
+      return { success: true };
+    });
+    await plugin.register(shell);
+    const response = await shell.getMessageBus().send({
+      type: "publish:completed",
+      payload: { entityType: "note", entityId: "note-123" },
+      sender: "publish-service",
+      broadcast: true,
+    });
+    await plugin.shutdown?.();
+    expect(response).toEqual({ success: true });
+    expect(failures).toHaveLength(1);
+    const report = atprotoPublishFailedPayloadSchema.parse(failures[0]);
+    expect(report.recovery?.nodes[0]?.status).toBe("acknowledged");
+    expect(
+      report.recovery?.nodes.some((node) => node.status === "received"),
+    ).toBe(true);
+    expect(report.recovery?.truncated).toBe(false);
+    expect(JSON.stringify(report)).not.toContain("private");
+    expect(client.putRecord).not.toHaveBeenCalled();
   });
 
   it("reports PDS failures without failing the source publish event", async () => {

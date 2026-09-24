@@ -1,6 +1,7 @@
 import { mapMarkdownImageUrls } from "@brains/image";
 import { withPublishEntityFile, type BaseEntity } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import { AtprotoBlobEvidenceError } from "@brains/atproto-contracts";
 import type {
   AtprotoBlobRef,
   AtprotoBrainPostRecord,
@@ -14,12 +15,15 @@ export interface AtprotoBodyImageReceipt {
   blob: AtprotoBlobRef;
   url?: string;
 }
-export class AcknowledgedAtprotoPostImagesError extends Error {
+export class AcknowledgedAtprotoPostImagesError extends AtprotoBlobEvidenceError {
   public readonly receipts: readonly AtprotoBodyImageReceipt[];
   constructor(receipts: readonly AtprotoBodyImageReceipt[], cause: unknown) {
-    super("AT Protocol body images uploaded but post preparation failed", {
-      cause,
-    });
+    super(
+      "AT Protocol body images uploaded but post preparation failed",
+      "body-images",
+      receipts,
+      { cause },
+    );
     this.name = "AcknowledgedAtprotoPostImagesError";
     this.receipts = receipts.map((receipt) => ({ ...receipt }));
   }

@@ -2,7 +2,11 @@ import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
 import type { AtprotoPublishFailedPayload } from "./publish-contracts";
-import { ATPROTO_PUBLISH_FAILED } from "./publish-contracts";
+import {
+  ATPROTO_PUBLISH_FAILED,
+  atprotoPublishFailedPayloadSchema,
+} from "./publish-contracts";
+import { collectAtprotoBlobEvidence } from "@brains/atproto-contracts";
 
 /**
  * Serializes ambient publishing work per entity and drains it on shutdown.
@@ -25,8 +29,12 @@ export class PublishingTaskQueue {
   run(key: string, operation: () => Promise<void>): Promise<void> {
     const previous = this.chains.get(key) ?? Promise.resolve();
     const task = previous.then(operation).catch((error: unknown) => {
+      const recovery = collectAtprotoBlobEvidence(error);
       this.logger.error("Unexpected AT Protocol publishing task failure", {
-        error: getErrorMessage(error),
+        error: recovery
+          ? "AT Protocol task failed; bounded recovery evidence attached"
+          : getErrorMessage(error).slice(0, 1024),
+        ...(recovery && { recovery }),
       });
     });
     this.chains.set(key, task);
@@ -54,7 +62,7 @@ export class PublishingTaskQueue {
    */
   async runTrigger(
     context: ServicePluginContext,
-    details: Omit<AtprotoPublishFailedPayload, "error">,
+    details: Omit<AtprotoPublishFailedPayload, "error" | "recovery">,
     operation: () => Promise<unknown>,
   ): Promise<void> {
     if (!this.canPublish()) return;
@@ -68,24 +76,40 @@ export class PublishingTaskQueue {
 
   async reportFailure(
     context: ServicePluginContext,
-    details: Omit<AtprotoPublishFailedPayload, "error">,
+    details: Omit<AtprotoPublishFailedPayload, "error" | "recovery">,
     error: unknown,
   ): Promise<void> {
-    const errorMessage = getErrorMessage(error);
-    this.logger.error("AT Protocol ambient publishing failed", {
+    const recovery = collectAtprotoBlobEvidence(error);
+    const parsed = atprotoPublishFailedPayloadSchema.safeParse({
       ...details,
-      error: errorMessage,
+      error: recovery
+        ? "AT Protocol publication failed; bounded recovery evidence attached"
+        : getErrorMessage(error).slice(0, 1024),
+      ...(recovery && { recovery }),
     });
+    if (!parsed.success) {
+      // Invalid routing metadata is not permission to lose known receipts or
+      // broadcast an unbounded payload. Keep bounded evidence in the log.
+      this.logger.error("Invalid AT Protocol failure reporting metadata", {
+        recovery,
+      });
+      return;
+    }
+    const payload = parsed.data;
+    this.logger.error("AT Protocol ambient publishing failed", payload);
 
     try {
       await context.messaging.send({
         type: ATPROTO_PUBLISH_FAILED,
-        payload: { ...details, error: errorMessage },
+        payload,
         broadcast: true,
       });
     } catch (reportError) {
       this.logger.error("Failed to report AT Protocol publishing failure", {
-        error: getErrorMessage(reportError),
+        ...payload,
+        reportingError: recovery
+          ? "Failure event delivery failed"
+          : getErrorMessage(reportError).slice(0, 512),
       });
     }
   }
