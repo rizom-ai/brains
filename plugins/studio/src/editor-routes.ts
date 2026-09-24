@@ -595,6 +595,7 @@ async function handleListTypes(
 ): Promise<Response> {
   const types = [];
   if (access.permissionLevel !== "public") {
+    await context.entities.ensureGroupingsCurrent();
     const counts = new Map(
       (await context.entityService.getEntityCounts(access.visibilityScope)).map(
         (entry) => [entry.entityType, entry.count],
@@ -757,6 +758,7 @@ async function handleGetSchema(
     return jsonResponse({ error: "type query parameter is required" }, 400);
   }
 
+  await context.entities.ensureGroupingsCurrent();
   const capabilities = await getTypeCapabilities(context, entityType, access);
   const schema = capabilities
     ? context.entities.getEffectiveFrontmatterSchema(entityType)

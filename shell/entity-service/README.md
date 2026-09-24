@@ -143,6 +143,19 @@ plugin context's `entities` namespace. Replacement is registry-only: it does not
 rewrite content, schedule reprojection or coordinate serving readiness. Callers
 must coordinate the existing reprojection pass before serving changed catalogs.
 
+A document owner can install one `registerGroupingSource({ entityType,
+ensureCurrent })` callback through the same namespace. Ordinary create/update
+validation, projection upsert preparation, entity detail reads, grouping queries
+and startup reprojection await it before consulting grouping contracts. The
+source's own entity operations skip refresh to avoid recursive reads. Studio's
+type/schema and grouping-route entry points also request refresh. Lookup failures
+propagate rather than admit writes under stale policy.
+
+The callback may replace in-memory declarations, but must not mutate persistence
+or start reprojection: projection upserts invoke it inside a transaction. This
+hook is not a post-save notification or a readiness coordinator; automatic
+reprojection of changed definitions and its serving gate remain separate work.
+
 `queryGroupingCatalog` returns each distinct value with the number of entities
 the caller may read. `queryGroupingMembers` returns one mixed-type page for a
 single value, with optional type, content-search and sort filters. Both

@@ -43,6 +43,32 @@ describe("groupings through the plugin context", () => {
       "Invalid grouping",
     );
   });
+  test("forwards source registration and refresh, including errors", async () => {
+    const shell = createMockShell();
+    const registry = shell.getEntityRegistry();
+    const context = createServicePluginContext(shell, "studio");
+    const register = spyOn(
+      registry,
+      "registerGroupingSource",
+    ).mockImplementation(() => {});
+    const refresh = spyOn(registry, "ensureGroupingsCurrent").mockResolvedValue(
+      undefined,
+    );
+    const source = {
+      entityType: "definitions",
+      ensureCurrent: async (): Promise<void> => {},
+    };
+    context.entities.registerGroupingSource(source);
+    await context.entities.ensureGroupingsCurrent();
+    expect(register).toHaveBeenCalledWith(source);
+    expect(refresh).toHaveBeenCalledTimes(1);
+    refresh.mockRejectedValue(new Error("Read unavailable"));
+    expect(
+      await context.entities
+        .ensureGroupingsCurrent()
+        .catch((error: unknown) => error),
+    ).toMatchObject({ message: "Read unavailable" });
+  });
   test("forwards both paginated reads without changing type admission or cancellation", async () => {
     const entityService = createMockEntityService({
       returns: {

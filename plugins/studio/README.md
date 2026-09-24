@@ -67,6 +67,16 @@ Workspace definitions may opt into host-owned stable URL filters with a typed qu
 
 ## Virtual collections
 
+Implementation checkpoint: the private `registerGroupingDefinitions` module now
+provides the replacement shared singleton, exact-value/cardinality validation and
+a read-only, hash-checked definition source. Real Note/Post integration tests
+install it directly and cover independent registries on one database, schema
+refresh and projection rollback. It is **not yet installed by `StudioPlugin`**.
+Production activation must replace the configuration/vocabulary path below,
+coordinate post-save reprojection/readiness, and supply the new admin/editor UI.
+There is no legacy reader or automatic conversion in the new source; this is not
+a supported mixed-configuration mode.
+
 Studio configuration can declare multiple cross-type groupings:
 
 ```yaml

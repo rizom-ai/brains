@@ -30,8 +30,10 @@
     "streamdown": "^2.5.0"
   },
   "devDependencies": {
+    "@brains/blog": "workspace:*",
     "@brains/build-tools": "workspace:*",
     "@brains/eslint-config": "workspace:*",
+    "@brains/note": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",

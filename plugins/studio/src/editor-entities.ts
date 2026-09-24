@@ -142,6 +142,7 @@ export async function handlePreviewDestination(
     access,
   );
   if (denied) return denied;
+  await context.entities.ensureGroupingsCurrent();
   const entity = prepareStudioCreation(context, payload);
   if (entity instanceof Response) return entity;
   if (!canWriteVisibility(access.permissionLevel, entity.visibility))
@@ -665,6 +666,7 @@ export async function handleCreateEntity(
     return actionDenied;
   }
 
+  await context.entities.ensureGroupingsCurrent();
   const entity = prepareStudioCreation(context, payload);
   if (entity instanceof Response) return entity;
   if (!canWriteVisibility(access.permissionLevel, entity.visibility)) {

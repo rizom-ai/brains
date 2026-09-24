@@ -988,10 +988,19 @@ export interface EntityGroupingMembers {
   total: number;
 }
 
+/** A single document owner refreshes in-memory grouping contracts before use. */
+export interface EntityGroupingSource {
+  readonly entityType: string;
+  /** Read-only with respect to persistence: never mutate entities or reproject. */
+  ensureCurrent(): Promise<void>;
+}
+
 /**
  * Entity service interface for managing brain entities
  */
 export interface IEntitiesNamespace {
+  registerGroupingSource(source: EntityGroupingSource): void;
+  ensureGroupingsCurrent(): Promise<void>;
   /** Preflight a complete replacement set without modifying active schemas. */
   validateGroupings(groupings: readonly EntityGrouping[]): void;
   /** Atomically replace grouping declarations and only their owned fields. */
@@ -1264,6 +1273,9 @@ export interface EntityRegistry {
     extension: z.ZodObject<z.ZodRawShape>,
   ): void;
 
+  registerGroupingSource(source: EntityGroupingSource): void;
+  /** The source's own entity operations skip refresh to avoid recursive reads. */
+  ensureGroupingsCurrent(entityType?: string): Promise<void>;
   /** Preflight a complete replacement set without modifying active schemas. */
   validateGroupings(groupings: readonly EntityGrouping[]): void;
   /** Atomically replace grouping declarations and only their owned fields. */

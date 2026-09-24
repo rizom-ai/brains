@@ -191,6 +191,9 @@ export class EntityService implements IEntityService {
       {
         assetRepository: this.assetRepository,
         prepareEntity: async (entity, operation): Promise<BaseEntity> => {
+          await options.entityRegistry.ensureGroupingsCurrent(
+            entity.entityType,
+          );
           // Projection intents carry stored rows, not the adapter's typed
           // top-level fields. Restore those for validation but retain the
           // full persisted source and authoritative row identity/policy.
@@ -491,6 +494,7 @@ export class EntityService implements IEntityService {
     request: CreateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
     await this.initialize();
+    await this.entityRegistry.ensureGroupingsCurrent(request.entity.entityType);
     return this.entityMutations.createEntity(request);
   }
 
@@ -499,6 +503,7 @@ export class EntityService implements IEntityService {
   ): Promise<EntityMutationResult> {
     await this.initialize();
     const { input, options } = request;
+    await this.entityRegistry.ensureGroupingsCurrent(input.entityType);
     const parsed = this.entitySerializer.deserializeEntity(
       input.markdown,
       input.entityType,
@@ -523,6 +528,7 @@ export class EntityService implements IEntityService {
     request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
     await this.initialize();
+    await this.entityRegistry.ensureGroupingsCurrent(request.entity.entityType);
     return this.entityMutations.updateEntity(request);
   }
 
@@ -535,6 +541,7 @@ export class EntityService implements IEntityService {
     request: UpsertEntityRequest<T>,
   ): Promise<EntityMutationResult & { created: boolean }> {
     await this.initialize();
+    await this.entityRegistry.ensureGroupingsCurrent(request.entity.entityType);
     return this.entityMutations.upsertEntity(request);
   }
 
@@ -712,6 +719,7 @@ export class EntityService implements IEntityService {
     request.signal?.throwIfAborted();
     await this.initialize();
     const { entityType, id, visibilityScope } = request;
+    await this.entityRegistry.ensureGroupingsCurrent(entityType);
     const entityData = await this.entityQueries.getEntityData(
       entityType,
       id,
@@ -768,6 +776,7 @@ export class EntityService implements IEntityService {
     if (this.groupingReprojection) return this.groupingReprojection;
     this.groupingsReady = false;
     this.groupingReprojection = this.initialize()
+      .then(() => this.entityRegistry.ensureGroupingsCurrent())
       .then(() => reprojectGroupings(this.db, this.entityRegistry))
       .then(() => {
         this.groupingsReady = true;
@@ -783,6 +792,7 @@ export class EntityService implements IEntityService {
   ): Promise<EntityGroupingCatalog> {
     request.signal?.throwIfAborted();
     await this.initialize();
+    await this.entityRegistry.ensureGroupingsCurrent();
     return this.entityQueries.queryGroupingCatalog(request);
   }
 
@@ -791,6 +801,7 @@ export class EntityService implements IEntityService {
   ): Promise<EntityGroupingMembers> {
     request.signal?.throwIfAborted();
     await this.initialize();
+    await this.entityRegistry.ensureGroupingsCurrent();
     return this.entityQueries.queryGroupingMembers(request);
   }
 

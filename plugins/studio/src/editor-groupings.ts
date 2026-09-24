@@ -71,6 +71,7 @@ export async function handleGroupingRead(
   );
   if (!query.success || (mode === "members" && query.data.value === undefined))
     return jsonResponse({ error: "Invalid grouping query" }, 400);
+  await context.entities.ensureGroupingsCurrent();
   const grouping = context.entities
     .getGroupings()
     .find((candidate) => candidate.key === query.data.grouping);

@@ -24,6 +24,7 @@ import type {
   CreateInterceptor,
   UploadSaveHandlerRegistration,
   EntityAdapter,
+  EntityGroupingSource,
   EntityRegistry as IEntityRegistry,
   EntityTypeConfig,
   PersistValidator,
@@ -44,6 +45,7 @@ export class EntityRegistry implements IEntityRegistry {
   private groupingExtensions = new Map<string, FrontmatterSchema[]>();
   private logger: Logger;
   private groupings = new Map<string, EntityGrouping>();
+  private groupingSource: EntityGroupingSource | undefined;
 
   public static createFresh(logger: Logger): EntityRegistry {
     return new EntityRegistry(logger);
@@ -87,6 +89,10 @@ export class EntityRegistry implements IEntityRegistry {
   }
 
   unregisterEntityType(type: string): void {
+    if (this.groupingSource?.entityType === type) {
+      this.groupingSource = undefined;
+      this.replaceGroupings([]);
+    }
     this.entitySchemas.delete(type);
     this.entityAdapters.delete(type);
     this.entityConfigs.delete(type);
@@ -317,6 +323,20 @@ export class EntityRegistry implements IEntityRegistry {
     this.frontmatterExtensions.set(type, existing);
 
     this.logger.debug(`Extended frontmatter schema for entity type: ${type}`);
+  }
+
+  registerGroupingSource(source: EntityGroupingSource): void {
+    if (this.groupingSource)
+      throw new Error("A grouping source is already registered");
+    if (!this.hasEntityType(source.entityType))
+      throw new Error("Grouping source entity type is not registered");
+    this.groupingSource = source;
+  }
+
+  async ensureGroupingsCurrent(entityType?: string): Promise<void> {
+    const source = this.groupingSource;
+    if (source && source.entityType !== entityType)
+      await source.ensureCurrent();
   }
 
   /** Validate a complete replacement set without changing the active schemas. */
