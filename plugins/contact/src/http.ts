@@ -44,7 +44,9 @@ const formSchema = z.strictObject({
 const headers = {
   "Content-Type": "text/html; charset=utf-8",
   "Cache-Control": "no-store",
-  "Referrer-Policy": "no-referrer",
+  // no-referrer makes native browser POSTs send Origin: null. same-origin
+  // preserves the origin check while still suppressing cross-site referrers.
+  "Referrer-Policy": "same-origin",
   "X-Content-Type-Options": "nosniff",
   "Content-Security-Policy":
     "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
