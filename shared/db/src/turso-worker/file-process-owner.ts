@@ -35,6 +35,28 @@ export type {
   FileHttpUploadResult,
 } from "./file-http-upload";
 
+/** A validated HTTP terminal message was observed, but the operation failed.
+ * Not completion, retry authority, or a credential-safe logging projection.
+ */
+export class ReceivedFileHttpUploadError extends Error {
+  public readonly outcome: Readonly<FileHttpUploadResult>;
+
+  constructor(outcome: FileHttpUploadResult, cause: unknown) {
+    super("HTTP upload receipt received but actor completion failed", {
+      cause,
+    });
+    this.name = "ReceivedFileHttpUploadError";
+    this.outcome = Object.freeze({
+      sizeBytes: outcome.sizeBytes,
+      sha256: outcome.sha256,
+      statusCode: outcome.statusCode,
+      ...(outcome.responseMetadata && {
+        responseMetadata: Object.freeze({ ...outcome.responseMetadata }),
+      }),
+    });
+  }
+}
+
 const detailsSchema = z
   .record(
     z.string().max(64),
@@ -363,6 +385,19 @@ export class FileProcessOwner {
       ...parseHttpUploadDetails(options, result.details),
     };
   }
+  private retainReceivedFailure(received: ReceivedFileHttpUploadError): void {
+    // This state may have changed in an IPC callback while run awaited exit.
+    if (this.failure !== undefined) {
+      this.failure =
+        this.failure === received.cause
+          ? received
+          : new AggregateError(
+              [this.failure, received],
+              "HTTP upload receipt and owner failure",
+              { cause: this.failure },
+            );
+    }
+  }
   private fence(error: unknown): void {
     this.failure ??= error;
     for (const child of this.children) child.stop(error, true);
@@ -559,6 +594,21 @@ export class FileProcessOwner {
       if (!state.facts)
         throw new Error("File actor produced no completion facts");
       return state.facts;
+    } catch (error) {
+      if (observeHttp && state.facts && "method" in input) {
+        const received = new ReceivedFileHttpUploadError(
+          {
+            sizeBytes: state.facts.sizeBytes,
+            sha256: state.facts.sha256,
+            ...parseHttpUploadDetails(input.input, state.facts.details),
+          },
+          error,
+        );
+        // Shutdown must not discard evidence retained by an individual call.
+        this.retainReceivedFailure(received);
+        throw received;
+      }
+      throw error;
     } finally {
       if (abort) signal?.removeEventListener("abort", abort);
       // A spawn failure has no child to join. An unconfirmed exit retains its slot.

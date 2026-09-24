@@ -3,7 +3,10 @@ import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { FileProcessOwner } from "../src/turso-worker/file-process-owner";
+import {
+  FileProcessOwner,
+  ReceivedFileHttpUploadError,
+} from "../src/turso-worker/file-process-owner";
 import type { FileHttpUploadInput } from "../src/turso-worker/file-http-upload";
 const methods: ("put" | "post")[] = ["put", "post"];
 const peer = new URL("./fixtures/file-http-peer.ts", import.meta.url);
@@ -210,7 +213,10 @@ test("missing or malformed HTTP receipts fence reuse even after cancellation", a
       },
       caller.signal,
     );
-    const rejected = assert.rejects(work);
+    const rejected = assert.rejects(work, (error: unknown) => {
+      assert.ok(!(error instanceof ReceivedFileHttpUploadError));
+      return true;
+    });
     try {
       await until(() => Bun.file(`${gate}.entered`).exists());
       caller.abort(new Error("cancelled with uncertain remote outcome"));
@@ -229,6 +235,138 @@ test("missing or malformed HTTP receipts fence reuse even after cancellation", a
     }
     // Retain the peer's uncertain-receipt evidence.
   }
+});
+
+test.each(methods)(
+  "HTTP %s retains received evidence through later exit/protocol failures and shutdown",
+  async (method) => {
+    for (const mode of ["bad-exit", "duplicate"]) {
+      const directory = await mkdtemp(join(tmpdir(), "turso-http-received-"));
+      const gate = join(directory, "upload");
+      const files = owner();
+      const caller = new AbortController();
+      let settled = false;
+      const cancellation = new Error("cancelled after submission");
+      let observed: ReceivedFileHttpUploadError | undefined;
+      const work = files[method](
+        { ...input(gate, mode), responseMetadata: { messageId: ["id"] } },
+        caller.signal,
+      );
+      const rejected = assert
+        .rejects(work, (error: unknown) => {
+          assert.ok(error instanceof ReceivedFileHttpUploadError);
+          observed = error;
+          assert.deepEqual(error.outcome, {
+            ...input(gate).facts,
+            statusCode: 201,
+            responseMetadata: { messageId: "receipt" },
+          });
+          assert.ok(error.cause instanceof AggregateError);
+          assert.ok(error.cause.errors.includes(cancellation));
+          const message =
+            mode === "bad-exit"
+              ? /exited without acknowledged completion/
+              : /Repeated file actor completion/;
+          assert.ok(
+            error.cause.errors.some(
+              (cause: unknown) =>
+                cause instanceof Error && message.test(cause.message),
+            ),
+          );
+          return true;
+        })
+        .finally(() => {
+          settled = true;
+        });
+      try {
+        await until(() => Bun.file(`${gate}.entered`).exists());
+        caller.abort(cancellation);
+        await until(() => Bun.file(`${gate}.cancelled`).exists());
+        await Bun.write(`${gate}.receipt`, "receipt");
+        await until(() => files.stats().terminalChildren === 1);
+        expect(settled).toBe(false);
+        expect(files.stats().children).toBe(1);
+        const closing = Promise.allSettled([files.close()]);
+        expect(settled).toBe(false);
+        await Bun.write(`${gate}.exit`, "exit");
+        await rejected;
+        expect((await closing)[0].status).toBe("rejected");
+        expect(files.stats().children).toBe(0);
+        expect(files.stats().fenced).toBe(true);
+        const evidence = observed;
+        assert.ok(evidence);
+        expect(Object.isFrozen(evidence.outcome)).toBe(true);
+        expect(Object.isFrozen(evidence.outcome.responseMetadata)).toBe(true);
+        await assert.rejects(
+          files.close(),
+          (error: unknown) =>
+            error === evidence ||
+            (error instanceof AggregateError &&
+              error.errors.includes(evidence)),
+        );
+        await assert.rejects(files[method](input(gate)), /fenced/);
+      } finally {
+        await Bun.write(`${gate}.receipt`, "release");
+        await Bun.write(`${gate}.exit`, "release");
+        await Promise.allSettled([rejected, files.close()]);
+      }
+      // Keep the failed peer's gate evidence for diagnosis.
+    }
+  },
+);
+
+test("a shared owner fence retains both already-received HTTP outcomes", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "turso-http-received-pair-"));
+  const gates = [join(directory, "first"), join(directory, "second")];
+  const files = owner();
+  const outcomes: ReceivedFileHttpUploadError[] = [];
+  const work = gates.map((gate, index) =>
+    assert.rejects(
+      files.post({
+        ...input(gate, index === 0 ? "bad-exit" : "success"),
+        facts: { sizeBytes: 1, sha256: (index === 0 ? "a" : "b").repeat(64) },
+      }),
+      (error: unknown) => {
+        assert.ok(error instanceof ReceivedFileHttpUploadError);
+        outcomes.push(error);
+        return true;
+      },
+    ),
+  );
+  try {
+    for (const gate of gates) await Bun.write(`${gate}.receipt`, "receipt");
+    await until(() => files.stats().terminalChildren === 2);
+    expect(files.stats().children).toBe(2);
+    const closing = Promise.allSettled([files.close()]);
+    await Bun.write(`${gates[0]}.exit`, "fail first actor");
+    await Promise.all(work);
+    expect((await closing)[0].status).toBe("rejected");
+    expect(outcomes.map((error) => error.outcome.sha256).sort()).toEqual([
+      "a".repeat(64),
+      "b".repeat(64),
+    ]);
+    expect(files.stats().children).toBe(0);
+    await assert.rejects(files.close(), (error: unknown) => {
+      const seen = new Set<unknown>();
+      const pending: unknown[] = [error];
+      while (pending.length > 0) {
+        const value = pending.pop();
+        if (seen.has(value)) continue;
+        seen.add(value);
+        if (value instanceof Error) pending.push(value.cause);
+        if (value instanceof AggregateError) pending.push(...value.errors);
+      }
+      assert.ok(outcomes.every((outcome) => seen.has(outcome)));
+      return true;
+    });
+  } finally {
+    for (const gate of gates) {
+      await Bun.write(`${gate}.receipt`, "release");
+      await Bun.write(`${gate}.exit`, "release");
+    }
+    await Promise.allSettled([...work, files.close()]);
+  }
+  // Failed actor evidence remains available; neither outcome is replayed.
 });
 
 test.each(methods)(

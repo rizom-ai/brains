@@ -47,6 +47,17 @@ process.on("message", (value: unknown) => {
       });
     }
     while (!(await Bun.file(`${path}.exit`).exists())) await Bun.sleep(5);
+    if (mode === "/bad-exit") process.exitCode = 7;
+    if (mode === "/duplicate") {
+      process.send?.({
+        kind: "consumed",
+        pid: process.pid,
+        ...input.facts,
+        details: { statusCode: 202 },
+      });
+      // Keep the peer alive until the owner fences it.
+      await Bun.sleep(1000);
+    }
     process.disconnect();
   })();
 });
