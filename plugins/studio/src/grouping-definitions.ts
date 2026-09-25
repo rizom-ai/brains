@@ -44,11 +44,12 @@ export function registerGroupingDefinitions(
       }),
     validate: (groupings): void =>
       context.entities.validateGroupings(groupings),
-    replace: (groupings): void => context.entities.replaceGroupings(groupings),
+    replace: (groupings, options): void =>
+      context.entities.replaceGroupings(groupings, options),
   });
   context.entities.registerGroupingSource({
     entityType: GROUPING_DEFINITIONS_TYPE,
-    ensureCurrent: () => source.ensureCurrent(),
+    ensureCurrent: (options) => source.ensureCurrent(options),
   });
   context.entities.registerPersistValidator(
     GROUPING_DEFINITIONS_TYPE,

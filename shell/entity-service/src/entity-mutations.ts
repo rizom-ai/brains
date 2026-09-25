@@ -183,6 +183,8 @@ export class EntityMutations {
       `Creating entity asynchronously of type: ${entity["entityType"]}`,
     );
 
+    const assertGroupingsCurrent =
+      this.entityRegistry.captureGroupingWriteGuard(entity.entityType);
     // Generate ID, timestamps, and contentHash if not provided
     const now = new Date().toISOString();
     const entityWithDefaults = {
@@ -266,6 +268,8 @@ export class EntityMutations {
           contentHash,
           metadata,
         });
+        options?.signal?.throwIfAborted();
+        await assertGroupingsCurrent();
         options?.signal?.throwIfAborted();
         // Once the entity write starts, settle the complete atomic mutation.
         await transaction.insert(entities).values({
@@ -353,6 +357,8 @@ export class EntityMutations {
       `Updating entity asynchronously: ${entity.entityType} with ID ${entity.id}`,
     );
 
+    const assertGroupingsCurrent =
+      this.entityRegistry.captureGroupingWriteGuard(entity.entityType);
     // Validate and serialize first to compute the new content hash
     const updatedEntity = {
       ...entity,
@@ -443,6 +449,7 @@ export class EntityMutations {
         },
         async (transaction) => {
           options?.signal?.throwIfAborted();
+          await assertGroupingsCurrent();
           await this.bindAssetContent(
             transaction,
             validatedEntity.entityType,
@@ -520,6 +527,8 @@ export class EntityMutations {
             contentHash,
             metadata,
           });
+          options?.signal?.throwIfAborted();
+          await assertGroupingsCurrent();
           options?.signal?.throwIfAborted();
           // Cancellation after this boundary must not split the entity from its journals.
           const updateResult = await transaction

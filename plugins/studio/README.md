@@ -69,11 +69,14 @@ Workspace definitions may opt into host-owned stable URL filters with a typed qu
 
 Implementation checkpoint: the private `registerGroupingDefinitions` module now
 provides the replacement shared singleton, exact-value/cardinality validation and
-a read-only, hash-checked definition source. Real Note/Post integration tests
-install it directly and cover independent registries on one database, schema
-refresh and projection rollback. It is **not yet installed by `StudioPlugin`**.
-Production activation must replace the configuration/vocabulary path below,
-coordinate post-save reprojection/readiness, and supply the new admin/editor UI.
+a read-only definition source. Saving definitions now indexes added type/field
+pairs through the bounded core scan. Readiness is held only in memory. Separate
+Bun-process tests cover interrupted scans and missed remove/re-add transitions;
+observers compare the existing content/hash/timestamps and conservatively rescan
+retained fields on an observed change. No persistent progress state is added.
+It is **not yet installed by `StudioPlugin`**. Production activation must replace
+the configuration/vocabulary path below, derive the new descriptors, and supply
+the new admin/editor UI.
 There is no legacy reader or automatic conversion in the new source; this is not
 a supported mixed-configuration mode.
 

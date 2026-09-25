@@ -130,11 +130,12 @@ export function createMockEntityService(
     Promise.resolve(returns.search ?? []),
   );
 
-  return {
+  const service: IEntityService = {
     getEntityWriteSnapshot: mock(
       async () => returns.getEntityWriteSnapshot ?? null,
     ),
     areGroupingsReady: mock(() => true),
+    ensureGroupingsReady: mock(async () => service.areGroupingsReady()),
     reprojectRegisteredGroupings: mock(async () => {}),
     getEntity: genericSpy<IEntityService["getEntity"]>(getEntityMock),
     getEntityRaw: genericSpy<IEntityService["getEntityRaw"]>(getEntityRawMock),
@@ -253,4 +254,5 @@ export function createMockEntityService(
     },
     initialize: mock(() => Promise.resolve()),
   } satisfies IEntityService;
+  return service;
 }

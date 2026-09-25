@@ -34,8 +34,12 @@ describe("groupings through the plugin context", () => {
     );
     context.entities.replaceGroupings(groupings);
     context.entities.replaceGroupings([]);
-    expect(replace).toHaveBeenNthCalledWith(1, groupings);
-    expect(replace).toHaveBeenNthCalledWith(2, []);
+    expect(replace).toHaveBeenNthCalledWith(1, groupings, undefined);
+    expect(replace).toHaveBeenNthCalledWith(2, [], undefined);
+    context.entities.replaceGroupings(groupings, { reprojectExisting: true });
+    expect(replace).toHaveBeenNthCalledWith(3, groupings, {
+      reprojectExisting: true,
+    });
     replace.mockImplementation(() => {
       throw new Error("Invalid grouping");
     });

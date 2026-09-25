@@ -409,6 +409,7 @@ export function createMockEntityService(
       releasedDurableRoots: 0,
     }),
     areGroupingsReady: () => true,
+    ensureGroupingsReady: async () => service.areGroupingsReady(),
     reprojectRegisteredGroupings: async (): Promise<void> => {},
     // Hierarchy grouping is tested against SQLite, not duplicated in this fake.
     queryEntityHierarchy: async (): Promise<never> => {

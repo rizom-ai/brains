@@ -1,4 +1,9 @@
+import {
+  GroupingProjectionState,
+  type GroupingProjectionTarget,
+} from "./grouping-projection-state";
 import type { Logger } from "@brains/utils/logger";
+import { EntityValidationError } from "./errors";
 import { baseEntitySchema, contentVisibilitySchema } from "./types";
 import {
   projectFrontmatterExtensions,
@@ -46,6 +51,8 @@ export class EntityRegistry implements IEntityRegistry {
   private logger: Logger;
   private groupings = new Map<string, EntityGrouping>();
   private groupingSource: EntityGroupingSource | undefined;
+  private readonly groupingProjections = new GroupingProjectionState();
+  private groupingRevision = 0;
 
   public static createFresh(logger: Logger): EntityRegistry {
     return new EntityRegistry(logger);
@@ -333,10 +340,48 @@ export class EntityRegistry implements IEntityRegistry {
     this.groupingSource = source;
   }
 
-  async ensureGroupingsCurrent(entityType?: string): Promise<void> {
+  /** Invoke the returned guard inside the existing write transaction. */
+  captureGroupingWriteGuard(entityType: string): () => Promise<void> {
+    const revision = this.groupingRevision;
+    return async (): Promise<void> => {
+      await this.ensureGroupingsCurrent();
+      if (revision !== this.groupingRevision)
+        throw new EntityValidationError(
+          entityType,
+          new z.ZodError([
+            {
+              code: "custom",
+              path: [],
+              message:
+                "Grouping definitions changed while saving. Review the current rules and try again.",
+            },
+          ]),
+          "persist",
+        );
+    };
+  }
+
+  getGroupingSourceType(): string | undefined {
+    return this.groupingSource?.entityType;
+  }
+
+  getPendingGroupingProjections(): GroupingProjectionTarget[] {
+    return this.groupingProjections.pending();
+  }
+
+  completeGroupingProjections(
+    targets: readonly GroupingProjectionTarget[],
+  ): void {
+    this.groupingProjections.complete(targets);
+  }
+
+  async ensureGroupingsCurrent(
+    entityType?: string,
+    options?: { afterWrite?: boolean },
+  ): Promise<void> {
     const source = this.groupingSource;
     if (source && source.entityType !== entityType)
-      await source.ensureCurrent();
+      await source.ensureCurrent(options);
   }
 
   /** Validate a complete replacement set without changing the active schemas. */
@@ -345,10 +390,18 @@ export class EntityRegistry implements IEntityRegistry {
   }
 
   /** Swap declarations and their fields only after the entire set validates. */
-  replaceGroupings(groupings: readonly EntityGrouping[]): void {
+  replaceGroupings(
+    groupings: readonly EntityGrouping[],
+    options?: { reprojectExisting?: boolean },
+  ): void {
     const staged = this.stageGroupings(groupings);
     this.groupings = staged.groupings;
     this.groupingExtensions = staged.groupingExtensions;
+    this.groupingRevision++;
+    this.groupingProjections.replace(
+      this.groupings.values(),
+      options?.reprojectExisting,
+    );
   }
 
   private stageGroupings(groupings: readonly EntityGrouping[]): EntityRegistry {
@@ -434,6 +487,8 @@ export class EntityRegistry implements IEntityRegistry {
       this.groupingExtensions.set(type, extensions);
     }
     this.groupings.set(grouping.key, grouping);
+    this.groupingRevision++;
+    this.groupingProjections.replace(this.groupings.values());
   }
 
   getGrouping(key: string): EntityGrouping {

@@ -60,6 +60,29 @@ describe("grouping source lifecycle", () => {
       await value.ensureGroupingsCurrent().catch((error: unknown) => error),
     ).toMatchObject({ message: "Read unavailable" });
   });
+  test("write guards change only on successful publication, including an unchanged pair set", async () => {
+    const value = registry();
+    const grouping = {
+      key: "areas",
+      field: "areas",
+      label: "Areas",
+      types: ["test"],
+    };
+    value.replaceGroupings([grouping]);
+    const before = value.captureGroupingWriteGuard("test");
+    expect(() =>
+      value.replaceGroupings([{ ...grouping, types: ["missing"] }]),
+    ).toThrow();
+    await before();
+    // A source can publish a policy edit without changing its field declarations.
+    value.replaceGroupings([grouping]);
+    expect(await before().catch((error: unknown) => error)).toMatchObject({
+      name: "EntityValidationError",
+      phase: "persist",
+    });
+    await value.captureGroupingWriteGuard("test")();
+  });
+
   test("unregistering the owner clears its source and grouping-owned fields", async () => {
     const value = registry();
     let calls = 0;

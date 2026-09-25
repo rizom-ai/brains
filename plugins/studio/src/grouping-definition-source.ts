@@ -12,11 +12,16 @@ import {
 interface DefinitionRow {
   content: string;
   contentHash: string;
+  created?: string;
+  updated?: string;
 }
 interface DefinitionSourceDependencies {
   read(): Promise<DefinitionRow | null>;
   validate(groupings: readonly EntityGrouping[]): void;
-  replace(groupings: readonly EntityGrouping[]): void;
+  replace(
+    groupings: readonly EntityGrouping[],
+    options?: { reprojectExisting?: boolean },
+  ): void;
 }
 
 /**
@@ -33,10 +38,12 @@ export class GroupingDefinitionSource {
     this.dependencies = dependencies;
   }
 
-  public ensureCurrent(): Promise<void> {
+  public ensureCurrent(options?: { afterWrite?: boolean }): Promise<void> {
     // Each caller gets its own read; a failed predecessor must not poison the
     // queue or make an older completion overwrite a newer installed revision.
-    const current = this.pending.then(() => this.refresh());
+    const current = this.pending.then(() =>
+      this.refresh(options?.afterWrite === true),
+    );
     this.pending = current.catch(() => {
       // The caller still observes the rejection through current. Only the
       // serialization tail recovers, so the next operation can retry.
@@ -54,18 +61,26 @@ export class GroupingDefinitionSource {
     return this.selectDefinitions(groupings);
   }
 
-  private async refresh(): Promise<void> {
+  private async refresh(afterWrite: boolean): Promise<void> {
     const row = await this.dependencies.read();
     if (
       this.previous !== undefined &&
       row?.contentHash === this.previous?.contentHash &&
-      row?.content === this.previous?.content
+      row?.content === this.previous?.content &&
+      row?.created === this.previous?.created &&
+      row?.updated === this.previous?.updated
     )
       return;
     const snapshot = row
       ? this.parseStored(row.content)
       : { groupings: {}, issues: [] };
-    this.dependencies.replace(declarations(snapshot.groupings));
+    // An observer may have missed intermediate removals. Recheck retained
+    // fields too; only the saving process can use its immediate before/after
+    // view to limit a normal edit to added pairs. These are existing document
+    // timestamps, not a persisted readiness marker.
+    this.dependencies.replace(declarations(snapshot.groupings), {
+      reprojectExisting: !afterWrite,
+    });
     // Publication follows successful replacement; a failure remains retryable.
     this.snapshot = snapshot;
     this.previous = row ? { ...row } : null;

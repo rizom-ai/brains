@@ -197,6 +197,316 @@ describe("document-backed runtime definitions with real adapters", () => {
     expect(after).toEqual(before);
   });
 
+  test("saving a definition indexes existing notes; adding a contributor scans only that type", async () => {
+    const fixture = await open(await directory());
+    for (const entityType of ["note", "post"]) {
+      await fixture.service.createEntityFromMarkdown({
+        input: {
+          entityType,
+          id: "existing",
+          markdown: content(["Research"], entityType),
+        },
+      });
+    }
+    const projected = spyOn(fixture.registry, "projectStoredMetadata");
+    expect(
+      (await save(fixture, { areas: { ...areas, types: ["note"] } })).status,
+    ).toBe(201);
+    expect(projected.mock.calls.map((call) => call[0])).toEqual(["note"]);
+    expect(fixture.service.areGroupingsReady()).toBe(true);
+    expect(fixture.source.getSnapshot().groupings["areas"]?.types).toEqual([
+      "note",
+    ]);
+    projected.mockClear();
+    expect((await save(fixture, { areas }, "PUT")).status).toBe(200);
+    expect(projected.mock.calls.map((call) => call[0])).toEqual(["post"]);
+    const catalog = await fixture.request(
+      "GET",
+      "groups/catalog?grouping=areas",
+    );
+    expect(await catalog.json()).toMatchObject({
+      values: [{ value: "Research", count: 2 }],
+    });
+    projected.mockClear();
+    expect(
+      (
+        await save(
+          fixture,
+          { areas: { ...areas, label: "Research areas", multiple: false } },
+          "PUT",
+        )
+      ).status,
+    ).toBe(200);
+    expect(projected).not.toHaveBeenCalled();
+    expect((await save(fixture, {}, "PUT")).status).toBe(200);
+    expect(projected).not.toHaveBeenCalled();
+  });
+
+  test("Studio returns initializing while a successful scan is still checking its final source revision", async () => {
+    const fixture = await open(await directory());
+    await fixture.service.createEntityFromMarkdown({
+      input: {
+        entityType: "note",
+        id: "existing",
+        markdown: content(["Research"]),
+      },
+    });
+    let projected = false;
+    const project = fixture.registry.projectStoredMetadata.bind(
+      fixture.registry,
+    );
+    spyOn(fixture.registry, "projectStoredMetadata").mockImplementation(
+      (...args) => {
+        projected = true;
+        return project(...args);
+      },
+    );
+    let release: (() => void) | undefined;
+    let entered: (() => void) | undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const held = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    let waiting = false;
+    const refresh = fixture.source.ensureCurrent.bind(fixture.source);
+    spyOn(fixture.source, "ensureCurrent").mockImplementation(
+      async (options) => {
+        if (projected && !waiting) {
+          waiting = true;
+          entered?.();
+          await gate;
+        }
+        await refresh(options);
+      },
+    );
+    const saving = save(fixture, { areas });
+    try {
+      await Promise.race([
+        held,
+        saving.then(() => {
+          throw new Error("Save finished without holding the scan");
+        }),
+      ]);
+      expect(fixture.service.areGroupingsReady()).toBe(false);
+      const response = await fixture.request(
+        "GET",
+        "groups/catalog?grouping=areas",
+      );
+      expect(response.status).toBe(503);
+      expect(await response.json()).toMatchObject({
+        code: "groupings_initializing",
+      });
+    } finally {
+      release?.();
+      await saving;
+    }
+    expect(fixture.service.areGroupingsReady()).toBe(true);
+    expect(
+      await (
+        await fixture.request("GET", "groups/catalog?grouping=areas")
+      ).json(),
+    ).toMatchObject({ values: [{ value: "Research", count: 1 }] });
+  });
+
+  test.each(["create", "update", "upsert", "noop"])(
+    "%s refuses stale preparation at commit and succeeds on a fresh retry",
+    async (operation) => {
+      const dir = await directory();
+      const writer = await open(dir);
+      if (operation === "noop")
+        expect((await save(writer, { areas })).status).toBe(201);
+      if (operation !== "create")
+        await writer.service.createEntityFromMarkdown({
+          input: {
+            entityType: "note",
+            id: "late",
+            markdown: content(["Research"]),
+          },
+        });
+      const worker = await open(dir);
+      const existing = await worker.service.getEntityRaw({
+        entityType: "note",
+        id: "late",
+      });
+      const write = async (): Promise<unknown> => {
+        if (operation === "create")
+          return worker.service.createEntityFromMarkdown({
+            input: {
+              entityType: "note",
+              id: "late",
+              markdown: content(["Research"]),
+            },
+          });
+        if (!existing) throw new Error("Missing existing Note");
+        const entity = {
+          ...existing,
+          content:
+            operation === "noop"
+              ? existing.content
+              : `${existing.content}\nChanged`,
+        };
+        return operation === "upsert"
+          ? worker.service.upsertEntity({ entity })
+          : worker.service.updateEntity({ entity });
+      };
+      let release: (() => void) | undefined;
+      let entered: (() => void) | undefined;
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const held = new Promise<void>((resolve) => {
+        entered = resolve;
+      });
+      worker.registry.registerPersistValidator("note", async () => {
+        entered?.();
+        await gate;
+      });
+      const writing = write().catch((error: unknown) => error);
+      let refused: unknown;
+      let exports: Awaited<
+        ReturnType<EntityService["listPendingEntityExports"]>
+      >;
+      try {
+        await Promise.race([
+          held,
+          writing.then(() => {
+            throw new Error(
+              "Write finished before the guard test could pause it",
+            );
+          }),
+        ]);
+        expect(
+          (
+            await save(
+              writer,
+              { areas: { ...areas, values: ["Research"] } },
+              operation === "noop" ? "PUT" : "POST",
+            )
+          ).status,
+        ).toBe(operation === "noop" ? 200 : 201);
+        exports = await writer.service.listPendingEntityExports();
+      } finally {
+        release?.();
+        refused = await writing;
+      }
+      expect(refused).toMatchObject({
+        name: "EntityValidationError",
+        phase: "persist",
+        originalError: {
+          issues: [
+            {
+              path: [],
+              message:
+                "Grouping definitions changed while saving. Review the current rules and try again.",
+            },
+          ],
+        },
+      });
+      const after = await worker.service.getEntityRaw({
+        entityType: "note",
+        id: "late",
+      });
+      expect(after?.content).toBe(existing?.content);
+      expect(after?.updated).toBe(existing?.updated);
+      expect(await worker.service.listPendingEntityExports()).toEqual(exports);
+      await write();
+      expect(
+        (
+          await writer.service.queryGroupingCatalog({
+            grouping: "areas",
+            entityTypes: ["note"],
+          })
+        ).values,
+      ).toEqual([{ value: "Research", count: 1 }]);
+    },
+  );
+
+  test("source projection reconciliation conservatively checks retained fields after commit", async () => {
+    const dir = await directory();
+    const writer = await open(dir);
+    await writer.service.createEntityFromMarkdown({
+      input: {
+        entityType: "note",
+        id: "existing",
+        markdown: content(["Research"]),
+      },
+    });
+    expect((await save(writer, { areas })).status).toBe(201);
+    const reader = await open(dir);
+    const scan = spyOn(reader.registry, "projectStoredMetadata");
+    expect(
+      (await save(writer, { areas: { ...areas, label: "Renamed" } }, "PUT"))
+        .status,
+    ).toBe(200);
+    const row = await writer.service.getEntityRaw({
+      entityType: type,
+      id: type,
+      visibilityScope: "shared",
+    });
+    if (!row) throw new Error("Missing saved definitions");
+    await reader.service.reconcileProjectionTargets([
+      {
+        entityType: type,
+        entityId: type,
+        operation: "upsert",
+        contentHash: row.contentHash,
+      },
+    ]);
+    expect(scan).toHaveBeenCalled();
+    expect(reader.service.areGroupingsReady()).toBe(true);
+  });
+
+  test("a failed post-save scan keeps the saved document and returns initializing until retry succeeds", async () => {
+    const fixture = await open(await directory());
+    await fixture.service.createEntityFromMarkdown({
+      input: {
+        entityType: "note",
+        id: "existing",
+        markdown: content(["Research"]),
+      },
+    });
+    const fail = spyOn(
+      fixture.registry,
+      "projectStoredMetadata",
+    ).mockImplementation(() => {
+      throw new Error("Interrupted scan");
+    });
+    expect((await save(fixture, { areas })).status).toBe(201);
+    expect(
+      await fixture.service.getEntityRaw({
+        entityType: type,
+        id: type,
+        visibilityScope: "shared",
+      }),
+    ).not.toBeNull();
+    expect(fixture.service.areGroupingsReady()).toBe(false);
+    const response = await fixture.request(
+      "GET",
+      "groups/catalog?grouping=areas",
+    );
+    expect(response.status).toBe(503);
+    expect(response.headers.get("Retry-After")).toBe("1");
+    expect(await response.json()).toMatchObject({
+      code: "groupings_initializing",
+    });
+    // Drain the unsuccessful caller-owned retry before restoring the backend.
+    await fixture.service
+      .queryGroupingCatalog({ grouping: "areas", entityTypes: ["note"] })
+      .catch(() => undefined);
+    fail.mockRestore();
+    expect(
+      (
+        await fixture.service.queryGroupingCatalog({
+          grouping: "areas",
+          entityTypes: ["note"],
+        })
+      ).values,
+    ).toEqual([{ value: "Research", count: 1 }]);
+    expect(fixture.service.areGroupingsReady()).toBe(true);
+  });
+
   test("loads raw definitions without resolving image-like literal values", async () => {
     const dir = await directory();
     const writer = await open(dir);
@@ -380,7 +690,8 @@ describe("document-backed runtime definitions with real adapters", () => {
     await worker.service.createEntityFromMarkdown({
       input: { entityType: "note", id: "unclaimed", markdown },
     });
-    expect(reads).toHaveBeenCalledTimes(1);
+    // Before deserialization, then again under the transaction's writer lock.
+    expect(reads).toHaveBeenCalledTimes(2);
     expect(worker.registry.getGroupings()).toEqual([]);
     const saved = await worker.service.getEntity({
       entityType: "note",
@@ -436,6 +747,7 @@ describe("document-backed runtime definitions with real adapters", () => {
     const writer = await open(dir);
     const worker = await open(dir);
     const reprojection = spyOn(worker.service, "reprojectRegisteredGroupings");
+    const metadataScan = spyOn(worker.registry, "projectStoredMetadata");
     expect(
       (
         await save(writer, {
@@ -495,6 +807,7 @@ describe("document-backed runtime definitions with real adapters", () => {
       await store.isProjectionOwnedEntity({ entityType: "note", id: "A" }),
     ).toBe(false);
     expect(reprojection).not.toHaveBeenCalled();
+    expect(metadataScan).not.toHaveBeenCalled();
     expect(
       (await save(writer, { areas: { ...areas, values: ["A", "B"] } }, "PUT"))
         .status,

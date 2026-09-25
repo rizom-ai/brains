@@ -140,21 +140,38 @@ Grouping-owned extensions are separate from permanent plugin extensions, so
 removing a grouping removes only fields it introduced. Owner and plugin fields,
 including their refinements, remain. Both methods are available through the
 plugin context's `entities` namespace. Replacement is registry-only: it does not
-rewrite content, schedule reprojection or coordinate serving readiness. Callers
-must coordinate the existing reprojection pass before serving changed catalogs.
+rewrite content or start database work. It records added type/field pairs in
+process-local memory; `{ reprojectExisting: true }` also invalidates retained
+pairs when an observer may have missed intermediate changes.
 
 A document owner can install one `registerGroupingSource({ entityType,
 ensureCurrent })` callback through the same namespace. Ordinary create/update
 validation, projection upsert preparation, entity detail reads, grouping queries
 and startup reprojection await it before consulting grouping contracts. The
-source's own entity operations skip refresh to avoid recursive reads. Studio's
+source's own entity reads skip refresh to avoid recursion. Studio's
 type/schema and grouping-route entry points also request refresh. Lookup failures
-propagate rather than admit writes under stale policy.
+propagate rather than admit writes under stale policy. Ordinary writes also
+capture an in-memory publication revision before preparation and refresh/check
+it inside their existing write transaction. A changed definition rejects stale
+preparation with an actionable persist-validation issue, including no-op updates;
+the caller can retry with current rules. This prevents a delayed old-schema write
+from committing unindexed membership after the new definition's scan finishes.
 
 The callback may replace in-memory declarations, but must not mutate persistence
-or start reprojection: projection upserts invoke it inside a transaction. This
-hook is not a post-save notification or a readiness coordinator; automatic
-reprojection of changed definitions and its serving gate remain separate work.
+or start reprojection: projection upserts invoke it inside a transaction.
+After an ordinary source-document mutation commits, the service refreshes again
+and awaits the pending bounded scan. Projection reconciliation does this outside
+the projection transaction. A failed scan does not undo or misreport a successful
+save: it leaves reads unready and logs the failure for retry.
+
+Readiness and pending work are **ephemeral, per-process state**: no new tables,
+durable jobs, checkpoints or completion records. `ensureGroupingsReady()` starts
+or joins a local scan and lets Studio return `503 groupings_initializing` while
+it runs. Direct service grouping queries await the pass. Concurrent requests
+share a pass; additions observed during it are drained before readiness, with a
+four-pass budget under repeated definition changes. Restart always rescans source.
+Only a source-enabled service schedules these runtime scans; static declarations
+retain the explicit startup lifecycle.
 
 `queryGroupingCatalog` returns each distinct value with the number of entities
 the caller may read. `queryGroupingMembers` returns one mixed-type page for a

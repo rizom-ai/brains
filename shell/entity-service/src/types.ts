@@ -1,3 +1,4 @@
+import type { GroupingProjectionTarget } from "./grouping-projection-state";
 import type { PreparedAsset } from "@brains/assets";
 import type {
   EntityGrouping,
@@ -992,7 +993,7 @@ export interface EntityGroupingMembers {
 export interface EntityGroupingSource {
   readonly entityType: string;
   /** Read-only with respect to persistence: never mutate entities or reproject. */
-  ensureCurrent(): Promise<void>;
+  ensureCurrent(options?: { afterWrite?: boolean }): Promise<void>;
 }
 
 /**
@@ -1003,8 +1004,11 @@ export interface IEntitiesNamespace {
   ensureGroupingsCurrent(): Promise<void>;
   /** Preflight a complete replacement set without modifying active schemas. */
   validateGroupings(groupings: readonly EntityGrouping[]): void;
-  /** Atomically replace grouping declarations and only their owned fields. */
-  replaceGroupings(groupings: readonly EntityGrouping[]): void;
+  /** Atomically replace declarations; observers may recheck retained fields. */
+  replaceGroupings(
+    groupings: readonly EntityGrouping[],
+    options?: { reprojectExisting?: boolean },
+  ): void;
   registerGrouping(grouping: EntityGrouping): void;
   getGroupings(): EntityGrouping[];
   /** Whether this type participates in any declared grouping. */
@@ -1110,6 +1114,8 @@ export interface IndexReadinessStatus extends EmbeddingIndexStats {
 export interface EntityServiceClient extends ICoreEntityService {
   /** Local admission state; grouping endpoints must not serve partial bootstrap results. */
   areGroupingsReady(): boolean;
+  /** Refresh definitions and start missing scans outside write transactions. */
+  ensureGroupingsReady(): Promise<boolean>;
   /** Internal source-authority check used by persistence integrations. */
   isProjectionOwnedEntity(
     request: ProjectionOwnedEntityRequest,
@@ -1274,12 +1280,25 @@ export interface EntityRegistry {
   ): void;
 
   registerGroupingSource(source: EntityGroupingSource): void;
-  /** The source's own entity operations skip refresh to avoid recursive reads. */
-  ensureGroupingsCurrent(entityType?: string): Promise<void>;
+  /** Capture preparation state; invoke the guard inside the write transaction. */
+  captureGroupingWriteGuard(entityType: string): () => Promise<void>;
+  getGroupingSourceType(): string | undefined;
+  getPendingGroupingProjections(): GroupingProjectionTarget[];
+  completeGroupingProjections(
+    targets: readonly GroupingProjectionTarget[],
+  ): void;
+  /** The source's own entity reads skip refresh to avoid recursion. */
+  ensureGroupingsCurrent(
+    entityType?: string,
+    options?: { afterWrite?: boolean },
+  ): Promise<void>;
   /** Preflight a complete replacement set without modifying active schemas. */
   validateGroupings(groupings: readonly EntityGrouping[]): void;
-  /** Atomically replace grouping declarations and only their owned fields. */
-  replaceGroupings(groupings: readonly EntityGrouping[]): void;
+  /** Atomically replace declarations; observers may recheck retained fields. */
+  replaceGroupings(
+    groupings: readonly EntityGrouping[],
+    options?: { reprojectExisting?: boolean },
+  ): void;
   registerGrouping(grouping: EntityGrouping): void;
   getGrouping(key: string): EntityGrouping;
   getGroupings(): EntityGrouping[];

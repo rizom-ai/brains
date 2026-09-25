@@ -82,7 +82,7 @@ export async function handleGroupingRead(
   }
   const descriptor = studioGroupDescriptors([grouping], admitted)[0];
   if (!descriptor) return jsonResponse({ error: "Unknown grouping" }, 404);
-  if (!context.entityService.areGroupingsReady()) {
+  if (!(await context.entityService.ensureGroupingsReady())) {
     const response = jsonResponse(
       { code: "groupings_initializing", error: "Collections are initializing" },
       503,

@@ -196,6 +196,32 @@ describe("definition source snapshots", () => {
       ]);
     },
   );
+  test("existing timestamps detect identical source restored between reads, while local saves retain delta scans", async () => {
+    const row = {
+      content: document({ areas }),
+      contentHash: "same",
+      updated: "first",
+    };
+    const rescans: Array<boolean | undefined> = [];
+    const source = new GroupingDefinitionSource({
+      read: async (): Promise<typeof row> => row,
+      validate: (): void => {},
+      replace: (_groupings, options): void => {
+        rescans.push(options?.reprojectExisting);
+      },
+    });
+    await source.ensureCurrent();
+    row.updated = "restored";
+    await source.ensureCurrent();
+    expect(rescans).toEqual([true, true]);
+    await source.ensureCurrent();
+    expect(rescans).toHaveLength(2);
+    row.updated = "local edit";
+    row.content = document({ areas: { ...areas, label: "Research" } });
+    await source.ensureCurrent({ afterWrite: true });
+    expect(rescans).toEqual([true, true, false]);
+  });
+
   test("serializes overlapping refreshes so an old read cannot overwrite a newer revision", async () => {
     let release: (() => void) | undefined;
     const gate = new Promise<void>((resolve) => {
