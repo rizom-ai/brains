@@ -52,6 +52,15 @@ const formSchema = z.strictObject({
   token: z.string().regex(/^[a-f0-9]{64}$/),
   ...contactSubmissionSchema.shape,
 });
+/** A site links a topic to the form; it starts the visitor's message, who can change it. */
+const TOPIC_MAX_LENGTH = 200;
+function topicDraft(url: URL): ContactDraft {
+  const topic = url.searchParams
+    .get("topic")
+    ?.trim()
+    .slice(0, TOPIC_MAX_LENGTH);
+  return topic ? { message: `${topic}\n\n` } : {};
+}
 const headers = {
   "Content-Type": "text/html; charset=utf-8",
   "Cache-Control": "no-store",
@@ -224,7 +233,7 @@ export class ContactHttpHandlers {
           contactForm(
             form.token,
             this.intake.retentionSeconds,
-            {},
+            topicDraft(url),
             undefined,
             presentation,
           ),

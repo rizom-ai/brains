@@ -24,6 +24,12 @@ function initials(owner: string): string {
     .join("");
 }
 
+/** The contact form starts the visitor's message with the topic they chose. */
+function topicUrl(contactUrl: string, topic: string): string {
+  const separator = contactUrl.includes("?") ? "&" : "?";
+  return `${contactUrl}${separator}${new URLSearchParams({ topic }).toString()}`;
+}
+
 /** Title cards open inward near either edge so they stay on screen. */
 function edgeClass(x: number): string {
   if (x > 0.72) return " atlas__mark--west";
@@ -259,9 +265,10 @@ export function HomepageAtlas({
             <ul className="atlas__topics" aria-label="Conversation topics">
               {opening.topics.map((topic, index) => (
                 <li key={`${index}-${topic}`}>
-                  {/* With chat, a topic fills the draft; without, it reaches the contact form. */}
+                  {/* With chat, a topic fills the draft; without, it reaches the contact form, where it starts the message. */}
                   <a
-                    href={opening.contactUrl}
+                    href={topicUrl(opening.contactUrl, topic)}
+                    data-atlas-door=""
                     {...(askBox ? { "data-atlas-fill": topic } : {})}
                   >
                     {topic}
@@ -270,7 +277,11 @@ export function HomepageAtlas({
               ))}
             </ul>
           )}
-          <a className="atlas__contact" href={opening.contactUrl}>
+          <a
+            className="atlas__contact"
+            href={opening.contactUrl}
+            data-atlas-door=""
+          >
             {opening.contactLabel ?? "Contact"}
           </a>
           {opening.contactNote && (

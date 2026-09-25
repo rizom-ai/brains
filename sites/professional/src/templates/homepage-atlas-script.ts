@@ -16,6 +16,8 @@ export const HOMEPAGE_ATLAS_SCRIPT_PATH = "/scripts/homepage-atlas.js";
  * - With guest chat docked, a topic fills the chat draft instead of opening
  *   the contact form, and never sends. While the box is off (not enabled,
  *   or unavailable), the topic stays a link to the contact form.
+ * - The contact form runs no script, so it cannot read the visitor's theme
+ *   choice: the links to it carry the current theme, and follow a change.
  * - An answer's sources (the shared box's source event) light up on the map
  *   and the map turns towards them, zooming only as far as keeps each in
  *   view; an answer without sources lets go. On desktop a dotted lead runs
@@ -47,6 +49,20 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
   var narrow = media("(max-width: 60rem)");
 
   roots.forEach(function (root) {
+    var doors = root.querySelectorAll("[data-atlas-door]");
+    function carryTheme() {
+      var theme = document.documentElement.getAttribute("data-theme");
+      if (theme !== "light" && theme !== "dark") return;
+      doors.forEach(function (link) {
+        var url = new URL(link.getAttribute("href") || "", window.location.href);
+        url.searchParams.set("theme", theme);
+        link.setAttribute("href", url.href);
+      });
+    }
+    carryTheme();
+    if (typeof MutationObserver === "function")
+      new MutationObserver(carryTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
     var terrain = root.querySelector("[data-atlas-terrain]");
     var visible = true;
     function syncMotion() {

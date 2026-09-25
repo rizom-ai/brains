@@ -150,6 +150,31 @@ describe("contact HTTP boundary", () => {
     ).toBe(413);
   });
 
+  it("starts the message with the topic the visitor chose on the site, escaped and bounded", async () => {
+    const { handlers } = await fixture();
+    const page = async (query: string): Promise<string> =>
+      (
+        await handlers.handle(new Request(`${origin}/contact${query}`), {
+          remoteAddress: peer,
+        })
+      ).text();
+    const topic = "Our AI tools don’t know what we know";
+    expect(
+      await page(`?${new URLSearchParams({ topic, theme: "light" })}`),
+    ).toContain(
+      `name="message" rows="5" maxlength="4000">${topic}\n\n</textarea>`,
+    );
+    const hostile = await page(
+      `?${new URLSearchParams({ topic: "</textarea><script>alert(1)</script>" })}`,
+    );
+    expect(hostile).toContain("&lt;/textarea&gt;&lt;script&gt;");
+    expect(hostile).not.toContain("<script>");
+    expect(await page(`?topic=${"a".repeat(500)}`)).not.toContain(
+      "a".repeat(201),
+    );
+    expect(await page("")).toContain('maxlength="4000"></textarea>');
+  });
+
   it("rejects duplicate or unexpected fields and escapes returned drafts", async () => {
     const { handlers, f } = await fixture();
     const token = await f.token();

@@ -247,6 +247,23 @@ describe("homepage atlas", () => {
     expect(html).toContain("Essay");
   });
 
+  it("carries each topic to the contact form, where it starts the message", () => {
+    const html = renderToStaticMarkup(
+      <HomepageListLayout {...page} atlas={atlas} />,
+    );
+    const topics = [
+      ...html.matchAll(/<li><a href="([^"]+)" data-atlas-door=""/g),
+    ].map((match) =>
+      new URL((match[1] ?? "").replaceAll("&amp;", "&")).searchParams.get(
+        "topic",
+      ),
+    );
+    expect(topics).toEqual(["Someone who carries a lot is about to leave"]);
+    expect(html).toContain(
+      'class="atlas__contact" href="https://yeehaa.test/contact" data-atlas-door=""',
+    );
+  });
+
   it("names each mark's territory on its card, so a name the map cannot fit stays one tap away", () => {
     const html = renderToStaticMarkup(
       <HomepageListLayout {...page} atlas={atlas} />,
@@ -371,12 +388,22 @@ describe("atlas hover on touch screens", () => {
     }
   });
 
+  const touch = (): string => {
+    const start = homepageAtlasStyles.indexOf("@media (hover: none)");
+    expect(start).toBeGreaterThan(-1);
+    return homepageAtlasStyles.slice(start).split("\n}")[0] ?? "";
+  };
+
   it("underlines an open card's title on touch screens, where the card is the way in", () => {
-    const touchBlock = homepageAtlasStyles.indexOf("@media (hover: none)");
-    expect(touchBlock).toBeGreaterThan(-1);
-    const rule = homepageAtlasStyles.slice(touchBlock).split("}")[0] ?? "";
-    expect(rule).toContain(".atlas__tip b");
-    expect(rule).toContain("text-decoration-line: underline");
+    expect(touch()).toMatch(
+      /\.atlas__tip b \{[^}]*text-decoration-line: underline/,
+    );
+  });
+
+  it("shows topics as the choices they are on touch screens, with no hover to reveal them", () => {
+    expect(touch()).toMatch(
+      /\.atlas__topics a \{[^}]*background: var\(--color-bg-subtle\)/,
+    );
   });
 });
 
@@ -421,7 +448,9 @@ describe("atlas copy", () => {
     ]) {
       expect(html).not.toContain(fixed);
     }
-    expect(html).toContain('href="https://yeehaa.test/contact">Contact</a>');
+    expect(html).toContain(
+      'href="https://yeehaa.test/contact" data-atlas-door="">Contact</a>',
+    );
     expect(html).not.toContain('class="atlas__caption"');
     expect(html).not.toContain('class="atlas__note"');
   });
@@ -443,13 +472,13 @@ describe("atlas with guest chat", () => {
 
   it("lets topics fill the draft, while each still reaches the contact form", () => {
     expect(html()).toMatch(
-      /href="https:\/\/yeehaa\.test\/contact" data-atlas-fill="Someone who carries a lot is about to leave"/,
+      /href="https:\/\/yeehaa\.test\/contact\?topic=Someone\+who\+carries[^"]*" data-atlas-door="" data-atlas-fill="Someone who carries a lot is about to leave"/,
     );
   });
 
   it("keeps the door to the owner outside the chat", () => {
     expect(html()).toMatch(
-      /class="atlas__contact" href="https:\/\/yeehaa\.test\/contact">Write to me/,
+      /class="atlas__contact" href="https:\/\/yeehaa\.test\/contact" data-atlas-door="">Write to me/,
     );
   });
 
