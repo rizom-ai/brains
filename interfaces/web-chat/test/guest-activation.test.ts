@@ -4,6 +4,12 @@ import {
   type PluginTestHarness,
 } from "@brains/plugins/test";
 import { SitePageResponse, type IRuntimeStateStore } from "@brains/plugins";
+import {
+  ASK_BOX_STATE_KEY,
+  ASK_BOX_STATE_NAMESPACE,
+  askBoxAvailabilitySchema,
+  type AskBoxAvailability,
+} from "@brains/contracts";
 import { WebChatInterface } from "../src/web-chat-interface";
 import {
   guestAdmissionNamespace,
@@ -26,6 +32,7 @@ interface Fixture {
   ledger: IRuntimeStateStore<GuestAdmissionState>;
   calls(): number;
   previewPaths: string[];
+  askBox(): Promise<AskBoxAvailability | null>;
 }
 
 async function fixture(
@@ -90,6 +97,15 @@ async function fixture(
     send,
     ledger,
     calls: (): number => calls,
+    askBox: (): Promise<AskBoxAvailability | null> =>
+      harness
+        .getMockShell()
+        .getRuntimeState()
+        .scoped({
+          namespace: ASK_BOX_STATE_NAMESPACE,
+          schema: askBoxAvailabilitySchema,
+        })
+        .get(ASK_BOX_STATE_KEY),
     previewPaths: plugin
       .getWebRoutes()
       .filter((r) => r.preview === true)
@@ -99,6 +115,20 @@ async function fixture(
 }
 
 const access = "/api/chat/guest/access";
+describe("Ask box availability for site builds in any process", () => {
+  it("records that it serves the Ask box boot while guest chat is on", async () => {
+    const f = await fixture();
+    expect(f.previewPaths).toContain("GET /ask/assets/box.js");
+    expect(await f.askBox()).toEqual({ public: true, preview: true });
+  });
+
+  it("records that it does not while guest chat is off", async () => {
+    const f = await fixture("admin", "rizom.ai", { disabled: true });
+    expect(f.previewPaths).not.toContain("GET /ask/assets/box.js");
+    expect(await f.askBox()).toEqual({ public: false, preview: false });
+  });
+});
+
 describe("admin guest activation using deployment conventions", () => {
   it("declares only the guest presentation and API routes for preview", async () => {
     const f = await fixture();

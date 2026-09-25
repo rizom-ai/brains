@@ -106,7 +106,7 @@ export class ProfessionalSitePlugin extends ServicePlugin<
                     buildContext.entityService.projectSemanticSpace(request),
                 },
               }),
-            chatAvailable: (buildContext): boolean =>
+            chatAvailable: (buildContext): Promise<boolean> =>
               homepageChatAvailable(buildContext, context),
           }
         : {},

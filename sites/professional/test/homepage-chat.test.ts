@@ -1,76 +1,63 @@
 import { describe, expect, it } from "bun:test";
-import { ASK_BOX_SCRIPT_PATH } from "@brains/contracts";
+import { createMemoryRuntimeStateNamespace } from "@brains/plugins/test";
+import type { IRuntimeStateNamespace } from "@brains/plugins";
 import {
-  homepageChatAvailable,
-  type ChatRouteRuntime,
-} from "../src/datasources/homepage-chat";
+  ASK_BOX_STATE_KEY,
+  ASK_BOX_STATE_NAMESPACE,
+  askBoxAvailabilitySchema,
+  type AskBoxAvailability,
+} from "@brains/contracts";
+import { homepageChatAvailable } from "../src/datasources/homepage-chat";
 
-function route(
-  overrides: {
-    pluginId?: string;
-    fullPath?: string;
-    public?: boolean;
-    preview?: boolean;
-  } = {},
-): {
-  pluginId: string;
-  fullPath: string;
-  definition: { public: boolean; preview: boolean };
-} {
-  return {
-    pluginId: overrides.pluginId ?? "web-chat",
-    fullPath: overrides.fullPath ?? ASK_BOX_SCRIPT_PATH,
-    definition: {
-      public: overrides.public ?? true,
-      preview: overrides.preview ?? true,
-    },
-  };
+/** Shared runtime state as Web Chat left it in the serving process. */
+async function runtime(
+  record?: AskBoxAvailability,
+): Promise<{ runtimeState: IRuntimeStateNamespace }> {
+  const runtimeState = createMemoryRuntimeStateNamespace();
+  if (record)
+    await runtimeState
+      .scoped({
+        namespace: ASK_BOX_STATE_NAMESPACE,
+        schema: askBoxAvailabilitySchema,
+      })
+      .set(ASK_BOX_STATE_KEY, record);
+  return { runtimeState };
 }
 
-const runtime = (routes: ReturnType<typeof route>[]): ChatRouteRuntime => ({
-  webRoutes: { getRoutes: (): ReturnType<typeof route>[] => routes },
-});
-
 describe("homepage chat availability", () => {
-  it("offers the chat box where Web Chat serves the shared box boot", () => {
+  it("offers the chat box where Web Chat records that it serves the box boot", async () => {
     expect(
-      homepageChatAvailable({ publishedOnly: true }, runtime([route()])),
+      await homepageChatAvailable(
+        { publishedOnly: true },
+        await runtime({ public: true, preview: true }),
+      ),
     ).toBe(true);
   });
 
-  it("keeps the door only when guest chat is off", () => {
-    expect(homepageChatAvailable({ publishedOnly: true }, runtime([]))).toBe(
-      false,
-    );
+  it("keeps the door only when guest chat is off or nothing is recorded", async () => {
     expect(
-      homepageChatAvailable(
-        { publishedOnly: true },
-        runtime([route({ fullPath: "/ask/assets/guest.js" })]),
-      ),
+      await homepageChatAvailable({ publishedOnly: true }, await runtime()),
     ).toBe(false);
     expect(
-      homepageChatAvailable(
+      await homepageChatAvailable(
         { publishedOnly: true },
-        runtime([route({ pluginId: "someone-else" })]),
-      ),
-    ).toBe(false);
-    expect(
-      homepageChatAvailable(
-        { publishedOnly: true },
-        runtime([route({ public: false })]),
+        await runtime({ public: false, preview: false }),
       ),
     ).toBe(false);
   });
 
-  it("offers it in a preview build only where the box boot reaches preview", () => {
+  it("offers it in a preview build only where the box boot reaches preview", async () => {
     expect(
-      homepageChatAvailable(
+      await homepageChatAvailable(
         { publishedOnly: false },
-        runtime([route({ preview: false })]),
+        await runtime({ public: true, preview: false }),
       ),
     ).toBe(false);
     expect(
-      homepageChatAvailable({ publishedOnly: false }, runtime([route()])),
+      await homepageChatAvailable(
+        { publishedOnly: false },
+        await runtime({ public: true, preview: true }),
+      ),
     ).toBe(true);
   });
 });
