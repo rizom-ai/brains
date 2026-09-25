@@ -464,6 +464,25 @@ describe("atlas territory names", () => {
       expect(right.left - (left.left + left.width)).toBeGreaterThanOrEqual(14);
   });
 
+  it("keeps names on a phone above the line where the text starts", () => {
+    const low = box(100, 140, 80, 20);
+    const crossing = (phone: boolean): Box | null => {
+      media["(max-width: 60rem)"] = phone;
+      names([["low", low]], []);
+      const map =
+        window.document.querySelector("[data-atlas-field]")?.parentElement;
+      if (map instanceof window.HTMLElement)
+        map.style.setProperty("--atlas-fill", "0.5");
+      eval(HOMEPAGE_ATLAS_SCRIPT);
+      media["(max-width: 60rem)"] = false;
+      return placed("low", low);
+    };
+    const onPhone = crossing(true);
+    if (!onPhone) throw new Error("name hidden");
+    expect(onPhone.top + onPhone.height).toBeLessThanOrEqual(150);
+    expect(crossing(false)).toEqual(low);
+  });
+
   it("hides a name that has no free place rather than printing it over another", () => {
     names(
       [
