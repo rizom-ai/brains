@@ -3,7 +3,9 @@ import {
   ASK_BOX_STATE_KEY,
   ASK_BOX_STATE_NAMESPACE,
   askBoxAvailabilitySchema,
+  type AskBoxAvailability,
 } from "@brains/contracts";
+import type { IRuntimeStateStore } from "@brains/plugins";
 import { ASK_BOX_BOOT_SCRIPT } from "./ask-box-boot";
 import {
   AGENT_ACTION_REQUEST_CHANNEL,
@@ -151,6 +153,8 @@ export class WebChatInterface extends MessageInterfacePlugin<
   private readonly guestPolicy: GuestPolicy;
   private guestHttp: GuestHttpHandlers | undefined;
   private guestControl: GuestAccessControl | undefined;
+  private askBoxAvailability:
+    IRuntimeStateStore<AskBoxAvailability> | undefined;
   private readonly runtimeGuestActivationAllowed: boolean;
   private readonly resolveAuthSession: AuthSessionResolver;
   private readonly resolveAuthSessionOverride: AuthSessionResolver | undefined;
@@ -211,14 +215,12 @@ export class WebChatInterface extends MessageInterfacePlugin<
       },
     );
     // Site builds may run in a separate worker, where interfaces are not
-    // registered: record whether this deployment serves the Ask box boot.
-    const served = this.declaresGuestAssets();
-    await context.runtimeState
-      .scoped({
-        namespace: ASK_BOX_STATE_NAMESPACE,
-        schema: askBoxAvailabilitySchema,
-      })
-      .set(ASK_BOX_STATE_KEY, { public: served, preview: served });
+    // registered: record where this deployment serves the Ask box boot.
+    this.askBoxAvailability = context.runtimeState.scoped({
+      namespace: ASK_BOX_STATE_NAMESPACE,
+      schema: askBoxAvailabilitySchema,
+    });
+    await this.recordAskBoxAvailability();
     const maintenance = new GuestStateMaintenance(context.runtimeState);
     context.daemons.register(
       "guest-maintenance",
@@ -268,6 +270,31 @@ export class WebChatInterface extends MessageInterfacePlugin<
         };
       },
     });
+  }
+
+  /**
+   * Where the Ask box can answer: a configured guest policy everywhere;
+   * managed guest chat only on preview, while the owner has it switched on.
+   */
+  private async recordAskBoxAvailability(): Promise<void> {
+    const configured = this.guestPolicy.enabled;
+    const activated =
+      this.guestControl?.policy !== undefined &&
+      (await this.guestControl.isOpen());
+    await this.askBoxAvailability?.set(ASK_BOX_STATE_KEY, {
+      public: configured,
+      preview: configured || activated,
+    });
+  }
+
+  private async recordAfterActivation(): Promise<void> {
+    try {
+      await this.recordAskBoxAvailability();
+    } catch (error) {
+      // The activation itself succeeded; the next start rewrites the record,
+      // and the atlas keeps the box out of sight until its boot is live.
+      this.logger.warn("Could not record Ask box availability", { error });
+    }
   }
 
   /** Guest chat is configured or managed: its pages and assets are declared (each request is still authorized). */
@@ -415,7 +442,19 @@ export class WebChatInterface extends MessageInterfacePlugin<
     return [
       ...routes,
       ...(this.guestHttp?.routes(this.config.apiPath) ?? []),
-      ...(this.guestControl?.routes(this.config.apiPath) ?? []),
+      ...(this.guestControl?.routes(this.config.apiPath) ?? []).map(
+        (route): WebRouteDefinition =>
+          route.method === "POST"
+            ? {
+                ...route,
+                handler: async (request, transport): Promise<Response> => {
+                  const response = await route.handler(request, transport);
+                  if (response.ok) await this.recordAfterActivation();
+                  return response;
+                },
+              }
+            : route,
+      ),
     ];
   }
 

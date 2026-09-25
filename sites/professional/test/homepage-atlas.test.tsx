@@ -326,6 +326,21 @@ describe("living atlas", () => {
     expect(fill(atBottom)).toBe(1);
   });
 
+  it("keeps the chat box out of sight until Web Chat's boot makes it live", () => {
+    expect(homepageAtlasStyles).toMatch(
+      /\.atlas__ask:not\(\[data-ask-ready\]\) \{ display: none; \}/,
+    );
+  });
+
+  it("lets the text flow with the page on phones, even with the chat box docked", () => {
+    const phone = homepageAtlasStyles.slice(
+      homepageAtlasStyles.indexOf("@media (max-width: 60rem)"),
+    );
+    expect(phone).toMatch(
+      /\.atlas--chat \.atlas__talk \{ max-height: none; overflow: visible; \}/,
+    );
+  });
+
   it("anchors title cards inward at both edges so they stay on screen", () => {
     expect(html()).toContain("atlas__mark--west");
     expect(html()).toContain("atlas__mark--east");

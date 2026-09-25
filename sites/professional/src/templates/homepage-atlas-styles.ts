@@ -135,6 +135,8 @@ export const homepageAtlasStyles: string = String.raw`
   margin-top: 1.6rem; max-width: 34rem;
   --ask-wash: var(--color-bg-subtle); --ask-display: var(--font-heading); --ask-muted: var(--color-text-light);
 }
+/* Out of sight until Web Chat's boot has made the box live; the door stays either way. */
+.atlas__ask:not([data-ask-ready]) { display: none; }
 .atlas__ask-status { margin: 0 0 .5rem; font-size: .84rem; color: var(--color-text-light); }
 .atlas__ask-status:empty { display: none; }
 .atlas__ask .brain-box-welcome { display: none; }
@@ -189,6 +191,8 @@ export const homepageAtlasStyles: string = String.raw`
   .atlas__initials { width: 1.8rem; height: 1.8rem; font-size: .72rem; }
   .atlas h1 { font-size: clamp(2.5rem, 11.5vw, 3.6rem); margin-bottom: 1rem; }
   .atlas__leads { display: none; }
+  /* The text flows with the page on phones; only desktop scrolls it beside the map. */
+  .atlas--chat .atlas__talk { max-height: none; overflow: visible; }
 }
 @media (prefers-reduced-motion: reduce) {
   .atlas__contour { animation: none; }

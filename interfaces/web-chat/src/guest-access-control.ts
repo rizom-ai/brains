@@ -70,6 +70,13 @@ export class GuestAccessControl {
     return (await this.admission?.accessStatus())?.authorized === true;
   }
 
+  /** Guest chat can answer: authorized, switched on, allowance left, guest profile ready. */
+  async isOpen(): Promise<boolean> {
+    return (
+      (await this.admission?.accessStatus())?.enabled === true && this.ready()
+    );
+  }
+
   routes(apiPath: string): WebRouteDefinition[] {
     const path = `${createChatApiPaths(apiPath).stream}/guest/access`;
     return (["GET", "POST"] as const).map((method) => ({
