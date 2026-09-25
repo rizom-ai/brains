@@ -61,6 +61,31 @@ describe("release verification waits out registry propagation", () => {
   });
 });
 
+describe("a merge landing mid-release never fails the version push", () => {
+  test.each([
+    [
+      "release.yml",
+      "chore(release): version packages",
+      "steps.release_mode.outputs.mode",
+    ],
+    [
+      "site-release.yml",
+      "chore(release): version site and theme packages",
+      "needs.classify.outputs.mode",
+    ],
+  ])(
+    "%s pushes through the merge-aware version push",
+    (file, message, mode) => {
+      const step = workflowStep(file, "Commit and push version bump");
+      expect(step).toContain(`RELEASE_MODE: \${{ ${mode} }}`);
+      expect(step).toContain(
+        `bun scripts/push-version-commit.ts "${message}" "$RELEASE_MODE"`,
+      );
+      expect(step).not.toContain("git push");
+    },
+  );
+});
+
 describe("core release workflow", () => {
   test("publishes through GitHub OIDC without a registry token", () => {
     const workflow = readWorkflow("release.yml");
