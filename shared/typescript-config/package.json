@@ -1,7 +1,7 @@
 {
   "name": "@brains/typescript-config",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.408",
+  "version": "0.2.0-alpha.409",
   "files": [
     "base.json"
   ],

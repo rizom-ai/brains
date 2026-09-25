@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.409
+
+### Patch Changes
+
+- [#358](https://github.com/rizom-ai/brains/pull/358) [`a83fa6f`](https://github.com/rizom-ai/brains/commit/a83fa6f699695f7011db996b98d93c661e429c41) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Atlas territory names no longer collide on real maps. The build keeps each name inside the map's edges, and the atlas script re-places names by their rendered size, largest territory first: each takes the nearest free spot off marks and apart from other names, or is hidden when none is free. On phones the first screen now holds the map and the headline together, with a compact legend on the map's lower fade and a quieter byline.
+
 ## 0.2.0-alpha.408
 
 ### Patch Changes

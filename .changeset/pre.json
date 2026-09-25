@@ -233,6 +233,7 @@
     "core--agent-sightings-inbox-source",
     "core--ask-browser-contract",
     "core--atlas-chat",
+    "core--atlas-names-phone",
     "core--atomic-job-deduplication",
     "core--atproto-lexicon-derived-strictness",
     "core--auth-passkey-recovery-guidance",
