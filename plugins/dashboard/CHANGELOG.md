@@ -1,5 +1,18 @@
 # @brains/dashboard
 
+## 0.2.0-alpha.410
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/console-theme@0.2.0-alpha.410
+  - @brains/contracts@0.2.0-alpha.410
+  - @brains/operator-view-react@0.2.0-alpha.410
+  - @brains/ui-library@0.2.0-alpha.410
+  - @brains/utils@0.2.0-alpha.410
+  - @brains/auth-service@0.2.0-alpha.410
+  - @brains/plugins@0.2.0-alpha.410
+
 ## 0.2.0-alpha.409
 
 ### Patch Changes

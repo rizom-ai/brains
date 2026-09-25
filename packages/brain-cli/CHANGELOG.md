@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.410
+
+### Patch Changes
+
+- [#361](https://github.com/rizom-ai/brains/pull/361) [`7ac481d`](https://github.com/rizom-ai/brains/commit/7ac481d869b35bd914a49c82da88124d70ed89a0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The atlas homepage docks the guest chat box on deployments that run a separate worker. Web Chat now records in shared runtime state whether it serves the shared Ask box boot (and on preview), and site builds read that record instead of Web Chat's routes, which a worker does not have. Without the record, or with guest chat off, the homepage keeps only the contact door.
+
+- [#360](https://github.com/rizom-ai/brains/pull/360) [`fde11f4`](https://github.com/rizom-ai/brains/commit/fde11f4b9c2bc169e9738dcef5c05acdbe0a3666) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On phones the atlas text now starts where the map's content ends: the build records how far down marks and names reach, and the legend and the opening move up over the fading outer rings instead of leaving an empty strip. Long territory names wrap to two short lines on phones, so more of them fit, and names stay above that line.
+
 ## 0.2.0-alpha.409
 
 ### Patch Changes
