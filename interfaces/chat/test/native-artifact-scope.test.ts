@@ -19,6 +19,11 @@ import {
   type ArtifactDelivery,
 } from "../src/artifact-delivery";
 import { AcknowledgedFileDeliveryError } from "../src/file-delivery";
+import {
+  createSlackFileDeliveryAdapter,
+  PartialSlackFileDeliveryError,
+  type SlackFileDeliveryDeps,
+} from "../src/slack-file-delivery";
 
 interface Fixture {
   resolver: ArtifactDeliveryResolver;
@@ -192,6 +197,58 @@ test("Discord received evidence preserves only the completed prefix and stops la
   expect([...(scope?.deliveredCardIds ?? [])]).toEqual(["image-0"]);
   expect(state.loans).toBe(2);
   expect(state.active).toBe(0);
+});
+
+test("Slack partial upload evidence does not share or mark a later artifact delivered", async () => {
+  const { resolver, cards, state } = await fixture();
+  let scope: ArtifactDelivery | undefined;
+  let allocated = 0;
+  const deps: SlackFileDeliveryDeps = {
+    initialize: mock(async () => ({
+      ok: true,
+      file_id: `F${++allocated}`,
+      upload_url: "http://127.0.0.1/upload",
+    })),
+    postHttp: mock(async (input) => {
+      expect(state.active).toBe(1);
+      const result = { ...input.facts, statusCode: 200 };
+      if (allocated === 2)
+        throw new ReceivedEntityFileHttpError(
+          result,
+          new Error("retirement failed"),
+        );
+      return result;
+    }),
+    complete: mock(async (input) => {
+      assert.ok(input.files[0]);
+      return { ok: true, files: [{ id: input.files[0].id }] };
+    }),
+  };
+  await assert.rejects(
+    resolver.withFiles(
+      cards,
+      "trusted",
+      async (delivery) => {
+        scope = delivery;
+        assert.ok(delivery.sendFiles);
+        await delivery.sendFiles();
+      },
+      createSlackFileDeliveryAdapter({ channelId: "C123" }, deps),
+    ),
+    (error: unknown) => {
+      assert.ok(error instanceof PartialSlackFileDeliveryError);
+      assert.ok(!(error instanceof AcknowledgedFileDeliveryError));
+      assert.equal(error.recovery.fileId, "F2");
+      assert.equal(error.recovery.stage, "upload-received");
+      return true;
+    },
+  );
+  expect(deps.initialize).toHaveBeenCalledTimes(2);
+  expect(deps.postHttp).toHaveBeenCalledTimes(2);
+  expect(deps.complete).toHaveBeenCalledTimes(1);
+  expect([...(scope?.deliveredCardIds ?? [])]).toEqual(["image-0"]);
+  expect(state.active).toBe(0);
+  expect(state.loans).toBe(2);
 });
 
 test("a scope joins an unawaited send, rejects reentry, and closes escaped send functions", async () => {

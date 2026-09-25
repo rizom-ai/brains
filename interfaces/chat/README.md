@@ -194,6 +194,8 @@ Discord and Slack thread subscriptions are persisted independently through `chat
 
 If native Discord file delivery fails after a validated response, `ReceivedDiscordFileDeliveryError` retains only message, channel and attachment IDs plus the original cause. It is not completed delivery or permission to retry. The artifact scope keeps earlier completed cards, does not mark the received-only card delivered, joins the loan and stops later sends. This error is recovery evidence, not a durable journal or automatic replay mechanism.
 
+Slack failures after validated initialization retain `PartialSlackFileDeliveryError.recovery`: the allocated file ID, bound channel/thread, source digest and last known stage. Stages distinguish initialization, a received upload response, a completed byte upload, a share attempt and a validated share response. A mismatched share response retains its returned file ID separately. None of these failure states marks an artifact delivered or authorizes replay; signed upload URLs, local paths and filenames are not copied into recovery metadata. The original cause remains available.
+
 Suggested-action button tokens are intentionally not durable: they reference in-memory prompts instead of embedding prompt text in Discord component payloads. After restart, clicking an old suggested-action button returns an "Action unavailable" notice and does not call the agent.
 
 ## Known gaps

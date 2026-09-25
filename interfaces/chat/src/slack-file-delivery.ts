@@ -1,5 +1,8 @@
 import { isAbsolute } from "node:path";
-import type { EntityServiceClient } from "@brains/plugins";
+import {
+  ReceivedEntityFileHttpError,
+  type EntityServiceClient,
+} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { CHAT_NATIVE_ARTIFACT_MAX_BYTES } from "./artifact-limits";
 import type { FileDeliveryAdapter } from "./file-delivery";
@@ -29,6 +32,39 @@ export interface SlackUploadCompletion {
 export interface SlackFileDeliveryReceipt {
   fileId: string;
 }
+export type SlackFileDeliveryStage =
+  | "initialized"
+  | "upload-received"
+  | "uploaded"
+  | "share-attempted"
+  | "share-response-received";
+export interface SlackFileDeliveryRecovery {
+  fileId: string;
+  channelId: string;
+  threadTs?: string | undefined;
+  sha256: string;
+  stage: SlackFileDeliveryStage;
+  completedFileId?: string | undefined;
+}
+/** Partial evidence is neither a shared file nor permission to replay. */
+export class PartialSlackFileDeliveryError extends Error {
+  public readonly recovery: Readonly<SlackFileDeliveryRecovery>;
+  constructor(recovery: SlackFileDeliveryRecovery, cause: unknown) {
+    super("Slack file delivery failed after upload initialization", { cause });
+    this.name = "PartialSlackFileDeliveryError";
+    this.recovery = Object.freeze({
+      fileId: recovery.fileId,
+      channelId: recovery.channelId,
+      sha256: recovery.sha256,
+      stage: recovery.stage,
+      ...(recovery.threadTs !== undefined && { threadTs: recovery.threadTs }),
+      ...(recovery.completedFileId !== undefined && {
+        completedFileId: recovery.completedFileId,
+      }),
+    });
+  }
+}
+
 export interface SlackFileDeliveryTarget {
   channelId: string;
   threadTs?: string | undefined;
@@ -70,12 +106,16 @@ export interface SlackFileDeliveryDeps {
     signal?: AbortSignal,
   ): Promise<unknown>;
 }
-const digestSchema = z.string().regex(/^[a-f0-9]{64}$/);
+const digestSchema = z
+  .string()
+  .length(64)
+  .regex(/^[a-f0-9]{64}$/);
 const fileIdSchema = z
   .string()
   .min(1)
   .max(128)
-  .regex(/^F[A-Z0-9]+$/);
+  .regex(/^F[A-Z0-9]+$/)
+  .refine((value) => value.trim() === value);
 export const slackFileDeliveryInputSchema: z.ZodType<SlackFileDeliveryInput> =
   z.strictObject({
     sourceFile: z
@@ -94,11 +134,13 @@ export const slackFileDeliveryInputSchema: z.ZodType<SlackFileDeliveryInput> =
       .string()
       .min(1)
       .max(128)
-      .regex(/^[A-Za-z0-9]+$/),
+      .regex(/^[A-Za-z0-9]+$/)
+      .refine((value) => value.trim() === value),
     threadTs: z
       .string()
       .max(64)
       .regex(/^\d+\.\d+$/)
+      .refine((value) => value.trim() === value)
       .optional(),
   });
 const initializationSchema = z.object({
@@ -118,6 +160,24 @@ const uploadReceiptSchema = z.strictObject({
   sizeBytes: z.number().int().positive().max(CHAT_NATIVE_ARTIFACT_MAX_BYTES),
   sha256: digestSchema,
 });
+
+function receivedUploadMatches(
+  error: unknown,
+  source: SlackFileDeliveryInput,
+): boolean {
+  if (!(error instanceof ReceivedEntityFileHttpError)) return false;
+  try {
+    const parsed = uploadReceiptSchema.safeParse(error.outcome);
+    return (
+      parsed.success &&
+      parsed.data.sizeBytes === source.sizeBytes &&
+      parsed.data.sha256 === source.sha256
+    );
+  } catch {
+    // Invalid evidence cannot advance the stage or replace the original cause.
+    return false;
+  }
+}
 
 /** Call only after entity authorization and inside an owned file loan. Paths and
  * facts are not authorization or immutable snapshots. Awaiting this operation
@@ -141,37 +201,62 @@ export async function deliverSlackFile(
       signal,
     ),
   );
-  signal?.throwIfAborted();
-  const uploaded = uploadReceiptSchema.parse(
-    await deps.postHttp(
+  let stage: SlackFileDeliveryStage = "initialized";
+  let completedFileId: string | undefined;
+  try {
+    signal?.throwIfAborted();
+    const uploaded = uploadReceiptSchema.parse(
+      await deps
+        .postHttp(
+          {
+            sourceFile: source.sourceFile,
+            facts: { sizeBytes: source.sizeBytes, sha256: source.sha256 },
+            url: initialized.upload_url,
+            headers: { "content-type": "application/octet-stream" },
+          },
+          signal ? { signal } : undefined,
+        )
+        .catch((error: unknown): never => {
+          if (receivedUploadMatches(error, source)) stage = "upload-received";
+          throw error;
+        }),
+    );
+    if (
+      uploaded.sizeBytes !== source.sizeBytes ||
+      uploaded.sha256 !== source.sha256
+    )
+      throw new Error("Slack file upload receipt does not match its source");
+    stage = "uploaded";
+    // A verified upload does not authorize sharing after cancellation. Once the
+    // share is submitted, however, observe its outcome rather than retracting it.
+    signal?.throwIfAborted();
+    stage = "share-attempted";
+    const completed = completionSchema.parse(
+      await deps.complete(
+        {
+          files: [{ id: initialized.file_id, title: source.filename }],
+          channel_id: source.channelId,
+          ...(source.threadTs !== undefined && { thread_ts: source.threadTs }),
+        },
+        signal,
+      ),
+    );
+    stage = "share-response-received";
+    completedFileId = completed.files[0]?.id;
+    if (completedFileId !== initialized.file_id)
+      throw new Error("Slack file completion acknowledged a different file");
+    return { fileId: initialized.file_id };
+  } catch (error) {
+    throw new PartialSlackFileDeliveryError(
       {
-        sourceFile: source.sourceFile,
-        facts: { sizeBytes: source.sizeBytes, sha256: source.sha256 },
-        url: initialized.upload_url,
-        headers: { "content-type": "application/octet-stream" },
+        fileId: initialized.file_id,
+        channelId: source.channelId,
+        sha256: source.sha256,
+        stage,
+        ...(source.threadTs !== undefined && { threadTs: source.threadTs }),
+        ...(completedFileId !== undefined && { completedFileId }),
       },
-      signal ? { signal } : undefined,
-    ),
-  );
-  if (
-    uploaded.sizeBytes !== source.sizeBytes ||
-    uploaded.sha256 !== source.sha256
-  )
-    throw new Error("Slack file upload receipt does not match its source");
-  // A verified upload does not authorize sharing after cancellation. Once the
-  // share is submitted, however, observe its outcome rather than retracting it.
-  signal?.throwIfAborted();
-  const completed = completionSchema.parse(
-    await deps.complete(
-      {
-        files: [{ id: initialized.file_id, title: source.filename }],
-        channel_id: source.channelId,
-        ...(source.threadTs !== undefined && { thread_ts: source.threadTs }),
-      },
-      signal,
-    ),
-  );
-  if (completed.files[0]?.id !== initialized.file_id)
-    throw new Error("Slack file completion acknowledged a different file");
-  return { fileId: initialized.file_id };
+      error,
+    );
+  }
 }

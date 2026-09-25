@@ -1,7 +1,9 @@
 import { expect, test, mock } from "bun:test";
 import assert from "node:assert/strict";
+import { ReceivedEntityFileHttpError } from "@brains/plugins";
 import {
   deliverSlackFile,
+  PartialSlackFileDeliveryError,
   type SlackFileDeliveryDeps,
   type SlackFileDeliveryInput,
 } from "../src/slack-file-delivery";
@@ -97,6 +99,9 @@ test.each([
   { filename: "invalid\r\nname" },
   { channelId: "C123\nother" },
   { threadTs: "not-a-timestamp" },
+  { channelId: "C123\n" },
+  { threadTs: "123.456\r\n" },
+  { sha256: `${"a".repeat(64)}\n` },
 ])("invalid metadata %j does not initialize an upload", async (invalid) => {
   const deps = dependencies();
   await assert.rejects(deliverSlackFile({ ...input, ...invalid }, deps));
@@ -160,7 +165,16 @@ test.each(["initialize", "postHttp"] as const)(
     );
     await assert.rejects(
       deliverSlackFile(input, deps, caller.signal),
-      (error: unknown) => error === primary,
+      (error: unknown) => {
+        assert.ok(error instanceof PartialSlackFileDeliveryError);
+        assert.equal(error.cause, primary);
+        assert.equal(error.recovery.fileId, "F123");
+        assert.equal(
+          error.recovery.stage,
+          stage === "initialize" ? "initialized" : "uploaded",
+        );
+        return true;
+      },
     );
     expect(deps.initialize).toHaveBeenCalledTimes(1);
     expect(deps.postHttp).toHaveBeenCalledTimes(stage === "initialize" ? 0 : 1);
@@ -181,15 +195,94 @@ test.each(["initialize", "postHttp", "complete"] as const)(
         throw failure;
       }),
     });
-    await assert.rejects(
-      deliverSlackFile(input, deps),
-      (error: unknown) => error === failure,
-    );
+    await assert.rejects(deliverSlackFile(input, deps), (error: unknown) => {
+      if (stage === "initialize") return error === failure;
+      assert.ok(error instanceof PartialSlackFileDeliveryError);
+      assert.equal(error.cause, failure);
+      assert.equal(
+        error.recovery.stage,
+        stage === "postHttp" ? "initialized" : "share-attempted",
+      );
+      assert.equal(error.recovery.fileId, "F123");
+      return true;
+    });
     expect(deps.initialize).toHaveBeenCalledTimes(1);
     expect(deps.postHttp).toHaveBeenCalledTimes(stage === "initialize" ? 0 : 1);
     expect(deps.complete).toHaveBeenCalledTimes(stage === "complete" ? 1 : 0);
   },
 );
+
+test.each(["valid", "status", "digest", "size", "unbranded", "hostile"])(
+  "Slack retains allocated IDs but advances received state only for %s evidence",
+  async (kind) => {
+    const caller = new AbortController();
+    const outcome = {
+      sizeBytes: kind === "size" ? 1 : input.sizeBytes,
+      sha256: kind === "digest" ? "b".repeat(64) : input.sha256,
+      statusCode: kind === "status" ? 403 : 200,
+    };
+    const failure =
+      kind === "unbranded"
+        ? Object.assign(new Error("private failure"), { outcome })
+        : new ReceivedEntityFileHttpError(
+            outcome,
+            new Error("private retirement"),
+          );
+    if (kind === "hostile")
+      Object.defineProperty(failure, "outcome", {
+        get: (): never => {
+          throw new Error("private getter");
+        },
+      });
+    const deps = dependencies({
+      initialize: mock(async () => ({
+        ...initialized,
+        upload_url: "https://private.example/upload?token=secret",
+      })),
+      postHttp: mock(async (): Promise<never> => {
+        caller.abort(new Error("late cancellation"));
+        throw failure;
+      }),
+    });
+    await assert.rejects(
+      deliverSlackFile(input, deps, caller.signal),
+      (error: unknown) => {
+        assert.ok(error instanceof PartialSlackFileDeliveryError);
+        assert.equal(error.cause, failure);
+        assert.deepEqual(error.recovery, {
+          fileId: "F123",
+          channelId: input.channelId,
+          threadTs: input.threadTs,
+          sha256: input.sha256,
+          stage: kind === "valid" ? "upload-received" : "initialized",
+        });
+        assert.ok(Object.isFrozen(error.recovery));
+        assert.ok(!JSON.stringify(error.recovery).includes("private"));
+        assert.ok(!JSON.stringify(error.recovery).includes("secret"));
+        assert.ok(!JSON.stringify(error.recovery).includes(input.sourceFile));
+        return true;
+      },
+    );
+    expect(deps.initialize).toHaveBeenCalledTimes(1);
+    expect(deps.postHttp).toHaveBeenCalledTimes(1);
+    expect(deps.complete).not.toHaveBeenCalled();
+  },
+);
+
+test("a mismatched Slack share response retains both bounded file IDs without claiming delivery", async () => {
+  const deps = dependencies({
+    complete: mock(async () => ({ ok: true, files: [{ id: "F456" }] })),
+  });
+  await assert.rejects(deliverSlackFile(input, deps), (error: unknown) => {
+    assert.ok(error instanceof PartialSlackFileDeliveryError);
+    assert.equal(error.recovery.stage, "share-response-received");
+    assert.equal(error.recovery.fileId, "F123");
+    assert.equal(error.recovery.completedFileId, "F456");
+    assert.ok(error.cause instanceof Error);
+    return true;
+  });
+  expect(deps.complete).toHaveBeenCalledTimes(1);
+});
 
 test.each([0, CHAT_NATIVE_ARTIFACT_MAX_BYTES + 1, Infinity, 1.5])(
   "invalid source size %s acquires no upload",
@@ -222,6 +315,7 @@ test("exact native limit and a channel-level send preserve metadata without addi
 test.each([
   { ...initialized, ok: false },
   { ...initialized, file_id: "" },
+  { ...initialized, file_id: "F123\n" },
   { ...initialized, upload_url: "file:///secret" },
 ])("invalid initialization %j prevents POST and sharing", async (reply) => {
   const deps = dependencies({ initialize: mock(async () => reply) });
