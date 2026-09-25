@@ -8,6 +8,7 @@ import { ServicePlugin } from "@brains/plugins";
 import { homepageOpeningSchema } from "./schemas/homepage-opening";
 import { loadHomepageOpening } from "./datasources/homepage-opening";
 import { loadHomepageAtlas } from "./datasources/homepage-atlas";
+import { homepageChatAvailable } from "./datasources/homepage-chat";
 import {
   HOMEPAGE_ATLAS_SCRIPT,
   HOMEPAGE_ATLAS_SCRIPT_PATH,
@@ -92,17 +93,23 @@ export class ProfessionalSitePlugin extends ServicePlugin<
       postsListUrl,
       decksListUrl,
       this.config.homepageOpening
-        ? (buildContext): ReturnType<typeof loadHomepageOpening> =>
-            loadHomepageOpening(buildContext, context)
-        : undefined,
-      (buildContext): ReturnType<typeof loadHomepageAtlas> =>
-        loadHomepageAtlas({
-          entityService: buildContext.entityService,
-          semantic: {
-            project: (request) =>
-              buildContext.entityService.projectSemanticSpace(request),
-          },
-        }),
+        ? {
+            loadOpening: (
+              buildContext,
+            ): ReturnType<typeof loadHomepageOpening> =>
+              loadHomepageOpening(buildContext, context),
+            loadAtlas: (buildContext): ReturnType<typeof loadHomepageAtlas> =>
+              loadHomepageAtlas({
+                entityService: buildContext.entityService,
+                semantic: {
+                  project: (request) =>
+                    buildContext.entityService.projectSemanticSpace(request),
+                },
+              }),
+            chatAvailable: (buildContext): boolean =>
+              homepageChatAvailable(buildContext, context),
+          }
+        : {},
     );
     context.entities.registerDataSource(homepageDataSource);
 
@@ -117,6 +124,7 @@ export class ProfessionalSitePlugin extends ServicePlugin<
       homepageOpening: z.boolean().default(false),
       opening: homepageOpeningSchema,
       atlas: homepageAtlasSchema,
+      askBox: z.boolean().default(false),
       posts: z.array(blogPostSchema),
       decks: z.array(deckSchema),
       postsListUrl: z.string(),

@@ -1,0 +1,281 @@
+/*
+ * Web Chat's shared presentation of a mounted Ask box. It applies only inside
+ * a host that opts in with data-ask-styled, and every rule sits in :where(), so
+ * any rule the host writes wins. Hosts theme it with the --ask-* tokens, which
+ * default to the site theme, then the console theme.
+ */
+:where([data-ask-styled]) {
+  --ask-bg: var(--color-bg, var(--console-bg));
+  --ask-text: var(--color-text, var(--console-text));
+  --ask-muted: var(--color-text-muted, var(--console-text-muted));
+  --ask-rule: var(--color-border, var(--console-rule-strong));
+  --ask-rule-soft: color-mix(in srgb, var(--ask-rule) 55%, transparent);
+  --ask-accent: var(--color-accent, var(--console-accent));
+  --ask-on-accent: var(--color-text-inverse, var(--console-on-accent));
+  --ask-wash: color-mix(in srgb, var(--ask-text) 4%, var(--ask-bg));
+  --ask-display: var(--font-display, var(--console-display, Georgia, serif));
+  --ask-label: var(--font-label, var(--console-mono, monospace));
+  --ask-body: var(--font-body, var(--console-ui, sans-serif));
+  color: var(--ask-text);
+  font-family: var(--ask-body);
+  line-height: 1.6;
+}
+:where([data-ask-styled] button, [data-ask-styled] textarea) {
+  font: inherit;
+  color: inherit;
+}
+:where([data-ask-styled] a) {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+:where([data-ask-styled] button:disabled) {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+:where([data-ask-styled] :focus-visible) {
+  outline: 2px solid var(--ask-accent);
+  outline-offset: 3px;
+}
+:where([data-ask-styled] .brain-box-header-actions) {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 18px;
+  margin: 8px 0 18px;
+}
+:where(
+  [data-ask-styled] .brain-box-header-actions :is(a, button),
+  [data-ask-styled] .brain-box-quiet
+) {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--ask-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+:where(
+  [data-ask-styled] .brain-box-header-actions :is(a, button):hover,
+  [data-ask-styled] .brain-box-quiet:hover
+) {
+  color: var(--ask-accent);
+}
+:where([data-ask-styled] .brain-box-scroll) {
+  max-height: min(55vh, 520px);
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+:where([data-ask-styled] .brain-box-welcome) {
+  padding: 12px 0;
+  max-width: 64ch;
+}
+:where([data-ask-styled] .brain-box-welcome h2) {
+  margin: 0 0 10px;
+  font: 400 clamp(24px, 3vw, 34px) / 1.15 var(--ask-display);
+}
+:where([data-ask-styled] .chat-notice) {
+  white-space: pre-wrap;
+  color: var(--ask-muted);
+}
+:where([data-ask-styled] .hints) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0;
+}
+:where([data-ask-styled] .hints button, [data-ask-styled] .brain-box-action) {
+  padding: 6px 12px;
+  border: 1px solid var(--ask-rule);
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+}
+:where([data-ask-styled] .hints button) {
+  border-radius: 99px;
+  font-size: 12px;
+}
+:where(
+  [data-ask-styled] .hints button:hover:not(:disabled),
+  [data-ask-styled] .brain-box-action:hover:not(:disabled)
+) {
+  border-color: var(--ask-accent);
+}
+:where([data-ask-styled] .brain-box-actions) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+:where(
+  [data-ask-styled] .brain-box-notice,
+  [data-ask-styled] .brain-box-privacy
+) {
+  margin: 14px 0;
+  padding: 14px 18px;
+  border-left: 2px solid var(--ask-accent);
+  background: var(--ask-wash);
+}
+:where(
+  [data-ask-styled] .brain-box-notice h3,
+  [data-ask-styled] .brain-box-privacy h3
+) {
+  margin: 0 0 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+:where(
+  [data-ask-styled] .brain-box-activity,
+  [data-ask-styled] .brain-box-hint
+) {
+  font-size: 12px;
+  color: var(--ask-muted);
+}
+:where([data-ask-styled] .brain-box-hint.invalid) {
+  color: var(--ask-accent);
+}
+:where([data-ask-styled] .brain-box-bottom) {
+  position: relative;
+  border-top: 1px solid var(--ask-rule);
+  margin-top: 18px;
+  padding-top: 14px;
+}
+:where([data-ask-styled] .brain-box-bottom form) {
+  margin: 0;
+}
+:where([data-ask-styled] .brain-box-latest) {
+  position: absolute;
+  z-index: 1;
+  top: -34px;
+  right: 0;
+  padding: 5px 12px;
+  border: 1px solid var(--ask-rule);
+  border-radius: 99px;
+  background: var(--ask-bg);
+  color: var(--ask-accent);
+  font-size: 12px;
+  cursor: pointer;
+}
+:where([data-ask-styled] .prompt-row) {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid var(--ask-rule);
+  border-radius: 7px;
+  background: var(--ask-wash);
+}
+:where(
+  [data-ask-styled] .prompt-row:focus-within,
+  [data-ask-styled] .prompt-row:has([aria-invalid="true"])
+) {
+  border-color: var(--ask-accent);
+}
+:where([data-ask-styled] .prompt-row textarea) {
+  flex: 1;
+  min-width: 0;
+  min-height: 40px;
+  max-height: 112px;
+  resize: vertical;
+  border: 0;
+  padding: 8px;
+  background: transparent;
+  font-size: 16px;
+}
+:where([data-ask-styled] .prompt-row textarea::placeholder) {
+  color: var(--ask-muted);
+}
+:where([data-ask-styled] .send) {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 5px;
+  background: var(--ask-accent);
+  color: var(--ask-on-accent);
+  cursor: pointer;
+}
+:where([data-ask-styled] .brain-box-earlier > summary) {
+  color: var(--ask-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+:where([data-ask-styled] .guest-message) {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--ask-rule-soft);
+  overflow-wrap: anywhere;
+}
+:where([data-ask-styled] .guest-message > h2) {
+  margin: 0 0 8px;
+  font: 500 10px var(--ask-label);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ask-muted);
+}
+:where([data-ask-styled] .guest-message p) {
+  max-width: 64ch;
+}
+:where([data-ask-styled] .guest-user p) {
+  white-space: pre-wrap;
+}
+:where([data-ask-styled] .guest-message pre) {
+  overflow-x: auto;
+  padding: 12px;
+  background: var(--ask-wash);
+}
+:where([data-ask-styled] .web-chat-sources-card) {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ask-rule-soft);
+  font-size: 12px;
+}
+:where([data-ask-styled] .web-chat-sources-summary) {
+  color: var(--ask-muted);
+  cursor: pointer;
+}
+:where([data-ask-styled] .web-chat-sources-kicker) {
+  font-family: var(--ask-label);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+:where([data-ask-styled] .web-chat-sources-count) {
+  margin-left: 10px;
+}
+:where([data-ask-styled] .web-chat-sources-header) {
+  display: none;
+}
+:where([data-ask-styled] .web-chat-sources-list) {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+:where([data-ask-styled] .web-chat-source-item) {
+  margin: 10px 0;
+}
+:where([data-ask-styled] .web-chat-source-title) {
+  color: var(--ask-accent);
+}
+:where([data-ask-styled] .web-chat-source-meta) {
+  color: var(--ask-muted);
+  font-size: 11px;
+}
+:where([data-ask-styled] .web-chat-source-excerpt) {
+  margin: 4px 0 0;
+  color: var(--ask-muted);
+}
+:where([data-ask-styled] .brain-box-sr-only) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+@media (max-width: 650px) {
+  :where([data-ask-styled] .brain-box-scroll:not(.is-welcome)) {
+    max-height: min(42svh, 280px);
+  }
+}

@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { readdirSync, readFileSync, statSync } from "fs";
 import { join } from "path";
 import { z } from "@brains/utils/zod";
+import { ASK_STYLED_ATTRIBUTE } from "@brains/contracts";
 
 const packageRoot = join(import.meta.dir, "..");
 const packageJsonPath = join(packageRoot, "package.json");
@@ -34,12 +35,48 @@ function listSourceFiles(dir: string): string[] {
   return files;
 }
 
+/** Splits a selector list on its top-level commas, leaving :is(a, b) whole. */
+function splitSelectorList(list: string): string[] {
+  return Array.from(list).reduce<{ depth: number; parts: string[] }>(
+    ({ depth, parts }, char) => {
+      if (char === "," && depth === 0) return { depth, parts: [...parts, ""] };
+      const next = depth + (char === "(" ? 1 : char === ")" ? -1 : 0);
+      return {
+        depth: next,
+        parts: [...parts.slice(0, -1), `${parts.at(-1) ?? ""}${char}`],
+      };
+    },
+    { depth: 0, parts: [""] },
+  ).parts;
+}
+
 describe("Web chat UI contract", () => {
   it("keeps the lazy guest bundle below its compressed size budget", () => {
     const asset = readFileSync(join(packageRoot, "dist", "ui", "guest.js"));
     expect(asset.toString()).toContain("mountGuestBox");
     // Catch accidental inclusion of disabled diagram/highlighting plugins.
     expect(Bun.gzipSync(asset).byteLength).toBeLessThan(600_000);
+  });
+  it("styles a mounted box only in hosts that opt in, beneath any host rule", () => {
+    const source = readFileSync(
+      join(packageRoot, "ui-react", "src", "guest-box.css"),
+      "utf-8",
+    ).replace(/\/\*[\s\S]*?\*\//g, "");
+    const selectors = Array.from(source.matchAll(/([^{};]+)\{/g), (match) =>
+      (match[1] ?? "").trim(),
+    ).filter((selector) => !selector.startsWith("@"));
+    expect(selectors.length).toBeGreaterThan(20);
+    for (const selector of selectors) {
+      // The whole list sits in :where(), and each selector in it opts in.
+      const list = /^:where\((.*)\)$/s.exec(selector)?.[1];
+      expect(list).toBeDefined();
+      for (const part of splitSelectorList(list ?? ""))
+        expect(part.trim()).toStartWith(`[${ASK_STYLED_ATTRIBUTE}]`);
+    }
+    for (const asset of ["guest.css", "dashboard.css"])
+      expect(
+        readFileSync(join(packageRoot, "dist", "ui", asset), "utf-8"),
+      ).toContain(`[${ASK_STYLED_ATTRIBUTE}]`);
   });
   it("publishes the built UI asset directory", () => {
     const packageJson = webChatPackageJsonSchema.parse(

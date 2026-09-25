@@ -116,7 +116,7 @@ describe("contact-first homepage", () => {
     expect(html).not.toContain("onerror=");
     expect(html).not.toContain('href="javascript:');
     expect(html).not.toContain("/guest");
-    expect(html).not.toContain("textarea");
+    expect(html).not.toContain("<textarea");
   });
   it("omits missing/private/invalid/empty copy without a profile-derived replacement", async () => {
     for (const record of [

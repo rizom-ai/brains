@@ -125,6 +125,48 @@ export const homepageAtlasStyles: string = String.raw`
 .atlas__contact:focus-visible, .atlas__topics a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
 .atlas__note { margin: .9rem 0 0; font-size: .84rem; color: var(--color-text-light); }
 
+/* The docked chat box: Web Chat mounts the conversation into this host and
+   styles it; the atlas themes it and keeps its composer the same before and
+   after the mount. The page already presents the opening and its topics. */
+.atlas--chat .atlas__talk { max-height: calc(100svh - 4.5rem); overflow-y: auto; }
+.atlas__ask {
+  margin-top: 1.6rem; max-width: 34rem;
+  --ask-wash: var(--color-bg-subtle); --ask-display: var(--font-heading); --ask-muted: var(--color-text-light);
+}
+.atlas__ask-status { margin: 0 0 .5rem; font-size: .84rem; color: var(--color-text-light); }
+.atlas__ask-status:empty { display: none; }
+.atlas__ask .brain-box-welcome { display: none; }
+.atlas__ask .brain-box-header-actions { margin: 0 0 .5rem; }
+.atlas__ask .brain-box-bottom { border-top: 0; margin-top: .4rem; padding-top: 0; }
+.atlas__ask .brain-box-hint { margin: .55rem 0 0 1.1rem; }
+.atlas__ask .brain-box-hint:empty { display: none; }
+.atlas__composer, .atlas__ask .prompt-row {
+  display: flex; align-items: flex-end; gap: .6rem; padding: .5rem .5rem .5rem 1.1rem;
+  border-radius: 1.4rem; background: var(--color-bg-subtle); border: 1px solid var(--color-border);
+  box-shadow: 0 22px 50px -32px rgb(from var(--color-text) r g b / .5);
+}
+.atlas__composer:focus-within, .atlas__ask .prompt-row:focus-within { border-color: var(--color-accent); }
+.atlas__composer textarea, .atlas__ask .prompt-row textarea {
+  flex: 1; min-width: 0; resize: none; border: 0; background: transparent; color: var(--color-text);
+  font: inherit; font-size: 1.1rem; line-height: 1.4; padding: .55rem 0; field-sizing: content; min-height: 1.4em; max-height: 7em;
+}
+.atlas__composer textarea:focus, .atlas__ask .prompt-row textarea:focus { outline: none; }
+.atlas__send, .atlas__ask .send {
+  flex: none; display: grid; place-items: center; width: 2.7rem; height: 2.7rem; border: 0; border-radius: 50%;
+  background: var(--color-accent); color: var(--color-text-inverse); cursor: pointer; font-size: 1.2rem; font-weight: 600;
+}
+.atlas__send svg { width: 1.1rem; height: 1.1rem; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.atlas__send:disabled, .atlas__ask .send:disabled { opacity: .5; cursor: default; }
+.atlas__send:focus-visible, .atlas__ask .send:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+
+/* An answer turns the map towards the sources it drew on. */
+.atlas__field { transition: transform .9s cubic-bezier(.3, .7, .2, 1); }
+.atlas__field[data-focused] { transform: scale(var(--atlas-focus-scale, 1)); transform-origin: var(--atlas-focus-x, 50%) var(--atlas-focus-y, 50%); }
+.atlas__field[data-focused] .atlas__mark:not([data-cited]) { opacity: .45; }
+.atlas__mark[data-cited] { z-index: 3; }
+.atlas__mark[data-cited] .atlas__glyph { background: var(--color-accent); transform: scale(1.5); box-shadow: 0 0 0 3px var(--color-bg), 0 0 0 7px rgb(from var(--color-accent) r g b / .22); }
+.atlas__mark--deck[data-cited] .atlas__glyph { transform: rotate(45deg) scale(1.5); }
+
 @media (max-width: 60rem) {
   /* The map leads visually on phones; the conversation stays first in the document. */
   .atlas { flex-direction: column; min-height: 0; }
@@ -139,6 +181,6 @@ export const homepageAtlasStyles: string = String.raw`
 }
 @media (prefers-reduced-motion: reduce) {
   .atlas__contour { animation: none; }
-  .atlas__glyph, .atlas__tip { transition: none; }
+  .atlas__glyph, .atlas__tip, .atlas__field { transition: none; }
 }
 `;

@@ -252,7 +252,7 @@ describe("homepage atlas", () => {
       <HomepageListLayout {...page} atlas={atlas} />,
     );
     expect(html).not.toContain("<script");
-    expect(html).not.toContain("textarea");
+    expect(html).not.toContain("<textarea");
     expect(html).not.toContain("/guest");
   });
 
@@ -351,5 +351,46 @@ describe("atlas copy", () => {
     expect(html).toContain('href="https://yeehaa.test/contact">Contact</a>');
     expect(html).not.toContain('class="atlas__caption"');
     expect(html).not.toContain('class="atlas__note"');
+  });
+});
+
+describe("atlas with guest chat", () => {
+  const html = (): string =>
+    renderToStaticMarkup(<HomepageListLayout {...page} atlas={atlas} askBox />);
+
+  it("renders the shared chat host, disabled until Web Chat's boot enables it", () => {
+    expect(html()).toContain('data-ask-box=""');
+    // Web Chat's shared box presentation, themed by the site's own tokens.
+    expect(html()).toContain('data-ask-styled=""');
+    expect(html()).toContain('data-ask-send=""');
+    expect(html()).toContain('data-ask-status=""');
+    expect(html()).toMatch(/<textarea[^>]*disabled/);
+    expect(html()).toContain('src="/ask/assets/box.js"');
+  });
+
+  it("lets topics fill the draft, while each still reaches the contact form", () => {
+    expect(html()).toMatch(
+      /href="https:\/\/yeehaa\.test\/contact" data-atlas-fill="Someone who carries a lot is about to leave"/,
+    );
+  });
+
+  it("keeps the door to the owner outside the chat", () => {
+    expect(html()).toMatch(
+      /class="atlas__contact" href="https:\/\/yeehaa\.test\/contact">Write to me/,
+    );
+  });
+
+  it("keys every mark as the answer's sources are keyed", () => {
+    expect(html()).toContain('data-atlas-key="post:hiding"');
+    expect(html()).toContain('data-atlas-key="project:lefthoek"');
+  });
+
+  it("stays a static page with no chat when guest chat is off", () => {
+    const off = renderToStaticMarkup(
+      <HomepageListLayout {...page} atlas={atlas} />,
+    );
+    expect(off).not.toContain("data-ask-box");
+    expect(off).not.toContain("data-atlas-fill");
+    expect(off).not.toContain("<script");
   });
 });

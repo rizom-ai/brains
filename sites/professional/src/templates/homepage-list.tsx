@@ -40,6 +40,8 @@ export interface HomepageListData {
   opening?: HomepageOpeningContent | null | undefined;
   /** Published work placed by topic; absent without embeddings or published items. */
   atlas?: HomepageAtlasData | null | undefined;
+  /** Guest chat is enabled here: the atlas docks the shared chat box. */
+  askBox?: boolean | undefined;
 }
 
 const GRID_CLS =
@@ -87,6 +89,7 @@ export const HomepageListLayout = ({
   sections,
   opening,
   atlas = null,
+  askBox = false,
   homepageOpening = false,
 }: HomepageListData): JSX.Element => {
   // Use tagline if non-empty (empty string counts as absent), fall back to
@@ -130,7 +133,12 @@ export const HomepageListLayout = ({
     return (
       <>
         <Head title={title} description={description} ogType="website" />
-        <HomepageAtlas opening={opening} atlas={atlas} owner={profile.name} />
+        <HomepageAtlas
+          opening={opening}
+          atlas={atlas}
+          owner={profile.name}
+          askBox={askBox}
+        />
       </>
     );
   }

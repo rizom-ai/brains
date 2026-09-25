@@ -1,3 +1,5 @@
+import { ASK_BOX_ATTRIBUTE, ASK_SOURCES_EVENT } from "@brains/contracts";
+
 export const HOMEPAGE_ATLAS_SCRIPT_PATH = "/scripts/homepage-atlas.js";
 
 /**
@@ -7,10 +9,16 @@ export const HOMEPAGE_ATLAS_SCRIPT_PATH = "/scripts/homepage-atlas.js";
  *   card and the second follows the link. Tapping elsewhere or Escape closes.
  *   Marks crowd on a phone and their hit targets overlap, so a tap in the map
  *   resolves to the nearest mark within a fingertip, not the one on top.
+ * - With guest chat docked, a topic fills the chat draft instead of opening
+ *   the contact form, and never sends. While the box is off (not enabled,
+ *   or unavailable), the topic stays a link to the contact form.
+ * - An answer's sources (the shared box's source event) light up on the map
+ *   and the map turns towards them, zooming only as far as keeps each in
+ *   view; an answer without sources lets go.
  * - The terrain's drift pauses (data-still) while the map is off screen and
  *   while the tab is hidden; reduced motion keeps it still throughout.
  */
-export const HOMEPAGE_ATLAS_SCRIPT = `(function () {
+export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
   var roots = document.querySelectorAll("[data-atlas]");
   if (!roots.length) return;
 
@@ -58,10 +66,71 @@ export const HOMEPAGE_ATLAS_SCRIPT = `(function () {
       open.removeAttribute("data-open");
       open = null;
     }
+    function liveDraft() {
+      var draft = root.querySelector("[${ASK_BOX_ATTRIBUTE}] textarea");
+      return draft && !draft.disabled ? draft : null;
+    }
+    function fillDraft(draft, text) {
+      // The prototype setter lets a mounted (React) box see the new value.
+      var descriptor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(draft), "value");
+      if (descriptor && descriptor.set) descriptor.set.call(draft, text);
+      else draft.value = text;
+      draft.dispatchEvent(new Event("input", { bubbles: true }));
+      draft.focus();
+    }
+
+    var field = root.querySelector("[data-atlas-field]");
+    var ZOOM = 1.25;
+    // Map percentages a cited mark keeps clear of; its card opens above it, under the header.
+    var CLEAR = { top: 20, right: 10, bottom: 10, left: 10 };
+    // The largest zoom around centre that keeps point between low and high.
+    function reach(centre, point, low, high) {
+      if (point > centre) return (high - centre) / (point - centre);
+      if (point < centre) return (centre - low) / (centre - point);
+      return ZOOM;
+    }
+    root.addEventListener("${ASK_SOURCES_EVENT}", function (event) {
+      var sources = (event.detail && event.detail.sources) || [];
+      var ids = sources.map(function (source) { return source.id; });
+      var cited = [];
+      root.querySelectorAll("[data-atlas-mark]").forEach(function (mark) {
+        if (ids.indexOf(mark.getAttribute("data-atlas-key")) >= 0) {
+          mark.setAttribute("data-cited", "");
+          cited.push(mark);
+        } else mark.removeAttribute("data-cited");
+      });
+      if (!field) return;
+      if (!cited.length) { field.removeAttribute("data-focused"); return; }
+      var at = function (mark, side) { return parseFloat(mark.style[side]) || 50; };
+      var x = cited.reduce(function (sum, mark) { return sum + at(mark, "left"); }, 0) / cited.length;
+      var y = cited.reduce(function (sum, mark) { return sum + at(mark, "top"); }, 0) / cited.length;
+      field.style.setProperty("--atlas-focus-x", x + "%");
+      field.style.setProperty("--atlas-focus-y", y + "%");
+      var zoom = cited.reduce(function (limit, mark) {
+        return Math.min(
+          limit,
+          reach(x, at(mark, "left"), CLEAR.left, 100 - CLEAR.right),
+          reach(y, at(mark, "top"), CLEAR.top, 100 - CLEAR.bottom)
+        );
+      }, ZOOM);
+      // Sources too far apart to zoom still light up; the map just holds still.
+      field.style.setProperty("--atlas-focus-scale", String(Math.max(1, Math.round(zoom * 100) / 100)));
+      field.setAttribute("data-focused", "");
+    });
+
     root.addEventListener("click", function (event) {
       var target = event.target;
-      var field = target && target.closest ? target.closest("[data-atlas-field]") : null;
-      if (!field) { close(); return; }
+      var fill = target && target.closest ? target.closest("[data-atlas-fill]") : null;
+      if (fill) {
+        var draft = liveDraft();
+        // Off: the link reaches the contact form as usual.
+        if (!draft) return;
+        event.preventDefault();
+        fillDraft(draft, fill.getAttribute("data-atlas-fill"));
+        return;
+      }
+      var inField = target && target.closest ? target.closest("[data-atlas-field]") : null;
+      if (!inField) { close(); return; }
       if (!touch.matches) return;
       var mark = nearest(event.clientX, event.clientY) || target.closest("[data-atlas-mark]");
       // The open card, or a second tap on the open mark itself, follows its link natively.

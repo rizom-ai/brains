@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { Window } from "happy-dom";
 import { installGlobals, type RestoreGlobals } from "@brains/test-utils";
+import { ASK_SOURCES_EVENT } from "@brains/contracts";
 import { HOMEPAGE_ATLAS_SCRIPT } from "../src/templates/homepage-atlas-script";
 
 let window: Window;
@@ -9,17 +10,24 @@ let observed: Array<(entries: Array<{ isIntersecting: boolean }>) => void>;
 
 const media: Record<string, boolean> = {};
 
-function setup(options: { touch: boolean; still?: boolean }): void {
+function setup(options: {
+  touch: boolean;
+  still?: boolean;
+  chat?: "live" | "off";
+}): void {
   media["(hover: none)"] = options.touch;
   media["(prefers-reduced-motion: reduce)"] = options.still ?? false;
   window.document.body.innerHTML = `
     <section data-atlas>
       <a class="contact" href="/contact">Let’s talk</a>
+      <div data-ask-box><p data-ask-status></p><textarea ${options.chat === "live" ? "" : "disabled"}></textarea><button data-ask-send>Send</button></div>
+      <a id="topic" href="/contact" data-atlas-fill="What is Rizom?">What is Rizom?</a>
       <div data-atlas-field>
         <svg data-atlas-terrain></svg>
         <ul>
-          <li data-atlas-mark><a id="first" href="/essays/first"><span id="first-card" data-atlas-tip>First</span></a></li>
-          <li data-atlas-mark><a id="second" href="/essays/second"><span>Second</span></a></li>
+          <li data-atlas-mark data-atlas-key="post:first" style="left: 20%; top: 30%"><a id="first" href="/essays/first"><span id="first-card" data-atlas-tip>First</span></a></li>
+          <li data-atlas-mark data-atlas-key="post:second" style="left: 60%; top: 40%"><a id="second" href="/essays/second"><span>Second</span></a></li>
+          <li data-atlas-mark data-atlas-key="post:third" style="left: 50%; top: 92%"><a id="third" href="/essays/third"><span>Third</span></a></li>
         </ul>
       </div>
     </section>
@@ -89,6 +97,8 @@ beforeEach(() => {
   restoreGlobals = installGlobals({
     window,
     document: window.document,
+    // The page's own Event, as a browser page has it.
+    Event: window.Event,
     IntersectionObserver: Observer,
   });
 });
@@ -192,5 +202,76 @@ describe("atlas terrain motion", () => {
     expect(still()).toBe(true);
     observed[0]?.([{ isIntersecting: true }]);
     expect(still()).toBe(true);
+  });
+});
+
+describe("atlas and its chat", () => {
+  const draft = (): string =>
+    String(
+      Reflect.get(window.document.querySelector("textarea") ?? {}, "value") ??
+        "",
+    );
+  const answer = (ids: string[]): void => {
+    window.document.querySelector("[data-ask-box]")?.dispatchEvent(
+      new window.CustomEvent(ASK_SOURCES_EVENT, {
+        bubbles: true,
+        detail: { sources: ids.map((id) => ({ id, title: id })) },
+      }),
+    );
+  };
+  const focused = (): boolean =>
+    window.document
+      .querySelector("[data-atlas-field]")
+      ?.hasAttribute("data-focused") ?? false;
+  const zoom = (): string => {
+    const field = window.document.querySelector("[data-atlas-field]");
+    return field instanceof window.HTMLElement
+      ? field.style.getPropertyValue("--atlas-focus-scale")
+      : "";
+  };
+
+  it("fills the chat draft from a topic when the box is live, without sending", () => {
+    setup({ touch: false, chat: "live" });
+    expect(tap("#topic")).toBe(false);
+    expect(draft()).toBe("What is Rizom?");
+    expect(window.document.activeElement.tagName).toBe("TEXTAREA");
+  });
+
+  it("follows a topic to the contact form while the box is off", () => {
+    setup({ touch: false, chat: "off" });
+    expect(tap("#topic")).toBe(true);
+    expect(draft()).toBe("");
+  });
+
+  it("lights the sources an answer drew on and turns the map towards them", () => {
+    setup({ touch: false, chat: "live" });
+    answer(["post:first"]);
+    const cited = Array.from(
+      window.document.querySelectorAll("[data-atlas-mark][data-cited]"),
+    ).map((mark) => mark.getAttribute("data-atlas-key"));
+    expect(cited).toEqual(["post:first"]);
+    expect(focused()).toBe(true);
+  });
+
+  it("zooms all the way towards sources that stay in view", () => {
+    setup({ touch: false, chat: "live" });
+    answer(["post:first", "post:second"]);
+    expect(zoom()).toBe("1.25");
+  });
+
+  it("lights sources too far apart to zoom without pushing one out of view", () => {
+    setup({ touch: false, chat: "live" });
+    // Zooming around their middle would push the lower one off the map.
+    answer(["post:first", "post:third"]);
+    expect(focused()).toBe(true);
+    expect(zoom()).toBe("1");
+  });
+
+  it("lets go of the last answer's sources when a new one cites none", () => {
+    setup({ touch: false, chat: "live" });
+    answer(["post:first"]);
+    answer([]);
+    expect(window.document.querySelectorAll("[data-cited]")).toHaveLength(0);
+    expect(focused()).toBe(false);
   });
 });

@@ -4,6 +4,13 @@ import type { HomepageOpeningContent } from "../schemas/homepage-opening";
 import type { HomepageAtlasData } from "../schemas/homepage-atlas";
 import { atlasPosition, buildAtlasTerrain } from "../lib/atlas-terrain";
 import { layoutZoneLabels } from "../lib/atlas-labels";
+import {
+  ASK_BOX_ATTRIBUTE,
+  ASK_BOX_SCRIPT_PATH,
+  ASK_SEND_ATTRIBUTE,
+  ASK_STATUS_ATTRIBUTE,
+  ASK_STYLED_ATTRIBUTE,
+} from "@brains/contracts";
 import { homepageAtlasStyles } from "./homepage-atlas-styles";
 
 const KIND_ORDER = ["post", "deck", "project"] as const;
@@ -92,6 +99,7 @@ function AtlasMap({
               <li
                 key={`${item.entityType}:${item.id}`}
                 data-atlas-mark=""
+                data-atlas-key={`${item.entityType}:${item.id}`}
                 className={`atlas__mark atlas__mark--${item.entityType}${edgeClass(item.x)}`}
                 style={{
                   left: `${atlasPosition(item.x)}%`,
@@ -142,14 +150,23 @@ export function HomepageAtlas({
   opening,
   atlas,
   owner,
+  askBox = false,
 }: {
   opening: HomepageOpeningContent;
   atlas: HomepageAtlasData | null;
   owner: string;
+  /** Guest chat is enabled: dock the shared chat box (see @brains/contracts ask-box). */
+  askBox?: boolean;
 }): JSX.Element {
   return (
     <section
-      className={atlas ? "atlas" : "atlas atlas--bare"}
+      className={[
+        "atlas",
+        atlas ? "" : "atlas--bare",
+        askBox ? "atlas--chat" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
       data-atlas=""
       aria-label="Introduction"
     >
@@ -175,13 +192,48 @@ export function HomepageAtlas({
             className="atlas__prose"
           />
         )}
+        {askBox && (
+          // Disabled until Web Chat's box boot enables it; the boot mounts the
+          // conversation here and never sends on its own. Web Chat styles the
+          // mounted box; the atlas themes and frames it.
+          <div
+            className="atlas__ask"
+            {...{ [ASK_BOX_ATTRIBUTE]: "", [ASK_STYLED_ATTRIBUTE]: "" }}
+          >
+            <p
+              className="atlas__ask-status"
+              role="status"
+              {...{ [ASK_STATUS_ATTRIBUTE]: "" }}
+            />
+            <div className="atlas__composer">
+              <textarea rows={1} disabled aria-label="Your question" />
+              <button
+                type="button"
+                className="atlas__send"
+                disabled
+                aria-label="Send question"
+                {...{ [ASK_SEND_ATTRIBUTE]: "" }}
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                  <path d="M12 19V5M5.5 11.5 12 5l6.5 6.5" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        )}
         <div className="atlas__door">
           {opening.topicsHeading && <h2>{opening.topicsHeading}</h2>}
           {opening.topics.length > 0 && (
             <ul className="atlas__topics" aria-label="Conversation topics">
               {opening.topics.map((topic, index) => (
                 <li key={`${index}-${topic}`}>
-                  <a href={opening.contactUrl}>{topic}</a>
+                  {/* With chat, a topic fills the draft; without, it reaches the contact form. */}
+                  <a
+                    href={opening.contactUrl}
+                    {...(askBox ? { "data-atlas-fill": topic } : {})}
+                  >
+                    {topic}
+                  </a>
                 </li>
               ))}
             </ul>
@@ -195,6 +247,7 @@ export function HomepageAtlas({
         </div>
       </div>
       {atlas && <AtlasMap atlas={atlas} caption={opening.mapCaption} />}
+      {askBox && <script src={ASK_BOX_SCRIPT_PATH} defer />}
     </section>
   );
 }

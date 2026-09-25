@@ -46,7 +46,19 @@ interface HomepageDataSourceOutput {
   sections: HomepageSections;
   opening?: HomepageOpeningData | null;
   atlas?: HomepageAtlasData | null;
+  askBox?: boolean;
   homepageOpening?: boolean;
+}
+
+/** The authored-homepage placement, only when the site opts in. */
+export interface HomepagePlacementLoaders {
+  loadOpening?:
+    | ((context: BaseDataSourceContext) => Promise<HomepageOpeningData | null>)
+    | undefined;
+  loadAtlas?:
+    | ((context: BaseDataSourceContext) => Promise<HomepageAtlasData | null>)
+    | undefined;
+  chatAvailable?: ((context: BaseDataSourceContext) => boolean) | undefined;
 }
 
 /**
@@ -61,25 +73,14 @@ export class HomepageListDataSource implements DataSource {
   public readonly description =
     "Fetches profile, blog posts, and presentation decks for homepage";
 
-  private readonly loadOpening:
-    | ((context: BaseDataSourceContext) => Promise<HomepageOpeningData | null>)
-    | undefined;
-  private readonly loadAtlas:
-    | ((context: BaseDataSourceContext) => Promise<HomepageAtlasData | null>)
-    | undefined;
+  private readonly placement: HomepagePlacementLoaders;
 
   constructor(
     postsListUrl: string,
     decksListUrl: string,
-    loadOpening?: (
-      context: BaseDataSourceContext,
-    ) => Promise<HomepageOpeningData | null>,
-    loadAtlas?: (
-      context: BaseDataSourceContext,
-    ) => Promise<HomepageAtlasData | null>,
+    placement: HomepagePlacementLoaders = {},
   ) {
-    this.loadOpening = loadOpening;
-    this.loadAtlas = loadAtlas;
+    this.placement = placement;
     this.postsListUrl = postsListUrl;
     this.decksListUrl = decksListUrl;
   }
@@ -88,13 +89,18 @@ export class HomepageListDataSource implements DataSource {
   private async loadPlacement(
     context: BaseDataSourceContext,
   ): Promise<
-    Pick<HomepageDataSourceOutput, "homepageOpening" | "opening" | "atlas">
+    Pick<
+      HomepageDataSourceOutput,
+      "homepageOpening" | "opening" | "atlas" | "askBox"
+    >
   > {
-    if (!this.loadOpening) return {};
-    const opening = await this.loadOpening(context);
-    const atlas =
-      opening && this.loadAtlas ? await this.loadAtlas(context) : null;
-    return { homepageOpening: true, opening, atlas };
+    const { loadOpening, loadAtlas, chatAvailable } = this.placement;
+    if (!loadOpening) return {};
+    const opening = await loadOpening(context);
+    if (!opening) return { homepageOpening: true, opening, atlas: null };
+    const atlas = loadAtlas ? await loadAtlas(context) : null;
+    const askBox = chatAvailable?.(context) ?? false;
+    return { homepageOpening: true, opening, atlas, askBox };
   }
 
   /**
