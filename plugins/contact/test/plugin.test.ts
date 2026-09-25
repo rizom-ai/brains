@@ -37,7 +37,8 @@ async function setup(executionOnly = false): Promise<{
   plugin: ContactPlugin;
   handlers: Map<string, JobHandler>;
 }> {
-  const h = createPluginHarness();
+  // The deployment domain gives the runtime its site and preview URLs.
+  const h = createPluginHarness({ domain: "brain.test" });
   const shell = h.getMockShell();
   const checks: RecurringCheckDefinition[] = [];
   const handlers = new Map<string, JobHandler>();
@@ -182,6 +183,20 @@ describe("contact runtime", () => {
       )?.status,
     ).toBe(503);
   });
+  it("serves the deployment's preview host when preview is on", async () => {
+    const f = await setup();
+    await f.plugin.ready();
+    const get = f.plugin
+      .getWebRoutes()
+      .find((route) => route.path === "/contact" && route.method === "GET");
+    const response = await get?.handler(
+      new Request("https://preview.brain.test/contact"),
+      { remoteAddress: peer },
+    );
+    expect(response?.status).toBe(200);
+    await f.plugin.shutdown();
+  });
+
   it("closes stale or failed retention, retries cleanup, and makes old queued deliveries harmless", async () => {
     let f: Awaited<ReturnType<typeof setup>> | undefined;
     try {

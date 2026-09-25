@@ -121,12 +121,11 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
         });
       },
     });
-    this.http = new ContactHttpHandlers(
-      admission,
-      this.intake,
-      config.http,
-      context.themeCSS,
-    );
+    this.http = new ContactHttpHandlers(admission, this.intake, config.http, {
+      themeCSS: context.themeCSS,
+      // Preview reachability serves the deployment's own preview host too.
+      previewOrigin: config.preview ? context.previewUrl : undefined,
+    });
     context.endpoints.register({
       label: "Contact",
       url: `${config.http.origin}/contact`,

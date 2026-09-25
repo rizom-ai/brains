@@ -175,8 +175,25 @@ describe("contact-first homepage", () => {
     expect(result?.contactUrl).toBe(`${localOrigin}/contact`);
   });
 
-  it("omits the opening when the route or matching environment origin is unavailable", async () => {
+  it("links a preview build's door to the preview host the form also serves", async () => {
     const runtime = context();
+    const result = await loadHomepageOpening(
+      { entityService: runtime.entityService, publishedOnly: false },
+      runtime,
+    );
+    expect(result?.contactUrl).toBe("https://preview.brain.test/contact");
+  });
+
+  it("omits the opening when the form is not reachable where the build is served", async () => {
+    const runtime = context();
+    const routes = runtime.webRoutes.getRoutes();
+    // A form that does not serve preview cannot back a preview door.
+    runtime.webRoutes.getRoutes = mock(() =>
+      routes.map((route) => ({
+        ...route,
+        definition: { ...route.definition, preview: false },
+      })),
+    );
     expect(
       await loadHomepageOpening(
         { entityService: runtime.entityService, publishedOnly: false },
@@ -190,5 +207,37 @@ describe("contact-first homepage", () => {
         runtime,
       ),
     ).toBeNull();
+  });
+
+  it("omits the opening when the form is advertised for another site", async () => {
+    const runtime = context();
+    const appInfo = await runtime.identity.getAppInfo();
+    const elsewhere = {
+      ...runtime,
+      identity: {
+        ...runtime.identity,
+        getAppInfo: async (): ReturnType<
+          typeof runtime.identity.getAppInfo
+        > => ({
+          ...appInfo,
+          endpoints: [
+            {
+              pluginId: "contact",
+              label: "Contact",
+              url: "https://elsewhere.test/contact",
+              priority: 50,
+              visibility: "public" as const,
+            },
+          ],
+        }),
+      },
+    };
+    for (const publishedOnly of [true, false])
+      expect(
+        await loadHomepageOpening(
+          { entityService: runtime.entityService, publishedOnly },
+          elsewhere,
+        ),
+      ).toBeNull();
   });
 });
