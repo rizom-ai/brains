@@ -29,7 +29,12 @@ const config: ContactPluginConfig = {
   },
 };
 type Harness = ReturnType<typeof createPluginHarness>;
-async function setup(executionOnly = false): Promise<{
+/** One brain process. A worker shares the web process's runtime state, as the
+ * deployed web and worker processes share their runtime database. */
+async function setup(
+  executionOnly = false,
+  sharesStateWith?: Harness,
+): Promise<{
   h: Harness;
   shell: ReturnType<Harness["getMockShell"]>;
   checks: RecurringCheckDefinition[];
@@ -40,6 +45,10 @@ async function setup(executionOnly = false): Promise<{
   // The deployment domain gives the runtime its site and preview URLs.
   const h = createPluginHarness({ domain: "brain.test" });
   const shell = h.getMockShell();
+  if (sharesStateWith)
+    spyOn(shell, "getRuntimeState").mockReturnValue(
+      sharesStateWith.getMockShell().getRuntimeState(),
+    );
   const checks: RecurringCheckDefinition[] = [];
   const handlers = new Map<string, JobHandler>();
   spyOn(shell.getJobQueueService(), "registerHandler").mockImplementation(
@@ -263,13 +272,47 @@ describe("contact runtime", () => {
     }
   });
 
-  it("registers delivery handlers but no routes or recurring work in execution-only workers", async () => {
+  it("in a separate worker, declares the form for site builds and runs maintenance, but never serves", async () => {
     const f = await setup(true);
     await f.plugin.ready();
-    expect(f.plugin.getWebRoutes()).toEqual([]);
-    expect(f.checks).toEqual([]);
+    const routes = f.plugin.getWebRoutes();
+    expect(routes.map((route) => `${route.method} ${route.path}`)).toEqual([
+      "GET /contact",
+      "POST /contact",
+      "GET /contact/thanks",
+    ]);
+    expect(routes.every((route) => route.public && route.preview)).toBe(true);
+    const response = await routes[0]?.handler(
+      new Request(`${origin}/contact`),
+      {
+        remoteAddress: peer,
+      },
+    );
+    expect(response?.status).toBe(503);
+    expect(f.checks.map((check) => check.id)).toEqual(["maintenance"]);
     expect(f.handlers.has("contact:notify")).toBe(true);
     await f.plugin.shutdown();
+  });
+
+  it("keeps the form open while a separate worker runs its daily maintenance", async () => {
+    const web = await setup();
+    const worker = await setup(true, web.h);
+    await web.plugin.ready();
+    await worker.plugin.ready();
+    const hour = 60 * 60 * 1000;
+    try {
+      setSystemTime(new Date(Date.now() + 24 * hour));
+      const maintenance = worker.checks[0];
+      if (!maintenance) throw new Error("Missing maintenance");
+      await maintenance.run({ signal: new AbortController().signal });
+      // 27 hours after the web process last maintained, 3 after the worker did.
+      setSystemTime(new Date(Date.now() + 3 * hour));
+      expect((await submit(web.plugin)).status).toBe(303);
+    } finally {
+      setSystemTime();
+      await worker.plugin.shutdown();
+      await web.plugin.shutdown();
+    }
   });
   it("fails closed on startup without the configured authenticated Inbox destination", async () => {
     const f = await setup();

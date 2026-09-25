@@ -142,7 +142,7 @@ describe("contact-first homepage", () => {
       expect(html).not.toContain('href="/contact"');
     }
   });
-  it("uses the advertised loopback endpoint for a local preview, not the deployment's HTTPS domain", async () => {
+  it("uses the local site URL for a local preview, not the deployment's HTTPS domain", async () => {
     const runtime = context();
     const localOrigin = "http://127.0.0.1:3000";
     const appInfo = await runtime.identity.getAppInfo();
@@ -209,35 +209,28 @@ describe("contact-first homepage", () => {
     ).toBeNull();
   });
 
-  it("omits the opening when the form is advertised for another site", async () => {
+  it("renders where a separate worker builds the site, which advertises no endpoints", async () => {
     const runtime = context();
     const appInfo = await runtime.identity.getAppInfo();
-    const elsewhere = {
+    // Endpoint advertisement is registered by the web process only.
+    const worker = {
       ...runtime,
       identity: {
         ...runtime.identity,
         getAppInfo: async (): ReturnType<
           typeof runtime.identity.getAppInfo
-        > => ({
-          ...appInfo,
-          endpoints: [
-            {
-              pluginId: "contact",
-              label: "Contact",
-              url: "https://elsewhere.test/contact",
-              priority: 50,
-              visibility: "public" as const,
-            },
-          ],
-        }),
+        > => ({ ...appInfo, endpoints: [] }),
       },
     };
-    for (const publishedOnly of [true, false])
-      expect(
-        await loadHomepageOpening(
-          { entityService: runtime.entityService, publishedOnly },
-          elsewhere,
-        ),
-      ).toBeNull();
+    const preview = await loadHomepageOpening(
+      { entityService: runtime.entityService, publishedOnly: false },
+      worker,
+    );
+    expect(preview?.contactUrl).toBe("https://preview.brain.test/contact");
+    const production = await loadHomepageOpening(
+      { entityService: runtime.entityService, publishedOnly: true },
+      worker,
+    );
+    expect(production?.contactUrl).toBe(`${origin}/contact`);
   });
 });

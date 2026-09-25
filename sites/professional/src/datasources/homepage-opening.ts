@@ -6,19 +6,15 @@ import { parseAskContent, type AskContent } from "@brains/contracts";
 
 type OpeningRuntime = Pick<
   ServicePluginContext,
-  | "webRoutes"
-  | "identity"
-  | "siteUrl"
-  | "previewUrl"
-  | "localSiteUrl"
-  | "preferLocalUrls"
+  "webRoutes" | "siteUrl" | "previewUrl" | "localSiteUrl" | "preferLocalUrls"
 >;
 
 export type HomepageOpeningData = AskContent & { contactUrl: string };
 
 /** Build-time authored presentation only: no chat admission, tokens or generation.
- * A matching public form is required: advertised at the site's origin and, for a
- * preview build, reachable on preview, where the door leads to the preview host.
+ * A matching public form route is required and, for a preview build, reachable on
+ * preview, where the door leads to the preview host. Routes are declared in every
+ * process; endpoint advertisement is not, and a separate worker runs site builds.
  */
 export async function loadHomepageOpening(
   context: BaseDataSourceContext,
@@ -44,16 +40,6 @@ export async function loadHomepageOpening(
     if (
       !["GET", "POST"].every((method) =>
         routes.some((route) => (route.definition.method ?? "GET") === method),
-      )
-    )
-      return null;
-    const { endpoints } = await runtime.identity.getAppInfo();
-    if (
-      !endpoints.some(
-        (endpoint) =>
-          endpoint.pluginId === "contact" &&
-          endpoint.visibility === "public" &&
-          endpoint.url === new URL("/contact", siteOrigin).href,
       )
     )
       return null;
