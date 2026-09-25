@@ -1,5 +1,4 @@
 export { default, contactService } from "./plugin";
-export type { ContactDependencies } from "./runtime";
 export { contactRequest } from "./entity/plugin";
 
 export { ContactHttpHandlers, contactHttpPolicySchema } from "./http";

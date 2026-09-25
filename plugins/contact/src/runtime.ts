@@ -1,50 +1,48 @@
-import type { RuntimeHealthCheck, LoggerContract } from "@brains/sdk/services";
 import {
-  createScheduledMaintenanceDaemon,
-  type ScheduledMaintenance,
-} from "@brains/scheduler/maintenance";
-
-export interface ContactDependencies {
-  readonly maintenance?: typeof createScheduledMaintenanceDaemon | undefined;
-}
+  z,
+  type IRuntimeStateStore,
+  type RuntimeHealthCheck,
+} from "@brains/sdk/services";
 import type { ContactMaintenanceReport, ContactIntake } from "./intake";
 import type { ContactStorageSlots } from "./storage-slots";
 import type { ContactHttpHandlers } from "./http";
 import type { ContactIntakeConfig } from "./config";
 const MAX_MAINTENANCE_AGE_MS = 26 * 60 * 60 * 1000;
+export const maintenanceStatusSchema: z.ZodType<
+  MaintenanceStatus,
+  MaintenanceStatus
+> = z.strictObject({
+  at: z.number().int().nonnegative(),
+  failed: z.boolean(),
+});
+interface MaintenanceStatus {
+  at: number;
+  failed: boolean;
+}
 
 /** Owned lifecycle state; construction does no IO, including in job workers. */
 export class ContactRuntime {
   private readonly stop = new AbortController();
   private maintenance: Promise<void> | undefined;
-  private lastMaintenanceAt: number | undefined;
-  private maintenanceFailed = false;
+  private readonly maintenanceStatus: IRuntimeStateStore<MaintenanceStatus>;
   private report: ContactMaintenanceReport | undefined;
   private readyState = false;
   private readonly config: ContactIntakeConfig;
   private readonly intake: ContactIntake;
   private readonly http: ContactHttpHandlers;
   private readonly slots: ContactStorageSlots;
-  private readonly schedule: ScheduledMaintenance;
   constructor(
     config: ContactIntakeConfig,
     intake: ContactIntake,
     http: ContactHttpHandlers,
     slots: ContactStorageSlots,
-    logger: LoggerContract,
-    dependencies: ContactDependencies = {},
+    maintenanceStatus: IRuntimeStateStore<MaintenanceStatus>,
   ) {
+    this.maintenanceStatus = maintenanceStatus;
     this.config = config;
     this.intake = intake;
     this.http = http;
     this.slots = slots;
-    this.schedule = (
-      dependencies.maintenance ?? createScheduledMaintenanceDaemon
-    )({
-      intervalMs: 24 * 60 * 60 * 1000,
-      run: async () => this.maintain(this.stop.signal),
-      logger,
-    });
   }
   async ready(inboxHref: string | undefined): Promise<void> {
     if (
@@ -55,15 +53,17 @@ export class ContactRuntime {
       throw new Error("Contact Inbox unavailable");
     await this.maintain(this.stop.signal);
     this.stop.signal.throwIfAborted();
-    await this.schedule.start();
-    this.stop.signal.throwIfAborted();
     this.readyState = true;
   }
-  handle(
+  async handle(
     request: Request,
     transport?: { readonly remoteAddress?: string },
-  ): Response | Promise<Response> {
-    if (!this.readyState || !this.maintenanceFresh())
+  ): Promise<Response> {
+    if (
+      !this.readyState ||
+      !(await this.maintenanceFresh()) ||
+      this.stop.signal.aborted
+    )
       return this.http.unavailable(request);
     return this.http.handle(request, transport);
   }
@@ -80,27 +80,44 @@ export class ContactRuntime {
     try {
       this.report = await this.intake.maintain(signal);
       signal.throwIfAborted();
-      this.lastMaintenanceAt = Date.now();
-      this.maintenanceFailed = false;
+      await this.maintenanceStatus.set("status", {
+        at: Date.now(),
+        failed: false,
+      });
     } catch {
-      this.maintenanceFailed = true;
+      try {
+        const previous = await this.maintenanceStatus.get("status");
+        await this.maintenanceStatus.set("status", {
+          at: previous?.at ?? 0,
+          failed: true,
+        });
+      } catch {
+        // An unreadable status cannot establish freshness; intake stays closed.
+      }
       throw new Error("Contact maintenance unavailable");
     }
   }
 
-  private maintenanceFresh(): boolean {
-    return (
-      !this.stop.signal.aborted &&
-      !this.maintenanceFailed &&
-      this.lastMaintenanceAt !== undefined &&
-      Date.now() >= this.lastMaintenanceAt &&
-      Date.now() - this.lastMaintenanceAt <= MAX_MAINTENANCE_AGE_MS
-    );
+  private async maintenanceFresh(): Promise<boolean> {
+    if (this.stop.signal.aborted) return false;
+    try {
+      const status = await this.maintenanceStatus.get("status");
+      const now = Date.now();
+      return (
+        status !== null &&
+        !status.failed &&
+        now >= status.at &&
+        now - status.at <= MAX_MAINTENANCE_AGE_MS
+      );
+    } catch {
+      // Storage errors may contain private data; fail closed without exposing it.
+      return false;
+    }
   }
 
   async health(): Promise<Omit<RuntimeHealthCheck, "name">> {
     try {
-      if (!this.maintenanceFresh())
+      if (!(await this.maintenanceFresh()))
         return {
           status: "unhealthy",
           message:
@@ -128,7 +145,7 @@ export class ContactRuntime {
           pending,
           failed,
           unconfirmed,
-          lastMaintenanceAt: this.lastMaintenanceAt,
+          lastMaintenanceAt: (await this.maintenanceStatus.get("status"))?.at,
           ...this.report,
         },
       };
@@ -144,7 +161,6 @@ export class ContactRuntime {
   async shutdown(): Promise<void> {
     this.readyState = false;
     this.stop.abort();
-    await this.schedule.stop();
     await this.maintenance?.catch(() => {
       // The lifecycle/check caller already received the sanitized failure.
     });

@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.2.0-alpha.409
+
+### Patch Changes
+
+- [#358](https://github.com/rizom-ai/brains/pull/358) [`a83fa6f`](https://github.com/rizom-ai/brains/commit/a83fa6f699695f7011db996b98d93c661e429c41) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Atlas territory names no longer collide on real maps. The build keeps each name inside the map's edges, and the atlas script re-places names by their rendered size, largest territory first: each takes the nearest free spot off marks and apart from other names, or is hidden when none is free. On phones the first screen now holds the map and the headline together, with a compact legend on the map's lower fade and a quieter byline.
+
+## 0.2.0-alpha.408
+
+### Patch Changes
+
+- [#357](https://github.com/rizom-ai/brains/pull/357) [`e44477c`](https://github.com/rizom-ai/brains/commit/e44477c763351b94692a98c1d13c554cc02325d9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Contact intake and the homepage opening work when a brain runs a separate worker process. The worker now builds contact's intake and declares its routes, so site builds there see the form, and it can run contact's daily maintenance, whose freshness is shared through runtime state; before, the check failed as unknown in the worker and intake closed as overdue after 26 hours. The worker never serves or gates the form. The homepage opening no longer requires an advertised contact endpoint, which only the web process registers, so preview and production builds in the worker render it.
+
 ## 0.2.0-alpha.407
 
 ### Patch Changes

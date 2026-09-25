@@ -5,27 +5,16 @@ import {
   type ServiceEntityService,
 } from "@brains/plugins";
 import type { JobEntityAccess } from "@brains/sdk/entities";
-import {
-  contactService,
-  type ContactPluginConfig,
-  type ContactDependencies,
-} from "../src";
+import { contactService, type ContactPluginConfig } from "../src";
 
-export function instantiate(
-  config: ContactPluginConfig = {},
-  dependencies: ContactDependencies = {},
-): {
+export function instantiate(config: ContactPluginConfig = {}): {
   service: ServicePlugin<unknown, unknown>;
   entity: Plugin;
 } {
-  const plugins = instantiatePluginPackageDefinition(
-    contactService(dependencies),
-    config,
-    {
-      name: "@brains/contact",
-      version: "0.0.0-test",
-    },
-  );
+  const plugins = instantiatePluginPackageDefinition(contactService(), config, {
+    name: "@brains/contact",
+    version: "0.0.0-test",
+  });
   const service = plugins.find((plugin) => plugin instanceof ServicePlugin);
   const entity = plugins.find((plugin) => plugin.type === "entity");
   if (!service || !entity) throw new Error("Contact declarations missing");

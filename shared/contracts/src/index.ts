@@ -237,3 +237,8 @@ export {
 } from "./notification";
 export type { ConsoleSurface, SurfacePermissionLevel } from "./console";
 export { inboxWorkspaceRequest } from "./inbox-workspace";
+export {
+  contactFormDiscoveryRequest,
+  contactFormDiscoverySchema,
+} from "./contact-form-discovery";
+export type { ContactFormDiscovery } from "./contact-form-discovery";

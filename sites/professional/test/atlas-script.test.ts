@@ -338,3 +338,142 @@ describe("atlas and its chat", () => {
     expect(leads()).toEqual([]);
   });
 });
+
+interface Box {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+function box(
+  left: number,
+  top: number,
+  width: number,
+  height: number,
+): Box & {
+  right: number;
+  bottom: number;
+} {
+  return {
+    left,
+    top,
+    width,
+    height,
+    right: left + width,
+    bottom: top + height,
+  };
+}
+function stub(element: object | null, rect: Box): void {
+  if (!element) throw new Error("missing element");
+  Object.assign(element, {
+    getBoundingClientRect: () =>
+      box(rect.left, rect.top, rect.width, rect.height),
+  });
+}
+/** Where a name ends up: its measured box moved by the shift the script set. */
+function placed(
+  id: string,
+  base: Box,
+): (Box & { right: number; bottom: number }) | null {
+  const label = window.document.getElementById(id);
+  if (!(label instanceof window.HTMLElement) || label.hasAttribute("hidden"))
+    return null;
+  const shift = label.style.getPropertyValue("--atlas-name-shift");
+  const [dx = 0, dy = 0] = (shift === "" ? "0px 0px" : shift)
+    .split(" ")
+    .map((part: string) => Number.parseFloat(part));
+  return box(base.left + dx, base.top + dy, base.width, base.height);
+}
+const overlaps = (a: Box, b: Box): boolean =>
+  a.left < b.left + b.width &&
+  b.left < a.left + a.width &&
+  a.top < b.top + b.height &&
+  b.top < a.top + a.height;
+
+describe("atlas territory names", () => {
+  const field = box(0, 0, 400, 300);
+  const first = box(100, 100, 120, 20);
+  const second = box(130, 108, 120, 20);
+  const edge = box(330, 200, 120, 20);
+  const mark = box(260, 60, 9, 9);
+
+  function names(
+    labels: Array<[string, Box]>,
+    marks: Box[] = [mark],
+    area: Box = field,
+  ): void {
+    window.document.body.innerHTML = `
+      <section data-atlas>
+        <div data-atlas-field>
+          <svg data-atlas-terrain></svg>
+          ${labels.map(([id]) => `<span id="${id}" class="atlas__zone" data-atlas-zone>${id}</span>`).join("")}
+          <ul>${marks.map((_, index) => `<li data-atlas-mark data-atlas-key="post:${index}"><a href="/${index}"><span class="atlas__glyph"></span></a></li>`).join("")}</ul>
+        </div>
+      </section>`;
+    stub(window.document.querySelector("[data-atlas-field]"), area);
+    labels.forEach(([id, rect]) =>
+      stub(window.document.getElementById(id), rect),
+    );
+    window.document
+      .querySelectorAll(".atlas__glyph")
+      .forEach((glyph, index) => {
+        const rect = marks[index];
+        if (rect) stub(glyph, rect);
+      });
+    eval(HOMEPAGE_ATLAS_SCRIPT);
+  }
+
+  it("keeps the larger territory's name where it is and moves the next one clear", () => {
+    names([
+      ["first", first],
+      ["second", second],
+    ]);
+    const a = placed("first", first);
+    const b = placed("second", second);
+    expect(a).toEqual(first);
+    if (!b) throw new Error("second name hidden");
+    expect(overlaps(a ?? first, b)).toBe(false);
+  });
+
+  it("moves a name off a mark and back inside the map", () => {
+    names([
+      ["over", box(230, 55, 80, 20)],
+      ["edge", edge],
+    ]);
+    const over = placed("over", box(230, 55, 80, 20));
+    const inside = placed("edge", edge);
+    if (!over || !inside) throw new Error("name hidden");
+    expect(overlaps(over, mark)).toBe(false);
+    expect(inside.left + inside.width).toBeLessThanOrEqual(field.width);
+  });
+
+  it("keeps names on one line far enough apart to read as two", () => {
+    names(
+      [
+        ["left", box(40, 150, 100, 20)],
+        ["right", box(142, 150, 100, 20)],
+      ],
+      [],
+    );
+    const left = placed("left", box(40, 150, 100, 20));
+    const right = placed("right", box(142, 150, 100, 20));
+    if (!left || !right) throw new Error("name hidden");
+    const sameLine =
+      left.top < right.top + right.height && right.top < left.top + left.height;
+    if (sameLine)
+      expect(right.left - (left.left + left.width)).toBeGreaterThanOrEqual(14);
+  });
+
+  it("hides a name that has no free place rather than printing it over another", () => {
+    names(
+      [
+        ["wide", box(0, 0, 90, 20)],
+        ["crowded", box(5, 5, 90, 20)],
+      ],
+      [],
+      box(0, 0, 100, 24),
+    );
+    expect(placed("wide", box(0, 0, 90, 20))).not.toBeNull();
+    expect(placed("crowded", box(5, 5, 90, 20))).toBeNull();
+  });
+});

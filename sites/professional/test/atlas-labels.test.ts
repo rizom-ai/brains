@@ -16,7 +16,7 @@ const labelTop = (
   marks: Parameters<typeof layoutZoneLabels>[1],
   id: string,
 ): number => {
-  const top = layoutZoneLabels(zones, marks)[id];
+  const top = layoutZoneLabels(zones, marks)[id]?.bottom;
   if (top === undefined) throw new Error(`no label for ${id}`);
   return top;
 };
@@ -67,11 +67,28 @@ describe("atlas zone labels", () => {
     };
     const marks = [member, { x: 0.47, y: 0.49, zoneId: "institutions" }];
     const tops = layoutZoneLabels([neighbour, larger], marks);
-    const a = tops["ecosystem"];
-    const b = tops["institutions"];
+    const a = tops["ecosystem"]?.bottom;
+    const b = tops["institutions"]?.bottom;
     expect(a).toBeDefined();
     expect(b).toBeDefined();
     expect(Math.abs((a ?? 0) - (b ?? 0))).toBeGreaterThanOrEqual(3.2);
+  });
+
+  it("keeps a name at the map's edge inside the map", () => {
+    const edge = {
+      ...zone,
+      id: "positioning",
+      name: "Professional positioning",
+      x: 0.99,
+    };
+    const placed = layoutZoneLabels(
+      [edge],
+      [{ ...member, zoneId: "positioning", x: 0.99 }],
+    )["positioning"];
+    if (!placed) throw new Error("no label");
+    const halfWidth = (edge.name.length * 1.7) / 2;
+    expect(placed.left + halfWidth).toBeLessThanOrEqual(100);
+    expect(placed.left - halfWidth).toBeGreaterThanOrEqual(0);
   });
 
   it("keeps the whole name inside the map, even on a short phone map", () => {

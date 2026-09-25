@@ -54,9 +54,10 @@ this capability.
   pass: re-enqueue pending notifications and delete expired intake-owned records,
   releasing capacity only after confirmed deletion. It reports unresolved writes
   and enqueue failures without personal details. The plugin runs it at startup
-  and through the shared scheduler's daily maintenance lifecycle, with shutdown
-  cancellation and draining. The scheduler process owns both retention and its
-  readiness clock; retention is not dispatched to a separate job worker. Physical deletion can lag expiry until the next successful pass;
+  and through a declared daily recurring check, with shutdown cancellation and
+  draining. Separate workers execute the same check; an owned shared-state
+  timestamp/failure flag supplies the web process's freshness gate. There is no
+  second process-local maintenance timer. Physical deletion can lag expiry until the next successful pass;
   downtime and backups are disclosed separately on the form.
 
 The form and opt-in professional homepage have a theme-based first visual pass,
@@ -89,7 +90,11 @@ through their existing plugins, never through the visitor's fields.
 - Notifications contain only a generic alert and the authenticated Inbox link,
   with secret sensitivity. The notifications plugin registers its internal
   subscription in execution-only workers too. Workers register execution
-  dependencies, but neither expose contact routes nor start retention scheduling.
+  dependencies and maintenance checks, but expose no HTTP handlers or ready hooks.
+  A schema-validated `contact:form-discovery` subscription advertises at most three
+  route metadata records in both roles, using the same route list as HTTP
+  registration. Site builds require matching origin, GET/POST, public access and
+  preview opt-in. Discovery conveys neither live readiness nor admission authority.
 - A known acknowledgement is recorded before projecting status onto the entity.
   Failed or conflicting entity updates can be repaired without sending again.
   Success for the visitor still means **saved**, not necessarily emailed.

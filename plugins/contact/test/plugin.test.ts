@@ -2,21 +2,26 @@ import { describe, expect, it, mock, spyOn, setSystemTime } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { ChannelDeliveryInput, JobHandler } from "@brains/plugins";
 import { instantiatePluginPackageDefinition } from "@brains/plugins";
-import { inboxWorkspaceRequest, NOTIFICATIONS_SEND } from "@brains/contracts";
+import {
+  inboxWorkspaceRequest,
+  contactFormDiscoveryRequest,
+  NOTIFICATIONS_SEND,
+} from "@brains/contracts";
 import { instantiate } from "./helpers";
 import { CallbackProgressReporter } from "@brains/utils/progress";
 import notificationsPackage from "@brains/notifications";
-import { contactRequestSchema, type ContactDependencies } from "../src";
+import { contactRequestSchema } from "../src";
 type ContactService = ReturnType<typeof instantiate>["service"];
 import {
   contactPluginConfigSchema,
   type ContactPluginConfig,
 } from "../src/config";
 import { admissionPolicy, input, peer } from "./intake-fixture";
+import { maintenanceStatusSchema } from "../src/runtime";
 
-type MaintenanceDefinition = Parameters<
-  NonNullable<ContactDependencies["maintenance"]>
->[0];
+type MaintenanceDefinition = Omit<RecurringCheckDefinition, "run"> & {
+  run(): Promise<unknown>;
+};
 const origin = "https://brain.test";
 const config: ContactPluginConfig = {
   intake: {
@@ -29,10 +34,19 @@ const config: ContactPluginConfig = {
   },
 };
 type Harness = ReturnType<typeof createPluginHarness>;
-async function setup(executionOnly = false): Promise<{
+type RecurringCheckDefinition = Parameters<
+  ReturnType<
+    ReturnType<Harness["getMockShell"]>["getRecurringChecks"]
+  >["register"]
+>[0];
+async function setup(
+  executionOnly = false,
+  sharesStateWith?: Harness,
+): Promise<{
   h: Harness;
   shell: ReturnType<Harness["getMockShell"]>;
   checks: MaintenanceDefinition[];
+  recurring: RecurringCheckDefinition[];
   sent: ChannelDeliveryInput[];
   plugin: ContactService;
   handlers: Map<string, JobHandler>;
@@ -41,6 +55,15 @@ async function setup(executionOnly = false): Promise<{
   // The deployment domain gives the runtime its site and preview URLs.
   const h = createPluginHarness({ domain: "brain.test" });
   const shell = h.getMockShell();
+  if (sharesStateWith) {
+    spyOn(shell, "getRuntimeState").mockReturnValue(
+      sharesStateWith.getMockShell().getRuntimeState(),
+    );
+    spyOn(shell, "getEntityService").mockReturnValue(
+      sharesStateWith.getEntityService(),
+    );
+  }
+  const recurring: RecurringCheckDefinition[] = [];
   const checks: MaintenanceDefinition[] = [];
   const handlers = new Map<string, JobHandler>();
   spyOn(shell.getJobQueueService(), "registerHandler").mockImplementation(
@@ -49,19 +72,16 @@ async function setup(executionOnly = false): Promise<{
     },
   );
   spyOn(shell, "getRecurringChecks").mockReturnValue({
-    register: mock((): (() => void) => (): void => {}),
-  });
-  const { entity: entityPlugin, service: plugin } = instantiate(config, {
-    maintenance: (options) => ({
-      start: async (): Promise<void> => {
-        checks.push(options);
-      },
-      stop: async (): Promise<void> => {},
-      healthCheck: async (): Promise<{ status: "healthy" }> => ({
-        status: "healthy",
-      }),
+    register: mock((check: RecurringCheckDefinition): (() => void) => {
+      recurring.push(check);
+      checks.push({
+        ...check,
+        run: () => check.run({ signal: new AbortController().signal }),
+      });
+      return (): void => {};
     }),
   });
+  const { entity: entityPlugin, service: plugin } = instantiate(config);
   const inbox = {
     href: config.intake ? new URL(config.intake.inboxUrl).pathname : undefined,
   };
@@ -97,7 +117,7 @@ async function setup(executionOnly = false): Promise<{
   }
   await plugin.register(shell, { executionOnly });
   await plugin.finalizeRegistration();
-  return { h, shell, checks, sent, plugin, handlers, inbox };
+  return { h, shell, checks, recurring, sent, plugin, handlers, inbox };
 }
 async function submit(plugin: ContactService): Promise<Response> {
   const get = plugin
@@ -189,10 +209,12 @@ describe("contact runtime", () => {
       contactRequestSchema,
     );
     expect(records[0]?.metadata.notification).toBe("sent");
-    expect(f.checks[0]?.intervalMs).toBe(24 * 60 * 60 * 1000);
+    expect(f.checks[0]?.cadence).toBe("daily");
+    expect(f.checks[0]?.deliverAlerts).toBe(false);
+    expect(f.checks[0]?.includeInInbox).toBe(false);
     expect(
       f.shell.getRecurringChecks("@brains/contact:contact").register,
-    ).not.toHaveBeenCalled();
+    ).toHaveBeenCalledTimes(1);
     expect(f.plugin.getWebRoutes().every((r) => r.preview)).toBe(true);
     await f.plugin.shutdown();
     expect(
@@ -285,14 +307,36 @@ describe("contact runtime", () => {
     }
   });
 
-  it("registers delivery handlers but no routes or recurring work in execution-only workers", async () => {
+  it("registers worker maintenance and metadata but no HTTP handlers or local timers", async () => {
     const f = await setup(true);
     await f.plugin.ready();
     expect(f.plugin.getWebRoutes()).toEqual([]);
-    expect(f.checks).toEqual([]);
+    expect(f.checks).toHaveLength(1);
     expect(
       f.shell.getRecurringChecks("@brains/contact:contact").register,
-    ).not.toHaveBeenCalled();
+    ).toHaveBeenCalled();
+    expect(f.recurring.map((check) => check.id)).toEqual(["maintenance"]);
+    const discovery = await f.shell.getMessageBus().send({
+      type: contactFormDiscoveryRequest.topic,
+      sender: "test",
+      payload: {},
+    });
+    expect(discovery).toMatchObject({
+      success: true,
+      data: {
+        origin,
+        routes: [
+          { path: "/contact", method: "GET", public: true, preview: true },
+          { path: "/contact", method: "POST", public: true, preview: true },
+          {
+            path: "/contact/thanks",
+            method: "GET",
+            public: true,
+            preview: true,
+          },
+        ],
+      },
+    });
     expect(f.handlers.has("@brains/contact:contact:notify")).toBe(true);
     const result = await f.shell.getMessageBus().send({
       type: NOTIFICATIONS_SEND,
@@ -306,6 +350,94 @@ describe("contact runtime", () => {
     expect(result).toMatchObject({ success: true, data: { status: "sent" } });
     expect(f.sent).toHaveLength(1);
     await f.plugin.shutdown();
+  });
+  it("keeps web intake open after a separate worker maintains shared state", async () => {
+    const web = await setup();
+    const worker = await setup(true, web.h);
+    try {
+      await web.plugin.ready();
+      await worker.plugin.ready();
+      const hour = 60 * 60 * 1000;
+      setSystemTime(new Date(Date.now() + 24 * hour));
+      const maintenance = worker.recurring[0];
+      if (!maintenance) throw new Error("Missing worker maintenance");
+      await maintenance.run({ signal: new AbortController().signal });
+      setSystemTime(new Date(Date.now() + 3 * hour));
+      expect((await submit(web.plugin)).status).toBe(303);
+      expect(worker.plugin.getWebRoutes()).toEqual([]);
+    } finally {
+      setSystemTime();
+      await worker.plugin.shutdown();
+      await web.plugin.shutdown();
+      await worker.h.reset();
+      await web.h.reset();
+    }
+  });
+  it("closes web intake when worker maintenance fails, without exposing stored details", async () => {
+    const web = await setup();
+    const worker = await setup(true, web.h);
+    try {
+      await web.plugin.ready();
+      expect((await submit(web.plugin)).status).toBe(303);
+      const read = spyOn(
+        worker.shell.getEntityService(),
+        "getEntity",
+      ).mockRejectedValue(new Error(`PRIVATE ${input.email}`));
+      const maintenance = worker.recurring[0];
+      if (!maintenance) throw new Error("Missing maintenance");
+      expect(
+        await maintenance
+          .run({ signal: new AbortController().signal })
+          .catch((error: unknown) => error),
+      ).toEqual(new Error("Contact maintenance unavailable"));
+      read.mockRestore();
+      const route = web.plugin
+        .getWebRoutes()
+        .find((route) => route.method === "GET");
+      const response = await route?.handler(new Request(`${origin}/contact`), {
+        remoteAddress: peer,
+      });
+      expect(response?.status).toBe(503);
+      expect(await response?.text()).not.toContain(input.email);
+    } finally {
+      await worker.plugin.shutdown();
+      await web.plugin.shutdown();
+      await worker.h.reset();
+      await web.h.reset();
+    }
+  });
+  it("rejects missing, failed, future and stale shared freshness", async () => {
+    const f = await setup();
+    try {
+      await f.plugin.ready();
+      const status = f.shell.getRuntimeState().scoped({
+        namespace: "brains.contact.contact.maintenance",
+        schema: maintenanceStatusSchema,
+      });
+      expect(await status.get("status")).toMatchObject({ failed: false });
+      const route = f.plugin
+        .getWebRoutes()
+        .find((route) => route.method === "GET");
+      for (const value of [
+        null,
+        { at: Date.now(), failed: true },
+        { at: Date.now() + 60000, failed: false },
+        { at: Date.now() - 27 * 3600000, failed: false },
+      ]) {
+        if (value) await status.set("status", value);
+        else await status.delete("status");
+        expect(
+          (
+            await route?.handler(new Request(`${origin}/contact`), {
+              remoteAddress: peer,
+            })
+          )?.status,
+        ).toBe(503);
+      }
+    } finally {
+      await f.plugin.shutdown();
+      await f.h.reset();
+    }
   });
   it.each([
     undefined,

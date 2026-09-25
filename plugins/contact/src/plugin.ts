@@ -2,6 +2,7 @@ import {
   defineServicePlugin,
   defineJob,
   defineRoute,
+  defineSubscription,
   verbatim,
   z,
   type ServicePackageDefinition,
@@ -11,6 +12,7 @@ import {
   sendNotificationSchema,
   sendNotificationResultSchema,
   inboxWorkspaceRequest,
+  contactFormDiscoveryRequest,
 } from "@brains/contracts";
 import { ContactInboxSource } from "./inbox-source";
 import { ContactAdmission } from "./admission";
@@ -20,7 +22,13 @@ import { ContactDelivery } from "./delivery";
 import { ContactStorageSlots } from "./storage-slots";
 import { contactPluginConfigSchema } from "./config";
 import { contactRequest } from "./entity/plugin";
-import { ContactRuntime, type ContactDependencies } from "./runtime";
+import { ContactRuntime, maintenanceStatusSchema } from "./runtime";
+
+const contactRoutes = [
+  { path: "/contact", method: "GET" },
+  { path: "/contact", method: "POST" },
+  { path: "/contact/thanks", method: "GET" },
+] as const;
 
 const notificationJobSchema = z.strictObject({
   id: z.string().regex(/^contact-[a-f0-9]{64}$/),
@@ -32,9 +40,9 @@ const notificationRequest = {
 };
 
 /** Default-off intake; all writes and durable state remain package-owned. */
-export function contactService(
-  dependencies: ContactDependencies = {},
-): ServicePackageDefinition<typeof contactPluginConfigSchema> {
+export function contactService(): ServicePackageDefinition<
+  typeof contactPluginConfigSchema
+> {
   return defineServicePlugin(
     {
       id: "contact",
@@ -60,7 +68,6 @@ export function contactService(
         themeCSS,
         previewUrl,
         lifecycle,
-        logger,
       }) => {
         const inbox = new ContactInboxSource({
           entityService: entities,
@@ -116,8 +123,10 @@ export function contactService(
             previewOrigin: intakeConfig.preview ? previewUrl : undefined,
           }),
           new ContactStorageSlots(state, intakeConfig.storage, Date.now),
-          logger,
-          dependencies,
+          runtimeState({
+            namespace: "contact.maintenance",
+            schema: maintenanceStatusSchema,
+          }),
         );
         lifecycle.onCleanup(() => runtime.shutdown());
         return { inbox, runtime, delivery, notify };
@@ -134,6 +143,40 @@ export function contactService(
             ]
           : [];
       },
+      checks: ({ state }) =>
+        state.runtime
+          ? [
+              {
+                id: "maintenance",
+                cadence: "daily",
+                deliverAlerts: false,
+                includeInInbox: false,
+                run: async ({ signal }): Promise<Record<string, never>> => {
+                  await state.runtime.maintain(signal);
+                  return {};
+                },
+              },
+            ]
+          : [],
+      subscriptions: ({ config }) => {
+        const intake = config.intake;
+        return intake
+          ? [
+              defineSubscription({
+                execution: "all-roles",
+                ...contactFormDiscoveryRequest,
+                handle: () => ({
+                  origin: intake.http.origin,
+                  routes: contactRoutes.map((route) => ({
+                    ...route,
+                    public: true,
+                    preview: intake.preview === true,
+                  })),
+                }),
+              }),
+            ]
+          : [];
+      },
       inbox: ({ state }) => ({
         sourceId: state.inbox.sourceId,
         displayName: state.inbox.displayName,
@@ -146,11 +189,7 @@ export function contactService(
       routes: ({ config, state }) => {
         const runtime = state.runtime;
         return runtime && config.intake
-          ? [
-              { path: "/contact", method: "GET" as const },
-              { path: "/contact", method: "POST" as const },
-              { path: "/contact/thanks", method: "GET" as const },
-            ].map((route) =>
+          ? contactRoutes.map((route) =>
               defineRoute({
                 ...route,
                 security: { kind: "public" },

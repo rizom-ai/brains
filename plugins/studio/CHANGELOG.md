@@ -1,5 +1,33 @@
 # @brains/studio
 
+## 0.2.0-alpha.409
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.409
+  - @brains/console-theme@0.2.0-alpha.409
+  - @brains/contracts@0.2.0-alpha.409
+  - @brains/operator-view-react@0.2.0-alpha.409
+  - @brains/utils@0.2.0-alpha.409
+  - @brains/auth-service@0.2.0-alpha.409
+  - @brains/entity-service@0.2.0-alpha.409
+  - @brains/plugins@0.2.0-alpha.409
+
+## 0.2.0-alpha.408
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/app-ui-react@0.2.0-alpha.408
+  - @brains/console-theme@0.2.0-alpha.408
+  - @brains/contracts@0.2.0-alpha.408
+  - @brains/operator-view-react@0.2.0-alpha.408
+  - @brains/utils@0.2.0-alpha.408
+  - @brains/auth-service@0.2.0-alpha.408
+  - @brains/entity-service@0.2.0-alpha.408
+  - @brains/plugins@0.2.0-alpha.408
+
 ## 0.2.0-alpha.407
 
 ### Patch Changes
