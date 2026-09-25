@@ -58,7 +58,8 @@ export interface HomepagePlacementLoaders {
   loadAtlas?:
     | ((context: BaseDataSourceContext) => Promise<HomepageAtlasData | null>)
     | undefined;
-  chatAvailable?: ((context: BaseDataSourceContext) => boolean) | undefined;
+  chatAvailable?:
+    ((context: BaseDataSourceContext) => Promise<boolean>) | undefined;
 }
 
 /**
@@ -99,7 +100,7 @@ export class HomepageListDataSource implements DataSource {
     const opening = await loadOpening(context);
     if (!opening) return { homepageOpening: true, opening, atlas: null };
     const atlas = loadAtlas ? await loadAtlas(context) : null;
-    const askBox = chatAvailable?.(context) ?? false;
+    const askBox = (await chatAvailable?.(context)) ?? false;
     return { homepageOpening: true, opening, atlas, askBox };
   }
 

@@ -1,4 +1,9 @@
-import { ASK_BOX_SCRIPT_PATH } from "@brains/contracts";
+import {
+  ASK_BOX_SCRIPT_PATH,
+  ASK_BOX_STATE_KEY,
+  ASK_BOX_STATE_NAMESPACE,
+  askBoxAvailabilitySchema,
+} from "@brains/contracts";
 import { ASK_BOX_BOOT_SCRIPT } from "./ask-box-boot";
 import {
   AGENT_ACTION_REQUEST_CHANNEL,
@@ -205,6 +210,15 @@ export class WebChatInterface extends MessageInterfacePlugin<
             context.agent.guestProfileAvailable === true),
       },
     );
+    // Site builds may run in a separate worker, where interfaces are not
+    // registered: record whether this deployment serves the Ask box boot.
+    const served = this.declaresGuestAssets();
+    await context.runtimeState
+      .scoped({
+        namespace: ASK_BOX_STATE_NAMESPACE,
+        schema: askBoxAvailabilitySchema,
+      })
+      .set(ASK_BOX_STATE_KEY, { public: served, preview: served });
     const maintenance = new GuestStateMaintenance(context.runtimeState);
     context.daemons.register(
       "guest-maintenance",
@@ -256,6 +270,11 @@ export class WebChatInterface extends MessageInterfacePlugin<
     });
   }
 
+  /** Guest chat is configured or managed: its pages and assets are declared (each request is still authorized). */
+  private declaresGuestAssets(): boolean {
+    return this.guestPolicy.enabled || this.guestControl?.policy !== undefined;
+  }
+
   override getWebRoutes(): WebRouteDefinition[] {
     const routes = createWebChatRoutes({
       routePath: this.config.routePath,
@@ -299,7 +318,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
           this.handleUploadDownloadRequest(request),
       },
     });
-    if (this.guestPolicy.enabled || this.guestControl?.policy)
+    if (this.declaresGuestAssets())
       routes.push({
         path: this.authenticatedRoutePath,
         method: "GET",
@@ -307,7 +326,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
         handler: (request): Promise<Response> =>
           this.handleAuthenticatedChatPage(request),
       });
-    if (this.guestPolicy.enabled || this.guestControl?.policy) {
+    if (this.declaresGuestAssets()) {
       for (const extension of ["js", "css"] as const) {
         routes.push({
           path: `/ask/assets/dashboard.${extension}`,

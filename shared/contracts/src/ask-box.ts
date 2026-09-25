@@ -21,6 +21,21 @@ export const ASK_STYLED_ATTRIBUTE = "data-ask-styled";
 export const ASK_BOX_SCRIPT_PATH = "/ask/assets/box.js";
 
 /**
+ * Where Web Chat records, in shared runtime state, whether this deployment
+ * serves the box boot (and on preview). Site builds may run in a separate
+ * worker, where interfaces are not registered and Web Chat's routes are
+ * absent; they read this record instead. The serving process writes it on
+ * every start.
+ */
+export const ASK_BOX_STATE_NAMESPACE = "web-chat.ask-box";
+export const ASK_BOX_STATE_KEY = "availability";
+export const askBoxAvailabilitySchema: z.ZodObject<{
+  public: z.ZodBoolean;
+  preview: z.ZodBoolean;
+}> = z.object({ public: z.boolean(), preview: z.boolean() });
+export type AskBoxAvailability = z.output<typeof askBoxAvailabilitySchema>;
+
+/**
  * Dispatched on the host (bubbling) once an answer completes: which public
  * sources it drew on, keyed `entityType:entityId`. A host page may use it,
  * for example to show where those sources sit; it never affects the box.
