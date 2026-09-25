@@ -1,9 +1,9 @@
-import type { JSX } from "react";
+import type { CSSProperties, JSX } from "react";
 import { MarkdownContent, renderHighlightedText } from "@brains/ui-library";
 import type { HomepageOpeningContent } from "../schemas/homepage-opening";
 import type { HomepageAtlasData } from "../schemas/homepage-atlas";
 import { atlasPosition, buildAtlasTerrain } from "../lib/atlas-terrain";
-import { layoutZoneLabels } from "../lib/atlas-labels";
+import { layoutZoneLabels, type LabelPlacement } from "../lib/atlas-labels";
 import {
   ASK_BOX_ATTRIBUTE,
   ASK_BOX_SCRIPT_PATH,
@@ -31,15 +31,34 @@ function edgeClass(x: number): string {
   return "";
 }
 
+/**
+ * How far down the field marks and names reach (0.5–1), with room for their
+ * rings. Phones start the text there instead of under the empty rest of the
+ * map; the whole section carries it so the map and the text both see it.
+ */
+function atlasFill(
+  atlas: HomepageAtlasData,
+  labels: Record<string, LabelPlacement>,
+): CSSProperties & Record<`--${string}`, string> {
+  const reach = Math.max(
+    ...atlas.items.map((item) => atlasPosition(item.y)),
+    ...Object.values(labels).map((label) => label.bottom),
+  );
+  return {
+    "--atlas-fill": Math.min(1, Math.max(0.5, (reach + 6) / 100)).toFixed(3),
+  };
+}
+
 function AtlasMap({
   atlas,
+  labels,
   caption,
 }: {
   atlas: HomepageAtlasData;
+  labels: Record<string, LabelPlacement>;
   caption: string | null;
 }): JSX.Element {
   const contours = buildAtlasTerrain(atlas);
-  const labels = layoutZoneLabels(atlas.zones, atlas.items);
   // Larger territories name themselves first; the label script keeps that order.
   const zones = [...atlas.zones].sort(
     (a, b) => b.members - a.members || a.id.localeCompare(b.id),
@@ -163,8 +182,10 @@ export function HomepageAtlas({
   /** Guest chat is enabled: dock the shared chat box (see @brains/contracts ask-box). */
   askBox?: boolean;
 }): JSX.Element {
+  const labels = atlas ? layoutZoneLabels(atlas.zones, atlas.items) : {};
   return (
     <section
+      style={atlas ? atlasFill(atlas, labels) : undefined}
       className={[
         "atlas",
         atlas ? "" : "atlas--bare",
@@ -251,7 +272,9 @@ export function HomepageAtlas({
           )}
         </div>
       </div>
-      {atlas && <AtlasMap atlas={atlas} caption={opening.mapCaption} />}
+      {atlas && (
+        <AtlasMap atlas={atlas} labels={labels} caption={opening.mapCaption} />
+      )}
       {atlas && askBox && (
         // Leads from an answer's listed sources to their marks, drawn by the atlas script.
         <svg className="atlas__leads" data-atlas-leads="" aria-hidden="true" />

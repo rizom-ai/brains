@@ -308,6 +308,24 @@ describe("living atlas", () => {
     expect(names).toEqual(["Large", "Small"]);
   });
 
+  it("records where the map's content ends, for phones to start the text there", () => {
+    const fill = (markup: string): number =>
+      Number(/--atlas-fill:([\d.]+)/.exec(markup)?.[1]);
+    const lowest = Math.max(...atlas.items.map((item) => 6 + item.y * 88));
+    const measured = fill(html());
+    expect(measured).toBeGreaterThanOrEqual(lowest / 100);
+    expect(measured).toBeLessThan(1);
+    const [item] = atlas.items;
+    if (!item) throw new Error("fixture needs an item");
+    const atBottom = renderToStaticMarkup(
+      <HomepageListLayout
+        {...page}
+        atlas={{ ...atlas, items: [{ ...item, y: 1 }] }}
+      />,
+    );
+    expect(fill(atBottom)).toBe(1);
+  });
+
   it("anchors title cards inward at both edges so they stay on screen", () => {
     expect(html()).toContain("atlas__mark--west");
     expect(html()).toContain("atlas__mark--east");

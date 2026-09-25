@@ -175,14 +175,16 @@ export const homepageAtlasStyles: string = String.raw`
 @media (max-width: 60rem) {
   /* The map leads visually on phones; the conversation stays first in the document.
      The first screen holds the map and the headline together. */
-  .atlas { flex-direction: column; min-height: 0; }
-  .atlas__map { order: -1; position: relative; inset: auto; height: clamp(17rem, 47svh, 25rem); }
+  .atlas { flex-direction: column; min-height: 0; --atlas-band: clamp(17rem, 47svh, 25rem); }
+  .atlas__map { order: -1; position: relative; inset: auto; height: var(--atlas-band); }
   /* Marks stay above the fade strip, where the legend rests. */
   .atlas__field { bottom: 2rem; }
-  .atlas__zone { font-size: .8rem; }
-  .atlas__legend { left: clamp(1rem, 5vw, 2rem); right: auto; bottom: .35rem; padding: .25rem .7rem; font-size: .74rem; gap: .3rem .9rem; }
+  /* Long names take two short lines, so more of them fit a narrow map. */
+  .atlas__zone { font-size: .8rem; white-space: normal; width: max-content; max-width: 9em; text-align: center; line-height: 1.15; }
+  /* The build records where the map's content ends (--atlas-fill of the field); the legend and the text start there, over the fading outer rings. */
+  .atlas__legend { left: clamp(1rem, 5vw, 2rem); right: auto; bottom: calc(.35rem + (1 - var(--atlas-fill, 1)) * (var(--atlas-band) - 2rem)); padding: .25rem .7rem; font-size: .74rem; gap: .3rem .9rem; }
   .atlas__legend .atlas__caption { display: none; }
-  .atlas__talk { width: auto; padding: .9rem clamp(1rem, 5vw, 2rem) 2.5rem; background: none; }
+  .atlas__talk { width: auto; margin-top: calc(-1 * (1 - var(--atlas-fill, 1)) * (var(--atlas-band) - 2rem)); padding: .9rem clamp(1rem, 5vw, 2rem) 2.5rem; background: none; }
   .atlas__byline { margin-bottom: .8rem; gap: .55rem; }
   .atlas__initials { width: 1.8rem; height: 1.8rem; font-size: .72rem; }
   .atlas h1 { font-size: clamp(2.5rem, 11.5vw, 3.6rem); margin-bottom: 1rem; }

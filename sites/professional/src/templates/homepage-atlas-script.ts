@@ -40,6 +40,8 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
   }
   var touch = media("(hover: none)");
   var still = media("(prefers-reduced-motion: reduce)");
+  // Phones stack the map above the opening (the stylesheet's breakpoint).
+  var narrow = media("(max-width: 60rem)");
 
   roots.forEach(function (root) {
     var terrain = root.querySelector("[data-atlas-terrain]");
@@ -121,6 +123,12 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
         label.style.removeProperty("--atlas-name-shift");
       });
       var area = field.getBoundingClientRect();
+      // On a phone the text starts where the map's content ends; names stay above it.
+      var fill = field.parentElement
+        ? parseFloat(window.getComputedStyle(field.parentElement).getPropertyValue("--atlas-fill"))
+        : NaN;
+      if (narrow.matches && fill > 0 && fill < 1)
+        area = { left: area.left, top: area.top, right: area.right, bottom: area.top + fill * (area.bottom - area.top) };
       var bases = labels.map(function (label) { return label.getBoundingClientRect(); });
       var taken = Array.prototype.map.call(
         root.querySelectorAll("[data-atlas-mark] .atlas__glyph"),
@@ -155,6 +163,7 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
     placeNames();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeNames);
     window.addEventListener("resize", scheduleNames);
+    if (narrow.addEventListener) narrow.addEventListener("change", scheduleNames);
     var ZOOM = 1.25;
     // Map percentages a cited mark keeps clear of; its card opens above it, under the header.
     var CLEAR = { top: 20, right: 10, bottom: 10, left: 10 };
@@ -185,7 +194,6 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
     }
 
     var leads = root.querySelector("[data-atlas-leads]");
-    var phone = media("(max-width: 60rem)");
     var SVG = "http://www.w3.org/2000/svg";
     var TURN = 1000; // the map's turn towards its sources, and a frame
     var GAP = 6; // between a listed source and its lead
@@ -217,7 +225,7 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
     function drawLeads() {
       if (!leads) return;
       leads.replaceChildren();
-      if (phone.matches) return;
+      if (narrow.matches) return;
       var frame = root.getBoundingClientRect();
       leads.setAttribute("viewBox", "0 0 " + frame.width + " " + frame.height);
       citedMarks.forEach(function (mark) {
@@ -254,7 +262,7 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
       document.addEventListener("scroll", scheduleLeads, true);
       // Opening or closing a source list moves where its leads start.
       root.addEventListener("toggle", scheduleLeads, true);
-      if (phone.addEventListener) phone.addEventListener("change", scheduleLeads);
+      if (narrow.addEventListener) narrow.addEventListener("change", scheduleLeads);
       var host = root.querySelector("[${ASK_BOX_ATTRIBUTE}]");
       if (host && typeof ResizeObserver === "function") new ResizeObserver(scheduleLeads).observe(host);
     }
