@@ -43,11 +43,15 @@ describe("contact HTTP boundary", () => {
     });
     expect(page.status).toBe(200);
     expect(page.headers.get("cache-control")).toBe("no-store");
+    // Chrome sends Origin: null for native POST navigations under no-referrer.
+    // Keep same-origin form POSTs identifiable without exposing cross-site referrers.
+    expect(page.headers.get("referrer-policy")).toBe("same-origin");
     expect(page.headers.get("content-security-policy")).toContain(
       "form-action 'self'",
     );
     const html = await page.text();
     expect(html).toContain('method="post"');
+    expect(html).toContain("expires after 1 day.");
     expect(html).not.toContain("<script");
     const token = /name="token" value="([a-f0-9]{64})"/.exec(html)?.[1];
     if (!token) throw new Error("Missing form token");

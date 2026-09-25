@@ -30,6 +30,8 @@ export interface GuestSendInput {
   onStart: () => void;
   /** Shared with the session reopen, so one Stop can abort either. */
   controller: RefObject<AbortController | undefined>;
+  /** Called once per completed answer with the cards it drew on; never for a partial one. */
+  onAnswered?: (cards: ChatCard[]) => void;
 }
 
 export interface GuestSend {
@@ -74,6 +76,7 @@ export function useGuestSend(input: GuestSendInput): GuestSend {
     setDraft,
     onStart,
     controller,
+    onAnswered,
   } = input;
   const [pending, setPending] = useState<ChatMessageRequest>();
   const { setBoxState, setBoxNotice, setStatus } = gate;
@@ -167,6 +170,7 @@ export function useGuestSend(input: GuestSendInput): GuestSend {
             throw new Error("Incomplete response");
           setPending(undefined);
           setBoxState("complete");
+          onAnswered?.(responseCards);
           setStatus(
             "Answer received. Check important claims against the original sources.",
           );
@@ -243,6 +247,7 @@ export function useGuestSend(input: GuestSendInput): GuestSend {
       setDraft,
       onStart,
       controller,
+      onAnswered,
       setBoxState,
       setBoxNotice,
       setStatus,

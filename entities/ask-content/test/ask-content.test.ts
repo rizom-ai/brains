@@ -86,6 +86,36 @@ describe("Ask content entity", () => {
       await harness.reset();
     }
   });
+  test("round trips the page copy around the conversation", () => {
+    const page = {
+      topicsHeading: "Where would you start?",
+      contactLabel: "Let’s talk",
+      contactNote: "A private note. No account needed.",
+      attribution: "Written, not generated",
+      mapCaption: "Everything published here, placed by topic",
+    };
+    const source = generateMarkdownWithFrontmatter("Welcome copy.", page);
+    const encoded = askContent.markdown?.encode({
+      content: source,
+      metadata: {},
+    });
+    if (!encoded) throw new Error("Missing codec");
+    const markdown = generateMarkdownWithFrontmatter(
+      encoded.content,
+      encoded.frontmatter,
+    );
+    expect(parseAskContent(markdown)).toEqual({
+      ...page,
+      introduction: "Welcome copy.",
+    });
+  });
+  test("bounds the page copy", () => {
+    expect(() =>
+      parseAskContent(
+        generateMarkdownWithFrontmatter("", { contactLabel: "x".repeat(81) }),
+      ),
+    ).toThrow();
+  });
   test("does not manufacture a welcome", () => {
     const encoded = askContent.markdown?.encode({ content: "", metadata: {} });
     if (!encoded) throw new Error("Missing codec");

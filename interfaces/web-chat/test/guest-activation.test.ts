@@ -130,6 +130,8 @@ describe("admin guest activation using deployment conventions", () => {
         // Standalone GuestApp uses the shared Chat presentation bundle.
         "GET /ask/assets/app.css",
         "GET /ask/assets/app.js",
+        // The shared box boot every consuming site loads.
+        "GET /ask/assets/box.js",
         "GET /ask/assets/dashboard.css",
         "GET /ask/assets/dashboard.js",
         "GET /ask/assets/guest.css",

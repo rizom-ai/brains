@@ -1,6 +1,7 @@
 import type { JSX, ReactNode } from "react";
 import type { HomepageOpeningContent } from "../schemas/homepage-opening";
-import { HomepageOpening } from "./homepage-opening";
+import { HomepageAtlas } from "./homepage-atlas";
+import type { HomepageAtlasData } from "../schemas/homepage-atlas";
 import type { ProfessionalProfile } from "../schemas";
 import type { BlogPostView } from "@brains/blog";
 import type { DeckView } from "@brains/decks";
@@ -37,6 +38,10 @@ export interface HomepageListData {
   /** Placement is separate from copy availability; never synthesize absent copy. */
   homepageOpening?: boolean | undefined;
   opening?: HomepageOpeningContent | null | undefined;
+  /** Published work placed by topic; absent without embeddings or published items. */
+  atlas?: HomepageAtlasData | null | undefined;
+  /** Guest chat is enabled here: the atlas docks the shared chat box. */
+  askBox?: boolean | undefined;
 }
 
 const GRID_CLS =
@@ -83,6 +88,8 @@ export const HomepageListLayout = ({
   cta,
   sections,
   opening,
+  atlas = null,
+  askBox = false,
   homepageOpening = false,
 }: HomepageListData): JSX.Element => {
   // Use tagline if non-empty (empty string counts as absent), fall back to
@@ -122,6 +129,20 @@ export const HomepageListLayout = ({
     [profile.intro, profile.description, tagline].find((value) => value) ??
     "Professional site";
 
+  if (homepageOpening && opening) {
+    return (
+      <>
+        <Head title={title} description={description} ogType="website" />
+        <HomepageAtlas
+          opening={opening}
+          atlas={atlas}
+          owner={profile.name}
+          askBox={askBox}
+        />
+      </>
+    );
+  }
+
   const hasAbout =
     Boolean(profile.description) || (profile.expertise?.length ?? 0) > 0;
   const socialLinks = profile.socialLinks?.map(({ label, ...link }) => ({
@@ -133,11 +154,7 @@ export const HomepageListLayout = ({
     <>
       <Head title={title} description={description} ogType="website" />
       <div className="homepage-list bg-theme">
-        {homepageOpening ? (
-          opening ? (
-            <HomepageOpening content={opening} owner={profile.name} />
-          ) : null
-        ) : (
+        {homepageOpening ? null : (
           <header className="hero-bg-pattern relative w-full px-6 md:px-12 pt-28 pb-24 md:pt-28 md:pb-24 overflow-hidden border-b border-rule">
             <div className="relative z-10 max-w-6xl mx-auto w-full">
               {profile.name && (

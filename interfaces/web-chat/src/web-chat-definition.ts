@@ -1,3 +1,5 @@
+import { ASK_BOX_SCRIPT_PATH } from "@brains/contracts";
+import { ASK_BOX_BOOT_SCRIPT } from "./ask-box-boot";
 import { requireSameOriginJson } from "@brains/auth-service";
 import { SitePageResponse } from "@brains/sdk/interfaces";
 import {
@@ -571,6 +573,22 @@ function webChatRoutes(
           ),
           rawRoute("GET", state.authenticatedRoutePath, async (request) =>
             chatPage(config, state, request),
+          ),
+          rawRoute(
+            "GET",
+            ASK_BOX_SCRIPT_PATH,
+            async (request) =>
+              canServeGuestAsset(
+                state,
+                request,
+                () =>
+                  new Response(ASK_BOX_BOOT_SCRIPT, {
+                    headers: {
+                      "Content-Type": "text/javascript; charset=utf-8",
+                    },
+                  }),
+              ),
+            true,
           ),
           rawRoute(
             "GET",

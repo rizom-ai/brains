@@ -1,5 +1,11 @@
 # @rizom/site-rizom-ai
 
+## 0.2.0-alpha.254
+
+### Patch Changes
+
+- [#355](https://github.com/rizom-ai/brains/pull/355) [`9204df2`](https://github.com/rizom-ai/brains/commit/9204df219fee7f726a38ba60281f780373110403) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The hero chat uses Web Chat's shared Ask box boot (`/ask/assets/box.js`) instead of the site's own `/brain-chat.js`, which is removed. The box needs a Brain release that serves the shared boot; on an older Brain the hero composer stays disabled and nothing is sent.
+
 ## 0.2.0-alpha.253
 
 ### Patch Changes

@@ -1,5 +1,6 @@
 /** @jsxImportSource react */
 import type { JSX } from "react";
+import { ASK_STYLED_ATTRIBUTE } from "@brains/contracts";
 import { OperatorPanel, OperatorSection } from "@brains/operator-view-react";
 
 /** Host chrome only. Guest admission and the mounted conversation belong to Web Chat. */
@@ -14,7 +15,7 @@ export function AskPanel(): JSX.Element {
       aria-labelledby="dashboard-tab-ask"
     >
       <OperatorPanel className="card dashboard-ask" heading="Ask">
-        <div data-guest-dashboard="">
+        <div data-guest-dashboard="" {...{ [ASK_STYLED_ATTRIBUTE]: "" }}>
           <p>Chat is unavailable until the public Ask interface is loaded.</p>
           <noscript>
             JavaScript is needed to ask a question. No question has been sent.

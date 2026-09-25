@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { ASK_STYLED_ATTRIBUTE } from "@brains/contracts";
 import { createMockAppInfo } from "@brains/plugins/test";
 import {
   renderDashboardPageHtml,
@@ -23,6 +24,7 @@ describe("optional public Ask tab", () => {
     const html = renderDashboardPageHtml({ ...input, askEnabled: true });
     expect(html).toContain('id="dashboard-tab-ask"');
     expect(html).toContain("data-guest-dashboard");
+    expect(html).toContain(`${ASK_STYLED_ATTRIBUTE}=""`);
     expect(html).toContain("/ask/assets/dashboard.js");
     expect(html).toContain("/ask/assets/dashboard.css");
     expect(html).not.toContain("mock-enable");

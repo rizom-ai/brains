@@ -323,6 +323,11 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     expect(
       (await browser.fetch("/ask/assets/guest.js", { method: "GET" })).status,
     ).toBe(200);
+    // The shared box boot every consuming site loads.
+    const boot = await browser.fetch("/ask/assets/box.js", { method: "GET" });
+    expect(boot.status).toBe(200);
+    expect(boot.headers.get("content-type")).toContain("text/javascript");
+    expect(await boot.text()).toContain("data-ask-box");
     const submission = randomUUID();
     const first = await post(
       browser,
@@ -653,6 +658,7 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     const state = await setup({ enabled: false });
     const browser = state.browser();
     for (const path of [
+      "/ask/assets/box.js",
       "/ask/assets/guest.js",
       "/ask/assets/guest.css",
       "/ask/assets/dashboard.js",
