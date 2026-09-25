@@ -1,5 +1,6 @@
 import {
   ServicePlugin,
+  type IRuntimeStateStore,
   type ServicePluginContext,
   type WebRouteDefinition,
   type RuntimeHealthCheck,
@@ -23,6 +24,13 @@ const notificationJobSchema = z.strictObject({
   id: z.string().regex(/^contact-[a-f0-9]{64}$/),
 });
 const MAX_MAINTENANCE_AGE_MS = 26 * 60 * 60 * 1000;
+/** Shared across processes: a separate worker runs the daily maintenance the
+ * web process's intake depends on. */
+const maintenanceStatusSchema = z.strictObject({
+  at: z.number().int().nonnegative(),
+  failed: z.boolean(),
+});
+type MaintenanceStatus = z.output<typeof maintenanceStatusSchema>;
 
 /** Default-off public intake. Runtime policy is explicit; readiness requires
  * recovery and the actual Studio Inbox destination, not a successful email send.
@@ -34,8 +42,7 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
   private slots: ContactStorageSlots | undefined;
   private readonly stop = new AbortController();
   private maintenance: Promise<void> | undefined;
-  private lastMaintenanceAt: number | undefined;
-  private maintenanceFailed = false;
+  private maintenanceStatus: IRuntimeStateStore<MaintenanceStatus> | undefined;
   private report: ContactMaintenanceReport | undefined;
   private readyState = false;
   private readonly unregister: Array<() => void> = [];
@@ -91,7 +98,12 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
         return delivery.deliver(data.data.id, signal);
       },
     });
-    if (context.executionOnly) return;
+    // Both processes build intake: the web process serves it, while a separate
+    // worker runs its maintenance and the site builds that look for the form.
+    this.maintenanceStatus = context.runtimeState.scoped({
+      namespace: "contact.maintenance",
+      schema: maintenanceStatusSchema,
+    });
     this.slots = new ContactStorageSlots(
       context.runtimeState,
       config.storage,
@@ -143,8 +155,11 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
           return {};
         },
       }),
-      context.operationalHealth.register("intake", () => this.health()),
     );
+    if (!context.executionOnly)
+      this.unregister.push(
+        context.operationalHealth.register("intake", () => this.health()),
+      );
   }
 
   override getWebRoutes(): WebRouteDefinition[] {
@@ -152,8 +167,8 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
     if (!http) return [];
     return http.routes(this.config.intake?.preview).map((route) => ({
       ...route,
-      handler: (request, transport): Response | Promise<Response> => {
-        if (!this.readyState || !this.maintenanceFresh())
+      handler: async (request, transport): Promise<Response> => {
+        if (!this.readyState || !(await this.maintenanceFresh()))
           return http.unavailable(request);
         return route.handler(request, transport);
       },
@@ -163,7 +178,8 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
   protected override async onReady(
     context: ServicePluginContext,
   ): Promise<void> {
-    if (!this.intake) return;
+    // A separate worker never serves the form, so it is never ready to.
+    if (context.executionOnly || !this.intake) return;
     const config = this.config.intake;
     const destinationMounted =
       config &&
@@ -196,30 +212,53 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
 
   private async runMaintenance(signal: AbortSignal): Promise<void> {
     try {
-      if (!this.intake) throw new Error("Contact intake unavailable");
+      if (!this.intake || !this.maintenanceStatus)
+        throw new Error("Contact intake unavailable");
       this.report = await this.intake.maintain(signal);
       signal.throwIfAborted();
-      this.lastMaintenanceAt = Date.now();
-      this.maintenanceFailed = false;
+      await this.maintenanceStatus.set("status", {
+        at: Date.now(),
+        failed: false,
+      });
     } catch {
-      this.maintenanceFailed = true;
+      await this.recordMaintenanceFailure();
       throw new Error("Contact maintenance unavailable");
     }
   }
 
-  private maintenanceFresh(): boolean {
-    return (
-      !this.stop.signal.aborted &&
-      !this.maintenanceFailed &&
-      this.lastMaintenanceAt !== undefined &&
-      Date.now() >= this.lastMaintenanceAt &&
-      Date.now() - this.lastMaintenanceAt <= MAX_MAINTENANCE_AGE_MS
-    );
+  private async recordMaintenanceFailure(): Promise<void> {
+    try {
+      const previous = await this.maintenanceStatus?.get("status");
+      await this.maintenanceStatus?.set("status", {
+        at: previous?.at ?? 0,
+        failed: true,
+      });
+    } catch {
+      // The status store itself failed; an unreadable status already keeps
+      // intake closed, and the caller reports the maintenance failure.
+    }
+  }
+
+  private async maintenanceFresh(): Promise<boolean> {
+    if (this.stop.signal.aborted || !this.maintenanceStatus) return false;
+    try {
+      const status = await this.maintenanceStatus.get("status");
+      const now = Date.now();
+      return (
+        status !== null &&
+        !status.failed &&
+        now >= status.at &&
+        now - status.at <= MAX_MAINTENANCE_AGE_MS
+      );
+    } catch {
+      // An unreadable status cannot show that retention ran; keep intake closed.
+      return false;
+    }
   }
 
   private async health(): Promise<Omit<RuntimeHealthCheck, "name">> {
     try {
-      if (!this.slots || !this.maintenanceFresh())
+      if (!this.slots || !(await this.maintenanceFresh()))
         return {
           status: "unhealthy",
           message:
@@ -247,7 +286,7 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
           pending,
           failed,
           unconfirmed,
-          lastMaintenanceAt: this.lastMaintenanceAt,
+          lastMaintenanceAt: (await this.maintenanceStatus?.get("status"))?.at,
           ...this.report,
         },
       };
