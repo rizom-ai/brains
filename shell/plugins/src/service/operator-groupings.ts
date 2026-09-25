@@ -8,6 +8,7 @@ import {
   type QueryGroupingCatalogRequest,
   type QueryGroupingMembersRequest,
 } from "@brains/entity-service";
+import { assertRouteCaller } from "../internal/route-caller-authority";
 import { SdkError } from "@brains/contracts";
 import { operatorRead } from "./operator-validation";
 import type { IShell } from "../interfaces";
@@ -84,6 +85,7 @@ export function createOperatorGroupings(
     contributes: (type): boolean => registry.isGroupingContributor(type),
     definitions: (caller: InterfaceCaller): Promise<EntityGrouping[]> =>
       operatorRead(async () => {
+        assertRouteCaller(caller, shell.getAuthRegistry());
         const result: EntityGrouping[] = [];
         for (const definition of registry.getGroupings()) {
           const types = await admitted(definition.types, caller);
@@ -94,6 +96,7 @@ export function createOperatorGroupings(
       }),
     catalog: (request, caller) =>
       operatorRead(async () => {
+        assertRouteCaller(caller, shell.getAuthRegistry());
         const input = queryGroupingCatalogSchema.parse({
           ...request,
           visibilityScope: permissionToVisibilityScope(caller.permission),
@@ -110,6 +113,7 @@ export function createOperatorGroupings(
       }, request.signal),
     members: (request, caller) =>
       operatorRead(async () => {
+        assertRouteCaller(caller, shell.getAuthRegistry());
         const input = queryGroupingMembersSchema.parse({
           ...request,
           visibilityScope: permissionToVisibilityScope(caller.permission),

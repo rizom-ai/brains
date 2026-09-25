@@ -422,6 +422,16 @@ request data. Pagination is bounded and reads honor cancellation. `ready()`
 reports projection readiness; `contributes(type)` is a static shape trait, not
 a membership read.
 
+Operator mutations/uploads and grouping reads require the exact caller object
+issued by the runtime for an active authenticated route in the same brain.
+Pass `context.caller` directly: constructing, spreading, proxying or deserializing
+its fields does not grant authority. Authority expires when the handler returns
+or throws, and cancellation prevents further calls. Do not retain callers for
+background jobs; use declared job-owned entity access instead. Test these flows
+through the HTTP harness with authenticated fixture requests, not fabricated
+caller literals. `allows`/`refusal` are advisory policy presentation only (also
+used by Inbox affordances); they never authorize a subsequent mutation.
+
 An explicit `markdown.reconstruct(source)` codec can keep malformed stored
 configuration readable. It replaces parsed `decode` and requires
 `validatePersist`; it does not relax ordinary codecs or write validation.
@@ -433,6 +443,9 @@ only a field `path` and validator-authored `message`: at most 50 issues, 32 path
 segments (256 characters per string segment), and 1024 characters per message.
 Inputs, native exception objects and original causes are not exposed. Other
 thrown failures use sanitized SDK codes, including conflict and cancellation.
+Deletion and upload infrastructure failures follow the same error boundary.
+Unexpected upload handler exceptions become sanitized refusals with diagnostics
+kept private; explicitly authored refusal messages remain presentation data.
 
 ### Content generation (implementation in progress)
 

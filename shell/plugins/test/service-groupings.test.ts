@@ -1,3 +1,4 @@
+import { issueRouteCaller } from "../src/internal/route-caller-authority";
 import { describe, expect, it } from "bun:test";
 import { z } from "@brains/utils/zod";
 import { createPluginHarness } from "../src/test/harness";
@@ -75,15 +76,17 @@ async function fixture(): Promise<ReturnType<typeof createPluginHarness>> {
   ))
     await harness.installPlugin(plugin);
   await harness.finalizeRegistration();
+  guest = issueRouteCaller(guest, harness.getMockShell().getAuthRegistry());
+  admin = issueRouteCaller(admin, harness.getMockShell().getAuthRegistry());
   return harness;
 }
 
-const guest: InterfaceCaller = {
+let guest: InterfaceCaller = {
   actor: { id: "guest" },
   permission: "public",
   isAnchor: false,
 };
-const admin: InterfaceCaller = {
+let admin: InterfaceCaller = {
   actor: { id: "admin" },
   permission: "admin",
   isAnchor: true,
@@ -162,7 +165,10 @@ describe("bounded declarative groupings", () => {
       expect(
         await operator.delete(
           { entityType: vocabulary.type, id: vocabulary.type },
-          { ...guest, permission: "trusted" },
+          issueRouteCaller(
+            { ...guest, permission: "trusted" },
+            h.getMockShell().getAuthRegistry(),
+          ),
         ),
       ).toMatchObject({ kind: "denied" });
       expect(

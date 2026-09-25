@@ -1,7 +1,11 @@
 import {
   operatorMutation,
+  operatorRead,
+  operatorFailure,
   type OperatorValidationFailure,
 } from "./operator-validation";
+import { assertRouteCaller } from "../internal/route-caller-authority";
+import { toSdkError } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import {
   applyEntityCreate,
@@ -74,8 +78,9 @@ export type OperatorUploadOutcome =
  */
 export interface OperatorEntityWrites {
   /**
-   * Whether this caller may take this action on this type. A console renders
-   * the buttons it will honour, so it asks before it draws them.
+   * Advisory policy presentation for the supplied role, not an authorization
+   * grant. Inbox follow-ups can render affordances without a live route caller.
+   * Every mutation independently requires runtime-issued caller authority.
    */
   allows(
     entityType: string,
@@ -133,6 +138,10 @@ export function createOperatorEntities(
     readonly interfaceType: string;
   },
 ): OperatorEntityWrites {
+  const authorized = (caller: InterfaceCaller): InterfaceCaller => {
+    assertRouteCaller(caller, shell.getAuthRegistry());
+    return caller;
+  };
   const entityService = shell.getEntityService();
   const registry = shell.getEntityRegistry();
   const permissions = shell.getPermissionService();
@@ -170,7 +179,7 @@ export function createOperatorEntities(
     }
   };
 
-  return {
+  const capability: OperatorEntityWrites = {
     refusal,
     allows: (entityType, action, caller): boolean =>
       refusal(entityType, action, caller) === undefined,
@@ -185,7 +194,7 @@ export function createOperatorEntities(
             assertAllowed,
           },
           request,
-          { permission: caller.permission },
+          { permission: authorized(caller).permission },
         ),
       ),
     update: (request, caller) =>
@@ -200,95 +209,103 @@ export function createOperatorEntities(
             assertAllowed,
           },
           request,
-          { permission: caller.permission },
+          { permission: authorized(caller).permission },
         ),
       ),
-    upload: async (request, caller): Promise<OperatorUploadOutcome> => {
-      const registration = registry.getUploadSaveHandler(request.mediaType);
-      if (!registration) {
-        return {
-          kind: "denied",
-          reason: "unsupported-media-type",
-          message: `No entity type accepts uploads of type ${request.mediaType}`,
-        };
-      }
-      try {
-        assertAllowed(registration.entityType, "create", caller.permission);
-      } catch (error) {
-        return {
-          kind: "denied",
-          reason: "entity-action-policy",
-          entityType: registration.entityType,
-          message: getErrorMessage(error, "create is not allowed"),
-        };
-      }
-      const record = await staging.save({
-        filename: request.filename,
-        mediaType: request.mediaType,
-        content: request.content,
-      });
-      // The bytes are staged only for the handler's moment with them. A
-      // handler that refuses or crashes leaves nothing behind, and says so
-      // as a refusal rather than a crash.
-      let result: Awaited<ReturnType<typeof registration.handler>>;
-      try {
-        result = await registration.handler(
-          { upload: { kind: "upload", id: record.id } },
-          {
-            interfaceType: options.interfaceType,
-            actor: {
-              kind: "user",
-              userId: caller.actor.id,
-              ...(caller.actor.canonicalId !== undefined
-                ? { canonicalId: caller.actor.canonicalId }
-                : {}),
+    upload: (request, caller): Promise<OperatorUploadOutcome> =>
+      operatorRead(async () => {
+        authorized(caller);
+        const registration = registry.getUploadSaveHandler(request.mediaType);
+        if (!registration) {
+          return {
+            kind: "denied",
+            reason: "unsupported-media-type",
+            message: `No entity type accepts uploads of type ${request.mediaType}`,
+          };
+        }
+        try {
+          assertAllowed(registration.entityType, "create", caller.permission);
+        } catch (error) {
+          return {
+            kind: "denied",
+            reason: "entity-action-policy",
+            entityType: registration.entityType,
+            message: getErrorMessage(error, "create is not allowed"),
+          };
+        }
+        const record = await staging.save({
+          filename: request.filename,
+          mediaType: request.mediaType,
+          content: request.content,
+        });
+        // The bytes are staged only for the handler's moment with them. A
+        // handler that refuses or crashes leaves nothing behind, and says so
+        // as a refusal rather than a crash.
+        let result: Awaited<ReturnType<typeof registration.handler>>;
+        try {
+          result = await registration.handler(
+            { upload: { kind: "upload", id: record.id } },
+            {
+              interfaceType: options.interfaceType,
+              actor: {
+                kind: "user",
+                userId: caller.actor.id,
+                ...(caller.actor.canonicalId !== undefined
+                  ? { canonicalId: caller.actor.canonicalId }
+                  : {}),
+              },
             },
-          },
-        );
-      } catch (error) {
-        await staging.remove(record.id);
+          );
+        } catch (error) {
+          await staging.remove(record.id);
+          return operatorFailure(
+            {
+              kind: "refused" as const,
+              entityType: registration.entityType,
+              message: toSdkError(error).publicMessage,
+            },
+            error,
+          );
+        }
+        if (!result.success) {
+          await staging.remove(record.id);
+          return {
+            kind: "refused",
+            entityType: registration.entityType,
+            message: result.error,
+          };
+        }
         return {
-          kind: "refused",
+          kind: "created",
           entityType: registration.entityType,
-          message: getErrorMessage(error, "The upload could not be stored"),
+          entityId: result.data.entityId,
+          jobId: result.data.jobId,
         };
-      }
-      if (!result.success) {
-        await staging.remove(record.id);
-        return {
-          kind: "refused",
-          entityType: registration.entityType,
-          message: result.error,
-        };
-      }
-      return {
-        kind: "created",
-        entityType: registration.entityType,
-        entityId: result.data.entityId,
-        jobId: result.data.jobId,
-      };
-    },
+      }),
     delete: (request, caller) =>
-      applyEntityDelete(
-        {
-          entities: entityService,
-          registry: {
-            isRegistered: (entityType) => registry.hasEntityType(entityType),
-            // A registered type always has an adapter, so this answers
-            // rather than throwing at a caller who named one.
-            isSingleton: (entityType) =>
-              registry.hasEntityType(entityType) &&
-              registry.getAdapter(entityType).isSingleton === true &&
-              // An explicit type-owned deletion policy (Studio vocabulary)
-              // opts into caller-policy-controlled deletion. Other singletons
-              // retain their unconditional protection.
-              registry.getEntityTypeConfig(entityType).actionPolicy?.delete ===
-                undefined,
+      operatorRead(() =>
+        applyEntityDelete(
+          {
+            entities: entityService,
+            registry: {
+              isRegistered: (entityType) => registry.hasEntityType(entityType),
+              // A registered type always has an adapter, so this answers
+              // rather than throwing at a caller who named one.
+              isSingleton: (entityType) =>
+                registry.hasEntityType(entityType) &&
+                registry.getAdapter(entityType).isSingleton === true &&
+                // An explicit type-owned deletion policy (Studio vocabulary)
+                // opts into caller-policy-controlled deletion. Other singletons
+                // retain their unconditional protection.
+                registry.getEntityTypeConfig(entityType).actionPolicy
+                  ?.delete === undefined,
+            },
+            assertAllowed,
           },
-          assertAllowed,
-        },
-        request,
-        { permission: caller.permission },
+          request,
+          { permission: authorized(caller).permission },
+        ),
       ),
   };
+  return Object.freeze(capability);
 }

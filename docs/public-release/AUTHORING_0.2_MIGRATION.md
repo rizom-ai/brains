@@ -13,6 +13,21 @@ The stable `0.2` contract intentionally replaces the earlier alpha authoring sha
 | `PLUGIN_API_VERSION`                       | Use an explicit compatible peer dependency range                     |
 | `brain.yaml` `plugins.<id>.package`        | Import the definition in a brain package and compose it with `use()` |
 
+## Operator caller authority
+
+Pass the original `context.caller` from an authenticated route to operator
+mutations/uploads and grouping reads. Caller literals, clones, deserialized
+callers, and callers retained after the handler finishes are no longer accepted.
+The runtime checks provenance, brain identity, request lifetime and cancellation;
+matching the `InterfaceCaller` TypeScript shape is not authentication. Exercise
+these capabilities through authenticated HTTP harness requests in consumer tests.
+Background work must use declared job-owned access rather than retained callers.
+`allows` and `refusal` remain advisory policy presentation, not authority grants.
+
+Unexpected upload exceptions now produce safe refusal messages, and deletion
+failures use sanitized SDK errors. Do not depend on raw exception text or causes;
+explicitly authored upload refusal messages retain their existing behavior.
+
 ## Canonical entity metadata
 
 Metadata now rejects explicit value-rewriting schemas recursively, rather than

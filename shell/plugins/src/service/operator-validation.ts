@@ -32,6 +32,14 @@ export function operatorValidationCause(result: object): unknown {
   return causes.get(result);
 }
 
+export function operatorFailure<T extends object>(
+  result: T,
+  cause: unknown,
+): T {
+  causes.set(result, cause);
+  return Object.freeze(result);
+}
+
 export async function operatorRead<T>(
   operation: () => Promise<T>,
   signal?: AbortSignal,

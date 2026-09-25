@@ -48,6 +48,11 @@ export interface RoutePermissions {
   isAnchor(declarationId: string, userId: string): boolean;
 }
 
+/**
+ * Immutable caller presentation plus runtime-tracked request authority.
+ * Pass the original route object to operator capabilities; copied/constructed
+ * objects and callers retained after the request are not credentials.
+ */
 export interface InterfaceCaller {
   readonly actor: InterfaceActor;
   readonly permission: UserPermissionLevel;

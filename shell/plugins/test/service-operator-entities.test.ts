@@ -1,3 +1,4 @@
+import { issueRouteCaller } from "../src/internal/route-caller-authority";
 import { afterEach, describe, expect, it } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
@@ -12,13 +13,13 @@ import {
 } from "../src";
 import { createPluginHarness } from "../src/test/harness";
 
-const operator: InterfaceCaller = {
+let operator: InterfaceCaller = {
   actor: { id: "operator" },
   permission: "admin",
   isAnchor: true,
 };
 
-const visitor: InterfaceCaller = {
+let visitor: InterfaceCaller = {
   actor: { id: "visitor" },
   permission: "public",
   isAnchor: false,
@@ -89,6 +90,14 @@ describe("editing entities on an operator's behalf", () => {
     if (!plugin) throw new Error("Service plugin was not created");
     await harness.installPlugin(plugin);
     if (!captured) throw new Error("setup did not run");
+    operator = issueRouteCaller(
+      operator,
+      harness.getMockShell().getAuthRegistry(),
+    );
+    visitor = issueRouteCaller(
+      visitor,
+      harness.getMockShell().getAuthRegistry(),
+    );
     return captured;
   }
 

@@ -1,3 +1,7 @@
+import {
+  issueRouteCaller,
+  revokeRouteCaller,
+} from "../internal/route-caller-authority";
 import type { UserPermissionLevel } from "@brains/templates";
 import {
   SdkError,
@@ -57,9 +61,10 @@ export function createRuntimeRoute(
                 : {}),
             });
       let fallback: SdkErrorCode = "handler_failed";
+      let caller: InterfaceCaller | null = null;
       try {
         if (request.signal.aborted) throw new SdkError("cancelled");
-        const caller = await resolveCaller(definition, request, options);
+        caller = await resolveCaller(definition, request, options);
         if (definition.security.kind !== "public" && !caller) {
           throw new SdkError("unauthenticated");
         }
@@ -96,6 +101,8 @@ export function createRuntimeRoute(
             status: sdkErrorHttpStatus(failure.code),
           },
         );
+      } finally {
+        if (caller) revokeRouteCaller(caller);
       }
     },
   };
@@ -122,11 +129,18 @@ async function resolveCaller(
         options.declarationId,
         actor.id,
       );
-      return Object.freeze({
-        actor: Object.freeze({ ...actor }),
-        permission,
-        isAnchor: options.permissions.isAnchor(options.declarationId, actor.id),
-      });
+      return issueRouteCaller(
+        {
+          actor,
+          permission,
+          isAnchor: options.permissions.isAnchor(
+            options.declarationId,
+            actor.id,
+          ),
+        },
+        options.auth(),
+        request.signal,
+      );
     }
   }
 }
@@ -142,15 +156,19 @@ async function resolveSessionCaller(
 ): Promise<InterfaceCaller | null> {
   const principal = await auth.getCaller()?.resolveSession(request);
   if (principal?.status !== "active") return null;
-  return Object.freeze({
-    actor: Object.freeze({
-      id: principal.userId,
-      displayName: principal.displayName,
-      ...(principal.canonicalId !== undefined
-        ? { canonicalId: principal.canonicalId }
-        : {}),
-    }),
-    permission: principal.permissionLevel,
-    isAnchor: principal.isAnchor,
-  });
+  return issueRouteCaller(
+    {
+      actor: {
+        id: principal.userId,
+        displayName: principal.displayName,
+        ...(principal.canonicalId !== undefined
+          ? { canonicalId: principal.canonicalId }
+          : {}),
+      },
+      permission: principal.permissionLevel,
+      isAnchor: principal.isAnchor,
+    },
+    auth,
+    request.signal,
+  );
 }

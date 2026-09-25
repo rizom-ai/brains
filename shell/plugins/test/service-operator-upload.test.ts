@@ -1,3 +1,5 @@
+import { operatorValidationCause } from "../src/service/operator-validation";
+import { issueRouteCaller } from "../src/internal/route-caller-authority";
 import { mkdtempSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -20,13 +22,13 @@ import {
 } from "../src";
 import { createPluginHarness } from "../src/test/harness";
 
-const operator: InterfaceCaller = {
+let operator: InterfaceCaller = {
   actor: { id: "operator", canonicalId: "person-1" },
   permission: "admin",
   isAnchor: true,
 };
 
-const visitor: InterfaceCaller = {
+let visitor: InterfaceCaller = {
   actor: { id: "visitor" },
   permission: "public",
   isAnchor: false,
@@ -116,6 +118,14 @@ describe("uploading on an operator's behalf", () => {
     if (!plugin) throw new Error("Service plugin was not created");
     await harness.installPlugin(plugin);
     if (!captured) throw new Error("setup did not run");
+    operator = issueRouteCaller(
+      operator,
+      harness.getMockShell().getAuthRegistry(),
+    );
+    visitor = issueRouteCaller(
+      visitor,
+      harness.getMockShell().getAuthRegistry(),
+    );
     return { entities: captured, received };
   }
 
@@ -197,11 +207,14 @@ describe("uploading on an operator's behalf", () => {
 
   it("reports a handler that crashed as a refusal, and keeps no bytes", async () => {
     const { entities } = await install();
+    const failure = new Error("private promotion diagnostic", {
+      cause: "private token",
+    });
     harness.getEntityRegistry().registerUploadSaveHandler({
       entityType: "image",
       mediaTypes: ["image/png"],
       handler: async () => {
-        throw new Error("Promotion crashed");
+        throw failure;
       },
     });
     const stagedBefore = await stagedUploads();
@@ -211,8 +224,10 @@ describe("uploading on an operator's behalf", () => {
     expect(outcome).toMatchObject({
       kind: "refused",
       entityType: "image",
-      message: "Promotion crashed",
+      message: "The operation failed",
     });
+    expect(JSON.stringify(outcome)).not.toContain("private");
+    expect(operatorValidationCause(outcome)).toBe(failure);
     expect(await stagedUploads()).toEqual(stagedBefore);
   });
 });
