@@ -1,4 +1,6 @@
 import { describe, expect, spyOn, test } from "bun:test";
+import { EntityRegistry } from "@brains/entity-service";
+import { createSilentLogger } from "@brains/test-utils";
 import {
   BaseEntityAdapter,
   baseEntitySchema,
@@ -53,6 +55,12 @@ function fixture(role: "trusted" | "public" | null = "trusted"): {
       routePath: "/studio",
       getContext: () => context,
       getEntityDisplay: () => undefined,
+      getGroupingDefinitions: () => ({
+        groupings: {
+          clients: { label: "Clients", types: grouping.types, multiple: true },
+        },
+        issues: [],
+      }),
       workspaceRegistry: new StudioWorkspaceRegistry(),
       resolveAuthPrincipal: async () =>
         role
@@ -82,62 +90,50 @@ async function get(
   return route.handler(new Request(`https://example.com/studio/api/${path}`));
 }
 
-describe("Studio grouping declarations", () => {
-  test("preflights all config before registering any grouping", async () => {
-    const shell = createMockShell();
-    const preflight = spyOn(
-      shell.getEntityRegistry(),
-      "validateGroupings",
-    ).mockImplementation(() => {});
-    const register = spyOn(
-      shell.getEntityRegistry(),
-      "registerGrouping",
-    ).mockImplementation(() => {});
-    const plugin = studioPlugin({ groupings: [grouping] });
-    await plugin.register(shell);
-    expect(register).not.toHaveBeenCalled();
-    await plugin.finalizeRegistration();
-    expect(preflight).toHaveBeenCalledWith([grouping]);
-    expect(register).toHaveBeenCalledWith(grouping);
+describe("Studio document-owned groupings", () => {
+  test("rejects old configuration instead of silently stripping or converting it", () => {
+    for (const groupings of [[], [grouping]]) {
+      expect(() => {
+        Reflect.apply(studioPlugin, undefined, [{ groupings }]);
+      }).toThrow("System → Structure → Groupings");
+    }
   });
-  test("preflights the resulting set when other groupings are already registered", async () => {
+  test("installs definitions after contributors and never registers the vocabulary document", async () => {
     const shell = createMockShell();
-    const existing = {
-      ...grouping,
-      key: "areas",
-      label: "Areas",
-      field: "areas",
-    };
+    const registry = EntityRegistry.createFresh(createSilentLogger());
+    spyOn(shell, "getEntityRegistry").mockReturnValue(registry);
+    spyOn(shell.getEntityService(), "getEntityTypes").mockImplementation(() =>
+      registry.getAllEntityTypes(),
+    );
+    const plugin = studioPlugin();
+    await plugin.register(shell);
+    expect(registry.hasEntityType("grouping-definitions")).toBe(false);
+    registry.registerEntityType("note", baseEntitySchema, new Adapter("note"));
+    const validators = spyOn(registry, "registerPersistValidator");
+    await plugin.finalizeRegistration();
+    expect(registry.hasEntityType("grouping-definitions")).toBe(true);
+    expect(registry.hasEntityType("grouping-vocabulary")).toBe(false);
+    expect(registry.getGroupingSourceType()).toBe("grouping-definitions");
+    expect(validators).toHaveBeenCalledWith("note", expect.any(Function));
+  });
+  test("refuses a second declaration owner without replacing existing registrations", async () => {
+    const shell = createMockShell();
     spyOn(shell.getEntityRegistry(), "getGroupings").mockReturnValue([
-      existing,
+      grouping,
     ]);
-    const preflight = spyOn(
-      shell.getEntityRegistry(),
-      "validateGroupings",
-    ).mockImplementation(() => {});
-    spyOn(shell.getEntityRegistry(), "registerGrouping").mockImplementation(
-      () => {},
-    );
-    const plugin = studioPlugin({ groupings: [grouping] });
-    await plugin.register(shell);
-    await plugin.finalizeRegistration();
-    expect(preflight).toHaveBeenCalledWith([existing, grouping]);
-  });
-  test("a failed preflight publishes no partial config", async () => {
-    const shell = createMockShell();
-    spyOn(shell.getEntityRegistry(), "validateGroupings").mockImplementation(
-      () => {
-        throw new Error("Conflicting field");
-      },
-    );
-    const register = spyOn(shell.getEntityRegistry(), "registerGrouping");
-    const plugin = studioPlugin({ groupings: [grouping] });
+    const replace = spyOn(shell.getEntityRegistry(), "replaceGroupings");
+    const plugin = studioPlugin();
     await plugin.register(shell);
     const error = await plugin
       .finalizeRegistration()
-      .catch((cause: unknown) => cause);
-    expect(error).toMatchObject({ message: "Conflicting field" });
-    expect(register).not.toHaveBeenCalled();
+      .catch((cause: unknown): unknown => cause);
+    expect(error).toMatchObject({
+      message: expect.stringContaining("Groupings document"),
+    });
+    expect(replace).not.toHaveBeenCalled();
+    expect(
+      shell.getEntityRegistry().hasEntityType("grouping-definitions"),
+    ).toBe(false);
   });
 });
 
@@ -320,21 +316,21 @@ describe("Studio grouping read admission", () => {
   });
 });
 
-describe("Studio grouping vocabulary surface", () => {
+describe("Studio grouping definition surface", () => {
   const fieldNames = z.object({
     fields: z.array(z.object({ name: z.string() })),
   });
 
-  test("the vocabulary schema offers no visibility control; it is always shared", async () => {
+  test("the definitions schema offers no visibility control; it is always shared", async () => {
     const { shell, routes } = fixture("trusted");
     shell
       .getEntityRegistry()
       .registerEntityType(
-        "grouping-vocabulary",
+        "grouping-definitions",
         baseEntitySchema,
-        new Adapter("grouping-vocabulary"),
+        new Adapter("grouping-definitions"),
       );
-    const response = await get(routes, "schema?type=grouping-vocabulary");
+    const response = await get(routes, "schema?type=grouping-definitions");
     expect(response.status).toBe(200);
     const vocabulary = fieldNames.parse(await response.json());
     expect(vocabulary.fields.map((field) => field.name)).not.toContain(

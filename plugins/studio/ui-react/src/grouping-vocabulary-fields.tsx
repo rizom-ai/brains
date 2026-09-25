@@ -2,7 +2,6 @@
 import * as stylex from "@stylexjs/stylex";
 import { NativeSelect } from "@brains/app-ui-react";
 import { useId, type ReactElement } from "react";
-import type { GroupingVocabulary } from "../../src/grouping-vocabulary-contract";
 import type { GroupingValueRules } from "../../src/grouping-definitions-contract";
 import type { FieldDescriptor } from "./api";
 import { groupingValueLabel } from "./grouping-value";
@@ -28,7 +27,7 @@ export function GroupingValue({
 
 export function ClosedGroupingField(props: {
   descriptor: FieldDescriptor;
-  vocabulary: GroupingVocabulary;
+  vocabulary: GroupingValueRules & { values: string[] };
   value: unknown;
   errorId: string | undefined;
   onChange: (value: string[]) => void;

@@ -422,6 +422,10 @@ export class EntityRegistry implements IEntityRegistry {
   }
 
   registerGrouping(input: EntityGrouping): void {
+    if (this.groupingSource)
+      throw new Error(
+        "Groupings are owned by a registered source; static declarations are not allowed",
+      );
     const grouping = entityGroupingSchema.parse(input);
     if (this.groupings.has(grouping.key))
       throw new Error(`Duplicate entity grouping: ${grouping.key}`);

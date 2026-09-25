@@ -4,8 +4,6 @@ import { hasInvalidEditorFields } from "./editor-workflow";
 import { StudioSystemFields } from "./studio-system-fields";
 import { StudioGroupingDefinitionsField } from "./studio-grouping-definitions-field";
 import { GROUPING_DEFINITIONS_TYPE } from "../../src/grouping-definitions-contract";
-import { StudioVocabularyEditor } from "./studio-vocabulary-editor";
-import { GROUPING_VOCABULARY_TYPE } from "../../src/grouping-vocabulary-contract";
 import { systemFieldStyles } from "./studio-system-fields.styles";
 import {
   Button,
@@ -330,25 +328,6 @@ export function StudioEditorPane(
             >
               {systemDesign ? (
                 <>
-                  {selectedEntityType === GROUPING_VOCABULARY_TYPE && (
-                    <StudioVocabularyEditor
-                      groupings={props.groupings?.items ?? []}
-                      value={draft["groupings"]}
-                      readOnly={!canEdit}
-                      issues={fieldIssues}
-                      onChange={(raw) =>
-                        dispatchEditor({
-                          type: "fieldChanged",
-                          descriptor: {
-                            name: "groupings",
-                            label: "Groupings",
-                            widget: "object",
-                          },
-                          raw,
-                        })
-                      }
-                    />
-                  )}
                   {selectedEntityType === GROUPING_DEFINITIONS_TYPE &&
                     (entitySchema.groupingDefinitions ? (
                       <StudioGroupingDefinitionsField
@@ -368,7 +347,6 @@ export function StudioEditorPane(
                     literalFields={groupingFields}
                     suggestions={props.groupingSuggestions}
                     fields={
-                      selectedEntityType === GROUPING_VOCABULARY_TYPE ||
                       selectedEntityType === GROUPING_DEFINITIONS_TYPE
                         ? entitySchema.fields.filter(
                             (field) => field.name !== "groupings",

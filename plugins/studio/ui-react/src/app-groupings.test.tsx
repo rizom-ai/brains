@@ -307,7 +307,7 @@ test.each([
                 field: "clients",
                 types: ["post"],
                 ...(multiple !== null && {
-                  vocabulary: { multiple, values: ["Acme", "Beta"] },
+                  rules: { multiple, values: ["Acme", "Beta"] },
                 }),
               },
             ],

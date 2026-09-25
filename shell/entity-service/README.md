@@ -122,16 +122,18 @@ stored IDs nor metadata are modified. Filesystem placement remains directory-syn
 
 A registered type may also carry its own `actionPolicy` in `EntityTypeConfig`. That is the type's floor: each action uses the stricter of the wildcard default and the type's minimum, with `never` forbidding every caller. This keeps an admin-only type protected without its bundle's rule while preserving stricter instance restrictions. An explicit entry for the type still overrides the result, action by action.
 
-A stored document whose content no longer satisfies its own schema cannot be reconstructed, so every read treats it as absent. Policies built on such a document fail open rather than refusing writes behind something only an administrator could repair.
+Most schema-invalid stored entities cannot be reconstructed. A control-document adapter can deliberately provide repairable reads instead: Studio retains malformed `grouping-definitions` source for explicit repair, omits invalid sections from the active set and reports their issues. Lookup or publication failures propagate rather than silently admitting stale policy.
 
-Studio uses this boundary for its admin-authored grouping-vocabulary singleton. Vocabulary and cardinality changes affect the next write, including tool and import writes, without changing fixed type schemas or rewriting previously stored content. Reads and startup reprojection remain unconstrained so stray memberships stay visible.
+Studio uses this boundary for its admin-authored `grouping-definitions` singleton. Labels, contributing types, independent cardinality and optional exact lists share one source. Changes affect the next write, including tool and import writes, without weakening owner schemas or rewriting previously stored content. Reads and startup reprojection retain stray memberships.
 
 ## Grouping queries (internal client)
 
 A grouping is a declared dimension — Clients, Projects — resolved from one
 frontmatter field across a listed set of entity types. Callers never supply a
-field name or selector: `registerGrouping({ key, label, field, types })` records
-the declaration, and the two reads resolve it by key.
+field name or selector. Without a document source, `registerGrouping({ key,
+label, field, types })` records a static declaration; grouping reads resolve it
+by key. Once a source is installed, further static registrations are rejected.
+Studio rejects competing static declarations before installing its document owner.
 
 `validateGroupings(next)` preflights a complete replacement set without changing
 active schemas. `replaceGroupings(next)` publishes that set and its schema

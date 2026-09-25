@@ -37,8 +37,9 @@ export async function waitForStudio(predicate: () => boolean): Promise<void> {
 export async function mountStudio(
   api: StudioApi,
   path: string,
+  basePath = "/studio",
 ): Promise<MountedStudio> {
-  const window = new Window({ url: "https://studio.test/studio" });
+  const window = new Window({ url: `https://studio.test${basePath}` });
   const restore = installDomGlobals(window, {
     localStorage: window.localStorage,
     Event: window.Event,
@@ -56,7 +57,7 @@ export async function mountStudio(
   );
   const client = createStudioQueryClient();
   const history = createMemoryHistory({ initialEntries: [path] });
-  const router = createStudioRouter("/studio", App, history);
+  const router = createStudioRouter(basePath, App, history);
   const close = async (): Promise<void> => {
     await act(async () => root.unmount());
     client.clear();

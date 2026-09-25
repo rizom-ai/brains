@@ -15,14 +15,6 @@ const profiles: Record<string, SystemEditorCopy> = {
     bodyTitle: "",
     bodyDescription: "",
   },
-  "grouping-vocabulary": {
-    title: "Groupings",
-    intro:
-      "Define the values editors can choose, and whether each entry may carry one or several. Lists apply to future saves; existing content is never rewritten.",
-    fieldsTitle: "Access",
-    bodyTitle: "Written content",
-    bodyDescription: "",
-  },
   "anchor-profile": {
     intro:
       "Who this Brain represents. Profile details and the longer story belong to the same record.",

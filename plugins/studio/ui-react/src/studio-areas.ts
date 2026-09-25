@@ -20,7 +20,7 @@ export const SYSTEM_TYPE_GROUPS = [
   {
     label: "Structure",
     presentation: "form",
-    types: ["grouping-vocabulary", "grouping-definitions"],
+    types: ["grouping-definitions"],
   },
   {
     label: "Identity",

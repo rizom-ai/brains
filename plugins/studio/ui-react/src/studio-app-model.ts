@@ -118,7 +118,7 @@ export function deriveStudioAppModel(
   const groupingVocabularies = Object.fromEntries(
     editorGroupings.map((grouping) => [
       grouping.field,
-      grouping.vocabulary ?? { multiple: true },
+      grouping.rules ?? { multiple: true },
     ]),
   );
   const systemDesign = systemEditorCopy(selectedEntityType);

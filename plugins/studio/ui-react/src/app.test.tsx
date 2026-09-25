@@ -825,7 +825,7 @@ it("offers AI suggestions only for groups editors may type into", () => {
             label: "Clients",
             field: "clients",
             types: ["post"],
-            vocabulary: { multiple: false, values: ["Acme", "Beta"] },
+            rules: { multiple: false, values: ["Acme", "Beta"] },
           },
           { key: "areas", label: "Areas", field: "areas", types: ["post"] },
         ],

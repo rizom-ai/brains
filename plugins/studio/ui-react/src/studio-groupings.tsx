@@ -132,8 +132,8 @@ export function StudioGroupingContent(
   );
   const membershipWarning =
     query.value !== null &&
-    grouping.vocabulary?.values &&
-    !grouping.vocabulary.values.includes(query.value)
+    grouping.rules?.values &&
+    !grouping.rules.values.includes(query.value)
       ? " · not in list"
       : "";
   const groupHref = (value: string): string =>
@@ -182,7 +182,7 @@ export function StudioGroupingContent(
       {catalog ? (
         <p className={editorClassName("", groupingStyles.hint)}>
           Content grouped by its {grouping.label} property.{" "}
-          {grouping.vocabulary?.multiple === false
+          {grouping.rules?.multiple === false
             ? "New saves may carry at most one value; existing memberships are preserved."
             : "An entry can belong to more than one group."}
         </p>
@@ -311,7 +311,7 @@ export function StudioGroupingContent(
                 <span className={editorClassName("", libraryStyles.title)}>
                   <GroupingValue
                     value={entry.value}
-                    vocabulary={grouping.vocabulary}
+                    vocabulary={grouping.rules}
                   />
                 </span>
                 <span className={editorClassName("", libraryStyles.updated)}>

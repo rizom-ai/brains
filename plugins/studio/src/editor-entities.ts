@@ -36,7 +36,6 @@ import {
 } from "./editor-contracts";
 import { jsonResponse } from "./editor-response";
 import { editorValidationResponse } from "./editor-validation";
-import { GROUPING_VOCABULARY_TYPE } from "./grouping-vocabulary-contract";
 import { GROUPING_DEFINITIONS_TYPE } from "./grouping-definitions-contract";
 import {
   studioCollectionQuerySchema,
@@ -605,10 +604,7 @@ function prepareStudioCreation(
     );
   const visibility = resolveStudioVisibility(
     payload.frontmatter,
-    entityType === GROUPING_VOCABULARY_TYPE ||
-      entityType === GROUPING_DEFINITIONS_TYPE
-      ? "shared"
-      : "public",
+    entityType === GROUPING_DEFINITIONS_TYPE ? "shared" : "public",
   );
   if (!visibility.success) return visibility.response;
   // System visibility is validated separately, never by a strict domain schema.

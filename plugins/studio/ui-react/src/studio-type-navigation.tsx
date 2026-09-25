@@ -455,7 +455,7 @@ export function TypeSwitcher(props: {
                             typographyStyles.eyebrow,
                           )}
                         >
-                          Groupings
+                          Groups
                         </div>
                         <ul className={navClass("", nav.list)}>
                           {props.groupings?.items.map((grouping) => (

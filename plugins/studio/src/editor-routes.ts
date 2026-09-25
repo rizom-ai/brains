@@ -29,8 +29,6 @@ import type { StudioWorkspaceRegistry } from "./workspace-registry";
 import { getErrorMessage } from "@brains/utils/error";
 import { jsonResponse } from "./editor-response";
 import { handleGroupingRead, studioGroupDescriptors } from "./editor-groupings";
-import { readGroupingVocabularies } from "./grouping-vocabulary";
-import { GROUPING_VOCABULARY_TYPE } from "./grouping-vocabulary-contract";
 import { GROUPING_DEFINITIONS_TYPE } from "./grouping-definitions-contract";
 import { isGroupingContributorType } from "./grouping-definitions";
 import {
@@ -362,6 +360,7 @@ export function createEditorRoutes(
           getEntityDisplay(),
           workspaceRegistry,
           access,
+          options.getGroupingDefinitions,
         );
       },
     },
@@ -417,7 +416,13 @@ export function createEditorRoutes(
         handler: async (request): Promise<Response> => {
           const access = await requireTrustedAccess(request);
           if (access instanceof Response) return access;
-          return handleGroupingRead(getContext(), request, access, mode);
+          return handleGroupingRead(
+            getContext(),
+            request,
+            access,
+            mode,
+            options.getGroupingDefinitions,
+          );
         },
       }),
     ),
@@ -596,6 +601,7 @@ async function handleListTypes(
   entityDisplay: StudioEntityDisplayMap | undefined,
   workspaceRegistry: StudioWorkspaceRegistry,
   access: StudioRequestAccess,
+  getDefinitions: EditorRouteOptions["getGroupingDefinitions"],
 ): Promise<Response> {
   const types = [];
   if (access.permissionLevel !== "public") {
@@ -644,9 +650,8 @@ async function handleListTypes(
   );
 
   const groupings = studioGroupDescriptors(
-    context.entities.getGroupings(),
+    getDefinitions?.().groupings ?? {},
     new Set(types.map((type) => type.entityType)),
-    await readGroupingVocabularies(context, access.visibilityScope),
   );
   return jsonResponse({ types, workspaces, groupings });
 }
@@ -777,11 +782,19 @@ async function handleGetSchema(
   // Raw types edit the whole document as body; their domain frontmatter
   // bookkeeping must not surface. Visibility is system-owned and applies to
   // every entity type independently of its markdown representation.
+  const definitions = options.getGroupingDefinitions?.();
+  const labels = new Map(
+    Object.entries(definitions?.groupings ?? {})
+      .filter(([, definition]) => definition.types.includes(entityType))
+      .map(([key, definition]) => [key, definition.label]),
+  );
   const domainFields = raw
     ? []
-    : Object.keys(schema.shape).map((name) =>
-        zodFieldToStudioWidget(name, schema.shape[name]),
-      );
+    : Object.keys(schema.shape).map((name) => {
+        const field = zodFieldToStudioWidget(name, schema.shape[name]);
+        const label = labels.get(name);
+        return label === undefined ? field : { ...field, label };
+      });
   const visibilityField = {
     name: "visibility",
     label: "Visibility",
@@ -792,11 +805,10 @@ async function handleGetSchema(
       canWriteVisibility(access.permissionLevel, visibility),
     ),
   };
-  // The vocabulary has exactly one workable visibility: the editors it
-  // constrains must be able to read it. Offering a choice invites a list
+  // Definitions have exactly one workable visibility: the editors they
+  // constrain must be able to read them. Offering a choice invites a list
   // that silently refuses saves nobody can explain.
   const fields =
-    entityType === GROUPING_VOCABULARY_TYPE ||
     entityType === GROUPING_DEFINITIONS_TYPE
       ? domainFields
       : [...domainFields, visibilityField];
@@ -820,7 +832,7 @@ async function handleGetSchema(
     ...(entityType === GROUPING_DEFINITIONS_TYPE && {
       groupingDefinitions: {
         contributorTypes,
-        issues: options.getGroupingDefinitions?.().issues ?? [],
+        issues: definitions?.issues ?? [],
       },
     }),
     entityType,

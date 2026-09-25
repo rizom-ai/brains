@@ -48,6 +48,26 @@ describe("grouping source lifecycle", () => {
     await value.ensureGroupingsCurrent();
     expect(calls).toBe(1);
   });
+  test("an installed source refuses later static declarations but can publish replacements", () => {
+    const value = registry();
+    value.registerGroupingSource({
+      entityType: "test",
+      ensureCurrent: async (): Promise<void> => {},
+    });
+    const grouping = {
+      key: "areas",
+      field: "areas",
+      label: "Areas",
+      types: ["test"],
+    };
+    expect(() => value.registerGrouping(grouping)).toThrow(
+      "owned by a registered source",
+    );
+    expect(value.getGroupings()).toEqual([]);
+    value.replaceGroupings([grouping]);
+    expect(value.getGroupings()).toEqual([grouping]);
+  });
+
   test("propagates refresh failure rather than using stale policy", async () => {
     const value = registry();
     value.registerGroupingSource({

@@ -61,7 +61,7 @@ export type GroupingValueRules = Pick<
   "multiple" | "values"
 >;
 export interface StudioGrouping extends EntityGrouping {
-  vocabulary?: GroupingValueRules;
+  rules?: GroupingValueRules;
 }
 
 export interface GroupingDefinitionIssue {

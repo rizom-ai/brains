@@ -21,7 +21,7 @@ export function useGroupingSuggestions(
 ): Record<string, readonly string[]> {
   const api = useStudioApi();
   const openGroupings = useMemo(
-    () => groupings.filter((grouping) => !grouping.vocabulary?.values),
+    () => groupings.filter((grouping) => !grouping.rules?.values),
     [groupings],
   );
   // One options instance per API and declaration set, as grouping-queries

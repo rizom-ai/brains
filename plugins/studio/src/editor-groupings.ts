@@ -1,4 +1,4 @@
-import type { EntityGrouping, ServicePluginContext } from "@brains/plugins";
+import type { ServicePluginContext } from "@brains/plugins";
 import {
   GROUPING_PAGE_LIMIT,
   GROUPING_MAX_PAGE_LIMIT,
@@ -9,15 +9,17 @@ import {
 import { decodeEntityIdPath } from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 import { getTypeCapabilities } from "./editor-access";
-import type { StudioRequestAccess } from "./editor-contracts";
+import type {
+  EditorRouteOptions,
+  StudioRequestAccess,
+} from "./editor-contracts";
 import { splitEntityContent } from "./editor-content";
 import { entityDisplayTitle } from "./editor-entities";
 import { jsonResponse } from "./editor-response";
-import { readGroupingVocabularies } from "./grouping-vocabulary";
 import type {
-  GroupingVocabularyFrontmatter,
+  GroupingDefinitionsFrontmatter,
   StudioGrouping,
-} from "./grouping-vocabulary-contract";
+} from "./grouping-definitions-contract";
 import { studioGroupingUsageQuerySchema } from "./grouping-query";
 
 const querySchema = studioGroupingUsageQuerySchema.extend({
@@ -41,21 +43,20 @@ const querySchema = studioGroupingUsageQuerySchema.extend({
 
 /** Descriptors cannot disclose contributing types the caller cannot read. */
 export function studioGroupDescriptors(
-  groupings: EntityGrouping[],
+  definitions: GroupingDefinitionsFrontmatter["groupings"],
   admitted: ReadonlySet<string>,
-  vocabularies: GroupingVocabularyFrontmatter["groupings"] = {},
 ): StudioGrouping[] {
-  return groupings
-    .map((grouping) => {
-      const vocabulary = Object.hasOwn(vocabularies, grouping.key)
-        ? vocabularies[grouping.key]
-        : undefined;
-      return {
-        ...grouping,
-        ...(vocabulary && { vocabulary }),
-        types: grouping.types.filter((type) => admitted.has(type)),
-      };
-    })
+  return Object.entries(definitions)
+    .map(([key, definition]) => ({
+      key,
+      field: key,
+      label: definition.label,
+      types: definition.types.filter((type) => admitted.has(type)),
+      rules: {
+        multiple: definition.multiple,
+        ...(definition.values && { values: definition.values }),
+      },
+    }))
     .filter((grouping) => grouping.types.length > 0);
 }
 
@@ -64,6 +65,7 @@ export async function handleGroupingRead(
   request: Request,
   access: StudioRequestAccess,
   mode: "catalog" | "members" | "usage",
+  getDefinitions: EditorRouteOptions["getGroupingDefinitions"],
 ): Promise<Response> {
   const params = new URL(request.url).searchParams;
   const query = querySchema.safeParse({
@@ -73,15 +75,19 @@ export async function handleGroupingRead(
   if (!query.success || (mode === "members" && query.data.value === undefined))
     return jsonResponse({ error: "Invalid grouping query" }, 400);
   await context.entities.ensureGroupingsCurrent();
-  const grouping = context.entities
-    .getGroupings()
-    .find((candidate) => candidate.key === query.data.grouping);
+  const definitions = getDefinitions?.().groupings ?? {};
+  const grouping = Object.hasOwn(definitions, query.data.grouping)
+    ? definitions[query.data.grouping]
+    : undefined;
   if (!grouping) return jsonResponse({ error: "Unknown grouping" }, 404);
   const admitted = new Set<string>();
   for (const type of grouping.types) {
     if (await getTypeCapabilities(context, type, access)) admitted.add(type);
   }
-  const descriptor = studioGroupDescriptors([grouping], admitted)[0];
+  const descriptor = studioGroupDescriptors(
+    { [query.data.grouping]: grouping },
+    admitted,
+  )[0];
   if (!descriptor) return jsonResponse({ error: "Unknown grouping" }, 404);
   if (!(await context.entityService.ensureGroupingsReady())) {
     const response = jsonResponse(
@@ -92,7 +98,7 @@ export async function handleGroupingRead(
     return response;
   }
   const input = {
-    grouping: grouping.key,
+    grouping: descriptor.key,
     entityTypes: descriptor.types.filter(
       (type) => !query.data.type || query.data.type === type,
     ),
@@ -108,14 +114,6 @@ export async function handleGroupingRead(
     );
   }
   const pagination = { offset: query.data.offset, limit: query.data.limit };
-  const vocabularies = await readGroupingVocabularies(
-    context,
-    access.visibilityScope,
-  );
-  const vocabulary = Object.hasOwn(vocabularies, grouping.key)
-    ? vocabularies[grouping.key]
-    : undefined;
-  if (vocabulary) descriptor.vocabulary = vocabulary;
   if (mode === "catalog") {
     return jsonResponse({
       grouping: descriptor,

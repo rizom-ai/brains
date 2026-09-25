@@ -1,0 +1,387 @@
+/** @jsxImportSource react */
+import { afterEach, expect, spyOn, test } from "bun:test";
+import { act } from "react";
+import { AuthServicePlugin } from "@brains/auth-service";
+import { EntityRegistry, EntityService } from "@brains/entity-service";
+import { migrateEntities } from "@brains/entity-service/migrate";
+import { noteAdapter, noteSchema } from "@brains/note";
+import { blogPostAdapter, blogPostSchema } from "@brains/blog";
+import {
+  PermissionService,
+  type EntityActionPolicyRule,
+} from "@brains/templates";
+import { createMockShell } from "@brains/plugins/test";
+import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
+import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
+import { studioPlugin } from "../src";
+import type { GroupingDefinitionsFrontmatter } from "../src/grouping-definitions-contract";
+import { StudioApi } from "../ui-react/src/api";
+import { mountStudio, waitForStudio } from "./fixtures/mounted-studio";
+
+const type = "grouping-definitions";
+const base = "/authoring";
+const cleanups: Array<() => Promise<void>> = [];
+afterEach(async () => {
+  for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
+});
+
+async function fixture(): Promise<{
+  service: EntityService;
+  api(role?: "admin" | "trusted"): StudioApi;
+  request(
+    method: string,
+    path: string,
+    body?: unknown,
+    role?: "admin" | "trusted",
+  ): Promise<Response>;
+}> {
+  const directory = await createTestDirectory();
+  cleanups.push(directory.cleanup);
+  const logger = createSilentLogger();
+  const dbConfig = { url: `file:${directory.dir}/entities.db` };
+  await migrateEntities(dbConfig, logger);
+  const registry = EntityRegistry.createFresh(logger);
+  const service = EntityService.createFresh({
+    dbConfig,
+    entityRegistry: registry,
+    logger,
+    embeddingDbConfig: { url: `file:${directory.dir}/embeddings.db` },
+    jobQueueService: createMockShell().getJobQueueService(),
+    embeddingsEnabled: false,
+    embeddingService: {
+      dimensions: 1536,
+      generateEmbedding: async () => {
+        throw new Error("Unexpected embedding");
+      },
+      generateEmbeddings: async () => {
+        throw new Error("Unexpected embedding");
+      },
+    },
+  });
+  cleanups.push(async (): Promise<void> => {
+    service.close();
+  });
+  await service.initialize();
+  const shell = createMockShell({ entityService: service });
+  spyOn(shell, "getEntityRegistry").mockReturnValue(registry);
+  spyOn(shell, "getPermissionService").mockReturnValue(
+    new PermissionService(
+      {
+        entityActions: {
+          "*": { create: "trusted", update: "trusted", delete: "trusted" },
+        },
+      },
+      {
+        entityActionFloor: (entityType): EntityActionPolicyRule | undefined =>
+          registry.getEntityTypeConfig(entityType).actionPolicy,
+      },
+    ),
+  );
+  const auth = new AuthServicePlugin({ storageDir: `${directory.dir}/auth` });
+  await auth.register(shell);
+  cleanups.push(async (): Promise<void> => {
+    await auth.shutdown();
+  });
+  const cookies = new Map<string, string>();
+  for (const role of ["admin", "trusted"] as const) {
+    const user = await auth
+      .getService()
+      .createUser({ displayName: role, role });
+    const session = await auth.getService().createAuthSession(user.userId);
+    cookies.set(role, session.cookie);
+  }
+  const plugin = studioPlugin({ routePath: base });
+  await plugin.register(shell);
+  cleanups.push(async (): Promise<void> => {
+    await plugin.shutdown();
+  });
+  // Contributors may register after Studio, but before the finalization barrier.
+  registry.registerEntityType("note", noteSchema, noteAdapter);
+  registry.registerEntityType("post", blogPostSchema, blogPostAdapter);
+  await plugin.finalizeRegistration();
+  await service.reprojectRegisteredGroupings();
+  const routes = plugin.getWebRoutes();
+  const dispatch = async (
+    request: Request,
+    role: string,
+  ): Promise<Response> => {
+    request.headers.set("Cookie", cookies.get(role) ?? "");
+    request.headers.set("Origin", "https://studio.test");
+    const route = routes.find(
+      (entry) =>
+        entry.path === new URL(request.url).pathname &&
+        entry.method === request.method,
+    );
+    if (!route) throw new Error("Missing production route");
+    return route.handler(request);
+  };
+  return {
+    service,
+    api: (role = "admin"): StudioApi =>
+      new StudioApi({
+        basePath: base,
+        fetch: async (input, init): Promise<Response> =>
+          dispatch(
+            new Request(new URL(String(input), "https://studio.test"), init),
+            role,
+          ),
+      }),
+    request: (method, path, body, role = "admin"): Promise<Response> =>
+      dispatch(
+        new Request(`https://studio.test${base}/api/${path}`, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+        }),
+        role,
+      ),
+  };
+}
+
+const clients = {
+  label: "Clients",
+  types: ["note", "post"],
+  multiple: false,
+  values: ["Acme", "Beta"],
+};
+async function define(
+  runtime: Awaited<ReturnType<typeof fixture>>,
+  groupings: GroupingDefinitionsFrontmatter["groupings"],
+  method = "POST",
+): Promise<void> {
+  expect(
+    (
+      await runtime.request(method, "entities", {
+        entityType: type,
+        id: type,
+        frontmatter: { groupings },
+      })
+    ).status,
+  ).toBe(method === "POST" ? 201 : 200);
+}
+
+// These use production registration and real sessions; only HTTP transport is
+// injected. They are not a substitute for running-app/browser acceptance.
+test("production source creation refreshes a cached Note schema and supplies open single-value rules", async () => {
+  const runtime = await fixture();
+  await runtime.service.createEntityFromMarkdown({
+    input: {
+      entityType: "note",
+      id: "existing",
+      markdown: "---\ntitle: Existing\nareas: [Fieldwork]\n---\n\nBody",
+    },
+  });
+  const before = await runtime.service.getEntityRaw({
+    entityType: "note",
+    id: "existing",
+  });
+  expect(before).not.toBeNull();
+  const ui = await mountStudio(
+    runtime.api(),
+    `${base}/entities/note/existing`,
+    base,
+  );
+  try {
+    await waitForStudio(
+      () =>
+        document.querySelector('form[aria-label="Document editor"]') !== null,
+    );
+    expect(
+      document.querySelector('[data-studio-field="grouping-membership"]'),
+    ).toBeNull();
+    await act(async () => ui.history.push(`${base}/entities/${type}`));
+    await waitForStudio(() =>
+      document.body.textContent.includes("Your first grouping"),
+    );
+    expect(
+      document.querySelector<HTMLButtonElement>(
+        'form[aria-label="Document editor"] button[type=submit]',
+      )?.disabled,
+    ).toBe(true);
+    await ui.click("Add grouping");
+    await ui.input("New grouping label", "Research areas");
+    await ui.input("Research areas key", "areas");
+    await ui.click("Notes contributor");
+    const select = document.querySelector<HTMLSelectElement>(
+      'select[aria-label="Research areas values per entry"]',
+    );
+    if (!select) throw new Error("Missing cardinality control");
+    await act(async () => {
+      select.value = "one";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await ui.click("Save changes");
+    await waitForStudio(
+      () =>
+        document.querySelector<HTMLInputElement>(
+          'input[aria-label="Research areas key"]',
+        )?.readOnly === true,
+    );
+    expect(
+      (
+        await runtime.service.getEntityRaw({
+          entityType: "note",
+          id: "existing",
+        })
+      )?.content,
+    ).toBe(before?.content);
+    expect(await (await runtime.request("GET", "types")).json()).toMatchObject({
+      groupings: [
+        {
+          key: "areas",
+          field: "areas",
+          types: ["note"],
+          rules: { multiple: false },
+        },
+      ],
+    });
+    await act(async () => ui.history.push(`${base}/entities/note/existing`));
+    await waitForStudio(
+      () =>
+        document.querySelector('[data-studio-field="grouping-membership"]') !==
+        null,
+    );
+    expect(
+      document.querySelector('[data-studio-field="grouping-membership"]')
+        ?.textContent,
+    ).toContain("one");
+    await ui.input("Replace Research areas value", " Ka21 ");
+    await ui.click("Replace value");
+    await ui.click("Save changes");
+    await waitForStudio(() => document.body.textContent.includes("Saved"));
+    const saved = await runtime.service.getEntityRaw({
+      entityType: "note",
+      id: "existing",
+    });
+    expect(parseMarkdown(saved?.content ?? "").frontmatter["areas"]).toEqual([
+      " Ka21 ",
+    ]);
+  } finally {
+    await ui.close();
+  }
+});
+
+test("production descriptors cover all four rules and the admin floor survives permissive instance policy", async () => {
+  const runtime = await fixture();
+  await define(runtime, {
+    clients,
+    projects: {
+      label: "Projects",
+      types: ["note"],
+      multiple: true,
+      values: ["Launch", "Rebrand"],
+    },
+    areas: { label: "Areas", types: ["note"], multiple: false },
+    topics: { label: "Topics", types: ["note"], multiple: true },
+  });
+  expect(
+    await (await runtime.request("GET", "types", undefined, "trusted")).json(),
+  ).toMatchObject({
+    groupings: [
+      { key: "clients", rules: { multiple: false, values: ["Acme", "Beta"] } },
+      {
+        key: "projects",
+        rules: { multiple: true, values: ["Launch", "Rebrand"] },
+      },
+      { key: "areas", rules: { multiple: false } },
+      { key: "topics", rules: { multiple: true } },
+    ],
+  });
+  expect(
+    (
+      await runtime.request(
+        "PUT",
+        "entities",
+        { entityType: type, id: type, frontmatter: { groupings: {} } },
+        "trusted",
+      )
+    ).status,
+  ).toBe(403);
+  expect(
+    (await runtime.request("GET", "schema?type=grouping-vocabulary")).status,
+  ).toBe(404);
+  const ui = await mountStudio(
+    runtime.api("trusted"),
+    `${base}/entities/${type}`,
+    base,
+  );
+  try {
+    await waitForStudio(
+      () =>
+        document.querySelector('[aria-label="Grouping definitions"]') !== null,
+    );
+    expect(
+      document.querySelector('[aria-label="Grouping definitions"]')
+        ?.textContent,
+    ).toContain("Clients");
+    expect(
+      document.querySelectorAll(
+        '[aria-label="Grouping definitions"] button, [aria-label="Grouping definitions"] input, [aria-label="Grouping definitions"] select',
+      ),
+    ).toHaveLength(0);
+  } finally {
+    await ui.close();
+  }
+});
+
+test("a refused member save refreshes current rules without discarding its local draft", async () => {
+  const runtime = await fixture();
+  await define(runtime, { clients });
+  await runtime.service.createEntityFromMarkdown({
+    input: {
+      entityType: "note",
+      id: "existing",
+      markdown: "---\ntitle: Existing\nclients: [Acme]\n---\n\nBody",
+    },
+  });
+  const before = await runtime.service.getEntityRaw({
+    entityType: "note",
+    id: "existing",
+  });
+  expect(before).not.toBeNull();
+  const ui = await mountStudio(
+    runtime.api("trusted"),
+    `${base}/entities/note/existing`,
+    base,
+  );
+  try {
+    await waitForStudio(
+      () =>
+        document.querySelector('select[aria-label="Replace Clients value"]') !==
+        null,
+    );
+    const select = document.querySelector<HTMLSelectElement>(
+      'select[aria-label="Replace Clients value"]',
+    );
+    if (!select) throw new Error("Missing membership control");
+    await act(async () => {
+      select.value = "1";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    await define(runtime, { clients: { ...clients, values: ["Acme"] } }, "PUT");
+    await ui.click("Save changes");
+    await waitForStudio(() =>
+      document.body.textContent.includes(
+        "choose values from the configured list",
+      ),
+    );
+    await waitForStudio(
+      () =>
+        document
+          .querySelector('[data-studio-field="grouping-membership"]')
+          ?.textContent.includes("not in list") === true,
+    );
+    expect(
+      document.querySelector('[data-studio-field="grouping-membership"]')
+        ?.textContent,
+    ).toContain("Beta");
+    expect(
+      await runtime.service.getEntityRaw({
+        entityType: "note",
+        id: "existing",
+      }),
+    ).toEqual(before);
+  } finally {
+    await ui.close();
+  }
+});
