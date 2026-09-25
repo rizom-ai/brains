@@ -507,6 +507,86 @@ describe("document-backed runtime definitions with real adapters", () => {
     expect(fixture.service.areGroupingsReady()).toBe(true);
   });
 
+  test("the definitions control document cannot be a grouping contributor", async () => {
+    const fixture = await open(await directory());
+    const response = await save(fixture, {
+      areas: { ...areas, types: [type] },
+    });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      issues: expect.arrayContaining([
+        expect.objectContaining({ path: ["groupings", "areas", "types"] }),
+      ]),
+    });
+    expect(fixture.registry.getGroupings()).toEqual([]);
+  });
+
+  test("an explicit rescan recovers an exact-row restore even with identical timestamps", async () => {
+    const dir = await directory();
+    const writer = await open(dir);
+    await writer.service.createEntityFromMarkdown({
+      input: {
+        entityType: "note",
+        id: "member",
+        markdown: content(["Before"]),
+      },
+    });
+    expect((await save(writer, { areas })).status).toBe(201);
+    const original = await writer.service.getEntityRaw({
+      entityType: type,
+      id: type,
+      visibilityScope: "shared",
+    });
+    if (!original) throw new Error("Missing definitions");
+    const reader = await open(dir);
+    expect(
+      (
+        await reader.service.queryGroupingCatalog({
+          grouping: "areas",
+          entityTypes: ["note"],
+        })
+      ).values,
+    ).toEqual([{ value: "Before", count: 1 }]);
+    await writer.service.deleteEntity({ entityType: type, id: type });
+    const note = await writer.service.getEntityRaw({
+      entityType: "note",
+      id: "member",
+    });
+    if (!note) throw new Error("Missing member");
+    await writer.service.updateEntity({
+      entity: { ...note, content: content(["After"]) },
+    });
+    const interrupted = spyOn(
+      writer.registry,
+      "projectStoredMetadata",
+    ).mockImplementation(() => {
+      throw new Error("Test scan interrupted");
+    });
+    try {
+      await writer.service.createEntity({ entity: original });
+    } finally {
+      interrupted.mockRestore();
+    }
+    expect(
+      await writer.service.getEntityRaw({
+        entityType: type,
+        id: type,
+        visibilityScope: "shared",
+      }),
+    ).toEqual(original);
+    // Exact database restores use the operator's fenced restart/rescan procedure.
+    // An unchanged row is not an edit-history or completion signal.
+    await reader.service.reprojectRegisteredGroupings();
+    expect(
+      (
+        await reader.service.queryGroupingCatalog({
+          grouping: "areas",
+          entityTypes: ["note"],
+        })
+      ).values,
+    ).toEqual([{ value: "After", count: 1 }]);
+  });
+
   test("loads raw definitions without resolving image-like literal values", async () => {
     const dir = await directory();
     const writer = await open(dir);

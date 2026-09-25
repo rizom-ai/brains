@@ -14,7 +14,10 @@ export const groupingDefinitionSchema: z.ZodObject<
   z.core.$strict
 > = z.strictObject({
   label: entityGroupingSchema.shape.label,
-  types: entityGroupingSchema.shape.types,
+  types: entityGroupingSchema.shape.types.refine(
+    (types) => !types.includes(GROUPING_DEFINITIONS_TYPE),
+    "The grouping definitions document cannot be a grouping contributor.",
+  ),
   multiple: z.boolean(),
   values: z
     .array(z.string().min(1))

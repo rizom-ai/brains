@@ -109,6 +109,7 @@ describe("definition source snapshots", () => {
           areas,
           broken: { ...areas, types: ["missing"] },
           invalid: { ...areas, multiple: "yes" },
+          control: { ...areas, types: ["note", "grouping-definitions"] },
         }),
         contentHash: "one",
       }),
@@ -127,6 +128,7 @@ describe("definition source snapshots", () => {
           message: "Unknown type: missing",
         }),
         expect.objectContaining({ path: ["groupings", "invalid", "multiple"] }),
+        expect.objectContaining({ path: ["groupings", "control", "types"] }),
       ]),
     );
   });
