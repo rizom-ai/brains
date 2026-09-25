@@ -1,5 +1,21 @@
 # @rizom/brain
 
+## 0.2.0-alpha.406
+
+### Minor Changes
+
+- [#355](https://github.com/rizom-ai/brains/pull/355) [`9204df2`](https://github.com/rizom-ai/brains/commit/9204df219fee7f726a38ba60281f780373110403) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The professional homepage atlas docks the public chat when guest chat is enabled: the composer sits in the opening, topics fill its draft instead of opening the contact form, and a finished answer lights the sources it drew on and turns the map towards them, zooming only as far as keeps each in view. On desktop, dotted leads run from each source the answer lists to its mark. Without guest chat, the topics stay links to the contact form.
+
+  Web Chat now serves the shared Ask box boot at `/ask/assets/box.js`, only while guest assets are enabled. It enhances every host that renders the `@brains/contracts` ask-box markup, never sends on load or focus, and keeps the draft with an unavailable notice when the box cannot load. The mounted box reports each answer's sources to its host as an `ask:sources` event, and each source it lists carries `data-ask-source` with the same `entityType:entityId` key. Hosts that set `data-ask-styled` get Web Chat's shared box presentation, themed with `--ask-*` tokens that default to the site theme; the dashboard's Ask panel now uses it.
+
+- [#355](https://github.com/rizom-ai/brains/pull/355) [`40c3e77`](https://github.com/rizom-ai/brains/commit/40c3e77ce66a3dadabb342ca6e2bf8ce1e3f7777) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Professional sites that opt into the authored homepage opening now render it as an atlas: everything published — essays, talks and projects — placed by topic on server-rendered topographic terrain from the knowledge map, with the authored opening and the contact door over it. Every word on the page is authored: Ask content gains optional `topicsHeading`, `contactLabel`, `contactNote`, `attribution` and `mapCaption`, and copy nobody wrote is left out. Drafts and private entities never appear; without embeddings the opening and door render on their own. The page works without JavaScript; a small script ships only with the atlas to let the terrain drift slowly (still under reduced motion and off screen) and to open a mark's title on the first tap on touch screens.
+
+### Patch Changes
+
+- [#355](https://github.com/rizom-ai/brains/pull/355) [`56d0c9e`](https://github.com/rizom-ai/brains/commit/56d0c9e48bcb8226bd88709a0da2041862275cbc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix the no-JavaScript contact form rejecting legitimate submissions: its pages sent `Referrer-Policy: no-referrer`, so browsers posted the form with `Origin: null` and the strict origin check refused it. The pages now use `same-origin`, which keeps referrers from leaving the site while identifying same-origin posts. The retention notice also reads "1 day" instead of "1 days".
+
+- [#355](https://github.com/rizom-ai/brains/pull/355) [`262ae00`](https://github.com/rizom-ai/brains/commit/262ae00e458c936d25ef941d5a7bdbf2f5295188) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Stop warning on every site build that static pages have "no formatter but saved content was requested". Site builds offer saved content to every section; templates without a formatter now skip it quietly.
+
 ## 0.2.0-alpha.405
 
 ### Patch Changes
