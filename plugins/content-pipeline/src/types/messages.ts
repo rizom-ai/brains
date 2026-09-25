@@ -1,4 +1,7 @@
-import type { PublishProvider } from "@brains/contracts";
+import type {
+  PublishProvider,
+  LinkedInUploadEvidence,
+} from "@brains/contracts";
 import type { ToolContext } from "@brains/plugins";
 import type { PublishConfigInput } from "./config";
 import type { PublishAssetDefinition } from "../publish-assets";
@@ -75,6 +78,7 @@ export interface PublishReportFailurePayload {
   entityType: string;
   entityId: string;
   error: string;
+  recovery?: LinkedInUploadEvidence | undefined;
 }
 
 /**
@@ -105,6 +109,7 @@ export interface PublishFailedPayload {
   error: string;
   retryCount: number;
   willRetry: boolean;
+  recovery?: LinkedInUploadEvidence | undefined;
 }
 
 /** Queue contents response */

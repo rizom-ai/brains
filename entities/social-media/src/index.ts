@@ -61,10 +61,10 @@ export {
 export {
   LinkedInClient,
   PartialLinkedInUploadError,
-  type LinkedInUploadRecovery,
   createLinkedInProvider,
   type LinkedInClientDeps,
 } from "./lib/linkedin-client";
+export type { LinkedInUploadRecovery } from "@brains/contracts";
 
 // Template exports
 export {

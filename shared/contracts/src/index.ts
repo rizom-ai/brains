@@ -190,6 +190,14 @@ export type {
   PublishMediaData,
 } from "./publish-types";
 export {
+  linkedInUploadRecoverySchema,
+  linkedInUploadEvidenceSchema,
+  parseLinkedInUploadEvidence,
+  type LinkedInUploadRecovery,
+  type LinkedInUploadEvidence,
+  type PublishRecoveryNode,
+} from "./publish-recovery";
+export {
   defaultQueryResponseSchema,
   simpleTextResponseSchema,
   createEntityResponseSchema,

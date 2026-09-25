@@ -1,4 +1,4 @@
-import type { PublishResult } from "@brains/contracts";
+import type { PublishResult, LinkedInUploadEvidence } from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import type { QueueManager } from "../queue-manager";
 import type { ProviderRegistry } from "../provider-registry";
@@ -12,7 +12,7 @@ import type { PublishEntityExecutor } from "../publish-executor";
  *
  * Non-generic on purpose: the real bus's send<T, R> is assignable to this, and
  * a test can supply a plain function without the type parameters bun's mock()
- * erases. No caller here reads the response — every send is fire-and-forget.
+ * erases. Failure reporting joins submission; callers do not consume response bodies.
  */
 export interface SchedulerMessagePublisher {
   send(request: {
@@ -44,6 +44,7 @@ export interface PublishFailedEvent {
   error: string;
   retryCount: number;
   willRetry: boolean;
+  recovery?: LinkedInUploadEvidence | undefined;
 }
 
 export interface SchedulerConfig {
@@ -78,7 +79,7 @@ export interface SchedulerConfig {
   /** Callback on successful publish */
   onPublish?: (event: PublishSuccessEvent) => void;
   /** Callback on failed publish (provider mode) */
-  onFailed?: (event: PublishFailedEvent) => void;
+  onFailed?: (event: PublishFailedEvent) => void | Promise<void>;
   /** Callback to check generation conditions */
   onCheckGenerationConditions?: (
     entityType: string,

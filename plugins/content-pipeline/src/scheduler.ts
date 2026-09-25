@@ -1,4 +1,5 @@
 import { getErrorMessage } from "@brains/utils/error";
+import type { LinkedInUploadEvidence } from "@brains/contracts";
 /**
  * ContentScheduler - Cron-based scheduler for content pipeline queues
  *
@@ -115,8 +116,15 @@ export class ContentScheduler {
     entityType: string,
     entityId: string,
     error: string,
-  ): void {
-    sendPublishFailed(entityType, entityId, error, this.publishDeps);
+    recovery?: LinkedInUploadEvidence,
+  ): Promise<void> {
+    return sendPublishFailed(
+      entityType,
+      entityId,
+      error,
+      this.publishDeps,
+      recovery,
+    );
   }
 
   // -------------------------------------------------------------------

@@ -1,4 +1,7 @@
-import { ENTITY_CHANNELS } from "@brains/contracts";
+import {
+  ENTITY_CHANNELS,
+  parseLinkedInUploadEvidence,
+} from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
@@ -351,7 +354,7 @@ async function handleDirect(
     );
 
     if (!deps.providerRegistry.has(entityType)) {
-      deps.scheduler.failPublish(
+      await deps.scheduler.failPublish(
         entityType,
         entityId,
         `No publish provider registered for ${entityType}`,
@@ -364,7 +367,11 @@ async function handleDirect(
       id: entityId,
     });
     if ("error" in publishResult) {
-      deps.scheduler.failPublish(entityType, entityId, publishResult.error);
+      await deps.scheduler.failPublish(
+        entityType,
+        entityId,
+        publishResult.error,
+      );
       return { success: false };
     }
 
@@ -468,13 +475,18 @@ async function handleReportFailure(
 ): Promise<{ success: boolean }> {
   const { entityType, entityId, error } = payload;
 
-  deps.scheduler.failPublish(entityType, entityId, error);
+  const recovery =
+    payload.recovery === undefined
+      ? undefined
+      : parseLinkedInUploadEvidence(payload.recovery);
+  await deps.scheduler.failPublish(entityType, entityId, error, recovery);
   const retryInfo = deps.retryTracker.getRetryInfo(entityId);
 
   deps.logger.info(`Publish reported failure: ${entityId}`, {
     entityType,
     error,
     retryCount: retryInfo?.retryCount,
+    ...(recovery && { recovery }),
   });
 
   return { success: true };

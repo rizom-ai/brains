@@ -1,4 +1,8 @@
 import { getErrorMessage } from "@brains/utils/error";
+import {
+  parseLinkedInUploadEvidence,
+  type LinkedInUploadEvidence,
+} from "@brains/contracts";
 /**
  * Scheduler publish helpers - extracted from ContentScheduler
  *
@@ -20,7 +24,7 @@ export interface PublishDeps {
   messageBus?: SchedulerMessagePublisher | undefined;
   publishExecutor?: Pick<PublishEntityExecutor, "publish"> | undefined;
   onPublish?: ((event: PublishSuccessEvent) => void) | undefined;
-  onFailed?: ((event: PublishFailedEvent) => void) | undefined;
+  onFailed?: ((event: PublishFailedEvent) => void | Promise<void>) | undefined;
 }
 
 /**
@@ -34,7 +38,7 @@ export async function executeWithProvider(
   >,
 ): Promise<void> {
   if (!deps.publishExecutor) {
-    deps.onFailed?.({
+    await deps.onFailed?.({
       entityType: entry.entityType,
       entityId: entry.entityId,
       error: "Publish executor not configured",
@@ -56,52 +60,52 @@ async function executeWithPublishExecutor(
 ): Promise<void> {
   if (!deps.publishExecutor) return;
 
+  let publishResult: Awaited<ReturnType<PublishEntityExecutor["publish"]>>;
   try {
-    const publishResult = await deps.publishExecutor.publish({
+    publishResult = await deps.publishExecutor.publish({
       entityType: entry.entityType,
       id: entry.entityId,
     });
-
-    if ("error" in publishResult) {
-      const event = {
-        entityType: entry.entityType,
-        entityId: entry.entityId,
-        error: publishResult.error,
-        retryCount: 0,
-        willRetry: false,
-      };
-      if (deps.messageBus) {
-        await deps.messageBus.send({
-          type: PUBLISH_MESSAGES.FAILED,
-          payload: event,
-          sender: "publish-service",
-          broadcast: true,
-        });
-      }
-      deps.onFailed?.(event);
-      return;
-    }
-
-    sendPublishCompleted(
-      entry.entityType,
-      entry.entityId,
-      publishResult.result,
-      deps,
-    );
   } catch (error) {
     const errorMessage = getErrorMessage(error);
 
     deps.retryTracker.recordFailure(entry.entityId, errorMessage);
     const retryInfo = deps.retryTracker.getRetryInfo(entry.entityId);
 
-    deps.onFailed?.({
+    await deps.onFailed?.({
       entityType: entry.entityType,
       entityId: entry.entityId,
       error: errorMessage,
       retryCount: retryInfo?.retryCount ?? 1,
       willRetry: false,
     });
+    return;
   }
+  // Reporting failures are not new provider failures and must not replay callbacks.
+  if ("error" in publishResult) {
+    const event: PublishFailedEvent = {
+      entityType: entry.entityType,
+      entityId: entry.entityId,
+      error: publishResult.error,
+      retryCount: 0,
+      willRetry: false,
+    };
+    if (deps.messageBus)
+      await deps.messageBus.send({
+        type: PUBLISH_MESSAGES.FAILED,
+        payload: event,
+        sender: "publish-service",
+        broadcast: true,
+      });
+    await deps.onFailed?.(event);
+    return;
+  }
+  sendPublishCompleted(
+    entry.entityType,
+    entry.entityId,
+    publishResult.result,
+    deps,
+  );
 }
 
 /**
@@ -130,12 +134,15 @@ export function sendPublishCompleted(
 /**
  * Report failed publish via message bus
  */
-export function sendPublishFailed(
+export async function sendPublishFailed(
   entityType: string,
   entityId: string,
   error: string,
   deps: Pick<PublishDeps, "retryTracker" | "messageBus" | "onFailed">,
-): void {
+  recovery?: LinkedInUploadEvidence,
+): Promise<void> {
+  const evidence =
+    recovery === undefined ? undefined : parseLinkedInUploadEvidence(recovery);
   deps.retryTracker.recordFailure(entityId, error);
   const retryInfo = deps.retryTracker.getRetryInfo(entityId);
 
@@ -145,16 +152,32 @@ export function sendPublishFailed(
     error,
     retryCount: retryInfo?.retryCount ?? 1,
     willRetry: false,
+    ...(evidence && { recovery: evidence }),
   };
+  Object.freeze(event);
 
-  if (deps.messageBus) {
-    void deps.messageBus.send({
-      type: PUBLISH_MESSAGES.FAILED,
-      payload: event,
-      sender: "publish-service",
-      broadcast: true,
-    });
+  const failures: unknown[] = [];
+  try {
+    if (deps.messageBus)
+      await deps.messageBus.send({
+        type: PUBLISH_MESSAGES.FAILED,
+        payload: event,
+        sender: "publish-service",
+        broadcast: true,
+      });
+  } catch (error) {
+    failures.push(error);
   }
-
-  deps.onFailed?.(event);
+  try {
+    await deps.onFailed?.(event);
+  } catch (error) {
+    failures.push(error);
+  }
+  if (failures.length === 1) throw failures[0];
+  if (failures.length > 1)
+    throw new AggregateError(
+      failures,
+      "Publish failure reporting sinks failed",
+      { cause: failures[0] },
+    );
 }

@@ -4,6 +4,7 @@ import {
   PUBLISH_CHANNELS,
   type PublishProvider,
   type PublishResult,
+  type LinkedInUploadEvidence,
 } from "@brains/contracts";
 import type {
   AttachmentFileResolver,
@@ -22,10 +23,7 @@ import {
   socialPostSchema,
 } from "../schemas/social-post";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
-import {
-  collectLinkedInUploadEvidence,
-  type LinkedInUploadEvidence,
-} from "../lib/linkedin-upload-evidence";
+import { collectLinkedInUploadEvidence } from "../lib/linkedin-upload-evidence";
 
 export interface PublishExecutePayload {
   entityType: string;

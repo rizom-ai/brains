@@ -1,12 +1,10 @@
 import { expect, test } from "bun:test";
 import {
-  PartialLinkedInUploadError,
-  type LinkedInUploadRecovery,
-} from "../../src/lib/linkedin-client";
-import {
-  collectLinkedInUploadEvidence,
   linkedInUploadEvidenceSchema,
-} from "../../src/lib/linkedin-upload-evidence";
+  type LinkedInUploadRecovery,
+} from "@brains/contracts";
+import { PartialLinkedInUploadError } from "../../src/lib/linkedin-client";
+import { collectLinkedInUploadEvidence } from "../../src/lib/linkedin-upload-evidence";
 
 const receipt: LinkedInUploadRecovery = {
   kind: "document",

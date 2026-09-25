@@ -152,7 +152,7 @@ describe("ContentScheduler - provider execution", () => {
     it("should emit failed event", async () => {
       messageBus.sentMessages.length = 0;
 
-      scheduler.failPublish("social-post", "post-1", "Network error");
+      await scheduler.failPublish("social-post", "post-1", "Network error");
 
       expect(messageBus.send).toHaveBeenCalledWith({
         type: PUBLISH_MESSAGES.FAILED,
@@ -167,7 +167,7 @@ describe("ContentScheduler - provider execution", () => {
     });
 
     it("should record retry info", async () => {
-      scheduler.failPublish("social-post", "post-1", "Network error");
+      await scheduler.failPublish("social-post", "post-1", "Network error");
 
       const retryInfo = retryTracker.getRetryInfo("post-1");
       expect(retryInfo?.retryCount).toBe(1);
@@ -177,7 +177,7 @@ describe("ContentScheduler - provider execution", () => {
     it("should always report willRetry=false (publishing is at-most-once)", async () => {
       messageBus.sentMessages.length = 0;
 
-      scheduler.failPublish("social-post", "post-1", "Error 1");
+      await scheduler.failPublish("social-post", "post-1", "Error 1");
 
       const failedMessage = messageBus.sentMessages.find(
         (m) => m.type === PUBLISH_MESSAGES.FAILED,

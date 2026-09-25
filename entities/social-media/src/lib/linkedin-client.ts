@@ -3,6 +3,7 @@ import type { FetchLike } from "@brains/utils/fetch-like";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type {
+  LinkedInUploadRecovery,
   PublishProvider,
   PublishResult,
   PublishImageData,
@@ -29,13 +30,6 @@ export interface LinkedInClientDeps {
   getFileTransfers?: () => LinkedInFileTransfers | undefined;
 }
 
-export interface LinkedInUploadRecovery {
-  kind: "image" | "document";
-  resourceUrn: string;
-  sha256: string;
-  sizeBytes: number;
-  stage: "registered" | "upload-received" | "uploaded" | "post-attempted";
-}
 /** Upload and post-attempt evidence is not a published post or retry authority. */
 export class PartialLinkedInUploadError extends Error {
   public readonly recovery: Readonly<LinkedInUploadRecovery>;

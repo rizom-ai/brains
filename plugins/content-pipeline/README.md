@@ -13,6 +13,8 @@ Content pipeline plugin for managing entity publishing queues, scheduling, and g
 - **Optional Studio Workspace**: Expose queue controls and confirmed direct publishing when `@brains/studio` is installed
 - **Dashboard Digest**: Report compact, read-only pipeline health when `@brains/dashboard` is installed
 
+Failure reports may carry bounded `recovery` diagnostics from `@brains/contracts`. The pipeline validates and snapshots these before retry accounting or broadcasting, forwards them to `publish:failed` and `onFailed`, and keeps `willRetry: false`. `ContentScheduler.failPublish()` is asynchronous: callers must join it. Reporting joins the broadcast and failure callback, retaining failures from both without replay; observer failures are not reclassified as new provider failures. Recovery metadata is frozen and does not authorize retries, imply a published post, or provide a durable journal.
+
 ## Usage
 
 ```typescript

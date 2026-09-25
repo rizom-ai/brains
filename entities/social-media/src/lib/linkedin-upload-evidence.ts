@@ -1,71 +1,9 @@
-import { MAX_ASSET_BYTES } from "@brains/assets";
-import { z } from "@brains/utils/zod";
 import {
-  PartialLinkedInUploadError,
-  type LinkedInUploadRecovery,
-} from "./linkedin-client";
-
-const receiptSchema: z.ZodType<LinkedInUploadRecovery> = z.object({
-  kind: z.enum(["image", "document"]),
-  resourceUrn: z
-    .string()
-    .max(1024)
-    .regex(/^urn:li:[A-Za-z0-9:._-]+$/)
-    .refine((value) => value.trim() === value),
-  sha256: z
-    .string()
-    .length(64)
-    .regex(/^[a-f0-9]{64}$/),
-  sizeBytes: z.number().int().positive().max(MAX_ASSET_BYTES),
-  stage: z.enum([
-    "registered",
-    "upload-received",
-    "uploaded",
-    "post-attempted",
-  ]),
-});
-
-interface EvidenceNode {
-  kind: "error" | "aggregate" | "opaque";
-  upload?: number | undefined;
-  cause?: number | undefined;
-  errors?: number[] | undefined;
-}
-const nodeSchema: z.ZodType<EvidenceNode> = z.strictObject({
-  kind: z.enum(["error", "aggregate", "opaque"]),
-  upload: z.number().int().min(0).max(7).optional(),
-  cause: z.number().int().min(0).max(15).optional(),
-  errors: z.array(z.number().int().min(0).max(15)).max(8).optional(),
-});
-// Eight ASCII-only projections and sixteen nodes fit within 16 KiB.
-export interface LinkedInUploadEvidence {
-  uploads: LinkedInUploadRecovery[];
-  nodes: EvidenceNode[];
-  truncated: boolean;
-  invalid: boolean;
-}
-export const linkedInUploadEvidenceSchema: z.ZodType<LinkedInUploadEvidence> = z
-  .strictObject({
-    uploads: z.array(receiptSchema).max(8),
-    nodes: z.array(nodeSchema).min(1).max(16),
-    truncated: z.boolean(),
-    invalid: z.boolean(),
-  })
-  .refine(
-    (value) =>
-      new TextEncoder().encode(JSON.stringify(value)).byteLength <= 16 * 1024,
-    "LinkedIn evidence exceeds its metadata budget",
-  )
-  .refine(
-    (value) =>
-      value.nodes.every(
-        (node) =>
-          (node.upload === undefined || node.upload < value.uploads.length) &&
-          (node.cause === undefined || node.cause < value.nodes.length) &&
-          (node.errors ?? []).every((edge) => edge < value.nodes.length),
-      ),
-    "LinkedIn evidence contains a dangling reference",
-  );
+  linkedInUploadRecoverySchema,
+  parseLinkedInUploadEvidence,
+  type LinkedInUploadEvidence,
+} from "@brains/contracts";
+import { PartialLinkedInUploadError } from "./linkedin-client";
 
 /** Diagnostic projections only, not a journal, post receipt or retry authority. */
 export function collectLinkedInUploadEvidence(
@@ -107,7 +45,7 @@ export function collectLinkedInUploadEvidence(
       if (current instanceof Error) node.kind = "error";
       if (current instanceof PartialLinkedInUploadError) {
         marked = true;
-        const parsed = receiptSchema.safeParse(current.recovery);
+        const parsed = linkedInUploadRecoverySchema.safeParse(current.recovery);
         if (!parsed.success) evidence.invalid = true;
         else if (evidence.uploads.length >= 8) evidence.truncated = true;
         else {
@@ -150,13 +88,5 @@ export function collectLinkedInUploadEvidence(
     }
   }
   if (!marked && !evidence.truncated && !evidence.invalid) return undefined;
-  const result = linkedInUploadEvidenceSchema.parse(evidence);
-  for (const upload of result.uploads) Object.freeze(upload);
-  Object.freeze(result.uploads);
-  for (const node of result.nodes) {
-    if (node.errors) Object.freeze(node.errors);
-    Object.freeze(node);
-  }
-  Object.freeze(result.nodes);
-  return Object.freeze(result);
+  return parseLinkedInUploadEvidence(evidence);
 }
