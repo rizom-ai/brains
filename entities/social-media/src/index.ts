@@ -60,6 +60,8 @@ export {
 // Provider exports (uses PublishProvider from @brains/contracts)
 export {
   LinkedInClient,
+  PartialLinkedInUploadError,
+  type LinkedInUploadRecovery,
   createLinkedInProvider,
   type LinkedInClientDeps,
 } from "./lib/linkedin-client";

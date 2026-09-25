@@ -12,6 +12,8 @@ Multi-provider social media posting with queue-based publishing.
 - **Image Support**: Attach images to social posts
 - **Document Support**: Attach durable `document` entities to social posts via `documents[]`
 
+Native image/PDF upload failures after validated registration expose `PartialLinkedInUploadError.recovery`: bounded resource URN, media kind, source facts and `registered` or `upload-received` stage. This is not a post receipt or retry authority. Received evidence requires a branded native outcome matching the submitted source and a valid 2xx status; no later post is attempted on these failures. Original causes are retained, while upload URLs, authorization headers and paths are omitted from recovery metadata. Explicit HTTP image rejection retains its existing text-only fallback policy.
+
 ## Usage
 
 ```typescript

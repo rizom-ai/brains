@@ -1,3 +1,4 @@
+import { MAX_ASSET_BYTES } from "@brains/assets";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -8,7 +9,10 @@ import type {
   PublishMediaData,
 } from "@brains/contracts";
 import type { LinkedinConfig } from "../config";
-import type { EntityServiceClient } from "@brains/plugins";
+import {
+  ReceivedEntityFileHttpError,
+  type EntityServiceClient,
+} from "@brains/plugins";
 import { readBoundedJsonResponse } from "@brains/utils/bounded-json-response";
 export type LinkedInFileTransfers = Pick<
   NonNullable<EntityServiceClient["fileAssets"]>,
@@ -25,6 +29,44 @@ export interface LinkedInClientDeps {
   getFileTransfers?: () => LinkedInFileTransfers | undefined;
 }
 
+export interface LinkedInUploadRecovery {
+  kind: "image" | "document";
+  resourceUrn: string;
+  sha256: string;
+  sizeBytes: number;
+  stage: "registered" | "upload-received";
+}
+/** Allocated/upload-received evidence is not a published post or retry authority. */
+export class PartialLinkedInUploadError extends Error {
+  public readonly recovery: Readonly<LinkedInUploadRecovery>;
+  constructor(recovery: LinkedInUploadRecovery, cause: unknown) {
+    super("LinkedIn file delivery failed after upload registration", { cause });
+    this.name = "PartialLinkedInUploadError";
+    this.recovery = Object.freeze({
+      kind: recovery.kind,
+      resourceUrn: recovery.resourceUrn,
+      sha256: recovery.sha256,
+      sizeBytes: recovery.sizeBytes,
+      stage: recovery.stage,
+    });
+  }
+}
+
+const uploadFactsSchema = z.object({
+  sizeBytes: z.number().int().positive().max(MAX_ASSET_BYTES),
+  sha256: z
+    .string()
+    .length(64)
+    .regex(/^[a-f0-9]{64}$/),
+});
+const uploadReceiptSchema = uploadFactsSchema.extend({
+  statusCode: z.number().int().min(200).max(599),
+});
+const linkedInResourceUrnSchema = z
+  .string()
+  .max(1024)
+  .regex(/^urn:li:[A-Za-z0-9:._-]+$/)
+  .refine((value) => value.trim() === value);
 const ERROR_BODY_MAX_LENGTH = 200;
 const LINKEDIN_MEDIA_UPLOAD_REQUEST_KEY =
   "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest";
@@ -96,7 +138,7 @@ const linkedInMeSchema = z.looseObject({
 const linkedInUploadInfoSchema = z
   .looseObject({
     value: z.looseObject({
-      asset: z.string(),
+      asset: linkedInResourceUrnSchema,
       uploadMechanism: z.looseObject({
         [LINKEDIN_MEDIA_UPLOAD_REQUEST_KEY]: z.looseObject({
           uploadUrl: z.url(),
@@ -114,7 +156,7 @@ const linkedInDocumentUploadInfoSchema = z
   .looseObject({
     value: z.looseObject({
       uploadUrl: z.url(),
-      document: z.string(),
+      document: linkedInResourceUrnSchema,
     }),
   })
   .transform((data) => ({
@@ -350,6 +392,12 @@ export class LinkedInClient implements PublishProvider {
     signal: AbortSignal,
   ): Promise<string | null> {
     signal.throwIfAborted();
+    const source: PublishImageData = {
+      sourceFile: imageData.sourceFile,
+      mimeType: imageData.mimeType,
+      signal,
+      ...uploadFactsSchema.parse(imageData),
+    };
     // Step 1: Register the upload
     const registerResponse = await this.fetch(
       `${this.apiBaseUrl}/assets?action=registerUpload`,
@@ -395,24 +443,18 @@ export class LinkedInClient implements PublishProvider {
 
     const { uploadUrl, assetUrn } = uploadInfo;
 
-    const files = this.getFileTransfers?.();
-    if (!files) throw new Error("LinkedIn file uploads are not provisioned");
-    const uploadResponse = await files.putHttp(
-      {
-        sourceFile: imageData.sourceFile,
-        facts: { sizeBytes: imageData.sizeBytes, sha256: imageData.sha256 },
-        url: uploadUrl,
-        headers: {
-          Authorization: `Bearer ${this.config.accessToken}`,
-          "Content-Type": imageData.mimeType,
-        },
-      },
-      { signal },
+    const uploadResponse = await this.uploadRegisteredFile(
+      "image",
+      assetUrn,
+      uploadUrl,
+      source,
+      signal,
     );
 
     if (uploadResponse.statusCode < 200 || uploadResponse.statusCode >= 300) {
       this.logger.warn("LinkedIn image binary upload failed", {
         status: uploadResponse.statusCode,
+        recovery: { kind: "image", resourceUrn: assetUrn, stage: "registered" },
       });
       return null;
     }
@@ -434,6 +476,12 @@ export class LinkedInClient implements PublishProvider {
     signal.throwIfAborted();
     if (documentData.type !== "document")
       throw new Error("LinkedIn document upload requires a PDF");
+    const source: PublishImageData = {
+      sourceFile: documentData.sourceFile,
+      mimeType: documentData.mimeType,
+      signal,
+      ...uploadFactsSchema.parse(documentData),
+    };
     const registerResponse = await this.fetch(
       `${this.restApiBaseUrl}/documents?action=initializeUpload`,
       {
@@ -462,27 +510,26 @@ export class LinkedInClient implements PublishProvider {
       throw new Error("LinkedIn document upload initialization was malformed");
     }
 
-    const files = this.getFileTransfers?.();
-    if (!files) throw new Error("LinkedIn file uploads are not provisioned");
-    const uploadResponse = await files.putHttp(
-      {
-        sourceFile: documentData.sourceFile,
-        facts: {
-          sizeBytes: documentData.sizeBytes,
-          sha256: documentData.sha256,
-        },
-        url: uploadInfo.uploadUrl,
-        headers: {
-          Authorization: `Bearer ${this.config.accessToken}`,
-          "Content-Type": documentData.mimeType,
-        },
-      },
-      { signal },
+    const uploadResponse = await this.uploadRegisteredFile(
+      "document",
+      uploadInfo.documentUrn,
+      uploadInfo.uploadUrl,
+      source,
+      signal,
     );
 
     if (uploadResponse.statusCode < 200 || uploadResponse.statusCode >= 300) {
-      throw new Error(
-        `LinkedIn document binary upload failed: ${uploadResponse.statusCode}`,
+      throw new PartialLinkedInUploadError(
+        {
+          kind: "document",
+          resourceUrn: uploadInfo.documentUrn,
+          sha256: uploadResponse.sha256,
+          sizeBytes: uploadResponse.sizeBytes,
+          stage: "registered",
+        },
+        new Error(
+          `LinkedIn document binary upload failed: ${uploadResponse.statusCode}`,
+        ),
       );
     }
 
@@ -491,6 +538,64 @@ export class LinkedInClient implements PublishProvider {
       filename: documentData.filename,
     });
     return uploadInfo.documentUrn;
+  }
+
+  private async uploadRegisteredFile(
+    kind: "image" | "document",
+    resourceUrn: string,
+    uploadUrl: string,
+    data: PublishImageData,
+    signal: AbortSignal,
+  ): Promise<Awaited<ReturnType<LinkedInFileTransfers["putHttp"]>>> {
+    const facts = Object.freeze({
+      sizeBytes: data.sizeBytes,
+      sha256: data.sha256,
+    });
+    let stage: LinkedInUploadRecovery["stage"] = "registered";
+    const matches = (outcome: z.infer<typeof uploadReceiptSchema>): boolean =>
+      outcome.sizeBytes === facts.sizeBytes && outcome.sha256 === facts.sha256;
+    try {
+      signal.throwIfAborted();
+      const files = this.getFileTransfers?.();
+      if (!files) throw new Error("LinkedIn file uploads are not provisioned");
+      const result = await files.putHttp(
+        {
+          sourceFile: data.sourceFile,
+          facts,
+          url: uploadUrl,
+          headers: {
+            Authorization: `Bearer ${this.config.accessToken}`,
+            "Content-Type": data.mimeType,
+          },
+        },
+        { signal },
+      );
+      const receipt = Object.freeze(uploadReceiptSchema.parse(result));
+      if (!matches(receipt))
+        throw new Error(
+          "LinkedIn upload receipt does not match its source or status",
+        );
+      return receipt;
+    } catch (error) {
+      if (error instanceof ReceivedEntityFileHttpError) {
+        try {
+          const receipt = uploadReceiptSchema.safeParse(error.outcome);
+          if (
+            receipt.success &&
+            matches(receipt.data) &&
+            receipt.data.statusCode < 300
+          )
+            stage = "upload-received";
+        } catch {
+          // Malformed evidence cannot advance the stage or erase the failure.
+          stage = "registered";
+        }
+      }
+      throw new PartialLinkedInUploadError(
+        { kind, resourceUrn, ...facts, stage },
+        error,
+      );
+    }
   }
 
   /**
