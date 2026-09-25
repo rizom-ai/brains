@@ -281,6 +281,7 @@
     "core--concrete-plugin-shutdown",
     "core--console-strip-single-implementation",
     "core--console-surfaces-out-of-theme",
+    "core--contact-behind-proxy",
     "core--contact-intake",
     "core--contact-same-origin-referrer",
     "core--context-extends-published-surface",
