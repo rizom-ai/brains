@@ -6,10 +6,10 @@
 - Staged asset binding, authenticated App endpoint registration and metadata-only image construction are implemented; existing image-constructor callers are updated.
 - The canonical native publication candidate still requires a test-only database factory binding.
 - Source owns upload/read binary authority, endpoint lifecycle and native publication/transaction association. Canonical downloads now use the App-owned authenticated endpoint, not direct driver access.
-- Remote facades expose `assetTransfers` on one authenticated connection. `downloadFile` and `publishFile` compose actors, native authority and outcome observation. Directory image import/export and URL conversion use explicitly provisioned `fileAssets`. Remaining milestone-2 work is enumerated in the exit ledger below, rather than inferred from older progress notes.
+- Remote facades expose `assetTransfers` on one authenticated connection. `downloadFile` and `publishFile` compose actors, native authority and outcome observation. Directory image import/export and URL conversion use explicitly provisioned `fileAssets`. Milestone 2's bounded exit ledger is complete; milestone 3 is next.
 - Normal canonical RPC transfers use source payload actors and `FileProcessOwner`, with two-child admission, strict metadata, explicit artifacts and actual exit joins. Instrumented process ownership remains for fault exercises; failed staging is retained and output is never overwritten.
-- `shared/db/src/sqlite.ts` retains its existing runtime factory. Do not switch it before the production binary path is complete.
-- Existing canonical integration drives the binary path; no new standalone proofs were added.
+- `shared/db/src/sqlite.ts`, all five runtime factories and default/installed actors remain unchanged. Their cutover is now milestone 3 work.
+- Existing canonical integration covers application wiring. A separate 100 MiB production-capability scale run now shares its candidate factory/lifetime without changing canonical test deadlines.
 
 ## Delivery milestones
 
@@ -29,11 +29,37 @@ This is the current checklist. The numbered implementation history below records
 | Production caller inventory     | Image generation/import/export, site assets, PDF/deck rendering, uploads, email MIME, model files, Slack/Discord delivery and AT Protocol/LinkedIn file transports have migrated. The latest source scan found 66 byte-read patterns and 19 asset/render-reader references. These are candidates, not 85 defects: actor-local/browser code, logical text/configuration, crypto, evaluation fixtures, deployment tools and unused buffered API definitions must be distinguished from normal controller call chains. No new normal controller binary caller was established by this scan. Audit artifacts: `/tmp/turso-m2-exit-byte-audit.txt` and `/tmp/turso-m2-exit-caller-audit.txt`. |
 | Known binary-consumer outcomes  | **Closed.** Chat's final interactive/completed-job catches retain bounded received/acknowledged evidence and completed response prefixes, without replay; logging failure cannot skip the joined interactive notice. LinkedIn post acknowledgement survives diagnostic failure through the actual publish handler without local-success promotion or resend. The gate closures below record tests and bounds; neither path is a durable recovery journal.                                                                                                                                                                                                                                |
 | Ownership on failure            | Actor admission/exit, cancellation, rollback and publication tests already exist. The observed canonical hook-order defect is addressed below: teardown joins the admitted test body and App finalizers before database cleanup, and fences new candidate-database acquisition. Unconfirmed real-OS exit, transport close fault matrices and browser-descendant acceptance are milestone 4, unless they expose a reproducible production ownership violation.                                                                                                                                                                                                                            |
-| Final production acceptance run | **Open:** demonstrate the full 100 MiB path through production file capabilities, authenticated source ownership and entity publication/readback—not merely the existing generic binary-row rehearsal. Then run the canonical AI/site/PDF cases and focused ownership/atomicity regressions with the existing five-second canonical deadline, 100 MiB ceiling and admission/frame limits. Record exact passes and failures; a rerun does not erase failed evidence.                                                                                                                                                                                                                      |
+| Final production acceptance run | **Closed for functional acceptance.** A native-produced 100 MiB PDF passed authenticated App file publication, foreign live-claim rejection, document persistence, full native readback and independent fingerprinting; nine database workers joined. All six canonical variants have passing results under the unchanged deadline, and 88 focused ownership/atomicity tests passed. The initial final-matrix AI run failed; its unchanged rerun passed. Detailed evidence and significant timing limitations are recorded below.                                                                                                                                                        |
 
-**Completion sequence:** finish the production-capability 100 MiB acceptance; run the final matrix and explicitly decide the milestone-2 exit. Only then switch factories and default/installed actors in milestone 3. Newly discovered issues must be attached to one of these gates, not appended as an unbounded new feature queue.
+**Exit decision: milestone 2 is complete for the specified production-binary contracts.** Proceed to milestone 3's five-factory/default-actor cutover and installed/application acceptance. This does not declare latency stability, native-memory bounds or release readiness. Failed evidence remains retained; new work must address the named later milestones or a reproducible contract violation, not reopen an unbounded audit.
 
 **Not milestone-2 prerequisites:** installed startup/restart and app-managed site verification belong to milestone 3. Offline historical inline-image/PDF conversion, deployment/backup/restore acceptance, durable recovery journaling, real-provider retention guarantees, native SDK/browser peak-memory and fleet/soak acceptance belong to milestone 4. These remain required before release; they are not being declared complete or removed.
+
+### Final production acceptance evidence
+
+Run the dedicated scale acceptance with:
+
+```sh
+bun --preload ./scripts/fixtures/turso-canonical-candidate.ts \
+  ./scripts/fixtures/turso-production-large-file.ts
+```
+
+The explicitly provisioned fixture producer writes a valid one-page PDF with padding comments in serial 32 KiB writes, entirely outside the controller. The actual App file runtime owns production, authenticated upload, document/asset publication and download loans. A second authenticated connection with the same declared session cannot publish or cancel the live claim; a wrong secret and an over-ceiling offer are rejected. Controller asset/chunk reads are fenced. The source loan and download loan retire, the persistence budget returns idle, and App teardown joins nine worker databases. Native producer facts, stored reference, native readback and independent fingerprint agree on **104,857,600 bytes**, SHA-256 `bd2d2b5a3e4aabde68f62893f51d1da65d53eb0ae2c2b67575f79702543f8bc8`.
+
+The final scale run passed in **328.40 seconds**, recorded in `/tmp/turso-production-large-final.log`, fixture `/tmp/turso-production-large-file-A44Fmh`. Stored-BLOB verification dominated the diagnostic run; this is explicitly not performance, SDK/native RSS, installed or real-provider acceptance. Initial scale attempts timed out or were externally terminated, and one completed publication/download run rejected an over-wide fingerprint input (`sha256` was not part of that strict input contract). The corrected caller passes only source path/size. All `/tmp/turso-production-large-*.log` files and failed fixtures remain retained; terminated attempts are not evidence of joined teardown. The candidate binding/retirement was extracted without semantic changes so this scale run can execute separately from Bun's canonical timing tests.
+
+Final canonical matrix (all passing runs joined fifteen worker databases):
+
+| Case               | Passing test duration | Evidence                                   |
+| ------------------ | --------------------- | ------------------------------------------ |
+| AI image           | 3.83 s                | `/tmp/turso-m2-final-image-ai-recheck.log` |
+| Fresh site image   | 3.95 s                | `/tmp/turso-m2-final-image-site.log`       |
+| Cached site image  | 3.91 s                | `/tmp/turso-m2-final-image-site-cache.log` |
+| Printable PDF + OG | 4.87 s                | `/tmp/turso-m2-final-pdf-printable.log`    |
+| Carousel PDF + OG  | 4.40 s                | `/tmp/turso-m2-final-pdf-carousel.log`     |
+| Preview PDF + OG   | 4.48 s                | `/tmp/turso-m2-final-pdf-preview.log`      |
+
+The initial AI run (`/tmp/turso-m2-final-image-ai.log`) exceeded five seconds. Retirement then fenced the attempted restart with `Canonical test lifetime is retiring`; ten database workers joined. Its passing rerun does not erase this failure or demonstrate timing stability. The deadline and admission/frame limits were not raised. The 88 focused regressions cover test/App lifetime, actor/worker exit, HTTP outcomes, reply ownership, cancellation, shared budgets, staged publication/queries, file capability lifetime/publication and entity job atomicity (`/tmp/turso-m2-final-ownership.log`). Canonical site cases remain source fixtures, not running-posture MCP preview rebuild acceptance; that remains milestone 3.
 
 ### Canonical timeout ownership correction
 
