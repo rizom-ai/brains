@@ -1,4 +1,10 @@
 /** @jsxImportSource react */
+import {
+  ASK_BOX_ATTRIBUTE,
+  ASK_BOX_SCRIPT_PATH,
+  ASK_SEND_ATTRIBUTE,
+  ASK_STATUS_ATTRIBUTE,
+} from "@brains/contracts";
 import { describe, expect, test } from "bun:test";
 import { createElement } from "react";
 import type { ComponentType } from "react";
@@ -52,7 +58,12 @@ describe("Brain product landing page", () => {
     expect(html).not.toContain("Governance");
     expect(html).toContain('aria-label="Your question"');
     expect(html).not.toContain("<form");
-    expect(html).toContain('src="/brain-chat.js"');
+    // The hero is a host for the shared Web Chat box, not a site-owned boot.
+    expect(html).toContain(`${ASK_BOX_ATTRIBUTE}=""`);
+    expect(html).toContain(`${ASK_SEND_ATTRIBUTE}=""`);
+    expect(html).toContain(`${ASK_STATUS_ATTRIBUTE}=""`);
+    expect(html).toContain(`src="${ASK_BOX_SCRIPT_PATH}"`);
+    expect(html).not.toContain("/brain-chat.js");
     expect(html).not.toContain("data-chat-topic");
     expect(html).not.toContain("data-ask-panel");
     expect(html).not.toContain("/ask/assets/guest.js");

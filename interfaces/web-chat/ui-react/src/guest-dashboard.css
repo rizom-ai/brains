@@ -2,160 +2,17 @@
   color: var(--console-text);
   font: 15px/1.6 var(--console-ui);
 }
-.dashboard-ask .brain-box-header-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 18px;
-  margin: 8px 0 18px;
-}
-.dashboard-ask button,
-.dashboard-ask textarea {
-  font: inherit;
-}
-.dashboard-ask .brain-box-header-actions button,
-.dashboard-ask .brain-box-quiet {
-  border: 0;
-  background: none;
-  padding: 0;
-  color: var(--console-text-muted);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  cursor: pointer;
-}
-.dashboard-ask a {
-  color: inherit;
-}
-.dashboard-ask .brain-box-scroll {
-  max-height: min(55vh, 520px);
-  overflow: auto;
-  overscroll-behavior: contain;
-  scrollbar-width: thin;
-}
-.dashboard-ask .brain-box-welcome {
-  padding: 12px 0;
-  max-width: 64ch;
-}
-.dashboard-ask .brain-box-welcome h2 {
-  margin: 0 0 10px;
-  font: 400 clamp(24px, 3vw, 34px)/1.15 var(--console-display);
-}
-.dashboard-ask .chat-notice {
-  white-space: pre-wrap;
-  color: var(--console-text-muted);
-}
-.dashboard-ask .hints {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 18px 0;
-}
-.dashboard-ask .hints button,
-.dashboard-ask .brain-box-action {
-  padding: 6px 12px;
-  border: 1px solid var(--console-rule-strong);
-  border-radius: 5px;
-  background: transparent;
-  color: var(--console-text);
-  cursor: pointer;
-}
-.dashboard-ask .hints button {
-  border-radius: 99px;
-  font-size: 12px;
-}
-.dashboard-ask .brain-box-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 12px;
-}
-.dashboard-ask .brain-box-notice,
-.dashboard-ask .brain-box-privacy {
-  padding: 14px 18px;
-  border-left: 2px solid var(--console-accent);
-  margin: 14px 0;
-  background: var(--console-card-soft);
-}
-.dashboard-ask .brain-box-notice h3,
-.dashboard-ask .brain-box-privacy h3 {
-  margin: 0 0 8px;
-  font-size: 15px;
-}
-.dashboard-ask .brain-box-activity,
-.dashboard-ask .brain-box-hint {
-  font-size: 12px;
-  color: var(--console-text-muted);
-}
-.dashboard-ask .brain-box-bottom {
-  border-top: 1px solid var(--console-rule-strong);
-  margin-top: 18px;
-  padding-top: 14px;
-}
-.dashboard-ask .prompt-row {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  padding: 8px;
-  border: 1px solid var(--console-rule-strong);
-  border-radius: 7px;
-  background: var(--console-card-soft);
-}
-.dashboard-ask .prompt-row:focus-within {
-  border-color: var(--console-accent);
-}
-.dashboard-ask textarea {
-  flex: 1;
-  min-width: 0;
-  min-height: 40px;
-  max-height: 112px;
-  resize: vertical;
-  border: 0;
-  padding: 8px;
-  color: var(--console-text);
-  background: transparent;
-  font-size: 16px;
-}
-.dashboard-ask .send {
-  flex: none;
-  height: 40px;
-  width: 40px;
-  border: 0;
-  border-radius: 5px;
-  color: var(--console-on-accent);
-  background: var(--console-accent);
-  cursor: pointer;
-}
-.dashboard-ask button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-.dashboard-ask .guest-message {
-  padding: 16px 0;
-  border-bottom: 1px solid var(--console-rule);
-  overflow-wrap: anywhere;
-}
-.dashboard-ask .guest-message h2 {
-  margin: 0 0 8px;
-  font: 500 10px var(--console-mono);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--console-text-muted);
-}
-.dashboard-ask .guest-message p {
-  max-width: 64ch;
-}
-.dashboard-ask .brain-box-sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-}
-.dashboard-ask :focus-visible {
-  outline: 2px solid var(--console-accent);
-  outline-offset: 3px;
-}
-@media (max-width: 650px) {
-  .dashboard-ask .brain-box-scroll:not(.is-welcome) {
-    max-height: min(42svh, 280px);
-  }
+/* The dashboard themes Web Chat's shared box presentation with console tokens. */
+.dashboard-ask [data-ask-styled] {
+  --ask-bg: var(--console-bg);
+  --ask-text: var(--console-text);
+  --ask-muted: var(--console-text-muted);
+  --ask-rule: var(--console-rule-strong);
+  --ask-rule-soft: var(--console-rule);
+  --ask-accent: var(--console-accent);
+  --ask-on-accent: var(--console-on-accent);
+  --ask-wash: var(--console-card-soft);
+  --ask-display: var(--console-display);
+  --ask-label: var(--console-mono);
+  --ask-body: var(--console-ui);
 }

@@ -1,6 +1,10 @@
 /** @jsxImportSource react */
 import { useEffect, useState } from "react";
-import { ActionsCardSchema, type EventChatAction } from "@brains/contracts";
+import {
+  ActionsCardSchema,
+  ASK_SOURCE_ATTRIBUTE,
+  type EventChatAction,
+} from "@brains/contracts";
 import { useWebChatClient } from "../web-chat-fetch";
 import { z } from "@brains/utils/zod";
 import {
@@ -486,7 +490,11 @@ export function SourcesPart({
               <span>{label}</span>
             );
             return (
-              <li className="web-chat-source-item" key={source.id}>
+              <li
+                className="web-chat-source-item"
+                key={source.id}
+                {...{ [ASK_SOURCE_ATTRIBUTE]: source.id }}
+              >
                 <div className="web-chat-source-title">{title}</div>
                 <div className="web-chat-source-meta">
                   <span>{getSourceMeta(source)}</span>

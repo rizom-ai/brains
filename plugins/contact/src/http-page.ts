@@ -49,6 +49,7 @@ export function contactForm(
     ? `<p class="notice" role="alert">${escapeHtml(error)}</p>`
     : "";
   const query = presentation.theme ? `?theme=${presentation.theme}` : "";
+  const retentionDays = Math.ceil(retentionSeconds / 86400);
   return contactPage(
     `<h1>Talk to the owner</h1>${notice}
 <p class="introduction">Send a private note about what you have in mind. The owner can reply by email. This does not start a chat or add your message to the Brain’s knowledge.</p>
@@ -59,7 +60,7 @@ export function contactForm(
 <label class="message" for="contact-message">Anything the owner should know · optional<textarea id="contact-message" name="message" rows="5" maxlength="4000">${value(draft.message, 4000)}</textarea></label>
 <div class="trap" aria-hidden="true"><label>Leave this empty<input name="website" tabindex="-1" autocomplete="off" value=""></label></div>
 <button type="submit">Send request →</button></form>
-<p class="privacy" id="contact-privacy">The request expires after ${Math.ceil(retentionSeconds / 86400)} days. Cleanup runs at startup and daily while the app is running; downtime or failures can delay deletion. Backups may retain earlier copies. Saving a request does not confirm notification delivery.</p>
+<p class="privacy" id="contact-privacy">The request expires after ${retentionDays} ${retentionDays === 1 ? "day" : "days"}. Cleanup runs at startup and daily while the app is running; downtime or failures can delay deletion. Backups may retain earlier copies. Saving a request does not confirm notification delivery.</p>
 <p class="retry">If this form has expired, copy your message before <a href="/contact${query}">opening a new form</a>.</p>`,
     presentation,
   );

@@ -7,6 +7,13 @@ import type {
 import { ServicePlugin } from "@brains/plugins";
 import { homepageOpeningSchema } from "./schemas/homepage-opening";
 import { loadHomepageOpening } from "./datasources/homepage-opening";
+import { loadHomepageAtlas } from "./datasources/homepage-atlas";
+import { homepageChatAvailable } from "./datasources/homepage-chat";
+import {
+  HOMEPAGE_ATLAS_SCRIPT,
+  HOMEPAGE_ATLAS_SCRIPT_PATH,
+} from "./templates/homepage-atlas-script";
+import { homepageAtlasSchema } from "./schemas/homepage-atlas";
 import { blogViewSchema } from "@brains/blog";
 import { deckViewSchema } from "@brains/decks";
 import { aboutHighlightsSchema, professionalProfileSchema } from "./schemas";
@@ -86,9 +93,23 @@ export class ProfessionalSitePlugin extends ServicePlugin<
       postsListUrl,
       decksListUrl,
       this.config.homepageOpening
-        ? (buildContext): ReturnType<typeof loadHomepageOpening> =>
-            loadHomepageOpening(buildContext, context)
-        : undefined,
+        ? {
+            loadOpening: (
+              buildContext,
+            ): ReturnType<typeof loadHomepageOpening> =>
+              loadHomepageOpening(buildContext, context),
+            loadAtlas: (buildContext): ReturnType<typeof loadHomepageAtlas> =>
+              loadHomepageAtlas({
+                entityService: buildContext.entityService,
+                semantic: {
+                  project: (request) =>
+                    buildContext.entityService.projectSemanticSpace(request),
+                },
+              }),
+            chatAvailable: (buildContext): boolean =>
+              homepageChatAvailable(buildContext, context),
+          }
+        : {},
     );
     context.entities.registerDataSource(homepageDataSource);
 
@@ -102,6 +123,8 @@ export class ProfessionalSitePlugin extends ServicePlugin<
       profile: professionalProfileSchema,
       homepageOpening: z.boolean().default(false),
       opening: homepageOpeningSchema,
+      atlas: homepageAtlasSchema,
+      askBox: z.boolean().default(false),
       posts: z.array(blogPostSchema),
       decks: z.array(deckSchema),
       postsListUrl: z.string(),
@@ -139,6 +162,17 @@ export class ProfessionalSitePlugin extends ServicePlugin<
         schema: homepageListSchema,
         dataSourceId: "professional:homepage-list",
         requiredPermission: "public",
+        // Touch titles and motion pausing, shipped only to sites that opt into the atlas.
+        ...(this.config.homepageOpening
+          ? {
+              runtimeScripts: [
+                { src: HOMEPAGE_ATLAS_SCRIPT_PATH, defer: true },
+              ],
+              staticAssets: {
+                [HOMEPAGE_ATLAS_SCRIPT_PATH]: HOMEPAGE_ATLAS_SCRIPT,
+              },
+            }
+          : {}),
         layout: {
           component: HomepageListLayout,
           renderSchema: homepageRenderSchema,

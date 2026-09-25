@@ -1614,3 +1614,15 @@ export function createChatClient(options: ChatClientOptions = {}): ChatClient {
     },
   };
 }
+
+export {
+  ASK_BOX_ATTRIBUTE,
+  ASK_BOX_SCRIPT_PATH,
+  ASK_SEND_ATTRIBUTE,
+  ASK_SOURCE_ATTRIBUTE,
+  ASK_SOURCES_EVENT,
+  ASK_STATUS_ATTRIBUTE,
+  ASK_STYLED_ATTRIBUTE,
+  askSourcesDetailSchema,
+  type AskSourcesDetail,
+} from "./ask-box";

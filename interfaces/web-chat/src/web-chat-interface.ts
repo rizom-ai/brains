@@ -1,3 +1,5 @@
+import { ASK_BOX_SCRIPT_PATH } from "@brains/contracts";
+import { ASK_BOX_BOOT_SCRIPT } from "./ask-box-boot";
 import {
   AGENT_ACTION_REQUEST_CHANNEL,
   parseAgentResponse,
@@ -326,6 +328,21 @@ export class WebChatInterface extends MessageInterfacePlugin<
                 }),
         });
       }
+      routes.push({
+        path: ASK_BOX_SCRIPT_PATH,
+        method: "GET",
+        public: true,
+        preview: true,
+        handler: async (request): Promise<Response> =>
+          (await this.canServeGuestAssets(request))
+            ? new Response(ASK_BOX_BOOT_SCRIPT, {
+                headers: { "Content-Type": "text/javascript; charset=utf-8" },
+              })
+            : new Response("Not found", {
+                status: 404,
+                headers: { "Cache-Control": "no-store" },
+              }),
+      });
       routes.push({
         path: "/ask/assets/guest.js",
         method: "GET",
