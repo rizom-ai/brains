@@ -392,6 +392,73 @@ describe("LinkedIn scoped files", () => {
       expect(deps.uploads).toHaveLength(0);
     });
 
+    it.each(["cancel-upload", "post-throw", "post-reject", "late-post-abort"])(
+      `${kind} preserves completed upload facts through %s`,
+      async (mode) => {
+        const abort = new AbortController();
+        const documentSource: PublishMediaData = {
+          ...document,
+          signal: abort.signal,
+        };
+        const source =
+          kind === "image"
+            ? { ...image, signal: abort.signal }
+            : documentSource;
+        const primary = new AggregateError(
+          [new Error("post outcome unknown"), new Error("retirement")],
+          "private post failure",
+        );
+        const deps = transport((_call, index) => {
+          if (index === 0) return user();
+          if (index === 1)
+            return kind === "image" ? imageUpload() : documentUpload();
+          if (index === 2) {
+            source.sha256 = "b".repeat(64);
+            source.sizeBytes = 1;
+            if (mode === "cancel-upload") abort.abort(primary);
+            return new Response(null);
+          }
+          if (mode === "post-throw") throw primary;
+          if (mode === "post-reject")
+            return new Response("Rejected", { status: 500 });
+          abort.abort(primary);
+          return created();
+        });
+        const work = client(deps).publish(
+          "Media",
+          {},
+          kind === "image" ? source : undefined,
+          kind === "document" ? [documentSource] : undefined,
+        );
+        if (mode === "late-post-abort") {
+          expect((await work).id).toBe("urn:li:share:123");
+        } else {
+          await assert.rejects(work, (error: unknown) => {
+            assert.ok(error instanceof PartialLinkedInUploadError);
+            assert.equal(
+              error.recovery.stage,
+              mode === "cancel-upload" ? "uploaded" : "post-attempted",
+            );
+            assert.equal(error.recovery.kind, kind);
+            assert.equal(error.recovery.sha256, image.sha256);
+            assert.equal(error.recovery.sizeBytes, image.sizeBytes);
+            assert.equal(
+              error.recovery.resourceUrn,
+              kind === "image"
+                ? "urn:li:digitalmediaAsset:image"
+                : "urn:li:document:doc123",
+            );
+            if (mode !== "post-reject") assert.equal(error.cause, primary);
+            assert.ok(Object.isFrozen(error.recovery));
+            assert.ok(!JSON.stringify(error.recovery).includes("private"));
+            return true;
+          });
+        }
+        expect(deps.uploads).toHaveLength(1);
+        expect(deps.calls).toHaveLength(mode === "cancel-upload" ? 3 : 4);
+      },
+    );
+
     it(`${kind} invalid source facts fail before resource registration`, async () => {
       const deps = transport(() => user());
       await assert.rejects(
@@ -410,6 +477,63 @@ describe("LinkedIn scoped files", () => {
       expect(deps.uploads).toHaveLength(0);
     });
   }
+
+  it("concurrent publications retain independent completed resource identifiers", async () => {
+    const secondPosted = Promise.withResolvers<void>();
+    let registered = 0;
+    let posted = 0;
+    const deps: LinkedInClientDeps = {
+      fetch: async (input) => {
+        const url = String(input);
+        if (url.includes("registerUpload"))
+          return Response.json({
+            value: {
+              asset: `urn:li:digitalmediaAsset:resource${++registered}`,
+              uploadMechanism: {
+                "com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest": {
+                  uploadUrl: "https://api.linkedin.com/upload/image",
+                },
+              },
+            },
+          });
+        if (url.endsWith("/ugcPosts")) {
+          const index = ++posted;
+          if (index === 1) await secondPosted.promise;
+          else secondPosted.resolve();
+          throw new Error(`post ${index} failed`);
+        }
+        return user();
+      },
+      getFileTransfers: (): LinkedInFileTransfers => ({
+        putHttp: async (input) => ({ ...input.facts, statusCode: 200 }),
+      }),
+    };
+    const publisher = client(deps);
+    const results = await Promise.allSettled([
+      publisher.publish("First", {}, image),
+      publisher.publish("Second", {}, { ...image, sha256: "b".repeat(64) }),
+    ]);
+    const urns = new Set<string>();
+    const digests = new Set<string>();
+    for (const [index, result] of results.entries()) {
+      assert.equal(result.status, "rejected");
+      assert.ok(result.reason instanceof PartialLinkedInUploadError);
+      assert.equal(result.reason.recovery.stage, "post-attempted");
+      assert.equal(
+        result.reason.recovery.sha256,
+        index === 0 ? image.sha256 : "b".repeat(64),
+      );
+      urns.add(result.reason.recovery.resourceUrn);
+      digests.add(result.reason.recovery.sha256);
+    }
+    expect([...urns].sort()).toEqual([
+      "urn:li:digitalmediaAsset:resource1",
+      "urn:li:digitalmediaAsset:resource2",
+    ]);
+    expect([...digests].sort()).toEqual([image.sha256, "b".repeat(64)]);
+    expect(registered).toBe(2);
+    expect(posted).toBe(2);
+  });
 
   it("requires provisioned native uploads instead of falling back to buffered SDK bytes", async () => {
     const deps = transport((_call, index) =>
@@ -497,9 +621,13 @@ describe("LinkedIn scoped files", () => {
       await assert.rejects(
         client(deps).publish("PDF", {}, undefined, [document]),
         (error: unknown) => {
-          if (step === 2) {
+          if (step === 2 || step === 3) {
             assert.ok(error instanceof PartialLinkedInUploadError);
             assert.equal(error.recovery.resourceUrn, "urn:li:document:doc123");
+            assert.equal(
+              error.recovery.stage,
+              step === 2 ? "registered" : "post-attempted",
+            );
             assert.ok(error.cause instanceof Error);
             assert.match(error.cause.message, message);
           } else {
@@ -537,7 +665,16 @@ describe("LinkedIn scoped files", () => {
     });
     await assert.rejects(
       client(deps).publish("Image", {}, { ...image, signal: abort.signal }),
-      (error: unknown) => error === reason,
+      (error: unknown) => {
+        assert.ok(error instanceof PartialLinkedInUploadError);
+        assert.equal(error.cause, reason);
+        assert.equal(error.recovery.stage, "uploaded");
+        assert.equal(
+          error.recovery.resourceUrn,
+          "urn:li:digitalmediaAsset:image",
+        );
+        return true;
+      },
     );
     expect(deps.calls).toHaveLength(3);
   });

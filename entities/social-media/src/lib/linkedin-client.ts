@@ -34,13 +34,15 @@ export interface LinkedInUploadRecovery {
   resourceUrn: string;
   sha256: string;
   sizeBytes: number;
-  stage: "registered" | "upload-received";
+  stage: "registered" | "upload-received" | "uploaded" | "post-attempted";
 }
-/** Allocated/upload-received evidence is not a published post or retry authority. */
+/** Upload and post-attempt evidence is not a published post or retry authority. */
 export class PartialLinkedInUploadError extends Error {
   public readonly recovery: Readonly<LinkedInUploadRecovery>;
   constructor(recovery: LinkedInUploadRecovery, cause: unknown) {
-    super("LinkedIn file delivery failed after upload registration", { cause });
+    super("LinkedIn media publication failed after upload registration", {
+      cause,
+    });
     this.name = "PartialLinkedInUploadError";
     this.recovery = Object.freeze({
       kind: recovery.kind,
@@ -269,85 +271,112 @@ export class LinkedInClient implements PublishProvider {
       });
     }
 
-    let mediaAsset: LinkedInShareMediaAsset | null = null;
-    if (documentAttachment) {
-      // Document uploads must succeed: the document IS the post (PDF carousel),
-      // so a silent text-only fallback would publish something the caller never
-      // asked for. Native document posts use LinkedIn's versioned /rest APIs;
-      // keep UGC Posts below for text/image publishing.
-      const documentUrn = await this.uploadDocument(
-        author,
-        documentAttachment,
-        signal,
-      );
-      return this.publishDocumentPost(
-        author,
-        content,
-        documentUrn,
-        documentAttachment.filename,
-        signal,
-      );
-    } else if (imageData) {
-      const assetUrn = await this.uploadImage(author, imageData, signal);
-      if (assetUrn) {
-        mediaAsset = { category: "IMAGE", urn: assetUrn };
-      }
-    }
-
-    // Create the post using UGC Posts API
-    const shareContent: Record<string, unknown> = {
-      shareCommentary: {
-        text: content,
-      },
-      shareMediaCategory: mediaAsset?.category ?? "NONE",
-      ...(mediaAsset && {
-        media: [createShareMediaEntry(mediaAsset)],
-      }),
+    // Invocation-local state: concurrent publications must never share evidence.
+    const completed: { recovery?: LinkedInUploadRecovery } = {};
+    const recordUpload = (recovery: LinkedInUploadRecovery): void => {
+      completed.recovery = Object.freeze({ ...recovery });
     };
+    const markPostAttempt = (): void => {
+      if (completed.recovery)
+        recordUpload({ ...completed.recovery, stage: "post-attempted" });
+    };
+    try {
+      let mediaAsset: LinkedInShareMediaAsset | null = null;
+      if (documentAttachment) {
+        const title = documentAttachment.filename;
+        // Document uploads must succeed: the document IS the post (PDF carousel),
+        // so a silent text-only fallback would publish something the caller never
+        // asked for. Native document posts use LinkedIn's versioned /rest APIs;
+        // keep UGC Posts below for text/image publishing.
+        const documentUrn = await this.uploadDocument(
+          author,
+          documentAttachment,
+          signal,
+          recordUpload,
+        );
+        signal.throwIfAborted();
+        markPostAttempt();
+        return await this.publishDocumentPost(
+          author,
+          content,
+          documentUrn,
+          title,
+          signal,
+        );
+      } else if (imageData) {
+        const assetUrn = await this.uploadImage(
+          author,
+          imageData,
+          signal,
+          recordUpload,
+        );
+        if (assetUrn) {
+          mediaAsset = { category: "IMAGE", urn: assetUrn };
+        }
+      }
 
-    signal.throwIfAborted();
-    const response = await this.fetch(`${this.apiBaseUrl}/ugcPosts`, {
-      signal,
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.config.accessToken}`,
-        "Content-Type": "application/json",
-        "X-Restli-Protocol-Version": "2.0.0",
-      },
-      body: JSON.stringify({
-        author,
-        lifecycleState: "PUBLISHED",
-        specificContent: {
-          "com.linkedin.ugc.ShareContent": shareContent,
+      // Create the post using UGC Posts API
+      const shareContent: Record<string, unknown> = {
+        shareCommentary: {
+          text: content,
         },
-        visibility: {
-          "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC",
-        },
-      }),
-    });
+        shareMediaCategory: mediaAsset?.category ?? "NONE",
+        ...(mediaAsset && {
+          media: [createShareMediaEntry(mediaAsset)],
+        }),
+      };
 
-    if (!response.ok) {
-      const errorText = await summarizeApiError(response);
-      this.logger.error("LinkedIn API error", {
-        status: response.status,
-        error: errorText,
+      signal.throwIfAborted();
+      markPostAttempt();
+      const response = await this.fetch(`${this.apiBaseUrl}/ugcPosts`, {
+        signal,
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${this.config.accessToken}`,
+          "Content-Type": "application/json",
+          "X-Restli-Protocol-Version": "2.0.0",
+        },
+        body: JSON.stringify({
+          author,
+          lifecycleState: "PUBLISHED",
+          specificContent: {
+            "com.linkedin.ugc.ShareContent": shareContent,
+          },
+          visibility: {
+            "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC",
+          },
+        }),
       });
-      throw new Error(`LinkedIn API error: ${response.status} - ${errorText}`);
+
+      if (!response.ok) {
+        const errorText = await summarizeApiError(response);
+        this.logger.error("LinkedIn API error", {
+          status: response.status,
+          error: errorText,
+        });
+        throw new Error(
+          `LinkedIn API error: ${response.status} - ${errorText}`,
+        );
+      }
+
+      // Extract post ID from response headers or body
+      const postId = response.headers.get("X-RestLi-Id") ?? "";
+
+      this.logger.info("LinkedIn post created", {
+        postId,
+        mediaCategory: mediaAsset?.category ?? "NONE",
+      });
+
+      const result: PublishResult = { id: postId };
+      if (postId) {
+        result.url = `https://www.linkedin.com/feed/update/${postId}`;
+      }
+      return await this.settleAcknowledgedResponse(response, result);
+    } catch (error) {
+      if (completed.recovery)
+        throw new PartialLinkedInUploadError(completed.recovery, error);
+      throw error;
     }
-
-    // Extract post ID from response headers or body
-    const postId = response.headers.get("X-RestLi-Id") ?? "";
-
-    this.logger.info("LinkedIn post created", {
-      postId,
-      mediaCategory: mediaAsset?.category ?? "NONE",
-    });
-
-    const result: PublishResult = { id: postId };
-    if (postId) {
-      result.url = `https://www.linkedin.com/feed/update/${postId}`;
-    }
-    return this.settleAcknowledgedResponse(response, result);
   }
 
   private async settleAcknowledgedResponse(
@@ -384,12 +413,13 @@ export class LinkedInClient implements PublishProvider {
   /**
    * Upload an image to LinkedIn and return the asset URN
    * Explicit negative receipts allow text-only fallback. Transport, cancellation
-   * and retirement failures propagate unchanged; uncertain sends are not retried.
+   * and retirement failures retain their causes; uncertain sends are not retried.
    */
   private async uploadImage(
     author: string,
     imageData: PublishImageData,
     signal: AbortSignal,
+    recordUpload: (recovery: LinkedInUploadRecovery) => void,
   ): Promise<string | null> {
     signal.throwIfAborted();
     const source: PublishImageData = {
@@ -459,6 +489,13 @@ export class LinkedInClient implements PublishProvider {
       return null;
     }
 
+    recordUpload({
+      kind: "image",
+      resourceUrn: assetUrn,
+      sha256: uploadResponse.sha256,
+      sizeBytes: uploadResponse.sizeBytes,
+      stage: "uploaded",
+    });
     this.logger.info("LinkedIn image uploaded", { assetUrn });
     return assetUrn;
   }
@@ -472,6 +509,7 @@ export class LinkedInClient implements PublishProvider {
     author: string,
     documentData: PublishMediaData,
     signal: AbortSignal,
+    recordUpload: (recovery: LinkedInUploadRecovery) => void,
   ): Promise<string> {
     signal.throwIfAborted();
     if (documentData.type !== "document")
@@ -533,6 +571,13 @@ export class LinkedInClient implements PublishProvider {
       );
     }
 
+    recordUpload({
+      kind: "document",
+      resourceUrn: uploadInfo.documentUrn,
+      sha256: uploadResponse.sha256,
+      sizeBytes: uploadResponse.sizeBytes,
+      stage: "uploaded",
+    });
     this.logger.info("LinkedIn document uploaded", {
       documentUrn: uploadInfo.documentUrn,
       filename: documentData.filename,
