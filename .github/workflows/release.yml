@@ -117,17 +117,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bun run changeset:version:core
 
+      # A pull request merged while this run versioned main would reject a
+      # plain push. Standard releases merge the version commit into the moved
+      # main and still publish the version commit, exactly what CI verified.
       - name: Commit and push version bump
         env:
           HUSKY: "0"
+          RELEASE_MODE: ${{ steps.release_mode.outputs.mode }}
         run: |
-          git add -A
-          if git diff --cached --quiet; then
-            echo "No version changes to commit."
-          else
-            git commit -m "chore(release): version packages"
-            git push
-          fi
+          bun scripts/push-version-commit.ts "chore(release): version packages" "$RELEASE_MODE"
 
       # Stable graduation is deliberately site-first. Site Release classifies
       # this generated revision as stable-version and uses a distinct publish
