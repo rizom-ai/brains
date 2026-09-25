@@ -22,6 +22,10 @@ import {
   socialPostSchema,
 } from "../schemas/social-post";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
+import {
+  collectLinkedInUploadEvidence,
+  type LinkedInUploadEvidence,
+} from "../lib/linkedin-upload-evidence";
 
 export interface PublishExecutePayload {
   entityType: string;
@@ -212,22 +216,32 @@ export class PublishExecuteHandler {
         throw error;
       }
     } catch (error) {
-      logger.error("Publish handler failed; no automatic replay", {
-        entityId,
-        result: state.result,
-        entered: state.entered,
-        error,
-      });
-      let reportingFailure: { error: unknown } | undefined;
+      const recovery = collectLinkedInUploadEvidence(error);
+      const message = recovery
+        ? "Publication failed; bounded recovery evidence retained; do not replay"
+        : getErrorMessage(error);
+      const reportingFailures: unknown[] = [];
       try {
-        await this.reportFailure(entityType, entityId, getErrorMessage(error));
-      } catch (reportError) {
-        reportingFailure = { error: reportError };
+        logger.error("Publish handler failed; no automatic replay", {
+          entityId,
+          result: state.result,
+          entered: state.entered,
+          error: recovery ? message : error,
+          ...(recovery && { recovery }),
+        });
+      } catch (logError) {
+        reportingFailures.push(logError);
       }
-      if (reportingFailure) {
-        if (!Object.is(error, reportingFailure.error))
+      try {
+        await this.reportFailure(entityType, entityId, message, recovery);
+      } catch (reportError) {
+        reportingFailures.push(reportError);
+      }
+      if (reportingFailures.length) {
+        const failures = [...new Set([error, ...reportingFailures])];
+        if (failures.length > 1)
           throw new AggregateError(
-            [error, reportingFailure.error],
+            failures,
             "Publication and failure reporting failed",
             { cause: error },
           );
@@ -251,10 +265,17 @@ export class PublishExecuteHandler {
     entityType: string,
     entityId: string,
     error: string,
+    recovery?: LinkedInUploadEvidence,
   ): Promise<void> {
     await this.config.sendMessage({
       type: PUBLISH_CHANNELS.reportFailure,
-      payload: { entityType, entityId, error, willRetry: false },
+      payload: {
+        entityType,
+        entityId,
+        error,
+        willRetry: false,
+        ...(recovery && { recovery }),
+      },
     });
   }
 }

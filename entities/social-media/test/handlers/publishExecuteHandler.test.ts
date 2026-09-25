@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import type { PublishProvider } from "@brains/contracts";
+import assert from "node:assert/strict";
+import { PartialLinkedInUploadError } from "../../src/lib/linkedin-client";
 import {
   PublishExecuteHandler,
   type PublishExecuteEntityService,
@@ -422,6 +424,137 @@ describe("PublishExecuteHandler", () => {
           error: "API rate limit exceeded",
         }),
       });
+    });
+
+    it("reports bounded LinkedIn recovery through aggregate causes without raw transport diagnostics or replay", async () => {
+      entityService.setGetEntityResult(samplePost);
+      const receipt = {
+        kind: "document" as const,
+        resourceUrn: "urn:li:document:doc1",
+        sha256: "a".repeat(64),
+        sizeBytes: 17,
+        stage: "post-attempted" as const,
+      };
+      const original = new PartialLinkedInUploadError(
+        receipt,
+        new Error("private transport token"),
+      );
+      const failure = new AggregateError(
+        [original, new Error("private retirement")],
+        "private aggregate",
+        { cause: original },
+      );
+      linkedinProvider.publish = mock(async (): Promise<never> => {
+        throw failure;
+      });
+      await handler.handle({ entityType: "social-post", entityId: "post-1" });
+      const recovery = {
+        uploads: [receipt],
+        nodes: [
+          { kind: "aggregate", cause: 1, errors: [1, 2] },
+          { kind: "error", upload: 0, cause: 3 },
+          { kind: "error" },
+          { kind: "error" },
+        ],
+        truncated: false,
+        invalid: false,
+      };
+      const message =
+        "Publication failed; bounded recovery evidence retained; do not replay";
+      expect(messageSender.sendMessage).toHaveBeenCalledWith({
+        type: "publish:report:failure",
+        payload: {
+          entityType: "social-post",
+          entityId: "post-1",
+          error: message,
+          willRetry: false,
+          recovery,
+        },
+      });
+      expect(logger.error).toHaveBeenCalledWith(
+        "Publish handler failed; no automatic replay",
+        {
+          entityId: "post-1",
+          result: undefined,
+          entered: true,
+          error: message,
+          recovery,
+        },
+      );
+      expect(entityService.updateEntity).not.toHaveBeenCalled();
+      await handler.handle({ entityType: "social-post", entityId: "post-1" });
+      expect(linkedinProvider.publish).toHaveBeenCalledTimes(1);
+    });
+
+    it("joins failure reporting after a logger failure and retains both causes", async () => {
+      entityService.setGetEntityResult(samplePost);
+      const original = new PartialLinkedInUploadError(
+        {
+          kind: "image",
+          resourceUrn: "urn:li:digitalmediaAsset:image",
+          sha256: "a".repeat(64),
+          sizeBytes: 17,
+          stage: "uploaded",
+        },
+        new Error("private"),
+      );
+      const logFailure = new Error("log sink unavailable");
+      linkedinProvider.publish = mock(async (): Promise<never> => {
+        throw original;
+      });
+      logger.error = mock((): never => {
+        throw logFailure;
+      });
+      await assert.rejects(
+        handler.handle({ entityType: "social-post", entityId: "post-1" }),
+        (error: unknown) => {
+          assert.ok(error instanceof AggregateError);
+          assert.equal(error.cause, original);
+          assert.deepEqual(error.errors, [original, logFailure]);
+          return true;
+        },
+      );
+      expect(messageSender.sendMessage).toHaveBeenCalledWith({
+        type: "publish:report:failure",
+        payload: expect.objectContaining({
+          willRetry: false,
+          recovery: expect.objectContaining({ uploads: [original.recovery] }),
+        }),
+      });
+      expect(linkedinProvider.publish).toHaveBeenCalledTimes(1);
+    });
+
+    it("retains publication and reporting causes when the recovery report fails", async () => {
+      entityService.setGetEntityResult(samplePost);
+      const original = new PartialLinkedInUploadError(
+        {
+          kind: "image",
+          resourceUrn: "urn:li:digitalmediaAsset:image",
+          sha256: "a".repeat(64),
+          sizeBytes: 17,
+          stage: "upload-received",
+        },
+        new Error("private"),
+      );
+      const reporting = new Error("message sink unavailable");
+      linkedinProvider.publish = mock(async (): Promise<never> => {
+        throw original;
+      });
+      messageSender.sendMessage = mock(async (): Promise<never> => {
+        throw reporting;
+      });
+      await assert.rejects(
+        handler.handle({ entityType: "social-post", entityId: "post-1" }),
+        (error: unknown) => {
+          assert.ok(error instanceof AggregateError);
+          assert.equal(error.cause, original);
+          assert.deepEqual(error.errors, [original, reporting]);
+          return true;
+        },
+      );
+      expect(linkedinProvider.publish).toHaveBeenCalledTimes(1);
+      expect(messageSender.sendMessage).toHaveBeenCalledTimes(1);
+      expect(entityService.updateEntity).not.toHaveBeenCalled();
     });
 
     it("does not overwrite local status after an uncertain provider send", async () => {
