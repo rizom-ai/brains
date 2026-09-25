@@ -2,7 +2,6 @@ import type { EntityGrouping, ServicePluginContext } from "@brains/plugins";
 import {
   GROUPING_PAGE_LIMIT,
   GROUPING_MAX_PAGE_LIMIT,
-  groupingKeySchema,
   groupingSearchSchema,
   groupingSortSchema,
   groupingValueSchema,
@@ -19,9 +18,9 @@ import type {
   GroupingVocabularyFrontmatter,
   StudioGrouping,
 } from "./grouping-vocabulary-contract";
+import { studioGroupingUsageQuerySchema } from "./grouping-query";
 
-const querySchema = z.object({
-  grouping: groupingKeySchema,
+const querySchema = studioGroupingUsageQuerySchema.extend({
   type: z.string().min(1).max(100).optional(),
   value: groupingValueSchema.optional(),
   q: groupingSearchSchema.default(""),
@@ -64,11 +63,13 @@ export async function handleGroupingRead(
   context: ServicePluginContext,
   request: Request,
   access: StudioRequestAccess,
-  mode: "catalog" | "members",
+  mode: "catalog" | "members" | "usage",
 ): Promise<Response> {
-  const query = querySchema.safeParse(
-    Object.fromEntries(new URL(request.url).searchParams),
-  );
+  const params = new URL(request.url).searchParams;
+  const query = querySchema.safeParse({
+    ...Object.fromEntries(params),
+    values: params.getAll("value"),
+  });
   if (!query.success || (mode === "members" && query.data.value === undefined))
     return jsonResponse({ error: "Invalid grouping query" }, 400);
   await context.entities.ensureGroupingsCurrent();
@@ -90,6 +91,23 @@ export async function handleGroupingRead(
     response.headers.set("Retry-After", "1");
     return response;
   }
+  const input = {
+    grouping: grouping.key,
+    entityTypes: descriptor.types.filter(
+      (type) => !query.data.type || query.data.type === type,
+    ),
+    visibilityScope: access.visibilityScope,
+    signal: request.signal,
+  };
+  if (mode === "usage") {
+    return jsonResponse(
+      await context.entityService.queryGroupingUsage({
+        ...input,
+        values: query.data.values,
+      }),
+    );
+  }
+  const pagination = { offset: query.data.offset, limit: query.data.limit };
   const vocabularies = await readGroupingVocabularies(
     context,
     access.visibilityScope,
@@ -98,24 +116,18 @@ export async function handleGroupingRead(
     ? vocabularies[grouping.key]
     : undefined;
   if (vocabulary) descriptor.vocabulary = vocabulary;
-  const input = {
-    grouping: grouping.key,
-    entityTypes: descriptor.types.filter(
-      (type) => !query.data.type || query.data.type === type,
-    ),
-    visibilityScope: access.visibilityScope,
-    offset: query.data.offset,
-    limit: query.data.limit,
-    signal: request.signal,
-  };
   if (mode === "catalog") {
     return jsonResponse({
       grouping: descriptor,
-      ...(await context.entityService.queryGroupingCatalog(input)),
+      ...(await context.entityService.queryGroupingCatalog({
+        ...input,
+        ...pagination,
+      })),
     });
   }
   const page = await context.entityService.queryGroupingMembers({
     ...input,
+    ...pagination,
     value: query.data.value ?? "",
     q: query.data.q,
     sort: query.data.sort,

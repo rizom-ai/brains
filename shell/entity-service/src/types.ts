@@ -5,6 +5,8 @@ import type {
   EntityGroupingCatalog,
   QueryGroupingCatalogRequest,
   QueryGroupingMembersRequest,
+  EntityGroupingUsage,
+  QueryGroupingUsageRequest,
 } from "./entity-grouping";
 import type { EntityIdPath, EntityIdPathInput } from "./entity-id-path";
 import type {
@@ -944,6 +946,9 @@ export interface ICoreEntityService {
   queryGroupingMembers(
     request: QueryGroupingMembersRequest,
   ): Promise<EntityGroupingMembers>;
+  queryGroupingUsage(
+    request: QueryGroupingUsageRequest,
+  ): Promise<EntityGroupingUsage>;
 
   search(request: EntitySearchRequest): Promise<SearchResult<BaseEntity>[]>;
   search<T extends BaseEntity>(

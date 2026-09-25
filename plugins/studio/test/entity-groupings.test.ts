@@ -142,7 +142,7 @@ describe("Studio grouping declarations", () => {
 });
 
 describe("Studio grouping read admission", () => {
-  test("both endpoints return no-store initializing responses, then complete results", async () => {
+  test("all grouping endpoints return no-store initializing responses, then complete results", async () => {
     const { shell, routes } = fixture();
     spyOn(shell.getEntityService(), "countEntities").mockResolvedValue(1);
     const readiness = spyOn(
@@ -157,7 +157,15 @@ describe("Studio grouping read admission", () => {
       shell.getEntityService(),
       "queryGroupingMembers",
     ).mockResolvedValue({ entities: [], total: 0 });
+    const usage = spyOn(
+      shell.getEntityService(),
+      "queryGroupingUsage",
+    ).mockResolvedValue({
+      entries: 1,
+      values: [{ value: "Acme", count: 1 }],
+    });
     for (const path of [
+      "groups/usage?grouping=clients&value=Acme",
       "groups/catalog?grouping=clients",
       "groups/members?grouping=clients&value=Acme",
     ]) {
@@ -171,7 +179,16 @@ describe("Studio grouping read admission", () => {
     }
     expect(catalog).not.toHaveBeenCalled();
     expect(members).not.toHaveBeenCalled();
+    expect(usage).not.toHaveBeenCalled();
     readiness.mockReturnValue(true);
+    expect(
+      await (
+        await get(routes, "groups/usage?grouping=clients&value=Acme")
+      ).json(),
+    ).toEqual({
+      entries: 1,
+      values: [{ value: "Acme", count: 1 }],
+    });
     expect(
       await (await get(routes, "groups/catalog?grouping=clients")).json(),
     ).toMatchObject({ values: [{ value: "Acme", count: 1 }], total: 1 });
@@ -187,12 +204,61 @@ describe("Studio grouping read admission", () => {
         "areGroupingsReady",
       ).mockReturnValue(false);
       for (const path of [
+        "groups/usage?grouping=clients",
         "groups/catalog?grouping=clients",
         "groups/members?grouping=clients&value=Acme",
       ])
         expect((await get(routes, path)).status).toBe(role ? 403 : 401);
       expect(ready).not.toHaveBeenCalled();
     }
+  });
+  test("usage forwards exact requested values and only admitted contributor types", async () => {
+    const { shell, routes } = fixture();
+    spyOn(
+      shell.getEntityRegistry(),
+      "getEffectiveFrontmatterSchema",
+    ).mockImplementation((type) => (type === "note" ? schema : undefined));
+    spyOn(shell.getEntityService(), "countEntities").mockResolvedValue(1);
+    const usage = spyOn(
+      shell.getEntityService(),
+      "queryGroupingUsage",
+    ).mockResolvedValue({ entries: 2, values: [] });
+    const values = [" Acme ", "a,b", "Client\u0000name", "\ufeffClient", ""];
+    const params = new URLSearchParams({ grouping: "clients" });
+    for (const value of values) params.append("value", value);
+    expect((await get(routes, `groups/usage?${params}`)).status).toBe(200);
+    expect(usage).toHaveBeenLastCalledWith({
+      grouping: "clients",
+      entityTypes: ["note"],
+      values,
+      visibilityScope: "shared",
+      signal: expect.any(AbortSignal),
+    });
+    expect((await get(routes, `groups/usage?${params}&type=post`)).status).toBe(
+      200,
+    );
+    expect(usage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ entityTypes: [] }),
+    );
+    const calls = usage.mock.calls.length;
+    for (const query of [
+      "grouping=missing",
+      `grouping=clients&${"value=x&".repeat(101)}`,
+      `grouping=clients&value=${"x".repeat(10001)}`,
+    ]) {
+      expect((await get(routes, `groups/usage?${query}`)).status).toBe(
+        query === "grouping=missing" ? 404 : 400,
+      );
+    }
+    expect(usage.mock.calls).toHaveLength(calls);
+    spyOn(
+      shell.getEntityRegistry(),
+      "getEffectiveFrontmatterSchema",
+    ).mockReturnValue(undefined);
+    expect((await get(routes, "groups/usage?grouping=clients")).status).toBe(
+      404,
+    );
+    expect(usage.mock.calls).toHaveLength(calls);
   });
   test("forwards bounded filters and full member identities", async () => {
     const { shell, routes } = fixture();

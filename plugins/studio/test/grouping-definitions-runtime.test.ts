@@ -458,6 +458,86 @@ describe("document-backed runtime definitions with real adapters", () => {
     expect(reader.service.areGroupingsReady()).toBe(true);
   });
 
+  test("usage loads current definitions, counts identities once and hides restricted memberships", async () => {
+    const dir = await directory();
+    const writer = await open(dir);
+    const reader = await open(dir);
+    for (const [id, entityType, visibility, values] of [
+      ["same\u0000:leaf", "note", "shared", ["Research", "Research", "Lab"]],
+      ["same\u0000:leaf", "post", "public", ["Research", "Lab"]],
+      ["private", "note", "restricted", ["Research"]],
+      ["stray", "note", "shared", ["Outside the list"]],
+      ["empty", "note", "shared", []],
+    ] as const) {
+      await writer.service.createEntityFromMarkdown({
+        input: {
+          entityType,
+          id,
+          markdown: content([...values], entityType).replace(
+            "---\n",
+            `---\nvisibility: ${visibility}\n`,
+          ),
+        },
+      });
+    }
+    expect((await save(writer, { areas })).status).toBe(201);
+    const query = {
+      grouping: "areas",
+      entityTypes: ["note", "post"],
+      visibilityScope: "shared" as const,
+      values: ["Research", "Lab", "Unused"],
+    };
+    // The reader has made no schema/catalog request since the source was saved.
+    expect(await reader.service.queryGroupingUsage(query)).toEqual({
+      entries: 3,
+      values: [
+        { value: "Research", count: 2 },
+        { value: "Lab", count: 2 },
+        { value: "Unused", count: 0 },
+      ],
+    });
+    expect(
+      await (
+        await reader.request(
+          "GET",
+          "groups/usage?grouping=areas&value=Research&visibilityScope=restricted&entityTypes=note",
+          undefined,
+          "trusted",
+        )
+      ).json(),
+    ).toEqual({
+      entries: 3,
+      values: [{ value: "Research", count: 2 }],
+    });
+    expect(
+      await (
+        await reader.request(
+          "GET",
+          "groups/usage?grouping=areas&value=Research",
+        )
+      ).json(),
+    ).toEqual({
+      entries: 4,
+      values: [{ value: "Research", count: 3 }],
+    });
+    expect(
+      (await save(writer, { areas: { ...areas, types: ["note"] } }, "PUT"))
+        .status,
+    ).toBe(200);
+    expect(await reader.service.queryGroupingUsage(query)).toEqual({
+      entries: 2,
+      values: [
+        { value: "Research", count: 1 },
+        { value: "Lab", count: 1 },
+        { value: "Unused", count: 0 },
+      ],
+    });
+    expect((await save(writer, {}, "PUT")).status).toBe(200);
+    expect(
+      (await reader.request("GET", "groups/usage?grouping=areas")).status,
+    ).toBe(404);
+  });
+
   test("a failed post-save scan keeps the saved document and returns initializing until retry succeeds", async () => {
     const fixture = await open(await directory());
     await fixture.service.createEntityFromMarkdown({
@@ -491,11 +571,50 @@ describe("document-backed runtime definitions with real adapters", () => {
     expect(await response.json()).toMatchObject({
       code: "groupings_initializing",
     });
+    const usage = await fixture.request(
+      "GET",
+      "groups/usage?grouping=areas&value=Research",
+    );
+    expect(usage.status).toBe(503);
+    expect(usage.headers.get("Retry-After")).toBe("1");
+    const failedUsage = await fixture.service
+      .queryGroupingUsage({
+        grouping: "areas",
+        entityTypes: ["note"],
+        values: ["Research"],
+      })
+      .catch((error: unknown): unknown => error);
+    expect(failedUsage).toBeInstanceOf(Error);
+    expect(failedUsage).toMatchObject({ message: "Interrupted scan" });
     // Drain the unsuccessful caller-owned retry before restoring the backend.
     await fixture.service
       .queryGroupingCatalog({ grouping: "areas", entityTypes: ["note"] })
       .catch(() => undefined);
     fail.mockRestore();
+    expect(
+      await fixture.service.queryGroupingUsage({
+        grouping: "areas",
+        entityTypes: ["note"],
+        values: ["Research", "Unused"],
+      }),
+    ).toEqual({
+      entries: 1,
+      values: [
+        { value: "Research", count: 1 },
+        { value: "Unused", count: 0 },
+      ],
+    });
+    expect(
+      await (
+        await fixture.request(
+          "GET",
+          "groups/usage?grouping=areas&value=Research",
+        )
+      ).json(),
+    ).toEqual({
+      entries: 1,
+      values: [{ value: "Research", count: 1 }],
+    });
     expect(
       (
         await fixture.service.queryGroupingCatalog({

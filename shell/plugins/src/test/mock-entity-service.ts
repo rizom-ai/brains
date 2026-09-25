@@ -427,6 +427,11 @@ export function createMockEntityService(
         "createMockShell: inject an entity service for grouping queries",
       );
     },
+    queryGroupingUsage: async (): Promise<never> => {
+      throw new Error(
+        "createMockShell: inject an entity service for grouping queries",
+      );
+    },
     // Projection storage is database-backed and cannot be faked usefully. Fail
     // loudly rather than hand back an empty stand-in, which would make a test
     // asserting projection behaviour silently meaningless.

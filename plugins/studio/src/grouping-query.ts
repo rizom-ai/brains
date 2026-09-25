@@ -2,6 +2,7 @@ import { z } from "@brains/utils/zod";
 import {
   GROUPING_PAGE_LIMIT,
   GROUPING_MAX_PAGE_LIMIT,
+  queryGroupingUsageSchema,
   groupingSearchSchema,
   groupingSortSchema,
   groupingValueSchema,
@@ -44,3 +45,9 @@ export const studioGroupingQuerySchema: z.ZodType<
   unknown
 > = schema;
 export { GROUPING_PAGE_LIMIT };
+
+/** HTTP callers never supply their own visibility scope or admitted type set. */
+export const studioGroupingUsageQuerySchema: z.ZodObject<{
+  grouping: z.ZodString;
+  values: z.ZodDefault<z.ZodArray<z.ZodString>>;
+}> = queryGroupingUsageSchema.pick({ grouping: true, values: true });

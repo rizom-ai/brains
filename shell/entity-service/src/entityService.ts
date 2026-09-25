@@ -3,6 +3,8 @@ import type {
   QueryGroupingCatalogRequest,
   QueryGroupingMembersRequest,
   EntityGroupingCatalog,
+  EntityGroupingUsage,
+  QueryGroupingUsageRequest,
 } from "./entity-grouping";
 import { SHELL_CHANNELS } from "@brains/contracts";
 import { reprojectGroupings } from "./grouping-reprojection";
@@ -880,6 +882,17 @@ export class EntityService implements IEntityService {
     if (this.entityRegistry.getGroupingSourceType())
       await this.groupingReprojection.run();
     return this.entityQueries.queryGroupingMembers(request);
+  }
+
+  public async queryGroupingUsage(
+    request: QueryGroupingUsageRequest,
+  ): Promise<EntityGroupingUsage> {
+    request.signal?.throwIfAborted();
+    await this.initialize();
+    await this.entityRegistry.ensureGroupingsCurrent();
+    if (this.entityRegistry.getGroupingSourceType())
+      await this.groupingReprojection.run();
+    return this.entityQueries.queryGroupingUsage(request);
   }
 
   public async countEntities(request: CountEntitiesRequest): Promise<number> {

@@ -119,6 +119,10 @@ function apiRouteRequests(): RouteRequest[] {
       request: (cookie) => request("/studio/api/groups/members", { cookie }),
     },
     {
+      routePath: "/studio/api/groups/usage",
+      request: (cookie) => request("/studio/api/groups/usage", { cookie }),
+    },
+    {
       routePath: "/studio/api/hierarchy",
       request: (cookie) => request("/studio/api/hierarchy", { cookie }),
     },

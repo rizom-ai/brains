@@ -3,9 +3,11 @@ import type {
   UserPermissionLevel,
   EntityIdPath,
   EntityIdPathInput,
+  EntityGroupingUsage,
 } from "@brains/plugins";
 import {
   studioGroupingQuerySchema,
+  studioGroupingUsageQuerySchema,
   type StudioGroupingQuery,
 } from "../../src/grouping-query";
 import type { StudioGrouping } from "../../src/grouping-vocabulary-contract";
@@ -383,6 +385,22 @@ export class StudioApi {
       total: result.total,
       grouping: result.grouping,
     };
+  }
+
+  /** One bounded value-count batch; entries is already distinct, never sum it. */
+  async fetchGroupingUsage(
+    grouping: string,
+    values: readonly string[],
+    signal: AbortSignal,
+  ): Promise<EntityGroupingUsage> {
+    signal.throwIfAborted();
+    const input = studioGroupingUsageQuerySchema.parse({ grouping, values });
+    const params = new URLSearchParams({ grouping: input.grouping });
+    for (const value of input.values) params.append("value", value);
+    return this.requestJson<EntityGroupingUsage>(
+      this.path(`groups/usage?${params}`),
+      { signal },
+    );
   }
 
   async fetchTypes(): Promise<EntityTypeInfo[]> {

@@ -407,16 +407,18 @@ export function createEditorRoutes(
         return handlePreviewDestination(getContext(), request, access);
       },
     },
-    ...(["catalog", "members"] as const).map((mode): WebRouteDefinition => ({
-      path: apiPath(`groups/${mode}`),
-      method: "GET",
-      public: true,
-      handler: async (request): Promise<Response> => {
-        const access = await requireTrustedAccess(request);
-        if (access instanceof Response) return access;
-        return handleGroupingRead(getContext(), request, access, mode);
-      },
-    })),
+    ...(["catalog", "members", "usage"] as const).map(
+      (mode): WebRouteDefinition => ({
+        path: apiPath(`groups/${mode}`),
+        method: "GET",
+        public: true,
+        handler: async (request): Promise<Response> => {
+          const access = await requireTrustedAccess(request);
+          if (access instanceof Response) return access;
+          return handleGroupingRead(getContext(), request, access, mode);
+        },
+      }),
+    ),
     {
       path: apiPath("hierarchy"),
       method: "GET",

@@ -83,6 +83,26 @@ export const queryGroupingMembersSchema: z.ZodObject<{
   sort: groupingSortSchema.default("updated-desc"),
 });
 
+/** Usage is a distinct entry total plus counts for a bounded set of exact values. */
+export const queryGroupingUsageSchema: z.ZodObject<{
+  grouping: z.ZodString;
+  entityTypes: z.ZodArray<z.ZodString>;
+  visibilityScope: z.ZodOptional<typeof canonicalContentVisibilitySchema>;
+  signal: z.ZodOptional<z.ZodCustom<AbortSignal, AbortSignal>>;
+  values: z.ZodDefault<z.ZodArray<z.ZodString>>;
+}> = queryGroupingCatalogSchema.omit({ limit: true, offset: true }).extend({
+  values: z.array(groupingValueSchema).max(GROUPING_MAX_PAGE_LIMIT).default([]),
+});
+export type QueryGroupingUsageRequest = z.input<
+  typeof queryGroupingUsageSchema
+>;
+export interface EntityGroupingUsage {
+  /** Entries with at least one text membership, including values outside a list. */
+  entries: number;
+  /** Request order and literals preserved; unused values have a zero count. */
+  values: Array<{ value: string; count: number }>;
+}
+
 export type QueryGroupingCatalogRequest = z.input<
   typeof queryGroupingCatalogSchema
 >;
