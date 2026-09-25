@@ -1,5 +1,14 @@
 # @brains/admin
 
+## 0.2.0-alpha.411
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.411
+  - @brains/auth-service@0.2.0-alpha.411
+  - @brains/plugins@0.2.0-alpha.411
+
 ## 0.2.0-alpha.410
 
 ### Patch Changes

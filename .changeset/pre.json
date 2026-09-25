@@ -232,6 +232,7 @@
     "core--agent-network-complete-tag-facets",
     "core--agent-sightings-inbox-source",
     "core--ask-box-availability",
+    "core--ask-box-ready",
     "core--ask-browser-contract",
     "core--atlas-chat",
     "core--atlas-names-phone",

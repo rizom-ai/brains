@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.411
+
+### Patch Changes
+
+- [#362](https://github.com/rizom-ai/brains/pull/362) [`ba403f4`](https://github.com/rizom-ai/brains/commit/ba403f4423a71cd7a4969b49c624d7d47c53dc69) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The atlas never shows a chat box that cannot answer. Web Chat now records the Ask box as available publicly only for a configured guest policy, and on preview for managed guest chat only while the owner has it switched on; it rewrites the record on every start and activation change. The shared box boot marks its host `data-ask-ready` once the controls are live, and the atlas keeps the box out of sight until then. On phones, the atlas text flows with the page with the box docked, instead of scrolling inside a clipped column.
+
 ## 0.2.0-alpha.410
 
 ### Patch Changes
