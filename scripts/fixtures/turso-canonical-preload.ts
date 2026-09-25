@@ -14,6 +14,10 @@ import { PersistenceBudgetPool } from "../../shared/db/src/turso-worker/budget-p
 import { createWorkerDatabase } from "../../shared/db/src/turso-worker/binary-transaction";
 import { SqlWorkerClient } from "../../shared/db/src/turso-worker/sql-client";
 import { CanonicalAssetBindings } from "./turso-canonical-asset-bindings";
+import { CanonicalTestLifetime } from "./turso-canonical-lifetime";
+
+export const canonicalTestLifetime: CanonicalTestLifetime =
+  new CanonicalTestLifetime();
 
 // The existing canonical fixture leaves auth at its default relative path.
 // Isolate that path rather than opening the developer's ./data/auth database.
@@ -46,6 +50,7 @@ const workerUrl = new URL(
 function createCandidateDatabase<T extends Record<string, unknown>>(
   options: CreateSqliteDatabaseOptions<T>,
 ): SqliteConnection<T> {
+  canonicalTestLifetime.assertOpen();
   const url = options.url === "file:data/auth/auth.db" ? authUrl : options.url;
   console.error(`[canonical-worker-candidate] opening ${url}`);
   const driver = new SqlWorkerDriver({
@@ -113,4 +118,25 @@ export async function joinCanonicalOwners(): Promise<void> {
     `[canonical-worker-candidate] ${workers.length} database workers joined; application close requests and placement checked`,
   );
 }
-afterAll(joinCanonicalOwners);
+afterAll(async () => {
+  const errors: unknown[] = [];
+  try {
+    // Bun may enter afterAll while a timed-out test is still stopping its App.
+    // Never close the App's databases ahead of its resource finalizers.
+    await canonicalTestLifetime.join();
+  } catch (error) {
+    errors.push(error);
+  }
+  try {
+    await joinCanonicalOwners();
+  } catch (error) {
+    errors.push(error);
+  }
+  if (errors.length === 1) throw errors[0];
+  if (errors.length > 1)
+    throw new AggregateError(
+      errors,
+      "Canonical test and owner retirement failed",
+      { cause: errors[0] },
+    );
+});

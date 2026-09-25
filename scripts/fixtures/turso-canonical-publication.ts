@@ -52,6 +52,7 @@ import { WorkerBinaryPersistence } from "../../shared/db/src/turso-worker/binary
 import { canonicalBrain } from "../../packages/brain-cli/src/model/canonical-brain";
 import {
   canonicalAssetBindings,
+  canonicalTestLifetime,
   joinCanonicalOwners,
 } from "./turso-canonical-preload";
 
@@ -407,7 +408,7 @@ async function renderCanonicalPrintable(
   }
 }
 
-test("canonical App binds a real file claim in its entity transaction and downloads every image byte", async () => {
+async function exerciseCanonicalPublication(): Promise<void> {
   const directory = await mkdtemp(
     join(tmpdir(), "turso-canonical-publication-"),
   );
@@ -1098,4 +1099,7 @@ plugins:
     await restarted.stop();
   }
   for (const check of shutdownChecks) check();
-});
+}
+
+test("canonical App binds a real file claim in its entity transaction and downloads every image byte", () =>
+  canonicalTestLifetime.run(exerciseCanonicalPublication));
