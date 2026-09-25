@@ -38,7 +38,11 @@ interface Fixture {
 async function fixture(
   role: "public" | "trusted" | "admin" = "admin",
   domain: string | null = "rizom.ai",
-  options: { profileAvailable?: boolean; disabled?: boolean } = {},
+  options: {
+    profileAvailable?: boolean;
+    disabled?: boolean;
+    guest?: "local-test";
+  } = {},
 ): Promise<Fixture> {
   const harness = createPluginHarness<WebChatInterface>(
     domain ? { domain } : {},
@@ -57,7 +61,11 @@ async function fixture(
     invalidateAgent: (): void => {},
   });
   const plugin = new WebChatInterface(
-    options.disabled ? { guest: false } : {},
+    options.disabled
+      ? { guest: false }
+      : options.guest
+        ? { guest: options.guest }
+        : {},
     {
       resolveAuthSession: async (): Promise<boolean> => role !== "public",
       resolvePermissionLevel: async (): Promise<typeof role> => role,
@@ -116,9 +124,22 @@ async function fixture(
 
 const access = "/api/chat/guest/access";
 describe("Ask box availability for site builds in any process", () => {
-  it("records that it serves the Ask box boot while guest chat is on", async () => {
+  it("records nothing served until the owner activates managed guest chat", async () => {
     const f = await fixture();
     expect(f.previewPaths).toContain("GET /ask/assets/box.js");
+    expect(await f.askBox()).toEqual({ public: false, preview: false });
+  });
+
+  it("records the box served on preview once activated, and not after deactivation", async () => {
+    const f = await fixture();
+    expect((await f.send(access, { enabled: true })).status).toBe(200);
+    expect(await f.askBox()).toEqual({ public: false, preview: true });
+    expect((await f.send(access, { enabled: false })).status).toBe(200);
+    expect(await f.askBox()).toEqual({ public: false, preview: false });
+  });
+
+  it("records a configured guest policy as served everywhere", async () => {
+    const f = await fixture("admin", "rizom.ai", { guest: "local-test" });
     expect(await f.askBox()).toEqual({ public: true, preview: true });
   });
 

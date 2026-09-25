@@ -3,6 +3,7 @@ import { Window, type HTMLElement as HappyDOMHTMLElement } from "happy-dom";
 import { installGlobals, type RestoreGlobals } from "@brains/test-utils";
 import {
   ASK_BOX_ATTRIBUTE,
+  ASK_READY_ATTRIBUTE,
   ASK_SEND_ATTRIBUTE,
   ASK_STATUS_ATTRIBUTE,
 } from "@brains/contracts";
@@ -66,6 +67,10 @@ describe("shared Ask box boot", () => {
     );
     expect(guestStylesheet()).toBe(false);
     expect(status()).toBe("");
+    // Hosts may keep the box out of sight until it is live.
+    expect(
+      element(`[${ASK_BOX_ATTRIBUTE}]`).hasAttribute(ASK_READY_ATTRIBUTE),
+    ).toBe(true);
   });
 
   it("starts connecting on focus without sending", () => {
@@ -111,5 +116,8 @@ describe("shared Ask box boot", () => {
   it("leaves a host without its contract untouched", () => {
     boot(`<div ${ASK_BOX_ATTRIBUTE}><textarea disabled></textarea></div>`);
     expect(input().hasAttribute("disabled")).toBe(true);
+    expect(
+      element(`[${ASK_BOX_ATTRIBUTE}]`).hasAttribute(ASK_READY_ATTRIBUTE),
+    ).toBe(false);
   });
 });
