@@ -164,6 +164,8 @@ jobs:
           bun scripts/verify-retired-package-deprecations.ts
 
       - name: Verify registry and tarball metadata
+        # Room for the registry propagation deadline (30 minutes) plus the checks.
+        timeout-minutes: 40
         run: bun scripts/verify-published-peer-metadata.ts
 
   defer-stable-exit:

@@ -50,6 +50,17 @@ describe("packed and publication gates", () => {
   });
 });
 
+describe("release verification waits out registry propagation", () => {
+  test.each([
+    ["release.yml", "Verify published core artifacts"],
+    ["site-release.yml", "Verify registry and tarball metadata"],
+  ])("%s gives %s room for a 30-minute registry wait", (file, name) => {
+    const step = workflowStep(file, name);
+    const minutes = Number(/timeout-minutes: (\d+)/.exec(step)?.[1]);
+    expect(minutes).toBeGreaterThanOrEqual(40);
+  });
+});
+
 describe("core release workflow", () => {
   test("publishes through GitHub OIDC without a registry token", () => {
     const workflow = readWorkflow("release.yml");

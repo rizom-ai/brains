@@ -238,7 +238,8 @@ jobs:
 
       # Publishing acknowledgement is not proof that consumers can fetch the release.
       - name: Verify published core artifacts
-        timeout-minutes: 20
+        # Room for the registry propagation deadline (30 minutes) plus the checks.
+        timeout-minutes: 40
         run: bun scripts/verify-published-core.ts
 
       - name: Sync docs content repo

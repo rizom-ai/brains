@@ -70,25 +70,28 @@ describe("published artifact verification", () => {
     expect(calls).toBe(3);
   });
 
-  test("fails after bounded propagation retries", async () => {
+  test("fails once propagation outlasts the deadline", async () => {
     let calls = 0;
+    let time = 0;
     const delays: number[] = [];
     const error = await downloadPublishedArtifact(target, {
       fetch: async () => {
         calls += 1;
         return new Response(null, { status: 404 });
       },
+      now: () => time,
       sleep: async (ms) => {
         delays.push(ms);
+        time += ms;
       },
     }).catch((error: unknown) => error);
     expect(error).toBeInstanceOf(Error);
     expect(error).toMatchObject({
       message: expect.stringContaining("HTTP 404"),
     });
-    expect(calls).toBe(12);
-    expect(delays).toHaveLength(11);
-    expect(Math.max(...delays)).toBe(30000);
+    expect(calls).toBe(delays.length + 1);
+    expect(Math.max(...delays)).toBe(60000);
+    expect(time).toBeGreaterThan(25 * 60_000);
   });
 
   test.each([
