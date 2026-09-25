@@ -489,7 +489,10 @@ export {
   type NavigationResult,
   type SortField,
 } from "./service/base-entity-datasource";
-export { paginationInfoSchema } from "@brains/entity-service";
+export {
+  paginationInfoSchema,
+  ReceivedEntityFileHttpError,
+} from "@brains/entity-service";
 
 // ============================================================================
 // Job System & Generation

@@ -61,6 +61,7 @@ export {
 export {
   AtprotoPdsClient,
   AcknowledgedAtprotoBlobError,
+  ReceivedAtprotoBlobError,
   type AtprotoPdsClientConfig,
   type AtprotoSession,
   type CreateRecordInput,

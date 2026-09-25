@@ -22,6 +22,7 @@ export {
 export { EntityService } from "./entityService";
 export { RemoteEntityService } from "./remote-entity-service";
 export { EntityBinaryClient } from "./entity-binary-client";
+export { ReceivedEntityFileHttpError } from "./entity-file-http-error";
 export {
   EntityFileRuntime,
   entityFileSourceSchema,

@@ -1,3 +1,4 @@
+import { ReceivedEntityFileHttpError } from "./entity-file-http-error";
 import { isAbsolute, join } from "node:path";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -18,6 +19,7 @@ import {
 } from "@brains/db/binary-publication";
 import {
   FileProcessOwner,
+  ReceivedFileHttpUploadError,
   type FileProcessOwnerOptions,
   type FileInspectionResult,
   type FileHttpUploadInput,
@@ -315,19 +317,28 @@ export class EntityFileRuntime implements EntityFileAssets {
     input: FileHttpUploadInput,
     options?: EntityBinaryRequestOptions,
   ): Promise<FileHttpUploadResult> {
-    return this.run(
-      (signal) => this.actors.put(input, signal),
-      options?.signal,
-    );
+    return this.http("put", input, options);
   }
   public postHttp(
     input: FileHttpUploadInput,
     options?: EntityBinaryRequestOptions,
   ): Promise<FileHttpUploadResult> {
-    return this.run(
-      (signal) => this.actors.post(input, signal),
-      options?.signal,
-    );
+    return this.http("post", input, options);
+  }
+  private http(
+    method: "put" | "post",
+    input: FileHttpUploadInput,
+    options?: EntityBinaryRequestOptions,
+  ): Promise<FileHttpUploadResult> {
+    return this.run(async (signal) => {
+      try {
+        return await this.actors[method](input, signal);
+      } catch (error) {
+        if (error instanceof ReceivedFileHttpUploadError)
+          throw new ReceivedEntityFileHttpError(error.outcome, error);
+        throw error;
+      }
+    }, options?.signal);
   }
   public download(
     input: EntityFileDownloadInput,

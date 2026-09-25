@@ -1,6 +1,15 @@
-import { expect, test, mock } from "bun:test";
+import { expect, test, mock, spyOn } from "bun:test";
+import { ReceivedEntityFileHttpError } from "@brains/plugins";
+import { createMockServicePluginContext } from "@brains/plugins/test";
+import { collectAtprotoBlobEvidence } from "@brains/atproto-contracts";
+import { PublishingTaskQueue } from "../src/publishing-tasks";
+import { atprotoPublishFailedPayloadSchema } from "../src/publish-contracts";
 import type { UploadBlobInput, AtprotoPdsClientConfig } from "../src";
-import { AtprotoPdsClient, AcknowledgedAtprotoBlobError } from "../src";
+import {
+  AtprotoPdsClient,
+  AcknowledgedAtprotoBlobError,
+  ReceivedAtprotoBlobError,
+} from "../src";
 import type { FetchLike } from "@brains/utils/fetch-like";
 
 type Transfers = NonNullable<
@@ -120,6 +129,140 @@ test("mismatched successful receipt is retained as acknowledgement evidence", as
   });
   expect(postHttp).toHaveBeenCalledTimes(1);
 });
+
+test("received file evidence reaches ambient reporting without promotion, diagnostics or replay", async () => {
+  const failure = new ReceivedEntityFileHttpError(
+    {
+      sizeBytes: input.sizeBytes,
+      sha256: input.sha256,
+      statusCode: 201,
+      responseMetadata: {
+        link: "received-cid",
+        mimeType: "image/png",
+        size: 10,
+        secret: "private provider token",
+      },
+    },
+    new AggregateError(
+      [new Error("private transport"), new Error("private retirement")],
+      "private cause",
+    ),
+  );
+  const postHttp = mock(async (): Promise<never> => {
+    throw failure;
+  });
+  const error = await rejection(client(postHttp).uploadBlob(input));
+  expect(error).toBeInstanceOf(ReceivedAtprotoBlobError);
+  if (!(error instanceof ReceivedAtprotoBlobError)) throw error;
+  expect(error.cause).toBe(failure);
+  expect(error.receipt.blob.ref.$link).toBe("received-cid");
+  expect(collectAtprotoBlobEvidence(error)?.nodes[0]?.status).toBe("received");
+  const context = createMockServicePluginContext();
+  const send = spyOn(context.messaging, "send");
+  const logs = spyOn(context.logger, "error").mockImplementation(() => {});
+  const queue = new PublishingTaskQueue(context.logger, () => true);
+  try {
+    await queue.runTrigger(
+      context,
+      {
+        operation: "upsert-record",
+        entityType: "post",
+        entityId: "post-1",
+        collection: "ai.rizom.brain.post",
+      },
+      async () => {
+        throw error;
+      },
+    );
+    const payload = atprotoPublishFailedPayloadSchema.parse(
+      send.mock.calls[0]?.[0].payload,
+    );
+    expect(payload.recovery?.nodes[0]?.receipts?.[0]?.sha256).toBe(
+      input.sha256,
+    );
+    expect(payload.recovery?.nodes[0]?.status).toBe("received");
+    expect(JSON.stringify(payload)).not.toContain("private");
+    expect(JSON.stringify(logs.mock.calls)).not.toContain("private");
+    expect(postHttp).toHaveBeenCalledTimes(1);
+  } finally {
+    send.mockRestore();
+    logs.mockRestore();
+  }
+});
+
+test("late cancellation and caller mutation cannot erase or rebind a received outcome", async () => {
+  const caller = new AbortController();
+  const submitted = { ...input, signal: caller.signal };
+  const cancellation = new Error("late cancellation");
+  const failure = new ReceivedEntityFileHttpError(
+    {
+      sizeBytes: input.sizeBytes,
+      sha256: input.sha256,
+      statusCode: 201,
+      responseMetadata: {
+        link: "received-cid",
+        mimeType: "image/jpeg",
+        size: 9,
+      },
+    },
+    cancellation,
+  );
+  const postHttp = mock(async (): Promise<never> => {
+    caller.abort(cancellation);
+    submitted.sha256 = "b".repeat(64);
+    submitted.sizeBytes = 9;
+    throw failure;
+  });
+  const error = await rejection(client(postHttp).uploadBlob(submitted));
+  expect(error).toBeInstanceOf(ReceivedAtprotoBlobError);
+  if (!(error instanceof ReceivedAtprotoBlobError)) throw error;
+  expect(error.cause).toBe(failure);
+  expect(error.receipt.blob.size).toBe(9);
+  expect(
+    collectAtprotoBlobEvidence(error)?.nodes[0]?.receipts?.[0]?.sha256,
+  ).toBe(input.sha256);
+  expect(postHttp).toHaveBeenCalledTimes(1);
+});
+
+test.each([
+  "status",
+  "fractional-status",
+  "digest",
+  "source-size",
+  "blob",
+  "unbranded",
+  "hostile",
+])(
+  "invalid received %s evidence preserves the original failure",
+  async (kind) => {
+    const outcome = {
+      sizeBytes: kind === "source-size" ? 9 : input.sizeBytes,
+      sha256: kind === "digest" ? "b".repeat(64) : input.sha256,
+      statusCode:
+        kind === "status" ? 500 : kind === "fractional-status" ? 201.5 : 201,
+      responseMetadata: {
+        link: "received-cid",
+        mimeType: "image/png",
+        size: kind === "blob" ? "invalid" : 10,
+      },
+    };
+    const error =
+      kind === "unbranded"
+        ? Object.assign(new Error("opaque"), { outcome })
+        : new ReceivedEntityFileHttpError(outcome, new Error("retirement"));
+    if (kind === "hostile")
+      Object.defineProperty(error, "outcome", {
+        get: (): never => {
+          throw new Error("private accessor");
+        },
+      });
+    const postHttp = mock(async (): Promise<never> => {
+      throw error;
+    });
+    expect(await rejection(client(postHttp).uploadBlob(input))).toBe(error);
+    expect(postHttp).toHaveBeenCalledTimes(1);
+  },
+);
 
 test("oversized session metadata cannot advance to binary submission", async () => {
   const postHttp = mock(unexpected);

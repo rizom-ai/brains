@@ -3,7 +3,11 @@ import assert from "node:assert/strict";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { FileProcessOwner } from "@brains/db/file-process-owner";
+import {
+  FileProcessOwner,
+  ReceivedFileHttpUploadError,
+} from "@brains/db/file-process-owner";
+import { ReceivedEntityFileHttpError } from "../src";
 import {
   EntityFileRuntime,
   type EntityFileReader,
@@ -20,6 +24,7 @@ function runtime(
   invalidate: () => void = (): void => {
     throw new Error("Unexpected fence");
   },
+  httpUploadUrl?: URL,
 ): EntityFileRuntime {
   const client = new EntityBinaryClient({
     transport: {
@@ -34,6 +39,7 @@ function runtime(
     },
   });
   return new EntityFileRuntime(client, {
+    ...(httpUploadUrl && { httpUploadUrl }),
     producerUrl: new URL(
       "../../../shared/db/test/fixtures/file-process-peer.ts",
       import.meta.url,
@@ -53,6 +59,49 @@ function runtime(
     ),
   });
 }
+test.each(["putHttp", "postHttp"] as const)(
+  "%s exposes received outcomes without exposing the actor error as the public contract",
+  async (method) => {
+    const directory = await mkdtemp(join(tmpdir(), "entity-http-received-"));
+    const gate = join(directory, "upload");
+    for (const suffix of ["receipt", "completion", "exit"])
+      await Bun.write(`${gate}.${suffix}`, "release");
+    const files = runtime(
+      async (): Promise<never> => {
+        throw new Error("Unexpected control");
+      },
+      undefined,
+      new URL(
+        "../../../shared/db/test/fixtures/file-http-peer.ts",
+        import.meta.url,
+      ),
+    );
+    const facts = { sizeBytes: 1, sha256: "a".repeat(64) };
+    try {
+      await assert.rejects(
+        files[method]({
+          sourceFile: gate,
+          facts,
+          url: "http://127.0.0.1/received-failure",
+          headers: {},
+        }),
+        (error: unknown) => {
+          assert.ok(error instanceof ReceivedEntityFileHttpError);
+          assert.deepEqual(error.outcome, { ...facts, statusCode: 201 });
+          assert.ok(error.cause instanceof ReceivedFileHttpUploadError);
+          assert.ok(error.cause.cause instanceof Error);
+          assert.match(error.cause.cause.message, /source retirement failed/);
+          assert.ok(Object.isFrozen(error.outcome));
+          return true;
+        },
+      );
+    } finally {
+      await files.close();
+    }
+    // Keep native failure gate evidence; no source bytes were read in the controller.
+  },
+);
+
 test.each(["put", "post"] as const)(
   "HTTP %s keeps its borrowed file alive through shutdown and acknowledged retirement",
   async (actor) => {

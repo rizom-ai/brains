@@ -3,7 +3,10 @@ import {
   type AtprotoBlobRef,
 } from "@brains/atproto-contracts";
 import type { PublishImageData } from "@brains/contracts";
-import type { EntityServiceClient } from "@brains/plugins";
+import {
+  ReceivedEntityFileHttpError,
+  type EntityServiceClient,
+} from "@brains/plugins";
 import { readBoundedJsonResponse } from "@brains/utils/bounded-json-response";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import { z } from "@brains/utils/zod";
@@ -93,6 +96,20 @@ export class AcknowledgedAtprotoBlobError extends AtprotoBlobEvidenceError {
       [receipt],
     );
     this.name = "AcknowledgedAtprotoBlobError";
+    this.receipt = receipt;
+  }
+}
+
+export class ReceivedAtprotoBlobError extends AtprotoBlobEvidenceError {
+  public readonly receipt: UploadBlobResult;
+  constructor(receipt: UploadBlobResult, sha256: string, cause: unknown) {
+    super(
+      "AT Protocol blob receipt received but file delivery failed",
+      "blob-receipt",
+      [{ ...receipt, sha256 }],
+      { cause },
+    );
+    this.name = "ReceivedAtprotoBlobError";
     this.receipt = receipt;
   }
 }
@@ -311,28 +328,70 @@ export class AtprotoPdsClient {
     if (!files) throw new Error("AT Protocol file upload is not provisioned");
     const session = await this.getSession(input.signal);
     input.signal.throwIfAborted();
-    const response = await files.postHttp(
-      {
-        sourceFile: input.sourceFile,
-        facts: { sizeBytes: input.sizeBytes, sha256: input.sha256 },
-        url: `${this.pdsEndpoint}/xrpc/com.atproto.repo.uploadBlob`,
-        headers: {
-          Authorization: `Bearer ${session.accessJwt}`,
-          "Content-Type": input.mimeType,
+    const submittedFacts = Object.freeze({
+      sizeBytes: input.sizeBytes,
+      sha256: input.sha256,
+    });
+    const submittedMimeType = input.mimeType;
+    const response = await files
+      .postHttp(
+        {
+          sourceFile: input.sourceFile,
+          facts: submittedFacts,
+          url: `${this.pdsEndpoint}/xrpc/com.atproto.repo.uploadBlob`,
+          headers: {
+            Authorization: `Bearer ${session.accessJwt}`,
+            "Content-Type": submittedMimeType,
+          },
+          responseMetadata: {
+            link: ["blob", "ref", "$link"],
+            mimeType: ["blob", "mimeType"],
+            size: ["blob", "size"],
+          },
         },
-        responseMetadata: {
-          link: ["blob", "ref", "$link"],
-          mimeType: ["blob", "mimeType"],
-          size: ["blob", "size"],
+        {
+          signal: AbortSignal.any([
+            input.signal,
+            AbortSignal.timeout(this.requestTimeoutMs),
+          ]),
         },
-      },
-      {
-        signal: AbortSignal.any([
-          input.signal,
-          AbortSignal.timeout(this.requestTimeoutMs),
-        ]),
-      },
-    );
+      )
+      .catch((error: unknown): never => {
+        if (error instanceof ReceivedEntityFileHttpError) {
+          let received: UploadBlobResult | undefined;
+          try {
+            const outcome = error.outcome;
+            if (
+              outcome.sizeBytes === submittedFacts.sizeBytes &&
+              outcome.sha256 === submittedFacts.sha256 &&
+              Number.isInteger(outcome.statusCode) &&
+              outcome.statusCode >= 200 &&
+              outcome.statusCode < 300
+            ) {
+              const metadata = outcome.responseMetadata;
+              const receipt = uploadBlobResultSchema.safeParse({
+                blob: {
+                  $type: "blob",
+                  ref: { $link: metadata?.["link"] },
+                  mimeType: metadata?.["mimeType"],
+                  size: metadata?.["size"],
+                },
+              });
+              if (receipt.success) received = receipt.data;
+            }
+          } catch {
+            // Malformed evidence must not replace the delivery failure.
+            throw error;
+          }
+          if (received)
+            throw new ReceivedAtprotoBlobError(
+              received,
+              submittedFacts.sha256,
+              error,
+            );
+        }
+        throw error;
+      });
     if (response.statusCode < 200 || response.statusCode >= 300)
       throw new Error(
         `AT Protocol blob upload failed with ${response.statusCode}`,
@@ -347,8 +406,8 @@ export class AtprotoPdsClient {
       },
     });
     if (
-      receipt.blob.size !== input.sizeBytes ||
-      receipt.blob.mimeType !== input.mimeType
+      receipt.blob.size !== submittedFacts.sizeBytes ||
+      receipt.blob.mimeType !== submittedMimeType
     )
       throw new AcknowledgedAtprotoBlobError(receipt);
     return receipt;
