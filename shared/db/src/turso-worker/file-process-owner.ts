@@ -78,6 +78,7 @@ interface FileActorState {
   forced: boolean;
   cancellation?: unknown;
   facts: FileActorResult | undefined;
+  received: FileActorResult | undefined;
 }
 
 const messageSchema = z.discriminatedUnion("kind", [
@@ -88,7 +89,7 @@ const messageSchema = z.discriminatedUnion("kind", [
     sidecarUrl: z.string().min(1).max(4096),
   }),
   blobFactsSchema.extend({
-    kind: z.enum(["sealed", "consumed"]),
+    kind: z.enum(["sealed", "consumed", "http-received"]),
     pid: z.number().int().positive(),
     details: detailsSchema.optional(),
   }),
@@ -434,6 +435,7 @@ export class FileProcessOwner {
       submitted: false,
       forced: false,
       facts: undefined,
+      received: undefined,
     };
     let child: Child | undefined;
     let abort: (() => void) | undefined;
@@ -468,13 +470,14 @@ export class FileProcessOwner {
             } else {
               if (!state.runtime)
                 throw new Error("File actor skipped its runtime handshake");
-              state.terminal = true;
               if (message.kind === "failed") {
+                state.terminal = true;
                 if (state.stopping) remember(state.cancellation);
                 remember(deserializeError(message.error));
               } else {
                 if (
-                  message.kind !== kind ||
+                  (message.kind !== kind &&
+                    !(observeHttp && message.kind === "http-received")) ||
                   (size !== undefined && message.sizeBytes !== size) ||
                   (digest !== undefined && message.sha256 !== digest)
                 )
@@ -486,11 +489,35 @@ export class FileProcessOwner {
                     throw new Error("HTTP upload has no method");
                   parseHttpUploadDetails(input.input, message.details);
                 }
-                state.facts = {
+                const facts = {
                   sizeBytes: message.sizeBytes,
                   sha256: message.sha256,
                   ...(message.details && { details: message.details }),
                 };
+                if (message.kind === "http-received") {
+                  if (state.received)
+                    throw new Error("Repeated HTTP received outcome");
+                  state.received = facts;
+                } else {
+                  if (observeHttp) {
+                    const previous = state.received?.details;
+                    const current = facts.details;
+                    if (
+                      !previous ||
+                      !current ||
+                      Object.keys(previous).length !==
+                        Object.keys(current).length ||
+                      Object.keys(previous).some(
+                        (key) => previous[key] !== current[key],
+                      )
+                    )
+                      throw new Error(
+                        "HTTP completion does not match its received outcome",
+                      );
+                  }
+                  state.terminal = true;
+                  state.facts = state.received ?? facts;
+                }
               }
             }
           } catch (error) {
@@ -595,12 +622,13 @@ export class FileProcessOwner {
         throw new Error("File actor produced no completion facts");
       return state.facts;
     } catch (error) {
-      if (observeHttp && state.facts && "method" in input) {
+      const outcome = state.facts ?? state.received;
+      if (observeHttp && outcome && "method" in input) {
         const received = new ReceivedFileHttpUploadError(
           {
-            sizeBytes: state.facts.sizeBytes,
-            sha256: state.facts.sha256,
-            ...parseHttpUploadDetails(input.input, state.facts.details),
+            sizeBytes: outcome.sizeBytes,
+            sha256: outcome.sha256,
+            ...parseHttpUploadDetails(input.input, outcome.details),
           },
           error,
         );

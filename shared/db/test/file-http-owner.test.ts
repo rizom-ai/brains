@@ -198,6 +198,8 @@ test("missing or malformed HTTP receipts fence reuse even after cancellation", a
     "metadata-extra",
     "metadata-oversized",
     "metadata-total",
+    "completion-only",
+    "received-wrong-digest",
   ]) {
     const directory = await mkdtemp(
       join(tmpdir(), "turso-http-owner-uncertain-"),
@@ -377,6 +379,54 @@ test("a shared owner fence retains both already-received HTTP outcomes", async (
   }
   // Failed actor evidence remains available; neither outcome is replayed.
 });
+
+test.each(methods)(
+  "HTTP %s keeps an early receipt separate from terminal completion",
+  async (method) => {
+    for (const mode of [
+      "received-failure",
+      "received-missing",
+      "received-duplicate",
+      "received-mismatch",
+    ]) {
+      const directory = await mkdtemp(join(tmpdir(), "turso-http-early-"));
+      const gate = join(directory, "upload");
+      const files = owner();
+      let settled = false;
+      const work = files[method](input(gate, mode));
+      const rejected = assert
+        .rejects(work, (error: unknown) => {
+          assert.ok(error instanceof ReceivedFileHttpUploadError);
+          assert.equal(error.outcome.statusCode, 201);
+          assert.ok(error.cause instanceof Error);
+          return true;
+        })
+        .finally(() => {
+          settled = true;
+        });
+      try {
+        await Bun.write(`${gate}.receipt`, "receipt");
+        await until(() => Bun.file(`${gate}.observed`).exists());
+        expect(files.stats().terminalChildren).toBe(0);
+        expect(files.stats().children).toBe(1);
+        expect(settled).toBe(false);
+        await Bun.write(`${gate}.completion`, "complete");
+        await Bun.write(`${gate}.exit`, "exit");
+        await rejected;
+        expect(files.stats().children).toBe(0);
+        expect(files.stats().fenced).toBe(mode !== "received-failure");
+        if (mode === "received-failure") await files.close();
+        else await assert.rejects(files.close());
+      } finally {
+        await Bun.write(`${gate}.receipt`, "release");
+        await Bun.write(`${gate}.completion`, "release");
+        await Bun.write(`${gate}.exit`, "release");
+        await Promise.allSettled([rejected, files.close()]);
+      }
+      // Keep failed actor gates as diagnostic evidence.
+    }
+  },
+);
 
 test.each(methods)(
   "HTTP %s ownership requires provisioning and pre-aborts without admission",

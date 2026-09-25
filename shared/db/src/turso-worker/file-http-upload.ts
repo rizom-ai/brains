@@ -136,7 +136,7 @@ export function parseHttpUploadDetails(
   // Reserve the complete IPC envelope, not just individual scalar lengths.
   // Safe-integer placeholders bound every admitted PID and file size.
   const envelope = {
-    kind: "consumed",
+    kind: "http-received",
     pid: Number.MAX_SAFE_INTEGER,
     sizeBytes: Number.MAX_SAFE_INTEGER,
     sha256: "0".repeat(64),
@@ -186,12 +186,13 @@ export function postFile(
 export async function uploadHttpFile(
   input: FileHttpUploadRequest,
   signal?: AbortSignal,
+  onReceived?: (outcome: FileHttpUploadResult) => void,
 ): Promise<FileHttpUploadResult> {
   signal?.throwIfAborted();
   const { input: options, method } = fileHttpUploadRequestSchema.parse(input);
   return withFileSource(
     { path: options.sourceFile, sizeBytes: options.facts.sizeBytes },
-    (source) => transfer(options, source, method, signal),
+    (source) => transfer(options, source, method, signal, onReceived),
   );
 }
 
@@ -200,6 +201,7 @@ async function transfer(
   source: FileChunkSource,
   method: FileHttpMethod,
   signal?: AbortSignal,
+  onReceived?: (outcome: FileHttpUploadResult) => void,
 ): Promise<FileHttpUploadResult> {
   signal?.throwIfAborted();
   const url = new URL(options.url);
@@ -326,6 +328,14 @@ async function transfer(
       ...options.facts,
       ...parseHttpUploadDetails(options, { statusCode, ...responseMetadata }),
     };
+    // Observe a verified receipt before transport and source retirement. This
+    // callback does not authorize terminal completion or release admission.
+    onReceived?.({
+      ...result,
+      ...(result.responseMetadata && {
+        responseMetadata: { ...result.responseMetadata },
+      }),
+    });
   } catch (error) {
     remember(error);
   }

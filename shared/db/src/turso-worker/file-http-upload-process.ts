@@ -40,6 +40,19 @@ process.on("message", (input: unknown) => {
     const result = await uploadHttpFile(
       fileHttpUploadRequestSchema.parse(input),
       cancellation.signal,
+      (outcome): void => {
+        if (process.connected)
+          process.send?.({
+            kind: "http-received",
+            pid: process.pid,
+            sizeBytes: outcome.sizeBytes,
+            sha256: outcome.sha256,
+            details: {
+              statusCode: outcome.statusCode,
+              ...outcome.responseMetadata,
+            },
+          });
+      },
     );
     // Do not retract an acknowledged receipt because cancellation arrived late.
     if (process.connected)

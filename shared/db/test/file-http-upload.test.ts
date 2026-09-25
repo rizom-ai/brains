@@ -9,7 +9,10 @@ import {
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { FileProcessOwner } from "../src/turso-worker/file-process-owner";
+import {
+  FileProcessOwner,
+  ReceivedFileHttpUploadError,
+} from "../src/turso-worker/file-process-owner";
 import {
   putFile,
   postFile,
@@ -184,6 +187,54 @@ test.each(["put", "post"] as const)(
         terminalChildren: 0,
         fenced: false,
       });
+    } finally {
+      await files.close();
+      await setup.close();
+    }
+  },
+);
+
+test.each(["put", "post"] as const)(
+  "real HTTP %s retains a verified receipt through a later actor failure",
+  async (method) => {
+    let requests = 0;
+    const setup = await fixture((request, response) => {
+      requests++;
+      request.resume();
+      request.on("end", () =>
+        response.writeHead(201).end(JSON.stringify({ id: "accepted" })),
+      );
+    });
+    const actorUrl = new URL(
+      "./fixtures/file-http-received-failure.ts",
+      import.meta.url,
+    );
+    const files = new FileProcessOwner({
+      executable: process.execPath,
+      uploadUrl: actorUrl,
+      downloadUrl: actorUrl,
+      httpUploadUrl: actorUrl,
+    });
+    try {
+      await assert.rejects(
+        files[method]({ ...setup.input, responseMetadata: { id: ["id"] } }),
+        (error: unknown) => {
+          assert.ok(error instanceof ReceivedFileHttpUploadError);
+          assert.deepEqual(error.outcome, {
+            ...setup.input.facts,
+            statusCode: 201,
+            responseMetadata: { id: "accepted" },
+          });
+          assert.ok(error.cause instanceof Error);
+          assert.match(
+            error.cause.message,
+            /injected receipt observer failure/,
+          );
+          return true;
+        },
+      );
+      expect(requests).toBe(1);
+      expect(files.stats().children).toBe(0);
     } finally {
       await files.close();
       await setup.close();

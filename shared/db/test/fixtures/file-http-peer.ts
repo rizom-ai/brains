@@ -28,8 +28,7 @@ process.on("message", (value: unknown) => {
       });
       process.exitCode = 1;
     } else if (mode !== "/missing") {
-      process.send?.({
-        kind: "consumed",
+      const outcome = {
         pid: process.pid,
         ...input.facts,
         details: {
@@ -48,7 +47,37 @@ process.on("message", (value: unknown) => {
             )),
           ...(mode === "/metadata-extra" && { extra: "unexpected" }),
         },
-      });
+      };
+      if (mode !== "/completion-only")
+        process.send?.({
+          ...outcome,
+          kind: "http-received",
+          ...(mode === "/received-wrong-digest" && { sha256: "b".repeat(64) }),
+        });
+      if (mode.startsWith("/received-")) {
+        await Bun.write(`${path}.observed`, "receipt sent");
+        while (!(await Bun.file(`${path}.completion`).exists()))
+          await Bun.sleep(5);
+      }
+      if (mode === "/received-failure") {
+        process.send?.({
+          kind: "failed",
+          pid: process.pid,
+          error: serializeError(new Error("source retirement failed")),
+        });
+        process.exitCode = 1;
+      } else if (mode === "/received-duplicate") {
+        process.send?.({ ...outcome, kind: "http-received" });
+      } else if (mode !== "/received-missing") {
+        process.send?.({
+          ...outcome,
+          kind: "consumed",
+          details: {
+            ...outcome.details,
+            ...(mode === "/received-mismatch" && { statusCode: 202 }),
+          },
+        });
+      }
     }
     while (!(await Bun.file(`${path}.exit`).exists())) await Bun.sleep(5);
     if (mode === "/bad-exit") process.exitCode = 7;
