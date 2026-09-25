@@ -1,6 +1,11 @@
 import { expect, test, mock } from "bun:test";
 import assert from "node:assert/strict";
 import { createMockShell } from "@brains/plugins/test";
+import { ReceivedEntityFileHttpError } from "@brains/plugins";
+import {
+  createDiscordFileDeliveryAdapter,
+  ReceivedDiscordFileDeliveryError,
+} from "../src/discord-file-delivery";
 import type { AssetRef } from "@brains/assets";
 import {
   deliverArtifactFile,
@@ -12,6 +17,47 @@ import {
 import { createSlackFileDeliveryAdapter } from "../src/slack-file-delivery";
 import { createSlackFileMetadataApi } from "../src/slack-file-api";
 import { CHAT_NATIVE_ARTIFACT_MAX_BYTES } from "../src/artifact-limits";
+
+test("received Discord evidence remains a failed artifact delivery with its source retained", async () => {
+  const { assets, state } = await fixture();
+  const failure = new ReceivedEntityFileHttpError(
+    {
+      ...state.source,
+      statusCode: 200,
+      responseMetadata: {
+        messageId: "123",
+        channelId: "456",
+        attachmentId: "789",
+        attachmentCount: 1,
+        filename: "source.pdf",
+        sizeBytes: state.source.sizeBytes,
+      },
+    },
+    new Error("retirement failed"),
+  );
+  const postHttp = mock(async (): Promise<never> => {
+    expect(state.active).toBe(true);
+    throw failure;
+  });
+  const adapter = createDiscordFileDeliveryAdapter(
+    { channelId: "456", botToken: "fixture-token" },
+    { postHttp },
+  );
+  await assert.rejects(
+    deliverArtifactFile(request, assets, adapter),
+    (error: unknown) => {
+      assert.ok(error instanceof ReceivedDiscordFileDeliveryError);
+      assert.ok(!(error instanceof AcknowledgedFileDeliveryError));
+      assert.equal(error.cause, failure);
+      assert.equal(error.receipt.messageId, "123");
+      return true;
+    },
+  );
+  expect(state.retained).toBe(true);
+  expect(state.active).toBe(false);
+  expect(state.loans).toBe(1);
+  expect(postHttp).toHaveBeenCalledTimes(1);
+});
 
 const ref: AssetRef = `asset://sha256/${"a".repeat(64)}`;
 const request: FileDeliveryRequest = {

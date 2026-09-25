@@ -5,7 +5,15 @@ import {
   createMockShell,
   createInterfacePluginContext,
 } from "@brains/plugins/test";
-import type { StructuredChatCard } from "@brains/plugins";
+import {
+  ReceivedEntityFileHttpError,
+  type StructuredChatCard,
+} from "@brains/plugins";
+import {
+  createDiscordFileDeliveryAdapter,
+  ReceivedDiscordFileDeliveryError,
+  type DiscordFileDeliveryDeps,
+} from "../src/discord-file-delivery";
 import {
   ArtifactDeliveryResolver,
   type ArtifactDelivery,
@@ -122,6 +130,67 @@ test("serial native sends retain acknowledged cards and stop after uncertainty w
   expect(deliver).toHaveBeenCalledTimes(2);
   expect(attempts).toEqual(["image-0", "image-1"]);
   expect([...(scope?.deliveredCardIds ?? [])]).toEqual(["image-0"]);
+  expect(state.active).toBe(0);
+});
+
+test("Discord received evidence preserves only the completed prefix and stops later artifacts", async () => {
+  const { resolver, cards, state } = await fixture();
+  let scope: ArtifactDelivery | undefined;
+  let calls = 0;
+  let failure: ReceivedEntityFileHttpError | undefined;
+  const postHttp = mock(
+    async (
+      input: Parameters<DiscordFileDeliveryDeps["postHttp"]>[0],
+    ): Promise<Awaited<ReturnType<DiscordFileDeliveryDeps["postHttp"]>>> => {
+      calls++;
+      expect(state.active).toBe(1);
+      assert.ok(input.multipart);
+      const result = {
+        ...input.facts,
+        statusCode: 200,
+        responseMetadata: {
+          messageId: String(100 + calls),
+          channelId: "456",
+          attachmentId: "789",
+          attachmentCount: 1,
+          filename: input.multipart.filename,
+          sizeBytes: input.facts.sizeBytes,
+        },
+      };
+      if (calls === 2) {
+        failure = new ReceivedEntityFileHttpError(
+          result,
+          new Error("retirement failed"),
+        );
+        throw failure;
+      }
+      return result;
+    },
+  );
+  await assert.rejects(
+    resolver.withFiles(
+      cards,
+      "trusted",
+      async (delivery) => {
+        scope = delivery;
+        assert.ok(delivery.sendFiles);
+        await delivery.sendFiles();
+      },
+      createDiscordFileDeliveryAdapter(
+        { channelId: "456", botToken: "fixture-token" },
+        { postHttp },
+      ),
+    ),
+    (error: unknown) => {
+      assert.ok(error instanceof ReceivedDiscordFileDeliveryError);
+      assert.equal(error.cause, failure);
+      assert.equal(error.receipt.messageId, "102");
+      return true;
+    },
+  );
+  expect(postHttp).toHaveBeenCalledTimes(2);
+  expect([...(scope?.deliveredCardIds ?? [])]).toEqual(["image-0"]);
+  expect(state.loans).toBe(2);
   expect(state.active).toBe(0);
 });
 

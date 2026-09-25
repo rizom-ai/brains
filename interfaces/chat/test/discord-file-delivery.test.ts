@@ -1,7 +1,9 @@
 import { expect, test, mock } from "bun:test";
 import assert from "node:assert/strict";
+import { ReceivedEntityFileHttpError } from "@brains/plugins";
 import {
   createDiscordFileDeliveryAdapter,
+  ReceivedDiscordFileDeliveryError,
   type DiscordFileDeliveryDeps,
 } from "../src/discord-file-delivery";
 import type { ArtifactDeliveryFile } from "../src/file-delivery";
@@ -89,6 +91,68 @@ test("Discord pre-abort rejects without submission and late cancellation preserv
   expect(postHttp).toHaveBeenCalledTimes(1);
 });
 
+test("Discord retains only validated receipt IDs after native failure and late cancellation", async () => {
+  const caller = new AbortController();
+  const failure = new ReceivedEntityFileHttpError(
+    receipt(),
+    new Error("private native failure"),
+  );
+  const submitted = { ...file };
+  const postHttp = mock(async (): Promise<never> => {
+    caller.abort(new Error("late cancellation"));
+    submitted.filename = "changed.png";
+    submitted.sha256 = "b".repeat(64);
+    throw failure;
+  });
+  await assert.rejects(
+    createDiscordFileDeliveryAdapter(target, { postHttp }).deliver(
+      submitted,
+      caller.signal,
+    ),
+    (error: unknown) => {
+      assert.ok(error instanceof ReceivedDiscordFileDeliveryError);
+      assert.equal(error.cause, failure);
+      assert.deepEqual(error.receipt, {
+        messageId: "987654",
+        channelId: "123456",
+        attachmentId: "56789",
+      });
+      assert.ok(Object.isFrozen(error.receipt));
+      assert.ok(!JSON.stringify(error.receipt).includes("private"));
+      assert.ok(!JSON.stringify(error.receipt).includes("fixture-token"));
+      return true;
+    },
+  );
+  expect(postHttp).toHaveBeenCalledTimes(1);
+});
+
+test.each(["unbranded", "hostile"])(
+  "Discord preserves %s failure identity instead of guessing receipts",
+  async (kind) => {
+    const error =
+      kind === "unbranded"
+        ? Object.assign(new Error("opaque"), { outcome: receipt() })
+        : new ReceivedEntityFileHttpError(receipt(), new Error("retirement"));
+    if (kind === "hostile")
+      Object.defineProperty(error, "outcome", {
+        get: (): never => {
+          throw new Error("private getter");
+        },
+      });
+    const postHttp = mock(async (): Promise<never> => {
+      throw error;
+    });
+    await assert.rejects(
+      createDiscordFileDeliveryAdapter(target, { postHttp }).deliver(
+        file,
+        new AbortController().signal,
+      ),
+      (value: unknown) => value === error,
+    );
+    expect(postHttp).toHaveBeenCalledTimes(1);
+  },
+);
+
 test("Discord transport uncertainty preserves error identity without retries", async () => {
   const primary = new Error("submitted outcome unknown");
   const postHttp = mock(async (): Promise<never> => {
@@ -111,6 +175,8 @@ test.each([
   "attachment-size",
   "count",
   "message-id",
+  "message-newline",
+  "attachment-newline",
   "missing",
 ] as const)(
   "Discord rejects a mismatched %s receipt without replay",
@@ -128,6 +194,10 @@ test.each([
     else if (field === "count") result.responseMetadata["attachmentCount"] = 2;
     else if (field === "message-id")
       result.responseMetadata["messageId"] = "not-an-id";
+    else if (field === "message-newline")
+      result.responseMetadata["messageId"] = "123\n";
+    else if (field === "attachment-newline")
+      result.responseMetadata["attachmentId"] = "123\r\n";
     else delete result.responseMetadata;
     const postHttp = mock(async () => result);
     await assert.rejects(
@@ -137,21 +207,41 @@ test.each([
       ),
     );
     expect(postHttp).toHaveBeenCalledTimes(1);
+    const failure = new ReceivedEntityFileHttpError(
+      result,
+      new Error("retirement"),
+    );
+    const failedPost = mock(async (): Promise<never> => {
+      throw failure;
+    });
+    await assert.rejects(
+      createDiscordFileDeliveryAdapter(target, {
+        postHttp: failedPost,
+      }).deliver(file, new AbortController().signal),
+      (error: unknown) => error === failure,
+    );
+    expect(failedPost).toHaveBeenCalledTimes(1);
   },
 );
 
 test("Discord validates file and routing metadata before transport submission", async () => {
   const postHttp = mock(async () => receipt());
-  for (const channelId of ["../other", "channel", "", "0", "1".repeat(21)])
+  for (const channelId of [
+    "../other",
+    "channel",
+    "",
+    "0",
+    "1".repeat(21),
+    "123\n",
+    "123\r\n",
+  ])
     expect(() =>
       createDiscordFileDeliveryAdapter({ ...target, channelId }, { postHttp }),
     ).toThrow();
-  expect(() =>
-    createDiscordFileDeliveryAdapter(
-      { ...target, botToken: "token\r\nInjected: value" },
-      { postHttp },
-    ),
-  ).toThrow();
+  for (const botToken of ["token\r\nInjected: value", "token\n", "token\r\n"])
+    expect(() =>
+      createDiscordFileDeliveryAdapter({ ...target, botToken }, { postHttp }),
+    ).toThrow();
   const adapter = createDiscordFileDeliveryAdapter(target, { postHttp });
   for (const invalid of [
     { ...file, sourceFile: "relative" },

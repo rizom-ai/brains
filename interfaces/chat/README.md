@@ -192,6 +192,8 @@ Discord parity coverage includes:
 
 Discord and Slack thread subscriptions are persisted independently through `chat.discord.subscriptions` and `chat.slack.subscriptions` so subscribed-thread routing can survive restart without cross-platform reads or writes. Source uploads use the canonical `upload` scope with platform attribution; conversation continuity remains platform-specific. Subscribed-message routing uses that same subscription record as the ownership gate. Subscription records also persist mention-required routing policy for threads that become multi-human discussions, including whether the one-time notice has already been sent. Chat SDK locks, queues, caches, lists, suggested-action callback tokens, OAuth installations, and other operational state remain memory-backed.
 
+If native Discord file delivery fails after a validated response, `ReceivedDiscordFileDeliveryError` retains only message, channel and attachment IDs plus the original cause. It is not completed delivery or permission to retry. The artifact scope keeps earlier completed cards, does not mark the received-only card delivered, joins the loan and stops later sends. This error is recovery evidence, not a durable journal or automatic replay mechanism.
+
 Suggested-action button tokens are intentionally not durable: they reference in-memory prompts instead of embedding prompt text in Discord component payloads. After restart, clicking an old suggested-action button returns an "Action unavailable" notice and does not call the agent.
 
 ## Known gaps
