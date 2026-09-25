@@ -34,6 +34,8 @@ export const homepageAtlasStyles: string = String.raw`
   font-family: var(--font-heading); font-style: italic; font-size: 1rem; letter-spacing: .03em;
   font-variation-settings: "SOFT" 60, "opsz" 24; color: var(--color-text-muted);
   text-shadow: 0 0 .5rem var(--color-bg), 0 0 .2rem var(--color-bg);
+  /* Set by the script from the name's measured box. */
+  translate: var(--atlas-name-shift, 0 0);
 }
 .atlas__marks { list-style: none; margin: 0; padding: 0; }
 .atlas__mark { position: absolute; transform: translate(-50%, -50%); }
@@ -171,16 +173,19 @@ export const homepageAtlasStyles: string = String.raw`
 .atlas__leads path { fill: none; stroke: var(--color-accent); stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: .1 6; }
 
 @media (max-width: 60rem) {
-  /* The map leads visually on phones; the conversation stays first in the document. */
+  /* The map leads visually on phones; the conversation stays first in the document.
+     The first screen holds the map and the headline together. */
   .atlas { flex-direction: column; min-height: 0; }
-  .atlas__map { order: -1; }
-  .atlas__map { position: relative; inset: auto; height: clamp(20rem, 46svh, 30rem); }
-  .atlas__talk { width: auto; padding: 1.6rem clamp(1rem, 5vw, 2rem) 2.5rem; background: none; }
-  .atlas__zone { font-size: .82rem; }
-  /* Phones keep a strip under the field so the legend never covers a mark. */
-  .atlas__field { bottom: 2.6rem; }
-  .atlas__legend { left: clamp(1rem, 5vw, 2rem); right: auto; bottom: .6rem; font-size: .78rem; }
+  .atlas__map { order: -1; position: relative; inset: auto; height: clamp(17rem, 47svh, 25rem); }
+  /* Marks stay above the fade strip, where the legend rests. */
+  .atlas__field { bottom: 2rem; }
+  .atlas__zone { font-size: .8rem; }
+  .atlas__legend { left: clamp(1rem, 5vw, 2rem); right: auto; bottom: .35rem; padding: .25rem .7rem; font-size: .74rem; gap: .3rem .9rem; }
   .atlas__legend .atlas__caption { display: none; }
+  .atlas__talk { width: auto; padding: .9rem clamp(1rem, 5vw, 2rem) 2.5rem; background: none; }
+  .atlas__byline { margin-bottom: .8rem; gap: .55rem; }
+  .atlas__initials { width: 1.8rem; height: 1.8rem; font-size: .72rem; }
+  .atlas h1 { font-size: clamp(2.5rem, 11.5vw, 3.6rem); margin-bottom: 1rem; }
   .atlas__leads { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
