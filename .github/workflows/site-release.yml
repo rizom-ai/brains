@@ -112,18 +112,15 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bun run changeset:version:site
 
+      # A pull request merged while this run versioned main is merged with the
+      # version commit; the run still publishes the version commit it verified.
       - name: Commit and push version bump
         if: needs.classify.outputs.mode == 'standard'
         env:
           HUSKY: "0"
+          RELEASE_MODE: ${{ needs.classify.outputs.mode }}
         run: |
-          git add -A
-          if git diff --cached --quiet; then
-            echo "No site/theme version changes to commit."
-          else
-            git commit -m "chore(release): version site and theme packages"
-            git push
-          fi
+          bun scripts/push-version-commit.ts "chore(release): version site and theme packages" "$RELEASE_MODE"
 
       # Standard releases require the current core version on npm. Stable
       # graduation intentionally reverses that order: the site lane verifies
@@ -186,6 +183,8 @@ jobs:
           bun scripts/verify-retired-package-deprecations.ts
 
       - name: Verify registry and tarball metadata
+        # Room for the registry propagation deadline (30 minutes) plus the checks.
+        timeout-minutes: 40
         run: bun scripts/verify-published-peer-metadata.ts
 
   defer-stable-exit:

@@ -1,5 +1,8 @@
 import type { z } from "@brains/utils/zod";
-import type { SdkErrorCode } from "@brains/contracts";
+import type {
+  SdkErrorCode,
+  InterfaceAvailabilityWriter,
+} from "@brains/contracts";
 import type { Logger } from "@brains/utils/logger";
 import type {
   AccountSettingsValue,
@@ -251,6 +254,8 @@ export interface InterfaceSetupContext<
   readonly runtimeState: <TValue, TInput = TValue>(
     options: RuntimeStateScopeOptions<TValue, TInput>,
   ) => IRuntimeStateStore<TValue, TInput>;
+  /** Owner-only durable public presentation hints. Named consumer: Web Chat Ask box. */
+  readonly availability: InterfaceAvailabilityWriter;
   readonly uploads: InterfaceUploads;
   /**
    * The conversations this interface hosts.

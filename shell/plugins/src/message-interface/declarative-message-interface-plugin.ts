@@ -4,6 +4,7 @@ import {
   type ActorRef,
 } from "@brains/contracts";
 import { getErrorMessage } from "@brains/utils/error";
+import { createInterfaceAvailabilityWriter } from "../internal/interface-availability";
 import {
   interfaceStateNamespaceFor,
   uploadNamespaceFor,
@@ -262,6 +263,13 @@ class DeclarativeMessageInterfacePlugin<
           // by hand. Changing the prefix here would orphan a live cursor, and
           // an inbound mailbox with no cursor re-reads from the beginning —
           // every message in it delivered again as new.
+          availability: createInterfaceAvailabilityWriter(
+            context.runtimeState,
+            {
+              packageName: this.packageName,
+              declarationId: this.definition.id,
+            },
+          ),
           runtimeState: (options) =>
             context.runtimeState.scoped({
               ...options,

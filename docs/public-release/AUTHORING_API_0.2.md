@@ -565,6 +565,8 @@ The runtime owns HTTP hosting, caller permission and Anchor resolution, daemon s
 
 `InterfaceDaemonDefinition` is an advanced named type for declarations retained in setup state; Web Chat's guest maintenance is its supported consumer. A daemon must drain its work before its `run` promise settles on cancellation.
 
+Interfaces can publish two durable public presentation flags with `availability.set({ public, preview })`. The runtime binds writes to the installed package and declaration; writers cannot choose another owner, namespace or key. Services and site-build workers use read-only `interfaceAvailability.get({ packageName, declarationId })`, which returns a detached frozen value or `null` for missing, malformed or unreadable data. The frozen capabilities expose only `set` or `get`, respectively. Named consumer: Web Chat's Ask-box placement in worker site builds. These flags are presentation hints—not authorization, admission, budget or live-readiness evidence. Private runtime-state namespaces remain inaccessible. Advanced types: `InterfaceAvailability` and `InterfaceAvailabilityWriter` in `/interfaces`; `InterfaceAvailability`, `InterfaceAvailabilityOwner` and `InterfaceAvailabilityReader` in `/services`.
+
 `SitePageResponse` is an advanced host-themed HTML response marker, supported by
 Web Chat's preview page. It adds no routing or authorization authority.
 

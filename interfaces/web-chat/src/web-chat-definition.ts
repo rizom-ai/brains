@@ -89,6 +89,7 @@ interface WebChatState {
   guestPolicy: GuestPolicy;
   guestHttp: GuestHttpHandlers;
   guestControl: GuestAccessControl;
+  refreshAvailability: () => Promise<void>;
   profileName(): string;
   guestMaintenance: InterfaceDaemonDefinition;
   authenticatedRoutePath: string;
@@ -187,7 +188,7 @@ export function createWebChatDefinition(
       id: webChatInterfaceType,
       config: webChatConfigSchema,
 
-      setup: (context): WebChatState => {
+      setup: async (context): Promise<WebChatState> => {
         const config: WebChatConfig = context.config;
         const guestPolicy =
           deps.guestPolicy === undefined
@@ -217,6 +218,16 @@ export function createWebChatDefinition(
           config.guest === undefined && deps.guestPolicy === undefined,
           deps.guestHttp?.now,
         );
+        const recordAvailability = async (): Promise<void> => {
+          const configured = guestPolicy.enabled;
+          const activated =
+            guestControl.policy !== undefined && (await guestControl.isOpen());
+          await context.availability.set({
+            public: configured,
+            preview: configured || activated,
+          });
+        };
+        await recordAvailability();
         const managedPolicy = guestControl.policy;
         const authenticatedRoutePath =
           guestPolicy.enabled || managedPolicy
@@ -292,6 +303,16 @@ export function createWebChatDefinition(
           guestPolicy,
           guestHttp,
           guestControl,
+          refreshAvailability: async (): Promise<void> => {
+            try {
+              await recordAvailability();
+            } catch (error) {
+              // Activation succeeded; presentation is refreshed on the next start.
+              context.logger.warn("Could not record Ask box availability", {
+                error,
+              });
+            }
+          },
           profileName: () => context.identity.getProfile().name,
           guestMaintenance: createGuestMaintenanceDaemon(
             runtimeState,
@@ -631,7 +652,7 @@ function webChatRoutes(
         ]
       : []),
     ...state.guestHttp.routes(config.apiPath),
-    ...state.guestControl.routes(config.apiPath),
+    ...state.guestControl.routes(config.apiPath, state.refreshAvailability),
   ];
 }
 

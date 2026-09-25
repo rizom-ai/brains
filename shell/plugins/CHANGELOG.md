@@ -1,5 +1,49 @@
 # @brains/plugins
 
+## 0.2.0-alpha.411
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.411
+  - @brains/contracts@0.2.0-alpha.411
+  - @brains/site-composition@0.2.0-alpha.411
+  - @brains/utils@0.2.0-alpha.411
+  - @brains/ai-service@0.2.0-alpha.411
+  - @brains/content-service@0.2.0-alpha.411
+  - @brains/conversation-service@0.2.0-alpha.411
+  - @brains/entity-service@0.2.0-alpha.411
+  - @brains/identity-service@0.2.0-alpha.411
+  - @brains/job-queue@0.2.0-alpha.411
+  - @brains/mcp-service@0.2.0-alpha.411
+  - @brains/messaging-service@0.2.0-alpha.411
+  - @brains/recurring-checks@0.2.0-alpha.411
+  - @brains/runtime-state@0.2.0-alpha.411
+  - @brains/scheduler@0.2.0-alpha.411
+  - @brains/templates@0.2.0-alpha.411
+
+## 0.2.0-alpha.410
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.410
+  - @brains/contracts@0.2.0-alpha.410
+  - @brains/site-composition@0.2.0-alpha.410
+  - @brains/utils@0.2.0-alpha.410
+  - @brains/ai-service@0.2.0-alpha.410
+  - @brains/content-service@0.2.0-alpha.410
+  - @brains/conversation-service@0.2.0-alpha.410
+  - @brains/entity-service@0.2.0-alpha.410
+  - @brains/identity-service@0.2.0-alpha.410
+  - @brains/job-queue@0.2.0-alpha.410
+  - @brains/mcp-service@0.2.0-alpha.410
+  - @brains/messaging-service@0.2.0-alpha.410
+  - @brains/recurring-checks@0.2.0-alpha.410
+  - @brains/runtime-state@0.2.0-alpha.410
+  - @brains/scheduler@0.2.0-alpha.410
+  - @brains/templates@0.2.0-alpha.410
+
 ## 0.2.0-alpha.409
 
 ### Patch Changes

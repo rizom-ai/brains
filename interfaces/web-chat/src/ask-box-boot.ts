@@ -1,5 +1,6 @@
 import {
   ASK_BOX_ATTRIBUTE,
+  ASK_READY_ATTRIBUTE,
   ASK_SEND_ATTRIBUTE,
   ASK_STATUS_ATTRIBUTE,
 } from "@brains/contracts";
@@ -68,5 +69,6 @@ export const ASK_BOX_BOOT_SCRIPT: string = `(function () {
     });
     send.disabled = false;
     send.addEventListener("click", requestSend);
+    host.setAttribute("${ASK_READY_ATTRIBUTE}", "");
   });
 })();`;

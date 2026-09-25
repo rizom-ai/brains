@@ -3,6 +3,13 @@
 // ============================================================================
 
 export type {
+  InterfaceAvailability,
+  InterfaceAvailabilityOwner,
+  InterfaceAvailabilityReader,
+  InterfaceAvailabilityWriter,
+} from "@brains/contracts";
+
+export type {
   ServiceGroupingDeclaration,
   GroupingVocabularyValue,
 } from "./service/grouping-definition";

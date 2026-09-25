@@ -34,6 +34,7 @@ import {
 import { createRuntimeTool } from "../service/tool-runtime";
 import { createInterfaceEntityAccess } from "./interface-entity-access";
 import { deriveConsoleSurfaces } from "../console-surfaces";
+import { createInterfaceAvailabilityWriter } from "../internal/interface-availability";
 import {
   interfaceStateNamespaceFor,
   uploadNamespaceFor,
@@ -146,6 +147,13 @@ class DeclarativeInterfacePlugin<
           tools: context.tools,
           publicSkills: context.publicSkills,
           spaces: context.spaces,
+          availability: createInterfaceAvailabilityWriter(
+            context.runtimeState,
+            {
+              packageName: this.packageName,
+              declarationId: this.definition.id,
+            },
+          ),
           runtimeState: (options) =>
             context.runtimeState.scoped({
               ...options,

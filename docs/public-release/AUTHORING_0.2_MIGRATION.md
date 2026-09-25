@@ -13,6 +13,10 @@ The stable `0.2` contract intentionally replaces the earlier alpha authoring sha
 | `PLUGIN_API_VERSION`                       | Use an explicit compatible peer dependency range                     |
 | `brain.yaml` `plugins.<id>.package`        | Import the definition in a brain package and compose it with `use()` |
 
+## Public interface availability
+
+For worker site builds, publish bounded presentation flags through interface setup's `availability.set({ public, preview })`; read them through service setup's `interfaceAvailability.get({ packageName, declarationId })`. Do not use globally writable runtime-state namespaces, private namespace encodings or interface HTTP handlers in workers. Only the installed interface can write its flags; readers receive frozen data or `null`. There is no legacy global-state fallback. Stale hints never grant access: keep all actual authorization, guest allowance and runtime readiness checks on serving paths.
+
 ## Operator caller authority
 
 Pass the original `context.caller` from an authenticated route to operator

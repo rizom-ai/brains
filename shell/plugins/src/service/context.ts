@@ -7,6 +7,8 @@ import type {
 } from "../public/types";
 import type { IShell, PluginRegistrationContext } from "../interfaces";
 import type { IWebRoutesNamespace } from "../interface/context";
+import type { InterfaceAvailabilityReader } from "@brains/contracts";
+import { createInterfaceAvailabilityReader } from "../internal/interface-availability";
 import { createAINamespace } from "../entity/context";
 import type {
   IEntitiesNamespace,
@@ -194,6 +196,8 @@ export interface ServicePluginContext
    * (e.g. the dashboard deriving console surface links from what is mounted).
    */
   readonly webRoutes: IWebRoutesNamespace;
+  /** Public hints only, available to site-build workers without interface registration. */
+  readonly interfaceAvailability: InterfaceAvailabilityReader;
 
   /** AI generation namespace */
   readonly ai: IEntityAINamespace;
@@ -241,6 +245,9 @@ export function createServicePluginContext(
 
     entities: createEntitiesNamespace(shell),
 
+    interfaceAvailability: createInterfaceAvailabilityReader(
+      shell.getRuntimeState(),
+    ),
     webRoutes: {
       getRoutes: () => shell.getPluginWebRoutes(),
     },

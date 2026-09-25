@@ -65,6 +65,41 @@ for (const [file, ci, versionStep] of [
     expect(workflow).toContain("actions: write");
   });
 }
+describe("release verification waits out registry propagation", () => {
+  test.each([
+    ["release.yml", "Verify published core artifacts"],
+    ["site-release.yml", "Verify registry and tarball metadata"],
+  ])("%s gives %s room for a 30-minute registry wait", (file, name) => {
+    const step = workflowStep(file, name);
+    const minutes = Number(/timeout-minutes: (\d+)/.exec(step)?.[1]);
+    expect(minutes).toBeGreaterThanOrEqual(40);
+  });
+});
+
+describe("a merge landing mid-release never fails the version push", () => {
+  test.each([
+    [
+      "release.yml",
+      "chore(release): version packages",
+      "steps.release_mode.outputs.mode",
+    ],
+    [
+      "site-release.yml",
+      "chore(release): version site and theme packages",
+      "needs.classify.outputs.mode",
+    ],
+  ])(
+    "%s pushes through the merge-aware version push",
+    (file, message, mode) => {
+      const step = workflowStep(file, "Commit and push version bump");
+      expect(step).toContain(`RELEASE_MODE: \${{ ${mode} }}`);
+      expect(step).toContain(
+        `bun scripts/push-version-commit.ts "${message}" "$RELEASE_MODE"`,
+      );
+      expect(step).not.toContain("git push");
+    },
+  );
+});
 
 describe("core release workflow", () => {
   test("publishes through GitHub OIDC without a registry token", () => {

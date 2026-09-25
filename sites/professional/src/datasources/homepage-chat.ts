@@ -1,38 +1,28 @@
-import type { BaseDataSourceContext } from "@brains/plugins";
-import { ASK_BOX_SCRIPT_PATH } from "@brains/contracts";
-
-/** Only what the check reads from the registered web routes. */
-export interface ChatRouteRuntime {
-  webRoutes: {
-    getRoutes(): ReadonlyArray<{
-      pluginId: string;
-      fullPath: string;
-      definition: {
-        public?: boolean | undefined;
-        preview?: boolean | undefined;
-      };
-    }>;
-  };
-}
+import type {
+  BaseDataSourceContext,
+  InterfaceAvailabilityReader,
+} from "@brains/plugins";
+import { ASK_BOX_AVAILABILITY_OWNER } from "@brains/contracts";
 
 /**
- * Whether the homepage offers the guest chat box: Web Chat registers its
- * public box boot only while guest chat is enabled for this deployment, and
- * a preview build needs it to reach preview. Owner authorization is still
- * decided at runtime; an unauthorized box says so and the door stays.
+ * Whether the homepage offers the guest chat box: Web Chat records in shared
+ * runtime state whether it serves the public box boot (and on preview), so
+ * site builds in a separate worker, where Web Chat is not registered, see it
+ * too. Owner authorization is still decided at runtime; an unauthorized box
+ * says so and the door stays.
  */
-export function homepageChatAvailable(
+export async function homepageChatAvailable(
   context: Pick<BaseDataSourceContext, "publishedOnly">,
-  runtime: ChatRouteRuntime,
-): boolean {
+  runtime: { interfaceAvailability: InterfaceAvailabilityReader },
+): Promise<boolean> {
   const preview = context.publishedOnly === false;
-  return runtime.webRoutes
-    .getRoutes()
-    .some(
-      (route) =>
-        route.pluginId === "web-chat" &&
-        route.fullPath === ASK_BOX_SCRIPT_PATH &&
-        route.definition.public === true &&
-        (!preview || route.definition.preview === true),
+  try {
+    const record = await runtime.interfaceAvailability.get(
+      ASK_BOX_AVAILABILITY_OWNER,
     );
+    return record !== null && record.public && (!preview || record.preview);
+  } catch {
+    // An unreadable record cannot show that Web Chat serves the box; keep the door only.
+    return false;
+  }
 }

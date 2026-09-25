@@ -1,6 +1,11 @@
 import type { ServiceGroupingDeclaration } from "./grouping-definition";
 import type { SchemaReturn } from "../internal/schema-return";
-import type { SdkError, SdkErrorCode, SdkErrorData } from "@brains/contracts";
+import type {
+  SdkError,
+  SdkErrorCode,
+  SdkErrorData,
+  InterfaceAvailabilityReader,
+} from "@brains/contracts";
 import type {
   ComponentType,
   TemplateDataSchema,
@@ -1123,6 +1128,8 @@ interface ServiceDefinitionHeader<
          * Named consumer: @brains/playbooks.
          */
         readonly entities: JobEntityAccess;
+        /** Read-only durable public hints, not private interface state or authority. Named consumer: worker site builds. */
+        readonly interfaceAvailability: InterfaceAvailabilityReader;
         /**
          * Bookkeeping that is not an entity, kept between runs.
          *

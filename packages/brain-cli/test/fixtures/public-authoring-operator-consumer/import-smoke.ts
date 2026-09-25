@@ -1,3 +1,4 @@
+import "./availability-smoke";
 import "./caller-authority-smoke";
 import accountSettingsInterface from "@fixture/mailbox-connection";
 import readingEntities from "@fixture/reading-entities";

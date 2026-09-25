@@ -763,6 +763,7 @@ class DeclarativeServicePlugin<
           ),
           // Namespaced under the declaring package, exactly as the reaction
           // context does it, so what setup writes is what a handler reads.
+          interfaceAvailability: context.interfaceAvailability,
           runtimeState: <TValue, TInput = TValue>(
             options: RuntimeStateScopeOptions<TValue, TInput>,
           ) =>

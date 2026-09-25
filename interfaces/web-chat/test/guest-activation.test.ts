@@ -6,8 +6,13 @@ import {
   type PluginTestHarness,
 } from "@brains/plugins/test";
 import { SitePageResponse } from "@brains/plugins/contracts/web-routes";
+import { createServicePluginContext } from "@brains/plugins";
 import type { IRuntimeStateStore } from "@brains/runtime-state";
 import { createWebChatPlugin } from "./helpers/definition";
+import {
+  ASK_BOX_AVAILABILITY_OWNER,
+  type AskBoxAvailability,
+} from "@brains/contracts";
 import {
   guestAdmissionNamespace,
   guestAdmissionStateSchema,
@@ -29,6 +34,7 @@ interface Fixture {
   ledger: IRuntimeStateStore<GuestAdmissionState>;
   calls(): number;
   previewPaths: string[];
+  askBox(): Promise<AskBoxAvailability | null>;
 }
 
 async function fixture(
@@ -38,6 +44,7 @@ async function fixture(
     profileAvailable?: boolean;
     disabled?: boolean;
     copy?: { content: string; visibility: "public" | "restricted" };
+    guest?: "local-test";
   } = {},
 ): Promise<Fixture> {
   const harness = createPluginHarness(domain ? { domain } : {});
@@ -73,7 +80,13 @@ async function fixture(
           : { principal: createTestPrincipal({ permissionLevel: role }) }),
       }),
     );
-  const plugin = createWebChatPlugin(options.disabled ? { guest: false } : {});
+  const plugin = createWebChatPlugin(
+    options.disabled
+      ? { guest: false }
+      : options.guest
+        ? { guest: options.guest }
+        : {},
+  );
   await harness.installPlugin(plugin);
   const ledger = harness
     .getMockShell()
@@ -111,6 +124,10 @@ async function fixture(
     send,
     ledger,
     calls: (): number => calls,
+    askBox: (): Promise<AskBoxAvailability | null> =>
+      createServicePluginContext(harness.getMockShell(), "site-worker", {
+        executionOnly: true,
+      }).interfaceAvailability.get(ASK_BOX_AVAILABILITY_OWNER),
     previewPaths: (plugin.getWebRoutes?.() ?? [])
       .filter((r) => r.preview === true)
       .map((r) => `${r.method} ${r.path}`)
@@ -119,6 +136,33 @@ async function fixture(
 }
 
 const access = "/api/chat/guest/access";
+describe("Ask box availability for site builds in any process", () => {
+  it("records nothing served until the owner activates managed guest chat", async () => {
+    const f = await fixture();
+    expect(f.previewPaths).toContain("GET /ask/assets/box.js");
+    expect(await f.askBox()).toEqual({ public: false, preview: false });
+  });
+
+  it("records the box served on preview once activated, and not after deactivation", async () => {
+    const f = await fixture();
+    expect((await f.send(access, { enabled: true })).status).toBe(200);
+    expect(await f.askBox()).toEqual({ public: false, preview: true });
+    expect((await f.send(access, { enabled: false })).status).toBe(200);
+    expect(await f.askBox()).toEqual({ public: false, preview: false });
+  });
+
+  it("records a configured guest policy as served everywhere", async () => {
+    const f = await fixture("admin", "rizom.ai", { guest: "local-test" });
+    expect(await f.askBox()).toEqual({ public: true, preview: true });
+  });
+
+  it("records that it does not while guest chat is off", async () => {
+    const f = await fixture("admin", "rizom.ai", { disabled: true });
+    expect(f.previewPaths).not.toContain("GET /ask/assets/box.js");
+    expect(await f.askBox()).toEqual({ public: false, preview: false });
+  });
+});
+
 describe("admin guest activation using deployment conventions", () => {
   it("declares only the guest presentation and API routes for preview", async () => {
     const f = await fixture();

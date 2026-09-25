@@ -73,7 +73,17 @@ export class GuestAccessControl {
     return (await this.admission?.accessStatus())?.authorized === true;
   }
 
-  routes(apiPath: string): AnyInterfaceRouteDefinition[] {
+  /** Guest chat can answer: authorized, switched on, allowance left, guest profile ready. */
+  async isOpen(): Promise<boolean> {
+    return (
+      (await this.admission?.accessStatus())?.enabled === true && this.ready()
+    );
+  }
+
+  routes(
+    apiPath: string,
+    afterActivation?: () => Promise<void>,
+  ): AnyInterfaceRouteDefinition[] {
     const path = `${createChatApiPaths(apiPath).stream}/guest/access`;
     return (["GET", "POST"] as const).map((method) =>
       defineRoute({
@@ -159,6 +169,7 @@ export class GuestAccessControl {
                 { error: "Guest accounting unavailable" },
                 503,
               );
+            if (method === "POST") await afterActivation?.();
             return privateJsonResponse({
               ...state,
               enabled: state.enabled && this.ready(),

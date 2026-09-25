@@ -1,4 +1,5 @@
 import { z } from "@brains/utils/zod";
+import { interfaceAvailabilitySchema } from "./interface-availability";
 
 /**
  * The host markup a site renders for the shared Web Chat box. The site owns
@@ -9,6 +10,8 @@ import { z } from "@brains/utils/zod";
  *   draft `textarea`, rendered disabled until the boot enables it.
  * - ASK_SEND_ATTRIBUTE marks the send button, also rendered disabled.
  * - ASK_STATUS_ATTRIBUTE marks a `role="status"` line for connection notices.
+ * - ASK_READY_ATTRIBUTE is set on the host by the boot once its controls are
+ *   live, so a host may keep the box out of sight until then.
  * - ASK_STYLED_ATTRIBUTE, on the mount element or an ancestor, opts into Web
  *   Chat's shared presentation of the mounted box. It is themed by `--ask-*`
  *   tokens, set on that same element, that default to the site theme; any
@@ -17,8 +20,23 @@ import { z } from "@brains/utils/zod";
 export const ASK_BOX_ATTRIBUTE = "data-ask-box";
 export const ASK_SEND_ATTRIBUTE = "data-ask-send";
 export const ASK_STATUS_ATTRIBUTE = "data-ask-status";
+export const ASK_READY_ATTRIBUTE = "data-ask-ready";
 export const ASK_STYLED_ATTRIBUTE = "data-ask-styled";
 export const ASK_BOX_SCRIPT_PATH = "/ask/assets/box.js";
+
+/**
+ * Web Chat publishes owner-qualified presentation hints for whether this deployment
+ * serves the box boot publicly and on preview: a configured guest policy
+ * everywhere, managed guest chat on preview once the owner has activated it.
+ * Site builds may run in a separate worker, where interfaces are not
+ * registered and Web Chat's routes are absent; they read this record instead.
+ * The serving process writes it on every start and activation change.
+ */
+export const askBoxAvailabilitySchema: z.ZodObject<{
+  public: z.ZodBoolean;
+  preview: z.ZodBoolean;
+}> = interfaceAvailabilitySchema;
+export type AskBoxAvailability = z.output<typeof askBoxAvailabilitySchema>;
 
 /**
  * Dispatched on the host (bubbling) once an answer completes: which public
