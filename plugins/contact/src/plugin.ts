@@ -137,6 +137,7 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
       themeCSS: context.themeCSS,
       // Preview reachability serves the deployment's own preview host too.
       previewOrigin: config.preview ? context.previewUrl : undefined,
+      owner: (): string => context.identity.getProfile().name,
     });
     context.endpoints.register({
       label: "Contact",
