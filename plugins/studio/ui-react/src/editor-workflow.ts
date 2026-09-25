@@ -35,6 +35,11 @@ export interface EditorWorkflowState {
   body: string;
   save: SaveState;
   deleteOpen: boolean;
+  /** Local compound-field drafts may not have a lossless serializable value yet. */
+  compoundFields?: Record<
+    string,
+    { pendingChanges: boolean; invalid: boolean }
+  >;
 }
 
 export type EditorWorkflowAction =
@@ -52,6 +57,12 @@ export type EditorWorkflowAction =
   | { type: "fieldChanged"; descriptor: FieldDescriptor; raw: unknown }
   | { type: "fieldAssistApplied"; field: string; suggestion: string | string[] }
   | { type: "bodyChanged"; body: string }
+  | {
+      type: "compoundFieldStateChanged";
+      field: string;
+      pendingChanges: boolean;
+      invalid: boolean;
+    }
   | { type: "saveStarted" }
   | {
       type: "saveFailed";
@@ -93,9 +104,21 @@ export const initialEditorWorkflowState: EditorWorkflowState = {
   deleteOpen: false,
 };
 
+export function hasInvalidEditorFields(state: EditorWorkflowState): boolean {
+  return Object.values(state.compoundFields ?? {}).some(
+    (field) => field.invalid || field.pendingChanges,
+  );
+}
+
 /** Whether leaving the current route would discard an editor draft. */
 export function hasUnsavedEditorChanges(state: EditorWorkflowState): boolean {
   if (state.mode.kind === "browse") return false;
+  if (
+    Object.values(state.compoundFields ?? {}).some(
+      (field) => field.pendingChanges,
+    )
+  )
+    return true;
   if (state.mode.kind === "create") {
     const initial = state.mode.initial;
     if (!initial) return true;
@@ -175,6 +198,19 @@ export function editorWorkflowReducer(
       return state.mode.kind === "browse"
         ? state
         : { ...state, body: action.body };
+    case "compoundFieldStateChanged":
+      return state.mode.kind === "browse"
+        ? state
+        : {
+            ...state,
+            compoundFields: {
+              ...state.compoundFields,
+              [action.field]: {
+                pendingChanges: action.pendingChanges,
+                invalid: action.invalid,
+              },
+            },
+          };
     case "saveStarted":
       return state.mode.kind === "browse"
         ? state

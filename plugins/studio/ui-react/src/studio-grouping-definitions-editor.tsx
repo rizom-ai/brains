@@ -128,6 +128,14 @@ export function StudioGroupingDefinitionsEditor(props: {
       published.current = JSON.stringify(inspected.value);
       props.onChange(inspected.value);
     }
+    // Report inside the input event, before a following save/navigation event
+    // can use the host's last serializable (but now stale) map.
+    const state = {
+      issues: inspected.issues,
+      pendingChanges: inspected.pendingChanges,
+    };
+    reported.current = JSON.stringify(state);
+    props.onStateChange(state);
   };
   const selected = draft.rows.find((row) => row.id === confirmation);
   const selectedLabel =
@@ -486,9 +494,10 @@ export function StudioGroupingDefinitionsEditor(props: {
           <StudioStatus tone="error">
             Cannot save:{" "}
             {issues
-              .map(
-                (issue) => `${issue.path.slice(1).join(".")}: ${issue.message}`,
-              )
+              .map((issue) => {
+                const path = issue.path.slice(1).join(".");
+                return path ? `${path}: ${issue.message}` : issue.message;
+              })
               .join(" · ")}
           </StudioStatus>
         </div>
@@ -523,7 +532,9 @@ export function StudioGroupingDefinitionsEditor(props: {
             {confirmation === "reset"
               ? "This replaces the invalid definitions with an empty document when you save. "
               : selectedUsage
-                ? `${selectedUsage.entries} entries carry this grouping and keep their values. `
+                ? selectedUsage.entries === 1
+                  ? "1 entry carries this grouping and keeps its values. "
+                  : `${selectedUsage.entries} entries carry this grouping and keep their values. `
                 : "Usage is unavailable. Existing entries keep their values. "}
             No entries are deleted or moved. The change takes effect after
             saving.

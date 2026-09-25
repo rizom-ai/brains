@@ -12,6 +12,18 @@ import {
 import { GROUPING_DEFINITIONS_TYPE } from "./grouping-definitions-contract";
 import { GroupingDefinitionSource } from "./grouping-definition-source";
 
+/** Eligibility is shared by source enforcement and the editor's type choices. */
+export function isGroupingContributorType(
+  context: ServicePluginContext,
+  type: string,
+): boolean {
+  return (
+    type !== GROUPING_DEFINITIONS_TYPE &&
+    !!context.entities.getAdapter(type)?.frontmatterSchema &&
+    context.entityService.getEntityTypeConfig(type).binaryStorage !== "asset"
+  );
+}
+
 /** Install after contributor types register; this document is the only source. */
 export function registerGroupingDefinitions(
   context: ServicePluginContext,
@@ -70,12 +82,7 @@ export function registerGroupingDefinitions(
   );
 
   for (const type of context.entityService.getEntityTypes()) {
-    if (
-      type === GROUPING_DEFINITIONS_TYPE ||
-      !context.entities.getAdapter(type)?.frontmatterSchema ||
-      context.entityService.getEntityTypeConfig(type).binaryStorage === "asset"
-    )
-      continue;
+    if (!isGroupingContributorType(context, type)) continue;
     context.entities.registerPersistValidator(type, async (entity) => {
       // The persistence boundary refreshed the source before projecting fields.
       // Read the authored values, never caller-supplied or stale row metadata.

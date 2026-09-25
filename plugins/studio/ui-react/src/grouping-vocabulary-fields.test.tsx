@@ -69,25 +69,29 @@ test("closed single choice uses a select, preserves exact values and clears to a
   if (!select) throw new Error("Missing select");
   expect(document.querySelector('input[type="text"]')).toBeNull();
   await act(async () => {
-    select.value = "2";
+    select.value = "1";
     select.dispatchEvent(new Event("change", { bubbles: true }));
   });
   expect(values).toEqual([" Beta, Inc. "]);
-  await act(async () => {
-    select.value = "";
-    select.dispatchEvent(new Event("change", { bubbles: true }));
-  });
+  const remove = document.querySelector<HTMLButtonElement>(
+    "[data-grouping-member] button",
+  );
+  if (!remove) throw new Error("Missing explicit removal");
+  await act(async () => remove.click());
   expect(values).toEqual([]);
 });
 test("closed multi choice retains stray memberships until explicitly removed", async () => {
   await act(async () => root.render(<Fixture multiple initial={["Gamma"]} />));
-  expect(document.querySelectorAll('input[type="checkbox"]')).toHaveLength(2);
-  expect(document.body.textContent).toContain("not in list");
-  const checkbox = document.querySelector<HTMLInputElement>(
-    'input[type="checkbox"]',
+  const select = document.querySelector("select");
+  if (!select) throw new Error("Missing choice control");
+  expect([...select.options].filter((option) => !option.disabled)).toHaveLength(
+    2,
   );
-  if (!checkbox) throw new Error("Missing checkbox");
-  await act(async () => checkbox.click());
+  expect(document.body.textContent).toContain("not in list");
+  await act(async () => {
+    select.value = "0";
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  });
   expect(values).toEqual(["Gamma", "Acme"]);
   const remove = document.querySelector<HTMLButtonElement>(
     '[aria-label="Remove Gamma"]',
@@ -113,3 +117,30 @@ test("cardinality changes and refused saves never rewrite the draft", async () =
     "true",
   );
 });
+test("a single value no longer listed is named once, where it can be removed", async () => {
+  await act(async () =>
+    root.render(<Fixture multiple={false} initial={["Gamma"]} />),
+  );
+  const text = document.body.textContent;
+  expect(text.split("Gamma")).toHaveLength(2);
+  expect(document.querySelector('[aria-label="Remove Gamma"]')).not.toBeNull();
+  expect(
+    document.querySelector<HTMLOptionElement>('option[value=""]')?.textContent,
+  ).toBe("Replace value…");
+});
+test.each([
+  [false, "one"],
+  [true, "several"],
+] as const)(
+  "cardinality is stated beside the label (multiple=%s)",
+  async (multiple, marker) => {
+    await act(async () => root.render(<Fixture multiple={multiple} />));
+    const label = document.querySelector(
+      '[data-studio-field="grouping-membership"] > div[id]',
+    );
+    expect(label?.textContent).toContain("Clients");
+    expect(label?.textContent).toContain(marker);
+    expect(document.body.textContent).not.toContain("Choose at most one value");
+    expect(document.body.textContent).not.toContain("Choose any that apply");
+  },
+);

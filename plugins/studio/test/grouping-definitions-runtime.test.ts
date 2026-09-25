@@ -1,4 +1,9 @@
 import { afterEach, describe, expect, spyOn, test } from "bun:test";
+import { act } from "react";
+import { createClient } from "@libsql/client";
+import { computeContentHash } from "@brains/utils/hash";
+import { StudioApi } from "../ui-react/src/api";
+import { mountStudio, waitForStudio } from "./fixtures/mounted-studio";
 import {
   EntityRegistry,
   EntityService,
@@ -91,6 +96,7 @@ async function open(dir: string): Promise<Fixture> {
     routePath: "/studio",
     getContext: () => context,
     getEntityDisplay: () => undefined,
+    getGroupingDefinitions: () => source.getSnapshot(),
     workspaceRegistry: new StudioWorkspaceRegistry(),
     resolveAuthPrincipal: async (request) => {
       const role =
@@ -150,6 +156,455 @@ function content(values: string[], entityType = "note"): string {
 }
 
 describe("document-backed runtime definitions with real adapters", () => {
+  test("the mounted editor creates shared definitions, retains duplicate-key drafts and refuses stale saves", async () => {
+    const fixture = await open(await directory());
+    const original =
+      "---\ntitle: Existing\nclients: [Acme, Beta]\n---\n\nKeep this source";
+    await fixture.service.createEntityFromMarkdown({
+      input: { entityType: "note", id: "existing", markdown: original },
+    });
+    const before = await fixture.service.getEntityRaw({
+      entityType: "note",
+      id: "existing",
+    });
+    expect(before).not.toBeNull();
+    const writes: string[] = [];
+    const api = new StudioApi({
+      basePath: "/studio",
+      fetch: async (input, init): Promise<Response> => {
+        const url = new URL(String(input), "https://studio.test");
+        const method = init?.method ?? "GET";
+        if (method !== "GET") writes.push(method);
+        return fixture.request(
+          method,
+          `${url.pathname.slice("/studio/api/".length)}${url.search}`,
+          init?.body ? JSON.parse(String(init.body)) : undefined,
+        );
+      },
+    });
+    const ui = await mountStudio(api, "/studio/entities/grouping-definitions");
+    const saveButton = (): HTMLButtonElement | null =>
+      document.querySelector(
+        'form[aria-label="Document editor"] button[type=submit]',
+      );
+    try {
+      await waitForStudio(() =>
+        document.body.textContent.includes("Your first grouping"),
+      );
+      expect(saveButton()?.disabled).toBe(true);
+      expect(
+        await fixture.service.getEntityRaw({
+          entityType: type,
+          id: type,
+          visibilityScope: "shared",
+        }),
+      ).toBeNull();
+      await ui.click("Add grouping");
+      await ui.input("New grouping key", "clients");
+      await ui.input("New grouping label", "Clients");
+      await ui.click("Notes contributor");
+      const cardinality = document.querySelector<HTMLSelectElement>(
+        '[aria-label="Clients values per entry"]',
+      );
+      if (!cardinality) throw new Error("Missing cardinality");
+      await act(async () => {
+        cardinality.value = "one";
+        cardinality.dispatchEvent(new Event("change", { bubbles: true }));
+      });
+      expect(saveButton()?.disabled).toBe(false);
+      await ui.click("Save changes");
+      await waitForStudio(
+        () =>
+          document.querySelector<HTMLInputElement>('[aria-label="Clients key"]')
+            ?.readOnly === true,
+      );
+      expect(writes).toEqual(["POST"]);
+      const saved = await fixture.service.getEntityRaw({
+        entityType: type,
+        id: type,
+        visibilityScope: "shared",
+      });
+      expect(saved?.visibility).toBe("shared");
+      expect(fixture.source.getSnapshot().groupings).toEqual({
+        clients: { label: "Clients", types: ["note"], multiple: false },
+      });
+      expect(
+        (
+          await fixture.service.getEntityRaw({
+            entityType: "note",
+            id: "existing",
+          })
+        )?.content,
+      ).toBe(before?.content);
+      await ui.click("Add grouping");
+      await ui.input("New grouping label", "Topics");
+      await ui.input("Topics key", "clients");
+      expect(
+        document.querySelectorAll('input[aria-label$="key"][value="clients"]'),
+      ).toHaveLength(2);
+      expect(saveButton()?.disabled).toBe(true);
+      const form = document.querySelector('form[aria-label="Document editor"]');
+      await act(async () => {
+        form?.dispatchEvent(
+          new window.KeyboardEvent("keydown", {
+            key: "s",
+            ctrlKey: true,
+            bubbles: true,
+          }),
+        );
+        form?.dispatchEvent(
+          new Event("submit", { bubbles: true, cancelable: true }),
+        );
+      });
+      expect(writes).toEqual(["POST"]);
+      await act(async () => ui.history.push("/studio/entities/note"));
+      await waitForStudio(() =>
+        document.body.textContent.includes("Discard unsaved changes?"),
+      );
+      await ui.click("Keep editing");
+      expect(
+        document.querySelectorAll('input[aria-label$="key"][value="clients"]'),
+      ).toHaveLength(2);
+      await ui.click("Remove Topics grouping");
+      await ui.click("Remove grouping");
+      await waitForStudio(() => saveButton()?.disabled === true);
+      await ui.input("Clients label", "My clients");
+      expect(
+        (
+          await save(
+            fixture,
+            {
+              clients: { label: "Elsewhere", types: ["note"], multiple: false },
+            },
+            "PUT",
+          )
+        ).status,
+      ).toBe(200);
+      await ui.click("Save changes");
+      await waitForStudio(() =>
+        document.body.textContent.includes("changed since"),
+      );
+      expect(
+        document.querySelector<HTMLInputElement>(
+          '[aria-label="My clients label"]',
+        )?.value,
+      ).toBe("My clients");
+      expect(fixture.source.getSnapshot().groupings["clients"]?.label).toBe(
+        "Elsewhere",
+      );
+    } finally {
+      await ui.close();
+    }
+  });
+
+  test("the mounted removal uses distinct usage and saves without rewriting member source", async () => {
+    const fixture = await open(await directory());
+    expect(
+      (
+        await save(fixture, {
+          clients: {
+            label: "Clients",
+            types: ["note"],
+            multiple: true,
+            values: ["Acme", "Beta"],
+          },
+        })
+      ).status,
+    ).toBe(201);
+    await fixture.service.createEntityFromMarkdown({
+      input: {
+        entityType: "note",
+        id: "member",
+        markdown: "---\ntitle: Member\nclients: [Acme, Beta]\n---\n\nUntouched",
+      },
+    });
+    const before = await fixture.service.getEntityRaw({
+      entityType: "note",
+      id: "member",
+    });
+    expect(before).not.toBeNull();
+    const api = new StudioApi({
+      basePath: "/studio",
+      fetch: async (input, init): Promise<Response> => {
+        const url = new URL(String(input), "https://studio.test");
+        return fixture.request(
+          init?.method ?? "GET",
+          `${url.pathname.slice("/studio/api/".length)}${url.search}`,
+          init?.body ? JSON.parse(String(init.body)) : undefined,
+        );
+      },
+    });
+    const ui = await mountStudio(api, "/studio/entities/grouping-definitions");
+    try {
+      await waitForStudio(
+        () =>
+          document.querySelectorAll(
+            '[aria-label="Grouping definitions"] [aria-label="1 entries"]',
+          ).length === 2,
+      );
+      await ui.click("Remove Clients grouping");
+      expect(
+        document.querySelector('[role="alertdialog"]')?.textContent,
+      ).toContain("1 entry carries this grouping and keeps its values");
+      await ui.click("Remove grouping");
+      await ui.click("Save changes");
+      await waitForStudio(
+        () =>
+          document.body.textContent.includes("Your first grouping") &&
+          document.body.textContent.includes("Saved"),
+      );
+      expect(fixture.source.getSnapshot().groupings).toEqual({});
+      expect(
+        (
+          await fixture.service.getEntityRaw({
+            entityType: "note",
+            id: "member",
+          })
+        )?.content,
+      ).toBe(before?.content);
+    } finally {
+      await ui.close();
+    }
+  });
+
+  test("the mounted usage display distinguishes initialization and failure, then retries without inventing zero", async () => {
+    const fixture = await open(await directory());
+    expect(
+      (
+        await save(fixture, {
+          clients: {
+            label: "Clients",
+            types: ["note"],
+            multiple: true,
+            values: ["Acme"],
+          },
+        })
+      ).status,
+    ).toBe(201);
+    let state: "initializing" | "error" | "ready" = "initializing";
+    const api = new StudioApi({
+      basePath: "/studio",
+      fetch: async (input, init): Promise<Response> => {
+        const url = new URL(String(input), "https://studio.test");
+        if (url.pathname.endsWith("/groups/usage") && state !== "ready")
+          return state === "initializing"
+            ? Response.json(
+                { error: "Initializing", code: "groupings_initializing" },
+                { status: 503, headers: { "Retry-After": "0.02" } },
+              )
+            : Response.json({ error: "Usage read failed" }, { status: 500 });
+        return fixture.request(
+          init?.method ?? "GET",
+          `${url.pathname.slice("/studio/api/".length)}${url.search}`,
+          init?.body ? JSON.parse(String(init.body)) : undefined,
+        );
+      },
+    });
+    const ui = await mountStudio(api, "/studio/entities/grouping-definitions");
+    try {
+      await waitForStudio(() =>
+        document.body.textContent.includes("Groupings are initializing"),
+      );
+      expect(document.querySelector('[aria-label="0 entries"]')).toBeNull();
+      state = "error";
+      await waitForStudio(() =>
+        document.body.textContent.includes("Retry usage"),
+      );
+      expect(document.querySelector('[aria-label="0 entries"]')).toBeNull();
+      expect(document.body.textContent).toContain("Usage is unavailable");
+      await ui.click("Remove Clients grouping");
+      expect(
+        document.querySelector('[role="alertdialog"]')?.textContent,
+      ).toContain("Usage is unavailable");
+      expect(
+        document.querySelector('[role="alertdialog"]')?.textContent,
+      ).not.toContain("0 entries");
+      await ui.click("Keep grouping");
+      state = "ready";
+      await ui.click("Retry usage");
+      await waitForStudio(
+        () => document.querySelector('[aria-label="0 entries"]') !== null,
+      );
+      expect(document.body.textContent).not.toContain("Retry usage");
+    } finally {
+      await ui.close();
+    }
+  });
+
+  test("the mounted page retains an unavailable stored contributor until explicit repair", async () => {
+    const dir = await directory();
+    const fixture = await open(dir);
+    expect((await save(fixture, { areas })).status).toBe(201);
+    const broken =
+      "---\nvisibility: shared\ngroupings:\n  areas:\n    label: Areas\n    types: [gone]\n    multiple: true\n---\n";
+    const database = createClient({ url: `file:${dir}/entities.db` });
+    try {
+      await database.execute({
+        sql: "UPDATE entities SET content = ?, contentHash = ? WHERE entityType = ? AND id = ?",
+        args: [broken, computeContentHash(broken), type, type],
+      });
+    } finally {
+      database.close();
+    }
+    const api = new StudioApi({
+      basePath: "/studio",
+      fetch: async (input, init): Promise<Response> => {
+        const url = new URL(String(input), "https://studio.test");
+        return fixture.request(
+          init?.method ?? "GET",
+          `${url.pathname.slice("/studio/api/".length)}${url.search}`,
+          init?.body ? JSON.parse(String(init.body)) : undefined,
+        );
+      },
+    });
+    const ui = await mountStudio(api, "/studio/entities/grouping-definitions");
+    try {
+      await waitForStudio(() =>
+        document.body.textContent.includes("gone (unavailable)"),
+      );
+      expect(
+        document.querySelector<HTMLInputElement>(
+          '[aria-label="gone contributor"]',
+        )?.checked,
+      ).toBe(true);
+      expect(
+        (
+          await fixture.service.getEntityRaw({
+            entityType: type,
+            id: type,
+            visibilityScope: "shared",
+          })
+        )?.content,
+      ).toBe(broken);
+      await ui.click("gone contributor");
+      await ui.click("Notes contributor");
+      await waitForStudio(
+        () =>
+          document.querySelector<HTMLButtonElement>(
+            'form[aria-label="Document editor"] button[type=submit]',
+          )?.disabled === false,
+      );
+      await ui.click("Save changes");
+      await waitForStudio(() => document.body.textContent.includes("Saved"));
+      expect(fixture.source.getSnapshot().groupings["areas"]?.types).toEqual([
+        "note",
+      ]);
+      expect(fixture.source.getSnapshot().issues).toEqual([]);
+    } finally {
+      await ui.close();
+    }
+  });
+
+  test("unparseable definitions stay visible and need an explicit reset before saving", async () => {
+    const dir = await directory();
+    const fixture = await open(dir);
+    expect((await save(fixture, { areas })).status).toBe(201);
+    const broken = "---\ngroupings: [unterminated\n---\n";
+    const database = createClient({ url: `file:${dir}/entities.db` });
+    try {
+      await database.execute({
+        sql: "UPDATE entities SET content = ?, contentHash = ? WHERE entityType = ? AND id = ?",
+        args: [broken, computeContentHash(broken), type, type],
+      });
+    } finally {
+      database.close();
+    }
+    const api = new StudioApi({
+      basePath: "/studio",
+      fetch: async (input, init): Promise<Response> => {
+        const url = new URL(String(input), "https://studio.test");
+        return fixture.request(
+          init?.method ?? "GET",
+          `${url.pathname.slice("/studio/api/".length)}${url.search}`,
+          init?.body ? JSON.parse(String(init.body)) : undefined,
+        );
+      },
+    });
+    const ui = await mountStudio(api, "/studio/entities/grouping-definitions");
+    try {
+      await waitForStudio(() =>
+        document.body.textContent.includes("Replace invalid definitions"),
+      );
+      expect(
+        document.querySelector('[aria-label="Grouping definitions"] pre')
+          ?.textContent,
+      ).toContain("unterminated");
+      expect(document.querySelector("[data-definition-add]")).toBeNull();
+      expect(
+        document.querySelector<HTMLButtonElement>(
+          'form[aria-label="Document editor"] button[type=submit]',
+        )?.disabled,
+      ).toBe(true);
+      expect(
+        (
+          await fixture.service.getEntityRaw({
+            entityType: type,
+            id: type,
+            visibilityScope: "shared",
+          })
+        )?.content,
+      ).toBe(broken);
+      await ui.click("Replace invalid definitions");
+      await ui.click("Replace definitions");
+      await ui.click("Save changes");
+      await waitForStudio(
+        () =>
+          document.body.textContent.includes("Your first grouping") &&
+          document.body.textContent.includes("Saved"),
+      );
+      const repaired = await fixture.service.getEntityRaw({
+        entityType: type,
+        id: type,
+        visibilityScope: "shared",
+      });
+      expect(repaired).not.toBeNull();
+      expect(parseMarkdown(repaired?.content ?? "")).toMatchObject({
+        frontmatter: { groupings: {} },
+        content: "",
+      });
+      expect(fixture.source.getSnapshot().issues).toEqual([]);
+    } finally {
+      await ui.close();
+    }
+  });
+
+  test("the mounted definitions page is read-only for trusted readers", async () => {
+    const fixture = await open(await directory());
+    expect((await save(fixture, { areas })).status).toBe(201);
+    const api = new StudioApi({
+      basePath: "/studio",
+      fetch: async (input, init): Promise<Response> => {
+        const url = new URL(String(input), "https://studio.test");
+        expect(init?.method ?? "GET").toBe("GET");
+        return fixture.request(
+          "GET",
+          `${url.pathname.slice("/studio/api/".length)}${url.search}`,
+          undefined,
+          "trusted",
+        );
+      },
+    });
+    const ui = await mountStudio(api, "/studio/entities/grouping-definitions");
+    try {
+      await waitForStudio(() =>
+        document.body.textContent.includes("Only administrators can change"),
+      );
+      const field = document.querySelector(
+        '[aria-label="Grouping definitions"]',
+      );
+      expect(
+        field?.querySelectorAll("button,input,select,textarea"),
+      ).toHaveLength(0);
+      expect(
+        document.querySelector(
+          'form[aria-label="Document editor"] button[type=submit]',
+        ),
+      ).toBeNull();
+    } finally {
+      await ui.close();
+    }
+  });
+
   test("a saved definition reaches schemas, writes and catalogs in another process without registration or restart", async () => {
     const dir = await directory();
     const writer = await open(dir);
@@ -722,6 +1177,27 @@ describe("document-backed runtime definitions with real adapters", () => {
     expect(reader.source.getSnapshot().groupings["areas"]?.values).toEqual(
       values,
     );
+    const detail = await reader.request(
+      "GET",
+      `entities?type=${type}&id=${type}`,
+    );
+    expect(detail.status).toBe(200);
+    expect(await detail.json()).toMatchObject({
+      entity: { frontmatter: { groupings: { areas: { values } } } },
+    });
+    expect(
+      (
+        await save(
+          reader,
+          { areas: { ...areas, label: "Research areas", values } },
+          "PUT",
+        )
+      ).status,
+    ).toBe(200);
+    expect(reader.source.getSnapshot().groupings["areas"]?.values).toEqual(
+      values,
+    );
+    expect(resolvedRead).not.toHaveBeenCalled();
   });
 
   test("Studio creation refreshes its format before preparing the first note", async () => {

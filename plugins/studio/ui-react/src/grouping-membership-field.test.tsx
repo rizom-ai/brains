@@ -85,6 +85,25 @@ async function click(label: string): Promise<void> {
   if (!button) throw new Error(`Missing ${label}`);
   await act(async () => button.click());
 }
+test("missing usage is unavailable, not a fabricated zero", async () => {
+  await act(async () =>
+    root.render(
+      <GroupingMembershipField
+        label="Allowed values"
+        purpose="allowed-values"
+        definition={{ multiple: true }}
+        value={["Known unused", "Not queried"]}
+        counts={new Map([["Known unused", 0]])}
+        onChange={() => {}}
+      />,
+    ),
+  );
+  expect(document.querySelectorAll('[aria-label="0 entries"]')).toHaveLength(1);
+  expect(
+    document.querySelectorAll('[aria-label="Usage unavailable"]'),
+  ).toHaveLength(1);
+});
+
 test.each([true, false])(
   "closed lists share the chip frame and state cardinality (%s)",
   async (multiple) => {

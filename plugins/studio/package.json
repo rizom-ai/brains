@@ -37,6 +37,7 @@
     "@brains/templates": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@libsql/client": "^0.17.4",
     "@types/bun": "^1.4.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.0.3",
@@ -50,8 +51,8 @@
   },
   "private": true,
   "scripts": {
-    "build": "bun scripts/build-ui.ts",
-    "build:ui": "bun scripts/build-ui.ts",
+    "build": "BUN_JSC_useDFGJIT=0 bun scripts/build-ui.ts",
+    "build:ui": "BUN_JSC_useDFGJIT=0 bun scripts/build-ui.ts",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --max-warnings 0 --fix",
     "test": "BUN_JSC_useDFGJIT=0 bun test",

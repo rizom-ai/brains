@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { hasInvalidEditorFields } from "./editor-workflow";
 import { studioCollectionPath } from "../../src/studio-paths";
 import { GROUPING_VOCABULARY_TYPE } from "../../src/grouping-vocabulary-contract";
+import { GROUPING_DEFINITIONS_TYPE } from "../../src/grouping-definitions-contract";
 import type { StudioCollectionQuery } from "../../src/collection-query";
 import { type MobileEditorPane } from "./app-view";
 import { ApiError, type FieldAssistResponse } from "./api";
@@ -176,7 +178,15 @@ export function useEditorActions(input: EditorActionsInput): EditorActions {
   );
 
   const save = useCallback((): void => {
-    if (!entityType || mode.kind === "browse" || !schema) return;
+    if (
+      !entityType ||
+      mode.kind === "browse" ||
+      !schema ||
+      (entityType === GROUPING_DEFINITIONS_TYPE &&
+        !schema.groupingDefinitions) ||
+      hasInvalidEditorFields(editor)
+    )
+      return;
     if (
       mode.kind === "create"
         ? activeCapabilities?.canCreate !== true
@@ -217,7 +227,16 @@ export function useEditorActions(input: EditorActionsInput): EditorActions {
           queryClient.invalidateQueries({
             queryKey: studioKeys.syncStatus(),
           }),
-          ...(mode.kind === "create" || entityType === GROUPING_VOCABULARY_TYPE
+          ...(entityType === GROUPING_DEFINITIONS_TYPE
+            ? [
+                queryClient.invalidateQueries({
+                  queryKey: ["studio", "schema"],
+                }),
+              ]
+            : []),
+          ...(mode.kind === "create" ||
+          entityType === GROUPING_VOCABULARY_TYPE ||
+          entityType === GROUPING_DEFINITIONS_TYPE
             ? [
                 queryClient.invalidateQueries({
                   queryKey: studioKeys.navigation(),
@@ -260,6 +279,7 @@ export function useEditorActions(input: EditorActionsInput): EditorActions {
     entityType,
     mode,
     createPath,
+    editor,
     draft,
     body,
     schema,

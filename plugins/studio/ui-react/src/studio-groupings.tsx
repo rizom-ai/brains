@@ -3,7 +3,7 @@ import { groupingValueLabel } from "./grouping-value";
 import { useEffect, useMemo, useState, type ReactElement } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button, NativeSelect } from "@brains/app-ui-react";
-import type { StudioGrouping } from "../../src/grouping-vocabulary-contract";
+import type { StudioGrouping } from "../../src/grouping-definitions-contract";
 import { GroupingValue } from "./grouping-vocabulary-fields";
 import { formatLabel } from "@brains/utils/string-utils";
 import {
@@ -132,7 +132,7 @@ export function StudioGroupingContent(
   );
   const membershipWarning =
     query.value !== null &&
-    grouping.vocabulary &&
+    grouping.vocabulary?.values &&
     !grouping.vocabulary.values.includes(query.value)
       ? " · not in list"
       : "";

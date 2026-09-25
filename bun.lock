@@ -1191,6 +1191,7 @@
         "@brains/templates": "workspace:*",
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
+        "@libsql/client": "^0.17.4",
         "@types/bun": "^1.4.0",
         "@types/react": "^19.2.17",
         "@types/react-dom": "^19.0.3",

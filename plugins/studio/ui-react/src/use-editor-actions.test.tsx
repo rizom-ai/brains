@@ -234,6 +234,41 @@ async function settle(): Promise<void> {
 }
 
 describe("useEditorActions", () => {
+  it.each([
+    { pendingChanges: true, invalid: false },
+    { pendingChanges: false, invalid: true },
+  ])(
+    "refuses a direct save while a compound field blocks serialization (%j)",
+    async (state) => {
+      const harness = await renderActions({
+        editor: { ...editing(openNote), compoundFields: { groupings: state } },
+      });
+      await act(async () => harness.actions().save());
+      await settle();
+      expect(harness.saves).toEqual([]);
+      expect(harness.dispatches).toEqual([]);
+    },
+  );
+  it("does not save definitions when their schema context is unavailable", async () => {
+    const entityType = "grouping-definitions";
+    const entity = {
+      ...openNote,
+      id: entityType,
+      entityType,
+      frontmatter: { groupings: {} },
+      body: "",
+    };
+    const harness = await renderActions({
+      entityType,
+      editor: editing(entity),
+      schema: { ...noteSchema, entityType, isSingleton: true, hasBody: false },
+    });
+    await act(async () => harness.actions().save());
+    await settle();
+    expect(harness.saves).toEqual([]);
+    expect(harness.dispatches).toEqual([]);
+  });
+
   it("returns to the exact grouping after deleting a member", async () => {
     const groupReturnPath =
       "/studio/groups/clients?value=%20Acme%20&type=note&q=brief&offset=50";

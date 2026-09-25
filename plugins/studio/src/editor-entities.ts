@@ -1,4 +1,8 @@
-import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
+import type {
+  BaseEntity,
+  GetEntityRequest,
+  ServicePluginContext,
+} from "@brains/plugins";
 import { encodeEntityIdPath } from "@brains/entity-service";
 import {
   DIRECTORY_SYNC_CHANNELS,
@@ -33,6 +37,7 @@ import {
 import { jsonResponse } from "./editor-response";
 import { editorValidationResponse } from "./editor-validation";
 import { GROUPING_VOCABULARY_TYPE } from "./grouping-vocabulary-contract";
+import { GROUPING_DEFINITIONS_TYPE } from "./grouping-definitions-contract";
 import {
   studioCollectionQuerySchema,
   studioCollectionQueryFromParams,
@@ -48,6 +53,16 @@ export function entityDisplayTitle(
       "title"
     ] ?? entity.metadata["title"];
   return typeof title === "string" && title.trim() ? title.trim() : undefined;
+}
+
+/** Definition values are literal policy, never rendered Markdown image references. */
+function readEditorEntity(
+  context: ServicePluginContext,
+  request: GetEntityRequest,
+): Promise<BaseEntity | null> {
+  return request.entityType === GROUPING_DEFINITIONS_TYPE
+    ? context.entityService.getEntityRaw(request)
+    : context.entityService.getEntity(request);
 }
 
 const updateEntityPayloadSchema = z.object({
@@ -190,7 +205,7 @@ export async function handleGetEntities(
 
   const id = params.get("id");
   if (id) {
-    const entity = await context.entityService.getEntity({
+    const entity = await readEditorEntity(context, {
       entityType,
       id,
       visibilityScope: access.visibilityScope,
@@ -356,7 +371,7 @@ export async function handleUpdateEntity(
     return jsonResponse({ error: `Unknown entity type: ${entityType}` }, 404);
   }
 
-  const existing = await context.entityService.getEntity({
+  const existing = await readEditorEntity(context, {
     entityType,
     id,
     visibilityScope: access.visibilityScope,
@@ -403,25 +418,26 @@ export async function handleUpdateEntity(
     );
   }
 
-  const body =
-    payload.body ??
-    splitEntityContent(entityType, existing.content, context).body;
+  const source = splitEntityContent(entityType, existing.content, context);
+  const body = payload.body ?? source.body;
   const claimedFields = Object.fromEntries(
     Object.entries(frontmatter.data).filter(([key]) =>
       Object.hasOwn(schema.shape, key),
     ),
   );
-  const content = raw
+  const serialized = raw
     ? body
-    : preserveSourceFrontmatter(
-        existing.content,
-        generateMarkdownWithFrontmatter(
-          body,
-          withStudioVisibility(claimedFields, visibility.visibility),
-        ),
-        schema,
-        [],
+    : generateMarkdownWithFrontmatter(
+        body,
+        withStudioVisibility(claimedFields, visibility.visibility),
       );
+  // An unparseable definition document cannot supply unclaimed fields. Its
+  // full source was shown for explicit repair; the replacement passed strict
+  // validation above and still goes through permissions and stale-write checks.
+  const content =
+    raw || source.malformed
+      ? serialized
+      : preserveSourceFrontmatter(existing.content, serialized, schema, []);
 
   // Re-derive adapter fields (metadata, visibility, etc.) from the finalized
   // content before applying policy. Incoming form data is never the authority.
@@ -589,7 +605,10 @@ function prepareStudioCreation(
     );
   const visibility = resolveStudioVisibility(
     payload.frontmatter,
-    entityType === GROUPING_VOCABULARY_TYPE ? "shared" : "public",
+    entityType === GROUPING_VOCABULARY_TYPE ||
+      entityType === GROUPING_DEFINITIONS_TYPE
+      ? "shared"
+      : "public",
   );
   if (!visibility.success) return visibility.response;
   // System visibility is validated separately, never by a strict domain schema.
@@ -809,7 +828,7 @@ export async function handleDeleteEntity(
     );
   }
 
-  const existing = await context.entityService.getEntity({
+  const existing = await readEditorEntity(context, {
     entityType,
     id,
     visibilityScope: access.visibilityScope,

@@ -1,4 +1,4 @@
-import { entityGroupingSchema } from "@brains/plugins";
+import { entityGroupingSchema, type EntityGrouping } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 
 export const GROUPING_DEFINITIONS_TYPE = "grouping-definitions";
@@ -55,6 +55,14 @@ export type GroupingDefinition = z.output<typeof groupingDefinitionSchema>;
 export type GroupingDefinitionsFrontmatter = z.output<
   typeof groupingDefinitionsFrontmatterSchema
 >;
+
+export type GroupingValueRules = Pick<
+  GroupingDefinition,
+  "multiple" | "values"
+>;
+export interface StudioGrouping extends EntityGrouping {
+  vocabulary?: GroupingValueRules;
+}
 
 export interface GroupingDefinitionIssue {
   path: Array<string | number>;

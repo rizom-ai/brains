@@ -31,6 +31,8 @@ import { jsonResponse } from "./editor-response";
 import { handleGroupingRead, studioGroupDescriptors } from "./editor-groupings";
 import { readGroupingVocabularies } from "./grouping-vocabulary";
 import { GROUPING_VOCABULARY_TYPE } from "./grouping-vocabulary-contract";
+import { GROUPING_DEFINITIONS_TYPE } from "./grouping-definitions-contract";
+import { isGroupingContributorType } from "./grouping-definitions";
 import {
   handleCreateEntity,
   handleDeleteEntity,
@@ -392,7 +394,7 @@ export function createEditorRoutes(
       handler: async (request): Promise<Response> => {
         const access = await requireTrustedAccess(request);
         if (access instanceof Response) return access;
-        return handleGetSchema(getContext(), request, access);
+        return handleGetSchema(getContext(), request, access, options);
       },
     },
     {
@@ -754,6 +756,7 @@ async function handleGetSchema(
   context: ServicePluginContext,
   request: Request,
   access: StudioRequestAccess,
+  options: EditorRouteOptions,
 ): Promise<Response> {
   const entityType = new URL(request.url).searchParams.get("type");
   if (!entityType) {
@@ -793,11 +796,33 @@ async function handleGetSchema(
   // constrains must be able to read it. Offering a choice invites a list
   // that silently refuses saves nobody can explain.
   const fields =
-    entityType === GROUPING_VOCABULARY_TYPE
+    entityType === GROUPING_VOCABULARY_TYPE ||
+    entityType === GROUPING_DEFINITIONS_TYPE
       ? domainFields
       : [...domainFields, visibilityField];
 
+  const contributorTypes: Array<{ entityType: string; label: string }> = [];
+  if (entityType === GROUPING_DEFINITIONS_TYPE) {
+    const display = options.getEntityDisplay();
+    for (const type of context.entityService.getEntityTypes()) {
+      if (
+        isGroupingContributorType(context, type) &&
+        (await getTypeCapabilities(context, type, access))
+      ) {
+        contributorTypes.push({
+          entityType: type,
+          label: entityTypeLabels(type, display?.[type]).pluralLabel,
+        });
+      }
+    }
+  }
   return jsonResponse({
+    ...(entityType === GROUPING_DEFINITIONS_TYPE && {
+      groupingDefinitions: {
+        contributorTypes,
+        issues: options.getGroupingDefinitions?.().issues ?? [],
+      },
+    }),
     entityType,
     format: raw ? "raw" : "frontmatter",
     isSingleton: adapter?.isSingleton === true,

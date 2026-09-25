@@ -1,6 +1,9 @@
 /** @jsxImportSource react */
 import * as stylex from "@stylexjs/stylex";
+import { hasInvalidEditorFields } from "./editor-workflow";
 import { StudioSystemFields } from "./studio-system-fields";
+import { StudioGroupingDefinitionsField } from "./studio-grouping-definitions-field";
+import { GROUPING_DEFINITIONS_TYPE } from "../../src/grouping-definitions-contract";
 import { StudioVocabularyEditor } from "./studio-vocabulary-editor";
 import { GROUPING_VOCABULARY_TYPE } from "../../src/grouping-vocabulary-contract";
 import { systemFieldStyles } from "./studio-system-fields.styles";
@@ -102,6 +105,9 @@ export function StudioEditorPane(
   } = props.model;
   const saveBlocked =
     !canEdit ||
+    hasInvalidEditorFields(editor) ||
+    (selectedEntityType === GROUPING_DEFINITIONS_TYPE &&
+      !entitySchema.groupingDefinitions) ||
     destinationBlocked ||
     saveState.kind === "saving" ||
     (entitySchema.isSingleton && !hasUnsavedChanges);
@@ -343,12 +349,27 @@ export function StudioEditorPane(
                       }
                     />
                   )}
+                  {selectedEntityType === GROUPING_DEFINITIONS_TYPE &&
+                    (entitySchema.groupingDefinitions ? (
+                      <StudioGroupingDefinitionsField
+                        editor={editor}
+                        schema={entitySchema.groupingDefinitions}
+                        readOnly={!canEdit}
+                        dispatch={dispatchEditor}
+                      />
+                    ) : (
+                      <StudioStatus tone="error">
+                        Grouping definitions are unavailable. Reload before
+                        editing.
+                      </StudioStatus>
+                    ))}
                   <StudioSystemFields
                     vocabularies={groupingVocabularies}
                     literalFields={groupingFields}
                     suggestions={props.groupingSuggestions}
                     fields={
-                      selectedEntityType === GROUPING_VOCABULARY_TYPE
+                      selectedEntityType === GROUPING_VOCABULARY_TYPE ||
+                      selectedEntityType === GROUPING_DEFINITIONS_TYPE
                         ? entitySchema.fields.filter(
                             (field) => field.name !== "groupings",
                           )
@@ -397,6 +418,7 @@ export function StudioEditorPane(
                       data-studio-field-assist=""
                     >
                       <Field
+                        readOnly={!canEdit}
                         vocabulary={groupingVocabularies[descriptor.name]}
                         literalList={groupingFields.includes(descriptor.name)}
                         suggestions={
@@ -413,7 +435,10 @@ export function StudioEditorPane(
                           })
                         }
                       />
+                      {/* A model never sees a closed list, so it could only
+                          propose values the save would refuse. */}
                       {canAssist &&
+                        !groupingVocabularies[descriptor.name]?.values &&
                         entitySchema.hasBody &&
                         body.trim().length > 0 && (
                           <FieldAssistControls

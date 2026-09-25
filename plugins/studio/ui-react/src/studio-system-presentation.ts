@@ -7,6 +7,14 @@ export interface SystemEditorCopy {
 }
 
 const profiles: Record<string, SystemEditorCopy> = {
+  "grouping-definitions": {
+    title: "Groupings",
+    intro:
+      "Define how entries are collected, without moving or rewriting their content.",
+    fieldsTitle: "",
+    bodyTitle: "",
+    bodyDescription: "",
+  },
   "grouping-vocabulary": {
     title: "Groupings",
     intro:

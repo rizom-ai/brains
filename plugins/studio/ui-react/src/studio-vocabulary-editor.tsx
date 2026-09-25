@@ -3,7 +3,7 @@ import * as stylex from "@stylexjs/stylex";
 import { Button } from "@brains/app-ui-react";
 import { isRecord } from "@brains/utils/is-record";
 import { useEffect, useRef, type ReactElement } from "react";
-import type { StudioGrouping } from "../../src/grouping-vocabulary-contract";
+import type { EntityGrouping } from "@brains/plugins";
 import type { ValidationIssue } from "./api";
 import { Field } from "./entity-fields";
 import { groupingValueLabel } from "./grouping-value";
@@ -13,7 +13,7 @@ import { fieldStyles as f } from "./studio-fields.styles";
 
 /** A compound document field, still saved through the ordinary system form. */
 export function StudioVocabularyEditor(props: {
-  groupings: readonly StudioGrouping[];
+  groupings: readonly EntityGrouping[];
   value: unknown;
   readOnly: boolean;
   issues?: ValidationIssue[] | undefined;

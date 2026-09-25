@@ -12,7 +12,7 @@ import type { FieldDescriptor, ValidationIssue } from "./api";
 import { applyFieldChange } from "./editor-workflow";
 import { Field, isFieldVisible } from "./entity-fields";
 import { GroupingValue } from "./grouping-vocabulary-fields";
-import type { GroupingVocabulary } from "../../src/grouping-vocabulary-contract";
+import type { GroupingValueRules } from "../../src/grouping-definitions-contract";
 import { isRecord } from "@brains/utils/is-record";
 import { StudioStatus } from "./studio-status";
 import { systemFieldStyles as s } from "./studio-system-fields.styles";
@@ -38,7 +38,7 @@ export function SystemReadOnlyValue({
   literalStrings,
   vocabulary,
 }: {
-  vocabulary?: GroupingVocabulary | undefined;
+  vocabulary?: GroupingValueRules | undefined;
   literalStrings?: boolean | undefined;
   value: unknown;
   fields?: FieldDescriptor[] | undefined;
@@ -96,7 +96,7 @@ export function SystemReadOnlyValue({
 }
 
 export function StudioSystemFields(props: {
-  vocabularies?: Record<string, GroupingVocabulary> | undefined;
+  vocabularies?: Record<string, GroupingValueRules> | undefined;
   literalFields?: readonly string[] | undefined;
   suggestions?: Record<string, readonly string[]> | undefined;
   fields: FieldDescriptor[];
@@ -154,7 +154,7 @@ export function StudioSystemFields(props: {
       issues={props.issues}
       onChange={(value) => props.onChange(field, value)}
     >
-      {props.renderAssist?.(field)}
+      {!props.vocabularies?.[field.name]?.values && props.renderAssist?.(field)}
     </SystemField>
   );
   return (
@@ -181,7 +181,7 @@ export function StudioSystemFields(props: {
 }
 
 function SystemField(props: {
-  vocabulary?: GroupingVocabulary | undefined;
+  vocabulary?: GroupingValueRules | undefined;
   literalList?: boolean | undefined;
   suggestions?: readonly string[] | undefined;
   descriptor: FieldDescriptor;

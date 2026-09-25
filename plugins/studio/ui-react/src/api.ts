@@ -10,7 +10,10 @@ import {
   studioGroupingUsageQuerySchema,
   type StudioGroupingQuery,
 } from "../../src/grouping-query";
-import type { StudioGrouping } from "../../src/grouping-vocabulary-contract";
+import type {
+  StudioGrouping,
+  GroupingDefinitionIssue,
+} from "../../src/grouping-definitions-contract";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import {
   studioCollectionQuerySchema,
@@ -118,6 +121,10 @@ export interface FieldDescriptor {
 }
 
 export interface TypeSchema {
+  groupingDefinitions?: {
+    contributorTypes: Array<{ entityType: string; label: string }>;
+    issues: GroupingDefinitionIssue[];
+  };
   entityType: string;
   format: "raw" | "frontmatter";
   isSingleton: boolean;

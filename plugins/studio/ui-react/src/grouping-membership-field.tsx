@@ -92,9 +92,13 @@ export function GroupingMembershipField(props: {
                   {props.counts && (
                     <span
                       {...stylex.props(s.count)}
-                      aria-label={`${props.counts.get(value) ?? 0} entries`}
+                      aria-label={
+                        props.counts.has(value)
+                          ? `${props.counts.get(value)} entries`
+                          : "Usage unavailable"
+                      }
                     >
-                      {props.counts.get(value) ?? 0}
+                      {props.counts.get(value) ?? "—"}
                     </span>
                   )}
                   {allowed && !allowed.includes(value) && (

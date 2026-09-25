@@ -664,6 +664,7 @@ function renderCapabilityView(
     singleton?: boolean;
     fields?: FieldDescriptor[];
     frontmatter?: Record<string, unknown>;
+    groupings?: StudioAppViewProps["groupings"];
   } = {},
 ): string {
   const entityType = page.entityType ?? "post";
@@ -693,6 +694,7 @@ function renderCapabilityView(
     capabilities,
   };
   const props: StudioAppViewProps = {
+    ...(page.groupings && { groupings: page.groupings }),
     activeWorkspaceId: null,
     readError: page.readError ?? null,
     onRetryRead: () => {},
@@ -792,6 +794,50 @@ it("disables pristine singleton saves while retaining ordinary document no-op sa
       browser.close();
     }
   }
+});
+
+it("offers AI suggestions only for groups editors may type into", () => {
+  const list = (name: string, label: string): FieldDescriptor => ({
+    name,
+    label,
+    widget: "list",
+    required: false,
+    field: { name: "value", label: "Value", widget: "string" },
+  });
+  const html = renderCapabilityView(
+    {
+      canRead: true,
+      canCreate: true,
+      canUpdate: true,
+      canDelete: true,
+      canExtract: false,
+      canPublish: false,
+      canAssist: true,
+    },
+    "edit",
+    {
+      fields: [list("clients", "Clients"), list("areas", "Areas")],
+      frontmatter: { clients: ["Acme"], areas: ["Field notes"] },
+      groupings: {
+        items: [
+          {
+            key: "clients",
+            label: "Clients",
+            field: "clients",
+            types: ["post"],
+            vocabulary: { multiple: false, values: ["Acme", "Beta"] },
+          },
+          { key: "areas", label: "Areas", field: "areas", types: ["post"] },
+        ],
+        active: null,
+        onSelect: () => {},
+      },
+    },
+  );
+  // A model never sees the closed list, so it could only propose values
+  // the save would refuse.
+  expect(html).not.toContain("Suggest clients");
+  expect(html).toContain("Suggest areas");
 });
 
 it("uses page terminology throughout site-content collection navigation", () => {

@@ -3,6 +3,7 @@ import * as stylex from "@stylexjs/stylex";
 import { NativeSelect } from "@brains/app-ui-react";
 import { useId, type ReactElement } from "react";
 import type { GroupingVocabulary } from "../../src/grouping-vocabulary-contract";
+import type { GroupingValueRules } from "../../src/grouping-definitions-contract";
 import type { FieldDescriptor } from "./api";
 import { groupingValueLabel } from "./grouping-value";
 import { fieldStyles as f } from "./studio-fields.styles";
@@ -13,12 +14,12 @@ export function GroupingValue({
   vocabulary,
 }: {
   value: string;
-  vocabulary?: GroupingVocabulary | undefined;
+  vocabulary?: GroupingValueRules | undefined;
 }): ReactElement {
   return (
     <span>
       {groupingValueLabel(value)}
-      {vocabulary && !vocabulary.values.includes(value) && (
+      {vocabulary?.values && !vocabulary.values.includes(value) && (
         <span {...stylex.props(s.marker)}>not in list</span>
       )}
     </span>
