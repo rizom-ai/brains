@@ -39,7 +39,11 @@ function AtlasMap({
   caption: string | null;
 }): JSX.Element {
   const contours = buildAtlasTerrain(atlas);
-  const labelTops = layoutZoneLabels(atlas.zones, atlas.items);
+  const labels = layoutZoneLabels(atlas.zones, atlas.items);
+  // Larger territories name themselves first; the label script keeps that order.
+  const zones = [...atlas.zones].sort(
+    (a, b) => b.members - a.members || a.id.localeCompare(b.id),
+  );
   const legend = KIND_ORDER.flatMap((kind) => {
     const label = atlas.items.find(
       (item) => item.entityType === kind && item.typeLabel,
@@ -79,14 +83,15 @@ function AtlasMap({
             ))}
           </g>
         </svg>
-        {atlas.zones.map((zone) => (
+        {zones.map((zone) => (
           <span
             key={zone.id}
             className="atlas__zone"
+            data-atlas-zone=""
             aria-hidden="true"
             style={{
-              left: `${atlasPosition(zone.x)}%`,
-              top: `${labelTops[zone.id] ?? 7}%`,
+              left: `${labels[zone.id]?.left ?? atlasPosition(zone.x)}%`,
+              top: `${labels[zone.id]?.bottom ?? 7}%`,
             }}
           >
             {zone.name}

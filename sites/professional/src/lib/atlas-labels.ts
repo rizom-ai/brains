@@ -4,8 +4,9 @@ import { atlasPosition, zoneSpread } from "./atlas-terrain";
  * Territory label placement in the map's percentage space. Labels are
  * anchored at their bottom edge; widths are estimated from the name at the
  * phone label size, where a character takes the most of the map's width,
- * so text stays off marks and off each other at every width. Larger
- * territories choose first.
+ * so text stays off marks and off each other at every width, and names are
+ * kept inside the map's edges. Larger territories choose first. This is the
+ * no-JavaScript placement; the atlas script refines it with measured sizes.
  */
 const CHAR_WIDTH = 1.7;
 const LABEL_HEIGHT = 3.2;
@@ -52,16 +53,25 @@ function overlapsLabel(box: LabelBox, other: LabelBox): boolean {
   );
 }
 
-/** Label bottoms (percent of map height) keyed by zone id. */
+/** A label's centre (percent of map width) and bottom (percent of map height). */
+export interface LabelPlacement {
+  left: number;
+  bottom: number;
+}
+
+/** Label placements keyed by zone id. */
 export function layoutZoneLabels(
   zones: readonly LabelZone[],
   marks: readonly LabelMark[],
-): Record<string, number> {
+): Record<string, LabelPlacement> {
   const ordered = [...zones].sort(
     (a, b) => b.members - a.members || a.id.localeCompare(b.id),
   );
 
-  return ordered.reduce<{ placed: LabelBox[]; tops: Record<string, number> }>(
+  return ordered.reduce<{
+    placed: LabelBox[];
+    tops: Record<string, LabelPlacement>;
+  }>(
     ({ placed, tops }, zone) => {
       const own = marks.filter((mark) => mark.zoneId === zone.id);
       const ys = own.map((mark) => atlasPosition(mark.y));
@@ -69,11 +79,13 @@ export function layoutZoneLabels(
       const spread = zoneSpread(zone.members) * 0.6;
       const above = Math.min(centre - spread, ...ys) - GAP;
       const below = Math.max(centre + spread, ...ys) + GAP + LABEL_HEIGHT;
-      const box = (bottom: number): LabelBox => ({
-        x: atlasPosition(zone.x),
-        halfWidth: (zone.name.length * CHAR_WIDTH) / 2 + 1,
-        bottom,
-      });
+      const halfWidth = (zone.name.length * CHAR_WIDTH) / 2 + 1;
+      // A territory near the edge keeps its whole name inside the map.
+      const x = Math.min(
+        Math.max(atlasPosition(zone.x), halfWidth),
+        100 - halfWidth,
+      );
+      const box = (bottom: number): LabelBox => ({ x, halfWidth, bottom });
       const candidates = [
         // A territory at the top edge keeps its name above it, pinned to the edge.
         ...Array.from({ length: ATTEMPTS }, (_, k) =>
@@ -89,7 +101,7 @@ export function layoutZoneLabels(
         ) ?? Math.max(MAP_TOP, above);
       return {
         placed: [...placed, box(chosen)],
-        tops: { ...tops, [zone.id]: chosen },
+        tops: { ...tops, [zone.id]: { left: x, bottom: chosen } },
       };
     },
     { placed: [], tops: {} },

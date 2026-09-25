@@ -22,6 +22,10 @@ export const HOMEPAGE_ATLAS_SCRIPT_PATH = "/scripts/homepage-atlas.js";
  *   from each source the answer lists (or its list's summary, while closed)
  *   to its mark, following the map as it turns and the conversation as it
  *   scrolls. Phones stack the map above the opening, so they get no leads.
+ * - Territory names are placed by their rendered size, largest territory
+ *   first: each takes the nearest spot to its server placement that stays
+ *   inside the map and clear of marks and earlier names, or is hidden rather
+ *   than printed over another. It reruns when fonts load and on resize.
  * - The terrain's drift pauses (data-still) while the map is off screen and
  *   while the tab is hidden; reduced motion keeps it still throughout.
  */
@@ -87,6 +91,70 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
     }
 
     var field = root.querySelector("[data-atlas-field]");
+
+    var NAME_STEP_X = 12;
+    var NAME_STEP_Y = 6;
+    var NAME_REACH = 5;
+    var NAME_MARGIN = 3; // px kept clear around marks and placed names
+    var NAME_GAP = 14; // px between names side by side, so two never read as one
+    var span = Array.from({ length: 2 * NAME_REACH + 1 }, function (_, k) { return k - NAME_REACH; });
+    var nameOffsets = span
+      .flatMap(function (i) { return span.map(function (j) { return [i * NAME_STEP_X, j * NAME_STEP_Y]; }); })
+      .sort(function (a, b) { return Math.hypot(a[0], a[1]) - Math.hypot(b[0], b[1]); });
+    function moved(box, dx, dy) {
+      return { left: box.left + dx, top: box.top + dy, right: box.right + dx, bottom: box.bottom + dy };
+    }
+    function grown(box, sideways) {
+      var x = sideways || NAME_MARGIN;
+      return { left: box.left - x, top: box.top - NAME_MARGIN, right: box.right + x, bottom: box.bottom + NAME_MARGIN };
+    }
+    function hits(a, b) {
+      return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+    }
+    function placeNames() {
+      // A zoomed map is measured scaled; its names keep their last placement.
+      if (!field || field.hasAttribute("data-focused")) return;
+      var labels = Array.prototype.slice.call(root.querySelectorAll("[data-atlas-zone]"));
+      if (!labels.length) return;
+      labels.forEach(function (label) {
+        label.removeAttribute("hidden");
+        label.style.removeProperty("--atlas-name-shift");
+      });
+      var area = field.getBoundingClientRect();
+      var bases = labels.map(function (label) { return label.getBoundingClientRect(); });
+      var taken = Array.prototype.map.call(
+        root.querySelectorAll("[data-atlas-mark] .atlas__glyph"),
+        function (glyph) { return grown(glyph.getBoundingClientRect()); }
+      );
+      labels.forEach(function (label, index) {
+        var base = bases[index];
+        // Start from the nearest position inside the map's edges.
+        var inward = Math.max(area.left - base.left, Math.min(0, area.right - base.right));
+        var spot = nameOffsets.find(function (offset) {
+          var box = moved(base, inward + offset[0], offset[1]);
+          return (
+            box.left >= area.left && box.right <= area.right &&
+            box.top >= area.top && box.bottom <= area.bottom &&
+            !taken.some(function (other) { return hits(box, other); })
+          );
+        });
+        if (!spot) {
+          label.setAttribute("hidden", "");
+          return;
+        }
+        var dx = inward + spot[0];
+        if (dx || spot[1]) label.style.setProperty("--atlas-name-shift", dx + "px " + spot[1] + "px");
+        taken.push(grown(moved(base, dx, spot[1]), NAME_GAP));
+      });
+    }
+    var namesPending = 0;
+    function scheduleNames() {
+      if (namesPending) return;
+      namesPending = window.requestAnimationFrame(function () { namesPending = 0; placeNames(); });
+    }
+    placeNames();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeNames);
+    window.addEventListener("resize", scheduleNames);
     var ZOOM = 1.25;
     // Map percentages a cited mark keeps clear of; its card opens above it, under the header.
     var CLEAR = { top: 20, right: 10, bottom: 10, left: 10 };

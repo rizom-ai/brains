@@ -290,6 +290,24 @@ describe("living atlas", () => {
     expect(html().match(/data-atlas-mark/g)?.length).toBe(atlas.items.length);
   });
 
+  it("names the largest territories first, for the label script to place", () => {
+    const [base] = atlas.zones;
+    if (!base) throw new Error("fixture needs a zone");
+    const small = { ...base, id: "small", name: "Small", members: 1 };
+    const large = { ...base, id: "large", name: "Large", members: 3 };
+    const markup = renderToStaticMarkup(
+      <HomepageListLayout
+        {...page}
+        atlas={{ ...atlas, zones: [small, large] }}
+      />,
+    );
+    const names = Array.from(
+      markup.matchAll(/data-atlas-zone=""[^>]*>([^<]+)</g),
+      (match) => match[1],
+    );
+    expect(names).toEqual(["Large", "Small"]);
+  });
+
   it("anchors title cards inward at both edges so they stay on screen", () => {
     expect(html()).toContain("atlas__mark--west");
     expect(html()).toContain("atlas__mark--east");
