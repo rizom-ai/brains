@@ -10,7 +10,10 @@ export function uploadEvidence(): LinkedInUploadEvidence {
         stage: "post-attempted",
       },
     ],
-    nodes: [{ kind: "error", upload: 0, cause: 1 }, { kind: "error" }],
+    nodes: [
+      { kind: "error", upload: 0, cause: 1 },
+      { kind: "error", post: { id: "urn:li:share:known" } },
+    ],
     truncated: false,
     invalid: false,
   };

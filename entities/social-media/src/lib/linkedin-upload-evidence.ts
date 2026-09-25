@@ -1,9 +1,11 @@
 import {
+  linkedInPostReceiptSchema,
   linkedInUploadRecoverySchema,
   parseLinkedInUploadEvidence,
   type LinkedInUploadEvidence,
 } from "@brains/contracts";
 import { PartialLinkedInUploadError } from "./linkedin-client";
+import { AcknowledgedLinkedInPostError } from "./linkedin-post-error";
 
 /** Diagnostic projections only, not a journal, post receipt or retry authority. */
 export function collectLinkedInUploadEvidence(
@@ -43,6 +45,12 @@ export function collectLinkedInUploadEvidence(
     if (!current || !node) continue;
     try {
       if (current instanceof Error) node.kind = "error";
+      if (current instanceof AcknowledgedLinkedInPostError) {
+        marked = true;
+        const parsed = linkedInPostReceiptSchema.safeParse(current.receipt);
+        if (parsed.success) node.post = parsed.data;
+        else evidence.invalid = true;
+      }
       if (current instanceof PartialLinkedInUploadError) {
         marked = true;
         const parsed = linkedInUploadRecoverySchema.safeParse(current.recovery);

@@ -190,6 +190,8 @@ export type {
   PublishMediaData,
 } from "./publish-types";
 export {
+  linkedInPostReceiptSchema,
+  type LinkedInPostReceipt,
   linkedInUploadRecoverySchema,
   linkedInUploadEvidenceSchema,
   parseLinkedInUploadEvidence,

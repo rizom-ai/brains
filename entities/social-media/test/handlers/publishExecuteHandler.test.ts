@@ -1,7 +1,10 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import type { PublishProvider } from "@brains/contracts";
 import assert from "node:assert/strict";
-import { PartialLinkedInUploadError } from "../../src/lib/linkedin-client";
+import {
+  LinkedInClient,
+  PartialLinkedInUploadError,
+} from "../../src/lib/linkedin-client";
 import {
   PublishExecuteHandler,
   type PublishExecuteEntityService,
@@ -555,6 +558,51 @@ describe("PublishExecuteHandler", () => {
       expect(linkedinProvider.publish).toHaveBeenCalledTimes(1);
       expect(messageSender.sendMessage).toHaveBeenCalledTimes(1);
       expect(entityService.updateEntity).not.toHaveBeenCalled();
+    });
+
+    it("retains a real LinkedIn post receipt through diagnostic failure without local success or resend", async () => {
+      entityService.setGetEntityResult(samplePost);
+      const clientLogger = createMockLogger();
+      clientLogger.info = mock((message: string): void => {
+        if (message === "LinkedIn post created")
+          throw new Error("private diagnostic");
+      });
+      let retired = false;
+      const fetch = mock(
+        async (): Promise<Response> =>
+          new Response(
+            new ReadableStream({
+              cancel: (): void => {
+                retired = true;
+              },
+            }),
+            { headers: { "X-RestLi-Id": "urn:li:share:known" } },
+          ),
+      );
+      providers.set(
+        "linkedin",
+        new LinkedInClient(
+          { accessToken: "secret", organizationId: "123" },
+          clientLogger,
+          { fetch },
+        ),
+      );
+      await handler.handle({ entityType: "social-post", entityId: "post-1" });
+      expect(retired).toBe(true);
+      expect(messageSender.sendMessage).toHaveBeenCalledWith({
+        type: "publish:report:failure",
+        payload: expect.objectContaining({
+          willRetry: false,
+          recovery: expect.objectContaining({
+            nodes: expect.arrayContaining([
+              expect.objectContaining({ post: { id: "urn:li:share:known" } }),
+            ]),
+          }),
+        }),
+      });
+      expect(entityService.updateEntity).not.toHaveBeenCalled();
+      await handler.handle({ entityType: "social-post", entityId: "post-1" });
+      expect(fetch).toHaveBeenCalledTimes(1);
     });
 
     it("does not overwrite local status after an uncertain provider send", async () => {

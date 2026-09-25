@@ -34,6 +34,38 @@ test("wire recovery survives JSON and preserves cycles through bounded indices",
   expect(Object.isFrozen(parsed.uploads[0])).toBe(true);
 });
 
+test("post receipts remain bounded and frozen alongside maximum upload evidence", () => {
+  const input = {
+    uploads: Array.from({ length: 8 }, () => ({
+      kind: "document",
+      resourceUrn: `urn:li:${"a".repeat(1017)}`,
+      sha256: "a".repeat(64),
+      sizeBytes: 100 * 1024 * 1024,
+      stage: "post-attempted",
+    })),
+    nodes: Array.from({ length: 16 }, () => ({
+      kind: "aggregate",
+      upload: 0,
+      cause: 15,
+      errors: Array.from({ length: 8 }, () => 15),
+      post: { id: `urn:li:share:${"a".repeat(243)}` },
+    })),
+    truncated: false,
+    invalid: false,
+  };
+  const parsed = parseLinkedInUploadEvidence(input);
+  expect(
+    new TextEncoder().encode(JSON.stringify(parsed)).byteLength,
+  ).toBeLessThanOrEqual(16 * 1024);
+  expect(Object.isFrozen(parsed.nodes[0]?.post)).toBe(true);
+  expect(
+    linkedInUploadEvidenceSchema.safeParse({
+      ...evidence,
+      nodes: [{ kind: "error", post: { id: "https://private/token" } }],
+    }).success,
+  ).toBe(false);
+});
+
 test("receipt projections drop private fields and do not retain caller aliases", () => {
   const input = {
     ...evidence,

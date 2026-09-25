@@ -65,6 +65,7 @@ export {
   type LinkedInClientDeps,
 } from "./lib/linkedin-client";
 export type { LinkedInUploadRecovery } from "@brains/contracts";
+export { AcknowledgedLinkedInPostError } from "./lib/linkedin-post-error";
 
 // Template exports
 export {

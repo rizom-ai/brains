@@ -10,6 +10,7 @@ import type {
   PublishMediaData,
 } from "@brains/contracts";
 import type { LinkedinConfig } from "../config";
+import { AcknowledgedLinkedInPostError } from "./linkedin-post-error";
 import {
   ReceivedEntityFileHttpError,
   type EntityServiceClient,
@@ -356,16 +357,16 @@ export class LinkedInClient implements PublishProvider {
       // Extract post ID from response headers or body
       const postId = response.headers.get("X-RestLi-Id") ?? "";
 
-      this.logger.info("LinkedIn post created", {
-        postId,
-        mediaCategory: mediaAsset?.category ?? "NONE",
-      });
-
       const result: PublishResult = { id: postId };
       if (postId) {
         result.url = `https://www.linkedin.com/feed/update/${postId}`;
       }
-      return await this.settleAcknowledgedResponse(response, result);
+      return await this.settleAcknowledgedResponse(response, result, () => {
+        this.logger.info("LinkedIn post created", {
+          postId,
+          mediaCategory: mediaAsset?.category ?? "NONE",
+        });
+      });
     } catch (error) {
       if (completed.recovery)
         throw new PartialLinkedInUploadError(completed.recovery, error);
@@ -376,19 +377,49 @@ export class LinkedInClient implements PublishProvider {
   private async settleAcknowledgedResponse(
     response: Response,
     result: PublishResult,
+    report: () => void,
   ): Promise<PublishResult> {
+    const acknowledged = Object.freeze({ ...result });
+    const causes: unknown[] = [];
+    let diagnosticFailed = false;
     try {
+      report();
+    } catch (error) {
+      diagnosticFailed = true;
+      causes.push(error);
+    }
+    let outcome: PublishResult = acknowledged;
+    try {
+      // Always join retirement, even when the preceding diagnostic failed.
       await response.body?.cancel();
     } catch (error) {
-      // The successful POST is already acknowledged. Retain its receipt, never
-      // replay it because an unused metadata response failed retirement.
-      this.logger.warn(
-        "LinkedIn post acknowledged but response retirement failed",
-        { result, error },
-      );
-      result.metadata = { ...result.metadata, responseRetirementFailed: true };
+      causes.push(error);
+      outcome = Object.freeze({
+        ...acknowledged,
+        metadata: Object.freeze({ responseRetirementFailed: true }),
+      });
+      try {
+        this.logger.warn(
+          "LinkedIn post acknowledged but response retirement failed",
+          { result: outcome, error },
+        );
+      } catch (reportError) {
+        diagnosticFailed = true;
+        causes.push(reportError);
+      }
     }
-    return result;
+    if (diagnosticFailed)
+      throw new AcknowledgedLinkedInPostError(
+        acknowledged.id,
+        causes.length === 1
+          ? causes[0]
+          : new AggregateError(
+              causes,
+              "LinkedIn post diagnostics and retirement failed",
+              { cause: causes[0] },
+            ),
+      );
+    return outcome;
   }
 
   /**
@@ -684,16 +715,16 @@ export class LinkedInClient implements PublishProvider {
     }
 
     const postId = response.headers.get("X-RestLi-Id") ?? "";
-    this.logger.info("LinkedIn document post created", {
-      postId,
-      documentUrn,
-    });
-
     const result: PublishResult = { id: postId };
     if (postId) {
       result.url = `https://www.linkedin.com/feed/update/${postId}`;
     }
-    return this.settleAcknowledgedResponse(response, result);
+    return this.settleAcknowledgedResponse(response, result, () => {
+      this.logger.info("LinkedIn document post created", {
+        postId,
+        documentUrn,
+      });
+    });
   }
 
   /**

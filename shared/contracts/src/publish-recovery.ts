@@ -7,9 +7,21 @@ export interface LinkedInUploadRecovery {
   sizeBytes: number;
   stage: "registered" | "upload-received" | "uploaded" | "post-attempted";
 }
+export interface LinkedInPostReceipt {
+  id: string;
+}
+export const linkedInPostReceiptSchema: z.ZodType<LinkedInPostReceipt> =
+  z.object({
+    id: z
+      .string()
+      .max(256)
+      .regex(/^(?:urn:li:(?:share|ugcPost):[A-Za-z0-9_-]+)?$/)
+      .refine((value) => value.trim() === value),
+  });
 export interface PublishRecoveryNode {
   kind: "error" | "aggregate" | "opaque";
   upload?: number | undefined;
+  post?: LinkedInPostReceipt | undefined;
   cause?: number | undefined;
   errors?: number[] | undefined;
 }
@@ -49,6 +61,7 @@ export const linkedInUploadRecoverySchema: z.ZodType<LinkedInUploadRecovery> =
 const nodeSchema: z.ZodType<PublishRecoveryNode> = z.strictObject({
   kind: z.enum(["error", "aggregate", "opaque"]),
   upload: z.number().int().min(0).max(7).optional(),
+  post: linkedInPostReceiptSchema.optional(),
   cause: z.number().int().min(0).max(15).optional(),
   errors: z.array(z.number().int().min(0).max(15)).max(8).optional(),
 });
@@ -83,6 +96,7 @@ export function parseLinkedInUploadEvidence(
   for (const upload of result.uploads) Object.freeze(upload);
   Object.freeze(result.uploads);
   for (const node of result.nodes) {
+    if (node.post) Object.freeze(node.post);
     if (node.errors) Object.freeze(node.errors);
     Object.freeze(node);
   }
