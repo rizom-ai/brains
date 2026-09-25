@@ -22,6 +22,7 @@ function setup(options: {
       <a class="contact" href="/contact">Let’s talk</a>
       <div data-ask-box><p data-ask-status></p><textarea ${options.chat === "live" ? "" : "disabled"}></textarea><button data-ask-send>Send</button></div>
       <a id="topic" href="/contact" data-atlas-fill="What is Rizom?">What is Rizom?</a>
+      <svg data-atlas-leads></svg>
       <div data-atlas-field>
         <svg data-atlas-terrain></svg>
         <ul>
@@ -205,6 +206,36 @@ describe("atlas terrain motion", () => {
   });
 });
 
+/** Lists sources the way a mounted answer does; each item is 20px tall, 50px wide, from x 10. */
+function listSources(ids: string[], open: boolean): void {
+  const host = window.document.querySelector("[data-ask-box]");
+  if (!host) throw new Error("missing ask box");
+  host.insertAdjacentHTML(
+    "beforeend",
+    `<details${open ? " open" : ""}><summary>Sources</summary><ol>${ids
+      .map((id) => `<li data-ask-source="${id}">${id}</li>`)
+      .join("")}</ol></details>`,
+  );
+  const place = (element: object, top: number): void => {
+    Object.assign(element, {
+      getBoundingClientRect: () => ({
+        left: 10,
+        top,
+        width: 50,
+        height: 20,
+        right: 60,
+        bottom: top + 20,
+      }),
+    });
+  };
+  const summary = host.querySelector("summary");
+  if (summary) place(summary, 260);
+  if (open)
+    host.querySelectorAll("[data-ask-source]").forEach((item, index) => {
+      place(item, 300 + index * 30);
+    });
+}
+
 describe("atlas and its chat", () => {
   const draft = (): string =>
     String(
@@ -267,11 +298,43 @@ describe("atlas and its chat", () => {
     expect(zoom()).toBe("1");
   });
 
+  const leads = (): Array<[string | null, string | null]> =>
+    Array.from(
+      window.document.querySelectorAll("[data-atlas-leads] path"),
+      (path) => [path.getAttribute("data-lead"), path.getAttribute("d")],
+    );
+
+  it("on desktop, leads each listed source of the answer to its mark", () => {
+    setup({ touch: false, chat: "live" });
+    listSources(["post:first"], true);
+    // The second source is cited but not listed, so nothing leads to it.
+    answer(["post:first", "post:second"]);
+    // From just right of the listed source to just short of the mark at (100, 100).
+    expect(leads()).toEqual([["post:first", "M66 310 C106 310 51 100 91 100"]]);
+  });
+
+  it("leads from the list's summary while the list is closed", () => {
+    setup({ touch: false, chat: "live" });
+    listSources(["post:first"], false);
+    answer(["post:first"]);
+    expect(leads()[0]?.[1]).toStartWith("M66 270 ");
+  });
+
+  it("draws no leads on a phone, where the map sits above the opening", () => {
+    media["(max-width: 60rem)"] = true;
+    setup({ touch: true, chat: "live" });
+    listSources(["post:first"], true);
+    answer(["post:first"]);
+    expect(leads()).toEqual([]);
+    media["(max-width: 60rem)"] = false;
+  });
+
   it("lets go of the last answer's sources when a new one cites none", () => {
     setup({ touch: false, chat: "live" });
     answer(["post:first"]);
     answer([]);
     expect(window.document.querySelectorAll("[data-cited]")).toHaveLength(0);
     expect(focused()).toBe(false);
+    expect(leads()).toEqual([]);
   });
 });

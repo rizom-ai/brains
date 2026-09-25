@@ -247,6 +247,10 @@ export function HomepageAtlas({
         </div>
       </div>
       {atlas && <AtlasMap atlas={atlas} caption={opening.mapCaption} />}
+      {atlas && askBox && (
+        // Leads from an answer's listed sources to their marks, drawn by the atlas script.
+        <svg className="atlas__leads" data-atlas-leads="" aria-hidden="true" />
+      )}
       {askBox && <script src={ASK_BOX_SCRIPT_PATH} defer />}
     </section>
   );

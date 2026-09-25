@@ -166,6 +166,9 @@ export const homepageAtlasStyles: string = String.raw`
 .atlas__mark[data-cited] { z-index: 3; }
 .atlas__mark[data-cited] .atlas__glyph { background: var(--color-accent); transform: scale(1.5); box-shadow: 0 0 0 3px var(--color-bg), 0 0 0 7px rgb(from var(--color-accent) r g b / .22); }
 .atlas__mark--deck[data-cited] .atlas__glyph { transform: rotate(45deg) scale(1.5); }
+/* Leads from the answer’s listed sources to their marks; the script draws them on desktop only. */
+.atlas__leads { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; pointer-events: none; }
+.atlas__leads path { fill: none; stroke: var(--color-accent); stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: .1 6; }
 
 @media (max-width: 60rem) {
   /* The map leads visually on phones; the conversation stays first in the document. */
@@ -178,6 +181,7 @@ export const homepageAtlasStyles: string = String.raw`
   .atlas__field { bottom: 2.6rem; }
   .atlas__legend { left: clamp(1rem, 5vw, 2rem); right: auto; bottom: .6rem; font-size: .78rem; }
   .atlas__legend .atlas__caption { display: none; }
+  .atlas__leads { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .atlas__contour { animation: none; }

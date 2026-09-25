@@ -380,6 +380,10 @@ describe("atlas with guest chat", () => {
     );
   });
 
+  it("carries a hidden layer for leads from an answer's sources to the map", () => {
+    expect(html()).toMatch(/<svg[^>]*data-atlas-leads[^>]*aria-hidden="true"/);
+  });
+
   it("keys every mark as the answer's sources are keyed", () => {
     expect(html()).toContain('data-atlas-key="post:hiding"');
     expect(html()).toContain('data-atlas-key="project:lefthoek"');
@@ -391,6 +395,7 @@ describe("atlas with guest chat", () => {
     );
     expect(off).not.toContain("data-ask-box");
     expect(off).not.toContain("data-atlas-fill");
+    expect(off).not.toContain("data-atlas-leads");
     expect(off).not.toContain("<script");
   });
 });

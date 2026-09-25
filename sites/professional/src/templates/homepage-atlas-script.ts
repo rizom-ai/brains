@@ -1,4 +1,8 @@
-import { ASK_BOX_ATTRIBUTE, ASK_SOURCES_EVENT } from "@brains/contracts";
+import {
+  ASK_BOX_ATTRIBUTE,
+  ASK_SOURCE_ATTRIBUTE,
+  ASK_SOURCES_EVENT,
+} from "@brains/contracts";
 
 export const HOMEPAGE_ATLAS_SCRIPT_PATH = "/scripts/homepage-atlas.js";
 
@@ -14,7 +18,10 @@ export const HOMEPAGE_ATLAS_SCRIPT_PATH = "/scripts/homepage-atlas.js";
  *   or unavailable), the topic stays a link to the contact form.
  * - An answer's sources (the shared box's source event) light up on the map
  *   and the map turns towards them, zooming only as far as keeps each in
- *   view; an answer without sources lets go.
+ *   view; an answer without sources lets go. On desktop a dotted lead runs
+ *   from each source the answer lists (or its list's summary, while closed)
+ *   to its mark, following the map as it turns and the conversation as it
+ *   scrolls. Phones stack the map above the opening, so they get no leads.
  * - The terrain's drift pauses (data-still) while the map is off screen and
  *   while the tab is hidden; reduced motion keeps it still throughout.
  */
@@ -89,16 +96,7 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
       if (point < centre) return (centre - low) / (centre - point);
       return ZOOM;
     }
-    root.addEventListener("${ASK_SOURCES_EVENT}", function (event) {
-      var sources = (event.detail && event.detail.sources) || [];
-      var ids = sources.map(function (source) { return source.id; });
-      var cited = [];
-      root.querySelectorAll("[data-atlas-mark]").forEach(function (mark) {
-        if (ids.indexOf(mark.getAttribute("data-atlas-key")) >= 0) {
-          mark.setAttribute("data-cited", "");
-          cited.push(mark);
-        } else mark.removeAttribute("data-cited");
-      });
+    function turnTowards(cited) {
       if (!field) return;
       if (!cited.length) { field.removeAttribute("data-focused"); return; }
       var at = function (mark, side) { return parseFloat(mark.style[side]) || 50; };
@@ -116,6 +114,96 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
       // Sources too far apart to zoom still light up; the map just holds still.
       field.style.setProperty("--atlas-focus-scale", String(Math.max(1, Math.round(zoom * 100) / 100)));
       field.setAttribute("data-focused", "");
+    }
+
+    var leads = root.querySelector("[data-atlas-leads]");
+    var phone = media("(max-width: 60rem)");
+    var SVG = "http://www.w3.org/2000/svg";
+    var TURN = 1000; // the map's turn towards its sources, and a frame
+    var GAP = 6; // between a listed source and its lead
+    var GLYPH = 9; // a lead stops short of the mark it points at
+    var citedMarks = [];
+    // Every scrolling box between an anchor and the atlas must show it.
+    function shown(element, middle) {
+      var parent = element.parentElement;
+      if (!parent || parent === root) return true;
+      var overflow = window.getComputedStyle(parent).overflowY;
+      if (overflow === "auto" || overflow === "scroll") {
+        var area = parent.getBoundingClientRect();
+        if (middle < area.top || middle > area.bottom) return false;
+      }
+      return shown(parent, middle);
+    }
+    // The latest answer's listing of a source, or its list's summary while closed.
+    function anchor(key) {
+      var listed = Array.prototype.filter.call(
+        root.querySelectorAll("[${ASK_BOX_ATTRIBUTE}] [${ASK_SOURCE_ATTRIBUTE}]"),
+        function (item) { return item.getAttribute("${ASK_SOURCE_ATTRIBUTE}") === key; }
+      ).pop();
+      if (!listed) return null;
+      var list = listed.closest("details");
+      var from = list && !list.open ? list.querySelector("summary") || list : listed;
+      var box = from.getBoundingClientRect();
+      return box.height && shown(from, box.top + box.height / 2) ? box : null;
+    }
+    function drawLeads() {
+      if (!leads) return;
+      leads.replaceChildren();
+      if (phone.matches) return;
+      var frame = root.getBoundingClientRect();
+      leads.setAttribute("viewBox", "0 0 " + frame.width + " " + frame.height);
+      citedMarks.forEach(function (mark) {
+        var key = mark.getAttribute("data-atlas-key");
+        var from = anchor(key);
+        if (!from) return;
+        var to = mark.getBoundingClientRect();
+        var x1 = from.right + GAP - frame.left;
+        var y1 = from.top + from.height / 2 - frame.top;
+        var toward = to.left + to.width / 2 - frame.left;
+        var x2 = toward > x1 ? toward - GLYPH : toward + GLYPH;
+        var y2 = to.top + to.height / 2 - frame.top;
+        var bend = Math.max(40, Math.abs(x2 - x1) / 2);
+        var lead = document.createElementNS(SVG, "path");
+        lead.setAttribute("data-lead", key);
+        lead.setAttribute("d", "M" + x1 + " " + y1 + " C" + (x1 + bend) + " " + y1 + " " + (x2 - bend) + " " + y2 + " " + x2 + " " + y2);
+        leads.append(lead);
+      });
+    }
+    var pending = 0;
+    function scheduleLeads() {
+      if (pending || !citedMarks.length) return;
+      pending = window.requestAnimationFrame(function () { pending = 0; drawLeads(); });
+    }
+    // While the map turns, its marks move under the leads every frame.
+    function followLeads(until) {
+      drawLeads();
+      if (citedMarks.length && Date.now() < until)
+        window.requestAnimationFrame(function () { followLeads(until); });
+    }
+    if (leads) {
+      window.addEventListener("resize", scheduleLeads);
+      // Scrolling the box or the conversation column moves the listed sources.
+      document.addEventListener("scroll", scheduleLeads, true);
+      // Opening or closing a source list moves where its leads start.
+      root.addEventListener("toggle", scheduleLeads, true);
+      if (phone.addEventListener) phone.addEventListener("change", scheduleLeads);
+      var host = root.querySelector("[${ASK_BOX_ATTRIBUTE}]");
+      if (host && typeof ResizeObserver === "function") new ResizeObserver(scheduleLeads).observe(host);
+    }
+
+    root.addEventListener("${ASK_SOURCES_EVENT}", function (event) {
+      var sources = (event.detail && event.detail.sources) || [];
+      var ids = sources.map(function (source) { return source.id; });
+      var cited = [];
+      root.querySelectorAll("[data-atlas-mark]").forEach(function (mark) {
+        if (ids.indexOf(mark.getAttribute("data-atlas-key")) >= 0) {
+          mark.setAttribute("data-cited", "");
+          cited.push(mark);
+        } else mark.removeAttribute("data-cited");
+      });
+      turnTowards(cited);
+      citedMarks = cited;
+      followLeads(Date.now() + TURN);
     });
 
     root.addEventListener("click", function (event) {

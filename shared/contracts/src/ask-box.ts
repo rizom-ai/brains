@@ -24,8 +24,11 @@ export const ASK_BOX_SCRIPT_PATH = "/ask/assets/box.js";
  * Dispatched on the host (bubbling) once an answer completes: which public
  * sources it drew on, keyed `entityType:entityId`. A host page may use it,
  * for example to show where those sources sit; it never affects the box.
+ * Each source the mounted box lists carries ASK_SOURCE_ATTRIBUTE with the
+ * same key, so a host can point at it.
  */
 export const ASK_SOURCES_EVENT = "ask:sources";
+export const ASK_SOURCE_ATTRIBUTE = "data-ask-source";
 
 export const askSourcesDetailSchema: z.ZodObject<{
   sources: z.ZodArray<z.ZodObject<{ id: z.ZodString; title: z.ZodString }>>;
