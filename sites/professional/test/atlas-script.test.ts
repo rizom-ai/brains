@@ -483,6 +483,42 @@ describe("atlas territory names", () => {
     expect(crossing(false)).toEqual(low);
   });
 
+  it("lets a name move further on a larger map, in proportion to it", () => {
+    // The nearest free place is 48px below: within reach of an 800x600 map,
+    // too far on a 400x300 one, where the name would leave its territory.
+    const label = box(300, 100, 120, 20);
+    const wall = box(290, 70, 140, 70);
+    names([["blocked", label]], [wall], box(0, 0, 800, 600));
+    const large = placed("blocked", label);
+    if (!large) throw new Error("name hidden on the large map");
+    expect(overlaps(large, wall)).toBe(false);
+
+    names([["blocked", label]], [wall], box(0, 0, 400, 300));
+    expect(placed("blocked", label)).toBeNull();
+  });
+
+  it("keeps a hidden name's place empty, so a smaller territory's name never stands in for it", () => {
+    // Marks leave one pocket, too narrow for the larger name, wide enough for the smaller.
+    const walls = [
+      box(0, 0, 147, 300),
+      box(253, 0, 147, 300),
+      box(147, 0, 106, 92),
+      box(147, 128, 106, 172),
+    ];
+    const larger = box(100, 100, 200, 20);
+    const smaller = box(170, 102, 60, 20);
+    names(
+      [
+        ["larger", larger],
+        ["smaller", smaller],
+      ],
+      walls,
+    );
+    expect(placed("larger", larger)).toBeNull();
+    const stand = placed("smaller", smaller);
+    expect(stand === null || !overlaps(stand, larger)).toBe(true);
+  });
+
   it("hides a name that has no free place rather than printing it over another", () => {
     names(
       [

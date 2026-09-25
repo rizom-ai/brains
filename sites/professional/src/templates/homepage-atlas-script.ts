@@ -23,9 +23,12 @@ export const HOMEPAGE_ATLAS_SCRIPT_PATH = "/scripts/homepage-atlas.js";
  *   to its mark, following the map as it turns and the conversation as it
  *   scrolls. Phones stack the map above the opening, so they get no leads.
  * - Territory names are placed by their rendered size, largest territory
- *   first: each takes the nearest spot to its server placement that stays
- *   inside the map and clear of marks and earlier names, or is hidden rather
- *   than printed over another. It reruns when fonts load and on resize.
+ *   first: each takes the nearest spot to its server placement, within a reach
+ *   in proportion to the map, that stays inside the map and clear of marks and
+ *   earlier names, or is hidden rather than printed over another. A hidden
+ *   name keeps its place empty, so a smaller territory's name never stands in
+ *   for it; each mark's card names its territory. It reruns when fonts load
+ *   and on resize.
  * - The terrain's drift pauses (data-still) while the map is off screen and
  *   while the tab is hidden; reduced motion keeps it still throughout.
  */
@@ -96,13 +99,20 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
 
     var NAME_STEP_X = 12;
     var NAME_STEP_Y = 6;
-    var NAME_REACH = 5;
+    // A name moves at most this share of the map's width or height, so it stays by its territory at every size.
+    var NAME_REACH = 0.12;
     var NAME_MARGIN = 3; // px kept clear around marks and placed names
     var NAME_GAP = 14; // px between names side by side, so two never read as one
-    var span = Array.from({ length: 2 * NAME_REACH + 1 }, function (_, k) { return k - NAME_REACH; });
-    var nameOffsets = span
-      .flatMap(function (i) { return span.map(function (j) { return [i * NAME_STEP_X, j * NAME_STEP_Y]; }); })
-      .sort(function (a, b) { return Math.hypot(a[0], a[1]) - Math.hypot(b[0], b[1]); });
+    function steps(length, step) {
+      var reach = Math.max(1, Math.round((NAME_REACH * length) / step));
+      return Array.from({ length: 2 * reach + 1 }, function (_, k) { return (k - reach) * step; });
+    }
+    function nameOffsets(area) {
+      var ys = steps(area.bottom - area.top, NAME_STEP_Y);
+      return steps(area.right - area.left, NAME_STEP_X)
+        .flatMap(function (dx) { return ys.map(function (dy) { return [dx, dy]; }); })
+        .sort(function (a, b) { return Math.hypot(a[0], a[1]) - Math.hypot(b[0], b[1]); });
+    }
     function moved(box, dx, dy) {
       return { left: box.left + dx, top: box.top + dy, right: box.right + dx, bottom: box.bottom + dy };
     }
@@ -129,6 +139,7 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
         : NaN;
       if (narrow.matches && fill > 0 && fill < 1)
         area = { left: area.left, top: area.top, right: area.right, bottom: area.top + fill * (area.bottom - area.top) };
+      var offsets = nameOffsets(area);
       var bases = labels.map(function (label) { return label.getBoundingClientRect(); });
       var taken = Array.prototype.map.call(
         root.querySelectorAll("[data-atlas-mark] .atlas__glyph"),
@@ -138,7 +149,7 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
         var base = bases[index];
         // Start from the nearest position inside the map's edges.
         var inward = Math.max(area.left - base.left, Math.min(0, area.right - base.right));
-        var spot = nameOffsets.find(function (offset) {
+        var spot = offsets.find(function (offset) {
           var box = moved(base, inward + offset[0], offset[1]);
           return (
             box.left >= area.left && box.right <= area.right &&
@@ -148,6 +159,8 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
         });
         if (!spot) {
           label.setAttribute("hidden", "");
+          // Its place stays empty: a smaller territory's name there would read as this one's.
+          taken.push(grown(moved(base, inward, 0), NAME_GAP));
           return;
         }
         var dx = inward + spot[0];

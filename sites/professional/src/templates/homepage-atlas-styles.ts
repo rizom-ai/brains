@@ -67,6 +67,14 @@ export const homepageAtlasStyles: string = String.raw`
 .atlas__mark--deck[data-open] .atlas__glyph { transform: rotate(45deg) scale(1.5); }
 .atlas__tip b { display: block; font-family: var(--font-heading); font-weight: 500; font-size: .98rem; line-height: 1.2; color: var(--color-heading); }
 .atlas__tip span { font-size: .78rem; color: var(--color-text-light); }
+.atlas__tip em {
+  display: block; margin-top: .1rem; font-family: var(--font-heading); font-size: .82rem; letter-spacing: .02em;
+  font-variation-settings: "SOFT" 60, "opsz" 24; color: var(--color-text-muted);
+}
+/* On touch the open card is the way in: its title reads as the link it is. */
+@media (hover: none) {
+  .atlas__tip b { text-decoration-line: underline; text-decoration-color: var(--color-accent); text-decoration-thickness: 1px; text-underline-offset: .2em; }
+}
 .atlas__mark a:focus-visible .atlas__tip { opacity: 1; }
 /* Touch browsers leave hover stuck on the tapped element; there the script opens cards instead. */
 @media (hover: hover) {

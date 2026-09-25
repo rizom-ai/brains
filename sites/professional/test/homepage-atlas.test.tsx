@@ -247,6 +247,20 @@ describe("homepage atlas", () => {
     expect(html).toContain("Essay");
   });
 
+  it("names each mark's territory on its card, so a name the map cannot fit stays one tap away", () => {
+    const html = renderToStaticMarkup(
+      <HomepageListLayout {...page} atlas={atlas} />,
+    );
+    const card = (title: string): string =>
+      html
+        .split('data-atlas-tip="">')
+        .find((part) => part.includes(title))
+        ?.split("</a>")[0] ?? "";
+    expect(card("Hiding in Plain Sight")).toContain("New institutions");
+    expect(card("Lefthoek")).not.toBe("");
+    expect(card("Lefthoek")).not.toContain("New institutions");
+  });
+
   it("works without JavaScript and starts no chat", () => {
     const html = renderToStaticMarkup(
       <HomepageListLayout {...page} atlas={atlas} />,
@@ -355,6 +369,14 @@ describe("atlas hover on touch screens", () => {
       const first = homepageAtlasStyles.indexOf(rule);
       expect(first).toBeGreaterThan(hoverBlock);
     }
+  });
+
+  it("underlines an open card's title on touch screens, where the card is the way in", () => {
+    const touchBlock = homepageAtlasStyles.indexOf("@media (hover: none)");
+    expect(touchBlock).toBeGreaterThan(-1);
+    const rule = homepageAtlasStyles.slice(touchBlock).split("}")[0] ?? "";
+    expect(rule).toContain(".atlas__tip b");
+    expect(rule).toContain("text-decoration-line: underline");
   });
 });
 

@@ -63,6 +63,10 @@ function AtlasMap({
   const zones = [...atlas.zones].sort(
     (a, b) => b.members - a.members || a.id.localeCompare(b.id),
   );
+  // A map too small for every name hides some; each card still names its territory.
+  const zoneNames = new Map(
+    atlas.zones.map((zone): [string, string] => [zone.id, zone.name]),
+  );
   const legend = KIND_ORDER.flatMap((kind) => {
     const label = atlas.items.find(
       (item) => item.entityType === kind && item.typeLabel,
@@ -119,6 +123,7 @@ function AtlasMap({
         <ul className="atlas__marks">
           {atlas.items.map((item) => {
             const meta = [item.typeLabel, item.year].filter(Boolean).join(", ");
+            const territory = item.zoneId ? zoneNames.get(item.zoneId) : null;
             return (
               <li
                 key={`${item.entityType}:${item.id}`}
@@ -136,6 +141,7 @@ function AtlasMap({
                     <span className="atlas__tip" data-atlas-tip="">
                       <b>{item.title}</b>
                       {meta && <span>{meta}</span>}
+                      {territory && <em>{territory}</em>}
                     </span>
                   </a>
                 ) : (
