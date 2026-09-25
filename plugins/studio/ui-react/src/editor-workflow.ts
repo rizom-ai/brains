@@ -13,7 +13,13 @@ export type SaveState =
 export type EditorMode =
   | { kind: "browse" }
   | { kind: "edit"; entity: EntityDetail }
-  | { kind: "create"; prefix?: EntityIdPath | null; segment?: string };
+  | {
+      kind: "create";
+      prefix?: EntityIdPath | null;
+      segment?: string;
+      /** Automatically opened singleton creation is clean until edited. */
+      initial?: { draft: string; body: string };
+    };
 
 /** Studio submits segments; only the server encodes stored identity. */
 export function creationIdPath(mode: EditorMode): EntityIdPath | null {
@@ -36,6 +42,7 @@ export type EditorWorkflowAction =
   | { type: "documentOpened"; document: EditorDocument; save?: SaveState }
   | {
       type: "creationStarted";
+      singleton?: boolean;
       draft: Record<string, unknown>;
       body?: string | undefined;
       prefix?: EntityIdPath | null;
@@ -89,7 +96,14 @@ export const initialEditorWorkflowState: EditorWorkflowState = {
 /** Whether leaving the current route would discard an editor draft. */
 export function hasUnsavedEditorChanges(state: EditorWorkflowState): boolean {
   if (state.mode.kind === "browse") return false;
-  if (state.mode.kind === "create") return true;
+  if (state.mode.kind === "create") {
+    const initial = state.mode.initial;
+    if (!initial) return true;
+    return (
+      state.body !== initial.body ||
+      JSON.stringify(state.draft) !== initial.draft
+    );
+  }
   return (
     state.body !== state.mode.entity.body ||
     JSON.stringify(state.draft) !==
@@ -117,6 +131,12 @@ export function editorWorkflowReducer(
       return {
         mode: {
           kind: "create",
+          ...(action.singleton && {
+            initial: {
+              draft: JSON.stringify(action.draft),
+              body: action.body ?? "",
+            },
+          }),
           ...(action.prefix !== undefined && {
             prefix: action.prefix,
             segment: "",

@@ -100,6 +100,11 @@ export function StudioEditorPane(
     publicationState,
     editorHead,
   } = props.model;
+  const saveBlocked =
+    !canEdit ||
+    destinationBlocked ||
+    saveState.kind === "saving" ||
+    (entitySchema.isSingleton && !hasUnsavedChanges);
   return (
     <form
       role="main"
@@ -130,8 +135,7 @@ export function StudioEditorPane(
       }}
       onSubmit={(event) => {
         event.preventDefault();
-        if (canEdit && !destinationBlocked && saveState.kind !== "saving")
-          save();
+        if (!saveBlocked) save();
       }}
       onKeyDown={(event) => {
         if (
@@ -146,8 +150,7 @@ export function StudioEditorPane(
           )
             return;
           event.preventDefault();
-          if (canEdit && saveState.kind !== "saving")
-            event.currentTarget.requestSubmit();
+          if (!saveBlocked) event.currentTarget.requestSubmit();
         }
       }}
     >
@@ -175,9 +178,7 @@ export function StudioEditorPane(
               variant={hasUnsavedChanges ? "default" : "outline"}
               title="Save changes (Ctrl+S or ⌘S)"
               aria-keyshortcuts="Control+s Meta+s"
-              disabled={
-                !canEdit || destinationBlocked || saveState.kind === "saving"
-              }
+              disabled={saveBlocked}
             >
               {saveState.kind === "saving" ? "Saving…" : "Save changes"}
             </Button>

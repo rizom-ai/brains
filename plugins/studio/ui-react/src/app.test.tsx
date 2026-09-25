@@ -769,6 +769,31 @@ function renderCapabilityView(
   return renderToStaticMarkup(createElement(StudioAppView, props));
 }
 
+it("disables pristine singleton saves while retaining ordinary document no-op saves", () => {
+  for (const singleton of [true, false]) {
+    for (const dirty of [true, false]) {
+      const browser = new Window();
+      browser.document.body.innerHTML = renderCapabilityView(
+        {
+          canRead: true,
+          canCreate: true,
+          canUpdate: true,
+          canDelete: true,
+          canExtract: false,
+          canPublish: false,
+          canAssist: false,
+        },
+        "edit",
+        { singleton, dirty, hasBody: false },
+      );
+      const save = browser.document.querySelector(".studio-editor-head-save");
+      expect(save).not.toBeNull();
+      expect(save?.hasAttribute("disabled")).toBe(singleton && !dirty);
+      browser.close();
+    }
+  }
+});
+
 it("uses page terminology throughout site-content collection navigation", () => {
   const window = new Window();
   try {
