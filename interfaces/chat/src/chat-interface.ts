@@ -138,7 +138,10 @@ export class ChatInterface extends MessageInterfacePlugin<
     trackAgentResponseForJob: (jobId, messageId, channelId): void =>
       this.trackAgentResponseForJob(jobId, messageId, channelId),
     threadRegistry: this.threadRegistry,
-    logger: this.logger,
+    logger: {
+      debug: (message, context): void => this.logger.debug(message, context),
+      error: (message, context): void => this.logger.error(message, context),
+    },
   });
   private async deliverSlackAsset(
     threadId: string,

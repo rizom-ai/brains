@@ -1,4 +1,8 @@
 import {
+  ChatArtifactDeliveryError,
+  reportChatFileFailure,
+} from "./file-delivery-failure";
+import {
   buildConfirmationResponseParts,
   buildResponsePlan,
   formatArtifactDisplay,
@@ -262,12 +266,25 @@ export class ChatResponseCoordinator {
       input.response,
       input.conversationId,
     );
-    await this.artifactDelivery.withFiles(
-      input.response.cards,
-      input.userPermissionLevel,
-      (artifactDelivery) => this.renderWithArtifacts(input, artifactDelivery),
-      this.deps.getFileDeliveryAdapter?.(input.thread),
-    );
+    const state: { delivery?: ArtifactDelivery } = {};
+    try {
+      await this.artifactDelivery.withFiles(
+        input.response.cards,
+        input.userPermissionLevel,
+        (artifactDelivery): Promise<void> => {
+          state.delivery = artifactDelivery;
+          return this.renderWithArtifacts(input, artifactDelivery);
+        },
+        this.deps.getFileDeliveryAdapter?.(input.thread),
+      );
+    } catch (error) {
+      if (state.delivery?.deliveredCardIds.size)
+        throw new ChatArtifactDeliveryError(
+          state.delivery.deliveredCardIds,
+          error,
+        );
+      throw error;
+    }
   }
 
   private async renderWithArtifacts(
@@ -419,10 +436,12 @@ export class ChatResponseCoordinator {
           this.deps.getFileDeliveryAdapter?.(thread),
         );
       } catch (error: unknown) {
-        this.deps.logger.error("Failed to deliver completed chat artifact", {
-          error,
-          jobId: event.id,
-          cardId: delivery.card.id,
+        await reportChatFileFailure(error, (diagnostic): void => {
+          this.deps.logger.error("Failed to deliver completed chat artifact", {
+            ...diagnostic,
+            jobId: event.id,
+            cardId: delivery.card.id,
+          });
         });
       }
     }

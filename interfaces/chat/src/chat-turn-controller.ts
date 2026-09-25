@@ -31,6 +31,10 @@ import {
 } from "./chat-output";
 import { chunkForChannel, ownsChatPlatform } from "./chat-platform";
 import type { ChatResponseCoordinator } from "./chat-response-coordinator";
+import {
+  reportChatFileFailure,
+  CHAT_FILE_FAILURE_NOTICE,
+} from "./file-delivery-failure";
 import type { ChatSdkApp } from "./chat-sdk-app";
 import type { ChatUploadCoordinator } from "./chat-upload-coordinator";
 import {
@@ -336,11 +340,17 @@ export class ChatTurnController {
       }
       await input.body();
     } catch (error: unknown) {
-      this.deps.logger.error(input.logLabel, {
+      await reportChatFileFailure(
         error,
-        channelId: input.channelId,
-      });
-      await this.postTurnError(input.thread, input.channelId, error);
+        (diagnostic): void => {
+          this.deps.logger.error(input.logLabel, {
+            ...diagnostic,
+            channelId: input.channelId,
+          });
+        },
+        (failure): Promise<void> =>
+          this.postTurnError(input.thread, input.channelId, failure),
+      );
     } finally {
       this.deps.host.endProcessingInput();
     }
@@ -351,7 +361,13 @@ export class ChatTurnController {
     channelId: string,
     error: unknown,
   ): Promise<void> {
-    const payload = formatChatErrorPayload(error);
+    const payload =
+      error === CHAT_FILE_FAILURE_NOTICE
+        ? formatChatNoticePayload(
+            CHAT_FILE_FAILURE_NOTICE,
+            "Delivery needs review",
+          )
+        : formatChatErrorPayload(error);
     const postOutput = toPlatformPostOutput(channelId, payload);
     if (postOutput !== undefined) {
       await thread.post(postOutput);

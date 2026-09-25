@@ -2,7 +2,12 @@ import { expect, test, mock } from "bun:test";
 import assert from "node:assert/strict";
 import { prepareAsset } from "@brains/assets";
 import { PermissionService } from "@brains/plugins/test";
-import type { AgentResponse } from "@brains/plugins";
+import {
+  ReceivedEntityFileHttpError,
+  type AgentResponse,
+} from "@brains/plugins";
+import { createMockLogger } from "@brains/test-utils";
+import { CHAT_FILE_FAILURE_NOTICE } from "../src/file-delivery-failure";
 import {
   ChatInterface,
   MockChatSdk,
@@ -22,7 +27,14 @@ const cases: Array<
   [
     "slack" | "discord",
     "response" | "completion" | "claim",
-    "success" | "post-failure" | "cleanup-failure" | "unprovisioned",
+    (
+      | "success"
+      | "post-failure"
+      | "cleanup-failure"
+      | "cleanup-log-failure"
+      | "received-failure"
+      | "unprovisioned"
+    ),
   ]
 > = [];
 for (const platform of ["slack", "discord"] as const) {
@@ -31,9 +43,12 @@ for (const platform of ["slack", "discord"] as const) {
       "success",
       "post-failure",
       "cleanup-failure",
+      "received-failure",
       "unprovisioned",
     ] as const)
       cases.push([platform, route, mode]);
+    if (route === "response")
+      cases.push([platform, route, "cleanup-log-failure"]);
   }
 }
 
@@ -78,6 +93,11 @@ test.each(cases)(
         },
       ],
     };
+    const prefix = mode === "received-failure" && route === "response";
+    if (prefix && response.cards?.[0]) {
+      response.cards.push({ ...response.cards[0], id: "later-card" });
+      response.cards.unshift({ ...response.cards[0], id: "prefix-card" });
+    }
     suite.agentService.chat.mockResolvedValueOnce(response);
     let active = false;
     let retained = false;
@@ -117,7 +137,7 @@ test.each(cases)(
           });
         }
         if (mode === "post-failure") throw failure;
-        return {
+        const outcome = {
           ...input.facts,
           statusCode: 200,
           ...(platform === "discord" && {
@@ -131,6 +151,9 @@ test.each(cases)(
             },
           }),
         };
+        if (mode === "received-failure" && (!prefix || loans === 2))
+          throw new ReceivedEntityFileHttpError(outcome, failure);
+        return outcome;
       },
     );
     const files: NonNullable<typeof service.fileAssets> = {
@@ -147,7 +170,8 @@ test.each(cases)(
             },
             new AbortController().signal,
           );
-          if (mode === "cleanup-failure") throw failure;
+          if (mode === "cleanup-failure" || mode === "cleanup-log-failure")
+            throw failure;
           return result;
         } catch (error) {
           retained = true;
@@ -196,11 +220,26 @@ test.each(cases)(
       undefined,
       { fetch: metadata },
     );
+    const logger = createMockLogger();
+    const logError = mock((..._args: unknown[]): void => {
+      if (mode === "cleanup-log-failure")
+        throw new Error("diagnostic sink failed");
+    });
+    logger.error = logError;
+    suite.harness.getMockShell().getLogger().child = (): typeof logger =>
+      logger;
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const mention = chat?.handlers.mentions[0];
     assert.ok(mention);
-    await mention(thread, createMessage());
+    if (mode === "cleanup-log-failure")
+      await assert.rejects(
+        async (): Promise<void> => {
+          await mention(thread, createMessage());
+        },
+        { message: "Chat delivery and failure reporting failed" },
+      );
+    else await mention(thread, createMessage());
     if (platform === "slack" && route === "response" && mode === "success")
       expect(thread.post).toHaveBeenCalledTimes(1);
     if (route !== "response") {
@@ -239,19 +278,53 @@ test.each(cases)(
         },
       });
     }
-    expect(loans).toBe(mode === "unprovisioned" ? 0 : 1);
-    expect(post).toHaveBeenCalledTimes(mode === "unprovisioned" ? 0 : 1);
+    expect(loans).toBe(mode === "unprovisioned" ? 0 : prefix ? 2 : 1);
+    expect(post).toHaveBeenCalledTimes(
+      mode === "unprovisioned" ? 0 : prefix ? 2 : 1,
+    );
     expect(metadata).toHaveBeenCalledTimes(
       mode === "unprovisioned" || platform === "discord"
         ? 0
-        : mode === "post-failure"
-          ? 1
+        : mode === "post-failure" || mode === "received-failure"
+          ? prefix
+            ? 3
+            : 1
           : 2,
     );
     expect(active).toBe(false);
     expect(retained).toBe(
-      mode === "post-failure" || mode === "cleanup-failure",
+      mode === "post-failure" ||
+        mode === "cleanup-failure" ||
+        mode === "cleanup-log-failure" ||
+        mode === "received-failure",
     );
+    if (
+      mode === "cleanup-failure" ||
+      mode === "cleanup-log-failure" ||
+      mode === "received-failure"
+    ) {
+      const logs = JSON.stringify(logError.mock.calls);
+      expect(logger.error).toHaveBeenCalledTimes(1);
+      expect(logs).toContain(
+        mode === "cleanup-failure" || mode === "cleanup-log-failure"
+          ? "acknowledged"
+          : platform === "discord"
+            ? "received"
+            : "upload-received",
+      );
+      expect(logs).not.toContain("/owned/image");
+      expect(logs).not.toContain("127.0.0.1");
+      if (prefix) {
+        expect(logs).toContain('"deliveredCardIds":["prefix-card"]');
+        expect(logs).not.toContain(
+          '"deliveredCardIds":["prefix-card","image-card"]',
+        );
+      }
+      if (route !== "completion")
+        expect(JSON.stringify(thread.post.mock.calls)).toContain(
+          CHAT_FILE_FAILURE_NOTICE,
+        );
+    }
     for (const [message] of thread.post.mock.calls) {
       if (typeof message !== "string") expect(message.files).toBeUndefined();
     }

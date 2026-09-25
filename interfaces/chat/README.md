@@ -196,6 +196,8 @@ If native Discord file delivery fails after a validated response, `ReceivedDisco
 
 Slack failures after validated initialization retain `PartialSlackFileDeliveryError.recovery`: the allocated file ID, bound channel/thread, source digest and last known stage. Stages distinguish initialization, a received upload response, a completed byte upload, a share attempt and a validated share response. A mismatched share response retains its returned file ID separately. None of these failure states marks an artifact delivered or authorizes replay; signed upload URLs, local paths and filenames are not copied into recovery metadata. The original cause remains available.
 
+Final turn and completed-job catches log bounded, frozen recovery projections rather than raw transport causes when file outcomes are known. Received outcomes remain distinct from acknowledged deliveries, and response failures retain the completed-card prefix (with explicit truncation). Interactive logging failure cannot skip the joined review notice; reporting failures retain the original cause. Pending completion events do not replay attempted deliveries. These diagnostics are not durable delivery deduplication.
+
 Suggested-action button tokens are intentionally not durable: they reference in-memory prompts instead of embedding prompt text in Discord component payloads. After restart, clicking an old suggested-action button returns an "Action unavailable" notice and does not call the agent.
 
 ## Known gaps
