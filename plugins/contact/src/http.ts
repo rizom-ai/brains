@@ -4,6 +4,7 @@ import type { ContactAdmission, ContactDenialReason } from "./admission";
 import type { ContactIntake } from "./intake";
 import { contactSubmissionSchema } from "./entity/schema";
 import { ContactHttpError, readContactForm } from "./http-body";
+import { isPrivatePeer } from "./network";
 import {
   contactForm,
   contactPage,
@@ -15,26 +16,36 @@ export interface ContactHttpPolicy {
   origin: string;
   maxBodyBytes: number;
   readTimeoutMs: number;
+  /** Behind a TLS-terminating proxy on a private network (Kamal's), believe
+   * its X-Forwarded-Proto: https. Only the protocol; never a visitor address. */
+  trustForwardedProto?: boolean | undefined;
 }
+const originSchema: z.ZodString = z
+  .string()
+  .url()
+  .refine((value) => {
+    const url = new URL(value);
+    return (
+      value === url.origin &&
+      (url.protocol === "https:" ||
+        (url.protocol === "http:" &&
+          ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)))
+    );
+  }, "An exact HTTPS origin or loopback HTTP origin is required");
 export const contactHttpPolicySchema: z.ZodType<
   ContactHttpPolicy,
   ContactHttpPolicy
 > = z.strictObject({
-  origin: z
-    .string()
-    .url()
-    .refine((value) => {
-      const url = new URL(value);
-      return (
-        value === url.origin &&
-        (url.protocol === "https:" ||
-          (url.protocol === "http:" &&
-            ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)))
-      );
-    }, "An exact HTTPS origin or loopback HTTP origin is required"),
+  origin: originSchema,
   maxBodyBytes: z.number().int().min(256).max(65536),
   readTimeoutMs: z.number().int().min(100).max(30000),
+  trustForwardedProto: z.boolean().optional(),
 });
+export interface ContactHttpOptions {
+  themeCSS?: string | undefined;
+  /** The deployment's preview origin, served alongside the policy origin. */
+  previewOrigin?: string | undefined;
+}
 const formSchema = z.strictObject({
   token: z.string().regex(/^[a-f0-9]{64}$/),
   ...contactSubmissionSchema.shape,
@@ -95,16 +106,40 @@ export class ContactHttpHandlers {
   private readonly admission: ContactAdmission;
   private readonly intake: ContactIntake;
   private readonly themeCSS: string;
+  private readonly origins: readonly string[];
   constructor(
     admission: ContactAdmission,
     intake: ContactIntake,
     policy: ContactHttpPolicy,
-    themeCSS = "",
+    options: ContactHttpOptions = {},
   ) {
-    this.themeCSS = themeCSS;
+    this.themeCSS = options.themeCSS ?? "";
     this.admission = admission;
     this.intake = intake;
     this.policy = contactHttpPolicySchema.parse(policy);
+    this.origins = [
+      this.policy.origin,
+      ...(options.previewOrigin
+        ? [originSchema.parse(options.previewOrigin)]
+        : []),
+    ];
+  }
+
+  /** The URL the visitor used. A trusted private proxy's forwarded https
+   * replaces the plain http it forwards on; nothing else is taken from headers. */
+  private visitorUrl(
+    request: Request,
+    transport?: { readonly remoteAddress?: string },
+  ): URL {
+    const url = new URL(request.url);
+    if (
+      this.policy.trustForwardedProto === true &&
+      url.protocol === "http:" &&
+      isPrivatePeer(transport?.remoteAddress) &&
+      request.headers.get("x-forwarded-proto")?.trim().toLowerCase() === "https"
+    )
+      url.protocol = "https:";
+    return url;
   }
 
   private presentation(request: Request): ContactPresentation {
@@ -133,8 +168,8 @@ export class ContactHttpHandlers {
     let token = "";
     let draft: ContactDraft = {};
     try {
-      const url = new URL(request.url);
-      if (url.origin !== this.policy.origin)
+      const url = this.visitorUrl(request, transport);
+      if (!this.origins.includes(url.origin))
         throw new ContactHttpError(403, "Contact request denied.");
       if (
         url.protocol === "http:" &&
@@ -152,7 +187,7 @@ export class ContactHttpHandlers {
         throw new ContactHttpError(405, "Method not allowed.");
       if (
         request.method === "POST" &&
-        (request.headers.get("origin") !== this.policy.origin ||
+        (request.headers.get("origin") !== url.origin ||
           request.headers.get("sec-fetch-site") === "cross-site")
       )
         throw new ContactHttpError(403, "Contact request denied.");

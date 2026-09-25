@@ -58,6 +58,7 @@ export function contactService(
         jobs,
         permissions,
         themeCSS,
+        previewUrl,
         lifecycle,
         logger,
       }) => {
@@ -110,12 +111,10 @@ export function contactService(
         const runtime = new ContactRuntime(
           intakeConfig,
           intake,
-          new ContactHttpHandlers(
-            admission,
-            intake,
-            intakeConfig.http,
+          new ContactHttpHandlers(admission, intake, intakeConfig.http, {
             themeCSS,
-          ),
+            previewOrigin: intakeConfig.preview ? previewUrl : undefined,
+          }),
           new ContactStorageSlots(state, intakeConfig.storage, Date.now),
           logger,
           dependencies,

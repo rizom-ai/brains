@@ -10,7 +10,7 @@ export type {
 } from "./delivery";
 export { contactPluginConfigSchema } from "./config";
 export type { ContactPluginConfig, ContactIntakeConfig } from "./config";
-export type { ContactHttpPolicy } from "./http";
+export type { ContactHttpOptions, ContactHttpPolicy } from "./http";
 export { ContactIntake } from "./intake";
 export type {
   ContactIntakeDependencies,

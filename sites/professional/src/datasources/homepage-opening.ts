@@ -17,7 +17,8 @@ type OpeningRuntime = Pick<
 export type HomepageOpeningData = AskContent & { contactUrl: string };
 
 /** Build-time authored presentation only: no chat admission, tokens or generation.
- * A matching public form is required, including preview reachability and origin.
+ * A matching public form is required: advertised at the site's origin and, for a
+ * preview build, reachable on preview, where the door leads to the preview host.
  */
 export async function loadHomepageOpening(
   context: BaseDataSourceContext,
@@ -25,12 +26,12 @@ export async function loadHomepageOpening(
 ): Promise<HomepageOpeningData | null> {
   try {
     const preview = context.publishedOnly === false;
-    const origin = runtime.preferLocalUrls
+    const siteOrigin = runtime.preferLocalUrls
       ? runtime.localSiteUrl
-      : preview
-        ? runtime.previewUrl
-        : runtime.siteUrl;
-    if (!origin) return null;
+      : runtime.siteUrl;
+    const origin =
+      preview && !runtime.preferLocalUrls ? runtime.previewUrl : siteOrigin;
+    if (!siteOrigin || !origin) return null;
     const routes = runtime.webRoutes
       .getRoutes()
       .filter(
@@ -52,7 +53,7 @@ export async function loadHomepageOpening(
         (endpoint) =>
           endpoint.pluginId === "contact" &&
           endpoint.visibility === "public" &&
-          endpoint.url === new URL("/contact", origin).href,
+          endpoint.url === new URL("/contact", siteOrigin).href,
       )
     )
       return null;
