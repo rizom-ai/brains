@@ -284,6 +284,7 @@
     "core--contact-behind-proxy",
     "core--contact-intake",
     "core--contact-same-origin-referrer",
+    "core--contact-separate-worker",
     "core--context-extends-published-surface",
     "core--contracts-channel-ownership",
     "core--cross-process-durable-work",
