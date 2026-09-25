@@ -261,3 +261,129 @@ describe("contact HTTP boundary", () => {
     expect(f.queued.size).toBe(0);
   });
 });
+
+async function page(
+  handlers: ContactHttpHandlers,
+  request: Request,
+  remoteAddress = peer,
+): Promise<{ status: number; token: string | undefined }> {
+  const response = await handlers.handle(request, { remoteAddress });
+  const token = /name="token" value="([a-f0-9]{64})"/.exec(
+    await response.text(),
+  )?.[1];
+  return { status: response.status, token };
+}
+
+describe("contact HTTP behind a TLS-terminating proxy", () => {
+  // Kamal's proxy terminates TLS and forwards plain HTTP from the container network.
+  const proxy = "172.18.0.2";
+  function viaProxy(
+    init: {
+      method?: string;
+      body?: string;
+      headers?: Record<string, string>;
+    } = {},
+    protocol = "https",
+  ): Request {
+    return new Request("http://brain.test/contact", {
+      ...init,
+      headers: { "x-forwarded-proto": protocol, ...init.headers },
+    });
+  }
+  async function behindProxy(
+    trustForwardedProto: boolean,
+  ): Promise<ContactHttpHandlers> {
+    const f = await intakeFixture();
+    return new ContactHttpHandlers(f.admission, f.intake, {
+      origin,
+      maxBodyBytes: 65536,
+      readTimeoutMs: 10000,
+      trustForwardedProto,
+    });
+  }
+
+  it("serves and saves a request the proxy received over HTTPS", async () => {
+    const handlers = await behindProxy(true);
+    const form_ = await page(handlers, viaProxy(), proxy);
+    expect(form_.status).toBe(200);
+    if (!form_.token) throw new Error("Missing form token");
+    const saved = await handlers.handle(
+      viaProxy({
+        method: "POST",
+        body: form(form_.token),
+        headers: {
+          origin,
+          "content-type": "application/x-www-form-urlencoded",
+        },
+      }),
+      { remoteAddress: proxy },
+    );
+    expect(saved.status).toBe(303);
+  });
+
+  it("refuses plain HTTP unless a trusted private proxy received it over HTTPS", async () => {
+    expect(
+      (await page(await behindProxy(false), viaProxy(), proxy)).status,
+    ).toBe(403);
+    const trusting = await behindProxy(true);
+    // Anyone can send the header; only the private proxy peer is believed.
+    expect((await page(trusting, viaProxy(), "203.0.113.9")).status).toBe(403);
+    expect((await page(trusting, viaProxy({}, "http"), proxy)).status).toBe(
+      403,
+    );
+  });
+});
+
+describe("contact HTTP on the preview host", () => {
+  const preview = "https://preview.brain.test";
+  async function withPreview(
+    previewOrigin?: string,
+  ): Promise<ContactHttpHandlers> {
+    const f = await intakeFixture();
+    return new ContactHttpHandlers(
+      f.admission,
+      f.intake,
+      { origin, maxBodyBytes: 65536, readTimeoutMs: 10000 },
+      previewOrigin ? { previewOrigin } : {},
+    );
+  }
+  function postTo(host: string, token: string, from = host): Request {
+    return new Request(`${host}/contact`, {
+      method: "POST",
+      body: form(token),
+      headers: {
+        origin: from,
+        "content-type": "application/x-www-form-urlencoded",
+      },
+    });
+  }
+
+  it("serves and saves on the preview origin it is given", async () => {
+    const handlers = await withPreview(preview);
+    const form_ = await page(handlers, new Request(`${preview}/contact`));
+    expect(form_.status).toBe(200);
+    if (!form_.token) throw new Error("Missing form token");
+    const saved = await handlers.handle(postTo(preview, form_.token), {
+      remoteAddress: peer,
+    });
+    expect(saved.status).toBe(303);
+    expect(saved.headers.get("location")).toBe("/contact/thanks");
+  });
+
+  it("refuses a post from the other host, and the preview host when none is given", async () => {
+    const handlers = await withPreview(preview);
+    const form_ = await page(handlers, new Request(`${preview}/contact`));
+    if (!form_.token) throw new Error("Missing form token");
+    expect(
+      (
+        await handlers.handle(postTo(preview, form_.token, origin), {
+          remoteAddress: peer,
+        })
+      ).status,
+    ).toBe(403);
+    expect(
+      (await page(await withPreview(), new Request(`${preview}/contact`)))
+        .status,
+    ).toBe(403);
+  });
+});
