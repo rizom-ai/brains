@@ -51,7 +51,7 @@ describe("contact HTTP boundary", () => {
     );
     const html = await page.text();
     expect(html).toContain('method="post"');
-    expect(html).toContain("expires after 1 day.");
+    expect(html).toContain("kept for 1 day, then deleted.");
     expect(html).not.toContain("<script");
     const token = /name="token" value="([a-f0-9]{64})"/.exec(html)?.[1];
     if (!token) throw new Error("Missing form token");
@@ -148,6 +148,31 @@ describe("contact HTTP boundary", () => {
         })
       ).status,
     ).toBe(413);
+  });
+
+  it("starts the message with the topic the visitor chose on the site, escaped and bounded", async () => {
+    const { handlers } = await fixture();
+    const page = async (query: string): Promise<string> =>
+      (
+        await handlers.handle(new Request(`${origin}/contact${query}`), {
+          remoteAddress: peer,
+        })
+      ).text();
+    const topic = "Our AI tools don’t know what we know";
+    expect(
+      await page(`?${new URLSearchParams({ topic, theme: "light" })}`),
+    ).toContain(
+      `name="message" rows="5" maxlength="4000">${topic}\n\n</textarea>`,
+    );
+    const hostile = await page(
+      `?${new URLSearchParams({ topic: "</textarea><script>alert(1)</script>" })}`,
+    );
+    expect(hostile).toContain("&lt;/textarea&gt;&lt;script&gt;");
+    expect(hostile).not.toContain("<script>");
+    expect(await page(`?topic=${"a".repeat(500)}`)).not.toContain(
+      "a".repeat(201),
+    );
+    expect(await page("")).toContain('maxlength="4000"></textarea>');
   });
 
   it("rejects duplicate or unexpected fields and escapes returned drafts", async () => {
@@ -273,6 +298,50 @@ async function page(
   )?.[1];
   return { status: response.status, token };
 }
+
+describe("contact page for visitors", () => {
+  async function page(owner?: string, path = "/contact"): Promise<string> {
+    const f = await intakeFixture();
+    const handlers = new ContactHttpHandlers(
+      f.admission,
+      f.intake,
+      { origin, maxBodyBytes: 65536, readTimeoutMs: 10000 },
+      owner ? { owner: (): string => owner } : {},
+    );
+    const response = await handlers.handle(new Request(`${origin}${path}`), {
+      remoteAddress: peer,
+    });
+    return response.text();
+  }
+
+  it("invites the visitor to write to the owner by name, in plain words", async () => {
+    const html = await page("Yeehaa");
+    expect(html).toContain("<h1>Write to Yeehaa</h1>");
+    expect(html).toContain("goes privately to Yeehaa");
+    expect(html).toContain(">Send note</button>");
+    // What the visitor reads, not the theme's stylesheet.
+    const shown = html.slice(html.indexOf("<main>"));
+    for (const jargon of ["Brain", "intake", "Cleanup runs", "request"])
+      expect(shown).not.toContain(jargon);
+    const unnamed = await page();
+    expect(unnamed).toContain("<h1>Write a note</h1>");
+    expect(unnamed).toContain("goes privately to the owner of this site");
+  });
+
+  it("says on the form how long a note is kept and how deletion can lag", async () => {
+    const html = await page("Yeehaa");
+    expect(html).toContain("kept for 1 day, then deleted.");
+    expect(html).toContain("Deletion can run late");
+    expect(html).toContain("backups may keep earlier copies");
+  });
+
+  it("confirms a saved note without promising the alert arrived", async () => {
+    const html = await page("Yeehaa", "/contact/thanks");
+    expect(html).toContain("<h1>Note saved</h1>");
+    expect(html).toContain("even if the alert to Yeehaa is delayed");
+    expect(html).toContain("no need to send it again");
+  });
+});
 
 describe("contact HTTP behind a TLS-terminating proxy", () => {
   // Kamal's proxy terminates TLS and forwards plain HTTP from the container network.

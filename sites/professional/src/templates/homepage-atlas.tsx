@@ -24,6 +24,12 @@ function initials(owner: string): string {
     .join("");
 }
 
+/** The contact form starts the visitor's message with the topic they chose. */
+function topicUrl(contactUrl: string, topic: string): string {
+  const separator = contactUrl.includes("?") ? "&" : "?";
+  return `${contactUrl}${separator}${new URLSearchParams({ topic }).toString()}`;
+}
+
 /** Title cards open inward near either edge so they stay on screen. */
 function edgeClass(x: number): string {
   if (x > 0.72) return " atlas__mark--west";
@@ -62,6 +68,10 @@ function AtlasMap({
   // Larger territories name themselves first; the label script keeps that order.
   const zones = [...atlas.zones].sort(
     (a, b) => b.members - a.members || a.id.localeCompare(b.id),
+  );
+  // A map too small for every name hides some; each card still names its territory.
+  const zoneNames = new Map(
+    atlas.zones.map((zone): [string, string] => [zone.id, zone.name]),
   );
   const legend = KIND_ORDER.flatMap((kind) => {
     const label = atlas.items.find(
@@ -119,6 +129,7 @@ function AtlasMap({
         <ul className="atlas__marks">
           {atlas.items.map((item) => {
             const meta = [item.typeLabel, item.year].filter(Boolean).join(", ");
+            const territory = item.zoneId ? zoneNames.get(item.zoneId) : null;
             return (
               <li
                 key={`${item.entityType}:${item.id}`}
@@ -136,6 +147,7 @@ function AtlasMap({
                     <span className="atlas__tip" data-atlas-tip="">
                       <b>{item.title}</b>
                       {meta && <span>{meta}</span>}
+                      {territory && <em>{territory}</em>}
                     </span>
                   </a>
                 ) : (
@@ -253,9 +265,10 @@ export function HomepageAtlas({
             <ul className="atlas__topics" aria-label="Conversation topics">
               {opening.topics.map((topic, index) => (
                 <li key={`${index}-${topic}`}>
-                  {/* With chat, a topic fills the draft; without, it reaches the contact form. */}
+                  {/* With chat, a topic fills the draft; without, it reaches the contact form, where it starts the message. */}
                   <a
-                    href={opening.contactUrl}
+                    href={topicUrl(opening.contactUrl, topic)}
+                    data-atlas-door=""
                     {...(askBox ? { "data-atlas-fill": topic } : {})}
                   >
                     {topic}
@@ -264,7 +277,11 @@ export function HomepageAtlas({
               ))}
             </ul>
           )}
-          <a className="atlas__contact" href={opening.contactUrl}>
+          <a
+            className="atlas__contact"
+            href={opening.contactUrl}
+            data-atlas-door=""
+          >
             {opening.contactLabel ?? "Contact"}
           </a>
           {opening.contactNote && (

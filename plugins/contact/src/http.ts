@@ -12,6 +12,8 @@ import { isPrivatePeer } from "./network";
 import {
   contactForm,
   contactPage,
+  contactThanks,
+  contactUnavailable,
   type ContactDraft,
   type ContactPresentation,
 } from "./http-page";
@@ -47,11 +49,22 @@ export interface ContactHttpOptions {
   themeCSS?: string | undefined;
   /** The deployment's preview origin, served alongside the policy origin. */
   previewOrigin?: string | undefined;
+  /** Who notes go to, as the site names its owner; read per request. */
+  owner?: (() => string | undefined) | undefined;
 }
 const formSchema = z.strictObject({
   token: z.string().regex(/^[a-f0-9]{64}$/),
   ...contactSubmissionSchema.shape,
 });
+/** A site links a topic to the form; it starts the visitor's message, who can change it. */
+const TOPIC_MAX_LENGTH = 200;
+function topicDraft(url: URL): ContactDraft {
+  const topic = url.searchParams
+    .get("topic")
+    ?.trim()
+    .slice(0, TOPIC_MAX_LENGTH);
+  return topic ? { message: `${topic}\n\n` } : {};
+}
 const headers = {
   "Content-Type": "text/html; charset=utf-8",
   "Cache-Control": "no-store",
@@ -67,7 +80,7 @@ function denial(reason: ContactDenialReason): ContactHttpError {
     case "invalid-network":
       return new ContactHttpError(
         403,
-        "Contact requests are unavailable from this connection.",
+        "Notes can’t be sent from this connection.",
       );
     case "invalid-submission":
       return new ContactHttpError(
@@ -82,7 +95,7 @@ function denial(reason: ContactDenialReason): ContactHttpError {
     case "submission-conflict":
       return new ContactHttpError(
         409,
-        "This form was already used for a different request. Do not resend it with changed details.",
+        "This form already sent a different note. To send another, open a new form.",
       );
     case "rate-limited":
       return new ContactHttpError(
@@ -92,12 +105,12 @@ function denial(reason: ContactDenialReason): ContactHttpError {
     case "capacity":
       return new ContactHttpError(
         503,
-        "Contact intake is full. Please retry this same form later.",
+        "There’s no room for new notes right now. Please try this same form again later.",
       );
     case "unavailable":
       return new ContactHttpError(
         503,
-        "Saving could not be confirmed. Retry this same form rather than creating a second request.",
+        "Your note couldn’t be confirmed as saved. Send this same form again rather than opening a new one.",
       );
   }
 }
@@ -108,6 +121,7 @@ export class ContactHttpHandlers {
   private readonly admission: ContactAdmission;
   private readonly intake: ContactIntake;
   private readonly themeCSS: string;
+  private readonly owner: () => string | undefined;
   private readonly origins: readonly string[];
   constructor(
     admission: ContactAdmission,
@@ -116,6 +130,7 @@ export class ContactHttpHandlers {
     options: ContactHttpOptions = {},
   ) {
     this.themeCSS = options.themeCSS ?? "";
+    this.owner = options.owner ?? ((): undefined => undefined);
     this.admission = admission;
     this.intake = intake;
     this.policy = contactHttpPolicySchema.parse(policy);
@@ -159,20 +174,19 @@ export class ContactHttpHandlers {
 
   private presentation(request: Request): ContactPresentation {
     const theme = new URL(request.url).searchParams.get("theme");
+    const owner = this.owner()?.trim();
     return {
       themeCSS: this.themeCSS,
       ...(theme === "light" || theme === "dark" ? { theme } : {}),
+      ...(owner ? { owner } : {}),
     };
   }
 
   unavailable(request: Request): Response {
-    return new Response(
-      contactPage(
-        '<h1>Contact unavailable</h1><p role="alert">Contact intake is temporarily unavailable. Please retry this same form later.</p>',
-        this.presentation(request),
-      ),
-      { status: 503, headers },
-    );
+    return new Response(contactUnavailable(this.presentation(request)), {
+      status: 503,
+      headers,
+    });
   }
 
   async handle(
@@ -210,13 +224,7 @@ export class ContactHttpHandlers {
       if (gate.kind === "denied") throw denial(gate.reason);
       request.signal.throwIfAborted();
       if (url.pathname === "/contact/thanks")
-        return new Response(
-          contactPage(
-            '<h1>Request saved</h1><p class="introduction">Your request is saved for the owner, who can reply by email.</p><p>Notification delivery is separate. You do not need to send another request.</p>',
-            presentation,
-          ),
-          { headers },
-        );
+        return new Response(contactThanks(presentation), { headers });
       if (request.method === "GET") {
         const form = await this.admission.issue(transport?.remoteAddress);
         if (form.kind === "denied") throw denial(form.reason);
@@ -224,7 +232,7 @@ export class ContactHttpHandlers {
           contactForm(
             form.token,
             this.intake.retentionSeconds,
-            {},
+            topicDraft(url),
             undefined,
             presentation,
           ),
@@ -284,7 +292,7 @@ export class ContactHttpHandlers {
             presentation,
           )
         : contactPage(
-            `<h1>Contact unavailable</h1><p class="notice" role="alert">${escapeHtml(failure.message)}</p><p><a href="/contact">Open the contact form</a></p>`,
+            `<h1>Contact unavailable</h1><p class="notice" role="alert">${escapeHtml(failure.message)}</p><p><a href="/contact${presentation.theme ? `?theme=${presentation.theme}` : ""}">Open a new form</a></p>`,
             presentation,
           );
       return new Response(html, { status: failure.status, headers });
