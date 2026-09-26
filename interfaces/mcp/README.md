@@ -45,6 +45,34 @@ const httpInterface = new MCPInterface({
 await shell.registerPlugin(stdioInterface);
 ```
 
+### Protocol registration without a transport host
+
+`MCPInterface` implements `ProtocolPluginProvider`. Its `createProtocolPlugin()`
+returns a fresh `MCPProtocol` plugin with the same identity, protocol mode, and
+shared `chat`/`confirm` handlers, but no HTTP routes, endpoint advertisements, or
+listener daemon. Install either the hosted interface or its protocol plugin, not
+both under the same `mcp` identity.
+
+The embedding connects SDK transports to permission-scoped servers created by the
+shell's MCP service. It owns connection cleanup and must supply trusted caller
+context; protocol-only registration is not an authentication bypass for remote
+clients. Hosted HTTP still requires webserver and retains its authentication and
+debug-mode checks.
+
+The evaluator uses this registration path for `--mcp-basic`. It does not change
+transport configuration, restore a production webserver, or open stdio. From
+`packages/brain-cli`, run the protocol-specific regression with:
+
+```bash
+bun run eval:personal --mcp-basic --test mcp-long-note-update --skip-llm-judge
+```
+
+Protocol evals assert what MCP actually exposes. A confirmation contains the
+pending action and summary, not the agent's internal read-call trace. The
+long-note protocol case checks exact pending edits, unchanged storage after
+cancellation, and exact saved content and metadata after approval. In-memory
+protocol evals do not cover HTTP authentication, proxy deadlines, or Cloudflare.
+
 ### Transport Implementations
 
 #### STDIO Transport

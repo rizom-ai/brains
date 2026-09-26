@@ -195,6 +195,21 @@ function evaluateExpectedTools(
       );
     }
 
+    if (expected.resultContains) {
+      const selectedCalls = expected.argsContain
+        ? matchingCalls.filter((toolCall) =>
+            argsContainMatches(toolCall.args, expected.argsContain ?? {}),
+          )
+        : matchingCalls;
+      results.push(
+        ...evaluateResultContains(
+          expected.toolName,
+          expected.resultContains,
+          selectedCalls,
+        ),
+      );
+    }
+
     if (expected.resultErrorContains !== undefined) {
       results.push(
         evaluateResultErrorContains(
@@ -366,6 +381,31 @@ function evaluateArgsContain(
   }
 
   return results;
+}
+
+function evaluateResultContains(
+  toolName: string,
+  expectedValues: Record<string, unknown>,
+  matchingCalls: ToolCallRecord[],
+): CriteriaEvaluationResult[] {
+  return Object.entries(expectedValues).map(([path, expected]) => {
+    const actual = matchingCalls.map((call) => {
+      const parsed = recordSchema.safeParse(call.result);
+      return parsed.success ? resolveDottedPath(parsed.data, path) : undefined;
+    });
+    const passed =
+      actual.length > 0 &&
+      actual.every((value) => Bun.deepEquals(value, expected));
+    return {
+      criterion: "toolResultContains",
+      expected: { toolName, path, value: expected },
+      actual,
+      passed,
+      ...(passed
+        ? {}
+        : { message: `Tool result mismatch for ${toolName}.${path}` }),
+    };
+  });
 }
 
 /** Error text of a refused tool call, or undefined when it did not refuse. */
