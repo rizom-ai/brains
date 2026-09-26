@@ -16,6 +16,8 @@ export const HOMEPAGE_ATLAS_SCRIPT_PATH = "/scripts/homepage-atlas.js";
  * - With guest chat docked, a topic fills the chat draft instead of opening
  *   the contact form, and never sends. While the box is off (not enabled,
  *   or unavailable), the topic stays a link to the contact form.
+ * - The contact form runs no script, so it cannot read the visitor's theme
+ *   choice: the links to it carry the current theme, and follow a change.
  * - An answer's sources (the shared box's source event) light up on the map
  *   and the map turns towards them, zooming only as far as keeps each in
  *   view; an answer without sources lets go. On desktop a dotted lead runs
@@ -23,9 +25,12 @@ export const HOMEPAGE_ATLAS_SCRIPT_PATH = "/scripts/homepage-atlas.js";
  *   to its mark, following the map as it turns and the conversation as it
  *   scrolls. Phones stack the map above the opening, so they get no leads.
  * - Territory names are placed by their rendered size, largest territory
- *   first: each takes the nearest spot to its server placement that stays
- *   inside the map and clear of marks and earlier names, or is hidden rather
- *   than printed over another. It reruns when fonts load and on resize.
+ *   first: each takes the nearest spot to its server placement, within a reach
+ *   in proportion to the map, that stays inside the map and clear of marks and
+ *   earlier names, or is hidden rather than printed over another. A hidden
+ *   name keeps its place empty, so a smaller territory's name never stands in
+ *   for it; each mark's card names its territory. It reruns when fonts load
+ *   and on resize.
  * - The terrain's drift pauses (data-still) while the map is off screen and
  *   while the tab is hidden; reduced motion keeps it still throughout.
  */
@@ -44,6 +49,20 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
   var narrow = media("(max-width: 60rem)");
 
   roots.forEach(function (root) {
+    var doors = root.querySelectorAll("[data-atlas-door]");
+    function carryTheme() {
+      var theme = document.documentElement.getAttribute("data-theme");
+      if (theme !== "light" && theme !== "dark") return;
+      doors.forEach(function (link) {
+        var url = new URL(link.getAttribute("href") || "", window.location.href);
+        url.searchParams.set("theme", theme);
+        link.setAttribute("href", url.href);
+      });
+    }
+    carryTheme();
+    if (typeof MutationObserver === "function")
+      new MutationObserver(carryTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
     var terrain = root.querySelector("[data-atlas-terrain]");
     var visible = true;
     function syncMotion() {
@@ -96,13 +115,20 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
 
     var NAME_STEP_X = 12;
     var NAME_STEP_Y = 6;
-    var NAME_REACH = 5;
+    // A name moves at most this share of the map's width or height, so it stays by its territory at every size.
+    var NAME_REACH = 0.12;
     var NAME_MARGIN = 3; // px kept clear around marks and placed names
     var NAME_GAP = 14; // px between names side by side, so two never read as one
-    var span = Array.from({ length: 2 * NAME_REACH + 1 }, function (_, k) { return k - NAME_REACH; });
-    var nameOffsets = span
-      .flatMap(function (i) { return span.map(function (j) { return [i * NAME_STEP_X, j * NAME_STEP_Y]; }); })
-      .sort(function (a, b) { return Math.hypot(a[0], a[1]) - Math.hypot(b[0], b[1]); });
+    function steps(length, step) {
+      var reach = Math.max(1, Math.round((NAME_REACH * length) / step));
+      return Array.from({ length: 2 * reach + 1 }, function (_, k) { return (k - reach) * step; });
+    }
+    function nameOffsets(area) {
+      var ys = steps(area.bottom - area.top, NAME_STEP_Y);
+      return steps(area.right - area.left, NAME_STEP_X)
+        .flatMap(function (dx) { return ys.map(function (dy) { return [dx, dy]; }); })
+        .sort(function (a, b) { return Math.hypot(a[0], a[1]) - Math.hypot(b[0], b[1]); });
+    }
     function moved(box, dx, dy) {
       return { left: box.left + dx, top: box.top + dy, right: box.right + dx, bottom: box.bottom + dy };
     }
@@ -129,6 +155,7 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
         : NaN;
       if (narrow.matches && fill > 0 && fill < 1)
         area = { left: area.left, top: area.top, right: area.right, bottom: area.top + fill * (area.bottom - area.top) };
+      var offsets = nameOffsets(area);
       var bases = labels.map(function (label) { return label.getBoundingClientRect(); });
       var taken = Array.prototype.map.call(
         root.querySelectorAll("[data-atlas-mark] .atlas__glyph"),
@@ -138,7 +165,7 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
         var base = bases[index];
         // Start from the nearest position inside the map's edges.
         var inward = Math.max(area.left - base.left, Math.min(0, area.right - base.right));
-        var spot = nameOffsets.find(function (offset) {
+        var spot = offsets.find(function (offset) {
           var box = moved(base, inward + offset[0], offset[1]);
           return (
             box.left >= area.left && box.right <= area.right &&
@@ -148,6 +175,8 @@ export const HOMEPAGE_ATLAS_SCRIPT: string = `(function () {
         });
         if (!spot) {
           label.setAttribute("hidden", "");
+          // Its place stays empty: a smaller territory's name there would read as this one's.
+          taken.push(grown(moved(base, inward, 0), NAME_GAP));
           return;
         }
         var dx = inward + spot[0];

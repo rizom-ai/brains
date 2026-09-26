@@ -19,9 +19,9 @@ function setup(options: {
   media["(prefers-reduced-motion: reduce)"] = options.still ?? false;
   window.document.body.innerHTML = `
     <section data-atlas>
-      <a class="contact" href="/contact">Let’s talk</a>
+      <a class="contact" href="/contact" data-atlas-door>Let’s talk</a>
       <div data-ask-box><p data-ask-status></p><textarea ${options.chat === "live" ? "" : "disabled"}></textarea><button data-ask-send>Send</button></div>
-      <a id="topic" href="/contact" data-atlas-fill="What is Rizom?">What is Rizom?</a>
+      <a id="topic" href="/contact?topic=What+is+Rizom%3F" data-atlas-door data-atlas-fill="What is Rizom?">What is Rizom?</a>
       <svg data-atlas-leads></svg>
       <div data-atlas-field>
         <svg data-atlas-terrain></svg>
@@ -101,6 +101,7 @@ beforeEach(() => {
     // The page's own Event, as a browser page has it.
     Event: window.Event,
     IntersectionObserver: Observer,
+    MutationObserver: window.MutationObserver,
   });
 });
 
@@ -172,6 +173,28 @@ describe("atlas on touch screens", () => {
   it("leaves the conversation's links alone", () => {
     setup({ touch: true });
     expect(tap(".contact")).toBe(true);
+  });
+});
+
+describe("atlas door", () => {
+  const door = (id: string): URLSearchParams =>
+    new URL(
+      window.document.getElementById(id)?.getAttribute("href") ?? "",
+      "https://yeehaa.test/",
+    ).searchParams;
+
+  it("carries the visitor's theme to the contact form, which cannot read it, and follows a change", async () => {
+    window.document.documentElement.setAttribute("data-theme", "light");
+    setup({ touch: true });
+    window.document.querySelector(".contact")?.setAttribute("id", "contact");
+    expect(door("topic").get("theme")).toBe("light");
+    expect(door("topic").get("topic")).toBe("What is Rizom?");
+    expect(door("contact").get("theme")).toBe("light");
+
+    window.document.documentElement.setAttribute("data-theme", "dark");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(door("topic").get("theme")).toBe("dark");
+    expect(door("contact").get("theme")).toBe("dark");
   });
 });
 
@@ -481,6 +504,42 @@ describe("atlas territory names", () => {
     if (!onPhone) throw new Error("name hidden");
     expect(onPhone.top + onPhone.height).toBeLessThanOrEqual(150);
     expect(crossing(false)).toEqual(low);
+  });
+
+  it("lets a name move further on a larger map, in proportion to it", () => {
+    // The nearest free place is 48px below: within reach of an 800x600 map,
+    // too far on a 400x300 one, where the name would leave its territory.
+    const label = box(300, 100, 120, 20);
+    const wall = box(290, 70, 140, 70);
+    names([["blocked", label]], [wall], box(0, 0, 800, 600));
+    const large = placed("blocked", label);
+    if (!large) throw new Error("name hidden on the large map");
+    expect(overlaps(large, wall)).toBe(false);
+
+    names([["blocked", label]], [wall], box(0, 0, 400, 300));
+    expect(placed("blocked", label)).toBeNull();
+  });
+
+  it("keeps a hidden name's place empty, so a smaller territory's name never stands in for it", () => {
+    // Marks leave one pocket, too narrow for the larger name, wide enough for the smaller.
+    const walls = [
+      box(0, 0, 147, 300),
+      box(253, 0, 147, 300),
+      box(147, 0, 106, 92),
+      box(147, 128, 106, 172),
+    ];
+    const larger = box(100, 100, 200, 20);
+    const smaller = box(170, 102, 60, 20);
+    names(
+      [
+        ["larger", larger],
+        ["smaller", smaller],
+      ],
+      walls,
+    );
+    expect(placed("larger", larger)).toBeNull();
+    const stand = placed("smaller", smaller);
+    expect(stand === null || !overlaps(stand, larger)).toBe(true);
   });
 
   it("hides a name that has no free place rather than printing it over another", () => {

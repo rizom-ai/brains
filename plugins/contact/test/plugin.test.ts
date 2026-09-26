@@ -225,6 +225,38 @@ describe("contact runtime", () => {
       )?.status,
     ).toBe(503);
   });
+  it("reads and escapes the current owner name through declarative identity", async () => {
+    const f = await setup();
+    const profile = f.shell.getProfile();
+    let name = "First owner";
+    const identity = spyOn(f.shell, "getProfile").mockImplementation(() => ({
+      ...profile,
+      name,
+    }));
+    try {
+      await f.plugin.ready();
+      const get = f.plugin
+        .getWebRoutes()
+        .find((route) => route.path === "/contact" && route.method === "GET");
+      const first = await get?.handler(new Request(`${origin}/contact`), {
+        remoteAddress: peer,
+      });
+      expect(await first?.text()).toContain("Write to First owner");
+      name = "<script>changed owner</script>";
+      const changed = await get?.handler(new Request(`${origin}/contact`), {
+        remoteAddress: peer,
+      });
+      const html = await changed?.text();
+      expect(html).toContain(
+        "Write to &lt;script&gt;changed owner&lt;/script&gt;",
+      );
+      expect(html).not.toContain(name);
+    } finally {
+      identity.mockRestore();
+      await f.plugin.shutdown();
+      await f.h.reset();
+    }
+  });
   it("serves the deployment's preview host when preview is on", async () => {
     const f = await setup();
     try {

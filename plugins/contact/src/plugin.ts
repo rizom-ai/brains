@@ -66,6 +66,7 @@ export function contactService(): ServicePackageDefinition<
         jobs,
         permissions,
         themeCSS,
+        identity,
         previewUrl,
         lifecycle,
       }) => {
@@ -121,6 +122,7 @@ export function contactService(): ServicePackageDefinition<
           new ContactHttpHandlers(admission, intake, intakeConfig.http, {
             themeCSS,
             previewOrigin: intakeConfig.preview ? previewUrl : undefined,
+            owner: (): string => identity.getProfile().name,
           }),
           new ContactStorageSlots(state, intakeConfig.storage, Date.now),
           runtimeState({

@@ -1,5 +1,15 @@
 # @rizom/brain
 
+## 0.2.0-alpha.412
+
+### Patch Changes
+
+- [#364](https://github.com/rizom-ai/brains/pull/364) [`e811d5d`](https://github.com/rizom-ai/brains/commit/e811d5d2e145c325c3e1d91fe93412b7c5417c7a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The professional homepage's topics now carry into the contact form: each topic links to the form with the topic, and the form starts the visitor's message with it (bounded and escaped), so the thread they picked is not lost on the way. Links to the form also carry the visitor's current light or dark theme, which the script-free form cannot read itself, and follow a change. On touch screens, where no hover reveals them, the topics rest as the choices they are.
+
+- [#364](https://github.com/rizom-ai/brains/pull/364) [`e324acb`](https://github.com/rizom-ai/brains/commit/e324acb5cbdae3d12aa850b6795b6fceba18aaa9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Atlas territory names now move in proportion to the map: a desktop map finds every name a place near its territory, while a phone map, too small for all of them, keeps the largest territories named at full size and never lets a name wander off to another part of the map. A name the map cannot fit keeps its place empty, so a smaller territory's name never stands in for it, and each mark's card now names its territory, so every territory stays one tap away. On touch screens the open card's title is underlined, since the card is the way in.
+
+- [#364](https://github.com/rizom-ai/brains/pull/364) [`d248e16`](https://github.com/rizom-ai/brains/commit/d248e16eca3f5a21fb2103e92e7afbda9ddf3466) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The contact form now speaks to the visitor. It names who the note goes to from the Brain's profile ("Write to Yeehaa"), says in plain words that the note is private, never published and never part of what the site knows, and states on the form how long a note is kept, that deletion can run late and that backups may keep earlier copies. The confirmation says the note is saved without promising the owner's alert arrived. Labels, the button ("Send note") and errors use sentence case and plain wording instead of the console's uppercase mono chrome, and inputs and the button have rounded corners; the page still loads no external fonts, assets or scripts.
+
 ## 0.2.0-alpha.411
 
 ### Patch Changes
