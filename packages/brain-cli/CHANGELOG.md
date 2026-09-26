@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.413
+
+### Patch Changes
+
+- [#365](https://github.com/rizom-ai/brains/pull/365) [`210ef3c`](https://github.com/rizom-ai/brains/commit/210ef3c55d778720bf113120d25502fd1cf62da5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On touch screens the homepage topics now get the tap size and spacing meant for them: the touch styles came before the resting styles they override, so at equal specificity the resting padding and gap won and the choices sat 37px tall and nearly touching. They are now 44px targets with room between them.
+
 ## 0.2.0-alpha.412
 
 ### Patch Changes
