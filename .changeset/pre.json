@@ -239,6 +239,7 @@
     "core--atlas-names-by-size",
     "core--atlas-names-phone",
     "core--atlas-phone-fill",
+    "core--atlas-touch-topic-size",
     "core--atomic-job-deduplication",
     "core--atproto-lexicon-derived-strictness",
     "core--auth-passkey-recovery-guidance",
