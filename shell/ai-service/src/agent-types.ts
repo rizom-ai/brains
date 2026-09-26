@@ -36,6 +36,7 @@ import type { ModelMessage } from "ai";
 import { z } from "@brains/utils/zod";
 import {
   guestExecutionPolicySchema,
+  type GuestTurnSettlement,
   type GuestExecutionPolicy,
 } from "@brains/contracts/chat";
 
@@ -118,6 +119,8 @@ export interface BrainAgentResult {
     outputTokens: number | undefined;
     totalTokens: number | undefined;
   };
+  /** A guest turn's reported usage and settled cost; never set for owners. */
+  guestSettlement?: GuestTurnSettlement;
 }
 
 /**

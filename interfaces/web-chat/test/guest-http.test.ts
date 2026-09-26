@@ -10,6 +10,7 @@ import {
   type ChatCard,
   type ChatMessageRequest,
   type ChatProtocolEvent,
+  type GuestTurnSettlement,
 } from "@brains/contracts/chat";
 import type { IAgentService, IConversationService } from "@brains/plugins";
 import {
@@ -49,6 +50,7 @@ interface Fixture {
   messages: Map<string, Message[]>;
   calls: Parameters<IAgentService["chat"]>[];
   reply: (text: string, id: string) => Promise<string>;
+  settlement: GuestTurnSettlement | undefined;
   sourceCards: Extract<ChatCard, { kind: "sources" }>[];
   readMessages: (() => Promise<void>) | undefined;
   browser: () => Browser;
@@ -83,6 +85,7 @@ async function setup(
     readMessages: undefined,
     sourceCards: [],
     reply: async (): Promise<string> => "Mock public-source answer",
+    settlement: undefined,
     browser: (): Browser => {
       throw new Error("Not installed");
     },
@@ -162,6 +165,7 @@ async function setup(
         text: reply,
         cards: state.sourceCards,
         usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+        ...(state.settlement ? { guestSettlement: state.settlement } : {}),
       };
     },
     confirmPendingAction: async (): Promise<never> => {
@@ -1293,6 +1297,40 @@ describe("guest usage record over HTTP", () => {
     const [after] = await state.records();
     expect(after?.state).toBe("completed");
     expect(after?.settledAt).toBe(state.now);
+  });
+
+  it("records the cost the runtime settled for a turn, or unknown when it reported none", async () => {
+    const state = await setup();
+    const browser = state.browser();
+    await browser.client.openGuestSession();
+    state.settlement = {
+      usage: {
+        modelCalls: 1,
+        inputTokens: 10_000,
+        cachedInputTokens: 4_000,
+        outputTokens: 500,
+        reasoningTokens: 0,
+        embeddingTokens: 800,
+      },
+      cost: {
+        state: "known",
+        microUsd: 1_896,
+        pricing: "openai-gpt-5.6-luna-2026-09-26",
+      },
+    };
+    await events(await browser.client.streamMessages(message()));
+    state.settlement = undefined;
+    await events(await browser.client.streamMessages(message("Another")));
+    const records = await state.records();
+    expect(records.map((event) => event.cost)).toContainEqual({
+      state: "known",
+      microUsd: 1_896,
+      pricing: "openai-gpt-5.6-luna-2026-09-26",
+    });
+    expect(records.map((event) => event.cost)).toContainEqual({
+      state: "unknown",
+      reason: "missing-usage",
+    });
   });
 
   it("keeps a turn that fails or never returns unresolved", async () => {

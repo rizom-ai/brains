@@ -103,6 +103,64 @@ describe("guest provider boundary (real SDK, mocked provider)", () => {
     expect(model.doGenerateCalls).toHaveLength(0);
   });
 
+  it("settles a guest turn from the usage the provider reported", async () => {
+    const model = new MockLanguageModelV3({
+      doGenerate: {
+        content: [{ type: "text", text: "Public answer" }],
+        finishReason: { unified: "stop", raw: "stop" },
+        usage: {
+          inputTokens: { total: 10, noCache: 7, cacheRead: 3, cacheWrite: 0 },
+          outputTokens: { total: 4, text: 3, reasoning: 1 },
+        },
+        warnings: [],
+      },
+    });
+    const agent = createAgent(model, [], {
+      ...testGuestAccounting,
+      settle: () => ({
+        state: "known",
+        microUsd: 9,
+        pricing: "check-revision",
+      }),
+    });
+    const result = await agent.generate({
+      messages: [{ role: "user", content: "What is public?" }],
+      options,
+    });
+    expect(result.guestSettlement).toEqual({
+      usage: {
+        modelCalls: 1,
+        inputTokens: 10,
+        cachedInputTokens: 3,
+        outputTokens: 4,
+        reasoningTokens: 1,
+        embeddingTokens: 0,
+      },
+      cost: { state: "known", microUsd: 9, pricing: "check-revision" },
+    });
+  });
+
+  it("settles nothing for an owner's turn", async () => {
+    const model = new MockLanguageModelV3({
+      doGenerate: {
+        content: [{ type: "text", text: "Owner answer" }],
+        finishReason: { unified: "stop", raw: "stop" },
+        usage: usage(),
+        warnings: [],
+      },
+    });
+    const result = await createAgent(model, []).generate({
+      messages: [{ role: "user", content: "Hello" }],
+      options: {
+        interfaceType: "cli",
+        userPermissionLevel: "admin",
+        isAnchor: true,
+        conversationId: "owner",
+      },
+    });
+    expect(result.guestSettlement).toBeUndefined();
+  });
+
   it("does not retry provider failures or expose their private details", () => {
     const model = new MockLanguageModelV3({
       doGenerate: async (): Promise<never> => {

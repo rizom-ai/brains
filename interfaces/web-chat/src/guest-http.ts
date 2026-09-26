@@ -408,7 +408,11 @@ export class GuestHttpHandlers {
             // The owner's record first: if it cannot be written, the request
             // stays unresolved and its reservation held.
             if (
-              !(await usage.settle(usageId, hasAnswer ? "completed" : "failed"))
+              !(await usage.settle(
+                usageId,
+                hasAnswer ? "completed" : "failed",
+                response.guestSettlement,
+              ))
             )
               throw new Error("Guest settlement unavailable");
             if (
