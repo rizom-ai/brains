@@ -48,6 +48,7 @@ async function setup(
   checks: MaintenanceDefinition[];
   recurring: RecurringCheckDefinition[];
   sent: ChannelDeliveryInput[];
+  transport: { status: "sent" | "failed" };
   plugin: ContactService;
   handlers: Map<string, JobHandler>;
   inbox: { href: string | undefined };
@@ -91,6 +92,7 @@ async function setup(
   }));
   await entityPlugin.register(shell);
   const sent: ChannelDeliveryInput[] = [];
+  const transport: { status: "sent" | "failed" } = { status: "sent" };
   const channels = shell.getChannelRegistry();
   channels.registerDescriptor("test-email", {
     type: "email",
@@ -101,6 +103,8 @@ async function setup(
     channelType: "email",
     isAvailable: async () => true,
     send: async (message) => {
+      if (transport.status === "failed")
+        return { status: "failed", failureCode: "test-transport" };
       sent.push(message);
       return { status: "sent" };
     },
@@ -117,7 +121,17 @@ async function setup(
   }
   await plugin.register(shell, { executionOnly });
   await plugin.finalizeRegistration();
-  return { h, shell, checks, recurring, sent, plugin, handlers, inbox };
+  return {
+    h,
+    shell,
+    checks,
+    recurring,
+    sent,
+    transport,
+    plugin,
+    handlers,
+    inbox,
+  };
 }
 async function submit(plugin: ContactService): Promise<Response> {
   const get = plugin
@@ -525,6 +539,53 @@ describe("contact runtime", () => {
     } finally {
       release.resolve();
       await f.plugin.shutdown();
+    }
+  });
+
+  it("reports a failed alert as degraded until its request is marked Done", async () => {
+    const f = await setup();
+    try {
+      f.transport.status = "failed";
+      await f.plugin.ready();
+      expect((await submit(f.plugin)).status).toBe(303);
+      const job = (await f.shell.getJobQueueService().getActiveJobs())[0];
+      const handler = job && f.handlers.get(job.type);
+      if (!job || !handler) throw new Error("Missing delivery job");
+      const attempt = (): Promise<unknown> =>
+        handler
+          .process(
+            JSON.parse(job.data),
+            job.id,
+            CallbackProgressReporter.noop(),
+            new AbortController().signal,
+          )
+          .catch((error: unknown) => error);
+      expect(await attempt()).toEqual(
+        new Error("Contact notification unavailable"),
+      );
+      expect(await attempt()).toEqual(
+        new Error("Contact notification unavailable"),
+      );
+      expect(await attempt()).toBe("failed");
+      const intake = async (): Promise<unknown> =>
+        (await f.shell.getOperationalHealthRegistry().getChecks())[0];
+      expect(await intake()).toMatchObject({
+        status: "degraded",
+        details: { failed: 1, failedUnhandled: 1 },
+      });
+      const registry = f.shell.getInboxRegistry();
+      registry.finalize();
+      const inbox = registry.getSource("contact-requests");
+      const [request] = (await inbox?.list()) ?? [];
+      if (!inbox || !request) throw new Error("Missing Inbox request");
+      await inbox.act(request.id, "mark-handled", { permissionLevel: "admin" });
+      expect(await intake()).toMatchObject({
+        status: "healthy",
+        details: { failed: 1, failedUnhandled: 0 },
+      });
+    } finally {
+      await f.plugin.shutdown();
+      await f.h.reset();
     }
   });
 

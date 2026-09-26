@@ -1,5 +1,83 @@
 # @brains/content-service
 
+## 0.2.0-alpha.419
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.419
+  - @brains/contracts@0.2.0-alpha.419
+  - @brains/utils@0.2.0-alpha.419
+  - @brains/ai-service@0.2.0-alpha.419
+  - @brains/entity-service@0.2.0-alpha.419
+  - @brains/job-queue@0.2.0-alpha.419
+  - @brains/templates@0.2.0-alpha.419
+
+## 0.2.0-alpha.418
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.418
+  - @brains/contracts@0.2.0-alpha.418
+  - @brains/utils@0.2.0-alpha.418
+  - @brains/ai-service@0.2.0-alpha.418
+  - @brains/entity-service@0.2.0-alpha.418
+  - @brains/job-queue@0.2.0-alpha.418
+  - @brains/templates@0.2.0-alpha.418
+
+## 0.2.0-alpha.417
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.417
+  - @brains/contracts@0.2.0-alpha.417
+  - @brains/utils@0.2.0-alpha.417
+  - @brains/ai-service@0.2.0-alpha.417
+  - @brains/entity-service@0.2.0-alpha.417
+  - @brains/job-queue@0.2.0-alpha.417
+  - @brains/templates@0.2.0-alpha.417
+
+## 0.2.0-alpha.416
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.416
+  - @brains/contracts@0.2.0-alpha.416
+  - @brains/utils@0.2.0-alpha.416
+  - @brains/ai-service@0.2.0-alpha.416
+  - @brains/entity-service@0.2.0-alpha.416
+  - @brains/job-queue@0.2.0-alpha.416
+  - @brains/templates@0.2.0-alpha.416
+
+## 0.2.0-alpha.415
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.415
+  - @brains/contracts@0.2.0-alpha.415
+  - @brains/utils@0.2.0-alpha.415
+  - @brains/ai-service@0.2.0-alpha.415
+  - @brains/entity-service@0.2.0-alpha.415
+  - @brains/job-queue@0.2.0-alpha.415
+  - @brains/templates@0.2.0-alpha.415
+
+## 0.2.0-alpha.414
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.414
+  - @brains/contracts@0.2.0-alpha.414
+  - @brains/utils@0.2.0-alpha.414
+  - @brains/ai-service@0.2.0-alpha.414
+  - @brains/entity-service@0.2.0-alpha.414
+  - @brains/job-queue@0.2.0-alpha.414
+  - @brains/templates@0.2.0-alpha.414
+
 ## 0.2.0-alpha.413
 
 ### Patch Changes

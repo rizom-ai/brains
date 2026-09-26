@@ -1,21 +1,49 @@
-/**
- * Note package.
- *
- * One entity and nothing else: a note is markdown the user owns, and both
- * ways of making one — generating from a prompt, importing an upload — fill
- * in an entity the runtime allocated first.
- */
-
+/** Note entity and its owned, restricted text-capture service. */
 import {
-  defineEntityPackage,
-  type EntityPackageDefinition,
-} from "@brains/sdk/entities";
+  defineServicePlugin,
+  defineSubscription,
+  z,
+  type ServicePackageDefinition,
+} from "@brains/sdk/services";
+import {
+  NOTE_CAPTURE_MESSAGE,
+  noteCaptureRequestSchema,
+  noteCaptureResponseSchema,
+} from "@brains/contracts";
 import { note } from "./note-entity";
 
-export const notes: EntityPackageDefinition = defineEntityPackage({
-  id: "note",
-  entities: [note],
-});
+const noteConfig: z.ZodObject<
+  Record<string, never>,
+  z.core.$strict
+> = z.strictObject({});
+export const notes: ServicePackageDefinition<typeof noteConfig> =
+  defineServicePlugin(
+    {
+      id: "note-capture",
+      config: noteConfig,
+      entities: [note],
+      setup: ({ entities }) => ({ entities }),
+    },
+    {
+      subscriptions: ({ state }) => [
+        defineSubscription({
+          topic: NOTE_CAPTURE_MESSAGE,
+          payload: noteCaptureRequestSchema,
+          response: noteCaptureResponseSchema,
+          handle: async ({ payload }) => {
+            const saved = await state.entities.createPending({
+              entityType: "note",
+              id: payload.id,
+              content: payload.body,
+              metadata: { title: payload.title },
+              visibility: "restricted",
+            });
+            return { noteId: saved.entityId, created: saved.created };
+          },
+        }),
+      ],
+    },
+  );
 
 export default notes;
 

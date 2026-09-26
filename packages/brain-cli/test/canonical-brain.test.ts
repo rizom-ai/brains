@@ -170,6 +170,7 @@ describe("canonical brain core", () => {
       "@brains/profile:profile",
       "@brains/style-guide:style-guide",
       "@brains/ask-content:ask-content",
+      "@brains/note:note-capture",
       "@brains/note:note",
       "@brains/link:capture",
       "@brains/link:link",

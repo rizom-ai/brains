@@ -671,9 +671,11 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           if ("delegate" in resolution) {
             if ("existing" in resolution) {
               const jobId = await context.jobs.enqueue({
-                type: this.jobOwnerId
-                  ? `${this.jobOwnerId}:${resolution.delegate.job}`
-                  : `${this.id}:${resolution.delegate.job}`,
+                type:
+                  this.jobOwnerId &&
+                  !Object.hasOwn(this.jobs ?? {}, resolution.delegate.job)
+                    ? `${this.jobOwnerId}:${resolution.delegate.job}`
+                    : `${this.id}:${resolution.delegate.job}`,
                 data: {
                   ...(resolution.delegate.input ?? {}),
                   entityId: resolution.existing.id,
@@ -728,9 +730,11 @@ class DeclarativeEntityPlugin extends EntityPlugin<
               id: written.entityId,
             });
             const jobId = await context.jobs.enqueue({
-              type: this.jobOwnerId
-                ? `${this.jobOwnerId}:${resolution.delegate.job}`
-                : `${this.id}:${resolution.delegate.job}`,
+              type:
+                this.jobOwnerId &&
+                !Object.hasOwn(this.jobs ?? {}, resolution.delegate.job)
+                  ? `${this.jobOwnerId}:${resolution.delegate.job}`
+                  : `${this.id}:${resolution.delegate.job}`,
               data: {
                 ...(resolution.delegate.input ?? {}),
                 entityId: written.entityId,
@@ -897,9 +901,10 @@ class DeclarativeEntityPlugin extends EntityPlugin<
           // one definition, in which case the job belongs to the package
           // rather than to this entity plugin. Qualify it here so the
           // author still writes a bare local job name.
-          type: this.jobOwnerId
-            ? `${this.jobOwnerId}:${route.delegate}`
-            : route.delegate,
+          type:
+            this.jobOwnerId && !Object.hasOwn(this.jobs ?? {}, route.delegate)
+              ? `${this.jobOwnerId}:${route.delegate}`
+              : route.delegate,
           data: input,
           toolContext: executionContext,
           options: {

@@ -1,4 +1,5 @@
 import type { z } from "@brains/utils/zod";
+import type { InterfaceOperatorContributions } from "./operator-contributions";
 import type {
   SdkErrorCode,
   InterfaceAvailabilityWriter,
@@ -408,6 +409,10 @@ export interface InterfaceDefinitionBehavior<
   TConfigSchema extends InterfaceConfigSchema,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
   TState extends object = Record<never, never>,
+> extends InterfaceOperatorContributions<
+  TConfigSchema,
+  TState,
+  TAccountSettings
 > {
   /**
    * Requests this interface answers on the message bus.
@@ -761,6 +766,10 @@ export interface MessageInterfaceDefinitionBehavior<
   TState extends object,
   TRecipientSchema extends MessageRecipientSchema,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined,
+> extends InterfaceOperatorContributions<
+  TConfigSchema,
+  TState,
+  TAccountSettings
 > {
   /**
    * Whether delivery can actually be attempted right now.

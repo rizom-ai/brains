@@ -1,16 +1,19 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { embed, wrapLanguageModel } from "ai";
-import type { QueryEmbedding } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import type { FetchLike } from "@brains/utils/fetch-like";
-import type { GuestExecutionAccounting } from "./guest-turn-budget";
+import type {
+  GuestExecutionAccounting,
+  GuestQueryEmbedding,
+} from "./guest-turn-budget";
+import { priceOpenAiGuestTurn } from "./openai-guest-pricing";
 
 type Model = Parameters<typeof wrapLanguageModel>[0]["model"];
 export interface GuestModelProfile {
   model: Model;
   accounting: GuestExecutionAccounting;
   /** One request per search; its complete cost must be included in the tool quote. */
-  queryEmbedding: QueryEmbedding;
+  queryEmbedding: GuestQueryEmbedding;
 }
 export interface OpenAiGuestProfileOptions {
   apiKey: string;
@@ -251,9 +254,15 @@ export function createOpenAiGuestProfile(
           request.name === "system_search" ? embeddingCostMicroUsd : 0,
       };
     },
+    settle: priceOpenAiGuestTurn,
   };
-  const queryEmbedding: QueryEmbedding = async (query, signal) => {
+  const queryEmbedding: GuestQueryEmbedding = async (query, signal, usage) => {
     signal.throwIfAborted();
+    // Refused before sending, so nothing can be billed or reported.
+    if (!query || query.length > 4000)
+      throw new Error("Guest query embedding unavailable");
+    // Once sent, the provider may bill even if the answer is unusable or late.
+    let reported = false;
     try {
       const result = await embed({
         model: client.embedding(openAiGuestEmbeddingModel),
@@ -276,11 +285,14 @@ export function createOpenAiGuestProfile(
         !result.embedding.every(Number.isFinite)
       )
         throw new Error("Guest embedding bounds exceeded");
+      usage(result.usage.tokens);
+      reported = true;
       const vector = new Float32Array(result.embedding);
       if (!vector.every(Number.isFinite))
         throw new Error("Guest embedding bounds exceeded");
       return vector;
     } catch {
+      if (!reported) usage(undefined);
       signal.throwIfAborted();
       throw new Error("Guest query embedding unavailable");
     }

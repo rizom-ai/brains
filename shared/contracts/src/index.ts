@@ -238,6 +238,13 @@ export {
   type SendNotificationInput,
   type SendNotificationResult,
 } from "./notification";
+export {
+  NOTE_CAPTURE_MESSAGE,
+  noteCaptureRequestSchema,
+  noteCaptureResponseSchema,
+  type NoteCaptureRequest,
+  type NoteCaptureResponse,
+} from "./note-capture";
 export type { ConsoleSurface, SurfacePermissionLevel } from "./console";
 export { ASK_BOX_AVAILABILITY_OWNER } from "./ask-box-availability";
 export { interfaceAvailabilitySchema } from "./interface-availability";

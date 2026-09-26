@@ -1,5 +1,9 @@
 // ============================================================================
 // Plugin Framework Core
+export type {
+  AnyStudioWorkspaceDefinition,
+  BoundStudioWorkspace,
+} from "./operator/operator-definition-contract";
 // ============================================================================
 
 export type {

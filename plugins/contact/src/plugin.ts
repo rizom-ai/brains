@@ -22,6 +22,7 @@ import { ContactDelivery } from "./delivery";
 import { ContactStorageSlots } from "./storage-slots";
 import { contactPluginConfigSchema } from "./config";
 import { contactRequest } from "./entity/plugin";
+import { contactRequestSchema } from "./entity/schema";
 import { ContactRuntime, maintenanceStatusSchema } from "./runtime";
 
 const contactRoutes = [
@@ -129,6 +130,17 @@ export function contactService(): ServicePackageDefinition<
             namespace: "contact.maintenance",
             schema: maintenanceStatusSchema,
           }),
+          async (id) =>
+            (
+              await entities.getEntity(
+                {
+                  entityType: "contact-request",
+                  id,
+                  visibilityScope: "restricted",
+                },
+                contactRequestSchema,
+              )
+            )?.metadata.status === "new",
         );
         lifecycle.onCleanup(() => runtime.shutdown());
         return { inbox, runtime, delivery, notify };

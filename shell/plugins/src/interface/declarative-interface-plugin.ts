@@ -1,5 +1,6 @@
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
 import { runCleanups } from "../internal/cleanup";
+import { registerInterfaceOperatorContributions } from "./operator-contributions";
 import { createAccountDaemon } from "../operator/account-daemon-supervisor";
 import { createInboxReader } from "../base/namespaces";
 import { createAuthReader } from "../contracts/auth-registry";
@@ -57,11 +58,13 @@ class DeclarativeInterfacePlugin<
     TAccountSettings,
     TState
   >;
-  private accountSettingsRegistration: AccountSettingsRegistration | undefined;
+  private accountSettingsRegistration:
+    AccountSettingsRegistration<NonNullable<TAccountSettings>> | undefined;
   private routes: WebRouteDefinition[] = [];
   private hasRequiredDaemon = false;
   private state: TState | undefined;
   private readonly cleanups: Array<() => void | Promise<void>> = [];
+  private readonly operatorAbort = new AbortController();
   private reactionSource: ReactionContextSource | undefined;
 
   constructor(
@@ -256,6 +259,21 @@ class DeclarativeInterfacePlugin<
         `Interface "${this.definition.id}" account settings require auth-service and an account settings encryption key`,
       );
     }
+    this.cleanups.push(
+      await registerInterfaceOperatorContributions({
+        definition: this.definition,
+        context,
+        config: this.config,
+        state: this.requireState(),
+        accountSettings: this.definition.accountSettings,
+        ...(this.accountSettingsRegistration
+          ? { accountSettingsRegistration: this.accountSettingsRegistration }
+          : {}),
+        packageName: this.packageName,
+        pluginId: this.id,
+        signal: this.operatorAbort.signal,
+      }),
+    );
   }
 
   private reaction(): EntityReactionContext {
@@ -316,6 +334,7 @@ class DeclarativeInterfacePlugin<
   }
 
   protected override async onShutdown(): Promise<void> {
+    this.operatorAbort.abort();
     this.accountSettingsRegistration = undefined;
     this.routes = [];
     this.hasRequiredDaemon = false;

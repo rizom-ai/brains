@@ -1,4 +1,10 @@
 /** Declarative public interface authoring contract. */
+export { defineStudioWorkspace, defineWorkspaceAction } from "@brains/plugins";
+export type {
+  OperatorBindingContext,
+  BoundStudioWorkspace,
+  AnyStudioWorkspaceDefinition,
+} from "@brains/plugins";
 // Host-rendered pages inherit the site's theme. Named consumer: Web Chat's preview guest page.
 export { SitePageResponse } from "@brains/plugins";
 export { SdkError, sdkErrorCodeSchema, sdkErrorSchema } from "@brains/plugins";

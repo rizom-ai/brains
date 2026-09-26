@@ -73,6 +73,13 @@ import {
 import { GuestAccessControl } from "./guest-access-control";
 import { resolveGuestPreset } from "./guest-preset";
 import { createGuestMaintenanceDaemon } from "./guest-maintenance-daemon";
+import { bindGuestMonitor, type GuestMonitorDeps } from "./guest-monitor";
+import type { RuntimeHealthCheck } from "@brains/sdk/services";
+import {
+  NOTE_CAPTURE_MESSAGE,
+  noteCaptureRequestSchema,
+  noteCaptureResponseSchema,
+} from "@brains/contracts";
 
 const webChatInterfaceType = "web-chat";
 
@@ -90,6 +97,7 @@ interface WebChatState {
   guestHttp: GuestHttpHandlers;
   guestControl: GuestAccessControl;
   refreshAvailability: () => Promise<void>;
+  captureQuestion: GuestMonitorDeps["capture"];
   profileName(): string;
   guestMaintenance: InterfaceDaemonDefinition;
   authenticatedRoutePath: string;
@@ -313,10 +321,25 @@ export function createWebChatDefinition(
               });
             }
           },
+          captureQuestion: async (
+            request,
+          ): ReturnType<GuestMonitorDeps["capture"]> => {
+            const response = await context.messaging.request(
+              {
+                topic: NOTE_CAPTURE_MESSAGE,
+                payload: noteCaptureRequestSchema,
+                response: noteCaptureResponseSchema,
+              },
+              request,
+            );
+            if (!response.ok) throw new Error("Notes are unavailable");
+            return response.data;
+          },
           profileName: () => context.identity.getProfile().name,
           guestMaintenance: createGuestMaintenanceDaemon(
             runtimeState,
             context.logger,
+            () => guestHttp.maintainUsage(),
           ),
           authenticatedRoutePath,
           access,
@@ -351,6 +374,42 @@ export function createWebChatDefinition(
       routes: ({ config, state, jobs, messages }) =>
         webChatRoutes(config, state, jobs, messages),
       daemons: ({ state }) => [state.guestMaintenance],
+      health: ({
+        state,
+      }): Readonly<
+        Record<string, () => Promise<Omit<RuntimeHealthCheck, "name">>>
+      > =>
+        state.guestHttp.usageRecord
+          ? {
+              "guest-usage-record": async () =>
+                (await state.guestHttp.usageHealth()) ?? {
+                  status: "healthy",
+                  message: "Guest access is off; nothing is recorded.",
+                },
+            }
+          : {},
+      studioWorkspaces: (binding) => {
+        const { state } = binding;
+        const usage = state.guestHttp.usageRecord;
+        return usage
+          ? [
+              bindGuestMonitor(binding, {
+                record: usage.record,
+                bounds: usage.bounds,
+                control: state.guestControl.policy
+                  ? state.guestControl
+                  : undefined,
+                configuredOpen: () =>
+                  state.guestPolicy.enabled &&
+                  state.agent.guestProfileAvailable === true,
+                afterSwitch: state.refreshAvailability,
+                canSaveQuestions: () =>
+                  state.entities.getEntityTypes().includes("note"),
+                capture: state.captureQuestion,
+              }),
+            ]
+          : [];
+      },
 
       // An answer arrives on the connection the person is already holding, one
       // frame per piece. Nothing is returned: `send` would post a second,

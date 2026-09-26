@@ -1,5 +1,71 @@
 # @brains/auth-service
 
+## 0.2.0-alpha.419
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.419
+  - @brains/contracts@0.2.0-alpha.419
+  - @brains/db@0.2.0-alpha.419
+  - @brains/utils@0.2.0-alpha.419
+  - @brains/plugins@0.2.0-alpha.419
+
+## 0.2.0-alpha.418
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.418
+  - @brains/contracts@0.2.0-alpha.418
+  - @brains/db@0.2.0-alpha.418
+  - @brains/utils@0.2.0-alpha.418
+  - @brains/plugins@0.2.0-alpha.418
+
+## 0.2.0-alpha.417
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.417
+  - @brains/contracts@0.2.0-alpha.417
+  - @brains/db@0.2.0-alpha.417
+  - @brains/utils@0.2.0-alpha.417
+  - @brains/plugins@0.2.0-alpha.417
+
+## 0.2.0-alpha.416
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.416
+  - @brains/contracts@0.2.0-alpha.416
+  - @brains/db@0.2.0-alpha.416
+  - @brains/utils@0.2.0-alpha.416
+  - @brains/plugins@0.2.0-alpha.416
+
+## 0.2.0-alpha.415
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.415
+  - @brains/contracts@0.2.0-alpha.415
+  - @brains/db@0.2.0-alpha.415
+  - @brains/utils@0.2.0-alpha.415
+  - @brains/plugins@0.2.0-alpha.415
+
+## 0.2.0-alpha.414
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/notifications@0.2.0-alpha.414
+  - @brains/contracts@0.2.0-alpha.414
+  - @brains/db@0.2.0-alpha.414
+  - @brains/utils@0.2.0-alpha.414
+  - @brains/plugins@0.2.0-alpha.414
+
 ## 0.2.0-alpha.413
 
 ### Patch Changes

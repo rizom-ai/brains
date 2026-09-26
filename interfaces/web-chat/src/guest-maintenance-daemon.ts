@@ -11,12 +11,20 @@ import { GuestStateMaintenance } from "./guest-maintenance";
 export function createGuestMaintenanceDaemon(
   runtimeState: IRuntimeStateNamespace,
   logger: Logger,
+  maintainUsage: () => Promise<void>,
 ): InterfaceDaemonDefinition {
   const maintenance = new GuestStateMaintenance(runtimeState);
   const daemon = createScheduledMaintenanceDaemon({
     intervalMs: 60_000,
     logger,
-    run: () => maintenance.run(),
+    run: async () => {
+      const results = await Promise.allSettled([
+        maintenance.run(),
+        maintainUsage(),
+      ]);
+      if (results.some((result) => result.status === "rejected"))
+        throw new Error("Guest maintenance unavailable");
+    },
   });
   return defineDaemon({
     id: "guest-maintenance",

@@ -31,13 +31,16 @@ export class ContactRuntime {
   private readonly intake: ContactIntake;
   private readonly http: ContactHttpHandlers;
   private readonly slots: ContactStorageSlots;
+  private readonly isUnhandled: (id: string) => Promise<boolean>;
   constructor(
     config: ContactIntakeConfig,
     intake: ContactIntake,
     http: ContactHttpHandlers,
     slots: ContactStorageSlots,
     maintenanceStatus: IRuntimeStateStore<MaintenanceStatus>,
+    isUnhandled: (id: string) => Promise<boolean>,
   ) {
+    this.isUnhandled = isUnhandled;
     this.maintenanceStatus = maintenanceStatus;
     this.config = config;
     this.intake = intake;
@@ -129,21 +132,28 @@ export class ContactRuntime {
       ).length;
       const failed = slots.filter(
         ([, slot]) => slot.delivery.status === "failed",
-      ).length;
+      );
+      const failedUnhandled = (
+        await Promise.all(failed.map(([id]) => this.isUnhandled(id)))
+      ).filter(Boolean).length;
       const unconfirmed = slots.filter(
         ([, slot]) => slot.phase === "writing",
       ).length;
       return {
         status:
-          pending || failed || unconfirmed || this.report?.enqueueFailures
+          pending ||
+          failedUnhandled ||
+          unconfirmed ||
+          this.report?.enqueueFailures
             ? "degraded"
             : "healthy",
         message:
-          "Contact operational counts; notification failure can include an unconfirmed provider outcome.",
+          "Contact operational counts. A failed alert counts until its request is marked Done in the Inbox; failure can include an unconfirmed provider outcome.",
         details: {
           records: slots.length,
           pending,
-          failed,
+          failed: failed.length,
+          failedUnhandled,
           unconfirmed,
           lastMaintenanceAt: (await this.maintenanceStatus.get("status"))?.at,
           ...this.report,

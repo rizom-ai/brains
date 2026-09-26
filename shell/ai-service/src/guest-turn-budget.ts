@@ -1,7 +1,10 @@
 import { wrapLanguageModel, type LanguageModel } from "ai";
 import {
   guestExecutionPolicySchema,
+  guestTurnCostSchema,
   type GuestExecutionPolicy,
+  type GuestTurnCost,
+  type GuestTurnSettlement,
 } from "@brains/contracts/chat";
 import { z } from "@brains/utils/zod";
 
@@ -25,6 +28,29 @@ const toolQuoteSchema: z.ZodObject<
  * Accounting itself must be non-billable. Adapters must reject unsupported
  * models/pricing revisions, honor the supplied signal and never log transcripts.
  */
+/** What the provider reported for each model call and query embedding of a turn. */
+export interface GuestProviderUsage {
+  calls: Array<{
+    input: number;
+    cacheRead: number | undefined;
+    cacheWrite: number | undefined;
+    /** Includes reasoning, as the provider bills it. */
+    output: number;
+  }>;
+  /** Undefined: an embedding was sent but reported no usable usage. */
+  embeddings: Array<number | undefined>;
+}
+
+/**
+ * A guest query embedding that reports what the provider billed: its tokens, or
+ * undefined when a sent request cannot tell. Called at most once per embedding.
+ */
+export type GuestQueryEmbedding = (
+  query: string,
+  signal: AbortSignal,
+  usage: (tokens: number | undefined) => void,
+) => Promise<Float32Array>;
+
 export interface GuestExecutionAccounting {
   model(request: {
     provider: string;
@@ -36,6 +62,8 @@ export interface GuestExecutionAccounting {
     input: unknown;
     signal: AbortSignal;
   }): Promise<z.output<typeof toolQuoteSchema>>;
+  /** Actual cost from reported usage at a pinned pricing revision. Absent: unpriced. */
+  settle?(usage: GuestProviderUsage): GuestTurnCost;
 }
 
 function serialize(value: unknown): string {
@@ -73,6 +101,9 @@ export class GuestTurnBudget {
   private remainingOutput: number;
   private modelCalls = 0;
   private toolCalls = 0;
+  private readonly reportedCalls: GuestProviderUsage["calls"] = [];
+  private readonly reportedEmbeddings: GuestProviderUsage["embeddings"] = [];
+  private reportedReasoning = 0;
   private modelActive = false;
   private closed = false;
 
@@ -105,6 +136,47 @@ export class GuestTurnBudget {
       this.policy.limits.requestTimeoutSeconds * 1000,
     );
     this.timer.unref();
+  }
+
+  /** A query embedding this turn sent; undefined when it reported no usable usage. */
+  embedded(tokens: number | undefined): void {
+    this.reportedEmbeddings.push(tokens);
+  }
+
+  /** The turn's reported usage and its cost at the accounting's pinned pricing. */
+  settlement(): GuestTurnSettlement {
+    const usage: GuestProviderUsage = {
+      calls: [...this.reportedCalls],
+      embeddings: [...this.reportedEmbeddings],
+    };
+    const sum = (values: Array<number | undefined>): number =>
+      values.reduce<number>((total, value) => total + (value ?? 0), 0);
+    return {
+      usage: {
+        modelCalls: usage.calls.length,
+        inputTokens: sum(usage.calls.map((call) => call.input)),
+        cachedInputTokens: sum(usage.calls.map((call) => call.cacheRead)),
+        outputTokens: sum(usage.calls.map((call) => call.output)),
+        reasoningTokens: this.reportedReasoning,
+        embeddingTokens: sum(usage.embeddings),
+      },
+      cost: this.price(usage),
+    };
+  }
+
+  private price(usage: GuestProviderUsage): GuestTurnCost {
+    const unpriced: GuestTurnCost = {
+      state: "unknown",
+      reason: "unsupported-pricing",
+    };
+    if (!this.accounting.settle) return unpriced;
+    try {
+      const cost = guestTurnCostSchema.safeParse(this.accounting.settle(usage));
+      return cost.success ? cost.data : unpriced;
+    } catch {
+      // Pricing errors may carry provider detail; an unpriced turn is simply unknown.
+      return unpriced;
+    }
   }
 
   dispose(): void {
@@ -208,6 +280,13 @@ export class GuestTurnBudget {
               throw new Error("Guest provider exceeded accounted token bounds");
             }
             this.remainingOutput = outputAllowance - used;
+            this.reportedCalls.push({
+              input,
+              cacheRead: result.usage.inputTokens.cacheRead,
+              cacheWrite: result.usage.inputTokens.cacheWrite,
+              output: used,
+            });
+            this.reportedReasoning += result.usage.outputTokens.reasoning ?? 0;
             return result;
           } finally {
             this.modelActive = false;

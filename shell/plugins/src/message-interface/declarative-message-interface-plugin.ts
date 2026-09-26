@@ -10,6 +10,7 @@ import {
   uploadNamespaceFor,
 } from "../internal/state-namespace";
 import { runCleanups } from "../internal/cleanup";
+import { registerInterfaceOperatorContributions } from "../interface/operator-contributions";
 import { createRequester } from "../internal/requester";
 import { emptyPluginState } from "../base/empty-state";
 import { createInboxReader } from "../base/namespaces";
@@ -216,11 +217,13 @@ class DeclarativeMessageInterfacePlugin<
     TRecipientSchema,
     TAccountSettings
   >;
-  private accountSettingsRegistration: AccountSettingsRegistration | undefined;
+  private accountSettingsRegistration:
+    AccountSettingsRegistration<NonNullable<TAccountSettings>> | undefined;
   private hasRequiredDaemon = false;
   private routes: WebRouteDefinition[] = [];
   private state: TState | undefined;
   private readonly cleanups: Array<() => void | Promise<void>> = [];
+  private readonly operatorAbort = new AbortController();
   private approvalTracker: PendingApprovalTracker | undefined;
 
   constructor(
@@ -490,6 +493,21 @@ class DeclarativeMessageInterfacePlugin<
         `Message interface "${this.definition.id}" account settings require auth-service and an account settings encryption key`,
       );
     }
+    this.cleanups.push(
+      await registerInterfaceOperatorContributions({
+        definition: this.definition,
+        context,
+        config: this.config,
+        state: this.requireState(),
+        accountSettings: this.definition.accountSettings,
+        ...(this.accountSettingsRegistration
+          ? { accountSettingsRegistration: this.accountSettingsRegistration }
+          : {}),
+        packageName: this.packageName,
+        pluginId: this.id,
+        signal: this.operatorAbort.signal,
+      }),
+    );
   }
 
   override requiresDaemonStartup(): boolean {
@@ -619,6 +637,7 @@ class DeclarativeMessageInterfacePlugin<
   }
 
   protected override async onShutdown(): Promise<void> {
+    this.operatorAbort.abort();
     this.accountSettingsRegistration = undefined;
     this.hasRequiredDaemon = false;
     this.state = undefined;

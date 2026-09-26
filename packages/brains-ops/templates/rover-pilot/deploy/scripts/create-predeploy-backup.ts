@@ -570,6 +570,33 @@ function shellSafe(value: string, name: string): string {
   return value;
 }
 
+/**
+ * Run inside the current runtime before capture. The snapshot proves itself
+ * (transactional copies, quick_check, checksums), so it needs a serving
+ * runtime with no queued work, not a healthy one: a deploy is often the fix
+ * for whatever a plugin reports as degraded. Degradation is named, not refused.
+ */
+export function renderPredeployReadinessProgram(
+  healthUrl: string = "http://127.0.0.1:8080/health/ready",
+): string {
+  return `const response = await fetch(${JSON.stringify(healthUrl)});
+const health = await response.json();
+const queue = health.resources?.queue;
+if (response.status !== 200 || health.status !== "ready") {
+  console.error("pre-deploy snapshot: current runtime is not ready");
+  process.exit(1);
+}
+if (queue && (queue.totals?.pending !== 0 || queue.totals?.processing !== 0 || queue.staleLeaseCount !== 0)) {
+  console.error("pre-deploy snapshot: job queue is not idle");
+  process.exit(1);
+}
+if (health.operationalStatus !== "operational") {
+  const degraded = (health.checks ?? []).filter((check) => check.status !== "healthy").map((check) => check.name);
+  console.error("pre-deploy snapshot: runtime is degraded (" + degraded.join(", ") + "); backing it up anyway");
+}
+`;
+}
+
 export function renderPredeployBackupRemoteScript(options?: {
   captureProgramBase64?: string;
 }): string {
@@ -620,12 +647,7 @@ if [ "$status" != running ] || [ "$health" != healthy ]; then
 fi
 
 docker exec "$container" bun -e '
-const response = await fetch("http://127.0.0.1:8080/health/ready");
-const health = await response.json();
-const queue = health.resources?.queue;
-if (response.status !== 200 || health.status !== "ready" || health.operationalStatus !== "operational") process.exit(1);
-if (queue && (queue.totals?.pending !== 0 || queue.totals?.processing !== 0 || queue.staleLeaseCount !== 0)) process.exit(1);
-'
+${renderPredeployReadinessProgram()}'
 
 required_databases=(
   "$state_root/brain.db"
