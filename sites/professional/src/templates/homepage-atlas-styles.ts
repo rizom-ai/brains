@@ -71,13 +71,6 @@ export const homepageAtlasStyles: string = String.raw`
   display: block; margin-top: .1rem; font-family: var(--font-heading); font-size: .82rem; letter-spacing: .02em;
   font-variation-settings: "SOFT" 60, "opsz" 24; color: var(--color-text-muted);
 }
-/* Touch has no hover to reveal what is a link: the open card's title reads as one,
-   and the topics rest in the state a pointer would give them, as choices to tap. */
-@media (hover: none) {
-  .atlas__tip b { text-decoration-line: underline; text-decoration-color: var(--color-accent); text-decoration-thickness: 1px; text-underline-offset: .2em; }
-  .atlas__topics { gap: .45rem; }
-  .atlas__topics a { background: var(--color-bg-subtle); padding: .65rem .8rem; }
-}
 .atlas__mark a:focus-visible .atlas__tip { opacity: 1; }
 /* Touch browsers leave hover stuck on the tapped element; there the script opens cards instead. */
 @media (hover: hover) {
@@ -137,6 +130,13 @@ export const homepageAtlasStyles: string = String.raw`
 .atlas__contact:hover { background: var(--color-accent-dark); }
 .atlas__contact:focus-visible, .atlas__topics a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
 .atlas__note { margin: .9rem 0 0; font-size: .84rem; color: var(--color-text-light); }
+/* After the resting styles, so these win. Touch has no hover to reveal what is a link: the open card's title reads as one,
+   and the topics rest in the state a pointer would give them, as choices to tap. */
+@media (hover: none) {
+  .atlas__tip b { text-decoration-line: underline; text-decoration-color: var(--color-accent); text-decoration-thickness: 1px; text-underline-offset: .2em; }
+  .atlas__topics { gap: .45rem; }
+  .atlas__topics a { background: var(--color-bg-subtle); padding: .65rem .8rem; }
+}
 
 /* The docked chat box: Web Chat mounts the conversation into this host and
    styles it; the atlas themes it and keeps its composer the same before and

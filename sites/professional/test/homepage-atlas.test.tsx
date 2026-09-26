@@ -404,6 +404,18 @@ describe("atlas hover on touch screens", () => {
     expect(touch()).toMatch(
       /\.atlas__topics a \{[^}]*background: var\(--color-bg-subtle\)/,
     );
+    expect(touch()).toMatch(/\.atlas__topics a \{[^}]*padding:/);
+    expect(touch()).toMatch(/\.atlas__topics \{[^}]*gap:/);
+  });
+
+  it("overrides the resting styles it follows, so touch sizes win at equal specificity", () => {
+    const touchBlock = homepageAtlasStyles.indexOf("@media (hover: none)");
+    for (const base of [
+      ".atlas__topics {",
+      ".atlas__topics a {",
+      ".atlas__tip b {",
+    ])
+      expect(homepageAtlasStyles.indexOf(base)).toBeLessThan(touchBlock);
   });
 });
 
