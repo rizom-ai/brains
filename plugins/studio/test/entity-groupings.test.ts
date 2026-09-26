@@ -91,12 +91,10 @@ async function get(
 }
 
 describe("Studio document-owned groupings", () => {
-  test("rejects old configuration instead of silently stripping or converting it", () => {
-    for (const groupings of [[], [grouping]]) {
-      expect(() => {
-        Reflect.apply(studioPlugin, undefined, [{ groupings }]);
-      }).toThrow("System → Structure → Groupings");
-    }
+  test("rejects unknown configuration keys", () => {
+    expect(() => {
+      Reflect.apply(studioPlugin, undefined, [{ unknownOption: true }]);
+    }).toThrow('Unrecognized key: "unknownOption"');
   });
   test("installs definitions after contributors and never registers the vocabulary document", async () => {
     const shell = createMockShell();

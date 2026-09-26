@@ -62,30 +62,22 @@ const studioPluginConfigSchema: z.ZodObject<
     routePath: z.ZodDefault<z.ZodString>;
   },
   z.core.$strict
-> = z.strictObject(
-  {
-    entityDisplay: entityDisplaySchema.optional(),
-    routePath: z
-      .string()
-      .default("/studio")
-      .refine(
-        (routePath) =>
-          !["/cms", "/account", "/admin"].includes(
-            normalizeStudioBasePath(routePath),
-          ),
-        {
-          message:
-            '"/cms", "/account", and "/admin" are reserved for Studio redirects',
-        },
-      ),
-  },
-  {
-    error: (issue): string | undefined =>
-      issue.code === "unrecognized_keys" && issue.keys.includes("groupings")
-        ? "Define groupings in System → Structure → Groupings. Remove the old configuration only after an explicit conversion."
-        : undefined,
-  },
-);
+> = z.strictObject({
+  entityDisplay: entityDisplaySchema.optional(),
+  routePath: z
+    .string()
+    .default("/studio")
+    .refine(
+      (routePath) =>
+        !["/cms", "/account", "/admin"].includes(
+          normalizeStudioBasePath(routePath),
+        ),
+      {
+        message:
+          '"/cms", "/account", and "/admin" are reserved for Studio redirects',
+      },
+    ),
+});
 
 type StudioPluginConfig = z.output<typeof studioPluginConfigSchema>;
 type StudioPluginConfigInput = z.input<typeof studioPluginConfigSchema>;
