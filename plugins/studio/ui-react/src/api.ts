@@ -470,6 +470,14 @@ export class StudioApi {
     );
   }
 
+  async fetchImagePreview(id: string, signal: AbortSignal): Promise<string> {
+    const { source } = await this.requestJson<{ source: string }>(
+      this.path(`images?id=${encodeURIComponent(id)}`),
+      { signal },
+    );
+    return source;
+  }
+
   async fetchEntity(entityType: string, id: string): Promise<EntityDetail> {
     const { entity } = await this.requestJson<{ entity: EntityDetail }>(
       this.path(

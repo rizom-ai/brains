@@ -85,7 +85,7 @@ export async function mountStudio(
     close,
     input: async (label, value): Promise<void> => {
       const input = document.querySelector<HTMLInputElement>(
-        `input[aria-label="${label}"]`,
+        `input[aria-label="${label}"], [role="group"][aria-label="${label}"] input`,
       );
       if (!input) throw new Error(`Missing input ${label}`);
       await act(async () => {

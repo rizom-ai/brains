@@ -36,6 +36,7 @@ import {
   handleDeleteEntity,
   handleGetEntities,
   handleGetEntityHierarchy,
+  handleGetImagePreview,
   handlePreviewDestination,
   handleUpdateEntity,
 } from "./editor-entities";
@@ -394,6 +395,16 @@ export function createEditorRoutes(
         const access = await requireTrustedAccess(request);
         if (access instanceof Response) return access;
         return handleGetSchema(getContext(), request, access, options);
+      },
+    },
+    {
+      path: apiPath("images"),
+      method: "GET",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const access = await requireTrustedAccess(request);
+        if (access instanceof Response) return access;
+        return handleGetImagePreview(getContext(), request, access);
       },
     },
     {

@@ -304,9 +304,10 @@ describe("Studio hierarchy editor API", () => {
 
   test("direct entity reads keep the complete opaque ID", async () => {
     const { shell, routes } = fixture();
-    const get = spyOn(shell.getEntityService(), "getEntity").mockResolvedValue(
-      entity,
-    );
+    const get = spyOn(
+      shell.getEntityService(),
+      "getEntityRaw",
+    ).mockResolvedValue(entity);
     const id = "book:part/with%sign";
     expect(
       (

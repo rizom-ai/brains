@@ -52,6 +52,7 @@
 + studio|handler|GET|/studio/api/groups/members|exact|true
 + studio|handler|GET|/studio/api/groups/usage|exact|true
 + studio|handler|GET|/studio/api/hierarchy|exact|true
++ studio|handler|GET|/studio/api/images|exact|true
 + studio|handler|GET|/studio/api/schema|exact|true
 + studio|handler|GET|/studio/api/sync-status|exact|true
 + studio|handler|GET|/studio/api/types|exact|true

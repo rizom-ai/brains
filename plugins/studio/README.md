@@ -65,6 +65,8 @@ entity** target, so the Inbox renderer never constructs entity URLs itself.
 
 Workspace definitions may opt into host-owned stable URL filters with a typed query schema. Query-backed tabs use their declared tab-block query key, so selection, refresh, and Back/Forward agree while providers load only the active tab; switching tabs resets the prior tab's filters and detail state instead of leaking them into the next concern. The Studio hydrates declared filters from the raw search string, validates them on the server, and replaces their canonical URL without guessing provider semantics. Paging remains transient request state, so reload starts from the first page. Serializable workspace aliases preserve retired deep links by replacing the workspace id and merging bounded canonical query state. Workspaces without a query declaration ignore URL search entirely.
 
+Editor detail reads and mutation preparation use raw source. Image-looking membership values, unclaimed frontmatter and authored body references must never become rendered data URLs in a save draft. Markdown previews resolve image nodes separately through the authenticated, visibility-scoped `GET /api/images?id=…` read and the injected Studio client. Missing and forbidden images share an unavailable response; image data is not cached across client/session changes. Code examples remain literal, and normal Markdown sanitization is unchanged.
+
 ## Virtual collections
 
 **System → Structure → Groupings** edits one bodyless, always-shared `grouping-definitions` singleton. `StudioPlugin` registers its source after contributors finish registration. Labels, contributing types, cardinality and optional exact allowed values all live in that document, not in `brain.yaml`:

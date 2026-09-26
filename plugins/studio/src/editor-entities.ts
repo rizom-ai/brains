@@ -54,14 +54,37 @@ export function entityDisplayTitle(
   return typeof title === "string" && title.trim() ? title.trim() : undefined;
 }
 
-/** Definition values are literal policy, never rendered Markdown image references. */
+/** Authoring reads preserve source; rendering must never change a save draft. */
 function readEditorEntity(
   context: ServicePluginContext,
   request: GetEntityRequest,
 ): Promise<BaseEntity | null> {
-  return request.entityType === GROUPING_DEFINITIONS_TYPE
-    ? context.entityService.getEntityRaw(request)
-    : context.entityService.getEntity(request);
+  return context.entityService.getEntityRaw(request);
+}
+
+const imagePreviewQuerySchema = z.object({ id: z.string().min(1) });
+
+/** Binary images are readable for previews, not editable frontmatter types. */
+export async function handleGetImagePreview(
+  context: ServicePluginContext,
+  request: Request,
+  access: StudioRequestAccess,
+): Promise<Response> {
+  const query = imagePreviewQuerySchema.safeParse({
+    id: new URL(request.url).searchParams.get("id"),
+  });
+  if (!query.success)
+    return jsonResponse({ error: "Image id is required" }, 400);
+  const image = context.entityService.getEntityTypes().includes("image")
+    ? await context.entityService.getEntityRaw({
+        entityType: "image",
+        id: query.data.id,
+        visibilityScope: access.visibilityScope,
+      })
+    : null;
+  if (!image?.content.startsWith("data:image/"))
+    return jsonResponse({ error: "Image unavailable" }, 404);
+  return jsonResponse({ source: image.content });
 }
 
 const updateEntityPayloadSchema = z.object({
