@@ -93,6 +93,16 @@ const allowanceSchema: Strict<{
   maxCostMicroUsd: positiveInteger,
 });
 
+/** Finite bounds of the owner's usage record; set before anything is recorded. */
+export const guestUsageBoundsSchema: Strict<{
+  maxRecords: z.ZodNumber;
+  retentionSeconds: z.ZodNumber;
+}> = z.strictObject({
+  maxRecords: positiveInteger.max(10_000),
+  retentionSeconds: positiveInteger.max(366 * 86_400),
+});
+export type GuestUsageBounds = z.output<typeof guestUsageBoundsSchema>;
+
 const disabledPolicySchema: Strict<{ enabled: z.ZodLiteral<false> }> =
   z.strictObject({ enabled: z.literal(false) });
 const enabledPolicySchema: Strict<{
@@ -103,6 +113,7 @@ const enabledPolicySchema: Strict<{
   limits: typeof limitsSchema;
   retention: typeof guestRetentionSchema;
   budget: typeof budgetSchema;
+  usageRecord: typeof guestUsageBoundsSchema;
   disclosure: Strict<{
     provider: z.ZodString;
     notice: z.ZodString;
@@ -121,6 +132,7 @@ const enabledPolicySchema: Strict<{
   limits: limitsSchema,
   retention: guestRetentionSchema,
   budget: budgetSchema,
+  usageRecord: guestUsageBoundsSchema,
   disclosure: z.strictObject({
     provider: z.string().trim().min(1),
     notice: z.string().trim().min(1),
