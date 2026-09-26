@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.416
+
+### Patch Changes
+
+- [#368](https://github.com/rizom-ai/brains/pull/368) [`6916f21`](https://github.com/rizom-ai/brains/commit/6916f216a2fd84ad0b408af03077ef46dff2a3a9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Guest chat now tells visitors, with the composer, that their questions are kept for the site's owner, for how long, and that deleting the conversation does not delete them, and records a question's text in the owner's usage record only when the visitor was shown that notice. The notice is composed from the guest policy's `usageRecord` retention and returned by the guest session with a revision; the standalone Ask page and the shared Ask box show it as a visible line that describes the question field, and each question carries the revision it was shown. Question text is kept within the policy's new required `usageRecord.questionBytes`, cut on a character boundary and marked when cut; the presets keep 16,000 bytes.
+
 ## 0.2.0-alpha.415
 
 ### Patch Changes

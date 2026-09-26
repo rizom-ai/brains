@@ -356,6 +356,7 @@
     "core--git-execution-broker",
     "core--guest-admission-uncertain-signal",
     "core--guest-elapsed-deadline",
+    "core--guest-recording-disclosure",
     "core--guest-turn-settlement",
     "core--guest-usage-record",
     "core--health-probe-and-declared-type-message",
