@@ -361,6 +361,33 @@ describe("guest runtime boundary", () => {
     expect(stored).not.toContain("PRIVATE");
   });
 
+  it("carries a guest turn's settled usage to its transport", async () => {
+    const h = harness();
+    const guestSettlement = {
+      usage: {
+        modelCalls: 1,
+        inputTokens: 10,
+        cachedInputTokens: 3,
+        outputTokens: 4,
+        reasoningTokens: 1,
+        embeddingTokens: 0,
+      },
+      cost: { state: "known" as const, microUsd: 9, pricing: "test-revision" },
+    };
+    h.generate.mockResolvedValue({
+      text: "Public answer",
+      steps: [],
+      usage: { inputTokens: 10, outputTokens: 4, totalTokens: 14 },
+      guestSettlement,
+    });
+    const response = await h.service.chat(
+      "What is public?",
+      conversation.id,
+      guestContext,
+    );
+    expect(response.guestSettlement).toEqual(guestSettlement);
+  });
+
   it("keeps operator and guest agent caches separate and invalidates both", async () => {
     const h = harness();
     h.conversations.getConversation.mockImplementation(async (id) =>

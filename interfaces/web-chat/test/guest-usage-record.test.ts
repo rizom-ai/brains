@@ -62,8 +62,8 @@ describe("guest usage record", () => {
     await usage.admit(id, { visitorId: visitor, reservedMicroUsd: 2_000_000 });
 
     const settled = await Promise.all([
-      usage.settle(id, "completed"),
-      usage.settle(id, "failed"),
+      usage.settle(id, "completed", undefined),
+      usage.settle(id, "failed", undefined),
     ]);
     expect(settled).toEqual([true, true]);
     const [first] = await usage.list(10);
@@ -71,11 +71,48 @@ describe("guest usage record", () => {
       await usage.settle(
         id,
         first?.state === "completed" ? "failed" : "completed",
+        undefined,
       ),
     ).toBe(true);
     const [after] = await usage.list(10);
     expect(after?.state).toBe(first?.state);
     expect(after?.settledAt).toBe(first?.settledAt);
+  });
+
+  it("keeps a turn's reported usage and cost with its outcome", async () => {
+    const usage = record();
+    const id = request("conversation-a");
+    await usage.open(id);
+    await usage.admit(id, { visitorId: visitor, reservedMicroUsd: 2_000_000 });
+    const settlement = {
+      usage: {
+        modelCalls: 2,
+        inputTokens: 12_000,
+        cachedInputTokens: 4_000,
+        outputTokens: 600,
+        reasoningTokens: 80,
+        embeddingTokens: 800,
+      },
+      cost: {
+        state: "known" as const,
+        microUsd: 2_336,
+        pricing: "openai-gpt-5.6-luna-2026-09-26",
+      },
+    };
+    await usage.settle(id, "completed", settlement);
+    const [event] = await usage.list(10);
+    expect(event).toMatchObject({ state: "completed", ...settlement });
+  });
+
+  it("records an outcome without reported usage as unknown cost, never zero", async () => {
+    const usage = record();
+    const id = request("conversation-a");
+    await usage.open(id);
+    await usage.admit(id, { visitorId: visitor, reservedMicroUsd: 2_000_000 });
+    await usage.settle(id, "completed", undefined);
+    const [event] = await usage.list(10);
+    expect(event?.cost).toEqual({ state: "unknown", reason: "missing-usage" });
+    expect(event?.usage).toBeUndefined();
   });
 
   it("refuses a new request once the record is full, and keeps what it holds", async () => {

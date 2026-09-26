@@ -4,6 +4,11 @@ import type {
   IRuntimeStateStore,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
+import {
+  guestTurnCostSchema,
+  guestTurnUsageSchema,
+  type GuestTurnSettlement,
+} from "@brains/contracts/chat";
 import { attempt, retry } from "./cas-retry";
 import type { GuestUsageBounds } from "./guest-policy";
 
@@ -46,6 +51,8 @@ export const guestUsageEventSchema: z.ZodObject<
     visitor: z.ZodOptional<z.ZodString>;
     reservedMicroUsd: z.ZodOptional<z.ZodNumber>;
     settledAt: z.ZodOptional<z.ZodNumber>;
+    usage: z.ZodOptional<typeof guestTurnUsageSchema>;
+    cost: z.ZodOptional<typeof guestTurnCostSchema>;
   },
   z.core.$strict
 > = z.strictObject({
@@ -61,6 +68,10 @@ export const guestUsageEventSchema: z.ZodObject<
   visitor: digestSchema.optional(),
   reservedMicroUsd: z.number().int().nonnegative().optional(),
   settledAt: millis.optional(),
+  /** What the provider reported for the turn, when it reported it. */
+  usage: guestTurnUsageSchema.optional(),
+  /** Known from reported usage at a pinned revision, or explicitly unknown. */
+  cost: guestTurnCostSchema.optional(),
 });
 export type GuestUsageEvent = z.output<typeof guestUsageEventSchema>;
 export type GuestUsageOpening = "opened" | "exists" | "full" | "unavailable";
@@ -236,8 +247,15 @@ export class GuestUsageRecord {
     }
   }
 
-  /** Records the outcome once; later or concurrent settlements keep the first. */
-  async settle(id: string, outcome: "completed" | "failed"): Promise<boolean> {
+  /**
+   * Records the outcome once; later or concurrent settlements keep the first.
+   * A turn that reported no usage has an unknown cost, never a zero one.
+   */
+  async settle(
+    id: string,
+    outcome: "completed" | "failed",
+    settlement: GuestTurnSettlement | undefined,
+  ): Promise<boolean> {
     try {
       const events = this.events();
       return await attempt(
@@ -250,6 +268,11 @@ export class GuestUsageRecord {
             ...current,
             state: outcome,
             settledAt: this.now(),
+            ...(settlement ? { usage: settlement.usage } : {}),
+            cost: settlement?.cost ?? {
+              state: "unknown",
+              reason: "missing-usage",
+            },
           }))
             ? true
             : retry;

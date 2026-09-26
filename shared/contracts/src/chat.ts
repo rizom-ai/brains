@@ -5,7 +5,13 @@ import { agentEventActionSchema, type AgentEventAction } from "./agent-action";
 export {
   guestExecutionLimitsSchema,
   guestExecutionPolicySchema,
+  guestTurnCostSchema,
+  guestTurnSettlementSchema,
+  guestTurnUsageSchema,
   type GuestExecutionPolicy,
+  type GuestTurnCost,
+  type GuestTurnSettlement,
+  type GuestTurnUsage,
 } from "./guest-execution";
 
 export const CHAT_API_VERSION = 1 as const;
