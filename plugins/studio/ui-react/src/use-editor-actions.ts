@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { hasInvalidEditorFields } from "./editor-workflow";
+import {
+  hasInvalidEditorFields,
+  hasUnsavedEditorChanges,
+} from "./editor-workflow";
 import { studioCollectionPath } from "../../src/studio-paths";
 import { GROUPING_DEFINITIONS_TYPE } from "../../src/grouping-definitions-contract";
 import type { StudioCollectionQuery } from "../../src/collection-query";
@@ -183,7 +186,10 @@ export function useEditorActions(input: EditorActionsInput): EditorActions {
       !schema ||
       (entityType === GROUPING_DEFINITIONS_TYPE &&
         !schema.groupingDefinitions) ||
-      hasInvalidEditorFields(editor)
+      hasInvalidEditorFields(editor) ||
+      (((mode.kind === "create" && schema.isSingleton) ||
+        entityType === GROUPING_DEFINITIONS_TYPE) &&
+        !hasUnsavedEditorChanges(editor))
     )
       return;
     if (

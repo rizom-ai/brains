@@ -108,7 +108,9 @@ export function StudioEditorPane(
       !entitySchema.groupingDefinitions) ||
     destinationBlocked ||
     saveState.kind === "saving" ||
-    (entitySchema.isSingleton && !hasUnsavedChanges);
+    (((mode.kind === "create" && entitySchema.isSingleton) ||
+      selectedEntityType === GROUPING_DEFINITIONS_TYPE) &&
+      !hasUnsavedChanges);
   return (
     <form
       role="main"

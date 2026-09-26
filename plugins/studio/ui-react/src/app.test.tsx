@@ -649,7 +649,7 @@ describe("TypeSwitcher", () => {
 
 function renderCapabilityView(
   capabilities: EntityTypeInfo["capabilities"],
-  mode: "browse" | "edit",
+  mode: "browse" | "edit" | "create",
   page: {
     offset?: number;
     limit?: number;
@@ -731,7 +731,7 @@ function renderCapabilityView(
     entityListLoading: false,
     schema,
     editor: {
-      mode: mode === "edit" ? { kind: "edit", entity } : { kind: "browse" },
+      mode: mode === "edit" ? { kind: "edit", entity } : { kind: mode },
       draft: entity.frontmatter,
       body: entity.body,
       save: { kind: "idle" },
@@ -771,27 +771,31 @@ function renderCapabilityView(
   return renderToStaticMarkup(createElement(StudioAppView, props));
 }
 
-it("disables pristine singleton saves while retaining ordinary document no-op saves", () => {
-  for (const singleton of [true, false]) {
-    for (const dirty of [true, false]) {
-      const browser = new Window();
-      browser.document.body.innerHTML = renderCapabilityView(
-        {
-          canRead: true,
-          canCreate: true,
-          canUpdate: true,
-          canDelete: true,
-          canExtract: false,
-          canPublish: false,
-          canAssist: false,
-        },
-        "edit",
-        { singleton, dirty, hasBody: false },
-      );
-      const save = browser.document.querySelector(".studio-editor-head-save");
-      expect(save).not.toBeNull();
-      expect(save?.hasAttribute("disabled")).toBe(singleton && !dirty);
-      browser.close();
+it("blocks pristine singleton creation, not existing document no-op saves", () => {
+  for (const mode of ["create", "edit"] as const) {
+    for (const singleton of [true, false]) {
+      for (const dirty of [true, false]) {
+        const browser = new Window();
+        browser.document.body.innerHTML = renderCapabilityView(
+          {
+            canRead: true,
+            canCreate: true,
+            canUpdate: true,
+            canDelete: true,
+            canExtract: false,
+            canPublish: false,
+            canAssist: false,
+          },
+          mode,
+          { singleton, dirty, hasBody: false },
+        );
+        const save = browser.document.querySelector(".studio-editor-head-save");
+        expect(save).not.toBeNull();
+        expect(save?.hasAttribute("disabled")).toBe(
+          mode === "create" && singleton && !dirty,
+        );
+        browser.close();
+      }
     }
   }
 });
