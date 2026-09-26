@@ -30,7 +30,30 @@ import {
   type GuestVisitor,
 } from "./guest-access";
 import { GuestAdmission } from "./guest-admission";
-import { GuestUsageRecord } from "./guest-usage-record";
+import {
+  GuestUsageRecord,
+  type GuestUsageDenialReason,
+} from "./guest-usage-record";
+
+/** The route's own refusal of a question, by its status; never its body. */
+function refusal(status: number): GuestUsageDenialReason {
+  switch (status) {
+    case 403:
+      return "forbidden";
+    case 405:
+      return "method";
+    case 415:
+      return "media-type";
+    case 413:
+      return "oversized";
+    case 404:
+      return "not-found";
+    case 400:
+      return "invalid-request";
+    default:
+      return "closed";
+  }
+}
 
 /**
  * What the visitor is told with the composer, from the policy that governs the
@@ -140,6 +163,11 @@ export class GuestHttpHandlers {
       : undefined;
   }
 
+  /** Writes counted denials; run by the guest maintenance daemon. */
+  async maintainUsage(): Promise<void> {
+    await this.usage?.flush();
+  }
+
   routes(apiPath: string): WebRouteDefinition[] {
     const paths = createChatApiPaths(
       `${createChatApiPaths(apiPath).stream}/guest`,
@@ -148,8 +176,11 @@ export class GuestHttpHandlers {
       this.route(`${paths.stream}/session`, "POST", (request, policy) =>
         this.session(request, policy),
       ),
-      this.route(paths.stream, "POST", (request, policy) =>
-        this.send(request, policy),
+      this.route(
+        paths.stream,
+        "POST",
+        (request, policy) => this.send(request, policy),
+        { recordsRefusals: true },
       ),
       this.route(paths.messages, "GET", (request, policy) =>
         this.history(request, policy),
@@ -167,6 +198,7 @@ export class GuestHttpHandlers {
       request: Request,
       policy: EnabledGuestPolicy,
     ) => Promise<Response>,
+    options: { recordsRefusals?: boolean } = {},
   ): WebRouteDefinition {
     return {
       path,
@@ -207,6 +239,9 @@ export class GuestHttpHandlers {
             response.headers.set(key, value);
           return response;
         } catch (error) {
+          // A refused question is recorded by category; its body never is.
+          if (options.recordsRefusals && error instanceof GuestHttpError)
+            await this.usage?.deny(refusal(error.status), undefined);
           // Only locally defined errors cross HTTP; provider/storage details do not.
           return Response.json(
             {
@@ -328,8 +363,13 @@ export class GuestHttpHandlers {
       message.id,
     );
     const opening = await usage.open(usageId);
-    if (opening === "full" || opening === "unavailable")
+    if (opening === "full" || opening === "unavailable") {
+      await usage.deny(
+        opening === "full" ? "record-full" : "record-unavailable",
+        visitor.id,
+      );
       return Response.json({ error: "unavailable" }, { status: 503 });
+    }
     // A new conversation consumes a real admission reservation before any write.
     const reservation = await this.admission.reserve(
       visitor,
@@ -339,6 +379,8 @@ export class GuestHttpHandlers {
     );
     if (reservation.kind !== "reserved" && opening === "opened")
       await usage.withdraw(usageId);
+    if (reservation.kind === "denied")
+      await usage.deny(reservation.reason, visitor.id);
     if (reservation.kind === "denied") {
       const status =
         reservation.reason === "unavailable"
@@ -372,6 +414,7 @@ export class GuestHttpHandlers {
     ) {
       // Unrecorded work never runs. Nothing ran, so the reservation settles as failed.
       await this.admission.settle(reservation.lease, "failed");
+      await usage.deny("record-unavailable", visitor.id);
       return Response.json({ error: "unavailable" }, { status: 503 });
     }
     if (!existing)

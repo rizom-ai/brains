@@ -24,6 +24,7 @@ import { testGuestPolicy } from "./fixtures/guest-policy";
 import {
   GuestUsageRecord,
   type GuestUsageBounds,
+  type GuestUsageDenial,
   type GuestUsageEvent,
 } from "../src/guest-usage-record";
 
@@ -56,6 +57,7 @@ interface Fixture {
   browser: () => Browser;
   /** The owner's usage record, as a Studio reader would see it. */
   records: () => Promise<GuestUsageEvent[]>;
+  denials: () => Promise<GuestUsageDenial[]>;
 }
 async function setup(
   options: {
@@ -95,6 +97,12 @@ async function setup(
         testGuestPolicy.usageRecord,
         () => state.now,
       ).list(1000),
+    denials: async (): Promise<GuestUsageDenial[]> =>
+      new GuestUsageRecord(
+        harness.getMockShell().getRuntimeState(),
+        testGuestPolicy.usageRecord,
+        () => state.now,
+      ).denials(1000),
   };
   harness.getMockShell().setConversationService({
     startConversation: async (request): Promise<string> => {
@@ -1365,6 +1373,59 @@ describe("guest usage record over HTTP", () => {
       .map((event) => event.question)
       .filter((question) => question !== undefined);
     expect(questions).toEqual(["Shown the notice"]);
+  });
+
+  it("records why the admission refused a question, with the visitor's digest", async () => {
+    const state = await setup();
+    const browser = state.browser();
+    await browser.client.openGuestSession();
+    state.reply = async (): Promise<never> => {
+      throw new Error("private-provider-detail");
+    };
+    await events(await browser.client.streamMessages(message()));
+    expect((await post(browser, message("Another turn"))).status).toBe(429);
+    const [denial] = await state.denials();
+    expect(denial?.reason).toBe("visitor-busy");
+    expect(denial?.visitor).toMatch(/^[a-f0-9]{64}$/);
+    expect(JSON.stringify(await state.denials())).not.toContain("Another turn");
+  });
+
+  it("records a refused request's category without its body or a visitor", async () => {
+    const state = await setup();
+    const browser = state.browser();
+    await browser.client.openGuestSession();
+    const body = "x".repeat(testGuestPolicy.limits.contextBytes);
+    expect((await post(browser, message(body))).status).toBe(413);
+    expect(
+      (
+        await browser.fetch(base, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: "not json",
+        })
+      ).status,
+    ).toBe(415);
+    const denials = await state.denials();
+    expect(denials.map((denial) => denial.reason).sort()).toEqual([
+      "media-type",
+      "oversized",
+    ]);
+    for (const denial of denials)
+      expect(Object.keys(denial)).not.toContain("visitor");
+    expect(JSON.stringify(denials)).not.toContain(body.slice(0, 32));
+  });
+
+  it("records the refusals of a full record too", async () => {
+    const state = await setup({
+      usageRecord: { ...testGuestPolicy.usageRecord, maxRecords: 1 },
+    });
+    const browser = state.browser();
+    await browser.client.openGuestSession();
+    await events(await browser.client.streamMessages(message()));
+    expect((await post(browser, message("Another question"))).status).toBe(503);
+    expect((await state.denials()).map((denial) => denial.reason)).toEqual([
+      "record-full",
+    ]);
   });
 
   it("keeps a turn that fails or never returns unresolved", async () => {

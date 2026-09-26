@@ -58,6 +58,7 @@ export function createDefaultGuestPolicy(origin: string): GuestPolicy {
     budget: { dailyUsd: 4, maxTurnUsd: 2 },
     usageRecord: {
       maxRecords: 1000,
+      maxDenialRecords: 1000,
       retentionSeconds: 30 * 86_400,
       questionBytes: 16_000,
     },
