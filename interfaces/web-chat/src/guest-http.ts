@@ -176,6 +176,15 @@ export class GuestHttpHandlers {
       throw new Error("Guest usage maintenance unavailable");
   }
 
+  /** The owner's record and its bounds, for the Studio monitor; absent while guest access is off. */
+  get usageRecord():
+    | { record: GuestUsageRecord; bounds: EnabledGuestPolicy["usageRecord"] }
+    | undefined {
+    return this.usage && this.policy.enabled
+      ? { record: this.usage, bounds: this.policy.usageRecord }
+      : undefined;
+  }
+
   /** The usage record's bounded health; absent while guest access is off. */
   async usageHealth(): Promise<GuestUsageHealth | undefined> {
     return this.usage?.health();

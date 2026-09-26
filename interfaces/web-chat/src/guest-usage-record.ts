@@ -745,6 +745,11 @@ export class GuestUsageRecord {
     }
   }
 
+  /** One record, as kept; null when it is gone or never was. */
+  async get(id: string): Promise<GuestUsageEvent | null> {
+    return this.events().get(id);
+  }
+
   /** The newest records first, at most `limit`. */
   async list(limit: number): Promise<GuestUsageEvent[]> {
     const ledger = await this.ledger().get(LEDGER_KEY);

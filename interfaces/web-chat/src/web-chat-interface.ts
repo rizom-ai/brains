@@ -101,6 +101,7 @@ import {
 } from "./upload-handlers";
 
 import { GuestStateMaintenance } from "./guest-maintenance";
+import { registerGuestMonitor } from "./guest-monitor";
 import { loadAskContent } from "./ask-content";
 import { createChatApiPaths } from "@brains/contracts/chat";
 import { GuestHttpHandlers, type GuestHttpOptions } from "./guest-http";
@@ -305,6 +306,23 @@ export class WebChatInterface extends MessageInterfacePlugin<
     await this.askBoxAvailability?.set(ASK_BOX_STATE_KEY, {
       public: configured,
       preview: configured || activated,
+    });
+  }
+
+  /** The owner's Studio view of guest chat: what it did, and the switch. */
+  protected override async onReady(
+    context: MessageInterfacePluginContext,
+  ): Promise<void> {
+    const usage = this.guestHttp?.usageRecord;
+    if (!usage) return;
+    await registerGuestMonitor(context, {
+      record: usage.record,
+      bounds: usage.bounds,
+      control: this.guestControl?.policy ? this.guestControl : undefined,
+      configuredOpen: (): boolean =>
+        this.guestPolicy.enabled &&
+        context.agent.guestProfileAvailable === true,
+      afterSwitch: (): Promise<void> => this.recordAfterActivation(),
     });
   }
 
