@@ -34,6 +34,7 @@ export const testGuestPolicy: EnabledGuestPolicy = {
     maxDenialRecords: 100,
     retentionSeconds: 604800,
     questionBytes: 16000,
+    maxStoredBytes: 1_000_000,
   },
   disclosure: {
     provider: "Test provider",

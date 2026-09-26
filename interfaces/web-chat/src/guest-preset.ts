@@ -61,6 +61,7 @@ export function createDefaultGuestPolicy(origin: string): GuestPolicy {
       maxDenialRecords: 1000,
       retentionSeconds: 30 * 86_400,
       questionBytes: 16_000,
+      maxStoredBytes: 4_000_000,
     },
     disclosure: {
       provider: "OpenAI (gpt-5.6-luna)",

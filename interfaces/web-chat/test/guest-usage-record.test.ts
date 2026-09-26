@@ -14,18 +14,20 @@ const bounds: GuestUsageBounds = {
   maxDenialRecords: 2,
   retentionSeconds: 86400,
   questionBytes: 16_000,
+  maxStoredBytes: 1_000_000,
 };
 const visitor = "visitor-9f1c";
 const request = (conversation: string, submission = "submission-1"): string =>
   GuestUsageRecord.id(origin, visitor, conversation, submission);
 
+const start = Date.parse("2026-09-26T08:00:00Z");
+
 function record(
   state: IRuntimeStateNamespace = createMemoryRuntimeStateNamespace(),
   limits: GuestUsageBounds = bounds,
+  now: () => number = (): number => start,
 ): GuestUsageRecord {
-  return new GuestUsageRecord(state, limits, () =>
-    Date.parse("2026-09-26T08:00:00Z"),
-  );
+  return new GuestUsageRecord(state, limits, now);
 }
 
 /** Every value the record holds, as written. */
@@ -325,5 +327,99 @@ describe("guest usage denials", () => {
     expect(await usage.denialCounts()).toEqual([
       { day: "2026-09-26", counts: { forbidden: 2 } },
     ]);
+  });
+});
+
+describe("guest usage retention and health", () => {
+  it("removes requests, denials and daily counts past their own retention, and nothing younger", async () => {
+    const state = createMemoryRuntimeStateNamespace();
+    let now = start;
+    const usage = record(state, { ...bounds, maxDenialRecords: 1 }, () => now);
+    await usage.open(request("old"));
+    await usage.deny("forbidden", undefined);
+    await usage.deny("forbidden", undefined);
+    await usage.flush();
+    // A day's counts go once the whole day is past retention.
+    now = start + 2 * 86_400_000;
+    await usage.open(request("young"));
+    await usage.cleanup();
+    expect((await usage.list(10)).map((event) => event.openedAt)).toEqual([
+      now,
+    ]);
+    expect(await usage.denials(10)).toEqual([]);
+    expect(await usage.denialCounts()).toEqual([]);
+    expect(await stored(state)).not.toContain(request("old"));
+  });
+
+  it("leaves the admission ledger's accounting alone", async () => {
+    const state = createMemoryRuntimeStateNamespace();
+    const admission = state.scoped({
+      namespace: "web-chat.guest-admission",
+      schema: z.unknown(),
+    });
+    await admission.set("ledger", { lifetime: { requests: 2 } });
+    let now = start;
+    const usage = record(state, bounds, () => now);
+    await usage.open(request("old"));
+    now = start + 86_400_000 + 1;
+    await usage.cleanup();
+    expect(await admission.get("ledger")).toEqual({
+      lifetime: { requests: 2 },
+    });
+  });
+
+  it("refuses a request whose question could push kept text past the storage limit", async () => {
+    const usage = record(createMemoryRuntimeStateNamespace(), {
+      ...bounds,
+      questionBytes: 8,
+      maxStoredBytes: 12,
+    });
+    await usage.open(request("a"));
+    await usage.admit(request("a"), {
+      visitorId: visitor,
+      reservedMicroUsd: 2_000_000,
+      question: "eight by",
+    });
+    expect(await usage.open(request("b"))).toBe("full");
+  });
+
+  it("reports degraded while full, unhealthy while writes fail, and only counts", async () => {
+    const state = createMemoryRuntimeStateNamespace();
+    const full = record(state, { ...bounds, maxRecords: 1 });
+    expect((await full.health()).status).toBe("healthy");
+    await full.open(request("a"));
+    await full.admit(request("a"), {
+      visitorId: visitor,
+      reservedMicroUsd: 2_000_000,
+      question: "What is public?",
+    });
+    const degraded = await full.health();
+    expect(degraded.status).toBe("degraded");
+    expect(degraded.details).toMatchObject({ records: 1, maxRecords: 1 });
+    expect(JSON.stringify(degraded)).not.toContain("What is public?");
+
+    let failing = true;
+    const flaky: IRuntimeStateNamespace = {
+      scoped: (options) => {
+        const store = state.scoped(options);
+        return {
+          ...store,
+          compareAndSet: async (key, expected, value): Promise<boolean> => {
+            if (failing) throw new Error("private storage detail");
+            return store.compareAndSet(key, expected, value);
+          },
+          setIfNotExists: async (key, value): Promise<boolean> => {
+            if (failing) throw new Error("private storage detail");
+            return store.setIfNotExists(key, value);
+          },
+        };
+      },
+    };
+    const broken = record(flaky);
+    expect(await broken.open(request("b"))).toBe("unavailable");
+    const unhealthy = await broken.health();
+    expect(unhealthy.status).toBe("unhealthy");
+    expect(JSON.stringify(unhealthy)).not.toContain("private storage detail");
+    failing = false;
   });
 });

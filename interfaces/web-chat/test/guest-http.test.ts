@@ -58,6 +58,14 @@ interface Fixture {
   /** The owner's usage record, as a Studio reader would see it. */
   records: () => Promise<GuestUsageEvent[]>;
   denials: () => Promise<GuestUsageDenial[]>;
+  /** The operator's operational health checks. */
+  health: () => ReturnType<
+    ReturnType<
+      ReturnType<
+        PluginTestHarness<WebChatInterface>["getMockShell"]
+      >["getOperationalHealthRegistry"]
+    >["getChecks"]
+  >;
 }
 async function setup(
   options: {
@@ -97,6 +105,8 @@ async function setup(
         testGuestPolicy.usageRecord,
         () => state.now,
       ).list(1000),
+    health: () =>
+      harness.getMockShell().getOperationalHealthRegistry().getChecks(),
     denials: async (): Promise<GuestUsageDenial[]> =>
       new GuestUsageRecord(
         harness.getMockShell().getRuntimeState(),
@@ -1426,6 +1436,45 @@ describe("guest usage record over HTTP", () => {
     expect((await state.denials()).map((denial) => denial.reason)).toEqual([
       "record-full",
     ]);
+  });
+
+  it("keeps a deleted conversation's usage record, as the notice says", async () => {
+    const state = await setup();
+    const browser = state.browser();
+    await browser.client.openGuestSession();
+    const first = await browser.client.streamMessages(message());
+    const id = conversationId(first);
+    await events(first);
+    await browser.client.deleteSession(id);
+    expect(state.conversations.size).toBe(0);
+    expect((await state.records()).map((event) => event.state)).toEqual([
+      "completed",
+    ]);
+  });
+
+  it("reports the usage record's health to the operator, as counts only", async () => {
+    const state = await setup({
+      usageRecord: { ...testGuestPolicy.usageRecord, maxRecords: 1 },
+    });
+    const usageHealth = async (): Promise<unknown> =>
+      (await state.health()).find((check) =>
+        check.name.includes("guest-usage-record"),
+      );
+    expect(await usageHealth()).toMatchObject({ status: "healthy" });
+    const browser = state.browser();
+    const session = await browser.client.openGuestSession();
+    await events(
+      await browser.client.streamMessages({
+        ...message("A recorded question"),
+        disclosure: session.recording.revision,
+      }),
+    );
+    const full = await usageHealth();
+    expect(full).toMatchObject({
+      status: "degraded",
+      details: { records: 1, maxRecords: 1 },
+    });
+    expect(JSON.stringify(full)).not.toContain("A recorded question");
   });
 
   it("keeps a turn that fails or never returns unresolved", async () => {
