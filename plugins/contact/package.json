@@ -1,7 +1,7 @@
 {
   "name": "@brains/contact",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.416",
+  "version": "0.2.0-alpha.417",
   "description": "Private contact intake for a Brain's public pages",
   "dependencies": {
     "@brains/console-theme": "workspace:*",

@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.417
+
+### Patch Changes
+
+- [#369](https://github.com/rizom-ai/brains/pull/369) [`34b0419`](https://github.com/rizom-ai/brains/commit/34b04190acdc2575fa6bbbffd1ad985facb848f7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The owner's guest usage record now keeps refused questions. An admission denial is recorded with its reason and the visitor's salted digest; the guest send route's own refusals (forbidden origin, wrong method or media type, invalid, oversized, unknown conversation, closed access) are recorded by category without their body or a visitor; and a full or unwritable record records its refusals too. Detailed denials have their own allowance, the guest policy's new required `usageRecord.maxDenialRecords` (presets: 1,000), so denial traffic never takes the places admitted questions need. Beyond it, denials become daily counts by reason, held in memory and written by the guest maintenance tick, so a flood of refused requests writes at most once a minute; counts that could not be written wait for the next tick.
+
+- [#370](https://github.com/rizom-ai/brains/pull/370) [`35c4939`](https://github.com/rizom-ai/brains/commit/35c49397982afd1b8cf81fcf9c9f2cea345e71f5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The owner's guest usage record now keeps to its own retention and reports its health. The guest maintenance tick removes records, denials and daily denial counts past the record's retention (a day's counts once the whole day is past it), without touching admission accounting or unresolved reservations, and deleting a conversation leaves its record in place, as the visitor notice says. Kept question text has a total bound, the guest policy's new required `usageRecord.maxStoredBytes` (presets: 4,000,000): a request whose largest possible question could exceed it is refused like one arriving at a full record. Operators see the record's bounded health as `guest-usage-record` — degraded while it is full and refusing questions, unhealthy while its writes fail — with counts only, never question text or storage errors.
+
 ## 0.2.0-alpha.416
 
 ### Patch Changes
