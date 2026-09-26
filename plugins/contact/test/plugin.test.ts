@@ -39,6 +39,8 @@ async function setup(
   shell: ReturnType<Harness["getMockShell"]>;
   checks: RecurringCheckDefinition[];
   sent: ChannelDeliveryInput[];
+  /** What the owner's email transport answers; switch to fail an alert. */
+  transport: { status: "sent" | "failed" };
   plugin: ContactPlugin;
   handlers: Map<string, JobHandler>;
 }> {
@@ -81,6 +83,7 @@ async function setup(
   const [entityPlugin, plugin] = contactPlugin(config);
   await entityPlugin.register(shell);
   const sent: ChannelDeliveryInput[] = [];
+  const transport: { status: "sent" | "failed" } = { status: "sent" };
   const channels = shell.getChannelRegistry();
   channels.registerDescriptor("test-email", {
     type: "email",
@@ -91,6 +94,8 @@ async function setup(
     channelType: "email",
     isAvailable: async () => true,
     send: async (message) => {
+      if (transport.status === "failed")
+        return { status: "failed", failureCode: "test-transport" };
       sent.push(message);
       return { status: "sent" };
     },
@@ -100,7 +105,7 @@ async function setup(
     defaultRecipient: { type: "email", address: "owner@example.com" },
   }).register(shell, { executionOnly });
   await plugin.register(shell, { executionOnly });
-  return { h, shell, checks, sent, plugin, handlers };
+  return { h, shell, checks, sent, transport, plugin, handlers };
 }
 async function submit(plugin: ContactPlugin): Promise<Response> {
   const get = plugin
@@ -322,6 +327,48 @@ describe("contact runtime", () => {
     );
     await f.plugin.shutdown();
   });
+  it("reports a failed alert as degraded until its request is marked Done", async () => {
+    const f = await setup();
+    f.transport.status = "failed";
+    await f.plugin.ready();
+    expect((await submit(f.plugin)).status).toBe(303);
+    const job = (await f.shell.getJobQueueService().getActiveJobs())[0];
+    const handler = job && f.handlers.get(job.type);
+    if (!job || !handler) throw new Error("Missing delivery job");
+    const attempt = (): Promise<unknown> =>
+      handler
+        .process(
+          JSON.parse(job.data),
+          job.id,
+          CallbackProgressReporter.noop(),
+          new AbortController().signal,
+        )
+        .catch((error: unknown) => error);
+    const unavailable = new Error("Contact notification unavailable");
+    expect(await attempt()).toEqual(unavailable);
+    expect(await attempt()).toEqual(unavailable);
+    expect(await attempt()).toBe("failed");
+    const intake = async (): Promise<unknown> =>
+      (await f.shell.getOperationalHealthRegistry().getChecks())[0];
+    expect(await intake()).toMatchObject({
+      status: "degraded",
+      details: { failed: 1, failedUnhandled: 1 },
+    });
+
+    const registry = f.shell.getInboxRegistry();
+    registry.finalize();
+    const inbox = registry.getSource("contact-requests");
+    const [request] = (await inbox?.list()) ?? [];
+    if (!inbox || !request) throw new Error("Missing Inbox request");
+    await inbox.act(request.id, "mark-handled", { permissionLevel: "admin" });
+
+    expect(await intake()).toMatchObject({
+      status: "healthy",
+      details: { failed: 1, failedUnhandled: 0 },
+    });
+    await f.plugin.shutdown();
+  });
+
   it("recovers enqueue failures on recurring maintenance and reports sanitized health", async () => {
     const f = await setup();
     await f.plugin.ready();
