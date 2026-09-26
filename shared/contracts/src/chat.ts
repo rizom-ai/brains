@@ -59,11 +59,22 @@ const chatIdSchema: z.ZodString = z.string().trim().min(1).max(256);
 /** Present on guest send/status responses; it is a locator, never authority. */
 export const CHAT_CONVERSATION_ID_HEADER = "x-brain-conversation-id";
 
+/** Shown with the composer: questions are kept for the owner, how long, past deletion. */
+export const guestRecordingDisclosureSchema: Strict<{
+  notice: z.ZodString;
+  revision: z.ZodString;
+}> = z.strictObject({
+  notice: z.string().min(1),
+  /** Echoed with a question to show which notice the visitor was shown. */
+  revision: z.string().regex(/^[a-f0-9]{64}$/),
+});
+
 export const guestChatSessionResponseSchema: Strict<{
   expiresAt: z.ZodNumber;
   provider: z.ZodString;
   notice: z.ZodString;
   deletionLimitations: z.ZodString;
+  recording: typeof guestRecordingDisclosureSchema;
   retention: typeof guestRetentionSchema;
   messageCharacters: z.ZodNumber;
   canSend: z.ZodBoolean;
@@ -73,6 +84,7 @@ export const guestChatSessionResponseSchema: Strict<{
   provider: z.string().min(1),
   notice: z.string().min(1),
   deletionLimitations: z.string().min(1),
+  recording: guestRecordingDisclosureSchema,
   retention: guestRetentionSchema,
   messageCharacters: z.number().int().positive(),
   canSend: z.boolean(),
@@ -750,12 +762,18 @@ export const chatMessageRequestSchema: Strict<{
   messages: z.ZodArray<typeof chatMessageSchema>;
   trigger: z.ZodOptional<z.ZodString>;
   inboxContext: z.ZodOptional<typeof chatSourceContextSchema>;
+  disclosure: z.ZodOptional<z.ZodString>;
 }> = z
   .object({
     id: chatIdSchema.optional(),
     messages: z.array(chatMessageSchema).min(1).max(200),
     trigger: z.string().trim().min(1).max(64).optional(),
     inboxContext: chatSourceContextSchema.optional(),
+    /** Guest only: the recording notice revision shown; owner chat ignores it. */
+    disclosure: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/)
+      .optional(),
   })
   .strict();
 
@@ -773,8 +791,14 @@ export const guestChatMessageRequestSchema: Strict<{
       >;
     }>
   >;
+  disclosure: z.ZodOptional<z.ZodString>;
 }> = z.strictObject({
   id: chatIdSchema.optional(),
+  /** The recording notice revision the visitor was shown with this question. */
+  disclosure: z
+    .string()
+    .regex(/^[a-f0-9]{64}$/)
+    .optional(),
   messages: z
     .array(
       z.strictObject({

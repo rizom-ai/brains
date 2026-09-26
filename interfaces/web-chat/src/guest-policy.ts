@@ -97,9 +97,12 @@ const allowanceSchema: Strict<{
 export const guestUsageBoundsSchema: Strict<{
   maxRecords: z.ZodNumber;
   retentionSeconds: z.ZodNumber;
+  questionBytes: z.ZodNumber;
 }> = z.strictObject({
   maxRecords: positiveInteger.max(10_000),
   retentionSeconds: positiveInteger.max(366 * 86_400),
+  /** UTF-8 bytes of a question kept; longer questions are cut and marked. */
+  questionBytes: positiveInteger.max(65_536),
 });
 export type GuestUsageBounds = z.output<typeof guestUsageBoundsSchema>;
 

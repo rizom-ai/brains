@@ -1333,6 +1333,40 @@ describe("guest usage record over HTTP", () => {
     });
   });
 
+  it("tells the visitor before they ask that questions are kept for the owner, how long, and past deletion", async () => {
+    const state = await setup();
+    const session = await state.browser().client.openGuestSession();
+    expect(session.recording.notice).toContain("kept for the owner");
+    expect(session.recording.notice).toContain("7 days");
+    expect(session.recording.notice).toContain(
+      "Deleting the conversation does not delete them",
+    );
+    expect(session.recording.revision).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("records a question only when the visitor was shown the current recording notice", async () => {
+    const state = await setup();
+    const browser = state.browser();
+    const session = await browser.client.openGuestSession();
+    await events(
+      await browser.client.streamMessages({
+        ...message("Shown the notice"),
+        disclosure: session.recording.revision,
+      }),
+    );
+    await events(await browser.client.streamMessages(message("Never shown")));
+    await events(
+      await browser.client.streamMessages({
+        ...message("Shown an old notice"),
+        disclosure: "0".repeat(64),
+      }),
+    );
+    const questions = (await state.records())
+      .map((event) => event.question)
+      .filter((question) => question !== undefined);
+    expect(questions).toEqual(["Shown the notice"]);
+  });
+
   it("keeps a turn that fails or never returns unresolved", async () => {
     const state = await setup();
     const browser = state.browser();
@@ -1348,7 +1382,10 @@ describe("guest usage record over HTTP", () => {
 
   it("refuses new work when the record is full, without running it or spending allowance", async () => {
     const state = await setup({
-      usageRecord: { maxRecords: 1, retentionSeconds: 604800 },
+      usageRecord: {
+        ...testGuestPolicy.usageRecord,
+        maxRecords: 1,
+      },
     });
     const browser = state.browser();
     await browser.client.openGuestSession();

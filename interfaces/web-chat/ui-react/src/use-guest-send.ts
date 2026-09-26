@@ -99,6 +99,8 @@ export function useGuestSend(input: GuestSendInput): GuestSend {
       if (!retry && (!text || draft.length > session.messageCharacters)) return;
       const submission = retry ?? {
         ...(conversationId ? { id: conversationId } : {}),
+        // Which recording notice the visitor was shown with this question.
+        disclosure: session.recording.revision,
         messages: [
           {
             id: crypto.randomUUID(),

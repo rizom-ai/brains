@@ -474,7 +474,11 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
               aria-label={
                 welcome ? copy.title || "Your question" : "Your follow-up"
               }
-              aria-describedby="brain-chat-notice"
+              aria-describedby={
+                session
+                  ? "brain-chat-notice brain-chat-recording"
+                  : "brain-chat-notice"
+              }
               aria-invalid={over > 0}
               placeholder={welcome ? copy.inputHint : "Ask a follow-up…"}
               onInput={(event): void =>
@@ -512,6 +516,11 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
                   ? null
                   : "Public knowledge. Please avoid private details."}
           </p>
+          {session && (
+            <p id="brain-chat-recording" className="brain-box-recording">
+              {session.recording.notice}
+            </p>
+          )}
         </form>
       </div>
     </div>

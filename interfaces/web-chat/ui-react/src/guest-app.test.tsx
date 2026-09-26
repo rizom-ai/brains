@@ -39,6 +39,11 @@ const session = {
   provider: "Mock provider",
   notice: "Do not share sensitive text.",
   deletionLimitations: "Provider records are separate.",
+  recording: {
+    notice:
+      "Questions asked here are kept for the owner of this site for 30 days, separately from this conversation. Deleting the conversation does not delete them.",
+    revision: "a".repeat(64),
+  },
   retention: { idleSeconds: 3600, maxAgeSeconds: 7200 },
   messageCharacters: 4000,
   canSend: true,
@@ -578,8 +583,37 @@ describe("public Ask UI with mocked Chat transport", () => {
     expect(disclosure?.textContent).toContain("maximum age 2 hours");
     expect(
       document.querySelector("textarea")?.getAttribute("aria-describedby"),
-    ).toBeNull();
+    ).toBe("guest-recording-note");
     expect(calls.map((call) => call.path)).toEqual(["/api/chat/guest/session"]);
+  });
+
+  it("shows with the composer that questions are kept for the owner, and sends which notice was shown", async () => {
+    await mount();
+    const note = document.querySelector("#guest-recording-note");
+    expect(note?.textContent).toBe(session.recording.notice);
+    expect(note?.closest("details")).toBeNull();
+    await ask("Explore this thought");
+    const [send] = calls.filter((call) => call.path === "/api/chat/guest");
+    expect(send?.body).toMatchObject({
+      disclosure: session.recording.revision,
+    });
+  });
+
+  it("shows the recording notice with the box's composer too, not behind About", async () => {
+    await mount({ box: boxCopy });
+    const note = document.querySelector("#brain-chat-recording");
+    expect(note?.textContent).toBe(session.recording.notice);
+    expect(note?.closest(".brain-box-privacy")).toBeNull();
+    expect(
+      document
+        .querySelector(".prompt-row textarea")
+        ?.getAttribute("aria-describedby"),
+    ).toContain("brain-chat-recording");
+    await ask("Energy efficiency");
+    const [send] = calls.filter((call) => call.path === "/api/chat/guest");
+    expect(send?.body).toMatchObject({
+      disclosure: session.recording.revision,
+    });
   });
   it("preserves the draft and blocks sending after the visitor lease expires", async () => {
     session.expiresAt = Date.now() - 1000;

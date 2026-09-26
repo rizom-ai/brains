@@ -53,6 +53,8 @@ export const guestUsageEventSchema: z.ZodObject<
     settledAt: z.ZodOptional<z.ZodNumber>;
     usage: z.ZodOptional<typeof guestTurnUsageSchema>;
     cost: z.ZodOptional<typeof guestTurnCostSchema>;
+    question: z.ZodOptional<z.ZodString>;
+    questionTruncated: z.ZodOptional<z.ZodLiteral<true>>;
   },
   z.core.$strict
 > = z.strictObject({
@@ -72,9 +74,29 @@ export const guestUsageEventSchema: z.ZodObject<
   usage: guestTurnUsageSchema.optional(),
   /** Known from reported usage at a pinned revision, or explicitly unknown. */
   cost: guestTurnCostSchema.optional(),
+  /** Kept only when the visitor was shown the recording notice first. */
+  question: z.string().optional(),
+  questionTruncated: z.literal(true).optional(),
 });
 export type GuestUsageEvent = z.output<typeof guestUsageEventSchema>;
 export type GuestUsageOpening = "opened" | "exists" | "full" | "unavailable";
+
+/** The longest prefix within `bytes` of UTF-8, never splitting a character. */
+function within(text: string, bytes: number): string {
+  const encoder = new TextEncoder();
+  const kept = Array.from(text).reduce(
+    (prefix, character) =>
+      prefix.full || prefix.size + encoder.encode(character).byteLength > bytes
+        ? { ...prefix, full: true }
+        : {
+            text: prefix.text + character,
+            size: prefix.size + encoder.encode(character).byteLength,
+            full: false,
+          },
+    { text: "", size: 0, full: false },
+  );
+  return kept.text;
+}
 
 function digest(...parts: string[]): string {
   return createHash("sha256").update(JSON.stringify(parts)).digest("hex");
@@ -188,7 +210,12 @@ export class GuestUsageRecord {
   /** The admission ledger granted the request: it is now unresolved until settled. */
   async admit(
     id: string,
-    admitted: { visitorId: string; reservedMicroUsd: number },
+    admitted: {
+      visitorId: string;
+      reservedMicroUsd: number;
+      /** Only when the visitor was shown the recording notice with this question. */
+      question?: string;
+    },
   ): Promise<boolean> {
     try {
       const ledger = await this.ledger().get(LEDGER_KEY);
@@ -205,6 +232,7 @@ export class GuestUsageRecord {
             state: "unresolved",
             visitor: digest(ledger.salt, admitted.visitorId),
             reservedMicroUsd: admitted.reservedMicroUsd,
+            ...this.question(admitted.question),
           }))
             ? true
             : retry;
@@ -215,6 +243,16 @@ export class GuestUsageRecord {
       // Without an admission record the request must not run; the caller denies.
       return false;
     }
+  }
+
+  private question(
+    text: string | undefined,
+  ): Pick<GuestUsageEvent, "question" | "questionTruncated"> {
+    if (text === undefined) return {};
+    const kept = within(text, this.bounds.questionBytes);
+    return kept === text
+      ? { question: kept }
+      : { question: kept, questionTruncated: true };
   }
 
   /** The admission ledger turned the request away: give its place back. */
