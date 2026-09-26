@@ -332,6 +332,16 @@
     color: var(--color-selection-text);
   }
 
+  /* The document canvas carries the page colour, so overscroll past the
+     footer never flashes a white default; native controls follow the theme. */
+  html {
+    background-color: var(--color-bg);
+    color-scheme: light;
+  }
+  [data-theme="dark"] {
+    color-scheme: dark;
+  }
+
   /* Sticky-footer hygiene for site layouts that use flex-grow mains. */
   body {
     min-height: 100dvh;
