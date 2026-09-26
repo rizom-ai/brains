@@ -12,7 +12,22 @@ import {
   type ChatProtocolEvent,
   type GuestTurnSettlement,
 } from "@brains/contracts/chat";
-import type { IAgentService, IConversationService } from "@brains/plugins";
+import {
+  NOTE_CAPTURE_MESSAGE,
+  type NoteCaptureRequest,
+  type NoteCaptureResponse,
+} from "@brains/contracts";
+import {
+  BaseEntityAdapter,
+  baseEntitySchema,
+  STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  type BaseEntity,
+  type IAgentService,
+  type IConversationService,
+  type StudioWorkspaceActor,
+  type StudioWorkspaceRegistration,
+} from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 import {
   createPluginHarness,
   type PluginTestHarness,
@@ -58,6 +73,9 @@ interface Fixture {
   /** The owner's usage record, as a Studio reader would see it. */
   records: () => Promise<GuestUsageEvent[]>;
   denials: () => Promise<GuestUsageDenial[]>;
+  /** The guest chat monitor Studio registered, if any. */
+  monitor: () => StudioWorkspaceRegistration | undefined;
+  notes: () => Promise<Array<{ content: string; visibility: string }>>;
   /** The operator's operational health checks. */
   health: () => ReturnType<
     ReturnType<
@@ -79,6 +97,8 @@ async function setup(
     idleSeconds?: number;
     peerAddress?: string | null;
     usageRecord?: GuestUsageBounds;
+    /** Whether the brain has the note type a question can be saved as. */
+    notes?: boolean;
   } = {},
 ): Promise<Fixture> {
   const deploymentOrigin = options.origin ?? origin;
@@ -107,6 +127,13 @@ async function setup(
       ).list(1000),
     health: () =>
       harness.getMockShell().getOperationalHealthRegistry().getChecks(),
+    monitor: (): StudioWorkspaceRegistration | undefined =>
+      workspaces.find((workspace) => workspace.id.endsWith(":guest-chat")),
+    notes: async (): Promise<Array<{ content: string; visibility: string }>> =>
+      captured.map((note) => ({
+        content: note.body,
+        visibility: "restricted",
+      })),
     denials: async (): Promise<GuestUsageDenial[]> =>
       new GuestUsageRecord(
         harness.getMockShell().getRuntimeState(),
@@ -191,6 +218,43 @@ async function setup(
     },
     invalidateAgent: (): void => {},
   });
+  const workspaces: StudioWorkspaceRegistration[] = [];
+  harness
+    .getMockShell()
+    .getMessageBus()
+    .subscribe<StudioWorkspaceRegistration>(
+      STUDIO_WORKSPACE_REGISTER_MESSAGE,
+      (registration) => {
+        workspaces.push(registration.payload);
+        return {
+          success: true,
+          data: {
+            workspaceUrl: `/studio/workspaces/${registration.payload.id}`,
+          },
+        };
+      },
+    );
+  // Stands in for the note plugin: it answers captures and owns the note type.
+  const captured: NoteCaptureRequest[] = [];
+  if (options.notes) {
+    harness
+      .getMockShell()
+      .getEntityRegistry()
+      .registerEntityType("note", baseEntitySchema, new NoteFixtureAdapter());
+    harness
+      .getMockShell()
+      .getMessageBus()
+      .subscribe<NoteCaptureRequest, NoteCaptureResponse>(
+        NOTE_CAPTURE_MESSAGE,
+        (message) => {
+          captured.push(message.payload);
+          return {
+            success: true,
+            data: { noteId: message.payload.id, created: true },
+          };
+        },
+      );
+  }
   const defaults = resolveGuestPreset("local-test");
   if (!defaults.enabled) throw new Error("Expected shared guest defaults");
   const plugin = new WebChatInterface(
@@ -238,6 +302,8 @@ async function setup(
     },
   );
   await harness.installPlugin(plugin);
+  // The shell readies plugins after registration; Studio workspaces register then.
+  await plugin.ready();
   // The real HTTP host snapshots routes before activation, not per request.
   const routes = plugin.getWebRoutes();
   state.browser = (): Browser => {
@@ -1515,5 +1581,181 @@ describe("guest usage record over HTTP", () => {
     await events(await post(browser, request));
     expect((await post(browser, request)).status).toBe(409);
     expect(await state.records()).toHaveLength(1);
+  });
+});
+
+class NoteFixtureAdapter extends BaseEntityAdapter<BaseEntity> {
+  constructor() {
+    super({
+      entityType: "note",
+      purpose: "Saved visitor questions",
+      schema: baseEntitySchema,
+      frontmatterSchema: z.object({ title: z.string().optional() }),
+    });
+  }
+
+  public fromMarkdown(markdown: string): Partial<BaseEntity> {
+    return { entityType: "note", content: markdown };
+  }
+}
+
+function studioActor(permission: "trusted" | "admin"): StudioWorkspaceActor {
+  return {
+    interfaceType: "studio",
+    userId: `owner-${permission}`,
+    actor: { kind: "user", userId: `owner-${permission}` },
+    userPermissionLevel: permission,
+    visibilityScope: permission === "admin" ? "restricted" : "shared",
+    isAnchor: permission === "admin",
+  };
+}
+
+describe("guest chat monitor in Studio", () => {
+  const managed = {
+    managed: true,
+    origin: "https://preview.brain.test",
+    profileAvailable: true,
+    readiness: false,
+  } as const;
+  const signal = (): AbortSignal => new AbortController().signal;
+  async function view(state: Fixture): Promise<string> {
+    return JSON.stringify(
+      await state.monitor()?.dataProvider(studioActor("admin"), {}, signal()),
+    );
+  }
+  async function act(
+    state: Fixture,
+    request: Record<string, unknown>,
+  ): Promise<unknown> {
+    const handler = state.monitor()?.actionHandler;
+    if (!handler) throw new Error("Monitor has no actions");
+    return handler(request, studioActor("admin"), signal());
+  }
+  async function switchOn(state: Fixture): Promise<void> {
+    const prepared = z
+      .object({ token: z.string(), summary: z.string() })
+      .parse(
+        await act(state, { actionId: "switch-on", input: {}, mode: "prepare" }),
+      );
+    await act(state, {
+      actionId: "switch-on",
+      input: {},
+      confirmationToken: prepared.token,
+    });
+  }
+
+  it("is the owner's alone, at the Studio floor and at runtime", async () => {
+    const state = await setup(managed);
+    const monitor = state.monitor();
+    if (!monitor) throw new Error("Monitor was not registered");
+    expect(monitor.label).toBe("Guest chat");
+    expect(monitor.permission).toBe("admin");
+    expect(await monitor.accessHandler(studioActor("trusted"))).toBe(false);
+    expect(await monitor.accessHandler(studioActor("admin"))).toBe(true);
+  });
+
+  it("tells the truth about an empty record and a closed door", async () => {
+    const state = await setup(managed);
+    const shown = await view(state);
+    expect(shown).toContain("Guest chat is off");
+    expect(shown).toContain("No guest questions yet.");
+    expect(shown).toContain("No refusals recorded.");
+    expect(shown).toContain("switch-on");
+    expect(shown).not.toContain("switch-off");
+  });
+
+  it("opens only after a prepared confirmation, and closes at once, beside the numbers", async () => {
+    const state = await setup(managed);
+    expect(act(state, { actionId: "switch-on", input: {} })).rejects.toThrow(
+      "prepared confirmation is invalid or stale",
+    );
+    const prepared = z
+      .object({ summary: z.string() })
+      .parse(
+        await act(state, { actionId: "switch-on", input: {}, mode: "prepare" }),
+      );
+    expect(prepared.summary).toContain("2 questions");
+    await switchOn(state);
+    const browser = state.browser();
+    expect((await browser.client.openGuestSession()).canSend).toBe(true);
+    expect(await view(state)).toContain("switch-off");
+
+    await act(state, { actionId: "switch-off", input: {} });
+    expect((await post(browser, message())).status).toBe(503);
+    expect(state.calls).toHaveLength(0);
+    expect(await view(state)).toContain("Guest chat is off");
+  });
+
+  it("shows measured and unknown cost, unresolved work and refusals, beside the allowance", async () => {
+    const state = await setup(managed);
+    await switchOn(state);
+    const browser = state.browser();
+    const session = await browser.client.openGuestSession();
+    state.settlement = {
+      usage: {
+        modelCalls: 1,
+        inputTokens: 10_000,
+        cachedInputTokens: 4_000,
+        outputTokens: 500,
+        reasoningTokens: 0,
+        embeddingTokens: 800,
+      },
+      cost: {
+        state: "known",
+        microUsd: 1_896,
+        pricing: "openai-gpt-5.6-luna-2026-09-26",
+      },
+    };
+    await events(
+      await browser.client.streamMessages({
+        ...message("What is public?"),
+        disclosure: session.recording.revision,
+      }),
+    );
+    state.settlement = undefined;
+    await events(await browser.client.streamMessages(message("And then?")));
+    expect((await post(browser, message("A third"))).status).toBe(429);
+    const shown = await view(state);
+    expect(shown).toContain("$0.0019");
+    expect(shown).toContain("What is public?");
+    expect(shown).not.toContain("And then?");
+    expect(shown).toContain("Measured from provider usage");
+    expect(shown).toContain("never returns allowance");
+    expect(shown).toMatch(/"label":"Cost unknown","value":1/);
+    expect(shown).toMatch(/"label":"Questions","value":2,"max":2/);
+    expect(shown).toContain("guest-denials");
+  });
+
+  it("saves a recorded question as a note only after a prepared confirmation", async () => {
+    const state = await setup({ ...managed, notes: true });
+    await switchOn(state);
+    const browser = state.browser();
+    const session = await browser.client.openGuestSession();
+    await events(
+      await browser.client.streamMessages({
+        ...message("How do institutions forget?"),
+        disclosure: session.recording.revision,
+      }),
+    );
+    const [record] = await state.records();
+    if (!record) throw new Error("Question was not recorded");
+    const input = { recordId: record.id };
+    expect(act(state, { actionId: "save-question", input })).rejects.toThrow(
+      "prepared confirmation is invalid or stale",
+    );
+    expect(await state.notes()).toEqual([]);
+    const prepared = z
+      .object({ token: z.string(), summary: z.string() })
+      .parse(
+        await act(state, { actionId: "save-question", input, mode: "prepare" }),
+      );
+    expect(prepared.summary).toContain("How do institutions forget?");
+    await act(state, {
+      actionId: "save-question",
+      input,
+      confirmationToken: prepared.token,
+    });
+    const [note] = await state.notes();
+    expect(note?.content).toContain("How do institutions forget?");
   });
 });

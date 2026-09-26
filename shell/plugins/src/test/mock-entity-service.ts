@@ -186,7 +186,12 @@ export function createMockEntityService(
       return { entityId: id, jobId: `job-${id}`, skipped: false };
     },
     createEntityFromMarkdown: async (request: {
-      input: { entityType: string; id: string; markdown: string };
+      input: {
+        entityType: string;
+        id: string;
+        markdown: string;
+        visibility?: BaseEntity["visibility"];
+      };
     }): Promise<EntityMutationResult> => {
       const adapter = store.adapters.get(request.input.entityType);
       const parsed = adapter?.fromMarkdown(request.input.markdown) ?? {
@@ -201,7 +206,8 @@ export function createMockEntityService(
         entityType: request.input.entityType,
         content: parsed.content ?? request.input.markdown,
         metadata: parsed.metadata ?? {},
-        visibility: "public" as const,
+        // As the entity service does: an explicit visibility is kept.
+        visibility: request.input.visibility ?? "public",
         created: now,
         updated: now,
         contentHash: computeContentHash(

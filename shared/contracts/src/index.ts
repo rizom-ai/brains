@@ -231,6 +231,13 @@ export {
   type SendNotificationInput,
   type SendNotificationResult,
 } from "./notification";
+export {
+  NOTE_CAPTURE_MESSAGE,
+  noteCaptureRequestSchema,
+  noteCaptureResponseSchema,
+  type NoteCaptureRequest,
+  type NoteCaptureResponse,
+} from "./note-capture";
 export type {
   HeadCollectorInterface,
   HeadProps,
