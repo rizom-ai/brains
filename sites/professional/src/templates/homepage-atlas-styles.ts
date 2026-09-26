@@ -33,7 +33,8 @@ export const homepageAtlasStyles: string = String.raw`
   position: absolute; transform: translate(-50%, -100%); white-space: nowrap; pointer-events: none;
   font-family: var(--font-heading); font-style: italic; font-size: 1rem; letter-spacing: .03em;
   font-variation-settings: "SOFT" 60, "opsz" 24; color: var(--color-text-muted);
-  text-shadow: 0 0 .5rem var(--color-bg), 0 0 .2rem var(--color-bg);
+  /* A solid halo in the page colour parts the rings under the name; the wide layer softens its edge. */
+  text-shadow: 0 0 1px var(--color-bg), 0 0 2px var(--color-bg), 0 0 2px var(--color-bg), 0 0 3px var(--color-bg), 0 0 4px var(--color-bg), 0 0 6px var(--color-bg), 0 0 10px var(--color-bg);
   /* Set by the script from the name's measured box. */
   translate: var(--atlas-name-shift, 0 0);
 }

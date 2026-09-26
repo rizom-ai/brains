@@ -315,6 +315,14 @@ describe("living atlas", () => {
     );
   });
 
+  it("parts the contour lines around a territory name so it reads over dense rings", () => {
+    const zone = /\.atlas__zone \{[^}]*text-shadow: ([^;]*);/.exec(
+      homepageAtlasStyles,
+    )?.[1];
+    // Stacked tight shadows in the page colour: a solid halo, not a soft glow.
+    expect(zone?.match(/0 0 [1-4]px var\(--color-bg\)/g)?.length).toBe(5);
+  });
+
   it("marks the parts the touch script needs", () => {
     expect(html()).toContain("data-atlas=");
     expect(html()).toContain("data-atlas-terrain");
