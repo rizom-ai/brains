@@ -11,6 +11,7 @@ import {
 const origin = "https://brain.test";
 const bounds: GuestUsageBounds = {
   maxRecords: 2,
+  maxDenialRecords: 2,
   retentionSeconds: 86400,
   questionBytes: 16_000,
 };
@@ -216,5 +217,113 @@ describe("guest usage record", () => {
       },
     };
     expect(await record(broken).open(request("a"))).toBe("unavailable");
+  });
+});
+
+describe("guest usage denials", () => {
+  it("keeps a detailed denial with its reason and visitor digest, never text", async () => {
+    const state = createMemoryRuntimeStateNamespace();
+    const usage = record(state);
+    await usage.deny("visitor-rate-limit", visitor);
+    await usage.deny("oversized", undefined);
+    const denials = await usage.denials(10);
+    expect(denials.map((denial) => denial.reason).sort()).toEqual([
+      "oversized",
+      "visitor-rate-limit",
+    ]);
+    const known = denials.find(
+      (denial) => denial.reason === "visitor-rate-limit",
+    );
+    expect(known?.visitor).toMatch(/^[a-f0-9]{64}$/);
+    const unknown = denials.find((denial) => denial.reason === "oversized");
+    if (!unknown) throw new Error("Oversized denial missing");
+    expect(Object.keys(unknown)).not.toContain("visitor");
+    expect(await stored(state)).not.toContain(visitor);
+  });
+
+  it("counts denials by day and reason, without visitors, once the detailed allowance is full", async () => {
+    const usage = record();
+    await usage.deny("visitor-rate-limit", visitor);
+    await usage.deny("visitor-rate-limit", visitor);
+    await usage.deny("visitor-rate-limit", visitor);
+    await usage.deny("forbidden", undefined);
+    await usage.flush();
+    expect(await usage.denials(10)).toHaveLength(2);
+    expect(await usage.denialCounts()).toEqual([
+      {
+        day: "2026-09-26",
+        counts: { "visitor-rate-limit": 1, forbidden: 1 },
+      },
+    ]);
+  });
+
+  it("writes a flood of counted denials once per flush, however many arrive", async () => {
+    const state = createMemoryRuntimeStateNamespace();
+    const writes: string[] = [];
+    const counting: IRuntimeStateNamespace = {
+      scoped: (options) => {
+        const store = state.scoped(options);
+        return {
+          ...store,
+          set: async (key, value): Promise<void> => {
+            writes.push(options.namespace);
+            return store.set(key, value);
+          },
+          setIfNotExists: async (key, value): Promise<boolean> => {
+            writes.push(options.namespace);
+            return store.setIfNotExists(key, value);
+          },
+          compareAndSet: async (key, expected, value): Promise<boolean> => {
+            writes.push(options.namespace);
+            return store.compareAndSet(key, expected, value);
+          },
+        };
+      },
+    };
+    const usage = record(counting, { ...bounds, maxDenialRecords: 1 });
+    await usage.deny("forbidden", undefined);
+    const afterDetailed = writes.length;
+    await Promise.all(
+      Array.from({ length: 200 }, () => usage.deny("forbidden", undefined)),
+    );
+    expect(writes.length).toBe(afterDetailed);
+    await usage.flush();
+    expect(writes.length).toBe(afterDetailed + 1);
+    expect(await usage.denialCounts()).toEqual([
+      { day: "2026-09-26", counts: { forbidden: 200 } },
+    ]);
+  });
+
+  it("keeps unwritten counts for the next flush", async () => {
+    const state = createMemoryRuntimeStateNamespace();
+    let failing = true;
+    const flaky: IRuntimeStateNamespace = {
+      scoped: (options) => {
+        const store = state.scoped(options);
+        return {
+          ...store,
+          set: async (key, value): Promise<void> => {
+            if (failing && options.namespace.endsWith("denial-counts"))
+              throw new Error("runtime state unavailable");
+            return store.set(key, value);
+          },
+          setIfNotExists: async (key, value): Promise<boolean> => {
+            if (failing && options.namespace.endsWith("denial-counts"))
+              throw new Error("runtime state unavailable");
+            return store.setIfNotExists(key, value);
+          },
+        };
+      },
+    };
+    const usage = record(flaky, { ...bounds, maxDenialRecords: 1 });
+    await usage.deny("forbidden", undefined);
+    await usage.deny("forbidden", undefined);
+    await usage.deny("forbidden", undefined);
+    expect(usage.flush()).rejects.toThrow("Guest usage counts unavailable");
+    failing = false;
+    await usage.flush();
+    expect(await usage.denialCounts()).toEqual([
+      { day: "2026-09-26", counts: { forbidden: 2 } },
+    ]);
   });
 });

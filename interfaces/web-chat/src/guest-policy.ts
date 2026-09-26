@@ -96,10 +96,13 @@ const allowanceSchema: Strict<{
 /** Finite bounds of the owner's usage record; set before anything is recorded. */
 export const guestUsageBoundsSchema: Strict<{
   maxRecords: z.ZodNumber;
+  maxDenialRecords: z.ZodNumber;
   retentionSeconds: z.ZodNumber;
   questionBytes: z.ZodNumber;
 }> = z.strictObject({
   maxRecords: positiveInteger.max(10_000),
+  /** Detailed denials kept; beyond this, only daily counts by reason. */
+  maxDenialRecords: positiveInteger.max(10_000),
   retentionSeconds: positiveInteger.max(366 * 86_400),
   /** UTF-8 bytes of a question kept; longer questions are cut and marked. */
   questionBytes: positiveInteger.max(65_536),

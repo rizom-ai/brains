@@ -31,6 +31,7 @@ export const testGuestPolicy: EnabledGuestPolicy = {
   budget: { dailyUsd: 10, maxTurnUsd: 0.1 },
   usageRecord: {
     maxRecords: 100,
+    maxDenialRecords: 100,
     retentionSeconds: 604800,
     questionBytes: 16000,
   },

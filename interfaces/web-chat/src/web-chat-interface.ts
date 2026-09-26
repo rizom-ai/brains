@@ -227,7 +227,15 @@ export class WebChatInterface extends MessageInterfacePlugin<
       createScheduledMaintenanceDaemon({
         intervalMs: 60_000,
         logger: context.logger,
-        run: (): Promise<void> => maintenance.run(),
+        run: async (): Promise<void> => {
+          // Neither sweep may starve the other.
+          const results = await Promise.allSettled([
+            maintenance.run(),
+            this.guestHttp?.maintainUsage(),
+          ]);
+          if (results.some((result) => result.status === "rejected"))
+            throw new Error("Guest maintenance unavailable");
+        },
       }),
     );
 

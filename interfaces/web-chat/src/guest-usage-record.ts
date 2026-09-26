@@ -10,12 +10,16 @@ import {
   type GuestTurnSettlement,
 } from "@brains/contracts/chat";
 import { attempt, retry } from "./cas-retry";
+import { guestAdmissionDenialSchema } from "./guest-admission-state";
 import type { GuestUsageBounds } from "./guest-policy";
 
 export type { GuestUsageBounds } from "./guest-policy";
 
 const LEDGER_NAMESPACE = "web-chat.guest-usage.ledger";
 const EVENTS_NAMESPACE = "web-chat.guest-usage.events";
+const DENIAL_LEDGER_NAMESPACE = "web-chat.guest-usage.denial-ledger";
+const DENIALS_NAMESPACE = "web-chat.guest-usage.denials";
+const COUNTS_NAMESPACE = "web-chat.guest-usage.denial-counts";
 const LEDGER_KEY = "ledger";
 const ATTEMPTS = 32;
 
@@ -79,6 +83,80 @@ export const guestUsageEventSchema: z.ZodObject<
   questionTruncated: z.literal(true).optional(),
 });
 export type GuestUsageEvent = z.output<typeof guestUsageEventSchema>;
+
+/** Why a question was refused: an admission reason, the route's own refusal, or the record's. */
+export const guestUsageDenialReasonSchema: z.ZodEnum<
+  (typeof guestAdmissionDenialSchema)["enum"] & {
+    forbidden: "forbidden";
+    method: "method";
+    "media-type": "media-type";
+    "invalid-request": "invalid-request";
+    oversized: "oversized";
+    "not-found": "not-found";
+    closed: "closed";
+    "record-full": "record-full";
+    "record-unavailable": "record-unavailable";
+  }
+> = z.enum([
+  ...guestAdmissionDenialSchema.options,
+  "forbidden",
+  "method",
+  "media-type",
+  "invalid-request",
+  "oversized",
+  "not-found",
+  "closed",
+  "record-full",
+  "record-unavailable",
+]);
+export type GuestUsageDenialReason = z.output<
+  typeof guestUsageDenialReasonSchema
+>;
+
+const denialLedgerSchema = z.strictObject({
+  version: z.literal(1),
+  places: z.record(
+    z.string().uuid(),
+    z.strictObject({ at: millis, retainUntil: millis }),
+  ),
+});
+type DenialLedger = z.output<typeof denialLedgerSchema>;
+
+export const guestUsageDenialSchema: z.ZodObject<
+  {
+    version: z.ZodLiteral<1>;
+    id: z.ZodString;
+    at: z.ZodNumber;
+    retainUntil: z.ZodNumber;
+    reason: typeof guestUsageDenialReasonSchema;
+    visitor: z.ZodOptional<z.ZodString>;
+  },
+  z.core.$strict
+> = z.strictObject({
+  version: z.literal(1),
+  id: z.string().uuid(),
+  at: millis,
+  retainUntil: millis,
+  reason: guestUsageDenialReasonSchema,
+  /** Absent when no visitor was identified; never invented. */
+  visitor: digestSchema.optional(),
+});
+export type GuestUsageDenial = z.output<typeof guestUsageDenialSchema>;
+
+/** Daily counts by reason once detailed denials are full: no text, no visitors. */
+const denialCountsSchema = z.strictObject({
+  version: z.literal(1),
+  day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  counts: z.partialRecord(
+    guestUsageDenialReasonSchema,
+    z.number().int().positive(),
+  ),
+});
+type DenialCounts = z.output<typeof denialCountsSchema>;
+export interface GuestUsageDenialDay {
+  day: string;
+  counts: Partial<Record<GuestUsageDenialReason, number>>;
+}
 export type GuestUsageOpening = "opened" | "exists" | "full" | "unavailable";
 
 /** The longest prefix within `bytes` of UTF-8, never splitting a character. */
@@ -114,6 +192,9 @@ export class GuestUsageRecord {
   static readonly namespaces: readonly string[] = [
     LEDGER_NAMESPACE,
     EVENTS_NAMESPACE,
+    DENIAL_LEDGER_NAMESPACE,
+    DENIALS_NAMESPACE,
+    COUNTS_NAMESPACE,
   ];
 
   /** One record per submission, however often it is retried. */
@@ -135,6 +216,11 @@ export class GuestUsageRecord {
   private readonly state: IRuntimeStateNamespace;
   private readonly bounds: GuestUsageBounds;
   private readonly now: () => number;
+  /** Counted denials not yet written, by day and reason; flushed on maintenance. */
+  private readonly pending = new Map<
+    string,
+    Map<GuestUsageDenialReason, number>
+  >();
 
   constructor(
     state: IRuntimeStateNamespace,
@@ -151,6 +237,42 @@ export class GuestUsageRecord {
       namespace: LEDGER_NAMESPACE,
       schema: ledgerSchema,
     });
+  }
+
+  private denialLedger(): IRuntimeStateStore<DenialLedger> {
+    return this.state.scoped({
+      namespace: DENIAL_LEDGER_NAMESPACE,
+      schema: denialLedgerSchema,
+    });
+  }
+
+  private denialEvents(): IRuntimeStateStore<GuestUsageDenial> {
+    return this.state.scoped({
+      namespace: DENIALS_NAMESPACE,
+      schema: guestUsageDenialSchema,
+    });
+  }
+
+  private denialCountRows(): IRuntimeStateStore<DenialCounts> {
+    return this.state.scoped({
+      namespace: COUNTS_NAMESPACE,
+      schema: denialCountsSchema,
+    });
+  }
+
+  /** The deployment's salt, created with the record's ledger if it has none yet. */
+  private async salt(): Promise<string> {
+    const ledger = this.ledger();
+    const current = await ledger.get(LEDGER_KEY);
+    if (current) return current.salt;
+    await ledger.setIfNotExists(LEDGER_KEY, {
+      version: 1,
+      salt: randomBytes(32).toString("hex"),
+      places: {},
+    });
+    const created = await ledger.get(LEDGER_KEY);
+    if (!created) throw new Error("Guest usage record unavailable");
+    return created.salt;
   }
 
   private events(): IRuntimeStateStore<GuestUsageEvent> {
@@ -321,6 +443,138 @@ export class GuestUsageRecord {
       // An unwritten outcome leaves the request unresolved and its reservation held.
       return false;
     }
+  }
+
+  /**
+   * Records a refused question: in detail, with the visitor's digest when one
+   * was identified, while the denial allowance lasts; afterwards only as a
+   * daily count, written on the next flush so a flood writes nothing more.
+   * Never throws: an unrecordable denial is counted instead.
+   */
+  async deny(
+    reason: GuestUsageDenialReason,
+    visitorId: string | undefined,
+  ): Promise<void> {
+    try {
+      const now = this.now();
+      const id = crypto.randomUUID();
+      const retainUntil = now + this.bounds.retentionSeconds * 1000;
+      const ledger = this.denialLedger();
+      const placed = await attempt(
+        ATTEMPTS,
+        async () => {
+          const current = await ledger.get(LEDGER_KEY);
+          if (
+            current &&
+            Object.keys(current.places).length >= this.bounds.maxDenialRecords
+          )
+            return false;
+          const next: DenialLedger = {
+            version: 1,
+            places: { ...current?.places, [id]: { at: now, retainUntil } },
+          };
+          const written = current
+            ? await ledger.compareAndSet(LEDGER_KEY, current, next)
+            : await ledger.setIfNotExists(LEDGER_KEY, next);
+          return written ? true : retry;
+        },
+        () => false,
+      );
+      if (!placed) return this.count(reason);
+      const visitor =
+        visitorId === undefined
+          ? undefined
+          : digest(await this.salt(), visitorId);
+      await this.denialEvents().set(id, {
+        version: 1,
+        id,
+        at: now,
+        retainUntil,
+        reason,
+        ...(visitor ? { visitor } : {}),
+      });
+    } catch {
+      // Storage refused the detail; the denial still counts.
+      this.count(reason);
+    }
+  }
+
+  private count(reason: GuestUsageDenialReason): void {
+    const day = new Date(this.now()).toISOString().slice(0, 10);
+    const reasons = this.pending.get(day) ?? new Map();
+    reasons.set(reason, (reasons.get(reason) ?? 0) + 1);
+    this.pending.set(day, reasons);
+  }
+
+  /** Writes counted denials, one write per day; unwritten counts wait for the next flush. */
+  async flush(): Promise<void> {
+    const days = [...this.pending.entries()];
+    this.pending.clear();
+    const rows = this.denialCountRows();
+    const failed = await Promise.all(
+      days.map(async ([day, reasons]): Promise<boolean> => {
+        try {
+          const written = await attempt(
+            ATTEMPTS,
+            async () => {
+              const current = await rows.get(day);
+              const counts = Object.fromEntries(
+                [...reasons].map(([reason, added]) => [
+                  reason,
+                  (current?.counts[reason] ?? 0) + added,
+                ]),
+              );
+              const next: DenialCounts = {
+                version: 1,
+                day,
+                counts: { ...current?.counts, ...counts },
+              };
+              return (
+                current
+                  ? await rows.compareAndSet(day, current, next)
+                  : await rows.setIfNotExists(day, next)
+              )
+                ? true
+                : retry;
+            },
+            () => false,
+          );
+          if (written) return false;
+        } catch {
+          // Kept below for the next flush; the caller reports the failure.
+        }
+        reasons.forEach((added, reason) => {
+          const waiting = this.pending.get(day) ?? new Map();
+          waiting.set(reason, (waiting.get(reason) ?? 0) + added);
+          this.pending.set(day, waiting);
+        });
+        return true;
+      }),
+    );
+    if (failed.some(Boolean)) throw new Error("Guest usage counts unavailable");
+  }
+
+  /** Detailed denials, newest first, at most `limit`. */
+  async denials(limit: number): Promise<GuestUsageDenial[]> {
+    const ledger = await this.denialLedger().get(LEDGER_KEY);
+    if (!ledger) return [];
+    const ids = Object.entries(ledger.places)
+      .sort(([a, x], [b, y]) => y.at - x.at || a.localeCompare(b))
+      .slice(0, limit)
+      .map(([id]) => id);
+    const events = this.denialEvents();
+    const found = await Promise.all(ids.map((id) => events.get(id)));
+    return found.filter(
+      (denial): denial is GuestUsageDenial => denial !== null,
+    );
+  }
+
+  /** Written daily denial counts, newest day first. */
+  async denialCounts(): Promise<GuestUsageDenialDay[]> {
+    const rows = await this.denialCountRows().list({ limit: 1000 });
+    return rows
+      .map(({ value }) => ({ day: value.day, counts: value.counts }))
+      .sort((a, b) => b.day.localeCompare(a.day));
   }
 
   /** The newest records first, at most `limit`. */
