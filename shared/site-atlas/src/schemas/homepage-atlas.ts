@@ -1,11 +1,11 @@
 import { z } from "@brains/utils/zod";
 
-/** The published kinds the atlas places: essays, talks and projects. */
-export const atlasEntityTypeSchema: z.ZodEnum<{
-  post: "post";
-  deck: "deck";
-  project: "project";
-}> = z.enum(["post", "deck", "project"]);
+/** The shape a mark is drawn with; the site decides which kind gets which. */
+export const atlasGlyphSchema: z.ZodEnum<{
+  dot: "dot";
+  diamond: "diamond";
+  square: "square";
+}> = z.enum(["dot", "diamond", "square"]);
 
 export const atlasZoneSchema: z.ZodObject<{
   id: z.ZodString;
@@ -30,7 +30,9 @@ export const atlasZoneSchema: z.ZodObject<{
  */
 export const atlasItemSchema: z.ZodObject<{
   id: z.ZodString;
-  entityType: typeof atlasEntityTypeSchema;
+  entityType: z.ZodString;
+  glyph: typeof atlasGlyphSchema;
+  kindLabel: z.ZodDefault<z.ZodNullable<z.ZodString>>;
   content: z.ZodString;
   metadata: z.ZodObject<{ slug: z.ZodString }>;
   title: z.ZodString;
@@ -42,7 +44,10 @@ export const atlasItemSchema: z.ZodObject<{
   typeLabel: z.ZodDefault<z.ZodNullable<z.ZodString>>;
 }> = z.object({
   id: z.string(),
-  entityType: atlasEntityTypeSchema,
+  entityType: z.string(),
+  glyph: atlasGlyphSchema,
+  /** Names the mark's kind on its card and in the legend, before the type label. */
+  kindLabel: z.string().nullable().default(null),
   content: z.string(),
   metadata: z.object({ slug: z.string() }),
   title: z.string(),
@@ -55,20 +60,36 @@ export const atlasItemSchema: z.ZodObject<{
   typeLabel: z.string().nullable().default(null),
 });
 
+/** What the map is drawn around, when it has a centre: the brain itself. */
+export const atlasCentreSchema: z.ZodObject<{
+  name: z.ZodString;
+  url: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+}> = z.object({
+  name: z.string(),
+  url: z.string().nullable().default(null),
+});
+
 export const homepageAtlasSchema: z.ZodDefault<
   z.ZodNullable<
     z.ZodObject<{
       zones: z.ZodArray<typeof atlasZoneSchema>;
       items: z.ZodArray<typeof atlasItemSchema>;
+      centre: z.ZodDefault<z.ZodNullable<typeof atlasCentreSchema>>;
     }>
   >
 > = z
-  .object({ zones: z.array(atlasZoneSchema), items: z.array(atlasItemSchema) })
+  .object({
+    zones: z.array(atlasZoneSchema),
+    items: z.array(atlasItemSchema),
+    centre: atlasCentreSchema.nullable().default(null),
+  })
   .nullable()
   .default(null);
 
+export type AtlasGlyph = z.output<typeof atlasGlyphSchema>;
 export type AtlasZone = z.output<typeof atlasZoneSchema>;
 export type AtlasItem = z.output<typeof atlasItemSchema>;
+export type AtlasCentre = z.output<typeof atlasCentreSchema>;
 export type HomepageAtlasData = NonNullable<
   z.output<typeof homepageAtlasSchema>
 >;

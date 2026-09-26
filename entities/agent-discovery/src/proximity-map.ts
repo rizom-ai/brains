@@ -8,4 +8,10 @@ export { proximityMapSiteStyles } from "./templates/proximity-map-template";
 export {
   proximityMapDataSchema,
   type ProximityMapData,
+  type ProximityMapNode,
 } from "./lib/proximity-map-schema";
+export {
+  proximityMaxDistance,
+  proximityPoint,
+  proximityReach,
+} from "./lib/proximity-map";

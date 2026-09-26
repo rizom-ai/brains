@@ -134,7 +134,7 @@ const recipeExpectations: Record<
     bundles: ["core", "media", "automation", "web", "chat", "site", "team"],
     add: ["docs"],
     site: {
-      package: "@brains/site-default",
+      package: "@brains/site-organization",
       theme: "@brains/theme-rizom",
     },
     plugins: {

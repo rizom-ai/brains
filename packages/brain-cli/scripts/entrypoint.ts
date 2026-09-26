@@ -20,12 +20,14 @@ import canonicalBrain from "../src/model/canonical-brain";
 import { registerPackage } from "@brains/app";
 
 import defaultSite from "@brains/site-default";
+import organizationSite from "@brains/site-organization";
 import defaultTheme from "@rizom/theme-default";
 import rizomTheme from "@brains/theme-rizom";
 
 setCanonicalDefinition(canonicalBrain);
 
 registerPackage("@brains/site-default", defaultSite);
+registerPackage("@brains/site-organization", organizationSite);
 registerPackage("@rizom/theme-default", defaultTheme);
 registerPackage("@brains/theme-rizom", rizomTheme);
 

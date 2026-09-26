@@ -1,6 +1,7 @@
 import type { SemanticSpaceNeighbor } from "@brains/plugins";
 import type {
   ProximityMapCluster,
+  ProximityMapData,
   ProximityMapNode,
 } from "./proximity-map-schema";
 
@@ -9,6 +10,44 @@ const ZERO_COORDINATE_EPSILON = 1e-12;
 
 export function normalizeCosineDistance(distance: number): number {
   return Math.max(0, Math.min(1, distance));
+}
+
+/**
+ * The distance the map is scaled to: the farthest charted agent, the
+ * projection's own range, or a floor so a tight network still spreads out.
+ */
+export function proximityMaxDistance(
+  data: Pick<ProximityMapData, "distanceRange" | "nodes" | "sightings">,
+): number {
+  return Math.max(
+    data.distanceRange.max,
+    ...data.nodes.map((node) => node.distance),
+    ...data.sightings.map((sighting) => sighting.distance),
+    0.1,
+  );
+}
+
+/** How far out an agent sits, from the centre (0) to the outer ring (1). */
+export function proximityReach(distance: number, maxDistance: number): number {
+  return Math.min(1, Math.max(0, distance / maxDistance));
+}
+
+/**
+ * An agent's place on a disc around the brain: its bearing is the angle,
+ * counterclockwise from east with north up, and its reach the radius.
+ */
+export function proximityPoint(
+  distance: number,
+  bearing: number,
+  maxDistance: number,
+  disc: { x: number; y: number; radius: number },
+): { x: number; y: number } {
+  const radians = (bearing * Math.PI) / 180;
+  const radius = proximityReach(distance, maxDistance) * disc.radius;
+  return {
+    x: disc.x + Math.cos(radians) * radius,
+    y: disc.y - Math.sin(radians) * radius,
+  };
 }
 
 export function bearingFromCoordinates(

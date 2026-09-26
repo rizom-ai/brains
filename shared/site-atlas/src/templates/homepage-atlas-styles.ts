@@ -46,10 +46,25 @@ export const homepageAtlasStyles: string = String.raw`
   display: block; width: 7px; height: 7px; border-radius: 50%; background: var(--color-text);
   box-shadow: 0 0 0 3px var(--color-bg); transition: transform .25s, background-color .25s;
 }
-.atlas__mark--deck .atlas__glyph { border-radius: 1px; transform: rotate(45deg); }
-.atlas__mark--project .atlas__glyph { width: 8px; height: 8px; border-radius: 1.5px; }
+.atlas__mark--diamond .atlas__glyph { border-radius: 1px; transform: rotate(45deg); }
+.atlas__mark--square .atlas__glyph { width: 8px; height: 8px; border-radius: 1.5px; }
+/* What the map is drawn around: a ring on the centre, named beneath it. */
+.atlas__centre {
+  position: absolute; margin: 0; transform: translate(-50%, -.6rem);
+  display: flex; flex-direction: column; align-items: center; gap: .4rem; pointer-events: none;
+}
+.atlas__centre > a { display: contents; color: inherit; text-decoration: none; pointer-events: auto; }
+.atlas__centre-ring {
+  display: block; width: 1.2rem; height: 1.2rem; border-radius: 50%;
+  border: 1.5px solid var(--color-accent); background: var(--color-bg); box-shadow: 0 0 0 4px var(--color-bg);
+}
+.atlas__centre span {
+  font-family: var(--font-heading); font-size: .95rem; line-height: 1.2; white-space: nowrap; color: var(--color-heading);
+  font-variation-settings: "SOFT" 60, "opsz" 24; text-shadow: 0 0 .5rem var(--color-bg), 0 0 .2rem var(--color-bg);
+}
+.atlas__centre > a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 4px; }
 .atlas__mark a:focus-visible .atlas__glyph { background: var(--color-accent); transform: scale(1.5); }
-.atlas__mark--deck a:focus-visible .atlas__glyph { transform: rotate(45deg) scale(1.5); }
+.atlas__mark--diamond a:focus-visible .atlas__glyph { transform: rotate(45deg) scale(1.5); }
 .atlas__mark a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
 .atlas__tip {
   position: absolute; z-index: 2; bottom: calc(100% + .3rem); left: 50%; transform: translateX(-50%);
@@ -64,7 +79,7 @@ export const homepageAtlasStyles: string = String.raw`
 .atlas__mark:focus-within, .atlas__mark[data-open] { z-index: 3; }
 .atlas__mark[data-open] .atlas__tip { opacity: 1; }
 .atlas__mark[data-open] .atlas__glyph { background: var(--color-accent); transform: scale(1.5); }
-.atlas__mark--deck[data-open] .atlas__glyph { transform: rotate(45deg) scale(1.5); }
+.atlas__mark--diamond[data-open] .atlas__glyph { transform: rotate(45deg) scale(1.5); }
 .atlas__tip b { display: block; font-family: var(--font-heading); font-weight: 500; font-size: .98rem; line-height: 1.2; color: var(--color-heading); }
 .atlas__tip span { font-size: .78rem; color: var(--color-text-light); }
 .atlas__tip em {
@@ -76,7 +91,7 @@ export const homepageAtlasStyles: string = String.raw`
 @media (hover: hover) {
   .atlas__mark:hover { z-index: 3; }
   .atlas__mark a:hover .atlas__glyph { background: var(--color-accent); transform: scale(1.5); }
-  .atlas__mark--deck a:hover .atlas__glyph { transform: rotate(45deg) scale(1.5); }
+  .atlas__mark--diamond a:hover .atlas__glyph { transform: rotate(45deg) scale(1.5); }
   .atlas__mark a:hover .atlas__tip { opacity: 1; }
 }
 .atlas__legend {
@@ -87,8 +102,8 @@ export const homepageAtlasStyles: string = String.raw`
 }
 .atlas__legend span { display: inline-flex; align-items: center; gap: .35rem; }
 .atlas__legend i { display: inline-block; width: 7px; height: 7px; background: var(--color-text-muted); border-radius: 50%; }
-.atlas__legend .atlas__key--deck i { border-radius: 1px; transform: rotate(45deg); }
-.atlas__legend .atlas__key--project i { border-radius: 1.5px; }
+.atlas__legend .atlas__key--diamond i { border-radius: 1px; transform: rotate(45deg); }
+.atlas__legend .atlas__key--square i { border-radius: 1.5px; }
 
 .atlas__talk {
   position: relative; z-index: 1; width: calc(var(--atlas-talk) + 2rem);
@@ -180,7 +195,7 @@ export const homepageAtlasStyles: string = String.raw`
 .atlas__field[data-focused] .atlas__mark:not([data-cited]) { opacity: .45; }
 .atlas__mark[data-cited] { z-index: 3; }
 .atlas__mark[data-cited] .atlas__glyph { background: var(--color-accent); transform: scale(1.5); box-shadow: 0 0 0 3px var(--color-bg), 0 0 0 7px rgb(from var(--color-accent) r g b / .22); }
-.atlas__mark--deck[data-cited] .atlas__glyph { transform: rotate(45deg) scale(1.5); }
+.atlas__mark--diamond[data-cited] .atlas__glyph { transform: rotate(45deg) scale(1.5); }
 /* Leads from the answer’s listed sources to their marks; the script draws them on desktop only. */
 .atlas__leads { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; pointer-events: none; }
 .atlas__leads path { fill: none; stroke: var(--color-accent); stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: .1 6; }

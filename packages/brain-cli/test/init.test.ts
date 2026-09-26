@@ -250,7 +250,7 @@ describe("brain init", () => {
       scaffold(testDir, { recipe: "team" });
 
       const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
-      expect(yaml).toContain('package: "@brains/site-default"');
+      expect(yaml).toContain('package: "@brains/site-organization"');
       expect(yaml).toContain('theme: "@brains/theme-rizom"');
     });
   });

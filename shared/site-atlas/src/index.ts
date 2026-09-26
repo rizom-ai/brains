@@ -12,10 +12,13 @@ export {
   HOMEPAGE_ATLAS_SCRIPT_PATH,
 } from "./templates/homepage-atlas-script";
 export {
-  atlasEntityTypeSchema,
+  atlasCentreSchema,
+  atlasGlyphSchema,
   atlasItemSchema,
   atlasZoneSchema,
   homepageAtlasSchema,
+  type AtlasCentre,
+  type AtlasGlyph,
   type AtlasItem,
   type AtlasZone,
   type HomepageAtlasData,

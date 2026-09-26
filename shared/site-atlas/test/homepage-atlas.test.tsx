@@ -6,6 +6,7 @@ import type { HomepageOpeningContent } from "../src/schemas/homepage-opening";
 import { homepageAtlasStyles } from "../src/templates/homepage-atlas-styles";
 
 const atlas: HomepageAtlasData = {
+  centre: null,
   zones: [
     {
       id: "institutions",
@@ -19,6 +20,8 @@ const atlas: HomepageAtlasData = {
     {
       id: "hiding",
       entityType: "post",
+      glyph: "dot",
+      kindLabel: null,
       content: "",
       metadata: { slug: "hiding-in-plain-sight" },
       title: "Hiding in Plain Sight",
@@ -32,6 +35,8 @@ const atlas: HomepageAtlasData = {
     {
       id: "lefthoek",
       entityType: "project",
+      glyph: "square",
+      kindLabel: null,
       content: "",
       metadata: { slug: "lefthoek" },
       title: "Lefthoek",
@@ -45,6 +50,8 @@ const atlas: HomepageAtlasData = {
     {
       id: "offcourse",
       entityType: "project",
+      glyph: "square",
+      kindLabel: null,
       content: "",
       metadata: { slug: "offcourse" },
       title: "Offcourse",
@@ -355,5 +362,112 @@ describe("atlas with guest chat", () => {
     expect(off).not.toContain("data-atlas-fill");
     expect(off).not.toContain("data-atlas-leads");
     expect(off).not.toContain("<script");
+  });
+});
+
+describe("atlas of any kind of mark", () => {
+  const [essay] = atlas.items;
+  if (!essay) throw new Error("fixture needs an item");
+  const agents: HomepageAtlasData = {
+    zones: [],
+    centre: null,
+    items: [
+      {
+        ...essay,
+        id: "partner",
+        entityType: "agent",
+        glyph: "diamond",
+        kindLabel: "Team",
+        title: "Partner Brain",
+        year: null,
+        zoneId: null,
+        url: "/agents/partner-brain",
+        typeLabel: "Agent",
+      },
+      {
+        ...essay,
+        id: "ada",
+        entityType: "agent",
+        glyph: "dot",
+        kindLabel: "Person",
+        title: "Ada",
+        year: null,
+        zoneId: null,
+        url: "/agents/ada",
+        typeLabel: "Agent",
+      },
+    ],
+  };
+  const render = (data: HomepageAtlasData, mapLabel?: string): string =>
+    renderToStaticMarkup(
+      <HomepageAtlas
+        {...page}
+        opening={{ ...page.opening, mapCaption: null }}
+        atlas={data}
+        {...(mapLabel ? { mapLabel } : {})}
+      />,
+    );
+
+  it("shapes each mark by its glyph, not its entity type", () => {
+    const html = render(agents);
+    expect(html).toContain("atlas__mark atlas__mark--diamond");
+    expect(html).toContain("atlas__mark atlas__mark--dot");
+    expect(html).not.toContain("atlas__mark--agent");
+    expect(homepageAtlasStyles).toContain(
+      ".atlas__mark--diamond .atlas__glyph",
+    );
+    expect(homepageAtlasStyles).toContain(".atlas__mark--square .atlas__glyph");
+  });
+
+  it("names the legend and each card by kind, before the type", () => {
+    const html = render(agents);
+    expect(html).toContain('class="atlas__key--dot"');
+    expect(html).toContain('class="atlas__key--diamond"');
+    const legend = html.split('class="atlas__legend"')[1] ?? "";
+    expect(legend).toContain("Person");
+    expect(legend).toContain("Team");
+    expect(legend).not.toContain("Agent");
+    expect(html).toContain("<b>Partner Brain</b><span>Team</span>");
+  });
+
+  it("falls back to the type label where no kind is named", () => {
+    const html = render(atlas);
+    const legend = html.split('class="atlas__legend"')[1] ?? "";
+    expect(legend).toContain("Essay");
+    expect(legend).toContain("Project");
+  });
+
+  it("puts the centre in the middle of the map, named and linked when it has a page", () => {
+    const plain = render({ ...agents, centre: { name: "Rizom", url: null } });
+    expect(plain).toMatch(
+      /class="atlas__centre" style="left:50%;top:50%"><i class="atlas__centre-ring" aria-hidden="true"><\/i><span>Rizom<\/span>/,
+    );
+    const linked = render({
+      ...agents,
+      centre: { name: "Rizom", url: "/about" },
+    });
+    expect(linked).toMatch(/class="atlas__centre"[^>]*><a href="\/about">/);
+    expect(render(agents)).not.toContain('class="atlas__centre"');
+  });
+
+  it("labels the map by what it shows when nobody wrote a caption", () => {
+    expect(render(agents, "Map of the agent network")).toContain(
+      'aria-label="Map of the agent network"',
+    );
+    expect(render(atlas)).toContain('aria-label="Map of published work"');
+  });
+
+  it("leaves out the door when there is no contact form to reach", () => {
+    const html = renderToStaticMarkup(
+      <HomepageAtlas
+        {...page}
+        opening={{ ...page.opening, contactUrl: null }}
+        atlas={agents}
+      />,
+    );
+    expect(html).toContain("Building something inhabitable.");
+    expect(html).not.toContain('class="atlas__door"');
+    expect(html).not.toContain("data-atlas-door");
+    expect(html).not.toContain("Someone who carries a lot is about to leave");
   });
 });

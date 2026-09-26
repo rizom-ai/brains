@@ -683,6 +683,7 @@
         "@brains/site-content": "workspace:*",
         "@brains/site-default": "workspace:*",
         "@brains/site-info": "workspace:*",
+        "@brains/site-organization": "workspace:*",
         "@brains/site-personal": "workspace:*",
         "@brains/site-professional": "workspace:*",
         "@brains/social-media": "workspace:*",
@@ -2098,6 +2099,32 @@
         "typescript": "^7.0.2",
       },
     },
+    "sites/organization": {
+      "name": "@brains/site-organization",
+      "version": "0.2.0-alpha.418",
+      "dependencies": {
+        "@brains/agent-discovery": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/profile": "workspace:*",
+        "@brains/site-atlas": "workspace:*",
+        "@brains/site-composition": "workspace:*",
+        "@brains/templates": "workspace:*",
+        "@brains/ui-library": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "react": "^19.2.7",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "^1.4.0",
+        "@types/react": "^19.2.17",
+        "@types/react-dom": "^19.0.3",
+        "bun-types": "^1.4.0",
+        "eslint": "^10.5.0",
+        "react-dom": "^19.2.7",
+        "typescript": "^7.0.2",
+      },
+    },
     "sites/personal": {
       "name": "@brains/site-personal",
       "version": "0.2.0-alpha.418",
@@ -2418,6 +2445,8 @@
     "@brains/site-engine": ["@brains/site-engine@workspace:shared/site-engine"],
 
     "@brains/site-info": ["@brains/site-info@workspace:entities/site-info"],
+
+    "@brains/site-organization": ["@brains/site-organization@workspace:sites/organization"],
 
     "@brains/site-personal": ["@brains/site-personal@workspace:sites/personal"],
 

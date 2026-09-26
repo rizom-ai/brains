@@ -4,7 +4,7 @@ Last updated: 2026-09-26
 
 ## Status
 
-In progress on `work/organization-atlas`: slice 1 is implemented and not yet merged. Five slices, each shippable on its own; the first is a pure extraction, the second is the walking skeleton.
+In progress on `work/organization-atlas`: slices 1 and 2 are implemented and not yet merged. Five slices, each shippable on its own; the first is a pure extraction, the second is the walking skeleton.
 
 ## Goal
 
@@ -49,14 +49,14 @@ A team brain's homepage shows its approved agents around the organization, each 
 
 - Tests first:
   - `agent-discovery`: the unit placement helper for known distance and bearing pairs and the maximum-distance rule; the widget's existing position tests pass on the helper.
-  - Kit: glyph classes and the legend follow `glyph` and `kindLabel`; a `centre` renders as the centre mark; the pinned professional HTML changes only in glyph class names.
+  - Kit: glyph classes and the legend follow `glyph` and `kindLabel`; a `centre` renders as the centre mark; the pinned professional HTML changes only in glyph class names and the added centre styles.
   - Organization loader: only approved agents appear; an agent without a public entity is absent; positions equal the helper's output; no projection, or no approved agent, yields no map while the opening still renders; without `ask-content`, the opening comes from the anchor profile.
   - Organization template: marks link to `/agents/<slug>` after enrichment and carry their kind's glyph; the legend names the kinds present.
   - `brain-cli`: the `team` recipe selects `@brains/site-organization`, and the entrypoint registers it.
-- Build: the contract changes in decision 2; export `buildProximityMapData`, its context type and the placement helper from `@brains/agent-discovery/proximity-map`; create `sites/organization` with `SiteLayout`, the `/` route and a plugin with its homepage datasource and template; register the package in the CLI entrypoint and dependencies; switch the `team` recipe and `test-apps/team/brain.yaml`.
+- Build: the contract changes in decision 2; export the placement helpers from `@brains/agent-discovery/proximity-map` and `buildProximityMapData` with its context type from a separate `@brains/agent-discovery/proximity-map-data` subpath, so the pure map subpath that rizom.ai bundles stays free of the entity runtime; create `sites/organization` with `SiteLayout`, the `/` route and a plugin with its homepage datasource and template; register the package in the CLI entrypoint and dependencies; switch the `team` recipe and `test-apps/team/brain.yaml`.
 - Fixtures: add approved agents to `packages/brain-cli/eval-content/recipes/team/agent/` (people, a team and organizations) whose skill tags form two clusters. `partner-brain.io` and `old-agent.io` stay as they are.
-- Verify on the running app: `bun start:team` from `packages/brain-cli`, trigger a preview rebuild on it through MCP HTTP (`--remote`), then check `dist/site-preview`: a mark for every approved fixture, none for `old-agent.io`, and each mark links to an agent page that exists. Check desktop and phone widths in both themes.
-- Rerun the team eval cases that touch agents: `agent-approve`, `a2a-approved-peer-call`, `public-peer-call-denied`, `swot-agent-network` and `topic-relay-batch`.
+- Verify on the running app: `bun start:team` from `packages/brain-cli` builds the preview itself after the seed import; later rebuilds go through MCP HTTP (`--remote`), whose default basic mode offers only `chat` and `confirm`. Check `dist/site-preview`, served at `http://preview.localhost:8080`: a mark for every approved fixture, none for `old-agent.io`, and each mark links to an agent page that exists. Check desktop and phone widths in both themes.
+- Rerun the team eval cases that read the seeded agents: `agent-approve`, `a2a-approved-peer-call`, `public-peer-call-denied`, `topic-relay-batch`, `new-teammate-onboarding` and `team-memory-overview-list`. (`swot-agent-network` brings its own agent network and is not part of the team suite.)
 
 ### 3. Territories
 

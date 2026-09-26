@@ -16,6 +16,7 @@ import { professionalProfileSchema } from "../src/schemas";
  */
 
 const atlas: HomepageAtlasData = {
+  centre: null,
   zones: [
     {
       id: "institutions",
@@ -30,6 +31,8 @@ const atlas: HomepageAtlasData = {
     {
       id: "hiding",
       entityType: "post",
+      glyph: "dot",
+      kindLabel: null,
       content: "",
       metadata: { slug: "hiding-in-plain-sight" },
       title: "Hiding in Plain Sight",
@@ -43,6 +46,8 @@ const atlas: HomepageAtlasData = {
     {
       id: "living",
       entityType: "deck",
+      glyph: "diamond",
+      kindLabel: null,
       content: "",
       metadata: { slug: "organizations-as-living-systems" },
       title: "Organizations as Living Systems",
@@ -56,6 +61,8 @@ const atlas: HomepageAtlasData = {
     {
       id: "lefthoek",
       entityType: "project",
+      glyph: "square",
+      kindLabel: null,
       content: "",
       metadata: { slug: "lefthoek" },
       title: "Lefthoek",
@@ -69,6 +76,8 @@ const atlas: HomepageAtlasData = {
     {
       id: "offcourse",
       entityType: "project",
+      glyph: "square",
+      kindLabel: null,
       content: "",
       metadata: { slug: "offcourse" },
       title: "Offcourse",
