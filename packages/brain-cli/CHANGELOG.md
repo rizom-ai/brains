@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.418
+
+### Patch Changes
+
+- [#371](https://github.com/rizom-ai/brains/pull/371) [`2884fca`](https://github.com/rizom-ai/brains/commit/2884fca8d6d7c9144626e677e7a506975162cf66) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio now has an admin-only **Guest chat** workspace wherever guest chat keeps a usage record. It shows what the public endpoint did — questions, measured cost, unknown-cost and unresolved counts for today and this month, a meter of questions and reserved cost against the allowance (measured cost never returns allowance), recording health and retention, recent questions, refusals by reason with their detailed and counted coverage, and the most active visitors within the retained window — with the switch beside the numbers. Opening guest chat asks for a prepared confirmation that states what the allowance still permits; closing it is one step and stops admissions at once. A recorded question can be saved as a note through its own confirmed action: web-chat sends it to the note plugin over the new `note:capture` message (`@brains/contracts`), and the note plugin keeps such notes restricted to the owner.
+
 ## 0.2.0-alpha.417
 
 ### Patch Changes

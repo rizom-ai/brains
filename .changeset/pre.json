@@ -355,6 +355,7 @@
     "core--git-execution-broker-recovery-fixes",
     "core--git-execution-broker",
     "core--guest-admission-uncertain-signal",
+    "core--guest-chat-monitor",
     "core--guest-elapsed-deadline",
     "core--guest-recording-disclosure",
     "core--guest-turn-settlement",
