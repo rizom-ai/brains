@@ -7,6 +7,10 @@ import type {
 } from "@brains/plugins";
 import { CallbackProgressReporter } from "@brains/utils/progress";
 import { NotificationsPlugin } from "@brains/notifications";
+import {
+  SITE_METADATA_GET_CHANNEL,
+  SITE_METADATA_UPDATED_CHANNEL,
+} from "@brains/site-composition";
 import { ContactPlugin, contactPlugin, contactRequestSchema } from "../src";
 import {
   contactPluginConfigSchema,
@@ -197,6 +201,39 @@ describe("contact runtime", () => {
       )?.status,
     ).toBe(503);
   });
+  it("opens the form in the site's own theme and follows changes to it", async () => {
+    const f = await setup();
+    const bus = f.shell.getMessageBus();
+    const site = { title: "Brain", description: "A site" };
+    bus.subscribe(SITE_METADATA_GET_CHANNEL, async () => ({
+      success: true,
+      data: { ...site, themeMode: "light" },
+    }));
+    await f.plugin.ready();
+    const get = f.plugin
+      .getWebRoutes()
+      .find((route) => route.path === "/contact" && route.method === "GET");
+    if (!get) throw new Error("Missing form route");
+    const theme = async (): Promise<string | undefined> =>
+      /<html lang="en" data-theme="(\w+)">/.exec(
+        await (
+          await get.handler(new Request(`${origin}/contact`), {
+            remoteAddress: peer,
+          })
+        ).text(),
+      )?.[1];
+
+    expect(await theme()).toBe("light");
+    await bus.send({
+      type: SITE_METADATA_UPDATED_CHANNEL,
+      payload: { ...site, themeMode: "dark" },
+      sender: "site-info",
+      broadcast: true,
+    });
+    expect(await theme()).toBe("dark");
+    await f.plugin.shutdown();
+  });
+
   it("serves the deployment's preview host when preview is on", async () => {
     const f = await setup();
     await f.plugin.ready();

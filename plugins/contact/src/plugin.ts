@@ -10,6 +10,10 @@ import {
   type SendNotificationInput,
   type SendNotificationResult,
 } from "@brains/contracts";
+import {
+  SITE_METADATA_GET_CHANNEL,
+  SITE_METADATA_UPDATED_CHANNEL,
+} from "@brains/site-composition";
 import { z } from "@brains/utils/zod";
 import packageJson from "../package.json";
 import { ContactInboxSource } from "./inbox-source";
@@ -32,6 +36,10 @@ const maintenanceStatusSchema = z.strictObject({
   failed: z.boolean(),
 });
 type MaintenanceStatus = z.output<typeof maintenanceStatusSchema>;
+/** Only the theme is read from the site's metadata. */
+const siteThemeSchema = z.looseObject({
+  themeMode: z.enum(["light", "dark"]).optional(),
+});
 
 /** Default-off public intake. Runtime policy is explicit; readiness requires
  * recovery and the actual Studio Inbox destination, not a successful email send.
@@ -46,6 +54,7 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
   private maintenanceStatus: IRuntimeStateStore<MaintenanceStatus> | undefined;
   private report: ContactMaintenanceReport | undefined;
   private readyState = false;
+  private siteTheme: "light" | "dark" | undefined;
   private readonly unregister: Array<() => void> = [];
 
   constructor(config: ContactPluginConfig = {}) {
@@ -139,7 +148,17 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
       // Preview reachability serves the deployment's own preview host too.
       previewOrigin: config.preview ? context.previewUrl : undefined,
       owner: (): string => context.identity.getProfile().name,
+      defaultTheme: (): "light" | "dark" | undefined => this.siteTheme,
     });
+    if (!context.executionOnly)
+      context.messaging.subscribe<unknown, { success: boolean }>(
+        SITE_METADATA_UPDATED_CHANNEL,
+        async (message) => {
+          this.siteTheme = siteThemeSchema.safeParse(message.payload).data
+            ?.themeMode;
+          return { success: true };
+        },
+      );
     context.endpoints.register({
       label: "Contact",
       url: `${config.http.origin}/contact`,
@@ -200,9 +219,25 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
               `${config.http.origin}${route.fullPath}/unified-inbox%3Ainbox`,
         );
     if (!destinationMounted) throw new Error("Contact Inbox unavailable");
+    await this.readSiteTheme(context);
     await this.maintain(this.stop.signal);
     this.stop.signal.throwIfAborted();
     this.readyState = true;
+  }
+
+  /** The form opens in the site's own theme when a link names none. */
+  private async readSiteTheme(context: ServicePluginContext): Promise<void> {
+    try {
+      const response = await context.messaging.send({
+        type: SITE_METADATA_GET_CHANNEL,
+        payload: undefined,
+      });
+      if ("success" in response && response.success)
+        this.siteTheme = siteThemeSchema.safeParse(response.data).data
+          ?.themeMode;
+    } catch {
+      // No site describes a theme; the page keeps its own default.
+    }
   }
 
   private maintain(signal: AbortSignal): Promise<void> {
