@@ -33,6 +33,7 @@ import { GuestAdmission } from "./guest-admission";
 import {
   GuestUsageRecord,
   type GuestUsageDenialReason,
+  type GuestUsageHealth,
 } from "./guest-usage-record";
 
 /** The route's own refusal of a question, by its status; never its body. */
@@ -163,9 +164,21 @@ export class GuestHttpHandlers {
       : undefined;
   }
 
-  /** Writes counted denials; run by the guest maintenance daemon. */
+  /** Writes counted denials and removes what retention allows; run by guest maintenance. */
   async maintainUsage(): Promise<void> {
-    await this.usage?.flush();
+    if (!this.usage) return;
+    // Neither may starve the other.
+    const results = await Promise.allSettled([
+      this.usage.flush(),
+      this.usage.cleanup(),
+    ]);
+    if (results.some((result) => result.status === "rejected"))
+      throw new Error("Guest usage maintenance unavailable");
+  }
+
+  /** The usage record's bounded health; absent while guest access is off. */
+  async usageHealth(): Promise<GuestUsageHealth | undefined> {
+    return this.usage?.health();
   }
 
   routes(apiPath: string): WebRouteDefinition[] {

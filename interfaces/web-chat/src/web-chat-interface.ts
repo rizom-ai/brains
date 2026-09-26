@@ -214,6 +214,19 @@ export class WebChatInterface extends MessageInterfacePlugin<
             context.agent.guestProfileAvailable === true),
       },
     );
+    // The owner sees whether the guest usage record is recording, full or failing.
+    if ((managedPolicy ?? this.guestPolicy).enabled) {
+      const guestHttp = this.guestHttp;
+      context.operationalHealth.register("guest-usage-record", async () => {
+        const health = await guestHttp.usageHealth();
+        return (
+          health ?? {
+            status: "healthy",
+            message: "Guest access is off; nothing is recorded.",
+          }
+        );
+      });
+    }
     // Site builds may run in a separate worker, where interfaces are not
     // registered: record where this deployment serves the Ask box boot.
     this.askBoxAvailability = context.runtimeState.scoped({

@@ -33,10 +33,27 @@ const ledgerSchema = z.strictObject({
   salt: digestSchema,
   places: z.record(
     digestSchema,
-    z.strictObject({ openedAt: millis, retainUntil: millis }),
+    z.strictObject({
+      openedAt: millis,
+      retainUntil: millis,
+      /** UTF-8 bytes of question text this record keeps. */
+      bytes: z.number().int().nonnegative().optional(),
+    }),
   ),
 });
 type Ledger = z.output<typeof ledgerSchema>;
+
+const storedBytes = (ledger: Ledger | null): number =>
+  Object.values(ledger?.places ?? {}).reduce(
+    (total, place) => total + (place.bytes ?? 0),
+    0,
+  );
+
+export interface GuestUsageHealth {
+  status: "healthy" | "degraded" | "unhealthy";
+  message: string;
+  details?: Record<string, number>;
+}
 
 export const guestUsageStateSchema: z.ZodEnum<{
   pending: "pending";
@@ -217,6 +234,8 @@ export class GuestUsageRecord {
   private readonly bounds: GuestUsageBounds;
   private readonly now: () => number;
   /** Counted denials not yet written, by day and reason; flushed on maintenance. */
+  /** Set by a write that failed, cleared by one that succeeded; health reads it. */
+  private failing = false;
   private readonly pending = new Map<
     string,
     Map<GuestUsageDenialReason, number>
@@ -293,11 +312,7 @@ export class GuestUsageRecord {
         async () => {
           const current = await ledger.get(LEDGER_KEY);
           if (current?.places[id]) return "exists";
-          if (
-            current &&
-            Object.keys(current.places).length >= this.bounds.maxRecords
-          )
-            return "full";
+          if (current && this.isFull(current)) return "full";
           const next: Ledger = {
             version: 1,
             salt: current?.salt ?? randomBytes(32).toString("hex"),
@@ -313,6 +328,7 @@ export class GuestUsageRecord {
         },
         () => "unavailable",
       );
+      if (opening === "unavailable") this.failing = true;
       if (opening !== "opened") return opening;
       await this.events().set(id, {
         version: 1,
@@ -321,12 +337,23 @@ export class GuestUsageRecord {
         retainUntil,
         state: "pending",
       });
+      this.failing = false;
       return "opened";
     } catch {
       // An unwritable record admits nothing; retention reclaims a place whose
       // event was never written.
+      this.failing = true;
       return "unavailable";
     }
+  }
+
+  /** No place left, or no room for one more question at its largest. */
+  private isFull(ledger: Ledger): boolean {
+    return (
+      Object.keys(ledger.places).length >= this.bounds.maxRecords ||
+      storedBytes(ledger) + this.bounds.questionBytes >
+        this.bounds.maxStoredBytes
+    );
   }
 
   /** The admission ledger granted the request: it is now unresolved until settled. */
@@ -340,10 +367,36 @@ export class GuestUsageRecord {
     },
   ): Promise<boolean> {
     try {
-      const ledger = await this.ledger().get(LEDGER_KEY);
+      const ledgers = this.ledger();
+      const ledger = await ledgers.get(LEDGER_KEY);
       if (!ledger) return false;
+      const question = this.question(admitted.question);
+      const bytes = new TextEncoder().encode(
+        question.question ?? "",
+      ).byteLength;
+      // The kept text is counted against storage before it is written.
+      const counted = await attempt(
+        ATTEMPTS,
+        async () => {
+          const current = await ledgers.get(LEDGER_KEY);
+          const place = current?.places[id];
+          if (!current || !place) return false;
+          if (place.bytes === bytes) return true;
+          return (await ledgers.compareAndSet(LEDGER_KEY, current, {
+            ...current,
+            places: { ...current.places, [id]: { ...place, bytes } },
+          }))
+            ? true
+            : retry;
+        },
+        () => false,
+      );
+      if (!counted) {
+        this.failing = true;
+        return false;
+      }
       const events = this.events();
-      return await attempt(
+      const admittedNow = await attempt(
         ATTEMPTS,
         async () => {
           const current = await events.get(id);
@@ -354,15 +407,18 @@ export class GuestUsageRecord {
             state: "unresolved",
             visitor: digest(ledger.salt, admitted.visitorId),
             reservedMicroUsd: admitted.reservedMicroUsd,
-            ...this.question(admitted.question),
+            ...question,
           }))
             ? true
             : retry;
         },
         () => false,
       );
+      this.failing = !admittedNow;
+      return admittedNow;
     } catch {
       // Without an admission record the request must not run; the caller denies.
+      this.failing = true;
       return false;
     }
   }
@@ -575,6 +631,118 @@ export class GuestUsageRecord {
     return rows
       .map(({ value }) => ({ day: value.day, counts: value.counts }))
       .sort((a, b) => b.day.localeCompare(a.day));
+  }
+
+  /**
+   * Removes records, denials and daily counts past their own retention. It
+   * touches only this record: admission accounting and unresolved
+   * reservations are separate state, and nothing here restores credit.
+   */
+  async cleanup(): Promise<void> {
+    const now = this.now();
+    try {
+      await this.expire(this.ledger(), this.events(), now);
+      await this.expire(this.denialLedger(), this.denialEvents(), now);
+      const cutoff = new Date(now - this.bounds.retentionSeconds * 1000)
+        .toISOString()
+        .slice(0, 10);
+      const rows = this.denialCountRows();
+      const days = await rows.list({ limit: 1000 });
+      await Promise.all(
+        days
+          .filter(({ value }) => value.day < cutoff)
+          .map(({ key }) => rows.delete(key)),
+      );
+    } catch {
+      // Reported through health; the next maintenance tick tries again.
+      this.failing = true;
+      throw new Error("Guest usage cleanup unavailable");
+    }
+  }
+
+  private async expire<
+    L extends { places: Record<string, { retainUntil: number }> },
+    E,
+  >(
+    ledgers: IRuntimeStateStore<L>,
+    events: IRuntimeStateStore<E>,
+    now: number,
+  ): Promise<void> {
+    const ledger = await ledgers.get(LEDGER_KEY);
+    if (!ledger) return;
+    const expired = Object.entries(ledger.places)
+      .filter(([, place]) => place.retainUntil <= now)
+      .map(([id]) => id);
+    if (expired.length === 0) return;
+    await Promise.all(expired.map((id) => events.delete(id)));
+    await attempt(
+      ATTEMPTS,
+      async () => {
+        const current = await ledgers.get(LEDGER_KEY);
+        if (!current) return undefined;
+        const places = Object.fromEntries(
+          Object.entries(current.places).filter(
+            ([id]) => !expired.includes(id),
+          ),
+        );
+        return (await ledgers.compareAndSet(LEDGER_KEY, current, {
+          ...current,
+          places,
+        }))
+          ? undefined
+          : retry;
+      },
+      () => {
+        throw new Error("Guest usage cleanup contended");
+      },
+    );
+  }
+
+  /** Bounded, sanitized health: counts only, never text or storage errors. */
+  async health(): Promise<GuestUsageHealth> {
+    try {
+      const ledger = await this.ledger().get(LEDGER_KEY);
+      const denials = await this.denialLedger().get(LEDGER_KEY);
+      const uncounted = [...this.pending.values()].reduce(
+        (total, reasons) =>
+          total + [...reasons.values()].reduce((sum, n) => sum + n, 0),
+        0,
+      );
+      const details = {
+        records: Object.keys(ledger?.places ?? {}).length,
+        maxRecords: this.bounds.maxRecords,
+        storedBytes: storedBytes(ledger),
+        maxStoredBytes: this.bounds.maxStoredBytes,
+        denials: Object.keys(denials?.places ?? {}).length,
+        maxDenialRecords: this.bounds.maxDenialRecords,
+        uncountedDenials: uncounted,
+      };
+      if (this.failing)
+        return {
+          status: "unhealthy",
+          message:
+            "Guest usage record writes are failing; new guest questions are refused.",
+          details,
+        };
+      if (ledger && this.isFull(ledger))
+        return {
+          status: "degraded",
+          message:
+            "Guest usage record is full; new guest questions are refused until retention frees room.",
+          details,
+        };
+      return {
+        status: "healthy",
+        message: "Guest usage record is recording.",
+        details,
+      };
+    } catch {
+      // Storage errors can carry recorded values; report the outage only.
+      return {
+        status: "unhealthy",
+        message: "Guest usage record unavailable.",
+      };
+    }
   }
 
   /** The newest records first, at most `limit`. */

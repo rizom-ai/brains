@@ -99,6 +99,7 @@ export const guestUsageBoundsSchema: Strict<{
   maxDenialRecords: z.ZodNumber;
   retentionSeconds: z.ZodNumber;
   questionBytes: z.ZodNumber;
+  maxStoredBytes: z.ZodNumber;
 }> = z.strictObject({
   maxRecords: positiveInteger.max(10_000),
   /** Detailed denials kept; beyond this, only daily counts by reason. */
@@ -106,6 +107,8 @@ export const guestUsageBoundsSchema: Strict<{
   retentionSeconds: positiveInteger.max(366 * 86_400),
   /** UTF-8 bytes of a question kept; longer questions are cut and marked. */
   questionBytes: positiveInteger.max(65_536),
+  /** Total question text kept; a request that could exceed it is refused. */
+  maxStoredBytes: positiveInteger.max(64 * 1024 * 1024),
 });
 export type GuestUsageBounds = z.output<typeof guestUsageBoundsSchema>;
 
