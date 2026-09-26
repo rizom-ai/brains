@@ -20,6 +20,11 @@ import { deferred } from "@brains/utils/deferred";
 import { WebChatInterface } from "../src/web-chat-interface";
 import { resolveGuestPreset } from "../src/guest-preset";
 import { testGuestPolicy } from "./fixtures/guest-policy";
+import {
+  GuestUsageRecord,
+  type GuestUsageBounds,
+  type GuestUsageEvent,
+} from "../src/guest-usage-record";
 
 type Conversation = NonNullable<
   Awaited<ReturnType<IConversationService["getConversation"]>>
@@ -47,6 +52,8 @@ interface Fixture {
   sourceCards: Extract<ChatCard, { kind: "sources" }>[];
   readMessages: (() => Promise<void>) | undefined;
   browser: () => Browser;
+  /** The owner's usage record, as a Studio reader would see it. */
+  records: () => Promise<GuestUsageEvent[]>;
 }
 async function setup(
   options: {
@@ -59,6 +66,7 @@ async function setup(
     managed?: boolean;
     idleSeconds?: number;
     peerAddress?: string | null;
+    usageRecord?: GuestUsageBounds;
   } = {},
 ): Promise<Fixture> {
   const deploymentOrigin = options.origin ?? origin;
@@ -78,6 +86,12 @@ async function setup(
     browser: (): Browser => {
       throw new Error("Not installed");
     },
+    records: async (): Promise<GuestUsageEvent[]> =>
+      new GuestUsageRecord(
+        harness.getMockShell().getRuntimeState(),
+        testGuestPolicy.usageRecord,
+        () => state.now,
+      ).list(1000),
   };
   harness.getMockShell().setConversationService({
     startConversation: async (request): Promise<string> => {
@@ -178,6 +192,8 @@ async function setup(
                   : {
                       ...testGuestPolicy,
                       origin: deploymentOrigin,
+                      usageRecord:
+                        options.usageRecord ?? testGuestPolicy.usageRecord,
                       limits: {
                         ...testGuestPolicy.limits,
                         streamIdleTimeoutSeconds:
@@ -1258,5 +1274,61 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     expect((await post(browser, message("No", id))).status).toBe(503);
     expect(await browser.client.getMessages(id)).toHaveLength(2);
     expect(await browser.client.deleteSession(id)).toEqual({ deleted: true });
+  });
+});
+
+describe("guest usage record over HTTP", () => {
+  it("records an admitted question as unresolved before running it, then its outcome", async () => {
+    const state = await setup();
+    const browser = state.browser();
+    await browser.client.openGuestSession();
+    let during: GuestUsageEvent[] = [];
+    state.reply = async (): Promise<string> => {
+      during = await state.records();
+      return "Mock public-source answer";
+    };
+    await events(await browser.client.streamMessages(message()));
+    expect(during.map((event) => event.state)).toEqual(["unresolved"]);
+    expect(during[0]?.reservedMicroUsd).toBe(100_000);
+    const [after] = await state.records();
+    expect(after?.state).toBe("completed");
+    expect(after?.settledAt).toBe(state.now);
+  });
+
+  it("keeps a turn that fails or never returns unresolved", async () => {
+    const state = await setup();
+    const browser = state.browser();
+    await browser.client.openGuestSession();
+    state.reply = async (): Promise<never> => {
+      throw new Error("private-provider-detail");
+    };
+    await events(await browser.client.streamMessages(message()));
+    const records = await state.records();
+    expect(records.map((event) => event.state)).toEqual(["unresolved"]);
+    expect(JSON.stringify(records)).not.toContain("private-provider-detail");
+  });
+
+  it("refuses new work when the record is full, without running it or spending allowance", async () => {
+    const state = await setup({
+      usageRecord: { maxRecords: 1, retentionSeconds: 604800 },
+    });
+    const browser = state.browser();
+    await browser.client.openGuestSession();
+    await events(await browser.client.streamMessages(message()));
+    const refused = await post(browser, message("Another question"));
+    expect(refused.status).toBe(503);
+    expect(await refused.json()).toEqual({ error: "unavailable" });
+    expect(state.calls).toHaveLength(1);
+    expect(await state.records()).toHaveLength(1);
+  });
+
+  it("adds no record for a retried submission", async () => {
+    const state = await setup();
+    const browser = state.browser();
+    await browser.client.openGuestSession();
+    const request = message();
+    await events(await post(browser, request));
+    expect((await post(browser, request)).status).toBe(409);
+    expect(await state.records()).toHaveLength(1);
   });
 });

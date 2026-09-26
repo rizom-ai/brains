@@ -29,6 +29,7 @@ export const testGuestPolicy: EnabledGuestPolicy = {
   },
   retention: { idleSeconds: 86400, maxAgeSeconds: 604800 },
   budget: { dailyUsd: 10, maxTurnUsd: 0.1 },
+  usageRecord: { maxRecords: 100, retentionSeconds: 604800 },
   disclosure: {
     provider: "Test provider",
     notice:

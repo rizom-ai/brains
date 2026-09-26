@@ -30,6 +30,7 @@ import {
   type GuestVisitor,
 } from "./guest-access";
 import { GuestAdmission } from "./guest-admission";
+import { GuestUsageRecord } from "./guest-usage-record";
 import {
   guestPolicySchema,
   matchesGuestOrigin,
@@ -85,6 +86,7 @@ export class GuestHttpHandlers {
   private readonly policy: GuestPolicy;
   private readonly visitors: GuestVisitorStore;
   private readonly admission: GuestAdmission | undefined;
+  private readonly usage: GuestUsageRecord | undefined;
   private readonly now: () => number;
   private readonly ready: () => boolean;
   private readonly services: Services;
@@ -112,6 +114,13 @@ export class GuestHttpHandlers {
           isEnabled: this.ready,
           requireAuthorization: this.requireAuthorization,
         })
+      : undefined;
+    this.usage = this.policy.enabled
+      ? new GuestUsageRecord(
+          services.runtimeState,
+          this.policy.usageRecord,
+          this.now,
+        )
       : undefined;
   }
 
@@ -256,7 +265,7 @@ export class GuestHttpHandlers {
     request: Request,
     policy: EnabledGuestPolicy,
   ): Promise<Response> {
-    if (!this.ready() || !this.admission)
+    if (!this.ready() || !this.admission || !this.usage)
       throw new GuestHttpError(503, "Guest access unavailable");
     const visitor = await this.owner(request);
     const parsed = guestChatMessageRequestSchema.safeParse(
@@ -292,6 +301,18 @@ export class GuestHttpHandlers {
         guest: { visitorId: visitor.id, retention: policy.retention },
       },
     };
+    // The owner's record takes this request's place before admission is asked:
+    // work nobody can see is refused, without spending allowance.
+    const usage = this.usage;
+    const usageId = GuestUsageRecord.id(
+      policy.origin,
+      visitor.id,
+      candidate.id,
+      message.id,
+    );
+    const opening = await usage.open(usageId);
+    if (opening === "full" || opening === "unavailable")
+      return Response.json({ error: "unavailable" }, { status: 503 });
     // A new conversation consumes a real admission reservation before any write.
     const reservation = await this.admission.reserve(
       visitor,
@@ -299,6 +320,8 @@ export class GuestHttpHandlers {
       message.id,
       text,
     );
+    if (reservation.kind !== "reserved" && opening === "opened")
+      await usage.withdraw(usageId);
     if (reservation.kind === "denied") {
       const status =
         reservation.reason === "unavailable"
@@ -320,6 +343,16 @@ export class GuestHttpHandlers {
         }),
         { status: 409, headers: { [CHAT_CONVERSATION_ID_HEADER]: id } },
       );
+    if (
+      !(await usage.admit(usageId, {
+        visitorId: visitor.id,
+        reservedMicroUsd: reservation.lease.execution.maxCostMicroUsd,
+      }))
+    ) {
+      // Unrecorded work never runs. Nothing ran, so the reservation settles as failed.
+      await this.admission.settle(reservation.lease, "failed");
+      return Response.json({ error: "unavailable" }, { status: 503 });
+    }
     if (!existing)
       await this.services.conversations.start({
         sessionId: id,
@@ -372,6 +405,12 @@ export class GuestHttpHandlers {
               signal,
             );
             const hasAnswer = response.text.trim().length > 0;
+            // The owner's record first: if it cannot be written, the request
+            // stays unresolved and its reservation held.
+            if (
+              !(await usage.settle(usageId, hasAnswer ? "completed" : "failed"))
+            )
+              throw new Error("Guest settlement unavailable");
             if (
               !(await admission.settle(
                 reservation.lease,

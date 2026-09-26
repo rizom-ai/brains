@@ -56,6 +56,7 @@ export function createDefaultGuestPolicy(origin: string): GuestPolicy {
     },
     retention: { idleSeconds: 3600, maxAgeSeconds: 3600 },
     budget: { dailyUsd: 4, maxTurnUsd: 2 },
+    usageRecord: { maxRecords: 1000, retentionSeconds: 30 * 86_400 },
     disclosure: {
       provider: "OpenAI (gpt-5.6-luna)",
       notice:
