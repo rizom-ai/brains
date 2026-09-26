@@ -18,6 +18,7 @@ import { ContactIntake, type ContactMaintenanceReport } from "./intake";
 import { ContactHttpHandlers } from "./http";
 import { ContactDelivery } from "./delivery";
 import { ContactStorageSlots } from "./storage-slots";
+import { contactRequestSchema } from "./entity/schema";
 import { contactPluginConfigSchema, type ContactPluginConfig } from "./config";
 
 const notificationJobSchema = z.strictObject({
@@ -159,7 +160,9 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
     );
     if (!context.executionOnly)
       this.unregister.push(
-        context.operationalHealth.register("intake", () => this.health()),
+        context.operationalHealth.register("intake", () =>
+          this.health(context.entityService),
+        ),
       );
   }
 
@@ -257,7 +260,9 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
     }
   }
 
-  private async health(): Promise<Omit<RuntimeHealthCheck, "name">> {
+  private async health(
+    entities: ServicePluginContext["entityService"],
+  ): Promise<Omit<RuntimeHealthCheck, "name">> {
     try {
       if (!this.slots || !(await this.maintenanceFresh()))
         return {
@@ -269,23 +274,28 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
       const pending = slots.filter(
         ([, slot]) => slot.delivery.status === "pending",
       ).length;
-      const failed = slots.filter(
-        ([, slot]) => slot.delivery.status === "failed",
-      ).length;
+      const failed = slots
+        .filter(([, slot]) => slot.delivery.status === "failed")
+        .map(([id]) => id);
+      const failedUnhandled = await this.unhandled(entities, failed);
       const unconfirmed = slots.filter(
         ([, slot]) => slot.phase === "writing",
       ).length;
       return {
         status:
-          pending || failed || unconfirmed || this.report?.enqueueFailures
+          pending ||
+          failedUnhandled ||
+          unconfirmed ||
+          this.report?.enqueueFailures
             ? "degraded"
             : "healthy",
         message:
-          "Contact operational counts; notification failure can include an unconfirmed provider outcome.",
+          "Contact operational counts. A failed alert counts until its request is marked Done in the Inbox; failure can include an unconfirmed provider outcome.",
         details: {
           records: slots.length,
           pending,
-          failed,
+          failed: failed.length,
+          failedUnhandled,
           unconfirmed,
           lastMaintenanceAt: (await this.maintenanceStatus?.get("status"))?.at,
           ...this.report,
@@ -298,6 +308,24 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
         message: "Contact operational state unavailable.",
       };
     }
+  }
+
+  /** Failed alerts whose request still waits in the Inbox. Marking it Done
+   * acknowledges the failure: the owner has seen what the alert was for. */
+  private async unhandled(
+    entities: ServicePluginContext["entityService"],
+    failed: string[],
+  ): Promise<number> {
+    const waiting = await Promise.all(
+      failed.map(async (id) => {
+        const request = await entities.getEntity(
+          { entityType: "contact-request", id, visibilityScope: "restricted" },
+          contactRequestSchema,
+        );
+        return request?.metadata.status === "new";
+      }),
+    );
+    return waiting.filter(Boolean).length;
   }
 
   protected override async onShutdown(): Promise<void> {
