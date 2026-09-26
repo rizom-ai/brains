@@ -57,7 +57,7 @@ They are scaffolded from `@rizom/ops`, then versioned in this repo like any othe
 
 ## Verified pre-deploy rollback snapshots
 
-Deploy creates and verifies one target-scoped rollback snapshot after SSH and image readiness, immediately before optional stale-lock release and `kamal setup`. A snapshot failure stops the workflow before container replacement. A genuinely new server with no runtime or persistent state reports `not applicable`; persistent state without an identifiable runtime fails closed.
+Deploy creates and verifies one target-scoped rollback snapshot after SSH and image readiness, immediately before optional stale-lock release and `kamal setup`. A snapshot failure stops the workflow before container replacement. The current runtime must be ready with an idle job queue; degradation a plugin reports is named in the log and backed up, not refused, because a deploy is often its fix. A genuinely new server with no runtime or persistent state reports `not applicable`; persistent state without an identifiable runtime fails closed.
 
 Each snapshot contains transaction-consistent online captures of the six canonical SQLite databases, database hashes and `quick_check` results, the deployed `brain.yaml`, sanitized container and mount metadata, and the Directory Sync checkout. Git capture includes all refs, an observed remote head, staged and unstaged binary patches, and mode-preserving archives of untracked and ignored files. Capture performs no checkout mutation or remote write.
 
