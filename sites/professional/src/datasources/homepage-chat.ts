@@ -20,7 +20,7 @@ export async function homepageChatAvailable(
     const record = await runtime.interfaceAvailability.get(
       ASK_BOX_AVAILABILITY_OWNER,
     );
-    return record !== null && record.public && (!preview || record.preview);
+    return record !== null && (preview ? record.preview : record.public);
   } catch {
     // An unreadable record cannot show that Web Chat serves the box; keep the door only.
     return false;
