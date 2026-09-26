@@ -1,0 +1,976 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`professional homepage pin renders the atlas homepage 1`] = `
+"<section style="--atlas-fill:0.912" class="atlas" data-atlas="" aria-label="Introduction"><style>
+.atlas {
+  --atlas-contour: var(--color-text);
+  --atlas-talk: min(40rem, 46%);
+  position: relative; isolation: isolate; overflow: hidden;
+  display: flex; align-items: stretch;
+  min-height: calc(100svh - 4.5rem);
+  background: var(--color-bg); border-bottom: 1px solid var(--color-rule);
+}
+[data-theme="dark"] .atlas { --atlas-contour: var(--color-accent); }
+.atlas__map { position: absolute; inset: 0 0 0 var(--atlas-talk); }
+.atlas__field { position: absolute; inset: 0; }
+.atlas__terrain {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  /* The field is cut at the map box; fade the rings out before they reach it. */
+  mask-image: linear-gradient(90deg, transparent, #000 9%, #000 93%, transparent), linear-gradient(180deg, transparent, #000 8%, #000 92%, transparent);
+  mask-composite: intersect;
+}
+.atlas__contour {
+  fill: none; stroke: var(--atlas-contour); stroke-width: .7;
+  stroke-linejoin: round; vector-effect: non-scaling-stroke;
+}
+.atlas__contour--index { stroke-width: 1.2; }
+/* Drift in fine steps (~5 a second, each a fraction of a pixel): the same motion without repainting every frame. */
+.atlas__contour { animation: atlas-drift 34s steps(170) infinite alternate; }
+[data-atlas][data-still] .atlas__contour { animation-play-state: paused; }
+@keyframes atlas-drift {
+  from { transform: translate(-.6px, .45px); }
+  to { transform: translate(.6px, -.45px); }
+}
+.atlas__zone {
+  position: absolute; transform: translate(-50%, -100%); white-space: nowrap; pointer-events: none;
+  font-family: var(--font-heading); font-style: italic; font-size: 1rem; letter-spacing: .03em;
+  font-variation-settings: "SOFT" 60, "opsz" 24; color: var(--color-text-muted);
+  text-shadow: 0 0 .5rem var(--color-bg), 0 0 .2rem var(--color-bg);
+  /* Set by the script from the name's measured box. */
+  translate: var(--atlas-name-shift, 0 0);
+}
+.atlas__marks { list-style: none; margin: 0; padding: 0; }
+.atlas__mark { position: absolute; transform: translate(-50%, -50%); }
+.atlas__mark > a, .atlas__mark > span:first-child {
+  display: grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 50%; color: inherit;
+}
+.atlas__glyph {
+  display: block; width: 7px; height: 7px; border-radius: 50%; background: var(--color-text);
+  box-shadow: 0 0 0 3px var(--color-bg); transition: transform .25s, background-color .25s;
+}
+.atlas__mark--deck .atlas__glyph { border-radius: 1px; transform: rotate(45deg); }
+.atlas__mark--project .atlas__glyph { width: 8px; height: 8px; border-radius: 1.5px; }
+.atlas__mark a:focus-visible .atlas__glyph { background: var(--color-accent); transform: scale(1.5); }
+.atlas__mark--deck a:focus-visible .atlas__glyph { transform: rotate(45deg) scale(1.5); }
+.atlas__mark a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.atlas__tip {
+  position: absolute; z-index: 2; bottom: calc(100% + .3rem); left: 50%; transform: translateX(-50%);
+  width: max-content; max-width: 16rem; padding: .45rem .65rem .5rem; text-align: left;
+  border-radius: .5rem; background: var(--color-bg-subtle); border: 1px solid var(--color-border);
+  box-shadow: 0 12px 30px -16px rgb(from var(--color-text) r g b / .5);
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.atlas__mark--west .atlas__tip { left: auto; right: 50%; transform: none; }
+.atlas__mark--east .atlas__tip { left: 50%; transform: none; }
+/* A transformed mark is its own stacking context: lift the active one over its neighbours. */
+.atlas__mark:focus-within, .atlas__mark[data-open] { z-index: 3; }
+.atlas__mark[data-open] .atlas__tip { opacity: 1; }
+.atlas__mark[data-open] .atlas__glyph { background: var(--color-accent); transform: scale(1.5); }
+.atlas__mark--deck[data-open] .atlas__glyph { transform: rotate(45deg) scale(1.5); }
+.atlas__tip b { display: block; font-family: var(--font-heading); font-weight: 500; font-size: .98rem; line-height: 1.2; color: var(--color-heading); }
+.atlas__tip span { font-size: .78rem; color: var(--color-text-light); }
+.atlas__tip em {
+  display: block; margin-top: .1rem; font-family: var(--font-heading); font-size: .82rem; letter-spacing: .02em;
+  font-variation-settings: "SOFT" 60, "opsz" 24; color: var(--color-text-muted);
+}
+.atlas__mark a:focus-visible .atlas__tip { opacity: 1; }
+/* Touch browsers leave hover stuck on the tapped element; there the script opens cards instead. */
+@media (hover: hover) {
+  .atlas__mark:hover { z-index: 3; }
+  .atlas__mark a:hover .atlas__glyph { background: var(--color-accent); transform: scale(1.5); }
+  .atlas__mark--deck a:hover .atlas__glyph { transform: rotate(45deg) scale(1.5); }
+  .atlas__mark a:hover .atlas__tip { opacity: 1; }
+}
+.atlas__legend {
+  position: absolute; right: clamp(1rem, 3vw, 3rem); bottom: 1.1rem; margin: 0;
+  display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1.1rem; padding: .4rem .85rem;
+  border-radius: 999px; background: rgb(from var(--color-bg) r g b / .72); backdrop-filter: blur(6px);
+  font-size: .85rem; color: var(--color-text-light);
+}
+.atlas__legend span { display: inline-flex; align-items: center; gap: .35rem; }
+.atlas__legend i { display: inline-block; width: 7px; height: 7px; background: var(--color-text-muted); border-radius: 50%; }
+.atlas__legend .atlas__key--deck i { border-radius: 1px; transform: rotate(45deg); }
+.atlas__legend .atlas__key--project i { border-radius: 1.5px; }
+
+.atlas__talk {
+  position: relative; z-index: 1; width: calc(var(--atlas-talk) + 2rem);
+  display: flex; flex-direction: column; justify-content: center;
+  padding: clamp(2.5rem, 7vh, 5rem) 4rem clamp(2rem, 6vh, 4rem) clamp(1.25rem, 4vw, 3rem);
+  background: linear-gradient(90deg, var(--color-bg) 0% 88%, rgb(from var(--color-bg) r g b / 0) 100%);
+}
+.atlas--bare .atlas__talk { width: min(48rem, 100%); background: none; }
+.atlas__byline { display: flex; align-items: center; gap: .7rem; margin-bottom: 1.5rem; }
+.atlas__initials {
+  flex: none; display: grid; place-items: center; width: 2.3rem; height: 2.3rem; border-radius: 50%;
+  background: var(--color-text); color: var(--color-bg);
+  font-family: var(--font-heading); font-size: .85rem; letter-spacing: .03em;
+}
+.atlas__byline b { display: block; font-weight: 600; font-size: .98rem; line-height: 1.2; color: var(--color-heading); }
+.atlas__byline small { font-size: .85rem; color: var(--color-text-light); }
+.atlas h1 {
+  margin: 0 0 1.4rem; font-family: var(--font-heading); font-weight: 400;
+  font-size: clamp(2.8rem, 5.2vw, 4.9rem); line-height: 1; letter-spacing: -.018em; text-wrap: balance;
+  font-variation-settings: "SOFT" 50, "opsz" 96; color: var(--color-heading);
+}
+.atlas__emphasis { font-style: italic; color: var(--color-accent); }
+.atlas__prose { max-width: 31rem; font-family: var(--font-heading); font-weight: 300; font-size: clamp(1.1rem, 1.35vw, 1.25rem); line-height: 1.55; font-variation-settings: "opsz" 24; color: var(--color-text-muted); overflow-wrap: anywhere; }
+.atlas__prose p { margin: 0 0 .8em; font-size: inherit; line-height: inherit; color: inherit; }
+.atlas__prose a { color: var(--color-accent); text-underline-offset: .18em; }
+.atlas__door { margin-top: 2rem; max-width: 31rem; }
+.atlas__door h2 { margin: 0 0 .4rem; font-family: var(--font-heading); font-weight: 500; font-size: 1.45rem; line-height: 1.2; color: var(--color-heading); font-variation-settings: "opsz" 36; }
+.atlas__topics { list-style: none; margin: .5rem 0 1.2rem; padding: 0; display: grid; gap: .1rem; }
+.atlas__topics a {
+  display: block; margin: 0 -.7rem; padding: .45rem .7rem; border-radius: .7rem;
+  font-family: var(--font-heading); font-style: italic; font-size: 1.1rem; line-height: 1.3;
+  color: var(--color-text); text-decoration: none; overflow-wrap: anywhere;
+}
+.atlas__topics a:hover, .atlas__topics a:focus-visible { background: var(--color-bg-subtle); color: var(--color-accent); }
+.atlas__contact {
+  display: inline-block; border-radius: 999px; padding: .85rem 1.3rem; text-decoration: none;
+  background: var(--color-accent); color: var(--color-text-inverse); font-weight: 600; line-height: 1;
+}
+.atlas__contact:hover { background: var(--color-accent-dark); }
+.atlas__contact:focus-visible, .atlas__topics a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+.atlas__note { margin: .9rem 0 0; font-size: .84rem; color: var(--color-text-light); }
+/* After the resting styles, so these win. Touch has no hover to reveal what is a link: the open card's title reads as one,
+   and the topics rest in the state a pointer would give them, as choices to tap. */
+@media (hover: none) {
+  .atlas__tip b { text-decoration-line: underline; text-decoration-color: var(--color-accent); text-decoration-thickness: 1px; text-underline-offset: .2em; }
+  .atlas__topics { gap: .45rem; }
+  .atlas__topics a { background: var(--color-bg-subtle); padding: .65rem .8rem; }
+}
+
+/* The docked chat box: Web Chat mounts the conversation into this host and
+   styles it; the atlas themes it and keeps its composer the same before and
+   after the mount. The page already presents the opening and its topics. */
+.atlas--chat .atlas__talk { max-height: calc(100svh - 4.5rem); overflow-y: auto; }
+.atlas__ask {
+  margin-top: 1.6rem; max-width: 34rem;
+  --ask-wash: var(--color-bg-subtle); --ask-display: var(--font-heading); --ask-muted: var(--color-text-light);
+}
+/* Out of sight until Web Chat's boot has made the box live; the door stays either way. */
+.atlas__ask:not([data-ask-ready]) { display: none; }
+.atlas__ask-status { margin: 0 0 .5rem; font-size: .84rem; color: var(--color-text-light); }
+.atlas__ask-status:empty { display: none; }
+.atlas__ask .brain-box-welcome { display: none; }
+.atlas__ask .brain-box-header-actions { margin: 0 0 .5rem; }
+.atlas__ask .brain-box-bottom { border-top: 0; margin-top: .4rem; padding-top: 0; }
+.atlas__ask .brain-box-hint { margin: .55rem 0 0 1.1rem; }
+.atlas__ask .brain-box-hint:empty { display: none; }
+.atlas__composer, .atlas__ask .prompt-row {
+  display: flex; align-items: flex-end; gap: .6rem; padding: .5rem .5rem .5rem 1.1rem;
+  border-radius: 1.4rem; background: var(--color-bg-subtle); border: 1px solid var(--color-border);
+  box-shadow: 0 22px 50px -32px rgb(from var(--color-text) r g b / .5);
+}
+.atlas__composer:focus-within, .atlas__ask .prompt-row:focus-within { border-color: var(--color-accent); }
+.atlas__composer textarea, .atlas__ask .prompt-row textarea {
+  flex: 1; min-width: 0; resize: none; border: 0; background: transparent; color: var(--color-text);
+  font: inherit; font-size: 1.1rem; line-height: 1.4; padding: .55rem 0; field-sizing: content; min-height: 1.4em; max-height: 7em;
+}
+.atlas__composer textarea:focus, .atlas__ask .prompt-row textarea:focus { outline: none; }
+.atlas__send, .atlas__ask .send {
+  flex: none; display: grid; place-items: center; width: 2.7rem; height: 2.7rem; border: 0; border-radius: 50%;
+  background: var(--color-accent); color: var(--color-text-inverse); cursor: pointer; font-size: 1.2rem; font-weight: 600;
+}
+.atlas__send svg { width: 1.1rem; height: 1.1rem; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.atlas__send:disabled, .atlas__ask .send:disabled { opacity: .5; cursor: default; }
+.atlas__send:focus-visible, .atlas__ask .send:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+
+/* An answer turns the map towards the sources it drew on. */
+.atlas__field { transition: transform .9s cubic-bezier(.3, .7, .2, 1); }
+.atlas__field[data-focused] { transform: scale(var(--atlas-focus-scale, 1)); transform-origin: var(--atlas-focus-x, 50%) var(--atlas-focus-y, 50%); }
+.atlas__field[data-focused] .atlas__mark:not([data-cited]) { opacity: .45; }
+.atlas__mark[data-cited] { z-index: 3; }
+.atlas__mark[data-cited] .atlas__glyph { background: var(--color-accent); transform: scale(1.5); box-shadow: 0 0 0 3px var(--color-bg), 0 0 0 7px rgb(from var(--color-accent) r g b / .22); }
+.atlas__mark--deck[data-cited] .atlas__glyph { transform: rotate(45deg) scale(1.5); }
+/* Leads from the answer\\u2019s listed sources to their marks; the script draws them on desktop only. */
+.atlas__leads { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; pointer-events: none; }
+.atlas__leads path { fill: none; stroke: var(--color-accent); stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: .1 6; }
+
+@media (max-width: 60rem) {
+  /* The map leads visually on phones; the conversation stays first in the document.
+     The first screen holds the map and the headline together. */
+  .atlas { flex-direction: column; min-height: 0; --atlas-band: clamp(17rem, 47svh, 25rem); }
+  .atlas__map { order: -1; position: relative; inset: auto; height: var(--atlas-band); }
+  /* Marks stay above the fade strip, where the legend rests. */
+  .atlas__field { bottom: 2rem; }
+  /* Long names take two short lines, so more of them fit a narrow map. */
+  .atlas__zone { font-size: .8rem; white-space: normal; width: max-content; max-width: 9em; text-align: center; line-height: 1.15; }
+  /* The build records where the map's content ends (--atlas-fill of the field); the legend and the text start there, over the fading outer rings. */
+  .atlas__legend { left: clamp(1rem, 5vw, 2rem); right: auto; bottom: calc(.35rem + (1 - var(--atlas-fill, 1)) * (var(--atlas-band) - 2rem)); padding: .25rem .7rem; font-size: .74rem; gap: .3rem .9rem; }
+  .atlas__legend .atlas__caption { display: none; }
+  .atlas__talk { width: auto; margin-top: calc(-1 * (1 - var(--atlas-fill, 1)) * (var(--atlas-band) - 2rem)); padding: .9rem clamp(1rem, 5vw, 2rem) 2.5rem; background: none; }
+  .atlas__byline { margin-bottom: .8rem; gap: .55rem; }
+  .atlas__initials { width: 1.8rem; height: 1.8rem; font-size: .72rem; }
+  .atlas h1 { font-size: clamp(2.5rem, 11.5vw, 3.6rem); margin-bottom: 1rem; }
+  .atlas__leads { display: none; }
+  /* The text flows with the page on phones; only desktop scrolls it beside the map. */
+  .atlas--chat .atlas__talk { max-height: none; overflow: visible; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .atlas__contour { animation: none; }
+  .atlas__glyph, .atlas__tip, .atlas__field { transition: none; }
+}
+</style><div class="atlas__talk"><p class="atlas__byline"><span class="atlas__initials" aria-hidden="true">JH</span><span><b>Jan Hein Hoogstad</b><small>In my own words</small></span></p><h1>Building something <span class="atlas__emphasis">inhabitable</span>.</h1><article class="prose prose-lg max-w-none prose-h1:text-4xl prose-h1:font-bold prose-h1:mb-8 prose-h1:mt-0 prose-h2:text-3xl prose-h2:font-semibold prose-h2:mt-16 prose-h2:mb-6 prose-h2:border-b prose-h2:pb-4 prose-h3:text-2xl prose-h3:font-semibold prose-h3:mt-10 prose-h3:mb-4 prose-p:text-lg prose-p:leading-relaxed prose-p:mb-6 prose-ul:my-6 prose-ul:space-y-3 prose-ol:my-6 prose-ol:space-y-3 prose-li:leading-relaxed prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-pre:rounded-lg prose-pre:my-6 prose-pre:p-4 prose-pre:overflow-x-auto prose-pre:text-sm prose-blockquote:border-l-2 prose-blockquote:border-brand prose-blockquote:pl-6 prose-blockquote:py-2 prose-blockquote:mt-8 prose-blockquote:mb-2 prose-blockquote:text-lg prose-blockquote:leading-relaxed prose-blockquote:font-light prose-blockquote:not-italic prose-hr:my-12 prose-img:rounded-lg prose-img:shadow-md prose-img:my-8 atlas__prose"><p>I work on how institutions hold what they know.</p>
+</article><div class="atlas__door"><h2>Pick a thread</h2><ul class="atlas__topics" aria-label="Conversation topics"><li><a href="https://yeehaa.test/contact?topic=Someone+who+carries+a+lot+is+about+to+leave" data-atlas-door="">Someone who carries a lot is about to leave</a></li><li><a href="https://yeehaa.test/contact?topic=A+second+thread" data-atlas-door="">A second thread</a></li></ul><a class="atlas__contact" href="https://yeehaa.test/contact" data-atlas-door="">Write to me</a><p class="atlas__note">I read these myself.</p></div></div><div class="atlas__map" role="group" aria-label="My published work, by topic"><div class="atlas__field" data-atlas-field=""><svg class="atlas__terrain" data-atlas-terrain="" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false"><g class="atlas__contours"><path class="atlas__contour" stroke-opacity="0.16" style="animation-delay:0s" d="M44.7 23.4L45.3 23.2L46.9 22.9L48.4 22.6L50 22.6L51.6 22.6L53.1 22.9L54.7 23.2L55.3 23.4L56.3 23.7L57.8 24.3L59 25L59.4 25.2L60.9 26.2L61.4 26.6L62.5 27.5L63.2 28.1L64.1 29.1L64.6 29.7L65.6 31.2L65.7 31.3L66.6 32.8L67.2 34.2L67.3 34.4L67.8 35.9L68.2 37.5L68.5 39.1L68.6 40.6L68.6 42.2L68.4 43.8L68.2 45.3L67.7 46.9L67.2 48.2L67.1 48.4L66.4 50L65.6 51.2L65.4 51.6L64.2 53.1L64.1 53.3L62.8 54.7L62.5 54.9L60.9 56.2L60.8 56.3L59.4 57.3L58.3 57.8L57.8 58.1L56.3 58.7L54.7 59.2L53.6 59.4L53.1 59.5L51.6 59.8L50 59.9L48.4 59.8L46.9 59.7L45.3 59.6L43.8 59.4L42.2 59.4L40.6 60.7L40.5 60.9L40.4 62.5L40.5 64.1L40.5 65.6L40.5 67.2L40.4 68.8L40.2 70.3L39.9 71.9L39.3 73.4L39.1 74.1L38.7 75L37.8 76.6L37.5 77L36.7 78.1L35.9 79L35.2 79.7L34.4 80.5L33.3 81.3L32.8 81.6L31.3 82.5L30.6 82.8L29.7 83.3L28.1 83.8L26.6 84.1L25 84.3L23.4 84.4L21.9 84.3L20.3 84.1L18.8 83.7L17.2 83.1L16.6 82.8L15.6 82.4L14.1 81.4L13.9 81.3L12.5 80.2L12 79.7L10.9 78.6L10.5 78.1L9.4 76.6L9.4 76.5L8.5 75L7.9 73.4L7.8 73.2L7.3 71.9L7 70.3L6.8 68.8L6.8 67.2L6.9 65.6L7.2 64.1L7.6 62.5L7.8 62L8.2 60.9L9 59.4L9.4 58.7L9.9 57.8L10.9 56.6L11.2 56.3L12.5 55L12.9 54.7L14.1 53.8L15.1 53.1L15.6 52.8L17.2 52.1L18.7 51.6L18.8 51.6L20.3 51.1L21.9 50.8L23.4 50.7L25 50.6L26.6 50.6L28.1 50.7L29.7 50.7L31.3 50.1L31.4 50L31.7 48.4L31.7 46.9L31.6 45.3L31.4 43.8L31.4 42.2L31.4 40.6L31.5 39.1L31.8 37.5L32.2 35.9L32.7 34.4L32.8 34.2L33.4 32.8L34.3 31.3L34.4 31.2L35.4 29.7L35.9 29.1L36.8 28.1L37.5 27.5L38.6 26.6L39.1 26.2L40.6 25.2L41 25L42.2 24.3L43.8 23.7L44.7 23.4M84.2 82.8L84.4 82.7L85.9 82.6L86.2 82.8L87.5 84L87.7 84.4L87.8 85.9L87.5 86.4L86.4 87.5L85.9 87.8L84.4 87.7L84 87.5L82.8 86.2L82.6 85.9L82.7 84.4L82.8 84.2L84.2 82.8"></path><path class="atlas__contour" stroke-opacity="0.198" style="animation-delay:-2.3s" d="M44.2 26.6L45.3 26.1L46.9 25.7L48.4 25.5L50 25.4L51.6 25.5L53.1 25.7L54.7 26.1L55.8 26.6L56.3 26.7L57.8 27.5L58.8 28.1L59.4 28.5L60.8 29.7L60.9 29.9L62.2 31.3L62.5 31.6L63.4 32.8L64.1 34.1L64.2 34.4L64.9 35.9L65.3 37.5L65.6 39.1L65.6 39.3L65.8 40.6L65.7 42.2L65.6 43L65.5 43.8L65.2 45.3L64.7 46.9L64.1 48.3L64 48.4L63.1 50L62.5 50.8L61.9 51.6L60.9 52.6L60.3 53.1L59.4 53.9L58.1 54.7L57.8 54.9L56.3 55.7L54.7 56.2L54.6 56.3L53.1 56.7L51.6 56.9L50 57L48.4 57L46.9 56.8L45.3 56.4L44.9 56.3L43.8 55.9L42.2 55.3L41.2 54.7L40.6 54.4L39.1 53.2L39 53.1L37.5 51.6L37.5 51.5L36.5 50L35.9 48.9L35.7 48.4L35.1 46.9L34.7 45.3L34.4 43.8L34.4 43.4L34.2 42.2L34.2 40.6L34.4 39.3L34.4 39.1L34.7 37.5L35.1 35.9L35.8 34.4L35.9 34.1L36.6 32.8L37.5 31.6L37.8 31.3L39.1 29.9L39.2 29.7L40.6 28.5L41.2 28.1L42.2 27.5L43.8 26.7L44.2 26.6M17.9 54.7L18.8 54.3L20.3 53.8L21.9 53.5L23.4 53.4L25 53.5L26.6 53.6L28.1 54L29.7 54.5L30.1 54.7L31.3 55.2L32.8 56.2L32.8 56.3L34.4 57.6L34.5 57.8L35.7 59.4L35.9 59.9L36.5 60.9L37.1 62.5L37.4 64.1L37.5 64.6L37.7 65.6L37.8 67.2L37.7 68.8L37.5 70L37.5 70.3L37.1 71.9L36.5 73.4L35.9 74.4L35.6 75L34.5 76.6L34.4 76.7L33 78.1L32.8 78.3L31.3 79.5L30.9 79.7L29.7 80.4L28.1 81L27.1 81.3L26.6 81.4L25 81.7L23.4 81.8L21.9 81.6L20.3 81.3L20.1 81.3L18.8 80.9L17.2 80.2L16.3 79.7L15.6 79.3L14.2 78.1L14.1 78L12.7 76.6L12.5 76.3L11.6 75L10.9 73.8L10.7 73.4L10.1 71.9L9.7 70.3L9.5 68.8L9.5 67.2L9.6 65.6L9.9 64.1L10.4 62.5L10.9 61.4L11.1 60.9L12.1 59.4L12.5 58.9L13.4 57.8L14.1 57.2L15.2 56.3L15.6 55.9L17.2 55L17.9 54.7M84.1 84.4L84.4 84.1L85.9 84L86.3 84.4L86.4 85.9L85.9 86.4L84.4 86.3L84 85.9L84.1 84.4"></path><path class="atlas__contour" stroke-opacity="0.237" style="animation-delay:-4.6s" d="M45.3 28.1L46.9 27.6L48.4 27.4L50 27.3L51.6 27.4L53.1 27.6L54.7 28.1L56.3 28.8L57.8 29.7L59.4 30.9L59.7 31.3L60.9 32.6L61.1 32.8L62.1 34.4L62.5 35.2L62.9 35.9L63.4 37.5L63.8 39.1L63.9 40.6L63.9 42.2L63.7 43.8L63.3 45.3L62.7 46.9L62.5 47.2L61.9 48.4L60.9 49.8L60.8 50L59.4 51.5L59.3 51.6L57.8 52.7L57.1 53.1L56.3 53.6L54.7 54.3L53.3 54.7L53.1 54.7L51.6 55L50 55.1L48.4 55.1L46.9 54.8L46.6 54.7L45.3 54.4L43.8 53.7L42.7 53.1L42.2 52.9L40.6 51.7L40.5 51.6L39.1 50L38 48.4L37.5 47.5L37.2 46.9L36.6 45.3L36.3 43.8L36.1 42.2L36.1 40.6L36.2 39.1L36.6 37.5L37.1 35.9L37.5 35.2L37.9 34.4L38.9 32.8L39.1 32.6L40.3 31.3L40.6 30.9L42.2 29.7L43.8 28.8L45.3 28.1M18.8 56.3L20.3 55.7L21.9 55.3L23.4 55.2L25 55.3L26.6 55.5L28.1 56L28.7 56.3L29.7 56.7L31.3 57.7L31.4 57.8L32.8 59.1L33 59.4L34.2 60.9L34.4 61.3L35 62.5L35.5 64.1L35.8 65.6L35.9 67L36 67.2L35.9 67.5L35.9 68.8L35.7 70.3L35.2 71.9L34.5 73.4L34.4 73.6L33.5 75L32.8 75.8L32.1 76.6L31.3 77.3L30 78.1L29.7 78.3L28.1 79.1L26.6 79.6L25.9 79.7L25 79.9L23.4 80L21.9 79.8L21.3 79.7L20.3 79.5L18.8 79L17.2 78.1L15.6 77L15.1 76.6L14.1 75.4L13.7 75L12.7 73.4L12.5 72.9L12 71.9L11.5 70.3L11.3 68.8L11.2 67.2L11.4 65.6L11.7 64.1L12.4 62.5L12.5 62.2L13.2 60.9L14.1 59.8L14.4 59.4L15.6 58.2L16.1 57.8L17.2 57L18.8 56.3"></path><path class="atlas__contour atlas__contour--index" stroke-opacity="0.441" style="animation-delay:-6.8999999999999995s" d="M45.3 29.7L46.9 29.2L48.4 28.8L50 28.7L51.6 28.8L53.1 29.2L54.7 29.7L56.3 30.4L57.4 31.3L57.8 31.5L59.2 32.8L59.4 33.1L60.4 34.4L60.9 35.3L61.3 35.9L61.9 37.5L62.3 39.1L62.4 40.6L62.4 42.2L62.2 43.8L61.7 45.3L61.1 46.9L60.9 47.1L60.1 48.4L59.4 49.3L58.8 50L57.8 50.9L56.8 51.6L56.3 52L54.7 52.7L53.4 53.1L53.1 53.2L51.6 53.5L50 53.7L48.4 53.6L46.9 53.3L46.5 53.1L45.3 52.8L43.8 52L43.1 51.6L42.2 50.9L41.1 50L40.6 49.4L39.8 48.4L39.1 47.2L38.9 46.9L38.2 45.3L37.8 43.8L37.6 42.2L37.6 40.6L37.7 39.1L38.1 37.5L38.7 35.9L39.1 35.3L39.6 34.4L40.6 33.1L40.8 32.8L42.2 31.5L42.6 31.3L43.8 30.4L45.3 29.7M18.8 57.8L20.3 57.2L21.9 56.8L23.4 56.7L25 56.7L26.6 57L28.1 57.6L28.5 57.8L29.7 58.4L30.9 59.4L31.3 59.7L32.4 60.9L32.8 61.6L33.3 62.5L34 64.1L34.4 65.6L34.4 65.8L34.5 67.2L34.5 68.8L34.4 69.2L34.2 70.3L33.7 71.9L32.8 73.4L31.6 75L31.3 75.4L29.8 76.6L29.7 76.7L28.1 77.5L26.6 78.1L26.5 78.1L25 78.4L23.4 78.5L21.9 78.4L20.8 78.1L20.3 78L18.8 77.4L17.4 76.6L17.2 76.4L15.6 75L14.4 73.4L14.1 72.9L13.5 71.9L13 70.3L12.7 68.8L12.7 67.2L12.8 65.6L13.3 64.1L13.9 62.5L14.1 62.3L14.9 60.9L15.6 60.2L16.4 59.4L17.2 58.8L18.8 57.8"></path><path class="atlas__contour" stroke-opacity="0.314" style="animation-delay:-9.2s" d="M45 31.3L45.3 31.1L46.9 30.5L48.4 30.1L50 30L51.6 30.1L53.1 30.5L54.7 31.1L55 31.3L56.3 32L57.3 32.8L57.8 33.2L58.8 34.4L59.4 35.2L59.8 35.9L60.5 37.5L60.9 39L60.9 39.1L61.2 40.6L61.1 42.2L60.9 43.3L60.9 43.8L60.4 45.3L59.6 46.9L59.4 47.2L58.5 48.4L57.8 49.2L56.8 50L56.3 50.4L54.7 51.3L54.1 51.6L53.1 51.9L51.6 52.3L50 52.4L48.4 52.3L46.9 51.9L45.9 51.6L45.3 51.3L43.8 50.5L43.1 50L42.2 49.2L41.5 48.4L40.6 47.3L40.4 46.9L39.6 45.3L39.1 43.8L39.1 43.3L38.9 42.2L38.8 40.6L39.1 39.1L39.1 39L39.5 37.5L40.2 35.9L40.6 35.2L41.2 34.4L42.2 33.2L42.7 32.8L43.8 32L45 31.3M18.5 59.4L18.8 59.2L20.3 58.5L21.9 58.1L23.4 57.9L25 58L26.6 58.4L28.1 59L28.7 59.4L29.7 60L30.7 60.9L31.3 61.6L31.9 62.5L32.6 64.1L32.8 64.7L33.1 65.6L33.3 67.2L33.2 68.8L32.9 70.3L32.8 70.5L32.3 71.9L31.3 73.4L31.3 73.5L29.8 75L29.7 75.1L28.1 76.2L27.2 76.6L26.6 76.8L25 77.2L23.4 77.3L21.9 77.1L20.3 76.7L20 76.6L18.8 76L17.4 75L17.2 74.8L15.9 73.4L15.6 73.1L14.9 71.9L14.3 70.3L14.1 69.1L14 68.8L13.9 67.2L14.1 66.2L14.1 65.6L14.6 64.1L15.4 62.5L15.6 62.1L16.6 60.9L17.2 60.4L18.5 59.4"></path><path class="atlas__contour" stroke-opacity="0.352" style="animation-delay:-11.5s" d="M49.3 31.3L50 31.2L50.7 31.3L51.6 31.3L53.1 31.7L54.7 32.4L55.4 32.8L56.3 33.4L57.3 34.4L57.8 35L58.5 35.9L59.3 37.5L59.4 37.8L59.8 39.1L60 40.6L60 42.2L59.7 43.8L59.4 44.6L59.1 45.3L58.2 46.9L57.8 47.4L56.9 48.4L56.3 49L54.7 50L53.1 50.7L51.6 51.1L50 51.2L48.4 51.1L46.9 50.7L45.3 50.1L45.2 50L43.8 49L43.1 48.4L42.2 47.5L41.7 46.9L40.9 45.3L40.6 44.6L40.3 43.8L40 42.2L40 40.6L40.2 39.1L40.6 37.8L40.7 37.5L41.5 35.9L42.2 35L42.7 34.4L43.8 33.4L44.6 32.8L45.3 32.4L46.9 31.7L48.4 31.3L49.3 31.3M21.4 59.4L21.9 59.2L23.4 59.1L25 59.2L25.8 59.4L26.6 59.6L28.1 60.3L28.9 60.9L29.7 61.6L30.5 62.5L31.3 63.8L31.4 64.1L31.9 65.6L32.1 67.2L32.1 68.8L31.7 70.3L31.3 71.3L31 71.9L29.8 73.4L29.7 73.6L28.1 74.8L27.8 75L26.6 75.6L25 76L23.4 76.1L21.9 76L20.3 75.5L19.4 75L18.8 74.6L17.4 73.4L17.2 73.2L16.2 71.9L15.6 70.6L15.5 70.3L15.1 68.8L15.1 67.2L15.3 65.6L15.6 64.6L15.8 64.1L16.8 62.5L17.2 62L18.3 60.9L18.8 60.6L20.3 59.7L21.4 59.4"></path><path class="atlas__contour" stroke-opacity="0.391" style="animation-delay:-13.799999999999999s" d="M47 32.8L48.4 32.4L50 32.3L51.6 32.4L53 32.8L53.1 32.8L54.7 33.6L55.7 34.4L56.3 34.9L57.2 35.9L57.8 36.9L58.1 37.5L58.7 39.1L58.9 40.6L58.9 42.2L58.6 43.8L57.9 45.3L57.8 45.5L56.9 46.9L56.3 47.6L55.2 48.4L54.7 48.8L53.1 49.6L51.6 50L51.3 50L50 50.1L48.7 50L48.4 50L46.9 49.6L45.3 48.8L44.8 48.4L43.8 47.6L43.1 46.9L42.2 45.5L42.1 45.3L41.4 43.8L41.1 42.2L41.1 40.6L41.3 39.1L41.9 37.5L42.2 36.9L42.8 35.9L43.8 34.8L44.3 34.4L45.3 33.6L46.9 32.8L47 32.8M20.3 60.9L21.9 60.4L23.4 60.2L25 60.3L26.6 60.8L26.9 60.9L28.1 61.7L29 62.5L29.7 63.4L30.1 64.1L30.8 65.6L31 67.2L30.9 68.8L30.5 70.3L29.7 71.9L28.2 73.4L28.1 73.5L26.6 74.4L25 74.9L24.1 75L23.4 75.1L23 75L21.9 74.9L20.3 74.3L19 73.4L18.8 73.2L17.5 71.9L17.2 71.3L16.7 70.3L16.3 68.8L16.2 67.2L16.4 65.6L17.1 64.1L17.2 63.9L18.2 62.5L18.8 62L20.3 60.9M29.7 71.9"></path><path class="atlas__contour atlas__contour--index" stroke-opacity="0.687" style="animation-delay:-16.099999999999998s" d="M46.1 34.4L46.9 34L48.4 33.5L50 33.3L51.6 33.5L53.1 34L53.8 34.4L54.7 34.9L55.8 35.9L56.3 36.5L56.9 37.5L57.6 39.1L57.8 40.5L57.8 40.6L57.8 41.8L57.8 42.2L57.5 43.8L56.7 45.3L56.3 46L55.5 46.9L54.7 47.5L53.1 48.4L51.6 48.9L50 49.1L48.4 48.9L47 48.4L46.9 48.4L45.3 47.5L44.6 46.9L43.8 45.9L43.3 45.3L42.6 43.8L42.2 42.2L42.2 42.1L42.1 40.6L42.2 40.3L42.4 39.1L42.9 37.5L43.8 36.3L44.1 35.9L45.3 34.8L46.1 34.4M19.9 62.5L20.3 62.2L21.9 61.5L23.4 61.3L25 61.4L26.6 62L27.3 62.5L28.1 63.2L28.8 64.1L29.6 65.6L29.7 65.9L29.9 67.2L29.8 68.8L29.7 69.2L29.3 70.3L28.3 71.9L28.1 72.1L26.6 73.3L26.2 73.4L25 73.9L23.4 74.1L21.9 73.8L21 73.4L20.3 73.1L18.9 71.9L18.8 71.7L17.9 70.3L17.4 68.8L17.3 67.2L17.6 65.6L18.4 64.1L18.8 63.6L19.9 62.5"></path><path class="atlas__contour" stroke-opacity="0.468" style="animation-delay:-18.4s" d="M45.4 35.9L46.9 35L48.4 34.5L50 34.4L51.6 34.6L53.1 35.2L54.2 35.9L54.7 36.3L55.7 37.5L56.3 38.6L56.4 39.1L56.8 40.6L56.8 42.2L56.4 43.8L56.3 44L55.6 45.3L54.7 46.3L53.9 46.9L53.1 47.4L51.6 47.9L50 48L48.4 47.8L46.9 47.2L46.3 46.9L45.3 46.1L44.6 45.3L43.8 43.9L43.7 43.8L43.2 42.2L43.1 40.6L43.3 39.1L43.8 38L44 37.5L45.3 36L45.4 35.9M23 62.5L23.4 62.4L24.1 62.5L25 62.6L26.6 63.4L27.3 64.1L28.1 65.2L28.4 65.6L28.8 67.2L28.7 68.8L28.1 70.3L26.9 71.9L26.6 72.1L25 73L23.4 73.2L21.9 72.9L20.3 71.9L19 70.3L18.8 69.5L18.5 68.8L18.4 67.2L18.8 65.8L18.8 65.6L19.9 64.1L20.3 63.6L21.9 62.7L23 62.5"></path><path class="atlas__contour" stroke-opacity="0.506" style="animation-delay:-20.7s" d="M46.9 35.9L48.4 35.5L50 35.4L51.6 35.7L52 35.9L53.1 36.5L54.3 37.5L54.7 38L55.3 39.1L55.8 40.6L55.8 42.2L55.5 43.8L54.7 45L54.5 45.3L53.1 46.4L51.7 46.9L51.6 46.9L50 47L49.2 46.9L48.4 46.7L46.9 45.9L46.1 45.3L45.3 44.4L44.9 43.8L44.2 42.2L43.9 40.6L44.1 39.1L44.9 37.5L45.3 37L46.9 35.9M22.1 64.1L23.4 63.7L25 64L25.1 64.1L26.6 65.1L27 65.6L27.6 67.2L27.6 68.8L27.1 70.3L26.6 70.9L25.4 71.9L25 72.1L23.4 72.4L21.9 72L21.8 71.9L20.3 70.5L20.1 70.3L19.6 68.8L19.6 67.2L20.2 65.6L20.3 65.5L21.9 64.1L22.1 64.1"></path><path class="atlas__contour" stroke-opacity="0.545" style="animation-delay:-23s" d="M45.8 37.5L46.9 36.7L48.4 36.3L50 36.5L51.6 37L52.5 37.5L53.1 38L54 39.1L54.7 40.4L54.8 40.6L55 42.2L54.7 43.5L54.6 43.8L53.4 45.3L53.1 45.5L51.6 46.2L50 46.1L48.4 45.6L48 45.3L46.9 44.5L46.2 43.8L45.3 42.5L45.2 42.2L44.7 40.6L44.8 39.1L45.3 38.1L45.8 37.5M22.2 65.6L23.4 65.2L25 65.5L25.1 65.6L26.4 67.2L26.6 68.2L26.6 68.8L26.6 69L26.1 70.3L25 71.3L23.4 71.7L21.9 71.1L21.1 70.3L20.6 68.8L20.8 67.2L21.9 65.7L22.2 65.6"></path><path class="atlas__contour atlas__contour--index" stroke-opacity="0.933" style="animation-delay:-25.299999999999997s" d="M46.8 37.5L46.9 37.4L48.4 37.1L50 37.5L51.6 38.4L52.5 39.1L53.1 39.6L53.8 40.6L54.2 42.2L53.9 43.8L53.1 44.7L51.8 45.3L51.6 45.4L50.6 45.3L50 45.2L48.4 44.3L47.7 43.8L46.9 43L46.2 42.2L45.4 40.6L45.5 39.1L46.8 37.5M22.1 67.2L23.4 66.4L25 67L25.2 67.2L25.8 68.8L25.2 70.3L25 70.5L23.4 71L22.1 70.3L21.9 70L21.4 68.8L21.9 67.4L22.1 67.2"></path><path class="atlas__contour" stroke-opacity="0.622" style="animation-delay:-27.599999999999998s" d="M46.2 39.1L46.9 38.3L48.4 37.9L50 38.7L50.6 39.1L51.6 39.7L52.7 40.6L53.1 41.2L53.5 42.2L53.2 43.8L53.1 43.8L51.6 44.7L50 44.4L49.1 43.8L48.4 43L47.5 42.2L46.9 41.7L46.2 40.6L46.2 39.1M22.4 68.8L23.4 67.7L24.9 68.8L23.4 70.3L22.4 68.8"></path><path class="atlas__contour" stroke-opacity="0.66" style="animation-delay:-29.9s" d="M47.1 39.1L48.4 38.8L48.9 39.1L50 40.3L50.6 40.6L51.6 41L52.6 42.2L52 43.8L51.6 44L50.8 43.8L50 43.1L49.2 42.2L48.4 41.4L47.1 40.6L47.1 39.1"></path></g></svg><span class="atlas__zone" data-atlas-zone="" aria-hidden="true" style="left:50%;top:32.82720779386422%">New institutions</span><span class="atlas__zone" data-atlas-zone="" aria-hidden="true" style="left:23.6%;top:59.599999999999994%">Living memory</span><ul class="atlas__marks"><li data-atlas-mark="" data-atlas-key="post:hiding" class="atlas__mark atlas__mark--post" style="left:51.760000000000005%;top:42.96%"><a href="/essays/hiding-in-plain-sight"><i class="atlas__glyph" aria-hidden="true"></i><span class="atlas__tip" data-atlas-tip=""><b>Hiding in Plain Sight</b><span>Essay, 2026</span><em>New institutions</em></span></a></li><li data-atlas-mark="" data-atlas-key="deck:living" class="atlas__mark atlas__mark--deck" style="left:47.36%;top:39.44%"><a href="/presentations/organizations-as-living-systems"><i class="atlas__glyph" aria-hidden="true"></i><span class="atlas__tip" data-atlas-tip=""><b>Organizations as Living Systems</b><span>Presentation, 2026</span><em>New institutions</em></span></a></li><li data-atlas-mark="" data-atlas-key="project:lefthoek" class="atlas__mark atlas__mark--project atlas__mark--west" style="left:85.2%;top:85.2%"><a href="/projects/lefthoek"><i class="atlas__glyph" aria-hidden="true"></i><span class="atlas__tip" data-atlas-tip=""><b>Lefthoek</b><span>Project, 2020</span></span></a></li><li data-atlas-mark="" data-atlas-key="project:offcourse" class="atlas__mark atlas__mark--project atlas__mark--east" style="left:23.6%;top:69.36%"><span title="Offcourse"><i class="atlas__glyph" aria-hidden="true"></i></span></li></ul></div><p class="atlas__legend"><span class="atlas__caption">My published work, by topic</span><span class="atlas__key--post"><i aria-hidden="true"></i>Essay</span><span class="atlas__key--deck"><i aria-hidden="true"></i>Presentation</span><span class="atlas__key--project"><i aria-hidden="true"></i>Project</span></p></div></section>"
+`;
+
+exports[`professional homepage pin renders the atlas homepage with the Ask box docked 1`] = `
+"<section style="--atlas-fill:0.912" class="atlas atlas--chat" data-atlas="" aria-label="Introduction"><style>
+.atlas {
+  --atlas-contour: var(--color-text);
+  --atlas-talk: min(40rem, 46%);
+  position: relative; isolation: isolate; overflow: hidden;
+  display: flex; align-items: stretch;
+  min-height: calc(100svh - 4.5rem);
+  background: var(--color-bg); border-bottom: 1px solid var(--color-rule);
+}
+[data-theme="dark"] .atlas { --atlas-contour: var(--color-accent); }
+.atlas__map { position: absolute; inset: 0 0 0 var(--atlas-talk); }
+.atlas__field { position: absolute; inset: 0; }
+.atlas__terrain {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  /* The field is cut at the map box; fade the rings out before they reach it. */
+  mask-image: linear-gradient(90deg, transparent, #000 9%, #000 93%, transparent), linear-gradient(180deg, transparent, #000 8%, #000 92%, transparent);
+  mask-composite: intersect;
+}
+.atlas__contour {
+  fill: none; stroke: var(--atlas-contour); stroke-width: .7;
+  stroke-linejoin: round; vector-effect: non-scaling-stroke;
+}
+.atlas__contour--index { stroke-width: 1.2; }
+/* Drift in fine steps (~5 a second, each a fraction of a pixel): the same motion without repainting every frame. */
+.atlas__contour { animation: atlas-drift 34s steps(170) infinite alternate; }
+[data-atlas][data-still] .atlas__contour { animation-play-state: paused; }
+@keyframes atlas-drift {
+  from { transform: translate(-.6px, .45px); }
+  to { transform: translate(.6px, -.45px); }
+}
+.atlas__zone {
+  position: absolute; transform: translate(-50%, -100%); white-space: nowrap; pointer-events: none;
+  font-family: var(--font-heading); font-style: italic; font-size: 1rem; letter-spacing: .03em;
+  font-variation-settings: "SOFT" 60, "opsz" 24; color: var(--color-text-muted);
+  text-shadow: 0 0 .5rem var(--color-bg), 0 0 .2rem var(--color-bg);
+  /* Set by the script from the name's measured box. */
+  translate: var(--atlas-name-shift, 0 0);
+}
+.atlas__marks { list-style: none; margin: 0; padding: 0; }
+.atlas__mark { position: absolute; transform: translate(-50%, -50%); }
+.atlas__mark > a, .atlas__mark > span:first-child {
+  display: grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 50%; color: inherit;
+}
+.atlas__glyph {
+  display: block; width: 7px; height: 7px; border-radius: 50%; background: var(--color-text);
+  box-shadow: 0 0 0 3px var(--color-bg); transition: transform .25s, background-color .25s;
+}
+.atlas__mark--deck .atlas__glyph { border-radius: 1px; transform: rotate(45deg); }
+.atlas__mark--project .atlas__glyph { width: 8px; height: 8px; border-radius: 1.5px; }
+.atlas__mark a:focus-visible .atlas__glyph { background: var(--color-accent); transform: scale(1.5); }
+.atlas__mark--deck a:focus-visible .atlas__glyph { transform: rotate(45deg) scale(1.5); }
+.atlas__mark a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.atlas__tip {
+  position: absolute; z-index: 2; bottom: calc(100% + .3rem); left: 50%; transform: translateX(-50%);
+  width: max-content; max-width: 16rem; padding: .45rem .65rem .5rem; text-align: left;
+  border-radius: .5rem; background: var(--color-bg-subtle); border: 1px solid var(--color-border);
+  box-shadow: 0 12px 30px -16px rgb(from var(--color-text) r g b / .5);
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.atlas__mark--west .atlas__tip { left: auto; right: 50%; transform: none; }
+.atlas__mark--east .atlas__tip { left: 50%; transform: none; }
+/* A transformed mark is its own stacking context: lift the active one over its neighbours. */
+.atlas__mark:focus-within, .atlas__mark[data-open] { z-index: 3; }
+.atlas__mark[data-open] .atlas__tip { opacity: 1; }
+.atlas__mark[data-open] .atlas__glyph { background: var(--color-accent); transform: scale(1.5); }
+.atlas__mark--deck[data-open] .atlas__glyph { transform: rotate(45deg) scale(1.5); }
+.atlas__tip b { display: block; font-family: var(--font-heading); font-weight: 500; font-size: .98rem; line-height: 1.2; color: var(--color-heading); }
+.atlas__tip span { font-size: .78rem; color: var(--color-text-light); }
+.atlas__tip em {
+  display: block; margin-top: .1rem; font-family: var(--font-heading); font-size: .82rem; letter-spacing: .02em;
+  font-variation-settings: "SOFT" 60, "opsz" 24; color: var(--color-text-muted);
+}
+.atlas__mark a:focus-visible .atlas__tip { opacity: 1; }
+/* Touch browsers leave hover stuck on the tapped element; there the script opens cards instead. */
+@media (hover: hover) {
+  .atlas__mark:hover { z-index: 3; }
+  .atlas__mark a:hover .atlas__glyph { background: var(--color-accent); transform: scale(1.5); }
+  .atlas__mark--deck a:hover .atlas__glyph { transform: rotate(45deg) scale(1.5); }
+  .atlas__mark a:hover .atlas__tip { opacity: 1; }
+}
+.atlas__legend {
+  position: absolute; right: clamp(1rem, 3vw, 3rem); bottom: 1.1rem; margin: 0;
+  display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1.1rem; padding: .4rem .85rem;
+  border-radius: 999px; background: rgb(from var(--color-bg) r g b / .72); backdrop-filter: blur(6px);
+  font-size: .85rem; color: var(--color-text-light);
+}
+.atlas__legend span { display: inline-flex; align-items: center; gap: .35rem; }
+.atlas__legend i { display: inline-block; width: 7px; height: 7px; background: var(--color-text-muted); border-radius: 50%; }
+.atlas__legend .atlas__key--deck i { border-radius: 1px; transform: rotate(45deg); }
+.atlas__legend .atlas__key--project i { border-radius: 1.5px; }
+
+.atlas__talk {
+  position: relative; z-index: 1; width: calc(var(--atlas-talk) + 2rem);
+  display: flex; flex-direction: column; justify-content: center;
+  padding: clamp(2.5rem, 7vh, 5rem) 4rem clamp(2rem, 6vh, 4rem) clamp(1.25rem, 4vw, 3rem);
+  background: linear-gradient(90deg, var(--color-bg) 0% 88%, rgb(from var(--color-bg) r g b / 0) 100%);
+}
+.atlas--bare .atlas__talk { width: min(48rem, 100%); background: none; }
+.atlas__byline { display: flex; align-items: center; gap: .7rem; margin-bottom: 1.5rem; }
+.atlas__initials {
+  flex: none; display: grid; place-items: center; width: 2.3rem; height: 2.3rem; border-radius: 50%;
+  background: var(--color-text); color: var(--color-bg);
+  font-family: var(--font-heading); font-size: .85rem; letter-spacing: .03em;
+}
+.atlas__byline b { display: block; font-weight: 600; font-size: .98rem; line-height: 1.2; color: var(--color-heading); }
+.atlas__byline small { font-size: .85rem; color: var(--color-text-light); }
+.atlas h1 {
+  margin: 0 0 1.4rem; font-family: var(--font-heading); font-weight: 400;
+  font-size: clamp(2.8rem, 5.2vw, 4.9rem); line-height: 1; letter-spacing: -.018em; text-wrap: balance;
+  font-variation-settings: "SOFT" 50, "opsz" 96; color: var(--color-heading);
+}
+.atlas__emphasis { font-style: italic; color: var(--color-accent); }
+.atlas__prose { max-width: 31rem; font-family: var(--font-heading); font-weight: 300; font-size: clamp(1.1rem, 1.35vw, 1.25rem); line-height: 1.55; font-variation-settings: "opsz" 24; color: var(--color-text-muted); overflow-wrap: anywhere; }
+.atlas__prose p { margin: 0 0 .8em; font-size: inherit; line-height: inherit; color: inherit; }
+.atlas__prose a { color: var(--color-accent); text-underline-offset: .18em; }
+.atlas__door { margin-top: 2rem; max-width: 31rem; }
+.atlas__door h2 { margin: 0 0 .4rem; font-family: var(--font-heading); font-weight: 500; font-size: 1.45rem; line-height: 1.2; color: var(--color-heading); font-variation-settings: "opsz" 36; }
+.atlas__topics { list-style: none; margin: .5rem 0 1.2rem; padding: 0; display: grid; gap: .1rem; }
+.atlas__topics a {
+  display: block; margin: 0 -.7rem; padding: .45rem .7rem; border-radius: .7rem;
+  font-family: var(--font-heading); font-style: italic; font-size: 1.1rem; line-height: 1.3;
+  color: var(--color-text); text-decoration: none; overflow-wrap: anywhere;
+}
+.atlas__topics a:hover, .atlas__topics a:focus-visible { background: var(--color-bg-subtle); color: var(--color-accent); }
+.atlas__contact {
+  display: inline-block; border-radius: 999px; padding: .85rem 1.3rem; text-decoration: none;
+  background: var(--color-accent); color: var(--color-text-inverse); font-weight: 600; line-height: 1;
+}
+.atlas__contact:hover { background: var(--color-accent-dark); }
+.atlas__contact:focus-visible, .atlas__topics a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+.atlas__note { margin: .9rem 0 0; font-size: .84rem; color: var(--color-text-light); }
+/* After the resting styles, so these win. Touch has no hover to reveal what is a link: the open card's title reads as one,
+   and the topics rest in the state a pointer would give them, as choices to tap. */
+@media (hover: none) {
+  .atlas__tip b { text-decoration-line: underline; text-decoration-color: var(--color-accent); text-decoration-thickness: 1px; text-underline-offset: .2em; }
+  .atlas__topics { gap: .45rem; }
+  .atlas__topics a { background: var(--color-bg-subtle); padding: .65rem .8rem; }
+}
+
+/* The docked chat box: Web Chat mounts the conversation into this host and
+   styles it; the atlas themes it and keeps its composer the same before and
+   after the mount. The page already presents the opening and its topics. */
+.atlas--chat .atlas__talk { max-height: calc(100svh - 4.5rem); overflow-y: auto; }
+.atlas__ask {
+  margin-top: 1.6rem; max-width: 34rem;
+  --ask-wash: var(--color-bg-subtle); --ask-display: var(--font-heading); --ask-muted: var(--color-text-light);
+}
+/* Out of sight until Web Chat's boot has made the box live; the door stays either way. */
+.atlas__ask:not([data-ask-ready]) { display: none; }
+.atlas__ask-status { margin: 0 0 .5rem; font-size: .84rem; color: var(--color-text-light); }
+.atlas__ask-status:empty { display: none; }
+.atlas__ask .brain-box-welcome { display: none; }
+.atlas__ask .brain-box-header-actions { margin: 0 0 .5rem; }
+.atlas__ask .brain-box-bottom { border-top: 0; margin-top: .4rem; padding-top: 0; }
+.atlas__ask .brain-box-hint { margin: .55rem 0 0 1.1rem; }
+.atlas__ask .brain-box-hint:empty { display: none; }
+.atlas__composer, .atlas__ask .prompt-row {
+  display: flex; align-items: flex-end; gap: .6rem; padding: .5rem .5rem .5rem 1.1rem;
+  border-radius: 1.4rem; background: var(--color-bg-subtle); border: 1px solid var(--color-border);
+  box-shadow: 0 22px 50px -32px rgb(from var(--color-text) r g b / .5);
+}
+.atlas__composer:focus-within, .atlas__ask .prompt-row:focus-within { border-color: var(--color-accent); }
+.atlas__composer textarea, .atlas__ask .prompt-row textarea {
+  flex: 1; min-width: 0; resize: none; border: 0; background: transparent; color: var(--color-text);
+  font: inherit; font-size: 1.1rem; line-height: 1.4; padding: .55rem 0; field-sizing: content; min-height: 1.4em; max-height: 7em;
+}
+.atlas__composer textarea:focus, .atlas__ask .prompt-row textarea:focus { outline: none; }
+.atlas__send, .atlas__ask .send {
+  flex: none; display: grid; place-items: center; width: 2.7rem; height: 2.7rem; border: 0; border-radius: 50%;
+  background: var(--color-accent); color: var(--color-text-inverse); cursor: pointer; font-size: 1.2rem; font-weight: 600;
+}
+.atlas__send svg { width: 1.1rem; height: 1.1rem; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.atlas__send:disabled, .atlas__ask .send:disabled { opacity: .5; cursor: default; }
+.atlas__send:focus-visible, .atlas__ask .send:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+
+/* An answer turns the map towards the sources it drew on. */
+.atlas__field { transition: transform .9s cubic-bezier(.3, .7, .2, 1); }
+.atlas__field[data-focused] { transform: scale(var(--atlas-focus-scale, 1)); transform-origin: var(--atlas-focus-x, 50%) var(--atlas-focus-y, 50%); }
+.atlas__field[data-focused] .atlas__mark:not([data-cited]) { opacity: .45; }
+.atlas__mark[data-cited] { z-index: 3; }
+.atlas__mark[data-cited] .atlas__glyph { background: var(--color-accent); transform: scale(1.5); box-shadow: 0 0 0 3px var(--color-bg), 0 0 0 7px rgb(from var(--color-accent) r g b / .22); }
+.atlas__mark--deck[data-cited] .atlas__glyph { transform: rotate(45deg) scale(1.5); }
+/* Leads from the answer\\u2019s listed sources to their marks; the script draws them on desktop only. */
+.atlas__leads { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; pointer-events: none; }
+.atlas__leads path { fill: none; stroke: var(--color-accent); stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: .1 6; }
+
+@media (max-width: 60rem) {
+  /* The map leads visually on phones; the conversation stays first in the document.
+     The first screen holds the map and the headline together. */
+  .atlas { flex-direction: column; min-height: 0; --atlas-band: clamp(17rem, 47svh, 25rem); }
+  .atlas__map { order: -1; position: relative; inset: auto; height: var(--atlas-band); }
+  /* Marks stay above the fade strip, where the legend rests. */
+  .atlas__field { bottom: 2rem; }
+  /* Long names take two short lines, so more of them fit a narrow map. */
+  .atlas__zone { font-size: .8rem; white-space: normal; width: max-content; max-width: 9em; text-align: center; line-height: 1.15; }
+  /* The build records where the map's content ends (--atlas-fill of the field); the legend and the text start there, over the fading outer rings. */
+  .atlas__legend { left: clamp(1rem, 5vw, 2rem); right: auto; bottom: calc(.35rem + (1 - var(--atlas-fill, 1)) * (var(--atlas-band) - 2rem)); padding: .25rem .7rem; font-size: .74rem; gap: .3rem .9rem; }
+  .atlas__legend .atlas__caption { display: none; }
+  .atlas__talk { width: auto; margin-top: calc(-1 * (1 - var(--atlas-fill, 1)) * (var(--atlas-band) - 2rem)); padding: .9rem clamp(1rem, 5vw, 2rem) 2.5rem; background: none; }
+  .atlas__byline { margin-bottom: .8rem; gap: .55rem; }
+  .atlas__initials { width: 1.8rem; height: 1.8rem; font-size: .72rem; }
+  .atlas h1 { font-size: clamp(2.5rem, 11.5vw, 3.6rem); margin-bottom: 1rem; }
+  .atlas__leads { display: none; }
+  /* The text flows with the page on phones; only desktop scrolls it beside the map. */
+  .atlas--chat .atlas__talk { max-height: none; overflow: visible; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .atlas__contour { animation: none; }
+  .atlas__glyph, .atlas__tip, .atlas__field { transition: none; }
+}
+</style><div class="atlas__talk"><p class="atlas__byline"><span class="atlas__initials" aria-hidden="true">JH</span><span><b>Jan Hein Hoogstad</b><small>In my own words</small></span></p><h1>Building something <span class="atlas__emphasis">inhabitable</span>.</h1><article class="prose prose-lg max-w-none prose-h1:text-4xl prose-h1:font-bold prose-h1:mb-8 prose-h1:mt-0 prose-h2:text-3xl prose-h2:font-semibold prose-h2:mt-16 prose-h2:mb-6 prose-h2:border-b prose-h2:pb-4 prose-h3:text-2xl prose-h3:font-semibold prose-h3:mt-10 prose-h3:mb-4 prose-p:text-lg prose-p:leading-relaxed prose-p:mb-6 prose-ul:my-6 prose-ul:space-y-3 prose-ol:my-6 prose-ol:space-y-3 prose-li:leading-relaxed prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-pre:rounded-lg prose-pre:my-6 prose-pre:p-4 prose-pre:overflow-x-auto prose-pre:text-sm prose-blockquote:border-l-2 prose-blockquote:border-brand prose-blockquote:pl-6 prose-blockquote:py-2 prose-blockquote:mt-8 prose-blockquote:mb-2 prose-blockquote:text-lg prose-blockquote:leading-relaxed prose-blockquote:font-light prose-blockquote:not-italic prose-hr:my-12 prose-img:rounded-lg prose-img:shadow-md prose-img:my-8 atlas__prose"><p>I work on how institutions hold what they know.</p>
+</article><div class="atlas__ask" data-ask-box="" data-ask-styled=""><p class="atlas__ask-status" role="status" data-ask-status=""></p><div class="atlas__composer"><textarea rows="1" disabled="" aria-label="Your question"></textarea><button type="button" class="atlas__send" disabled="" aria-label="Send question" data-ask-send=""><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"></path></svg></button></div></div><div class="atlas__door"><h2>Pick a thread</h2><ul class="atlas__topics" aria-label="Conversation topics"><li><a href="https://yeehaa.test/contact?topic=Someone+who+carries+a+lot+is+about+to+leave" data-atlas-door="" data-atlas-fill="Someone who carries a lot is about to leave">Someone who carries a lot is about to leave</a></li><li><a href="https://yeehaa.test/contact?topic=A+second+thread" data-atlas-door="" data-atlas-fill="A second thread">A second thread</a></li></ul><a class="atlas__contact" href="https://yeehaa.test/contact" data-atlas-door="">Write to me</a><p class="atlas__note">I read these myself.</p></div></div><div class="atlas__map" role="group" aria-label="My published work, by topic"><div class="atlas__field" data-atlas-field=""><svg class="atlas__terrain" data-atlas-terrain="" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false"><g class="atlas__contours"><path class="atlas__contour" stroke-opacity="0.16" style="animation-delay:0s" d="M44.7 23.4L45.3 23.2L46.9 22.9L48.4 22.6L50 22.6L51.6 22.6L53.1 22.9L54.7 23.2L55.3 23.4L56.3 23.7L57.8 24.3L59 25L59.4 25.2L60.9 26.2L61.4 26.6L62.5 27.5L63.2 28.1L64.1 29.1L64.6 29.7L65.6 31.2L65.7 31.3L66.6 32.8L67.2 34.2L67.3 34.4L67.8 35.9L68.2 37.5L68.5 39.1L68.6 40.6L68.6 42.2L68.4 43.8L68.2 45.3L67.7 46.9L67.2 48.2L67.1 48.4L66.4 50L65.6 51.2L65.4 51.6L64.2 53.1L64.1 53.3L62.8 54.7L62.5 54.9L60.9 56.2L60.8 56.3L59.4 57.3L58.3 57.8L57.8 58.1L56.3 58.7L54.7 59.2L53.6 59.4L53.1 59.5L51.6 59.8L50 59.9L48.4 59.8L46.9 59.7L45.3 59.6L43.8 59.4L42.2 59.4L40.6 60.7L40.5 60.9L40.4 62.5L40.5 64.1L40.5 65.6L40.5 67.2L40.4 68.8L40.2 70.3L39.9 71.9L39.3 73.4L39.1 74.1L38.7 75L37.8 76.6L37.5 77L36.7 78.1L35.9 79L35.2 79.7L34.4 80.5L33.3 81.3L32.8 81.6L31.3 82.5L30.6 82.8L29.7 83.3L28.1 83.8L26.6 84.1L25 84.3L23.4 84.4L21.9 84.3L20.3 84.1L18.8 83.7L17.2 83.1L16.6 82.8L15.6 82.4L14.1 81.4L13.9 81.3L12.5 80.2L12 79.7L10.9 78.6L10.5 78.1L9.4 76.6L9.4 76.5L8.5 75L7.9 73.4L7.8 73.2L7.3 71.9L7 70.3L6.8 68.8L6.8 67.2L6.9 65.6L7.2 64.1L7.6 62.5L7.8 62L8.2 60.9L9 59.4L9.4 58.7L9.9 57.8L10.9 56.6L11.2 56.3L12.5 55L12.9 54.7L14.1 53.8L15.1 53.1L15.6 52.8L17.2 52.1L18.7 51.6L18.8 51.6L20.3 51.1L21.9 50.8L23.4 50.7L25 50.6L26.6 50.6L28.1 50.7L29.7 50.7L31.3 50.1L31.4 50L31.7 48.4L31.7 46.9L31.6 45.3L31.4 43.8L31.4 42.2L31.4 40.6L31.5 39.1L31.8 37.5L32.2 35.9L32.7 34.4L32.8 34.2L33.4 32.8L34.3 31.3L34.4 31.2L35.4 29.7L35.9 29.1L36.8 28.1L37.5 27.5L38.6 26.6L39.1 26.2L40.6 25.2L41 25L42.2 24.3L43.8 23.7L44.7 23.4M84.2 82.8L84.4 82.7L85.9 82.6L86.2 82.8L87.5 84L87.7 84.4L87.8 85.9L87.5 86.4L86.4 87.5L85.9 87.8L84.4 87.7L84 87.5L82.8 86.2L82.6 85.9L82.7 84.4L82.8 84.2L84.2 82.8"></path><path class="atlas__contour" stroke-opacity="0.198" style="animation-delay:-2.3s" d="M44.2 26.6L45.3 26.1L46.9 25.7L48.4 25.5L50 25.4L51.6 25.5L53.1 25.7L54.7 26.1L55.8 26.6L56.3 26.7L57.8 27.5L58.8 28.1L59.4 28.5L60.8 29.7L60.9 29.9L62.2 31.3L62.5 31.6L63.4 32.8L64.1 34.1L64.2 34.4L64.9 35.9L65.3 37.5L65.6 39.1L65.6 39.3L65.8 40.6L65.7 42.2L65.6 43L65.5 43.8L65.2 45.3L64.7 46.9L64.1 48.3L64 48.4L63.1 50L62.5 50.8L61.9 51.6L60.9 52.6L60.3 53.1L59.4 53.9L58.1 54.7L57.8 54.9L56.3 55.7L54.7 56.2L54.6 56.3L53.1 56.7L51.6 56.9L50 57L48.4 57L46.9 56.8L45.3 56.4L44.9 56.3L43.8 55.9L42.2 55.3L41.2 54.7L40.6 54.4L39.1 53.2L39 53.1L37.5 51.6L37.5 51.5L36.5 50L35.9 48.9L35.7 48.4L35.1 46.9L34.7 45.3L34.4 43.8L34.4 43.4L34.2 42.2L34.2 40.6L34.4 39.3L34.4 39.1L34.7 37.5L35.1 35.9L35.8 34.4L35.9 34.1L36.6 32.8L37.5 31.6L37.8 31.3L39.1 29.9L39.2 29.7L40.6 28.5L41.2 28.1L42.2 27.5L43.8 26.7L44.2 26.6M17.9 54.7L18.8 54.3L20.3 53.8L21.9 53.5L23.4 53.4L25 53.5L26.6 53.6L28.1 54L29.7 54.5L30.1 54.7L31.3 55.2L32.8 56.2L32.8 56.3L34.4 57.6L34.5 57.8L35.7 59.4L35.9 59.9L36.5 60.9L37.1 62.5L37.4 64.1L37.5 64.6L37.7 65.6L37.8 67.2L37.7 68.8L37.5 70L37.5 70.3L37.1 71.9L36.5 73.4L35.9 74.4L35.6 75L34.5 76.6L34.4 76.7L33 78.1L32.8 78.3L31.3 79.5L30.9 79.7L29.7 80.4L28.1 81L27.1 81.3L26.6 81.4L25 81.7L23.4 81.8L21.9 81.6L20.3 81.3L20.1 81.3L18.8 80.9L17.2 80.2L16.3 79.7L15.6 79.3L14.2 78.1L14.1 78L12.7 76.6L12.5 76.3L11.6 75L10.9 73.8L10.7 73.4L10.1 71.9L9.7 70.3L9.5 68.8L9.5 67.2L9.6 65.6L9.9 64.1L10.4 62.5L10.9 61.4L11.1 60.9L12.1 59.4L12.5 58.9L13.4 57.8L14.1 57.2L15.2 56.3L15.6 55.9L17.2 55L17.9 54.7M84.1 84.4L84.4 84.1L85.9 84L86.3 84.4L86.4 85.9L85.9 86.4L84.4 86.3L84 85.9L84.1 84.4"></path><path class="atlas__contour" stroke-opacity="0.237" style="animation-delay:-4.6s" d="M45.3 28.1L46.9 27.6L48.4 27.4L50 27.3L51.6 27.4L53.1 27.6L54.7 28.1L56.3 28.8L57.8 29.7L59.4 30.9L59.7 31.3L60.9 32.6L61.1 32.8L62.1 34.4L62.5 35.2L62.9 35.9L63.4 37.5L63.8 39.1L63.9 40.6L63.9 42.2L63.7 43.8L63.3 45.3L62.7 46.9L62.5 47.2L61.9 48.4L60.9 49.8L60.8 50L59.4 51.5L59.3 51.6L57.8 52.7L57.1 53.1L56.3 53.6L54.7 54.3L53.3 54.7L53.1 54.7L51.6 55L50 55.1L48.4 55.1L46.9 54.8L46.6 54.7L45.3 54.4L43.8 53.7L42.7 53.1L42.2 52.9L40.6 51.7L40.5 51.6L39.1 50L38 48.4L37.5 47.5L37.2 46.9L36.6 45.3L36.3 43.8L36.1 42.2L36.1 40.6L36.2 39.1L36.6 37.5L37.1 35.9L37.5 35.2L37.9 34.4L38.9 32.8L39.1 32.6L40.3 31.3L40.6 30.9L42.2 29.7L43.8 28.8L45.3 28.1M18.8 56.3L20.3 55.7L21.9 55.3L23.4 55.2L25 55.3L26.6 55.5L28.1 56L28.7 56.3L29.7 56.7L31.3 57.7L31.4 57.8L32.8 59.1L33 59.4L34.2 60.9L34.4 61.3L35 62.5L35.5 64.1L35.8 65.6L35.9 67L36 67.2L35.9 67.5L35.9 68.8L35.7 70.3L35.2 71.9L34.5 73.4L34.4 73.6L33.5 75L32.8 75.8L32.1 76.6L31.3 77.3L30 78.1L29.7 78.3L28.1 79.1L26.6 79.6L25.9 79.7L25 79.9L23.4 80L21.9 79.8L21.3 79.7L20.3 79.5L18.8 79L17.2 78.1L15.6 77L15.1 76.6L14.1 75.4L13.7 75L12.7 73.4L12.5 72.9L12 71.9L11.5 70.3L11.3 68.8L11.2 67.2L11.4 65.6L11.7 64.1L12.4 62.5L12.5 62.2L13.2 60.9L14.1 59.8L14.4 59.4L15.6 58.2L16.1 57.8L17.2 57L18.8 56.3"></path><path class="atlas__contour atlas__contour--index" stroke-opacity="0.441" style="animation-delay:-6.8999999999999995s" d="M45.3 29.7L46.9 29.2L48.4 28.8L50 28.7L51.6 28.8L53.1 29.2L54.7 29.7L56.3 30.4L57.4 31.3L57.8 31.5L59.2 32.8L59.4 33.1L60.4 34.4L60.9 35.3L61.3 35.9L61.9 37.5L62.3 39.1L62.4 40.6L62.4 42.2L62.2 43.8L61.7 45.3L61.1 46.9L60.9 47.1L60.1 48.4L59.4 49.3L58.8 50L57.8 50.9L56.8 51.6L56.3 52L54.7 52.7L53.4 53.1L53.1 53.2L51.6 53.5L50 53.7L48.4 53.6L46.9 53.3L46.5 53.1L45.3 52.8L43.8 52L43.1 51.6L42.2 50.9L41.1 50L40.6 49.4L39.8 48.4L39.1 47.2L38.9 46.9L38.2 45.3L37.8 43.8L37.6 42.2L37.6 40.6L37.7 39.1L38.1 37.5L38.7 35.9L39.1 35.3L39.6 34.4L40.6 33.1L40.8 32.8L42.2 31.5L42.6 31.3L43.8 30.4L45.3 29.7M18.8 57.8L20.3 57.2L21.9 56.8L23.4 56.7L25 56.7L26.6 57L28.1 57.6L28.5 57.8L29.7 58.4L30.9 59.4L31.3 59.7L32.4 60.9L32.8 61.6L33.3 62.5L34 64.1L34.4 65.6L34.4 65.8L34.5 67.2L34.5 68.8L34.4 69.2L34.2 70.3L33.7 71.9L32.8 73.4L31.6 75L31.3 75.4L29.8 76.6L29.7 76.7L28.1 77.5L26.6 78.1L26.5 78.1L25 78.4L23.4 78.5L21.9 78.4L20.8 78.1L20.3 78L18.8 77.4L17.4 76.6L17.2 76.4L15.6 75L14.4 73.4L14.1 72.9L13.5 71.9L13 70.3L12.7 68.8L12.7 67.2L12.8 65.6L13.3 64.1L13.9 62.5L14.1 62.3L14.9 60.9L15.6 60.2L16.4 59.4L17.2 58.8L18.8 57.8"></path><path class="atlas__contour" stroke-opacity="0.314" style="animation-delay:-9.2s" d="M45 31.3L45.3 31.1L46.9 30.5L48.4 30.1L50 30L51.6 30.1L53.1 30.5L54.7 31.1L55 31.3L56.3 32L57.3 32.8L57.8 33.2L58.8 34.4L59.4 35.2L59.8 35.9L60.5 37.5L60.9 39L60.9 39.1L61.2 40.6L61.1 42.2L60.9 43.3L60.9 43.8L60.4 45.3L59.6 46.9L59.4 47.2L58.5 48.4L57.8 49.2L56.8 50L56.3 50.4L54.7 51.3L54.1 51.6L53.1 51.9L51.6 52.3L50 52.4L48.4 52.3L46.9 51.9L45.9 51.6L45.3 51.3L43.8 50.5L43.1 50L42.2 49.2L41.5 48.4L40.6 47.3L40.4 46.9L39.6 45.3L39.1 43.8L39.1 43.3L38.9 42.2L38.8 40.6L39.1 39.1L39.1 39L39.5 37.5L40.2 35.9L40.6 35.2L41.2 34.4L42.2 33.2L42.7 32.8L43.8 32L45 31.3M18.5 59.4L18.8 59.2L20.3 58.5L21.9 58.1L23.4 57.9L25 58L26.6 58.4L28.1 59L28.7 59.4L29.7 60L30.7 60.9L31.3 61.6L31.9 62.5L32.6 64.1L32.8 64.7L33.1 65.6L33.3 67.2L33.2 68.8L32.9 70.3L32.8 70.5L32.3 71.9L31.3 73.4L31.3 73.5L29.8 75L29.7 75.1L28.1 76.2L27.2 76.6L26.6 76.8L25 77.2L23.4 77.3L21.9 77.1L20.3 76.7L20 76.6L18.8 76L17.4 75L17.2 74.8L15.9 73.4L15.6 73.1L14.9 71.9L14.3 70.3L14.1 69.1L14 68.8L13.9 67.2L14.1 66.2L14.1 65.6L14.6 64.1L15.4 62.5L15.6 62.1L16.6 60.9L17.2 60.4L18.5 59.4"></path><path class="atlas__contour" stroke-opacity="0.352" style="animation-delay:-11.5s" d="M49.3 31.3L50 31.2L50.7 31.3L51.6 31.3L53.1 31.7L54.7 32.4L55.4 32.8L56.3 33.4L57.3 34.4L57.8 35L58.5 35.9L59.3 37.5L59.4 37.8L59.8 39.1L60 40.6L60 42.2L59.7 43.8L59.4 44.6L59.1 45.3L58.2 46.9L57.8 47.4L56.9 48.4L56.3 49L54.7 50L53.1 50.7L51.6 51.1L50 51.2L48.4 51.1L46.9 50.7L45.3 50.1L45.2 50L43.8 49L43.1 48.4L42.2 47.5L41.7 46.9L40.9 45.3L40.6 44.6L40.3 43.8L40 42.2L40 40.6L40.2 39.1L40.6 37.8L40.7 37.5L41.5 35.9L42.2 35L42.7 34.4L43.8 33.4L44.6 32.8L45.3 32.4L46.9 31.7L48.4 31.3L49.3 31.3M21.4 59.4L21.9 59.2L23.4 59.1L25 59.2L25.8 59.4L26.6 59.6L28.1 60.3L28.9 60.9L29.7 61.6L30.5 62.5L31.3 63.8L31.4 64.1L31.9 65.6L32.1 67.2L32.1 68.8L31.7 70.3L31.3 71.3L31 71.9L29.8 73.4L29.7 73.6L28.1 74.8L27.8 75L26.6 75.6L25 76L23.4 76.1L21.9 76L20.3 75.5L19.4 75L18.8 74.6L17.4 73.4L17.2 73.2L16.2 71.9L15.6 70.6L15.5 70.3L15.1 68.8L15.1 67.2L15.3 65.6L15.6 64.6L15.8 64.1L16.8 62.5L17.2 62L18.3 60.9L18.8 60.6L20.3 59.7L21.4 59.4"></path><path class="atlas__contour" stroke-opacity="0.391" style="animation-delay:-13.799999999999999s" d="M47 32.8L48.4 32.4L50 32.3L51.6 32.4L53 32.8L53.1 32.8L54.7 33.6L55.7 34.4L56.3 34.9L57.2 35.9L57.8 36.9L58.1 37.5L58.7 39.1L58.9 40.6L58.9 42.2L58.6 43.8L57.9 45.3L57.8 45.5L56.9 46.9L56.3 47.6L55.2 48.4L54.7 48.8L53.1 49.6L51.6 50L51.3 50L50 50.1L48.7 50L48.4 50L46.9 49.6L45.3 48.8L44.8 48.4L43.8 47.6L43.1 46.9L42.2 45.5L42.1 45.3L41.4 43.8L41.1 42.2L41.1 40.6L41.3 39.1L41.9 37.5L42.2 36.9L42.8 35.9L43.8 34.8L44.3 34.4L45.3 33.6L46.9 32.8L47 32.8M20.3 60.9L21.9 60.4L23.4 60.2L25 60.3L26.6 60.8L26.9 60.9L28.1 61.7L29 62.5L29.7 63.4L30.1 64.1L30.8 65.6L31 67.2L30.9 68.8L30.5 70.3L29.7 71.9L28.2 73.4L28.1 73.5L26.6 74.4L25 74.9L24.1 75L23.4 75.1L23 75L21.9 74.9L20.3 74.3L19 73.4L18.8 73.2L17.5 71.9L17.2 71.3L16.7 70.3L16.3 68.8L16.2 67.2L16.4 65.6L17.1 64.1L17.2 63.9L18.2 62.5L18.8 62L20.3 60.9M29.7 71.9"></path><path class="atlas__contour atlas__contour--index" stroke-opacity="0.687" style="animation-delay:-16.099999999999998s" d="M46.1 34.4L46.9 34L48.4 33.5L50 33.3L51.6 33.5L53.1 34L53.8 34.4L54.7 34.9L55.8 35.9L56.3 36.5L56.9 37.5L57.6 39.1L57.8 40.5L57.8 40.6L57.8 41.8L57.8 42.2L57.5 43.8L56.7 45.3L56.3 46L55.5 46.9L54.7 47.5L53.1 48.4L51.6 48.9L50 49.1L48.4 48.9L47 48.4L46.9 48.4L45.3 47.5L44.6 46.9L43.8 45.9L43.3 45.3L42.6 43.8L42.2 42.2L42.2 42.1L42.1 40.6L42.2 40.3L42.4 39.1L42.9 37.5L43.8 36.3L44.1 35.9L45.3 34.8L46.1 34.4M19.9 62.5L20.3 62.2L21.9 61.5L23.4 61.3L25 61.4L26.6 62L27.3 62.5L28.1 63.2L28.8 64.1L29.6 65.6L29.7 65.9L29.9 67.2L29.8 68.8L29.7 69.2L29.3 70.3L28.3 71.9L28.1 72.1L26.6 73.3L26.2 73.4L25 73.9L23.4 74.1L21.9 73.8L21 73.4L20.3 73.1L18.9 71.9L18.8 71.7L17.9 70.3L17.4 68.8L17.3 67.2L17.6 65.6L18.4 64.1L18.8 63.6L19.9 62.5"></path><path class="atlas__contour" stroke-opacity="0.468" style="animation-delay:-18.4s" d="M45.4 35.9L46.9 35L48.4 34.5L50 34.4L51.6 34.6L53.1 35.2L54.2 35.9L54.7 36.3L55.7 37.5L56.3 38.6L56.4 39.1L56.8 40.6L56.8 42.2L56.4 43.8L56.3 44L55.6 45.3L54.7 46.3L53.9 46.9L53.1 47.4L51.6 47.9L50 48L48.4 47.8L46.9 47.2L46.3 46.9L45.3 46.1L44.6 45.3L43.8 43.9L43.7 43.8L43.2 42.2L43.1 40.6L43.3 39.1L43.8 38L44 37.5L45.3 36L45.4 35.9M23 62.5L23.4 62.4L24.1 62.5L25 62.6L26.6 63.4L27.3 64.1L28.1 65.2L28.4 65.6L28.8 67.2L28.7 68.8L28.1 70.3L26.9 71.9L26.6 72.1L25 73L23.4 73.2L21.9 72.9L20.3 71.9L19 70.3L18.8 69.5L18.5 68.8L18.4 67.2L18.8 65.8L18.8 65.6L19.9 64.1L20.3 63.6L21.9 62.7L23 62.5"></path><path class="atlas__contour" stroke-opacity="0.506" style="animation-delay:-20.7s" d="M46.9 35.9L48.4 35.5L50 35.4L51.6 35.7L52 35.9L53.1 36.5L54.3 37.5L54.7 38L55.3 39.1L55.8 40.6L55.8 42.2L55.5 43.8L54.7 45L54.5 45.3L53.1 46.4L51.7 46.9L51.6 46.9L50 47L49.2 46.9L48.4 46.7L46.9 45.9L46.1 45.3L45.3 44.4L44.9 43.8L44.2 42.2L43.9 40.6L44.1 39.1L44.9 37.5L45.3 37L46.9 35.9M22.1 64.1L23.4 63.7L25 64L25.1 64.1L26.6 65.1L27 65.6L27.6 67.2L27.6 68.8L27.1 70.3L26.6 70.9L25.4 71.9L25 72.1L23.4 72.4L21.9 72L21.8 71.9L20.3 70.5L20.1 70.3L19.6 68.8L19.6 67.2L20.2 65.6L20.3 65.5L21.9 64.1L22.1 64.1"></path><path class="atlas__contour" stroke-opacity="0.545" style="animation-delay:-23s" d="M45.8 37.5L46.9 36.7L48.4 36.3L50 36.5L51.6 37L52.5 37.5L53.1 38L54 39.1L54.7 40.4L54.8 40.6L55 42.2L54.7 43.5L54.6 43.8L53.4 45.3L53.1 45.5L51.6 46.2L50 46.1L48.4 45.6L48 45.3L46.9 44.5L46.2 43.8L45.3 42.5L45.2 42.2L44.7 40.6L44.8 39.1L45.3 38.1L45.8 37.5M22.2 65.6L23.4 65.2L25 65.5L25.1 65.6L26.4 67.2L26.6 68.2L26.6 68.8L26.6 69L26.1 70.3L25 71.3L23.4 71.7L21.9 71.1L21.1 70.3L20.6 68.8L20.8 67.2L21.9 65.7L22.2 65.6"></path><path class="atlas__contour atlas__contour--index" stroke-opacity="0.933" style="animation-delay:-25.299999999999997s" d="M46.8 37.5L46.9 37.4L48.4 37.1L50 37.5L51.6 38.4L52.5 39.1L53.1 39.6L53.8 40.6L54.2 42.2L53.9 43.8L53.1 44.7L51.8 45.3L51.6 45.4L50.6 45.3L50 45.2L48.4 44.3L47.7 43.8L46.9 43L46.2 42.2L45.4 40.6L45.5 39.1L46.8 37.5M22.1 67.2L23.4 66.4L25 67L25.2 67.2L25.8 68.8L25.2 70.3L25 70.5L23.4 71L22.1 70.3L21.9 70L21.4 68.8L21.9 67.4L22.1 67.2"></path><path class="atlas__contour" stroke-opacity="0.622" style="animation-delay:-27.599999999999998s" d="M46.2 39.1L46.9 38.3L48.4 37.9L50 38.7L50.6 39.1L51.6 39.7L52.7 40.6L53.1 41.2L53.5 42.2L53.2 43.8L53.1 43.8L51.6 44.7L50 44.4L49.1 43.8L48.4 43L47.5 42.2L46.9 41.7L46.2 40.6L46.2 39.1M22.4 68.8L23.4 67.7L24.9 68.8L23.4 70.3L22.4 68.8"></path><path class="atlas__contour" stroke-opacity="0.66" style="animation-delay:-29.9s" d="M47.1 39.1L48.4 38.8L48.9 39.1L50 40.3L50.6 40.6L51.6 41L52.6 42.2L52 43.8L51.6 44L50.8 43.8L50 43.1L49.2 42.2L48.4 41.4L47.1 40.6L47.1 39.1"></path></g></svg><span class="atlas__zone" data-atlas-zone="" aria-hidden="true" style="left:50%;top:32.82720779386422%">New institutions</span><span class="atlas__zone" data-atlas-zone="" aria-hidden="true" style="left:23.6%;top:59.599999999999994%">Living memory</span><ul class="atlas__marks"><li data-atlas-mark="" data-atlas-key="post:hiding" class="atlas__mark atlas__mark--post" style="left:51.760000000000005%;top:42.96%"><a href="/essays/hiding-in-plain-sight"><i class="atlas__glyph" aria-hidden="true"></i><span class="atlas__tip" data-atlas-tip=""><b>Hiding in Plain Sight</b><span>Essay, 2026</span><em>New institutions</em></span></a></li><li data-atlas-mark="" data-atlas-key="deck:living" class="atlas__mark atlas__mark--deck" style="left:47.36%;top:39.44%"><a href="/presentations/organizations-as-living-systems"><i class="atlas__glyph" aria-hidden="true"></i><span class="atlas__tip" data-atlas-tip=""><b>Organizations as Living Systems</b><span>Presentation, 2026</span><em>New institutions</em></span></a></li><li data-atlas-mark="" data-atlas-key="project:lefthoek" class="atlas__mark atlas__mark--project atlas__mark--west" style="left:85.2%;top:85.2%"><a href="/projects/lefthoek"><i class="atlas__glyph" aria-hidden="true"></i><span class="atlas__tip" data-atlas-tip=""><b>Lefthoek</b><span>Project, 2020</span></span></a></li><li data-atlas-mark="" data-atlas-key="project:offcourse" class="atlas__mark atlas__mark--project atlas__mark--east" style="left:23.6%;top:69.36%"><span title="Offcourse"><i class="atlas__glyph" aria-hidden="true"></i></span></li></ul></div><p class="atlas__legend"><span class="atlas__caption">My published work, by topic</span><span class="atlas__key--post"><i aria-hidden="true"></i>Essay</span><span class="atlas__key--deck"><i aria-hidden="true"></i>Presentation</span><span class="atlas__key--project"><i aria-hidden="true"></i>Project</span></p></div><svg class="atlas__leads" data-atlas-leads="" aria-hidden="true"></svg><script src="/ask/assets/box.js" defer=""></script></section>"
+`;
+
+exports[`professional homepage pin renders the opening without a map 1`] = `
+"<section class="atlas atlas--bare" data-atlas="" aria-label="Introduction"><style>
+.atlas {
+  --atlas-contour: var(--color-text);
+  --atlas-talk: min(40rem, 46%);
+  position: relative; isolation: isolate; overflow: hidden;
+  display: flex; align-items: stretch;
+  min-height: calc(100svh - 4.5rem);
+  background: var(--color-bg); border-bottom: 1px solid var(--color-rule);
+}
+[data-theme="dark"] .atlas { --atlas-contour: var(--color-accent); }
+.atlas__map { position: absolute; inset: 0 0 0 var(--atlas-talk); }
+.atlas__field { position: absolute; inset: 0; }
+.atlas__terrain {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  /* The field is cut at the map box; fade the rings out before they reach it. */
+  mask-image: linear-gradient(90deg, transparent, #000 9%, #000 93%, transparent), linear-gradient(180deg, transparent, #000 8%, #000 92%, transparent);
+  mask-composite: intersect;
+}
+.atlas__contour {
+  fill: none; stroke: var(--atlas-contour); stroke-width: .7;
+  stroke-linejoin: round; vector-effect: non-scaling-stroke;
+}
+.atlas__contour--index { stroke-width: 1.2; }
+/* Drift in fine steps (~5 a second, each a fraction of a pixel): the same motion without repainting every frame. */
+.atlas__contour { animation: atlas-drift 34s steps(170) infinite alternate; }
+[data-atlas][data-still] .atlas__contour { animation-play-state: paused; }
+@keyframes atlas-drift {
+  from { transform: translate(-.6px, .45px); }
+  to { transform: translate(.6px, -.45px); }
+}
+.atlas__zone {
+  position: absolute; transform: translate(-50%, -100%); white-space: nowrap; pointer-events: none;
+  font-family: var(--font-heading); font-style: italic; font-size: 1rem; letter-spacing: .03em;
+  font-variation-settings: "SOFT" 60, "opsz" 24; color: var(--color-text-muted);
+  text-shadow: 0 0 .5rem var(--color-bg), 0 0 .2rem var(--color-bg);
+  /* Set by the script from the name's measured box. */
+  translate: var(--atlas-name-shift, 0 0);
+}
+.atlas__marks { list-style: none; margin: 0; padding: 0; }
+.atlas__mark { position: absolute; transform: translate(-50%, -50%); }
+.atlas__mark > a, .atlas__mark > span:first-child {
+  display: grid; place-items: center; width: 1.6rem; height: 1.6rem; border-radius: 50%; color: inherit;
+}
+.atlas__glyph {
+  display: block; width: 7px; height: 7px; border-radius: 50%; background: var(--color-text);
+  box-shadow: 0 0 0 3px var(--color-bg); transition: transform .25s, background-color .25s;
+}
+.atlas__mark--deck .atlas__glyph { border-radius: 1px; transform: rotate(45deg); }
+.atlas__mark--project .atlas__glyph { width: 8px; height: 8px; border-radius: 1.5px; }
+.atlas__mark a:focus-visible .atlas__glyph { background: var(--color-accent); transform: scale(1.5); }
+.atlas__mark--deck a:focus-visible .atlas__glyph { transform: rotate(45deg) scale(1.5); }
+.atlas__mark a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.atlas__tip {
+  position: absolute; z-index: 2; bottom: calc(100% + .3rem); left: 50%; transform: translateX(-50%);
+  width: max-content; max-width: 16rem; padding: .45rem .65rem .5rem; text-align: left;
+  border-radius: .5rem; background: var(--color-bg-subtle); border: 1px solid var(--color-border);
+  box-shadow: 0 12px 30px -16px rgb(from var(--color-text) r g b / .5);
+  opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.atlas__mark--west .atlas__tip { left: auto; right: 50%; transform: none; }
+.atlas__mark--east .atlas__tip { left: 50%; transform: none; }
+/* A transformed mark is its own stacking context: lift the active one over its neighbours. */
+.atlas__mark:focus-within, .atlas__mark[data-open] { z-index: 3; }
+.atlas__mark[data-open] .atlas__tip { opacity: 1; }
+.atlas__mark[data-open] .atlas__glyph { background: var(--color-accent); transform: scale(1.5); }
+.atlas__mark--deck[data-open] .atlas__glyph { transform: rotate(45deg) scale(1.5); }
+.atlas__tip b { display: block; font-family: var(--font-heading); font-weight: 500; font-size: .98rem; line-height: 1.2; color: var(--color-heading); }
+.atlas__tip span { font-size: .78rem; color: var(--color-text-light); }
+.atlas__tip em {
+  display: block; margin-top: .1rem; font-family: var(--font-heading); font-size: .82rem; letter-spacing: .02em;
+  font-variation-settings: "SOFT" 60, "opsz" 24; color: var(--color-text-muted);
+}
+.atlas__mark a:focus-visible .atlas__tip { opacity: 1; }
+/* Touch browsers leave hover stuck on the tapped element; there the script opens cards instead. */
+@media (hover: hover) {
+  .atlas__mark:hover { z-index: 3; }
+  .atlas__mark a:hover .atlas__glyph { background: var(--color-accent); transform: scale(1.5); }
+  .atlas__mark--deck a:hover .atlas__glyph { transform: rotate(45deg) scale(1.5); }
+  .atlas__mark a:hover .atlas__tip { opacity: 1; }
+}
+.atlas__legend {
+  position: absolute; right: clamp(1rem, 3vw, 3rem); bottom: 1.1rem; margin: 0;
+  display: flex; flex-wrap: wrap; align-items: center; gap: .4rem 1.1rem; padding: .4rem .85rem;
+  border-radius: 999px; background: rgb(from var(--color-bg) r g b / .72); backdrop-filter: blur(6px);
+  font-size: .85rem; color: var(--color-text-light);
+}
+.atlas__legend span { display: inline-flex; align-items: center; gap: .35rem; }
+.atlas__legend i { display: inline-block; width: 7px; height: 7px; background: var(--color-text-muted); border-radius: 50%; }
+.atlas__legend .atlas__key--deck i { border-radius: 1px; transform: rotate(45deg); }
+.atlas__legend .atlas__key--project i { border-radius: 1.5px; }
+
+.atlas__talk {
+  position: relative; z-index: 1; width: calc(var(--atlas-talk) + 2rem);
+  display: flex; flex-direction: column; justify-content: center;
+  padding: clamp(2.5rem, 7vh, 5rem) 4rem clamp(2rem, 6vh, 4rem) clamp(1.25rem, 4vw, 3rem);
+  background: linear-gradient(90deg, var(--color-bg) 0% 88%, rgb(from var(--color-bg) r g b / 0) 100%);
+}
+.atlas--bare .atlas__talk { width: min(48rem, 100%); background: none; }
+.atlas__byline { display: flex; align-items: center; gap: .7rem; margin-bottom: 1.5rem; }
+.atlas__initials {
+  flex: none; display: grid; place-items: center; width: 2.3rem; height: 2.3rem; border-radius: 50%;
+  background: var(--color-text); color: var(--color-bg);
+  font-family: var(--font-heading); font-size: .85rem; letter-spacing: .03em;
+}
+.atlas__byline b { display: block; font-weight: 600; font-size: .98rem; line-height: 1.2; color: var(--color-heading); }
+.atlas__byline small { font-size: .85rem; color: var(--color-text-light); }
+.atlas h1 {
+  margin: 0 0 1.4rem; font-family: var(--font-heading); font-weight: 400;
+  font-size: clamp(2.8rem, 5.2vw, 4.9rem); line-height: 1; letter-spacing: -.018em; text-wrap: balance;
+  font-variation-settings: "SOFT" 50, "opsz" 96; color: var(--color-heading);
+}
+.atlas__emphasis { font-style: italic; color: var(--color-accent); }
+.atlas__prose { max-width: 31rem; font-family: var(--font-heading); font-weight: 300; font-size: clamp(1.1rem, 1.35vw, 1.25rem); line-height: 1.55; font-variation-settings: "opsz" 24; color: var(--color-text-muted); overflow-wrap: anywhere; }
+.atlas__prose p { margin: 0 0 .8em; font-size: inherit; line-height: inherit; color: inherit; }
+.atlas__prose a { color: var(--color-accent); text-underline-offset: .18em; }
+.atlas__door { margin-top: 2rem; max-width: 31rem; }
+.atlas__door h2 { margin: 0 0 .4rem; font-family: var(--font-heading); font-weight: 500; font-size: 1.45rem; line-height: 1.2; color: var(--color-heading); font-variation-settings: "opsz" 36; }
+.atlas__topics { list-style: none; margin: .5rem 0 1.2rem; padding: 0; display: grid; gap: .1rem; }
+.atlas__topics a {
+  display: block; margin: 0 -.7rem; padding: .45rem .7rem; border-radius: .7rem;
+  font-family: var(--font-heading); font-style: italic; font-size: 1.1rem; line-height: 1.3;
+  color: var(--color-text); text-decoration: none; overflow-wrap: anywhere;
+}
+.atlas__topics a:hover, .atlas__topics a:focus-visible { background: var(--color-bg-subtle); color: var(--color-accent); }
+.atlas__contact {
+  display: inline-block; border-radius: 999px; padding: .85rem 1.3rem; text-decoration: none;
+  background: var(--color-accent); color: var(--color-text-inverse); font-weight: 600; line-height: 1;
+}
+.atlas__contact:hover { background: var(--color-accent-dark); }
+.atlas__contact:focus-visible, .atlas__topics a:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+.atlas__note { margin: .9rem 0 0; font-size: .84rem; color: var(--color-text-light); }
+/* After the resting styles, so these win. Touch has no hover to reveal what is a link: the open card's title reads as one,
+   and the topics rest in the state a pointer would give them, as choices to tap. */
+@media (hover: none) {
+  .atlas__tip b { text-decoration-line: underline; text-decoration-color: var(--color-accent); text-decoration-thickness: 1px; text-underline-offset: .2em; }
+  .atlas__topics { gap: .45rem; }
+  .atlas__topics a { background: var(--color-bg-subtle); padding: .65rem .8rem; }
+}
+
+/* The docked chat box: Web Chat mounts the conversation into this host and
+   styles it; the atlas themes it and keeps its composer the same before and
+   after the mount. The page already presents the opening and its topics. */
+.atlas--chat .atlas__talk { max-height: calc(100svh - 4.5rem); overflow-y: auto; }
+.atlas__ask {
+  margin-top: 1.6rem; max-width: 34rem;
+  --ask-wash: var(--color-bg-subtle); --ask-display: var(--font-heading); --ask-muted: var(--color-text-light);
+}
+/* Out of sight until Web Chat's boot has made the box live; the door stays either way. */
+.atlas__ask:not([data-ask-ready]) { display: none; }
+.atlas__ask-status { margin: 0 0 .5rem; font-size: .84rem; color: var(--color-text-light); }
+.atlas__ask-status:empty { display: none; }
+.atlas__ask .brain-box-welcome { display: none; }
+.atlas__ask .brain-box-header-actions { margin: 0 0 .5rem; }
+.atlas__ask .brain-box-bottom { border-top: 0; margin-top: .4rem; padding-top: 0; }
+.atlas__ask .brain-box-hint { margin: .55rem 0 0 1.1rem; }
+.atlas__ask .brain-box-hint:empty { display: none; }
+.atlas__composer, .atlas__ask .prompt-row {
+  display: flex; align-items: flex-end; gap: .6rem; padding: .5rem .5rem .5rem 1.1rem;
+  border-radius: 1.4rem; background: var(--color-bg-subtle); border: 1px solid var(--color-border);
+  box-shadow: 0 22px 50px -32px rgb(from var(--color-text) r g b / .5);
+}
+.atlas__composer:focus-within, .atlas__ask .prompt-row:focus-within { border-color: var(--color-accent); }
+.atlas__composer textarea, .atlas__ask .prompt-row textarea {
+  flex: 1; min-width: 0; resize: none; border: 0; background: transparent; color: var(--color-text);
+  font: inherit; font-size: 1.1rem; line-height: 1.4; padding: .55rem 0; field-sizing: content; min-height: 1.4em; max-height: 7em;
+}
+.atlas__composer textarea:focus, .atlas__ask .prompt-row textarea:focus { outline: none; }
+.atlas__send, .atlas__ask .send {
+  flex: none; display: grid; place-items: center; width: 2.7rem; height: 2.7rem; border: 0; border-radius: 50%;
+  background: var(--color-accent); color: var(--color-text-inverse); cursor: pointer; font-size: 1.2rem; font-weight: 600;
+}
+.atlas__send svg { width: 1.1rem; height: 1.1rem; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.atlas__send:disabled, .atlas__ask .send:disabled { opacity: .5; cursor: default; }
+.atlas__send:focus-visible, .atlas__ask .send:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+
+/* An answer turns the map towards the sources it drew on. */
+.atlas__field { transition: transform .9s cubic-bezier(.3, .7, .2, 1); }
+.atlas__field[data-focused] { transform: scale(var(--atlas-focus-scale, 1)); transform-origin: var(--atlas-focus-x, 50%) var(--atlas-focus-y, 50%); }
+.atlas__field[data-focused] .atlas__mark:not([data-cited]) { opacity: .45; }
+.atlas__mark[data-cited] { z-index: 3; }
+.atlas__mark[data-cited] .atlas__glyph { background: var(--color-accent); transform: scale(1.5); box-shadow: 0 0 0 3px var(--color-bg), 0 0 0 7px rgb(from var(--color-accent) r g b / .22); }
+.atlas__mark--deck[data-cited] .atlas__glyph { transform: rotate(45deg) scale(1.5); }
+/* Leads from the answer\\u2019s listed sources to their marks; the script draws them on desktop only. */
+.atlas__leads { position: absolute; inset: 0; z-index: 2; width: 100%; height: 100%; pointer-events: none; }
+.atlas__leads path { fill: none; stroke: var(--color-accent); stroke-width: 1.6; stroke-linecap: round; stroke-dasharray: .1 6; }
+
+@media (max-width: 60rem) {
+  /* The map leads visually on phones; the conversation stays first in the document.
+     The first screen holds the map and the headline together. */
+  .atlas { flex-direction: column; min-height: 0; --atlas-band: clamp(17rem, 47svh, 25rem); }
+  .atlas__map { order: -1; position: relative; inset: auto; height: var(--atlas-band); }
+  /* Marks stay above the fade strip, where the legend rests. */
+  .atlas__field { bottom: 2rem; }
+  /* Long names take two short lines, so more of them fit a narrow map. */
+  .atlas__zone { font-size: .8rem; white-space: normal; width: max-content; max-width: 9em; text-align: center; line-height: 1.15; }
+  /* The build records where the map's content ends (--atlas-fill of the field); the legend and the text start there, over the fading outer rings. */
+  .atlas__legend { left: clamp(1rem, 5vw, 2rem); right: auto; bottom: calc(.35rem + (1 - var(--atlas-fill, 1)) * (var(--atlas-band) - 2rem)); padding: .25rem .7rem; font-size: .74rem; gap: .3rem .9rem; }
+  .atlas__legend .atlas__caption { display: none; }
+  .atlas__talk { width: auto; margin-top: calc(-1 * (1 - var(--atlas-fill, 1)) * (var(--atlas-band) - 2rem)); padding: .9rem clamp(1rem, 5vw, 2rem) 2.5rem; background: none; }
+  .atlas__byline { margin-bottom: .8rem; gap: .55rem; }
+  .atlas__initials { width: 1.8rem; height: 1.8rem; font-size: .72rem; }
+  .atlas h1 { font-size: clamp(2.5rem, 11.5vw, 3.6rem); margin-bottom: 1rem; }
+  .atlas__leads { display: none; }
+  /* The text flows with the page on phones; only desktop scrolls it beside the map. */
+  .atlas--chat .atlas__talk { max-height: none; overflow: visible; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .atlas__contour { animation: none; }
+  .atlas__glyph, .atlas__tip, .atlas__field { transition: none; }
+}
+</style><div class="atlas__talk"><p class="atlas__byline"><span class="atlas__initials" aria-hidden="true">JH</span><span><b>Jan Hein Hoogstad</b><small>In my own words</small></span></p><h1>Building something <span class="atlas__emphasis">inhabitable</span>.</h1><article class="prose prose-lg max-w-none prose-h1:text-4xl prose-h1:font-bold prose-h1:mb-8 prose-h1:mt-0 prose-h2:text-3xl prose-h2:font-semibold prose-h2:mt-16 prose-h2:mb-6 prose-h2:border-b prose-h2:pb-4 prose-h3:text-2xl prose-h3:font-semibold prose-h3:mt-10 prose-h3:mb-4 prose-p:text-lg prose-p:leading-relaxed prose-p:mb-6 prose-ul:my-6 prose-ul:space-y-3 prose-ol:my-6 prose-ol:space-y-3 prose-li:leading-relaxed prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm prose-code:font-mono prose-pre:rounded-lg prose-pre:my-6 prose-pre:p-4 prose-pre:overflow-x-auto prose-pre:text-sm prose-blockquote:border-l-2 prose-blockquote:border-brand prose-blockquote:pl-6 prose-blockquote:py-2 prose-blockquote:mt-8 prose-blockquote:mb-2 prose-blockquote:text-lg prose-blockquote:leading-relaxed prose-blockquote:font-light prose-blockquote:not-italic prose-hr:my-12 prose-img:rounded-lg prose-img:shadow-md prose-img:my-8 atlas__prose"><p>I work on how institutions hold what they know.</p>
+</article><div class="atlas__door"><h2>Pick a thread</h2><ul class="atlas__topics" aria-label="Conversation topics"><li><a href="https://yeehaa.test/contact?topic=Someone+who+carries+a+lot+is+about+to+leave" data-atlas-door="">Someone who carries a lot is about to leave</a></li><li><a href="https://yeehaa.test/contact?topic=A+second+thread" data-atlas-door="">A second thread</a></li></ul><a class="atlas__contact" href="https://yeehaa.test/contact" data-atlas-door="">Write to me</a><p class="atlas__note">I read these myself.</p></div></div></section>"
+`;
+
+exports[`professional homepage pin renders the site layout 1`] = `"<div class="flex flex-col min-h-screen bg-theme overflow-x-clip"><header class="sticky top-0 z-50 py-5 border-b border-rule bg-header"><div class="px-6 md:px-12"><div class="max-w-layout mx-auto flex flex-row justify-between items-center gap-8"><a href="/" class="text-logo hover:opacity-80 transition-opacity"><span class="font-heading font-medium text-[1.4rem] leading-none tracking-[-0.01em] [font-variation-settings:&#x27;opsz&#x27;_24,&#x27;SOFT&#x27;_50]">yeehaa</span></a><nav class="hidden md:flex gap-7" aria-label="Main navigation"><a href="/about" class="nav-link">About</a></nav><div class="hidden md:flex items-center gap-4"><button data-theme-toggle="true" type="button" class="transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 rounded-[10px] bg-theme-subtle border border-theme text-theme-muted hover:text-accent hover:border-brand/40 p-2" aria-label="Toggle dark mode"><svg class="w-5 h-5 transition-colors" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path class="sun-icon" stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path><path class="moon-icon" stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9 9 0 1020.354 15.354z"></path></svg></button></div><button type="button" class="inline-flex items-center justify-center font-bold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-theme-subtle text-sm md:hidden p-2 h-auto rounded-[10px] text-theme-muted border border-theme bg-theme-subtle hover:text-accent hover:border-brand/40" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="mobile-menu" id="mobile-menu-button"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path class="menu-icon" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path><path class="close-icon hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><nav id="mobile-menu" aria-label="Mobile navigation" class="md:hidden overflow-hidden transition-all duration-300 ease-in-out max-h-0 opacity-0"><div class="flex flex-col gap-3 mt-4 pb-2 pt-4 border-t border-theme"><a href="/about" class="nav-link">About</a><div class="pt-2 mt-2 border-t border-theme"><button data-theme-toggle="true" type="button" class="transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 rounded-[10px] bg-theme-subtle border border-theme text-theme-muted hover:text-accent hover:border-brand/40 p-1.5" aria-label="Toggle dark mode"><svg class="w-4 h-4 transition-colors" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path class="sun-icon" stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path><path class="moon-icon" stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9 9 0 1020.354 15.354z"></path></svg></button></div></div></nav></div></header><main class="flex-grow flex flex-col bg-theme"><p>Section</p></main><footer class="footer pt-14 pb-10 bg-footer border-t border-rule"><div class="container mx-auto px-6 max-w-layout"><div><div class="flex flex-col gap-10 sm:flex-row sm:items-start sm:gap-12"><div class="sm:max-w-[18rem] sm:flex-1"><a href="/" class="text-logo inline-block mb-2"><span class="font-heading font-medium tracking-[-0.01em] [font-variation-settings:&#x27;opsz&#x27;_24,&#x27;SOFT&#x27;_50] text-[1.25rem]">yeehaa</span></a><p class="text-[0.85rem] leading-[1.55] text-theme-muted max-w-[30ch]">Building something inhabitable.</p></div><div class="grid grid-cols-2 sm:flex sm:gap-12"><div><div class="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-accent/80 mb-5">Navigate</div><ul class="flex flex-wrap flex-col gap-2.5"><li><a href="/about" class="text-theme-muted hover:text-brand text-sm">About</a></li></ul></div><div><div class="font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-accent/80 mb-5">More</div><ul class="flex flex-wrap flex-col gap-2.5"><li><a href="/" class="text-theme-muted hover:text-brand text-sm">Home</a></li></ul></div></div></div><div class="mt-14 pt-6 border-t border-rule flex flex-row flex-wrap justify-between items-center gap-4"><p class="font-mono text-[0.7rem] uppercase tracking-[0.16em] text-theme-light">© 2026 yeehaa</p><div class="flex items-center gap-5"><div class="flex gap-4 items-center"><a href="https://github.com/yeehaa123" target="_blank" rel="noopener noreferrer" aria-label="GitHub" class="inline-block transition-opacity hover:opacity-70"><svg class="w-4 h-4 text-theme-light hover:text-brand hover:opacity-100" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"></path></svg></a></div><button data-theme-toggle="true" type="button" class="transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 rounded-full bg-theme-toggle hover:bg-theme-toggle-hover text-theme-toggle-icon p-1.5" aria-label="Toggle dark mode"><svg class="w-4 h-4 transition-colors" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path class="sun-icon" stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path><path class="moon-icon" stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9 9 0 1020.354 15.354z"></path></svg></button></div></div></div></div></footer></div>"`;
+
+exports[`professional homepage pin ships the atlas script with the opted-in homepage 1`] = `
+{
+  "runtimeScripts": [
+    {
+      "defer": true,
+      "src": "/scripts/homepage-atlas.js",
+    },
+  ],
+  "staticAssets": {
+    "/scripts/homepage-atlas.js": 
+"(function () {
+  var roots = document.querySelectorAll("[data-atlas]");
+  if (!roots.length) return;
+
+  function media(query) {
+    return window.matchMedia
+      ? window.matchMedia(query)
+      : { matches: false, addEventListener: function () {} };
+  }
+  var touch = media("(hover: none)");
+  var still = media("(prefers-reduced-motion: reduce)");
+  // Phones stack the map above the opening (the stylesheet's breakpoint).
+  var narrow = media("(max-width: 60rem)");
+
+  roots.forEach(function (root) {
+    var doors = root.querySelectorAll("[data-atlas-door]");
+    function carryTheme() {
+      var theme = document.documentElement.getAttribute("data-theme");
+      if (theme !== "light" && theme !== "dark") return;
+      doors.forEach(function (link) {
+        var url = new URL(link.getAttribute("href") || "", window.location.href);
+        url.searchParams.set("theme", theme);
+        link.setAttribute("href", url.href);
+      });
+    }
+    carryTheme();
+    if (typeof MutationObserver === "function")
+      new MutationObserver(carryTheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+    var terrain = root.querySelector("[data-atlas-terrain]");
+    var visible = true;
+    function syncMotion() {
+      if (visible && !still.matches && !document.hidden) root.removeAttribute("data-still");
+      else root.setAttribute("data-still", "");
+    }
+    if (terrain && typeof IntersectionObserver === "function") {
+      new IntersectionObserver(function (entries) {
+        visible = entries.some(function (entry) { return entry.isIntersecting; });
+        syncMotion();
+      }).observe(terrain);
+    }
+    if (still.addEventListener) still.addEventListener("change", syncMotion);
+    document.addEventListener("visibilitychange", syncMotion);
+    syncMotion();
+
+    var REACH = 36;
+    function nearest(x, y) {
+      var best = null;
+      var bestDistance = REACH;
+      root.querySelectorAll("[data-atlas-mark]").forEach(function (mark) {
+        if (!mark.querySelector("a")) return;
+        var box = mark.getBoundingClientRect();
+        var distance = Math.hypot(box.left + box.width / 2 - x, box.top + box.height / 2 - y);
+        if (distance <= bestDistance) { best = mark; bestDistance = distance; }
+      });
+      return best;
+    }
+
+    var open = null;
+    function close() {
+      if (!open) return;
+      open.removeAttribute("data-open");
+      open = null;
+    }
+    function liveDraft() {
+      var draft = root.querySelector("[data-ask-box] textarea");
+      return draft && !draft.disabled ? draft : null;
+    }
+    function fillDraft(draft, text) {
+      // The prototype setter lets a mounted (React) box see the new value.
+      var descriptor = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(draft), "value");
+      if (descriptor && descriptor.set) descriptor.set.call(draft, text);
+      else draft.value = text;
+      draft.dispatchEvent(new Event("input", { bubbles: true }));
+      draft.focus();
+    }
+
+    var field = root.querySelector("[data-atlas-field]");
+
+    var NAME_STEP_X = 12;
+    var NAME_STEP_Y = 6;
+    // A name moves at most this share of the map's width or height, so it stays by its territory at every size.
+    var NAME_REACH = 0.12;
+    var NAME_MARGIN = 3; // px kept clear around marks and placed names
+    var NAME_GAP = 14; // px between names side by side, so two never read as one
+    function steps(length, step) {
+      var reach = Math.max(1, Math.round((NAME_REACH * length) / step));
+      return Array.from({ length: 2 * reach + 1 }, function (_, k) { return (k - reach) * step; });
+    }
+    function nameOffsets(area) {
+      var ys = steps(area.bottom - area.top, NAME_STEP_Y);
+      return steps(area.right - area.left, NAME_STEP_X)
+        .flatMap(function (dx) { return ys.map(function (dy) { return [dx, dy]; }); })
+        .sort(function (a, b) { return Math.hypot(a[0], a[1]) - Math.hypot(b[0], b[1]); });
+    }
+    function moved(box, dx, dy) {
+      return { left: box.left + dx, top: box.top + dy, right: box.right + dx, bottom: box.bottom + dy };
+    }
+    function grown(box, sideways) {
+      var x = sideways || NAME_MARGIN;
+      return { left: box.left - x, top: box.top - NAME_MARGIN, right: box.right + x, bottom: box.bottom + NAME_MARGIN };
+    }
+    function hits(a, b) {
+      return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+    }
+    function placeNames() {
+      // A zoomed map is measured scaled; its names keep their last placement.
+      if (!field || field.hasAttribute("data-focused")) return;
+      var labels = Array.prototype.slice.call(root.querySelectorAll("[data-atlas-zone]"));
+      if (!labels.length) return;
+      labels.forEach(function (label) {
+        label.removeAttribute("hidden");
+        label.style.removeProperty("--atlas-name-shift");
+      });
+      var area = field.getBoundingClientRect();
+      // On a phone the text starts where the map's content ends; names stay above it.
+      var fill = field.parentElement
+        ? parseFloat(window.getComputedStyle(field.parentElement).getPropertyValue("--atlas-fill"))
+        : NaN;
+      if (narrow.matches && fill > 0 && fill < 1)
+        area = { left: area.left, top: area.top, right: area.right, bottom: area.top + fill * (area.bottom - area.top) };
+      var offsets = nameOffsets(area);
+      var bases = labels.map(function (label) { return label.getBoundingClientRect(); });
+      var taken = Array.prototype.map.call(
+        root.querySelectorAll("[data-atlas-mark] .atlas__glyph"),
+        function (glyph) { return grown(glyph.getBoundingClientRect()); }
+      );
+      labels.forEach(function (label, index) {
+        var base = bases[index];
+        // Start from the nearest position inside the map's edges.
+        var inward = Math.max(area.left - base.left, Math.min(0, area.right - base.right));
+        var spot = offsets.find(function (offset) {
+          var box = moved(base, inward + offset[0], offset[1]);
+          return (
+            box.left >= area.left && box.right <= area.right &&
+            box.top >= area.top && box.bottom <= area.bottom &&
+            !taken.some(function (other) { return hits(box, other); })
+          );
+        });
+        if (!spot) {
+          label.setAttribute("hidden", "");
+          // Its place stays empty: a smaller territory's name there would read as this one's.
+          taken.push(grown(moved(base, inward, 0), NAME_GAP));
+          return;
+        }
+        var dx = inward + spot[0];
+        if (dx || spot[1]) label.style.setProperty("--atlas-name-shift", dx + "px " + spot[1] + "px");
+        taken.push(grown(moved(base, dx, spot[1]), NAME_GAP));
+      });
+    }
+    var namesPending = 0;
+    function scheduleNames() {
+      if (namesPending) return;
+      namesPending = window.requestAnimationFrame(function () { namesPending = 0; placeNames(); });
+    }
+    placeNames();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeNames);
+    window.addEventListener("resize", scheduleNames);
+    if (narrow.addEventListener) narrow.addEventListener("change", scheduleNames);
+    var ZOOM = 1.25;
+    // Map percentages a cited mark keeps clear of; its card opens above it, under the header.
+    var CLEAR = { top: 20, right: 10, bottom: 10, left: 10 };
+    // The largest zoom around centre that keeps point between low and high.
+    function reach(centre, point, low, high) {
+      if (point > centre) return (high - centre) / (point - centre);
+      if (point < centre) return (centre - low) / (centre - point);
+      return ZOOM;
+    }
+    function turnTowards(cited) {
+      if (!field) return;
+      if (!cited.length) { field.removeAttribute("data-focused"); return; }
+      var at = function (mark, side) { return parseFloat(mark.style[side]) || 50; };
+      var x = cited.reduce(function (sum, mark) { return sum + at(mark, "left"); }, 0) / cited.length;
+      var y = cited.reduce(function (sum, mark) { return sum + at(mark, "top"); }, 0) / cited.length;
+      field.style.setProperty("--atlas-focus-x", x + "%");
+      field.style.setProperty("--atlas-focus-y", y + "%");
+      var zoom = cited.reduce(function (limit, mark) {
+        return Math.min(
+          limit,
+          reach(x, at(mark, "left"), CLEAR.left, 100 - CLEAR.right),
+          reach(y, at(mark, "top"), CLEAR.top, 100 - CLEAR.bottom)
+        );
+      }, ZOOM);
+      // Sources too far apart to zoom still light up; the map just holds still.
+      field.style.setProperty("--atlas-focus-scale", String(Math.max(1, Math.round(zoom * 100) / 100)));
+      field.setAttribute("data-focused", "");
+    }
+
+    var leads = root.querySelector("[data-atlas-leads]");
+    var SVG = "http://www.w3.org/2000/svg";
+    var TURN = 1000; // the map's turn towards its sources, and a frame
+    var GAP = 6; // between a listed source and its lead
+    var GLYPH = 9; // a lead stops short of the mark it points at
+    var citedMarks = [];
+    // Every scrolling box between an anchor and the atlas must show it.
+    function shown(element, middle) {
+      var parent = element.parentElement;
+      if (!parent || parent === root) return true;
+      var overflow = window.getComputedStyle(parent).overflowY;
+      if (overflow === "auto" || overflow === "scroll") {
+        var area = parent.getBoundingClientRect();
+        if (middle < area.top || middle > area.bottom) return false;
+      }
+      return shown(parent, middle);
+    }
+    // The latest answer's listing of a source, or its list's summary while closed.
+    function anchor(key) {
+      var listed = Array.prototype.filter.call(
+        root.querySelectorAll("[data-ask-box] [data-ask-source]"),
+        function (item) { return item.getAttribute("data-ask-source") === key; }
+      ).pop();
+      if (!listed) return null;
+      var list = listed.closest("details");
+      var from = list && !list.open ? list.querySelector("summary") || list : listed;
+      var box = from.getBoundingClientRect();
+      return box.height && shown(from, box.top + box.height / 2) ? box : null;
+    }
+    function drawLeads() {
+      if (!leads) return;
+      leads.replaceChildren();
+      if (narrow.matches) return;
+      var frame = root.getBoundingClientRect();
+      leads.setAttribute("viewBox", "0 0 " + frame.width + " " + frame.height);
+      citedMarks.forEach(function (mark) {
+        var key = mark.getAttribute("data-atlas-key");
+        var from = anchor(key);
+        if (!from) return;
+        var to = mark.getBoundingClientRect();
+        var x1 = from.right + GAP - frame.left;
+        var y1 = from.top + from.height / 2 - frame.top;
+        var toward = to.left + to.width / 2 - frame.left;
+        var x2 = toward > x1 ? toward - GLYPH : toward + GLYPH;
+        var y2 = to.top + to.height / 2 - frame.top;
+        var bend = Math.max(40, Math.abs(x2 - x1) / 2);
+        var lead = document.createElementNS(SVG, "path");
+        lead.setAttribute("data-lead", key);
+        lead.setAttribute("d", "M" + x1 + " " + y1 + " C" + (x1 + bend) + " " + y1 + " " + (x2 - bend) + " " + y2 + " " + x2 + " " + y2);
+        leads.append(lead);
+      });
+    }
+    var pending = 0;
+    function scheduleLeads() {
+      if (pending || !citedMarks.length) return;
+      pending = window.requestAnimationFrame(function () { pending = 0; drawLeads(); });
+    }
+    // While the map turns, its marks move under the leads every frame.
+    function followLeads(until) {
+      drawLeads();
+      if (citedMarks.length && Date.now() < until)
+        window.requestAnimationFrame(function () { followLeads(until); });
+    }
+    if (leads) {
+      window.addEventListener("resize", scheduleLeads);
+      // Scrolling the box or the conversation column moves the listed sources.
+      document.addEventListener("scroll", scheduleLeads, true);
+      // Opening or closing a source list moves where its leads start.
+      root.addEventListener("toggle", scheduleLeads, true);
+      if (narrow.addEventListener) narrow.addEventListener("change", scheduleLeads);
+      var host = root.querySelector("[data-ask-box]");
+      if (host && typeof ResizeObserver === "function") new ResizeObserver(scheduleLeads).observe(host);
+    }
+
+    root.addEventListener("ask:sources", function (event) {
+      var sources = (event.detail && event.detail.sources) || [];
+      var ids = sources.map(function (source) { return source.id; });
+      var cited = [];
+      root.querySelectorAll("[data-atlas-mark]").forEach(function (mark) {
+        if (ids.indexOf(mark.getAttribute("data-atlas-key")) >= 0) {
+          mark.setAttribute("data-cited", "");
+          cited.push(mark);
+        } else mark.removeAttribute("data-cited");
+      });
+      turnTowards(cited);
+      citedMarks = cited;
+      followLeads(Date.now() + TURN);
+    });
+
+    root.addEventListener("click", function (event) {
+      var target = event.target;
+      var fill = target && target.closest ? target.closest("[data-atlas-fill]") : null;
+      if (fill) {
+        var draft = liveDraft();
+        // Off: the link reaches the contact form as usual.
+        if (!draft) return;
+        event.preventDefault();
+        fillDraft(draft, fill.getAttribute("data-atlas-fill"));
+        return;
+      }
+      var inField = target && target.closest ? target.closest("[data-atlas-field]") : null;
+      if (!inField) { close(); return; }
+      if (!touch.matches) return;
+      var mark = nearest(event.clientX, event.clientY) || target.closest("[data-atlas-mark]");
+      // The open card, or a second tap on the open mark itself, follows its link natively.
+      var onOpenCard = open && open.contains(target) && target.closest("[data-atlas-tip]");
+      if (onOpenCard || (open && mark === open && open.contains(target))) return;
+      if (!mark) { close(); return; }
+      event.preventDefault();
+      if (mark === open) {
+        window.location.assign(mark.querySelector("a").href);
+        return;
+      }
+      close();
+      open = mark;
+      mark.setAttribute("data-open", "");
+    });
+    document.addEventListener("click", function (event) {
+      if (!root.contains(event.target)) close();
+    });
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") close();
+    });
+  });
+})();"
+,
+  },
+}
+`;

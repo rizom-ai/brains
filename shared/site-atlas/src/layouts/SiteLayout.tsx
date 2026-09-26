@@ -3,7 +3,7 @@ import type { LayoutSlots } from "@brains/site-engine";
 import type { SiteLayoutInfo } from "@brains/site-composition";
 import { Header, Footer } from "@brains/ui-library";
 
-export interface ProfessionalLayoutProps {
+export interface SiteLayoutProps {
   sections: ReactNode[];
   title: string;
   description: string;
@@ -20,15 +20,15 @@ export interface ProfessionalLayoutProps {
 }
 
 /**
- * Professional site layout with compact header and full footer with navigation
+ * Site layout with compact header and full footer with navigation
  * Clean and minimal
  */
-export function ProfessionalLayout({
+export function SiteLayout({
   sections,
   siteInfo,
   slots,
   wordmark,
-}: ProfessionalLayoutProps): JSX.Element {
+}: SiteLayoutProps): JSX.Element {
   return (
     <div className="flex flex-col min-h-screen bg-theme overflow-x-clip">
       <Header

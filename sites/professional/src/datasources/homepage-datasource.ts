@@ -1,5 +1,7 @@
-import type { HomepageOpeningData } from "./homepage-opening";
-import type { HomepageAtlasData } from "../schemas/homepage-atlas";
+import type {
+  HomepageAtlasData,
+  HomepageOpeningData,
+} from "@brains/site-atlas";
 import { fetchAnchorProfileData } from "@brains/profile";
 import type {
   BaseDataSourceContext,
