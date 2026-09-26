@@ -8,7 +8,7 @@
  * fakes; real `Thread`/`Message` values are assignable.
  */
 
-import type { PermissionLookupContext } from "@brains/plugins";
+import type { PermissionLookupContext } from "@brains/sdk/interfaces";
 import { isPlainRecord } from "@brains/utils/predicates";
 import type {
   DiscordChatAdapterConfig,

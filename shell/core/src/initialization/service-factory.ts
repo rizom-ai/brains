@@ -20,13 +20,13 @@ import { MessageBus } from "@brains/messaging-service";
 import {
   AccountSettingsRegistry,
   AttachmentRegistry,
+  AuthRegistry,
   ChannelRegistry,
   InboxFollowUpRegistry,
   InboxRegistry,
   OperationalHealthRegistry,
   PluginManager,
   RuntimeUploadRegistry,
-  createScheduledMaintenanceDaemon,
 } from "@brains/plugins";
 import { RecurringCheckService } from "@brains/recurring-checks";
 import {
@@ -41,6 +41,7 @@ import {
 } from "@brains/templates";
 import { Clock, Context } from "@brains/utils/effect";
 import type { Logger } from "@brains/utils/logger";
+import { createScheduledMaintenanceDaemon } from "@brains/scheduler/maintenance";
 import { OperationContext } from "@brains/operation-context";
 
 import { DaemonRegistry } from "../daemon-registry";
@@ -118,6 +119,7 @@ export function createShellServices(options: {
     new ProfileKindRegistry(config.profileKind);
   const channelRegistry =
     dependencies?.channelRegistry ?? new ChannelRegistry();
+  const authRegistry = AuthRegistry.createFresh();
   const inboxRegistry = dependencies?.inboxRegistry ?? new InboxRegistry();
   const inboxFollowUpRegistry =
     dependencies?.inboxFollowUpRegistry ?? new InboxFollowUpRegistry(logger);
@@ -342,6 +344,7 @@ export function createShellServices(options: {
     profileService,
     canonicalIdentityService,
     profileKindRegistry,
+    authRegistry,
     channelRegistry,
     inboxRegistry,
     inboxFollowUpRegistry,

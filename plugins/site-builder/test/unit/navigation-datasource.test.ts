@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { NavigationDataSource } from "../../src/datasources/navigation-datasource";
+import { navigationFor } from "../../src/datasources/navigation-datasource";
 import { RouteRegistry } from "@brains/site-engine";
 import type { RouteDefinitionInput } from "@brains/site-composition";
 import { createSilentLogger } from "@brains/test-utils";
@@ -15,15 +15,17 @@ const testNavigationSchema = z.object({
   ),
 });
 
-describe("NavigationDataSource", () => {
-  let dataSource: NavigationDataSource;
+describe("site navigation", () => {
   let routeRegistry: RouteRegistry;
   const logger = createSilentLogger("test");
 
   beforeEach(() => {
     routeRegistry = new RouteRegistry(logger);
-    dataSource = new NavigationDataSource(routeRegistry, logger);
   });
+
+  /** What a template asks for, validated the way the runtime validates it. */
+  const navigation = (query: unknown): z.output<typeof testNavigationSchema> =>
+    testNavigationSchema.parse(navigationFor(routeRegistry, query));
 
   it("should provide navigation data for footer component", async () => {
     // Setup: Register routes that should appear in navigation
@@ -60,7 +62,7 @@ describe("NavigationDataSource", () => {
     routeRegistry.register(linksRoute);
 
     // Act: Fetch navigation data
-    const result = await dataSource.fetch(null, testNavigationSchema);
+    const result = navigation(null);
 
     // Assert: Data contains navigation items
     expect(result).toEqual({
@@ -113,7 +115,7 @@ describe("NavigationDataSource", () => {
     routeRegistry.register(privateRoute);
     routeRegistry.register(noNavRoute);
 
-    const result = await dataSource.fetch(null, testNavigationSchema);
+    const result = navigation(null);
 
     // Only the public route should be in navigation
     expect(result).toEqual({
@@ -144,16 +146,13 @@ describe("NavigationDataSource", () => {
     });
 
     // Query for primary slot (default)
-    const primaryResult = await dataSource.fetch({}, testNavigationSchema);
+    const primaryResult = navigation({});
     expect(primaryResult).toEqual({
       navigation: [{ label: "Primary Item", href: "/primary" }],
     });
 
     // Query for secondary slot
-    const secondaryResult = await dataSource.fetch(
-      { slot: "secondary" },
-      testNavigationSchema,
-    );
+    const secondaryResult = navigation({ slot: "secondary" });
     expect(secondaryResult).toEqual({
       navigation: [{ label: "Secondary Item", href: "/secondary" }],
     });
@@ -174,7 +173,7 @@ describe("NavigationDataSource", () => {
     }
 
     // Query with limit
-    const result = await dataSource.fetch({ limit: 3 }, testNavigationSchema);
+    const result = navigation({ limit: 3 });
 
     expect(result.navigation).toHaveLength(3);
     expect(result.navigation[0]?.href).toBe("/item-1");
@@ -214,12 +213,11 @@ describe("NavigationDataSource", () => {
       sections: [],
     });
 
-    const result = await dataSource.fetch(null, testNavigationSchema);
-    const { navigation } = testNavigationSchema.parse(result);
+    const items = navigation(null).navigation;
 
     // Should be ordered by priority
-    expect(navigation[0]?.href).toBe("/first");
-    expect(navigation[1]?.href).toBe("/second");
-    expect(navigation[2]?.href).toBe("/third");
+    expect(items[0]?.href).toBe("/first");
+    expect(items[1]?.href).toBe("/second");
+    expect(items[2]?.href).toBe("/third");
   });
 });

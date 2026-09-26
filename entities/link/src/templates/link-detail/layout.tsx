@@ -7,7 +7,7 @@ import {
   LinkButton,
   Card,
   Alert,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui";
 
 interface LinkNavigationProps {
   prevLink: LinkDetail | null;

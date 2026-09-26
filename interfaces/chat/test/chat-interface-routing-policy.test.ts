@@ -1,17 +1,19 @@
 import { describe, it, expect } from "bun:test";
 import { chunkMessage } from "@brains/utils/chunk-message";
 import {
-  ChatInterface,
   MockChatSdk,
   baseDiscordConfig,
   baseSlackConfig,
   createMessage,
   createPlugin,
   createThread,
+  expectAgentChat,
   setupChatInterfaceTest,
+  type MockMessage,
+  type MockThread,
 } from "./harness/chat-interface-harness";
 
-describe("ChatInterface routing policy", () => {
+describe("chat routing policy", () => {
   const suite = setupChatInterfaceTest();
 
   it("chunks long Discord responses instead of letting the adapter truncate", async () => {
@@ -20,8 +22,7 @@ describe("ChatInterface routing policy", () => {
       text: longResponse,
       usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
     });
-    const plugin = createPlugin();
-    await suite.harness.installPlugin(plugin);
+    await suite.harness.installPlugin(createPlugin());
     const chat = MockChatSdk.instances[0];
     const thread = createThread();
 
@@ -37,8 +38,7 @@ describe("ChatInterface routing policy", () => {
   });
 
   it("captures URLs from unmentioned Discord messages without posting a reply", async () => {
-    const plugin = createPlugin();
-    await suite.harness.installPlugin(plugin);
+    await suite.harness.installPlugin(createPlugin());
     const chat = MockChatSdk.instances[0];
     const thread = createThread();
     const message = createMessage({
@@ -63,8 +63,7 @@ describe("ChatInterface routing policy", () => {
   });
 
   it("does not capture URLs when Discord URL capture is disabled", async () => {
-    const plugin = createPlugin({ captureUrls: false });
-    await suite.harness.installPlugin(plugin);
+    await suite.harness.installPlugin(createPlugin({ captureUrls: false }));
     const chat = MockChatSdk.instances[0];
     const thread = createThread();
     const message = createMessage({
@@ -82,8 +81,7 @@ describe("ChatInterface routing policy", () => {
   });
 
   it("routes unmentioned channel messages when Discord mention gating is disabled", async () => {
-    const plugin = createPlugin({ requireMention: false });
-    await suite.harness.installPlugin(plugin);
+    await suite.harness.installPlugin(createPlugin({ requireMention: false }));
     const chat = MockChatSdk.instances[0];
     const thread = createThread();
     const message = createMessage({
@@ -96,7 +94,8 @@ describe("ChatInterface routing policy", () => {
     );
     await catchAllHandler?.handler(thread, message);
 
-    expect(suite.agentService.chat).toHaveBeenCalledWith(
+    expectAgentChat(
+      suite.agentService,
       "No mention needed",
       "discord-discord:guild-123:channel-123:thread-456",
       expect.objectContaining({ interfaceType: "discord" }),
@@ -105,14 +104,12 @@ describe("ChatInterface routing policy", () => {
   });
 
   it("keeps mention policy isolated when Discord and Slack run together", async () => {
-    const plugin = new ChatInterface({
+    await suite.install({
       adapters: {
         discord: baseDiscordConfig,
         slack: { ...baseSlackConfig, requireMention: false },
       },
     });
-    await suite.harness.installPlugin(plugin);
-    const chat = MockChatSdk.instances[0];
     const discordThread = createThread();
     const slackThread = createThread({
       id: "slack:C123:1712345678.000100",
@@ -120,15 +117,21 @@ describe("ChatInterface routing policy", () => {
       adapter: { name: "slack" },
     });
     const message = createMessage({ text: "No mention", isMention: false });
-    const catchAllHandler = chat?.handlers.messagePatterns.find((entry) =>
-      entry.pattern.test(message.text),
-    );
+    const catchAll = (
+      platform: "discord" | "slack",
+    ):
+      | ((thread: MockThread, incoming: MockMessage) => Promise<void>)
+      | undefined =>
+      MockChatSdk.forPlatform(platform)?.handlers.messagePatterns.find(
+        (entry) => entry.pattern.test(message.text),
+      )?.handler;
 
-    await catchAllHandler?.handler(discordThread, message);
+    await catchAll("discord")?.(discordThread, message);
     expect(suite.agentService.chat).not.toHaveBeenCalled();
 
-    await catchAllHandler?.handler(slackThread, message);
-    expect(suite.agentService.chat).toHaveBeenCalledWith(
+    await catchAll("slack")?.(slackThread, message);
+    expectAgentChat(
+      suite.agentService,
       "No mention",
       `slack-${slackThread.id}`,
       expect.objectContaining({ interfaceType: "slack" }),
@@ -136,8 +139,9 @@ describe("ChatInterface routing policy", () => {
   });
 
   it("routes unmentioned URLs as chat when Discord mention gating is disabled", async () => {
-    const plugin = createPlugin({ requireMention: false, captureUrls: true });
-    await suite.harness.installPlugin(plugin);
+    await suite.harness.installPlugin(
+      createPlugin({ requireMention: false, captureUrls: true }),
+    );
     const chat = MockChatSdk.instances[0];
     const thread = createThread();
     const message = createMessage({
@@ -152,7 +156,8 @@ describe("ChatInterface routing policy", () => {
     }
 
     expect(suite.agentService.chat).toHaveBeenCalledTimes(1);
-    expect(suite.agentService.chat).toHaveBeenCalledWith(
+    expectAgentChat(
+      suite.agentService,
       "Discuss https://example.com/a",
       "discord-discord:guild-123:channel-123:thread-456",
       expect.objectContaining({ interfaceType: "discord" }),
@@ -161,8 +166,9 @@ describe("ChatInterface routing policy", () => {
   });
 
   it("does not capture blocked URL domains", async () => {
-    const plugin = createPlugin({ blockedUrlDomains: ["example.com"] });
-    await suite.harness.installPlugin(plugin);
+    await suite.harness.installPlugin(
+      createPlugin({ blockedUrlDomains: ["example.com"] }),
+    );
     const chat = MockChatSdk.instances[0];
     const thread = createThread();
     const message = createMessage({
@@ -180,8 +186,7 @@ describe("ChatInterface routing policy", () => {
   });
 
   it("does not route Discord DMs when DMs are disabled", async () => {
-    const plugin = createPlugin({ allowDMs: false });
-    await suite.harness.installPlugin(plugin);
+    await suite.harness.installPlugin(createPlugin({ allowDMs: false }));
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
       id: "discord:@me:dm-channel-123",
@@ -200,8 +205,7 @@ describe("ChatInterface routing policy", () => {
   });
 
   it("routes Discord DMs when DMs are enabled", async () => {
-    const plugin = createPlugin({ allowDMs: true });
-    await suite.harness.installPlugin(plugin);
+    await suite.harness.installPlugin(createPlugin({ allowDMs: true }));
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
       id: "discord:@me:dm-channel-123",
@@ -215,7 +219,8 @@ describe("ChatInterface routing policy", () => {
       thread,
     );
 
-    expect(suite.agentService.chat).toHaveBeenCalledWith(
+    expectAgentChat(
+      suite.agentService,
       "Hello bot",
       "discord-discord:@me:dm-channel-123",
       expect.objectContaining({
@@ -227,8 +232,9 @@ describe("ChatInterface routing policy", () => {
   });
 
   it("gates Discord chat and URL capture by allowed channels", async () => {
-    const plugin = createPlugin({ allowedChannels: ["other-channel"] });
-    await suite.harness.installPlugin(plugin);
+    await suite.harness.installPlugin(
+      createPlugin({ allowedChannels: ["other-channel"] }),
+    );
     const chat = MockChatSdk.instances[0];
     const thread = createThread();
 
@@ -250,14 +256,16 @@ describe("ChatInterface routing policy", () => {
   });
 
   it("allows Discord thread messages when the parent channel is allowlisted", async () => {
-    const plugin = createPlugin({ allowedChannels: ["channel-123"] });
-    await suite.harness.installPlugin(plugin);
+    await suite.harness.installPlugin(
+      createPlugin({ allowedChannels: ["channel-123"] }),
+    );
     const chat = MockChatSdk.instances[0];
     const thread = createThread();
 
     await chat?.handlers.mentions[0]?.(thread, createMessage());
 
-    expect(suite.agentService.chat).toHaveBeenCalledWith(
+    expectAgentChat(
+      suite.agentService,
       "Hello bot",
       "discord-discord:guild-123:channel-123:thread-456",
       expect.objectContaining({
@@ -269,8 +277,7 @@ describe("ChatInterface routing policy", () => {
   });
 
   it("ignores messages authored by itself even when mentioned", async () => {
-    const plugin = createPlugin();
-    await suite.harness.installPlugin(plugin);
+    await suite.harness.installPlugin(createPlugin());
     const chat = MockChatSdk.instances[0];
     const thread = createThread();
 
@@ -294,8 +301,7 @@ describe("ChatInterface routing policy", () => {
   });
 
   it("ignores bot messages unless the bot is explicitly mentioned", async () => {
-    const plugin = createPlugin();
-    await suite.harness.installPlugin(plugin);
+    await suite.harness.installPlugin(createPlugin());
     const chat = MockChatSdk.instances[0];
     const thread = createThread();
 
@@ -318,8 +324,7 @@ describe("ChatInterface routing policy", () => {
   });
 
   it("does not passively capture URLs from messages authored by itself", async () => {
-    const plugin = createPlugin();
-    await suite.harness.installPlugin(plugin);
+    await suite.harness.installPlugin(createPlugin());
     const chat = MockChatSdk.instances[0];
     const thread = createThread();
     const urlMessage = createMessage({
@@ -344,8 +349,7 @@ describe("ChatInterface routing policy", () => {
   });
 
   it("does not passively capture URLs from bot messages", async () => {
-    const plugin = createPlugin();
-    await suite.harness.installPlugin(plugin);
+    await suite.harness.installPlugin(createPlugin());
     const chat = MockChatSdk.instances[0];
     const thread = createThread();
     const urlMessage = createMessage({

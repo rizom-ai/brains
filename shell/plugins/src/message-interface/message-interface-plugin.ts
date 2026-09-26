@@ -271,7 +271,7 @@ export abstract class MessageInterfacePlugin<
    */
   protected readonly progress: ProgressMessageCoordinator =
     new ProgressMessageCoordinator({
-      interfaceId: (): string => this.id,
+      interfaceType: (): string => this.interfaceType(),
       logger: (): Logger => this.logger,
       sendMessageToChannel: (request): void =>
         this.sendMessageToChannel(request),
@@ -287,6 +287,16 @@ export abstract class MessageInterfacePlugin<
       handleToolStatusUpdate: (update): Promise<void> =>
         this.handleToolStatusUpdate(update),
     });
+
+  /**
+   * The channel type this interface answers for.
+   *
+   * A class-based interface is named after its channel, so its id is the
+   * answer. A declaration's runtime id is scoped by package name and is not.
+   */
+  protected interfaceType(): string {
+    return this.id;
+  }
 
   /**
    * Send an agent message to a specific channel.

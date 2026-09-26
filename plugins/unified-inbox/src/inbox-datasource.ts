@@ -2,10 +2,9 @@ import type {
   BaseDataSourceContext,
   DataSource,
   DataSourceSchema,
-  IInboxRegistry,
-  InboxSource,
-  InboxSourceMetadata,
-} from "@brains/plugins";
+} from "@brains/sdk/plugins";
+import type { InboxSource, InboxSourceMetadata } from "@brains/sdk/entities";
+import type { IInboxNamespace } from "@brains/sdk/services";
 import {
   inboxProjectionSchema,
   type InboxProjection,
@@ -13,7 +12,7 @@ import {
   type InboxSourceError,
 } from "./schemas";
 
-type InboxSourceReader = Pick<IInboxRegistry, "listSources">;
+type InboxSourceReader = Pick<IInboxNamespace, "listSources">;
 
 export class InboxDataSource implements DataSource {
   readonly id: string = "unified-inbox:inbox";

@@ -2,7 +2,7 @@ import type { JSX } from "react";
 import type { PersonalProfile } from "../schemas";
 import type { BlogPostView } from "@brains/blog";
 import type { SiteInfoCTA } from "@brains/site-info";
-import { Head } from "@brains/ui-library";
+import { Head } from "@rizom/brain-ui";
 
 export interface HomepageData {
   profile: PersonalProfile;

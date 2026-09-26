@@ -1,13 +1,9 @@
 import type {
-  BaseDataSourceContext,
+  DashboardDigestLine,
   DashboardWidgetProviderContext,
-  DataSource,
-  DataSourceSchema,
-} from "@brains/plugins";
+  LoggerContract,
+} from "@brains/sdk/services";
 import { getErrorMessage } from "@brains/utils/error";
-import type { Logger } from "@brains/utils/logger";
-
-import type { DashboardDigestLine } from "@brains/plugins";
 import type {
   DashboardWidgetRegistry,
   StoredRegisteredWidget,
@@ -21,15 +17,11 @@ import { type DashboardData, type WidgetData } from "./widget-schema";
  * Aggregates data from all registered widgets for site-builder rendering.
  * Each widget's dataProvider is called and the results are collected.
  */
-export class DashboardDataSource implements DataSource {
-  readonly id = "dashboard:dashboard";
-  readonly name = "Dashboard DataSource";
-  readonly description = "Aggregates dashboard widgets from all plugins";
-
+export class DashboardDataSource {
   private registry: DashboardWidgetRegistry;
-  private logger: Logger;
+  private logger: LoggerContract;
 
-  constructor(registry: DashboardWidgetRegistry, logger: Logger) {
+  constructor(registry: DashboardWidgetRegistry, logger: LoggerContract) {
     this.registry = registry;
     this.logger = logger.child("DashboardDataSource");
   }
@@ -130,15 +122,5 @@ export class DashboardDataSource implements DataSource {
       });
       return {};
     }
-  }
-
-  async fetch<T>(
-    _query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    _context: BaseDataSourceContext,
-  ): Promise<T> {
-    // The caller already hands us the schema for T; parsing through it is what
-    // makes the return type true, where the previous assertion just claimed it.
-    return outputSchema.parse(await this.getDashboardData());
   }
 }

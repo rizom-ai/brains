@@ -21,7 +21,7 @@ import {
   normalizeOptionalString,
   runCreateInterceptor,
 } from "./tool-helpers";
-import { getErrorMessage } from "@brains/utils/error";
+import { toSdkError } from "@brains/contracts";
 
 // Reads entirely from the canonical createInput: the resolved source
 // attachment is already baked into `from` by normalizeCreateSource, and
@@ -257,10 +257,8 @@ async function executeDirectCreate(
       data: { entityId: result.entityId, status: "created" },
     };
   } catch (error) {
-    return {
-      success: false,
-      error: getErrorMessage(error, "Failed to create entity"),
-    };
+    const failure = toSdkError(error);
+    return { success: false, error: failure.message, code: failure.code };
   }
 }
 

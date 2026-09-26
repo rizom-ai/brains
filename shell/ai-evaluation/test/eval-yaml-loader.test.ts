@@ -75,15 +75,19 @@ describe("loadPluginEvalConfig", () => {
     }
   });
 
-  it("resolves the actual plugin export when a package also exports adapters", async () => {
+  // A declaratively-authored package exports a definition, not a factory.
+  // Its eval handlers belong to the service half but can use entity-owned
+  // templates, so the loader has to install the complete package.
+  it("resolves every plugin in a declarative package", async () => {
     const config = await loadPluginEvalConfig({
       plugin: "@brains/link",
     });
 
-    const plugin = config.plugins?.[0];
-    expect(plugin).toBeDefined();
-    expect(plugin?.id).toBe("link");
-    expect(plugin?.packageName).toBe("@brains/link");
-    expect(plugin?.type).toBe("entity");
+    expect(config.plugins?.map((plugin) => plugin.id)).toEqual([
+      "@brains/link:capture",
+      "@brains/link:link",
+    ]);
+    expect(config.plugins?.[0]?.packageName).toBe("@brains/link");
+    expect(config.plugins?.[0]?.type).toBe("service");
   });
 });

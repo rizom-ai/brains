@@ -82,7 +82,7 @@ The internal runtime adapts definitions to its registration lifecycle:
 
 Registration failure rolls back capabilities acquired by that definition. Authors declare jobs, daemons, routes, projections, and channel behavior without receiving registries, queues, shell objects, or process-role switches.
 
-When a declarative brain composes a generic interface, the runtime supplies the shared HTTP host automatically and activates it with the selected bundle. The interface author declares only routes and protocol security. Message listeners and all generic-interface daemons remain web-process resources and are excluded from workers.
+The runtime owns one HTTP host and activates it after registration when finalized plugin routes or static-site output need serving; no hosting plugin is injected into the definition or bundles. The interface author declares only routes and protocol security. Message listeners and all generic-interface daemons remain web-process resources and are excluded from workers.
 
 Internal runtime classes may remain under `@brains/plugins`, but they are implementation details used by built-in workspaces. They are not exported as stable external authoring contracts.
 

@@ -25,7 +25,7 @@ export interface ContactIntakeConfig {
 export interface ContactPluginConfig {
   intake?: ContactIntakeConfig | undefined;
 }
-const intakeSchema: z.ZodType<ContactIntakeConfig> = z
+const intakeSchema: z.ZodType<ContactIntakeConfig, ContactIntakeConfig> = z
   .strictObject({
     http: contactHttpPolicySchema,
     admission: contactAdmissionPolicySchema,
@@ -46,5 +46,7 @@ const intakeSchema: z.ZodType<ContactIntakeConfig> = z
       !url.hash
     );
   }, "Contact Inbox must be a canonical same-origin URL");
-export const contactPluginConfigSchema: z.ZodType<ContactPluginConfig> =
-  z.strictObject({ intake: intakeSchema.optional() });
+export const contactPluginConfigSchema: z.ZodType<
+  ContactPluginConfig,
+  ContactPluginConfig
+> = z.strictObject({ intake: intakeSchema.optional() });

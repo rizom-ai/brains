@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { renderNewsletterEmail } from "../src/provider/email-renderer";
+import { renderNewsletterEmail } from "../src/email-renderer";
 
 describe("renderNewsletterEmail", () => {
   it("renders one safe HTML document and plain-text fallback", () => {

@@ -151,14 +151,19 @@ function resolveEvalConfig(
   includeMcp: boolean,
 ): AppConfig {
   const evalConfig = resolveConfig(brainDefinition, env, overrides);
-  if (!includeMcp || evalConfig.plugins?.some(({ id }) => id === "mcp")) {
+  if (
+    !includeMcp ||
+    evalConfig.plugins?.some(({ id }) => id === "@brains/mcp:mcp")
+  ) {
     return evalConfig;
   }
 
   const regularOverrides = { ...overrides };
   delete regularOverrides.mode;
   const regularConfig = resolveConfig(brainDefinition, env, regularOverrides);
-  const mcpPlugin = regularConfig.plugins?.find(({ id }) => id === "mcp");
+  const mcpPlugin = regularConfig.plugins?.find(
+    ({ id }) => id === "@brains/mcp:mcp",
+  );
   if (!mcpPlugin) {
     throw new Error(
       "--mcp-basic requires an MCP interface in the selected brain composition.",

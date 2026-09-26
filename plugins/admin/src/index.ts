@@ -1,2 +1,3 @@
-export { AdminPlugin, adminPlugin } from "./plugin";
-export type { AdminConfig, AdminConfigInput } from "./plugin";
+import adminPackage from "./plugin";
+
+export default adminPackage;

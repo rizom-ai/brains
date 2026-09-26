@@ -79,6 +79,7 @@ export interface RuntimeReadinessOptions {
     ShellServices["projectionRuntimeSupervisor"],
     "getDiagnostics"
   >;
+  httpHostCheck?: () => Omit<RuntimeHealthCheck, "name">;
   now?: () => number;
   memoryUsage?: () => RuntimeMemoryUsage;
   readProcessSignals?: () => Promise<ProcessSignals>;
@@ -542,6 +543,8 @@ export async function getRuntimeReadiness(
             message: "Plugin operational health is unavailable",
           },
         ];
+  if (options.httpHostCheck)
+    operationalChecks.push({ name: "http-host", ...options.httpHostCheck() });
   const checks = [...routingChecks, ...operationalChecks];
 
   return {

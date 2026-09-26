@@ -7,6 +7,29 @@ const route = (
 ): { pluginId: string; fullPath: string } => ({ pluginId, fullPath });
 
 describe("deriveConsoleSurfaces", () => {
+  it("finds a surface whose package declared it", () => {
+    // A declared package's runtime id is `<package>:<declaration id>`, so a
+    // table naming declarations has to match the declaration half — otherwise
+    // converting a console to a declaration silently removes its door from
+    // every other console's strip.
+    const surfaces = deriveConsoleSurfaces(
+      [
+        route("dashboard", "/dashboard"),
+        route("@brains/web-chat:web-chat", "/ask"),
+      ],
+      {
+        activeId: "dashboard",
+        permissionLevel: "trusted",
+        hasActiveSession: true,
+      },
+    );
+
+    expect(surfaces.map((surface) => surface.href)).toEqual([
+      "/dashboard",
+      "/ask",
+    ]);
+  });
+
   it("derives the canonical Studio door from the Studio plugin", () => {
     const surfaces = deriveConsoleSurfaces(
       [route("dashboard", "/dashboard"), route("studio", "/studio")],

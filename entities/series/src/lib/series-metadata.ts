@@ -1,5 +1,5 @@
-import type { BaseEntity } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+import type { BaseEntity } from "@brains/sdk/entities";
+import { z } from "@brains/sdk/entities";
 
 /**
  * Helpers for reading the opt-in series fields that any entity type may carry

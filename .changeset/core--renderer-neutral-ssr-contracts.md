@@ -1,6 +1,6 @@
 ---
 "@brains/contracts": patch
-"@brains/ui-library": patch
+"@rizom/brain-ui": patch
 "@brains/site-engine": patch
 ---
 

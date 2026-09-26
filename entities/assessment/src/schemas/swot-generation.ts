@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/sdk/entities";
 
 export const swotDerivationJobSchema: z.ZodObject<{
   reason: z.ZodDefault<z.ZodString>;

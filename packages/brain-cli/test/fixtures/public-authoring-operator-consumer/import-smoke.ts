@@ -1,6 +1,60 @@
+import "./availability-smoke";
+import "./caller-authority-smoke";
 import accountSettingsInterface from "@fixture/mailbox-connection";
 import readingEntities from "@fixture/reading-entities";
-import readingInsights from "@fixture/reading-insights";
+import readingInsights, {
+  readingRequest,
+  readingRequestCount,
+} from "@fixture/reading-insights";
+import { createBrainTestHarness } from "@rizom/brain/testing";
+import {
+  encodeEntityIdPath,
+  entityIdPathSchema,
+  type EntityIdPath,
+  type EntityIdPathInput,
+  type EntityHierarchyPage,
+  type QueryEntityHierarchyRequest,
+} from "@rizom/brain/entities";
+
+const destination: EntityIdPathInput = ["folder", "entry"];
+const canonicalDestination: EntityIdPath =
+  entityIdPathSchema.parse(destination);
+const query: QueryEntityHierarchyRequest = {
+  entityType: "reading-request",
+  prefix: canonicalDestination,
+};
+const page: EntityHierarchyPage = {
+  prefix: canonicalDestination,
+  folders: [],
+  entities: [],
+  offset: 0,
+  totalEntities: 0,
+};
+if (
+  encodeEntityIdPath(canonicalDestination) !== "folder:entry" ||
+  query.entityType !== "reading-request" ||
+  page.totalEntities !== 0
+)
+  throw new Error("Invalid hierarchy contracts");
+import {
+  defineDaemon,
+  SitePageResponse,
+  type InterfaceDaemonDefinition,
+} from "@rizom/brain/interfaces";
+
+const themedPage = new SitePageResponse("<main>Preview</main>", {
+  headers: { "content-type": "text/html" },
+});
+if ((await themedPage.text()) !== "<main>Preview</main>")
+  throw new Error("Invalid host page response");
+
+const maintenance: InterfaceDaemonDefinition = defineDaemon({
+  id: "maintenance-contract",
+  required: false,
+  run: async () => {},
+});
+if (maintenance.id !== "maintenance-contract")
+  throw new Error("Invalid daemon declaration");
 import readingOperator from "@fixture/reading-operator";
 import type {
   OperatorCardBlock,
@@ -9,6 +63,47 @@ import type {
   OperatorViewBlock,
   OperatorViewStatus,
 } from "@rizom/brain/services";
+
+const harness = createBrainTestHarness();
+try {
+  const service = await harness.installPackage(readingInsights);
+  await harness.finalizeRegistration();
+  const tool = service.tool("record-reading-request");
+  const answer = await tool.call({ bookmarkId: "fixture-bookmark" });
+  if (!answer.ok) {
+    throw new Error("Recording the service's own type failed", {
+      cause: "cause" in answer ? answer.cause : answer,
+    });
+  }
+  const data = answer.data;
+  if (
+    data === null ||
+    typeof data !== "object" ||
+    !("id" in data) ||
+    typeof data.id !== "string"
+  ) {
+    throw new Error("The recording tool did not return an id");
+  }
+  const stored = await harness.getEntity(readingRequest.type, data.id);
+  if (
+    stored?.metadata === null ||
+    typeof stored?.metadata !== "object" ||
+    !("bookmarkId" in stored.metadata) ||
+    stored.metadata.bookmarkId !== "fixture-bookmark"
+  ) {
+    throw new Error("The golden service did not persist its owned entity");
+  }
+  const routed = await harness.fetch("GET", "/reading-requests");
+  if (JSON.stringify(routed) !== JSON.stringify({ ids: [data.id] })) {
+    throw new Error("The service route did not read its owned entity");
+  }
+  const counted = await harness.request(readingRequestCount, {});
+  if (!counted.ok || counted.data.count !== 1) {
+    throw new Error("The exported subscription did not answer across packages");
+  }
+} finally {
+  await harness.reset();
+}
 
 const compositionStatus: OperatorViewStatus = {
   label: "Connected",

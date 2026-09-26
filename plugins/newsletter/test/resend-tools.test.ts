@@ -1,103 +1,103 @@
 import { describe, expect, it } from "bun:test";
 import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
-import { ResendPlugin } from "../src/provider/resend/plugin";
-import type { ResendFetch } from "../src/provider/resend/resend-client";
+import { installNewsletter } from "./helpers/install";
+import { SUBSCRIBE_PATH } from "../src/routes";
 
-let fetchFn: ResendFetch = () =>
-  Promise.reject(new Error("fetch called without a stub"));
-const delegatingFetch: ResendFetch = (url, init) => fetchFn(url, init);
-
-function stubFetch(handler: ResendFetch): void {
-  fetchFn = handler;
-}
+const provider = {
+  type: "resend" as const,
+  apiKey: "resend-key",
+  segmentId: "segment-1",
+  from: "Rizom <newsletter@example.com>",
+};
 
 describe("Resend newsletter subscriber tool", () => {
-  it("subscribes through the canonical newsletter tool", async () => {
-    stubFetch((url) => {
-      if (String(url).endsWith("/contacts/reader%40example.com")) {
-        return Promise.resolve({
-          ok: false,
-          status: 404,
-          json: () => Promise.resolve({ message: "Contact not found" }),
-        });
-      }
-      return Promise.resolve({
-        ok: true,
-        status: 201,
-        json: () => Promise.resolve({ id: "contact-1" }),
-      });
-    });
+  it("subscribes through the declared newsletter tool", async () => {
     const harness = createPluginHarness();
-    await harness.installPlugin(
-      new ResendPlugin(
+    try {
+      await installNewsletter(
+        harness,
+        { provider },
         {
-          apiKey: "resend-key",
-          segmentId: "segment-1",
-          from: "Rizom <newsletter@example.com>",
+          fetch: (url) =>
+            Promise.resolve({
+              ok: !String(url).endsWith("/contacts/reader%40example.com"),
+              status: String(url).endsWith("/contacts/reader%40example.com")
+                ? 404
+                : 201,
+              json: async () =>
+                String(url).endsWith("/contacts/reader%40example.com")
+                  ? { message: "Contact not found" }
+                  : { id: "contact-1" },
+            }),
         },
-        { fetch: delegatingFetch },
-      ),
-    );
-
-    const result = await harness.executeTool("newsletter_subscribers", {
-      action: "subscribe",
-      email: "reader@example.com",
-      name: "Reader Example",
-    });
-
-    expectSuccess(result);
-    expect(result.data).toMatchObject({
-      subscriberId: "contact-1",
-      email: "reader@example.com",
-      status: "regular",
-      message: "subscribed",
-    });
-    await harness.reset();
+      );
+      const result = await harness.executeTool("delivery_subscribers", {
+        action: "subscribe",
+        email: "reader@example.com",
+        name: "Reader Example",
+      });
+      expectSuccess(result);
+      expect(result.data).toMatchObject({
+        subscriberId: "contact-1",
+        email: "reader@example.com",
+        status: "regular",
+        message: "subscribed",
+      });
+    } finally {
+      await harness.reset();
+    }
   });
 
-  it("keeps the public signup tool subscribe-only", async () => {
-    const urls: string[] = [];
-    stubFetch((url) => {
-      urls.push(String(url));
-      if (String(url).endsWith("/contacts/public%40example.com")) {
-        return Promise.resolve({
-          ok: false,
-          status: 404,
-          json: () => Promise.resolve({ message: "Contact not found" }),
-        });
-      }
-      return Promise.resolve({
-        ok: true,
-        status: 201,
-        json: () => Promise.resolve({ id: "contact-public" }),
-      });
-    });
+  it("keeps public signup subscribe-only even when a caller submits action=list", async () => {
     const harness = createPluginHarness();
-    await harness.installPlugin(
-      new ResendPlugin(
+    try {
+      const urls: string[] = [];
+      const { service } = await installNewsletter(
+        harness,
+        { provider },
         {
-          apiKey: "resend-key",
-          segmentId: "segment-1",
-          from: "Rizom <newsletter@example.com>",
+          fetch: (url) => {
+            urls.push(String(url));
+            const missing = String(url).endsWith(
+              "/contacts/public%40example.com",
+            );
+            return Promise.resolve({
+              ok: !missing,
+              status: missing ? 404 : 201,
+              json: async () =>
+                missing
+                  ? { message: "Contact not found" }
+                  : { id: "contact-public" },
+            });
+          },
         },
-        { fetch: delegatingFetch },
-      ),
-    );
-
-    const result = await harness.executeTool("newsletter_signup", {
-      email: "public@example.com",
-      action: "list",
-    });
-
-    expectSuccess(result);
-    expect(result.data).toMatchObject({
-      subscriberId: "contact-public",
-      message: "subscribed",
-    });
-    expect(urls).toEqual([
-      "https://api.resend.com/contacts/public%40example.com",
-      "https://api.resend.com/contacts",
-    ]);
-    await harness.reset();
+      );
+      const route = service
+        .getWebRoutes?.()
+        .find(({ path }) => path === SUBSCRIBE_PATH);
+      if (!route) throw new Error("Missing public signup route");
+      const response = await route.handler(
+        new Request(`https://brain.test${SUBSCRIBE_PATH}`, {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            accept: "application/json",
+          },
+          body: JSON.stringify({ email: "public@example.com", action: "list" }),
+        }),
+      );
+      expect(response.status).toBe(200);
+      const result: unknown = await response.json();
+      expect(result).toMatchObject({
+        success: true,
+        data: { subscriberId: "contact-public", message: "subscribed" },
+      });
+      expect(urls).toEqual([
+        "https://api.resend.com/contacts/public%40example.com",
+        "https://api.resend.com/contacts",
+      ]);
+    } finally {
+      await harness.reset();
+    }
   });
 });

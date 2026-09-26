@@ -1,24 +1,24 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { ContentPipelinePlugin } from "../src/plugin";
 import { PUBLISH_MESSAGES } from "../src/types/messages";
 import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
+import type { Plugin } from "@brains/plugins";
+import type { RetryTracker } from "../src/retry-tracker";
+import { installPipeline } from "./helpers/install";
 
-describe("ContentPipelinePlugin - Report Handlers", () => {
-  let harness: PluginTestHarness<ContentPipelinePlugin>;
-  let plugin: ContentPipelinePlugin;
+describe("content pipeline report handlers", () => {
+  let harness: PluginTestHarness<Plugin>;
+  let retryTracker: RetryTracker;
 
   beforeEach(async () => {
     harness = createPluginHarness({ dataDir: "/tmp/test-datadir" });
-    plugin = new ContentPipelinePlugin({});
-    await harness.installPlugin(plugin);
+    ({ retryTracker } = await installPipeline(harness));
   });
 
   describe("publish:report:success handler", () => {
     it("should clear retry info on success report", async () => {
-      const retryTracker = plugin.getRetryTracker();
       retryTracker.recordFailure("post-1", "Previous error");
       expect(retryTracker.getRetryInfo("post-1")).not.toBeNull();
 
@@ -40,7 +40,6 @@ describe("ContentPipelinePlugin - Report Handlers", () => {
         error: "Network error",
       });
 
-      const retryTracker = plugin.getRetryTracker();
       const retryInfo = retryTracker.getRetryInfo("post-1");
       expect(retryInfo?.retryCount).toBe(1);
       expect(retryInfo?.lastError).toBe("Network error");

@@ -1,5 +1,5 @@
 import type { CSSProperties, JSX } from "react";
-import { MarkdownContent, renderHighlightedText } from "@brains/ui-library";
+import { MarkdownContent, renderHighlightedText } from "@rizom/brain-ui";
 import type { HomepageOpeningContent } from "../schemas/homepage-opening";
 import type { HomepageAtlasData } from "../schemas/homepage-atlas";
 import { atlasPosition, buildAtlasTerrain } from "../lib/atlas-terrain";

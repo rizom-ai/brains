@@ -97,7 +97,6 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "unified-inbox",
     "mcp",
     "email",
-    "webserver",
     "web-chat",
     "chat",
     "a2a",
@@ -118,7 +117,6 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "agents",
     "auth-service",
     "notifications",
-    "playbook",
     "playbooks",
     "onboarding",
     "studio",
@@ -140,7 +138,6 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "unified-inbox",
     "mcp",
     "email",
-    "webserver",
     "web-chat",
     "chat",
     "a2a",
@@ -159,7 +156,6 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "agents",
     "auth-service",
     "notifications",
-    "playbook",
     "playbooks",
     "onboarding",
     "studio",
@@ -174,7 +170,6 @@ const expectedMembers: Record<TargetRecipeName, string[]> = {
     "unified-inbox",
     "mcp",
     "email",
-    "webserver",
     "web-chat",
     "chat",
     "a2a",
@@ -308,7 +303,7 @@ describe("canonical bundle taxonomy", () => {
 
   test("headless contributes only the core eval exclusion", () => {
     const resolution = targetResolution("headless");
-    expect(resolution.configByMember).toEqual({});
+    expect(resolution.configByMember).toEqual({ mcp: { transport: "stdio" } });
     expect(resolution.permissionContributions).toEqual([]);
     expect(resolution.agentInstructions).toEqual([]);
     expect(resolution.evalDisable).toEqual(["mcp"]);
@@ -318,12 +313,13 @@ describe("canonical bundle taxonomy", () => {
     const resolution = targetResolution("personal");
     expect(resolution.configByMember).toEqual({
       dashboard: { routePath: "/" },
+      mcp: { transport: "http" },
+      a2a: { inbound: true },
     });
     expect(resolution.permissionContributions).toEqual(channelPermissions);
     expect(resolution.agentInstructions).toEqual([]);
     expect(resolution.evalDisable).toEqual([
       "mcp",
-      "webserver",
       "dashboard",
       "chat",
       "web-chat",
@@ -335,6 +331,8 @@ describe("canonical bundle taxonomy", () => {
     const resolution = targetResolution("professional");
     expect(resolution.configByMember).toEqual({
       dashboard: { routePath: "/dashboard" },
+      mcp: { transport: "http" },
+      a2a: { inbound: true },
       "content-pipeline": {
         generationSchedules: {
           newsletter: "0 9 * * 1",
@@ -352,13 +350,11 @@ describe("canonical bundle taxonomy", () => {
           },
         },
       },
-      "social-media": { autoGenerateOnBlogPublish: true },
     });
     expect(resolution.permissionContributions).toEqual(channelPermissions);
     expect(resolution.agentInstructions).toEqual(publishingAgentInstructions);
     expect(resolution.evalDisable).toEqual([
       "mcp",
-      "webserver",
       "dashboard",
       "chat",
       "web-chat",
@@ -374,13 +370,14 @@ describe("canonical bundle taxonomy", () => {
     expect(resolution.configByMember).toEqual({
       topics: { extractableStatuses: ["published", "draft"] },
       dashboard: { routePath: "/dashboard" },
+      mcp: { transport: "http" },
+      a2a: { inbound: true },
       "conversation-memory": { memoryVisibility: "shared" },
     });
     expect(resolution.permissionContributions).toEqual(teamPermissions);
     expect(resolution.agentInstructions).toEqual(teamAgentInstructions);
     expect(resolution.evalDisable).toEqual([
       "mcp",
-      "webserver",
       "dashboard",
       "chat",
       "web-chat",
@@ -391,12 +388,16 @@ describe("canonical bundle taxonomy", () => {
 
   test("derives effective transport and team permission overrides", () => {
     const headless = resolve(canonicalBrain, {}, targetRecipes.headless);
-    expect(pluginConfig(headless, "mcp")?.["transport"]).toBe("stdio");
+    expect(pluginConfig(headless, "@brains/mcp:mcp")?.["transport"]).toBe(
+      "stdio",
+    );
     expect(headless.plugins?.some(({ id }) => id === "webserver")).toBe(false);
     expect(permissionLevel(headless, "mcp:http")).toBeUndefined();
 
     const personal = resolve(canonicalBrain, {}, targetRecipes.personal);
-    expect(pluginConfig(personal, "mcp")?.["transport"]).toBe("http");
+    expect(pluginConfig(personal, "@brains/mcp:mcp")?.["transport"]).toBe(
+      "http",
+    );
     expect(permissionLevel(personal, "mcp:http")).toBe("public");
     expect(
       personal.permissions?.entityActions?.["grouping-vocabulary"],

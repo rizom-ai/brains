@@ -1,7 +1,7 @@
 import {
   safeParseRuntimeDashboardWidgetData,
   type RuntimeDashboardOperatorPanelBlock,
-} from "@brains/plugins";
+} from "@brains/sdk/services";
 import type { RenderableWidgetData } from "./types";
 import { isRecord } from "@brains/utils/is-record";
 

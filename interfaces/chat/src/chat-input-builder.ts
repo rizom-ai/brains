@@ -5,8 +5,8 @@ import {
   normalizeMessageUploadMediaType,
   sanitizeUploadFilename,
   validateMessageUpload,
-  type ChatAttachment,
-} from "@brains/plugins";
+} from "@brains/contracts/upload-policy";
+import type { ChatAttachment } from "@brains/sdk/interfaces";
 import type { Message } from "chat";
 import type { ChatThread, ChatUploadStore } from "./types";
 

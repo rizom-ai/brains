@@ -1,23 +1,25 @@
-import type { ServicePluginContext } from "@brains/plugins";
-import {
-  recordStudioMutationAudit,
-  requireEntityAction,
-} from "./editor-access";
+import type { OperatorEntityWrites } from "@brains/sdk/services";
+import { recordStudioMutationAudit } from "./editor-access";
 import type {
+  StudioAuditRecorder,
   StudioRequestAccess,
-  EditorRouteOptions,
 } from "./editor-contracts";
 import { jsonResponse } from "./editor-response";
 
 const UPLOAD_FORM_FIELD = "file";
 const UPLOAD_MAX_BYTES = 10 * 1024 * 1024;
 
+/**
+ * A file arrives and becomes an entity of whichever type declared it takes
+ * that kind of file. The editor never decides what the file becomes: the
+ * runtime stages the bytes and hands them to the type's own handler as the
+ * person who sent them, and this reports what came back.
+ */
 export async function handleUpload(
-  context: ServicePluginContext,
+  operator: OperatorEntityWrites,
   request: Request,
-  routePath: string,
   access: StudioRequestAccess,
-  recordAuditEvent: EditorRouteOptions["recordAuditEvent"],
+  recordAuditEvent: StudioAuditRecorder,
 ): Promise<Response> {
   const declaredSize = Number(request.headers.get("content-length"));
   if (Number.isFinite(declaredSize) && declaredSize > UPLOAD_MAX_BYTES) {
@@ -39,73 +41,46 @@ export async function handleUpload(
     return jsonResponse({ error: "Upload too large" }, 400);
   }
 
-  const registration = context.entities.getUploadSaveHandler(file.type);
-  if (!registration) {
-    return jsonResponse(
-      { error: `No handler accepts uploads of type ${file.type}` },
-      415,
-    );
-  }
-  const actionError = requireEntityAction(
-    context,
-    registration.entityType,
-    "create",
-    access,
+  const outcome = await operator.upload(
+    {
+      filename: file.name,
+      mediaType: file.type,
+      content: Buffer.from(await file.arrayBuffer()),
+    },
+    access.caller,
   );
-  if (actionError) {
-    await recordStudioMutationAudit(
-      recordAuditEvent,
-      access,
-      "upload",
-      "denied",
-      registration.entityType,
-      undefined,
-      "entity-action-policy",
-    );
-    return actionError;
-  }
 
-  const store = context.uploads.scoped({
-    namespace: "upload",
-    refKind: "upload",
-    routePath,
-  });
-  const record = await store.save({
-    filename: file.name,
-    mediaType: file.type,
-    content: Buffer.from(await file.arrayBuffer()),
-  });
-
-  let result: Awaited<ReturnType<typeof registration.handler>>;
-  try {
-    result = await registration.handler(
-      { upload: { kind: "upload", id: record.id } },
-      {
-        interfaceType: "studio",
-        actor: access.actor,
-      },
-    );
-  } catch {
-    // The staged upload is discarded and the caller told the promotion
-    // failed. The reason stays server-side rather than in the response.
-    await store.remove(record.id);
-    return jsonResponse({ error: "Upload promotion failed" }, 502);
+  switch (outcome.kind) {
+    case "denied":
+      if (outcome.reason === "unsupported-media-type") {
+        return jsonResponse({ error: outcome.message }, 415);
+      }
+      await recordStudioMutationAudit(
+        recordAuditEvent,
+        access,
+        "upload",
+        "denied",
+        outcome.entityType,
+        undefined,
+        outcome.reason,
+      );
+      return jsonResponse({ error: outcome.message }, 403);
+    case "refused":
+      // The reason stays server-side: the handler's message is for the
+      // operator, and the promotion pipeline's internals are not.
+      return jsonResponse({ error: outcome.message }, 502);
+    case "created":
+      await recordStudioMutationAudit(
+        recordAuditEvent,
+        access,
+        "upload",
+        "allowed",
+        outcome.entityType,
+        outcome.entityId,
+      );
+      return jsonResponse(
+        { entityId: outcome.entityId, jobId: outcome.jobId },
+        201,
+      );
   }
-
-  if (!result.success) {
-    await store.remove(record.id);
-    return jsonResponse({ error: result.error }, 502);
-  }
-  await recordStudioMutationAudit(
-    recordAuditEvent,
-    access,
-    "upload",
-    "allowed",
-    registration.entityType,
-    result.data.entityId,
-  );
-  return jsonResponse(
-    { entityId: result.data.entityId, jobId: result.data.jobId },
-    201,
-  );
 }

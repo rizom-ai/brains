@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/sdk/entities";
 
 export const extractedSummaryEntrySchema: z.ZodObject<{
   title: z.ZodString;

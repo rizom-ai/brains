@@ -1,5 +1,8 @@
 import { slugifyUrl } from "@brains/utils/string-utils";
-import { AgentAdapter } from "../../src/adapters/agent-adapter";
+import {
+  createAgentContent,
+  parseAgentEntity,
+} from "../../src/lib/agent-content";
 import type {
   AgentEntity,
   AgentSkill,
@@ -7,8 +10,6 @@ import type {
   AgentWithData,
 } from "../../src/schemas/agent";
 import type { AgentView } from "../../src/templates/agent-view";
-
-const adapter = new AgentAdapter();
 
 export const DEFAULT_DISCOVERED_AT = "2026-03-31T00:00:00.000Z";
 
@@ -37,7 +38,7 @@ export function createTestAgent(input: TestAgentInput = {}): AgentEntity {
   return {
     id: input.id ?? extractDomainId(url),
     entityType: "agent",
-    content: adapter.createAgentContent({
+    content: createAgentContent({
       name,
       kind: input.kind ?? "person",
       ...(input.organization !== undefined
@@ -80,7 +81,7 @@ export function createTestAgentWithData(
   input: TestAgentInput = {},
 ): AgentWithData {
   const entity = createTestAgent(input);
-  const parsed = adapter.parseEntity(entity);
+  const parsed = parseAgentEntity(entity);
 
   return {
     ...entity,

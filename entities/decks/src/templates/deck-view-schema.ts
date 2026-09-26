@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/sdk/entities";
 import { deckStatusSchema } from "../schemas/deck";
 
 type Visibility = "public" | "shared" | "restricted";

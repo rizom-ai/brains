@@ -8,7 +8,7 @@ tags:
   - context-aware
   - philosophy
   - recipe-professional
-plugin: decks
+plugin: "@brains/decks:deck"
 handler: generateDeck
 
 input:

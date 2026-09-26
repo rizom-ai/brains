@@ -1,7 +1,7 @@
 id: tool-invocation-agent-scan-directories
 name: Scan Agent Directories
 summary: Verifies explicit agent network refresh requests use the directory scan tool.
-description: When an operator asks to refresh second-order agent discovery now, Brain should call agent_scan_directories instead of only describing the daily recurring scan.
+description: When an operator asks to refresh second-order agent discovery now, Brain should call agents_scan-directories instead of only describing the daily recurring scan.
 type: tool_invocation
 setup:
   permissionLevel: admin
@@ -17,7 +17,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: agent_scan_directories
+    - toolName: agents_scan-directories
       shouldBeCalled: true
   responseNotContains:
     - "I cannot"

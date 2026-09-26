@@ -1,4 +1,4 @@
-import type { SemanticSpaceNeighbor } from "@brains/plugins";
+import type { SemanticSpaceNeighbor } from "@brains/sdk/entities";
 import type {
   ProximityMapCluster,
   ProximityMapNode,

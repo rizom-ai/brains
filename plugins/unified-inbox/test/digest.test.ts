@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import type { ServicePluginContext } from "@brains/plugins";
-
 import {
   createUnifiedInboxDigest,
   inboxProjectionSchema,
-  registerUnifiedInboxDigest,
+  runUnifiedInboxDigest,
+  unifiedInboxDigestCheck,
+  type InboxDigestCheckContext,
 } from "../src";
 
 const projection = inboxProjectionSchema.parse({
@@ -50,9 +50,15 @@ const projection = inboxProjectionSchema.parse({
   ],
 });
 
-type RecurringCheckDefinition = Parameters<
-  ServicePluginContext["recurringChecks"]["register"]
->[0];
+function checkContext(
+  workspaces: Record<string, string>,
+): InboxDigestCheckContext {
+  return {
+    signal: new AbortController().signal,
+    siteUrl: "https://brain.test",
+    workspaceUrl: (id) => workspaces[id],
+  };
+}
 
 const now = (): Date => new Date("2026-08-05T12:00:00.000Z");
 
@@ -98,81 +104,37 @@ describe("unified inbox digest", () => {
     ).toBeUndefined();
   });
 
-  it("registers one daily recurring check against the live projection", async () => {
-    let check: RecurringCheckDefinition | undefined;
-    registerUnifiedInboxDigest(
-      {
-        siteUrl: "https://brain.test",
-        recurringChecks: {
-          register: (definition): (() => void) => {
-            check = definition;
-            return (): void => undefined;
-          },
-        },
-        webRoutes: {
-          getRoutes: () => [
-            {
-              pluginId: "dashboard",
-              fullPath: "/ops",
-              definition: {
-                path: "/ops",
-                method: "GET",
-                handler: (): Response => new Response(),
-              },
-            },
-          ],
-        },
-      },
-      { getInboxData: async () => projection },
-      { now, workspaceUrl: "/studio/workspaces/inbox" },
-    );
-
-    expect(check).toMatchObject({
+  it("declares one daily check against the live projection", async () => {
+    expect(
+      unifiedInboxDigestCheck({ getInboxData: async () => projection }),
+    ).toMatchObject({
       id: "daily-digest",
       cadence: "daily",
       includeInInbox: false,
     });
-    if (!check) throw new Error("Daily inbox check was not registered");
-    const result = await check.run({ signal: new AbortController().signal });
+
+    const run = runUnifiedInboxDigest(
+      { getInboxData: async () => projection },
+      { now },
+    );
+    const result = await run(
+      checkContext({ inbox: "/studio/workspaces/@brains/unified-inbox:inbox" }),
+    );
     expect(result.alerts).toHaveLength(1);
-    expect(result.alerts?.[0]?.body).toContain(
-      "Open Inbox: https://brain.test/studio/workspaces/inbox",
+    expect(result.alerts[0]?.body).toContain(
+      "Open Inbox: https://brain.test/studio/workspaces/@brains/unified-inbox:inbox",
     );
   });
 
-  it("falls back to the mounted Dashboard when Studio is absent", async () => {
-    let check: RecurringCheckDefinition | undefined;
-    registerUnifiedInboxDigest(
-      {
-        siteUrl: "https://brain.test",
-        recurringChecks: {
-          register: (definition): (() => void) => {
-            check = definition;
-            return (): void => undefined;
-          },
-        },
-        webRoutes: {
-          getRoutes: () => [
-            {
-              pluginId: "dashboard",
-              fullPath: "/ops",
-              definition: {
-                path: "/ops",
-                method: "GET",
-                handler: (): Response => new Response(),
-              },
-            },
-          ],
-        },
-      },
+  // Without Studio there is no Inbox page, and the digest says so by pointing
+  // at the brain itself rather than guessing at a route another package owns.
+  it("points at the brain when Studio mounted no workspace", async () => {
+    const run = runUnifiedInboxDigest(
       { getInboxData: async () => projection },
       { now },
     );
 
-    if (!check) throw new Error("Daily inbox check was not registered");
-    const result = await check.run({ signal: new AbortController().signal });
-    expect(result.alerts?.[0]?.body).toContain(
-      "Open Inbox: https://brain.test/ops",
-    );
+    const result = await run(checkContext({}));
+    expect(result.alerts[0]?.body).toContain("Open Inbox: https://brain.test/");
   });
 });

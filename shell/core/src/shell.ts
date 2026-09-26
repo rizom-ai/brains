@@ -20,18 +20,30 @@ import type {
   ProjectionExecutionContext,
   ProjectionInputContext,
   ProjectionJsonObject,
+  ProjectionRule,
+  ProjectionWaveInput,
+  ProjectionWriteIntent,
+} from "@brains/plugins";
+import {
+  toPublicConversation,
+  toPublicMessage,
+  type Conversation,
+  type Message,
 } from "@brains/plugins";
 import { bindHttpRouteSnapshot } from "@brains/plugins/internal/http-route-snapshot";
 
 // Plugin manager
 import {
   createAINamespace,
+  createProjectionInputReader,
+  createProjectionExecutionReader,
   createAttachmentsNamespace,
   createRuntimeUploadsNamespace,
   ProjectionJsonObjectSchema,
   resolvePrompt,
-  type IAttachmentsNamespace,
+  type AttachmentRegistrationNamespace,
   type IChannelRegistry,
+  type AuthRegistryHost,
   type IInboxFollowUpRegistry,
   type IInboxRegistry,
   type IOperationalHealthRegistry,
@@ -107,7 +119,13 @@ import {
   HttpRouteRegistry,
 } from "./http-route-registry";
 import { registerShellRuntimeFinalizers } from "./shell-shutdown";
-import { registerShellSystemCapabilities } from "./shell-system-capabilities";
+import { toPublicAppInfo } from "@brains/plugins/internal/app-info";
+import { createShellHttpHost, HTTP_HOST_OWNER } from "./shell-http-host";
+import type { HttpHost } from "@brains/http-host";
+import {
+  registerShellSystemCapabilities,
+  registerShellSystemJobHandlers,
+} from "./shell-system-capabilities";
 import type { ShellDependencies, ShellServices } from "./types/shell-types";
 import { ShellLifecycle } from "./initialization/shell-lifecycle";
 import { Exit } from "@brains/utils/effect";
@@ -133,6 +151,8 @@ export class Shell implements IShell {
   private readonly endpointRegistry = new EndpointRegistry();
   private readonly interactionRegistry = new InteractionRegistry();
   private readonly httpRouteRegistry = HttpRouteRegistry.createFresh();
+  private httpHost: HttpHost | undefined;
+  private readonly httpHostEligible: boolean;
 
   public readonly jobs: IJobsNamespace;
 
@@ -150,6 +170,9 @@ export class Shell implements IShell {
     runtimeOptions?: ShellRuntimeOptions,
   ) {
     this.config = config;
+    this.httpHostEligible =
+      runtimeOptions?.processRole !== "worker" &&
+      config.executionMode !== "eval";
     this.lifecycle = new ShellLifecycle();
     bindHttpRouteSnapshot(this, () => this.httpRouteRegistry.getSnapshot());
     const constructionLogger =
@@ -182,45 +205,37 @@ export class Shell implements IShell {
           registerCoreDataSources: (): void =>
             registerCoreDataSources(this.services, this.config),
           finalizeHttpRoutes: (): void => {
-            this.httpRouteRegistry.finalize(
+            const routes = this.httpRouteRegistry.finalize(
               collectHttpRouteContributors(this.services.pluginManager),
             );
+            this.httpHost = createShellHttpHost({
+              config: this.config,
+              services: this.services,
+              routes,
+              endpoints: this.endpointRegistry,
+              interactions: this.interactionRegistry,
+              appInfo: async () => toPublicAppInfo(await this.getAppInfo()),
+              readiness: () => this.getRuntimeReadiness(),
+            });
           },
-          registerSystemCapabilities: (): void =>
+          startHttpHost: async (): Promise<void> => {
+            if (this.httpHostEligible) await this.httpHost?.start();
+          },
+          registerSystemJobHandlers: (): void =>
+            registerShellSystemJobHandlers(this.services, this.jobs),
+          registerSystemCapabilities: (options): void =>
             registerShellSystemCapabilities({
               services: this.services,
               jobs: this.jobs,
               insights: this.insightsRegistry,
               query: (prompt, context) => this.query(prompt, context),
               getAppInfo: () => this.getAppInfo(),
+              resumeBackfill: options.resumeBackfill,
             }),
-          createProjectionInputContext: (): ProjectionInputContext => ({
-            entities: this.services.entityService,
-            resolvePrompt: (reference, fallback): Promise<string> =>
-              resolvePrompt(this.services.entityService, reference, fallback),
-            appInfo: (): Promise<RuntimeAppInfo> => this.getAppInfo(),
-            identityInput: (): ProjectionJsonObject => {
-              const identity = this.getIdentity();
-              const profile = this.getProfile();
-              return ProjectionJsonObjectSchema.parse({
-                brainName: identity.name,
-                role: identity.role,
-                purpose: identity.purpose,
-                values: identity.values,
-                profileName: profile.name,
-                ...(profile.description !== undefined
-                  ? { profileDescription: profile.description }
-                  : {}),
-                ...(profile.organization !== undefined
-                  ? { profileOrganization: profile.organization }
-                  : {}),
-              });
-            },
-          }),
-          createProjectionExecutionContext: (): ProjectionExecutionContext => ({
-            ai: createAINamespace(this),
-            logger: this.services.logger.child("ProjectionRuntime"),
-          }),
+          createProjectionInputContext: (): ProjectionInputContext =>
+            this.createProjectionInputContext(),
+          createProjectionExecutionContext: (): ProjectionExecutionContext =>
+            this.createProjectionExecutionContext(),
           ...(dependencies?.projectionRuntime && {
             projectionRuntime: dependencies.projectionRuntime,
           }),
@@ -229,6 +244,13 @@ export class Shell implements IShell {
 
       shellInitializer.wireShell(this.services, this);
       registerShellRuntimeFinalizers(this.lifecycle, this.services);
+      // Last registered, first released: admitted HTTP work must finish before
+      // handler dependencies (plugins, agent service and databases) are closed.
+      this.lifecycle.addFinalizer(async () => {
+        await this.httpHost?.stop();
+        this.endpointRegistry.unregister(HTTP_HOST_OWNER);
+        this.interactionRegistry.unregister(HTTP_HOST_OWNER);
+      });
     } catch (error) {
       try {
         this.lifecycle.closeSync(Exit.fail(error));
@@ -481,7 +503,7 @@ export class Shell implements IShell {
     return this.services.renderService;
   }
 
-  public getAttachmentRegistry(): IAttachmentsNamespace {
+  public getAttachmentRegistry(): AttachmentRegistrationNamespace {
     return createAttachmentsNamespace(this.services.attachmentRegistry);
   }
 
@@ -632,6 +654,16 @@ export class Shell implements IShell {
     return this.httpRouteRegistry.getApiRoutes();
   }
 
+  public isHttpHostConfigured(): boolean {
+    if (!this.httpHost)
+      throw new Error("HTTP serving composition has not been finalized");
+    return this.httpHost.configured;
+  }
+
+  public getHttpHostStatus(): ReturnType<HttpHost["getStatus"]> | undefined {
+    return this.httpHost?.getStatus();
+  }
+
   public getPluginWebRoutes(): RegisteredWebRoute[] {
     return this.httpRouteRegistry.getWebRoutes();
   }
@@ -687,6 +719,10 @@ export class Shell implements IShell {
 
   public getProfileKindRegistry(): IProfileKindRegistry {
     return this.services.profileKindRegistry;
+  }
+
+  public getAuthRegistry(): AuthRegistryHost {
+    return this.services.authRegistry;
   }
 
   public getChannelRegistry(): IChannelRegistry {
@@ -749,6 +785,91 @@ export class Shell implements IShell {
     this.config.evalHandlerRegistry?.register(pluginId, handlerId, handler);
   }
 
+  private createProjectionInputContext(): ProjectionInputContext {
+    const conversationService = this.services.conversationService;
+    return createProjectionInputReader({
+      entities: this.services.entityService,
+      spaces: this.config.spaces,
+      conversations: {
+        get: async (conversationId): Promise<Conversation | null> => {
+          const conversation =
+            await conversationService.getConversation(conversationId);
+          return conversation ? toPublicConversation(conversation) : null;
+        },
+        getMessages: async (conversationId, options): Promise<Message[]> =>
+          (
+            await conversationService.getMessages(
+              conversationId,
+              options?.limit === undefined
+                ? undefined
+                : { limit: options.limit },
+            )
+          ).map(toPublicMessage),
+        getManyWithMessages: async (request) =>
+          (await conversationService.getManyWithMessages(request)).map(
+            ({ conversation, messages }) => ({
+              conversation: toPublicConversation(conversation),
+              messages: messages.map(toPublicMessage),
+            }),
+          ),
+      },
+      resolvePrompt: (reference, fallback): Promise<string> =>
+        resolvePrompt(this.services.entityService, reference, fallback),
+      appInfo: (): Promise<RuntimeAppInfo> => this.getAppInfo(),
+      identityInput: (): ProjectionJsonObject => {
+        const identity = this.getIdentity();
+        const profile = this.getProfile();
+        return ProjectionJsonObjectSchema.parse({
+          brainName: identity.name,
+          role: identity.role,
+          purpose: identity.purpose,
+          values: identity.values,
+          profileName: profile.name,
+          ...(profile.description !== undefined
+            ? { profileDescription: profile.description }
+            : {}),
+          ...(profile.organization !== undefined
+            ? { profileOrganization: profile.organization }
+            : {}),
+        });
+      },
+    });
+  }
+
+  private createProjectionExecutionContext(): ProjectionExecutionContext {
+    return createProjectionExecutionReader({
+      ai: createAINamespace(this),
+      logger: this.services.logger.child("ProjectionRuntime"),
+    });
+  }
+
+  /**
+   * Select and derive, with no wave, no memo and no write.
+   *
+   * The trigger carries no inputs because an eval measures a rule against
+   * the corpus as it stands, not against a specific change that arrived.
+   */
+  public async runProjectionRule(
+    rule: ProjectionRule,
+    options: { readonly inputs?: readonly ProjectionWaveInput[] } = {},
+    signal: AbortSignal = new AbortController().signal,
+  ): Promise<readonly ProjectionWriteIntent[]> {
+    const input = await rule.selectInput(
+      { waveId: "eval", inputs: options.inputs ?? [] },
+      this.createProjectionInputContext(),
+      signal,
+    );
+    const derived = await rule.derive(
+      input,
+      this.createProjectionExecutionContext(),
+      signal,
+    );
+    // An eval measures what a rule would write, and abstaining writes
+    // nothing. The distinction only matters to the runtime deciding whether
+    // to reconcile deletions.
+    return Array.isArray(derived) ? derived : [];
+  }
+
   public async getAppInfo(): Promise<RuntimeAppInfo> {
     return getRuntimeAppInfo({
       config: this.config,
@@ -760,6 +881,18 @@ export class Shell implements IShell {
   }
 
   public getRuntimeReadiness(): Promise<RuntimeReadiness> {
-    return getRuntimeReadiness(this.services);
+    return getRuntimeReadiness({
+      ...this.services,
+      httpHostCheck: () =>
+        this.httpHostEligible && this.bootMode === undefined
+          ? (this.httpHost?.health() ?? {
+              status: "healthy",
+              message: "HTTP host not started",
+            })
+          : {
+              status: "healthy",
+              message: "HTTP host excluded from this execution mode",
+            },
+    });
   }
 }

@@ -1,32 +1,21 @@
 import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
-import { createServicePluginContext } from "@brains/plugins";
-import type { ServicePluginContext } from "@brains/plugins";
-
-import { z } from "@brains/utils/zod";
+import type { AtprotoPdsClientLike } from "../src";
 import {
-  AtprotoPlugin,
-  atprotoPlugin,
-  type AtprotoPdsClientLike,
-} from "../src";
+  createProfiledShell,
+  instantiate,
+  publisherFor,
+  type MockShell,
+} from "./helpers/install";
 
-function createShellWithA2A(): ReturnType<typeof createMockShell> {
-  const shell = createMockShell({
+/** A brain with a web channel, whose site is where the card points. */
+function createWebShell(): MockShell {
+  const shell = createProfiledShell({
     domain: "brain.example.com",
-    profileKind: "professional",
-  });
-  const getPluginPackageName = shell.getPluginPackageName.bind(shell);
-  shell.getPluginPackageName = (pluginId): string | undefined =>
-    pluginId === "webserver"
-      ? "@brains/webserver"
-      : getPluginPackageName(pluginId);
-  shell.getProfileKindRegistry().register("test", {
     kind: "professional",
     category: "person",
-    fields: z.object({}),
-    labels: { singular: "Professional", plural: "Professionals" },
+    web: true,
   });
-  shell.getProfileKindRegistry().finalize();
   shell.registerEndpoint({
     pluginId: "a2a",
     label: "A2A",
@@ -46,17 +35,14 @@ function createShellWithA2A(): ReturnType<typeof createMockShell> {
   return shell;
 }
 
-function createContext(): ServicePluginContext {
-  return createServicePluginContext(createShellWithA2A(), "atproto");
-}
-
 describe("AT Protocol brain card publishing", () => {
   it("builds a brain card record without writing when dryRun is true", async () => {
     const createRecord = mock(async () => ({
       uri: "at://repo/card",
       cid: "cid",
     }));
-    const plugin = new AtprotoPlugin(
+    const publisher = publisherFor(
+      createWebShell(),
       {
         pdsEndpoint: "https://pds.example.com",
         identifier: "brain.example.com",
@@ -78,9 +64,7 @@ describe("AT Protocol brain card publishing", () => {
       },
     );
 
-    const result = await plugin.publishBrainCard(createContext(), {
-      dryRun: true,
-    });
+    const result = await publisher.publishBrainCard({ dryRun: true });
 
     expect(result.dryRun).toBe(true);
     expect(result.repo).toBe("did:plc:repo");
@@ -111,22 +95,20 @@ describe("AT Protocol brain card publishing", () => {
   });
 
   it("defaults brain and anchor DIDs from the siteUrl host", async () => {
-    const plugin = new AtprotoPlugin({
+    const publisher = publisherFor(createWebShell(), {
       pdsEndpoint: "https://pds.example.com",
       identifier: "brain.example.com",
       appPassword: "secret",
     });
 
-    const result = await plugin.publishBrainCard(createContext(), {
-      dryRun: true,
-    });
+    const result = await publisher.publishBrainCard({ dryRun: true });
 
     expect(result.record.brain.did).toBe("did:web:brain.example.com");
     expect(result.record.anchor.did).toBe("did:web:brain.example.com:anchor");
   });
 
   it("rejects did:web brain identities that do not match siteUrl host", async () => {
-    const plugin = new AtprotoPlugin({
+    const publisher = publisherFor(createWebShell(), {
       pdsEndpoint: "https://pds.example.com",
       identifier: "brain.example.com",
       appPassword: "secret",
@@ -136,7 +118,7 @@ describe("AT Protocol brain card publishing", () => {
 
     let error: unknown;
     try {
-      await plugin.publishBrainCard(createContext(), { dryRun: true });
+      await publisher.publishBrainCard({ dryRun: true });
     } catch (caught) {
       error = caught;
     }
@@ -151,16 +133,12 @@ describe("AT Protocol brain card publishing", () => {
   it("rejects typed publication when no profile kind is selected", () => {
     const shell = createMockShell({ domain: "brain.example.com" });
     shell.getProfileKindRegistry().finalize();
-    const plugin = new AtprotoPlugin({
+    const publisher = publisherFor(shell, {
       identifier: "brain.example.com",
       appPassword: "secret",
     });
 
-    expect(
-      plugin.publishBrainCard(createServicePluginContext(shell, "atproto"), {
-        dryRun: true,
-      }),
-    ).rejects.toThrow(
+    expect(publisher.publishBrainCard({ dryRun: true })).rejects.toThrow(
       "AT Protocol brain card publishing requires a configured profile kind",
     );
   });
@@ -180,7 +158,8 @@ describe("AT Protocol brain card publishing", () => {
       uri: "at://repo/card/self",
       cid: "cid",
     }));
-    const plugin = new AtprotoPlugin(
+    const publisher = publisherFor(
+      createWebShell(),
       {
         pdsEndpoint: "https://pds.example.com",
         identifier: "brain.example.com",
@@ -197,7 +176,7 @@ describe("AT Protocol brain card publishing", () => {
       },
     );
 
-    const result = await plugin.publishBrainCard(createContext());
+    const result = await publisher.publishBrainCard();
 
     expect(result.dryRun).toBe(false);
     expect(result.repo).toBe("did:plc:session-repo");
@@ -215,17 +194,17 @@ describe("AT Protocol brain card publishing", () => {
   });
 
   it("does not expose publish-card as an agent tool", async () => {
-    const plugin = atprotoPlugin({
+    const config = {
       pdsEndpoint: "https://pds.example.com",
       identifier: "brain.example.com",
       brainDid: "did:web:brain.example.com",
       anchorDid: "did:plc:anchor",
-    });
-    const shell = createShellWithA2A();
-    const capabilities = await plugin.register(shell);
+    };
+    const shell = createWebShell();
+    const capabilities = await instantiate(config).register(shell);
 
     expect(capabilities.tools).toEqual([]);
-    const result = await plugin.publishBrainCard(createContext(), {
+    const result = await publisherFor(shell, config).publishBrainCard({
       dryRun: true,
     });
     expect(result).toMatchObject({

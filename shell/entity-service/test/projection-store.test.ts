@@ -1,9 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { sql } from "drizzle-orm";
-import { ProjectionBatchFencedError, ProjectionStore } from "../src";
+import { drizzle } from "drizzle-orm/libsql";
+import {
+  ProjectionBatchFencedError,
+  ProjectionStore,
+  type ProjectionWriteIntent,
+} from "../src";
 import { retrySqliteWrite } from "../src/projection-store";
+import { SqliteAssetRepository } from "../src/sqlite-asset-repository";
+import type { ProjectionPersistEntity } from "../src/projection-write-intent-applier";
 import { createEntityDatabase } from "../src/db";
-import { entities } from "../src/schema/entities";
+import { entities, type InsertEntity } from "../src/schema/entities";
 import { entityExportIntents } from "../src/schema/entity-export-state";
 import {
   projectionBatchChildren,
@@ -1036,6 +1043,239 @@ describe("ProjectionStore", () => {
     );
     expect(await store.getActiveWave()).toBeNull();
   });
+
+  it("sequential intents observe prepared metadata and the original creation time", async () => {
+    const created: string[] = [];
+    let writes = 0;
+    const preparedStore = new ProjectionStore(
+      connection.db,
+      {
+        assertMutationAdmission: async (): Promise<void> => {
+          writes++;
+        },
+      },
+      () => 30,
+      {
+        assetRepository: new SqliteAssetRepository(connection.db),
+        isAssetBacked: (): boolean => false,
+        isFullTextSearchable: (): boolean => true,
+        prepareEntity: async (entity): Promise<ProjectionPersistEntity> => {
+          created.push(entity.created);
+          return { ...entity, metadata: { normalized: true } };
+        },
+      },
+    );
+    await connection.db.insert(entities).values({
+      id: "prepared",
+      entityType: "topic",
+      content: "old",
+      contentHash: "old",
+      visibility: "public",
+      metadata: {},
+      created: 1,
+      updated: 1,
+    });
+    await preparedStore.markDirty({
+      sourceType: "document",
+      sourceId: "source",
+      revision: "r",
+      operation: "upsert",
+      markedAt: 10,
+    });
+    await preparedStore.claimPendingWave({
+      waveId: "prepared-wave",
+      graphFingerprint: "g",
+      startedAt: 20,
+    });
+    await preparedStore.putWaveRules("prepared-wave", [
+      { ruleId: "topics", targetType: "topic", level: 0 },
+    ]);
+    await preparedStore.applyRuleResult({
+      waveId: "prepared-wave",
+      ruleId: "topics",
+      ruleVersion: "1",
+      inputFingerprint: "i",
+      completedAt: 30,
+      writeIntents: [1, 2].map((raw) => ({
+        operation: "upsert",
+        entity: {
+          id: "prepared",
+          entityType: "topic",
+          content: "new",
+          metadata: { raw },
+          visibility: "public",
+        },
+      })),
+    });
+    expect(created).toEqual([
+      new Date(1).toISOString(),
+      new Date(1).toISOString(),
+    ]);
+    expect(writes).toBe(1);
+    expect((await connection.db.select().from(entities))[0]).toMatchObject({
+      metadata: { normalized: true },
+      created: 1,
+      updated: 30,
+    });
+  });
+
+  it("prefetches 50 existing write targets with one entity query", async () => {
+    const queries: string[] = [];
+    const loggedDb = drizzle(connection.client, {
+      logger: {
+        logQuery(query): void {
+          queries.push(query);
+        },
+      },
+    });
+    const loggedStore = new ProjectionStore(loggedDb);
+    const ids = Array.from(
+      { length: 50 },
+      (_, index) => `topic-${String(index + 1).padStart(2, "0")}`,
+    );
+    const existingEntities: InsertEntity[] = ids.slice(0, 25).map((id) => ({
+      id,
+      entityType: "topic",
+      content: "old content",
+      contentHash: "old-hash",
+      visibility: "public",
+      metadata: {},
+      created: 1,
+      updated: 1,
+    }));
+    await loggedDb.insert(entities).values(existingEntities);
+    await loggedStore.markDirty({
+      sourceType: "document",
+      sourceId: "doc-query-budget",
+      revision: "hash-query-budget",
+      operation: "upsert",
+      markedAt: 10,
+    });
+    await loggedStore.claimPendingWave({
+      waveId: "wave-query-budget",
+      graphFingerprint: "graph-1",
+      startedAt: 20,
+    });
+    await loggedStore.putWaveRules("wave-query-budget", [
+      { ruleId: "topics", targetType: "topic", level: 0 },
+    ]);
+    queries.length = 0;
+
+    const writeIntents: ProjectionWriteIntent[] = ids.map((id) => ({
+      operation: "upsert",
+      entity: {
+        id,
+        entityType: "topic",
+        content: `# ${id}`,
+        metadata: {},
+        visibility: "public",
+      },
+    }));
+    await loggedStore.applyRuleResult({
+      waveId: "wave-query-budget",
+      ruleId: "topics",
+      ruleVersion: "1",
+      inputFingerprint: "input-query-budget",
+      writeIntents,
+      completedAt: 30,
+    });
+
+    const targetReads = queries.filter(
+      (query) =>
+        /^select\b/i.test(query.trim()) &&
+        /\bfrom\s+["`]?entities["`]?\b/i.test(query),
+    );
+    expect(targetReads).toHaveLength(1);
+  });
+
+  it("chunks target prefetch beyond SQLite's variable limit and retains sequential intents", async () => {
+    const targetReadBindings: number[] = [];
+    const loggedDb = drizzle(connection.client, {
+      logger: {
+        logQuery(query, params): void {
+          if (
+            /^select\b/i.test(query.trim()) &&
+            /\bfrom\s+["`]?entities["`]?\b/i.test(query)
+          ) {
+            targetReadBindings.push(params.length);
+          }
+        },
+      },
+    });
+    const loggedStore = new ProjectionStore(loggedDb);
+    // libsql permits 32,766 variables; the type predicate needs one too.
+    const ids = Array.from({ length: 32_766 }, (_, index) => `bulk-${index}`);
+    const lastId = ids.at(-1);
+    if (!lastId) throw new Error("Missing bulk test target");
+    await loggedDb.insert(entities).values({
+      id: lastId,
+      entityType: "topic",
+      content: "old",
+      contentHash: "old-hash",
+      visibility: "public",
+      metadata: {},
+      created: 1,
+      updated: 1,
+    });
+    await loggedStore.markDirty({
+      sourceType: "document",
+      sourceId: "bulk-source",
+      revision: "v1",
+      operation: "upsert",
+      markedAt: 10,
+    });
+    await loggedStore.claimPendingWave({
+      waveId: "wave-large",
+      graphFingerprint: "graph-1",
+      startedAt: 20,
+    });
+    await loggedStore.putWaveRules("wave-large", [
+      { ruleId: "topics", targetType: "topic", level: 0 },
+    ]);
+    const replacement: ProjectionWriteIntent = {
+      operation: "upsert",
+      entity: {
+        id: lastId,
+        entityType: "topic",
+        content: "new",
+        metadata: {},
+        visibility: "public",
+      },
+    };
+    const result = await loggedStore.applyRuleResult({
+      waveId: "wave-large",
+      ruleId: "topics",
+      ruleVersion: "1",
+      inputFingerprint: "large-input",
+      completedAt: 30,
+      writeIntents: [
+        ...ids.map((id): ProjectionWriteIntent => ({
+          operation: "delete",
+          entityType: "topic",
+          id,
+        })),
+        replacement,
+        replacement,
+        { operation: "delete", entityType: "topic", id: lastId },
+      ],
+    });
+    expect(result?.status).toBe("completed");
+    expect(result?.changedTargets).toEqual([
+      { entityType: "topic", entityId: lastId, operation: "delete" },
+      expect.objectContaining({
+        entityType: "topic",
+        entityId: lastId,
+        operation: "upsert",
+      }),
+      { entityType: "topic", entityId: lastId, operation: "delete" },
+    ]);
+    expect(targetReadBindings.length).toBeGreaterThan(1);
+    expect(targetReadBindings.every((count) => count <= 999)).toBe(true);
+    expect(targetReadBindings.reduce((sum, count) => sum + count - 1, 0)).toBe(
+      ids.length,
+    );
+    expect(await loggedDb.select().from(entities)).toEqual([]);
+  }, 20_000);
 
   it("tracks current projection ownership across upsert and delete intents", async () => {
     await store.markDirty({

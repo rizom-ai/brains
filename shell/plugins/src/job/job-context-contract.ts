@@ -1,0 +1,387 @@
+import type {
+  BaseEntity,
+  ContentVisibility,
+  CreateInput,
+  CreateEntityOptions,
+  UpdateEntityOptions,
+  CreateResult,
+  EntityInput,
+  EntityMutationResult,
+  EntitySchema,
+  QueryEntityHierarchyRequest,
+  EntityHierarchyPage,
+  ListOptions,
+  SearchOptions,
+  SearchResult,
+} from "@brains/entity-service";
+import type {
+  ProfileKindDefinition,
+  ResolvedProfileSelection,
+} from "@brains/identity-service";
+import type { LoggerContract } from "@brains/utils/logger";
+import type { ProgressContract } from "@brains/utils/progress";
+import type { IEntityAINamespace } from "../entity/ai-types";
+import type { AnchorProfile } from "../contracts/identity";
+import type { EntityDefinitionShape, EntityOf } from "../entity/entity-shape";
+import type { ResolvedRuntimeUpload } from "../service/upload-registry";
+import type { PublishMediaData } from "@brains/contracts";
+import type { Conversation, Message } from "../contracts/conversations";
+/**
+ * What a job reads about the conversation it was started from.
+ *
+ * The conversation and its messages, and deliberately nothing else: a
+ * package that summarises a conversation needs to read it, but `list` and
+ * `search` on the full namespace would let it read every conversation in
+ * the brain rather than the one it was handed. Which is what
+ * `conversation-memory` had to reach for, having no narrower option.
+ */
+export interface EntityConversationBatch {
+  readonly conversation: Conversation;
+  readonly messages: readonly Message[];
+}
+
+export interface EntityConversationReader {
+  get(conversationId: string): Promise<Conversation | null>;
+  /**
+   * Messages in the order they were sent, newest last. `limit` caps how many
+   * are read at all, so a long conversation does not have to be loaded whole
+   * to summarise its tail.
+   */
+  getMessages(
+    conversationId: string,
+    options?: { readonly limit?: number | undefined },
+  ): Promise<Message[]>;
+  /** Fixed-query batch read for bounded projection waves. */
+  getManyWithMessages(request: {
+    readonly ids: readonly string[];
+    readonly messageLimit: number;
+  }): Promise<readonly EntityConversationBatch[]>;
+}
+
+/**
+ * Entity access for a job handler: unrestricted reads, ownership-scoped
+ * writes.
+ *
+ * Reads span types because useful work usually reads across them — a series
+ * description is derived from the entities it indexes. Writes are limited to
+ * the types the declaring package owns, and the runtime checks
+ * `entity.entityType` against that set rather than trusting the caller.
+ *
+ * Writes take the entity rather than a definition object deliberately: the
+ * common case is an entity's own job writing its own type, and passing the
+ * definition there would mean the handler importing the definition that
+ * declares it — a cycle.
+ */
+export interface JobEntityAccess {
+  /** Bounded folder projections with visibility enforced by the reader. Named consumer: Studio. */
+  queryEntityHierarchy(
+    request: QueryEntityHierarchyRequest,
+  ): Promise<EntityHierarchyPage>;
+  /**
+   * Entities of one type. Without a schema these come back as the registered
+   * `BaseEntity` view; pass the schema that proves the shape to get a parsed
+   * `T` instead of a caller-chosen generic nothing checked.
+   */
+  listEntities(request: {
+    entityType: string;
+    options?: ListOptions;
+  }): Promise<BaseEntity[]>;
+  listEntities<T extends BaseEntity>(
+    request: {
+      entityType: string;
+      options?: ListOptions;
+    },
+    schema: EntitySchema<T>,
+  ): Promise<T[]>;
+  /**
+   * Counts per entity type. A read, so ownership does not restrict it; the
+   * visibility scope does, and it fails closed to public-only when omitted.
+   * Named consumer: @brains/profile, which sizes the brain's corpus before
+   * generating a starter character for it.
+   */
+  getEntityCounts(
+    visibilityScope?: ContentVisibility,
+  ): Promise<Array<{ entityType: string; count: number }>>;
+  /**
+   * How many entities of one type a filter matches. A page of results says
+   * nothing about how many there are, and listing everything to find out is
+   * not an answer for a list that reports its total. Capped at the scope the
+   * access was built with, like every other read here. Named consumer:
+   * @brains/email-workflows, whose triage list reports `total` beside a
+   * bounded page.
+   */
+  count(request: {
+    entityType: string;
+    options?: Pick<ListOptions, "publishedOnly" | "filter"> | undefined;
+  }): Promise<number>;
+  /** One entity by id. Schema-less and schema-bearing, as `listEntities`. */
+  getEntity(request: {
+    entityType: string;
+    id: string;
+    /**
+     * How wide to read. Reads are unrestricted here by design, but the
+     * default fails closed to public — and a package looking for its own
+     * entity stored as "shared" has to say so, or it concludes there is
+     * none and writes a second one beside it.
+     */
+    visibilityScope?: ContentVisibility | undefined;
+  }): Promise<BaseEntity | null>;
+  getEntity<T extends BaseEntity>(
+    request: {
+      entityType: string;
+      id: string;
+      visibilityScope?: ContentVisibility | undefined;
+    },
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  /**
+   * The entity someone named, by id, slug, or title.
+   *
+   * "Put a cover image on the launch post" names the post the way a person
+   * would, and `getEntity` only answers to an id. Without this, a package
+   * that has to honour a human-supplied identifier reaches past this surface
+   * for a resolver — which is how `image` came to import one from the shell.
+   */
+  find(entityType: string, identifier: string): Promise<BaseEntity | null>;
+  find<T extends BaseEntity>(
+    entityType: string,
+    identifier: string,
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  getEntityTypes(): string[];
+  search(request: {
+    query: string;
+    options?: SearchOptions;
+  }): Promise<SearchResult<BaseEntity>[]>;
+  search<T extends BaseEntity>(
+    request: {
+      query: string;
+      options?: SearchOptions;
+    },
+    schema: EntitySchema<T>,
+  ): Promise<SearchResult<T>[]>;
+  /**
+   * Typed read: the entity comes back parsed to the definition's own shape,
+   * rather than as a `BaseEntity` the caller has to narrow itself.
+   */
+  get<TDefinition extends EntityDefinitionShape>(
+    definition: TDefinition,
+    id: string,
+  ): Promise<EntityOf<TDefinition> | null>;
+  create<T extends BaseEntity>(
+    entity: EntityInput<T>,
+    options?: Pick<CreateEntityOptions, "signal" | "beforeWrite"> & {
+      /** Atomic create-if-absent, never revision-based replacement. */
+      readonly conditionalWrite?: { readonly expectedRevision: null };
+    },
+  ): Promise<EntityMutationResult>;
+  /** Conditional owned writes. Named consumer: bounded Contact intake/delivery. */
+  update<T extends BaseEntity>(
+    entity: T,
+    options?: Pick<UpdateEntityOptions, "signal" | "expectedContentHash">,
+  ): Promise<EntityMutationResult>;
+  /**
+   * Remove one of this package's own entities.
+   *
+   * A package that derives entities has to be able to un-derive them — a
+   * decision superseded by a later one is removed, not left beside its
+   * replacement. Scoped like the writes above, because deleting another
+   * package's entity is the same trespass as writing one.
+   */
+  delete(entityType: string, id: string): Promise<boolean>;
+  /**
+   * Record a durable placeholder before starting slow enrichment, so the
+   * next turn can find the accepted item immediately.
+   *
+   * Idempotent: an existing entity with this id is returned untouched rather
+   * than overwritten. The runtime does the lookup at full visibility — a
+   * placeholder the caller could not otherwise see still counts as existing —
+   * which is why this is a runtime call and not something a package assembles
+   * from `get` and `create`.
+   */
+  createPending<T extends BaseEntity>(
+    entity: EntityInput<T> & { readonly id: string },
+  ): Promise<{ entityId: string; created: boolean }>;
+  /**
+   * Store the enriched result, updating the placeholder if one exists and
+   * creating the entity outright if it does not.
+   */
+  saveProcessed<T extends BaseEntity>(
+    entity: EntityInput<T> & { readonly id: string },
+    options?: { readonly expectedContentHash?: string | undefined },
+  ): Promise<EntityMutationResult>;
+}
+
+/**
+ * The upload a job was handed, read by id.
+ *
+ * Narrowed to reading, and to the runtime's own upload namespace: a job
+ * imports the file it was enqueued for, and does not get to choose where
+ * uploads live, how clients refer to them, or which route served them.
+ * Note declared all three to do a markdown import, including a chat
+ * interface's route path — none of which affects which bytes come back.
+ */
+export interface JobUploadReader {
+  read(uploadId: string): Promise<ResolvedRuntimeUpload>;
+}
+
+/**
+ * Another entity's declared attachment, resolved by the job that renders it.
+ *
+ * Narrowed to resolving: a job asks the brain for "deck X as a carousel" and
+ * gets the media back. Registering providers stays a declaration, so a job
+ * cannot quietly add one.
+ */
+export interface JobAttachmentReader {
+  resolve(request: {
+    readonly sourceEntityType: string;
+    readonly sourceEntityId: string;
+    readonly attachmentType: string;
+  }): Promise<PublishMediaData | undefined>;
+}
+
+export interface JobPrompts {
+  resolve(target: string, fallback: string): Promise<string>;
+}
+
+export interface JobMessagePublisher {
+  publish(input: {
+    readonly topic: string;
+    readonly data: object;
+  }): Promise<void>;
+}
+
+export interface JobTemplateFormatter {
+  format<TValue>(name: string, value: TValue): string;
+  /**
+   * What a template the runtime holds can do.
+   *
+   * A page section is filled in from a template the brain composed, not
+   * from one the filling package wrote: whether it can be generated at all
+   * is a fact about the template, and only the registry knows it. Answers
+   * null for a name nobody registered.
+   * Named consumer: @brains/site-content.
+   */
+  capabilities(name: string): TemplateCapabilityReport | null;
+  /**
+   * Generate content from a template the runtime holds, parsed against that
+   * template's own schema.
+   *
+   * The schema comes from the registry rather than the caller for the same
+   * reason the prompt does: the template is the thing that knows what shape
+   * its content takes, and a caller filling in a section it did not design
+   * has no business claiming one.
+   * Named consumer: @brains/site-content.
+   */
+  generate(
+    name: string,
+    context: {
+      readonly prompt?: string | undefined;
+      readonly data?: Record<string, unknown> | undefined;
+    },
+  ): Promise<unknown>;
+}
+
+/** What a registered template supports. */
+export interface TemplateCapabilityReport {
+  readonly canGenerate: boolean;
+  readonly canFetch: boolean;
+  readonly canRender: boolean;
+  readonly isStaticOnly: boolean;
+}
+
+/**
+ * What every job handler receives, whether it was declared by an entity or
+ * by a service package.
+ *
+ * There is one context because the two used to be complementary halves —
+ * entity jobs could reach ai and write entities but never saw config;
+ * service jobs saw config but had neither. Any package doing real work
+ * needs the union, so there is no longer a split to choose between.
+ *
+ * Config is deliberately absent: a service declares jobs as a function of
+ * config, so a handler closes over exactly the settings it needs.
+ */
+/**
+ * Create an entity of a type this package does not own, through the route
+ * its owner declared.
+ *
+ * Writes are scoped to the types a package declares, and that rule holds: a
+ * service holding bytes for an image does not write an image. It hands the
+ * request to the image type's create route — exactly the route
+ * `system_create` would take — and the owner writes. The answer is what the
+ * runtime did, attributed to whoever asked this package in the first place.
+ *
+ * No fallback. `system_create` writes an ordinary entity when no route claims
+ * the input; from here that would be the trespass this exists to remove, so
+ * an input no route claims is refused. Named consumer: @brains/stock-photo.
+ */
+export type RoutedCreate = (input: CreateInput) => Promise<CreateResult>;
+
+export interface JobHandlerContext<TInput> {
+  readonly input: TInput;
+  /**
+   * The id this piece of work was queued under.
+   *
+   * A handler that keeps a projection of its own runs records each outcome
+   * against the id the requester is holding; without it the two records
+   * cannot be joined, and an operator page cannot say which build failed.
+   * Named consumer: @brains/site-builder.
+   */
+  readonly jobId: string;
+  readonly entities: JobEntityAccess;
+  readonly createRouted: RoutedCreate;
+  readonly ai: IEntityAINamespace;
+  readonly logger: LoggerContract;
+  readonly conversations: EntityConversationReader;
+  /**
+   * The brain the work is done on behalf of. A handler generating prose in
+   * the brain's voice needs its name and character; nothing here reaches
+   * the identity service itself.
+   */
+  readonly identity: { getProfile(): AnchorProfile };
+  /**
+   * The brain's canonical domain, when one is configured. A seeding flow
+   * that derives a deterministic starter identity keys the derivation off
+   * it. Named consumer: @brains/profile.
+   */
+  readonly domain: string | undefined;
+  /**
+   * The finalized profile-kind selection, read-only. A handler shaping
+   * identity content needs to know which kind this brain represents; only
+   * registration may add kinds. Named consumer: @brains/profile.
+   */
+  readonly profileKinds: {
+    getResolved(): ResolvedProfileSelection;
+    getSelectedDefinition(): ProfileKindDefinition | undefined;
+  };
+  readonly messaging: JobMessagePublisher;
+  /**
+   * Operator-editable prompt text the runtime keeps as prompt entities. A
+   * job that classifies against a rubric asks for the current text by target
+   * and supplies the default that stands until someone edits it; where the
+   * text lives is the runtime's business. Named consumer:
+   * @brains/email-workflows.
+   */
+  readonly prompts: JobPrompts;
+  readonly progress: ProgressContract;
+  readonly signal: AbortSignal;
+  /**
+   * The scoped name a template this package declared is registered under.
+   *
+   * A handler that generates has to name a template, and the runtime scopes
+   * template names to the declaring plugin. Spelled out by hand, the name a
+   * package writes is the one it had before it was scoped — which resolves
+   * to nothing and fails as "Template not found" at generation time, far
+   * from the declaration that caused it.
+   */
+  template(localName: string): string;
+  readonly uploads: JobUploadReader;
+  readonly attachments: JobAttachmentReader;
+  /**
+   * Absent for jobs declared by an entity: the entity plugin context
+   * deliberately excludes template rendering, so there is nothing honest to
+   * put here. Service-declared jobs always have it.
+   */
+  readonly templates?: JobTemplateFormatter | undefined;
+}

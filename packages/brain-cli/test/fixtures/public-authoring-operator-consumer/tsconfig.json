@@ -4,8 +4,9 @@
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "strict": true,
+    "types": ["node"],
     "skipLibCheck": false,
     "noEmit": true
   },
-  "include": ["import-smoke.ts"]
+  "include": ["import-smoke.ts", "grouping-type-canary.ts"]
 }

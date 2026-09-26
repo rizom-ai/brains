@@ -1,56 +1,58 @@
+import { z } from "@brains/utils/zod";
+
 export type FetchFn = (
   url: string | URL | Request,
   init?: RequestInit,
 ) => Promise<Response>;
 
+/** Fetches an image and returns it as a data URL. */
 export type FetchImageFn = (url: string) => Promise<string>;
 
-/**
- * A photo candidate returned from a stock photo search.
- */
-export interface PhotoCandidate {
-  id: string;
-  description: string | null;
-  altDescription: string | null;
-  thumbnailUrl: string;
-  imageUrl: string;
-  photographerName: string;
-  photographerUrl: string;
-  sourceUrl: string;
-  downloadLocation: string;
-  width: number;
-  height: number;
-}
+/** A photo candidate returned from a stock photo search. */
+export const photoCandidateSchema: z.ZodObject<{
+  id: z.ZodString;
+  description: z.ZodNullable<z.ZodString>;
+  altDescription: z.ZodNullable<z.ZodString>;
+  thumbnailUrl: z.ZodString;
+  imageUrl: z.ZodString;
+  photographerName: z.ZodString;
+  photographerUrl: z.ZodString;
+  sourceUrl: z.ZodString;
+  downloadLocation: z.ZodString;
+  width: z.ZodNumber;
+  height: z.ZodNumber;
+}> = z.object({
+  id: z.string(),
+  description: z.string().nullable(),
+  altDescription: z.string().nullable(),
+  thumbnailUrl: z.string(),
+  imageUrl: z.string(),
+  photographerName: z.string(),
+  photographerUrl: z.string(),
+  sourceUrl: z.string(),
+  downloadLocation: z.string(),
+  width: z.number(),
+  height: z.number(),
+});
 
-/**
- * Search result from a stock photo provider.
- */
-export interface SearchResult {
-  photos: PhotoCandidate[];
-  total: number;
-  totalPages: number;
-  page: number;
-}
+export type PhotoCandidate = z.output<typeof photoCandidateSchema>;
 
-/**
- * Result from selecting a stock photo.
- */
-export interface SelectResult {
-  imageEntityId: string;
-  alreadyExisted: boolean;
-  attribution: {
-    photographerName: string;
-    photographerUrl: string;
-    sourceUrl: string;
-  };
-  coverSet?: boolean;
-  jobId?: string;
-  status?: "generating";
-}
+/** Search result from a stock photo provider. */
+export const searchResultSchema: z.ZodObject<{
+  photos: z.ZodArray<typeof photoCandidateSchema>;
+  total: z.ZodNumber;
+  totalPages: z.ZodNumber;
+  page: z.ZodNumber;
+}> = z.object({
+  photos: z.array(photoCandidateSchema),
+  total: z.number(),
+  totalPages: z.number(),
+  page: z.number(),
+});
 
-/**
- * Provider interface for stock photo services.
- */
+export type SearchResult = z.output<typeof searchResultSchema>;
+
+/** Provider interface for stock photo services. */
 export interface StockPhotoProvider {
   searchPhotos(
     query: string,

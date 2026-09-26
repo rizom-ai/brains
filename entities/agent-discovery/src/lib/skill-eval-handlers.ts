@@ -1,63 +1,42 @@
-import type { EntityPluginContext } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils/zod";
-import { SKILL_ENTITY_TYPE } from "./constants";
-import { deriveSkills } from "./skill-deriver";
+import { z, type EntityEvalDeclaration } from "@brains/sdk/entities";
+import { createSkillProjectionRule } from "./skill-projection";
 
 const deriveInputSchema = z.object({
   topicTitles: z.array(z.string()),
 });
 
-type DeriveInput = z.output<typeof deriveInputSchema>;
+/**
+ * What skill derivation produces from a known set of topics.
+ *
+ * Runs the same projection rule production runs. It used to call a second
+ * derivation path that only the eval and its own tests reached, so a change
+ * to how skills are actually derived moved no number here.
+ */
+export function skillEvalHandlers(): EntityEvalDeclaration {
+  return {
+    deriveSkills: async (input, context): Promise<unknown> => {
+      const parsed = deriveInputSchema.parse(input);
 
-export function registerSkillEvalHandlers(
-  context: EntityPluginContext,
-  logger: Logger,
-): void {
-  context.eval.registerHandler("deriveSkills", async (input: unknown) => {
-    const parsed: DeriveInput = deriveInputSchema.parse(input);
-
-    await clearEvalEntities(context, "topic");
-    await clearEvalEntities(context, SKILL_ENTITY_TYPE);
-
-    // Create mock topic entities so deriveSkills can read them.
-    for (const title of parsed.topicTitles) {
-      const id = title.toLowerCase().replace(/\s+/g, "-");
-      const content = `---\ntitle: ${title}\nkeywords: []\n---\n${title}`;
-      try {
-        await context.entityService.createEntity({
-          entity: {
-            id,
-            entityType: "topic",
-            content,
-            metadata: {},
-          },
+      await context.fixtures.reset();
+      for (const title of parsed.topicTitles) {
+        await context.fixtures.seed({
+          id: title.toLowerCase().replace(/\s+/g, "-"),
+          entityType: "topic",
+          content: `---\ntitle: ${title}\nkeywords: []\n---\n${title}`,
         });
-      } catch {
-        // Topic may already exist.
       }
-    }
 
-    const result = await deriveSkills(context, logger, { replaceAll: true });
-    const skills = await context.entityService.listEntities({
-      entityType: SKILL_ENTITY_TYPE,
-    });
-
-    return {
-      ...result,
-      skills: skills.map((s) => s.metadata),
-    };
-  });
-}
-
-async function clearEvalEntities(
-  context: EntityPluginContext,
-  entityType: string,
-): Promise<void> {
-  const entities = await context.entityService.listEntities({ entityType });
-  await Promise.all(
-    entities.map((entity) =>
-      context.entityService.deleteEntity({ entityType, id: entity.id }),
-    ),
-  );
+      const intents = await context.runProjectionRule(
+        createSkillProjectionRule(),
+      );
+      const upserts = intents.filter((intent) => intent.operation === "upsert");
+      return {
+        created: upserts.length,
+        deleted: intents.length - upserts.length,
+        skills: upserts.map((intent) =>
+          "entity" in intent ? intent.entity.metadata : {},
+        ),
+      };
+    },
+  };
 }

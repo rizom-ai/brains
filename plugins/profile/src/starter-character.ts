@@ -1,11 +1,44 @@
-import type {
-  BaseEntity,
-  ProfileCategory,
-  IEntityAINamespace,
-  ServiceEntityService,
-} from "@brains/plugins";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import type { ProfileCategory } from "@brains/sdk/services";
+import {
+  parseMarkdownWithFrontmatter,
+  type BaseEntity,
+  type ContentVisibility,
+} from "@brains/sdk/entities";
 import { z } from "@brains/utils/zod";
+
+/**
+ * The reads building a brief performs. Scoped entity access satisfies this,
+ * and so does a fake with four methods — which is the point: a brief is a
+ * pure function of what it read.
+ */
+export interface StarterCharacterReader {
+  listEntities(request: {
+    entityType: string;
+    options?: {
+      limit?: number;
+      sortFields?: Array<{ field: string; direction: "asc" | "desc" }>;
+      filter?: { visibilityScope?: ContentVisibility };
+    };
+  }): Promise<BaseEntity[]>;
+  getEntity(request: {
+    entityType: string;
+    id: string;
+    visibilityScope?: ContentVisibility;
+  }): Promise<BaseEntity | null>;
+  getEntityTypes(): string[];
+  getEntityCounts(
+    visibilityScope?: ContentVisibility,
+  ): Promise<Array<{ entityType: string; count: number }>>;
+}
+
+/** Generating the character is one structured call. */
+export interface StarterCharacterGenerator {
+  generateObject<T>(
+    prompt: string,
+    schema: z.ZodType<T>,
+    signal?: AbortSignal,
+  ): Promise<{ object: T }>;
+}
 
 const MAX_CAPABILITIES = 50;
 const MAX_CONTENT_SIGNALS = 12;
@@ -207,7 +240,7 @@ function contentTypePriority(entityType: string): number {
 }
 
 async function collectContentSignals(
-  entityService: ServiceEntityService,
+  entityService: StarterCharacterReader,
   counts: ReadonlyMap<string, number>,
 ): Promise<StarterCharacterContentSignal[]> {
   const candidateTypes = [...counts.entries()]
@@ -245,7 +278,7 @@ async function collectContentSignals(
 }
 
 export async function buildStarterCharacterBrief(options: {
-  entityService: ServiceEntityService;
+  entityService: StarterCharacterReader;
   profileKind?: string | undefined;
   profileCategory?: ProfileCategory | undefined;
   anchorEntity: BaseEntity | null;
@@ -259,7 +292,7 @@ export async function buildStarterCharacterBrief(options: {
     includeAnchor,
   } = options;
   const entityCounts = await entityService.getEntityCounts("restricted");
-  const counts = new Map(
+  const counts = new Map<string, number>(
     entityCounts.map(({ entityType, count }) => [entityType, count]),
   );
 
@@ -321,7 +354,7 @@ ${JSON.stringify(brief, null, 2)}`;
 }
 
 export async function generateStarterCharacter(
-  ai: IEntityAINamespace,
+  ai: StarterCharacterGenerator,
   brief: StarterCharacterBrief,
 ): Promise<GeneratedStarterCharacter> {
   const result = await ai.generateObject(

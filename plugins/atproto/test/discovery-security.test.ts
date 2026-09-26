@@ -1,6 +1,6 @@
 import { createMockShell } from "@brains/plugins/test";
 import { describe, expect, it, mock } from "bun:test";
-import { createServicePluginContext, type BaseEntity } from "@brains/plugins";
+import type { BaseEntity } from "@brains/plugins";
 
 import {
   ATPROTO_BRAIN_CARD_CONFLICT,
@@ -8,8 +8,36 @@ import {
   type AtprotoBrainCardRecord,
   type AtprotoPdsClientLike,
 } from "@brains/atproto-contracts";
-import { AtprotoPlugin } from "../src/plugin";
+import type {
+  AtprotoConfigInput,
+  AtprotoServiceDeps,
+  DiscoverBrainCardsOptions,
+  DiscoverBrainCardsResult,
+} from "../src";
 import { AtprotoIdentityResolver } from "../src/identity-resolver";
+import { announcerFor, publisherFor, type MockShell } from "./helpers/install";
+
+/**
+ * Discovery over a shell: the publisher is built from that shell's reads,
+ * and what it finds is announced on that shell's bus.
+ */
+function discoverer(
+  config: AtprotoConfigInput,
+  deps: AtprotoServiceDeps,
+): {
+  discoverBrainCards(
+    shell: MockShell,
+    options: DiscoverBrainCardsOptions,
+  ): Promise<DiscoverBrainCardsResult>;
+} {
+  return {
+    discoverBrainCards: (shell, options) =>
+      publisherFor(shell, config, deps).discoverBrainCards(
+        announcerFor(shell),
+        options,
+      ),
+  };
+}
 
 const repoDid = "did:plc:peer";
 
@@ -163,7 +191,7 @@ describe("ATProto authoritative discovery boundary", () => {
 
   it("refetches a bound card and emits only the authoritative snapshot", async () => {
     const createPdsClient = mock(() => pdsClient());
-    const plugin = new AtprotoPlugin(
+    const discovery = discoverer(
       {},
       {
         fetch: identityFetch(),
@@ -179,12 +207,10 @@ describe("ATProto authoritative discovery boundary", () => {
         events.push(message.payload);
         return { success: true };
       });
-    await plugin.register(shell);
 
-    const result = await plugin.discoverBrainCards(
-      createServicePluginContext(shell, "atproto"),
-      { repos: [repoDid] },
-    );
+    const result = await discovery.discoverBrainCards(shell, {
+      repos: [repoDid],
+    });
 
     expect(result.discovered).toBe(1);
     expect(createPdsClient).toHaveBeenCalledWith(
@@ -200,7 +226,7 @@ describe("ATProto authoritative discovery boundary", () => {
   });
 
   it("rejects a returned AT URI for a different repo", async () => {
-    const plugin = new AtprotoPlugin(
+    const discovery = discoverer(
       {},
       {
         fetch: identityFetch(),
@@ -219,12 +245,10 @@ describe("ATProto authoritative discovery boundary", () => {
         events.push(message.payload);
         return { success: true };
       });
-    await plugin.register(shell);
 
-    const result = await plugin.discoverBrainCards(
-      createServicePluginContext(shell, "atproto"),
-      { repos: [repoDid] },
-    );
+    const result = await discovery.discoverBrainCards(shell, {
+      repos: [repoDid],
+    });
 
     expect(result.results[0]).toMatchObject({
       status: "skipped",
@@ -235,7 +259,7 @@ describe("ATProto authoritative discovery boundary", () => {
   });
 
   it("rejects a card whose site and did:web domain are not bound", async () => {
-    const plugin = new AtprotoPlugin(
+    const discovery = discoverer(
       {},
       {
         fetch: identityFetch(),
@@ -252,12 +276,10 @@ describe("ATProto authoritative discovery boundary", () => {
       },
     );
     const shell = createMockShell();
-    await plugin.register(shell);
 
-    const result = await plugin.discoverBrainCards(
-      createServicePluginContext(shell, "atproto"),
-      { repos: [repoDid] },
-    );
+    const result = await discovery.discoverBrainCards(shell, {
+      repos: [repoDid],
+    });
 
     expect(result.results[0]).toMatchObject({
       status: "skipped",
@@ -274,7 +296,7 @@ describe("ATProto authoritative discovery boundary", () => {
     }));
     const client = pdsClient();
     client.getRecord = getRecord;
-    const plugin = new AtprotoPlugin(
+    const discovery = discoverer(
       {
         jetstream: {
           denyDomains: ["peer.example.com"],
@@ -288,12 +310,10 @@ describe("ATProto authoritative discovery boundary", () => {
       },
     );
     const shell = createMockShell();
-    await plugin.register(shell);
 
-    const result = await plugin.discoverBrainCards(
-      createServicePluginContext(shell, "atproto"),
-      { repos: [repoDid] },
-    );
+    const result = await discovery.discoverBrainCards(shell, {
+      repos: [repoDid],
+    });
 
     expect(getRecord).toHaveBeenCalledTimes(1);
     expect(result.results[0]).toMatchObject({
@@ -310,7 +330,7 @@ describe("ATProto authoritative discovery boundary", () => {
       repoDid: "did:plc:waiting",
       status: "discovered",
     });
-    const plugin = new AtprotoPlugin(
+    const discovery = discoverer(
       { jetstream: { pendingCandidateCeiling: 1 } },
       {
         fetch: identityFetch(),
@@ -318,12 +338,10 @@ describe("ATProto authoritative discovery boundary", () => {
         createPdsClient: (): AtprotoPdsClientLike => pdsClient(),
       },
     );
-    await plugin.register(shell);
 
-    const ceilingResult = await plugin.discoverBrainCards(
-      createServicePluginContext(shell, "atproto"),
-      { repos: [repoDid] },
-    );
+    const ceilingResult = await discovery.discoverBrainCards(shell, {
+      repos: [repoDid],
+    });
     expect(ceilingResult.results[0]).toMatchObject({
       status: "skipped",
       retryable: false,
@@ -331,7 +349,7 @@ describe("ATProto authoritative discovery boundary", () => {
     });
 
     const emptyShell = createMockShell();
-    const gatedPlugin = new AtprotoPlugin(
+    const gatedDiscovery = discoverer(
       {},
       {
         fetch: identityFetch(),
@@ -339,11 +357,10 @@ describe("ATProto authoritative discovery boundary", () => {
         createPdsClient: (): AtprotoPdsClientLike => pdsClient(),
       },
     );
-    await gatedPlugin.register(emptyShell);
-    const gatedResult = await gatedPlugin.discoverBrainCards(
-      createServicePluginContext(emptyShell, "atproto"),
-      { repos: [repoDid], allowNewCandidates: false },
-    );
+    const gatedResult = await gatedDiscovery.discoverBrainCards(emptyShell, {
+      repos: [repoDid],
+      allowNewCandidates: false,
+    });
     expect(gatedResult.results[0]).toMatchObject({
       status: "skipped",
       retryable: false,
@@ -358,7 +375,7 @@ describe("ATProto authoritative discovery boundary", () => {
       repoDid,
       status: "approved",
     });
-    const plugin = new AtprotoPlugin(
+    const discovery = discoverer(
       {},
       {
         fetch: identityFetch(),
@@ -366,12 +383,11 @@ describe("ATProto authoritative discovery boundary", () => {
         createPdsClient: (): AtprotoPdsClientLike => pdsClient(),
       },
     );
-    await plugin.register(shell);
 
-    const result = await plugin.discoverBrainCards(
-      createServicePluginContext(shell, "atproto"),
-      { repos: [repoDid], allowNewCandidates: false },
-    );
+    const result = await discovery.discoverBrainCards(shell, {
+      repos: [repoDid],
+      allowNewCandidates: false,
+    });
 
     expect(result.results[0]).toMatchObject({
       status: "discovered",
@@ -398,7 +414,7 @@ describe("ATProto authoritative discovery boundary", () => {
         discovered.push(message.payload);
         return { success: true };
       });
-    const plugin = new AtprotoPlugin(
+    const discovery = discoverer(
       {},
       {
         fetch: identityFetch(),
@@ -406,12 +422,10 @@ describe("ATProto authoritative discovery boundary", () => {
         createPdsClient: (): AtprotoPdsClientLike => pdsClient(),
       },
     );
-    await plugin.register(shell);
 
-    const result = await plugin.discoverBrainCards(
-      createServicePluginContext(shell, "atproto"),
-      { repos: [repoDid] },
-    );
+    const result = await discovery.discoverBrainCards(shell, {
+      repos: [repoDid],
+    });
 
     expect(result.results[0]).toMatchObject({
       status: "skipped",
@@ -430,7 +444,7 @@ describe("ATProto authoritative discovery boundary", () => {
 
   it("caps the candidate-driven PLC response before PDS resolution", async () => {
     const createPdsClient = mock(() => pdsClient());
-    const plugin = new AtprotoPlugin(
+    const discovery = discoverer(
       { jetstream: { maxResponseBytes: 1024 } },
       {
         fetch: mock(async () =>
@@ -450,12 +464,10 @@ describe("ATProto authoritative discovery boundary", () => {
       },
     );
     const shell = createMockShell();
-    await plugin.register(shell);
 
-    const result = await plugin.discoverBrainCards(
-      createServicePluginContext(shell, "atproto"),
-      { repos: [repoDid] },
-    );
+    const result = await discovery.discoverBrainCards(shell, {
+      repos: [repoDid],
+    });
 
     expect(result.results[0]).toMatchObject({
       status: "skipped",
@@ -465,7 +477,7 @@ describe("ATProto authoritative discovery boundary", () => {
   });
 
   it("classifies transient DNS failures for bounded retry", async () => {
-    const plugin = new AtprotoPlugin(
+    const discovery = discoverer(
       {},
       {
         fetch: identityFetch(),
@@ -475,12 +487,10 @@ describe("ATProto authoritative discovery boundary", () => {
       },
     );
     const shell = createMockShell();
-    await plugin.register(shell);
 
-    const result = await plugin.discoverBrainCards(
-      createServicePluginContext(shell, "atproto"),
-      { repos: [repoDid] },
-    );
+    const result = await discovery.discoverBrainCards(shell, {
+      repos: [repoDid],
+    });
 
     expect(result.results[0]).toMatchObject({
       status: "skipped",
@@ -491,7 +501,7 @@ describe("ATProto authoritative discovery boundary", () => {
 
   it("rejects a private PDS endpoint before constructing a client", async () => {
     const createPdsClient = mock(() => pdsClient());
-    const plugin = new AtprotoPlugin(
+    const discovery = discoverer(
       {},
       {
         fetch: identityFetch("https://127.0.0.1:3000"),
@@ -500,12 +510,10 @@ describe("ATProto authoritative discovery boundary", () => {
       },
     );
     const shell = createMockShell();
-    await plugin.register(shell);
 
-    const result = await plugin.discoverBrainCards(
-      createServicePluginContext(shell, "atproto"),
-      { repos: [repoDid] },
-    );
+    const result = await discovery.discoverBrainCards(shell, {
+      repos: [repoDid],
+    });
 
     expect(result.results[0]).toMatchObject({
       status: "skipped",

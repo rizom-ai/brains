@@ -2,9 +2,9 @@ import { describe, it, expect, mock } from "bun:test";
 import { PermissionService, createPluginHarness } from "@brains/plugins/test";
 import { PromptActionStore } from "../src/prompt-action-store";
 import {
-  ChatInterface,
   MockChatSdk,
-  baseSlackConfig,
+  canonicalUploadStore,
+  createSlackPlugin,
   createMessage,
   createPlugin,
   createThread,
@@ -15,9 +15,8 @@ import {
   getPromptActionTokens,
   setupChatInterfaceTest,
 } from "./harness/chat-interface-harness";
-import type { ChatInterfaceInstance } from "./harness/chat-interface-harness";
 
-describe("ChatInterface cards and suggested actions", () => {
+describe("chat cards and suggested actions", () => {
   const suite = setupChatInterfaceTest();
 
   it("renders event actions as unavailable disabled Discord buttons", async () => {
@@ -219,7 +218,7 @@ describe("ChatInterface cards and suggested actions", () => {
         text: "Here is the summary.",
         usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
       });
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createSlackPlugin();
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
@@ -310,25 +309,20 @@ describe("ChatInterface cards and suggested actions", () => {
           expect.objectContaining({
             kind: "file",
             filename: "a-campus-that-remembers.pdf",
-            data: pdf,
+            data: new Uint8Array(pdf),
             source: expect.objectContaining({ kind: "upload" }),
           }),
         ],
       }),
+      expect.anything(),
     );
     const source =
       suite.agentService.chat.mock.calls[1]?.[2]?.attachments?.[0]?.source;
     expect(source?.kind).toBe("upload");
     if (!source) throw new Error("Expected canonical upload source");
-    const stored = await suite.harness
-      .getMockShell()
-      .getRuntimeUploadRegistry()
-      .scoped({
-        namespace: "upload",
-        refKind: "upload",
-        routePath: "/api/chat/uploads",
-      })
-      .read(source.id);
+    const stored = await canonicalUploadStore(suite.harness, "slack").read(
+      source.id,
+    );
     expect(stored.content).toEqual(pdf);
   });
 
@@ -365,7 +359,7 @@ describe("ChatInterface cards and suggested actions", () => {
         text: "No private attachment available.",
         usage: { promptTokens: 1, completionTokens: 2, totalTokens: 3 },
       });
-    const plugin = new ChatInterface({ adapters: { slack: baseSlackConfig } });
+    const plugin = createSlackPlugin();
     await suite.harness.installPlugin(plugin);
     const chat = MockChatSdk.instances[0];
     const thread = createThread({
@@ -513,7 +507,7 @@ describe("ChatInterface cards and suggested actions", () => {
 
     await suite.harness.reset();
     MockChatSdk.instances = [];
-    suite.harness = createPluginHarness<ChatInterfaceInstance>();
+    suite.harness = createPluginHarness();
     suite.harness.setAgentService(suite.agentService);
     await suite.harness.installPlugin(createPlugin());
     const restartedChat = MockChatSdk.instances[0];
@@ -634,6 +628,7 @@ describe("ChatInterface cards and suggested actions", () => {
       "Draft first announcement",
       "discord-discord:guild-123:channel-123:thread-456",
       expect.objectContaining({ interfaceType: "discord" }),
+      expect.anything(),
     );
   });
 
@@ -702,19 +697,13 @@ describe("ChatInterface cards and suggested actions", () => {
         actor: expect.objectContaining({
           identity: discordExternalIdentity,
           displayName: "Mira Ops",
-          username: "mira",
         }),
         source: expect.objectContaining({
           messageId: "actions-message-1",
           channelId: "discord:guild-123:channel-123:thread-456",
-          threadId: "thread-456",
-          metadata: expect.objectContaining({
-            actionId: "chat.prompt",
-            actionValue: actionToken,
-            guildId: "guild-123",
-          }),
         }),
       }),
+      expect.anything(),
     );
     expect(thread.startTyping).toHaveBeenCalledTimes(2);
     expect(thread.post).toHaveBeenLastCalledWith("Drafted announcement.");

@@ -1,12 +1,13 @@
 import { createTestEntity } from "@brains/entity-service/test";
-import { createMockEntityPluginContext } from "@brains/plugins/test";
-import { describe, expect, it } from "bun:test";
-import type { EntityPluginContext } from "@brains/plugins";
-import { createSilentLogger } from "@brains/test-utils";
 import {
-  SeriesGenerationHandler,
-  generatedSeriesDescriptionSchema,
-} from "../src/handlers/seriesGenerationHandler";
+  createMockEntityPluginContext,
+  createTestEntityAccess,
+  createTestJobContext,
+} from "@brains/plugins/test";
+import { describe, expect, it } from "bun:test";
+
+import { createSilentLogger } from "@brains/test-utils";
+import { seriesDescriptionJob } from "../src/handlers/seriesGenerationHandler";
 import type { Series } from "../src/schemas/series";
 
 describe("SeriesGenerationHandler", () => {
@@ -18,9 +19,13 @@ title: Systems Series
 slug: systems-series
 ---
 `,
-      metadata: { title: "Systems Series", slug: "systems-series" },
+      metadata: {
+        title: "Systems Series",
+        slug: "systems-series",
+        coverImageId: null,
+      },
     });
-    const context: EntityPluginContext = createMockEntityPluginContext({
+    const context = createMockEntityPluginContext({
       entityTypes: ["series", "post"],
       returns: {
         ai: { generate: { description: "A connected set of systems notes." } },
@@ -40,19 +45,26 @@ slug: systems-series
             ]
           : [],
     });
-    const handler = new SeriesGenerationHandler(
-      createSilentLogger("test"),
-      context,
+    await seriesDescriptionJob.handle(
+      createTestJobContext({
+        input: { seriesId: "systems-series" },
+        ai: context.ai,
+        logger: createSilentLogger("test"),
+        entities: createTestEntityAccess({
+          entityService: context.entityService,
+        }),
+        conversations: context.conversations,
+        identity: context.identity,
+        template: (localName: string) => `@brains/series:series:${localName}`,
+      }),
     );
-
-    await handler.process({ seriesId: "systems-series" });
 
     expect(context.ai.generate).toHaveBeenCalledWith(
       expect.objectContaining({
-        templateName: "series:description",
+        templateName: "@brains/series:series:description",
         representedIdentity: "none",
       }),
-      generatedSeriesDescriptionSchema,
+      expect.anything(),
     );
   });
 });

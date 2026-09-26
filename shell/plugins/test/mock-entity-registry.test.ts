@@ -110,7 +110,7 @@ describe("createMockEntityRegistry", () => {
     expect(registry.getUploadSaveHandler("application/pdf-x")).toBeUndefined();
   });
 
-  it("returns the first registered handler that matches", () => {
+  it("replaces an earlier handler for the same entity type", () => {
     const registry = createMockEntityRegistry(createMockEntityStore());
     registry.registerUploadSaveHandler({
       entityType: "image",
@@ -124,6 +124,24 @@ describe("createMockEntityRegistry", () => {
     });
 
     const handler = registry.getUploadSaveHandler("image/png");
-    expect(handler?.mediaTypes).toEqual(["image/*"]);
+    expect(handler?.mediaTypes).toEqual(["image/png"]);
+    expect(registry.getUploadSaveHandler("image/jpeg")).toBeUndefined();
+  });
+
+  it("returns the first matching handler across different entity types", () => {
+    const registry = createMockEntityRegistry(createMockEntityStore());
+    registry.registerUploadSaveHandler({
+      entityType: "image",
+      mediaTypes: ["image/*"],
+      handler: uploadHandler,
+    });
+    registry.registerUploadSaveHandler({
+      entityType: "special-image",
+      mediaTypes: ["image/png"],
+      handler: uploadHandler,
+    });
+    expect(registry.getUploadSaveHandler("image/png")?.entityType).toBe(
+      "image",
+    );
   });
 });

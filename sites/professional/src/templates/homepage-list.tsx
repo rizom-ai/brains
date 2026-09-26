@@ -14,7 +14,7 @@ import {
   SectionHeader,
   SubjectsList,
   renderHighlightedText,
-} from "@brains/ui-library";
+} from "@rizom/brain-ui";
 
 /**
  * Per-section blurb metadata, keyed by section id (e.g. essays,

@@ -1,7 +1,7 @@
 import type { UserPermissionLevel } from "@brains/templates";
 import type { z } from "@brains/utils/zod";
+import type { EntityDefinitionShape } from "../entity/entity-shape";
 import { freeze } from "@brains/utils/freeze";
-import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import { assertIdentifier } from "../package-definition";
 import type { AnyAccountSettingsDefinition } from "./account-settings-definition-contract";
 import {
@@ -18,6 +18,7 @@ import type {
   OperatorQueryReader,
   OperatorSchema,
 } from "./operator-context-contract";
+import type { DashboardWidgetRenderer } from "../base/dashboard-namespace";
 import type {
   StudioWorkspaceView,
   DashboardDigest,
@@ -42,6 +43,17 @@ export interface DashboardWidgetDefinition<
   readonly priority?: number | undefined;
   readonly permission: UserPermissionLevel;
   readonly data: TDataSchema;
+  /**
+   * The widget's own component, when the declarative block vocabulary
+   * cannot say what it shows.
+   *
+   * The view and digest still derive from the same data, so the semantic
+   * blocks remain the widget's text description and its digest strip stays
+   * live — a console that cannot run the component still has something to
+   * show. Named consumer: @brains/knowledge-map, which draws the corpus as
+   * a cartographic field.
+   */
+  readonly render?: DashboardWidgetRenderer | undefined;
   readonly digest?:
     | ((context: { readonly data: z.output<TDataSchema> }) => DashboardDigest)
     | undefined;
@@ -175,7 +187,20 @@ export interface StudioWorkspaceDefinition<
   readonly description?: string | undefined;
   readonly priority?: number | undefined;
   readonly permission: UserPermissionLevel;
-  readonly entities?: readonly AnyEntityDefinition[] | undefined;
+  readonly entities?: readonly EntityDefinitionShape[] | undefined;
+  /**
+   * Other ids this workspace answers to, each with the query that selects
+   * the view the old id used to name. Consolidating several workspaces into
+   * one tabbed workspace breaks every saved link otherwise. Named consumer:
+   * @brains/admin, whose People, Invitations, Peers and Audit workspaces
+   * became tabs of Administration.
+   */
+  readonly aliases?:
+    | readonly {
+        readonly id: string;
+        readonly query: Readonly<Record<string, string>>;
+      }[]
+    | undefined;
   readonly entityCatalog?: OperatorEntityCatalogDefinition | undefined;
   readonly query?: OperatorSchema | undefined;
   readonly data: TDataSchema;

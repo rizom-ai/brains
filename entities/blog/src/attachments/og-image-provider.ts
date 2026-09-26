@@ -3,7 +3,7 @@ import {
   preferredSlug,
   type OgImageProviderFactory,
 } from "@brains/media-page-composer";
-import { parseMarkdown } from "@brains/utils/markdown";
+import { parseMarkdown } from "@brains/sdk/entities";
 import type { BlogPost } from "../schemas/blog-post";
 import {
   blogPostFrontmatterSchema,
@@ -14,6 +14,8 @@ import {
   blogOgImageTemplate,
   type BlogOgImageTemplateData,
 } from "./og-image-template";
+
+export { BLOG_OG_IMAGE_ATTACHMENT_TYPE };
 
 export const createBlogOgImageProvider: OgImageProviderFactory =
   createOgImageProvider<BlogPost, BlogOgImageTemplateData>({

@@ -234,7 +234,7 @@ class ScriptedStressSystem {
           totals: { pending: 0, processing: 0 },
           byType: [
             {
-              type: "directory-sync:directory-import",
+              type: "@brains/directory-sync:directory-sync:directory-import",
               status: "completed",
               count: this.completedImports,
             },

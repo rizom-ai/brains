@@ -74,7 +74,6 @@ export function withMailThreadOrdinal(
     summary,
   );
   const metadata = mailItemAdapter.fromMarkdown(content).metadata;
-  if (!metadata) throw new Error("Mail item metadata could not be derived");
   return { ...projection, content, metadata };
 }
 
@@ -112,9 +111,6 @@ function buildProjection(
 ): MailItemProjection {
   const content = mailItemAdapter.createMailItemContent(frontmatter, summary);
   const parsed = mailItemAdapter.fromMarkdown(content);
-  if (!parsed.metadata) {
-    throw new Error("Mail item metadata could not be derived");
-  }
   return {
     id: mailItemIdForMessage(email.messageId),
     entityType: "mail-item",

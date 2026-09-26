@@ -1,6 +1,6 @@
 import { inboundEmailSchema, type InboundEmail } from "@brains/contracts";
-import type { IRuntimeStateStore, MessageResponse } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
+import type { IRuntimeStateStore } from "@brains/sdk/entities";
+import type { LoggerContract as Logger } from "@brains/sdk/services";
 import { isDeterministicBulkMail } from "./lib/bulk-filter";
 import type { MailClassifier } from "./lib/classifier";
 import {
@@ -11,6 +11,10 @@ import {
 } from "./lib/mail-item-projection";
 import { assertClassificationIsDerived } from "./lib/source-safety";
 import { mailTriageDecisionSchema } from "./schemas/triage";
+
+/** What one inbound email came to: stored or discarded, or why not yet. */
+export type TriageOutcome =
+  { success: true } | { success: false; error: string };
 
 export interface MailItemRepository {
   get(id: string): Promise<{ id: string } | null>;
@@ -45,7 +49,7 @@ export class EmailTriageProcessor {
     this.logger = dependencies.logger;
   }
 
-  async process(input: unknown): Promise<MessageResponse> {
+  async process(input: unknown): Promise<TriageOutcome> {
     const parsed = inboundEmailSchema.safeParse(input);
     if (!parsed.success) {
       this.logger.warn("Inbound email failed triage contract validation");
@@ -68,7 +72,7 @@ export class EmailTriageProcessor {
 
     if (isDeterministicBulkMail(email)) {
       const resolved = await this.resolveAttemptState(itemId);
-      if ("success" in resolved && resolved.success) {
+      if (resolved.success) {
         this.logger.debug("Deterministic bulk email discarded", { itemId });
       }
       return resolved;
@@ -107,7 +111,7 @@ export class EmailTriageProcessor {
     email: InboundEmail,
     itemId: string,
     priorFailures: number,
-  ): Promise<MessageResponse> {
+  ): Promise<TriageOutcome> {
     const failures = priorFailures + 1;
     try {
       await this.attempts.set(itemId, failures);
@@ -127,7 +131,7 @@ export class EmailTriageProcessor {
   private async persistFallback(
     email: InboundEmail,
     itemId: string,
-  ): Promise<MessageResponse> {
+  ): Promise<TriageOutcome> {
     let projection: MailItemProjection;
     try {
       projection = createUnclassifiedMailItemProjection(email);
@@ -140,7 +144,7 @@ export class EmailTriageProcessor {
   private async persistProjection(
     projection: MailItemProjection,
     itemId: string,
-  ): Promise<MessageResponse> {
+  ): Promise<TriageOutcome> {
     try {
       if (this.threadOrdinals) {
         await this.threadOrdinals.persist(projection, (item) =>
@@ -157,7 +161,7 @@ export class EmailTriageProcessor {
     return this.resolveAttemptState(itemId);
   }
 
-  private async resolveAttemptState(itemId: string): Promise<MessageResponse> {
+  private async resolveAttemptState(itemId: string): Promise<TriageOutcome> {
     try {
       await this.attempts.delete(itemId);
       return { success: true };
@@ -166,12 +170,12 @@ export class EmailTriageProcessor {
     }
   }
 
-  private persistenceFailure(itemId: string): MessageResponse {
+  private persistenceFailure(itemId: string): TriageOutcome {
     this.logger.warn("Email triage persistence failed", { itemId });
     return { success: false, error: "Email triage persistence failed" };
   }
 
-  private attemptStateFailure(itemId: string): MessageResponse {
+  private attemptStateFailure(itemId: string): TriageOutcome {
     this.logger.warn("Email triage attempt state failed", { itemId });
     return { success: false, error: "Email classification failed" };
   }

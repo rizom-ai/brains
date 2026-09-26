@@ -1,3 +1,5 @@
+import type { HttpServingInfo } from "../contracts/http-host";
+import { createPluginLogger } from "../internal/callback-readers";
 import type { IShell } from "../interfaces";
 import type { BasePluginContext as PublicBasePluginContext } from "../public/types";
 import { type Logger } from "@brains/utils/logger";
@@ -13,7 +15,7 @@ import type { EntityDisplayEntry } from "@brains/site-composition";
 import type { JobsNamespace } from "@brains/job-queue";
 import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
-import type { IAttachmentsNamespace } from "../service/attachment-registry";
+import type { AttachmentRegistrationNamespace } from "../service/attachment-registry";
 import type { AccountSettingsRegistry } from "../operator/account-settings-registry";
 import type { IRuntimeUploadsNamespace } from "../service/upload-registry";
 import {
@@ -48,12 +50,14 @@ import type {
   IConversationsNamespace,
   IEndpointsNamespace,
   IInboxFollowUpsNamespace,
+  InboxRegistrationNamespace,
   IInsightsNamespace,
   IInteractionsNamespace,
   IMessagingNamespace,
   IPluginsNamespace,
   IProfileKindsNamespace,
 } from "./context-types";
+import type { AuthRegistryHost } from "../contracts/auth-registry";
 
 export interface ISemanticNamespace {
   project(
@@ -121,10 +125,11 @@ export interface BasePluginContext extends PublicBasePluginContext {
   readonly entityDisplay: Record<string, EntityDisplayEntry> | undefined;
 
   /** Shared conversation spaces for this brain/team */
-  readonly spaces: string[];
+  readonly spaces: readonly string[];
 
   /** Runtime dependency readiness and bounded resource signals. */
   readonly readiness: () => Promise<RuntimeReadiness>;
+  readonly http: HttpServingInfo;
 
   // ============================================================================
   // Entity Service (Read-Only)
@@ -139,9 +144,14 @@ export interface BasePluginContext extends PublicBasePluginContext {
 
   /** App-scoped semantic profile-kind catalog and selected resolution. */
   readonly profileKinds: IProfileKindsNamespace;
+  /** Where the running auth implementation is published; see contracts/auth. */
+  readonly auth: AuthRegistryHost;
 
   /** Public card skills shared by every publication channel. */
   readonly publicSkills: IPublicSkillsNamespace;
+
+  /** Runtime registration for declared inbox sources. */
+  readonly inbox: InboxRegistrationNamespace;
 
   /** Destination-owned non-mutating Inbox follow-up catalog. */
   readonly inboxFollowUps: IInboxFollowUpsNamespace;
@@ -175,7 +185,7 @@ export interface BasePluginContext extends PublicBasePluginContext {
   // ============================================================================
 
   /** Source-derived publish attachment resolution namespace */
-  readonly attachments: IAttachmentsNamespace;
+  readonly attachments: AttachmentRegistrationNamespace;
 
   // ============================================================================
   // Runtime Uploads
@@ -250,7 +260,7 @@ export function createBasePluginContext(
   registrationContext?: PluginRegistrationContext,
 ): BasePluginContext {
   const entityService = shell.getEntityService();
-  const logger = shell.getLogger().child(pluginId);
+  const logger = createPluginLogger(shell.getLogger().child(pluginId));
   const domain = shell.getDomain();
   const localSiteUrl = shell.getLocalSiteUrl();
   const preferLocalUrls = shell.shouldPreferLocalUrls();
@@ -280,6 +290,7 @@ export function createBasePluginContext(
 
     identity: createIdentityNamespace(shell, getAppInfo),
     profileKinds: createProfileKindsNamespace(shell, pluginId),
+    auth: shell.getAuthRegistry(),
     channels: createChannelsNamespace(shell),
     publicSkills: createPublicSkillsNamespace(shell),
     inbox: createInboxNamespace(shell, pluginId),
@@ -287,6 +298,7 @@ export function createBasePluginContext(
 
     appInfo: getAppInfo,
     readiness: () => shell.getRuntimeReadiness(),
+    http: { isConfigured: () => shell.isHttpHostConfigured() },
     operationalHealth: createOperationalHealthNamespace(shell, pluginId),
     judge: (input) => shell.judge(input),
 
@@ -297,7 +309,7 @@ export function createBasePluginContext(
     preferLocalUrls,
     themeCSS,
     entityDisplay: registrationContext?.entityDisplay,
-    spaces: shell.getSpaces(),
+    spaces: Object.freeze([...shell.getSpaces()]),
 
     permissions: createPermissionsNamespace(shell),
 
@@ -331,7 +343,17 @@ export function createBasePluginContext(
     gitBrokerCheckout: shell.getGitBrokerCheckout(),
 
     eval: executionOnly
-      ? { registerHandler: (): void => {} }
+      ? {
+          registerHandler: (): void => {},
+          // Registration is a no-op in the worker because nothing there
+          // runs evals; reaching the runner anyway means a handler ran
+          // where it cannot, which is worth saying rather than swallowing.
+          runProjectionRule: (): never => {
+            throw new Error(
+              "Projection rules cannot be run from the execution-only context",
+            );
+          },
+        }
       : createEvalNamespace(shell, pluginId),
 
     insights: executionOnly

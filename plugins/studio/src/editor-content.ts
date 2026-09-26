@@ -1,12 +1,18 @@
-import type { ContentVisibility, ServicePluginContext } from "@brains/plugins";
-import {
-  contentVisibilitySchema,
-  parseMarkdownWithFrontmatter,
-} from "@brains/plugins";
+import { contentVisibilitySchema } from "@brains/sdk/entities";
+import type { ContentVisibility } from "@brains/sdk/entities";
+import { parseMarkdownWithFrontmatter } from "@brains/sdk/entities";
+import type { ServiceEntityShapes } from "@brains/sdk/services";
 import { z } from "@brains/utils/zod";
 import { isRawEntityType } from "./config";
+import type { StudioRuntime } from "./runtime";
 import { jsonResponse } from "./editor-response";
 
+/**
+ * The frontmatter a form sent, minus the one key that is not the type's to
+ * keep. Visibility is a system field: it rides in the editor's frontmatter
+ * projection so the form can show it, and it is resolved separately so a
+ * strict domain schema never sees it.
+ */
 export function stripStudioPolicyMetadata(
   metadata: Record<string, unknown>,
 ): Record<string, unknown> {
@@ -14,6 +20,7 @@ export function stripStudioPolicyMetadata(
   return rest;
 }
 
+/** The visibility a form named, or the one that stands when it named none. */
 export function resolveStudioVisibility(
   frontmatter: Record<string, unknown>,
   fallback: ContentVisibility,
@@ -32,6 +39,7 @@ export function resolveStudioVisibility(
       };
 }
 
+/** Frontmatter as it is written to disk: public is the default and omitted. */
 export function withStudioVisibility(
   frontmatter: Record<string, unknown>,
   visibility: ContentVisibility,
@@ -40,14 +48,14 @@ export function withStudioVisibility(
   return visibility === "public" ? fields : { ...fields, visibility };
 }
 
+/** A body sent for a type that has none is refused rather than stored. */
 export function rejectBodyForBodylessType(
-  context: ServicePluginContext,
+  shapes: ServiceEntityShapes,
   entityType: string,
   body: string | undefined,
 ): Response | null {
   if (body === undefined) return null;
-  const adapter = context.entities.getAdapter(entityType);
-  if (adapter?.hasBody === false) {
+  if (!shapes.hasBody(entityType)) {
     return jsonResponse(
       { error: `Entity type ${entityType} does not have a body` },
       400,
@@ -59,14 +67,14 @@ export function rejectBodyForBodylessType(
 export function splitEntityContent(
   entityType: string,
   content: string,
-  context: ServicePluginContext,
+  context: Pick<StudioRuntime, "groupings">,
 ): {
   frontmatter: Record<string, unknown>;
   body: string;
 } {
   // Without grouping participation, retain whole-document note editing,
   // including any authored frontmatter or leading Markdown horizontal rule.
-  if (isRawEntityType(entityType, context.entities)) {
+  if (isRawEntityType(entityType, context.groupings)) {
     return { frontmatter: {}, body: content };
   }
   try {

@@ -11,7 +11,7 @@ tags:
   - corpus
   - calibration
   - full-corpus
-plugin: topics
+plugin: "@brains/topics:topics"
 handler: rebuildCorpusFixture
 
 input:

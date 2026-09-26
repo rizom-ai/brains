@@ -47,16 +47,19 @@ describe("createMockMessageBus", () => {
     expect(seen).toEqual(["first", "second"]);
   });
 
-  it("succeeds with no handler rather than failing", async () => {
-    // Plugins send messages nothing has subscribed to; a fake that failed
-    // would make every such test assert a problem that is not there.
+  it("returns the runtime's coded no-handler refusal", async () => {
+    // Missing request handlers must not look like successful responses.
     const bus = createMockMessageBus();
     const response = await bus.send({
       type: "unheard",
       payload: {},
       sender: "test",
     });
-    expect(response).toEqual({ success: true });
+    expect(response).toEqual({
+      success: false,
+      code: "no_handler",
+      error: "No handler found for message type: unheard",
+    });
   });
 
   it("unsubscribes only the handler that asked", () => {
@@ -98,9 +101,7 @@ describe("createMockMessageBus", () => {
     expect(bus.getHandlerCount("pong")).toBe(0);
   });
 
-  it("counts no handler as targeted", () => {
-    // The fake does not model targeting, and saying so is what keeps a test
-    // from reading its zero as a real routing result.
+  it("does not count an untargeted subscription as targeted", () => {
     const bus = createMockMessageBus();
     bus.subscribe("ping", async () => ({ success: true }));
     expect(bus.getTargetedHandlerCount("ping", "somewhere")).toBe(0);

@@ -39,7 +39,7 @@ const createMCPClient: RemoteToolClientFactory = async (url, token) => {
 /**
  * Find a remote tool by CLI command name.
  * Matches tools whose name ends with `_<commandName>`.
- * E.g. "list" matches "system_list", "sync" matches "directory_sync".
+ * E.g. "list" matches "system_list", "sync" matches "directory-sync_sync".
  */
 function findToolByCliName(
   tools: readonly RemoteTool[],

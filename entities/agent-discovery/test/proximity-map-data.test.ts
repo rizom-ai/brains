@@ -3,6 +3,8 @@ import { mock } from "bun:test";
 import type { SemanticSpaceProjection } from "@brains/plugins";
 import { buildProximityMapData } from "../src/lib/proximity-map-data";
 import { createTestAgent } from "./fixtures/agent";
+import { genericSpy } from "@brains/test-utils";
+import type { EntityQueryReader } from "@brains/sdk/entities";
 
 describe("buildProximityMapData", () => {
   test("joins semantic points to agents and reports agents pending indexing", async () => {
@@ -73,7 +75,10 @@ describe("buildProximityMapData", () => {
     const project = mock(async () => projection);
 
     const result = await buildProximityMapData({
-      entityService: { listEntities },
+      entities: {
+        listEntities:
+          genericSpy<EntityQueryReader["listEntities"]>(listEntities),
+      },
       semantic: { project },
     });
 
@@ -128,11 +133,13 @@ describe("buildProximityMapData", () => {
 
   test("surfaces centroid fallback and ignores projection points without agents", async () => {
     const result = await buildProximityMapData({
-      entityService: {
-        listEntities: async (request) =>
-          request.entityType === "agent"
-            ? [createTestAgent({ id: "known" })]
-            : [],
+      entities: {
+        listEntities: genericSpy<EntityQueryReader["listEntities"]>(
+          async (request: { entityType: string }) =>
+            request.entityType === "agent"
+              ? [createTestAgent({ id: "known" })]
+              : [],
+        ),
       },
       semantic: {
         project: async () => ({
@@ -193,7 +200,7 @@ describe("buildProximityMapData", () => {
     ];
     const project = mock(async (): Promise<SemanticSpaceProjection> => ({
       origin: {
-        kind: "entity" as const,
+        kind: "entity",
         entityId: "brain-character",
         entityType: "brain-character",
       },
@@ -246,8 +253,10 @@ describe("buildProximityMapData", () => {
     }));
 
     const result = await buildProximityMapData({
-      entityService: {
-        listEntities: async () => agents,
+      entities: {
+        listEntities: genericSpy<EntityQueryReader["listEntities"]>(
+          async () => agents,
+        ),
       },
       semantic: { project },
     });

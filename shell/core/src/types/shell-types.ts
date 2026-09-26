@@ -28,6 +28,7 @@ import type {
 } from "@brains/templates";
 import type {
   AccountSettingsRegistry,
+  AuthRegistry,
   AttachmentRegistry,
   ChannelRegistry,
   InboxFollowUpRegistry,
@@ -95,6 +96,7 @@ export interface ShellServices {
   profileService: AnchorProfileService;
   canonicalIdentityService: CanonicalIdentityService;
   profileKindRegistry: ProfileKindRegistry;
+  authRegistry: AuthRegistry;
   channelRegistry: ChannelRegistry;
   inboxRegistry: InboxRegistry;
   inboxFollowUpRegistry: InboxFollowUpRegistry;

@@ -52,6 +52,18 @@ const SURFACE_PLUGINS: ReadonlyArray<{
   },
 ];
 
+/**
+ * Whether a registered route belongs to the plugin this surface names.
+ *
+ * A declared package's runtime id is `<package>:<declaration id>`, so that
+ * the same declaration installed from two packages cannot collide. This
+ * table names declarations, so it matches the declaration half — a console
+ * that converts to a declaration keeps its door.
+ */
+function belongsTo(routePluginId: string, pluginId: string): boolean {
+  return routePluginId === pluginId || routePluginId.endsWith(`:${pluginId}`);
+}
+
 export function deriveConsoleSurfaces(
   routes: Pick<RegisteredWebRoute, "pluginId" | "fullPath">[],
   options: {
@@ -94,7 +106,7 @@ export function deriveConsoleSurfaces(
     const pluginDoors = routes
       .filter(
         (route) =>
-          route.pluginId === pluginId &&
+          belongsTo(route.pluginId, pluginId) &&
           !(id === "studio" && route.fullPath === "/chat"),
       )
       .map((route) => route.fullPath)
@@ -103,7 +115,7 @@ export function deriveConsoleSurfaces(
       id === "web-chat" && pluginDoors.length > 0
         ? routes.find(
             (route) =>
-              route.pluginId === "studio" && route.fullPath === "/chat",
+              belongsTo(route.pluginId, "studio") && route.fullPath === "/chat",
           )?.fullPath
         : undefined;
     const door = isSelf

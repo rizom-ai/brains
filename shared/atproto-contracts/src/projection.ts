@@ -1,4 +1,4 @@
-import type { BaseEntity, IEntityService } from "@brains/entity-service";
+import type { BaseEntity } from "@brains/entity-service";
 import type { AtprotoLexicon } from "./lexicon";
 import type { AtprotoBlobRef, AtprotoBrainPostRecord } from "./records";
 
@@ -57,7 +57,19 @@ export interface AtprotoPdsClientLike {
  * ServicePluginContext (which satisfies this interface structurally).
  */
 export interface AtprotoProjectionContext {
-  entityService: Pick<IEntityService, "getEntity" | "updateEntity">;
+  entityService: {
+    /**
+     * A read of any entity, widened: a projection reads what it references
+     * (a cover image, its own source) and proves the shape itself.
+     */
+    getEntity(request: {
+      entityType: string;
+      id: string;
+    }): Promise<BaseEntity | null>;
+    updateEntity<T extends BaseEntity>(request: {
+      entity: T;
+    }): Promise<{ entityId: string; jobId: string }>;
+  };
 }
 
 export interface AtprotoProjectionBuildInput {

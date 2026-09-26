@@ -58,18 +58,23 @@ import type { IInboxRegistry } from "./inbox-registry";
 import type { IInboxFollowUpRegistry } from "./inbox-follow-up-registry";
 import type { IOperationalHealthRegistry } from "./operational-health-registry";
 import type { AccountSettingsRegistry } from "./operator/account-settings-registry";
+import type { AuthRegistryHost } from "./contracts/auth-registry";
 import type {
   AnchorProfile,
   BrainCharacter,
   IProfileKindRegistry,
 } from "@brains/identity-service";
 import type { IAgentService } from "@brains/ai-service";
-import type { IAttachmentsNamespace } from "./service/attachment-registry";
+import type { AttachmentRegistrationNamespace } from "./service/attachment-registry";
 import type { IRecurringChecksNamespace } from "@brains/recurring-checks";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import type { IRuntimeUploadsNamespace } from "./service/upload-registry";
 import type { RuntimeReadiness } from "./contracts/runtime-health";
-import type { ProjectionRule } from "./entity/projection-rule";
+import type {
+  ProjectionRule,
+  ProjectionWaveInput,
+  ProjectionWriteIntent,
+} from "./entity/projection-rule";
 import type {
   AIGenerationSchema,
   ImageGenerationOptions,
@@ -234,7 +239,7 @@ export interface IShell {
   getPermissionService(): PermissionService;
   getDataSourceRegistry(): DataSourceRegistry;
   getAgentService(): IAgentService;
-  getAttachmentRegistry(): IAttachmentsNamespace;
+  getAttachmentRegistry(): AttachmentRegistrationNamespace;
   getRuntimeUploadRegistry(): IRuntimeUploadsNamespace;
   getRuntimeState(): IRuntimeStateNamespace;
   getRecurringChecks(pluginId: string): IRecurringChecksNamespace;
@@ -243,6 +248,8 @@ export interface IShell {
   getIdentity(): BrainCharacter;
   getProfile(): AnchorProfile;
   getProfileKindRegistry(): IProfileKindRegistry;
+  /** Where the running auth implementation is published; see contracts/auth. */
+  getAuthRegistry(): AuthRegistryHost;
   getChannelRegistry(): IChannelRegistry;
   getInboxRegistry(): IInboxRegistry;
   getInboxFollowUpRegistry(): IInboxFollowUpRegistry;
@@ -338,6 +345,18 @@ export interface IShell {
     handler: EvalHandler,
   ): void;
 
+  /**
+   * Run a projection rule's select and derive against current entities and
+   * return what it would write, without touching wave state or persisting
+   * anything. Exists for evals: measuring extraction quality means running
+   * the rule that actually runs, not a copy of it kept alive for testing.
+   */
+  runProjectionRule(
+    rule: ProjectionRule,
+    options?: { readonly inputs?: readonly ProjectionWaveInput[] },
+    signal?: AbortSignal,
+  ): Promise<readonly ProjectionWriteIntent[]>;
+
   // Insights registry for plugin-contributed insights
   getInsightsRegistry(): IInsightsRegistry;
 
@@ -346,7 +365,11 @@ export interface IShell {
 
   // Web routes from plugins
   getPluginWebRoutes(): RegisteredWebRoute[];
+  /** Read finalized HTTP serving intent, independently from listener health. */
+  isHttpHostConfigured(): boolean;
 }
+
+import type { StaticSiteOutput } from "./contracts/http-host";
 
 // Re-export response schemas for backward compatibility
 export {
@@ -426,4 +449,5 @@ export type Plugin = z.output<typeof pluginMetadataSchema> & {
   requiresDaemonStartup?(): boolean;
   getApiRoutes?(): ApiRouteDefinition[];
   getWebRoutes?(): WebRouteDefinition[];
+  getStaticSiteOutput?(): StaticSiteOutput | undefined;
 };

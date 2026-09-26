@@ -7,7 +7,7 @@ tags:
   - linkedin
   - generation
   - core
-plugin: social-media
+plugin: "@brains/social-media:social-post"
 handler: generation
 
 input:

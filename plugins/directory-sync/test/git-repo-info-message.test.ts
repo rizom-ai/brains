@@ -1,5 +1,7 @@
 import { describe, it, expect } from "bun:test";
-import { registerMessageHandlers } from "../src/lib/message-handlers";
+import { directorySyncSubscriptions } from "../src/lib/message-handlers";
+import { createSilentLogger } from "@brains/test-utils";
+import { installSubscriptions } from "./helpers/install";
 import { createPluginHarness } from "@brains/plugins/test";
 import { baseEntitySchema } from "@brains/plugins/test";
 import type { SyncHandlerSource } from "../src/lib/message-handlers";
@@ -28,30 +30,31 @@ describe("git-sync:get-repo-info message handler", () => {
     removeOrphanedEntities: notCalled("removeOrphanedEntities"),
   };
 
-  function setup(gitConfig?: {
+  async function setup(gitConfig?: {
     repo?: string;
     branch?: string;
-  }): ReturnType<typeof createPluginHarness> {
+  }): Promise<ReturnType<typeof createPluginHarness>> {
     const harness = createPluginHarness({ dataDir: "/tmp/test-repo-info" });
     harness
       .getEntityRegistry()
       .registerEntityType("note", baseEntitySchema, new MockEntityAdapter());
-
-    const context = harness.getServiceContext("directory-sync");
-
-    registerMessageHandlers(
-      context,
-      () => stubDs,
-      async () => {},
-      context.logger,
-      gitConfig,
+    await installSubscriptions(
+      harness.getMockShell(),
+      directorySyncSubscriptions({
+        getDirectorySync: () => stubDs,
+        configure: async () => {},
+        logger: createSilentLogger("repo-info"),
+        gitConfig,
+      }),
     );
-
     return harness;
   }
 
   it("should return repo and branch when git is configured", async () => {
-    const harness = setup({ repo: "your-org/test-content", branch: "main" });
+    const harness = await setup({
+      repo: "your-org/test-content",
+      branch: "main",
+    });
 
     const result = await harness.sendMessage<
       Record<string, never>,
@@ -66,7 +69,7 @@ describe("git-sync:get-repo-info message handler", () => {
   });
 
   it("should return undefined when git is not configured", async () => {
-    const harness = setup();
+    const harness = await setup();
 
     const result = await harness.sendMessage<
       Record<string, never>,
@@ -79,7 +82,7 @@ describe("git-sync:get-repo-info message handler", () => {
   });
 
   it("should default branch to main when not specified", async () => {
-    const harness = setup({ repo: "your-org/test-content" });
+    const harness = await setup({ repo: "your-org/test-content" });
 
     const result = await harness.sendMessage<
       Record<string, never>,

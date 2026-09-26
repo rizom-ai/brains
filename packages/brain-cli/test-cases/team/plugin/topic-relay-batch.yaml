@@ -7,7 +7,7 @@ tags:
   - team
   - topics
   - core
-plugin: topics
+plugin: "@brains/topics:topics"
 handler: batchExtract
 
 input:

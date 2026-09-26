@@ -2,7 +2,7 @@ id: team-scenario-unsaved-agent-save-first
 name: Unsaved peer brain requires connect-before-call flow
 description: >-
   Real user workflow: a user explicitly saves an unsaved peer brain before any
-  outbound call. Team Brain must use the canonical agent_connect flow, must not
+  outbound call. Team Brain must use the canonical agents_connect flow, must not
   call the peer, and must report verification failure honestly.
 type: multi_turn
 setup:
@@ -23,12 +23,12 @@ turns:
       a peer brain for future Team Brain handoff reviews. Do not contact it yet.
     successCriteria:
       expectedTools:
-        - toolName: agent_connect
+        - toolName: agents_connect
           shouldBeCalled: true
           argsContain:
             source.kind: "url"
             source.url: "https://field-agent.example/a2a"
-        - toolName: agent_call
+        - toolName: a2a_call
           shouldBeCalled: false
         - toolName: system_create
           shouldBeCalled: false
@@ -37,28 +37,28 @@ turns:
       responseNotContains:
         - "wish"
         - "I contacted"
-        - "agent_call failed"
+        - "a2a_call failed"
   - userMessage: "Confirm the agent connection."
     confirmPendingAction: true
     successCriteria:
       expectedTools:
-        - toolName: agent_connect
+        - toolName: agents_connect
           shouldBeCalled: true
       responseContains:
         - "Could not verify"
       responseNotContains:
         - "Completed"
         - "I contacted"
-        - "agent_call failed"
+        - "a2a_call failed"
 
 successCriteria:
   expectedTools:
-    - toolName: agent_connect
+    - toolName: agents_connect
       shouldBeCalled: true
       argsContain:
         source.kind: "url"
         source.url: "https://field-agent.example/a2a"
-    - toolName: agent_call
+    - toolName: a2a_call
       shouldBeCalled: false
     - toolName: system_create
       shouldBeCalled: false

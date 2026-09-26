@@ -1,7 +1,11 @@
-import { groupingKeySchema, type EntityGrouping } from "@brains/plugins";
+import type { EntityGrouping } from "@brains/sdk/services";
 import { z } from "@brains/utils/zod";
 
 export const GROUPING_VOCABULARY_TYPE = "grouping-vocabulary";
+
+// Browser form validation. The runtime independently admits grouping keys;
+// importing its service entry here would pull server dependencies into the UI.
+const groupingKeySchema: z.ZodString = z.string().min(1).max(80);
 
 export const groupingVocabularySchema: z.ZodObject<{
   multiple: z.ZodBoolean;

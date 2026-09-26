@@ -1,11 +1,22 @@
-import type { IRuntimeStateNamespace } from "@brains/plugins";
+import type { IRuntimeStateStore } from "@brains/sdk/interfaces";
 import { Chat } from "chat";
+import type {
+  ActionEvent,
+  Channel,
+  Message,
+  MessageContext,
+  Thread,
+} from "chat";
 import { createDiscordAdapter } from "@chat-adapter/discord";
 import { createSlackAdapter } from "@chat-adapter/slack";
 import { createMemoryState } from "@chat-adapter/state-memory";
-import { createChatSubscriptionStateAdapter } from "./subscription-state";
+import {
+  createChatSubscriptionStateAdapter,
+  type ChatRuntimeState,
+} from "./subscription-state";
 import type {
   ChatAdapterMap,
+  ChatWebhookMap,
   DiscordChatAdapter,
   SlackChatAdapter,
 } from "./types";
@@ -13,16 +24,61 @@ import type {
   DiscordChatAdapterConfig,
   SlackChatAdapterConfig,
 } from "./config";
-import type { ChatSdkApp } from "./chat-sdk-app";
+
+/**
+ * The slice of the Chat SDK app the interface drives: handler registration,
+ * the webhooks it exposes, and initialize/shutdown.
+ */
+export interface ChatSdkApp {
+  initialize(): Promise<void>;
+  shutdown(): Promise<void>;
+  webhooks?: ChatWebhookMap;
+  onDirectMessage(
+    handler: (
+      thread: Thread,
+      message: Message,
+      channel: Channel,
+      context?: MessageContext,
+    ) => Promise<void>,
+  ): void;
+  onNewMention(
+    handler: (
+      thread: Thread,
+      message: Message,
+      context?: MessageContext,
+    ) => Promise<void>,
+  ): void;
+  onNewMessage(
+    pattern: RegExp,
+    handler: (
+      thread: Thread,
+      message: Message,
+      context?: MessageContext,
+    ) => Promise<void>,
+  ): void;
+  onSubscribedMessage(
+    handler: (
+      thread: Thread,
+      message: Message,
+      context?: MessageContext,
+    ) => Promise<void>,
+  ): void;
+  onAction(handler: (event: ActionEvent) => Promise<void>): void;
+  onAction(
+    actionIds: string[] | string,
+    handler: (event: ActionEvent) => Promise<void>,
+  ): void;
+}
 
 interface CreateChatSdkAppOptions {
   userName: string;
-  discord: DiscordChatAdapterConfig | undefined;
-  slack: SlackChatAdapterConfig | undefined;
+  /** Exactly one of these: an app serves one platform's interface. */
+  discord?: DiscordChatAdapterConfig | undefined;
+  slack?: SlackChatAdapterConfig | undefined;
   /** Long-lived adapters are handed to their daemon-owned listener loops. */
-  gatewayLoop: { setAdapter(adapter: DiscordChatAdapter): void };
-  slackSocketLoop: { setAdapter(adapter: SlackChatAdapter): void };
-  runtimeState: IRuntimeStateNamespace;
+  gatewayLoop?: { setAdapter(adapter: DiscordChatAdapter): void } | undefined;
+  slackSocketLoop?: { setAdapter(adapter: SlackChatAdapter): void } | undefined;
+  runtimeState: ChatRuntimeState;
 }
 
 function requireConfigValue(
@@ -33,7 +89,7 @@ function requireConfigValue(
   return value;
 }
 
-/** Build one Chat SDK app for all configured chat adapters. */
+/** Build the Chat SDK app for one platform's adapter. */
 export function createChatSdkApp(options: CreateChatSdkAppOptions): ChatSdkApp {
   const { discord, slack } = options;
   const discordAdapter = discord
@@ -44,7 +100,7 @@ export function createChatSdkApp(options: CreateChatSdkAppOptions): ChatSdkApp {
         mentionRoleIds: discord.mentionRoleIds,
       })
     : undefined;
-  if (discordAdapter) options.gatewayLoop.setAdapter(discordAdapter);
+  if (discordAdapter) options.gatewayLoop?.setAdapter(discordAdapter);
 
   const slackAdapter = slack
     ? createSlackAdapter(
@@ -71,24 +127,17 @@ export function createChatSdkApp(options: CreateChatSdkAppOptions): ChatSdkApp {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- see above: the vendored SDK contradicts itself between SlackAdapter and Adapter, so no honest type describes what it returns
   const compatibleSlackAdapter = slackAdapter as SlackChatAdapter | undefined;
   if (compatibleSlackAdapter && slack?.mode === "socket") {
-    options.slackSocketLoop.setAdapter(compatibleSlackAdapter);
+    options.slackSocketLoop?.setAdapter(compatibleSlackAdapter);
   }
 
   const adapters = {
     ...(discordAdapter ? { discord: discordAdapter } : {}),
     ...(compatibleSlackAdapter ? { slack: compatibleSlackAdapter } : {}),
   } satisfies ChatAdapterMap;
-  const enabledPlatforms = [
-    ...(discord ? (["discord"] as const) : []),
-    ...(slack ? (["slack"] as const) : []),
-  ];
-  const state =
-    enabledPlatforms.length > 0
-      ? createChatSubscriptionStateAdapter(
-          options.runtimeState,
-          enabledPlatforms,
-        )
-      : createMemoryState();
+  const platform = discord ? "discord" : slack ? "slack" : undefined;
+  const state = platform
+    ? createChatSubscriptionStateAdapter(options.runtimeState, platform)
+    : createMemoryState();
 
   return new Chat({
     userName: options.userName,
@@ -105,3 +154,5 @@ export function createChatSdkApp(options: CreateChatSdkAppOptions): ChatSdkApp {
     state,
   });
 }
+
+export type { IRuntimeStateStore };

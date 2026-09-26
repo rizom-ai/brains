@@ -1,7 +1,6 @@
-import { createTemplate } from "@brains/templates";
-import type { Template } from "@brains/templates";
-import { z } from "@brains/utils/zod";
-import { paginationInfoSchema } from "@brains/plugins";
+import { createTemplate, paginationInfoSchema } from "@brains/sdk/entities";
+import type { Template } from "@brains/sdk/entities";
+import { z } from "@brains/sdk/entities";
 import { BlogListTemplate, type BlogListProps } from "../templates/blog-list";
 import { BlogPostTemplate, type BlogPostProps } from "../templates/blog-post";
 import { blogGenerationTemplate } from "../templates/generation-template";
@@ -32,7 +31,7 @@ export function getTemplates(): Record<string, Template> {
         name: "post-list",
         description: "Blog list page template",
         schema: postListSchema,
-        dataSourceId: "blog:entities",
+        dataSourceId: "entities",
         requiredPermission: "public",
         layout: {
           component: BlogListTemplate,
@@ -56,7 +55,7 @@ export function getTemplates(): Record<string, Template> {
         nextPost: blogViewSchema.nullable(),
         seriesPosts: z.array(blogViewSchema).nullable(),
       }),
-      dataSourceId: "blog:entities",
+      dataSourceId: "entities",
       requiredPermission: "public",
       layout: {
         component: BlogPostTemplate,

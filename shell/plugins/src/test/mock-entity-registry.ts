@@ -1,4 +1,5 @@
 import {
+  copyEntityTypeConfig,
   type BaseEntity,
   type CreateInterceptor,
   type EntityAdapter,
@@ -7,34 +8,38 @@ import {
 } from "@brains/entity-service";
 import type { MockEntityStore } from "./mock-entity-store";
 
-/**
- * An EntityRegistry double over the same store the service double reads.
- *
- * Registering a type has to land where the service will look for it, which is
- * why the store is passed in rather than rebuilt here. The interceptors and
- * upload handlers are the registry's own — nothing else reads them.
- */
+/** The registration view over the same state the entity service reads. */
 export function createMockEntityRegistry(
   store: MockEntityStore,
 ): IEntityRegistry {
+  // --- Entity Registry ---
   const createInterceptors = new Map<string, CreateInterceptor>();
   const uploadSaveHandlers: UploadSaveHandlerRegistration[] = [];
+  const stewardshipClaims = new Map<string, string>();
 
-  const registry: IEntityRegistry = {
+  const entityRegistry: IEntityRegistry = {
     registerEntityType: (type, _schema, adapter, config) => {
+      const registeredConfig = copyEntityTypeConfig(config ?? {});
+      store.registry.registerEntityType(
+        type,
+        _schema,
+        adapter,
+        registeredConfig,
+      );
       store.types.add(type);
       store.adapters.set(type, adapter);
-      store.typeConfigs.set(type, config ?? {});
+      store.typeConfigs.set(type, registeredConfig);
     },
     unregisterEntityType: (type): void => {
+      store.registry.unregisterEntityType(type);
+      stewardshipClaims.delete(type);
       store.types.delete(type);
       store.adapters.delete(type);
       store.typeConfigs.delete(type);
+      store.persistValidators.delete(type);
       createInterceptors.delete(type);
     },
-    getSchema: (): never => {
-      throw new Error("Not implemented");
-    },
+    getSchema: (type) => store.registry.getSchema(type),
     getAdapter: <
       TEntity extends BaseEntity<TMetadata>,
       TMetadata = Record<string, unknown>,
@@ -52,9 +57,31 @@ export function createMockEntityRegistry(
       return adapter as EntityAdapter<TEntity, TMetadata>;
     },
     hasEntityType: (type: string) => store.types.has(type),
+    claimEntityStewardship: (entityType: string, ownerLabel: string): void => {
+      if (!store.types.has(entityType)) {
+        throw new Error(
+          `"${ownerLabel}" cannot steward "${entityType}": the type is not registered`,
+        );
+      }
+      const existing = stewardshipClaims.get(entityType);
+      if (existing !== undefined && existing !== ownerLabel) {
+        throw new Error(
+          `"${ownerLabel}" cannot steward "${entityType}": "${existing}" already stewards it`,
+        );
+      }
+      stewardshipClaims.set(entityType, ownerLabel);
+    },
+    releaseEntityStewardship: (
+      entityType: string,
+      ownerLabel: string,
+    ): void => {
+      if (stewardshipClaims.get(entityType) === ownerLabel) {
+        stewardshipClaims.delete(entityType);
+      }
+    },
     validateEntity: (type: string, entity: unknown): BaseEntity => {
       const adapter = store.adapters.get(type);
-      if (adapter) return adapter.schema.parse(entity);
+      if (adapter) return store.registry.validateEntity(type, entity);
       throw new Error(`No schema registered for entity type: ${type}`);
     },
     getAllEntityTypes: () => Array.from(store.types),
@@ -65,6 +92,10 @@ export function createMockEntityRegistry(
     },
     getCreateInterceptor: (type) => createInterceptors.get(type),
     registerUploadSaveHandler: (registration): void => {
+      const kept = uploadSaveHandlers.filter(
+        (existing) => existing.entityType !== registration.entityType,
+      );
+      uploadSaveHandlers.splice(0, uploadSaveHandlers.length, ...kept);
       uploadSaveHandlers.push(registration);
     },
     getUploadSaveHandler: (mediaType) =>
@@ -75,27 +106,30 @@ export function createMockEntityRegistry(
             : mediaType === pattern,
         ),
       ),
-    registerPersistValidator: (): void => {},
-    getPersistValidator: () => undefined,
-    extendFrontmatterSchema: (): void => {},
-    getEffectiveFrontmatterSchema: () => undefined,
-    getFrontmatterExtensions: () => [],
-    getGroupings: () => [],
-    validateGroupings: (groupings): void => {
-      if (groupings.length > 0)
-        throw new Error("createMockShell: grouping registry is not mocked");
+    registerPersistValidator: (type, validator): void => {
+      store.registry.registerPersistValidator(type, validator);
+      const combined = store.registry.getPersistValidator(type);
+      if (combined) store.persistValidators.set(type, combined);
     },
-    getGrouping: (): never => {
-      throw new Error("createMockShell: grouping registry is not mocked");
-    },
-    registerGrouping: (): never => {
-      throw new Error("createMockShell: grouping registry is not mocked");
-    },
-    projectMetadata: (_type, _content, metadata) => metadata,
-    projectStoredMetadata: (_type, _content, metadata) => metadata,
-    groupingFields: (): string[] => [],
-    isGroupingContributor: (): boolean => false,
+    getPersistValidator: (type) => store.persistValidators.get(type),
+    extendFrontmatterSchema: (type, extension) =>
+      store.registry.extendFrontmatterSchema(type, extension),
+    getEffectiveFrontmatterSchema: (type) =>
+      store.registry.getEffectiveFrontmatterSchema(type),
+    getFrontmatterExtensions: (type) =>
+      store.registry.getFrontmatterExtensions(type),
+    getGroupings: () => store.registry.getGroupings(),
+    validateGroupings: (groupings) =>
+      store.registry.validateGroupings(groupings),
+    getGrouping: (key) => store.registry.getGrouping(key),
+    registerGrouping: (grouping) => store.registry.registerGrouping(grouping),
+    projectMetadata: (type, content, metadata) =>
+      store.registry.projectMetadata(type, content, metadata),
+    projectStoredMetadata: (type, content, metadata) =>
+      store.registry.projectStoredMetadata(type, content, metadata),
+    groupingFields: (type) => store.registry.groupingFields(type),
+    isGroupingContributor: (type) => store.registry.isGroupingContributor(type),
   };
 
-  return registry;
+  return entityRegistry;
 }

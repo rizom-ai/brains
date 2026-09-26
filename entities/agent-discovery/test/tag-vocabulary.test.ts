@@ -1,15 +1,14 @@
 import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, expect, it } from "bun:test";
-import type { BaseEntity } from "@brains/plugins";
-import { AgentAdapter } from "../src/adapters/agent-adapter";
+import type { BaseEntity } from "@brains/sdk/entities";
+import { createTestEntityAccess } from "@brains/plugins/test";
+import { createAgentContent } from "../src/lib/agent-content";
 import {
   collectTagVocabulary,
   formatVocabularyForPrompt,
   normalizeTag,
   normalizeTags,
 } from "../src/lib/tag-vocabulary";
-
-const agentAdapter = new AgentAdapter();
 
 describe("tag vocabulary", () => {
   it("should normalize and dedupe tags conservatively", () => {
@@ -24,7 +23,7 @@ describe("tag vocabulary", () => {
       {
         id: "kai.brain",
         entityType: "agent" as const,
-        content: agentAdapter.createAgentContent({
+        content: createAgentContent({
           name: "Kai",
           kind: "person",
           brainName: "kai.brain",
@@ -56,7 +55,7 @@ describe("tag vocabulary", () => {
       {
         id: "north.ops",
         entityType: "agent" as const,
-        content: agentAdapter.createAgentContent({
+        content: createAgentContent({
           name: "North",
           kind: "team",
           brainName: "north.ops",
@@ -120,7 +119,7 @@ describe("tag vocabulary", () => {
       },
     ];
 
-    const context = {
+    const entities = createTestEntityAccess({
       entityService: createMockEntityService({
         listEntitiesImpl: async (request: { entityType: string }) => {
           if (request.entityType === "agent") return agentEntities;
@@ -128,9 +127,9 @@ describe("tag vocabulary", () => {
           return [];
         },
       }),
-    };
+    });
 
-    const vocabulary = await collectTagVocabulary(context, {
+    const vocabulary = await collectTagVocabulary(entities, {
       minCount: 1,
       topN: 10,
     });

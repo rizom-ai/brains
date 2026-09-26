@@ -78,16 +78,15 @@ describe("routeConfirmationResponse", () => {
     });
   });
 
-  it("prompts for yes/no when text does not contain confirmation intent", () => {
+  it("lets a reply without confirmation intent through as a new question", () => {
+    // The approval stays pending; the question is answered rather than
+    // nagged about, because a thread drifts while an approval waits.
     expect(
       routeConfirmationResponse({
         message: "what will happen?",
         approvalIds: new Set(["approval:call-1"]),
       }),
-    ).toEqual({
-      kind: "notice",
-      message: "Please reply with yes to confirm or no/cancel to abort.",
-    });
+    ).toEqual({ kind: "not-confirmation" });
   });
 });
 

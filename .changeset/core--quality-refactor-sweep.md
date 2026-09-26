@@ -5,7 +5,6 @@
 "@brains/entity-service": patch
 "@brains/playbooks": patch
 "@brains/directory-sync": patch
-"@brains/webserver": patch
 "@rizom/ops": patch
 "@rizom/brain": patch
 ---

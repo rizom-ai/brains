@@ -140,38 +140,74 @@ function buildFieldMapping(
   }
 }
 
-export function createSiteContentTemplate(
-  name: string,
+/**
+ * One configured section, taken apart.
+ *
+ * A section is a schema, a way of writing it down and reading it back, and
+ * a component that renders it. `createSiteContentTemplate` assembles those
+ * into the runtime's `Template`; a package declaring the section instead
+ * needs the parts, and its schema at the shape a declared view requires
+ * rather than widened by the assembly.
+ */
+export interface SiteContentSectionParts {
+  readonly description: string;
+  readonly schema: z.ZodObject<Record<string, z.ZodType<JsonValue>>>;
+  readonly formatter: StructuredContentFormatter<Record<string, JsonValue>>;
+  readonly component: SiteContentDefinition["sections"][string]["layout"];
+  readonly requiredPermission: NonNullable<
+    SiteContentDefinition["sections"][string]["requiredPermission"]
+  >;
+  readonly fullscreen?: boolean | undefined;
+  readonly runtimeScripts?:
+    SiteContentDefinition["sections"][string]["runtimeScripts"] | undefined;
+}
+
+export function siteContentSectionParts(
   section: SiteContentDefinition["sections"][string],
-): Template {
+): SiteContentSectionParts {
   const shape: Record<string, z.ZodType<JsonValue>> = {};
   for (const [key, field] of Object.entries(section.fields)) {
     shape[key] = buildFieldSchema(field);
   }
-
   const schema = z.object(shape);
-  const formatter = new StructuredContentFormatter(schema, {
-    title: section.title,
-    mappings: Object.entries(section.fields).map(([key, field]) =>
-      buildFieldMapping(key, field),
-    ),
-  });
-
   return {
-    name,
     description: section.description,
     schema,
-    formatter,
+    formatter: new StructuredContentFormatter(schema, {
+      title: section.title,
+      mappings: Object.entries(section.fields).map(([key, field]) =>
+        buildFieldMapping(key, field),
+      ),
+    }),
+    component: section.layout,
     requiredPermission: section.requiredPermission ?? "public",
-    layout: {
-      component: section.layout,
-      ...(section.fullscreen !== undefined
-        ? { fullscreen: section.fullscreen }
-        : {}),
-    },
+    ...(section.fullscreen !== undefined
+      ? { fullscreen: section.fullscreen }
+      : {}),
     ...(section.runtimeScripts
       ? { runtimeScripts: section.runtimeScripts }
       : {}),
+  };
+}
+
+export function createSiteContentTemplate(
+  name: string,
+  section: SiteContentDefinition["sections"][string],
+): Template {
+  const parts = siteContentSectionParts(section);
+  return {
+    name,
+    description: parts.description,
+    schema: parts.schema,
+    formatter: parts.formatter,
+    requiredPermission: parts.requiredPermission,
+    layout: {
+      component: parts.component,
+      ...(parts.fullscreen !== undefined
+        ? { fullscreen: parts.fullscreen }
+        : {}),
+    },
+    ...(parts.runtimeScripts ? { runtimeScripts: parts.runtimeScripts } : {}),
   };
 }
 

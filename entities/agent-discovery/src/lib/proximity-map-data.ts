@@ -1,16 +1,11 @@
 import type {
-  EntitySchema,
-  ISemanticNamespace,
-  ListEntitiesRequest,
+  EntityQueryReader,
+  EntitySemanticReader,
   SemanticSpacePoint,
-} from "@brains/plugins";
-import { AgentAdapter } from "../adapters/agent-adapter";
-import {
-  agentEntitySchema,
-  type AgentEntity,
-  type AgentFrontmatter,
-  type AgentSkill,
-} from "../schemas/agent";
+} from "@brains/sdk/entities";
+import { parseAgentEntity } from "./agent-content";
+import type { AgentFrontmatter, AgentSkill } from "../schemas/agent";
+import { agentEntitySchema } from "../schemas/agent";
 import { AGENT_ENTITY_TYPE } from "./constants";
 import {
   bearingFromCoordinates,
@@ -38,25 +33,10 @@ export const PROXIMITY_NEIGHBOR_DISTANCE = 0.25;
  * than peers the brain already keeps. */
 export const SIGHTING_GERMINATION_DISTANCE = 0.5;
 
-/**
- * The one read this builder performs, in the form it performs it.
- *
- * `Pick<IEntityService, "listEntities">` carried the member's overloads, which
- * a plain function cannot satisfy — so every test double asserted itself into
- * place. Naming the call keeps a double an ordinary function; a real entity
- * service still satisfies it by construction.
- */
 export interface ProximityMapDataContext {
-  entityService: {
-    listEntities(
-      request: ListEntitiesRequest,
-      schema: EntitySchema<AgentEntity>,
-    ): Promise<AgentEntity[]>;
-  };
-  semantic: ISemanticNamespace;
+  entities: Pick<EntityQueryReader, "listEntities">;
+  semantic: EntitySemanticReader;
 }
-
-const agentAdapter = new AgentAdapter();
 
 /** A sighting is a second-order agent: discovered through a peer's
  * directory, carrying introducer provenance, not yet approved. */
@@ -71,7 +51,7 @@ export async function buildProximityMapData(
   context: ProximityMapDataContext,
 ): Promise<ProximityMapData> {
   const [agents, projection] = await Promise.all([
-    context.entityService.listEntities(
+    context.entities.listEntities(
       {
         entityType: AGENT_ENTITY_TYPE,
       },
@@ -91,7 +71,7 @@ export async function buildProximityMapData(
   const parsed = agents
     .slice()
     .sort((left, right) => left.id.localeCompare(right.id))
-    .map((agent) => ({ agent, ...agentAdapter.parseEntity(agent) }));
+    .map((agent) => ({ agent, ...parseAgentEntity(agent) }));
   const firstOrder = parsed.filter((entry) => !isSighting(entry.frontmatter));
   const sighted = parsed.filter((entry) => isSighting(entry.frontmatter));
 

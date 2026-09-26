@@ -69,9 +69,22 @@ module.exports = {
       },
     },
     {
+      name: "declared-packages-import-only-the-sdk",
+      severity: "error",
+      comment:
+        "A package under plugins/ or interfaces/ is declared against the public authoring surface (packages/brain-sdk) and the shared libraries; its source never reaches into the plugin runtime (shell/plugins) for a symbol. The plugin-interface-boundaries plan converted every package to that shape, and this keeps it so: a symbol a package needs is admitted on the SDK, with a named consumer, rather than imported from the runtime.",
+      from: {
+        path: "^(plugins|interfaces)/[^/]+/src/",
+      },
+      to: {
+        path: "^shell/plugins/",
+      },
+    },
+    {
       name: "plugins-can-only-import-shell-and-shared",
       severity: "error",
-      comment: "Plugins can only import from shell/* and shared/* packages",
+      comment:
+        "Plugins can only import from shell/*, shared/*, and the public authoring surface (packages/brain-sdk). The SDK is the boundary this repo publishes as @rizom/brain/*, so a plugin reaching for it is the shape the plugin-interface-boundaries plan is moving every package toward — @brains/notifications is the first that imports nothing else.",
       from: {
         path: "^plugins/",
         // Covered by the companion rule below with a wider builtin allowlist
@@ -81,7 +94,7 @@ module.exports = {
         ],
       },
       to: {
-        path: "^((?!shell/|shared/|plugins/|node_modules/).)*$",
+        path: "^((?!shell/|shared/|plugins/|packages/brain-sdk/|packages/ui/|node_modules/).)*$",
         pathNot: [
           "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow test files
           "^(bun:test|path|fs|fs/promises|crypto|os|url)$", // Allow Node.js/Bun builtins
@@ -99,7 +112,7 @@ module.exports = {
         path: "^plugins/directory-sync/(test/|src/lib/content-remote-bootstrap\\.ts$)",
       },
       to: {
-        path: "^((?!shell/|shared/|plugins/|node_modules/).)*$",
+        path: "^((?!shell/|shared/|plugins/|packages/ui/|node_modules/).)*$",
         pathNot: [
           "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow test files
           "^(bun:test|path|fs|fs/promises|crypto|os|url|child_process|net)$", // Allow Node.js/Bun builtins
@@ -116,11 +129,23 @@ module.exports = {
         path: "^plugins/studio/scripts/",
       },
       to: {
-        path: "^((?!shell/|shared/|plugins/|node_modules/).)*$",
+        path: "^((?!shell/|shared/|plugins/|packages/ui/|node_modules/).)*$",
         pathNot: [
           "^(bun:test|path|fs|fs/promises|crypto|os|url|module)$",
           "^packages/build-tools/",
         ],
+      },
+    },
+    {
+      name: "no-operator-contract-to-entity-definition",
+      severity: "error",
+      comment:
+        "Operator contracts must not import the entity definition contract. An entity package can declare a dashboard widget, so the entity contract points at the operator contracts; an operator contract pointing back closes a cycle. Operator code takes what it needs from the leaf shapes in entity/entity-shape, or names the narrow shape it actually reads — OperatorLinkableEntity is a link target needing a branded type name, not a whole definition.",
+      from: {
+        path: "^shell/plugins/src/operator/",
+      },
+      to: {
+        path: "^shell/plugins/src/entity/entity-definition-contract\\.ts$",
       },
     },
     {
@@ -140,12 +165,12 @@ module.exports = {
       name: "entities-can-only-import-shell-and-shared",
       severity: "error",
       comment:
-        "Entity packages can only import from shell/* and shared/* packages",
+        "Entity packages can only import from shell/*, shared/*, and the public authoring surface (packages/brain-sdk). The SDK is the boundary this repo publishes as @rizom/brain/*, so an entity reaching for it is the shape the npm-package-boundaries plan is moving every package toward — five already import nothing else.",
       from: {
         path: "^entities/",
       },
       to: {
-        path: "^((?!shell/|shared/|entities/|node_modules/).)*$",
+        path: "^((?!shell/|shared/|entities/|packages/brain-sdk/|packages/ui/|node_modules/).)*$",
         pathNot: [
           "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow test files
           "^(bun:test|path|fs|fs/promises|crypto|os|url|dns/promises)$", // Allow Node.js/Bun builtins
@@ -155,14 +180,15 @@ module.exports = {
     {
       name: "interfaces-can-only-import-shell-and-shared",
       severity: "error",
-      comment: "Interfaces can only import from shell/* and shared/* packages",
+      comment:
+        "Interfaces can only import from shell/*, shared/*, and the public authoring surface (packages/brain-sdk). The SDK is the boundary this repo publishes as @rizom/brain/*, so an interface reaching for it is the shape the plugin-interface-boundaries plan is moving every package toward — @brains/email is the first that imports nothing else.",
       from: {
         path: "^interfaces/",
         // Covered by the companion rule below with a wider builtin allowlist
         pathNot: ["^interfaces/web-chat/scripts/"],
       },
       to: {
-        path: "^((?!shell/|shared/|interfaces/|node_modules/).)*$",
+        path: "^((?!shell/|shared/|interfaces/|packages/brain-sdk/|node_modules/).)*$",
         pathNot: [
           "\\.(test|spec)\\.(ts|tsx|js|jsx)$", // Allow test files
           "^(bun:test|path|fs|fs/promises|crypto|os|url|events|net|tls)$", // Allow Node.js/Bun builtins

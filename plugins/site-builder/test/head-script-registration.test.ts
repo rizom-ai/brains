@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { SiteBuilderPlugin } from "../src/plugin";
+import { installSiteBuilder } from "./helpers/install";
 
 describe("Head script registration", () => {
   let harness: ReturnType<typeof createPluginHarness>;
-  let plugin: SiteBuilderPlugin;
+  let registered: () => string[];
   beforeEach(async () => {
     harness = createPluginHarness({ dataDir: "/tmp/test-head-scripts" });
-    plugin = new SiteBuilderPlugin({});
-    await harness.installPlugin(plugin);
+    const installed = await installSiteBuilder(harness);
+    registered = (): string[] => [...installed.headScripts.values()];
   });
 
   afterEach(async () => {
@@ -29,7 +29,7 @@ describe("Head script registration", () => {
 
     // Accepting the message means storing it; without this the test passed
     // whether or not the script was kept.
-    expect(plugin.getRegisteredHeadScripts()).toEqual([
+    expect(registered()).toEqual([
       '<script defer src="https://example.com/beacon.min.js"></script>',
     ]);
   });
@@ -53,7 +53,7 @@ describe("Head script registration", () => {
       "newsletter",
     );
 
-    const scripts = plugin.getRegisteredHeadScripts();
+    const scripts = registered();
     expect(scripts).toHaveLength(2);
     expect(scripts[0]).toContain("analytics.js");
     expect(scripts[1]).toContain("newsletter.js");
@@ -78,7 +78,7 @@ describe("Head script registration", () => {
       "analytics",
     );
 
-    const scripts = plugin.getRegisteredHeadScripts();
+    const scripts = registered();
     expect(scripts).toHaveLength(1);
     expect(scripts[0]).toContain("v2.js");
   });

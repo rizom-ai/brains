@@ -15,7 +15,10 @@ export interface ContactAdmissionPolicy {
 
 const limit = z.number().int().min(1).max(1000);
 const seconds = z.number().int().min(1).max(86400);
-export const contactAdmissionPolicySchema: z.ZodType<ContactAdmissionPolicy> = z
+export const contactAdmissionPolicySchema: z.ZodType<
+  ContactAdmissionPolicy,
+  ContactAdmissionPolicy
+> = z
   .strictObject({
     windowSeconds: seconds,
     globalRequests: limit,

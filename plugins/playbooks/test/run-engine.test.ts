@@ -36,7 +36,9 @@ function createEngine(options?: {
   store: PlaybookRunStore;
   goalCheckCalls: number[];
 } {
-  const store = new PlaybookRunStore(createMockShell().getRuntimeState());
+  const store = new PlaybookRunStore((options) =>
+    createMockShell().getRuntimeState().scoped(options),
+  );
   const goalCheckCalls: number[] = [];
   const engine = new RunEngine({
     store,

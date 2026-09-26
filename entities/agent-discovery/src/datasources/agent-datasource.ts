@@ -1,28 +1,20 @@
 import {
-  BaseEntityDataSource,
+  defineDataSource,
   parseMarkdownWithFrontmatter,
-} from "@brains/plugins";
-import type {
-  BaseDataSourceContext,
-  DataSourceSchema,
-  BaseQuery,
-  EntityDataSourceConfig,
-  NavigationResult,
-  PaginationInfo,
-} from "@brains/plugins";
+  z,
+  type AnyEntityDataSourceDefinition,
+  type BaseQuery,
+  type PaginationInfo,
+} from "@brains/sdk/entities";
 import {
-  agentEntitySchema,
   agentFrontmatterSchema,
   agentWithDataSchema,
+  agentEntitySchema,
 } from "../schemas/agent";
-import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils/zod";
-import type { AgentEntity, AgentStatus, AgentWithData } from "../schemas/agent";
-import { AgentAdapter } from "../adapters/agent-adapter";
+import type { AgentEntity, AgentWithData } from "../schemas/agent";
+import { parseAgentContent } from "../lib/agent-content";
 import { AGENT_DATASOURCE_ID, AGENT_ENTITY_TYPE } from "../lib/constants";
-import { agentViewSchema, type AgentSchemaData } from "../templates/agent-view";
-
-const agentAdapter: AgentAdapter = new AgentAdapter();
+import { agentViewSchema } from "../templates/agent-view";
 
 interface AgentDetailData {
   agent: AgentWithData;
@@ -42,43 +34,6 @@ const agentStatusQuerySchema: AgentStatusQuerySchema = z.enum([
   "archived",
 ]);
 
-type AgentQuerySchema = z.ZodObject<{
-  id: z.ZodOptional<z.ZodString>;
-  limit: z.ZodOptional<z.ZodNumber>;
-  page: z.ZodOptional<z.ZodNumber>;
-  pageSize: z.ZodOptional<z.ZodNumber>;
-  baseUrl: z.ZodOptional<z.ZodString>;
-  status: z.ZodOptional<AgentStatusQuerySchema>;
-}>;
-
-const agentQuerySchema: AgentQuerySchema = z.looseObject({
-  id: z.string().optional(),
-  limit: z.number().optional(),
-  page: z.number().optional(),
-  pageSize: z.number().optional(),
-  baseUrl: z.string().optional(),
-  status: agentStatusQuerySchema.optional(),
-});
-
-type AgentInputSchema = z.ZodObject<{
-  entityType: z.ZodOptional<z.ZodString>;
-  query: z.ZodOptional<AgentQuerySchema>;
-}>;
-
-const agentInputSchema: AgentInputSchema = z.looseObject({
-  entityType: z.string().optional(),
-  query: agentQuerySchema.optional(),
-});
-
-type AgentQuery = z.output<typeof agentQuerySchema>;
-
-interface AgentListData {
-  agents: AgentSchemaData[];
-  pagination: PaginationInfo | null;
-  baseUrl: string | null;
-  selectedStatus: "all" | AgentStatus;
-}
-
 /**
  * Parse an agent entity into display-ready data.
  * Extracts frontmatter and structured body sections (about, skills, notes).
@@ -89,7 +44,7 @@ function parseAgentData(entity: AgentEntity): AgentWithData {
     agentFrontmatterSchema,
   );
 
-  const sections = agentAdapter.parseAgentContent(entity.content);
+  const sections = parseAgentContent(entity.content);
 
   return agentWithDataSchema.parse({
     ...entity,
@@ -105,93 +60,57 @@ function parseAgentData(entity: AgentEntity): AgentWithData {
  * Handles list views (all agents, sorted by discovery date) and
  * detail views with prev/next navigation.
  */
-export class AgentDataSource extends BaseEntityDataSource<
-  AgentEntity,
-  AgentWithData,
-  AgentListData
-> {
-  readonly id: typeof AGENT_DATASOURCE_ID = AGENT_DATASOURCE_ID;
-  readonly name: string = "Agent Directory DataSource";
-  readonly description: string =
-    "Fetches and transforms agent entities for rendering";
-
-  protected readonly config: EntityDataSourceConfig<AgentEntity> = {
-    entityType: AGENT_ENTITY_TYPE,
-    entitySchema: agentEntitySchema,
-    defaultSort: [
-      { field: "discoveredAt" as const, direction: "desc" as const },
-    ],
-    defaultLimit: 50,
-    lookupField: "slug" as const,
-    enableNavigation: true,
-  };
-
-  constructor(logger: Logger) {
-    super(logger);
-  }
-
-  protected transformEntity(entity: AgentEntity): AgentWithData {
-    return parseAgentData(entity);
-  }
-
-  protected override buildDetailResult(
-    item: AgentWithData,
-    navigation: NavigationResult<AgentWithData> | null,
-  ): AgentDetailData {
-    return {
-      agent: item,
-      prevAgent: navigation?.prev ?? null,
-      nextAgent: navigation?.next ?? null,
-    };
-  }
-
-  protected override parseQuery(query: unknown): {
-    entityType: string;
-    query: AgentQuery;
-  } {
-    const parsed = agentInputSchema.parse(query);
-    return {
-      entityType: parsed.entityType ?? this.config.entityType,
-      query: parsed.query ?? {},
-    };
-  }
-
-  protected buildListResult(
-    items: AgentWithData[],
+/**
+ * Agents for rendering: the directory a reader scans, and the card they open.
+ *
+ * The status filter is contributed to the query rather than applied to a
+ * fetched page, so a filtered directory pages over the filtered set.
+ */
+export const agentDataSource: AnyEntityDataSourceDefinition = defineDataSource({
+  id: AGENT_DATASOURCE_ID,
+  name: "Agent Directory DataSource",
+  description: "Fetches and transforms agent entities for rendering",
+  entityType: AGENT_ENTITY_TYPE,
+  entitySchema: agentEntitySchema,
+  defaultSort: [{ field: "discoveredAt", direction: "desc" }],
+  defaultLimit: 50,
+  // Agents are addressed by slug in routes; two records of one agent
+  // resolve to one page.
+  lookupField: "slug",
+  enableNavigation: true,
+  filter: (query) => {
+    const status = agentStatusQuerySchema.safeParse(query["status"]);
+    return status.success
+      ? { filter: { metadata: { status: status.data } } }
+      : undefined;
+  },
+  transform: (entity: AgentEntity): AgentWithData => parseAgentData(entity),
+  // Return type inferred: the runtime needs a plain JSON object, and an
+  // interface gets no implicit index signature. `agentViewSchema` is what
+  // checks the shape, at render time.
+  list: (
+    items: unknown[],
     pagination: PaginationInfo | null,
     query: BaseQuery,
-  ): AgentListData {
+  ) => {
     const status = agentStatusQuerySchema.safeParse(query["status"]);
-
     return {
       agents: items.map((item) => agentViewSchema.parse(item)),
       pagination,
       baseUrl: query.baseUrl ?? null,
-      selectedStatus: status.success ? status.data : "all",
+      selectedStatus: status.success ? status.data : ("all" as const),
     };
-  }
-
-  override async fetch<T>(
-    query: unknown,
-    outputSchema: DataSourceSchema<T>,
-    context: BaseDataSourceContext,
-  ): Promise<T> {
-    const { query: parsedQuery } = this.parseQuery(query);
-
-    if (parsedQuery.id) {
-      return super.fetch(query, outputSchema, context);
-    }
-
-    const { items, pagination } = await this.fetchList(
-      parsedQuery,
-      context.entityService,
-      parsedQuery.status
-        ? { filter: { metadata: { status: parsedQuery.status } } }
-        : undefined,
-    );
-
-    return outputSchema.parse(
-      this.buildListResult(items, pagination, parsedQuery),
-    );
-  }
-}
+  },
+  // Parsed rather than asserted, the way `list` above already does it: the
+  // transform is erased by the definition's published type, so the schema is
+  // what proves each neighbour is an agent.
+  detail: ({ item, navigation }): AgentDetailData => ({
+    agent: agentWithDataSchema.parse(item),
+    prevAgent: navigation?.prev
+      ? agentWithDataSchema.parse(navigation.prev)
+      : null,
+    nextAgent: navigation?.next
+      ? agentWithDataSchema.parse(navigation.next)
+      : null,
+  }),
+});

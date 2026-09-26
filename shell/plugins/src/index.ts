@@ -2,6 +2,20 @@
 // Plugin Framework Core
 // ============================================================================
 
+export type {
+  InterfaceAvailability,
+  InterfaceAvailabilityOwner,
+  InterfaceAvailabilityReader,
+  InterfaceAvailabilityWriter,
+} from "@brains/contracts";
+
+export type {
+  ServiceGroupingDeclaration,
+  GroupingVocabularyValue,
+} from "./service/grouping-definition";
+
+export type { OperatorEntityGroupings } from "./service/operator-groupings";
+
 // Base plugin classes
 export { ServicePlugin } from "./service/service-plugin";
 export {
@@ -10,15 +24,16 @@ export {
 } from "./entity/entity-plugin";
 export { computeProjectionInputFingerprint } from "./entity/projection-input-fingerprint";
 export {
-  reconcileEntities,
-  type ReconcileEntitiesOptions,
-  type ReconcileEntitiesResult,
-} from "./entity/entity-reconciler";
-export {
+  CONVERSATION_SOURCE_TYPE,
+  PROJECTION_ABSTAINED,
+  type ProjectionAbstention,
   ProjectionJsonObjectSchema,
   ProjectionJsonValueSchema,
   ProjectionWriteIntentSchema,
   defineProjectionRule,
+  // Runtime adapters shared with core; not part of the public SDK exports.
+  createProjectionInputReader,
+  createProjectionExecutionReader,
   type ProjectionEntityReader,
   type ProjectionEntityWrite,
   type ProjectionExecutionContext,
@@ -28,6 +43,7 @@ export {
   type ProjectionRule,
   type ProjectionRuleDefinition,
   type ProjectionRuleEntitySource,
+  type ProjectionTargetAuthority,
   type ProjectionWaveInput,
   type ProjectionWaveTrigger,
   type ProjectionWriteIntent,
@@ -91,6 +107,39 @@ export {
   type ChannelSubjectPattern,
   type IChannelRegistry,
 } from "./channel-registry";
+export type {
+  AnyWorkspaceActionDefinition,
+  BoundWorkspaceAction,
+} from "./operator/workspace-action-definition-contract";
+export type { OperatorBindingContext } from "./operator/operator-context-contract";
+export { AuthRegistry } from "./contracts/auth-registry";
+export type {
+  AuthImplementation,
+  AuthRegistryHost,
+  IAuthRegistry,
+} from "./contracts/auth-registry";
+export type * from "./contracts/auth-admin";
+export type * from "./contracts/auth-administration";
+export type {
+  A2APeerTrustRecord,
+  A2APrivateJwk,
+  A2APublicJwk,
+  A2ASigningKey,
+  AppendAuthAuditEventInput,
+  GrantA2APeerTrustInput,
+  PeerTrustMutationContext,
+  AuthAudit,
+  AuthAuditActionCount,
+  AuthAuditEvent,
+  AuthAuditQuery,
+  AuthAuditQueryResult,
+  AuthBearerGrant,
+  AuthCaller,
+  AuthFederation,
+  AuthIdentities,
+  AuthPrincipal,
+  VerifiedAccessToken,
+} from "./contracts/auth";
 export {
   InboxFollowUpRegistry,
   resolvedInboxFollowUpSchema,
@@ -163,11 +212,11 @@ export {
   type AttachmentProviderMetadata,
   type AttachmentResolveRequest,
   type IAttachmentsNamespace,
+  type AttachmentRegistrationNamespace,
 } from "./service/attachment-registry";
 export {
   RuntimeUploadRegistry,
   RuntimeUploadStore,
-  RuntimeUploadStoreError,
   createRuntimeUploadsNamespace,
   normalizeRuntimeUploadDataDir,
   runtimeUploadIdPattern,
@@ -180,7 +229,6 @@ export {
   type RuntimeUploadRef,
   type RuntimeUploadResponseBody,
   type RuntimeUploadScopeOptions,
-  type RuntimeUploadStoreErrorCode,
   type RuntimeUploadStoreOptions,
   type SaveRuntimeUploadInput,
 } from "./service/upload-registry";
@@ -199,10 +247,6 @@ export type {
   IMessageInterfaceChannelsNamespace,
   ISemanticNamespace,
 } from "./base/context";
-export {
-  createScheduledMaintenanceDaemon,
-  type ScheduledMaintenanceOptions,
-} from "./manager/scheduled-maintenance";
 export type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
@@ -248,17 +292,85 @@ export {
   type PluginPackageDefinition,
   type PluginPackageFamily,
 } from "./package-definition";
+export type {
+  EntityAttachmentDeclaration,
+  EntityConversationBatch,
+  EntityConversationReader,
+  CreateResultAttachment,
+  EntityCreateAllocation,
+  EntityCreateAttachment,
+  EntityCreateContext,
+  EntityCreateDelegation,
+  EntityCreateResolution,
+  EntityGenerationLink,
+  EntityCreateRoute,
+  EntityCreateRouting,
+  EntityEvalContext,
+  EntityEvalDeclaration,
+  EntityGenerationContext,
+  EntityAgentContextProvider,
+  EntityAtprotoDiscovery,
+  EntityCheckDeclaration,
+  EntityInboxDeclaration,
+  EntityReactionContext,
+  EntityConversationSurvey,
+  EntitySemanticReader,
+  EntityDashboardWidgetContext,
+  EntityDashboardWidgetDeclaration,
+  EntityInsightContext,
+  EntityInsightDeclaration,
+  EntityGenerationDeclaration,
+  EntityGenerationResult,
+  EntityScheduledGenerationDeclaration,
+  AnyEntityJobDeclaration,
+  EntityGenerationJobDeclaration,
+  EntityJobDeclaration,
+  EntityFeedDeclaration,
+  EntityPublishAssetDeclaration,
+  EntityPublishDeclaration,
+  MediaAttachmentContext,
+} from "./entity/entity-definition-contract";
+export type {
+  JobAttachmentReader,
+  JobEntityAccess,
+  JobHandlerContext,
+  JobMessagePublisher,
+  JobTemplateFormatter,
+  RoutedCreate,
+} from "./job/job-context-contract";
+export { paginateItems } from "@brains/entity-service";
+export type { PaginateOptions, PaginateResult } from "@brains/entity-service";
+export {
+  createDeclarativeDataSource,
+  createDeclarativeEntityDataSource,
+  defineDataSource,
+  type AnyDataSourceDeclaration,
+  type AnyEntityDataSourceDefinition,
+  type DataSourceDefinition,
+  type FetchingDataSource,
+  type EntityDataSourceDefinition,
+  type EntityDetailContext,
+  type EntityQueryReader,
+  type EntityReads,
+} from "./public/entity-data-source";
 export {
   defineEntity,
+  definitionEntitySchema,
+  parseDefinitionEntity,
+  frontmatterInContent,
+  defineEntityDashboardWidget,
   defineEntityPackage,
   defineProjection,
   type AnyEntityDefinition,
   type EncodedEntityMarkdown,
   type EntityDefinition,
+  type EntityDefinitionConfig,
   type EntityMarkdownCodec,
   type EntityMarkdownDocument,
   type EntityOf,
   type EntityPackageDefinition,
+  type EntitySeedDefinition,
+  type EntitySeedTrigger,
   type EntityVisibility,
   type EntityWriteInput,
   type ProjectionDefinition,
@@ -273,6 +385,7 @@ export {
   defineServicePlugin,
   defineTool,
   defineWorkspaceAction,
+  infrastructure,
   type AccountSettingsDefinition,
   type AccountSettingsFieldDefinition,
   type AccountSettingsValue,
@@ -293,6 +406,8 @@ export {
   type OperatorView,
   type OperatorCardBlock,
   type OperatorColumnsBlock,
+  type OperatorDetailBlock,
+  type OperatorPanelBlock,
   type OperatorRegionBlock,
   type OperatorViewStatus,
   type OperatorViewBlock,
@@ -304,6 +419,16 @@ export {
   type WorkspaceActionResultDefinition,
   type WorkspaceActionResultFieldDefinition,
   type WorkspaceActionResultFieldMap,
+  type ServiceCheckDeclaration,
+  type ServiceCorpusHit,
+  type ServiceCorpusSearch,
+  type ServiceJudge,
+  type ServiceEntityExtension,
+  type ServiceChannelReader,
+  type ServiceEntityShapes,
+  type ServiceInteractionDeclaration,
+  type ServiceEvalHandler,
+  type ServiceJobBinding,
   type ServiceContentGeneration,
   type ServiceContentGenerationContext,
   type ServiceContentGenerationItem,
@@ -314,9 +439,43 @@ export {
   type ServiceContentGenerationTargetInput,
   type ServiceEntityIdPath,
   type ServiceJobDefinition,
+  type ServiceJobHandlerContext,
+  type ServiceToolContext,
   type ServiceJobReference,
+  type ServiceJobs,
+  type ServiceLifecycle,
+  type ServiceJobHooks,
+  type ServiceJobSettledContext,
+  type ServiceJobSettledHandler,
+  type ServiceBatchOperation,
+  type ServiceBatchOptions,
+  type ServiceBatchReference,
+  type ServiceBatchStatus,
+  type ServiceGitBroker,
+  type InfrastructureAccess,
+  type ServiceInfrastructureContext,
+  type ServiceRole,
+} from "./public/service-definition";
+export {
+  createEntityMirror,
+  type EntityMirror,
+  type EntityMirrorClient,
+} from "./service/entity-mirror";
+export {
+  type ServiceTemplateDefinition,
+  type ServiceRenderSchema,
+  type ServiceSchema,
+  type ServiceTemplateReads,
   type ServiceJobStatus,
   type ServicePackageDefinition,
+  type ServiceToolDefinition,
+  type ServicePublishDeclaration,
+  type ServiceActiveJob,
+  type ServiceRecentJob,
+  type ServicePublisher,
+  type ToolAgent,
+  type ToolAgentAnswer,
+  type ToolAsk,
   type ServiceTemplateGenerationDefinition,
   type WorkspaceActionConfirmation,
   type WorkspaceActionDefinition,
@@ -326,9 +485,41 @@ export {
   defineDaemon,
   defineInterface,
   defineMessageInterface,
+  defineMessageInterfacePackage,
+  defineSubscription,
   defineRoute,
   protocol,
+  verbatim,
 } from "./public/interface-definition";
+export type {
+  AnyInterfaceRouteDefinition,
+  InterfaceDaemonDefinition,
+  ApprovalOutcome,
+  AuthenticatedCaller,
+  InboundMessageAttachment,
+  InterfaceEntityReader,
+  InterfaceJobs,
+  InterfaceJobStatus,
+  InterfaceSetupContext,
+  InterfaceUploads,
+  MessageReceiver,
+  ResolveApprovalInput,
+  RouteResponse,
+  VerbatimResponse,
+} from "./public/interface-definition";
+// What a turn arrives as, and what `present` answers with, for an interface
+// that hands turns in and posts answers itself. Named consumer: @brains/chat.
+export type {
+  InboundMessageSender,
+  MessageChannel,
+  MessageOutput,
+  PresentedConfirmation,
+  PresentedMessage,
+  ReceiveAuthenticatedInput,
+} from "./interface/interface-definition-contract";
+// URLs a channel captures from a message nobody addressed to the brain.
+// Named consumer: @brains/chat.
+export { extractCaptureableUrls } from "./message-interface/message-content-utils";
 
 // ============================================================================
 // Essential Plugin Interfaces & Types
@@ -408,6 +599,7 @@ export type {
   EntitySchemaParser,
   EntitySearchRequest,
   GetEntityRequest,
+  UpdateEntityRequest,
   ListEntitiesRequest,
   EntityIdPath,
   EntityIdPathInput,
@@ -418,6 +610,9 @@ export type {
   ICoreEntityService,
   IEntityService,
   EntityServiceClient,
+  EntityBulkCoordination,
+  DurableBulkMutationBatch,
+  DurableBulkMutationChildRef,
   EntityGrouping,
   EntityGroupingCatalog,
   EntityGroupingMembers,
@@ -433,8 +628,11 @@ export type {
   SemanticSpacePoint,
   SemanticSpaceProjection,
   SearchResult,
+  ListOptions,
+  SearchOptions,
 } from "@brains/entity-service";
 export {
+  durableBulkMutationChildRefSchema,
   applyVisibilityToMarkdown,
   extractVisibilityFromMarkdown,
   BaseEntityAdapter,
@@ -496,7 +694,6 @@ export {
   BaseGenerationJobHandler,
   type GenerationJobHandlerConfig,
   type GeneratedContent,
-  type GenericCoverImageRequest,
 } from "./service/base-generation-job-handler";
 
 export type {
@@ -607,6 +804,7 @@ export {
   MessageResponseSchema,
   type BaseMessage,
   type MessageContext,
+  type MessageHandler,
   type MessageResponse,
   type MessageSendOptions,
   type MessageSendRequest,
@@ -633,6 +831,13 @@ export type { IAgentService } from "@brains/ai-service";
 
 export type { IMessageBus } from "@brains/messaging-service";
 
+export {
+  SdkError,
+  sdkErrorCodeSchema,
+  sdkErrorSchema,
+  type SdkErrorCode,
+  type SdkErrorData,
+} from "@brains/contracts";
 export type { ContentFormatter } from "@brains/content-formatters";
 export type { ProgressCallback } from "@brains/utils/progress";
 
@@ -771,18 +976,35 @@ export {
 // ============================================================================
 
 export {
+  createConfirmationGate,
   createTool,
   createResource,
   toolSuccess,
   toolError,
   toolResultSchema,
+  type ConfirmationGate,
   type ToolResult,
   type ToolErrorResult,
 } from "@brains/mcp-service";
 
 export { ensureUniqueTitle } from "./service/create-entity-with-unique-title";
+export { sourceAttachmentKey } from "./entity/source-attachment-key";
 
 export { SerialQueue } from "./service/serial-queue";
+export type { StaticSiteOutput } from "./contracts/http-host";
+export type { EntityAction } from "@brains/templates";
+export { createOperatorEntities } from "./service/operator-entities";
+export type {
+  OperatorEntityWrites,
+  OperatorUploadOutcome,
+  OperatorUploadRequest,
+} from "./service/operator-entities";
+export type {
+  InterfaceCaller,
+  RouteSecurity,
+  SessionSecurityDefinition,
+} from "./interface/route-contract";
+export { getServiceJobHandler } from "./service/service-definition-contract";
 export { SerializedStatusStore } from "./service/serialized-status-store";
 export type { SerializedStatusStoreOptions } from "./service/serialized-status-store";
 
@@ -948,3 +1170,34 @@ export {
   type ConsoleSurface,
   type SurfacePermissionLevel,
 } from "./console-surfaces";
+
+// The row-to-contract mapping for conversations, so the shell can build the
+// same conversation view a plugin sees rather than a second one beside it.
+export {
+  toPublicConversation,
+  toPublicMessage,
+} from "./base/public-conversations";
+
+// The declared subscription and what its handler reads, for a helper that
+// builds several. Named consumer: @brains/a2a.
+export type {
+  AnySubscriptionDefinition,
+  RequestContract,
+  SubscriptionDefinition,
+  SubscriptionRequester,
+} from "./contracts/subscription";
+export type {
+  EntityAccess,
+  EntityReader,
+} from "./entity/entity-access-contract";
+
+// What a package delegated when it declared `publish`, and the access a
+// service that publishes on its behalf is given. See the registry's own docs.
+export {
+  PublishDelegationRegistry,
+  createServicePublishingAccess,
+} from "./service/publish-delegation-registry";
+export type {
+  PublishDelegation,
+  ServicePublishingAccess,
+} from "./service/publish-delegation-registry";

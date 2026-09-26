@@ -1,18 +1,18 @@
 import {
   inboxItemListSchema,
+  type EntityInboxDeclaration,
+  type EntityReactionContext,
   type InboxAction,
-  type InboxActor,
   type InboxFacetDefinition,
   type InboxItem,
   type InboxItemDetail,
-  type InboxSource,
-} from "@brains/plugins";
-import type { MailTriageOperatorService } from "./operator-service";
+} from "@brains/sdk/entities";
+import { MailTriageOperatorService } from "./operator-service";
 import {
   mailTriageStatusActionSchema,
   type MailTriageListItem,
 } from "./schemas/operator";
-import type { EmailWorkflowsSourceReader } from "./source-read";
+import { EmailWorkflowsSourceReader } from "./source-read";
 
 const MAIL_FACETS: InboxFacetDefinition[] = [
   {
@@ -46,69 +46,76 @@ const MAIL_FACETS: InboxFacetDefinition[] = [
   },
 ];
 
-export class MailTriageInboxSource implements InboxSource {
-  readonly sourceId: string = "mail-items";
-  readonly displayName: string = "Email Triage";
-  readonly facets: InboxFacetDefinition[] = MAIL_FACETS;
+export interface MailTriageInboxDependencies {
+  /** Whether thread positions are complete enough to show. */
+  readonly threadOrdinals: { isReady(): Promise<boolean> };
+}
 
-  private readonly operator: MailTriageOperatorService;
-  private readonly readiness: { isReady(): Promise<boolean> } | undefined;
-  private readonly sourceReader:
-    Pick<EmailWorkflowsSourceReader, "read"> | undefined;
-
-  constructor(
-    operator: MailTriageOperatorService,
-    readiness?: { isReady(): Promise<boolean> },
-    sourceReader?: Pick<EmailWorkflowsSourceReader, "read">,
-  ) {
-    this.operator = operator;
-    this.readiness = readiness;
-    this.sourceReader = sourceReader;
-  }
-
-  async list(): Promise<InboxItem[]> {
-    const [result, threadOrdinalsReady] = await Promise.all([
-      this.operator.listInboxItems(),
-      this.readiness?.isReady() ?? Promise.resolve(false),
-    ]);
-    return inboxItemListSchema.parse(
-      result.map((item) => toInboxItem(item, threadOrdinalsReady)),
-    );
-  }
-
-  async resolveDetail(
-    itemId: string,
-    actor: InboxActor,
-    signal: AbortSignal,
-  ): Promise<InboxItemDetail> {
-    if (!this.sourceReader) throw new Error("Mail source is unavailable");
-    const source = await this.sourceReader.read({ itemId, actor, signal });
-    if (source.kind !== "available") {
-      throw new Error("Mail source is unavailable");
-    }
-    return {
-      kind: "plain",
-      text: source.message.text,
-      truncated: source.message.truncated,
-    };
-  }
-
-  async act(
-    itemId: string,
-    actionId: string,
-    actor: InboxActor,
-  ): Promise<void> {
-    const action = mailTriageStatusActionSchema.safeParse({
-      type: actionId,
-      id: itemId,
+/**
+ * New mail items as inbox attention: content-safe projections with the two
+ * actions an operator takes on them. The body of an item is read back from
+ * the mailbox on demand, through the interface that delivered it.
+ */
+export function mailTriageInbox(
+  deps: MailTriageInboxDependencies,
+): EntityInboxDeclaration {
+  const operator = (
+    context: EntityReactionContext,
+  ): MailTriageOperatorService =>
+    new MailTriageOperatorService({
+      entities: context.entities,
+      permissions: context.permissions,
     });
-    if (!action.success) {
-      throw new Error("Invalid email triage inbox action");
-    }
-    await this.operator.act(action.data, {
-      userPermissionLevel: actor.permissionLevel,
-    });
-  }
+
+  return {
+    sourceId: "mail-items",
+    displayName: "Email Triage",
+    facets: MAIL_FACETS,
+
+    list: async (context): Promise<InboxItem[]> => {
+      const [result, threadOrdinalsReady] = await Promise.all([
+        operator(context).listInboxItems(),
+        deps.threadOrdinals.isReady(),
+      ]);
+      return inboxItemListSchema.parse(
+        result.map((item) => toInboxItem(item, threadOrdinalsReady)),
+      );
+    },
+
+    resolveDetail: async (
+      context,
+      itemId,
+      actor,
+      signal,
+    ): Promise<InboxItemDetail> => {
+      const reader = new EmailWorkflowsSourceReader(
+        context.messaging,
+        operator(context),
+      );
+      const source = await reader.read({ itemId, actor, signal });
+      if (source.kind !== "available") {
+        throw new Error("Mail source is unavailable");
+      }
+      return {
+        kind: "plain",
+        text: source.message.text,
+        truncated: source.message.truncated,
+      };
+    },
+
+    act: async (context, itemId, actionId, actor): Promise<void> => {
+      const action = mailTriageStatusActionSchema.safeParse({
+        type: actionId,
+        id: itemId,
+      });
+      if (!action.success) {
+        throw new Error("Invalid email triage inbox action");
+      }
+      await operator(context).act(action.data, {
+        userPermissionLevel: actor.permissionLevel,
+      });
+    },
+  };
 }
 
 function toInboxItem(

@@ -95,7 +95,7 @@ describe("defineBrain", () => {
       interfaces: [
         [
           "mock-interface",
-          MockInterface,
+          (config): Plugin => new MockInterface(config),
           (env: BrainEnvironment): PluginConfig => ({ token: env["TOKEN"] }),
         ],
       ],
@@ -171,7 +171,7 @@ describe("resolve", () => {
       interfaces: [
         [
           "mock-interface",
-          TrackingInterface,
+          (config): Plugin => new TrackingInterface(config),
           (env: BrainEnvironment): PluginConfig => ({
             token: env["MY_TOKEN"],
             host: env["MY_HOST"],
@@ -324,7 +324,7 @@ describe("resolve", () => {
       interfaces: [
         [
           "config-capture",
-          ConfigCapture,
+          (config): Plugin => new ConfigCapture(config),
           (env: BrainEnvironment): PluginConfig => ({
             accessToken: env["TOKEN"] ?? "",
           }),
@@ -395,7 +395,13 @@ describe("resolve", () => {
       version: "1.0.0",
       bundles: [{ id: "core", members: [] }],
       capabilities: [],
-      interfaces: [["mock-interface", MockInterface, (): PluginConfig => ({})]],
+      interfaces: [
+        [
+          "mock-interface",
+          (config): Plugin => new MockInterface(config),
+          (): PluginConfig => ({}),
+        ],
+      ],
     });
 
     const config = resolve(def, {}, { bundles: ["core"] });
@@ -413,7 +419,7 @@ describe("resolve", () => {
       interfaces: [
         [
           "mock-interface",
-          MockInterface,
+          (config): Plugin => new MockInterface(config),
           (_env: BrainEnvironment): PluginConfig | null => null,
         ],
       ],
@@ -457,7 +463,7 @@ describe("resolve", () => {
       interfaces: [
         [
           "validating",
-          ValidatingInterface,
+          (config): Plugin => new ValidatingInterface(config),
           (): PluginConfig => ({}), // no botToken
         ],
       ],
@@ -497,7 +503,7 @@ describe("resolve", () => {
       interfaces: [
         [
           "bundled-validating",
-          BundledValidatingInterface,
+          (config): Plugin => new BundledValidatingInterface(config),
           (): PluginConfig => ({}),
         ],
       ],
@@ -523,7 +529,13 @@ describe("resolve", () => {
       name: "test",
       version: "1.0.0",
       capabilities: [],
-      interfaces: [["buggy", BuggyInterface, (): PluginConfig => ({})]],
+      interfaces: [
+        [
+          "buggy",
+          (config): Plugin => new BuggyInterface(config),
+          (): PluginConfig => ({}),
+        ],
+      ],
     });
 
     expect(() => resolve(def, {})).toThrow("unexpected null reference");

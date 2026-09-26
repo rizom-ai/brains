@@ -6,7 +6,7 @@ tags:
   - decks
   - generation
   - core
-plugin: decks
+plugin: "@brains/decks:deck"
 handler: generateDeck
 
 input:

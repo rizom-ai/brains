@@ -1,9 +1,13 @@
 import { describe, expect, it } from "bun:test";
 import {
-  playbookAdapter,
+  parsePlaybookContent,
   playbookBodyFormatter,
   validatePlaybookBody,
 } from "../src";
+import {
+  createPlaybookContent,
+  playbookMetadataFromMarkdown,
+} from "./markdown";
 
 const body = {
   purpose: "Teach by doing.",
@@ -97,7 +101,7 @@ Done when:
 Say: You're set up.
 `;
 
-    const { body: parsed } = playbookAdapter.parsePlaybookContent(markdown);
+    const { body: parsed } = parsePlaybookContent(markdown);
 
     expect(parsed.initialState).toBe("welcome");
     expect(parsed.finalStates).toEqual(["done"]);
@@ -200,7 +204,7 @@ Done when:
 Say: Done.
 `;
 
-    const { body: parsed } = playbookAdapter.parsePlaybookContent(markdown);
+    const { body: parsed } = parsePlaybookContent(markdown);
 
     expect(parsed.states[0]).toMatchObject({
       id: "identity",
@@ -239,13 +243,13 @@ Say: Hello.
 Say: Done.
 `;
 
-    expect(() => playbookAdapter.parsePlaybookContent(markdown)).toThrow(
+    expect(() => parsePlaybookContent(markdown)).toThrow(
       "Playbook step 'Intro' must declare Done when, Choices, or Skip.",
     );
   });
 
   it("parses playbook markdown into metadata and structured body", () => {
-    const markdown = playbookAdapter.createPlaybookContent(
+    const markdown = createPlaybookContent(
       {
         title: "Rover Onboarding",
         status: "active",
@@ -256,11 +260,10 @@ Say: Done.
       body,
     );
 
-    const entity = playbookAdapter.fromMarkdown(markdown);
-    const parsed = playbookAdapter.parsePlaybookContent(markdown);
+    const metadata = playbookMetadataFromMarkdown(markdown);
+    const parsed = parsePlaybookContent(markdown);
 
-    expect(entity.entityType).toBe("playbook");
-    expect(entity.metadata).toEqual({
+    expect(metadata).toEqual({
       title: "Rover Onboarding",
       status: "active",
       audience: "admin",
@@ -324,7 +327,7 @@ Say: Done.
     const complete = body.states.find((state) => state.id === "complete");
     if (!welcome || !complete) throw new Error("Test fixture is incomplete.");
 
-    const invalidMarkdown = playbookAdapter.createPlaybookContent(
+    const invalidMarkdown = createPlaybookContent(
       {
         title: "Broken",
         status: "active",
@@ -343,7 +346,7 @@ Say: Done.
       },
     );
 
-    expect(() => playbookAdapter.parsePlaybookContent(invalidMarkdown)).toThrow(
+    expect(() => parsePlaybookContent(invalidMarkdown)).toThrow(
       "targets an undefined state",
     );
   });

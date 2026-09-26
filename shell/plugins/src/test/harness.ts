@@ -1,3 +1,11 @@
+import { runCleanups } from "../internal/cleanup";
+import { readToolFailureCause } from "../internal/tool-diagnostics";
+import { SdkError } from "@brains/contracts";
+import { readServiceJobResult } from "../service/job-definition-runtime";
+import {
+  PluginResourceScope,
+  createPluginScopedShell,
+} from "../manager/plugin-resource-scope";
 import type {
   Plugin,
   PluginCapabilities,
@@ -7,12 +15,22 @@ import type {
   ToolContext,
 } from "../interfaces";
 import { z } from "@brains/utils/zod";
-import type { toolSuccessSchema, toolErrorSchema } from "@brains/mcp-service";
+import {
+  canExposeTool,
+  type Tool,
+  type toolSuccessSchema,
+  type toolErrorSchema,
+} from "@brains/mcp-service";
 
 type ToolSuccess = z.output<typeof toolSuccessSchema>;
 type ToolError = z.output<typeof toolErrorSchema>;
 import type { Logger } from "@brains/utils/logger";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createMockProgressReporter,
+} from "@brains/test-utils";
+import { createRequester } from "../internal/requester";
+import type { SubscriptionRequester } from "../contracts/subscription";
 import type { Template } from "@brains/templates";
 import type { MessageHandler } from "@brains/messaging-service";
 import type {
@@ -20,7 +38,12 @@ import type {
   IEntityService,
   IEntityRegistry,
 } from "@brains/entity-service";
+import type { AttachmentRegistrationNamespace } from "../service/attachment-registry";
 import { createMockShell, type MockShell } from "./mock-shell";
+import { createReactionContext } from "../service/reaction-context";
+import { createJobEntityAccess } from "../job/job-entity-access";
+import type { JobEntityAccess } from "../job/job-context-contract";
+import type { EntityReactionContext } from "../entity/entity-definition-contract";
 import {
   createServicePluginContext,
   type ServicePluginContext,
@@ -46,6 +69,8 @@ export interface HarnessOptions {
   gitBrokerSocket?: string;
   /** Absolute broker-owned checkout supplied with that endpoint. */
   gitBrokerCheckout?: string;
+  /** Shared conversation spaces the brain is in. */
+  spaces?: string[];
 }
 
 /**
@@ -58,12 +83,15 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
   private capabilities: PluginCapabilities | undefined;
   /** Every plugin installed since the last reset, so reset can shut them down. */
   private installedPlugins: Plugin[] = [];
+  private readonly resourceScopes = new Map<Plugin, PluginResourceScope>();
   private readonly options: HarnessOptions;
+  private readonly logger: Logger;
 
   constructor(options: HarnessOptions = {}) {
     this.options = options;
     const logger =
       options.logger ?? createSilentLogger(options.logContext ?? "plugin-test");
+    this.logger = logger;
     const mockShellOptions: {
       logger: Logger;
       dataDir?: string;
@@ -73,7 +101,11 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       profileKind?: string;
       gitBrokerSocket?: string;
       gitBrokerCheckout?: string;
+      spaces?: string[];
     } = { logger };
+    if (options.spaces !== undefined) {
+      mockShellOptions.spaces = options.spaces;
+    }
     if (options.dataDir !== undefined) {
       mockShellOptions.dataDir = options.dataDir;
     }
@@ -103,9 +135,9 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
    * The plugin will create its own typed context from the mock shell
    */
   async installPlugin(plugin: TPlugin): Promise<PluginCapabilities> {
-    this.plugin = plugin;
-    this.installedPlugins.push(plugin);
-
+    if (this.installedPlugins.some((installed) => installed.id === plugin.id)) {
+      throw new Error(`Plugin "${plugin.id}" is already installed`);
+    }
     // Update logger context based on plugin type if not explicitly set
     // If no custom logger was provided in options, create one with the plugin type context
     if (!this.options.logger && !this.options.logContext) {
@@ -147,9 +179,73 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       this.mockShell = createMockShell(mockShellOptions);
     }
 
-    this.capabilities = await plugin.register(this.mockShell);
-    this.mockShell.addPlugin(plugin);
-    return this.capabilities;
+    const shell = this.mockShell;
+    const resources = new PluginResourceScope();
+    resources.addFinalizer(() =>
+      shell.getJobQueueService().unregisterPluginHandlers(plugin.id),
+    );
+    this.resourceScopes.set(plugin, resources);
+    try {
+      const capabilities = await plugin.register(
+        createPluginScopedShell(shell, resources),
+      );
+      shell.addPlugin(plugin);
+      this.plugin = plugin;
+      this.capabilities = capabilities;
+      this.installedPlugins.push(plugin);
+      return capabilities;
+    } catch (error) {
+      try {
+        await this.releasePlugin(plugin);
+      } catch (cleanupError) {
+        throw new AggregateError(
+          [error, cleanupError],
+          `Plugin "${plugin.id}" registration and rollback failed`,
+          { cause: cleanupError },
+        );
+      }
+      throw error;
+    }
+  }
+
+  /** Install one package atomically without disturbing previously installed packages. */
+  async installPlugins(
+    plugins: readonly TPlugin[],
+  ): Promise<readonly { plugin: TPlugin; capabilities: PluginCapabilities }[]> {
+    const previousPlugin = this.plugin;
+    const previousCapabilities = this.capabilities;
+    const installed: { plugin: TPlugin; capabilities: PluginCapabilities }[] =
+      [];
+    try {
+      for (const plugin of plugins) {
+        installed.push({
+          plugin,
+          capabilities: await this.installPlugin(plugin),
+        });
+      }
+      return installed;
+    } catch (error) {
+      try {
+        await runCleanups(
+          installed.map(({ plugin }) => async (): Promise<void> => {
+            const index = this.installedPlugins.indexOf(plugin);
+            if (index >= 0) this.installedPlugins.splice(index, 1);
+            this.mockShell.removePlugin(plugin.id);
+            await this.releasePlugin(plugin);
+          }),
+        );
+      } catch (cleanupError) {
+        throw new AggregateError(
+          [error, cleanupError],
+          "Package installation and rollback failed",
+          { cause: cleanupError },
+        );
+      } finally {
+        this.plugin = previousPlugin;
+        this.capabilities = previousCapabilities;
+      }
+      throw error;
+    }
   }
 
   /** Finalize app-scoped registries and the installed plugin before sync. */
@@ -161,7 +257,9 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     this.mockShell.getChannelRegistry().finalize();
     this.mockShell.getInboxRegistry().finalize();
     this.mockShell.getInboxFollowUpRegistry().finalize();
-    await this.plugin.finalizeRegistration?.();
+    for (const plugin of this.installedPlugins) {
+      await plugin.finalizeRegistration?.();
+    }
   }
 
   /**
@@ -210,6 +308,41 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
    */
   getServiceContext(pluginId: string): ServicePluginContext {
     return createServicePluginContext(this.mockShell, pluginId);
+  }
+
+  /** Native entity access for tests of setup helpers and native job handlers. */
+  getJobEntityAccess(
+    pluginId: string,
+    entityTypes?: Iterable<string>,
+  ): JobEntityAccess {
+    return createJobEntityAccess(
+      this.getEntityService(),
+      new Set(entityTypes ?? this.getEntityService().getEntityTypes()),
+      pluginId,
+    );
+  }
+
+  /**
+   * The context a declared check, inbox action or tool runs in.
+   *
+   * A declaration is a plain object, so the only thing standing between a
+   * test and running one is this. Entity types default to whatever the
+   * harness has registered, which is what the package under test declared.
+   */
+  getReactionContext(
+    pluginId: string,
+    entityTypes?: Iterable<string>,
+  ): EntityReactionContext {
+    return createReactionContext({
+      context: this.getServiceContext(pluginId),
+      // Notes belong to the package, and a plugin id from a package is
+      // `${packageName}:${localId}` — so the package is its first segment.
+      packageName: pluginId.includes(":")
+        ? pluginId.slice(0, pluginId.lastIndexOf(":"))
+        : pluginId,
+      entities: this.getJobEntityAccess(pluginId, entityTypes),
+      logger: this.logger,
+    });
   }
 
   /**
@@ -287,6 +420,13 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
   }
 
   /**
+   * Get the attachment registry
+   */
+  getAttachments(): AttachmentRegistrationNamespace {
+    return this.mockShell.getAttachmentRegistry();
+  }
+
+  /**
    * Register a DataSource for testing
    */
   registerDataSource(dataSource: DataSource): void {
@@ -331,6 +471,29 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       return response.data;
     }
     return undefined;
+  }
+
+  /** The same schema-bearing request path an author callback receives. */
+  readonly request: SubscriptionRequester = createRequester((message) =>
+    this.mockShell.getMessageBus().send({ ...message, sender: "test" }),
+  );
+
+  /** Execute one registered job attempt, without a worker or retry loop. */
+  async runJob(type: string, input: unknown): Promise<unknown> {
+    const handler = this.mockShell.getJobQueueService().getHandler(type);
+    if (!handler) throw new Error(`No job handler registered for "${type}"`);
+    const parsed = handler.validateAndParse(input);
+    if (parsed === null)
+      throw new SdkError("invalid_input", {
+        message: `Invalid input for job "${type}"`,
+      });
+    const result = await handler.process(
+      parsed,
+      "test-job",
+      createMockProgressReporter(),
+      new AbortController().signal,
+    );
+    return readServiceJobResult(handler, result);
   }
 
   /**
@@ -401,7 +564,28 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
       toolContext.channelId = context.channelId;
     }
 
-    return tool.handler(input, toolContext);
+    return this.callTool(tool, input, toolContext);
+  }
+
+  /** Original thrown value for this exact response, available only to tests. */
+  getToolFailureCause(response: ToolResponse): unknown {
+    return readToolFailureCause(response);
+  }
+
+  /** Apply the production tool permission rule before entering its handler. */
+  async callTool(
+    tool: Tool,
+    input: unknown,
+    context: ToolContext,
+  ): Promise<ToolResponse> {
+    if (!canExposeTool(context.userPermissionLevel ?? "public", tool)) {
+      return {
+        success: false,
+        error: `Permission denied for tool "${tool.name}"`,
+        code: "permission_denied",
+      };
+    }
+    return tool.handler(input, context);
   }
 
   /**
@@ -411,22 +595,38 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
    * A plugin's shutdown is what clears module-level state it registered —
    * the auth-service plugin's active-service singleton, for one — and bun
    * runs every test file in one process, so a plugin left running leaks
-   * into the next file. The shutdown hooks run synchronously up to their
-   * first await, so even an un-awaited reset() leaves no such state behind;
-   * await it when a plugin's shutdown does async work the next test relies
-   * on.
+   * into the next file. Always await reset: admission is stopped and in-flight
+   * callbacks drained before plugin resources are torn down, as in production.
    */
   async reset(): Promise<void> {
-    const plugins = this.installedPlugins.splice(0).reverse();
+    const plugins = this.installedPlugins.splice(0);
     this.plugin = undefined;
     this.capabilities = undefined;
     // Create a fresh MockShell
     this.mockShell = createMockShell({
+      ...this.options,
       logger: this.mockShell.getLogger(),
     });
-    for (const plugin of plugins) {
-      await plugin.shutdown?.();
-    }
+    await runCleanups(
+      plugins.map(
+        (plugin): (() => Promise<void>) =>
+          (): Promise<void> =>
+            this.releasePlugin(plugin),
+      ),
+    );
+  }
+
+  private async releasePlugin(plugin: Plugin): Promise<void> {
+    const resources = this.resourceScopes.get(plugin);
+    this.resourceScopes.delete(plugin);
+    await runCleanups([
+      async (): Promise<void> => {
+        await plugin.shutdown?.();
+      },
+      async (): Promise<void> => {
+        await resources?.close();
+      },
+    ]);
   }
 
   /**

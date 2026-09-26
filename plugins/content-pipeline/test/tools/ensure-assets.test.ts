@@ -1,9 +1,9 @@
-import { createMockServicePluginContext } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import type { BaseEntity } from "@brains/plugins";
 import { PublishAssetPreflight } from "../../src/publish-asset-preflight";
 import { PublishAssetRegistry } from "../../src/publish-assets";
 import { ensurePublishAssets } from "../../src/tools/ensure-assets";
+import { mockRuntimeFor } from "../helpers/install";
 
 function createPost(
   id: string,
@@ -41,18 +41,17 @@ describe("publish asset reconciliation", () => {
       createPost("post-1"),
       createPost("post-2", { ogImageId: "existing-og" }),
     ];
-    const context = createMockServicePluginContext({
+    const { runtime, context, enqueueAsset } = mockRuntimeFor({
       listEntitiesImpl: async () => posts,
-      returns: { jobsEnqueue: "job-1" },
+      assetJobTypes: { "og-image": "image:image-render-source" },
     });
     // The registry declares an image provider for this case, so the preflight
     // should find one; the factory reports none by default.
     context.attachments.hasProvider.mockImplementation(() => true);
     const listEntities = context.entityService.listEntities;
-    const enqueue = context.jobs.enqueue;
-    const preflight = new PublishAssetPreflight({ context, registry });
+    const preflight = new PublishAssetPreflight({ runtime, registry });
     const result = await ensurePublishAssets({
-      context,
+      context: runtime,
       registry,
       preflight,
       input: { entityType: "post", status: "published", assetType: "og-image" },
@@ -79,6 +78,6 @@ describe("publish asset reconciliation", () => {
       entityType: "post",
       options: { filter: { metadata: { status: "published" } } },
     });
-    expect(enqueue).toHaveBeenCalledTimes(1);
+    expect(enqueueAsset).toHaveBeenCalledTimes(1);
   });
 });

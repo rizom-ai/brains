@@ -1,7 +1,3 @@
-import {
-  createListToolOutputSchema,
-  type ListToolOutputSchema,
-} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
   mailCategorySchema,
@@ -85,10 +81,6 @@ export type MailTriageFilter = z.output<typeof mailTriageFilterSchema>;
 export type MailTriageListItem = z.output<typeof mailTriageListItemSchema>;
 export type MailTriageListResult = z.output<typeof mailTriageListResultSchema>;
 
-export const mailTriageListToolOutputSchema: ListToolOutputSchema<
-  typeof mailTriageListResultSchema
-> = createListToolOutputSchema(mailTriageListResultSchema);
-
 type MailTriageStatusActionSchema = z.ZodDiscriminatedUnion<
   [
     z.ZodObject<
@@ -124,9 +116,6 @@ export const mailTriageStatusActionResultSchema: MailTriageStatusActionResultSch
     status: mailStatusSchema,
   });
 
-export type MailTriageListToolOutput = z.output<
-  typeof mailTriageListToolOutputSchema
->;
 export type MailTriageStatusAction = z.output<
   typeof mailTriageStatusActionSchema
 >;

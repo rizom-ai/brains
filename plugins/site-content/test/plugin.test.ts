@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createElement } from "react";
 import type { ReactElement } from "react";
-import { SiteContentPlugin } from "../src/plugin";
+import type { Plugin, PluginCapabilities } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
-import type { PluginCapabilities } from "@brains/plugins/test";
 import type { SiteContentDefinition } from "../src/definitions";
+import { installSiteContent, SECTIONS_PLUGIN_ID } from "./helpers/install";
 
 // A real component: `layout` is typed to return a JSX element, so a stub that
 // returns null only fits by asserting the null away.
@@ -24,48 +24,67 @@ const definition: SiteContentDefinition = {
   },
 };
 
-describe("SiteContentPlugin", () => {
+describe("site content", () => {
   let harness: ReturnType<typeof createPluginHarness>;
-  let plugin: SiteContentPlugin;
+  let plugin: Plugin;
   let capabilities: PluginCapabilities;
 
   beforeEach(async () => {
     harness = createPluginHarness({ dataDir: "/tmp/test-site-content" });
-    plugin = new SiteContentPlugin({ definitions: [definition] });
-    capabilities = await harness.installPlugin(plugin);
+    const installed = await installSiteContent(harness, {
+      definitions: [definition],
+    });
+    plugin = installed.service;
+    capabilities = installed.capabilities;
   });
 
   afterEach(async () => {
     await harness.reset();
   });
 
-  describe("Plugin Registration", () => {
-    it("should register plugin with correct metadata", () => {
-      expect(plugin.id).toBe("site-content");
-      expect(plugin.type).toBe("service");
-      expect(plugin.version).toBeDefined();
-    });
+  it("installs as one declared service", () => {
+    expect(plugin.id).toBe(SECTIONS_PLUGIN_ID);
+    expect(plugin.type).toBe("service");
+    expect(plugin.version).toBeDefined();
+  });
 
-    it("should register site-content entity type", () => {
-      const entityService = harness.getEntityService();
-      const entityTypes = entityService.getEntityTypes();
-      expect(entityTypes).toContain("site-content");
-    });
+  it("owns the site-content entity type", () => {
+    expect(harness.getEntityService().getEntityTypes()).toContain(
+      "site-content",
+    );
+  });
 
-    it("should register namespaced templates from site-content definitions", () => {
-      const template = harness.getTemplates().get("landing-page:hero");
-      expect(template).toBeDefined();
-      expect(template?.name).toBe("hero");
-      expect(template?.formatter).toBeDefined();
-    });
+  /**
+   * The section belongs to the site a brain composed, so a route names it by
+   * the namespace its author chose rather than by this package's id.
+   */
+  it("registers each configured section under its own namespace", () => {
+    const template = harness.getTemplates().get("landing-page:hero");
 
-    it("should provide generate tool", () => {
-      const toolNames = capabilities.tools.map((t) => t.name);
-      expect(toolNames).toContain("site-content_generate");
-    });
+    expect(template?.name).toBe("hero");
+    expect(template?.requiredPermission).toBe("public");
+    expect(template?.formatter).toBeDefined();
+  });
 
-    it("should not provide any resources", () => {
-      expect(capabilities.resources).toEqual([]);
+  it("reads a section back as the value it was written from", () => {
+    const template = harness.getTemplates().get("landing-page:hero");
+    if (!template?.formatter)
+      throw new Error("The hero section has no formatter");
+
+    const markdown = template.formatter.format({ headline: "Welcome" });
+
+    expect(template.formatter.parse(markdown)).toEqual({
+      headline: "Welcome",
     });
+  });
+
+  it("offers one tool, for filling sections in", () => {
+    expect(capabilities.tools.map((tool) => tool.name)).toEqual([
+      "sections_generate",
+    ]);
+  });
+
+  it("offers no resources", () => {
+    expect(capabilities.resources).toEqual([]);
   });
 });

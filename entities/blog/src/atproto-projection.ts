@@ -1,13 +1,13 @@
-import type { BaseEntity } from "@brains/plugins";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
-import { canonicalAtprotoLexicons } from "@brains/atproto-contracts";
+import type { BaseEntity } from "@brains/sdk/entities";
+import { parseMarkdownWithFrontmatter } from "@brains/sdk/entities";
+import { canonicalAtprotoLexicons } from "@brains/sdk/entities";
 import type {
   AtprotoBlobRef,
   AtprotoBrainPostRecord,
   AtprotoProjection,
   AtprotoProjectionBuildInput,
   AtprotoProjectionContext,
-} from "@brains/atproto-contracts";
+} from "@brains/sdk/entities";
 import { blogPostAdapter } from "./adapters/blog-post-adapter";
 import { blogPostFrontmatterSchema } from "./schemas/blog-post";
 

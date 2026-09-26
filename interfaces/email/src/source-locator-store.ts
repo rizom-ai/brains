@@ -1,4 +1,4 @@
-import type { IRuntimeStateStore } from "@brains/plugins";
+import type { IRuntimeStateStore } from "@brains/sdk/interfaces";
 import { z } from "@brains/utils/zod";
 import type { InboundEmailSelection } from "./inbound-email";
 

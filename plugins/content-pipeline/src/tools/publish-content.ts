@@ -1,5 +1,6 @@
-import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
+import type { PipelineRuntime } from "../runtime";
+import type { BaseEntity } from "@brains/sdk/entities";
+import { parseMarkdownWithFrontmatter } from "@brains/sdk/entities";
 import { z } from "@brains/utils/zod";
 import type { PublishImageData, PublishMediaData } from "@brains/contracts";
 import type { PublishableMetadata } from "../schemas/publishable";
@@ -27,7 +28,7 @@ export interface PreparedPublishContent {
 }
 
 export async function preparePublishContent(
-  context: ServicePluginContext,
+  context: PipelineRuntime,
   entity: PublishableEntity,
 ): Promise<PreparedPublishContent> {
   const {
@@ -116,7 +117,7 @@ function parseStringField(value: unknown): string | undefined {
 }
 
 async function resolveSourceAttachmentData(
-  context: ServicePluginContext,
+  context: PipelineRuntime,
   sourceEntityType: string | undefined,
   sourceEntityId: string | undefined,
 ): Promise<PublishMediaData[] | undefined> {
@@ -134,10 +135,10 @@ async function resolveSourceAttachmentData(
 }
 
 async function fetchPublishImageData(
-  context: ServicePluginContext,
+  context: PipelineRuntime,
   coverImageId: string,
 ): Promise<PublishImageData | undefined> {
-  const image = await context.entityService.getEntity({
+  const image = await context.entities.getEntity({
     entityType: "image",
     id: coverImageId,
   });
@@ -153,7 +154,7 @@ async function fetchPublishImageData(
 }
 
 async function fetchPublishDocumentData(
-  context: ServicePluginContext,
+  context: PipelineRuntime,
   documents: PublishDocumentReference[],
 ): Promise<PublishMediaData[]> {
   const results = await Promise.all(
@@ -163,10 +164,10 @@ async function fetchPublishDocumentData(
 }
 
 async function fetchPublishDocumentItem(
-  context: ServicePluginContext,
+  context: PipelineRuntime,
   reference: PublishDocumentReference,
 ): Promise<PublishMediaData | undefined> {
-  const entity = await context.entityService.getEntity({
+  const entity = await context.entities.getEntity({
     entityType: "document",
     id: reference.id,
   });

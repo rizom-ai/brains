@@ -1,8 +1,11 @@
 import { mkdir, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { createStylexBunTransform } from "@brains/build-tools";
+import {
+  createStylexBunTransform,
+  parseUiBuildArgs,
+} from "@brains/build-tools";
 import { runProcessOrThrow } from "@brains/utils/run-process";
-import { dirname, join, relative } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 
 import {
   STUDIO_ENTRY_NAMING,
@@ -13,16 +16,22 @@ import {
 const require = createRequire(import.meta.url);
 const packageRoot = join(import.meta.dir, "..");
 const operatorRoot = join(packageRoot, "../../shared/operator-view-react");
-await runProcessOrThrow([process.execPath, "run", "build"], {
-  cwd: operatorRoot,
-});
 const entrypoint = join(packageRoot, "ui-react", "src", "main.tsx");
-const destination = join(packageRoot, "dist", "ui");
+const values = parseUiBuildArgs();
+const destination = resolve(values.outdir ?? join(packageRoot, "dist", "ui"));
 await mkdir(destination, { recursive: true });
-const outdir = await mkdtemp(join(packageRoot, "dist", ".studio-ui-"));
+const outdir = await mkdtemp(join(dirname(destination), ".studio-ui-"));
+const operatorOutdir = join(outdir, ".operator");
+await runProcessOrThrow(
+  [process.execPath, "run", "build", "--outdir", operatorOutdir],
+  {
+    cwd: operatorRoot,
+  },
+);
 const reactRoot = dirname(require.resolve("react/package.json"));
 const reactDomRoot = dirname(require.resolve("react-dom/package.json"));
 const reactAliases: Record<string, string> = {
+  "@stylexjs/stylex": require.resolve("@stylexjs/stylex"),
   react: join(reactRoot, "index.js"),
   "react/jsx-runtime": join(reactRoot, "jsx-runtime.js"),
   "react/jsx-dev-runtime": join(reactRoot, "jsx-dev-runtime.js"),
@@ -49,12 +58,24 @@ const result = await Bun.build({
     {
       // Pin every react specifier to one physical copy so hoisting can
       // never produce a dual-React bundle (same guard as web-chat).
-      name: "dedupe-react",
+      name: "private-ui-dependencies",
       setup(build): void {
+        build.onResolve({ filter: /^@brains\/operator-view-react$/ }, () => ({
+          path: "index.js",
+          namespace: "compiled-operator",
+        }));
+        build.onLoad(
+          { filter: /.*/, namespace: "compiled-operator" },
+          async () => ({
+            contents: await Bun.file(join(operatorOutdir, "index.js")).text(),
+            loader: "js",
+            resolveDir: operatorRoot,
+          }),
+        );
         build.onResolve(
           {
             filter:
-              /^(react|react\/jsx-runtime|react\/jsx-dev-runtime|react-dom|react-dom\/client)$/,
+              /^(@stylexjs\/stylex|react|react\/jsx-runtime|react\/jsx-dev-runtime|react-dom|react-dom\/client)$/,
           },
           (args) => ({ path: reactAliases[args.path] ?? args.path }),
         );
@@ -70,9 +91,7 @@ if (!result.success) {
   process.exit(1);
 }
 
-const operatorCSS = await Bun.file(
-  join(operatorRoot, "dist/stylex.css"),
-).text();
+const operatorCSS = await Bun.file(join(operatorOutdir, "stylex.css")).text();
 const vendorCSS = await Bun.file(
   join(packageRoot, "ui-react/src/codemirror-vendor.css"),
 ).text();

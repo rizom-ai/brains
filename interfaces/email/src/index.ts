@@ -1,30 +1,32 @@
 import {
   AUTH_PRINCIPAL_RESOLVE_CHANNEL,
   EMAIL_SOURCE_READ,
+  authPrincipalResolveRequestSchema,
   authPrincipalResolveResponseSchema,
   createExternalActorId,
   emailSourceReadRequestSchema,
-  type EmailSourceReadRequest,
+  emailSourceReadResponseSchema,
   type EmailSourceReadResponse,
   type InboundEmailSender,
 } from "@brains/contracts";
 import {
-  MessageInterfacePlugin,
-  type ChannelDeliveryInput,
-  type Daemon,
+  defineDaemon,
+  defineMessageInterface,
+  defineSubscription,
+  z,
   type IRuntimeStateStore,
-  type MessageInterfacePluginContext,
-} from "@brains/plugins";
+} from "@brains/sdk/interfaces";
 import { getErrorMessage } from "@brains/utils/error";
 import { type FetchLike } from "@brains/utils/fetch-like";
-import { z } from "@brains/utils/zod";
-import packageJson from "../package.json";
+import type { Logger } from "@brains/utils/logger";
 import {
   createInboundEmailClient,
   intakeInboundEmail,
-  emailImapConfigSchema,
+  type EmailImapConfig,
+  type EmailImapConfigInput,
   type InboundEmailClientFactory,
   type InboundEmailCursor,
+  type InboundEmailPublisher,
 } from "./inbound-email";
 import {
   InboundEmailSupervisor,
@@ -55,44 +57,62 @@ export type {
 export { createInboundEmailSourceRef } from "./inbound-email";
 export type { InboundEmailSleep } from "./inbound-supervisor";
 
+export interface EmailConfig {
+  transport: "resend";
+  apiKey?: string | undefined;
+  from?: string | undefined;
+  imap?: EmailImapConfig | undefined;
+}
+
+export interface EmailConfigInput {
+  transport?: "resend" | undefined;
+  apiKey?: string | undefined;
+  from?: string | undefined;
+  imap?: EmailImapConfigInput | undefined;
+}
+
+interface ResendEmailResponse {
+  id?: string | undefined;
+}
+
+const emailImapConfigSchema: z.ZodType<EmailImapConfig, EmailImapConfigInput> =
+  z.object({
+    host: z.string().min(1),
+    port: z.coerce.number<number | string>().int().min(1).max(65_535),
+    user: z.string().min(1),
+    password: z.string().min(1),
+    mailbox: z.string().min(1).default("INBOX"),
+    pollMode: z.enum(["idle", "interval"]).default("idle"),
+    pollIntervalMs: z.coerce
+      .number<number | string>()
+      .int()
+      .positive()
+      .default(60_000),
+  });
+
 // Unset env vars interpolate to empty strings in brain.yaml; an optional
 // outbound setting left empty means "absent", not invalid — inbound-only
 // postures must still boot.
-const optionalConfigString: z.ZodOptional<
-  z.ZodUnion<
-    [z.ZodPipe<z.ZodString, z.ZodTransform<undefined, string>>, z.ZodString]
-  >
-> = z
+const optionalConfigString = z
   .string()
   .max(0)
   .transform((): undefined => undefined)
   .or(z.string().min(1))
   .optional();
 
-const emailConfigSchema: z.ZodObject<{
-  transport: z.ZodDefault<z.ZodLiteral<"resend">>;
-  apiKey: typeof optionalConfigString;
-  from: typeof optionalConfigString;
-  imap: z.ZodOptional<typeof emailImapConfigSchema>;
-}> = z.object({
+const emailConfigSchema: z.ZodType<EmailConfig, EmailConfigInput> = z.object({
   transport: z.literal("resend").default("resend"),
   apiKey: optionalConfigString,
   from: optionalConfigString,
   imap: emailImapConfigSchema.optional(),
 });
 
-export type EmailConfig = z.output<typeof emailConfigSchema>;
-export type EmailConfigInput = z.input<typeof emailConfigSchema>;
+const resendEmailResponseSchema: z.ZodType<ResendEmailResponse, unknown> =
+  z.looseObject({
+    id: z.string().trim().min(1).max(1_000).optional(),
+  });
 
-const resendEmailResponseSchema: z.ZodObject<
-  { id: z.ZodOptional<z.ZodString> },
-  z.core.$loose
-> = z.looseObject({
-  id: z.string().trim().min(1).max(1_000).optional(),
-});
-
-type EmailDeliveryThreading = NonNullable<ChannelDeliveryInput["threading"]>;
-const emailMessageIdSchema: z.ZodString = z
+const emailMessageIdSchema = z
   .string()
   .trim()
   .min(1)
@@ -100,30 +120,25 @@ const emailMessageIdSchema: z.ZodString = z
   .refine((value) => !/[\p{Cc}\p{Cf}]/u.test(value), {
     message: "Email threading identifiers cannot contain controls",
   });
-const emailDeliveryThreadingSchema: z.ZodObject<
-  {
-    inReplyTo: z.ZodString;
-    references: z.ZodArray<z.ZodString>;
-  },
-  z.core.$strict
+
+interface EmailDeliveryThreading {
+  inReplyTo: string;
+  references: string[];
+}
+
+const emailDeliveryThreadingSchema: z.ZodType<
+  EmailDeliveryThreading,
+  EmailDeliveryThreading
 > = z.strictObject({
   inReplyTo: emailMessageIdSchema,
   references: z.array(emailMessageIdSchema).max(100),
 });
 
-function expectEmailDeliveryThreading(
-  value: z.output<typeof emailDeliveryThreadingSchema>,
-): EmailDeliveryThreading {
-  return value;
-}
-void expectEmailDeliveryThreading;
-
-function expectEmailDeliveryThreadingInput(
-  value: EmailDeliveryThreading,
-): z.input<typeof emailDeliveryThreadingSchema> {
-  return value;
-}
-void expectEmailDeliveryThreadingInput;
+const inboundCursorSchema = z.strictObject({
+  mailbox: z.string().min(1),
+  uidValidity: z.string().regex(/^[1-9]\d*$/),
+  lastUid: z.number().int().nonnegative(),
+});
 
 export type EmailSendResult =
   { status: "sent"; id?: string } | { status: "failed" };
@@ -135,7 +150,7 @@ export type EmailSendResult =
  * sensitivity gets the safe treatment rather than leaking an address.
  */
 export function shouldRedactDelivery(
-  sensitivity: ChannelDeliveryInput["sensitivity"],
+  sensitivity: "normal" | "secret" | undefined,
 ): boolean {
   return sensitivity !== "normal";
 }
@@ -146,312 +161,343 @@ export interface EmailInterfaceDependencies {
   inboundSleep?: InboundEmailSleep;
 }
 
-/** Email message interface with Resend delivery and optional IMAP intake. */
-export class EmailInterface extends MessageInterfacePlugin<
-  EmailConfig,
-  EmailConfigInput
-> {
-  private readonly fetchImpl: FetchLike;
-  private readonly imapClientFactory: InboundEmailClientFactory;
-  private readonly inboundSleep: InboundEmailSleep | undefined;
-  private inboundCursor?: IRuntimeStateStore<InboundEmailCursor>;
-  private sourceLocators?: EmailSourceLocatorStore;
+interface EmailState {
+  readonly fetchImpl: FetchLike;
+  readonly imapClientFactory: InboundEmailClientFactory;
+  readonly logger: Logger;
+  readonly sourceLocators: EmailSourceLocatorStore | undefined;
+  readonly supervisor: InboundEmailSupervisor | undefined;
+}
 
-  constructor(
-    config: EmailConfigInput = {},
-    dependencies: EmailInterfaceDependencies = {},
-  ) {
-    super("email", packageJson, config, emailConfigSchema);
-    this.fetchImpl = dependencies.fetchImpl ?? fetch;
-    this.imapClientFactory =
-      dependencies.imapClientFactory ?? createInboundEmailClient;
-    this.inboundSleep = dependencies.inboundSleep;
-  }
-
-  protected override createDaemon(): Daemon | undefined {
-    const config = this.config.imap;
-    if (!config) return undefined;
-
-    const supervisor = new InboundEmailSupervisor({
-      config,
-      createClient: this.imapClientFactory,
-      intake: async (client, selection): Promise<number> =>
-        intakeInboundEmail(client, selection, {
-          cursor: this.getInboundCursor(),
-          publish: this.getContext().messaging.send,
-          resolveSender: async (
-            address,
-          ): Promise<InboundEmailSender | undefined> =>
-            this.resolveInboundSender(address),
-          recordSourceLocator: async (sourceRef, selection, uid) =>
-            this.getSourceLocators().record(sourceRef, selection, uid),
-          pruneSourceLocators: async () => this.getSourceLocators().prune(),
-          logger: this.logger,
-        }),
-      logger: this.logger,
-      ...(this.inboundSleep ? { sleep: this.inboundSleep } : {}),
-    });
-
-    return {
-      start: async (): Promise<void> => {
-        try {
-          await supervisor.start();
-          this.logger.info(
-            supervisor.isConnected()
-              ? "Inbound email listener connected"
-              : "Inbound email listener started; awaiting connection",
-          );
-        } catch {
-          throw new Error("Inbound email listener failed to start");
-        }
-      },
-      stop: async (): Promise<void> => {
-        try {
-          await supervisor.stop();
-          this.logger.info("Inbound email listener disconnected");
-        } catch {
-          throw new Error("Inbound email listener failed to disconnect");
-        }
-      },
-      healthCheck: async () => ({
-        status: supervisor.isConnected() ? "healthy" : "error",
-        message: supervisor.isConnected()
-          ? "Inbound email listener connected"
-          : supervisor.isRunning()
-            ? "Inbound email listener awaiting connection"
-            : "Inbound email listener disconnected",
-        lastCheck: new Date(),
-      }),
-    };
-  }
-
-  protected override async onRegister(
-    context: MessageInterfacePluginContext,
-  ): Promise<void> {
-    await super.onRegister(context);
-    if (this.config.imap) {
-      this.inboundCursor = context.runtimeState.scoped({
-        namespace: "email.inbound.uid-cursor",
-        schema: z.strictObject({
-          mailbox: z.string().min(1),
-          uidValidity: z.string().regex(/^[1-9]\d*$/),
-          lastUid: z.number().int().nonnegative(),
-        }),
-      });
-      this.sourceLocators = new EmailSourceLocatorStore(
-        context.runtimeState.scoped({
-          namespace: "email.inbound.source-locators",
-          schema: emailSourceLocatorSchema,
-        }),
-      );
-      context.messaging.subscribe<EmailSourceReadRequest>(
-        EMAIL_SOURCE_READ,
-        async (message) => ({
-          success: true,
-          data: await this.readSource(message.payload),
-        }),
-      );
-    }
-    context.channels.registerDescriptor({
-      type: "email",
-      displayName: "Email",
-      subjectLabel: "Email address",
-      subjectPattern: {
-        source: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
-        flags: "i",
-      },
-      manualDelivery: true,
-    });
-
-    if (!this.config.apiKey || !this.config.from) {
-      this.logger.warn(
-        "Email interface transport is disabled because apiKey or from is missing",
-      );
-      return;
-    }
-
-    // The one way to send email. Senders resolve this provider by channel
-    // type rather than publishing to a transport-specific channel, so they
-    // never need to know the transport exists.
-    context.channels.registerDeliveryProvider({
-      channelType: "email",
-      isAvailable: async () => true,
-      send: async (input) => this.deliver(input),
-    });
-  }
-
-  private async resolveInboundSender(
-    address: string,
-  ): Promise<InboundEmailSender | undefined> {
-    const response = await this.getContext().messaging.send({
-      type: AUTH_PRINCIPAL_RESOLVE_CHANNEL,
-      payload: {
-        actor: {
-          kind: "external",
-          externalActorId: createExternalActorId(
-            "email",
-            address.trim().toLowerCase(),
-          ),
-        },
-      },
-    });
-    if ("noop" in response || !response.success) return undefined;
-
-    const resolution = authPrincipalResolveResponseSchema.safeParse(
-      response.data,
-    );
-    const principal = resolution.success
-      ? resolution.data.principal
-      : undefined;
-    return principal
-      ? {
-          personId: principal.personId,
-          displayName: principal.displayName,
-          permissionLevel: principal.permissionLevel,
-        }
-      : undefined;
-  }
-
-  private getInboundCursor(): IRuntimeStateStore<InboundEmailCursor> {
-    if (!this.inboundCursor) {
-      throw new Error("Inbound email cursor is unavailable");
-    }
-    return this.inboundCursor;
-  }
-
-  private getSourceLocators(): EmailSourceLocatorStore {
-    if (!this.sourceLocators) {
-      throw new Error("Inbound email source locators are unavailable");
-    }
-    return this.sourceLocators;
-  }
-
-  private async readSource(input: unknown): Promise<EmailSourceReadResponse> {
-    const request = emailSourceReadRequestSchema.safeParse(input);
-    if (!request.success || request.data.actor.permissionLevel !== "admin") {
-      return { kind: "unavailable" };
-    }
-    const config = this.config.imap;
-    if (!config) return { kind: "unavailable" };
-
-    try {
-      const locator = await this.getSourceLocators().resolve(
-        request.data.sourceRef,
-      );
-      if (!locator) return { kind: "unavailable" };
-      const timeout = AbortSignal.timeout(10_000);
-      const signal = request.data.signal
-        ? AbortSignal.any([request.data.signal, timeout])
-        : timeout;
-      // readEmailSource parses its own success path and returns
-      // EmailSourceReadResponse, which is z.output of this same schema — so
-      // the compiler already guarantees the shape and re-parsing here only
-      // re-trims strings that were trimmed one call ago.
-      return await readEmailSource(
-        config,
-        this.imapClientFactory,
-        locator,
-        signal,
-      );
-    } catch {
-      // One fixed outcome for every failure: a caller must not learn from
-      // it whether the message exists or the mailbox refused us.
-      return { kind: "unavailable" };
-    }
-  }
-
-  private async deliver(input: ChannelDeliveryInput): Promise<
-    | { status: "sent"; providerDeliveryId?: string }
-    | {
-        status: "failed";
-        failureCode: string;
-      }
-  > {
-    const secret = shouldRedactDelivery(input.sensitivity);
-
-    try {
-      const result = await this.sendWithResend({
-        to: input.recipient,
-        subject: input.subject,
-        text: input.text,
-        ...(input.html ? { html: input.html } : {}),
-        ...(input.threading
-          ? { threading: emailDeliveryThreadingSchema.parse(input.threading) }
-          : {}),
-        idempotencyKey: input.idempotencyKey,
-      });
-      return result.status === "sent"
-        ? {
-            status: "sent" as const,
-            ...(result.id ? { providerDeliveryId: result.id } : {}),
-          }
-        : { status: "failed" as const, failureCode: "email_delivery_failed" };
-    } catch (error) {
-      if (secret) {
-        this.logger.warn("Email delivery failed for a secret message");
-      } else {
-        this.logger.warn("Email delivery failed", {
-          to: input.recipient,
-          subject: input.subject,
-          error: getErrorMessage(error),
-        });
-      }
-      return {
-        status: "failed" as const,
-        failureCode: "email_delivery_failed",
-      };
-    }
-  }
-
-  private async sendWithResend(input: {
+async function sendWithResend(
+  state: EmailState,
+  config: EmailConfig,
+  input: {
     to: string;
     subject: string;
     text: string;
     html?: string | undefined;
     threading?: EmailDeliveryThreading | undefined;
     idempotencyKey?: string | undefined;
-  }): Promise<EmailSendResult> {
-    const apiKey = this.config.apiKey;
-    const from = this.config.from;
-    if (!apiKey || !from) {
-      return { status: "failed" };
-    }
+  },
+): Promise<EmailSendResult> {
+  const { apiKey, from } = config;
+  if (!apiKey || !from) return { status: "failed" };
 
-    const response = await this.fetchImpl("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        ...(input.idempotencyKey
-          ? { "Idempotency-Key": input.idempotencyKey }
-          : {}),
-      },
-      body: JSON.stringify({
-        from,
-        to: input.to,
-        subject: input.subject,
-        text: input.text,
-        ...(input.html ? { html: input.html } : {}),
-        ...(input.threading
-          ? {
-              headers: {
-                "In-Reply-To": input.threading.inReplyTo,
-                References: input.threading.references.join(" "),
-              },
-            }
-          : {}),
-      }),
-    });
+  const response = await state.fetchImpl("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+      ...(input.idempotencyKey
+        ? { "Idempotency-Key": input.idempotencyKey }
+        : {}),
+    },
+    body: JSON.stringify({
+      from,
+      to: input.to,
+      subject: input.subject,
+      text: input.text,
+      ...(input.html ? { html: input.html } : {}),
+      ...(input.threading
+        ? {
+            headers: {
+              "In-Reply-To": input.threading.inReplyTo,
+              References: input.threading.references.join(" "),
+            },
+          }
+        : {}),
+    }),
+  });
 
-    if (!response.ok) {
-      throw new Error("Resend email request failed");
-    }
+  if (!response.ok) throw new Error("Resend email request failed");
 
-    const body = resendEmailResponseSchema.parse(await response.json());
-    return body.id ? { status: "sent", id: body.id } : { status: "sent" };
+  const body = resendEmailResponseSchema.parse(await response.json());
+  return body.id ? { status: "sent", id: body.id } : { status: "sent" };
+}
+
+async function readSource(
+  state: EmailState,
+  config: EmailConfig,
+  input: unknown,
+): Promise<EmailSourceReadResponse> {
+  const request = emailSourceReadRequestSchema.safeParse(input);
+  if (!request.success || request.data.actor.permissionLevel !== "admin") {
+    return { kind: "unavailable" };
   }
+  const imap = config.imap;
+  if (!imap || !state.sourceLocators) return { kind: "unavailable" };
+
+  let read: unknown;
+  try {
+    const locator = await state.sourceLocators.resolve(request.data.sourceRef);
+    if (!locator) return { kind: "unavailable" };
+    const timeout = AbortSignal.timeout(10_000);
+    const signal = request.data.signal
+      ? AbortSignal.any([request.data.signal, timeout])
+      : timeout;
+    read = await readEmailSource(
+      imap,
+      state.imapClientFactory,
+      locator,
+      signal,
+    );
+  } catch {
+    // A mailbox that will not answer, a message that is no longer there and a
+    // read that ran out of time are the same thing to a caller: the source
+    // cannot be read right now, and there is nothing it could do differently
+    // knowing which. Parsing the response is outside this on purpose — a shape
+    // we produced failing our own schema is a defect, not an absent mailbox.
+    return { kind: "unavailable" };
+  }
+  return emailSourceReadResponseSchema.parse(read);
 }
 
-export function emailInterface(config: EmailConfigInput = {}): EmailInterface {
-  return new EmailInterface(config);
+/**
+ * Email as a declared message interface.
+ *
+ * Dependencies are closed over rather than injected through a constructor:
+ * the package default-exports `emailInterface()`, and a test calls it with
+ * fakes.
+ */
+export interface EmailInterfacePackage {
+  readonly kind: "rizom-plugin-package";
+  readonly family: "message-interface";
+  readonly id: string;
+  readonly config: z.ZodType<EmailConfig, EmailConfigInput>;
 }
+
+export function emailInterface(
+  dependencies: EmailInterfaceDependencies = {},
+): EmailInterfacePackage {
+  return defineMessageInterface(
+    {
+      id: "email",
+      config: emailConfigSchema,
+
+      // `setup` comes first so its return type is inferred before any slot whose
+      // context carries `state`; a destructured parameter above it would resolve
+      // that context while the state type is still unknown.
+      setup: ({ config, runtimeState, messaging, logger }): EmailState => {
+        const fetchImpl = dependencies.fetchImpl ?? fetch;
+        const imapClientFactory =
+          dependencies.imapClientFactory ?? createInboundEmailClient;
+
+        if (!config.apiKey || !config.from) {
+          logger.warn(
+            "Email interface transport is disabled because apiKey or from is missing",
+          );
+        }
+
+        if (!config.imap) {
+          return {
+            fetchImpl,
+            imapClientFactory,
+            logger,
+            sourceLocators: undefined,
+            supervisor: undefined,
+          };
+        }
+
+        const cursor: IRuntimeStateStore<InboundEmailCursor> = runtimeState({
+          namespace: "inbound.uid-cursor",
+          schema: inboundCursorSchema,
+        });
+        const sourceLocators = new EmailSourceLocatorStore(
+          runtimeState({
+            namespace: "inbound.source-locators",
+            schema: emailSourceLocatorSchema,
+          }),
+        );
+        const publish: InboundEmailPublisher = (message) =>
+          messaging.request(message);
+
+        const supervisor = new InboundEmailSupervisor({
+          config: config.imap,
+          createClient: imapClientFactory,
+          intake: async (client, selection): Promise<number> =>
+            intakeInboundEmail(client, selection, {
+              cursor,
+              publish,
+              resolveSender: async (
+                address,
+              ): Promise<InboundEmailSender | undefined> => {
+                const response = await messaging.request(
+                  {
+                    topic: AUTH_PRINCIPAL_RESOLVE_CHANNEL,
+                    payload: authPrincipalResolveRequestSchema,
+                    response: authPrincipalResolveResponseSchema,
+                  },
+                  {
+                    actor: {
+                      kind: "external",
+                      externalActorId: createExternalActorId(
+                        "email",
+                        address.trim().toLowerCase(),
+                      ),
+                    },
+                  },
+                );
+                if (!response.ok) {
+                  if (response.code === "no_handler") return undefined;
+                  // Intake logs only the derived message key, never provider
+                  // exception text or the address being resolved.
+                  throw new Error("Inbound email sender resolution failed");
+                }
+                const { principal } = response.data;
+                return principal
+                  ? {
+                      personId: principal.personId,
+                      displayName: principal.displayName,
+                      permissionLevel: principal.permissionLevel,
+                    }
+                  : undefined;
+              },
+              recordSourceLocator: async (sourceRef, sel, uid) =>
+                sourceLocators.record(sourceRef, sel, uid),
+              pruneSourceLocators: async () => sourceLocators.prune(),
+              logger,
+            }),
+          logger,
+          ...(dependencies.inboundSleep
+            ? { sleep: dependencies.inboundSleep }
+            : {}),
+        });
+
+        return {
+          fetchImpl,
+          imapClientFactory,
+          logger,
+          sourceLocators,
+          supervisor,
+        };
+      },
+      channel: {
+        type: "email",
+        displayName: "Email",
+        subjectLabel: "Email address",
+        subjectPattern: {
+          source: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$",
+          flags: "i",
+        },
+        recipient: z.string().min(1),
+      },
+    },
+    {
+      // An inbound-only posture has no key and must still boot; it registers the
+      // channel and simply cannot be delivered to.
+      available: ({ config }) => Boolean(config.apiKey && config.from),
+
+      daemons: ({ state }) =>
+        state.supervisor
+          ? [
+              defineDaemon({
+                id: "inbound",
+                required: false,
+                // Connected or reconnecting is a fact about now, and only the
+                // supervisor knows it.
+                check: () => {
+                  const supervisor = state.supervisor;
+                  const connected = supervisor?.isConnected() ?? false;
+                  return {
+                    status: connected ? "healthy" : "error",
+                    message: connected
+                      ? "Inbound email listener connected"
+                      : supervisor?.isRunning()
+                        ? "Inbound email listener awaiting connection"
+                        : "Inbound email listener disconnected",
+                  };
+                },
+                async run({ signal, health }) {
+                  const supervisor = state.supervisor;
+                  if (!supervisor) return;
+                  try {
+                    await supervisor.start();
+                  } catch {
+                    throw new Error("Inbound email listener failed to start");
+                  }
+                  state.logger.info(
+                    supervisor.isConnected()
+                      ? "Inbound email listener connected"
+                      : "Inbound email listener started; awaiting connection",
+                  );
+                  health.ready();
+                  await new Promise<void>((resolve) => {
+                    signal.addEventListener("abort", () => resolve(), {
+                      once: true,
+                    });
+                  });
+                  try {
+                    await supervisor.stop();
+                  } catch {
+                    throw new Error(
+                      "Inbound email listener failed to disconnect",
+                    );
+                  }
+                  state.logger.info("Inbound email listener disconnected");
+                },
+              }),
+            ]
+          : [],
+
+      // The interface that delivered a message is the only thing that can fetch
+      // it back, so something has to be able to ask.
+      subscriptions: ({ config, state }) =>
+        state.sourceLocators
+          ? [
+              defineSubscription({
+                topic: EMAIL_SOURCE_READ,
+                payload: z.unknown(),
+                handle: ({ payload }) => readSource(state, config, payload),
+              }),
+            ]
+          : [],
+
+      deliver: async ({ config, state, recipient, delivery }) => {
+        const secret = shouldRedactDelivery(delivery.sensitivity);
+        try {
+          const result = await sendWithResend(state, config, {
+            to: recipient,
+            subject: delivery.subject,
+            text: delivery.text,
+            ...(delivery.html ? { html: delivery.html } : {}),
+            ...(delivery.threading
+              ? {
+                  threading: emailDeliveryThreadingSchema.parse(
+                    delivery.threading,
+                  ),
+                }
+              : {}),
+            idempotencyKey: delivery.idempotencyKey,
+          });
+          return result.status === "sent"
+            ? {
+                status: "sent" as const,
+                ...(result.id ? { providerDeliveryId: result.id } : {}),
+              }
+            : {
+                status: "failed" as const,
+                failureCode: "email_delivery_failed",
+              };
+        } catch (error) {
+          if (secret) {
+            state.logger.warn("Email delivery failed for a secret message");
+          } else {
+            state.logger.warn("Email delivery failed", {
+              to: recipient,
+              subject: delivery.subject,
+              error: getErrorMessage(error),
+            });
+          }
+          return {
+            status: "failed" as const,
+            failureCode: "email_delivery_failed",
+          };
+        }
+      },
+    },
+  );
+}
+
+const emailPackage: EmailInterfacePackage = emailInterface();
+export default emailPackage;

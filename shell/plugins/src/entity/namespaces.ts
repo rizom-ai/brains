@@ -65,6 +65,12 @@ export function createEntitiesNamespace(shell: IShell): IEntitiesNamespace {
     ): void => {
       entityRegistry.extendFrontmatterSchema(type, extension);
     },
+    claimStewardship: (entityType: string, ownerLabel: string): void => {
+      entityRegistry.claimEntityStewardship(entityType, ownerLabel);
+    },
+    releaseStewardship: (entityType: string, ownerLabel: string): void => {
+      entityRegistry.releaseEntityStewardship(entityType, ownerLabel);
+    },
     getEffectiveFrontmatterSchema: (
       type: string,
     ): FrontmatterSchema | undefined => {
@@ -82,6 +88,8 @@ export function createEntitiesNamespace(shell: IShell): IEntitiesNamespace {
     ): void => {
       entityRegistry.registerCreateInterceptor(entityType, interceptor);
     },
+    getCreateInterceptor: (entityType: string): CreateInterceptor | undefined =>
+      entityRegistry.getCreateInterceptor(entityType),
     registerUploadSaveHandler: (
       registration: UploadSaveHandlerRegistration,
     ): void => {

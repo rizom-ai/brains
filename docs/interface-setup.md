@@ -1,19 +1,19 @@
 # Interface Setup Guide
 
-Interfaces are how users, tools, web clients, and peer agents talk to a running brain. Built-in interfaces include MCP, the webserver and operator web chat, multi-platform chat through Discord or Slack, A2A, and the local chat REPL.
+Interfaces are how users, tools, web clients, and peer agents talk to a running brain. Built-in interfaces include MCP, operator web chat, multi-platform chat through Discord or Slack, A2A, and the local chat REPL. The runtime owns their shared HTTP host; it is not an interface plugin.
 
 Interfaces are selected by the active capability bundles, then refined with `add` / `remove` and configured under `plugins:` in `brain.yaml`.
 
 ## Quick reference
 
-| Interface | Plugin id   | Local surface                        | Common use                                          |
-| --------- | ----------- | ------------------------------------ | --------------------------------------------------- |
-| MCP       | `mcp`       | `http://localhost:8080/mcp` or stdio | Claude Desktop, Cursor, CLI remote/tooling          |
-| Webserver | `webserver` | `http://localhost:8080`              | Site, Studio, dashboard, Admin, shared HTTP routes  |
-| Web chat  | `web-chat`  | `http://localhost:8080/ask`          | Guest-facing browser surface; currently fail-closed |
-| Chat      | `chat`      | Discord and/or Slack                 | Community, team, and authenticated chat             |
-| A2A       | `a2a`       | `http://localhost:8080/a2a`          | Agent-to-agent communication                        |
-| Chat REPL | command     | `brain chat`                         | Local terminal chat                                 |
+| Interface | Plugin id     | Local surface                        | Common use                                          |
+| --------- | ------------- | ------------------------------------ | --------------------------------------------------- |
+| MCP       | `mcp`         | `http://localhost:8080/mcp` or stdio | Claude Desktop, Cursor, CLI remote/tooling          |
+| HTTP host | runtime-owned | `http://localhost:8080`              | Site, Studio, dashboard, Admin, shared HTTP routes  |
+| Web chat  | `web-chat`    | `http://localhost:8080/ask`          | Guest-facing browser surface; currently fail-closed |
+| Chat      | `chat`        | Discord and/or Slack                 | Community, team, and authenticated chat             |
+| A2A       | `a2a`         | `http://localhost:8080/a2a`          | Agent-to-agent communication                        |
+| Chat REPL | command       | `brain chat`                         | Local terminal chat                                 |
 
 ## Shared setup
 
@@ -67,7 +67,7 @@ MCP is the main assistant/tooling interface. Its default surface routes clients 
 
 ### HTTP MCP
 
-The default MCP transport is HTTP. It is mounted on the shared webserver at `/mcp`.
+Canonical `core` defaults MCP to stdio; `web` selects HTTP. Explicit `plugins.mcp.transport` overrides win. HTTP mounts on the runtime host at `/mcp`.
 
 Start the brain:
 
@@ -163,9 +163,9 @@ brain tool system_search '{"query":"what content exists?"}'
 brain --remote https://your-domain.com --token "$MCP_AUTH_TOKEN" status
 ```
 
-## Webserver
+## Runtime HTTP host
 
-The webserver is the shared HTTP surface for the site, Studio, dashboard, MCP HTTP, A2A, health routes, and plugin API routes. Account and administration presentation lives inside Studio.
+The runtime starts one listener when finalized plugin routes or static-site output need serving. A routeless, siteless brain stays headless. Worker, eval, register-only and startup-check execution never starts the listener. The host is the shared HTTP surface for the site, Studio, dashboard, MCP HTTP, A2A, health routes, and plugin API routes. Account and administration presentation lives inside Studio.
 
 Common local URLs:
 
@@ -184,16 +184,17 @@ http://localhost:8080/a2a        # A2A when enabled
 Relevant config fields:
 
 ```yaml
-plugins:
-  webserver:
-    enablePreview: true
-    previewDistDir: ./dist/site-preview
-    productionDistDir: ./dist/site-production
-    sharedImagesDir: ./dist/images
-    productionPort: 8080
+port: 8080
+http:
+  preview: true
+  # Only specify directories for externally built sites.
+  # Site-builder supplies its resolved output directories automatically.
+  productionDistDir: ./dist/site-production
+  previewDistDir: ./dist/site-preview
+  imagesDir: ./dist/images
 ```
 
-The old separate internal preview/API listener model has converged on the shared HTTP host for normal app verification. Prefer testing through `http://localhost:8080` or through `brain --remote` against the running app.
+Preview shares the production port, selected by its hostname. There is no separate preview or API port. `plugins.webserver` is rejected; move production port settings to `port` and supported serving settings to `http`. Conflicting HTTP and site-builder output paths fail before listening. Prefer testing through `http://localhost:8080` or through `brain --remote` against the running app.
 
 ## Multi-platform chat
 
@@ -316,7 +317,7 @@ plugins:
 A2A can verify an exact domain for a one-shot call without saving it. To create a durable approved outbound contact, connect the remote brain by domain or URL and complete the returned confirmation:
 
 ```bash
-brain tool agent_connect '{"source":{"kind":"url","url":"remote.example.com"}}'
+brain tool agents_connect '{"source":{"kind":"url","url":"remote.example.com"}}'
 ```
 
 List saved agents:
@@ -328,12 +329,12 @@ brain tool system_list '{"entityType":"agent"}'
 Call an approved contact:
 
 ```bash
-brain tool agent_call '{"agent":"remote.example.com","message":"What can you help with?"}'
+brain tool a2a_call '{"agent":"remote.example.com","message":"What can you help with?"}'
 ```
 
-Inbound trust is separate from outbound contact approval. Grant or revoke it with `agent_set_trust_level`. Trusted calls use RFC 9421 HTTP Message Signatures and peer keys published through `/.well-known/jwks.json`.
+Inbound trust is separate from outbound contact approval. Grant or revoke it with `agents_set-trust-level`. Trusted calls use RFC 9421 HTTP Message Signatures and peer keys published through `/.well-known/jwks.json`.
 
-A2A also exposes the approved public directory at `/.well-known/agent-directory.json`. `agent_scan_directories` can walk approved peers' directories one hop and save unapproved second-order sightings for review.
+A2A also exposes the approved public directory at `/.well-known/agent-directory.json`. `agents_scan-directories` can walk approved peers' directories one hop and save unapproved second-order sightings for review.
 
 Manual smoke test:
 
@@ -356,11 +357,11 @@ The chat REPL is useful for quick local testing because it runs against the same
 
 | Symptom                      | Check                                                                                                                                                      |
 | ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| MCP HTTP 404                 | Ensure `webserver` and `mcp` are both enabled. MCP HTTP mounts on the shared webserver.                                                                    |
+| MCP HTTP 404                 | Enable `mcp` with `transport: http`; its route activates the runtime HTTP host.                                                                            |
 | MCP HTTP unauthorized        | For OAuth clients, clear stale client auth and repeat the browser/passkey flow. For deprecated static-token mode, pass `MCP_AUTH_TOKEN` as a bearer token. |
 | Discord bot does not respond | Check all three Discord credentials, Message Content Intent, bot permissions, `requireMention`, and `allowedChannels`.                                     |
 | Slack app does not respond   | Check bot/app or signing-secret credentials, installed scopes, Socket Mode/webhook setup, `requireMention`, and `allowedChannels`.                         |
-| A2A card missing             | Ensure `a2a` and `webserver` are enabled and the brain has a domain or local webserver.                                                                    |
+| A2A card missing             | Enable `a2a` with `inbound: true` (the canonical `web` default); core is outbound-only.                                                                    |
 | Remote CLI command fails     | Use `brain --remote <url> --token <token> ...` and verify `/mcp` is reachable.                                                                             |
 
 ## Related docs

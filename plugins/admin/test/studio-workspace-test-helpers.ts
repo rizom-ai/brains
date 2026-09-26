@@ -3,9 +3,11 @@ import {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
   type StudioWorkspaceActor,
   type StudioWorkspaceRegistration,
+  bindPluginPackageMetadata,
+  instantiatePluginPackageDefinition,
 } from "@brains/plugins";
-
-import { adminPlugin } from "../src";
+import adminPackage from "../src";
+import packageJson from "../package.json";
 
 export const adminActor: StudioWorkspaceActor = {
   interfaceType: "studio",
@@ -43,9 +45,16 @@ export async function captureAdminWorkspaces(
         };
       },
     );
-  const plugin = adminPlugin();
+  const metadata = { name: packageJson.name, version: packageJson.version };
+  bindPluginPackageMetadata(adminPackage, metadata);
+  const plugin = instantiatePluginPackageDefinition(
+    adminPackage,
+    {},
+    metadata,
+  )[0];
+  if (!plugin) throw new Error("Admin plugin was not created");
   await plugin.register(shell);
-  await plugin.finalizeRegistration();
+  await plugin.finalizeRegistration?.();
   return registrations;
 }
 

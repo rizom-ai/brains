@@ -1,4 +1,4 @@
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { computeContentHash } from "@brains/utils/hash";
 import type { EntityDB } from "./db";
 import type { EntityExportStore } from "./entity-export-store";
@@ -16,6 +16,9 @@ import type { SqliteAssetRepository } from "./sqlite-asset-repository";
 
 type EntityTransaction = Parameters<Parameters<EntityDB["transaction"]>[0]>[0];
 
+// Leave room for the type predicate even with SQLite's conservative
+// 999-variable limit, rather than relying on a build-specific higher limit.
+const WRITE_TARGET_QUERY_BATCH_SIZE = 500;
 /** Stored row plus timestamps, including schema-normalized owner metadata. */
 export interface ProjectionPersistEntity extends Omit<
   ProjectionEntityWrite,
@@ -67,6 +70,18 @@ export function canonicalProjectionJson(value: unknown): string {
   return JSON.stringify(value);
 }
 
+interface ExistingProjectionTarget {
+  readonly created: number;
+  readonly content: string;
+  readonly contentHash: string;
+  readonly metadata: Record<string, unknown>;
+  readonly visibility: "public" | "shared" | "restricted";
+}
+
+function projectionTargetKey(entityType: string, entityId: string): string {
+  return JSON.stringify([entityType, entityId]);
+}
+
 export class ProjectionWriteIntentApplier {
   private readonly entityExportStore: EntityExportStore;
   private readonly mutationAdmission: EntityMutationAdmission | undefined;
@@ -78,11 +93,98 @@ export class ProjectionWriteIntentApplier {
     this.storagePolicy = options.storagePolicy;
   }
 
-  public async apply(
+  /** Prefetch targets in bounded batches, retaining sequential intent semantics. */
+  public async applyAll(
+    transaction: EntityTransaction,
+    writeIntents: readonly ProjectionWriteIntent[],
+    completedAt: number,
+    key: ProjectionWriteIntentOwner,
+  ): Promise<ProjectionChangedTarget[]> {
+    const existingTargets = await this.prefetchWriteTargets(
+      transaction,
+      writeIntents,
+    );
+    const changedTargets: ProjectionChangedTarget[] = [];
+    for (const intent of writeIntents) {
+      const entityType =
+        intent.operation === "upsert"
+          ? intent.entity.entityType
+          : intent.entityType;
+      const entityId =
+        intent.operation === "upsert" ? intent.entity.id : intent.id;
+      const targetKey = projectionTargetKey(entityType, entityId);
+      const target = await this.apply(
+        transaction,
+        intent,
+        completedAt,
+        key,
+        existingTargets.get(targetKey),
+        (entity) => existingTargets.set(targetKey, entity),
+      );
+      if (target) changedTargets.push(target);
+      if (intent.operation === "delete") {
+        existingTargets.delete(targetKey);
+      }
+    }
+
+    return changedTargets;
+  }
+
+  private async prefetchWriteTargets(
+    transaction: EntityTransaction,
+    intents: readonly ProjectionWriteIntent[],
+  ): Promise<Map<string, ExistingProjectionTarget>> {
+    const first = intents[0];
+    if (!first) return new Map();
+    const entityType =
+      first.operation === "upsert" ? first.entity.entityType : first.entityType;
+    const ids = [
+      ...new Set(
+        intents.map((intent) =>
+          intent.operation === "upsert" ? intent.entity.id : intent.id,
+        ),
+      ),
+    ];
+    const targets = new Map<string, ExistingProjectionTarget>();
+    for (
+      let offset = 0;
+      offset < ids.length;
+      offset += WRITE_TARGET_QUERY_BATCH_SIZE
+    ) {
+      const rows = await transaction
+        .select({
+          id: entities.id,
+          entityType: entities.entityType,
+          content: entities.content,
+          contentHash: entities.contentHash,
+          created: entities.created,
+          metadata: entities.metadata,
+          visibility: entities.visibility,
+        })
+        .from(entities)
+        .where(
+          and(
+            eq(entities.entityType, entityType),
+            inArray(
+              entities.id,
+              ids.slice(offset, offset + WRITE_TARGET_QUERY_BATCH_SIZE),
+            ),
+          ),
+        );
+      for (const { id, entityType: rowType, ...entity } of rows) {
+        targets.set(projectionTargetKey(rowType, id), entity);
+      }
+    }
+    return targets;
+  }
+
+  private async apply(
     transaction: EntityTransaction,
     intent: ProjectionWriteIntent,
     changedAt: number,
     owner: ProjectionWriteIntentOwner,
+    existing: ExistingProjectionTarget | undefined,
+    remember: (entity: ExistingProjectionTarget) => void,
   ): Promise<ProjectionChangedTarget | null> {
     const entityType =
       intent.operation === "upsert"
@@ -90,20 +192,6 @@ export class ProjectionWriteIntentApplier {
         : intent.entityType;
     const entityId =
       intent.operation === "upsert" ? intent.entity.id : intent.id;
-    const existingRows = await transaction
-      .select({
-        content: entities.content,
-        contentHash: entities.contentHash,
-        created: entities.created,
-        metadata: entities.metadata,
-        visibility: entities.visibility,
-      })
-      .from(entities)
-      .where(
-        and(eq(entities.entityType, entityType), eq(entities.id, entityId)),
-      )
-      .limit(1);
-    const existing = existingRows[0];
 
     if (intent.operation === "delete") {
       await transaction
@@ -152,6 +240,15 @@ export class ProjectionWriteIntentApplier {
       throw new Error("Projection validation cannot change entity identity");
     }
     const contentHash = computeContentHash(entity.content);
+    // Subsequent intents must see the prepared row, not caller metadata. A
+    // later failure aborts this transaction and discards the entire local map.
+    remember({
+      content: entity.content,
+      contentHash,
+      created: existing?.created ?? changedAt,
+      metadata: entity.metadata,
+      visibility: entity.visibility,
+    });
     await transaction
       .insert(projectionEntityOwners)
       .values({

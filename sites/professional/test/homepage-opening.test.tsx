@@ -1,4 +1,5 @@
-import { describe, expect, it, mock } from "bun:test";
+import { describe, expect, it, mock, spyOn } from "bun:test";
+import type { ContactFormDiscovery } from "@brains/contracts";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createMockServicePluginContext } from "@brains/plugins/test";
 import { loadHomepageOpening } from "../src/datasources/homepage-opening";
@@ -44,6 +45,18 @@ function context(record: BaseEntity | null = entity()): ServicePluginContext {
       handler: (): Response => new Response(),
     },
   }));
+  spyOn(context.messaging, "send").mockResolvedValue({
+    success: true,
+    data: {
+      origin,
+      routes: routes.map(({ definition }) => ({
+        path: definition.path,
+        method: definition.method,
+        public: definition.public,
+        preview: definition.preview,
+      })),
+    },
+  });
   return {
     ...context,
     siteUrl: origin,
@@ -66,6 +79,21 @@ function context(record: BaseEntity | null = entity()): ServicePluginContext {
       }),
     },
   };
+}
+function formRoutes(preview = true): ContactFormDiscovery["routes"] {
+  return [
+    { path: "/contact", method: "GET", public: true, preview },
+    { path: "/contact", method: "POST", public: true, preview },
+  ];
+}
+function advertise(
+  runtime: ServicePluginContext,
+  changes: Partial<ContactFormDiscovery>,
+): void {
+  spyOn(runtime.messaging, "send").mockResolvedValue({
+    success: true,
+    data: { origin, routes: formRoutes(), ...changes },
+  });
 }
 const page: HomepageListData = {
   profile: professionalProfileSchema.parse({
@@ -145,6 +173,7 @@ describe("contact-first homepage", () => {
   it("uses the local site URL for a local preview, not the deployment's HTTPS domain", async () => {
     const runtime = context();
     const localOrigin = "http://127.0.0.1:3000";
+    advertise(runtime, { origin: localOrigin });
     const appInfo = await runtime.identity.getAppInfo();
     const local = {
       ...runtime,
@@ -186,21 +215,15 @@ describe("contact-first homepage", () => {
 
   it("omits the opening when the form is not reachable where the build is served", async () => {
     const runtime = context();
-    const routes = runtime.webRoutes.getRoutes();
     // A form that does not serve preview cannot back a preview door.
-    runtime.webRoutes.getRoutes = mock(() =>
-      routes.map((route) => ({
-        ...route,
-        definition: { ...route.definition, preview: false },
-      })),
-    );
+    advertise(runtime, { routes: formRoutes(false) });
     expect(
       await loadHomepageOpening(
         { entityService: runtime.entityService, publishedOnly: false },
         runtime,
       ),
     ).toBeNull();
-    runtime.webRoutes.getRoutes = mock(() => []);
+    advertise(runtime, { routes: [] });
     expect(
       await loadHomepageOpening(
         { entityService: runtime.entityService },
@@ -209,12 +232,27 @@ describe("contact-first homepage", () => {
     ).toBeNull();
   });
 
+  it.each([
+    { origin: "https://other.test" },
+    { routes: formRoutes().slice(0, 1) },
+    { routes: formRoutes().map((route) => ({ ...route, public: false })) },
+  ])("rejects mismatched or incomplete discovery: %j", async (changes) => {
+    const runtime = context();
+    advertise(runtime, changes);
+    expect(
+      await loadHomepageOpening(
+        { entityService: runtime.entityService },
+        runtime,
+      ),
+    ).toBeNull();
+  });
   it("renders where a separate worker builds the site, which advertises no endpoints", async () => {
     const runtime = context();
     const appInfo = await runtime.identity.getAppInfo();
     // Endpoint advertisement is registered by the web process only.
     const worker = {
       ...runtime,
+      webRoutes: { getRoutes: mock(() => []) },
       identity: {
         ...runtime.identity,
         getAppInfo: async (): ReturnType<

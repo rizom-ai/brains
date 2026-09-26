@@ -28,7 +28,6 @@ import {
 import {
   projectionRuleMemos,
   projectionWaveRules,
-  type ProjectionChangedTarget,
   type ProjectionWaveRule,
 } from "./schema/projection-state";
 
@@ -244,16 +243,12 @@ export class ProjectionRuleCoordinator {
         });
       }
 
-      const changedTargets: ProjectionChangedTarget[] = [];
-      for (const intent of writeIntents) {
-        const target = await this.writeIntentApplier.apply(
-          transaction,
-          intent,
-          completedAt,
-          key,
-        );
-        if (target) changedTargets.push(target);
-      }
+      const changedTargets = await this.writeIntentApplier.applyAll(
+        transaction,
+        writeIntents,
+        completedAt,
+        key,
+      );
 
       const updatedRules = await transaction
         .update(projectionWaveRules)

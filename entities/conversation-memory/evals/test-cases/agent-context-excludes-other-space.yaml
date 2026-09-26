@@ -7,7 +7,7 @@ tags:
   - retrieval
   - agent-context
   - spaces
-plugin: conversation-memory
+plugin: "@brains/conversation-memory:conversation-memory"
 handler: buildAgentContext
 
 input:

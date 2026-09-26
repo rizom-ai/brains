@@ -3,6 +3,14 @@ import { type MessageResponse, messageResponseSchema } from "./base-types";
 
 export type HandlerResponse = MessageResponse;
 
+/** Distinguish an invalid envelope from an exception thrown by its handler. */
+export class InvalidHandlerResponseError extends Error {
+  readonly code = "invalid_response";
+  constructor() {
+    super("Invalid message response format");
+  }
+}
+
 const handlerResponseSchema: z.ZodUnion<
   readonly [
     z.ZodObject<{ noop: z.ZodLiteral<true> }>,
@@ -17,7 +25,7 @@ const handlerResponseSchema: z.ZodUnion<
 export function parseHandlerResponse(result: unknown): HandlerResponse {
   const parsed = handlerResponseSchema.safeParse(result);
   if (!parsed.success) {
-    throw new Error("Invalid message response format");
+    throw new InvalidHandlerResponseError();
   }
 
   return parsed.data;

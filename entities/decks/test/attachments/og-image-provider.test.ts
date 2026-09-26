@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { DecksPlugin } from "../../src/plugin";
+import { deckEntityPlugin } from "../helpers/install";
 import { createDeckOgImageProvider } from "../../src/attachments/og-image-provider";
 import type { DeckEntity } from "../../src/schemas/deck";
 
@@ -45,8 +45,8 @@ describe("Deck OG image attachment provider", () => {
   beforeEach(() => {});
 
   it("registers a deck OG image attachment provider", async () => {
-    const harness = createPluginHarness<DecksPlugin>();
-    await harness.installPlugin(new DecksPlugin());
+    const harness = createPluginHarness();
+    await harness.installPlugin(deckEntityPlugin());
 
     const context = harness.getEntityContext("test");
     expect(context.attachments.hasProvider("deck", "og-image")).toBe(true);
@@ -62,8 +62,8 @@ describe("Deck OG image attachment provider", () => {
       expect(html).toContain("Architecture Week");
       return TINY_PNG;
     });
-    const harness = createPluginHarness<DecksPlugin>();
-    await harness.installPlugin(new DecksPlugin());
+    const harness = createPluginHarness();
+    await harness.installPlugin(deckEntityPlugin());
     await harness.getEntityService().createEntity({ entity: sampleDeck });
 
     const provider = createDeckOgImageProvider(

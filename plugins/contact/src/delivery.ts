@@ -1,7 +1,5 @@
-import type {
-  IRuntimeStateNamespace,
-  ServiceEntityService,
-} from "@brains/plugins";
+import type { IRuntimeStateNamespace } from "@brains/sdk/services";
+import type { JobEntityAccess } from "@brains/sdk/entities";
 import { z } from "@brains/utils/zod";
 import { contactRequestAdapter } from "./entity/adapter";
 import {
@@ -19,14 +17,16 @@ export interface ContactDeliveryPolicy {
   maxAttempts: number;
   retryWindowSeconds: number;
 }
-export const contactDeliveryPolicySchema: z.ZodType<ContactDeliveryPolicy> =
-  z.strictObject({
-    maxAttempts: z.number().int().min(1).max(5),
-    // Must fit inside the approved transport's idempotency retention (email: 24h).
-    retryWindowSeconds: z.number().int().min(60).max(3600),
-  });
+export const contactDeliveryPolicySchema: z.ZodType<
+  ContactDeliveryPolicy,
+  ContactDeliveryPolicy
+> = z.strictObject({
+  maxAttempts: z.number().int().min(1).max(5),
+  // Must fit inside the approved transport's idempotency retention (email: 24h).
+  retryWindowSeconds: z.number().int().min(60).max(3600),
+});
 export interface ContactDeliveryDependencies {
-  entities: ServiceEntityService;
+  entities: Pick<JobEntityAccess, "getEntity" | "update">;
   state: IRuntimeStateNamespace;
   storage: ContactStoragePolicy;
   policy: ContactDeliveryPolicy;
@@ -130,8 +130,8 @@ export class ContactDelivery {
         { ...frontmatter, notification },
         message,
       );
-      const result = await this.deps.entities.updateEntity({
-        entity: {
+      const result = await this.deps.entities.update(
+        {
           ...entity,
           content,
           metadata: contactMetadataSchema.parse({
@@ -139,8 +139,8 @@ export class ContactDelivery {
             notification,
           }),
         },
-        options: { expectedContentHash: entity.contentHash, signal },
-      });
+        { expectedContentHash: entity.contentHash, signal },
+      );
       if (!result.skipped) return;
     }
     throw new Error("Contact notification unavailable");

@@ -1,4 +1,5 @@
-import type { ServicePluginContext, ToolContext } from "@brains/plugins";
+import type { PipelineRuntime } from "../runtime";
+import type { ToolContext } from "@brains/sdk/services";
 import { z } from "@brains/utils/zod";
 import type { PublishAssetPreflight } from "../publish-asset-preflight";
 import type { PublishAssetRegistry } from "../publish-assets";
@@ -51,7 +52,7 @@ export type EnsureAssetsOutput = z.output<typeof ensureAssetsOutputSchema>;
 export type EnsureAssetsOutputData = EnsureAssetsOutput["data"];
 
 export interface EnsurePublishAssetsOptions {
-  context: ServicePluginContext;
+  context: PipelineRuntime;
   registry: PublishAssetRegistry;
   preflight: PublishAssetPreflight;
   input: EnsureAssetsInput;
@@ -94,7 +95,7 @@ export async function ensurePublishAssets({
     };
   }
 
-  const entities = await context.entityService.listEntities({
+  const entities = await context.entities.listEntities({
     entityType: input.entityType,
     options: {
       ...(input.status && {

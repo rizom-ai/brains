@@ -2,7 +2,7 @@ import type { BaseEntity } from "@brains/plugins";
 import {
   buildKnowledgeMapData,
   type KnowledgeMapDataContext,
-} from "@brains/topics";
+} from "@brains/knowledge-map";
 import { z } from "@brains/utils/zod";
 import {
   atlasEntityTypeSchema,

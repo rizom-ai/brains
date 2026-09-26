@@ -1,7 +1,6 @@
-import { createTemplate } from "@brains/templates";
-import type { Template } from "@brains/templates";
+import { createTemplate, paginationInfoSchema } from "@brains/sdk/entities";
+import type { Template } from "@brains/sdk/entities";
 import { z } from "@brains/utils/zod";
-import { paginationInfoSchema } from "@brains/plugins";
 import {
   AgentListTemplate,
   type AgentListProps,

@@ -1,17 +1,22 @@
-import { createMockShell, type MockShell } from "@brains/plugins/test";
-import { describe, it, expect, beforeEach } from "bun:test";
-import { DeckDataSource } from "../src/datasources/deck-datasource";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
+import { deckDataSource } from "../src/datasources/deck-datasource";
+import { createDeclarativeEntityDataSource } from "@brains/plugins";
 import type { DeckEntity } from "../src/schemas/deck";
-import type { BaseEntity, BaseDataSourceContext } from "@brains/plugins";
+import { deckSchema } from "../src/schemas/deck";
+import type {
+  BaseEntity,
+  IEntityService,
+  BaseDataSourceContext,
+} from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import { createMockLogger } from "@brains/test-utils";
-
+import { createMockEntityService } from "@brains/entity-service/test";
 import { createMockDeckEntity } from "./fixtures/deck-entities";
 
 describe("DeckDataSource", () => {
-  let datasource: DeckDataSource;
-  let shell: MockShell;
+  let datasource: ReturnType<typeof createDeclarativeEntityDataSource>;
+  let mockEntityService: IEntityService;
   let mockLogger: Logger;
   let mockContext: BaseDataSourceContext;
 
@@ -37,10 +42,14 @@ describe("DeckDataSource", () => {
 
   beforeEach(() => {
     mockLogger = createMockLogger();
-    shell = createMockShell();
-    mockContext = { entityService: shell.getEntityService() };
+    mockEntityService = createMockEntityService();
+    mockContext = { entityService: mockEntityService };
 
-    datasource = new DeckDataSource(mockLogger);
+    datasource = createDeclarativeEntityDataSource(
+      deckDataSource,
+      "@brains/decks:entities",
+      mockLogger,
+    );
   });
 
   describe("fetchDeckList", () => {
@@ -49,7 +58,7 @@ describe("DeckDataSource", () => {
     });
 
     it("should return decks from entityService", async () => {
-      shell.addEntities([
+      const publishedDecks: DeckEntity[] = [
         createMockDeck(
           "deck-1",
           "Published Deck",
@@ -64,7 +73,11 @@ describe("DeckDataSource", () => {
           "published",
           "2025-01-02T10:00:00.000Z",
         ),
-      ]);
+      ];
+
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(
+        publishedDecks,
+      );
 
       const result = await datasource.fetch(
         { entityType: "deck" },
@@ -81,7 +94,7 @@ describe("DeckDataSource", () => {
     });
 
     it("should include both published and draft decks when entityService returns all", async () => {
-      shell.addEntities([
+      const decks: DeckEntity[] = [
         createMockDeck(
           "deck-1",
           "Published Deck",
@@ -91,7 +104,9 @@ describe("DeckDataSource", () => {
         ),
         createMockDeck("deck-2", "Draft Deck", "draft-deck", "draft"),
         createMockDeck("deck-3", "Another Draft", "another-draft", "draft"),
-      ]);
+      ];
+
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(decks);
 
       const result = await datasource.fetch(
         { entityType: "deck" },
@@ -105,45 +120,25 @@ describe("DeckDataSource", () => {
       expect(statuses).toContain("draft");
     });
 
-    it("should sort decks by publishedAt desc", async () => {
-      shell.addEntities([
-        createMockDeck(
-          "deck-old",
-          "Oldest Deck",
-          "oldest-deck",
-          "published",
-          "2025-01-01T10:00:00.000Z",
-        ),
-        createMockDeck(
-          "deck-new",
-          "Newest Deck",
-          "newest-deck",
-          "published",
-          "2025-01-03T10:00:00.000Z",
-        ),
-        createMockDeck(
-          "deck-mid",
-          "Middle Deck",
-          "middle-deck",
-          "published",
-          "2025-01-02T10:00:00.000Z",
-        ),
-      ]);
+    it("should request DB-level sorting by publishedAt desc", async () => {
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
 
-      const result = await datasource.fetch(
-        { entityType: "deck" },
-        listSchema,
-        mockContext,
+      await datasource.fetch({ entityType: "deck" }, listSchema, mockContext);
+
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
+        {
+          entityType: "deck",
+          options: expect.objectContaining({
+            sortFields: [{ field: "publishedAt", direction: "desc" }],
+          }),
+        },
+        deckSchema,
       );
-
-      expect(result.decks.map((d: DeckEntity) => d.id)).toEqual([
-        "deck-new",
-        "deck-mid",
-        "deck-old",
-      ]);
     });
 
     it("should handle empty deck list", async () => {
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
+
       const result = await datasource.fetch(
         { entityType: "deck" },
         listSchema,
@@ -160,15 +155,15 @@ describe("DeckDataSource", () => {
     });
 
     it("should fetch a single deck by slug", async () => {
-      shell.addEntities([
-        createMockDeck(
-          "deck-1",
-          "Test Deck",
-          "test-deck",
-          "published",
-          "2025-01-01T10:00:00.000Z",
-        ),
-      ]);
+      const deck = createMockDeck(
+        "deck-1",
+        "Test Deck",
+        "test-deck",
+        "published",
+        "2025-01-01T10:00:00.000Z",
+      );
+
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([deck]);
 
       const result = await datasource.fetch(
         { entityType: "deck", query: { id: "test-deck" } },
@@ -214,16 +209,14 @@ coverImageId: cover-img-1
         metadata: {
           title: "Cover",
           alt: "Cover image",
-          width: 1200,
-          height: 630,
-          format: "png",
         },
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         contentHash: "abc",
       };
 
-      shell.addEntities([deck, coverImageEntity]);
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([deck]);
+      spyOn(mockEntityService, "getEntity").mockResolvedValue(coverImageEntity);
 
       const result = await datasource.fetch(
         { entityType: "deck", query: { id: "deck-with-cover" } },
@@ -238,15 +231,15 @@ coverImageId: cover-img-1
     });
 
     it("should not inject directive when no coverImageId", async () => {
-      shell.addEntities([
-        createMockDeck(
-          "deck-no-cover",
-          "No Cover Deck",
-          "no-cover-deck",
-          "published",
-          "2025-01-01T10:00:00.000Z",
-        ),
-      ]);
+      const deck = createMockDeck(
+        "deck-no-cover",
+        "No Cover Deck",
+        "no-cover-deck",
+        "published",
+        "2025-01-01T10:00:00.000Z",
+      );
+
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([deck]);
 
       const result = await datasource.fetch(
         { entityType: "deck", query: { id: "no-cover-deck" } },
@@ -258,6 +251,8 @@ coverImageId: cover-img-1
     });
 
     it("should throw error when deck not found", async () => {
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
+
       expect(
         datasource.fetch(
           { entityType: "deck", query: { id: "nonexistent-slug" } },
@@ -270,7 +265,7 @@ coverImageId: cover-img-1
 
   describe("metadata", () => {
     it("should have correct datasource ID", () => {
-      expect(datasource.id).toBe("decks:entities");
+      expect(datasource.id).toBe("@brains/decks:entities");
     });
 
     it("should have descriptive name and description", () => {

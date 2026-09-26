@@ -7,7 +7,7 @@ tags:
   - linkedin
   - engagement
   - quality
-plugin: social-media
+plugin: "@brains/social-media:social-post"
 handler: generation
 
 input:

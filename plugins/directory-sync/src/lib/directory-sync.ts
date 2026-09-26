@@ -1,15 +1,15 @@
-import {
-  createId,
-  type BaseEntity,
-  type EntityServiceClient,
-  type ServicePluginContext,
-} from "@brains/plugins";
+import type { DirectorySyncHost } from "../host";
+import type {
+  BaseEntity,
+  DurableBulkMutationChildRef,
+} from "@brains/sdk/entities";
+import type { EntityMirrorClient } from "@brains/sdk/plugins";
+import { createId } from "@brains/utils/id";
 import type { BatchMetadata, BatchResult } from "../types";
 import type { Logger } from "@brains/utils/logger";
-import type { ProgressReporter } from "@brains/utils/progress";
+import type { ProgressContract } from "@brains/utils/progress";
 import type {
   CleanupResult,
-  DirectoryProjectionBatchRef,
   DirectorySyncStatus,
   ExportResult,
   IDirectorySync,
@@ -62,7 +62,7 @@ export { directorySyncOptionsSchema } from "./directory-options";
 export type { DirectorySyncOptions } from "./directory-options";
 
 export class DirectorySync implements IDirectorySync {
-  private entityService: EntityServiceClient;
+  private entityService: EntityMirrorClient;
   private logger: Logger;
   private syncPath: string;
   private autoSync: boolean;
@@ -186,9 +186,9 @@ export class DirectorySync implements IDirectorySync {
 
   async importEntitiesWithProgress(
     paths: string[] | undefined,
-    reporter: ProgressReporter,
+    reporter: ProgressContract,
     batchSize: number,
-    projectionBatch?: DirectoryProjectionBatchRef,
+    projectionBatch?: DurableBulkMutationChildRef,
   ): Promise<ImportResult> {
     return this.runBulkMutation(
       "import",
@@ -206,7 +206,7 @@ export class DirectorySync implements IDirectorySync {
 
   async exportEntitiesWithProgress(
     entityTypes: string[] | undefined,
-    reporter: ProgressReporter,
+    reporter: ProgressContract,
     batchSize: number,
   ): Promise<ExportResult> {
     return exportDirectoryEntitiesWithProgress(
@@ -226,7 +226,7 @@ export class DirectorySync implements IDirectorySync {
   }
 
   async removeOrphanedEntities(
-    projectionBatch?: DirectoryProjectionBatchRef,
+    projectionBatch?: DurableBulkMutationChildRef,
   ): Promise<CleanupResult> {
     return this.runBulkMutation(
       "cleanup",
@@ -252,15 +252,14 @@ export class DirectorySync implements IDirectorySync {
   private runBulkMutation<TResult>(
     operation: string,
     mutation: () => Promise<TResult>,
-    projectionBatch?: DirectoryProjectionBatchRef,
+    projectionBatch?: DurableBulkMutationChildRef,
   ): Promise<TResult> {
     // Durable job handlers already entered this root's scope. Reuse its
     // identity so the coordinator can join it without weakening its fence.
     return this.entityService.runBulkMutation(
       {
         source: "directory-sync",
-        operationId:
-          projectionBatch?.operationId ?? `${operation}:${createId()}`,
+        operationId: projectionBatch?.rootJobId ?? `${operation}:${createId()}`,
       },
       mutation,
     );
@@ -296,7 +295,7 @@ export class DirectorySync implements IDirectorySync {
   }
 
   async queueSyncBatch(
-    pluginContext: ServicePluginContext,
+    pluginContext: Pick<DirectorySyncHost, "jobs" | "mirror">,
     source: string,
     metadata?: BatchMetadata,
     paths?: string[],

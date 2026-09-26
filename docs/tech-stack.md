@@ -253,7 +253,7 @@ until the repository owns a corresponding format.
   - **EntityPlugin** — content types (schema, adapter, generation handler, projection declarations); zero tools
   - **ServicePlugin** — integrations (tools, job handlers, API routes, daemons)
   - **InterfacePlugin** — transports (MCP, Discord, A2A, webserver, CLI)
-- **Composite plugins** — factories may return `Plugin | Plugin[]`, letting one capability id register multiple sub-plugins (e.g. `@brains/newsletter` bundles entity + service)
+- **Service packages that declare entities** — one `defineServicePlugin` may declare entity types alongside its own behaviour, so one capability id registers a service plugin plus an entity plugin per type (e.g. `@brains/newsletter` declares the `newsletter` entity next to the Buttondown service)
 - The **canonical definition** declares `[id, factory, config]` catalog tuples; eight ordered capability bundles plus policy-only `team` compose active members per instance
 
 ### Data Management

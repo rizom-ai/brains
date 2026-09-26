@@ -9,12 +9,20 @@ import type {
   ProjectionWaveInput,
   ProjectionWaveRule,
 } from "@brains/entity-service";
+import type { EntitySchema, ListEntitiesRequest } from "@brains/entity-service";
 import {
   defineProjectionRule,
+  PROJECTION_ABSTAINED,
+  type BaseEntity,
+  type ProjectionRule,
+  type ProjectionRuleDefinition,
   type ProjectionExecutionContext,
   type ProjectionInputContext,
 } from "@brains/plugins";
-import { CallbackProgressReporter } from "@brains/utils/progress";
+import {
+  CallbackProgressReporter,
+  type ProgressReporter,
+} from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import {
   ProjectionRuleJobHandler,
@@ -24,8 +32,15 @@ import {
 } from "../src/projection-rule-job-handler";
 
 const inputContext: ProjectionInputContext = {
+  spaces: [],
+  conversations: {
+    get: async () => null,
+    getMessages: async () => [],
+    getManyWithMessages: async () => [],
+  },
   entities: {
     getEntity: async () => null,
+    getEntities: async () => [],
     listEntities: async () => [],
     getEntityTypes: () => [],
     hasEntityType: () => false,
@@ -48,8 +63,13 @@ const executionContext: ProjectionExecutionContext = {
   },
 };
 
-const progressReporter = CallbackProgressReporter.from(async () => {});
-if (!progressReporter) throw new Error("Failed to create progress reporter");
+function makeProgressReporter(): ProgressReporter {
+  const reporter = CallbackProgressReporter.from(async () => {});
+  if (!reporter) throw new Error("Failed to create progress reporter");
+  return reporter;
+}
+
+const progressReporter = makeProgressReporter();
 
 class MemoryExecutionStore implements ProjectionRuleExecutionStore {
   readonly inputs: ProjectionWaveInput[];
@@ -100,6 +120,7 @@ class MemoryExecutionStore implements ProjectionRuleExecutionStore {
         waveId: "wave-1",
         ruleId: "topics",
         targetType: "topic",
+        targets: { authority: "additive" },
         level: 0,
         jobId: "job-1",
         status: "queued",
@@ -124,6 +145,7 @@ class MemoryExecutionStore implements ProjectionRuleExecutionStore {
       waveId: input.waveId,
       ruleId: input.ruleId,
       targetType: "topic",
+      targets: { authority: "additive" },
       level: 0,
       jobId: "job-1",
       status: "completed",
@@ -186,18 +208,24 @@ class MemoryCoordinator implements ProjectionWaveCoordinator {
 
 describe("ProjectionRuleJobHandler", () => {
   it("selects one immutable input and derives once for an arbitrary dirty set", async () => {
-    const derive = mock(async (): Promise<ProjectionWriteIntent[]> => [
-      {
-        operation: "delete",
-        entityType: "topic",
-        id: "stale-topic",
+    let callbackContext: ProjectionExecutionContext | undefined;
+    const derive = mock(
+      async (
+        _input: { sourceCount: number },
+        context: ProjectionExecutionContext,
+      ): Promise<ProjectionWriteIntent[]> => {
+        callbackContext = context;
+        return [
+          { operation: "delete", entityType: "topic", id: "stale-topic" },
+        ];
       },
-    ]);
+    );
     const rule = defineProjectionRule({
       id: "topics",
       version: "1",
       sources: [{ kind: "entity", types: ["document"] }],
       targetType: "topic",
+      targets: { authority: "managed" },
       inputSchema: z.object({ sourceCount: z.number().int() }),
       selectInput: async (trigger) => ({ sourceCount: trigger.inputs.length }),
       derive,
@@ -227,9 +255,12 @@ describe("ProjectionRuleJobHandler", () => {
     );
 
     expect(derive).toHaveBeenCalledTimes(1);
+    expect(callbackContext).not.toBe(executionContext);
+    expect(Object.isFrozen(callbackContext)).toBe(true);
+    expect(Object.keys(callbackContext ?? {}).sort()).toEqual(["ai", "logger"]);
     expect(derive).toHaveBeenCalledWith(
       { sourceCount: 100 },
-      executionContext,
+      callbackContext,
       expect.any(AbortSignal),
     );
     expect(store.applied).toEqual(
@@ -280,6 +311,7 @@ describe("ProjectionRuleJobHandler", () => {
       version: "1",
       sources: [{ kind: "entity", types: ["document"] }],
       targetType: "topic",
+      targets: { authority: "additive" },
       inputSchema: z.object({ sourceCount: z.number() }),
       selectInput,
       derive,
@@ -317,6 +349,7 @@ describe("ProjectionRuleJobHandler", () => {
       version: "1",
       sources: [{ kind: "entity", types: ["document"] }],
       targetType: "topic",
+      targets: { authority: "additive" },
       inputSchema: z.object({ sourceCount: z.number() }),
       selectInput,
       derive: async () => [],
@@ -356,6 +389,7 @@ describe("ProjectionRuleJobHandler", () => {
       version: "1",
       sources: [{ kind: "entity", types: ["document"] }],
       targetType: "topic",
+      targets: { authority: "managed" },
       inputSchema: z.object({ sourceCount: z.number() }),
       selectInput: async (trigger) => ({ sourceCount: trigger.inputs.length }),
       derive,
@@ -394,6 +428,7 @@ describe("ProjectionRuleJobHandler", () => {
       version: "1",
       sources: [{ kind: "entity", types: ["document"] }],
       targetType: "topic",
+      targets: { authority: "additive" },
       inputSchema: z.object({}),
       selectInput: async () => ({}),
       derive: async () => [],
@@ -436,6 +471,7 @@ describe("ProjectionRuleJobHandler", () => {
       version: "1",
       sources: [{ kind: "entity", types: ["document"] }],
       targetType: "topic",
+      targets: { authority: "additive" },
       inputSchema: z.object({ sourceCount: z.number().int() }),
       selectInput: async (trigger) => ({ sourceCount: trigger.inputs.length }),
       derive,
@@ -470,5 +506,237 @@ describe("ProjectionRuleJobHandler", () => {
 
     expect(derive).not.toHaveBeenCalled();
     expect(store.applied?.writeIntents).toEqual(store.memo.writeIntents);
+  });
+});
+
+/**
+ * Who is allowed to remove a derived entity.
+ *
+ * A rule that owns its whole target set has to delete the ones its latest
+ * derivation no longer mentions, or orphans accumulate that look real.
+ * Written by hand this was a diff loop per rule: two rules wrote one, they
+ * disagreed on visibility scoping, and the rules that never delete expressed
+ * that as absent code — indistinguishable from an author who forgot.
+ */
+describe("declared target authority", () => {
+  function handlerFor(options: {
+    rule: ProjectionRule;
+    existing: BaseEntity[];
+    store: MemoryExecutionStore;
+  }): ProjectionRuleJobHandler {
+    // Declared with the reader's overload pair rather than a bare generic, so
+    // the seeded entities are returned as themselves and a caller that passes
+    // a schema gets them parsed through it.
+    async function listExisting(
+      request: ListEntitiesRequest,
+    ): Promise<BaseEntity[]>;
+    async function listExisting<T extends BaseEntity>(
+      request: ListEntitiesRequest,
+      schema: EntitySchema<T>,
+    ): Promise<T[]>;
+    async function listExisting<T extends BaseEntity>(
+      request: ListEntitiesRequest,
+      schema?: EntitySchema<T>,
+    ): Promise<BaseEntity[] | T[]> {
+      const scope = request.options?.filter?.visibilityScope;
+      const matches = options.existing
+        .filter((entity) => entity.entityType === request.entityType)
+        .filter((entity) => scope === undefined || entity.visibility === scope);
+      return schema ? matches.map((entity) => schema.parse(entity)) : matches;
+    }
+    return new ProjectionRuleJobHandler({
+      rules: [options.rule],
+      store: options.store,
+      coordinator: new MemoryCoordinator(),
+      inputContext: {
+        ...inputContext,
+        entities: {
+          ...inputContext.entities,
+          listEntities: listExisting,
+        },
+      },
+      executionContext,
+      reconcileTargets: async (): Promise<void> => {},
+      onDiagnostic: (): void => {},
+      now: (): number => 20,
+    });
+  }
+
+  function target(
+    id: string,
+    visibility: BaseEntity["visibility"],
+  ): BaseEntity {
+    return {
+      id,
+      entityType: "topic",
+      content: `# ${id}`,
+      contentHash: `hash:${id}`,
+      metadata: {},
+      visibility,
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+    };
+  }
+
+  it("deletes what an exclusive rule stopped mentioning", async () => {
+    const rule = defineProjectionRule({
+      id: "topics",
+      version: "1",
+      sources: [{ kind: "entity", types: ["document"] }],
+      targetType: "topic",
+      targets: { authority: "exclusive", visibility: "public" },
+      inputSchema: z.object({ sourceCount: z.number().int() }),
+      selectInput: async (trigger) => ({ sourceCount: trigger.inputs.length }),
+      derive: async () => [
+        {
+          operation: "upsert",
+          entity: {
+            id: "kept",
+            entityType: "topic",
+            content: "# kept",
+            metadata: {},
+            visibility: "public",
+          },
+        },
+      ],
+    });
+    const store = new MemoryExecutionStore(1);
+    const handler = handlerFor({
+      rule,
+      store,
+      existing: [target("kept", "public"), target("dropped", "public")],
+    });
+
+    await handler.process(
+      { waveId: "wave-1", ruleId: "topics" },
+      "job-1",
+      progressReporter,
+      new AbortController().signal,
+    );
+
+    expect(store.applied?.writeIntents).toContainEqual({
+      operation: "delete",
+      entityType: "topic",
+      id: "dropped",
+    });
+  });
+
+  it("leaves targets outside the declared visibility alone", async () => {
+    const rule = defineProjectionRule({
+      id: "topics",
+      version: "1",
+      sources: [{ kind: "entity", types: ["document"] }],
+      targetType: "topic",
+      targets: { authority: "exclusive", visibility: "public" },
+      inputSchema: z.object({ sourceCount: z.number().int() }),
+      selectInput: async (trigger) => ({ sourceCount: trigger.inputs.length }),
+      derive: async () => [],
+    });
+    const store = new MemoryExecutionStore(1);
+    const handler = handlerFor({
+      rule,
+      store,
+      existing: [target("elsewhere", "shared")],
+    });
+
+    await handler.process(
+      { waveId: "wave-1", ruleId: "topics" },
+      "job-1",
+      progressReporter,
+      new AbortController().signal,
+    );
+
+    // The bug series shipped, made impossible to write by hand.
+    expect(store.applied?.writeIntents).toEqual([]);
+  });
+
+  it("deletes nothing for an additive rule", async () => {
+    const rule = defineProjectionRule({
+      id: "topics",
+      version: "1",
+      sources: [{ kind: "entity", types: ["document"] }],
+      targetType: "topic",
+      targets: { authority: "additive" },
+      inputSchema: z.object({ sourceCount: z.number().int() }),
+      selectInput: async (trigger) => ({ sourceCount: trigger.inputs.length }),
+      derive: async () => [],
+    });
+    const store = new MemoryExecutionStore(1);
+    const handler = handlerFor({
+      rule,
+      store,
+      existing: [target("kept", "public"), target("also-kept", "public")],
+    });
+
+    await handler.process(
+      { waveId: "wave-1", ruleId: "topics" },
+      "job-1",
+      progressReporter,
+      new AbortController().signal,
+    );
+
+    expect(store.applied?.writeIntents).toEqual([]);
+  });
+
+  describe("an exclusive rule that derived nothing", () => {
+    const existingTarget = {
+      id: "systems-design",
+      entityType: "topic",
+      content: "# systems-design",
+      contentHash: "hash",
+      metadata: {},
+      visibility: "public" as const,
+      created: "2026-01-01T00:00:00.000Z",
+      updated: "2026-01-01T00:00:00.000Z",
+    };
+
+    function ruleReturning(
+      derive: ProjectionRuleDefinition["derive"],
+    ): ProjectionRule {
+      return defineProjectionRule({
+        id: "topics",
+        version: "1",
+        sources: [{ kind: "entity", types: ["document"] }],
+        targetType: "topic",
+        targets: { authority: "exclusive", visibility: "public" },
+        inputSchema: z.object({ sourceCount: z.number().int() }),
+        selectInput: async (trigger) => ({
+          sourceCount: trigger.inputs.length,
+        }),
+        derive,
+      });
+    }
+
+    async function run(rule: ProjectionRule): Promise<MemoryExecutionStore> {
+      const store = new MemoryExecutionStore(1);
+      await handlerFor({ rule, store, existing: [existingTarget] }).process(
+        { waveId: "wave-1", ruleId: "topics" },
+        "job-1",
+        progressReporter,
+        new AbortController().signal,
+      );
+      return store;
+    }
+
+    it("leaves its targets alone when it abstains", async () => {
+      // skill-projection returns early when no topics exist, which is normal
+      // during initial sync. Read as an empty desired set, that early return
+      // means every entity the rule has ever derived should be removed.
+      const store = await run(ruleReturning(async () => PROJECTION_ABSTAINED));
+
+      expect(store.applied?.writeIntents).toEqual([]);
+    });
+
+    it("still removes everything when the derived set is genuinely empty", async () => {
+      // The other half. A rule that did derive, and derived nothing, is
+      // saying its targets should not exist — series means exactly this when
+      // the last member loses its series name. Abstention exists so this
+      // stays expressible instead of being smothered by a safe default.
+      const store = await run(ruleReturning(async () => []));
+
+      expect(store.applied?.writeIntents).toEqual([
+        { operation: "delete", entityType: "topic", id: "systems-design" },
+      ]);
+    });
   });
 });

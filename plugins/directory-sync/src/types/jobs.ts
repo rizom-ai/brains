@@ -1,4 +1,8 @@
 import { z } from "@brains/utils/zod";
+import {
+  durableBulkMutationChildRefSchema,
+  type DurableBulkMutationChildRef,
+} from "@brains/sdk/entities";
 
 /**
  * Schema for directory sync job data
@@ -40,23 +44,6 @@ export const directorySyncRequestJobSchema: z.ZodType<
   channelId: z.string().optional(),
 });
 
-export interface DirectoryProjectionBatchRef {
-  operationId: string;
-  rootJobId: string;
-  childKey: string;
-  expectedChildren: number;
-}
-
-export const directoryProjectionBatchRefSchema: z.ZodType<
-  DirectoryProjectionBatchRef,
-  DirectoryProjectionBatchRef
-> = z.object({
-  operationId: z.string().min(1),
-  rootJobId: z.string().min(1),
-  childKey: z.string().min(1),
-  expectedChildren: z.number().int().positive(),
-});
-
 /**
  * Schema for directory import job data
  */
@@ -64,7 +51,7 @@ export interface DirectoryImportJobData {
   paths?: string[] | undefined;
   batchSize?: number | undefined;
   batchIndex?: number | undefined;
-  projectionBatch?: DirectoryProjectionBatchRef | undefined;
+  projectionBatch?: DurableBulkMutationChildRef | undefined;
 }
 
 export const directoryImportJobSchema: z.ZodType<
@@ -74,7 +61,7 @@ export const directoryImportJobSchema: z.ZodType<
   paths: z.array(z.string()).optional(),
   batchSize: z.number().min(1).optional(),
   batchIndex: z.number().optional(),
-  projectionBatch: directoryProjectionBatchRefSchema.optional(),
+  projectionBatch: durableBulkMutationChildRefSchema.optional(),
 });
 
 /**
@@ -104,7 +91,7 @@ export interface DirectoryDeleteTarget {
 
 export type DirectoryDeleteJobData = (
   DirectoryDeleteTarget | { deletions: DirectoryDeleteTarget[] }
-) & { projectionBatch?: DirectoryProjectionBatchRef | undefined };
+) & { projectionBatch?: DurableBulkMutationChildRef | undefined };
 
 const directoryDeleteTargetSchema = z.object({
   entityId: z.string(),
@@ -117,11 +104,11 @@ export const directoryDeleteJobSchema: z.ZodType<
   DirectoryDeleteJobData
 > = z.union([
   directoryDeleteTargetSchema.extend({
-    projectionBatch: directoryProjectionBatchRefSchema.optional(),
+    projectionBatch: durableBulkMutationChildRefSchema.optional(),
   }),
   z.object({
     deletions: z.array(directoryDeleteTargetSchema).min(1).max(50),
-    projectionBatch: directoryProjectionBatchRefSchema.optional(),
+    projectionBatch: durableBulkMutationChildRefSchema.optional(),
   }),
 ]);
 
@@ -168,6 +155,9 @@ export const inlineImageConversionJobSchema: z.ZodType<
 /**
  * Job request types for file watcher - discriminated union for type safety
  */
+/** Every job type name a batch may carry. */
+export type DirectorySyncJobType = JobRequest["type"] | "directory-cleanup";
+
 export type JobRequest =
   | { type: "directory-sync"; data: DirectorySyncJobData }
   | { type: "sync-request"; data: DirectorySyncRequestJobData }

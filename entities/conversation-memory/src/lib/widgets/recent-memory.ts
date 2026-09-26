@@ -1,50 +1,52 @@
-import type { EntityPluginContext } from "@brains/plugins";
-import { z } from "@brains/utils/zod";
-import {
-  summarySchema,
-  summaryTimeRangeSchema,
-  type SummaryEntity,
-  type SummaryTimeRange,
-} from "../../schemas/summary";
+import { z, type JobEntityAccess } from "@brains/sdk/entities";
+import type { SummaryEntity, SummaryTimeRange } from "../../schemas/summary";
+import { summarySchema } from "../../schemas/summary";
 import { SUMMARY_ENTITY_TYPE } from "../constants";
-import { SummaryAdapter } from "../../adapters/summary-adapter";
+import { parseSummaryBody } from "../summary-body";
 
 const MAX_ITEMS = 6;
 const WIDGET_ID = "recent";
 
-const summaryAdapter = new SummaryAdapter();
+interface SummaryTimeRangeRow {
+  start: string;
+  end: string;
+}
 
-export const summaryEntryRowSchema: z.ZodObject<{
-  id: z.ZodString;
-  title: z.ZodString;
-  keyPoint: z.ZodOptional<z.ZodString>;
-  channelName: z.ZodString;
-  channelId: z.ZodString;
-  timeRange: typeof summaryTimeRangeSchema;
-  messageCount: z.ZodNumber;
-}> = z.object({
+const summaryTimeRangeRowSchema: z.ZodType<SummaryTimeRangeRow> = z.object({
+  start: z.string().datetime(),
+  end: z.string().datetime(),
+});
+
+export interface SummaryEntryRow {
+  id: string;
+  title: string;
+  keyPoint?: string | undefined;
+  channelName: string;
+  channelId: string;
+  timeRange: SummaryTimeRangeRow;
+  messageCount: number;
+}
+
+export const summaryEntryRowSchema: z.ZodType<SummaryEntryRow> = z.object({
   id: z.string(),
   title: z.string(),
   keyPoint: z.string().optional(),
   channelName: z.string(),
   channelId: z.string(),
-  timeRange: summaryTimeRangeSchema,
+  timeRange: summaryTimeRangeRowSchema,
   messageCount: z.number().int().min(0),
 });
 
-export type SummaryEntryRow = z.output<typeof summaryEntryRowSchema>;
+export interface RecentConversationMemoryData {
+  all: SummaryEntryRow[];
+  byChannel: SummaryEntryRow[];
+}
 
-export const recentConversationMemoryDataSchema: z.ZodObject<{
-  all: z.ZodArray<typeof summaryEntryRowSchema>;
-  byChannel: z.ZodArray<typeof summaryEntryRowSchema>;
-}> = z.object({
-  all: z.array(summaryEntryRowSchema),
-  byChannel: z.array(summaryEntryRowSchema),
-});
-
-export type RecentConversationMemoryData = z.output<
-  typeof recentConversationMemoryDataSchema
->;
+export const recentConversationMemoryDataSchema: z.ZodType<RecentConversationMemoryData> =
+  z.object({
+    all: z.array(summaryEntryRowSchema),
+    byChannel: z.array(summaryEntryRowSchema),
+  });
 
 interface ExpandedEntry {
   id: string;
@@ -58,7 +60,7 @@ interface ExpandedEntry {
 }
 
 function expandSummary(summary: SummaryEntity): ExpandedEntry[] {
-  const { entries } = summaryAdapter.parseBody(summary.content);
+  const { entries } = parseSummaryBody(summary.content);
   return entries.map((entry, index) => ({
     id: `${summary.id}#${index}`,
     summaryId: summary.id,
@@ -88,9 +90,9 @@ function toRow(entry: ExpandedEntry): SummaryEntryRow {
 }
 
 export async function buildRecentConversationMemoryData(
-  context: EntityPluginContext,
+  entities: JobEntityAccess,
 ): Promise<RecentConversationMemoryData> {
-  const summaries = await context.entityService.listEntities(
+  const summaries = await entities.listEntities(
     {
       entityType: SUMMARY_ENTITY_TYPE,
     },

@@ -33,6 +33,7 @@ import {
 } from "./preflight-site-build";
 import type { StaticSiteBuilderFactory } from "./static-site-builder";
 import { writeSiteBuildSeoFiles } from "./seo-file-handler";
+import { writeSiteBuildFeeds } from "./feed-file-handler";
 import {
   TransactionalSiteBuildOutput,
   type SiteBuildOutputLifecycle,
@@ -167,7 +168,7 @@ export async function runSiteBuild(
       layouts: parsedOptions.layouts,
       getViewTemplate: options.pipelineContext.services.getViewTemplate,
       staticSiteBuilderFactory: options.staticSiteBuilderFactory,
-      sendMessage: options.pipelineContext.services.sendMessage,
+      publishMessage: options.pipelineContext.services.publishMessage,
     });
     const currentManifest = await outputLifecycle.getCurrentManifest?.(
       parsedOptions.outputDir,
@@ -239,10 +240,9 @@ export async function runSiteBuild(
         stagingFailures.push(detail);
       },
     };
-    await options.pipelineContext.services.sendMessage({
-      type: SITE_CHANNELS.buildStaging,
-      payload: stagingPayload,
-      broadcast: true,
+    await options.pipelineContext.services.publishMessage({
+      topic: SITE_CHANNELS.buildStaging,
+      data: stagingPayload,
     });
     options.signal.throwIfAborted();
     if (stagingFailures.length > 0) {
@@ -267,6 +267,17 @@ export async function runSiteBuild(
       preparedBuild: preparation.preparedBuild,
       logger: options.pipelineContext.logger,
       siteUrl: baseUrl,
+      signal: options.signal,
+    });
+
+    await writeSiteBuildFeeds({
+      outputDir: outputTarget.generationDir,
+      entityService: options.pipelineContext.services.entityService,
+      environment: preparation.preparedBuild.environment,
+      siteTitle: preparation.preparedBuild.site.title,
+      siteDescription: preparation.preparedBuild.site.description,
+      siteUrl: baseUrl,
+      logger: options.pipelineContext.logger,
       signal: options.signal,
     });
 

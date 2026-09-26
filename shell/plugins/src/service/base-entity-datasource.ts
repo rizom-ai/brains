@@ -11,7 +11,7 @@ import type {
   PaginationInfo,
 } from "@brains/entity-service";
 import { buildPaginationInfo } from "@brains/entity-service";
-import type { Logger } from "@brains/utils/logger";
+import type { LoggerContract } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 
 export type { SortField };
@@ -118,14 +118,14 @@ export abstract class BaseEntityDataSource<
   TTransformed = TEntity,
   TListResult extends object = JsonObject,
 > implements DataSource {
-  protected readonly logger: Logger;
+  protected readonly logger: LoggerContract;
   abstract readonly id: string;
   abstract readonly name: string;
   abstract readonly description: string;
 
   protected abstract readonly config: EntityDataSourceConfig<TEntity>;
 
-  constructor(logger: Logger) {
+  constructor(logger: LoggerContract) {
     this.logger = logger;
   }
 

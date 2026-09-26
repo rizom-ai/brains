@@ -181,14 +181,20 @@ describe("Shell service ownership", () => {
     // outlives shutdown and leaks between tests, so the ban is repo-wide
     // rather than a grep over three known files.
     //
-    // Logger, AtprotoProjectionRegistry, EntityUrlGenerator, and
-    // EvalHandlerRegistry are deliberate ambient registries with real
-    // production callers; they are not shell-owned services.
+    // Logger, AtprotoProjectionRegistry, EntityUrlGenerator, FeedRegistry,
+    // EvalHandlerRegistry and PublishDelegationRegistry are deliberate
+    // ambient registries with real production callers; they are not
+    // shell-owned services. FeedRegistry and PublishDelegationRegistry are
+    // ones because their two sides must not import each other: a package
+    // declares how it syndicates or what it delegates, and the build or the
+    // publish pipeline reads that.
     const allowed = new Set([
       "shared/utils/src/logger.ts",
       "shared/atproto-contracts/src/projection-registry.ts",
       "shared/site-composition/src/entity-url-generator.ts",
+      "shared/site-composition/src/feed-registry.ts",
       "shell/ai-evaluation/src/eval-handler-registry.ts",
+      "shell/plugins/src/service/publish-delegation-registry.ts",
     ]);
     const declaring = (
       await runProcessOrThrow(

@@ -56,15 +56,15 @@ const expectedMembers: Record<SuiteName, string> = {
   headless:
     "a2a agents ask-content directory-sync link mcp note profile prompt style-guide topics unified-inbox",
   personal:
-    "a2a admin agents ask-content auth-service chat conversation-memory dashboard directory-sync document email image link mcp note notifications profile prompt studio style-guide topics unified-inbox web-chat webserver",
+    "a2a admin agents ask-content auth-service chat conversation-memory dashboard directory-sync document email image link mcp note notifications profile prompt studio style-guide topics unified-inbox web-chat",
   professional:
-    "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email image link mcp newsletter note notifications onboarding playbook playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat webserver",
-  team: "a2a admin agents analytics ask-content auth-service chat conversation-memory dashboard directory-sync docs document email image link mcp note notifications onboarding playbook playbooks profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat webserver",
+    "a2a admin agents analytics ask-content atproto atproto-registry auth-service blog chat content-pipeline conversation-memory dashboard decks directory-sync document email image link mcp newsletter note notifications onboarding playbooks portfolio profile prompt series site-builder site-content site-info social-media stock-photo studio style-guide topics unified-inbox web-chat",
+  team: "a2a admin agents analytics ask-content auth-service chat conversation-memory dashboard directory-sync docs document email image link mcp note notifications onboarding playbooks profile prompt site-builder site-content site-info studio style-guide topics unified-inbox web-chat",
 };
 const expectedCaseCounts: Record<SuiteName, number> = {
   headless: 19,
   personal: 20,
-  professional: 85,
+  professional: 83,
   team: 38,
 };
 const tempDirectories: string[] = [];
@@ -141,7 +141,7 @@ function createSuiteApp(
   });
   const regularMcp = includeMcp
     ? resolve(canonicalBrain, environment, overrides).plugins?.find(
-        ({ id }) => id === "mcp",
+        ({ id }) => id === "@brains/mcp:mcp",
       )
     : undefined;
   const resolved = regularMcp
@@ -251,7 +251,7 @@ describe("canonical eval recipe ladder", () => {
       directory: testCasesDirectory,
       recursive: true,
     }).loadTestCases();
-    expect(testCases.length).toBe(196);
+    expect(testCases.length).toBe(194);
     for (const testCase of testCases) {
       expect(
         testCase.tags?.filter(
@@ -357,15 +357,15 @@ describe("canonical eval recipe ladder", () => {
             .listProtocolToolsForPermissionLevel(level, "basic")
             .map(({ tool }) => tool.name)
             .sort(),
-        ).toEqual(["chat", "confirm"]);
+        ).toEqual(["mcp_chat", "mcp_confirm"]);
       }
 
       const adminDebugTools = mcpService
         .listProtocolToolsForPermissionLevel("admin", "debug")
         .map(({ tool }) => tool.name);
       for (const toolName of [
-        "chat",
-        "confirm",
+        "mcp_chat",
+        "mcp_confirm",
         "system_search",
         "system_get",
         "system_list",

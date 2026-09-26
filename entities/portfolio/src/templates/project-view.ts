@@ -1,4 +1,4 @@
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/sdk/entities";
 import { projectStatusSchema } from "../schemas/project";
 
 const nullableString: z.ZodDefault<z.ZodNullable<z.ZodString>> = z

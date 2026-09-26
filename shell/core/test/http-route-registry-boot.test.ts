@@ -147,6 +147,157 @@ describe("HTTP route finalization during shell boot", () => {
     expect(Object.isFrozen(shell.getPluginHttpRouteManifest())).toBe(true);
   });
 
+  it("starts a runtime host for routes and releases its port on shutdown", async () => {
+    shell = Shell.createFresh(
+      createTestShellConfig(testDirectory.dir, {
+        http: { port: 0, productionDistDir: `${testDirectory.dir}/production` },
+        plugins: [routePlugin("host-owner", "/hello")],
+      }),
+      dependencies,
+    );
+    await shell.initialize();
+    const url = shell.getHttpHostStatus()?.productionUrl;
+    expect(url).toBeDefined();
+    expect(await (await fetch(`${url}/hello`)).text()).toBe("host-owner");
+    expect(shell.isHttpHostConfigured()).toBe(true);
+    await shell.shutdown();
+    expect(shell.getHttpHostStatus()?.running).toBe(false);
+  });
+
+  it("collects site output once and owns endpoint advertisements without a plugin", async () => {
+    let reads = 0;
+    const site: Plugin = {
+      id: "site-writer",
+      packageName: "@test/site-writer",
+      type: "service",
+      version: "1.0.0",
+      register: async () => ({ tools: [], resources: [] }),
+      getStaticSiteOutput: () => {
+        reads += 1;
+        return {
+          productionOutputDir: `${testDirectory.dir}/production`,
+          previewOutputDir: `${testDirectory.dir}/preview`,
+          sharedImagesDir: `${testDirectory.dir}/images`,
+        };
+      },
+    };
+    shell = Shell.createFresh(
+      createTestShellConfig(testDirectory.dir, {
+        siteBaseUrl: "brain.example",
+        http: { port: 0 },
+        plugins: [site],
+      }),
+      dependencies,
+    );
+    await shell.initialize({ mode: "register-only" });
+    expect(reads).toBe(1);
+    expect(shell.isHttpHostConfigured()).toBe(true);
+    expect(shell.listEndpoints()).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          pluginId: "runtime:http-host",
+          label: "Site",
+          url: "https://brain.example",
+        }),
+        expect.objectContaining({
+          pluginId: "runtime:http-host",
+          label: "Preview",
+          visibility: "admin",
+        }),
+      ]),
+    );
+    expect(shell.listInteractions().map((entry) => entry.id)).toContain(
+      "preview",
+    );
+    await shell.shutdown();
+    expect(shell.listEndpoints()).toEqual([]);
+    expect(shell.listInteractions()).toEqual([]);
+  });
+
+  it("excludes hosting from eval execution even when routes remain", async () => {
+    shell = Shell.createFresh(
+      createTestShellConfig(testDirectory.dir, {
+        executionMode: "eval",
+        http: {
+          port: 0,
+          productionDistDir: `${testDirectory.dir}/not-created`,
+        },
+        plugins: [routePlugin("host-owner", "/hello")],
+      }),
+      dependencies,
+    );
+    await shell.initialize();
+    expect(shell.getHttpHostStatus()?.running).toBe(false);
+    expect(
+      await Bun.file(`${testDirectory.dir}/not-created/index.html`).exists(),
+    ).toBe(false);
+    expect((await shell.getRuntimeReadiness()).checks).toContainEqual(
+      expect.objectContaining({ name: "http-host", status: "healthy" }),
+    );
+  });
+
+  it("keeps a routeless siteless runtime headless", async () => {
+    shell = Shell.createFresh(
+      createTestShellConfig(testDirectory.dir),
+      dependencies,
+    );
+    await shell.initialize();
+    expect(shell.isHttpHostConfigured()).toBe(false);
+    expect(shell.getHttpHostStatus()?.running).toBe(false);
+  });
+
+  for (const bootCase of bootCases.filter((entry) => entry.name !== "normal")) {
+    it(`does not listen in ${bootCase.name} even with static output and routes`, async () => {
+      const output = `${testDirectory.dir}/not-created`;
+      shell = Shell.createFresh(
+        createTestShellConfig(testDirectory.dir, {
+          http: { port: 0, productionDistDir: output },
+          plugins: [routePlugin("host-owner", "/hello")],
+        }),
+        dependencies,
+        bootCase.runtimeOptions,
+      );
+      await shell.initialize(
+        bootCase.mode === undefined ? undefined : { mode: bootCase.mode },
+      );
+      expect(shell.getHttpHostStatus()?.running).toBe(false);
+      expect(await Bun.file(`${output}/index.html`).exists()).toBe(false);
+    });
+  }
+
+  it("releases the listener when a later boot hook fails", async () => {
+    let url: string | undefined;
+    const plugin = routePlugin("failure", "/hello");
+    plugin.ready = async (): Promise<void> => {
+      url = shell?.getHttpHostStatus()?.productionUrl;
+      throw new Error("ready failed");
+    };
+    shell = Shell.createFresh(
+      createTestShellConfig(testDirectory.dir, {
+        http: { port: 0, productionDistDir: `${testDirectory.dir}/production` },
+        plugins: [plugin],
+      }),
+      dependencies,
+    );
+    let failure: unknown;
+    try {
+      await shell.initialize();
+    } catch (error) {
+      failure = error;
+    }
+    expect(String(failure)).toContain("ready failed");
+    // Joining shutdown also joins failed boot and its rollback.
+    await shell.shutdown();
+    expect(url).toBeDefined();
+    expect(shell.getHttpHostStatus()?.running).toBe(false);
+    const rebound = Bun.serve({
+      port: Number(new URL(url ?? "").port),
+      fetch: (): Response => new Response("rebound"),
+    });
+    expect(await (await fetch(`${url}`)).text()).toBe("rebound");
+    await rebound.stop(true);
+  });
+
   for (const bootCase of bootCases) {
     it(`rejects invalid routes in ${bootCase.name} composition`, async () => {
       const config = createTestShellConfig(testDirectory.dir, {

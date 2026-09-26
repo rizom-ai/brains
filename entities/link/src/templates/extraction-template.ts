@@ -1,4 +1,4 @@
-import { createTemplate } from "@brains/plugins";
+import { createTemplate } from "@brains/sdk/entities";
 import { z } from "@brains/utils/zod";
 
 // Schema for the AI response
@@ -42,7 +42,7 @@ export type LinkExtractionResult = z.output<typeof linkExtractionSchema>;
 export const linkExtractionTemplate: ReturnType<
   typeof createTemplate<LinkExtractionResult>
 > = createTemplate<LinkExtractionResult>({
-  name: "link:extraction",
+  name: "extraction",
   description: "Extract structured content from webpage markdown",
   dataSourceId: "shell:ai-content",
   schema: linkExtractionSchema,

@@ -1,5 +1,5 @@
+import { isEntityValidationError } from "@brains/sdk/entities";
 import type { ImportResult } from "../types.js";
-import { isEntityValidationError } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import { appendFile, readFile, rename, rm } from "fs/promises";

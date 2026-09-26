@@ -1,6 +1,6 @@
 import type { JSX } from "react";
-import { splitWordmark, useMarkdownToHtml } from "@brains/ui-library";
-import { z } from "@brains/utils/zod";
+import { splitWordmark, useMarkdownToHtml } from "@rizom/brain-ui";
+import { z } from "@brains/sdk/entities";
 import type { MediaPageTemplate } from "@brains/media-page-composer";
 
 export const DECK_CAROUSEL_ATTACHMENT_TYPE = "carousel";

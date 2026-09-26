@@ -1,18 +1,9 @@
-/** Declarative public interface authoring contract. */
+/**
+ * Layer 3 re-export of the layer 1 authoring surface (`@brains/sdk`).
+ *
+ * The contract lives in `packages/brain-sdk`; this file exists so the
+ * published `@rizom/brain/interfaces` specifier keeps resolving to the identical
+ * symbols. Add exports to the SDK package, never here.
+ */
 
-export {
-  defineAccountSettings,
-  defineDaemon,
-  defineInterface,
-  defineMessageInterface,
-  defineRoute,
-  protocol,
-} from "@brains/plugins";
-export type {
-  AccountSettingsDefinition,
-  AccountSettingsFieldDefinition,
-  AccountSettingsValue,
-} from "@brains/plugins";
-export { UserPermissionLevelSchema } from "@brains/templates";
-export type { UserPermissionLevel } from "@brains/templates";
-export { z } from "@brains/utils/zod";
+export * from "@brains/sdk/interfaces";

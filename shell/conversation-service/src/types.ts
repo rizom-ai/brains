@@ -52,6 +52,24 @@ export interface GetMessagesOptions {
   };
 }
 
+export const getManyConversationsWithMessagesSchema: z.ZodObject<{
+  ids: z.ZodArray<z.ZodString>;
+  messageLimit: z.ZodNumber;
+}> = z.object({
+  ids: z.array(z.string().trim().min(1)).max(500),
+  messageLimit: z.number().int().positive(),
+});
+
+export interface GetManyConversationsWithMessagesRequest {
+  readonly ids: readonly string[];
+  readonly messageLimit: number;
+}
+
+export interface ConversationWithMessages {
+  readonly conversation: Conversation;
+  readonly messages: readonly Message[];
+}
+
 export interface StartConversationRequest {
   sessionId: string;
   interfaceType: string;
@@ -218,6 +236,18 @@ export interface ListConversationsOptions {
   personId?: string;
 }
 
+/** Stable position in the ascending conversation change stream. */
+export interface ConversationChangeCursor {
+  updated: string;
+  id: string;
+}
+
+export const conversationChangeCursorSchema: z.ZodType<ConversationChangeCursor> =
+  z.object({
+    updated: z.string().datetime(),
+    id: z.string().min(1),
+  });
+
 export interface IConversationService {
   /** Settle non-fatal database readiness work (connection pragmas). */
   initialize?(): Promise<void>;
@@ -230,9 +260,25 @@ export interface IConversationService {
   ): Promise<Message[]>;
   countMessages(conversationId: string): Promise<number>;
   getConversation(conversationId: string): Promise<Conversation | null>;
+  getManyWithMessages(
+    request: GetManyConversationsWithMessagesRequest,
+  ): Promise<readonly ConversationWithMessages[]>;
   listConversations(
     options?: ListConversationsOptions,
   ): Promise<Conversation[]>;
+  /**
+   * Conversations after a stable change cursor, oldest first.
+   *
+   * Timestamp plus id is required: a bounded page can end in the middle of a
+   * timestamp shared by several rows, and a timestamp-only watermark would
+   * strand the rows after that boundary.
+   */
+  listConversationsUpdatedSince(input: {
+    after: ConversationChangeCursor | null;
+    limit: number;
+  }): Promise<Conversation[]>;
+  /** Current end of the change stream, used to baseline without backfilling. */
+  getConversationChangeHead(): Promise<ConversationChangeCursor | null>;
   updateConversationMetadata(
     request: UpdateConversationMetadataRequest,
   ): Promise<boolean>;

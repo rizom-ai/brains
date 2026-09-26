@@ -1,11 +1,11 @@
-/** @jsxImportSource react */
 import {
   safeParseRuntimeDashboardWidgetData,
-  type RuntimeStudioWorkspaceData,
   type RuntimeOperatorActionControl,
   type RuntimeOperatorLaunchIntent,
   type RuntimeOperatorLinkTarget,
-} from "@brains/plugins";
+  type RuntimeStudioWorkspaceData,
+} from "@brains/sdk/services";
+/** @jsxImportSource react */
 import {
   OperatorViewRenderer,
   OperatorPanelParagraph,

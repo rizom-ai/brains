@@ -1,8 +1,10 @@
-import { createMockEntityPluginContext } from "@brains/plugins/test";
+import {
+  createMockEntityPluginContext,
+  createTestEntityAccess,
+} from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import type { AgentContextRequest } from "@brains/contracts";
-import { buildConversationMemoryAgentContext } from "../../src/lib/agent-context-provider";
-import { conversationMemorySearchEntitySchema } from "../../src/lib/conversation-memory-retriever";
+import { conversationMemoryAgentContext } from "../../src/lib/agent-context-provider";
 import type { SummaryEntity } from "../../src/schemas/summary";
 import type {
   ActionItemEntity,
@@ -16,7 +18,7 @@ import {
 
 const defaultVisibility = "restricted" as const;
 
-describe("buildConversationMemoryAgentContext", () => {
+describe("conversationMemoryAgentContext", () => {
   it("returns relevant same-space memory as agent context", async () => {
     const sameSpace = createSummary({
       id: "summary-team",
@@ -42,24 +44,24 @@ describe("buildConversationMemoryAgentContext", () => {
       },
     ]);
 
-    const response = await buildConversationMemoryAgentContext(
-      context,
-      createRequest("relay-team"),
-    );
+    const response = await conversationMemoryAgentContext({
+      request: createRequest("relay-team"),
+      entities: createTestEntityAccess({
+        entityService: context.entityService,
+      }),
+      conversations: context.conversations,
+      logger: context.logger,
+    });
 
-    expect(context.entityService.search).toHaveBeenCalledWith(
-      {
-        query: "What memory is relevant?",
-        options: {
-          types: ["summary", "decision", "action-item"],
-          limit: 20,
-          visibilityScope: "shared",
-        },
+    expect(context.entityService.search).toHaveBeenCalledWith({
+      query: "What memory is relevant?",
+      options: {
+        types: ["summary", "decision", "action-item"],
+        limit: 20,
       },
-      conversationMemorySearchEntitySchema,
-    );
-    expect(response.items).toHaveLength(1);
-    expect(response.items[0]).toMatchObject({
+    });
+    expect(response).toHaveLength(1);
+    expect(response[0]).toMatchObject({
       id: "summary-team",
       source: "conversation-memory",
       title: "summary from Relay Team",
@@ -77,7 +79,6 @@ describe("buildConversationMemoryAgentContext", () => {
         conversationId: "conv-current",
         channelId: "relay-team",
         userPermissionLevel: "trusted",
-        visibilityScope: "shared",
         spaceId: "mcp:relay-team",
         reason: "memory-injected",
         itemCount: 1,
@@ -97,19 +98,25 @@ describe("buildConversationMemoryAgentContext", () => {
 
   it("audits when channel context is missing", async () => {
     const context = createContextWithSearchResults([]);
-    const response = await buildConversationMemoryAgentContext(context, {
-      conversationId: "conv-current",
-      message: "What memory is relevant?",
-      interfaceType: "mcp",
-      userPermissionLevel: "trusted" as const,
+    const response = await conversationMemoryAgentContext({
+      entities: createTestEntityAccess({
+        entityService: context.entityService,
+      }),
+      conversations: context.conversations,
+      logger: context.logger,
+      request: {
+        conversationId: "conv-current",
+        message: "What memory is relevant?",
+        interfaceType: "mcp",
+        userPermissionLevel: "trusted" as const,
+      },
     });
 
-    expect(response.items).toEqual([]);
+    expect(response).toEqual([]);
     expect(context.logger.info).toHaveBeenCalledWith(
       "Conversation memory agent context audit",
       expect.objectContaining({
         conversationId: "conv-current",
-        visibilityScope: "shared",
         reason: "no-channel-context",
         itemCount: 0,
         items: [],
@@ -119,12 +126,16 @@ describe("buildConversationMemoryAgentContext", () => {
 
   it("audits when no same-space memory is available", async () => {
     const context = createContextWithSearchResults([]);
-    const response = await buildConversationMemoryAgentContext(
-      context,
-      createRequest("relay-team"),
-    );
+    const response = await conversationMemoryAgentContext({
+      request: createRequest("relay-team"),
+      entities: createTestEntityAccess({
+        entityService: context.entityService,
+      }),
+      conversations: context.conversations,
+      logger: context.logger,
+    });
 
-    expect(response.items).toEqual([]);
+    expect(response).toEqual([]);
     expect(context.logger.info).toHaveBeenCalledWith(
       "Conversation memory agent context audit",
       expect.objectContaining({
@@ -154,12 +165,16 @@ describe("buildConversationMemoryAgentContext", () => {
       },
     });
 
-    const response = await buildConversationMemoryAgentContext(
-      context,
-      createRequest("relay-team"),
-    );
+    const response = await conversationMemoryAgentContext({
+      request: createRequest("relay-team"),
+      entities: createTestEntityAccess({
+        entityService: context.entityService,
+      }),
+      conversations: context.conversations,
+      logger: context.logger,
+    });
 
-    expect(response.items).toEqual([
+    expect(response).toEqual([
       expect.objectContaining({
         id: "summary-recent",
         content: "Recent same-space memory.",
@@ -192,16 +207,20 @@ describe("buildConversationMemoryAgentContext", () => {
       { entity: summary, score: 0.7, excerpt: "Relay preset direction" },
     ]);
 
-    const response = await buildConversationMemoryAgentContext(
-      context,
-      createRequest("relay-team"),
-    );
+    const response = await conversationMemoryAgentContext({
+      request: createRequest("relay-team"),
+      entities: createTestEntityAccess({
+        entityService: context.entityService,
+      }),
+      conversations: context.conversations,
+      logger: context.logger,
+    });
 
-    expect(response.items[0]?.content).toContain("Relay preset direction");
-    expect(response.items[0]?.content).toContain(
+    expect(response[0]?.content).toContain("Relay preset direction");
+    expect(response[0]?.content).toContain(
       "Core validates private team memory",
     );
-    expect(response.items[0]?.content).toContain(
+    expect(response[0]?.content).toContain(
       "Keep publishing plugins out for now.",
     );
   });
@@ -222,12 +241,16 @@ describe("buildConversationMemoryAgentContext", () => {
       { entity: actionItem, score: 0.5, excerpt: "Add future-use evals." },
     ]);
 
-    const response = await buildConversationMemoryAgentContext(
-      context,
-      createRequest("relay-team"),
-    );
+    const response = await conversationMemoryAgentContext({
+      request: createRequest("relay-team"),
+      entities: createTestEntityAccess({
+        entityService: context.entityService,
+      }),
+      conversations: context.conversations,
+      logger: context.logger,
+    });
 
-    expect(response.items).toEqual([
+    expect(response).toEqual([
       expect.objectContaining({
         id: "summary-team",
         provenance: expect.objectContaining({

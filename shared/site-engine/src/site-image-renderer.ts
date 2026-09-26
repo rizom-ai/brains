@@ -1,4 +1,4 @@
-import type { ImageRenderer, RenderedImageRef } from "@brains/contracts";
+import type { ImageRenderer, RenderedImageRef } from "@rizom/brain-ui";
 import { escapeHtml } from "@brains/utils/string-utils";
 import type { SiteImageMap } from "./site-image-contracts";
 

@@ -1,6 +1,9 @@
-import type { IRuntimeStateStore, ServiceEntityService } from "@brains/plugins";
+import {
+  z,
+  type IRuntimeStateStore,
+  type JobEntityAccess,
+} from "@brains/sdk/entities";
 import { KeyedSerialQueue, SerialQueue } from "@brains/utils/serial-queue";
-import { z } from "@brains/utils/zod";
 import { mailItemAdapter } from "./entity/adapters/mail-item-adapter";
 import {
   mailItemSchema,
@@ -29,17 +32,27 @@ export const threadOrdinalStateSchema: ThreadOrdinalStateSchema =
 
 export type ThreadOrdinalState = z.output<typeof threadOrdinalStateSchema>;
 
+/** Mail items as the coordinator reads and re-indexes them. */
+export type MailThreadEntityAccess = Pick<
+  JobEntityAccess,
+  "listEntities" | "getEntity" | "update" | "count"
+>;
+
 interface MailThreadOrdinalCoordinatorOptions {
-  entityService: ServiceEntityService;
   state: IRuntimeStateStore<ThreadOrdinalState>;
   pageSize?: number | undefined;
 }
 
 type ProjectionWriter = (projection: MailItemProjection) => Promise<void>;
 
-/** Coordinates migration and ingress over the indexed mail thread position. */
+/**
+ * Coordinates migration and ingress over the indexed mail thread position.
+ *
+ * Built once at setup with the state it keeps between processes; every call
+ * is handed the entity access of the context it runs in, since the
+ * migration runs at ready and ingress runs inside the triage job.
+ */
 export class MailThreadOrdinalCoordinator {
-  private readonly entityService: ServiceEntityService;
   private readonly state: IRuntimeStateStore<ThreadOrdinalState>;
   private readonly pageSize: number;
   private readonly ingressGate = new SharedExclusiveGate();
@@ -47,7 +60,6 @@ export class MailThreadOrdinalCoordinator {
   private initialization: Promise<void> | undefined;
 
   constructor(options: MailThreadOrdinalCoordinatorOptions) {
-    this.entityService = options.entityService;
     this.state = options.state;
     this.pageSize = z
       .number()
@@ -57,9 +69,9 @@ export class MailThreadOrdinalCoordinator {
       .parse(options.pageSize ?? DEFAULT_MIGRATION_PAGE_SIZE);
   }
 
-  initialize(): Promise<void> {
+  initialize(entities: MailThreadEntityAccess): Promise<void> {
     if (!this.initialization) {
-      const attempt = this.initializeOnce();
+      const attempt = this.initializeOnce(entities);
       this.initialization = attempt.catch((error: unknown) => {
         this.initialization = undefined;
         throw error;
@@ -75,9 +87,10 @@ export class MailThreadOrdinalCoordinator {
   async persist(
     projection: MailItemProjection,
     writer: ProjectionWriter,
+    entities: Pick<MailThreadEntityAccess, "listEntities" | "getEntity">,
   ): Promise<void> {
     await this.ingressGate.withShared(async () => {
-      if (await this.exists(projection.id)) return;
+      if (await this.exists(entities, projection.id)) return;
       const threadKey = projection.metadata.threadKey;
       if (!threadKey || !(await this.isReady())) {
         await writer(projection);
@@ -85,36 +98,41 @@ export class MailThreadOrdinalCoordinator {
       }
 
       await this.threadQueues.run(threadKey, async () => {
-        if (await this.exists(projection.id)) return;
-        const ordinal = await this.nextOrdinal(threadKey);
+        if (await this.exists(entities, projection.id)) return;
+        const ordinal = await this.nextOrdinal(entities, threadKey);
         await writer(withMailThreadOrdinal(projection, ordinal));
       });
     });
   }
 
-  private async initializeOnce(): Promise<void> {
+  private async initializeOnce(
+    entities: MailThreadEntityAccess,
+  ): Promise<void> {
     if (await this.isReady()) return;
     await this.state.set(THREAD_ORDINAL_STATE_KEY, { kind: "building" });
-    const initialCount = await this.entityService.countEntities({
+    const initialCount = await entities.count({
       entityType: "mail-item",
       options: { filter: { visibilityScope: "restricted" } },
     });
-    await this.reindex(initialCount);
+    await this.reindex(entities, initialCount);
     await this.ingressGate.withExclusive(async () => {
-      const finalCount = await this.entityService.countEntities({
+      const finalCount = await entities.count({
         entityType: "mail-item",
         options: { filter: { visibilityScope: "restricted" } },
       });
-      await this.reindex(finalCount);
+      await this.reindex(entities, finalCount);
       await this.state.set(THREAD_ORDINAL_STATE_KEY, { kind: "ready" });
     });
   }
 
-  private async reindex(total: number): Promise<void> {
+  private async reindex(
+    entities: MailThreadEntityAccess,
+    total: number,
+  ): Promise<void> {
     const nextByThread = new Map<string, number>();
-    let offset = 0;
-    while (offset < total) {
-      const entities = await this.entityService.listEntities(
+    const page = async (offset: number): Promise<void> => {
+      if (offset >= total) return;
+      const items = await entities.listEntities(
         {
           entityType: "mail-item",
           options: {
@@ -129,9 +147,8 @@ export class MailThreadOrdinalCoordinator {
         },
         mailItemSchema,
       );
-      if (entities.length === 0) break;
-      for (const rawEntity of entities) {
-        const entity = mailItemSchema.parse(rawEntity);
+      if (items.length === 0) return;
+      for (const entity of items) {
         const { frontmatter } = mailItemAdapter.parseMailItemContent(
           entity.content,
         );
@@ -139,13 +156,15 @@ export class MailThreadOrdinalCoordinator {
         if (!threadKey) continue;
         const ordinal = (nextByThread.get(threadKey) ?? 0) + 1;
         nextByThread.set(threadKey, ordinal);
-        await this.updateOrdinal(entity, ordinal);
+        await this.updateOrdinal(entities, entity, ordinal);
       }
-      offset += entities.length;
-    }
+      await page(offset + items.length);
+    };
+    await page(0);
   }
 
   private async updateOrdinal(
+    entities: Pick<MailThreadEntityAccess, "update">,
     entity: MailItemEntity,
     ordinal: number,
   ): Promise<void> {
@@ -167,14 +186,14 @@ export class MailThreadOrdinalCoordinator {
       parsed.summary,
     );
     const metadata = mailItemAdapter.fromMarkdown(content).metadata;
-    if (!metadata) throw new Error("Mail item metadata could not be derived");
-    await this.entityService.updateEntity({
-      entity: { ...entity, content, metadata },
-    });
+    await entities.update({ ...entity, content, metadata });
   }
 
-  private async nextOrdinal(threadKey: string): Promise<number> {
-    const [latest] = await this.entityService.listEntities(
+  private async nextOrdinal(
+    entities: Pick<MailThreadEntityAccess, "listEntities">,
+    threadKey: string,
+  ): Promise<number> {
+    const [latest] = await entities.listEntities(
       {
         entityType: "mail-item",
         options: {
@@ -191,9 +210,12 @@ export class MailThreadOrdinalCoordinator {
     return (latest?.metadata.threadOrdinal ?? 0) + 1;
   }
 
-  private async exists(id: string): Promise<boolean> {
+  private async exists(
+    entities: Pick<MailThreadEntityAccess, "getEntity">,
+    id: string,
+  ): Promise<boolean> {
     return (
-      (await this.entityService.getEntity({
+      (await entities.getEntity({
         entityType: "mail-item",
         id,
         visibilityScope: "restricted",

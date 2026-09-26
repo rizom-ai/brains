@@ -2,16 +2,11 @@ import { createMockShell, type MockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import type { AuthPrincipal } from "@brains/auth-service";
 import type { BaseEntity, WebRouteDefinition } from "@brains/plugins";
-import {
-  BaseEntityAdapter,
-  baseEntitySchema,
-  createServicePluginContext,
-} from "@brains/plugins";
+import { BaseEntityAdapter, baseEntitySchema } from "@brains/plugins";
 import { PermissionService } from "@brains/templates";
 
 import { z } from "@brains/utils/zod";
-import { createEditorRoutes } from "../src/editor-routes";
-import { StudioWorkspaceRegistry } from "../src/workspace-registry";
+import { installStudio, signIn } from "./helpers/install";
 
 const mutationFrontmatterSchema = z.object({
   title: z.string(),
@@ -88,14 +83,14 @@ function fixtureEntity(input: {
   };
 }
 
-function createMutationFixture(
+async function createMutationFixture(
   permissionLevel: FixturePermissionLevel = "trusted",
-): {
+): Promise<{
   shell: MockShell;
   routes: WebRouteDefinition[];
   setPermissionLevel: (level: FixturePermissionLevel) => void;
   permissionService: PermissionService;
-} {
+}> {
   const shell = createMockShell({ domain: "yeehaa.io" });
   const registry = shell.getEntityRegistry();
   for (const entityType of ["post", "secret", "never-note", "smuggle"]) {
@@ -160,15 +155,8 @@ function createMutationFixture(
   shell.getPermissionService = (): PermissionService => permissionService;
 
   let activePermissionLevel = permissionLevel;
-  const context = createServicePluginContext(shell, "studio");
-  const routes = createEditorRoutes({
-    routePath: "/studio",
-    getContext: () => context,
-    resolveAuthPrincipal: async (): Promise<AuthPrincipal> =>
-      principalFor(activePermissionLevel),
-    getEntityDisplay: () => undefined,
-    workspaceRegistry: new StudioWorkspaceRegistry(),
-  });
+  signIn(shell, () => principalFor(activePermissionLevel));
+  const { routes } = await installStudio(shell);
   return {
     shell,
     routes,
@@ -251,7 +239,7 @@ function updatePayload(input: {
 
 describe("Studio entity mutation policy", () => {
   it("honours wildcard defaults, type overrides, and never for creates", async () => {
-    const trusted = createMutationFixture("trusted");
+    const trusted = await createMutationFixture("trusted");
     const trustedCreate = findRoute(trusted.routes, "POST");
 
     const allowed = await trustedCreate.handler(
@@ -277,7 +265,7 @@ describe("Studio entity mutation policy", () => {
       ),
     );
 
-    const admin = createMutationFixture("admin");
+    const admin = await createMutationFixture("admin");
     const neverDenied = await findRoute(admin.routes, "POST").handler(
       mutationRequest(
         "/studio/api/entities",
@@ -313,7 +301,7 @@ describe("Studio entity mutation policy", () => {
   });
 
   it("caps adapter-derived visibility and hides unreadable mutation targets", async () => {
-    const { shell, routes } = createMutationFixture("trusted");
+    const { shell, routes } = await createMutationFixture("trusted");
     const createRoute = findRoute(routes, "POST");
     const updateRoute = findRoute(routes, "PUT");
 
@@ -394,7 +382,7 @@ describe("Studio entity mutation policy", () => {
   });
 
   it("requires publish permission when entering or remaining published", async () => {
-    const trusted = createMutationFixture("trusted");
+    const trusted = await createMutationFixture("trusted");
     const route = findRoute(trusted.routes, "PUT");
 
     const draftEdit = await route.handler(
@@ -419,7 +407,7 @@ describe("Studio entity mutation policy", () => {
       ),
     );
 
-    const admin = createMutationFixture("admin");
+    const admin = await createMutationFixture("admin");
     const adminPublish = await findRoute(admin.routes, "PUT").handler(
       mutationRequest(
         "/studio/api/entities",
@@ -435,7 +423,7 @@ describe("Studio entity mutation policy", () => {
   });
 
   it("rechecks action policy immediately before persistence", async () => {
-    const fixture = createMutationFixture("trusted");
+    const fixture = await createMutationFixture("trusted");
     const assertAllowed =
       fixture.permissionService.assertEntityActionAllowed.bind(
         fixture.permissionService,
@@ -474,7 +462,7 @@ describe("Studio entity mutation policy", () => {
   });
 
   it("preserves stale-write checks after authorization", async () => {
-    const { routes } = createMutationFixture("trusted");
+    const { routes } = await createMutationFixture("trusted");
     const response = await findRoute(routes, "PUT").handler(
       mutationRequest(
         "/studio/api/entities",
@@ -491,7 +479,7 @@ describe("Studio entity mutation policy", () => {
   });
 
   it("re-resolves changed roles and enforces wildcard delete policy", async () => {
-    const fixture = createMutationFixture("trusted");
+    const fixture = await createMutationFixture("trusted");
     const deleteRoute = findRoute(fixture.routes, "DELETE");
 
     const trustedDelete = await deleteRoute.handler(
@@ -523,7 +511,7 @@ describe("Studio entity mutation policy", () => {
   });
 
   it("requires same-origin JSON and explicit delete confirmation", async () => {
-    const admin = createMutationFixture("admin");
+    const admin = await createMutationFixture("admin");
     const createRoute = findRoute(admin.routes, "POST");
     const deleteRoute = findRoute(admin.routes, "DELETE");
 

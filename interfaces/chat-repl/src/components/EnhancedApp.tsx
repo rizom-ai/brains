@@ -1,3 +1,4 @@
+import type { JobProgressEvent } from "@brains/sdk/interfaces";
 /** @jsxImportSource react */
 import { useState, useCallback, useEffect, useMemo } from "react";
 import React from "react";
@@ -9,7 +10,6 @@ import { StatusBarWithProgress } from "./StatusBarWithProgress";
 import { MultiLineProgress } from "./MultiLineProgress";
 import { CommandHistory } from "../features/history";
 import type { EnhancedAppProps } from "../types/app-props";
-import type { JobProgressEvent } from "@brains/plugins";
 
 export default function EnhancedApp({
   interface: cliInterface,

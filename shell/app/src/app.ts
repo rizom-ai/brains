@@ -209,6 +209,10 @@ function applyAppMetadata(config: AppConfig, shellConfig: ShellConfig): void {
     shellConfig.siteBaseUrl = config.deployment.domain;
   }
 
+  shellConfig.http = {
+    ...config.http,
+    port: config.deployment.ports.production,
+  };
   shellConfig.localSiteUrl = `http://localhost:${config.deployment.ports.production}`;
   shellConfig.preferLocalUrls = preferLocalUrlsForRuntime();
 }
@@ -266,9 +270,22 @@ export class App {
     if (!this.hasCLI) return;
 
     const pluginManager = this.getShell().getPluginManager();
-    const { CLIInterface } = await import("@brains/chat-repl");
-    const plugin = new CLIInterface(this.config.cliConfig);
-    pluginManager.registerPlugin(plugin);
+    // Both imports stay dynamic. A static one puts tsyringe on the binary's
+    // entry path ahead of the reflect-metadata polyfill, and the built
+    // binary then refuses to boot — which only the boot smoke catches.
+    const [{ default: chatRepl }, plugins] = await Promise.all([
+      import("@brains/chat-repl"),
+      import("@brains/plugins"),
+    ]);
+    const metadata = { name: "@brains/chat-repl", version: "0.0.0" };
+    plugins.bindPluginPackageMetadata(chatRepl, metadata);
+    for (const plugin of plugins.instantiatePluginPackageDefinition(
+      chatRepl,
+      this.config.cliConfig ?? {},
+      metadata,
+    )) {
+      pluginManager.registerPlugin(plugin);
+    }
   }
 
   public async initialize(

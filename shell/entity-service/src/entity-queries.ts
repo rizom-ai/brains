@@ -66,6 +66,10 @@ const sortFieldSchema: z.ZodObject<{
 /**
  * Schema for list entities options
  */
+const metadataFilterScalarSchema: z.ZodUnion<
+  readonly [z.ZodString, z.ZodNumber, z.ZodBoolean]
+> = z.union([z.string(), z.number(), z.boolean()]);
+
 const listOptionsSchema: z.ZodObject<{
   limit: z.ZodOptional<z.ZodNumber>;
   offset: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
@@ -73,6 +77,9 @@ const listOptionsSchema: z.ZodObject<{
   filter: z.ZodOptional<
     z.ZodObject<{
       metadata: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
+      metadataAnyOf: z.ZodOptional<
+        z.ZodRecord<z.ZodString, z.ZodArray<typeof metadataFilterScalarSchema>>
+      >;
       contentContains: z.ZodOptional<z.ZodString>;
       visibility: z.ZodOptional<
         z.ZodEnum<{
@@ -100,6 +107,9 @@ const listOptionsSchema: z.ZodObject<{
   filter: z
     .object({
       metadata: z.record(z.string(), z.unknown()).optional(),
+      metadataAnyOf: z
+        .record(z.string(), z.array(metadataFilterScalarSchema))
+        .optional(),
       contentContains: z.string().max(200).optional(),
       visibility: z.enum(["public", "shared", "restricted"]).optional(),
       visibilityScope: z.enum(["public", "shared", "restricted"]).optional(),
@@ -244,6 +254,35 @@ export class EntityQueries {
     return { entity, revision: entityRevision(data) };
   }
 
+  public async getEntityDataMany(
+    entityType: string,
+    ids: readonly string[],
+    visibilityScope?: ContentVisibility,
+  ): Promise<EntityData[]> {
+    const uniqueIds = [...new Set(ids)];
+    if (uniqueIds.length === 0) return [];
+
+    const scope = visibilityScope ?? "public";
+    const conditions: SQL[] = [
+      eq(entities.entityType, entityType),
+      inArray(entities.id, uniqueIds),
+    ];
+    if (scope !== "restricted") {
+      conditions.push(
+        inArray(entities.visibility, getVisibleContentVisibilities(scope)),
+      );
+    }
+    const rows = await this.db
+      .select()
+      .from(entities)
+      .where(and(...conditions));
+    const byId = new Map(rows.map((row) => [row.id, normalizeEntityRow(row)]));
+    return uniqueIds.flatMap((id) => {
+      const entity = byId.get(id);
+      return entity ? [entity] : [];
+    });
+  }
+
   /**
    * List entities by type with pagination
    */
@@ -268,6 +307,7 @@ export class EntityQueries {
       entityType,
       publishedOnly,
       filter?.metadata,
+      filter?.metadataAnyOf,
       filter?.visibilityScope,
       publishedStatuses,
       filter?.contentContains,
@@ -419,6 +459,7 @@ export class EntityQueries {
       entityType,
       undefined,
       filter?.metadata,
+      undefined,
       input.visibilityScope,
       undefined,
       filter?.contentContains,
@@ -507,6 +548,7 @@ export class EntityQueries {
     entityType: string,
     publishedOnly?: boolean,
     metadataFilter?: Record<string, unknown>,
+    metadataAnyOf?: Record<string, Array<string | number | boolean>>,
     visibilityScope?: ContentVisibility,
     publishedStatuses?: string[],
     contentContains?: string,
@@ -554,6 +596,25 @@ export class EntityQueries {
             sql`json_extract(${entities.metadata}, ${jsonPath}) = ${value}`,
           );
         }
+      }
+    }
+
+    if (metadataAnyOf) {
+      for (const [key, values] of Object.entries(metadataAnyOf)) {
+        if (values.length === 0) {
+          conditions.push(sql`0`);
+          continue;
+        }
+        const expression =
+          key === "sourceSummaryId"
+            ? sql`json_extract(${entities.metadata}, '$.sourceSummaryId')`
+            : sql`json_extract(${entities.metadata}, ${`$.${key}`})`;
+        conditions.push(
+          sql`${expression} IN (${sql.join(
+            values.map((value) => sql`${value}`),
+            sql`, `,
+          )})`,
+        );
       }
     }
 
@@ -620,6 +681,8 @@ export class EntityQueries {
       filter?:
         | {
             metadata?: Record<string, unknown> | undefined;
+            metadataAnyOf?:
+              Record<string, Array<string | number | boolean>> | undefined;
             contentContains?: string | undefined;
             visibility?: ContentVisibility | undefined;
             visibilityScope?: ContentVisibility | undefined;
@@ -633,6 +696,7 @@ export class EntityQueries {
       entityType,
       validatedOptions.publishedOnly,
       validatedOptions.filter?.metadata,
+      validatedOptions.filter?.metadataAnyOf,
       validatedOptions.filter?.visibilityScope,
       publishedStatuses,
       validatedOptions.filter?.contentContains,

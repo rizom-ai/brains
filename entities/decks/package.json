@@ -4,24 +4,23 @@
   "version": "0.2.0-alpha.413",
   "description": "Presentation decks plugin for creating and viewing slide presentations",
   "dependencies": {
+    "@brains/image": "workspace:*",
+    "@brains/media-page-composer": "workspace:*",
+    "@brains/sdk": "workspace:*",
+    "@rizom/brain-ui": "workspace:*"
+  },
+  "devDependencies": {
     "@brains/atproto-contracts": "workspace:*",
     "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
-    "@brains/image": "workspace:*",
-    "@brains/media-page-composer": "workspace:*",
-    "@brains/plugins": "workspace:*",
-    "@brains/site-composition": "workspace:*",
-    "@brains/templates": "workspace:*",
-    "@brains/ui-library": "workspace:*",
-    "@brains/utils": "workspace:*"
-  },
-  "devDependencies": {
-    "@brains/app": "workspace:*",
     "@brains/entity-service": "workspace:*",
     "@brains/eslint-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/site-composition": "workspace:*",
     "@brains/style-guide": "workspace:*",
     "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@brains/utils": "workspace:*",
     "@types/bun": "^1.4.0",
     "bun-types": "^1.4.0",
     "eslint": "^10.5.0",

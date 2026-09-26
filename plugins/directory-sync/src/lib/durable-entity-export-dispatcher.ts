@@ -1,8 +1,5 @@
-import {
-  SerialQueue,
-  type BaseEntity,
-  type ContentVisibility,
-} from "@brains/plugins";
+import type { BaseEntity, ContentVisibility } from "@brains/sdk/entities";
+import { SerialQueue } from "@brains/utils/serial-queue";
 import { getErrorMessage } from "@brains/utils/error";
 import type { Logger } from "@brains/utils/logger";
 import type { GitReconciliationCheckpoint, IGitSync } from "../types";

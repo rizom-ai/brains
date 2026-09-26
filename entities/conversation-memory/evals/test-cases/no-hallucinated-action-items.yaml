@@ -6,7 +6,7 @@ tags:
   - summary
   - hallucination
   - action-items
-plugin: conversation-memory
+plugin: "@brains/conversation-memory:conversation-memory"
 handler: summarizeMessages
 
 input:
@@ -28,7 +28,7 @@ expectedOutput:
   validateEach:
     - path: actionItems[0]
       exists: false
-    - path: keyPointsText
+    - path: summary
       matches: "outdated|digest|eval"
   qualityCriteria:
     minRelevanceScore: 4

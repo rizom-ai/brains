@@ -1,8 +1,13 @@
 # Public API `0.2`
 
-This is the patch-stable public API ledger for the `0.2.x` line, covering
-external authoring and headless browser contracts. A symbol is stable only when
-it appears below. The machine-readable source is
+> **Candidate contract; stable nomination is pending.** Breaking alpha cleanup
+> is allowed before the stable freeze. The patch-compatibility promise and
+> later-minor requirement for breaking changes begin only when stable `0.2.0`
+> is published; historical alpha releases do not establish those guarantees.
+
+This is the proposed patch-stable public API ledger for the `0.2.x` line,
+covering external authoring and headless browser contracts. Only symbols listed
+below are nominated for the stable contract. The machine-readable source is
 [`export-ledger.json`](../../packages/brain-cli/test/fixtures/public-authoring/export-ledger.json).
 Authoring packages beside that ledger and the separate packed headless Chat
 consumer are the compatibility fixtures.
@@ -138,39 +143,173 @@ Every other export from this subpath remains an advanced consumer-backed alpha c
 
 ## `@rizom/brain/entities`
 
+Entity metadata schemas describe canonical stored values. Defaults and safe
+coercions are supported; refinements must be pure, and defaults must satisfy
+the canonical schema. Explicit rewriting pipelines, preprocessors, codecs,
+overwrite checks (including trim/case conversion), and success wrappers are
+rejected recursively at definition/registration. Normalize external input in
+tool/job/request schemas or import decoders instead. `metadataFrom` migrations
+must leave current metadata unchanged.
+
 Definitions and schema vocabulary:
 
 - `defineEntity`
 - `defineEntityPackage`
 - `defineProjection`
+- `frontmatterInContent`
 - `z`
+- `canWriteVisibility`
+- `permissionToVisibilityScope`
+- `DurableBulkMutationChildRef`
+- `durableBulkMutationChildRefSchema`
+- `isEntityValidationError`
+- `ListToolOutputSchema`
+- `createListToolOutputSchema`
 
 Types:
 
 - `EncodedEntityMarkdown`
 - `EntityDefinition`
+- `EntityDefinitionConfig`
 - `EntityMarkdownCodec`
 - `EntityMarkdownDocument`
 - `EntityOf`
+- `EntityAccess`
+- `EntityReader`
+- `EntityWriteInput`
 - `EntityPackageDefinition`
+- `EntitySeedDefinition`
+- `EntitySeedTrigger`
 - `ProjectionDefinition`
 
 The runtime owns base entity fields, persistence, markdown validation, search indexing, projection scheduling, and worker execution.
 
+Advanced named consumer: Studio uses `encodeEntityIdPath`, `decodeEntityIdPath`,
+`preserveSourceFrontmatter`, `entityIdPathSchema`,
+`EntityIdPath`, `EntityIdPathInput`, `QueryEntityHierarchyRequest`, and
+`EntityHierarchyPage`. Setup/job entity readers expose bounded `queryEntityHierarchy`
+reads, capped by their visibility scope. Operator creation accepts `idPath` and
+atomically requires that destination to be absent; it never silently renames or overwrites it.
+
+`defineEntity.displayTitle` is a read-only label projection (named consumer: Note).
+It receives content and validated metadata without a writer. Its result is never
+used for serialization or persisted metadata; display labels cannot replace stored
+titles. Studio asks the adapter through `ServiceEntityShapes.displayTitle`, rather
+than deriving titles itself.
+Note preserves authored titles and limits first-body-line fallbacks to 80 Unicode characters.
+
+`defineEntity.singleton: true` constrains the record ID to its entity type and marks the type as a singleton for file collections. `markdown.frontmatter` optionally describes authored file fields separately from indexed metadata; otherwise the metadata schema is used. Ask content consumes both: bounded welcome/topic fields remain in markdown while indexed metadata stays empty.
+
+`EntityDefinitionConfig` is the optional `config` slot on `defineEntity`. It carries deliberate opt-outs — `embeddable`, `fullTextSearchable`, `projectionSource`, `projectionSourceRole`, `weight` — for entity types that are system configuration rather than user content. Omitted fields keep the runtime defaults.
+
+An entity may declare `validatePersist({ content, visibility })` to enforce a persistence invariant even when installed without a service. The callback receives a frozen, detached view; throwing rejects the write. Contact uses this to require restricted visibility and validate private Markdown without exposing submitted details in errors. Registered Markdown parsers strip the system-owned visibility envelope before domain validation and return sanitized coded failures rather than raw YAML errors containing source buffers.
+
+Owned service setup/ready entity access accepts `create(entity, { conditionalWrite: { expectedRevision: null }, signal, beforeWrite })` for atomic create-if-absent and `update(entity, { expectedContentHash, signal })` for conditional updates. Ownership is checked first; these options grant no foreign writes, attribution overrides, or revision-based replacement. The before-write guard receives a detached, outer-frozen snapshot and cannot patch the canonical write. They are not additional options on definition-typed callback entity access.
+
+Service `dependsOn` may derive its dependency list from parsed config, keeping optional integrations genuinely optional. Request subscriptions may explicitly declare `execution: "all-roles"` when job workers must answer them (Notifications, or Contact's bounded form-discovery metadata for worker site builds); ordinary subscriptions remain scheduler-only. Workers do not run service ready hooks or expose declared HTTP routes. Recurring-check execution definitions remain available to workers; scheduler-owned maintenance instead uses an owned lifecycle that cancels and drains before shutdown.
+
+`frontmatterInContent` builds the markdown codec for a type whose files keep
+their own frontmatter — one synced to disk and edited there, where the header
+is part of the document a person opens. Such a record holds the same fields
+twice, and metadata is the copy a change reaches, so encoding merges metadata
+over what the file already carries: tracked fields take the metadata value,
+and anything added by hand survives.
+
+`EntitySeedDefinition` is the optional `seed` slot. It declares a default entity the brain should hold before anyone authors one, created only when `EntitySeedTrigger` fires and only if no entity with that id exists, so a seed can never overwrite authored content.
+
+Style guide contract:
+
+- `DEFAULT_STYLE_GUIDE`
+- `fetchStyleGuide`
+- `fetchVoiceGuidance`
+- `formatStyleGuidance`
+- `formatVisualGuidance`
+- `formatVoiceGuidance`
+- `parseStyleGuideContent`
+- `styleGuideFromEntity`
+- `styleGuideFrontmatterSchema`
+- `styleGuideMessagingSchema`
+- `styleGuideVisualSchema`
+- `styleGuideVoiceSchema`
+
+Style guide types:
+
+- `FormattedStyleGuidance`
+- `StyleGuide`
+- `StyleGuideEntityReader`
+- `StyleGuideFrontmatter`
+- `StyleGuideMessaging`
+- `StyleGuideVisual`
+- `StyleGuideVoice`
+
+The brain's house style is a singleton entity. Packages that generate prose or imagery read it through `fetchStyleGuide` and render it with the `format*` helpers rather than reaching for the entity directly.
+
 ## `@rizom/brain/services`
+
+The MCP server defaults to **basic mode**, whose built-in chat and confirm tools use the protocol names `mcp_chat` and `mcp_confirm`. Basic-mode clients ask `mcp_chat` to search or retrieve content through the brain. A tool's direct exposure is a separate setting: ordinary tools default to debug-only unless explicitly opted into basic exposure; being read-only does not opt them in. Internal agent availability remains separate. Enabling debug mode requires Admin access, and individual tool permissions still apply.
 
 Definitions and schema vocabulary:
 
 - `contentGenerationResultSchema`
+- `SdkError`
+- `SdkErrorCode`
+- `SdkErrorData`
+- `sdkErrorCodeSchema`
+- `sdkErrorSchema`
 - `defineAccountSettings`
 - `defineStudioWorkspace`
 - `defineDashboardWidget`
 - `defineEntityCatalog`
 - `defineJob`
+- `defineRoute`
 - `defineServicePlugin`
+- `defineSubscription`
 - `defineTool`
 - `defineWorkspaceAction`
 - `z`
+- `verbatim`
+- `permissionToVisibilityScope`
+- `UserPermissionLevelSchema`
+- `defineDataSource`
+- `ServiceRecentJob`
+- `SerializedStatusStore`
+- `SerializedStatusStoreOptions`
+- `StaticSiteOutput`
+- `ServiceTemplateDefinition`
+- `ServiceTemplateReads`
+- `ServiceSchema`
+- `ServiceRenderSchema`
+- `requireSameOriginJson`
+- `requireSameOriginRequest`
+- `EntityAction`
+- `IInboxNamespace`
+- `IPluginsNamespace`
+- `InterfaceCaller`
+- `OperatorEntityWrites`
+- `OperatorUploadOutcome`
+- `OperatorUploadRequest`
+- `RuntimeReadiness`
+- `ServiceChannelReader`
+- `ServiceEntityShapes`
+- `UserPermissionLevel`
+- `ServiceBatchOperation`
+- `ServiceBatchOptions`
+- `ServiceBatchReference`
+- `ServiceBatchStatus`
+- `ServiceJobHooks`
+- `ServiceJobSettledContext`
+- `ServiceJobSettledHandler`
+- `IRuntimeStateNamespace`
+- `RuntimeHealthCheck`
+- `OperationalHealthProvider`
+- `ServiceLifecycle`
+- `OperatorColumnsBlock`
+- `OperatorPanelBlock`
+- `BoundWorkspaceAction`
+- `OperatorBindingContext`
+- `jsonResponse`
+- `jsonError`
+- `IInboxFollowUpsNamespace`
 
 Types:
 
@@ -207,6 +346,7 @@ Types:
 - `ServiceJobReference`
 - `ServiceJobStatus`
 - `ServicePackageDefinition`
+- `ServiceToolDefinition`
 - `ServiceTemplateGenerationDefinition`
 - `WorkspaceActionConfirmation`
 - `WorkspaceActionDefinition`
@@ -219,8 +359,93 @@ Types:
 - `WorkspaceActionResultFieldDefinition`
 - `WorkspaceActionResultFieldMap`
 - `WorkspacePreparedConfirmation`
+- `IRuntimeStateStore`
+- `RuntimeStateScopeOptions`
+- `AnyInterfaceRouteDefinition`
+- `AnySubscriptionDefinition`
+- `RequestContract`
+- `SubscriptionDefinition`
+- `EntityAccess`
+- `EntityReader`
+- `EntityWriteInput`
+- `ServiceToolContext`
+- `ServiceJobHandlerContext`
+- `PublicSkill`
+- `IAttachmentsNamespace`
+- `IPermissionsNamespace`
+- `ServiceActiveJob`
+- `ServiceJobs`
+- `ServicePublisher`
+- `ServicePublishingAccess`
+- `ConsoleSurface`
+- `DashboardDigestLine`
+- `DashboardWidgetProviderContext`
+- `EntityCount`
+- `InteractionInfo`
+- `RuntimeOperatorActionControl`
+- `RuntimeOperatorLaunchIntent`
+- `RuntimeOperatorLinkTarget`
+- `SurfacePermissionLevel`
+- `AppInfo`
+- `AnyDataSourceDeclaration`
 
 These operator schemas and executor bindings are the accepted public contract. The account-settings runtime provides encrypted auth-DB persistence, redacted Account forms, principal isolation, and runtime-owned account-daemon reconciliation. Dashboard widgets and Studio workspaces register through host-owned semantic renderers; callbacks receive the canonical caller, secret-redacted current-principal settings, visibility-scoped entities, typed jobs, and cancellation. Studio adds schema-validated query state, bounded host-rendered plain text, typed dynamic catalogs and launch intents, caller/input/revision/expiry/single-use prepared confirmations, schema-driven action forms, bounded ephemeral result presentation, bounded `card` and primary/aside `columns` composition, collection-owned query controls, source-declared compact table rows, and one explicit top-level primary action. Studio keeps unannotated tables in a bounded scrolling fallback and positions the single declared action in the desktop head or phone action bar without hoisting in-flow controls. Form fields must cover every non-pre-bound object input field, select controls have explicit options, secret inputs use password controls, and result declarations cover only scalar object outputs. Forms may opt into collapsed disclosure presentation, and a field label may declaratively follow every option of another select field. Sensitive results are held only in renderer-local state and are cleared on workspace refresh or navigation. Missing optional hosts leave declarations inert, and execution-only workers never bind or register operator callbacks. The packed operator fixture compiles Account settings, Dashboard, and Studio authoring together without browser UI code.
+
+Workspace action inputs are JSON-native wire values (`z.input`), not pre-transformed values. Views validate them but retain the original input for browser submission; admission parses each request once, and bound execute/prepare callbacks receive `z.output`. Defaults and input transforms are supported. A prepared action's revision recheck and execution share that request's parsed input; they do not apply its transforms again.
+
+### Source-backed collections
+
+Advanced named consumer: Studio uses `ServiceGroupingDeclaration`,
+`GroupingVocabularyValue`, `EntityGrouping`, `OperatorEntityGroupings`,
+`entityGroupingSchema`, `groupingKeySchema`, `groupingValueSchema`,
+`groupingSearchSchema`, `groupingSortSchema`, `GROUPING_PAGE_LIMIT`, and
+`GROUPING_MAX_PAGE_LIMIT`.
+
+Services may declare `groupings({ config, state })` with up to 20 validated
+`definitions` (`key`, `label`, source `field`, contributing `types`). An optional
+`vocabulary: { entity, read }` names an owned, registered singleton and a strict
+reader of **that singleton's content**, not a callback over foreign entities.
+The runtime enforces allowed values and cardinality against source-projected
+membership on every write, using the current registered groupings and uncached
+policy. Missing or malformed stored policy leaves groups open for repair.
+
+Vocabulary persistence requires shared visibility, the entity type as its
+singleton ID, known grouping keys, and registered admin/never floors for create,
+update and delete. Entity declarations expose `config.actionPolicy` and
+`hasBody`. An explicit type-owned deletion policy lets the operator obey caller
+policy for that singleton; other singletons retain unconditional protection.
+
+The setup capability `entityGroupings` provides `definitions(caller)`,
+`catalog(request, caller)` and `members(request, caller)`. These intersect
+registered, admitted and requested types; visibility comes from the caller, not
+request data. Pagination is bounded and reads honor cancellation. `ready()`
+reports projection readiness; `contributes(type)` is a static shape trait, not
+a membership read.
+
+Operator mutations/uploads and grouping reads require the exact caller object
+issued by the runtime for an active authenticated route in the same brain.
+Pass `context.caller` directly: constructing, spreading, proxying or deserializing
+its fields does not grant authority. Authority expires when the handler returns
+or throws, and cancellation prevents further calls. Do not retain callers for
+background jobs; use declared job-owned entity access instead. Test these flows
+through the HTTP harness with authenticated fixture requests, not fabricated
+caller literals. `allows`/`refusal` are advisory policy presentation only (also
+used by Inbox affordances); they never authorize a subsequent mutation.
+
+An explicit `markdown.reconstruct(source)` codec can keep malformed stored
+configuration readable. It replaces parsed `decode` and requires
+`validatePersist`; it does not relax ordinary codecs or write validation.
+`frontmatterInContent` preserves unclaimed source fields, including explicit
+nulls, while indexed metadata remains authoritative for its own fields.
+
+Operator create/update can return `{ kind: "invalid", issues }`. Each issue has
+only a field `path` and validator-authored `message`: at most 50 issues, 32 path
+segments (256 characters per string segment), and 1024 characters per message.
+Inputs, native exception objects and original causes are not exposed. Other
+thrown failures use sanitized SDK codes, including conflict and cancellation.
+Deletion and upload infrastructure failures follow the same error boundary.
+Unexpected upload handler exceptions become sanitized refusals with diagnostics
+kept private; explicitly authored refusal messages remain presentation data.
 
 ### Content generation (implementation in progress)
 
@@ -232,9 +457,11 @@ can accept heterogeneous entities without widening their metadata types. Format-
 unknown template keys are rejected.
 
 A target is the frozen, validated JSON that `content.target()` returns. Its entity
-definition is not on it, and its metadata has already been transformed by that definition
-once; `generate` re-validates targets on submission, so a target may be reused across
-calls. Normal entity persistence validation still applies. The active caller is bound when
+definition is not on it, and its canonical metadata has already been validated by that
+definition once (including defaults and safe coercions, not rewriting transforms).
+`generate` re-validates targets on submission, so a target may be reused across calls.
+Every destination must be declared or validly stewarded by the submitting service;
+installing an entity package or referencing its definition grants no write authority. Normal entity persistence validation still applies. The active caller is bound when
 submitting, not when constructing a target.
 
 Use `contentGenerationResultSchema` as a generating tool's output schema. Results contain
@@ -242,6 +469,12 @@ admission decisions, not prose or completion evidence. Counts and references are
 `plannedTargets` includes both planned and queued items. Dry runs return planned/skipped
 items, zero queued targets, and no batch or job references. All-skipped submissions also
 have no batch reference. Submission items report local template declaration keys.
+
+Advanced named consumer: Site Content uses `content.targetFromRegisteredTemplate`
+for qualified templates discovered from composed site routes. These targets retain
+registered names; destination ownership and live caller authorization still apply.
+Site Content delegates durable writes, revision checks, force handling, and cancellation
+to the shared generation runtime rather than a separate fill-section job.
 
 Generation is asynchronous, and its result is an admission record. Each item's destination
 carries the stored `entityId` alongside its `idPath`, so observe completion by reading that
@@ -271,9 +504,12 @@ Definitions and schema vocabulary:
 - `defineDaemon`
 - `defineInterface`
 - `defineMessageInterface`
+- `defineMessageInterfacePackage`
 - `defineRoute`
+- `defineSubscription`
 - `protocol`
 - `z`
+- `ANCHOR_EXTENSION_URI`
 
 Account settings types:
 
@@ -283,10 +519,123 @@ Account settings types:
 
 Permission contract:
 
+- `AgentResponse`
+- `buildCoalescedInput`
+- `buildConfirmationResponseParts`
+- `buildMessageActorMetadata`
+- `buildMessageSourceMetadata`
+- `canReceiveNativeArtifactFile`
+- `ConversationMessageActor`
+- `extractCaptureableUrls`
+- `formatArtifactDisplay`
+- `formatConfirmationResult`
+- `formatPendingConfirmationHelp`
+- `formatPendingConfirmationsFallback`
+- `formatStructuredOutputSummary`
+- `formatToolStatusLabel`
+- `getConfirmationResultTitle`
+- `getToolStatusKey`
+- `InboundMessageSender`
+- `matchSpaceSelector`
+- `MessageChannel`
+- `MessageOutput`
+- `MessageUploadContinuity`
+- `PendingConfirmation`
+- `PermissionLookupContext`
+- `PresentedConfirmation`
+- `PresentedMessage`
+- `ReceiveAuthenticatedInput`
+- `resolveArtifactEntityRefFromCard`
 - `UserPermissionLevel`
 - `UserPermissionLevelSchema`
 
+Subscription and entity contracts:
+
+- `AnySubscriptionDefinition`
+- `RequestContract`
+- `SubscriptionDefinition`
+- `EntityAccess`
+- `EntityReader`
+- `EntityWriteInput`
+- `PublicSkill`
+- `ResolvedProfileKind`
+- `ToolInfo`
+
 The runtime owns HTTP hosting, caller permission and Anchor resolution, daemon supervision, worker exclusion, channel/provider registration, recipient validation, conversations, normalized progress, and shutdown. Account-settings declarations require auth-service plus the deployment-owned `ACCOUNT_SETTINGS_ENCRYPTION_KEY`; secret values are encrypted at rest and never echoed by Account APIs.
+
+`InterfaceDaemonDefinition` is an advanced named type for declarations retained in setup state; Web Chat's guest maintenance is its supported consumer. A daemon must drain its work before its `run` promise settles on cancellation.
+
+Interfaces can publish two durable public presentation flags with `availability.set({ public, preview })`. The runtime binds writes to the installed package and declaration; writers cannot choose another owner, namespace or key. Services and site-build workers use read-only `interfaceAvailability.get({ packageName, declarationId })`, which returns a detached frozen value or `null` for missing, malformed or unreadable data. The frozen capabilities expose only `set` or `get`, respectively. Named consumer: Web Chat's Ask-box placement in worker site builds. These flags are presentation hints—not authorization, admission, budget or live-readiness evidence. Private runtime-state namespaces remain inaccessible. Advanced types: `InterfaceAvailability` and `InterfaceAvailabilityWriter` in `/interfaces`; `InterfaceAvailability`, `InterfaceAvailabilityOwner` and `InterfaceAvailabilityReader` in `/services`.
+
+`SitePageResponse` is an advanced host-themed HTML response marker, supported by
+Web Chat's preview page. It adds no routing or authorization authority.
+
+Routes may declare `preview: true` for preview-host reachability; this never bypasses
+session, origin, authorization, or admission checks. Interface setup exposes the
+runtime-derived `siteUrl` and `previewUrl` for Web Chat's operator-authorized preview
+trial. Omitted guest configuration remains inactive until authorized; explicit
+`guest: false` disallows activation. These deployment origins never come from headers.
+
+Message receive/approval inputs accept a request `signal`, combined with lifecycle
+cancellation. An approval outcome of `failed` must not trigger an implicit replay;
+`needsTerminal` tells the transport whether to close an unmatched client tool call.
+Web Chat completes each submitted decision once and ends failed/aborted streams
+without a success frame or provider-error disclosure.
+
+Route handlers receive optional, detached, frozen `transport` socket metadata from the HTTP host. `transport.remoteAddress` is never inferred from Host, Origin, or forwarding headers; absence must fail closed wherever a peer restriction is required. The instance's `http.hostname` selects the listener's bind address.
+
+Runtime-state `compareAndSet(key, expected, input)` compares a parsed read snapshot and persists validated JSON wire input, like `set`. A mismatch returns `false`; an invalid replacement rejects. The SQL update checks the exact stored snapshot atomically, including across connections. Use a persisted revision to distinguish ABA changes; non-deterministic read transformations cannot provide a stable expected snapshot.
+
+## `@rizom/brain/testing`
+
+Testing a package without booting a brain. The same harness every package in
+this repository uses, narrowed to what an author needs and typed without
+reaching into the runtime — the mock shell, the entity registry and the plugin
+contexts stay internal.
+
+- `createBrainTestHarness`
+- `BrainTestHarness`
+- `BrainTestHarnessOptions`
+- `InstalledPackage`
+- `InstalledTool`
+- `SeededEntity`
+- `TestCaller`
+- `TestToolConfirmation`
+- `ToolCallResult`
+- `createTempDataDir`
+- `createTempDataDirSync`
+
+`InstalledPackage.tool(name)` and `job(name)` resolve exact local declaration
+names. Tools and jobs expose `localName`; their `name` remains runtime-scoped.
+`templateNames()` and `formatTemplate(name, value)` use exact declaration-local
+names, including templates with explicit namespaces. Unknown or ambiguous
+lookups throw with available names. Formatting parses the input once; registered
+text formatters consume schema output, including transformed values.
+
+`addEntities` and package writes feed deterministic fixture search: all query
+terms must match id/title/body case-insensitively. Visibility, type filters,
+generation-status filtering, sorting, weights, score cutoffs, and pagination
+apply. Matches have base score 1 with type/id tie-breaking; the default page is
+20 results and empty queries return none. This is not FTS or vector-search
+acceptance. Reset removes the fixtures.
+
+`fetchResponse(method, path, init)` returns the full, unconsumed `Response`,
+including status and headers, after route authentication and schema validation.
+`fetch` runs the same pipeline but decodes JSON responses to data; use
+`fetchResponse` for protocol assertions, including explicit JSON responses.
+Both helpers JSON-encode `init.body`, defaulting its content type only if no
+case-insensitive header override is present. Relative paths resolve against
+HTTPS at `options.domain` (hostname and optional port), or `https://test.brain`
+when omitted; absolute URLs retain their own origin and scheme.
+`init.transport?: { readonly remoteAddress?: string }` supplies explicit
+test-only host socket metadata through the route pipeline's detached, frozen
+snapshot. Omitting transport supplies no trusted peer, regardless of forwarding
+headers.
+
+Tool calls enforce declared permissions and return success, error, or
+`{ ok: false, confirmation }` when approval is pending. Confirmation includes the
+summary and replay arguments; it is not a failure. Package installation rolls
+back all newly installed children on failure, without resetting earlier packages.
 
 ## `@rizom/site`
 
@@ -343,6 +692,111 @@ JSON and schema-backed content types:
 - `SiteContentSectionDefinition`
 - `SiteContentStringFieldDefinition`
 
+## `@rizom/brain-ui`
+
+React components for site and dashboard templates. `react` and `react-dom` are peer dependencies. The package ships compiled JavaScript and bundled declarations; consumers need neither private workspace packages nor a StyleX compiler. The package holds more components than it publishes; this list is the supported surface, and adding to it requires a named consumer.
+
+Standalone hosts of the `Widget*` components and `CardHeader` must include `operatorViewStylexCSS` in their stylesheet. This immutable CSS string is an advanced-with-consumer export, used by the Agent Discovery proximity-map template. Treat its contents and generated class names as opaque implementation details; Studio and Dashboard already supply the shared operator stylesheet.
+
+Components and helpers:
+
+- `Alert`
+- `BackLink`
+- `Breadcrumb`
+- `CTASection`
+- `Card`
+- `CardHeader`
+- `CardImage`
+- `CardMetadata`
+- `CardTitle`
+- `ContentArchive`
+- `ContentList`
+- `CoverImage`
+- `DetailPageHeader`
+- `EmptyState`
+- `Footer`
+- `Head`
+- `HeadProvider`
+- `Header`
+- `ImageRendererProvider`
+- `KeyValueList`
+- `LinkButton`
+- `ListPageHeader`
+- `MarkdownContent`
+- `NewsletterSignup`
+- `OgCard`
+- `Pagination`
+- `PresentationLayout`
+- `SectionHeader`
+- `StatBadge`
+- `StatusBadge`
+- `SubjectsList`
+- `TagsList`
+- `ThemeToggle`
+- `WidgetActionLink`
+- `WidgetActions`
+- `WidgetEmptyState`
+- `WidgetFilter`
+- `WidgetList`
+- `WidgetListItem`
+- `WidgetMetaLine`
+- `WidgetPrimitiveEmptyState`
+- `WidgetStatusPill`
+- `WidgetTabs`
+- `WidgetTags`
+- `createWidgetInstanceId`
+- `cssVariables`
+- `formatDate`
+- `markdownToHtml`
+- `renderHighlightedText`
+- `splitWordmark`
+- `tagVariants`
+- `useMarkdownToHtml`
+
+Types:
+
+- `AlertProps`
+- `BackLinkProps`
+- `BreadcrumbItem`
+- `BreadcrumbProps`
+- `CSSVariableProperties`
+- `CTASectionProps`
+- `CardImageProps`
+- `CardMetadataProps`
+- `CardProps`
+- `CardTitleProps`
+- `ContentArchiveProps`
+- `ContentItem`
+- `ContentListProps`
+- `CoverImageProps`
+- `DetailPageHeaderProps`
+- `EmptyStateProps`
+- `HeadCollectorInterface`
+- `HeadProps`
+- `HeadProviderProps`
+- `HeaderProps`
+- `ImageRenderer`
+- `ImageRendererProviderProps`
+- `KeyValueItem`
+- `LinkButtonProps`
+- `ListPageHeaderProps`
+- `MarkdownContentProps`
+- `NewsletterSignupProps`
+- `OgCardProps`
+- `PaginationProps`
+- `PresentationLayoutProps`
+- `RenderedImageRef`
+- `SectionHeaderProps`
+- `StatBadgeProps`
+- `StatusBadgeProps`
+- `SubjectsListProps`
+- `TagsListProps`
+- `ThemeToggleProps`
+- `WidgetDataAttributes`
+- `WidgetElementProps`
+- `WidgetFilterOption`
+- `WidgetTabDefinition`
+
 ## Exported but not stable
 
 `@rizom/brain/plugins`, `@rizom/brain/templates`, and the advanced names classified in `export-ledger.json` remain consumer-backed alpha contracts. They are not part of the patch-stable authoring commitment unless listed above. Pin an exact version when using them.
@@ -351,4 +805,4 @@ Internal `@brains/*` packages, runtime classes, contexts, registries, queue type
 
 ## Compatibility rule
 
-A `0.2.x` candidate must compile and run the frozen entity, service, account-settings-interface, operator-surface, generic-interface, message-interface, site, and brain-definition fixtures without source changes. Additive stable exports require an updated ledger and compatibility fixture; breaking these names or behaviors requires a later minor release.
+After stable `0.2.0` is published, a `0.2.x` patch candidate must compile and run the frozen entity, service, account-settings-interface, operator-surface, generic-interface, message-interface, site, brain-definition, and reminders fixtures without source changes. Additive stable exports require an updated ledger and compatibility fixture; breaking these names or behaviors requires a later minor release. Before that freeze, breaking alpha cleanup must update the examples and evidence rather than preserve obsolete authoring paths.

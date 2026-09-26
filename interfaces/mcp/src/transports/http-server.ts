@@ -6,8 +6,10 @@ import {
   type McpServer,
 } from "@modelcontextprotocol/server";
 import type { ActorRef } from "@brains/contracts";
-import type { IMCPTransport, ToolVisibility } from "@brains/mcp-service";
-import { ToolVisibilitySchema } from "@brains/mcp-service";
+import type {
+  IMCPTransport,
+  UserPermissionLevel,
+} from "@brains/sdk/interfaces";
 import type { Logger } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
 import type { TransportLogger } from "./types";
@@ -16,7 +18,7 @@ import { adaptLogger, createConsoleLogger } from "./types";
 export interface VerifiedBearerToken {
   subject: string;
   scope?: string[];
-  permissionLevel?: ToolVisibility;
+  permissionLevel?: UserPermissionLevel;
   isAnchor?: boolean;
   actor?: ActorRef;
   displayName?: string;
@@ -70,6 +72,9 @@ function requestOrigin(request: Request): string {
  * registry, so protocol clients cannot retain stale capabilities across
  * registry or permission changes.
  */
+/** What an authenticated caller may claim; anything else is not a level. */
+const permissionLevelSchema = z.enum(["admin", "trusted", "public"]);
+
 export class StreamableHTTPServer {
   private mcpTransport: IMCPTransport | null = null;
   private mcpHandler: McpHttpHandler | null = null;
@@ -369,15 +374,14 @@ export class StreamableHTTPServer {
     this.mcpTransport = mcpTransport ?? null;
     this.mcpHandler = createMcpHandler(
       ({ authInfo }) => {
-        // authInfo.extra is an untyped bag off the auth layer; a bad value
-        // here would otherwise widen tool visibility silently.
-        const permissionLevel = ToolVisibilitySchema.safeParse(
+        // Parsed at the boundary: `extra` is an open record the auth layer
+        // fills in, so what it holds is checked rather than declared.
+        const claimed = permissionLevelSchema.safeParse(
           authInfo?.extra?.["permissionLevel"],
         );
+        const permissionLevel = claimed.success ? claimed.data : undefined;
         return this.mcpTransport
-          ? this.mcpTransport.createMcpServer(
-              permissionLevel.success ? permissionLevel.data : undefined,
-            )
+          ? this.mcpTransport.createMcpServer(permissionLevel)
           : mcpServer;
       },
       {

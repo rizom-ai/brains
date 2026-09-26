@@ -1,6 +1,6 @@
 ---
 "@brains/site-engine": patch
-"@brains/ui-library": patch
+"@rizom/brain-ui": patch
 "@brains/content-formatters": patch
 ---
 

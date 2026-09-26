@@ -97,7 +97,7 @@ describe("@rizom/site-rizom-ai", () => {
       "decks:deck-list",
     ]);
     expect(byId("network")?.sections?.[0]?.template).toBe(
-      "agent-discovery:agent-list",
+      "@brains/agent-discovery:agent:agent-list",
     );
   });
 
@@ -142,12 +142,14 @@ describe("@rizom/site-rizom-ai", () => {
     // merged over via the content overlay. The knowledge map works the same
     // way through the topics plugin.
     const network = route?.sections?.[0];
-    expect(network?.template).toBe("agent-discovery:proximity-map");
+    expect(network?.template).toBe(
+      "@brains/agent-discovery:agent:proximity-map",
+    );
     expect(network?.dataQuery).toBeDefined();
     const knowledge = route?.sections?.find(
       (section) => section.id === "proof",
     );
-    expect(knowledge?.template).toBe("topics:knowledge-map");
+    expect(knowledge?.template).toBe("@brains/knowledge-map:map");
     expect(knowledge?.dataQuery).toBeDefined();
   });
 
@@ -157,13 +159,13 @@ describe("@rizom/site-rizom-ai", () => {
     );
 
     expect(templates).toEqual([
-      "agent-discovery:proximity-map",
+      "@brains/agent-discovery:agent:proximity-map",
       "living-memory:problem",
       "living-memory:science",
       "living-memory:turn",
       "living-memory:system",
       "living-memory:growth",
-      "topics:knowledge-map",
+      "@brains/knowledge-map:map",
       "living-memory:arc",
       "living-memory:doors",
     ]);

@@ -2,7 +2,7 @@ import { describe, expect, it, mock } from "bun:test";
 import { TestSchedulerBackend } from "@brains/scheduler/test";
 import { deferred } from "@brains/utils/deferred";
 import { createSilentLogger } from "@brains/test-utils";
-import { createScheduledMaintenanceDaemon } from "../../src/manager/scheduled-maintenance";
+import { createScheduledMaintenanceDaemon } from "@brains/scheduler/maintenance";
 
 describe("scheduled maintenance lifecycle", () => {
   it("does no work at registration, starts once, reports health and supports restart", async () => {

@@ -114,7 +114,7 @@ describe("SummaryExtractor", () => {
     });
 
     const extractor = new SummaryExtractor(
-      context,
+      context.ai,
       logger,
       summaryConfigSchema.parse({}),
     );
@@ -158,7 +158,7 @@ describe("SummaryExtractor", () => {
     });
 
     const extractor = new SummaryExtractor(
-      context,
+      context.ai,
       logger,
       summaryConfigSchema.parse({
         includeKeyPoints: false,
@@ -199,7 +199,7 @@ describe("SummaryExtractor", () => {
     });
 
     const extractor = new SummaryExtractor(
-      context,
+      context.ai,
       logger,
       summaryConfigSchema.parse({}),
     );

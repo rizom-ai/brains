@@ -2,7 +2,7 @@ id: team-tool-directory-sync-status
 name: Team Brain directory sync and git status
 description: >-
   Verifies that Team Brain answers operator sync-status questions through the
-  directory_sync status action instead of performing a sync or inventing git state.
+  directory-sync_sync status action instead of performing a sync or inventing git state.
 type: tool_invocation
 setup:
   permissionLevel: admin
@@ -21,11 +21,11 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: directory_sync
+    - toolName: directory-sync_sync
       shouldBeCalled: true
       argsContain:
         action: status
-    - toolName: directory_sync
+    - toolName: directory-sync_sync
       shouldBeCalled: false
       argsContain:
         action: sync

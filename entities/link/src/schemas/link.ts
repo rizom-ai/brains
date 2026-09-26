@@ -1,5 +1,5 @@
 import { z } from "@brains/utils/zod";
-import { baseEntityParserSchema } from "@brains/plugins";
+import { baseEntityParserSchema } from "@brains/sdk/entities";
 
 /**
  * Source reference for links (where the link was captured from)
@@ -77,6 +77,11 @@ export const linkMetadataSchema: LinkMetadataSchema =
   });
 
 export type LinkMetadata = z.output<typeof linkMetadataSchema>;
+
+export const linkEntityReference: Readonly<{
+  type: "link";
+  metadata: LinkMetadataSchema;
+}> = Object.freeze({ type: "link", metadata: linkMetadataSchema });
 
 /**
  * Link entity schema

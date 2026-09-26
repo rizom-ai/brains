@@ -1,4 +1,4 @@
-export { WebChatInterface } from "./web-chat-interface";
+export { default } from "./web-chat-definition";
 export {
   webChatConfigSchema,
   type WebChatConfig,

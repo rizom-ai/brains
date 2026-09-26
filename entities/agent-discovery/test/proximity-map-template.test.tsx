@@ -3,7 +3,7 @@ import { describe, expect, test } from "bun:test";
 import { renderToStaticMarkup as render } from "react-dom/server";
 import { getTemplates } from "../src/lib/register-templates";
 import type { ProximityMapData } from "../src/lib/proximity-map-schema";
-import { operatorViewStylexCSS } from "@brains/ui-library";
+import { operatorViewStylexCSS } from "@rizom/brain-ui";
 import { AgentProximityMapTemplate } from "../src/templates/proximity-map-template";
 import { proximityMapSiteStyles } from "../src/proximity-map";
 
@@ -198,7 +198,7 @@ describe("AgentProximityMapTemplate", () => {
     const template = getTemplates()["proximity-map"];
     if (!template) throw new Error("proximity-map template not found");
 
-    expect(template.dataSourceId).toBe("agent-discovery:proximity-map");
+    expect(template.dataSourceId).toBe("proximity-map");
     expect(template.requiredPermission).toBe("public");
     expect(template.schema.safeParse(data).success).toBe(true);
     expect(template.runtimeScripts).toHaveLength(1);

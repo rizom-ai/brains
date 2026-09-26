@@ -1,8 +1,8 @@
 import type { JsonValue } from "@brains/contracts";
 import type { UserPermissionLevel } from "@brains/templates";
-import type { AnyEntityDefinition } from "../entity/entity-definition-contract";
 import type {
   OperatorEntityCatalogDefinition,
+  OperatorLinkableEntity,
   OperatorKeyValueItem,
   OperatorKeyValuesBlock,
   OperatorMeterBlock,
@@ -666,7 +666,7 @@ const safeExternalUrlSchema = z
     { message: "External operator links must use http or https" },
   );
 
-function isEntityDefinition(value: unknown): value is AnyEntityDefinition {
+function isEntityDefinition(value: unknown): value is OperatorLinkableEntity {
   return (
     value !== null &&
     typeof value === "object" &&
@@ -678,7 +678,7 @@ function isEntityDefinition(value: unknown): value is AnyEntityDefinition {
   );
 }
 
-const entityDefinitionSchema = z.custom<AnyEntityDefinition>(
+const entityDefinitionSchema = z.custom<OperatorLinkableEntity>(
   isEntityDefinition,
   { message: "Expected an imported entity definition" },
 );
@@ -710,7 +710,7 @@ function externalLinkTarget(input: {
 }
 
 function entityLinkTarget(input: {
-  readonly entity: AnyEntityDefinition;
+  readonly entity: OperatorLinkableEntity;
   readonly id: string;
 }): RuntimeOperatorLinkTarget {
   return { kind: "entity", entityType: input.entity.type, id: input.id };
@@ -2328,8 +2328,12 @@ function normalizeActionControls(
           })),
         );
       } else {
-        const jsonInput = jsonValueSchema.safeParse(parsedInput.data);
-        if (!jsonInput.success) {
+        // The browser must send the schema's input, not its transformed output.
+        // Both sides remain JSON-native, but only admission supplies callbacks
+        // with the parsed value.
+        const jsonInput = jsonValueSchema.safeParse(control.input);
+        const parsedJsonInput = jsonValueSchema.safeParse(parsedInput.data);
+        if (!jsonInput.success || !parsedJsonInput.success) {
           issues.push({
             path: [...actionPath, "input"],
             message: "Workspace action input must be JSON-native",

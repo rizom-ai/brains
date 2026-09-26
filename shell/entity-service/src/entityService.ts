@@ -32,6 +32,7 @@ import type {
   EntityService as IEntityService,
   EntityEventBus,
   GetEntityRequest,
+  GetEntitiesRequest,
   GetEntityRawRequest,
   ProjectionOwnedEntityRequest,
   ListEntitiesRequest,
@@ -61,6 +62,7 @@ import type {
   EntityRegistry as IEntityRegistry,
   EntitySchema,
 } from "./types";
+import { getEntitiesRequestSchema } from "./types";
 import { embeddings } from "./schema/embeddings";
 import type { ProjectionChangedTarget } from "./schema/projection-state";
 import { sql } from "drizzle-orm";
@@ -696,6 +698,35 @@ export class EntityService implements IEntityService {
       }
     }
     return entity;
+  }
+
+  public async getEntities(request: GetEntitiesRequest): Promise<BaseEntity[]> {
+    await this.initialize();
+    const parsed = getEntitiesRequestSchema.parse(request);
+    const data = await this.entityQueries.getEntityDataMany(
+      parsed.entityType,
+      parsed.ids,
+      parsed.visibilityScope,
+    );
+    const found = await this.entitySerializer.convertToEntities(
+      data,
+      parsed.entityType,
+    );
+    if (!shouldResolveContent(parsed.entityType)) return found;
+
+    return Promise.all(
+      found.map(async (entity) => {
+        if (!entity.content) return entity;
+        const result = await this.contentResolver.resolve(
+          entity.content,
+          this,
+          parsed.visibilityScope,
+        );
+        return result.resolvedCount > 0
+          ? { ...entity, content: result.content }
+          : entity;
+      }),
+    );
   }
 
   public async getEntityRaw(

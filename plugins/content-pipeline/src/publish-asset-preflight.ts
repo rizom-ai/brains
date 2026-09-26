@@ -1,4 +1,5 @@
-import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
+import type { PipelineRuntime } from "./runtime";
+import type { BaseEntity } from "@brains/sdk/entities";
 import { parseMarkdown } from "@brains/utils/markdown";
 import { slugify } from "@brains/utils/string-utils";
 import type {
@@ -14,7 +15,7 @@ export interface PublishAssetPreflightResult {
 }
 
 export interface PublishAssetPreflightDeps {
-  context: Pick<ServicePluginContext, "attachments" | "jobs" | "logger">;
+  runtime: Pick<PipelineRuntime, "attachments" | "publishing" | "logger">;
   registry: PublishAssetRegistry;
 }
 
@@ -68,7 +69,7 @@ export class PublishAssetPreflight {
     if (!this.matchesPolicy(entity, definition)) return false;
     if (this.hasTargetField(entity, definition.targetEntityField)) return false;
     if (
-      !this.deps.context.attachments.hasProvider(
+      !this.deps.runtime.attachments.hasProvider(
         entity.entityType,
         definition.attachmentType,
       )
@@ -76,13 +77,20 @@ export class PublishAssetPreflight {
       return false;
     }
 
-    const jobType = this.resolveJobType(definition);
+    // The generation job is another package's, and the entity's own
+    // declaration is what makes queueing it legitimate. A type that declared
+    // no such asset has nothing to generate.
+    const jobType = this.deps.runtime.publishing.assetJob(
+      entity.entityType,
+      definition.attachmentType,
+    );
     if (!jobType) return false;
 
     const mediaId = this.getPredictedMediaId(entity, definition);
     const deduplicationKey = this.getDeduplicationKey(entity, definition);
-    await this.deps.context.jobs.enqueue({
-      type: jobType,
+    await this.deps.runtime.publishing.enqueueAsset({
+      entityType: entity.entityType,
+      attachmentType: definition.attachmentType,
       data: {
         sourceEntityType: entity.entityType,
         sourceEntityId: entity.id,
@@ -93,16 +101,9 @@ export class PublishAssetPreflight {
         targetEntityId: entity.id,
         ...this.getTargetImageFieldData(definition.targetEntityField),
       },
-      options: {
-        source: "content-pipeline",
-        metadata: {
-          operationType: "content_operations",
-        },
-        deduplication: "skip",
-        deduplicationKey,
-      },
+      deduplicationKey,
     });
-    this.deps.context.logger.debug("Queued publish asset generation", {
+    this.deps.runtime.logger.debug("Queued publish asset generation", {
       entityType: entity.entityType,
       entityId: entity.id,
       attachmentType: definition.attachmentType,
@@ -151,15 +152,6 @@ export class PublishAssetPreflight {
 
     const { frontmatter } = parseMarkdown(entity.content);
     return hasValue(frontmatter[targetField.field]);
-  }
-
-  private resolveJobType(
-    definition: PublishAssetDefinition,
-  ): string | undefined {
-    if (definition.jobType) return definition.jobType;
-    if (definition.mediaEntityType === "image")
-      return "image:image-render-source";
-    return undefined;
   }
 
   private getPredictedMediaId(

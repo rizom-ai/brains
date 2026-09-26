@@ -1,12 +1,14 @@
-import type { BatchOperation, ServicePluginContext } from "@brains/plugins";
+import type { DirectorySyncHost } from "../host";
+import { createId } from "@brains/utils/id";
 import type { Logger } from "@brains/utils/logger";
-import { createId } from "@brains/plugins";
 import type {
   BatchMetadata,
   BatchOperationResult,
   BatchResult,
+  DirectoryBatchOperation,
   DirectoryDeleteTarget,
 } from "../types";
+import { jobDefinitionFor } from "../jobs";
 
 export type {
   BatchMetadata,
@@ -43,7 +45,7 @@ export class BatchOperationsManager {
     includeCleanup: boolean = true,
     deletions: DirectoryDeleteTarget[] = [],
   ): BatchOperationResult {
-    const operations: BatchOperation[] = [];
+    const operations: DirectoryBatchOperation[] = [];
 
     const importOps = this.createImportOperations(files);
     operations.push(...importOps);
@@ -74,7 +76,7 @@ export class BatchOperationsManager {
   }
 
   async queueSyncBatch(
-    pluginContext: ServicePluginContext,
+    pluginContext: Pick<DirectorySyncHost, "jobs" | "mirror">,
     source: string,
     files: string[],
     metadata?: BatchMetadata,
@@ -93,45 +95,40 @@ export class BatchOperationsManager {
     }
 
     const rootJobId = createId();
-    const expectedChildren = batchData.operations.length;
+    const batch =
+      await pluginContext.mirror.coordination.beginDurableBulkMutation({
+        rootJobId,
+        expectedChildren: batchData.operations.length,
+      });
     const operations = batchData.operations.map((operation, index) => ({
       ...operation,
       data: {
         ...operation.data,
-        projectionBatch: {
-          operationId: rootJobId,
-          rootJobId,
-          childKey: `${index}:${operation.type}`,
-          expectedChildren,
-        },
+        projectionBatch: batch.childRef(`${index}:${operation.type}`),
       },
     }));
-    const coordinator = pluginContext.bulkMutations;
-    await coordinator.prepareDurableBulkMutation({
-      source: "directory-sync",
-      operationId: rootJobId,
-      rootJobId,
-      expectedChildren,
-    });
     let batchId: string;
     try {
-      batchId = await pluginContext.jobs.enqueueBatch(operations, {
-        source,
-        rootJobId,
-        metadata: {
-          progressToken: metadata?.progressToken,
-          operationType: "file_operations",
+      // The runtime files these under this package's id and scopes the
+      // names; the root links them to the durable batch begun above.
+      const queued = await pluginContext.jobs.enqueueBatch(
+        operations.map((operation) => ({
+          definition: jobDefinitionFor(operation.type),
+          input: operation.data,
+        })),
+        {
+          rootJobId,
+          ...(metadata?.progressToken !== undefined
+            ? { progressToken: metadata.progressToken }
+            : {}),
           operationTarget: this.syncPath,
-          pluginId: metadata?.pluginId ?? "directory-sync",
-          // Routing context for progress messages
-          interfaceType: metadata?.interfaceType,
-          channelId: metadata?.channelId,
         },
-      });
-      await coordinator.finalizeDurableBulkMutationEnqueue(rootJobId);
+      );
+      batchId = queued.id;
+      await batch.seal();
     } catch (error) {
       try {
-        await coordinator.failDurableBulkMutationEnqueue(rootJobId);
+        await batch.abort();
       } catch (markerError) {
         this.logger.error(
           "Failed to record durable projection batch enqueue failure",
@@ -152,9 +149,9 @@ export class BatchOperationsManager {
 
   private createDeleteOperations(
     deletions: DirectoryDeleteTarget[],
-  ): BatchOperation[] {
+  ): DirectoryBatchOperation[] {
     const batchSize = 50;
-    const operations: BatchOperation[] = [];
+    const operations: DirectoryBatchOperation[] = [];
 
     for (let index = 0; index < deletions.length; index += batchSize) {
       const batch = deletions.slice(index, index + batchSize);
@@ -176,13 +173,13 @@ export class BatchOperationsManager {
     return operations;
   }
 
-  private createImportOperations(files: string[]): BatchOperation[] {
+  private createImportOperations(files: string[]): DirectoryBatchOperation[] {
     if (files.length === 0) {
       return [];
     }
 
     const batchSize = 50;
-    const operations: BatchOperation[] = [];
+    const operations: DirectoryBatchOperation[] = [];
 
     for (let i = 0; i < files.length; i += batchSize) {
       const batch = files.slice(i, i + batchSize);

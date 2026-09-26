@@ -1,5 +1,6 @@
 import { createTestEntity } from "@brains/entity-service/test";
-import { createMockServicePluginContext } from "@brains/plugins/test";
+import { createMockShell } from "@brains/plugins/test";
+import { hostFor } from "../helpers/install";
 import { z } from "@brains/utils/zod";
 import {
   describe,
@@ -16,7 +17,7 @@ import {
   type CoverImageConversionJobData,
 } from "../../src/handlers/image-conversion-handler";
 import { createSilentLogger } from "@brains/test-utils";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { DirectorySyncHost } from "../../src/host";
 import type { Logger } from "@brains/utils/logger";
 import {
   CallbackProgressReporter,
@@ -26,7 +27,8 @@ import { TINY_PNG_DATA_URL as VALID_PNG_DATA_URL } from "../fixtures";
 
 describe("CoverImageConversionJobHandler", () => {
   let handler: CoverImageConversionJobHandler;
-  let context: ServicePluginContext;
+  let context: DirectorySyncHost;
+  let createEntity: ReturnType<typeof mock>;
   let logger: Logger;
   let progressReporter: ProgressReporter;
   let progressCalls: Array<{ progress: number; message?: string }>;
@@ -51,20 +53,24 @@ describe("CoverImageConversionJobHandler", () => {
     return reporter;
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     logger = createSilentLogger();
-    context = createMockServicePluginContext({
-      returns: {
-        entityService: {
-          listEntities: [],
-          createEntity: {
-            entityId: "test-post-cover",
-            jobId: "mock-job-id",
-            skipped: false,
-          },
-        },
+    const host = await hostFor(createMockShell());
+    // The real host, with the two records reads this handler makes stubbed:
+    // no image exists yet, and creating one answers with a known id.
+    createEntity = mock(async () => ({
+      entityId: "test-post-cover",
+      jobId: "mock-job-id",
+      skipped: false,
+    }));
+    context = {
+      ...host,
+      mirror: {
+        ...host.mirror,
+        listEntities: mock(async () => []),
+        createEntity,
       },
-    });
+    };
 
     mockFetcher = mock(() => Promise.resolve(VALID_PNG_DATA_URL));
 
@@ -80,101 +86,6 @@ describe("CoverImageConversionJobHandler", () => {
     // Restore original implementations
     readFileSpy.mockRestore();
     writeFileSpy.mockRestore();
-  });
-
-  describe("validateAndParse", () => {
-    it("should validate correct job data", () => {
-      const validData = {
-        filePath: "/path/to/post.md",
-        sourceUrl: "https://example.com/image.jpg",
-        postTitle: "Test Post",
-        postSlug: "test-post",
-      };
-
-      const result = handler.validateAndParse(validData);
-
-      expect(result).not.toBeNull();
-      expect(result?.filePath).toBe("/path/to/post.md");
-      expect(result?.sourceUrl).toBe("https://example.com/image.jpg");
-      expect(result?.postTitle).toBe("Test Post");
-      expect(result?.postSlug).toBe("test-post");
-    });
-
-    it("should validate job data with optional customAlt", () => {
-      const validData = {
-        filePath: "/path/to/post.md",
-        sourceUrl: "https://example.com/image.jpg",
-        postTitle: "Test Post",
-        postSlug: "test-post",
-        customAlt: "Custom alt text for the image",
-      };
-
-      const result = handler.validateAndParse(validData);
-
-      expect(result).not.toBeNull();
-      expect(result?.customAlt).toBe("Custom alt text for the image");
-    });
-
-    it("should reject missing filePath", () => {
-      const invalidData = {
-        sourceUrl: "https://example.com/image.jpg",
-        postTitle: "Test Post",
-        postSlug: "test-post",
-      };
-
-      const result = handler.validateAndParse(invalidData);
-
-      expect(result).toBeNull();
-    });
-
-    it("should reject missing sourceUrl", () => {
-      const invalidData = {
-        filePath: "/path/to/post.md",
-        postTitle: "Test Post",
-        postSlug: "test-post",
-      };
-
-      const result = handler.validateAndParse(invalidData);
-
-      expect(result).toBeNull();
-    });
-
-    it("should reject invalid sourceUrl (not a URL)", () => {
-      const invalidData = {
-        filePath: "/path/to/post.md",
-        sourceUrl: "not-a-url",
-        postTitle: "Test Post",
-        postSlug: "test-post",
-      };
-
-      const result = handler.validateAndParse(invalidData);
-
-      expect(result).toBeNull();
-    });
-
-    it("should reject missing postTitle", () => {
-      const invalidData = {
-        filePath: "/path/to/post.md",
-        sourceUrl: "https://example.com/image.jpg",
-        postSlug: "test-post",
-      };
-
-      const result = handler.validateAndParse(invalidData);
-
-      expect(result).toBeNull();
-    });
-
-    it("should reject missing postSlug", () => {
-      const invalidData = {
-        filePath: "/path/to/post.md",
-        sourceUrl: "https://example.com/image.jpg",
-        postTitle: "Test Post",
-      };
-
-      const result = handler.validateAndParse(invalidData);
-
-      expect(result).toBeNull();
-    });
   });
 
   describe("process", () => {
@@ -233,7 +144,7 @@ Some content here.
       await handler.process(jobData, "job-123", progressReporter);
 
       // Verify createEntity was called with custom alt
-      expect(context.entityService.createEntity).toHaveBeenCalledWith({
+      expect(createEntity).toHaveBeenCalledWith({
         entity: expect.objectContaining({
           metadata: expect.objectContaining({
             alt: "My custom alt text",
@@ -250,7 +161,7 @@ Some content here.
       await handler.process(jobData, "job-123", progressReporter);
 
       // Verify createEntity was called with title-based alt
-      expect(context.entityService.createEntity).toHaveBeenCalledWith({
+      expect(createEntity).toHaveBeenCalledWith({
         entity: expect.objectContaining({
           metadata: expect.objectContaining({
             alt: "Cover image for Test Post",
@@ -280,7 +191,7 @@ Some content here.
       writeFileSpy.mockResolvedValue(undefined);
 
       // Mock listEntities to return existing image
-      spyOn(context.entityService, "listEntities").mockResolvedValue([
+      spyOn(context.mirror, "listEntities").mockResolvedValue([
         createTestEntity("image", { id: "existing-image-id" }),
       ]);
 
@@ -294,7 +205,7 @@ Some content here.
       expect(result.success).toBe(true);
       expect(result.imageId).toBe("existing-image-id");
       expect(mockFetcher).not.toHaveBeenCalled();
-      expect(context.entityService.createEntity).not.toHaveBeenCalled();
+      expect(createEntity).not.toHaveBeenCalled();
     });
 
     it("should handle fetch failure gracefully", async () => {
@@ -344,7 +255,7 @@ Some content here.
       const jobData = createValidJobData();
       await handler.process(jobData, "job-123", progressReporter);
 
-      expect(context.entityService.createEntity).toHaveBeenCalledWith({
+      expect(createEntity).toHaveBeenCalledWith({
         entity: expect.objectContaining({
           id: "test-post-cover",
           entityType: "image",

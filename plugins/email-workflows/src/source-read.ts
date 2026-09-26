@@ -6,9 +6,9 @@ import {
 import {
   inboxActorSchema,
   inboxItemIdSchema,
-  type ServicePluginContext,
-} from "@brains/plugins";
-import { z } from "@brains/utils/zod";
+  z,
+  type EntityReactionContext,
+} from "@brains/sdk/entities";
 import type { MailTriageOperatorService } from "./operator-service";
 
 const abortSignalSchema: z.ZodCustom<AbortSignal, AbortSignal> =
@@ -37,15 +37,26 @@ export type EmailWorkflowsSourceReadRequest = z.output<
   typeof emailWorkflowsSourceReadRequestSchema
 >;
 
+/** The one way to ask the mail interface for a message: a request it answers. */
+export type SourceReadMessaging = Pick<
+  EntityReactionContext["messaging"],
+  "request"
+>;
+
+/**
+ * Reads a mail item's original back from the mailbox, for an admin, through
+ * the interface that delivered it. Every failure looks the same to the
+ * caller: an unreadable source is indistinguishable from an absent one.
+ */
 export class EmailWorkflowsSourceReader {
-  private readonly context: Pick<ServicePluginContext, "messaging">;
-  private readonly operator: MailTriageOperatorService;
+  private readonly messaging: SourceReadMessaging;
+  private readonly operator: Pick<MailTriageOperatorService, "getSourceRef">;
 
   constructor(
-    context: Pick<ServicePluginContext, "messaging">,
-    operator: MailTriageOperatorService,
+    messaging: SourceReadMessaging,
+    operator: Pick<MailTriageOperatorService, "getSourceRef">,
   ) {
-    this.context = context;
+    this.messaging = messaging;
     this.operator = operator;
   }
 
@@ -63,7 +74,7 @@ export class EmailWorkflowsSourceReader {
       const signal = request.data.signal
         ? AbortSignal.any([request.data.signal, timeout])
         : timeout;
-      const response = await this.context.messaging.send({
+      const response = await this.messaging.request({
         type: EMAIL_SOURCE_READ,
         payload: {
           sourceRef,
@@ -71,10 +82,15 @@ export class EmailWorkflowsSourceReader {
           signal,
         },
       });
-      if ("noop" in response || !response.success) {
+      const envelope = z
+        .object({ success: z.boolean(), data: z.unknown().optional() })
+        .safeParse(response);
+      if (!envelope.success || !envelope.data.success) {
         return { kind: "unavailable" };
       }
-      const parsed = emailSourceReadResponseSchema.safeParse(response.data);
+      const parsed = emailSourceReadResponseSchema.safeParse(
+        envelope.data.data,
+      );
       return parsed.success ? parsed.data : { kind: "unavailable" };
     } catch {
       // Same fixed outcome as every other failure above: the caller must

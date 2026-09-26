@@ -1,5 +1,5 @@
+import type { InteractionInfo } from "@brains/sdk/services";
 /** @jsxImportSource react */
-import type { InteractionInfo } from "@brains/plugins";
 import {
   displayLinkLabel,
   formatLabel,

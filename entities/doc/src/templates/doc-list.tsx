@@ -1,5 +1,5 @@
 import type { JSX } from "react";
-import type { PaginationInfo } from "@brains/plugins";
+import type { PaginationInfo } from "@brains/sdk/entities";
 import type { DocWithData } from "../schemas/doc";
 import { groupDocs, sortDocs } from "./docs-design";
 import {
@@ -11,7 +11,7 @@ import {
 
 export interface DocListProps {
   docs: DocWithData[];
-  pagination?: PaginationInfo | null;
+  pagination: PaginationInfo | null;
   baseUrl: string | null;
 }
 

@@ -2,9 +2,10 @@ import { describe, expect, it } from "bun:test";
 import type { InboundEmail } from "@brains/contracts";
 import { applyVisibilityToMarkdown } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
+import { installMailItem } from "./helpers/install";
 
 import {
-  MailItemPlugin,
+  mailItemExtension,
   createMailItemProjection,
   createUnclassifiedMailItemProjection,
   mailItemAdapter,
@@ -286,17 +287,11 @@ describe("mail-item entity", () => {
     }
   });
 
-  it("registers a validator that rejects any non-restricted persistence", async () => {
-    const harness = createPluginHarness({ logContext: "mail-item-test" });
-    const registry = harness.getEntityRegistry();
-    type Validator = Parameters<typeof registry.registerPersistValidator>[1];
-    let registeredEntityType: string | undefined;
-    let validator: Validator | undefined;
-    registry.registerPersistValidator = (entityType, candidate): void => {
-      registeredEntityType = entityType;
-      validator = candidate;
-    };
-    await harness.installPlugin(new MailItemPlugin());
+  it("declares a validator that rejects any non-restricted persistence", async () => {
+    const validate = mailItemExtension.validate;
+    if (!validate) throw new Error("Mail item extension declares no validator");
+    const validator = (entity: Parameters<typeof validate>[0]): Promise<void> =>
+      Promise.resolve(validate(entity));
     const projection = createMailItemProjection(email, classification);
     const entity = mailItemSchema.parse({
       ...projection,
@@ -305,21 +300,17 @@ describe("mail-item entity", () => {
       contentHash: "hash",
     });
 
-    expect(registeredEntityType).toBe("mail-item");
-    if (!validator) throw new Error("Persist validator was not registered");
-    expect(
-      validator({ ...entity, visibility: "public" }, { operation: "create" }),
-    ).rejects.toThrow("Mail items must have restricted visibility");
-    expect(validator(entity, { operation: "create" })).resolves.toBeUndefined();
+    expect(mailItemExtension.entityType).toBe("mail-item");
+    expect(validator({ ...entity, visibility: "public" })).rejects.toThrow(
+      "Mail items must have restricted visibility",
+    );
+    expect(validator(entity)).resolves.toBeUndefined();
     const invalidUnclassifiedContent = mailItemAdapter.createMailItemContent(
       { ...frontmatter, category: null },
       classification.summary,
     );
     expect(
-      validator(
-        { ...entity, content: invalidUnclassifiedContent },
-        { operation: "create" },
-      ),
+      validator({ ...entity, content: invalidUnclassifiedContent }),
     ).rejects.toThrow(
       "Only the system fallback may have an unclassified category",
     );
@@ -327,7 +318,7 @@ describe("mail-item entity", () => {
 });
 
 describe("mail item restricted export round-trip", () => {
-  it("re-imports its own exported markdown including thread position and visibility", () => {
+  it("re-imports its own exported markdown including thread position and visibility", async () => {
     const receivedAt = "2026-08-09T15:53:55.000Z";
     const threadKey = "b".repeat(64);
     const content = mailItemAdapter.createMailItemContent(
@@ -348,9 +339,13 @@ describe("mail item restricted export round-trip", () => {
       },
       "A content-safe summary.",
     );
+    // The adapter the runtime builds from the entity's codec, the same one
+    // directory-sync exports through.
+    const harness = createPluginHarness({ logContext: "mail-item-test" });
+    await installMailItem(harness);
+    const adapter = harness.getEntityRegistry().getAdapter("mail-item");
     const partial = mailItemAdapter.fromMarkdown(content);
-    if (!partial.metadata) throw new Error("Expected mail metadata");
-    const serialized = mailItemAdapter.toMarkdown({
+    const serialized = adapter.toMarkdown({
       id: "mail-round-trip",
       entityType: "mail-item",
       content,
@@ -360,6 +355,7 @@ describe("mail item restricted export round-trip", () => {
       contentHash: "hash",
       visibility: "restricted",
     });
+    await harness.reset();
     const exported = applyVisibilityToMarkdown(serialized, "restricted");
 
     const parsed = mailItemAdapter.parseMailItemContent(exported);

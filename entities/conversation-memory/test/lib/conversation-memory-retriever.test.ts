@@ -1,4 +1,5 @@
 import { describe, expect, it, spyOn } from "bun:test";
+import { narrowContext } from "../fixtures/narrow-context";
 import { createExternalActorId } from "@brains/contracts";
 import type { Conversation, SearchResult } from "@brains/plugins";
 import {
@@ -167,7 +168,7 @@ describe("ConversationMemoryRetriever", () => {
       ]),
     );
 
-    const retriever = new ConversationMemoryRetriever(context);
+    const retriever = new ConversationMemoryRetriever(narrowContext(context));
     const result = await retriever.retrieve({
       query: "memory",
       interfaceType: "mcp",
@@ -198,7 +199,7 @@ describe("ConversationMemoryRetriever", () => {
       ]),
     );
 
-    const retriever = new ConversationMemoryRetriever(context);
+    const retriever = new ConversationMemoryRetriever(narrowContext(context));
     const result = await retriever.retrieve({
       query: "memory",
       interfaceType: "mcp",
@@ -231,7 +232,7 @@ describe("ConversationMemoryRetriever", () => {
       ]),
     );
 
-    const retriever = new ConversationMemoryRetriever(context);
+    const retriever = new ConversationMemoryRetriever(narrowContext(context));
     const result = await retriever.retrieve({
       query: "separate entities",
       interfaceType: "mcp",
@@ -266,7 +267,7 @@ describe("ConversationMemoryRetriever", () => {
       ]),
     );
 
-    const retriever = new ConversationMemoryRetriever(context);
+    const retriever = new ConversationMemoryRetriever(narrowContext(context));
     const result = await retriever.retrieve({
       query: "memory",
       conversationId: "conv-current",
@@ -315,7 +316,7 @@ describe("ConversationMemoryRetriever", () => {
       ]),
     );
 
-    const retriever = new ConversationMemoryRetriever(context);
+    const retriever = new ConversationMemoryRetriever(narrowContext(context));
     const result = await retriever.retrieve({
       query: "checklist",
       interfaceType: "mcp",
@@ -359,7 +360,7 @@ describe("ConversationMemoryRetriever", () => {
       ]),
     );
 
-    const retriever = new ConversationMemoryRetriever(context);
+    const retriever = new ConversationMemoryRetriever(narrowContext(context));
     const result = await retriever.retrieve({
       query: "Daniel",
       interfaceType: "mcp",
@@ -401,7 +402,9 @@ describe("ConversationMemoryRetriever", () => {
       asSearchResults([{ entity: summary, score: 0.8, excerpt: "Legacy Jan" }]),
     );
 
-    const result = await new ConversationMemoryRetriever(context).retrieve({
+    const result = await new ConversationMemoryRetriever(
+      narrowContext(context),
+    ).retrieve({
       query: "Jan",
       interfaceType: "mcp",
       channelId: "team",
@@ -452,7 +455,7 @@ describe("ConversationMemoryRetriever", () => {
       ]),
     );
 
-    const retriever = new ConversationMemoryRetriever(context);
+    const retriever = new ConversationMemoryRetriever(narrowContext(context));
     const result = await retriever.retrieve({
       query: "Daniel checklist",
       interfaceType: "mcp",
@@ -485,7 +488,7 @@ describe("ConversationMemoryRetriever", () => {
     ]);
     const context = createEntityPluginContext(shell, "conversation-memory");
 
-    const retriever = new ConversationMemoryRetriever(context);
+    const retriever = new ConversationMemoryRetriever(narrowContext(context));
     const result = await retriever.retrieve({ limit: 1 });
 
     expect(result.results).toEqual([
@@ -506,7 +509,7 @@ describe("ConversationMemoryRetriever", () => {
       ]),
     );
 
-    const retriever = new ConversationMemoryRetriever(context);
+    const retriever = new ConversationMemoryRetriever(narrowContext(context));
     const result = await retriever.retrieve({
       query: "memory",
       interfaceType: "mcp",
@@ -538,7 +541,7 @@ describe("ConversationMemoryRetriever", () => {
       asSearchResults([{ entity: summary, score: 0.7, excerpt: "Long entry" }]),
     );
 
-    const retriever = new ConversationMemoryRetriever(context);
+    const retriever = new ConversationMemoryRetriever(narrowContext(context));
     const result = await retriever.retrieve({
       query: "memory",
       interfaceType: "mcp",

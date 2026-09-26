@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, mock } from "bun:test";
 import { AuthService } from "@brains/auth-service";
-import { EmailInterface } from "@brains/email";
+import { emailInterface } from "@brains/email";
+import {
+  bindPluginPackageMetadata,
+  instantiatePluginPackageDefinition,
+} from "@brains/plugins";
 import type {
   ChannelDeliveryProvider,
   ChannelDescriptor,
@@ -26,17 +30,23 @@ describe("canonical Email invitation delivery", () => {
           status: 200,
         }),
     );
-    const harness = createPluginHarness<EmailInterface>();
-    await harness.installPlugin(
-      new EmailInterface(
-        {
-          transport: "resend",
-          apiKey: "resend-key",
-          from: "Brain <setup@example.com>",
-        },
-        { fetchImpl },
-      ),
+    const harness = createPluginHarness();
+    // Email declares itself now, so the runtime builds it from the definition
+    // rather than the test calling a constructor.
+    const metadata = { name: "@brains/email", version: "0.0.0-test" };
+    const definition = emailInterface({ fetchImpl });
+    bindPluginPackageMetadata(definition, metadata);
+    const [emailPlugin] = instantiatePluginPackageDefinition(
+      definition,
+      {
+        transport: "resend",
+        apiKey: "resend-key",
+        from: "Brain <setup@example.com>",
+      },
+      metadata,
     );
+    if (!emailPlugin) throw new Error("Email interface was not created");
+    await harness.installPlugin(emailPlugin);
     await harness.finalizeRegistration();
     const registry = harness.getMockShell().getChannelRegistry();
     const storageDir = await mkdtemp(join(tmpdir(), "canonical-email-invite-"));

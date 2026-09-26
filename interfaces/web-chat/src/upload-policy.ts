@@ -23,7 +23,7 @@ import {
   type ValidatedTextUpload,
   type ValidateUploadInput,
   type TextUploadValidationResult,
-} from "@brains/plugins/message-interface/upload-policy";
+} from "@brains/contracts/upload-policy";
 
 export const defaultWebChatUploadFilename: typeof defaultMessageUploadFilename =
   defaultMessageUploadFilename;

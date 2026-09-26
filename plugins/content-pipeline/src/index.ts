@@ -1,10 +1,19 @@
 /**
  * @brains/content-pipeline
  *
- * Plugin for managing content publishing pipeline and scheduling.
- * Provides centralized queue management, scheduling, and retry logic
- * for all publishable entity types.
+ * The publish pipeline: one queue per entity type, a schedule that drains it,
+ * and the record of what went out. It owns no entity types — every type it
+ * publishes belongs to a package that delegated the act by declaring
+ * `publish`.
  */
+import { contentPipelineService } from "./service";
+
+export {
+  contentPipelineService,
+  type ContentPipelineDeps,
+  type ContentPipelineState,
+} from "./service";
+export type { PipelineEntityReads, PipelineRuntime } from "./runtime";
 
 // Schemas
 export * from "./schemas/publishable";
@@ -49,15 +58,21 @@ export {
   type PublishEntityInput,
   type PublishEntityResult,
 } from "./publish-executor";
+export { PublicationQueueService } from "./publication-queue-service";
 export {
   markEntityPublished,
   updatePublishFrontmatter,
   type MarkPublishedOptions,
 } from "./publish-state-updater";
+export {
+  getPublicationPipelineSnapshot,
+  publicationPipelineSnapshotSchema,
+  type PublicationPipelineSnapshot,
+} from "./pipeline-snapshot";
 
 // Tools
 export {
-  createPublishingManageTool,
+  handlePublishingManage,
   publishingManageInputSchema,
   publishingManageOutputSchema,
   type PublishingManageInput,
@@ -81,5 +96,7 @@ export {
   type EnsurePublishAssetsOptions,
 } from "./tools";
 
-// Plugin
-export { ContentPipelinePlugin, contentPipelinePlugin } from "./plugin";
+/** The pipeline with its production collaborators, for a brain's composition. */
+const contentPipelinePackage: ReturnType<typeof contentPipelineService> =
+  contentPipelineService();
+export default contentPipelinePackage;

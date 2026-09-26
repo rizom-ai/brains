@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { BatchJobManager } from "../src/batch-job-manager";
 import { JobQueueService } from "../src/job-queue-service";
 import type { JobHandler, JobQueueDbConfig } from "../src/types";
@@ -7,6 +7,7 @@ import type { JobOptions } from "../src/schema/types";
 import { JOB_STATUS } from "../src/schemas";
 import { createTestJobQueueDatabase } from "./helpers/test-job-queue-db";
 import { createSilentLogger } from "@brains/test-utils";
+import { z } from "@brains/utils/zod";
 import { createId } from "@brains/utils/id";
 import { Effect } from "@brains/utils/effect";
 import { TestClock, TestContext } from "@brains/utils/effect/test";
@@ -97,6 +98,36 @@ describe("BatchJobManager", () => {
       expect(status).toBeDefined();
       expect(status?.totalOperations).toBe(2);
       expect(status?.status).toBe(JOB_STATUS.PROCESSING);
+    });
+
+    it("retains per-child retry limits rather than replacing them with batch defaults", async () => {
+      await enqueueBatch(
+        [
+          { type: "embedding", data: {}, maxRetries: 1 },
+          { type: "embedding", data: {}, maxRetries: 4 },
+        ],
+        batchOpts({ maxRetries: 2 }),
+      );
+      const children = await jobQueueService.getActiveJobs();
+      expect(children.map((job) => job.maxRetries).sort()).toEqual([1, 4]);
+    });
+
+    it("validates every child's JSON wire input before enqueueing any children", async () => {
+      const schema = z.object({ date: z.date() });
+      jobQueueService.registerHandler("date", {
+        validateAndParse: (data) => {
+          const parsed = schema.safeParse(data);
+          return parsed.success ? parsed.data : null;
+        },
+        process: async () => undefined,
+      });
+      expect(
+        enqueueBatch([
+          { type: "embedding", data: {} },
+          { type: "date", data: { date: new Date() } },
+        ]),
+      ).rejects.toThrow("Invalid job data");
+      expect(await jobQueueService.getActiveJobs()).toEqual([]);
     });
 
     it("should enqueue batch with options", async () => {
@@ -327,6 +358,43 @@ describe("BatchJobManager", () => {
       expect(status?.batchId).toBe(batchId);
     });
 
+    it("returns coded failures without forwarding legacy or unknown stored diagnostics", async () => {
+      const batchId = await enqueueBatch([{ type: "embedding", data: {} }]);
+      const [job] = await jobQueueService.getActiveJobs();
+      if (!job) throw new Error("Child was not enqueued");
+      const read = spyOn(jobQueueService, "getStatus");
+      try {
+        for (const code of [null, "future_code", "permission_denied"]) {
+          for (const message of [null, "private-provider-token"]) {
+            read.mockResolvedValue({
+              ...job,
+              status: "failed",
+              lastError: message,
+              lastErrorCode: code,
+            });
+            const status = await batchManager.getBatchStatus(batchId);
+            expect(status).toMatchObject({
+              failedOperations: 1,
+              errors: [
+                {
+                  code: code === "permission_denied" ? code : "handler_failed",
+                  message:
+                    code === "permission_denied"
+                      ? "Permission denied"
+                      : "The operation failed",
+                },
+              ],
+            });
+            expect(JSON.stringify(status)).not.toContain(
+              "private-provider-token",
+            );
+          }
+        }
+      } finally {
+        read.mockRestore();
+      }
+    });
+
     it("should treat missing child jobs as failed operations", async () => {
       const batchId = createId();
       batchManager.registerBatch(
@@ -341,9 +409,9 @@ describe("BatchJobManager", () => {
 
       expect(status?.status).toBe(JOB_STATUS.FAILED);
       expect(status?.failedOperations).toBe(1);
-      expect(status?.errors).toContain(
-        "Missing job missing-job-id for embedding",
-      );
+      expect(status?.errors).toEqual([
+        { code: "not_found", message: "Not found" },
+      ]);
     });
   });
 

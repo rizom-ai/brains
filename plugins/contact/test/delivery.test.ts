@@ -4,6 +4,7 @@ import type {
   IRuntimeStateNamespace,
 } from "@brains/plugins";
 import { ContactDelivery } from "../src/delivery";
+import { contactEntities } from "./helpers";
 import {
   contactRequestAdapter,
   contactRequestSchema,
@@ -42,7 +43,14 @@ async function fixture(): Promise<
   const state = f.harness.getMockShell().getRuntimeState();
   const send = mock(async (_key: string): Promise<boolean> => true);
   const makeDelivery = (): ContactDelivery =>
-    new ContactDelivery({ entities, state, storage, policy, send, now: f.now });
+    new ContactDelivery({
+      entities: contactEntities(entities),
+      state,
+      storage,
+      policy,
+      send,
+      now: f.now,
+    });
   const read = async (): Promise<ContactRequest | null> =>
     entities.getEntity(
       {

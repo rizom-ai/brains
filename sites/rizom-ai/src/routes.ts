@@ -25,7 +25,7 @@ export const aiRoutes: RouteDefinitionInput[] = [
     sections: [
       {
         id: "hero",
-        template: "agent-discovery:proximity-map",
+        template: "@brains/agent-discovery:agent:proximity-map",
         dataQuery: {},
       },
       { id: "problem", template: "living-memory:problem" },
@@ -33,7 +33,7 @@ export const aiRoutes: RouteDefinitionInput[] = [
       { id: "turn", template: "living-memory:turn" },
       { id: "system", template: "living-memory:system" },
       { id: "growth", template: "living-memory:growth" },
-      { id: "proof", template: "topics:knowledge-map", dataQuery: {} },
+      { id: "proof", template: "@brains/knowledge-map:map", dataQuery: {} },
       { id: "arc", template: "living-memory:arc" },
       { id: "doors", template: "living-memory:doors" },
     ],
@@ -103,7 +103,7 @@ export const aiRoutes: RouteDefinitionInput[] = [
     sections: [
       {
         id: "directory",
-        template: "agent-discovery:agent-list",
+        template: "@brains/agent-discovery:agent:agent-list",
         dataQuery: {
           entityType: "agent",
           query: { status: "approved", limit: 100 },

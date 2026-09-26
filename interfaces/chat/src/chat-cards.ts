@@ -1,5 +1,5 @@
 import type { CardChild, CardElement } from "chat";
-import type { formatArtifactDisplay } from "@brains/plugins";
+import type { formatArtifactDisplay } from "@brains/sdk/interfaces";
 import {
   formatMessageProgressDisplay,
   formatStructuredCardFallback,
@@ -8,7 +8,7 @@ import {
   type JobProgressEvent,
   type PendingConfirmation,
   type StructuredChatCard,
-} from "@brains/plugins";
+} from "@brains/sdk/interfaces";
 
 // Action ids shared with ChatInterface (it registers handlers / matches button
 // presses against these). Exported so the interface imports them from the

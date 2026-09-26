@@ -41,7 +41,7 @@ describe("collectOverridePackageRefs", () => {
     const refs = collectOverridePackageRefs({
       logLevel: "debug",
       plugins: {
-        webserver: { port: 9090 },
+        dashboard: { port: 9090 },
       },
     });
     expect(refs).toEqual([]);

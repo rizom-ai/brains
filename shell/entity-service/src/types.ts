@@ -484,8 +484,11 @@ export interface EntityAdapter<
   // Returns Partial<TEntity> as core fields come from database
   fromMarkdown(markdown: string): Partial<TEntity>;
 
-  // Extract metadata from entity for search/filtering - now strongly typed
+  // Extract canonical metadata for persistence and search/filtering.
   extractMetadata(entity: TEntity): TMetadata;
+
+  /** Optional presentation-only label; never used to prepare stored metadata. */
+  displayTitle?(entity: TEntity): string | undefined;
 
   // Parse frontmatter metadata from markdown
   parseFrontMatter<TFrontmatter>(
@@ -552,6 +555,8 @@ export interface SortField {
  * List entities options
  * Generic over metadata type for type-safe filtering
  */
+export type MetadataFilterScalar = string | number | boolean;
+
 export interface EntityReadOptions {
   /** Bounds SQL result transfer, suppresses raw diagnostics, and leaves entity
    * image references unexpanded. Not a bound on database or adapter execution.
@@ -573,6 +578,8 @@ export interface ListOptions<
   filter?: {
     // Typed metadata filter - partial match on metadata fields
     metadata?: Partial<TMetadata>;
+    /** Match any listed scalar for each metadata key. */
+    metadataAnyOf?: Record<string, MetadataFilterScalar[]>;
     /** Literal substring search through serialized content, including frontmatter. */
     contentContains?: string | undefined;
     /** Exact visibility, intersected with visibilityScope rather than widening it. */
@@ -657,6 +664,22 @@ export interface GetEntityRequest extends EntityReadOptions {
    * with elevated access must opt up explicitly.
    */
   visibilityScope?: ContentVisibility | undefined;
+}
+
+export const getEntitiesRequestSchema: z.ZodObject<{
+  entityType: z.ZodString;
+  ids: z.ZodArray<z.ZodString>;
+  visibilityScope: z.ZodOptional<typeof contentVisibilitySchema>;
+}> = z.object({
+  entityType: z.string().trim().min(1),
+  ids: z.array(z.string().trim().min(1)).max(500),
+  visibilityScope: contentVisibilitySchema.optional(),
+});
+
+export interface GetEntitiesRequest {
+  readonly entityType: string;
+  readonly ids: readonly string[];
+  readonly visibilityScope?: ContentVisibility;
 }
 
 export type GetEntityRawRequest = GetEntityRequest;
@@ -915,6 +938,7 @@ export interface ICoreEntityService {
     request: GetEntityRequest,
     schema: EntitySchema<T>,
   ): Promise<T | null>;
+  getEntities(request: GetEntitiesRequest): Promise<BaseEntity[]>;
 
   /**
    * Get entity without content resolution (raw)
@@ -1021,6 +1045,12 @@ export interface IEntitiesNamespace {
     extension: z.ZodObject<z.ZodRawShape>,
   ): void;
 
+  /** Claim lifecycle stewardship of a system entity type. See `EntityRegistry.claimEntityStewardship`. */
+  claimStewardship(entityType: string, ownerLabel: string): void;
+
+  /** Release a stewardship claim. */
+  releaseStewardship(entityType: string, ownerLabel: string): void;
+
   /** Get effective frontmatter schema (base + extensions) for an entity type */
   getEffectiveFrontmatterSchema(
     type: string,
@@ -1045,6 +1075,16 @@ export interface IEntitiesNamespace {
     entityType: string,
     interceptor: CreateInterceptor,
   ): void;
+
+  /**
+   * The create interceptor another type registered, if it registered one.
+   *
+   * How a package creates a type it does not own: not by writing it, but by
+   * handing the request to the route the owner declared — the same route
+   * `system_create` takes. Undefined for a type with no route, which is a
+   * type nobody else can create.
+   */
+  getCreateInterceptor(entityType: string): CreateInterceptor | undefined;
 
   /** Register a raw-upload durable save handler for this plugin's entity type */
   registerUploadSaveHandler(registration: UploadSaveHandlerRegistration): void;
@@ -1226,6 +1266,18 @@ export interface EntityRegistry {
   getAdapter(type: string): EntityAdapter<BaseEntity>;
 
   hasEntityType(type: string): boolean;
+
+  /**
+   * Claim lifecycle stewardship of a system entity type — one the shell
+   * registered, not the claimant. A steward may write the type through
+   * scoped entity access as if it declared it. At most one steward per
+   * type; the type must already be registered when claimed. Named
+   * consumer: @brains/profile (anchor-profile, brain-character).
+   */
+  claimEntityStewardship(entityType: string, ownerLabel: string): void;
+
+  /** Release a stewardship claim, e.g. when the claiming plugin shuts down. */
+  releaseEntityStewardship(entityType: string, ownerLabel: string): void;
 
   validateEntity(type: string, entity: unknown): BaseEntity;
 

@@ -33,57 +33,103 @@ const digestJob = defineJob({
 });
 
 describe("declarative service definitions", () => {
-  it("bounds target construction, admission and metadata transforms", async () => {
+  it("hands parsed schema output to registered text formatters without transforming again", async () => {
+    let parses = 0;
+    const schema = z.object({
+      amount: z.string().transform((value) => {
+        parses++;
+        return Number(value);
+      }),
+    });
+    const definition = defineServicePlugin(
+      { id: "parsed-format", config: z.object({}) },
+      {
+        templates: {
+          numeric: {
+            schema,
+            generation: { prompt: "Produce an amount" },
+            format: ({ value }) => value.amount.toFixed(2),
+          },
+        },
+      },
+    );
+    const harness = createPluginHarness();
+    try {
+      const plugins = instantiatePluginPackageDefinition(
+        definition,
+        {},
+        { name: "@fixture/parsed-format", version: "0.0.0" },
+      );
+      await harness.installPlugins(plugins);
+      const plugin = plugins[0];
+      if (!plugin) throw new Error("Missing service");
+      const template = harness.getTemplates().get(`${plugin.id}:numeric`);
+      if (!template?.formatter) throw new Error("Missing formatter");
+      // Generation and other schema-bearing consumers already validated this.
+      const value = template.schema.parse({ amount: "2" });
+      expect(template.formatter.format(value)).toBe("2.00");
+      expect(parses).toBe(1);
+    } finally {
+      await harness.reset();
+    }
+  });
+
+  it("bounds target construction and admission after ingress normalization", async () => {
     let validations = 0;
     const section = defineEntity({
       type: "bounded-section",
       purpose: "Bounded generation test",
       metadata: z.object({
-        title: z.string().transform((value) => {
+        title: z.string().refine(() => {
           validations++;
-          return value.repeat(3);
+          return true;
         }),
       }),
     });
-    const definition = defineServicePlugin({
-      id: "bounded-content",
-      config: z.object({}),
-      templates: {
-        chapter: {
-          schema: z.string(),
-          generation: { prompt: "Write" },
-          format: ({ value }) => value,
-        },
+    const definition = defineServicePlugin(
+      {
+        id: "bounded-content",
+        config: z.object({}),
+        entities: [section],
       },
-      tools: ({ content }) => [
-        defineTool({
-          name: "generate",
-          description: "Generate bounded sections",
-          sideEffects: "writes",
-          input: z.object({
-            count: z.number(),
-            text: z.string(),
-            dryRun: z.boolean(),
-          }),
-          output: z.object({ queuedTargets: z.number() }),
-          async execute({ input }) {
-            const target = content.target({
-              template: "chapter",
-              destination: {
-                entity: section,
-                idPath: ["section"],
-                metadata: { title: input.text },
-              },
-            });
-            const result = await content.generate({
-              dryRun: input.dryRun,
-              targets: Array.from({ length: input.count }, () => target),
-            });
-            return { queuedTargets: result.queuedTargets };
+      {
+        templates: {
+          chapter: {
+            schema: z.string(),
+            generation: { prompt: "Write" },
+            format: ({ value }) => value,
           },
-        }),
-      ],
-    });
+        },
+        tools: ({ content }) => [
+          defineTool({
+            name: "generate",
+            description: "Generate bounded sections",
+            sideEffects: "writes",
+            input: z.object({
+              count: z.number(),
+              text: z.string().transform((value) => value.repeat(3)),
+              dryRun: z.boolean(),
+            }),
+            output: z.object({ queuedTargets: z.number() }),
+            async execute({ input }) {
+              const target = content.target({
+                template: "chapter",
+                destination: {
+                  entity: section,
+                  idPath: ["section"],
+                  metadata: { title: input.text },
+                },
+              });
+              const result = await content.generate({
+                dryRun: input.dryRun,
+                targets: Array.from({ length: input.count }, () => target),
+              });
+              return { queuedTargets: result.queuedTargets };
+            },
+          }),
+        ],
+      },
+    );
     const [plugin] = instantiatePluginPackageDefinition(
       definition,
       {},
@@ -94,7 +140,7 @@ describe("declarative service definitions", () => {
     const capabilities = await harness.installPlugin(plugin);
     for (const dryRun of [false, true]) {
       // Each target's metadata is validated once at construction; the single
-      // admission check then measures the transformed request as submitted.
+      // admission check then measures the ingress-normalized request as submitted.
       for (const [count, text, expectedValidations] of [
         [MAX_GENERATION_TARGETS + 1, "small", 1],
         [1, "x".repeat(MAX_GENERATION_REQUEST_BYTES), 1],
@@ -112,7 +158,12 @@ describe("declarative service definitions", () => {
         );
         expect(outcome).toMatchObject({
           success: false,
-          error: expect.stringContaining("exceeds"),
+          code: "handler_failed",
+          error: "The operation failed",
+        });
+        if (!outcome) throw new Error("Missing tool response");
+        expect(harness.getToolFailureCause(outcome)).toMatchObject({
+          message: expect.stringContaining("exceeds"),
         });
         expect(validations).toBe(expectedValidations);
       }
@@ -131,56 +182,61 @@ describe("declarative service definitions", () => {
         order: z.number().int().nonnegative(),
       }),
     });
-    const definition = defineServicePlugin({
-      id: "book-content",
-      config: z.object({}),
-      templates: {
-        chapter: {
-          schema: z.object({ title: z.string(), body: z.string() }),
-          generation: {
-            prompt: "Write the requested chapter.",
-            useKnowledgeContext: true,
-          },
-          format: ({ value }) => `# ${value.title}\n\n${value.body}`,
-        },
+    const definition = defineServicePlugin(
+      {
+        id: "book-content",
+        config: z.object({}),
+        entities: [bookSection],
       },
-      tools: ({ content }) => [
-        defineTool({
-          name: "generate-chapter",
-          description: "Generate one chapter.",
-          input: z.object({}),
-          output: z.object({
-            batchId: z.string(),
-            queuedTargets: z.number(),
-          }),
-          sideEffects: "writes",
-          async execute() {
-            const result = await content.generate({
-              targets: [
-                content.target({
-                  template: "chapter",
-                  context: { data: { chapterTitle: "Arrival" } },
-                  destination: {
-                    entity: bookSection,
-                    idPath: ["book-1", "part-1", "chapter-2"],
-                    metadata: {
-                      bookId: "book-1",
-                      sectionId: "chapter-2",
-                      order: 2,
-                    },
-                  },
-                }),
-              ],
-            });
-            if (!result.batchId) throw new Error("Generation was not queued");
-            return {
-              batchId: result.batchId,
-              queuedTargets: result.queuedTargets,
-            };
+      {
+        templates: {
+          chapter: {
+            schema: z.object({ title: z.string(), body: z.string() }),
+            generation: {
+              prompt: "Write the requested chapter.",
+              useKnowledgeContext: true,
+            },
+            format: ({ value }) => `# ${value.title}\n\n${value.body}`,
           },
-        }),
-      ],
-    });
+        },
+        tools: ({ content }) => [
+          defineTool({
+            name: "generate-chapter",
+            description: "Generate one chapter.",
+            input: z.object({}),
+            output: z.object({
+              batchId: z.string(),
+              queuedTargets: z.number(),
+            }),
+            sideEffects: "writes",
+            async execute() {
+              const result = await content.generate({
+                targets: [
+                  content.target({
+                    template: "chapter",
+                    context: { data: { chapterTitle: "Arrival" } },
+                    destination: {
+                      entity: bookSection,
+                      idPath: ["book-1", "part-1", "chapter-2"],
+                      metadata: {
+                        bookId: "book-1",
+                        sectionId: "chapter-2",
+                        order: 2,
+                      },
+                    },
+                  }),
+                ],
+              });
+              if (!result.batchId) throw new Error("Generation was not queued");
+              return {
+                batchId: result.batchId,
+                queuedTargets: result.queuedTargets,
+              };
+            },
+          }),
+        ],
+      },
+    );
     const [plugin] = instantiatePluginPackageDefinition(
       definition,
       {},
@@ -243,56 +299,60 @@ describe("declarative service definitions", () => {
 
   it("infers config, state, jobs, templates, and plain tool output", async () => {
     let cleaned = false;
-    const definition = defineServicePlugin({
-      id: "reading-insights",
-      config: z.object({ prefix: z.string().default("Digest") }),
-      setup({ config, lifecycle }) {
-        expectTypeOf(config.prefix).toEqualTypeOf<string>();
-        lifecycle.onCleanup(() => {
-          cleaned = true;
-        });
-        return {
-          summarize(bookmarkId: string): {
-            bookmarkId: string;
-            words: number;
-          } {
-            return { bookmarkId, words: 3 };
-          },
-        };
-      },
-      templates: {
-        digest: {
-          schema: digestOutput,
-          format: ({ value }) => `${value.bookmarkId}: ${value.words}`,
+    const definition = defineServicePlugin(
+      {
+        id: "reading-insights",
+        config: z.object({ prefix: z.string().default("Digest") }),
+        setup({ config, lifecycle }) {
+          expectTypeOf(config.prefix).toEqualTypeOf<string>();
+          lifecycle.onCleanup(() => {
+            cleaned = true;
+          });
+          return {
+            summarize(bookmarkId: string): {
+              bookmarkId: string;
+              words: number;
+            } {
+              return { bookmarkId, words: 3 };
+            },
+          };
         },
       },
-      jobs: ({ state }) => [
-        digestJob.handle(async ({ input, templates }) => {
-          const output = state.summarize(input.bookmarkId);
-          expect(templates.format("digest", output)).toBe("saved: 3");
-          return output;
-        }),
-      ],
-      resources: ({ config }) => ({
-        guide: {
-          uri: "reading://guide",
-          read: (): string => config.prefix,
+      {
+        templates: {
+          digest: {
+            schema: digestOutput,
+            format: ({ value }) => `${value.bookmarkId}: ${value.words}`,
+          },
         },
-      }),
-      tools: ({ jobs }) => [
-        defineTool({
-          name: "compile-digest",
-          description: "Compile a reading digest.",
-          input: digestInput,
-          output: z.object({ jobId: z.string() }),
-          confirmation: "Compile this digest?",
-          async execute({ input }) {
-            const job = await jobs.enqueue(digestJob, input);
-            return { jobId: job.id };
+        jobs: ({ state }) => [
+          digestJob.handle(async ({ input, templates }) => {
+            const output = state.summarize(input.bookmarkId);
+            expect(templates.format("digest", output)).toBe("saved: 3");
+            return output;
+          }),
+        ],
+        resources: ({ config }) => ({
+          guide: {
+            uri: "reading://guide",
+            read: (): string => config.prefix,
           },
         }),
-      ],
-    });
+        tools: ({ jobs }) => [
+          defineTool({
+            name: "compile-digest",
+            description: "Compile a reading digest.",
+            input: digestInput,
+            output: z.object({ jobId: z.string() }),
+            confirmation: "Compile this digest?",
+            async execute({ input }) {
+              const job = await jobs.enqueue(digestJob, input);
+              return { jobId: job.id };
+            },
+          }),
+        ],
+      },
+    );
 
     const [plugin] = instantiatePluginPackageDefinition(
       definition,
@@ -375,12 +435,16 @@ describe("declarative service definitions", () => {
       bookmarkId: input.bookmarkId,
       words: 1,
     }));
-    const definition = defineServicePlugin({
-      id: "failing-service",
-      config: z.object({}),
-      setup: () => ({}),
-      jobs: () => [binding, binding],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "failing-service",
+        config: z.object({}),
+        setup: () => ({}),
+      },
+      {
+        jobs: () => [binding, binding],
+      },
+    );
     const [plugin] = instantiatePluginPackageDefinition(
       definition,
       {},
@@ -419,30 +483,34 @@ describe("declarative service definitions", () => {
       input: digestInput,
       output: digestOutput,
     });
-    const definition = defineServicePlugin({
-      id: "replay-service",
-      config: z.object({}),
-      setup: () => ({}),
-      jobs: () => [
-        attributedJob.handle(async ({ input }) => ({
-          bookmarkId: input.bookmarkId,
-          words: 1,
-        })),
-      ],
-      tools: ({ jobs }) => [
-        defineTool({
-          name: "compile",
-          description: "Compile a digest.",
-          input: digestInput,
-          output: z.object({ jobId: z.string() }),
-          confirmation: "Compile this digest?",
-          async execute({ input }) {
-            const job = await jobs.enqueue(attributedJob, input);
-            return { jobId: job.id };
-          },
-        }),
-      ],
-    });
+    const definition = defineServicePlugin(
+      {
+        id: "replay-service",
+        config: z.object({}),
+        setup: () => ({}),
+      },
+      {
+        jobs: () => [
+          attributedJob.handle(async ({ input }) => ({
+            bookmarkId: input.bookmarkId,
+            words: 1,
+          })),
+        ],
+        tools: ({ jobs }) => [
+          defineTool({
+            name: "compile",
+            description: "Compile a digest.",
+            input: digestInput,
+            output: z.object({ jobId: z.string() }),
+            confirmation: "Compile this digest?",
+            async execute({ input }) {
+              const job = await jobs.enqueue(attributedJob, input);
+              return { jobId: job.id };
+            },
+          }),
+        ],
+      },
+    );
     const makePlugin = (): NonNullable<
       ReturnType<typeof instantiatePluginPackageDefinition>[number]
     > => {
@@ -560,13 +628,12 @@ describe("declarative service definitions", () => {
     });
 
     const install = async (
-      extra: Partial<Parameters<typeof defineServicePlugin>[0]>,
+      behavior: NonNullable<Parameters<typeof defineServicePlugin>[1]>,
     ): Promise<void> => {
-      const definition = defineServicePlugin({
-        id: "reading-operator",
-        config: z.object({}),
-        ...extra,
-      });
+      const definition = defineServicePlugin(
+        { id: "reading-operator", config: z.object({}) },
+        behavior,
+      );
       const [plugin] = instantiatePluginPackageDefinition(
         definition,
         {},
@@ -602,5 +669,160 @@ describe("declarative service definitions", () => {
       }),
     ).resolves.toBeUndefined();
     expect(studioFactories).toBe(0);
+  });
+});
+
+describe("a tool and who called it", () => {
+  it("hands execute the caller, so a grant can be attributed", async () => {
+    let seen: unknown;
+    const definition = defineServicePlugin(
+      {
+        id: "trust-desk",
+        config: z.object({}),
+        setup: () => ({}),
+      },
+      {
+        tools: () => [
+          defineTool({
+            name: "record",
+            description: "Record who asked.",
+            input: z.object({}),
+            output: z.object({ actor: z.string() }),
+            execute: ({ caller }) => {
+              seen = caller;
+              return { actor: caller?.actor.kind ?? "anonymous" };
+            },
+          }),
+        ],
+      },
+    );
+
+    const [plugin] = instantiatePluginPackageDefinition(
+      definition,
+      {},
+      { name: "@fixture/trust-desk", version: "0.1.0" },
+    );
+    if (!plugin) throw new Error("Service plugin was not created");
+
+    const harness = createPluginHarness();
+    const capabilities = await harness.installPlugin(plugin);
+    const tool = capabilities.tools[0];
+    if (!tool) throw new Error("Tool was not registered");
+
+    const result = await tool.handler(
+      {},
+      {
+        interfaceType: "cli",
+        actor: { kind: "user", userId: "u-42" },
+        userPermissionLevel: "admin",
+      },
+    );
+
+    expect(result).toMatchObject({ success: true, data: { actor: "user" } });
+    expect(seen).toMatchObject({
+      actor: { kind: "user", userId: "u-42" },
+      userPermissionLevel: "admin",
+    });
+  });
+});
+
+describe("a tool the agent must not wield", () => {
+  it("carries agentTool through, so a human-only tool stays out of the agent's set", async () => {
+    const definition = defineServicePlugin(
+      {
+        id: "metrics-desk",
+        config: z.object({}),
+        setup: () => ({}),
+      },
+      {
+        tools: () => [
+          defineTool({
+            name: "readout",
+            description: "Read metrics.",
+            input: z.object({}),
+            output: z.object({ ok: z.boolean() }),
+            agentTool: false,
+            execute: () => ({ ok: true }),
+          }),
+          defineTool({
+            name: "everyday",
+            description: "An ordinary tool.",
+            input: z.object({}),
+            output: z.object({ ok: z.boolean() }),
+            execute: () => ({ ok: true }),
+          }),
+        ],
+      },
+    );
+
+    const [plugin] = instantiatePluginPackageDefinition(
+      definition,
+      {},
+      { name: "@fixture/metrics-desk", version: "0.1.0" },
+    );
+    if (!plugin) throw new Error("Service plugin was not created");
+
+    const harness = createPluginHarness();
+    const capabilities = await harness.installPlugin(plugin);
+    const readout = capabilities.tools.find((tool) =>
+      tool.name.endsWith("_readout"),
+    );
+    const everyday = capabilities.tools.find((tool) =>
+      tool.name.endsWith("_everyday"),
+    );
+    expect(readout?.agentTool).toBe(false);
+    if (!everyday) throw new Error("The everyday tool was not registered");
+    expect(everyday.agentTool).toBeUndefined();
+  });
+});
+
+describe("what a confirmation says", () => {
+  it("can name the subject, so a person sees what they are agreeing to", async () => {
+    const definition = defineServicePlugin(
+      {
+        id: "trust-gate",
+        config: z.object({}),
+        setup: () => ({}),
+      },
+      {
+        tools: () => [
+          defineTool({
+            name: "grant",
+            description: "Grant access.",
+            input: z.object({ agent: z.string(), level: z.string() }),
+            output: z.object({ granted: z.string() }),
+            confirmation: ({ agent, level }) =>
+              `Grant ${level} access to ${agent}?`,
+            execute: ({ input }) => ({ granted: input.agent }),
+          }),
+        ],
+      },
+    );
+
+    const [plugin] = instantiatePluginPackageDefinition(
+      definition,
+      {},
+      { name: "@fixture/trust-gate", version: "0.1.0" },
+    );
+    if (!plugin) throw new Error("Service plugin was not created");
+
+    const harness = createPluginHarness();
+    const capabilities = await harness.installPlugin(plugin);
+    const tool = capabilities.tools[0];
+    if (!tool) throw new Error("Tool was not registered");
+
+    const confirmation = await tool.handler(
+      { agent: "vale.example", level: "trusted" },
+      {
+        interfaceType: "cli",
+        actor: { kind: "user", userId: "u-1" },
+        userPermissionLevel: "admin",
+      },
+    );
+
+    expect(confirmation).toMatchObject({
+      needsConfirmation: true,
+      summary: "Grant trusted access to vale.example?",
+    });
   });
 });

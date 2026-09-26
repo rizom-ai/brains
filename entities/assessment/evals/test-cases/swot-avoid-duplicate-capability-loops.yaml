@@ -7,7 +7,7 @@ tags:
   - swot
   - quality
   - adversarial
-plugin: assessment
+plugin: "@brains/assessment:swot"
 handler: deriveSwot
 
 input:

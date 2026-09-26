@@ -1,4 +1,3 @@
-import { genericSpy } from "@brains/test-utils";
 import { mock } from "bun:test";
 import { createTestEntity } from "./fixtures";
 import type {
@@ -9,15 +8,22 @@ import type {
   QueryEntityHierarchyRequest,
   EntityGroupingCatalog,
   EntityGroupingMembers,
-  IEntityService,
   SearchResult,
+  ListOptions,
+  IEntityService,
 } from "../index";
+import { genericSpy } from "@brains/test-utils";
+import {
+  normalizeContentVisibility,
+  type RawContentVisibility,
+} from "../types";
 
 /**
  * Return value configuration for mock entity service methods
  */
 export interface MockEntityServiceReturns {
   getEntity?: BaseEntity | null;
+  getEntities?: BaseEntity[];
   getEntityWriteSnapshot?: EntityWriteSnapshot | null;
   createEntity?: EntityMutationResult;
   updateEntity?: EntityMutationResult;
@@ -45,13 +51,15 @@ function writtenEntity(entity: {
   id?: string | undefined;
   content?: string | undefined;
   metadata?: Record<string, unknown> | undefined;
-  visibility?: BaseEntity["visibility"] | undefined;
+  visibility?: RawContentVisibility | undefined;
 }): BaseEntity {
   return createTestEntity(entity.entityType, {
     id: entity.id ?? "mock-entity-id",
     ...(entity.content !== undefined && { content: entity.content }),
     ...(entity.metadata && { metadata: entity.metadata }),
-    ...(entity.visibility && { visibility: entity.visibility }),
+    ...(entity.visibility && {
+      visibility: normalizeContentVisibility(entity.visibility),
+    }),
   });
 }
 
@@ -64,12 +72,41 @@ export interface MockEntityServiceOptions {
   /** Pre-configured return values for methods */
   returns?: MockEntityServiceReturns;
   /** Dynamic implementation for listEntities (overrides returns.listEntities) */
-  listEntitiesImpl?: (request: { entityType: string }) => Promise<BaseEntity[]>;
+  /**
+   * Given the whole request, options included.
+   *
+   * The options used to be dropped here, which meant a rule that filtered by
+   * `visibilityScope` and one that forgot to were indistinguishable to every
+   * test in the repo — and one of them was deleting entities it did not own.
+   */
+  listEntitiesImpl?: (request: {
+    entityType: string;
+    options?: ListOptions | undefined;
+  }) => Promise<BaseEntity[]>;
   /** Dynamic implementation for getEntity (overrides returns.getEntity) */
   getEntityImpl?: (request: {
     entityType: string;
     id: string;
   }) => Promise<BaseEntity | null>;
+  /** Dynamic implementation for getEntities (overrides returns.getEntities) */
+  getEntitiesImpl?: (request: {
+    entityType: string;
+    ids: readonly string[];
+  }) => Promise<BaseEntity[]>;
+  /**
+   * Record what a test writes, rather than returning a canned result.
+   *
+   * Writes are generic too, so a test that stubs them by hand has to assert
+   * the stub matches — which stops checking it. Configured here, the
+   * implementation is checked and `genericSpy` carries the one erasure
+   * `mock()` actually causes.
+   */
+  createEntityImpl?: (request: {
+    entity: BaseEntity;
+  }) => Promise<EntityMutationResult>;
+  updateEntityImpl?: (request: {
+    entity: BaseEntity;
+  }) => Promise<EntityMutationResult>;
 }
 
 /**
@@ -107,6 +144,9 @@ export function createMockEntityService(
     returns = {},
     listEntitiesImpl,
     getEntityImpl,
+    getEntitiesImpl,
+    createEntityImpl,
+    updateEntityImpl,
   } = options;
 
   // Recording mocks for the generic read methods. These stay real spies, so
@@ -114,7 +154,10 @@ export function createMockEntityService(
   // restores the type parameters `mock()` erased. Every other member below is
   // fully checked by the `satisfies` at the end of this literal.
   const listEntitiesMock = mock(
-    (request: { entityType: string }): Promise<BaseEntity[]> =>
+    (request: {
+      entityType: string;
+      options?: ListOptions | undefined;
+    }): Promise<BaseEntity[]> =>
       listEntitiesImpl?.(request) ??
       Promise.resolve(returns.listEntities ?? []),
   );
@@ -125,6 +168,16 @@ export function createMockEntityService(
   const getEntityRawMock = mock(
     (request: { entityType: string; id: string }): Promise<BaseEntity | null> =>
       getEntityImpl?.(request) ?? Promise.resolve(returns.getEntity ?? null),
+  );
+  const getEntitiesMock = mock(
+    (request: {
+      entityType: string;
+      ids: readonly string[];
+    }): Promise<BaseEntity[]> =>
+      getEntitiesImpl?.(request) ??
+      Promise.resolve(
+        returns.getEntities ?? (returns.getEntity ? [returns.getEntity] : []),
+      ),
   );
   const searchMock = mock((): Promise<SearchResult[]> =>
     Promise.resolve(returns.search ?? []),
@@ -137,6 +190,7 @@ export function createMockEntityService(
     areGroupingsReady: mock(() => true),
     reprojectRegisteredGroupings: mock(async () => {}),
     getEntity: genericSpy<IEntityService["getEntity"]>(getEntityMock),
+    getEntities: getEntitiesMock,
     getEntityRaw: genericSpy<IEntityService["getEntityRaw"]>(getEntityRawMock),
     listEntities: genericSpy<IEntityService["listEntities"]>(listEntitiesMock),
     queryEntityHierarchy: mock(
@@ -159,19 +213,28 @@ export function createMockEntityService(
     ),
     search: genericSpy<IEntityService["search"]>(searchMock),
 
-    // The real mutations run beforeWrite inside the write transaction, so a
-    // guard that throws there must also prevent a mocked write from recording.
-    createEntity: mock(async (request) => {
-      await request.options?.beforeWrite?.(writtenEntity(request.entity));
-      return mutationResult(returns.createEntity);
-    }),
+    // Guards must run before a configured write records its side effects.
+    createEntity: genericSpy<IEntityService["createEntity"]>(
+      mock(async (request: Parameters<IEntityService["createEntity"]>[0]) => {
+        const entity = writtenEntity(request.entity);
+        await request.options?.beforeWrite?.(entity);
+        return (
+          createEntityImpl?.({ entity }) ?? mutationResult(returns.createEntity)
+        );
+      }),
+    ),
     createEntityFromMarkdown: mock(() =>
       Promise.resolve(mutationResult(undefined)),
     ),
-    updateEntity: mock(async (request) => {
-      await request.options?.beforeWrite?.(writtenEntity(request.entity));
-      return mutationResult(returns.updateEntity);
-    }),
+    updateEntity: genericSpy<IEntityService["updateEntity"]>(
+      mock(async (request: Parameters<IEntityService["updateEntity"]>[0]) => {
+        const entity = writtenEntity(request.entity);
+        await request.options?.beforeWrite?.(entity);
+        return (
+          updateEntityImpl?.({ entity }) ?? mutationResult(returns.updateEntity)
+        );
+      }),
+    ),
     deleteEntity: mock(() => Promise.resolve(returns.deleteEntity ?? true)),
     upsertEntity: mock(() =>
       Promise.resolve({ ...mutationResult(undefined), created: false }),

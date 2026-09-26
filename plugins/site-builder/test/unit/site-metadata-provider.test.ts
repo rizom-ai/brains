@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { SITE_METADATA_GET_CHANNEL } from "@brains/site-composition";
-import { SiteBuilderPlugin } from "../../src/plugin";
+import { installSiteBuilder } from "../helpers/install";
 import { z } from "@brains/utils/zod";
 
 /** The site resource body, parsed rather than asserted: it arrives as JSON text. */
@@ -33,7 +33,7 @@ describe("site-builder metadata provider contract", () => {
       },
     }));
 
-    const capabilities = await harness.installPlugin(new SiteBuilderPlugin({}));
+    const { capabilities } = await installSiteBuilder(harness);
     const resource = capabilities.resources.find(
       (r) => r.uri === "brain://site",
     );
@@ -51,14 +51,12 @@ describe("site-builder metadata provider contract", () => {
 
   it("falls back to configured metadata when no provider is registered", async () => {
     const harness = createPluginHarness();
-    const capabilities = await harness.installPlugin(
-      new SiteBuilderPlugin({
-        siteInfo: {
-          title: "Fallback Site",
-          description: "Fallback metadata",
-        },
-      }),
-    );
+    const { capabilities } = await installSiteBuilder(harness, {
+      siteInfo: {
+        title: "Fallback Site",
+        description: "Fallback metadata",
+      },
+    });
     const resource = capabilities.resources.find(
       (r) => r.uri === "brain://site",
     );

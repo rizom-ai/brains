@@ -1,15 +1,12 @@
-import { createMockEntityPluginContext } from "@brains/plugins/test";
-import { describe, expect, it } from "bun:test";
-import { DASHBOARD_CHANNELS } from "@brains/contracts";
 import {
-  DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-  SYSTEM_CHANNELS,
-  type Conversation,
-  type Message,
-} from "@brains/plugins";
+  createMockEntityPluginContext,
+  createTestEntityAccess,
+} from "@brains/plugins/test";
+import { describe, expect, it } from "bun:test";
+import { type Conversation, type Message } from "@brains/plugins";
 import {
   buildSummaryCoverageData,
-  registerSummaryCoverageWidget,
+  summaryCoverageWidgetDeclaration,
 } from "../../../src/lib/widgets/coverage";
 import { summaryConfigSchema } from "../../../src/schemas/summary-config";
 import type { SummaryEntity } from "../../../src/schemas/summary";
@@ -87,7 +84,11 @@ describe("buildSummaryCoverageData", () => {
     };
 
     const data = await buildSummaryCoverageData({
-      context,
+      entities: createTestEntityAccess({
+        entityService: context.entityService,
+      }),
+      conversations: context.conversations,
+      spaces: context.spaces,
       config: summaryConfigSchema.parse({}),
     });
 
@@ -156,7 +157,11 @@ describe("buildSummaryCoverageData", () => {
     };
 
     const data = await buildSummaryCoverageData({
-      context,
+      entities: createTestEntityAccess({
+        entityService: context.entityService,
+      }),
+      conversations: context.conversations,
+      spaces: context.spaces,
       config: summaryConfigSchema.parse({}),
     });
 
@@ -195,46 +200,255 @@ describe("buildSummaryCoverageData", () => {
   });
 });
 
-describe("registerSummaryCoverageWidget", () => {
-  it("registers an Admin-only coverage widget", async () => {
-    const base = createMockEntityPluginContext({
-      spaces: [],
-      listEntitiesImpl: async (): Promise<SummaryEntity[]> => [],
+// The runtime owns waiting for the dashboard and announcing the widget.
+// What is this package's is the declaration, and that coverage is a
+// question about every conversation rather than one.
+describe("summaryCoverageWidgetDeclaration", () => {
+  it("declares the widget and surveys conversations to load it", async () => {
+    const declaration = summaryCoverageWidgetDeclaration(
+      summaryConfigSchema.parse({}),
+    );
+    expect(declaration.definition.id).toBe("coverage");
+
+    const context = createMockEntityPluginContext({
+      listEntitiesImpl: async () => [],
     });
-    const context = {
-      ...base,
+    let surveyed = false;
+    const data = await declaration.load({
+      entities: createTestEntityAccess({
+        entityService: context.entityService,
+      }),
       conversations: {
-        ...base.conversations,
-        list: async (): Promise<Conversation[]> => [],
+        get: async () => null,
+        getMessages: async () => [],
+        getManyWithMessages: async () => [],
+        list: async () => {
+          surveyed = true;
+          return [];
+        },
+      },
+      spaces: [],
+      // This widget places nothing in semantic space.
+      semantic: {
+        project: async () => ({
+          origin: { kind: "centroid" as const },
+          points: [],
+          neighbors: [],
+          distanceRange: { min: 0, max: 0 },
+        }),
+      },
+      caller: null,
+      signal: new AbortController().signal,
+    });
+
+    // No spaces configured, so there is nothing to survey and it says so
+    // rather than reporting zero coverage.
+    expect(surveyed).toBe(false);
+    expect(data).toMatchObject({
+      items: [{ id: "spaces", status: "disabled" }],
+    });
+  });
+});
+
+/**
+ * What the widget reads, not just what it reports.
+ *
+ * Coverage is a question about every conversation, so its cost scales with
+ * the corpus. It used to ask the conversation service for each conversation
+ * it had already been handed by `list()`, and for the messages of every
+ * candidate — including ones with no summary, whose hash it then discarded.
+ */
+describe("what buildSummaryCoverageData costs", () => {
+  function createSurvey(conversations: Conversation[]): {
+    survey: {
+      list: () => Promise<Conversation[]>;
+      get: (id: string) => Promise<Conversation | null>;
+      getMessages: (id: string) => Promise<Message[]>;
+    };
+    gets: string[];
+    messageReads: string[];
+  } {
+    const gets: string[] = [];
+    const messageReads: string[] = [];
+    return {
+      gets,
+      messageReads,
+      survey: {
+        list: async (): Promise<Conversation[]> => conversations,
+        get: async (id: string): Promise<Conversation | null> => {
+          gets.push(id);
+          return (
+            conversations.find((conversation) => conversation.id === id) ?? null
+          );
+        },
+        getMessages: async (id: string): Promise<Message[]> => {
+          messageReads.push(id);
+          return createMessages(id);
+        },
       },
     };
-    context.messaging.subscribe(
-      DASHBOARD_CHANNELS.registerWidget,
-      async () => ({ success: true }),
-    );
+  }
 
-    registerSummaryCoverageWidget({
-      context,
+  it("never re-reads a conversation the survey already listed", async () => {
+    const conversations = [
+      createConversation({ id: "conversation-1", channelId: "team" }),
+      createConversation({
+        id: "conversation-2",
+        sessionId: "conversation-2",
+        channelId: "team",
+      }),
+    ];
+    const { survey, gets } = createSurvey(conversations);
+    const base = createMockEntityPluginContext({
+      spaces: ["mcp:team"],
+      listEntitiesImpl: async (): Promise<SummaryEntity[]> => [],
+    });
+
+    await buildSummaryCoverageData({
+      entities: createTestEntityAccess({ entityService: base.entityService }),
+      conversations: { ...base.conversations, ...survey },
+      spaces: ["mcp:team"],
       config: summaryConfigSchema.parse({}),
     });
-    // Publish the real message rather than capturing the handler.
-    await context.messaging.send({
-      type: SYSTEM_CHANNELS.pluginsRegistered,
-      payload: {},
+
+    expect(gets).toEqual([]);
+  });
+
+  it("reads messages only where a stored hash exists to compare against", async () => {
+    const conversations = [
+      createConversation({ id: "summarized", channelId: "team" }),
+      createConversation({
+        id: "unsummarized",
+        sessionId: "unsummarized",
+        channelId: "team",
+      }),
+      createConversation({
+        id: "ineligible",
+        sessionId: "ineligible",
+        channelId: "outside",
+      }),
+    ];
+    const { survey, messageReads } = createSurvey(conversations);
+    const base = createMockEntityPluginContext({
+      spaces: ["mcp:team"],
+      listEntitiesImpl: async (): Promise<SummaryEntity[]> => [
+        createSummary({
+          id: "summarized",
+          metadata: {
+            conversationId: "summarized",
+            channelId: "team",
+            channelName: "Team",
+            interfaceType: "mcp",
+            messageCount: 1,
+            entryCount: 2,
+            sourceHash: "old-source-hash",
+            projectionVersion: 1,
+          },
+        }),
+      ],
     });
 
-    const [registerCall] = context.dashboard.registerWidget.mock.calls;
-    const payload = registerCall?.[0];
-    if (!payload) throw new Error("widget was not registered");
+    const data = await buildSummaryCoverageData({
+      entities: createTestEntityAccess({ entityService: base.entityService }),
+      conversations: { ...base.conversations, ...survey },
+      spaces: ["mcp:team"],
+      config: summaryConfigSchema.parse({}),
+    });
 
-    expect(payload).toMatchObject({
-      id: "coverage",
-      title: "Conversation memory coverage",
-      group: "system",
-      section: "secondary",
-      priority: 80,
-      rendererName: DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-      visibility: "admin",
+    // The unsummarized one has nothing to be stale against, and the
+    // ineligible one is not counted at all.
+    expect(messageReads).toEqual(["summarized"]);
+
+    // And the counts it reports are unchanged by reading less.
+    expect(data.items).toContainEqual({
+      id: "eligible-conversations",
+      name: "Eligible conversations",
+      count: 2,
+      status: "1/2 summarized",
+    });
+    expect(data.items).toContainEqual({
+      id: "unsummarized-conversations",
+      name: "Unsummarized eligible",
+      count: 1,
+      status: "pending",
+    });
+  });
+
+  it("costs one query when nothing has been summarized", async () => {
+    const conversations = Array.from({ length: 40 }, (_, index) =>
+      createConversation({
+        id: `conversation-${index}`,
+        sessionId: `conversation-${index}`,
+        channelId: "team",
+      }),
+    );
+    const { survey, gets, messageReads } = createSurvey(conversations);
+    const base = createMockEntityPluginContext({
+      spaces: ["mcp:team"],
+      listEntitiesImpl: async (): Promise<SummaryEntity[]> => [],
+    });
+
+    await buildSummaryCoverageData({
+      entities: createTestEntityAccess({ entityService: base.entityService }),
+      conversations: { ...base.conversations, ...survey },
+      spaces: ["mcp:team"],
+      config: summaryConfigSchema.parse({}),
+    });
+
+    // The projector is off, so every conversation is unsummarized and the
+    // widget has nothing to compare. It should ask for nothing.
+    expect(gets).toEqual([]);
+    expect(messageReads).toEqual([]);
+  });
+
+  it("bounds the staleness scan and says what it measured", async () => {
+    const conversations = Array.from({ length: 40 }, (_, index) =>
+      createConversation({
+        id: `conversation-${index}`,
+        sessionId: `conversation-${index}`,
+        channelId: "team",
+      }),
+    );
+    const { survey, messageReads } = createSurvey(conversations);
+    const base = createMockEntityPluginContext({
+      spaces: ["mcp:team"],
+      listEntitiesImpl: async (): Promise<SummaryEntity[]> =>
+        conversations.map((conversation, index) =>
+          createSummary({
+            id: conversation.id,
+            updated: new Date(Date.UTC(2026, 0, 1, 0, index)).toISOString(),
+            metadata: {
+              conversationId: conversation.id,
+              channelId: "team",
+              channelName: "Team",
+              interfaceType: "mcp",
+              messageCount: 1,
+              entryCount: 2,
+              sourceHash: "old-source-hash",
+              projectionVersion: 1,
+            },
+          }),
+        ),
+    });
+
+    const data = await buildSummaryCoverageData({
+      entities: createTestEntityAccess({ entityService: base.entityService }),
+      conversations: { ...base.conversations, ...survey },
+      spaces: ["mcp:team"],
+      config: summaryConfigSchema.parse({}),
+    });
+
+    expect(messageReads.length).toBeLessThan(conversations.length);
+
+    // A partial scan must not report its count as if it were the whole
+    // corpus: 40 conversations are eligible and summarized either way.
+    const stale = data.items.find((item) => item.id === "stale-summaries");
+    expect(stale?.status).toContain("newest");
+    expect(data.items).toContainEqual({
+      id: "eligible-conversations",
+      name: "Eligible conversations",
+      count: 40,
+      status: "40/40 summarized",
     });
   });
 });

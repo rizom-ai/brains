@@ -116,25 +116,26 @@ A running brain is driven by an _instance directory_ centered on `brain.yaml` pl
 
 ### Shell packages
 
-| Package                                                 | Purpose                                                                  |
-| ------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `shell/app`                                             | Brain resolver, `defineBrain()`, instance loading, runtime bootstrap     |
-| `shell/core`                                            | Core shell, lifecycle orchestration, system tools/resources/prompts      |
-| `shell/ai-service`                                      | AI querying, orchestration, provider abstraction                         |
-| `shell/content-service`                                 | Template-based generation, multi-target planning and durable admission   |
-| `shell/conversation-service`                            | Conversation state and message history                                   |
-| `shell/entity-service`                                  | Entity CRUD, indexing, search, embeddings                                |
-| `shell/identity-service`                                | Brain identity, anchor profile, URL derivation                           |
-| `shell/job-queue`                                       | Background jobs, progress events, handler registration                   |
-| `shell/mcp-service`                                     | MCP tool/resource/prompt/template registration                           |
-| `shell/messaging-service`                               | Typed event bus used across plugins                                      |
-| `shell/runtime-state`                                   | Runtime state store service (`RuntimeStateService`/`RuntimeStateStore`)  |
-| `shell/scheduler`                                       | Shared scheduler contracts and deterministic test backend                |
-| `shell/recurring-checks`                                | Recurring cadence, dedupe, Inbox alerts, and channel delivery retries    |
-| `shell/plugins`                                         | Base plugin classes, contexts, harnesses, and app-scoped registries      |
-| `shell/templates`                                       | Template registry and resolution                                         |
-| `shell/ai-evaluation`                                   | Eval runner, test cases, judges, reporting                               |
-| [`shell/auth-service`](../shell/auth-service/README.md) | Private auth DB, OAuth/WebAuthn, users, identity, invitations, and audit |
+| Package                                                 | Purpose                                                                    |
+| ------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `shell/app`                                             | Brain resolver, `defineBrain()`, instance loading, runtime bootstrap       |
+| `shell/core`                                            | Core shell, lifecycle orchestration, system tools/resources/prompts        |
+| `shell/http-host`                                       | Runtime-owned Hono/Bun listener, static serving and dynamic route dispatch |
+| `shell/ai-service`                                      | AI querying, orchestration, provider abstraction                           |
+| `shell/content-service`                                 | Template-based content generation support                                  |
+| `shell/conversation-service`                            | Conversation state and message history                                     |
+| `shell/entity-service`                                  | Entity CRUD, indexing, search, embeddings                                  |
+| `shell/identity-service`                                | Brain identity, anchor profile, URL derivation                             |
+| `shell/job-queue`                                       | Background jobs, progress events, handler registration                     |
+| `shell/mcp-service`                                     | MCP tool/resource/prompt/template registration                             |
+| `shell/messaging-service`                               | Typed event bus used across plugins                                        |
+| `shell/runtime-state`                                   | Runtime state store service (`RuntimeStateService`/`RuntimeStateStore`)    |
+| `shell/scheduler`                                       | Shared scheduler contracts and deterministic test backend                  |
+| `shell/recurring-checks`                                | Recurring cadence, dedupe, Inbox alerts, and channel delivery retries      |
+| `shell/plugins`                                         | Base plugin classes, contexts, harnesses, and app-scoped registries        |
+| `shell/templates`                                       | Template registry and resolution                                           |
+| `shell/ai-evaluation`                                   | Eval runner, test cases, judges, reporting                                 |
+| [`shell/auth-service`](../shell/auth-service/README.md) | Private auth DB, OAuth/WebAuthn, users, identity, invitations, and audit   |
 
 ### Entity packages
 
@@ -178,7 +179,7 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 | `plugins/notifications`    | Notification routing for transactional and administrative messages                                 |
 | `plugins/obsidian-vault`   | Obsidian export/templates                                                                          |
 | `plugins/site-builder`     | Static site build orchestration                                                                    |
-| `plugins/site-content`     | Site route/section discovery over the shell's generic content generation                           |
+| `plugins/site-content`     | Site section content generation                                                                    |
 | `plugins/stock-photo`      | Stock-photo search and selection                                                                   |
 | `plugins/unified-inbox`    | Live inbox projection, source facets, resolved launches, registered Studio triage, summary, digest |
 | `plugins/studio`           | Browser authoring routes + Studio config                                                           |
@@ -187,15 +188,14 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 
 Interface packages live in `interfaces/`. Some chat-style interfaces use `MessageInterfacePlugin`, which is a specialized interface base class for conversational transports.
 
-| Package                | Purpose                                                                                                     |
-| ---------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `interfaces/a2a`       | Agent-to-agent protocol, Agent Card, async tasks                                                            |
-| `interfaces/chat-repl` | Local chat REPL / development chat interface                                                                |
-| `interfaces/chat`      | Discord + Slack bot interface via the Chat SDK                                                              |
-| `interfaces/email`     | Email interface with configurable Resend delivery, threaded replies, and IMAP intake/source reads           |
-| `interfaces/mcp`       | MCP transport over stdio and HTTP                                                                           |
-| `interfaces/web-chat`  | Guest-facing in-browser chat surface (default route `/ask`); shared Chat APIs                               |
-| `interfaces/webserver` | Browser-facing HTTP surface for site pages, dashboard/Studio routes, API routes, and split health endpoints |
+| Package                | Purpose                                                                                           |
+| ---------------------- | ------------------------------------------------------------------------------------------------- |
+| `interfaces/a2a`       | Agent-to-agent protocol, Agent Card, async tasks                                                  |
+| `interfaces/chat-repl` | Local chat REPL / development chat interface                                                      |
+| `interfaces/chat`      | Discord + Slack bot interface via the Chat SDK                                                    |
+| `interfaces/email`     | Email interface with configurable Resend delivery, threaded replies, and IMAP intake/source reads |
+| `interfaces/mcp`       | MCP transport over stdio and HTTP                                                                 |
+| `interfaces/web-chat`  | Guest-facing in-browser chat surface (default route `/ask`); shared Chat APIs                     |
 
 ### Sites, themes, and the canonical definition
 
@@ -250,33 +250,6 @@ For creation, the standard pattern is:
 
 This is the canonical place for entity-specific create behavior such as URL capture, target resolution, deduplicating wishes, or enriching required metadata.
 
-### Multi-target content generation
-
-`shell/content-service` owns the generic mechanics for generating many entities from
-templates: validating structured destinations, checking template capability and existing
-output, applying `force` and `dryRun`, and enqueuing admitted work. Its contracts use
-content vocabulary only; no route, chapter, or section concepts enter the shell.
-
-A destination is an entity type, a structured `idPath` of segments, JSON-safe metadata, and
-an optional visibility. The shared entity-path codec serializes those segments to the stored
-string ID at the persistence boundary, so callers never concatenate separators. The
-registered domain schema remains the final authority over the generated entity.
-
-Domain plugins decide which targets exist. `plugins/site-content` discovers site-builder
-routes and maps eligible sections to generic targets; a book or course plugin would map its
-own structure the same way. Each domain keeps its entity schema, adapter, filters, tools,
-and presentation.
-
-Admitted children share one root job ID, which is the returned batch ID, so the queue's
-existing durable root index recovers them after a restart. Each target carries an operation
-ID and a conditional write, making retries idempotent: a job that commits and then fails
-before acknowledgement does not regenerate or overwrite later edits. Completion is observed
-by reading the destination entity, not through a generation-specific status channel.
-
-External authors reach the same capability declaratively through `@rizom/brain/services`.
-Generation-only templates need no React layout, so non-web compositions generate through the
-same pipeline as site sections.
-
 ### Projection graph and causal runtime
 
 Projection declarations are plugin capabilities registered centrally by the
@@ -312,7 +285,7 @@ Interface plugins are how users or other agents interact with a brain:
 
 - MCP clients connect through `interfaces/mcp`
 - chat users connect through `interfaces/chat` (Discord, Slack) or `interfaces/chat-repl`
-- browsers connect through `interfaces/webserver` for public pages, dashboard/Studio routes, and browser-facing APIs
+- browsers connect through the runtime-owned `shell/http-host` for public pages, dashboard/Studio routes, and browser-facing APIs
 - peer agents connect through `interfaces/a2a`
 
 ## Operator browser state
@@ -407,7 +380,9 @@ Current deployment paths:
 
 Each deployed instance stays lightweight: a package centered on explicit `brain.yaml` bundles plus instance-owned content, site/theme choices, and deployment artifacts.
 
-The shared webserver separates dependency-free liveness (`/health/live`) from
+The shell owns `shell/http-host`, one listener activated by finalized dynamic routes or static-site output. `port` is the production listener port; preview shares it by hostname. Site-builder declares its resolved output paths, and conflicting HTTP overrides fail before listening. Worker, eval, register-only and startup-check executions never open the host. Shutdown closes HTTP admission and drains/cancels active requests before releasing handler dependencies.
+
+The shared HTTP host separates dependency-free liveness (`/health/live`) from
 web routing readiness (`/health/ready`) and full operational health
 (`/health/operate`). Routing readiness covers web-critical database access.
 Operational health additionally covers durable worker sessions, stale attempt

@@ -1,16 +1,15 @@
-import type {
-  Tool,
-  ToolResult,
-  ServicePluginContext,
-  ToolContext,
-} from "@brains/plugins";
-import { createTool, toolSuccess, toolError } from "@brains/plugins";
-import { getErrorMessage } from "@brains/utils/error";
+import {
+  defineTool,
+  type AnyServiceToolDefinition,
+  type ToolContext,
+} from "@brains/sdk/services";
 import { z } from "@brains/utils/zod";
+import type { DirectorySyncHost } from "../host";
 import type { IDirectorySync, IGitSync } from "../types";
+import { gitLogEntrySchema } from "../types/results";
 import type { DirectorySyncOperationStatusService } from "../lib/directory-sync-operation-status";
 import { requestDirectorySync } from "../lib/request-directory-sync";
-import { handleHistory } from "./history";
+import { handleHistory, type HistoryOutcome } from "./history";
 
 const directorySyncInputSchema = z.object({
   action: z
@@ -61,146 +60,178 @@ const gitDirectorySyncActionSchema = z.discriminatedUnion("action", [
   }),
 ]);
 
+/** What a sync request answers: queued work, or nothing to do. */
+const syncOutcomeSchema = z.object({
+  gitPulled: z.boolean(),
+  status: z.enum(["queued", "settled"]),
+  runId: z.string().optional(),
+  jobId: z.string().optional(),
+  batchId: z.string().optional(),
+  importOperations: z.number().int().nonnegative().optional(),
+  totalFiles: z.number().int().nonnegative().optional(),
+  message: z.string(),
+});
+type SyncOutcome = z.output<typeof syncOutcomeSchema>;
+
+const statusOutcomeSchema = z.object({
+  syncPath: z.string(),
+  lastSync: z.string().optional(),
+  watching: z.boolean(),
+  git: z
+    .object({
+      isRepo: z.boolean(),
+      branch: z.string(),
+      hasChanges: z.boolean(),
+      ahead: z.number(),
+      behind: z.number(),
+      remote: z.string().optional(),
+    })
+    .optional(),
+});
+type StatusOutcome = z.output<typeof statusOutcomeSchema>;
+
+const historyOutcomeSchema = z.object({
+  entityType: z.string(),
+  id: z.string(),
+  sha: z.string().optional(),
+  content: z.string().optional(),
+  commits: z.array(gitLogEntrySchema).optional(),
+  message: z.string(),
+});
+
+const directorySyncToolOutputSchema = z.union([
+  syncOutcomeSchema,
+  statusOutcomeSchema,
+  historyOutcomeSchema,
+]);
+
+const GIT_DESCRIPTION =
+  "Manage directory and git sync with an action discriminator. For requests such as 'sync with git', immediately call action=sync with no entityType, id, or sha; never ask for those fields because they apply only to action=history. Action=sync queues a git pull plus filesystem scan when git is configured and also handles refresh, pull, backup-to-git, and filesystem import requests. For every sync or git status follow-up after action=sync, including a bare 'what is the status', immediately call action=status with no entity fields; a sync jobId is not a system_job_status batchId. Use action=history to read git version history for a specific entity.";
+const PLAIN_DESCRIPTION =
+  "Manage directory sync with an action discriminator. Immediately call action=sync for refresh, filesystem import, or content sync requests. Immediately call action=status for directory sync status follow-ups, including a bare 'what is the status'.";
+
+export interface DirectorySyncToolOptions {
+  readonly directorySync: IDirectorySync;
+  readonly host: Pick<DirectorySyncHost, "jobs" | "mirror">;
+  readonly gitSync?: IGitSync | undefined;
+  readonly operationStatus?: DirectorySyncOperationStatusService | undefined;
+}
+
+/**
+ * The one tool directory-sync declares: sync, status, and — with git — the
+ * history of one entity. Who asked is on the caller the runtime resolved;
+ * the job that runs for them is filed with that caller recorded.
+ */
 export function createDirectorySyncTools(
-  directorySync: IDirectorySync,
-  pluginContext: ServicePluginContext,
-  pluginId: string,
-  gitSync?: IGitSync,
-  operationStatus?: DirectorySyncOperationStatusService,
-): Tool[] {
-  const directoryTool = createTool(
-    "directory",
-    "sync",
-    gitSync
-      ? "Manage directory and git sync with an action discriminator. For requests such as 'sync with git', immediately call action=sync with no entityType, id, or sha; never ask for those fields because they apply only to action=history. Action=sync queues a git pull plus filesystem scan when git is configured and also handles refresh, pull, backup-to-git, and filesystem import requests. For every sync or git status follow-up after action=sync, including a bare 'what is the status', immediately call action=status with no entity fields; a sync jobId is not a system_job_status batchId. Use action=history to read git version history for a specific entity."
-      : "Manage directory sync with an action discriminator. Immediately call action=sync for refresh, filesystem import, or content sync requests. Immediately call action=status for directory sync status follow-ups, including a bare 'what is the status'.",
-    gitSync ? gitDirectorySyncInputSchema : directorySyncInputSchema,
-    async (input, context) => {
-      const parsed = gitSync
-        ? gitDirectorySyncActionSchema.parse(input)
-        : directorySyncActionSchema.parse(input);
+  options: DirectorySyncToolOptions,
+): readonly AnyServiceToolDefinition[] {
+  const { directorySync, host, gitSync, operationStatus } = options;
 
-      if (parsed.action === "sync") {
-        return handleSync({
-          directorySync,
-          pluginContext,
-          pluginId,
-          gitSync,
-          operationStatus,
-          context,
-        });
-      }
-
-      if (parsed.action === "status") {
-        return handleStatus(directorySync, gitSync);
-      }
-
-      if (!gitSync) {
-        return toolError(
-          "History is unavailable because git is not configured",
-        );
-      }
-
-      return handleHistory(parsed, gitSync);
-    },
-    {
-      visibility: "admin",
-      sideEffects: "external",
-      cli: { name: "sync" },
-    },
-  );
-
-  return [directoryTool];
-}
-
-async function handleSync(input: {
-  directorySync: IDirectorySync;
-  pluginContext: ServicePluginContext;
-  pluginId: string;
-  gitSync?: IGitSync | undefined;
-  operationStatus?: DirectorySyncOperationStatusService | undefined;
-  context: ToolContext;
-}): Promise<ToolResult> {
-  try {
-    const source = input.context.channelId
-      ? `${input.context.interfaceType}:${input.context.channelId}`
-      : `plugin:${input.pluginId}`;
-
+  const sync = async (
+    caller: ToolContext | undefined,
+  ): Promise<SyncOutcome> => {
+    const source = caller?.channelId
+      ? `${caller.interfaceType}:${caller.channelId}`
+      : "plugin:directory-sync";
     const result = await requestDirectorySync({
-      context: input.pluginContext,
-      directorySync: input.directorySync,
+      host,
+      directorySync,
       source,
-      interfaceType: input.context.interfaceType,
-      channelId: input.context.channelId,
-      toolContext: input.context,
-      gitSync: input.gitSync,
-      operationStatus: input.operationStatus,
+      interfaceType: caller?.interfaceType,
+      channelId: caller?.channelId,
+      gitSync,
+      operationStatus,
     });
-
     if (result.gitPulled) {
-      return toolSuccess(
-        {
-          jobId: result.jobId,
-          status: result.status,
-          gitPulled: true,
-          ...(result.runId ? { runId: result.runId } : {}),
-        },
-        "Sync queued: git pull and filesystem scan will run in the background",
-      );
-    }
-
-    if (result.status === "settled") {
-      return toolSuccess(
-        {
-          gitPulled: false,
-          ...(result.runId ? { runId: result.runId } : {}),
-        },
-        "No files to sync",
-      );
-    }
-
-    return toolSuccess(
-      {
-        batchId: result.batchId,
-        importOperations: result.importOperationsCount,
-        totalFiles: result.totalFiles,
-        gitPulled: false,
+      return {
+        gitPulled: true,
+        status: result.status,
+        jobId: result.jobId,
         ...(result.runId ? { runId: result.runId } : {}),
-      },
-      `Sync started: ${result.importOperationsCount} import jobs queued for ${result.totalFiles} files`,
-    );
-  } catch (error) {
-    return toolError(getErrorMessage(error, "Sync failed"));
-  }
-}
+        message:
+          "Sync queued: git pull and filesystem scan will run in the background",
+      };
+    }
+    if (result.status === "settled") {
+      return {
+        gitPulled: false,
+        status: "settled",
+        ...(result.runId ? { runId: result.runId } : {}),
+        message: "No files to sync",
+      };
+    }
+    return {
+      gitPulled: false,
+      status: "queued",
+      batchId: result.batchId,
+      importOperations: result.importOperationsCount,
+      totalFiles: result.totalFiles,
+      ...(result.runId ? { runId: result.runId } : {}),
+      message: `Sync started: ${result.importOperationsCount} import jobs queued for ${result.totalFiles} files`,
+    };
+  };
 
-async function handleStatus(
-  directorySync: IDirectorySync,
-  gitSync?: IGitSync,
-): Promise<ToolResult> {
-  try {
+  const status = async (): Promise<StatusOutcome> => {
     const syncStatus = await directorySync.getStatus();
-
-    const data: Record<string, unknown> = {
+    const outcome: StatusOutcome = {
       syncPath: syncStatus.syncPath,
-      lastSync: syncStatus.lastSync?.toISOString(),
+      ...(syncStatus.lastSync
+        ? { lastSync: syncStatus.lastSync.toISOString() }
+        : {}),
       watching: syncStatus.watching,
     };
-
-    if (gitSync) {
-      const gitStatus = await gitSync.getStatus();
-      data["git"] = {
+    if (!gitSync) return outcome;
+    const gitStatus = await gitSync.getStatus();
+    return {
+      ...outcome,
+      git: {
         isRepo: gitStatus.isRepo,
         branch: gitStatus.branch,
         hasChanges: gitStatus.hasChanges,
         ahead: gitStatus.ahead,
         behind: gitStatus.behind,
-        remote: gitStatus.remote,
-      };
-    }
+        ...(gitStatus.remote ? { remote: gitStatus.remote } : {}),
+      },
+    };
+  };
 
-    return toolSuccess(data);
-  } catch (error) {
-    return toolError(getErrorMessage(error, "Status check failed"));
+  if (gitSync) {
+    return [
+      defineTool({
+        name: "sync",
+        description: GIT_DESCRIPTION,
+        input: gitDirectorySyncInputSchema,
+        output: directorySyncToolOutputSchema,
+        permission: "admin",
+        sideEffects: "external",
+        execute: async ({
+          input,
+          caller,
+        }): Promise<SyncOutcome | StatusOutcome | HistoryOutcome> => {
+          const parsed = gitDirectorySyncActionSchema.parse(input);
+          if (parsed.action === "sync") return sync(caller);
+          if (parsed.action === "status") return status();
+          return handleHistory(parsed, gitSync);
+        },
+      }),
+    ];
   }
+
+  return [
+    defineTool({
+      name: "sync",
+      description: PLAIN_DESCRIPTION,
+      input: directorySyncInputSchema,
+      output: directorySyncToolOutputSchema,
+      permission: "admin",
+      sideEffects: "external",
+      execute: async ({
+        input,
+        caller,
+      }): Promise<SyncOutcome | StatusOutcome> => {
+        const parsed = directorySyncActionSchema.parse(input);
+        return parsed.action === "sync" ? sync(caller) : status();
+      },
+    }),
+  ];
 }

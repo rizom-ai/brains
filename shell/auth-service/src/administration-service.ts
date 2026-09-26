@@ -1,8 +1,10 @@
 import type { ChannelDescriptor } from "@brains/plugins";
+import { SdkError } from "@brains/contracts";
 import type {
   AuthAdminUserSummary,
   AuthBrainAnchorConfigKind,
   AuthBrainAnchorSummary,
+  AuthExternalPeerSummary,
   AuthIdentitySummary,
   AuthInvitationSummary,
   AuthPasskeySummary,
@@ -42,7 +44,7 @@ export interface CreateInvitationRequest {
 export interface CreatedInvitationAccess {
   invitation: AuthInvitationSummary;
   user: AuthPrincipal;
-  peer?: PersonExternalPeer;
+  peer?: AuthExternalPeerSummary;
   registration?: {
     setupUrl: string;
     expiresAt: number;
@@ -69,7 +71,7 @@ export interface UnlinkExternalPeerRequest {
 
 export interface InvitedExternalPeerAccess {
   user: AuthPrincipal;
-  peer: PersonExternalPeer;
+  peer: AuthExternalPeerSummary;
   registration: UserPasskeyRegistration;
 }
 
@@ -263,7 +265,7 @@ export class AuthAdministrationService {
   async linkExternalPeer(
     input: LinkExternalPeerRequest,
     context: AuthMutationContext,
-  ): Promise<PersonExternalPeer> {
+  ): Promise<AuthExternalPeerSummary> {
     if (!context.actorUserId) {
       throw new Error("Authenticated actor is required for peer linking");
     }
@@ -288,7 +290,7 @@ export class AuthAdministrationService {
   async unlinkExternalPeer(
     input: UnlinkExternalPeerRequest,
     context: AuthMutationContext,
-  ): Promise<PersonExternalPeer> {
+  ): Promise<AuthExternalPeerSummary> {
     if (!context.actorUserId) {
       throw new Error("Authenticated actor is required for peer unlinking");
     }
@@ -315,7 +317,10 @@ export class AuthAdministrationService {
       this.users.getBrainAnchor(),
       this.users.listUsers(),
     ]);
-    if (!anchor) throw new Error("Brain anchor is not configured");
+    if (!anchor)
+      throw new SdkError("not_found", {
+        publicMessage: "Brain anchor is not configured",
+      });
     return brainAnchorSummary(
       anchor,
       users,
@@ -449,7 +454,7 @@ export class AuthAdministrationService {
   async attachIdentity(
     input: AttachAuthIdentityInput,
     context: AuthMutationContext = {},
-  ): Promise<AuthIdentityRecord> {
+  ): Promise<AuthIdentitySummary> {
     const identity = await this.identities.attachIdentity({
       ...input,
       ...(input.source
@@ -468,13 +473,13 @@ export class AuthAdministrationService {
       targetId: identity.id,
       metadata: { type: identity.type, userId: input.userId },
     });
-    return identity;
+    return identitySummary(identity, input.userId, this.getChannelDescriptor);
   }
 
   async detachIdentity(
     identityId: string,
     context: AuthMutationContext = {},
-  ): Promise<AuthIdentityRecord> {
+  ): Promise<AuthIdentitySummary> {
     const identity = await this.identities.detachIdentity(identityId);
     const user = await this.users.getUserByPersonId(identity.personId);
     if (user) await this.management.revokeGrants(user.id);
@@ -488,7 +493,7 @@ export class AuthAdministrationService {
         ...(user ? { userId: user.id } : {}),
       },
     });
-    return identity;
+    return identitySummary(identity, user?.id ?? "", this.getChannelDescriptor);
   }
 
   listAuditEvents(): Promise<AuthAuditEvent[]> {

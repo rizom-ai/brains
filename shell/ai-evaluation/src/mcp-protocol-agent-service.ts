@@ -26,7 +26,7 @@ interface ConfirmationPayload {
   args: Record<string, unknown>;
 }
 
-const BASIC_PROTOCOL_TOOLS = ["chat", "confirm"] as const;
+const BASIC_PROTOCOL_TOOLS = ["mcp_chat", "mcp_confirm"] as const;
 const PERMISSION_LEVELS: UserPermissionLevel[] = ["public", "trusted", "admin"];
 const EMPTY_USAGE = {
   promptTokens: 0,
@@ -76,7 +76,7 @@ export class MCPProtocolAgentService implements IAgentService {
     signal?: AbortSignal,
   ): Promise<AgentResponse> {
     return this.callProtocolTool(
-      "chat",
+      "mcp_chat",
       { message, conversationId },
       context,
       signal,
@@ -91,7 +91,7 @@ export class MCPProtocolAgentService implements IAgentService {
     signal?: AbortSignal,
   ): Promise<AgentResponse> {
     return this.callProtocolTool(
-      "confirm",
+      "mcp_confirm",
       { approvalId: confirmationId, confirmed: approved, conversationId },
       context,
       signal,
@@ -116,18 +116,33 @@ export class MCPProtocolAgentService implements IAgentService {
   }
 
   private async callProtocolTool(
-    name: "chat" | "confirm",
+    name: (typeof BASIC_PROTOCOL_TOOLS)[number],
     args: Record<string, unknown>,
     context: ChatContext | undefined,
     signal: AbortSignal | undefined,
   ): Promise<AgentResponse> {
     signal?.throwIfAborted();
+    if (context?.actor !== undefined) {
+      throw new Error(
+        "Basic MCP evaluation does not support actor-specific context; use direct evaluation for identity-scoped cases.",
+      );
+    }
     const permissionLevel = context?.userPermissionLevel ?? "public";
     const isAnchor = context?.isAnchor ?? false;
     const { client } = await this.getConnection(permissionLevel, isAnchor);
-    const result = await client.callTool({ name, arguments: args });
     signal?.throwIfAborted();
-    return protocolPayloadToAgentResponse(parseProtocolPayload(result));
+    try {
+      const result = await client.callTool(
+        { name, arguments: args },
+        signal ? { signal } : undefined,
+      );
+      signal?.throwIfAborted();
+      return protocolPayloadToAgentResponse(parseProtocolPayload(result));
+    } catch (error) {
+      // The MCP client may wrap cancellation; retain the caller's reason.
+      signal?.throwIfAborted();
+      throw error;
+    }
   }
 
   private getConnection(

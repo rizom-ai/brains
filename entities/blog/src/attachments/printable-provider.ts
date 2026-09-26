@@ -3,7 +3,7 @@ import {
   preferredSlug,
   type PrintableProviderFactory,
 } from "@brains/media-page-composer";
-import { parseMarkdown } from "@brains/utils/markdown";
+import { parseMarkdown } from "@brains/sdk/entities";
 import type { BlogPost } from "../schemas/blog-post";
 import {
   blogPostFrontmatterSchema,
@@ -14,6 +14,8 @@ import {
   blogPrintableTemplate,
   type BlogPrintableTemplateData,
 } from "./printable-template";
+
+export { BLOG_PRINTABLE_ATTACHMENT_TYPE };
 
 export const createBlogPrintableProvider: PrintableProviderFactory =
   createPrintableProvider<BlogPost, BlogPrintableTemplateData>({

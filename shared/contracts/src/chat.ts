@@ -1618,8 +1618,6 @@ export function createChatClient(options: ChatClientOptions = {}): ChatClient {
 export {
   ASK_BOX_ATTRIBUTE,
   ASK_BOX_SCRIPT_PATH,
-  ASK_BOX_STATE_KEY,
-  ASK_BOX_STATE_NAMESPACE,
   ASK_READY_ATTRIBUTE,
   ASK_SEND_ATTRIBUTE,
   ASK_SOURCE_ATTRIBUTE,

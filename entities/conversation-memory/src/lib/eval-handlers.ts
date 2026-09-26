@@ -1,35 +1,50 @@
-import { actorRefFromLegacy } from "@brains/contracts";
 import {
+  actorRefFromLegacy,
+  computeContentHash,
+  contentVisibilitySchema,
+  z,
   type BaseEntity,
   type ContentVisibility,
   type Conversation,
-  type EntityPluginContext,
+  type EntityEvalDeclaration,
+  type JobEntityAccess,
   type Message,
   type SearchResult,
-} from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import { z } from "@brains/utils/zod";
-import { contentVisibilitySchema } from "@brains/plugins";
-import { computeContentHash } from "@brains/utils/hash";
+  type EntitySchema,
+} from "@brains/sdk/entities";
 import {
   actionItemSchema,
   decisionSchema,
   type ActionItemEntity,
   type DecisionEntity,
 } from "../schemas/conversation-memory";
-import { summarySchema, type SummaryEntity } from "../schemas/summary";
+import {
+  summarySchema,
+  type SummaryEntity,
+  type SummaryTimeRange,
+} from "../schemas/summary";
 import type { SummaryConfig } from "../schemas/summary-config";
-import { SummaryExtractor } from "./summary-extractor";
 import { ConversationMemoryRetriever } from "./conversation-memory-retriever";
-import { SummaryProjector } from "./summary-projector";
-import { buildConversationMemoryAgentContext } from "./agent-context-provider";
+import {
+  decideSummaryProjection,
+  deriveConversationMemory,
+} from "./summary-derivation";
+import { conversationMemoryAgentContext } from "./agent-context-provider";
 import { buildFallbackExcerpt } from "./excerpt";
+import { runMemoryRuleChain } from "./memory-rule-chain-runner";
+import { parseSummaryBody } from "./summary-body";
+import {
+  parseMemoryProjectionEnvelope,
+  type ProjectedMemoryWrite,
+} from "./memory-projection-envelope";
 import { getConversationSpaceId } from "./summary-space-eligibility";
+import { SUMMARY_AI_TEMPLATE_NAME } from "./constants";
 
 const messageRoleSchema = z.enum(["user", "assistant"]);
 
 const conversationMessageActorSchema = z.object({
   actorId: z.string(),
+  userId: z.string().optional(),
   canonicalId: z.string().optional(),
   interfaceType: z.string(),
   role: messageRoleSchema,
@@ -143,140 +158,179 @@ const decideProjectionInputSchema = z.object({
   messages: z.array(evalMessageSchema),
 });
 
-export function registerSummaryEvalHandlers(params: {
-  context: EntityPluginContext;
-  logger: Logger;
-  config: SummaryConfig;
-}): void {
-  const { context, logger, config } = params;
-
-  context.eval.registerHandler("summarizeMessages", async (input: unknown) => {
-    const parsed = summarizeMessagesInputSchema.parse(input);
-    const messages = toEvalMessages(parsed.messages, parsed.conversationId);
-
-    const extractor = new SummaryExtractor(context, logger, config);
-    const memory = await extractor.extract(messages);
-    return memory.entries.map((entry) => {
-      const decisions = memory.decisions
-        .filter((item) => item.timeRange.start >= entry.timeRange.start)
-        .filter((item) => item.timeRange.end <= entry.timeRange.end)
-        .map((item) => item.text);
-      const actionItems = memory.actionItems
-        .filter((item) => item.timeRange.start >= entry.timeRange.start)
-        .filter((item) => item.timeRange.end <= entry.timeRange.end)
-        .map((item) => item.text);
-      return {
-        ...entry,
-        decisions,
-        actionItems,
-        keyPointsText: entry.keyPoints.join("\n"),
-        decisionsText: decisions.join("\n"),
-        actionItemsText: actionItems.join("\n"),
-      };
-    });
-  });
-
-  context.eval.registerHandler("decideProjection", async (input: unknown) => {
-    const parsed = decideProjectionInputSchema.parse(input);
-    const messages = toEvalMessages(parsed.messages, parsed.conversationId);
-
-    const existing = parsed.existingSummary
-      ? createEvalSummaryEntity({
-          conversationId: parsed.conversationId,
-          content: parsed.existingSummary,
-          messageCount: parsed.existingMessageCount,
-          projectionVersion: config.projectionVersion,
-          visibility: config.memoryVisibility,
-        })
-      : null;
-
-    const projector = new SummaryProjector(context, logger, config);
-    return projector.decideProjection(messages, existing);
-  });
-
-  context.eval.registerHandler("retrieveMemory", async (input: unknown) => {
-    const parsed = retrieveMemoryInputSchema.parse(input);
-    const retrievalContext = parsed.memory
-      ? createSeededRetrievalContext(context, parsed.memory)
-      : context;
-    const retriever = new ConversationMemoryRetriever(retrievalContext);
-    const { actorId, canonicalId, memory: _memory, ...retrievalInput } = parsed;
-    const legacyIdentity = actorId ?? canonicalId;
-    return retriever.retrieve({
-      ...retrievalInput,
-      ...(legacyIdentity
-        ? {
-            identity: actorRefFromLegacy({
-              actorId: legacyIdentity,
-              interfaceType: sourceFromLegacyActorId(legacyIdentity),
-              role: "user",
-              ...(canonicalId ? { canonicalId } : {}),
-            }),
-          }
-        : {}),
-    });
-  });
-
-  context.eval.registerHandler("buildAgentContext", async (input: unknown) => {
-    const parsed = agentContextInputSchema.parse(input);
-    const retrievalContext = parsed.memory
-      ? createSeededRetrievalContext(context, parsed.memory)
-      : context;
-    return buildConversationMemoryAgentContext(retrievalContext, parsed);
-  });
-
-  context.eval.registerHandler("projectMessages", async (input: unknown) => {
-    const parsed = projectMessagesInputSchema.parse(input);
-    const messages = toEvalMessages(parsed.messages, parsed.conversationId);
-    const conversation = createEvalConversation({
-      conversationId: parsed.conversationId,
-      interfaceType: parsed.interfaceType,
-      channelId: parsed.channelId,
-      channelName: parsed.channelName,
-      messages,
-    });
-    const existing = parsed.existingSummary
-      ? createEvalSummaryEntity({
-          conversationId: parsed.conversationId,
-          content: parsed.existingSummary,
-          messageCount: parsed.existingMessageCount,
-          projectionVersion: config.projectionVersion,
-          visibility: config.memoryVisibility,
-        })
-      : null;
-    const upserted: BaseEntity[] = [];
-    const deleted: Array<{ entityType: string; id: string }> = [];
-    const projectionContext = createEvalProjectionContext({
-      context,
-      conversation,
-      messages,
-      existing,
-      upserted,
-      deleted,
-      projectionDecision: parsed.projectionDecision,
-    });
-    const projector = new SummaryProjector(projectionContext, logger, config);
-    const result = await projector.projectConversation(parsed.conversationId);
-
-    return {
-      result,
-      summaries: upserted.filter((entity) => entity.entityType === "summary"),
-      decisions: upserted.filter((entity) => entity.entityType === "decision"),
-      actionItems: upserted.filter(
-        (entity) => entity.entityType === "action-item",
-      ),
-      deleted,
-    };
-  });
-
-  context.eval.registerHandler(
-    "projectConversation",
-    async (input: unknown) => {
-      const parsed = projectConversationInputSchema.parse(input);
-      const projector = new SummaryProjector(context, logger, config);
-      return projector.projectConversation(parsed.conversationId);
+/**
+ * Evals, declared. Each is handed the same narrow context a job gets, plus
+ * fixtures — no plugin context to reach past.
+ */
+export function summaryEvalHandlers(
+  config: SummaryConfig,
+  extractionTemplateName: string = SUMMARY_AI_TEMPLATE_NAME,
+): EntityEvalDeclaration {
+  return {
+    summarizeMessages: async (input, { ai, logger }): Promise<unknown> => {
+      const parsed = summarizeMessagesInputSchema.parse(input);
+      const messages = toEvalMessages(parsed.messages, parsed.conversationId);
+      const conversation = createEvalConversation({
+        conversationId: parsed.conversationId,
+        interfaceType: "eval",
+        channelId: "eval-channel",
+        messages,
+      });
+      const chain = await runMemoryRuleChain(
+        {
+          conversation,
+          messages,
+          existingSummary: null,
+          projectionDecision: "update",
+        },
+        { ai, logger },
+        config,
+        extractionTemplateName,
+      );
+      const summary = chain.summaries[0];
+      if (!summary) return [];
+      const envelope = parseMemoryProjectionEnvelope(summary.content);
+      return parseSummaryBody(summary.content).entries.map((entry) => {
+        const decisions = envelope
+          ? memoryTextsWithin(envelope.decisions, entry.timeRange)
+          : [];
+        const actionItems = envelope
+          ? memoryTextsWithin(envelope.actionItems, entry.timeRange)
+          : [];
+        return {
+          ...entry,
+          decisions,
+          actionItems,
+          keyPointsText: entry.keyPoints.join("\n"),
+          decisionsText: decisions.join("\n"),
+          actionItemsText: actionItems.join("\n"),
+        };
+      });
     },
-  );
+
+    decideProjection: async (input, { ai }): Promise<unknown> => {
+      const parsed = decideProjectionInputSchema.parse(input);
+      const messages = toEvalMessages(parsed.messages, parsed.conversationId);
+
+      const existing = parsed.existingSummary
+        ? createEvalSummaryEntity({
+            conversationId: parsed.conversationId,
+            content: parsed.existingSummary,
+            messageCount: parsed.existingMessageCount,
+            projectionVersion: config.projectionVersion,
+            visibility: config.memoryVisibility,
+          })
+        : null;
+
+      return decideSummaryProjection(ai, messages, existing);
+    },
+
+    retrieveMemory: async (
+      input,
+      { entities, conversations },
+    ): Promise<unknown> => {
+      const parsed = retrieveMemoryInputSchema.parse(input);
+      const retriever = new ConversationMemoryRetriever({
+        entities: parsed.memory ? seededEntityAccess(parsed.memory) : entities,
+        conversations,
+      });
+      const {
+        actorId,
+        canonicalId,
+        memory: _memory,
+        ...retrievalInput
+      } = parsed;
+      const legacyIdentity = actorId ?? canonicalId;
+      return retriever.retrieve({
+        ...retrievalInput,
+        ...(legacyIdentity
+          ? {
+              identity: actorRefFromLegacy({
+                actorId: legacyIdentity,
+                interfaceType: sourceFromLegacyActorId(legacyIdentity),
+                role: "user",
+                ...(canonicalId ? { canonicalId } : {}),
+              }),
+            }
+          : {}),
+      });
+    },
+
+    buildAgentContext: async (
+      input,
+      { entities, conversations, logger },
+    ): Promise<unknown> => {
+      const parsed = agentContextInputSchema.parse(input);
+      return {
+        items: await conversationMemoryAgentContext({
+          request: parsed,
+          entities: parsed.memory
+            ? seededEntityAccess(parsed.memory)
+            : entities,
+          conversations,
+          logger,
+        }),
+      };
+    },
+
+    projectMessages: async (input, { ai, logger }): Promise<unknown> => {
+      const parsed = projectMessagesInputSchema.parse(input);
+      const messages = toEvalMessages(parsed.messages, parsed.conversationId);
+      const conversation = createEvalConversation({
+        conversationId: parsed.conversationId,
+        interfaceType: parsed.interfaceType,
+        channelId: parsed.channelId,
+        channelName: parsed.channelName,
+        messages,
+      });
+      const existing = parsed.existingSummary
+        ? createEvalSummaryEntity({
+            conversationId: parsed.conversationId,
+            content: parsed.existingSummary,
+            messageCount: parsed.existingMessageCount,
+            projectionVersion: config.projectionVersion,
+            visibility: config.memoryVisibility,
+          })
+        : null;
+      const chain = await runMemoryRuleChain(
+        {
+          conversation,
+          messages,
+          existingSummary: existing,
+          projectionDecision: parsed.projectionDecision,
+        },
+        { ai, logger },
+        config,
+        extractionTemplateName,
+      );
+
+      return {
+        result: {
+          skipped: chain.skipped,
+          projectionDecision: chain.projectionDecision,
+          summaryId: chain.summaries[0]?.id,
+        },
+        summaries: chain.summaries,
+        decisions: chain.decisions,
+        actionItems: chain.actionItems,
+        deleted: chain.deleted,
+      };
+    },
+
+    projectConversation: async (
+      input,
+      { ai, logger, entities, conversations },
+    ): Promise<unknown> => {
+      const parsed = projectConversationInputSchema.parse(input);
+      return deriveConversationMemory(
+        { ai, entities, conversations, spaces: [] },
+        logger,
+        config,
+        parsed.conversationId,
+        extractionTemplateName,
+      );
+    },
+  };
 }
 
 function createEvalSummaryEntity(params: {
@@ -322,10 +376,53 @@ function toEvalMessages(
       content: message.content,
       timestamp,
       metadata: {
-        ...(message.actor ? { actor: message.actor } : {}),
+        ...(message.actor
+          ? {
+              actor: {
+                identity: actorRefFromLegacy(message.actor),
+                interfaceType: message.actor.interfaceType,
+                role: message.actor.role,
+                ...(message.actor.displayName
+                  ? { displayName: message.actor.displayName }
+                  : {}),
+                ...(message.actor.username
+                  ? { username: message.actor.username }
+                  : {}),
+                ...(message.actor.isBot !== undefined
+                  ? { isBot: message.actor.isBot }
+                  : {}),
+              },
+            }
+          : {}),
         ...(message.source ? { source: message.source } : {}),
       },
     };
+  });
+}
+
+function memoryTextsWithin(
+  items: ProjectedMemoryWrite[],
+  range: SummaryTimeRange,
+): string[] {
+  return items.flatMap((item) => {
+    const timeRange = item.metadata["timeRange"];
+    if (
+      !timeRange ||
+      typeof timeRange !== "object" ||
+      !("start" in timeRange) ||
+      !("end" in timeRange) ||
+      typeof timeRange["start"] !== "string" ||
+      typeof timeRange["end"] !== "string" ||
+      timeRange["start"] < range.start ||
+      timeRange["end"] > range.end
+    ) {
+      return [];
+    }
+    const body = item.content
+      .replace(/^---\n[\s\S]*?\n---\n*/, "")
+      .replace(/^# [^\n]+\n+/, "")
+      .trim();
+    return body ? [body] : [];
   });
 }
 
@@ -354,68 +451,15 @@ function createEvalConversation(params: {
   };
 }
 
-function createEvalProjectionContext(params: {
-  context: EntityPluginContext;
-  conversation: Conversation;
-  messages: Message[];
-  existing: SummaryEntity | null;
-  upserted: BaseEntity[];
-  deleted: Array<{ entityType: string; id: string }>;
-  projectionDecision: "update" | "append";
-}): EntityPluginContext {
-  const spaceId = getConversationSpaceId(params.conversation);
-  const context: EntityPluginContext = {
-    ...params.context,
-    spaces: [spaceId],
-    conversations: {
-      ...params.context.conversations,
-      get: async () => params.conversation,
-      getMessages: async () => params.messages,
-    },
-    ai: {
-      ...params.context.ai,
-      // generateObject promises the caller's chosen T, which a fixed stub
-      // cannot produce. The assertion is scoped to this one member so every
-      // other override in this context is still checked against the real type.
-      // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- eval stub: generateObject is generic over a caller-chosen output, so a fixed forced value cannot satisfy an arbitrary T
-      generateObject: (async () => ({
-        object: {
-          decision: params.projectionDecision,
-          rationale: "Forced by eval input",
-        },
-      })) as EntityPluginContext["ai"]["generateObject"],
-    },
-    entityService: {
-      ...params.context.entityService,
-      getEntity: async ({ entityType }: { entityType: string }) =>
-        entityType === "summary" ? params.existing : null,
-      listEntities: async () => [],
-      deleteEntity: async (request: { entityType: string; id: string }) => {
-        params.deleted.push(request);
-        return true;
-      },
-      upsertEntity: async <T extends BaseEntity>({ entity }: { entity: T }) => {
-        params.upserted.push(entity);
-        return {
-          entityId: entity.id,
-          jobId: "eval-upsert",
-          created: true,
-          skipped: false,
-        };
-      },
-    },
-  };
-  return context;
-}
-
 type SeededMemory = z.output<typeof seededMemorySchema>;
 
 type EvalMemoryEntity = SummaryEntity | DecisionEntity | ActionItemEntity;
 
-function createSeededRetrievalContext(
-  context: EntityPluginContext,
-  memory: SeededMemory[],
-): EntityPluginContext {
+/**
+ * Entity reads over memory an eval planted, rather than whatever the brain
+ * happens to hold. Reads only: an eval measures retrieval, it does not write.
+ */
+function seededEntityAccess(memory: SeededMemory[]): JobEntityAccess {
   const entities = memory.map(toMemoryEntity);
   const searchResults: SearchResult<EvalMemoryEntity>[] = entities.map(
     (entity, index) => ({
@@ -424,17 +468,107 @@ function createSeededRetrievalContext(
       excerpt: memory[index]?.excerpt ?? buildFallbackExcerpt(entity),
     }),
   );
-
-  const seeded: EntityPluginContext = {
-    ...context,
-    entityService: {
-      ...context.entityService,
-      search: async () => searchResults,
-      listEntities: async ({ entityType }: { entityType: string }) =>
-        entities.filter((entity) => entity.entityType === entityType),
-    },
+  const refuse = (): never => {
+    throw new Error("A retrieval eval does not write entities");
   };
-  return seeded;
+
+  // Each read carries the contract's overload pair: the widened form hands
+  // back the seeded entities as themselves, and the schema-bearing form parses
+  // them through the schema the caller supplied rather than asserting a shape.
+  async function search(): Promise<SearchResult<BaseEntity>[]>;
+  async function search<T extends BaseEntity>(
+    request: unknown,
+    schema: EntitySchema<T>,
+  ): Promise<SearchResult<T>[]>;
+  async function search<T extends BaseEntity>(
+    _request?: unknown,
+    schema?: EntitySchema<T>,
+  ): Promise<SearchResult<BaseEntity>[] | SearchResult<T>[]> {
+    return schema
+      ? searchResults.map((result) => ({
+          ...result,
+          entity: schema.parse(result.entity),
+        }))
+      : searchResults;
+  }
+
+  async function listEntities(request: {
+    entityType: string;
+  }): Promise<BaseEntity[]>;
+  async function listEntities<T extends BaseEntity>(
+    request: { entityType: string },
+    schema: EntitySchema<T>,
+  ): Promise<T[]>;
+  async function listEntities<T extends BaseEntity>(
+    { entityType }: { entityType: string },
+    schema?: EntitySchema<T>,
+  ): Promise<BaseEntity[] | T[]> {
+    const matches = entities.filter(
+      (entity) => entity.entityType === entityType,
+    );
+    return schema ? matches.map((entity) => schema.parse(entity)) : matches;
+  }
+
+  async function getEntity(request: { id: string }): Promise<BaseEntity | null>;
+  async function getEntity<T extends BaseEntity>(
+    request: { id: string },
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  async function getEntity<T extends BaseEntity>(
+    { id }: { id: string },
+    schema?: EntitySchema<T>,
+  ): Promise<BaseEntity | T | null> {
+    const found = entities.find((entity) => entity.id === id) ?? null;
+    if (!found) return null;
+    return schema ? schema.parse(found) : found;
+  }
+
+  async function find(
+    entityType: string,
+    id: string,
+  ): Promise<BaseEntity | null>;
+  async function find<T extends BaseEntity>(
+    entityType: string,
+    id: string,
+    schema: EntitySchema<T>,
+  ): Promise<T | null>;
+  async function find<T extends BaseEntity>(
+    entityType: string,
+    id: string,
+    schema?: EntitySchema<T>,
+  ): Promise<BaseEntity | T | null> {
+    const found =
+      entities.find(
+        (entity) => entity.entityType === entityType && entity.id === id,
+      ) ?? null;
+    if (!found) return null;
+    return schema ? schema.parse(found) : found;
+  }
+
+  return {
+    queryEntityHierarchy: (): never => {
+      throw new Error("Hierarchy reads are unavailable in memory evaluations");
+    },
+    search,
+    listEntities,
+    getEntity,
+    find,
+    getEntityTypes: () => [...new Set(entities.map((e) => e.entityType))],
+    count: async ({ entityType }) =>
+      entities.filter((e) => e.entityType === entityType).length,
+    getEntityCounts: async () =>
+      [...new Set(entities.map((e) => e.entityType))].map((entityType) => ({
+        entityType,
+        count: entities.filter((entity) => entity.entityType === entityType)
+          .length,
+      })),
+    get: async () => null,
+    create: refuse,
+    update: refuse,
+    delete: refuse,
+    createPending: refuse,
+    saveProcessed: refuse,
+  };
 }
 
 function toMemoryEntity(memory: SeededMemory): EvalMemoryEntity {

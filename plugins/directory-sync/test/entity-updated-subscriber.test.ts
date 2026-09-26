@@ -1,6 +1,7 @@
 import { createTestEntity } from "@brains/entity-service/test";
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { DirectorySyncPlugin } from "../src/plugin";
+import type { Plugin } from "@brains/plugins";
+import { instantiate } from "./helpers/install";
 import {
   BaseEntityAdapter,
   baseEntitySchema,
@@ -60,14 +61,14 @@ class SeriesTestAdapter extends BaseEntityAdapter<BaseEntity> {
 }
 
 describe("entity:updated subscriber", () => {
-  let harness: ReturnType<typeof createPluginHarness<DirectorySyncPlugin>>;
-  let plugin: DirectorySyncPlugin;
+  let harness: ReturnType<typeof createPluginHarness<Plugin>>;
+  let plugin: Plugin;
   let syncPath: string;
 
   beforeEach(async () => {
     syncPath = mkdtempSync(join(tmpdir(), "test-entity-subscriber-"));
 
-    harness = createPluginHarness<DirectorySyncPlugin>({
+    harness = createPluginHarness({
       dataDir: syncPath,
     });
 
@@ -78,12 +79,12 @@ describe("entity:updated subscriber", () => {
       new SeriesTestAdapter(),
     );
 
-    plugin = new DirectorySyncPlugin({
+    ({ plugin } = instantiate({
       syncPath,
       autoSync: true, // Enable auto-sync to register entity:updated subscriber
       initialSync: false,
       commitDebounce: 100,
-    });
+    }));
 
     await harness.installPlugin(plugin);
   });

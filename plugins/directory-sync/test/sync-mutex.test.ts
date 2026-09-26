@@ -1,9 +1,9 @@
 import { createMockEntityService } from "@brains/entity-service/test";
 import { describe, it, expect, mock, beforeEach, afterEach } from "bun:test";
-import {
-  createMockServicePluginContext,
-  createTempDataDir,
-} from "@brains/plugins/test";
+import { createMockShell, createTempDataDir } from "@brains/plugins/test";
+import type { ServiceBatchReference } from "@brains/plugins";
+import type { DirectorySyncHost } from "../src/host";
+import { hostFor } from "./helpers/install";
 import { caughtError, createSilentLogger } from "@brains/test-utils";
 import { DirectorySync } from "../src/lib/directory-sync";
 import { writeFile, mkdir } from "fs/promises";
@@ -15,10 +15,17 @@ import { rmSync } from "fs";
  * When a batch is already in progress, a second call should
  * return null (sync already running) instead of queuing another batch.
  */
+
+/** What the declared queue answers for a batch it accepted. */
+const batchRef = (id: string): ServiceBatchReference => ({
+  id,
+  status: async () => null,
+});
+
 describe("sync mutex", () => {
   let testDir: string;
   let directorySync: DirectorySync;
-  let context: ReturnType<typeof createMockServicePluginContext>;
+  let context: Pick<DirectorySyncHost, "jobs" | "mirror">;
 
   beforeEach(async () => {
     testDir = await createTempDataDir("sync-mutex-test-");
@@ -43,9 +50,15 @@ describe("sync mutex", () => {
     });
     await directorySync.initializeDirectory();
 
-    context = createMockServicePluginContext();
-    // enqueueBatch returns a batchId
-    context.jobs.enqueueBatch = mock(async () => "batch-1");
+    // The real host, with the queue handle the test steers.
+    const host = await hostFor(createMockShell());
+    context = {
+      ...host,
+      jobs: {
+        ...host.jobs,
+        enqueueBatch: mock(async () => batchRef("batch-1")),
+      },
+    };
   });
 
   afterEach(() => {
@@ -58,7 +71,7 @@ describe("sync mutex", () => {
     const firstEnqueue = Promise.withResolvers<void>();
     context.jobs.enqueueBatch = mock(async () => {
       await firstEnqueue.promise;
-      return "batch-slow";
+      return batchRef("batch-slow");
     });
 
     const call1 = directorySync.queueSyncBatch(context, "test-1");
@@ -85,7 +98,7 @@ describe("sync mutex", () => {
     }
 
     // Should be able to call again after error
-    context.jobs.enqueueBatch = mock(async () => "batch-recovery");
+    context.jobs.enqueueBatch = mock(async () => batchRef("batch-recovery"));
     const result = await directorySync.queueSyncBatch(context, "test-retry");
     expect(result).not.toBeNull();
   });

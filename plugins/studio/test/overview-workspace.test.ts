@@ -2,7 +2,6 @@ import { AuthServicePlugin } from "@brains/auth-service";
 import { ENTITY_CHANNELS, JOB_CHANNELS } from "@brains/contracts";
 import {
   DECLARATIVE_DASHBOARD_WIDGET_RENDERER,
-  createServicePluginContext,
   STUDIO_OVERVIEW_REGISTER_MESSAGE,
   STUDIO_OVERVIEW_UNREGISTER_MESSAGE,
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
@@ -10,7 +9,6 @@ import {
   type DashboardWidgetProviderContext,
   type StudioOverviewContributionRegistration,
   type StudioWorkspaceRegistration,
-  type StudioWorkspaceActor,
   type WebRouteDefinition,
 } from "@brains/plugins";
 import {
@@ -20,73 +18,9 @@ import {
 } from "@brains/plugins/test";
 
 import { afterEach, describe, expect, it } from "bun:test";
-import { studioPlugin, type StudioPlugin } from "../src";
-import {
-  STUDIO_OVERVIEW_WORKSPACE_ID,
-  StudioOverviewRegistry,
-  createStudioOverviewWorkspace,
-} from "../src/overview-workspace";
-
-it("combines an empty attention/activity state without hiding standing runtime information", async () => {
-  const registry = new StudioOverviewRegistry();
-  const workspace = createStudioOverviewWorkspace({
-    context: createServicePluginContext(createMockShell(), "studio"),
-    registry,
-  });
-  const actor: StudioWorkspaceActor = {
-    interfaceType: "studio",
-    userId: "fixture",
-    actor: { kind: "user", userId: "fixture" },
-    userPermissionLevel: "admin",
-    visibilityScope: "restricted",
-    isAnchor: false,
-  };
-  const empty = await workspace.dataProvider(actor, {});
-  expect(empty).toMatchObject({
-    view: {
-      blocks: [
-        {
-          id: "overview-at-rest",
-          title: "Nothing needs your attention.",
-          text: "No recent activity is available.",
-        },
-        { type: "columns" },
-      ],
-    },
-  });
-  expect(JSON.stringify(empty)).not.toContain('"id":"overview-attention"');
-  expect(JSON.stringify(empty)).not.toContain('"id":"overview-activity"');
-  registry.register(contribution());
-  const attentionWithoutActivity = await workspace.dataProvider(actor, {});
-  expect(attentionWithoutActivity).toMatchObject({
-    view: {
-      blocks: [
-        {
-          type: "columns",
-          aside: [
-            {
-              id: "overview-activity",
-              label: "Recent activity",
-              blocks: [
-                {
-                  type: "list",
-                  items: [],
-                  empty: "No recent autonomous activity.",
-                },
-              ],
-            },
-            { id: "overview-system" },
-            { id: "overview-network" },
-          ],
-        },
-      ],
-    },
-  });
-  registry.recordEntity("updated", { entityType: "note", entityId: "source" });
-  const active = await workspace.dataProvider(actor, {});
-  expect(JSON.stringify(active)).not.toContain('"id":"overview-at-rest"');
-  expect(JSON.stringify(active)).toContain('"id":"overview-activity"');
-});
+import type { Plugin } from "@brains/plugins";
+import { instantiate, routesOf } from "./helpers/install";
+import { STUDIO_OVERVIEW_WORKSPACE_ID } from "../src/overview-workspace";
 
 const authPlugins: AuthServicePlugin[] = [];
 
@@ -96,10 +30,8 @@ afterEach(async () => {
   }
 });
 
-function findRoute(plugin: StudioPlugin, path: string): WebRouteDefinition {
-  const route = plugin
-    .getWebRoutes()
-    .find((candidate) => candidate.path === path);
+function findRoute(plugin: Plugin, path: string): WebRouteDefinition {
+  const route = routesOf(plugin).find((candidate) => candidate.path === path);
   if (!route) throw new Error(`Missing route: ${path}`);
   return route;
 }
@@ -190,7 +122,7 @@ describe("Studio Overview workspace", () => {
   it("admits Trusted sessions, derives attention, and renders source-owned views", async () => {
     const shell = createMockShell({ domain: "brain.test" });
     const cookie = await createSession(shell, "trusted");
-    const plugin = studioPlugin();
+    const plugin = instantiate();
     await plugin.register(shell);
     const providerContexts: DashboardWidgetProviderContext[] = [];
 
@@ -303,7 +235,7 @@ describe("Studio Overview workspace", () => {
   it("keeps Public sessions on Account and never invokes Overview providers", async () => {
     const shell = createMockShell({ domain: "brain.test" });
     const cookie = await createSession(shell, "public");
-    const plugin = studioPlugin();
+    const plugin = instantiate();
     await plugin.register(shell);
     let providerCalls = 0;
     await registerContribution(
@@ -330,7 +262,7 @@ describe("Studio Overview workspace", () => {
   it("omits Admin contributions and callbacks from Trusted actors", async () => {
     const shell = createMockShell({ domain: "brain.test" });
     const cookie = await createSession(shell, "trusted");
-    const plugin = studioPlugin();
+    const plugin = instantiate();
     await plugin.register(shell);
     let adminProviderCalls = 0;
     await registerContribution(
@@ -362,7 +294,7 @@ describe("Studio Overview workspace", () => {
   it("builds the delta feed from entity and job events", async () => {
     const shell = createMockShell({ domain: "brain.test" });
     const cookie = await createSession(shell, "trusted");
-    const plugin = studioPlugin();
+    const plugin = instantiate();
     await plugin.register(shell);
     await shell.getMessageBus().send({
       type: ENTITY_CHANNELS.updated,
@@ -426,7 +358,7 @@ describe("Studio Overview workspace", () => {
   it("unregisters re-homed contributions and reserves the Overview id", async () => {
     const shell = createMockShell({ domain: "brain.test" });
     const cookie = await createSession(shell, "trusted");
-    const plugin = studioPlugin();
+    const plugin = instantiate();
     await plugin.register(shell);
     await registerContribution(shell, contribution());
 

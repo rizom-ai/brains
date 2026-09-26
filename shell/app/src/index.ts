@@ -33,7 +33,7 @@ export {
   isConfiguredPluginDefinition,
   use,
   type ConfiguredPluginDefinition,
-} from "./configured-plugin";
+} from "@brains/sdk/internal/configured-plugin";
 export { brainAnchorConfigKindSchema, defineBrain } from "./brain-definition";
 export { defineBundle } from "./bundle-definition";
 export {
@@ -90,7 +90,6 @@ export type {
   CapabilityContext,
   PluginFactory,
   InterfaceEntry,
-  InterfaceConstructor,
 } from "./brain-definition";
 export type {
   BundleConfigContribution,

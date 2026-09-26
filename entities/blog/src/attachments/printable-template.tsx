@@ -2,8 +2,8 @@ import type { JSX } from "react";
 import {
   MarkdownContent,
   formatDate as formatDateStyled,
-} from "@brains/ui-library";
-import { z } from "@brains/utils/zod";
+} from "@rizom/brain-ui";
+import { z } from "@brains/sdk/entities";
 import type { MediaPageTemplate } from "@brains/media-page-composer";
 
 export const BLOG_PRINTABLE_ATTACHMENT_TYPE = "printable";

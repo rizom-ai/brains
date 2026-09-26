@@ -6,7 +6,7 @@ tags:
   - note
   - generation
   - core
-plugin: note
+plugin: "@brains/note:note"
 handler: generateNote
 
 input:

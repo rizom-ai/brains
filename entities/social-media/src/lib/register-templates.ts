@@ -1,7 +1,6 @@
-import { z } from "@brains/utils/zod";
-import { paginationInfoSchema } from "@brains/plugins";
-import { createTemplate } from "@brains/templates";
-import type { Template } from "@brains/templates";
+import { z } from "@brains/sdk/entities";
+import { createTemplate, paginationInfoSchema } from "@brains/sdk/entities";
+import type { Template } from "@brains/sdk/entities";
 import { linkedinTemplate } from "../templates/linkedin-template";
 import {
   SocialPostListTemplate,
@@ -57,7 +56,7 @@ export function getTemplates(): Record<string, Template> {
       name: "social-post-list",
       description: "Social post list page template",
       schema: postListSchema,
-      dataSourceId: "social-media:posts",
+      dataSourceId: "posts",
       requiredPermission: "public",
       layout: {
         component: SocialPostListTemplate,
@@ -71,7 +70,7 @@ export function getTemplates(): Record<string, Template> {
       name: "social-post-detail",
       description: "Individual social post template",
       schema: postDetailSchema,
-      dataSourceId: "social-media:posts",
+      dataSourceId: "posts",
       requiredPermission: "public",
       layout: {
         component: SocialPostDetailTemplate,

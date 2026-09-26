@@ -2,7 +2,7 @@
 "@brains/agent-discovery": patch
 "@brains/plugins": patch
 "@brains/dashboard": patch
-"@brains/ui-library": patch
+"@rizom/brain-ui": patch
 ---
 
 Keep Agent Network skill filtering valid by deriving both filter choices and row memberships from the complete normalized tag set. Shared tags and Brain-only gaps still rank first, but agent-only tags are no longer omitted and shared tags are no longer truncated.

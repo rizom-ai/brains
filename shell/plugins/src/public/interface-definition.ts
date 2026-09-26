@@ -1,26 +1,44 @@
+import type { SchemaReturn } from "../internal/schema-return";
 import { createDeclarativeInterfacePlugin } from "../interface/declarative-interface-plugin";
 import type { AnyAccountSettingsDefinition } from "../operator/account-settings-definition-contract";
-import { routeMethods } from "../interface/interface-definition-contract";
+import {
+  routeMethods,
+  verbatim,
+} from "../interface/interface-definition-contract";
 import { freeze } from "@brains/utils/freeze";
 import type {
   AccountInterfaceDaemonDefinition,
   InterfaceConfigSchema,
   InterfaceDaemonDefinition,
+  InterfaceDefinitionBehavior,
+  InterfaceDefinitionHeader,
   InterfaceDefinitionInput,
   InterfaceRouteDefinition,
   InterfaceRouteInput,
   InterfaceSchema,
+  MessageInterfaceDefinitionBehavior,
+  MessageInterfaceDefinitionHeader,
   MessageInterfaceDefinitionInput,
   MessageRecipientSchema,
   ProtocolSecurityDefinition,
   RouteMethod,
+  RouteOutput,
+  RouteResponse,
   RouteSecurity,
 } from "../interface/interface-definition-contract";
 import { createDeclarativeMessageInterfacePlugin } from "../message-interface/declarative-message-interface-plugin";
+import type {
+  AnySubscriptionDefinition,
+  SubscriptionDefinition,
+  SubscriptionPayloadSchema,
+} from "../contracts/subscription";
 import {
   assertIdentifier,
   createPluginPackageDefinition,
+  instantiateWithinPackage,
+  type PluginPackageDefinition,
 } from "../package-definition";
+import type { z } from "@brains/utils/zod";
 
 export { defineAccountSettings } from "../operator/account-settings-definition-contract";
 export type {
@@ -33,6 +51,7 @@ export type {
   AccountInterfaceDaemonDefinition,
   AnyInterfaceDaemonDefinition,
   AnyInterfaceRouteDefinition,
+  AuthenticatedCaller,
   InboundMessageAttachment,
   InterfaceActor,
   InterfaceCaller,
@@ -41,7 +60,6 @@ export type {
   InterfaceDaemonHealth,
   InterfaceDefinitionInput,
   InterfaceJobReference,
-  InterfaceJobs,
   InterfaceRouteDefinition,
   InterfaceRouteInput,
   InterfaceSchema,
@@ -50,6 +68,8 @@ export type {
   MessageInterfaceDefinitionInput,
   MessageOutput,
   MessageReceiver,
+  ResolveApprovalInput,
+  ApprovalOutcome,
   MessageRecipientSchema,
   ProtocolSecurityDefinition,
   PublicSecurityDefinition,
@@ -57,8 +77,25 @@ export type {
   RouteBody,
   RouteCaller,
   RouteMethod,
+  InterfaceEntityReader,
+  InterfaceJobs,
+  InterfaceJobStatus,
+  InterfaceSetupContext,
+  InterfaceUploads,
+  RouteResponse,
   RouteSecurity,
+  VerbatimResponse,
 } from "../interface/interface-definition-contract";
+// The store `uploads` hands back, and what it takes and returns. A declaration
+// holds one, so its shape is part of the authoring surface.
+export type {
+  ResolvedRuntimeUpload,
+  RuntimeUploadRecord,
+  RuntimeUploadScopeOptions,
+  SaveRuntimeUploadInput,
+  ScopedRuntimeUploadStore,
+} from "../service/upload-registry";
+export { verbatim };
 
 export function protocol(
   definition: Omit<ProtocolSecurityDefinition, "kind">,
@@ -66,17 +103,58 @@ export function protocol(
   return Object.freeze({ kind: "protocol", ...definition });
 }
 
+/**
+ * A request a package answers on the bus, with its payload schema.
+ *
+ * Written as a helper rather than a bare object so `handle` sees the parsed
+ * payload typed, the same way `defineRoute` types a body. Interfaces and
+ * services both declare these.
+ */
+export function defineSubscription<
+  TPayloadSchema extends SubscriptionPayloadSchema,
+  TResponseSchema extends SubscriptionPayloadSchema,
+  const TOutput extends SchemaReturn<z.input<TResponseSchema>> = SchemaReturn<
+    z.input<TResponseSchema>
+  >,
+>(
+  definition: SubscriptionDefinition<
+    TPayloadSchema,
+    TResponseSchema,
+    TOutput
+  > & {
+    readonly response: TResponseSchema;
+  },
+): SubscriptionDefinition<TPayloadSchema, TResponseSchema> & {
+  readonly response: TResponseSchema;
+};
+export function defineSubscription<
+  TPayloadSchema extends SubscriptionPayloadSchema,
+>(
+  definition: SubscriptionDefinition<TPayloadSchema> & {
+    readonly response?: undefined;
+  },
+): SubscriptionDefinition<TPayloadSchema> & { readonly response?: undefined };
+export function defineSubscription(
+  definition: AnySubscriptionDefinition,
+): AnySubscriptionDefinition {
+  assertIdentifier(definition.topic.split(":")[0] ?? "", "Subscription topic");
+  return definition;
+}
+
 export function defineRoute<
   const TMethod extends RouteMethod,
   TBodySchema extends InterfaceSchema | undefined,
-  TResponseSchema extends InterfaceSchema,
+  TResponseSchema extends RouteResponse,
   const TSecurity extends RouteSecurity,
+  const TOutput extends RouteOutput<TResponseSchema> =
+    RouteOutput<TResponseSchema>,
 >(
   definition: InterfaceRouteInput<
     TMethod,
     TBodySchema,
     TResponseSchema,
-    TSecurity
+    TSecurity,
+    TOutput
   >,
 ): InterfaceRouteDefinition<TMethod, TBodySchema, TResponseSchema, TSecurity> {
   if (!routeMethods.includes(definition.method)) {
@@ -128,14 +206,27 @@ export function defineDaemon(
 export function defineInterface<
   TConfigSchema extends InterfaceConfigSchema,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined = undefined,
+  TState extends object = Record<never, never>,
 >(
-  definition: InterfaceDefinitionInput<TConfigSchema, TAccountSettings>,
+  header: InterfaceDefinitionHeader<TConfigSchema, TAccountSettings, TState>,
+  behavior?: InterfaceDefinitionBehavior<
+    TConfigSchema,
+    TAccountSettings,
+    TState
+  >,
 ): {
   readonly kind: "rizom-plugin-package";
   readonly family: "interface";
   readonly id: string;
   readonly config: TConfigSchema;
 } {
+  // One declaration from here on: the split exists so the state type is known
+  // before the behavior is checked, not because the runtime wants two objects.
+  const definition: InterfaceDefinitionInput<
+    TConfigSchema,
+    TAccountSettings,
+    TState
+  > = { ...header, ...behavior };
   return createPluginPackageDefinition({
     family: "interface",
     id: definition.id,
@@ -156,7 +247,13 @@ export function defineMessageInterface<
   TRecipientSchema extends MessageRecipientSchema = MessageRecipientSchema,
   TAccountSettings extends AnyAccountSettingsDefinition | undefined = undefined,
 >(
-  definition: MessageInterfaceDefinitionInput<
+  header: MessageInterfaceDefinitionHeader<
+    TConfigSchema,
+    TState,
+    TRecipientSchema,
+    TAccountSettings
+  >,
+  behavior?: MessageInterfaceDefinitionBehavior<
     TConfigSchema,
     TState,
     TRecipientSchema,
@@ -168,6 +265,12 @@ export function defineMessageInterface<
   readonly id: string;
   readonly config: TConfigSchema;
 } {
+  const definition: MessageInterfaceDefinitionInput<
+    TConfigSchema,
+    TState,
+    TRecipientSchema,
+    TAccountSettings
+  > = { ...header, ...behavior };
   assertIdentifier(definition.channel.type, "Channel type");
   if (definition.listen && !definition.send) {
     throw new Error(
@@ -190,5 +293,48 @@ export function defineMessageInterface<
         metadata,
         scope(definition.id),
       ),
+  });
+}
+
+/**
+ * One package, several message interfaces, decided from one config.
+ *
+ * Each interface is a `defineMessageInterface` over the package's own config
+ * schema, and which of them run is a fact about that config — an adapter
+ * without credentials is not declared — so the list is a function of it.
+ * Every interface emits its own plugin under the package, the way a service
+ * package emits an entity plugin per declared type, and is its own interface
+ * type: chat serves Discord and Slack from one config block, and permission
+ * rules, channel descriptors and conversation ids are keyed per platform.
+ * Named consumer: @brains/chat.
+ */
+export function defineMessageInterfacePackage<
+  TConfigSchema extends InterfaceConfigSchema,
+>(definition: {
+  readonly id: string;
+  readonly config: TConfigSchema;
+  readonly interfaces: (context: {
+    readonly config: z.output<TConfigSchema>;
+  }) => readonly PluginPackageDefinition<TConfigSchema, "message-interface">[];
+}): PluginPackageDefinition<TConfigSchema, "message-interface"> {
+  return createPluginPackageDefinition({
+    family: "message-interface",
+    id: definition.id,
+    config: definition.config,
+    instantiate: (context) => {
+      const interfaces = definition.interfaces({ config: context.config });
+      const declared = new Set<string>();
+      for (const declaration of interfaces) {
+        if (declared.has(declaration.id)) {
+          throw new Error(
+            `Message interface package "${definition.id}" declares "${declaration.id}" twice`,
+          );
+        }
+        declared.add(declaration.id);
+      }
+      return interfaces.flatMap((declaration) =>
+        instantiateWithinPackage(declaration, context),
+      );
+    },
   });
 }

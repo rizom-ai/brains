@@ -50,6 +50,21 @@ describe("packed and publication gates", () => {
   });
 });
 
+for (const [file, ci, versionStep] of [
+  ["release.yml", "ci.yml", "Version core packages or coordinated stable plan"],
+  ["site-release.yml", "site-ci.yml", "Version site and theme packages"],
+] as const) {
+  test(`${file} validates the checked-out SHA before versioning`, () => {
+    const workflow = readWorkflow(file);
+    const gate = workflowStep(file, "Verify checked-out source CI");
+    expect(gate).toContain(`bun scripts/verify-release-ci.ts ${ci}`);
+    expect(gate).toContain("GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}");
+    expect(
+      workflow.indexOf("- name: Verify checked-out source CI"),
+    ).toBeLessThan(workflow.indexOf(`- name: ${versionStep}`));
+    expect(workflow).toContain("actions: write");
+  });
+}
 describe("release verification waits out registry propagation", () => {
   test.each([
     ["release.yml", "Verify published core artifacts"],
@@ -139,6 +154,10 @@ describe("core release workflow", () => {
     );
     expect(evidenceStep).toContain("public-authoring-registry-packed.test.ts");
     expect(workflow).not.toContain("Start stable site release checks");
+    expect(workflowStep("release.yml", "Detect release mode")).toContain(
+      "bun scripts/release-lane.ts context",
+    );
+    expect(workflow).not.toContain("git show HEAD^");
   });
 });
 
@@ -197,8 +216,12 @@ describe("site release workflow", () => {
       "Verify compatible core runtime is published",
     );
     expect(prerequisiteStep).toContain(
-      "git show HEAD^:packages/brain-cli/package.json",
+      "BRAIN_CANDIDATE_VERSION: ${{ steps.current_release.outputs.brain_candidate_version }}",
     );
+    expect(workflow).not.toContain("git show HEAD^");
+    expect(
+      workflowStep("site-release.yml", "Verify release classification"),
+    ).toContain("Release mode changed while queued");
     expect(prerequisiteStep).toContain("^0\\.2\\.0-alpha\\.[0-9]+$");
     expect(prerequisiteStep).toContain('npm view "@rizom/brain@${expected}"');
 

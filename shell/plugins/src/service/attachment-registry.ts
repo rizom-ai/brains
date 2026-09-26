@@ -1,4 +1,5 @@
 import type { PublishMediaData } from "@brains/contracts";
+import { z } from "@brains/utils/zod";
 
 export interface AttachmentResolveRequest {
   sourceEntityType: string;
@@ -9,6 +10,23 @@ export interface AttachmentResolveRequest {
 export interface AttachmentProviderMetadata {
   outputEntityType: "image" | "document";
   targetField?: "coverImageId" | "ogImageId";
+}
+
+const attachmentMetadataSchema = z.object({
+  outputEntityType: z.enum(["image", "document"]),
+  targetField: z.enum(["coverImageId", "ogImageId"]).optional(),
+});
+
+function copyAttachmentMetadata(
+  source: AttachmentProviderMetadata,
+): AttachmentProviderMetadata {
+  const parsed = attachmentMetadataSchema.parse(source);
+  return {
+    outputEntityType: parsed.outputEntityType,
+    ...(parsed.targetField !== undefined
+      ? { targetField: parsed.targetField }
+      : {}),
+  };
 }
 
 export interface AttachmentProvider {
@@ -23,13 +41,6 @@ export interface AttachmentProvider {
  * Source plugins register providers; publishers resolve by semantic attachment type.
  */
 export interface IAttachmentsNamespace {
-  /** Register an attachment provider for a source entity type and semantic attachment type. */
-  register: (
-    sourceEntityType: string,
-    attachmentType: string,
-    provider: AttachmentProvider,
-  ) => () => void;
-
   /** Resolve a source-derived attachment if a provider is available. */
   resolve: (
     request: AttachmentResolveRequest,
@@ -45,9 +56,29 @@ export interface IAttachmentsNamespace {
   ) => AttachmentProviderMetadata | undefined;
 }
 
+/** Runtime-owned registration for declared attachment providers. */
+export interface AttachmentRegistrationNamespace extends IAttachmentsNamespace {
+  register(
+    sourceEntityType: string,
+    attachmentType: string,
+    provider: AttachmentProvider,
+  ): () => void;
+}
+
+export function createAttachmentReader(
+  attachments: IAttachmentsNamespace,
+): IAttachmentsNamespace {
+  return {
+    resolve: (request) => attachments.resolve(request),
+    hasProvider: (source, type) => attachments.hasProvider(source, type),
+    getProviderMetadata: (source, type) =>
+      attachments.getProviderMetadata(source, type),
+  };
+}
+
 export function createAttachmentsNamespace(
   registry: AttachmentRegistry,
-): IAttachmentsNamespace {
+): AttachmentRegistrationNamespace {
   return {
     register: (
       sourceEntityType: string,
@@ -93,12 +124,21 @@ export class AttachmentRegistry {
     attachmentType: string,
     provider: AttachmentProvider,
   ): () => void {
+    const metadata = provider.metadata;
+    const registered: AttachmentProvider = Object.freeze({
+      ...(metadata !== undefined
+        ? { metadata: Object.freeze(copyAttachmentMetadata(metadata)) }
+        : {}),
+      resolve: provider.resolve.bind(provider),
+    });
     const providersByAttachmentType =
       this.getOrCreateSourceProviders(sourceEntityType);
-    providersByAttachmentType.set(attachmentType, provider);
+    providersByAttachmentType.set(attachmentType, registered);
 
     return () => {
-      this.unregister(sourceEntityType, attachmentType);
+      if (this.get(sourceEntityType, attachmentType) === registered) {
+        this.unregister(sourceEntityType, attachmentType);
+      }
     };
   }
 
@@ -127,7 +167,10 @@ export class AttachmentRegistry {
     sourceEntityType: string,
     attachmentType: string,
   ): AttachmentProviderMetadata | undefined {
-    return this.get(sourceEntityType, attachmentType)?.metadata;
+    const metadata = this.get(sourceEntityType, attachmentType)?.metadata;
+    return metadata === undefined
+      ? undefined
+      : copyAttachmentMetadata(metadata);
   }
 
   public unregister(sourceEntityType: string, attachmentType: string): void {

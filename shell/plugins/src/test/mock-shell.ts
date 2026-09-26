@@ -1,6 +1,73 @@
+import type {
+  AIGenerationSchema,
+  AgentResponse,
+  IAgentService,
+  ImageGenerationOptions,
+  ImageGenerationResult,
+  JudgeInput,
+} from "@brains/ai-service";
+import type { DefaultQueryResponse } from "@brains/contracts";
+import { defaultQueryResponseSchema } from "@brains/contracts";
+import type { IConversationService } from "@brains/conversation-service";
+import { type BaseEntity, type IEntityService } from "@brains/entity-service";
+import {
+  AnchorProfileAdapter,
+  BrainCharacterAdapter,
+  ProfileKindRegistry,
+  type AnchorProfile,
+  type BrainCharacter,
+} from "@brains/identity-service";
+import type {
+  IRuntimeStateNamespace,
+  IRuntimeStateStore,
+  RuntimeStateRecordValue,
+  RuntimeStateScopeOptions,
+} from "@brains/runtime-state";
+import { prepareRuntimeStateValue } from "@brains/runtime-state";
+import {
+  InMemoryTemplateRegistry,
+  PermissionService,
+  RenderService,
+  type Template,
+} from "@brains/templates";
+import { createSilentLogger } from "@brains/test-utils";
+import type { Logger } from "@brains/utils/logger";
+import { z } from "@brains/utils/zod";
+import { isDeepStrictEqual } from "node:util";
+import {
+  createProjectionExecutionReader,
+  createProjectionInputReader,
+} from "../entity/projection-rule";
+import type {
+  ContentGenerationConfig,
+  Daemon,
+  EndpointInfo,
+  EndpointInfoInput,
+  EvalHandler,
+  IDaemonRegistry,
+  IMCPTransport,
+  IShell,
+  InteractionInfo,
+  InteractionInfoInput,
+  Plugin,
+  ProjectionRule,
+  ProjectionWaveInput,
+  ProjectionWriteIntent,
+  Prompt,
+  QueryContext,
+  RegisteredApiRoute,
+  RegisteredWebRoute,
+  Resource,
+  ResourceTemplate,
+  RuntimeAppInfo,
+  RuntimeReadiness,
+  Tool,
+  ToolInfo,
+} from "../index";
 import {
   AccountSettingsRegistry,
   AttachmentRegistry,
+  AuthRegistry,
   ChannelRegistry,
   InboxFollowUpRegistry,
   InboxRegistry,
@@ -10,67 +77,15 @@ import {
   createRuntimeUploadsNamespace,
 } from "../index";
 import { bindHttpRouteSnapshot } from "../internal/http-route-snapshot";
-import type {
-  IShell,
-  Plugin,
-  Tool,
-  Resource,
-  ResourceTemplate,
-  Prompt,
-  ContentGenerationConfig,
-  QueryContext,
-  EvalHandler,
-  RegisteredApiRoute,
-  RegisteredWebRoute,
-  ToolInfo,
-  IMCPTransport,
-  RuntimeAppInfo,
-  RuntimeReadiness,
-  Daemon,
-  EndpointInfo,
-  EndpointInfoInput,
-  InteractionInfo,
-  InteractionInfoInput,
-  IDaemonRegistry,
-} from "../index";
 import type { RegisteredHttpRoute } from "../types/http-routes";
-import type { Template } from "@brains/templates";
-import { PermissionService } from "@brains/templates";
-import type { Logger } from "@brains/utils/logger";
-import type { DefaultQueryResponse } from "@brains/contracts";
-import { defaultQueryResponseSchema } from "@brains/contracts";
-import { type IEntityService, type BaseEntity } from "@brains/entity-service";
-import { createMockEntityStore } from "./mock-entity-store";
-import { createMockMessageBus } from "./mock-message-bus";
-import { createMockEntityRegistry } from "./mock-entity-registry";
-import { createMockJobQueue } from "./mock-job-queue";
 import { createMockContentServices } from "./mock-content";
 import { createMockDaemonRegistry } from "./mock-daemon-registry";
-import { createMockInsightsRegistry } from "./mock-insights-registry";
+import { createMockEntityRegistry } from "./mock-entity-registry";
 import { createMockEntityService } from "./mock-entity-service";
-import type {
-  IRuntimeStateNamespace,
-  IRuntimeStateStore,
-  RuntimeStateRecordValue,
-  RuntimeStateScopeOptions,
-} from "@brains/runtime-state";
-import type { ViewTemplateRegistry } from "@brains/templates";
-import type { IConversationService } from "@brains/conversation-service";
-import { z } from "@brains/utils/zod";
-import {
-  ProfileKindRegistry,
-  type BrainCharacter,
-  type AnchorProfile,
-} from "@brains/identity-service";
-import type {
-  AgentResponse,
-  IAgentService,
-  ImageGenerationOptions,
-  ImageGenerationResult,
-  JudgeInput,
-  AIGenerationSchema,
-} from "@brains/ai-service";
-import { createSilentLogger } from "@brains/test-utils";
+import { createMockEntityStore } from "./mock-entity-store";
+import { createMockInsightsRegistry } from "./mock-insights-registry";
+import { createMockJobQueue } from "./mock-job-queue";
+import { createMockMessageBus } from "./mock-message-bus";
 
 /**
  * MockShell type — IShell plus test helper methods.
@@ -81,8 +96,10 @@ export interface MockShell extends IShell {
   clearEntities(): void;
   registerPlugin(plugin: Plugin): void;
   addPlugin(plugin: Plugin): void;
+  removePlugin(pluginId: string): void;
   getPlugin(pluginId: string): Plugin | undefined;
   getTemplates(): Map<string, Template>;
+  getTemplateLocalName(name: string): string;
   setAgentService(agentService: IAgentService): void;
   setConversationService(conversationService: IConversationService): void;
   getDaemonRegistry(): IDaemonRegistry;
@@ -101,6 +118,7 @@ export interface MockShellOptions {
   domain?: string;
   /** Local runtime site URL (e.g. "http://localhost:8080") */
   localSiteUrl?: string;
+  httpConfigured?: boolean;
   /** Prefer local runtime URLs over public domain URLs */
   preferLocalUrls?: boolean;
   /** Shared conversation spaces */
@@ -134,23 +152,23 @@ export function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
   >();
 
   return {
-    scoped: <T>(
-      options: RuntimeStateScopeOptions<T>,
-    ): IRuntimeStateStore<T> => {
+    scoped: <T, TInput = T>(
+      options: RuntimeStateScopeOptions<T, TInput>,
+    ): IRuntimeStateStore<T, TInput> => {
       if (!namespaces.has(options.namespace)) {
         namespaces.set(options.namespace, new Map());
       }
       const records = namespaces.get(options.namespace);
       if (!records) throw new Error("Runtime state namespace missing");
 
-      return {
+      return Object.freeze<IRuntimeStateStore<T, TInput>>({
         get: async (key): Promise<T | null> => {
           const record = records.get(key);
           return record ? options.schema.parse(record.value) : null;
         },
         has: async (key): Promise<boolean> => records.has(key),
         set: async (key, value): Promise<void> => {
-          const parsed = options.schema.parse(value);
+          const parsed = prepareRuntimeStateValue(options.schema, value);
           const existing = records.get(key);
           const now = new Date();
           records.set(key, {
@@ -160,19 +178,18 @@ export function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
           });
         },
         setIfNotExists: async (key, value): Promise<boolean> => {
+          const parsed = prepareRuntimeStateValue(options.schema, value);
           if (records.has(key)) return false;
-          const parsed = options.schema.parse(value);
           const now = new Date();
           records.set(key, { value: parsed, createdAt: now, updatedAt: now });
           return true;
         },
         compareAndSet: async (key, expected, value): Promise<boolean> => {
-          const parsedExpected = options.schema.parse(expected);
-          const parsedValue = options.schema.parse(value);
+          const parsedValue = prepareRuntimeStateValue(options.schema, value);
           const existing = records.get(key);
           if (
             !existing ||
-            JSON.stringify(existing.value) !== JSON.stringify(parsedExpected)
+            !isDeepStrictEqual(options.schema.parse(existing.value), expected)
           )
             return false;
           records.set(key, {
@@ -211,7 +228,7 @@ export function createMemoryRuntimeStateNamespace(): IRuntimeStateNamespace {
           for (const key of keys) records.delete(key);
           return keys.length;
         },
-      };
+      });
     },
   };
 }
@@ -221,9 +238,12 @@ function createDefaultMockConversationService(): IConversationService {
     startConversation: async () => `conv-${Date.now()}`,
     addMessage: async (): Promise<void> => {},
     getMessages: async () => [],
+    getManyWithMessages: async () => [],
     countMessages: async () => 0,
     getConversation: async () => null,
     listConversations: async () => [],
+    listConversationsUpdatedSince: async () => [],
+    getConversationChangeHead: async () => null,
     searchConversations: async () => [],
     updateConversationMetadata: async () => false,
     deleteConversation: async () => false,
@@ -250,19 +270,21 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   });
   const runtimeState = createMemoryRuntimeStateNamespace();
   const profileKindRegistry = new ProfileKindRegistry(options.profileKind);
+  const authRegistry = AuthRegistry.createFresh();
   const channelRegistry = new ChannelRegistry();
   const inboxRegistry = new InboxRegistry();
   const inboxFollowUpRegistry = new InboxFollowUpRegistry();
   const operationalHealthRegistry = new OperationalHealthRegistry();
   const accountSettingsRegistry = new AccountSettingsRegistry();
 
-  // Stateful backing stores. The entity state is one store shared by the
-  // service double, the registry double and the message bus; the names below
-  // alias into it rather than copying it, so all three still see one set of
-  // entities.
+  // Stateful backing stores
   const entityStore = createMockEntityStore();
   const { entities, types: entityTypes } = entityStore;
-  const templates = new Map<string, Template>();
+  const templates = InMemoryTemplateRegistry.createFresh();
+  // Keep declaration identity, rather than guessing a namespace from a name.
+  // Weak keys retain correct metadata when registration rollback restores an
+  // earlier template; reset replaces this entire shell.
+  const templateLocalNames = new WeakMap<Template, Map<string, string>>();
   const plugins = new Map<string, Plugin>();
 
   let agentService: IAgentService =
@@ -270,36 +292,43 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   let conversationService: IConversationService =
     options.conversationService ?? createDefaultMockConversationService();
 
-  // --- Message Bus (stateful — plugins subscribe during register, tests send) ---
-  const messageBus = createMockMessageBus();
+  // Messaging is in-memory already. Reuse its actual dispatch and coded
+  // response handling instead of teaching the harness a second protocol.
+  const messageBus = createMockMessageBus(logger);
 
-  // --- Entity Service (stateful) ---
   const defaultEntityService = createMockEntityService(entityStore);
 
   // Tests that want canned reads rather than the stateful fake can inject
   // their own; everything built from this shell then sees the same service.
   const entityService = options.entityService ?? defaultEntityService;
 
-  // --- Entity Registry ---
   const entityRegistry = createMockEntityRegistry(entityStore);
 
-  // --- In-memory job queue state, and the two views of it ---
+  // The shell registers its own identity types before any plugin runs, so a
+  // mock without them lets a plugin pass here and fail against a real brain.
+  const anchorProfileAdapter = new AnchorProfileAdapter();
+  const brainCharacterAdapter = new BrainCharacterAdapter();
+  entityRegistry.registerEntityType(
+    "anchor-profile",
+    anchorProfileAdapter.schema,
+    anchorProfileAdapter,
+  );
+  entityRegistry.registerEntityType(
+    "brain-character",
+    brainCharacterAdapter.schema,
+    brainCharacterAdapter,
+  );
+
   const { jobs, jobQueueService } = createMockJobQueue();
 
-  // --- Content Service and DataSource Registry ---
   const { contentService, dataSourceRegistry } = createMockContentServices({
     templates,
     entityService,
     getPermissionService: () => shell.getPermissionService(),
   });
 
-  // --- Daemon Registry ---
-  // --- Insights Registry ---
-  // --- Daemon and Insights registries ---
   const insightsRegistry = createMockInsightsRegistry();
   const daemonRegistry = createMockDaemonRegistry();
-
-  // Advertised by the shell itself, not by either registry.
   const endpoints: EndpointInfo[] = [];
   const interactions: InteractionInfo[] = [];
 
@@ -334,15 +363,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     return routes;
   };
 
-  const renderService: ViewTemplateRegistry = {
-    get: () => undefined,
-    list: () => [],
-    validate: () => true,
-    findViewTemplate: () => undefined,
-    getRenderer: () => undefined,
-    hasRenderer: () => false,
-    listFormats: () => [],
-  };
+  const renderService = RenderService.createFresh(templates);
 
   const mcpTransport: IMCPTransport = {
     getMcpServer: (): never => {
@@ -372,7 +393,14 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getConversationService: () => conversationService,
     getMCPService: () => mcpTransport,
     listToolsForPermissionLevel: (_level: unknown): ToolInfo[] => [],
-    getPermissionService: () => new PermissionService({}),
+    getPermissionService: () =>
+      new PermissionService(
+        {},
+        {
+          entityActionFloor: (type) =>
+            entityStore.typeConfig(type).actionPolicy,
+        },
+      ),
     getDataSourceRegistry: () => dataSourceRegistry,
     getAgentService: () => agentService,
 
@@ -388,6 +416,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       description: "Test profile for unit tests",
     }),
     getProfileKindRegistry: () => profileKindRegistry,
+    getAuthRegistry: () => authRegistry,
     getChannelRegistry: () => channelRegistry,
     getInboxRegistry: () => inboxRegistry,
     getInboxFollowUpRegistry: () => inboxFollowUpRegistry,
@@ -551,7 +580,11 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     registerTemplates: (tmpls: Record<string, Template>, pluginId?: string) => {
       for (const [name, template] of Object.entries(tmpls)) {
         const scopedName = pluginId ? `${pluginId}:${name}` : `shell:${name}`;
-        templates.set(scopedName, template);
+        const names =
+          templateLocalNames.get(template) ?? new Map<string, string>();
+        names.set(scopedName, name);
+        templateLocalNames.set(template, names);
+        templates.register(scopedName, template);
       }
     },
     getTemplate: (name: string) => templates.get(name),
@@ -611,6 +644,61 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       _handler: EvalHandler,
     ) => {},
 
+    runProjectionRule: async (
+      rule: ProjectionRule,
+      options: { readonly inputs?: readonly ProjectionWaveInput[] } = {},
+      signal: AbortSignal = new AbortController().signal,
+    ): Promise<readonly ProjectionWriteIntent[]> => {
+      const input = await rule.selectInput(
+        { waveId: "eval", inputs: options.inputs ?? [] },
+        createProjectionInputReader({
+          entities: entityService,
+          spaces: shell.getSpaces(),
+          conversations: {
+            get: async () => null,
+            getMessages: async () => [],
+            getManyWithMessages: async () => [],
+          },
+          resolvePrompt: async (
+            _reference: string,
+            fallback: string,
+          ): Promise<string> => fallback,
+          appInfo: (): Promise<RuntimeAppInfo> => shell.getAppInfo(),
+          identityInput: () => ({}),
+        }),
+        signal,
+      );
+      const derived = await rule.derive(
+        input,
+        createProjectionExecutionReader({
+          ai: {
+            query: (prompt, context) => shell.query(prompt, context),
+            generate: async <T>(
+              config: ContentGenerationConfig,
+              schema: AIGenerationSchema<T>,
+            ): Promise<T> => schema.parse(await shell.generateContent(config)),
+            generateObject: async <T>(
+              prompt: string,
+              schema: AIGenerationSchema<T>,
+              abort?: AbortSignal,
+            ): Promise<{ object: T }> =>
+              shell.generateObject(prompt, schema, abort),
+            generateImage: async (
+              prompt: string,
+              options?: ImageGenerationOptions,
+            ): Promise<ImageGenerationResult> =>
+              shell.generateImage(prompt, options),
+          },
+          logger,
+        }),
+        signal,
+      );
+      // An eval measures what a rule would write. Abstaining writes nothing,
+      // which is what the caller is asking about — the distinction only
+      // matters to the runtime deciding whether to reconcile.
+      return Array.isArray(derived) ? derived : [];
+    },
+
     // Insights registry
     getInsightsRegistry: () => insightsRegistry,
 
@@ -634,6 +722,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       }
       return routes;
     },
+    isHttpHostConfigured: (): boolean => options.httpConfigured ?? false,
     getPluginWebRoutes: (): RegisteredWebRoute[] => {
       const routes: RegisteredWebRoute[] = [];
       for (const [pluginId, plugin] of plugins) {
@@ -669,8 +758,18 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     addPlugin: (plugin: Plugin) => {
       plugins.set(plugin.id, plugin);
     },
+    removePlugin: (pluginId: string) => {
+      plugins.delete(pluginId);
+    },
     getPlugin: (pluginId: string) => plugins.get(pluginId),
-    getTemplates: () => new Map(templates),
+    getTemplates: () => templates.getAll(),
+    getTemplateLocalName: (name) => {
+      const template = templates.get(name);
+      const localName = template && templateLocalNames.get(template)?.get(name);
+      if (localName === undefined)
+        throw new Error(`No declaration for template "${name}"`);
+      return localName;
+    },
     setAgentService: (svc: IAgentService) => {
       agentService = svc;
     },

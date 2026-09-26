@@ -1,29 +1,33 @@
-import type { AuthService } from "@brains/auth-service";
 import {
-  createBuiltInStudioWorkspaceRegistration,
   defineStudioWorkspace,
   defineWorkspaceAction,
   type OperatorCaller,
+  type OperatorPanelBlock,
   type OperatorRegionBlock,
   type OperatorViewBlock,
-  type RuntimeStudioOperatorBlock,
-  type RuntimeStudioOperatorPanelBlock,
-  type RuntimeStudioOperatorRegionBlock,
-  type ServicePluginContext,
-} from "@brains/plugins";
+  type StudioWorkspaceViewBlock,
+} from "@brains/sdk/services";
+import type {
+  AnyWorkspaceActionDefinition,
+  StudioWorkspaceView,
+} from "@brains/sdk/services";
+import type { AuthAdministration } from "@brains/auth-service";
 import { z } from "@brains/utils/zod";
+
+type ViewBlock = StudioWorkspaceViewBlock<AnyWorkspaceActionDefinition>;
+type RegionBlock = OperatorRegionBlock<AnyWorkspaceActionDefinition>;
+type PanelBlock = OperatorPanelBlock<AnyWorkspaceActionDefinition>;
 import {
-  adminWorkspaceSource,
   formatWorkspaceDate,
   peerOriginLabel,
-  requireAuthService,
-  type AdminWorkspaceSource,
+  type AdminTabBlock,
+  type AdminTabFactory,
 } from "./workspace-format";
 
 function requiredPeopleBlock(
-  blocks: readonly RuntimeStudioOperatorBlock[],
+  blocks: readonly ViewBlock[],
   id: string,
-): RuntimeStudioOperatorBlock {
+): ViewBlock {
   const matches = blocks.filter((block) => block.id === id);
   if (matches.length !== 1 || !matches[0]) {
     throw new Error(
@@ -35,14 +39,11 @@ function requiredPeopleBlock(
 
 /** Keep people primary; relationships and access facts remain available on demand. */
 export function composePeopleTabSections(
-  blocks: readonly RuntimeStudioOperatorBlock[],
-  peerNote: RuntimeStudioOperatorRegionBlock,
-  peerSections: readonly RuntimeStudioOperatorRegionBlock[],
+  blocks: readonly ViewBlock[],
+  peerNote: RegionBlock,
+  peerSections: readonly RegionBlock[],
 ): {
-  readonly blocks: readonly Exclude<
-    RuntimeStudioOperatorBlock,
-    { type: "tabs" }
-  >[];
+  readonly blocks: readonly AdminTabBlock[];
 } {
   const totals = requiredPeopleBlock(blocks, "people-summary");
   if (totals.type !== "stats") {
@@ -59,10 +60,7 @@ export function composePeopleTabSections(
     throw new Error(
       'People tab composition block "brain-anchor" must be a card',
     );
-  const peerPanels = [
-    peerNote,
-    ...peerSections,
-  ].flatMap<RuntimeStudioOperatorPanelBlock>((block) =>
+  const peerPanels = [peerNote, ...peerSections].flatMap<PanelBlock>((block) =>
     block.type === "card" ? [...block.blocks] : [block],
   );
   return {
@@ -85,7 +83,9 @@ export function composePeopleTabSections(
   };
 }
 
-const peopleQuerySchema = z.strictObject({
+// Parsed from the Administration workspace query, which is a superset of
+// every tab s fields; unknown keys belong to other tabs.
+const peopleQuerySchema = z.object({
   selected: z.string().trim().min(1).max(200).optional(),
 });
 const statusResultSchema = z.strictObject({ status: z.string() });
@@ -728,21 +728,25 @@ function mutationContext(caller: OperatorCaller | null): {
 }
 
 function personName(
-  users: Awaited<ReturnType<AuthService["listAdminUsers"]>>,
+  users: Awaited<ReturnType<AuthAdministration["listAdminUsers"]>>,
   userId: string,
 ): string {
   return users.find((user) => user.userId === userId)?.displayName ?? "person";
 }
 
 async function loadBrainAnchor(
-  authService: AuthService,
-): Promise<Awaited<ReturnType<AuthService["getBrainAnchor"]>> | undefined> {
+  authService: AuthAdministration,
+): Promise<
+  Awaited<ReturnType<AuthAdministration["getBrainAnchor"]>> | undefined
+> {
   try {
     return await authService.getBrainAnchor();
   } catch (error) {
     if (
-      error instanceof Error &&
-      error.message === "Brain anchor is not configured"
+      error !== null &&
+      typeof error === "object" &&
+      "code" in error &&
+      error.code === "not_found"
     ) {
       return undefined;
     }
@@ -750,251 +754,252 @@ async function loadBrainAnchor(
   }
 }
 
-export function createPeopleTabSource(
-  context: ServicePluginContext,
-): AdminWorkspaceSource {
-  const authService = requireAuthService();
-  const registration = createBuiltInStudioWorkspaceRegistration({
-    context,
-    definition: peopleWorkspace,
-    bind: (bindingContext) => {
-      const role = updateRole.bind(
-        bindingContext,
-        async ({ input, caller }) => {
-          await authService.updateUserRole(
-            input.userId,
-            input.role,
-            mutationContext(caller),
+export function createPeopleTab(
+  authService: AuthAdministration,
+): AdminTabFactory {
+  return (bindingContext) => {
+    const role = updateRole.bind(
+      bindingContext,
+      async ({ input, caller }) => {
+        await authService.updateUserRole(
+          input.userId,
+          input.role,
+          mutationContext(caller),
+        );
+        return { status: `Role changed to ${titleCase(input.role)}.` };
+      },
+      async ({ input }) => {
+        const users = await authService.listAdminUsers();
+        return {
+          summary: `Change ${personName(users, input.userId)}’s role to ${titleCase(input.role)}?`,
+          revision: `${input.userId}:${input.role}`,
+        };
+      },
+    );
+    const status = updateStatus.bind(
+      bindingContext,
+      async ({ input, caller }) => {
+        await authService.updateUserStatus(
+          input.userId,
+          input.status,
+          mutationContext(caller),
+        );
+        return { status: `Person ${input.status}.` };
+      },
+      async ({ input }) => {
+        const users = await authService.listAdminUsers();
+        return {
+          summary: `${input.status === "active" ? "Reactivate" : "Suspend"} ${personName(users, input.userId)}?`,
+          revision: `${input.userId}:${input.status}`,
+        };
+      },
+    );
+    const remove = deletePerson.bind(
+      bindingContext,
+      async ({ input, caller }) => {
+        await authService.deleteSuspendedUser(
+          input.userId,
+          mutationContext(caller),
+        );
+        return { status: "Suspended person permanently deleted." };
+      },
+      async ({ input }) => {
+        const users = await authService.listAdminUsers();
+        return {
+          summary: `Permanently delete ${personName(users, input.userId)}? Audit history is retained.`,
+          revision: input.userId,
+        };
+      },
+    );
+    const passkey = revokePasskey.bind(
+      bindingContext,
+      async ({ input, caller }) => {
+        await authService.revokePasskey(
+          input.credentialId,
+          mutationContext(caller),
+        );
+        return { status: "Passkey revoked." };
+      },
+      ({ input }) => ({
+        summary: "Revoke this passkey immediately?",
+        revision: `${input.userId}:${input.credentialId}`,
+      }),
+    );
+    const setup = startPasskeyRegistration.bind(
+      bindingContext,
+      async ({ input, caller }) => {
+        const registration = await authService.startPasskeyRegistrationForUser(
+          input.userId,
+          mutationContext(caller),
+        );
+        return {
+          status: `Bound to ${registration.delivery.label}. Deliver only through that confirmed private channel.`,
+          setupUrl: registration.setupUrl,
+          expiresAt: new Date(registration.expiresAt * 1_000).toISOString(),
+        };
+      },
+    );
+    const sessions = revokeSessions.bind(
+      bindingContext,
+      async ({ input, caller }) => {
+        const revoked = await authService.revokeUserSessionsAndRefreshTokens(
+          input.userId,
+          mutationContext(caller),
+        );
+        return {
+          status: `Revoked ${revoked.sessions} sessions and ${revoked.refreshTokens} refresh tokens.`,
+        };
+      },
+      async ({ input }) => {
+        const users = await authService.listAdminUsers();
+        return {
+          summary: `Sign ${personName(users, input.userId)} out everywhere?`,
+          revision: input.userId,
+        };
+      },
+    );
+    const attach = attachIdentity.bind(
+      bindingContext,
+      async ({ input, caller }) => {
+        await authService.attachIdentity(
+          {
+            userId: input.userId,
+            type: input.type,
+            subject: input.subject,
+            ...(input.issuer ? { issuer: input.issuer } : {}),
+            ...(input.label ? { label: input.label } : {}),
+            verifiedAt: Date.now(),
+            source: { kind: "admin" },
+          },
+          mutationContext(caller),
+        );
+        return { status: "Verified channel attached." };
+      },
+    );
+    const detach = detachIdentity.bind(
+      bindingContext,
+      async ({ input, caller }) => {
+        await authService.detachIdentity(
+          input.identityId,
+          mutationContext(caller),
+        );
+        return { status: "Channel detached." };
+      },
+      ({ input }) => ({
+        summary: "Detach this channel identity?",
+        revision: `${input.userId}:${input.identityId}`,
+      }),
+    );
+    const unlink = unlinkExternalPeer.bind(
+      bindingContext,
+      async ({ input, caller }) => {
+        await authService.unlinkExternalPeer(input, mutationContext(caller));
+        return { status: "External peer unlinked from the local person." };
+      },
+      ({ input }) => ({
+        summary: `Unlink ${input.peerId}? Local access will not change.`,
+        revision: `${input.peerId}:${input.userId}`,
+      }),
+    );
+    return {
+      actions: [
+        role,
+        status,
+        remove,
+        passkey,
+        setup,
+        sessions,
+        attach,
+        detach,
+        unlink,
+      ],
+      load: async ({
+        query,
+        caller,
+      }): Promise<StudioWorkspaceView<AnyWorkspaceActionDefinition>> => {
+        const normalized = peopleQuerySchema.parse(query);
+        const [configuredAnchor, users, channels] = await Promise.all([
+          loadBrainAnchor(authService),
+          authService.listAdminUsers(),
+          authService.listInvitationChannels(),
+        ]);
+        const people = users.filter((user) => user.status !== "invited");
+        const fallbackAnchor =
+          people.find((user) => user.isAnchor) ??
+          people.find(
+            (user) => user.role === "admin" && user.status === "active",
           );
-          return { status: `Role changed to ${titleCase(input.role)}.` };
-        },
-        async ({ input }) => {
-          const users = await authService.listAdminUsers();
-          return {
-            summary: `Change ${personName(users, input.userId)}’s role to ${titleCase(input.role)}?`,
-            revision: `${input.userId}:${input.role}`,
-          };
-        },
-      );
-      const status = updateStatus.bind(
-        bindingContext,
-        async ({ input, caller }) => {
-          await authService.updateUserStatus(
-            input.userId,
-            input.status,
-            mutationContext(caller),
-          );
-          return { status: `Person ${input.status}.` };
-        },
-        async ({ input }) => {
-          const users = await authService.listAdminUsers();
-          return {
-            summary: `${input.status === "active" ? "Reactivate" : "Suspend"} ${personName(users, input.userId)}?`,
-            revision: `${input.userId}:${input.status}`,
-          };
-        },
-      );
-      const remove = deletePerson.bind(
-        bindingContext,
-        async ({ input, caller }) => {
-          await authService.deleteSuspendedUser(
-            input.userId,
-            mutationContext(caller),
-          );
-          return { status: "Suspended person permanently deleted." };
-        },
-        async ({ input }) => {
-          const users = await authService.listAdminUsers();
-          return {
-            summary: `Permanently delete ${personName(users, input.userId)}? Audit history is retained.`,
-            revision: input.userId,
-          };
-        },
-      );
-      const passkey = revokePasskey.bind(
-        bindingContext,
-        async ({ input, caller }) => {
-          await authService.revokePasskey(
-            input.credentialId,
-            mutationContext(caller),
-          );
-          return { status: "Passkey revoked." };
-        },
-        ({ input }) => ({
-          summary: "Revoke this passkey immediately?",
-          revision: `${input.userId}:${input.credentialId}`,
-        }),
-      );
-      const setup = startPasskeyRegistration.bind(
-        bindingContext,
-        async ({ input, caller }) => {
-          const registration =
-            await authService.startPasskeyRegistrationForUser(
-              input.userId,
-              mutationContext(caller),
-            );
-          return {
-            status: `Bound to ${registration.delivery.label}. Deliver only through that confirmed private channel.`,
-            setupUrl: registration.setupUrl,
-            expiresAt: new Date(registration.expiresAt * 1_000).toISOString(),
-          };
-        },
-      );
-      const sessions = revokeSessions.bind(
-        bindingContext,
-        async ({ input, caller }) => {
-          const revoked = await authService.revokeUserSessionsAndRefreshTokens(
-            input.userId,
-            mutationContext(caller),
-          );
-          return {
-            status: `Revoked ${revoked.sessions} sessions and ${revoked.refreshTokens} refresh tokens.`,
-          };
-        },
-        async ({ input }) => {
-          const users = await authService.listAdminUsers();
-          return {
-            summary: `Sign ${personName(users, input.userId)} out everywhere?`,
-            revision: input.userId,
-          };
-        },
-      );
-      const attach = attachIdentity.bind(
-        bindingContext,
-        async ({ input, caller }) => {
-          await authService.attachIdentity(
-            {
-              userId: input.userId,
-              type: input.type,
-              subject: input.subject,
-              ...(input.issuer ? { issuer: input.issuer } : {}),
-              ...(input.label ? { label: input.label } : {}),
-              verifiedAt: Date.now(),
-              source: { kind: "admin" },
-            },
-            mutationContext(caller),
-          );
-          return { status: "Verified channel attached." };
-        },
-      );
-      const detach = detachIdentity.bind(
-        bindingContext,
-        async ({ input, caller }) => {
-          await authService.detachIdentity(
-            input.identityId,
-            mutationContext(caller),
-          );
-          return { status: "Channel detached." };
-        },
-        ({ input }) => ({
-          summary: "Detach this channel identity?",
-          revision: `${input.userId}:${input.identityId}`,
-        }),
-      );
-      const unlink = unlinkExternalPeer.bind(
-        bindingContext,
-        async ({ input, caller }) => {
-          await authService.unlinkExternalPeer(input, mutationContext(caller));
-          return { status: "External peer unlinked from the local person." };
-        },
-        ({ input }) => ({
-          summary: `Unlink ${input.peerId}? Local access will not change.`,
-          revision: `${input.peerId}:${input.userId}`,
-        }),
-      );
-      return peopleWorkspace.bind(bindingContext, {
-        actions: [
-          role,
-          status,
-          remove,
-          passkey,
-          setup,
-          sessions,
-          attach,
-          detach,
-          unlink,
-        ],
-        load: async ({ query, caller }) => {
-          const normalized = query.get(peopleQuerySchema);
-          const [configuredAnchor, users, channels] = await Promise.all([
-            loadBrainAnchor(authService),
-            authService.listAdminUsers(),
-            authService.listInvitationChannels(),
-          ]);
-          const people = users.filter((user) => user.status !== "invited");
-          const fallbackAnchor =
-            people.find((user) => user.isAnchor) ??
-            people.find(
+        const anchor =
+          configuredAnchor ??
+          defaultAnchor(
+            fallbackAnchor?.displayName ?? "Brain owner",
+            people.filter(
               (user) => user.role === "admin" && user.status === "active",
-            );
-          const anchor =
-            configuredAnchor ??
-            defaultAnchor(
-              fallbackAnchor?.displayName ?? "Brain owner",
-              people.filter(
-                (user) => user.role === "admin" && user.status === "active",
-              ).length,
-            );
-          const active = people.filter((user) => user.status === "active");
-          const channelNames = new Map(
-            channels.map((channel) => [channel.type, channel.displayName]),
+            ).length,
           );
-          return {
-            query: normalized,
-            anchor: {
-              kind: anchor.kind,
-              configuredKind: anchor.configuredKind,
-              displayName: anchor.displayName,
-              administeredBy: anchor.administeredBy,
-            },
-            people: people.flatMap((user) => {
-              if (user.status === "invited") return [];
-              return [
-                {
-                  userId: user.userId,
-                  displayName: user.displayName,
-                  role: user.role,
-                  status: user.status,
-                  isAnchor: user.isAnchor,
-                  isSelf: caller?.actor.id === user.userId,
-                  ...(user.profileEntityId
-                    ? { profileEntityId: user.profileEntityId }
-                    : {}),
-                  passkeys: user.passkeys.map((passkey) => ({
-                    id: passkey.id,
-                    kind: passkey.credentialDeviceType ?? "Passkey",
-                    createdAt: passkey.createdAt,
+        const active = people.filter((user) => user.status === "active");
+        const channelNames = new Map(
+          channels.map((channel) => [channel.type, channel.displayName]),
+        );
+        const data = {
+          query: normalized,
+          anchor: {
+            kind: anchor.kind,
+            configuredKind: anchor.configuredKind,
+            displayName: anchor.displayName,
+            administeredBy: anchor.administeredBy,
+          },
+          people: people.flatMap((user) => {
+            if (user.status === "invited") return [];
+            return [
+              {
+                userId: user.userId,
+                displayName: user.displayName,
+                role: user.role,
+                status: user.status,
+                isAnchor: user.isAnchor,
+                isSelf: caller?.actor.id === user.userId,
+                ...(user.profileEntityId
+                  ? { profileEntityId: user.profileEntityId }
+                  : {}),
+                passkeys: user.passkeys.map((passkey) => ({
+                  id: passkey.id,
+                  kind: passkey.credentialDeviceType ?? "Passkey",
+                  createdAt: passkey.createdAt,
+                })),
+                identities: user.identities
+                  .filter((identity) => identity.revokedAt === undefined)
+                  .map((identity) => ({
+                    id: identity.id,
+                    type: identity.type,
+                    displayName:
+                      channelNames.get(identity.type) ??
+                      titleCase(identity.type),
+                    label: identity.label ?? "Connected identity",
+                    verified: identity.verifiedAt !== undefined,
                   })),
-                  identities: user.identities
-                    .filter((identity) => identity.revokedAt === undefined)
-                    .map((identity) => ({
-                      id: identity.id,
-                      type: identity.type,
-                      displayName:
-                        channelNames.get(identity.type) ??
-                        titleCase(identity.type),
-                      label: identity.label ?? "Connected identity",
-                      verified: identity.verifiedAt !== undefined,
-                    })),
-                  peers: user.externalPeers.map((peer) => ({
-                    peerId: peer.peerId,
-                    verificationStatus: peer.verificationStatus,
-                  })),
-                },
-              ];
-            }),
-            activeCount: active.length,
-            activeAdminCount: active.filter((user) => user.role === "admin")
-              .length,
-            suspendedCount: people.length - active.length,
-            channelTypes: channels.map((channel) => ({
-              type: channel.type,
-              displayName: channel.displayName,
-            })),
-          };
-        },
-      });
-    },
-  });
-  return adminWorkspaceSource(registration, peopleWorkspace.actions);
+                peers: user.externalPeers.map((peer) => ({
+                  peerId: peer.peerId,
+                  verificationStatus: peer.verificationStatus,
+                })),
+              },
+            ];
+          }),
+          activeCount: active.length,
+          activeAdminCount: active.filter((user) => user.role === "admin")
+            .length,
+          suspendedCount: people.length - active.length,
+          channelTypes: channels.map((channel) => ({
+            type: channel.type,
+            displayName: channel.displayName,
+          })),
+        };
+        return peopleWorkspace.view({ data });
+      },
+    };
+  };
 }
+
+/** The action definitions this tab contributes to Administration. */
+export const peopleTabActions: readonly AnyWorkspaceActionDefinition[] =
+  peopleWorkspace.actions;

@@ -3,7 +3,7 @@ import { guestExecutionLimitsSchema } from "@brains/contracts/chat";
 import type {
   IRuntimeStateNamespace,
   IRuntimeStateStore,
-} from "@brains/plugins";
+} from "@brains/runtime-state";
 import { attempt, retry } from "./cas-retry";
 import { canAccessGuestConversation, type GuestVisitor } from "./guest-access";
 import type { WebChatConversation } from "./conversation-access";

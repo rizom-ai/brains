@@ -1,4 +1,4 @@
-import type { UserPermissionLevel } from "@brains/plugins";
+import type { UserPermissionLevel } from "@brains/sdk/services";
 
 export const STUDIO_ACCOUNT_WORKSPACE_ID = "studio:account";
 export const STUDIO_ACCOUNT_WORKSPACE_RENDERER = "StudioAccountWorkspace";

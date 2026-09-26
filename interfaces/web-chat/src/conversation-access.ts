@@ -1,11 +1,11 @@
 import type {
-  InterfacePluginContext,
+  IInterfaceConversationsNamespace,
   UserPermissionLevel,
-} from "@brains/plugins";
+} from "@brains/sdk/interfaces";
 
 import { guestInterfaceType } from "@brains/contracts/chat";
 
-type ConversationService = InterfacePluginContext["conversations"];
+type ConversationService = IInterfaceConversationsNamespace;
 export type WebChatConversation = NonNullable<
   Awaited<ReturnType<ConversationService["get"]>>
 >;

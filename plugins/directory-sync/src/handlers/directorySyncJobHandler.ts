@@ -1,9 +1,7 @@
-import { BaseJobHandler } from "@brains/plugins";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { DirectorySyncHost } from "../host";
 import type { Logger } from "@brains/utils/logger";
-import type { ProgressReporter } from "@brains/utils/progress";
+import type { ProgressContract } from "@brains/utils/progress";
 import {
-  directorySyncJobSchema,
   type DirectorySyncJobData,
   type SyncResult,
   type ImportResult,
@@ -12,23 +10,17 @@ import {
 } from "../types";
 import { waitForImportJobs } from "../lib/import-job-polling";
 
-export class DirectorySyncJobHandler extends BaseJobHandler<
-  "directory-sync",
-  DirectorySyncJobData,
-  SyncResult
-> {
+export class DirectorySyncJobHandler {
+  protected readonly logger: Logger;
   private readonly getDirectorySync: () => IDirectorySync;
-  private context: ServicePluginContext;
+  private context: DirectorySyncHost;
 
   constructor(
     logger: Logger,
-    context: ServicePluginContext,
+    context: DirectorySyncHost,
     getDirectorySync: () => IDirectorySync,
   ) {
-    super(logger, {
-      schema: directorySyncJobSchema,
-      jobTypeName: "directory-sync",
-    });
+    this.logger = logger;
     this.context = context;
     this.getDirectorySync = getDirectorySync;
   }
@@ -36,7 +28,7 @@ export class DirectorySyncJobHandler extends BaseJobHandler<
   async process(
     data: DirectorySyncJobData,
     jobId: string,
-    progressReporter: ProgressReporter,
+    progressReporter: ProgressContract,
   ): Promise<SyncResult> {
     const startTime = Date.now();
     const syncDirection = data.syncDirection ?? "both";
@@ -136,7 +128,7 @@ export class DirectorySyncJobHandler extends BaseJobHandler<
   private async importWithProgress(
     directorySync: IDirectorySync,
     paths: string[] | undefined,
-    reporter: ProgressReporter,
+    reporter: ProgressContract,
   ): Promise<ImportResult> {
     try {
       return await directorySync.importEntitiesWithProgress(
@@ -153,7 +145,7 @@ export class DirectorySyncJobHandler extends BaseJobHandler<
   private async exportWithProgress(
     directorySync: IDirectorySync,
     entityTypes: string[] | undefined,
-    reporter: ProgressReporter,
+    reporter: ProgressContract,
   ): Promise<ExportResult> {
     try {
       return await directorySync.exportEntitiesWithProgress(
@@ -170,22 +162,13 @@ export class DirectorySyncJobHandler extends BaseJobHandler<
   /** Wait for import jobs to complete before export to prevent stale reads */
   private waitForImportJobs(
     jobIds: string[],
-    reporter: ProgressReporter,
+    reporter: ProgressContract,
   ): Promise<void> {
     return waitForImportJobs({
       jobIds,
-      entityService: this.context.entityService,
+      entityService: this.context.mirror,
       reporter,
       logger: this.logger,
     });
-  }
-
-  protected override summarizeDataForLog(
-    data: DirectorySyncJobData,
-  ): Record<string, unknown> {
-    return {
-      operation: data.operation,
-      syncDirection: data.syncDirection,
-    };
   }
 }

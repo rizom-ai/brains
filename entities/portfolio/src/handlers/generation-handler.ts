@@ -1,42 +1,24 @@
-import { BaseGenerationJobHandler } from "@brains/plugins";
-import type { GeneratedContent } from "@brains/plugins";
-import type { Logger } from "@brains/utils/logger";
-import type { ProgressReporter } from "@brains/utils/progress";
+import type { EntityGenerationDeclaration } from "@brains/sdk/entities";
 import { slugify } from "@brains/utils/string-utils";
-import { z } from "@brains/utils/zod";
-import { generationResultSchema } from "@brains/contracts";
-import type { EntityPluginContext } from "@brains/plugins";
-import { fetchStyleGuide, formatVoiceGuidance } from "@brains/contracts";
+import { z } from "@brains/sdk/entities";
+import { fetchStyleGuide, formatVoiceGuidance } from "@brains/sdk/entities";
 import { projectAdapter } from "../adapters/project-adapter";
 
 /**
  * Input schema for project generation job
  */
-export const projectGenerationJobSchema: z.ZodObject<{
-  prompt: z.ZodString;
-  year: z.ZodNumber;
-  title: z.ZodOptional<z.ZodString>;
-}> = z.object({
-  prompt: z.string(),
-  year: z.number(),
-  title: z.string().optional(),
-});
-
-export type ProjectGenerationJobData = z.output<
-  typeof projectGenerationJobSchema
->;
-
-export interface ProjectGenerationResult extends z.output<
-  typeof generationResultSchema
-> {
+export interface ProjectGenerationJobData {
+  prompt: string;
+  year: number;
   title?: string | undefined;
 }
 
-export const projectGenerationResultSchema: ReturnType<
-  typeof generationResultSchema.extend<{
-    title: z.ZodOptional<z.ZodString>;
-  }>
-> = generationResultSchema.extend({
+export const projectGenerationJobSchema: z.ZodType<
+  ProjectGenerationJobData,
+  ProjectGenerationJobData
+> = z.object({
+  prompt: z.string(),
+  year: z.number(),
   title: z.string().optional(),
 });
 
@@ -52,16 +34,12 @@ Use the project request as the primary source of truth. If retrieved knowledge c
 }
 
 /**
- * AI generation output schema
+ * AI generation output schema.
+ *
+ * The schema is the definition; the type is read off it, so the two cannot
+ * drift apart the way a hand-written interface beside a parse would.
  */
-export const generatedProjectContentSchema: z.ZodObject<{
-  title: z.ZodString;
-  description: z.ZodString;
-  context: z.ZodString;
-  problem: z.ZodString;
-  solution: z.ZodString;
-  outcome: z.ZodString;
-}> = z.object({
+const generatedProjectContentSchema = z.object({
   title: z.string(),
   description: z.string(),
   context: z.string(),
@@ -71,84 +49,111 @@ export const generatedProjectContentSchema: z.ZodObject<{
 });
 
 /**
- * Job handler for portfolio project generation
- * Handles AI-powered content generation and entity creation
+ * Year is required on a project, so a create request that does not carry one
+ * is refused here rather than falling through to ordinary creation — which
+ * would build an entity whose metadata cannot validate.
  */
-export class ProjectGenerationJobHandler extends BaseGenerationJobHandler<
-  ProjectGenerationJobData,
-  ProjectGenerationResult
-> {
-  constructor(logger: Logger, context: EntityPluginContext) {
-    super(logger, context, {
-      schema: projectGenerationJobSchema,
-      jobTypeName: "project-generation",
-      entityType: "project",
-    });
+export function extractProjectYear(
+  ...values: Array<string | undefined>
+): number | null {
+  for (const value of values) {
+    const match = value?.match(/\b(19\d{2}|20\d{2})\b/u);
+    if (match?.[1]) return Number(match[1]);
   }
+  return null;
+}
 
-  protected async generate(
-    data: ProjectGenerationJobData,
-    progressReporter: ProgressReporter,
-  ): Promise<GeneratedContent> {
-    const { year } = data;
+const projectCreateInputSchema: z.ZodObject<{
+  prompt: z.ZodOptional<z.ZodString>;
+  title: z.ZodOptional<z.ZodString>;
+  year: z.ZodOptional<z.ZodNumber>;
+}> = z.object({
+  prompt: z.string().optional(),
+  title: z.string().optional(),
+  year: z.number().optional(),
+});
 
-    await this.reportProgress(progressReporter, {
+/**
+ * Project generation, declared.
+ *
+ * Create routing hands this the whole create request, so the year may arrive
+ * spelled out in the prompt rather than as a field.
+ */
+export const projectGeneration: EntityGenerationDeclaration<
+  typeof projectCreateInputSchema
+> = {
+  input: projectCreateInputSchema,
+  generate: async ({ input, ai, entities, progress, template }) => {
+    const prompt = input.prompt;
+    if (!prompt) return { success: false, error: "A prompt is required" };
+
+    const year = input.year ?? extractProjectYear(input.title, prompt);
+    if (!year) {
+      return {
+        success: false,
+        error:
+          'A project needs a year. Include one in the prompt, for example "a 2024 project about …".',
+      };
+    }
+
+    await progress.report({
       progress: 10,
+      total: 100,
       message: "Generating project content with AI",
     });
 
-    const voiceGuidance = formatVoiceGuidance(
-      await fetchStyleGuide(this.context.entityService),
-    );
-    const generated = await this.context.ai.generate(
+    const voiceGuidance = formatVoiceGuidance(await fetchStyleGuide(entities));
+    const generated = await ai.generate(
       {
-        prompt: buildProjectGenerationPrompt(data),
-        templateName: "portfolio:generation",
+        prompt: buildProjectGenerationPrompt({
+          prompt,
+          year,
+          ...(input.title === undefined ? {} : { title: input.title }),
+        }),
+        templateName: template("generation"),
         representedIdentity: "anchor",
         ...(voiceGuidance && { styleGuide: { voice: voiceGuidance } }),
       },
       generatedProjectContentSchema,
     );
 
-    const title = data.title ?? generated.title;
+    const title = input.title ?? generated.title;
     const slug = slugify(title);
 
-    await this.reportProgress(progressReporter, {
+    await progress.report({
       progress: 50,
+      total: 100,
       message: `Generated project: "${title}"`,
     });
 
-    const frontmatter = {
-      title,
-      slug,
-      status: "draft" as const,
-      description: generated.description,
-      year,
-    };
+    const content = projectAdapter.createProjectContent(
+      {
+        title,
+        slug,
+        status: "draft" as const,
+        description: generated.description,
+        year,
+      },
+      {
+        context: generated.context,
+        problem: generated.problem,
+        solution: generated.solution,
+        outcome: generated.outcome,
+      },
+    );
 
-    const bodyContent = {
-      context: generated.context,
-      problem: generated.problem,
-      solution: generated.solution,
-      outcome: generated.outcome,
-    };
-
+    await progress.report({
+      progress: 100,
+      total: 100,
+      message: `Wrote project: "${title}"`,
+    });
+    // Content, not an entity: the runtime decides whether this fills in a
+    // pre-allocated project or creates a new one.
     return {
-      id: slug,
-      content: projectAdapter.createProjectContent(frontmatter, bodyContent),
+      success: true,
+      content,
       metadata: { title, slug, status: "draft", year },
-      title,
       resultExtras: { title },
     };
-  }
-
-  protected override summarizeDataForLog(
-    data: ProjectGenerationJobData,
-  ): Record<string, unknown> {
-    return {
-      prompt: data.prompt.substring(0, 100),
-      year: data.year,
-      title: data.title,
-    };
-  }
-}
+  },
+};

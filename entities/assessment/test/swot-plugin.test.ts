@@ -5,17 +5,36 @@ import {
   SYSTEM_CHANNELS,
 } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
-import { SwotAssessmentPlugin } from "../src";
+import {
+  bindPluginPackageMetadata,
+  instantiatePluginPackageDefinition,
+  type Plugin,
+} from "@brains/plugins";
+import assessmentPackage from "../src";
+import packageJson from "../package.json";
 import { z } from "@brains/utils/zod";
 
-/** The fields this test reads off a dashboard widget registration. */
-const widgetRegistrationSchema = z.looseObject({
-  id: z.string(),
-  group: z.string(),
-  rendererName: z.string(),
-});
+/**
+ * Assessment is a service package: it carries config, and the configured
+ * derivation rule attaches to the entity plugin whose type it targets.
+ */
+function assessmentPlugins(config: Record<string, unknown> = {}): Plugin[] {
+  const metadata = { name: packageJson.name, version: packageJson.version };
+  bindPluginPackageMetadata(assessmentPackage, metadata);
+  return instantiatePluginPackageDefinition(
+    assessmentPackage,
+    config,
+    metadata,
+  );
+}
 
-describe("SwotAssessmentPlugin", () => {
+function swotEntityPlugin(): Plugin {
+  const plugin = assessmentPlugins().find(({ type }) => type === "entity");
+  if (!plugin) throw new Error("SWOT entity plugin was not created");
+  return plugin;
+}
+
+describe("assessment package", () => {
   let harness: ReturnType<typeof createPluginHarness>;
 
   beforeEach(() => {
@@ -25,7 +44,7 @@ describe("SwotAssessmentPlugin", () => {
   });
 
   it("registers SWOT as a terminal scheduler-owned projection", async () => {
-    const plugin = new SwotAssessmentPlugin();
+    const plugin = swotEntityPlugin();
     const capabilities = await harness.installPlugin(plugin);
 
     expect(plugin.type).toBe("entity");
@@ -46,15 +65,20 @@ describe("SwotAssessmentPlugin", () => {
     });
   });
 
+  // Deriving a SWOT calls a model over every agent and skill, so turning it
+  // off must leave no rule to schedule rather than one that no-ops.
   it("does not register the AI-backed rule when derivation is disabled", async () => {
-    const plugin = new SwotAssessmentPlugin({ enableSwotDerivation: false });
-    const capabilities = await harness.installPlugin(plugin);
+    const rules = [];
+    for (const plugin of assessmentPlugins({ enableSwotDerivation: false })) {
+      const capabilities = await harness.installPlugin(plugin);
+      rules.push(...(capabilities.projectionRules ?? []));
+    }
 
-    expect(capabilities.projectionRules).toBeUndefined();
+    expect(rules).toEqual([]);
   });
 
   it("registers deriveSwot eval handler", async () => {
-    const plugin = new SwotAssessmentPlugin();
+    const plugin = swotEntityPlugin();
     const registrations: Array<{ pluginId: string; handlerId: string }> = [];
     const mockShell = harness.getMockShell();
 
@@ -65,12 +89,12 @@ describe("SwotAssessmentPlugin", () => {
     await harness.installPlugin(plugin);
 
     expect(registrations).toEqual([
-      { pluginId: "swot", handlerId: "deriveSwot" },
+      { pluginId: `${packageJson.name}:swot`, handlerId: "deriveSwot" },
     ]);
   });
 
   it("registers the standalone SWOT dashboard widget", async () => {
-    const plugin = new SwotAssessmentPlugin();
+    const plugin = swotEntityPlugin();
     const registrations: Array<{
       id: string;
       group: string;
@@ -78,7 +102,13 @@ describe("SwotAssessmentPlugin", () => {
     }> = [];
 
     harness.subscribe("dashboard:register-widget", async (message) => {
-      const payload = widgetRegistrationSchema.parse(message.payload);
+      const payload = z
+        .object({
+          id: z.string(),
+          group: z.string(),
+          rendererName: z.string(),
+        })
+        .parse(message.payload);
       registrations.push({
         id: payload.id,
         group: payload.group,
@@ -109,7 +139,7 @@ describe("SwotAssessmentPlugin", () => {
       registerHandler,
     });
 
-    await harness.installPlugin(new SwotAssessmentPlugin());
+    await harness.installPlugin(swotEntityPlugin());
     await harness.sendMessage("sync:initial:completed", {}, "directory-sync");
     await harness.sendMessage(
       "entity:updated",

@@ -2,14 +2,11 @@ import { createMockShell, type MockShell } from "@brains/plugins/test";
 import { describe, expect, it } from "bun:test";
 import type { AuthPrincipal } from "@brains/auth-service";
 import type { BaseEntity, WebRouteDefinition } from "@brains/plugins";
-import {
-  BaseEntityAdapter,
-  baseEntitySchema,
-  createServicePluginContext,
-} from "@brains/plugins";
+import { BaseEntityAdapter, baseEntitySchema } from "@brains/plugins";
 
+import { PermissionService } from "@brains/templates";
 import { z } from "@brains/utils/zod";
-import { createEditorRoutes } from "../src/editor-routes";
+import { installStudio, signIn } from "./helpers/install";
 import { StudioWorkspaceRegistry } from "../src/workspace-registry";
 
 const frontmatterSchema = z.object({ title: z.string() });
@@ -57,10 +54,10 @@ function fixtureEntity(
   };
 }
 
-function createReadFixture(): {
+async function createReadFixture(): Promise<{
   shell: MockShell;
   routes: WebRouteDefinition[];
-} {
+}> {
   const shell = createMockShell({ domain: "yeehaa.io" });
   const registry = shell.getEntityRegistry();
   for (const entityType of ["post", "empty-collab", "secret"]) {
@@ -84,25 +81,22 @@ function createReadFixture(): {
     fixtureEntity("secret", "restricted-secret", "restricted"),
   ]);
 
-  const permissionService = shell.getPermissionService();
-  permissionService.assertEntityActionAllowed = (
-    entityType,
-    action,
-    userLevel,
-  ): void => {
-    if (userLevel === "admin") return;
-    if (
-      userLevel === "trusted" &&
-      ((entityType === "post" &&
-        (action === "create" || action === "update")) ||
-        (entityType === "empty-collab" && action === "create"))
-    ) {
-      return;
-    }
-    throw new Error(`${action} ${entityType} denied`);
-  };
-  shell.getPermissionService = (): typeof permissionService =>
-    permissionService;
+  // Admin may do anything; Trusted may write posts and start an empty
+  // collab; nobody may touch a secret.
+  const permissionService = new PermissionService({
+    entityActions: {
+      "*": {
+        create: "admin",
+        update: "admin",
+        delete: "admin",
+        extract: "admin",
+        publish: "admin",
+      },
+      post: { create: "trusted", update: "trusted" },
+      "empty-collab": { create: "trusted" },
+    },
+  });
+  shell.getPermissionService = (): PermissionService => permissionService;
 
   const workspaceRegistry = new StudioWorkspaceRegistry();
   workspaceRegistry.register({
@@ -115,13 +109,9 @@ function createReadFixture(): {
     dataProvider: async (): Promise<Record<string, never>> => ({}),
   });
 
-  const context = createServicePluginContext(shell, "studio");
-  const routes = createEditorRoutes({
-    routePath: "/studio",
-    getContext: () => context,
-    resolveAuthPrincipal: async (): Promise<AuthPrincipal> => trustedPrincipal,
-    getEntityDisplay: () => undefined,
-    workspaceRegistry,
+  signIn(shell, () => trustedPrincipal);
+  const { routes } = await installStudio(shell, {
+    deps: { workspaces: workspaceRegistry },
   });
   return { shell, routes };
 }
@@ -156,7 +146,7 @@ function request(
 
 describe("Studio principal-aware reads behind the rollout gate", () => {
   it("scopes counts, filters type discovery, and returns policy capabilities", async () => {
-    const { routes } = createReadFixture();
+    const { routes } = await createReadFixture();
     const response = await findRoute(routes, "/studio/api/types").handler(
       request("/studio/api/types"),
     );
@@ -211,11 +201,11 @@ describe("Studio principal-aware reads behind the rollout gate", () => {
           ? workspace.id
           : undefined,
       ),
-    ).toEqual(["studio:account"]);
+    ).toEqual(["studio:overview", "studio:account"]);
   });
 
   it("allows only visible schemas, lists, and entity details", async () => {
-    const { routes } = createReadFixture();
+    const { routes } = await createReadFixture();
 
     const [postSchema, secretSchema, unknownSchema, list, shared, restricted] =
       await Promise.all([

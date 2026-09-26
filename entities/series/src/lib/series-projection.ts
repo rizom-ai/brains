@@ -1,14 +1,27 @@
 import {
+  PROJECTION_ABSTAINED,
   defineProjectionRule,
   generateMarkdownWithFrontmatter,
   type BaseEntity,
   type ProjectionRule,
+  type ProjectionExecutionContext,
+  type ProjectionInputContext,
+  type ProjectionAbstention,
   type ProjectionWriteIntent,
-} from "@brains/plugins";
+} from "@brains/sdk/entities";
 import { slugify } from "@brains/utils/string-utils";
-import { z } from "@brains/utils/zod";
+import { z } from "@brains/sdk/entities";
 import { createSeriesBodyFormatter } from "../schemas/series";
 import { getSeriesName } from "./series-metadata";
+
+/**
+ * The visibility this derivation owns.
+ *
+ * Named rather than left as a bare literal at the write site, because the
+ * reconcile below has to be scoped to exactly what the derivation writes —
+ * and the two drifting apart is what let a public run delete a shared series.
+ */
+const SERIES_TARGET_VISIBILITY = "public" as const;
 
 const seriesMemberSchema = z.object({
   id: z.string(),
@@ -29,6 +42,7 @@ const existingSeriesSchema = z.object({
 const seriesProjectionInputSchema = z.object({
   members: z.array(seriesMemberSchema),
   existingSeries: z.array(existingSeriesSchema),
+  descriptionTemplate: z.string(),
 });
 
 type SeriesProjectionInput = z.output<typeof seriesProjectionInputSchema>;
@@ -54,7 +68,8 @@ function hasSeriesDescription(content: string): boolean {
 }
 
 async function selectSeriesInput(
-  context: Parameters<ProjectionRule["selectInput"]>[1],
+  context: ProjectionInputContext,
+  descriptionTemplate: string,
 ): Promise<SeriesProjectionInput> {
   const entityTypes = context.entities
     .getEntityTypes()
@@ -75,8 +90,14 @@ async function selectSeriesInput(
         left.seriesName.localeCompare(right.seriesName) ||
         left.id.localeCompare(right.id),
     );
+  // Scoped to what this derivation writes. Unscoped, the reconcile below
+  // removes any series without a member — including ones at a visibility
+  // this run never looked at, and never created.
   const existingSeries = (
-    await context.entities.listEntities({ entityType: "series" })
+    await context.entities.listEntities({
+      entityType: "series",
+      options: { filter: { visibilityScope: SERIES_TARGET_VISIBILITY } },
+    })
   )
     .map((entity) => {
       const parsedMetadata = z
@@ -92,14 +113,21 @@ async function selectSeriesInput(
       };
     })
     .sort((left, right) => left.id.localeCompare(right.id));
-  return { members, existingSeries };
+  return { members, existingSeries, descriptionTemplate };
 }
 
 async function deriveSeries(
   input: SeriesProjectionInput,
-  context: Parameters<ProjectionRule["derive"]>[1],
+  context: ProjectionExecutionContext,
   signal: AbortSignal,
-): Promise<readonly ProjectionWriteIntent[]> {
+): Promise<readonly ProjectionWriteIntent[] | ProjectionAbstention> {
+  // A member set that is empty because nothing has been indexed yet is not
+  // the same claim as "no content belongs to any series". Only the latter
+  // should remove series, and it arrives as members that exist but name none.
+  if (input.members.length === 0 && input.existingSeries.length > 0) {
+    return PROJECTION_ABSTAINED;
+  }
+
   const membersBySeries = new Map<string, typeof input.members>();
   for (const member of input.members) {
     const members = membersBySeries.get(member.seriesName) ?? [];
@@ -129,7 +157,7 @@ async function deriveSeries(
       const generated = await context.ai.generate(
         {
           prompt: `Series name: ${seriesName}\n\nContent in this series:\n${memberSummaries.join("\n")}`,
-          templateName: "series:description",
+          templateName: input.descriptionTemplate,
           representedIdentity: "none",
         },
         z.object({ description: z.string() }),
@@ -155,32 +183,34 @@ async function deriveSeries(
         entityType: "series",
         content,
         metadata: { title: seriesName, slug: id },
-        visibility: existing?.visibility ?? "public",
+        visibility: existing?.visibility ?? SERIES_TARGET_VISIBILITY,
       },
     });
-  }
-
-  for (const existing of input.existingSeries) {
-    if (!activeIds.has(existing.id)) {
-      intents.push({
-        operation: "delete",
-        entityType: "series",
-        id: existing.id,
-      });
-    }
   }
 
   return intents;
 }
 
-export function createSeriesProjectionRule(): ProjectionRule {
+export function createSeriesProjectionRule(
+  // Resolved by the runtime: only it knows the scope templates register
+  // under, and a name written here would resolve to nothing at derive time.
+  descriptionTemplate: string,
+): ProjectionRule {
   return defineProjectionRule({
     id: "series-projection",
     version: "1",
     sources: [{ kind: "entity", types: ["*"], excludeTypes: ["series"] }],
     targetType: "series",
+    // The latest derivation is the whole truth about public series. Declared
+    // rather than diffed by hand: doing it by hand is how a public run came
+    // to delete shared series.
+    targets: {
+      authority: "exclusive",
+      visibility: SERIES_TARGET_VISIBILITY,
+    },
     inputSchema: seriesProjectionInputSchema,
-    selectInput: async (_trigger, context) => selectSeriesInput(context),
+    selectInput: async (_trigger, context) =>
+      selectSeriesInput(context, descriptionTemplate),
     derive: deriveSeries,
   });
 }

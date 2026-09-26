@@ -1,35 +1,36 @@
 import { z } from "@brains/utils/zod";
-import type { LinkStatus } from "../../schemas/link";
+import { linkStatusSchema } from "../../schemas/link";
 
-export interface LinkSummarySource {
-  ref: string;
-  label: string;
-}
+// Types are derived from the schemas rather than written alongside them.
+// Rendered data has to satisfy JsonObject, and TypeScript only gives an
+// implicit index signature to type aliases — which is what z.output produces.
 
-export interface LinkSummary {
-  status: LinkStatus;
-  title: string;
-  url: string;
-  description: string | null;
-  domain: string;
-  capturedAt: string;
-  source: LinkSummarySource;
-  id: string;
-  summary: string | null;
-}
+type LinkSourceSchema = z.ZodObject<{
+  ref: z.ZodString;
+  label: z.ZodString;
+}>;
 
-export interface LinkListData {
-  links: LinkSummary[];
-  totalCount: number;
-}
-
-const linkSourceSchema: z.ZodType<LinkSummarySource> = z.object({
+const linkSourceSchema: LinkSourceSchema = z.object({
   ref: z.string(),
   label: z.string(),
 });
 
-const linkSummarySchema: z.ZodType<LinkSummary> = z.object({
-  status: z.enum(["pending", "draft", "published"]),
+export type LinkSummarySource = z.output<typeof linkSourceSchema>;
+
+type LinkSummarySchema = z.ZodObject<{
+  status: typeof linkStatusSchema;
+  title: z.ZodString;
+  url: z.ZodURL;
+  description: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+  domain: z.ZodString;
+  capturedAt: z.ZodString;
+  source: LinkSourceSchema;
+  id: z.ZodString;
+  summary: z.ZodDefault<z.ZodNullable<z.ZodString>>;
+}>;
+
+const linkSummarySchema: LinkSummarySchema = z.object({
+  status: linkStatusSchema,
   title: z.string(),
   url: z.url(),
   description: z.string().nullable().default(null),
@@ -40,8 +41,17 @@ const linkSummarySchema: z.ZodType<LinkSummary> = z.object({
   summary: z.string().nullable().default(null),
 });
 
+export type LinkSummary = z.output<typeof linkSummarySchema>;
+
+type LinkListSchema = z.ZodObject<{
+  links: z.ZodArray<LinkSummarySchema>;
+  totalCount: z.ZodNumber;
+}>;
+
 // Schema for link list page data
-export const linkListSchema: z.ZodType<LinkListData> = z.object({
+export const linkListSchema: LinkListSchema = z.object({
   links: z.array(linkSummarySchema),
   totalCount: z.number(),
 });
+
+export type LinkListData = z.output<typeof linkListSchema>;

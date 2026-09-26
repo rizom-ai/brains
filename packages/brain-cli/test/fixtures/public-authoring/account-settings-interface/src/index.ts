@@ -63,9 +63,13 @@ const mailboxConnections = defineDaemon({
   },
 });
 
-export default defineInterface({
-  id: "mailbox-connection",
-  config: z.object({}),
-  accountSettings: mailboxSettings,
-  daemons: () => [mailboxConnections],
-});
+export default defineInterface(
+  {
+    id: "mailbox-connection",
+    config: z.object({}),
+    accountSettings: mailboxSettings,
+  },
+  {
+    daemons: () => [mailboxConnections],
+  },
+);

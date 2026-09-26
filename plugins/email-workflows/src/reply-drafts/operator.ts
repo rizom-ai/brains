@@ -1,12 +1,12 @@
 import type { EmailSourceMessage } from "@brains/contracts";
 import {
-  assertStudioWorkspaceAdmin,
   inboxItemIdSchema,
-  type ChannelDeliveryProvider,
+  type EntityReactionContext,
   type IEntityAINamespace,
   type InboxActor,
-  type ServicePluginContext,
-} from "@brains/plugins";
+  type JobEntityAccess,
+} from "@brains/sdk/entities";
+import type { ChannelDeliveryProvider } from "@brains/sdk/plugins";
 import { sha256Hex } from "@brains/utils/hash";
 import { KeyedSerialQueue } from "@brains/utils/serial-queue";
 import { z } from "@brains/utils/zod";
@@ -38,10 +38,16 @@ Answer the sender's request directly. Ask a brief clarifying question when requi
 Do not invent commitments, dates, prices, facts, or prior conversations.
 Return only newly authored reply text. Do not quote the source message or include transport headers.`;
 
-type DraftOperatorContext = Pick<
-  ServicePluginContext,
-  "channels" | "entityService" | "permissions"
->;
+/** What drafting reads and changes, and the transport a send goes out on. */
+export interface DraftOperatorContext {
+  readonly entities: Pick<JobEntityAccess, "getEntity" | "update" | "create">;
+  readonly permissions: EntityReactionContext["permissions"];
+  readonly channels: {
+    getDeliveryProvider(
+      channelType: string,
+    ): ChannelDeliveryProvider | undefined;
+  };
+}
 
 interface DraftActor {
   userPermissionLevel?: "admin" | "trusted" | "public" | undefined;
@@ -245,13 +251,11 @@ export class EmailReplyDraftOperator {
         frontmatter,
         parsed.replyText,
       );
-      await this.context.entityService.updateEntity({
-        entity: {
-          ...current,
-          content,
-          metadata: frontmatter,
-          updated: sentAt,
-        },
+      await this.context.entities.update({
+        ...current,
+        content,
+        metadata: frontmatter,
+        updated: sentAt,
       });
       return {
         text: parsed.replyText,
@@ -276,7 +280,7 @@ export class EmailReplyDraftOperator {
   private async load(
     mailItemId: string,
   ): Promise<EmailReplyDraftEntity | undefined> {
-    const entity = await this.context.entityService.getEntity(
+    const entity = await this.context.entities.getEntity(
       {
         entityType: "email-reply-draft",
         id: draftId(mailItemId),
@@ -311,13 +315,11 @@ export class EmailReplyDraftOperator {
         "update",
         actor,
       );
-      await this.context.entityService.updateEntity({
-        entity: {
-          ...current,
-          content,
-          metadata: frontmatter,
-          updated: updatedAt,
-        },
+      await this.context.entities.update({
+        ...current,
+        content,
+        metadata: frontmatter,
+        updated: updatedAt,
       });
     } else {
       this.context.permissions.assertEntityActionAllowed(
@@ -325,16 +327,14 @@ export class EmailReplyDraftOperator {
         "create",
         actor,
       );
-      await this.context.entityService.createEntity({
-        entity: {
-          id: draftId(mailItemId),
-          entityType: "email-reply-draft",
-          content,
-          metadata: frontmatter,
-          visibility: "restricted",
-          created: updatedAt,
-          updated: updatedAt,
-        },
+      await this.context.entities.create({
+        id: draftId(mailItemId),
+        entityType: "email-reply-draft",
+        content,
+        metadata: frontmatter,
+        visibility: "restricted",
+        created: updatedAt,
+        updated: updatedAt,
       });
     }
     return draftViewSchema.parse({
@@ -480,11 +480,12 @@ function toDraftView(entity: EmailReplyDraftEntity): DraftView {
   });
 }
 
+// Source-owned authorization: drafting enforces admin itself rather than
+// trusting whichever surface hosts it.
 function assertDraftAdmin(actor: InboxActor): void {
-  assertStudioWorkspaceAdmin(
-    { userPermissionLevel: actor.permissionLevel },
-    "Email reply drafting",
-  );
+  if (actor.permissionLevel !== "admin") {
+    throw new Error("Email reply drafting requires admin permission");
+  }
 }
 
 function actorToEntityActor(actor: InboxActor): DraftActor {

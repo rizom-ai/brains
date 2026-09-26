@@ -420,22 +420,18 @@ describe("runSiteBuild transactional output", () => {
       ...baseContext,
       services: {
         ...baseContext.services,
-        sendMessage: async (request) => {
-          if (request.type === SITE_CHANNELS.buildStaging) {
+        publishMessage: async (message) => {
+          if (message.topic === SITE_CHANNELS.buildStaging) {
             // Checked rather than asserted: the staging payload carries a
             // callback, and a build that stopped supplying one would otherwise
             // fail here with "not a function" rather than saying so.
-            const payload = request.payload;
-            if (typeof payload !== "object" || payload === null) {
-              throw new Error("Expected a staging payload object");
-            }
-            const reportFailure = Reflect.get(payload, "reportFailure");
+            const reportFailure = Reflect.get(message.data, "reportFailure");
             if (typeof reportFailure !== "function") {
               throw new Error("Staging payload carried no reportFailure");
             }
             reportFailure("RSS feed generation failed: ENOENT");
           }
-          return baseContext.services.sendMessage(request);
+          return baseContext.services.publishMessage(message);
         },
       },
     };

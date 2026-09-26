@@ -4,6 +4,11 @@ import type {
   MessageResponse,
   BaseMessage,
 } from "@brains/messaging-service";
+import type {
+  ProjectionRule,
+  ProjectionWaveInput,
+  ProjectionWriteIntent,
+} from "../entity/projection-rule";
 import type { Channel } from "../utils/channels";
 import type {
   GetMessagesOptions,
@@ -127,11 +132,15 @@ export interface IMessageInterfaceChannelsNamespace extends IChannelsNamespace {
   registerDeliveryProvider(provider: ChannelDeliveryProvider): void;
 }
 
-/** App-scoped inbox source registration and finalized read access. */
+/** Finalized inbox sources an extension may read. */
 export interface IInboxNamespace {
-  registerSource(source: InboxSource): void;
   listSources(): InboxSource[];
   getSource(sourceId: string): InboxSource | undefined;
+}
+
+/** Runtime-owned registration for declared inbox sources. */
+export interface InboxRegistrationNamespace extends IInboxNamespace {
+  registerSource(source: InboxSource): void;
 }
 
 /** Request-driven plugin contributions to operational (not routing) health. */
@@ -171,6 +180,14 @@ export interface IConversationsNamespace {
     options?: GetMessagesOptions,
   ) => Promise<Message[]>;
 
+  /** Read bounded histories for many conversations in fixed query count. */
+  getManyWithMessages: (request: {
+    readonly ids: readonly string[];
+    readonly messageLimit: number;
+  }) => Promise<
+    readonly { conversation: Conversation; messages: readonly Message[] }[]
+  >;
+
   /** Count messages in a conversation without loading them */
   countMessages: (conversationId: string) => Promise<number>;
 }
@@ -180,6 +197,16 @@ export interface IConversationsNamespace {
  */
 export interface IEvalNamespace {
   registerHandler: (handlerId: string, handler: EvalHandler) => void;
+  /**
+   * Run a projection rule's select and derive and return what it would
+   * write. No wave, no memo, no persistence — an eval measures the rule,
+   * not the orchestration around it.
+   */
+  runProjectionRule: (
+    rule: ProjectionRule,
+    options?: { readonly inputs?: readonly ProjectionWaveInput[] },
+    signal?: AbortSignal,
+  ) => Promise<readonly ProjectionWriteIntent[]>;
 }
 
 /**

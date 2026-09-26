@@ -28,8 +28,20 @@ export {
   type EntityIdPathInput,
 } from "./entity-id-path";
 export { EntityRegistry } from "./entityRegistry";
+export { copyEntityTypeConfig } from "./entity-type-config";
+export {
+  createEntityBulkCoordination,
+  durableBulkMutationChildRefSchema,
+} from "./entity-bulk-coordination";
+export type {
+  DurableBulkMutationBatch,
+  DurableBulkMutationChildRef,
+  EntityBulkCoordination,
+} from "./entity-bulk-coordination";
 export {
   entityGroupingSchema,
+  queryGroupingCatalogSchema,
+  queryGroupingMembersSchema,
   groupingSortSchema,
   groupingKeySchema,
   groupingValueSchema,
@@ -143,6 +155,7 @@ export type {
   CreateInput,
   CreateExecutionContext,
   CreateResult,
+  CreateResultAttachment,
   CreateInterceptionResult,
   CreateInterceptor,
   UploadSaveInput,
@@ -156,12 +169,15 @@ export type {
   EntitySchemaParser,
   FrontmatterSchema,
   ListOptions,
+  MetadataFilterScalar,
   SearchOptions,
   GetEntityRequest,
+  GetEntitiesRequest,
   EntityReadOptions,
   GetEntityRawRequest,
   ProjectionOwnedEntityRequest,
   CreateEntityRequest,
+  DeleteEntityRequest,
   UpdateEntityRequest,
   UpsertEntityRequest,
   ProjectSemanticSpaceRequest,
@@ -209,6 +225,7 @@ export {
   contentVisibilitySchema,
   createResultAttachmentSchema,
   emptyFrontmatterSchema,
+  getEntitiesRequestSchema,
   getVisibleContentVisibilities,
   isVisibleWithinScope,
   normalizeContentVisibility,
@@ -256,4 +273,24 @@ export type {
   PaginateResult,
 } from "./pagination";
 export { findEntityByIdentifier, resolveEntityOrError } from "./find-entity";
+export { applyEntityEdit } from "./apply-entity-edit";
+export { applyEntityCreate } from "./apply-entity-create";
+export type {
+  EntityCreateOutcome,
+  EntityCreateRequest,
+  EntityCreateServices,
+} from "./apply-entity-create";
+export { applyEntityDelete } from "./apply-entity-delete";
+export type {
+  EntityDeleteOutcome,
+  EntityDeleteRequest,
+  EntityDeleteServices,
+} from "./apply-entity-delete";
+export type {
+  EntityEditAction,
+  EntityEditCaller,
+  EntityEditOutcome,
+  EntityEditRequest,
+  EntityEditServices,
+} from "./apply-entity-edit";
 export type { ResolvedEntity } from "./find-entity";

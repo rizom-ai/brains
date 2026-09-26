@@ -1,5 +1,10 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import {
+  z,
+  entityGroupingSchema,
+  type OperatorEntityGroupings,
+} from "@brains/sdk/services";
 import { formatLabel, pluralize } from "@brains/utils/string-utils";
+import { normalizeStudioBasePath } from "./studio-paths";
 import {
   getArrayElement,
   getKind,
@@ -70,12 +75,9 @@ function pluralizeLabel(label: string): string {
  */
 export function isRawEntityType(
   entityType: string,
-  entities: Pick<ServicePluginContext["entities"], "isGroupingContributor">,
+  groupings: Pick<OperatorEntityGroupings, "contributes">,
 ): boolean {
-  return (
-    entityType === NOTE_ENTITY_TYPE &&
-    !entities.isGroupingContributor(entityType)
-  );
+  return entityType === NOTE_ENTITY_TYPE && !groupings.contributes(entityType);
 }
 
 /**
@@ -184,4 +186,53 @@ export function zodFieldToStudioWidget(
     default:
       return { ...base, widget: "string" };
   }
+}
+
+const entityDisplayEntrySchema: z.ZodObject<
+  {
+    label: z.ZodOptional<z.ZodString>;
+    pluralName: z.ZodOptional<z.ZodString>;
+  },
+  z.core.$loose
+> = z.looseObject({
+  label: z.string().optional(),
+  pluralName: z.string().optional(),
+});
+
+const entityDisplaySchema: z.ZodRecord<
+  z.ZodString,
+  typeof entityDisplayEntrySchema
+> = z.record(z.string(), entityDisplayEntrySchema);
+
+export const studioConfigSchema: z.ZodObject<{
+  entityDisplay: z.ZodOptional<typeof entityDisplaySchema>;
+  groupings: z.ZodDefault<z.ZodArray<typeof entityGroupingSchema>>;
+  routePath: z.ZodDefault<z.ZodString>;
+}> = z.object({
+  entityDisplay: entityDisplaySchema.optional(),
+  groupings: z.array(entityGroupingSchema).max(20).default([]),
+  routePath: z
+    .string()
+    .default("/studio")
+    .refine(
+      (routePath) =>
+        !["/cms", "/account", "/admin"].includes(
+          normalizeStudioBasePath(routePath),
+        ),
+      {
+        message:
+          '"/cms", "/account", and "/admin" are reserved for Studio redirects',
+      },
+    ),
+});
+
+export type StudioConfig = z.output<typeof studioConfigSchema>;
+export type StudioConfigInput = z.input<typeof studioConfigSchema>;
+
+/** The brain's own display map, when it parses as one. */
+export function parseEntityDisplay(
+  value: unknown,
+): StudioEntityDisplayMap | undefined {
+  const parsed = entityDisplaySchema.safeParse(value);
+  return parsed.success ? parsed.data : undefined;
 }

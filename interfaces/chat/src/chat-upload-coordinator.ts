@@ -1,9 +1,9 @@
 import {
   MessageUploadContinuity,
   type ChatAttachment,
-  type InterfacePluginContext,
   type ScopedRuntimeUploadStore,
-} from "@brains/plugins";
+} from "@brains/sdk/interfaces";
+import type { Logger } from "@brains/utils/logger";
 import {
   chatAttachmentFromStoredUpload,
   type AgentInput,
@@ -11,159 +11,117 @@ import {
 import type { ChatPlatform } from "./types";
 import {
   canonicalChatUploadRefKind,
-  createCanonicalChatUploadStoreScope,
-  createDiscordChatUploadStoreScope,
-  createSlackChatUploadStoreScope,
   discordChatUploadRefKind,
   slackChatUploadRefKind,
 } from "./upload-store";
 
 interface ChatUploadCoordinatorDeps {
-  getContext: () => InterfacePluginContext | undefined;
-  logger: {
-    debug: (message: string, context?: Record<string, unknown>) => void;
-  };
+  platform: ChatPlatform;
+  /** Where uploads are kept and referenced from, for every platform alike. */
+  canonical: ScopedRuntimeUploadStore;
+  /** Where this platform's adapter served uploads from before they were canonical. */
+  platformStore: ScopedRuntimeUploadStore;
+  loadMessages: (conversationId: string) => Promise<readonly unknown[]>;
+  logger: Logger;
 }
 
 /**
- * Owns upload-store selection and cross-turn upload continuity for every Chat
- * SDK platform. Platform upload stores remain isolated while restored
- * agent-facing attachments are migrated to canonical runtime upload refs.
+ * Cross-turn upload continuity for one platform.
+ *
+ * A follow-up that says "the first one" means an upload from an earlier
+ * turn; the conversation's stored messages say which. Uploads referenced
+ * under the platform's old store are migrated to the canonical one the first
+ * time they are restored.
  */
 export class ChatUploadCoordinator {
-  private readonly deps: ChatUploadCoordinatorDeps;
-  private readonly continuity: Readonly<
-    Record<ChatPlatform, MessageUploadContinuity>
-  >;
+  readonly canonical: ScopedRuntimeUploadStore;
+  readonly platformStore: ScopedRuntimeUploadStore;
+  private readonly continuity: MessageUploadContinuity;
 
   constructor(deps: ChatUploadCoordinatorDeps) {
-    this.deps = deps;
-    this.continuity = {
-      discord: this.createContinuity("discord"),
-      slack: this.createContinuity("slack"),
-    };
+    this.canonical = deps.canonical;
+    this.platformStore = deps.platformStore;
+    this.continuity = new MessageUploadContinuity({
+      sourceKind: canonicalChatUploadRefKind,
+      legacySourceKinds: [
+        deps.platform === "discord"
+          ? discordChatUploadRefKind
+          : slackChatUploadRefKind,
+      ],
+      loadMessages: deps.loadMessages,
+      restoreAttachment: async (
+        uploadId,
+        sourceKind,
+      ): Promise<ChatAttachment> => {
+        const fromCanonical = sourceKind === canonicalChatUploadRefKind;
+        const resolved = await (
+          fromCanonical ? this.canonical : this.platformStore
+        ).read(uploadId);
+        if (fromCanonical) {
+          return chatAttachmentFromStoredUpload(
+            resolved.record.filename,
+            resolved.record.mediaType,
+            resolved.content,
+            resolved.record.ref,
+          );
+        }
+        const canonical = await this.canonical.save({
+          filename: resolved.record.filename,
+          mediaType: resolved.record.mediaType,
+          content: resolved.content,
+          ...(resolved.record.metadata
+            ? { metadata: resolved.record.metadata }
+            : {}),
+        });
+        return chatAttachmentFromStoredUpload(
+          canonical.filename,
+          canonical.mediaType,
+          resolved.content,
+          canonical.ref,
+        );
+      },
+      onLoadError: (error, conversationId): void => {
+        deps.logger.debug("Failed to load prior chat uploads", {
+          error,
+          conversationId,
+          platform: deps.platform,
+        });
+      },
+      onRestoreError: (error, uploadId): void => {
+        deps.logger.debug("Failed to restore prior chat upload", {
+          error,
+          uploadId,
+          platform: deps.platform,
+        });
+      },
+    });
   }
 
   clear(): void {
-    this.continuity.discord.clear();
-    this.continuity.slack.clear();
+    this.continuity.clear();
   }
 
-  getCanonicalStore(): ScopedRuntimeUploadStore | undefined {
-    return this.deps
-      .getContext()
-      ?.uploads.scoped(createCanonicalChatUploadStoreScope());
-  }
-
-  getPlatformStore(
-    platform: ChatPlatform,
-  ): ScopedRuntimeUploadStore | undefined {
-    const scope =
-      platform === "discord"
-        ? createDiscordChatUploadStoreScope()
-        : createSlackChatUploadStoreScope();
-    return this.deps.getContext()?.uploads.scoped(scope);
-  }
-
-  async selectPriorUploads(input: {
-    platform: ChatPlatform;
+  selectPriorUploads(input: {
     conversationId: string;
     currentAttachments: ChatAttachment[];
     canRestore: boolean;
   }): Promise<ChatAttachment[]> {
-    return this.continuity[input.platform].selectPriorUploads({
-      conversationId: input.conversationId,
-      currentAttachments: input.currentAttachments,
-      canRestore: input.canRestore,
-    });
+    return this.continuity.selectPriorUploads(input);
   }
 
   async attachPriorUploads(
-    platform: ChatPlatform,
     conversationId: string,
     agentInput: AgentInput,
     userLevel: string,
   ): Promise<void> {
     agentInput.attachments = await this.selectPriorUploads({
-      platform,
       conversationId,
       currentAttachments: agentInput.attachments,
       canRestore: userLevel === "admin" || userLevel === "trusted",
     });
   }
 
-  remember(
-    platform: ChatPlatform,
-    conversationId: string,
-    attachments: ChatAttachment[],
-  ): void {
-    this.continuity[platform].remember(conversationId, attachments);
-  }
-
-  private createContinuity(platform: ChatPlatform): MessageUploadContinuity {
-    return new MessageUploadContinuity({
-      sourceKind: canonicalChatUploadRefKind,
-      legacySourceKinds: [
-        platform === "discord"
-          ? discordChatUploadRefKind
-          : slackChatUploadRefKind,
-      ],
-      loadMessages: async (conversationId): Promise<readonly unknown[]> => {
-        return (
-          (await this.deps
-            .getContext()
-            ?.conversations.getMessages(conversationId, { limit: 50 })) ?? []
-        );
-      },
-      restoreAttachment: async (
-        uploadId,
-        sourceKind,
-      ): Promise<ChatAttachment> => {
-        const uploadStore =
-          sourceKind === canonicalChatUploadRefKind
-            ? this.getCanonicalStore()
-            : this.getPlatformStore(platform);
-        if (!uploadStore) throw new Error("Chat upload store unavailable");
-        const resolved = await uploadStore.read(uploadId);
-        if (sourceKind !== canonicalChatUploadRefKind) {
-          const canonicalStore = this.getCanonicalStore();
-          if (!canonicalStore) throw new Error("Chat upload store unavailable");
-          const canonical = await canonicalStore.save({
-            filename: resolved.record.filename,
-            mediaType: resolved.record.mediaType,
-            content: resolved.content,
-            ...(resolved.record.metadata
-              ? { metadata: resolved.record.metadata }
-              : {}),
-          });
-          return chatAttachmentFromStoredUpload(
-            canonical.filename,
-            canonical.mediaType,
-            resolved.content,
-            canonical.ref,
-          );
-        }
-        return chatAttachmentFromStoredUpload(
-          resolved.record.filename,
-          resolved.record.mediaType,
-          resolved.content,
-          resolved.record.ref,
-        );
-      },
-      onLoadError: (error, conversationId): void => {
-        this.deps.logger.debug("Failed to load prior chat uploads", {
-          error,
-          conversationId,
-          platform,
-        });
-      },
-      onRestoreError: (error, uploadId): void => {
-        this.deps.logger.debug("Failed to restore prior chat upload", {
-          error,
-          uploadId,
-          platform,
-        });
-      },
-    });
+  remember(conversationId: string, attachments: ChatAttachment[]): void {
+    this.continuity.remember(conversationId, attachments);
   }
 }

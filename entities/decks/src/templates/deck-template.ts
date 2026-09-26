@@ -1,6 +1,6 @@
-import { z } from "@brains/utils/zod";
-import { PresentationLayout } from "@brains/ui-library";
-import { createTemplate, type Template } from "@brains/templates";
+import { z } from "@brains/sdk/entities";
+import { PresentationLayout } from "@rizom/brain-ui";
+import { createTemplate, type Template } from "@brains/sdk/entities";
 import { deckViewSchema } from "./deck-view-schema";
 
 /**
@@ -24,7 +24,7 @@ export const deckTemplate: Template = createTemplate<DeckTemplateData>({
   name: "deck-detail",
   description: "Render a presentation deck as Reveal.js slides",
   schema: deckTemplateSchema,
-  dataSourceId: "decks:entities",
+  dataSourceId: "entities",
   requiredPermission: "public",
   layout: {
     component: PresentationLayout,

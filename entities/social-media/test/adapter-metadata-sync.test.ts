@@ -1,5 +1,6 @@
-import { describe, it, expect } from "bun:test";
-import { socialPostAdapter } from "../src/adapters/social-post-adapter";
+import { describe, it, expect, beforeAll, afterAll } from "bun:test";
+import type { BaseEntity, EntityAdapter } from "@brains/plugins";
+import { postCodec } from "./helpers/codec";
 import type { SocialPost } from "../src/schemas/social-post";
 
 /**
@@ -13,6 +14,19 @@ import type { SocialPost } from "../src/schemas/social-post";
  * This caused status updates to be lost when serializing.
  */
 describe("SocialPostAdapter - Metadata/Frontmatter Sync", () => {
+  let codec: EntityAdapter<BaseEntity>;
+  let release: () => void;
+
+  beforeAll(async () => {
+    const installed = await postCodec();
+    codec = installed.adapter;
+    release = installed.reset;
+  });
+
+  afterAll(() => {
+    release();
+  });
+
   const createTestEntity = (
     overrides: Partial<SocialPost> = {},
   ): SocialPost => ({
@@ -50,7 +64,7 @@ This is the post content.`,
         },
       });
 
-      const markdown = socialPostAdapter.toMarkdown(entity);
+      const markdown = codec.toMarkdown(entity);
 
       // The serialized markdown should have status: published (from metadata)
       expect(markdown).toContain("status: published");
@@ -68,7 +82,7 @@ This is the post content.`,
         },
       });
 
-      const markdown = socialPostAdapter.toMarkdown(entity);
+      const markdown = codec.toMarkdown(entity);
 
       // YAML may quote the timestamp
       expect(markdown).toMatch(/publishedAt:.*2024-01-15T10:00:00Z/);
@@ -97,7 +111,7 @@ This is the post content.`,
         },
       };
 
-      const markdown = socialPostAdapter.toMarkdown(entity);
+      const markdown = codec.toMarkdown(entity);
 
       // platformPostId should come from metadata
       expect(markdown).toMatch(/platformPostId:.*urn:li:share:123456789/);
@@ -114,7 +128,7 @@ This is the post content.`,
         },
       });
 
-      const markdown = socialPostAdapter.toMarkdown(entity);
+      const markdown = codec.toMarkdown(entity);
 
       expect(markdown).toContain("title: Updated Title");
       expect(markdown).not.toContain("title: Test Post");
@@ -142,7 +156,7 @@ This is the post content.`,
         },
       };
 
-      const markdown = socialPostAdapter.toMarkdown(entity);
+      const markdown = codec.toMarkdown(entity);
 
       expect(markdown).toContain("status: published");
       expect(markdown).not.toContain("queueOrder:");
@@ -174,7 +188,7 @@ This is the post content.`,
         },
       };
 
-      const markdown = socialPostAdapter.toMarkdown(entity);
+      const markdown = codec.toMarkdown(entity);
 
       // coverImageId should be preserved from content
       expect(markdown).toContain("coverImageId: image-abc123");
@@ -192,7 +206,7 @@ This is the post content.`,
         },
       });
 
-      const markdown = socialPostAdapter.toMarkdown(entity);
+      const markdown = codec.toMarkdown(entity);
 
       expect(markdown).toContain("This is the post content.");
     });
@@ -221,7 +235,7 @@ This is the post content.`,
         },
       };
 
-      const markdown = socialPostAdapter.toMarkdown(entity);
+      const markdown = codec.toMarkdown(entity);
 
       expect(markdown).toContain("sourceEntityId: post-abc123");
       expect(markdown).toContain("sourceEntityType: post");
@@ -238,11 +252,11 @@ status: draft
 ---
 Post body here.`;
 
-      const parsed = socialPostAdapter.fromMarkdown(originalMarkdown);
+      const parsed = codec.fromMarkdown(originalMarkdown);
       expect(parsed.metadata).toBeDefined();
-      expect(parsed.metadata?.title).toBe("Original Title");
-      expect(parsed.metadata?.platform).toBe("linkedin");
-      expect(parsed.metadata?.slug).toBeDefined();
+      expect(parsed.metadata?.["title"]).toBe("Original Title");
+      expect(parsed.metadata?.["platform"]).toBe("linkedin");
+      expect(parsed.metadata?.["slug"]).toBeDefined();
 
       // Step 2: Create entity and update metadata (simulating what entity service does)
       const entity: SocialPost = {
@@ -253,17 +267,19 @@ Post body here.`;
         contentHash: "hash",
         created: "2024-01-01T00:00:00Z",
         updated: "2024-01-01T00:00:00Z",
+        // What the codec derived above, with the status moved on — this is
+        // the update whose loss the suite exists to catch.
         metadata: {
-          title: parsed.metadata?.title ?? "Original Title",
-          platform: parsed.metadata?.platform ?? "linkedin",
-          slug: parsed.metadata?.slug ?? "test-slug",
-          status: "published", // <-- Update status
+          title: "Original Title",
+          platform: "linkedin",
+          slug: "linkedin-original-title",
+          status: "published",
           publishedAt: "2024-01-15T10:00:00Z",
         },
       };
 
       // Step 3: Serialize back to markdown
-      const newMarkdown = socialPostAdapter.toMarkdown(entity);
+      const newMarkdown = codec.toMarkdown(entity);
 
       // Step 4: Verify the new markdown has the updated values
       expect(newMarkdown).toContain("status: published");

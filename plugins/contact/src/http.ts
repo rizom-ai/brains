@@ -1,7 +1,3 @@
-import type {
-  WebRouteDefinition,
-  WebRouteTransportContext,
-} from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { escapeHtml } from "@brains/utils/string-utils";
 import type { ContactAdmission, ContactDenialReason } from "./admission";
@@ -38,13 +34,15 @@ const originSchema: z.ZodString = z
           ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)))
     );
   }, "An exact HTTPS origin or loopback HTTP origin is required");
-export const contactHttpPolicySchema: z.ZodType<ContactHttpPolicy> =
-  z.strictObject({
-    origin: originSchema,
-    maxBodyBytes: z.number().int().min(256).max(65536),
-    readTimeoutMs: z.number().int().min(100).max(30000),
-    trustForwardedProto: z.boolean().optional(),
-  });
+export const contactHttpPolicySchema: z.ZodType<
+  ContactHttpPolicy,
+  ContactHttpPolicy
+> = z.strictObject({
+  origin: originSchema,
+  maxBodyBytes: z.number().int().min(256).max(65536),
+  readTimeoutMs: z.number().int().min(100).max(30000),
+  trustForwardedProto: z.boolean().optional(),
+});
 export interface ContactHttpOptions {
   themeCSS?: string | undefined;
   /** The deployment's preview origin, served alongside the policy origin. */
@@ -146,7 +144,7 @@ export class ContactHttpHandlers {
    * replaces the plain http it forwards on; nothing else is taken from headers. */
   private visitorUrl(
     request: Request,
-    transport?: WebRouteTransportContext,
+    transport?: { readonly remoteAddress?: string },
   ): URL {
     const url = new URL(request.url);
     if (
@@ -157,19 +155,6 @@ export class ContactHttpHandlers {
     )
       url.protocol = "https:";
     return url;
-  }
-
-  routes(preview = false): WebRouteDefinition[] {
-    return [
-      { path: "/contact", method: "GET" as const },
-      { path: "/contact", method: "POST" as const },
-      { path: "/contact/thanks", method: "GET" as const },
-    ].map((route) => ({
-      ...route,
-      public: true,
-      preview,
-      handler: (request, transport) => this.handle(request, transport),
-    }));
   }
 
   private presentation(request: Request): ContactPresentation {
@@ -191,7 +176,7 @@ export class ContactHttpHandlers {
 
   async handle(
     request: Request,
-    transport?: WebRouteTransportContext,
+    transport?: { readonly remoteAddress?: string },
   ): Promise<Response> {
     const presentation = this.presentation(request);
     let token = "";

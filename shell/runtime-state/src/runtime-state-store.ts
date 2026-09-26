@@ -1,5 +1,7 @@
 import { and, eq, gt, asc, sql, getTableColumns } from "drizzle-orm";
 import { z } from "@brains/utils/zod";
+import { prepareRuntimeStateValue } from "./wire-value";
+import { isDeepStrictEqual } from "node:util";
 import {
   runtimeStateRecords,
   type RuntimeStateRecord,
@@ -12,19 +14,23 @@ import type {
   RuntimeStateListOptions,
 } from "./types";
 
-const namespacePattern = /^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,127}$/;
+// Qualified SDK owners include encoded package and declaration identifiers.
+const namespacePattern = /^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,511}$/;
 const maxKeyLength = 512;
 
-export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
+export class RuntimeStateStore<T, TInput = T> implements IRuntimeStateStore<
+  T,
+  TInput
+> {
   private readonly db: RuntimeStateDB;
   private readonly namespace: string;
-  private readonly schema: RuntimeStateValueSchema<T>;
+  private readonly schema: RuntimeStateValueSchema<T, TInput>;
   private readonly now: () => Date;
 
   constructor(
     db: RuntimeStateDB,
     namespace: string,
-    schema: RuntimeStateValueSchema<T>,
+    schema: RuntimeStateValueSchema<T, TInput>,
     now: () => Date = () => new Date(),
   ) {
     assertValidNamespace(namespace);
@@ -67,9 +73,11 @@ export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
     return rows.length > 0;
   }
 
-  async set(key: string, value: T): Promise<void> {
+  async set(key: string, value: TInput): Promise<void> {
     const normalizedKey = normalizeKey(key);
-    const parsedValue = this.schema.parse(value);
+    const wireValue = prepareRuntimeStateValue(this.schema, value);
+    // Drizzle binds a JS null as SQL NULL before its JSON encoder runs.
+    const storedValue = wireValue === null ? sql`'null'` : wireValue;
     const timestamp = this.now().getTime();
 
     await this.db
@@ -77,22 +85,23 @@ export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
       .values({
         namespace: this.namespace,
         key: normalizedKey,
-        value: parsedValue,
+        value: storedValue,
         createdAt: timestamp,
         updatedAt: timestamp,
       })
       .onConflictDoUpdate({
         target: [runtimeStateRecords.namespace, runtimeStateRecords.key],
         set: {
-          value: parsedValue,
+          value: storedValue,
           updatedAt: timestamp,
         },
       });
   }
 
-  async setIfNotExists(key: string, value: T): Promise<boolean> {
+  async setIfNotExists(key: string, value: TInput): Promise<boolean> {
     const normalizedKey = normalizeKey(key);
-    const parsedValue = this.schema.parse(value);
+    const wireValue = prepareRuntimeStateValue(this.schema, value);
+    const storedValue = wireValue === null ? sql`'null'` : wireValue;
     const timestamp = this.now().getTime();
 
     const result = await this.db
@@ -100,7 +109,7 @@ export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
       .values({
         namespace: this.namespace,
         key: normalizedKey,
-        value: parsedValue,
+        value: storedValue,
         createdAt: timestamp,
         updatedAt: timestamp,
       })
@@ -111,18 +120,40 @@ export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
     return Number(result.rowsAffected) > 0;
   }
 
-  async compareAndSet(key: string, expected: T, value: T): Promise<boolean> {
+  async compareAndSet(
+    key: string,
+    expected: T,
+    value: TInput,
+  ): Promise<boolean> {
     const normalizedKey = normalizeKey(key);
-    const parsedExpected = this.schema.parse(expected);
-    const parsedValue = this.schema.parse(value);
-    const result = await this.db
-      .update(runtimeStateRecords)
-      .set({ value: parsedValue, updatedAt: this.now().getTime() })
+    const wireValue = prepareRuntimeStateValue(this.schema, value);
+    const [snapshot] = await this.db
+      .select({ value: runtimeStateRecords.value })
+      .from(runtimeStateRecords)
       .where(
         and(
           eq(runtimeStateRecords.namespace, this.namespace),
           eq(runtimeStateRecords.key, normalizedKey),
-          eq(runtimeStateRecords.value, parsedExpected),
+        ),
+      )
+      .limit(1);
+    if (
+      !snapshot ||
+      !isDeepStrictEqual(this.schema.parse(snapshot.value), expected)
+    )
+      return false;
+    // Compare the exact wire snapshot in SQL, not its parsed output. Another
+    // connection changing it after this read makes the atomic update fail.
+    const expectedWire = snapshot.value === null ? sql`'null'` : snapshot.value;
+    const storedValue = wireValue === null ? sql`'null'` : wireValue;
+    const result = await this.db
+      .update(runtimeStateRecords)
+      .set({ value: storedValue, updatedAt: this.now().getTime() })
+      .where(
+        and(
+          eq(runtimeStateRecords.namespace, this.namespace),
+          eq(runtimeStateRecords.key, normalizedKey),
+          eq(runtimeStateRecords.value, expectedWire),
         ),
       );
     return Number(result.rowsAffected) === 1;
@@ -208,7 +239,7 @@ export class RuntimeStateStore<T> implements IRuntimeStateStore<T> {
 function assertValidNamespace(namespace: string): void {
   if (!namespacePattern.test(namespace)) {
     throw new Error(
-      `Invalid runtime state namespace: ${namespace}. Use 1-128 alphanumeric, _, ., :, or - characters.`,
+      `Invalid runtime state namespace: ${namespace}. Use 1-512 alphanumeric, _, ., :, or - characters.`,
     );
   }
 }

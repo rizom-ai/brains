@@ -3,7 +3,10 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createMockEntityService } from "@brains/entity-service/test";
-import { createMockServicePluginContext } from "@brains/plugins/test";
+import { createMockShell } from "@brains/plugins/test";
+import { createEntityBulkCoordination } from "@brains/entity-service";
+import { hostFor } from "../helpers/install";
+import type { DirectorySyncHost } from "../../src/host";
 import {
   createMockProgressReporter,
   createSilentLogger,
@@ -23,12 +26,12 @@ describe("directory job projection-batch identity", () => {
     rmSync(path, { recursive: true, force: true });
   });
 
-  function setup(): {
+  async function setup(): Promise<{
     sync: DirectorySync;
     identities: Array<{ source: string; operationId: string }>;
-    context: ReturnType<typeof createMockServicePluginContext>;
+    context: DirectorySyncHost;
     logger: ReturnType<typeof createSilentLogger>;
-  } {
+  }> {
     const service = createMockEntityService({ entityTypes: ["note"] });
     const identities: Array<{ source: string; operationId: string }> = [];
     let active: { source: string; operationId: string } | undefined;
@@ -65,19 +68,25 @@ describe("directory job projection-batch identity", () => {
       entityService: service,
       logger,
     });
-    const context = createMockServicePluginContext({ entityService: service });
+    const host = await hostFor(createMockShell());
+    const context = {
+      ...host,
+      mirror: {
+        ...host.mirror,
+        coordination: createEntityBulkCoordination(service, "directory-sync"),
+      },
+    };
     return { sync, identities, context, logger };
   }
 
   const projectionBatch = {
-    operationId: "root-sync",
     rootJobId: "root-sync",
     childKey: "0:directory-import",
     expectedChildren: 2,
   };
 
   it("imports notes under the durable job's identity rather than opening a different batch", async () => {
-    const { sync, context, logger, identities } = setup();
+    const { sync, context, logger, identities } = await setup();
     writeFileSync(
       join(path, "plan.md"),
       "---\nvisibility: shared\n---\n# Team plan\n",
@@ -96,7 +105,7 @@ describe("directory job projection-batch identity", () => {
   });
 
   it("runs orphan cleanup under the same durable root", async () => {
-    const { sync, context, logger, identities } = setup();
+    const { sync, context, logger, identities } = await setup();
     const handler = new DirectoryCleanupJobHandler(logger, context, sync);
     await handler.process(
       {
@@ -114,7 +123,7 @@ describe("directory job projection-batch identity", () => {
   });
 
   it("still creates independent callback batches for standalone operations", async () => {
-    const { sync, context, logger, identities } = setup();
+    const { sync, context, logger, identities } = await setup();
     const reporter = createMockProgressReporter();
     await new DirectoryImportJobHandler(logger, context, sync).process(
       {},

@@ -1,9 +1,9 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import {
   siteBuildArtifactManifestSchema,
   type PreparedSiteBuild,
 } from "@brains/site-engine";
-import { createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger, stubMethod } from "@brains/test-utils";
 import { promises as fs } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
@@ -367,16 +367,16 @@ describe("TransactionalSiteBuildOutput", () => {
 
     const originalRename = fs.rename;
     let injected = false;
-    // spyOn types the stub by the member it replaces, so the injected failure
-    // cannot drift from the real rename signature.
-    const rename = spyOn(fs, "rename").mockImplementation(
-      async (source, destination) => {
+    stubMethod(
+      fs,
+      "rename",
+      mock(async (source, destination) => {
         if (!injected && String(source).includes(".site-preview.next-")) {
           injected = true;
           throw new Error("injected pointer switch failure");
         }
         return originalRename(source, destination);
-      },
+      }),
     );
 
     try {
@@ -393,7 +393,7 @@ describe("TransactionalSiteBuildOutput", () => {
         "legacy output",
       );
     } finally {
-      rename.mockRestore();
+      fs.rename = originalRename;
       await lifecycle.abort(target);
     }
   });

@@ -2,15 +2,12 @@ import { describe, expect, spyOn, test } from "bun:test";
 import {
   BaseEntityAdapter,
   baseEntitySchema,
-  createServicePluginContext,
   type BaseEntity,
   type WebRouteDefinition,
 } from "@brains/plugins";
 import { createMockShell } from "@brains/plugins/test";
 import { z } from "@brains/utils/zod";
-import { createEditorRoutes } from "../src/editor-routes";
-import { StudioWorkspaceRegistry } from "../src/workspace-registry";
-import { studioPlugin } from "../src";
+import { instantiate, installStudio, signIn } from "./helpers/install";
 
 const schema = z.object({ title: z.string().optional() });
 const grouping = {
@@ -32,10 +29,10 @@ class Adapter extends BaseEntityAdapter<BaseEntity> {
     return { content };
   }
 }
-function fixture(role: "trusted" | "public" | null = "trusted"): {
+async function fixture(role: "trusted" | "public" | null = "trusted"): Promise<{
   shell: ReturnType<typeof createMockShell>;
   routes: WebRouteDefinition[];
-} {
+}> {
   const shell = createMockShell();
   for (const type of grouping.types)
     shell
@@ -46,28 +43,21 @@ function fixture(role: "trusted" | "public" | null = "trusted"): {
     "getEffectiveFrontmatterSchema",
   ).mockReturnValue(schema);
   spyOn(shell.getEntityRegistry(), "getGroupings").mockReturnValue([grouping]);
-  const context = createServicePluginContext(shell, "studio");
-  return {
-    shell,
-    routes: createEditorRoutes({
-      routePath: "/studio",
-      getContext: () => context,
-      getEntityDisplay: () => undefined,
-      workspaceRegistry: new StudioWorkspaceRegistry(),
-      resolveAuthPrincipal: async () =>
-        role
-          ? {
-              userId: "user",
-              personId: "person",
-              displayName: "Reader",
-              role,
-              status: "active",
-              permissionLevel: role,
-              isAnchor: false,
-            }
-          : undefined,
-    }),
-  };
+  signIn(shell, () =>
+    role
+      ? {
+          userId: "user",
+          personId: "person",
+          displayName: "Reader",
+          role,
+          status: "active",
+          permissionLevel: role,
+          isAnchor: false,
+        }
+      : undefined,
+  );
+  const { routes } = await installStudio(shell);
+  return { shell, routes };
 }
 async function get(
   routes: WebRouteDefinition[],
@@ -93,10 +83,10 @@ describe("Studio grouping declarations", () => {
       shell.getEntityRegistry(),
       "registerGrouping",
     ).mockImplementation(() => {});
-    const plugin = studioPlugin({ groupings: [grouping] });
+    const plugin = instantiate({ groupings: [grouping] });
     await plugin.register(shell);
     expect(register).not.toHaveBeenCalled();
-    await plugin.finalizeRegistration();
+    await plugin.finalizeRegistration?.();
     expect(preflight).toHaveBeenCalledWith([grouping]);
     expect(register).toHaveBeenCalledWith(grouping);
   });
@@ -108,8 +98,9 @@ describe("Studio grouping declarations", () => {
       },
     );
     const register = spyOn(shell.getEntityRegistry(), "registerGrouping");
-    const plugin = studioPlugin({ groupings: [grouping] });
+    const plugin = instantiate({ groupings: [grouping] });
     await plugin.register(shell);
+    if (!plugin.finalizeRegistration) throw new Error("Missing finalizer");
     const error = await plugin
       .finalizeRegistration()
       .catch((cause: unknown) => cause);
@@ -120,7 +111,7 @@ describe("Studio grouping declarations", () => {
 
 describe("Studio grouping read admission", () => {
   test("both endpoints return no-store initializing responses, then complete results", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     spyOn(shell.getEntityService(), "countEntities").mockResolvedValue(1);
     const readiness = spyOn(
       shell.getEntityService(),
@@ -158,7 +149,7 @@ describe("Studio grouping read admission", () => {
   });
   test("authentication and trusted access precede initialization status", async () => {
     for (const role of [null, "public"] as const) {
-      const { shell, routes } = fixture(role);
+      const { shell, routes } = await fixture(role);
       const ready = spyOn(
         shell.getEntityService(),
         "areGroupingsReady",
@@ -172,7 +163,7 @@ describe("Studio grouping read admission", () => {
     }
   });
   test("forwards bounded filters and full member identities", async () => {
-    const { shell, routes } = fixture();
+    const { shell, routes } = await fixture();
     spyOn(shell.getEntityService(), "countEntities").mockResolvedValue(1);
     const query = spyOn(
       shell.getEntityService(),
@@ -237,14 +228,7 @@ describe("Studio grouping vocabulary surface", () => {
   });
 
   test("the vocabulary schema offers no visibility control; it is always shared", async () => {
-    const { shell, routes } = fixture("trusted");
-    shell
-      .getEntityRegistry()
-      .registerEntityType(
-        "grouping-vocabulary",
-        baseEntitySchema,
-        new Adapter("grouping-vocabulary"),
-      );
+    const { routes } = await fixture("trusted");
     const response = await get(routes, "schema?type=grouping-vocabulary");
     expect(response.status).toBe(200);
     const vocabulary = fieldNames.parse(await response.json());

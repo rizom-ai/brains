@@ -31,12 +31,20 @@ import type {
   UserPermissionLevel,
 } from "@brains/templates";
 import { z } from "@brains/utils/zod";
+import type { SdkErrorData } from "@brains/contracts";
 import type { AgentNamespace } from "../contracts/agent";
 import type { AppInfo } from "../contracts/app-info";
 import type { RuntimeHealthCheck } from "../contracts/runtime-health";
 export type {
   ProjectionRule,
   ProjectionRuleDefinition,
+  ProjectionWaveInput,
+  ProjectionWriteIntent,
+} from "../entity/projection-rule";
+import type {
+  ProjectionRule,
+  ProjectionWaveInput,
+  ProjectionWriteIntent,
 } from "../entity/projection-rule";
 import type { Conversation, Message } from "../contracts/conversations";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
@@ -193,7 +201,7 @@ export interface JobProgressEvent {
         completedOperations: number;
         failedOperations: number;
         currentOperation?: string | undefined;
-        errors?: string[] | undefined;
+        errors?: SdkErrorData[] | undefined;
       }
     | undefined;
   jobDetails?:
@@ -322,6 +330,16 @@ export type InsightHandler = (
 
 export interface IEvalNamespace {
   registerHandler(handlerId: string, handler: EvalHandler): void;
+  /**
+   * Run a projection rule's select and derive and return what it would
+   * write. No wave, no memo, no persistence — an eval measures the rule,
+   * not the orchestration around it.
+   */
+  runProjectionRule(
+    rule: ProjectionRule,
+    options?: { readonly inputs?: readonly ProjectionWaveInput[] },
+    signal?: AbortSignal,
+  ): Promise<readonly ProjectionWriteIntent[]>;
 }
 
 export interface IInsightsNamespace {
@@ -402,7 +420,6 @@ export interface IMessageInterfaceChannelsNamespace extends IChannelsNamespace {
 }
 
 export interface IInboxNamespace {
-  registerSource(source: InboxSource): void;
   listSources(): InboxSource[];
   getSource(sourceId: string): InboxSource | undefined;
 }
@@ -447,7 +464,10 @@ export interface BasePluginContext {
   readonly semantic: ISemanticNamespace;
   readonly identity: IIdentityNamespace;
   readonly channels: IChannelsNamespace;
-  readonly inbox: IInboxNamespace;
+  /** Runtime context: declarations, not author callbacks, register sources. */
+  readonly inbox: IInboxNamespace & {
+    registerSource(source: InboxSource): void;
+  };
   readonly inboxFollowUps: IInboxFollowUpsNamespace;
   readonly operationalHealth: IOperationalHealthNamespace;
   readonly messaging: IMessagingNamespace;

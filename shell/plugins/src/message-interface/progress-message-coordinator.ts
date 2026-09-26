@@ -30,6 +30,14 @@ export interface SendMessageToChannelRequest {
   channelId: string | null;
   /** The message or structured output to send */
   message: MessageInterfaceOutput;
+  /**
+   * The progress event the message was rendered from, when there is one.
+   *
+   * A transport that draws progress itself needs the event, not only the
+   * rendering the coordinator made of it; the coordinator still owns which
+   * message that rendering goes to.
+   */
+  event?: JobProgressEvent | undefined;
 }
 
 export type SendMessageWithIdRequest = SendMessageToChannelRequest;
@@ -38,6 +46,8 @@ export interface EditMessageRequest {
   channelId: string | null;
   messageId: string;
   newMessage: MessageInterfaceOutput;
+  /** The progress event behind the edit; see `SendMessageToChannelRequest`. */
+  event?: JobProgressEvent | undefined;
 }
 
 /**
@@ -46,7 +56,14 @@ export interface EditMessageRequest {
  * delivery and rendering without touching progress bookkeeping.
  */
 export interface ProgressMessageTransport {
-  interfaceId(): string;
+  /**
+   * The channel type this interface answers for.
+   *
+   * Not the plugin's runtime id: a declared package's id is scoped by package
+   * name, while every event carries the channel type the agent was given. A
+   * coordinator matching on the id drops every event for a declared interface.
+   */
+  interfaceType(): string;
   logger(): Logger;
   sendMessageToChannel(request: SendMessageToChannelRequest): void;
   sendMessageWithId(
@@ -102,6 +119,7 @@ export class ProgressMessageCoordinator {
   private bufferedCompletionMessages: Array<{
     message: MessageInterfaceOutput;
     channelId: string | null;
+    event: JobProgressEvent;
   }> = [];
 
   constructor(transport: ProgressMessageTransport) {
@@ -169,8 +187,8 @@ export class ProgressMessageCoordinator {
   endProcessingInput(): void {
     this.isProcessingInput = false;
 
-    for (const { message, channelId } of this.bufferedCompletionMessages) {
-      this.transport.sendMessageToChannel({ channelId, message });
+    for (const buffered of this.bufferedCompletionMessages) {
+      this.transport.sendMessageToChannel(buffered);
     }
     this.bufferedCompletionMessages = [];
 
@@ -233,7 +251,7 @@ export class ProgressMessageCoordinator {
 
   /** Derive semantic status updates from raw tool activity events. */
   async handleToolActivityEvent(event: ToolActivityEvent): Promise<void> {
-    if (event.interfaceType !== this.transport.interfaceId()) {
+    if (event.interfaceType !== this.transport.interfaceType()) {
       return;
     }
 
@@ -274,10 +292,10 @@ export class ProgressMessageCoordinator {
       return;
     }
 
-    const interfaceId = this.transport.interfaceId();
+    const interfaceType = this.transport.interfaceType();
     const completions = Array.from(this.pendingToolCompletions.values()).filter(
       (event) =>
-        event.interfaceType === interfaceId &&
+        event.interfaceType === interfaceType &&
         event.conversationId === conversationId,
     );
 
@@ -300,7 +318,8 @@ export class ProgressMessageCoordinator {
     // interfaceType is broadcast and handled by everyone.
     const eventInterfaceType = event.metadata.interfaceType;
     return (
-      !eventInterfaceType || eventInterfaceType === this.transport.interfaceId()
+      !eventInterfaceType ||
+      eventInterfaceType === this.transport.interfaceType()
     );
   }
 
@@ -344,6 +363,7 @@ export class ProgressMessageCoordinator {
           channelId: existingTracking.channelId,
           messageId: existingTracking.messageId,
           newMessage: progressMessage,
+          event,
         });
         existingTracking.lastUpdate = now;
       }
@@ -352,6 +372,7 @@ export class ProgressMessageCoordinator {
         rootJobId,
         targetChannelId,
         progressMessage,
+        event,
         now,
       );
     }
@@ -372,6 +393,7 @@ export class ProgressMessageCoordinator {
       channelId: tracking.channelId,
       messageId: tracking.messageId,
       newMessage: this.transport.formatProgressOutput(event),
+      event,
     });
     tracking.lastUpdate = now;
   }
@@ -380,6 +402,7 @@ export class ProgressMessageCoordinator {
     rootJobId: string,
     targetChannelId: string,
     progressMessage: MessageInterfaceOutput,
+    event: JobProgressEvent,
     now: number,
   ): Promise<void> {
     // Only send NEW progress messages after agent response is sent.
@@ -387,6 +410,7 @@ export class ProgressMessageCoordinator {
     const messageId = await this.transport.sendMessageWithId({
       channelId: targetChannelId,
       message: progressMessage,
+      event,
     });
     if (!messageId) {
       return;
@@ -434,7 +458,11 @@ export class ProgressMessageCoordinator {
     // If no tracked messages to edit, send as new message.
     // Only send if we have a target channel (jobs without explicit channelId are silent).
     if (!progressTracking && !agentTracking && targetChannelId) {
-      this.sendOrBufferCompletionMessage(completionMessage, targetChannelId);
+      this.sendOrBufferCompletionMessage(
+        completionMessage,
+        targetChannelId,
+        event,
+      );
     }
 
     this.scheduleProgressCleanup(event.id);
@@ -454,6 +482,7 @@ export class ProgressMessageCoordinator {
         channelId: agentTracking.channelId,
         messageId: agentTracking.messageId,
         newMessage: completionMessage,
+        event,
       });
       this.agentResponseTracking.delete(event.id);
       // Also clean up any progress tracking without sending duplicate.
@@ -468,6 +497,7 @@ export class ProgressMessageCoordinator {
         channelId: progressTracking.channelId,
         messageId: progressTracking.messageId,
         newMessage: completionMessage,
+        event,
       });
       this.progressMessageTracking.delete(rootJobId);
     }
@@ -476,15 +506,16 @@ export class ProgressMessageCoordinator {
   private sendOrBufferCompletionMessage(
     message: MessageInterfaceOutput,
     channelId: string,
+    event: JobProgressEvent,
   ): void {
     // Buffer completion messages while processing input.
     // This ensures agent response appears before completion messages.
     if (this.isProcessingInput) {
-      this.bufferedCompletionMessages.push({ message, channelId });
+      this.bufferedCompletionMessages.push({ message, channelId, event });
       return;
     }
 
-    this.transport.sendMessageToChannel({ channelId, message });
+    this.transport.sendMessageToChannel({ channelId, message, event });
   }
 
   private scheduleProgressCleanup(eventId: string): void {

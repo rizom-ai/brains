@@ -1,4 +1,4 @@
-import { baseEntityParserSchema } from "@brains/plugins";
+import { baseEntityParserSchema } from "@brains/sdk/entities";
 import { z } from "@brains/utils/zod";
 
 const mailCategories = [
@@ -151,4 +151,9 @@ export type MailStatus = z.output<typeof mailStatusSchema>;
 export type MailItemSource = z.output<typeof mailItemSourceSchema>;
 export type MailItemFrontmatter = z.output<typeof mailItemFrontmatterSchema>;
 export type MailItemMetadata = z.output<typeof mailItemMetadataSchema>;
+
+export const mailItemReference: Readonly<{
+  type: "mail-item";
+  metadata: MailItemMetadataSchema;
+}> = Object.freeze({ type: "mail-item", metadata: mailItemMetadataSchema });
 export type MailItemEntity = z.output<typeof mailItemSchema>;

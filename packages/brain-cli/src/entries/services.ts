@@ -1,61 +1,9 @@
-/** Declarative service authoring contract. */
+/**
+ * Layer 3 re-export of the layer 1 authoring surface (`@brains/sdk`).
+ *
+ * The contract lives in `packages/brain-sdk`; this file exists so the
+ * published `@rizom/brain/services` specifier keeps resolving to the identical
+ * symbols. Add exports to the SDK package, never here.
+ */
 
-export {
-  contentGenerationResultSchema,
-  defineAccountSettings,
-  defineStudioWorkspace,
-  defineDashboardWidget,
-  defineEntityCatalog,
-  defineJob,
-  defineServicePlugin,
-  defineTool,
-  defineWorkspaceAction,
-} from "@brains/plugins";
-export type {
-  AccountSettingsDefinition,
-  AccountSettingsFieldDefinition,
-  AccountSettingsValue,
-  StudioWorkspaceDefinition,
-  StudioWorkspaceView,
-  StudioWorkspaceViewBlock,
-  DashboardDigest,
-  DashboardOperatorView,
-  DashboardOperatorViewBlock,
-  DashboardWidgetDefinition,
-  OperatorCaller,
-  OperatorCapabilityDefinition,
-  OperatorCardBlock,
-  OperatorColumnsBlock,
-  OperatorEntityCatalogDefinition,
-  OperatorEntityReader,
-  OperatorQueryReader,
-  OperatorRegionBlock,
-  OperatorView,
-  OperatorViewBlock,
-  OperatorViewStatus,
-  ServiceContentGeneration,
-  ServiceContentGenerationContext,
-  ServiceContentGenerationItem,
-  ServiceContentGenerationResult,
-  ServiceContentGenerationSkipReason,
-  ServiceContentGenerationTarget,
-  ServiceContentGenerationTargetInput,
-  ServiceEntityIdPath,
-  ServiceJobDefinition,
-  ServiceJobReference,
-  ServiceJobStatus,
-  ServicePackageDefinition,
-  ServiceTemplateGenerationDefinition,
-  WorkspaceActionConfirmation,
-  WorkspaceActionDefinition,
-  WorkspaceActionFormControl,
-  WorkspaceActionFormDefinition,
-  WorkspaceActionFormFieldDefinition,
-  WorkspaceActionFormFieldMap,
-  WorkspaceActionFormOption,
-  WorkspaceActionResultDefinition,
-  WorkspaceActionResultFieldDefinition,
-  WorkspaceActionResultFieldMap,
-  WorkspacePreparedConfirmation,
-} from "@brains/plugins";
-export { z } from "@brains/utils/zod";
+export * from "@brains/sdk/services";

@@ -1,4 +1,5 @@
-import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
+import type { BaseEntity } from "@brains/sdk/entities";
+import type { ServicePublishingAccess } from "@brains/sdk/services";
 import type { PublishResult } from "@brains/contracts";
 import { updateFrontmatterField } from "@brains/utils/markdown";
 
@@ -20,7 +21,9 @@ export interface MarkPublishedOptions {
 export async function markEntityPublished<
   TMetadata extends Record<string, unknown>,
 >(
-  context: Pick<ServicePluginContext, "entityService">,
+  // Only the one write it makes, and only through the delegation that asked
+  // for it: this package owns no entity types and may not write anyone's.
+  context: { publishing: Pick<ServicePublishingAccess, "update"> },
   entity: BaseEntity<TMetadata>,
   result: PublishResult,
   options: MarkPublishedOptions = {},
@@ -38,6 +41,9 @@ export async function markEntityPublished<
     status: "published",
     [publishTimestampField]: publishedAt,
     platformId: result.id,
+    // Only the provider can build this: the URL format lives inside it, so
+    // platformId alone does not let anything downstream reconstruct it.
+    ...(result.url === undefined ? {} : { platformUrl: result.url }),
     ...getPublishResultMetadata(result.id, options.publishResultIdField),
   };
 
@@ -53,7 +59,7 @@ export async function markEntityPublished<
     metadata,
   };
 
-  await context.entityService.updateEntity({ entity: updated });
+  await context.publishing.update(updated);
   return updated;
 }
 

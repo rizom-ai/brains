@@ -2,68 +2,37 @@ import {
   createChatApiPaths,
   DEFAULT_CHAT_API_PATH,
 } from "@brains/contracts/chat";
-import {
-  RuntimeUploadStore,
-  RuntimeUploadStoreError,
-  runtimeUploadIdPattern,
-  type ResolvedRuntimeUpload,
-  type RuntimeUploadRecord,
-  type RuntimeUploadResponseBody,
-  type RuntimeUploadScopeOptions,
-  type RuntimeUploadStoreErrorCode,
-  type SaveRuntimeUploadInput,
-} from "@brains/plugins";
+import type {
+  ResolvedRuntimeUpload,
+  RuntimeUploadRecord,
+  RuntimeUploadScopeOptions,
+} from "@brains/sdk/interfaces";
+
+/**
+ * The upload scope web-chat asks the runtime for.
+ *
+ * All that is left of what was once a store: the store itself is the
+ * runtime's, reached through the `uploads` slot, and this names the scope it
+ * should be opened under. The route path is part of the scope because a
+ * stored upload's URL has to point back at the endpoint that serves it, and
+ * that endpoint moves with the configured API path.
+ */
 
 export const webChatUploadRefKind = "upload" as const;
-export const webChatUploadIdPattern: typeof runtimeUploadIdPattern =
-  runtimeUploadIdPattern;
-export const defaultWebChatUploadRetentionMs: number = 24 * 60 * 60 * 1000;
-export const defaultWebChatUploadMaxCount: number = 200;
 
 export type WebChatUploadRecord = RuntimeUploadRecord & {
   ref: { kind: typeof webChatUploadRefKind; id: string };
 };
-export type WebChatUploadResponseBody = RuntimeUploadResponseBody & {
-  ref: { kind: typeof webChatUploadRefKind; id: string };
-};
-export type SaveWebChatUploadInput = SaveRuntimeUploadInput;
 export type ResolvedWebChatUpload = ResolvedRuntimeUpload & {
   record: WebChatUploadRecord;
 };
-export type WebChatUploadStoreErrorCode = RuntimeUploadStoreErrorCode;
-export { RuntimeUploadStoreError as WebChatUploadStoreError };
-
-export interface WebChatUploadStoreOptions {
-  dataDir: string;
-  retentionMs?: number | undefined;
-  maxCount?: number | undefined;
-  createId?: (() => string) | undefined;
-  now?: (() => Date) | undefined;
-}
-
-const webChatUploadScope = {
-  namespace: "upload",
-  refKind: webChatUploadRefKind,
-  routePath: createChatApiPaths().uploads,
-} satisfies Pick<
-  RuntimeUploadScopeOptions,
-  "namespace" | "refKind" | "routePath"
->;
-
-/** Compatibility wrapper for tests and web-chat-local imports. Runtime code
- * should prefer `context.uploads.scoped(...)` so upload storage stays shared.
- */
-export class WebChatUploadStore extends RuntimeUploadStore {
-  constructor(options: WebChatUploadStoreOptions) {
-    super({ ...webChatUploadScope, ...options });
-  }
-}
 
 export function createWebChatUploadStoreScope(
   apiPath: string = DEFAULT_CHAT_API_PATH,
 ): RuntimeUploadScopeOptions {
   return {
-    ...webChatUploadScope,
+    namespace: "upload",
+    refKind: webChatUploadRefKind,
     routePath: createChatApiPaths(apiPath).uploads,
   };
 }

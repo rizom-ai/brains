@@ -8,8 +8,6 @@ export { parseAskContent } from "./ask-content-markdown";
 export {
   ASK_BOX_ATTRIBUTE,
   ASK_BOX_SCRIPT_PATH,
-  ASK_BOX_STATE_KEY,
-  ASK_BOX_STATE_NAMESPACE,
   ASK_READY_ATTRIBUTE,
   ASK_SEND_ATTRIBUTE,
   ASK_SOURCE_ATTRIBUTE,
@@ -126,6 +124,15 @@ export {
 } from "./generation-result";
 export { JobResult } from "./job-result";
 export {
+  SdkError,
+  sdkErrorCodeSchema,
+  sdkErrorSchema,
+  toSdkError,
+  sdkErrorHttpStatus,
+  type SdkErrorCode,
+  type SdkErrorData,
+} from "./sdk-error";
+export {
   jsonObjectSchema,
   jsonValueSchema,
   type IsJsonValue,
@@ -149,7 +156,6 @@ export {
   DIRECTORY_SYNC_CHANNELS,
   ENTITY_CHANNELS,
   GENERATE_CHANNELS,
-  IMAGE_CHANNELS,
   JOB_CHANNELS,
   NEWSLETTER_CHANNELS,
   PLUGIN_CHANNELS,
@@ -180,6 +186,7 @@ export {
   formatVisualGuidance,
   formatVoiceGuidance,
   parseStyleGuideContent,
+  styleGuideFromEntity,
   type StyleGuideEntityReader,
   styleGuideFrontmatterSchema,
   styleGuideMessagingSchema,
@@ -231,10 +238,18 @@ export {
   type SendNotificationInput,
   type SendNotificationResult,
 } from "./notification";
-export type {
-  HeadCollectorInterface,
-  HeadProps,
-  ImageRenderer,
-  RenderedImageRef,
-} from "./render";
 export type { ConsoleSurface, SurfacePermissionLevel } from "./console";
+export { ASK_BOX_AVAILABILITY_OWNER } from "./ask-box-availability";
+export { interfaceAvailabilitySchema } from "./interface-availability";
+export type {
+  InterfaceAvailability,
+  InterfaceAvailabilityOwner,
+  InterfaceAvailabilityReader,
+  InterfaceAvailabilityWriter,
+} from "./interface-availability";
+export { inboxWorkspaceRequest } from "./inbox-workspace";
+export {
+  contactFormDiscoveryRequest,
+  contactFormDiscoverySchema,
+} from "./contact-form-discovery";
+export type { ContactFormDiscovery } from "./contact-form-discovery";

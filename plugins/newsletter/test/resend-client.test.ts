@@ -5,7 +5,7 @@ import {
   ResendNewsletterClient,
   type ResendClientConfig,
   type ResendFetch,
-} from "../src/provider/resend/resend-client";
+} from "../src/resend/resend-client";
 
 const logger = createSilentLogger("resend-newsletter-test");
 const config: ResendClientConfig = {

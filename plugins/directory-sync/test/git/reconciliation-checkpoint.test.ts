@@ -1,13 +1,12 @@
-import {
-  createMockServicePluginContext,
-  createMockShell,
-} from "@brains/plugins/test";
+import { createMockShell } from "@brains/plugins/test";
+import { hostFor } from "../helpers/install";
+import type { DirectorySyncHost } from "../../src/host";
 import { describe, expect, it, mock } from "bun:test";
 import { runGit } from "./real-git";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { IRuntimeStateNamespace } from "@brains/plugins";
 import { GitReconciliationService } from "../../src/lib/git-reconciliation";
 import { createBrokerGitSync } from "./broker-git-sync";
 import type {
@@ -29,11 +28,11 @@ const TARGET: GitReconciliationCheckpoint = {
   lastObservedRemoteHead: "4".repeat(40),
 };
 
-function createContext(): ServicePluginContext {
-  return {
-    ...createMockServicePluginContext(),
-    runtimeState: createMockShell().getRuntimeState(),
-  };
+async function createContext(): Promise<
+  DirectorySyncHost & { runtimeState: IRuntimeStateNamespace }
+> {
+  const host = await hostFor(createMockShell());
+  return { ...host, runtimeState: { scoped: host.state } };
 }
 
 function incremental(
@@ -55,7 +54,7 @@ describe("GitReconciliationService", () => {
     // The lease used to carry the abort: `withLock(fn, signal)` refused a
     // cancelled turn. With sequencing inside operations, the check has to be
     // stated here, or a shutdown mid-replay still enqueues a batch.
-    const context = createContext();
+    const context = await createContext();
     const service = new GitReconciliationService(context.runtimeState);
     await service.saveCheckpoint(BASELINE);
     const queueSyncBatch = mock(async () => null);
@@ -81,7 +80,7 @@ describe("GitReconciliationService", () => {
   });
 
   it("pulls, durably queues the checkpoint delta, then advances the checkpoint", async () => {
-    const context = createContext();
+    const context = await createContext();
     const service = new GitReconciliationService(context.runtimeState);
     await service.saveCheckpoint(BASELINE);
     const calls: string[] = [];
@@ -142,7 +141,7 @@ describe("GitReconciliationService", () => {
   });
 
   it("does not advance when changed work could not be queued", async () => {
-    const context = createContext();
+    const context = await createContext();
     const service = new GitReconciliationService(context.runtimeState);
     await service.saveCheckpoint(BASELINE);
 
@@ -163,7 +162,7 @@ describe("GitReconciliationService", () => {
   });
 
   it("uses a full-scan fallback and checkpoints only after its batch is durable", async () => {
-    const context = createContext();
+    const context = await createContext();
     const service = new GitReconciliationService(context.runtimeState);
     const delta: GitReconciliationDelta = {
       mode: "full",
@@ -197,7 +196,7 @@ describe("GitReconciliationService", () => {
   });
 
   it("advances a no-change checkpoint without allocating a batch", async () => {
-    const context = createContext();
+    const context = await createContext();
     const service = new GitReconciliationService(context.runtimeState);
     await service.saveCheckpoint(BASELINE);
     const queueSyncBatch = mock(async () => {
@@ -222,10 +221,7 @@ describe("GitReconciliationService", () => {
 
   it("replays from the persisted checkpoint after service reconstruction", async () => {
     const runtimeState = createMockShell().getRuntimeState();
-    const context = {
-      ...createMockServicePluginContext(),
-      runtimeState,
-    };
+    const context = { ...(await createContext()), runtimeState };
     await new GitReconciliationService(runtimeState).saveCheckpoint(BASELINE);
     const queueSyncBatch = mock(async () => ({
       batchId: "replayed-batch",
@@ -261,7 +257,7 @@ describe("GitReconciliationService", () => {
     mkdirSync(dataDir);
     await runGit(["init", "--bare", "--initial-branch=main"], remoteDir);
     const gitSync = await createBrokerGitSync({
-      logger: createContext().logger,
+      logger: (await createContext()).logger,
       dataDir,
       gitUrl: remoteDir,
       authorName: "Test",
@@ -275,10 +271,7 @@ describe("GitReconciliationService", () => {
       await gitSync.push();
 
       const runtimeState = createMockShell().getRuntimeState();
-      const context = {
-        ...createMockServicePluginContext(),
-        runtimeState,
-      };
+      const context = { ...(await createContext()), runtimeState };
       const beforeCrash = new GitReconciliationService(runtimeState);
       await beforeCrash.captureCurrent(gitSync);
 
@@ -335,7 +328,7 @@ describe("GitReconciliationService", () => {
   });
 
   it("captures current Git state only after a completed full initial sync", async () => {
-    const context = createContext();
+    const context = await createContext();
     const service = new GitReconciliationService(context.runtimeState);
     const getReconciliationDelta = mock(
       async (): Promise<GitReconciliationDelta> => ({

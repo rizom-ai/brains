@@ -237,6 +237,7 @@ export class AuthServicePlugin extends ServicePlugin<
       );
     context.permissions.replaceRuntimePrincipalState(principalState);
     activeAuthService = this.service;
+    context.auth.register(this.service);
 
     this.unsubscribePrincipalResolver = context.messaging.subscribe(
       AUTH_PRINCIPAL_RESOLVE_CHANNEL,
@@ -288,6 +289,7 @@ export class AuthServicePlugin extends ServicePlugin<
     if (activeAuthService === this.service) {
       activeAuthService = undefined;
     }
+    if (this.service) this.getContext().auth.unregister(this.service);
     await this.service?.close();
     this.service = undefined;
   }

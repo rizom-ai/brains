@@ -14,6 +14,8 @@ const documents = [
 const expectedExampleIds = [
   "external-calendar-brain",
   "external-calendar-service",
+  "external-coded-failure",
+  "external-package-test",
   "external-site-definition",
   "external-template-service",
   "external-theme-definition",

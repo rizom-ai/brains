@@ -1,0 +1,34 @@
+{
+  "name": "@brains/knowledge-map",
+  "license": "AGPL-3.0-only",
+  "version": "0.2.0-alpha.306",
+  "description": "The corpus in semantic space — a site section and a dashboard widget",
+  "dependencies": {
+    "@brains/content-formatters": "workspace:*",
+    "@brains/sdk": "workspace:*",
+    "@brains/templates": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "@rizom/brain-ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/test-utils": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "^1.4.0",
+    "bun-types": "^1.4.0",
+    "eslint": "^10.5.0",
+    "typescript": "^7.0.2"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "private": true,
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --max-warnings 0 --fix",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module"
+}

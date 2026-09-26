@@ -4,29 +4,15 @@ import { inboxItemListSchema } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 
 import {
-  MailItemPlugin,
-  MailTriageInboxSource,
-  MailTriageOperatorService,
   createMailItemProjection,
   withMailThreadOrdinal,
   type MailPriority,
   type MailStatus,
 } from "../src";
 
-const receivedAt = "2026-08-05T09:00:00.000Z";
+import { inboxSource, installMailItem, operatorFor } from "./helpers/install";
 
-function createOperatorHarness(): ReturnType<typeof createPluginHarness> {
-  const harness = createPluginHarness();
-  const entityService = harness.getEntityService();
-  entityService.countEntities = async (request): Promise<number> =>
-    (
-      await entityService.listEntities({
-        entityType: request.entityType,
-        ...(request.options ? { options: request.options } : {}),
-      })
-    ).length;
-  return harness;
-}
+const receivedAt = "2026-08-05T09:00:00.000Z";
 
 function inbound(id: string, timestamp: string): InboundEmail {
   return {
@@ -82,9 +68,7 @@ async function persistItem(
     },
   });
   if (input.status && input.status !== "new") {
-    const operator = new MailTriageOperatorService(
-      harness.getServiceContext("email-workflows"),
-    );
+    const operator = operatorFor(harness);
     await operator.act(
       {
         type:
@@ -115,8 +99,8 @@ async function readStatus(
 
 describe("mail triage inbox source", () => {
   it("maps only new derived mail items into content-safe inbox projections", async () => {
-    const harness = createOperatorHarness();
-    await harness.installPlugin(new MailItemPlugin());
+    const harness = createPluginHarness();
+    await installMailItem(harness);
     await persistItem(harness, {
       id: "high",
       title: "Time-sensitive work request",
@@ -148,12 +132,8 @@ describe("mail triage inbox source", () => {
       status: "reviewed",
     });
 
-    const operator = new MailTriageOperatorService(
-      harness.getServiceContext("email-workflows"),
-    );
-    const source = new MailTriageInboxSource(operator, {
-      isReady: async (): Promise<boolean> => true,
-    });
+    const operator = operatorFor(harness);
+    const source = inboxSource(harness);
     const items = inboxItemListSchema.parse(await source.list());
 
     expect(source.sourceId).toBe("mail-items");
@@ -269,8 +249,8 @@ describe("mail triage inbox source", () => {
   });
 
   it("enforces admin actions, reuses typed status transitions, and re-lists live state", async () => {
-    const harness = createOperatorHarness();
-    await harness.installPlugin(new MailItemPlugin());
+    const harness = createPluginHarness();
+    await installMailItem(harness);
     const reviewedId = await persistItem(harness, {
       id: "review-action",
       title: "Review action",
@@ -292,11 +272,7 @@ describe("mail triage inbox source", () => {
       priority: "low",
       receivedAt,
     });
-    const source = new MailTriageInboxSource(
-      new MailTriageOperatorService(
-        harness.getServiceContext("email-workflows"),
-      ),
-    );
+    const source = inboxSource(harness);
 
     expect(
       source.act(handledId, "mark-handled", { permissionLevel: "trusted" }),
@@ -320,8 +296,8 @@ describe("mail triage inbox source", () => {
   });
 
   it("hides partial thread ordinals until migration is ready", async () => {
-    const harness = createOperatorHarness();
-    await harness.installPlugin(new MailItemPlugin());
+    const harness = createPluginHarness();
+    await installMailItem(harness);
     await persistItem(harness, {
       id: "migrating-thread",
       title: "Thread still migrating",
@@ -331,12 +307,9 @@ describe("mail triage inbox source", () => {
       threadId: "private-thread",
       threadOrdinal: 3,
     });
-    const source = new MailTriageInboxSource(
-      new MailTriageOperatorService(
-        harness.getServiceContext("email-workflows"),
-      ),
-      { isReady: async (): Promise<boolean> => false },
-    );
+    const source = inboxSource(harness, {
+      isReady: async (): Promise<boolean> => false,
+    });
 
     const items = await source.list();
 
@@ -345,13 +318,9 @@ describe("mail triage inbox source", () => {
   });
 
   it("returns an empty state when no new mail items need attention", async () => {
-    const harness = createOperatorHarness();
-    await harness.installPlugin(new MailItemPlugin());
-    const source = new MailTriageInboxSource(
-      new MailTriageOperatorService(
-        harness.getServiceContext("email-workflows"),
-      ),
-    );
+    const harness = createPluginHarness();
+    await installMailItem(harness);
+    const source = inboxSource(harness);
 
     expect(await source.list()).toEqual([]);
   });

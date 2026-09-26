@@ -13,21 +13,33 @@ function resolveProjectionConfig(): AppConfig {
 bundleContract: capability-bundles-v1
 bundles: [core, media, publishing]
 add: [assessment]
-plugins:
-  social-media:
-    autoGenerateOnBlogPublish: true
 `),
   );
 }
 
+// `@brains/prompt` is authored declaratively, and package definitions scope
+// their plugin ids by package name so independently published packages cannot
+// collide. Its capability id in the brain definition is still bare "prompt";
+// Instantiated package plugins carry namespaced ids; the rest are still
+// legacy factories and keep bare ones.
+const PROMPT_PLUGIN_ID = "@brains/prompt:prompt";
+const SWOT_PLUGIN_ID = "@brains/assessment:swot";
+const TOPICS_PLUGIN_ID = "@brains/topics:topic";
+const SKILL_PLUGIN_ID = "@brains/agent-discovery:skill";
+
 function getProjectionPlugins(plugins: Plugin[]): Plugin[] {
-  const ids = new Set(["prompt", "topics", "skill", "swot"]);
+  const ids = new Set([
+    PROMPT_PLUGIN_ID,
+    TOPICS_PLUGIN_ID,
+    SKILL_PLUGIN_ID,
+    SWOT_PLUGIN_ID,
+  ]);
   const selected = plugins.filter((plugin) => ids.has(plugin.id));
   expect(selected.map((plugin) => plugin.id)).toEqual([
-    "prompt",
-    "topics",
-    "skill",
-    "swot",
+    PROMPT_PLUGIN_ID,
+    TOPICS_PLUGIN_ID,
+    SKILL_PLUGIN_ID,
+    SWOT_PLUGIN_ID,
   ]);
   return selected;
 }
@@ -55,7 +67,6 @@ describe("full preset projection resilience", () => {
     expect(projectionIds).toEqual([
       "series-projection",
       "skill-derivation",
-      "social-post-generation",
       "swot-derivation",
       "topics-projection",
     ]);
@@ -77,9 +88,11 @@ describe("full preset projection resilience", () => {
     expect(edgeCauses.get("skill-derivation -> swot-derivation")).toEqual([
       "entity:skill",
     ]);
+    // No projection produces social posts any more, so nothing feeds
+    // topics-projection on `entity:social-post`.
     expect(
       edgeCauses.get("social-post-generation -> topics-projection"),
-    ).toEqual(["entity:social-post"]);
+    ).toBeUndefined();
     expect(graph.unknownSourceTypes).toEqual([]);
 
     await pluginManager.shutdownPlugins();

@@ -184,22 +184,40 @@ export function formatVisualGuidance(styleGuide: StyleGuide): string {
  * the lookup without depending on each other.
  */
 export interface StyleGuideEntityReader {
-  getEntity(request: {
-    entityType: string;
+  getEntity(request: { entityType: string; id: string }): Promise<{
     id: string;
-  }): Promise<{ id: string; content: string } | null>;
+    content: string;
+    metadata?: unknown;
+  } | null>;
+}
+
+/**
+ * Build the style guide from a stored entity.
+ *
+ * The style guide lives in the entity's metadata, decoded from markdown
+ * frontmatter on import; `content` is the free-text guidance body. An
+ * entity whose metadata does not satisfy the schema — including one
+ * written before the style guide became a declarative entity, where the
+ * data was still embedded in `content` — degrades to the default rather
+ * than erroring. Such rows repopulate on the next directory-sync import,
+ * since the markdown file on disk is the source of truth.
+ */
+export function styleGuideFromEntity(
+  entity: { id: string; content: string; metadata?: unknown } | null,
+): StyleGuide {
+  if (entity?.id !== "style-guide") return DEFAULT_STYLE_GUIDE;
+  const parsed = styleGuideFrontmatterSchema.safeParse(entity.metadata);
+  return parsed.success
+    ? { ...parsed.data, guidance: entity.content }
+    : DEFAULT_STYLE_GUIDE;
 }
 
 export async function fetchStyleGuide(
   reader: StyleGuideEntityReader,
 ): Promise<StyleGuide> {
-  const entity = await reader.getEntity({
-    entityType: "style-guide",
-    id: "style-guide",
-  });
-  return entity?.id === "style-guide"
-    ? parseStyleGuideContent(entity.content)
-    : DEFAULT_STYLE_GUIDE;
+  return styleGuideFromEntity(
+    await reader.getEntity({ entityType: "style-guide", id: "style-guide" }),
+  );
 }
 
 export async function fetchVoiceGuidance(

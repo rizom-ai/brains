@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
+import { emailPlugin, EMAIL_PLUGIN_ID } from "./helpers/install";
 import { createPluginHarness } from "@brains/plugins/test";
 import { waitUntil } from "@brains/test-utils";
 
 import {
-  EmailInterface,
   type EmailImapConfig,
   type InboundEmailClient,
   type InboundEmailSourceMessage,
@@ -85,9 +85,9 @@ describe("inbound email liveness", () => {
     const sleep: InboundEmailSleep = async (milliseconds) => {
       sleeps.push(milliseconds);
     };
-    const harness = createPluginHarness<EmailInterface>();
+    const harness = createPluginHarness();
     await harness.installPlugin(
-      new EmailInterface(
+      emailPlugin(
         { imap: config },
         {
           imapClientFactory: (): InboundEmailClient => {
@@ -105,12 +105,12 @@ describe("inbound email liveness", () => {
     );
     const registry = harness.getMockShell().getDaemonRegistry();
 
-    await registry.startPlugin("email");
+    await registry.startPlugin(EMAIL_PLUGIN_ID);
     await waitUntil(
       () => events.includes("client-2:idle"),
       "the second client to reach IDLE",
     );
-    await registry.stopPlugin("email");
+    await registry.stopPlugin(EMAIL_PLUGIN_ID);
 
     expect(sleeps).toEqual([config.pollIntervalMs, 1_000]);
     expect(events).toEqual([
@@ -132,9 +132,9 @@ describe("inbound email liveness", () => {
     const events: string[] = [];
     const sleeps: number[] = [];
     let clientCount = 0;
-    const harness = createPluginHarness<EmailInterface>();
+    const harness = createPluginHarness();
     await harness.installPlugin(
-      new EmailInterface(
+      emailPlugin(
         { imap: config },
         {
           imapClientFactory: (): InboundEmailClient => {
@@ -153,12 +153,12 @@ describe("inbound email liveness", () => {
     );
     const registry = harness.getMockShell().getDaemonRegistry();
 
-    await registry.startPlugin("email");
+    await registry.startPlugin(EMAIL_PLUGIN_ID);
     await waitUntil(
       () => events.includes("client-3:idle"),
       "the third client to reach IDLE after reconnect",
     );
-    await registry.stopPlugin("email");
+    await registry.stopPlugin(EMAIL_PLUGIN_ID);
 
     expect(sleeps).toEqual([1_000, 2_000]);
     expect(events).toEqual([

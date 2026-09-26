@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { emailPlugin } from "./helpers/install";
 import {
   EMAIL_SOURCE_READ,
   emailSourceReadResponseSchema,
@@ -6,7 +7,6 @@ import {
 } from "@brains/contracts";
 import { createPluginHarness } from "@brains/plugins/test";
 import {
-  EmailInterface,
   createInboundEmailSourceRef,
   type EmailImapConfig,
   type InboundEmailClient,
@@ -16,6 +16,9 @@ import { emailSourceLocatorSchema } from "../src/source-locator-store";
 import { readEmailSource } from "../src/source-reader";
 
 const recordedAt = new Date().toISOString();
+// Physical key for declaration email / local namespace inbound.source-locators.
+const sourceLocatorNamespace =
+  "interface:QGJyYWlucy9lbWFpbA:ZW1haWw:inbound.source-locators";
 
 const imapConfig: EmailImapConfig = {
   host: "imap.example.com",
@@ -66,7 +69,7 @@ function sourceClient(options: {
 }
 
 async function sendRead(
-  harness: ReturnType<typeof createPluginHarness<EmailInterface>>,
+  harness: ReturnType<typeof createPluginHarness>,
   sourceRef: string,
   permissionLevel: "admin" | "trusted" | "public",
   signal?: AbortSignal,
@@ -92,9 +95,9 @@ describe("email source read", () => {
     const message = await sourceMessage();
     let observedSignal: AbortSignal | undefined;
     let observedMaxBytes: number | undefined;
-    const harness = createPluginHarness<EmailInterface>();
+    const harness = createPluginHarness();
     await harness.installPlugin(
-      new EmailInterface(
+      emailPlugin(
         { imap: imapConfig },
         {
           imapClientFactory: (): InboundEmailClient =>
@@ -116,7 +119,7 @@ describe("email source read", () => {
       .getMockShell()
       .getRuntimeState()
       .scoped({
-        namespace: "email.inbound.source-locators",
+        namespace: sourceLocatorNamespace,
         schema: emailSourceLocatorSchema,
       })
       .set(sourceRef, {
@@ -203,9 +206,9 @@ describe("email source read", () => {
       beginFetch = resolve;
     });
     let disconnected = false;
-    const harness = createPluginHarness<EmailInterface>();
+    const harness = createPluginHarness();
     await harness.installPlugin(
-      new EmailInterface(
+      emailPlugin(
         { imap: imapConfig },
         {
           imapClientFactory: (): InboundEmailClient => ({
@@ -233,7 +236,7 @@ describe("email source read", () => {
       .getMockShell()
       .getRuntimeState()
       .scoped({
-        namespace: "email.inbound.source-locators",
+        namespace: sourceLocatorNamespace,
         schema: emailSourceLocatorSchema,
       })
       .set(sourceRef, {
@@ -256,9 +259,9 @@ describe("email source read", () => {
   it("fails closed for non-Admins, unknown locators, and mailbox generations", async () => {
     const message = await sourceMessage();
     let clientCreations = 0;
-    const harness = createPluginHarness<EmailInterface>();
+    const harness = createPluginHarness();
     await harness.installPlugin(
-      new EmailInterface(
+      emailPlugin(
         { imap: imapConfig },
         {
           imapClientFactory: (): InboundEmailClient => {
@@ -276,7 +279,7 @@ describe("email source read", () => {
       .getMockShell()
       .getRuntimeState()
       .scoped({
-        namespace: "email.inbound.source-locators",
+        namespace: sourceLocatorNamespace,
         schema: emailSourceLocatorSchema,
       })
       .set(sourceRef, {

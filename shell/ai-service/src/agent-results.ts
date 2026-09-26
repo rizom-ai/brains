@@ -518,7 +518,7 @@ export function buildAgentContactCandidates(
   const seen = new Set<string>();
   const candidates: AgentContactCandidate[] = [];
   for (const tr of toolResults) {
-    if (tr.toolName !== "agent_call") continue;
+    if (tr.toolName !== "a2a_call") continue;
 
     const dataCandidate = agentContactCandidateDataSchema.safeParse(tr.data);
     if (dataCandidate.success) {
@@ -550,9 +550,9 @@ export function buildAgentContactCandidateContext(
   if (candidates.length === 0) return "";
   const lines = candidates.map(
     (candidate) =>
-      `- agent_connect candidate args: { source: { kind: "url", url: "${candidate.source.url}" } }`,
+      `- agents_connect candidate args: { source: { kind: "url", url: "${candidate.source.url}" } }`,
   );
-  return `\n\nInternal agent contact candidates from previous assistant turns for follow-up resolution. These are typed runtime candidates, not visible user text. If the user confirms saving/adding/connecting one of these contacts, call agent_connect without confirmed using the exact candidate args. Do not auto-save from an agent_call; saving/connecting is explicit through agent_connect.\n${lines.join("\n")}`;
+  return `\n\nInternal agent contact candidates from previous assistant turns for follow-up resolution. These are typed runtime candidates, not visible user text. If the user confirms saving/adding/connecting one of these contacts, call agents_connect without confirmed using the exact candidate args. Do not auto-save from an a2a_call; saving/connecting is explicit through agents_connect.\n${lines.join("\n")}`;
 }
 
 /**

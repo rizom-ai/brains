@@ -1,6 +1,7 @@
 import { describe, it, expect } from "bun:test";
 import { expectDefined } from "@brains/utils/expect-defined";
-import { parseA2AResponse, createAgentCallTool } from "../src/client";
+import { parseA2AResponse } from "../src/client";
+import { callTool } from "./helpers/install";
 import { ANCHOR_EXTENSION_URI, parseAgentCard } from "@brains/plugins";
 
 function createSavedAgentEntityService(agentId = "remote.example.com"): {
@@ -320,9 +321,9 @@ describe("A2A Client", () => {
 
     it("should not send Authorization headers", async () => {
       const capturedHeaders: Record<string, string>[] = [];
-      const tool = createAgentCallTool({
+      const tool = callTool({
         fetch: createMockFetch(capturedHeaders),
-        entityService: createSavedAgentEntityService(),
+        entities: createSavedAgentEntityService(),
       });
 
       await tool.handler(
@@ -337,14 +338,14 @@ describe("A2A Client", () => {
     it("should sign outbound requests when a signer is configured", async () => {
       const capturedHeaders: Record<string, string>[] = [];
       const signedUrls: string[] = [];
-      const tool = createAgentCallTool({
+      const tool = callTool({
         fetch: createMockFetch(capturedHeaders),
         requestSigner: async (request) => {
           signedUrls.push(String(request.url));
           request.headers["Signature-Input"] = "sig1=()";
           request.headers["Signature"] = "sig1=:abc:";
         },
-        entityService: createSavedAgentEntityService(),
+        entities: createSavedAgentEntityService(),
       });
 
       await tool.handler(
@@ -422,12 +423,12 @@ describe("A2A Client", () => {
     }
 
     it("should read SSE stream and return completed result", async () => {
-      const tool = createAgentCallTool({
+      const tool = callTool({
         fetch: createStreamFetch([
           { state: "working", final: false },
           { state: "completed", final: true, text: "Final answer" },
         ]),
-        entityService: createSavedAgentEntityService(),
+        entities: createSavedAgentEntityService(),
       });
 
       const result = await tool.handler(
@@ -441,12 +442,12 @@ describe("A2A Client", () => {
     });
 
     it("should handle failed task via SSE stream", async () => {
-      const tool = createAgentCallTool({
+      const tool = callTool({
         fetch: createStreamFetch([
           { state: "working", final: false },
           { state: "failed", final: true, text: "Error: Agent crashed" },
         ]),
-        entityService: createSavedAgentEntityService(),
+        entities: createSavedAgentEntityService(),
       });
 
       const result = await tool.handler(
@@ -459,12 +460,12 @@ describe("A2A Client", () => {
     });
 
     it("should handle stream that closes without final event", async () => {
-      const tool = createAgentCallTool({
+      const tool = callTool({
         fetch: createStreamFetch([
           { state: "working", final: false },
           // stream closes without final: true
         ]),
-        entityService: createSavedAgentEntityService(),
+        entities: createSavedAgentEntityService(),
       });
 
       const result = await tool.handler(
@@ -513,9 +514,9 @@ describe("A2A Client", () => {
           signal.addEventListener("abort", rejectForAbort, { once: true });
         });
       };
-      const tool = createAgentCallTool({
+      const tool = callTool({
         fetch: fetchFn,
-        entityService: createSavedAgentEntityService(),
+        entities: createSavedAgentEntityService(),
         requestTimeoutMs: 25,
       });
       const controller = new AbortController();
@@ -563,9 +564,9 @@ describe("A2A Client", () => {
         });
       };
 
-      const tool = createAgentCallTool({
+      const tool = callTool({
         fetch: fetchFn,
-        entityService: createSavedAgentEntityService(),
+        entities: createSavedAgentEntityService(),
         requestTimeoutMs: 5,
         maxNetworkAttempts: 2,
       });
@@ -623,9 +624,9 @@ describe("A2A Client", () => {
         });
       };
 
-      const tool = createAgentCallTool({
+      const tool = callTool({
         fetch: fetchFn,
-        entityService: createSavedAgentEntityService(),
+        entities: createSavedAgentEntityService(),
         streamIdleTimeoutMs: 5,
         maxNetworkAttempts: 2,
       });
@@ -689,9 +690,9 @@ describe("A2A Client", () => {
           headers: { "Content-Type": "text/event-stream" },
         });
       };
-      const tool = createAgentCallTool({
+      const tool = callTool({
         fetch: fetchFn,
-        entityService: createSavedAgentEntityService(),
+        entities: createSavedAgentEntityService(),
         streamIdleTimeoutMs: 5,
       });
 
@@ -756,9 +757,9 @@ describe("A2A Client", () => {
         });
       };
 
-      const tool = createAgentCallTool({
+      const tool = callTool({
         fetch: fetchFn,
-        entityService: createSavedAgentEntityService(),
+        entities: createSavedAgentEntityService(),
         maxNetworkAttempts: 2,
       });
 
@@ -809,9 +810,9 @@ describe("A2A Client", () => {
         );
       };
 
-      const tool = createAgentCallTool({
+      const tool = callTool({
         fetch: fetchFn,
-        entityService: createSavedAgentEntityService(),
+        entities: createSavedAgentEntityService(),
         maxNetworkAttempts: 2,
       });
 
@@ -871,9 +872,9 @@ describe("A2A Client", () => {
         });
       };
 
-      const tool = createAgentCallTool({
+      const tool = callTool({
         fetch: fetchFn,
-        entityService: createSavedAgentEntityService(),
+        entities: createSavedAgentEntityService(),
         streamIdleTimeoutMs: 50,
       });
 
@@ -906,9 +907,9 @@ describe("A2A Client", () => {
         return new Response("Forbidden", { status: 403 });
       };
 
-      const tool = createAgentCallTool({
+      const tool = callTool({
         fetch: fetchFn,
-        entityService: createSavedAgentEntityService(),
+        entities: createSavedAgentEntityService(),
         maxNetworkAttempts: 2,
       });
 

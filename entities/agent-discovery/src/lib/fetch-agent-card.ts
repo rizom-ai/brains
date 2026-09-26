@@ -1,4 +1,4 @@
-import { parseAgentCard, type ParsedAgentCard } from "@brains/plugins";
+import { parseAgentCard, type ParsedAgentCard } from "@brains/sdk/entities";
 
 export type { ParsedAgentCard };
 
