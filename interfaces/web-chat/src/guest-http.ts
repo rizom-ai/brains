@@ -31,6 +31,22 @@ import {
 } from "./guest-access";
 import { GuestAdmission } from "./guest-admission";
 import { GuestUsageRecord } from "./guest-usage-record";
+
+/**
+ * What the visitor is told with the composer, from the policy that governs the
+ * record, so the retention period stated is the one applied.
+ */
+function recordingDisclosure(policy: EnabledGuestPolicy): {
+  notice: string;
+  revision: string;
+} {
+  const days = Math.ceil(policy.usageRecord.retentionSeconds / 86_400);
+  const notice = `Questions asked here are kept for the owner of this site for ${days} ${days === 1 ? "day" : "days"}, separately from this conversation. Deleting the conversation does not delete them.`;
+  return {
+    notice,
+    revision: createHash("sha256").update(notice).digest("hex"),
+  };
+}
 import {
   guestPolicySchema,
   matchesGuestOrigin,
@@ -233,6 +249,7 @@ export class GuestHttpHandlers {
       guestChatSessionResponseSchema.parse({
         expiresAt: visitor.expiresAt,
         ...policy.disclosure,
+        recording: recordingDisclosure(policy),
         retention: policy.retention,
         messageCharacters: policy.limits.messageCharacters,
         canSend,
@@ -347,6 +364,10 @@ export class GuestHttpHandlers {
       !(await usage.admit(usageId, {
         visitorId: visitor.id,
         reservedMicroUsd: reservation.lease.execution.maxCostMicroUsd,
+        // Question text only after the visitor was shown the current notice.
+        ...(parsed.data.disclosure === recordingDisclosure(policy).revision
+          ? { question: text }
+          : {}),
       }))
     ) {
       // Unrecorded work never runs. Nothing ran, so the reservation settles as failed.

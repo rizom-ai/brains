@@ -9,7 +9,11 @@ import {
 } from "../src/guest-usage-record";
 
 const origin = "https://brain.test";
-const bounds: GuestUsageBounds = { maxRecords: 2, retentionSeconds: 86400 };
+const bounds: GuestUsageBounds = {
+  maxRecords: 2,
+  retentionSeconds: 86400,
+  questionBytes: 16_000,
+};
 const visitor = "visitor-9f1c";
 const request = (conversation: string, submission = "submission-1"): string =>
   GuestUsageRecord.id(origin, visitor, conversation, submission);
@@ -113,6 +117,35 @@ describe("guest usage record", () => {
     const [event] = await usage.list(10);
     expect(event?.cost).toEqual({ state: "unknown", reason: "missing-usage" });
     expect(event?.usage).toBeUndefined();
+  });
+
+  it("keeps an admitted question within the policy's bytes, cut on a character boundary", async () => {
+    const usage = record(createMemoryRuntimeStateNamespace(), {
+      ...bounds,
+      questionBytes: 5,
+    });
+    const id = request("conversation-a");
+    await usage.open(id);
+    await usage.admit(id, {
+      visitorId: visitor,
+      reservedMicroUsd: 2_000_000,
+      question: "ééé",
+    });
+    const [event] = await usage.list(10);
+    expect(event?.question).toBe("éé");
+    expect(event?.questionTruncated).toBe(true);
+  });
+
+  it("keeps no question text for a request admitted without one", async () => {
+    const usage = record();
+    const id = request("conversation-a");
+    await usage.open(id);
+    await usage.admit(id, { visitorId: visitor, reservedMicroUsd: 2_000_000 });
+    const [event] = await usage.list(10);
+    if (!event) throw new Error("Admitted request missing from the record");
+    expect(event.state).toBe("unresolved");
+    expect(Object.keys(event)).not.toContain("question");
+    expect(Object.keys(event)).not.toContain("questionTruncated");
   });
 
   it("refuses a new request once the record is full, and keeps what it holds", async () => {
