@@ -475,21 +475,30 @@ export class GuestHttpHandlers {
         );
         try {
           signal.throwIfAborted();
-          // Keep observing work after delivery stops. Only genuine fulfillment
-          // settles admission; cancellation/rejection never proves remote exit.
+          // Keep observing work after delivery stops: the model call settles
+          // the answer when it returns, answered or not.
           const work = Promise.resolve().then(async () => {
             signal.throwIfAborted();
-            const response = await this.services.agent.chat(
-              text,
-              id,
-              {
-                interfaceType: guestInterfaceType,
-                userPermissionLevel: "public",
-                isAnchor: false,
-                guestExecution: reservation.lease.execution,
-              },
-              signal,
-            );
+            const response = await this.services.agent
+              .chat(
+                text,
+                id,
+                {
+                  interfaceType: guestInterfaceType,
+                  userPermissionLevel: "public",
+                  isAnchor: false,
+                  guestExecution: reservation.lease.execution,
+                },
+                signal,
+              )
+              .catch(async (error: unknown) => {
+                // The call has returned, so its work has ended: settle it at the
+                // answer cap, since a failed call reports no usage to measure.
+                const outcome = signal.aborted ? "interrupted" : "failed";
+                await usage.settle(usageId, "failed", undefined);
+                await admission.settle(reservation.lease, outcome);
+                throw error;
+              });
             const hasAnswer = response.text.trim().length > 0;
             // The owner's record first: if it cannot be written, the request
             // stays unresolved and its reservation held.
