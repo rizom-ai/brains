@@ -22,6 +22,14 @@ export type EditorMode =
     };
 
 /** Studio submits segments; only the server encodes stored identity. */
+/** Distinguishes one open document from another, for keys that reset per document. */
+export function editorDocumentKey(
+  entityType: string,
+  mode: EditorMode,
+): string {
+  return `${entityType}:${mode.kind === "edit" ? mode.entity.id : "create"}`;
+}
+
 export function creationIdPath(mode: EditorMode): EntityIdPath | null {
   if (mode.kind !== "create" || mode.segment === undefined) return null;
   return mode.prefix

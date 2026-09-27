@@ -154,7 +154,7 @@ export function StudioSystemFields(props: {
       issues={props.issues}
       onChange={(value) => props.onChange(field, value)}
     >
-      {!props.vocabularies?.[field.name]?.values && props.renderAssist?.(field)}
+      {props.renderAssist?.(field)}
     </SystemField>
   );
   return (
