@@ -7,6 +7,7 @@ import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
 import {
   ChatApiError,
   CHAT_CONVERSATION_ID_HEADER,
+  type ChatCard,
   type ChatHistoryMessage,
   type GuestChatSessionResponse,
 } from "@brains/contracts/chat";
@@ -39,6 +40,11 @@ const session: GuestChatSessionResponse = {
   provider: "Mock provider",
   notice: "Do not share sensitive text.",
   deletionLimitations: "Provider records are separate.",
+  recording: {
+    notice:
+      "Questions asked here are kept for the owner of this site for 30 days, separately from this conversation. Deleting the conversation does not delete them.",
+    revision: "a".repeat(64),
+  },
   retention: { idleSeconds: 3600, maxAgeSeconds: 7200 },
   messageCharacters: 4000,
   canSend: true,
@@ -71,6 +77,7 @@ interface Harness {
 
 async function render(options: {
   streamMessages: (signal: AbortSignal) => Promise<Response>;
+  onAnswered?: (cards: ChatCard[]) => void;
   getMessages?: () => Promise<ChatHistoryMessage[]>;
   conversationId?: string;
 }): Promise<Harness> {
@@ -109,6 +116,7 @@ async function render(options: {
       draft,
       setDraft,
       onStart: (): void => undefined,
+      ...(options.onAnswered ? { onAnswered: options.onAnswered } : {}),
       controller,
     });
     return null;
@@ -152,6 +160,55 @@ describe("useGuestSend", () => {
     expect(harness.send().pending).toBeUndefined();
     expect(harness.gate().boxState).toBe("complete");
     expect(harness.draft()).toBe("");
+  });
+
+  it("reports what a completed answer drew on, once", async () => {
+    const reported: ChatCard[][] = [];
+    const sources = {
+      kind: "sources",
+      id: "sources:tool-results",
+      sources: [
+        {
+          id: "post:hiding",
+          entityId: "hiding",
+          entityType: "post",
+          source: "post",
+          title: "Hiding in Plain Sight",
+        },
+      ],
+    };
+    const harness = await render({
+      streamMessages: () =>
+        Promise.resolve(
+          stream([
+            { type: "text-start", id: "answer" },
+            { type: "data-sources", id: sources.id, data: sources },
+            ...answered.slice(1),
+          ]),
+        ),
+      onAnswered: (cards): void => {
+        reported.push(cards);
+      },
+    });
+
+    await act(async () => harness.send().send());
+
+    expect(reported).toHaveLength(1);
+    expect(JSON.stringify(reported[0])).toContain("post:hiding");
+  });
+
+  it("reports nothing for an answer that never finished", async () => {
+    const reported: ChatCard[][] = [];
+    const harness = await render({
+      streamMessages: () => Promise.resolve(stream(answered.slice(0, 2))),
+      onAnswered: (cards): void => {
+        reported.push(cards);
+      },
+    });
+
+    await act(async () => harness.send().send());
+
+    expect(reported).toHaveLength(0);
   });
 
   it("reports uncertainty, and offers no retry, when no locator came back", async () => {

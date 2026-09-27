@@ -220,12 +220,13 @@ export class ContentService implements IContentService {
     }
 
     // 2. Try saved content (previously stored/generated content)
-    // IMPORTANT: Templates must have a formatter to parse entity-stored content
+    // Only a template with a formatter can parse entity-stored content. Site
+    // builds offer saved content to every section, so a template without one
+    // (a static page, a datasource-only section) skips it by design.
     if (options?.savedContent) {
       if (!template.formatter) {
-        this.dependencies.logger.warn(
-          `Template ${scopedTemplateName} has no formatter but saved content was requested. ` +
-            `Templates must have a formatter to parse entity-stored content.`,
+        this.dependencies.logger.debug(
+          `Template ${scopedTemplateName} has no formatter; skipping saved content`,
         );
       } else {
         try {

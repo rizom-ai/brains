@@ -36,3 +36,27 @@ export function contactNetwork(peer: string | undefined): string | undefined {
     .map((part) => part.toString(16))
     .join(":")}`;
 }
+
+/** Loopback or private-network socket peers: where a TLS-terminating proxy the
+ * deployment runs (Kamal's, on the container network) connects from. A public
+ * peer is never a trusted proxy, whatever it claims in headers.
+ */
+export function isPrivatePeer(peer: string | undefined): boolean {
+  if (!peer) return false;
+  if (ipv6.safeParse(peer).success && !peer.includes("%"))
+    if (new URL(`http://[${peer}]`).hostname === "[::1]") return true;
+  const network = contactNetwork(peer);
+  if (!network) return false;
+  if (network.startsWith("v4:")) {
+    const [a, b] = network.slice(3).split(".").map(Number);
+    return (
+      a === 10 ||
+      a === 127 ||
+      (a === 172 && b !== undefined && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168)
+    );
+  }
+  // Unique local IPv6 addresses (fc00::/7).
+  const first = Number.parseInt(network.slice(3).split(":")[0] ?? "", 16);
+  return (first & 0xfe00) === 0xfc00;
+}

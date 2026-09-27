@@ -1,4 +1,5 @@
 import { isDeepStrictEqual } from "node:util";
+import { diffArrays } from "diff";
 import {
   parseMarkdown,
   updateFrontmatterField,
@@ -16,6 +17,7 @@ import type { Tool } from "@brains/mcp-service";
 import { setCoverImageId, setOgImageId } from "@brains/image";
 import { z } from "@brains/utils/zod";
 import { updateInputSchema } from "./schemas";
+import { applyContentEdits } from "./content-edits";
 import { assertEntityActionAllowed } from "./entity-action-policy";
 import type { SystemServices } from "./types";
 import {
@@ -124,6 +126,40 @@ function applyFieldUpdates(
       nextMetadata,
     );
   return nextEntity;
+}
+
+function applyContentUpdate(
+  entity: BaseEntity,
+  content: string,
+  registry: SystemServices["entityRegistry"],
+): BaseEntity {
+  const adapter = registry.getAdapter(entity.entityType);
+  const previous = adapter.fromMarkdown(entity.content);
+  const parsed = adapter.fromMarkdown(content);
+  const metadata = { ...entity.metadata };
+  // Refresh changed source-derived values, but keep curated metadata when its
+  // source did not change (for example a custom title during a body-only edit).
+  for (const key of new Set([
+    ...Object.keys(previous.metadata ?? {}),
+    ...Object.keys(parsed.metadata ?? {}),
+  ])) {
+    const next = parsed.metadata?.[key];
+    if (isDeepStrictEqual(previous.metadata?.[key], next)) continue;
+    if (next === undefined) delete metadata[key];
+    else metadata[key] = next;
+  }
+  return {
+    ...entity,
+    ...parsed,
+    id: entity.id,
+    entityType: entity.entityType,
+    created: entity.created,
+    updated: entity.updated,
+    contentHash: entity.contentHash,
+    content,
+    metadata,
+    visibility: extractVisibilityFromMarkdown(content) ?? entity.visibility,
+  };
 }
 
 function validateAnchorProfileUpdate(
@@ -435,14 +471,18 @@ function buildUpdateDiff(
 
   const oldLines = entity.content.split("\n");
   const newLines = (normalizedInput.content ?? "").split("\n");
-  const diffLines: string[] = [];
-  for (let i = 0; i < Math.max(oldLines.length, newLines.length); i++) {
-    if ((oldLines[i] ?? "") !== (newLines[i] ?? "")) {
-      if (oldLines[i]) diffLines.push(`- ${oldLines[i]}`);
-      if (newLines[i]) diffLines.push(`+ ${newLines[i]}`);
-    }
+  // Align unchanged lines so insertions do not make the entire suffix look
+  // rewritten. Bound diff work for large, completely different documents.
+  const changes = diffArrays(oldLines, newLines, { timeout: 100 });
+  if (!changes) {
+    return "Full content replacement (line diff omitted: comparison exceeded its time limit).";
   }
-  return diffLines.join("\n");
+  return changes
+    .filter((change) => change.added || change.removed)
+    .flatMap((change) =>
+      change.value.map((line) => `${change.added ? "+" : "-"} ${line}`),
+    )
+    .join("\n");
 }
 
 export function createEntityUpdateTool(services: SystemServices): Tool {
@@ -454,7 +494,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
 
   return createSystemTool(
     "update",
-    "Update an entity's fields or content. Requires confirmation; call this tool without confirmed to request that confirmation instead of asking for plain-text approval. For direct requests that provide exact IDs to set an existing image as an entity cover, call this tool on the target entity with fields.coverImageId set to the image ID; do not stop after lookup.",
+    "Update an entity's fields or content. For small content changes, fetch the entity and use edits with exact oldText/newText pairs instead of regenerating the whole document. Use only one of fields, content, or edits. Requires confirmation; call this tool without confirmed to request that confirmation instead of asking for plain-text approval. For direct requests that provide exact IDs to set an existing image as an entity cover, call this tool on the target entity with fields.coverImageId set to the image ID; do not stop after lookup.",
     updateInputSchema,
     async (input, context) => {
       const visibilityScope = permissionToVisibilityScope(
@@ -471,10 +511,36 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       if (!resolved.ok) return { success: false, error: resolved.error };
       const { entity } = resolved;
 
-      let normalizedInput = normalizeUpdateInput({
-        ...(input.fields !== undefined ? { fields: input.fields } : {}),
-        ...(input.content !== undefined ? { content: input.content } : {}),
-      });
+      if (
+        input.edits !== undefined &&
+        (input.content !== undefined || input.fields !== undefined)
+      ) {
+        return {
+          success: false,
+          error: "Provide only one of 'edits', 'content', or 'fields'.",
+        };
+      }
+      if (
+        input.confirmed &&
+        input.contentHash &&
+        entity.contentHash !== input.contentHash
+      ) {
+        return {
+          success: false,
+          error:
+            "Entity was modified since you reviewed the changes. Please try again.",
+        };
+      }
+
+      let normalizedInput =
+        input.edits !== undefined
+          ? { content: applyContentEdits(entity.content, input.edits) }
+          : normalizeUpdateInput({
+              ...(input.fields !== undefined ? { fields: input.fields } : {}),
+              ...(input.content !== undefined
+                ? { content: input.content }
+                : {}),
+            });
 
       const isBlankContentApprovalAttempt =
         normalizedInput.content?.trim().length === 0 &&
@@ -509,7 +575,10 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         mangledApprovalReplay = true;
       }
 
-      if (normalizedInput.content && normalizedInput.fields)
+      if (
+        normalizedInput.content !== undefined &&
+        normalizedInput.fields !== undefined
+      )
         return {
           success: false,
           error: "Provide either 'content' or 'fields', not both",
@@ -579,28 +648,13 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
           );
           if (gateError) return gateError;
         }
-        if (input.contentHash && entity.contentHash !== input.contentHash) {
-          return {
-            success: false,
-            error:
-              "Entity was modified since you reviewed the changes. Please try again.",
-          };
-        }
-
         const updated =
           normalizedInput.content !== undefined
-            ? {
-                ...entity,
-                content: normalizedInput.content,
-                // Replacement content that declares no visibility is not a
-                // demotion request: export omits the key for public entities,
-                // so regenerated or hand-edited content routinely arrives
-                // without it. Keep the stored tier unless the file says
-                // otherwise.
-                visibility:
-                  extractVisibilityFromMarkdown(normalizedInput.content) ??
-                  entity.visibility,
-              }
+            ? applyContentUpdate(
+                entity,
+                normalizedInput.content,
+                entityRegistry,
+              )
             : applyFieldUpdates(
                 entity,
                 normalizedInput.fields ?? {},
@@ -619,10 +673,20 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
 
         try {
           const eventContext = buildEntityMutationEventContext(context);
-          await entityService.updateEntity({
+          const result = await entityService.updateEntity({
             entity: updated,
-            ...(eventContext ? { options: { eventContext } } : {}),
+            options: {
+              expectedContentHash: entity.contentHash,
+              ...(eventContext ? { eventContext } : {}),
+            },
           });
+          if (result.skipReason === "content-conflict") {
+            return {
+              success: false,
+              error:
+                "Entity was modified before the update could be saved. Please request and confirm the update again.",
+            };
+          }
         } catch (error) {
           return {
             success: false,
@@ -634,6 +698,13 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
 
       const label = getEntityDisplayLabel(entity);
       const diff = buildUpdateDiff(entity, normalizedInput, entityRegistry);
+      // Approval must replay the normalized operation, not the JSON content
+      // that may have been interpreted as a field update.
+      const {
+        fields: _fields,
+        content: _content,
+        ...confirmationInput
+      } = input;
       return {
         needsConfirmation: true,
         toolName: "system_update",
@@ -641,8 +712,10 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         completionSummary: `Updated ${humanizeEntityType(entity.entityType)}.`,
         preview: diff,
         args: confirmationGate.buildArgs((confirmationToken) => ({
-          ...input,
-          ...normalizedInput,
+          ...confirmationInput,
+          ...(input.edits !== undefined
+            ? { edits: input.edits }
+            : normalizedInput),
           id: entity.id,
           confirmed: true,
           confirmationToken,

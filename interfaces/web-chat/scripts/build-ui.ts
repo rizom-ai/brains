@@ -23,6 +23,7 @@ await mkdir(outdir, { recursive: true });
 for (const [entryName, assetName] of [
   ["main", "app"],
   ["guest-box", "guest"],
+  ["guest-page", "ask"],
   ["guest-dashboard", "dashboard"],
 ] as const) {
   const entrypoint = join(packageRoot, "ui-react", "src", `${entryName}.tsx`);

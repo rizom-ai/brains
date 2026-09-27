@@ -1,10 +1,12 @@
 import { describe, expect, it, mock } from "bun:test";
 import { deferred } from "@brains/utils/deferred";
+import type { GuestTurnCost } from "@brains/contracts/chat";
 import { MockLanguageModelV3 } from "ai/test";
 import {
   GuestTurnBudget,
   type GuestModelCall,
   type GuestExecutionAccounting,
+  type GuestProviderUsage,
 } from "../src/guest-turn-budget";
 import {
   testGuestExecution,
@@ -426,6 +428,110 @@ describe("guest turn budget", () => {
       counted.resolve({ inputTokens: 1, maxCostMicroUsd: 1 });
       expect(pending).rejects.toThrow("Guest request stopped");
       expect(model.doGenerateCalls).toHaveLength(0);
+    } finally {
+      budget.dispose();
+    }
+  });
+});
+
+describe("guest turn settlement", () => {
+  function reporting(): MockLanguageModelV3 {
+    return new MockLanguageModelV3({
+      doGenerate: {
+        content: [{ type: "text", text: "answer" }],
+        finishReason: { unified: "stop", raw: "stop" },
+        usage: {
+          inputTokens: {
+            total: 5,
+            noCache: 3,
+            cacheRead: 2,
+            cacheWrite: undefined,
+          },
+          outputTokens: { total: 7, text: 5, reasoning: 2 },
+        },
+        warnings: [],
+      },
+    });
+  }
+
+  it("settles from the usage the provider reported, never from its quotes", async () => {
+    const priced: GuestProviderUsage[] = [];
+    const budget = new GuestTurnBudget(testGuestExecution, {
+      ...testGuestAccounting,
+      settle: (usage): GuestTurnCost => {
+        priced.push(usage);
+        return { state: "known", microUsd: 42, pricing: "test-revision" };
+      },
+    });
+    try {
+      await budget.wrapModel(reporting()).doGenerate(params);
+      budget.embedded(12);
+      expect(budget.settlement()).toEqual({
+        usage: {
+          modelCalls: 1,
+          inputTokens: 5,
+          cachedInputTokens: 2,
+          outputTokens: 7,
+          reasoningTokens: 2,
+          embeddingTokens: 12,
+        },
+        cost: { state: "known", microUsd: 42, pricing: "test-revision" },
+      });
+      expect(priced).toEqual([
+        {
+          calls: [{ input: 5, cacheRead: 2, cacheWrite: undefined, output: 7 }],
+          embeddings: [12],
+        },
+      ]);
+    } finally {
+      budget.dispose();
+    }
+  });
+
+  it("leaves cost unknown when the accounting cannot price the turn, without its error", async () => {
+    const unpriced = new GuestTurnBudget(
+      testGuestExecution,
+      testGuestAccounting,
+    );
+    const failing = new GuestTurnBudget(testGuestExecution, {
+      ...testGuestAccounting,
+      settle: (): never => {
+        throw new Error("private-pricing-detail");
+      },
+    });
+    try {
+      await unpriced.wrapModel(reporting()).doGenerate(params);
+      await failing.wrapModel(reporting()).doGenerate(params);
+      expect(unpriced.settlement().cost).toEqual({
+        state: "unknown",
+        reason: "unsupported-pricing",
+      });
+      expect(failing.settlement().cost).toEqual({
+        state: "unknown",
+        reason: "unsupported-pricing",
+      });
+    } finally {
+      unpriced.dispose();
+      failing.dispose();
+    }
+  });
+
+  it("passes an embedding that reported no usage on as missing", () => {
+    const priced: GuestProviderUsage[] = [];
+    const budget = new GuestTurnBudget(testGuestExecution, {
+      ...testGuestAccounting,
+      settle: (usage): GuestTurnCost => {
+        priced.push(usage);
+        return { state: "unknown", reason: "missing-usage" };
+      },
+    });
+    try {
+      budget.embedded(undefined);
+      expect(budget.settlement().cost).toEqual({
+        state: "unknown",
+        reason: "missing-usage",
+      });
+      expect(priced[0]?.embeddings).toEqual([undefined]);
     } finally {
       budget.dispose();
     }

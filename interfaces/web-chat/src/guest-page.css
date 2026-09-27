@@ -341,7 +341,7 @@
   padding: 20px 27px 15px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas: "input action" "count count";
+  grid-template-areas: "input action" "count count" "note note";
   gap: 15px 20px;
   align-items: end;
 }
@@ -361,6 +361,13 @@
 }
 .guest-compose-actions {
   display: contents;
+}
+.guest-recording {
+  grid-area: note;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ask-muted);
 }
 .guest-compose-actions small {
   grid-area: count;

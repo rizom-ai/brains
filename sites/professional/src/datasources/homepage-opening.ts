@@ -6,18 +6,15 @@ import { parseAskContent, type AskContent } from "@brains/contracts";
 
 type OpeningRuntime = Pick<
   ServicePluginContext,
-  | "webRoutes"
-  | "identity"
-  | "siteUrl"
-  | "previewUrl"
-  | "localSiteUrl"
-  | "preferLocalUrls"
+  "webRoutes" | "siteUrl" | "previewUrl" | "localSiteUrl" | "preferLocalUrls"
 >;
 
 export type HomepageOpeningData = AskContent & { contactUrl: string };
 
 /** Build-time authored presentation only: no chat admission, tokens or generation.
- * A matching public form is required, including preview reachability and origin.
+ * A matching public form route is required and, for a preview build, reachable on
+ * preview, where the door leads to the preview host. Routes are declared in every
+ * process; endpoint advertisement is not, and a separate worker runs site builds.
  */
 export async function loadHomepageOpening(
   context: BaseDataSourceContext,
@@ -25,12 +22,12 @@ export async function loadHomepageOpening(
 ): Promise<HomepageOpeningData | null> {
   try {
     const preview = context.publishedOnly === false;
-    const origin = runtime.preferLocalUrls
+    const siteOrigin = runtime.preferLocalUrls
       ? runtime.localSiteUrl
-      : preview
-        ? runtime.previewUrl
-        : runtime.siteUrl;
-    if (!origin) return null;
+      : runtime.siteUrl;
+    const origin =
+      preview && !runtime.preferLocalUrls ? runtime.previewUrl : siteOrigin;
+    if (!siteOrigin || !origin) return null;
     const routes = runtime.webRoutes
       .getRoutes()
       .filter(
@@ -43,16 +40,6 @@ export async function loadHomepageOpening(
     if (
       !["GET", "POST"].every((method) =>
         routes.some((route) => (route.definition.method ?? "GET") === method),
-      )
-    )
-      return null;
-    const { endpoints } = await runtime.identity.getAppInfo();
-    if (
-      !endpoints.some(
-        (endpoint) =>
-          endpoint.pluginId === "contact" &&
-          endpoint.visibility === "public" &&
-          endpoint.url === new URL("/contact", origin).href,
       )
     )
       return null;

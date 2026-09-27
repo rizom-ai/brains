@@ -1,9 +1,19 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
-import { SitePageResponse, type IRuntimeStateStore } from "@brains/plugins";
+import {
+  SitePageResponse,
+  type IRuntimeStateNamespace,
+  type IRuntimeStateStore,
+} from "@brains/plugins";
+import {
+  ASK_BOX_STATE_KEY,
+  ASK_BOX_STATE_NAMESPACE,
+  askBoxAvailabilitySchema,
+  type AskBoxAvailability,
+} from "@brains/contracts";
 import { WebChatInterface } from "../src/web-chat-interface";
 import {
   guestAdmissionNamespace,
@@ -26,17 +36,30 @@ interface Fixture {
   ledger: IRuntimeStateStore<GuestAdmissionState>;
   calls(): number;
   previewPaths: string[];
+  askBox(): Promise<AskBoxAvailability | null>;
+  /** Runtime state shared by every process of one deployment, across restarts. */
+  state: IRuntimeStateNamespace;
 }
 
 async function fixture(
   role: "public" | "trusted" | "admin" = "admin",
   domain: string | null = "rizom.ai",
-  options: { profileAvailable?: boolean; disabled?: boolean } = {},
+  options: {
+    profileAvailable?: boolean;
+    disabled?: boolean;
+    guest?: "local-test";
+    /** The deployment's state from an earlier run, as after a restart. */
+    state?: IRuntimeStateNamespace;
+  } = {},
 ): Promise<Fixture> {
   const harness = createPluginHarness<WebChatInterface>(
     domain ? { domain } : {},
   );
   harnesses.push(harness);
+  if (options.state)
+    spyOn(harness.getMockShell(), "getRuntimeState").mockReturnValue(
+      options.state,
+    );
   let calls = 0;
   harness.getMockShell().setAgentService({
     guestProfileAvailable: options.profileAvailable !== false,
@@ -50,7 +73,11 @@ async function fixture(
     invalidateAgent: (): void => {},
   });
   const plugin = new WebChatInterface(
-    options.disabled ? { guest: false } : {},
+    options.disabled
+      ? { guest: false }
+      : options.guest
+        ? { guest: options.guest }
+        : {},
     {
       resolveAuthSession: async (): Promise<boolean> => role !== "public",
       resolvePermissionLevel: async (): Promise<typeof role> => role,
@@ -90,6 +117,16 @@ async function fixture(
     send,
     ledger,
     calls: (): number => calls,
+    state: harness.getMockShell().getRuntimeState(),
+    askBox: (): Promise<AskBoxAvailability | null> =>
+      harness
+        .getMockShell()
+        .getRuntimeState()
+        .scoped({
+          namespace: ASK_BOX_STATE_NAMESPACE,
+          schema: askBoxAvailabilitySchema,
+        })
+        .get(ASK_BOX_STATE_KEY),
     previewPaths: plugin
       .getWebRoutes()
       .filter((r) => r.preview === true)
@@ -99,6 +136,44 @@ async function fixture(
 }
 
 const access = "/api/chat/guest/access";
+describe("Ask box availability for site builds in any process", () => {
+  it("records nothing served until the owner activates managed guest chat", async () => {
+    const f = await fixture();
+    expect(f.previewPaths).toContain("GET /ask/assets/box.js");
+    expect(await f.askBox()).toEqual({ public: false, preview: false });
+  });
+
+  it("records the box served on preview once activated, and not after deactivation", async () => {
+    const f = await fixture();
+    expect((await f.send(access, { enabled: true })).status).toBe(200);
+    expect(await f.askBox()).toEqual({ public: false, preview: true });
+    expect((await f.send(access, { enabled: false })).status).toBe(200);
+    expect(await f.askBox()).toEqual({ public: false, preview: false });
+  });
+
+  it("keeps the box on preview across a restart that begins before the guest profile is ready", async () => {
+    const running = await fixture();
+    expect((await running.send(access, { enabled: true })).status).toBe(200);
+    // A deploy restarts the app; the search index is not ready at registration yet.
+    const restarted = await fixture("admin", "rizom.ai", {
+      profileAvailable: false,
+      state: running.state,
+    });
+    expect(await restarted.askBox()).toEqual({ public: false, preview: true });
+  });
+
+  it("records a configured guest policy as served everywhere", async () => {
+    const f = await fixture("admin", "rizom.ai", { guest: "local-test" });
+    expect(await f.askBox()).toEqual({ public: true, preview: true });
+  });
+
+  it("records that it does not while guest chat is off", async () => {
+    const f = await fixture("admin", "rizom.ai", { disabled: true });
+    expect(f.previewPaths).not.toContain("GET /ask/assets/box.js");
+    expect(await f.askBox()).toEqual({ public: false, preview: false });
+  });
+});
+
 describe("admin guest activation using deployment conventions", () => {
   it("declares only the guest presentation and API routes for preview", async () => {
     const f = await fixture();
@@ -107,9 +182,13 @@ describe("admin guest activation using deployment conventions", () => {
         "DELETE /api/chat/guest/sessions",
         "GET /api/chat/guest/messages",
         "GET /ask",
-        // Standalone GuestApp uses the shared Chat presentation bundle.
+        // Standalone GuestApp has its own bundle; the app bundle stays for sites still loading it.
         "GET /ask/assets/app.css",
         "GET /ask/assets/app.js",
+        "GET /ask/assets/ask.css",
+        "GET /ask/assets/ask.js",
+        // The shared box boot every consuming site loads.
+        "GET /ask/assets/box.js",
         "GET /ask/assets/dashboard.css",
         "GET /ask/assets/dashboard.js",
         "GET /ask/assets/guest.css",

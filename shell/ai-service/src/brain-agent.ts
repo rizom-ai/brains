@@ -267,9 +267,13 @@ export function createBrainAgentFactory(
           params.abortSignal,
         );
         try {
-          return await createSDKAgent(budget).generate({
+          const result = await createSDKAgent(budget).generate({
             ...params,
             abortSignal: budget.signal,
+          });
+          // The SDK result exposes its fields as getters; attach, never copy.
+          return Object.assign(result, {
+            guestSettlement: budget.settlement(),
           });
         } finally {
           // Completion, not SSE disconnection, ends the accounting lifetime.

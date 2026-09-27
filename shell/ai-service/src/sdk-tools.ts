@@ -1,12 +1,11 @@
 import { dynamicTool, type ToolSet } from "ai";
 import { guestInterfaceType } from "@brains/contracts/chat";
 import { assertGuestPermission, isGuestToolAllowed } from "./guest-execution";
-import type { GuestTurnBudget } from "./guest-turn-budget";
+import type { GuestQueryEmbedding, GuestTurnBudget } from "./guest-turn-budget";
 import {
   jsonValueSchema,
   type ActorRef,
   type JsonValue,
-  type QueryEmbedding,
 } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
 import { isPlainRecord } from "@brains/utils/predicates";
@@ -156,7 +155,7 @@ export function convertToSDKTools(
   contextInfo: ToolContextInfo,
   emitter: ToolEventEmitter,
   guestBudget?: GuestTurnBudget,
-  queryEmbedding?: QueryEmbedding,
+  queryEmbedding?: GuestQueryEmbedding,
 ): ToolSet {
   assertGuestPermission(contextInfo);
   const guest = contextInfo.interfaceType === guestInterfaceType;
@@ -228,7 +227,9 @@ export function convertToSDKTools(
                   throw new Error("Guest query embedding denied");
                 embeddingSignal.throwIfAborted();
                 embeddingUsed = true;
-                return queryEmbedding(query, embeddingSignal);
+                return queryEmbedding(query, embeddingSignal, (tokens) =>
+                  guestBudget.embedded(tokens),
+                );
               },
             }),
         };

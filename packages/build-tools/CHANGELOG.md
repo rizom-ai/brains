@@ -1,5 +1,51 @@
 # @brains/build-tools
 
+## 0.2.0-alpha.422
+
+## 0.2.0-alpha.421
+
+## 0.2.0-alpha.420
+
+## 0.2.0-alpha.419
+
+## 0.2.0-alpha.418
+
+## 0.2.0-alpha.417
+
+## 0.2.0-alpha.416
+
+## 0.2.0-alpha.415
+
+## 0.2.0-alpha.414
+
+## 0.2.0-alpha.413
+
+## 0.2.0-alpha.412
+
+## 0.2.0-alpha.411
+
+## 0.2.0-alpha.410
+
+## 0.2.0-alpha.409
+
+## 0.2.0-alpha.408
+
+## 0.2.0-alpha.407
+
+## 0.2.0-alpha.406
+
+## 0.2.0-alpha.405
+
+## 0.2.0-alpha.404
+
+### Patch Changes
+
+- Give every unbounded loop an explicit shape. Schema unwrapping, workspace version resolution, redirect following, job-drain polling, SQLite write retries and atomic enqueue retries now recurse once per step, so each step's exit condition sits in its own signature. Stream reading and checkpoint draining keep a loop, but one with a real condition in its head rather than an open `for (;;)` and an interior break.
+
+  Behaviour is unchanged: the same retry budgets, backoff, redirect limits and cursor advancement apply. The atomic enqueue retry now closes its failed transaction before opening the next one rather than after, which was already the intent.
+
+## 0.2.0-alpha.403
+
 ## 0.2.0-alpha.402
 
 ## 0.2.0-alpha.401

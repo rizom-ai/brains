@@ -1,5 +1,225 @@
 # @brains/note
 
+## 0.2.0-alpha.422
+
+### Patch Changes
+
+- Updated dependencies [[`39cc6eb`](https://github.com/rizom-ai/brains/commit/39cc6eb4cde86fc1a2adb38c85d45fab6fe98319)]:
+  - @brains/plugins@0.2.0-alpha.422
+  - @brains/atproto-contracts@0.2.0-alpha.422
+  - @brains/contracts@0.2.0-alpha.422
+  - @brains/document@0.2.0-alpha.422
+  - @brains/utils@0.2.0-alpha.422
+
+## 0.2.0-alpha.421
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.421
+  - @brains/contracts@0.2.0-alpha.421
+  - @brains/document@0.2.0-alpha.421
+  - @brains/utils@0.2.0-alpha.421
+  - @brains/plugins@0.2.0-alpha.421
+
+## 0.2.0-alpha.420
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.420
+  - @brains/contracts@0.2.0-alpha.420
+  - @brains/document@0.2.0-alpha.420
+  - @brains/utils@0.2.0-alpha.420
+  - @brains/plugins@0.2.0-alpha.420
+
+## 0.2.0-alpha.419
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.419
+  - @brains/contracts@0.2.0-alpha.419
+  - @brains/document@0.2.0-alpha.419
+  - @brains/utils@0.2.0-alpha.419
+  - @brains/plugins@0.2.0-alpha.419
+
+## 0.2.0-alpha.418
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.418
+  - @brains/contracts@0.2.0-alpha.418
+  - @brains/document@0.2.0-alpha.418
+  - @brains/utils@0.2.0-alpha.418
+  - @brains/plugins@0.2.0-alpha.418
+
+## 0.2.0-alpha.417
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.417
+  - @brains/contracts@0.2.0-alpha.417
+  - @brains/document@0.2.0-alpha.417
+  - @brains/utils@0.2.0-alpha.417
+  - @brains/plugins@0.2.0-alpha.417
+
+## 0.2.0-alpha.416
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.416
+  - @brains/contracts@0.2.0-alpha.416
+  - @brains/document@0.2.0-alpha.416
+  - @brains/utils@0.2.0-alpha.416
+  - @brains/plugins@0.2.0-alpha.416
+
+## 0.2.0-alpha.415
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.415
+  - @brains/contracts@0.2.0-alpha.415
+  - @brains/document@0.2.0-alpha.415
+  - @brains/utils@0.2.0-alpha.415
+  - @brains/plugins@0.2.0-alpha.415
+
+## 0.2.0-alpha.414
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.414
+  - @brains/contracts@0.2.0-alpha.414
+  - @brains/document@0.2.0-alpha.414
+  - @brains/utils@0.2.0-alpha.414
+  - @brains/plugins@0.2.0-alpha.414
+
+## 0.2.0-alpha.413
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.413
+  - @brains/contracts@0.2.0-alpha.413
+  - @brains/document@0.2.0-alpha.413
+  - @brains/utils@0.2.0-alpha.413
+  - @brains/plugins@0.2.0-alpha.413
+
+## 0.2.0-alpha.412
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.412
+  - @brains/contracts@0.2.0-alpha.412
+  - @brains/document@0.2.0-alpha.412
+  - @brains/utils@0.2.0-alpha.412
+  - @brains/plugins@0.2.0-alpha.412
+
+## 0.2.0-alpha.411
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.411
+  - @brains/contracts@0.2.0-alpha.411
+  - @brains/document@0.2.0-alpha.411
+  - @brains/utils@0.2.0-alpha.411
+  - @brains/plugins@0.2.0-alpha.411
+
+## 0.2.0-alpha.410
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.410
+  - @brains/contracts@0.2.0-alpha.410
+  - @brains/document@0.2.0-alpha.410
+  - @brains/utils@0.2.0-alpha.410
+  - @brains/plugins@0.2.0-alpha.410
+
+## 0.2.0-alpha.409
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.409
+  - @brains/contracts@0.2.0-alpha.409
+  - @brains/document@0.2.0-alpha.409
+  - @brains/utils@0.2.0-alpha.409
+  - @brains/plugins@0.2.0-alpha.409
+
+## 0.2.0-alpha.408
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.408
+  - @brains/contracts@0.2.0-alpha.408
+  - @brains/document@0.2.0-alpha.408
+  - @brains/utils@0.2.0-alpha.408
+  - @brains/plugins@0.2.0-alpha.408
+
+## 0.2.0-alpha.407
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.407
+  - @brains/contracts@0.2.0-alpha.407
+  - @brains/document@0.2.0-alpha.407
+  - @brains/utils@0.2.0-alpha.407
+  - @brains/plugins@0.2.0-alpha.407
+
+## 0.2.0-alpha.406
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.406
+  - @brains/contracts@0.2.0-alpha.406
+  - @brains/document@0.2.0-alpha.406
+  - @brains/utils@0.2.0-alpha.406
+  - @brains/plugins@0.2.0-alpha.406
+
+## 0.2.0-alpha.405
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/plugins@0.2.0-alpha.405
+  - @brains/atproto-contracts@0.2.0-alpha.405
+  - @brains/document@0.2.0-alpha.405
+  - @brains/contracts@0.2.0-alpha.405
+  - @brains/utils@0.2.0-alpha.405
+
+## 0.2.0-alpha.404
+
+### Patch Changes
+
+- Updated dependencies [[`18f2586`](https://github.com/rizom-ai/brains/commit/18f2586ba20a15400402d34d4289d6035c6f9e3b), [`18f2586`](https://github.com/rizom-ai/brains/commit/18f2586ba20a15400402d34d4289d6035c6f9e3b), [`18f2586`](https://github.com/rizom-ai/brains/commit/18f2586ba20a15400402d34d4289d6035c6f9e3b)]:
+  - @brains/utils@0.2.0-alpha.404
+  - @brains/contracts@0.2.0-alpha.404
+  - @brains/plugins@0.2.0-alpha.404
+  - @brains/atproto-contracts@0.2.0-alpha.404
+  - @brains/document@0.2.0-alpha.404
+
+## 0.2.0-alpha.403
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.403
+  - @brains/contracts@0.2.0-alpha.403
+  - @brains/document@0.2.0-alpha.403
+  - @brains/utils@0.2.0-alpha.403
+  - @brains/plugins@0.2.0-alpha.403
+
 ## 0.2.0-alpha.402
 
 ### Patch Changes

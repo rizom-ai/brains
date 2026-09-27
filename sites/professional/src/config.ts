@@ -46,7 +46,7 @@ export const professionalSiteConfigSchema: z.ZodType<
     .boolean()
     .default(false)
     .describe(
-      "Opt in to the authored contact-first homepage; requires public Ask content and a matching contact endpoint",
+      "Opt in to the atlas homepage: the authored opening and contact door over a map of published work; requires public Ask content and a matching contact endpoint",
     ),
   entityDisplay: z
     .object({

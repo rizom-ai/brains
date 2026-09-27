@@ -1,5 +1,179 @@
 # @rizom/brain
 
+## 0.2.0-alpha.422
+
+### Patch Changes
+
+- [#380](https://github.com/rizom-ai/brains/pull/380) [`9f05393`](https://github.com/rizom-ai/brains/commit/9f053937e22deff5804427868bf0ad30e6b5c25b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The homepage chat box stays on preview across a restart. Web Chat records at startup whether the box is offered, and it checked that guest chat could answer, which waits for the search index. That is never ready at startup, so every restart or deploy recorded the box as off until the owner switched guest chat again. The record now follows the owner's switch and remaining allowance; the box itself says when chat cannot answer yet.
+
+- [#376](https://github.com/rizom-ai/brains/pull/376) [`39cc6eb`](https://github.com/rizom-ai/brains/commit/39cc6eb4cde86fc1a2adb38c85d45fab6fe98319) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Separate MCP protocol registration from HTTP and stdio hosting. Hosted interfaces and protocol-only embeddings share the same tool handlers and registration lifecycle. Add the explicit ProtocolPluginProvider contract and have --mcp-basic use the selected interface's protocol provider without starting listeners or restoring disabled host dependencies. Preserve hosted HTTP dependency and authentication checks.
+
+  Add regressions for listener-free registration, canonical headless/personal composition, unsupported providers, and an MCP chat/confirm long-note edit with exact stored-content assertions.
+
+- [#376](https://github.com/rizom-ai/brains/pull/376) [`39cc6eb`](https://github.com/rizom-ai/brains/commit/39cc6eb4cde86fc1a2adb38c85d45fab6fe98319) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add exact-match `edits` to agent-backed `system_update` so small changes do not require regenerating an entire document. Reject missing, ambiguous, overlapping, and mixed-mode edits; preserve confirmation and content-conflict protection. Refresh changed source-derived metadata so a note heading edit also updates its title. Reject entity updates that supply both fields and content instead of silently discarding content. Align confirmation preview lines so insertions and deletions do not mark an unchanged suffix as rewritten, and preserve visible blank-line changes. Add long-note coverage for exact content and backslash preservation through confirmation.
+
+  Add agent evals for 7, 14, and 17 KB note edits and combined title/body edits. Exact tool-result assertions verify stored Markdown after cancellation and approval, rather than relying on the assistant's success claims.
+
+## 0.2.0-alpha.421
+
+### Patch Changes
+
+- [#379](https://github.com/rizom-ai/brains/pull/379) [`84a2aac`](https://github.com/rizom-ai/brains/commit/84a2aaccbd73ac2e3d40f500374ad92fc401dcf6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A failed notification now says why, without any message content. The email transport reports Resend's error name (`resend_validation_error`) or HTTP status (`resend_http_500`) instead of a generic failure, notifications passes that code on (`NOTIFICATION_FAILURES` and `notificationFailureCode` in `@brains/contracts`), and contact keeps the latest attempt's code with a failed alert and counts failed alerts by code in its operational health (`failures`). A missing recipient or transport reads `recipient-missing` or `transport-missing`.
+
+- [#378](https://github.com/rizom-ai/brains/pull/378) [`b65b207`](https://github.com/rizom-ai/brains/commit/b65b207deb99878407cf5b1661eecc3450dca52f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The public Ask page loads its own guest bundle (`/ask/assets/ask.js` and `ask.css`, about 1.9 MB) instead of the signed-in chat app (`app.js`, about 15 MB), which it mounted only to render the guest conversation. The app bundle stays served for sites that still load it.
+
+## 0.2.0-alpha.420
+
+### Patch Changes
+
+- [#374](https://github.com/rizom-ai/brains/pull/374) [`b6a1e11`](https://github.com/rizom-ai/brains/commit/b6a1e114fc21cbf00e915c07a9d08c7a3356af02) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The professional homepage atlas starts its copy on the header's content edge at every width: the centred layout column on wide screens (it sat 48px from the window edge while the header logo moved inward), and the header's 1.5rem / 3rem gutter on phones and tablets, with the map legend on the same edge. The map keeps the rest of the width, and a map-less atlas keeps its measure.
+
+- [#373](https://github.com/rizom-ai/brains/pull/373) [`13b492f`](https://github.com/rizom-ai/brains/commit/13b492f449757eaa6e449d280060d5a44854b4b4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Territory names on the professional homepage atlas carry a solid halo in the page colour, so contour lines part around them and dense rings no longer run through the letters.
+
+- [#373](https://github.com/rizom-ai/brains/pull/373) [`d6285e2`](https://github.com/rizom-ai/brains/commit/d6285e2583af61652d37242ab025f624450c7cb0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The contact form opens in the site's own theme when a link names none, instead of always opening dark. Contact reads the theme from the site's metadata at startup and follows changes to it; a `?theme=` on the link still wins.
+
+- [#373](https://github.com/rizom-ai/brains/pull/373) [`5a70a6f`](https://github.com/rizom-ai/brains/commit/5a70a6f918644186ee01cfbffe7c23b64c97c479) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A successful pre-deploy backup now shows the runtime's own notices, such as the degraded checks it backed up anyway, as workflow warnings. Before, the remote output of a successful capture was discarded. Regenerate `deploy/scripts/create-predeploy-backup.ts` in existing deployments to adopt it.
+
+- [#375](https://github.com/rizom-ai/brains/pull/375) [`ce39ab4`](https://github.com/rizom-ai/brains/commit/ce39ab4156e7d91cf5d472bde174095c947ec2f6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The professional homepage now offers the chat box in a preview build while the owner has managed guest chat switched on. The box rule required guest chat to be open to the public even for a preview build, so preview-only guest chat never showed it.
+
+- [#373](https://github.com/rizom-ai/brains/pull/373) [`b84a4c3`](https://github.com/rizom-ai/brains/commit/b84a4c380f2681f53544422daf2dcd575c51b701) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Published sites paint the page colour on the document itself, so scrolling past the footer on a phone never shows a white band in dark mode. The rule lives in the site build's own base stylesheet; Studio and rendered media pages are unchanged.
+
+## 0.2.0-alpha.419
+
+### Patch Changes
+
+- [#372](https://github.com/rizom-ai/brains/pull/372) [`b3a8c6e`](https://github.com/rizom-ai/brains/commit/b3a8c6e5f46691550e2e85be278208cb21fc1087) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A contact request whose email alert failed now keeps contact's operational health degraded only until the owner marks the request Done in the Studio Inbox, instead of for the request's whole retention with no way to clear it. Health details gain `failedUnhandled` beside the existing `failed` count.
+
+- [#372](https://github.com/rizom-ai/brains/pull/372) [`e3d947f`](https://github.com/rizom-ai/brains/commit/e3d947fcb7aaa67b9ff6a8478e975ef32f816c66) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The pre-deploy backup no longer refuses a runtime whose plugins report degraded health. It still requires a ready runtime with an idle job queue, names the degraded checks in the deploy log and backs the runtime up, because a deploy is often the fix for what a plugin reports. A refusal now states its reason (runtime not ready, job queue not idle) instead of exiting silently. Regenerate `deploy/scripts/create-predeploy-backup.ts` in existing deployments to adopt it.
+
+## 0.2.0-alpha.418
+
+### Patch Changes
+
+- [#371](https://github.com/rizom-ai/brains/pull/371) [`2884fca`](https://github.com/rizom-ai/brains/commit/2884fca8d6d7c9144626e677e7a506975162cf66) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Studio now has an admin-only **Guest chat** workspace wherever guest chat keeps a usage record. It shows what the public endpoint did — questions, measured cost, unknown-cost and unresolved counts for today and this month, a meter of questions and reserved cost against the allowance (measured cost never returns allowance), recording health and retention, recent questions, refusals by reason with their detailed and counted coverage, and the most active visitors within the retained window — with the switch beside the numbers. Opening guest chat asks for a prepared confirmation that states what the allowance still permits; closing it is one step and stops admissions at once. A recorded question can be saved as a note through its own confirmed action: web-chat sends it to the note plugin over the new `note:capture` message (`@brains/contracts`), and the note plugin keeps such notes restricted to the owner.
+
+## 0.2.0-alpha.417
+
+### Patch Changes
+
+- [#369](https://github.com/rizom-ai/brains/pull/369) [`34b0419`](https://github.com/rizom-ai/brains/commit/34b04190acdc2575fa6bbbffd1ad985facb848f7) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The owner's guest usage record now keeps refused questions. An admission denial is recorded with its reason and the visitor's salted digest; the guest send route's own refusals (forbidden origin, wrong method or media type, invalid, oversized, unknown conversation, closed access) are recorded by category without their body or a visitor; and a full or unwritable record records its refusals too. Detailed denials have their own allowance, the guest policy's new required `usageRecord.maxDenialRecords` (presets: 1,000), so denial traffic never takes the places admitted questions need. Beyond it, denials become daily counts by reason, held in memory and written by the guest maintenance tick, so a flood of refused requests writes at most once a minute; counts that could not be written wait for the next tick.
+
+- [#370](https://github.com/rizom-ai/brains/pull/370) [`35c4939`](https://github.com/rizom-ai/brains/commit/35c49397982afd1b8cf81fcf9c9f2cea345e71f5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The owner's guest usage record now keeps to its own retention and reports its health. The guest maintenance tick removes records, denials and daily denial counts past the record's retention (a day's counts once the whole day is past it), without touching admission accounting or unresolved reservations, and deleting a conversation leaves its record in place, as the visitor notice says. Kept question text has a total bound, the guest policy's new required `usageRecord.maxStoredBytes` (presets: 4,000,000): a request whose largest possible question could exceed it is refused like one arriving at a full record. Operators see the record's bounded health as `guest-usage-record` — degraded while it is full and refusing questions, unhealthy while its writes fail — with counts only, never question text or storage errors.
+
+## 0.2.0-alpha.416
+
+### Patch Changes
+
+- [#368](https://github.com/rizom-ai/brains/pull/368) [`6916f21`](https://github.com/rizom-ai/brains/commit/6916f216a2fd84ad0b408af03077ef46dff2a3a9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Guest chat now tells visitors, with the composer, that their questions are kept for the site's owner, for how long, and that deleting the conversation does not delete them, and records a question's text in the owner's usage record only when the visitor was shown that notice. The notice is composed from the guest policy's `usageRecord` retention and returned by the guest session with a revision; the standalone Ask page and the shared Ask box show it as a visible line that describes the question field, and each question carries the revision it was shown. Question text is kept within the policy's new required `usageRecord.questionBytes`, cut on a character boundary and marked when cut; the presets keep 16,000 bytes.
+
+## 0.2.0-alpha.415
+
+### Patch Changes
+
+- [#367](https://github.com/rizom-ai/brains/pull/367) [`7957c18`](https://github.com/rizom-ai/brains/commit/7957c18f85f4e481123c50324462b3895eb956c6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Guest chat turns now settle their actual cost. The guest turn budget records the usage the provider reported for every model call (input, cached, cache-write and output tokens, reasoning included) and every query embedding, and the OpenAI guest profile prices it at a pinned revision of the published gpt-5.6-luna and text-embedding-3-small rates, charging requests over 272K input tokens at the long-context rates throughout. The settlement travels on the agent response as `guestSettlement` and is kept in the owner's usage record with the turn's outcome. A turn whose usage is missing, a long-context request with cached input (whose rate is not published), or an accounting without pricing is recorded as unknown cost, never as zero; quotes are never recorded as cost.
+
+## 0.2.0-alpha.414
+
+### Patch Changes
+
+- [#366](https://github.com/rizom-ai/brains/pull/366) [`53f028a`](https://github.com/rizom-ai/brains/commit/53f028a7d1ebe2a038c6a2ebed8c264d24b4656a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Guest chat now keeps an owner's record of what its public endpoint did. Each guest request takes a place in the record before admission is asked, so a full or unwritable record refuses the request (the existing `unavailable` response) instead of running work nobody can see, and spends no allowance. An admitted request is recorded as unresolved before any generation and records its outcome once; work that stops without one stays visibly unresolved. The record holds no credential, conversation locator or reply, and names a visitor only by a digest salted per deployment. Guest policies now carry a required `usageRecord` section with finite `maxRecords` and `retentionSeconds`; the built-in presets set both.
+
+## 0.2.0-alpha.413
+
+### Patch Changes
+
+- [#365](https://github.com/rizom-ai/brains/pull/365) [`210ef3c`](https://github.com/rizom-ai/brains/commit/210ef3c55d778720bf113120d25502fd1cf62da5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On touch screens the homepage topics now get the tap size and spacing meant for them: the touch styles came before the resting styles they override, so at equal specificity the resting padding and gap won and the choices sat 37px tall and nearly touching. They are now 44px targets with room between them.
+
+## 0.2.0-alpha.412
+
+### Patch Changes
+
+- [#364](https://github.com/rizom-ai/brains/pull/364) [`e811d5d`](https://github.com/rizom-ai/brains/commit/e811d5d2e145c325c3e1d91fe93412b7c5417c7a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The professional homepage's topics now carry into the contact form: each topic links to the form with the topic, and the form starts the visitor's message with it (bounded and escaped), so the thread they picked is not lost on the way. Links to the form also carry the visitor's current light or dark theme, which the script-free form cannot read itself, and follow a change. On touch screens, where no hover reveals them, the topics rest as the choices they are.
+
+- [#364](https://github.com/rizom-ai/brains/pull/364) [`e324acb`](https://github.com/rizom-ai/brains/commit/e324acb5cbdae3d12aa850b6795b6fceba18aaa9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Atlas territory names now move in proportion to the map: a desktop map finds every name a place near its territory, while a phone map, too small for all of them, keeps the largest territories named at full size and never lets a name wander off to another part of the map. A name the map cannot fit keeps its place empty, so a smaller territory's name never stands in for it, and each mark's card now names its territory, so every territory stays one tap away. On touch screens the open card's title is underlined, since the card is the way in.
+
+- [#364](https://github.com/rizom-ai/brains/pull/364) [`d248e16`](https://github.com/rizom-ai/brains/commit/d248e16eca3f5a21fb2103e92e7afbda9ddf3466) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The contact form now speaks to the visitor. It names who the note goes to from the Brain's profile ("Write to Yeehaa"), says in plain words that the note is private, never published and never part of what the site knows, and states on the form how long a note is kept, that deletion can run late and that backups may keep earlier copies. The confirmation says the note is saved without promising the owner's alert arrived. Labels, the button ("Send note") and errors use sentence case and plain wording instead of the console's uppercase mono chrome, and inputs and the button have rounded corners; the page still loads no external fonts, assets or scripts.
+
+## 0.2.0-alpha.411
+
+### Patch Changes
+
+- [#362](https://github.com/rizom-ai/brains/pull/362) [`ba403f4`](https://github.com/rizom-ai/brains/commit/ba403f4423a71cd7a4969b49c624d7d47c53dc69) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The atlas never shows a chat box that cannot answer. Web Chat now records the Ask box as available publicly only for a configured guest policy, and on preview for managed guest chat only while the owner has it switched on; it rewrites the record on every start and activation change. The shared box boot marks its host `data-ask-ready` once the controls are live, and the atlas keeps the box out of sight until then. On phones, the atlas text flows with the page with the box docked, instead of scrolling inside a clipped column.
+
+## 0.2.0-alpha.410
+
+### Patch Changes
+
+- [#361](https://github.com/rizom-ai/brains/pull/361) [`7ac481d`](https://github.com/rizom-ai/brains/commit/7ac481d869b35bd914a49c82da88124d70ed89a0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The atlas homepage docks the guest chat box on deployments that run a separate worker. Web Chat now records in shared runtime state whether it serves the shared Ask box boot (and on preview), and site builds read that record instead of Web Chat's routes, which a worker does not have. Without the record, or with guest chat off, the homepage keeps only the contact door.
+
+- [#360](https://github.com/rizom-ai/brains/pull/360) [`fde11f4`](https://github.com/rizom-ai/brains/commit/fde11f4b9c2bc169e9738dcef5c05acdbe0a3666) Thanks [@yeehaa123](https://github.com/yeehaa123)! - On phones the atlas text now starts where the map's content ends: the build records how far down marks and names reach, and the legend and the opening move up over the fading outer rings instead of leaving an empty strip. Long territory names wrap to two short lines on phones, so more of them fit, and names stay above that line.
+
+## 0.2.0-alpha.409
+
+### Patch Changes
+
+- [#358](https://github.com/rizom-ai/brains/pull/358) [`a83fa6f`](https://github.com/rizom-ai/brains/commit/a83fa6f699695f7011db996b98d93c661e429c41) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Atlas territory names no longer collide on real maps. The build keeps each name inside the map's edges, and the atlas script re-places names by their rendered size, largest territory first: each takes the nearest free spot off marks and apart from other names, or is hidden when none is free. On phones the first screen now holds the map and the headline together, with a compact legend on the map's lower fade and a quieter byline.
+
+## 0.2.0-alpha.408
+
+### Patch Changes
+
+- [#357](https://github.com/rizom-ai/brains/pull/357) [`e44477c`](https://github.com/rizom-ai/brains/commit/e44477c763351b94692a98c1d13c554cc02325d9) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Contact intake and the homepage opening work when a brain runs a separate worker process. The worker now builds contact's intake and declares its routes, so site builds there see the form, and it can run contact's daily maintenance, whose freshness is shared through runtime state; before, the check failed as unknown in the worker and intake closed as overdue after 26 hours. The worker never serves or gates the form. The homepage opening no longer requires an advertised contact endpoint, which only the web process registers, so preview and production builds in the worker render it.
+
+## 0.2.0-alpha.407
+
+### Patch Changes
+
+- [#356](https://github.com/rizom-ai/brains/pull/356) [`249fcec`](https://github.com/rizom-ai/brains/commit/249fcec187ca4c3a837c49bba554e0d8f7311c23) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Contact intake works behind a TLS-terminating proxy and on the preview host. With `http.trustForwardedProto: true`, a request forwarded as plain HTTP by a loopback or private-network proxy (such as Kamal's) counts as HTTPS when the proxy reports `X-Forwarded-Proto: https`; the header is ignored from public peers, and visitor identity stays the socket peer. With `preview: true`, the form also serves the deployment's preview origin, and a preview build's homepage opening links its contact door there.
+
+## 0.2.0-alpha.406
+
+### Minor Changes
+
+- [#355](https://github.com/rizom-ai/brains/pull/355) [`9204df2`](https://github.com/rizom-ai/brains/commit/9204df219fee7f726a38ba60281f780373110403) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The professional homepage atlas docks the public chat when guest chat is enabled: the composer sits in the opening, topics fill its draft instead of opening the contact form, and a finished answer lights the sources it drew on and turns the map towards them, zooming only as far as keeps each in view. On desktop, dotted leads run from each source the answer lists to its mark. Without guest chat, the topics stay links to the contact form.
+
+  Web Chat now serves the shared Ask box boot at `/ask/assets/box.js`, only while guest assets are enabled. It enhances every host that renders the `@brains/contracts` ask-box markup, never sends on load or focus, and keeps the draft with an unavailable notice when the box cannot load. The mounted box reports each answer's sources to its host as an `ask:sources` event, and each source it lists carries `data-ask-source` with the same `entityType:entityId` key. Hosts that set `data-ask-styled` get Web Chat's shared box presentation, themed with `--ask-*` tokens that default to the site theme; the dashboard's Ask panel now uses it.
+
+- [#355](https://github.com/rizom-ai/brains/pull/355) [`40c3e77`](https://github.com/rizom-ai/brains/commit/40c3e77ce66a3dadabb342ca6e2bf8ce1e3f7777) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Professional sites that opt into the authored homepage opening now render it as an atlas: everything published — essays, talks and projects — placed by topic on server-rendered topographic terrain from the knowledge map, with the authored opening and the contact door over it. Every word on the page is authored: Ask content gains optional `topicsHeading`, `contactLabel`, `contactNote`, `attribution` and `mapCaption`, and copy nobody wrote is left out. Drafts and private entities never appear; without embeddings the opening and door render on their own. The page works without JavaScript; a small script ships only with the atlas to let the terrain drift slowly (still under reduced motion and off screen) and to open a mark's title on the first tap on touch screens.
+
+### Patch Changes
+
+- [#355](https://github.com/rizom-ai/brains/pull/355) [`56d0c9e`](https://github.com/rizom-ai/brains/commit/56d0c9e48bcb8226bd88709a0da2041862275cbc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix the no-JavaScript contact form rejecting legitimate submissions: its pages sent `Referrer-Policy: no-referrer`, so browsers posted the form with `Origin: null` and the strict origin check refused it. The pages now use `same-origin`, which keeps referrers from leaving the site while identifying same-origin posts. The retention notice also reads "1 day" instead of "1 days".
+
+- [#355](https://github.com/rizom-ai/brains/pull/355) [`262ae00`](https://github.com/rizom-ai/brains/commit/262ae00e458c936d25ef941d5a7bdbf2f5295188) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Stop warning on every site build that static pages have "no formatter but saved content was requested". Site builds offer saved content to every section; templates without a formatter now skip it quietly.
+
+## 0.2.0-alpha.405
+
+### Patch Changes
+
+- [#353](https://github.com/rizom-ai/brains/pull/353) [`eef433e`](https://github.com/rizom-ai/brains/commit/eef433e436770aca170136cb5b2e79b304ae2c55) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Apply bounded asynchronous SQLite lock retries to queue claims, progress, heartbeats and terminal writes, including contention with enqueue transactions through the same client. Preserve attempt/session fencing and existing job retry policy; retry rejected database statements rather than handlers, and propagate non-lock errors or an exhausted write budget.
+
+## 0.2.0-alpha.404
+
+### Patch Changes
+
+- [#302](https://github.com/rizom-ai/brains/pull/302) [`18f2586`](https://github.com/rizom-ai/brains/commit/18f2586ba20a15400402d34d4289d6035c6f9e3b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Build the browser-safe Chat export separately from server library chunks. Server subpaths still share their runtime, while browser consumers no longer inherit Node-only imports through shared chunks. Keep frontmatter-only contract parsing independent of Markdown AST initialization, so the export also loads in headless runtimes without a DOM. Verify the exact packed export with the existing browser-build and headless canary.
+
+- [#302](https://github.com/rizom-ai/brains/pull/302) [`18f2586`](https://github.com/rizom-ai/brains/commit/18f2586ba20a15400402d34d4289d6035c6f9e3b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A registered entity type can now carry its own `actionPolicy` floor, so an admin-only type stays admin-only in a brain assembled without the bundle carrying its rule. Each action preserves the stricter of the type's minimum and the wildcard policy, including `never`; an explicit per-type entry still overrides the result. Primary buttons keep a visible hover cue when motion is reduced. System forms omit empty field sections, including the Groupings reader's empty Access section.
+
+  Add admin-managed grouping vocabularies in Studio's System → Structure area. Admins can close a grouping to an exact list of values and choose single or multiple membership without restarting. Trusted editors choose from dropdowns or checkboxes; open groupings keep literal input. The vocabulary is always shared so the editors it constrains can read it. Create/update persistence enforces closed lists across Studio, tools, MCP and imports.
+
+  **Derived projection upserts are now validated.** They previously wrote without owner validation or persist validators; they now reconstruct the adapter's fields, project membership from the full source, and run both inside the admitted rule transaction. A rule can no longer write an entity its own type would reject, and supplied metadata cannot invent membership the source does not carry. A refusal rolls back the entire rule result, including export intents and ownership claims, and completed rule reports stay idempotent. Queued directory imports and cleanup retain their durable batch identity through the active-service facade rather than attempting to open unrelated nested batches. Policy-refused imports fail without quarantining valid source. Existing out-of-list values stay visible and marked, never rewritten. Persist validators compose with owner constraints instead of replacing them. Validation field issues survive separate runtime/plugin module copies. Primary buttons retain their contrast-tested colors on hover, and membership warnings stay visible on phones.
+
+  Add configurable, visibility-scoped virtual collections across entity types, with source-authoritative frontmatter membership, startup reprojection, and Studio browsing and editor return navigation. Multiple grouping fields and multiple values per field are supported without copying entities or changing file placement.
+
+  Notes use the normal frontmatter/Properties editor while their type participates in any registered grouping, including Notes with no membership. Notes without a grouping retain whole-document Markdown editing. Removing configuration preserves authored fields. Grouping inputs preserve literal commas and whitespace with explicit Enter/Add submission, mark spaces a reader could not otherwise see, and offer the values that already exist so exact matching does not fragment one group into several. Ordinary tag inputs and stored memberships are unchanged.
+
+  **Behaviour change for every frontmatter entity type:** ordinary frontmatter-form saves and entity exports now preserve existing unclaimed, non-policy frontmatter keys instead of dropping them, including inactive grouping fields. Preservation does not authorize arbitrary new form fields, and explicit full-source replacement remains authoritative. Field-update tools author registered extension fields in Markdown and show their actual previous source values in confirmation previews.
+
+  Each registered field is validated against its own schema entry, so frontmatter the entity owner rejects elsewhere in the document no longer removes an entity from its collections. The bounded startup pass runs on each serving start, including after register-only writes with grouping disabled or changed field constraints. It commits metadata updates in bounded 200-row pages instead of one transaction per entity, retaining per-row source/revision checks, bounded conflict retries, and no-resurrection guarantees. Reusable owner fields are compared conservatively without dropping runtime checks. Failed suggestion refetches discard previously readable values, and the empty-value display marker cannot collide with a literal authored name.
+
+## 0.2.0-alpha.403
+
+### Patch Changes
+
+- [#352](https://github.com/rizom-ai/brains/pull/352) [`d991409`](https://github.com/rizom-ai/brains/commit/d9914097d9c7a915e310b1d02062fc14472a4318) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix directory imports and orphan cleanup failing with “Projection batch cannot join active batch” when executed as children of a queued sync. Carry the durable root batch identity through the inner DirectorySync operations instead of generating a conflicting callback batch ID. Keep coordinator identity fencing and standalone callback batches unchanged.
+
 ## 0.2.0-alpha.402
 
 ### Minor Changes

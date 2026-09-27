@@ -7,6 +7,10 @@ import type {
 } from "@brains/plugins";
 import { CallbackProgressReporter } from "@brains/utils/progress";
 import { NotificationsPlugin } from "@brains/notifications";
+import {
+  SITE_METADATA_GET_CHANNEL,
+  SITE_METADATA_UPDATED_CHANNEL,
+} from "@brains/site-composition";
 import { ContactPlugin, contactPlugin, contactRequestSchema } from "../src";
 import {
   contactPluginConfigSchema,
@@ -29,16 +33,28 @@ const config: ContactPluginConfig = {
   },
 };
 type Harness = ReturnType<typeof createPluginHarness>;
-async function setup(executionOnly = false): Promise<{
+/** One brain process. A worker shares the web process's runtime state, as the
+ * deployed web and worker processes share their runtime database. */
+async function setup(
+  executionOnly = false,
+  sharesStateWith?: Harness,
+): Promise<{
   h: Harness;
   shell: ReturnType<Harness["getMockShell"]>;
   checks: RecurringCheckDefinition[];
   sent: ChannelDeliveryInput[];
+  /** What the owner's email transport answers; switch to fail an alert. */
+  transport: { status: "sent" | "failed" };
   plugin: ContactPlugin;
   handlers: Map<string, JobHandler>;
 }> {
-  const h = createPluginHarness();
+  // The deployment domain gives the runtime its site and preview URLs.
+  const h = createPluginHarness({ domain: "brain.test" });
   const shell = h.getMockShell();
+  if (sharesStateWith)
+    spyOn(shell, "getRuntimeState").mockReturnValue(
+      sharesStateWith.getMockShell().getRuntimeState(),
+    );
   const checks: RecurringCheckDefinition[] = [];
   const handlers = new Map<string, JobHandler>();
   spyOn(shell.getJobQueueService(), "registerHandler").mockImplementation(
@@ -71,6 +87,7 @@ async function setup(executionOnly = false): Promise<{
   const [entityPlugin, plugin] = contactPlugin(config);
   await entityPlugin.register(shell);
   const sent: ChannelDeliveryInput[] = [];
+  const transport: { status: "sent" | "failed" } = { status: "sent" };
   const channels = shell.getChannelRegistry();
   channels.registerDescriptor("test-email", {
     type: "email",
@@ -81,6 +98,8 @@ async function setup(executionOnly = false): Promise<{
     channelType: "email",
     isAvailable: async () => true,
     send: async (message) => {
+      if (transport.status === "failed")
+        return { status: "failed", failureCode: "test-transport" };
       sent.push(message);
       return { status: "sent" };
     },
@@ -90,7 +109,7 @@ async function setup(executionOnly = false): Promise<{
     defaultRecipient: { type: "email", address: "owner@example.com" },
   }).register(shell, { executionOnly });
   await plugin.register(shell, { executionOnly });
-  return { h, shell, checks, sent, plugin, handlers };
+  return { h, shell, checks, sent, transport, plugin, handlers };
 }
 async function submit(plugin: ContactPlugin): Promise<Response> {
   const get = plugin
@@ -182,6 +201,53 @@ describe("contact runtime", () => {
       )?.status,
     ).toBe(503);
   });
+  it("opens the form in the site's own theme and follows changes to it", async () => {
+    const f = await setup();
+    const bus = f.shell.getMessageBus();
+    const site = { title: "Brain", description: "A site" };
+    bus.subscribe(SITE_METADATA_GET_CHANNEL, async () => ({
+      success: true,
+      data: { ...site, themeMode: "light" },
+    }));
+    await f.plugin.ready();
+    const get = f.plugin
+      .getWebRoutes()
+      .find((route) => route.path === "/contact" && route.method === "GET");
+    if (!get) throw new Error("Missing form route");
+    const theme = async (): Promise<string | undefined> =>
+      /<html lang="en" data-theme="(\w+)">/.exec(
+        await (
+          await get.handler(new Request(`${origin}/contact`), {
+            remoteAddress: peer,
+          })
+        ).text(),
+      )?.[1];
+
+    expect(await theme()).toBe("light");
+    await bus.send({
+      type: SITE_METADATA_UPDATED_CHANNEL,
+      payload: { ...site, themeMode: "dark" },
+      sender: "site-info",
+      broadcast: true,
+    });
+    expect(await theme()).toBe("dark");
+    await f.plugin.shutdown();
+  });
+
+  it("serves the deployment's preview host when preview is on", async () => {
+    const f = await setup();
+    await f.plugin.ready();
+    const get = f.plugin
+      .getWebRoutes()
+      .find((route) => route.path === "/contact" && route.method === "GET");
+    const response = await get?.handler(
+      new Request("https://preview.brain.test/contact"),
+      { remoteAddress: peer },
+    );
+    expect(response?.status).toBe(200);
+    await f.plugin.shutdown();
+  });
+
   it("closes stale or failed retention, retries cleanup, and makes old queued deliveries harmless", async () => {
     let f: Awaited<ReturnType<typeof setup>> | undefined;
     try {
@@ -248,13 +314,47 @@ describe("contact runtime", () => {
     }
   });
 
-  it("registers delivery handlers but no routes or recurring work in execution-only workers", async () => {
+  it("in a separate worker, declares the form for site builds and runs maintenance, but never serves", async () => {
     const f = await setup(true);
     await f.plugin.ready();
-    expect(f.plugin.getWebRoutes()).toEqual([]);
-    expect(f.checks).toEqual([]);
+    const routes = f.plugin.getWebRoutes();
+    expect(routes.map((route) => `${route.method} ${route.path}`)).toEqual([
+      "GET /contact",
+      "POST /contact",
+      "GET /contact/thanks",
+    ]);
+    expect(routes.every((route) => route.public && route.preview)).toBe(true);
+    const response = await routes[0]?.handler(
+      new Request(`${origin}/contact`),
+      {
+        remoteAddress: peer,
+      },
+    );
+    expect(response?.status).toBe(503);
+    expect(f.checks.map((check) => check.id)).toEqual(["maintenance"]);
     expect(f.handlers.has("contact:notify")).toBe(true);
     await f.plugin.shutdown();
+  });
+
+  it("keeps the form open while a separate worker runs its daily maintenance", async () => {
+    const web = await setup();
+    const worker = await setup(true, web.h);
+    await web.plugin.ready();
+    await worker.plugin.ready();
+    const hour = 60 * 60 * 1000;
+    try {
+      setSystemTime(new Date(Date.now() + 24 * hour));
+      const maintenance = worker.checks[0];
+      if (!maintenance) throw new Error("Missing maintenance");
+      await maintenance.run({ signal: new AbortController().signal });
+      // 27 hours after the web process last maintained, 3 after the worker did.
+      setSystemTime(new Date(Date.now() + 3 * hour));
+      expect((await submit(web.plugin)).status).toBe(303);
+    } finally {
+      setSystemTime();
+      await worker.plugin.shutdown();
+      await web.plugin.shutdown();
+    }
   });
   it("fails closed on startup without the configured authenticated Inbox destination", async () => {
     const f = await setup();
@@ -264,6 +364,56 @@ describe("contact runtime", () => {
     );
     await f.plugin.shutdown();
   });
+  it("reports a failed alert as degraded until its request is marked Done", async () => {
+    const f = await setup();
+    f.transport.status = "failed";
+    await f.plugin.ready();
+    expect((await submit(f.plugin)).status).toBe(303);
+    const job = (await f.shell.getJobQueueService().getActiveJobs())[0];
+    const handler = job && f.handlers.get(job.type);
+    if (!job || !handler) throw new Error("Missing delivery job");
+    const attempt = (): Promise<unknown> =>
+      handler
+        .process(
+          JSON.parse(job.data),
+          job.id,
+          CallbackProgressReporter.noop(),
+          new AbortController().signal,
+        )
+        .catch((error: unknown) => error);
+    const unavailable = new Error("Contact notification unavailable");
+    expect(await attempt()).toEqual(unavailable);
+    expect(await attempt()).toEqual(unavailable);
+    expect(await attempt()).toBe("failed");
+    const intake = async (): Promise<unknown> =>
+      (await f.shell.getOperationalHealthRegistry().getChecks())[0];
+    expect(await intake()).toMatchObject({
+      status: "degraded",
+      details: {
+        failed: 1,
+        failedUnhandled: 1,
+        failures: { "test-transport": 1 },
+      },
+    });
+
+    const registry = f.shell.getInboxRegistry();
+    registry.finalize();
+    const inbox = registry.getSource("contact-requests");
+    const [request] = (await inbox?.list()) ?? [];
+    if (!inbox || !request) throw new Error("Missing Inbox request");
+    await inbox.act(request.id, "mark-handled", { permissionLevel: "admin" });
+
+    expect(await intake()).toMatchObject({
+      status: "healthy",
+      details: {
+        failed: 1,
+        failedUnhandled: 0,
+        failures: { "test-transport": 1 },
+      },
+    });
+    await f.plugin.shutdown();
+  });
+
   it("recovers enqueue failures on recurring maintenance and reports sanitized health", async () => {
     const f = await setup();
     await f.plugin.ready();

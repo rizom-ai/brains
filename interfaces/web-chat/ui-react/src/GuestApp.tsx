@@ -5,6 +5,7 @@ import {
   type ChatClient,
   type ChatHistoryMessage,
   type GuestChatSessionResponse,
+  type ChatCard,
 } from "@brains/contracts/chat";
 import { GuestPage } from "./GuestPage";
 import { GuestBox } from "./GuestBox";
@@ -27,6 +28,7 @@ export function GuestApp({
   initialSubmit = false,
   name = "the Brain",
   siteLabel = "Brain",
+  onAnswered,
 }: {
   client?: ChatClient;
   box?: boolean;
@@ -34,6 +36,8 @@ export function GuestApp({
   initialSubmit?: boolean;
   name?: string;
   siteLabel?: string;
+  /** Told which sources each completed answer drew on (see mountGuestBox). */
+  onAnswered?: (cards: ChatCard[]) => void;
 }): ReactElement {
   const [client] = useState(() => suppliedClient ?? createWebChatClient());
   const {
@@ -95,6 +99,7 @@ export function GuestApp({
     showHistory,
     draft,
     setDraft,
+    ...(onAnswered ? { onAnswered } : {}),
     onStart: (): void => {
       restoreFocus.current = true;
       setDeleting(false);

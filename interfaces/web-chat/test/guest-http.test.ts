@@ -10,8 +10,24 @@ import {
   type ChatCard,
   type ChatMessageRequest,
   type ChatProtocolEvent,
+  type GuestTurnSettlement,
 } from "@brains/contracts/chat";
-import type { IAgentService, IConversationService } from "@brains/plugins";
+import {
+  NOTE_CAPTURE_MESSAGE,
+  type NoteCaptureRequest,
+  type NoteCaptureResponse,
+} from "@brains/contracts";
+import {
+  BaseEntityAdapter,
+  baseEntitySchema,
+  STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  type BaseEntity,
+  type IAgentService,
+  type IConversationService,
+  type StudioWorkspaceActor,
+  type StudioWorkspaceRegistration,
+} from "@brains/plugins";
+import { z } from "@brains/utils/zod";
 import {
   createPluginHarness,
   type PluginTestHarness,
@@ -20,6 +36,12 @@ import { deferred } from "@brains/utils/deferred";
 import { WebChatInterface } from "../src/web-chat-interface";
 import { resolveGuestPreset } from "../src/guest-preset";
 import { testGuestPolicy } from "./fixtures/guest-policy";
+import {
+  GuestUsageRecord,
+  type GuestUsageBounds,
+  type GuestUsageDenial,
+  type GuestUsageEvent,
+} from "../src/guest-usage-record";
 
 type Conversation = NonNullable<
   Awaited<ReturnType<IConversationService["getConversation"]>>
@@ -44,9 +66,24 @@ interface Fixture {
   messages: Map<string, Message[]>;
   calls: Parameters<IAgentService["chat"]>[];
   reply: (text: string, id: string) => Promise<string>;
+  settlement: GuestTurnSettlement | undefined;
   sourceCards: Extract<ChatCard, { kind: "sources" }>[];
   readMessages: (() => Promise<void>) | undefined;
   browser: () => Browser;
+  /** The owner's usage record, as a Studio reader would see it. */
+  records: () => Promise<GuestUsageEvent[]>;
+  denials: () => Promise<GuestUsageDenial[]>;
+  /** The guest chat monitor Studio registered, if any. */
+  monitor: () => StudioWorkspaceRegistration | undefined;
+  notes: () => Promise<Array<{ content: string; visibility: string }>>;
+  /** The operator's operational health checks. */
+  health: () => ReturnType<
+    ReturnType<
+      ReturnType<
+        PluginTestHarness<WebChatInterface>["getMockShell"]
+      >["getOperationalHealthRegistry"]
+    >["getChecks"]
+  >;
 }
 async function setup(
   options: {
@@ -59,6 +96,9 @@ async function setup(
     managed?: boolean;
     idleSeconds?: number;
     peerAddress?: string | null;
+    usageRecord?: GuestUsageBounds;
+    /** Whether the brain has the note type a question can be saved as. */
+    notes?: boolean;
   } = {},
 ): Promise<Fixture> {
   const deploymentOrigin = options.origin ?? origin;
@@ -75,9 +115,31 @@ async function setup(
     readMessages: undefined,
     sourceCards: [],
     reply: async (): Promise<string> => "Mock public-source answer",
+    settlement: undefined,
     browser: (): Browser => {
       throw new Error("Not installed");
     },
+    records: async (): Promise<GuestUsageEvent[]> =>
+      new GuestUsageRecord(
+        harness.getMockShell().getRuntimeState(),
+        testGuestPolicy.usageRecord,
+        () => state.now,
+      ).list(1000),
+    health: () =>
+      harness.getMockShell().getOperationalHealthRegistry().getChecks(),
+    monitor: (): StudioWorkspaceRegistration | undefined =>
+      workspaces.find((workspace) => workspace.id.endsWith(":guest-chat")),
+    notes: async (): Promise<Array<{ content: string; visibility: string }>> =>
+      captured.map((note) => ({
+        content: note.body,
+        visibility: "restricted",
+      })),
+    denials: async (): Promise<GuestUsageDenial[]> =>
+      new GuestUsageRecord(
+        harness.getMockShell().getRuntimeState(),
+        testGuestPolicy.usageRecord,
+        () => state.now,
+      ).denials(1000),
   };
   harness.getMockShell().setConversationService({
     startConversation: async (request): Promise<string> => {
@@ -148,6 +210,7 @@ async function setup(
         text: reply,
         cards: state.sourceCards,
         usage: { promptTokens: 1, completionTokens: 1, totalTokens: 2 },
+        ...(state.settlement ? { guestSettlement: state.settlement } : {}),
       };
     },
     confirmPendingAction: async (): Promise<never> => {
@@ -155,6 +218,43 @@ async function setup(
     },
     invalidateAgent: (): void => {},
   });
+  const workspaces: StudioWorkspaceRegistration[] = [];
+  harness
+    .getMockShell()
+    .getMessageBus()
+    .subscribe<StudioWorkspaceRegistration>(
+      STUDIO_WORKSPACE_REGISTER_MESSAGE,
+      (registration) => {
+        workspaces.push(registration.payload);
+        return {
+          success: true,
+          data: {
+            workspaceUrl: `/studio/workspaces/${registration.payload.id}`,
+          },
+        };
+      },
+    );
+  // Stands in for the note plugin: it answers captures and owns the note type.
+  const captured: NoteCaptureRequest[] = [];
+  if (options.notes) {
+    harness
+      .getMockShell()
+      .getEntityRegistry()
+      .registerEntityType("note", baseEntitySchema, new NoteFixtureAdapter());
+    harness
+      .getMockShell()
+      .getMessageBus()
+      .subscribe<NoteCaptureRequest, NoteCaptureResponse>(
+        NOTE_CAPTURE_MESSAGE,
+        (message) => {
+          captured.push(message.payload);
+          return {
+            success: true,
+            data: { noteId: message.payload.id, created: true },
+          };
+        },
+      );
+  }
   const defaults = resolveGuestPreset("local-test");
   if (!defaults.enabled) throw new Error("Expected shared guest defaults");
   const plugin = new WebChatInterface(
@@ -178,6 +278,8 @@ async function setup(
                   : {
                       ...testGuestPolicy,
                       origin: deploymentOrigin,
+                      usageRecord:
+                        options.usageRecord ?? testGuestPolicy.usageRecord,
                       limits: {
                         ...testGuestPolicy.limits,
                         streamIdleTimeoutSeconds:
@@ -200,6 +302,8 @@ async function setup(
     },
   );
   await harness.installPlugin(plugin);
+  // The shell readies plugins after registration; Studio workspaces register then.
+  await plugin.ready();
   // The real HTTP host snapshots routes before activation, not per request.
   const routes = plugin.getWebRoutes();
   state.browser = (): Browser => {
@@ -311,6 +415,13 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     expect(
       (await browser.fetch("/ask/assets/guest.js", { method: "GET" })).status,
     ).toBe(200);
+    for (const asset of ["/ask/assets/ask.js", "/ask/assets/ask.css"])
+      expect((await browser.fetch(asset, { method: "GET" })).status).toBe(200);
+    // The shared box boot every consuming site loads.
+    const boot = await browser.fetch("/ask/assets/box.js", { method: "GET" });
+    expect(boot.status).toBe(200);
+    expect(boot.headers.get("content-type")).toContain("text/javascript");
+    expect(await boot.text()).toContain("data-ask-box");
     const submission = randomUUID();
     const first = await post(
       browser,
@@ -641,8 +752,11 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     const state = await setup({ enabled: false });
     const browser = state.browser();
     for (const path of [
+      "/ask/assets/box.js",
       "/ask/assets/guest.js",
       "/ask/assets/guest.css",
+      "/ask/assets/ask.js",
+      "/ask/assets/ask.css",
       "/ask/assets/dashboard.js",
       "/ask/assets/dashboard.css",
     ]) {
@@ -1252,5 +1366,400 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     expect((await post(browser, message("No", id))).status).toBe(503);
     expect(await browser.client.getMessages(id)).toHaveLength(2);
     expect(await browser.client.deleteSession(id)).toEqual({ deleted: true });
+  });
+});
+
+describe("guest usage record over HTTP", () => {
+  it("records an admitted question as unresolved before running it, then its outcome", async () => {
+    const state = await setup();
+    const browser = state.browser();
+    await browser.client.openGuestSession();
+    let during: GuestUsageEvent[] = [];
+    state.reply = async (): Promise<string> => {
+      during = await state.records();
+      return "Mock public-source answer";
+    };
+    await events(await browser.client.streamMessages(message()));
+    expect(during.map((event) => event.state)).toEqual(["unresolved"]);
+    expect(during[0]?.reservedMicroUsd).toBe(100_000);
+    const [after] = await state.records();
+    expect(after?.state).toBe("completed");
+    expect(after?.settledAt).toBe(state.now);
+  });
+
+  it("records the cost the runtime settled for a turn, or unknown when it reported none", async () => {
+    const state = await setup();
+    const browser = state.browser();
+    await browser.client.openGuestSession();
+    state.settlement = {
+      usage: {
+        modelCalls: 1,
+        inputTokens: 10_000,
+        cachedInputTokens: 4_000,
+        outputTokens: 500,
+        reasoningTokens: 0,
+        embeddingTokens: 800,
+      },
+      cost: {
+        state: "known",
+        microUsd: 1_896,
+        pricing: "openai-gpt-5.6-luna-2026-09-26",
+      },
+    };
+    await events(await browser.client.streamMessages(message()));
+    state.settlement = undefined;
+    await events(await browser.client.streamMessages(message("Another")));
+    const records = await state.records();
+    expect(records.map((event) => event.cost)).toContainEqual({
+      state: "known",
+      microUsd: 1_896,
+      pricing: "openai-gpt-5.6-luna-2026-09-26",
+    });
+    expect(records.map((event) => event.cost)).toContainEqual({
+      state: "unknown",
+      reason: "missing-usage",
+    });
+  });
+
+  it("tells the visitor before they ask that questions are kept for the owner, how long, and past deletion", async () => {
+    const state = await setup();
+    const session = await state.browser().client.openGuestSession();
+    expect(session.recording.notice).toContain("kept for the owner");
+    expect(session.recording.notice).toContain("7 days");
+    expect(session.recording.notice).toContain(
+      "Deleting the conversation does not delete them",
+    );
+    expect(session.recording.revision).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("records a question only when the visitor was shown the current recording notice", async () => {
+    const state = await setup();
+    const browser = state.browser();
+    const session = await browser.client.openGuestSession();
+    await events(
+      await browser.client.streamMessages({
+        ...message("Shown the notice"),
+        disclosure: session.recording.revision,
+      }),
+    );
+    await events(await browser.client.streamMessages(message("Never shown")));
+    await events(
+      await browser.client.streamMessages({
+        ...message("Shown an old notice"),
+        disclosure: "0".repeat(64),
+      }),
+    );
+    const questions = (await state.records())
+      .map((event) => event.question)
+      .filter((question) => question !== undefined);
+    expect(questions).toEqual(["Shown the notice"]);
+  });
+
+  it("records why the admission refused a question, with the visitor's digest", async () => {
+    const state = await setup();
+    const browser = state.browser();
+    await browser.client.openGuestSession();
+    state.reply = async (): Promise<never> => {
+      throw new Error("private-provider-detail");
+    };
+    await events(await browser.client.streamMessages(message()));
+    expect((await post(browser, message("Another turn"))).status).toBe(429);
+    const [denial] = await state.denials();
+    expect(denial?.reason).toBe("visitor-busy");
+    expect(denial?.visitor).toMatch(/^[a-f0-9]{64}$/);
+    expect(JSON.stringify(await state.denials())).not.toContain("Another turn");
+  });
+
+  it("records a refused request's category without its body or a visitor", async () => {
+    const state = await setup();
+    const browser = state.browser();
+    await browser.client.openGuestSession();
+    const body = "x".repeat(testGuestPolicy.limits.contextBytes);
+    expect((await post(browser, message(body))).status).toBe(413);
+    expect(
+      (
+        await browser.fetch(base, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain" },
+          body: "not json",
+        })
+      ).status,
+    ).toBe(415);
+    const denials = await state.denials();
+    expect(denials.map((denial) => denial.reason).sort()).toEqual([
+      "media-type",
+      "oversized",
+    ]);
+    for (const denial of denials)
+      expect(Object.keys(denial)).not.toContain("visitor");
+    expect(JSON.stringify(denials)).not.toContain(body.slice(0, 32));
+  });
+
+  it("records the refusals of a full record too", async () => {
+    const state = await setup({
+      usageRecord: { ...testGuestPolicy.usageRecord, maxRecords: 1 },
+    });
+    const browser = state.browser();
+    await browser.client.openGuestSession();
+    await events(await browser.client.streamMessages(message()));
+    expect((await post(browser, message("Another question"))).status).toBe(503);
+    expect((await state.denials()).map((denial) => denial.reason)).toEqual([
+      "record-full",
+    ]);
+  });
+
+  it("keeps a deleted conversation's usage record, as the notice says", async () => {
+    const state = await setup();
+    const browser = state.browser();
+    await browser.client.openGuestSession();
+    const first = await browser.client.streamMessages(message());
+    const id = conversationId(first);
+    await events(first);
+    await browser.client.deleteSession(id);
+    expect(state.conversations.size).toBe(0);
+    expect((await state.records()).map((event) => event.state)).toEqual([
+      "completed",
+    ]);
+  });
+
+  it("reports the usage record's health to the operator, as counts only", async () => {
+    const state = await setup({
+      usageRecord: { ...testGuestPolicy.usageRecord, maxRecords: 1 },
+    });
+    const usageHealth = async (): Promise<unknown> =>
+      (await state.health()).find((check) =>
+        check.name.includes("guest-usage-record"),
+      );
+    expect(await usageHealth()).toMatchObject({ status: "healthy" });
+    const browser = state.browser();
+    const session = await browser.client.openGuestSession();
+    await events(
+      await browser.client.streamMessages({
+        ...message("A recorded question"),
+        disclosure: session.recording.revision,
+      }),
+    );
+    const full = await usageHealth();
+    expect(full).toMatchObject({
+      status: "degraded",
+      details: { records: 1, maxRecords: 1 },
+    });
+    expect(JSON.stringify(full)).not.toContain("A recorded question");
+  });
+
+  it("keeps a turn that fails or never returns unresolved", async () => {
+    const state = await setup();
+    const browser = state.browser();
+    await browser.client.openGuestSession();
+    state.reply = async (): Promise<never> => {
+      throw new Error("private-provider-detail");
+    };
+    await events(await browser.client.streamMessages(message()));
+    const records = await state.records();
+    expect(records.map((event) => event.state)).toEqual(["unresolved"]);
+    expect(JSON.stringify(records)).not.toContain("private-provider-detail");
+  });
+
+  it("refuses new work when the record is full, without running it or spending allowance", async () => {
+    const state = await setup({
+      usageRecord: {
+        ...testGuestPolicy.usageRecord,
+        maxRecords: 1,
+      },
+    });
+    const browser = state.browser();
+    await browser.client.openGuestSession();
+    await events(await browser.client.streamMessages(message()));
+    const refused = await post(browser, message("Another question"));
+    expect(refused.status).toBe(503);
+    expect(await refused.json()).toEqual({ error: "unavailable" });
+    expect(state.calls).toHaveLength(1);
+    expect(await state.records()).toHaveLength(1);
+  });
+
+  it("adds no record for a retried submission", async () => {
+    const state = await setup();
+    const browser = state.browser();
+    await browser.client.openGuestSession();
+    const request = message();
+    await events(await post(browser, request));
+    expect((await post(browser, request)).status).toBe(409);
+    expect(await state.records()).toHaveLength(1);
+  });
+});
+
+class NoteFixtureAdapter extends BaseEntityAdapter<BaseEntity> {
+  constructor() {
+    super({
+      entityType: "note",
+      purpose: "Saved visitor questions",
+      schema: baseEntitySchema,
+      frontmatterSchema: z.object({ title: z.string().optional() }),
+    });
+  }
+
+  public fromMarkdown(markdown: string): Partial<BaseEntity> {
+    return { entityType: "note", content: markdown };
+  }
+}
+
+function studioActor(permission: "trusted" | "admin"): StudioWorkspaceActor {
+  return {
+    interfaceType: "studio",
+    userId: `owner-${permission}`,
+    actor: { kind: "user", userId: `owner-${permission}` },
+    userPermissionLevel: permission,
+    visibilityScope: permission === "admin" ? "restricted" : "shared",
+    isAnchor: permission === "admin",
+  };
+}
+
+describe("guest chat monitor in Studio", () => {
+  const managed = {
+    managed: true,
+    origin: "https://preview.brain.test",
+    profileAvailable: true,
+    readiness: false,
+  } as const;
+  const signal = (): AbortSignal => new AbortController().signal;
+  async function view(state: Fixture): Promise<string> {
+    return JSON.stringify(
+      await state.monitor()?.dataProvider(studioActor("admin"), {}, signal()),
+    );
+  }
+  async function act(
+    state: Fixture,
+    request: Record<string, unknown>,
+  ): Promise<unknown> {
+    const handler = state.monitor()?.actionHandler;
+    if (!handler) throw new Error("Monitor has no actions");
+    return handler(request, studioActor("admin"), signal());
+  }
+  async function switchOn(state: Fixture): Promise<void> {
+    const prepared = z
+      .object({ token: z.string(), summary: z.string() })
+      .parse(
+        await act(state, { actionId: "switch-on", input: {}, mode: "prepare" }),
+      );
+    await act(state, {
+      actionId: "switch-on",
+      input: {},
+      confirmationToken: prepared.token,
+    });
+  }
+
+  it("is the owner's alone, at the Studio floor and at runtime", async () => {
+    const state = await setup(managed);
+    const monitor = state.monitor();
+    if (!monitor) throw new Error("Monitor was not registered");
+    expect(monitor.label).toBe("Guest chat");
+    expect(monitor.permission).toBe("admin");
+    expect(await monitor.accessHandler(studioActor("trusted"))).toBe(false);
+    expect(await monitor.accessHandler(studioActor("admin"))).toBe(true);
+  });
+
+  it("tells the truth about an empty record and a closed door", async () => {
+    const state = await setup(managed);
+    const shown = await view(state);
+    expect(shown).toContain("Guest chat is off");
+    expect(shown).toContain("No guest questions yet.");
+    expect(shown).toContain("No refusals recorded.");
+    expect(shown).toContain("switch-on");
+    expect(shown).not.toContain("switch-off");
+  });
+
+  it("opens only after a prepared confirmation, and closes at once, beside the numbers", async () => {
+    const state = await setup(managed);
+    expect(act(state, { actionId: "switch-on", input: {} })).rejects.toThrow(
+      "prepared confirmation is invalid or stale",
+    );
+    const prepared = z
+      .object({ summary: z.string() })
+      .parse(
+        await act(state, { actionId: "switch-on", input: {}, mode: "prepare" }),
+      );
+    expect(prepared.summary).toContain("2 questions");
+    await switchOn(state);
+    const browser = state.browser();
+    expect((await browser.client.openGuestSession()).canSend).toBe(true);
+    expect(await view(state)).toContain("switch-off");
+
+    await act(state, { actionId: "switch-off", input: {} });
+    expect((await post(browser, message())).status).toBe(503);
+    expect(state.calls).toHaveLength(0);
+    expect(await view(state)).toContain("Guest chat is off");
+  });
+
+  it("shows measured and unknown cost, unresolved work and refusals, beside the allowance", async () => {
+    const state = await setup(managed);
+    await switchOn(state);
+    const browser = state.browser();
+    const session = await browser.client.openGuestSession();
+    state.settlement = {
+      usage: {
+        modelCalls: 1,
+        inputTokens: 10_000,
+        cachedInputTokens: 4_000,
+        outputTokens: 500,
+        reasoningTokens: 0,
+        embeddingTokens: 800,
+      },
+      cost: {
+        state: "known",
+        microUsd: 1_896,
+        pricing: "openai-gpt-5.6-luna-2026-09-26",
+      },
+    };
+    await events(
+      await browser.client.streamMessages({
+        ...message("What is public?"),
+        disclosure: session.recording.revision,
+      }),
+    );
+    state.settlement = undefined;
+    await events(await browser.client.streamMessages(message("And then?")));
+    expect((await post(browser, message("A third"))).status).toBe(429);
+    const shown = await view(state);
+    expect(shown).toContain("$0.0019");
+    expect(shown).toContain("What is public?");
+    expect(shown).not.toContain("And then?");
+    expect(shown).toContain("Measured from provider usage");
+    expect(shown).toContain("never returns allowance");
+    expect(shown).toMatch(/"label":"Cost unknown","value":1/);
+    expect(shown).toMatch(/"label":"Questions","value":2,"max":2/);
+    expect(shown).toContain("guest-denials");
+  });
+
+  it("saves a recorded question as a note only after a prepared confirmation", async () => {
+    const state = await setup({ ...managed, notes: true });
+    await switchOn(state);
+    const browser = state.browser();
+    const session = await browser.client.openGuestSession();
+    await events(
+      await browser.client.streamMessages({
+        ...message("How do institutions forget?"),
+        disclosure: session.recording.revision,
+      }),
+    );
+    const [record] = await state.records();
+    if (!record) throw new Error("Question was not recorded");
+    const input = { recordId: record.id };
+    expect(act(state, { actionId: "save-question", input })).rejects.toThrow(
+      "prepared confirmation is invalid or stale",
+    );
+    expect(await state.notes()).toEqual([]);
+    const prepared = z
+      .object({ token: z.string(), summary: z.string() })
+      .parse(
+        await act(state, { actionId: "save-question", input, mode: "prepare" }),
+      );
+    expect(prepared.summary).toContain("How do institutions forget?");
+    await act(state, {
+      actionId: "save-question",
+      input,
+      confirmationToken: prepared.token,
+    });
+    const [note] = await state.notes();
+    expect(note?.content).toContain("How do institutions forget?");
   });
 });

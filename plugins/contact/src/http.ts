@@ -8,9 +8,12 @@ import type { ContactAdmission, ContactDenialReason } from "./admission";
 import type { ContactIntake } from "./intake";
 import { contactSubmissionSchema } from "./entity/schema";
 import { ContactHttpError, readContactForm } from "./http-body";
+import { isPrivatePeer } from "./network";
 import {
   contactForm,
   contactPage,
+  contactThanks,
+  contactUnavailable,
   type ContactDraft,
   type ContactPresentation,
 } from "./http-page";
@@ -19,32 +22,57 @@ export interface ContactHttpPolicy {
   origin: string;
   maxBodyBytes: number;
   readTimeoutMs: number;
+  /** Behind a TLS-terminating proxy on a private network (Kamal's), believe
+   * its X-Forwarded-Proto: https. Only the protocol; never a visitor address. */
+  trustForwardedProto?: boolean | undefined;
 }
+const originSchema: z.ZodString = z
+  .string()
+  .url()
+  .refine((value) => {
+    const url = new URL(value);
+    return (
+      value === url.origin &&
+      (url.protocol === "https:" ||
+        (url.protocol === "http:" &&
+          ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)))
+    );
+  }, "An exact HTTPS origin or loopback HTTP origin is required");
 export const contactHttpPolicySchema: z.ZodType<ContactHttpPolicy> =
   z.strictObject({
-    origin: z
-      .string()
-      .url()
-      .refine((value) => {
-        const url = new URL(value);
-        return (
-          value === url.origin &&
-          (url.protocol === "https:" ||
-            (url.protocol === "http:" &&
-              ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)))
-        );
-      }, "An exact HTTPS origin or loopback HTTP origin is required"),
+    origin: originSchema,
     maxBodyBytes: z.number().int().min(256).max(65536),
     readTimeoutMs: z.number().int().min(100).max(30000),
+    trustForwardedProto: z.boolean().optional(),
   });
+export interface ContactHttpOptions {
+  themeCSS?: string | undefined;
+  /** The deployment's preview origin, served alongside the policy origin. */
+  previewOrigin?: string | undefined;
+  /** Who notes go to, as the site names its owner; read per request. */
+  owner?: (() => string | undefined) | undefined;
+  /** The site's own theme, used when the visitor's link names none; read per request. */
+  defaultTheme?: (() => "light" | "dark" | undefined) | undefined;
+}
 const formSchema = z.strictObject({
   token: z.string().regex(/^[a-f0-9]{64}$/),
   ...contactSubmissionSchema.shape,
 });
+/** A site links a topic to the form; it starts the visitor's message, who can change it. */
+const TOPIC_MAX_LENGTH = 200;
+function topicDraft(url: URL): ContactDraft {
+  const topic = url.searchParams
+    .get("topic")
+    ?.trim()
+    .slice(0, TOPIC_MAX_LENGTH);
+  return topic ? { message: `${topic}\n\n` } : {};
+}
 const headers = {
   "Content-Type": "text/html; charset=utf-8",
   "Cache-Control": "no-store",
-  "Referrer-Policy": "no-referrer",
+  // no-referrer makes native browser POSTs send Origin: null. same-origin
+  // preserves the origin check while still suppressing cross-site referrers.
+  "Referrer-Policy": "same-origin",
   "X-Content-Type-Options": "nosniff",
   "Content-Security-Policy":
     "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
@@ -54,7 +82,7 @@ function denial(reason: ContactDenialReason): ContactHttpError {
     case "invalid-network":
       return new ContactHttpError(
         403,
-        "Contact requests are unavailable from this connection.",
+        "Notes can’t be sent from this connection.",
       );
     case "invalid-submission":
       return new ContactHttpError(
@@ -69,7 +97,7 @@ function denial(reason: ContactDenialReason): ContactHttpError {
     case "submission-conflict":
       return new ContactHttpError(
         409,
-        "This form was already used for a different request. Do not resend it with changed details.",
+        "This form already sent a different note. To send another, open a new form.",
       );
     case "rate-limited":
       return new ContactHttpError(
@@ -79,12 +107,12 @@ function denial(reason: ContactDenialReason): ContactHttpError {
     case "capacity":
       return new ContactHttpError(
         503,
-        "Contact intake is full. Please retry this same form later.",
+        "There’s no room for new notes right now. Please try this same form again later.",
       );
     case "unavailable":
       return new ContactHttpError(
         503,
-        "Saving could not be confirmed. Retry this same form rather than creating a second request.",
+        "Your note couldn’t be confirmed as saved. Send this same form again rather than opening a new one.",
       );
   }
 }
@@ -95,16 +123,44 @@ export class ContactHttpHandlers {
   private readonly admission: ContactAdmission;
   private readonly intake: ContactIntake;
   private readonly themeCSS: string;
+  private readonly owner: () => string | undefined;
+  private readonly defaultTheme: () => "light" | "dark" | undefined;
+  private readonly origins: readonly string[];
   constructor(
     admission: ContactAdmission,
     intake: ContactIntake,
     policy: ContactHttpPolicy,
-    themeCSS = "",
+    options: ContactHttpOptions = {},
   ) {
-    this.themeCSS = themeCSS;
+    this.themeCSS = options.themeCSS ?? "";
+    this.owner = options.owner ?? ((): undefined => undefined);
+    this.defaultTheme = options.defaultTheme ?? ((): undefined => undefined);
     this.admission = admission;
     this.intake = intake;
     this.policy = contactHttpPolicySchema.parse(policy);
+    this.origins = [
+      this.policy.origin,
+      ...(options.previewOrigin
+        ? [originSchema.parse(options.previewOrigin)]
+        : []),
+    ];
+  }
+
+  /** The URL the visitor used. A trusted private proxy's forwarded https
+   * replaces the plain http it forwards on; nothing else is taken from headers. */
+  private visitorUrl(
+    request: Request,
+    transport?: WebRouteTransportContext,
+  ): URL {
+    const url = new URL(request.url);
+    if (
+      this.policy.trustForwardedProto === true &&
+      url.protocol === "http:" &&
+      isPrivatePeer(transport?.remoteAddress) &&
+      request.headers.get("x-forwarded-proto")?.trim().toLowerCase() === "https"
+    )
+      url.protocol = "https:";
+    return url;
   }
 
   routes(preview = false): WebRouteDefinition[] {
@@ -121,21 +177,22 @@ export class ContactHttpHandlers {
   }
 
   private presentation(request: Request): ContactPresentation {
-    const theme = new URL(request.url).searchParams.get("theme");
+    const chosen = new URL(request.url).searchParams.get("theme");
+    const theme =
+      chosen === "light" || chosen === "dark" ? chosen : this.defaultTheme();
+    const owner = this.owner()?.trim();
     return {
       themeCSS: this.themeCSS,
-      ...(theme === "light" || theme === "dark" ? { theme } : {}),
+      ...(theme ? { theme } : {}),
+      ...(owner ? { owner } : {}),
     };
   }
 
   unavailable(request: Request): Response {
-    return new Response(
-      contactPage(
-        '<h1>Contact unavailable</h1><p role="alert">Contact intake is temporarily unavailable. Please retry this same form later.</p>',
-        this.presentation(request),
-      ),
-      { status: 503, headers },
-    );
+    return new Response(contactUnavailable(this.presentation(request)), {
+      status: 503,
+      headers,
+    });
   }
 
   async handle(
@@ -146,8 +203,8 @@ export class ContactHttpHandlers {
     let token = "";
     let draft: ContactDraft = {};
     try {
-      const url = new URL(request.url);
-      if (url.origin !== this.policy.origin)
+      const url = this.visitorUrl(request, transport);
+      if (!this.origins.includes(url.origin))
         throw new ContactHttpError(403, "Contact request denied.");
       if (
         url.protocol === "http:" &&
@@ -165,7 +222,7 @@ export class ContactHttpHandlers {
         throw new ContactHttpError(405, "Method not allowed.");
       if (
         request.method === "POST" &&
-        (request.headers.get("origin") !== this.policy.origin ||
+        (request.headers.get("origin") !== url.origin ||
           request.headers.get("sec-fetch-site") === "cross-site")
       )
         throw new ContactHttpError(403, "Contact request denied.");
@@ -173,13 +230,7 @@ export class ContactHttpHandlers {
       if (gate.kind === "denied") throw denial(gate.reason);
       request.signal.throwIfAborted();
       if (url.pathname === "/contact/thanks")
-        return new Response(
-          contactPage(
-            '<h1>Request saved</h1><p class="introduction">Your request is saved for the owner, who can reply by email.</p><p>Notification delivery is separate. You do not need to send another request.</p>',
-            presentation,
-          ),
-          { headers },
-        );
+        return new Response(contactThanks(presentation), { headers });
       if (request.method === "GET") {
         const form = await this.admission.issue(transport?.remoteAddress);
         if (form.kind === "denied") throw denial(form.reason);
@@ -187,7 +238,7 @@ export class ContactHttpHandlers {
           contactForm(
             form.token,
             this.intake.retentionSeconds,
-            {},
+            topicDraft(url),
             undefined,
             presentation,
           ),
@@ -247,7 +298,7 @@ export class ContactHttpHandlers {
             presentation,
           )
         : contactPage(
-            `<h1>Contact unavailable</h1><p class="notice" role="alert">${escapeHtml(failure.message)}</p><p><a href="/contact">Open the contact form</a></p>`,
+            `<h1>Contact unavailable</h1><p class="notice" role="alert">${escapeHtml(failure.message)}</p><p><a href="/contact${presentation.theme ? `?theme=${presentation.theme}` : ""}">Open a new form</a></p>`,
             presentation,
           );
       return new Response(html, { status: failure.status, headers });

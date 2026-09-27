@@ -6,6 +6,22 @@ export {
 } from "./ask-content";
 export { parseAskContent } from "./ask-content-markdown";
 export {
+  ASK_BOX_ATTRIBUTE,
+  ASK_BOX_SCRIPT_PATH,
+  ASK_BOX_STATE_KEY,
+  ASK_BOX_STATE_NAMESPACE,
+  ASK_READY_ATTRIBUTE,
+  ASK_SEND_ATTRIBUTE,
+  ASK_SOURCE_ATTRIBUTE,
+  ASK_SOURCES_EVENT,
+  ASK_STATUS_ATTRIBUTE,
+  ASK_STYLED_ATTRIBUTE,
+  askBoxAvailabilitySchema,
+  askSourcesDetailSchema,
+  type AskBoxAvailability,
+  type AskSourcesDetail,
+} from "./ask-box";
+export {
   entityReadBudgetSchema,
   type EntityReadBudget,
   type QueryEmbedding,
@@ -205,6 +221,8 @@ export {
 } from "./response-types";
 export {
   NOTIFICATIONS_SEND,
+  NOTIFICATION_FAILURES,
+  notificationFailureCode,
   notificationRecipientSchema,
   sendNotificationResultSchema,
   sendNotificationSchema,
@@ -215,6 +233,13 @@ export {
   type SendNotificationInput,
   type SendNotificationResult,
 } from "./notification";
+export {
+  NOTE_CAPTURE_MESSAGE,
+  noteCaptureRequestSchema,
+  noteCaptureResponseSchema,
+  type NoteCaptureRequest,
+  type NoteCaptureResponse,
+} from "./note-capture";
 export type {
   HeadCollectorInterface,
   HeadProps,

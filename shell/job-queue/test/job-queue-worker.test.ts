@@ -11,6 +11,7 @@ import {
 import { JobQueueWorker } from "../src/job-queue-worker";
 import { JobQueueService } from "../src/job-queue-service";
 import { createTestJobQueueDatabase } from "./helpers/test-job-queue-db";
+import { createClient } from "@libsql/client";
 import type {
   IJobQueueService,
   JobClaimOptions,
@@ -310,6 +311,66 @@ describe("JobQueueWorker", () => {
         expect((await service.getDiagnostics()).totals.processing).toBe(0);
       } finally {
         await worker.stop();
+        service.close();
+        await database.cleanup();
+      }
+    });
+
+    it("retries a contended completion write without replaying the handler", async () => {
+      const database = await createTestJobQueueDatabase();
+      const service = JobQueueService.createFresh(
+        database.config,
+        createSilentLogger(),
+      );
+      const writer = createClient({ url: database.url });
+      const handler = createMockHandler();
+      service.registerHandler("shell:embedding", handler);
+      const complete = service.complete.bind(service);
+      const fail = spyOn(service, "fail");
+      spyOn(service, "complete").mockImplementation(async (...args) => {
+        const transaction = await writer.transaction("write");
+        const release = Bun.sleep(40).then(async () => {
+          await transaction.commit();
+          transaction.close();
+        });
+        try {
+          return await complete(...args);
+        } finally {
+          await release;
+        }
+      });
+      worker = JobQueueWorker.createFresh(
+        service,
+        mockProgressMonitor,
+        createSilentLogger(),
+        { concurrency: 1, pollInterval: 10 },
+      );
+      try {
+        const id = await service.enqueue({
+          type: "shell:embedding",
+          data: { id: "entity-123", content: "test" },
+          options: {
+            source: "test",
+            metadata: { operationType: "data_processing" },
+          },
+        });
+        await worker.start();
+        await waitUntil(
+          () => worker.getStats().processedJobs === 1,
+          "a contended completion to persist",
+        );
+        expect(handler.process).toHaveBeenCalledTimes(1);
+        expect(handler.onTerminalSuccess).toHaveBeenCalledTimes(1);
+        expect(handler.onError).not.toHaveBeenCalled();
+        expect(fail).not.toHaveBeenCalled();
+        expect(await service.getStatus(id)).toMatchObject({
+          status: "completed",
+          retryCount: 0,
+        });
+        expect((await service.getDiagnostics()).totals.processing).toBe(0);
+      } finally {
+        await worker.stop();
+        writer.close();
         service.close();
         await database.cleanup();
       }

@@ -1,4 +1,10 @@
 /** @jsxImportSource react */
+import {
+  ASK_BOX_ATTRIBUTE,
+  ASK_BOX_SCRIPT_PATH,
+  ASK_SEND_ATTRIBUTE,
+  ASK_STATUS_ATTRIBUTE,
+} from "@brains/contracts";
 import type { JSX, ReactNode } from "react";
 import { defineSection, sectionGroup, z } from "@rizom/site";
 import type { SiteSectionGroup } from "@rizom/site";
@@ -199,13 +205,18 @@ function Hero(data: z.infer<typeof heroSchema>): JSX.Element {
               <div className="ui-bar">
                 <span className="brand">rizom.ai</span>
               </div>
-              <div className="talk-body">
+              <div className="talk-body" {...{ [ASK_BOX_ATTRIBUTE]: "" }}>
                 <div className="brain-box-static-scroll">
                   <div className="brain-box-welcome">
                     <h2 id="brain-chat-heading" className="display">
                       Ask
                     </h2>
                   </div>
+                  <p
+                    id="ask-status"
+                    role="status"
+                    {...{ [ASK_STATUS_ATTRIBUTE]: "" }}
+                  />
                 </div>
                 <p className="prompt-row brain-box-static-composer">
                   <textarea
@@ -219,6 +230,7 @@ function Hero(data: z.infer<typeof heroSchema>): JSX.Element {
                     type="button"
                     aria-label="Send question"
                     disabled
+                    {...{ [ASK_SEND_ATTRIBUTE]: "" }}
                   >
                     ↑
                   </button>
@@ -228,7 +240,8 @@ function Hero(data: z.infer<typeof heroSchema>): JSX.Element {
           </div>
         </div>
       </section>
-      <script src="/brain-chat.js" defer />
+      {/* Web Chat serves the shared box boot only while guest chat is enabled. */}
+      <script src={ASK_BOX_SCRIPT_PATH} defer />
       <nav className="chapter-nav shell" aria-label="What a brain does">
         {data.navigation.map((link, index) => (
           <a key={link.href} href={link.href}>

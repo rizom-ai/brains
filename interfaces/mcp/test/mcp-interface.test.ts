@@ -78,6 +78,47 @@ describe("MCPInterface", () => {
     });
   });
 
+  describe("protocol-only registration", () => {
+    it.each(["http", "stdio"] as const)(
+      "registers the same protocol without hosting %s",
+      async (transport) => {
+        const calls = installMockHttpTransport();
+        const hosted = new MCPInterface({ transport });
+        const protocol = hosted.createProtocolPlugin();
+        const capabilities = await harness.installPlugin(protocol);
+
+        expect(capabilities.tools.map((tool) => tool.name)).toEqual([
+          "chat",
+          "confirm",
+        ]);
+        expect(protocol.id).toBe("mcp");
+        expect(protocol.getWebRoutes()).toEqual([]);
+        expect(harness.getMockShell().getDaemonRegistry().getAll()).toEqual([]);
+        expect(harness.getMockShell().listEndpoints()).toEqual([]);
+        expect(harness.getMockShell().listInteractions()).toEqual([]);
+        expect(calls.protocolModes).toEqual(["basic"]);
+        expect(calls.permissionLevels).toEqual([]);
+        // Protocol-only registration does not change the original host config.
+        expect(hosted.getWebRoutes()).toHaveLength(
+          transport === "http" ? 5 : 0,
+        );
+      },
+    );
+
+    it("preserves protocol mode without carrying HTTP authentication or routes", async () => {
+      const calls = installMockHttpTransport();
+      const protocol = new MCPInterface({
+        transport: "http",
+        mode: "debug",
+        authToken: "host-only-secret",
+      }).createProtocolPlugin();
+      await harness.installPlugin(protocol);
+      expect(calls.protocolModes).toEqual(["debug"]);
+      expect(protocol.getWebRoutes()).toEqual([]);
+      expect(harness.getMockShell().getDaemonRegistry().getAll()).toEqual([]);
+    });
+  });
+
   describe("shared web routes", () => {
     it("should expose shared-host routes for HTTP transport", () => {
       const plugin = new MCPInterface({ transport: "http", httpPort: 3001 });

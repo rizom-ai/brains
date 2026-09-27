@@ -299,6 +299,7 @@ describe("fixed OpenAI guest profile (no live API)", () => {
       },
     });
     for (const cap of [163, 164]) {
+      const reported: Array<number | undefined> = [];
       const budget = new GuestTurnBudget(
         { ...testGuestExecution, maxCostMicroUsd: cap },
         profile.accounting,
@@ -306,7 +307,9 @@ describe("fixed OpenAI guest profile (no live API)", () => {
       try {
         const run = (): Promise<unknown> =>
           budget.executeTool("system_search", { query: "public" }, () =>
-            profile.queryEmbedding("public", budget.signal),
+            profile.queryEmbedding("public", budget.signal, (tokens) =>
+              reported.push(tokens),
+            ),
           );
         await expectFailure(
           run(),
@@ -317,6 +320,8 @@ describe("fixed OpenAI guest profile (no live API)", () => {
         expect(calls).toBe(cap === 163 ? 0 : 1);
         await expectFailure(run(), "Guest cost limit exceeded");
         expect(calls).toBe(cap === 163 ? 0 : 1);
+        // A sent request that failed may still be billed: its usage is unknown.
+        expect(reported).toEqual(cap === 163 ? [] : [undefined]);
       } finally {
         budget.dispose();
       }
@@ -340,29 +345,42 @@ describe("fixed OpenAI guest profile (no live API)", () => {
         });
       },
     });
-    await expectFailure(profile.queryEmbedding("public", AbortSignal.abort()));
+    const reported: Array<number | undefined> = [];
+    const record = (tokens: number | undefined): void => {
+      reported.push(tokens);
+    };
     await expectFailure(
-      profile.queryEmbedding("x".repeat(4001), new AbortController().signal),
+      profile.queryEmbedding("public", AbortSignal.abort(), record),
+    );
+    await expectFailure(
+      profile.queryEmbedding(
+        "x".repeat(4001),
+        new AbortController().signal,
+        record,
+      ),
       "Guest query embedding unavailable",
     );
     expect(calls).toBe(0);
+    expect(reported).toEqual([]);
     await expectFailure(
-      profile.queryEmbedding("public", new AbortController().signal),
+      profile.queryEmbedding("public", new AbortController().signal, record),
       "Guest query embedding unavailable",
     );
     model = "text-embedding-3-small";
     tokens = 8193;
     await expectFailure(
-      profile.queryEmbedding("public", new AbortController().signal),
+      profile.queryEmbedding("public", new AbortController().signal, record),
       "Guest query embedding unavailable",
     );
     tokens = 5;
     value = 1e300;
     await expectFailure(
-      profile.queryEmbedding("public", new AbortController().signal),
+      profile.queryEmbedding("public", new AbortController().signal, record),
       "Guest query embedding unavailable",
     );
     expect(calls).toBe(3);
+    // Unusable responses cannot prove their usage; validated usage is reported once.
+    expect(reported).toEqual([undefined, undefined, 5]);
   });
 
   it("rejects late embedding completion after cancellation without retrying", async () => {
@@ -386,14 +404,19 @@ describe("fixed OpenAI guest profile (no live API)", () => {
       profile.accounting,
       cancellation.signal,
     );
+    const reported: Array<number | undefined> = [];
     try {
       const run = (): Promise<unknown> =>
         budget.executeTool("system_search", { query: "public" }, () =>
-          profile.queryEmbedding("public", budget.signal),
+          profile.queryEmbedding("public", budget.signal, (tokens) =>
+            reported.push(tokens),
+          ),
         );
       await expectFailure(run(), "Fixture cancelled");
       await expectFailure(run(), "Fixture cancelled");
       expect(calls).toBe(1);
+      // Completed after cancellation: sent, possibly billed, usage not taken.
+      expect(reported).toEqual([undefined]);
     } finally {
       budget.dispose();
     }
