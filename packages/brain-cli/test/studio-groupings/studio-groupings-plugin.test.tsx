@@ -15,10 +15,9 @@ import {
 import { createMockShell } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
 import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
-import { studioPlugin } from "../src";
-import type { GroupingDefinitionsFrontmatter } from "../src/grouping-definitions-contract";
-import { StudioApi } from "../ui-react/src/api";
-import { mountStudio, waitForStudio } from "./fixtures/mounted-studio";
+import { studioPlugin } from "@brains/studio";
+import type { GroupingDefinitionsFrontmatter } from "@brains/studio/test";
+import { StudioApi, mountStudio, waitForStudio } from "@brains/studio/test/ui";
 
 const type = "grouping-definitions";
 const base = "/authoring";

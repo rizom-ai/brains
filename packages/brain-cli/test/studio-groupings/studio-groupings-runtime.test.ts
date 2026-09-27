@@ -2,8 +2,7 @@ import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import { act } from "react";
 import { createClient } from "@libsql/client";
 import { computeContentHash } from "@brains/utils/hash";
-import { StudioApi } from "../ui-react/src/api";
-import { mountStudio, waitForStudio } from "./fixtures/mounted-studio";
+import { StudioApi, mountStudio, waitForStudio } from "@brains/studio/test/ui";
 import {
   EntityRegistry,
   EntityService,
@@ -20,10 +19,12 @@ import {
   PermissionService,
   type EntityActionPolicyRule,
 } from "@brains/templates";
-import { registerGroupingDefinitions } from "../src/grouping-definitions";
-import type { GroupingDefinitionSource } from "../src/grouping-definition-source";
-import { createEditorRoutes } from "../src/editor-routes";
-import { StudioWorkspaceRegistry } from "../src/workspace-registry";
+import {
+  registerGroupingDefinitions,
+  type GroupingDefinitionSource,
+  createEditorRoutes,
+  StudioWorkspaceRegistry,
+} from "@brains/studio/test";
 
 const type = "grouping-definitions";
 const areas = { label: "Areas", types: ["note", "post"], multiple: true };

@@ -19,17 +19,19 @@ async function worker(dir: string): Promise<Worker> {
   >();
   const wait = (id: number): Promise<unknown> =>
     new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
+      const deadline = AbortSignal.timeout(5000);
+      const onTimeout = (): void => {
         pending.delete(id);
         reject(new Error("Grouping fixture timed out"));
-      }, 5000);
+      };
+      deadline.addEventListener("abort", onTimeout, { once: true });
       pending.set(id, {
         resolve: (value): void => {
-          clearTimeout(timer);
+          deadline.removeEventListener("abort", onTimeout);
           resolve(value);
         },
         reject: (error): void => {
-          clearTimeout(timer);
+          deadline.removeEventListener("abort", onTimeout);
           reject(error);
         },
       });
@@ -38,7 +40,7 @@ async function worker(dir: string): Promise<Worker> {
   const child = Bun.spawn(
     [
       process.execPath,
-      new URL("./fixtures/grouping-process.ts", import.meta.url).pathname,
+      new URL("./grouping-process.ts", import.meta.url).pathname,
       dir,
     ],
     {

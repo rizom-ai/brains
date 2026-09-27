@@ -7,7 +7,7 @@ import { createSilentLogger } from "@brains/test-utils";
 import { generateMarkdown } from "@brains/utils/markdown-frontmatter";
 import { getErrorMessage } from "@brains/utils/error";
 import { z } from "@brains/utils/zod";
-import { registerGroupingDefinitions } from "../../src/grouping-definitions";
+import { registerGroupingDefinitions } from "@brains/studio/test";
 
 const commandSchema = z.object({
   id: z.number(),

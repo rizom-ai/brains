@@ -2,6 +2,12 @@
 
 `@brains/studio` provides an active-session operator shell, a Trusted-floor Overview workspace, the self-service Account workspace, and Trusted entity browsing and editing while preserving entity-service conflict and pipeline semantics. Trusted and Admin sessions land in Overview; Public-rank active sessions can enter the shell and use Account. Dedicated entity, assist, upload, and agent APIs remain Trusted; repository sync diagnostics and administration workspaces remain Admin-only.
 
+## Integration test support
+
+Cross-plugin tests using real Note/Post adapters live in `packages/brain-cli/test/studio-groupings`, the application composition layer. They import backend support through `@brains/studio/test` and mounted UI support through `@brains/studio/test/ui`, not cross-package relative paths. `@brains/studio/test/preload` supplies the DOM setup alongside the existing StyleX test preload.
+
+The CLI's `studio-groupings-integration.test.ts` runs these suites in an isolated child so DOM globals and the documented test-only JIT workaround do not affect other CLI tests or production. The CLI test command delegates their execution to that wrapper rather than discovering them twice. The suites remain included in typechecking and architectural/static test checks. These entry points are test support, not production SDK exports.
+
 ## State ownership
 
 - The package-local TanStack `QueryClient` owns entity types, schemas, lists, entity snapshots, sync status, and optional agent targets.
