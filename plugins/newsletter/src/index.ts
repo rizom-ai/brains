@@ -165,13 +165,10 @@ export function newsletter(
 ): Plugin[] {
   const parsedConfig = newsletterCompositeConfigSchema.safeParse(config);
   if (!parsedConfig.success) {
-    throw new PluginConfigValidationError(
+    throw PluginConfigValidationError.fromZod(
       "newsletter",
-      parsedConfig.error.issues.map((issue) => ({
-        path: issue.path.map(String).join("."),
-        code: issue.code,
-        message: issue.message,
-      })),
+      parsedConfig.error,
+      config,
     );
   }
 
