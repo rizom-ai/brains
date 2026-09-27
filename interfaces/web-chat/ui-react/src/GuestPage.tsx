@@ -199,7 +199,6 @@ export function GuestPage(props: GuestPageProps): ReactElement {
               <textarea
                 ref={props.textareaRef}
                 id="guest-question"
-                aria-describedby="guest-recording-note"
                 value={draft}
                 onInput={(event): void =>
                   props.onDraftChange(event.currentTarget.value)
@@ -242,9 +241,6 @@ export function GuestPage(props: GuestPageProps): ReactElement {
                   </button>
                 )}
               </div>
-              <p id="guest-recording-note" className="guest-recording">
-                {session.recording.notice}
-              </p>
             </form>
           )}
         </section>

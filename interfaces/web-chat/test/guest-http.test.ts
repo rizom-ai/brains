@@ -1450,36 +1450,22 @@ describe("guest usage record over HTTP", () => {
     });
   });
 
-  it("tells the visitor before they ask that questions are kept for the owner, how long, and past deletion", async () => {
+  it("opens a session without a retention notice", async () => {
     const state = await setup();
     const session = await state.browser().client.openGuestSession();
-    expect(session.recording.notice).toBe(
-      "Questions are kept for the site owner for 7 days, even if you delete this chat.",
-    );
-    expect(session.recording.revision).toMatch(/^[a-f0-9]{64}$/);
+    expect(session).not.toHaveProperty("recording");
   });
 
-  it("records a question only when the visitor was shown the current recording notice", async () => {
+  it("records every question for the owner", async () => {
     const state = await setup();
     const browser = state.browser();
-    const session = await browser.client.openGuestSession();
-    await events(
-      await browser.client.streamMessages({
-        ...message("Shown the notice"),
-        disclosure: session.recording.revision,
-      }),
-    );
-    await events(await browser.client.streamMessages(message("Never shown")));
-    await events(
-      await browser.client.streamMessages({
-        ...message("Shown an old notice"),
-        disclosure: "0".repeat(64),
-      }),
-    );
+    await browser.client.openGuestSession();
+    await events(await browser.client.streamMessages(message("First")));
+    await events(await browser.client.streamMessages(message("Second")));
     const questions = (await state.records())
       .map((event) => event.question)
       .filter((question) => question !== undefined);
-    expect(questions).toEqual(["Shown the notice"]);
+    expect(questions.sort()).toEqual(["First", "Second"]);
   });
 
   it("records why the admission refused a question, with the visitor's digest", async () => {
@@ -1561,12 +1547,9 @@ describe("guest usage record over HTTP", () => {
       );
     expect(await usageHealth()).toMatchObject({ status: "healthy" });
     const browser = state.browser();
-    const session = await browser.client.openGuestSession();
+    await browser.client.openGuestSession();
     await events(
-      await browser.client.streamMessages({
-        ...message("A recorded question"),
-        disclosure: session.recording.revision,
-      }),
+      await browser.client.streamMessages(message("A recorded question")),
     );
     const full = await usageHealth();
     expect(full).toMatchObject({
@@ -1707,7 +1690,7 @@ describe("guest chat monitor in Studio", () => {
     const state = await setup(managed);
     await openWithBudget(state, 0.05);
     const browser = state.browser();
-    const session = await browser.client.openGuestSession();
+    await browser.client.openGuestSession();
     state.settlement = {
       usage: {
         modelCalls: 1,
@@ -1724,10 +1707,7 @@ describe("guest chat monitor in Studio", () => {
       },
     };
     await events(
-      await browser.client.streamMessages({
-        ...message("What is public?"),
-        disclosure: session.recording.revision,
-      }),
+      await browser.client.streamMessages(message("What is public?")),
     );
     state.settlement = undefined;
     await events(await browser.client.streamMessages(message("And then?")));
@@ -1735,7 +1715,7 @@ describe("guest chat monitor in Studio", () => {
     const shown = await view(state);
     expect(shown).toContain("$0.0019");
     expect(shown).toContain("What is public?");
-    expect(shown).not.toContain("And then?");
+    expect(shown).toContain("And then?");
     expect(shown).toContain("Measured from provider usage");
     expect(shown).toContain("when that cannot be measured");
     expect(shown).toMatch(/"label":"Cost unknown","value":1/);
@@ -1748,12 +1728,11 @@ describe("guest chat monitor in Studio", () => {
     const state = await setup({ ...managed, notes: true });
     await openWithBudget(state);
     const browser = state.browser();
-    const session = await browser.client.openGuestSession();
+    await browser.client.openGuestSession();
     await events(
-      await browser.client.streamMessages({
-        ...message("How do institutions forget?"),
-        disclosure: session.recording.revision,
-      }),
+      await browser.client.streamMessages(
+        message("How do institutions forget?"),
+      ),
     );
     const [record] = await state.records();
     if (!record) throw new Error("Question was not recorded");
