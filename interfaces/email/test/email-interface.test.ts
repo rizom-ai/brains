@@ -466,11 +466,58 @@ describe("EmailInterface", () => {
       sensitivity: "secret",
     });
 
+    // The provider's status names the failure; its message never travels.
     expect(result).toEqual({
       status: "failed",
-      failureCode: "email_delivery_failed",
+      failureCode: "resend_http_500",
     });
     expect(JSON.stringify(result)).not.toContain("SECRET_SETUP_URL");
+    expect(JSON.stringify(result)).not.toContain("provider failed");
+  });
+
+  it("names a refusal by the provider's error name, without its message", async () => {
+    const fetchImpl = mock(
+      async (_input: string | URL | Request) =>
+        new Response(
+          JSON.stringify({
+            statusCode: 403,
+            name: "validation_error",
+            message:
+              "The example.com domain is not verified for user@example.com",
+          }),
+          { status: 403 },
+        ),
+    );
+    const harness = createPluginHarness<EmailInterface>();
+    await harness.installPlugin(
+      new EmailInterface(
+        {
+          transport: "resend",
+          apiKey: "resend-key",
+          from: "Rover <setup@example.com>",
+        },
+        { fetchImpl },
+      ),
+    );
+    await harness.finalizeRegistration();
+    const provider = harness
+      .getMockShell()
+      .getChannelRegistry()
+      .getDeliveryProvider("email");
+
+    const result = await provider?.send({
+      recipient: "user@example.com",
+      subject: "New contact request",
+      text: "A contact request is saved.",
+      idempotencyKey: "contact-notification:contact-1",
+      sensitivity: "secret",
+    });
+
+    expect(result).toEqual({
+      status: "failed",
+      failureCode: "resend_validation_error",
+    });
+    expect(JSON.stringify(result)).not.toContain("user@example.com");
   });
 
   it("redacts failed deliveries unless the caller stated they are normal", () => {

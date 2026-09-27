@@ -7,6 +7,7 @@ import {
 } from "@brains/plugins";
 import {
   NOTIFICATIONS_SEND,
+  notificationFailureCode,
   type SendNotificationInput,
   type SendNotificationResult,
 } from "@brains/contracts";
@@ -20,7 +21,7 @@ import { ContactInboxSource } from "./inbox-source";
 import { ContactAdmission } from "./admission";
 import { ContactIntake, type ContactMaintenanceReport } from "./intake";
 import { ContactHttpHandlers } from "./http";
-import { ContactDelivery } from "./delivery";
+import { ContactDelivery, type ContactAlertOutcome } from "./delivery";
 import { ContactStorageSlots } from "./storage-slots";
 import { contactRequestSchema } from "./entity/schema";
 import { contactPluginConfigSchema, type ContactPluginConfig } from "./config";
@@ -76,7 +77,7 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
       state: context.runtimeState,
       storage: config.storage,
       policy: config.delivery,
-      send: async (idempotencyKey): Promise<boolean> => {
+      send: async (idempotencyKey): Promise<ContactAlertOutcome> => {
         const result = await context.messaging.send<
           SendNotificationInput,
           SendNotificationResult
@@ -89,11 +90,15 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
             idempotencyKey,
           },
         });
-        return (
-          !("noop" in result) &&
-          result.success &&
-          result.data?.status === "sent"
-        );
+        if ("noop" in result) return { sent: false, failure: "no-notifier" };
+        if (!result.success)
+          return {
+            sent: false,
+            failure: notificationFailureCode(result.error),
+          };
+        return result.data?.status === "sent"
+          ? { sent: true }
+          : { sent: false, failure: "unconfirmed" };
       },
     });
     context.jobs.registerHandler("notify", {
@@ -313,6 +318,17 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
         .filter(([, slot]) => slot.delivery.status === "failed")
         .map(([id]) => id);
       const failedUnhandled = await this.unhandled(entities, failed);
+      // Why failed alerts failed, by code: the cause without the server log.
+      const failures = slots
+        .flatMap(([, slot]) =>
+          slot.delivery.status === "failed"
+            ? [slot.delivery.failure ?? "unrecorded"]
+            : [],
+        )
+        .reduce<Record<string, number>>(
+          (counts, code) => ({ ...counts, [code]: (counts[code] ?? 0) + 1 }),
+          {},
+        );
       const unconfirmed = slots.filter(
         ([, slot]) => slot.phase === "writing",
       ).length;
@@ -331,6 +347,7 @@ export class ContactPlugin extends ServicePlugin<ContactPluginConfig, unknown> {
           pending,
           failed: failed.length,
           failedUnhandled,
+          failures,
           unconfirmed,
           lastMaintenanceAt: (await this.maintenanceStatus?.get("status"))?.at,
           ...this.report,

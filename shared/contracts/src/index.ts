@@ -221,6 +221,8 @@ export {
 } from "./response-types";
 export {
   NOTIFICATIONS_SEND,
+  NOTIFICATION_FAILURES,
+  notificationFailureCode,
   notificationRecipientSchema,
   sendNotificationResultSchema,
   sendNotificationSchema,

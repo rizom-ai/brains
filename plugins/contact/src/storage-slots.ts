@@ -25,6 +25,8 @@ interface DeliveryState {
   firstAttemptAt: number | null;
   leaseUntil: number;
   status: ContactDeliveryStatus;
+  /** Why the latest attempt failed: a short code, never message content. */
+  failure?: string | undefined;
 }
 export type DeliveryClaim =
   | { status: "send"; attempt: number; sendBefore: number }
@@ -53,6 +55,10 @@ const slotSchema: z.ZodType<ContactStorageSlot> = z.strictObject({
     firstAttemptAt: integer.nullable(),
     leaseUntil: integer,
     status: z.enum(["pending", "sent", "failed"]),
+    failure: z
+      .string()
+      .regex(/^[a-z0-9_:.-]{1,80}$/)
+      .optional(),
   }),
 });
 const stateSchema: z.ZodType<SlotState> = z.strictObject({
@@ -223,6 +229,7 @@ export class ContactStorageSlots {
     attempt: number,
     sent: boolean,
     maxAttempts: number,
+    failure?: string,
   ): Promise<ContactDeliveryStatus | null> {
     return this.mutate<ContactDeliveryStatus | null>((state) => {
       const slot = state.slots[id];
@@ -244,7 +251,15 @@ export class ContactStorageSlots {
           ...state,
           slots: {
             ...state.slots,
-            [id]: { ...slot, delivery: { ...delivery, status, leaseUntil: 0 } },
+            [id]: {
+              ...slot,
+              delivery: {
+                ...delivery,
+                status,
+                leaseUntil: 0,
+                ...(!sent && failure ? { failure } : {}),
+              },
+            },
           },
         },
       };
