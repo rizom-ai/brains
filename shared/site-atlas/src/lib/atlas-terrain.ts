@@ -7,6 +7,8 @@
  * deterministic, so it renders at build time and rebuilds do not churn.
  */
 
+import { sampleGrid, traceContours, type ContourGrid } from "./contours";
+
 export interface AtlasTerrainInput {
   zones: ReadonlyArray<{ x: number; y: number; members: number }>;
   items: ReadonlyArray<{ x: number; y: number }>;
@@ -22,14 +24,10 @@ export interface AtlasContour {
   d: string;
 }
 
-type Point = readonly [number, number];
-type Segment = readonly [Point, Point];
-
 /** Unit coordinates sit inside a margin so no mark touches the map's edge. */
 const INSET = 6;
 const SPAN = 100 - 2 * INSET;
 const GRID = 64;
-const SAMPLES = GRID + 1;
 const FIRST_LEVEL = 0.07;
 const LEVEL_STEP = 0.075;
 const MAX_LEVELS = 22;
@@ -45,7 +43,14 @@ export function zoneSpread(members: number): number {
   return 6 + 1.5 * Math.sqrt(members);
 }
 
-const coord = (index: number): number => (index * 100) / GRID;
+/** The terrain's sampling window: the whole viewBox. */
+const TERRAIN_GRID: ContourGrid = {
+  x0: 0,
+  y0: 0,
+  x1: 100,
+  y1: 100,
+  cells: GRID,
+};
 
 function sampleField(input: AtlasTerrainInput): number[] {
   const bumps = [
@@ -63,9 +68,7 @@ function sampleField(input: AtlasTerrainInput): number[] {
     })),
   ].map((bump) => ({ ...bump, twoSigmaSquared: 2 * bump.spread ** 2 }));
 
-  return Array.from({ length: SAMPLES * SAMPLES }, (_, sample) => {
-    const x = coord(sample % SAMPLES);
-    const y = coord(Math.floor(sample / SAMPLES));
+  return sampleGrid((x, y) => {
     return bumps.reduce((height, bump) => {
       const distanceSquared = (x - bump.x) ** 2 + (y - bump.y) ** 2;
       // Beyond ~4 sigma a bump contributes nothing visible.
@@ -74,141 +77,7 @@ function sampleField(input: AtlasTerrainInput): number[] {
         height + bump.weight * Math.exp(-distanceSquared / bump.twoSigmaSquared)
       );
     }, 0);
-  });
-}
-
-function cellSegments(
-  heights: readonly number[],
-  level: number,
-  column: number,
-  row: number,
-): Segment[] {
-  const at = (c: number, r: number): number => heights[r * SAMPLES + c] ?? 0;
-  const topLeft = at(column, row);
-  const topRight = at(column + 1, row);
-  const bottomRight = at(column + 1, row + 1);
-  const bottomLeft = at(column, row + 1);
-  const code =
-    (topLeft >= level ? 8 : 0) |
-    (topRight >= level ? 4 : 0) |
-    (bottomRight >= level ? 2 : 0) |
-    (bottomLeft >= level ? 1 : 0);
-  if (code === 0 || code === 15) return [];
-
-  const x0 = coord(column);
-  const x1 = coord(column + 1);
-  const y0 = coord(row);
-  const y1 = coord(row + 1);
-  const along = (from: number, to: number): number =>
-    (level - from) / (to - from);
-  const top = (): Point => [x0 + (x1 - x0) * along(topLeft, topRight), y0];
-  const right = (): Point => [
-    x1,
-    y0 + (y1 - y0) * along(topRight, bottomRight),
-  ];
-  const bottom = (): Point => [
-    x0 + (x1 - x0) * along(bottomLeft, bottomRight),
-    y1,
-  ];
-  const left = (): Point => [x0, y0 + (y1 - y0) * along(topLeft, bottomLeft)];
-  const centreHigh =
-    (topLeft + topRight + bottomRight + bottomLeft) / 4 >= level;
-
-  switch (code) {
-    case 1:
-    case 14:
-      return [[left(), bottom()]];
-    case 2:
-    case 13:
-      return [[bottom(), right()]];
-    case 3:
-    case 12:
-      return [[left(), right()]];
-    case 4:
-    case 11:
-      return [[top(), right()]];
-    case 6:
-    case 9:
-      return [[top(), bottom()]];
-    case 7:
-    case 8:
-      return [[left(), top()]];
-    // Saddles: the averaged centre decides which diagonal stays connected.
-    case 5:
-      return centreHigh
-        ? [
-            [left(), top()],
-            [bottom(), right()],
-          ]
-        : [
-            [left(), bottom()],
-            [top(), right()],
-          ];
-    case 10:
-      return centreHigh
-        ? [
-            [top(), right()],
-            [left(), bottom()],
-          ]
-        : [
-            [left(), top()],
-            [bottom(), right()],
-          ];
-    default:
-      return [];
-  }
-}
-
-const pointKey = (point: Point): string =>
-  `${point[0].toFixed(3)},${point[1].toFixed(3)}`;
-
-/** Joins shared endpoints so each ring becomes one polyline, not many dashes. */
-function stitch(segments: readonly Segment[]): Point[][] {
-  const byEndpoint = new Map<string, number[]>();
-  segments.forEach(([from, to], index) =>
-    [from, to].forEach((point) => {
-      const key = pointKey(point);
-      byEndpoint.set(key, [...(byEndpoint.get(key) ?? []), index]);
-    }),
-  );
-  const used = new Set<number>();
-
-  const grow = (line: Point[], atEnd: boolean): Point[] => {
-    const tip = atEnd ? line[line.length - 1] : line[0];
-    if (!tip) return line;
-    const next = (byEndpoint.get(pointKey(tip)) ?? []).find(
-      (index) => !used.has(index),
-    );
-    const segment = next === undefined ? undefined : segments[next];
-    if (next === undefined || !segment) return line;
-    used.add(next);
-    const other =
-      pointKey(segment[0]) === pointKey(tip) ? segment[1] : segment[0];
-    if (atEnd) line.push(other);
-    else line.unshift(other);
-    return grow(line, atEnd);
-  };
-
-  return segments.flatMap((segment, index) => {
-    if (used.has(index)) return [];
-    used.add(index);
-    return [grow(grow([segment[0], segment[1]], true), false)];
-  });
-}
-
-const round = (value: number): number => Math.round(value * 10) / 10;
-
-function polylinePath(line: readonly Point[]): string {
-  return line
-    .map((point) => [round(point[0]), round(point[1])] as const)
-    .filter(
-      (point, index, all) =>
-        index === 0 ||
-        point[0] !== all[index - 1]?.[0] ||
-        point[1] !== all[index - 1]?.[1],
-    )
-    .map((point, index) => `${index === 0 ? "M" : "L"}${point[0]} ${point[1]}`)
-    .join("");
+  }, TERRAIN_GRID);
 }
 
 export function buildAtlasTerrain(input: AtlasTerrainInput): AtlasContour[] {
@@ -218,16 +87,10 @@ export function buildAtlasTerrain(input: AtlasTerrainInput): AtlasContour[] {
     { length: MAX_LEVELS },
     (_, step) => FIRST_LEVEL + step * LEVEL_STEP,
   ).filter((level) => level < peak);
-  const cells = Array.from({ length: GRID * GRID }, (_, cell) => ({
-    column: cell % GRID,
-    row: Math.floor(cell / GRID),
-  }));
+  const paths = traceContours(heights, levels, TERRAIN_GRID);
 
   return levels.flatMap((level, step) => {
-    const segments = cells.flatMap(({ column, row }) =>
-      cellSegments(heights, level, column, row),
-    );
-    const d = stitch(segments).map(polylinePath).join("");
+    const d = paths[step] ?? "";
     if (!d) return [];
     const index = step % 4 === 3;
     const rise = 0.16 + (0.5 * step) / Math.max(1, levels.length - 1);

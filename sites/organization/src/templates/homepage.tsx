@@ -2,15 +2,16 @@ import type { JSX } from "react";
 import { Head } from "@brains/ui-library";
 import { HomepageAtlas } from "@brains/site-atlas";
 import type { OrganizationHomepageData } from "../schemas/homepage";
+import { AgentRadarMap } from "./agent-radar";
 
 /**
- * The organization's homepage: its opening over the atlas of the agents it
- * works with, drawn around it on the shared topographic terrain.
+ * The organization's homepage: its opening over the radar of the people,
+ * teams and organizations it works with, in the shared atlas frame.
  */
 export function OrganizationHomepage({
   profile,
   opening,
-  atlas,
+  map,
 }: OrganizationHomepageData): JSX.Element {
   const description =
     [profile.intro, profile.description, profile.tagline].find(Boolean) ??
@@ -20,9 +21,16 @@ export function OrganizationHomepage({
       <Head title={profile.name} description={description} ogType="website" />
       <HomepageAtlas
         opening={opening}
-        atlas={atlas}
+        atlas={null}
+        map={
+          map
+            ? {
+                label: "The people, teams and organizations we work with",
+                element: <AgentRadarMap radar={map} team={profile.name} />,
+              }
+            : null
+        }
         owner={profile.name}
-        mapLabel="Map of the agent network"
       />
     </>
   );

@@ -1,19 +1,19 @@
-# Plan: Organization site — the agent atlas
+# Plan: Organization site — the agent radar
 
 Last updated: 2026-09-26
 
 ## Status
 
-In progress on `work/organization-atlas`: slices 1 and 2 are implemented and not yet merged. Five slices, each shippable on its own; the first is a pure extraction, the second is the walking skeleton.
+In progress on `work/organization-atlas`: slices 1 and 2 are committed and not yet merged; slice 3 replaces the agent terrain that slice 2 drew with the radar. Five slices, each shippable on its own; the first is a pure extraction, the second is the walking skeleton.
 
 ## Goal
 
-`@brains/site-organization`: a reusable site for team and organization brains. Its homepage is the professional site's atlas with the agent map in place of the knowledge map. The organization sits at the centre; the agents it has approved sit around it at their semantic distance and bearing, as on the console's proximity map; clusters of related agents rise as named territories; the authored opening, Ask box and contact door float over it, as on the professional atlas. The `team` recipe and the canonical team test app use it.
+`@brains/site-organization`: a reusable site for team and organization brains. Its homepage has the professional site's look and feel, the authored opening, Ask box and contact door floating over a full-screen map, with an agent radar in place of the landscape, drawn in the atlas's own hand as the approved mockup [`docs/design/organization-homepage-mockup.html`](../design/organization-homepage-mockup.html) shows: the team at the centre of a quiet scope, its agents placed by how close their work runs to the team's, constellations as named echoes, and a pulse radiating outwards. The `team` recipe and the canonical team test app use it.
 
 ## Baseline
 
 - **Professional atlas.** `@brains/site-professional` renders the atlas homepage when `homepageOpening` is on, `ask-content` is public and the contact plugin serves `/contact`. `datasources/homepage-atlas.ts` places published posts, decks and projects from `buildKnowledgeMapData` (`@brains/topics`), refit into the unit square, under topic territories. The renderer (`templates/homepage-atlas.tsx`, `homepage-atlas-styles.ts`, `homepage-atlas-script.ts`, `lib/atlas-terrain.ts`, `lib/atlas-labels.ts`) needs only `{ zones, items }` in unit coordinates. Two parts are bound to published work: `schemas/homepage-atlas.ts` fixes item types to `post | deck | project`, and the styles key glyph shapes on those types. The script keys marks by `type:entityId`, the key Ask answers use for their sources.
-- **Agent map.** `buildProximityMapData` (`entities/agent-discovery/src/lib/proximity-map-data.ts`) returns first-order agents (approved, discovered, archived) with a cosine distance and bearing from the brain's `brain-character`, clusters of non-archived agents (connected within 0.25, two or more members, labelled `"<most common skill tag> · <count>"`), and second-order sightings. It is not exported. The console widget places a node at a radius proportional to `distance / max(distanceRange.max, farthest agent, 0.1)` (`polar` in `widgets/proximity-map.tsx`).
+- **Agent radar.** `buildProximityMapData` (`entities/agent-discovery/src/lib/proximity-map-data.ts`) returns first-order agents (approved, discovered, archived) with a cosine distance and bearing from the brain's `brain-character`, constellations of connected agents, and second-order sightings. `ProximityMap` draws it on a `site` surface, styled by `proximityMapSiteStyles` and driven by `proximityMapScript` (all from the pure `@brains/agent-discovery/proximity-map` subpath); rizom.ai's homepage embeds it by wrapping the component in an `agent-proximity-site` element.
 - **Agent pages.** The `agent-list` and `agent-detail` templates give `/agents` and `/agents/<slug>` for public agents. Site-builder enrichment adds `url` to any object carrying `entityType` and `metadata.slug`.
 - **Team posture.** The `team` recipe (`packages/brain-cli/src/lib/brain-recipes.ts`) and `test-apps/team` use `@brains/site-default`, which re-exports the professional site; its plugin depends on `blog` and `decks`, which the team posture does not load. The published CLI resolves site packages only through `registerPackage` in `packages/brain-cli/scripts/entrypoint.ts`, where `@brains/site-default` is the only site. `contact` is in no bundle; brains add it.
 - **Profiles.** `@brains/profile` exports `teamProfileFields` (purpose, focus areas, capabilities, working principles) and `organizationProfileFields` (mission, focus areas, offerings, values).
@@ -21,15 +21,13 @@ In progress on `work/organization-atlas`: slices 1 and 2 are implemented and not
 
 ## Decisions
 
-1. **Shared kit.** A new private package, `@brains/site-atlas` (`shared/site-atlas`), holds everything both sites render: the atlas hero (opening, Ask box host, door, map), terrain, label layout, styles, runtime script, the opening loader, the Ask-box availability check, the atlas data contract, and the header/footer layout as `SiteLayout`. Each site keeps its own map loader. The layout cannot live in `@brains/ui-library`, because `@brains/site-engine` depends on it, and sites do not import each other. `ProfessionalLayout` is removed; the professional site is its only consumer.
-2. **Contract.** An item's `entityType` is any string. Each item carries a `glyph` (`dot`, `diamond` or `square`) and an optional `kindLabel`; styles key shapes on the glyph, and the legend lists each glyph with its `kindLabel`, falling back to the enriched `typeLabel`. The atlas gains an optional `centre` (a name and an optional link). The opening's `contactUrl` becomes nullable; without it, the topics and the contact door are omitted. The professional site maps post, deck and project to dot, diamond and square without `kindLabel`, and still requires a contact URL for its opening, so its page does not change.
-3. **Who is on the map.** Approved first-order agents only, as linked marks. Discovered agents, archived agents and second-order sightings stay off the public homepage; the console map keeps showing them.
-4. **Placement.** The `polar` placement moves to `@brains/agent-discovery/proximity-map` as a pure unit-scale helper that both the console widget and the atlas loader use, with the same maximum-distance rule. The organization is the centre at (0.5, 0.5), and the loader does not refit. Every agent's direction and relative distance match the console map. The map box's aspect stretches the rings into ellipses, as it stretches the knowledge terrain.
-5. **Territories.** Each cluster with two or more approved members becomes a zone at their mean position, holding the approved member count; those members carry its `zoneId`. The zone is named by the most common skill tag among its approved members. That rule is split out of `deriveClusterLabel` and exported, so the console label and the territory name share it; the console keeps its `· <count>` suffix. A cluster whose approved members carry no tags becomes no zone.
-6. **Kinds.** Person: dot, "Person". Team: diamond, "Team". Organization: square, "Organization".
-7. **Opening.** Authored `ask-content`, when public, through the shared loader. Otherwise the anchor profile supplies it: the title from `tagline`, the introduction from `intro`, else `description`; the byline names the anchor. The organization site has no opt-in flag, because the atlas is its only homepage.
-8. **Routes.** `/` (the atlas), `/about` (the anchor profile) and the generated `/agents` pages, with `agent` in the primary navigation. The site plugin depends on `agent-discovery` only.
-9. **Distribution.** `@rizom/brain` registers `@brains/site-organization`, and the `team` recipe and `test-apps/team` select it. Existing brains keep the `site.package` they set. Organization-anchored brains select the site in `brain.yaml`.
+1. **Shared kit.** A new private package, `@brains/site-atlas` (`shared/site-atlas`), holds everything both sites render: the atlas frame (opening, Ask box host, door, map box), the terrain map with its label layout, styles and runtime script, the opening loader, the Ask-box availability check, the terrain contract, and the header/footer layout as `SiteLayout`. The layout cannot live in `@brains/ui-library`, because `@brains/site-engine` depends on it, and sites do not import each other. `ProfessionalLayout` is removed; the professional site is its only consumer.
+2. **Frame contract.** `HomepageAtlas` draws either the terrain from atlas data (the professional site) or a map element the site supplies, with that map's accessible name (the organization site). The opening's `contactUrl` is nullable; without it, the topics and the contact door are omitted. The terrain contract stays as the professional site uses it; the glyph, kind-label and centre additions slice 2 made for an agent terrain are removed, because the radar draws agents itself.
+3. **The radar.** The organization homepage draws its agents in the atlas's own hand, as the mockup shows. A quiet scope: range rings for semantic distance and bearing ticks on its edge, around the team at the centre. Each agent is an atlas mark at the position the console's proximity map gives it, through placement helpers shared with the console widget on the pure `@brains/agent-discovery/proximity-map` subpath, and is named beside its mark; people are dots, teams diamonds, organizations squares, and agents awaiting review outlines. Approved and discovered first-order agents are shown; archived agents and second-order sightings stay on the console. Each constellation is an echo: stacked contour lines, traced by the kit's contour tracer, around its agents and pinched along the threads between them, named in the atlas's italic; a lone agent gets a small island. The one motion is a pulse radiating from the centre every nine seconds; each echo and mark lights as the wave reaches its distance, so the closest light first, and reduced motion stops it. The data comes from `buildProximityMapData` through the `@brains/agent-discovery/proximity-map-data` subpath, so the pure subpath rizom.ai bundles stays free of the entity runtime; the console widget and its styles are not used. Without a projection or any charted agent, the frame renders without a map.
+4. **Constellations.** Each shown agent joins the shown agent nearest it within 0.35 cosine distance, which the loader asks of the projection: agent descriptions sit farther apart than the console's fixed 0.25 cut-off (the team seed's closest pairs are 0.28–0.29), and joining only the nearest keeps a chain of near pairs from running into one constellation. A group becomes a constellation when at least two members share a skill tag, named by the tag most of them share through `mostCommonTag`, which the console's cluster labels also use. The console's clusters keep their own rule.
+5. **Opening.** Authored `ask-content`, when public, through the shared loader. Otherwise the anchor profile supplies it: the title from `tagline`, the introduction from `intro`, else `description`; the byline names the anchor. The organization site has no opt-in flag, because the radar is its only homepage.
+6. **Routes.** `/` (the radar homepage), `/about` (the anchor profile) and the generated `/agents` pages, with `agent` in the primary navigation. The site plugin depends on `agent-discovery` only.
+7. **Distribution.** `@rizom/brain` registers `@brains/site-organization`, and the `team` recipe and `test-apps/team` select it. Existing brains keep the `site.package` they set. Organization-anchored brains select the site in `brain.yaml`.
 
 ## Slices
 
@@ -43,50 +41,49 @@ The professional site renders from `@brains/site-atlas`; nothing a visitor sees 
 - Build: create `shared/site-atlas` and move into it `templates/homepage-atlas.tsx`, `homepage-atlas-styles.ts`, `homepage-atlas-script.ts`, `lib/atlas-terrain.ts`, `lib/atlas-labels.ts`, `schemas/homepage-atlas.ts`, `schemas/homepage-opening.ts`, `datasources/homepage-opening.ts`, `datasources/homepage-chat.ts`, and `layouts/ProfessionalLayout.tsx` as `SiteLayout`. The `atlas-labels`, `atlas-script`, `atlas-terrain` and `homepage-chat` tests move unchanged. The `homepage-atlas` and `homepage-opening` tests split: their rendering, style and opening-loader cases move to the kit and render `HomepageAtlas` directly; the knowledge-loader cases and the professional homepage's opt-in and hero cases stay. The professional site keeps its knowledge loader, homepage list, about page and subscribe pages, and imports the rest from the kit.
 - Done when the moved tests pass in the kit and the pinned professional HTML is identical.
 
-### 2. Walking skeleton: approved agents around the organization
+### 2. Walking skeleton: the organization homepage
 
-A team brain's homepage shows its approved agents around the organization, each linking to its agent page, under an opening taken from the anchor profile.
+A team brain's homepage opens on its agent map under an opening taken from the anchor profile. (Committed with an agent terrain; slice 3 replaces that map with the radar.)
 
-- Tests first:
-  - `agent-discovery`: the unit placement helper for known distance and bearing pairs and the maximum-distance rule; the widget's existing position tests pass on the helper.
-  - Kit: glyph classes and the legend follow `glyph` and `kindLabel`; a `centre` renders as the centre mark; the pinned professional HTML changes only in glyph class names and the added centre styles.
-  - Organization loader: only approved agents appear; an agent without a public entity is absent; positions equal the helper's output; no projection, or no approved agent, yields no map while the opening still renders; without `ask-content`, the opening comes from the anchor profile.
-  - Organization template: marks link to `/agents/<slug>` after enrichment and carry their kind's glyph; the legend names the kinds present.
-  - `brain-cli`: the `team` recipe selects `@brains/site-organization`, and the entrypoint registers it.
-- Build: the contract changes in decision 2; export the placement helpers from `@brains/agent-discovery/proximity-map` and `buildProximityMapData` with its context type from a separate `@brains/agent-discovery/proximity-map-data` subpath, so the pure map subpath that rizom.ai bundles stays free of the entity runtime; create `sites/organization` with `SiteLayout`, the `/` route and a plugin with its homepage datasource and template; register the package in the CLI entrypoint and dependencies; switch the `team` recipe and `test-apps/team/brain.yaml`.
-- Fixtures: add approved agents to `packages/brain-cli/eval-content/recipes/team/agent/` (people, a team and organizations) whose skill tags form two clusters. `partner-brain.io` and `old-agent.io` stay as they are.
-- Verify on the running app: `bun start:team` from `packages/brain-cli` builds the preview itself after the seed import; later rebuilds go through MCP HTTP (`--remote`), whose default basic mode offers only `chat` and `confirm`. Check `dist/site-preview`, served at `http://preview.localhost:8080`: a mark for every approved fixture, none for `old-agent.io`, and each mark links to an agent page that exists. Check desktop and phone widths in both themes.
+- Build: `sites/organization` with `SiteLayout`, the `/` route and a plugin with its homepage datasource and template; the opening from the anchor profile; the package registered in the CLI entrypoint and dependencies; the `team` recipe, `test-apps/team/brain.yaml` and the canonical-team fixture switched to it.
+- Fixtures: approved agents in `packages/brain-cli/eval-content/recipes/team/agent/` (people, a team and organizations) in two themes. `partner-brain.io` and `old-agent.io` stay as they are.
+- Verify on the running app: `bun start:team` from `packages/brain-cli` builds the preview itself after the seed import; later rebuilds go through MCP HTTP, whose default basic mode offers only `chat` and `confirm`. Check `dist/site-preview`, served at `http://preview.localhost:8080`, at desktop and phone widths in both themes.
 - Rerun the team eval cases that read the seeded agents: `agent-approve`, `a2a-approved-peer-call`, `public-peer-call-denied`, `topic-relay-batch`, `new-teammate-onboarding` and `team-memory-overview-list`. (`swot-agent-network` brings its own agent network and is not part of the team suite.)
 
-### 3. Territories
+### 3. The radar
 
-Clusters of related agents rise as named territories.
+The organization homepage draws the approved mockup: the scope, named agents, constellation echoes and the pulse, inside the atlas frame.
 
-- Tests first: a cluster of three approved agents becomes one zone at their mean position with three members, each carrying its `zoneId`, named by their most common tag; a cluster left with one approved member becomes no zone, and that agent sits outside every territory; a cluster whose approved members carry no tags becomes no zone; the console's cluster labels are unchanged; the terrain for the fixture is deterministic.
-- Build: the shared top-tag rule in `agent-discovery`; clusters to zones in the organization loader.
-- Verify: a preview rebuild on `bun start:team` shows the fixtures' two territories, named and clear of marks at desktop and phone widths.
+- Tests first:
+  - `agent-discovery`: the placement helpers (reach, point on a disc, maximum distance) and the widget drawing byte-identically on them; `mostCommonTag`, with the console's cluster labels unchanged.
+  - Kit: a site-supplied map renders in the map box under its own name, with no terrain; without a contact URL there is no door; the contour tracer draws the terrain byte-identically, so the pinned professional HTML is identical to slice 1's.
+  - Organization loader: approved and discovered first-order agents at the helpers' positions, archived agents and sightings absent, agents the build cannot see absent; constellations by nearest neighbour within 0.35, named by a shared tag, none where no tag is shared; the pulse delay grows with distance; no map without a projection or a charted agent.
+  - Organization homepage: the scope, echoes, named marks linking to `/agents/<slug>`, constellation names, the centre and the legend render in the frame; the template ships only the atlas script.
+- Build: the placement helpers and `mostCommonTag` in `agent-discovery`; the kit's contour tracer; the organization radar model, loader and component with their styles; the console-widget embedding removed.
+- Verify: a preview rebuild on `bun start:team` matches the mockup with the team fixtures, at desktop and phone widths in both themes.
 
 ### 4. Conversation: authored opening, door and Ask
 
 The authored opening replaces the profile fallback; topics and the contact door appear when the brain serves `/contact`; the Ask box docks when Web Chat serves it.
 
-- Tests first: public `ask-content` supplies the title, introduction and topics; without the contact route there are no topic links and no door; with Ask-box availability recorded, the host and box script render; an `ask:sources` event naming `agent:<id>` lights that agent's mark.
+- Tests first: public `ask-content` supplies the title, introduction and topics; without the contact route there are no topic links and no door; with Ask-box availability recorded, the host and box script render.
 - Build: the shared opening loader returns the authored content with a nullable contact URL; the organization datasource uses it together with the Ask-box availability check.
 - Fixtures: an `ask-content` entity in the team seed content; `contact` added to the `add` list in `test-apps/team/brain.yaml`.
-- Verify: a preview rebuild shows the authored opening and a working door to `/contact`; with the local-test Ask preset, the box docks. No paid guest messages are sent; the script test covers source lighting.
+- Verify: a preview rebuild shows the authored opening and a working door to `/contact`; with the local-test Ask preset, the box docks. No paid guest messages are sent.
 
 ### 5. About page
 
-`/about` presents the team or organization from its anchor profile, and the centre mark links to it.
+`/about` presents the team or organization from its anchor profile.
 
-- Tests first: team fields render as purpose, focus areas, capabilities and working principles; organization fields render as mission, focus areas, offerings and values; absent fields leave no empty headings; the centre links to `/about`.
+- Tests first: team fields render as purpose, focus areas, capabilities and working principles; organization fields render as mission, focus areas, offerings and values; absent fields leave no empty headings.
 - Build: an about view schema combining the common profile fields with `teamProfileFields` and `organizationProfileFields`, all optional; the about template and route.
 - Fixtures: purpose and focus areas in the team fixture's anchor profile; rerun the team eval cases that read the anchor profile.
 - Verify: a preview rebuild shows `/about` from the team fixture's profile.
 
 ## Not in this plan
 
-- rizom.ai's homepage keeps its branded narrative with the radial map hero; moving it onto this site is a separate change after slice 5.
+- rizom.ai's homepage keeps its branded narrative with the radar hero; moving it onto this site is a separate change after slice 5.
+- The radar does not light an Ask answer's sources; source lighting stays with the terrain's marks.
 - There is no `organization` brain recipe; organization-anchored brains select the site in `brain.yaml`.
 
 ## Related plans

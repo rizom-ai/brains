@@ -137,26 +137,36 @@ export function buildProximityClusters(
     });
 }
 
+/**
+ * The tag most members share, each member counted once; ties go to the
+ * alphabetically first tag. Null when no member carries a tag.
+ */
+export function mostCommonTag(
+  tagsPerMember: ReadonlyArray<readonly string[]>,
+): string | null {
+  const counts = tagsPerMember
+    .flatMap((tags) => Array.from(new Set(tags)))
+    .reduce(
+      (tally, tag) => tally.set(tag, (tally.get(tag) ?? 0) + 1),
+      new Map<string, number>(),
+    );
+
+  return (
+    Array.from(counts.entries()).sort((left, right) => {
+      const countDifference = right[1] - left[1];
+      return countDifference !== 0
+        ? countDifference
+        : left[0].localeCompare(right[0]);
+    })[0]?.[0] ?? null
+  );
+}
+
 function deriveClusterLabel(
   memberIds: string[],
   nodesById: Map<string, ProximityMapNode>,
 ): string {
-  const counts = new Map<string, number>();
-  for (const id of memberIds) {
-    const node = nodesById.get(id);
-    for (const tag of new Set(node?.tags ?? [])) {
-      counts.set(tag, (counts.get(tag) ?? 0) + 1);
-    }
-  }
-
-  const topTag = Array.from(counts.entries()).sort((left, right) => {
-    const countDifference = right[1] - left[1];
-    return countDifference !== 0
-      ? countDifference
-      : left[0].localeCompare(right[0]);
-  })[0]?.[0];
-
-  return topTag
-    ? `${topTag} · ${memberIds.length}`
-    : `unknown · ${memberIds.length}`;
+  const topTag = mostCommonTag(
+    memberIds.map((id) => nodesById.get(id)?.tags ?? []),
+  );
+  return `${topTag ?? "unknown"} · ${memberIds.length}`;
 }

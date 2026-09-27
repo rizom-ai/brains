@@ -3,6 +3,7 @@ import type { SemanticSpaceNeighbor } from "@brains/plugins";
 import {
   bearingFromCoordinates,
   buildProximityClusters,
+  mostCommonTag,
   normalizeCosineDistance,
   proximityMaxDistance,
   proximityPoint,
@@ -158,5 +159,26 @@ describe("proximity placement", () => {
         sightings: [],
       }),
     ).toBe(0.1);
+  });
+});
+
+describe("most common tag", () => {
+  test("counts each member's tags once and names the most shared", () => {
+    expect(
+      mostCommonTag([
+        ["research", "research", "writing"],
+        ["writing"],
+        ["writing", "editing"],
+      ]),
+    ).toBe("writing");
+  });
+
+  test("breaks ties alphabetically", () => {
+    expect(mostCommonTag([["operations"], ["automation"]])).toBe("automation");
+  });
+
+  test("has no answer when nobody carries a tag", () => {
+    expect(mostCommonTag([[], []])).toBeNull();
+    expect(mostCommonTag([])).toBeNull();
   });
 });

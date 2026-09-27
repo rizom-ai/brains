@@ -11,6 +11,7 @@ export {
   type ProximityMapNode,
 } from "./lib/proximity-map-schema";
 export {
+  mostCommonTag,
   proximityMaxDistance,
   proximityPoint,
   proximityReach,

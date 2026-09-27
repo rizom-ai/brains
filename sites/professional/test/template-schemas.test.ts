@@ -115,8 +115,6 @@ describe("professional site atlas links", () => {
           {
             id: "urban",
             entityType: "post",
-            glyph: "dot",
-            kindLabel: null,
             content: "",
             metadata: { slug: "urban-sensing-networks" },
             title: "Urban Sensing Networks",

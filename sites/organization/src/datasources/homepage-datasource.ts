@@ -9,7 +9,7 @@ import {
   organizationProfileSchema,
   type OrganizationProfile,
 } from "../schemas/organization-profile";
-import { loadAgentAtlas } from "./agent-atlas";
+import { loadAgentRadar } from "./agent-radar";
 
 /**
  * The opening the anchor profile gives: its tagline over its introduction,
@@ -34,13 +34,13 @@ export function openingFromProfile(
 
 /**
  * Homepage datasource: the anchor profile, the opening it gives, and the
- * atlas of the agents the organization has approved, drawn around it.
+ * agent radar drawn around the brain.
  */
 export class OrganizationHomepageDataSource implements DataSource {
   public readonly id = "organization:homepage";
   public readonly name = "Organization Homepage DataSource";
   public readonly description =
-    "Fetches the anchor profile and the agent atlas for the organization homepage";
+    "Fetches the anchor profile and the agent radar for the organization homepage";
 
   async fetch<T>(
     _query: unknown,
@@ -52,19 +52,16 @@ export class OrganizationHomepageDataSource implements DataSource {
       entityService,
       organizationProfileSchema,
     );
-    const atlas = await loadAgentAtlas(
-      {
-        entityService,
-        semantic: {
-          project: (request) => entityService.projectSemanticSpace(request),
-        },
+    const map = await loadAgentRadar({
+      entityService,
+      semantic: {
+        project: (request) => entityService.projectSemanticSpace(request),
       },
-      { name: profile.name, url: null },
-    );
+    });
     return outputSchema.parse({
       profile,
       opening: openingFromProfile(profile),
-      atlas,
+      map,
     });
   }
 }

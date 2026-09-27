@@ -51,7 +51,7 @@ describe("organization site", () => {
     expect(harness.getDataSources().has("organization:homepage")).toBe(true);
   });
 
-  it("accepts the homepage once site-builder has linked its agents", async () => {
+  it("accepts the homepage with the radar once site-builder has linked its agents", async () => {
     const harness = await installed();
     const template = harness.getTemplates().get("organization-site:homepage");
     const result = template?.schema.safeParse({
@@ -62,28 +62,26 @@ describe("organization site", () => {
         topics: [],
         contactUrl: null,
       },
-      atlas: {
-        zones: [],
-        centre: { name: "Team Brain POC Team" },
-        items: [
+      map: {
+        agents: [
           {
             id: "partner-brain",
             entityType: "agent",
-            glyph: "diamond",
-            kindLabel: "Team",
             content: "",
             metadata: { slug: "partner-brain-io" },
-            title: "Partner Brain",
-            year: null,
-            x: 0.5,
-            y: 0.2,
-            zoneId: null,
+            name: "Partner Brain",
+            kind: "team",
+            status: "approved",
+            x: 50,
+            y: 20,
+            constellation: null,
             url: "/agents/partner-brain-io",
             typeLabel: "Agent",
             listUrl: "/agents",
             listLabel: "Agents",
           },
         ],
+        constellations: [],
       },
     });
     expect(result?.success).toBe(true);

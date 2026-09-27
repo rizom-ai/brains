@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import type { HomepageAtlasData } from "@brains/site-atlas";
 import { openingFromProfile } from "../src/datasources/homepage-datasource";
 import { organizationProfileSchema } from "../src/schemas/organization-profile";
+import type { AgentRadar, RadarAgent } from "../src/schemas/radar";
 import { OrganizationHomepage } from "../src/templates/homepage";
 
 const profile = organizationProfileSchema.parse({
@@ -12,36 +12,52 @@ const profile = organizationProfileSchema.parse({
   website: "https://team.example.com",
 });
 
-function mark(
+function agent(
   id: string,
-  title: string,
-  glyph: "dot" | "diamond" | "square",
-  kindLabel: string,
+  name: string,
+  kind: RadarAgent["kind"],
   x: number,
-): HomepageAtlasData["items"][number] {
+  y: number,
+  extra: Partial<RadarAgent> = {},
+): RadarAgent {
   return {
     id,
     entityType: "agent",
-    glyph,
-    kindLabel,
     content: "",
     metadata: { slug: `${id}-io` },
-    title,
-    year: null,
+    name,
+    kind,
+    status: "approved",
     x,
-    y: 0.5,
-    zoneId: null,
+    y,
+    constellation: null,
     url: `/agents/${id}-io`,
     typeLabel: "Agent",
+    ...extra,
   };
 }
 
-const atlas: HomepageAtlasData = {
-  zones: [],
-  centre: { name: "Team Brain POC Team", url: null },
-  items: [
-    mark("ada", "Ada", "dot", "Person", 0.75),
-    mark("partner", "Partner Brain", "diamond", "Team", 0.2),
+const radar: AgentRadar = {
+  agents: [
+    agent("partner", "Partner Brain", "team", 43, 27),
+    agent("mara", "Mara Veld", "person", 93, 49),
+    agent("field", "Field Notes Collective", "team", 79, 70, {
+      constellation: "research",
+    }),
+    agent("commons", "Commons Lab", "organization", 51, 93, {
+      constellation: "research",
+    }),
+    agent("old", "Old Agent", "team", 31, 21, { status: "discovered" }),
+  ],
+  constellations: [
+    {
+      id: "constellation:commons",
+      name: "research",
+      memberIds: ["commons", "field"],
+      links: [{ from: "commons", to: "field" }],
+      x: 65,
+      y: 81.5,
+    },
   ],
 };
 
@@ -84,14 +100,18 @@ describe("opening from the anchor profile", () => {
 });
 
 describe("organization homepage", () => {
-  const html = (data: HomepageAtlasData | null = atlas): string =>
+  const html = (map: AgentRadar | null = radar): string =>
     renderToStaticMarkup(
       <OrganizationHomepage
         profile={profile}
         opening={openingFromProfile(profile)}
-        atlas={data}
+        map={map}
       />,
     );
+  const markOf = (name: string): string =>
+    html()
+      .split("<li ")
+      .find((part) => part.includes(`<b>${name}</b>`)) ?? "";
 
   it("opens with the organization's own words", () => {
     expect(html()).toContain("Team Brain POC Team");
@@ -101,21 +121,59 @@ describe("organization homepage", () => {
     );
   });
 
-  it("draws the agents around the organization, each linked to its page", () => {
-    expect(html()).toContain('href="/agents/ada-io"');
-    expect(html()).toContain('href="/agents/partner-io"');
-    expect(html()).toContain("atlas__mark atlas__mark--dot");
-    expect(html()).toContain("atlas__mark atlas__mark--diamond");
-    expect(html()).toMatch(
-      /class="atlas__centre"[^>]*>.*<span>Team Brain POC Team<\/span>/,
+  it("draws the radar in the map box, around the team at its centre", () => {
+    expect(html()).toContain(
+      'class="atlas__map atlas__map--supplied" role="group" aria-label="The people, teams and organizations we work with"',
     );
-    const legend = html().split('class="atlas__legend"')[1] ?? "";
-    expect(legend).toContain("Person");
-    expect(legend).toContain("Team");
+    expect(html().match(/class="scope__ring/g)?.length).toBeGreaterThan(3);
+    expect(html()).toContain('class="scope__tick');
+    expect(html()).toMatch(
+      /class="radar__centre"><i aria-hidden="true"><\/i><span>Team Brain POC Team<\/span>/,
+    );
+    expect(html()).not.toContain("data-atlas-terrain");
+    expect(html()).not.toContain("proximity-field");
   });
 
-  it("names the map by what it shows", () => {
-    expect(html()).toContain('aria-label="Map of the agent network"');
+  it("names every agent beside its mark and links it to its page", () => {
+    const partner = markOf("Partner Brain");
+    expect(partner).toContain('class="atlas__mark atlas__mark--team');
+    expect(partner).toContain('data-atlas-key="agent:partner"');
+    expect(partner).toContain('href="/agents/partner-io"');
+    expect(partner).toContain('class="radar__name">Partner Brain</span>');
+    // Near the right edge, the name sits on the mark's left.
+    expect(markOf("Mara Veld")).toContain(
+      'class="radar__name radar__name--left">Mara Veld</span>',
+    );
+  });
+
+  it("draws each constellation as a named echo, and each lone agent as an island", () => {
+    expect(html()).toContain('class="echo echo--constellation"');
+    expect(html()).toMatch(
+      /class="atlas__zone radar__constellation"[^>]*>research</,
+    );
+    expect(html().match(/class="echo echo--lone/g)?.length).toBe(3);
+    expect(markOf("Field Notes Collective")).toContain("<em>research</em>");
+  });
+
+  it("shows an agent awaiting review as an outline with a dashed island", () => {
+    expect(markOf("Old Agent")).toContain("radar__mark--pending");
+    expect(markOf("Old Agent")).toContain("Team, awaiting review");
+    expect(html()).toContain('class="echo echo--lone echo--pending"');
+  });
+
+  it("lights nearer agents first as the pulse radiates from the team", () => {
+    const delay = (name: string): number =>
+      Number(/--pulse-at:([\d.]+)s/.exec(markOf(name))?.[1]);
+    expect(delay("Partner Brain")).toBeLessThan(delay("Mara Veld"));
+    expect(html()).toContain('class="radar__pulse"');
+  });
+
+  it("keys the legend to the kinds on the map", () => {
+    const legend = html().split('class="atlas__legend"')[1] ?? "";
+    expect(legend).toContain("Closer to the centre, closer to our work");
+    for (const kind of ["Person", "Team", "Organization", "Awaiting review"]) {
+      expect(legend).toContain(kind);
+    }
   });
 
   it("has no door until a contact form can receive it", () => {
@@ -123,9 +181,9 @@ describe("organization homepage", () => {
     expect(html()).not.toContain("data-atlas-door");
   });
 
-  it("keeps the opening when there is no map", () => {
+  it("keeps the opening when there is no radar", () => {
     const bare = html(null);
     expect(bare).toContain("Shared knowledge, kept alive");
-    expect(bare).not.toContain('class="atlas__map"');
+    expect(bare).not.toContain('class="atlas__map');
   });
 });

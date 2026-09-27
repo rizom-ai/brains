@@ -4,22 +4,12 @@ import {
   type KnowledgeMapDataContext,
 } from "@brains/topics";
 import { z } from "@brains/utils/zod";
-import type {
-  AtlasGlyph,
-  AtlasItem,
-  AtlasZone,
-  HomepageAtlasData,
+import {
+  atlasEntityTypeSchema,
+  type AtlasItem,
+  type AtlasZone,
+  type HomepageAtlasData,
 } from "@brains/site-atlas";
-
-/** The published kinds the atlas places: essays, talks and projects. */
-const atlasEntityTypeSchema = z.enum(["post", "deck", "project"]);
-
-/** Essays are dots, talks diamonds, projects squares. */
-const glyphs: Record<z.output<typeof atlasEntityTypeSchema>, AtlasGlyph> = {
-  post: "dot",
-  deck: "diamond",
-  project: "square",
-};
 
 /** The projection plus the build's scoped entity reads; nothing else. */
 export interface AtlasSource {
@@ -100,8 +90,6 @@ export async function loadHomepageAtlas(
         {
           id: point.id,
           entityType: entityType.data,
-          glyph: glyphs[entityType.data],
-          kindLabel: null,
           content: "",
           metadata: { slug: metadata.data.slug },
           title: metadata.data.title ?? point.title,
@@ -123,7 +111,7 @@ export async function loadHomepageAtlas(
         : [];
     });
 
-    return { ...fitToUnit(items, zones), centre: null };
+    return fitToUnit(items, zones);
   } catch {
     // No embeddings or no projection: the opening and door still render.
     return null;

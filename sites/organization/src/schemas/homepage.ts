@@ -1,6 +1,7 @@
-import { homepageAtlasSchema, homepageOpeningSchema } from "@brains/site-atlas";
+import { homepageOpeningSchema } from "@brains/site-atlas";
 import { z } from "@brains/utils/zod";
 import { organizationProfileSchema } from "./organization-profile";
+import { agentRadarSchema } from "./radar";
 
 type OpeningSchema = ReturnType<
   ReturnType<(typeof homepageOpeningSchema)["unwrap"]>["unwrap"]
@@ -12,11 +13,11 @@ const openingSchema: OpeningSchema = homepageOpeningSchema.unwrap().unwrap();
 export const organizationHomepageSchema: z.ZodObject<{
   profile: typeof organizationProfileSchema;
   opening: typeof openingSchema;
-  atlas: typeof homepageAtlasSchema;
+  map: z.ZodDefault<z.ZodNullable<typeof agentRadarSchema>>;
 }> = z.object({
   profile: organizationProfileSchema,
   opening: openingSchema,
-  atlas: homepageAtlasSchema,
+  map: agentRadarSchema.nullable().default(null),
 });
 
 export type OrganizationHomepageData = z.output<

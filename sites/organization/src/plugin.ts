@@ -25,7 +25,7 @@ import packageJson from "../package.json";
 
 /**
  * Organization Site Plugin
- * Provides the atlas homepage, drawn from the agent network, and its datasource
+ * Provides the radar homepage and its datasource
  */
 export class OrganizationSitePlugin extends ServicePlugin<
   OrganizationSiteConfig,
@@ -51,11 +51,11 @@ export class OrganizationSitePlugin extends ServicePlugin<
       homepage: createTemplate<OrganizationHomepageData>({
         name: "homepage",
         description:
-          "Organization homepage: the opening over the atlas of the agent network",
+          "Organization homepage: the opening over the radar of the agent network",
         schema: organizationHomepageSchema,
         dataSourceId: "organization:homepage",
         requiredPermission: "public",
-        // Touch titles and motion pausing for the atlas.
+        // Touch title cards, the door's theme and motion pausing for the frame.
         runtimeScripts: [{ src: HOMEPAGE_ATLAS_SCRIPT_PATH, defer: true }],
         staticAssets: { [HOMEPAGE_ATLAS_SCRIPT_PATH]: HOMEPAGE_ATLAS_SCRIPT },
         layout: { component: OrganizationHomepage },

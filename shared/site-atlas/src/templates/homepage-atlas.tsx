@@ -1,4 +1,4 @@
-import type { CSSProperties, JSX } from "react";
+import type { CSSProperties, JSX, ReactNode } from "react";
 import { MarkdownContent, renderHighlightedText } from "@brains/ui-library";
 import type { HomepageOpeningContent } from "../schemas/homepage-opening";
 import type { HomepageAtlasData } from "../schemas/homepage-atlas";
@@ -13,7 +13,7 @@ import {
 } from "@brains/contracts";
 import { homepageAtlasStyles } from "./homepage-atlas-styles";
 
-const GLYPH_ORDER = ["dot", "diamond", "square"] as const;
+const KIND_ORDER = ["post", "deck", "project"] as const;
 
 function initials(owner: string): string {
   return owner
@@ -59,12 +59,10 @@ function AtlasMap({
   atlas,
   labels,
   caption,
-  mapLabel,
 }: {
   atlas: HomepageAtlasData;
   labels: Record<string, LabelPlacement>;
   caption: string | null;
-  mapLabel: string;
 }): JSX.Element {
   const contours = buildAtlasTerrain(atlas);
   // Larger territories name themselves first; the label script keeps that order.
@@ -75,18 +73,19 @@ function AtlasMap({
   const zoneNames = new Map(
     atlas.zones.map((zone): [string, string] => [zone.id, zone.name]),
   );
-  // Each shape is named once, by the kind the site gave it or else its type.
-  const legend = GLYPH_ORDER.flatMap((glyph) => {
-    const label = atlas.items
-      .filter((item) => item.glyph === glyph)
-      .map((item) => item.kindLabel ?? item.typeLabel)
-      .find(Boolean);
-    return label ? [{ glyph, label }] : [];
+  const legend = KIND_ORDER.flatMap((kind) => {
+    const label = atlas.items.find(
+      (item) => item.entityType === kind && item.typeLabel,
+    )?.typeLabel;
+    return label ? [{ kind, label }] : [];
   });
-  const centre = atlasPosition(0.5);
 
   return (
-    <div className="atlas__map" role="group" aria-label={caption ?? mapLabel}>
+    <div
+      className="atlas__map"
+      role="group"
+      aria-label={caption ?? "Map of published work"}
+    >
       <div className="atlas__field" data-atlas-field="">
         <svg
           className="atlas__terrain"
@@ -129,16 +128,14 @@ function AtlasMap({
         ))}
         <ul className="atlas__marks">
           {atlas.items.map((item) => {
-            const meta = [item.kindLabel ?? item.typeLabel, item.year]
-              .filter(Boolean)
-              .join(", ");
+            const meta = [item.typeLabel, item.year].filter(Boolean).join(", ");
             const territory = item.zoneId ? zoneNames.get(item.zoneId) : null;
             return (
               <li
                 key={`${item.entityType}:${item.id}`}
                 data-atlas-mark=""
                 data-atlas-key={`${item.entityType}:${item.id}`}
-                className={`atlas__mark atlas__mark--${item.glyph}${edgeClass(item.x)}`}
+                className={`atlas__mark atlas__mark--${item.entityType}${edgeClass(item.x)}`}
                 style={{
                   left: `${atlasPosition(item.x)}%`,
                   top: `${atlasPosition(item.y)}%`,
@@ -162,29 +159,11 @@ function AtlasMap({
             );
           })}
         </ul>
-        {atlas.centre && (
-          <p
-            className="atlas__centre"
-            style={{ left: `${centre}%`, top: `${centre}%` }}
-          >
-            {atlas.centre.url ? (
-              <a href={atlas.centre.url}>
-                <i className="atlas__centre-ring" aria-hidden="true" />
-                <span>{atlas.centre.name}</span>
-              </a>
-            ) : (
-              <>
-                <i className="atlas__centre-ring" aria-hidden="true" />
-                <span>{atlas.centre.name}</span>
-              </>
-            )}
-          </p>
-        )}
       </div>
       <p className="atlas__legend">
         {caption && <span className="atlas__caption">{caption}</span>}
-        {legend.map(({ glyph, label }) => (
-          <span key={glyph} className={`atlas__key--${glyph}`}>
+        {legend.map(({ kind, label }) => (
+          <span key={kind} className={`atlas__key--${kind}`}>
             <i aria-hidden="true" />
             {label}
           </span>
@@ -192,6 +171,12 @@ function AtlasMap({
       </p>
     </div>
   );
+}
+
+/** A map the site draws itself, shown in the map box under its own name. */
+export interface SuppliedMap {
+  label: string;
+  element: ReactNode;
 }
 
 /** Topics and the contact action, only where a contact form can receive them. */
@@ -234,10 +219,9 @@ function AtlasDoor({
 }
 
 /**
- * The homepage as the Brain itself: the site's map (published work placed
- * by topic, or the agents around the brain) on build-time topographic
- * terrain, with the owner's authored opening and, when a contact form can
- * receive it, a working door floating over it. Every word on the
+ * The homepage as the Brain itself: everything published, placed by topic
+ * on build-time topographic terrain, with the owner's authored opening and
+ * a working door to the contact form floating over it. Every word on the
  * page comes from the authored Ask content; what is not written is left
  * out, and the contact action falls back to a plain label. No scripts. The
  * conversation comes first in the document so keyboard and screen-reader
@@ -246,15 +230,16 @@ function AtlasDoor({
 export function HomepageAtlas({
   opening,
   atlas,
+  map = null,
   owner,
-  mapLabel = "Map of published work",
   askBox = false,
 }: {
   opening: HomepageOpeningContent;
+  /** Published work to draw as terrain. */
   atlas: HomepageAtlasData | null;
+  /** A map the site draws itself, in place of the terrain. */
+  map?: SuppliedMap | null;
   owner: string;
-  /** Names the map for assistive technology when the opening has no caption. */
-  mapLabel?: string;
   /** Guest chat is enabled: dock the shared chat box (see @brains/contracts ask-box). */
   askBox?: boolean;
 }): JSX.Element {
@@ -264,7 +249,7 @@ export function HomepageAtlas({
       style={atlas ? atlasFill(atlas, labels) : undefined}
       className={[
         "atlas",
-        atlas ? "" : "atlas--bare",
+        atlas || map ? "" : "atlas--bare",
         askBox ? "atlas--chat" : "",
       ]
         .filter(Boolean)
@@ -331,14 +316,17 @@ export function HomepageAtlas({
           />
         )}
       </div>
-      {atlas && (
-        <AtlasMap
-          atlas={atlas}
-          labels={labels}
-          caption={opening.mapCaption}
-          mapLabel={mapLabel}
-        />
-      )}
+      {atlas ? (
+        <AtlasMap atlas={atlas} labels={labels} caption={opening.mapCaption} />
+      ) : map ? (
+        <div
+          className="atlas__map atlas__map--supplied"
+          role="group"
+          aria-label={map.label}
+        >
+          {map.element}
+        </div>
+      ) : null}
       {atlas && askBox && (
         // Leads from an answer's listed sources to their marks, drawn by the atlas script.
         <svg className="atlas__leads" data-atlas-leads="" aria-hidden="true" />
