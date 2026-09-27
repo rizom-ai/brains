@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogTitle,
   useAppFetch,
+  useFollowTail,
 } from "@brains/app-ui-react";
 import { chatClass, chatLayout } from "./studio-chat-layout.styles";
 import {
@@ -47,7 +48,6 @@ import { Composer } from "./studio-chat-composer";
 import { ConversationContext } from "./studio-chat-context-panel";
 import { useChatSessions } from "./use-chat-sessions";
 import { useChatStream } from "./use-chat-stream";
-import { useChatThreadScroll } from "./use-chat-thread-scroll";
 import { useChatUploads } from "./use-chat-uploads";
 import { useChatArchive } from "./use-chat-archive";
 import { useChatHandoff } from "./use-chat-handoff";
@@ -234,11 +234,15 @@ export function StudioChatWorkspace(
     pendingMessages,
     stream,
   });
-  const { threadScrollRef, onThreadScroll, showJumpToLatest, jumpToLatest } =
-    useChatThreadScroll({
-      sessionId: props.sessionId,
-      contentKey: `${visibleMessages.length}:${stream?.text.length ?? -1}`,
-    });
+  const {
+    ref: threadScrollRef,
+    onScroll: onThreadScroll,
+    awayFromLatest: showJumpToLatest,
+    jumpToLatest,
+  } = useFollowTail({
+    resetKey: props.sessionId,
+    contentKey: `${visibleMessages.length}:${stream?.text.length ?? -1}`,
+  });
 
   useEffect(() => {
     closeDisclosures();
