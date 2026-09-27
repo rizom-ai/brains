@@ -435,6 +435,16 @@ export interface PluginCapabilities {
 }
 
 /**
+ * An interface that can register its protocol independently of a transport host.
+ * The returned plugin is fresh, preserves the provider's identity, shares its
+ * protocol handlers, and registers no listener daemon or host routes. The
+ * embedding owns connections, trusted caller context, and connection cleanup.
+ */
+export interface ProtocolPluginProvider {
+  createProtocolPlugin(): Plugin;
+}
+
+/**
  * Plugin interface - combines validated metadata with the register function
  */
 export type Plugin = z.output<typeof pluginMetadataSchema> & {

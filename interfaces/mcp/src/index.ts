@@ -56,6 +56,7 @@ const mcpInterface = defineInterface(
   {
     id: "mcp",
     config: mcpConfigSchema,
+    protocol: ({ config }) => ({ mode: config.mode, tools: createMCPTools() }),
 
     // `setup` comes first so its return type is inferred before any slot whose
     // context carries `state`.

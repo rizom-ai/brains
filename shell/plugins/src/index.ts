@@ -531,6 +531,7 @@ export { extractCaptureableUrls } from "./message-interface/message-content-util
 
 export type {
   Plugin,
+  ProtocolPluginProvider,
   PluginRegistrationContext,
   PluginCapabilities,
   Tool,

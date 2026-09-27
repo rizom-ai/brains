@@ -1,5 +1,19 @@
 # @rizom/brain
 
+## 0.2.0-alpha.422
+
+### Patch Changes
+
+- [#380](https://github.com/rizom-ai/brains/pull/380) [`9f05393`](https://github.com/rizom-ai/brains/commit/9f053937e22deff5804427868bf0ad30e6b5c25b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The homepage chat box stays on preview across a restart. Web Chat records at startup whether the box is offered, and it checked that guest chat could answer, which waits for the search index. That is never ready at startup, so every restart or deploy recorded the box as off until the owner switched guest chat again. The record now follows the owner's switch and remaining allowance; the box itself says when chat cannot answer yet.
+
+- [#376](https://github.com/rizom-ai/brains/pull/376) [`39cc6eb`](https://github.com/rizom-ai/brains/commit/39cc6eb4cde86fc1a2adb38c85d45fab6fe98319) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Separate MCP protocol registration from HTTP and stdio hosting. Hosted interfaces and protocol-only embeddings share the same tool handlers and registration lifecycle. Add the explicit ProtocolPluginProvider contract and have --mcp-basic use the selected interface's protocol provider without starting listeners or restoring disabled host dependencies. Preserve hosted HTTP dependency and authentication checks.
+
+  Add regressions for listener-free registration, canonical headless/personal composition, unsupported providers, and an MCP chat/confirm long-note edit with exact stored-content assertions.
+
+- [#376](https://github.com/rizom-ai/brains/pull/376) [`39cc6eb`](https://github.com/rizom-ai/brains/commit/39cc6eb4cde86fc1a2adb38c85d45fab6fe98319) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add exact-match `edits` to agent-backed `system_update` so small changes do not require regenerating an entire document. Reject missing, ambiguous, overlapping, and mixed-mode edits; preserve confirmation and content-conflict protection. Refresh changed source-derived metadata so a note heading edit also updates its title. Reject entity updates that supply both fields and content instead of silently discarding content. Align confirmation preview lines so insertions and deletions do not mark an unchanged suffix as rewritten, and preserve visible blank-line changes. Add long-note coverage for exact content and backslash preservation through confirmation.
+
+  Add agent evals for 7, 14, and 17 KB note edits and combined title/body edits. Exact tool-result assertions verify stored Markdown after cancellation and approval, rather than relying on the assistant's success claims.
+
 ## 0.2.0-alpha.421
 
 ### Patch Changes

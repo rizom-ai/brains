@@ -115,6 +115,15 @@ export class GuestAccessControl {
     return (await this.admission.applyPolicy(false)) ? "off" : "unavailable";
   }
 
+  /**
+   * The owner has guest chat switched on with allowance left. Unlike isOpen,
+   * this does not wait for the guest profile, which is not ready while the
+   * search index loads after a restart.
+   */
+  async isSwitchedOn(): Promise<boolean> {
+    return (await this.admission?.accessStatus())?.enabled === true;
+  }
+
   /** Guest chat can answer: authorized, switched on, allowance left, guest profile ready. */
   async isOpen(): Promise<boolean> {
     return (

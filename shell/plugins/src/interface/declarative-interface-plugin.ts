@@ -9,7 +9,9 @@ import {
   createProfileSelectionReader,
 } from "../internal/authoring-readers";
 import type { AccountSettingsRegistration } from "../operator/account-settings-registry";
-import type { z } from "@brains/utils/zod";
+import { z } from "@brains/utils/zod";
+import { freeze } from "@brains/utils/freeze";
+import type { Plugin } from "../interfaces";
 import {
   identityConfigSchema,
   type InstalledPluginPackageMetadata,
@@ -65,6 +67,7 @@ class DeclarativeInterfacePlugin<
   private state: TState | undefined;
   private readonly cleanups: Array<() => void | Promise<void>> = [];
   private readonly operatorAbort = new AbortController();
+  readonly createProtocolPlugin?: (() => Plugin) | undefined;
   private reactionSource: ReactionContextSource | undefined;
 
   constructor(
@@ -79,6 +82,33 @@ class DeclarativeInterfacePlugin<
   ) {
     super(id, metadata, config, identityConfigSchema());
     this.definition = definition;
+    const protocol = definition.protocol;
+    if (protocol) {
+      const snapshot = structuredClone(config);
+      this.createProtocolPlugin = (): Plugin => {
+        const selected = protocol({
+          config: freeze(structuredClone(snapshot)),
+        });
+        const mode = z.enum(["basic", "debug"]).parse(selected.mode);
+        const tools = Object.freeze([...selected.tools]);
+        // Construct from an allowlist, not the hosted declaration. No setup,
+        // state, operator surfaces, subscriptions, jobs, routes or daemons leak.
+        return createDeclarativeInterfacePlugin(
+          {
+            id: definition.id,
+            config: z.strictObject({ mode: z.enum(["basic", "debug"]) }),
+            setup: ({ mcpTransport }) => {
+              mcpTransport.setProtocolMode(mode);
+              return {};
+            },
+            tools: () => tools,
+          },
+          { mode },
+          metadata,
+          id,
+        );
+      };
+    }
   }
 
   /**

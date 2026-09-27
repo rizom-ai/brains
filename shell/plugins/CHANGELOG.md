@@ -1,5 +1,31 @@
 # @brains/plugins
 
+## 0.2.0-alpha.422
+
+### Patch Changes
+
+- [#376](https://github.com/rizom-ai/brains/pull/376) [`39cc6eb`](https://github.com/rizom-ai/brains/commit/39cc6eb4cde86fc1a2adb38c85d45fab6fe98319) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Separate MCP protocol registration from HTTP and stdio hosting. Hosted interfaces and protocol-only embeddings share the same tool handlers and registration lifecycle. Add the explicit ProtocolPluginProvider contract and have --mcp-basic use the selected interface's protocol provider without starting listeners or restoring disabled host dependencies. Preserve hosted HTTP dependency and authentication checks.
+
+  Add regressions for listener-free registration, canonical headless/personal composition, unsupported providers, and an MCP chat/confirm long-note edit with exact stored-content assertions.
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.422
+  - @brains/contracts@0.2.0-alpha.422
+  - @brains/site-composition@0.2.0-alpha.422
+  - @brains/utils@0.2.0-alpha.422
+  - @brains/ai-service@0.2.0-alpha.422
+  - @brains/content-service@0.2.0-alpha.422
+  - @brains/conversation-service@0.2.0-alpha.422
+  - @brains/entity-service@0.2.0-alpha.422
+  - @brains/identity-service@0.2.0-alpha.422
+  - @brains/job-queue@0.2.0-alpha.422
+  - @brains/mcp-service@0.2.0-alpha.422
+  - @brains/messaging-service@0.2.0-alpha.422
+  - @brains/recurring-checks@0.2.0-alpha.422
+  - @brains/runtime-state@0.2.0-alpha.422
+  - @brains/scheduler@0.2.0-alpha.422
+  - @brains/templates@0.2.0-alpha.422
+
 ## 0.2.0-alpha.421
 
 ### Patch Changes

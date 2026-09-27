@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import {
   createPluginHarness,
   createStubAuth,
@@ -7,7 +7,10 @@ import {
 } from "@brains/plugins/test";
 import { SitePageResponse } from "@brains/plugins/contracts/web-routes";
 import { createServicePluginContext } from "@brains/plugins";
-import type { IRuntimeStateStore } from "@brains/runtime-state";
+import type {
+  IRuntimeStateStore,
+  IRuntimeStateNamespace,
+} from "@brains/runtime-state";
 import { createWebChatPlugin } from "./helpers/definition";
 import {
   ASK_BOX_AVAILABILITY_OWNER,
@@ -35,6 +38,7 @@ interface Fixture {
   calls(): number;
   previewPaths: string[];
   askBox(): Promise<AskBoxAvailability | null>;
+  state: IRuntimeStateNamespace;
 }
 
 async function fixture(
@@ -45,10 +49,15 @@ async function fixture(
     disabled?: boolean;
     copy?: { content: string; visibility: "public" | "restricted" };
     guest?: "local-test";
+    state?: IRuntimeStateNamespace;
   } = {},
 ): Promise<Fixture> {
   const harness = createPluginHarness(domain ? { domain } : {});
   harnesses.push(harness);
+  if (options.state)
+    spyOn(harness.getMockShell(), "getRuntimeState").mockReturnValue(
+      options.state,
+    );
   if (options.copy)
     harness.addEntities([
       {
@@ -124,6 +133,7 @@ async function fixture(
     send,
     ledger,
     calls: (): number => calls,
+    state: harness.getMockShell().getRuntimeState(),
     askBox: (): Promise<AskBoxAvailability | null> =>
       createServicePluginContext(harness.getMockShell(), "site-worker", {
         executionOnly: true,
@@ -149,6 +159,27 @@ describe("Ask box availability for site builds in any process", () => {
     expect(await f.askBox()).toEqual({ public: false, preview: true });
     expect((await f.send(access, { enabled: false })).status).toBe(200);
     expect(await f.askBox()).toEqual({ public: false, preview: false });
+  });
+
+  it("keeps preview availability after restart before profile readiness without admitting a turn", async () => {
+    const running = await fixture();
+    expect((await running.send(access, { enabled: true })).status).toBe(200);
+    const restarted = await fixture("admin", "rizom.ai", {
+      profileAvailable: false,
+      state: running.state,
+    });
+    expect(await restarted.askBox()).toEqual({ public: false, preview: true });
+    expect(
+      (
+        await restarted.send(
+          "/api/chat/guest/session",
+          {},
+          { Origin: "https://preview.rizom.ai" },
+          "https://preview.rizom.ai",
+        )
+      ).status,
+    ).toBe(503);
+    expect(restarted.calls()).toBe(0);
   });
 
   it("records a configured guest policy as served everywhere", async () => {

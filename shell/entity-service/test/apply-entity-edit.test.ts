@@ -145,6 +145,43 @@ describe("applying an edit to an entity", () => {
     });
   });
 
+  test.each([post({ contentHash: "hash-2" }), null])(
+    "honors storage CAS conflicts and rereads only at caller scope (%j)",
+    async (current) => {
+      const store = storeHolding(post());
+      const read = spyOn(store.services.entities, "getEntity")
+        .mockResolvedValueOnce(post())
+        .mockResolvedValue(current);
+      const write = spyOn(
+        store.services.entities,
+        "updateEntity",
+      ).mockResolvedValue({
+        entityId: "post-1",
+        jobId: "",
+        skipped: true,
+        skipReason: "content-conflict",
+      });
+      const outcome = await applyEntityEdit(
+        store.services,
+        edit({ baseContentHash: "hash-1" }),
+        { permission: "admin" },
+      );
+      expect(write).toHaveBeenCalledTimes(1);
+      expect(write.mock.calls[0]?.[0].options).toEqual({
+        expectedContentHash: "hash-1",
+      });
+      expect(outcome).toEqual(
+        current
+          ? { kind: "conflict", currentContentHash: "hash-2" }
+          : { kind: "not-found" },
+      );
+      expect(read.mock.calls.map(([request]) => request)).toEqual([
+        { entityType: "post", id: "post-1", visibilityScope: "restricted" },
+        { entityType: "post", id: "post-1", visibilityScope: "restricted" },
+      ]);
+    },
+  );
+
   test("answers not-found when nothing is stored at the caller's scope", async () => {
     const store = storeHolding(post({ visibility: "restricted" }));
 

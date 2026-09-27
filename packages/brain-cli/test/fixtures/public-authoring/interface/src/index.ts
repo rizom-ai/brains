@@ -12,6 +12,18 @@ import {
 export default defineInterface(
   {
     id: "reading-webhook",
+    protocol: (context) => {
+      const authorityCanary = (): void => {
+        // @ts-expect-error Protocol selection receives no entity access.
+        void context.entities;
+        // @ts-expect-error No transport or permission mutation during selection.
+        void context.mcpTransport;
+        // @ts-expect-error Host routes are not a selectable capability.
+        void context.routes;
+      };
+      void authorityCanary;
+      return { mode: "basic", tools: [] };
+    },
     config: z.object({
       webhookToken: z.string().min(1),
       eventFeedUrl: z.url().default("http://127.0.0.1:4010/events"),

@@ -229,7 +229,8 @@ export function createWebChatDefinition(
         const recordAvailability = async (): Promise<void> => {
           const configured = guestPolicy.enabled;
           const activated =
-            guestControl.policy !== undefined && (await guestControl.isOpen());
+            guestControl.policy !== undefined &&
+            (await guestControl.isSwitchedOn());
           await context.availability.set({
             public: configured,
             preview: configured || activated,

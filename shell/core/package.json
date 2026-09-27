@@ -1,7 +1,7 @@
 {
   "name": "@brains/core",
   "license": "AGPL-3.0-only",
-  "version": "0.2.0-alpha.421",
+  "version": "0.2.0-alpha.422",
   "dependencies": {
     "@brains/contracts": "workspace:*",
     "@brains/image": "workspace:*",
@@ -12,7 +12,8 @@
     "@brains/scheduler": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/templates": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/utils": "workspace:*",
+    "diff": "^9.0.0"
   },
   "devDependencies": {
     "@brains/ai-service": "workspace:*",

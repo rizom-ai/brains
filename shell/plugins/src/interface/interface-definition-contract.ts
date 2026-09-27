@@ -371,6 +371,13 @@ export interface InterfaceDefinitionHeader<
   readonly id: string;
   readonly config: TConfigSchema;
   readonly accountSettings?: TAccountSettings | undefined;
+  /** Fresh embedding-owned MCP registration; no host setup, routes or daemons. */
+  readonly protocol?:
+    | ((context: { readonly config: Readonly<z.output<TConfigSchema>> }) => {
+        readonly mode: "basic" | "debug";
+        readonly tools: readonly AnyServiceToolDefinition[];
+      })
+    | undefined;
   /**
    * What this interface holds while it runs, and what it does once, at
    * registration.

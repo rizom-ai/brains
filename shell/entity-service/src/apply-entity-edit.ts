@@ -137,10 +137,29 @@ export async function applyEntityEdit(
 
   const result = await services.entities.updateEntity({
     entity: request.next,
-    ...(request.eventContext
-      ? { options: { eventContext: request.eventContext } }
+    ...(request.eventContext || request.baseContentHash !== undefined
+      ? {
+          options: {
+            ...(request.eventContext
+              ? { eventContext: request.eventContext }
+              : {}),
+            ...(request.baseContentHash !== undefined
+              ? { expectedContentHash: request.baseContentHash }
+              : {}),
+          },
+        }
       : {}),
   });
+  if (result.skipReason === "content-conflict") {
+    const current = await services.entities.getEntity({
+      entityType: request.entityType,
+      id: request.id,
+      visibilityScope: permissionToVisibilityScope(caller.permission),
+    });
+    return current
+      ? { kind: "conflict", currentContentHash: current.contentHash }
+      : { kind: "not-found" };
+  }
   return { kind: "updated", action, result };
 }
 

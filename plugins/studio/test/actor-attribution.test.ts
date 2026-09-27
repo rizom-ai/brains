@@ -160,7 +160,15 @@ describe("Studio mutation actor attribution", () => {
     expect(created.status).toBe(201);
     expect(updated.status).toBe(200);
     expect(deleted.status).toBe(200);
-    for (const mutationSpy of [createSpy, updateSpy, deleteSpy]) {
+    expect(updateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: {
+          eventContext: expectedEventContext,
+          expectedContentHash: stored.contentHash,
+        },
+      }),
+    );
+    for (const mutationSpy of [createSpy, deleteSpy]) {
       expect(mutationSpy).toHaveBeenCalledWith(
         expect.objectContaining({
           options: { eventContext: expectedEventContext },

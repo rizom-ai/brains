@@ -61,7 +61,7 @@ Common tools:
 | Tool              | Purpose                                                                                                                                                                  |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `system_create`   | Create an entity from existing material. Use `source.kind` (`text`, `url`, `upload`, or `prior-response`) to select the concrete source, and `visibility` to set access. |
-| `system_update`   | Update fields or replace full content. Requires confirmation for writes.                                                                                                 |
+| `system_update`   | Update fields, apply exact text edits, or replace full content. Requires confirmation for writes.                                                                        |
 | `system_delete`   | Delete an entity. Requires confirmation.                                                                                                                                 |
 | `system_get`      | Fetch one entity by id, slug, or title.                                                                                                                                  |
 | `system_list`     | List entities by type, optionally filtered by status.                                                                                                                    |
@@ -85,12 +85,25 @@ Use `fields` for frontmatter/metadata changes:
 brain tool system_update '{
   "entityType":"post",
   "id":"my-first-post",
-  "fields":{"status":"published"},
-  "confirmed":true
+  "fields":{"title":"A revised title"}
 }'
 ```
 
-Use `content` only when you intentionally want to replace the full markdown content.
+For small content changes, fetch the entity first and use `edits` rather than regenerating the whole Markdown document:
+
+```bash
+brain tool system_update '{
+  "entityType":"note",
+  "id":"working-plan",
+  "edits":[{"oldText":"Review cadence: monthly.","newText":"Review cadence: weekly."}]
+}'
+```
+
+Each `oldText` must occur exactly once in the original content. Up to 50 non-overlapping edits can be proposed together; an empty `newText` deletes the matched text. All edits are checked before any is applied, and unchanged text is not regenerated. Ambiguous, missing, or overlapping matches are rejected.
+
+Use exactly one of `fields`, `edits`, or `content`. Use `content` only for intentional whole-document replacement. Source-derived metadata is refreshed when its source changes, including a note title derived from an edited heading.
+
+The initial call proposes changes without writing them. Approve through the confirmation flow; stale or altered approvals are rejected. Basic MCP clients continue to use agent-backed `chat` and `confirm`, not direct mutation tools.
 
 ### Studio
 

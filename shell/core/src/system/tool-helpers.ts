@@ -225,8 +225,10 @@ export function normalizeUpdateInput(input: {
   fields?: Record<string, unknown>;
   content?: string;
 } {
-  if (input.fields) {
-    return { fields: input.fields };
+  if (input.fields !== undefined) {
+    // Preserve both inputs so the caller can reject an ambiguous update rather
+    // than silently approving only its metadata changes.
+    return { ...input };
   }
 
   if (!input.content) {

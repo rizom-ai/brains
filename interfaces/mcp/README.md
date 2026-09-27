@@ -23,27 +23,52 @@ bun add @brains/mcp
 
 ## Usage
 
-### As an Interface Plugin
+### As an installed interface
 
-```typescript
-import { MCPInterface } from "@brains/mcp";
+The package exports a declarative interface, not a plugin class. Configure the
+installed `mcp` member in `brain.yaml`:
 
-// For STDIO transport
-const stdioInterface = new MCPInterface({
-  transport: "stdio",
-  mode: "basic", // default: chat/confirm only
-});
-
-// For authenticated HTTP transport
-const httpInterface = new MCPInterface({
-  transport: "http",
-  httpPort: 3333,
-  authToken: process.env.MCP_AUTH_TOKEN,
-});
-
-// Register with shell
-await shell.registerPlugin(stdioInterface);
+```yaml
+plugins:
+  mcp:
+    transport: http
+    mode: basic
+    authToken: ${MCP_AUTH_TOKEN}
 ```
+
+Use `transport: stdio` for local process clients. Basic mode exposes only
+`mcp_chat` and `mcp_confirm`.
+
+### Protocol registration without a transport host
+
+The MCP declaration supplies the bounded `protocol` selector on `defineInterface`.
+It receives validated configuration only and returns a mode and tool definitions.
+The native installed instance implements `ProtocolPluginProvider`; its
+`createProtocolPlugin()` returns a fresh registration with the same installed
+package/plugin identity and mode, using the shared `mcp_chat`/`mcp_confirm`
+handlers. Host configuration, setup, routes, endpoint advertisements and listener
+daemons are not carried over. Install either the hosted interface or its protocol
+registration, not both under the same `@brains/mcp:mcp` identity.
+
+The embedding connects SDK transports to permission-scoped servers created by the
+shell's MCP service. It owns connection cleanup and must supply trusted caller
+context; protocol-only registration is not an authentication bypass for remote
+clients. Hosted HTTP still uses the runtime HTTP host and retains its authentication
+and Admin-gated debug-mode checks.
+
+The evaluator uses this registration path for `--mcp-basic`. It does not change
+transport configuration, restore a production host, or open stdio. From
+`packages/brain-cli`, run the protocol-specific regression with:
+
+```bash
+bun run eval:personal --mcp-basic --test mcp-long-note-update --skip-llm-judge
+```
+
+Protocol evals assert what MCP actually exposes. A confirmation contains the
+pending action and summary, not the agent's internal read-call trace. The
+long-note protocol case checks exact pending edits, unchanged storage after
+cancellation, and exact saved content and metadata after approval. In-memory
+protocol evals do not cover HTTP authentication, proxy deadlines, or Cloudflare.
 
 ### Transport Implementations
 
