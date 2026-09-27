@@ -1000,8 +1000,8 @@ export class JobQueueRepository {
 
   /**
    * Atomically claim the highest-priority executable pending or reclaimable job.
-   * A superseded session is reclaimable immediately. Another slot's attempt
-   * requires both an expired lease and an expired owner-session heartbeat.
+   * A superseded session is reclaimable immediately; any other attempt once
+   * its lease expires, since a live worker renews the leases it still runs.
    */
   public async claimNextReady(
     claim: JobAttemptClaim,
@@ -1034,23 +1034,12 @@ export class JobQueueRepository {
           eq(jobWorkerSessions.sessionId, jobQueue.workerSessionId),
         ),
       );
-    const staleOwnerSession = this.db
-      .select({ slotId: jobWorkerSessions.slotId })
-      .from(jobWorkerSessions)
-      .where(
-        and(
-          eq(jobWorkerSessions.slotId, jobQueue.workerSlotId),
-          eq(jobWorkerSessions.sessionId, jobQueue.workerSessionId),
-          lte(jobWorkerSessions.expiresAt, now),
-        ),
-      );
-
     const processingReclaimable = and(
       eq(jobQueue.status, JOB_STATUS.PROCESSING),
       or(
         isNull(jobQueue.attemptId),
         notExists(matchingOwnerSession),
-        and(lte(jobQueue.leaseExpiresAt, now), exists(staleOwnerSession)),
+        lte(jobQueue.leaseExpiresAt, now),
       ),
     );
     const terminalReclaim = sql`${jobQueue.status} = ${JOB_STATUS.PROCESSING} AND ${jobQueue.retryCount} + 1 > ${jobQueue.maxRetries}`;
