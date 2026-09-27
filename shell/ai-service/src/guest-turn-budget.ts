@@ -6,28 +6,10 @@ import {
   type GuestTurnCost,
   type GuestTurnSettlement,
 } from "@brains/contracts/chat";
-import { z } from "@brains/utils/zod";
 
 type GuestModel = Parameters<typeof wrapLanguageModel>[0]["model"];
 type GuestModelResult = Awaited<ReturnType<GuestModel["doGenerate"]>>;
 export type GuestModelCall = Parameters<GuestModel["doGenerate"]>[0];
-const modelQuoteSchema: z.ZodObject<
-  { inputTokens: z.ZodNumber; maxCostMicroUsd: z.ZodNumber },
-  z.core.$strict
-> = z.strictObject({
-  inputTokens: z.number().int().nonnegative(),
-  maxCostMicroUsd: z.number().int().nonnegative(),
-});
-const toolQuoteSchema: z.ZodObject<
-  { maxCostMicroUsd: z.ZodNumber },
-  z.core.$strict
-> = modelQuoteSchema.omit({ inputTokens: true });
-
-/** Trusted, model-specific accounting. No bytes-to-token heuristic or fallback prices.
- * Quotes must upper-bound the complete request (including reasoning/cache/tool costs).
- * Accounting itself must be non-billable. Adapters must reject unsupported
- * models/pricing revisions, honor the supplied signal and never log transcripts.
- */
 /** What the provider reported for each model call and query embedding of a turn. */
 export interface GuestProviderUsage {
   calls: Array<{
@@ -51,18 +33,11 @@ export type GuestQueryEmbedding = (
   usage: (tokens: number | undefined) => void,
 ) => Promise<Float32Array>;
 
+/**
+ * A guest profile's pricing: the actual cost of a turn from the usage the
+ * provider reported, at a pinned pricing revision. Absent: turns are unpriced.
+ */
 export interface GuestExecutionAccounting {
-  model(request: {
-    provider: string;
-    modelId: string;
-    params: Readonly<GuestModelCall>;
-  }): Promise<z.output<typeof modelQuoteSchema>>;
-  tool(request: {
-    name: string;
-    input: unknown;
-    signal: AbortSignal;
-  }): Promise<z.output<typeof toolQuoteSchema>>;
-  /** Actual cost from reported usage at a pinned pricing revision. Absent: unpriced. */
   settle?(usage: GuestProviderUsage): GuestTurnCost;
 }
 
@@ -87,7 +62,11 @@ function elapsedClock(): () => number {
     Math.max(performance.now() - monotonicStart, Date.now() - wallStart);
 }
 
-/** Per-turn, never shared across concurrent conversations. No expiry-based refunds. */
+/**
+ * Per-turn, never shared across concurrent conversations. A turn is bounded by
+ * fixed caps (deadline, model steps, output tokens, context bytes, tool calls
+ * and sizes), which bound what it can cost; its measured cost settles after.
+ */
 export class GuestTurnBudget {
   readonly policy: GuestExecutionPolicy;
   readonly signal: AbortSignal;
@@ -97,7 +76,6 @@ export class GuestTurnBudget {
   private readonly clock: () => number;
   private readonly deadlineAt: number;
   private lastClock: number;
-  private remainingCost: number;
   private remainingOutput: number;
   private modelCalls = 0;
   private toolCalls = 0;
@@ -124,7 +102,6 @@ export class GuestTurnBudget {
       this.lastClock + this.policy.limits.requestTimeoutSeconds * 1000;
     if (this.deadlineAt > Number.MAX_SAFE_INTEGER)
       throw new Error("Guest execution clock unavailable");
-    this.remainingCost = this.policy.maxCostMicroUsd;
     this.remainingOutput = this.policy.limits.outputTokens;
     const deadline = new AbortController();
     this.cancellation = deadline;
@@ -193,8 +170,7 @@ export class GuestTurnBudget {
       this.closed ||
       this.signal.aborted ||
       this.modelCalls >= this.policy.limits.toolSteps ||
-      this.remainingOutput <= 0 ||
-      this.remainingCost <= 0
+      this.remainingOutput <= 0
     );
   }
 
@@ -230,29 +206,6 @@ export class GuestTurnBudget {
             ).byteLength;
             if (bytes > this.policy.limits.contextBytes)
               throw new Error("Guest context limit exceeded");
-            // Accounting errors may contain private provider details. A missing quote
-            // is a hard denial, never a fallback estimate or an unmetered request.
-            const quoteParams = {
-              ...params,
-              prompt: structuredClone(params.prompt),
-              ...(params.tools ? { tools: structuredClone(params.tools) } : {}),
-            };
-            const quote = modelQuoteSchema.safeParse(
-              await Promise.resolve()
-                .then(() =>
-                  this.accounting.model({
-                    provider: model.provider,
-                    modelId: model.modelId,
-                    params: quoteParams,
-                  }),
-                )
-                .catch(() => null),
-            );
-            this.assertLive();
-            if (!quote.success) throw new Error("Guest accounting unavailable");
-            if (quote.data.inputTokens > this.policy.limits.contextTokens)
-              throw new Error("Guest context limit exceeded");
-            this.charge(quote.data.maxCostMicroUsd);
             // Unknown provider outcomes cannot return their output allowance for reuse.
             this.remainingOutput = 0;
             let result: GuestModelResult;
@@ -275,7 +228,7 @@ export class GuestTurnBudget {
               used > outputAllowance ||
               !Number.isSafeInteger(input) ||
               input < 0 ||
-              input > quote.data.inputTokens
+              input > this.policy.limits.contextTokens
             ) {
               throw new Error("Guest provider exceeded accounted token bounds");
             }
@@ -292,7 +245,7 @@ export class GuestTurnBudget {
             this.modelActive = false;
           }
         },
-        // BrainAgent uses generate; streaming must not bypass preflight accounting.
+        // BrainAgent uses generate; streaming must not bypass the caps.
         wrapStream: async (): Promise<never> => {
           throw new Error("Guest provider streaming is not admitted");
         },
@@ -301,7 +254,7 @@ export class GuestTurnBudget {
   }
 
   async executeTool(
-    name: string,
+    _name: string,
     input: unknown,
     handler: () => Promise<unknown>,
   ): Promise<unknown> {
@@ -311,20 +264,6 @@ export class GuestTurnBudget {
     if (serialize(input).length > this.policy.limits.messageCharacters)
       throw new Error("Guest tool input limit exceeded");
     this.toolCalls++;
-    const quote = toolQuoteSchema.safeParse(
-      await Promise.resolve()
-        .then(() =>
-          this.accounting.tool({
-            name,
-            input: structuredClone(input),
-            signal: this.signal,
-          }),
-        )
-        .catch(() => null),
-    );
-    this.assertLive();
-    if (!quote.success) throw new Error("Guest accounting unavailable");
-    this.charge(quote.data.maxCostMicroUsd);
     const result = await handler();
     this.assertLive();
     if (serialize(result).length > this.policy.limits.toolResultCharacters)
@@ -371,10 +310,5 @@ export class GuestTurnBudget {
     this.lastClock = now;
     if (now >= this.deadlineAt)
       this.cancellation.abort(new Error("Guest request deadline exceeded"));
-  }
-
-  private charge(cost: number): void {
-    if (cost > this.remainingCost) throw new Error("Guest cost limit exceeded");
-    this.remainingCost -= cost;
   }
 }

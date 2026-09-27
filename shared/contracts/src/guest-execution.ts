@@ -31,6 +31,7 @@ export const guestExecutionPolicySchema: Strict<{
   maxCostMicroUsd: z.ZodNumber;
 }> = z.strictObject({
   limits: guestExecutionLimitsSchema,
+  /** The most one answer can cost within its limits: charged when its cost is unknown. */
   maxCostMicroUsd: z.number().int().positive(),
 });
 export type GuestExecutionPolicy = z.output<typeof guestExecutionPolicySchema>;

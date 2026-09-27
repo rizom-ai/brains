@@ -29,8 +29,6 @@ const endpoint = "https://api.openai.com/v1/responses";
 const embeddingEndpoint = "https://api.openai.com/v1/embeddings";
 export const openAiGuestEmbeddingModel = "text-embedding-3-small";
 export const openAiGuestEmbeddingDimensions = 1536;
-// Full published per-input ceiling (8192 tokens at $0.02/M), rounded up.
-const embeddingCostMicroUsd = 164;
 const embeddingWireSchema = z.strictObject({
   model: z.literal(openAiGuestEmbeddingModel),
   input: z.array(z.string().min(1).max(4000)).length(1),
@@ -228,32 +226,6 @@ export function createOpenAiGuestProfile(
     },
   });
   const accounting: GuestExecutionAccounting = {
-    model: async (request) => {
-      request.params.abortSignal?.throwIfAborted();
-      const output = request.params.maxOutputTokens;
-      if (
-        request.provider !== base.provider ||
-        request.modelId !== modelId ||
-        !Number.isSafeInteger(output) ||
-        output === undefined ||
-        output <= 0 ||
-        output > 1200
-      )
-        throw new Error("Guest accounting unavailable");
-      return {
-        inputTokens: openAiGuestContextTokens,
-        maxCostMicroUsd: 420_000 + Math.ceil((output * 18) / 10),
-      };
-    },
-    tool: async (request) => {
-      request.signal.throwIfAborted();
-      if (!tools.safeParse(request.name).success)
-        throw new Error("Guest accounting unavailable");
-      return {
-        maxCostMicroUsd:
-          request.name === "system_search" ? embeddingCostMicroUsd : 0,
-      };
-    },
     settle: priceOpenAiGuestTurn,
   };
   const queryEmbedding: GuestQueryEmbedding = async (query, signal, usage) => {

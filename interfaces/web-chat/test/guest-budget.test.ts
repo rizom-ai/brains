@@ -82,6 +82,18 @@ function ledger(policy = budgeted()): {
   return { admission, policy, clock };
 }
 
+/** Settles an admitted question; without a cost, the answer cap is charged. */
+async function answer(
+  admission: GuestAdmission,
+  policy: EnabledGuestPolicy,
+  now: number,
+  measuredMicroUsd?: number,
+): Promise<boolean> {
+  const admitted = await ask(admission, policy, now);
+  if (admitted.kind !== "reserved") return false;
+  return admission.settle(admitted.lease, "completed", measuredMicroUsd);
+}
+
 describe("an owner-set monthly budget for guest chat", () => {
   it("does not take a budget from product configuration", () => {
     expect(webChatConfigSchema.parse({}).guest).toBe(false);
@@ -93,7 +105,7 @@ describe("an owner-set monthly budget for guest chat", () => {
       expect(webChatConfigSchema.safeParse({ guest }).success).toBe(false);
   });
 
-  it("admits nothing until the owner sets a budget, and quotes each question at $0.50", async () => {
+  it("admits nothing until the owner sets a budget, and charges nothing up front", async () => {
     const { admission, policy, clock } = ledger();
     expect(await ask(admission, policy, clock.now)).toEqual({
       kind: "denied",
@@ -101,60 +113,59 @@ describe("an owner-set monthly budget for guest chat", () => {
     });
     expect(await admission.authorize(dollars(10))).toBe(true);
     const admitted = await ask(admission, policy, clock.now);
-    if (admitted.kind !== "reserved") throw new Error("Expected a reservation");
-    expect(admitted.lease.execution.maxCostMicroUsd).toBe(dollars(0.5));
+    if (admitted.kind !== "reserved") throw new Error("Expected admission");
+    // The most one answer can cost, charged only when its cost is unknown.
+    expect(admitted.lease.execution.maxCostMicroUsd).toBe(dollars(0.05));
     expect(await admission.accessStatus()).toMatchObject({
       authorized: true,
       enabled: true,
       budgetMicroUsd: dollars(10),
-      chargedMicroUsd: dollars(0.5),
+      chargedMicroUsd: 0,
+      answerCapMicroUsd: dollars(0.05),
     });
   });
 
-  it("refuses a budget smaller than one question or beyond its bound", async () => {
+  it("refuses a budget below one answer's cap or beyond its bound", async () => {
     const { admission } = ledger();
-    expect(await admission.authorize(dollars(0.25))).toBe(false);
+    expect(await admission.authorize(dollars(0.01))).toBe(false);
     expect(await admission.authorize(dollars(100_000))).toBe(false);
     expect(await admission.authorize(1.5)).toBe(false);
     expect((await admission.accessStatus())?.authorized).toBe(false);
   });
 
-  it("returns the unused quote once a question's cost is measured", async () => {
+  it("charges each answer its measured cost, or the answer cap when it is unknown", async () => {
     const { admission, policy, clock } = ledger();
-    await admission.authorize(dollars(1));
+    await admission.authorize(dollars(10));
+    expect(await answer(admission, policy, clock.now, 12_000)).toBe(true);
+    clock.now += minute;
+    for (const outcome of ["failed", "interrupted"] as const) {
+      const admitted = await ask(admission, policy, clock.now);
+      if (admitted.kind !== "reserved") throw new Error("Expected admission");
+      expect(await admission.settle(admitted.lease, outcome)).toBe(true);
+    }
+    expect((await admission.accessStatus())?.chargedMicroUsd).toBe(
+      12_000 + 2 * dollars(0.05),
+    );
+  });
+
+  it("admits while the month's spend is under the budget; answers in flight may overshoot it", async () => {
+    const { admission, policy, clock } = ledger();
+    await admission.authorize(dollars(0.1));
+    expect(await answer(admission, policy, clock.now)).toBe(true);
     const first = await ask(admission, policy, clock.now);
     const second = await ask(admission, policy, clock.now);
     if (first.kind !== "reserved" || second.kind !== "reserved")
-      throw new Error("Expected two reservations within $1");
+      throw new Error("Both run while the spend is under the budget");
+    await admission.settle(first.lease, "completed");
+    await admission.settle(second.lease, "completed");
+    expect(await admission.accessStatus()).toMatchObject({
+      chargedMicroUsd: dollars(0.15),
+      enabled: false,
+    });
     expect(await ask(admission, policy, clock.now)).toEqual({
       kind: "denied",
       reason: "budget-exhausted",
     });
-    expect(await admission.settle(first.lease, "completed", 12_000)).toBe(true);
-    expect((await admission.accessStatus())?.chargedMicroUsd).toBe(
-      dollars(0.5) + 12_000,
-    );
-    // The second question still holds its whole quote: no room for a third.
-    expect((await ask(admission, policy, clock.now)).kind).toBe("denied");
-    expect(await admission.settle(second.lease, "completed", 8_000)).toBe(true);
-    expect((await admission.accessStatus())?.chargedMicroUsd).toBe(20_000);
-    expect((await ask(admission, policy, clock.now)).kind).toBe("reserved");
-  });
-
-  it("keeps the whole quote for work whose cost is unknown", async () => {
-    const { admission, policy, clock } = ledger();
-    await admission.authorize(dollars(2));
-    const outcomes = ["failed", "interrupted", "completed"] as const;
-    for (const outcome of outcomes) {
-      const admitted = await ask(admission, policy, clock.now);
-      if (admitted.kind !== "reserved")
-        throw new Error("Expected a reservation");
-      expect(await admission.settle(admitted.lease, outcome)).toBe(true);
-      clock.now += minute;
-    }
-    expect((await admission.accessStatus())?.chargedMicroUsd).toBe(
-      dollars(1.5),
-    );
   });
 
   it("never limits by the number of questions or sessions, only by money", async () => {
@@ -164,10 +175,9 @@ describe("an owner-set monthly budget for guest chat", () => {
       async (count) => {
         const done = await count;
         clock.now += minute;
-        const admitted = await ask(admission, policy, clock.now);
-        if (admitted.kind !== "reserved") return done;
-        await admission.settle(admitted.lease, "completed", 10_000);
-        return done + 1;
+        return (await answer(admission, policy, clock.now, 10_000))
+          ? done + 1
+          : done;
       },
       Promise.resolve(0),
     );
@@ -175,70 +185,75 @@ describe("an owner-set monthly budget for guest chat", () => {
     expect((await admission.accessStatus())?.chargedMicroUsd).toBe(120_000);
   });
 
-  it("starts over each UTC month while keeping work in flight funded", async () => {
+  it("starts over each UTC month, charging work to the month it finishes in", async () => {
     const { admission, policy, clock } = ledger();
-    await admission.authorize(dollars(1));
+    await admission.authorize(dollars(0.1));
     clock.now = Date.parse("2026-09-30T23:58:00Z");
-    const settled = await ask(admission, policy, clock.now);
+    expect(await answer(admission, policy, clock.now)).toBe(true);
     const inFlight = await ask(admission, policy, clock.now);
-    if (settled.kind !== "reserved" || inFlight.kind !== "reserved")
-      throw new Error("Expected two reservations");
-    await admission.settle(settled.lease, "failed");
+    if (inFlight.kind !== "reserved") throw new Error("Expected admission");
+    expect(await answer(admission, policy, clock.now)).toBe(true);
     expect(await ask(admission, policy, clock.now)).toEqual({
       kind: "denied",
       reason: "budget-exhausted",
     });
     clock.now = Date.parse("2026-10-01T00:01:00Z");
+    await admission.settle(inFlight.lease, "completed", 7_000);
     expect(await admission.accessStatus()).toMatchObject({
       month: "2026-10",
-      chargedMicroUsd: dollars(0.5),
+      chargedMicroUsd: 7_000,
       enabled: true,
     });
-    expect((await ask(admission, policy, clock.now)).kind).toBe("reserved");
   });
 
-  it("keeps the month's charge when switched off and on, or when the budget changes", async () => {
+  it("keeps the month's spend when switched off and on, or when the budget changes", async () => {
     const { admission, policy, clock } = ledger();
     await admission.authorize(dollars(1));
-    const admitted = await ask(admission, policy, clock.now);
-    if (admitted.kind !== "reserved") throw new Error("Expected a reservation");
-    await admission.settle(admitted.lease, "failed");
+    expect(await answer(admission, policy, clock.now)).toBe(true);
     expect(await admission.applyPolicy(false)).toBe(true);
     expect((await ask(admission, policy, clock.now)).kind).toBe("denied");
     expect(await admission.applyPolicy(true)).toBe(true);
     expect(await admission.authorize(dollars(5))).toBe(true);
     expect(await admission.accessStatus()).toMatchObject({
       budgetMicroUsd: dollars(5),
-      chargedMicroUsd: dollars(0.5),
+      chargedMicroUsd: dollars(0.05),
     });
+  });
+
+  it("keeps the owner's budget through a change of limits", async () => {
+    const state = createMemoryRuntimeStateNamespace();
+    const now = (): number => start;
+    const options = { now, requireAuthorization: true };
+    const before = budgeted();
+    await new GuestAdmission(state, before, options).authorize(dollars(1));
+    const after: EnabledGuestPolicy = {
+      ...before,
+      limits: { ...before.limits, userTurns: before.limits.userTurns + 1 },
+    };
+    const admission = new GuestAdmission(state, after, options);
+    expect((await admission.accessStatus())?.enabled).toBe(true);
+    expect((await ask(admission, after, start)).kind).toBe("reserved");
   });
 
   it("does not carry a budget to another origin, nor reset the deployment's month", async () => {
     const state = createMemoryRuntimeStateNamespace();
     const now = (): number => start;
+    const options = { now, requireAuthorization: true };
     const preview = budgeted();
-    const first = new GuestAdmission(state, preview, {
-      now,
-      requireAuthorization: true,
-    });
+    const first = new GuestAdmission(state, preview, options);
     await first.authorize(dollars(1));
-    const admitted = await ask(first, preview, start);
-    if (admitted.kind !== "reserved") throw new Error("Expected a reservation");
-    await first.settle(admitted.lease, "failed");
+    expect(await answer(first, preview, start)).toBe(true);
     const moved = budgeted("https://preview.other.test");
-    const second = new GuestAdmission(state, moved, {
-      now,
-      requireAuthorization: true,
-    });
+    const second = new GuestAdmission(state, moved, options);
     expect(await ask(second, moved, start)).toEqual({
       kind: "denied",
       reason: "unavailable",
     });
     expect(await second.authorize(dollars(1))).toBe(true);
-    expect((await second.accessStatus())?.chargedMicroUsd).toBe(dollars(0.5));
+    expect((await second.accessStatus())?.chargedMicroUsd).toBe(dollars(0.05));
   });
 
-  it("shares the month's charge across SQLite connections and a restart", async () => {
+  it("shares the month's spend across SQLite connections and a restart", async () => {
     const directory = await mkdtemp(join(tmpdir(), "guest-budget-"));
     const config = { url: `file:${join(directory, "state.db")}` };
     await migrateRuntimeState(config);
@@ -251,11 +266,16 @@ describe("an owner-set monthly budget for guest chat", () => {
       const options = { now, requireAuthorization: true };
       const a = new GuestAdmission(first, policy, options);
       const b = new GuestAdmission(second, policy, options);
-      expect(await a.authorize(dollars(1))).toBe(true);
+      expect(await a.authorize(dollars(0.1))).toBe(true);
       const results = await Promise.all(
         Array.from({ length: 6 }, (_, i) => ask(i % 2 ? a : b, policy, start)),
       );
-      expect(results.filter((r) => r.kind === "reserved")).toHaveLength(2);
+      const admitted = results.flatMap((r) =>
+        r.kind === "reserved" ? [r.lease] : [],
+      );
+      // Admission is bounded by concurrency, not by an up-front charge.
+      expect(admitted).toHaveLength(policy.limits.globalConcurrency);
+      for (const lease of admitted) await a.settle(lease, "completed");
       first.close();
       second.close();
       const restarted = RuntimeStateService.createFresh(config);
@@ -263,7 +283,7 @@ describe("an owner-set monthly budget for guest chat", () => {
         await restarted.initialize();
         const admission = new GuestAdmission(restarted, policy, options);
         expect(await admission.accessStatus()).toMatchObject({
-          chargedMicroUsd: dollars(1),
+          chargedMicroUsd: admitted.length * dollars(0.05),
           enabled: false,
         });
       } finally {

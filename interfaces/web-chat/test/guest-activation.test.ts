@@ -277,7 +277,7 @@ describe("admin guest activation using deployment conventions", () => {
       origin: "https://preview.rizom.ai",
       budgetMicroUsd: 0,
       chargedMicroUsd: 0,
-      quoteMicroUsd: 500_000,
+      answerCapMicroUsd: 50_000,
     });
     expect(await f.ledger.list({ limit: 10 })).toHaveLength(0);
     expect(f.calls()).toBe(0);
