@@ -101,6 +101,7 @@ import {
 } from "./upload-handlers";
 
 import { GuestStateMaintenance } from "./guest-maintenance";
+import { registerGuestMonitor } from "./guest-monitor";
 import { loadAskContent } from "./ask-content";
 import { createChatApiPaths } from "@brains/contracts/chat";
 import { GuestHttpHandlers, type GuestHttpOptions } from "./guest-http";
@@ -214,6 +215,19 @@ export class WebChatInterface extends MessageInterfacePlugin<
             context.agent.guestProfileAvailable === true),
       },
     );
+    // The owner sees whether the guest usage record is recording, full or failing.
+    if ((managedPolicy ?? this.guestPolicy).enabled) {
+      const guestHttp = this.guestHttp;
+      context.operationalHealth.register("guest-usage-record", async () => {
+        const health = await guestHttp.usageHealth();
+        return (
+          health ?? {
+            status: "healthy",
+            message: "Guest access is off; nothing is recorded.",
+          }
+        );
+      });
+    }
     // Site builds may run in a separate worker, where interfaces are not
     // registered: record where this deployment serves the Ask box boot.
     this.askBoxAvailability = context.runtimeState.scoped({
@@ -227,7 +241,15 @@ export class WebChatInterface extends MessageInterfacePlugin<
       createScheduledMaintenanceDaemon({
         intervalMs: 60_000,
         logger: context.logger,
-        run: (): Promise<void> => maintenance.run(),
+        run: async (): Promise<void> => {
+          // Neither sweep may starve the other.
+          const results = await Promise.allSettled([
+            maintenance.run(),
+            this.guestHttp?.maintainUsage(),
+          ]);
+          if (results.some((result) => result.status === "rejected"))
+            throw new Error("Guest maintenance unavailable");
+        },
       }),
     );
 
@@ -284,6 +306,23 @@ export class WebChatInterface extends MessageInterfacePlugin<
     await this.askBoxAvailability?.set(ASK_BOX_STATE_KEY, {
       public: configured,
       preview: configured || activated,
+    });
+  }
+
+  /** The owner's Studio view of guest chat: what it did, and the switch. */
+  protected override async onReady(
+    context: MessageInterfacePluginContext,
+  ): Promise<void> {
+    const usage = this.guestHttp?.usageRecord;
+    if (!usage) return;
+    await registerGuestMonitor(context, {
+      record: usage.record,
+      bounds: usage.bounds,
+      control: this.guestControl?.policy ? this.guestControl : undefined,
+      configuredOpen: (): boolean =>
+        this.guestPolicy.enabled &&
+        context.agent.guestProfileAvailable === true,
+      afterSwitch: (): Promise<void> => this.recordAfterActivation(),
     });
   }
 
@@ -389,6 +428,26 @@ export class WebChatInterface extends MessageInterfacePlugin<
                 headers: { "Cache-Control": "no-store" },
               }),
       });
+      for (const extension of ["js", "css"] as const) {
+        routes.push({
+          path: `/ask/assets/ask.${extension}`,
+          method: "GET",
+          public: true,
+          preview: true,
+          handler: async (request): Promise<Response> =>
+            (await this.canServeGuestAssets(request))
+              ? this.handleBuiltUiFile(
+                  uiAssetFile.replace(/app\.js$/, `ask.${extension}`),
+                  extension === "js"
+                    ? "text/javascript; charset=utf-8"
+                    : "text/css; charset=utf-8",
+                )
+              : new Response("Not found", {
+                  status: 404,
+                  headers: { "Cache-Control": "no-store" },
+                }),
+        });
+      }
       routes.push({
         path: "/ask/assets/guest.js",
         method: "GET",

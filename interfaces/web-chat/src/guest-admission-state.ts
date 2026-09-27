@@ -114,17 +114,30 @@ export interface GuestExecutionLease {
   execution: GuestExecutionPolicy;
 }
 
-export type GuestAdmissionDenial =
-  | "unavailable"
-  | "invalid-input"
-  | "conversation-unavailable"
-  | "submission-conflict"
-  | "visitor-busy"
-  | "deployment-busy"
-  | "visitor-rate-limit"
-  | "deployment-rate-limit"
-  | "conversation-limit"
-  | "budget-exhausted";
+export const guestAdmissionDenialSchema: z.ZodEnum<{
+  unavailable: "unavailable";
+  "invalid-input": "invalid-input";
+  "conversation-unavailable": "conversation-unavailable";
+  "submission-conflict": "submission-conflict";
+  "visitor-busy": "visitor-busy";
+  "deployment-busy": "deployment-busy";
+  "visitor-rate-limit": "visitor-rate-limit";
+  "deployment-rate-limit": "deployment-rate-limit";
+  "conversation-limit": "conversation-limit";
+  "budget-exhausted": "budget-exhausted";
+}> = z.enum([
+  "unavailable",
+  "invalid-input",
+  "conversation-unavailable",
+  "submission-conflict",
+  "visitor-busy",
+  "deployment-busy",
+  "visitor-rate-limit",
+  "deployment-rate-limit",
+  "conversation-limit",
+  "budget-exhausted",
+]);
+export type GuestAdmissionDenial = z.output<typeof guestAdmissionDenialSchema>;
 
 export type GuestAdmissionResult =
   | { kind: "reserved"; lease: GuestExecutionLease }

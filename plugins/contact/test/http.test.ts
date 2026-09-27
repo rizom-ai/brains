@@ -328,6 +328,29 @@ describe("contact page for visitors", () => {
     expect(unnamed).toContain("goes privately to the owner of this site");
   });
 
+  it("opens in the site's own theme unless the link chose one", async () => {
+    const f = await intakeFixture();
+    const handlers = new ContactHttpHandlers(
+      f.admission,
+      f.intake,
+      { origin, maxBodyBytes: 65536, readTimeoutMs: 10000 },
+      { defaultTheme: (): "light" => "light" },
+    );
+    const html = async (path: string): Promise<string> =>
+      (
+        await handlers.handle(new Request(`${origin}${path}`), {
+          remoteAddress: peer,
+        })
+      ).text();
+
+    expect(await html("/contact")).toContain(
+      '<html lang="en" data-theme="light">',
+    );
+    expect(await html("/contact?theme=dark")).toContain(
+      '<html lang="en" data-theme="dark">',
+    );
+  });
+
   it("says on the form how long a note is kept and how deletion can lag", async () => {
     const html = await page("Yeehaa");
     expect(html).toContain("kept for 1 day, then deleted.");

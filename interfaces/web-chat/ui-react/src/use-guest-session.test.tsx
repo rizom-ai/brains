@@ -33,6 +33,10 @@ function opened(
     provider: "Mock provider",
     notice: "Do not share sensitive text.",
     deletionLimitations: "Provider records are separate.",
+    recording: {
+      notice: "Questions asked here are kept for the owner.",
+      revision: "a".repeat(64),
+    },
     retention: { idleSeconds: 3600, maxAgeSeconds: 7200 },
     messageCharacters: 4000,
     canSend: true,

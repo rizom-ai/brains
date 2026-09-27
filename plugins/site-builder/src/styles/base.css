@@ -4,6 +4,12 @@
 
 /* Base layer - minimal setup for font fallbacks */
 @layer base {
+  /* The document canvas carries the page colour, so overscroll past the
+     footer never shows the browser's white default. */
+  html {
+    background-color: var(--color-bg);
+  }
+
   body {
     font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
   }

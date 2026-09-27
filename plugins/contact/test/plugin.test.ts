@@ -7,6 +7,10 @@ import type {
 } from "@brains/plugins";
 import { CallbackProgressReporter } from "@brains/utils/progress";
 import { NotificationsPlugin } from "@brains/notifications";
+import {
+  SITE_METADATA_GET_CHANNEL,
+  SITE_METADATA_UPDATED_CHANNEL,
+} from "@brains/site-composition";
 import { ContactPlugin, contactPlugin, contactRequestSchema } from "../src";
 import {
   contactPluginConfigSchema,
@@ -39,6 +43,8 @@ async function setup(
   shell: ReturnType<Harness["getMockShell"]>;
   checks: RecurringCheckDefinition[];
   sent: ChannelDeliveryInput[];
+  /** What the owner's email transport answers; switch to fail an alert. */
+  transport: { status: "sent" | "failed" };
   plugin: ContactPlugin;
   handlers: Map<string, JobHandler>;
 }> {
@@ -81,6 +87,7 @@ async function setup(
   const [entityPlugin, plugin] = contactPlugin(config);
   await entityPlugin.register(shell);
   const sent: ChannelDeliveryInput[] = [];
+  const transport: { status: "sent" | "failed" } = { status: "sent" };
   const channels = shell.getChannelRegistry();
   channels.registerDescriptor("test-email", {
     type: "email",
@@ -91,6 +98,8 @@ async function setup(
     channelType: "email",
     isAvailable: async () => true,
     send: async (message) => {
+      if (transport.status === "failed")
+        return { status: "failed", failureCode: "test-transport" };
       sent.push(message);
       return { status: "sent" };
     },
@@ -100,7 +109,7 @@ async function setup(
     defaultRecipient: { type: "email", address: "owner@example.com" },
   }).register(shell, { executionOnly });
   await plugin.register(shell, { executionOnly });
-  return { h, shell, checks, sent, plugin, handlers };
+  return { h, shell, checks, sent, transport, plugin, handlers };
 }
 async function submit(plugin: ContactPlugin): Promise<Response> {
   const get = plugin
@@ -192,6 +201,39 @@ describe("contact runtime", () => {
       )?.status,
     ).toBe(503);
   });
+  it("opens the form in the site's own theme and follows changes to it", async () => {
+    const f = await setup();
+    const bus = f.shell.getMessageBus();
+    const site = { title: "Brain", description: "A site" };
+    bus.subscribe(SITE_METADATA_GET_CHANNEL, async () => ({
+      success: true,
+      data: { ...site, themeMode: "light" },
+    }));
+    await f.plugin.ready();
+    const get = f.plugin
+      .getWebRoutes()
+      .find((route) => route.path === "/contact" && route.method === "GET");
+    if (!get) throw new Error("Missing form route");
+    const theme = async (): Promise<string | undefined> =>
+      /<html lang="en" data-theme="(\w+)">/.exec(
+        await (
+          await get.handler(new Request(`${origin}/contact`), {
+            remoteAddress: peer,
+          })
+        ).text(),
+      )?.[1];
+
+    expect(await theme()).toBe("light");
+    await bus.send({
+      type: SITE_METADATA_UPDATED_CHANNEL,
+      payload: { ...site, themeMode: "dark" },
+      sender: "site-info",
+      broadcast: true,
+    });
+    expect(await theme()).toBe("dark");
+    await f.plugin.shutdown();
+  });
+
   it("serves the deployment's preview host when preview is on", async () => {
     const f = await setup();
     await f.plugin.ready();
@@ -322,6 +364,56 @@ describe("contact runtime", () => {
     );
     await f.plugin.shutdown();
   });
+  it("reports a failed alert as degraded until its request is marked Done", async () => {
+    const f = await setup();
+    f.transport.status = "failed";
+    await f.plugin.ready();
+    expect((await submit(f.plugin)).status).toBe(303);
+    const job = (await f.shell.getJobQueueService().getActiveJobs())[0];
+    const handler = job && f.handlers.get(job.type);
+    if (!job || !handler) throw new Error("Missing delivery job");
+    const attempt = (): Promise<unknown> =>
+      handler
+        .process(
+          JSON.parse(job.data),
+          job.id,
+          CallbackProgressReporter.noop(),
+          new AbortController().signal,
+        )
+        .catch((error: unknown) => error);
+    const unavailable = new Error("Contact notification unavailable");
+    expect(await attempt()).toEqual(unavailable);
+    expect(await attempt()).toEqual(unavailable);
+    expect(await attempt()).toBe("failed");
+    const intake = async (): Promise<unknown> =>
+      (await f.shell.getOperationalHealthRegistry().getChecks())[0];
+    expect(await intake()).toMatchObject({
+      status: "degraded",
+      details: {
+        failed: 1,
+        failedUnhandled: 1,
+        failures: { "test-transport": 1 },
+      },
+    });
+
+    const registry = f.shell.getInboxRegistry();
+    registry.finalize();
+    const inbox = registry.getSource("contact-requests");
+    const [request] = (await inbox?.list()) ?? [];
+    if (!inbox || !request) throw new Error("Missing Inbox request");
+    await inbox.act(request.id, "mark-handled", { permissionLevel: "admin" });
+
+    expect(await intake()).toMatchObject({
+      status: "healthy",
+      details: {
+        failed: 1,
+        failedUnhandled: 0,
+        failures: { "test-transport": 1 },
+      },
+    });
+    await f.plugin.shutdown();
+  });
+
   it("recovers enqueue failures on recurring maintenance and reports sanitized health", async () => {
     const f = await setup();
     await f.plugin.ready();

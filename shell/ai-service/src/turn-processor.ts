@@ -358,6 +358,9 @@ export class TurnProcessor {
       toolResults,
       ...(responseCards.length > 0 ? { cards: responseCards } : {}),
       usage: toTokenUsage(result.usage),
+      ...(guest && result.guestSettlement
+        ? { guestSettlement: result.guestSettlement }
+        : {}),
     };
 
     if (pendingConfirmations.length > 0) {

@@ -11,7 +11,7 @@ import {
 export function PublicAsk(): JSX.Element {
   return (
     <>
-      <link rel="stylesheet" href="/ask/assets/app.css" />
+      <link rel="stylesheet" href="/ask/assets/ask.css" />
       <link rel="stylesheet" href="/ask/assets/page.css" />
       <div
         data-web-chat-root=""
@@ -25,7 +25,7 @@ export function PublicAsk(): JSX.Element {
           JavaScript is needed to ask a question. No question has been sent.
         </noscript>
       </div>
-      <script type="module" src="/ask/assets/app.js" />
+      <script type="module" src="/ask/assets/ask.js" />
     </>
   );
 }

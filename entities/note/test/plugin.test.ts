@@ -5,6 +5,10 @@ import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import type { EntityMutationResult, JobHandler } from "@brains/plugins";
 import { CallbackProgressReporter } from "@brains/utils/progress";
+import {
+  NOTE_CAPTURE_MESSAGE,
+  type NoteCaptureResponse,
+} from "@brains/contracts";
 
 const webChatOperatorContext = {
   interfaceType: "web-chat",
@@ -500,5 +504,78 @@ describe("NotePlugin", () => {
       expect(entity?.metadata).toMatchObject({ status: "failed" });
       expect(entity?.metadata["error"]).toBeDefined();
     });
+  });
+});
+
+describe("NotePlugin note capture", () => {
+  let harness: ReturnType<typeof createPluginHarness>;
+
+  beforeEach(async () => {
+    harness = createPluginHarness({
+      dataDir: await createTempDir("test-datadir-note-capture-"),
+    });
+    await harness.installPlugin(new NotePlugin({}));
+  });
+
+  afterEach(async () => {
+    await harness.reset();
+  });
+
+  it("keeps another plugin's text as a private note, never a public one", async () => {
+    const response = await harness.sendMessage<unknown, NoteCaptureResponse>(
+      NOTE_CAPTURE_MESSAGE,
+      {
+        id: "visitor-question-abc123",
+        title: "Visitor question",
+        body: "How do institutions forget?",
+      },
+    );
+    expect(response).toEqual({
+      noteId: "visitor-question-abc123",
+      created: true,
+    });
+    const note = await harness.getEntityService().getEntity({
+      entityType: "note",
+      id: "visitor-question-abc123",
+    });
+    expect(note?.visibility).toBe("restricted");
+    expect(note?.content).toContain("How do institutions forget?");
+    expect(note?.metadata).toMatchObject({ title: "Visitor question" });
+  });
+
+  it("keeps the first note when the same text is saved again", async () => {
+    const request = {
+      id: "visitor-question-abc123",
+      title: "Visitor question",
+      body: "How do institutions forget?",
+    };
+    await harness.sendMessage(NOTE_CAPTURE_MESSAGE, request);
+    expect(
+      await harness.sendMessage<unknown, NoteCaptureResponse>(
+        NOTE_CAPTURE_MESSAGE,
+        { ...request, body: "Changed" },
+      ),
+    ).toEqual({ noteId: "visitor-question-abc123", created: false });
+    const note = await harness.getEntityService().getEntity({
+      entityType: "note",
+      id: "visitor-question-abc123",
+    });
+    expect(note?.content).toContain("How do institutions forget?");
+  });
+
+  it("refuses a request it cannot parse, creating nothing", async () => {
+    expect(
+      await harness.sendMessage<unknown, NoteCaptureResponse>(
+        NOTE_CAPTURE_MESSAGE,
+        {
+          id: "Not A Slug",
+          title: "Visitor question",
+          body: "Text",
+        },
+      ),
+    ).toBeUndefined();
+    expect(
+      await harness.getEntityService().listEntities({ entityType: "note" }),
+    ).toEqual([]);
   });
 });

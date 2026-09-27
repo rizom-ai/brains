@@ -128,10 +128,15 @@
 }
 :where(
   [data-ask-styled] .brain-box-activity,
-  [data-ask-styled] .brain-box-hint
+  [data-ask-styled] .brain-box-hint,
+  [data-ask-styled] .brain-box-recording
 ) {
   font-size: 12px;
   color: var(--ask-muted);
+}
+:where([data-ask-styled] .brain-box-recording) {
+  margin: 4px 0 0;
+  line-height: 1.45;
 }
 :where([data-ask-styled] .brain-box-hint.invalid) {
   color: var(--ask-accent);
