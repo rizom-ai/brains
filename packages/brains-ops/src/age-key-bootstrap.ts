@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 
 import { generateIdentity, identityToRecipient } from "age-encryption";
 
-import { pushSecretsToBackend, normalizePushTarget } from "./push-secrets";
+import { pushSecretsToGitHub, normalizePushTarget } from "./push-secrets";
 import { runSubprocess, type RunCommand } from "./run-subprocess";
 import { getErrorMessage } from "@brains/utils/error";
 
@@ -68,8 +68,7 @@ export async function bootstrapPilotAgeKey(
 
   const pushTarget = normalizePushTarget(options.pushTo);
   if (pushTarget) {
-    await pushSecretsToBackend(
-      pushTarget,
+    await pushSecretsToGitHub(
       [["AGE_SECRET_KEY", readFileSync(identityPath, "utf8")]],
       {
         logger,

@@ -23,7 +23,7 @@ import {
 import {
   logKeyGroup,
   logMissingSecrets,
-  pushSecretsToBackend,
+  pushSecretsToGitHub,
 } from "../lib/push-secrets";
 import { normalizePushTarget, type PushTarget } from "../lib/push-target";
 import { type RunCommand } from "../lib/run-subprocess";
@@ -167,7 +167,7 @@ export async function pushSecrets(
     };
   }
 
-  await pushSecretsToBackend(target, pushedKeys, {
+  await pushSecretsToGitHub(pushedKeys, {
     runCommand: options.runCommand,
     logger,
   });

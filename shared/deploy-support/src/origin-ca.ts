@@ -1,4 +1,6 @@
 import { createSign, generateKeyPairSync } from "node:crypto";
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { parseJsonResponse } from "@brains/utils/http-response";
 import type { FetchLike } from "@brains/utils/fetch-like";
 import { z } from "@brains/utils/zod";
@@ -299,4 +301,54 @@ function collectCloudflareMessages(payload: unknown): string[] {
       (message): message is string =>
         typeof message === "string" && message.length > 0,
     );
+}
+
+export interface IssuedOriginCertificate {
+  certificatePem: string;
+  privateKeyPem: string;
+  expiresOn?: string;
+}
+
+/** A fresh key pair and the Origin CA certificate Cloudflare issues for it. */
+export async function issueOriginCertificate(
+  fetchImpl: FetchLike,
+  cfApiToken: string,
+  domain: string,
+): Promise<IssuedOriginCertificate> {
+  const keyPair = generateOriginKeyPair();
+  const { csrPem } = createOriginCertificateRequest(domain, keyPair);
+  const issued = await issueCloudflareOriginCertificate(
+    fetchImpl,
+    cfApiToken,
+    csrPem,
+    domain,
+  );
+  return {
+    certificatePem: issued.certificatePem,
+    privateKeyPem: keyPair.privateKeyPem,
+    ...(issued.expiresOn !== undefined && { expiresOn: issued.expiresOn }),
+  };
+}
+
+/** Writes origin.pem and origin.key into a directory, creating it as needed. */
+export async function writeOriginCertificateFiles(
+  directory: string,
+  certificate: Pick<
+    IssuedOriginCertificate,
+    "certificatePem" | "privateKeyPem"
+  >,
+): Promise<{ certificatePath: string; privateKeyPath: string }> {
+  const certificatePath = join(directory, "origin.pem");
+  const privateKeyPath = join(directory, "origin.key");
+  await mkdir(directory, { recursive: true });
+  await Promise.all([
+    writeFile(certificatePath, certificate.certificatePem, "utf-8"),
+    // Set mode at creation so the private key is never briefly world-readable
+    // between write and chmod.
+    writeFile(privateKeyPath, certificate.privateKeyPem, {
+      encoding: "utf-8",
+      mode: 0o600,
+    }),
+  ]);
+  return { certificatePath, privateKeyPath };
 }
