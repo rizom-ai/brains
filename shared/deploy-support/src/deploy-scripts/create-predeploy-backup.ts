@@ -597,6 +597,19 @@ if (health.operationalStatus !== "operational") {
 `;
 }
 
+/** The runtime's own notices from a successful capture, as workflow warnings;
+ * other remote output (ssh host notes) stays out of the log. */
+export function predeployBackupNotices(stderr: string): string[] {
+  const prefix = "pre-deploy snapshot: ";
+  return stderr
+    .split("\n")
+    .filter((line) => line.startsWith(prefix))
+    .map(
+      (line) =>
+        `::warning title=Pre-deploy backup::${line.slice(prefix.length).trim()}`,
+    );
+}
+
 export function renderPredeployBackupRemoteScript(options?: {
   captureProgramBase64?: string;
 }): string {
@@ -897,6 +910,7 @@ export async function runPredeployBackup(): Promise<PredeployBackupResult> {
       `Predeploy backup failed${diagnostic ? `: ${diagnostic}` : ""}`,
     );
   }
+  for (const notice of predeployBackupNotices(stderr)) console.log(notice);
   const result = parsePredeployBackupOutput(stdout);
   appendWorkflowResult(result);
   console.log(

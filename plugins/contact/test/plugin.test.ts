@@ -9,6 +9,10 @@ import {
 } from "@brains/contracts";
 import { instantiate } from "./helpers";
 import { CallbackProgressReporter } from "@brains/utils/progress";
+import {
+  SITE_METADATA_GET_CHANNEL,
+  SITE_METADATA_UPDATED_CHANNEL,
+} from "@brains/site-composition";
 import notificationsPackage from "@brains/notifications";
 import { contactRequestSchema } from "../src";
 type ContactService = ReturnType<typeof instantiate>["service"];
@@ -271,6 +275,74 @@ describe("contact runtime", () => {
       await f.h.reset();
     }
   });
+  it("reads only the site's theme through declarative messaging and follows updates", async () => {
+    const f = await setup();
+    try {
+      const bus = f.shell.getMessageBus();
+      bus.subscribe(SITE_METADATA_GET_CHANNEL, async (message) => {
+        expect(message.payload).toEqual({});
+        return { success: true, data: { title: "Brain", themeMode: "light" } };
+      });
+      await f.plugin.ready();
+      const get = f.plugin
+        .getWebRoutes()
+        .find((route) => route.path === "/contact" && route.method === "GET");
+      if (!get) throw new Error("Missing form route");
+      const theme = async (query = ""): Promise<string | undefined> =>
+        /<html lang="en" data-theme="(\w+)">/.exec(
+          await (
+            await get.handler(new Request(`${origin}/contact${query}`), {
+              remoteAddress: peer,
+            })
+          ).text(),
+        )?.[1];
+      expect(await theme()).toBe("light");
+      await bus.send({
+        type: SITE_METADATA_UPDATED_CHANNEL,
+        payload: { themeMode: "dark", title: "Brain" },
+        sender: "site-info",
+        broadcast: true,
+      });
+      expect(await theme()).toBe("dark");
+      expect(await theme("?theme=light")).toBe("light");
+      await bus.send({
+        type: SITE_METADATA_UPDATED_CHANNEL,
+        payload: { themeMode: "light" },
+        sender: "site-info",
+        broadcast: true,
+      });
+      expect(await theme()).toBe("light");
+      await bus.send({
+        type: SITE_METADATA_UPDATED_CHANNEL,
+        payload: { themeMode: "<script>" },
+        sender: "site-info",
+        broadcast: true,
+      });
+      expect(await theme()).toBe("dark");
+    } finally {
+      await f.plugin.shutdown();
+      await f.h.reset();
+    }
+  });
+
+  it("does not read or subscribe to presentation metadata in a worker", async () => {
+    const f = await setup(true);
+    try {
+      let reads = 0;
+      const bus = f.shell.getMessageBus();
+      bus.subscribe(SITE_METADATA_GET_CHANNEL, async () => {
+        reads++;
+        return { success: true, data: { themeMode: "light" } };
+      });
+      await f.plugin.ready();
+      expect(reads).toBe(0);
+      expect(bus.hasHandlers?.(SITE_METADATA_UPDATED_CHANNEL)).toBe(false);
+    } finally {
+      await f.plugin.shutdown();
+      await f.h.reset();
+    }
+  });
+
   it("serves the deployment's preview host when preview is on", async () => {
     const f = await setup();
     try {

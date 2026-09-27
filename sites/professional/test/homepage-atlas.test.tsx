@@ -315,6 +315,38 @@ describe("living atlas", () => {
     );
   });
 
+  it("parts the contour lines around a territory name so it reads over dense rings", () => {
+    const zone = /\.atlas__zone \{[^}]*text-shadow: ([^;]*);/.exec(
+      homepageAtlasStyles,
+    )?.[1];
+    // Stacked tight shadows in the page colour: a solid halo, not a soft glow.
+    expect(zone?.match(/0 0 [1-4]px var\(--color-bg\)/g)?.length).toBe(5);
+  });
+
+  it("starts the homepage copy on the header's content edge, however wide the screen", () => {
+    expect(homepageAtlasStyles).toContain(
+      "--atlas-edge: max(3rem, (100% - var(--layout-max-width, 72rem)) / 2);",
+    );
+    expect(homepageAtlasStyles).toMatch(
+      /\.atlas__talk \{[^}]*padding: [^;]* var\(--atlas-edge\);/,
+    );
+    // Phones and tablets take the header's gutter: 1.5rem, and 3rem from 48rem.
+    const narrow = homepageAtlasStyles.slice(
+      homepageAtlasStyles.indexOf("@media (max-width: 60rem)"),
+    );
+    expect(narrow).toMatch(/\.atlas \{[^}]*--atlas-edge: 1\.5rem;/);
+    expect(narrow).toContain(
+      "@media (min-width: 48rem) and (max-width: 60rem) { .atlas { --atlas-edge: 3rem; } }",
+    );
+    expect(narrow).toMatch(
+      /\.atlas__talk \{[^}]*padding: \.9rem var\(--atlas-edge\) 2\.5rem;/,
+    );
+    // Without a map the copy keeps its measure, moved by the same edge.
+    expect(homepageAtlasStyles).toContain(
+      ".atlas--bare .atlas__talk { width: min(calc(48rem + var(--atlas-edge) - 3rem), 100%);",
+    );
+  });
+
   it("marks the parts the touch script needs", () => {
     expect(html()).toContain("data-atlas=");
     expect(html()).toContain("data-atlas-terrain");

@@ -18,6 +18,7 @@ import {
   capturePredeployBackup,
   parsePredeployBackupOutput,
   renderPredeployBackupRemoteScript,
+  predeployBackupNotices,
   renderPredeployReadinessProgram,
   type PredeployCaptureConfig,
 } from "../src/deploy-scripts/create-predeploy-backup";
@@ -99,6 +100,19 @@ VERIFICATION=passed
       `docker exec "$container" bun -e '\n${renderPredeployReadinessProgram()}'`,
     );
     expect(renderPredeployReadinessProgram()).not.toContain("'");
+  });
+});
+
+describe("predeploy backup notices", () => {
+  it("surfaces the runtime's own notices as workflow warnings, and nothing else", () => {
+    expect(
+      predeployBackupNotices(
+        "pre-deploy snapshot: runtime is degraded (contact:intake); backing it up anyway\nWarning: Permanently added host\n",
+      ),
+    ).toEqual([
+      "::warning title=Pre-deploy backup::runtime is degraded (contact:intake); backing it up anyway",
+    ]);
+    expect(predeployBackupNotices("")).toEqual([]);
   });
 });
 

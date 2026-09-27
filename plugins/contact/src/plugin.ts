@@ -14,6 +14,10 @@ import {
   inboxWorkspaceRequest,
   contactFormDiscoveryRequest,
 } from "@brains/contracts";
+import {
+  SITE_METADATA_GET_CHANNEL,
+  SITE_METADATA_UPDATED_CHANNEL,
+} from "@brains/site-composition";
 import { ContactInboxSource } from "./inbox-source";
 import { ContactAdmission } from "./admission";
 import { ContactIntake } from "./intake";
@@ -30,6 +34,16 @@ const contactRoutes = [
   { path: "/contact", method: "POST" },
   { path: "/contact/thanks", method: "GET" },
 ] as const;
+
+// Select only presentation data; malformed/missing metadata cannot grant access.
+const siteThemeSchema = z.object({
+  themeMode: z.enum(["light", "dark"]).optional(),
+});
+const siteThemeRequest = {
+  topic: SITE_METADATA_GET_CHANNEL,
+  payload: z.strictObject({}),
+  response: z.unknown(),
+};
 
 const notificationJobSchema = z.strictObject({
   id: z.string().regex(/^contact-[a-f0-9]{64}$/),
@@ -75,10 +89,14 @@ export function contactService(): ServicePackageDefinition<
           entityService: entities,
           permissions,
         });
+        const presentation: { theme: "light" | "dark" | undefined } = {
+          theme: undefined,
+        };
         const intakeConfig = config.intake;
         if (!intakeConfig)
           return {
             inbox,
+            presentation,
             runtime: undefined,
             delivery: undefined,
             notify: undefined,
@@ -124,6 +142,8 @@ export function contactService(): ServicePackageDefinition<
             themeCSS,
             previewOrigin: intakeConfig.preview ? previewUrl : undefined,
             owner: (): string => identity.getProfile().name,
+            defaultTheme: (): "light" | "dark" | undefined =>
+              presentation.theme,
           }),
           new ContactStorageSlots(state, intakeConfig.storage, Date.now),
           runtimeState({
@@ -143,7 +163,7 @@ export function contactService(): ServicePackageDefinition<
             )?.metadata.status === "new",
         );
         lifecycle.onCleanup(() => runtime.shutdown());
-        return { inbox, runtime, delivery, notify };
+        return { inbox, runtime, delivery, notify, presentation };
       },
     },
     {
@@ -172,10 +192,18 @@ export function contactService(): ServicePackageDefinition<
               },
             ]
           : [],
-      subscriptions: ({ config }) => {
+      subscriptions: ({ config, state }) => {
         const intake = config.intake;
         return intake
           ? [
+              defineSubscription({
+                topic: SITE_METADATA_UPDATED_CHANNEL,
+                payload: z.unknown(),
+                handle: ({ payload }) => {
+                  state.presentation.theme =
+                    siteThemeSchema.safeParse(payload).data?.themeMode;
+                },
+              }),
               defineSubscription({
                 execution: "all-roles",
                 ...contactFormDiscoveryRequest,
@@ -218,6 +246,14 @@ export function contactService(): ServicePackageDefinition<
       ready: async ({ state, messaging }) => {
         if (!state.runtime) return;
         const destination = await messaging.request(inboxWorkspaceRequest, {});
+        try {
+          const response = await messaging.request(siteThemeRequest, {});
+          if (response.ok)
+            state.presentation.theme = siteThemeSchema.safeParse(response.data)
+              .data?.themeMode;
+        } catch {
+          // No readable site theme: retain the form's default presentation.
+        }
         await state.runtime.ready(
           destination.ok ? destination.data.href : undefined,
         );

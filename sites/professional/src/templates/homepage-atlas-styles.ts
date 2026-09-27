@@ -2,7 +2,9 @@
 export const homepageAtlasStyles: string = String.raw`
 .atlas {
   --atlas-contour: var(--color-text);
-  --atlas-talk: min(40rem, 46%);
+  /* The copy starts on the header's content edge: the layout column, centred, or its 3rem gutter. */
+  --atlas-edge: max(3rem, (100% - var(--layout-max-width, 72rem)) / 2);
+  --atlas-talk: calc(min(40rem, 46%) + var(--atlas-edge) - 3rem);
   position: relative; isolation: isolate; overflow: hidden;
   display: flex; align-items: stretch;
   min-height: calc(100svh - 4.5rem);
@@ -33,7 +35,8 @@ export const homepageAtlasStyles: string = String.raw`
   position: absolute; transform: translate(-50%, -100%); white-space: nowrap; pointer-events: none;
   font-family: var(--font-heading); font-style: italic; font-size: 1rem; letter-spacing: .03em;
   font-variation-settings: "SOFT" 60, "opsz" 24; color: var(--color-text-muted);
-  text-shadow: 0 0 .5rem var(--color-bg), 0 0 .2rem var(--color-bg);
+  /* A solid halo in the page colour parts the rings under the name; the wide layer softens its edge. */
+  text-shadow: 0 0 1px var(--color-bg), 0 0 2px var(--color-bg), 0 0 2px var(--color-bg), 0 0 3px var(--color-bg), 0 0 4px var(--color-bg), 0 0 6px var(--color-bg), 0 0 10px var(--color-bg);
   /* Set by the script from the name's measured box. */
   translate: var(--atlas-name-shift, 0 0);
 }
@@ -93,10 +96,10 @@ export const homepageAtlasStyles: string = String.raw`
 .atlas__talk {
   position: relative; z-index: 1; width: calc(var(--atlas-talk) + 2rem);
   display: flex; flex-direction: column; justify-content: center;
-  padding: clamp(2.5rem, 7vh, 5rem) 4rem clamp(2rem, 6vh, 4rem) clamp(1.25rem, 4vw, 3rem);
+  padding: clamp(2.5rem, 7vh, 5rem) 4rem clamp(2rem, 6vh, 4rem) var(--atlas-edge);
   background: linear-gradient(90deg, var(--color-bg) 0% 88%, rgb(from var(--color-bg) r g b / 0) 100%);
 }
-.atlas--bare .atlas__talk { width: min(48rem, 100%); background: none; }
+.atlas--bare .atlas__talk { width: min(calc(48rem + var(--atlas-edge) - 3rem), 100%); background: none; }
 .atlas__byline { display: flex; align-items: center; gap: .7rem; margin-bottom: 1.5rem; }
 .atlas__initials {
   flex: none; display: grid; place-items: center; width: 2.3rem; height: 2.3rem; border-radius: 50%;
@@ -188,16 +191,17 @@ export const homepageAtlasStyles: string = String.raw`
 @media (max-width: 60rem) {
   /* The map leads visually on phones; the conversation stays first in the document.
      The first screen holds the map and the headline together. */
-  .atlas { flex-direction: column; min-height: 0; --atlas-band: clamp(17rem, 47svh, 25rem); }
+  /* The copy and legend take the header's gutter. */
+  .atlas { flex-direction: column; min-height: 0; --atlas-band: clamp(17rem, 47svh, 25rem); --atlas-edge: 1.5rem; }
   .atlas__map { order: -1; position: relative; inset: auto; height: var(--atlas-band); }
   /* Marks stay above the fade strip, where the legend rests. */
   .atlas__field { bottom: 2rem; }
   /* Long names take two short lines, so more of them fit a narrow map. */
   .atlas__zone { font-size: .8rem; white-space: normal; width: max-content; max-width: 9em; text-align: center; line-height: 1.15; }
   /* The build records where the map's content ends (--atlas-fill of the field); the legend and the text start there, over the fading outer rings. */
-  .atlas__legend { left: clamp(1rem, 5vw, 2rem); right: auto; bottom: calc(.35rem + (1 - var(--atlas-fill, 1)) * (var(--atlas-band) - 2rem)); padding: .25rem .7rem; font-size: .74rem; gap: .3rem .9rem; }
+  .atlas__legend { left: calc(var(--atlas-edge) - .7rem); right: auto; bottom: calc(.35rem + (1 - var(--atlas-fill, 1)) * (var(--atlas-band) - 2rem)); padding: .25rem .7rem; font-size: .74rem; gap: .3rem .9rem; }
   .atlas__legend .atlas__caption { display: none; }
-  .atlas__talk { width: auto; margin-top: calc(-1 * (1 - var(--atlas-fill, 1)) * (var(--atlas-band) - 2rem)); padding: .9rem clamp(1rem, 5vw, 2rem) 2.5rem; background: none; }
+  .atlas__talk { width: auto; margin-top: calc(-1 * (1 - var(--atlas-fill, 1)) * (var(--atlas-band) - 2rem)); padding: .9rem var(--atlas-edge) 2.5rem; background: none; }
   .atlas__byline { margin-bottom: .8rem; gap: .55rem; }
   .atlas__initials { width: 1.8rem; height: 1.8rem; font-size: .72rem; }
   .atlas h1 { font-size: clamp(2.5rem, 11.5vw, 3.6rem); margin-bottom: 1rem; }
@@ -205,6 +209,7 @@ export const homepageAtlasStyles: string = String.raw`
   /* The text flows with the page on phones; only desktop scrolls it beside the map. */
   .atlas--chat .atlas__talk { max-height: none; overflow: visible; }
 }
+@media (min-width: 48rem) and (max-width: 60rem) { .atlas { --atlas-edge: 3rem; } }
 @media (prefers-reduced-motion: reduce) {
   .atlas__contour { animation: none; }
   .atlas__glyph, .atlas__tip, .atlas__field { transition: none; }
