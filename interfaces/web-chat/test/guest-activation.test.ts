@@ -19,6 +19,10 @@ import {
 } from "@brains/contracts";
 import { WebChatInterface } from "../src/web-chat-interface";
 import {
+  guestIssuanceNamespace,
+  guestIssuanceStateSchema,
+} from "../src/guest-issuance";
+import {
   guestAdmissionNamespace,
   guestAdmissionStateSchema,
   type GuestAdmissionState,
@@ -333,6 +337,73 @@ describe("admin guest activation using deployment conventions", () => {
       },
     });
     expect(f.calls()).toBe(0);
+  });
+
+  it("adopts changed session limits when the owner switches guest chat on", async () => {
+    const f = await fixture();
+    // A deployment whose session ledger was written under earlier limits.
+    await f.state
+      .scoped({
+        namespace: guestIssuanceNamespace,
+        schema: guestIssuanceStateSchema,
+      })
+      .set("deployment", {
+        version: 1,
+        revision: 4,
+        policy: "a".repeat(64),
+        enabled: true,
+        lastSeenAt: Date.now() - 60_000,
+        attempts: [],
+        slots: {},
+      });
+    const session = (): Promise<Response> =>
+      f.send(
+        "/api/chat/guest/session",
+        {},
+        { Origin: "https://preview.rizom.ai" },
+        "https://preview.rizom.ai",
+      );
+    await f.budget(10);
+    expect((await session()).status).toBe(200);
+    // Reopening through the endpoint adopts them too.
+    expect((await f.send(access, { enabled: false })).status).toBe(200);
+    expect((await f.send(access, { enabled: true })).status).toBe(200);
+    expect((await session()).status).toBe(200);
+  });
+
+  it("brings the session ledger to the limits the owner approved when it restarts", async () => {
+    const running = await fixture();
+    await running.budget(10);
+    const sessions = running.state.scoped({
+      namespace: guestIssuanceNamespace,
+      schema: guestIssuanceStateSchema,
+    });
+    const ledger = await sessions.get("deployment");
+    // As a deployment finds it after a release changed its session limits.
+    await sessions.set("deployment", {
+      ...(ledger ?? {
+        version: 1,
+        revision: 0,
+        enabled: true,
+        lastSeenAt: Date.now() - 60_000,
+        attempts: [],
+        slots: {},
+      }),
+      policy: "a".repeat(64),
+    });
+    const restarted = await fixture("admin", "rizom.ai", {
+      state: running.state,
+    });
+    expect(
+      (
+        await restarted.send(
+          "/api/chat/guest/session",
+          {},
+          { Origin: "https://preview.rizom.ai" },
+          "https://preview.rizom.ai",
+        )
+      ).status,
+    ).toBe(200);
   });
 
   it("never returns the month's charge when toggled or retried", async () => {

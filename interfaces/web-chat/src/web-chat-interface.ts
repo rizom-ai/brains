@@ -234,6 +234,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
       namespace: ASK_BOX_STATE_NAMESPACE,
       schema: askBoxAvailabilitySchema,
     });
+    await this.guestControl.resumeApprovedLimits();
     await this.recordAskBoxAvailability();
     const maintenance = new GuestStateMaintenance(context.runtimeState);
     context.daemons.register(
