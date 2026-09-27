@@ -1,5 +1,41 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.425
+
+### Patch Changes
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`fb6d178`](https://github.com/rizom-ai/brains/commit/fb6d178aebdfde6ab0544bd97ac1fc425e0ba937) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Activate the shared Groupings document after contributor registration. Derive Studio labels, contributor descriptors and all four open/closed and one/several membership modes from its source. Refresh current rules after refused saves without discarding local drafts.
+
+  Reject the removed Studio `groupings` configuration and competing static declarations. Remove the vocabulary entity and runtime readers, and update canonical permissions to `grouping-definitions`. There is no compatibility reader, alias, dual write or startup conversion. The old feature is used only on the smoke test site; its test setup will use the new document directly, without a legacy converter or conversion rehearsal.
+
+  Check schema-admitted entities when probing field-tool persistence. Source-only definition fields must not appear to save when validation would strip them: use full Markdown replacement instead. Cover source activation through real plugin/session/editor integration and the exact packed Brain CLI, including refused writes and unchanged drafts/source. Smoke deployment and running-app acceptance remain separate from this code change.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`125d96f`](https://github.com/rizom-ai/brains/commit/125d96f90cf388ab7e5eaef26d341c40bd4b0f1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add read-only grouping-source refresh hooks before persistence, projection and grouping-dependent reads, and provide Studio's document-backed definitions contract with independent cardinality and list validation. Refresh failures refuse operations rather than use stale policy; uncached frontmatter parsing keeps repeated malformed-document reads repairable.
+
+  These hooks underpin Studio's document-owned groupings and process-local reprojection readiness. The old configured groupings are used only on the smoke test site. Its test setup will use the new document directly; no legacy converter or automatic conversion is introduced.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`c55e0ea`](https://github.com/rizom-ai/brains/commit/c55e0ea460cf0c5a605b1adaf61061a910d8f4b2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add grouping usage reads with distinct entry totals and bounded, exact-value counts, including zero counts for unused values. One SQL statement applies admitted contributor types and visibility to every aggregate; duplicate and overlapping memberships do not inflate entry totals.
+
+  Expose the read through Studio's trusted-session API and typed client, retaining cancellation, source refresh and initializing/retry behavior. No durable state or content changes are introduced. Mounting usage data in the reviewed Groupings page and activating the replacement document source remain pending.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`6c9ccfb`](https://github.com/rizom-ai/brains/commit/6c9ccfbf70b0ae49cd038a0ebba41527b56ccf8f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Reproject added grouping type/field pairs after definition writes, using the existing bounded metadata-only scan. Keep pending work and readiness entirely in memory: Studio returns initializing during scans, failed scans remain retryable without misreporting saved definitions, and startup reconstructs progress from source.
+
+  Guard ordinary entity commits against a definition change after preparation. Stale writes, including no-op updates, are refused for retry before committing source or exports, using an in-memory publication revision and the existing write transaction.
+
+  Independent processes conservatively verify their own projections on observed definition changes, including remove/re-add cycles detected through existing document timestamps. No database tables, migrations or persistent status records are added. The new definitions registration module remains an internal implementation checkpoint, not yet activated by StudioPlugin.
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`89a70c1`](https://github.com/rizom-ai/brains/commit/89a70c1f048aa9d1ba9e895e837a4dfb6764ac5f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add atomic replacement of an entity registry's complete grouping set through `replaceGroupings`. Grouping-owned schema extensions are kept separate from permanent plugin extensions, so removing a grouping preserves owner/plugin fields and their refinements. Invalid replacements leave the active set unchanged; authored memberships and file identities are never rewritten.
+
+  `validateGroupings` now preflights a complete replacement set. Studio's existing registration path includes already-registered declarations in that preflight. These registry primitives do not load a definitions document, coordinate readiness or automatically reproject stored content; their caller still owns those steps.
+
+- Updated dependencies [[`125d96f`](https://github.com/rizom-ai/brains/commit/125d96f90cf388ab7e5eaef26d341c40bd4b0f1c)]:
+  - @brains/utils@0.2.0-alpha.425
+  - @brains/assets@0.2.0-alpha.425
+  - @brains/content-formatters@0.2.0-alpha.425
+  - @brains/contracts@0.2.0-alpha.425
+  - @brains/db@0.2.0-alpha.425
+  - @brains/job-queue@0.2.0-alpha.425
+
 ## 0.2.0-alpha.424
 
 ### Patch Changes

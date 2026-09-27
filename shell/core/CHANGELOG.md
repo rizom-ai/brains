@@ -1,5 +1,27 @@
 # @brains/core
 
+## 0.2.0-alpha.425
+
+### Patch Changes
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`fb6d178`](https://github.com/rizom-ai/brains/commit/fb6d178aebdfde6ab0544bd97ac1fc425e0ba937) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Activate the shared Groupings document after contributor registration. Derive Studio labels, contributor descriptors and all four open/closed and one/several membership modes from its source. Refresh current rules after refused saves without discarding local drafts.
+
+  Reject the removed Studio `groupings` configuration and competing static declarations. Remove the vocabulary entity and runtime readers, and update canonical permissions to `grouping-definitions`. There is no compatibility reader, alias, dual write or startup conversion. The old feature is used only on the smoke test site; its test setup will use the new document directly, without a legacy converter or conversion rehearsal.
+
+  Check schema-admitted entities when probing field-tool persistence. Source-only definition fields must not appear to save when validation would strip them: use full Markdown replacement instead. Cover source activation through real plugin/session/editor integration and the exact packed Brain CLI, including refused writes and unchanged drafts/source. Smoke deployment and running-app acceptance remain separate from this code change.
+
+- Updated dependencies [[`125d96f`](https://github.com/rizom-ai/brains/commit/125d96f90cf388ab7e5eaef26d341c40bd4b0f1c), [`c55e0ea`](https://github.com/rizom-ai/brains/commit/c55e0ea460cf0c5a605b1adaf61061a910d8f4b2), [`6c9ccfb`](https://github.com/rizom-ai/brains/commit/6c9ccfbf70b0ae49cd038a0ebba41527b56ccf8f), [`89a70c1`](https://github.com/rizom-ai/brains/commit/89a70c1f048aa9d1ba9e895e837a4dfb6764ac5f)]:
+  - @brains/plugins@0.2.0-alpha.425
+  - @brains/utils@0.2.0-alpha.425
+  - @brains/image@0.2.0-alpha.425
+  - @brains/contracts@0.2.0-alpha.425
+  - @brains/site-composition@0.2.0-alpha.425
+  - @brains/recurring-checks@0.2.0-alpha.425
+  - @brains/runtime-state@0.2.0-alpha.425
+  - @brains/scheduler@0.2.0-alpha.425
+  - @brains/templates@0.2.0-alpha.425
+  - @brains/operation-context@0.2.0-alpha.425
+
 ## 0.2.0-alpha.424
 
 ### Patch Changes

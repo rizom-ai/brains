@@ -1,5 +1,13 @@
 # @brains/utils
 
+## 0.2.0-alpha.425
+
+### Patch Changes
+
+- [#383](https://github.com/rizom-ai/brains/pull/383) [`125d96f`](https://github.com/rizom-ai/brains/commit/125d96f90cf388ab7e5eaef26d341c40bd4b0f1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add read-only grouping-source refresh hooks before persistence, projection and grouping-dependent reads, and provide Studio's document-backed definitions contract with independent cardinality and list validation. Refresh failures refuse operations rather than use stale policy; uncached frontmatter parsing keeps repeated malformed-document reads repairable.
+
+  These hooks underpin Studio's document-owned groupings and process-local reprojection readiness. The old configured groupings are used only on the smoke test site. Its test setup will use the new document directly; no legacy converter or automatic conversion is introduced.
+
 ## 0.2.0-alpha.424
 
 ## 0.2.0-alpha.423

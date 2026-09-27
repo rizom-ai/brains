@@ -1,5 +1,14 @@
 # @brains/notifications
 
+## 0.2.0-alpha.425
+
+### Patch Changes
+
+- Updated dependencies [[`125d96f`](https://github.com/rizom-ai/brains/commit/125d96f90cf388ab7e5eaef26d341c40bd4b0f1c), [`c55e0ea`](https://github.com/rizom-ai/brains/commit/c55e0ea460cf0c5a605b1adaf61061a910d8f4b2), [`6c9ccfb`](https://github.com/rizom-ai/brains/commit/6c9ccfbf70b0ae49cd038a0ebba41527b56ccf8f), [`89a70c1`](https://github.com/rizom-ai/brains/commit/89a70c1f048aa9d1ba9e895e837a4dfb6764ac5f)]:
+  - @brains/plugins@0.2.0-alpha.425
+  - @brains/utils@0.2.0-alpha.425
+  - @brains/contracts@0.2.0-alpha.425
+
 ## 0.2.0-alpha.424
 
 ### Patch Changes
