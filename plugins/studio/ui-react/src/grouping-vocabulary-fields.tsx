@@ -39,6 +39,10 @@ export function ClosedGroupingField(props: {
     : [];
   const selected =
     values.length === 1 ? vocabulary.values.indexOf(values[0] ?? "") : -1;
+  // Cardinality sits beside the name, as open lists state "values".
+  const marker = (
+    <em {...stylex.props(f.kind)}>{vocabulary.multiple ? "several" : "one"}</em>
+  );
   const validation = {
     "aria-invalid": errorId ? (true as const) : undefined,
     "aria-describedby": errorId,
@@ -47,7 +51,10 @@ export function ClosedGroupingField(props: {
     <div {...stylex.props(f.field)} data-studio-field="grouping-choice">
       {vocabulary.multiple ? (
         <fieldset {...stylex.props(s.choices)} {...validation}>
-          <legend {...stylex.props(f.label)}>{descriptor.label}</legend>
+          <legend {...stylex.props(f.label, s.legend)}>
+            {descriptor.label}
+            {marker}
+          </legend>
           {vocabulary.values.map((value) => (
             <label key={value} {...stylex.props(s.choice)}>
               <input
@@ -70,6 +77,7 @@ export function ClosedGroupingField(props: {
       ) : (
         <label htmlFor={id} {...stylex.props(f.label)}>
           {descriptor.label}
+          {marker}
         </label>
       )}
       {!vocabulary.multiple && (
@@ -96,9 +104,10 @@ export function ClosedGroupingField(props: {
           <option value="">—</option>
           {values.length > 0 && selected < 0 && (
             <option value="current" disabled>
+              {/* The value itself is shown once, below, with its removal. */}
               {values.length > 1
                 ? "Multiple values — choose one"
-                : `${groupingValueLabel(values[0] ?? "")} — not in list`}
+                : "Choose a listed value"}
             </option>
           )}
           {vocabulary.values.map((value, index) => (
@@ -130,11 +139,6 @@ export function ClosedGroupingField(props: {
           ),
         )}
       </ul>
-      <p {...stylex.props(f.listHelp)}>
-        {vocabulary.multiple
-          ? "Choose any that apply."
-          : "Choose at most one value."}
-      </p>
     </div>
   );
 }

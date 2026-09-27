@@ -1,6 +1,7 @@
 import * as stylex from "@stylexjs/stylex";
 export const vocabularyStyles: Record<
   | "choices"
+  | "legend"
   | "choice"
   | "checkbox"
   | "marker"
@@ -17,6 +18,11 @@ export const vocabularyStyles: Record<
     margin: 0,
     borderWidth: 0,
     minWidth: 0,
+  },
+  // A legend shrinks to its text; span the row so the marker sits right.
+  legend: {
+    width: "100%",
+    padding: 0,
   },
   choice: {
     display: "flex",

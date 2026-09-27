@@ -120,8 +120,9 @@ Plans:
 
 - [public-ask.md](./plans/public-ask.md) — the whole Ask surface: record and display guest usage before any deployment opens production guest access, then take each site through its own content, door and enablement decisions.
 - [studio-ux-improvements.md](./plans/studio-ux-improvements.md) — the remaining reviewed presentation, accessibility, and optional draft-recovery decisions after the shipped UX batches.
-- [studio-virtual-collections.md](./plans/studio-virtual-collections.md) — implemented foundation for source-backed collections across entity types; PR #302 now continues into grouping vocabularies rather than landing separately.
-- [studio-grouping-vocabularies.md](./plans/studio-grouping-vocabularies.md) — implemented and locally validated in PR #302: admin-defined value lists/cardinality, system editing without a restart, shared enforcement including projection writes, select/checkbox controls, visible strays, and canonical import refusal/retry; awaiting merge and release.
+- [studio-virtual-collections.md](./plans/studio-virtual-collections.md) — source-backed collection foundation shipped with PR #302 in alpha.404 to smoke; the definitions plan owns the replacement rollout.
+- [studio-grouping-vocabularies.md](./plans/studio-grouping-vocabularies.md) — configured-group vocabulary baseline shipped in alpha.404; replaced locally by document-owned definitions, with explicit conversion still pending.
+- [studio-grouping-definitions.md](./plans/studio-grouping-definitions.md) — implemented and locally validated: one administrator-owned document, runtime replacement/reprojection, independent cardinality and lists, unified controls, and exact source round trips. Authenticated app and unchanged visual gates pass; replacement release and separately authorized smoke conversion/rollback remain pending.
 - [operator-console-pwa.md](./plans/operator-console-pwa.md) — optional network-first installable shell without an offline-authoring claim.
 - [brain-web-chat-sdk-adapter.md](./plans/brain-web-chat-sdk-adapter.md) — parked strategy for deeper Chat SDK semantic alignment.
 - [chat-interface-forms-modals.md](./plans/chat-interface-forms-modals.md) — parked transport-neutral structured forms.
