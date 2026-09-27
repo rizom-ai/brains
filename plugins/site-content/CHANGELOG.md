@@ -1,5 +1,16 @@
 # @brains/site-content
 
+## 0.2.0-alpha.429
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/content-formatters@0.2.0-alpha.429
+  - @brains/contracts@0.2.0-alpha.429
+  - @brains/site-composition@0.2.0-alpha.429
+  - @brains/utils@0.2.0-alpha.429
+  - @brains/plugins@0.2.0-alpha.429
+
 ## 0.2.0-alpha.428
 
 ### Patch Changes

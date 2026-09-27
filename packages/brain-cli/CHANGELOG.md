@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.2.0-alpha.429
+
+### Patch Changes
+
+- [#394](https://github.com/rizom-ai/brains/pull/394) [`9077f1c`](https://github.com/rizom-ai/brains/commit/9077f1cf3f9d461fe077c6cf66004e608c9973b1) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Guest chat now runs on the brain's own agent as a public user.
+
+  - **Same agent as owner chat:** the brain's model, identity, public profile (without the owner's email) and instructions, the reviewed public read tools, and normal search. A short visitor instruction tells it to answer from the brain's public content.
+  - **Guest-only limits removed.** They ended answers early or emptied them: a three-step cap, output, context and lookup caps, a 32 KB request guard, a separate guest search and a 30-second stream idle timer.
+  - **Deadline:** an answer is bounded by a three-minute deadline.
+  - **Cost:** measured from each step's reported usage, and charged the answer cap when it cannot be measured.
+  - **Diagnosable failures:** a failed or empty guest turn is logged with its reason; visitors still see only that the answer failed.
+
 ## 0.2.0-alpha.428
 
 ### Patch Changes

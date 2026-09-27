@@ -372,6 +372,7 @@
     "core--grouping-usage-counts",
     "core--guest-admission-uncertain-signal",
     "core--guest-chat-monitor",
+    "core--guest-chat-normal-agent",
     "core--guest-chat-polish",
     "core--guest-chat-simple-budget",
     "core--guest-elapsed-deadline",
