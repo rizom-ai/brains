@@ -31,7 +31,11 @@ afterEach(async () => {
 interface Harness {
   tail: () => FollowTail;
   element: () => HTMLElement;
-  render: (input: { resetKey: unknown; contentKey: unknown }) => Promise<void>;
+  render: (input: {
+    resetKey: unknown;
+    contentKey: unknown;
+    paused?: boolean;
+  }) => Promise<void>;
   scrollTo: (scrollTop: number) => Promise<void>;
 }
 
@@ -40,6 +44,7 @@ function createHarness(): Harness {
   function Probe(props: {
     resetKey: unknown;
     contentKey: unknown;
+    paused?: boolean;
   }): ReactElement {
     latest = useFollowTail(props);
     return createElement(
@@ -149,6 +154,21 @@ describe("useFollowTail", () => {
     expect(harness.tail().awayFromLatest).toBe(false);
     expect(harness.element().scrollTop).toBe(100);
     await harness.render({ resetKey: "a", contentKey: 2 });
+    expect(harness.element().scrollTop).toBe(1000);
+  });
+
+  it("holds still while paused and follows again once resumed", async () => {
+    const harness = createHarness();
+    await harness.render({ resetKey: "a", contentKey: 1 });
+    await harness.render({ resetKey: "a", contentKey: 1, paused: true });
+    harness.element().scrollTop = 0;
+
+    await harness.scrollTo(0);
+    await harness.render({ resetKey: "a", contentKey: 2, paused: true });
+
+    expect(harness.element().scrollTop).toBe(0);
+    expect(harness.tail().awayFromLatest).toBe(false);
+    await harness.render({ resetKey: "a", contentKey: 3 });
     expect(harness.element().scrollTop).toBe(1000);
   });
 

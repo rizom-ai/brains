@@ -10,7 +10,7 @@ import {
   type GuestChatSessionResponse,
 } from "@brains/contracts/chat";
 import { GuestApp } from "./GuestApp";
-import type { GuestBoxCopy } from "./GuestBox";
+import type { GuestBoxCopy } from "./guest-box-types";
 const boxCopy: GuestBoxCopy = {
   title: "Ask this brain",
   notice: "Public chat",
@@ -237,6 +237,29 @@ async function click(label: string): Promise<void> {
   );
   if (!button) throw new Error(`Missing button: ${label}`);
   await act(async (): Promise<void> => button.click());
+}
+/**
+ * The box's scroll region with declared geometry: happy-dom reports zero for
+ * every layout box, so it gets 1000px of content inside a 200px viewport.
+ */
+function boxRegion(): HTMLElement {
+  const region = document.querySelector<HTMLElement>(".brain-box-scroll");
+  if (!region) throw new Error("Missing box scroll region");
+  Object.defineProperty(region, "scrollHeight", {
+    value: 1000,
+    configurable: true,
+  });
+  Object.defineProperty(region, "clientHeight", {
+    value: 200,
+    configurable: true,
+  });
+  return region;
+}
+async function scrollRegion(region: HTMLElement, top: number): Promise<void> {
+  region.scrollTop = top;
+  await act(async (): Promise<void> => {
+    region.dispatchEvent(new Event("scroll", { bubbles: false }));
+  });
 }
 async function ask(text: string): Promise<void> {
   const textarea = document.querySelector<
@@ -616,6 +639,48 @@ describe("public Ask UI with mocked Chat transport", () => {
     expect(document.body.textContent).toContain("Partial");
     expect(document.querySelector("#brain-chat-notice")?.textContent).toBe("");
   });
+  it("follows the box to the newest answer when the visitor sends while scrolled back", async () => {
+    await mount({ box: boxCopy });
+    await ask("First question");
+    const region = boxRegion();
+    await scrollRegion(region, 100);
+
+    await ask("Second question");
+
+    expect(region.scrollTop).toBe(1000);
+  });
+
+  it("offers Latest once the visitor scrolls back, and it returns them to the newest", async () => {
+    await mount({ box: boxCopy });
+    await ask("First question");
+    const region = boxRegion();
+    expect(document.querySelector(".brain-box-latest")).toBeNull();
+
+    await scrollRegion(region, 100);
+    await click("Latest");
+
+    expect(region.scrollTop).toBe(1000);
+    expect(document.querySelector(".brain-box-latest")).toBeNull();
+  });
+
+  it("holds the box still behind About and restores the reading position after it", async () => {
+    await mount({ box: boxCopy });
+    await ask("First question");
+    const region = boxRegion();
+    await scrollRegion(region, 300);
+
+    await click("About");
+    expect(region.scrollTop).toBe(0);
+    expect(document.activeElement?.textContent).toBe("Close");
+    expect(document.querySelector(".brain-box-latest")).toBeNull();
+    await ask("Second question");
+    expect(region.scrollTop).toBe(0);
+
+    await click("Close");
+    expect(region.scrollTop).toBe(300);
+    expect(document.activeElement?.textContent).toBe("About");
+  });
+
   it("preserves the draft and blocks sending after the visitor lease expires", async () => {
     session.expiresAt = Date.now() - 1000;
     await mount();

@@ -9,6 +9,12 @@ export interface FollowTailInput {
   resetKey: unknown;
   /** Any value that changes when the region gains content. */
   contentKey: unknown;
+  /**
+   * Holds the region still, e.g. while it shows something other than the
+   * content. Resuming does not scroll by itself: the owner may be restoring
+   * its own reading position, and the next content change follows again.
+   */
+  paused?: boolean | undefined;
 }
 
 export interface FollowTail {
@@ -28,9 +34,11 @@ export interface FollowTail {
  * the observer both read it during layout, where a re-render would be too late.
  */
 export function useFollowTail(input: FollowTailInput): FollowTail {
-  const { resetKey, contentKey } = input;
+  const { resetKey, contentKey, paused = false } = input;
   const ref = useRef<HTMLDivElement | null>(null);
   const followingRef = useRef(true);
+  const pausedRef = useRef(paused);
+  pausedRef.current = paused;
   const [awayFromLatest, setAwayFromLatest] = useState(false);
 
   useEffect(() => {
@@ -43,7 +51,8 @@ export function useFollowTail(input: FollowTailInput): FollowTail {
     const content = scroll?.firstElementChild;
     if (!scroll || !content) return;
     const follow = (): void => {
-      if (followingRef.current) scroll.scrollTop = scroll.scrollHeight;
+      if (followingRef.current && !pausedRef.current)
+        scroll.scrollTop = scroll.scrollHeight;
     };
     follow();
     const observer = new ResizeObserver(follow);
@@ -52,13 +61,14 @@ export function useFollowTail(input: FollowTailInput): FollowTail {
   }, []);
 
   useEffect(() => {
-    if (followingRef.current) {
+    if (followingRef.current && !pausedRef.current) {
       const scroll = ref.current;
       if (scroll) scroll.scrollTop = scroll.scrollHeight;
     }
   }, [contentKey]);
 
   const onScroll = useCallback((event: UIEvent<HTMLDivElement>): void => {
+    if (pausedRef.current) return;
     const scroll = event.currentTarget;
     const nearBottom =
       scroll.scrollHeight - scroll.clientHeight - scroll.scrollTop <=
