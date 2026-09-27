@@ -57,7 +57,7 @@ function createSerializer(): EntitySerializer {
 }
 
 describe("EntitySerializer.reconstructEntity", () => {
-  it("omits raw parser diagnostics for bounded reads without changing normal diagnostics", async () => {
+  it("logs an entity that fails to parse and leaves it out", async () => {
     const logger = createMockLogger();
     const registry = EntityRegistry.createFresh(logger);
     const adapter = new TestAdapter();
@@ -77,13 +77,9 @@ describe("EntitySerializer.reconstructEntity", () => {
       throw new Error("private parser payload");
     });
     try {
-      expect(await serializer.convertToEntity(row, false)).toBeNull();
-      expect(await serializer.convertToEntities([row], "test", false)).toEqual(
-        [],
-      );
-      expect(logger.error).not.toHaveBeenCalled();
       expect(await serializer.convertToEntity(row)).toBeNull();
-      expect(logger.error).toHaveBeenCalledTimes(1);
+      expect(await serializer.convertToEntities([row], "test")).toEqual([]);
+      expect(logger.error).toHaveBeenCalledTimes(2);
     } finally {
       parser.mockRestore();
     }
