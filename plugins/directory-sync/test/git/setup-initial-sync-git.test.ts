@@ -3,6 +3,7 @@ import { describe, it, expect, mock } from "bun:test";
 import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { setupInitialSync } from "../../src/lib/initial-sync";
 import { createSilentLogger } from "@brains/test-utils";
+import { deferred } from "@brains/utils/deferred";
 import type { DirectorySyncConfig } from "../../src/types";
 import {
   createMockDirectorySync,
@@ -34,10 +35,14 @@ const baseConfig: DirectorySyncConfig = {
   maxImportFileBytes: 5 * 1024 * 1024,
 };
 
+const settleNoPendingExports = async (): Promise<void> => {};
+
 describe("setupInitialSync with git", () => {
-  it("should call gitSync.pull() before sync()", async () => {
+  it("joins pending exports before pulling and importing", async () => {
     const { context } = createMockContext();
     const callOrder: string[] = [];
+    const settlement = deferred<void>();
+    const settlementStarted = deferred<void>();
 
     const ds = createMockDirectorySync({
       recordPendingPullDeletes: mock(async (paths: string[]) => {
@@ -71,16 +76,32 @@ describe("setupInitialSync with git", () => {
       () => ds,
       baseConfig,
       createSilentLogger(),
+      async () => {
+        settlementStarted.resolve();
+        await settlement.promise;
+        callOrder.push("settle-exports");
+      },
       gs,
       reconciliation,
     );
 
-    await context.messaging.send({
+    const initialSync = context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
       payload: {},
     });
+    await settlementStarted.promise;
+    expect(gs.pull).not.toHaveBeenCalled();
+    expect(ds.sync).not.toHaveBeenCalled();
+    settlement.resolve();
+    await initialSync;
 
-    expect(callOrder).toEqual(["pull", "record-deletes", "sync", "checkpoint"]);
+    expect(callOrder).toEqual([
+      "settle-exports",
+      "pull",
+      "record-deletes",
+      "sync",
+      "checkpoint",
+    ]);
   });
 
   it("settles startup import status and confirms generated Git changes", async () => {
@@ -132,6 +153,7 @@ describe("setupInitialSync with git", () => {
       () => ds,
       baseConfig,
       createSilentLogger(),
+      settleNoPendingExports,
       gs,
       reconciliation,
       undefined,
@@ -170,6 +192,7 @@ describe("setupInitialSync with git", () => {
       () => createMockDirectorySync(),
       baseConfig,
       createSilentLogger(),
+      settleNoPendingExports,
       gs,
       reconciliation,
     );
@@ -207,6 +230,7 @@ describe("setupInitialSync with git", () => {
       () => createMockDirectorySync(),
       baseConfig,
       createSilentLogger(),
+      settleNoPendingExports,
       gs,
       undefined,
       {
@@ -235,7 +259,13 @@ describe("setupInitialSync with git", () => {
     }));
     const ds = createMockDirectorySync({ sync: syncMock });
 
-    setupInitialSync(context, () => ds, baseConfig, createSilentLogger());
+    setupInitialSync(
+      context,
+      () => ds,
+      baseConfig,
+      createSilentLogger(),
+      settleNoPendingExports,
+    );
 
     await context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
@@ -250,7 +280,14 @@ describe("setupInitialSync with git", () => {
     const ds = createMockDirectorySync();
     const gs = createMockGitSync();
 
-    setupInitialSync(context, () => ds, baseConfig, createSilentLogger(), gs);
+    setupInitialSync(
+      context,
+      () => ds,
+      baseConfig,
+      createSilentLogger(),
+      settleNoPendingExports,
+      gs,
+    );
 
     await context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
@@ -273,7 +310,14 @@ describe("setupInitialSync with git", () => {
       }),
     });
 
-    setupInitialSync(context, () => ds, baseConfig, createSilentLogger(), gs);
+    setupInitialSync(
+      context,
+      () => ds,
+      baseConfig,
+      createSilentLogger(),
+      settleNoPendingExports,
+      gs,
+    );
 
     await context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,
@@ -299,7 +343,13 @@ describe("setupInitialSync with git", () => {
       }),
     });
 
-    setupInitialSync(context, () => ds, baseConfig, createSilentLogger());
+    setupInitialSync(
+      context,
+      () => ds,
+      baseConfig,
+      createSilentLogger(),
+      settleNoPendingExports,
+    );
 
     await context.messaging.send({
       type: SYSTEM_CHANNELS.pluginsRegistered,

@@ -5,7 +5,14 @@ import { DirectorySyncPlugin } from "../src/plugin";
 import { baseEntitySchema, createPluginHarness } from "@brains/plugins/test";
 import { join } from "path";
 import { tmpdir } from "os";
-import { existsSync, rmSync, mkdirSync, writeFileSync, mkdtempSync } from "fs";
+import {
+  existsSync,
+  rmSync,
+  mkdirSync,
+  writeFileSync,
+  readFileSync,
+  mkdtempSync,
+} from "fs";
 import { MockEntityAdapter } from "./fixtures";
 
 describe("DirectorySyncPlugin - Initial Sync Completion", () => {
@@ -84,6 +91,57 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
     const events = await installAndTriggerInitialSync({ seedContent: false });
 
     expect(events).toContain(SYSTEM_CHANNELS.initialSyncCompleted);
+  });
+
+  it("settles an acknowledged edit before importing a stale checkout on startup", async () => {
+    const entityService = harness.getEntityService();
+    const entity = createTestEntity("note", {
+      id: "edited-before-restart",
+      content: "Acknowledged edit awaiting durable export",
+    });
+    const path = join(syncPath, `${entity.id}.md`);
+    writeFileSync(path, "Stale checkout content");
+    entityService.serializeEntity = (value): string => value.content;
+    await entityService.createEntity({ entity });
+    expect(await entityService.listPendingEntityExports()).toHaveLength(1);
+
+    await installAndTriggerInitialSync({ seedContent: false });
+
+    expect(
+      (await entityService.getEntity({ entityType: "note", id: entity.id }))
+        ?.content,
+    ).toBe(entity.content);
+    expect(readFileSync(path, "utf8")).toBe(entity.content);
+    expect(await entityService.listPendingEntityExports()).toEqual([]);
+  });
+
+  it("does not import stale checkout content when pending export settlement fails", async () => {
+    const entityService = harness.getEntityService();
+    const entity = createTestEntity("note", {
+      id: "pending-before-unavailable-export",
+      content: "Acknowledged edit must remain authoritative",
+    });
+    const path = join(syncPath, `${entity.id}.md`);
+    writeFileSync(path, "Stale checkout content");
+    await entityService.createEntity({ entity });
+    entityService.serializeEntity = (): string => {
+      throw new Error("simulated unavailable export destination");
+    };
+    const completions: unknown[] = [];
+    harness.subscribe(SYSTEM_CHANNELS.initialSyncCompleted, async (message) => {
+      completions.push(message.payload);
+      return { success: true };
+    });
+
+    await installAndTriggerInitialSync({ seedContent: false });
+
+    expect(completions).toEqual([expect.objectContaining({ success: false })]);
+    expect(
+      (await entityService.getEntity({ entityType: "note", id: entity.id }))
+        ?.content,
+    ).toBe(entity.content);
+    expect(readFileSync(path, "utf8")).toBe("Stale checkout content");
+    expect(await entityService.listPendingEntityExports()).toHaveLength(1);
   });
 
   it("exports a service-created entity whose lifecycle event was previously lost before cleanup", async () => {

@@ -17,6 +17,7 @@ export function setupInitialSync(
   getDirectorySync: () => IDirectorySync,
   config: DirectorySyncConfig,
   logger: Logger,
+  settlePendingExports: () => Promise<void>,
   gitSync?: IGitSync,
   reconciliation?: Pick<
     GitReconciliationService,
@@ -54,6 +55,9 @@ export function setupInitialSync(
     }
 
     try {
+      // Acknowledged edits may still be in the durable export outbox after
+      // restart. Converge them before stale checkout bytes can be reimported.
+      await settlePendingExports();
       // Pull remote changes before importing
       if (gitSync) {
         logger.debug("Git enabled — pulling before import");

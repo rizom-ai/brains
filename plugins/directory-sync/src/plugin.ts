@@ -382,6 +382,7 @@ export class DirectorySyncPlugin extends ServicePlugin<
         () => this.requireDirectorySync(),
         this.config,
         this.logger,
+        () => this.requireEntityExportDispatcher().settleBeforeCleanup(),
         this.gitSync ? this.gitSyncFacade : undefined,
         this.gitSync ? this.requireGitReconciliation() : undefined,
         interruptedPull && this.gitSync
