@@ -32,6 +32,12 @@ describe("interpolateEnvVar", () => {
     expect(interpolateEnvVar("${MISSING_VAR}")).toBeUndefined();
   });
 
+  it("should treat an empty env var as not set", () => {
+    expect(
+      interpolateEnvVar("${EMPTY_VAR}", { EMPTY_VAR: "" }),
+    ).toBeUndefined();
+  });
+
   it("should return undefined when any env var is missing", () => {
     expect(interpolateEnvVar("${TEST_VAR}-${MISSING_VAR}")).toBeUndefined();
   });
