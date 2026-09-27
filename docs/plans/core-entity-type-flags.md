@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented in `work/entity-type-flags-implementation`, pending agent approval evals (no AI API key available). All five slices have changesets. Regression tests cover each slice; initial tests were run before the corresponding implementation changes. The implementation is kept together in this worktree rather than opening five PRs.
+Implemented and validated in `work/entity-type-flags-implementation`. All five slices have changesets. Regression tests cover each slice; initial tests were run before the corresponding implementation changes. The implementation is kept together in this worktree rather than opening five PRs.
 
 Review corrections:
 
@@ -79,7 +79,13 @@ After phase 5, `rg -n 'entityType (===|!==) "' shell/core/src/system` returns no
 - Forced lint: all seven touched workspaces passed.
 - `bun run docs:check` and `git diff --check` passed.
 - No literal `entityType ===` / `entityType !==` branches remain in `shell/core/src/system`.
-- Personal agent approval eval startup was attempted before implementation; the personal and team cases were attempted afterward. All attempts stopped before execution because no AI API key was configured. Eval equivalence remains unverified.
+- Approval evals passed on both the original baseline (`a00e52e4ef`, isolated worktree) and implementation (`f9b6e3696b`), using main's credentials with explicit permission and without copying them. Model: `gpt-5.6-luna`; judge: `gpt-5.4-mini`.
+  - `tool-invocation-agent-approve`: public, trusted, and admin passed.
+  - `multi-turn-agent-approve-then-call-now`: passed.
+  - `team-tool-agent-approve`: passed.
+  - The personal suite selects neither of the first two cases under current tags (`recipe-professional` and `bundle-core` respectively). They were run by exact ID without the personal suite filter; the team case used `--suite team`.
+  - Both baseline and implementation logged background `site-builder:site-build` failures in the default composition; these did not fail the approval assertions and are not introduced by this change.
+- PR #391 CI passed: build, lint, typecheck, tests, dependency architecture, and console visual regression.
 
 ## Constraints
 
