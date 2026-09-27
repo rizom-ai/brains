@@ -20,7 +20,10 @@ import { generateSiteRoutes } from "./generate-site-routes";
 import { prepareSiteBuild } from "./prepare-site-build";
 import { prepareSiteImages } from "./prepare-site-images";
 import { runStaticSiteBuild } from "./run-static-site-build";
-import { computeSiteInputFingerprint } from "./site-input-fingerprint";
+import {
+  computeSiteInputFingerprint,
+  RENDERER_PROCESS_IDENTITY,
+} from "./site-input-fingerprint";
 import type { BuildPipelineContext } from "./build-pipeline-context";
 import {
   createCancelledBuildResult,
@@ -46,6 +49,8 @@ export interface RunSiteBuildOptions {
   staticSiteBuilderFactory: StaticSiteBuilderFactory;
   outputLifecycle?: SiteBuildOutputLifecycle | undefined;
   signal: AbortSignal;
+  /** The running renderer code; each process has its own by default. */
+  rendererIdentity?: string | undefined;
 }
 
 export async function runSiteBuild(
@@ -168,6 +173,7 @@ export async function runSiteBuild(
       getViewTemplate: options.pipelineContext.services.getViewTemplate,
       staticSiteBuilderFactory: options.staticSiteBuilderFactory,
       sendMessage: options.pipelineContext.services.sendMessage,
+      rendererIdentity: options.rendererIdentity ?? RENDERER_PROCESS_IDENTITY,
     });
     const currentManifest = await outputLifecycle.getCurrentManifest?.(
       parsedOptions.outputDir,
