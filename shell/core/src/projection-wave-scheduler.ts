@@ -99,6 +99,7 @@ export class ProjectionWaveScheduler {
   private readonly onScheduledWakeupError: (error: unknown) => void;
   private readonly now: () => number;
   private readonly operationQueue = new SerialQueue();
+  private disposed = false;
   private scheduledWakeup: { readyAt: number; cancel: () => void } | undefined;
 
   constructor(options: ProjectionWaveSchedulerOptions) {
@@ -119,8 +120,10 @@ export class ProjectionWaveScheduler {
     this.now = options.now;
   }
 
-  public dispose(): void {
+  public dispose(): Promise<void> {
+    this.disposed = true;
     this.cancelScheduledWakeup();
+    return this.operationQueue.idle();
   }
 
   public advanceActiveWave(waveId: string): Promise<ProjectionWave> {
@@ -230,11 +233,12 @@ export class ProjectionWaveScheduler {
   private async runExclusive<TResult>(
     operation: () => Promise<TResult>,
   ): Promise<TResult> {
+    if (this.disposed) throw new Error("Projection scheduler is disposed");
     return this.operationQueue.run(operation);
   }
 
   private schedulePendingWakeup(readyAt: number): void {
-    if (this.scheduledWakeup?.readyAt === readyAt) return;
+    if (this.disposed || this.scheduledWakeup?.readyAt === readyAt) return;
     this.cancelScheduledWakeup();
     const scheduled = { readyAt, cancel: (): void => {} };
     scheduled.cancel = this.scheduleWakeup(
@@ -276,6 +280,14 @@ export class ProjectionWaveScheduler {
       }
       await this.store.putWaveRules(wave.id, plannedRules);
       rules = await this.store.listWaveRules(wave.id);
+    }
+    // Applying a rule result precedes the durable job completion write. Do not
+    // let callbacks or sweeps admit dependent work while that job is still live.
+    for (const rule of rules) {
+      if (rule.status !== "completed" || !rule.jobId) continue;
+      const job = await this.queue.getStatus(rule.jobId);
+      if (job?.status === "pending" || job?.status === "processing")
+        return wave;
     }
     if (rules.every((rule) => rule.status === "completed")) {
       return this.completeWave(wave, rules);

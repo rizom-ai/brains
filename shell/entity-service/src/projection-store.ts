@@ -1312,11 +1312,9 @@ export class ProjectionStore implements IProjectionStore {
         .from(projectionWaves)
         .where(eq(projectionWaves.status, "running"))
         .limit(1);
-      if (active.length > 0) {
-        throw new Error(
-          `Cannot claim projection wave while "${active[0]?.id}" is running`,
-        );
-      }
+      // Another coordinator may have claimed after our caller observed no
+      // active wave. Losing admission is normal; leave pending ingress intact.
+      if (active.length > 0) return null;
 
       const barriers = await transaction
         .select({ id: projectionBatches.id })
@@ -1361,16 +1359,21 @@ export class ProjectionStore implements IProjectionStore {
         .where(lte(projectionDirtyInputs.generation, cutoffGeneration))
         .orderBy(asc(projectionDirtyInputs.generation));
       const claimed = coalesceLatestInputs(journalRows);
-      await transaction.insert(projectionWaveInputs).values(
-        claimed.map((entry) => ({
-          waveId,
-          sourceType: entry.sourceType,
-          sourceId: entry.sourceId,
-          revision: entry.revision,
-          operation: entry.operation,
-          generation: entry.generation,
-        })),
-      );
+      // Six bindings per row: 32 rows stay below the worker's 256-argument
+      // limit. All batches and journal retirement share this transaction.
+      const inputBatchSize = 32;
+      for (let offset = 0; offset < claimed.length; offset += inputBatchSize) {
+        await transaction.insert(projectionWaveInputs).values(
+          claimed.slice(offset, offset + inputBatchSize).map((entry) => ({
+            waveId,
+            sourceType: entry.sourceType,
+            sourceId: entry.sourceId,
+            revision: entry.revision,
+            operation: entry.operation,
+            generation: entry.generation,
+          })),
+        );
+      }
       await transaction
         .delete(projectionDirtyInputs)
         .where(lte(projectionDirtyInputs.generation, cutoffGeneration));

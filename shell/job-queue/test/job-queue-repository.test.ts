@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { createSilentLogger } from "@brains/test-utils";
+import { closeSqliteClient } from "@brains/db";
 import { createId } from "@brains/utils/id";
 import { createJobQueueDatabase } from "../src/db";
 import {
@@ -168,7 +169,7 @@ describe("JobQueueRepository fenced attempts", () => {
   });
 
   afterEach(async () => {
-    client.close();
+    await closeSqliteClient(client);
     await cleanup();
   });
 
@@ -218,7 +219,7 @@ describe("JobQueueRepository fenced attempts", () => {
       expect(claims.filter((claim) => claim?.id === job.id)).toHaveLength(1);
       expect(claims.filter(Boolean)).toHaveLength(1);
     } finally {
-      second.client.close();
+      await closeSqliteClient(second.client);
     }
   });
 
@@ -756,7 +757,7 @@ describe("JobQueueRepository fenced attempts", () => {
       expect(decision).toEqual({ kind: "inserted", jobId: job.id });
       expect(transaction).toHaveBeenCalledTimes(3);
     } finally {
-      database.client.close();
+      await closeSqliteClient(database.client);
     }
   });
 
@@ -801,7 +802,7 @@ describe("JobQueueRepository fenced attempts", () => {
         JOB_STATUS.PENDING,
       );
     } finally {
-      database.client.close();
+      await closeSqliteClient(database.client);
     }
   });
 
@@ -870,7 +871,7 @@ describe("JobQueueRepository fenced attempts", () => {
         JOB_STATUS.PENDING,
       );
     } finally {
-      database.client.close();
+      await closeSqliteClient(database.client);
     }
   });
 
@@ -910,7 +911,7 @@ describe("JobQueueRepository fenced attempts", () => {
       expect(beforeInsert).toHaveBeenCalledTimes(9);
       expect(onInsertRollback).toHaveBeenCalledTimes(8);
     } finally {
-      database.client.close();
+      await closeSqliteClient(database.client);
     }
   });
 
@@ -939,23 +940,32 @@ describe("JobQueueRepository fenced attempts", () => {
     const job = createAtomicTestJob({ type: "type:a" });
 
     try {
-      void expect(
-        committingRepository.enqueueAtomic({
+      // The retry budget measures contention, not worker startup.
+      await database.client.execute("SELECT 1");
+      let failure: unknown;
+      try {
+        await committingRepository.enqueueAtomic({
           jobData: job,
           strategy: "skip",
           beforeInsert,
           onInsertRollback,
-        }),
-      ).rejects.toThrow(
-        /Failed to commit atomic enqueue transaction for type "type:a" within \d+ms/,
-      );
+        });
+      } catch (error) {
+        failure = error;
+      }
+      expect(failure).toBeInstanceOf(Error);
+      expect(failure).toMatchObject({
+        message: expect.stringMatching(
+          /Failed to commit atomic enqueue transaction for type "type:a" within \d+ms/,
+        ),
+      });
       expect(beforeInsert.mock.calls.length).toBeGreaterThan(1);
       expect(onInsertRollback).toHaveBeenCalledTimes(
         beforeInsert.mock.calls.length,
       );
       expect(await committingRepository.getStatus(job.id)).toBeNull();
     } finally {
-      database.client.close();
+      await closeSqliteClient(database.client);
     }
   });
 
@@ -990,7 +1000,7 @@ describe("JobQueueRepository fenced attempts", () => {
       );
       expect(transaction.mock.calls.length).toBeGreaterThanOrEqual(2);
     } finally {
-      database.client.close();
+      await closeSqliteClient(database.client);
     }
   });
 
@@ -1017,7 +1027,7 @@ describe("JobQueueRepository fenced attempts", () => {
       ).rejects.toBe(unknownError);
       expect(transaction).toHaveBeenCalledTimes(1);
     } finally {
-      database.client.close();
+      await closeSqliteClient(database.client);
     }
   });
 

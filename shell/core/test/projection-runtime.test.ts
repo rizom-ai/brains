@@ -361,7 +361,7 @@ describe("activateProjectionRuntime", () => {
       { waveId: "wave-swept", ruleId: "document-summary" },
     ]);
 
-    runtime.dispose();
+    await runtime.dispose();
     expect(sweepCancelled).toBe(true);
   });
 
@@ -414,9 +414,17 @@ describe("activateProjectionRuntime", () => {
     await Promise.resolve();
     expect(reconciliations).toBe(2);
 
+    let retired = false;
+    const closing = runtime.dispose().then(() => {
+      retired = true;
+    });
+    await Promise.resolve();
+    expect(retired).toBe(false);
     releaseReconciliation();
-    await Promise.all([first, overlapping]);
-    runtime.dispose();
+    await Promise.all([first, overlapping, closing]);
+    expect(retired).toBe(true);
+    await scheduledSweep?.();
+    expect(reconciliations).toBe(2);
   });
 
   it("does not deadlock when recovery awaits its own wakeup", async () => {
@@ -454,7 +462,7 @@ describe("activateProjectionRuntime", () => {
       Bun.sleep(50).then(() => null),
     ]);
     expect(runtime).not.toBeNull();
-    runtime?.dispose();
+    await runtime?.dispose();
   });
 
   it("defers 350 live-root wakeups and schedules one wave after final closure", async () => {
@@ -538,7 +546,7 @@ describe("activateProjectionRuntime", () => {
       claimAttempts: 1,
       queuedRules: 1,
     });
-    runtime.dispose();
+    await runtime.dispose();
   });
 
   it("registers the framework handler before recovering pending work", async () => {
@@ -595,7 +603,7 @@ describe("activateProjectionRuntime", () => {
       ruleId: "document-summary",
     });
 
-    runtime.dispose();
+    await runtime.dispose();
     expect(wakeup).toBeUndefined();
     expect(order.at(-1)).toBe(`unregister:${PROJECTION_RULE_JOB_TYPE}`);
   });

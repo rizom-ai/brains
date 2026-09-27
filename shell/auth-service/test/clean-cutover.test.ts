@@ -3,11 +3,14 @@ import { closeSqliteClient, createSqliteDatabase } from "@brains/db";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { AuthService } from "../src";
+import { createAuthServiceFixture } from "./fixtures/owned-auth-service";
+const { AuthService, closeAuthServices } = createAuthServiceFixture();
+type AuthService = InstanceType<typeof AuthService>;
 
 const tempDirs: string[] = [];
 
 afterEach(async () => {
+  await closeAuthServices();
   await Promise.all(
     tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
   );

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { createTestShellConfig } from "./helpers/test-config";
 import { Shell, type ShellDependencies } from "../src/shell";
 import type { Plugin } from "@brains/plugins";
@@ -61,6 +61,57 @@ describe("Shell shutdown", () => {
     await testDir.cleanup();
   });
 
+  it("joins a blocked projection sweep before closing the database", async () => {
+    await runMigrations(testDir.dir);
+    let sweep: (() => Promise<void>) | undefined;
+    const stopped = deferred();
+    const shell = Shell.createFresh(createTestShellConfig(testDir.dir), {
+      ...deps,
+      projectionRuntime: {
+        scheduleSweep: (_interval, run): (() => void) => {
+          sweep = run;
+          return (): void => stopped.resolve();
+        },
+      },
+    });
+    const started = deferred();
+    const release = deferred();
+    let closing: Promise<void> | undefined;
+    try {
+      await shell.initialize();
+      const service = shell.getEntityService();
+      const recover = service.recoverProjectionBatches.bind(service);
+      const recovery = spyOn(
+        service,
+        "recoverProjectionBatches",
+      ).mockImplementation(async (...args): ReturnType<typeof recover> => {
+        started.resolve();
+        await release.promise;
+        return recover(...args);
+      });
+      expect(sweep).toBeDefined();
+      const pending = sweep?.();
+      await started.promise;
+      let retired = false;
+      closing = shell.shutdown().then(() => {
+        retired = true;
+      });
+      await stopped.promise;
+      expect(retired).toBe(false);
+      expect(await service.countEmbeddings()).toBe(0);
+      release.resolve();
+      await Promise.all([pending, closing]);
+      expect(retired).toBe(true);
+      expect(recovery).toHaveBeenCalledTimes(1);
+      await sweep?.();
+      expect(recovery).toHaveBeenCalledTimes(1);
+      recovery.mockRestore();
+    } finally {
+      release.resolve();
+      await (closing ?? shell.shutdown());
+    }
+  });
+
   it("should close entity database connection on shutdown", async () => {
     await runMigrations(testDir.dir);
     const config = createTestShellConfig(testDir.dir);
@@ -87,7 +138,7 @@ describe("Shell shutdown", () => {
       threw = true;
       const fullError =
         String(e) + (e instanceof Error && e.cause ? String(e.cause) : "");
-      expect(fullError).toContain("CLIENT_CLOSED");
+      expect(fullError).toMatch(/driver is clos(?:ed|ing)/);
     }
     expect(threw).toBe(true);
   });
@@ -114,7 +165,7 @@ describe("Shell shutdown", () => {
       threw = true;
       const fullError =
         String(e) + (e instanceof Error && e.cause ? String(e.cause) : "");
-      expect(fullError).toContain("CLIENT_CLOSED");
+      expect(fullError).toMatch(/driver is clos(?:ed|ing)/);
     }
     expect(threw).toBe(true);
   });
@@ -142,7 +193,7 @@ describe("Shell shutdown", () => {
       threw = true;
       const fullError =
         String(e) + (e instanceof Error && e.cause ? String(e.cause) : "");
-      expect(fullError).toContain("CLIENT_CLOSED");
+      expect(fullError).toMatch(/driver is clos(?:ed|ing)/);
     }
     expect(threw).toBe(true);
   });
@@ -191,7 +242,7 @@ describe("Shell shutdown", () => {
       (queryError instanceof Error && queryError.cause
         ? String(queryError.cause)
         : "");
-    expect(fullQueryError).toContain("CLIENT_CLOSED");
+    expect(fullQueryError).toMatch(/driver is clos(?:ed|ing)/);
   });
 
   it("should stop background workers, then plugin daemons, before closing databases", async () => {
@@ -389,7 +440,7 @@ describe("Shell shutdown", () => {
     const shell2 = Shell.createFresh(config2, deps);
     await shell2.initialize();
 
-    // Second shell should work without CLIENT_CLOSED errors
+    // Second shell should work without closed-worker errors
     const stats2 = await shell2.getJobQueueService().getStats();
     expect(stats2).toBeDefined();
 

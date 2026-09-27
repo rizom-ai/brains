@@ -1,13 +1,20 @@
-import { describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "bun:test";
 import {
   createMockShell,
   createTempDataDir,
   type MockShell,
 } from "@brains/plugins/test";
 import { AuthServicePlugin } from "@brains/auth-service";
+
 import type { WebRouteDefinition } from "@brains/plugins";
 
 import { studioPlugin } from "../src";
+
+const authPlugins: AuthServicePlugin[] = [];
+afterEach(async () => {
+  for (const plugin of authPlugins.splice(0).reverse())
+    await plugin.shutdown?.();
+});
 
 function createStudioTestShell(): MockShell {
   return createMockShell({ domain: "yeehaa.io" });
@@ -155,6 +162,7 @@ describe("studio plugin", () => {
     const authPlugin = new AuthServicePlugin({
       storageDir: await createTempDataDir("brains-studio-auth-"),
     });
+    authPlugins.push(authPlugin);
     await authPlugin.register(shell);
     const trusted = await authPlugin.getService().createUser({
       displayName: "Trusted editor",

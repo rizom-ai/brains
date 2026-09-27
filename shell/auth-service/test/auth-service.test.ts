@@ -3,8 +3,11 @@ import { closeSqliteClient, createSqliteDatabase } from "@brains/db";
 import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import type { ChannelDescriptor } from "@brains/plugins";
-import { PluginTestHarness, expectSuccess } from "@brains/plugins/test";
+import type { ChannelDescriptor, Plugin } from "@brains/plugins";
+import {
+  PluginTestHarness as BasePluginTestHarness,
+  expectSuccess,
+} from "@brains/plugins/test";
 import { PermissionService } from "@brains/templates";
 import { ConsoleLogger, LogLevel } from "@brains/utils/logger";
 import { z } from "@brains/utils/zod";
@@ -14,7 +17,6 @@ import {
   createExternalActorId,
 } from "@brains/contracts";
 import {
-  AuthService,
   AuthServicePlugin,
   authServicePlugin,
   normalizeIssuer,
@@ -22,6 +24,7 @@ import {
 } from "../src";
 import { resolveAuthStorageDir } from "../src/auth-service-plugin";
 import { seedRuntimePasskeyCredential } from "./runtime-passkey-fixture";
+import { createAuthServiceFixture } from "./fixtures/owned-auth-service";
 
 function getTestChannelDescriptor(
   channelType: string,
@@ -54,6 +57,17 @@ const setupCompleteToolDataSchema = z.object({
   status: z.literal("complete"),
 });
 
+const { AuthService, closeAuthServices } = createAuthServiceFixture();
+type AuthService = InstanceType<typeof AuthService>;
+const harnessClosers: Array<() => Promise<void>> = [];
+class PluginTestHarness<
+  T extends Plugin = Plugin,
+> extends BasePluginTestHarness<T> {
+  constructor(...args: ConstructorParameters<typeof BasePluginTestHarness>) {
+    super(...args);
+    harnessClosers.push(() => this.reset());
+  }
+}
 const tempDirs: string[] = [];
 
 async function tempStorageDir(): Promise<string> {
@@ -81,6 +95,15 @@ async function pkceChallenge(verifier: string): Promise<string> {
 }
 
 afterEach(async () => {
+  const results = await Promise.allSettled([
+    closeAuthServices(),
+    ...harnessClosers.splice(0).map((close) => close()),
+  ]);
+  const failures = results.flatMap((result) =>
+    result.status === "rejected" ? [result.reason] : [],
+  );
+  if (failures.length)
+    throw new AggregateError(failures, "Auth test scopes failed to retire");
   await Promise.all(
     tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
   );

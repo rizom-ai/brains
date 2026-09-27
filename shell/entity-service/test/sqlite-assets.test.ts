@@ -360,12 +360,12 @@ describe("SQLite durable assets", () => {
     });
 
     const rejected = prepareAsset(Buffer.from("must roll back"));
-    expect(
+    await assert.rejects(
       ctx.entityService.createEntity({
         entity: entityForAsset("duplicate-id", rejected),
         preparedAsset: rejected,
       }),
-    ).rejects.toThrow();
+    );
 
     expect(await ctx.entityService.statAsset(existing.ref)).not.toBeNull();
     expect(await ctx.entityService.statAsset(rejected.ref)).toBeNull();
@@ -376,18 +376,20 @@ describe("SQLite durable assets", () => {
     const asset = prepareAsset(Buffer.from("canonical bytes"));
     const missing = prepareAsset(Buffer.from("not committed"));
 
-    expect(
+    await assert.rejects(
       ctx.entityService.createEntity({
         entity: entityForAsset("absent", missing),
       }),
-    ).rejects.toThrow(`Asset not found: ${missing.ref}`);
+      new RegExp(`Asset not found: ${missing.ref}`),
+    );
 
-    expect(
+    await assert.rejects(
       ctx.entityService.createEntity({
         entity: entityForAsset("mismatch", missing),
         preparedAsset: asset,
       }),
-    ).rejects.toThrow("does not match canonical test content");
+      /does not match canonical test content/,
+    );
 
     expect(await tableCount("assets")).toBe(0);
     expect(await tableCount("entities")).toBe(0);
@@ -402,12 +404,13 @@ describe("SQLite durable assets", () => {
       args: [asset.digest, corrupted, corrupted.byteLength, Date.now()],
     });
 
-    expect(
+    await assert.rejects(
       ctx.entityService.createEntity({
         entity: entityForAsset("corrupt-duplicate", asset),
         preparedAsset: asset,
       }),
-    ).rejects.toThrow("Asset integrity check failed");
+      /Asset integrity check failed/,
+    );
 
     expect(await tableCount("entities")).toBe(0);
     expect((await ctx.entityService.verifyAsset(asset.ref)).valid).toBe(false);

@@ -44,6 +44,7 @@ setBootFn(async (cwd, definition, flags) => {
     App,
     handleCLI,
     registerOverridePackages,
+    createFileActorOptions,
   } = await import("@brains/app");
   const { registerConventionalSiteTheme } =
     await import("../src/lib/register-conventional-site-theme");
@@ -85,16 +86,22 @@ setBootFn(async (cwd, definition, flags) => {
     return;
   }
 
+  const fileActors = createFileActorOptions(
+    process.env["BRAINS_BUN_EXECUTABLE"] ?? process.execPath,
+    new URL("./file-actors/", import.meta.url),
+  );
+
   if (flags.mode) {
     const app = App.create(config);
-    await app.initialize({ mode: flags.mode });
+    await app.initialize({ mode: flags.mode }, { fileActors });
     return app;
   }
 
   if (flags.chat) {
-    await handleCLI({ ...config, args: ["--cli"] });
+    await handleCLI({ ...config, args: ["--cli"] }, { fileActors });
   } else {
     await handleCLI(config, {
+      fileActors,
       ...(flags.migrationsCompleted && { migrationsCompleted: true }),
       ...(flags.childRole && { processRole: flags.childRole }),
       ...(flags.localDatabaseEndpoint && {
@@ -132,6 +139,11 @@ setBootFn(async (cwd, definition, flags) => {
 import { parseArgs } from "../src/parse-args";
 import { runCommand } from "../src/run-command";
 import { findLocalBrain } from "../src/lib/local-reexec";
+import { fileURLToPath } from "node:url";
+import {
+  runtimeSignalProcess,
+  spawnBunRunner,
+} from "../src/lib/spawn-bun-runner";
 import { getInvocationCwd } from "../src/lib/invocation-cwd";
 import { getErrorMessage } from "@brains/utils/error";
 
@@ -143,20 +155,20 @@ const cwd = getInvocationCwd();
 // Local-over-global: if ./node_modules/@rizom/brain exists and isn't us, re-exec
 if (!process.env["BRAIN_SKIP_LOCAL_REEXEC"]) {
   const localBrain = findLocalBrain(cwd);
-  if (localBrain && localBrain !== __filename) {
-    // Arguments are passed as a list, not joined into a shell string: the
-    // joined form re-split anything containing a space or a quote, so
-    // `brain … "two words"` reached the local install as two arguments.
-    //
-    // Awaited rather than synchronous, like every other spawn in the
-    // repository — the exit code is read from the child instead of decoded
-    // out of a thrown error.
-    const child = Bun.spawn(["bun", localBrain, ...process.argv.slice(2)], {
+  // Bun embeds __filename from the source when bundling; import.meta.url
+  // identifies the installed executable instead of spuriously re-executing it.
+  if (localBrain && localBrain !== fileURLToPath(import.meta.url)) {
+    const handoff = await spawnBunRunner({
       cwd,
-      stdio: ["inherit", "inherit", "inherit"],
-      env: { ...process.env, BRAIN_SKIP_LOCAL_REEXEC: "1" },
+      args: [localBrain, ...process.argv.slice(2)],
+      processImpl: {
+        ...runtimeSignalProcess,
+        env: { ...process.env, BRAIN_SKIP_LOCAL_REEXEC: "1" },
+      },
+      failureMessage: (code) => `Local brain exited with code ${code}`,
     });
-    process.exit(await child.exited);
+    if (!handoff.success) console.error(handoff.message);
+    process.exit(handoff.exitCode ?? (handoff.success ? 0 : 1));
   }
 }
 

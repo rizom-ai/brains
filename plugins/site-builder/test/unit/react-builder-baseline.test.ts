@@ -8,6 +8,8 @@ import type { LayoutComponent } from "@brains/site-engine";
 import { z } from "@brains/utils/zod";
 import { Fragment, createElement as h, type ReactElement } from "react";
 import { createReactBuilder } from "../../src/lib/react-builder";
+import { runStaticSiteBuild } from "../../src/lib/run-static-site-build";
+import { CallbackProgressReporter } from "@brains/utils/progress";
 import type { SiteViewTemplate } from "../../src/lib/site-view-template";
 import { MockCSSProcessor } from "../mocks/mock-css-processor";
 import { createRendererTestContext } from "../test-helpers";
@@ -64,6 +66,105 @@ describe("ReactBuilder behavioral baseline", () => {
 
   afterEach(async () => {
     await fs.rm(testDir, { recursive: true, force: true });
+  });
+
+  it("joins progress within route concurrency and before build completion", async () => {
+    const routesEntered = Promise.withResolvers<void>();
+    const routesReleased = Promise.withResolvers<void>();
+    const finalEntered = Promise.withResolvers<void>();
+    const finalReleased = Promise.withResolvers<void>();
+    let active = 0;
+    let peak = 0;
+    let rendered = 0;
+    let completed = false;
+    let reportsReturnPromises = true;
+    const context = createRendererTestContext({
+      routes: Array.from({ length: 32 }, (_, index) => ({
+        id: `route-${index}`,
+        path: `/route-${index}`,
+        title: `Route ${index}`,
+        description: "Progress fixture",
+        layout: "default",
+        sections: [],
+      })),
+      siteConfig: {
+        title: "Progress test",
+        description: "",
+        themeMode: "light",
+      },
+      siteLayoutInfo: {
+        title: "Progress test",
+        description: "",
+        copyright: "",
+        navigation: { primary: [], secondary: [] },
+      },
+      getViewTemplate: () => undefined,
+      layouts: {
+        default: () => {
+          rendered++;
+          return h("main");
+        },
+      },
+    });
+    const builder = createReactBuilder({
+      logger: createSilentLogger(),
+      outputDir,
+      workingDir,
+      cssProcessor: new MockCSSProcessor(),
+    });
+    const building = runStaticSiteBuild({
+      staticSiteBuilder: {
+        clean: () => builder.clean(),
+        build: (context, onProgress, signal) =>
+          builder.build(
+            context,
+            (notification) => {
+              const pending = onProgress(notification);
+              reportsReturnPromises &&= pending instanceof Promise;
+              return pending;
+            },
+            signal,
+          ),
+      },
+      buildContext: context,
+      reporter: CallbackProgressReporter.from(async (notification) => {
+        if (notification.message?.startsWith("Building route:")) {
+          active++;
+          peak = Math.max(peak, active);
+          if (active === 4) routesEntered.resolve();
+          try {
+            await routesReleased.promise;
+          } finally {
+            active--;
+          }
+        }
+        if (notification.message === "React build complete") {
+          finalEntered.resolve();
+          await finalReleased.promise;
+        }
+      }),
+      signal: new AbortController().signal,
+    }).then(() => {
+      completed = true;
+    });
+    try {
+      await routesEntered.promise;
+      expect(active).toBe(4);
+      expect(rendered).toBe(0);
+      routesReleased.resolve();
+      await finalEntered.promise;
+      await Promise.resolve();
+      expect(completed).toBe(false);
+      expect(rendered).toBe(32);
+      expect(peak).toBe(4);
+    } finally {
+      routesReleased.resolve();
+      finalReleased.resolve();
+      await building;
+    }
+    expect(completed).toBe(true);
+    expect(active).toBe(0);
+    expect(reportsReturnPromises).toBe(true);
   });
 
   it("characterizes representative routes, metadata, scripts, assets, theme CSS, and progress", async () => {

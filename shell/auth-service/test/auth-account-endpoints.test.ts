@@ -10,11 +10,14 @@ import { z } from "@brains/utils/zod";
 import {
   AuthCredentialStore,
   AuthRuntimeDatabase,
-  AuthService,
   authServicePlugin,
 } from "../src";
 
+import { createAuthServiceFixture } from "./fixtures/owned-auth-service";
+
 const ISSUER = "https://brain.example.com";
+const { AuthService, closeAuthServices } = createAuthServiceFixture();
+type AuthService = InstanceType<typeof AuthService>;
 const tempDirs: string[] = [];
 
 /** The passkey registration options this test reads off the wire. */
@@ -80,6 +83,7 @@ function accountRequest(
 }
 
 afterEach(async () => {
+  await closeAuthServices();
   await Promise.all(
     tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
   );

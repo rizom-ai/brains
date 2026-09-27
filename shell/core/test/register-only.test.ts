@@ -216,7 +216,7 @@ describe("Shell register-only mode", () => {
       (queryError instanceof Error && queryError.cause
         ? String(queryError.cause)
         : "");
-    expect(fullQueryError).toContain("CLIENT_CLOSED");
+    expect(fullQueryError).toContain("SQL worker driver is closed");
   });
 
   it("should not start daemons in register-only mode", async () => {

@@ -60,21 +60,21 @@ async function selectSeriesInput(
     .getEntityTypes()
     .filter((entityType) => entityType !== "series")
     .sort();
-  const members = (
-    await Promise.all(
-      entityTypes.map(async (entityType) =>
-        context.entities.listEntities({ entityType }),
-      ),
-    )
-  )
-    .flat()
-    .map(memberInput)
-    .filter((member): member is NonNullable<typeof member> => member !== null)
-    .sort(
-      (left, right) =>
-        left.seriesName.localeCompare(right.seriesName) ||
-        left.id.localeCompare(right.id),
-    );
+  const members: SeriesProjectionInput["members"] = [];
+  // The registered type catalog can exceed SQL admission. Read each type in
+  // sequence and retain only series facts, not every source entity at once.
+  for (const entityType of entityTypes) {
+    const sources = await context.entities.listEntities({ entityType });
+    for (const source of sources) {
+      const member = memberInput(source);
+      if (member) members.push(member);
+    }
+  }
+  members.sort(
+    (left, right) =>
+      left.seriesName.localeCompare(right.seriesName) ||
+      left.id.localeCompare(right.id),
+  );
   const existingSeries = (
     await context.entities.listEntities({ entityType: "series" })
   )

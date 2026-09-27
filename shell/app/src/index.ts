@@ -1,4 +1,8 @@
 export { App } from "./app";
+export {
+  createFileActorOptions,
+  fileActorSources,
+} from "./file-actor-artifacts";
 export { defineConfig } from "./config";
 export { handleCLI } from "./cli";
 export { SeedDataManager } from "./seed-data-manager";

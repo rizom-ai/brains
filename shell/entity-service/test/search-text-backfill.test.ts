@@ -91,7 +91,7 @@ describe("search_text backfill", () => {
       dbConfig: { url },
     });
     cleanups.push(async () => {
-      service.close();
+      await service.closeAsync();
     });
     await service.initialize();
     return service;
@@ -137,13 +137,17 @@ describe("search_text backfill", () => {
     // a resumed boot gets to keep; a single all-or-nothing transaction keeps
     // nothing.
     const { client } = createSqliteDatabase({ url: seeded.url, schema: {} });
-    await client.execute(`
-      CREATE TRIGGER block_last_backfill
-      BEFORE UPDATE OF search_text ON entities
-      WHEN NEW.id = 'note-${String(rowCount - 1).padStart(6, "0")}'
-      BEGIN SELECT RAISE(ABORT, 'blocked'); END
-    `);
-    await closeSqliteClient(client);
+    try {
+      // Both selected rows may be empty, but filling the last row conflicts
+      // with the already-committed first row. No raw trigger controls needed.
+      await client.execute(`
+        CREATE UNIQUE INDEX block_last_backfill ON entities (
+          CASE WHEN coalesce(search_text, '') = '' THEN id ELSE 'blocked' END
+        ) WHERE id IN ('note-000000', 'note-${String(rowCount - 1).padStart(6, "0")}')
+      `);
+    } finally {
+      await closeSqliteClient(client);
+    }
 
     const failure = await bootService(seeded.url).then(
       () => null,
@@ -160,7 +164,7 @@ describe("search_text backfill", () => {
       schema: {},
     });
     try {
-      await recoveryClient.execute("DROP TRIGGER block_last_backfill");
+      await recoveryClient.execute("DROP INDEX block_last_backfill");
     } finally {
       await closeSqliteClient(recoveryClient);
     }

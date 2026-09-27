@@ -554,8 +554,7 @@ function runRuntimeSupervisor(
     const requestChildrenShutdown = (signal: "SIGINT" | "SIGTERM"): void => {
       shutdownSignal = signal;
       signalChild(worker, signal);
-      signalChild(web, signal);
-      stopBrokerWhenRolesAreGone();
+      stopOwnersWhenBorrowersAreGone();
       forceKillTimer ??= options.clock.setTimeout(() => {
         signalChild(worker, "SIGKILL");
         signalChild(web, "SIGKILL");
@@ -566,12 +565,13 @@ function runRuntimeSupervisor(
       }, options.shutdownGraceMs);
     };
 
-    const stopBrokerWhenRolesAreGone = (): void => {
+    const stopOwnersWhenBorrowersAreGone = (): void => {
       if (shutdownSignal === undefined) return;
-      const roles = [web, worker].filter(
-        (child): child is ManagedChild => child !== undefined && !child.closed,
-      );
-      if (roles.length > 0) return;
+      // The worker must finish database RPCs before the web owner retires its
+      // endpoint and stores. Both roles must exit before their Git owner stops.
+      if (worker && !worker.closed) return;
+      signalChild(web, shutdownSignal);
+      if (web && !web.closed) return;
       signalChild(broker, shutdownSignal);
     };
 
@@ -658,7 +658,7 @@ function runRuntimeSupervisor(
       child.process.removeListener("message", child.handleMessage);
 
       // A role exiting may be the last thing the owner was waiting for.
-      if (child.role !== "git-broker") stopBrokerWhenRolesAreGone();
+      if (child.role !== "git-broker") stopOwnersWhenBorrowersAreGone();
 
       if (child.role === "git-broker") {
         if (!parentShutdownRequested && !finalResult) {

@@ -22,6 +22,8 @@ import {
 import { join } from "path";
 import { tmpdir } from "os";
 import { copyDeployScripts } from "@brains/deploy-support";
+import { fileActorSources } from "@brains/app";
+import { fileURLToPath } from "node:url";
 import {
   assertProductionReactBundle,
   findInternalDeclarationImports,
@@ -161,6 +163,8 @@ console.log("Building @rizom/brain...");
 // Native modules, lazy-loaded SDKs, and the JSX runtime.
 const sharedExternals = [
   "@tursodatabase/database",
+  // PDF.js owns its worker module and optional native canvas dependency.
+  "pdfjs-dist",
   "lightningcss",
   "@tailwindcss/oxide",
   // ink loads react-devtools-core unconditionally
@@ -182,6 +186,44 @@ const sharedExternals = [
   "react-dom",
   "react-dom/server",
 ];
+
+// The SQL factory resolves a statically provisioned sibling worker tree.
+// Both the CLI entry and split public-library chunks must have that tree;
+// never probe the source checkout or fall back to an in-controller database.
+const databaseWorkerDir = join(outdir, "turso-worker");
+const databaseWorkers = await Bun.build({
+  entrypoints: ["worker", "network-ingress-worker", "network-read-worker"].map(
+    (name) =>
+      join(monorepoRoot, "shared", "db", "src", "turso-worker", `${name}.ts`),
+  ),
+  outdir: databaseWorkerDir,
+  target: "bun",
+  format: "esm",
+  minify: true,
+  naming: "[name].ts",
+  external: sharedExternals,
+});
+if (!databaseWorkers.success)
+  throw new AggregateError(
+    databaseWorkers.logs,
+    "Database worker artifact build failed",
+  );
+// Native file work has explicit standalone artifacts, never an SDK fallback in
+// the controller. The runtime resolves only this installed catalog.
+for (const [name, source] of Object.entries(fileActorSources)) {
+  const result = await Bun.build({
+    entrypoints: [fileURLToPath(source)],
+    outdir: join(outdir, "file-actors"),
+    target: "bun",
+    format: "esm",
+    minify: true,
+    jsx: productionReactJsx,
+    naming: `${name}.js`,
+    external: sharedExternals,
+  });
+  if (!result.success)
+    throw new AggregateError(result.logs, `File actor '${name}' build failed`);
+}
 
 async function bundle(opts: {
   name: string;
@@ -386,6 +428,12 @@ await Promise.all([
   libraryBuild,
   emitLibraryDeclarations(),
 ]);
+
+// Library bundling clears stale chunks. Install their sibling workers only
+// after that cleanup, otherwise auth's independently bundled factory loses them.
+cpSync(databaseWorkerDir, join(outdir, "chunks", "turso-worker"), {
+  recursive: true,
+});
 
 // ─── Copy package-owned onboarding assets ────────────────────────────────
 

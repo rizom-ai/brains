@@ -222,25 +222,36 @@ describe("canonical durable job execution boundary", () => {
 
   it("derives the exact worker inventory from immutable full-preset registrations", async () => {
     const webDirectory = await mkdtemp(join(tmpdir(), "brain-web-audit-"));
-    const workerDirectory = await mkdtemp(
-      join(tmpdir(), "brain-worker-audit-"),
-    );
-    directories.push(webDirectory, workerDirectory);
+    directories.push(webDirectory);
 
+    const databaseEndpoint = {
+      address: join(webDirectory, "database-owner.sock"),
+      secret: "s".repeat(48),
+    };
     const webApp = createFullPresetApp(webDirectory);
     apps.push(webApp);
     await webApp.migrate();
     await webApp.initialize(
       { mode: "register-only" },
-      { migrationsCompleted: true, processRole: "web" },
+      {
+        migrationsCompleted: true,
+        processRole: "web",
+        localDatabaseEndpoint: {
+          ...databaseEndpoint,
+          sessionId: "web-inventory",
+        },
+      },
     );
 
-    const workerApp = createFullPresetApp(workerDirectory);
+    const workerApp = createFullPresetApp(webDirectory);
     apps.push(workerApp);
-    await workerApp.migrate();
     await workerApp.initialize(undefined, {
       migrationsCompleted: true,
       processRole: "worker",
+      localDatabaseEndpoint: {
+        ...databaseEndpoint,
+        sessionId: "worker-inventory",
+      },
     });
 
     const webQueue = webApp.getShell().getJobQueueService();
@@ -507,10 +518,22 @@ describe("canonical durable job execution boundary", () => {
       facts,
       title: "Remote image",
     });
-    await workerEntities.createEntity({
-      entity: { ...image, id: "remote-image" },
-      preparedAsset: asset,
-      options: { persistenceOrigin: "directory-sync" },
+    const workerFiles = workerEntities.fileAssets;
+    const ownerFiles = ownerEntities.fileAssets;
+    if (!workerFiles || !ownerFiles)
+      throw new Error("Missing default file runtime");
+    const sourceFile = join(root, "remote-image.png");
+    await writeFile(sourceFile, bytes);
+    await workerFiles.publish({
+      sourceFile,
+      sizeBytes: bytes.byteLength,
+      publication: {
+        operation: "createEntity",
+        request: {
+          entity: { ...image, id: "remote-image" },
+          options: { persistenceOrigin: "directory-sync" },
+        },
+      },
     });
     const persistedImage = imageSchema.parse(
       await workerEntities.getEntityRaw({
@@ -520,29 +543,31 @@ describe("canonical durable job execution boundary", () => {
       }),
     );
     expect(persistedImage.content).toBe(asset.ref);
-    expect(Buffer.from(await workerEntities.readAsset(asset.ref))).toEqual(
-      bytes,
-    );
-    expect(Buffer.from(await ownerEntities.readAsset(asset.ref))).toEqual(
-      bytes,
-    );
+    for (const files of [workerFiles, ownerFiles]) {
+      await files.withAssetFile(asset.ref, async (file) => {
+        expect(file.sha256).toBe(asset.digest);
+        expect(file.sizeBytes).toBe(bytes.byteLength);
+        // Fixture-only byte comparison inside the verified native download loan.
+        expect(Buffer.from(await Bun.file(file.sourceFile).bytes())).toEqual(
+          bytes,
+        );
+      });
+    }
     expect(await workerEntities.statAsset(asset.ref)).toEqual({
       ref: asset.ref,
       sizeBytes: bytes.byteLength,
     });
-    expect(await workerEntities.verifyAsset(asset.ref)).toMatchObject({
-      expectedDigest: asset.digest,
-      actualDigest: asset.digest,
-      valid: true,
+    await workerFiles.withAssetFile(asset.ref, async (file) => {
+      expect(file.sha256).toBe(asset.digest);
+      expect(Buffer.from(await Bun.file(file.sourceFile).bytes())).toEqual(
+        bytes,
+      );
     });
-    // Explicit byte comparison in the persistence fixture, not a display fallback.
-    expect(Buffer.from(await workerEntities.readAsset(asset.ref))).toEqual(
-      bytes,
-    );
     const missingAsset = prepareAsset(Buffer.from("missing")).ref;
     expect(await workerEntities.statAsset(missingAsset)).toBeNull();
     let missingAssetError: unknown;
     try {
+      // This absent-row RPC rejection transfers no binary payload.
       await workerEntities.readAsset(missingAsset);
     } catch (error) {
       missingAssetError = error;

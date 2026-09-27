@@ -281,6 +281,11 @@ describe("Shell projection runtime lifecycle", () => {
   });
 
   it("replays stopped-worker updates and deletes after each restart", async () => {
+    const endpoint = {
+      address: `${testDir.dir}/projection.sock`,
+      secret: "s".repeat(48),
+    };
+    let workerSession = 0;
     const config = createTestShellConfig(testDir.dir, {
       plugins: [new ProjectionTargetPlugin()],
       embedding: { enabled: false },
@@ -288,7 +293,10 @@ describe("Shell projection runtime lifecycle", () => {
     const web = Shell.createFresh(
       config,
       { logger: createSilentLogger(), embeddingService },
-      { processRole: "web" },
+      {
+        processRole: "web",
+        localDatabaseEndpoint: { ...endpoint, sessionId: "owner" },
+      },
     );
     shells.push(web);
     await web.initialize();
@@ -297,7 +305,13 @@ describe("Shell projection runtime lifecycle", () => {
       const worker = Shell.createFresh(
         config,
         { logger: createSilentLogger(), embeddingService },
-        { processRole: "worker" },
+        {
+          processRole: "worker",
+          localDatabaseEndpoint: {
+            ...endpoint,
+            sessionId: `worker-${++workerSession}`,
+          },
+        },
       );
       shells.push(worker);
       await worker.initialize();

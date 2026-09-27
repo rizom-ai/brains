@@ -134,11 +134,17 @@ export function createShellServices(options: {
   const logger = createServiceLogger(config, dependencies?.logger);
   const operationContext =
     dependencies?.operationContext ?? OperationContext.createFresh();
-  if (options.localDatabaseEndpoint && topology.endpointRole === "none") {
-    throw new Error("A local database endpoint requires a process role");
+  if (
+    options.localDatabaseEndpoint &&
+    topology.endpointRole === "none" &&
+    !options.fileActors
+  ) {
+    throw new Error(
+      "A local database endpoint requires a process role or combined file actors",
+    );
   }
   const localDatabaseServer =
-    options.localDatabaseEndpoint && topology.endpointRole === "owner"
+    options.localDatabaseEndpoint && topology.endpointRole !== "client"
       ? new LocalDatabaseRpcServer({ config: options.localDatabaseEndpoint })
       : undefined;
   const localDatabaseClient =
@@ -219,7 +225,7 @@ export function createShellServices(options: {
         : invoke();
     });
   };
-  const disposables: Array<() => void> = [];
+  const disposables: Array<() => void | Promise<void>> = [];
 
   const embeddingService =
     dependencies?.embeddingService ??
@@ -526,7 +532,9 @@ export function createShellServices(options: {
   lifecycle.addSyncFinalizer(() => {
     for (const dispose of disposables.splice(0)) {
       try {
-        dispose();
+        // Only synchronous subscriptions exist during constructor rollback.
+        // Boot-acquired async owners are drained by runtime finalizers first.
+        void dispose();
       } catch (error) {
         logger.warn("Failed to dispose shell subscription", error);
       }

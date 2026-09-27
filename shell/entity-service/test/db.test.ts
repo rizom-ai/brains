@@ -1,18 +1,18 @@
 import { describe, test, expect, afterEach } from "bun:test";
-import { applySqlitePragmas } from "@brains/db";
+import { applySqlitePragmas, closeSqliteClient } from "@brains/db";
 import { createEntityDatabase } from "../src/db";
 
 describe("EntityService Database", () => {
-  const clients: Array<{ close: () => void }> = [];
+  const clients: Array<Parameters<typeof closeSqliteClient>[0]> = [];
 
   afterEach(async () => {
     for (const client of clients) {
-      client.close();
+      await closeSqliteClient(client);
     }
     clients.length = 0;
   });
 
-  function trackClient(client: { close: () => void }): void {
+  function trackClient(client: Parameters<typeof closeSqliteClient>[0]): void {
     clients.push(client);
   }
 

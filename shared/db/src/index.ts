@@ -3,6 +3,7 @@ export {
   createSqliteDatabase,
   type CreateSqliteDatabaseOptions,
   type PragmaClient,
+  type SqliteWorkerArtifacts,
   type SqliteConnection,
   type SqliteDatabase,
 } from "./sqlite";

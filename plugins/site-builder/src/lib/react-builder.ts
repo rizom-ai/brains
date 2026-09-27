@@ -51,19 +51,20 @@ export class ReactBuilder implements StaticSiteBuilder {
 
   async build(
     context: BuildContext,
-    onProgress: (notification: ProgressNotification) => void,
+    onProgress: (notification: ProgressNotification) => void | Promise<void>,
     signal: AbortSignal,
   ): Promise<void> {
     signal.throwIfAborted();
     const { preparedBuild } = context;
     const total = preparedBuild.routes.length + 4;
     let progress = 0;
-    const reportProgress = (message: string): void => {
+    const reportProgress = async (message: string): Promise<void> => {
       progress++;
-      onProgress({ message, progress, total });
+      // Join persistence-backed reporting within the existing route admission.
+      await onProgress({ message, progress, total });
     };
 
-    reportProgress("Starting React build");
+    await reportProgress("Starting React build");
 
     // Create output directory
     await fs.mkdir(this.outputDir, { recursive: true });
@@ -76,7 +77,7 @@ export class ReactBuilder implements StaticSiteBuilder {
       preparedBuild.routes.map((route) =>
         limit(async () => {
           signal.throwIfAborted();
-          reportProgress(`Building route: ${route.path}`);
+          await reportProgress(`Building route: ${route.path}`);
           await this.buildRoute(route, context, preparedBuild, signal);
         }),
       ),
@@ -88,11 +89,11 @@ export class ReactBuilder implements StaticSiteBuilder {
     if (rejectedRoute) throw rejectedRoute.reason;
 
     // Process styles after HTML is generated (Tailwind needs to scan HTML for classes)
-    reportProgress("Processing Tailwind CSS");
+    await reportProgress("Processing Tailwind CSS");
     await this.processStyles(preparedBuild.themeCSS ?? "", signal);
 
     // Write app public files captured during build preparation.
-    reportProgress("Copying static assets");
+    await reportProgress("Copying static assets");
     await writePublicAssets(
       preparedBuild.publicAssets,
       signal,
@@ -109,7 +110,7 @@ export class ReactBuilder implements StaticSiteBuilder {
     await this.writeInlineStaticAssets(preparedBuild.staticAssets, signal);
     signal.throwIfAborted();
 
-    reportProgress("React build complete");
+    await reportProgress("React build complete");
   }
 
   async clean(): Promise<void> {

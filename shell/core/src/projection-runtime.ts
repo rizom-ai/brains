@@ -71,7 +71,7 @@ export interface ProjectionRuntimeOptions {
 
 export interface ActiveProjectionRuntime {
   scheduler: ProjectionWaveScheduler;
-  dispose(): void;
+  dispose(): Promise<void>;
 }
 
 /** Register the sole projection handler, attach durable-ingress wakeup, and recover. */
@@ -106,14 +106,17 @@ export async function activateProjectionRuntime(
   options.queue.registerHandler(PROJECTION_RULE_JOB_TYPE, handler, "shell");
   let removeWakeup = (): void => {};
   let removeSweep = (): void => {};
+  let active = true;
+  let activeSweep: Promise<void> | undefined;
+  const wakeups = new Set<Promise<void>>();
   try {
     if (options.activationMode !== "executor") {
       const performSweep = async (recoverBatches: boolean): Promise<void> => {
         if (recoverBatches) await options.reconcileBatches?.();
-        await scheduler.startNextWave();
+        if (active) await scheduler.startNextWave();
       };
-      let activeSweep: Promise<void> | undefined;
       const sweep = (recoverBatches: boolean): Promise<void> => {
+        if (!active) return Promise.resolve();
         if (activeSweep) return activeSweep;
         const started = Promise.resolve().then(() =>
           performSweep(recoverBatches),
@@ -125,10 +128,19 @@ export async function activateProjectionRuntime(
         void started.then(clear, clear);
         return started;
       };
-      const wakeup = async (): Promise<void> => {
-        if (activeSweep) return;
-        if (await options.store.hasActiveProjectionBatch()) return;
-        await sweep(false);
+      const wakeup = (): Promise<void> => {
+        if (!active || activeSweep) return Promise.resolve();
+        const pending = Promise.resolve().then(async (): Promise<void> => {
+          if (!active || (await options.store.hasActiveProjectionBatch()))
+            return;
+          await sweep(false);
+        });
+        wakeups.add(pending);
+        const clear = (): void => {
+          wakeups.delete(pending);
+        };
+        void pending.then(clear, clear);
+        return pending;
       };
       removeWakeup = options.setWakeup(wakeup);
       await sweep(true);
@@ -144,6 +156,8 @@ export async function activateProjectionRuntime(
       );
     }
   } catch (error) {
+    active = false;
+    await scheduler.dispose();
     removeSweep();
     removeWakeup();
     options.queue.unregisterHandler(PROJECTION_RULE_JOB_TYPE);
@@ -154,16 +168,45 @@ export async function activateProjectionRuntime(
     rules: options.rules.length,
     mode: options.activationMode ?? "scheduler",
   });
-  let active = true;
+  let closing: Promise<void> | undefined;
   return {
     scheduler,
-    dispose: (): void => {
-      if (!active) return;
+    dispose: (): Promise<void> => {
+      if (closing) return closing;
       active = false;
-      removeSweep();
-      removeWakeup();
-      scheduler.dispose();
-      options.queue.unregisterHandler(PROJECTION_RULE_JOB_TYPE);
+      closing = (async (): Promise<void> => {
+        const errors: unknown[] = [];
+        for (const dispose of [
+          removeSweep,
+          removeWakeup,
+          (): void => options.queue.unregisterHandler(PROJECTION_RULE_JOB_TYPE),
+        ]) {
+          try {
+            dispose();
+          } catch (error) {
+            errors.push(error);
+          }
+        }
+        const results = await Promise.allSettled([
+          ...wakeups,
+          activeSweep,
+          (async (): Promise<void> => {
+            await scheduler.dispose();
+          })(),
+        ]);
+        errors.push(
+          ...results.flatMap((result) =>
+            result.status === "rejected" ? [result.reason] : [],
+          ),
+        );
+        if (errors.length)
+          throw new AggregateError(
+            errors,
+            "Projection runtime retirement failed",
+            { cause: errors[0] },
+          );
+      })();
+      return closing;
     },
   };
 }

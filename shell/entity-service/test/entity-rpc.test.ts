@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { prepareAsset, computeAssetDigest } from "@brains/assets";
+import { prepareAsset, assetRefSchema } from "@brains/assets";
+import { EntityBinaryClient } from "../src/entity-binary-client";
+import { EntityFileRuntime } from "../src/entity-file-runtime";
 import { ENTITY_CHANNELS } from "@brains/contracts";
 import type { BinaryPersistence } from "@brains/db/binary-publication";
 import { createMockJobQueueService } from "@brains/job-queue/test";
@@ -200,7 +202,6 @@ describe("entity owner RPC", () => {
 
   afterEach(async () => {
     remote.close();
-    owner.close();
     await cleanup();
   });
 
@@ -393,51 +394,149 @@ describe("entity owner RPC", () => {
     ).toBeNull();
   });
 
-  it("chunks asset mutations and reads without publishing bytes from a failed mutation", async () => {
-    const first = prepareAsset(new Uint8Array(2 * 1024 * 1024 + 7).fill(0xa5));
-    const second = prepareAsset(new Uint8Array(first.sizeBytes).fill(0x7f));
-    const initial = createTestEntity("test", {
-      id: "chunked",
-      content: first.ref,
+  it("uses native transfers for large mutations and reads without publishing bytes from a failed mutation", async () => {
+    const binary = owner.getBinaryPersistence();
+    assert.ok(binary);
+    const handlers = createEntityBinaryRpcHandlers(owner, binary);
+    const connection = new AbortController();
+    const client = new EntityBinaryClient({
+      transport: {
+        control: (request, options): Promise<unknown> =>
+          handlers.control(
+            request,
+            options?.signal ?? new AbortController().signal,
+            connection.signal,
+          ),
+        publication: (request, options): Promise<unknown> =>
+          handlers.publication(
+            request,
+            options?.signal ?? new AbortController().signal,
+            connection.signal,
+          ),
+        invalidate: (error): void => connection.abort(error),
+      },
     });
-    await remote.createEntity({ entity: initial, preparedAsset: first });
-    expect(computeAssetDigest(await remote.readAsset(first.ref))).toBe(
-      first.digest,
-    );
-    expect(
-      await remote.readAssetChunk(first.ref, first.sizeBytes - 3, 3),
-    ).toEqual(first.bytes.slice(-3));
-    const failure = await remote
-      .createEntity({
-        entity: { ...initial, content: second.ref },
-        preparedAsset: second,
-      })
-      .then(
-        () => {
-          throw new Error("Expected duplicate entity rejection");
+    const files = new EntityFileRuntime(
+      client,
+      {
+        executable: process.execPath,
+        inspectionUploadUrl: new URL(
+          "../../../shared/image/src/file-inspection-process.ts",
+          import.meta.url,
+        ),
+        producerUrls: {
+          fixture: new URL(
+            "./fixtures/asset-file-producer.ts",
+            import.meta.url,
+          ),
         },
-        (error: unknown) => error,
-      );
-    expect(failure).toBeInstanceOf(Error);
-    expect(await owner.statAsset(second.ref)).toBeNull();
-    expect(
-      (await owner.getEntityRaw({ entityType: "test", id: initial.id }))
-        ?.content,
-    ).toBe(first.ref);
-    await remote.updateEntity({
-      entity: { ...initial, content: second.ref },
-      preparedAsset: second,
-    });
-    expect(computeAssetDigest(await remote.readAsset(second.ref))).toBe(
-      second.digest,
+        uploadUrl: new URL(
+          "../../../shared/db/src/turso-worker/file-upload-process.ts",
+          import.meta.url,
+        ),
+        downloadUrl: new URL(
+          "../../../shared/db/src/turso-worker/file-download-process.ts",
+          import.meta.url,
+        ),
+      },
+      () => connection.abort(),
     );
-    expect(
-      await remote.upsertEntity({
-        entity: { ...initial, id: "upserted", content: second.ref },
-        preparedAsset: second,
-      }),
-    ).toMatchObject({ created: true });
-    expect(await owner.verifyAsset(second.ref)).toMatchObject({ valid: true });
+    try {
+      await files.withProducedFile(
+        undefined,
+        async (first) => {
+          const firstRef = assetRefSchema.parse(
+            `asset://sha256/${first.sha256}`,
+          );
+          const initial = createTestEntity("test", {
+            id: "chunked",
+            content: firstRef,
+            visibility: "public",
+          });
+          await files.publish({
+            sourceFile: first.sourceFile,
+            sizeBytes: first.sizeBytes,
+            publication: {
+              operation: "createEntity",
+              request: { entity: initial },
+            },
+          });
+          expect(
+            await files.withAssetFile(firstRef, async (file) => ({
+              sizeBytes: file.sizeBytes,
+              sha256: file.sha256,
+            })),
+          ).toEqual({ sizeBytes: 2 * 1024 * 1024 + 7, sha256: first.sha256 });
+          await files.withProducedFile(
+            undefined,
+            async (second) => {
+              const secondRef = assetRefSchema.parse(
+                `asset://sha256/${second.sha256}`,
+              );
+              const entity = { ...initial, content: secondRef };
+              await files.publish({
+                sourceFile: second.sourceFile,
+                sizeBytes: second.sizeBytes,
+                publication: { operation: "updateEntity", request: { entity } },
+              });
+              expect(
+                await files.withAssetFile(secondRef, async (file) => ({
+                  sizeBytes: file.sizeBytes,
+                  sha256: file.sha256,
+                })),
+              ).toEqual({ sizeBytes: first.sizeBytes, sha256: second.sha256 });
+              expect(
+                await files.publish({
+                  sourceFile: second.sourceFile,
+                  sizeBytes: second.sizeBytes,
+                  publication: {
+                    operation: "upsertEntity",
+                    request: { entity: { ...entity, id: "upserted" } },
+                  },
+                }),
+              ).toMatchObject({ created: true });
+              await files.withProducedFile(
+                undefined,
+                async (rejected) => {
+                  const rejectedRef = assetRefSchema.parse(
+                    `asset://sha256/${rejected.sha256}`,
+                  );
+                  await assert.rejects(
+                    files.publish({
+                      sourceFile: rejected.sourceFile,
+                      sizeBytes: rejected.sizeBytes,
+                      publication: {
+                        operation: "createEntity",
+                        request: {
+                          entity: { ...initial, content: rejectedRef },
+                        },
+                      },
+                    }),
+                  );
+                  expect(await owner.statAsset(rejectedRef)).toBeNull();
+                  expect(
+                    (
+                      await remote.getEntityRaw({
+                        entityType: "test",
+                        id: initial.id,
+                      })
+                    )?.content,
+                  ).toBe(secondRef);
+                  // An unreceived publication failure fences this connection. Never
+                  // replay it or continue publishing on an uncertain transport.
+                  await assert.rejects(client.offer(1), /fenced/);
+                },
+                { producer: "fixture", metadata: { fill: "3c" } },
+              );
+            },
+            { producer: "fixture", metadata: { fill: "7f" } },
+          );
+        },
+        { producer: "fixture", metadata: { fill: "a5" } },
+      );
+    } finally {
+      await files.close();
+    }
   });
 
   it("validates asset references and typed binary responses at the RPC boundary", () => {

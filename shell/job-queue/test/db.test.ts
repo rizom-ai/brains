@@ -1,5 +1,5 @@
 import { describe, test, expect, afterEach } from "bun:test";
-import { applySqlitePragmas } from "@brains/db";
+import { applySqlitePragmas, closeSqliteClient } from "@brains/db";
 import { createJobQueueDatabase } from "../src/db";
 
 describe("JobQueueService Database", () => {
@@ -12,8 +12,8 @@ describe("JobQueueService Database", () => {
     cleanup = [];
   });
 
-  function trackClient(client: { close(): void }): void {
-    cleanup.push(async () => client.close());
+  function trackClient(client: Parameters<typeof closeSqliteClient>[0]): void {
+    cleanup.push(() => closeSqliteClient(client));
   }
 
   describe("createJobQueueDatabase", () => {

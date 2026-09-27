@@ -4,8 +4,9 @@ import {
   createTempDataDir,
   type MockShell,
 } from "@brains/plugins/test";
-import { describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
+
 import type {
   BaseEntity,
   RegisteredWebRoute,
@@ -16,6 +17,12 @@ import { BaseEntityAdapter, baseEntitySchema } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import { studioPlugin, type StudioPlugin } from "../src";
 import { provisionUploadCapture } from "./upload-file-fixture";
+
+const authPlugins: AuthServicePlugin[] = [];
+afterEach(async () => {
+  for (const plugin of authPlugins.splice(0).reverse())
+    await plugin.shutdown?.();
+});
 
 const postFrontmatterSchema = z.object({
   title: z.string(),
@@ -207,6 +214,7 @@ async function createSessionCookie(shell: MockShell): Promise<string> {
   const authPlugin = new AuthServicePlugin({
     storageDir: await createTempDataDir("brains-studio-editor-auth-"),
   });
+  authPlugins.push(authPlugin);
   await authPlugin.register(shell);
   const session = await authPlugin.getService().createAuthSession();
   return session.cookie;
@@ -445,6 +453,7 @@ describe("studio editor shell", () => {
     const authPlugin = new AuthServicePlugin({
       storageDir: await createTempDataDir("brains-studio-account-view-"),
     });
+    authPlugins.push(authPlugin);
     await authPlugin.register(shell);
     const person = await authPlugin.getService().createUser({
       displayName: "Public account holder",

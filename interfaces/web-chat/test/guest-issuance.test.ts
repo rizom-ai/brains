@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import assert from "node:assert/strict";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -66,26 +67,47 @@ describe("guest credential issuance", () => {
             : b.issue(request(undefined, preview.origin)),
         ),
       );
-      expect(
-        outcomes.filter((outcome) => outcome.status === "fulfilled"),
-      ).toHaveLength(2);
+      const issued = outcomes.filter(
+        (outcome) => outcome.status === "fulfilled",
+      );
+      // A contended confirmation can fail closed after its credential write.
+      // Keep its durable slot charged; do not require ambiguous work to be replayed.
+      expect(issued.length).toBeGreaterThan(0);
+      expect(issued.length).toBeLessThanOrEqual(2);
+      for (const outcome of outcomes) {
+        if (outcome.status === "rejected") {
+          expect(outcome.reason).toBeInstanceOf(Error);
+          expect(outcome.reason).toMatchObject({
+            message: "Guest access unavailable",
+          });
+        }
+      }
       expect(await records(first).list()).toHaveLength(2);
-      first.close();
-      second.close();
+      const ledger = await first
+        .scoped({
+          namespace: guestIssuanceNamespace,
+          schema: guestIssuanceStateSchema,
+        })
+        .get("deployment");
+      expect(ledger?.attempts).toHaveLength(2);
+      expect(Object.keys(ledger?.slots ?? {})).toHaveLength(2);
+      await first.closeAsync();
+      await second.closeAsync();
       const restarted = RuntimeStateService.createFresh(config);
       try {
         await restarted.initialize();
-        expect(
+        await assert.rejects(
           new GuestVisitorStore(restarted, policy, () => start + 60000).issue(
             request(),
           ),
-        ).rejects.toThrow("Guest access unavailable");
+          { message: "Guest access unavailable" },
+        );
       } finally {
-        restarted.close();
+        await restarted.closeAsync();
       }
     } finally {
-      first.close();
-      second.close();
+      await first.closeAsync();
+      await second.closeAsync();
       await rm(dir, { recursive: true, force: true });
     }
   });

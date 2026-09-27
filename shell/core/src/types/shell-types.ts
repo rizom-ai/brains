@@ -78,7 +78,7 @@ export interface ShellServices {
   operationContext: OperationContext;
   localDatabaseEndpoint: LocalDatabaseEndpointLifecycle | undefined;
   projectionRuntimeSupervisor: ProjectionRuntimeSupervisor;
-  disposables: Array<() => void>;
+  disposables: Array<() => void | Promise<void>>;
   entityRegistry: IEntityRegistry;
   messageBus: MessageBus;
   renderService: RenderService;

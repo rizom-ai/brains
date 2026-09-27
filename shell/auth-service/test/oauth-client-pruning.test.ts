@@ -5,13 +5,15 @@ import { join } from "node:path";
 import { eq } from "drizzle-orm";
 import {
   AuthRuntimeDatabase,
-  AuthService,
   AuthUserStore,
   RuntimeAuthorizationCodeStore,
   RuntimeOAuthClientStore,
 } from "../src";
 import { oauthClients } from "../src/runtime-schema";
 
+import { createAuthServiceFixture } from "./fixtures/owned-auth-service";
+const { AuthService, closeAuthServices } = createAuthServiceFixture();
+type AuthService = InstanceType<typeof AuthService>;
 const tempDirs: string[] = [];
 
 async function tempStorageDir(): Promise<string> {
@@ -21,6 +23,7 @@ async function tempStorageDir(): Promise<string> {
 }
 
 afterEach(async () => {
+  await closeAuthServices();
   await Promise.all(
     tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
   );

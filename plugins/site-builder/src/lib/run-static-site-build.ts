@@ -25,8 +25,9 @@ export async function runStaticSiteBuild(
   await options.staticSiteBuilder.build(
     options.buildContext,
     (notification) => {
-      subReporter?.report(notification).catch(() => {
-        // Ignore progress reporting errors
+      return subReporter?.report(notification).catch(() => {
+        // Progress is diagnostic, but the renderer must join the attempt before
+        // releasing its concurrency slot or completing the build.
       });
     },
     options.signal,

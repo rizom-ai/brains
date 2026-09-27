@@ -157,12 +157,8 @@ export class EntityService implements IEntityService {
     } catch (error) {
       errors.push(error);
     }
-    // Retire ingress/claims before closing their native database owner.
-    try {
-      await this.binaryPersistence?.close();
-    } catch (error) {
-      errors.push(error);
-    }
+    // The factory client owns both planes: fence SQL immediately, retire
+    // ingress/claims, then join the native database owner.
     try {
       await closeSqliteClient(this.dbClient);
     } catch (error) {

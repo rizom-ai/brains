@@ -8,15 +8,15 @@ import type {
   ChannelDeliveryResult,
   ChannelDescriptor,
 } from "@brains/plugins";
-import {
-  AuthService,
-  authServicePlugin,
-  type AuthServiceOptions,
-} from "../src";
+import { authServicePlugin, type AuthServiceOptions } from "../src";
 import { seedRuntimePasskeyCredential } from "./runtime-passkey-fixture";
 import { z } from "@brains/utils/zod";
 
+import { createAuthServiceFixture } from "./fixtures/owned-auth-service";
+
 const ISSUER = "https://brain.example.com";
+const { AuthService, closeAuthServices } = createAuthServiceFixture();
+type AuthService = InstanceType<typeof AuthService>;
 const tempDirs: string[] = [];
 
 /*
@@ -210,6 +210,7 @@ async function expectRejectsWithMessage(
 }
 
 afterEach(async () => {
+  await closeAuthServices();
   await Promise.all(
     tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
   );

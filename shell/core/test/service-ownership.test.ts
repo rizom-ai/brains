@@ -210,8 +210,9 @@ describe("Shell service ownership", () => {
     expect(ignoredOverrides).toEqual([]);
   });
 
-  it("keeps shell A usable when shell B is constructed before A shuts down", async () => {
+  it("creates fresh service instances after the preceding owner shuts down", async () => {
     const shellA = await createInitializedShell();
+    await shellA.shutdown();
     const shellB = await createInitializedShell();
 
     expect({
@@ -250,7 +251,7 @@ describe("Shell service ownership", () => {
       runtimeState: false,
     });
 
-    const entities = await shellA.getEntityService().listEntities({
+    const entities = await shellB.getEntityService().listEntities({
       entityType: "note",
     });
     expect(entities).toEqual([]);
@@ -268,17 +269,18 @@ describe("Shell service ownership", () => {
     configB.plugins = [createToolPlugin("shell-b")];
 
     const shellA = Shell.createFresh(configA, defaultDependencies());
-    const shellB = Shell.createFresh(configB, defaultDependencies());
-    shells.push(shellA, shellB);
-
+    shells.push(shellA);
     await shellA.initialize({ mode: "register-only" });
-    await shellB.initialize({ mode: "register-only" });
 
     const shellATools = shellA
       .getMCPService()
       .listTools()
       .map(({ tool }) => tool.name)
       .filter((name) => name.startsWith("shell-"));
+    await shellA.shutdown();
+    const shellB = Shell.createFresh(configB, defaultDependencies());
+    shells.push(shellB);
+    await shellB.initialize({ mode: "register-only" });
     const shellBTools = shellB
       .getMCPService()
       .listTools()
@@ -289,8 +291,9 @@ describe("Shell service ownership", () => {
     expect(shellBTools).toEqual(["shell-b_tool"]);
   });
 
-  it("gives a second shell its own entity service", async () => {
+  it("gives a subsequent owner its own entity service", async () => {
     const shellA = await createInitializedShell();
+    await shellA.shutdown();
     const shellB = await createInitializedShell();
 
     expect(shellB).not.toBe(shellA);
@@ -405,10 +408,10 @@ describe("Shell service ownership", () => {
         (queryError instanceof Error && queryError.cause
           ? String(queryError.cause)
           : "");
-      expect(errorText).toContain("CLIENT_CLOSED");
+      expect(errorText).toContain("SQL worker driver is closed");
     } finally {
-      if (!installedEntityService) entityService.close();
-      jobQueueService.close();
+      if (!installedEntityService) await entityService.closeAsync();
+      await jobQueueService.closeAsync();
     }
   });
 

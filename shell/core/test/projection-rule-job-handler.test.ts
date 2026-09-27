@@ -247,6 +247,8 @@ describe("ProjectionRuleJobHandler", () => {
         operation: "delete",
       },
     ]);
+    expect(coordinator.advancedWaveIds).toEqual([]);
+    await handler.onTerminalSuccess({ waveId: "wave-1", ruleId: "topics" });
     expect(coordinator.advancedWaveIds).toEqual(["wave-1"]);
     expect(diagnostics.map(({ event }) => event)).toEqual([
       "attempt-started",

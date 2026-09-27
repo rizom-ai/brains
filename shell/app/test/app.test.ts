@@ -224,6 +224,10 @@ describe("App", () => {
           {
             processRole: "worker",
             localDatabaseEndpoint,
+            fileActors: expect.objectContaining({
+              uploadUrl: expect.any(URL),
+              downloadUrl: expect.any(URL),
+            }),
           },
         );
         expect(mockShell.initialize).toHaveBeenCalled();

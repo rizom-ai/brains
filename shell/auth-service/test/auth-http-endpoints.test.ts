@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { AuthService } from "../src";
+import { createAuthServiceFixture } from "./fixtures/owned-auth-service";
 import {
   ClientMetadataDocumentResolver,
   type ResolvedAddress,
@@ -20,6 +20,8 @@ import { z } from "@brains/utils/zod";
 const ISSUER = "https://brain.example.com";
 const REDIRECT_URI = "http://127.0.0.1:6274/oauth/callback";
 
+const { AuthService, closeAuthServices } = createAuthServiceFixture();
+type AuthService = InstanceType<typeof AuthService>;
 const tempDirs: string[] = [];
 
 async function tempStorageDir(): Promise<string> {
@@ -29,6 +31,7 @@ async function tempStorageDir(): Promise<string> {
 }
 
 afterEach(async () => {
+  await closeAuthServices();
   await Promise.all(
     tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
   );

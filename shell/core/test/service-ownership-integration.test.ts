@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import type { IEmbeddingService } from "@brains/entity-service";
+import { closeSqliteClient, createSqliteDatabase } from "@brains/db";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { JobQueueService } from "@brains/job-queue";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
@@ -168,7 +169,7 @@ async function expectClientClosed(operation: Promise<unknown>): Promise<void> {
     (receivedError instanceof Error && receivedError.cause
       ? String(receivedError.cause)
       : "");
-  expect(errorText).toContain("CLIENT_CLOSED");
+  expect(errorText).toContain("SQL worker driver is closed");
 }
 
 async function shutdownIgnoringFailure(shell: Shell): Promise<void> {
@@ -198,7 +199,7 @@ describe("Shell service ownership integration", () => {
     return directory;
   }
 
-  it("runs two persistent no-interface shells without sharing service state", async () => {
+  it("rejects a concurrent local owner and reopens independent persistent shells after exit", async () => {
     const directoryA = await createDirectory();
     const directoryB = await createDirectory();
     await migrateTestDatabases(directoryA.dir);
@@ -207,45 +208,16 @@ describe("Shell service ownership integration", () => {
     const configA = createTestConfig(directoryA.dir);
     const configB = createTestConfig(directoryB.dir);
     const shellA = Shell.createFresh(configA, defaultDependencies());
-    const shellB = Shell.createFresh(configB, defaultDependencies());
-    shells.push(shellA, shellB);
+    shells.push(shellA);
     registerOwnershipHandler(shellA);
-    registerOwnershipHandler(shellB);
-
     await shellA.initialize();
-    await shellB.initialize();
-
     const recordA = await writeAndReadShellState(shellA, "shell-a-first");
-    const recordB = await writeAndReadShellState(shellB, "shell-b-first");
-    const runtimeA = shellA.getRuntimeState().scoped({
-      namespace: "service-ownership.integration",
-      schema: z.string(),
-    });
-    const runtimeB = shellB.getRuntimeState().scoped({
-      namespace: "service-ownership.integration",
-      schema: z.string(),
-    });
 
-    expect(
-      await shellA.getEntityService().getEntity({
-        entityType: "note",
-        id: recordB.entityId,
-      }),
-    ).toBeNull();
-    expect(
-      await shellB
-        .getConversationService()
-        .getConversation(recordA.conversationId),
-    ).toBeNull();
-    expect(await runtimeA.get(recordB.runtimeKey)).toBeNull();
-    expect(await runtimeB.get(recordA.runtimeKey)).toBeNull();
-    expect(
-      await shellA.getJobQueueService().getStatus(recordB.jobId),
-    ).toBeNull();
-    expect(
-      await shellB.getJobQueueService().getStatus(recordA.jobId),
-    ).toBeNull();
-
+    // Two local four-store owners cannot fit the process-wide five-worker cap.
+    expect(() => Shell.createFresh(configB, defaultDependencies())).toThrow(
+      "Persistence budget member capacity exceeded",
+    );
+    await writeAndReadShellState(shellA, "after-rejected-owner");
     expect(shellA.getJobQueueService().getRegisteredTypes()).toContain(
       RECURRING_CHECK_JOB_TYPE,
     );
@@ -254,7 +226,45 @@ describe("Shell service ownership integration", () => {
       RECURRING_CHECK_JOB_TYPE,
     );
 
-    await writeAndReadShellState(shellB, "shell-b-after-a-shutdown");
+    // Actual owner exit releases membership for an independent local database.
+    const shellB = Shell.createFresh(configB, defaultDependencies());
+    shells.push(shellB);
+    registerOwnershipHandler(shellB);
+    await shellB.initialize();
+    // A leaked partial construction would occupy the remaining fifth slot.
+    const spare = createSqliteDatabase({
+      url: `file:${directoryB.dir}/spare.db`,
+      schema: {},
+    });
+    try {
+      expect(
+        (await spare.client.execute("SELECT 1 AS ready")).rows[0]?.["ready"],
+      ).toBe(1);
+    } finally {
+      await closeSqliteClient(spare.client);
+    }
+    const recordB = await writeAndReadShellState(shellB, "shell-b-first");
+    const runtimeB = shellB.getRuntimeState().scoped({
+      namespace: "service-ownership.integration",
+      schema: z.string(),
+    });
+
+    expect(
+      await shellB.getEntityService().getEntity({
+        entityType: "note",
+        id: recordA.entityId,
+      }),
+    ).toBeNull();
+    expect(
+      await shellB
+        .getConversationService()
+        .getConversation(recordA.conversationId),
+    ).toBeNull();
+    expect(await runtimeB.get(recordA.runtimeKey)).toBeNull();
+    expect(
+      await shellB.getJobQueueService().getStatus(recordA.jobId),
+    ).toBeNull();
+
     await shellB.shutdown();
 
     const reopenedShellA = Shell.createFresh(configA, defaultDependencies());
@@ -282,14 +292,37 @@ describe("Shell service ownership integration", () => {
     expect(
       await reopenedShellA.getJobQueueService().getStatus(recordA.jobId),
     ).not.toBeNull();
+    expect(
+      await reopenedShellA.getEntityService().getEntity({
+        entityType: "note",
+        id: recordB.entityId,
+      }),
+    ).toBeNull();
+    expect(
+      await reopenedShellA
+        .getConversationService()
+        .getConversation(recordB.conversationId),
+    ).toBeNull();
+    expect(await reopenedRuntimeA.get(recordB.runtimeKey)).toBeNull();
+    expect(
+      await reopenedShellA.getJobQueueService().getStatus(recordB.jobId),
+    ).toBeNull();
   });
 
-  it("keeps a running shell usable after another shell fails construction and initialization", async () => {
+  it("keeps the owner usable after local construction and borrowed initialization failures", async () => {
     const directoryA = await createDirectory();
     await migrateTestDatabases(directoryA.dir);
+    const endpoint = {
+      address: `${directoryA.dir}/ownership.sock`,
+      secret: "s".repeat(48),
+    };
     const shellA = Shell.createFresh(
       createTestConfig(directoryA.dir),
       defaultDependencies(),
+      {
+        processRole: "web",
+        localDatabaseEndpoint: { ...endpoint, sessionId: "owner" },
+      },
     );
     shells.push(shellA);
     registerOwnershipHandler(shellA);
@@ -327,6 +360,10 @@ describe("Shell service ownership integration", () => {
     const failingShell = Shell.createFresh(
       initializationConfig,
       defaultDependencies(),
+      {
+        processRole: "worker",
+        localDatabaseEndpoint: { ...endpoint, sessionId: "borrower" },
+      },
     );
     shells.push(failingShell);
 

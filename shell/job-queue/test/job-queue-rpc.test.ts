@@ -66,7 +66,7 @@ async function expectFileMissing(path: string): Promise<void> {
 }
 
 afterEach(async () => {
-  for (const service of services.splice(0)) service.close();
+  for (const service of services.splice(0)) await service.closeAsync();
   for (const cleanup of cleanups.splice(0)) await cleanup();
 });
 

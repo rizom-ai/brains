@@ -12,7 +12,6 @@ import type { CreateSqliteDatabaseOptions, SqliteConnection } from "@brains/db";
 import { SqlWorkerDriver } from "../../shared/db/src/turso-worker/client";
 import { PersistenceBudgetPool } from "../../shared/db/src/turso-worker/budget-pool";
 import { createWorkerDatabase } from "../../shared/db/src/turso-worker/binary-transaction";
-import { SqlWorkerClient } from "../../shared/db/src/turso-worker/sql-client";
 import { CanonicalAssetBindings } from "./turso-canonical-asset-bindings";
 import { CanonicalTestLifetime } from "./turso-canonical-lifetime";
 
@@ -66,17 +65,23 @@ function createCandidateDatabase<T extends Record<string, unknown>>(
   void placement.catch(() => undefined);
   const bindings = new CanonicalAssetBindings(driver, pool);
   workers.push({ url, driver, placement, bindings });
+  const db = createWorkerDatabase(
+    driver,
+    options.schema,
+    bindings.binary.bindings,
+    () => bindings.binary.close(),
+  );
   return {
     url,
-    client: new SqlWorkerClient(driver),
-    db: createWorkerDatabase(driver, options.schema, bindings.binary.bindings),
+    client: db.$client,
+    db,
     ...(Object.hasOwn(options.schema, "assets") && { binary: bindings.binary }),
   };
 }
 const exports = { ...database, createSqliteDatabase: createCandidateDatabase };
 await mock.module("@brains/db", () => exports);
 console.error(
-  "[canonical-worker-candidate] test-only factory binding installed; runtime factory unchanged",
+  "[canonical-worker-candidate] test-only instrumented factory binding installed",
 );
 
 export async function joinCanonicalOwners(): Promise<void> {

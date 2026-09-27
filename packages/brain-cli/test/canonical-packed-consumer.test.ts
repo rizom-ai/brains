@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import { fileActorSources } from "@brains/app";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, rm } from "node:fs/promises";
+import { verifyInstalledFileRuntime } from "./helpers/installed-file-runtime";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -19,7 +21,7 @@ const fixtureDirectory = join(
 );
 
 describe("canonical packed consumer", () => {
-  test("installs, imports, and completes a startup check outside the monorepo", async () => {
+  test("installs, imports, starts native file actors and restarts outside the monorepo", async () => {
     const temporaryDirectory = await mkdtemp(
       join(tmpdir(), "canonical-brain-pack-"),
     );
@@ -34,10 +36,15 @@ describe("canonical packed consumer", () => {
         consumerDirectory,
         tarballs,
       );
-      await mkdir(join(consumerDirectory, "seed-content"));
-      await writeFile(
-        join(consumerDirectory, "seed-content", "README.md"),
-        "# Packed consumer\n",
+      await mkdir(join(consumerDirectory, "acceptance-content", "image"), {
+        recursive: true,
+      });
+      await copyFile(
+        join(
+          packageDirectory,
+          "eval-content/recipes/personal/image/hero-banner.png",
+        ),
+        join(consumerDirectory, "packed-image.png"),
       );
 
       expect(
@@ -57,6 +64,29 @@ describe("canonical packed consumer", () => {
           join(consumerDirectory, "node_modules", "@libsql", "client"),
         ),
       ).toBe(false);
+      const installedDist = join(
+        consumerDirectory,
+        "node_modules",
+        "@rizom",
+        "brain",
+        "dist",
+      );
+      for (const owner of [installedDist, join(installedDist, "chunks")]) {
+        for (const worker of [
+          "worker",
+          "network-ingress-worker",
+          "network-read-worker",
+        ]) {
+          expect(existsSync(join(owner, "turso-worker", `${worker}.ts`))).toBe(
+            true,
+          );
+        }
+      }
+      for (const actor of Object.keys(fileActorSources)) {
+        expect(
+          existsSync(join(installedDist, "file-actors", `${actor}.js`)),
+        ).toBe(true);
+      }
       await runCommand(["bun", "run", "import-smoke.ts"], consumerDirectory);
       const backupBundle = await runCommand(
         [
@@ -93,6 +123,9 @@ describe("canonical packed consumer", () => {
         },
       );
       expect(combinedOutput(startup)).toContain("Dashboard plugin registered");
+      expect(combinedOutput(startup)).not.toMatch(
+        /Error initializing plugin|Failed to initialize plugin|Persistence owner lost/,
+      );
 
       const fencedWorker = await startCommand(
         ["bun", "run", "brain", "start", "--startup-check"],
@@ -120,6 +153,12 @@ describe("canonical packed consumer", () => {
       expect(combinedOutput(retiredSelector)).toContain(
         "Dashboard plugin registered",
       );
+      await verifyInstalledFileRuntime(consumerDirectory, {
+        ...runtimeEnv,
+        HTTP_PROXY: "http://127.0.0.1:9",
+        HTTPS_PROXY: "http://127.0.0.1:9",
+        NO_PROXY: "localhost,127.0.0.1",
+      });
     } finally {
       await rm(temporaryDirectory, { recursive: true, force: true });
     }

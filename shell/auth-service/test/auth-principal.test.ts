@@ -4,7 +4,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createExternalActorId } from "@brains/contracts";
 import { z } from "@brains/utils/zod";
-import { AuthService } from "../src";
+import { createAuthServiceFixture } from "./fixtures/owned-auth-service";
+const { AuthService, closeAuthServices } = createAuthServiceFixture();
+type AuthService = InstanceType<typeof AuthService>;
 
 const tempDirs: string[] = [];
 const redirectUri = "http://127.0.0.1:6274/oauth/callback";
@@ -24,6 +26,7 @@ async function tempStorageDir(): Promise<string> {
 }
 
 afterEach(async () => {
+  await closeAuthServices();
   await Promise.all(
     tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
   );

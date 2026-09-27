@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import assert from "node:assert/strict";
 import { sql } from "drizzle-orm";
+import { closeSqliteClient } from "@brains/db";
 import { ProjectionBatchFencedError, ProjectionStore } from "../src";
 import { retrySqliteWrite } from "../src/projection-store";
 import { createEntityDatabase } from "../src/db";
@@ -28,7 +30,7 @@ describe("ProjectionStore", () => {
   });
 
   afterEach(async () => {
-    connection.client.close();
+    await closeSqliteClient(connection.client);
     await database.cleanup();
   });
 
@@ -65,7 +67,7 @@ describe("ProjectionStore", () => {
   });
 
   it("rolls back both the entity mutation and dirty revision", async () => {
-    void expect(
+    await assert.rejects(
       store.withDirtyInput(
         {
           sourceType: "document",
@@ -88,7 +90,8 @@ describe("ProjectionStore", () => {
           throw new Error("force rollback");
         },
       ),
-    ).rejects.toThrow("force rollback");
+      /force rollback/,
+    );
 
     expect(await connection.db.select().from(entities)).toEqual([]);
     expect(await store.listPendingInputs()).toEqual([]);
@@ -183,7 +186,7 @@ describe("ProjectionStore", () => {
         },
       );
     } finally {
-      secondConnection.client.close();
+      await closeSqliteClient(secondConnection.client);
     }
 
     expect(
@@ -196,7 +199,7 @@ describe("ProjectionStore", () => {
   });
 
   it("releases nested and exceptional callback scopes", async () => {
-    void expect(
+    await assert.rejects(
       store.runBulkMutation(
         { source: "directory-sync", operationId: "sync-nested" },
         async () => {
@@ -221,7 +224,8 @@ describe("ProjectionStore", () => {
           throw new Error("cancel callback");
         },
       ),
-    ).rejects.toThrow("cancel callback");
+      /cancel callback/,
+    );
 
     expect((await store.getProjectionBatchDiagnostics()).open).toBe(0);
     expect(
@@ -468,7 +472,7 @@ describe("ProjectionStore", () => {
       ).toBeNull();
     } finally {
       await blocker.rollback();
-      blockerConnection.client.close();
+      await closeSqliteClient(blockerConnection.client);
     }
   });
 
@@ -772,6 +776,83 @@ describe("ProjectionStore", () => {
     ]);
   });
 
+  it("declines a stale competing claim without consuming pending ingress", async () => {
+    const competing = new ProjectionStore(connection.db);
+    expect(await store.getActiveWave()).toBeNull();
+    expect(await competing.getActiveWave()).toBeNull();
+    await store.markDirty({
+      sourceType: "document",
+      sourceId: "first",
+      revision: "hash-first",
+      operation: "upsert",
+      markedAt: 10,
+    });
+    await store.claimPendingWave({
+      waveId: "winner",
+      graphFingerprint: "graph",
+      startedAt: 20,
+    });
+    await store.markDirty({
+      sourceType: "document",
+      sourceId: "next",
+      revision: "hash-next",
+      operation: "upsert",
+      markedAt: 30,
+    });
+    const pending = await store.listPendingInputs();
+    expect(pending).toHaveLength(1);
+    expect(
+      await competing.claimPendingWave({
+        waveId: "loser",
+        graphFingerprint: "graph",
+        startedAt: 40,
+      }),
+    ).toBeNull();
+    expect((await store.getActiveWave())?.id).toBe("winner");
+    expect(await store.getWave("loser")).toBeNull();
+    expect(await store.listPendingInputs()).toEqual(pending);
+  });
+
+  it("claims large input sets in bounded batches with atomic rollback", async () => {
+    for (let index = 0; index < 65; index++) {
+      await store.markDirty({
+        sourceType: "document",
+        sourceId: `source-${index}`,
+        revision: `revision-${index}`,
+        operation: "upsert",
+        markedAt: index,
+      });
+    }
+    // The second constrained row is beyond the first insertion batch.
+    await connection.db.run(sql`
+      CREATE UNIQUE INDEX reject_later_wave_input ON projection_wave_inputs(wave_id)
+      WHERE source_id IN ('source-0', 'source-40')
+    `);
+    const claim = {
+      waveId: "large-wave",
+      graphFingerprint: "graph",
+      startedAt: 100,
+    };
+    await assert.rejects(store.claimPendingWave(claim), (error: unknown) => {
+      return (
+        error instanceof Error &&
+        error.cause instanceof Error &&
+        /UNIQUE constraint failed/.test(error.cause.message)
+      );
+    });
+    expect(await store.getWave(claim.waveId)).toBeNull();
+    expect(await store.listWaveInputs(claim.waveId)).toEqual([]);
+    expect(await store.listPendingInputs()).toHaveLength(65);
+
+    await connection.db.run(sql`DROP INDEX reject_later_wave_input`);
+    expect((await store.claimPendingWave(claim))?.id).toBe(claim.waveId);
+    const inputs = await store.listWaveInputs(claim.waveId);
+    expect(inputs.map((input) => input.sourceId)).toEqual(
+      Array.from({ length: 65 }, (_, index) => `source-${index}`),
+    );
+    expect(await store.listPendingInputs()).toEqual([]);
+  });
+
   it("does not create an empty wave", async () => {
     expect(
       await store.claimPendingWave({
@@ -946,8 +1027,9 @@ describe("ProjectionStore", () => {
     expect(await store.queueWaveRule("wave-apply", "topics", "job-1")).toEqual(
       expect.objectContaining({ status: "queued", jobId: "job-1" }),
     );
-    void expect(store.completeWave("wave-apply", 25)).rejects.toThrow(
-      "incomplete projection rules",
+    await assert.rejects(
+      store.completeWave("wave-apply", 25),
+      /incomplete projection rules/,
     );
 
     const outcome = await store.applyRuleResult({
@@ -1258,7 +1340,7 @@ describe("ProjectionStore", () => {
       { ruleId: "topics", targetType: "topic", level: 0 },
     ]);
 
-    void expect(
+    await assert.rejects(
       store.applyRuleResult({
         waveId: "wave-target",
         ruleId: "topics",
@@ -1273,7 +1355,8 @@ describe("ProjectionStore", () => {
         ],
         completedAt: 30,
       }),
-    ).rejects.toThrow('cannot write entity type "skill"');
+      /cannot write entity type "skill"/,
+    );
 
     expect(await store.getWaveRule("wave-target", "topics")).toEqual(
       expect.objectContaining({ status: "pending" }),
@@ -1303,15 +1386,22 @@ describe("ProjectionStore", () => {
     await store.putWaveRules("wave-rollback", [
       { ruleId: "topics", targetType: "topic", level: 0 },
     ]);
+    await connection.db.run(sql`PRAGMA foreign_keys = ON`);
+    await connection.db.run(
+      sql`CREATE UNIQUE INDEX projection_rule_outcome_guard ON projection_wave_rules(wave_id, rule_id, status)`,
+    );
     await connection.db.run(sql`
-      CREATE TRIGGER reject_projection_rule_outcome
-      BEFORE UPDATE ON projection_wave_rules
-      BEGIN
-        SELECT RAISE(ABORT, 'forced outcome failure');
-      END
+      CREATE TABLE reject_projection_rule_outcome (
+        wave_id TEXT, rule_id TEXT, status TEXT,
+        FOREIGN KEY (wave_id, rule_id, status)
+          REFERENCES projection_wave_rules(wave_id, rule_id, status) ON UPDATE RESTRICT
+      )
     `);
+    await connection.db.run(
+      sql`INSERT INTO reject_projection_rule_outcome SELECT wave_id, rule_id, status FROM projection_wave_rules`,
+    );
 
-    void expect(
+    await assert.rejects(
       store.applyRuleResult({
         waveId: "wave-rollback",
         ruleId: "topics",
@@ -1331,7 +1421,7 @@ describe("ProjectionStore", () => {
         ],
         completedAt: 30,
       }),
-    ).rejects.toThrow();
+    );
 
     expect(await connection.db.select().from(entities)).toEqual([]);
     expect(

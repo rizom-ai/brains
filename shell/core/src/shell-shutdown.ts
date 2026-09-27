@@ -52,6 +52,23 @@ export function registerShellRuntimeFinalizers(
     lifecycle.addFinalizer(() => endpoint.close());
   }
 
+  // Boot-time subscriptions can own in-flight projection queries. Stop and
+  // join them while both the endpoint and durable stores are still available.
+  lifecycle.addFinalizer(async () => {
+    const results = await Promise.allSettled(
+      services.disposables.splice(0).map(async (dispose): Promise<void> => {
+        await dispose();
+      }),
+    );
+    const errors = results.flatMap((result) =>
+      result.status === "rejected" ? [result.reason] : [],
+    );
+    if (errors.length)
+      throw new AggregateError(errors, "Shell subscription retirement failed", {
+        cause: errors[0],
+      });
+  });
+
   // Register the outbox before runtime cleanup so it drains after runtime work
   // stops but before either owner database scope closes.
   const entityService = services.entityService;

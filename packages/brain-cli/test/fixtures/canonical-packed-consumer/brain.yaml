@@ -2,11 +2,20 @@ brain: brain
 bundleContract: capability-bundles-v1
 anchor: person
 kind: professional
+embedding:
+  enabled: false
 bundles:
   - core
   - media
   - web
   - chat
 plugins:
+  mcp:
+    transport: http
+    authToken: packed-file-runtime
+  webserver:
+    hostname: 127.0.0.1
+    productionPort: 0
   directory-sync:
-    seedContentPath: ./seed-content
+    syncPath: ./acceptance-content
+    seedContent: false

@@ -168,11 +168,30 @@ describe("RuntimeStateService", () => {
         await left.compareAndSet("missing", initial, { revision: 1, count: 1 }),
       ).toBe(false);
       await left.set("ledger", initial);
-      const results = await Promise.all([
+      const results = await Promise.allSettled([
         left.compareAndSet("ledger", initial, { revision: 1, count: 1 }),
         right.compareAndSet("ledger", initial, { revision: 1, count: 2 }),
       ]);
-      expect(results.filter(Boolean)).toHaveLength(1);
+      expect(
+        results.filter(
+          (result) => result.status === "fulfilled" && result.value,
+        ),
+      ).toHaveLength(1);
+      // Separate native workers really race. Turso can reject the losing
+      // writer with BUSY; do not hide that behind a runtime replay policy.
+      for (const result of results) {
+        if (result.status === "fulfilled") continue;
+        const error: unknown = result.reason;
+        if (!(error instanceof Error) || !(error.cause instanceof Error))
+          throw error;
+        expect(error.cause.message).toBe("database is locked");
+      }
+      expect(
+        await right.compareAndSet("ledger", initial, {
+          revision: 2,
+          count: 100,
+        }),
+      ).toBe(false);
       const winner = await right.get("ledger");
       expect(winner?.revision).toBe(1);
       expect(
@@ -187,8 +206,7 @@ describe("RuntimeStateService", () => {
         await other.compareAndSet("ledger", initial, { revision: 1, count: 1 }),
       ).toBe(false);
     } finally {
-      first.close();
-      second.close();
+      await Promise.all([first.closeAsync(), second.closeAsync()]);
     }
   });
 

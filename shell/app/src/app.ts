@@ -16,6 +16,7 @@ import type {
   RuntimeProcessRole,
 } from "@brains/core";
 import { addProcessSignalListeners } from "@brains/utils/process-signals";
+import { resolveFileRuntimeOptions } from "./file-runtime-options";
 
 export type ShellConfig = NonNullable<Parameters<typeof Shell.createFresh>[0]>;
 export type InitializeOptions = Parameters<Shell["initialize"]>[0];
@@ -253,17 +254,7 @@ export class App {
     this.shell = Shell.createFresh(
       buildShellConfig(this.config, options),
       undefined,
-      {
-        ...(runtimeOptions?.fileActors && {
-          fileActors: runtimeOptions.fileActors,
-        }),
-        ...(runtimeOptions?.processRole && {
-          processRole: runtimeOptions.processRole,
-        }),
-        ...(runtimeOptions?.localDatabaseEndpoint && {
-          localDatabaseEndpoint: runtimeOptions.localDatabaseEndpoint,
-        }),
-      },
+      resolveFileRuntimeOptions(runtimeOptions),
     );
   }
 

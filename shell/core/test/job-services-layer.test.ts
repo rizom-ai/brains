@@ -3,7 +3,11 @@ import {
   createMockJobQueueService,
 } from "@brains/job-queue/test";
 import { describe, expect, it, mock, spyOn } from "bun:test";
-import type { IJobQueueWorker, JobQueueWorkerStats } from "@brains/job-queue";
+import {
+  JobQueueService,
+  type IJobQueueWorker,
+  type JobQueueWorkerStats,
+} from "@brains/job-queue";
 import { MessageBus } from "@brains/messaging-service";
 import {
   createMockProgressReporter,
@@ -139,6 +143,16 @@ describe("job service layers", () => {
     await second.closeRuntime();
     first.closeDatabase();
     second.closeDatabase();
+    if (
+      !(first.jobQueueService instanceof JobQueueService) ||
+      !(second.jobQueueService instanceof JobQueueService)
+    ) {
+      throw new Error("Expected production job queue owners");
+    }
+    await Promise.all([
+      first.jobQueueService.closeAsync(),
+      second.jobQueueService.closeAsync(),
+    ]);
   });
 
   it("releases all runtime services before the database", async () => {

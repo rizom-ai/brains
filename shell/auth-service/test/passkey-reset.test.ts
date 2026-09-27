@@ -22,26 +22,32 @@ describe("resetAuthPasskeysStorage", () => {
     tempDirs.push(storageDir);
     const database = new AuthRuntimeDatabase({ storageDir });
     await database.start();
-    const user = await new AuthUserStore(database.db).createUser({
-      displayName: "Recovery Admin",
-      role: "admin",
-    });
-    await new AuthCredentialStore(database.db).addPasskey({
-      id: "credential-1",
-      userId: user.id,
-      publicKey: "public-key",
-      counter: 0,
-      credentialBackedUp: false,
-    });
-    await new RuntimeAuthSessionStore(database).createSession(user.id);
-    await database.client.execute(`
-      CREATE TRIGGER reject_auth_session_reset
-      BEFORE DELETE ON auth_sessions
-      BEGIN
-        SELECT RAISE(ABORT, 'session reset rejected');
-      END
+    try {
+      const user = await new AuthUserStore(database.db).createUser({
+        displayName: "Recovery Admin",
+        role: "admin",
+      });
+      await new AuthCredentialStore(database.db).addPasskey({
+        id: "credential-1",
+        userId: user.id,
+        publicKey: "public-key",
+        counter: 0,
+        credentialBackedUp: false,
+      });
+      await new RuntimeAuthSessionStore(database).createSession(user.id);
+      // A real SQL constraint rejects the later delete without introducing raw
+      // trigger transaction-control syntax on the worker's typed SQL surface.
+      await database.client.execute(`
+      CREATE TABLE reject_auth_session_reset (
+        session_id TEXT REFERENCES auth_sessions(token_hash) ON DELETE RESTRICT
+      )
     `);
-    await database.stop();
+      await database.client.execute(
+        "INSERT INTO reject_auth_session_reset SELECT token_hash FROM auth_sessions",
+      );
+    } finally {
+      await database.stop();
+    }
 
     let resetError: unknown;
     try {
@@ -63,7 +69,7 @@ describe("resetAuthPasskeysStorage", () => {
       expect(Number(passkeys.rows[0]?.["count"])).toBe(1);
       expect(Number(sessions.rows[0]?.["count"])).toBe(1);
     } finally {
-      await reopened.client.execute("DROP TRIGGER reject_auth_session_reset");
+      await reopened.client.execute("DROP TABLE reject_auth_session_reset");
       await reopened.stop();
     }
   });

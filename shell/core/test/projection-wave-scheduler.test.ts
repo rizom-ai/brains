@@ -361,7 +361,7 @@ describe("ProjectionWaveScheduler", () => {
     ]);
   });
 
-  it("advances topological levels and completes after the final outcome", async () => {
+  it("joins durable job retirement between levels and before wave completion", async () => {
     const store = new MemoryProjectionStore(documentInputs(100));
     const queue = new MemoryProjectionQueue();
     const completionSummaries: unknown[] = [];
@@ -378,9 +378,21 @@ describe("ProjectionWaveScheduler", () => {
     });
 
     await scheduler.startNextWave();
+    queue.setStatus("job-1", "processing");
     store.completedRuleIds.add("topics");
     await scheduler.advanceActiveWave("wave-1");
+    expect(queue.requests).toHaveLength(1);
+    // A coordination sweep must honor the same retirement boundary.
+    await scheduler.startNextWave();
+    expect(queue.requests).toHaveLength(1);
+    queue.setStatus("job-1", "completed");
+    await scheduler.advanceActiveWave("wave-1");
+    queue.setStatus("job-2", "processing");
     store.completedRuleIds.add("skills");
+    await scheduler.advanceActiveWave("wave-1");
+    expect(store.completed).toBe(false);
+    expect(completionSummaries).toEqual([]);
+    queue.setStatus("job-2", "completed");
     await scheduler.advanceActiveWave("wave-1");
 
     expect(queue.requests.map(({ data }) => data)).toEqual([

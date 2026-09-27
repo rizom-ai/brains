@@ -63,6 +63,36 @@ function executionContext(description = "A connected body of work."): {
 }
 
 describe("series projection rule", () => {
+  it("reads a large type catalog without concurrent SQL fan-out", async () => {
+    const types = Array.from({ length: 24 }, (_, index) => `type-${index}`);
+    let active = 0;
+    let peak = 0;
+    const visited: string[] = [];
+    const service = createMockEntityService({
+      entityTypes: ["series", ...types].reverse(),
+      listEntitiesImpl: async ({ entityType }) => {
+        active++;
+        peak = Math.max(peak, active);
+        visited.push(entityType);
+        try {
+          await Promise.resolve();
+          return [];
+        } finally {
+          active--;
+        }
+      },
+    });
+    const selected = await createSeriesProjectionRule().selectInput(
+      { waveId: "catalog-wave", inputs: [] },
+      { ...inputContext([]), entities: service },
+      new AbortController().signal,
+    );
+    expect(selected).toEqual({ members: [], existingSeries: [] });
+    expect(visited).toEqual([...types.sort(), "series"]);
+    expect(peak).toBe(1);
+    expect(active).toBe(0);
+  });
+
   it("selects all series members and derives one series per distinct name", async () => {
     const rule = createSeriesProjectionRule();
     const signal = new AbortController().signal;

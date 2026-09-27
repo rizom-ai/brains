@@ -84,25 +84,37 @@ export class SqlWorkerTransaction implements Transaction {
 export class SqlWorkerClient implements Client {
   public readonly protocol = "file";
   private readonly driver: SqlWorkerTransport;
-  public constructor(driver: SqlWorkerTransport) {
+  private closing: Promise<void> | undefined;
+  private readonly beforeClose: (() => Promise<void>) | undefined;
+  public constructor(
+    driver: SqlWorkerTransport,
+    beforeClose?: () => Promise<void>,
+  ) {
     this.driver = driver;
+    this.beforeClose = beforeClose;
   }
   public get closed(): boolean {
-    return this.driver.closed;
+    return this.closing !== undefined || this.driver.closed;
+  }
+  private assertOpen(): void {
+    if (this.closed) throw new Error("SQL worker driver is closed");
   }
   public execute(input: InStatement): Promise<ResultSet>;
   public execute(sql: string, args?: InArgs): Promise<ResultSet>;
   public async execute(input: InStatement, args?: InArgs): Promise<ResultSet> {
+    this.assertOpen();
     return this.driver.execute(statement(input, args));
   }
   public async batch(
     inputs: Array<InStatement | [string, InArgs?]>,
     mode: TransactionMode = "deferred",
   ): Promise<ResultSet[]> {
+    this.assertOpen();
     return this.driver.batch(statements(inputs), mode);
   }
   public migrate(inputs: InStatement[]): Promise<ResultSet[]> {
     try {
+      this.assertOpen();
       if (inputs.length > MAX_SQL_MIGRATION_STATEMENTS)
         throw new Error("Migration statement limit exceeded");
       return this.driver.migrateProgram(
@@ -115,13 +127,15 @@ export class SqlWorkerClient implements Client {
   public async transaction(
     mode: TransactionMode = "deferred",
   ): Promise<SqlWorkerTransaction> {
+    this.assertOpen();
     return new SqlWorkerTransaction(
       this.driver,
       await this.driver.transaction(mode),
     );
   }
-  public executeMultiple(sql: string): Promise<void> {
-    return this.driver.executeMultiple(sql);
+  public async executeMultiple(sql: string): Promise<void> {
+    this.assertOpen();
+    await this.driver.executeMultiple(sql);
   }
   public async sync(): Promise<never> {
     throw new Error("sync() is not supported by the Turso file client");
@@ -134,6 +148,29 @@ export class SqlWorkerClient implements Client {
     void this.closeAsync().catch(() => undefined);
   }
   public closeAsync(): Promise<void> {
-    return this.driver.close();
+    if (this.closing) return this.closing;
+    if (!this.beforeClose) return (this.closing = this.driver.close());
+    // Fence the client synchronously, then retire its binary plane before SQL.
+    this.closing = Promise.resolve().then(async (): Promise<void> => {
+      const errors: unknown[] = [];
+      try {
+        await this.beforeClose?.();
+      } catch (error) {
+        errors.push(error);
+      }
+      try {
+        await this.driver.close();
+      } catch (error) {
+        errors.push(error);
+      }
+      if (errors.length === 1) throw errors[0];
+      if (errors.length > 1)
+        throw new AggregateError(
+          errors,
+          "Database binary and worker retirement failed",
+          { cause: errors[0] },
+        );
+    });
+    return this.closing;
   }
 }

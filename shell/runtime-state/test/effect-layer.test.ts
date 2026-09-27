@@ -31,7 +31,7 @@ async function expectClientClosed(promise: Promise<unknown>): Promise<void> {
     (closeError instanceof Error && closeError.cause
       ? String(closeError.cause)
       : "");
-  expect(errorText).toContain("CLIENT_CLOSED");
+  expect(errorText).toMatch(/driver is clos(?:ed|ing)/);
 }
 
 describe("runtime-state Effect layer", () => {

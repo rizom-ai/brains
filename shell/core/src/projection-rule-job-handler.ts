@@ -156,6 +156,14 @@ export class ProjectionRuleJobHandler implements JobHandler<
     return parsed.success ? parsed.data : null;
   }
 
+  public async onTerminalSuccess(data: ProjectionRuleJobData): Promise<void> {
+    const { waveId } = projectionRuleJobDataSchema.parse(data);
+    const wave = await this.store.getWave(waveId);
+    if (wave?.status === "running") {
+      await this.coordinator.advanceActiveWave(waveId);
+    }
+  }
+
   public async onTerminalError(
     _error: Error,
     data: ProjectionRuleJobData,
@@ -349,7 +357,6 @@ export class ProjectionRuleJobHandler implements JobHandler<
     });
 
     await this.reconcileTargets(outcome.changedTargets);
-    await this.coordinator.advanceActiveWave(parsedData.waveId);
     return {
       waveId: parsedData.waveId,
       ruleId: rule.id,

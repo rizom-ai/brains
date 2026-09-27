@@ -1,4 +1,6 @@
 import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import assert from "node:assert/strict";
+import { closeSqliteClient } from "@brains/db";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -45,7 +47,7 @@ describe("Consolidated embedding database", () => {
 
   afterEach(async () => {
     await entityService.waitForJobOutboxIdle();
-    entityService.close();
+    await entityService.closeAsync();
     await rm(tempDir, { recursive: true, force: true });
   });
 
@@ -57,7 +59,7 @@ describe("Consolidated embedding database", () => {
       );
       return Number(result.rows[0]?.["count"] ?? 0);
     } finally {
-      connection.client.close();
+      await closeSqliteClient(connection.client);
     }
   }
 
@@ -110,21 +112,26 @@ describe("Consolidated embedding database", () => {
   test("a failed entity deletion rolls back embedding deletion", async () => {
     const entity = await createEmbeddedEntity();
     const connection = createEntityDatabase(dbConfig);
-    await connection.client.execute(`
-      CREATE TRIGGER reject_entity_delete
-      BEFORE DELETE ON entities
-      BEGIN
-        SELECT RAISE(ABORT, 'injected delete failure');
-      END
-    `);
-    connection.client.close();
+    try {
+      // Keep reads intact but make the final DELETE fail in native SQL, after
+      // the embedding deletion. No raw trigger transaction controls required.
+      await connection.client.execute(
+        "ALTER TABLE entities RENAME TO retained_entities",
+      );
+      await connection.client.execute(
+        "CREATE VIEW entities AS SELECT * FROM retained_entities",
+      );
+    } finally {
+      await closeSqliteClient(connection.client);
+    }
 
-    expect(
+    await assert.rejects(
       entityService.deleteEntity({
         entityType: entity.entityType,
         id: entity.id,
       }),
-    ).rejects.toThrow('Failed query: delete from "entities"');
+      /Failed query: delete from "entities"/,
+    );
 
     expect(await countEmbeddings()).toBe(1);
     expect(

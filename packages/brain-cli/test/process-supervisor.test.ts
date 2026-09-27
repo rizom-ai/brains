@@ -598,8 +598,8 @@ describe("bundled process supervisor", () => {
 
     // Signal order is not the property. A role can be signalled and still be
     // mid-request; taking the socket away then is exactly the loss the
-    // ordering was meant to prevent.
-    expect(harness.signals).toEqual(["2:SIGTERM", "1:SIGTERM"]);
+    // ordering was meant to prevent. Web owns the worker's database endpoint.
+    expect(harness.signals).toEqual(["2:SIGTERM"]);
 
     worker.emit("close", null, "SIGTERM");
     expect(harness.signals).toEqual(["2:SIGTERM", "1:SIGTERM"]);
@@ -907,7 +907,7 @@ describe("bundled process supervisor", () => {
     });
   });
 
-  it("forwards shutdown to both children and escalates after the grace period", async () => {
+  it("keeps the database owner alive until the worker actually closes", async () => {
     const harness = createHarness();
     const supervised = supervise(harness);
     const web = harness.children[0];
@@ -918,7 +918,28 @@ describe("bundled process supervisor", () => {
     worker.emit("message", { type: "worker-ready" });
 
     harness.processEvents.emit("SIGTERM");
+    expect(worker.kill).toHaveBeenCalledWith("SIGTERM");
+    expect(web.kill).not.toHaveBeenCalled();
+    worker.emit("exit", 0, null);
+    expect(web.kill).not.toHaveBeenCalled();
+    worker.emit("close", 0, null);
     expect(web.kill).toHaveBeenCalledWith("SIGTERM");
+    web.emit("close", 0, null);
+    expect(await supervised).toEqual({ success: true });
+  });
+
+  it("escalates both roles when the worker exceeds the unchanged grace period", async () => {
+    const harness = createHarness();
+    const supervised = supervise(harness);
+    const web = harness.children[0];
+    if (!web) throw new Error("Expected web child");
+    web.emit("message", { type: "runtime-ready" });
+    const worker = harness.children[1];
+    if (!worker) throw new Error("Expected worker child");
+    worker.emit("message", { type: "worker-ready" });
+
+    harness.processEvents.emit("SIGTERM");
+    expect(web.kill).not.toHaveBeenCalled();
     expect(worker.kill).toHaveBeenCalledWith("SIGTERM");
     harness.fireTimer(50);
     expect(web.kill).toHaveBeenCalledWith("SIGKILL");

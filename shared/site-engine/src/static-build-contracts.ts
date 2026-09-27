@@ -25,7 +25,8 @@ export interface StaticSiteBuilder<
 > {
   build(
     context: TContext,
-    onProgress: (notification: ProgressNotification) => void,
+    // Join each report before releasing a render slot or completing the build.
+    onProgress: (notification: ProgressNotification) => void | Promise<void>,
     signal: AbortSignal,
   ): Promise<void>;
   clean(): Promise<void>;

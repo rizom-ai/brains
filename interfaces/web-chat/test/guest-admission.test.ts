@@ -667,7 +667,11 @@ describe("guest admission", () => {
       expect(
         results.filter(
           (result) =>
-            result.kind === "denied" && result.reason === "budget-exhausted",
+            result.kind === "denied" &&
+            // Competing native writers may fail closed before observing the
+            // exhausted ledger. Neither outcome grants additional authority.
+            (result.reason === "budget-exhausted" ||
+              result.reason === "unavailable"),
         ),
       ).toHaveLength(10);
       const winnerIndex = results.findIndex(
@@ -675,8 +679,8 @@ describe("guest admission", () => {
       );
       const request = requests[winnerIndex];
       if (!request) throw new Error("Expected admitted request");
-      first.close();
-      second.close();
+      await first.closeAsync();
+      await second.closeAsync();
       const restarted = RuntimeStateService.createFresh(config);
       try {
         await restarted.initialize();
@@ -701,11 +705,11 @@ describe("guest admission", () => {
           ),
         ).toEqual({ kind: "denied", reason: "budget-exhausted" });
       } finally {
-        restarted.close();
+        await restarted.closeAsync();
       }
     } finally {
-      first.close();
-      second.close();
+      await first.closeAsync();
+      await second.closeAsync();
       await rm(directory, { recursive: true, force: true });
     }
   });

@@ -3,12 +3,18 @@ import {
   createTempDataDir,
   type MockShell,
 } from "@brains/plugins/test";
-import { describe, expect, it, spyOn } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import { AuthServicePlugin } from "@brains/auth-service";
 import type { WebRouteDefinition } from "@brains/plugins";
 
 import { z, type ZodType } from "@brains/utils/zod";
 import { studioPlugin, type StudioPlugin } from "../src";
+
+const authPlugins: AuthServicePlugin[] = [];
+afterEach(async () => {
+  for (const plugin of authPlugins.splice(0).reverse())
+    await plugin.shutdown?.();
+});
 
 interface SessionMatrix {
   admin: string;
@@ -157,6 +163,7 @@ async function createSessionMatrix(shell: MockShell): Promise<SessionMatrix> {
   const authPlugin = new AuthServicePlugin({
     storageDir: await createTempDataDir("brains-studio-permission-gate-"),
   });
+  authPlugins.push(authPlugin);
   await authPlugin.register(shell);
   const service = authPlugin.getService();
   const admin = await service.createAuthSession();

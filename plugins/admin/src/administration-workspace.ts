@@ -199,23 +199,23 @@ export async function registerAdministrationWorkspace(
       let auditBlocks = inactiveBlocks("Audit");
 
       if (query.tab === "people") {
-        const [peopleData, peerData] = await Promise.all([
-          loadChild(
-            people,
-            actor,
-            { ...(query.selected ? { selected: query.selected } : {}) },
-            signal,
-          ),
-          loadChild(
-            peers,
-            actor,
-            {
-              ...(query.peerId ? { peerId: query.peerId } : {}),
-              ...(query.displayName ? { displayName: query.displayName } : {}),
-            },
-            signal,
-          ),
-        ]);
+        // Each child already fans out across Auth stores. Join it before
+        // admitting the next child into the shared SQL command budget.
+        const peopleData = await loadChild(
+          people,
+          actor,
+          { ...(query.selected ? { selected: query.selected } : {}) },
+          signal,
+        );
+        const peerData = await loadChild(
+          peers,
+          actor,
+          {
+            ...(query.peerId ? { peerId: query.peerId } : {}),
+            ...(query.displayName ? { displayName: query.displayName } : {}),
+          },
+          signal,
+        );
         const peerSections = selectPeerTabSections(peerData.view.blocks);
         const peopleSections = composePeopleTabSections(
           tabBlocks(peopleData.view.blocks, "People"),
@@ -230,30 +230,28 @@ export async function registerAdministrationWorkspace(
         );
         peopleBlocks = [...peopleSections.blocks];
       } else if (query.tab === "invitations") {
-        const [invitationData, peerData] = await Promise.all([
-          loadChild(
-            invitations,
-            actor,
-            {
-              ...(query.state ? { state: query.state } : {}),
-              ...(query.selected ? { selected: query.selected } : {}),
-              ...definedFields({
-                offset: query.offset,
-                limit: query.limit,
-              }),
-            },
-            signal,
-          ),
-          loadChild(
-            peers,
-            actor,
-            {
-              ...(query.peerId ? { peerId: query.peerId } : {}),
-              ...(query.displayName ? { displayName: query.displayName } : {}),
-            },
-            signal,
-          ),
-        ]);
+        const invitationData = await loadChild(
+          invitations,
+          actor,
+          {
+            ...(query.state ? { state: query.state } : {}),
+            ...(query.selected ? { selected: query.selected } : {}),
+            ...definedFields({
+              offset: query.offset,
+              limit: query.limit,
+            }),
+          },
+          signal,
+        );
+        const peerData = await loadChild(
+          peers,
+          actor,
+          {
+            ...(query.peerId ? { peerId: query.peerId } : {}),
+            ...(query.displayName ? { displayName: query.displayName } : {}),
+          },
+          signal,
+        );
         const peerSections = selectPeerTabSections(peerData.view.blocks);
         const invitationSections = composeInvitationTabSections(
           invitationData.view.blocks,

@@ -10,12 +10,14 @@ import type {
 } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils/error";
 import { AuthAuditStore } from "../src/audit-store";
-import { AuthService } from "../src/auth-service";
+import { createAuthServiceFixture } from "./fixtures/owned-auth-service";
 import { AuthInvitationService } from "../src/invitation-service";
 import { setupTokenDeliveries, setupTokens } from "../src/runtime-schema";
 import { AuthRuntimeDatabase } from "../src/runtime-db";
 import { AuthUserStore } from "../src/user-store";
 
+const { AuthService, closeAuthServices } = createAuthServiceFixture();
+type AuthService = InstanceType<typeof AuthService>;
 const tempDirs: string[] = [];
 
 function getEmailDeliveryProvider(
@@ -40,6 +42,7 @@ async function rejectionMessage(operation: Promise<unknown>): Promise<string> {
 }
 
 afterEach(async () => {
+  await closeAuthServices();
   await Promise.all(
     tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })),
   );

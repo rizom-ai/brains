@@ -231,7 +231,8 @@ export function createWorkerDatabase<F extends Record<string, unknown>>(
   driver: SqlWorkerDriver,
   schema: F,
   bindings?: WorkerDatabaseBindings,
-): LibSQLDatabase<F> {
+  beforeClose?: () => Promise<void>,
+): LibSQLDatabase<F> & { readonly $client: SqlWorkerClient } {
   type R = ExtractTablesWithRelations<F>;
   const dialect = new SQLiteAsyncDialect();
   const tables = extractTablesRelationalConfig<R>(
@@ -248,6 +249,7 @@ export function createWorkerDatabase<F extends Record<string, unknown>>(
       body: (db: LibSQLTransaction<F, R>) => T | Promise<T>,
       config?: SQLiteTransactionConfig,
     ): Promise<T> {
+      if (client.closed) throw new Error("SQL worker driver is closed");
       if (config?.behavior === "exclusive")
         throw new Error(
           "Exclusive transaction config is not supported by the proof",
@@ -262,12 +264,10 @@ export function createWorkerDatabase<F extends Record<string, unknown>>(
       );
     }
   }
-  const session = new Session(
-    new SqlWorkerClient(driver),
-    dialect,
-    relationalSchema,
-    {},
-    undefined,
+  const client = new SqlWorkerClient(driver, beforeClose);
+  const session = new Session(client, dialect, relationalSchema, {}, undefined);
+  return Object.assign(
+    new LibSQLDatabase<F>("async", dialect, session, relationalSchema),
+    { $client: client },
   );
-  return new LibSQLDatabase<F>("async", dialect, session, relationalSchema);
 }

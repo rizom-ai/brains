@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, spyOn } from "bun:test";
+import assert from "node:assert/strict";
 import { guestInterfaceType } from "@brains/contracts/chat";
 import { ConversationService } from "../src/conversation-service";
 import { createSilentLogger } from "@brains/test-utils";
@@ -141,45 +142,48 @@ describe("ConversationService", () => {
 
     it("rejects scope changes and authenticated ownership on guest creation", async () => {
       await service.startConversation(guestRequest);
-      expect(
+      await assert.rejects(
         service.startConversation({
           ...guestRequest,
           interfaceType: "web-chat",
           personId: "owner",
         }),
-      ).rejects.toThrow("Conversation scope mismatch");
-      expect(
+        /Conversation scope mismatch/,
+      );
+      await assert.rejects(
         service.startConversation({
           ...guestRequest,
           sessionId: "other",
           personId: "owner",
         }),
-      ).rejects.toThrow(
-        "Guest conversation cannot have an authenticated owner",
+        /Guest conversation cannot have an authenticated owner/,
       );
       await service.startConversation({
         ...guestRequest,
         sessionId: "operator",
         interfaceType: "web-chat",
       });
-      expect(
+      await assert.rejects(
         service.startConversation({ ...guestRequest, sessionId: "operator" }),
-      ).rejects.toThrow("Conversation scope mismatch");
+        /Conversation scope mismatch/,
+      );
     });
 
     it("rejects missing ownership and prevents metadata updates from changing owners", async () => {
-      expect(
+      await assert.rejects(
         service.startConversation({ ...guestRequest, metadata: testMetadata }),
-      ).rejects.toThrow("Guest ownership required");
+        /Guest ownership required/,
+      );
       await service.startConversation(guestRequest);
-      expect(
+      await assert.rejects(
         service.updateConversationMetadata({
           conversationId: guestRequest.sessionId,
           metadata: {
             guest: { visitorId: "c92c7734-1d75-408f-8b4a-fc40e7d58679" },
           },
         }),
-      ).rejects.toThrow("Guest ownership cannot be changed");
+        /Guest ownership cannot be changed/,
+      );
     });
 
     it("hides expired transcripts, rejects late writes and metadata updates, and still permits deletion", async () => {
@@ -205,21 +209,23 @@ describe("ConversationService", () => {
         }),
       ).toEqual([]);
       expect(await service.countMessages(guestRequest.sessionId)).toBe(0);
-      expect(
+      await assert.rejects(
         service.addMessage({
           conversationId: guestRequest.sessionId,
           role: "assistant",
           content: "late private answer",
         }),
-      ).rejects.toThrow("Conversation unavailable");
+        /Conversation unavailable/,
+      );
       expect(
         await service.updateConversationMetadata({
           conversationId: guestRequest.sessionId,
           metadata: { title: "late title" },
         }),
       ).toBe(false);
-      expect(service.startConversation(guestRequest)).rejects.toThrow(
-        "Guest conversation unavailable",
+      await assert.rejects(
+        service.startConversation(guestRequest),
+        /Guest conversation unavailable/,
       );
       expect(await service.deleteConversation(guestRequest.sessionId)).toBe(
         true,
@@ -287,7 +293,7 @@ describe("ConversationService", () => {
       expect(after?.lastActive).not.toBe(before?.lastActive);
       const guest = guestRequest.metadata.guest;
       if (!guest) throw new Error("Expected guest metadata");
-      expect(
+      await assert.rejects(
         service.startConversation({
           ...guestRequest,
           metadata: {
@@ -298,21 +304,44 @@ describe("ConversationService", () => {
             },
           },
         }),
-      ).rejects.toThrow("Guest ownership cannot be changed");
+        /Guest ownership cannot be changed/,
+      );
     });
 
     it("rolls back message insertion if activity renewal fails and sanitizes SQL failures", async () => {
       await service.startConversation(guestRequest);
-      await client.execute(
-        "CREATE TRIGGER reject_guest_activity BEFORE UPDATE OF last_active ON conversations BEGIN SELECT RAISE(ABORT, 'PRIVATE storage details'); END",
+      // Inject the renewal failure after the real insert, without unsupported
+      // raw trigger BEGIN/END controls on the typed worker SQL surface.
+      const transaction = db.transaction.bind(db);
+      type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+      const failRenewal = spyOn(db, "transaction").mockImplementation(
+        <T>(
+          body: (tx: Transaction) => Promise<T>,
+          options?: Parameters<typeof db.transaction>[1],
+        ): Promise<T> =>
+          transaction(async (tx) => {
+            const update = spyOn(tx, "update").mockImplementation((): never => {
+              throw new Error("PRIVATE storage details");
+            });
+            try {
+              return await body(tx);
+            } finally {
+              update.mockRestore();
+            }
+          }, options),
       );
-      expect(
-        service.addMessage({
-          conversationId: guestRequest.sessionId,
-          role: "assistant",
-          content: "PRIVATE answer",
-        }),
-      ).rejects.toThrow("Guest conversation write unavailable");
+      try {
+        await assert.rejects(
+          service.addMessage({
+            conversationId: guestRequest.sessionId,
+            role: "assistant",
+            content: "PRIVATE answer",
+          }),
+          /Guest conversation write unavailable/,
+        );
+      } finally {
+        failRenewal.mockRestore();
+      }
       expect(
         (await client.execute("SELECT * FROM messages")).rows,
       ).toHaveLength(0);
@@ -379,13 +408,14 @@ describe("ConversationService", () => {
           );
           try {
             if (operation === "write")
-              expect(
+              await assert.rejects(
                 service.addMessage({
                   conversationId: id,
                   role: "assistant",
                   content: "late text",
                 }),
-              ).rejects.toThrow("Guest conversation write unavailable");
+                /Guest conversation write unavailable/,
+              );
             if (operation === "read")
               expect(await service.getMessages(id)).toEqual([]);
             if (operation === "count")
@@ -410,7 +440,7 @@ describe("ConversationService", () => {
           }
         }
       } finally {
-        other.close();
+        await other.closeAsync();
       }
     });
 
@@ -458,18 +488,19 @@ describe("ConversationService", () => {
         },
       );
       try {
-        expect(
+        await assert.rejects(
           service.addMessage({
             conversationId: guestRequest.sessionId,
             role: "assistant",
             content: "late private result",
           }),
-        ).rejects.toThrow("Guest conversation write unavailable");
+          /Guest conversation write unavailable/,
+        );
         expect(await service.getMessages(guestRequest.sessionId)).toEqual([]);
         expect(await getConversation(guestRequest.sessionId)).toBeNull();
       } finally {
         lookup.mockRestore();
-        other.close();
+        await other.closeAsync();
       }
     });
 
@@ -488,19 +519,20 @@ describe("ConversationService", () => {
       try {
         await other.initialize();
         await other.deleteConversation(guestRequest.sessionId);
-        expect(
+        await assert.rejects(
           service.addMessage({
             conversationId: guestRequest.sessionId,
             role: "assistant",
             content: "late result",
           }),
-        ).rejects.toThrow("Conversation unavailable");
+          /Conversation unavailable/,
+        );
         expect(
           await service.getConversation(guestRequest.sessionId),
         ).toBeNull();
         expect(await service.getMessages(guestRequest.sessionId)).toEqual([]);
       } finally {
-        other.close();
+        await other.closeAsync();
       }
     });
   });
@@ -566,7 +598,7 @@ describe("ConversationService", () => {
         (closeError instanceof Error && closeError.cause
           ? String(closeError.cause)
           : "");
-      expect(errorText).toContain("CLIENT_CLOSED");
+      expect(errorText).toContain("driver is closed");
     });
   });
 

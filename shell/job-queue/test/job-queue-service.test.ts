@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import {
   describe,
   it,
@@ -1927,7 +1928,7 @@ describe("JobQueueService", () => {
       });
       controller.abort();
 
-      expect(idle).rejects.toThrow();
+      await assert.rejects(idle);
     });
   });
 });

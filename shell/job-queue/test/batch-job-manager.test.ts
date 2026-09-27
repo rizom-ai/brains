@@ -60,6 +60,7 @@ describe("BatchJobManager", () => {
 
   afterEach(async () => {
     await batchManager.stop();
+    await jobQueueService.closeAsync();
     await cleanup();
   });
 
@@ -245,7 +246,7 @@ describe("BatchJobManager", () => {
 
     afterEach(async () => {
       await webBatchManager.stop();
-      webService.close();
+      await webService.closeAsync();
     });
 
     it("should enqueue a batch for a declared job type", async () => {
