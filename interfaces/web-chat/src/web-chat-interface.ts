@@ -428,6 +428,26 @@ export class WebChatInterface extends MessageInterfacePlugin<
                 headers: { "Cache-Control": "no-store" },
               }),
       });
+      for (const extension of ["js", "css"] as const) {
+        routes.push({
+          path: `/ask/assets/ask.${extension}`,
+          method: "GET",
+          public: true,
+          preview: true,
+          handler: async (request): Promise<Response> =>
+            (await this.canServeGuestAssets(request))
+              ? this.handleBuiltUiFile(
+                  uiAssetFile.replace(/app\.js$/, `ask.${extension}`),
+                  extension === "js"
+                    ? "text/javascript; charset=utf-8"
+                    : "text/css; charset=utf-8",
+                )
+              : new Response("Not found", {
+                  status: 404,
+                  headers: { "Cache-Control": "no-store" },
+                }),
+        });
+      }
       routes.push({
         path: "/ask/assets/guest.js",
         method: "GET",

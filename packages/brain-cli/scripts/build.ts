@@ -422,6 +422,8 @@ cpSync(webChatUiStylesheetPath, join(bundledWebChatUiDir, "app.css"));
 for (const asset of [
   "guest.js",
   "guest.css",
+  "ask.js",
+  "ask.css",
   "dashboard.js",
   "dashboard.css",
 ]) {
