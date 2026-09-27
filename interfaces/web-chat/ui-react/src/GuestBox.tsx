@@ -32,7 +32,6 @@ export type GuestBoxState =
   | "limit"
   | "unavailable"
   | "expired"
-  | "history-unavailable"
   | "ended";
 
 export interface GuestBoxProps {
@@ -217,7 +216,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
         </p>
       </>
     );
-  if (state === "expired" || state === "history-unavailable")
+  if (state === "expired")
     notice = (
       <>
         <h3>This conversation is unavailable.</h3>
@@ -375,8 +374,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
               )}
               {(state === "uncertain" ||
                 state === "incomplete" ||
-                state === "expired" ||
-                state === "history-unavailable") &&
+                state === "expired") &&
                 newQuestion()}
               {state === "unavailable" && (
                 <button
@@ -474,11 +472,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
               aria-label={
                 welcome ? copy.title || "Your question" : "Your follow-up"
               }
-              aria-describedby={
-                session
-                  ? "brain-chat-notice brain-chat-recording"
-                  : "brain-chat-notice"
-              }
+              aria-describedby="brain-chat-notice"
               aria-invalid={over > 0}
               placeholder={welcome ? copy.inputHint : "Ask a follow-up…"}
               onInput={(event): void =>
@@ -514,11 +508,6 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
                 ? null
                 : "Public knowledge. Please avoid private details."}
           </p>
-          {session && (
-            <p id="brain-chat-recording" className="brain-box-recording">
-              {session.recording.notice}
-            </p>
-          )}
         </form>
       </div>
     </div>

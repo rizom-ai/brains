@@ -40,11 +40,6 @@ const session = {
   provider: "Mock provider",
   notice: "Do not share sensitive text.",
   deletionLimitations: "Provider records are separate.",
-  recording: {
-    notice:
-      "Questions are kept for the site owner for 30 days, even if you delete this chat.",
-    revision: "a".repeat(64),
-  },
   retention: { idleSeconds: 3600, maxAgeSeconds: 7200 },
   messageCharacters: 4000,
   canSend: true,
@@ -376,30 +371,20 @@ describe("public Ask UI with mocked Chat transport", () => {
     ).toHaveLength(0);
   });
 
-  it("does not strand the box on an expired locator or replay its old request", async () => {
+  it("opens the box empty on every load, even with a conversation saved in this tab", async () => {
     sessionStorage.setItem("brain-ask-conversation", id);
     sessionStorage.setItem("brain-ask-conversation-list", JSON.stringify([id]));
-    unavailableHistory = true;
     await mount({ box: boxCopy });
-    expect(document.body.textContent).toContain(
-      "This conversation is unavailable",
+    expect(
+      calls.filter((call) => call.path.includes("/messages?")),
+    ).toHaveLength(0);
+    expect(document.body.textContent).not.toContain(
+      "An actual transport reply",
     );
-    expect(sessionStorage.getItem("brain-ask-conversation")).toBe(id);
-    await click("New question");
-    expect(
-      calls.filter((call) => call.path === "/api/chat/guest"),
-    ).toHaveLength(0);
-    await click("Continue");
-    expect(sessionStorage.getItem("brain-ask-conversation")).toBeNull();
-    expect(sessionStorage.getItem("brain-ask-conversation-list")).toContain(id);
-    expect(
-      calls.filter((call) => call.path === "/api/chat/guest"),
-    ).toHaveLength(0);
-    await ask("A new deliberate question");
-    expect(
-      calls.find((call) => call.path === "/api/chat/guest")?.body,
-    ).not.toHaveProperty("id");
-    expect(deleted).toBe(false);
+    await ask("A fresh question");
+    const send = calls.find((call) => call.path === "/api/chat/guest");
+    if (!send) throw new Error("Question was not sent");
+    expect(send.body).toEqual({ messages: expect.any(Array) });
   });
 
   it("checks an interrupted box answer using history only and preserves partial text", async () => {
@@ -607,39 +592,22 @@ describe("public Ask UI with mocked Chat transport", () => {
     expect(disclosure?.textContent).toContain("Mock provider");
     expect(disclosure?.textContent).toContain("Visitor access expires");
     expect(disclosure?.textContent).toContain("maximum age 2 hours");
-    expect(
-      document.querySelector("textarea")?.getAttribute("aria-describedby"),
-    ).toBe("guest-recording-note");
     expect(calls.map((call) => call.path)).toEqual(["/api/chat/guest/session"]);
   });
 
-  it("shows with the composer that questions are kept for the owner, and sends which notice was shown", async () => {
+  it("shows no retention line with either composer and sends only the question", async () => {
     await mount();
-    const note = document.querySelector("#guest-recording-note");
-    expect(note?.textContent).toBe(session.recording.notice);
-    expect(note?.closest("details")).toBeNull();
+    expect(document.querySelector("#guest-recording-note")).toBeNull();
     await ask("Explore this thought");
     const [send] = calls.filter((call) => call.path === "/api/chat/guest");
-    expect(send?.body).toMatchObject({
-      disclosure: session.recording.revision,
-    });
+    if (!send) throw new Error("Question was not sent");
+    expect(send.body).toEqual({ messages: expect.any(Array) });
   });
 
-  it("shows the recording notice with the box's composer too, not behind About", async () => {
+  it("shows no retention line with the box's composer", async () => {
     await mount({ box: boxCopy });
-    const note = document.querySelector("#brain-chat-recording");
-    expect(note?.textContent).toBe(session.recording.notice);
-    expect(note?.closest(".brain-box-privacy")).toBeNull();
-    expect(
-      document
-        .querySelector(".prompt-row textarea")
-        ?.getAttribute("aria-describedby"),
-    ).toContain("brain-chat-recording");
-    await ask("Energy efficiency");
-    const [send] = calls.filter((call) => call.path === "/api/chat/guest");
-    expect(send?.body).toMatchObject({
-      disclosure: session.recording.revision,
-    });
+    expect(document.querySelector("#brain-chat-recording")).toBeNull();
+    expect(document.body.textContent).not.toContain("kept for");
   });
   it("adds no hint under the box's composer while an answer streams", async () => {
     held = true;

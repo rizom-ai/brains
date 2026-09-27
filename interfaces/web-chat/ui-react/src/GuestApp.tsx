@@ -1,9 +1,7 @@
 /** @jsxImportSource react */
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import {
-  ChatApiError,
   type ChatClient,
-  type ChatHistoryMessage,
   type GuestChatSessionResponse,
   type ChatCard,
 } from "@brains/contracts/chat";
@@ -142,22 +140,11 @@ export function GuestApp({
         const opened = await openSession(lifetime.signal);
         lifetime.signal.throwIfAborted();
         setBoxState(opened.canSend ? "ready" : "unavailable");
-        const locator = adoptSavedConversation();
+        // The box opens empty on every load; the full chat page picks up the
+        // conversation this tab handed it.
+        const locator = box ? undefined : adoptSavedConversation();
         if (locator) {
-          let history: ChatHistoryMessage[];
-          try {
-            history = await client.getMessages(locator);
-          } catch (error) {
-            lifetime.signal.throwIfAborted();
-            if (box && error instanceof ChatApiError && error.status === 404) {
-              setBoxState("history-unavailable");
-              setStatus(
-                "The previous conversation is unavailable. Nothing has been deleted or resent.",
-              );
-              return;
-            }
-            throw error;
-          }
+          const history = await client.getMessages(locator);
           lifetime.signal.throwIfAborted();
           showHistory(history);
           restoredQuestion.current = history
@@ -315,10 +302,7 @@ export function GuestApp({
         }
         canCheck={!!id && ["incomplete", "limit"].includes(boxState)}
         canContinue={
-          !busy &&
-          !!id &&
-          isSavedConversation(id) &&
-          !["history-unavailable", "expired"].includes(boxState)
+          !busy && !!id && isSavedConversation(id) && boxState !== "expired"
         }
         onSend={(): void => {
           void send();

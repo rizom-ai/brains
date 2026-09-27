@@ -40,11 +40,6 @@ const session: GuestChatSessionResponse = {
   provider: "Mock provider",
   notice: "Do not share sensitive text.",
   deletionLimitations: "Provider records are separate.",
-  recording: {
-    notice:
-      "Questions are kept for the site owner for 30 days, even if you delete this chat.",
-    revision: "a".repeat(64),
-  },
   retention: { idleSeconds: 3600, maxAgeSeconds: 7200 },
   messageCharacters: 4000,
   canSend: true,
