@@ -158,9 +158,11 @@ describe("admin guest activation using deployment conventions", () => {
         "DELETE /api/chat/guest/sessions",
         "GET /api/chat/guest/messages",
         "GET /ask",
-        // Standalone GuestApp uses the shared Chat presentation bundle.
+        // Standalone GuestApp has its own bundle; the app bundle stays for sites still loading it.
         "GET /ask/assets/app.css",
         "GET /ask/assets/app.js",
+        "GET /ask/assets/ask.css",
+        "GET /ask/assets/ask.js",
         // The shared box boot every consuming site loads.
         "GET /ask/assets/box.js",
         "GET /ask/assets/dashboard.css",
