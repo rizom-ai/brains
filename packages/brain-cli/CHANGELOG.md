@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.428
+
+### Patch Changes
+
+- [#392](https://github.com/rizom-ai/brains/pull/392) [`223282b`](https://github.com/rizom-ai/brains/commit/223282ba7bc0735a901655988269185662ca0f1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The embedded Ask box opens empty on every page load instead of restoring the tab's last conversation. The full chat page (`/ask`) still continues the conversation the box hands it, and the browser's back button still returns to an answer.
+
+- [#392](https://github.com/rizom-ai/brains/pull/392) [`e26b1ef`](https://github.com/rizom-ai/brains/commit/e26b1ef5b4eb6d9c626332da0139618150abe8bb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Guest chat and the contact form no longer show a retention notice. The chat session carries no `recording` notice, a question carries no `disclosure` revision, and every admitted question is kept for the owner's Studio view. The contact form drops its "Your note is kept for N days" paragraph. Retention and deletion work as before.
+
 ## 0.2.0-alpha.427
 
 ### Patch Changes
