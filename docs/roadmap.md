@@ -10,7 +10,7 @@ This is the public-facing view of where `brains` is headed. It records product d
 
 The remaining `v0.2.0` work is release certification rather than another product-model migration: integrate the intended public-authoring boundary, publish one final alpha, run the complete registry/packed/live/eval evidence against that exact source, prove the candidate on approved canaries and `yeehaa.io`, and obtain explicit authorization before stable publication.
 
-Public Ask is a separate product rollout, not a stable-release gate. Its guest runtime, shared authored content and Dashboard tab are published and deployed to the Rizom preview path with admission default-off. Guest admission is per deployment, so no site inherits another's authorization, allowance or spend. Production guest enablement, a fresh paid live acceptance run, and production-page publication remain unapproved everywhere, and an owner-facing usage record and monitor are now a precondition for opening any of them.
+Public Ask is a separate product rollout, not a stable-release gate. Its guest runtime, shared authored content and Dashboard tab are published and deployed to the Rizom preview path with admission default-off. Guest admission is per deployment, so no site inherits another's authorization, budget or spend. Production guest enablement, a fresh paid live acceptance run, and production-page publication remain unapproved everywhere, and an owner-facing usage record and monitor are now a precondition for opening any of them.
 
 What exists today:
 
