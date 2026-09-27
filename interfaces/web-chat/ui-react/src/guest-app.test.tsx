@@ -657,6 +657,33 @@ describe("public Ask UI with mocked Chat transport", () => {
       calls.filter((call) => call.path === "/api/chat/guest"),
     ).toHaveLength(0);
   });
+  it("follows the visitor back to the newest message when they send while scrolled back", async () => {
+    await mount({});
+    await ask("First question");
+    const transcript = document.querySelector<HTMLElement>(
+      ".guest-transcript-scroll",
+    );
+    if (!transcript) throw new Error("Missing transcript");
+    // happy-dom reports zero for every layout box, so the transcript's
+    // geometry is declared: 1000px of content inside a 200px viewport.
+    Object.defineProperty(transcript, "scrollHeight", {
+      value: 1000,
+      configurable: true,
+    });
+    Object.defineProperty(transcript, "clientHeight", {
+      value: 200,
+      configurable: true,
+    });
+    transcript.scrollTop = 100;
+    await act(async (): Promise<void> => {
+      transcript.dispatchEvent(new Event("scroll", { bubbles: false }));
+    });
+
+    await ask("Second question");
+
+    expect(transcript.scrollTop).toBe(1000);
+  });
+
   it("sends only the new user text, follows up using the server locator and stores no transcript", async () => {
     await mount();
     await ask("Explore this thought");

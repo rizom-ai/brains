@@ -139,6 +139,19 @@ describe("useFollowTail", () => {
     expect(harness.element().scrollTop).toBe(1000);
   });
 
+  it("resumes following without moving until the next content arrives", async () => {
+    const harness = createHarness();
+    await harness.render({ resetKey: "a", contentKey: 1 });
+    await harness.scrollTo(100);
+
+    await act(async () => harness.tail().follow());
+
+    expect(harness.tail().awayFromLatest).toBe(false);
+    expect(harness.element().scrollTop).toBe(100);
+    await harness.render({ resetKey: "a", contentKey: 2 });
+    expect(harness.element().scrollTop).toBe(1000);
+  });
+
   it("jumps to the latest on demand and resumes following", async () => {
     const harness = createHarness();
     await harness.render({ resetKey: "a", contentKey: 1 });

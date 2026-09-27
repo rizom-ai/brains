@@ -16,6 +16,8 @@ export interface FollowTail {
   onScroll: (event: UIEvent<HTMLDivElement>) => void;
   /** True once the reader has scrolled away from the newest content. */
   awayFromLatest: boolean;
+  /** Resume following; the next content change scrolls to the newest. */
+  follow: () => void;
   jumpToLatest: () => void;
 }
 
@@ -65,15 +67,19 @@ export function useFollowTail(input: FollowTailInput): FollowTail {
     setAwayFromLatest(!nearBottom);
   }, []);
 
-  const jumpToLatest = useCallback((): void => {
+  const follow = useCallback((): void => {
     followingRef.current = true;
     setAwayFromLatest(false);
+  }, []);
+
+  const jumpToLatest = useCallback((): void => {
+    follow();
     const scroll = ref.current;
     if (scroll) {
       scroll.focus({ preventScroll: true });
       scroll.scrollTop = scroll.scrollHeight;
     }
-  }, []);
+  }, [follow]);
 
-  return { ref, onScroll, awayFromLatest, jumpToLatest };
+  return { ref, onScroll, awayFromLatest, follow, jumpToLatest };
 }

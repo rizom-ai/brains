@@ -33,14 +33,11 @@ function message(id: string, role: "user" | "assistant"): ChatHistoryMessage {
   return { id, role, content: `${role} ${id}` };
 }
 
-async function render(box = false): Promise<() => GuestTranscript> {
+async function render(): Promise<() => GuestTranscript> {
   let latest: GuestTranscript | undefined;
-  // The follow-latest effect only acts once the transcript element exists, so
-  // the probe renders one and hands the hook its ref.
   function Probe(): ReactElement {
-    const transcript = useGuestTranscript({ box });
-    latest = transcript;
-    return createElement("div", { ref: transcript.transcriptRef });
+    latest = useGuestTranscript();
+    return createElement("div");
   }
   await act(async () => {
     root.render(createElement(Probe));
@@ -111,28 +108,5 @@ describe("useGuestTranscript", () => {
 
     expect(transcript().messages).toEqual([]);
     expect(transcript().earlier).toEqual([]);
-  });
-
-  it("follows again after emptying, because there is nothing to look away from", async () => {
-    const transcript = await render();
-    await act(async () => transcript().show([message("a", "user")]));
-    await act(async () => {
-      transcript().followTranscript.current = false;
-    });
-
-    await act(async () => transcript().clear());
-
-    expect(transcript().followTranscript.current).toBe(true);
-  });
-
-  it("leaves scrolling to the box, which handles its own", async () => {
-    const transcript = await render(true);
-    await act(async () => {
-      transcript().followTranscript.current = false;
-    });
-
-    await act(async () => transcript().clear());
-
-    expect(transcript().followTranscript.current).toBe(false);
   });
 });
