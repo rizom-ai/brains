@@ -1,5 +1,18 @@
 # @brains/topics
 
+## 0.2.0-alpha.422
+
+### Patch Changes
+
+- Updated dependencies [[`39cc6eb`](https://github.com/rizom-ai/brains/commit/39cc6eb4cde86fc1a2adb38c85d45fab6fe98319)]:
+  - @brains/plugins@0.2.0-alpha.422
+  - @brains/ui-library@0.2.0-alpha.422
+  - @brains/atproto-contracts@0.2.0-alpha.422
+  - @brains/content-formatters@0.2.0-alpha.422
+  - @brains/contracts@0.2.0-alpha.422
+  - @brains/utils@0.2.0-alpha.422
+  - @brains/templates@0.2.0-alpha.422
+
 ## 0.2.0-alpha.421
 
 ### Patch Changes
