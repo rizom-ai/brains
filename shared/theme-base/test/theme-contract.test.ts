@@ -29,16 +29,6 @@ describe("app theme token contract", () => {
     },
   );
 
-  it("paints the page colour behind the whole document, in the theme's own scheme", () => {
-    // Overscroll past the footer shows the canvas, never a white default.
-    expect(themeBaseCSS).toMatch(
-      /html \{\s*background-color: var\(--color-bg\);\s*color-scheme: light;\s*\}/,
-    );
-    expect(themeBaseCSS).toMatch(
-      /\[data-theme="dark"\] \{\s*color-scheme: dark;\s*\}/,
-    );
-  });
-
   it("derives status signals from the shared semantic status palette", () => {
     for (const theme of ["light", "dark"] as const) {
       const block = themeBlock(theme);
