@@ -224,7 +224,6 @@ test("member editing preserves image-like memberships, unclaimed fields and auth
   await define(runtime, {
     clients: {
       label: "Clients",
-      types: ["note", "post"],
       multiple: true,
       values: [literal],
     },
@@ -321,7 +320,6 @@ test("member editing preserves image-like memberships, unclaimed fields and auth
 
 const clients = {
   label: "Clients",
-  types: ["note", "post"],
   multiple: false,
   values: ["Acme", "Beta"],
 };
@@ -382,7 +380,6 @@ test("production source creation refreshes a cached Note schema and supplies ope
     await ui.click("Add grouping");
     await ui.input("New grouping label", "Research areas");
     await ui.input("Research areas key", "areas");
-    await ui.click("Notes contributor");
     const select = document.querySelector<HTMLSelectElement>(
       'select[aria-label="Research areas values per entry"]',
     );
@@ -411,7 +408,7 @@ test("production source creation refreshes a cached Note schema and supplies ope
         {
           key: "areas",
           field: "areas",
-          types: ["note"],
+          types: ["note", "post"],
           rules: { multiple: false },
         },
       ],
@@ -448,12 +445,12 @@ test("production descriptors cover all four rules and the admin floor survives p
     clients,
     projects: {
       label: "Projects",
-      types: ["note"],
+      excludeTypes: ["post"],
       multiple: true,
       values: ["Launch", "Rebrand"],
     },
-    areas: { label: "Areas", types: ["note"], multiple: false },
-    topics: { label: "Topics", types: ["note"], multiple: true },
+    areas: { label: "Areas", excludeTypes: ["post"], multiple: false },
+    topics: { label: "Topics", excludeTypes: ["post"], multiple: true },
   });
   expect(
     await (await runtime.request("GET", "types", undefined, "trusted")).json(),

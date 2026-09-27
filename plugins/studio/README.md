@@ -75,7 +75,7 @@ Editor detail reads and mutation preparation use raw source. Image-looking membe
 
 ## Virtual collections
 
-**System → Structure → Groupings** edits one bodyless, always-shared `grouping-definitions` singleton. `StudioPlugin` registers its source after contributors finish registration. Labels, contributing types, cardinality and optional exact allowed values all live in that document, not in `brain.yaml`:
+**System → Structure → Groupings** edits one bodyless, always-shared `grouping-definitions` singleton. `StudioPlugin` registers its source after contributors finish registration. Groupings apply to all eligible content types by convention. Labels, cardinality, optional exact allowed values and optional type exclusions live in that document, not in `brain.yaml`:
 
 ```yaml
 ---
@@ -83,17 +83,16 @@ visibility: shared
 groupings:
   clients:
     label: Clients
-    types: [note, post]
     multiple: false
     values: [Acme, Beta]
   projects:
     label: Projects
-    types: [note, post]
     multiple: true
+    excludeTypes: [link]
 ---
 ```
 
-The key is the frontmatter field. `multiple` applies independently to open and closed groups; absent `values` means open. A present list must be nonempty and contain unique, nonempty exact strings. There are at most 20 definitions. Separate field names, self-contribution, unavailable contributors and incompatible/reserved fields are rejected. Invalid stored sections remain visible for explicit repair and are omitted from the active grouping set. Unparseable source is shown for explicit reset, never silently replaced by an empty document.
+The key is the frontmatter field. `multiple` applies independently to open and closed groups; absent `values` means open. A present list must be nonempty and contain unique, nonempty exact strings. There are at most 20 definitions. Separate field names and incompatible/reserved fields are rejected. Eligible types have a frontmatter adapter, are not singletons and do not use binary asset storage; the definitions document and other singleton controls never participate. Optional `excludeTypes` narrows that set. Exclusion names must be nonempty and unique; unavailable names remain intact so reinstalling a type does not silently remove its exclusion. Excluding every installed type retains the definition with no active contributors. Newly installed eligible types participate automatically unless excluded. Invalid stored sections remain visible for explicit repair and are omitted from the active grouping set. Unparseable source is shown for explicit reset, never silently replaced by an empty document.
 
 Each definition extends participating types' effective frontmatter schema with an optional string list, or reuses a compatible owner field without weakening its constraints. Runtime checks and unsupported wrappers require shared schema/check identity; JSON Schema alone cannot establish equivalence. Membership is authored in Markdown, not inferred from IDs. No per-value entities, file copies, moves or renames are created.
 
@@ -109,7 +108,7 @@ Every Note uses the normal frontmatter/Properties editor while `note` participat
 
 The type defaults to an admin floor for create, update and delete, with publication set to `never`. Stricter wildcard policies remain stricter; an explicit per-type instance rule deliberately overrides defaults, as with other entity types. Trusted editors can read the shared document but cannot edit it. There is no visibility selector; any visibility other than shared is refused.
 
-Opening a missing singleton is clean. Adding, editing and removing sections uses normal saves and stale-write protection; saved keys are immutable. Invalid local drafts, including duplicate keys that cannot serialize losslessly, block saving and participate in navigation guards. Removing a grouping asks for confirmation. Neither removing a grouping nor removing an allowed value rewrites memberships. Removing only `values` reopens a group; removing its definition removes the view. Existing strays and duplicates remain visible until explicitly changed. Malformed membership containers are read-only until their source is repaired. AI suggestions appear only for open groups.
+Opening a missing singleton is clean. There is no “Applies to” checklist: a new definition needs no type selection. Optional exceptions are under the collapsed **Exclude types** disclosure, which shows the number of current exclusions without expanding. Adding, editing and removing sections uses normal saves and stale-write protection; saved keys are immutable. Invalid local drafts, including duplicate keys that cannot serialize losslessly, block saving and participate in navigation guards. Removing a grouping asks for confirmation. Neither removing a grouping nor removing an allowed value rewrites memberships. Removing only `values` reopens a group; removing its definition removes the view. Existing strays and duplicates remain visible until explicitly changed. Malformed membership containers are read-only until their source is repaired. AI suggestions appear only for open groups.
 
 The page reads visibility-scoped usage in batches of at most 100 exact values. Entry totals count distinct identities, not summed memberships or repeated batch totals. Loading, initialization, unavailable usage and retry remain explicit; partial failures never become zero counts. Descriptors supply the document's label and independent cardinality/list rules, with contributor types narrowed to caller admission.
 

@@ -1,6 +1,13 @@
 import * as stylex from "@stylexjs/stylex";
 export const groupingMembershipStyles: Record<
-  "frame" | "select" | "slot" | "input" | "help" | "suggestions" | "count",
+  | "frame"
+  | "select"
+  | "slot"
+  | "input"
+  | "help"
+  | "helpText"
+  | "suggestions"
+  | "count",
   stylex.StyleXStyles
 > = stylex.create({
   count: {
@@ -33,6 +40,7 @@ export const groupingMembershipStyles: Record<
     maxWidth: "100%",
   },
   input: { flex: 1, minWidth: 90, width: 110 },
+  helpText: { color: "var(--console-text-dim)" },
   help: {
     display: "flex",
     justifyContent: "space-between",

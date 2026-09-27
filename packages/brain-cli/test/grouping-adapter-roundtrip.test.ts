@@ -159,9 +159,9 @@ describe("Clients through the real Note and BlogPost adapters", () => {
             {
               visibility: "shared",
               groupings: Object.fromEntries(
-                declarations.map(({ key, label, types }) => [
+                declarations.map(({ key, label }) => [
                   key,
-                  { label, types, multiple: true },
+                  { label, multiple: true },
                 ]),
               ),
             },
@@ -233,7 +233,6 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     const definitions = {
       areas: {
         label: declaration.label,
-        types: declaration.types,
         multiple: true,
       },
     };
@@ -526,7 +525,6 @@ describe("Clients through the real Note and BlogPost adapters", () => {
         groupings: {
           clients: {
             label: "Clients",
-            types: ["note", "post"],
             multiple: true,
             values: ["Acme", "Beta"],
           },
@@ -671,7 +669,6 @@ describe("Clients through the real Note and BlogPost adapters", () => {
         groupings: {
           clients: {
             label: "Clients",
-            types: ["note", "post"],
             multiple: false,
             values: ["Acme", "Beta"],
           },
@@ -768,7 +765,6 @@ describe("Clients through the real Note and BlogPost adapters", () => {
                 groupings: {
                   clients: {
                     label: "Clients",
-                    types: ["note", "post"],
                     multiple: true,
                   },
                 },
@@ -837,7 +833,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
           groupings: {
             constructor: {
               label: "Projects",
-              types: ["note"],
+              excludeTypes: ["post"],
               multiple: true,
               values: ["Launch"],
             },
@@ -886,7 +882,6 @@ describe("Clients through the real Note and BlogPost adapters", () => {
           groupings: {
             clients: {
               label: "Clients",
-              types: ["note", "post"],
               multiple: true,
               values: ["Acme"],
             },
@@ -923,7 +918,6 @@ describe("Clients through the real Note and BlogPost adapters", () => {
               groupings: {
                 clients: {
                   label: "Clients",
-                  types: ["note", "post"],
                   multiple: true,
                   values: ["Acme"],
                 },
@@ -1001,7 +995,6 @@ describe("Clients through the real Note and BlogPost adapters", () => {
               groupings: {
                 clients: {
                   label: "Clients",
-                  types: ["note", "post"],
                   multiple: true,
                   values: ["Acme"],
                 },
@@ -1035,7 +1028,7 @@ describe("Clients through the real Note and BlogPost adapters", () => {
     ).toBe(201);
   });
 
-  test("definition saves reject mismatched fields, unavailable contributors, duplicate or empty values and empty lists", async () => {
+  test("definition saves reject mismatched fields, duplicate exclusions, duplicate or empty values and empty lists", async () => {
     const directory = await createTestDirectory();
     cleanups.push(directory.cleanup);
     const service = await open(directory.dir, true);
@@ -1049,16 +1042,21 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       {
         clients: {
           label: "Clients",
-          types: ["note"],
+          excludeTypes: ["post"],
           multiple: true,
           field: "other",
         },
       },
-      { clients: { label: "Clients", types: ["missing"], multiple: true } },
       {
         clients: {
           label: "Clients",
-          types: ["note", "post"],
+          excludeTypes: ["post", "post"],
+          multiple: true,
+        },
+      },
+      {
+        clients: {
+          label: "Clients",
           multiple: true,
           values: ["Acme", "Acme"],
         },
@@ -1066,7 +1064,6 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       {
         clients: {
           label: "Clients",
-          types: ["note", "post"],
           multiple: true,
           values: [""],
         },
@@ -1074,7 +1071,6 @@ describe("Clients through the real Note and BlogPost adapters", () => {
       {
         clients: {
           label: "Clients",
-          types: ["note", "post"],
           multiple: true,
           values: [],
         },
@@ -1261,7 +1257,6 @@ describe("Clients through the real Note and BlogPost adapters", () => {
               groupings: {
                 clients: {
                   label: "Clients",
-                  types: ["note", "post"],
                   multiple: true,
                 },
               },
@@ -1331,7 +1326,6 @@ describe("Clients through the real Note and BlogPost adapters", () => {
               groupings: {
                 clients: {
                   label: "Clients",
-                  types: ["note", "post"],
                   multiple: false,
                   values,
                 },
@@ -1549,7 +1543,6 @@ describe("Clients through the real Note and BlogPost adapters", () => {
               groupings: {
                 clients: {
                   label: "Clients",
-                  types: ["note", "post"],
                   multiple: true,
                   values: ["Acme"],
                 },
@@ -1638,7 +1631,6 @@ describe("Clients through the real Note and BlogPost adapters", () => {
               groupings: {
                 clients: {
                   label: "Clients",
-                  types: ["note", "post"],
                   multiple: true,
                 },
               },

@@ -17,9 +17,11 @@ export function isGroupingContributorType(
   context: ServicePluginContext,
   type: string,
 ): boolean {
+  const adapter = context.entities.getAdapter(type);
   return (
     type !== GROUPING_DEFINITIONS_TYPE &&
-    !!context.entities.getAdapter(type)?.frontmatterSchema &&
+    !!adapter?.frontmatterSchema &&
+    !adapter.isSingleton &&
     context.entityService.getEntityTypeConfig(type).binaryStorage !== "asset"
   );
 }
@@ -44,6 +46,10 @@ export function registerGroupingDefinitions(
     },
   );
   const source = new GroupingDefinitionSource({
+    getContributorTypes: (): string[] =>
+      context.entityService
+        .getEntityTypes()
+        .filter((type) => isGroupingContributorType(context, type)),
     // Never resolve image references in literal labels/values. Besides changing
     // policy, those extra entity reads would recursively wait on this refresh.
     read: (): Promise<BaseEntity | null> =>
@@ -87,7 +93,7 @@ export function registerGroupingDefinitions(
       // The persistence boundary refreshed the source before projecting fields.
       // Read the authored values, never caller-supplied or stale row metadata.
       const definitions = Object.entries(source.getSnapshot().groupings).filter(
-        ([, definition]) => definition.types.includes(type),
+        ([, definition]) => !definition.excludeTypes?.includes(type),
       );
       if (definitions.length === 0) return;
       const frontmatter = parseMarkdown(entity.content, {

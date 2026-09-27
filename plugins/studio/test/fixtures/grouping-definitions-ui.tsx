@@ -14,18 +14,16 @@ const params = new URLSearchParams(location.search);
 const definitions: Record<string, GroupingDefinition> = {
   clients: {
     label: "Clients",
-    types: ["note", "post"],
     multiple: false,
     values: ["Acme", "Beta", "Ka21"],
   },
   projects: {
     label: "Projects",
-    types: ["note", "post"],
     multiple: true,
     values: ["Launch", "Rebrand"],
   },
-  areas: { label: "Areas", types: ["note"], multiple: false },
-  topics: { label: "Topics", types: ["note"], multiple: true },
+  areas: { label: "Areas", excludeTypes: ["post"], multiple: false },
+  topics: { label: "Topics", multiple: true },
 };
 const initial = Object.fromEntries(
   Object.entries(definitions).filter(([key]) => key !== "topics"),
@@ -62,7 +60,6 @@ function Review(): ReactElement {
         model={{
           title: editor ? "Field notes" : "Groupings",
           access: { kind: "permission", label: "Admin only" },
-          metadata: ["Isolated component review"],
           totals: [],
         }}
         action={
