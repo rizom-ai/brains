@@ -8,8 +8,14 @@ import {
   type EnvSchemaEntry,
 } from "@brains/deploy-support";
 
-import { logMissingSecrets, pushSecretsToGitHub } from "./push-secrets";
-import { runSubprocess, type RunCommand } from "./run-subprocess";
+import {
+  logMissingSecrets,
+  pushSecretsToGitHub,
+} from "@brains/deploy-support/push-secrets";
+import {
+  runSubprocess,
+  type RunCommand,
+} from "@brains/deploy-support/run-subprocess";
 
 export interface SecretsPushOptions {
   env?: NodeJS.ProcessEnv | undefined;

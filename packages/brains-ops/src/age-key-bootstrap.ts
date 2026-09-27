@@ -3,8 +3,12 @@ import { dirname, join } from "node:path";
 
 import { generateIdentity, identityToRecipient } from "age-encryption";
 
-import { pushSecretsToGitHub, normalizePushTarget } from "./push-secrets";
-import { runSubprocess, type RunCommand } from "./run-subprocess";
+import { pushSecretsToGitHub } from "@brains/deploy-support/push-secrets";
+import { normalizePushTarget } from "@brains/deploy-support/push-target";
+import {
+  runSubprocess,
+  type RunCommand,
+} from "@brains/deploy-support/run-subprocess";
 import { getErrorMessage } from "@brains/utils/error";
 
 export interface AgeKeyBootstrapOptions {

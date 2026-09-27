@@ -1,8 +1,8 @@
 import { z } from "@brains/utils/zod";
 import { parseBrainYaml } from "../lib/brain-yaml";
-import { normalizePushTarget } from "../lib/push-target";
-import { pushSecretsToGitHub } from "../lib/push-secrets";
-import type { RunCommand } from "../lib/run-subprocess";
+import { normalizePushTarget } from "@brains/deploy-support/push-target";
+import { pushSecretsToGitHub } from "@brains/deploy-support/push-secrets";
+import type { RunCommand } from "@brains/deploy-support/run-subprocess";
 import {
   issueOriginCertificate,
   setCloudflareZoneSslStrict,
