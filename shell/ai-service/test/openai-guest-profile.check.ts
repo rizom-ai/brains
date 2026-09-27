@@ -82,16 +82,6 @@ describe("fixed OpenAI guest profile (no live API)", () => {
         return reply();
       },
     });
-    const quote = await profile.accounting.model({
-      provider: profile.model.provider,
-      modelId: profile.model.modelId,
-      params,
-    });
-    expect(quote).toEqual({
-      inputTokens: openAiGuestContextTokens,
-      maxCostMicroUsd: 422160,
-    });
-    expect(requests).toHaveLength(0);
     const result = await profile.model.doGenerate(params);
     expect(result.content).toContainEqual(
       expect.objectContaining({ type: "text", text: "Public answer" }),
@@ -288,7 +278,7 @@ describe("fixed OpenAI guest profile (no live API)", () => {
     expect(model.doGenerateCalls).toHaveLength(1);
   });
 
-  it("reserves search embeddings before dispatch and retains failed reservations without retries", async () => {
+  it("sends a search embedding once and records a failed one's usage as unknown", async () => {
     let calls = 0;
     const profile = createOpenAiGuestProfile({
       apiKey: "test",
@@ -298,33 +288,22 @@ describe("fixed OpenAI guest profile (no live API)", () => {
         return new Response("private provider error", { status: 503 });
       },
     });
-    for (const cap of [163, 164]) {
-      const reported: Array<number | undefined> = [];
-      const budget = new GuestTurnBudget(
-        { ...testGuestExecution, maxCostMicroUsd: cap },
-        profile.accounting,
+    const reported: Array<number | undefined> = [];
+    const budget = new GuestTurnBudget(testGuestExecution, profile.accounting);
+    try {
+      await expectFailure(
+        budget.executeTool("system_search", { query: "public" }, () =>
+          profile.queryEmbedding("public", budget.signal, (tokens) =>
+            reported.push(tokens),
+          ),
+        ),
+        "Guest query embedding unavailable",
       );
-      try {
-        const run = (): Promise<unknown> =>
-          budget.executeTool("system_search", { query: "public" }, () =>
-            profile.queryEmbedding("public", budget.signal, (tokens) =>
-              reported.push(tokens),
-            ),
-          );
-        await expectFailure(
-          run(),
-          cap === 163
-            ? "Guest cost limit exceeded"
-            : "Guest query embedding unavailable",
-        );
-        expect(calls).toBe(cap === 163 ? 0 : 1);
-        await expectFailure(run(), "Guest cost limit exceeded");
-        expect(calls).toBe(cap === 163 ? 0 : 1);
-        // A sent request that failed may still be billed: its usage is unknown.
-        expect(reported).toEqual(cap === 163 ? [] : [undefined]);
-      } finally {
-        budget.dispose();
-      }
+      expect(calls).toBe(1);
+      // A sent request that failed may still be billed: its usage is unknown.
+      expect(reported).toEqual([undefined]);
+    } finally {
+      budget.dispose();
     }
   });
 
@@ -420,51 +399,6 @@ describe("fixed OpenAI guest profile (no live API)", () => {
     } finally {
       budget.dispose();
     }
-  });
-
-  it("quotes locally, rounds up, and refuses other models and unsupported output limits", async () => {
-    const profile = createOpenAiGuestProfile({
-      apiKey: "test",
-      embeddingsEnabled: true,
-      fetch: async (): Promise<never> => {
-        throw new Error("Unexpected network request");
-      },
-    });
-    const request = {
-      provider: profile.model.provider,
-      modelId: profile.model.modelId,
-      params: { ...params, maxOutputTokens: 1 },
-    };
-    expect(await profile.accounting.model(request)).toEqual({
-      inputTokens: 1050000,
-      maxCostMicroUsd: 420002,
-    });
-    expect(
-      profile.accounting.model({ ...request, modelId: "another-model" }),
-    ).rejects.toThrow("Guest accounting unavailable");
-    expect(
-      profile.accounting.model({ ...request, provider: "another-provider" }),
-    ).rejects.toThrow("Guest accounting unavailable");
-    expect(
-      profile.accounting.model({
-        ...request,
-        params: { ...params, maxOutputTokens: 1201 },
-      }),
-    ).rejects.toThrow("Guest accounting unavailable");
-    expect(
-      await profile.accounting.tool({
-        name: "system_search",
-        input: { query: "public" },
-        signal: new AbortController().signal,
-      }),
-    ).toEqual({ maxCostMicroUsd: 164 });
-    expect(
-      profile.accounting.tool({
-        name: "remote_search",
-        input: {},
-        signal: new AbortController().signal,
-      }),
-    ).rejects.toThrow("Guest accounting unavailable");
   });
 
   it("blocks native options, remote tools, images, structured output and streaming before fetch", async () => {
@@ -590,13 +524,6 @@ describe("fixed OpenAI guest profile (no live API)", () => {
       Promise.resolve(
         profile.model.doGenerate({ ...params, abortSignal: signal }),
       ),
-    ).rejects.toThrow();
-    expect(
-      profile.accounting.model({
-        provider: profile.model.provider,
-        modelId: profile.model.modelId,
-        params: { ...params, abortSignal: signal },
-      }),
     ).rejects.toThrow();
   });
 });

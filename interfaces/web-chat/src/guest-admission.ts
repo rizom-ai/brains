@@ -57,8 +57,8 @@ export interface GuestBudgetStatus {
   month: string;
   budgetMicroUsd: number;
   chargedMicroUsd: number;
-  /** What each question reserves until its cost is measured. */
-  quoteMicroUsd: number;
+  /** The most one answer can cost: charged when its cost is unknown. */
+  answerCapMicroUsd: number;
 }
 
 interface Transition<T> {
@@ -192,7 +192,9 @@ export class GuestAdmission {
       if (
         !this.isEnabled() ||
         !state.enabled ||
-        state.policy !== this.policyFingerprint ||
+        // A configured policy is adopted explicitly; a budgeted one follows the
+        // owner's budget, whatever its current limits.
+        (!this.policy.budgeted && state.policy !== this.policyFingerprint) ||
         (this.requireAuthorization && !this.authorizationMatches(state))
       )
         return { result: denied("unavailable") };
@@ -218,10 +220,9 @@ export class GuestAdmission {
       if (this.policy.budgeted) {
         const budget = state.budget;
         if (!budget) return { result: denied("unavailable") };
-        if (
-          chargedThisMonth(state, now) >
-          budget.monthlyMicroUsd - this.turnCost
-        )
+        // Answers already running when the budget runs out may overshoot it,
+        // by at most the concurrency limit times one answer's cap.
+        if (chargedThisMonth(state, now) >= budget.monthlyMicroUsd)
           return { result: denied("budget-exhausted") };
       }
       const receipts = Object.values(state.receipts);
@@ -281,7 +282,8 @@ export class GuestAdmission {
             this.policy.retention.maxAgeSeconds * 1000,
         ),
         deadline: now + this.policy.limits.requestTimeoutSeconds * 1000,
-        reservedMicroUsd: this.turnCost,
+        // Budgeted work is charged when it settles; nothing is held up front.
+        reservedMicroUsd: this.policy.budgeted ? 0 : this.turnCost,
         state: "active",
       };
       return {
@@ -301,14 +303,6 @@ export class GuestAdmission {
         next: {
           ...state,
           receipts: { ...retainedGuestReceipts(state, now), [key]: receipt },
-          ...(this.policy.budgeted
-            ? {
-                month: {
-                  key: monthOf(now),
-                  chargedMicroUsd: chargedThisMonth(state, now) + this.turnCost,
-                },
-              }
-            : {}),
         },
       };
     }, denied("unavailable"));
@@ -334,24 +328,23 @@ export class GuestAdmission {
           month,
           budgetMicroUsd: 0,
           chargedMicroUsd: 0,
-          quoteMicroUsd: this.turnCost,
+          answerCapMicroUsd: this.turnCost,
         };
       const budget = this.authorizationMatches(state)
         ? state.budget
         : undefined;
-      const authorized =
-        budget !== undefined && state.policy === this.policyFingerprint;
+      const authorized = budget !== undefined;
       const chargedMicroUsd = chargedThisMonth(state, now);
       return {
         authorized,
         enabled:
           authorized &&
           state.enabled &&
-          chargedMicroUsd <= budget.monthlyMicroUsd - this.turnCost,
+          chargedMicroUsd < budget.monthlyMicroUsd,
         month,
         budgetMicroUsd: budget?.monthlyMicroUsd ?? 0,
         chargedMicroUsd,
-        quoteMicroUsd: this.turnCost,
+        answerCapMicroUsd: this.turnCost,
       };
     } catch {
       // Control reads must not reveal storage/accounting details or imply credit.
@@ -410,8 +403,9 @@ export class GuestAdmission {
 
   /**
    * Call only after the runtime has genuinely finished or acknowledged
-   * cancellation. A measured cost, from the usage the provider reported,
-   * replaces the quote and returns the rest; without one the quote stays.
+   * cancellation. Budgeted work is charged its measured cost, from the usage
+   * the provider reported, or the answer cap when that is unknown. A
+   * configured policy's reservation settles to the measured cost.
    */
   async settle(
     lease: GuestExecutionLease,
@@ -423,13 +417,18 @@ export class GuestAdmission {
       if (receipt?.id !== lease.id) return { result: false };
       if (receipt.state !== "active")
         return { result: receipt.state === outcome };
-      const charge =
+      const measured =
         measuredMicroUsd !== undefined &&
         Number.isSafeInteger(measuredMicroUsd) &&
         measuredMicroUsd >= 0
-          ? Math.min(measuredMicroUsd, receipt.reservedMicroUsd)
-          : receipt.reservedMicroUsd;
-      const returned = receipt.reservedMicroUsd - charge;
+          ? measuredMicroUsd
+          : undefined;
+      const charge = this.policy.budgeted
+        ? (measured ?? this.turnCost)
+        : Math.min(
+            measured ?? receipt.reservedMicroUsd,
+            receipt.reservedMicroUsd,
+          );
       return {
         result: true,
         next: {
@@ -444,14 +443,11 @@ export class GuestAdmission {
               reservedMicroUsd: charge,
             },
           },
-          ...(this.policy.budgeted && returned > 0
+          ...(this.policy.budgeted
             ? {
                 month: {
                   key: monthOf(now),
-                  chargedMicroUsd: Math.max(
-                    0,
-                    chargedThisMonth(state, now) - returned,
-                  ),
+                  chargedMicroUsd: chargedThisMonth(state, now) + charge,
                 },
               }
             : {}),

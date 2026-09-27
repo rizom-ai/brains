@@ -50,7 +50,7 @@ export function createDefaultGuestPolicy(origin: string): GuestPolicy {
       toolSteps: 3,
       toolResultCharacters: 12000,
       retrieval: { rows: 5, rowBytes: 12000, queryCharacters: 4000 },
-      requestsPerMinute: 3,
+      requestsPerMinute: 6,
       requestsPerDay: 30,
       globalRequestsPerMinute: 30,
       globalRequestsPerDay: 300,
@@ -59,9 +59,10 @@ export function createDefaultGuestPolicy(origin: string): GuestPolicy {
       streamIdleTimeoutSeconds: 30,
     },
     retention: { idleSeconds: 3600, maxAgeSeconds: 3600 },
-    // Each question reserves maxTurnUsd until its cost is measured; the daily
-    // budget bounds a configured policy, the owner's monthly budget a budgeted one.
-    budget: { dailyUsd: 4, maxTurnUsd: 0.5 },
+    // maxTurnUsd is the most one answer can cost: the caps above hold one
+    // answer to about two cents, and an answer whose cost is unknown is charged
+    // this. The daily budget bounds a configured policy only.
+    budget: { dailyUsd: 4, maxTurnUsd: 0.05 },
     usageRecord: {
       maxRecords: 1000,
       maxDenialRecords: 1000,

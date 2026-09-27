@@ -106,7 +106,6 @@ export class GuestIssuance {
           const attempts = state.attempts.filter((time) => time > now - dayMs);
           if (
             !state.enabled ||
-            state.policy !== policy ||
             state.slots[key] ||
             lifetime.createdAt > now ||
             lifetime.expiresAt <= now ||
