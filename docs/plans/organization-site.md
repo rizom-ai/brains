@@ -4,7 +4,7 @@ Last updated: 2026-09-26
 
 ## Status
 
-In progress on `work/organization-atlas`: slices 1 and 2 are committed and not yet merged; slice 3 replaces the agent terrain that slice 2 drew with the radar. Five slices, each shippable on its own; the first is a pure extraction, the second is the walking skeleton.
+In progress on `work/organization-atlas`: slices 1 to 3 are committed and not yet merged; slice 4 is built. Five slices, each shippable on its own; the first is a pure extraction, the second is the walking skeleton.
 
 ## Goal
 
@@ -66,10 +66,10 @@ The organization homepage draws the approved mockup: the scope, named agents, co
 
 The authored opening replaces the profile fallback; topics and the contact door appear when the brain serves `/contact`; the Ask box docks when Web Chat serves it.
 
-- Tests first: public `ask-content` supplies the title, introduction and topics; without the contact route there are no topic links and no door; with Ask-box availability recorded, the host and box script render.
+- Tests first: public `ask-content` supplies the opening, and without it the profile's stands; the shared loader keeps the authored words without a door where no contact form is reachable, while the professional homepage keeps its list page without a door; with a contact URL the topics and door render, and with Ask-box availability recorded the host and box script render; an authored map caption names the radar and its legend.
 - Build: the shared opening loader returns the authored content with a nullable contact URL; the organization datasource uses it together with the Ask-box availability check.
-- Fixtures: an `ask-content` entity in the team seed content; `contact` added to the `add` list in `test-apps/team/brain.yaml`.
-- Verify: a preview rebuild shows the authored opening and a working door to `/contact`; with the local-test Ask preset, the box docks. No paid guest messages are sent.
+- Fixtures: an `ask-content` entity in the team seed content. The contact intake stays out of the canonical team app: it is unreleased and default-off with every policy explicit, so the door and box are verified with a local, uncommitted intake and the Web Chat `local-test` preset.
+- Verify: a preview rebuild shows the authored opening, a working door to `/contact` and the docked box. No paid guest messages are sent.
 
 ### 5. About page
 

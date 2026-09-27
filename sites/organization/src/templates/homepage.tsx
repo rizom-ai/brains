@@ -12,7 +12,11 @@ export function OrganizationHomepage({
   profile,
   opening,
   map,
+  askBox,
 }: OrganizationHomepageData): JSX.Element {
+  // The map is named by the team's caption when it wrote one.
+  const caption =
+    opening.mapCaption ?? "Closer to the centre, closer to our work";
   const description =
     [profile.intro, profile.description, profile.tagline].find(Boolean) ??
     profile.name;
@@ -25,12 +29,21 @@ export function OrganizationHomepage({
         map={
           map
             ? {
-                label: "The people, teams and organizations we work with",
-                element: <AgentRadarMap radar={map} team={profile.name} />,
+                label:
+                  opening.mapCaption ??
+                  "The people, teams and organizations we work with",
+                element: (
+                  <AgentRadarMap
+                    radar={map}
+                    team={profile.name}
+                    caption={caption}
+                  />
+                ),
               }
             : null
         }
         owner={profile.name}
+        askBox={askBox}
       />
     </>
   );

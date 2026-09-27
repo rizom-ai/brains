@@ -1,6 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { openingFromProfile } from "../src/datasources/homepage-datasource";
+import {
+  openingFromProfile,
+  organizationHomepageData,
+} from "../src/datasources/homepage-datasource";
 import { organizationProfileSchema } from "../src/schemas/organization-profile";
 import type { AgentRadar, RadarAgent } from "../src/schemas/radar";
 import { OrganizationHomepage } from "../src/templates/homepage";
@@ -106,6 +109,7 @@ describe("organization homepage", () => {
         profile={profile}
         opening={openingFromProfile(profile)}
         map={map}
+        askBox={false}
       />,
     );
   const markOf = (name: string): string =>
@@ -185,5 +189,77 @@ describe("organization homepage", () => {
     const bare = html(null);
     expect(bare).toContain("Shared knowledge, kept alive");
     expect(bare).not.toContain('class="atlas__map');
+  });
+});
+
+describe("organization homepage conversation", () => {
+  const authored = {
+    title: "Ask the team what it has learned",
+    introduction: "We keep a shared memory and answer from it.",
+    topics: ["Shared research"],
+    topicsHeading: "Where would you start?",
+    contactLabel: "Talk to the team",
+    contactNote: null,
+    attribution: "In our own words",
+    mapCaption: null,
+    contactUrl: "http://localhost:8080/contact",
+  };
+
+  it("opens with the authored words when the team has written them", () => {
+    const data = organizationHomepageData({
+      profile,
+      authored,
+      map: radar,
+      askBox: false,
+    });
+    expect(data.opening).toBe(authored);
+  });
+
+  it("falls back to the anchor profile's words when nothing is authored", () => {
+    const data = organizationHomepageData({
+      profile,
+      authored: null,
+      map: radar,
+      askBox: false,
+    });
+    expect(data.opening).toEqual(openingFromProfile(profile));
+  });
+
+  it("opens the door and docks the Ask box when both can receive a visitor", () => {
+    const page = renderToStaticMarkup(
+      <OrganizationHomepage
+        {...organizationHomepageData({
+          profile,
+          authored,
+          map: radar,
+          askBox: true,
+        })}
+      />,
+    );
+    expect(page).toContain('class="atlas__door"');
+    expect(page).toContain('href="http://localhost:8080/contact"');
+    expect(page).toContain("Talk to the team");
+    expect(page).toContain('data-ask-box=""');
+    expect(page).toContain('src="/ask/assets/box.js"');
+  });
+});
+
+describe("organization homepage caption", () => {
+  it("names the map by the caption the team wrote", () => {
+    const page = renderToStaticMarkup(
+      <OrganizationHomepage
+        profile={profile}
+        opening={{
+          ...openingFromProfile(profile),
+          mapCaption: "Who we work with",
+        }}
+        map={radar}
+        askBox={false}
+      />,
+    );
+    expect(page).toContain('aria-label="Who we work with"');
+    const legend = page.split('class="atlas__legend"')[1] ?? "";
+    expect(legend).toContain("Who we work with");
+    expect(legend).not.toContain("Closer to the centre, closer to our work");
   });
 });

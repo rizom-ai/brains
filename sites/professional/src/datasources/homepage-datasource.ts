@@ -52,6 +52,16 @@ interface HomepageDataSourceOutput {
   homepageOpening?: boolean;
 }
 
+/**
+ * The professional homepage opens on the atlas only with a door to the
+ * contact form; without one it keeps its list homepage.
+ */
+export function requireDoor(
+  opening: HomepageOpeningData | null,
+): HomepageOpeningData | null {
+  return opening?.contactUrl ? opening : null;
+}
+
 /** The authored-homepage placement, only when the site opts in. */
 export interface HomepagePlacementLoaders {
   loadOpening?:
@@ -99,7 +109,7 @@ export class HomepageListDataSource implements DataSource {
   > {
     const { loadOpening, loadAtlas, chatAvailable } = this.placement;
     if (!loadOpening) return {};
-    const opening = await loadOpening(context);
+    const opening = requireDoor(await loadOpening(context));
     if (!opening) return { homepageOpening: true, opening, atlas: null };
     const atlas = loadAtlas ? await loadAtlas(context) : null;
     const askBox = (await chatAvailable?.(context)) ?? false;

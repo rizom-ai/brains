@@ -145,7 +145,7 @@ describe("authored opening", () => {
     expect(result?.contactUrl).toBe("https://preview.brain.test/contact");
   });
 
-  it("omits the opening when the form is not reachable where the build is served", async () => {
+  it("keeps the authored opening, without a door, where the form is not reachable", async () => {
     const runtime = context();
     const routes = runtime.webRoutes.getRoutes();
     // A form that does not serve preview cannot back a preview door.
@@ -155,19 +155,19 @@ describe("authored opening", () => {
         definition: { ...route.definition, preview: false },
       })),
     );
-    expect(
-      await loadHomepageOpening(
-        { entityService: runtime.entityService, publishedOnly: false },
-        runtime,
-      ),
-    ).toBeNull();
+    const preview = await loadHomepageOpening(
+      { entityService: runtime.entityService, publishedOnly: false },
+      runtime,
+    );
+    expect(preview?.title).toBe("A different opening");
+    expect(preview?.contactUrl).toBeNull();
     runtime.webRoutes.getRoutes = mock(() => []);
-    expect(
-      await loadHomepageOpening(
-        { entityService: runtime.entityService },
-        runtime,
-      ),
-    ).toBeNull();
+    const production = await loadHomepageOpening(
+      { entityService: runtime.entityService },
+      runtime,
+    );
+    expect(production?.title).toBe("A different opening");
+    expect(production?.contactUrl).toBeNull();
   });
 
   it("renders where a separate worker builds the site, which advertises no endpoints", async () => {

@@ -8,6 +8,8 @@ import { ServicePlugin } from "@brains/plugins";
 import {
   HOMEPAGE_ATLAS_SCRIPT,
   HOMEPAGE_ATLAS_SCRIPT_PATH,
+  homepageChatAvailable,
+  loadHomepageOpening,
 } from "@brains/site-atlas";
 import { createTemplate } from "@brains/templates";
 import {
@@ -45,7 +47,14 @@ export class OrganizationSitePlugin extends ServicePlugin<
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
-    context.entities.registerDataSource(new OrganizationHomepageDataSource());
+    context.entities.registerDataSource(
+      new OrganizationHomepageDataSource({
+        loadOpening: (buildContext): ReturnType<typeof loadHomepageOpening> =>
+          loadHomepageOpening(buildContext, context),
+        chatAvailable: (buildContext): Promise<boolean> =>
+          homepageChatAvailable(buildContext, context),
+      }),
+    );
 
     context.templates.register({
       homepage: createTemplate<OrganizationHomepageData>({

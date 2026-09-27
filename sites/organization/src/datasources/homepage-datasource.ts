@@ -4,7 +4,13 @@ import type {
   DataSourceSchema,
 } from "@brains/plugins";
 import { fetchAnchorProfileData } from "@brains/profile";
-import type { HomepageOpeningContent } from "@brains/site-atlas";
+import {
+  homepageOpeningSchema,
+  type HomepageOpeningContent,
+  type HomepageOpeningData,
+} from "@brains/site-atlas";
+import type { OrganizationHomepageData } from "../schemas/homepage";
+import type { AgentRadar } from "../schemas/radar";
 import {
   organizationProfileSchema,
   type OrganizationProfile,
@@ -33,14 +39,53 @@ export function openingFromProfile(
 }
 
 /**
- * Homepage datasource: the anchor profile, the opening it gives, and the
- * agent radar drawn around the brain.
+ * The homepage's data: the authored opening when the team has written one,
+ * else the one its anchor profile gives, beside the radar and, when Web Chat
+ * serves it, the Ask box.
+ */
+export function organizationHomepageData({
+  profile,
+  authored,
+  map,
+  askBox,
+}: {
+  profile: OrganizationProfile;
+  authored: HomepageOpeningContent | null;
+  map: AgentRadar | null;
+  askBox: boolean;
+}): OrganizationHomepageData {
+  return {
+    profile,
+    opening: authored ?? openingFromProfile(profile),
+    map,
+    askBox,
+  };
+}
+
+/** The authored opening and the Ask box's availability, read with the plugin's runtime. */
+export interface OrganizationHomepageLoaders {
+  loadOpening?:
+    | ((context: BaseDataSourceContext) => Promise<HomepageOpeningData | null>)
+    | undefined;
+  chatAvailable?:
+    ((context: BaseDataSourceContext) => Promise<boolean>) | undefined;
+}
+
+/**
+ * Homepage datasource: the anchor profile, the opening, the agent radar
+ * drawn around the brain, and whether the Ask box can dock.
  */
 export class OrganizationHomepageDataSource implements DataSource {
   public readonly id = "organization:homepage";
   public readonly name = "Organization Homepage DataSource";
   public readonly description =
-    "Fetches the anchor profile and the agent radar for the organization homepage";
+    "Fetches the anchor profile, the authored opening and the agent radar for the organization homepage";
+
+  private readonly loaders: OrganizationHomepageLoaders;
+
+  constructor(loaders: OrganizationHomepageLoaders = {}) {
+    this.loaders = loaders;
+  }
 
   async fetch<T>(
     _query: unknown,
@@ -48,20 +93,24 @@ export class OrganizationHomepageDataSource implements DataSource {
     context: BaseDataSourceContext,
   ): Promise<T> {
     const entityService = context.entityService;
-    const profile = await fetchAnchorProfileData(
-      entityService,
-      organizationProfileSchema,
+    const [profile, map, authored, askBox] = await Promise.all([
+      fetchAnchorProfileData(entityService, organizationProfileSchema),
+      loadAgentRadar({
+        entityService,
+        semantic: {
+          project: (request) => entityService.projectSemanticSpace(request),
+        },
+      }),
+      this.loaders.loadOpening?.(context) ?? null,
+      this.loaders.chatAvailable?.(context) ?? false,
+    ]);
+    return outputSchema.parse(
+      organizationHomepageData({
+        profile,
+        authored: homepageOpeningSchema.parse(authored),
+        map,
+        askBox,
+      }),
     );
-    const map = await loadAgentRadar({
-      entityService,
-      semantic: {
-        project: (request) => entityService.projectSemanticSpace(request),
-      },
-    });
-    return outputSchema.parse({
-      profile,
-      opening: openingFromProfile(profile),
-      map,
-    });
   }
 }

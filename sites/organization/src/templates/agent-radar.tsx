@@ -149,9 +149,12 @@ function Mark({ agent }: { agent: RadarAgent }): JSX.Element {
 export function AgentRadarMap({
   radar,
   team,
+  caption,
 }: {
   radar: AgentRadar;
   team: string;
+  /** The legend's caption: the team's own words, or what the radar shows. */
+  caption: string;
 }): JSX.Element {
   const byId = new Map(radar.agents.map((agent) => [agent.id, agent]));
   const lone = radar.agents.filter((agent) => !agent.constellation);
@@ -238,9 +241,7 @@ export function AgentRadarMap({
         </div>
       </div>
       <p className="atlas__legend">
-        <span className="atlas__caption">
-          Closer to the centre, closer to our work
-        </span>
+        <span className="atlas__caption">{caption}</span>
         {kinds.map(({ kind, label }) => (
           <span key={kind} className={`radar__key--${kind}`}>
             <i aria-hidden="true" />
