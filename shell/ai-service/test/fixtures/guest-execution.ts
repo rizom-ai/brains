@@ -16,7 +16,5 @@ export const testGuestExecution: GuestExecutionPolicy = {
   },
   maxCostMicroUsd: 100000,
 };
-export const testGuestAccounting: GuestExecutionAccounting = {
-  model: async () => ({ inputTokens: 8000, maxCostMicroUsd: 1 }),
-  tool: async () => ({ maxCostMicroUsd: 1 }),
-};
+// Unpriced: turns settle with unknown cost unless a test supplies pricing.
+export const testGuestAccounting: GuestExecutionAccounting = {};

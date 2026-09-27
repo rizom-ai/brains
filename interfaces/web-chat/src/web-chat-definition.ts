@@ -236,7 +236,6 @@ export function createWebChatDefinition(
             preview: configured || activated,
           });
         };
-        await guestControl.resumeApprovedLimits();
         await recordAvailability();
         const managedPolicy = guestControl.policy;
         const authenticatedRoutePath =

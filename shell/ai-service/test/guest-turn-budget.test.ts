@@ -5,7 +5,6 @@ import { MockLanguageModelV3 } from "ai/test";
 import {
   GuestTurnBudget,
   type GuestModelCall,
-  type GuestExecutionAccounting,
   type GuestProviderUsage,
 } from "../src/guest-turn-budget";
 import {
@@ -14,7 +13,6 @@ import {
 } from "./fixtures/guest-execution";
 
 type ModelReply = Awaited<ReturnType<MockLanguageModelV3["doGenerate"]>>;
-type ModelQuote = Awaited<ReturnType<GuestExecutionAccounting["model"]>>;
 function reply(outputTokens: number): ModelReply {
   return {
     content: [{ type: "text", text: "answer" }],
@@ -38,74 +36,66 @@ describe("guest turn budget", () => {
     );
   });
 
-  it("rejects oversized request bytes and counted context tokens before the provider runs", async () => {
-    for (const accounting of [
-      testGuestAccounting,
-      {
-        ...testGuestAccounting,
-        model: async (): Promise<ModelQuote> => ({
-          inputTokens: 1_000_000,
-          maxCostMicroUsd: 1,
-        }),
-      },
-    ]) {
-      const budget = new GuestTurnBudget(
-        {
-          ...testGuestExecution,
-          limits: {
-            ...testGuestExecution.limits,
-            contextBytes: accounting === testGuestAccounting ? 1 : 32000,
-          },
-        },
-        accounting,
-      );
-      const model = new MockLanguageModelV3();
-      try {
-        expect(budget.wrapModel(model).doGenerate(params)).rejects.toThrow(
-          "Guest context limit exceeded",
-        );
-        expect(model.doGenerateCalls).toHaveLength(0);
-      } finally {
-        budget.dispose();
-      }
-    }
-  });
-
-  it("caps output across model steps and charges the same budget for tools and generation", async () => {
-    const accounting: GuestExecutionAccounting = {
-      model: async () => ({ inputTokens: 5, maxCostMicroUsd: 60 }),
-      tool: async () => ({ maxCostMicroUsd: 30 }),
-    };
-    const budget = new GuestTurnBudget(
+  it("rejects oversized request bytes before the provider runs, and a report beyond the context bound", async () => {
+    const small = new GuestTurnBudget(
       {
         ...testGuestExecution,
-        maxCostMicroUsd: 100,
-        limits: { ...testGuestExecution.limits, outputTokens: 10 },
+        limits: { ...testGuestExecution.limits, contextBytes: 1 },
       },
-      accounting,
+      testGuestAccounting,
     );
-    const model = new MockLanguageModelV3({
+    const model = new MockLanguageModelV3();
+    try {
+      expect(small.wrapModel(model).doGenerate(params)).rejects.toThrow(
+        "Guest context limit exceeded",
+      );
+      expect(model.doGenerateCalls).toHaveLength(0);
+    } finally {
+      small.dispose();
+    }
+    const budget = new GuestTurnBudget(testGuestExecution, testGuestAccounting);
+    const oversized = reply(1);
+    const counted = new MockLanguageModelV3({
       doGenerate: {
-        content: [{ type: "text", text: "answer" }],
-        finishReason: { unified: "stop", raw: "stop" },
+        ...oversized,
         usage: {
-          inputTokens: { total: 5, noCache: 5, cacheRead: 0, cacheWrite: 0 },
-          outputTokens: { total: 7, text: 7, reasoning: 0 },
+          ...oversized.usage,
+          inputTokens: {
+            total: testGuestExecution.limits.contextTokens + 1,
+            noCache: 0,
+            cacheRead: 0,
+            cacheWrite: 0,
+          },
         },
-        warnings: [],
       },
     });
     try {
-      const wrapped = budget.wrapModel(model);
-      await wrapped.doGenerate({ ...params, maxOutputTokens: 99999 });
-      expect(model.doGenerateCalls[0]?.maxOutputTokens).toBe(10);
-      await budget.executeTool("system_search", {}, async () => ({
-        success: true,
-      }));
-      expect(wrapped.doGenerate(params)).rejects.toThrow(
-        "Guest cost limit exceeded",
+      expect(budget.wrapModel(counted).doGenerate(params)).rejects.toThrow(
+        "Guest provider exceeded accounted token bounds",
       );
-      expect(model.doGenerateCalls).toHaveLength(1);
+    } finally {
+      budget.dispose();
+    }
+  });
+
+  it("bounds a turn by its caps alone, never refusing a call over cost", async () => {
+    const budget = new GuestTurnBudget(
+      { ...testGuestExecution, maxCostMicroUsd: 1 },
+      testGuestAccounting,
+    );
+    const model = new MockLanguageModelV3({ doGenerate: reply(1) });
+    const handler = mock(async () => ({ success: true }));
+    try {
+      const wrapped = budget.wrapModel(model);
+      for (const _step of [1, 2, 3]) {
+        await wrapped.doGenerate(params);
+        await budget.executeTool("system_search", {}, handler);
+      }
+      expect(model.doGenerateCalls).toHaveLength(3);
+      expect(handler).toHaveBeenCalledTimes(3);
+      expect(wrapped.doGenerate(params)).rejects.toThrow(
+        "Guest model step limit exceeded",
+      );
     } finally {
       budget.dispose();
     }
@@ -226,36 +216,6 @@ describe("guest turn budget", () => {
     }
   });
 
-  it("reserves one shared cost allowance across concurrent tools and subsequent generation", async () => {
-    const accounting: GuestExecutionAccounting = {
-      model: async () => ({ inputTokens: 8000, maxCostMicroUsd: 5 }),
-      tool: async () => ({ maxCostMicroUsd: 6 }),
-    };
-    const budget = new GuestTurnBudget(
-      { ...testGuestExecution, maxCostMicroUsd: 10 },
-      accounting,
-    );
-    const handler = mock(async () => ({ success: true }));
-    const model = new MockLanguageModelV3();
-    try {
-      const results = await Promise.allSettled([
-        budget.executeTool("system_get", {}, handler),
-        budget.executeTool("system_get", {}, handler),
-      ]);
-      expect(results.map((result) => result.status)).toEqual([
-        "fulfilled",
-        "rejected",
-      ]);
-      expect(handler).toHaveBeenCalledTimes(1);
-      expect(budget.wrapModel(model).doGenerate(params)).rejects.toThrow(
-        "Guest cost limit exceeded",
-      );
-      expect(model.doGenerateCalls).toHaveLength(0);
-    } finally {
-      budget.dispose();
-    }
-  });
-
   it("does not reuse the output allowance after an uncertain provider failure", () => {
     const model = new MockLanguageModelV3({
       doGenerate: async (): Promise<never> => {
@@ -274,25 +234,6 @@ describe("guest turn budget", () => {
       expect(model.doGenerateCalls).toHaveLength(1);
     } finally {
       budget.dispose();
-    }
-  });
-
-  it("rejects invalid accounting rather than starting unpaid work", () => {
-    for (const cost of [-1, 0.5, Infinity, Number.MAX_SAFE_INTEGER + 1]) {
-      const accounting: GuestExecutionAccounting = {
-        ...testGuestAccounting,
-        model: async () => ({ inputTokens: 1, maxCostMicroUsd: cost }),
-      };
-      const budget = new GuestTurnBudget(testGuestExecution, accounting);
-      const model = new MockLanguageModelV3();
-      try {
-        expect(budget.wrapModel(model).doGenerate(params)).rejects.toThrow(
-          "Guest accounting unavailable",
-        );
-        expect(model.doGenerateCalls).toHaveLength(0);
-      } finally {
-        budget.dispose();
-      }
     }
   });
 
@@ -324,48 +265,26 @@ describe("guest turn budget", () => {
     }
   });
 
-  it("fails closed without leaking accounting service errors", () => {
-    const budget = new GuestTurnBudget(testGuestExecution, {
-      ...testGuestAccounting,
-      model: async (): Promise<never> => {
-        throw new Error("PRIVATE pricing backend details");
-      },
-    });
-    const model = new MockLanguageModelV3();
-    try {
-      expect(budget.wrapModel(model).doGenerate(params)).rejects.toThrow(
-        "Guest accounting unavailable",
-      );
-      expect(model.doGenerateCalls).toHaveLength(0);
-    } finally {
-      budget.dispose();
-    }
-  });
-
   it("rejects overlapping model calls against one output allowance", async () => {
-    const quote = deferred<ModelQuote>();
+    const answer = deferred<ModelReply>();
     const entered = deferred();
-    const budget = new GuestTurnBudget(testGuestExecution, {
-      ...testGuestAccounting,
-      model: (): Promise<ModelQuote> => {
+    const model = new MockLanguageModelV3({
+      doGenerate: (): Promise<ModelReply> => {
         entered.resolve();
-        return quote.promise;
+        return answer.promise;
       },
     });
-    const model = new MockLanguageModelV3();
+    const budget = new GuestTurnBudget(testGuestExecution, testGuestAccounting);
     try {
       const wrapped = budget.wrapModel(model);
-      const first = Promise.resolve(wrapped.doGenerate(params)).catch(
-        (error: unknown) => error,
-      );
+      const first = wrapped.doGenerate(params);
       await entered.promise;
-      const second = wrapped.doGenerate(params);
-      quote.reject(new Error("Accounting unavailable"));
-      expect(second).rejects.toThrow("Guest model call already active");
-      expect(await first).toMatchObject({
-        message: "Guest accounting unavailable",
-      });
-      expect(model.doGenerateCalls).toHaveLength(0);
+      expect(wrapped.doGenerate(params)).rejects.toThrow(
+        "Guest model call already active",
+      );
+      answer.resolve(reply(1));
+      expect(await first).toMatchObject({ finishReason: { unified: "stop" } });
+      expect(model.doGenerateCalls).toHaveLength(1);
     } finally {
       budget.dispose();
     }
@@ -404,34 +323,6 @@ describe("guest turn budget", () => {
     );
     expect(handler).not.toHaveBeenCalled();
   });
-
-  it("keeps ignored cancellation pending and blocks late work once accounting returns", async () => {
-    const controller = new AbortController();
-    const counted = deferred<ModelQuote>();
-    const entered = deferred();
-    const budget = new GuestTurnBudget(
-      testGuestExecution,
-      {
-        ...testGuestAccounting,
-        model: (): Promise<ModelQuote> => {
-          entered.resolve();
-          return counted.promise;
-        },
-      },
-      controller.signal,
-    );
-    const model = new MockLanguageModelV3();
-    try {
-      const pending = budget.wrapModel(model).doGenerate(params);
-      await entered.promise;
-      controller.abort(new Error("Guest request stopped"));
-      counted.resolve({ inputTokens: 1, maxCostMicroUsd: 1 });
-      expect(pending).rejects.toThrow("Guest request stopped");
-      expect(model.doGenerateCalls).toHaveLength(0);
-    } finally {
-      budget.dispose();
-    }
-  });
 });
 
 describe("guest turn settlement", () => {
@@ -454,7 +345,7 @@ describe("guest turn settlement", () => {
     });
   }
 
-  it("settles from the usage the provider reported, never from its quotes", async () => {
+  it("settles from the usage the provider reported", async () => {
     const priced: GuestProviderUsage[] = [];
     const budget = new GuestTurnBudget(testGuestExecution, {
       ...testGuestAccounting,

@@ -452,7 +452,7 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
 
     // The activation endpoint takes no budget: it reopens with the one set in Studio.
     expect((await control(true)).status).toBe(409);
-    await openWithBudget(state, 1);
+    await openWithBudget(state, 0.1);
     expect((await browser.client.openGuestSession()).canSend).toBe(true);
     expect(
       (await browser.fetch("/ask/assets/guest.js", { method: "GET" })).status,
@@ -485,7 +485,7 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     const second = await post(browser, message("Follow-up", id));
     expect(second.status).toBe(200);
     await events(second);
-    // Two unmeasured questions hold their $0.50 quotes: the $1 is spent.
+    // Two answers of unknown cost are charged $0.05 each: the $0.10 is spent.
     expect((await browser.client.openGuestSession()).canSend).toBe(false);
     expect((await control(true)).status).toBe(200);
     expect((await post(browser, message("Third", id))).status).toBe(429);
@@ -613,7 +613,7 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
       readiness: false,
       profileAvailable: true,
     });
-    await openWithBudget(state, 1);
+    await openWithBudget(state, 0.1);
     const browser = state.browser();
     const session = await browser.client.openGuestSession();
     expect(session.canSend).toBe(true);
@@ -629,7 +629,7 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     expect(second.status).toBe(200);
     await events(second);
     expect(state.calls).toHaveLength(2);
-    // The $1 is spent: a new visitor gets no session, so no question runs.
+    // The $0.10 is spent: a new visitor gets no session, so no question runs.
     const other = state.browser();
     expect(other.client.openGuestSession()).rejects.toThrow("(503)");
     expect((await post(browser, message("Third", id))).status).toBe(429);
@@ -1712,7 +1712,7 @@ describe("guest chat monitor in Studio", () => {
         await act(state, { actionId: "switch-on", input, mode: "prepare" }),
       );
     expect(prepared.summary).toContain("a monthly budget of $10.00");
-    expect(prepared.summary).toContain("reserves $0.50");
+    expect(prepared.summary).toContain("or $0.05 when that cannot be measured");
     await openWithBudget(state);
     const browser = state.browser();
     expect((await browser.client.openGuestSession()).canSend).toBe(true);
@@ -1726,7 +1726,7 @@ describe("guest chat monitor in Studio", () => {
 
   it("shows measured and unknown cost and refusals, against the month's budget", async () => {
     const state = await setup(managed);
-    await openWithBudget(state, 1);
+    await openWithBudget(state, 0.05);
     const browser = state.browser();
     const session = await browser.client.openGuestSession();
     state.settlement = {
@@ -1758,10 +1758,10 @@ describe("guest chat monitor in Studio", () => {
     expect(shown).toContain("What is public?");
     expect(shown).not.toContain("And then?");
     expect(shown).toContain("Measured from provider usage");
-    expect(shown).toContain("the rest returns to the budget");
+    expect(shown).toContain("when that cannot be measured");
     expect(shown).toMatch(/"label":"Cost unknown","value":1/);
-    // $0.0019 measured plus the unknown question's whole $0.50 quote.
-    expect(shown).toMatch(/"label":"This month","value":0\.501896,"max":1/);
+    // $0.0019 measured plus $0.05 for the unknown answer: past the $0.05 budget.
+    expect(shown).toMatch(/"label":"This month","value":0\.05,"max":0\.05/);
     expect(shown).toContain("guest-denials");
   });
 

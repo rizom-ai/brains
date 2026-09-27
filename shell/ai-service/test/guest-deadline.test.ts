@@ -1,11 +1,7 @@
 import { describe, expect, it, mock, spyOn } from "bun:test";
 import { MockLanguageModelV3 } from "ai/test";
 import { deferred } from "@brains/utils/deferred";
-import {
-  GuestTurnBudget,
-  type GuestExecutionAccounting,
-  type GuestModelCall,
-} from "../src/guest-turn-budget";
+import { GuestTurnBudget, type GuestModelCall } from "../src/guest-turn-budget";
 import {
   testGuestExecution,
   testGuestAccounting,
@@ -21,24 +17,15 @@ const params: GuestModelCall = {
 
 describe("guest elapsed-time deadlines", () => {
   for (const operation of ["model", "tool"] as const) {
-    it(`blocks ${operation} execution after accounting crosses the deadline without a timer tick`, async () => {
+    it(`blocks ${operation} execution once the clock crosses the deadline without a timer tick`, async () => {
       let now = 100;
-      const accounting: GuestExecutionAccounting = {
-        model: async () => {
-          now = 1100;
-          return { inputTokens: 1, maxCostMicroUsd: 1 };
-        },
-        tool: async () => {
-          now = 1100;
-          return { maxCostMicroUsd: 1 };
-        },
-      };
       const budget = new GuestTurnBudget(
         policy,
-        accounting,
+        testGuestAccounting,
         undefined,
         () => now,
       );
+      now = 1100;
       const model = new MockLanguageModelV3();
       const handler = mock(async () => ({ success: true }));
       try {
@@ -92,28 +79,6 @@ describe("guest elapsed-time deadlines", () => {
       expect(await pending).toBeNull();
     } finally {
       release.resolve();
-      budget.dispose();
-    }
-  });
-
-  it("rejects expired work before even starting accounting", async () => {
-    let now = 0;
-    const quote = mock(testGuestAccounting.tool);
-    const budget = new GuestTurnBudget(
-      policy,
-      { ...testGuestAccounting, tool: quote },
-      undefined,
-      () => now,
-    );
-    try {
-      now = 1000;
-      expect(
-        await budget
-          .executeTool("system_get", {}, async () => ({ success: true }))
-          .catch(() => null),
-      ).toBeNull();
-      expect(quote).not.toHaveBeenCalled();
-    } finally {
       budget.dispose();
     }
   });

@@ -8,7 +8,6 @@ import { createChatApiPaths } from "@brains/contracts/chat";
 import type { IRuntimeStateNamespace } from "@brains/runtime-state";
 import { createDefaultGuestPolicy } from "./guest-preset";
 import { GuestAdmission, type GuestBudgetStatus } from "./guest-admission";
-import { GuestIssuance } from "./guest-issuance";
 import type { EnabledGuestPolicy } from "./guest-policy";
 
 function privateJsonResponse(body: unknown, status = 200): Response {
@@ -40,7 +39,6 @@ interface ControlContext {
 export class GuestAccessControl {
   readonly policy: EnabledGuestPolicy | undefined;
   private readonly admission: GuestAdmission | undefined;
-  private readonly issuance: GuestIssuance | undefined;
   private readonly context: ControlContext;
   private readonly resolveAccess: (request: Request) => Promise<BrowserAccess>;
   private readonly ready: () => boolean;
@@ -70,7 +68,6 @@ export class GuestAccessControl {
       requireAuthorization: true,
       ...(now ? { now } : {}),
     });
-    this.issuance = new GuestIssuance(context.runtimeState, now);
   }
 
   async isAuthorized(): Promise<boolean> {
@@ -102,22 +99,7 @@ export class GuestAccessControl {
     const budget =
       monthlyMicroUsd ?? (await this.admission.accessStatus())?.budgetMicroUsd;
     if (!budget) return "no-budget";
-    if (!(await this.admission.authorize(budget))) return "unavailable";
-    // Sessions follow the limits in force when the owner switches on; a ledger
-    // written under earlier limits refuses every new session until it adopts them.
-    return this.policy &&
-      (await this.issuance?.applyPolicy(this.policy.issuance, true))
-      ? "on"
-      : "unavailable";
-  }
-
-  /**
-   * At startup: when the owner authorized exactly this policy, sessions follow
-   * its limits. Never adopts a policy the owner has not switched on.
-   */
-  async resumeApprovedLimits(): Promise<void> {
-    if (!this.policy || !(await this.isAuthorized())) return;
-    await this.issuance?.applyPolicy(this.policy.issuance, true);
+    return (await this.admission.authorize(budget)) ? "on" : "unavailable";
   }
 
   /** Closes guest chat; admissions stop at once. */

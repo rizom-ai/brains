@@ -47,7 +47,7 @@ const monitorDataSchema = z.object({
     budgetMicroUsd: count,
     /** This month's charge: quotes in flight and measured costs. */
     chargedMicroUsd: count,
-    quoteMicroUsd: count,
+    answerCapMicroUsd: count,
   }),
   today: periodSchema,
   month: periodSchema,
@@ -93,7 +93,8 @@ const switchOnAction = defineWorkspaceAction({
   label: "Open guest chat",
   permission: "admin",
   confirmation: { kind: "prepared" },
-  input: z.object({ monthlyUsd: z.number().min(0.5).max(10_000) }),
+  // At least one answer's cap; admission refuses anything smaller.
+  input: z.object({ monthlyUsd: z.number().min(0.05).max(10_000) }),
   output: z.object({ open: z.boolean() }),
 });
 /** The kill switch: one step, never behind a confirmation. */
@@ -270,7 +271,7 @@ const guestMonitor = defineStudioWorkspace({
               {
                 type: "notice" as const,
                 id: "guest-budget-note",
-                text: `Each question reserves ${dollars(door.quoteMicroUsd)} until its cost is measured; the rest returns to the budget. The budget starts over on the 1st of each month (UTC).`,
+                text: `Each answer is charged what it measurably cost, usually about a cent, or ${dollars(door.answerCapMicroUsd)} when that cannot be measured. The budget starts over on the 1st of each month (UTC).`,
               },
               {
                 type: "actions" as const,
@@ -451,7 +452,7 @@ async function load(deps: GuestMonitorDeps): Promise<MonitorData> {
       ready: status?.ready ?? true,
       budgetMicroUsd: status?.budgetMicroUsd ?? 0,
       chargedMicroUsd: status?.chargedMicroUsd ?? 0,
-      quoteMicroUsd: status?.quoteMicroUsd ?? 0,
+      answerCapMicroUsd: status?.answerCapMicroUsd ?? 0,
     },
     today: period(events, today),
     month: period(events, month),
@@ -540,7 +541,7 @@ export function bindGuestMonitor<TConfig, TState extends object>(
           if (!status) throw new Error("Guest chat cannot be switched here");
           const budget = Math.round(input.monthlyUsd * 1_000_000);
           return {
-            summary: `Open guest chat on ${status.origin} with a monthly budget of ${dollars(budget)}? Each question reserves ${dollars(status.quoteMicroUsd)} until its cost is measured, and the rest returns to the budget. ${dollars(status.chargedMicroUsd)} is already charged this month; the budget starts over on the 1st (UTC).`,
+            summary: `Open guest chat on ${status.origin} with a monthly budget of ${dollars(budget)}? Each answer is charged what it measurably cost, or ${dollars(status.answerCapMicroUsd)} when that cannot be measured. ${dollars(status.chargedMicroUsd)} is already spent this month; the budget starts over on the 1st (UTC).`,
             revision: `${status.enabled}:${status.budgetMicroUsd}:${status.chargedMicroUsd}`,
           };
         },
