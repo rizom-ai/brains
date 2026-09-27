@@ -95,7 +95,10 @@ export class AgentDiscoveryPlugin extends EntityPlugin<
   }
 
   protected override async getInstructions(): Promise<string> {
-    return getAgentDiscoveryInstructions();
+    return [
+      getAgentDiscoveryInstructions(),
+      'Agent approval/archive is a status field update on `entityType: "agent"`.',
+    ].join("\n");
   }
 }
 

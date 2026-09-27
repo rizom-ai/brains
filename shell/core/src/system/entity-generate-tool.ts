@@ -305,13 +305,15 @@ async function resolveGenerateOperation(
   const replace = operation.kind === "attachment" && operation.replace === true;
 
   if (operation.kind === "prompt" || operation.kind === "prompt-from-source") {
-    if (operation.entityType === "image") {
+    if (
+      services.entityRegistry.getEntityTypeConfig(operation.entityType)
+        .binaryStorage
+    ) {
       return {
         kind: "error",
         result: {
           success: false,
-          error:
-            "Use operation.kind 'standalone-image' or 'cover-image' for image generation.",
+          error: `Prompt generation does not support binary entity type '${operation.entityType}'. Use operation.kind 'attachment' for source-derived artifacts, or 'standalone-image' or 'cover-image' for generated images.`,
           code: "unsupported-generation",
         },
       };

@@ -200,11 +200,14 @@ export function buildEntityMutationEventContext(
   return Object.keys(eventContext).length > 0 ? eventContext : undefined;
 }
 
-export function sanitizeEntity<T extends BaseEntity>(entity: T): T {
-  if (entity.entityType === "image" && entity.content.startsWith("data:")) {
+export function sanitizeEntity<T extends BaseEntity>(
+  entity: T,
+  registry: SystemServices["entityRegistry"],
+): T {
+  if (registry.getEntityTypeConfig(entity.entityType).binaryStorage) {
     return {
       ...entity,
-      content: "[binary image data — use metadata for image info]",
+      content: `[binary ${entity.entityType} data — use metadata for ${entity.entityType} info]`,
     };
   }
   return entity;

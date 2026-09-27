@@ -44,7 +44,14 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
                   ...readOptions,
                 },
               })
-            ).map((r) => ({ ...r, entity: sanitizeEntity(r.entity) })),
+            ).map((r) => {
+              const entity = sanitizeEntity(r.entity, services.entityRegistry);
+              return {
+                ...r,
+                entity,
+                ...(entity !== r.entity ? { excerpt: entity.content } : {}),
+              };
+            }),
           },
         };
       },
@@ -90,7 +97,9 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
         }
         return {
           success: true,
-          data: { entity: sanitizeEntity(result.entity) },
+          data: {
+            entity: sanitizeEntity(result.entity, services.entityRegistry),
+          },
         };
       },
       {
@@ -130,24 +139,21 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
         if (input.status && input.status !== "any") {
           filter.metadata = { status: input.status };
         }
+        const { defaultSort } = services.entityRegistry.getEntityTypeConfig(
+          input.entityType,
+        );
         const entities = await entityService.listEntities({
           entityType: input.entityType,
-          options: { limit: input.limit ?? 20, filter, ...readOptions },
+          options: {
+            limit: input.limit ?? 20,
+            filter,
+            ...(defaultSort ? { sortFields: defaultSort } : {}),
+            ...readOptions,
+          },
         });
         const items = entities.map(
           ({ content: _, contentHash: __, ...rest }) => rest,
         );
-        if (input.entityType === "post") {
-          items.sort((left, right) => {
-            const leftDate = left.metadata["publishedAt"];
-            const rightDate = right.metadata["publishedAt"];
-            const leftTime =
-              typeof leftDate === "string" ? Date.parse(leftDate) : 0;
-            const rightTime =
-              typeof rightDate === "string" ? Date.parse(rightDate) : 0;
-            return rightTime - leftTime;
-          });
-        }
         return {
           success: true,
           data: { entities: items, count: items.length },

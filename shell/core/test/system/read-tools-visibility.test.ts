@@ -1,7 +1,11 @@
-import { beforeEach, describe, expect, it } from "bun:test";
+import { beforeEach, describe, expect, it, spyOn } from "bun:test";
 import type { Tool, ToolContext } from "@brains/mcp-service";
 import { toolResponseSchema } from "@brains/mcp-service";
-import type { BaseEntity, ContentVisibility } from "@brains/entity-service";
+import type {
+  BaseEntity,
+  ContentVisibility,
+  EntityTypeConfig,
+} from "@brains/entity-service";
 import { z } from "@brains/utils/zod";
 import { createSystemTools } from "../../src/system/tools";
 import { listInputSchema, searchInputSchema } from "../../src/system/schemas";
@@ -299,7 +303,11 @@ describe("read tools enforce caller visibility scope", () => {
       ]);
     });
 
-    it("sorts posts by publishedAt descending", async () => {
+    it("sorts posts by publishedAt before applying the limit", async () => {
+      services.entityRegistry.getEntityTypeConfig = (): EntityTypeConfig => ({
+        defaultSort: [{ field: "publishedAt", direction: "desc" as const }],
+      });
+      const list = spyOn(services.entityService, "listEntities");
       services.addEntities([
         {
           id: "older-post",
@@ -331,15 +339,30 @@ describe("read tools enforce caller visibility scope", () => {
         },
       ]);
 
-      const raw = await getTool("system_list").handler(
-        { entityType: "post" },
+      await getTool("system_list").handler(
+        { entityType: "post", limit: 1 },
         baseContext("admin"),
       );
-      const data = expectSuccess(raw, listDataSchema);
-      expect(data.entities.map((entity) => entity.id)).toEqual([
-        "newer-post",
-        "older-post",
-      ]);
+      expect(list).toHaveBeenCalledWith({
+        entityType: "post",
+        options: {
+          limit: 1,
+          filter: { visibilityScope: "restricted" },
+          sortFields: [{ field: "publishedAt", direction: "desc" }],
+        },
+      });
+    });
+
+    it("keeps the service default order for undeclared types", async () => {
+      const list = spyOn(services.entityService, "listEntities");
+      await getTool("system_list").handler(
+        { entityType: "doc" },
+        baseContext("admin"),
+      );
+      expect(list).toHaveBeenCalledWith({
+        entityType: "doc",
+        options: { limit: 20, filter: { visibilityScope: "restricted" } },
+      });
     });
   });
 
