@@ -185,6 +185,43 @@ discoveredAt: "2026-03-31T00:00:00.000Z"
       expect(parsed.notes).toBe("");
     });
 
+    const frontmatter = `---
+name: Partial
+brainName: Partial Brain
+url: https://partial.io
+status: discovered
+discoveredAt: "2026-03-31T00:00:00.000Z"
+---`;
+    const about = "## About\n\nField researcher.";
+    const skills =
+      "## Skills\n\n- Field Notes: Keep field notes [research, writing]";
+    const notes = "## Notes\n\nMet at the summit.";
+
+    it.each([
+      ["Notes", [about, skills]],
+      ["About", [skills, notes]],
+      ["Skills", [about, notes]],
+    ])("keeps the sections it has when %s is missing", (_missing, sections) => {
+      const parsed = adapter.parseAgentContent(
+        [frontmatter, ...sections].join("\n\n"),
+      );
+      const has = (section: string): boolean => sections.includes(section);
+
+      expect(parsed.about).toBe(has(about) ? "Field researcher." : "");
+      expect(parsed.skills).toEqual(
+        has(skills)
+          ? [
+              {
+                name: "Field Notes",
+                description: "Keep field notes",
+                tags: ["research", "writing"],
+              },
+            ]
+          : [],
+      );
+      expect(parsed.notes).toBe(has(notes) ? "Met at the summit." : "");
+    });
+
     it("should handle skills with no tags", () => {
       const content = `---
 name: Test

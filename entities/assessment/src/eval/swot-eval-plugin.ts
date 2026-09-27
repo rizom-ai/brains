@@ -1,4 +1,5 @@
 import type {
+  AgentBody,
   EntityPluginContext,
   IShell,
   Plugin,
@@ -6,11 +7,12 @@ import type {
 } from "@brains/plugins";
 import {
   BaseEntityAdapter,
+  agentBodySkillSchema,
   anchorProfileKindSchema,
   baseEntitySchema,
   createEntityPluginContext,
+  formatAgentBody,
 } from "@brains/plugins";
-import { StructuredContentFormatter } from "@brains/content-formatters";
 import { CallbackProgressReporter } from "@brains/utils/progress";
 import { z } from "@brains/utils/zod";
 import packageJson from "../../package.json";
@@ -19,12 +21,6 @@ import { SwotDerivationHandler } from "../handlers/swot-derivation-handler";
 import { swotEntitySchema, type SwotFrontmatter } from "../schemas/swot";
 
 const swotAdapter = new SwotAdapter();
-
-const evalAgentSkillSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  tags: z.array(z.string()),
-});
 
 const evalAgentStatusSchema = z.enum(["discovered", "approved"]);
 
@@ -63,62 +59,7 @@ const evalSkillEntitySchema = baseEntitySchema.extend({
   metadata: evalSkillDataSchema,
 });
 
-const evalAgentBodySchema = z.object({
-  about: z.string(),
-  skills: z.array(evalAgentSkillSchema),
-  notes: z.string(),
-});
-
-type EvalAgentBody = z.output<typeof evalAgentBodySchema>;
 type EvalAgentFrontmatter = z.infer<typeof evalAgentFrontmatterSchema>;
-type EvalAgentSkill = z.output<typeof evalAgentSkillSchema>;
-
-function formatSkills(value: unknown): string {
-  const parsed = z.array(evalAgentSkillSchema).safeParse(value);
-  if (!parsed.success || parsed.data.length === 0) return "";
-  return parsed.data
-    .map((skill) => {
-      const tags = skill.tags.length > 0 ? ` [${skill.tags.join(", ")}]` : "";
-      return `- ${skill.name}: ${skill.description}${tags}`;
-    })
-    .join("\n");
-}
-
-function parseSkills(text: string): EvalAgentSkill[] {
-  if (!text.trim()) return [];
-  return text
-    .split("\n")
-    .map((line) => line.match(/^- (.+?): (.+?)(?:\s+\[(.+?)\])?$/))
-    .filter((match): match is RegExpMatchArray => match !== null)
-    .map((match) => ({
-      name: match[1] ?? "",
-      description: match[2] ?? "",
-      tags: match[3]
-        ? match[3]
-            .split(",")
-            .map((tag) => tag.trim())
-            .filter(Boolean)
-        : [],
-    }));
-}
-
-const agentBodyFormatter = new StructuredContentFormatter<EvalAgentBody>(
-  evalAgentBodySchema,
-  {
-    title: "Agent",
-    mappings: [
-      { key: "about", label: "About", type: "string" },
-      {
-        key: "skills",
-        label: "Skills",
-        type: "custom",
-        formatter: formatSkills,
-        parser: parseSkills,
-      },
-      { key: "notes", label: "Notes", type: "string" },
-    ],
-  },
-);
 
 class EvalAgentAdapter extends BaseEntityAdapter<
   z.infer<typeof evalAgentEntitySchema>,
@@ -140,10 +81,8 @@ class EvalAgentAdapter extends BaseEntityAdapter<
     return { content: markdown, entityType: "agent" };
   }
 
-  public createAgentContent(
-    input: EvalAgentFrontmatter & EvalAgentBody,
-  ): string {
-    const body = agentBodyFormatter.format({
+  public createAgentContent(input: EvalAgentFrontmatter & AgentBody): string {
+    const body = formatAgentBody({
       about: input.about,
       skills: input.skills,
       notes: input.notes,
@@ -211,7 +150,7 @@ const swotEvalInputSchema = z.object({
       status: z.enum(["discovered", "approved"]),
       discoveredAt: z.string().datetime().optional(),
       about: z.string(),
-      skills: z.array(evalAgentSkillSchema),
+      skills: z.array(agentBodySkillSchema),
       notes: z.string().default(""),
     }),
   ),

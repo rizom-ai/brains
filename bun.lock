@@ -85,7 +85,6 @@
       "name": "@brains/assessment",
       "version": "0.2.0-alpha.418",
       "dependencies": {
-        "@brains/content-formatters": "workspace:*",
         "@brains/contracts": "workspace:*",
         "@brains/dashboard": "workspace:*",
         "@brains/plugins": "workspace:*",

@@ -921,6 +921,14 @@ export {
   type ParsedAgentCard,
 } from "./a2a/agent-card-schema";
 export { skillDataSchema, type SkillData } from "./a2a/skill-data-schema";
+export {
+  agentBodySchema,
+  agentBodySkillSchema,
+  formatAgentBody,
+  parseAgentBody,
+  type AgentBody,
+  type AgentBodySkill,
+} from "./a2a/agent-body";
 export type { IPublicSkillsNamespace, PublicSkill } from "./a2a/public-skills";
 
 // ============================================================================

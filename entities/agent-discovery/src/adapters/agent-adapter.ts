@@ -1,7 +1,10 @@
-import { BaseEntityAdapter, type AnchorProfileKind } from "@brains/plugins";
+import {
+  BaseEntityAdapter,
+  formatAgentBody,
+  parseAgentBody,
+  type AnchorProfileKind,
+} from "@brains/plugins";
 import { slugifyUrl } from "@brains/utils/string-utils";
-import { z } from "@brains/utils/zod";
-import { StructuredContentFormatter } from "@brains/content-formatters";
 import {
   agentEntitySchema,
   agentFrontmatterSchema,
@@ -12,43 +15,7 @@ import {
   type AgentSkill,
   type AgentStatus,
 } from "../schemas/agent";
-import {
-  formatAgentSkills,
-  parseAgentSkills,
-} from "../lib/agent-skill-markdown";
 import { AGENT_ENTITY_TYPE } from "../lib/constants";
-
-const agentBodySkillSchema = z.object({
-  name: z.string(),
-  description: z.string(),
-  tags: z.array(z.string()),
-});
-
-const agentBodySchema = z.object({
-  about: z.string(),
-  skills: z.array(agentBodySkillSchema),
-  notes: z.string(),
-});
-
-type AgentBody = z.output<typeof agentBodySchema>;
-
-const bodyFormatter = new StructuredContentFormatter<AgentBody>(
-  agentBodySchema,
-  {
-    title: "Agent",
-    mappings: [
-      { key: "about", label: "About", type: "string" },
-      {
-        key: "skills",
-        label: "Skills",
-        type: "custom",
-        formatter: formatAgentSkills,
-        parser: parseAgentSkills,
-      },
-      { key: "notes", label: "Notes", type: "string" },
-    ],
-  },
-);
 
 export interface CreateAgentContentInput {
   name: string;
@@ -171,7 +138,7 @@ export class AgentAdapter extends BaseEntityAdapter<
       ...(input.hops !== undefined && { hops: input.hops }),
     };
 
-    const body = bodyFormatter.format({
+    const body = formatAgentBody({
       about: input.about,
       skills: input.skills,
       notes: input.notes,
@@ -185,22 +152,7 @@ export class AgentAdapter extends BaseEntityAdapter<
     skills: AgentSkill[];
     notes: string;
   } {
-    const body = this.extractBody(content);
-    if (!body.trim()) {
-      return { about: "", skills: [], notes: "" };
-    }
-    try {
-      const parsed = bodyFormatter.parse(body);
-      return {
-        about: parsed.about,
-        skills: parsed.skills,
-        notes: parsed.notes,
-      };
-    } catch {
-      // A body that does not parse yields an empty profile rather than a
-      // broken entity; the agent is still listed and can be re-fetched.
-      return { about: "", skills: [], notes: "" };
-    }
+    return parseAgentBody(this.extractBody(content));
   }
 
   public parseEntity(entity: AgentEntity): {

@@ -4,7 +4,6 @@
   "version": "0.2.0-alpha.418",
   "description": "Assessment outputs and capability-profile analysis",
   "dependencies": {
-    "@brains/content-formatters": "workspace:*",
     "@brains/contracts": "workspace:*",
     "@brains/dashboard": "workspace:*",
     "@brains/plugins": "workspace:*",
