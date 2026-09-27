@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.424
+
+### Patch Changes
+
+- [#382](https://github.com/rizom-ai/brains/pull/382) [`33a50f0`](https://github.com/rizom-ai/brains/commit/33a50f0c131cfda826a35c4d80a014bc288e2567) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Guest chat sessions no longer stay refused after a release changes their limits. The session ledger adopts new limits only through an explicit owner action, and nothing ever took it, so after the preset change every visitor saw "Chat isn't available" even with guest chat switched on. Switching on in Studio (or reopening through the activation endpoint) now adopts the session limits too, and at startup a deployment whose owner authorized exactly the current policy brings its session ledger to that policy's limits.
+
 ## 0.2.0-alpha.423
 
 ### Patch Changes

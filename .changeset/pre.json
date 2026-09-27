@@ -366,6 +366,7 @@
     "core--guest-elapsed-deadline",
     "core--guest-monthly-budget",
     "core--guest-recording-disclosure",
+    "core--guest-session-limits-adopt",
     "core--guest-turn-settlement",
     "core--guest-usage-denials",
     "core--guest-usage-record",
