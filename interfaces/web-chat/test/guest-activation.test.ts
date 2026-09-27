@@ -1,9 +1,13 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it, spyOn } from "bun:test";
 import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
-import { SitePageResponse, type IRuntimeStateStore } from "@brains/plugins";
+import {
+  SitePageResponse,
+  type IRuntimeStateNamespace,
+  type IRuntimeStateStore,
+} from "@brains/plugins";
 import {
   ASK_BOX_STATE_KEY,
   ASK_BOX_STATE_NAMESPACE,
@@ -33,6 +37,8 @@ interface Fixture {
   calls(): number;
   previewPaths: string[];
   askBox(): Promise<AskBoxAvailability | null>;
+  /** Runtime state shared by every process of one deployment, across restarts. */
+  state: IRuntimeStateNamespace;
 }
 
 async function fixture(
@@ -42,12 +48,18 @@ async function fixture(
     profileAvailable?: boolean;
     disabled?: boolean;
     guest?: "local-test";
+    /** The deployment's state from an earlier run, as after a restart. */
+    state?: IRuntimeStateNamespace;
   } = {},
 ): Promise<Fixture> {
   const harness = createPluginHarness<WebChatInterface>(
     domain ? { domain } : {},
   );
   harnesses.push(harness);
+  if (options.state)
+    spyOn(harness.getMockShell(), "getRuntimeState").mockReturnValue(
+      options.state,
+    );
   let calls = 0;
   harness.getMockShell().setAgentService({
     guestProfileAvailable: options.profileAvailable !== false,
@@ -105,6 +117,7 @@ async function fixture(
     send,
     ledger,
     calls: (): number => calls,
+    state: harness.getMockShell().getRuntimeState(),
     askBox: (): Promise<AskBoxAvailability | null> =>
       harness
         .getMockShell()
@@ -136,6 +149,17 @@ describe("Ask box availability for site builds in any process", () => {
     expect(await f.askBox()).toEqual({ public: false, preview: true });
     expect((await f.send(access, { enabled: false })).status).toBe(200);
     expect(await f.askBox()).toEqual({ public: false, preview: false });
+  });
+
+  it("keeps the box on preview across a restart that begins before the guest profile is ready", async () => {
+    const running = await fixture();
+    expect((await running.send(access, { enabled: true })).status).toBe(200);
+    // A deploy restarts the app; the search index is not ready at registration yet.
+    const restarted = await fixture("admin", "rizom.ai", {
+      profileAvailable: false,
+      state: running.state,
+    });
+    expect(await restarted.askBox()).toEqual({ public: false, preview: true });
   });
 
   it("records a configured guest policy as served everywhere", async () => {
