@@ -1,28 +1,13 @@
 import { z } from "@brains/utils/zod";
-import { entityReadBudgetSchema } from "./entity-read";
 
 type Strict<Shape extends z.ZodRawShape> = z.ZodObject<Shape, z.core.$strict>;
 
 /** Server-owned limits, not a browser's requested model settings. */
 export const guestExecutionLimitsSchema: Strict<{
   messageCharacters: z.ZodNumber;
-  outputTokens: z.ZodNumber;
-  contextTokens: z.ZodNumber;
-  contextBytes: z.ZodNumber;
-  toolSteps: z.ZodNumber;
-  toolCalls: z.ZodNumber;
-  toolResultCharacters: z.ZodNumber;
-  retrieval: typeof entityReadBudgetSchema;
   requestTimeoutSeconds: z.ZodNumber;
 }> = z.strictObject({
   messageCharacters: z.number().int().positive(),
-  outputTokens: z.number().int().positive(),
-  contextTokens: z.number().int().positive(),
-  contextBytes: z.number().int().positive(),
-  toolSteps: z.number().int().positive(),
-  toolCalls: z.number().int().positive(),
-  toolResultCharacters: z.number().int().positive(),
-  retrieval: entityReadBudgetSchema,
   requestTimeoutSeconds: z.number().int().positive().max(2_147_483),
 });
 

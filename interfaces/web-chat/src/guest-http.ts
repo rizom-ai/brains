@@ -442,18 +442,13 @@ export class GuestHttpHandlers {
         if (!this.ready()) throw new Error("Guest access unavailable");
         request.signal.throwIfAborted();
         writer.write({ type: "start", messageId: randomUUID() });
-        // This transport emits one answer batch, not provider token deltas. The
-        // only idle gap is after start while waiting for that batch/settlement.
-        const idle = new AbortController();
-        const signal = AbortSignal.any([request.signal, idle.signal]);
+        // One answer batch, as in owner chat: the turn's own deadline bounds
+        // the wait, and a visitor who leaves stops only the delivery.
+        const signal = request.signal;
         const stopped = deferred<never>();
         const stopWaiting = (): void =>
           stopped.reject(new Error("Guest response unavailable"));
         signal.addEventListener("abort", stopWaiting, { once: true });
-        const timer = setTimeout(
-          () => idle.abort(),
-          policy.limits.streamIdleTimeoutSeconds * 1000,
-        );
         try {
           signal.throwIfAborted();
           // Keep observing work after delivery stops: the model call settles
@@ -517,7 +512,6 @@ export class GuestHttpHandlers {
           writeTextPart(writer, randomUUID(), response.text);
           writer.write({ type: "finish", finishReason: "stop" });
         } finally {
-          clearTimeout(timer);
           signal.removeEventListener("abort", stopWaiting);
         }
       },
@@ -612,7 +606,8 @@ export class GuestHttpHandlers {
       signal.throwIfAborted();
       if (result.done) return chunks;
       const total = size + result.value.byteLength;
-      if (total > policy.limits.contextBytes) {
+      // One message of at most messageCharacters (4 UTF-8 bytes each) plus its envelope.
+      if (total > policy.limits.messageCharacters * 4 + 4096) {
         cancel();
         throw new GuestHttpError(413, "Guest request too large");
       }

@@ -93,7 +93,6 @@ async function setup(
     origin?: string;
     profileAvailable?: boolean;
     managed?: boolean;
-    idleSeconds?: number;
     peerAddress?: string | null;
     usageRecord?: GuestUsageBounds;
     /** Whether the brain has the note type a question can be saved as. */
@@ -180,7 +179,7 @@ async function setup(
     close: (): void => {},
   });
   harness.getMockShell().setAgentService({
-    guestProfileAvailable: options.profileAvailable === true,
+    guestReady: options.profileAvailable === true,
     chat: async (
       ...args
     ): Promise<Awaited<ReturnType<IAgentService["chat"]>>> => {
@@ -270,12 +269,6 @@ async function setup(
                     origin: deploymentOrigin,
                     usageRecord:
                       options.usageRecord ?? testGuestPolicy.usageRecord,
-                    limits: {
-                      ...testGuestPolicy.limits,
-                      streamIdleTimeoutSeconds:
-                        options.idleSeconds ??
-                        testGuestPolicy.limits.streamIdleTimeoutSeconds,
-                    },
                   },
           }),
       // An operator's ambient browser authority must not reach guest execution.
@@ -1209,7 +1202,9 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
       (
         await post(
           browser,
-          message("x".repeat(testGuestPolicy.limits.contextBytes)),
+          message(
+            "x".repeat(testGuestPolicy.limits.messageCharacters * 4 + 4097),
+          ),
         )
       ).status,
     ).toBe(413);
@@ -1332,8 +1327,8 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     expect(state.calls).toHaveLength(1);
   });
 
-  it("closes an idle stream but holds ignored cancellation until genuine fulfillment", async () => {
-    const state = await setup({ idleSeconds: 1 });
+  it("waits for a slow answer instead of closing the stream", async () => {
+    const state = await setup();
     const browser = state.browser();
     await browser.client.openGuestSession();
     const release = deferred<void>();
@@ -1341,29 +1336,12 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
       await release.promise;
       return "Late answer";
     };
-    const request = message();
-    const first = await browser.client.streamMessages(request);
-    const result = await events(first);
-    expect(result).toContainEqual({
-      type: "error",
-      errorText: "Guest response unavailable",
-    });
-    expect(
-      result.some(
-        (event) => event.type === "finish" || event.type === "text-delta",
-      ),
-    ).toBe(false);
-    expect(state.calls[0]?.[3]?.aborted).toBe(true);
-    expect((await post(browser, message("Still busy"))).status).toBe(429);
-    expect(await (await post(browser, request)).json()).toMatchObject({
-      state: "active",
-    });
+    const pending = browser.client.streamMessages(message()).then(events);
+    await Bun.sleep(20);
     release.resolve();
-    await Bun.sleep(0);
-    expect(await (await post(browser, request)).json()).toMatchObject({
-      state: "completed",
-    });
-    expect(state.calls).toHaveLength(1);
+    const result = await pending;
+    expect(result.some((event) => event.type === "text-delta")).toBe(true);
+    expect(result.some((event) => event.type === "error")).toBe(false);
   });
 
   it("does not present empty completed generation as an answer", async () => {
@@ -1489,7 +1467,9 @@ describe("guest usage record over HTTP", () => {
     const state = await setup();
     const browser = state.browser();
     await browser.client.openGuestSession();
-    const body = "x".repeat(testGuestPolicy.limits.contextBytes);
+    const body = "x".repeat(
+      testGuestPolicy.limits.messageCharacters * 4 + 4097,
+    );
     expect((await post(browser, message(body))).status).toBe(413);
     expect(
       (

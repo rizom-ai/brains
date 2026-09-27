@@ -33,7 +33,6 @@ const limitsSchema: Strict<
     globalRequestsPerMinute: z.ZodNumber;
     globalRequestsPerDay: z.ZodNumber;
     globalConcurrency: z.ZodNumber;
-    streamIdleTimeoutSeconds: z.ZodNumber;
   }
 > = z
   .strictObject({
@@ -44,15 +43,12 @@ const limitsSchema: Strict<
     globalRequestsPerMinute: positiveInteger,
     globalRequestsPerDay: positiveInteger,
     globalConcurrency: positiveInteger,
-    streamIdleTimeoutSeconds: positiveInteger,
   })
   .refine(
     (limits) =>
-      limits.outputTokens < limits.contextTokens &&
       limits.requestsPerMinute <= limits.requestsPerDay &&
-      limits.globalRequestsPerMinute <= limits.globalRequestsPerDay &&
-      limits.streamIdleTimeoutSeconds <= limits.requestTimeoutSeconds,
-    "Guest limits must have consistent token, rate and timeout bounds",
+      limits.globalRequestsPerMinute <= limits.globalRequestsPerDay,
+    "Guest rate limits must fit their daily limits",
   );
 
 const budgetSchema: Strict<{
