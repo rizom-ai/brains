@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.2.0-alpha.426
+
+### Patch Changes
+
+- [#386](https://github.com/rizom-ai/brains/pull/386) [`8e6a93f`](https://github.com/rizom-ai/brains/commit/8e6a93fc80511ff66c30d4b97dac094f1d5be716) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A job whose attempt lease expired is reclaimed by the next free worker even while the worker that claimed it is still running; the attempt fence stops the old attempt's late writes. Before, a worker that stopped renewing a lease without exiting left the job processing indefinitely, which kept the queue from ever going idle and blocked every deploy at the pre-deploy backup. The backup gate now treats such an abandoned job as rerunnable work, names it in the deploy log and backs up.
+
+- [#388](https://github.com/rizom-ai/brains/pull/388) [`7086bff`](https://github.com/rizom-ai/brains/commit/7086bffad5695733bb11f150a57e88e08a2845ca) Thanks [@yeehaa123](https://github.com/yeehaa123)! - An environment variable set to an empty string now counts as unset in `brain.yaml` interpolation, the way deploy tooling passes a secret that is not configured. The plugin it configures is skipped as missing config instead of failing validation on an empty value.
+
+- [#387](https://github.com/rizom-ai/brains/pull/387) [`17f5453`](https://github.com/rizom-ai/brains/commit/17f5453ea6821f0db371c5845556bb7cfaa4cc78) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A guest answer that fails no longer holds its place. When the model call returns an error, the answer settles as failed and is charged the $0.05 answer cap, so the visitor can ask again; an answer still active past its deadline (a process that died mid-answer) settles as interrupted at the cap on the next admission. Before, both stayed reserved for good, and three failed answers filled preview guest chat's concurrency so every later question was refused as busy.
+
+- [#386](https://github.com/rizom-ai/brains/pull/386) [`ee6a4dd`](https://github.com/rizom-ai/brains/commit/ee6a4ddd0275726256928a173f6054e81c7d0024) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A plugin whose configuration is wrong — an unknown key or a value of the wrong type — now stops the brain from starting with the validation message, instead of being dropped without a trace. A plugin is still skipped when its only problem is a required value that is not set, such as a credential whose environment variable is absent.
+
 ## 0.2.0-alpha.425
 
 ### Patch Changes
