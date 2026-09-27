@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.421
+
+### Patch Changes
+
+- [#379](https://github.com/rizom-ai/brains/pull/379) [`84a2aac`](https://github.com/rizom-ai/brains/commit/84a2aaccbd73ac2e3d40f500374ad92fc401dcf6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A failed notification now says why, without any message content. The email transport reports Resend's error name (`resend_validation_error`) or HTTP status (`resend_http_500`) instead of a generic failure, notifications passes that code on (`NOTIFICATION_FAILURES` and `notificationFailureCode` in `@brains/contracts`), and contact keeps the latest attempt's code with a failed alert and counts failed alerts by code in its operational health (`failures`). A missing recipient or transport reads `recipient-missing` or `transport-missing`.
+
+- [#378](https://github.com/rizom-ai/brains/pull/378) [`b65b207`](https://github.com/rizom-ai/brains/commit/b65b207deb99878407cf5b1661eecc3450dca52f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The public Ask page loads its own guest bundle (`/ask/assets/ask.js` and `ask.css`, about 1.9 MB) instead of the signed-in chat app (`app.js`, about 15 MB), which it mounted only to render the guest conversation. The app bundle stays served for sites that still load it.
+
 ## 0.2.0-alpha.420
 
 ### Patch Changes
