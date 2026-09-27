@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, type ReactElement } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button, NativeSelect } from "@brains/app-ui-react";
 import type { StudioGrouping } from "../../src/grouping-definitions-contract";
-import { GroupingValue } from "./grouping-vocabulary-fields";
+import { GroupingValue } from "./grouping-value-display";
 import { formatLabel } from "@brains/utils/string-utils";
 import {
   studioGroupingQuerySchema,

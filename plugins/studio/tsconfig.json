@@ -5,11 +5,6 @@
     "rootDir": ".",
     "isolatedDeclarations": true
   },
-  "include": [
-    "src/**/*",
-    "test/**/*",
-    "ui-react/src/**/*",
-    "scripts/grouping-definition-mockups.tsx"
-  ],
+  "include": ["src/**/*", "test/**/*", "ui-react/src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

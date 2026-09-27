@@ -5,7 +5,7 @@ import { useId, useState, type ReactElement, type ReactNode } from "react";
 import type { GroupingDefinition } from "../../src/grouping-definitions-contract";
 import { groupingValueLabel } from "./grouping-value";
 import { fieldStyles as f } from "./studio-fields.styles";
-import { vocabularyStyles as v } from "./grouping-vocabulary.styles";
+import { groupingSharedStyles as v } from "./grouping-shared.styles";
 import { groupingMembershipStyles as s } from "./grouping-membership.styles";
 import { StudioStatus } from "./studio-status";
 

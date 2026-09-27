@@ -11,7 +11,7 @@ import {
 import type { FieldDescriptor, ValidationIssue } from "./api";
 import { applyFieldChange } from "./editor-workflow";
 import { Field, isFieldVisible } from "./entity-fields";
-import { GroupingValue } from "./grouping-vocabulary-fields";
+import { GroupingValue } from "./grouping-value-display";
 import type { GroupingValueRules } from "../../src/grouping-definitions-contract";
 import { isRecord } from "@brains/utils/is-record";
 import { StudioStatus } from "./studio-status";

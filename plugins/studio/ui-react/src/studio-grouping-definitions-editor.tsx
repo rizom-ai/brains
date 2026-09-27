@@ -23,7 +23,7 @@ import {
 import { GroupingMembershipField } from "./grouping-membership-field";
 import { StudioStatus } from "./studio-status";
 import { fieldStyles as f } from "./studio-fields.styles";
-import { vocabularyStyles as v } from "./grouping-vocabulary.styles";
+import { groupingSharedStyles as v } from "./grouping-shared.styles";
 import { groupingDefinitionsEditorStyles as s } from "./grouping-definitions-editor.styles";
 
 export interface GroupingDefinitionEditorState {
