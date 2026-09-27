@@ -62,6 +62,7 @@ import type {
   PublishingActionResult,
   TypeSchema,
 } from "./api";
+import { studioTypeHierarchy } from "../../src/config";
 
 async function successfulPublishingAction(): Promise<PublishingActionResult> {
   return { success: true };
@@ -415,6 +416,7 @@ describe("TypeSwitcher", () => {
       isSingleton: false,
       hasBody: true,
       count: 12,
+      hierarchy: studioTypeHierarchy("post"),
       capabilities: allCapabilities,
     },
     {
@@ -423,6 +425,7 @@ describe("TypeSwitcher", () => {
       isSingleton: true,
       hasBody: false,
       count: 1,
+      hierarchy: studioTypeHierarchy("site-info"),
       capabilities: allCapabilities,
     },
   ];
@@ -601,6 +604,7 @@ describe("TypeSwitcher", () => {
         isSingleton: false,
         hasBody: true,
         count: 16,
+        hierarchy: studioTypeHierarchy("prompt"),
         capabilities: allCapabilities,
       },
       {
@@ -609,6 +613,7 @@ describe("TypeSwitcher", () => {
         isSingleton: false,
         hasBody: false,
         count: 2,
+        hierarchy: studioTypeHierarchy("agent"),
         capabilities: allCapabilities,
       },
       {
@@ -617,6 +622,7 @@ describe("TypeSwitcher", () => {
         isSingleton: true,
         hasBody: true,
         count: 1,
+        hierarchy: studioTypeHierarchy("brain-character"),
         capabilities: allCapabilities,
       },
       {
@@ -625,6 +631,7 @@ describe("TypeSwitcher", () => {
         isSingleton: true,
         hasBody: true,
         count: 1,
+        hierarchy: studioTypeHierarchy("style-guide"),
         capabilities: allCapabilities,
       },
     ];
@@ -691,6 +698,7 @@ function renderCapabilityView(
     isSingleton: page.singleton ?? false,
     hasBody: page.hasBody ?? true,
     count: page.total ?? 1,
+    hierarchy: studioTypeHierarchy(entityType),
     capabilities,
   };
   const props: StudioAppViewProps = {

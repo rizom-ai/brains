@@ -28,6 +28,25 @@ export interface StudioTypeCapabilities {
   canAssist: boolean;
 }
 
+/** How a type's entries nest, as Studio presents and creates them. */
+export interface StudioTypeHierarchy {
+  /** What a level of the hierarchy is called. */
+  kind: "page" | "folder";
+  /** Whether new entries may be created inside a folder. */
+  nested: boolean;
+}
+
+/** One entity type in Studio's type list. */
+export interface StudioEntityTypeInfo {
+  entityType: string;
+  label: string;
+  isSingleton: boolean;
+  hasBody: boolean;
+  count: number;
+  capabilities: StudioTypeCapabilities;
+  hierarchy: StudioTypeHierarchy;
+}
+
 export interface EditorRouteOptions {
   /** Base route the editor is served from, e.g. "/studio". */
   routePath: string;

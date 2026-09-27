@@ -278,7 +278,7 @@ export function App(): ReactElement {
     currentStudioPathname,
     createMode,
     entityType,
-    activeCapabilities,
+    activeType,
     entityCollectionQuery,
     preferredMobilePane,
     dispatchEditor,
