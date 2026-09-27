@@ -2,11 +2,6 @@ import { dynamicTool, type ToolSet } from "ai";
 import { guestInterfaceType } from "@brains/contracts/chat";
 import { assertGuestPermission, isGuestToolAllowed } from "./guest-execution";
 import {
-  GuestToolLimitError,
-  type GuestQueryEmbedding,
-  type GuestTurnBudget,
-} from "./guest-turn-budget";
-import {
   jsonValueSchema,
   type ActorRef,
   type JsonValue,
@@ -174,8 +169,6 @@ export function convertToSDKTools(
   pluginTools: Tool[],
   contextInfo: ToolContextInfo,
   emitter: ToolEventEmitter,
-  guestBudget?: GuestTurnBudget,
-  queryEmbedding?: GuestQueryEmbedding,
 ): ToolSet {
   assertGuestPermission(contextInfo);
   const guest = contextInfo.interfaceType === guestInterfaceType;
@@ -204,10 +197,7 @@ export function convertToSDKTools(
       ) => {
         if (guest && !isGuestToolAllowed(t))
           throw new Error("Guest execution denied");
-        if (guest && !guestBudget)
-          throw new Error("Guest execution limits required");
-        const signal = guestBudget?.signal ?? options?.abortSignal;
-        let embeddingUsed = false;
+        const signal = options?.abortSignal;
         const context: ToolContext = {
           interfaceType: contextInfo.interfaceType,
           actor: contextInfo.actor ?? {
@@ -231,27 +221,6 @@ export function convertToSDKTools(
             isAnchor: contextInfo.isAnchor,
           }),
           ...(guest && { userPermissionLevel: "public", isAnchor: false }),
-          ...(guest &&
-            guestBudget && {
-              guestExecution: structuredClone(guestBudget.policy),
-              guestQueryEmbedding: async (
-                query,
-                embeddingSignal,
-              ): Promise<Float32Array> => {
-                if (
-                  t.name !== "system_search" ||
-                  !queryEmbedding ||
-                  embeddingUsed ||
-                  embeddingSignal !== signal
-                )
-                  throw new Error("Guest query embedding denied");
-                embeddingSignal.throwIfAborted();
-                embeddingUsed = true;
-                return queryEmbedding(query, embeddingSignal, (tokens) =>
-                  guestBudget.embedded(tokens),
-                );
-              },
-            }),
         };
         if (t.sideEffects !== "none") {
           if (t.sideEffects === "writes" || t.sideEffects === "external") {
@@ -267,20 +236,12 @@ export function convertToSDKTools(
         let result: unknown;
         try {
           result = guest
-            ? guestBudget
-              ? await guestBudget.executeTool(t.name, args, async () =>
-                  guestOutcome(await t.handler(args, context)),
-                )
-              : guestOutcome(await t.handler(args, context))
+            ? guestOutcome(await t.handler(args, context))
             : await t.handler(args, context);
         } catch (error) {
           if (!guest) throw error;
           // Storage/provider exceptions may contain private internals or SQL parameters.
-          // Only the budget's own guidance reaches the model.
-          result =
-            error instanceof GuestToolLimitError
-              ? { success: false, error: error.guidance }
-              : GUEST_RETRIEVAL_UNAVAILABLE;
+          result = GUEST_RETRIEVAL_UNAVAILABLE;
         }
         if (guest && !isPlainRecord(result))
           result = GUEST_RETRIEVAL_UNAVAILABLE;

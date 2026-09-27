@@ -4,11 +4,7 @@ import type {
   IAnchorProfileService,
 } from "@brains/identity-service";
 import { guestInterfaceType } from "@brains/contracts/chat";
-import {
-  testGuestExecution,
-  testGuestAccounting,
-} from "./fixtures/guest-execution";
-import { GuestTurnBudget } from "../src/guest-turn-budget";
+import { testGuestExecution } from "./fixtures/guest-execution";
 import { createMockMCPService } from "@brains/mcp-service/test";
 import type { Tool, IMCPService } from "@brains/mcp-service";
 import type {
@@ -64,14 +60,7 @@ function tool(name: string, overrides: Partial<Tool> = {}): Tool {
 }
 
 const services: AgentService[] = [];
-const budgets: GuestTurnBudget[] = [];
-function toolBudget(): GuestTurnBudget {
-  const budget = new GuestTurnBudget(testGuestExecution, testGuestAccounting);
-  budgets.push(budget);
-  return budget;
-}
 afterEach(async () => {
-  for (const budget of budgets.splice(0)) budget.dispose();
   await Promise.all(services.splice(0).map((service) => service.shutdown()));
 });
 
@@ -258,7 +247,7 @@ describe("guest runtime boundary", () => {
     expect(h.generate).not.toHaveBeenCalled();
   });
 
-  it("excludes private configuration, enrichment, uploads and history metadata from guest context", async () => {
+  it("gives the guest the brain's identity and public profile, but no email, enrichment, uploads or private history", async () => {
     const history: Message[] = [
       {
         id: "public-message",
@@ -301,13 +290,15 @@ describe("guest runtime boundary", () => {
       testGuestExecution,
     );
     expect(h.conversations.startConversation).not.toHaveBeenCalled();
-    expect(h.getCharacter).not.toHaveBeenCalled();
-    expect(h.getProfile).not.toHaveBeenCalled();
-    expect(h.getInstructions).not.toHaveBeenCalled();
     expect(h.agentContextProvider).not.toHaveBeenCalled();
     expect(h.uploadAttachmentResolver).not.toHaveBeenCalled();
     expect(h.canonicalIdentityResolver.enrichActor).not.toHaveBeenCalled();
-    expect(JSON.stringify(h.factory.mock.calls)).not.toContain("PRIVATE");
+    const [guestConfig] = h.factory.mock.calls[0] ?? [];
+    expect(guestConfig?.identity.name).toBe("PRIVATE CHARACTER");
+    expect(guestConfig?.profile?.name).toBe("PRIVATE ANCHOR");
+    expect(JSON.stringify(h.factory.mock.calls)).not.toContain(
+      "private@example.test",
+    );
     expect(JSON.stringify(h.generate.mock.calls)).not.toContain("PRIVATE");
     expect(JSON.stringify(h.generate.mock.calls)).toContain(
       "Previous public answer",
@@ -400,8 +391,12 @@ describe("guest runtime boundary", () => {
     await h.service.chat("hello", "operator", operatorContext);
     await h.service.chat("hello", conversation.id, guestContext);
     expect(h.factory).toHaveBeenCalledTimes(2);
-    expect(JSON.stringify(h.factory.mock.calls[0])).toContain("PRIVATE");
-    expect(JSON.stringify(h.factory.mock.calls[1])).not.toContain("PRIVATE");
+    expect(JSON.stringify(h.factory.mock.calls[0])).toContain(
+      "private@example.test",
+    );
+    expect(JSON.stringify(h.factory.mock.calls[1])).not.toContain(
+      "private@example.test",
+    );
     await h.service.chat("again", "operator", operatorContext);
     await h.service.chat("again", conversation.id, guestContext);
     expect(h.factory).toHaveBeenCalledTimes(2);
@@ -458,7 +453,6 @@ describe("guest tool dispatch", () => {
         isAnchor: false,
       },
       { emit },
-      toolBudget(),
     );
     expect(Object.keys(tools)).toEqual(["system_search"]);
     const execute = tools["system_search"]?.execute;
@@ -469,8 +463,6 @@ describe("guest tool dispatch", () => {
       expect.objectContaining({
         userPermissionLevel: "public",
         isAnchor: false,
-        guestExecution: testGuestExecution,
-        signal: expect.any(AbortSignal),
       }),
     );
     expect(emit).not.toHaveBeenCalled();
@@ -479,10 +471,7 @@ describe("guest tool dispatch", () => {
   // The model relays these outcomes to the visitor, so each says what happened
   // without the handler's own words.
   describe("tells the model what a guest lookup found", () => {
-    async function lookup(
-      read: Tool,
-      budget: GuestTurnBudget = toolBudget(),
-    ): Promise<unknown> {
+    async function lookup(read: Tool): Promise<unknown> {
       const tools = convertToSDKTools(
         [read],
         {
@@ -491,7 +480,6 @@ describe("guest tool dispatch", () => {
           userPermissionLevel: "public",
         },
         { emit: mock(() => {}) },
-        budget,
       );
       const execute = tools[read.name]?.execute;
       if (!execute) throw new Error("Expected guest read tool");
@@ -511,24 +499,6 @@ describe("guest tool dispatch", () => {
       });
     });
 
-    it("reports a lookup past the turn's limit as the limit", async () => {
-      const budget = new GuestTurnBudget(
-        {
-          ...testGuestExecution,
-          limits: { ...testGuestExecution.limits, toolCalls: 1 },
-        },
-        testGuestAccounting,
-      );
-      budgets.push(budget);
-      const read = tool("system_search");
-      await lookup(read, budget);
-      expect(await lookup(read, budget)).toEqual({
-        success: false,
-        error:
-          "Lookup limit reached for this answer; answer with what you found.",
-      });
-    });
-
     it("keeps a failing lookup's details private and reports it unavailable", async () => {
       const read = tool("system_search", {
         handler: mock(async () => {
@@ -540,34 +510,6 @@ describe("guest tool dispatch", () => {
         error: "Public retrieval unavailable",
       });
     });
-  });
-
-  it("does not lend handlers a mutable reference to the turn policy", async () => {
-    const budget = toolBudget();
-    const read = tool("system_get", {
-      handler: async (_input, context) => {
-        if (!context.guestExecution)
-          throw new Error("Expected execution policy");
-        expect(context.guestExecution).not.toBe(budget.policy);
-        context.guestExecution.limits.retrieval.rows = 100000;
-        context.guestExecution.limits.toolCalls = 100000;
-        return { success: true };
-      },
-    });
-    const tools = convertToSDKTools(
-      [read],
-      {
-        conversationId: conversation.id,
-        interfaceType: guestInterfaceType,
-        userPermissionLevel: "public",
-      },
-      { emit: mock(() => {}) },
-      budget,
-    );
-    const execute = tools["system_get"]?.execute;
-    if (!execute) throw new Error("Expected getter");
-    await execute({}, { toolCallId: "read", messages: [] });
-    expect(budget.policy).toEqual(testGuestExecution);
   });
 
   it("rechecks tool declarations at dispatch rather than relying only on initial filtering", () => {

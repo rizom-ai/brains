@@ -195,7 +195,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
     this.guestControl = new GuestAccessControl(
       context,
       (request) => this.resolveBrowserAccess(request),
-      () => context.agent.guestProfileAvailable === true,
+      () => context.agent.guestReady === true,
       this.runtimeGuestActivationAllowed,
       this.guestHttpOptions.now,
     );
@@ -212,7 +212,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
           this.guestHttpOptions.ready ??
           ((): boolean =>
             (managedPolicy !== undefined || boundedPolicy) &&
-            context.agent.guestProfileAvailable === true),
+            context.agent.guestReady === true),
       },
     );
     // The owner sees whether the guest usage record is recording, full or failing.
@@ -322,8 +322,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
       bounds: usage.bounds,
       control: this.guestControl?.policy ? this.guestControl : undefined,
       configuredOpen: (): boolean =>
-        this.guestPolicy.enabled &&
-        context.agent.guestProfileAvailable === true,
+        this.guestPolicy.enabled && context.agent.guestReady === true,
       afterSwitch: (): Promise<void> => this.recordAfterActivation(),
     });
   }

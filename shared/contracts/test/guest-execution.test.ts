@@ -10,13 +10,6 @@ import {
 const policy: GuestExecutionPolicy = {
   limits: {
     messageCharacters: 100,
-    outputTokens: 10,
-    contextTokens: 100,
-    contextBytes: 1024,
-    toolSteps: 1,
-    toolCalls: 1,
-    toolResultCharacters: 100,
-    retrieval: { rows: 1, rowBytes: 100, queryCharacters: 100 },
     requestTimeoutSeconds: 1,
   },
   maxCostMicroUsd: 100,
@@ -24,7 +17,7 @@ const policy: GuestExecutionPolicy = {
 
 describe("server-owned guest execution policy", () => {
   it("requires finite retrieval bounds and rejects extra scope authority", () => {
-    const budget = policy.limits.retrieval;
+    const budget = { rows: 1, rowBytes: 100, queryCharacters: 100 };
     for (const key of Object.keys(budget)) {
       for (const invalid of [
         undefined,

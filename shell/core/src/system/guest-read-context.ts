@@ -1,35 +1,13 @@
-import {
-  guestExecutionPolicySchema,
-  guestInterfaceType,
-} from "@brains/contracts/chat";
+import { guestInterfaceType } from "@brains/contracts/chat";
 import type { ToolContext } from "@brains/mcp-service";
-import type { EntityReadOptions } from "@brains/entity-service";
 
-/** Transport routing never accepts this policy from browser/tool arguments. */
-export function guestReadOptions(context: ToolContext): EntityReadOptions {
-  if (context.interfaceType !== guestInterfaceType) {
-    if (context.guestExecution !== undefined)
-      throw new Error("Guest execution scope mismatch");
-    return {};
-  }
-  const execution = guestExecutionPolicySchema.safeParse(
-    context.guestExecution,
-  );
-  if (
-    !execution.success ||
-    context.userPermissionLevel !== "public" ||
-    context.isAnchor ||
-    !(context.signal instanceof AbortSignal)
-  )
+/**
+ * A guest reads like any public user: the caller's permission level already
+ * scopes it to public entities. Only the guest's own identity is checked here,
+ * since transport routing never accepts it from browser or tool arguments.
+ */
+export function assertGuestReader(context: ToolContext): void {
+  if (context.interfaceType !== guestInterfaceType) return;
+  if (context.userPermissionLevel !== "public" || context.isAnchor)
     throw new Error("Guest execution denied");
-  context.signal.throwIfAborted();
-  return {
-    readBudget: execution.data.limits.retrieval,
-    signal: context.signal,
-    queryEmbedding:
-      context.guestQueryEmbedding ??
-      (async (): Promise<never> => {
-        throw new Error("Guest query embedding unavailable");
-      }),
-  };
 }
