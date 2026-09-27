@@ -144,7 +144,10 @@ export const homepageAtlasStyles: string = String.raw`
 /* The docked chat box: Web Chat mounts the conversation into this host and
    styles it; the atlas themes it and keeps its composer the same before and
    after the mount. The page already presents the opening and its topics. */
-.atlas--chat .atlas__talk { max-height: calc(100svh - 4.5rem); overflow-y: auto; }
+.atlas--chat .atlas__talk {
+  max-height: calc(100svh - 4.5rem); overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--color-rule) transparent;
+}
 .atlas__ask {
   margin-top: 1.6rem; max-width: 34rem;
   --ask-wash: var(--color-bg-subtle); --ask-display: var(--font-heading); --ask-muted: var(--color-text-light);
@@ -154,6 +157,8 @@ export const homepageAtlasStyles: string = String.raw`
 .atlas__ask-status { margin: 0 0 .5rem; font-size: .84rem; color: var(--color-text-light); }
 .atlas__ask-status:empty { display: none; }
 .atlas__ask .brain-box-welcome { display: none; }
+/* The text column is the one scroller beside the map; the conversation grows inside it. */
+.atlas__ask .brain-box-scroll { max-height: none; overflow: visible; }
 .atlas__ask .brain-box-header-actions { margin: 0 0 .5rem; }
 .atlas__ask .brain-box-bottom { border-top: 0; margin-top: .4rem; padding-top: 0; }
 .atlas__ask .brain-box-hint { margin: .55rem 0 0 1.1rem; }

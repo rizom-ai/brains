@@ -476,6 +476,72 @@ describe("guest tool dispatch", () => {
     expect(emit).not.toHaveBeenCalled();
   });
 
+  // The model relays these outcomes to the visitor, so each says what happened
+  // without the handler's own words.
+  describe("tells the model what a guest lookup found", () => {
+    async function lookup(
+      read: Tool,
+      budget: GuestTurnBudget = toolBudget(),
+    ): Promise<unknown> {
+      const tools = convertToSDKTools(
+        [read],
+        {
+          conversationId: conversation.id,
+          interfaceType: guestInterfaceType,
+          userPermissionLevel: "public",
+        },
+        { emit: mock(() => {}) },
+        budget,
+      );
+      const execute = tools[read.name]?.execute;
+      if (!execute) throw new Error("Expected guest read tool");
+      return execute({}, { toolCallId: "read", messages: [] });
+    }
+
+    it("reports a lookup that finds nothing as no match, not an outage", async () => {
+      const read = tool("system_get", {
+        handler: mock(async () => ({
+          success: false,
+          error: "PRIVATE entity not found",
+        })),
+      });
+      expect(await lookup(read)).toEqual({
+        success: false,
+        error: "Nothing public matches that request.",
+      });
+    });
+
+    it("reports a lookup past the turn's limit as the limit", async () => {
+      const budget = new GuestTurnBudget(
+        {
+          ...testGuestExecution,
+          limits: { ...testGuestExecution.limits, toolCalls: 1 },
+        },
+        testGuestAccounting,
+      );
+      budgets.push(budget);
+      const read = tool("system_search");
+      await lookup(read, budget);
+      expect(await lookup(read, budget)).toEqual({
+        success: false,
+        error:
+          "Lookup limit reached for this answer; answer with what you found.",
+      });
+    });
+
+    it("keeps a failing lookup's details private and reports it unavailable", async () => {
+      const read = tool("system_search", {
+        handler: mock(async () => {
+          throw new Error("PRIVATE storage failure");
+        }),
+      });
+      expect(await lookup(read)).toEqual({
+        success: false,
+        error: "Public retrieval unavailable",
+      });
+    });
+  });
+
   it("does not lend handlers a mutable reference to the turn policy", async () => {
     const budget = toolBudget();
     const read = tool("system_get", {

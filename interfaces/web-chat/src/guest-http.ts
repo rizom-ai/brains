@@ -65,7 +65,7 @@ function recordingDisclosure(policy: EnabledGuestPolicy): {
   revision: string;
 } {
   const days = Math.ceil(policy.usageRecord.retentionSeconds / 86_400);
-  const notice = `Questions asked here are kept for the owner of this site for ${days} ${days === 1 ? "day" : "days"}, separately from this conversation. Deleting the conversation does not delete them.`;
+  const notice = `Questions are kept for the site owner for ${days} ${days === 1 ? "day" : "days"}, even if you delete this chat.`;
   return {
     notice,
     revision: createHash("sha256").update(notice).digest("hex"),

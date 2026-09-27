@@ -32,6 +32,7 @@ let lostResponse: boolean;
 let incompleteHistory: boolean;
 let unavailableHistory: boolean;
 let receiptActive: boolean;
+let held: boolean;
 let deleted: boolean;
 let lockNames: string[];
 const session = {
@@ -41,7 +42,7 @@ const session = {
   deletionLimitations: "Provider records are separate.",
   recording: {
     notice:
-      "Questions asked here are kept for the owner of this site for 30 days, separately from this conversation. Deleting the conversation does not delete them.",
+      "Questions are kept for the site owner for 30 days, even if you delete this chat.",
     revision: "a".repeat(64),
   },
   retention: { idleSeconds: 3600, maxAgeSeconds: 7200 },
@@ -113,6 +114,7 @@ beforeEach(() => {
   incompleteHistory = false;
   unavailableHistory = false;
   receiptActive = false;
+  held = false;
   deleted = false;
 });
 afterEach(async (): Promise<void> => {
@@ -177,6 +179,30 @@ async function mount(
       }
       if (path === "/api/chat/guest" && lostResponse)
         throw new TypeError("PRIVATE transport diagnostic");
+      if (path === "/api/chat/guest" && held)
+        // The answer has started and stays open, so the box is still waiting.
+        return new Response(
+          new ReadableStream({
+            start(controller): void {
+              controller.enqueue(
+                new TextEncoder().encode(
+                  [
+                    { type: "text-start", id: "answer" },
+                    { type: "text-delta", id: "answer", delta: "Partial" },
+                  ]
+                    .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+                    .join(""),
+                ),
+              );
+            },
+          }),
+          {
+            headers: {
+              [CHAT_CONVERSATION_ID_HEADER]: id,
+              "Content-Type": "text/event-stream",
+            },
+          },
+        );
       if (path === "/api/chat/guest")
         return new Response(
           [
@@ -614,6 +640,13 @@ describe("public Ask UI with mocked Chat transport", () => {
     expect(send?.body).toMatchObject({
       disclosure: session.recording.revision,
     });
+  });
+  it("adds no hint under the box's composer while an answer streams", async () => {
+    held = true;
+    await mount({ box: boxCopy });
+    await ask("Energy efficiency");
+    expect(document.body.textContent).toContain("Partial");
+    expect(document.querySelector("#brain-chat-notice")?.textContent).toBe("");
   });
   it("preserves the draft and blocks sending after the visitor lease expires", async () => {
     session.expiresAt = Date.now() - 1000;

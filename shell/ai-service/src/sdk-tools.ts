@@ -1,7 +1,11 @@
 import { dynamicTool, type ToolSet } from "ai";
 import { guestInterfaceType } from "@brains/contracts/chat";
 import { assertGuestPermission, isGuestToolAllowed } from "./guest-execution";
-import type { GuestQueryEmbedding, GuestTurnBudget } from "./guest-turn-budget";
+import {
+  GuestToolLimitError,
+  type GuestQueryEmbedding,
+  type GuestTurnBudget,
+} from "./guest-turn-budget";
 import {
   jsonValueSchema,
   type ActorRef,
@@ -13,6 +17,22 @@ import type { Tool, ToolContext } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import { createToolExecuteWrapper, type ToolEventEmitter } from "./tool-events";
 import { definedFields } from "@brains/utils/strip-undefined";
+
+const GUEST_RETRIEVAL_UNAVAILABLE = {
+  success: false,
+  error: "Public retrieval unavailable",
+} as const;
+
+/**
+ * A guest lookup as the model sees it, since the model relays it to the
+ * visitor: a result, or that nothing public matches. The handler's own error
+ * words can name private entities, so they never pass.
+ */
+function guestOutcome(result: unknown): unknown {
+  if (!isPlainRecord(result)) return GUEST_RETRIEVAL_UNAVAILABLE;
+  if (result["success"] === true) return result;
+  return { success: false, error: "Nothing public matches that request." };
+}
 
 export interface ToolContextInfo {
   conversationId: string;
@@ -246,21 +266,24 @@ export function convertToSDKTools(
         }
         let result: unknown;
         try {
-          result =
-            guest && guestBudget
-              ? await guestBudget.executeTool(t.name, args, () =>
-                  t.handler(args, context),
+          result = guest
+            ? guestBudget
+              ? await guestBudget.executeTool(t.name, args, async () =>
+                  guestOutcome(await t.handler(args, context)),
                 )
-              : await t.handler(args, context);
+              : guestOutcome(await t.handler(args, context))
+            : await t.handler(args, context);
         } catch (error) {
           if (!guest) throw error;
           // Storage/provider exceptions may contain private internals or SQL parameters.
-          // Normalize below without retaining a potentially transcript-bearing cause.
-          result = undefined;
+          // Only the budget's own guidance reaches the model.
+          result =
+            error instanceof GuestToolLimitError
+              ? { success: false, error: error.guidance }
+              : GUEST_RETRIEVAL_UNAVAILABLE;
         }
-        if (guest && (!isPlainRecord(result) || result["success"] !== true)) {
-          result = { success: false, error: "Public retrieval unavailable" };
-        }
+        if (guest && !isPlainRecord(result))
+          result = GUEST_RETRIEVAL_UNAVAILABLE;
         if (!guest) readCache.set(cacheKey, result);
         return result;
       },

@@ -67,6 +67,16 @@ function elapsedClock(): () => number {
  * fixed caps (deadline, model steps, output tokens, context bytes, tool calls
  * and sizes), which bound what it can cost; its measured cost settles after.
  */
+/** A lookup refused by the turn's limits; `guidance` is what the model is told. */
+export class GuestToolLimitError extends Error {
+  readonly guidance: string;
+  constructor(message: string, guidance: string) {
+    super(message);
+    this.name = "GuestToolLimitError";
+    this.guidance = guidance;
+  }
+}
+
 export class GuestTurnBudget {
   readonly policy: GuestExecutionPolicy;
   readonly signal: AbortSignal;
@@ -260,16 +270,22 @@ export class GuestTurnBudget {
   ): Promise<unknown> {
     this.assertLive();
     if (this.toolCalls >= this.policy.limits.toolCalls)
-      throw new Error("Guest tool call limit exceeded");
+      throw new GuestToolLimitError(
+        "Guest tool call limit exceeded",
+        "Lookup limit reached for this answer; answer with what you found.",
+      );
     if (serialize(input).length > this.policy.limits.messageCharacters)
-      throw new Error("Guest tool input limit exceeded");
+      throw new GuestToolLimitError(
+        "Guest tool input limit exceeded",
+        "That lookup is too long; use a shorter query.",
+      );
     this.toolCalls++;
     const result = await handler();
     this.assertLive();
     if (serialize(result).length > this.policy.limits.toolResultCharacters)
       return {
         success: false,
-        error: "Public retrieval exceeds guest result limit",
+        error: "That result is too large; narrow the request.",
       };
     return result;
   }

@@ -1453,10 +1453,8 @@ describe("guest usage record over HTTP", () => {
   it("tells the visitor before they ask that questions are kept for the owner, how long, and past deletion", async () => {
     const state = await setup();
     const session = await state.browser().client.openGuestSession();
-    expect(session.recording.notice).toContain("kept for the owner");
-    expect(session.recording.notice).toContain("7 days");
-    expect(session.recording.notice).toContain(
-      "Deleting the conversation does not delete them",
+    expect(session.recording.notice).toBe(
+      "Questions are kept for the site owner for 7 days, even if you delete this chat.",
     );
     expect(session.recording.revision).toMatch(/^[a-f0-9]{64}$/);
   });

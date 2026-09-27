@@ -254,7 +254,7 @@ describe("guest turn budget", () => {
       expect(JSON.stringify(result)).not.toContain("PRIVATE");
       expect(result).toEqual({
         success: false,
-        error: "Public retrieval exceeds guest result limit",
+        error: "That result is too large; narrow the request.",
       });
       expect(
         budget.executeTool("system_get", { query: "x".repeat(5000) }, handler),
