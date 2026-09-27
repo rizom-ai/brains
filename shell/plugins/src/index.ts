@@ -336,6 +336,7 @@ export {
 
 export type {
   Plugin,
+  ProtocolPluginProvider,
   PluginRegistrationContext,
   PluginCapabilities,
   Tool,

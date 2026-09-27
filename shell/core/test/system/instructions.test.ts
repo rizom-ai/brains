@@ -88,6 +88,15 @@ describe("system instructions", () => {
     );
   });
 
+  it("directs small content edits through exact patches instead of full regeneration", () => {
+    const instructions = createSystemInstructions(createMockSystemServices());
+    expect(instructions).toContain("Use `edits` for small content changes");
+    expect(instructions).toContain("oldText");
+    expect(instructions).toContain(
+      "Never replace unchanged content with placeholders",
+    );
+  });
+
   it("tells agents to create pending confirmations by calling mutating tools", () => {
     const services = createMockSystemServices();
     const instructions = createSystemInstructions(services);

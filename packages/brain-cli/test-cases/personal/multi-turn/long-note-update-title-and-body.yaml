@@ -1,0 +1,160 @@
+# Synthetic fixtures; never run this case against production content.
+# Per-turn durations and tokens are reported separately from correctness.
+id: long-note-update-title-and-body
+name: Combined title and body edit preserves both changes
+description: Cancel an exact proposal and verify unchanged stored content, then propose again, approve, and verify exact stored Markdown. Backslashes must not be regenerated or doubled.
+type: multi_turn
+setup:
+  permissionLevel: admin
+  interfaceType: mcp
+tags:
+  - recipe-personal
+  - regression
+  - long-note-update
+  - confirmation
+turns:
+  - userMessage: 'Read note ''long-note-update-title-and-body''. Change its title by replacing the H1 "Working Plan" with "Approved Plan", and replace the exact sentence "Review cadence: monthly." with "Review cadence: weekly." in the same proposed update. Preserve every other character, including backslashes and line endings. Request confirmation before saving; do not merely describe the edit.'
+    successCriteria: &proposal
+      expectedTools:
+        - toolName: system_get
+          argsContain:
+            entityType: note
+            id: long-note-update-title-and-body
+          resultContains:
+            entity.content: &original |-
+              # Working Plan
+
+              Review cadence: monthly.
+
+              ## Markdown preservation examples
+
+              Hard break\
+              This line follows a Markdown hard break.
+              Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              ```
+
+              ## Operations checkpoint 1
+
+              Keep the deployment checklist separate from the incident log. Record the owner, review date, and verification evidence for each release.
+
+              - Reference: record-001
+              - Status: awaiting review
+
+              ## Research checkpoint 2
+
+              Preserve interview quotations as source material. Distinguish observed behavior from assumptions before revising the working hypothesis.
+
+              - Reference: record-002
+              - Status: awaiting review
+
+              ## Funding checkpoint 3
+
+              Track committed funding separately from expressions of interest. Each budget line includes a named reviewer and a documented assumption.
+
+              - Reference: record-003
+              - Status: awaiting review
+
+              xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+        - toolName: system_update
+          argsContain:
+            entityType: note
+            id: long-note-update-title-and-body
+            edits:
+              &patch [
+                { "oldText": "# Working Plan", "newText": "# Approved Plan" },
+                {
+                  "oldText": "Review cadence: monthly.",
+                  "newText": "Review cadence: weekly.",
+                },
+              ]
+          argsAbsent: [fields, content, confirmed]
+          resultContains:
+            needsConfirmation: true
+      responseContains: [Confirmation required]
+  - userMessage: Cancel that proposed update.
+    confirmPendingAction: false
+  - userMessage: "Read note 'long-note-update-title-and-body' from storage now. Do not change anything; briefly state its title and review cadence."
+    successCriteria:
+      expectedTools:
+        - toolName: system_get
+          argsContain:
+            entityType: note
+            id: long-note-update-title-and-body
+          resultContains:
+            entity.content: *original
+        - toolName: system_update
+          shouldBeCalled: false
+  - userMessage: 'Read note ''long-note-update-title-and-body''. Change its title by replacing the H1 "Working Plan" with "Approved Plan", and replace the exact sentence "Review cadence: monthly." with "Review cadence: weekly." in the same proposed update. Preserve every other character, including backslashes and line endings. Request confirmation before saving; do not merely describe the edit.'
+    successCriteria: *proposal
+  - userMessage: Approve this exact proposed update.
+    confirmPendingAction: true
+    successCriteria:
+      expectedTools:
+        - toolName: system_update
+          argsContain:
+            entityType: note
+            id: long-note-update-title-and-body
+            edits: *patch
+          argsAbsent: [fields, content]
+          resultContains:
+            success: true
+            data.updated: long-note-update-title-and-body
+  - userMessage: "Read note 'long-note-update-title-and-body' from storage again to verify the saved edit. Do not change anything; briefly state its title and review cadence."
+    successCriteria:
+      expectedTools:
+        - toolName: system_get
+          argsContain:
+            entityType: note
+            id: long-note-update-title-and-body
+          resultContains:
+            entity.content: |-
+              # Approved Plan
+
+              Review cadence: weekly.
+
+              ## Markdown preservation examples
+
+              Hard break\
+              This line follows a Markdown hard break.
+              Literal pair\\
+
+              ```text
+              C:\notes\draft.md
+              regex: \d+\s+
+              ```
+
+              ## Operations checkpoint 1
+
+              Keep the deployment checklist separate from the incident log. Record the owner, review date, and verification evidence for each release.
+
+              - Reference: record-001
+              - Status: awaiting review
+
+              ## Research checkpoint 2
+
+              Preserve interview quotations as source material. Distinguish observed behavior from assumptions before revising the working hypothesis.
+
+              - Reference: record-002
+              - Status: awaiting review
+
+              ## Funding checkpoint 3
+
+              Track committed funding separately from expressions of interest. Each budget line includes a named reviewer and a documented assumption.
+
+              - Reference: record-003
+              - Status: awaiting review
+
+              xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+            entity.metadata.title: Approved Plan
+        - toolName: system_update
+          shouldBeCalled: false
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: false
+    - toolName: system_delete
+      shouldBeCalled: false

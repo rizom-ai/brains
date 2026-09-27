@@ -1,11 +1,7 @@
-import {
-  InterfacePlugin,
-  type InterfacePluginContext,
-  type Tool,
-  type Resource,
-  type JobProgressEvent,
-  type JobContext,
-  type WebRouteDefinition,
+import type {
+  InterfacePluginContext,
+  WebRouteDefinition,
+  ProtocolPluginProvider,
 } from "@brains/plugins";
 import type { Daemon, DaemonHealth } from "@brains/plugins";
 import { StdioMCPServer } from "./transports/stdio-server";
@@ -13,8 +9,7 @@ import { StreamableHTTPServer } from "./transports/http-server";
 import type { IMCPTransport } from "@brains/mcp-service";
 import { getActiveAuthService } from "@brains/auth-service";
 import { mcpConfigSchema, type MCPConfig, type MCPConfigInput } from "./config";
-import { createMCPTools } from "./tools";
-import { setupJobProgressListener } from "./handlers";
+import { MCPProtocol, MCPProtocolPlugin } from "./mcp-protocol";
 import packageJson from "../package.json";
 
 /**
@@ -26,7 +21,10 @@ import packageJson from "../package.json";
  * - For HTTP: new MCPInterface({ transport: "http", httpPort: 3333 })
  * - For both: Add two instances with different configs
  */
-export class MCPInterface extends InterfacePlugin<MCPConfig, MCPConfigInput> {
+export class MCPInterface
+  extends MCPProtocolPlugin<MCPConfig, MCPConfigInput>
+  implements ProtocolPluginProvider
+{
   // After validation with defaults, config is complete
   declare protected config: MCPConfig;
 
@@ -44,19 +42,9 @@ export class MCPInterface extends InterfacePlugin<MCPConfig, MCPConfigInput> {
     super("mcp", packageJson, configWithDefaults, mcpConfigSchema);
   }
 
-  /**
-   * Get MCP's own tools
-   */
-  protected override async getTools(): Promise<Tool[]> {
-    return createMCPTools(this.id, () => this.context);
-  }
-
-  /**
-   * MCP interface provides no resources — they are registered by plugins
-   * (system plugin provides entity://types, brain://identity, brain://profile)
-   */
-  protected override async getResources(): Promise<Resource[]> {
-    return [];
+  /** A fresh registration of this protocol, without its transport host. */
+  public createProtocolPlugin(): MCPProtocol {
+    return new MCPProtocol({ mode: this.config.mode });
   }
 
   /**
@@ -99,8 +87,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig, MCPConfigInput> {
       });
     }
 
-    // Subscribe to job progress events for MCP progress reporting
-    setupJobProgressListener(context, this.logger);
+    await super.onRegister(context);
   }
 
   private getOrCreateHttpServer(): StreamableHTTPServer {
@@ -361,17 +348,5 @@ export class MCPInterface extends InterfacePlugin<MCPConfig, MCPConfigInput> {
     // MCPService manages the lifecycle of mcpServer
     // We just clear our reference
     this.mcpTransport = undefined;
-  }
-
-  /**
-   * Handle progress events - MCP interface doesn't need to handle these directly
-   * since progress is handled through the MCP transport layer
-   */
-  protected override async handleProgressEvent(
-    _progressEvent: JobProgressEvent,
-    _context: JobContext,
-  ): Promise<void> {
-    // MCP doesn't directly handle progress events - they're routed through the transport layer
-    // The setupJobProgressListener in onRegister() handles MCP-specific progress reporting
   }
 }

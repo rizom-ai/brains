@@ -431,11 +431,31 @@ export const generateInputSchema: StrictObjectSchema<{
   })
   .strict();
 
+export const contentEditSchema: z.ZodObject<{
+  oldText: z.ZodString;
+  newText: z.ZodString;
+}> = z
+  .object({
+    oldText: z
+      .string()
+      .min(1)
+      .describe(
+        "Exact text occurring once in the original stored Markdown. Include enough context to be unique.",
+      ),
+    newText: z
+      .string()
+      .describe("Literal replacement text; empty string deletes oldText."),
+  })
+  .strict();
+
+export type ContentEdit = z.output<typeof contentEditSchema>;
+
 export const updateInputSchema: z.ZodObject<{
   entityType: z.ZodString;
   id: z.ZodString;
   fields: z.ZodOptional<z.ZodRecord<z.ZodString, z.ZodUnknown>>;
   content: z.ZodOptional<z.ZodString>;
+  edits: z.ZodOptional<z.ZodArray<typeof contentEditSchema>>;
   confirmed: z.ZodOptional<z.ZodLiteral<true>>;
   confirmationToken: z.ZodOptional<z.ZodString>;
   contentHash: z.ZodOptional<z.ZodString>;
@@ -452,7 +472,15 @@ export const updateInputSchema: z.ZodObject<{
     .string()
     .optional()
     .describe(
-      "Full markdown content replacement only. Do not use this for status/title/frontmatter updates; use fields instead.",
+      "Full markdown content replacement only. For small changes, use edits instead of regenerating the whole document. Do not combine content with edits or fields.",
+    ),
+  edits: z
+    .array(contentEditSchema)
+    .min(1)
+    .max(50)
+    .optional()
+    .describe(
+      "Preferred for small content edits, especially long notes. Exact, unique, non-overlapping replacements matched against the original Markdown, applied atomically after confirmation. Fetch the entity first. Omit content and fields when using edits. Unchanged text is preserved without regeneration.",
     ),
   confirmed: z.literal(true).optional().describe("Confirm the update"),
   confirmationToken: z
