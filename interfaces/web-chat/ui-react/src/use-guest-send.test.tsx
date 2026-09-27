@@ -42,7 +42,7 @@ const session: GuestChatSessionResponse = {
   deletionLimitations: "Provider records are separate.",
   recording: {
     notice:
-      "Questions asked here are kept for the owner of this site for 30 days, separately from this conversation. Deleting the conversation does not delete them.",
+      "Questions are kept for the site owner for 30 days, even if you delete this chat.",
     revision: "a".repeat(64),
   },
   retention: { idleSeconds: 3600, maxAgeSeconds: 7200 },

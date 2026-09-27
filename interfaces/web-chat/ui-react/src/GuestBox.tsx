@@ -510,11 +510,9 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
           >
             {over > 0
               ? `${over} characters over the limit.`
-              : busy && messages.length > 0
-                ? "You can draft while you wait."
-                : messages.length > 0
-                  ? null
-                  : "Public knowledge. Please avoid private details."}
+              : messages.length > 0
+                ? null
+                : "Public knowledge. Please avoid private details."}
           </p>
           {session && (
             <p id="brain-chat-recording" className="brain-box-recording">

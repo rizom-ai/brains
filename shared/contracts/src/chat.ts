@@ -59,7 +59,7 @@ const chatIdSchema: z.ZodString = z.string().trim().min(1).max(256);
 /** Present on guest send/status responses; it is a locator, never authority. */
 export const CHAT_CONVERSATION_ID_HEADER = "x-brain-conversation-id";
 
-/** Shown with the composer: questions are kept for the owner, how long, past deletion. */
+/** Shown with the composer: questions are kept for the site owner, how long, past deletion. */
 export const guestRecordingDisclosureSchema: Strict<{
   notice: z.ZodString;
   revision: z.ZodString;
