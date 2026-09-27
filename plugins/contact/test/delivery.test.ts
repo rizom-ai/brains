@@ -3,13 +3,16 @@ import type {
   ServiceEntityService,
   IRuntimeStateNamespace,
 } from "@brains/plugins";
-import { ContactDelivery } from "../src/delivery";
+import { ContactDelivery, type ContactAlertOutcome } from "../src/delivery";
 import {
   contactRequestAdapter,
   contactRequestSchema,
   type ContactRequest,
 } from "../src";
-import { ContactStorageSlots } from "../src/storage-slots";
+import {
+  ContactStorageSlots,
+  type ContactStorageSlot,
+} from "../src/storage-slots";
 import {
   input,
   intakeFixture,
@@ -30,7 +33,7 @@ async function fixture(): Promise<
     id: string;
     entities: ServiceEntityService;
     state: IRuntimeStateNamespace;
-    send: Mock<(key: string) => Promise<boolean>>;
+    send: Mock<(key: string) => Promise<ContactAlertOutcome>>;
     makeDelivery: () => ContactDelivery;
     read: () => Promise<ContactRequest | null>;
   }
@@ -40,7 +43,9 @@ async function fixture(): Promise<
   if (saved.kind !== "saved") throw new Error("Not saved");
   const entities = f.harness.getEntityService();
   const state = f.harness.getMockShell().getRuntimeState();
-  const send = mock(async (_key: string): Promise<boolean> => true);
+  const send = mock(async (_key: string): Promise<ContactAlertOutcome> => ({
+    sent: true,
+  }));
   const makeDelivery = (): ContactDelivery =>
     new ContactDelivery({ entities, state, storage, policy, send, now: f.now });
   const read = async (): Promise<ContactRequest | null> =>
@@ -72,14 +77,14 @@ describe("contact notification delivery", () => {
 
   it("does not send concurrently and recovers known delivery after a metadata-write failure", async () => {
     const f = await fixture();
-    let finish: ((value: boolean) => void) | undefined;
+    let finish: ((value: ContactAlertOutcome) => void) | undefined;
     let started: (() => void) | undefined;
     const sending = new Promise<void>((resolve) => {
       started = resolve;
     });
     f.send.mockImplementation(
       () =>
-        new Promise<boolean>((resolve) => {
+        new Promise<ContactAlertOutcome>((resolve) => {
           finish = resolve;
           started?.();
         }),
@@ -90,7 +95,7 @@ describe("contact notification delivery", () => {
     const update = spyOn(f.entities, "updateEntity").mockRejectedValue(
       new Error("PRIVATE"),
     );
-    finish?.(true);
+    finish?.({ sent: true });
     await failure(first);
     update.mockRestore();
     expect(await f.makeDelivery().deliver(f.id, signal)).toBe("sent");
@@ -109,9 +114,28 @@ describe("contact notification delivery", () => {
     expect((await f.read())?.metadata.notification).toBe("failed");
   });
 
+  it("keeps why the last attempt failed with the failed alert, never message content", async () => {
+    const f = await fixture();
+    const slot = async (): Promise<ContactStorageSlot | undefined> =>
+      (await new ContactStorageSlots(f.state, storage, f.now).list())[0]?.[1];
+    f.send.mockResolvedValue({ sent: false, failure: "transport-missing" });
+    await failure(f.makeDelivery().deliver(f.id, signal));
+    expect((await slot())?.delivery.failure).toBe("transport-missing");
+    f.send.mockRejectedValue(new Error(`PRIVATE ${input.email}`));
+    await failure(f.makeDelivery().deliver(f.id, signal));
+    expect((await slot())?.delivery.failure).toBe("unconfirmed");
+    f.send.mockResolvedValue({
+      sent: false,
+      failure: "resend_validation_error",
+    });
+    expect(await f.makeDelivery().deliver(f.id, signal)).toBe("failed");
+    expect((await slot())?.delivery.failure).toBe("resend_validation_error");
+    expect(JSON.stringify(await slot())).not.toContain(input.email);
+  });
+
   it("repairs a failed projection after a late known acknowledgement without sending again", async () => {
     const f = await fixture();
-    f.send.mockResolvedValue(false);
+    f.send.mockResolvedValue({ sent: false, failure: "delivery-failed" });
     await failure(f.makeDelivery().deliver(f.id, signal));
     await failure(f.makeDelivery().deliver(f.id, signal));
     expect(await f.makeDelivery().deliver(f.id, signal)).toBe("failed");
@@ -131,7 +155,7 @@ describe("contact notification delivery", () => {
 
   it("stops retries before the provider's deduplication horizon and deletes delivery state with retention", async () => {
     const f = await fixture();
-    f.send.mockResolvedValue(false);
+    f.send.mockResolvedValue({ sent: false, failure: "delivery-failed" });
     await failure(f.makeDelivery().deliver(f.id, signal));
     f.advance(3600_000);
     expect(await f.makeDelivery().deliver(f.id, signal)).toBe("failed");
@@ -150,7 +174,7 @@ describe("contact notification delivery", () => {
     const f = await fixture();
     const accepted = new Set<string>();
     f.send.mockImplementation(async (key) => {
-      if (accepted.has(key)) return true;
+      if (accepted.has(key)) return { sent: true };
       accepted.add(key);
       throw new Error("Lost acknowledgement");
     });

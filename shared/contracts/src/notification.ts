@@ -2,6 +2,35 @@ import { z } from "@brains/utils/zod";
 
 export const NOTIFICATIONS_SEND = "notifications:send" as const;
 
+/** Why notifications:send refused: its response error, stable for senders to read. */
+export const NOTIFICATION_FAILURES: {
+  readonly recipientMissing: "Notification recipient missing";
+  readonly transportMissing: "Notification transport missing";
+  readonly deliveryFailed: "Notification delivery failed";
+} = {
+  recipientMissing: "Notification recipient missing",
+  transportMissing: "Notification transport missing",
+  deliveryFailed: "Notification delivery failed",
+};
+
+const TRANSPORT_FAILURE = new RegExp(
+  `^${NOTIFICATION_FAILURES.deliveryFailed}: ([a-z0-9_:.-]{1,80})$`,
+);
+
+/**
+ * A refusal as a short code: the transport's own code after a failed delivery.
+ * Free text never becomes a code, so it can be kept and shown.
+ */
+export function notificationFailureCode(error: string | undefined): string {
+  if (error === NOTIFICATION_FAILURES.recipientMissing)
+    return "recipient-missing";
+  if (error === NOTIFICATION_FAILURES.transportMissing)
+    return "transport-missing";
+  if (error?.startsWith(NOTIFICATION_FAILURES.deliveryFailed))
+    return TRANSPORT_FAILURE.exec(error)?.[1] ?? "delivery-failed";
+  return "unconfirmed";
+}
+
 type NotificationRecipientSchema = z.ZodDiscriminatedUnion<
   [
     z.ZodObject<

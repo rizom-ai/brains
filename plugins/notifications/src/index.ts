@@ -1,4 +1,5 @@
 import {
+  NOTIFICATION_FAILURES,
   NOTIFICATIONS_SEND,
   notificationRecipientSchema,
   sendNotificationSchema,
@@ -66,7 +67,10 @@ export class NotificationsPlugin extends ServicePlugin<
       const recipient = input.recipient ?? this.config.defaultRecipient;
       if (!recipient) {
         context.logger.warn("Notification has no recipient");
-        return { success: false, error: "Notification recipient missing" };
+        return {
+          success: false,
+          error: NOTIFICATION_FAILURES.recipientMissing,
+        };
       }
 
       // Resolve a transport by the recipient's channel type. This plugin
@@ -77,7 +81,10 @@ export class NotificationsPlugin extends ServicePlugin<
         context.logger.warn("Notification has no available transport", {
           channelType: recipient.type,
         });
-        return { success: false, error: "Notification transport missing" };
+        return {
+          success: false,
+          error: NOTIFICATION_FAILURES.transportMissing,
+        };
       }
 
       const result = await provider.send({
@@ -92,7 +99,11 @@ export class NotificationsPlugin extends ServicePlugin<
       });
 
       if (result.status !== "sent") {
-        return { success: false, error: "Notification delivery failed" };
+        // The transport's failure code names the cause; it carries no message content.
+        return {
+          success: false,
+          error: `${NOTIFICATION_FAILURES.deliveryFailed}: ${result.failureCode}`,
+        };
       }
 
       const data: SendNotificationResult = result.providerDeliveryId

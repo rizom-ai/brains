@@ -389,7 +389,11 @@ describe("contact runtime", () => {
       (await f.shell.getOperationalHealthRegistry().getChecks())[0];
     expect(await intake()).toMatchObject({
       status: "degraded",
-      details: { failed: 1, failedUnhandled: 1 },
+      details: {
+        failed: 1,
+        failedUnhandled: 1,
+        failures: { "test-transport": 1 },
+      },
     });
 
     const registry = f.shell.getInboxRegistry();
@@ -401,7 +405,11 @@ describe("contact runtime", () => {
 
     expect(await intake()).toMatchObject({
       status: "healthy",
-      details: { failed: 1, failedUnhandled: 0 },
+      details: {
+        failed: 1,
+        failedUnhandled: 0,
+        failures: { "test-transport": 1 },
+      },
     });
     await f.plugin.shutdown();
   });
