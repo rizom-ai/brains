@@ -8,7 +8,14 @@ import {
   type ReactElement,
   type ReactNode,
 } from "react";
-import { CodeBlockCopyButton, Streamdown, type Components } from "streamdown";
+import {
+  CodeBlockCopyButton,
+  Streamdown,
+  defaultRemarkPlugins,
+  type Components,
+} from "streamdown";
+import { StudioEntityImage } from "./studio-entity-image";
+import { isRecord } from "@brains/utils/is-record";
 import { editorClassName as classes } from "./studio-editor.styles";
 import { markdownStyles as s } from "./studio-markdown.styles";
 import { typographyStyles } from "./studio-typography.styles";
@@ -116,6 +123,54 @@ function MarkdownTable({
   );
 }
 
+const ENTITY_IMAGE_PREFIX = "entity://image/";
+const PREVIEW_IMAGE_MARKER = "https://studio-entity-image.invalid/?";
+
+/** Only image AST nodes are marked: source text and code examples stay literal.
+ * The marker survives normal sanitization but is never used as a network URL. */
+function entityImagePreviewPlugin(): (tree: unknown) => void {
+  return function visit(node: unknown): void {
+    if (!isRecord(node)) return;
+    if (
+      node["type"] === "image" &&
+      typeof node["url"] === "string" &&
+      node["url"].startsWith(ENTITY_IMAGE_PREFIX) &&
+      node["url"].length > ENTITY_IMAGE_PREFIX.length
+    )
+      node["url"] =
+        `${PREVIEW_IMAGE_MARKER}id=${encodeURIComponent(node["url"].slice(ENTITY_IMAGE_PREFIX.length))}`;
+    if (Array.isArray(node["children"])) node["children"].forEach(visit);
+  };
+}
+const previewRemarkPlugins = [
+  ...Object.values(defaultRemarkPlugins),
+  entityImagePreviewPlugin,
+];
+
+function MarkdownImage({
+  node: _node,
+  className,
+  src,
+  alt,
+  ...props
+}: MarkdownElementProps<"img">): ReactElement {
+  const imageProps = {
+    ...props,
+    alt: alt ?? "",
+    className: classes(className ?? "", s.image),
+    "data-streamdown": "image",
+  };
+  const imageId =
+    typeof src === "string" && src.startsWith(PREVIEW_IMAGE_MARKER)
+      ? new URLSearchParams(src.slice(PREVIEW_IMAGE_MARKER.length)).get("id")
+      : null;
+  return imageId ? (
+    <StudioEntityImage {...imageProps} imageId={imageId} />
+  ) : (
+    <img {...imageProps} src={src} />
+  );
+}
+
 const structuralComponents: Components = {
   inlineCode: ({ node: _node, className, ...props }) => (
     <code
@@ -155,14 +210,7 @@ const structuralComponents: Components = {
       data-streamdown="table-cell"
     />
   ),
-  img: ({ node: _node, className, alt, ...props }) => (
-    <img
-      {...props}
-      alt={alt ?? ""}
-      className={classes(className ?? "", s.image)}
-      data-streamdown="image"
-    />
-  ),
+  img: MarkdownImage,
 };
 
 const documentComponents: Components = {
@@ -225,6 +273,7 @@ export function StudioMarkdown(props: {
       {...(props.className ? { className: props.className } : {})}
       {...(components ? { components } : {})}
       controls={false}
+      remarkPlugins={previewRemarkPlugins}
     >
       {props.children}
     </Streamdown>

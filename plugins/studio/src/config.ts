@@ -86,7 +86,7 @@ export function entityTypeLabels(
   entityType: string,
   display?: EntityDisplayLabel,
 ): { label: string; pluralLabel: string } {
-  if (entityType === "grouping-vocabulary")
+  if (entityType === "grouping-definitions")
     return {
       label: display?.label ?? "Groupings",
       pluralLabel: display?.pluralName ?? "Groupings",

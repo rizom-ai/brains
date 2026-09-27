@@ -1,7 +1,7 @@
 import type { EntityIdPath, RuntimeStudioWorkspaceData } from "@brains/plugins";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import type { StudioGrouping } from "../../src/grouping-vocabulary-contract";
+import type { StudioGrouping } from "../../src/grouping-definitions-contract";
 import type { StudioCollectionQuery } from "../../src/collection-query";
 import { STUDIO_ACCOUNT_WORKSPACE_RENDERER } from "../../src/account-workspace";
 import { STUDIO_CHAT_WORKSPACE_RENDERER } from "../../src/chat-workspace";

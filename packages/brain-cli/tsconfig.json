@@ -7,7 +7,7 @@
     "jsxImportSource": "react",
     "isolatedDeclarations": true
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "include": ["src/**/*.ts", "test/**/*.ts", "test/**/*.tsx"],
   "exclude": [
     "src/model/canonical-brain.ts",
     "src/entries/model.ts",

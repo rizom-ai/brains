@@ -5,6 +5,7 @@ import type {
 import type { ActorRef } from "@brains/contracts";
 import type { ContentVisibility, ServicePluginContext } from "@brains/plugins";
 import type { StudioEntityDisplayMap } from "./config";
+import type { GroupingDefinitionsSnapshot } from "./grouping-definitions-contract";
 import type { StudioWorkspaceRegistry } from "./workspace-registry";
 
 export const STUDIO_ENTITY_PAGE_LIMIT = 25;
@@ -36,6 +37,7 @@ export interface EditorRouteOptions {
   ) => Promise<AuthPrincipal | undefined>;
   getEntityDisplay: () => StudioEntityDisplayMap | undefined;
   workspaceRegistry: StudioWorkspaceRegistry;
+  getGroupingDefinitions?: () => GroupingDefinitionsSnapshot;
   recordAuditEvent?:
     ((event: AppendAuthAuditEventInput) => Promise<void>) | undefined;
 }

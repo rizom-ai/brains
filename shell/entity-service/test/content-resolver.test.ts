@@ -138,6 +138,7 @@ Some text
         queryEntityHierarchy: createMockEntityService().queryEntityHierarchy,
         queryGroupingCatalog: createMockEntityService().queryGroupingCatalog,
         queryGroupingMembers: createMockEntityService().queryGroupingMembers,
+        queryGroupingUsage: createMockEntityService().queryGroupingUsage,
         search: mock(() => Promise.resolve([])),
         searchWithDistances: mock(() => Promise.resolve([])),
         projectSemanticSpace: mock(() =>

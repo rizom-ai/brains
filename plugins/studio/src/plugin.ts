@@ -15,7 +15,6 @@ import {
   STUDIO_WORKSPACE_REGISTER_MESSAGE,
   STUDIO_WORKSPACE_UNREGISTER_MESSAGE,
   ServicePlugin,
-  entityGroupingSchema,
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import type { StudioEntityDisplayMap } from "./config";
@@ -27,10 +26,8 @@ import {
 } from "./studio-paths";
 import { createStudioCreatePrefillState } from "./create-prefill-contract";
 import { createEditorRoutes } from "./editor-routes";
-import {
-  registerGroupingVocabulary,
-  registerGroupingVocabularyValidators,
-} from "./grouping-vocabulary";
+import { registerGroupingDefinitions } from "./grouping-definitions";
+import type { GroupingDefinitionSource } from "./grouping-definition-source";
 import { StudioWorkspaceRegistry } from "./workspace-registry";
 import packageJson from "../package.json";
 import { getErrorMessage } from "@brains/utils/error";
@@ -59,13 +56,14 @@ const entityDisplaySchema: z.ZodRecord<
   typeof entityDisplayEntrySchema
 > = z.record(z.string(), entityDisplayEntrySchema);
 
-const studioPluginConfigSchema: z.ZodObject<{
-  entityDisplay: z.ZodOptional<typeof entityDisplaySchema>;
-  groupings: z.ZodDefault<z.ZodArray<typeof entityGroupingSchema>>;
-  routePath: z.ZodDefault<z.ZodString>;
-}> = z.object({
+const studioPluginConfigSchema: z.ZodObject<
+  {
+    entityDisplay: z.ZodOptional<typeof entityDisplaySchema>;
+    routePath: z.ZodDefault<z.ZodString>;
+  },
+  z.core.$strict
+> = z.strictObject({
   entityDisplay: entityDisplaySchema.optional(),
-  groupings: z.array(entityGroupingSchema).max(20).default([]),
   routePath: z
     .string()
     .default("/studio")
@@ -142,6 +140,7 @@ export class StudioPlugin extends ServicePlugin<
 > {
   private readonly workspaceRegistry = new StudioWorkspaceRegistry();
   private readonly overviewRegistry = new StudioOverviewRegistry();
+  private definitionSource: GroupingDefinitionSource | undefined;
 
   constructor(config: StudioPluginConfigInput = {}) {
     super("studio", packageJson, config, studioPluginConfigSchema);
@@ -150,17 +149,17 @@ export class StudioPlugin extends ServicePlugin<
   protected override async onRegistrationComplete(
     context: ServicePluginContext,
   ): Promise<void> {
-    context.entities.validateGroupings(this.config.groupings);
-    for (const grouping of this.config.groupings)
-      context.entities.registerGrouping(grouping);
-    registerGroupingVocabularyValidators(context);
+    if (context.entities.getGroupings().length > 0)
+      throw new Error(
+        "Studio groupings must be defined in the Groupings document, not registered by another owner.",
+      );
+    this.definitionSource = registerGroupingDefinitions(context);
   }
 
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
-    registerGroupingVocabulary(context);
     context.endpoints.register({
       label: "Studio",
       url: this.config.routePath,
@@ -306,6 +305,8 @@ export class StudioPlugin extends ServicePlugin<
         this.config.entityDisplay ??
         parseEntityDisplay(this.getContext().entityDisplay),
       workspaceRegistry: this.workspaceRegistry,
+      getGroupingDefinitions: () =>
+        this.definitionSource?.getSnapshot() ?? { groupings: {}, issues: [] },
       recordAuditEvent: async (event) => {
         const authService = getActiveAuthService();
         if (authService) await authService.recordAuditEvent(event);

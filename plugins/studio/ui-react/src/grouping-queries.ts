@@ -1,3 +1,7 @@
+import {
+  GROUPING_MAX_PAGE_LIMIT,
+  type EntityGroupingUsage,
+} from "@brains/plugins";
 import type { UseQueryOptions } from "@tanstack/react-query";
 import { ApiError, type GroupingPage, type StudioApi } from "./api";
 import {
@@ -9,12 +13,12 @@ import {
 export const GROUPING_INITIALIZATION_WAIT_MS = 90000;
 const scopes = new WeakMap<StudioApi, number>();
 let nextScope = 0;
-export type GroupingQueryKey = readonly [
+export type GroupingQueryKey<T = StudioGroupingQuery> = readonly [
   "studio",
   "groupings",
   number,
   string,
-  StudioGroupingQuery,
+  T,
 ];
 export function isGroupingsInitializing(error: unknown): boolean {
   return (
@@ -36,26 +40,77 @@ export function groupingQueryOptions(
   query: StudioGroupingQuery,
   waitMs: number = GROUPING_INITIALIZATION_WAIT_MS,
 ): UseQueryOptions<GroupingPage, Error, GroupingPage, GroupingQueryKey> {
+  const normalized = studioGroupingQuerySchema.parse(query);
+  return groupingReadOptions(
+    api,
+    grouping,
+    normalized,
+    (signal) => api.fetchGrouping(grouping, normalized, signal),
+    waitMs,
+  );
+}
+
+/** Values may span batches, but each response's entry total is already distinct. */
+export function groupingUsageQueryOptions(
+  api: StudioApi,
+  grouping: string,
+  values: readonly string[],
+  waitMs: number = GROUPING_INITIALIZATION_WAIT_MS,
+): UseQueryOptions<
+  EntityGroupingUsage,
+  Error,
+  EntityGroupingUsage,
+  GroupingQueryKey<{ kind: "usage"; values: string[] }>
+> {
+  const query = { kind: "usage" as const, values: [...values] };
+  return groupingReadOptions(
+    api,
+    grouping,
+    query,
+    async (signal): Promise<EntityGroupingUsage> => {
+      const result: EntityGroupingUsage = { entries: 0, values: [] };
+      for (
+        let offset = 0;
+        offset === 0 || offset < query.values.length;
+        offset += GROUPING_MAX_PAGE_LIMIT
+      ) {
+        signal.throwIfAborted();
+        const page = await api.fetchGroupingUsage(
+          grouping,
+          query.values.slice(offset, offset + GROUPING_MAX_PAGE_LIMIT),
+          signal,
+        );
+        if (offset === 0) result.entries = page.entries;
+        result.values.push(...page.values);
+      }
+      return result;
+    },
+    waitMs,
+  );
+}
+
+function groupingReadOptions<T, TQuery>(
+  api: StudioApi,
+  grouping: string,
+  normalized: TQuery,
+  read: (signal: AbortSignal) => Promise<T>,
+  waitMs: number,
+): UseQueryOptions<T, Error, T, GroupingQueryKey<TQuery>> {
   let scope = scopes.get(api);
   if (scope === undefined) {
     scope = ++nextScope;
     scopes.set(api, scope);
   }
-  const normalized = studioGroupingQuerySchema.parse(query);
   let deadline: number | undefined;
   return {
     queryKey: ["studio", "groupings", scope, grouping, normalized],
-    queryFn: async ({ signal }): Promise<GroupingPage> => {
+    queryFn: async ({ signal }): Promise<T> => {
       deadline ??= Date.now() + waitMs;
       const remaining = deadline - Date.now();
       if (remaining <= 0) throw timeoutError();
       const budget = AbortSignal.timeout(remaining);
       try {
-        const result = await api.fetchGrouping(
-          grouping,
-          normalized,
-          AbortSignal.any([signal, budget]),
-        );
+        const result = await read(AbortSignal.any([signal, budget]));
         deadline = undefined;
         return result;
       } catch (error) {

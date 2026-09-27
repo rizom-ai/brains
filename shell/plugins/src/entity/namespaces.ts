@@ -37,8 +37,14 @@ export function createEntitiesNamespace(shell: IShell): IEntitiesNamespace {
   const dataSourceRegistry = shell.getDataSourceRegistry();
 
   return {
+    registerGroupingSource: (source): void =>
+      entityRegistry.registerGroupingSource(source),
+    ensureGroupingsCurrent: (): Promise<void> =>
+      entityRegistry.ensureGroupingsCurrent(),
     validateGroupings: (groupings: readonly EntityGrouping[]): void =>
       entityRegistry.validateGroupings(groupings),
+    replaceGroupings: (groupings, options): void =>
+      entityRegistry.replaceGroupings(groupings, options),
     registerGrouping: (grouping: EntityGrouping): void =>
       entityRegistry.registerGrouping(grouping),
     getGroupings: (): EntityGrouping[] => entityRegistry.getGroupings(),

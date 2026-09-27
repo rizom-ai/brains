@@ -3,8 +3,8 @@ import { datetimeLocalValue, errorMessage } from "./ui-utils";
 import * as stylex from "@stylexjs/stylex";
 import { fieldStyles as f } from "./studio-fields.styles";
 import { groupingValueLabel } from "./grouping-value";
-import type { GroupingVocabulary } from "../../src/grouping-vocabulary-contract";
-import { ClosedGroupingField } from "./grouping-vocabulary-fields";
+import type { GroupingValueRules } from "../../src/grouping-definitions-contract";
+import { GroupingMembershipField } from "./grouping-membership-field";
 import { StudioStatus } from "./studio-status";
 import {
   Button,
@@ -391,7 +391,8 @@ export function FieldAssistControls(props: {
 }
 
 export function Field(props: {
-  vocabulary?: GroupingVocabulary | undefined;
+  readOnly?: boolean | undefined;
+  vocabulary?: GroupingValueRules | undefined;
   literalList?: boolean | undefined;
   suggestions?: readonly string[] | undefined;
   descriptor: FieldDescriptor;
@@ -432,6 +433,7 @@ export function Field(props: {
       }
     >
       <FieldControl
+        readOnly={props.readOnly}
         vocabulary={props.vocabulary}
         literalList={props.literalList}
         suggestions={props.suggestions}
@@ -458,7 +460,8 @@ export function Field(props: {
 }
 
 function FieldControl(props: {
-  vocabulary?: GroupingVocabulary | undefined;
+  readOnly?: boolean | undefined;
+  vocabulary?: GroupingValueRules | undefined;
   literalList?: boolean | undefined;
   suggestions?: readonly string[] | undefined;
   descriptor: FieldDescriptor;
@@ -543,12 +546,14 @@ function FieldControl(props: {
   if (descriptor.widget === "list" && descriptor.field?.widget === "string") {
     if (props.vocabulary)
       return (
-        <ClosedGroupingField
-          descriptor={descriptor}
-          vocabulary={props.vocabulary}
+        <GroupingMembershipField
+          label={descriptor.label}
+          definition={props.vocabulary}
           value={value}
           onChange={onChange}
           errorId={errorId}
+          readOnly={props.readOnly}
+          suggestions={props.suggestions}
         />
       );
     return (

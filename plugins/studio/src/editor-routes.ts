@@ -29,13 +29,14 @@ import type { StudioWorkspaceRegistry } from "./workspace-registry";
 import { getErrorMessage } from "@brains/utils/error";
 import { jsonResponse } from "./editor-response";
 import { handleGroupingRead, studioGroupDescriptors } from "./editor-groupings";
-import { readGroupingVocabularies } from "./grouping-vocabulary";
-import { GROUPING_VOCABULARY_TYPE } from "./grouping-vocabulary-contract";
+import { GROUPING_DEFINITIONS_TYPE } from "./grouping-definitions-contract";
+import { isGroupingContributorType } from "./grouping-definitions";
 import {
   handleCreateEntity,
   handleDeleteEntity,
   handleGetEntities,
   handleGetEntityHierarchy,
+  handleGetImagePreview,
   handlePreviewDestination,
   handleUpdateEntity,
 } from "./editor-entities";
@@ -360,6 +361,7 @@ export function createEditorRoutes(
           getEntityDisplay(),
           workspaceRegistry,
           access,
+          options.getGroupingDefinitions,
         );
       },
     },
@@ -392,7 +394,17 @@ export function createEditorRoutes(
       handler: async (request): Promise<Response> => {
         const access = await requireTrustedAccess(request);
         if (access instanceof Response) return access;
-        return handleGetSchema(getContext(), request, access);
+        return handleGetSchema(getContext(), request, access, options);
+      },
+    },
+    {
+      path: apiPath("images"),
+      method: "GET",
+      public: true,
+      handler: async (request): Promise<Response> => {
+        const access = await requireTrustedAccess(request);
+        if (access instanceof Response) return access;
+        return handleGetImagePreview(getContext(), request, access);
       },
     },
     {
@@ -407,16 +419,24 @@ export function createEditorRoutes(
         return handlePreviewDestination(getContext(), request, access);
       },
     },
-    ...(["catalog", "members"] as const).map((mode): WebRouteDefinition => ({
-      path: apiPath(`groups/${mode}`),
-      method: "GET",
-      public: true,
-      handler: async (request): Promise<Response> => {
-        const access = await requireTrustedAccess(request);
-        if (access instanceof Response) return access;
-        return handleGroupingRead(getContext(), request, access, mode);
-      },
-    })),
+    ...(["catalog", "members", "usage"] as const).map(
+      (mode): WebRouteDefinition => ({
+        path: apiPath(`groups/${mode}`),
+        method: "GET",
+        public: true,
+        handler: async (request): Promise<Response> => {
+          const access = await requireTrustedAccess(request);
+          if (access instanceof Response) return access;
+          return handleGroupingRead(
+            getContext(),
+            request,
+            access,
+            mode,
+            options.getGroupingDefinitions,
+          );
+        },
+      }),
+    ),
     {
       path: apiPath("hierarchy"),
       method: "GET",
@@ -592,9 +612,11 @@ async function handleListTypes(
   entityDisplay: StudioEntityDisplayMap | undefined,
   workspaceRegistry: StudioWorkspaceRegistry,
   access: StudioRequestAccess,
+  getDefinitions: EditorRouteOptions["getGroupingDefinitions"],
 ): Promise<Response> {
   const types = [];
   if (access.permissionLevel !== "public") {
+    await context.entities.ensureGroupingsCurrent();
     const counts = new Map(
       (await context.entityService.getEntityCounts(access.visibilityScope)).map(
         (entry) => [entry.entityType, entry.count],
@@ -639,9 +661,8 @@ async function handleListTypes(
   );
 
   const groupings = studioGroupDescriptors(
-    context.entities.getGroupings(),
+    getDefinitions?.().groupings ?? {},
     new Set(types.map((type) => type.entityType)),
-    await readGroupingVocabularies(context, access.visibilityScope),
   );
   return jsonResponse({ types, workspaces, groupings });
 }
@@ -751,12 +772,14 @@ async function handleGetSchema(
   context: ServicePluginContext,
   request: Request,
   access: StudioRequestAccess,
+  options: EditorRouteOptions,
 ): Promise<Response> {
   const entityType = new URL(request.url).searchParams.get("type");
   if (!entityType) {
     return jsonResponse({ error: "type query parameter is required" }, 400);
   }
 
+  await context.entities.ensureGroupingsCurrent();
   const capabilities = await getTypeCapabilities(context, entityType, access);
   const schema = capabilities
     ? context.entities.getEffectiveFrontmatterSchema(entityType)
@@ -770,11 +793,19 @@ async function handleGetSchema(
   // Raw types edit the whole document as body; their domain frontmatter
   // bookkeeping must not surface. Visibility is system-owned and applies to
   // every entity type independently of its markdown representation.
+  const definitions = options.getGroupingDefinitions?.();
+  const labels = new Map(
+    Object.entries(definitions?.groupings ?? {})
+      .filter(([, definition]) => definition.types.includes(entityType))
+      .map(([key, definition]) => [key, definition.label]),
+  );
   const domainFields = raw
     ? []
-    : Object.keys(schema.shape).map((name) =>
-        zodFieldToStudioWidget(name, schema.shape[name]),
-      );
+    : Object.keys(schema.shape).map((name) => {
+        const field = zodFieldToStudioWidget(name, schema.shape[name]);
+        const label = labels.get(name);
+        return label === undefined ? field : { ...field, label };
+      });
   const visibilityField = {
     name: "visibility",
     label: "Visibility",
@@ -785,15 +816,36 @@ async function handleGetSchema(
       canWriteVisibility(access.permissionLevel, visibility),
     ),
   };
-  // The vocabulary has exactly one workable visibility: the editors it
-  // constrains must be able to read it. Offering a choice invites a list
+  // Definitions have exactly one workable visibility: the editors they
+  // constrain must be able to read them. Offering a choice invites a list
   // that silently refuses saves nobody can explain.
   const fields =
-    entityType === GROUPING_VOCABULARY_TYPE
+    entityType === GROUPING_DEFINITIONS_TYPE
       ? domainFields
       : [...domainFields, visibilityField];
 
+  const contributorTypes: Array<{ entityType: string; label: string }> = [];
+  if (entityType === GROUPING_DEFINITIONS_TYPE) {
+    const display = options.getEntityDisplay();
+    for (const type of context.entityService.getEntityTypes()) {
+      if (
+        isGroupingContributorType(context, type) &&
+        (await getTypeCapabilities(context, type, access))
+      ) {
+        contributorTypes.push({
+          entityType: type,
+          label: entityTypeLabels(type, display?.[type]).pluralLabel,
+        });
+      }
+    }
+  }
   return jsonResponse({
+    ...(entityType === GROUPING_DEFINITIONS_TYPE && {
+      groupingDefinitions: {
+        contributorTypes,
+        issues: definitions?.issues ?? [],
+      },
+    }),
     entityType,
     format: raw ? "raw" : "frontmatter",
     isSingleton: adapter?.isSingleton === true,

@@ -166,12 +166,14 @@ export function useEntityOpener(input: EntityOpenerInput): EntityOpener {
             type: "creationStarted",
             draft: next.draft,
             body: next.body,
-            ...(!prefill && {
-              prefix:
-                entityType === "note"
-                  ? null
-                  : collectionQuery(routeSearch).prefix,
-            }),
+            ...(loadedSchema.isSingleton && { singleton: true }),
+            ...(!prefill &&
+              !loadedSchema.isSingleton && {
+                prefix:
+                  entityType === "note"
+                    ? null
+                    : collectionQuery(routeSearch).prefix,
+              }),
           });
           return undefined;
         }
@@ -229,6 +231,7 @@ export function useEntityOpener(input: EntityOpenerInput): EntityOpener {
           }
           dispatchEditor({
             type: "creationStarted",
+            singleton: true,
             draft: emptyDraft(loadedSchema.fields),
           });
         }

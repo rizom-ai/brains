@@ -52,6 +52,7 @@ function createCapturedService(): CapturedService {
     queryEntityHierarchy: createMockEntityService().queryEntityHierarchy,
     queryGroupingCatalog: createMockEntityService().queryGroupingCatalog,
     queryGroupingMembers: createMockEntityService().queryGroupingMembers,
+    queryGroupingUsage: createMockEntityService().queryGroupingUsage,
     searchWithDistances: async () => [],
     projectSemanticSpace: async () => ({
       origin: { kind: "centroid" },

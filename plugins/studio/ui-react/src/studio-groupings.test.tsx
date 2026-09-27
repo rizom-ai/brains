@@ -31,7 +31,7 @@ test("stray markers follow the fresh scoped descriptor without changing rows or 
           kind: "catalog",
           grouping: {
             ...common.grouping,
-            vocabulary: { multiple: true, values },
+            rules: { multiple: true, values },
           },
           values: [{ value: "Gamma", count: 2 }],
           total: 1,
@@ -54,7 +54,7 @@ test("stray markers follow the fresh scoped descriptor without changing rows or 
         kind: "members",
         grouping: {
           ...common.grouping,
-          vocabulary: { multiple: true, values: ["Acme"] },
+          rules: { multiple: true, values: ["Acme"] },
         },
         entities: [],
         total: 0,
@@ -88,7 +88,7 @@ test("navigation has one grouping destination, distinct from a type with the sam
       }}
     />,
   );
-  expect(html).toContain("Groupings");
+  expect(html).toContain("Groups");
   expect(html.match(/Clients/g)).toHaveLength(1);
   expect(html).not.toContain("Acme");
 });

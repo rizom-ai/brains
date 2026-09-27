@@ -407,6 +407,183 @@ describe("grouping queries (real SQLite)", () => {
       ).total,
     ).toBe(0);
   });
+  test("usage counts distinct entries, not memberships, and includes unused requested values", async () => {
+    await add("same", ["Acme", "Acme", "Beta"]);
+    await add("same", ["Acme"], "post");
+    await add("stray", ["Outside the list"]);
+    await add("empty", []);
+    expect(
+      await ctx.entityService.queryGroupingUsage({
+        ...query,
+        values: ["Beta", "Acme", "Unused"],
+      }),
+    ).toEqual({
+      entries: 3,
+      values: [
+        { value: "Beta", count: 1 },
+        { value: "Acme", count: 2 },
+        { value: "Unused", count: 0 },
+      ],
+    });
+    expect(await ctx.entityService.queryGroupingUsage(query)).toEqual({
+      entries: 3,
+      values: [],
+    });
+  });
+  test("usage scopes both totals and value counts without widening contributors", async () => {
+    await add("public", ["Acme"]);
+    await add("shared", ["Acme"], "test", "shared");
+    await add("secret", ["Secret"], "post", "restricted");
+    const input = { ...query, values: ["Acme", "Secret"] };
+    expect(await ctx.entityService.queryGroupingUsage(input)).toEqual({
+      entries: 1,
+      values: [
+        { value: "Acme", count: 1 },
+        { value: "Secret", count: 0 },
+      ],
+    });
+    expect(
+      await ctx.entityService.queryGroupingUsage({
+        ...input,
+        visibilityScope: "shared",
+      }),
+    ).toEqual({
+      entries: 2,
+      values: [
+        { value: "Acme", count: 2 },
+        { value: "Secret", count: 0 },
+      ],
+    });
+    expect(
+      await ctx.entityService.queryGroupingUsage({
+        ...input,
+        entityTypes: ["test", "missing"],
+        visibilityScope: "restricted",
+      }),
+    ).toEqual({
+      entries: 2,
+      values: [
+        { value: "Acme", count: 2 },
+        { value: "Secret", count: 0 },
+      ],
+    });
+    expect(
+      await ctx.entityService.queryGroupingUsage({
+        ...input,
+        entityTypes: [],
+      }),
+    ).toEqual({
+      entries: 0,
+      values: [
+        { value: "Acme", count: 0 },
+        { value: "Secret", count: 0 },
+      ],
+    });
+  });
+  test("usage preserves literal values and opaque identities", async () => {
+    const values = [
+      " Acme ",
+      "Acme",
+      "acme",
+      "\ufeffClient",
+      "Client\u0000name",
+      "a,b",
+      "' OR 1=1 --",
+      "",
+    ];
+    await add("legacy\u0000:leaf", values);
+    await add("legacy", ["Acme"]);
+    await add("\ufeffid", ["acme"], "post");
+    expect(
+      await ctx.entityService.queryGroupingUsage({ ...query, values }),
+    ).toEqual({
+      entries: 3,
+      values: values.map((value): { value: string; count: number } => ({
+        value,
+        count: value === "Acme" || value === "acme" ? 2 : 1,
+      })),
+    });
+  });
+  test("usage ignores invalid containers and counts a mixed list once", async () => {
+    const db = createClient({ url: ctx.dbConfig.url });
+    try {
+      for (const [index, value] of [
+        "Acme",
+        null,
+        true,
+        3,
+        {},
+        [],
+        [null, 3],
+        ["Acme", "Acme", "Beta", null, {}],
+      ].entries()) {
+        await add(String(index), []);
+        await db.execute({
+          sql: "UPDATE entities SET metadata = ? WHERE id = ?",
+          args: [JSON.stringify({ clients: value }), String(index)],
+        });
+      }
+    } finally {
+      db.close();
+    }
+    expect(
+      await ctx.entityService.queryGroupingUsage({
+        ...query,
+        values: ["Acme", "Beta"],
+      }),
+    ).toEqual({
+      entries: 1,
+      values: [
+        { value: "Acme", count: 1 },
+        { value: "Beta", count: 1 },
+      ],
+    });
+  });
+  test("usage enforces bounded values, known groupings, and cancellation", async () => {
+    const values = Array.from({ length: 100 }, (_, index): string =>
+      String(index),
+    );
+    expect(
+      await ctx.entityService.queryGroupingUsage({ ...query, values }),
+    ).toEqual({
+      entries: 0,
+      values: values.map((value): { value: string; count: number } => ({
+        value,
+        count: 0,
+      })),
+    });
+    const oversizedBatch = await ctx.entityService
+      .queryGroupingUsage({
+        ...query,
+        values: [...values, "extra"],
+      })
+      .catch((error: unknown): unknown => error);
+    expect(oversizedBatch).toBeInstanceOf(z.ZodError);
+    const oversizedValue = await ctx.entityService
+      .queryGroupingUsage({
+        ...query,
+        values: ["x".repeat(10001)],
+      })
+      .catch((error: unknown): unknown => error);
+    expect(oversizedValue).toBeInstanceOf(z.ZodError);
+    const missing = await ctx.entityService
+      .queryGroupingUsage({
+        ...query,
+        grouping: "missing",
+      })
+      .catch((error: unknown): unknown => error);
+    expect(missing).toBeInstanceOf(Error);
+    expect(missing).toMatchObject({ message: "Unknown entity grouping" });
+    const controller = new AbortController();
+    controller.abort(new Error("Usage cancelled"));
+    const cancelled = await ctx.entityService
+      .queryGroupingUsage({
+        ...query,
+        signal: controller.signal,
+      })
+      .catch((error: unknown): unknown => error);
+    expect(cancelled).toBe(controller.signal.reason);
+  });
   test("search is literal and members have stable sorting across types", async () => {
     await add("a", ["Acme"], "test", "public", "Needle%_");
     await add("b", ["Acme"], "post", "public", "NeedleXX");

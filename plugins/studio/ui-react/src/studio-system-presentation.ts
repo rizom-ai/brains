@@ -7,12 +7,12 @@ export interface SystemEditorCopy {
 }
 
 const profiles: Record<string, SystemEditorCopy> = {
-  "grouping-vocabulary": {
+  "grouping-definitions": {
     title: "Groupings",
     intro:
-      "Define the values editors can choose, and whether each entry may carry one or several. Lists apply to future saves; existing content is never rewritten.",
-    fieldsTitle: "Access",
-    bodyTitle: "Written content",
+      "Define how entries are collected, without moving or rewriting their content.",
+    fieldsTitle: "",
+    bodyTitle: "",
     bodyDescription: "",
   },
   "anchor-profile": {

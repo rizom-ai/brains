@@ -70,17 +70,18 @@ Reproduced with Bun 1.4.0 and 1.4.2 and with `@stylexjs/babel-plugin` 0.19.0 and
 
 ### Impact
 
-Test suites that load `@brains/build-tools/stylex-test-preload` sit near the threshold: adding a test that compiles one more styles module can tip the whole suite. Production builds have not hit it.
+Test suites that load `@brains/build-tools/stylex-test-preload` sit near the threshold: adding a test that compiles one more styles module can tip the whole suite. Studio's UI build also hits this failure after mounting the grouping-definition and membership controls. This affects the build process, not the generated application's runtime.
 
 ### Packages Affected
 
 - `@brains/operator-view-react`
 - `@brains/app-ui-react`
 - `@brains/web-chat`
+- `@brains/studio` (tests and UI builds)
 
 ### Workaround
 
-The `test` scripts of the affected packages set `BUN_JSC_useDFGJIT=0`, which disables only the DFG tier for that test process. JSC options are read at process start, so the flag cannot live in the preload itself. Drop the flag once a Bun release no longer reproduces the probe above.
+The `test` scripts of the affected packages and Studio's `build`/`build:ui` scripts set `BUN_JSC_useDFGJIT=0`, which disables only the DFG tier for those processes. Production runtime settings are unchanged. JSC options are read at process start, so the flag cannot live in the preload itself; declaring it in package scripts also survives Turbo's environment filtering. This is a workaround, not a Bun fix, and these checks no longer exercise that JIT tier. Drop the flag once a verified Bun release passes the probe and affected builds/tests without it.
 
 ## Other Known Issues
 

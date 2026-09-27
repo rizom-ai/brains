@@ -234,6 +234,59 @@ async function settle(): Promise<void> {
 }
 
 describe("useEditorActions", () => {
+  it.each([
+    { pendingChanges: true, invalid: false },
+    { pendingChanges: false, invalid: true },
+  ])(
+    "refuses a direct save while a compound field blocks serialization (%j)",
+    async (state) => {
+      const harness = await renderActions({
+        editor: { ...editing(openNote), compoundFields: { groupings: state } },
+      });
+      await act(async () => harness.actions().save());
+      await settle();
+      expect(harness.saves).toEqual([]);
+      expect(harness.dispatches).toEqual([]);
+    },
+  );
+  it("does not save definitions when their schema context is unavailable", async () => {
+    const entityType = "grouping-definitions";
+    const entity = {
+      ...openNote,
+      id: entityType,
+      entityType,
+      frontmatter: { groupings: {} },
+      body: "",
+    };
+    const harness = await renderActions({
+      entityType,
+      editor: editing(entity),
+      schema: { ...noteSchema, entityType, isSingleton: true, hasBody: false },
+    });
+    await act(async () => harness.actions().save());
+    await settle();
+    expect(harness.saves).toEqual([]);
+    expect(harness.dispatches).toEqual([]);
+  });
+
+  it("does not directly save unchanged existing definitions", async () => {
+    const entityType = "grouping-definitions";
+    const harness = await renderActions({
+      entityType,
+      editor: editing({ ...openNote, entityType, id: entityType }),
+      schema: {
+        ...noteSchema,
+        entityType,
+        isSingleton: true,
+        groupingDefinitions: { contributorTypes: [], issues: [] },
+      },
+    });
+    await act(async () => harness.actions().save());
+    await settle();
+    expect(harness.saves).toEqual([]);
+    expect(harness.dispatches).toEqual([]);
+  });
+
   it("returns to the exact grouping after deleting a member", async () => {
     const groupReturnPath =
       "/studio/groups/clients?value=%20Acme%20&type=note&q=brief&offset=50";
@@ -264,6 +317,32 @@ describe("useEditorActions", () => {
       "saveStarted",
     );
     expect(harness.opened).toEqual([["n1", { kind: "saved", noop: false }]]);
+  });
+
+  it.each([false, true])(
+    "guards direct singleton creation saves (dirty: %s)",
+    async (dirty) => {
+      const harness = await renderActions({
+        schema: { ...noteSchema, isSingleton: true },
+        editor: {
+          ...initialEditorWorkflowState,
+          mode: { kind: "create", initial: { draft: "{}", body: "" } },
+          body: dirty ? "Changed" : "",
+        },
+      });
+      await act(async () => harness.actions().save());
+      await settle();
+      expect(harness.saves).toHaveLength(dirty ? 1 : 0);
+    },
+  );
+
+  it("allows existing singleton no-op saves", async () => {
+    const harness = await renderActions({
+      schema: { ...noteSchema, isSingleton: true },
+    });
+    await act(async () => harness.actions().save());
+    await settle();
+    expect(harness.saves).toHaveLength(1);
   });
 
   it("saves a named creation with its id path", async () => {

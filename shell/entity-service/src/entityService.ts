@@ -3,9 +3,14 @@ import type {
   QueryGroupingCatalogRequest,
   QueryGroupingMembersRequest,
   EntityGroupingCatalog,
+  EntityGroupingUsage,
+  QueryGroupingUsageRequest,
 } from "./entity-grouping";
 import { SHELL_CHANNELS } from "@brains/contracts";
 import { reprojectGroupings } from "./grouping-reprojection";
+import { GroupingReprojection } from "./grouping-reprojection-coordinator";
+import type { GroupingProjectionTarget } from "./grouping-projection-state";
+import { getErrorMessage } from "@brains/utils/error";
 import type { Client } from "@libsql/client";
 import { applySqlitePragmas } from "@brains/db";
 import { createEntityDatabase, ensureFtsTable, type EntityDB } from "./db";
@@ -117,8 +122,8 @@ export class EntityService implements IEntityService {
   // Assigned inside the constructor's try block: null until that succeeds, so
   // initialize() reports the failure instead of awaiting undefined.
   private dbInitPromise: Promise<void> | null = null;
-  private groupingReprojection: Promise<void> | undefined;
-  private groupingsReady = false;
+  private readonly groupingReprojection: GroupingReprojection;
+  private readonly groupingAbort = new AbortController();
   private entityRegistry: IEntityRegistry;
   private logger: Logger;
   private jobQueueService: IJobQueueService;
@@ -138,6 +143,7 @@ export class EntityService implements IEntityService {
    * Close the underlying database connections.
    */
   public close(): void {
+    this.groupingAbort.abort(new Error("Entity service is closed"));
     let firstError: unknown;
     let failed = false;
     try {
@@ -191,6 +197,9 @@ export class EntityService implements IEntityService {
       {
         assetRepository: this.assetRepository,
         prepareEntity: async (entity, operation): Promise<BaseEntity> => {
+          await options.entityRegistry.ensureGroupingsCurrent(
+            entity.entityType,
+          );
           // Projection intents carry stored rows, not the adapter's typed
           // top-level fields. Restore those for validation but retain the
           // full persisted source and authoritative row identity/policy.
@@ -236,6 +245,24 @@ export class EntityService implements IEntityService {
       this.embeddingDbClient = emb.client;
 
       this.entityRegistry = options.entityRegistry;
+      this.groupingReprojection = new GroupingReprojection({
+        pending: (): GroupingProjectionTarget[] =>
+          this.entityRegistry.getPendingGroupingProjections(),
+        complete: (targets): void =>
+          this.entityRegistry.completeGroupingProjections(targets),
+        refresh: async (): Promise<void> => {
+          this.groupingAbort.signal.throwIfAborted();
+          await this.initialize();
+          await this.entityRegistry.ensureGroupingsCurrent();
+        },
+        project: (targets): Promise<void> =>
+          reprojectGroupings(
+            this.db,
+            this.entityRegistry,
+            targets,
+            this.groupingAbort.signal,
+          ),
+      });
       this.logger = (options.logger ?? ConsoleLogger.getInstance()).child(
         "EntityService",
       );
@@ -491,7 +518,10 @@ export class EntityService implements IEntityService {
     request: CreateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
     await this.initialize();
-    return this.entityMutations.createEntity(request);
+    await this.entityRegistry.ensureGroupingsCurrent();
+    const result = await this.entityMutations.createEntity(request);
+    await this.afterGroupingSourceMutation(request.entity.entityType);
+    return result;
   }
 
   public async createEntityFromMarkdown(
@@ -499,12 +529,13 @@ export class EntityService implements IEntityService {
   ): Promise<EntityMutationResult> {
     await this.initialize();
     const { input, options } = request;
+    await this.entityRegistry.ensureGroupingsCurrent();
     const parsed = this.entitySerializer.deserializeEntity(
       input.markdown,
       input.entityType,
     );
 
-    return this.entityMutations.createEntity({
+    const result = await this.entityMutations.createEntity({
       entity: {
         ...parsed,
         id: input.id,
@@ -517,25 +548,37 @@ export class EntityService implements IEntityService {
       },
       ...(options !== undefined && { options }),
     });
+    await this.afterGroupingSourceMutation(input.entityType);
+    return result;
   }
 
   public async updateEntity<T extends BaseEntity>(
     request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
     await this.initialize();
-    return this.entityMutations.updateEntity(request);
+    await this.entityRegistry.ensureGroupingsCurrent();
+    const result = await this.entityMutations.updateEntity(request);
+    await this.afterGroupingSourceMutation(request.entity.entityType);
+    return result;
   }
 
   public async deleteEntity(request: DeleteEntityRequest): Promise<boolean> {
     await this.initialize();
-    return this.entityMutations.deleteEntity(request);
+    if (request.entityType === this.entityRegistry.getGroupingSourceType())
+      await this.entityRegistry.ensureGroupingsCurrent();
+    const result = await this.entityMutations.deleteEntity(request);
+    if (result) await this.afterGroupingSourceMutation(request.entityType);
+    return result;
   }
 
   public async upsertEntity<T extends BaseEntity>(
     request: UpsertEntityRequest<T>,
   ): Promise<EntityMutationResult & { created: boolean }> {
     await this.initialize();
-    return this.entityMutations.upsertEntity(request);
+    await this.entityRegistry.ensureGroupingsCurrent();
+    const result = await this.entityMutations.upsertEntity(request);
+    await this.afterGroupingSourceMutation(request.entity.entityType);
+    return result;
   }
 
   public async storeEmbedding(data: StoreEmbeddingData): Promise<void> {
@@ -547,7 +590,15 @@ export class EntityService implements IEntityService {
     targets: readonly ProjectionChangedTarget[],
   ): Promise<void> {
     await this.initialize();
-    return this.entityMutations.reconcileProjectionTargets(targets);
+    await this.entityMutations.reconcileProjectionTargets(targets);
+    const sourceType = this.entityRegistry.getGroupingSourceType();
+    if (
+      sourceType &&
+      targets.some((target) => target.entityType === sourceType)
+    ) {
+      // Projection preparation does not capture this source's before-state.
+      await this.afterGroupingSourceMutation(sourceType, false);
+    }
   }
 
   public async backfillMissingEmbeddings(): Promise<EmbeddingBackfillResult> {
@@ -712,6 +763,7 @@ export class EntityService implements IEntityService {
     request.signal?.throwIfAborted();
     await this.initialize();
     const { entityType, id, visibilityScope } = request;
+    await this.entityRegistry.ensureGroupingsCurrent(entityType);
     const entityData = await this.entityQueries.getEntityData(
       entityType,
       id,
@@ -761,21 +813,53 @@ export class EntityService implements IEntityService {
   }
 
   public areGroupingsReady(): boolean {
-    return this.groupingsReady;
+    return (
+      !this.groupingAbort.signal.aborted && this.groupingReprojection.isReady()
+    );
   }
 
   public reprojectRegisteredGroupings(): Promise<void> {
-    if (this.groupingReprojection) return this.groupingReprojection;
-    this.groupingsReady = false;
-    this.groupingReprojection = this.initialize()
-      .then(() => reprojectGroupings(this.db, this.entityRegistry))
-      .then(() => {
-        this.groupingsReady = true;
-      })
-      .finally(() => {
-        this.groupingReprojection = undefined;
+    return this.groupingReprojection.run(true);
+  }
+
+  public async ensureGroupingsReady(): Promise<boolean> {
+    await this.initialize();
+    await this.entityRegistry.ensureGroupingsCurrent();
+    if (
+      !this.areGroupingsReady() &&
+      this.entityRegistry.getGroupingSourceType()
+    ) {
+      // A read may start/retry a local pass, but must not return partial counts.
+      void this.groupingReprojection
+        .run()
+        .catch((error: unknown) => this.reportGroupingScanFailure(error));
+    }
+    return this.areGroupingsReady();
+  }
+
+  private async afterGroupingSourceMutation(
+    entityType: string,
+    locallyPrepared = true,
+  ): Promise<void> {
+    if (entityType !== this.entityRegistry.getGroupingSourceType()) return;
+    try {
+      await this.entityRegistry.ensureGroupingsCurrent(undefined, {
+        afterWrite: locallyPrepared,
       });
-    return this.groupingReprojection;
+      await this.groupingReprojection.run();
+    } catch (error) {
+      // Persistence already succeeded. Do not report the document as unsaved.
+      this.groupingReprojection.invalidate();
+      this.reportGroupingScanFailure(error);
+    }
+  }
+
+  private reportGroupingScanFailure(error: unknown): void {
+    if (!this.groupingAbort.signal.aborted)
+      this.logger.error(
+        "Grouping scan failed; grouping reads remain unready until retry",
+        { error: getErrorMessage(error) },
+      );
   }
 
   public async queryGroupingCatalog(
@@ -783,6 +867,9 @@ export class EntityService implements IEntityService {
   ): Promise<EntityGroupingCatalog> {
     request.signal?.throwIfAborted();
     await this.initialize();
+    await this.entityRegistry.ensureGroupingsCurrent();
+    if (this.entityRegistry.getGroupingSourceType())
+      await this.groupingReprojection.run();
     return this.entityQueries.queryGroupingCatalog(request);
   }
 
@@ -791,7 +878,21 @@ export class EntityService implements IEntityService {
   ): Promise<EntityGroupingMembers> {
     request.signal?.throwIfAborted();
     await this.initialize();
+    await this.entityRegistry.ensureGroupingsCurrent();
+    if (this.entityRegistry.getGroupingSourceType())
+      await this.groupingReprojection.run();
     return this.entityQueries.queryGroupingMembers(request);
+  }
+
+  public async queryGroupingUsage(
+    request: QueryGroupingUsageRequest,
+  ): Promise<EntityGroupingUsage> {
+    request.signal?.throwIfAborted();
+    await this.initialize();
+    await this.entityRegistry.ensureGroupingsCurrent();
+    if (this.entityRegistry.getGroupingSourceType())
+      await this.groupingReprojection.run();
+    return this.entityQueries.queryGroupingUsage(request);
   }
 
   public async countEntities(request: CountEntitiesRequest): Promise<number> {

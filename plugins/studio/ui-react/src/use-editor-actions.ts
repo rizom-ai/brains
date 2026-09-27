@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  hasInvalidEditorFields,
+  hasUnsavedEditorChanges,
+} from "./editor-workflow";
 import { studioCollectionPath } from "../../src/studio-paths";
-import { GROUPING_VOCABULARY_TYPE } from "../../src/grouping-vocabulary-contract";
+import { GROUPING_DEFINITIONS_TYPE } from "../../src/grouping-definitions-contract";
 import type { StudioCollectionQuery } from "../../src/collection-query";
 import { type MobileEditorPane } from "./app-view";
 import { ApiError, type FieldAssistResponse } from "./api";
@@ -176,7 +180,18 @@ export function useEditorActions(input: EditorActionsInput): EditorActions {
   );
 
   const save = useCallback((): void => {
-    if (!entityType || mode.kind === "browse" || !schema) return;
+    if (
+      !entityType ||
+      mode.kind === "browse" ||
+      !schema ||
+      (entityType === GROUPING_DEFINITIONS_TYPE &&
+        !schema.groupingDefinitions) ||
+      hasInvalidEditorFields(editor) ||
+      (((mode.kind === "create" && schema.isSingleton) ||
+        entityType === GROUPING_DEFINITIONS_TYPE) &&
+        !hasUnsavedEditorChanges(editor))
+    )
+      return;
     if (
       mode.kind === "create"
         ? activeCapabilities?.canCreate !== true
@@ -217,7 +232,14 @@ export function useEditorActions(input: EditorActionsInput): EditorActions {
           queryClient.invalidateQueries({
             queryKey: studioKeys.syncStatus(),
           }),
-          ...(mode.kind === "create" || entityType === GROUPING_VOCABULARY_TYPE
+          ...(entityType === GROUPING_DEFINITIONS_TYPE
+            ? [
+                queryClient.invalidateQueries({
+                  queryKey: ["studio", "schema"],
+                }),
+              ]
+            : []),
+          ...(mode.kind === "create" || entityType === GROUPING_DEFINITIONS_TYPE
             ? [
                 queryClient.invalidateQueries({
                   queryKey: studioKeys.navigation(),
@@ -233,6 +255,22 @@ export function useEditorActions(input: EditorActionsInput): EditorActions {
       },
       onError: (error: Error) => {
         if (requestId !== currentOpenRequest()) return;
+        if (
+          error instanceof ApiError &&
+          (error.status === 400 || error.status === 409)
+        ) {
+          // Another writer may have changed grouping policy. Refresh its
+          // descriptors/schema without reopening the entity or replacing drafts.
+          void Promise.all([
+            queryClient.invalidateQueries({
+              queryKey: studioKeys.navigation(),
+            }),
+            queryClient.invalidateQueries({ queryKey: ["studio", "schema"] }),
+            queryClient.invalidateQueries({
+              queryKey: ["studio", "groupings"],
+            }),
+          ]);
+        }
         if (error instanceof ApiError && error.issues.length > 0)
           setMobilePane("details");
         dispatchEditor({
@@ -260,6 +298,7 @@ export function useEditorActions(input: EditorActionsInput): EditorActions {
     entityType,
     mode,
     createPath,
+    editor,
     draft,
     body,
     schema,
