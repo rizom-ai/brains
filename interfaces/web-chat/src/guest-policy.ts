@@ -84,15 +84,6 @@ export function isGuestOrigin(value: string): boolean {
   }
 }
 
-/** Optional lifetime bounds, independent of the origin's name or environment. */
-const allowanceSchema: Strict<{
-  requests: z.ZodNumber;
-  maxCostMicroUsd: z.ZodNumber;
-}> = z.strictObject({
-  requests: positiveInteger,
-  maxCostMicroUsd: positiveInteger,
-});
-
 /** Finite bounds of the owner's usage record; set before anything is recorded. */
 export const guestUsageBoundsSchema: Strict<{
   maxRecords: z.ZodNumber;
@@ -117,7 +108,7 @@ const disabledPolicySchema: Strict<{ enabled: z.ZodLiteral<false> }> =
 const enabledPolicySchema: Strict<{
   enabled: z.ZodLiteral<true>;
   origin: z.ZodString;
-  allowance: z.ZodOptional<typeof allowanceSchema>;
+  budgeted: z.ZodOptional<z.ZodLiteral<true>>;
   issuance: typeof guestIssuanceLimitsSchema;
   limits: typeof limitsSchema;
   retention: typeof guestRetentionSchema;
@@ -136,7 +127,8 @@ const enabledPolicySchema: Strict<{
       isGuestOrigin,
       "Guest origin must be canonical HTTPS (or loopback HTTP)",
     ),
-  allowance: allowanceSchema.optional(),
+  /** The owner authorizes it with a monthly budget; admission needs that authorization. */
+  budgeted: z.literal(true).optional(),
   issuance: guestIssuanceLimitsSchema,
   limits: limitsSchema,
   retention: guestRetentionSchema,
@@ -173,7 +165,7 @@ export function matchesGuestOrigin(
   const url = new URL(request.url);
   if (url.origin === policy.origin) return true;
   return Boolean(
-    policy.allowance &&
+    policy.budgeted &&
     new URL(policy.origin).protocol === "https:" &&
     url.protocol === "http:" &&
     url.host === new URL(policy.origin).host,

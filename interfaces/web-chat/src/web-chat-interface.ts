@@ -186,12 +186,12 @@ export class WebChatInterface extends MessageInterfacePlugin<
     context: MessageInterfacePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
-    // Hosted guest access requires an explicit, durable lifetime allowance.
+    // Hosted guest access requires an owner-set budget.
     // Other injected HTTPS policies remain closed without explicit readiness.
     const boundedPolicy =
       this.guestPolicy.enabled &&
       (this.guestPolicy.origin.startsWith("http://") ||
-        this.guestPolicy.allowance !== undefined);
+        this.guestPolicy.budgeted === true);
     this.guestControl = new GuestAccessControl(
       context,
       (request) => this.resolveBrowserAccess(request),
@@ -630,7 +630,7 @@ export class WebChatInterface extends MessageInterfacePlugin<
         : this.guestPolicy;
     if (policy.enabled) {
       if (!matchesGuestOrigin(request, policy)) {
-        if (policy.allowance) return this.handleAuthenticatedChatPage(request);
+        if (policy.budgeted) return this.handleAuthenticatedChatPage(request);
         return new Response("Guest access unavailable", {
           status: 503,
           headers: { "Cache-Control": "no-store" },

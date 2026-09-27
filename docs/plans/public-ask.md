@@ -4,7 +4,7 @@ Last updated: 2026-09-21
 
 ## Status
 
-**Production guest activation and production-page publication remain unapproved on every deployment. The Rizom preview allowance of two messages and four dollars has been spent; it must not be reopened, and further paid messages need fresh explicit approval rather than ledger renewal.**
+**Production guest activation and production-page publication remain unapproved on every deployment. The Rizom preview allowance of two messages and four dollars has been spent. Further paid messages need an owner-set monthly budget (Slice C), never ledger renewal.**
 
 Guest admission is per deployment. No deployment's authorization, allowance, spend or evidence carries to another. This plan owns the capability and every site's rollout.
 
@@ -130,10 +130,10 @@ These are test conventions, not approved production defaults.
 Live constraints of the deployed guest-authorization code, not a rollout log:
 
 - Guest admission is default-off. An explicit `guest: false` also blocks runtime activation.
-- Activation is an admin-only, same-origin `GET/POST` on the chat API. `POST` accepts only `{ enabled }`; there is no hostname, budget or reset override. `GET` grants nothing and calls no model, and activation is primary-host-only.
-- Authorization and lifetime reservations share one compare-and-set ledger. Disabling and re-enabling, retries, cleanup and restarts never restore credit.
+- The owner opens managed guest chat in Studio's Guest chat workspace with a monthly budget, through a prepared confirmation that states it. Activation is also an admin-only, same-origin `GET/POST` on the chat API: `POST` accepts only `{ enabled }` and reopens with the budget set in Studio, refusing while none is set; there is no hostname, budget or reset override. `GET` grants nothing and calls no model, and activation is primary-host-only.
+- Authorization, the owner's monthly budget and the month's charge share one compare-and-set ledger. Each question reserves a $0.50 quote; a measured cost returns the unused part. Disabling and re-enabling, changing the budget, retries, cleanup and restarts never return what the month has charged.
 - Guest handlers and their presentation assets declare their own routing. The transport preserves admission checks and excludes undeclared handlers and tool APIs.
-- Owned history and deletion stay available after an allowance is exhausted.
+- Owned history and deletion stay available after the month's budget is spent.
 
 ## Planned slices
 
@@ -161,7 +161,7 @@ Current state, verified against `origin/main`: two monotonic lifetime counters, 
 
 Goal: the owner can see what the endpoint is doing and stop it, in one place.
 
-**Implementation progress:** web-chat registers an admin-only Studio workspace, **Guest chat** (`web-chat:guest-chat`), wherever guest chat has a usage record. Its loader reads the Slice A record and the admission ledger: questions, measured cost, unknown-cost and unresolved counts for today and this month (the unresolved with their reservations); a meter of questions and reserved quotes against the allowance, with the note that measured cost never returns allowance; recording health, retention and storage; recent questions, refusals by reason with detailed and counted coverage (and a notice once detailed refusals are full), and visitors ranked within the retained window. The switch sits beside the numbers: opening needs a prepared confirmation stating the questions and cost the allowance still permits; closing is one step and stops admissions at once. A recorded question becomes a note only through a prepared-confirmation action, sent as `note:capture` to the note plugin, which keeps it restricted and never lets the sender choose visibility; the action appears only where the note type exists.
+**Implementation progress:** web-chat registers an admin-only Studio workspace, **Guest chat** (`web-chat:guest-chat`), wherever guest chat has a usage record. Its loader reads the Slice A record and the admission ledger: questions, measured cost, unknown-cost and unresolved counts for today and this month (the unresolved with their reservations); a meter of the month's charge against the owner's budget, with the note that each question reserves its quote until its cost is measured; recording health, retention and storage; recent questions, refusals by reason with detailed and counted coverage (and a notice once detailed refusals are full), and visitors ranked within the retained window. The switch sits beside the numbers: opening takes a monthly budget and a prepared confirmation stating it, the quote and what the month has already charged; the same form changes the budget while open; closing is one step and stops admissions at once. A recorded question becomes a note only through a prepared-confirmation action, sent as `note:capture` to the note plugin, which keeps it restricted and never lets the sender choose visibility; the action appears only where the note type exists.
 
 - An admin-only Studio workspace declared with `defineStudioWorkspace`, whose server-side loader reads the Slice A records directly. Studio workspaces are schema-driven and a plugin cannot ship its own React view, so the display is built from the existing block set.
 - Shows requests and known settled cost for today and the current month, outstanding/unknown reservations separately, and the amount still charged against the admission ceiling. Never imply that low measured cost restores allowance. Denials are grouped by reason, with detailed versus aggregated coverage explicit; visitor rankings and recent questions describe only the retained detail window. Queries and result sizes are bounded.
@@ -176,9 +176,18 @@ Goal: a composer on a public production page actually answers.
 
 Current state, verified against `origin/main`: the guest policy derives its origin from the deployment's preview URL and disables itself when that origin equals the production site URL, and the only authored configuration shape is the local test preset. Preview is a verification step, not a destination.
 
-- Add a production policy shape carrying origin, allowance and budget, authored in the brain configuration. Admission accepts it while staying default-off and still requiring explicit operator authorization.
-- Size the limits from what Slice A shows, not from the current defaults, which are a two-request lifetime trial allowance.
-- Per-visitor, per-network and global limits, a hard monthly ceiling, and a kill switch reachable from Slice B. On exhaustion the composer shows its unavailable state and the Slice D door keeps working.
+- **Owner-set monthly budget (decided 2026-09-27).** Guest chat is limited by money the owner sets, not by counts of sessions or questions:
+  - The owner sets a monthly budget in US dollars in Studio's Guest chat workspace. Switching on is a prepared confirmation that states the budget; changing it is switching on again with a new amount. The budget covers one UTC calendar month and starts over on the first.
+  - Each question reserves the turn quote before generation. When the provider's usage is measured (Slice A settlement), the unused part of the quote returns to the month's budget. Unknown cost, failure without usage, interrupted and uncertain work keep the whole quote. This replaces "measured cost never returns allowance" for budgeted guest chat.
+  - Question and session counts are not limits. Per-visitor and deployment rate limits, concurrency and session issuance stay as flood protection, sized well above normal use.
+  - The turn quote is $0.50, so small budgets admit questions; the runtime still stops a turn at its quote.
+  - When the month's budget is spent, the box shows its unavailable state and the contact door keeps working.
+  - The activation endpoint still accepts only `{ enabled }`: it reopens with the budget last set in Studio and refuses while none is set.
+  - The two-question lifetime trial allowance and its authorization are retired; stored trial state authorizes nothing, and the owner switches on again with a budget.
+  - **Implementation progress:** the managed preview policy is `budgeted`; its ledger (a new deployment-wide key, so trial state is never read, while maintenance still sweeps it) holds the owner's budget and the month's charge. Admission charges the quote per UTC month and refuses past the budget; the send route settles with the measured cost from Slice A, returning the rest. Studio's switch takes `monthlyUsd` ($0.50 to $10,000) and shows the month's charge as a meter. The preview preset's flood limits are 30 sessions a minute and 1,000 a day deployment-wide (300 live), and per visitor 3 questions a minute and 30 a day; 300 questions a day and 3 at once deployment-wide; 10 turns per conversation.
+- Add a production policy shape carrying origin and limits, authored in the brain configuration, with the same owner-set budget. Admission accepts it while staying default-off and still requiring explicit operator authorization.
+- Size the flood limits from what Slice A shows.
+- Per-visitor, per-network and global limits, the owner's monthly budget as the hard ceiling, and a kill switch reachable from Slice B. On exhaustion the composer shows its unavailable state and the Slice D door keeps working.
 - Done: the site-owned chat boot moved into Web Chat as the shared box boot (`/ask/assets/box.js`, served only while guest assets are enabled), with its host DOM contract in `@brains/contracts` (`ask-box`). The Rizom hero and the professional atlas consume it on the existing guest runtime and authored-content contract. Hosts that set `data-ask-styled` get Web Chat's shared box presentation, which the dashboard's Ask panel also uses; the Rizom hero keeps its own frame.
 - Every launch gate above applies. Enablement stays a separate explicit decision per deployment, and preview is where each change is verified before the production deploy.
 - Tests first: every consuming site passes the shared mount/DOM contract; a production-origin request is denied until explicitly authorized; exhaustion degrades to the unavailable state without losing the visitor's draft or the independent contact link.

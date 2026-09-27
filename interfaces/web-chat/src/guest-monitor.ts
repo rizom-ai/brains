@@ -41,10 +41,11 @@ const monitorDataSchema = z.object({
     switchable: z.boolean(),
     open: z.boolean(),
     ready: z.boolean(),
-    usedRequests: count,
-    allowanceRequests: count,
-    reservedMicroUsd: count,
-    ceilingMicroUsd: count,
+    /** The owner's monthly budget; zero until one is set. */
+    budgetMicroUsd: count,
+    /** This month's charge: quotes in flight and measured costs. */
+    chargedMicroUsd: count,
+    quoteMicroUsd: count,
   }),
   today: periodSchema,
   month: periodSchema,
@@ -84,12 +85,13 @@ const monitorDataSchema = z.object({
 });
 type MonitorData = z.output<typeof monitorDataSchema>;
 
+/** Opens guest chat with a monthly budget, or changes the budget while open. */
 const switchOnAction = defineWorkspaceAction({
   name: "switch-on",
   label: "Open guest chat",
   permission: "admin",
   confirmation: { kind: "prepared" },
-  input: z.object({}),
+  input: z.object({ monthlyUsd: z.number().min(0.5).max(10_000) }),
   output: z.object({ open: z.boolean() }),
 });
 /** The kill switch: one step, never behind a confirmation. */
@@ -140,6 +142,35 @@ const outcomeLabels: Record<GuestUsageEvent["state"], string> = {
 
 function money(microUsd: number): string {
   return `$${(microUsd / 1_000_000).toFixed(4)}`;
+}
+
+/** A budget in whole cents. */
+function dollars(microUsd: number): string {
+  return `$${(microUsd / 1_000_000).toFixed(2)}`;
+}
+
+/** The budget form, prefilled with the budget already set. */
+function budgetForm(door: MonitorData["door"]): {
+  input: { monthlyUsd: number };
+  form: {
+    presentation: "disclosure";
+    submitLabel: string;
+    fields: { monthlyUsd: { label: string; control: "number" } };
+  };
+} {
+  return {
+    input: {
+      monthlyUsd:
+        door.budgetMicroUsd > 0 ? door.budgetMicroUsd / 1_000_000 : 10,
+    },
+    form: {
+      presentation: "disclosure",
+      submitLabel: door.open ? "Change budget" : "Open guest chat",
+      fields: {
+        monthlyUsd: { label: "Monthly budget (USD)", control: "number" },
+      },
+    },
+  };
 }
 
 function period(events: GuestUsageEvent[], since: number): Period {
@@ -211,48 +242,53 @@ const guestMonitor = defineStudioWorkspace({
             },
           ],
         },
-        ...(door.switchable &&
-        door.allowanceRequests > 0 &&
-        door.ceilingMicroUsd > 0
+        ...(door.switchable
           ? [
-              {
-                type: "meters" as const,
-                id: "guest-allowance",
-                items: [
-                  {
-                    id: "questions",
-                    label: "Questions",
-                    value: Math.min(door.usedRequests, door.allowanceRequests),
-                    max: door.allowanceRequests,
-                  },
-                  {
-                    id: "reserved",
-                    label: "Reserved against the ceiling",
-                    value:
-                      Math.min(door.reservedMicroUsd, door.ceilingMicroUsd) /
-                      1_000_000,
-                    max: door.ceilingMicroUsd / 1_000_000,
-                    unit: "USD",
-                  },
-                ],
-              },
+              ...(door.budgetMicroUsd > 0
+                ? [
+                    {
+                      type: "meters" as const,
+                      id: "guest-budget",
+                      items: [
+                        {
+                          id: "month",
+                          label: "This month",
+                          value:
+                            Math.min(
+                              door.chargedMicroUsd,
+                              door.budgetMicroUsd,
+                            ) / 1_000_000,
+                          max: door.budgetMicroUsd / 1_000_000,
+                          unit: "USD",
+                        },
+                      ],
+                    },
+                  ]
+                : []),
               {
                 type: "notice" as const,
-                id: "guest-allowance-note",
-                text: "Each question is charged at its quoted maximum; measured cost never returns allowance.",
+                id: "guest-budget-note",
+                text: `Each question reserves ${dollars(door.quoteMicroUsd)} until its cost is measured; the rest returns to the budget. The budget starts over on the 1st of each month (UTC).`,
               },
               {
                 type: "actions" as const,
                 id: "guest-switch",
-                items: [
-                  door.open
-                    ? { action: switchOffAction, input: {} }
-                    : {
+                items: door.open
+                  ? [
+                      { action: switchOffAction, input: {} },
+                      {
                         action: switchOnAction,
-                        input: {},
+                        label: "Change budget",
+                        ...budgetForm(door),
+                      },
+                    ]
+                  : [
+                      {
+                        action: switchOnAction,
+                        ...budgetForm(door),
                         disabled: !door.ready,
                       },
-                ],
+                    ],
               },
             ]
           : []),
@@ -412,10 +448,9 @@ async function load(
       switchable: status !== undefined,
       open: status ? status.enabled : deps.configuredOpen(),
       ready: status?.ready ?? true,
-      usedRequests: status?.usedRequests ?? 0,
-      allowanceRequests: status?.allowance.requests ?? 0,
-      reservedMicroUsd: status?.reservedMicroUsd ?? 0,
-      ceilingMicroUsd: status?.allowance.maxCostMicroUsd ?? 0,
+      budgetMicroUsd: status?.budgetMicroUsd ?? 0,
+      chargedMicroUsd: status?.chargedMicroUsd ?? 0,
+      quoteMicroUsd: status?.quoteMicroUsd ?? 0,
     },
     today: period(events, today),
     month: period(events, month),
@@ -485,8 +520,10 @@ export async function registerGuestMonitor(
         actions: [
           switchOnAction.bind(
             binding,
-            async () => {
-              const switched = await deps.control?.switchOn();
+            async ({ input }) => {
+              const switched = await deps.control?.switchOn(
+                Math.round(input.monthlyUsd * 1_000_000),
+              );
               if (switched !== "on")
                 throw new Error(
                   switched === "not-ready"
@@ -496,17 +533,14 @@ export async function registerGuestMonitor(
               await deps.afterSwitch();
               return { open: true };
             },
-            async () => {
+            async ({ input }) => {
               const status = await deps.control?.status();
               if (!status)
                 throw new Error("Guest chat cannot be switched here");
-              const left = Math.max(
-                status.allowance.requests - status.usedRequests,
-                0,
-              );
+              const budget = Math.round(input.monthlyUsd * 1_000_000);
               return {
-                summary: `Open guest chat on ${status.origin}? Visitors can ask ${left} more ${left === 1 ? "question" : "questions"} of ${status.allowance.requests} questions, reserving up to ${money(status.allowance.maxCostMicroUsd)} of provider cost. The allowance never renews.`,
-                revision: `${status.enabled}:${status.usedRequests}:${status.reservedMicroUsd}`,
+                summary: `Open guest chat on ${status.origin} with a monthly budget of ${dollars(budget)}? Each question reserves ${dollars(status.quoteMicroUsd)} until its cost is measured, and the rest returns to the budget. ${dollars(status.chargedMicroUsd)} is already charged this month; the budget starts over on the 1st (UTC).`,
+                revision: `${status.enabled}:${status.budgetMicroUsd}:${status.chargedMicroUsd}`,
               };
             },
           ),
