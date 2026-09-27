@@ -30,6 +30,19 @@ describe("organization site", () => {
     expect(site.layouts["default"]).toBe(SiteLayout);
   });
 
+  it("tells visitors about the team on /about, from the main navigation", async () => {
+    const about = site.routes.find((route) => route.path === "/about");
+    expect(about?.sections).toEqual([
+      { id: "about", template: "organization-site:about", dataQuery: {} },
+    ]);
+    expect(about?.navigation).toMatchObject({ show: true, slot: "primary" });
+    const harness = await installed();
+    const template = harness.getTemplates().get("organization-site:about");
+    expect(template?.dataSourceId).toBe("organization:about");
+    expect(template?.requiredPermission).toBe("public");
+    expect(harness.getDataSources().has("organization:about")).toBe(true);
+  });
+
   it("lists the agent directory in the main navigation", () => {
     expect(site.entityDisplay["agent"]).toEqual({
       label: "Agent",

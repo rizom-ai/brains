@@ -23,4 +23,24 @@ export const routes: RouteDefinitionInput[] = [
       },
     ],
   },
+  {
+    id: "about",
+    path: "/about",
+    title: "About",
+    description: "About the team or organization",
+    layout: "default",
+    navigation: {
+      show: true,
+      label: "About",
+      slot: "primary",
+      priority: 90,
+    },
+    sections: [
+      {
+        id: "about",
+        template: "organization-site:about",
+        dataQuery: {},
+      },
+    ],
+  },
 ];

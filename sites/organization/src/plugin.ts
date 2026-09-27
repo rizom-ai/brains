@@ -12,12 +12,19 @@ import {
   loadHomepageOpening,
 } from "@brains/site-atlas";
 import { createTemplate } from "@brains/templates";
+import { z } from "@brains/utils/zod";
 import {
   organizationSiteConfigSchema,
   type OrganizationSiteConfig,
   type OrganizationSiteConfigInput,
 } from "./config";
+import { OrganizationAboutDataSource } from "./datasources/about-datasource";
 import { OrganizationHomepageDataSource } from "./datasources/homepage-datasource";
+import { organizationProfileSchema } from "./schemas/organization-profile";
+import {
+  OrganizationAbout,
+  type OrganizationAboutData,
+} from "./templates/about";
 import {
   organizationHomepageSchema,
   type OrganizationHomepageData,
@@ -56,6 +63,8 @@ export class OrganizationSitePlugin extends ServicePlugin<
       }),
     );
 
+    context.entities.registerDataSource(new OrganizationAboutDataSource());
+
     context.templates.register({
       homepage: createTemplate<OrganizationHomepageData>({
         name: "homepage",
@@ -68,6 +77,15 @@ export class OrganizationSitePlugin extends ServicePlugin<
         runtimeScripts: [{ src: HOMEPAGE_ATLAS_SCRIPT_PATH, defer: true }],
         staticAssets: { [HOMEPAGE_ATLAS_SCRIPT_PATH]: HOMEPAGE_ATLAS_SCRIPT },
         layout: { component: OrganizationHomepage },
+      }),
+      about: createTemplate<OrganizationAboutData>({
+        name: "about",
+        description:
+          "About page: the team or organization from its anchor profile",
+        schema: z.object({ profile: organizationProfileSchema }),
+        dataSourceId: "organization:about",
+        requiredPermission: "public",
+        layout: { component: OrganizationAbout },
       }),
     });
 

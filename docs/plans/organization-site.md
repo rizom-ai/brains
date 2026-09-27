@@ -4,7 +4,7 @@ Last updated: 2026-09-26
 
 ## Status
 
-In progress on `work/organization-atlas`: slices 1 to 3 are committed and not yet merged; slice 4 is built. Five slices, each shippable on its own; the first is a pure extraction, the second is the walking skeleton.
+Built on `work/organization-atlas`: all five slices are committed and not yet merged. Five slices, each shippable on its own; the first is a pure extraction, the second is the walking skeleton.
 
 ## Goal
 
@@ -21,7 +21,7 @@ In progress on `work/organization-atlas`: slices 1 to 3 are committed and not ye
 
 ## Decisions
 
-1. **Shared kit.** A new private package, `@brains/site-atlas` (`shared/site-atlas`), holds everything both sites render: the atlas frame (opening, Ask box host, door, map box), the terrain map with its label layout, styles and runtime script, the opening loader, the Ask-box availability check, the terrain contract, and the header/footer layout as `SiteLayout`. The layout cannot live in `@brains/ui-library`, because `@brains/site-engine` depends on it, and sites do not import each other. `ProfessionalLayout` is removed; the professional site is its only consumer.
+1. **Shared kit.** A new private package, `@brains/site-atlas` (`shared/site-atlas`), holds everything both sites render: the atlas frame (opening, Ask box host, door, map box), the terrain map with its label layout, styles and runtime script, the opening loader, the Ask-box availability check, the terrain contract, the about page (hero, story, facts and contact), and the header/footer layout as `SiteLayout`. The layout cannot live in `@brains/ui-library`, because `@brains/site-engine` depends on it, and sites do not import each other. `ProfessionalLayout` is removed; the professional site is its only consumer.
 2. **Frame contract.** `HomepageAtlas` draws either the terrain from atlas data (the professional site) or a map element the site supplies, with that map's accessible name (the organization site). The opening's `contactUrl` is nullable; without it, the topics and the contact door are omitted. The terrain contract stays as the professional site uses it; the glyph, kind-label and centre additions slice 2 made for an agent terrain are removed, because the radar draws agents itself.
 3. **The radar.** The organization homepage draws its agents in the atlas's own hand, as the mockup shows. A quiet scope: range rings for semantic distance and bearing ticks on its edge, around the team at the centre. Each agent is an atlas mark at the position the console's proximity map gives it, through placement helpers shared with the console widget on the pure `@brains/agent-discovery/proximity-map` subpath, and is named beside its mark; people are dots, teams diamonds, organizations squares, and agents awaiting review outlines. Approved and discovered first-order agents are shown; archived agents and second-order sightings stay on the console. Each constellation is an echo: stacked contour lines, traced by the kit's contour tracer, around its agents and pinched along the threads between them, named in the atlas's italic; a lone agent gets a small island. The one motion is a pulse radiating from the centre every nine seconds; each echo and mark lights as the wave reaches its distance, so the closest light first, and reduced motion stops it. The data comes from `buildProximityMapData` through the `@brains/agent-discovery/proximity-map-data` subpath, so the pure subpath rizom.ai bundles stays free of the entity runtime; the console widget and its styles are not used. Without a projection or any charted agent, the frame renders without a map.
 4. **Constellations.** Each shown agent joins the shown agent nearest it within 0.35 cosine distance, which the loader asks of the projection: agent descriptions sit farther apart than the console's fixed 0.25 cut-off (the team seed's closest pairs are 0.28–0.29), and joining only the nearest keeps a chain of near pairs from running into one constellation. A group becomes a constellation when at least two members share a skill tag, named by the tag most of them share through `mostCommonTag`, which the console's cluster labels also use. The console's clusters keep their own rule.
@@ -73,11 +73,11 @@ The authored opening replaces the profile fallback; topics and the contact door 
 
 ### 5. About page
 
-`/about` presents the team or organization from its anchor profile.
+`/about` presents the team or organization from its anchor profile, in the professional about page's form.
 
-- Tests first: team fields render as purpose, focus areas, capabilities and working principles; organization fields render as mission, focus areas, offerings and values; absent fields leave no empty headings.
-- Build: an about view schema combining the common profile fields with `teamProfileFields` and `organizationProfileFields`, all optional; the about template and route.
-- Fixtures: purpose and focus areas in the team fixture's anchor profile; rerun the team eval cases that read the anchor profile.
+- Tests first: the professional about page's HTML is pinned before its layout moves into the kit; the kit's about page sets each fact as text, tags or a list and leaves out empty ones; team fields render as purpose, focus areas, capabilities and working principles; organization fields render as mission, focus areas, offerings and values; absent fields leave no empty headings; `/about` sits in the main navigation.
+- Build: the kit's shared about page, with the professional page rendering through it byte-identically; an organization profile view combining the common fields with `teamProfileFields` and `organizationProfileFields`, all optional; the about template, datasource and route.
+- Fixtures: purpose, focus areas, capabilities and working principles in the team fixture's anchor profile; rerun the team eval cases that read the profile.
 - Verify: a preview rebuild shows `/about` from the team fixture's profile.
 
 ## Not in this plan

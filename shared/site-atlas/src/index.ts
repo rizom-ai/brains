@@ -31,3 +31,9 @@ export {
 } from "./datasources/homepage-opening";
 export { homepageChatAvailable } from "./datasources/homepage-chat";
 export { SiteLayout, type SiteLayoutProps } from "./layouts/SiteLayout";
+export {
+  AboutPage,
+  type AboutContact,
+  type AboutFact,
+  type AboutPageProps,
+} from "./templates/about-page";
