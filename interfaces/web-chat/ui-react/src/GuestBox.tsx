@@ -32,7 +32,6 @@ export type GuestBoxState =
   | "limit"
   | "unavailable"
   | "expired"
-  | "history-unavailable"
   | "ended";
 
 export interface GuestBoxProps {
@@ -217,7 +216,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
         </p>
       </>
     );
-  if (state === "expired" || state === "history-unavailable")
+  if (state === "expired")
     notice = (
       <>
         <h3>This conversation is unavailable.</h3>
@@ -375,8 +374,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
               )}
               {(state === "uncertain" ||
                 state === "incomplete" ||
-                state === "expired" ||
-                state === "history-unavailable") &&
+                state === "expired") &&
                 newQuestion()}
               {state === "unavailable" && (
                 <button

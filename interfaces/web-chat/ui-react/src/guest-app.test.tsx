@@ -371,30 +371,20 @@ describe("public Ask UI with mocked Chat transport", () => {
     ).toHaveLength(0);
   });
 
-  it("does not strand the box on an expired locator or replay its old request", async () => {
+  it("opens the box empty on every load, even with a conversation saved in this tab", async () => {
     sessionStorage.setItem("brain-ask-conversation", id);
     sessionStorage.setItem("brain-ask-conversation-list", JSON.stringify([id]));
-    unavailableHistory = true;
     await mount({ box: boxCopy });
-    expect(document.body.textContent).toContain(
-      "This conversation is unavailable",
+    expect(
+      calls.filter((call) => call.path.includes("/messages?")),
+    ).toHaveLength(0);
+    expect(document.body.textContent).not.toContain(
+      "An actual transport reply",
     );
-    expect(sessionStorage.getItem("brain-ask-conversation")).toBe(id);
-    await click("New question");
-    expect(
-      calls.filter((call) => call.path === "/api/chat/guest"),
-    ).toHaveLength(0);
-    await click("Continue");
-    expect(sessionStorage.getItem("brain-ask-conversation")).toBeNull();
-    expect(sessionStorage.getItem("brain-ask-conversation-list")).toContain(id);
-    expect(
-      calls.filter((call) => call.path === "/api/chat/guest"),
-    ).toHaveLength(0);
-    await ask("A new deliberate question");
-    expect(
-      calls.find((call) => call.path === "/api/chat/guest")?.body,
-    ).not.toHaveProperty("id");
-    expect(deleted).toBe(false);
+    await ask("A fresh question");
+    const send = calls.find((call) => call.path === "/api/chat/guest");
+    if (!send) throw new Error("Question was not sent");
+    expect(send.body).toEqual({ messages: expect.any(Array) });
   });
 
   it("checks an interrupted box answer using history only and preserves partial text", async () => {
