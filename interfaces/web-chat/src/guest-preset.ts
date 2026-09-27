@@ -26,15 +26,19 @@ const localPresetSchema: z.ZodObject<
   origin: localOriginSchema.default("http://127.0.0.1:8080"),
 });
 
-/** Shared execution defaults. A hosted policy still needs explicit authorization. */
+/**
+ * Shared execution defaults. A hosted policy still needs explicit authorization,
+ * and its owner's budget is the ceiling: these counts only stop floods, sized
+ * well above what one site's visitors ask.
+ */
 export function createDefaultGuestPolicy(origin: string): GuestPolicy {
   return guestPolicySchema.parse({
     enabled: true,
     origin,
     issuance: {
-      requestsPerMinute: 2,
-      requestsPerDay: 4,
-      maxStoredCredentials: 4,
+      requestsPerMinute: 30,
+      requestsPerDay: 1000,
+      maxStoredCredentials: 300,
     },
     limits: {
       messageCharacters: 4000,
@@ -42,20 +46,22 @@ export function createDefaultGuestPolicy(origin: string): GuestPolicy {
       contextTokens: 1_050_000,
       contextBytes: 32000,
       toolCalls: 3,
-      userTurns: 2,
+      userTurns: 10,
       toolSteps: 3,
       toolResultCharacters: 12000,
       retrieval: { rows: 5, rowBytes: 12000, queryCharacters: 4000 },
-      requestsPerMinute: 2,
-      requestsPerDay: 2,
-      globalRequestsPerMinute: 2,
-      globalRequestsPerDay: 2,
-      globalConcurrency: 1,
+      requestsPerMinute: 3,
+      requestsPerDay: 30,
+      globalRequestsPerMinute: 30,
+      globalRequestsPerDay: 300,
+      globalConcurrency: 3,
       requestTimeoutSeconds: 90,
       streamIdleTimeoutSeconds: 30,
     },
     retention: { idleSeconds: 3600, maxAgeSeconds: 3600 },
-    budget: { dailyUsd: 4, maxTurnUsd: 2 },
+    // Each question reserves maxTurnUsd until its cost is measured; the daily
+    // budget bounds a configured policy, the owner's monthly budget a budgeted one.
+    budget: { dailyUsd: 4, maxTurnUsd: 0.5 },
     usageRecord: {
       maxRecords: 1000,
       maxDenialRecords: 1000,

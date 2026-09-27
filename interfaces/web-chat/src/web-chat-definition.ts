@@ -236,6 +236,7 @@ export function createWebChatDefinition(
             preview: configured || activated,
           });
         };
+        await guestControl.resumeApprovedLimits();
         await recordAvailability();
         const managedPolicy = guestControl.policy;
         const authenticatedRoutePath =
@@ -245,7 +246,7 @@ export function createWebChatDefinition(
         const boundedPolicy =
           guestPolicy.enabled &&
           (guestPolicy.origin.startsWith("http://") ||
-            guestPolicy.allowance !== undefined);
+            guestPolicy.budgeted === true);
         const guestHttp = new GuestHttpHandlers(
           {
             agent: context.agent,
@@ -524,7 +525,7 @@ function webChatRoutes(
             : state.guestPolicy;
         if (!policy.enabled) return chatPage(config, state, request);
         if (!matchesGuestOrigin(request, policy)) {
-          if (policy.allowance) return chatPage(config, state, request);
+          if (policy.budgeted) return chatPage(config, state, request);
           return new Response("Guest access unavailable", {
             status: 503,
             headers: { "Cache-Control": "no-store" },

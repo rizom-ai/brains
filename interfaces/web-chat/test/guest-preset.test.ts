@@ -21,12 +21,12 @@ describe("guest configuration conventions", () => {
     expect(resolveGuestPreset(config.guest)).toMatchObject({
       enabled: true,
       origin: "http://127.0.0.1:8080",
-      budget: { dailyUsd: 4, maxTurnUsd: 2 },
+      budget: { dailyUsd: 4, maxTurnUsd: 0.5 },
       retention: { idleSeconds: 3600, maxAgeSeconds: 3600 },
       limits: {
-        userTurns: 2,
-        globalConcurrency: 1,
-        globalRequestsPerDay: 2,
+        userTurns: 10,
+        globalConcurrency: 3,
+        globalRequestsPerDay: 300,
         contextTokens: 1_050_000,
         contextBytes: 32000,
         outputTokens: 1200,
@@ -44,7 +44,7 @@ describe("guest configuration conventions", () => {
     });
     expect(resolveGuestPreset(config.guest)).toMatchObject({
       origin: "http://127.0.0.1:18180",
-      budget: { dailyUsd: 4, maxTurnUsd: 2 },
+      budget: { dailyUsd: 4, maxTurnUsd: 0.5 },
     });
   });
 

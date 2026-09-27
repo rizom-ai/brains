@@ -94,7 +94,6 @@ async function setup(
     authenticated?: boolean;
     origin?: string;
     profileAvailable?: boolean;
-    previewTrial?: boolean;
     managed?: boolean;
     idleSeconds?: number;
     peerAddress?: string | null;
@@ -291,32 +290,23 @@ async function setup(
     {
       ...(options.managed
         ? {}
-        : options.previewTrial
-          ? {
-              // Trusted, already-authorized policy fixture. Activation is tested separately.
-              guestPolicy: {
-                ...defaults,
-                origin: deploymentOrigin,
-                allowance: { requests: 2, maxCostMicroUsd: 4_000_000 },
-              },
-            }
-          : {
-              guestPolicy:
-                options.enabled === false
-                  ? { enabled: false as const }
-                  : {
-                      ...testGuestPolicy,
-                      origin: deploymentOrigin,
-                      usageRecord:
-                        options.usageRecord ?? testGuestPolicy.usageRecord,
-                      limits: {
-                        ...testGuestPolicy.limits,
-                        streamIdleTimeoutSeconds:
-                          options.idleSeconds ??
-                          testGuestPolicy.limits.streamIdleTimeoutSeconds,
-                      },
+        : {
+            guestPolicy:
+              options.enabled === false
+                ? { enabled: false as const }
+                : {
+                    ...testGuestPolicy,
+                    origin: deploymentOrigin,
+                    usageRecord:
+                      options.usageRecord ?? testGuestPolicy.usageRecord,
+                    limits: {
+                      ...testGuestPolicy.limits,
+                      streamIdleTimeoutSeconds:
+                        options.idleSeconds ??
+                        testGuestPolicy.limits.streamIdleTimeoutSeconds,
                     },
-            }),
+                  },
+          }),
       guestHttp: {
         now: (): number => state.now,
         ...(options.readiness === false
@@ -403,8 +393,33 @@ async function post(browser: Browser, payload: unknown): Promise<Response> {
   });
 }
 
+/** Runs a Studio monitor action as the owner. */
+async function studioAct(
+  state: Fixture,
+  request: Record<string, unknown>,
+): Promise<unknown> {
+  const handler = state.monitor()?.actionHandler;
+  if (!handler) throw new Error("Monitor has no actions");
+  return handler(request, studioActor("admin"), new AbortController().signal);
+}
+
+/** The owner opens managed guest chat in Studio with a monthly budget. */
+async function openWithBudget(state: Fixture, monthlyUsd = 10): Promise<void> {
+  const input = { monthlyUsd };
+  const prepared = z
+    .object({ token: z.string() })
+    .parse(
+      await studioAct(state, { actionId: "switch-on", input, mode: "prepare" }),
+    );
+  await studioAct(state, {
+    actionId: "switch-on",
+    input,
+    confirmationToken: prepared.token,
+  });
+}
+
 describe("guest HTTP Chat integration (mocked agent)", () => {
-  it("activates the actual default-config preview flow without replenishing its allowance", async () => {
+  it("opens the default preview flow with the owner's budget, and reopening never adds money", async () => {
     const state = await setup({
       managed: true,
       origin: "https://preview.brain.test",
@@ -435,7 +450,9 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     ).toBe(404);
     expect(state.calls).toHaveLength(0);
 
-    expect((await control(true)).status).toBe(200);
+    // The activation endpoint takes no budget: it reopens with the one set in Studio.
+    expect((await control(true)).status).toBe(409);
+    await openWithBudget(state, 1);
     expect((await browser.client.openGuestSession()).canSend).toBe(true);
     expect(
       (await browser.fetch("/ask/assets/guest.js", { method: "GET" })).status,
@@ -468,6 +485,7 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     const second = await post(browser, message("Follow-up", id));
     expect(second.status).toBe(200);
     await events(second);
+    // Two unmeasured questions hold their $0.50 quotes: the $1 is spent.
     expect((await browser.client.openGuestSession()).canSend).toBe(false);
     expect((await control(true)).status).toBe(200);
     expect((await post(browser, message("Third", id))).status).toBe(429);
@@ -486,11 +504,11 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     expect(await browser.client.deleteSession(id)).toEqual({ deleted: true });
   });
   it.each([false, true])(
-    "preserves production Ask authentication while preview trial is enabled: %j",
+    "preserves production Ask authentication while preview guest chat is managed: %j",
     async (authenticated) => {
       const state = await setup({
         origin: "https://preview.brain.test",
-        previewTrial: true,
+        managed: true,
         authenticated,
         profileAvailable: true,
         readiness: false,
@@ -505,15 +523,21 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     },
   );
 
-  it("admits the explicit HTTPS preview trial only with a supported guest profile", async () => {
+  it("admits HTTPS preview guests only with a supported guest profile", async () => {
     for (const profileAvailable of [false, true]) {
       const state = await setup({
         origin: "https://preview.brain.test",
-        previewTrial: true,
+        managed: true,
         readiness: false,
         profileAvailable,
         peerAddress: "192.0.2.10",
       });
+      if (profileAvailable) await openWithBudget(state);
+      else
+        // Studio reports only that the switch failed; the guest profile is why.
+        expect(openWithBudget(state)).rejects.toThrow(
+          'action "switch-on" failed',
+        );
       const response = await state.browser().fetch(`${base}/session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -531,11 +555,12 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     const preview = "https://preview.brain.test";
     const state = await setup({
       origin: preview,
-      previewTrial: true,
+      managed: true,
       readiness: false,
       profileAvailable: true,
       peerAddress: "172.18.0.2",
     });
+    await openWithBudget(state);
     const browser = state.browser();
     for (const url of [
       "https://brain.test",
@@ -581,13 +606,14 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     expect(state.calls).toHaveLength(1);
   });
 
-  it("executes only the preview question and follow-up, never a third message from a new visitor", async () => {
+  it("answers until the month's budget is spent, then refuses even a new visitor", async () => {
     const state = await setup({
       origin: "https://preview.brain.test",
-      previewTrial: true,
+      managed: true,
       readiness: false,
       profileAvailable: true,
     });
+    await openWithBudget(state, 1);
     const browser = state.browser();
     const session = await browser.client.openGuestSession();
     expect(session.canSend).toBe(true);
@@ -603,11 +629,10 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     expect(second.status).toBe(200);
     await events(second);
     expect(state.calls).toHaveLength(2);
+    // The $1 is spent: a new visitor gets no session, so no question runs.
     const other = state.browser();
-    await other.client.openGuestSession();
-    const denied = await post(other, message("Third"));
-    expect(denied.status).toBe(429);
-    expect(await denied.json()).toEqual({ error: "budget-exhausted" });
+    expect(other.client.openGuestSession()).rejects.toThrow("(503)");
+    expect((await post(browser, message("Third", id))).status).toBe(429);
     expect(state.calls).toHaveLength(2);
     expect(
       (await browser.client.getGuestHistory(id, submission)).messages.length,
@@ -1652,26 +1677,7 @@ describe("guest chat monitor in Studio", () => {
       await state.monitor()?.dataProvider(studioActor("admin"), {}, signal()),
     );
   }
-  async function act(
-    state: Fixture,
-    request: Record<string, unknown>,
-  ): Promise<unknown> {
-    const handler = state.monitor()?.actionHandler;
-    if (!handler) throw new Error("Monitor has no actions");
-    return handler(request, studioActor("admin"), signal());
-  }
-  async function switchOn(state: Fixture): Promise<void> {
-    const prepared = z
-      .object({ token: z.string(), summary: z.string() })
-      .parse(
-        await act(state, { actionId: "switch-on", input: {}, mode: "prepare" }),
-      );
-    await act(state, {
-      actionId: "switch-on",
-      input: {},
-      confirmationToken: prepared.token,
-    });
-  }
+  const act = studioAct;
 
   it("is the owner's alone, at the Studio floor and at runtime", async () => {
     const state = await setup(managed);
@@ -1690,21 +1696,24 @@ describe("guest chat monitor in Studio", () => {
     expect(shown).toContain("No guest questions yet.");
     expect(shown).toContain("No refusals recorded.");
     expect(shown).toContain("switch-on");
+    expect(shown).toContain("Monthly budget (USD)");
     expect(shown).not.toContain("switch-off");
   });
 
-  it("opens only after a prepared confirmation, and closes at once, beside the numbers", async () => {
+  it("opens with a budget only after a prepared confirmation, and closes at once", async () => {
     const state = await setup(managed);
-    expect(act(state, { actionId: "switch-on", input: {} })).rejects.toThrow(
+    const input = { monthlyUsd: 10 };
+    expect(act(state, { actionId: "switch-on", input })).rejects.toThrow(
       "prepared confirmation is invalid or stale",
     );
     const prepared = z
       .object({ summary: z.string() })
       .parse(
-        await act(state, { actionId: "switch-on", input: {}, mode: "prepare" }),
+        await act(state, { actionId: "switch-on", input, mode: "prepare" }),
       );
-    expect(prepared.summary).toContain("2 questions");
-    await switchOn(state);
+    expect(prepared.summary).toContain("a monthly budget of $10.00");
+    expect(prepared.summary).toContain("reserves $0.50");
+    await openWithBudget(state);
     const browser = state.browser();
     expect((await browser.client.openGuestSession()).canSend).toBe(true);
     expect(await view(state)).toContain("switch-off");
@@ -1715,9 +1724,9 @@ describe("guest chat monitor in Studio", () => {
     expect(await view(state)).toContain("Guest chat is off");
   });
 
-  it("shows measured and unknown cost, unresolved work and refusals, beside the allowance", async () => {
+  it("shows measured and unknown cost and refusals, against the month's budget", async () => {
     const state = await setup(managed);
-    await switchOn(state);
+    await openWithBudget(state, 1);
     const browser = state.browser();
     const session = await browser.client.openGuestSession();
     state.settlement = {
@@ -1749,15 +1758,16 @@ describe("guest chat monitor in Studio", () => {
     expect(shown).toContain("What is public?");
     expect(shown).not.toContain("And then?");
     expect(shown).toContain("Measured from provider usage");
-    expect(shown).toContain("never returns allowance");
+    expect(shown).toContain("the rest returns to the budget");
     expect(shown).toMatch(/"label":"Cost unknown","value":1/);
-    expect(shown).toMatch(/"label":"Questions","value":2,"max":2/);
+    // $0.0019 measured plus the unknown question's whole $0.50 quote.
+    expect(shown).toMatch(/"label":"This month","value":0\.501896,"max":1/);
     expect(shown).toContain("guest-denials");
   });
 
   it("saves a recorded question as a note only after a prepared confirmation", async () => {
     const state = await setup({ ...managed, notes: true });
-    await switchOn(state);
+    await openWithBudget(state);
     const browser = state.browser();
     const session = await browser.client.openGuestSession();
     await events(

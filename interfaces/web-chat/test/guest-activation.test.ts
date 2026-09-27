@@ -13,9 +13,18 @@ import type {
 } from "@brains/runtime-state";
 import { createWebChatPlugin } from "./helpers/definition";
 import {
+  STUDIO_WORKSPACE_REGISTER_MESSAGE,
+  type StudioWorkspaceRegistration,
+} from "@brains/plugins";
+import { z } from "@brains/utils/zod";
+import {
   ASK_BOX_AVAILABILITY_OWNER,
   type AskBoxAvailability,
 } from "@brains/contracts";
+import {
+  guestIssuanceNamespace,
+  guestIssuanceStateSchema,
+} from "../src/guest-issuance";
 import {
   guestAdmissionNamespace,
   guestAdmissionStateSchema,
@@ -39,6 +48,8 @@ interface Fixture {
   previewPaths: string[];
   askBox(): Promise<AskBoxAvailability | null>;
   state: IRuntimeStateNamespace;
+  /** The owner opens guest chat in Studio with this monthly budget. */
+  budget(monthlyUsd: number): Promise<void>;
 }
 
 async function fixture(
@@ -96,7 +107,19 @@ async function fixture(
         ? { guest: options.guest }
         : {},
   );
+  const workspaces: StudioWorkspaceRegistration[] = [];
+  harness
+    .getMockShell()
+    .getMessageBus()
+    .subscribe<StudioWorkspaceRegistration>(
+      STUDIO_WORKSPACE_REGISTER_MESSAGE,
+      (registration) => {
+        workspaces.push(registration.payload);
+        return { success: true, data: { workspaceUrl: "/studio" } };
+      },
+    );
   await harness.installPlugin(plugin);
+  await harness.finalizeRegistration();
   const ledger = harness
     .getMockShell()
     .getRuntimeState()
@@ -104,6 +127,23 @@ async function fixture(
       namespace: `interface:${Buffer.from("@brains/web-chat").toString("base64url")}:${Buffer.from("web-chat").toString("base64url")}:${guestAdmissionNamespace}`,
       schema: guestAdmissionStateSchema,
     });
+  const studio = async (request: Record<string, unknown>): Promise<unknown> => {
+    const monitor = workspaces.find((w) => w.id.endsWith(":guest-chat"));
+    if (!monitor?.actionHandler)
+      throw new Error("Guest chat monitor was not registered");
+    return monitor.actionHandler(
+      request,
+      {
+        interfaceType: "studio",
+        userId: "owner",
+        actor: { kind: "user", userId: "owner" },
+        userPermissionLevel: "admin",
+        visibilityScope: "restricted",
+        isAnchor: true,
+      },
+      new AbortController().signal,
+    );
+  };
   const send = async (
     path: string,
     body?: unknown,
@@ -134,6 +174,13 @@ async function fixture(
     ledger,
     calls: (): number => calls,
     state: harness.getMockShell().getRuntimeState(),
+    budget: async (monthlyUsd): Promise<void> => {
+      const input = { monthlyUsd };
+      const { token } = z
+        .object({ token: z.string() })
+        .parse(await studio({ actionId: "switch-on", input, mode: "prepare" }));
+      await studio({ actionId: "switch-on", input, confirmationToken: token });
+    },
     askBox: (): Promise<AskBoxAvailability | null> =>
       createServicePluginContext(harness.getMockShell(), "site-worker", {
         executionOnly: true,
@@ -155,7 +202,7 @@ describe("Ask box availability for site builds in any process", () => {
 
   it("records the box served on preview once activated, and not after deactivation", async () => {
     const f = await fixture();
-    expect((await f.send(access, { enabled: true })).status).toBe(200);
+    await f.budget(10);
     expect(await f.askBox()).toEqual({ public: false, preview: true });
     expect((await f.send(access, { enabled: false })).status).toBe(200);
     expect(await f.askBox()).toEqual({ public: false, preview: false });
@@ -163,7 +210,8 @@ describe("Ask box availability for site builds in any process", () => {
 
   it("keeps preview availability after restart before profile readiness without admitting a turn", async () => {
     const running = await fixture();
-    expect((await running.send(access, { enabled: true })).status).toBe(200);
+    await running.budget(10);
+    // A deploy restarts the app before the guest profile is ready.
     const restarted = await fixture("admin", "rizom.ai", {
       profileAvailable: false,
       state: running.state,
@@ -231,7 +279,7 @@ describe("admin guest activation using deployment conventions", () => {
               : "---\ntitle: Ask us\ntopics: [Welcome]\n---\nAuthored welcome.",
         },
       });
-      expect((await f.send(access, { enabled: true })).status).toBe(200);
+      await f.budget(10);
       const response = await f.send(
         "/api/chat/guest/session",
         {},
@@ -255,7 +303,7 @@ describe("admin guest activation using deployment conventions", () => {
 
   it("serves scoped Ask styles without replacing the site chrome", async () => {
     const f = await fixture();
-    await f.send(access, { enabled: true });
+    await f.budget(10);
     const response = await f.send(
       "/ask/assets/page.css",
       undefined,
@@ -281,9 +329,12 @@ describe("admin guest activation using deployment conventions", () => {
     const response = await f.send(access);
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({
+      authorized: false,
       enabled: false,
       origin: "https://preview.rizom.ai",
-      allowance: { requests: 2, usd: 4 },
+      budgetMicroUsd: 0,
+      chargedMicroUsd: 0,
+      quoteMicroUsd: 500_000,
     });
     expect(await f.ledger.list({ limit: 10 })).toHaveLength(0);
     expect(f.calls()).toBe(0);
@@ -314,8 +365,12 @@ describe("admin guest activation using deployment conventions", () => {
     expect(await f.ledger.list({ limit: 10 })).toHaveLength(0);
   });
 
-  it("records the one-off authorization and ignores forwarding claims when deriving its target", async () => {
+  it("reopens only with the owner's budget, ignoring forwarding claims when deriving its target", async () => {
     const f = await fixture();
+    expect((await f.send(access, { enabled: true })).status).toBe(409);
+    expect(await f.ledger.list({ limit: 10 })).toHaveLength(0);
+    await f.budget(10);
+    expect((await f.send(access, { enabled: false })).status).toBe(200);
     const response = await f.send(
       access,
       { enabled: true },
@@ -333,38 +388,107 @@ describe("admin guest activation using deployment conventions", () => {
     expect(records).toHaveLength(1);
     expect(records[0]?.value).toMatchObject({
       enabled: true,
-      authorization: {
+      budget: {
         origin: "https://preview.rizom.ai",
-        requests: 2,
-        maxCostMicroUsd: 4_000_000,
+        monthlyMicroUsd: 10_000_000,
       },
-      lifetime: { requests: 0, reservedMicroUsd: 0 },
     });
     expect(f.calls()).toBe(0);
   });
 
-  it("does not renew consumed authorization when toggled or retried", async () => {
+  it("adopts changed session limits when the owner switches guest chat on", async () => {
     const f = await fixture();
+    // A deployment whose session ledger was written under earlier limits.
+    await f.state
+      .scoped({
+        namespace: `interface:${Buffer.from("@brains/web-chat").toString("base64url")}:${Buffer.from("web-chat").toString("base64url")}:${guestIssuanceNamespace}`,
+        schema: guestIssuanceStateSchema,
+      })
+      .set("deployment", {
+        version: 1,
+        revision: 4,
+        policy: "a".repeat(64),
+        enabled: true,
+        lastSeenAt: Date.now() - 60_000,
+        attempts: [],
+        slots: {},
+      });
+    const session = (): Promise<Response> =>
+      f.send(
+        "/api/chat/guest/session",
+        {},
+        { Origin: "https://preview.rizom.ai" },
+        "https://preview.rizom.ai",
+      );
+    await f.budget(10);
+    expect((await session()).status).toBe(200);
+    // Reopening through the endpoint adopts them too.
+    expect((await f.send(access, { enabled: false })).status).toBe(200);
     expect((await f.send(access, { enabled: true })).status).toBe(200);
+    expect((await session()).status).toBe(200);
+  });
+
+  it("brings the session ledger to the limits the owner approved when it restarts", async () => {
+    const running = await fixture();
+    await running.budget(10);
+    const sessions = running.state.scoped({
+      namespace: `interface:${Buffer.from("@brains/web-chat").toString("base64url")}:${Buffer.from("web-chat").toString("base64url")}:${guestIssuanceNamespace}`,
+      schema: guestIssuanceStateSchema,
+    });
+    const ledger = await sessions.get("deployment");
+    // As a deployment finds it after a release changed its session limits.
+    await sessions.set("deployment", {
+      ...(ledger ?? {
+        version: 1,
+        revision: 0,
+        enabled: true,
+        lastSeenAt: Date.now() - 60_000,
+        attempts: [],
+        slots: {},
+      }),
+      policy: "a".repeat(64),
+    });
+    const restarted = await fixture("admin", "rizom.ai", {
+      state: running.state,
+    });
+    expect(
+      (
+        await restarted.send(
+          "/api/chat/guest/session",
+          {},
+          { Origin: "https://preview.rizom.ai" },
+          "https://preview.rizom.ai",
+        )
+      ).status,
+    ).toBe(200);
+  });
+
+  it("never returns the month's charge when toggled or retried", async () => {
+    const f = await fixture();
+    await f.budget(1);
     const record = (await f.ledger.list({ limit: 10 }))[0];
     if (!record) throw new Error("Expected authorized ledger");
+    const month = {
+      key: new Date().toISOString().slice(0, 7),
+      chargedMicroUsd: 1_000_000,
+    };
     expect(
       await f.ledger.compareAndSet(record.key, record.value, {
         ...record.value,
-        lifetime: { requests: 2, reservedMicroUsd: 4_000_000 },
+        month,
       }),
     ).toBe(true);
     for (const enabled of [false, true, true]) {
       expect((await f.send(access, { enabled })).status).toBe(200);
       expect(await f.ledger.get(record.key)).toMatchObject({
-        lifetime: { requests: 2, reservedMicroUsd: 4_000_000 },
-        authorization: {
+        month,
+        budget: {
           origin: "https://preview.rizom.ai",
-          requests: 2,
-          maxCostMicroUsd: 4_000_000,
+          monthlyMicroUsd: 1_000_000,
         },
       });
     }
+    expect(await f.askBox()).toEqual({ public: false, preview: false });
     expect(f.calls()).toBe(0);
   });
 
@@ -373,6 +497,7 @@ describe("admin guest activation using deployment conventions", () => {
     for (const extra of [
       { origin: "https://rizom.ai" },
       { allowance: { requests: 99, usd: 100 } },
+      { monthlyUsd: 100 },
       { reset: true },
     ]) {
       expect((await f.send(access, { enabled: true, ...extra })).status).toBe(

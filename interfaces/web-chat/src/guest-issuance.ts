@@ -243,11 +243,16 @@ export class GuestIssuance {
     return { records, uncertain };
   }
 
-  /** Explicit operator action, not automatic adoption during a restart. */
+  /**
+   * Explicit operator action, not automatic adoption during a restart. With no
+   * ledger yet there is nothing to adopt: the first session creates it under
+   * the limits it is given.
+   */
   async applyPolicy(
     limits: GuestIssuanceLimits,
     enabled: boolean,
   ): Promise<boolean> {
+    if (!(await this.store.has(ledgerKey))) return true;
     return this.mutate((state) => ({
       ...state,
       policy: this.fingerprint(limits),

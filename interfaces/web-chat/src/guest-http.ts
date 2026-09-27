@@ -507,10 +507,13 @@ export class GuestHttpHandlers {
               ))
             )
               throw new Error("Guest settlement unavailable");
+            // A measured cost returns the rest of the quote; unknown cost keeps it.
+            const cost = response.guestSettlement?.cost;
             if (
               !(await admission.settle(
                 reservation.lease,
                 hasAnswer ? "completed" : "failed",
+                cost?.state === "known" ? cost.microUsd : undefined,
               ))
             )
               throw new Error("Guest settlement unavailable");

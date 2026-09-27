@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.2.0-alpha.424
+
+### Patch Changes
+
+- [#382](https://github.com/rizom-ai/brains/pull/382) [`33a50f0`](https://github.com/rizom-ai/brains/commit/33a50f0c131cfda826a35c4d80a014bc288e2567) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Guest chat sessions no longer stay refused after a release changes their limits. The session ledger adopts new limits only through an explicit owner action, and nothing ever took it, so after the preset change every visitor saw "Chat isn't available" even with guest chat switched on. Switching on in Studio (or reopening through the activation endpoint) now adopts the session limits too, and at startup a deployment whose owner authorized exactly the current policy brings its session ledger to that policy's limits.
+
+## 0.2.0-alpha.423
+
+### Patch Changes
+
+- [#381](https://github.com/rizom-ai/brains/pull/381) [`272188b`](https://github.com/rizom-ai/brains/commit/272188bf8d8534fa7567da9ae002075de708dc84) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Managed guest chat is limited by a monthly budget the owner sets, not by counts of sessions or questions. The owner opens guest chat in Studio's Guest chat workspace with a budget in US dollars ($0.50 to $10,000), confirmed before it applies; the same form changes it while open. Each question reserves a $0.50 quote until its cost is measured from the provider's reported usage, and the unused part returns to the budget; unknown cost keeps the whole quote. The budget covers one UTC month. The activation endpoint still accepts only `{ enabled }` and reopens with the budget set in Studio. The preview preset's session and question counts become flood limits sized far above normal use (the old four sessions a day, deployment-wide, shut out everyone). The two-question lifetime trial is retired: a deployment that had guest chat on must open it again with a budget.
+
 ## 0.2.0-alpha.422
 
 ### Patch Changes
