@@ -141,7 +141,22 @@ const inboundCursorSchema = z.strictObject({
 });
 
 export type EmailSendResult =
-  { status: "sent"; id?: string } | { status: "failed" };
+  { status: "sent"; id?: string } | { status: "failed"; code: string };
+
+/** The provider name only, never its diagnostic message or recipient data. */
+const resendErrorSchema = z.object({
+  name: z.string().regex(/^[a-z_]{1,64}$/),
+});
+async function resendFailureCode(response: Response): Promise<string> {
+  const body: unknown = await response.json().catch((): undefined => {
+    // Non-JSON responses still have a status code.
+    return undefined;
+  });
+  const parsed = resendErrorSchema.safeParse(body);
+  return parsed.success
+    ? `resend_${parsed.data.name}`
+    : `resend_http_${response.status}`;
+}
 
 /**
  * Whether a failed delivery must keep recipient and subject out of the logs.
@@ -182,7 +197,8 @@ async function sendWithResend(
   },
 ): Promise<EmailSendResult> {
   const { apiKey, from } = config;
-  if (!apiKey || !from) return { status: "failed" };
+  if (!apiKey || !from)
+    return { status: "failed", code: "email_not_configured" };
 
   const response = await state.fetchImpl("https://api.resend.com/emails", {
     method: "POST",
@@ -210,7 +226,8 @@ async function sendWithResend(
     }),
   });
 
-  if (!response.ok) throw new Error("Resend email request failed");
+  if (!response.ok)
+    return { status: "failed", code: await resendFailureCode(response) };
 
   const body = resendEmailResponseSchema.parse(await response.json());
   return body.id ? { status: "sent", id: body.id } : { status: "sent" };
@@ -470,15 +487,21 @@ export function emailInterface(
               : {}),
             idempotencyKey: delivery.idempotencyKey,
           });
-          return result.status === "sent"
-            ? {
-                status: "sent" as const,
-                ...(result.id ? { providerDeliveryId: result.id } : {}),
-              }
-            : {
-                status: "failed" as const,
-                failureCode: "email_delivery_failed",
-              };
+          if (result.status === "sent")
+            return {
+              status: "sent" as const,
+              ...(result.id ? { providerDeliveryId: result.id } : {}),
+            };
+          state.logger.warn(
+            secret
+              ? "Email delivery failed for a secret message"
+              : "Email delivery failed",
+            {
+              failureCode: result.code,
+              ...(secret ? {} : { to: recipient, subject: delivery.subject }),
+            },
+          );
+          return { status: "failed" as const, failureCode: result.code };
         } catch (error) {
           if (secret) {
             state.logger.warn("Email delivery failed for a secret message");

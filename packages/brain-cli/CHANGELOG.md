@@ -1,5 +1,29 @@
 # @rizom/brain
 
+## 0.2.0-alpha.421
+
+### Patch Changes
+
+- [#379](https://github.com/rizom-ai/brains/pull/379) [`84a2aac`](https://github.com/rizom-ai/brains/commit/84a2aaccbd73ac2e3d40f500374ad92fc401dcf6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A failed notification now says why, without any message content. The email transport reports Resend's error name (`resend_validation_error`) or HTTP status (`resend_http_500`) instead of a generic failure, notifications passes that code on (`NOTIFICATION_FAILURES` and `notificationFailureCode` in `@brains/contracts`), and contact keeps the latest attempt's code with a failed alert and counts failed alerts by code in its operational health (`failures`). A missing recipient or transport reads `recipient-missing` or `transport-missing`.
+
+- [#378](https://github.com/rizom-ai/brains/pull/378) [`b65b207`](https://github.com/rizom-ai/brains/commit/b65b207deb99878407cf5b1661eecc3450dca52f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The public Ask page loads its own guest bundle (`/ask/assets/ask.js` and `ask.css`, about 1.9 MB) instead of the signed-in chat app (`app.js`, about 15 MB), which it mounted only to render the guest conversation. The app bundle stays served for sites that still load it.
+
+## 0.2.0-alpha.420
+
+### Patch Changes
+
+- [#374](https://github.com/rizom-ai/brains/pull/374) [`b6a1e11`](https://github.com/rizom-ai/brains/commit/b6a1e114fc21cbf00e915c07a9d08c7a3356af02) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The professional homepage atlas starts its copy on the header's content edge at every width: the centred layout column on wide screens (it sat 48px from the window edge while the header logo moved inward), and the header's 1.5rem / 3rem gutter on phones and tablets, with the map legend on the same edge. The map keeps the rest of the width, and a map-less atlas keeps its measure.
+
+- [#373](https://github.com/rizom-ai/brains/pull/373) [`13b492f`](https://github.com/rizom-ai/brains/commit/13b492f449757eaa6e449d280060d5a44854b4b4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Territory names on the professional homepage atlas carry a solid halo in the page colour, so contour lines part around them and dense rings no longer run through the letters.
+
+- [#373](https://github.com/rizom-ai/brains/pull/373) [`d6285e2`](https://github.com/rizom-ai/brains/commit/d6285e2583af61652d37242ab025f624450c7cb0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The contact form opens in the site's own theme when a link names none, instead of always opening dark. Contact reads the theme from the site's metadata at startup and follows changes to it; a `?theme=` on the link still wins.
+
+- [#373](https://github.com/rizom-ai/brains/pull/373) [`5a70a6f`](https://github.com/rizom-ai/brains/commit/5a70a6f918644186ee01cfbffe7c23b64c97c479) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A successful pre-deploy backup now shows the runtime's own notices, such as the degraded checks it backed up anyway, as workflow warnings. Before, the remote output of a successful capture was discarded. Regenerate `deploy/scripts/create-predeploy-backup.ts` in existing deployments to adopt it.
+
+- [#375](https://github.com/rizom-ai/brains/pull/375) [`ce39ab4`](https://github.com/rizom-ai/brains/commit/ce39ab4156e7d91cf5d472bde174095c947ec2f6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The professional homepage now offers the chat box in a preview build while the owner has managed guest chat switched on. The box rule required guest chat to be open to the public even for a preview build, so preview-only guest chat never showed it.
+
+- [#373](https://github.com/rizom-ai/brains/pull/373) [`b84a4c3`](https://github.com/rizom-ai/brains/commit/b84a4c380f2681f53544422daf2dcd575c51b701) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Published sites paint the page colour on the document itself, so scrolling past the footer on a phone never shows a white band in dark mode. The rule lives in the site build's own base stylesheet; Studio and rendered media pages are unchanged.
+
 ## 0.2.0-alpha.419
 
 ### Patch Changes

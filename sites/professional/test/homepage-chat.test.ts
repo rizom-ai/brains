@@ -82,4 +82,20 @@ describe("homepage chat availability", () => {
       ),
     ).toBe(true);
   });
+
+  it("offers it in a preview build while the owner has managed guest chat switched on, and only there", async () => {
+    const switchedOn = { public: false, preview: true };
+    expect(
+      await homepageChatAvailable(
+        { publishedOnly: false },
+        await runtime(switchedOn),
+      ),
+    ).toBe(true);
+    expect(
+      await homepageChatAvailable(
+        { publishedOnly: true },
+        await runtime(switchedOn),
+      ),
+    ).toBe(false);
+  });
 });

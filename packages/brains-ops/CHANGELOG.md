@@ -1,5 +1,13 @@
 # @brains/ops
 
+## 0.2.0-alpha.421
+
+## 0.2.0-alpha.420
+
+### Patch Changes
+
+- [#373](https://github.com/rizom-ai/brains/pull/373) [`5a70a6f`](https://github.com/rizom-ai/brains/commit/5a70a6f918644186ee01cfbffe7c23b64c97c479) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A successful pre-deploy backup now shows the runtime's own notices, such as the degraded checks it backed up anyway, as workflow warnings. Before, the remote output of a successful capture was discarded. Regenerate `deploy/scripts/create-predeploy-backup.ts` in existing deployments to adopt it.
+
 ## 0.2.0-alpha.419
 
 ### Patch Changes

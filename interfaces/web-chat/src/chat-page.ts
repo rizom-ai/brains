@@ -22,6 +22,9 @@ export const uiAssetFile: string = join(
   "app.js",
 );
 export const uiStylesheetPath: string = "/ask/assets/app.css";
+/** The public Ask page's own bundle: the guest conversation without the signed-in app. */
+export const guestPageAssetPath: string = "/ask/assets/ask.js";
+export const guestPageStylesheetPath: string = "/ask/assets/ask.css";
 export const uiStylesheetFile: string = join(
   import.meta.dir,
   "..",
@@ -81,7 +84,7 @@ export function renderGuestChatPage(options: {
   const label = escapeHtml(options.siteLabel ?? "Brain");
   // Apps without a generated site page get a headerless fallback. The site,
   // when present, owns its full layout, theme controls and navigation.
-  return `<!doctype html><html lang="en" data-climate="instrument" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Ask ${name}</title><script>${CONSOLE_CLIMATE_SCRIPT}</script><style>${resolveConsoleThemeCSS(options.themeCSS, { imports: "remove" })}\n${CONSOLE_THEME_CSS}\n${guestPageStyles}</style><link rel="stylesheet" href="${uiStylesheetPath}"></head><body class="guest-page"><main data-web-chat-root data-guest-chat data-guest-name="${name}" data-guest-label="${label}" data-chat-api-path="${escapeHtml(options.apiPath)}"><p>Connecting to public Ask…</p><noscript>JavaScript is needed to ask a question. No question has been sent.</noscript></main><script type="module" src="${uiAssetPath}"></script></body></html>`;
+  return `<!doctype html><html lang="en" data-climate="instrument" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Ask ${name}</title><script>${CONSOLE_CLIMATE_SCRIPT}</script><style>${resolveConsoleThemeCSS(options.themeCSS, { imports: "remove" })}\n${CONSOLE_THEME_CSS}\n${guestPageStyles}</style><link rel="stylesheet" href="${guestPageStylesheetPath}"></head><body class="guest-page"><main data-web-chat-root data-guest-chat data-guest-name="${name}" data-guest-label="${label}" data-chat-api-path="${escapeHtml(options.apiPath)}"><p>Connecting to public Ask…</p><noscript>JavaScript is needed to ask a question. No question has been sent.</noscript></main><script type="module" src="${guestPageAssetPath}"></script></body></html>`;
 }
 
 export function renderChatPage(options: ChatPageOptions): string {

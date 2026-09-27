@@ -136,6 +136,19 @@ export class ContactRuntime {
       const failedUnhandled = (
         await Promise.all(failed.map(([id]) => this.isUnhandled(id)))
       ).filter(Boolean).length;
+      const failures = slots
+        .flatMap(([, slot]) =>
+          slot.delivery.status === "failed"
+            ? [slot.delivery.failure ?? "unrecorded"]
+            : [],
+        )
+        .reduce<Record<string, number>>(
+          (counts, code) => ({
+            ...counts,
+            [code]: (Object.hasOwn(counts, code) ? (counts[code] ?? 0) : 0) + 1,
+          }),
+          {},
+        );
       const unconfirmed = slots.filter(
         ([, slot]) => slot.phase === "writing",
       ).length;
@@ -154,6 +167,7 @@ export class ContactRuntime {
           pending,
           failed: failed.length,
           failedUnhandled,
+          failures,
           unconfirmed,
           lastMaintenanceAt: (await this.maintenanceStatus.get("status"))?.at,
           ...this.report,

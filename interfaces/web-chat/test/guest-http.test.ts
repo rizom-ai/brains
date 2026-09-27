@@ -440,6 +440,8 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
     expect(
       (await browser.fetch("/ask/assets/guest.js", { method: "GET" })).status,
     ).toBe(200);
+    for (const asset of ["/ask/assets/ask.js", "/ask/assets/ask.css"])
+      expect((await browser.fetch(asset, { method: "GET" })).status).toBe(200);
     // The shared box boot every consuming site loads.
     const boot = await browser.fetch("/ask/assets/box.js", { method: "GET" });
     expect(boot.status).toBe(200);
@@ -778,6 +780,8 @@ describe("guest HTTP Chat integration (mocked agent)", () => {
       "/ask/assets/box.js",
       "/ask/assets/guest.js",
       "/ask/assets/guest.css",
+      "/ask/assets/ask.js",
+      "/ask/assets/ask.css",
       "/ask/assets/dashboard.js",
       "/ask/assets/dashboard.css",
     ]) {

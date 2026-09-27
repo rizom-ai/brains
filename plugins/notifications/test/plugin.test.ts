@@ -162,6 +162,43 @@ describe("notifications service", () => {
     expect(sent[0]?.idempotencyKey).not.toBe(sent[1]?.idempotencyKey);
   });
 
+  it.each([
+    ["resend_validation_error", "resend_validation_error"],
+    ["PRIVATE user@example.com", "delivery-failed"],
+    ["x".repeat(81), "delivery-failed"],
+  ])(
+    "names only bounded transport failure codes (%s)",
+    async (failureCode, expectedCode) => {
+      const harness = createPluginHarness();
+      installEmailProvider(harness, async () => ({
+        status: "failed",
+        failureCode,
+      }));
+      await harness.installPlugin(notificationsPlugin());
+      await harness.finalizeRegistration();
+
+      const response = await harness
+        .getMockShell()
+        .getMessageBus()
+        .send({
+          type: NOTIFICATIONS_SEND,
+          payload: {
+            recipient: { type: "email", address: "user@example.com" },
+            title: "New contact request",
+            body: "A contact request is saved.",
+            sensitivity: "secret",
+          },
+          sender: "contact",
+        });
+
+      expect(response).toEqual({
+        success: false,
+        error: `Notification delivery failed: ${expectedCode}`,
+        code: "handler_failed",
+      });
+    },
+  );
+
   it("reports failure when no transport is registered for the recipient", async () => {
     const harness = createPluginHarness();
     await harness.installPlugin(notificationsPlugin());

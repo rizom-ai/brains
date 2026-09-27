@@ -9,6 +9,7 @@ import {
 } from "@brains/sdk/services";
 import {
   NOTIFICATIONS_SEND,
+  notificationFailureCode,
   sendNotificationSchema,
   sendNotificationResultSchema,
   inboxWorkspaceRequest,
@@ -22,7 +23,7 @@ import { ContactInboxSource } from "./inbox-source";
 import { ContactAdmission } from "./admission";
 import { ContactIntake } from "./intake";
 import { ContactHttpHandlers } from "./http";
-import { ContactDelivery } from "./delivery";
+import { ContactDelivery, type ContactAlertOutcome } from "./delivery";
 import { ContactStorageSlots } from "./storage-slots";
 import { contactPluginConfigSchema } from "./config";
 import { contactRequest } from "./entity/plugin";
@@ -48,11 +49,14 @@ const siteThemeRequest = {
 const notificationJobSchema = z.strictObject({
   id: z.string().regex(/^contact-[a-f0-9]{64}$/),
 });
-const notificationRequest = {
-  topic: NOTIFICATIONS_SEND,
-  payload: sendNotificationSchema,
-  response: sendNotificationResultSchema,
-};
+// The existing message-envelope request supports authored refusals. Select only
+// bounded codes from it; never store or expose arbitrary response errors.
+const notificationReplySchema = z.object({
+  success: z.boolean().optional(),
+  noop: z.boolean().optional(),
+  error: z.string().max(120).optional(),
+  data: sendNotificationResultSchema.optional(),
+});
 
 /** Default-off intake; all writes and durable state remain package-owned. */
 export function contactService(): ServicePackageDefinition<
@@ -115,14 +119,28 @@ export function contactService(): ServicePackageDefinition<
           state,
           storage: intakeConfig.storage,
           policy: intakeConfig.delivery,
-          send: async (idempotencyKey): Promise<boolean> => {
-            const result = await messaging.request(notificationRequest, {
-              title: "New contact request",
-              body: `A contact request is saved in your authenticated Inbox.\n\n${intakeConfig.inboxUrl}`,
-              sensitivity: "secret",
-              idempotencyKey,
+          send: async (idempotencyKey): Promise<ContactAlertOutcome> => {
+            const reply = await messaging.request({
+              type: NOTIFICATIONS_SEND,
+              payload: sendNotificationSchema.parse({
+                title: "New contact request",
+                body: `A contact request is saved in your authenticated Inbox.\n\n${intakeConfig.inboxUrl}`,
+                sensitivity: "secret",
+                idempotencyKey,
+              }),
             });
-            return result.ok && result.data.status === "sent";
+            const parsed = notificationReplySchema.safeParse(reply);
+            if (!parsed.success) return { sent: false, failure: "unconfirmed" };
+            const result = parsed.data;
+            if (result.noop) return { sent: false, failure: "no-notifier" };
+            if (!result.success)
+              return {
+                sent: false,
+                failure: notificationFailureCode(result.error),
+              };
+            return result.data?.status === "sent"
+              ? { sent: true }
+              : { sent: false, failure: "unconfirmed" };
           },
         });
         const admission = new ContactAdmission(state, intakeConfig.admission);

@@ -1,5 +1,7 @@
 import {
   NOTIFICATIONS_SEND,
+  NOTIFICATION_FAILURES,
+  notificationFailureCode,
   notificationRecipientSchema,
   sendNotificationSchema,
   type NotificationRecipient,
@@ -8,6 +10,7 @@ import {
 import {
   defineServicePlugin,
   defineSubscription,
+  SdkError,
   z,
   type ServicePackageDefinition,
 } from "@brains/sdk/services";
@@ -64,7 +67,9 @@ const notificationsPackage: ServicePackageDefinition<
           const recipient = payload.recipient ?? config.defaultRecipient;
           if (!recipient) {
             state.logger.warn("Notification has no recipient");
-            throw new Error("Notification recipient missing");
+            throw new SdkError("handler_failed", {
+              publicMessage: NOTIFICATION_FAILURES.recipientMissing,
+            });
           }
 
           // Resolve a transport by the recipient's channel type. This plugin
@@ -75,7 +80,9 @@ const notificationsPackage: ServicePackageDefinition<
             state.logger.warn("Notification has no available transport", {
               channelType: recipient.type,
             });
-            throw new Error("Notification transport missing");
+            throw new SdkError("handler_failed", {
+              publicMessage: NOTIFICATION_FAILURES.transportMissing,
+            });
           }
 
           const result = await provider.send({
@@ -90,7 +97,12 @@ const notificationsPackage: ServicePackageDefinition<
           });
 
           if (result.status !== "sent") {
-            throw new Error("Notification delivery failed");
+            const code = notificationFailureCode(
+              `${NOTIFICATION_FAILURES.deliveryFailed}: ${result.failureCode}`,
+            );
+            throw new SdkError("handler_failed", {
+              publicMessage: `${NOTIFICATION_FAILURES.deliveryFailed}: ${code}`,
+            });
           }
 
           return result.providerDeliveryId

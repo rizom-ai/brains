@@ -651,6 +651,22 @@ function webChatRoutes(
               true,
             ),
           ),
+          ...(["js", "css"] as const).map((extension) =>
+            rawRoute(
+              "GET",
+              `/ask/assets/ask.${extension}`,
+              async (request) =>
+                canServeGuestAsset(state, request, () =>
+                  builtUiFile(
+                    uiAssetFile.replace(/app\.js$/, `ask.${extension}`),
+                    extension === "js"
+                      ? "text/javascript; charset=utf-8"
+                      : "text/css; charset=utf-8",
+                  ),
+                ),
+              true,
+            ),
+          ),
           rawRoute("GET", state.authenticatedRoutePath, async (request) =>
             chatPage(config, state, request),
           ),
