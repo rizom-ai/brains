@@ -14,14 +14,15 @@ Create/update/delete default to administrator access, with publishing disabled. 
 
 ### Current validation
 
-- Studio: 815 passing tests. Directory-sync: 820 passing tests. Normal commit hooks pass 96 lint, 104 typecheck and 102 test workspace tasks.
+- Integrated main through `f41e0cc07c` in `300ae046e5`, retaining both source-persistence and upstream content-edit regressions. Mainline `alpha.422` package metadata was inherited, without manually bumping versions or restoring consumed changesets.
+- Studio: 815 passing tests; directory-sync: 820; entity-service: 552; core: 513; Brain: 494 with 14 gated skips. Normal commit hooks pass 96 lint, 104 typecheck and 102 test workspace tasks. The explicitly enabled packed CLI grouping canary additionally passes 22 assertions.
 - The Studio visual/accessibility gate passes against unchanged baselines at the existing **0.2%** tolerance, using pinned Chrome and the documented Fontconfig settings.
 - Fresh canonical publishing acceptance uses real HTTP authentication with isolated seeded sessions and mocked AI: 26 captures, including 25 desktop/phone accessibility and overflow checks across paper/instrument climates. It covers all four membership modes, administrator/trusted access, scoped counts, exact values and refused-save draft retention.
 - A real uploaded image renders in preview without expanding authored memberships, unclaimed frontmatter or body references during save/export/import. Code examples cause no image reads. Definition policy remains literal in the database and exported Markdown after sync and restart. A new manual sync explicitly settles successfully after an interrupted run is retained as failed.
-- Preview is rebuilt through the running app before inspecting managed `dist/site-preview`; hostname-routed preview and generated output are verified. Cold launcher-to-readiness time, including build, is **12.17 seconds**, below the **30-second** gate.
+- Preview is rebuilt through the running app before inspecting managed `dist/site-preview`; hostname-routed preview and generated output are verified. Cold launcher-to-readiness time, including build, is **15.18 seconds**, below the **30-second** gate.
 - Production activation is `fb6d178aeb`; ordinary configuration validation is `d57cd4dca6`; raw editor reads and scoped image previews are `d9925ab938`; raw durable exports are `48b29ff5ff`; ordinary System saves with intact Groupings draft guards are `86e89377bb`.
 
-Local evidence is retained at `/tmp/studio-definitions-verified-qYH5IL/evidence.json`, `settled-sync-workspace.json` in that directory, and `/tmp/studio-save-visual-final.log`. The earlier failed fixture is retained separately rather than silently repaired. These results are not production migration acceptance. No smoke or existing demo accounts, passkeys or sessions were changed.
+Post-integration evidence is retained at `/tmp/studio-definitions-integrated-kNAiNn/evidence.json`, `settled-sync-workspace.json` in that directory, `/tmp/studio-main-packed.log` and `/tmp/studio-main-visual.log`. Earlier restart and interrupted-run evidence is retained at `/tmp/studio-definitions-verified-qYH5IL`; the original failed fixture remains separate rather than silently repaired. These results are not production migration acceptance. No smoke or existing demo accounts, passkeys or sessions were changed.
 
 ### Approved review artifacts
 
