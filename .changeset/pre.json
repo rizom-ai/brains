@@ -241,6 +241,7 @@
     "core--ask-box-record-restart",
     "core--ask-browser-contract",
     "core--ask-page-bundle",
+    "core--ask-sheet-look",
     "core--atlas-chat",
     "core--atlas-door-topics",
     "core--atlas-grid-edge",
