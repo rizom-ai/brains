@@ -1,4 +1,6 @@
 import type { BaseEntity, EntityServiceClient } from "@brains/plugins";
+import type { DirectoryImportPlan } from "../types/jobs";
+import { captureImportPlan } from "./import-plan";
 import { internalFullScope } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import type { ImportResult, RawEntity } from "../types";
@@ -35,6 +37,7 @@ export interface ImportPipelineDeps {
 export async function importEntities(
   deps: ImportPipelineDeps,
   paths?: string[],
+  plan?: DirectoryImportPlan,
 ): Promise<ImportResult> {
   deps.logger.debug("Importing entities from directory");
 
@@ -42,8 +45,15 @@ export async function importEntities(
 
   const filesToProcess = paths ?? (await deps.fileOperations.getAllSyncFiles());
 
+  const admitted =
+    plan ??
+    (await captureImportPlan(
+      deps.entityService,
+      deps.fileOperations,
+      filesToProcess.filter((path) => !getImportPathDecision(deps, path).skip),
+    ));
   for (const filePath of filesToProcess) {
-    await importFile(deps, filePath, result);
+    await importFile(deps, filePath, result, admitted);
   }
 
   logImportSummary(deps.logger, filesToProcess.length, result);
@@ -54,6 +64,7 @@ async function importFile(
   deps: ImportPipelineDeps,
   filePath: string,
   result: ImportResult,
+  plan: DirectoryImportPlan,
 ): Promise<void> {
   const pathDecision = getImportPathDecision(deps, filePath);
   if (pathDecision.skip) {
@@ -64,12 +75,35 @@ async function importFile(
   }
 
   try {
+    const admission = plan.find((entry) => entry.path === filePath);
+    if (!admission) throw new Error("Missing directory import precondition");
+    const snapshot = await deps.entityService.getEntityWriteSnapshot({
+      entityType: admission.entityType,
+      id: admission.id,
+      visibilityScope: internalFullScope(
+        "check directory import write preconditions",
+      ),
+    });
+    if ((snapshot?.revision ?? null) !== admission.expectedRevision) {
+      recordSkippedImport(result);
+      recordImportIssue(
+        result,
+        filePath,
+        "Skipped stale import: entity changed after this sync was queued.",
+      );
+      return;
+    }
     const rawEntity = await deps.fileOperations.readEntity(
       filePath,
       deps.maxImportFileBytes,
     );
 
-    await processEntityImport(deps, rawEntity, filePath, result);
+    if (
+      rawEntity.entityType !== admission.entityType ||
+      rawEntity.id !== admission.id
+    )
+      throw new Error("Directory import destination changed after admission");
+    await processEntityImport(deps, rawEntity, filePath, result, snapshot);
   } catch (error) {
     if (error instanceof OversizedFileError) {
       recordSkippedImport(result);
@@ -85,6 +119,7 @@ async function processEntityImport(
   rawEntity: RawEntity,
   filePath: string,
   result: ImportResult,
+  snapshot: Awaited<ReturnType<EntityServiceClient["getEntityWriteSnapshot"]>>,
 ): Promise<void> {
   const contentSkipReason = getImportContentSkipReason(rawEntity);
   if (contentSkipReason) {
@@ -96,19 +131,11 @@ async function processEntityImport(
     return;
   }
 
-  const existing = await deps.entityService.getEntity({
-    entityType: rawEntity.entityType,
-    id: rawEntity.id,
-    visibilityScope: internalFullScope(
-      "directory sync indexes entities across all visibility tiers",
-    ),
-  });
+  const existing = snapshot?.entity ?? null;
   if (existing && canSkipBeforeDeserialization(deps, existing, rawEntity)) {
     recordSkippedImport(result);
     return;
   }
-
-  queueImportImageConversions(deps.imageJobQueue, rawEntity, filePath);
 
   const parsedEntity = await deserializeImportEntity(
     deps,
@@ -120,14 +147,17 @@ async function processEntityImport(
     return;
   }
 
+  const imported = result.imported;
   await persistImportEntity(
     deps,
     rawEntity,
     parsedEntity,
     filePath,
     result,
-    existing,
+    snapshot,
   );
+  if (result.imported > imported)
+    queueImportImageConversions(deps.imageJobQueue, rawEntity, filePath);
 }
 
 function canSkipBeforeDeserialization(

@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import { act } from "react";
 import { createClient } from "@libsql/client";
+import { mkdir, writeFile, readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { DirectorySync } from "@brains/directory-sync";
 import { computeContentHash } from "@brains/utils/hash";
 import { StudioApi, mountStudio, waitForStudio } from "@brains/studio/test/ui";
 import {
@@ -1156,6 +1159,121 @@ describe("document-backed runtime definitions with real adapters", () => {
       ).values,
     ).toEqual([{ value: "Outside", count: 1 }]);
   });
+
+  test.each(["queued", "reading"] as const)(
+    "a %s import cannot restore definitions after a Studio exclusion edit",
+    async (phase) => {
+      const dir = await directory();
+      const fixture = await open(dir);
+      expect(
+        (await save(fixture, { areas: { ...areas, excludeTypes: ["post"] } }))
+          .status,
+      ).toBe(201);
+      const syncPath = join(dir, "content");
+      const sync = new DirectorySync({
+        syncPath,
+        entityService: fixture.service,
+        logger: createSilentLogger(),
+        autoSync: false,
+        deleteOnFileRemoval: false,
+      });
+      const before = await fixture.service.getEntityRaw({
+        entityType: type,
+        id: type,
+        visibilityScope: "shared",
+      });
+      if (!before) throw new Error("Missing definitions");
+      await sync.fileOps.writeEntity(before);
+      await mkdir(join(syncPath, "note"), { recursive: true });
+      await writeFile(join(syncPath, "note/first.md"), "# First imported note");
+      const sourcePath = join(syncPath, type, `${type}.md`);
+      if (phase === "reading")
+        await writeFile(
+          sourcePath,
+          generateMarkdown(
+            {
+              visibility: "shared",
+              groupings: {
+                areas: {
+                  ...areas,
+                  label: "Imported areas",
+                  excludeTypes: ["post"],
+                },
+              },
+            },
+            "",
+          ),
+        );
+      const oldSource = await readFile(sourcePath, "utf8");
+      const read = sync.fileOps.readEntity.bind(sync.fileOps);
+      let saved = before;
+      const reader = spyOn(sync.fileOps, "readEntity").mockImplementation(
+        async (path, maxBytes) => {
+          const raw = await read(path, maxBytes);
+          if (
+            path ===
+            (phase === "queued" ? "note/first.md" : `${type}/${type}.md`)
+          ) {
+            expect((await save(fixture, { areas }, "PUT")).status).toBe(200);
+            const latest = await fixture.service.getEntityRaw({
+              entityType: type,
+              id: type,
+              visibilityScope: "shared",
+            });
+            if (!latest) throw new Error("Missing saved definitions");
+            saved = latest;
+          }
+          return raw;
+        },
+      );
+      const result = await sync.importEntities([
+        "note/first.md",
+        `${type}/${type}.md`,
+      ]);
+      expect(result).toMatchObject({
+        imported: 1,
+        skipped: 1,
+        failed: 0,
+        quarantined: 0,
+        issues: [
+          {
+            path: `${type}/${type}.md`,
+            message: expect.stringContaining("Skipped stale import"),
+          },
+        ],
+      });
+      expect(
+        await fixture.service.getEntityRaw({
+          entityType: type,
+          id: type,
+          visibilityScope: "shared",
+        }),
+      ).toEqual(saved);
+      expect(
+        fixture.source.getSnapshot().groupings["areas"]?.excludeTypes,
+      ).toBeUndefined();
+      expect(await readFile(sourcePath, "utf8")).toBe(oldSource);
+      expect(await fixture.service.listPendingEntityExports()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            entityType: type,
+            entityId: type,
+            operation: "upsert",
+          }),
+        ]),
+      );
+      // The still-pending ordinary export can converge the authored source;
+      // stale import neither clears that intent nor quarantines the old file.
+      reader.mockRestore();
+      await sync.fileOps.writeEntity(saved);
+      expect((await sync.importEntities([`${type}/${type}.md`])).skipped).toBe(
+        1,
+      );
+      expect(
+        (await readFile(sourcePath, "utf8")).includes("excludeTypes"),
+      ).toBe(false);
+    },
+  );
 
   test("real Links gain grouping fields by default and retain unclaimed source across exclusions", async () => {
     const fixture = await open(await directory(), (registry) => {

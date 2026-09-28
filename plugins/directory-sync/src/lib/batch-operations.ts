@@ -1,6 +1,8 @@
 import type { BatchOperation, ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { createId } from "@brains/plugins";
+import { captureImportPlan } from "./import-plan";
+import { parseEntityPath } from "./entity-paths";
 import type {
   BatchMetadata,
   BatchOperationResult,
@@ -13,6 +15,8 @@ export type {
   BatchOperationResult,
   BatchResult,
 } from "../types";
+
+const IMPORT_BATCH_SIZE = 50;
 
 export interface BatchOperationsManagerOptions {
   logger: Logger;
@@ -92,12 +96,23 @@ export class BatchOperationsManager {
       return null;
     }
 
+    const plan = await captureImportPlan(
+      pluginContext.entityService,
+      { parseEntityFromPath: (path) => parseEntityPath(this.syncPath, path) },
+      files,
+    );
     const rootJobId = createId();
     const expectedChildren = batchData.operations.length;
     const operations = batchData.operations.map((operation, index) => ({
       ...operation,
       data: {
         ...operation.data,
+        ...(operation.type === "directory-import" && {
+          plan: plan.slice(
+            index * IMPORT_BATCH_SIZE,
+            (index + 1) * IMPORT_BATCH_SIZE,
+          ),
+        }),
         projectionBatch: {
           operationId: rootJobId,
           rootJobId,
@@ -181,7 +196,7 @@ export class BatchOperationsManager {
       return [];
     }
 
-    const batchSize = 50;
+    const batchSize = IMPORT_BATCH_SIZE;
     const operations: BatchOperation[] = [];
 
     for (let i = 0; i < files.length; i += batchSize) {

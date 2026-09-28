@@ -57,10 +57,30 @@ export const directoryProjectionBatchRefSchema: z.ZodType<
   expectedChildren: z.number().int().positive(),
 });
 
+export type DirectoryImportPlan = Array<{
+  path: string;
+  entityType: string;
+  id: string;
+  expectedRevision: string | null;
+}>;
+export const directoryImportPlanSchema: z.ZodType<
+  DirectoryImportPlan,
+  DirectoryImportPlan
+> = z.array(
+  z.object({
+    path: z.string(),
+    entityType: z.string().min(1),
+    id: z.string().min(1),
+    expectedRevision: z.string().min(1).nullable(),
+  }),
+);
+
 /**
  * Schema for directory import job data
  */
 export interface DirectoryImportJobData {
+  /** Queued batches retain their original preconditions across retries. */
+  plan?: DirectoryImportPlan | undefined;
   paths?: string[] | undefined;
   batchSize?: number | undefined;
   batchIndex?: number | undefined;
@@ -75,6 +95,7 @@ export const directoryImportJobSchema: z.ZodType<
   batchSize: z.number().min(1).optional(),
   batchIndex: z.number().optional(),
   projectionBatch: directoryProjectionBatchRefSchema.optional(),
+  plan: directoryImportPlanSchema.optional(),
 });
 
 /**
