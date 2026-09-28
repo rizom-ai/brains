@@ -21,6 +21,7 @@ interface DefinitionSourceDependencies {
   signal?: AbortSignal;
   entityType: string;
   decode(content: string): unknown;
+  getContributorTypes(): readonly string[];
   read(): Promise<DefinitionRow | null>;
   validate(groupings: readonly EntityGrouping[]): void;
   replace(
@@ -35,6 +36,7 @@ interface DefinitionSourceDependencies {
  */
 export class GroupingDefinitionSource {
   private previous: DefinitionRow | null | undefined;
+  private previousTypes: string | undefined;
   private snapshot: GroupingDefinitionsSnapshot = { groupings: {}, issues: [] };
   private pending: Promise<void> = Promise.resolve();
   private readonly dependencies: DefinitionSourceDependencies;
@@ -72,7 +74,10 @@ export class GroupingDefinitionSource {
     this.dependencies.signal?.throwIfAborted();
     const row = await this.dependencies.read();
     this.dependencies.signal?.throwIfAborted();
+    const contributorTypes = this.contributorTypes();
+    const typeRevision = JSON.stringify(contributorTypes);
     if (
+      this.previousTypes === typeRevision &&
       this.previous !== undefined &&
       row?.contentHash === this.previous?.contentHash &&
       row?.content === this.previous?.content &&
@@ -87,12 +92,22 @@ export class GroupingDefinitionSource {
     // fields too; only the saving process can use its immediate before/after
     // view to limit a normal edit to added pairs. These are existing document
     // timestamps, not a persisted readiness marker.
-    this.dependencies.replace(declarations(snapshot.groupings), {
-      reprojectExisting: !afterWrite,
-    });
+    this.dependencies.replace(
+      declarations(snapshot.groupings, contributorTypes),
+      {
+        reprojectExisting: !afterWrite,
+      },
+    );
     // Publication follows successful replacement; a failure remains retryable.
     this.snapshot = snapshot;
     this.previous = row ? { ...row } : null;
+    this.previousTypes = typeRevision;
+  }
+
+  private contributorTypes(): string[] {
+    return [...new Set(this.dependencies.getContributorTypes())]
+      .filter((type) => type !== this.dependencies.entityType)
+      .sort();
   }
 
   private parseStored(content: string): GroupingDefinitionsSnapshot {
@@ -157,17 +172,11 @@ export class GroupingDefinitionSource {
         });
         continue;
       }
-      if (parsed.data.types.includes(this.dependencies.entityType)) {
-        snapshot.issues.push({
-          path: ["groupings", key, "types"],
-          message:
-            "The grouping definitions document cannot be a grouping contributor.",
-        });
-        continue;
-      }
       const candidate = { ...snapshot.groupings, [key]: parsed.data };
       try {
-        this.dependencies.validate(declarations(candidate));
+        this.dependencies.validate(
+          declarations(candidate, this.contributorTypes()),
+        );
       } catch (error) {
         snapshot.issues.push({
           path: ["groupings", key],
@@ -183,11 +192,16 @@ export class GroupingDefinitionSource {
 
 function declarations(
   groupings: Record<string, GroupingDefinition>,
+  contributorTypes: readonly string[],
 ): EntityGrouping[] {
-  return Object.entries(groupings).map(([key, definition]) => ({
-    key,
-    field: key,
-    label: definition.label,
-    types: [...definition.types],
-  }));
+  return Object.entries(groupings).flatMap(([key, definition]) => {
+    const types = contributorTypes.filter(
+      (type) => !definition.excludeTypes?.includes(type),
+    );
+    // A definition may intentionally exclude every currently installed type.
+    // Keep its source intact; it has no active schema/projection declaration.
+    return types.length
+      ? [{ key, field: key, label: definition.label, types }]
+      : [];
+  });
 }

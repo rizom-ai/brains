@@ -8,6 +8,25 @@ Last updated: 2026-09-13
 
 This record is evidence, not authorization to exit prerelease mode, dispatch a stable workflow, publish stable packages, change npm dist-tags, deploy a candidate, or spend provider budget.
 
+## Grouping exclusions and conditional mirror integration scope
+
+The approved main `7a9a833f6c` integration uses separately approved SDK
+exclusion policies and narrow revision snapshots/conditional mirror writes.
+Runtime eligibility, caller-scoped grouping reads, literal source fidelity,
+atomic storage preconditions and sanitized errors remain the intended boundaries.
+Application regressions use declarative contributors and authenticated routes,
+including independent-process recovery and stale import races. Exact completed
+validation and commit provenance must be checked on PR #301; this section alone
+does not establish exact-tree acceptance.
+
+Guest answer sources now select nearby public, site-routed pages after generation;
+they are not proof those pages grounded the answer. This can add ordinary
+embedding cost outside model-step settlement. The runtime rechecks cancellation
+before recording the enriched response; that does not establish cancellation of
+remote search work. Existing guest spend, prompt, recording and diagnostic
+caveats still apply. Imported visual artifacts do not establish a new canonical
+browser/provider run.
+
 ## Studio-owned operator Chat integration evidence scope
 
 The approved `629933996c` snapshot retires the operator Web Chat bundle in favor

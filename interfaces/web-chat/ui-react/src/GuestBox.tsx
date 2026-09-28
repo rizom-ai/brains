@@ -42,7 +42,11 @@ export interface GuestBoxProps {
   onContinue: () => void;
   onStopWaiting: () => void;
   actionNotice: string | undefined;
+  /** How long an answer may take before the box offers to stop waiting. */
+  stopWaitingAfterMs?: number;
 }
+
+const STOP_WAITING_AFTER_MS = 20_000;
 
 function activityText(busy: boolean, state: GuestBoxState): string {
   if (!busy) return "";
@@ -68,8 +72,20 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
     [messages, earlier, state, busy, confirmFresh, props.actionNotice],
   );
   const tail = useFollowTail({ resetKey: null, contentKey, paused: about });
+  // An answer is being written; after a while the visitor may stop waiting.
+  const waiting = busy && (state === "sending" || state === "working");
+  const [patient, setPatient] = useState(false);
+  const stopWaitingAfterMs = props.stopWaitingAfterMs ?? STOP_WAITING_AFTER_MS;
+  useEffect(() => {
+    setPatient(false);
+    if (!waiting) return;
+    const timer = window.setTimeout(() => setPatient(true), stopWaitingAfterMs);
+    return (): void => window.clearTimeout(timer);
+  }, [waiting, stopWaitingAfterMs]);
   useGuestBoxViewport(root, input);
   const sheet = useAskSheet(root, input);
+  // Closed on a phone, the box is a composer and a way back to the conversation.
+  const compact = sheet.narrow && !sheet.open;
   // Whose brain this is, from the host (ASK_NAME_ATTRIBUTE), once mounted.
   const [owner, setOwner] = useState<string>();
   useEffect(() => {
@@ -87,7 +103,9 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
     if (props.busy) return;
     if (initialFocus.current) {
       initialFocus.current = false;
-      if (document.activeElement === document.body)
+      // Only while the conversation is in view: focusing a closed sheet's
+      // composer would open it again after the visitor closed it.
+      if (document.activeElement === document.body && !compact)
         input.current?.focus({ preventScroll: true });
     }
     if (!initialIntent.current) return;
@@ -151,7 +169,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
 
   const actions = (
     <div className="brain-box-header-actions">
-      {props.canContinue && (
+      {props.canContinue && !sheet.open && (
         <a href="/ask" onClick={props.onContinue}>
           Full chat ↗
         </a>
@@ -190,7 +208,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
 
   return (
     <div
-      className={`brain-guest-box${sheet.open ? " is-sheet" : ""}${sheet.narrow && !sheet.open ? " is-compact" : ""}`}
+      className={`brain-guest-box${sheet.open ? " is-sheet" : ""}${compact ? " is-compact" : ""}`}
       ref={root}
     >
       {placeActions()}
@@ -255,8 +273,26 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
           sourceLinks
           {...(owner ? { assistantLabel: owner } : {})}
         />
+        {waiting && messages.at(-1)?.role === "user" && (
+          <section
+            className="guest-message guest-assistant brain-box-pending"
+            aria-hidden="true"
+          >
+            <h2>{owner ?? "Brain"}</h2>
+            <p className="brain-box-waiting">
+              <span className="brain-box-dots">
+                <i />
+                <i />
+                <i />
+              </span>
+              {owner
+                ? `Looking through ${owner}'s work`
+                : "Looking through the brain's work"}
+            </p>
+          </section>
+        )}
         <p
-          className={`brain-box-activity${state === "complete" && !busy ? " is-complete" : ""}`}
+          className={`brain-box-activity${waiting || (busy && state === "connecting") ? " brain-box-sr-only" : ""}${state === "complete" && !busy ? " is-complete" : ""}`}
           role="status"
           aria-live="polite"
         >
@@ -275,7 +311,7 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
           }}
           onFresh={(): void => setConfirmFresh(true)}
         />
-        {busy && (state === "sending" || state === "working") && (
+        {waiting && patient && (
           <button
             className="brain-box-quiet"
             type="button"
@@ -308,16 +344,17 @@ export function GuestBox(props: GuestBoxProps): ReactElement {
         )}
       </div>
       <div className="brain-box-bottom">
-        {tail.awayFromLatest && !about && (
+        {tail.awayFromLatest && !about && !compact && (
           <button
             className="brain-box-latest"
             type="button"
+            aria-label="Latest"
             onClick={tail.jumpToLatest}
           >
-            Latest ↓
+            ↓
           </button>
         )}
-        {sheet.narrow && !sheet.open && messages.length > 0 && (
+        {compact && messages.length > 0 && (
           <button
             className="brain-box-resume"
             type="button"

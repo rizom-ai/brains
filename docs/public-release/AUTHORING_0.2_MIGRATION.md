@@ -13,6 +13,24 @@ The stable `0.2` contract intentionally replaces the earlier alpha authoring sha
 | `PLUGIN_API_VERSION`                       | Use an explicit compatible peer dependency range                     |
 | `brain.yaml` `plugins.<id>.package`        | Import the definition in a brain package and compose it with `use()` |
 
+## Grouping exclusions and conditional imports
+
+Document grouping policies now use optional `excludeTypes`, not `types` allowlists.
+Omission includes all eligible contributors, including newly installed types;
+singletons, opaque representations and binary assets remain ineligible. Migrate
+stored policies explicitly—there is no legacy decoder. Invalid old entries remain
+repairable but do not publish active grouping policy. Resolved operational
+descriptors still expose `types`.
+
+Advanced filesystem mirrors can capture `getEntityWriteSnapshot(request)` before
+queueing or reading files. It returns detached, unexpanded content and an opaque
+revision under the requested visibility scope. Use
+`upsertEntity({ entity, options: { conditionalWrite: { expectedRevision } } })`;
+`null` means the destination must remain absent. Never refresh a stale condition
+to force an import through. Conflicts surface as sanitized `SdkError` code
+`conflict`; a deleted target is not recreated by a conditional update. No raw
+registry or entity-service capability is added.
+
 ## Operator Chat and discovery
 
 Studio now owns the operator Chat UI, navigation and Inbox discussion handoff.

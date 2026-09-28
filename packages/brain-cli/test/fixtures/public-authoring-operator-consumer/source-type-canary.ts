@@ -24,10 +24,17 @@ const document = defineEntity({
 });
 const definition: GroupingDefinition = {
   label: "Areas",
-  types: ["note"],
+  excludeTypes: ["post"],
   multiple: false,
   values: ["Work"],
 };
+const retiredAllowlist: GroupingDefinition = {
+  label: "Areas",
+  multiple: true,
+  // @ts-expect-error Source policies use exclusions, not the retired allowlist.
+  types: ["note"],
+};
+void retiredAllowlist;
 const initial: GroupingDefinitionsSnapshot = {
   groupings: { areas: definition },
   issues: [],

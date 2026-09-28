@@ -3,6 +3,7 @@ import {
   ASK_READY_ATTRIBUTE,
   ASK_SEND_ATTRIBUTE,
   ASK_SHEET_ATTRIBUTE,
+  ASK_SHEET_HISTORY_KEY,
   ASK_SHEET_MEDIA,
   ASK_STATUS_ATTRIBUTE,
 } from "@brains/contracts";
@@ -50,6 +51,46 @@ export const ASK_BOX_LOADER_SCRIPT: string = `(function () {
 export function askBoxBootScript(version: string): string {
   const suffix = `?v=${encodeURIComponent(version)}`;
   return `(function () {
+  // Reloaded with the sheet open: step back off its entry, so Back has no
+  // dead step, and return to where the page was.
+  var marked = window.history.state && window.history.state[${JSON.stringify(ASK_SHEET_HISTORY_KEY)}];
+  if (marked) {
+    window.addEventListener("popstate", function returned() {
+      window.removeEventListener("popstate", returned);
+      window.scrollTo(0, Number(marked.y) || 0);
+    });
+    window.history.back();
+  }
+  var guestModule = new URL("/ask/assets/guest.js${suffix}", window.location.origin).href;
+  var guestStyles = null;
+  // The chat's stylesheet, added once: it only styles an engaged box.
+  function styles() {
+    if (!guestStyles) {
+      var sheet = document.createElement("link");
+      sheet.rel = "stylesheet";
+      sheet.href = "/ask/assets/guest.css${suffix}";
+      guestStyles = new Promise(function (resolve, reject) {
+        sheet.onload = resolve;
+        sheet.onerror = function () {
+          sheet.remove();
+          guestStyles = null;
+          reject(new Error("Chat styles unavailable"));
+        };
+      });
+      document.head.append(sheet);
+    }
+    return guestStyles;
+  }
+  // Fetched once the page is idle, so engaging opens the box at once. Nothing
+  // mounts and nothing is sent; a failure here surfaces on engagement.
+  function prefetch() {
+    styles().catch(function () { return undefined; });
+    var code = document.createElement("link");
+    code.rel = "modulepreload";
+    code.href = "/ask/assets/guest.js${suffix}";
+    document.head.append(code);
+  }
+  (window.requestIdleCallback || function (run) { window.setTimeout(run, 1000); })(prefetch);
   document.querySelectorAll("[${ASK_BOX_ATTRIBUTE}]").forEach(function (host) {
     var input = host.querySelector("textarea");
     var send = host.querySelector("[${ASK_SEND_ATTRIBUTE}]");
@@ -70,23 +111,13 @@ export function askBoxBootScript(version: string): string {
         );
         host.setAttribute("${ASK_SHEET_ATTRIBUTE}", "");
       }
-      var sheet = document.createElement("link");
-      sheet.rel = "stylesheet";
-      sheet.href = "/ask/assets/guest.css${suffix}";
       try {
-        var styled = new Promise(function (resolve, reject) {
-          sheet.onload = resolve;
-          sheet.onerror = reject;
-        });
-        document.head.append(sheet);
         // Served by the Brain, not bundled inside the site package.
-        var moduleUrl = new URL("/ask/assets/guest.js${suffix}", window.location.origin).href;
-        var loaded = await Promise.all([import(moduleUrl), styled]);
+        var loaded = await Promise.all([import(guestModule), styles()]);
         loaded[0].mountGuestBox(host, sendRequested);
         mounted = true;
       } catch {
         // The status line tells the visitor; the draft stays and nothing was sent.
-        sheet.remove();
         host.removeAttribute("${ASK_SHEET_ATTRIBUTE}");
         sendRequested = false;
         input.readOnly = false;

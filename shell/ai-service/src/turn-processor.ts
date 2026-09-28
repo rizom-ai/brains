@@ -61,6 +61,7 @@ import {
   buildAgentContactCandidates,
   buildEntityMemoryRefs,
   buildToolResultPromptFallback,
+  withAnswerSources,
   type AgentContactCandidate,
   type EntityMemoryRef,
 } from "./agent-results";
@@ -93,6 +94,7 @@ export interface TurnProcessorDeps {
   canonicalIdentityResolver: AgentConfig["canonicalIdentityResolver"];
   agentContextProvider: AgentConfig["agentContextProvider"];
   uploadAttachmentResolver: AgentConfig["uploadAttachmentResolver"];
+  guestAnswerSources: AgentConfig["guestAnswerSources"];
 }
 
 /** A turn that passed admission: who is asking, and under which limits. */
@@ -141,7 +143,7 @@ export class TurnProcessor {
       ...(signal ? { abortSignal: signal } : {}),
     });
     signal?.throwIfAborted();
-    return this.recordResponse(turn, prepared, result);
+    return this.recordResponse(turn, prepared, result, signal);
   }
 
   /**
@@ -385,18 +387,41 @@ export class TurnProcessor {
     });
   }
 
+  /** A visitor's sources are the public pages closest to the answer, when found. */
+  private async withGuestAnswerSources(
+    cards: StructuredChatCard[],
+    answer: string,
+  ): Promise<StructuredChatCard[]> {
+    const find = this.deps.guestAnswerSources;
+    if (!find || answer.trim().length === 0) return cards;
+    try {
+      return withAnswerSources(cards, await find({ answer }));
+    } catch (error) {
+      // The answer stands without them; its lookups' sources remain.
+      this.deps.logger.warn("Guest answer sources unavailable", {
+        error: getErrorMessage(error),
+      });
+      return cards;
+    }
+  }
+
   private async recordResponse(
     turn: AdmittedTurn,
     prepared: PreparedTurn,
     result: Awaited<ReturnType<BrainAgent["generate"]>>,
+    signal?: AbortSignal,
   ): Promise<AgentResponse> {
     const { conversationId, channelId, channelName, userPermissionLevel } =
       turn.input;
     const { guest } = turn;
-    const { toolResults, pendingConfirmations, cards, totalToolCalls } =
-      extractToolResults(result.steps, result.text);
+    const extracted = extractToolResults(result.steps, result.text);
+    const { toolResults, pendingConfirmations, totalToolCalls } = extracted;
     if (guest && pendingConfirmations.length > 0)
       throw new Error("Guest execution denied");
+    const cards = guest
+      ? await this.withGuestAnswerSources(extracted.cards, result.text)
+      : extracted.cards;
+    signal?.throwIfAborted();
     const sourcesCard = buildSourcesCardFromContextItems(prepared.contextItems);
     const responseCards = sourcesCard ? [...cards, sourcesCard] : cards;
 

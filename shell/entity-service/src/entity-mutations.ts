@@ -706,6 +706,14 @@ export class EntityMutations {
       `Upserting entity of type ${entity.entityType} with ID ${entity.id}`,
     );
 
+    if (options?.conditionalWrite) {
+      const created = options.conditionalWrite.expectedRevision === null;
+      const result = created
+        ? await this.createEntity({ entity, options, preparedAsset })
+        : await this.updateEntity({ entity, options, preparedAsset });
+      return { ...result, created };
+    }
+
     const exists = await this.entityQueries.entityExists(
       entity.entityType,
       entity.id,

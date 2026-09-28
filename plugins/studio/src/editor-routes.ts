@@ -565,7 +565,11 @@ async function handleListTypes(
 
   const groupings = studioGroupDescriptors(
     runtime.groupingDefinitions().groupings,
-    new Set(types.map((type) => type.entityType)),
+    new Set(
+      types
+        .map((type) => type.entityType)
+        .filter((type) => runtime.groupings.canContribute(type)),
+    ),
   );
   return jsonResponse({ types, workspaces, groupings });
 }
@@ -698,7 +702,11 @@ async function handleGetSchema(
   const definitions = runtime.groupingDefinitions();
   const labels = new Map(
     Object.entries(definitions.groupings)
-      .filter(([, definition]) => definition.types.includes(entityType))
+      .filter(
+        ([, definition]) =>
+          runtime.groupings.canContribute(entityType) &&
+          !definition.excludeTypes?.includes(entityType),
+      )
       .map(([key, definition]) => [key, definition.label]),
   );
   const domainFields = raw

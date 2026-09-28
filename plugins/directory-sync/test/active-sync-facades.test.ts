@@ -41,9 +41,29 @@ describe("active sync facades", () => {
       expectedChildren: 2,
     };
     const reporter = createMockProgressReporter();
-    await facade.importEntitiesWithProgress(["note.md"], reporter, 10, batch);
+    const plan = [
+      {
+        path: "note.md",
+        entityType: "note",
+        id: "note",
+        expectedRevision: "before-sync",
+      },
+    ];
+    await facade.importEntitiesWithProgress(
+      ["note.md"],
+      reporter,
+      10,
+      batch,
+      plan,
+    );
     await facade.removeOrphanedEntities(batch);
-    expect(imported).toHaveBeenCalledWith(["note.md"], reporter, 10, batch);
+    expect(imported).toHaveBeenCalledWith(
+      ["note.md"],
+      reporter,
+      10,
+      batch,
+      plan,
+    );
     expect(cleaned).toHaveBeenCalledWith(batch);
   });
 

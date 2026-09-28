@@ -14,7 +14,7 @@ import type {
   PullResult,
   RawEntity,
 } from "./results";
-import type { JobRequest } from "./jobs";
+import type { DirectoryImportPlan, JobRequest } from "./jobs";
 import type { DurableBulkMutationChildRef } from "@brains/sdk/entities";
 
 /**
@@ -51,6 +51,7 @@ export interface IDirectorySync {
     reporter: ProgressContract,
     batchSize: number,
     projectionBatch?: DurableBulkMutationChildRef,
+    plan?: DirectoryImportPlan,
   ): Promise<ImportResult>;
   exportEntitiesWithProgress(
     entityTypes: string[] | undefined,

@@ -5,6 +5,7 @@ import { GroupingDefinitionSource } from "../src/internal/document-grouping-sour
 type DefinitionRow = Pick<BaseEntity, "content" | "contentHash">;
 const sourceConfig = {
   entityType: "grouping-definitions",
+  getContributorTypes: (): string[] => ["note", "post"],
   decode: (content: string): unknown => {
     const value = parseMarkdown(content, { cache: false }).frontmatter[
       "groupings"
@@ -12,13 +13,50 @@ const sourceConfig = {
     return value === undefined ? {} : value;
   },
 };
-const areas = { label: "Areas", types: ["note"], multiple: true };
+const areas = { label: "Areas", excludeTypes: ["post"], multiple: true };
 
 function document(groupings: unknown): string {
   return `---\nvisibility: shared\ngroupings: ${JSON.stringify(groupings)}\n---\n`;
 }
 
 describe("definition source snapshots", () => {
+  test("refreshes unchanged documents when eligible contributors change and retains fully excluded definitions", async () => {
+    let contributors = ["note", "grouping-definitions"];
+    const groupings = {
+      areas: { label: "Areas", multiple: true, excludeTypes: ["post"] },
+    };
+    const replacements: unknown[] = [];
+    const source = new GroupingDefinitionSource({
+      ...sourceConfig,
+      getContributorTypes: (): string[] => contributors,
+      read: async (): Promise<DefinitionRow> => ({
+        content: document(groupings),
+        contentHash: "unchanged",
+      }),
+      validate: (): void => {},
+      replace: (next): void => {
+        replacements.push(next);
+      },
+    });
+    await source.ensureCurrent();
+    contributors = ["post", "note", "link", "grouping-definitions"];
+    await source.ensureCurrent();
+    expect(replacements).toEqual([
+      [{ key: "areas", field: "areas", label: "Areas", types: ["note"] }],
+      [
+        {
+          key: "areas",
+          field: "areas",
+          label: "Areas",
+          types: ["link", "note"],
+        },
+      ],
+    ]);
+    contributors = ["post"];
+    await source.ensureCurrent();
+    expect(replacements[2]).toEqual([]);
+    expect(source.getSnapshot()).toEqual({ groupings, issues: [] });
+  });
   test("reuses a content revision, publishes removals and cannot be changed through a returned snapshot", async () => {
     let content: string | undefined = document({ areas });
     let reads = 0;
@@ -41,8 +79,10 @@ describe("definition source snapshots", () => {
       [{ key: "areas", field: "areas", label: "Areas", types: ["note"] }],
     ]);
     const snapshot = source.getSnapshot();
-    snapshot.groupings["areas"]?.types.push("post");
-    expect(source.getSnapshot().groupings["areas"]?.types).toEqual(["note"]);
+    snapshot.groupings["areas"]?.excludeTypes?.push("note");
+    expect(source.getSnapshot().groupings["areas"]?.excludeTypes).toEqual([
+      "post",
+    ]);
     content = undefined;
     await source.ensureCurrent();
     expect(replacements).toHaveLength(2);
@@ -55,15 +95,15 @@ describe("definition source snapshots", () => {
       read: async (): Promise<DefinitionRow> => ({
         content: document({
           areas,
-          broken: { ...areas, types: ["missing"] },
+          broken: { ...areas },
           invalid: { ...areas, multiple: "yes" },
           control: { ...areas, types: ["note", "grouping-definitions"] },
         }),
         contentHash: "one",
       }),
       validate: (next): void => {
-        if (next.some((entry) => entry.types.includes("missing")))
-          throw new Error("Unknown type: missing");
+        if (next.some((entry) => entry.key === "broken"))
+          throw new Error("Reserved grouping key");
       },
       replace: (): void => {},
     });
@@ -73,10 +113,13 @@ describe("definition source snapshots", () => {
       expect.arrayContaining([
         expect.objectContaining({
           path: ["groupings", "broken"],
-          message: "Unknown type: missing",
+          message: "Reserved grouping key",
         }),
         expect.objectContaining({ path: ["groupings", "invalid", "multiple"] }),
-        expect.objectContaining({ path: ["groupings", "control", "types"] }),
+        expect.objectContaining({
+          path: ["groupings", "control"],
+          message: expect.stringContaining("types"),
+        }),
       ]),
     );
   });

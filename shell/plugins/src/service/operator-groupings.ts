@@ -126,6 +126,7 @@ export function createOperatorGroupings(
       type !== registry.getGroupingSourceType() &&
       registry.hasEntityType(type) &&
       !!registry.getAdapter(type).frontmatterSchema &&
+      !registry.getAdapter(type).isSingleton &&
       entities.getEntityTypeConfig(type).binaryStorage !== "asset",
     definitions: (caller: InterfaceCaller): Promise<EntityGrouping[]> =>
       operatorRead(async () => {

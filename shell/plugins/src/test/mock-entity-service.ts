@@ -396,6 +396,16 @@ export function createMockEntityService(
         { operation: exists ? "update" : "create" },
       );
       await assertGroupingsCurrent();
+      const condition = request.options?.conditionalWrite;
+      const current = store.entities.get(id);
+      const revision =
+        current?.entityType === entity.entityType
+          ? computeContentHash(JSON.stringify(current))
+          : null;
+      // Fence after every asynchronous guard, without yielding before storage.
+      if (condition && condition.expectedRevision !== revision) {
+        throw new EntityWriteConflictError(entity.entityType, id);
+      }
       store.sources.set(id, source);
       store.entities.set(id, { ...entity, id, ...materialized });
       store.markExportIntent(
@@ -454,8 +464,16 @@ export function createMockEntityService(
     getEntityWriteSnapshot: async (
       request,
     ): ReturnType<IEntityService["getEntityWriteSnapshot"]> => {
-      const entity = await getEntityFake(request);
-      return entity ? { entity, revision: "mock-revision" } : null;
+      const entity = await getEntityFake({
+        ...request,
+        visibilityScope: request.visibilityScope ?? "public",
+      });
+      return entity
+        ? {
+            entity: structuredClone(entity),
+            revision: computeContentHash(JSON.stringify(entity)),
+          }
+        : null;
     },
 
     // Embeddings and projections are not modelled: the fake has no vectors, so

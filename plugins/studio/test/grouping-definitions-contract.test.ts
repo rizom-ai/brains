@@ -3,7 +3,7 @@ import { readGroupingDefinitions } from "../src/entity/grouping-definitions";
 import { createMockShell } from "@brains/plugins/test";
 import { instantiate } from "./helpers/install";
 import { groupingDefinitionsFrontmatterSchema } from "../src/grouping-definitions-contract";
-const areas = { label: "Areas", types: ["note"], multiple: true };
+const areas = { label: "Areas", multiple: true };
 
 function document(groupings: unknown): string {
   return `---\nvisibility: shared\ngroupings: ${JSON.stringify(groupings)}\n---\n`;
@@ -16,7 +16,7 @@ describe("grouping definitions contract", () => {
     ).toEqual({ groupings: { areas } });
     expect(
       groupingDefinitionsFrontmatterSchema.safeParse({
-        groupings: { areas: { label: "Areas", types: ["note"] } },
+        groupings: { areas: { label: "Areas" } },
       }).success,
     ).toBe(false);
     expect(

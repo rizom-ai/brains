@@ -9,6 +9,7 @@ test("shutdown fences an in-flight source read and future refreshes", async () =
   let replacements = 0;
   const source = new GroupingDefinitionSource({
     entityType: "policy",
+    getContributorTypes: (): string[] => ["note"],
     signal: controller.signal,
     decode: (content): unknown => JSON.parse(content),
     read: async (): Promise<{ content: string; contentHash: string }> => {
@@ -28,7 +29,7 @@ test("shutdown fences an in-flight source read and future refreshes", async () =
   row.resolve({
     contentHash: "old",
     content: JSON.stringify({
-      areas: { label: "Areas", types: ["note"], multiple: true },
+      areas: { label: "Areas", multiple: true },
     }),
   });
   expect(await pending).toBe(reason);
@@ -40,15 +41,16 @@ test("shutdown fences an in-flight source read and future refreshes", async () =
   expect(source.getSnapshot()).toEqual({ groupings: {}, issues: [] });
 });
 
-test("runtime bounds decoded policies and excludes its own control type", () => {
+test("runtime bounds decoded policies and rejects retired type allowlists", () => {
   const source = new GroupingDefinitionSource({
     entityType: "policy",
+    getContributorTypes: (): string[] => ["note", "policy"],
     decode: (content): unknown => JSON.parse(content),
     read: async (): Promise<null> => null,
     validate: (): void => {},
     replace: (): void => {},
   });
-  const definition = { label: "Areas", types: ["note"], multiple: true };
+  const definition = { label: "Areas", multiple: true };
   const snapshot = source.validateDefinitions({
     valid: definition,
     recursive: { ...definition, types: ["policy"] },
@@ -59,7 +61,7 @@ test("runtime bounds decoded policies and excludes its own control type", () => 
   });
   expect(Object.keys(snapshot.groupings)).toEqual(["valid"]);
   expect(snapshot.issues.map((issue) => issue.path)).toEqual([
-    ["groupings", "recursive", "types"],
+    ["groupings", "recursive"],
     ["groupings", "oversized", "values"],
   ]);
 });

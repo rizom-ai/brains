@@ -103,6 +103,8 @@ brain tool directory_sync '{"action":"history","entityType":"post","id":"my-firs
 
 `directory_sync` action `sync` pulls from git when configured, imports changed files, and lets auto-export/auto-commit handle entity changes. Action `status` reports sync and git state. Action `history` reads git history for synced files when git is configured.
 
+Queued imports capture visibility-scoped entity revisions before enqueueing, across all file batches. The importer checks those original revisions again and uses atomic conditional writes; retries never refresh a queued precondition. An intervening edit, creation or deletion makes that file's import stale: it is skipped with a visible issue, without overwriting the newer entity, clearing its pending export, or quarantining the source. Direct imports capture their plan before processing files. These are per-file optimistic preconditions, not a global sync lock or a file/database merge policy.
+
 Queued import and cleanup jobs preserve their durable projection-batch identity through the active-service facade; nested work still must match that identity. A live persist policy (such as a closed grouping vocabulary) can refuse otherwise valid Markdown. That import is reported as failed without moving the file into quarantine, so an explicit retry can succeed after the policy changes. Structural validation failures retain the existing quarantine behavior.
 
 ## Optional Studio workspace

@@ -52,6 +52,7 @@ export class DirectoryImportJobHandler {
             progressReporter,
             data.batchSize ?? 100,
             data.projectionBatch,
+            data.plan,
           );
 
           this.logger.debug("Directory import job completed", {

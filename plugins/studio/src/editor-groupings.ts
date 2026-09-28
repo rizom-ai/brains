@@ -47,7 +47,9 @@ export function studioGroupDescriptors(
       key,
       field: key,
       label: definition.label,
-      types: definition.types.filter((type) => admitted.has(type)),
+      types: [...admitted].filter(
+        (type) => !definition.excludeTypes?.includes(type),
+      ),
       rules: {
         multiple: definition.multiple,
         ...(definition.values && { values: definition.values }),

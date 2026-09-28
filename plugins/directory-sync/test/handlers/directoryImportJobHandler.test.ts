@@ -48,6 +48,7 @@ describe("DirectoryImportJobHandler", () => {
         reporter,
         25,
         undefined,
+        undefined,
       );
     });
 
@@ -86,6 +87,14 @@ describe("DirectoryImportJobHandler", () => {
       );
       const data = {
         paths: ["/path/to/series.md"],
+        plan: [
+          {
+            path: "/path/to/series.md",
+            entityType: "series",
+            id: "series",
+            expectedRevision: "before-sync",
+          },
+        ],
         projectionBatch: {
           rootJobId: "root-1",
           childKey: "0:directory-import",
@@ -101,6 +110,7 @@ describe("DirectoryImportJobHandler", () => {
         reporter,
         100,
         data.projectionBatch,
+        data.plan,
       );
 
       expect(runChild).toHaveBeenCalledWith(

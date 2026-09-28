@@ -1,6 +1,7 @@
 import notes from "@brains/note";
 import blog from "@brains/blog";
 import images from "@brains/image-plugin";
+import links from "@brains/link";
 import {
   instantiatePluginPackageDefinition,
   type IShell,
@@ -10,7 +11,7 @@ import {
 /** Install the real declarative packages, not removed adapter/class exports. */
 export async function installContributors(
   shell: IShell,
-  types: readonly ("note" | "post" | "image")[] = ["note", "post"],
+  types: readonly ("note" | "post" | "image" | "link")[] = ["note", "post"],
 ): Promise<() => Promise<void>> {
   const installed: Plugin[] = [];
   const close = async (): Promise<void> => {
@@ -22,6 +23,7 @@ export async function installContributors(
       ["note", notes, "@brains/note"],
       ["post", blog, "@brains/blog"],
       ["image", images, "@brains/image-plugin"],
+      ["link", links, "@brains/link"],
     ] as const) {
       if (!types.includes(type)) continue;
       for (const plugin of instantiatePluginPackageDefinition(

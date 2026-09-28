@@ -8,14 +8,21 @@ export const MAX_GROUPING_DEFINITIONS = 20;
 export const groupingDefinitionSchema: z.ZodObject<
   {
     label: z.ZodString;
-    types: typeof entityGroupingSchema.shape.types;
+    excludeTypes: z.ZodOptional<z.ZodArray<z.ZodString>>;
     multiple: z.ZodBoolean;
     values: z.ZodOptional<z.ZodArray<z.ZodString>>;
   },
   z.core.$strict
 > = z.strictObject({
   label: entityGroupingSchema.shape.label,
-  types: entityGroupingSchema.shape.types,
+  excludeTypes: z
+    .array(entityGroupingSchema.shape.types.element)
+    .max(100)
+    .refine(
+      (types) => new Set(types).size === types.length,
+      "Excluded types must be unique.",
+    )
+    .optional(),
   multiple: z.boolean(),
   values: z
     .array(groupingValueSchema.min(1))

@@ -46,7 +46,18 @@ export function registerDeclaredGroupings(
     throw new Error(
       "Document-owned groupings cannot replace another owner's declarations",
     );
+  const isContributor = (type: string): boolean => {
+    const adapter = context.entities.getAdapter(type);
+    return (
+      type !== entityType &&
+      !!adapter?.frontmatterSchema &&
+      !adapter.isSingleton &&
+      context.entityService.getEntityTypeConfig(type).binaryStorage !== "asset"
+    );
+  };
   const source = new GroupingDefinitionSource({
+    getContributorTypes: (): string[] =>
+      context.entityService.getEntityTypes().filter(isContributor),
     entityType,
     signal,
     decode: read,
@@ -98,16 +109,11 @@ export function registerDeclaredGroupings(
     if (issues.length) throw new z.ZodError(issues);
   });
   for (const type of context.entityService.getEntityTypes()) {
-    if (
-      type === entityType ||
-      !context.entities.getAdapter(type)?.frontmatterSchema ||
-      context.entityService.getEntityTypeConfig(type).binaryStorage === "asset"
-    )
-      continue;
+    if (!isContributor(type)) continue;
     context.entities.registerPersistValidator(type, async (record) => {
       signal.throwIfAborted();
       const definitions = Object.entries(source.getSnapshot().groupings).filter(
-        ([, value]) => value.types.includes(type),
+        ([, value]) => !value.excludeTypes?.includes(type),
       );
       if (!definitions.length) return;
       const frontmatter = parseMarkdown(record.content, {

@@ -58,7 +58,7 @@ async function fixture(role: "trusted" | "public" | null = "trusted"): Promise<{
       entityType: "grouping-definitions",
       id: "grouping-definitions",
       visibility: "shared",
-      markdown: `---\nvisibility: shared\ngroupings: ${JSON.stringify({ clients: { label: "Clients", types: grouping.types, multiple: true } })}\n---\n`,
+      markdown: `---\nvisibility: shared\ngroupings: ${JSON.stringify({ clients: { label: "Clients", multiple: true } })}\n---\n`,
     },
   });
   await shell.getEntityService().ensureGroupingsReady();

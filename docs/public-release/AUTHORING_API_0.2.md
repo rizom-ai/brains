@@ -393,6 +393,15 @@ Workspace action inputs are JSON-native wire values (`z.input`), not pre-transfo
 
 ### Source-backed collections
 
+The advanced filesystem mirror's `getEntityWriteSnapshot(request)` returns a
+visibility-scoped, detached, unexpanded `{ entity, revision }` or `null`.
+Conditional `upsertEntity` uses `options.conditionalWrite.expectedRevision`;
+`null` requires continued absence, while a captured revision must still match.
+Capture before queueing/file reads and skip conflicts rather than refreshing the
+condition. Stale updates cannot recreate deleted records. Failures are sanitized
+`SdkError` values (`conflict` for a changed destination), without exposing raw
+service or registry capabilities. Named consumer: Directory Sync.
+
 Service interactions may opt into endpoint discovery with `publishEndpoint: true`.
 Declare the interaction once; its label, href, priority, visibility and session
 requirement also describe the derived endpoint. The flag defaults off. The runtime
@@ -412,7 +421,12 @@ Advanced named consumer: Studio uses `ServiceGroupingDeclaration`,
 Services declare `groupings({ config, state })` as
 `{ source: { entity, read, publish? } }`. The source is an owned, registered
 singleton. Its pure `read(content)` decoder returns a map of up to 20 grouping
-keys to `{ label, types, multiple, values? }`; each key is also its source field.
+keys to `{ label, excludeTypes?, multiple, values? }`; each key is also its source field.
+All eligible frontmatter-bearing, non-singleton, non-asset types participate unless
+explicitly excluded. The runtime refreshes when either the document or eligible
+contributor set changes. Excluding all current contributors preserves the policy
+without publishing an active grouping. The retired `types` allowlist is rejected;
+operational grouping descriptors still contain resolved `types`.
 Allowed-value lists contain 1–100 exact-unique strings, each at most 10,000
 characters. The runtime independently validates the decoder output, rejects
 competing declaration owners, serializes refreshes, atomically replaces valid

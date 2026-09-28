@@ -98,14 +98,19 @@ describe("contentHash regression: canonical form, not raw content", () => {
         };
       },
     );
-    mockEntityService.getEntity = async (request: {
+    mockEntityService.getEntityWriteSnapshot = async (request: {
       entityType: string;
       id: string;
-    }): Promise<BaseEntity | null> => {
+    }): Promise<{ entity: BaseEntity; revision: string } | null> => {
       const found = store.get(`${request.entityType}:${request.id}`);
       // Parsed, not asserted: the store holds what upsert was given, so this
       // is also what proves the import wrote a complete entity.
-      return found ? baseEntitySchema.parse(found) : null;
+      return found
+        ? {
+            entity: baseEntitySchema.parse(found),
+            revision: computeContentHash(JSON.stringify(found)),
+          }
+        : null;
     };
 
     const dirSync = new DirectorySync({
@@ -174,9 +179,10 @@ describe("contentHash regression: canonical form, not raw content", () => {
     const documentService = createMockEntityService({
       entityTypes: ["document"],
     });
-    const getEntity = spyOn(documentService, "getEntity").mockResolvedValue(
-      existing,
-    );
+    const snapshot = spyOn(
+      documentService,
+      "getEntityWriteSnapshot",
+    ).mockResolvedValue({ entity: existing, revision: "observed" });
     const deserialize = spyOn(
       documentService,
       "deserializeEntity",
@@ -204,6 +210,6 @@ describe("contentHash regression: canonical form, not raw content", () => {
     expect(metadataChanged.imported).toBe(1);
     expect(deserialize).toHaveBeenCalledTimes(1);
     expect(upsert).toHaveBeenCalledTimes(1);
-    expect(getEntity).toHaveBeenCalledTimes(2);
+    expect(snapshot).toHaveBeenCalledTimes(4);
   });
 });

@@ -1,5 +1,6 @@
 import {
   createEntityBulkCoordination,
+  EntityWriteConflictError,
   type AcknowledgeEntityExportsRequest,
   type BaseEntity,
   type BulkMutationInput,
@@ -15,6 +16,7 @@ import {
   type UpsertEntityRequest,
 } from "@brains/entity-service";
 import type { IShell } from "../interfaces";
+import { toSdkError } from "@brains/contracts";
 
 /**
  * The reads and writes a filesystem mirror makes, across every type.
@@ -28,6 +30,11 @@ import type { IShell } from "../interfaces";
  * each signature below.
  */
 export interface EntityMirrorClient {
+  /** One visibility-scoped, unexpanded read and its atomic-write revision. */
+  getEntityWriteSnapshot(request: GetEntityRequest): Promise<{
+    entity: BaseEntity;
+    revision: string;
+  } | null>;
   /** Unexpanded source record for filesystem fidelity, never rendered content. */
   getEntity(request: GetEntityRequest): Promise<BaseEntity | null>;
   getEntity<T extends BaseEntity>(
@@ -125,11 +132,39 @@ export function createEntityMirror(
 
   return {
     getEntity,
+    getEntityWriteSnapshot: async (
+      request,
+    ): ReturnType<EntityMirrorClient["getEntityWriteSnapshot"]> => {
+      try {
+        const snapshot = await entities().getEntityWriteSnapshot(request);
+        return snapshot === null
+          ? null
+          : {
+              entity: structuredClone(snapshot.entity),
+              revision: snapshot.revision,
+            };
+      } catch (error) {
+        throw toSdkError(error);
+      }
+    },
     listEntities,
     getEntityTypes: () => entities().getEntityTypes(),
     hasEntityType: (type) => entities().hasEntityType(type),
     createEntity: (request) => entities().createEntity(request),
-    upsertEntity: (request) => entities().upsertEntity(request),
+    upsertEntity: async (
+      request,
+    ): Promise<EntityMutationResult & { created: boolean }> => {
+      try {
+        return await entities().upsertEntity(request);
+      } catch (error) {
+        throw toSdkError(
+          error,
+          error instanceof EntityWriteConflictError
+            ? "conflict"
+            : "handler_failed",
+        );
+      }
+    },
     deleteEntity: (request) => entities().deleteEntity(request),
     runBulkMutation: (input, mutation) =>
       entities().runBulkMutation(input, mutation),

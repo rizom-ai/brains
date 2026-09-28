@@ -7,25 +7,21 @@ export const MAX_GROUPING_DEFINITIONS = 20;
 export const groupingDefinitionSchema: z.ZodObject<
   {
     label: z.ZodString;
-    types: z.ZodArray<z.ZodString>;
+    excludeTypes: z.ZodOptional<z.ZodArray<z.ZodString>>;
     multiple: z.ZodBoolean;
     values: z.ZodOptional<z.ZodArray<z.ZodString>>;
   },
   z.core.$strict
 > = z.strictObject({
   label: z.string().trim().min(1).max(100),
-  types: z
+  excludeTypes: z
     .array(z.string().min(1).max(100))
-    .min(1)
     .max(100)
     .refine(
       (types) => new Set(types).size === types.length,
-      "Grouping types must be unique",
+      "Excluded types must be unique.",
     )
-    .refine(
-      (types) => !types.includes(GROUPING_DEFINITIONS_TYPE),
-      "The grouping definitions document cannot be a grouping contributor.",
-    ),
+    .optional(),
   multiple: z.boolean(),
   values: z
     .array(z.string().min(1).max(10000))

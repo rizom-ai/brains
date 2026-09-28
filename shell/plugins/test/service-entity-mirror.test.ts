@@ -134,6 +134,140 @@ describe("the records as a mirror keeps them", () => {
     }
   });
 
+  it("returns detached, scoped source snapshots rather than rendered content", async () => {
+    const mirror = await install();
+    const content = "![Literal](entity://image/private)";
+    await mirror.createEntity({
+      entity: {
+        id: "snapshot",
+        entityType: "note",
+        content,
+        metadata: { title: "Original" },
+        visibility: "restricted",
+      },
+    });
+    expect(
+      await mirror.getEntityWriteSnapshot({
+        entityType: "note",
+        id: "snapshot",
+      }),
+    ).toBeNull();
+    const request = {
+      entityType: "note",
+      id: "snapshot",
+      visibilityScope: "restricted" as const,
+    };
+    const snapshot = await mirror.getEntityWriteSnapshot(request);
+    if (!snapshot) throw new Error("Expected source snapshot");
+    expect(snapshot.entity.content).toBe(content);
+    expect(snapshot.revision.length).toBeGreaterThan(0);
+    snapshot.entity.content = "Changed outside storage";
+    snapshot.entity.metadata["title"] = "Changed outside storage";
+    const reread = await mirror.getEntityWriteSnapshot(request);
+    expect(reread?.entity.content).toBe(content);
+    expect(reread?.entity.metadata["title"]).toBeUndefined();
+  });
+
+  it("fences conditional imports against edits, deletions and raced creation", async () => {
+    const mirror = await install();
+    const entity: BaseEntity = {
+      id: "conditional",
+      entityType: "note",
+      content: "Original",
+      metadata: {},
+      visibility: "public",
+      contentHash: "original",
+      created: "2026-07-01T00:00:00.000Z",
+      updated: "2026-07-01T00:00:00.000Z",
+    };
+    expect(
+      (
+        await mirror.upsertEntity({
+          entity,
+          options: { conditionalWrite: { expectedRevision: null } },
+        })
+      ).created,
+    ).toBe(true);
+    const request = { entityType: "note", id: "conditional" };
+    const snapshot = await mirror.getEntityWriteSnapshot(request);
+    if (!snapshot) throw new Error("Expected source snapshot");
+    const [creation] = await Promise.allSettled([
+      mirror.upsertEntity({
+        entity,
+        options: { conditionalWrite: { expectedRevision: null } },
+      }),
+    ]);
+    expect(creation).toMatchObject({
+      status: "rejected",
+      reason: { code: "conflict" },
+    });
+    expect(
+      (
+        await mirror.upsertEntity({
+          entity: { ...snapshot.entity, content: "Concurrent edit" },
+          options: {
+            conditionalWrite: { expectedRevision: snapshot.revision },
+          },
+        })
+      ).created,
+    ).toBe(false);
+    const stale = {
+      entity: { ...snapshot.entity, content: "Stale file" },
+      options: { conditionalWrite: { expectedRevision: snapshot.revision } },
+    };
+    const [edit] = await Promise.allSettled([mirror.upsertEntity(stale)]);
+    expect(edit).toMatchObject({
+      status: "rejected",
+      reason: { code: "conflict" },
+    });
+    expect((await mirror.getEntity(request))?.content).toBe("Concurrent edit");
+    await mirror.deleteEntity(request);
+    const [deletion] = await Promise.allSettled([mirror.upsertEntity(stale)]);
+    expect(deletion).toMatchObject({
+      status: "rejected",
+      reason: { code: "conflict" },
+    });
+    expect(await mirror.getEntity(request)).toBeNull();
+  });
+
+  it("sanitizes snapshot and upsert failures at the mirror boundary", async () => {
+    const mirror = await install();
+    const service = harness.getEntityService();
+    const read = spyOn(service, "getEntityWriteSnapshot").mockRejectedValue(
+      new Error("private database source"),
+    );
+    const write = spyOn(service, "upsertEntity").mockRejectedValue(
+      new Error("private filesystem source"),
+    );
+    try {
+      const results = await Promise.allSettled([
+        mirror.getEntityWriteSnapshot({ entityType: "note", id: "missing" }),
+        mirror.upsertEntity({
+          entity: {
+            id: "missing",
+            entityType: "note",
+            content: "Body",
+            metadata: {},
+            visibility: "public",
+            contentHash: "body",
+            created: "2026-07-01T00:00:00.000Z",
+            updated: "2026-07-01T00:00:00.000Z",
+          },
+        }),
+      ]);
+      for (const result of results) {
+        expect(result).toMatchObject({
+          status: "rejected",
+          reason: { code: "handler_failed" },
+        });
+        expect(JSON.stringify(result)).not.toContain("private");
+      }
+    } finally {
+      read.mockRestore();
+      write.mockRestore();
+    }
+  });
+
   it("serialises through the type's own adapter, both ways", async () => {
     const mirror = await install();
     const entity: BaseEntity = {

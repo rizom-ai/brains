@@ -33,6 +33,8 @@ import {
 } from "./directory-dependencies";
 import type { DirectoryOperationDeps } from "./directory-operation-deps";
 import { PendingDeleteRegistry } from "./pending-delete-registry";
+import { captureImportPlan } from "./import-plan";
+import type { DirectoryImportPlan } from "../types/jobs";
 import { isDocumentSidecarFile } from "./document-file-utils";
 import {
   ensureDirectoryEntityStructure,
@@ -189,17 +191,28 @@ export class DirectorySync implements IDirectorySync {
     reporter: ProgressContract,
     batchSize: number,
     projectionBatch?: DurableBulkMutationChildRef,
+    plan?: DirectoryImportPlan,
   ): Promise<ImportResult> {
     return this.runBulkMutation(
       "import",
-      () =>
-        importDirectoryEntitiesWithProgress(
+      async () => {
+        const selectedPaths =
+          paths ?? (await this.fileOperations.getAllSyncFiles());
+        const admitted =
+          plan ??
+          (await captureImportPlan(
+            this.entityService,
+            this.fileOperations,
+            selectedPaths,
+          ));
+        return importDirectoryEntitiesWithProgress(
           this.progressOperations,
-          paths,
+          selectedPaths,
           reporter,
           batchSize,
-          this.importEntitiesUnbatched.bind(this),
-        ),
+          (batch) => this.importEntitiesUnbatched(batch, admitted),
+        );
+      },
       projectionBatch,
     );
   }
@@ -235,8 +248,16 @@ export class DirectorySync implements IDirectorySync {
     );
   }
 
-  private importEntitiesUnbatched(paths?: string[]): Promise<ImportResult> {
-    return importDirectoryEntities(this.operationDeps, this.entityTypes, paths);
+  private importEntitiesUnbatched(
+    paths?: string[],
+    plan?: DirectoryImportPlan,
+  ): Promise<ImportResult> {
+    return importDirectoryEntities(
+      this.operationDeps,
+      this.entityTypes,
+      paths,
+      plan,
+    );
   }
 
   private async removeOrphanedEntitiesUnbatched(): Promise<CleanupResult> {

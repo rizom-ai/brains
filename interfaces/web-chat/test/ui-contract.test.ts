@@ -40,7 +40,10 @@ describe("Web chat UI contract", () => {
     const source = readFileSync(
       join(packageRoot, "ui-react", "src", "guest-box.css"),
       "utf-8",
-    ).replace(/\/\*[\s\S]*?\*\//g, "");
+    )
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      // Keyframe steps (from, to) are not selectors.
+      .replace(/@keyframes[^{]*\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, "");
     const selectors = Array.from(source.matchAll(/([^{};]+)\{/g), (match) =>
       (match[1] ?? "").trim(),
     ).filter((selector) => !selector.startsWith("@"));

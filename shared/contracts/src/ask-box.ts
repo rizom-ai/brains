@@ -79,3 +79,18 @@ export const ASK_SHEET_HEADER_HEIGHT = "3.25rem";
  * where they come from with it; without it the box speaks as "the brain".
  */
 export const ASK_NAME_ATTRIBUTE = "data-ask-name";
+
+/**
+ * The key an open sheet marks its history entry with, holding the page's
+ * scroll position. A page loaded on such an entry (a reload with the sheet
+ * open) steps back off it and returns to that position.
+ */
+export const ASK_SHEET_HISTORY_KEY = "askSheet";
+
+/**
+ * Set by the box on its host, beside ASK_SHEET_ATTRIBUTE, while a closing
+ * sheet falls away. A host that moves its own parts with the sheet (such as a
+ * map docked under its header) moves them out with it; the sheet closes when
+ * its own animation ends, or at once when it has none.
+ */
+export const ASK_CLOSING_ATTRIBUTE = "data-ask-closing";

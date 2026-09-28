@@ -17,7 +17,7 @@ const policy = z.record(
   z.string(),
   z.object({
     label: z.string(),
-    types: z.array(z.string()),
+    excludeTypes: z.array(z.string()).optional(),
     multiple: z.boolean(),
     values: z.array(z.string()).min(1).optional(),
   }),
@@ -109,7 +109,6 @@ describe("bounded declarative groupings", () => {
       const content = JSON.stringify({
         later: {
           label: "Later",
-          types: [note.type],
           multiple: false,
           values: ["Allowed"],
         },
@@ -244,7 +243,6 @@ describe("bounded declarative groupings", () => {
           content: JSON.stringify({
             labels: {
               label: "Labels",
-              types: [note.type],
               multiple: false,
               values: ["Allowed"],
             },
@@ -305,7 +303,6 @@ describe("bounded declarative groupings", () => {
           content: JSON.stringify({
             labels: {
               label: "Labels",
-              types: [note.type],
               multiple: false,
               values: ["Denied"],
             },
@@ -377,7 +374,7 @@ describe("bounded declarative groupings", () => {
           visibility: "shared",
           metadata: {},
           content: JSON.stringify({
-            labels: { label: "Labels", types: [note.type], multiple: true },
+            labels: { label: "Labels", multiple: true },
           }),
         },
       });

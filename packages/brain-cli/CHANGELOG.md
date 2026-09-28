@@ -1,5 +1,41 @@
 # @rizom/brain
 
+## 0.2.0-alpha.439
+
+### Patch Changes
+
+- [#418](https://github.com/rizom-ai/brains/pull/418) [`ee1213f`](https://github.com/rizom-ai/brains/commit/ee1213f9276e952cefa8fd85819a8f92c9c35a63) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The phone conversation's map strip keeps its size as the conversation opens, and changes height only while the keyboard folds it or it opens into the whole map; marks cut by its edges fade out. An open title card on the map sits above every other mark. "Connecting to chat…" is said to screen readers only, so the sheet opens complete.
+
+## 0.2.0-alpha.438
+
+### Patch Changes
+
+- [#415](https://github.com/rizom-ai/brains/pull/415) [`cfe9ad5`](https://github.com/rizom-ai/brains/commit/cfe9ad50eed5160fe281f59ff4a5d6eee3c80b30) Thanks [@yeehaa123](https://github.com/yeehaa123)! - The phone conversation on an Ask box behaves as one piece. The sheet opens complete (the chat's files are fetched once the page is idle), rises into view and falls away when closed, and never reopens by itself after being closed while loading. A reload with it open returns to where the page was. While an answer is written, the box shows where it will appear and offers to stop waiting only after 20 seconds; the "Latest" control is a round button clear of the text, and the sheet no longer links to the full chat. On the atlas homepage the map strip is a window onto the same map at the page's size and zoom, pans only when an answer moves it, keeps its marks at their own size while zoomed, folds with the keyboard, and opens into the whole map until "Back to the answer".
+
+## 0.2.0-alpha.437
+
+### Patch Changes
+
+- [#393](https://github.com/rizom-ai/brains/pull/393) [`cc7500a`](https://github.com/rizom-ai/brains/commit/cc7500af3a6a0deb593c221f2009c121d1708b71) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Apply groupings to every eligible content type by default. Replace the explicit contributor checklist with optional `excludeTypes` under a collapsed Exclude types disclosure. Singleton controls, types without frontmatter adapters and binary asset types stay outside grouping participation by convention.
+
+  Resolve participation consistently for schema extensions, validation, scoped descriptors and reprojection. Removing an exclusion restores participation without rewriting stored memberships. Preserve unavailable exclusions rather than silently dropping them.
+
+  Prevent queued directory imports from undoing newer Studio saves. Capture per-file entity revisions at admission and use atomic conditional upserts; skip stale work with a visible issue while preserving source files and pending exports. Conditional upserts never retry a raced create as an unconditional update.
+
+  Definitions no longer accept explicit `types` lists. There is no compatibility reader or automatic conversion; smoke's test definitions must use the current document shape when this version is deployed.
+
+## 0.2.0-alpha.436
+
+### Patch Changes
+
+- [#414](https://github.com/rizom-ai/brains/pull/414) [`e6c1f40`](https://github.com/rizom-ai/brains/commit/e6c1f4080e3c87f06dd53e566ef5cbc73c66b151) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A visitor's answer's sources are now found on deployments whose site address is configured as a bare domain, such as `yeehaa.io`; before, building their links failed and the answer fell back to its lookups' sources.
+
+## 0.2.0-alpha.435
+
+### Patch Changes
+
+- [#413](https://github.com/rizom-ai/brains/pull/413) [`c3c8caf`](https://github.com/rizom-ai/brains/commit/c3c8caf1d6ed3ba835814002273c50e7461a4672) Thanks [@yeehaa123](https://github.com/yeehaa123)! - A visitor's answer now cites the public pages closest to it in meaning: with embeddings enabled, the brain searches with the finished answer and keeps up to five pages the site shows, near the closest match, each with its address on the site. The homepage map lights those pages, so an answer about three essays lights the three essays even when the model read about them in a note or a social post. When the closed Ask box on a phone leaves the page, its "Latest" button no longer lingers there.
+
 ## 0.2.0-alpha.434
 
 ### Patch Changes

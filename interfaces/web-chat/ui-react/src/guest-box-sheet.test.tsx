@@ -5,9 +5,11 @@ import { createRoot, type Root } from "react-dom/client";
 import { EventTarget as HappyEventTarget, Window } from "happy-dom";
 import {
   ASK_BOX_ATTRIBUTE,
+  ASK_CLOSING_ATTRIBUTE,
   ASK_KEYBOARD_ATTRIBUTE,
   ASK_NAME_ATTRIBUTE,
   ASK_SHEET_ATTRIBUTE,
+  ASK_SHEET_HISTORY_KEY,
   ASK_SOURCE_ATTRIBUTE,
 } from "@brains/contracts";
 import type { ChatHistoryMessage } from "@brains/contracts/chat";
@@ -141,7 +143,7 @@ async function click(label: string): Promise<void> {
 
 describe("the Ask box on a phone", () => {
   describe("on a narrow screen", () => {
-    beforeEach(() => setup(390));
+    beforeEach(() => setup(390, true));
 
     it("opens full screen as the box mounts on engagement, and locks the page behind it", async () => {
       const before = history.length;
@@ -155,12 +157,27 @@ describe("the Ask box on a phone", () => {
       );
     });
 
+    it("marks its history entry with where the page was, for a reload to return to", async () => {
+      window.scrollTo(0, 300);
+      await render();
+      expect(history.state).toEqual({ [ASK_SHEET_HISTORY_KEY]: { y: 300 } });
+    });
+
     it("stays open when the boot already opened it before the box mounted", async () => {
       await act(async (): Promise<void> => root.unmount());
       host.setAttribute(ASK_SHEET_ATTRIBUTE, "");
       root = createRoot(host);
       await render();
       expect(host.hasAttribute(ASK_SHEET_ATTRIBUTE)).toBe(true);
+    });
+
+    it("stays closed when closed while the conversation is still loading", async () => {
+      await render({ busy: true });
+      await click("Close conversation");
+      expect(host.hasAttribute(ASK_SHEET_ATTRIBUTE)).toBe(false);
+      await render({ busy: false });
+      expect(host.hasAttribute(ASK_SHEET_ATTRIBUTE)).toBe(false);
+      expect(document.activeElement).not.toBe(composer());
     });
 
     it("closes with the close button, Escape or Back, and unlocks the page", async () => {
@@ -184,6 +201,30 @@ describe("the Ask box on a phone", () => {
         window.dispatchEvent(new PopStateEvent("popstate", { state: null }));
       });
       expect(host.hasAttribute(ASK_SHEET_ATTRIBUTE)).toBe(false);
+    });
+
+    it("falls away before it closes when its stylesheet animates it", async () => {
+      await render();
+      const computed = window.getComputedStyle;
+      // happy-dom runs no animations: say the sheet has one, as guest.css gives it.
+      Object.assign(window, {
+        getComputedStyle: (
+          element: Element,
+        ): Pick<CSSStyleDeclaration, "animationName"> =>
+          element === host
+            ? { animationName: "brain-ask-fall" }
+            : computed(element),
+      });
+      await click("Close conversation");
+      expect(host.hasAttribute(ASK_CLOSING_ATTRIBUTE)).toBe(true);
+      expect(host.hasAttribute(ASK_SHEET_ATTRIBUTE)).toBe(true);
+      await act(async (): Promise<void> => {
+        host.dispatchEvent(new Event("animationend"));
+      });
+      expect(host.hasAttribute(ASK_CLOSING_ATTRIBUTE)).toBe(false);
+      expect(host.hasAttribute(ASK_SHEET_ATTRIBUTE)).toBe(false);
+      expect(document.documentElement.style.overflow).toBe("");
+      Object.assign(window, { getComputedStyle: computed });
     });
 
     it("fits the space above the keyboard and says when the keyboard is open", async () => {
@@ -237,10 +278,17 @@ describe("the Ask box on a phone", () => {
       expect(asked).not.toBe(null);
       expect(region.scrollTop).not.toBe(1600);
       expect(
-        [...host.querySelectorAll("button")].some((button) =>
-          button.textContent.includes("Latest"),
+        [...host.querySelectorAll("button")].some(
+          (button) => button.getAttribute("aria-label") === "Latest",
         ),
       ).toBe(true);
+      // Closed, the conversation is out of sight, and so is its way to the end.
+      await click("Close conversation");
+      expect(
+        [...host.querySelectorAll("button")].some(
+          (button) => button.getAttribute("aria-label") === "Latest",
+        ),
+      ).toBe(false);
     });
 
     it("offers the conversation back after closing it", async () => {
@@ -259,7 +307,7 @@ describe("the Ask box on a phone", () => {
 
   describe("in the words of the site it sits on", () => {
     beforeEach(() => {
-      setup(390);
+      setup(390, true);
       host.setAttribute(ASK_NAME_ATTRIBUTE, "Yeehaa");
     });
 
@@ -284,6 +332,49 @@ describe("the Ask box on a phone", () => {
         "Answers come from what Yeehaa has published.",
       );
     });
+
+    it("shows where the answer will appear while it is being written", async () => {
+      await render({
+        messages: answer.slice(0, 1),
+        state: "working",
+        busy: true,
+      });
+      const pending = host.querySelector(".brain-box-pending");
+      expect(pending?.querySelector("h2")?.textContent).toBe("Yeehaa");
+      expect(pending?.textContent).toContain("Looking through Yeehaa's work");
+      await render({ messages: answer, state: "complete" });
+      expect(host.querySelector(".brain-box-pending")).toBe(null);
+    });
+
+    it("tells only screen readers that it is connecting, so the sheet opens complete", async () => {
+      await render({ state: "connecting", busy: true });
+      const activity = host.querySelector(".brain-box-activity");
+      expect(activity?.textContent).toBe("Connecting to chat…");
+      expect(activity?.classList.contains("brain-box-sr-only")).toBe(true);
+    });
+
+    it("offers to stop waiting only once the answer is taking long", async () => {
+      const stopButton = (): HTMLButtonElement | undefined =>
+        [...host.querySelectorAll("button")].find((button) =>
+          button.textContent.includes("Stop waiting"),
+        );
+      await render({
+        messages: answer.slice(0, 1),
+        state: "working",
+        busy: true,
+        stopWaitingAfterMs: 30,
+      });
+      expect(stopButton()).toBeUndefined();
+      await act(async (): Promise<void> => {
+        await new Promise((resolve) => setTimeout(resolve, 60));
+      });
+      expect(stopButton()).toBeDefined();
+    });
+
+    it("leaves out the link to the full chat, since it already fills the screen", async () => {
+      await render({ messages: answer, state: "complete", canContinue: true });
+      expect(host.textContent).not.toContain("Full chat");
+    });
   });
 
   describe("on a wide screen", () => {
@@ -295,6 +386,11 @@ describe("the Ask box on a phone", () => {
       expect(host.hasAttribute(ASK_SHEET_ATTRIBUTE)).toBe(false);
       expect(document.documentElement.style.overflow).toBe("");
       expect(host.textContent).not.toContain("Continue conversation");
+    });
+
+    it("links to the full chat from the page", async () => {
+      await render({ messages: answer, state: "complete", canContinue: true });
+      expect(host.textContent).toContain("Full chat");
     });
   });
 });

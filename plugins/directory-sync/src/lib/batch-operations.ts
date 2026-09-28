@@ -1,6 +1,8 @@
 import type { DirectorySyncHost } from "../host";
 import { createId } from "@brains/utils/id";
 import type { Logger } from "@brains/utils/logger";
+import { captureImportPlan } from "./import-plan";
+import { parseEntityPath } from "./entity-paths";
 import type {
   BatchMetadata,
   BatchOperationResult,
@@ -15,6 +17,8 @@ export type {
   BatchOperationResult,
   BatchResult,
 } from "../types";
+
+const IMPORT_BATCH_SIZE = 50;
 
 export interface BatchOperationsManagerOptions {
   logger: Logger;
@@ -94,6 +98,11 @@ export class BatchOperationsManager {
       return null;
     }
 
+    const plan = await captureImportPlan(
+      pluginContext.mirror,
+      { parseEntityFromPath: (path) => parseEntityPath(this.syncPath, path) },
+      files,
+    );
     const rootJobId = createId();
     const batch =
       await pluginContext.mirror.coordination.beginDurableBulkMutation({
@@ -105,6 +114,12 @@ export class BatchOperationsManager {
       data: {
         ...operation.data,
         projectionBatch: batch.childRef(`${index}:${operation.type}`),
+        ...(operation.type === "directory-import" && {
+          plan: plan.slice(
+            index * IMPORT_BATCH_SIZE,
+            (index + 1) * IMPORT_BATCH_SIZE,
+          ),
+        }),
       },
     }));
     let batchId: string;
@@ -178,7 +193,7 @@ export class BatchOperationsManager {
       return [];
     }
 
-    const batchSize = 50;
+    const batchSize = IMPORT_BATCH_SIZE;
     const operations: DirectoryBatchOperation[] = [];
 
     for (let i = 0; i < files.length; i += batchSize) {

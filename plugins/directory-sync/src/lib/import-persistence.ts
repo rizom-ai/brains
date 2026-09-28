@@ -1,32 +1,20 @@
 import {
-  internalFullScope,
+  sdkErrorSchema,
   type BaseEntity,
   type ContentVisibility,
 } from "@brains/sdk/entities";
+import type { EntityMirrorClient } from "@brains/sdk/plugins";
 import type { Logger } from "@brains/utils/logger";
 import { getErrorMessage } from "@brains/utils/error";
 import { computeContentHash } from "@brains/utils/hash";
 import type { ImportResult, RawEntity } from "../types";
 
 import { resolveInSyncPath } from "./path-utils";
+import { recordImportIssue } from "./import-result";
 
 export interface ImportPersistenceDeps {
-  entityService: {
-    getEntity(request: {
-      entityType: string;
-      id: string;
-      visibilityScope?: ContentVisibility;
-    }): Promise<BaseEntity | null>;
-    serializeEntity(entity: BaseEntity): string;
-    upsertEntity(request: {
-      entity: BaseEntity;
-      options: { persistenceOrigin: "directory-sync" };
-    }): Promise<{ jobId: string }>;
-  };
+  entityService: Pick<EntityMirrorClient, "serializeEntity" | "upsertEntity">;
   logger: Logger;
-  fileOperations: {
-    shouldUpdateEntity(existing: BaseEntity, rawEntity: RawEntity): boolean;
-  };
   quarantine: {
     isValidationError(error: unknown): boolean;
     quarantineInvalidFile(
@@ -78,28 +66,10 @@ export async function persistImportEntity(
   parsedEntity: Partial<BaseEntity>,
   filePath: string,
   result: ImportResult,
-  prefetchedExisting?: BaseEntity | null,
+  snapshot: Awaited<ReturnType<EntityMirrorClient["getEntityWriteSnapshot"]>>,
 ): Promise<void> {
   try {
-    const existing =
-      prefetchedExisting === undefined
-        ? await deps.entityService.getEntity({
-            entityType: rawEntity.entityType,
-            id: rawEntity.id,
-            visibilityScope: internalFullScope(
-              "directory sync indexes entities across all visibility tiers",
-            ),
-          })
-        : prefetchedExisting;
-
-    if (
-      prefetchedExisting === undefined &&
-      existing &&
-      !deps.fileOperations.shouldUpdateEntity(existing, rawEntity)
-    ) {
-      result.skipped++;
-      return;
-    }
+    const existing = snapshot?.entity ?? null;
 
     // Spread parsedEntity first so type-specific fields (e.g., title, status
     // for decks) are preserved, then override with canonical BaseEntity fields.
@@ -143,9 +113,20 @@ export async function persistImportEntity(
       deps.entityService.serializeEntity(entity),
     );
 
+    if (
+      entity.entityType !== rawEntity.entityType ||
+      entity.id !== rawEntity.id
+    )
+      throw new Error(
+        "Directory import adapter changed the admitted destination",
+      );
+    const options = {
+      persistenceOrigin: "directory-sync" as const,
+      conditionalWrite: { expectedRevision: snapshot?.revision ?? null },
+    };
     const upsertResult = await deps.entityService.upsertEntity({
-      entity: entity,
-      options: { persistenceOrigin: "directory-sync" },
+      entity,
+      options,
     });
     result.imported++;
     result.jobIds.push(upsertResult.jobId);
@@ -158,6 +139,16 @@ export async function persistImportEntity(
 
     await deps.quarantine.markAsRecoveredIfNeeded(filePath);
   } catch (error) {
+    const failure = sdkErrorSchema.safeParse(error);
+    if (failure.success && failure.data.code === "conflict") {
+      result.skipped++;
+      recordImportIssue(
+        result,
+        filePath,
+        "Skipped stale import: entity changed while reading the file.",
+      );
+      return;
+    }
     if (deps.quarantine.isValidationError(error)) {
       await deps.quarantine.quarantineInvalidFile(
         filePath,
