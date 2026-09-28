@@ -346,6 +346,13 @@ describe("the Ask box on a phone", () => {
       expect(host.querySelector(".brain-box-pending")).toBe(null);
     });
 
+    it("tells only screen readers that it is connecting, so the sheet opens complete", async () => {
+      await render({ state: "connecting", busy: true });
+      const activity = host.querySelector(".brain-box-activity");
+      expect(activity?.textContent).toBe("Connecting to chat…");
+      expect(activity?.classList.contains("brain-box-sr-only")).toBe(true);
+    });
+
     it("offers to stop waiting only once the answer is taking long", async () => {
       const stopButton = (): HTMLButtonElement | undefined =>
         [...host.querySelectorAll("button")].find((button) =>

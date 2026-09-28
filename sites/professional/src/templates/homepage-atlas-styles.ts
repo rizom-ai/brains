@@ -66,7 +66,9 @@ export const homepageAtlasStyles: string = String.raw`
 .atlas__mark--west .atlas__tip { left: auto; right: 50%; transform: none; }
 .atlas__mark--east .atlas__tip { left: 50%; transform: none; }
 /* A transformed mark is its own stacking context: lift the active one over its neighbours. */
-.atlas__mark:focus-within, .atlas__mark[data-open] { z-index: 3; }
+.atlas__mark:focus-within { z-index: 3; }
+/* An open card sits above every other mark, lit ones (z-index 3) included. */
+.atlas__mark[data-open] { z-index: 4; }
 .atlas__mark[data-open] .atlas__tip { opacity: 1; }
 .atlas__mark[data-open] .atlas__glyph { background: var(--color-accent); transform: scale(1.5); }
 .atlas__mark--deck[data-open] .atlas__glyph { transform: rotate(45deg) scale(1.5); }
@@ -235,7 +237,13 @@ export const homepageAtlasStyles: string = String.raw`
     background: var(--color-bg); border-bottom: 1px solid var(--color-rule);
     /* It rises and falls with the sheet (Web Chat's brain-ask-rise and -fall). */
     animation: atlas-sheet-rise .32s cubic-bezier(.2, .8, .2, 1);
-    transition: height .32s cubic-bezier(.2, .8, .2, 1);
+  }
+  /* Its height moves only while it folds or opens (the script marks it). */
+  .atlas[data-atlas-moving]:has(.atlas__ask[data-ask-sheet]) .atlas__map { transition: height .32s cubic-bezier(.2, .8, .2, 1); }
+  /* Marks cut by the strip's edges fade out with it, as the terrain does. */
+  .atlas:has(.atlas__ask[data-ask-sheet]):not([data-atlas-expanded]) .atlas__map::after {
+    content: ""; position: absolute; inset: 0; z-index: 4; pointer-events: none;
+    background: linear-gradient(180deg, var(--color-bg), transparent 1.1rem, transparent calc(100% - 1.1rem), var(--color-bg));
   }
   .atlas:has(.atlas__ask[data-ask-closing]) .atlas__map { animation: atlas-sheet-fall .26s cubic-bezier(.4, 0, 1, 1) forwards; }
   /* The strip is a window onto the same map as the page, at the same size
