@@ -3,8 +3,10 @@
 `@brains/web-chat` provides the guest-facing Web Chat surface at `/ask` and
 owns the shared Chat HTTP APIs. Native authenticated Chat is hosted by Studio
 at `/chat`; the two presentations share the transport contract without sharing
-browser components. The standalone surface carries a small public Ask masthead;
-it does not restore the retired Dashboard/Chat/Studio product switcher.
+browser components. Web Chat has no operator browser app. Paths that previously
+served it redirect with `303` to Studio's `/chat`, which owns authentication;
+without Studio they return `404`. Guest-origin Ask remains a guest surface even
+for signed-in owners.
 
 ## Public boundary
 
@@ -20,7 +22,7 @@ re-exported from `@rizom/brain`.
 The current release remains fail-closed:
 
 - Studio Chat is limited to Trusted and Admin actors;
-- standalone Web Chat at `/ask` remains authenticated until guest policy is explicitly enabled;
+- when guest policy does not apply, `/ask` redirects to Studio Chat (or returns `404` without Studio);
 - active Public and unauthenticated callers have no Chat access.
 
 The intended future split is Studio for authenticated actors, with a separately
@@ -67,7 +69,7 @@ Apps without a generated Ask page retain a headerless standalone fallback.
 
 The site page mounts the shared guest app using `data-web-chat-root`,
 `data-guest-chat` and `data-chat-api-path="/api/chat/guest"`, plus the existing
-`/ask/assets/app.js`, `app.css` and scoped `page.css`. The site's own layout and
+`/ask/assets/ask.js`, `ask.css` and scoped `page.css`. The site's own layout and
 runtime supply navigation, fonts, theme switching and footer. This does not
 change guest API admission or authorize production-page publication.
 
@@ -105,44 +107,27 @@ automatic migration, generated welcome or hosted content write is performed.
 
 ## Build
 
-`bun run build` invokes `scripts/build-ui.ts`, which owns the browser target, ESM output, minification, source maps, React deduplication, the `@/` alias, and compile-time StyleX extraction through `Bun.build`. It emits `app.js` plus static `app.css`; the browser receives no Babel plugin or runtime style injector. Web Chat has no second Vite build path.
+`bun run build` invokes `scripts/build-ui.ts`, which owns the browser target, ESM output, minification, source maps, React deduplication, and compile-time StyleX extraction through `Bun.build`. It emits only the three guest bundles: `guest`, `ask`, and `dashboard`, each with JavaScript and static CSS. The build removes stale `app.js`/`app.css` outputs; those operator asset routes are no longer registered. Web Chat has no second Vite build path.
 
 Buttons, fields, selects, dialogs, and menus reuse `@brains/app-ui-react`, the same token-driven control vocabulary as Studio. Web Chat keeps its conversation-specific composition and AI elements local.
 
 ## State ownership
 
-- The package-local TanStack `QueryClient` owns saved-session metadata and immutable stored-history snapshots.
-- `Chat`/`useChat` from the AI SDK exclusively owns the active conversation's messages, transient parts, and stream state.
-- Reopening a session fetches `webChatKeys.history(conversationId)`, copies that snapshot with `createActiveMessageSeed()`, and seeds the AI SDK owner. Never render or stream directly from the history query cache.
-- Drawer, dialog, composer, upload notice, and other transient controls stay component-local.
-- In the authenticated presentation, the durable conversation ID remains the AI SDK chat ID and is mirrored in localStorage for reload continuity. Anonymous guest locators follow the separate sessionStorage boundary described above.
+Guest conversation, history, send and recovery state remain in `GuestApp` and
+its guest hooks. Credentials and locators follow the boundaries above; guest
+access never becomes an operator session. Studio owns operator browser state,
+including session selection, uploads, approvals, rename, archive and confirmed
+permanent deletion. Both use the existing Web Chat API and conversation service.
 
-## Query and mutation conventions
+## Inbox conversations
 
-All server-state keys come from `ui-react/src/queries.ts`:
+Studio owns the **Chat** interaction and universal Inbox **Discuss in chat**
+follow-up, registered only when web-chat is installed. The follow-up opens an
+actor-owned context session at `/chat`; the bounded source locator remains
+inspectable after reload. Web Chat re-authorizes source detail on each request,
+frames it as untrusted transient context, and never persists or returns the
+source body. Browser-supplied `inboxContext` is rejected by the request schema.
 
-```ts
-webChatKeys.sessions();
-webChatKeys.history(conversationId);
-```
-
-Transport calls belong in `api.ts` or `mutations.ts`, not in components. Session mutations have targeted cache effects:
-
-- rename updates only the matching session metadata;
-- archive and delete remove the matching session metadata and history snapshot;
-- successful sends and runtime actions invalidate the active history and refresh session metadata.
-
-Do not persist the query cache or use it as a second active-message owner. Tests must cover exact request counts, encoded IDs, errors, and cache effects with `@brains/test-utils` `mockFetch` before a server-state path is migrated.
-
-## Addressable state
-
-An authenticated standalone conversation door uses `/ask#s/{encodedConversationId}`. The chat surface consumes the hash, reopens that session, then clears the transient door from the URL. Streaming blocks session switching so an active AI SDK stream cannot be replaced by a history seed.
-
-The interface owns the universal Inbox **Discuss in chat** follow-up at its
-configured mount for sources that support permission-checked detail. Its
-destination schema bounds a prompt plus source/item identifiers and a safe
-label. When native Studio Chat is available, the handoff idempotently opens an
-actor-owned context session and routes Studio to it; the bounded locator remains
-inspectable after reload. Chat-only composition retains the standalone one-shot
-fallback. Both paths re-authorize and resolve source detail on the server, frame
-it as untrusted transient context, and never persist or return the source body.
+The old one-shot prefill and its detach button are intentionally retired.
+Inbox-linked conversations retain their item; start a new conversation for a
+different topic. This changes no Inbox item and grants no new guest capability.

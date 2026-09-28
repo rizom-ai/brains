@@ -122,8 +122,8 @@ export const ChatContextSchema: ChatContextSchema = z.object({
 export type ChatContext = z.output<typeof ChatContextSchema>;
 
 export interface AgentNamespace {
-  /** Installed runtime profile only; does not attest to host/corpus readiness. */
-  readonly guestProfileAvailable?: boolean;
+  /** Guest turns can run: the search index they read is ready. */
+  readonly guestReady?: boolean;
   chat(
     message: string,
     conversationId: string,

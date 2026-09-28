@@ -1,7 +1,6 @@
 import { isRecord } from "@brains/utils/is-record";
 import {
   groupingDefinitionsFrontmatterSchema,
-  GROUPING_DEFINITIONS_TYPE,
   type GroupingDefinitionIssue,
 } from "../../src/grouping-definitions-contract";
 
@@ -47,7 +46,7 @@ export function addGroupingDefinition(
       {
         id: draft.nextId,
         key: "",
-        value: { label: "", types: [], multiple: true },
+        value: { label: "", multiple: true },
       },
     ],
     nextId: draft.nextId + 1,
@@ -81,7 +80,6 @@ export function removeGroupingDefinition(
 /** Validate drafts without normalizing, stripping unknown fields or collapsing duplicate keys. */
 export function inspectGroupingDefinitionDraft(
   draft: GroupingDefinitionDraft,
-  eligibleTypes: ReadonlySet<string>,
 ): GroupingDefinitionDraftResult {
   if (draft.malformed)
     return {
@@ -121,18 +119,5 @@ export function inspectGroupingDefinitionDraft(
         ),
         message: issue.message,
       }));
-  for (const row of draft.rows) {
-    if (!isRecord(row.value) || !Array.isArray(row.value["types"])) continue;
-    for (const type of row.value["types"])
-      if (
-        typeof type === "string" &&
-        type !== GROUPING_DEFINITIONS_TYPE &&
-        !eligibleTypes.has(type)
-      )
-        issues.push({
-          path: ["groupings", row.key, "types"],
-          message: `Unavailable contributor type: ${type}. Choose an available type.`,
-        });
-  }
   return { value, issues, pendingChanges: false };
 }

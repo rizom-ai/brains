@@ -13,6 +13,11 @@ import {
 } from "@brains/plugins";
 import { z } from "@brains/utils/zod";
 import {
+  setupResultPresentation as setupResultPresentationFor,
+  setupResultSchema,
+  statusResultSchema,
+} from "./setup-forms";
+import {
   adminWorkspaceSource,
   formatWorkspaceDate,
   peerOriginLabel,
@@ -87,12 +92,6 @@ export function composePeopleTabSections(
 
 const peopleQuerySchema = z.strictObject({
   selected: z.string().trim().min(1).max(200).optional(),
-});
-const statusResultSchema = z.strictObject({ status: z.string() });
-const setupResultSchema = z.strictObject({
-  status: z.string(),
-  setupUrl: z.url(),
-  expiresAt: z.string(),
 });
 const userInputSchema = z.strictObject({ userId: z.string().min(1) });
 const roleInputSchema = z.strictObject({
@@ -265,18 +264,7 @@ type PeopleBlock = OperatorViewBlock<PeopleAction>;
 type PeopleRegion = OperatorRegionBlock<PeopleAction>;
 type PeoplePanel = Exclude<PeopleRegion, { type: "card" }>;
 
-const setupResultPresentation = {
-  title: "Passkey setup",
-  fields: {
-    status: { label: "Status" },
-    setupUrl: {
-      label: "Single-use setup URL",
-      copyable: true,
-      sensitive: true,
-    },
-    expiresAt: { label: "Expires" },
-  },
-};
+const setupResultPresentation = setupResultPresentationFor("Passkey setup");
 
 function accountLinkBlock(): PeoplePanel {
   return {

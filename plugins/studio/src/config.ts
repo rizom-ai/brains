@@ -78,6 +78,26 @@ export function isRawEntityType(
   );
 }
 
+/** How a type's entries nest, as Studio presents and creates them. */
+export interface StudioTypeHierarchy {
+  /** What a level of the hierarchy is called. */
+  kind: "page" | "folder";
+  /** Whether new entries may be created inside a folder. */
+  nested: boolean;
+}
+
+/**
+ * How Studio nests a type's entries. Site content is organised in pages.
+ * Directory-sync exports notes as one segment at its root, so new notes are
+ * created there rather than inside a folder.
+ */
+export function studioTypeHierarchy(entityType: string): StudioTypeHierarchy {
+  return {
+    kind: entityType === "site-content" ? "page" : "folder",
+    nested: entityType !== NOTE_ENTITY_TYPE,
+  };
+}
+
 /**
  * Resolve the display labels for an entity type, honouring any
  * entityDisplay override.

@@ -8,18 +8,14 @@
  */
 import { ToolLoopAgent, stepCountIs, type LanguageModel } from "ai";
 import { guestInterfaceType } from "@brains/contracts/chat";
-import type { GuestModelProfile } from "./openai-guest-profile";
 import {
   assertGuestPermission,
-  guestInstructions,
   guestModelMessages,
+  guestVisitorInstructions,
   isGuestToolAllowed,
   requireGuestExecutionPolicy,
 } from "./guest-execution";
-import {
-  GuestTurnBudget,
-  type GuestExecutionAccounting,
-} from "./guest-turn-budget";
+import { guestTurnSettlement, type GuestPricing } from "./openai-guest-pricing";
 import { toolConfirmationSchema, type Tool } from "@brains/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import {
@@ -96,10 +92,8 @@ export interface BrainAgentFactoryOptions {
   reasoningEffort?: ReasoningEffort | undefined;
   /** Message bus for emitting tool invocation events */
   messageBus: IMessageBus;
-  /** Required for guests: verified model token/cost and retrieval cost accounting. */
-  guestAccounting?: GuestExecutionAccounting;
-  /** Coupled, reviewed guest model/accounting profile; authenticated model is unchanged. */
-  guestProfile?: GuestModelProfile;
+  /** Prices a guest turn from its reported usage; absent: guest cost is unknown. */
+  guestPricing?: GuestPricing | undefined;
 }
 
 /**
@@ -120,8 +114,6 @@ export function createBrainAgentFactory(
     reasoningEffort,
     messageBus,
   } = options;
-  if (options.guestProfile && options.guestAccounting)
-    throw new Error("Ambiguous guest accounting configuration");
   const capabilities = resolveTextModelCapabilities(modelId);
 
   // Create event emitter backed by message bus
@@ -141,118 +133,105 @@ export function createBrainAgentFactory(
       emitter,
     );
 
-    const createSDKAgent = (budget?: GuestTurnBudget): BrainAgent =>
-      new ToolLoopAgent({
-        model: budget
-          ? budget.wrapModel(options.guestProfile?.model ?? model)
-          : model,
-        callOptionsSchema: brainCallOptionsSchema,
+    const agent: BrainAgent = new ToolLoopAgent({
+      model,
+      callOptionsSchema: brainCallOptionsSchema,
 
-        // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
-        prepareCall: ({ options: callOptions, ...settings }) => {
-          assertGuestPermission(callOptions);
-          const guest = callOptions.interfaceType === guestInterfaceType;
-          if (
-            guest &&
-            (callOptions.actor ||
-              callOptions.agentContextInstructions ||
-              callOptions.enableCreateUpload ||
-              callOptions.enableCreateTransform)
-          ) {
-            throw new Error("Guest execution denied");
-          }
-          // Get tools available for this permission level, unless this bounded
-          // model turn is intentionally text-only (for example, after executing
-          // an already-confirmed action).
-          const allowedTools = callOptions.disableTools
-            ? []
-            : filterToolsForCallOptions(
-                config.getToolsForPermission(callOptions.userPermissionLevel),
-                callOptions,
-              );
-          const allowedToolNames = allowedTools.map((t) => t.name);
+      // eslint-disable-next-line @typescript-eslint/explicit-function-return-type -- Return type inferred by SDK
+      prepareCall: ({ options: callOptions, ...settings }) => {
+        assertGuestPermission(callOptions);
+        const guest = callOptions.interfaceType === guestInterfaceType;
+        if (
+          guest &&
+          (callOptions.actor ||
+            callOptions.agentContextInstructions ||
+            callOptions.enableCreateUpload ||
+            callOptions.enableCreateTransform)
+        ) {
+          throw new Error("Guest execution denied");
+        }
+        // Get tools available for this permission level, unless this bounded
+        // model turn is intentionally text-only (for example, after executing
+        // an already-confirmed action).
+        const allowedTools = callOptions.disableTools
+          ? []
+          : filterToolsForCallOptions(
+              config.getToolsForPermission(callOptions.userPermissionLevel),
+              callOptions,
+            );
+        const allowedToolNames = allowedTools.map((t) => t.name);
 
-          // Convert tools with proper context from call options
-          const toolsWithContext = convertToSDKTools(
-            allowedTools,
-            {
-              conversationId: callOptions.conversationId,
-              channelId: callOptions.channelId,
-              channelName: callOptions.channelName,
-              interfaceType: callOptions.interfaceType,
-              actor: callOptions.actor,
-              displayName: callOptions.displayName,
-              userPermissionLevel: callOptions.userPermissionLevel,
-              isAnchor: callOptions.isAnchor,
-              enableCreateUpload: callOptions.enableCreateUpload,
-              enableCreateTransform: callOptions.enableCreateTransform,
+        // Convert tools with proper context from call options
+        const toolsWithContext = convertToSDKTools(
+          allowedTools,
+          {
+            conversationId: callOptions.conversationId,
+            channelId: callOptions.channelId,
+            channelName: callOptions.channelName,
+            interfaceType: callOptions.interfaceType,
+            actor: callOptions.actor,
+            displayName: callOptions.displayName,
+            userPermissionLevel: callOptions.userPermissionLevel,
+            isAnchor: callOptions.isAnchor,
+            enableCreateUpload: callOptions.enableCreateUpload,
+            enableCreateTransform: callOptions.enableCreateTransform,
+          },
+          emitter,
+        );
+
+        return {
+          ...settings,
+          // A visitor is a public user of the same agent: text-only history,
+          // no system messages from the conversation.
+          ...(guest && {
+            messages: guestModelMessages(settings.messages),
+            allowSystemInMessages: false,
+            // Only the options set below reach the provider for a guest.
+            providerOptions: {},
+          }),
+          instructions:
+            buildInstructions(
+              config.identity,
+              callOptions.userPermissionLevel,
+              config.pluginInstructions,
+              config.profile,
+              config.agentInstructions,
+              callOptions.agentContextInstructions,
+              callOptions.isAnchor,
+            ) + (guest ? `\n\n${guestVisitorInstructions}` : ""),
+          tools: toolsWithContext,
+          activeTools: allowedToolNames,
+          // Provider options
+          ...(temperature !== undefined &&
+            capabilities.supportsTemperature && { temperature }),
+          ...(maxTokens !== undefined && { maxTokens }),
+          // Guests answer from the brain, never from provider web search.
+          ...((capabilities.provider === "openai" &&
+          reasoningEffort !== undefined
+            ? true
+            : webSearch && !guest) && {
+            providerOptions: {
+              ...(capabilities.provider === "openai" &&
+                reasoningEffort && {
+                  openai: { reasoningEffort },
+                }),
+              ...(webSearch &&
+                !guest && {
+                  anthropic: { webSearch: true },
+                }),
             },
-            emitter,
-            budget,
-            options.guestProfile?.queryEmbedding,
-          );
+          }),
+        };
+      },
 
-          return {
-            ...settings,
-            ...(guest && {
-              messages: guestModelMessages(settings.messages),
-              allowSystemInMessages: false,
-              providerOptions: {},
-              maxRetries: 0,
-              ...(budget
-                ? { maxOutputTokens: budget.policy.limits.outputTokens }
-                : {}),
-            }),
-            instructions: guest
-              ? guestInstructions
-              : buildInstructions(
-                  config.identity,
-                  callOptions.userPermissionLevel,
-                  config.pluginInstructions,
-                  config.profile,
-                  config.agentInstructions,
-                  callOptions.agentContextInstructions,
-                  callOptions.isAnchor,
-                ),
-            tools: toolsWithContext,
-            activeTools: allowedToolNames,
-            // Provider options
-            ...(temperature !== undefined &&
-              capabilities.supportsTemperature && { temperature }),
-            ...(maxTokens !== undefined && { maxTokens }),
-            ...((capabilities.provider === "openai" &&
-            reasoningEffort !== undefined
-              ? true
-              : webSearch) &&
-              !guest && {
-                providerOptions: {
-                  ...(capabilities.provider === "openai" &&
-                    reasoningEffort && {
-                      openai: { reasoningEffort },
-                    }),
-                  ...(webSearch && {
-                    anthropic: { webSearch: true },
-                  }),
-                },
-              }),
-          };
-        },
-
-        tools: allTools,
-        stopWhen: [
-          shouldStopToolLoop,
-          stepCountIs(
-            budget?.policy.limits.toolSteps ?? config.stepLimit ?? 10,
-          ),
-          ...(budget ? [(): boolean => budget.exhausted()] : []),
-        ],
-      });
-    const authenticated = createSDKAgent();
+      tools: allTools,
+      stopWhen: [shouldStopToolLoop, stepCountIs(config.stepLimit ?? 10)],
+    });
     return {
       generate: async (params): Promise<BrainAgentResult> => {
         assertGuestPermission(params.options);
         const policy = requireGuestExecutionPolicy(params.options);
-        if (!policy) return authenticated.generate(params);
+        if (!policy) return agent.generate(params);
         const last = guestModelMessages(params.messages).at(-1);
         if (
           last?.role !== "user" ||
@@ -261,28 +240,16 @@ export function createBrainAgentFactory(
           last.content.length > policy.limits.messageCharacters
         )
           throw new Error("Guest input limit exceeded");
-        const budget = new GuestTurnBudget(
-          policy,
-          options.guestProfile?.accounting ?? options.guestAccounting,
-          params.abortSignal,
-        );
-        try {
-          const result = await createSDKAgent(budget).generate({
-            ...params,
-            abortSignal: budget.signal,
-          });
-          // The SDK result exposes its fields as getters; attach, never copy.
-          return Object.assign(result, {
-            guestSettlement: budget.settlement(),
-          });
-        } finally {
-          // Completion, not SSE disconnection, ends the accounting lifetime.
-          budget.dispose();
-        }
+        const result = await agent.generate(params);
+        // The SDK result exposes its fields as getters; attach, never copy.
+        return Object.assign(result, {
+          guestSettlement: guestTurnSettlement(
+            result.steps,
+            options.guestPricing,
+          ),
+        });
       },
     };
   };
-  return Object.assign(factory, {
-    guestProfileAvailable: options.guestProfile !== undefined,
-  });
+  return factory;
 }

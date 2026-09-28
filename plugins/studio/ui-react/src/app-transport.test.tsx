@@ -21,6 +21,7 @@ import {
 } from "./studio-editor-content";
 import { StudioApiProvider } from "./studio-api-context";
 import { createStudioRouter } from "./studio-router";
+import { studioTypeHierarchy } from "../../src/config";
 
 let restoreGlobals: RestoreGlobals;
 let windowInstance: Window;
@@ -35,7 +36,25 @@ const recordingFetch: FetchLike = (input) => {
   if (url === "/studio/api/types") {
     return Promise.resolve(
       Response.json({
-        types: [{ entityType: "post", label: "Posts", isSingleton: false }],
+        types: [
+          {
+            entityType: "post",
+            label: "Posts",
+            isSingleton: false,
+            hasBody: true,
+            count: 0,
+            hierarchy: studioTypeHierarchy("post"),
+            capabilities: {
+              canRead: true,
+              canCreate: false,
+              canUpdate: false,
+              canDelete: false,
+              canExtract: false,
+              canPublish: false,
+              canAssist: false,
+            },
+          },
+        ],
         workspaces: [],
       }),
     );
@@ -283,6 +302,7 @@ describe("Studio App transport", () => {
                 isSingleton: false,
                 hasBody: false,
                 count: 1,
+                hierarchy: studioTypeHierarchy("note"),
                 capabilities: {
                   canRead: true,
                   canCreate: true,
@@ -375,6 +395,7 @@ describe("Studio App transport", () => {
                 isSingleton: false,
                 hasBody: false,
                 count: conflict ? 2 : 3,
+                hierarchy: studioTypeHierarchy("section"),
                 capabilities: {
                   canRead: true,
                   canCreate: true,
@@ -577,6 +598,7 @@ describe("Studio App transport", () => {
                 isSingleton: true,
                 hasBody: false,
                 count: 1,
+                hierarchy: studioTypeHierarchy("profile"),
                 capabilities: {
                   canRead: true,
                   canCreate: true,
@@ -834,6 +856,7 @@ describe("Studio App transport", () => {
                   entityType: "post",
                   label: "Posts",
                   count: 2,
+                  hierarchy: studioTypeHierarchy("post"),
                   isSingleton: false,
                   hasBody: false,
                   capabilities: {
@@ -1054,6 +1077,7 @@ describe("Studio App transport", () => {
                 isSingleton: false,
                 hasBody: false,
                 count: 76,
+                hierarchy: studioTypeHierarchy("post"),
                 capabilities: {
                   canRead: true,
                   canCreate: false,

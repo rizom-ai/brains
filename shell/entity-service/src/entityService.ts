@@ -723,10 +723,11 @@ export class EntityService implements IEntityService {
       return null;
     }
 
-    // Bounded evidence reads never expand entity image references into extra reads.
-    const resolved = request.readBudget
-      ? entity
-      : await this.resolveEntityContent(entityType, entity, visibilityScope);
+    const resolved = await this.resolveEntityContent(
+      entityType,
+      entity,
+      visibilityScope,
+    );
     request.signal?.throwIfAborted();
     return schema ? schema.parse(resolved) : resolved;
   }
@@ -774,10 +775,7 @@ export class EntityService implements IEntityService {
       return null;
     }
 
-    const entity = await this.entitySerializer.convertToEntity(
-      entityData,
-      request.readBudget === undefined,
-    );
+    const entity = await this.entitySerializer.convertToEntity(entityData);
     request.signal?.throwIfAborted();
     return entity && schema ? schema.parse(entity) : entity;
   }

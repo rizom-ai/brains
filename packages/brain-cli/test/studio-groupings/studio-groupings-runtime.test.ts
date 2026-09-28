@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import { act } from "react";
 import { createClient } from "@libsql/client";
+import { mkdir, writeFile, readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { DirectorySync } from "@brains/directory-sync";
 import { computeContentHash } from "@brains/utils/hash";
 import { StudioApi, mountStudio, waitForStudio } from "@brains/studio/test/ui";
 import {
@@ -9,12 +12,18 @@ import {
   type ProjectionWriteIntent,
 } from "@brains/entity-service";
 import { migrateEntities } from "@brains/entity-service/migrate";
+import { baseEntitySchema } from "@brains/entity-service";
+import { createTestEntityAdapter } from "@brains/entity-service/test";
 import { noteAdapter, noteSchema } from "@brains/note";
 import { blogPostAdapter, blogPostSchema } from "@brains/blog";
+import { linkAdapter, linkSchema } from "@brains/link";
 import { createServicePluginContext } from "@brains/plugins";
 import { createMockShell } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
-import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
+import {
+  generateMarkdown,
+  parseMarkdown,
+} from "@brains/utils/markdown-frontmatter";
 import {
   PermissionService,
   type EntityActionPolicyRule,
@@ -27,7 +36,7 @@ import {
 } from "@brains/studio/test";
 
 const type = "grouping-definitions";
-const areas = { label: "Areas", types: ["note", "post"], multiple: true };
+const areas = { label: "Areas", multiple: true };
 interface Fixture {
   service: EntityService;
   registry: EntityRegistry;
@@ -50,13 +59,17 @@ async function directory(): Promise<string> {
   cleanups.push(temporary.cleanup);
   return temporary.dir;
 }
-async function open(dir: string): Promise<Fixture> {
+async function open(
+  dir: string,
+  configure?: (registry: EntityRegistry) => void,
+): Promise<Fixture> {
   const logger = createSilentLogger();
   const dbConfig = { url: `file:${dir}/entities.db` };
   await migrateEntities(dbConfig, logger);
   const registry = EntityRegistry.createFresh(logger);
   registry.registerEntityType("note", noteSchema, noteAdapter);
   registry.registerEntityType("post", blogPostSchema, blogPostAdapter);
+  configure?.(registry);
   const service = EntityService.createFresh({
     dbConfig,
     embeddingDbConfig: { url: `file:${dir}/embeddings.db` },
@@ -203,7 +216,6 @@ describe("document-backed runtime definitions with real adapters", () => {
       await ui.click("Add grouping");
       await ui.input("New grouping key", "clients");
       await ui.input("New grouping label", "Clients");
-      await ui.click("Notes contributor");
       const cardinality = document.querySelector<HTMLSelectElement>(
         '[aria-label="Clients values per entry"]',
       );
@@ -227,7 +239,7 @@ describe("document-backed runtime definitions with real adapters", () => {
       });
       expect(saved?.visibility).toBe("shared");
       expect(fixture.source.getSnapshot().groupings).toEqual({
-        clients: { label: "Clients", types: ["note"], multiple: false },
+        clients: { label: "Clients", multiple: false },
       });
       expect(
         (
@@ -275,7 +287,7 @@ describe("document-backed runtime definitions with real adapters", () => {
           await save(
             fixture,
             {
-              clients: { label: "Elsewhere", types: ["note"], multiple: false },
+              clients: { label: "Elsewhere", multiple: false },
             },
             "PUT",
           )
@@ -305,7 +317,7 @@ describe("document-backed runtime definitions with real adapters", () => {
         await save(fixture, {
           clients: {
             label: "Clients",
-            types: ["note"],
+            excludeTypes: ["post"],
             multiple: true,
             values: ["Acme", "Beta"],
           },
@@ -375,7 +387,7 @@ describe("document-backed runtime definitions with real adapters", () => {
         await save(fixture, {
           clients: {
             label: "Clients",
-            types: ["note"],
+            excludeTypes: ["post"],
             multiple: true,
             values: ["Acme"],
           },
@@ -432,12 +444,12 @@ describe("document-backed runtime definitions with real adapters", () => {
     }
   });
 
-  test("the mounted page retains an unavailable stored contributor until explicit repair", async () => {
+  test("the mounted page retains an unavailable exclusion until explicit removal", async () => {
     const dir = await directory();
     const fixture = await open(dir);
     expect((await save(fixture, { areas })).status).toBe(201);
     const broken =
-      "---\nvisibility: shared\ngroupings:\n  areas:\n    label: Areas\n    types: [gone]\n    multiple: true\n---\n";
+      "---\nvisibility: shared\ngroupings:\n  areas:\n    label: Areas\n    excludeTypes: [gone]\n    multiple: true\n---\n";
     const database = createClient({ url: `file:${dir}/entities.db` });
     try {
       await database.execute({
@@ -465,7 +477,7 @@ describe("document-backed runtime definitions with real adapters", () => {
       );
       expect(
         document.querySelector<HTMLInputElement>(
-          '[aria-label="gone contributor"]',
+          '[aria-label="Exclude gone (unavailable)"]',
         )?.checked,
       ).toBe(true);
       expect(
@@ -477,8 +489,10 @@ describe("document-backed runtime definitions with real adapters", () => {
           })
         )?.content,
       ).toBe(broken);
-      await ui.click("gone contributor");
-      await ui.click("Notes contributor");
+      await act(async () => {
+        document.querySelector<HTMLElement>("details summary")?.click();
+      });
+      await ui.click("Exclude gone (unavailable)");
       await waitForStudio(
         () =>
           document.querySelector<HTMLButtonElement>(
@@ -487,9 +501,9 @@ describe("document-backed runtime definitions with real adapters", () => {
       );
       await ui.click("Save changes");
       await waitForStudio(() => document.body.textContent.includes("Saved"));
-      expect(fixture.source.getSnapshot().groupings["areas"]?.types).toEqual([
-        "note",
-      ]);
+      expect(
+        fixture.source.getSnapshot().groupings["areas"]?.excludeTypes,
+      ).toBeUndefined();
       expect(fixture.source.getSnapshot().issues).toEqual([]);
     } finally {
       await ui.close();
@@ -653,7 +667,7 @@ describe("document-backed runtime definitions with real adapters", () => {
     expect(after).toEqual(before);
   });
 
-  test("saving a definition indexes existing notes; adding a contributor scans only that type", async () => {
+  test("saving a definition indexes included notes; removing an exclusion scans only that type", async () => {
     const fixture = await open(await directory());
     for (const entityType of ["note", "post"]) {
       await fixture.service.createEntityFromMarkdown({
@@ -666,13 +680,14 @@ describe("document-backed runtime definitions with real adapters", () => {
     }
     const projected = spyOn(fixture.registry, "projectStoredMetadata");
     expect(
-      (await save(fixture, { areas: { ...areas, types: ["note"] } })).status,
+      (await save(fixture, { areas: { ...areas, excludeTypes: ["post"] } }))
+        .status,
     ).toBe(201);
     expect(projected.mock.calls.map((call) => call[0])).toEqual(["note"]);
     expect(fixture.service.areGroupingsReady()).toBe(true);
-    expect(fixture.source.getSnapshot().groupings["areas"]?.types).toEqual([
-      "note",
-    ]);
+    expect(
+      fixture.source.getSnapshot().groupings["areas"]?.excludeTypes,
+    ).toEqual(["post"]);
     projected.mockClear();
     expect((await save(fixture, { areas }, "PUT")).status).toBe(200);
     expect(projected.mock.calls.map((call) => call[0])).toEqual(["post"]);
@@ -977,8 +992,13 @@ describe("document-backed runtime definitions with real adapters", () => {
       values: [{ value: "Research", count: 3 }],
     });
     expect(
-      (await save(writer, { areas: { ...areas, types: ["note"] } }, "PUT"))
-        .status,
+      (
+        await save(
+          writer,
+          { areas: { ...areas, excludeTypes: ["post"] } },
+          "PUT",
+        )
+      ).status,
     ).toBe(200);
     expect(await reader.service.queryGroupingUsage(query)).toEqual({
       entries: 2,
@@ -1082,18 +1102,361 @@ describe("document-backed runtime definitions with real adapters", () => {
     expect(fixture.service.areGroupingsReady()).toBe(true);
   });
 
-  test("the definitions control document cannot be a grouping contributor", async () => {
+  test("default rules constrain posts too; exclusions lift only that type's policy", async () => {
     const fixture = await open(await directory());
-    const response = await save(fixture, {
-      areas: { ...areas, types: [type] },
+    const closed = { ...areas, multiple: false, values: ["Allowed"] };
+    expect((await save(fixture, { areas: closed })).status).toBe(201);
+    const create = (
+      entityType: string,
+    ): ReturnType<EntityService["createEntityFromMarkdown"]> =>
+      fixture.service.createEntityFromMarkdown({
+        input: {
+          entityType,
+          id: "excluded-member",
+          markdown: content(["Outside"], entityType).replace(
+            "---\n",
+            "---\nvisibility: shared\n",
+          ),
+        },
+      });
+    const postFailure = await create("post").catch((error: unknown) => error);
+    expect(postFailure).toMatchObject({
+      message: expect.stringContaining("configured list"),
     });
-    expect(response.status).toBe(400);
-    expect(await response.json()).toMatchObject({
-      issues: expect.arrayContaining([
-        expect.objectContaining({ path: ["groupings", "areas", "types"] }),
+    expect(
+      (
+        await save(
+          fixture,
+          { areas: { ...closed, excludeTypes: ["post"] } },
+          "PUT",
+        )
+      ).status,
+    ).toBe(200);
+    await create("post");
+    const noteFailure = await create("note").catch((error: unknown) => error);
+    expect(noteFailure).toMatchObject({
+      message: expect.stringContaining("configured list"),
+    });
+    const before = await fixture.service.getEntityRaw({
+      entityType: "post",
+      id: "excluded-member",
+      visibilityScope: "shared",
+    });
+    expect((await save(fixture, { areas: closed }, "PUT")).status).toBe(200);
+    const after = await fixture.service.getEntityRaw({
+      entityType: "post",
+      id: "excluded-member",
+      visibilityScope: "shared",
+    });
+    expect(after?.content).toBe(before?.content);
+    expect(
+      (
+        await fixture.service.queryGroupingCatalog({
+          grouping: "areas",
+          entityTypes: ["post"],
+          visibilityScope: "shared",
+        })
+      ).values,
+    ).toEqual([{ value: "Outside", count: 1 }]);
+  });
+
+  test.each(["queued", "reading"] as const)(
+    "a %s import cannot restore definitions after a Studio exclusion edit",
+    async (phase) => {
+      const dir = await directory();
+      const fixture = await open(dir);
+      expect(
+        (await save(fixture, { areas: { ...areas, excludeTypes: ["post"] } }))
+          .status,
+      ).toBe(201);
+      const syncPath = join(dir, "content");
+      const sync = new DirectorySync({
+        syncPath,
+        entityService: fixture.service,
+        logger: createSilentLogger(),
+        autoSync: false,
+        deleteOnFileRemoval: false,
+      });
+      const before = await fixture.service.getEntityRaw({
+        entityType: type,
+        id: type,
+        visibilityScope: "shared",
+      });
+      if (!before) throw new Error("Missing definitions");
+      await sync.fileOps.writeEntity(before);
+      await mkdir(join(syncPath, "note"), { recursive: true });
+      await writeFile(join(syncPath, "note/first.md"), "# First imported note");
+      const sourcePath = join(syncPath, type, `${type}.md`);
+      if (phase === "reading")
+        await writeFile(
+          sourcePath,
+          generateMarkdown(
+            {
+              visibility: "shared",
+              groupings: {
+                areas: {
+                  ...areas,
+                  label: "Imported areas",
+                  excludeTypes: ["post"],
+                },
+              },
+            },
+            "",
+          ),
+        );
+      const oldSource = await readFile(sourcePath, "utf8");
+      const read = sync.fileOps.readEntity.bind(sync.fileOps);
+      let saved = before;
+      const reader = spyOn(sync.fileOps, "readEntity").mockImplementation(
+        async (path, maxBytes) => {
+          const raw = await read(path, maxBytes);
+          if (
+            path ===
+            (phase === "queued" ? "note/first.md" : `${type}/${type}.md`)
+          ) {
+            expect((await save(fixture, { areas }, "PUT")).status).toBe(200);
+            const latest = await fixture.service.getEntityRaw({
+              entityType: type,
+              id: type,
+              visibilityScope: "shared",
+            });
+            if (!latest) throw new Error("Missing saved definitions");
+            saved = latest;
+          }
+          return raw;
+        },
+      );
+      const result = await sync.importEntities([
+        "note/first.md",
+        `${type}/${type}.md`,
+      ]);
+      expect(result).toMatchObject({
+        imported: 1,
+        skipped: 1,
+        failed: 0,
+        quarantined: 0,
+        issues: [
+          {
+            path: `${type}/${type}.md`,
+            message: expect.stringContaining("Skipped stale import"),
+          },
+        ],
+      });
+      expect(
+        await fixture.service.getEntityRaw({
+          entityType: type,
+          id: type,
+          visibilityScope: "shared",
+        }),
+      ).toEqual(saved);
+      expect(
+        fixture.source.getSnapshot().groupings["areas"]?.excludeTypes,
+      ).toBeUndefined();
+      expect(await readFile(sourcePath, "utf8")).toBe(oldSource);
+      expect(await fixture.service.listPendingEntityExports()).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            entityType: type,
+            entityId: type,
+            operation: "upsert",
+          }),
+        ]),
+      );
+      // The still-pending ordinary export can converge the authored source;
+      // stale import neither clears that intent nor quarantines the old file.
+      reader.mockRestore();
+      await sync.fileOps.writeEntity(saved);
+      expect((await sync.importEntities([`${type}/${type}.md`])).skipped).toBe(
+        1,
+      );
+      expect(
+        (await readFile(sourcePath, "utf8")).includes("excludeTypes"),
+      ).toBe(false);
+    },
+  );
+
+  test("real Links gain grouping fields by default and retain unclaimed source across exclusions", async () => {
+    const fixture = await open(await directory(), (registry) => {
+      registry.registerEntityType("link", linkSchema, linkAdapter);
+    });
+    const closed = { ...areas, multiple: false, values: ["Allowed"] };
+    const exact = " Ka21, exact ";
+    const frontmatter = {
+      title: "Link member",
+      status: "draft",
+      url: "https://example.invalid/member",
+      domain: "example.invalid",
+      capturedAt: "2026-09-28T00:00:00.000Z",
+      source: { ref: "cli:test", label: "Test" },
+      visibility: "shared",
+      areas: [exact],
+    };
+    expect((await save(fixture, { areas: closed })).status).toBe(201);
+    expect(
+      await (await fixture.request("GET", "schema?type=link")).json(),
+    ).toMatchObject({
+      fields: expect.arrayContaining([
+        expect.objectContaining({ name: "areas", label: "Areas" }),
       ]),
     });
-    expect(fixture.registry.getGroupings()).toEqual([]);
+    expect(
+      (
+        await fixture.request(
+          "POST",
+          "entities",
+          {
+            entityType: "link",
+            idPath: ["refused"],
+            frontmatter,
+            body: "Body",
+          },
+          "trusted",
+        )
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await save(
+          fixture,
+          { areas: { ...closed, excludeTypes: ["link"] } },
+          "PUT",
+        )
+      ).status,
+    ).toBe(200);
+    expect(
+      await (await fixture.request("GET", "schema?type=link")).json(),
+    ).toMatchObject({
+      fields: expect.not.arrayContaining([
+        expect.objectContaining({ name: "areas" }),
+      ]),
+    });
+    // Unclaimed fields are authored through full source, not the structured
+    // create form whose inputs are limited to the currently declared schema.
+    await fixture.service.createEntityFromMarkdown({
+      input: {
+        entityType: "link",
+        id: "member",
+        markdown: generateMarkdown(frontmatter, "Body"),
+      },
+    });
+    expect(
+      (
+        await fixture.request(
+          "PUT",
+          "entities",
+          {
+            entityType: "link",
+            id: "member",
+            frontmatter,
+            body: "Edited while excluded",
+          },
+          "trusted",
+        )
+      ).status,
+    ).toBe(200);
+    const before = await fixture.service.getEntityRaw({
+      entityType: "link",
+      id: "member",
+      visibilityScope: "shared",
+    });
+    expect(parseMarkdown(before?.content ?? "").frontmatter["areas"]).toEqual([
+      exact,
+    ]);
+    expect((await save(fixture, { areas: closed }, "PUT")).status).toBe(200);
+    expect(
+      await (await fixture.request("GET", "schema?type=link")).json(),
+    ).toMatchObject({
+      fields: expect.arrayContaining([
+        expect.objectContaining({ name: "areas", label: "Areas" }),
+      ]),
+    });
+    expect(
+      (
+        await fixture.service.queryGroupingCatalog({
+          grouping: "areas",
+          entityTypes: ["link"],
+          visibilityScope: "shared",
+        })
+      ).values,
+    ).toEqual([{ value: exact, count: 1 }]);
+    expect(
+      (
+        await fixture.request(
+          "PUT",
+          "entities",
+          {
+            entityType: "link",
+            id: "member",
+            frontmatter,
+            body: "Rejected draft",
+          },
+          "trusted",
+        )
+      ).status,
+    ).toBe(400);
+    expect(
+      await fixture.service.getEntityRaw({
+        entityType: "link",
+        id: "member",
+        visibilityScope: "shared",
+      }),
+    ).toEqual(before);
+  });
+
+  test("default scope includes content but not singleton controls or binary-only records", async () => {
+    const fixture = await open(await directory(), (registry) => {
+      registry.registerEntityType(
+        "settings",
+        baseEntitySchema,
+        createTestEntityAdapter("settings", { isSingleton: true }),
+      );
+      registry.registerEntityType(
+        "asset",
+        baseEntitySchema,
+        createTestEntityAdapter("asset"),
+        { binaryStorage: "asset" },
+      );
+      registry.registerEntityType(
+        "document",
+        baseEntitySchema,
+        createTestEntityAdapter("document"),
+      );
+    });
+    expect((await save(fixture, { areas })).status).toBe(201);
+    expect(fixture.registry.getGroupings()[0]?.types).toEqual([
+      "document",
+      "note",
+      "post",
+    ]);
+    const response = await fixture.request(
+      "GET",
+      "schema?type=grouping-definitions",
+    );
+    const schema = await response.json();
+    expect(
+      schema.groupingDefinitions.contributorTypes
+        .map((item: { entityType: string }) => item.entityType)
+        .sort(),
+    ).toEqual(["document", "note", "post"]);
+    expect(
+      fixture.registry.getEffectiveFrontmatterSchema("settings")?.shape[
+        "areas"
+      ],
+    ).toBeUndefined();
+    expect(
+      fixture.registry.getEffectiveFrontmatterSchema("asset")?.shape["areas"],
+    ).toBeUndefined();
+  });
+
+  test("the definitions control document is excluded by convention without a user setting", async () => {
+    const fixture = await open(await directory());
+    expect((await save(fixture, { areas })).status).toBe(201);
+    expect(fixture.registry.getGroupings()).toEqual([
+      { key: "areas", field: "areas", label: "Areas", types: ["note", "post"] },
+    ]);
+    expect(
+      fixture.registry.getEffectiveFrontmatterSchema(type)?.shape["areas"],
+    ).toBeUndefined();
   });
 
   test("an explicit rescan recovers an exact-row restore even with identical timestamps", async () => {

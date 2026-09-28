@@ -30,6 +30,10 @@ import {
   type GuestVisitor,
 } from "./guest-access";
 import { GuestAdmission } from "./guest-admission";
+import type {
+  GuestAdmissionDenial,
+  GuestExecutionLease,
+} from "./guest-admission-state";
 import {
   GuestUsageRecord,
   type GuestUsageDenialReason,
@@ -56,21 +60,6 @@ function refusal(status: number): GuestUsageDenialReason {
   }
 }
 
-/**
- * What the visitor is told with the composer, from the policy that governs the
- * record, so the retention period stated is the one applied.
- */
-function recordingDisclosure(policy: EnabledGuestPolicy): {
-  notice: string;
-  revision: string;
-} {
-  const days = Math.ceil(policy.usageRecord.retentionSeconds / 86_400);
-  const notice = `Questions asked here are kept for the owner of this site for ${days} ${days === 1 ? "day" : "days"}, separately from this conversation. Deleting the conversation does not delete them.`;
-  return {
-    notice,
-    revision: createHash("sha256").update(notice).digest("hex"),
-  };
-}
 import {
   guestPolicySchema,
   matchesGuestOrigin,
@@ -122,6 +111,37 @@ function isLoopbackPeer(address: string | undefined): boolean {
 }
 
 /** A guest presentation of the existing Chat API/runtime, not a second engine. */
+
+/** The HTTP status each admission denial is answered with. */
+export const GUEST_DENIAL_STATUS: Record<GuestAdmissionDenial, number> = {
+  unavailable: 503,
+  "invalid-input": 400,
+  "conversation-unavailable": 404,
+  "submission-conflict": 409,
+  "visitor-busy": 429,
+  "deployment-busy": 429,
+  "visitor-rate-limit": 429,
+  "deployment-rate-limit": 429,
+  "conversation-limit": 429,
+  "budget-exhausted": 429,
+};
+
+/** A visitor's question, validated, with the conversation it belongs to. */
+interface GuestSendRequest {
+  id: string;
+  /** The visitor named the conversation, rather than starting one. */
+  explicitId: boolean;
+  messageId: string;
+  text: string;
+}
+
+/** Who owns a guest conversation, and how long it is kept. */
+function guestConversationMetadata(
+  visitor: GuestVisitor,
+  policy: EnabledGuestPolicy,
+): { visitorId: string; retention: EnabledGuestPolicy["retention"] } {
+  return { visitorId: visitor.id, retention: policy.retention };
+}
 export class GuestHttpHandlers {
   private readonly policy: GuestPolicy;
   private readonly visitors: GuestVisitorStore;
@@ -306,7 +326,6 @@ export class GuestHttpHandlers {
       guestChatSessionResponseSchema.parse({
         expiresAt: visitor.expiresAt,
         ...policy.disclosure,
-        recording: recordingDisclosure(policy),
         retention: policy.retention,
         messageCharacters: policy.limits.messageCharacters,
         canSend,
@@ -342,6 +361,107 @@ export class GuestHttpHandlers {
     if (!this.ready() || !this.admission || !this.usage)
       throw new GuestHttpError(503, "Guest access unavailable");
     const visitor = await this.owner(request);
+    const { id, explicitId, messageId, text } = await this.parseSend(
+      request,
+      policy,
+      visitor,
+    );
+    const existing = await this.services.conversations.get(id);
+    if (explicitId || existing) await this.owned(request, id, policy);
+    const timestamp = new Date(this.now()).toISOString();
+    const candidate: WebChatConversation = existing ?? {
+      id,
+      sessionId: id,
+      interfaceType: guestInterfaceType,
+      channelId: id,
+      startedAt: timestamp,
+      lastActiveAt: timestamp,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      metadata: { guest: guestConversationMetadata(visitor, policy) },
+    };
+    // The owner's record takes this request's place before admission is asked:
+    // work nobody can see is refused, without spending allowance.
+    const usage = this.usage;
+    const usageId = GuestUsageRecord.id(
+      policy.origin,
+      visitor.id,
+      candidate.id,
+      messageId,
+    );
+    const opening = await usage.open(usageId);
+    if (opening === "full" || opening === "unavailable") {
+      await usage.deny(
+        opening === "full" ? "record-full" : "record-unavailable",
+        visitor.id,
+      );
+      return Response.json({ error: "unavailable" }, { status: 503 });
+    }
+    // A new conversation consumes a real admission reservation before any write.
+    const reservation = await this.admission.reserve(
+      visitor,
+      candidate,
+      messageId,
+      text,
+    );
+    if (reservation.kind !== "reserved" && opening === "opened")
+      await usage.withdraw(usageId);
+    if (reservation.kind === "denied") {
+      await usage.deny(reservation.reason, visitor.id);
+      return Response.json(
+        { error: reservation.reason },
+        { status: GUEST_DENIAL_STATUS[reservation.reason] },
+      );
+    }
+    if (reservation.kind === "duplicate")
+      return Response.json(
+        guestChatSubmissionStatusSchema.parse({
+          state: reservation.state,
+          conversationId: id,
+        }),
+        { status: 409, headers: { [CHAT_CONVERSATION_ID_HEADER]: id } },
+      );
+    if (
+      !(await usage.admit(usageId, {
+        visitorId: visitor.id,
+        reservedMicroUsd: reservation.lease.execution.maxCostMicroUsd,
+        question: text,
+      }))
+    ) {
+      // Unrecorded work never runs. Nothing ran, so the reservation settles as failed.
+      await this.admission.settle(reservation.lease, "failed");
+      await usage.deny("record-unavailable", visitor.id);
+      return Response.json({ error: "unavailable" }, { status: 503 });
+    }
+    if (!existing)
+      await this.services.conversations.start({
+        sessionId: id,
+        interfaceType: guestInterfaceType,
+        channelId: id,
+        metadata: {
+          channelName: "Public Ask",
+          interfaceType: guestInterfaceType,
+          channelId: id,
+          guest: guestConversationMetadata(visitor, policy),
+        },
+      });
+    await this.owned(request, id, policy);
+    return this.streamAnswer(request, policy, {
+      id,
+      text,
+      usage,
+      usageId,
+      admission: this.admission,
+      lease: reservation.lease,
+    });
+  }
+
+  /** The visitor's question and the conversation it belongs to, or a 400. */
+  private async parseSend(
+    request: Request,
+    policy: EnabledGuestPolicy,
+    visitor: GuestVisitor,
+  ): Promise<GuestSendRequest> {
     const parsed = guestChatMessageRequestSchema.safeParse(
       await this.body(request, policy),
     );
@@ -359,100 +479,32 @@ export class GuestHttpHandlers {
         .digest("hex")}`;
     if (/[\r\n]/u.test(id))
       throw new GuestHttpError(400, "Invalid guest message");
-    const existing = await this.services.conversations.get(id);
-    if (parsed.data.id || existing) await this.owned(request, id, policy);
-    const timestamp = new Date(this.now()).toISOString();
-    const candidate: WebChatConversation = existing ?? {
+    return {
       id,
-      sessionId: id,
-      interfaceType: guestInterfaceType,
-      channelId: id,
-      startedAt: timestamp,
-      lastActiveAt: timestamp,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-      metadata: {
-        guest: { visitorId: visitor.id, retention: policy.retention },
-      },
-    };
-    // The owner's record takes this request's place before admission is asked:
-    // work nobody can see is refused, without spending allowance.
-    const usage = this.usage;
-    const usageId = GuestUsageRecord.id(
-      policy.origin,
-      visitor.id,
-      candidate.id,
-      message.id,
-    );
-    const opening = await usage.open(usageId);
-    if (opening === "full" || opening === "unavailable") {
-      await usage.deny(
-        opening === "full" ? "record-full" : "record-unavailable",
-        visitor.id,
-      );
-      return Response.json({ error: "unavailable" }, { status: 503 });
-    }
-    // A new conversation consumes a real admission reservation before any write.
-    const reservation = await this.admission.reserve(
-      visitor,
-      candidate,
-      message.id,
+      explicitId: parsed.data.id !== undefined,
+      messageId: message.id,
       text,
-    );
-    if (reservation.kind !== "reserved" && opening === "opened")
-      await usage.withdraw(usageId);
-    if (reservation.kind === "denied")
-      await usage.deny(reservation.reason, visitor.id);
-    if (reservation.kind === "denied") {
-      const status =
-        reservation.reason === "unavailable"
-          ? 503
-          : reservation.reason === "conversation-unavailable"
-            ? 404
-            : reservation.reason === "invalid-input"
-              ? 400
-              : reservation.reason === "submission-conflict"
-                ? 409
-                : 429;
-      return Response.json({ error: reservation.reason }, { status });
-    }
-    if (reservation.kind === "duplicate")
-      return Response.json(
-        guestChatSubmissionStatusSchema.parse({
-          state: reservation.state,
-          conversationId: id,
-        }),
-        { status: 409, headers: { [CHAT_CONVERSATION_ID_HEADER]: id } },
-      );
-    if (
-      !(await usage.admit(usageId, {
-        visitorId: visitor.id,
-        reservedMicroUsd: reservation.lease.execution.maxCostMicroUsd,
-        // Question text only after the visitor was shown the current notice.
-        ...(parsed.data.disclosure === recordingDisclosure(policy).revision
-          ? { question: text }
-          : {}),
-      }))
-    ) {
-      // Unrecorded work never runs. Nothing ran, so the reservation settles as failed.
-      await this.admission.settle(reservation.lease, "failed");
-      await usage.deny("record-unavailable", visitor.id);
-      return Response.json({ error: "unavailable" }, { status: 503 });
-    }
-    if (!existing)
-      await this.services.conversations.start({
-        sessionId: id,
-        interfaceType: guestInterfaceType,
-        channelId: id,
-        metadata: {
-          channelName: "Public Ask",
-          interfaceType: guestInterfaceType,
-          channelId: id,
-          guest: { visitorId: visitor.id, retention: policy.retention },
-        },
-      });
-    await this.owned(request, id, policy);
-    const admission = this.admission;
+    };
+  }
+
+  /**
+   * Runs an admitted question and streams its answer. Both ledgers are
+   * settled when the model call returns, answered or not; a visitor who stops
+   * waiting does not stop that settlement.
+   */
+  private streamAnswer(
+    request: Request,
+    policy: EnabledGuestPolicy,
+    turn: {
+      id: string;
+      text: string;
+      usage: GuestUsageRecord;
+      usageId: string;
+      admission: GuestAdmission;
+      lease: GuestExecutionLease;
+    },
+  ): Response {
+    const { id, text, usage, usageId, admission, lease } = turn;
     const stream = createUIMessageStream<UIMessage>({
       onError: (): string => "Guest response unavailable",
       execute: async ({ writer }): Promise<void> => {
@@ -461,35 +513,39 @@ export class GuestHttpHandlers {
         if (!this.ready()) throw new Error("Guest access unavailable");
         request.signal.throwIfAborted();
         writer.write({ type: "start", messageId: randomUUID() });
-        // This transport emits one answer batch, not provider token deltas. The
-        // only idle gap is after start while waiting for that batch/settlement.
-        const idle = new AbortController();
-        const signal = AbortSignal.any([request.signal, idle.signal]);
+        // One answer batch, as in owner chat: the turn's own deadline bounds
+        // the wait, and a visitor who leaves stops only the delivery.
+        const signal = request.signal;
         const stopped = deferred<never>();
         const stopWaiting = (): void =>
           stopped.reject(new Error("Guest response unavailable"));
         signal.addEventListener("abort", stopWaiting, { once: true });
-        const timer = setTimeout(
-          () => idle.abort(),
-          policy.limits.streamIdleTimeoutSeconds * 1000,
-        );
         try {
           signal.throwIfAborted();
-          // Keep observing work after delivery stops. Only genuine fulfillment
-          // settles admission; cancellation/rejection never proves remote exit.
+          // Keep observing work after delivery stops: the model call settles
+          // the answer when it returns, answered or not.
           const work = Promise.resolve().then(async () => {
             signal.throwIfAborted();
-            const response = await this.services.agent.chat(
-              text,
-              id,
-              {
-                interfaceType: guestInterfaceType,
-                userPermissionLevel: "public",
-                isAnchor: false,
-                guestExecution: reservation.lease.execution,
-              },
-              signal,
-            );
+            const response = await this.services.agent
+              .chat(
+                text,
+                id,
+                {
+                  interfaceType: guestInterfaceType,
+                  userPermissionLevel: "public",
+                  isAnchor: false,
+                  guestExecution: lease.execution,
+                },
+                signal,
+              )
+              .catch(async (error: unknown) => {
+                // The call has returned, so its work has ended: settle it at the
+                // answer cap, since a failed call reports no usage to measure.
+                const outcome = signal.aborted ? "interrupted" : "failed";
+                await usage.settle(usageId, "failed", undefined);
+                await admission.settle(lease, outcome);
+                throw error;
+              });
             const hasAnswer = response.text.trim().length > 0;
             // The owner's record first: if it cannot be written, the request
             // stays unresolved and its reservation held.
@@ -505,7 +561,7 @@ export class GuestHttpHandlers {
             const cost = response.guestSettlement?.cost;
             if (
               !(await admission.settle(
-                reservation.lease,
+                lease,
                 hasAnswer ? "completed" : "failed",
                 cost?.state === "known" ? cost.microUsd : undefined,
               ))
@@ -527,7 +583,6 @@ export class GuestHttpHandlers {
           writeTextPart(writer, randomUUID(), response.text);
           writer.write({ type: "finish", finishReason: "stop" });
         } finally {
-          clearTimeout(timer);
           signal.removeEventListener("abort", stopWaiting);
         }
       },
@@ -622,7 +677,8 @@ export class GuestHttpHandlers {
       signal.throwIfAborted();
       if (result.done) return chunks;
       const total = size + result.value.byteLength;
-      if (total > policy.limits.contextBytes) {
+      // One message of at most messageCharacters (4 UTF-8 bytes each) plus its envelope.
+      if (total > policy.limits.messageCharacters * 4 + 4096) {
         cancel();
         throw new GuestHttpError(413, "Guest request too large");
       }

@@ -76,7 +76,7 @@ test("packed Studio definitions and field tools preserve multiple runtime groupi
         source: {
           kind: "text",
           content:
-            "---\nvisibility: shared\ngroupings:\n  clients:\n    label: Clients\n    types: [note]\n    multiple: true\n  projects:\n    label: Projects\n    types: [note]\n    multiple: true\n---\n",
+            "---\nvisibility: shared\ngroupings:\n  clients:\n    label: Clients\n    multiple: true\n  projects:\n    label: Projects\n    multiple: true\n---\n",
         },
       },
       true,
@@ -179,7 +179,7 @@ test("packed Studio definitions and field tools preserve multiple runtime groupi
         entityType: "grouping-definitions",
         id: "grouping-definitions",
         content:
-          "---\nvisibility: shared\ngroupings:\n  clients:\n    label: Clients\n    types: [note]\n    multiple: false\n    values: [Acme, Beta]\n  projects:\n    label: Projects\n    types: [note]\n    multiple: true\n---\n",
+          "---\nvisibility: shared\ngroupings:\n  clients:\n    label: Clients\n    multiple: false\n    values: [Acme, Beta]\n  projects:\n    label: Projects\n    multiple: true\n---\n",
       },
       true,
     );

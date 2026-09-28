@@ -17,7 +17,11 @@ import {
   activateProjectionRuntime,
   type ProjectionRuntimeControls,
 } from "../projection-runtime";
-import type { RuntimeProcessRole } from "../runtime-process-role";
+import {
+  runtimeRoleProfile,
+  type RuntimeProcessRole,
+  type RuntimeRoleProfile,
+} from "../runtime-process-role";
 
 const INDEX_READINESS_POLL_INTERVAL_MS = 250;
 
@@ -66,7 +70,7 @@ export class ShellBootloader {
   private readonly services: ShellServices;
   private readonly lifecycle: ShellLifecycle;
   private readonly initializer: ShellInitializer;
-  private readonly processRole: RuntimeProcessRole | undefined;
+  private readonly role: RuntimeRoleProfile;
   private readonly hooks: ShellBootloaderHooks;
   constructor(
     config: ShellConfig,
@@ -80,7 +84,7 @@ export class ShellBootloader {
     this.services = services;
     this.lifecycle = lifecycle;
     this.initializer = initializer;
-    this.processRole = processRole;
+    this.role = runtimeRoleProfile(processRole);
     this.hooks = hooks;
   }
 
@@ -104,7 +108,7 @@ export class ShellBootloader {
       ...(this.config.entityDisplay !== undefined && {
         entityDisplay: this.config.entityDisplay,
       }),
-      ...(this.processRole === "worker" && { executionOnly: true }),
+      ...(!this.role.serves && { executionOnly: true }),
     };
     await shellInitializer.initializeAll(
       this.services.templateRegistry,
@@ -213,8 +217,7 @@ export class ShellBootloader {
               });
             },
           ),
-        activationMode:
-          this.processRole === "worker" ? "executor" : "scheduler",
+        activationMode: this.role.projectionActivation,
       });
       this.services.disposables.push(() => projectionRuntime.dispose());
     }
@@ -222,7 +225,7 @@ export class ShellBootloader {
     this.services.jobQueueService.finalizeHandlerRegistrations();
 
     this.hooks.registerCoreDataSources();
-    if (this.processRole !== "worker") {
+    if (this.role.serves) {
       this.hooks.registerSystemCapabilities();
     }
 
@@ -231,7 +234,7 @@ export class ShellBootloader {
       return;
     }
 
-    if (this.processRole === "worker") {
+    if (!this.role.serves) {
       await this.initializeIdentityServices();
       this.services.jobProgressMonitor.start();
       await this.services.jobQueueWorker.start();
@@ -323,7 +326,7 @@ export class ShellBootloader {
       }
     }
     await this.services.pluginManager.startPluginDaemons();
-    if (this.processRole !== "web") {
+    if (this.role.executes) {
       await this.services.jobQueueWorker.start();
     }
     this.services.jobProgressMonitor.start();

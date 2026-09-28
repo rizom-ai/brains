@@ -1,5 +1,161 @@
 # @brains/mcp
 
+## 0.2.0-alpha.439
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.439
+  - @brains/utils@0.2.0-alpha.439
+  - @brains/auth-service@0.2.0-alpha.439
+  - @brains/mcp-service@0.2.0-alpha.439
+  - @brains/plugins@0.2.0-alpha.439
+
+## 0.2.0-alpha.438
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.438
+  - @brains/utils@0.2.0-alpha.438
+  - @brains/auth-service@0.2.0-alpha.438
+  - @brains/mcp-service@0.2.0-alpha.438
+  - @brains/plugins@0.2.0-alpha.438
+
+## 0.2.0-alpha.437
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.437
+  - @brains/utils@0.2.0-alpha.437
+  - @brains/auth-service@0.2.0-alpha.437
+  - @brains/mcp-service@0.2.0-alpha.437
+  - @brains/plugins@0.2.0-alpha.437
+
+## 0.2.0-alpha.436
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.436
+  - @brains/utils@0.2.0-alpha.436
+  - @brains/auth-service@0.2.0-alpha.436
+  - @brains/mcp-service@0.2.0-alpha.436
+  - @brains/plugins@0.2.0-alpha.436
+
+## 0.2.0-alpha.435
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.435
+  - @brains/utils@0.2.0-alpha.435
+  - @brains/auth-service@0.2.0-alpha.435
+  - @brains/mcp-service@0.2.0-alpha.435
+  - @brains/plugins@0.2.0-alpha.435
+
+## 0.2.0-alpha.434
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.434
+  - @brains/utils@0.2.0-alpha.434
+  - @brains/auth-service@0.2.0-alpha.434
+  - @brains/mcp-service@0.2.0-alpha.434
+  - @brains/plugins@0.2.0-alpha.434
+
+## 0.2.0-alpha.433
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.433
+  - @brains/utils@0.2.0-alpha.433
+  - @brains/auth-service@0.2.0-alpha.433
+  - @brains/mcp-service@0.2.0-alpha.433
+  - @brains/plugins@0.2.0-alpha.433
+
+## 0.2.0-alpha.432
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.432
+  - @brains/utils@0.2.0-alpha.432
+  - @brains/auth-service@0.2.0-alpha.432
+  - @brains/mcp-service@0.2.0-alpha.432
+  - @brains/plugins@0.2.0-alpha.432
+
+## 0.2.0-alpha.431
+
+### Patch Changes
+
+- [#389](https://github.com/rizom-ai/brains/pull/389) [`7650439`](https://github.com/rizom-ai/brains/commit/7650439502c4bf91d9370b72d952aec25bdff8c2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Start modern Streamable HTTP responses in the SDK's SSE mode so its keepalive comments cover silent model/tool execution before the final result. This prevents that initial silence from exhausting a proxy's response-header timeout without increasing deployment timeouts. Authentication, confirmation handling, request cancellation, and stateless legacy compatibility remain unchanged.
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.431
+  - @brains/utils@0.2.0-alpha.431
+  - @brains/auth-service@0.2.0-alpha.431
+  - @brains/mcp-service@0.2.0-alpha.431
+  - @brains/plugins@0.2.0-alpha.431
+
+## 0.2.0-alpha.430
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.430
+  - @brains/utils@0.2.0-alpha.430
+  - @brains/auth-service@0.2.0-alpha.430
+  - @brains/mcp-service@0.2.0-alpha.430
+  - @brains/plugins@0.2.0-alpha.430
+
+## 0.2.0-alpha.429
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.429
+  - @brains/utils@0.2.0-alpha.429
+  - @brains/auth-service@0.2.0-alpha.429
+  - @brains/mcp-service@0.2.0-alpha.429
+  - @brains/plugins@0.2.0-alpha.429
+
+## 0.2.0-alpha.428
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.428
+  - @brains/utils@0.2.0-alpha.428
+  - @brains/auth-service@0.2.0-alpha.428
+  - @brains/mcp-service@0.2.0-alpha.428
+  - @brains/plugins@0.2.0-alpha.428
+
+## 0.2.0-alpha.427
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.427
+  - @brains/utils@0.2.0-alpha.427
+  - @brains/auth-service@0.2.0-alpha.427
+  - @brains/mcp-service@0.2.0-alpha.427
+  - @brains/plugins@0.2.0-alpha.427
+
+## 0.2.0-alpha.426
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/contracts@0.2.0-alpha.426
+  - @brains/utils@0.2.0-alpha.426
+  - @brains/auth-service@0.2.0-alpha.426
+  - @brains/mcp-service@0.2.0-alpha.426
+  - @brains/plugins@0.2.0-alpha.426
+
 ## 0.2.0-alpha.425
 
 ### Patch Changes

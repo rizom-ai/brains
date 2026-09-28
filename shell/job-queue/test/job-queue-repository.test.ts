@@ -540,11 +540,11 @@ describe("JobQueueRepository fenced attempts", () => {
     });
   });
 
-  it("does not reclaim another slot's attempt while its worker session is live", async () => {
+  it("does not reclaim another slot's attempt while its lease is current", async () => {
     const job = createTestJob();
     await repository.insert(job);
     await repository.startWorkerSession("worker-a", "session-a", 10_000, 500);
-    await repository.claimNextReady(claimOptions({ leaseDurationMs: 100 }));
+    await repository.claimNextReady(claimOptions({ leaseDurationMs: 300 }));
 
     await repository.startWorkerSession("worker-b", "session-b", 10_200);
     const reclaimed = await repository.claimNextReady(
@@ -559,16 +559,19 @@ describe("JobQueueRepository fenced attempts", () => {
     expect(reclaimed).toBeNull();
   });
 
-  it("reclaims another slot's attempt only after both its lease and owner session expire", async () => {
+  // A live worker that stopped renewing a lease has abandoned that attempt;
+  // the attempt fence keeps its late writes from landing.
+  it("reclaims an attempt whose lease expired while its worker session is live", async () => {
     const job = createTestJob();
     await repository.insert(job);
-    await repository.startWorkerSession("worker-a", "session-a", 10_000, 500);
-    await repository.claimNextReady(claimOptions({ leaseDurationMs: 100 }));
-    await repository.startWorkerSession("worker-b", "session-b", 10_700);
+    await repository.startWorkerSession("worker-a", "session-a", 10_000, 5_000);
+    const abandoned = claimOptions({ leaseDurationMs: 100 });
+    await repository.claimNextReady(abandoned);
+    await repository.startWorkerSession("worker-b", "session-b", 10_200);
 
     const reclaimed = await repository.claimNextReady(
       claimOptions({
-        now: 10_700,
+        now: 10_200,
         attemptId: createId(),
         workerSlotId: "worker-b",
         workerSessionId: "session-b",
@@ -581,6 +584,14 @@ describe("JobQueueRepository fenced attempts", () => {
       workerSessionId: "session-b",
       retryCount: 1,
     });
+    expect(
+      await repository.renewAttemptLease(
+        job.id,
+        abandoned.attemptId,
+        10_300,
+        100,
+      ),
+    ).toBe(false);
   });
 
   it("renews long-running attempt and worker-session liveness with fenced heartbeats", async () => {

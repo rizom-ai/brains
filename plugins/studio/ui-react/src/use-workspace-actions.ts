@@ -6,6 +6,7 @@ import {
   isPublishingActionError,
 } from "./publication-actions";
 import { invalidateAfterWorkspaceAction } from "./queries";
+import { publicationWorkspaceFor } from "./studio-app-model";
 
 import type { QueryClient, UseMutationResult } from "@tanstack/react-query";
 import type { StudioWorkspaceInfo } from "./api";
@@ -57,11 +58,7 @@ export function useWorkspaceActions(
 
   const performPublishingAction = useCallback(
     async (action: PublishingAction): Promise<PublishingActionResult> => {
-      const capability = workspaces.find(
-        (workspace) =>
-          workspace.pluginId === "content-pipeline" &&
-          workspace.entityTypes.includes(action.entityType),
-      );
+      const capability = publicationWorkspaceFor(workspaces, action.entityType);
       if (!capability) throw new Error("Publishing is unavailable");
 
       const input = {

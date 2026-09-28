@@ -889,6 +889,7 @@ export type {
 export {
   basePluginConfigSchema,
   isPluginConfigValidationError,
+  isMissingPluginConfig,
   PluginConfigValidationError,
   type PluginConfig,
   type PluginConfigInput,

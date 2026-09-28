@@ -74,7 +74,6 @@ Domain types:
 - `ChatProtocolEvent`
 - `ChatSession`
 - `ChatSessionsResponse`
-- `ChatSourceContext`
 - `ChatTextPart`
 - `ChatToolStatusEvent`
 - `ChatToolStatusValue`
@@ -113,7 +112,6 @@ Schemas:
 - `chatProtocolEventSchema`
 - `chatSessionSchema`
 - `chatSessionsResponseSchema`
-- `chatSourceContextSchema`
 - `chatTextPartSchema`
 - `chatToolStatusEventSchema`
 - `chatUploadPartSchema`

@@ -7,6 +7,7 @@ import { layoutZoneLabels, type LabelPlacement } from "../lib/atlas-labels";
 import {
   ASK_BOX_ATTRIBUTE,
   ASK_BOX_SCRIPT_PATH,
+  ASK_NAME_ATTRIBUTE,
   ASK_SEND_ATTRIBUTE,
   ASK_STATUS_ATTRIBUTE,
   ASK_STYLED_ATTRIBUTE,
@@ -59,10 +60,13 @@ function AtlasMap({
   atlas,
   labels,
   caption,
+  chat,
 }: {
   atlas: HomepageAtlasData;
   labels: Record<string, LabelPlacement>;
   caption: string | null;
+  /** Docked as a strip in a phone's open conversation, it can open whole. */
+  chat: boolean;
 }): JSX.Element {
   const contours = buildAtlasTerrain(atlas);
   // Larger territories name themselves first; the label script keeps that order.
@@ -160,6 +164,24 @@ function AtlasMap({
           })}
         </ul>
       </div>
+      {chat && (
+        <>
+          <button
+            type="button"
+            className="atlas__expand"
+            data-atlas-expand=""
+            aria-label="Show the whole map"
+          >
+            <span>Show on map</span>
+          </button>
+          <div className="atlas__mapbar" data-atlas-mapbar="">
+            <span data-atlas-count="" aria-live="polite" />
+            <button type="button" data-atlas-fold="">
+              Back to the answer
+            </button>
+          </div>
+        </>
+      )}
       <p className="atlas__legend">
         {caption && <span className="atlas__caption">{caption}</span>}
         {legend.map(({ kind, label }) => (
@@ -236,7 +258,11 @@ export function HomepageAtlas({
           // mounted box; the atlas themes and frames it.
           <div
             className="atlas__ask"
-            {...{ [ASK_BOX_ATTRIBUTE]: "", [ASK_STYLED_ATTRIBUTE]: "" }}
+            {...{
+              [ASK_BOX_ATTRIBUTE]: "",
+              [ASK_STYLED_ATTRIBUTE]: "",
+              ...(owner ? { [ASK_NAME_ATTRIBUTE]: owner } : {}),
+            }}
           >
             <p
               className="atlas__ask-status"
@@ -290,7 +316,12 @@ export function HomepageAtlas({
         </div>
       </div>
       {atlas && (
-        <AtlasMap atlas={atlas} labels={labels} caption={opening.mapCaption} />
+        <AtlasMap
+          atlas={atlas}
+          labels={labels}
+          caption={opening.mapCaption}
+          chat={askBox}
+        />
       )}
       {atlas && askBox && (
         // Leads from an answer's listed sources to their marks, drawn by the atlas script.

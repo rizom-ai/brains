@@ -4,11 +4,11 @@ Last updated: 2026-09-27
 
 ## Status
 
-**Implementation and isolated authenticated acceptance are complete; replacement release and smoke deployment remain pending.** Work is on `feat/studio-virtual-collections`, PR #383. Smoke is the only site using the old feature and is a test site. No legacy compatibility, conversion tool, conversion rehearsal or matched migration rollback is required. This plan does not authorize deployment or changes to existing smoke data.
+**Document-owned groupings shipped in alpha.425 and are deployed to smoke. The convention-first type-exclusion follow-up is in progress on `feat/grouping-type-exclusions`.** PR #383 is merged. Smoke is the only site using this feature and is a test site. No legacy compatibility, conversion tool, conversion rehearsal or matched migration rollback is required. This plan does not authorize deployment or changes to existing smoke data.
 
 The released baseline is PR #302, `0.2.0-alpha.404`, deployed to smoke with configured groupings and an administrator-owned vocabulary. The replacement uses one `grouping-definitions` document and unified controls. Runtime contracts are documented in the [Studio README](../../plugins/studio/README.md) and [entity-service README](../../shell/entity-service/README.md); the earlier [collections](./studio-virtual-collections.md) and [vocabulary](./studio-grouping-vocabularies.md) plans identify the original rollout.
 
-The implementation preserves exact Markdown memberships, opaque identities, paths, owner/plugin refinements, strays and historical duplicates. Labels, contributor types, cardinality and optional lists come from the document. Readiness and bounded reprojection remain process-local and ephemeral. There are no legacy readers, aliases, dual writes, automatic conversion or durable readiness records. Unknown configuration keys use ordinary strict-schema validation.
+The implementation preserves exact Markdown memberships, opaque identities, paths, owner/plugin refinements, strays and historical duplicates. Labels, cardinality, optional lists and optional type exclusions come from the document. Eligible content types participate by default; exceptions are edited under a collapsed Exclude types disclosure, not an Applies to checklist. Readiness and bounded reprojection remain process-local and ephemeral. There are no legacy readers, aliases, dual writes, automatic conversion or durable readiness records. Unknown configuration keys use ordinary strict-schema validation.
 
 Create/update/delete default to administrator access, with publishing disabled. Explicit per-type instance permission rules can override action defaults under the shared permission service; this is not an unoverrideable administrator floor.
 
@@ -33,7 +33,7 @@ The obsolete vocabulary editor, closed-field helper and review-era generator are
 ## Remaining work
 
 1. Finish review and required checks, reconciling the release with mainline package metadata and consumed changesets. A committed changeset is not a release.
-2. After deployment authorization, update smoke's desired-state test configuration in `rover-pilot/users/smoke.yaml`, not generated `users/smoke/brain.yaml`. Remove the obsolete grouping configuration and use the supported Groupings document and current permissions. Set up smoke's test groupings directly; do not build a legacy converter or a compatibility path.
+2. After release/deployment authorization for the follow-up, update smoke's test definitions to omit explicit `types` lists, using `excludeTypes` only for intentional exceptions. The old configuration was already removed by rover-pilot PR #94. Keep desired-state changes in operator-owned inputs, not generated files; do not build a legacy converter or a compatibility path.
 3. Verify the running smoke app: administrator/trusted views, exact memberships, all four rule modes, scoped counts, stray markers, refused-save draft retention and source round trips. Rebuild preview through the running app before inspecting output. Health alone is not acceptance.
 
 Keep the scope smoke-only. Do not reset unrelated content, accounts, passkeys or sessions, or modify the existing demo or other brains. Preserve the 30-second startup and 0.2% visual gates. No fleet expansion or automatic data reset is implied.

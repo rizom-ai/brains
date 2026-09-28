@@ -17,8 +17,7 @@ import {
   supportsStudioStudyState,
 } from "./fixtures/studio-study-state";
 import { createElement, type ReactElement } from "react";
-import { renderChatPage } from "@brains/web-chat";
-import { renderEditorShellHtml } from "@brains/studio";
+import { renderEditorShellHtml, studioTypeHierarchy } from "@brains/studio";
 import {
   renderDashboardPageHtml,
   type DashboardRenderInput,
@@ -2739,17 +2738,6 @@ async function checkLayout(
     );
   }
 
-  if (surface.startsWith("chat")) {
-    const mobileTrigger = await elementDisplay(
-      page,
-      ".web-chat-mobile-trigger",
-    );
-    if (width <= 640 !== (mobileTrigger !== "none"))
-      throw new Error(`chat responsive mode mismatch at ${width}px`);
-    const composer = await elementBounds(page, ".web-chat-prompt-input");
-    if (!composer || composer.y + composer.height > viewportHeight + 1)
-      throw new Error(`chat composer escaped the viewport at ${width}px`);
-  }
   if (surface.startsWith("studio-") && width <= 640) {
     const chrome = await elementBounds(page, ".studio > .studio-chrome");
     if (!chrome || chrome.height > 64) {
@@ -3262,16 +3250,8 @@ const studioAsset = path.join(
   studioUiDirectory,
   studioManifest.entrypoints.script,
 );
-const chatAsset = path.join(ROOT, "interfaces/web-chat/dist/ui/app.js");
-const chatStyles = path.join(ROOT, "interfaces/web-chat/dist/ui/app.css");
-await Promise.all([
-  readFile(studioAsset),
-  readFile(chatAsset),
-  readFile(chatStyles),
-]).catch(() => {
-  throw new Error(
-    "Build @brains/studio and @brains/web-chat UI assets before visual regression.",
-  );
+await readFile(studioAsset).catch(() => {
+  throw new Error("Build @brains/studio UI assets before visual regression.");
 });
 
 // Deterministic preview image for the attachment card: a flat verdigris
@@ -3360,26 +3340,9 @@ const server = Bun.serve({
       );
     }
     if (url.pathname === "/ask")
-      return new Response(
-        climateHtml(
-          renderChatPage({
-            apiPath: "/api/chat",
-            dashboardHref: "/dashboard",
-            studioHref: "/chat",
-            sessionHref: "/logout",
-            principal: { displayName: "Mira Reyes", role: "admin" },
-          }),
-          request,
-        ),
-        { headers: { "content-type": "text/html" } },
-      );
-    if (url.pathname === "/ask/assets/app.js")
-      return new Response(await readFile(chatAsset), {
-        headers: { "content-type": "text/javascript" },
-      });
-    if (url.pathname === "/ask/assets/app.css")
-      return new Response(await readFile(chatStyles), {
-        headers: { "content-type": "text/css" },
+      return new Response(null, {
+        status: 303,
+        headers: { Location: "/chat" },
       });
     if (url.pathname === "/api/chat/sessions") {
       if (request.method === "PUT") {
@@ -3501,7 +3464,8 @@ const server = Bun.serve({
     }
     if (url.pathname === "/studio/api/types")
       return json({
-        types: reviewingSystem
+        // Each type carries the hierarchy the real type list sends for it.
+        types: (reviewingSystem
           ? [
               ...types.filter(
                 (item) =>
@@ -3510,7 +3474,11 @@ const server = Bun.serve({
               ),
               ...systemTypes,
             ]
-          : types,
+          : types
+        ).map((item) => ({
+          ...item,
+          hierarchy: studioTypeHierarchy(item.entityType),
+        })),
         workspaces: [
           {
             id: "studio:overview",
@@ -3989,10 +3957,6 @@ try {
         "dashboard",
         "dashboard-knowledge",
         "dashboard-network",
-        "chat",
-        "chat-cards",
-        "chat-empty",
-        "chat-drawer",
         "studio-library",
         "studio-navigation",
         "studio-navigation-collapsed",
@@ -4025,8 +3989,6 @@ try {
         if (SURFACE_PREFIX && !surface.startsWith(SURFACE_PREFIX)) continue;
         if (STUDY_STATE && !supportsStudioStudyState(surface, STUDY_STATE))
           continue;
-        // Guest Chat's drawer is mobile-only; Studio dialogs work at every width.
-        if (surface === "chat-drawer" && viewport.width > 760) continue;
         // Secondary editor states are pinned at desktop and phone; tablet
         // adds no distinct composition for these overlays and lines.
         const isStudioSecondary =
@@ -4048,14 +4010,8 @@ try {
                 "studio-system-".length,
                 systemCollection ? -"-collection".length : undefined,
               );
-        const isChat = surface.startsWith("chat");
         const isDashboard = surface.startsWith("dashboard");
-        const conversationId =
-          surface === "chat-cards"
-            ? "cards"
-            : surface === "chat-empty"
-              ? "empty"
-              : "responsive";
+        const conversationId = "responsive";
         const page = new Bun.WebView({
           width: viewport.width,
           height: viewport.height,
@@ -4078,30 +4034,27 @@ try {
         const studioSaveSelector = ".studio-editor-head-save";
         const route = isDashboard
           ? "/dashboard"
-          : isChat
-            ? "/ask"
-            : surface === "studio-account"
-              ? "/studio/workspaces/studio%3Aaccount"
-              : surface === "studio-overview"
-                ? "/studio/workspaces/studio%3Aoverview"
-                : surface.startsWith("studio-chat")
-                  ? "/chat"
-                  : surface === "studio-inbox"
-                    ? "/studio/workspaces/unified-inbox%3Ainbox"
-                    : surface === "studio-content-sync"
-                      ? "/studio/workspaces/directory-sync%3Async"
-                      : surface === "studio-site"
-                        ? "/studio/workspaces/site-builder%3Asite"
-                        : surface === "studio-publishing"
-                          ? "/studio/workspaces/content-pipeline%3Apublishing"
-                          : surface.startsWith("studio-administration")
-                            ? "/studio/workspaces/admin%3Aadministration"
-                            : surface.startsWith("studio-system")
-                              ? `/studio/entities/${systemType}${systemCollection ? "" : `/${systemType}`}`
-                              : isStudioEditor
-                                ? "/studio/entities/posts/field-notes"
-                                : "/studio/entities/posts";
-        const hash = isChat ? `#s/${conversationId}` : "";
+          : surface === "studio-account"
+            ? "/studio/workspaces/studio%3Aaccount"
+            : surface === "studio-overview"
+              ? "/studio/workspaces/studio%3Aoverview"
+              : surface.startsWith("studio-chat")
+                ? "/chat"
+                : surface === "studio-inbox"
+                  ? "/studio/workspaces/unified-inbox%3Ainbox"
+                  : surface === "studio-content-sync"
+                    ? "/studio/workspaces/directory-sync%3Async"
+                    : surface === "studio-site"
+                      ? "/studio/workspaces/site-builder%3Asite"
+                      : surface === "studio-publishing"
+                        ? "/studio/workspaces/content-pipeline%3Apublishing"
+                        : surface.startsWith("studio-administration")
+                          ? "/studio/workspaces/admin%3Aadministration"
+                          : surface.startsWith("studio-system")
+                            ? `/studio/entities/${systemType}${systemCollection ? "" : `/${systemType}`}`
+                            : isStudioEditor
+                              ? "/studio/entities/posts/field-notes"
+                              : "/studio/entities/posts";
         const workspaceQuery = surface.startsWith(
           "studio-administration-invitations",
         )
@@ -4113,7 +4066,7 @@ try {
               : "";
         await navigateToNetworkIdle(
           page,
-          `http://127.0.0.1:${server.port}${route}?climate=${climate}${workspaceQuery}${hash}`,
+          `http://127.0.0.1:${server.port}${route}?climate=${climate}${workspaceQuery}`,
         );
         const emptySystemDocument =
           reviewingSystem &&
@@ -4697,102 +4650,6 @@ try {
             surface === "dashboard-knowledge" ? "knowledge" : "network";
           await clickSelector(page, `[data-dashboard-tab-link="${tab}"]`);
           await evaluatePage(page, () => window.scrollTo(0, 0));
-        }
-        if (surface === "chat" || surface === "chat-drawer") {
-          await waitForText(page, "And the Studio?");
-          await waitForSelector(page, ".web-chat-attached-file");
-        }
-        if (surface === "chat-empty") {
-          await waitForText(page, "Begin a field note.");
-        }
-        if (surface === "chat-drawer") {
-          await clickSelector(page, ".web-chat-mobile-trigger");
-          // The drawer slides in over 0.3s; wait for the transform to land.
-          await evaluatePageWith(
-            page,
-            (selector) =>
-              new Promise<void>((resolve) => {
-                const node = document.querySelector(selector);
-                if (!(node instanceof HTMLElement)) {
-                  throw new Error(`Missing drawer ${selector}`);
-                }
-                const check = (): void => {
-                  const { left } = node.getBoundingClientRect();
-                  if (Math.abs(left) < 0.5) resolve();
-                  else requestAnimationFrame(check);
-                };
-                check();
-              }),
-            ".web-chat-sessions",
-          );
-        }
-        if (surface === "chat-cards") {
-          await waitForText(page, "Queued for the trust series.");
-          // Cards ship collapsed; the baselines pin their expanded bodies.
-          await evaluatePage(page, () => {
-            for (const details of Array.from(
-              document.querySelectorAll("details"),
-            )) {
-              details.open = true;
-            }
-          });
-          await evaluatePage(page, () =>
-            Promise.all(
-              Array.from(document.images)
-                .filter((image) => !image.complete)
-                .map(
-                  (image) =>
-                    new Promise((resolve) => {
-                      image.addEventListener("load", resolve, { once: true });
-                      image.addEventListener("error", resolve, { once: true });
-                    }),
-                ),
-            ),
-          );
-          // Fonts must settle before pinning scroll — a late swap reflows
-          // the thread and shifts the captured scroll position.
-          await evaluatePage(page, () => document.fonts.ready);
-          // Pin the end of the exchange: scroll every scrollable ancestor
-          // of the final message to its bottom, and repeat until the
-          // positions survive a frame — the thread's stick-to-bottom
-          // spring keeps animating past the first pin.
-          const pinConversationEnd = (): number[] => {
-            const marker = Array.from(document.querySelectorAll("p"))
-              .reverse()
-              .find((node) =>
-                node.textContent.includes("Queued for the trust series"),
-              );
-            const tops: number[] = [];
-            let node: HTMLElement | null = marker ?? null;
-            while (node) {
-              if (node.scrollHeight > node.clientHeight + 4) {
-                node.scrollTop = node.scrollHeight;
-                tops.push(node.scrollTop);
-              }
-              node = node.parentElement;
-            }
-            return tops;
-          };
-          let previousTops = "";
-          for (let attempt = 0; attempt < 10; attempt += 1) {
-            const tops = JSON.stringify(
-              await evaluatePage(page, pinConversationEnd),
-            );
-            await evaluatePage(
-              page,
-              () =>
-                new Promise<void>((resolve) =>
-                  requestAnimationFrame(() =>
-                    requestAnimationFrame(() => resolve()),
-                  ),
-                ),
-            );
-            const settled = JSON.stringify(
-              await evaluatePage(page, pinConversationEnd),
-            );
-            if (settled === tops && settled === previousTops) break;
-            previousTops = settled;
-          }
         }
         if (surface === "studio-library") {
           await waitForText(page, "1–25 of 54");

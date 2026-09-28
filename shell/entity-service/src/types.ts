@@ -9,11 +9,7 @@ import type {
   QueryGroupingUsageRequest,
 } from "./entity-grouping";
 import type { EntityIdPath, EntityIdPathInput } from "./entity-id-path";
-import type {
-  ActorRef,
-  EntityReadBudget,
-  QueryEmbedding,
-} from "@brains/contracts";
+import type { ActorRef } from "@brains/contracts";
 import type { ProjectionStore } from "./projection-store";
 import type {
   BulkMutationInput,
@@ -556,12 +552,6 @@ export interface SortField {
  * Generic over metadata type for type-safe filtering
  */
 export interface EntityReadOptions {
-  /** Bounds SQL result transfer, suppresses raw diagnostics, and leaves entity
-   * image references unexpanded. Not a bound on database or adapter execution.
-   */
-  readBudget?: EntityReadBudget;
-  /** Request-owned embedding capability, e.g. a prepaid guest search. */
-  queryEmbedding?: QueryEmbedding;
   /** Cooperative boundary checks, not proof of remote SQL cancellation. */
   signal?: AbortSignal;
 }
@@ -747,7 +737,10 @@ export interface UpsertEntityRequest<T extends BaseEntity> {
   entity: T;
   /** Prepared bytes committed in the same transaction as their entity reference. */
   preparedAsset?: PreparedAsset | undefined;
-  options?: EntityJobOptions | undefined;
+  /** Conditional upserts never fall through from a raced create to update. */
+  options?:
+    | (EntityJobOptions & { conditionalWrite?: EntityWriteCondition })
+    | undefined;
 }
 
 export interface EntitySearchRequest {
@@ -1121,6 +1114,10 @@ export interface IndexReadinessStatus extends EmbeddingIndexStats {
  * methods (like the schema-taking reads) down to one signature.
  */
 export interface EntityServiceClient extends ICoreEntityService {
+  /** Visibility-scoped read and revision for atomic conditional writes. */
+  getEntityWriteSnapshot(
+    request: GetEntityRequest,
+  ): Promise<EntityWriteSnapshot | null>;
   /** Local admission state; grouping endpoints must not serve partial bootstrap results. */
   areGroupingsReady(): boolean;
   /** Refresh definitions and start missing scans outside write transactions. */
@@ -1205,10 +1202,6 @@ export type DurableBulkMutationCoordinator = Pick<
 export interface EntityService extends EntityServiceClient {
   /** Normal web/combined boot only, after initial sync; not an ordinary mutation. */
   reprojectRegisteredGroupings(): Promise<void>;
-  /** Visibility-scoped entity and the revision derived from its stored row. */
-  getEntityWriteSnapshot(
-    request: GetEntityRequest,
-  ): Promise<EntityWriteSnapshot | null>;
   // Scheduler-owned projection coordination
   getProjectionStore(): ProjectionStore;
   setProjectionWakeup(wakeup: () => Promise<void>): () => void;

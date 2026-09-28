@@ -4,7 +4,7 @@ import type {
 } from "@brains/auth-service";
 import type { ActorRef } from "@brains/contracts";
 import type { ContentVisibility, ServicePluginContext } from "@brains/plugins";
-import type { StudioEntityDisplayMap } from "./config";
+import type { StudioEntityDisplayMap, StudioTypeHierarchy } from "./config";
 import type { GroupingDefinitionsSnapshot } from "./grouping-definitions-contract";
 import type { StudioWorkspaceRegistry } from "./workspace-registry";
 
@@ -26,6 +26,17 @@ export interface StudioTypeCapabilities {
   canExtract: boolean;
   canPublish: boolean;
   canAssist: boolean;
+}
+
+/** One entity type in Studio's type list. */
+export interface StudioEntityTypeInfo {
+  entityType: string;
+  label: string;
+  isSingleton: boolean;
+  hasBody: boolean;
+  count: number;
+  capabilities: StudioTypeCapabilities;
+  hierarchy: StudioTypeHierarchy;
 }
 
 export interface EditorRouteOptions {

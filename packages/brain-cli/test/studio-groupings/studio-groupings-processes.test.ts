@@ -124,7 +124,7 @@ async function ready(worker: Worker): Promise<unknown> {
   }
   throw new Error("Grouping scan did not become ready");
 }
-const areas = { label: "Areas", types: ["note"], multiple: true };
+const areas = { label: "Areas", multiple: true };
 
 test("two separate processes independently finish interrupted scans without shared status", async () => {
   await withWorkers(async (writer, reader) => {

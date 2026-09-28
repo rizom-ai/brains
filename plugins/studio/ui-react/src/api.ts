@@ -26,24 +26,12 @@ import {
  * an authenticated browser session.
  */
 
-export interface StudioTypeCapabilities {
-  canRead: boolean;
-  canCreate: boolean;
-  canUpdate: boolean;
-  canDelete: boolean;
-  canExtract: boolean;
-  canPublish: boolean;
-  canAssist: boolean;
-}
+import type { StudioEntityTypeInfo } from "../../src/editor-contracts";
 
-export interface EntityTypeInfo {
-  entityType: string;
-  label: string;
-  isSingleton: boolean;
-  hasBody: boolean;
-  count: number;
-  capabilities: StudioTypeCapabilities;
-}
+export type { StudioTypeCapabilities } from "../../src/editor-contracts";
+export type { StudioTypeHierarchy } from "../../src/config";
+/** One entity type in Studio's type list, as the server describes it. */
+export type EntityTypeInfo = StudioEntityTypeInfo;
 
 export interface StudioWorkspaceInfo {
   id: string;

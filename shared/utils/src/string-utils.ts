@@ -22,7 +22,8 @@ export function interpolateEnvVar(
   for (const match of matches) {
     const varName = match.slice(2, -1); // strip ${ and }
     const envValue = env[varName];
-    if (envValue === undefined) return undefined;
+    // An empty variable is how deploy tooling passes an unset secret.
+    if (envValue === undefined || envValue === "") return undefined;
     result = result.replace(match, envValue);
   }
   return result;
@@ -32,7 +33,7 @@ export function interpolateEnvVar(
  * Recursively interpolate ${ENV_VAR} references in a parsed object.
  * - String values: "${VAR}" → process.env.VAR
  * - Object keys: "${VAR}" → process.env.VAR
- * - Removes entries where env vars are not set
+ * - Removes entries where env vars are not set or empty
  */
 export function interpolateEnv(
   data: unknown,

@@ -15,6 +15,7 @@ import { z } from "@brains/utils/zod";
 import {
   entityTypeLabels,
   isRawEntityType,
+  studioTypeHierarchy,
   zodFieldToStudioWidget,
   type StudioEntityDisplayMap,
 } from "./config";
@@ -54,6 +55,7 @@ import {
   toStudioWorkspaceActor,
 } from "./editor-access";
 import type {
+  StudioEntityTypeInfo,
   StudioRequestAccess,
   StudioRequestAccessResolution,
   EditorRouteOptions,
@@ -614,7 +616,7 @@ async function handleListTypes(
   access: StudioRequestAccess,
   getDefinitions: EditorRouteOptions["getGroupingDefinitions"],
 ): Promise<Response> {
-  const types = [];
+  const types: StudioEntityTypeInfo[] = [];
   if (access.permissionLevel !== "public") {
     await context.entities.ensureGroupingsCurrent();
     const counts = new Map(
@@ -642,6 +644,7 @@ async function handleListTypes(
         hasBody: adapter?.hasBody !== false,
         count,
         capabilities,
+        hierarchy: studioTypeHierarchy(entityType),
       });
     }
   }
@@ -662,7 +665,11 @@ async function handleListTypes(
 
   const groupings = studioGroupDescriptors(
     getDefinitions?.().groupings ?? {},
-    new Set(types.map((type) => type.entityType)),
+    new Set(
+      types
+        .map((type) => type.entityType)
+        .filter((type) => isGroupingContributorType(context, type)),
+    ),
   );
   return jsonResponse({ types, workspaces, groupings });
 }
@@ -796,7 +803,11 @@ async function handleGetSchema(
   const definitions = options.getGroupingDefinitions?.();
   const labels = new Map(
     Object.entries(definitions?.groupings ?? {})
-      .filter(([, definition]) => definition.types.includes(entityType))
+      .filter(
+        ([, definition]) =>
+          isGroupingContributorType(context, entityType) &&
+          !definition.excludeTypes?.includes(entityType),
+      )
       .map(([key, definition]) => [key, definition.label]),
   );
   const domainFields = raw

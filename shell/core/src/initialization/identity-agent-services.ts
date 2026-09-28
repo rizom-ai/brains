@@ -3,9 +3,7 @@ import {
   AgentService,
   createBrainAgentId,
   createBrainAgentFactory,
-  createOpenAiGuestProfile,
-  openAiGuestEmbeddingModel,
-  openAiGuestEmbeddingDimensions,
+  priceOpenAiGuestTurn,
   type ChatAttachment,
   type ChatAttachmentSource,
   type IAgentService,
@@ -38,6 +36,8 @@ import type { Logger } from "@brains/utils/logger";
 import type { ShellConfig } from "../config";
 import { SHELL_ENTITY_TYPES } from "../constants";
 import { getErrorMessage } from "@brains/utils/error";
+import { EntityUrlGenerator } from "@brains/site-composition";
+import { createGuestAnswerSources } from "./guest-answer-sources";
 
 export interface IdentityAndAgentServices {
   identityService: BrainCharacterService;
@@ -217,23 +217,13 @@ export function initializeIdentityAndAgentServices(
     },
   );
 
-  const aiConfig = aiService.getConfig();
-  // Query embeddings are prepaid by guest search tools; indexing remains separate.
-  // Only the reviewed model/dimension pair can query this index safely.
-  const guestProfile =
-    config.embedding.enabled &&
-    "model" in options.embeddingService &&
-    options.embeddingService.model === openAiGuestEmbeddingModel &&
-    options.embeddingService.dimensions === openAiGuestEmbeddingDimensions &&
-    aiConfig.model === "gpt-5.6-luna" &&
-    aiConfig.apiKey?.trim()
-      ? createOpenAiGuestProfile({
-          apiKey: aiConfig.apiKey,
-          embeddingsEnabled: true,
-        })
-      : undefined;
   const agentFactory = createBrainAgentFactory({
-    ...(guestProfile ? { guestProfile } : {}),
+    // Guest turns are priced where the model's published rates are known;
+    // otherwise their cost is unknown and charged the answer cap.
+    guestPricing:
+      aiService.getConfig().model === "gpt-5.6-luna"
+        ? priceOpenAiGuestTurn
+        : undefined,
     model: aiService.getModel(),
     modelId: aiService.getConfig().model,
     webSearch: aiService.getConfig().webSearch,
@@ -254,7 +244,20 @@ export function initializeIdentityAndAgentServices(
       agentFactory,
       canonicalIdentityResolver: canonicalIdentityService,
       // Lexical retrieval does not need a semantic index to be built.
-      ...(config.embedding.enabled ? { indexReadiness: entityService } : {}),
+      ...(config.embedding.enabled
+        ? {
+            indexReadiness: entityService,
+            // A visitor's sources are found by meaning, so only with embeddings.
+            guestAnswerSources: createGuestAnswerSources({
+              entityService,
+              hasRoute: (entityType) =>
+                EntityUrlGenerator.getInstance().hasRoute(entityType),
+              urlFor: (entityType, slug) =>
+                EntityUrlGenerator.getInstance().generateUrl(entityType, slug),
+              siteBaseUrl: config.siteBaseUrl,
+            }),
+          }
+        : {}),
       uploadAttachmentResolver: (source) =>
         resolveRuntimeUploadAttachment(source, runtimeUploadRegistry, logger),
       agentContextProvider: async (request: AgentContextRequest) => {

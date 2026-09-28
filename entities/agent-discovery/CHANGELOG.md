@@ -1,5 +1,243 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.439
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.439
+  - @brains/atproto-contracts@0.2.0-alpha.439
+  - @brains/content-formatters@0.2.0-alpha.439
+  - @brains/contracts@0.2.0-alpha.439
+  - @brains/http-signatures@0.2.0-alpha.439
+  - @brains/ui-library@0.2.0-alpha.439
+  - @brains/utils@0.2.0-alpha.439
+  - @brains/auth-service@0.2.0-alpha.439
+  - @brains/mcp-service@0.2.0-alpha.439
+  - @brains/plugins@0.2.0-alpha.439
+  - @brains/templates@0.2.0-alpha.439
+
+## 0.2.0-alpha.438
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.438
+  - @brains/atproto-contracts@0.2.0-alpha.438
+  - @brains/content-formatters@0.2.0-alpha.438
+  - @brains/contracts@0.2.0-alpha.438
+  - @brains/http-signatures@0.2.0-alpha.438
+  - @brains/ui-library@0.2.0-alpha.438
+  - @brains/utils@0.2.0-alpha.438
+  - @brains/auth-service@0.2.0-alpha.438
+  - @brains/mcp-service@0.2.0-alpha.438
+  - @brains/plugins@0.2.0-alpha.438
+  - @brains/templates@0.2.0-alpha.438
+
+## 0.2.0-alpha.437
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.437
+  - @brains/atproto-contracts@0.2.0-alpha.437
+  - @brains/content-formatters@0.2.0-alpha.437
+  - @brains/contracts@0.2.0-alpha.437
+  - @brains/http-signatures@0.2.0-alpha.437
+  - @brains/ui-library@0.2.0-alpha.437
+  - @brains/utils@0.2.0-alpha.437
+  - @brains/auth-service@0.2.0-alpha.437
+  - @brains/mcp-service@0.2.0-alpha.437
+  - @brains/plugins@0.2.0-alpha.437
+  - @brains/templates@0.2.0-alpha.437
+
+## 0.2.0-alpha.436
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.436
+  - @brains/atproto-contracts@0.2.0-alpha.436
+  - @brains/content-formatters@0.2.0-alpha.436
+  - @brains/contracts@0.2.0-alpha.436
+  - @brains/http-signatures@0.2.0-alpha.436
+  - @brains/ui-library@0.2.0-alpha.436
+  - @brains/utils@0.2.0-alpha.436
+  - @brains/auth-service@0.2.0-alpha.436
+  - @brains/mcp-service@0.2.0-alpha.436
+  - @brains/plugins@0.2.0-alpha.436
+  - @brains/templates@0.2.0-alpha.436
+
+## 0.2.0-alpha.435
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.435
+  - @brains/atproto-contracts@0.2.0-alpha.435
+  - @brains/content-formatters@0.2.0-alpha.435
+  - @brains/contracts@0.2.0-alpha.435
+  - @brains/http-signatures@0.2.0-alpha.435
+  - @brains/ui-library@0.2.0-alpha.435
+  - @brains/utils@0.2.0-alpha.435
+  - @brains/auth-service@0.2.0-alpha.435
+  - @brains/mcp-service@0.2.0-alpha.435
+  - @brains/plugins@0.2.0-alpha.435
+  - @brains/templates@0.2.0-alpha.435
+
+## 0.2.0-alpha.434
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.434
+  - @brains/atproto-contracts@0.2.0-alpha.434
+  - @brains/content-formatters@0.2.0-alpha.434
+  - @brains/contracts@0.2.0-alpha.434
+  - @brains/http-signatures@0.2.0-alpha.434
+  - @brains/ui-library@0.2.0-alpha.434
+  - @brains/utils@0.2.0-alpha.434
+  - @brains/auth-service@0.2.0-alpha.434
+  - @brains/mcp-service@0.2.0-alpha.434
+  - @brains/plugins@0.2.0-alpha.434
+  - @brains/templates@0.2.0-alpha.434
+
+## 0.2.0-alpha.433
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.433
+  - @brains/atproto-contracts@0.2.0-alpha.433
+  - @brains/content-formatters@0.2.0-alpha.433
+  - @brains/contracts@0.2.0-alpha.433
+  - @brains/http-signatures@0.2.0-alpha.433
+  - @brains/ui-library@0.2.0-alpha.433
+  - @brains/utils@0.2.0-alpha.433
+  - @brains/auth-service@0.2.0-alpha.433
+  - @brains/mcp-service@0.2.0-alpha.433
+  - @brains/plugins@0.2.0-alpha.433
+  - @brains/templates@0.2.0-alpha.433
+
+## 0.2.0-alpha.432
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.432
+  - @brains/atproto-contracts@0.2.0-alpha.432
+  - @brains/content-formatters@0.2.0-alpha.432
+  - @brains/contracts@0.2.0-alpha.432
+  - @brains/http-signatures@0.2.0-alpha.432
+  - @brains/ui-library@0.2.0-alpha.432
+  - @brains/utils@0.2.0-alpha.432
+  - @brains/auth-service@0.2.0-alpha.432
+  - @brains/mcp-service@0.2.0-alpha.432
+  - @brains/plugins@0.2.0-alpha.432
+  - @brains/templates@0.2.0-alpha.432
+
+## 0.2.0-alpha.431
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.431
+  - @brains/atproto-contracts@0.2.0-alpha.431
+  - @brains/content-formatters@0.2.0-alpha.431
+  - @brains/contracts@0.2.0-alpha.431
+  - @brains/http-signatures@0.2.0-alpha.431
+  - @brains/ui-library@0.2.0-alpha.431
+  - @brains/utils@0.2.0-alpha.431
+  - @brains/auth-service@0.2.0-alpha.431
+  - @brains/mcp-service@0.2.0-alpha.431
+  - @brains/plugins@0.2.0-alpha.431
+  - @brains/templates@0.2.0-alpha.431
+
+## 0.2.0-alpha.430
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.430
+  - @brains/atproto-contracts@0.2.0-alpha.430
+  - @brains/content-formatters@0.2.0-alpha.430
+  - @brains/contracts@0.2.0-alpha.430
+  - @brains/http-signatures@0.2.0-alpha.430
+  - @brains/ui-library@0.2.0-alpha.430
+  - @brains/utils@0.2.0-alpha.430
+  - @brains/auth-service@0.2.0-alpha.430
+  - @brains/mcp-service@0.2.0-alpha.430
+  - @brains/plugins@0.2.0-alpha.430
+  - @brains/templates@0.2.0-alpha.430
+
+## 0.2.0-alpha.429
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.429
+  - @brains/atproto-contracts@0.2.0-alpha.429
+  - @brains/content-formatters@0.2.0-alpha.429
+  - @brains/contracts@0.2.0-alpha.429
+  - @brains/http-signatures@0.2.0-alpha.429
+  - @brains/ui-library@0.2.0-alpha.429
+  - @brains/utils@0.2.0-alpha.429
+  - @brains/auth-service@0.2.0-alpha.429
+  - @brains/mcp-service@0.2.0-alpha.429
+  - @brains/plugins@0.2.0-alpha.429
+  - @brains/templates@0.2.0-alpha.429
+
+## 0.2.0-alpha.428
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.428
+  - @brains/atproto-contracts@0.2.0-alpha.428
+  - @brains/content-formatters@0.2.0-alpha.428
+  - @brains/contracts@0.2.0-alpha.428
+  - @brains/http-signatures@0.2.0-alpha.428
+  - @brains/ui-library@0.2.0-alpha.428
+  - @brains/utils@0.2.0-alpha.428
+  - @brains/auth-service@0.2.0-alpha.428
+  - @brains/mcp-service@0.2.0-alpha.428
+  - @brains/plugins@0.2.0-alpha.428
+  - @brains/templates@0.2.0-alpha.428
+
+## 0.2.0-alpha.427
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.427
+  - @brains/atproto-contracts@0.2.0-alpha.427
+  - @brains/content-formatters@0.2.0-alpha.427
+  - @brains/contracts@0.2.0-alpha.427
+  - @brains/http-signatures@0.2.0-alpha.427
+  - @brains/ui-library@0.2.0-alpha.427
+  - @brains/utils@0.2.0-alpha.427
+  - @brains/auth-service@0.2.0-alpha.427
+  - @brains/mcp-service@0.2.0-alpha.427
+  - @brains/plugins@0.2.0-alpha.427
+  - @brains/templates@0.2.0-alpha.427
+
+## 0.2.0-alpha.426
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.426
+  - @brains/atproto-contracts@0.2.0-alpha.426
+  - @brains/content-formatters@0.2.0-alpha.426
+  - @brains/contracts@0.2.0-alpha.426
+  - @brains/http-signatures@0.2.0-alpha.426
+  - @brains/ui-library@0.2.0-alpha.426
+  - @brains/utils@0.2.0-alpha.426
+  - @brains/auth-service@0.2.0-alpha.426
+  - @brains/mcp-service@0.2.0-alpha.426
+  - @brains/plugins@0.2.0-alpha.426
+  - @brains/templates@0.2.0-alpha.426
+
 ## 0.2.0-alpha.425
 
 ### Patch Changes

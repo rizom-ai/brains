@@ -30,7 +30,7 @@ import { reconcileCohort } from "./reconcile-cohort";
 import { writeUsersTable } from "./render-users-table";
 import { encryptPilotSecrets } from "./secrets-encrypt";
 import { pushPilotSecrets } from "./secrets-push";
-import { type RunCommand as OpsRunCommand } from "./run-subprocess";
+import { type RunCommand as OpsRunCommand } from "@brains/deploy-support/run-subprocess";
 import { runPilotSshKeyBootstrap, type SshKeygen } from "./ssh-key-bootstrap";
 import { addPilotUser } from "./user-add";
 import type { PilotOffboardDriver } from "./user-offboard";

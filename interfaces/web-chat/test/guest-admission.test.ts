@@ -89,7 +89,7 @@ describe("guest admission", () => {
     if (!admitted || !first) throw new Error("Expected an execution lease");
     expect(admitted.lease.execution).toMatchObject({
       maxCostMicroUsd: 100000,
-      limits: { contextBytes: 32000, toolCalls: 3 },
+      limits: { messageCharacters: 4000, requestTimeoutSeconds: 90 },
     });
     expect(admitted.lease.execution.limits).not.toHaveProperty(
       "globalConcurrency",

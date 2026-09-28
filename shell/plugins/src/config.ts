@@ -23,6 +23,21 @@ export interface PluginConfigValidationIssue {
   path: string;
   code: string;
   message: string;
+  /**
+   * The config gave no value where one is required. A custom rule that
+   * requires one of several values marks itself with `params: { missing: true }`.
+   */
+  missing: boolean;
+}
+
+function valueAt(input: unknown, path: readonly PropertyKey[]): unknown {
+  return path.reduce<unknown>(
+    (value, key) =>
+      typeof value === "object" && value !== null
+        ? Reflect.get(value, key)
+        : undefined,
+    input,
+  );
 }
 
 function formatValidationIssues(
@@ -48,6 +63,36 @@ export class PluginConfigValidationError extends Error {
     this.pluginId = pluginId;
     this.issues = issues;
   }
+
+  static fromZod(
+    pluginId: string,
+    error: z.ZodError,
+    input: unknown,
+  ): PluginConfigValidationError {
+    return new PluginConfigValidationError(
+      pluginId,
+      error.issues.map((issue) => ({
+        path: issue.path.map(String).join("."),
+        code: issue.code,
+        message: issue.message,
+        missing:
+          (issue.code === "custom" && issue.params?.["missing"] === true) ||
+          ((issue.code === "invalid_type" || issue.code === "custom") &&
+            valueAt(input, issue.path) === undefined),
+      })),
+    );
+  }
+}
+
+/**
+ * Every problem is a required value left unset, such as a credential whose
+ * environment variable is absent: the plugin is not configured here, which
+ * is not the same as configured wrongly.
+ */
+export function isMissingPluginConfig(
+  error: PluginConfigValidationError,
+): boolean {
+  return error.issues.every((issue) => issue.missing);
 }
 
 /**

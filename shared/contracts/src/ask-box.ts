@@ -55,3 +55,43 @@ export const askSourcesDetailSchema: z.ZodObject<{
   sources: z.array(z.object({ id: z.string(), title: z.string() })),
 });
 export type AskSourcesDetail = z.output<typeof askSourcesDetailSchema>;
+
+/**
+ * On a narrow screen the box opens full screen once the visitor engages, so
+ * the keyboard never covers it and the answer never grows out of view.
+ *
+ * - ASK_SHEET_MEDIA is the media query below which the box does so.
+ * - ASK_SHEET_ATTRIBUTE is set on the host while the box is open full screen.
+ * - ASK_KEYBOARD_ATTRIBUTE is set on the host while the on-screen keyboard
+ *   takes part of the screen; the box then fits the space above it.
+ * - The open box starts with a header ASK_SHEET_HEADER_HEIGHT tall. A host
+ *   may dock something below it, such as a strip of its own content, by
+ *   setting `--ask-sheet-inset` on the host to reserve that height above
+ *   the conversation.
+ */
+export const ASK_SHEET_MEDIA = "(max-width: 47.99rem)";
+export const ASK_SHEET_ATTRIBUTE = "data-ask-sheet";
+export const ASK_KEYBOARD_ATTRIBUTE = "data-ask-keyboard";
+export const ASK_SHEET_HEADER_HEIGHT = "3.25rem";
+
+/**
+ * Set by a host on its mount element: whose brain the box speaks for, such
+ * as "Yeehaa". The box titles its conversation, labels its answers and says
+ * where they come from with it; without it the box speaks as "the brain".
+ */
+export const ASK_NAME_ATTRIBUTE = "data-ask-name";
+
+/**
+ * The key an open sheet marks its history entry with, holding the page's
+ * scroll position. A page loaded on such an entry (a reload with the sheet
+ * open) steps back off it and returns to that position.
+ */
+export const ASK_SHEET_HISTORY_KEY = "askSheet";
+
+/**
+ * Set by the box on its host, beside ASK_SHEET_ATTRIBUTE, while a closing
+ * sheet falls away. A host that moves its own parts with the sheet (such as a
+ * map docked under its header) moves them out with it; the sheet closes when
+ * its own animation ends, or at once when it has none.
+ */
+export const ASK_CLOSING_ATTRIBUTE = "data-ask-closing";

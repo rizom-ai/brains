@@ -59,22 +59,11 @@ const chatIdSchema: z.ZodString = z.string().trim().min(1).max(256);
 /** Present on guest send/status responses; it is a locator, never authority. */
 export const CHAT_CONVERSATION_ID_HEADER = "x-brain-conversation-id";
 
-/** Shown with the composer: questions are kept for the owner, how long, past deletion. */
-export const guestRecordingDisclosureSchema: Strict<{
-  notice: z.ZodString;
-  revision: z.ZodString;
-}> = z.strictObject({
-  notice: z.string().min(1),
-  /** Echoed with a question to show which notice the visitor was shown. */
-  revision: z.string().regex(/^[a-f0-9]{64}$/),
-});
-
 export const guestChatSessionResponseSchema: Strict<{
   expiresAt: z.ZodNumber;
   provider: z.ZodString;
   notice: z.ZodString;
   deletionLimitations: z.ZodString;
-  recording: typeof guestRecordingDisclosureSchema;
   retention: typeof guestRetentionSchema;
   messageCharacters: z.ZodNumber;
   canSend: z.ZodBoolean;
@@ -84,7 +73,6 @@ export const guestChatSessionResponseSchema: Strict<{
   provider: z.string().min(1),
   notice: z.string().min(1),
   deletionLimitations: z.string().min(1),
-  recording: guestRecordingDisclosureSchema,
   retention: guestRetentionSchema,
   messageCharacters: z.number().int().positive(),
   canSend: z.boolean(),
@@ -733,47 +721,15 @@ export const chatMessageSchema: z.ZodObject<{
 export type ChatMessage = z.output<typeof chatMessageSchema>;
 export type ChatMessageRole = ChatMessage["role"];
 
-const chatSafeText = (max: number): z.ZodString =>
-  z
-    .string()
-    .trim()
-    .min(1)
-    .max(max)
-    .refine((value) => !/[\p{Cc}\p{Cf}]/u.test(value));
-
-export const chatSourceContextSchema: Strict<{
-  sourceId: z.ZodString;
-  itemId: z.ZodString;
-  label: z.ZodString;
-}> = z.strictObject({
-  sourceId: z
-    .string()
-    .trim()
-    .regex(/^[a-z][a-z0-9-]*$/)
-    .max(64),
-  itemId: z.string().trim().min(1).max(300),
-  label: chatSafeText(160),
-});
-
-export type ChatSourceContext = z.output<typeof chatSourceContextSchema>;
-
 export const chatMessageRequestSchema: Strict<{
   id: z.ZodOptional<z.ZodString>;
   messages: z.ZodArray<typeof chatMessageSchema>;
   trigger: z.ZodOptional<z.ZodString>;
-  inboxContext: z.ZodOptional<typeof chatSourceContextSchema>;
-  disclosure: z.ZodOptional<z.ZodString>;
 }> = z
   .object({
     id: chatIdSchema.optional(),
     messages: z.array(chatMessageSchema).min(1).max(200),
     trigger: z.string().trim().min(1).max(64).optional(),
-    inboxContext: chatSourceContextSchema.optional(),
-    /** Guest only: the recording notice revision shown; owner chat ignores it. */
-    disclosure: z
-      .string()
-      .regex(/^[a-f0-9]{64}$/)
-      .optional(),
   })
   .strict();
 
@@ -791,14 +747,8 @@ export const guestChatMessageRequestSchema: Strict<{
       >;
     }>
   >;
-  disclosure: z.ZodOptional<z.ZodString>;
 }> = z.strictObject({
   id: chatIdSchema.optional(),
-  /** The recording notice revision the visitor was shown with this question. */
-  disclosure: z
-    .string()
-    .regex(/^[a-f0-9]{64}$/)
-    .optional(),
   messages: z
     .array(
       z.strictObject({
@@ -1647,11 +1597,18 @@ export function createChatClient(options: ChatClientOptions = {}): ChatClient {
 
 export {
   ASK_BOX_ATTRIBUTE,
+  ASK_CLOSING_ATTRIBUTE,
   ASK_BOX_SCRIPT_PATH,
   ASK_BOX_STATE_KEY,
   ASK_BOX_STATE_NAMESPACE,
+  ASK_KEYBOARD_ATTRIBUTE,
+  ASK_NAME_ATTRIBUTE,
+  ASK_SHEET_HISTORY_KEY,
   ASK_READY_ATTRIBUTE,
   ASK_SEND_ATTRIBUTE,
+  ASK_SHEET_ATTRIBUTE,
+  ASK_SHEET_HEADER_HEIGHT,
+  ASK_SHEET_MEDIA,
   ASK_SOURCE_ATTRIBUTE,
   ASK_SOURCES_EVENT,
   ASK_STATUS_ATTRIBUTE,

@@ -5,10 +5,8 @@ import {
   inspectGroupingDefinitionDraft,
   replaceGroupingDefinitionRow,
 } from "./grouping-definition-draft";
-const eligible = new Set(["note", "post"]);
 const definition = {
   label: "Clients",
-  types: ["note"],
   multiple: false,
   values: ["Acme", " Acme ", "a,b", "acme"],
 };
@@ -18,7 +16,6 @@ test("validation retains authored values and unknown properties rather than norm
   };
   const result = inspectGroupingDefinitionDraft(
     createGroupingDefinitionDraft(source),
-    eligible,
   );
   expect(result.value).toEqual(source);
   expect(result.issues.length).toBeGreaterThan(0);
@@ -40,7 +37,7 @@ test("duplicate-key drafts are never collapsed to a document map", () => {
     1,
     { key: "clients" },
   );
-  const result = inspectGroupingDefinitionDraft(draft, eligible);
+  const result = inspectGroupingDefinitionDraft(draft);
   expect(result.value).toBeUndefined();
   expect(result.pendingChanges).toBe(true);
   expect(draft.rows.map((row) => row.key)).toEqual(["clients", "clients"]);
@@ -52,29 +49,38 @@ test("the twenty-definition limit does not discard overflowing source entries", 
   );
   const result = inspectGroupingDefinitionDraft(
     createGroupingDefinitionDraft(source),
-    eligible,
   );
   expect(result.value).toEqual(source);
   expect(result.issues.some((issue) => issue.message.includes("20"))).toBe(
     true,
   );
 });
-test("the control document and missing contributors cannot be admitted by the draft", () => {
+test("new definitions default to every eligible content type without a type setting", () => {
+  const draft = addGroupingDefinition(createGroupingDefinitionDraft({}));
+  expect(draft.rows[0]?.value).toEqual({ label: "", multiple: true });
+  const ready = replaceGroupingDefinitionRow(draft, 0, {
+    key: "clients",
+    value: definition,
+  });
+  expect(inspectGroupingDefinitionDraft(ready).issues).toEqual([]);
+});
+test("unavailable excluded types remain exact so reinstalling a type retains the exclusion", () => {
   const source = {
-    clients: {
-      ...definition,
-      types: ["note", "grouping-definitions", "missing"],
-    },
+    clients: { ...definition, excludeTypes: ["missing", "post"] },
   };
   const result = inspectGroupingDefinitionDraft(
     createGroupingDefinitionDraft(source),
-    eligible,
   );
   expect(result.value).toEqual(source);
-  expect(result.issues.map((issue) => issue.message)).toEqual(
-    expect.arrayContaining([
-      "The grouping definitions document cannot be a grouping contributor.",
-      "Unavailable contributor type: missing. Choose an available type.",
-    ]),
+  expect(result.issues).toEqual([]);
+});
+test("invalid exclusion drafts remain visible and block saves", () => {
+  const source = { clients: { ...definition, excludeTypes: ["post", "post"] } };
+  const result = inspectGroupingDefinitionDraft(
+    createGroupingDefinitionDraft(source),
   );
+  expect(result.value).toEqual(source);
+  expect(
+    result.issues.some((issue) => issue.path.includes("excludeTypes")),
+  ).toBe(true);
 });

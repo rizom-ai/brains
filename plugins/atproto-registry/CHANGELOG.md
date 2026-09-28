@@ -1,5 +1,131 @@
 # @brains/atproto-registry
 
+## 0.2.0-alpha.439
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.439
+  - @brains/utils@0.2.0-alpha.439
+  - @brains/plugins@0.2.0-alpha.439
+
+## 0.2.0-alpha.438
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.438
+  - @brains/utils@0.2.0-alpha.438
+  - @brains/plugins@0.2.0-alpha.438
+
+## 0.2.0-alpha.437
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.437
+  - @brains/utils@0.2.0-alpha.437
+  - @brains/plugins@0.2.0-alpha.437
+
+## 0.2.0-alpha.436
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.436
+  - @brains/utils@0.2.0-alpha.436
+  - @brains/plugins@0.2.0-alpha.436
+
+## 0.2.0-alpha.435
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.435
+  - @brains/utils@0.2.0-alpha.435
+  - @brains/plugins@0.2.0-alpha.435
+
+## 0.2.0-alpha.434
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.434
+  - @brains/utils@0.2.0-alpha.434
+  - @brains/plugins@0.2.0-alpha.434
+
+## 0.2.0-alpha.433
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.433
+  - @brains/utils@0.2.0-alpha.433
+  - @brains/plugins@0.2.0-alpha.433
+
+## 0.2.0-alpha.432
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.432
+  - @brains/utils@0.2.0-alpha.432
+  - @brains/plugins@0.2.0-alpha.432
+
+## 0.2.0-alpha.431
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.431
+  - @brains/utils@0.2.0-alpha.431
+  - @brains/plugins@0.2.0-alpha.431
+
+## 0.2.0-alpha.430
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.430
+  - @brains/utils@0.2.0-alpha.430
+  - @brains/plugins@0.2.0-alpha.430
+
+## 0.2.0-alpha.429
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.429
+  - @brains/utils@0.2.0-alpha.429
+  - @brains/plugins@0.2.0-alpha.429
+
+## 0.2.0-alpha.428
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.428
+  - @brains/utils@0.2.0-alpha.428
+  - @brains/plugins@0.2.0-alpha.428
+
+## 0.2.0-alpha.427
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.427
+  - @brains/utils@0.2.0-alpha.427
+  - @brains/plugins@0.2.0-alpha.427
+
+## 0.2.0-alpha.426
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/atproto-contracts@0.2.0-alpha.426
+  - @brains/utils@0.2.0-alpha.426
+  - @brains/plugins@0.2.0-alpha.426
+
 ## 0.2.0-alpha.425
 
 ### Patch Changes

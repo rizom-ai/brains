@@ -14,6 +14,7 @@ import { createStudioQueryClient } from "./query-client";
 import { groupingQueryOptions } from "./grouping-queries";
 import { groupingQuery } from "./grouping-url-query";
 import { StudioGroupingView } from "./studio-groupings";
+import { studioTypeHierarchy } from "../../src/config";
 
 let windowInstance: Window;
 let restoreGlobals: RestoreGlobals;
@@ -287,6 +288,7 @@ test.each([
                 label: "Posts",
                 isSingleton: false,
                 count: 1,
+                hierarchy: studioTypeHierarchy("post"),
                 hasBody: false,
                 capabilities: {
                   canRead: true,

@@ -57,3 +57,9 @@ export {
   type ConfirmDialogProps,
 } from "./interactive";
 export { AppFetchProvider, useAppFetch, type AppFetch } from "./app-fetch";
+export {
+  FOLLOW_TAIL_THRESHOLD_PX,
+  useFollowTail,
+  type FollowTail,
+  type FollowTailInput,
+} from "./follow-tail";

@@ -74,7 +74,7 @@ export function StudioGroupingDefinitionsEditor(props: {
   const eligibleTypes = new Set(
     props.contributorTypes.map((type) => type.entityType),
   );
-  const result = inspectGroupingDefinitionDraft(draft, eligibleTypes);
+  const result = inspectGroupingDefinitionDraft(draft);
   useEffect(() => {
     if (sourceDigest === published.current && savedDigest === lastSaved.current)
       return;
@@ -123,7 +123,7 @@ export function StudioGroupingDefinitionsEditor(props: {
   const commit = (next: GroupingDefinitionDraft): void => {
     if (props.readOnly) return;
     setDraft(next);
-    const inspected = inspectGroupingDefinitionDraft(next, eligibleTypes);
+    const inspected = inspectGroupingDefinitionDraft(next);
     if (inspected.value !== undefined) {
       published.current = JSON.stringify(inspected.value);
       props.onChange(inspected.value);
@@ -206,8 +206,8 @@ export function StudioGroupingDefinitionsEditor(props: {
                 : saved
                   ? row.key
                   : "New grouping";
-            const types = Array.isArray(entry?.["types"])
-              ? entry["types"].filter(
+            const excludedTypes = Array.isArray(entry?.["excludeTypes"])
+              ? entry["excludeTypes"].filter(
                   (type: unknown): type is string => typeof type === "string",
                 )
               : [];
@@ -219,12 +219,17 @@ export function StudioGroupingDefinitionsEditor(props: {
               ? new Map(usage.values.map((value) => [value.value, value.count]))
               : undefined;
             const set = (field: string, value: unknown): void => {
-              if (entry)
-                commit(
-                  replaceGroupingDefinitionRow(draft, row.id, {
-                    value: { ...entry, [field]: value },
-                  }),
-                );
+              if (!entry) return;
+              const next = { ...entry, [field]: value };
+              if (
+                field === "excludeTypes" &&
+                Array.isArray(value) &&
+                value.length === 0
+              )
+                delete next[field];
+              commit(
+                replaceGroupingDefinitionRow(draft, row.id, { value: next }),
+              );
             };
             const rowIssues = issues.filter(
               (issue) => issue.path[1] === row.key,
@@ -307,61 +312,12 @@ export function StudioGroupingDefinitionsEditor(props: {
                             }}
                           />
                         )}
-                        <span {...stylex.props(f.listHelp)}>
+                        <span {...stylex.props(f.listHelp, s.help)}>
                           {saved
                             ? "Fixed after creation"
                             : "Lowercase letters, digits and hyphens. Fixed when saved."}
                         </span>
                       </label>
-                      <fieldset {...stylex.props(s.choices)}>
-                        <legend {...stylex.props(f.label)}>Applies to</legend>
-                        {props.readOnly ? (
-                          <span {...stylex.props(s.readOnly)}>
-                            {types
-                              .map(
-                                (type) =>
-                                  props.contributorTypes.find(
-                                    (candidate) =>
-                                      candidate.entityType === type,
-                                  )?.label ?? `${type} (unavailable)`,
-                              )
-                              .join(", ")}
-                          </span>
-                        ) : (
-                          [
-                            ...props.contributorTypes,
-                            ...types
-                              .filter((type) => !eligibleTypes.has(type))
-                              .map((type) => ({
-                                entityType: type,
-                                label: `${type} (unavailable)`,
-                              })),
-                          ].map((type) => (
-                            <label
-                              key={type.entityType}
-                              {...stylex.props(s.choice)}
-                            >
-                              <input
-                                type="checkbox"
-                                aria-label={`${eligibleTypes.has(type.entityType) ? type.label : type.entityType} contributor`}
-                                {...stylex.props(v.checkbox)}
-                                checked={types.includes(type.entityType)}
-                                onChange={(event) =>
-                                  set(
-                                    "types",
-                                    event.currentTarget.checked
-                                      ? [...types, type.entityType]
-                                      : types.filter(
-                                          (value) => value !== type.entityType,
-                                        ),
-                                  )
-                                }
-                              />
-                              {type.label}
-                            </label>
-                          ))
-                        )}
-                      </fieldset>
                       <label {...stylex.props(f.field)}>
                         <span {...stylex.props(f.label)}>Values per entry</span>
                         {props.readOnly ? (
@@ -399,6 +355,69 @@ export function StudioGroupingDefinitionsEditor(props: {
                         )}
                       </label>
                     </div>
+                    <details {...stylex.props(s.exclusions)}>
+                      <summary {...stylex.props(f.label, s.exclusionsSummary)}>
+                        Exclude types
+                        {excludedTypes.length > 0
+                          ? ` (${excludedTypes.length})`
+                          : ""}
+                      </summary>
+                      <p {...stylex.props(f.listHelp, s.help)}>
+                        Applies to all content types unless excluded.
+                      </p>
+                      {props.readOnly ? (
+                        <span {...stylex.props(s.readOnly)}>
+                          {excludedTypes
+                            .map(
+                              (type) =>
+                                props.contributorTypes.find(
+                                  (candidate) => candidate.entityType === type,
+                                )?.label ?? `${type} (unavailable)`,
+                            )
+                            .join(", ") || "None"}
+                        </span>
+                      ) : (
+                        <fieldset {...stylex.props(s.choices)}>
+                          <legend {...stylex.props(f.label)}>
+                            Excluded content types
+                          </legend>
+                          {[
+                            ...props.contributorTypes,
+                            ...excludedTypes
+                              .filter((type) => !eligibleTypes.has(type))
+                              .map((type) => ({
+                                entityType: type,
+                                label: `${type} (unavailable)`,
+                              })),
+                          ].map((type) => (
+                            <label
+                              key={type.entityType}
+                              {...stylex.props(s.choice)}
+                            >
+                              <input
+                                type="checkbox"
+                                aria-label={`Exclude ${type.label}`}
+                                {...stylex.props(v.checkbox)}
+                                checked={excludedTypes.includes(
+                                  type.entityType,
+                                )}
+                                onChange={(event) =>
+                                  set(
+                                    "excludeTypes",
+                                    event.currentTarget.checked
+                                      ? [...excludedTypes, type.entityType]
+                                      : excludedTypes.filter(
+                                          (value) => value !== type.entityType,
+                                        ),
+                                  )
+                                }
+                              />
+                              {type.label}
+                            </label>
+                          ))}
+                        </fieldset>
+                      )}
+                    </details>
                     <fieldset {...stylex.props(s.choices, s.rule)}>
                       <legend {...stylex.props(f.label)}>Allowed values</legend>
                       {props.readOnly ? (
@@ -453,7 +472,7 @@ export function StudioGroupingDefinitionsEditor(props: {
                           readOnly={props.readOnly}
                           counts={counts}
                         />
-                        <p {...stylex.props(f.listHelp)}>
+                        <p {...stylex.props(f.listHelp, s.help)}>
                           {Array.isArray(entry["values"]) &&
                           entry["values"].length === 0
                             ? "Add at least one allowed value, or choose Any value."

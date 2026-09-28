@@ -26,13 +26,17 @@ import {
 } from "./studio-paths";
 import { createStudioCreatePrefillState } from "./create-prefill-contract";
 import { createEditorRoutes } from "./editor-routes";
+import { createStudioChatHandoffState } from "./chat-handoff-contract";
 import { registerGroupingDefinitions } from "./grouping-definitions";
 import type { GroupingDefinitionSource } from "./grouping-definition-source";
 import { StudioWorkspaceRegistry } from "./workspace-registry";
 import packageJson from "../package.json";
 import { getErrorMessage } from "@brains/utils/error";
 import { STUDIO_ACCOUNT_WORKSPACE_ID } from "./account-workspace";
-import { STUDIO_CHAT_WORKSPACE_ID } from "./chat-workspace";
+import {
+  STUDIO_CHAT_ROUTE_PATH,
+  STUDIO_CHAT_WORKSPACE_ID,
+} from "./chat-workspace";
 import {
   STUDIO_OVERVIEW_WORKSPACE_ID,
   StudioOverviewRegistry,
@@ -160,6 +164,52 @@ export class StudioPlugin extends ServicePlugin<
     context: ServicePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
+    // The shell catalogs plugins before registration, but HTTP routes are
+    // readable only after finalization. Use the same presence gate as the
+    // Chat shell; it resolves the configured API path when handling requests.
+    if (context.plugins.has("web-chat")) {
+      context.endpoints.register({
+        label: "Chat",
+        url: STUDIO_CHAT_ROUTE_PATH,
+        priority: 15,
+        visibility: "trusted",
+        requiresActiveSession: true,
+      });
+      context.interactions.register({
+        id: "chat",
+        label: "Chat",
+        description: "Chat with this brain in the browser.",
+        href: STUDIO_CHAT_ROUTE_PATH,
+        kind: "human",
+        priority: 15,
+        visibility: "trusted",
+        requiresActiveSession: true,
+      });
+      context.inboxFollowUps.registerKind({
+        kind: "discuss-in-chat",
+        label: "Discuss in chat",
+        priority: 10,
+        mode: "universal",
+        permissionLevel: "trusted",
+        applies: () => true,
+        resolve: ({ sourceId, item }) => {
+          if (!context.inbox.getSource(sourceId)?.resolveDetail)
+            return undefined;
+          const label = item.title
+            .replace(/[\p{Cc}\p{Cf}]/gu, " ")
+            .trim()
+            .slice(0, 160);
+          return {
+            href: STUDIO_CHAT_ROUTE_PATH,
+            state: createStudioChatHandoffState(
+              sourceId,
+              item.id,
+              label || "Inbox item",
+            ),
+          };
+        },
+      });
+    }
     context.endpoints.register({
       label: "Studio",
       url: this.config.routePath,

@@ -17,7 +17,9 @@ test("Studio grouping integration with real entity adapters", async () => {
     ],
     {
       cwd: new URL("..", import.meta.url).pathname,
-      env: { ...process.env, BUN_JSC_useDFGJIT: "0" },
+      // Bun omits per-file headers under an agent (CLAUDECODE), and the
+      // assertions below read them.
+      env: { ...process.env, CLAUDECODE: "", BUN_JSC_useDFGJIT: "0" },
       stdout: "pipe",
       stderr: "pipe",
     },

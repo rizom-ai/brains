@@ -1,38 +1,23 @@
 /** @jsxImportSource react */
 import { libraryStyles as library } from "./studio-library.styles";
-import { StudioChatSessionRename } from "./studio-chat-session-rename";
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  useAppFetch,
-} from "@brains/app-ui-react";
+import { Button, useAppFetch, useFollowTail } from "@brains/app-ui-react";
 import { chatClass, chatLayout } from "./studio-chat-layout.styles";
-import {
+import type {
   StudioChatDraftStore,
-  type StudioChatNavigationState,
+  StudioChatNavigationState,
 } from "./studio-chat-drafts";
-import { studioChatDraftKey } from "./studio-chat-draft-key";
-import {
-  createChatClient,
-  type ChatSession,
-  type ChatUploadResponse,
-} from "@brains/contracts/chat";
+import { createChatClient } from "@brains/contracts/chat";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  useCallback,
   useEffect,
   useMemo,
   useRef,
-  useState,
-  useSyncExternalStore,
   type FormEvent,
   type ReactElement,
 } from "react";
 import { STUDIO_CHAT_WORKSPACE_ID } from "../../src/chat-workspace";
 import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
-import type { StudioChatHandoff } from "./operator-launch";
+import type { StudioChatHandoff } from "../../src/chat-handoff-contract";
 import { TypeSwitcher } from "./entity-fields";
 import { useStudioNavigationCollapsed } from "./studio-navigation-state";
 import { StudioChrome } from "./studio-chrome";
@@ -40,16 +25,17 @@ import {
   navigationClassName as navClass,
   navigationStyles as nav,
 } from "./studio-navigation.styles";
-import { CHAT_UPLOAD_GUIDANCE, studioChatKeys } from "./studio-chat-contracts";
-import { SessionRail } from "./studio-chat-rail";
+import { workspaceRailBadges } from "./studio-app-model";
 import { ChatEmptyState, ChatTurn, ApprovalCard } from "./studio-chat-thread";
 import { Composer } from "./studio-chat-composer";
-import { ConversationContext } from "./studio-chat-context-panel";
+import { StudioChatInterruption } from "./studio-chat-interruption";
+import { StudioChatThreadHead } from "./studio-chat-thread-head";
+import { useChatDraft } from "./use-chat-draft";
 import { useChatSessions } from "./use-chat-sessions";
 import { useChatStream } from "./use-chat-stream";
-import { useChatThreadScroll } from "./use-chat-thread-scroll";
 import { useChatUploads } from "./use-chat-uploads";
 import { useChatArchive } from "./use-chat-archive";
+import { useChatDelete } from "./use-chat-delete";
 import { useChatHandoff } from "./use-chat-handoff";
 import { useChatThread } from "./use-chat-thread";
 import { useChatNavigationState } from "./use-chat-navigation-state";
@@ -78,34 +64,19 @@ export function StudioChatWorkspace(
     () => createChatClient({ apiPath: props.apiPath, fetch: appFetch }),
     [props.apiPath, appFetch],
   );
-  const [localDraftStore] = useState(() => new StudioChatDraftStore());
-  const draftStore = props.draftStore ?? localDraftStore;
-  const draftKey = studioChatDraftKey(props.apiPath, props.sessionId);
-  const currentDraftKey = useRef(draftKey);
-  currentDraftKey.current = draftKey;
-  const { text: draft, uploads } = useSyncExternalStore(
-    draftStore.subscribe,
-    () => draftStore.read(draftKey),
-    () => draftStore.read(draftKey),
-  );
-  const setDraft = useCallback(
-    (text: string) => draftStore.update(draftKey, { text }),
-    [draftStore, draftKey],
-  );
-  const setUploads = useCallback(
-    (
-      value:
-        | ChatUploadResponse[]
-        | ((current: ChatUploadResponse[]) => ChatUploadResponse[]),
-    ) =>
-      draftStore.update(draftKey, {
-        uploads:
-          typeof value === "function"
-            ? value(draftStore.read(draftKey).uploads)
-            : value,
-      }),
-    [draftStore, draftKey],
-  );
+  const {
+    draftStore,
+    draftKey,
+    currentDraftKey,
+    draft,
+    uploads,
+    setDraft,
+    setUploads,
+  } = useChatDraft({
+    draftStore: props.draftStore,
+    apiPath: props.apiPath,
+    sessionId: props.sessionId,
+  });
   const {
     uploading,
     uploadAttempts,
@@ -115,27 +86,14 @@ export function StudioChatWorkspace(
     reset: resetUploads,
   } = useChatUploads({ chatClient, draftKey, currentDraftKey, setUploads });
   const navigationCollapsed = useStudioNavigationCollapsed();
-  const {
-    sessions,
-    currentSession,
-    archivedSession,
-    sessionControls,
-    sessionsLoading,
-    navigateToSession,
-    sessionPickerOpen,
-    setSessionPickerOpen,
-    detailsOpen,
-    setDetailsOpen,
-    closeDisclosures,
-  } = useChatSessions({
+  const chatSessions = useChatSessions({
     chatClient,
     queryClient,
     sessionId: props.sessionId,
     studioBasePath: props.studioBasePath,
     navigate: props.navigate,
   });
-  const detailsTrigger = useRef<HTMLSpanElement>(null);
-  const sessionPickerTrigger = useRef<HTMLSpanElement>(null);
+  const { navigateToSession, closeDisclosures } = chatSessions;
   const mountedRef = useRef(false);
   const adoptedSessionRef = useRef<string | null>(null);
   const {
@@ -182,6 +140,11 @@ export function StudioChatWorkspace(
     setError,
     navigateToSession,
   });
+  // Text or uploads in the composer, which restoring a failed request would replace.
+  const composerHasContent = Boolean(draft) || uploads.length > 0;
+  // Anything the composer holds, including uploads still being retried.
+  const draftPending = composerHasContent || uploadAttempts.length > 0;
+  const archiveBlocked = sending || uploading || draftPending;
   const {
     archiving,
     archiveCurrent,
@@ -193,14 +156,20 @@ export function StudioChatWorkspace(
     draftKey,
     currentDraftKey,
     mountedRef,
-    blocked:
-      sending ||
-      uploading ||
-      Boolean(draft) ||
-      uploads.length > 0 ||
-      uploadAttempts.length > 0,
+    blocked: archiveBlocked,
     setSending,
     setError,
+    navigateToSession,
+  });
+  const deletion = useChatDelete({
+    chatClient,
+    queryClient,
+    sessionId: props.sessionId,
+    draftKey,
+    currentDraftKey,
+    mountedRef,
+    blocked: archiveBlocked,
+    setSending,
     navigateToSession,
   });
   useEffect(() => {
@@ -234,11 +203,15 @@ export function StudioChatWorkspace(
     pendingMessages,
     stream,
   });
-  const { threadScrollRef, onThreadScroll, showJumpToLatest, jumpToLatest } =
-    useChatThreadScroll({
-      sessionId: props.sessionId,
-      contentKey: `${visibleMessages.length}:${stream?.text.length ?? -1}`,
-    });
+  const {
+    ref: threadScrollRef,
+    onScroll: onThreadScroll,
+    awayFromLatest: showJumpToLatest,
+    jumpToLatest,
+  } = useFollowTail({
+    resetKey: props.sessionId,
+    contentKey: `${visibleMessages.length}:${stream?.text.length ?? -1}`,
+  });
 
   useEffect(() => {
     closeDisclosures();
@@ -249,6 +222,7 @@ export function StudioChatWorkspace(
     resetStream();
     resetUploads();
     resetArchive();
+    deletion.reset();
   }, [props.sessionId]);
 
   const submit = (event: FormEvent<HTMLFormElement>): void => {
@@ -256,11 +230,7 @@ export function StudioChatWorkspace(
     void submitPrompt(draft);
   };
 
-  const workspaceBadges = Object.fromEntries(
-    props.workspaces.flatMap((workspace) =>
-      workspace.badge === undefined ? [] : [[workspace.id, workspace.badge]],
-    ),
-  );
+  const workspaceBadges = workspaceRailBadges(props.workspaces);
 
   return (
     <div
@@ -306,188 +276,17 @@ export function StudioChatWorkspace(
               className={chatClass("studio-chat-thread", chatLayout.thread)}
               aria-label="Conversation"
             >
-              <header
-                className={chatClass(
-                  "studio-chat-thread-head",
-                  chatLayout.threadHead,
-                )}
-              >
-                <h1
-                  className={chatClass(
-                    "studio-chat-session-heading",
-                    chatLayout.title,
-                  )}
-                  title={currentSession?.title}
-                >
-                  {currentSession?.title ??
-                    (props.sessionId ? "Conversation" : "New conversation")}
-                </h1>
-                <div
-                  className={chatClass(
-                    "studio-chat-head-actions",
-                    chatLayout.toolbar,
-                  )}
-                >
-                  <span
-                    ref={sessionPickerTrigger}
-                    className="studio-chat-session-picker-trigger"
-                  >
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      xstyle={chatLayout.toolbarButton}
-                      aria-haspopup="dialog"
-                      aria-expanded={sessionPickerOpen}
-                      onClick={() => setSessionPickerOpen(true)}
-                    >
-                      History
-                    </Button>
-                  </span>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    xstyle={chatLayout.toolbarButton}
-                    aria-label="New conversation"
-                    title="New conversation"
-                    onClick={() => navigateToSession()}
-                  >
-                    +
-                  </Button>
-                  <span ref={detailsTrigger}>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      xstyle={chatLayout.toolbarButton}
-                      aria-label="Conversation details and options"
-                      aria-haspopup="dialog"
-                      aria-expanded={detailsOpen}
-                      onClick={() => setDetailsOpen(true)}
-                    >
-                      •••
-                    </Button>
-                  </span>
-                </div>
-              </header>
-              <Dialog
-                open={sessionPickerOpen}
-                onOpenChange={setSessionPickerOpen}
-              >
-                <DialogContent
-                  aria-describedby={undefined}
-                  onCloseAutoFocus={(event) => {
-                    event.preventDefault();
-                    sessionPickerTrigger.current
-                      ?.querySelector("button")
-                      ?.focus();
-                  }}
-                >
-                  <DialogTitle>Conversations</DialogTitle>
-                  <SessionRail
-                    {...sessionControls}
-                    activeSessionId={props.sessionId}
-                    loading={sessionsLoading}
-                    sessions={sessions}
-                    onNew={() => navigateToSession()}
-                    onSelect={navigateToSession}
-                  />
-                </DialogContent>
-              </Dialog>
-              <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
-                <DialogContent
-                  aria-describedby={undefined}
-                  onCloseAutoFocus={(event) => {
-                    event.preventDefault();
-                    detailsTrigger.current?.querySelector("button")?.focus();
-                  }}
-                >
-                  <DialogTitle>Conversation details</DialogTitle>
-                  <div
-                    className={chatClass(
-                      "studio-chat-details",
-                      chatLayout.details,
-                    )}
-                  >
-                    <p>{currentSession?.title ?? "New conversation"}</p>
-                    <div
-                      className={chatClass(
-                        "studio-chat-session-actions",
-                        chatLayout.actions,
-                      )}
-                    >
-                      {currentSession && (
-                        <StudioChatSessionRename
-                          key={currentSession.id}
-                          title={currentSession.title}
-                          onRename={async (title): Promise<void> => {
-                            const result = await chatClient.renameSession(
-                              currentSession.id,
-                              title,
-                            );
-                            if (!result.renamed)
-                              throw new Error(
-                                "The conversation could not be renamed.",
-                              );
-                            queryClient.setQueriesData<ChatSession[]>(
-                              { queryKey: studioChatKeys.sessions },
-                              (items) =>
-                                items?.map((session) =>
-                                  session.id === currentSession.id
-                                    ? { ...session, title: result.title }
-                                    : session,
-                                ),
-                            );
-                            void queryClient.invalidateQueries({
-                              queryKey: studioChatKeys.sessions,
-                            });
-                          }}
-                        />
-                      )}
-                      {archivedSession && (
-                        <p role="status">
-                          Archived conversation. New messages here remain
-                          archived.
-                        </p>
-                      )}
-                      {props.sessionId && !archivedSession ? (
-                        <Button
-                          className="studio-chat-header-action"
-                          variant="ghost"
-                          type="button"
-                          onClick={() => void archiveCurrent()}
-                          disabled={
-                            sending ||
-                            uploading ||
-                            Boolean(draft) ||
-                            uploads.length > 0 ||
-                            uploadAttempts.length > 0
-                          }
-                          title={
-                            draft || uploads.length || uploadAttempts.length
-                              ? "Send or clear the draft before archiving"
-                              : undefined
-                          }
-                        >
-                          {archiving ? "Archiving…" : "Archive"}
-                        </Button>
-                      ) : null}
-                    </div>
-                    <details>
-                      <summary>Sources and attachments</summary>
-                      <ConversationContext
-                        cards={contextCards}
-                        progress={stream?.progress ?? []}
-                        session={currentSession}
-                      />
-                    </details>
-                    <details>
-                      <summary>File types and limits</summary>
-                      <p id="studio-chat-upload-guidance">
-                        {CHAT_UPLOAD_GUIDANCE}
-                      </p>
-                    </details>
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <StudioChatThreadHead
+                sessionId={props.sessionId}
+                sessions={chatSessions}
+                archiving={archiving}
+                archiveBlocked={archiveBlocked}
+                draftPending={draftPending}
+                onArchive={() => void archiveCurrent()}
+                deletion={deletion}
+                contextCards={contextCards}
+                progress={stream?.progress ?? []}
+              />
               <div
                 ref={threadScrollRef}
                 tabIndex={0}
@@ -585,68 +384,19 @@ export function StudioChatWorkspace(
                     </p>
                   ) : null}
                   {interrupted && (
-                    <section
-                      className={chatClass(
-                        "studio-chat-interruption",
-                        chatLayout.empty,
-                      )}
-                      role={interrupted.kind === "stopped" ? "status" : "alert"}
-                      aria-atomic="true"
-                    >
-                      <strong>
-                        {interrupted.kind === "stopped"
-                          ? "Stopped"
-                          : interrupted.kind === "disconnected"
-                            ? "Connection lost"
-                            : "Response failed"}
-                      </strong>
-                      <p>
-                        Any received text is kept here. Stopping the response
-                        does not undo completed actions; the server may still be
-                        working.
-                      </p>
-                      {interrupted.detail && <p>{interrupted.detail}</p>}
-                      {interrupted.retry && (
-                        <>
-                          <p>
-                            Sending again may repeat completed actions. Review
-                            the request before sending.
-                          </p>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            disabled={
-                              sending ||
-                              uploading ||
-                              Boolean(draft) ||
-                              uploads.length > 0
-                            }
-                            onClick={() => {
-                              if (
-                                !interrupted.retry ||
-                                draft ||
-                                uploads.length > 0
-                              )
-                                return;
-                              setDraft(interrupted.retry.text);
-                              setUploads([...interrupted.retry.uploads]);
-                              threadScrollRef.current
-                                ?.closest(".studio-chat-thread")
-                                ?.querySelector<HTMLTextAreaElement>("textarea")
-                                ?.focus();
-                            }}
-                          >
-                            Review retry in composer
-                          </Button>
-                          {(draft || uploads.length > 0) && (
-                            <p>
-                              Your composer draft is unchanged. Send or clear it
-                              before restoring this request.
-                            </p>
-                          )}
-                        </>
-                      )}
-                    </section>
+                    <StudioChatInterruption
+                      interrupted={interrupted}
+                      draftPending={composerHasContent}
+                      restoreBlocked={sending || uploading}
+                      onRestore={(retry) => {
+                        setDraft(retry.text);
+                        setUploads([...retry.uploads]);
+                        threadScrollRef.current
+                          ?.closest(".studio-chat-thread")
+                          ?.querySelector<HTMLTextAreaElement>("textarea")
+                          ?.focus();
+                      }}
+                    />
                   )}
                   {error ? (
                     <p
@@ -674,7 +424,7 @@ export function StudioChatWorkspace(
                 onRetryUpload={(attempt) => void runUploads([attempt])}
                 onDismissUpload={dismissAttempt}
                 onDraft={setDraft}
-                locked={archiving}
+                locked={archiving || deletion.deleting}
                 onRemoveUpload={(id) =>
                   setUploads((current) =>
                     current.filter((upload) => upload.id !== id),

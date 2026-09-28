@@ -1,4 +1,5 @@
 /** @jsxImportSource react */
+import { installDomGlobals, type RestoreGlobals } from "@brains/test-utils";
 import { afterEach, beforeEach, expect, it } from "bun:test";
 import { Window } from "happy-dom";
 import { act, createElement } from "react";
@@ -10,7 +11,7 @@ import { AccountClient } from "./account-api";
 let windowInstance: Window;
 let root: Root;
 let requests: number;
-const previous = new Map<string, PropertyDescriptor | undefined>();
+let restoreGlobals: RestoreGlobals;
 const snapshot: AuthAccountSnapshot = {
   displayName: "Mira",
   role: "trusted",
@@ -37,32 +38,21 @@ const snapshot: AuthAccountSnapshot = {
 };
 beforeEach(() => {
   windowInstance = new Window({ url: "http://brain.test/studio" });
-  const globals = {
-    window: windowInstance,
-    document: windowInstance.document,
-    navigator: windowInstance.navigator,
-    HTMLElement: windowInstance.HTMLElement,
+  restoreGlobals = installDomGlobals(windowInstance, {
     HTMLInputElement: windowInstance.HTMLInputElement,
-    Element: windowInstance.Element,
-    Node: windowInstance.Node,
+    HTMLFormElement: windowInstance.HTMLFormElement,
+    FormData: windowInstance.FormData,
     Event: windowInstance.Event,
+    CustomEvent: windowInstance.CustomEvent,
     KeyboardEvent: windowInstance.KeyboardEvent,
     MutationObserver: windowInstance.MutationObserver,
+    ResizeObserver: windowInstance.ResizeObserver,
     getComputedStyle: windowInstance.getComputedStyle.bind(windowInstance),
     requestAnimationFrame:
       windowInstance.requestAnimationFrame.bind(windowInstance),
     cancelAnimationFrame:
       windowInstance.cancelAnimationFrame.bind(windowInstance),
-    IS_REACT_ACT_ENVIRONMENT: true,
-  };
-  for (const [key, value] of Object.entries(globals)) {
-    previous.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
-    Object.defineProperty(globalThis, key, {
-      value,
-      configurable: true,
-      writable: true,
-    });
-  }
+  });
   const host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
@@ -71,11 +61,7 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   windowInstance.close();
-  for (const [key, descriptor] of previous) {
-    if (descriptor) Object.defineProperty(globalThis, key, descriptor);
-    else Reflect.deleteProperty(globalThis, key);
-  }
-  previous.clear();
+  restoreGlobals();
 });
 async function select(label: string): Promise<void> {
   const tab = [...document.querySelectorAll<HTMLElement>('[role="tab"]')].find(
@@ -171,4 +157,143 @@ it("keeps unsaved personal settings mounted when changing sections, without requ
     false,
   );
   expect(requests).toBe(0);
+});
+
+async function mountAccount(
+  account: AuthAccountSnapshot,
+  sent: Array<{ path: string; body: unknown }>,
+): Promise<void> {
+  const client = new AccountClient({
+    fetch: async (input, init): Promise<Response> => {
+      requests += 1;
+      sent.push({
+        path: String(input),
+        body:
+          typeof init?.body === "string" ? JSON.parse(init.body) : undefined,
+      });
+      return Response.json({ account });
+    },
+  });
+  await act(async () =>
+    root.render(
+      createElement(AccountApp, {
+        bootstrap: {
+          displayName: "Mira",
+          role: "trusted",
+          routePath: "/studio/workspaces/studio%3Aaccount",
+          studioPath: "/studio",
+        },
+        initialAccount: account,
+        client,
+      }),
+    ),
+  );
+}
+async function press(label: string): Promise<void> {
+  const button = [...document.querySelectorAll<HTMLButtonElement>("button")]
+    .reverse()
+    .find((node) => node.textContent === label);
+  if (!button) throw Error(`Missing ${label} button`);
+  await act(async () => {
+    button.click();
+  });
+}
+
+it("ends another browser session only once it is confirmed", async () => {
+  const sent: Array<{ path: string; body: unknown }> = [];
+  await mountAccount(
+    {
+      ...snapshot,
+      sessions: [
+        { id: "here", current: true, createdAt: 1, expiresAt: 2 },
+        { id: "there", current: false, createdAt: 1, expiresAt: 2 },
+      ],
+    },
+    sent,
+  );
+  await select("Sign-in & sessions");
+
+  await press("End");
+  expect(document.body.textContent).toContain("End this browser session?");
+  expect(sent).toEqual([]);
+
+  await press("End session");
+  expect(sent).toEqual([
+    {
+      path: "/auth/account/mutations",
+      body: {
+        action: "revokeSession",
+        confirmation: "revokeSession",
+        sessionId: "there",
+      },
+    },
+  ]);
+});
+
+it("saves personal settings with checkbox and number values as their types", async () => {
+  const sent: Array<{ path: string; body: unknown }> = [];
+  await mountAccount(
+    {
+      ...snapshot,
+      pluginSettings: [
+        {
+          id: "mailbox",
+          title: "Personal mailbox",
+          configured: false,
+          revision: null,
+          fields: [
+            {
+              name: "host",
+              label: "Host",
+              control: "text",
+              secret: false,
+              required: true,
+            },
+            {
+              name: "port",
+              label: "Port",
+              control: "number",
+              secret: false,
+              required: false,
+            },
+            {
+              name: "tls",
+              label: "TLS",
+              control: "checkbox",
+              secret: false,
+              required: false,
+            },
+          ],
+        },
+      ],
+    },
+    sent,
+  );
+  await select("Personal settings");
+  const host = document.querySelector<HTMLInputElement>(
+    "#setting-mailbox-host",
+  );
+  const port = document.querySelector<HTMLInputElement>(
+    "#setting-mailbox-port",
+  );
+  if (!host || !port) throw Error("Missing settings inputs");
+  host.value = "imap.test.invalid";
+  port.value = "993";
+
+  await act(async () => {
+    host
+      .closest("form")
+      ?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+  });
+
+  expect(sent).toEqual([
+    {
+      path: "/auth/account/plugin-settings",
+      body: {
+        action: "save",
+        definitionId: "mailbox",
+        values: { host: "imap.test.invalid", port: 993, tls: false },
+      },
+    },
+  ]);
 });

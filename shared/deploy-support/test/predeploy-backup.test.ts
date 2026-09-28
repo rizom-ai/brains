@@ -178,6 +178,38 @@ describe("predeploy readiness gate", () => {
     );
   });
 
+  it("refuses while a job holds a current lease", async () => {
+    const result = await gate(200, {
+      status: "ready",
+      operationalStatus: "operational",
+      checks: [],
+      resources: {
+        queue: { totals: { pending: 0, processing: 2 }, staleLeaseCount: 1 },
+      },
+    });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain(
+      "pre-deploy snapshot: job queue is not idle",
+    );
+  });
+
+  it("backs up past an abandoned job, which the next worker reruns", async () => {
+    const result = await gate(200, {
+      status: "ready",
+      operationalStatus: "degraded",
+      checks: [{ name: "attempt-leases", status: "degraded" }],
+      resources: {
+        queue: { totals: { pending: 0, processing: 1 }, staleLeaseCount: 1 },
+      },
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr).toContain(
+      "pre-deploy snapshot: 1 abandoned job(s) will rerun after the deploy",
+    );
+  });
+
   it("refuses a runtime that is not ready", async () => {
     const result = await gate(503, {
       status: "not_ready",

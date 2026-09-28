@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>yeehaa.io mobile chat — states and transitions</title>
+<style>
+@import url("https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&display=swap");
+/*
+  Clickable study of the phone Ask sheet's states and transitions
+  (docs/plans/public-ask.md, "Chat in the atlas"; the static study is
+  yeehaa-mobile-chat-mockup.html). Tokens from the live yeehaa.io stylesheet.
+  Nothing talks to a server: every step is driven by the controls.
+*/
+:root{
+  --paper:#f4ede0; --paper-soft:#faf4e6; --paper-deep:#ebe2cb;
+  --ink:#18132a; --ink-muted:#443c54; --ink-subtle:#756c80;
+  --accent:#b8410c; --rule:rgb(24 19 42 / .1); --rule-strong:rgb(24 19 42 / .18);
+  --contour:rgb(24 19 42 / .22);
+  --rise:.32s cubic-bezier(.2,.8,.2,1);
+}
+*{box-sizing:border-box}
+body{margin:0;background:#e7e0d2;color:var(--ink);font:15px/1.5 Barlow,system-ui,sans-serif}
+.page{max-width:1180px;margin:0 auto;padding:36px 24px 64px;display:grid;grid-template-columns:340px 1fr;gap:40px;align-items:start}
+@media (max-width:860px){.page{grid-template-columns:1fr}}
+h1{font:600 28px/1.2 Fraunces,Georgia,serif;margin:0 0 8px}
+.lede{color:var(--ink-muted);margin:0 0 20px;max-width:62ch}
+h2{font:600 18px/1.3 Fraunces,Georgia,serif;margin:26px 0 8px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 10px}
+.controls button{font:500 13px Barlow,sans-serif;border:1px solid var(--rule-strong);background:var(--paper-soft);color:var(--ink);border-radius:18px;padding:6px 13px;cursor:pointer}
+.controls button:disabled{opacity:.35;cursor:default}
+.controls button.go{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.now{font-size:13px;color:var(--ink-muted);min-height:3.2em;margin:0 0 6px}
+.now b{color:var(--ink)}
+table{border-collapse:collapse;font-size:13.5px;width:100%}
+th,td{text-align:left;vertical-align:top;padding:7px 10px 7px 0;border-bottom:1px solid var(--rule)}
+th{font-weight:600;color:var(--ink-subtle);font-size:12px}
+td:first-child{white-space:nowrap;font-weight:600}
+ol{padding-left:20px;color:var(--ink-muted);font-size:14px}
+ol li{margin-bottom:6px}
+ol b{color:var(--ink)}
+
+/* Phone */
+.phone{position:sticky;top:24px;width:320px;height:680px;border-radius:36px;background:var(--paper);
+  box-shadow:0 0 0 10px #1d1a26,0 18px 40px rgb(0 0 0 / .25);overflow:hidden}
+.screen{position:absolute;inset:0;overflow:hidden}
+.status{height:24px;display:flex;justify-content:space-between;align-items:center;padding:0 22px;font-size:11px;font-weight:600}
+
+/* The page under the sheet */
+.site{position:absolute;inset:24px 0 0;transition:transform var(--rise),filter var(--rise)}
+.bar{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--rule)}
+.brand{font:600 17px Fraunces,serif;color:var(--accent)}
+.burger{width:28px;height:28px;border:1px solid var(--rule-strong);border-radius:7px}
+.site .map{height:170px}
+.copy{padding:10px 16px}
+.byline{display:flex;gap:8px;align-items:center;font-size:12px;font-weight:600;margin-bottom:6px}
+.initial{width:22px;height:22px;border-radius:50%;background:var(--ink);color:var(--paper);display:grid;place-items:center;font:10px Fraunces,serif}
+.copy h3{font:600 27px/1.05 Fraunces,serif;margin:0 0 8px}
+.intro{font:13px/1.5 Fraunces,serif;color:var(--ink-muted);margin:0 0 12px}
+.topics{margin:12px 0 0;font:italic 13px/1.9 Fraunces,serif}
+.topics b{display:block;font:600 14px Fraunces,serif;font-style:normal}
+.topics span{display:block;cursor:pointer}
+.pill{display:none;margin:0 0 10px;width:max-content;gap:8px;align-items:center;background:var(--ink);color:var(--paper);border-radius:22px;padding:8px 15px;font-size:12.5px;cursor:pointer}
+.pill i{width:7px;height:7px;border-radius:50%;background:var(--accent)}
+[data-had] .pill{display:flex}
+
+/* Map drawing */
+.map{position:relative;overflow:hidden;background:var(--paper)}
+.map svg{position:absolute;left:0;width:100%;height:340px;top:50%;transform:translateY(-50%);transform-origin:68% 37%;transition:transform .9s cubic-bezier(.3,.7,.2,1)}
+.ring{fill:none;stroke:var(--contour);stroke-width:.8}
+.mark{fill:var(--ink);transition:opacity .6s,fill .6s}
+/* One zoom per answer, shared by the page map and the strip; marks keep their size. */
+.cited .map svg{transform:translateY(-50%) translateY(43px) scale(1.35)}
+.cited .mark{opacity:.18;r:2.96px}
+.cited .mark.hit{opacity:1;fill:var(--accent);r:4.44px}
+.halo{fill:none;stroke:var(--accent);stroke-width:5;opacity:0;transition:opacity .6s}
+.cited .halo{opacity:.25;r:7.4px;stroke-width:3.7px}
+
+/* Composer */
+.composer{display:flex;align-items:center;gap:8px;border:1px solid var(--rule-strong);border-radius:22px;background:var(--paper-soft);padding:5px 5px 5px 14px;cursor:text}
+.composer .text{flex:1;color:var(--ink-subtle);font-size:13px;min-height:1.5em}
+.composer .text.filled{color:var(--ink)}
+.send{flex:none;width:32px;height:32px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:15px;cursor:pointer}
+.send.off{opacity:.45}
+
+/* The sheet */
+.sheet{position:absolute;inset:24px 0 0;background:var(--paper);display:flex;flex-direction:column;
+  transform:translateY(100%);transition:transform var(--rise);box-shadow:0 -10px 30px rgb(0 0 0 / .12)}
+[data-open] .sheet{transform:none}
+[data-open] .site{transform:translateY(-3%) scale(.97);filter:brightness(.92)}
+.head{flex:none;height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 12px 0 16px;border-bottom:1px solid var(--rule);background:var(--paper)}
+.head b{font:600 15px Fraunces,serif}
+.head .actions{display:flex;gap:12px;align-items:center;font-size:12px;color:var(--ink-muted)}
+.close{width:28px;height:28px;border-radius:50%;border:1px solid var(--rule-strong);display:grid;place-items:center;font-size:14px;cursor:pointer}
+.strip{flex:none;height:112px;border-bottom:1px solid var(--rule);cursor:pointer;transition:height var(--rise)}
+.strip .hint{position:absolute;right:10px;bottom:7px;font-size:10.5px;color:var(--ink-muted);background:rgb(244 237 224 / .88);padding:1px 7px;border-radius:9px;opacity:0;transition:opacity .4s}
+.cited .strip .hint{opacity:1}
+[data-keyboard] .strip{height:0;border-bottom:0}
+[data-map] .strip{height:62%}
+[data-map] .strip .hint{opacity:0}
+.mapbar{display:none;flex:none;align-items:center;justify-content:space-between;padding:6px 14px;border-bottom:1px solid var(--rule);font-size:12px;color:var(--ink-muted)}
+[data-map] .mapbar{display:flex}
+.mapbar span{cursor:pointer;color:var(--ink);font-weight:500}
+.card{position:absolute;left:30%;top:34%;background:var(--paper-soft);border:1px solid var(--rule-strong);border-radius:10px;padding:7px 10px;font-size:11.5px;box-shadow:0 6px 16px rgb(0 0 0 / .12);opacity:0;pointer-events:none;transition:opacity .25s}
+.card b{display:block;font:600 12.5px Fraunces,serif}
+[data-map] .card{opacity:1}
+.thread{flex:1;overflow:auto;padding:10px 16px 14px;font-size:13px;position:relative}
+.thread::-webkit-scrollbar{display:none}
+.welcome{display:flex;flex-direction:column;min-height:100%;justify-content:flex-end;color:var(--ink-muted);font:13px/1.5 Fraunces,serif}
+.welcome .chipset{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin-top:10px}
+.chip{border:1px solid var(--rule-strong);border-radius:12px;padding:3px 10px;font:11.5px Barlow,sans-serif;background:var(--paper-soft);color:var(--ink);cursor:pointer}
+.you{background:var(--paper-deep);border-radius:12px 12px 4px 12px;padding:8px 11px;margin:4px 0 0 40px}
+.who{font-size:10px;letter-spacing:.08em;color:var(--ink-subtle);margin:14px 0 3px}
+.answer p{margin:0 0 7px;line-height:1.5}
+.answer a{color:var(--accent);text-decoration:underline;text-underline-offset:2px}
+.sources{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.sources .chip i{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:5px;vertical-align:1px}
+.waiting{display:flex;align-items:center;gap:9px;color:var(--ink-muted);font:italic 13px Fraunces,serif}
+.dots{display:flex;gap:4px}
+.dots i{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:pulse 1.2s infinite ease-in-out}
+.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+@keyframes pulse{0%,80%,100%{opacity:.2;transform:scale(.8)}40%{opacity:1;transform:none}}
+.stop{margin-top:6px;font-size:12px;color:var(--ink-subtle);opacity:0;transition:opacity .4s}
+.stop.shown{opacity:1}
+.stop u{cursor:pointer}
+.arrive{animation:arrive .45s ease-out}
+@keyframes arrive{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.latest{position:absolute;right:14px;bottom:78px;width:32px;height:32px;border-radius:50%;border:1px solid var(--rule-strong);background:var(--paper-soft);display:grid;place-items:center;color:var(--accent);font-size:14px;box-shadow:0 4px 12px rgb(0 0 0 / .12);opacity:0;transform:translateY(6px);transition:opacity .25s,transform .25s;pointer-events:none}
+.latest.shown{opacity:1;transform:none;pointer-events:auto;cursor:pointer}
+.dock{flex:none;border-top:1px solid var(--rule);padding:8px 12px 10px;background:var(--paper)}
+.note{font-size:10px;color:var(--ink-subtle);margin-top:5px;text-align:center}
+.keyboard{flex:none;height:0;background:#d2ccc1;display:grid;grid-template-rows:repeat(4,1fr);gap:6px;padding:0 8px;overflow:hidden;transition:height var(--rise),padding var(--rise)}
+[data-keyboard] .keyboard{height:200px;padding:8px}
+.keyboard div{background:#f8f5ef;border-radius:5px}
+.tapmark{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;background:rgb(184 65 12 / .25);border:2px solid var(--accent);pointer-events:none;animation:tap .5s ease-out forwards;z-index:9}
+@keyframes tap{from{transform:scale(.4);opacity:1}to{transform:scale(1.2);opacity:0}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div>
+    <div class="phone"><div class="screen" id="screen">
+      <div class="status"><span>9:41</span><span>●●● ▮</span></div>
+
+      <div class="site">
+        <div class="bar"><span class="brand">Yeehaa</span><span class="burger"></span></div>
+        <div class="map" id="pageMap"></div>
+        <div class="copy">
+          <div class="byline"><span class="initial">Y</span>Yeehaa</div>
+          <h3>Building something inhabitable.</h3>
+          <p class="intro">I work on how institutions hold what they know. Wander the map, or tell me what you're working on.</p>
+          <div class="pill" data-act="resume"><i></i>Continue conversation</div>
+          <div class="composer" data-act="engage"><span class="text" id="pageDraft">Ask about my work…</span><span class="send">↑</span></div>
+          <div class="topics"><b>Where would you start?</b>
+            <span data-act="topic">Someone who carries a lot is about to leave</span>
+            <span data-act="topic">Our AI tools don't know what we know</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="sheet" id="sheet">
+        <div class="head"><b>Ask Yeehaa</b><span class="actions"><u>About</u><span class="close" data-act="close">✕</span></span></div>
+        <div class="map strip" id="strip" data-act="expand"><span class="hint">Show on map</span>
+          <div class="card"><b>Hiding in Plain Sight</b>Essay, 2026 · tap again to open</div>
+        </div>
+        <div class="mapbar"><span>3 pieces this answer draws on</span><span data-act="collapse">Back to the answer</span></div>
+        <div class="thread" id="thread"></div>
+        <span class="latest" id="latest" data-act="latest">↓</span>
+        <div class="dock">
+          <div class="composer"><span class="text" id="draft">Ask about Yeehaa's work…</span><span class="send" data-act="send">↑</span></div>
+          <div class="note" id="note">Public knowledge. Please avoid private details.</div>
+        </div>
+        <div class="keyboard"><div></div><div></div><div></div><div></div></div>
+      </div>
+    </div></div>
+  </div>
+
+  <div>
+    <h1>Asking on a phone: states and transitions</h1>
+    <p class="lede">A walk through every state of the phone conversation. Tap inside the phone, or use the controls. Each control is something the visitor does. The table lists what each transition looks like and the fault on today's preview it replaces.</p>
+    <div class="controls">
+      <button data-act="engage">Tap the box</button>
+      <button data-act="topic">Tap a topic</button>
+      <button data-act="type">Type</button>
+      <button data-act="send">Send</button>
+      <button data-act="arrive">Answer arrives</button>
+      <button data-act="expand">Tap the strip</button>
+      <button data-act="collapse">Back to the answer</button>
+      <button data-act="close">Close / Back</button>
+      <button data-act="resume">Continue conversation</button>
+      <button class="go" data-act="reset">Start over</button>
+    </div>
+    <p class="now" id="now"></p>
+
+    <h2>Transitions</h2>
+    <table>
+      <tr><th>Visitor does</th><th>What happens</th><th>Today on preview</th></tr>
+      <tr><td>Taps the box or a topic</td><td>The sheet rises from the bottom in about a third of a second, already complete: header, map strip, welcome and topics, composer with the draft. The page sinks back behind it. The chat loads while the sheet rises; its files are fetched once the page is idle, so there is no loading state to see. The strip shows the middle of the same map as the page, at the same size.</td><td>For about a second, a half-drawn sheet shows the page through it, with "Connecting to chat…". The map then slides and grows by a tenth as it lands in the strip.</td></tr>
+      <tr><td>Types</td><td>The keyboard pushes the composer up; the strip folds away as the keyboard rises and unfolds as it falls.</td><td>Works, kept.</td></tr>
+      <tr><td>Sends</td><td>The question moves into the thread as a bubble, the keyboard closes, and a waiting line appears where the answer will be: three pulsing dots and "Looking through Yeehaa's work". "Stop waiting" appears only after 20 seconds.</td><td>A small grey "Sending your question…" with a "Stop waiting" link right away, and an empty screen for up to 20 seconds.</td></tr>
+      <tr><td>Answer arrives</td><td>The answer fades in at its question, not its end. The map zooms once to the pieces it draws on, and those light up at their usual lit size; the strip pans to them. A round ↓ button offers the rest of the answer; it sits clear of the text's right edge and hides once you reach the end.</td><td>The answer appears; a "Latest ↓" label covers the end of a line of text. The zoom also enlarges every mark, so lit pieces grow to about twice their size.</td></tr>
+      <tr><td>Taps the strip</td><td>The map opens to most of the sheet, with the answer's pieces lit. Tapping a piece shows its title card; tapping again opens it. "Back to the answer" folds the map back into the strip.</td><td>A tap hits whichever mark is under the finger and pops its card half under the header.</td></tr>
+      <tr><td>Closes (✕, Back, Escape)</td><td>The sheet slides down, and the page comes back exactly where it was, with the pieces still lit on its map at the same zoom as the strip. "Continue conversation" sits above the composer.</td><td>The page map shows a different zoom from the strip. Closing while the chat is still loading reopens it a moment later, on its own.</td></tr>
+      <tr><td>Continues</td><td>The sheet rises again at the same place in the conversation.</td><td>Works, kept.</td></tr>
+      <tr><td>Reloads with the sheet open</td><td>The page reloads at the same scroll position with the sheet closed, and Back leaves the page as usual.</td><td>The page lands halfway down, and Back needs an extra press that does nothing.</td></tr>
+    </table>
+
+    <h2>Also changed</h2>
+    <ol>
+      <li><b>No "Full chat ↗" in the phone sheet.</b> The sheet already fills the screen, and the header no longer changes when the first answer arrives.</li>
+      <li><b>One map, one size.</b> The strip is a window onto the same map as the page, at the same size, not a second map drawn larger. An answer zooms the map once, and the page and the strip share that zoom, so opening and closing never rescale it. Marks keep their size when the map zooms; a lit piece is always one and a half times a plain mark.</li>
+      <li><b>One set of motions.</b> Rise and fall for the sheet, fold for the strip, one fade for an arriving answer. Nothing else moves. Reduced motion turns all of them off.</li>
+      <li><b>Focus follows the visitor.</b> The composer takes focus only while the sheet is open, so a closed sheet never reopens on its own.</li>
+    </ol>
+  </div>
+</div>
+
+<script>
+const screen = document.getElementById('screen');
+const thread = document.getElementById('thread');
+const draft = document.getElementById('draft');
+const latest = document.getElementById('latest');
+const now = document.getElementById('now');
+const note = document.getElementById('note');
+const QUESTION = 'What have you written about institutional memory?';
+
+// A small contour map with a few marks; three of them are an answer's sources.
+function drawMap(el) {
+  const rings = [...Array(9)].map((_, i) => `<ellipse class="ring" cx="${210 + i * 3}" cy="${150 - i * 2}" rx="${40 + i * 17}" ry="${26 + i * 12}"/>`).join('');
+  const marks = [[70,120],[110,90],[140,210],[180,130],[205,160],[230,110],[255,190],[280,140],[300,95],[120,250],[60,200],[240,240]];
+  const hits = new Set([3,5,7]);
+  const dots = marks.map(([x, y], i) => `${hits.has(i) ? `<circle class="halo" cx="${x}" cy="${y}" r="10"/>` : ''}<circle class="mark${hits.has(i) ? ' hit' : ''}" cx="${x}" cy="${y}" r="4"/>`).join('');
+  el.insertAdjacentHTML('afterbegin', `<svg viewBox="0 0 340 340" preserveAspectRatio="xMidYMid slice">${rings}${dots}</svg>`);
+}
+drawMap(document.getElementById('pageMap'));
+drawMap(document.getElementById('strip'));
+
+const welcome = () => `<div class="welcome">I work on how institutions hold what they know. Everything I've published is on this map. Wander it, or tell me what you're working on.
+  <div class="chipset"><span class="chip" data-act="topic">Someone who carries a lot is about to leave</span><span class="chip" data-act="topic">Our AI tools don't know what we know</span></div></div>`;
+const answerHtml = `<div class="who">YEEHAA</div><div class="answer arrive">
+  <p>Most directly in the New Institutions series:</p>
+  <p><a>Hiding in Plain Sight</a>: storage is not memory. An institution can keep every record and still lose the reasons behind them.</p>
+  <p><a>Heroics Are Not Infrastructure</a>: when structures fail, memory moves into indispensable people.</p>
+  <p><a>A Colleague Without Context</a>: AI multiplies an institution's memory gaps.</p>
+  <div class="sources"><span class="chip"><i></i>Hiding in Plain Sight</span><span class="chip"><i></i>Heroics Are Not Infrastructure</span><span class="chip"><i></i>A Colleague Without Context</span></div></div>`;
+
+let state = {};
+let stopTimer;
+function set(next, text) {
+  state = { ...state, ...next };
+  screen.toggleAttribute('data-open', !!state.open);
+  screen.toggleAttribute('data-keyboard', !!state.keyboard);
+  screen.toggleAttribute('data-map', !!state.map);
+  screen.toggleAttribute('data-had', !!state.asked && !state.open);
+  screen.classList.toggle('cited', !!state.cited);
+  now.innerHTML = text;
+  document.querySelectorAll('.controls button').forEach((b) => {
+    const a = b.dataset.act;
+    const ok = {
+      engage: !state.open, topic: !state.open, type: state.open && !state.waiting && !state.map,
+      send: state.open && state.typed && !state.waiting, arrive: state.waiting, expand: state.open && state.cited && !state.map,
+      collapse: state.map, close: state.open, resume: !state.open && state.asked, reset: true,
+    }[a];
+    b.disabled = !ok;
+  });
+}
+function renderThread() {
+  if (!state.asked) { thread.innerHTML = welcome(); return; }
+  let html = `<div class="you">${QUESTION}</div>`;
+  if (state.waiting) html += `<div class="who">YEEHAA</div><div class="waiting"><span class="dots"><i></i><i></i><i></i></span>Looking through Yeehaa's work</div><div class="stop" id="stop"><u>Stop waiting</u></div>`;
+  if (state.answered) html += answerHtml;
+  thread.innerHTML = html;
+}
+function tapAt(el) {
+  const s = screen.getBoundingClientRect(); const r = el.getBoundingClientRect();
+  const t = document.createElement('span'); t.className = 'tapmark';
+  t.style.left = (r.left - s.left + r.width / 2) + 'px'; t.style.top = (r.top - s.top + r.height / 2) + 'px';
+  screen.append(t); setTimeout(() => t.remove(), 500);
+}
+const acts = {
+  engage() { renderThread(); set({ open: true, keyboard: true }, '<b>Open, typing.</b> The sheet rose complete; the keyboard is up, so the strip is folded.'); },
+  topic(el) {
+    const topic = el?.textContent || "Someone who carries a lot is about to leave";
+    draft.textContent = topic; draft.classList.add('filled'); renderThread();
+    set({ open: true, keyboard: true, typed: true }, '<b>Open, with the topic as a draft.</b> Nothing is sent until the visitor sends it.');
+  },
+  type() { draft.textContent = QUESTION; draft.classList.add('filled'); set({ keyboard: true, typed: true }, '<b>Typing.</b> The composer rides on the keyboard; the strip stays folded.'); },
+  send() {
+    draft.textContent = 'Ask a follow-up…'; draft.classList.remove('filled'); note.textContent = 'Answers come from what Yeehaa has published.';
+    set({ keyboard: false, typed: false, asked: true, waiting: true, answered: false, cited: false }, '<b>Waiting.</b> The keyboard closed and the strip unfolded. The answer\'s place shows it is being written. "Stop waiting" appears after 20 seconds (4 here).');
+    renderThread(); thread.scrollTop = 0; latest.classList.remove('shown');
+    clearTimeout(stopTimer); stopTimer = setTimeout(() => document.getElementById('stop')?.classList.add('shown'), 4000);
+  },
+  arrive() {
+    clearTimeout(stopTimer);
+    set({ waiting: false, answered: true, cited: true }, '<b>Answered.</b> The answer opens at its question; the strip zooms to its three pieces and "Show on map" appears. The ↓ button offers the rest.');
+    renderThread(); thread.scrollTop = 0;
+    requestAnimationFrame(() => latest.classList.toggle('shown', thread.scrollHeight - thread.clientHeight - thread.scrollTop > 40));
+  },
+  expand() { if (!state.cited) return; set({ map: true }, '<b>Map open.</b> The answer\'s pieces are lit; a tap on one shows its card, a second tap opens it.'); latest.classList.remove('shown'); },
+  collapse() { set({ map: false }, '<b>Back to the answer,</b> where it was.'); },
+  close() {
+    set({ open: false, keyboard: false, map: false }, state.asked ? '<b>Closed.</b> The page is where it was, the pieces stay lit on its map, and the conversation is one tap away.' : '<b>Closed.</b> The page is where it was.');
+    document.getElementById('pageDraft').textContent = state.asked ? 'Ask a follow-up…' : 'Ask about my work…';
+  },
+  resume() { set({ open: true }, '<b>Continued,</b> at the same place in the conversation.'); },
+  latest() { thread.scrollTo({ top: thread.scrollHeight, behavior: 'smooth' }); },
+  reset() {
+    clearTimeout(stopTimer); state = {};
+    draft.textContent = "Ask about Yeehaa's work…"; draft.classList.remove('filled'); note.textContent = 'Public knowledge. Please avoid private details.';
+    document.getElementById('pageDraft').textContent = 'Ask about my work…';
+    latest.classList.remove('shown'); renderThread();
+    set({}, '<b>The page.</b> Nothing has loaded that the visitor can see; the chat\'s files are fetched in the background once the page is idle.');
+  },
+};
+thread.addEventListener('scroll', () => latest.classList.toggle('shown', state.answered && !state.map && thread.scrollHeight - thread.clientHeight - thread.scrollTop > 40));
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const act = el.dataset.act;
+  const button = el.closest('.controls button');
+  if (button?.disabled) return;
+  if (!button && screen.contains(el)) tapAt(el);
+  if (act === 'expand' && state.map) return;
+  acts[act]?.(el.closest('.controls') ? null : el);
+});
+acts.reset();
+</script>
+</body>
+</html>
