@@ -10,7 +10,10 @@ import {
   EntityRegistry,
   baseEntitySchema,
 } from "@brains/entity-service";
-import { BrainCharacterAdapter } from "@brains/identity-service";
+import {
+  AnchorProfileAdapter,
+  BrainCharacterAdapter,
+} from "@brains/identity-service";
 import { PermissionService } from "@brains/templates";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils/zod";
@@ -1105,6 +1108,114 @@ describe("system_update tool", () => {
     return expectConfirmationArgs(confirmation)["confirmationToken"];
   }
 
+  it.each([undefined, " "])(
+    "replays the proposed archive, not approval (content=%p)",
+    async (content) => {
+      const args = expectConfirmationArgs(
+        await exec({
+          entityType: "agent",
+          id: "pending-agent.io",
+          fields: { status: "archived" },
+        }),
+      );
+      const result = await exec({
+        entityType: "agent",
+        id: "pending-agent.io",
+        confirmed: true,
+        confirmationToken: args["confirmationToken"],
+        ...(content !== undefined ? { content } : {}),
+      });
+      expect(result).toMatchObject({ success: true });
+      expect(
+        services.getEntities().get("pending-agent.io")?.metadata["status"],
+      ).toBe("archived");
+    },
+  );
+
+  it("replays a note field update", async () => {
+    const note = expectDefined(
+      services.getEntities().get("woodchuck-note"),
+      "note",
+    );
+    services.addEntities([{ ...note, entityType: "note" }]);
+    const args = expectConfirmationArgs(
+      await exec({
+        entityType: "note",
+        id: "woodchuck-note",
+        fields: { title: "New title" },
+      }),
+    );
+    const result = await exec({
+      entityType: "note",
+      id: "woodchuck-note",
+      confirmed: true,
+      confirmationToken: args["confirmationToken"],
+    });
+    expect(result).toMatchObject({ success: true });
+    expect(
+      services.getEntities().get("woodchuck-note")?.metadata["title"],
+    ).toBe("New title");
+  });
+
+  it.each([
+    { content: "A complete replacement." },
+    { edits: [{ oldText: "Woodchucks", newText: "Groundhogs" }] },
+  ])(
+    "replays stored content operations exactly once (%p)",
+    async (operation) => {
+      const args = expectConfirmationArgs(
+        await exec({ entityType: "base", id: "woodchuck-note", ...operation }),
+      );
+      const replay = {
+        entityType: "base",
+        id: "woodchuck-note",
+        confirmed: true,
+        confirmationToken: args["confirmationToken"],
+      };
+      expect(await exec(replay)).toMatchObject({ success: true });
+      expect(services.getEntities().get("woodchuck-note")?.content).toBe(
+        operation.content ??
+          "Groundhogs and woodpeckers are different animals.",
+      );
+      expect(await exec(replay)).toMatchObject({ success: false });
+    },
+  );
+
+  it("rejects a mangled replay for another type with the same id", async () => {
+    const confirmationToken = await proposeAgentApproval("pending-agent.io");
+    const entity = expectDefined(
+      services.getEntities().get("pending-agent.io"),
+      "entity",
+    );
+    services.addEntities([{ ...entity, entityType: "note" }]);
+    expect(
+      await exec({
+        entityType: "note",
+        id: entity.id,
+        confirmed: true,
+        confirmationToken,
+      }),
+    ).toMatchObject({ success: false });
+    expect(services.getLastUpdateRequest()).toBeUndefined();
+  });
+
+  it("rejects a mangled replay when the stored content hash is stale", async () => {
+    const confirmationToken = await proposeAgentApproval("pending-agent.io");
+    const entity = expectDefined(
+      services.getEntities().get("pending-agent.io"),
+      "entity",
+    );
+    services.addEntities([{ ...entity, contentHash: "changed" }]);
+    const result = await exec({
+      entityType: "agent",
+      id: entity.id,
+      confirmed: true,
+      confirmationToken,
+    });
+    expect(result).toMatchObject({ success: false });
+    expect(services.getLastUpdateRequest()).toBeUndefined();
+  });
+
   it("auto-approves discovered agents when the model omits fields on a confirmed agent update", async () => {
     const confirmationToken = await proposeAgentApproval("pending-agent.io");
     const result = await exec({
@@ -1181,7 +1292,7 @@ describe("system_update tool", () => {
 
     expect(result).toMatchObject({ success: false });
     expect("error" in result ? result.error : "").toContain(
-      "No pending update confirmation found for this agent",
+      "Provide 'content' (full replacement) or 'fields' (partial update)",
     );
     const unchanged = expectDefined(
       services.getEntities().get("pending-agent.io"),
@@ -1491,6 +1602,54 @@ describe("system_update tool", () => {
     ]);
     tools = createSystemTools(services);
   }
+
+  function useAnchorProfileAdapter(): void {
+    const adapter = new AnchorProfileAdapter();
+    const registry = EntityRegistry.createFresh(createSilentLogger());
+    registry.registerEntityType(adapter.entityType, adapter.schema, adapter);
+    services.entityRegistry = registry;
+    services.addEntities([
+      {
+        id: "anchor-profile",
+        entityType: "anchor-profile",
+        content: "---\nname: Alex Chen\nkind: person\nrole: architect\n---\n",
+        contentHash: "anchor-hash",
+        visibility: "public",
+        metadata: { name: "Alex Chen" },
+        created: "2026-03-16T10:00:00.000Z",
+        updated: "2026-03-16T10:00:00.000Z",
+      },
+    ]);
+    tools = createSystemTools(services);
+  }
+
+  it("rejects anchor profile name changes through the real persistence probe", async () => {
+    useAnchorProfileAdapter();
+    const result = await exec({
+      entityType: "anchor-profile",
+      id: "anchor-profile",
+      fields: { name: "Research partner" },
+    });
+    expect(result).toMatchObject({
+      success: false,
+      error: expect.stringContaining("does not persist name through 'fields'"),
+    });
+    expect(services.getLastUpdateRequest()).toBeUndefined();
+  });
+
+  it("allows persisted anchor profile visibility changes", async () => {
+    useAnchorProfileAdapter();
+    const proposal = await exec({
+      entityType: "anchor-profile",
+      id: "anchor-profile",
+      fields: { visibility: "shared" },
+    });
+    const result = await exec(expectConfirmationArgs(proposal));
+    expect(result).toMatchObject({ success: true });
+    expect(services.getEntities().get("anchor-profile")?.visibility).toBe(
+      "shared",
+    );
+  });
 
   it("rejects values a real body-backed adapter would retain from content", async () => {
     useBrainCharacterAdapter();

@@ -123,6 +123,7 @@ export class DocumentPlugin extends ServicePlugin<
     this.pluginContext = context;
     context.entities.register(this.entityType, this.schema, this.adapter, {
       embeddable: false,
+      binaryStorage: "data-url",
       projectionSource: false,
       projectionSourceRole: "excluded",
     });

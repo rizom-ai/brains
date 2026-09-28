@@ -321,10 +321,18 @@ async function resolveCreateSource(
 
   if (
     transform === "extract-markdown" &&
-    (!uploadRef || input.entityType !== "note")
+    (!uploadRef ||
+      !services.entityRegistry.getEntityTypeConfig(input.entityType)
+        .markdownImport)
   ) {
+    const available = services.entityRegistry
+      .getAllEntityTypes()
+      .filter(
+        (type) =>
+          services.entityRegistry.getEntityTypeConfig(type).markdownImport,
+      );
     return guardError(
-      'Transform "extract-markdown" requires entityType "note" and an upload ref. Omit transform for raw file promotion to document/image.',
+      `Transform "extract-markdown" requires an upload ref and a type declaring markdownImport. Available: ${available.join(", ") || "none"}. Omit transform for raw file promotion.`,
     );
   }
   if (!resolvedContent && !url && !from) {

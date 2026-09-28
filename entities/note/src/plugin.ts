@@ -60,7 +60,7 @@ export class NotePlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { projectionSourceRole: "primary" };
+    return { projectionSourceRole: "primary", markdownImport: true };
   }
 
   protected override async interceptCreate(

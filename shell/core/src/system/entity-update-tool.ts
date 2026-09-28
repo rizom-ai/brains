@@ -30,11 +30,6 @@ import {
 } from "./tool-helpers";
 import { getErrorMessage } from "@brains/utils/error";
 
-const pendingApprovalForEntitySchema = z.looseObject({
-  entityType: z.literal("agent"),
-  id: z.string(),
-});
-
 function sourceFieldKeys(
   entityType: string,
   registry: SystemServices["entityRegistry"],
@@ -160,23 +155,6 @@ function applyContentUpdate(
     metadata,
     visibility: extractVisibilityFromMarkdown(content) ?? entity.visibility,
   };
-}
-
-function validateAnchorProfileUpdate(
-  entityType: string,
-  normalizedInput: { fields?: Record<string, unknown>; content?: string },
-): { success: false; error: string } | undefined {
-  if (entityType !== "anchor-profile") return undefined;
-
-  if (normalizedInput.fields) {
-    return {
-      success: false,
-      error:
-        "anchor-profile updates require full markdown content replacement, not fields-only updates.",
-    };
-  }
-
-  return undefined;
 }
 
 /**
@@ -511,6 +489,34 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
       if (!resolved.ok) return { success: false, error: resolved.error };
       const { entity } = resolved;
 
+      // Recover only an omitted operation. The stored proposal remains the
+      // authority for fields, edits, visibility, and optimistic concurrency.
+      let mangledApprovalReplay = false;
+      if (
+        input.confirmed &&
+        input.confirmationToken &&
+        input.edits === undefined &&
+        input.fields === undefined &&
+        !input.content?.trim()
+      ) {
+        const stored = updateInputSchema.safeParse(
+          confirmationGate.takePending(input.confirmationToken),
+        );
+        if (
+          !stored.success ||
+          stored.data.entityType !== entity.entityType ||
+          stored.data.id !== entity.id
+        ) {
+          return {
+            success: false,
+            error:
+              "No pending update confirmation found for this entity. Please request the update again.",
+          };
+        }
+        input = stored.data;
+        mangledApprovalReplay = true;
+      }
+
       if (
         input.edits !== undefined &&
         (input.content !== undefined || input.fields !== undefined)
@@ -532,7 +538,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
         };
       }
 
-      let normalizedInput =
+      const normalizedInput =
         input.edits !== undefined
           ? { content: applyContentEdits(entity.content, input.edits) }
           : normalizeUpdateInput({
@@ -541,39 +547,6 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
                 ? { content: input.content }
                 : {}),
             });
-
-      const isBlankContentApprovalAttempt =
-        normalizedInput.content?.trim().length === 0 &&
-        normalizedInput.fields === undefined;
-
-      const agentStatus = entity.metadata["status"];
-      let mangledApprovalReplay = false;
-      if (
-        input.confirmed &&
-        entity.entityType === "agent" &&
-        (agentStatus === "discovered" || agentStatus === "approved") &&
-        ((!normalizedInput.content && !normalizedInput.fields) ||
-          isBlankContentApprovalAttempt)
-      ) {
-        // Models are known to mangle the approval replay (dropping fields or
-        // sending blank content — bc512ef59). Tolerate the mangling, but only
-        // when the token proves a real pending proposal for this same agent;
-        // a confirmed call fabricated from nothing must not grant trust.
-        const stored = pendingApprovalForEntitySchema.safeParse(
-          confirmationGate.takePending(input.confirmationToken),
-        );
-        if (!stored.success || stored.data.id !== entity.id) {
-          return {
-            success: false,
-            error:
-              "No pending update confirmation found for this agent. Please request the update again and confirm the new approval.",
-          };
-        }
-        normalizedInput = {
-          fields: { status: "approved" },
-        };
-        mangledApprovalReplay = true;
-      }
 
       if (
         normalizedInput.content !== undefined &&
@@ -589,12 +562,6 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
           error:
             "Provide 'content' (full replacement) or 'fields' (partial update)",
         };
-
-      const anchorProfileError = validateAnchorProfileUpdate(
-        entity.entityType,
-        normalizedInput,
-      );
-      if (anchorProfileError) return anchorProfileError;
 
       const fieldPersistenceError = validateFieldUpdatePersistence(
         entity,

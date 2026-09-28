@@ -48,6 +48,7 @@ export class BlogPlugin extends EntityPlugin<
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
     return {
       weight: 2.0,
+      defaultSort: [{ field: "publishedAt", direction: "desc" }],
       projectionSourceRole: "primary",
       publish: { publishStatuses: ["queued", "published"] },
     };
