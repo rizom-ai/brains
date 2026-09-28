@@ -278,7 +278,11 @@ describe("useEditorActions", () => {
         ...noteSchema,
         entityType,
         isSingleton: true,
-        groupingDefinitions: { contributorTypes: [], issues: [] },
+        groupingDefinitions: {
+          contributorTypes: [],
+          systemTypes: [],
+          issues: [],
+        },
       },
     });
     await act(async () => harness.actions().save());

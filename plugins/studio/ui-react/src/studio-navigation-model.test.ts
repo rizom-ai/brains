@@ -4,9 +4,13 @@ import type { EntityTypeInfo, StudioWorkspaceInfo } from "./api";
 import { deriveNavigationModel } from "./studio-navigation-model";
 import { studioTypeHierarchy } from "../../src/config";
 
-function type(entityType: string): EntityTypeInfo {
+function type(
+  entityType: string,
+  classification: EntityTypeInfo["classification"] = "content",
+): EntityTypeInfo {
   return {
     entityType,
+    classification,
     label: entityType,
     isSingleton: false,
     hasBody: true,
@@ -41,11 +45,11 @@ const systemType = SYSTEM_TYPE_GROUPS[0].types[0];
 describe("deriveNavigationModel", () => {
   it("files content types under Library and system types under System", () => {
     const model = deriveNavigationModel({
-      types: [type("post"), type(systemType)],
+      types: [type("post"), type(systemType, "system")],
       active: null,
     });
 
-    expect(studioTypeGroup("post")).toBe("Content");
+    expect(studioTypeGroup(type("post"))).toBe("Content");
     expect(
       model.primaryTypeGroups.flatMap((group) =>
         group.types.map((info) => info.entityType),
@@ -56,6 +60,24 @@ describe("deriveNavigationModel", () => {
         group.types.map((info) => info.entityType),
       ),
     ).toEqual([systemType]);
+  });
+
+  it("classifies custom systems from metadata, not known names or presentation groups", () => {
+    const model = deriveNavigationModel({
+      types: [type("prompt"), type("custom-machine", "system"), type("topic")],
+      active: "custom-machine",
+    });
+    expect(model.currentArea).toBe("system");
+    expect(
+      model.primaryTypeGroups.flatMap((group) =>
+        group.types.map((info) => info.entityType),
+      ),
+    ).toEqual(["prompt", "topic"]);
+    expect(model.secondaryTypeGroups).toEqual([
+      { label: "Other", types: [type("custom-machine", "system")] },
+    ]);
+    expect(studioTypeGroup(type("site-info"))).toBe("Content");
+    expect(studioTypeGroup(type("site-info", "system"))).toBe("Site");
   });
 
   it("makes an area available only when it has somewhere to go", () => {

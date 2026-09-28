@@ -44,6 +44,25 @@ test("groupings include every contributor by default and honor explicit exclusio
   expect(installed[0]?.types).toEqual(["future", "link", "note", "post"]);
 });
 
+test("repairable invalid sections retain authored exclusion names for system-option filtering", async () => {
+  const source = new GroupingDefinitionSource({
+    getContributorTypes: (): string[] => ["note"],
+    read: async (): Promise<{ content: string; contentHash: string }> => ({
+      content:
+        "---\ngroupings:\n  clients:\n    label: Clients\n    multiple: true\n    values: []\n    excludeTypes: [prompt, future, prompt]\n---\n",
+      contentHash: "invalid",
+    }),
+    validate: (): void => {},
+    replace: (): void => {},
+  });
+  await source.ensureCurrent();
+  expect(source.getSnapshot().groupings).toEqual({});
+  expect(source.getSnapshot().issues.length).toBeGreaterThan(0);
+  expect(source.getSnapshot().excludedTypes).toEqual(["prompt", "future"]);
+  source.getSnapshot().excludedTypes.push("not-authored");
+  expect(source.getSnapshot().excludedTypes).toEqual(["prompt", "future"]);
+});
+
 test("no type configuration is required; exclusions must be exact unique nonempty names", () => {
   const definition = { label: "Clients", multiple: true };
   expect(groupingDefinitionSchema.parse(definition)).toEqual(definition);

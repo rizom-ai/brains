@@ -72,26 +72,41 @@ export function deriveNavigationModel(
   const groups = (["Content", "Collections", "Site", "System"] as const)
     .map((label) => ({
       label,
-      types: input.types.filter(
-        (info) => studioTypeGroup(info.entityType) === label,
-      ),
+      types: input.types.filter((info) => studioTypeGroup(info) === label),
     }))
     .filter((group) => group.types.length > 0);
   const primaryTypeGroups = groups.filter(
     (group) => group.label === "Content" || group.label === "Collections",
   );
   const systemTypes = (ids: string[]): EntityTypeInfo[] =>
-    ids.flatMap((id) => input.types.filter((info) => info.entityType === id));
+    ids.flatMap((id) =>
+      input.types.filter(
+        (info) => info.entityType === id && info.classification === "system",
+      ),
+    );
   const secondaryTypeGroups = [
     ...SYSTEM_TYPE_GROUPS.map((group) => ({
       label: group.label,
       types: systemTypes([...group.types]),
     })),
     ...groups.filter((group) => group.label === "Site"),
+    {
+      label: "Other",
+      types: input.types.filter(
+        (info) =>
+          studioTypeGroup(info) === "System" &&
+          !SYSTEM_TYPE_GROUPS.some((group) =>
+            group.types.some((type) => type === info.entityType),
+          ),
+      ),
+    },
   ].filter((group) => group.types.length > 0);
   const currentArea = input.groupings?.active
     ? "library"
-    : studioArea(input.active, input.activeWorkspace ?? null);
+    : studioArea(
+        input.types.find((type) => type.entityType === input.active) ?? null,
+        input.activeWorkspace ?? null,
+      );
   const destination = input.groupings?.active
     ? `${MOBILE_GROUPING_PREFIX}${input.groupings.active}`
     : (input.activeWorkspace ?? input.active);

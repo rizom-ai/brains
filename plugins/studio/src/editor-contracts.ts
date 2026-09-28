@@ -3,7 +3,11 @@ import type {
   AuthPrincipal,
 } from "@brains/auth-service";
 import type { ActorRef } from "@brains/contracts";
-import type { ContentVisibility, ServicePluginContext } from "@brains/plugins";
+import type {
+  ContentVisibility,
+  ServicePluginContext,
+  EntityTypeClassification,
+} from "@brains/plugins";
 import type { StudioEntityDisplayMap, StudioTypeHierarchy } from "./config";
 import type { GroupingDefinitionsSnapshot } from "./grouping-definitions-contract";
 import type { StudioWorkspaceRegistry } from "./workspace-registry";
@@ -31,6 +35,7 @@ export interface StudioTypeCapabilities {
 /** One entity type in Studio's type list. */
 export interface StudioEntityTypeInfo {
   entityType: string;
+  classification: EntityTypeClassification;
   label: string;
   isSingleton: boolean;
   hasBody: boolean;

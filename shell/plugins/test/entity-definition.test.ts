@@ -15,6 +15,40 @@ import {
 } from "../src";
 
 describe("entity package definitions", () => {
+  it("carries author-owned system classification through public package installation", async () => {
+    const ordinary = defineEntity({
+      type: "ordinary",
+      purpose: "Content",
+      metadata: z.object({}),
+    });
+    const system = defineEntity({
+      type: "custom-machine",
+      purpose: "Operating instructions",
+      classification: "system",
+      metadata: z.object({}),
+    });
+    expect(ordinary.classification).toBe("content");
+    expect(system.classification).toBe("system");
+    const definition = defineEntityPackage({
+      id: "classified",
+      entities: [ordinary, system],
+    });
+    const plugins = instantiatePluginPackageDefinition(
+      definition,
+      {},
+      { name: "@fixture/classified", version: "0.1.0" },
+    );
+    const harness = createPluginHarness({ logger: createSilentLogger() });
+    for (const plugin of plugins) await harness.installPlugin(plugin);
+    expect(
+      harness.getEntityRegistry().getEntityTypeConfig("ordinary")
+        .classification,
+    ).toBe("content");
+    expect(
+      harness.getEntityRegistry().getEntityTypeConfig("custom-machine")
+        .classification,
+    ).toBe("system");
+  });
   it("infers domain entities and creates a scoped package definition", async () => {
     const bookmark = defineEntity({
       type: "bookmark",

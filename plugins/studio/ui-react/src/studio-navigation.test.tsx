@@ -29,6 +29,7 @@ const capabilities: EntityTypeInfo["capabilities"] = {
 const types: EntityTypeInfo[] = [
   {
     entityType: "note",
+    classification: "content",
     label: "Notes",
     isSingleton: false,
     hasBody: true,
@@ -38,6 +39,7 @@ const types: EntityTypeInfo[] = [
   },
   {
     entityType: "style-guide",
+    classification: "system",
     label: "Style Guides",
     isSingleton: true,
     hasBody: true,
@@ -47,6 +49,7 @@ const types: EntityTypeInfo[] = [
   },
   {
     entityType: "prompt",
+    classification: "system",
     label: "Prompts",
     isSingleton: false,
     hasBody: true,
@@ -56,6 +59,7 @@ const types: EntityTypeInfo[] = [
   },
   {
     entityType: "agent",
+    classification: "system",
     label: "Agents",
     isSingleton: false,
     hasBody: true,

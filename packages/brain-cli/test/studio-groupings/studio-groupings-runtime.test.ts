@@ -17,6 +17,7 @@ import { createTestEntityAdapter } from "@brains/entity-service/test";
 import { noteAdapter, noteSchema } from "@brains/note";
 import { blogPostAdapter, blogPostSchema } from "@brains/blog";
 import { linkAdapter, linkSchema } from "@brains/link";
+import { PromptPlugin } from "@brains/prompt";
 import { createServicePluginContext } from "@brains/plugins";
 import { createMockShell } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
@@ -170,6 +171,136 @@ function content(values: string[], entityType = "note"): string {
 }
 
 describe("document-backed runtime definitions with real adapters", () => {
+  test("system classification removes real prompts from groupings without rewriting authored source", async () => {
+    const dir = await directory();
+    const plugin = new PromptPlugin();
+    const legacy = await open(dir, (registry) =>
+      registry.registerEntityType(
+        plugin.entityType,
+        plugin.schema,
+        plugin.adapter,
+      ),
+    );
+    const exact = [" Ka21, exact ", " Ka21, exact ", "Stray"];
+    await legacy.service.createEntityFromMarkdown({
+      input: {
+        entityType: "prompt",
+        id: "guidance",
+        markdown: generateMarkdown(
+          {
+            title: "Guidance",
+            target: "note:test",
+            areas: exact,
+            visibility: "shared",
+          },
+          "Keep these instructions.",
+        ),
+      },
+    });
+    await legacy.service.createEntityFromMarkdown({
+      input: { entityType: "note", id: "content", markdown: content(["Acme"]) },
+    });
+    expect(
+      (
+        await save(legacy, {
+          areas: { ...areas, multiple: false, values: ["Acme"] },
+        })
+      ).status,
+    ).toBe(201);
+    const before = await legacy.service.getEntityRaw({
+      entityType: "prompt",
+      id: "guidance",
+      visibilityScope: "shared",
+    });
+    if (!before) throw new Error("Missing prompt");
+    const exportsBefore = await legacy.service.listPendingEntityExports();
+    const current = await open(dir, (registry) =>
+      registry.registerEntityType(
+        plugin.entityType,
+        plugin.schema,
+        plugin.adapter,
+        plugin.getEntityTypeConfig(),
+      ),
+    );
+    const after = await current.service.getEntityRaw({
+      entityType: "prompt",
+      id: "guidance",
+      visibilityScope: "shared",
+    });
+    expect(after).toMatchObject({
+      content: before.content,
+      contentHash: before.contentHash,
+      created: before.created,
+      updated: before.updated,
+    });
+    expect(after?.metadata["areas"]).toBeUndefined();
+    expect(await current.service.listPendingEntityExports()).toEqual(
+      exportsBefore,
+    );
+    expect(
+      await (
+        await current.request("GET", "groups/catalog?grouping=areas")
+      ).json(),
+    ).toMatchObject({
+      values: [{ value: "Acme", count: 1 }],
+      grouping: { types: ["note", "post"] },
+    });
+    const schema = await (
+      await current.request("GET", "schema?type=prompt")
+    ).json();
+    expect(
+      schema.fields.some((field: { name: string }) => field.name === "areas"),
+    ).toBe(false);
+    const navigation = await (await current.request("GET", "types")).json();
+    expect(
+      navigation.types.find(
+        (info: { entityType: string }) => info.entityType === "prompt",
+      ),
+    ).toMatchObject({ classification: "system" });
+    expect(
+      (
+        await current.request("PUT", "entities", {
+          entityType: "prompt",
+          id: "guidance",
+          frontmatter: {
+            title: "Guidance",
+            target: "note:test",
+            visibility: "shared",
+          },
+          body: "Edited instructions.",
+        })
+      ).status,
+    ).toBe(200);
+    const edited = await current.service.getEntityRaw({
+      entityType: "prompt",
+      id: "guidance",
+      visibilityScope: "shared",
+    });
+    expect(parseMarkdown(edited?.content ?? "").frontmatter["areas"]).toEqual(
+      exact,
+    );
+    expect(
+      (
+        await save(
+          current,
+          { areas: { ...areas, excludeTypes: ["prompt", "missing"] } },
+          "PUT",
+        )
+      ).status,
+    ).toBe(200);
+    const definitions = await (
+      await current.request("GET", "schema?type=grouping-definitions")
+    ).json();
+    expect(definitions.groupingDefinitions.systemTypes).toEqual(["prompt"]);
+    expect(
+      definitions.groupingDefinitions.contributorTypes.map(
+        (info: { entityType: string }) => info.entityType,
+      ),
+    ).toEqual(["note", "post"]);
+    expect(
+      current.source.getSnapshot().groupings["areas"]?.excludeTypes,
+    ).toEqual(["prompt", "missing"]);
+  });
   test("the mounted editor creates shared definitions, retains duplicate-key drafts and refuses stale saves", async () => {
     const fixture = await open(await directory());
     const original =

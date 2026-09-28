@@ -81,6 +81,7 @@ const editCapabilities = {
 const types = [
   {
     entityType: "posts",
+    classification: "content",
     label: "Field notes",
     isSingleton: false,
     hasBody: true,
@@ -89,6 +90,7 @@ const types = [
   },
   {
     entityType: "docs",
+    classification: "content",
     label: "Documentation",
     isSingleton: false,
     hasBody: true,
@@ -97,6 +99,7 @@ const types = [
   },
   {
     entityType: "settings",
+    classification: "system",
     label: "Site settings",
     isSingleton: true,
     hasBody: false,
@@ -127,7 +130,12 @@ types.push(
     { entityType: "prompt", label: "Prompts", isSingleton: false, count: 18 },
     { entityType: "skill", label: "Skills", isSingleton: false, count: 3 },
     { entityType: "agent", label: "Agents", isSingleton: false, count: 15 },
-  ].map((info) => ({ ...info, hasBody: true, capabilities: editCapabilities })),
+  ].map((info) => ({
+    ...info,
+    classification: "system",
+    hasBody: true,
+    capabilities: editCapabilities,
+  })),
 );
 const entities = [
   {
@@ -187,6 +195,7 @@ let lastSystemSave:
   { frontmatter?: Record<string, unknown>; body?: string } | undefined;
 const systemTypes = [...systemFixtures.values()].map((fixture) => ({
   entityType: fixture.entityType,
+  classification: "system",
   label: fixture.label,
   isSingleton: fixture.isSingleton,
   hasBody: fixture.hasBody,

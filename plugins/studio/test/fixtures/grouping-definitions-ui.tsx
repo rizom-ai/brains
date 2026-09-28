@@ -106,6 +106,7 @@ function Review(): ReactElement {
           <StudioGroupingDefinitionsEditor
             value={draft}
             savedKeys={Object.keys(saved)}
+            systemTypes={[]}
             contributorTypes={[
               { entityType: "note", label: "Notes" },
               { entityType: "post", label: "Posts" },

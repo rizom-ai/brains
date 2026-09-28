@@ -32,7 +32,11 @@ interface DefinitionSourceDependencies {
 export class GroupingDefinitionSource {
   private previous: DefinitionRow | null | undefined;
   private previousTypes: string | undefined;
-  private snapshot: GroupingDefinitionsSnapshot = { groupings: {}, issues: [] };
+  private snapshot: GroupingDefinitionsSnapshot = {
+    groupings: {},
+    issues: [],
+    excludedTypes: [],
+  };
   private pending: Promise<void> = Promise.resolve();
   private readonly dependencies: DefinitionSourceDependencies;
 
@@ -80,7 +84,7 @@ export class GroupingDefinitionSource {
       return;
     const snapshot = row
       ? this.parseStored(row.content)
-      : { groupings: {}, issues: [] };
+      : { groupings: {}, issues: [], excludedTypes: [] };
     // An observer may have missed intermediate removals. Recheck retained
     // fields too; only the saving process can use its immediate before/after
     // view to limit a normal edit to added pairs. These are existing document
@@ -106,6 +110,7 @@ export class GroupingDefinitionSource {
       // never a failed database read or failed registry replacement.
       return {
         groupings: {},
+        excludedTypes: [],
         issues: [
           {
             path: ["groupings"],
@@ -120,6 +125,7 @@ export class GroupingDefinitionSource {
     if (!isRecord(entries))
       return {
         groupings: {},
+        excludedTypes: [],
         issues: [
           {
             path: ["groupings"],
@@ -133,7 +139,22 @@ export class GroupingDefinitionSource {
   private selectDefinitions(
     entries: Record<string, unknown>,
   ): GroupingDefinitionsSnapshot {
-    const snapshot: GroupingDefinitionsSnapshot = { groupings: {}, issues: [] };
+    const excludedTypes = [
+      ...new Set(
+        Object.values(entries).flatMap((entry) => {
+          if (!isRecord(entry) || !Array.isArray(entry["excludeTypes"]))
+            return [];
+          return entry["excludeTypes"].filter(
+            (type): type is string => typeof type === "string",
+          );
+        }),
+      ),
+    ];
+    const snapshot: GroupingDefinitionsSnapshot = {
+      groupings: {},
+      issues: [],
+      excludedTypes,
+    };
     for (const [key, value] of Object.entries(entries)) {
       const parsedKey = entityGroupingSchema.shape.key.safeParse(key);
       const parsed = groupingDefinitionSchema.safeParse(value);

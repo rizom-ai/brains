@@ -189,6 +189,26 @@ test("packed Studio definitions and field tools preserve multiple runtime groupi
     });
     expect(closedDefinitions).toContain("multiple: false");
     expect(closedDefinitions).toContain("values:");
+    const systemCreated = await tool(
+      "system_create",
+      {
+        entityType: "prompt",
+        title: "Packed Instructions",
+        source: {
+          kind: "text",
+          content:
+            '---\ntitle: Packed Instructions\ntarget: note:test\nclients: [" Ka21, exact ", " Ka21, exact ", Stray]\n---\n\nInstructions.',
+        },
+      },
+      true,
+    );
+    expect(systemCreated).toContain("packed-instructions");
+    const systemSaved = await tool("system_get", {
+      entityType: "prompt",
+      id: "packed-instructions",
+    });
+    expect(systemSaved.match(/ Ka21, exact /g)).toHaveLength(2);
+    expect(systemSaved).toContain("Stray");
     const refused = startCommand(
       [
         "bun",

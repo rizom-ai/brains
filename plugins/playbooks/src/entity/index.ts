@@ -28,7 +28,11 @@ export class PlaybookPlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { projectionSource: false, projectionSourceRole: "excluded" };
+    return {
+      classification: "system",
+      projectionSource: false,
+      projectionSourceRole: "excluded",
+    };
   }
 
   protected override async getInstructions(): Promise<string> {

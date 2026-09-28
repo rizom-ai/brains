@@ -126,6 +126,12 @@ Most schema-invalid stored entities cannot be reconstructed. A control-document 
 
 Studio uses this boundary for its admin-authored `grouping-definitions` singleton. Labels, contributing types, independent cardinality and optional exact lists share one source. Changes affect the next write, including tool and import writes, without weakening owner schemas or rewriting previously stored content. Reads and startup reprojection retain stray memberships.
 
+## Entity-type classification
+
+Registration accepts plugin-owned `classification: "content" | "system"`, validated before registration and defaulting to `content`. This describes semantic ownership, independently of permissions, embedding/search settings and projection-source policy; it is not per-entity frontmatter or instance configuration. Registration snapshots this value. Public entity packages declare it through `defineEntity`.
+
+`isGroupingContributor(adapter, config)` is the shared eligibility rule: only content types with frontmatter adapters, excluding singletons and binary assets, may participate. Registry validation rejects ineligible contributors atomically; Studio uses the same rule for fields, descriptors and exclusion choices. A changed classification does not rewrite authored source or timestamps; normal grouping reprojection updates only derived membership state.
+
 ## Grouping queries (internal client)
 
 A grouping is a declared dimension — Clients, Projects — resolved from one

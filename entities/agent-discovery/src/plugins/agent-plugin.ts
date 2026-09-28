@@ -49,7 +49,7 @@ export class AgentDiscoveryPlugin extends EntityPlugin<
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
-    return { projectionSourceRole: "supporting" };
+    return { classification: "system", projectionSourceRole: "supporting" };
   }
 
   protected override createGenerationHandler(

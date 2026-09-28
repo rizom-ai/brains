@@ -4,6 +4,8 @@ import {
 } from "./grouping-projection-state";
 import type { Logger } from "@brains/utils/logger";
 import { EntityValidationError } from "./errors";
+import { entityTypeClassificationSchema } from "./entity-type-classification";
+import { isGroupingContributor } from "./grouping-eligibility";
 import { baseEntitySchema, contentVisibilitySchema } from "./types";
 import {
   projectFrontmatterExtensions,
@@ -83,14 +85,15 @@ export class EntityRegistry implements IEntityRegistry {
       );
     }
 
-    // Schema validation handled by Zod - works correctly with extended schemas
+    // Validate before mutating registration state; callers cannot alter the role later.
+    const classification = entityTypeClassificationSchema.parse(
+      config?.classification,
+    );
 
     // Register schema, adapter, and config
     this.entitySchemas.set(type, schema);
     this.entityAdapters.set(type, adapter);
-    if (config) {
-      this.entityConfigs.set(type, config);
-    }
+    this.entityConfigs.set(type, { ...config, classification });
 
     this.logger.debug(`Registered entity type: ${type}`);
   }
@@ -231,7 +234,7 @@ export class EntityRegistry implements IEntityRegistry {
    * Get configuration for a specific entity type
    */
   getEntityTypeConfig(type: string): EntityTypeConfig {
-    return this.entityConfigs.get(type) ?? {};
+    return { ...this.entityConfigs.get(type) };
   }
 
   /**
@@ -438,10 +441,13 @@ export class EntityRegistry implements IEntityRegistry {
       if (
         !this.hasEntityType(type) ||
         !schema ||
-        this.getEntityTypeConfig(type).binaryStorage === "asset"
+        !isGroupingContributor(
+          this.entityAdapters.get(type),
+          this.getEntityTypeConfig(type),
+        )
       ) {
         throw new Error(
-          `Grouping requires a registered frontmatter entity type: ${type}`,
+          `Grouping requires an eligible content entity type: ${type}`,
         );
       }
       const field = schema.shape[grouping.field];
