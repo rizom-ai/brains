@@ -236,6 +236,23 @@ try {
       join(context, `dist/${name}.js`),
       await bundle(join(fixture, `${name}.ts`)),
     );
+  // The standalone owner uses the normal five-store factory, whose bundled
+  // modules resolve this explicit sibling worker tree inside the image.
+  await mkdir(join(context, "dist/turso-worker"), { recursive: true });
+  for (const name of [
+    "worker",
+    "network-ingress-worker",
+    "network-read-worker",
+  ])
+    await writeFile(
+      join(context, `dist/turso-worker/${name}.ts`),
+      await bundle(
+        resolve(
+          import.meta.dir,
+          `../../../shared/db/src/turso-worker/${name}.ts`,
+        ),
+      ),
+    );
   for (const name of [
     "auth-service",
     "entity-service",

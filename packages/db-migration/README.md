@@ -9,7 +9,11 @@ Use a verified 0.2 predeploy snapshot directory containing `manifest.json`,
 `manifest.sha256`, and its captured database files. The importer validates the
 manifest checksum, source version, file sizes and hashes, database integrity,
 and foreign keys. It rejects symlinked files, database sidecars, missing files,
-and processing jobs. Never pass an active data directory.
+and processing jobs. It also refuses historical inline image/PDF rows containing
+`data:` payloads: 0.3 requires asset references, and this importer does not yet
+perform that conversion. A matching table digest would only preserve the unusable
+representation. Empty pending/failed placeholders and existing asset-backed rows
+are not rejected by this preflight. Never pass an active data directory.
 
 Stop all 0.2 writers first, including auth replica synchronization. Resolve any
 in-flight jobs on 0.2 and recapture the backup; the importer deliberately refuses
@@ -78,6 +82,10 @@ recovery policy before opening traffic. Never open 0.3 files with the 0.2 engine
 
 ## Remaining release gates
 
+- Offline inline-image/PDF conversion with asset verification and explicit
+  evidence for the intentional entity-content changes; no runtime fallback.
+- Representative large-asset/corpus import and bounded verification, beyond the
+  small asset-backed fixture.
 - Turso-aware operational backup and verified restore (including auth).
 - Full content/configuration restore and deployment integration.
 - Rehearsed interruption/rollback and auth/login/job execution on a representative

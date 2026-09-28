@@ -242,6 +242,19 @@ export async function importBackup(
             );
           }
         }
+        if (database.service === "entity-service") {
+          // A byte-preserving table digest is not binary-format conversion.
+          // Check on the private legacy copy, before materializing payload rows
+          // or presenting an unchanged inline image/PDF as a verified import.
+          const inline = await legacy.execute(
+            "SELECT count(*) AS count FROM entities WHERE entityType IN ('image', 'document') AND instr(content, 'data:') > 0",
+          );
+          if (Number(inline.rows[0]?.["count"]) !== 0) {
+            throw new Error(
+              "Backup contains inline image or document content requiring offline conversion before 0.3. This importer does not convert it; no destination will be published.",
+            );
+          }
+        }
         before = await durableTableEvidence(
           legacy,
           database.service === "entity-service",
@@ -315,6 +328,7 @@ export async function importBackup(
       contentAndConfigurationRestoreRequired: true,
       embeddings: "regenerate-with-runtime-provider",
       processingJobs: "refused",
+      inlineBinaryEntities: "refused",
       databases: evidence,
     };
     await writeFile(

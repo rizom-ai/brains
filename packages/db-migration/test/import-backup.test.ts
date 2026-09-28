@@ -17,6 +17,8 @@ import { pathToFileURL } from "node:url";
 import { importBackup } from "../src/import-backup";
 import { fileSha256 } from "../src/verify";
 
+const inlinePng =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 const roots: string[] = [];
 afterEach(async () => {
   for (const root of roots.splice(0))
@@ -228,6 +230,14 @@ describe("offline database import", () => {
       }),
     );
     await run(["bun", "install"], consumer);
+    expect(
+      await fileSha256(
+        join(
+          consumer,
+          "node_modules/@rizom/db-migration/dist/brain-db-migrate.js",
+        ),
+      ),
+    ).toBe(await fileSha256(join(packageRoot, "dist/brain-db-migrate.js")));
     const output = await run(
       [
         "bun",
@@ -289,6 +299,7 @@ describe("offline database import", () => {
       outcome: "databases-verified",
       engine: "turso",
       contentAndConfigurationRestoreRequired: true,
+      inlineBinaryEntities: "refused",
     });
     for (const [name] of sources) {
       const path = join(
@@ -328,6 +339,132 @@ describe("offline database import", () => {
         await closeSqliteClient(client);
       }
     }
+  });
+
+  test.each([
+    ["image", inlinePng],
+    ["document", "data:application/pdf;base64,JVBERi0xLjc="],
+    ["image", `---\nvisibility: restricted\n---\n${inlinePng}`],
+  ])(
+    "refuses unconverted inline %s content without publishing output",
+    async (entityType, content) => {
+      const { backup, destination } = await snapshot();
+      const path = join(backup, "brain.db");
+      const source = createClient({ url: pathToFileURL(path).href });
+      try {
+        await source.execute({
+          sql: "INSERT INTO entities (id, entityType, content, contentHash, visibility, metadata, created, updated) VALUES ('private-binary', ?, ?, 'old-content-hash', 'restricted', ?, 1, 1)",
+          args: [
+            entityType,
+            content,
+            JSON.stringify(
+              entityType === "document"
+                ? { mimeType: "application/pdf", filename: "private.pdf" }
+                : {},
+            ),
+          ],
+        });
+      } finally {
+        await closeSqliteClient(source);
+      }
+      await writeManifest(backup);
+      const hash = await fileSha256(path);
+
+      const failure = await failedImport(backup, destination);
+      expect(failure).toBeInstanceOf(Error);
+      if (!(failure instanceof Error))
+        throw new Error("Expected import refusal");
+      expect(String(failure.cause)).toContain(
+        "inline image or document content",
+      );
+      expect(String(failure.cause)).not.toContain(content);
+      expect(existsSync(destination)).toBe(false);
+      expect(existsSync(`${destination}.import-lock`)).toBe(false);
+      expect(await fileSha256(path)).toBe(hash);
+    },
+  );
+
+  test("preserves asset-backed image bytes and empty binary placeholders", async () => {
+    const { backup, destination } = await snapshot();
+    const bytes = Buffer.from(
+      inlinePng.slice(inlinePng.indexOf(",") + 1),
+      "base64",
+    );
+    const digest = new Bun.CryptoHasher("sha256").update(bytes).digest("hex");
+    const ref = `asset://sha256/${digest}`;
+    const sourcePath = join(backup, "brain.db");
+    const source = createClient({ url: pathToFileURL(sourcePath).href });
+    try {
+      await source.execute({
+        sql: "INSERT INTO assets (digest, bytes, size_bytes, created) VALUES (?, ?, ?, 1)",
+        args: [digest, bytes, bytes.byteLength],
+      });
+      for (const [id, entityType, content, metadata] of [
+        [
+          "asset-image",
+          "image",
+          ref,
+          {
+            format: "png",
+            mediaType: "image/png",
+            width: 1,
+            height: 1,
+            sizeBytes: bytes.byteLength,
+            status: "draft",
+          },
+        ],
+        ["pending-image", "image", "", { status: "pending" }],
+        [
+          "failed-document",
+          "document",
+          "",
+          {
+            status: "failed",
+            mimeType: "application/pdf",
+            filename: "retained.pdf",
+          },
+        ],
+      ] as const) {
+        await source.execute({
+          sql: "INSERT INTO entities (id, entityType, content, contentHash, visibility, metadata, created, updated) VALUES (?, ?, ?, 'fixture-hash', 'restricted', ?, 1, 1)",
+          args: [id, entityType, content, JSON.stringify(metadata)],
+        });
+      }
+    } finally {
+      await closeSqliteClient(source);
+    }
+    await writeManifest(backup);
+    const sourceHash = await fileSha256(sourcePath);
+    await importBackup({
+      backupDirectory: backup,
+      destination,
+      sourceStopped: true,
+    });
+    const { client } = createSqliteDatabase({
+      url: pathToFileURL(join(destination, "brain.db")).href,
+      schema: {},
+    });
+    try {
+      const asset = await client.execute({
+        sql: "SELECT hex(bytes) AS bytes, size_bytes FROM assets WHERE digest = ?",
+        args: [digest],
+      });
+      expect(asset.rows[0]?.["bytes"]).toBe(
+        bytes.toString("hex").toUpperCase(),
+      );
+      expect(asset.rows[0]?.["size_bytes"]).toBe(bytes.byteLength);
+      const entities = await client.execute(
+        "SELECT id, content FROM entities WHERE id IN ('asset-image', 'pending-image', 'failed-document') ORDER BY id",
+      );
+      expect(entities.rows.map((row) => [row["id"], row["content"]])).toEqual([
+        ["asset-image", ref],
+        ["failed-document", ""],
+        ["pending-image", ""],
+      ]);
+    } finally {
+      await closeSqliteClient(client);
+    }
+    expect(await fileSha256(sourcePath)).toBe(sourceHash);
   });
 
   test("refuses an existing destination without touching it", async () => {
