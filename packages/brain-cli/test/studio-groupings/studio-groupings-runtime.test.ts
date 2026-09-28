@@ -13,10 +13,14 @@ import { baseEntitySchema } from "@brains/entity-service";
 import { createTestEntityAdapter } from "@brains/entity-service/test";
 import { noteAdapter, noteSchema } from "@brains/note";
 import { blogPostAdapter, blogPostSchema } from "@brains/blog";
+import { linkAdapter, linkSchema } from "@brains/link";
 import { createServicePluginContext } from "@brains/plugins";
 import { createMockShell } from "@brains/plugins/test";
 import { createSilentLogger, createTestDirectory } from "@brains/test-utils";
-import { parseMarkdown } from "@brains/utils/markdown-frontmatter";
+import {
+  generateMarkdown,
+  parseMarkdown,
+} from "@brains/utils/markdown-frontmatter";
 import {
   PermissionService,
   type EntityActionPolicyRule,
@@ -1151,6 +1155,134 @@ describe("document-backed runtime definitions with real adapters", () => {
         })
       ).values,
     ).toEqual([{ value: "Outside", count: 1 }]);
+  });
+
+  test("real Links gain grouping fields by default and retain unclaimed source across exclusions", async () => {
+    const fixture = await open(await directory(), (registry) => {
+      registry.registerEntityType("link", linkSchema, linkAdapter);
+    });
+    const closed = { ...areas, multiple: false, values: ["Allowed"] };
+    const exact = " Ka21, exact ";
+    const frontmatter = {
+      title: "Link member",
+      status: "draft",
+      url: "https://example.invalid/member",
+      domain: "example.invalid",
+      capturedAt: "2026-09-28T00:00:00.000Z",
+      source: { ref: "cli:test", label: "Test" },
+      visibility: "shared",
+      areas: [exact],
+    };
+    expect((await save(fixture, { areas: closed })).status).toBe(201);
+    expect(
+      await (await fixture.request("GET", "schema?type=link")).json(),
+    ).toMatchObject({
+      fields: expect.arrayContaining([
+        expect.objectContaining({ name: "areas", label: "Areas" }),
+      ]),
+    });
+    expect(
+      (
+        await fixture.request(
+          "POST",
+          "entities",
+          {
+            entityType: "link",
+            idPath: ["refused"],
+            frontmatter,
+            body: "Body",
+          },
+          "trusted",
+        )
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await save(
+          fixture,
+          { areas: { ...closed, excludeTypes: ["link"] } },
+          "PUT",
+        )
+      ).status,
+    ).toBe(200);
+    expect(
+      await (await fixture.request("GET", "schema?type=link")).json(),
+    ).toMatchObject({
+      fields: expect.not.arrayContaining([
+        expect.objectContaining({ name: "areas" }),
+      ]),
+    });
+    // Unclaimed fields are authored through full source, not the structured
+    // create form whose inputs are limited to the currently declared schema.
+    await fixture.service.createEntityFromMarkdown({
+      input: {
+        entityType: "link",
+        id: "member",
+        markdown: generateMarkdown(frontmatter, "Body"),
+      },
+    });
+    expect(
+      (
+        await fixture.request(
+          "PUT",
+          "entities",
+          {
+            entityType: "link",
+            id: "member",
+            frontmatter,
+            body: "Edited while excluded",
+          },
+          "trusted",
+        )
+      ).status,
+    ).toBe(200);
+    const before = await fixture.service.getEntityRaw({
+      entityType: "link",
+      id: "member",
+      visibilityScope: "shared",
+    });
+    expect(parseMarkdown(before?.content ?? "").frontmatter["areas"]).toEqual([
+      exact,
+    ]);
+    expect((await save(fixture, { areas: closed }, "PUT")).status).toBe(200);
+    expect(
+      await (await fixture.request("GET", "schema?type=link")).json(),
+    ).toMatchObject({
+      fields: expect.arrayContaining([
+        expect.objectContaining({ name: "areas", label: "Areas" }),
+      ]),
+    });
+    expect(
+      (
+        await fixture.service.queryGroupingCatalog({
+          grouping: "areas",
+          entityTypes: ["link"],
+          visibilityScope: "shared",
+        })
+      ).values,
+    ).toEqual([{ value: exact, count: 1 }]);
+    expect(
+      (
+        await fixture.request(
+          "PUT",
+          "entities",
+          {
+            entityType: "link",
+            id: "member",
+            frontmatter,
+            body: "Rejected draft",
+          },
+          "trusted",
+        )
+      ).status,
+    ).toBe(400);
+    expect(
+      await fixture.service.getEntityRaw({
+        entityType: "link",
+        id: "member",
+        visibilityScope: "shared",
+      }),
+    ).toEqual(before);
   });
 
   test("default scope includes content but not singleton controls or binary-only records", async () => {
