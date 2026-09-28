@@ -225,14 +225,22 @@ export const homepageAtlasStyles: string = String.raw`
   .atlas__ask[data-ask-sheet] { margin: 0; max-width: none; }
   .atlas__ask[data-ask-sheet]:not([data-ask-keyboard]) { --ask-sheet-inset: 7.5rem; }
   .atlas:has(.atlas__ask[data-ask-sheet]) .atlas__map {
-    position: fixed; z-index: 1001; top: ${ASK_SHEET_HEADER_HEIGHT}; right: 0; left: 0; height: 7.5rem;
+    position: fixed; z-index: 1001; top: ${ASK_SHEET_HEADER_HEIGHT}; right: 0; left: 0; height: 7.5rem; overflow: hidden;
     background: var(--color-bg); border-bottom: 1px solid var(--color-rule);
   }
-  .atlas:has(.atlas__ask[data-ask-sheet]) .atlas__field { bottom: 0; }
+  /* The strip is a window onto the map at its own size, never a squeeze. It
+     centres where an answer's sources sit (--atlas-strip-y, set by the script)
+     or else the middle of the map's content, and slides between them. */
+  .atlas:has(.atlas__ask[data-ask-sheet]) .atlas__field {
+    inset: auto 0; height: var(--atlas-band);
+    top: clamp(calc(7.5rem - var(--atlas-band)), calc(3.75rem - var(--atlas-band) * var(--atlas-strip-y, calc(var(--atlas-fill, 1) * 50)) / 100), 0rem);
+    transition: transform .9s cubic-bezier(.3, .7, .2, 1), top .9s cubic-bezier(.3, .7, .2, 1);
+  }
   .atlas:has(.atlas__ask[data-ask-sheet]) :is(.atlas__legend, .atlas__zone) { display: none; }
   .atlas:has(.atlas__ask[data-ask-keyboard]) .atlas__map { display: none; }
   /* The page presents the opening beside the box; full screen, the box does. */
   .atlas__ask[data-ask-sheet] .brain-box-welcome { display: block; }
+  .atlas__ask[data-ask-sheet] .brain-box-welcome h2 { display: none; }
   /* Before the box mounts, its composer waits at the foot of the sheet. */
   .atlas__ask[data-ask-sheet] > .atlas__composer { margin: auto 0 .75rem; }
   .atlas__ask[data-ask-sheet] > .atlas__ask-status { margin-top: 1rem; }

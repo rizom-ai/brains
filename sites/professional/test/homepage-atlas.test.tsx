@@ -426,6 +426,10 @@ describe("living atlas", () => {
     expect(phone).toMatch(
       /\.atlas__ask\[data-ask-sheet\]:not\(\[data-ask-keyboard\]\) \{ --ask-sheet-inset: 7\.5rem; \}/,
     );
+    // The strip is a window onto the map at its own size, never a squeeze.
+    expect(phone).toMatch(
+      /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \.atlas__field \{[^}]*height: var\(--atlas-band\);[^}]*top: clamp\(/,
+    );
     // The open conversation rises above the sticky site header.
     expect(phone).toMatch(
       /\.atlas:has\(\.atlas__ask\[data-ask-sheet\]\) \{ z-index: 1000; \}/,

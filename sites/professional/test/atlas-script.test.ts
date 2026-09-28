@@ -307,6 +307,21 @@ describe("atlas and its chat", () => {
     expect(focused()).toBe(true);
   });
 
+  it("says how far down the map the sources sit, for a strip that slides to them", () => {
+    setup({ touch: false, chat: "live" });
+    answer(["post:first"]);
+    const field = window.document.querySelector("[data-atlas-field]");
+    const mark = window.document.querySelector('[data-atlas-key="post:first"]');
+    if (
+      !(field instanceof window.HTMLElement) ||
+      !(mark instanceof window.HTMLElement)
+    )
+      throw new Error("Missing atlas fixture");
+    expect(Number(field.style.getPropertyValue("--atlas-strip-y"))).toBe(
+      parseFloat(mark.style.top),
+    );
+  });
+
   it("zooms all the way towards sources that stay in view", () => {
     setup({ touch: false, chat: "live" });
     answer(["post:first", "post:second"]);

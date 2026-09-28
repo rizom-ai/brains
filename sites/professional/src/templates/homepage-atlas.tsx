@@ -7,6 +7,7 @@ import { layoutZoneLabels, type LabelPlacement } from "../lib/atlas-labels";
 import {
   ASK_BOX_ATTRIBUTE,
   ASK_BOX_SCRIPT_PATH,
+  ASK_NAME_ATTRIBUTE,
   ASK_SEND_ATTRIBUTE,
   ASK_STATUS_ATTRIBUTE,
   ASK_STYLED_ATTRIBUTE,
@@ -236,7 +237,11 @@ export function HomepageAtlas({
           // mounted box; the atlas themes and frames it.
           <div
             className="atlas__ask"
-            {...{ [ASK_BOX_ATTRIBUTE]: "", [ASK_STYLED_ATTRIBUTE]: "" }}
+            {...{
+              [ASK_BOX_ATTRIBUTE]: "",
+              [ASK_STYLED_ATTRIBUTE]: "",
+              ...(owner ? { [ASK_NAME_ATTRIBUTE]: owner } : {}),
+            }}
           >
             <p
               className="atlas__ask-status"
